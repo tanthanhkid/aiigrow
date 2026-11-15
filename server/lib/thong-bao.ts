@@ -8,6 +8,7 @@ import type { BaMe } from "./auth.ts";
 import { gioDiaPhuong, trongKhung } from "./gio.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { bangTvTb, TEN_VAI } from "./thanh-vien.ts";
+import { soVN } from "./so-sao.ts";
 
 // canh_bao_no (15/11, #266): «<Tên> đã nợ quá 1.000 sao» — công tắc «Cảnh báo nợ» trong cài đặt thông báo (tắt ⇒ vẫn có dòng, không đẩy)
 export const NHOM_TB = ["nhiem_vu", "yeu_cau", "qua", "thanh_tich", "ba_me_khac", "canh_bao", "canh_bao_no", "gia_dinh"] as const;
@@ -88,7 +89,7 @@ const YC: Record<string, (c: Record<string, any>) => string> = {
   cai_app: (c) => `xin cài ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: xinVay, ngoai_gio: xinVay,
   khac: (c) => (c.gia_tri ? `xin: ${c.gia_tri}` : "gửi một yêu cầu"),
 };
-const so = (n: unknown) => Number(n ?? 0).toLocaleString("en-US").replace(/,/g, ".");
+const so = soVN;
 const tien = (n: number) => `${Math.round(n).toLocaleString("en-US").replace(/,/g, ".")}đ`;
 
 /** Một sự kiện ⇒ một dòng thông báo (null = không báo). */

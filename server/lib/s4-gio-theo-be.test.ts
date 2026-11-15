@@ -50,9 +50,9 @@ test("S4 hai bé một máy, cùng app Giải trí: usage ghi riêng từng bé,
   const qa = await quyHomNay(anh, now), qm = await quyHomNay(minh, now);
   assert.equal(qa.daDung, 20);
   assert.equal(qm.daDung, 9);
-  // 15/11: mỗi bé 30 sao khởi đầu; phút «Tính phút» trừ sao theo bé. Bảo Minh báo thêm 2 phút chỉ vài mili-giây sau lần trước ⇒ đồng hồ
-  // máy chủ chưa trôi nên chưa trừ (không trừ quá thời gian thật)
-  assert.deepEqual([qa.conPhut, qm.conPhut], [10, 23]);
+  // 15/11: mỗi bé 30 sao khởi đầu. Agent cũ (không gửi `con` theo dòng) trên máy chung: phút trừ kẹp ≤ thời gian bé đã đăng nhập máy —
+  // test đăng nhập rồi báo ngay (vài mili-giây) ⇒ chưa trừ; usage vẫn ghi đúng từng bé
+  assert.deepEqual([qa.conPhut, qm.conPhut], [30, 30]);
 });
 
 test("S4 Ba Mẹ đang dùng máy: không ghi phút cho bé nào", async () => {

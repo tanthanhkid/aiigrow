@@ -36,6 +36,7 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
   const f = (await q<{ tz: string }>(`select tz from families where id = $1`, [may.family_id]))[0];
   const hom = gioDiaPhuong(now, f?.tz ?? "Asia/Ho_Chi_Minh").ngay;
   let n = 0, giayChoi = 0, giayMuc = 0, mucChoi: string | null = null;
+  let cuWeb: Map<string, number> | undefined;     // giây cũ của hôm nay — đọc một lần cho cả lô
   for (const x of (ds as DongWeb[]).slice(0, TOI_DA_MOT_LAN)) {
     const ngay = String(x?.ngay ?? "");
     const mien = tenMienSach(x?.tenMien);
@@ -49,7 +50,10 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
     const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 3_600_000 ? dl : ngay === hom ? now : null;
     // 15/11 (#264): trang «Tính phút» (luật giai_tri) hôm nay — giây tăng thêm so với lần trước ⇒ trừ sao 1:1 (so-sao.ts, theo đồng hồ máy chủ)
     if (con && ngay === hom && giay > 0 && (await phanLoai(may.family_id, con, mien)).loai === "giai_tri") {
-      const cu = Number((await q<{ g: number }>(`select giay as g from web_nhat_ky where device_id = $1 and ngay = $2 and ten_mien = $3`, [may.id, ngay, mien]))[0]?.g ?? 0);
+      cuWeb ??= new Map((await q<{ ten_mien: string; giay: number }>(`select ten_mien, giay from web_nhat_ky where device_id = $1 and ngay = $2`, [may.id, hom]))
+        .map((r) => [r.ten_mien, Number(r.giay)]));
+      const cu = cuWeb.get(mien) ?? 0;
+      cuWeb.set(mien, Math.max(cu, giay));
       if (giay > cu) { giayChoi += giay - cu; if (giay - cu > giayMuc) { giayMuc = giay - cu; mucChoi = mien; } }
     }
     await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, lan_cuoi, dau_luc) values ($1,$2,$3,$4,$5,$6,$7,$8)

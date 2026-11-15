@@ -5,6 +5,7 @@
 import { q } from "./db.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { TEN_CHE_DO_CHAN } from "./chan-co-ban.ts";
+import { soVN } from "./so-sao.ts";
 
 export type DongNhatKy = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null;
   tieu: string; phu: string; nhan: string | null; kieu: "tot" | "xau" | "cho" | "ngoai" | "thuong" };
@@ -34,7 +35,7 @@ export function cauSuKien(loai: string, ct: Record<string, unknown>, ai: string 
     case "dong_y_yeu_cau": return ct.vay === true ? null
       : { tieu: `${nguoi} cho ${XIN[s(ct.loai)] ?? "lời xin"}`, nhan: ct.tru_diem === true ? "Trừ sao" : null, kieu: "thuong" };
     case "cho_vay": return { tieu: `${nguoi} cho vay ${n(ct.so_sao)} sao`, nhan: "Cho vay", kieu: "ngoai",
-      phu: n(ct.no_sau) ? `đang nợ ${n(ct.no_sau).toLocaleString("en-US").replace(/,/g, ".")} sao` : undefined };
+      phu: n(ct.no_sau) ? `đang nợ ${soVN(ct.no_sau)} sao` : undefined };
     case "hoan_tac_vay": return { tieu: `${nguoi} rút lại ${n(ct.so_sao)} sao đã cho vay`, nhan: null, kieu: "thuong" };
     case "tu_choi_yeu_cau": return { tieu: `${nguoi} chưa cho ${XIN[s(ct.loai)] ?? "lời xin"}`, nhan: "Chưa cho", kieu: "xau" };
     case "them_gio": return { tieu: `${nguoi} cho thêm ${n(ct.phut)} phút`, nhan: null, kieu: "thuong" };     // sự kiện cũ (trước 15/11)

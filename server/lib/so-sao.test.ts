@@ -92,7 +92,12 @@ test("cho vay song song không lệch; số sao sai ⇒ lỗi; nhà khác không
   await loi(ss.hoanTacVay(fam, vay.id, "nguoi-khac", t0), "het_hoan_tac");
   await loi(ss.hoanTacVay(fam, vay.id, bm, new Date(t0.getTime() + 61_000)), "het_hoan_tac");
   await tx(async (t) => { await v.khoaCon(t, con); await v.ghiDiem(t, con, -60, "choi", "Chơi"); });   // còn 5 < 15
-  await loi(ss.hoanTacVay(fam, vay.id, bm, t0), "da_tieu");
+  const h = await ss.hoanTacVay(fam, vay.id, bm, t0);
+  assert.deepEqual([h.soSaoHoan, h.tron, h.phutCon, h.no], [5, false, 0, 60], "chỉ rút phần chưa tiêu");
+  await loi(ss.hoanTacVay(fam, vay.id, bm, t0), "het_hoan_tac");
+  const v2 = await ss.choVay(fam, con, 10, bm, {}, undefined, t0);
+  await tx(async (t) => { await v.khoaCon(t, con); await v.ghiDiem(t, con, -10, "choi", "Chơi"); });
+  await loi(ss.hoanTacVay(fam, v2.id, bm, t0), "da_tieu");
 });
 
 test("cảnh báo nợ > 1.000 (#266): −990 vay 20 ⇒ −1.010 có cảnh báo; vay thêm 5 ⇒ nhắc lại, vẫn cho vay được; Thông báo nhóm «Cảnh báo nợ» tắt được", async () => {
@@ -168,14 +173,14 @@ test("đồng bộ agent: phút app «Tính phút» báo thêm ⇒ trừ sao; ap
   await dv(b.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 5 }] });
   assert.equal(await v.soDu(con), 45);
   // gửi lại cùng tổng ⇒ không tính lại
-  await q(`update choi_dong_ho set phu_den = now() - interval '10 minutes' where child_id = $1`, [con]);
+  await q(`update choi_tru set luc = luc - interval '20 minutes' where child_id = $1`, [con]);
   await dv(a.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 5 }] });
   assert.equal(await v.soDu(con), 45);
   await dv(a.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 8 }] });
   assert.equal(await v.soDu(con), 42);
   // Ba Mẹ đang dùng máy bằng mã ⇒ phút không tính cho con
   await q(`update devices set ba_me_den = now() + interval '30 minutes' where id = $1`, [a.deviceId]);
-  await q(`update choi_dong_ho set phu_den = now() - interval '10 minutes' where child_id = $1`, [con]);
+  await q(`update choi_tru set luc = luc - interval '20 minutes' where child_id = $1`, [con]);
   await dv(a.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 15 }] });
   assert.equal(await v.soDu(con), 42);
 });
@@ -222,4 +227,74 @@ test("API Ba Mẹ: gia-dinh có số sao từng Con (âm được); ví sao; xem
   assert.deepEqual([bc.saoKiem, bc.saoVay, bc.lanVay, bc.saoTieu, bc.saoTieuChoi, bc.ngoaiLe], [0, 30, 1, 60, 60, 1]);
   assert.equal((await m(tok, `vay/${cv.body.id}/hoan-tac`, {})).body.error, "da_tieu");
   void minh;
+});
+
+test("review #269: hoàn tác cho vay chỉ rút phần chưa trả / chưa tiêu — vay 30 → nhiệm vụ +10 → hoàn tác → vay 15 ⇒ nợ 15; gỡ cảnh báo nợ; lần vay đã hoàn tác không đếm", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Bảo Anh" });
+  const v1 = await ss.choVay(fam, con, 30, bm);
+  await lamNv(fam, con, bm, 10, "Dọn phòng");
+  assert.deepEqual([await v.soDu(con), await v.noCua(con)], [30, 20]);
+  const h = await ss.hoanTacVay(fam, v1.id, bm);
+  assert.deepEqual([h.soSaoHoan, h.tron, h.no, h.sao, h.phutCon], [20, false, 0, 10, 10], "rút 20, Con giữ 10 sao tự kiếm, nợ không âm");
+  await ss.choVay(fam, con, 15, bm);
+  const st = await ss.trangThaiSao(con);
+  assert.deepEqual([st.no, st.sao, st.phutCon], [15, 10, 25]);
+  // cảnh báo nợ của khoản vay bị rút trọn ⇒ gỡ; lần vay đó không còn đếm
+  const con2 = await g.taoCon(fam, { ten: "Bảo Minh" });
+  await ss.choVay(fam, con2, 1000, bm);
+  const v3 = await ss.choVay(fam, con2, 20, bm);
+  assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'no_qua_1000'`, [fam])).length, 1);
+  await ss.hoanTacVay(fam, v3.id, bm);
+  assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'no_qua_1000'`, [fam])).length, 0);
+  const tk = await ss.thongKeSao(con2, new Date(Date.now() - 86_400_000), new Date(Date.now() + 60_000));
+  assert.deepEqual([tk.lanVay, tk.saoVay], [1, 1000]);
+});
+
+test("review #269 đồng hồ cửa sổ: Roblox 5′ rồi YouTube 5′ nối tiếp (kênh khác nhau) ⇒ trừ 10; hai máy song song 10′ ⇒ trừ 10; kênh báo thưa không mất phút", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Ken" });
+  await v.dieuChinhTay(fam, con, 100, "Thưởng", bm);
+  const T = new Date("2026-11-15T10:00:00Z"), ph = (x: number) => new Date(T.getTime() + x * 60_000);
+  await ss.truPhutChoi(con, 5, ph(5), { muc: "roblox.exe" });          // máy A
+  await ss.truPhutChoi(con, 5, ph(10), { muc: "youtube.com" });        // trang web (kênh khác) ngay sau
+  assert.equal(100 - (await v.soDu(con)), 10);
+  // song song: 2 máy mỗi phút báo 1′, máy B lệch 20 giây
+  for (let i = 1; i <= 10; i++) { await ss.truPhutChoi(con, 1, ph(20 + i)); await ss.truPhutChoi(con, 1, new Date(ph(20 + i).getTime() + 20_000)); }
+  assert.equal(100 - (await v.soDu(con)), 20);
+  // kênh báo dày (phiên, mỗi phút) + kênh báo thưa (usage 10′ một lần) cho cùng lần chơi ⇒ không trừ đôi, không mất
+  for (let i = 1; i <= 9; i++) await ss.truPhutChoi(con, 1, ph(40 + i));
+  await ss.truPhutChoi(con, 10, ph(50));
+  assert.equal(100 - (await v.soDu(con)), 30);
+});
+
+test("review #269 dong-bo: usage ngày cũ không trừ sao; máy chung: dòng có `con` ghi thẳng cho bé đó, agent cũ kẹp theo giờ bé đăng nhập; phutBoiMa không trừ; phien/bu boiMa", async () => {
+  const { fam, bm } = await taoNha();
+  const tok = await taoPhien(bm);
+  const a = (await m(tok, "con", { ten: "Bảo Anh", saoKhoiDau: 60 })).body.id;
+  const b = (await m(tok, "con", { ten: "Bảo Minh", saoKhoiDau: 60 })).body.id;
+  await la.datLuat(fam, { muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" });
+  const chung = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "Máy cả nhà");
+  await q(`insert into device_children(device_id, child_id, family_id) values ($1,$2,$4),($1,$3,$4) on conflict do nothing`, [chung.deviceId, a, b, fam]);
+  await q(`update devices set child_id = null, dung_chung = true, con_dang_dung = $2, dang_nhap_luc = now() - interval '3 minutes' where id = $1`, [chung.deviceId, b]);
+  // ngày cũ: ghi báo cáo, không trừ
+  await dv(chung.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 40, day: "2026-11-01", con: a }] });
+  assert.equal(await v.soDu(a), 60);
+  // agent mới chốt phút bé trước (a: 12′) + bé đang dùng (b: 2′)
+  await dv(chung.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 12, con: a }, { muc: "roblox.exe", phut: 2, con: b }] });
+  assert.deepEqual([await v.soDu(a), await v.soDu(b)], [48, 58]);
+  const hang = await q<{ child_id: string; phut: number }>(`select child_id, phut from usage where device_id = $1 and ngay <> '2026-11-01' order by child_id`, [chung.deviceId]);
+  assert.deepEqual(new Set(hang.map((x) => `${x.child_id}:${x.phut}`)), new Set([`${a}:12`, `${b}:2`]));
+  // agent cũ (không `con`): tổng máy 30 − 12 (a) = 18 cho b, nhưng b mới đăng nhập 3′ ⇒ trừ tối đa ~3 (đã trừ 2 trong cửa sổ ⇒ thêm ≤ 1)
+  await dv(chung.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 30 }] });
+  assert.ok((await v.soDu(b)) >= 55 && (await v.soDu(b)) <= 58, `b còn ${await v.soDu(b)}`);
+  // phút dùng lúc mở bằng mã ⇒ không trừ (máy riêng)
+  const c = (await m(tok, "con", { ten: "Ken", saoKhoiDau: 20 })).body.id;
+  const rieng = await g.ghepMay(await g.taoMaGhep(fam, c, "windows"), "windows", "Laptop Ken");
+  await dv(rieng.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 5 }], phutBoiMa: 5 });
+  assert.equal(await v.soDu(c), 20);
+  const may = (await g.mayTuToken(rieng.token))!;
+  const mc = await import("./may-con.ts");
+  const kq = await mc.buPhien(may, c, { ma: "bm-1", muc: "roblox.exe", phut: 4, boiMa: true });
+  assert.deepEqual([kq.phut, kq.diemTru, await v.soDu(c)], [4, 0, 20]);
 });

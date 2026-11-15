@@ -759,7 +759,8 @@ export const SCHEMA_S3 = [
 //   choi (−N: phút «Tính phút» đã chơi, 1 sao = 1 phút) | khoi_dau (sao tặng khởi đầu khi tạo Con) | qua_phut (quà «Thêm N phút» đã trao = +N sao).
 //   Nợ = tổng delta (vay + tra_no) ≥ 0. Số dư hiển thị (`sao`) = tổng delta − nợ (âm được). Sao tiêu được (= phút chơi còn) = tổng delta ≥ 0.
 // points.cap_nhat: lần cộng dồn cuối của dòng «choi» (một dòng «Chơi YouTube 20 phút» gom các nhịp liền nhau).
-// choi_dong_ho: đồng hồ trừ phút của từng Con — phu_den = mốc giờ máy chủ đã tính tới (2 máy chơi cùng lúc không trừ đôi), phut_le = phần lẻ phút chưa đủ 1 sao.
+// choi_tru: mỗi lần tính phút «Tính phút» (lúc, phút) — đồng hồ theo cửa sổ của so-sao.ts › tinhPhutChoi (song song không trừ đôi, nối tiếp không mất).
+// choi_dong_ho.phut_le: phần lẻ phút chưa đủ 1 sao (phu_den: cột cũ của bản đầu PR, không dùng).
 // requests.muc_dich (lời xin vay sao): choi | qua; gia_tri = id quà khi muc_dich = qua; phut = số sao xin vay (1 sao = 1 phút).
 export const SCHEMA_SAO = [
   `alter table points add column if not exists cap_nhat timestamptz`,
@@ -769,6 +770,12 @@ export const SCHEMA_SAO = [
     phu_den timestamptz,
     phut_le real not null default 0
   )`,
+  `create table if not exists choi_tru (
+    child_id text not null references children(id) on delete cascade,
+    luc timestamptz not null,
+    phut real not null
+  )`,
+  `create index if not exists choi_tru_con_luc on choi_tru(child_id, luc)`,
   `alter table requests add column if not exists muc_dich text`,
   // #264: bỏ quỹ phút miễn phí mỗi ngày — XOÁ cấu hình quỹ / đổi sao / xin thêm giờ / ngoại lệ cũ của mọi nhà (không quy đổi thành sao).
   `update children set cau_hinh = cau_hinh - 'quy_ngay_thuong' - 'quy_cuoi_tuan' - 'quy_phut_ngay_thuong' - 'quy_phut_cuoi_tuan' - 'phut_10_sao'

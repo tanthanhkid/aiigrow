@@ -24,6 +24,9 @@ export const SAO_KHOI_DAU_MD = 30;
 
 export type MucDichVay = "choi" | "qua";
 
+/** Số kiểu Việt: 1.020 · âm dùng dấu trừ thật «−» (U+2212). */
+export const soVN = (n: unknown) => { const x = Math.round(Number(n ?? 0)); return `${x < 0 ? "−" : ""}${Math.abs(x).toLocaleString("en-US").replace(/,/g, ".")}`; };
+
 export type TrangThaiSao = {
   /** số dư Con thấy — âm khi đang nợ */ sao: number;
   /** nợ Ba Mẹ còn lại */ no: number;
@@ -46,10 +49,9 @@ export async function trangThaiSao(con: string, t: Q = q): Promise<TrangThaiSao>
 
 /** Câu cho máy Con / app: «còn 30 sao = 30 phút chơi» · nợ: «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước». */
 export function cauSao(st: TrangThaiSao) {
-  const so = (n: number) => n.toLocaleString("en-US").replace(/,/g, ".");
-  const am = (n: number) => (n < 0 ? `−${so(-n)}` : so(n));
+  const so = soVN;
   return {
-    soDu: `${am(st.sao)} sao`,
+    soDu: `${soVN(st.sao)} sao`,
     phut: st.hetSao ? "Hết sao — xin Ba Mẹ cho vay sao nhé" : `còn ${so(st.phutCon)} sao = ${so(st.phutCon)} phút chơi`,
     no: st.no > 0 ? `Đang nợ Ba Mẹ ${so(st.no)} sao · sao nhiệm vụ trả nợ trước` : null,
   };
@@ -67,15 +69,21 @@ const GOP_DONG_PHUT = 10;   // nhịp cách dòng «choi» cuối ≤ 10 phút (
 /** Mục là app (tệp .exe / .app, gói / bundle dạng com.x.y — như chinh-sach.ts › kieuMuc) hay tên miền. */
 const LA_APP = /\.(exe|app)$|^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app|dev)\.[a-z0-9_-]+(\.[a-z0-9_-]+)+$/i;
 
-/** Trừ `phut` phút «Tính phút» Con vừa dùng (báo từ một máy) — GỌI TRONG giao dịch đã khoaCon(con).
- *  Chỉ tính phần thời gian thật đã trôi kể từ mốc đã tính (phu_den): máy A báo 1 phút lúc 10:00:30, máy B báo 1 phút lúc 10:00:40 ⇒ B chỉ
- *  được tính 10 giây. Phần lẻ cộng dồn (phut_le) — đủ 1 phút mới trừ 1 sao. Hết sao thì dừng trừ (không tự ghi nợ — máy khoá ở lần đồng bộ này).
- *  → { tru: sao vừa trừ, tinh: phút được tính, trangThai } */
+/** Trừ `phut` phút «Tính phút» Con vừa dùng (một lần báo của MỘT kênh: một máy / một phiên) — GỌI TRONG giao dịch đã khoaCon(con).
+ *  Đồng hồ theo CỬA SỔ: lần báo `phut` phút lúc `now` được coi là chơi trong (now − phut, now]; phút trừ thêm =
+ *  phut − phút đã tính (mọi kênh) trong chính cửa sổ đó ⇒ hai máy chơi SONG SONG không trừ đôi, còn chơi NỐI TIẾP (Roblox 5′ rồi YouTube 5′,
+ *  kênh báo thưa / dày khác nhau) không mất phút. Mỗi lần tính ghi một dòng choi_tru (lúc, phút). Phần lẻ cộng dồn (phut_le) — đủ 1 phút
+ *  trừ 1 sao. Hết sao thì dừng trừ (không tự ghi nợ — máy khoá ở lần đồng bộ này). → { tru: sao vừa trừ, tinh: phút được tính } */
 export async function tinhPhutChoi(t: Q, con: string, phut: number, now = new Date(), o: { muc?: string | null; tz?: string } = {}) {
   if (!(Number.isFinite(phut) && phut > 0)) return { tru: 0, tinh: 0 };
-  const r = (await t<{ phu_den: Date | null; phut_le: number }>(`select phu_den, phut_le from choi_dong_ho where child_id = $1`, [con]))[0];
-  const troi = r?.phu_den ? Math.max(0, (now.getTime() - new Date(r.phu_den).getTime()) / 60000) : Infinity;
-  const tinh = Math.min(phut, troi);
+  const tu = new Date(now.getTime() - phut * 60_000);
+  const da = Number((await t<{ p: number }>(`select coalesce(sum(phut), 0)::real as p from choi_tru where child_id = $1 and luc > $2 and luc <= $3`,
+    [con, tu, now]))[0].p);
+  const tinh = Math.max(0, Math.round((phut - da) * 1000) / 1000);
+  if (tinh <= 0) return { tru: 0, tinh: 0 };
+  await t(`insert into choi_tru(child_id, luc, phut) values ($1, $2, $3)`, [con, now, tinh]);
+  await t(`delete from choi_tru where child_id = $1 and luc < $2`, [con, new Date(now.getTime() - 2 * 86_400_000)]);
+  const r = (await t<{ phut_le: number }>(`select phut_le from choi_dong_ho where child_id = $1`, [con]))[0];
   let le = Number(r?.phut_le ?? 0) + tinh;
   const nguyen = Math.floor(le + 1e-6);
   le = Math.max(0, le - nguyen);
@@ -87,9 +95,7 @@ export async function tinhPhutChoi(t: Q, con: string, phut: number, now = new Da
     await ghiChoi(t, con, tru, o.muc ?? null, now, tz);
   }
   if (du - tru <= 0) le = 0;                        // hết sao: phần lẻ bỏ (không nợ phút)
-  await t(`insert into choi_dong_ho(child_id, phu_den, phut_le) values ($1, $2, $3)
-           on conflict (child_id) do update set phu_den = greatest(coalesce(choi_dong_ho.phu_den, excluded.phu_den), excluded.phu_den), phut_le = excluded.phut_le`,
-    [con, now, le]);
+  await t(`insert into choi_dong_ho(child_id, phut_le) values ($1, $2) on conflict (child_id) do update set phut_le = excluded.phut_le`, [con, le]);
   return { tru, tinh };
 }
 
@@ -128,7 +134,7 @@ export async function truPhutChoi(con: string, phut: number, now = new Date(), o
 
 const soVay = (v: unknown) => {
   const n = Math.round(Number(v));
-  if (!Number.isInteger(n) || n < 1 || n > VAY_TOI_DA) throw new LoiNghiepVu("so_sao_sai", `Chọn số sao cho vay (1–${VAY_TOI_DA.toLocaleString("en-US").replace(/,/g, ".")})`);
+  if (!Number.isInteger(n) || n < 1 || n > VAY_TOI_DA) throw new LoiNghiepVu("so_sao_sai", `Chọn số sao cho vay (1–${soVN(VAY_TOI_DA)})`);
   return n;
 };
 
@@ -139,7 +145,7 @@ export async function xemTruocVay(fam: string, con: string, soSao: unknown = VAY
   const n = soVay(soSao);
   const st = await trangThaiSao(con);
   const noSau = st.no + n;
-  const so = (x: number) => x.toLocaleString("en-US").replace(/,/g, ".");
+  const so = soVN;
   return {
     ten: c.ten, soSao: n, mucVay: [...MUC_VAY], macDinh: VAY_MAC_DINH, ...st, noSau,
     /** «= 30 phút chơi hoặc đổi quà · Bảo Anh sẽ nợ 30 sao» */ cau: `= ${so(n)} phút chơi hoặc đổi quà · ${c.ten} sẽ nợ ${so(noSau)} sao`,
@@ -174,7 +180,7 @@ export async function choVay(fam: string, con: string, soSao: unknown, nguoi: st
 async function canhBaoNoNeuCan(t: Q, fam: string, con: string, vayId: string, noTruoc: number, noSau: number) {
   if (noSau <= NGUONG_NO) return null;
   const ten = (await t<{ ten: string }>(`select ten from children where id = $1`, [con]))[0]?.ten ?? "Con";
-  const so = (x: number) => x.toLocaleString("en-US").replace(/,/g, ".");
+  const so = soVN;
   const vuotMoc = noTruoc <= NGUONG_NO;
   const cau = `${ten} đã nợ quá ${so(NGUONG_NO)} sao (đang nợ ${so(noSau)})`;
   await canhBao(fam, "no_qua_1000", "chu_y", cau, { con, khoa: `no_1000:${vayId}`, chiTiet: { no: noSau, no_truoc: noTruoc, vuot_moc: vuotMoc } }, t);
@@ -183,7 +189,9 @@ async function canhBaoNoNeuCan(t: Q, fam: string, con: string, vayId: string, no
 
 const HOAN_TAC_VAY_GIAY = 60;
 
-/** «Hoàn tác» ngay sau khi cho vay (trong 60 giây, đúng người cho, Con chưa tiêu phần đó): ghi `vay` −N — nợ và sao tiêu được về như cũ. */
+/** «Hoàn tác» ngay sau khi cho vay (trong 60 giây, đúng người cho). Chỉ rút phần CHƯA tiêu và CHƯA được trả nợ: rút x = min(khoản vay,
+ *  nợ còn, sao tiêu được) bằng dòng `vay` −x ⇒ nợ không bao giờ âm, sao Con tự kiếm không mất (vay 30 → nhiệm vụ +10 trả nợ 10 → hoàn tác ⇒
+ *  rút 20, nợ 0, Con còn 10 sao của mình). x = 0 ⇒ 409 `da_tieu`. Rút trọn ⇒ lời xin vay (nếu có) về «chờ» + gỡ cảnh báo nợ của khoản này. */
 export async function hoanTacVay(fam: string, vayId: string, nguoi: string, now = new Date()) {
   return tx(async (t) => {
     const v = (await t<{ id: string; child_id: string; delta: number; nguoi: string | null; created_at: Date; ref: string | null }>(
@@ -194,15 +202,19 @@ export async function hoanTacVay(fam: string, vayId: string, nguoi: string, now 
     const daHoan = (await t(`select 1 from points where child_id = $1 and loai = 'vay' and ref = $2 and delta < 0`, [v.child_id, `hoan:${v.id}`])).length;
     if (daHoan || v.nguoi !== nguoi || now.getTime() - new Date(v.created_at).getTime() > HOAN_TAC_VAY_GIAY * 1000)
       throw new LoiNghiepVu("het_hoan_tac", "Đã quá thời gian hoàn tác", 409);
-    const du = await soDu(v.child_id, t);
-    if (du < v.delta) throw new LoiNghiepVu("da_tieu", "Con đã dùng một phần sao vay — không hoàn tác được", 409);
+    const x = Math.min(v.delta, await noCua(v.child_id, t), await soDu(v.child_id, t));
+    if (x <= 0) throw new LoiNghiepVu("da_tieu", "Con đã dùng sao vay (hoặc đã trả hết khoản này) — không hoàn tác được", 409);
     await t(`insert into points(id, child_id, delta, loai, ly_do, ref, nguoi) values ($1,$2,$3,'vay',$4,$5,$6)`,
-      [newId(), v.child_id, -v.delta, `Ba Mẹ rút lại ${v.delta} sao vay`, `hoan:${v.id}`, nguoi]);
-    // lời xin vay đã duyệt ⇒ về «chờ» để Ba Mẹ trả lời lại
-    if (v.ref && v.ref !== v.id)
-      await t(`update requests set trang_thai = 'cho', nguoi_duyet = null, xu_ly_luc = null where id = $1 and trang_thai = 'dong_y'`, [v.ref]);
-    await ghiSuKien(fam, "hoan_tac_vay", { so_sao: v.delta }, { con: v.child_id, nguoi }, t);
-    return { ok: true, ...(await trangThaiSao(v.child_id, t)) };
+      [newId(), v.child_id, -x, `Ba Mẹ rút lại ${x} sao vay`, `hoan:${v.id}`, nguoi]);
+    const tron = x === v.delta;
+    if (tron) {
+      // lời xin vay đã duyệt ⇒ về «chờ» để Ba Mẹ trả lời lại
+      if (v.ref && v.ref !== v.id)
+        await t(`update requests set trang_thai = 'cho', nguoi_duyet = null, xu_ly_luc = null where id = $1 and trang_thai = 'dong_y'`, [v.ref]);
+      await t(`delete from alerts where family_id = $1 and khoa = $2`, [fam, `no_1000:${v.id}`]);
+    }
+    await ghiSuKien(fam, "hoan_tac_vay", { so_sao: x, ...(tron ? {} : { mot_phan: true, khoan_vay: v.delta }) }, { con: v.child_id, nguoi }, t);
+    return { ok: true, soSaoHoan: x, tron, ...(await trangThaiSao(v.child_id, t)) };
   });
 }
 
@@ -236,7 +248,7 @@ export async function thongKeSao(con: string, tu: Date, den: Date, t: Q = q) {
             coalesce(-sum(delta) filter (where loai = 'tra_no'), 0)::int as tra,
             coalesce(-sum(delta) filter (where loai in ('choi', 'phien', 'doi_gio')), 0)::int as choi,
             coalesce(-sum(delta) filter (where loai in ('doi_qua', 'voucher')), 0)::int as qua,
-            count(*) filter (where loai = 'vay' and delta > 0)::int as lan_vay
+            (count(*) filter (where loai = 'vay' and delta > 0) - count(*) filter (where loai = 'vay' and delta < 0 and ref like 'hoan:%'))::int as lan_vay
        from points where child_id = $1 and created_at >= $2 and created_at < $3`, [con, tu, den]))[0];
   return { saoKiem: r.kiem, saoVay: r.vay, lanVay: r.lan_vay, saoTraNo: r.tra, saoTieu: r.choi + r.qua, saoTieuChoi: r.choi, saoTieuQua: r.qua,
     /** 1 sao = 1 phút */ phutChoi: r.choi };
