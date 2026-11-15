@@ -227,6 +227,10 @@ test("API Ba Mẹ: gia-dinh có số sao từng Con (âm được); ví sao; xem
   assert.deepEqual([bc.saoKiem, bc.saoVay, bc.lanVay, bc.saoTieu, bc.saoTieuChoi, bc.ngoaiLe], [0, 30, 1, 60, 60, 1]);
   assert.equal((await m(tok, `vay/${cv.body.id}/hoan-tac`, {})).body.error, "da_tieu");
   void minh;
+  // Lần đầu: Con tạo ở bước tên với 0 sao, bước «Chơi bằng sao» gửi thiet-lap {con.id, saoKhoiDau} ⇒ tặng đúng một lần
+  const khang = (await m(tok, "thiet-lap", { con: { ten: "Khang" }, saoKhoiDau: 0 })).body.conId;
+  assert.equal((await m(tok, "thiet-lap", { con: { id: khang }, saoKhoiDau: 20 })).body.saoKhoiDau, 20);
+  assert.equal((await m(tok, "thiet-lap", { con: { id: khang }, saoKhoiDau: 60 })).body.saoKhoiDau, 20);
 });
 
 test("review #269: hoàn tác cho vay chỉ rút phần chưa trả / chưa tiêu — vay 30 → nhiệm vụ +10 → hoàn tác → vay 15 ⇒ nợ 15; gỡ cảnh báo nợ; lần vay đã hoàn tác không đếm", async () => {

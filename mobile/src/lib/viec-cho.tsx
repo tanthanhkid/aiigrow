@@ -2,8 +2,9 @@
 // NGAY (useLam, như màn chi tiết — không gửi trễ để khỏi mất khi tắt app):
 //  • nhiệm vụ: Duyệt = `luot/:id/duyet` điểm mặc định (như «Duyệt cả» ở Chờ duyệt), Hoàn tác = `luot/:id/hoan-tac` (useHoanTac; máy chủ cho 30 giây);
 //    ảnh nghi trùng ⇒ «Xem ảnh» mở màn duyệt, không duyệt mù. Từ chối = chọn lý do (như màn duyệt) rồi gửi `luot/:id/tu-choi`.
-//  • yêu cầu thêm giờ / ngoại lệ / ngoài giờ: Duyệt = `yeu-cau/:id/dong-y` «Ngoại lệ — không trừ» đúng số phút Con xin (mặc định màn yêu cầu),
-//    nhưng nếu máy chủ báo cảnh báo ngoại lệ (xemTruoc) thì mở màn yêu cầu để Ba Mẹ thấy cảnh báo TRƯỚC. Web / app / khác ⇒ «Xếp loại» mở màn yêu cầu.
+//  • lời xin vay sao (15/11 — vay_sao và loại cũ them_gio / ngoai_le / ngoai_gio): Duyệt = `yeu-cau/:id/dong-y {soSao}` đúng số sao Con xin ⇒ toast
+//    «Đã cho <Con> vay N sao» + Hoàn tác (vay/:id/hoan-tac); đang nợ > 1.000 (xemTruoc.mucCanhBao «manh») ⇒ mở màn yêu cầu để Ba Mẹ thấy dải nhắc TRƯỚC.
+//    Web / app / khác ⇒ «Xếp loại» mở màn yêu cầu.
 //  • phiếu quà: Xác nhận / Đã trao như Chờ duyệt; Huỷ hoàn điểm hỏi lại (không hoàn tác được).
 import { useState } from "react";
 import { router } from "expo-router";
@@ -11,7 +12,7 @@ import { Pressable, View, type GestureResponderEvent } from "react-native";
 import Animated, { FadeIn, LayoutAnimationConfig, useReducedMotion } from "react-native-reanimated";
 import { BONG } from "./clay";
 import { donLen, NhanMen, quayLai, roiDi } from "./chuyen-dong";
-import { bm, tieuYc, type LuotCho, type YeuCau } from "./api";
+import { bm, laXinVay, tieuYc, type LuotCho, type YeuCau } from "./api";
 import { BangTruot, BaoLoi, cauLoi, Chu, Dong, gioPhut, Icon, M, Nut, OChon, ONhap, The, useLam } from "./ui";
 
 export type Phieu = { id: string; child_id: string; ten_con: string; ten: string; loai: string; diem: number; created_at: string };
@@ -25,7 +26,7 @@ export const LY_DO_NV = [
 /** Lý do chưa cho một yêu cầu — MỘT danh sách cho màn yêu cầu và Trang chủ. */
 export const LY_DO_YC = ["Hôm nay chơi đủ rồi", "Làm nhiệm vụ để có thêm điểm nhé", "Trang này chưa phù hợp với con"];
 /** Yêu cầu duyệt được bằng một chạm (chỉ cần số phút); loại khác cần chọn trên màn yêu cầu. */
-export const ycMotCham = (y: Pick<YeuCau, "loai">) => y.loai === "them_gio" || y.loai === "ngoai_le" || y.loai === "ngoai_gio";
+export const ycMotCham = (y: Pick<YeuCau, "loai">) => laXinVay(y);
 
 export type ViecCho = { k: "nv"; x: LuotCho } | { k: "yc"; x: YeuCau } | { k: "qua"; x: Phieu };
 type Bao = (chu: string, hoan?: () => void) => void;
@@ -91,10 +92,10 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
       return chay(v, async () => {
         const ct = await bm.goi<{ trang_thai?: string; xemTruoc?: { mucCanhBao: string } }>(`yeu-cau/${y.id}`);
         if (ct.trang_thai && ct.trang_thai !== "cho") { daXong(y.id); bao(`Yêu cầu này đã được xử lý`); tai(); return; }   // người khác trả lời trước
-        if (ct.xemTruoc && ct.xemTruoc.mucCanhBao !== "khong") { moChiTiet(v); return; }   // có cảnh báo ngoại lệ ⇒ Ba Mẹ xem trên màn yêu cầu
-        await bm.goi(`yeu-cau/${y.id}/dong-y`, { truDiem: false, phut: p });
+        if (ct.xemTruoc && ct.xemTruoc.mucCanhBao === "manh") { moChiTiet(v); return; }   // đang nợ > 1.000 ⇒ Ba Mẹ xem dải nhắc trên màn yêu cầu
+        const r = await bm.goi<{ grantId?: string }>(`yeu-cau/${y.id}/dong-y`, { soSao: p });
         daXong(y.id);
-        bao(`Đã cho ${ten} thêm ${p} phút (ngoại lệ)`);
+        bao(`Đã cho ${ten} vay ${p} sao`, r.grantId ? () => { bm.goi(`vay/${r.grantId}/hoan-tac`, {}).then(tai, (e) => { bao(`Chưa hoàn tác được: ${cauLoi(e)}`); tai(); }); } : undefined);
         tai();
       });                                                          // không hàng đợi: đồng ý gửi lại sẽ bị máy chủ báo «đã xử lý»
     }

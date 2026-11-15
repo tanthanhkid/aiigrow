@@ -1,15 +1,15 @@
-// «<Con> đang xin phép» (thiết kế chốt 14/11 — bm-con-xin/01 them-a4nqjrmp): mọi lời xin đang chờ của một Con, mỗi lời xin một thẻ
-// «Không cho / Cho N phút» (lib/hom-nay-xin). App / web lạ: «YouTube chưa nằm trong N app được mở». Thêm giờ: viên «S sao · Con tự đổi sao ra phút được».
-// «Đã trả lời hôm nay»: lời xin app / web Ba Mẹ đã không cho hôm nay (GET con/:id/hom-nay › biChan «chua_cho»).
-// Cuối màn: chế độ của con («Theo danh sách — Chỉ mở app, web Ba Mẹ đã thêm · Đổi ›» → App & web) + «Được mở N app». Lời xin app / web: 3 nút
-// Tính phút / Không tính phút / Bỏ qua (15/11 — #258).
+// «<Con> đang xin phép» (thiết kế chốt 15/11 — bm-con-xin/01 them-a4nqjrmp): mọi lời xin đang chờ của một Con, mỗi lời xin một thẻ (lib/hom-nay-xin).
+// App / web chưa có trong danh sách: «YouTube chưa có trong danh sách» · Thêm · Tính phút (trừ sao, 1 sao = 1 phút) / Thêm · Không tính phút / Bỏ qua.
+// Xin vay sao: «Xin Ba Mẹ cho vay 20 sao · Laptop · hết sao, muốn chơi tiếp», viên «−20 sao · Đang nợ Ba Mẹ 20 sao», Không cho / Cho vay 20 sao.
+// «Đã trả lời hôm nay»: lời xin app / web Ba Mẹ đã bỏ qua hôm nay (GET con/:id/hom-nay › biChan «chua_cho»).
+// Cuối màn: chế độ của con («Theo danh sách — Chỉ mở app, web Ba Mẹ đã thêm · Đổi ›» → App & web) + «Được mở N app».
 // Mở từ Hôm nay / Báo cáo / Thông báo (?con=).
 import { cheDoTu } from "@/lib/app-web";
 import { router, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
 import { bm } from "@/lib/api";
-import { HangViec, SaoVien, soAppDuocMo, TieuMuc, type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon } from "@/lib/hang-ngay";
-import { laAppWeb, laThemGio, tenMayXin, TheXin } from "@/lib/hom-nay-xin";
+import { HangViec, soAppDuocMo, TieuMuc, type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon } from "@/lib/hang-ngay";
+import { laAppWeb, tenMayXin, TheXin } from "@/lib/hom-nay-xin";
+import { saoTu } from "@/lib/so-sao";
 import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, M, Man, Nhan, Nut, The, useLam, useTai } from "@/lib/ui";
 import type { HomNayDung } from "../da-dung/[con]";
 
@@ -28,22 +28,16 @@ export default function DangXin() {
   const ve = <Nut chu="Xong, về Hôm nay" rong loai="vien" bam={() => router.replace("/hom-nay" as never)} />;
   if (!d) return <Man lui={{ chu: "Hôm nay" }} tieu="Con đang xin"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const ten = d.ct?.ten ?? "Con";
-  const q = d.qy;
+  const sao = saoTu(d.qy?.soSao ?? (d.ct ? { soDu: d.ct.soDu, ...(typeof d.ct.sao === "number" ? { sao: d.ct.sao } : {}) } : null));
   const moHet = cheDoTu(d.ct) === "mo_het";
   return (
     <Man lui={{ chu: "Hôm nay" }} tieuLon={d.ds.length ? `${ten} đang xin phép` : `${ten} không xin gì`} tai={tai} vongTai day={ve}>
-      {!d.ds.length ? <CanhGiua lv="canh-trong" tieu="Không có lời xin nào" loi={`Khi ${ten} xin thêm giờ hay xin mở app, Grow báo Ba Mẹ ngay.`} /> : null}
+      {!d.ds.length ? <CanhGiua lv="canh-trong" tieu="Không có lời xin nào" loi={`Khi ${ten} xin vay sao hay xin thêm app, web vào danh sách, Grow báo Ba Mẹ ngay.`} /> : null}
       <BaoLoi loi={loiLam} />
       {d.ds.map((y) => (
         <The key={y.id}>
-          <TheXin y={y} may={tenMayXin(y, d.ct?.may)} lam={(fn) => lam(fn)} dang={dangChay}
+          <TheXin y={y} may={tenMayXin(y, d.ct?.may)} lam={(fn) => lam(fn)} dang={dangChay} sao={sao}
             truc={laAppWeb(y)} phu={laAppWeb(y) ? `${y.gia_tri} chưa có trong danh sách` : undefined} />
-          {laThemGio(y) && q && q.quy.doiSao.bat && q.sao ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <SaoVien n={q.sao} nho />
-              <Chu co={13} mau={M.chu3}>Con tự đổi sao ra phút được</Chu>
-            </View>
-          ) : null}
         </The>
       ))}
 
@@ -67,7 +61,6 @@ export default function DangXin() {
           {!moHet && d.soApp !== null ? <HangViec ic="luoi" mau="xanh" tieu={`Được mở ${d.soApp} app`} bam={() => router.push(`/app-web?con=${d.id}` as never)} /> : null}
         </The>
       ) : null}
-      {q ? <Chu co={13} mau={M.chu3} style={{ marginHorizontal: 6 }}>{`Hôm nay ${ten} còn ${q.quy.conPhut} phút trong ${q.quy.tongPhut} phút chơi.`}</Chu> : null}
     </Man>
   );
 }

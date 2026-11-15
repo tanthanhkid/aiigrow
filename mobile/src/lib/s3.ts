@@ -121,7 +121,7 @@ export function doiChonMau(chon: string[], m: Pick<MauQua, "ma" | "daCo">) {
 export const cauThemQua = (n: number, ten?: string | null) => (n ? `Thêm ${n} quà${ten ? ` cho ${ten}` : ""}` : "Chọn quà để thêm");
 
 /** Bước «Chọn quà»: mặc định tick các mẫu, giữ lựa chọn cũ khi quay lại. Nút «Lưu 7 quà, sang giờ chơi» / «Bỏ qua quà, sang giờ chơi». */
-export const cauLuuQuaLanDau = (n: number) => (n ? `Lưu ${n} quà, sang giờ chơi` : "Chưa cần quà, sang giờ chơi");
+export const cauLuuQuaLanDau = (n: number) => (n ? `Lưu ${n} quà, sang chơi bằng sao` : "Chưa cần quà, sang chơi bằng sao");
 
 /** «Hạn dùng tới 05/01/2027 · còn 60 ngày» cho voucher vừa phát. */
 export function cauHanVoucher(hetHan: string, now = new Date()) {

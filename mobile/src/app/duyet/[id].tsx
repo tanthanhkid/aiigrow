@@ -41,8 +41,11 @@ export default function BangChungLuot() {
   const daXuLy = l.trang_thai !== "cho_duyet";
   const nhanAnh = (k: number) => (anh.length === 2 ? (k === 0 ? "Trước" : "Sau") : `Ảnh ${k + 1}`);
   const duyet = () => lam(async () => {
+    // sổ sao trước khi duyệt (15/11: sao nhiệm vụ trả nợ trước ⇒ màn Duyệt xong ghi «−15 → −5 sao · Trả nợ 10 sao») — lỗi ⇒ màn sau tự suy
+    const truoc = await bm.goi<{ sao?: number; soDu: number; no?: number }>(`con/${l.child_id}/vi`).catch(() => null);
     await bm.goi(`luot/${id}/duyet`, { diem: l.diem_md, loiKhen: loiKhen || undefined });
-    router.replace({ pathname: "/duyet-xong", params: { luot: id, con: l.child_id, ten: l.ten_con, diem: String(l.diem_md), nv: l.ten, khen: loiKhen } } as never);
+    router.replace({ pathname: "/duyet-xong", params: { luot: id, con: l.child_id, ten: l.ten_con, diem: String(l.diem_md), nv: l.ten, khen: loiKhen,
+      ...(truoc ? { saoTruoc: String(truoc.sao ?? truoc.soDu), noTruoc: String(truoc.no ?? 0) } : {}) } } as never);
   }, { hangDoi: true });
 
   return (

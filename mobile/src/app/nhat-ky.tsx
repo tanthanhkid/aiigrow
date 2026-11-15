@@ -1,18 +1,20 @@
-// «Nhật ký cả nhà» (thiết kế chốt 14/11 — bm-bao-cao-ngay/04 them-r3dsl3py, MỚI): ai cho giờ, ai duyệt, ai đổi cài đặt, con xin / nộp / đổi sao —
-// câu đời thường theo ngày (Hôm nay · Hôm qua · Thứ…), lọc theo con (chip «Tất cả» + từng con, N9). Đầu màn: «7 ngày qua cho ngoài quy tắc N lần ·
-// Bà Hoa 3 · Mẹ Lan 1» (người lớn cho thêm giờ / đồng ý lời xin — việc ngoài quỹ giờ, ngoài luật đã đặt).
+// «Nhật ký cả nhà» (thiết kế chốt 15/11 — bm-bao-cao-ngay/04 them-r3dsl3py, #265): ai cho vay sao, ai duyệt, ai đổi cài đặt, con xin / nộp / chơi —
+// câu đời thường theo ngày (Hôm nay · Hôm qua · Thứ…), lọc theo con (chip «Tất cả» + từng con, N9). Đầu màn: «7 ngày qua cho vay N lần · S sao ·
+// Bà Hoa 3 · Mẹ Lan 1» (`choVay`; máy chủ cũ chỉ có `ngoaiQuyTac` ⇒ dùng làm số lần). Dòng cho vay mang nhãn «vay 30».
 // Số liệu: GET nhat-ky?ca-nha=1[&con=] (server/lib/nhat-ky-ca-nha.ts). Mở từ Báo cáo «Nhật ký cả nhà ›» (?con= để lọc sẵn một con).
 import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { ScrollView, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { mauCon, tenGoi, TieuMuc } from "@/lib/hang-ngay";
+import { soVN } from "@/lib/so-sao";
 import { Avt, BieuTron, ChoTai, Chu, Icon3D, M, Man, Nhan, NhanMen, The, useTai } from "@/lib/ui";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 
 type Dong = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null;
   tieu: string; phu: string; nhan: string | null; kieu: "tot" | "xau" | "cho" | "ngoai" | "thuong" };
-type NhatKy = { soNgay: number; ds: Dong[]; ngoaiQuyTac: { so: number; theoNguoi: { ten: string; so: number }[] } };
+type NhatKy = { soNgay: number; ds: Dong[]; /** 15/11 */ choVay?: { so: number; sao: number; theoNguoi: { ten: string; so: number; sao: number }[] };
+  /** (cũ) = số lần cho vay */ ngoaiQuyTac?: { so: number; theoNguoi: { ten: string; so: number }[] } };
 
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 const ngayDp = (t: Date) => `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
@@ -24,7 +26,9 @@ function tieuNgay(ngay: string) {
 }
 /** Chữ cái đại diện người lớn: «Mẹ Lan» → «L», «Bà Hoa» → «H». */
 const chuCai = (ten: string) => (ten.trim().split(/\s+/).pop() ?? ten).charAt(0).toUpperCase();
-const LOAI_NHAN: Record<Dong["kieu"], "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim"> = { tot: "diem", xau: "xam", cho: "canh", ngoai: "loi", thuong: "xam" };
+const LOAI_NHAN: Record<Dong["kieu"], "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim"> = { tot: "diem", xau: "xam", cho: "canh", ngoai: "canh", thuong: "xam" };
+/** Nhãn dòng: «Ba Mẹ cho vay 30 sao» ⇒ «vay 30» (thiết kế 04). */
+const nhanDong = (x: Dong) => { const m = x.nhan === "Cho vay" ? /cho vay (\d+) sao/.exec(x.tieu) : null; return m ? `vay ${m[1]}` : x.nhan; };
 
 export default function NhatKyCaNha() {
   const { con: conVao } = useLocalSearchParams<{ con?: string }>();
@@ -59,6 +63,8 @@ export default function NhatKyCaNha() {
 function DanhSach({ loc, cacCon }: { loc: string | null; cacCon: GiaDinh["con"] }) {
   const { d, loi, matMang, tai } = useTai(() => bm.goi<NhatKy>(`nhat-ky?ca-nha=1&ngay=7${loc ? `&con=${encodeURIComponent(loc)}` : ""}`));
   const thuCon = (id: string | null) => Math.max(0, cacCon.findIndex((c) => c.id === id));
+  const vay = d?.choVay ? { so: d.choVay.so, sao: d.choVay.sao as number | null, theoNguoi: d.choVay.theoNguoi }
+    : { so: d?.ngoaiQuyTac?.so ?? 0, sao: null as number | null, theoNguoi: d?.ngoaiQuyTac?.theoNguoi ?? [] };
   const theoNgay: { ngay: string; ds: Dong[] }[] = [];
   for (const x of d?.ds ?? []) {
     const n = theoNgay[theoNgay.length - 1];
@@ -68,13 +74,13 @@ function DanhSach({ loc, cacCon }: { loc: string | null; cacCon: GiaDinh["con"] 
     <>
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : (
         <>
-          {d.ngoaiQuyTac.so ? (
-            // thiết kế 04: dải đào nổi — ô icon cảnh báo · «7 ngày qua cho ngoài quy tắc 4 lần» · «Bà Hoa 3 · Mẹ Lan 1»
+          {vay.so ? (
+            // thiết kế 04: dải đào nổi — ô icon sao · «7 ngày qua cho vay 4 lần · 75 sao» · «Bà Hoa 3 · Mẹ Lan 1»
             <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: "#f9e7d2" }, KHOI.the]}>
-              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}><Icon3D ten="canh_bao" co={24} /></View>
+              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}><Icon3D ten="sao" co={24} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Chu kieu="rat" co={14.5}>{`${d.soNgay} ngày qua cho ngoài quy tắc ${d.ngoaiQuyTac.so} lần`}</Chu>
-                <Chu kieu="dam" co={12.5} mau="#8a3c0c">{d.ngoaiQuyTac.theoNguoi.map((x) => `${x.ten} ${x.so}`).join(" · ")}</Chu>
+                <Chu kieu="rat" co={14.5}>{`${d.soNgay} ngày qua cho vay ${vay.so} lần${vay.sao !== null ? ` · ${soVN(vay.sao)} sao` : ""}`}</Chu>
+                <Chu kieu="dam" co={12.5} mau="#8a3c0c">{vay.theoNguoi.map((x) => `${x.ten} ${x.so}`).join(" · ")}</Chu>
               </View>
             </View>
           ) : null}
@@ -92,7 +98,7 @@ function DanhSach({ loc, cacCon }: { loc: string | null; cacCon: GiaDinh["con"] 
                       <Chu kieu="rat" co={15}>{x.tieu}</Chu>
                       <Chu co={13} mau={M.chu3}>{x.phu}</Chu>
                     </View>
-                    {x.nhan ? <Nhan chu={x.nhan} loai={LOAI_NHAN[x.kieu]} /> : null}
+                    {nhanDong(x) ? <Nhan chu={nhanDong(x)!} loai={LOAI_NHAN[x.kieu]} /> : null}
                   </View>
                 ))}
               </The>

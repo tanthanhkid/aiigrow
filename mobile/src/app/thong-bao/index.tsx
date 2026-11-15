@@ -1,5 +1,7 @@
 // «Thông báo» (thiết kế chốt bm-hang-ngay/33 them-0xf9hrgn — bm-cai-dat/14 đã gộp vào đây): «Cần Ba Mẹ để ý · N» (việc mới phải làm: cảnh báo,
 // con xin, con nộp bài — thẻ trắng vạch cam + «Xem ›/Trả lời ›/Duyệt ›») rồi «Để biết» (quà, người nhà, việc người lớn khác làm…).
+// 15/11 (#266): nhóm «canh_bao_no» — dòng máy chủ «Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.020)» hiện như thiết kế «Nợ quá 1.000 sao · Bảo Anh · đang nợ 1.020»
+// (ô icon sao, «Xem ›» → /canh-bao/<id> màn them-5twxl6hf). Lời xin vay: «Xin vay 20 sao» (chữ của máy chủ).
 // Mở màn là đánh dấu đã đọc (thẻ «mới» vẫn hiện tới lần mở sau). Bấm một thẻ ⇒ tới đúng chỗ xử lý (`den` của máy chủ). Nút «Cài đặt» ở đầu màn.
 import { useEffect, type ReactNode } from "react";
 import { router } from "expo-router";
@@ -11,7 +13,7 @@ import { bm } from "@/lib/api";
 import { type MucCanDeY } from "@/lib/s3";
 import { CanhGiua, ChoTai, Chu, Icon3D, M, Man, gioPhut, type TenIcon, useTai } from "@/lib/ui";
 
-type Nhom = "nhiem_vu" | "yeu_cau" | "qua" | "thanh_tich" | "ba_me_khac" | "canh_bao" | "gia_dinh";
+type Nhom = "nhiem_vu" | "yeu_cau" | "qua" | "thanh_tich" | "ba_me_khac" | "canh_bao" | "canh_bao_no" | "gia_dinh";
 type ThongBao = {
   id: string; nhom: Nhom; muc: "thong_tin" | "chu_y" | "nghiem_trong";
   tieu: string; phu: string; luc: string; con: string | null; den: string; so: number; moi: boolean; day: boolean; imLang: boolean;
@@ -20,16 +22,21 @@ type DsThongBao = { ds: ThongBao[]; chuaDoc: number; /** S3 06/11: mục «Cần
 
 /** icon + nền ô icon (.ic · .ic.cam · .ic.vang) + chữ hành động của thẻ cần để ý */
 const KIEU: Record<Nhom, { ic: TenIcon; nen?: string; lam?: string }> = {
-  canh_bao: { ic: "khien", nen: "#fdeedd", lam: "Xem ›" }, yeu_cau: { ic: "web", lam: "Trả lời ›" }, nhiem_vu: { ic: "sao", nen: M.diemSoft, lam: "Duyệt ›" },
+  canh_bao: { ic: "khien", nen: "#fdeedd", lam: "Xem ›" }, canh_bao_no: { ic: "sao", nen: "#fdeedd", lam: "Xem ›" }, yeu_cau: { ic: "web", lam: "Trả lời ›" }, nhiem_vu: { ic: "sao", nen: M.diemSoft, lam: "Duyệt ›" },
   qua: { ic: "coc", nen: M.diemSoft }, thanh_tich: { ic: "sao", nen: M.diemSoft }, ba_me_khac: { ic: "nguoi" }, gia_dinh: { ic: "nguoi" },
 };
 /** icon của mục «Cần Ba Mẹ để ý» theo loại (can-de-y.ts) */
 const IC_CAN: Record<string, TenIcon> = { mat_mang: "wifi", quen_pin: "mo_khoa", canh_bao: "khien", con_xin: "web", nop_bai: "sao", chua_bao_ve: "tablet" };
 /** Dòng «moi» mà «Cần Ba Mẹ để ý» của máy chủ ĐANG có mục cùng loại cho cùng Con (con xin / nộp bài / cảnh báo) ⇒ không lặp ở «Để biết».
  *  Dòng khác (con nhắn lại, lời xin Ba/Mẹ kia đã trả lời, cảnh báo đã đọc) vẫn ở «Để biết». */
-const LOAI_GOM: Partial<Record<Nhom, string>> = { yeu_cau: "con_xin", nhiem_vu: "nop_bai", canh_bao: "canh_bao" };
+const LOAI_GOM: Partial<Record<Nhom, string>> = { yeu_cau: "con_xin", nhiem_vu: "nop_bai", canh_bao: "canh_bao", canh_bao_no: "canh_bao" };
 const daGom = (x: ThongBao, gom: MucCanDeY[]) => x.moi && !!LOAI_GOM[x.nhom] && gom.some((g) => g.loai === LOAI_GOM[x.nhom] && (!x.con || g.con === x.con));
-const canDeY = (x: ThongBao) => x.muc === "nghiem_trong" || (x.moi && (x.nhom === "canh_bao" || x.nhom === "yeu_cau" || x.nhom === "nhiem_vu"));
+const canDeY = (x: ThongBao) => x.muc === "nghiem_trong" || (x.moi && (x.nhom === "canh_bao" || x.nhom === "canh_bao_no" || x.nhom === "yeu_cau" || x.nhom === "nhiem_vu"));
+/** «(Cảnh báo: )Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.020)» ⇒ thiết kế: tiêu «Nợ quá 1.000 sao», phụ «Bảo Anh · đang nợ 1.020». Không khớp ⇒ null. */
+export function chuNoQua(tieu: string): { tieu: string; phu: string } | null {
+  const m = /^(?:Cảnh báo: )?(.+?) đã nợ quá ([\d.]+) sao \(đang nợ ([\d.]+)\)$/.exec(tieu.trim());
+  return m ? { tieu: `Nợ quá ${m[2]} sao`, phu: `${m[1]} · đang nợ ${m[3]}` } : null;
+}
 
 const ngayCua = (s: string) => {
   const t = new Date(s), h = new Date();
@@ -62,15 +69,18 @@ export default function DsThongBaoMan() {
   const mayChu = d.canDeY;
   const can = mayChu ? [] : d.ds.filter(canDeY), biet = d.ds.filter((x) => !(mayChu ? daGom(x, mayChu) : canDeY(x)));
   const dongTb = (x: ThongBao, deY: boolean, k: number) => {
-    const kk = KIEU[x.nhom];
-    return <DongTb key={x.id} k={k} deY={deY} luc={ngayCua(x.luc)} ic={kk.ic} tieu={x.tieu}
-      phu={[x.phu, x.imLang ? "trong giờ yên lặng" : null].filter(Boolean).join(" · ")} lam={deY ? kk.lam ?? "Xem ›" : undefined} bam={() => router.push(x.den as never)} />;
+    const kk = KIEU[x.nhom] ?? KIEU.canh_bao;
+    const no = x.nhom === "canh_bao_no" || x.nhom === "canh_bao" ? chuNoQua(x.tieu) : null;
+    return <DongTb key={x.id} k={k} deY={deY} luc={ngayCua(x.luc)} ic={no ? "sao" : kk.ic} tieu={no?.tieu ?? x.tieu}
+      phu={[no?.phu ?? x.phu, x.imLang ? "trong giờ yên lặng" : null].filter(Boolean).join(" · ")} lam={deY ? kk.lam ?? "Xem ›" : undefined} bam={() => router.push(x.den as never)} />;
   };
   return (
     <Man lui={{ chu: "" }} tieu="Thông báo" phai={phai} tai={tai} vongTai>
-      {mayChu?.length ? <><TieuMuc chu="Cần Ba Mẹ để ý" so={mayChu.length} /><NhomTb deY>{mayChu.map((x, k) => (
-        <DongTb key={x.id} k={k} deY luc={ngayCua(x.luc)} ic={IC_CAN[x.loai] ?? "chuong"} tieu={x.tieu} phu={x.phu} lam={`${x.nut} ›`} bam={() => router.push(x.den as never)} />
-      ))}</NhomTb></> : null}
+      {mayChu?.length ? <><TieuMuc chu="Cần Ba Mẹ để ý" so={mayChu.length} /><NhomTb deY>{mayChu.map((x, k) => {
+        const no = x.loai === "canh_bao" ? chuNoQua(x.tieu) : null;
+        return <DongTb key={x.id} k={k} deY luc={ngayCua(x.luc)} ic={no ? "sao" : IC_CAN[x.loai] ?? "chuong"} tieu={no?.tieu ?? x.tieu} phu={no?.phu ?? x.phu} lam={`${x.nut} ›`}
+          bam={() => router.push(x.den as never)} />;
+      })}</NhomTb></> : null}
       {can.length ? <><TieuMuc chu="Cần Ba Mẹ để ý" so={can.length} /><NhomTb deY>{can.map((x, k) => dongTb(x, true, k))}</NhomTb></> : null}
       {biet.length ? <><TieuMuc chu="Để biết" /><NhomTb>{biet.map((x, k) => dongTb(x, false, k))}</NhomTb></> : null}
     </Man>

@@ -1,6 +1,7 @@
 // Mảnh giao diện dùng chung cho các màn Nhiệm vụ · Quà · Cả nhà theo thiết kế 14/11 (bm-viec-duyet, bm-sao-qua, bm-ca-nha):
 // dải avatar các con (tròn, tên dưới, số việc chờ góc trên), thanh mục dạng viên (Học · Vận động · Giúp Ba Mẹ / Voucher · Ba Mẹ tự điền),
 // nút ＋ tròn lõm (chạm = chọn, hiện tick ngọc), ô chọn số sao, ô icon lõm. Token Clay (mau.ts, clay.ts) — không chép CSS thô của HTML.
+import type { ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { BONG, KHOI, MEN } from "./clay";
 import { Avt, Chu, Icon, Icon3D, M, NhanMen, type TenIcon } from "./ui";
@@ -13,11 +14,12 @@ const chuCai = (ten: string) => (ten.trim().split(/\s+/).pop() ?? "?").charAt(0)
  * Dải các con (thiết kế .cac-con): avatar tròn 56, tên dưới, con đang chọn có vòng ngọc, số việc chờ (cam) góc trên.
  * Nhà 1 con thì gọi chỗ khác không vẽ dải này (N9: chỉ hiện chọn con khi > 1 con).
  */
-export function DaiCon<T extends { id: string; ten: string; avatar?: string | null }>({ ds, chon, doi, so, phu, ic, them, nhanSo = "việc chờ duyệt" }: {
+export function DaiCon<T extends { id: string; ten: string; avatar?: string | null }>({ ds, chon, doi, so, phu, ic, them, nhanSo = "việc chờ duyệt", duoi }: {
   ds: T[]; chon?: string | null; doi?: (c: T) => void; /** số việc chờ theo id con */ so?: Record<string, number>;
   /** dòng nhỏ dưới tên theo id con (Trang chủ: «còn 18′») */ phu?: Record<string, string>; /** ô «＋ Thêm con» cuối dải */ them?: () => void;
   /** icon trạng thái nhỏ góc dưới phải avatar (Trang chủ 14/11 .av i: chơi / học / khoá / chưa dùng) */ ic?: Record<string, TenIcon | null>;
   /** chữ đọc màn hình cho số góc trên (Trang chủ: «lời xin») */ nhanSo?: string;
+  /** khối dưới tên theo id con (15/11: viên sao «⭐ −20 sao» — lib/so-sao › VienSao) */ duoi?: Record<string, ReactNode>;
 }) {
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6, paddingVertical: 6, paddingRight: 8 }} accessibilityRole="tablist">
@@ -44,6 +46,7 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
             </View>
             <Chu kieu={on ? "den" : "rat"} co={13} mau={on ? M.chinhInk : M.chu2} dong={1}>{x.ten}</Chu>
             {phu?.[x.id] ? <Chu kieu="dam" co={12} mau={M.chu3} dong={1} style={{ marginTop: -5 }}>{phu[x.id]}</Chu> : null}
+            {duoi?.[x.id] ? <View style={{ marginTop: -3 }}>{duoi[x.id]}</View> : null}
           </Pressable>
         );
       })}

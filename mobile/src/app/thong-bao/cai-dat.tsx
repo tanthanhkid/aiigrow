@@ -2,7 +2,9 @@
 // «Báo ngay» (con xin · con nộp ảnh nhiệm vụ · máy mất bảo vệ & cảnh báo nội dung xấu — Luôn bật), «Để biết» (con đổi sao lấy quà),
 // «Giờ yên lặng» (không rung, cảnh báo vẫn báo ngay; chạm để đổi giờ). Ghi GET/POST thong-bao/cai-dat {yenLang, tat[]}.
 // Nhóm `canh_bao` luôn bật (không gửi vào `tat`). 14/11 bỏ khỏi màn: huy hiệu, việc người lớn khác làm, người nhà vào/rời (thiết kế không còn — giữ lựa chọn cũ
-// ở máy chủ). «Con sắp hết giờ chơi», «Báo cáo tuần» của thiết kế chưa có nhóm thông báo ở máy chủ — chưa hiện (không để công tắc chết).
+// ở máy chủ). «Con sắp hết sao», «Báo cáo tuần» của thiết kế chưa có nhóm thông báo ở máy chủ — chưa hiện (không để công tắc chết).
+// 15/11 (#264–#266, thiết kế them-2ru3t5iw): «Con xin vay sao · Và xin thêm app, web vào danh sách»; công tắc mới «Cảnh báo nợ quá 1.000 sao» (nhóm `canh_bao_no`:
+// tắt ⇒ vẫn có dòng ở Thông báo, chỉ không đẩy).
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
@@ -12,8 +14,9 @@ import { BangTruot, BaoLoi, ChoTai, Chu, CongTac, Dong, M, Man, Nhom, Nut, ONhap
 type CaiDat = { yenLang: { bat: boolean; tu: string; den: string }; tat: string[] };
 type Hang = { ma: string; ten: string; phu?: string; ic: TenIcon };
 const BAO_NGAY: Hang[] = [
-  { ma: "yeu_cau", ten: "Con xin dùng app, web, thêm giờ", ic: "game" },
+  { ma: "yeu_cau", ten: "Con xin vay sao", phu: "Và xin thêm app, web vào danh sách", ic: "game" },
   { ma: "nhiem_vu", ten: "Con nộp ảnh nhiệm vụ", ic: "camera" },
+  { ma: "canh_bao_no", ten: "Cảnh báo nợ quá 1.000 sao", phu: "Mỗi lần vượt mốc · nhắc lại khi Ba Mẹ cho vay thêm", ic: "canh_bao" },
 ];
 const DE_BIET: Hang[] = [
   { ma: "qua", ten: "Con đổi sao lấy quà", ic: "qua" },

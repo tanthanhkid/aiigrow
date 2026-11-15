@@ -1,5 +1,5 @@
-// «<Con> dùng máy» (thiết kế chốt 05/11, bm-hang-ngay/35): chọn «Hôm nay» / «Cả tuần». Hôm nay = quỹ giờ chơi đã dùng / tổng (GET con/:id/quy),
-// theo app (cột hôm nay của GET con/:id/man-hinh — app Học «Không tính»), theo máy (GET con/:id › may), nút «Đổi giờ chơi».
+// «<Con> dùng máy» (thiết kế chốt 05/11, bm-hang-ngay/35): chọn «Hôm nay» / «Cả tuần». Hôm nay = phút «Tính phút» đã dùng = sao đã tiêu, còn N sao
+// (GET con/:id/quy — 15/11 1 sao = 1 phút, không còn quỹ ngày), theo app (cột hôm nay của GET con/:id/man-hinh — app Học «Không tính»), theo máy, nút «Xem ví sao» (→ /vi).
 // Cả tuần = thời gian màn hình theo tuần (kiểu Screen Time) giữ như cũ: biểu đồ chồng theo mục, chạm ngày / mục để lọc; chỉ tên app/tên miền + thời lượng.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
@@ -46,7 +46,7 @@ export default function ManHinhCon() {
   );
 }
 
-/** Hôm nay: quỹ đã dùng + theo app + theo máy (bm-hang-ngay/35). */
+/** Hôm nay: phút Tính phút đã dùng (= sao) + theo app + theo máy (bm-hang-ngay/35). */
 function HomNay({ con, ct }: { con: string; ct: ConCt | null }) {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [q, mh] = await Promise.all([bm.goi<QuyCon>(`con/${con}/quy`).catch(() => null), bm.goi<ManHinhTuan>(`con/${con}/man-hinh?lui=0`)]);
@@ -59,16 +59,16 @@ function HomNay({ con, ct }: { con: string; ct: ConCt | null }) {
   const may = ct?.may ?? [];
   return (
     <>
-      <Pressable onPress={() => router.push(`/gio/${con}` as never)} accessibilityRole="button">
+      <Pressable onPress={() => router.push(`/vi/${con}` as never)} accessibilityRole="button">
         <The dem style={{ gap: 8 }}>
           <Chu kieu="dam" co={13.5} mau={M.chu3}>Đã chơi hôm nay</Chu>
           {qy ? (
             <>
-              <Chu kieu="rat" co={28} so>{`${qy.daDung} phút `}<Chu kieu="dam" co={16} mau={M.chu3}>{`/ ${qy.tongPhut} phút`}</Chu></Chu>
+              <Chu kieu="rat" co={28} so>{`${qy.daDung} phút `}<Chu kieu="dam" co={16} mau={M.chu3}>{`= ${qy.daDung} sao`}</Chu></Chu>
               <ThanhClay ti={qy.tongPhut ? Math.min(1, qy.daDung / qy.tongPhut) : 0} mau={qy.conPhut ? M.chinh : M.huy} />
-              <Chu co={13.5} mau={M.chu2}>{`Còn ${qy.conPhut} phút · app học không bị tính`}</Chu>
+              <Chu co={13.5} mau={M.chu2}>{qy.conPhut ? `Còn ${qy.conPhut} sao = ${qy.conPhut} phút chơi · app học không trừ sao` : "Hết sao · app học không trừ sao"}</Chu>
             </>
-          ) : <Chu co={14} mau={M.chu2}>Chưa đọc được quỹ giờ chơi.</Chu>}
+          ) : <Chu co={14} mau={M.chu2}>Chưa đọc được số sao của con.</Chu>}
         </The>
       </Pressable>
 
@@ -77,7 +77,7 @@ function HomNay({ con, ct }: { con: string; ct: ConCt | null }) {
         <The dem style={{ paddingVertical: 4 }}>
           {app.map((x, k) => (
             <HangViec key={`${x.kieu}:${x.id}`} dau={k === 0} trai={<ODau muc={x.muc} />} tieu={x.ten}
-              phu={x.muc === "hoc" ? "Không tính giờ" : x.kieu === "web" ? "Trang web" : MUC[x.muc].chu}
+              phu={x.muc === "hoc" ? "Không tính phút" : x.kieu === "web" ? "Trang web" : MUC[x.muc].chu}
               phai={<Chu kieu="rat" co={14} so mau={x.muc === "hoc" ? M.chu3 : M.chu}>{gio(x.p)}</Chu>} />
           ))}
         </The>
@@ -94,7 +94,7 @@ function HomNay({ con, ct }: { con: string; ct: ConCt | null }) {
           </The>
         </>
       ) : null}
-      <Nut chu={`Đổi giờ chơi của ${ct?.ten ?? "con"}`} loai="vien" rong bam={() => router.push(`/gio/${con}` as never)} />
+      <Nut chu={`Xem ví sao của ${ct?.ten ?? "con"}`} loai="vien" rong bam={() => router.push(`/vi/${con}` as never)} />
     </>
   );
 }

@@ -1,33 +1,37 @@
-// Lời xin của Con (thiết kế chốt 05/11 — bm-hang-ngay 01/19–22, bm-duyet 02/06/07): MỘT chỗ cho tiêu đề, xử lý một chạm và thẻ «Không cho / Cho N phút»
+// Lời xin của Con (thiết kế chốt 15/11 — bm-con-xin/01 them-a4nqjrmp, bm2-trang-chu, them-0kwhgpq6): MỘT chỗ cho tiêu đề, xử lý một chạm và thẻ lời xin
 // dùng ở Hôm nay, «<Con> đang xin» (/yeu-cau?con=) và Chờ duyệt.
-//  • them_gio  — «Thêm 20 phút chơi»: Cho = yeu-cau/:id/dong-y {phut} (Ba Mẹ tặng, không trừ sao, cộng vào quỹ hôm nay) ⇒ có grantId để Hoàn tác 60 giây.
-//  • ngoai_le / ngoai_gio — «Mở YouTube 30 phút» / «Mở cả máy 30 phút»: Cho = dong-y {phut} (không trừ giờ chơi, không trừ sao, tới hạn).
-//  • mo_web / cai_app — app / web chưa có trong danh sách (15/11 — #262, #258): «Tính phút» / «Không tính phút» = yeu-cau/:id/dong-y {nhom} (thêm lâu dài
+//  • vay_sao (và them_gio / ngoai_le / ngoai_gio của máy cũ — máy chủ nhận như xin vay, #263/#265) — «Xin Ba Mẹ cho vay 20 sao»: «Cho vay 20 sao» =
+//    yeu-cau/:id/dong-y {soSao} ⇒ khoản vay (grantId) để Hoàn tác 60 giây (vay/:id/hoan-tac). Không còn «ngoại lệ», «thêm giờ».
+//  • Máy đang khoá (them-0kwhgpq6): lời xin chơi hiện «Xin mở khoá máy · chơi vẫn trừ sao» — «Mở khoá» = mở khoá máy (không cho vay; máy chủ chưa có
+//    loại lời xin «mở khoá» riêng nên lời xin được đóng bằng tu-choi kèm lý do «Ba Mẹ đã mở khoá máy»).
+//  • mo_web / cai_app — app / web chưa có trong danh sách (#262, #258 — PR #279): «Tính phút» / «Không tính phút» = yeu-cau/:id/dong-y {nhom} (thêm lâu dài
 //    vào danh sách) · «Bỏ qua» = yeu-cau/:id/bo-qua ⇒ màn «Đã bỏ qua» (/yeu-cau-web/bo-qua, Hoàn tác 60 giây).
 //  • Không cho = yeu-cau/:id/tu-choi {lyDo: «Ba Mẹ chưa cho lúc này»}.
-// Sau khi xử lý ⇒ màn kết quả /yeu-cau/xong (params: kieu, ten, phut, muc, may, grant, con).
+// Sau khi xử lý ⇒ màn kết quả /yeu-cau/xong (params: kieu, ten, phut, muc, may, grant, con, no, sao, phutCon, noTruoc, canh).
 import { router } from "expo-router";
 import { View } from "react-native";
-import { bm, type MayCon } from "./api";
+import { bm, laXinVay, type MayCon } from "./api";
 import { boQuaXin, hoanTacXin, themTuXin } from "./app-web";
 import type { YeuCauMoi } from "./hang-ngay";
+import { cauNo, saoTu, soVN, VienSao, type KqVay, type SaoCon } from "./so-sao";
 import { Chu, gioPhut, HaiNut, M, Nut } from "./ui";
 
 export const LY_DO_KHONG = "Ba Mẹ chưa cho lúc này";
-export const laThemGio = (y: Pick<YeuCauMoi, "loai">) => y.loai === "them_gio";
-export const laNgoaiLe = (y: Pick<YeuCauMoi, "loai">) => y.loai === "ngoai_le" || y.loai === "ngoai_gio";
+export const LY_DO_MO_KHOA = "Ba Mẹ đã mở khoá máy · chơi vẫn trừ sao";
+/** Lời xin vay sao (vay_sao + loại cũ them_gio / ngoai_le / ngoai_gio). */
+export const laVay = (y: Pick<YeuCauMoi, "loai">) => laXinVay(y);
+/** @deprecated 15/11 — mọi lời «thêm giờ» là lời xin vay; giữ tên cho màn cũ. */
+export const laThemGio = laVay;
 export const laAppWeb = (y: Pick<YeuCauMoi, "loai">) => y.loai === "mo_web" || y.loai === "cai_app";
 
-/** Tên thứ con xin mở: app / tên miền, ngoại lệ cả máy ⇒ «cả máy». */
-export const mucXin = (y: Pick<YeuCauMoi, "loai" | "gia_tri" | "pham_vi">) =>
-  laNgoaiLe(y) ? (y.pham_vi === "app" && y.gia_tri ? y.gia_tri : "cả máy") : y.gia_tri ?? "";
+/** Tên thứ con xin mở: app / tên miền. */
+export const mucXin = (y: Pick<YeuCauMoi, "loai" | "gia_tri" | "pham_vi">) => (laVay(y) ? "" : y.gia_tri ?? "");
 
-/** Tiêu đề lời xin như thiết kế: «Thêm 20 phút chơi», «Mở YouTube 30 phút», «Dùng app CapCut», «Vào vi.wikipedia.org». */
-export function tieuXin(y: Pick<YeuCauMoi, "loai" | "phut" | "gia_tri" | "pham_vi">) {
-  if (laThemGio(y)) return `Thêm ${y.phut ?? 15} phút chơi`;
-  if (laNgoaiLe(y)) return `Mở ${mucXin(y)} ${y.phut ?? 15} phút`;
-  if (y.loai === "cai_app") return `Dùng app ${y.gia_tri ?? "mới"}`;
-  if (y.loai === "mo_web") return `Vào ${y.gia_tri ?? "trang web"}`;
+/** Tiêu đề lời xin như thiết kế: «Xin Ba Mẹ cho vay 20 sao», «Xin thêm YouTube», «Xin thêm app CapCut». */
+export function tieuXin(y: Pick<YeuCauMoi, "loai" | "phut" | "gia_tri" | "pham_vi"> & { muc_dich?: string | null }) {
+  if (laVay(y)) return `Xin Ba Mẹ cho vay ${soVN(y.phut ?? 15)} sao${y.muc_dich === "qua" ? " để đổi quà" : ""}`;
+  if (y.loai === "cai_app") return `Xin thêm ${y.gia_tri ?? "app mới"}`;
+  if (y.loai === "mo_web") return `Xin thêm ${y.gia_tri ?? "trang web"}`;
   return y.gia_tri ?? "Xin Ba Mẹ";
 }
 
@@ -37,19 +41,23 @@ export const tenMayXin = (y: YeuCauMoi, may: Pick<MayCon, "id" | "ten">[] | unde
   return (id && may?.find((m) => m.id === id)?.ten) || null;
 };
 
-export type KetQua = { kieu: "them_gio" | "mo" | "khong" | "ngoai_le" | "bo_qua"; ten: string; con: string; phut?: number; muc?: string; may?: string | null; grant?: string;
+export type KetQua = {
+  kieu: "vay" | "mo" | "khong" | "mo_khoa" | "bo_qua"; ten: string; con: string; phut?: number; muc?: string; may?: string | null; grant?: string;
   /** «Bỏ qua» (app / web): hoàn tác trong 60 giây — POST yeu-cau/:id/hoan-tac */ hoan?: () => Promise<unknown>;
-  /** «mo»: định danh máy chủ trả (dong-y › muc) — tìm đúng hàng trong danh sách khi đổi nhóm / hoàn tác */ ma?: string };
+  /** «mo»: định danh máy chủ trả (dong-y › muc) — tìm đúng hàng trong danh sách khi đổi nhóm / hoàn tác */ ma?: string;
+  /** cho vay: trạng thái sao sau vay + nợ trước + câu cảnh báo nợ > 1.000 */ sau?: SaoCon; noTruoc?: number; canh?: string | null;
+};
 /** Mở màn kết quả. */
 export const denXong = (k: KetQua) => router.push({ pathname: "/yeu-cau/xong", params: {
   kieu: k.kieu, ten: k.ten, con: k.con, ...(k.phut ? { phut: String(k.phut) } : {}), ...(k.muc ? { muc: k.muc } : {}), ...(k.may ? { may: k.may } : {}),
-  ...(k.grant ? { grant: k.grant } : {}), ...(k.ma ? { ma: k.ma } : {}) } } as never);
+  ...(k.grant ? { grant: k.grant } : {}), ...(k.ma ? { ma: k.ma } : {}), ...(k.sau ? { no: String(k.sau.no), sao: String(k.sau.sao), phutCon: String(k.sau.phutCon) } : {}),
+  ...(k.noTruoc !== undefined ? { noTruoc: String(k.noTruoc) } : {}), ...(k.canh ? { canh: k.canh } : {}) } } as never);
 
-/** «Cho» một chạm (thêm giờ / ngoại lệ) đúng số phút con xin (hoặc `phut`). Trả thông tin cho màn kết quả. */
-export async function choXin(y: YeuCauMoi, may: string | null, phut = y.phut ?? 15): Promise<KetQua> {
-  const r = await bm.goi<{ grantId?: string }>(`yeu-cau/${y.id}/dong-y`, { phut });
-  return laThemGio(y) ? { kieu: "them_gio", ten: y.ten_con, con: y.child_id, phut, may, grant: r.grantId }
-    : { kieu: "ngoai_le", ten: y.ten_con, con: y.child_id, phut, muc: mucXin(y), may };
+/** «Cho vay N sao» một chạm đúng số sao con xin (hoặc `soSao`). `truoc` = sao của con trước khi vay (để ghi «Nợ cũ 20 + vay 20 sao»). */
+export async function choXin(y: YeuCauMoi, may: string | null, soSao = y.phut ?? 15, truoc?: SaoCon | null): Promise<KetQua> {
+  const r = await bm.goi<{ grantId?: string; vay?: KqVay }>(`yeu-cau/${y.id}/dong-y`, { soSao });
+  return { kieu: "vay", ten: y.ten_con, con: y.child_id, phut: soSao, may, grant: r.grantId ?? r.vay?.id, sau: r.vay ? saoTu(r.vay) : undefined,
+    noTruoc: truoc?.no, canh: r.vay?.canhBaoNo?.cau ?? null };
 }
 /** App / web chưa có trong danh sách: thêm vào nhóm «Tính phút» (trừ sao) hoặc «Không tính phút». */
 export async function choAppWeb(y: YeuCauMoi, may: string | null, tinhPhut: boolean): Promise<KetQua> {
@@ -69,22 +77,45 @@ export async function khongChoXin(y: YeuCauMoi, may: string | null, lyDo = LY_DO
   return { kieu: "khong", ten: y.ten_con, con: y.child_id, may, muc: ly };
 }
 
-/** Thẻ một lời xin: tiêu đề · «Lúc 19:20 · trên Laptop» · lời con · hàng nút. `lam` bọc thao tác (useLam của màn). */
-/** `sau` (mặc định: mở màn kết quả) — Chờ duyệt dùng toast «Hoàn tác» tại chỗ. `truc`: app / web lạ trả lời ngay 3 nút (Chờ duyệt) thay vì mở màn chi tiết. */
-export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc }: {
+/** Thẻ một lời xin: tiêu đề · «19:20 · con đang chờ trên Laptop» · lời con · hàng nút. `lam` bọc thao tác (useLam của màn).
+ *  `sau` (mặc định: mở màn kết quả) — Chờ duyệt dùng toast «Hoàn tác» tại chỗ. `truc`: app / web trả lời ngay 3 nút (Chờ duyệt, «đang xin»).
+ *  `sao`: sao của con (lời xin vay hiện «−20 sao · Đang nợ Ba Mẹ 20 sao»). `moKhoa`: máy của con đang khoá ⇒ lời xin chơi = «Xin mở khoá máy». */
+export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, moKhoa }: {
   y: YeuCauMoi; may: string | null; lam: (fn: () => Promise<unknown>) => void; dang?: boolean; phu?: string; bo?: boolean; sau?: (k: KetQua) => void; truc?: boolean;
+  sao?: SaoCon | null; moKhoa?: () => Promise<void>;
 }) {
   const xong = (fn: () => Promise<KetQua>) => lam(async () => sau(await fn()));
+  const vay = laVay(y), mayNgan = may ? may.replace(/ của .*$/, "") : null;
+  const xinMoKhoa = vay && !!moKhoa && (y as YeuCauMoi & { muc_dich?: string | null }).muc_dich !== "qua";
+  const tieu = xinMoKhoa ? "Xin mở khoá máy" : tieuXin(y as YeuCauMoi & { muc_dich?: string | null });
+  const dong2 = xinMoKhoa ? `${gioPhut(y.created_at)} · chơi vẫn trừ sao`
+    : laAppWeb(y) ? `${gioPhut(y.created_at)} · chưa có trong danh sách${mayNgan ? ` · ${mayNgan}` : ""}`
+      : `${gioPhut(y.created_at)} · ${vay && sao?.hetSao ? "hết sao, muốn chơi tiếp" : "con đang chờ"}${mayNgan ? ` · ${mayNgan}` : ""}`;
+  const no = vay && sao && !xinMoKhoa ? cauNo(sao) : null;
   return (
     <View style={{ gap: 8, paddingVertical: 12, borderTopWidth: bo ? 1 : 0, borderTopColor: "#efefec" }}>
       <View>
-        <Chu kieu="rat" co={16}>{tieuXin(y)}</Chu>
-        {/* thiết kế 14/11: «19:20 · con đang chờ trên Laptop» */}
-        <Chu co={13.5} mau={M.chu3}>{`${gioPhut(y.created_at)} · con đang chờ${may ? ` trên ${may.replace(/ của .*$/, "")}` : ""}`}</Chu>
+        <Chu kieu="rat" co={16}>{tieu}</Chu>
+        <Chu co={13.5} mau={xinMoKhoa ? "#8a3c0c" : M.chu3}>{dong2}</Chu>
       </View>
       {y.ly_do?.trim() ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
+      {vay && sao && !xinMoKhoa ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <VienSao s={sao} />
+          {no ? <Chu kieu="dam" co={13} mau="#8a3c0c">{no.replace(/ · .*$/, "")}</Chu> : null}
+        </View>
+      ) : null}
       {phu ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}
-      {laAppWeb(y) && truc ? (
+      {xinMoKhoa ? (
+        <HaiNut>
+          <Nut chu="Không cho" loai="vien" nho dangChay={dang} bam={() => xong(() => khongChoXin(y, may))} />
+          <Nut chu="Mở khoá" nho dangChay={dang} bam={() => xong(async () => {
+            await moKhoa!();
+            await khongChoXin(y, may, LY_DO_MO_KHOA);
+            return { kieu: "mo_khoa", ten: y.ten_con, con: y.child_id, may };
+          })} />
+        </HaiNut>
+      ) : laAppWeb(y) && truc ? (
         // thiết kế 15/11 them-a4nqjrmp: «Tính phút · Trừ sao của con · 1 sao = 1 phút» (nút chính) · «Không tính phút» | «Bỏ qua»
         <View style={{ gap: 8 }}>
           <Nut chu="Tính phút" nho rong dangChay={dang} bam={() => xong(() => choAppWeb(y, may, true))} />
@@ -99,12 +130,15 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc }: {
           <Nut chu="Bỏ qua" loai="vien" nho dangChay={dang} bam={() => lam(() => boQuaAppWeb(y, may, sau === denXong ? undefined : sau))} />
           <Nut chu="Thêm · Tính phút" nho dangChay={dang} bam={() => xong(() => choAppWeb(y, may, true))} />
         </HaiNut>
+      ) : vay ? (
+        <HaiNut>
+          <Nut chu="Không cho" loai="vien" nho dangChay={dang} bam={() => xong(() => khongChoXin(y, may))} />
+          <Nut chu={`Cho vay ${soVN(y.phut ?? 15)} sao`} nho dangChay={dang} bam={() => xong(() => choXin(y, may, y.phut ?? 15, sao))} />
+        </HaiNut>
       ) : (
         <HaiNut>
           <Nut chu="Không cho" loai="vien" nho dangChay={dang} bam={() => xong(() => khongChoXin(y, may))} />
-          {/* ngoại lệ ⇒ mở màn chi tiết: số phút phải kẹp theo «tối đa ngoại lệ» của từng Con (máy chủ không kẹp — review PR #183) */}
-          {!laThemGio(y) ? <Nut chu="Xem rồi cho" nho bam={() => router.push(`/yeu-cau/${y.id}` as never)} />
-            : <Nut chu={`Cho ${y.phut ?? 15} phút`} nho dangChay={dang} bam={() => xong(() => choXin(y, may))} />}
+          <Nut chu="Xem" nho bam={() => router.push(`/yeu-cau/${y.id}` as never)} />
         </HaiNut>
       )}
     </View>

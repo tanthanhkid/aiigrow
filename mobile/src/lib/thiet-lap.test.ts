@@ -9,22 +9,22 @@ test("chưa chọn chế độ ⇒ KHÔNG gửi cheDo (máy chủ giữ chế đ
   const b = thanThietLap({ conId: "c1", tenCon: "Phát" }, MAC);
   assert.equal("cheDo" in b, false);
   assert.equal("cheDoChan" in b, false);
-  assert.deepEqual(b.gioChoi, { ngayThuong: 60, cuoiTuan: 90 });
+  assert.equal("gioChoi" in b, false);
+  assert.equal("saoKhoiDau" in b, false);
   assert.deepEqual(b.ngu, MAC.ngu);
 });
 
 test("Ba Mẹ đã chọn «Mở hết» ⇒ gửi đúng mo_het; app theo mã / theo tên", () => {
   const b = thanThietLap({ conId: "c1", tenCon: "Phát", cheDoChan: "mo_het", quy: 30, apps: [{ ma: "roblox", ten: "Roblox" }, { ten: "Sách", tinhGio: false }] }, MAC);
   assert.equal(b.cheDo, "mo_het");
-  assert.deepEqual(b.gioChoi, { ngayThuong: 30, cuoiTuan: 60 });
   assert.deepEqual(b.apps, [{ ma: "roblox" }, { ten: "Sách", tinhGio: false, nhom: "khong_tinh_phut" }]);
   // mã nội bộ cũ «chi_app_duoc_phep» ⇒ gửi «theo_danh_sach» (#262)
   assert.equal(thanThietLap({ conId: "c1", cheDoChan: "chi_app_duoc_phep" }, MAC).cheDo, "theo_danh_sach");
 });
 
-test("quỹ cuối tuần đã nạp từ máy chủ được giữ; Ba Mẹ chọn quỹ khác (cuoiTuan xoá) ⇒ tính lại +30", () => {
-  assert.deepEqual(thanThietLap({ conId: "c1", quy: 30, cuoiTuan: 120 }, MAC).gioChoi, { ngayThuong: 30, cuoiTuan: 120 });
-  assert.deepEqual(thanThietLap({ conId: "c1", quy: 90, cuoiTuan: undefined }, MAC).gioChoi, { ngayThuong: 90, cuoiTuan: 120 });
+test("15/11 bm1-ob-gio: bỏ quỹ ngày; sao khởi đầu Ba Mẹ chọn (kể cả 0) gửi kèm", () => {
+  assert.equal(thanThietLap({ conId: "c1", saoKhoiDau: 0 }, MAC).saoKhoiDau, 0);
+  assert.equal(thanThietLap({ conId: "c1", saoKhoiDau: 60 }, MAC).saoKhoiDau, 60);
 });
 
 test("Thêm con: áp sẵn app Grow gợi ý hợp tuổi, chỉ lấy app `chon`; không có thì không gửi apps", () => {

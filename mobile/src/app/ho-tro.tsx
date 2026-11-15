@@ -10,11 +10,11 @@ import { NutVien } from "@/lib/ui-bm3";
 import { BangTruot, BaoLoi, BongChat, ChoTai, Chu, gioPhut, M, Man, NhanMen, Nut, OChat, Rob, useLam, useTai } from "@/lib/ui";
 
 type Tin = { id: string; tu: "ba_me" | "aiilab"; noi_dung: string; created_at: string };
-const GOI_Y = ["iPad báo lỗi", "Ghép máy mới", "Đổi sao ra phút"];
+const GOI_Y = ["iPad báo lỗi", "Ghép máy mới", "Sao & phút chơi"];
 const HAY_GAP: { hoi: string; dap: string; di?: { chu: string; toi: string } }[] = [
   { hoi: "Máy của con báo «cần sửa»", dap: "Máy chưa đủ quyền bảo vệ nên con tự tắt được. Mở máy đó trong «Máy của con» và làm theo các bước sửa.", di: { chu: "Xem máy của con", toi: "/may" } },
   { hoi: "Ghép thêm máy cho con", dap: "Vào «Máy của con» › «Ghép thêm máy», gửi link cài cho máy của con — mã 6 số dùng khi link không mở được.", di: { chu: "Mở Máy của con", toi: "/may" } },
-  { hoi: "Đổi sao ra phút chơi", dap: "Con đổi sao trên máy của con: mỗi sao thành phút chơi, cộng vào giờ chơi hôm nay. Ba Mẹ không cần làm gì." },
+  { hoi: "Sao & phút chơi", dap: "1 sao = 1 phút chơi app, web «Tính phút». Con làm nhiệm vụ để kiếm sao; hết sao thì app tự khoá và con xin Ba Mẹ cho vay sao. Sao nhiệm vụ trả nợ trước. App «Không tính phút» không trừ sao.", di: { chu: "Xem ví sao của con", toi: "/diem-qua" } },
   { hoi: "Con xin mở app, web lạ", dap: "Ở chế độ «Theo danh sách», app / web chưa có trong danh sách con phải xin. Lời xin hiện ở Hôm nay và «App & web» — Ba Mẹ thêm vào nhóm «Tính phút» / «Không tính phút» hoặc Bỏ qua.", di: { chu: "Mở App & web", toi: "/app-web" } },
   { hoi: "Mời người nhà cùng trông con", dap: "Tab Cả nhà › «Mời người nhà», gõ SĐT hoặc email và chọn quyền. Người được mời mở AiiGrow là thấy lời mời.", di: { chu: "Mời người nhà", toi: "/moi-nguoi-nha" } },
 ];

@@ -5,14 +5,17 @@
 //   • «Ba Mẹ tự điền»: quà ở nhà, không tốn tiền — tên (gợi ý chip) + số sao (50/100/200/300) ⇒ «Thêm quà» (POST qua, áp cho Con đang xem);
 //     dưới là «Quà Ba Mẹ đã điền N quà», bấm một quà ⇒ «Sửa quà». 7 quà mặc định (L14) vẫn gieo khi tạo Con.
 // `?con=` Con đang xem (nhà nhiều con ⇒ chip đổi Con), `?tab=nha` mở thẳng tab «Ba Mẹ tự điền». Người trông giúp: chỉ xem.
+// 15/11 (#263): thiếu sao thì con xin Ba Mẹ cho vay — thẻ lời xin vay đổi quà (cho-duyet › yeuCau vay_sao, muc_dich «qua», gia_tri = id quà)
+// «<Con> xin vay 50 sao · Để đổi <quà> · con có 150/200 sao» + «Cho vay» ⇒ bảng Cho vay sao (lib/so-sao) ⇒ toast + Hoàn tác.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { bm, type GiaDinh } from "@/lib/api";
-import { CAU_TRONG_GIUP, ChipCon, quyenToi } from "@/lib/hang-ngay";
+import { bm, laXinVay, type GiaDinh } from "@/lib/api";
+import { CAU_TRONG_GIUP, ChipCon, quyenToi, type ChoDuyetMoi, type YeuCauMoi } from "@/lib/hang-ngay";
+import { BangChoVay, hoanTacVay, saoTu, soVN } from "@/lib/so-sao";
 import { icQua, tenVoucher, type NhomThuVien, type QuaS3 } from "@/lib/s3";
 import { veHoac } from "@/lib/ui-bm3";
-import { BaoLoi, baoKhiVe, ChoTai, Chips, ChonMot, Chu, Dong, Icon3D, M, Man, NhanMen, Nhom, Nut, ONhap, The, tien, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, ChoTai, Chips, ChonMot, Chu, Dong, Icon3D, M, Man, NhanMen, Nhom, Nut, ONhap, The, tien, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 import { GiaSao, OHinhQua } from "@/lib/ui-s3";
 import { KHOI } from "@/lib/clay";
 
@@ -41,9 +44,13 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
   const conId = c?.id ?? null;
   const thamCon = conId ? `?con=${encodeURIComponent(conId)}` : "";
   const q = useTai(async () => {
-    const [qua, tv] = await Promise.all([bm.goi<{ ds: QuaS3[] }>(`qua${thamCon}`), bm.goi<{ nhom: NhomThuVien[] }>(`qua/thu-vien${thamCon}`)]);
-    return { qua: qua.ds, voucher: tv.nhom.flatMap((x) => x.ds).filter((m) => m.loai === "voucher") };
+    const [qua, tv, cd] = await Promise.all([bm.goi<{ ds: QuaS3[] }>(`qua${thamCon}`), bm.goi<{ nhom: NhomThuVien[] }>(`qua/thu-vien${thamCon}`),
+      bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null)]);
+    const xinVay = (cd?.yeuCau ?? []).filter((y) => y.child_id === conId && laXinVay(y) && y.muc_dich === "qua");
+    return { qua: qua.ds, voucher: tv.nhom.flatMap((x) => x.ds).filter((m) => m.loai === "voucher"), xinVay };
   });
+  const [vay, setVay] = useState<YeuCauMoi | null>(null);
+  const { bao, noi } = useHoanTac();
   const [tab, setTab] = useState<"voucher" | "nha">(tabDau);
   const [ten, setTen] = useState("");
   const [sao, setSao] = useState(100);
@@ -61,13 +68,29 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
   const moMua = (ma: string) => router.push({ pathname: "/vi/qua-mua", params: { ma, ...(conId ? { con: conId } : {}) } });
 
   return (
-    <Man lui={{ chu: "", bam: ve }} tieu={tieu} tai={q.tai} day={<Nut chu="Xong" rong bam={ve} />}>
+    <Man lui={{ chu: "", bam: ve }} tieu={tieu} tai={q.tai} noi={noi} day={<Nut chu="Xong" rong bam={ve} />}>
       {dsCon.length > 1 && c ? <ChipCon ds={dsCon} chon={c.id} doi={(x) => doiCon(x.id)} /> : null}
       <ChonMot ds={[{ gia: "voucher" as const, chu: "Voucher AiiGrow" }, { gia: "nha" as const, chu: "Ba Mẹ tự điền" }]} gia={tab} doi={setTab} />
+      {c ? q.d.xinVay.map((y) => {
+        const qq = q.d!.qua.find((x) => x.id === y.gia_tri);
+        const co = saoTu(c).sao;
+        return (
+          <The key={y.id} style={{ backgroundColor: "#f9e7d2" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+              <Icon3D ten="sao" co={36} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Chu kieu="rat" co={15} mau="#8a3c0c">{`${c.ten} xin vay ${soVN(y.phut ?? 15)} sao`}</Chu>
+                <Chu kieu="dam" co={12.5} mau="#8a3c0c">{`Để đổi ${qq ? tenVoucher(qq.ten) : "quà"}${qq ? ` · con có ${soVN(co)}/${soVN(qq.sao)} sao` : ""}`}</Chu>
+              </View>
+              {baMe ? <Nut chu="Cho vay" nho bam={() => setVay(y)} /> : null}
+            </View>
+          </The>
+        );
+      }) : null}
 
       {tab === "voucher" ? (
         <>
-          <Chu kieu="dam" co={13} mau={M.chu2} style={{ marginHorizontal: 6 }}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi.</Chu>
+          <Chu kieu="dam" co={13} mau={M.chu2} style={{ marginHorizontal: 6 }}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi; thiếu sao thì con xin Ba Mẹ cho vay.</Chu>
           <View style={{ gap: 10 }}>
             {q.d.voucher.map((m) => (
               <NhanMen key={m.ma} onPress={() => moMua(m.ma)} accessibilityRole="button" accessibilityLabel={`${m.ten}, ${tien(m.menhGia ?? 0)}, ${m.sao} sao${m.daCo ? ", đã mua" : ""}`}
@@ -124,6 +147,10 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
         // quỹ phiếu AiiCafe nạp trước 06/11 vẫn dùng ở quầy (KE-HOACH 0511 câu mở 3) — báo số dư + chỗ hỏi nạp / hoàn
         <Nhom><Dong dau tieu={`Quỹ phiếu quà AiiCafe còn ${tien(quyVoucher)}`} phu="Dùng ở quầy AiiCafe · cần nạp hay hoàn thì nhắn AiiGrow" trai={<Icon3D ten="coc" co={32} />}
           bam={() => router.push("/ho-tro")} /></Nhom>
+      ) : null}
+      {c && vay ? (
+        <BangChoVay mo={!!vay} dong={() => setVay(null)} con={c.id} ten={c.ten} soSao={vay.phut} yeuCau={vay.id} mucDich="qua"
+          xong={(k) => { bao(`Đã cho ${c.ten} vay ${soVN(k.soSao)} sao`, () => { hoanTacVay(k.id).then(q.tai, () => { bao("Đã quá 60 giây — không hoàn tác được"); q.tai(); }); }); q.tai(); }} />
       ) : null}
     </Man>
   );

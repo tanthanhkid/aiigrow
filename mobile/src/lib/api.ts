@@ -89,7 +89,9 @@ export type HomNay = { soDu: number; diemChoDuyet: number; tongKiem: number; cap
   /** phút giải trí còn được chơi hôm nay theo trần ngày lẫn tuần (đã cộng thêm giờ); máy chủ cũ không gửi */ conPhut?: number };
 export type ConNgan = HomNay & { id: string; ten: string; avatar: string; nhom: NhomCon;
   /** S3 06/11 (docs/API.md «S3»): bé có PIN vào máy · máy mất mạng hôm nay (dòng «Máy mất mạng · Laptop ›») · sao đang giữ chờ trao */
-  coPin?: boolean; matMang?: { mayId: string; ten: string; nen: string; tu: string; phut: number }[]; saoGiu?: number };
+  coPin?: boolean; matMang?: { mayId: string; ten: string; nen: string; tu: string; phut: number }[]; saoGiu?: number }
+  /** Sổ sao 15/11 (#263–#266): sao (âm được) · nợ · phút còn = sao tiêu được · hết sao · nợ > 1.000 — máy chủ cũ không gửi (lib/so-sao › saoTu) */
+  & Partial<import("./so-sao").SaoCon>;
 export type GiaDinh = { ten: string; quyVoucher: number; choDuyet: number; canhBao: number; con: ConNgan[]; /** S3: số trên chuông */ soChuong?: number };
 export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" | "android"; dungChung: boolean; baoVe: "day_du" | "mot_phan" | "chua";
   lanCuoi: string | null; truc: boolean; lechGiay: number | null;
@@ -108,8 +110,10 @@ export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "
 export type NhiemVu = { id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string; toi_da_ngay: number | null;
   toi_da_tuan: number | null; phut_toi_thieu: number; tu_duyet: boolean; giao_cho: string | null; han: string | null; bat: boolean };
 export type LuotCho = { id: string; child_id: string; ten_con: string; ten: string; nhom: string; diem: number; nop_luc: string; ghi_chu: string | null; nghi_trung: boolean; so_anh: number };
-export type YeuCau = { id: string; child_id: string; ten_con: string; loai: "them_gio" | "mo_web" | "cai_app" | "ngoai_le" | "ngoai_gio" | "khac";
-  phut: number | null; gia_tri: string | null; ly_do: string; created_at: string; het_han: string };
+/** Lời xin của Con. 15/11 (#263/#265): `vay_sao` = xin Ba Mẹ cho vay `phut` sao (`muc_dich` choi | qua — qua ⇒ `gia_tri` = id quà); them_gio / ngoai_le /
+ *  ngoai_gio (máy cũ) nay cũng là lời xin vay `phut` sao để chơi. */
+export type YeuCau = { id: string; child_id: string; ten_con: string; loai: "vay_sao" | "them_gio" | "mo_web" | "cai_app" | "ngoai_le" | "ngoai_gio" | "khac";
+  phut: number | null; gia_tri: string | null; ly_do: string; created_at: string; het_han: string; muc_dich?: "choi" | "qua" | null };
 export type Qua = { id: string; ten: string; loai: "voucher" | "qua" | "dac_quyen" | "tiet_kiem"; diem: number; menh_gia: number | null; ton_kho: number | null;
   toi_da_thang: number | null; chi_cuoi_tuan: boolean; bat: boolean };
 export type CanhBao = { id: string; child_id: string | null; loai: string; muc: "thong_tin" | "chu_y" | "nghiem_trong"; noi_dung: string;
@@ -117,11 +121,12 @@ export type CanhBao = { id: string; child_id: string | null; loai: string; muc: 
 export type Diem = { delta: number; loai: string; ly_do: string; nguoi: string | null; /** tên Ba Mẹ (máy chủ cũ không gửi) */ ten_nguoi?: string | null; created_at: string };
 
 export const LOAI_YC: Record<YeuCau["loai"], string> = {
-  them_gio: "Thêm giờ", mo_web: "Mở web", cai_app: "Cài app", ngoai_le: "Ngoại lệ", ngoai_gio: "Ngoài giờ", khac: "Khác",
+  vay_sao: "Xin vay sao", them_gio: "Xin vay sao", mo_web: "Mở web", cai_app: "Cài app", ngoai_le: "Xin vay sao", ngoai_gio: "Xin vay sao", khac: "Khác",
 };
+/** Lời xin vay sao (mới + loại cũ máy chưa cập nhật). */
+export const laXinVay = (y: Pick<YeuCau, "loai">) => y.loai === "vay_sao" || y.loai === "them_gio" || y.loai === "ngoai_le" || y.loai === "ngoai_gio";
 export const tieuYc = (y: Pick<YeuCau, "loai" | "phut" | "gia_tri">) =>
-  y.loai === "them_gio" ? `Xin thêm ${y.phut} phút` : y.loai === "mo_web" ? `Xin mở ${y.gia_tri}` : y.loai === "cai_app" ? `Xin cài ${y.gia_tri}`
-    : y.loai === "ngoai_le" ? `Xin ngoại lệ ${y.phut} phút${y.gia_tri ? ` cho ${y.gia_tri}` : ""}` : y.loai === "ngoai_gio" ? `Xin chơi ngoài giờ ${y.phut} phút` : y.gia_tri ?? "Yêu cầu khác";
+  laXinVay(y) ? `Xin vay ${y.phut ?? 15} sao` : y.loai === "mo_web" ? `Xin mở ${y.gia_tri}` : y.loai === "cai_app" ? `Xin cài ${y.gia_tri}` : y.gia_tri ?? "Yêu cầu khác";
 
 export const NHOM_NV: Record<string, { chu: string; ic: "sach" | "chen" | "mu" | "chay" | "sao" | "tia"; mau: "xanh" | "lam" | "tim" | "cam" | "vang" }> = {
   doc_sach: { chu: "Đọc sách", ic: "sach", mau: "xanh" }, viec_nha: { chu: "Việc nhà", ic: "chen", mau: "lam" }, hoc_tap: { chu: "Học tập", ic: "mu", mau: "tim" },

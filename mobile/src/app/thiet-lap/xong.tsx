@@ -1,4 +1,5 @@
-// bm1-ob-xong «Xong rồi!» (đã ghép máy) / them-w8q8hcfk (chưa ghép máy) — tóm tắt: chế độ chặn + số app, giờ chơi (15/11 #262: bỏ giờ ngủ), số việc mỗi ngày;
+// bm1-ob-xong «Xong rồi!» (đã ghép máy) / them-w8q8hcfk (chưa ghép máy) — tóm tắt (thiết kế 15/11 #262/#264): «Theo danh sách · N app» / «Mở hết»,
+// «Chơi bằng sao · 1 sao = 1 phút», số việc mỗi ngày; mẫu lời xin «Xin thêm YouTube vào danh sách · Bỏ qua / Thêm»;
 // đã ghép ⇒ thẻ «Con xin gì, điện thoại Ba Mẹ sẽ báo» (mẫu), «Vào trang của X», «Ghép thêm máy cho X»; chưa ghép ⇒ «Ghép máy cho X».
 // Thiết kế 14/11: «Grow» thay «Rob» (N6); tên chế độ «Chặn app & web» / «Mở hết» (N2 — thiết kế 04/05 còn ghi «Chỉ app Ba Mẹ chọn», chọn theo luật N2).
 import { cheDoTu } from "@/lib/app-web";
@@ -15,7 +16,7 @@ import { Avt, Chu, Icon, Icon3D, M, MAU_CON, Man, Nut, Rob, The, useTai, XuongTa
 export default function ObXong() {
   const p = useLocalSearchParams<{ con?: string }>();
   const con = String(p.con ?? layTl().conId ?? "");
-  // Con khác đã lưu trong lượt này («Thêm con khác») còn chưa giao việc / giờ chơi / ghép máy ⇒ mời làm tiếp
+  // Con khác đã lưu trong lượt này («Thêm con khác») còn chưa giao việc / luật sao / ghép máy ⇒ mời làm tiếp
   const [conLai] = useState(() => (layTl().daLuu ?? []).filter((x) => x.id !== con));
   useEffect(() => { xoaTl(); }, []);                // Lần đầu đã xong: lần «Thêm Con» sau bắt đầu form trống
   const tiepCon = (x: (typeof conLai)[number]) => {
@@ -43,12 +44,12 @@ export default function ObXong() {
       : <Nut chu="Vào Trang chủ" rong bam={() => router.replace("/hom-nay")} />}>
       <View style={{ alignItems: "center", gap: 6, paddingTop: 8 }}>
         <Rob ten="xong" co={170} />
-        <TieuDe chu="Xong rồi!" phu={coMay ? `Grow bắt đầu trông ${d!.may[0].ten} của ${ten}.` : `${ten} đã có việc và giờ chơi.`} giua />
+        <TieuDe chu="Xong rồi!" phu={coMay ? `Grow bắt đầu trông ${d!.may[0].ten} của ${ten}.` : `${ten} đã có việc và luật chơi bằng sao.`} giua />
       </View>
       {d ? (
         <The>
           {dong("khien", cheDoTu(d.t) === "mo_het" ? "Mở hết · không tính phút" : `Theo danh sách · ${d.t.soApp} app`)}
-          {dong("dongho", `Chơi ${d.t.gioChoi.ngayThuong ?? "—"} phút`)}
+          {dong("dongho", "Chơi bằng sao · 1 sao = 1 phút")}
           {dong("sao", `${d.soViec} việc mỗi ngày`)}
         </The>
       ) : null}
@@ -58,9 +59,9 @@ export default function ObXong() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="chuong" co={22} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Con xin gì, điện thoại Ba Mẹ sẽ báo</Chu></View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#fff", borderRadius: 18, padding: 10, ...KHOI.nho }}>
             <Avt ten={ten} mau={MAU_CON[0]} co={34} />
-            <View style={{ flex: 1 }}><Chu kieu="rat" co={13.5}>{`${ten} xin mở`}</Chu><Chu co={12.5} mau={M.chu3}>YouTube 30 phút</Chu></View>
-            <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: "#f1f0ec" }}><Chu kieu="rat" co={13}>Không</Chu></View>
-            <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: M.nut }}><Chu kieu="rat" co={13} mau="#fff">Cho</Chu></View>
+            <View style={{ flex: 1 }}><Chu kieu="rat" co={13.5}>Xin thêm YouTube</Chu><Chu co={12.5} mau={M.chu3}>vào danh sách</Chu></View>
+            <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: "#f1f0ec" }}><Chu kieu="rat" co={13}>Bỏ qua</Chu></View>
+            <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: M.nut }}><Chu kieu="rat" co={13} mau="#fff">Thêm</Chu></View>
           </View>
         </View>
       ) : (

@@ -69,7 +69,7 @@ export default function XoaHoSo() {
         {/* máy chủ không gỡ máy — máy thành «dùng chung», Ba Mẹ gắn cho con khác hoặc gỡ ở bước sau */}
         {c.may.length ? <TickDong trang="x" chu={`Grow thôi trông ${c.may.length} máy cho ${c.ten}`} phu={`${tenMay.join(" và ")} thành máy dùng chung`} /> : null}
         <TickDong trang="x" chu={`Mất ${sao} sao`} phu="Cả quà đang chờ trao" />
-        <TickDong trang="x" chu="Mất báo cáo và cài đặt" phu="Nhiệm vụ, giờ chơi đã đặt" />
+        <TickDong trang="x" chu="Mất báo cáo và cài đặt" phu="Nhiệm vụ, sao, luật đã đặt" />
       </View>
     </Man>
   );

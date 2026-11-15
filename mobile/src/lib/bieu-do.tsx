@@ -109,7 +109,7 @@ function Cot({ thu, cao, phan, giam }: { thu: number; cao: number; phan: PhanCot
   );
 }
 
-// ---------------------------------------------------------------- cột giờ chơi (Báo cáo 14/11)
+// ---------------------------------------------------------------- cột phút chơi (Báo cáo 14/11 · 15/11 1 phút = 1 sao)
 
 export type CotChoi = { khoa: string; nhan: string; doc: string; phut: number; quy: number | null; nay?: boolean };
 
