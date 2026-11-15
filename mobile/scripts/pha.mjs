@@ -816,6 +816,8 @@ await kichBan("Đăng ký bằng số điện thoại → mã 6 số → vào b�
 });
 
 await kichBan("Duyệt nhiệm vụ: bằng chứng ⇒ «Duyệt · nhận 10 sao» kèm lời khen ⇒ màn +10 sao ⇒ Hoàn tác trừ lại", async () => {
+  // ví đọc trước + sau khi duyệt: 145 → 155 (mock tĩnh trả cùng một số ⇒ «155 → 155»)
+  kb["GET con/c1/vi"] = () => ({ ...coBan["GET con/c1/vi"], ...(nhatKy.some((x) => x.d === "luot/l1/duyet") ? { sao: 155, soDu: 155 } : { sao: 145, soDu: 145 }), no: 0 });
   await di("/duyet/l1");
   xet(await doi(`Duyệt · ${KEN} nhận 10 sao`), "nút duyệt nói rõ số sao");
   xet(await doi("Ảnh «Ảnh 1»"), "hiện nhãn ảnh bằng chứng");
@@ -1005,6 +1007,8 @@ await kichBan("Thông báo: chuông có số ⇒ danh sách gộp ⇒ đánh d�
 });
 
 await kichBan("Ví sao: số sao = phút chơi, quà đủ / thiếu sao, Ba Mẹ trừ sao kèm lý do", async () => {
+  // kịch bản ví cũ: con KHÔNG nợ, 155 sao (mặc định coBan là Bảo Anh đang nợ 20 — kịch bản sổ sao)
+  kb["GET con/c1/vi-sao"] = { ...coBan["GET con/c1/vi-sao"], ...saoGia(155, 0), tongVay: 0, daTraNo: 0, cau: { soDu: "155 sao", phut: "còn 155 sao = 155 phút chơi", no: null } };
   await di("/vi/c1");
   xet(await doi("155 sao"), "ví hiện số sao");
   xet(await doi("= 155 phút chơi"), "đổi ra phút theo tỷ lệ 10 sao = 10 phút");
@@ -1106,7 +1110,7 @@ await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm đư
   // màn đang mở = chữ đặc trưng của tab nằm trong khung nhìn (màn tab khác vẫn gắn nhưng trượt ra ngoài / ẩn)
   // (lỗi gốc chỉ có ở bản native — react-native-screens + native driver; web không tái hiện được, kịch bản này giữ hành vi đổi tab ở web.)
   const tab = (t) => `[role="tab"][aria-label^="${t}"]`;
-  const DAU = { "Hôm nay": "Khoá máy", "Nhiệm vụ": "Việc mỗi ngày", "Báo cáo": "Sao và giờ thêm", "Cả nhà": "Người lớn trông con" };
+  const DAU = { "Hôm nay": "Khoá máy", "Nhiệm vụ": "Việc mỗi ngày", "Báo cáo": "Sao kiếm, sao vay", "Cả nhà": "Người lớn trông con" };
   const dangMo = async (t) => { for (const het = Date.now() + 5000; Date.now() < het;) {
     if (await js(`[...document.querySelectorAll("div,span")].some((e) => e.innerText?.trim().startsWith(${JSON.stringify(DAU[t])}) && e.children.length <= 1 && (() => { const b = e.getBoundingClientRect();
       return b.width > 0 && b.left >= 0 && b.right <= innerWidth + 1 && b.top < innerHeight && b.bottom > 0 && document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2) !== null && e.contains(document.elementFromPoint(b.x + b.width / 2, Math.min(b.y + b.height / 2, innerHeight - 1))); })())`)) return true;

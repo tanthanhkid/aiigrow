@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import {
-  CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, quyenToi, SaoVien, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type GioChoi, type NhiemVuMoi,
+  CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, quyenToi, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type GioChoi, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
 import { cauNo, chuVien, saoTu, soVN, VienSao, type SaoCon } from "@/lib/so-sao";
 import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
