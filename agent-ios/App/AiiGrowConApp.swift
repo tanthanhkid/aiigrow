@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
     try? BGTaskScheduler.shared.submit(r)
   }
 
-  // Thông báo «Xin thêm giờ» từ màn chặn ⇒ mở app ở màn xin thêm giờ.
+  // Thông báo từ màn chặn ⇒ mở app ở màn «Xin Ba Mẹ cho vay sao» (hết sao) / «Xin Ba Mẹ mở app» (ngoài danh sách).
   func userNotificationCenter(_ c: UNUserNotificationCenter, didReceive r: UNNotificationResponse, withCompletionHandler xong: @escaping () -> Void) {
     if r.notification.request.content.userInfo["mo"] as? String == "xin-them-gio" {
       UIApplication.shared.open(URL(string: "\(LienKet.scheme)://xin-them-gio")!)

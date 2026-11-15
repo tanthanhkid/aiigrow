@@ -13,8 +13,25 @@ public final class KhienThat: HeThongKhien {
 
   public func ap(_ k: KhienMuonCo) {
     let s = ManagedSettingsStore(named: Self.tenKho)
-    let gt = chon.doc(.giaiTri), chan = chon.doc(.chan), hoc = chon.doc(.hoc)
+    let gt = chon.doc(.giaiTri), chan0 = chon.doc(.chan), hoc = chon.doc(.hoc)
     let rongThanhNil = { (x: Set<ApplicationToken>) in x.isEmpty ? nil : x }
+    // 15/11 «Theo danh sách» (danh sách trắng): app / web ngoài danh sách không mở. Danh sách = app Ba Mẹ chọn «Tính phút» (Giải trí) +
+    // «Không tính phút» (Học); hết sao ⇒ chỉ còn «Không tính phút». Apple chỉ cho trừ app lẻ khỏi `.all(except:)` ⇒ Ba Mẹ chọn TỪNG app
+    // (chọn cả nhóm danh mục thì nhóm đó vẫn bị khiên khi theo danh sách).
+    if k.danhSach == true, k.muc != .moiApp {
+      let duoc = k.muc == .giaiTri ? hoc : nil
+      let apps = duoc?.applicationTokens ?? hoc.applicationTokens.union(gt.applicationTokens)
+      let web = duoc?.webDomainTokens ?? hoc.webDomainTokens.union(gt.webDomainTokens)
+      s.shield.applications = nil
+      s.shield.applicationCategories = .all(except: apps)
+      s.shield.webDomainCategories = .all(except: web)
+      s.shield.webDomains = nil
+      s.webContent.blockedByFilter = k.webChan.isEmpty ? nil : .specific(Set(k.webChan.map { WebDomain(domain: $0) }))
+      s.application.denyAppInstallation = k.chanCaiApp ? true : nil
+      return
+    }
+    // «Mở hết»: không khiên gì (kể cả app nhãn cũ «Chặn» — 15/11 bỏ luật Chặn)
+    let chan = k.dangMoHet == true ? FamilyActivitySelection() : chan0
     switch k.muc {
     case .moiApp:
       // Khoá ngay / giờ ngủ: khiên mọi danh mục. App hệ thống (Điện thoại, Tin nhắn, Cài đặt…) iOS không cho khiên.
@@ -127,8 +144,11 @@ public enum ApLai {
 
   public static func ghiSuKien(_ ten: String, kho: KhoGiaTri = KhoUserDefaults(), now: Date = Date()) {
     guard let kh = kho.doc(KeHoach.self, Khoa.keHoach) else { return }
-    // Ba Mẹ đang dùng / chưa bé nào vào: không tính giờ con
+    // Ba Mẹ đang dùng / chưa bé nào vào: không tính giờ con · «Mở hết»: không đếm
     if let p = kho.doc(PhienMay.self, Khoa.phienMay), p.loai != .con { return }
-    kho.luu(TinhKhien.ghiSuKien(ten, cu: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), kh: kh, now: now), Khoa.nhatKyDung)
+    if kh.moHet { return }
+    // đang mở bằng mã offline Ba Mẹ đọc ⇒ phút này không trừ sao (gửi `phutBoiMa`)
+    let boiMa = DongBo.hanMoOffline(kho, now) != nil
+    kho.luu(TinhKhien.ghiSuKien(ten, cu: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), kh: kh, now: now, boiMa: boiMa), Khoa.nhatKyDung)
   }
 }

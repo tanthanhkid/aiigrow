@@ -1,8 +1,9 @@
-// Màn chặn của AiiGrow: câu tiếng Việt thân thiện theo lý do (đọc từ app group) + nút «Xin thêm giờ».
+// Màn chặn của AiiGrow: câu tiếng Việt thân thiện theo lý do (đọc từ app group) + nút «Xin Ba Mẹ cho vay sao» (hết sao) / «Xin Ba Mẹ mở» (ngoài danh sách).
 // Bản «Dịu» (06/11) trong giới hạn của Apple: ShieldConfiguration chỉ nhận màu nền, một ảnh icon, màu chữ và màu nút (không bo góc,
 // bóng hay chuyển động). Nên: nền kem #fbf8f2, icon Fluent 3D trong viên tròn kem, nút xanh lá đặc, chữ khớp màn con-dt-gio / con-dt-chan.
 import ManagedSettings
 import ManagedSettingsUI
+import FamilyControls
 import UIKit
 import ConCore
 
@@ -16,22 +17,34 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
   static let nenIcon = UIColor(red: 0xf6 / 255, green: 0xf3 / 255, blue: 0xec / 255, alpha: 1)
 
   /// `web`: màn chặn trang web (cdt-chan-web) — chữ khác màn chặn app.
-  func cauHinh(ten: String?, web: Bool = false) -> ShieldConfiguration {
+  /// App / trang bị khiên có nằm trong nhóm «Tính phút» (Giải trí) Ba Mẹ chọn không — token đọc từ app group.
+  static func trongTinhPhut(app: ApplicationToken? = nil, web: WebDomainToken? = nil) -> Bool {
+    guard let d = KhoUserDefaults().data(Khoa.chonGiaiTri), let s = try? JSONDecoder().decode(FamilyActivitySelection.self, from: d) else { return false }
+    if let app { return s.applicationTokens.contains(app) }
+    if let web { return s.webDomainTokens.contains(web) }
+    return false
+  }
+
+  /// `trongDs`: app / trang thuộc danh sách «Tính phút» (nil = không biết).
+  func cauHinh(ten: String?, web: Bool = false, trongDs: Bool? = nil) -> ShieldConfiguration {
     let k = KhoUserDefaults().doc(KhienMuonCo.self, Khoa.khienDangAp)
-    let lyDo = k?.lyDo ?? .ngoaiGio
+    var lyDo = k?.lyDo ?? .ngoaiGio
+    // Theo danh sách + hết sao: app NGOÀI danh sách bị khiên vì ngoài danh sách, không phải vì hết sao
+    if lyDo == .hetGio, k?.danhSach == true, trongDs == false { lyDo = .khong }
     let tieuDe: String, phu: String, nut: String
     switch lyDo {
-    case .ngu: tieuDe = "Đến giờ ngủ rồi"; phu = "Chúc con ngủ ngon! Cần gấp thì xin Ba Mẹ mở nhé."; nut = "Xin Ba Mẹ mở máy"
-    case .khoaNgay: tieuDe = "Ba Mẹ đang khoá máy"; phu = "Đọc sách hoặc ra ngoài chơi nhé!"; nut = "Xin Ba Mẹ mở máy"
-    case .hetGio: tieuDe = "Hết giờ chơi rồi"; phu = "Con đổi sao lấy phút hoặc xin Ba Mẹ thêm giờ nhé."; nut = "Thêm giờ chơi"
-    case .gioHoc: tieuDe = "Giờ học rồi!"; phu = "Chỉ mở app học. Học xong được chơi tiếp."; nut = "Xin Ba Mẹ mở app khác"
+    case .ngu: tieuDe = "Đến giờ ngủ rồi"; phu = "Chúc con ngủ ngon! Mai mình chơi tiếp nhé."; nut = "Mở AiiGrow Con"
+    case .khoaNgay: tieuDe = "Ba Mẹ đang khoá máy"; phu = "Đọc sách hoặc ra ngoài chơi nhé!"; nut = "Mở AiiGrow Con"
+    // 15/11 (#264): hết sao = hết phút «Tính phút» (cdt-het-phien)
+    case .hetGio: tieuDe = "Hết sao rồi"; phu = "Còn 0 sao = 0 phút chơi. Con làm nhiệm vụ hoặc xin Ba Mẹ cho vay sao nhé."; nut = "Xin Ba Mẹ cho vay sao"
+    case .gioHoc: tieuDe = "Giờ học rồi!"; phu = "Chỉ mở app học. Học xong được chơi tiếp."; nut = "Mở AiiGrow Con"
     case .chuaVao: tieuDe = "Máy đang khoá"; phu = "Mở AiiGrow Con, chạm tên con rồi nhập PIN nhé."; nut = "Mở AiiGrow Con"
     case .khong:
-      // khiên lúc không khoá giờ = app / trang Ba Mẹ chặn (them-4e5fwl16 · cdt-chan-web)
-      tieuDe = web ? "Trang này chưa mở" : "\(ten ?? "App này") chưa mở"
-      phu = web ? "Ba Mẹ chưa cho phép trang này. Con xin thử nhé!" : "Ba Mẹ chưa cho phép app này."
-      nut = "Xin Ba Mẹ mở"
-    default: tieuDe = "Tạm nghỉ chút nhé"; phu = lyDo.cauChoCon; nut = "Thêm giờ chơi"
+      // 15/11 (#262, them-4e5fwl16 · cdt-chan-web): ngoài danh sách trắng của Ba Mẹ
+      tieuDe = web ? "Trang này chưa có trong danh sách" : "\(ten ?? "App này") chưa có trong danh sách"
+      phu = web ? "Máy chỉ mở trang Ba Mẹ đã thêm vào danh sách." : "Máy chỉ mở app Ba Mẹ đã thêm vào danh sách."
+      nut = web || ten == nil ? "Xin Ba Mẹ mở" : "Xin Ba Mẹ mở \(ten!)"
+    default: tieuDe = "Tạm nghỉ chút nhé"; phu = lyDo.cauChoCon; nut = "Mở AiiGrow Con"
     }
     let hinh: String
     switch lyDo {
@@ -51,12 +64,18 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
       secondaryButtonLabel: .init(text: "Về trang chính", color: Self.xanhDam))
   }
 
-  override func configuration(shielding application: Application) -> ShieldConfiguration { cauHinh(ten: application.localizedDisplayName) }
-  override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
-    cauHinh(ten: application.localizedDisplayName)
+  override func configuration(shielding application: Application) -> ShieldConfiguration {
+    cauHinh(ten: application.localizedDisplayName, trongDs: Self.trongTinhPhut(app: application.token))
   }
-  override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration { cauHinh(ten: webDomain.domain, web: true) }
-  override func configuration(shielding webDomain: WebDomain, in category: ActivityCategory) -> ShieldConfiguration { cauHinh(ten: webDomain.domain, web: true) }
+  override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
+    cauHinh(ten: application.localizedDisplayName, trongDs: Self.trongTinhPhut(app: application.token))
+  }
+  override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration {
+    cauHinh(ten: webDomain.domain, web: true, trongDs: Self.trongTinhPhut(web: webDomain.token))
+  }
+  override func configuration(shielding webDomain: WebDomain, in category: ActivityCategory) -> ShieldConfiguration {
+    cauHinh(ten: webDomain.domain, web: true, trongDs: Self.trongTinhPhut(web: webDomain.token))
+  }
 }
 
 /// Viên clay tròn tráng men (bóng kép, men trắng nửa trên, phản chiếu đáy) với icon Fluent 3D ở giữa — vẽ thành một UIImage

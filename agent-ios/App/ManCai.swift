@@ -2,6 +2,7 @@
 // đã ghép + cấp quyền Thời gian sử dụng (chưa cho phép) → máy khoá, chọn tên + PIN.
 import SwiftUI
 import AVFoundation
+import UIKit
 import ConCore
 
 struct ManChao: View {
@@ -11,11 +12,11 @@ struct ManChao: View {
       Spacer(minLength: 24)
       Anh(ten: "rob_rob_goc", co: 150)
       Text("Chào con! Mình là Grow").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
-      Text("Mình giữ giờ chơi cùng con.").font(Diu.phu).foregroundColor(Diu.chu2)
+      Text("Mình giữ sao và phút chơi cùng con.").font(Diu.phu).foregroundColor(Diu.chu2)
       VStack(spacing: 0) {
         HangDs(icon: "ic_tick", t1: "Làm nhiệm vụ", t2: "Được sao")
         Divider().padding(.leading, 56)
-        HangDs(icon: "ic_sao", t1: "10 sao = 10 phút", t2: "Đổi sao ra giờ chơi")
+        HangDs(icon: "ic_sao", t1: "1 sao = 1 phút chơi", t2: "Có sao là chơi, để dành đổi quà")
         Divider().padding(.leading, 56)
         HangDs(icon: "ic_gui", t1: "Muốn thêm?", t2: "Xin Ba Mẹ")
       }
@@ -204,30 +205,35 @@ struct ManQuyen: View {
     VStack(spacing: 14) {
       Anh(ten: "rob_xong", co: 120)
       NhanNho(chu: "Đã ghép", icon: "ic_tick", mau: Diu.xanhDam, nen: Diu.xanhNhat)
-      Text(m.dungChung ? "Máy dùng chung" : (m.tenCon.map { "Điện thoại của \($0)" } ?? "Điện thoại của con"))
-        .font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
-      Text("Còn 1 bước: cho AiiGrow giữ giờ chơi.").font(Diu.phu).foregroundColor(Diu.chu2)
+      // #267 (them-b3prchz2): iPhone / iPad chỉ dùng cho một bé — không còn «Máy dùng chung»
+      Text(Self.tenMay(m.tenCon)).font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
+      Text("iPhone, iPad chỉ dùng cho một bé.").font(Diu.phu).foregroundColor(Diu.chu2)
       VStack(spacing: 0) {
-        HangDs(icon: "ic_dong_ho_cat", t1: "Thời gian sử dụng", t2: m.dungChung ? "Của Apple · đếm giờ riêng từng bé" : "Của Apple · để đếm giờ chơi")
+        HangDs(icon: "ic_dong_ho_cat", t1: "Thời gian sử dụng", t2: "Của Apple · đếm phút cho \(m.tenCon ?? "con")")
         Divider().padding(.leading, 56)
         HangDs(icon: "ic_nguoi", t1: "Ba Mẹ xác nhận", t2: giaDinh ? "Bằng Apple ID của Ba Mẹ" : "Bằng Face ID / mật mã máy này")
         Divider().padding(.leading, 56)
-        HangDs(icon: "ic_khien", t1: "Không đọc tin nhắn, ảnh", t2: "Chỉ đếm giờ và app")
+        HangDs(icon: "ic_khien", t1: "Không đọc tin nhắn, ảnh", t2: "Chỉ đếm phút và app")
       }
       .theDiu(dem: 14)
-      if !m.dungChung { Text("Xong thì \(m.tenCon ?? "con") chạm tên + nhập PIN để vào máy.").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center) }
+      Text("Xong thì \(m.tenCon ?? "con") chạm tên + nhập PIN để vào máy.").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       Toggle(isOn: $giaDinh) { Text("Máy dùng Apple ID của con (Chia sẻ trong gia đình)").font(Diu.t2).foregroundColor(Diu.chu2) }
         .tint(Diu.xanh).frame(minHeight: 44)
-      Button { Task { await m.xinQuyen(conTrongGiaDinh: giaDinh) } } label: { Label { Text("Cho phép giữ giờ chơi") } icon: { Anh(ten: "ic_tick", co: 26) } }
+      Button { Task { await m.xinQuyen(conTrongGiaDinh: giaDinh) } } label: { Label { Text("Cho phép đếm phút chơi") } icon: { Anh(ten: "ic_tick", co: 26) } }
         .buttonStyle(NutDiu())
       Button("Để sau") { m.moQuyen = false }.buttonStyle(NutDiu(kieu: .lk))
     }
   }
 
+  static func tenMay(_ ten: String?) -> String {
+    let loai = UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "Điện thoại"
+    return ten.map { "\(loai) của \($0)" } ?? "\(loai) của con"
+  }
+
   var chuaChoPhep: some View {
     VStack(spacing: 14) {
       Anh(ten: "rob_trong_loi", co: 120)
-      Text("Chưa giữ được giờ chơi").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
+      Text("Chưa đếm được phút chơi").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
       Text(m.loiQuyen ?? "").font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       NhanNho(chu: "Chưa cho phép", icon: "ic_canh_bao")
       VStack(alignment: .leading, spacing: 14) {
@@ -251,6 +257,52 @@ struct ManDaGo: View {
       Text("Ba Mẹ đã gỡ AiiGrow khỏi máy này").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
       Text("Mọi giới hạn đã được bỏ. Để xoá biểu tượng: chạm giữ biểu tượng AiiGrow Con › Xoá ứng dụng.")
         .font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
+    }
+  }
+}
+
+/// #267: mã / gói cài Ba Mẹ tạo cho nhiều bé mà máy này là iPhone/iPad ⇒ chọn MỘT bé (máy chủ trả `409 ios_mot_con` + `conChon`), rồi ghép lại.
+struct ManChonBeGhep: View {
+  @EnvironmentObject var m: MoHinhApp
+  let c: ChonBeGhep
+  var body: some View {
+    KhungMan {
+      Spacer(minLength: 12)
+      Anh(ten: "rob_chi", co: 110)
+      Text("Máy này của bé nào?").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
+      Text(c.cau).font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
+      VStack(spacing: 0) {
+        ForEach(Array(c.ds.enumerated()), id: \.element.id) { i, be in
+          if i > 0 { Divider().padding(.leading, 56) }
+          Button { Task { await m.ghep(c.cach, con: be.id) } } label: {
+            HStack(spacing: 12) {
+              AvatarBe(ten: be.ten, co: 40)
+              Text(be.ten).font(Diu.t1).foregroundColor(Diu.chu)
+              Spacer(minLength: 0)
+              Image(systemName: "chevron.right").font(.system(size: 16, weight: .heavy)).foregroundColor(Diu.chu3)
+            }
+            .frame(minHeight: 56).contentShape(Rectangle())
+          }
+          .buttonStyle(.plain).disabled(m.dangBan)
+          .accessibilityLabel("Máy này của \(be.ten)")
+        }
+      }
+      .theDiu(dem: 14)
+      if m.dangBan { ProgressView() }
+      if let l = m.loiGhep {
+        Text(Self.cau(l)).font(Diu.t2).foregroundColor(Diu.doChu).multilineTextAlignment(.center)
+        if l == .matMang { Button("Thử lại") { m.loiGhep = nil }.buttonStyle(NutDiu(kieu: .lk)) }
+      }
+      Text("Bé khác dùng iPhone, iPad riêng — Ba Mẹ ghép thêm máy trong AiiGrow.").font(Diu.t2).foregroundColor(Diu.chu3).multilineTextAlignment(.center)
+      Button("Huỷ") { m.chonBeGhep = nil; m.loiGhep = nil }.buttonStyle(NutDiu(kieu: .lk))
+    }
+  }
+
+  static func cau(_ l: LoiGhep) -> String {
+    switch l {
+    case .sai(let c): return c
+    case .hetHan: return "Mã đã hết hạn. Nhờ Ba Mẹ tạo mã mới nhé."
+    case .matMang: return "Chưa kết nối được máy chủ. Kiểm tra Wi-Fi hoặc 4G rồi chạm tên bé lại nhé."
     }
   }
 }

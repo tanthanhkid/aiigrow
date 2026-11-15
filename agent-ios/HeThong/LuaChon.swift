@@ -7,14 +7,17 @@ public enum NhanApp: String, CaseIterable, Identifiable {
   case hoc, giaiTri, chan
   public var id: String { rawValue }
   public var khoa: String { switch self { case .hoc: Khoa.chonHoc; case .giaiTri: Khoa.chonGiaiTri; case .chan: Khoa.chonChan } }
-  public var ten: String { switch self { case .hoc: "App học"; case .giaiTri: "App giải trí"; case .chan: "App chặn hẳn" } }
+  /// 15/11 (#262): danh sách trắng 2 nhóm — Học = «Không tính phút», Giải trí = «Tính phút» (1 sao = 1 phút). Nhãn «Chặn» bỏ (ngoài danh sách đã không mở).
+  public var ten: String { switch self { case .hoc: "Không tính phút"; case .giaiTri: "Tính phút"; case .chan: "Chặn (cũ)" } }
   public var moTa: String {
     switch self {
-    case .hoc: "Luôn mở, kể cả ngoài giờ chơi (trừ giờ ngủ và Khoá ngay)."
-    case .giaiTri: "Chỉ mở trong giờ chơi, tính vào số phút mỗi ngày."
-    case .chan: "Luôn bị chặn."
+    case .hoc: "App học: vào thoải mái, không trừ sao."
+    case .giaiTri: "YouTube, phim, game: 1 sao = 1 phút, hết sao thì dừng."
+    case .chan: "Không còn dùng — app ngoài danh sách đã không mở."
     }
   }
+  /// Nhãn Ba Mẹ chọn được trên máy (bỏ «Chặn»).
+  public static let dangDung: [NhanApp] = [.giaiTri, .hoc]
 }
 
 public final class LuaChonApp: NguonLuaChon {

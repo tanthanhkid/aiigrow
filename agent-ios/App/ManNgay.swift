@@ -13,11 +13,13 @@ struct ManHomNay: View {
       if m.matMang { theMatMang }
       if let k = m.khien, k.lyDo != .khong, k.lyDo != .chuaVao, k.dangMoOffline != true {
         TheKhoa(lyDo: k.lyDo)
+      } else if m.moHet {
+        theMoHet
+        theSaoQua
+        theNhiemVu
       } else {
-        theGio
         theSao
         theNhiemVu
-        hangGio
       }
       if let yc = m.yeuCau, !yc.xong || yc.guiLuc > Date().addingTimeInterval(-3600) { theXin(yc) }
       if !m.baiCho.isEmpty {
@@ -40,7 +42,8 @@ struct ManHomNay: View {
         Text(Self.ngayGio(Date())).font(Diu.phu).foregroundColor(Diu.chu2)
       }
       Spacer()
-      if let t = m.tenCon { ChipBe(ten: t) { m.manPhu = .doiBe } }
+      // iPhone / iPad chỉ một bé (#267): bỏ chip «Đổi bé» — chỉ hiện tên bé
+      if let t = m.tenCon { HStack(spacing: 7) { AvatarBe(ten: t, co: 30); Text(t).font(Diu.chu(15, .black)).foregroundColor(Diu.chu).lineLimit(1) } }
     }
     .frame(minHeight: 52)
   }
@@ -55,7 +58,7 @@ struct ManHomNay: View {
       OIcon(ten: "ic_wifi")
       VStack(alignment: .leading, spacing: 1) {
         Text("Mất mạng rồi").font(Diu.t1).foregroundColor(Diu.chu)
-        Text("Không sao, máy vẫn chạy nha! Giờ chơi vẫn tính như thường.").font(Diu.t2).foregroundColor(Diu.chu2)
+        Text("Không sao, máy vẫn chạy nha! Sao vẫn tính như thường.").font(Diu.t2).foregroundColor(Diu.chu2)
       }
       Spacer(minLength: 0)
       Button { Task { await m.dongBoNgay() } } label: { Image(systemName: "arrow.clockwise").font(.system(size: 18, weight: .heavy)).foregroundColor(Diu.xanh).frame(width: 44, height: 44) }
@@ -64,36 +67,51 @@ struct ManHomNay: View {
     .theDiu(dem: 12)
   }
 
-  var theGio: some View {
+  /// cdt-chinh-ios (15/11): vòng «18 sao = 18 phút chơi», «Hôm nay đã chơi 42 phút · −42 sao», nợ Ba Mẹ; Làm nhiệm vụ / Xin Ba Mẹ cho vay sao.
+  var theSao: some View {
     VStack(spacing: 10) {
       if m.khien?.dangMoOffline == true, let den = m.moOfflineDen {
         NhanNho(chu: "Mở bằng mã · chơi tới \(den.gioPhut)", icon: "ic_mo_khoa", mau: Diu.xanhDam)
-      } else if m.khien?.dangNgoaiLe == true, let den = m.keHoach?.ngoaiLeDen {
-        NhanNho(chu: "Ba Mẹ mở ngoại lệ · tới \(den.gioPhut)", icon: "ic_mo_khoa", mau: Diu.xanhDam)
       }
-      VongGio(con: m.conPhut, tong: max(1, m.tongPhut))
-      Text("Còn \(m.conPhut) phút chơi").font(Diu.t1).foregroundColor(Diu.chu)
-      HStack(spacing: 6) { Anh(ten: "ic_dongho", co: 20); Text("Đã chơi \(m.daDung) / \(m.tongPhut) phút").font(Diu.t2).foregroundColor(Diu.chu2) }
-      Button { m.manPhu = .xinThem } label: { Label { Text("Xin Ba Mẹ thêm giờ") } icon: { Anh(ten: "ic_gui", co: 26) } }
+      ChipSao(so: m.soSao)
+      VongGio(con: m.conPhut, tong: max(1, m.conPhut + m.daDung), nhan: "sao")
+      Text("\(m.conPhut) sao = \(m.conPhut) phút chơi").font(Diu.t1).foregroundColor(Diu.chu)
+      if m.daDung > 0 {
+        HStack(spacing: 6) { Anh(ten: "ic_dongho", co: 20); Text("Hôm nay đã chơi \(m.daDung) phút · −\(m.daDung) sao").font(Diu.t2).foregroundColor(Diu.chu2) }
+      }
+      if m.soNo > 0 { DongNo(no: m.soNo) }
+      if (m.tq?.soSaoCho ?? 0) > 0 { Text("⏳ chờ duyệt +\(m.tq!.soSaoCho) sao").font(Diu.t2).foregroundColor(Diu.chu2) }
+      Text("Làm nhiệm vụ để có thêm sao").font(Diu.t2).foregroundColor(Diu.chu3)
+      Button { m.tab = .nhiemVu } label: { Label { Text("Làm nhiệm vụ kiếm sao") } icon: { Anh(ten: "ic_tick", co: 26) } }
+        .buttonStyle(NutDiu())
+      Button { m.manPhu = .xinThem } label: { Label { Text("Xin Ba Mẹ cho vay sao") } icon: { Anh(ten: "ic_gui", co: 26) } }
         .buttonStyle(NutDiu(kieu: .phu))
     }
     .frame(maxWidth: .infinity)
     .theDiu(chinh: true)
   }
 
-  var theSao: some View {
+  /// them-uero9k5x: Ba Mẹ để «Mở hết» — app, web tự do, không trừ sao.
+  var theMoHet: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      HStack { NhanNho(chu: "Hôm nay Mở hết", icon: "ic_mo_khoa", mau: Diu.xanhDam, nen: Diu.xanhNhat); Spacer() }
+      Text("Mở hết · không tính phút").font(Diu.t1).foregroundColor(Diu.chu)
+      Text("Ba Mẹ để mở hết: app, web dùng tự do, chơi không trừ sao.").font(Diu.t2).foregroundColor(Diu.chu2)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .theDiu(chinh: true)
+  }
+
+  var theSaoQua: some View {
     VStack(alignment: .leading, spacing: 12) {
       HStack {
-        VStack(alignment: .leading, spacing: 1) {
-          Text("Sao của con").font(Diu.t1).foregroundColor(Diu.chu)
-          if (m.tq?.soSaoCho ?? 0) > 0 { Text("⏳ chờ thêm \(m.tq!.soSaoCho)").font(Diu.t2).foregroundColor(Diu.chu2) }
-        }
+        Text("Sao để đổi quà" + ((m.tq?.soSaoCho ?? 0) > 0 ? " · ⏳ chờ duyệt +\(m.tq!.soSaoCho)" : "")).font(Diu.t1).foregroundColor(Diu.chu)
         Spacer()
         ChipSao(so: m.soSao)
       }
-      Button { m.manPhu = .doiSao } label: { Label { Text("Đổi 10 sao lấy \(m.phut10Sao) phút") } icon: { Anh(ten: "ic_sao", co: 26) } }
-        .buttonStyle(NutDiu())
-        .disabled(m.tq?.quy?.doiSao?.bat == false)
+      if m.soNo > 0 { DongNo(no: m.soNo) }
+      Button { m.manPhu = .cuaHang } label: { Label { Text("Đổi quà bằng sao") } icon: { Anh(ten: "ic_qua", co: 26) } }
+        .buttonStyle(NutDiu(kieu: .phu))
     }
     .theDiu()
   }
@@ -110,19 +128,9 @@ struct ManHomNay: View {
     .buttonStyle(.plain)
   }
 
-  var hangGio: some View {
-    HStack(spacing: 10) {
-      if let h = m.tq?.quy?.gioHoc ?? m.keHoach?.hoc.map({ QuyCon.GioHoc2(tu: $0.tu, den: $0.den, thu: nil) }) {
-        NhanNho(chu: "Giờ học \(h.tu)–\(h.den)", icon: "ic_sach")
-      }
-      if let n = m.tq?.quy?.gioNgu?.tu ?? m.keHoach?.ngu?.tu { NhanNho(chu: "Ngủ \(n)", icon: "ic_trang_ngu") }
-      Spacer(minLength: 0)
-    }
-  }
-
   func theXin(_ yc: YeuCauDangCho) -> some View {
     Button { m.manPhu = .conDangXin } label: {
-      HangDs(icon: yc.xong ? (yc.cau.contains("đồng ý") ? "ic_tick" : "ic_x") : "ic_dong_ho_cat", t1: "Xin thêm \(yc.phut) phút", t2: yc.cau,
+      HangDs(icon: yc.xong ? (yc.duoc ? "ic_tick" : "ic_x") : "ic_dong_ho_cat", t1: yc.tieuDe, t2: yc.cau,
              phai: AnyView(Image(systemName: "chevron.right").font(.system(size: 16, weight: .heavy)).foregroundColor(Diu.chu3)))
         .theDiu(dem: 12)
     }
@@ -138,33 +146,30 @@ struct TheKhoa: View {
     VStack(spacing: 14) {
       switch lyDo {
       case .hetGio:
+        // cdt-het-phien (15/11): hết sao = hết phút «Tính phút»
         Anh(ten: "rob_nghi", co: 120)
-        Text("Hết giờ chơi rồi").font(Diu.tieuDe).foregroundColor(Diu.chu)
-        HangDs(icon: "ic_dongho", t1: "Hôm nay đã chơi \(m.daDung) / \(m.tongPhut) phút", t2: "Từ điển, AiiRob vẫn mở").theDiu(dem: 12)
+        Text("Hết sao rồi").font(Diu.tieuDe).foregroundColor(Diu.chu)
+        Text("Còn 0 sao = 0 phút chơi").font(Diu.phu).foregroundColor(Diu.chu2)
         HStack { Text("Con có").font(Diu.t1).foregroundColor(Diu.chu); Spacer(); ChipSao(so: m.soSao) }.theDiu(dem: 12)
-        if !m.matMang {
-          Button { m.manPhu = .doiSao } label: { Label { Text("Đổi 10 sao lấy \(m.phut10Sao) phút") } icon: { Anh(ten: "ic_sao", co: 26) } }.buttonStyle(NutDiu())
-        }
-        Button { m.tab = .nhiemVu } label: { Label { Text("Làm nhiệm vụ kiếm sao") } icon: { Anh(ten: "ic_tick", co: 26) } }.buttonStyle(NutDiu(kieu: .phu))
-        Button { m.manPhu = .xinThem } label: { Label { Text(m.matMang ? "Xin Ba Mẹ thêm giờ · gửi khi có mạng" : "Xin Ba Mẹ thêm giờ") } icon: { Anh(ten: "ic_gui", co: 26) } }
+        if m.soNo > 0 { DongNo(no: m.soNo) }
+        HangDs(icon: "ic_sach", t1: "App «Không tính phút» vẫn mở", t2: "1 nhiệm vụ = thêm sao").theDiu(dem: 12)
+        Button { m.tab = .nhiemVu } label: { Label { Text("Làm nhiệm vụ") } icon: { Anh(ten: "ic_tick", co: 26) } }.buttonStyle(NutDiu())
+        Button { m.manPhu = .xinThem } label: { Label { Text(m.matMang ? "Xin Ba Mẹ cho vay sao · gửi khi có mạng" : "Xin Ba Mẹ cho vay sao") } icon: { Anh(ten: "ic_gui", co: 26) } }
           .buttonStyle(NutDiu(kieu: .phu))
       case .ngu:
         Anh(ten: "rob_ngu", co: 120)
         Text("Đến giờ ngủ rồi").font(Diu.tieuDe).foregroundColor(Diu.chu)
         Text("Chúc \(m.tenCon ?? "con") ngủ ngon!").font(Diu.phu).foregroundColor(Diu.chu2)
         if let n = m.keHoach?.ngu { HangDs(icon: "ic_trang_ngu", t1: "\(n.tu) – \(n.den)", t2: "Sáng mai máy mở lúc \(n.den)").theDiu(dem: 12) }
-        Button { m.manPhu = .xinThem } label: { Label { Text("Xin Ba Mẹ thêm 15 phút") } icon: { Anh(ten: "ic_gui", co: 26) } }.buttonStyle(NutDiu(kieu: .phu))
       case .khoaNgay:
         Anh(ten: "rob_nghi", co: 120)
         Text("Ba Mẹ đang khoá máy").font(Diu.tieuDe).foregroundColor(Diu.chu)
         Text("Đọc sách hoặc ra ngoài chơi nhé!").font(Diu.phu).foregroundColor(Diu.chu2)
-        Button { m.manPhu = .xinThem } label: { Label { Text("Xin Ba Mẹ mở máy") } icon: { Anh(ten: "ic_gui", co: 26) } }.buttonStyle(NutDiu())
       case .gioHoc:
         Anh(ten: "rob_hoc", co: 120)
         Text("Giờ học rồi!").font(Diu.tieuDe).foregroundColor(Diu.chu)
         if let h = m.keHoach?.hoc { Text("\(h.tu) – \(h.den)").font(Diu.phu).foregroundColor(Diu.chu2) }
         Text("Chỉ mở app học. Học xong được chơi tiếp.").font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
-        Button { m.manPhu = .xinThem } label: { Label { Text("Xin Ba Mẹ mở app khác") } icon: { Anh(ten: "ic_gui", co: 26) } }.buttonStyle(NutDiu(kieu: .phu))
       default:
         Anh(ten: "rob_trong_loi", co: 120)
         Text("Tạm nghỉ chút nhé").font(Diu.tieuDe).foregroundColor(Diu.chu)
@@ -191,7 +196,7 @@ struct ManNhiemVu: View {
       nhom("Ba Mẹ nhờ làm lại", lai)
       nhom("Chờ Ba Mẹ duyệt", cho)
       nhom("Chưa làm", chua)
-      HangDs(icon: "ic_sao", t1: "Ba Mẹ duyệt là sao vào ví", t2: "Đang có \(m.soSao) sao").theDiu(chinh: true, dem: 12)
+      HangDs(icon: "ic_sao", t1: m.soNo > 0 ? "Sao nhiệm vụ trả nợ trước" : "Ba Mẹ duyệt là sao vào ví", t2: "Đang có \(Diu.soSao(m.soSao))").theDiu(chinh: true, dem: 12)
     }
   }
 
@@ -240,9 +245,11 @@ struct ManSaoQua: View {
       DauMan(tieuDe: "Sao & quà")
       VStack(spacing: 10) {
         Anh(ten: "ic_sao", co: 56)
-        Text("Con đang có \(m.soSao) sao").font(Diu.chu(22, .black)).foregroundColor(Diu.chu)
+        Text("Con đang có \(Diu.soSao(m.soSao))").font(Diu.chu(22, .black)).foregroundColor(m.soSao < 0 ? Diu.noChu : Diu.chu)
+        if m.soNo > 0 { DongNo(no: m.soNo) } else if !m.moHet { Text("\(m.conPhut) sao = \(m.conPhut) phút chơi").font(Diu.t2).foregroundColor(Diu.chu2) }
         if giu > 0 { Text("Đang giữ \(giu) sao cho quà chờ trao").font(Diu.t2).foregroundColor(Diu.chu2) }
-        Button { m.manPhu = .doiSao } label: { Label { Text("Đổi sao lấy phút chơi") } icon: { Anh(ten: "ic_dongho", co: 26) } }.buttonStyle(NutDiu())
+        // cdt-vi-qua (15/11): bỏ «Đổi sao lấy phút» — sao chính là phút
+        Button { m.tab = .nhiemVu } label: { Label { Text(m.soNo > 0 ? "Làm nhiệm vụ trả nợ" : "Làm nhiệm vụ kiếm sao") } icon: { Anh(ten: "ic_tick", co: 26) } }.buttonStyle(NutDiu())
       }
       .frame(maxWidth: .infinity).theDiu(chinh: true)
       HStack { Text("Quà của con").font(Diu.t1).foregroundColor(Diu.chu2); Spacer() }.padding(.top, 4)
@@ -340,7 +347,7 @@ struct ManCuaHang: View {
         .buttonStyle(.plain)
       }
       if ch == nil { Text("Đang tải…").font(Diu.phu).foregroundColor(Diu.chu2) }
-      Button { m.manPhu = .doiSao } label: { Label { Text("Đổi 10 sao lấy \(m.phut10Sao) phút") } icon: { Anh(ten: "ic_dongho", co: 26) } }.buttonStyle(NutDiu(kieu: .phu))
+      Button { m.manPhu = .xinThem } label: { Label { Text("Thiếu sao? Xin Ba Mẹ cho vay sao") } icon: { Anh(ten: "ic_gui", co: 26) } }.buttonStyle(NutDiu(kieu: .phu))
       Text("Quà do Ba Mẹ đặt · đổi xong Ba Mẹ trao").font(Diu.t2).foregroundColor(Diu.chu3)
     }
   }
@@ -361,7 +368,7 @@ struct ManCuaHang: View {
       ChipSao(so: q.gia)
       HStack(spacing: 12) {
         ChipSao(so: co, chu: ""); Image(systemName: "arrow.right").font(.system(size: 16, weight: .heavy)).foregroundColor(Diu.chu3)
-        ChipSao(so: max(0, co - q.gia))
+        ChipSao(so: co - q.gia)
       }
       Text("Sao được giữ lại · Ba Mẹ trao xong mới trừ").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       if let mt = q.moTa { HangDs(icon: "ic_tim", t1: mt).theDiu(dem: 12) }
@@ -370,6 +377,15 @@ struct ManCuaHang: View {
         if m.dangBan { ProgressView().tint(.white) } else { Label { Text("Gửi Ba Mẹ đổi quà") } icon: { Anh(ten: "ic_gui", co: 26) } }
       }
       .buttonStyle(NutDiu()).disabled(q.du == false || m.dangBan)
+      // cdt-doi-qua (15/11, #263): thiếu sao ⇒ xin Ba Mẹ cho vay đúng phần thiếu để đổi quà này
+      if q.du == false {
+        let thieu = max(1, q.conThieu ?? (q.gia - co))
+        Button { Task { if await m.xinVay(soSao: thieu, loiNhan: "Con xin vay để đổi \(q.ten)", mucDich: "qua", quaId: q.id) != nil { m.manPhu = .conDangXin } } } label: {
+          Label { Text("Xin Ba Mẹ cho vay \(thieu) sao") } icon: { Anh(ten: "ic_gui", co: 26) }
+        }
+        .buttonStyle(NutDiu(kieu: .phu)).disabled(m.dangBan)
+        Text("Sao vay là nợ · sao nhiệm vụ trả nợ trước").font(Diu.t2).foregroundColor(Diu.chu3)
+      }
       Button("Để dành sao") { chon = nil }.buttonStyle(NutDiu(kieu: .lk))
     }
     .onAppear { m.loi = nil }
@@ -379,7 +395,7 @@ struct ManCuaHang: View {
     VStack(spacing: 14) {
       Text("Đã gửi Ba Mẹ").font(Diu.tieuDe).foregroundColor(Diu.chu)
       Anh(ten: "rob_xong", co: 120)
-      HangDs(icon: Self.icon(q.hinh, ten: q.ten), t1: q.ten, t2: "Đang giữ \(q.gia) sao · còn \(max(0, (m.cuaHang?.soSao ?? m.soSao) - q.gia)) sao").theDiu(dem: 12)
+      HangDs(icon: Self.icon(q.hinh, ten: q.ten), t1: q.ten, t2: "Đang giữ \(q.gia) sao · còn \(Diu.soSao((m.cuaHang?.soSao ?? m.soSao) - q.gia))").theDiu(dem: 12)
       NhanNho(chu: "⏳ Chờ Ba Mẹ trao")
       Text("Ba Mẹ trao quà thì mới trừ sao. Ba Mẹ huỷ thì \(q.gia) sao về lại cho con.").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       Button { m.tab = .saoQua; dong() } label: { Label { Text("Về Sao & quà") } icon: { Anh(ten: "ic_sao", co: 26) } }.buttonStyle(NutDiu())
@@ -432,7 +448,7 @@ struct ManTin: View {
     case "tu_choi_nhiem_vu", "can_bo_sung", "lam_lai_nhiem_vu": return "ic_lap"
     case "xac_nhan_qua": return "ic_qua"
     case "huy_qua": return "ic_x"
-    case "them_gio": return "ic_dongho"
+    case "them_gio", "cho_vay", "vay_sao": return "ic_sao"
     case "huy_hieu": return "ic_sao"
     default: return "ic_tin"
     }

@@ -1,8 +1,9 @@
 // Client máy chủ cho app Con iOS. Bearer = token thiết bị (ghép bằng mã 6 số hoặc token gói cài trong link /cai/<token>).
 //   POST api/device/ghep       {ma, nen: "ios", tenMay}  | {token, nen: "ios", tenMay}  → {deviceId, token, dungChung, childName?}
 //   POST api/device/nhip       NhipGui                                                  → NhipTraVe
-//   POST api/device/yeu-cau    {loai: "them_gio", phut, lyDo}                          → {id, trang_thai, status}
-//   GET  api/device/yeu-cau/:id                                                         → {status: duoc|cho|tu_choi, trangThai}
+//   POST api/device/hoc-vien/xin-vay {soSao, mucDich?, quaId?, loiNhan?}                → {id, trang_thai}   (15/11: thay «xin thêm giờ» / ngoại lệ)
+//   GET  api/device/hoc-vien/sao                                                        → {sao (âm được), no, phutCon, hetSao, cau, mucVay}
+//   GET  api/device/yeu-cau/:id                                                         → {status: duoc|cho|tu_choi, trangThai, ketQua?, nhom?, tenNguoiDuyet?, loiNhan?}
 //   POST api/device/lenh/:id/xong                                                       (báo xong lệnh «go»)
 //   POST api/device/su-kien    {ds: [SuKienMay]}                                        → {nhan}
 //   POST api/device/phien-web  {}                                                       → {phienCon, het}  (mở màn Con của app AiiGrow)
@@ -53,6 +54,8 @@ public enum LoiApi: Error, Equatable, LocalizedError {
 
 public struct KetQuaGhep: Codable, Equatable {
   public var deviceId: String; public var token: String; public var dungChung: Bool?; public var childName: String?
+  /// #267: bé nối với máy (iPhone/iPad: đúng một).
+  public var conDs: [BeChon]? = nil
 }
 
 public struct KetQuaYeuCau: Codable, Equatable {
@@ -60,7 +63,25 @@ public struct KetQuaYeuCau: Codable, Equatable {
   public var tuDuyet: Bool { status == "tu_duyet" || trang_thai == "dong_y" }
 }
 
-public struct TrangThaiYeuCau: Codable, Equatable { public var status: String; public var trangThai: String? }
+public struct TrangThaiYeuCau: Codable, Equatable {
+  public var status: String; public var trangThai: String?
+  /// 15/11 (#258) — lời xin app / web: cho | da_them | mo_tam | chua_them | het_han | huy; `nhom` tinh_phut | khong_tinh_phut (khi da_them). Máy chủ cũ: nil.
+  public var ketQua: String? = nil
+  public var nhom: String? = nil
+  public var muc: String? = nil
+  public var tenNguoiDuyet: String? = nil
+  public var loiNhan: String? = nil
+  public init(status: String, trangThai: String? = nil) { self.status = status; self.trangThai = trangThai }
+}
+
+/// Một bé để chọn khi ghép iPhone/iPad với mã / gói cài cho nhiều bé (#267: iPhone, iPad chỉ dùng cho một bé).
+public struct BeChon: Codable, Equatable, Identifiable {
+  public var id: String; public var ten: String; public var avatar: String?
+  public init(id: String, ten: String, avatar: String? = nil) { self.id = id; self.ten = ten; self.avatar = avatar }
+}
+
+/// `409 ios_mot_con` khi ghép: chọn MỘT bé rồi gửi lại kèm `con` (mã / gói chưa bị đốt).
+public struct LoiIosMotCon: Error, Equatable { public var conChon: [BeChon]; public var cau: String }
 
 public struct HoSoDns: Codable, Equatable {
   public struct Apple: Codable, Equatable { public var mobileconfig: String; public var tep: String }
@@ -83,6 +104,8 @@ public struct NhipGui: Codable, Equatable {
   public var ios: Ios
   /// Vân bí mật mã offline đang nhớ (MaOffline.van) — khớp thì máy chủ không gửi lại bí mật (server/lib/nhip-may.ts).
   public var maOfflineVan: String? = nil
+  /// 15/11: phút «Tính phút» dùng lúc máy mở bằng mã kể từ lần đồng bộ trước — không trừ sao (docs/API.md «Sổ sao 15/11»).
+  public var phutBoiMa: Int? = nil
 }
 
 public final class ApiClient {
@@ -105,37 +128,65 @@ public final class ApiClient {
     return r
   }
 
-  func goi<T: Decodable>(_ method: String, _ duong: String, _ body: Data? = nil, _ kieu: T.Type) async throws -> T {
-    let (d, ma): (Data, Int)
-    do { (d, ma) = try await vc.gui(yeuCau(method, duong, body)) } catch { throw LoiApi.mang(error.localizedDescription) }
-    guard (200..<300).contains(ma) else {
-      let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
-      throw LoiApi.mayChu(ma: o?["error"] as? String ?? "http_\(ma)",
-                          cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)). Thử lại sau ít phút nhé.", http: ma)
-    }
+  /// Gửi yêu cầu, trả (dữ liệu, mã HTTP) — lỗi mạng ⇒ LoiApi.mang.
+  func goiTho(_ method: String, _ duong: String, _ body: Data?) async throws -> (Data, Int) {
+    do { return try await vc.gui(yeuCau(method, duong, body)) } catch { throw LoiApi.mang(error.localizedDescription) }
+  }
+
+  static func giaiMa<T: Decodable>(_ d: Data, _ kieu: T.Type) throws -> T {
     do { return try JSONDecoder().decode(T.self, from: d) } catch { throw LoiApi.giaiMa }
+  }
+
+  static func loiMayChu(_ d: Data, _ ma: Int) -> LoiApi {
+    let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+    return LoiApi.mayChu(ma: o?["error"] as? String ?? "http_\(ma)",
+                         cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)). Thử lại sau ít phút nhé.", http: ma)
+  }
+
+  func goi<T: Decodable>(_ method: String, _ duong: String, _ body: Data? = nil, _ kieu: T.Type) async throws -> T {
+    let (d, ma) = try await goiTho(method, duong, body)
+    guard (200..<300).contains(ma) else { throw Self.loiMayChu(d, ma) }
+    return try Self.giaiMa(d, T.self)
   }
 
   /// Như `goi` nhưng lỗi máy chủ ⇒ `.chiTiet` (đọc thêm `conLan`, `choGiay`).
   func goiChiTiet<T: Decodable>(_ method: String, _ duong: String, _ body: Data? = nil, _ kieu: T.Type) async throws -> T {
-    let (d, ma): (Data, Int)
-    do { (d, ma) = try await vc.gui(yeuCau(method, duong, body)) } catch { throw LoiApi.mang(error.localizedDescription) }
+    let (d, ma) = try await goiTho(method, duong, body)
     guard (200..<300).contains(ma) else {
       let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
       throw LoiApi.chiTiet(ma: o?["error"] as? String ?? "http_\(ma)", cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)). Thử lại sau ít phút nhé.",
                            http: ma, conLan: (o?["conLan"] as? NSNumber)?.intValue, choGiay: (o?["choGiay"] as? NSNumber)?.intValue)
     }
-    do { return try JSONDecoder().decode(T.self, from: d) } catch { throw LoiApi.giaiMa }
+    return try Self.giaiMa(d, T.self)
   }
 
   static func json(_ o: [String: Any]) -> Data { (try? JSONSerialization.data(withJSONObject: o)) ?? Data() }
 
-  public func ghepBangMa(_ ma: String, tenMay: String) async throws -> KetQuaGhep {
-    try await goi("POST", "api/device/ghep", Self.json(["ma": ma.filter(\.isNumber), "nen": "ios", "tenMay": tenMay]), KetQuaGhep.self)
+  /// `con`: bé đã chọn sau `409 ios_mot_con` (ném `LoiIosMotCon`).
+  public func ghepBangMa(_ ma: String, tenMay: String, con: String? = nil) async throws -> KetQuaGhep {
+    var b: [String: Any] = ["ma": ma.filter(\.isNumber), "nen": "ios", "tenMay": tenMay]
+    if let con { b["con"] = con }
+    return try await ghep("api/device/ghep", b)
   }
 
-  public func ghepBangToken(_ t: String, tenMay: String) async throws -> KetQuaGhep {
-    try await goi("POST", "api/device/ghep-goi", Self.json(["token": t, "nen": "ios", "tenMay": tenMay]), KetQuaGhep.self)
+  public func ghepBangToken(_ t: String, tenMay: String, con: String? = nil) async throws -> KetQuaGhep {
+    var b: [String: Any] = ["token": t, "nen": "ios", "tenMay": tenMay]
+    if let con { b["con"] = con }
+    return try await ghep("api/device/ghep-goi", b)
+  }
+
+  func ghep(_ duong: String, _ b: [String: Any]) async throws -> KetQuaGhep {
+    let (d, ma) = try await goiTho("POST", duong, Self.json(b))
+    if let e = Self.docIosMotCon(d, http: ma) { throw e }
+    guard (200..<300).contains(ma) else { throw Self.loiMayChu(d, ma) }
+    return try Self.giaiMa(d, KetQuaGhep.self)
+  }
+
+  /// `409 {error: "ios_mot_con", conChon: [...]}` ⇒ LoiIosMotCon; khác ⇒ nil.
+  public static func docIosMotCon(_ d: Data, http: Int) -> LoiIosMotCon? {
+    struct R: Decodable { var error: String?; var message: String?; var conChon: [BeChon]? }
+    guard http == 409, let r = try? JSONDecoder().decode(R.self, from: d), r.error == "ios_mot_con", let ds = r.conChon, !ds.isEmpty else { return nil }
+    return LoiIosMotCon(conChon: ds, cau: r.message ?? "iPhone, iPad chỉ dùng cho một bé. Chọn bé dùng máy này nhé.")
   }
 
   public func nhip(_ b: NhipGui) async throws -> NhipTraVe {
@@ -161,20 +212,18 @@ public final class ApiClient {
     return kq
   }
 
-  public func xinThemGio(phut: Int, loiNhan: String) async throws -> KetQuaYeuCau {
+  /// 15/11 (#263): «Xin Ba Mẹ cho vay sao» — POST hoc-vien/xin-vay {soSao, mucDich?, quaId?, loiNhan?} (= yeu-cau loại vay_sao).
+  public func xinVay(soSao: Int, loiNhan: String, mucDich: String? = nil, quaId: String? = nil) async throws -> KetQuaYeuCau {
     let ly = loiNhan.trimmingCharacters(in: .whitespacesAndNewlines)
-    return try await goi("POST", "api/device/yeu-cau",
-                         Self.json(["loai": "them_gio", "phut": phut, "lyDo": ly.isEmpty ? "Con xin thêm \(phut) phút" : String(ly.prefix(100))]),
-                         KetQuaYeuCau.self)
+    var b: [String: Any] = ["soSao": max(1, min(1000, soSao))]
+    if !ly.isEmpty { b["loiNhan"] = String(ly.prefix(100)) }
+    if let mucDich { b["mucDich"] = mucDich }
+    if let quaId { b["quaId"] = quaId }
+    return try await goi("POST", "api/device/hoc-vien/xin-vay", Self.json(b), KetQuaYeuCau.self)
   }
 
-  /// 05/11: giờ ngủ / Ba Mẹ khoá ⇒ «Xin Ba Mẹ mở ngoại lệ» cả máy (lời nhắn không bắt buộc).
-  public func xinNgoaiLe(phut: Int, loiNhan: String) async throws -> KetQuaYeuCau {
-    let ly = loiNhan.trimmingCharacters(in: .whitespacesAndNewlines)
-    var b: [String: Any] = ["loai": "ngoai_le", "phamVi": "ca_may", "phut": max(5, min(240, phut))]
-    if !ly.isEmpty { b["lyDo"] = String(ly.prefix(100)) }
-    return try await goi("POST", "api/device/yeu-cau", Self.json(b), KetQuaYeuCau.self)
-  }
+  /// 15/11: sổ sao của bé đang dùng máy — GET hoc-vien/sao.
+  public func saoCon() async throws -> ChinhSach.SaoCon { try await goi("GET", "api/device/hoc-vien/sao", nil, ChinhSach.SaoCon.self) }
 
   public func trangThaiYeuCau(_ id: String) async throws -> TrangThaiYeuCau {
     try await goi("GET", "api/device/yeu-cau/\(id)", nil, TrangThaiYeuCau.self)

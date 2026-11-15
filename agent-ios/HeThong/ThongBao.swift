@@ -16,14 +16,15 @@ public enum ThongBao {
       n.title = "Còn \(phut) phút chơi"
       n.body = "Lưu trò chơi dần nhé. Hết phiên, app giải trí sẽ tạm khoá lại."
     case "themgio":
-      n.title = "Còn \(phut) phút Ba Mẹ cho thêm"
-      n.body = "Con chuẩn bị dừng nhé. Cần thêm thì xin Ba Mẹ trong app AiiGrow Con."
+      n.title = "Còn \(phut) phút Ba Mẹ mở"
+      n.body = "Con chuẩn bị dừng nhé."
     case "mooffline":
       n.title = "Còn \(phut) phút mở bằng mã của Ba Mẹ"
       n.body = "Con chuẩn bị dừng nhé."
     default:
-      n.title = "Còn \(phut) phút chơi hôm nay"
-      n.body = "Lưu trò chơi dần nhé. Hết giờ, app giải trí sẽ tạm khoá."
+      // 15/11 (cdt-nhac-5-phut): 1 sao = 1 phút
+      n.title = "Còn \(phut) sao = \(phut) phút chơi"
+      n.body = "Lưu bài đang chơi nhé. Hết sao là dừng — làm nhiệm vụ kiếm sao hoặc xin Ba Mẹ cho vay sao."
     }
     n.sound = .default
     n.userInfo = ["mo": "chinh"]

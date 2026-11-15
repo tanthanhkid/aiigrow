@@ -48,6 +48,20 @@ App group `group.vn.aiilab.aiigrow.con`; entitlement `com.apple.developer.family
 - Lịch chỉ là chuông: mỗi lần chuông kêu extension gọi `TinhKhien.lucNay(kếHoạch, giờ)` — cùng hàm app dùng ⇒ không lệch.
   Thứ tự thắng: mở bằng mã offline (Ba Mẹ đọc mã ⇒ gỡ mọi khoá tới hạn) > Khoá ngay > giờ ngủ > thêm giờ > phiên Chơi bằng điểm > không tuân thủ > hết phút > ngoài khung.
 
+## 15/11 — sao = phút, App & web, iPhone/iPad một bé (#262–#267, docs/API.md «Sổ sao 15/11», «App & web 15/11», «#267»)
+- **1 sao = 1 phút** nhóm «Tính phút» (app nhãn Giải trí). `chinhSach.sao {sao (âm khi nợ), no, phutCon, hetSao, cau}` ⇒ trần = phút đo tại chỗ lúc
+  đồng bộ + `phutCon` (bỏ quỹ ngày; sang ngày không có quỹ mới). Hết sao ⇒ khiên app Tính phút, màn «Hết sao rồi» (Làm nhiệm vụ / Xin Ba Mẹ cho vay
+  sao); nhắc «Còn 5 sao = 5 phút chơi». Máy chủ cũ không gửi `sao` ⇒ chạy theo `quy` như trước.
+- **Xin Ba Mẹ cho vay sao** (10/15/30 — `POST hoc-vien/xin-vay`, cả khi thiếu sao đổi quà: `mucDich: qua`). Gỡ: đổi sao lấy giờ, xin thêm giờ,
+  ngoại lệ, chip «Đổi bé». Số âm hiện viên cảnh báo + «Đang nợ Ba Mẹ M sao · sao nhiệm vụ trả nợ trước».
+- **Mở bằng mã offline**: phút đo lúc mở bằng mã ghi `NhatKyDung.boiMa`, không trừ sao tại máy, gửi `phutBoiMa` trong `nhip`.
+- **App & web**: `ungDung.cheDo` `mo_het` ⇒ không khiên, không đếm (thẻ «Hôm nay Mở hết»); `theo_danh_sach` ⇒ danh sách trắng
+  `shield.applicationCategories = .all(except: app Tính phút + Không tính phút)` (hết sao: chỉ Không tính phút). Apple chỉ trừ được app lẻ ⇒ Ba Mẹ
+  chọn TỪNG app. Màn chặn «Roblox chưa có trong danh sách» · «Xin Ba Mẹ mở Roblox»; kết quả lời xin `ketQua` da_them (+nhóm) / mo_tam / chua_them.
+- **#267**: ghép mã / gói cài cho nhiều bé ⇒ `409 ios_mot_con` + `conChon` ⇒ màn «Máy này của bé nào?» rồi ghép lại kèm `con`.
+- Còn thiếu phía máy chủ: `nhip` của iOS chưa trừ sao theo `ios.phutDaDung` (chỉ Android/Win/Mac qua `dong-bo usage`) — iPhone hiện chỉ khoá tại máy
+  theo `phutCon` lúc đồng bộ.
+
 ## PIN theo bé (L13, 06/11 — `ConCore/PinBe.swift`, docs/API.md mục «S3»)
 - Ghép xong ⇒ máy khoá (`PhienMay.chua`) ⇒ «Ai đang dùng máy?» (`GET ho-so`) ⇒ PIN (`POST dang-nhap-be`). Bé chưa có PIN chạm tên vào thẳng.
 - Máy khoá / chưa ai vào ⇒ `TinhKhien` khiên MỌI app, lý do `chua_vao` (màn chặn «Máy đang khoá»). Ba Mẹ đang dùng (mã 15/30/60) ⇒ gỡ khoá tới hạn, lịch «bame» khoá lại đúng giờ.

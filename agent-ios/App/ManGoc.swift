@@ -4,7 +4,7 @@ import ConCore
 
 /// Màn phụ mở dạng sheet.
 enum ManPhu: Identifiable, Equatable {
-  case xinThem, doiSao, conDangXin, doiBe, xinCai, dns, chonApp, cuaHang, maOffline
+  case xinThem, conDangXin, doiBe, xinCai, dns, chonApp, cuaHang, maOffline
   case nhiemVu(NhiemVuCon)
   var id: String {
     switch self {
@@ -18,6 +18,7 @@ struct ManGoc: View {
   @EnvironmentObject var m: MoHinhApp
   var body: some View {
     Group {
+      if let c = m.chonBeGhep, m.man != .chinh { ManChonBeGhep(c: c) } else {
       switch m.man {
       case .chao: ManChao()
       case .chuaGhep: ManChuaGhep()
@@ -29,6 +30,7 @@ struct ManGoc: View {
         else if m.baMeDangDung { ManBaMeDung() }
         else if m.dangKhoaChoTen { ManMayKhoa() }
         else { ManHangNgay() }
+      }
       }
     }
     .frame(maxWidth: 560)
@@ -47,7 +49,6 @@ struct ManPhuView: View {
     Group {
       switch p {
       case .xinThem: ManXinThem()
-      case .doiSao: ManDoiSao()
       case .conDangXin: ManConDangXin()
       case .doiBe: ManDoiBe()
       case .xinCai: ManXinCai()

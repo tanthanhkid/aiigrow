@@ -32,7 +32,7 @@ public protocol NguonLuaChon: AnyObject { func dem() -> SoLuongChon }
 public enum KetQuaDongBo: Equatable { case xong(KeHoach), daGo }
 
 public final class DongBo {
-  public static let phienBan = "ios-0.1.0"
+  public static let phienBan = "ios-0.2.0"
   let api: ApiClient
   let kho: KhoGiaTri
   let khien: HeThongKhien
@@ -55,7 +55,10 @@ public final class DongBo {
 
   func nhipGui(now: Date, nguon: String) -> NhipGui {
     let kh = kho.doc(KeHoach.self, Khoa.keHoach)
-    let dung = kh.map { TinhKhien.phutDoTaiCho($0, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) } ?? 0
+    let nk = kho.doc(NhatKyDung.self, Khoa.nhatKyDung)
+    // phút tính sao = phút đo tại chỗ trừ phút lúc mở bằng mã
+    let dung = kh.map { TinhKhien.phutDoTaiCho($0, now: now, dung: nk) - TinhKhien.phutBoiMa($0, now: now, dung: nk) } ?? 0
+    let boiMa = kh.map { TinhKhien.phutBoiMa($0, now: now, dung: nk) - (nk?.boiMaDaGui ?? 0) } ?? 0
     let lan = kho.doc(Date.self, Khoa.lanDongBo)
     let sl = chon.dem()
     let uq = uyQuyen.trangThai
@@ -64,7 +67,7 @@ public final class DongBo {
                    matKetNoiPhut: lan.map { max(0, Int(now.timeIntervalSince($0) / 60)) },
                    ios: .init(soAppHoc: sl.hoc, soAppGiaiTri: sl.giaiTri, soAppChan: sl.chan,
                               soDanhMucGiaiTri: sl.danhMucGiaiTri, phutDaDung: dung, uyQuyen: uq),
-                   maOfflineVan: docBiMatOffline?().map(MaOffline.van))
+                   maOfflineVan: docBiMatOffline?().map(MaOffline.van), phutBoiMa: boiMa > 0 ? boiMa : nil)
   }
 
   @discardableResult
@@ -73,7 +76,13 @@ public final class DongBo {
     let bm = docBiMatOffline
     await VaoMay(api: api, kho: kho, khoCho: khoCho, biMat: { bm?() }).phatLai(now: now)
     await guiXinChoMang()
-    let tra = try await api.nhip(nhipGui(now: now, nguon: nguon))
+    let nkGui = kho.doc(NhatKyDung.self, Khoa.nhatKyDung)
+    let gui = nhipGui(now: now, nguon: nguon)
+    let tra = try await api.nhip(gui)
+    // đã báo phutBoiMa: ghi MỐC tổng đã gửi của đúng ngày bản đã gửi (đọc lại ngay trước khi ghi — extension Monitor có thể vừa ghi phút mới)
+    if gui.phutBoiMa != nil, let nkGui, var nk = kho.doc(NhatKyDung.self, Khoa.nhatKyDung), nk.ngay == nkGui.ngay {
+      nk.boiMaDaGui = max(nk.boiMaDaGui ?? 0, nkGui.boiMa ?? 0); kho.luu(nk, Khoa.nhatKyDung)
+    }
     // Lệnh «go» (gỡ từ xa): thu hồi quyền, gỡ khiên + lịch, báo xong, quên token. iOS không cho app tự xoá ⇒ màn hướng dẫn xoá biểu tượng.
     if let go = tra.lenh.first(where: { $0.loai == "go" }) {
       lich.dungHet(); khien.goHet()
@@ -91,11 +100,14 @@ public final class DongBo {
       kho.xepSuKien(SuKienMay(loai: "het_ma_offline", luc: now, chiTiet: ["ket_thuc": "co_mang", "conPhut": String(con)]))
     }
     ghiPhien(tra.nguoiDung, now: now)
-    var kh = LapKeHoach.tu(tra, now: now, truoc: kho.doc(KeHoach.self, Khoa.keHoach))
+    let truoc = kho.doc(KeHoach.self, Khoa.keHoach), nk = kho.doc(NhatKyDung.self, Khoa.nhatKyDung)
+    let taiCho = truoc.map { TinhKhien.phutDoTaiCho($0, now: now, dung: nk) } ?? 0
+    let boiMaNay = truoc.map { TinhKhien.phutBoiMa($0, now: now, dung: nk) } ?? 0
+    var kh = LapKeHoach.tu(tra, now: now, truoc: truoc, taiCho: taiCho, boiMa: boiMaNay)
     let conCuoi = kho.doc(String.self, Khoa.conCuoi)
     if let id = tra.chinhSach.con?.id, conCuoi != nil, conCuoi != id { kh.daDungMayChu = nil; kh.ngayDaDung = nil }   // chính sách của bé khác (phản hồi cũ)
     if let den = kho.doc(PhienMay.self, Khoa.phienMay)?.baMeDen, den > now { kh.lich = LapKeHoach.themLich(kh.lich, LapKeHoach.lichMotLan("bame", den: den, now: now)) }
-    if kh.daDungMayChu != nil { kh.dungTaiChoLucDongBo = TinhKhien.phutDoTaiCho(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) }
+    if kh.sao == nil, kh.daDungMayChu != nil { kh.dungTaiChoLucDongBo = TinhKhien.phutDoTaiCho(kh, now: now, dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) }
     kho.luu(kh, Khoa.keHoach)
     kho.luu(now, Khoa.lanDongBo)
     try? lich.theoDoi(kh.lich)       // không theo dõi được (chưa có quyền) vẫn áp khiên tức thời
@@ -125,12 +137,13 @@ public final class DongBo {
     VaoMay.luuPhien(moi, kho: kho)       // bé khác ⇒ phút đo tại máy + phút máy chủ của bé trước không tính
   }
 
-  /// Lời xin thêm giờ lưu lúc mất mạng ⇒ gửi khi có mạng.
+  /// Lời xin vay sao lưu lúc mất mạng ⇒ gửi khi có mạng. Lời xin cũ «thêm giờ» / «ngoại lệ» (bản trước 15/11) ⇒ BỎ, không tự thành khoản vay.
   public func guiXinChoMang(now: Date = Date()) async {
     guard let x = kho.doc(YeuCauDangCho.self, Khoa.xinChoMang) else { return }
+    guard x.loai == "vay_sao" else { kho.ghi(nil, Khoa.xinChoMang); return }
     do {
-      let r = x.trangThai == "ngoai_le" ? try await api.xinNgoaiLe(phut: x.phut, loiNhan: x.loiNhan) : try await api.xinThemGio(phut: x.phut, loiNhan: x.loiNhan)
-      kho.luu(YeuCauDangCho(id: r.id, phut: x.phut, loiNhan: x.loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho"), Khoa.yeuCauDangCho)
+      let r = try await api.xinVay(soSao: x.phut, loiNhan: x.loiNhan)
+      kho.luu(YeuCauDangCho(id: r.id, phut: x.phut, loiNhan: x.loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho", loai: "vay_sao"), Khoa.yeuCauDangCho)
       kho.ghi(nil, Khoa.xinChoMang)
     } catch let e as LoiApi where e.tamThoi || e.ma == "chua_chon_con" {
     } catch { kho.ghi(nil, Khoa.xinChoMang) }
@@ -186,21 +199,25 @@ public final class DongBo {
     guard var yc = kho.doc(YeuCauDangCho.self, Khoa.yeuCauDangCho), !yc.xong else { return }
     if let t = try? await api.trangThaiYeuCau(yc.id) {
       yc.trangThai = t.trangThai ?? t.status
+      if t.ketQua == "cho" { yc.trangThai = "cho" }       // «Bỏ qua» trong 60 giây đầu (Ba Mẹ còn hoàn tác) ⇒ vẫn chờ
+      yc.ketQua = t.ketQua; yc.nhom = t.nhom; yc.tenNguoiDuyet = t.tenNguoiDuyet; yc.loiNhanBaMe = t.loiNhan
+      if yc.ten == nil { yc.ten = t.muc }
       kho.luu(yc, Khoa.yeuCauDangCho)
     }
   }
 
-  public func xinThemGio(phut: Int, loiNhan: String, now: Date = Date()) async throws -> YeuCauDangCho {
-    let r = try await api.xinThemGio(phut: phut, loiNhan: loiNhan)
-    let yc = YeuCauDangCho(id: r.id, phut: phut, loiNhan: loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho")
+  /// 15/11 (#263): «Xin Ba Mẹ cho vay sao» (thay xin thêm giờ / ngoại lệ) — theo dõi trạng thái như mọi lời xin.
+  public func xinVay(soSao: Int, loiNhan: String, mucDich: String? = nil, quaId: String? = nil, now: Date = Date()) async throws -> YeuCauDangCho {
+    let r = try await api.xinVay(soSao: soSao, loiNhan: loiNhan, mucDich: mucDich, quaId: quaId)
+    let yc = YeuCauDangCho(id: r.id, phut: soSao, loiNhan: loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho", loai: "vay_sao")
     kho.luu(yc, Khoa.yeuCauDangCho)
     return yc
   }
 
-  /// 05/11: giờ ngủ / Ba Mẹ khoá ⇒ xin mở ngoại lệ cả máy (theo dõi trạng thái như lời xin thêm giờ).
-  public func xinNgoaiLe(phut: Int, loiNhan: String, now: Date = Date()) async throws -> YeuCauDangCho {
-    let r = try await api.xinNgoaiLe(phut: phut, loiNhan: loiNhan)
-    let yc = YeuCauDangCho(id: r.id, phut: phut, loiNhan: loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho")
+  /// «Xin Ba Mẹ mở <app>» (ngoài danh sách) — kết quả: đã thêm (Tính phút / Không tính phút) / mở tạm / chưa thêm.
+  public func xinMoApp(ten: String, lyDo: String?, now: Date = Date()) async throws -> YeuCauDangCho {
+    let r = try await api.xinDuyet(ten: ten, lyDo: lyDo)
+    let yc = YeuCauDangCho(id: r.id, phut: 0, loiNhan: lyDo ?? "", guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho", loai: "mo_app", ten: ten)
     kho.luu(yc, Khoa.yeuCauDangCho)
     return yc
   }
