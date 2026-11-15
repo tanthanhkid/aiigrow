@@ -17,8 +17,12 @@ public struct CauHinhMay: Codable, Equatable {
   public var policyLuc: Date?
   /// Giây Con dùng máy kể từ lần đồng bộ được policyCuoi — lưu để daemon khởi động lại vẫn trừ đúng giờ còn lại khi mất mạng.
   public var daDungGiayTuSync: Double = 0
-  /// Giây app tính giờ (Policy.appTinhGio) ở tiền cảnh kể từ lần đồng bộ được — đếm lùi quỹ tại chỗ, cả lúc mất mạng (QuyGio.swift).
+  /// Giây app «Tính phút» ở tiền cảnh kể từ lần đồng bộ được — đếm lùi sao tại chỗ (1 sao = 1 phút), cả lúc mất mạng (SaoPhut.swift).
   public var quyGiayTuSync: Double = 0
+  /// Giây «Tính phút» lúc máy mở bằng mã offline kể từ lần đồng bộ được — gửi `phutBoiMa` (máy chủ không trừ sao phần này).
+  public var boiMaGiayTuSync: Double = 0
+  /// Lời xin vay sao lưu lúc mất mạng — có mạng daemon tự gửi (màn «Đã lưu lời xin vay sao»).
+  public var xinVayCho: [XinVayCho] = []
   /// Phút dùng theo app đã đếm (giữ ~3 ngày) — gửi TỔNG mỗi lần đồng bộ (máy chủ ghi greatest).
   public var demPhut: [String: Double] = [:]
   /// Tài khoản đã bị hạ khỏi nhóm admin lúc ghép (để trả lại khi gỡ).
@@ -57,7 +61,7 @@ public struct CauHinhMay: Codable, Equatable {
     cheDo = CheDoAgent.chuan(g(.cheDo, "")) ?? CheDoAgent.giamSat
     policyCuoi = (try? c.decodeIfPresent(Policy.self, forKey: .policyCuoi)) ?? nil
     policyLuc = (try? c.decodeIfPresent(Date.self, forKey: .policyLuc)) ?? nil
-    daDungGiayTuSync = g(.daDungGiayTuSync, 0); quyGiayTuSync = g(.quyGiayTuSync, 0); demPhut = g(.demPhut, [:]); daHaQuyen = g(.daHaQuyen, [])
+    daDungGiayTuSync = g(.daDungGiayTuSync, 0); quyGiayTuSync = g(.quyGiayTuSync, 0); boiMaGiayTuSync = g(.boiMaGiayTuSync, 0); xinVayCho = g(.xinVayCho, []); demPhut = g(.demPhut, [:]); daHaQuyen = g(.daHaQuyen, [])
     lienLacCuoi = (try? c.decodeIfPresent(Date.self, forKey: .lienLacCuoi)) ?? nil
     tuChoiTu = (try? c.decodeIfPresent(Date.self, forKey: .tuChoiTu)) ?? nil
     tuChoiCuoi = (try? c.decodeIfPresent(Date.self, forKey: .tuChoiCuoi)) ?? nil
@@ -81,11 +85,28 @@ public struct PhienBu: Codable, Equatable {
   public var giay: Double
   public var batDau: Date
   public var ketThuc: Date
-  public init(ma: String = UUID().uuidString, id: String, muc: String, giay: Double = 0, batDau: Date, ketThuc: Date) {
-    self.ma = ma; self.id = id; self.muc = muc; self.giay = giay; self.batDau = batDau; self.ketThuc = ketThuc
+  /// Phần bù có lúc máy đang mở bằng mã offline (sổ sao 15/11 `phien/bu {boiMa: true}` ⇒ máy chủ không trừ sao phần bù).
+  public var boiMa: Bool?
+  public init(ma: String = UUID().uuidString, id: String, muc: String, giay: Double = 0, batDau: Date, ketThuc: Date, boiMa: Bool? = nil) {
+    self.ma = ma; self.id = id; self.muc = muc; self.giay = giay; self.batDau = batDau; self.ketThuc = ketThuc; self.boiMa = boiMa
   }
   public var than: [String: Any] {
-    ["ma": ma, "id": id, "muc": muc, "phut": (giay / 60 * 100).rounded() / 100, "batDau": NgayGio.viet(batDau), "ketThuc": NgayGio.viet(ketThuc)]
+    var t: [String: Any] = ["ma": ma, "id": id, "muc": muc, "phut": (giay / 60 * 100).rounded() / 100, "batDau": NgayGio.viet(batDau), "ketThuc": NgayGio.viet(ketThuc)]
+    if boiMa == true { t["boiMa"] = true }
+    return t
+  }
+}
+
+/// Lời xin vay sao lưu lúc mất mạng (id tạm «cho-…»), gửi khi có mạng.
+public struct XinVayCho: Codable, Equatable {
+  public var id: String
+  public var soSao: Int
+  public var mucDich: String?
+  public var quaId: String?
+  public var loiNhan: String?
+  public var luc: Date
+  public init(id: String = "cho-" + UUID().uuidString, soSao: Int, mucDich: String?, quaId: String?, loiNhan: String?, luc: Date) {
+    self.id = id; self.soSao = soSao; self.mucDich = mucDich; self.quaId = quaId; self.loiNhan = loiNhan; self.luc = luc
   }
 }
 

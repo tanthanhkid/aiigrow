@@ -36,14 +36,6 @@ public enum ManMac {
   /// «0:15».
   public static func dongHoCho(_ giay: Int) -> String { String(format: "%d:%02d", max(0, giay) / 60, max(0, giay) % 60) }
 
-  /// «06:30» → «6:30».
-  public static func gio(_ s: String) -> String {
-    guard s.count == 5, s.hasPrefix("0") else { return s }
-    return String(s.dropFirst())
-  }
-  /// «21:30 – 6:30».
-  public static func khung(_ k: KhungGio?) -> String? { k.map { gio($0.tu) + " – " + gio($0.den) } }
-
   /// Chữ cái đầu của tên gọi (chữ cuối của «Bảo Anh» ⇒ «A»? thiết kế dùng «B» cho Bảo Anh, «M» cho Bảo Minh: chữ đầu tiếng cuối khi trùng họ đệm).
   /// Thiết kế: Bảo Anh = B, Bảo Minh = M ⇒ bé đầu tiên lấy chữ đầu, bé trùng chữ đầu với bé trước lấy chữ đầu của tiếng cuối.
   public static func chuCai(_ ds: [HoSoBe]) -> [String: String] {
@@ -85,40 +77,54 @@ public enum ManMac {
   public struct ChuKhoa: Equatable {
     public var tieuDe: String
     public var phu: String
-    public var nhan: String?           // viên trên tiêu đề: «Giờ ngủ 21:30 – 6:30»
-    public var ngoaiLe: Bool           // chỉ «Xin Ba Mẹ mở ngoại lệ» (không thêm giờ, không đổi sao)
+    /// Khoá vì hết sao (lối ra: Làm nhiệm vụ / Xin Ba Mẹ cho vay sao). false = Ba Mẹ khoá (không xin gì được, chỉ «Ba Mẹ mở máy»).
+    public var hetSao: Bool
   }
 
-  public static func chuKhoa(_ t: TrangThai) -> ChuKhoa {
+  /// Thiết kế them-kofpo0dl «Hết sao rồi» / Ba Mẹ khoá. «het_gio» (máy chủ cũ, minutesLeft) = hết sao. Giờ ngủ đã bỏ (#258) ⇒ như Ba Mẹ khoá.
+  public static func chuKhoa(_ t: TrangThai, phutDaChoi: Int? = nil) -> ChuKhoa {
     let ten = t.beTen ?? t.tenCon ?? "Con"
     switch t.lyDoKhoa {
-    case "het_gio":
-      let tong = t.quyTongPhut
-      return ChuKhoa(tieuDe: "Hết giờ chơi hôm nay", phu: tong.map { "\(ten) đã chơi đủ \($0) / \($0) phút. Giỏi lắm!" } ?? "\(ten) đã chơi đủ giờ hôm nay. Giỏi lắm!",
-                     nhan: nil, ngoaiLe: false)
-    case "gio_ngu":
-      let mo = t.gioNgu.map { "Máy mở lại lúc \(gio($0.den)) sáng mai. " } ?? ""
-      return ChuKhoa(tieuDe: "Đến giờ ngủ rồi", phu: mo + "Chúc \(ten) ngủ ngon!", nhan: khung(t.gioNgu).map { "Giờ ngủ " + $0 }, ngoaiLe: true)
+    case "het_gio", SaoPhut.lyDoHetSao:
+      let da = phutDaChoi.map { " đã chơi \($0) phút hôm nay · dùng hết \(ChuSao.so($0)) sao." } ?? " đã dùng hết sao."
+      return ChuKhoa(tieuDe: "Hết sao rồi", phu: ten + da + " App không tính phút vẫn mở được.", hetSao: true)
     default:
-      return ChuKhoa(tieuDe: "Ba Mẹ đang khoá máy", phu: "Mở lại là máy báo con ngay. Cần gấp thì con xin Ba Mẹ mở ngoại lệ nhé.", nhan: nil, ngoaiLe: true)
+      return ChuKhoa(tieuDe: "Ba Mẹ đang khoá máy", phu: "Mở lại là máy báo con ngay.", hetSao: false)
     }
   }
 
-  // MARK: đổi sao lấy giờ (49–51)
+  // MARK: sao (15/11)
 
-  public struct DoiSao: Equatable {
-    public var saoCan: Int
-    public var conSao: Int
-    public var du: Bool
-    public var thieu: Int
+  /// Nợ hiện dưới tên bé ở màn chọn tên: `no` của máy chủ, không có thì phần âm của số dư.
+  public static func noCua(_ b: HoSoBe) -> Int? {
+    let n = b.no ?? b.sao.map { max(0, -$0) } ?? 0
+    return n > 0 ? n : nil
   }
-  /// `phut10Sao` = số phút của 10 sao (thiết kế: 10 sao = 10 phút).
-  public static func doiSao(phut: Int, sao: Int, phut10Sao: Int) -> DoiSao {
-    let can = DungSao.saoCan(phut: phut, phut10Sao: phut10Sao)
-    return DoiSao(saoCan: can, conSao: max(0, sao - can), du: sao >= can, thieu: max(0, can - sao))
+
+  /// Quà được gắn nút «Xin vay N sao» (thiết kế them-r6eya42m): quà còn đổi được thiếu ít sao nhất.
+  public static func quaXinVay(_ ds: [HvQua]) -> HvQua? {
+    ds.filter { $0.conThieu > 0 && $0.choTraoTu == nil && $0.conHopLe }.min { $0.conThieu < $1.conThieu }
   }
-  /// Nút −/+ đổi theo bậc 10 phút, 10…60.
-  public static func buocPhut(_ p: Int, them: Bool) -> Int { min(60, max(10, p + (them ? 10 : -10))) }
+
+  /// Sao Ba Mẹ duyệt hôm nay (tổng `gan` đã duyệt có lúc hôm nay) — «Sao kiếm hôm nay +30 sao».
+  public static func saoKiemHomNay(_ gan: [HvLuot], bayGio: Date = Date(), lich: Calendar = .current) -> Int {
+    gan.filter { $0.trangThai == "duoc_duyet" && ($0.luc.map { lich.isDate($0, inSameDayAs: bayGio) } ?? false) }.reduce(0) { $0 + ($1.diem ?? 0) }
+  }
+
+  /// Câu «để hết nợ»: «Để hết nợ còn 20 sao» + «2 việc chờ duyệt (+20 sao) là hết nợ» (nil = không nợ).
+  public static func cauHetNo(no: Int, choDuyet: Int, soViecCho: Int) -> (String, String?)? {
+    guard no > 0 else { return nil }
+    let dau = "Để hết nợ còn \(ChuSao.so(no)) sao"
+    guard choDuyet > 0, soViecCho > 0 else { return (dau, nil) }
+    return (dau, "\(soViecCho) việc chờ duyệt (+\(ChuSao.so(choDuyet)) sao)" + (choDuyet >= no ? " là hết nợ" : " · trả bớt nợ"))
+  }
+
+  /// Danh sách của Con cho màn «… chưa có trong danh sách»: (tên, nhãn nhóm).
+  public static func dsCuaCon(_ t: TrangThai) -> [(ten: String, nhom: String)] {
+    let khong = t.dsKhongTinhPhut ?? []
+    let tinh = (t.dsTinhPhut ?? []).filter { !khong.contains($0) }
+    return khong.map { (HocVienView.tenMucChoi($0), "Không tính phút") } + tinh.map { (HocVienView.tenMucChoi($0), "Tính phút · 1 sao/phút") }
+  }
 
   // MARK: quà bảng giá (23)
 

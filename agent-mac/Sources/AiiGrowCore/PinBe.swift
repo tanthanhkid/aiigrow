@@ -15,8 +15,13 @@ public struct HoSoBe: Codable, Equatable, Sendable {
   public var vanPin: String?
   public var khoaDen: Date?
   public var choGiay: Int?
-  public init(id: String, ten: String, avatar: String? = nil, coPin: Bool, vanPin: String? = nil, khoaDen: Date? = nil, choGiay: Int? = nil) {
+  /// Sổ sao 15/11: số dư bé thấy (âm khi nợ) + nợ — màn chọn tên «Bảo Minh −20 sao · Đang nợ Ba Mẹ 20 sao». nil = máy chủ cũ.
+  public var sao: Int?
+  public var no: Int?
+  public init(id: String, ten: String, avatar: String? = nil, coPin: Bool, vanPin: String? = nil, khoaDen: Date? = nil, choGiay: Int? = nil,
+              sao: Int? = nil, no: Int? = nil) {
     self.id = id; self.ten = ten; self.avatar = avatar; self.coPin = coPin; self.vanPin = vanPin; self.khoaDen = khoaDen; self.choGiay = choGiay
+    self.sao = sao; self.no = no
   }
 }
 
@@ -38,7 +43,8 @@ public struct HoSoMay: Codable, Equatable, Sendable {
       guard let id = JsonMem.chuoi(c["id"]), !id.isEmpty, let ten = c["ten"] as? String else { continue }
       h.con.append(HoSoBe(id: id, ten: ten, avatar: c["avatar"] as? String, coPin: (c["coPin"] as? Bool) ?? false,
                           vanPin: (c["vanPin"] as? String).flatMap { $0.isEmpty ? nil : $0.lowercased() },
-                          khoaDen: NgayGio.doc(c["khoaDen"] as? String), choGiay: (c["choGiay"] as? NSNumber)?.intValue))
+                          khoaDen: NgayGio.doc(c["khoaDen"] as? String), choGiay: (c["choGiay"] as? NSNumber)?.intValue,
+                          sao: (c["sao"] as? NSNumber).map { Int($0.doubleValue.rounded(.down)) }, no: (c["no"] as? NSNumber)?.intValue))
     }
     h.mayRieng = (o["mayRieng"] as? Bool) ?? false
     h.dangDung = ((o["dangDung"] as? [String: Any]).flatMap { JsonMem.chuoi($0["id"]) })
@@ -185,7 +191,7 @@ public struct PhienMay: Codable, Equatable, Sendable {
       // giờ ngủ / Ba Mẹ khoá vẫn giữ (đếm ngược đăng xuất chạy tiếp — «Đổi bé» không thoát được giờ ngủ); chỉ không tự KHOÁ vì «chưa ai vào»
       h.moDen = nil; h.chiAppHoc = true
     case let .baMe(den)? where (den ?? .distantFuture) > now:
-      q.mode = CheDo.tuDo.rawValue; q.blockedApps = []; q.appTinhGio = []
+      q.mode = CheDo.tuDo.rawValue; q.appTinhGio = []
       h.khoa = false; h.lyDoKhoa = nil; h.chiAppHoc = false; h.moDen = den
     default: break
     }

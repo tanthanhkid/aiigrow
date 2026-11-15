@@ -29,6 +29,12 @@ public struct LoiApi: Error, Equatable, CustomStringConvertible {
 public protocol MayChuApi: AnyObject {
   func ghep(ma: String, tenMay: String) async throws -> KetQuaGhep
   func dongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date) async throws -> KetQuaDongBo
+  /// Như trên + `phutBoiMa` (sổ sao 15/11): phút «Tính phút» dùng lúc máy mở bằng mã offline kể từ lần đồng bộ trước — máy chủ không trừ sao phần này.
+  func dongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date, phutBoiMa: Int) async throws -> KetQuaDongBo
+  /// #263: Con «Xin Ba Mẹ cho vay sao» — POST api/device/yeu-cau {loai: vay_sao, soSao, mucDich: choi|qua, quaId?, lyDo?}.
+  func xinVay(soSao: Int, mucDich: String?, quaId: String?, lyDo: String?) async throws -> KetQuaYeuCau
+  /// GET api/device/yeu-cau/:id kèm kết quả (#258: ketQua, nhom, tenNguoiDuyet, loiNhan).
+  func chiTietYeuCau(id: String) async throws -> KetQuaLoiXin
   func taoYeuCau(loai: String, phut: Int?, giaTri: String?, lyDo: String) async throws -> KetQuaYeuCau
   /// → «duoc» | «cho» | «tu_choi»
   func trangThaiYeuCau(id: String) async throws -> String
@@ -58,8 +64,6 @@ public protocol MayChuApi: AnyObject {
   func hoSoDns() async throws -> Data
   /// POST api/device/xin-duyet {muc, ten?, lyDo?} — Con «Xin Ba Mẹ duyệt» app / web lạ (05/11, lý do không bắt buộc).
   func xinDuyet(muc: String, ten: String?, lyDo: String?) async throws -> KetQuaYeuCau
-  /// POST api/device/yeu-cau {loai: ngoai_le, phamVi: ca_may|app, giaTri?, phut, lyDo?} — giờ ngủ / Ba Mẹ khoá: «Xin Ba Mẹ mở ngoại lệ».
-  func xinNgoaiLe(phamVi: String, app: String?, phut: Int, lyDo: String?) async throws -> KetQuaYeuCau
   /// Máy dùng chung — PIN theo bé (L13, docs/API.md «S3»): `GET ho-so` · `POST dang-nhap-be {con, pin}` · `POST quen-pin {con}` ·
   /// `POST ba-me-mo {ma}` · `POST dang-xuat` · `POST khoa-lai`. Chỉ các đường trong `DuongMayChung`.
   func mayChung(_ method: String, _ path: String, _ than: [String: Any]?) async throws -> Data
@@ -107,9 +111,13 @@ public extension MayChuApi {
   func xinDuyet(muc: String, ten: String?, lyDo: String?) async throws -> KetQuaYeuCau {
     try await taoYeuCau(loai: "cai_app", phut: nil, giaTri: muc, lyDo: lyDo ?? "")
   }
-  func xinNgoaiLe(phamVi: String, app: String?, phut: Int, lyDo: String?) async throws -> KetQuaYeuCau {
-    try await taoYeuCau(loai: "ngoai_le", phut: phut, giaTri: app, lyDo: lyDo ?? "")
+  func dongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date, phutBoiMa: Int) async throws -> KetQuaDongBo {
+    try await dongBo(trangThai: trangThai, dung: dung, luc: luc)
   }
+  func xinVay(soSao: Int, mucDich: String?, quaId: String?, lyDo: String?) async throws -> KetQuaYeuCau {
+    try await taoYeuCau(loai: "vay_sao", phut: soSao, giaTri: quaId, lyDo: lyDo ?? "")
+  }
+  func chiTietYeuCau(id: String) async throws -> KetQuaLoiXin { KetQuaLoiXin(status: try await trangThaiYeuCau(id: id)) }
   func mayChung(_ method: String, _ path: String, _ than: [String: Any]?) async throws -> Data {
     throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ PIN theo bé")
   }
@@ -189,18 +197,32 @@ public final class ApiClient: MayChuApi {
   }
 
   public func dongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date) async throws -> KetQuaDongBo {
+    try await dongBo(trangThai: trangThai, dung: dung, luc: luc, phutBoiMa: 0)
+  }
+
+  public func dongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date, phutBoiMa: Int) async throws -> KetQuaDongBo {
+    try ApiClient.tachDongBo(try await gui("POST", "api/device/dong-bo", try ApiClient.thanDongBo(trangThai: trangThai, dung: dung, luc: luc, phutBoiMa: phutBoiMa)))
+  }
+
+  /// Thân dong-bo (thuần, test được): `usage[].con` khi biết bé (#267), `phutBoiMa` khi > 0 (sổ sao 15/11).
+  static func thanDongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date, phutBoiMa: Int) throws -> [String: Any] {
     let st = try JSONSerialization.jsonObject(with: NgayGio.encoder.encode(trangThai))
-    let body: [String: Any] = [
+    var body: [String: Any] = [
       "status": st,
       "clientTime": NgayGio.viet(luc),
-      "usage": dung.map { ["muc": $0.muc, "phut": $0.phut, "day": $0.day] },
+      "usage": dung.map { d -> [String: Any] in
+        var m: [String: Any] = ["muc": d.muc, "phut": d.phut, "day": d.day]
+        if let c = d.con, !c.isEmpty { m["con"] = c }
+        return m
+      },
     ]
-    return try ApiClient.tachDongBo(try await gui("POST", "api/device/dong-bo", body))
+    if phutBoiMa > 0 { body["phutBoiMa"] = phutBoiMa }
+    return body
   }
 
   /// Tách phản hồi dong-bo (thuần, test được).
   public static func tachDongBo(_ raw: Data) throws -> KetQuaDongBo {
-    let p = try PolicyParser.parse(PolicyParser.layKhoiPolicy(raw))
+    var p = try PolicyParser.parse(PolicyParser.layKhoiPolicy(raw))
     var next = p.nextCheckSec
     var lenh: [LenhMay] = []
     var dsApp: TinHieuDanhSachApp?
@@ -212,6 +234,9 @@ public final class ApiClient: MayChuApi {
       }
       dsApp = TinHieuDanhSachApp.tach(o)
       nguoiDung = NguoiDungMay.doc(o["nguoiDung"])
+      // 15/11: sổ sao + chế độ app & web nằm ở GỐC (khối mac/windows giữ hình dạng cũ cho agent cũ)
+      p.soSao = SoSao.doc(o["sao"])
+      if (o["cheDo"] as? String) == CheDoApp.moHet { p.moHet = true }
     }
     var kq = KetQuaDongBo(policy: p, nextCheckSec: min(max(next, 10), 600), lenh: lenh, danhSachApp: dsApp)
     kq.nguoiDung = nguoiDung
@@ -237,11 +262,22 @@ public final class ApiClient: MayChuApi {
     return try ApiClient.tachYeuCau(try await gui("POST", "api/device/xin-duyet", body))
   }
 
-  public func xinNgoaiLe(phamVi: String, app: String?, phut: Int, lyDo: String?) async throws -> KetQuaYeuCau {
-    var body: [String: Any] = ["loai": "ngoai_le", "phamVi": phamVi == "app" ? "app" : "ca_may", "phut": min(max(phut, 5), 240)]
-    if let app, !app.isEmpty, phamVi == "app" { body["giaTri"] = app }
+  public func xinVay(soSao: Int, mucDich: String?, quaId: String?, lyDo: String?) async throws -> KetQuaYeuCau {
+    let so = min(max(soSao, 1), 1000)
+    var body: [String: Any] = ["loai": "vay_sao", "soSao": so, "mucDich": mucDich == "qua" ? "qua" : "choi"]
+    if let quaId, !quaId.isEmpty { body["quaId"] = quaId }
     if let lyDo, !lyDo.isEmpty { body["lyDo"] = lyDo }
-    return try ApiClient.tachYeuCau(try await gui("POST", "api/device/yeu-cau", body))
+    do { return try ApiClient.tachYeuCau(try await gui("POST", "api/device/yeu-cau", body)) }
+    catch let e as LoiApi where e.maHttp == 400 && e.ma == "loai_sai" {
+      // máy chủ trước sổ sao chưa biết «vay_sao» ⇒ lời xin thêm giờ cũ (cùng số = số phút)
+      return try await taoYeuCau(loai: "them_gio", phut: so, giaTri: nil, lyDo: lyDo ?? "Con xin thêm giờ")
+    }
+  }
+
+  public func chiTietYeuCau(id: String) async throws -> KetQuaLoiXin {
+    let ma = id.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed.subtracting(CharacterSet(charactersIn: "/"))) ?? id
+    guard let kq = KetQuaLoiXin.doc(try await gui("GET", "api/device/yeu-cau/" + ma, nil)) else { throw LoiApi(chu: "Máy chủ trả dữ liệu không đúng định dạng") }
+    return kq
   }
 
   static func tachYeuCau(_ d: Data) throws -> KetQuaYeuCau {

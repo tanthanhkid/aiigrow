@@ -1,5 +1,5 @@
 // Danh sách app thật + chặn app theo bundle id (hợp đồng 25/10): quét giả từ thư mục tạm, lọc, băm, diff, quyết định gửi/quét,
-// đọc blockedApps, quyết định đóng, và luồng BoMay gửi /ung-dung (đủ / phần đổi / 409 / yeuCau / 404).
+// và luồng BoMay gửi /ung-dung (đủ / phần đổi / 409 / yeuCau / 404).
 import CoreGraphics
 import ImageIO
 import XCTest
@@ -245,38 +245,17 @@ final class DanhSachAppTests: XCTestCase {
     XCTAssertTrue(DanhSachApp.canQuet(gio: 1800, lanQuetCuoi: 0, lanThuCuoi: 0, tinHieu: nil, bamDaGui: nil, yeuCauDaXuLy: nil, soLanLoi: 99))
   }
 
-  // MARK: blockedApps
+  // MARK: tín hiệu danhSachApp («Chặn» đã bỏ từ #262 — blockedApps không còn đọc)
 
-  func testDocBlockedApps() throws {
-    let raw = """
-    {"mode":"hoc","nextCheckSec":30,"danhSachApp":{"bam":"abc","yeuCau":"r7"},
-     "windows":{"mode":"tu_do","cheDo":"chan","blockedApps":[{"muc":" Com.Roblox.RobloxPlayer ","teamId":"Z7S2JB2N2R"},"com.mojang.x",{"khong":1},42,{"muc":"com.mojang.x"}]}}
-    """
+  func testDocTinHieuDanhSachApp() throws {
+    let raw = #"{"mode":"hoc","nextCheckSec":30,"danhSachApp":{"bam":"abc","yeuCau":"r7"},"windows":{"mode":"tu_do","cheDo":"chan","blockedApps":["com.mojang.x"]}}"#
     let kq = try ApiClient.tachDongBo(Data(raw.utf8))
-    XCTAssertEqual(kq.policy.blockedApps.map(\.muc), ["com.roblox.robloxplayer", "com.mojang.x"], "chữ thường, phần tử hỏng bỏ, gộp trùng")
-    XCTAssertEqual(kq.policy.blockedApps.first?.teamId, "Z7S2JB2N2R")
     XCTAssertEqual(kq.danhSachApp, TinHieuDanhSachApp(bam: "abc", yeuCau: "r7"))
-    // nhớ qua cấu hình (chạy offline)
-    let lai = try NgayGio.decoder.decode(Policy.self, from: NgayGio.encoder.encode(kq.policy))
-    XCTAssertEqual(lai.blockedApps, kq.policy.blockedApps)
-    // máy chủ cũ: không có gì
+    XCTAssertFalse(String(decoding: try NgayGio.encoder.encode(kq.policy), as: UTF8.self).contains("blockedApps"), "app «Chặn» không còn thực thi")
     let cu = try ApiClient.tachDongBo(Data(#"{"windows":{"mode":"hoc"}}"#.utf8))
-    XCTAssertNil(cu.danhSachApp); XCTAssertTrue(cu.policy.blockedApps.isEmpty)
+    XCTAssertNil(cu.danhSachApp)
     XCTAssertEqual(try ApiClient.tachDongBo(Data(#"{"danhSachApp":{"bam":null,"yeuCau":null},"windows":{"mode":"hoc"}}"#.utf8)).danhSachApp,
                    TinHieuDanhSachApp(bam: nil, yeuCau: nil))
-  }
-
-  func testQuyetDinhDongBiChan() {
-    let r = TienTrinh(pid: 10, uid: 501, duongDan: "/Applications/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.RobloxPlayer")
-    let helper = TienTrinh(pid: 11, uid: 501, duongDan: "/Applications/Roblox.app/Contents/Helpers/x", bundleId: "com.roblox.RobloxPlayer")
-    let khac = TienTrinh(pid: 12, uid: 502, duongDan: "/Applications/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.RobloxPlayer")
-    let finder = TienTrinh(pid: 13, uid: 501, duongDan: "/System/Library/CoreServices/Finder.app/Contents/MacOS/Finder", bundleId: "com.apple.finder")
-    let ai = TienTrinh(pid: 14, uid: 501, duongDan: "/Applications/AiiGrow.app/Contents/MacOS/AiiGrowTray", bundleId: "vn.aiilab.aiigrow.tray")
-    let pages = TienTrinh(pid: 15, uid: 501, duongDan: "/Applications/Pages.app/Contents/MacOS/Pages", bundleId: "com.apple.iWork.Pages")
-    let ds = [r, helper, khac, finder, ai, pages]
-    let chan = ["com.roblox.robloxplayer", "com.apple.finder", "vn.aiilab.aiigrow.tray", "com.apple.iwork.pages"].map { AppBiChan(muc: $0) }
-    XCTAssertEqual(DanhSachApp.canDongBiChan(ds, uidCon: 501, biChan: chan).map(\.0.pid), [10], "chỉ app chính của Con; không bao giờ app hệ thống/AiiGrow")
-    XCTAssertTrue(DanhSachApp.canDongBiChan(ds, uidCon: 501, biChan: []).isEmpty)
   }
 
   // MARK: BoMay
@@ -399,39 +378,5 @@ final class DanhSachAppTests: XCTestCase {
     await dongBoVaCho(b, dongHo)                 // > 60 giây sau, máy chủ vẫn chưa có ⇒ thử lại
     XCTAssertEqual(api.lanGui.count, 2)
     XCTAssertNotNil(kho.doc()?.bamAppDaGui)
-  }
-
-  func testDongAppBiChanMoiMode() async throws {
-    let api = MayChuApp(), fake = HeThongGia(), dongHo = DongHoGia()
-    let (b, _) = try boMay(api, Khoa(wrappedValue: []), fake: fake, dongHo: dongHo)
-    let roblox = TienTrinh(pid: 50, uid: 501, duongDan: "/Applications/Roblox.app/Contents/MacOS/RobloxPlayer", bundleId: "com.roblox.RobloxPlayer")
-    let word = TienTrinh(pid: 51, uid: 501, duongDan: "/Applications/Notes2.app/Contents/MacOS/N", bundleId: "com.x.notes2")
-    fake.tienTrinhTheoUid = [501: [roblox, word]]
-    fake.conSongPid = [50, 51]
-
-    // tu_do + chặn thật ⇒ đóng Roblox, không đụng app khác
-    api.policyJson = #"{"windows":{"mode":"tu_do","cheDo":"chan","blockedApps":[{"muc":"com.roblox.robloxplayer","teamId":"Z7S2JB2N2R"}]}}"#
-    await b.vongDongBo()
-    _ = await b.apChinhSach()
-    XCTAssertEqual(fake.tinHieuDaGui.map(\.0), [50])
-    XCTAssertEqual(fake.tinHieuDaGui.first?.1, SIGTERM)
-    XCTAssertTrue(fake.log.contains { $0.contains("app Ba Mẹ chặn: com.roblox.robloxplayer teamId Z7S2JB2N2R") }, "\(fake.log)")
-    dongHo.tien(6); _ = await b.apChinhSach()
-    XCTAssertEqual(fake.tinHieuDaGui.last?.1, SIGKILL, "vẫn sống ⇒ SIGKILL")
-
-    // giám sát ⇒ chỉ ghi «sẽ đóng», một lần
-    fake.tinHieuDaGui = []; fake.log = []
-    api.policyJson = #"{"windows":{"mode":"tu_do","cheDo":"giam-sat","blockedApps":["com.roblox.robloxplayer"]}}"#
-    dongHo.tien(700); await b.vongDongBo()
-    _ = await b.apChinhSach(); dongHo.tien(5); _ = await b.apChinhSach()
-    XCTAssertTrue(fake.tinHieuDaGui.isEmpty)
-    XCTAssertEqual(fake.log.filter { $0.contains("[giám sát] sẽ đóng app Ba Mẹ chặn: com.roblox.robloxplayer") }.count, 1, "\(fake.log)")
-
-    // hoc + chặn: Roblox chỉ bị đóng một lần (không trùng pid giữa hai danh sách)
-    fake.log = []
-    api.policyJson = #"{"windows":{"mode":"hoc","cheDo":"chan","allowedApps":["com.x.notes2"],"blockedApps":["com.roblox.robloxplayer"]}}"#
-    dongHo.tien(700); await b.vongDongBo()
-    _ = await b.apChinhSach()
-    XCTAssertEqual(fake.tinHieuDaGui.map(\.0), [50])
   }
 }

@@ -19,38 +19,42 @@ final class XinModel: ObservableObject {
   @Published var thongBao = ""
   @Published var dangGui = false
   @Published var daGui = false
-  /// Số phút của lời xin vừa gửi (màn «Đã gửi Ba Mẹ! Con xin thêm N phút»).
-  @Published var phutDaXin: Int?
+  /// Số sao của lời xin vay vừa gửi («Đã gửi Ba Mẹ! Con xin vay 15 sao»); nil = lời xin mở app / web.
+  @Published var saoDaXin: Int?
+  /// App / trang vừa xin thêm vào danh sách.
+  @Published var mucDaXin: String?
+  /// Mất mạng: đã lưu, có mạng daemon tự gửi (màn «Đã lưu lời xin vay sao»).
+  @Published var choMang = false
+  @Published var luc: Date?
+  let goi: (YeuCauTray) async -> TraLoi
+  init(goi: @escaping (YeuCauTray) async -> TraLoi = { yc in (try? await IPCClient.guiAsync(yc)) ?? .loi(ma: "ipc", chu: "Chưa gửi được. AiiGrow đang khởi động lại, con thử lại sau nhé.") }) {
+    self.goi = goi
+  }
   /// Mở form mới (cửa sổ mới, đổi bé): bỏ trạng thái «đã gửi» của lời xin trước.
-  func moi() { daGui = false; thongBao = ""; phutDaXin = nil }
+  func moi() { daGui = false; thongBao = ""; saoDaXin = nil; mucDaXin = nil; choMang = false; luc = nil }
 
-  func xinThem(phut: Int, loiNhan: String) {
-    phutDaXin = phut
-    gui(.xinThem(phut: phut, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
+  /// «Xin Ba Mẹ cho vay sao» (#263): chơi (mặc định) hoặc đổi quà (`quaId`).
+  func xinVay(soSao: Int, loiNhan: String, mucDich: String? = nil, quaId: String? = nil) {
+    saoDaXin = soSao; mucDaXin = nil
+    gui(.xinVay(soSao: soSao, mucDich: mucDich, quaId: quaId, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
   }
-  /// Giờ ngủ / Ba Mẹ khoá: xin mở ngoại lệ cả máy `phut` phút.
-  func xinNgoaiLe(phut: Int, loiNhan: String) {
-    phutDaXin = phut
-    gui(.xinNgoaiLe(phamVi: "ca_may", app: nil, phut: phut, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
-  }
+  /// «Xin Ba Mẹ mở» app / trang chưa có trong danh sách (#258: xin thêm vào danh sách).
   func xinMo(muc: String, loai: String, loiNhan: String) {
+    saoDaXin = nil; mucDaXin = muc
     gui(.xinMo(muc: muc, loai: loai, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
   }
 
   private func gui(_ yc: YeuCauTray) {
     guard !dangGui else { return }
-    dangGui = true; thongBao = "Đang gửi…"
+    dangGui = true; thongBao = "Đang gửi…"; choMang = false
     Task {
       defer { dangGui = false }
-      do {
-        switch try await IPCClient.guiAsync(yc) {
-        case .ok, .canhBao: daGui = true; thongBao = "Đã gửi cho Ba Mẹ. Đang chờ Ba Mẹ trả lời…"
-        case .loi(_, let chu): daGui = false; thongBao = chu
-        case .thongBao(let chu): daGui = true; thongBao = chu
-        case .trangThai, .duLieu, .choi, .pin: daGui = true; thongBao = "Đã gửi cho Ba Mẹ."
-        }
-      } catch {
-        daGui = false; thongBao = "Chưa gửi được. AiiGrow đang khởi động lại, con thử lại sau nhé."
+      switch await goi(yc) {
+      case .ok, .canhBao: daGui = true; luc = Date(); thongBao = "Đã gửi cho Ba Mẹ. Đang chờ Ba Mẹ trả lời…"
+      case .thongBao(let chu) where chu == "cho_mang": daGui = true; choMang = true; luc = Date(); thongBao = "Có mạng là AiiGrow tự gửi Ba Mẹ."
+      case .loi(let ma, let chu): daGui = false; thongBao = AppConModel.cauLoi(ma: ma, chu: chu)
+      case .thongBao(let chu): daGui = true; luc = Date(); thongBao = chu
+      case .trangThai, .duLieu, .choi, .pin: daGui = true; luc = Date(); thongBao = "Đã gửi cho Ba Mẹ."
       }
     }
   }

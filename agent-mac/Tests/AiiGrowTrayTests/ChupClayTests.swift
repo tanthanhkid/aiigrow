@@ -38,7 +38,7 @@ final class ChupClayTests: XCTestCase {
     let dir = URL(fileURLWithPath: p)
     let tray = TrayModel(); let xin = XinModel()
     tray.capNhat(tt(cheDo: .tuDo, lyDo: nil, dem: nil))
-    chup(XinThemCuaSo(tray: tray, xin: xin), "mac-xin-them", dir: dir)
+    chup(XinVayCuaSo(tray: tray, xin: xin), "mac-xin-vay", dir: dir)
     chup(XinMoView(tray: tray, xin: xin), "mac-xin-mo", dir: dir)
     chup(GhepMayView(taiKhoan: ["bi", "na"], dongLai: {}), "mac-ghep-may", dir: dir)
     chup(NhacView(phut: 5), "mac-nhac-5-phut", dir: dir)
@@ -96,10 +96,9 @@ final class ChupClayTests: XCTestCase {
       chup(AppConView(app: app, tray: tray), ten, co, dir: dir)
     }
     chup(NopBaiView(nv: app.tq!.nhiemVu[0], app: app), "mac-nop-bai", dir: dir)
-    let cm = ChoiModel(goi: { _ in .loi(ma: "thu", chu: "") }); cm.phut = ["com.roblox.roblox": 25]
-    chup(ChoiBangDiemView(phut10Sao: 10, sao: 30, m: cm), "mac-choi-bang-diem", dir: dir)
-    chup(ChanAppView(ten: "Roblox", lyDo: "chi_app_hoc", coChoi: true, m: ChoiModel(goi: { _ in .loi(ma: "", chu: "") }), muc: "com.roblox.roblox"), "mac-chan-app", dir: dir)
-    chup(XinThemCuaSo(tray: tray, xin: XinModel(), moChoi: {}), "mac-xin-them-doi-diem", dir: dir)
+    chup(SaoLaPhutView(phutSao: 30), "mac-sao-la-phut", dir: dir)
+    chup(ChuaCoDanhSachView(ten: "YouTube", ds: [("Học với AiiRob", "Không tính phút"), ("Roblox", "Tính phút · 1 sao/phút")]), "mac-chua-co-danh-sach", dir: dir)
+    chup(HetSaoView(tenApp: "Roblox"), "mac-het-sao", dir: dir)
     chup(GhepMayView(taiKhoan: ["bi", "na"], coGoiCai: true, dongLai: {}), "mac-ghep-mot-cham", dir: dir)
     let khoa = TrayModel(); var tk = tt(cheDo: .khoa, lyDo: "het_gio", dem: nil); tk.matMang = true; tk.nhapMaOffline = true; khoa.capNhat(tk)
     chup(ManKhoaView(tray: khoa, xin: XinModel()), "mac-man-khoa-ma-offline", CGSize(width: 1280, height: 1000), dir: dir)
@@ -127,21 +126,22 @@ final class ChupClayTests: XCTestCase {
     chup(ManChonTenView(m: m15), "15-ba-me-nhap-ma", man, dir: dir)
     chup(BaMeDangDungView(den: Date().addingTimeInterval(1800), khoaLai: {}), "16-ba-me-dang-dung", dir: dir)
     // màn khoá theo bé
-    var tk = tt(cheDo: .khoa, lyDo: "het_gio", dem: nil); tk.beTen = "Bảo Anh"; tk.nguoiDung = "con"; tk.quyTongPhut = 60; tk.quyConPhut = 0
+    var tk = tt(cheDo: .khoa, lyDo: "het_gio", dem: nil); tk.beTen = "Bảo Anh"; tk.nguoiDung = "con"; tk.phutSao = 0; tk.soSao = SoSao(sao: 0)
     let khoa = TrayModel(); khoa.capNhat(tk)
-    chup(ManKhoaView(tray: khoa, xin: XinModel(), sao: 30), "33-het-gio", man, dir: dir)
-    var tn = tk; tn.lyDoKhoa = "gio_ngu"; tn.gioNgu = KhungGio(tu: "21:30", den: "06:30")
-    let ngu = TrayModel(); ngu.capNhat(tn)
-    chup(ManKhoaView(tray: ngu, xin: XinModel(), sao: 30), "35-gio-ngu", man, dir: dir)
+    chup(ManKhoaView(tray: khoa, xin: XinModel()), "kofpo0dl-het-sao", man, dir: dir)
+    var tn = tk; tn.lyDoKhoa = "ba_me_khoa"
+    let bmk = TrayModel(); bmk.capNhat(tn)
+    chup(ManKhoaView(tray: bmk, xin: XinModel()), "ba-me-khoa", man, dir: dir)
     var tm = tk; tm.matMang = true; tm.nhapMaOffline = true
     let mm = TrayModel(); mm.capNhat(tm)
-    chup(ManKhoaView(tray: mm, xin: XinModel(), sao: 30), "58-mat-mang", CGSize(width: 1280, height: 1000), dir: dir)
+    chup(ManKhoaView(tray: mm, xin: XinModel()), "2ndg9bu6-mat-mang", CGSize(width: 1280, height: 1000), dir: dir)
     var td = tt(cheDo: .tuDo, lyDo: "het_gio", dem: 45); td.nguoiDung = "con"; td.beTen = "Bảo Anh"
     let dn = TrayModel(); dn.capNhat(td)
-    chup(ManKhoaView(tray: dn, xin: XinModel(), sao: 30), "32-dem-nguoc", CGSize(width: 1280, height: 900), dir: dir)
+    chup(ManKhoaView(tray: dn, xin: XinModel()), "32-dem-nguoc", CGSize(width: 1280, height: 900), dir: dir)
     // app Con theo mẫu thiết kế (Bảo Anh, 18 phút, 42/60, 30 sao)
     let (app, tray) = appMau()
-    var t = tray.tt!; t.nguoiDung = "con"; t.beTen = "Bảo Anh"; t.tenCon = "Bảo Anh"; t.quyConPhut = 18; t.quyTongPhut = 60; t.conPhut = 18
+    var t = tray.tt!; t.nguoiDung = "con"; t.beTen = "Bảo Anh"; t.tenCon = "Bảo Anh"; t.phutSao = 18; t.soSao = SoSao(sao: 18, phutCon: 18)
+    t.dsTinhPhut = ["com.roblox.roblox", "com.google.youtubekids"]; t.dsKhongTinhPhut = ["com.apple.dictionary"]
     t.homNayTheoApp = [MucDung(muc: "com.roblox.roblox", phut: 30, day: "x"), MucDung(muc: "com.google.youtubekids", phut: 12, day: "x")]
     tray.capNhat(t)
     app.tq?.tenCon = "Bảo Anh"; app.tq?.soDu = 30; app.tq?.diemChoDuyet = 20
@@ -160,10 +160,27 @@ final class ChupClayTests: XCTestCase {
     app.viQua = ViQuaTests.mau()
     chup(AppConView(app: app, tray: tray, moViQuaLucDau: true), "26-vi-qua", co, dir: dir)
     chup(DoiQuaView(q: ch.qua[2], sao: 30, app: app), "24-doi-qua", dir: dir)
-    let cm = ChoiModel(goi: goi)
-    chup(ChoiBangDiemView(phut10Sao: 10, sao: 30, m: cm, conPhut: 18, xinThem: {}, lamNhiemVu: {}), "49-doi-sao-lay-gio", dir: dir)
-    chup(XinThemCuaSo(tray: tray, xin: XinModel(), moChoi: {}, moXinApp: {}), "45-xin-them-gio", dir: dir)
-    chup(NhacView(phut: 5, sao: 30, doiSao: {}, xinThem: {}), "31-nhac-5-phut", dir: dir)
+    chup(SaoLaPhutView(phutSao: 30), "0k1r3wsl-sao-la-phut", dir: dir)
+    chup(XinVayCuaSo(tray: tray, xin: XinModel(goi: goi), moThongTin: {}, moXinApp: {}), "zsf6b45n-xin-vay", dir: dir)
+    chup(XinVayCuaSo(tray: tray, xin: XinModel(goi: goi), tuManKhoa: true, soViecChuaLam: 3, xemNhiemVu: {}), "s9zxgltm-xin-vay-man-khoa", dir: dir)
+    chup(NhacView(phut: 5, tenApp: "Roblox", lamNhiemVu: {}, xinVay: {}), "4wmbhz9f-nhac-5-sao", dir: dir)
+    let yv = { () -> YeuCauDangCho in var y = YeuCauDangCho(id: "1", loai: "vay_sao", phut: 15, trangThai: "duyet"); y.tenNguoiDuyet = "Mẹ Lan"; y.loiNhan = "Chơi xong nhớ đi tắm nhé con!"; return y }()
+    chup(VayKetQuaView(y: yv, phutSao: 18, no: 15), "8efbpmkb-ba-me-cho-vay", dir: dir)
+    var yt = yv; yt.trangThai = "tu_choi"; yt.loiNhan = "Hôm nay đủ rồi con, mai chơi tiếp nhé."
+    chup(VayKetQuaView(y: yt, phutSao: 3), "39y24jad-chua-cho-vay", dir: dir)
+    var ya = YeuCauDangCho(id: "2", loai: "cai_app", phut: nil, trangThai: "duyet", muc: "YouTube"); ya.ketQua = "da_them"; ya.nhom = "tinh_phut"; ya.tenNguoiDuyet = "Mẹ Lan"
+    chup(AppKetQuaView(y: ya, phutSao: 18), "oduos66h-da-them", dir: dir)
+    ya.nhom = "khong_tinh_phut"
+    chup(AppKetQuaView(y: ya, phutSao: 18), "paetepsf-khong-tinh-phut", dir: dir)
+    // đang nợ / Mở hết
+    var tno = t; tno.soSao = SoSao(sao: -20, no: 20, phutCon: 0); tno.phutSao = 0
+    tray.capNhat(tno); app.muc = .homNay
+    chup(AppConView(app: app, tray: tray), "ncml9v7v-hom-nay-dang-no", co, dir: dir)
+    app.muc = .phanQua
+    chup(AppConView(app: app, tray: tray), "r12v4x2d-sao-qua-dang-no", co, dir: dir)
+    var tmh = t; tmh.moHet = true; tmh.phutSao = nil
+    tray.capNhat(tmh); app.muc = .homNay
+    chup(AppConView(app: app, tray: tray), "02wt8s99-mo-het", co, dir: dir)
     for (mg, ten) in [(ManGhep.nhap, "03-ghep-may"), (.maSai, "05-ma-sai"), (.hetHan, "06-het-han"), (.matMang, "07-mat-mang"), (.batQuyen, "08-bat-quyen"), (.xong, "09-xong")] {
       chup(GhepMayView(taiKhoan: ["baoanh"], dongLai: {}, manDau: mg), ten, dir: dir)
     }

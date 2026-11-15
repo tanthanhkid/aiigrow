@@ -58,19 +58,6 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertFalse(TrayLogic.canGhep(nil, laAdmin: true))
   }
 
-  func testTieuDeVaGoiYKhoa() {
-    for ly in ["het_gio", "gio_ngu", "ba_me_khoa", "la_hoac", "", nil] as [String?] {
-      XCTAssertFalse(TrayLogic.tieuDeKhoa(ly).isEmpty)
-      XCTAssertFalse(TrayLogic.goiYKhoa(ly).isEmpty)
-    }
-    XCTAssertEqual(TrayLogic.tieuDeKhoa("het_gio"), "Hết giờ dùng máy hôm nay")
-    XCTAssertEqual(TrayLogic.tieuDeKhoa("gio_ngu"), "Đến giờ ngủ rồi")
-    XCTAssertEqual(TrayLogic.tieuDeKhoa(nil), "Ba Mẹ đang khoá máy")
-    XCTAssertEqual(TrayLogic.tieuDeKhoa("xyz"), TrayLogic.tieuDeKhoa(nil))
-    XCTAssertEqual(TrayLogic.goiYKhoa("xyz"), TrayLogic.goiYKhoa(nil))
-    XCTAssertNotEqual(TrayLogic.goiYKhoa("het_gio"), TrayLogic.goiYKhoa("gio_ngu"))
-  }
-
   func testDongHo() {
     XCTAssertEqual(TrayLogic.dongHo(300), "5:00")
     XCTAssertEqual(TrayLogic.dongHo(65), "1:05")
@@ -108,31 +95,42 @@ final class TrayLogicTests: XCTestCase {
     XCTAssertEqual(TrayLogic.tieuDeThanh(tt(conPhut: 30), matKetNoi: false, nhanLuc: t0, bayGio: t0.addingTimeInterval(61)), "Còn 29 phút")
     XCTAssertTrue(TrayLogic.dongTrangThai(tt(daGhep: false), matKetNoi: false, nhanLuc: t0, bayGio: t0).contains("chưa ghép"))
     XCTAssertEqual(TrayLogic.dongTrangThai(tt(cheDo: .khoa), matKetNoi: false, nhanLuc: t0, bayGio: t0), "Đang khoá")
-    XCTAssertEqual(TrayLogic.dongTrangThai(tt(conPhut: 15), matKetNoi: false, nhanLuc: t0, bayGio: t0), "Còn 15 phút hôm nay")
+    XCTAssertEqual(TrayLogic.dongTrangThai(tt(conPhut: 15), matKetNoi: false, nhanLuc: t0, bayGio: t0), "Còn 15 phút")
     XCTAssertEqual(TrayLogic.dongTrangThai(tt(moDen: t0.addingTimeInterval(600)), matKetNoi: false, nhanLuc: t0, bayGio: t0),
-                   "Còn 10 phút (Ba Mẹ mở ngoại lệ)")
-    XCTAssertEqual(TrayLogic.dongTrangThai(tt(), matKetNoi: false, nhanLuc: t0, bayGio: t0), "Không giới hạn giờ hôm nay")
+                   "Còn 10 phút (Ba Mẹ đang mở máy)")
+    XCTAssertEqual(TrayLogic.dongTrangThai(tt(), matKetNoi: false, nhanLuc: t0, bayGio: t0), "Không giới hạn")
+    // sổ sao 15/11: sao = phút
+    var s = tt(); s.phutSao = 18
+    XCTAssertEqual(TrayLogic.dongTrangThai(s, matKetNoi: false, nhanLuc: t0, bayGio: t0), "Còn 18 sao = 18 phút chơi")
+    XCTAssertEqual(TrayLogic.tieuDeThanh(s, matKetNoi: false, nhanLuc: t0, bayGio: t0), "18 sao")
+    s.phutSao = 0
+    XCTAssertEqual(TrayLogic.tieuDeThanh(s, matKetNoi: false, nhanLuc: t0, bayGio: t0), "Hết sao")
+    XCTAssertTrue(TrayLogic.dongTrangThai(s, matKetNoi: false, nhanLuc: t0, bayGio: t0).hasPrefix("Hết sao rồi"))
+    var mh = tt(); mh.moHet = true
+    XCTAssertEqual(TrayLogic.tieuDeThanh(mh, matKetNoi: false, nhanLuc: t0, bayGio: t0), "Mở hết")
+    XCTAssertEqual(TrayLogic.dongTrangThai(mh, matKetNoi: false, nhanLuc: t0, bayGio: t0), "Mở hết · không tính phút")
+    // nhắc «còn 5 sao» chỉ khi app «Tính phút» đang chạy
+    s.phutSao = 5
+    XCTAssertNil(TrayLogic.giaySao(s, nhanLuc: t0, bayGio: t0))
+    s.dangTinhPhut = "com.roblox.roblox"
+    XCTAssertEqual(TrayLogic.giaySao(s, nhanLuc: t0, bayGio: t0.addingTimeInterval(30))!, 270, accuracy: 0.01)
   }
 
   func testDongYeuCau() {
-    func yc(_ loai: String, _ st: String) -> YeuCauDangCho { YeuCauDangCho(id: "1", loai: loai, phut: 30, trangThai: st) }
+    func yc(_ loai: String, _ st: String, muc: String? = nil) -> YeuCauDangCho { YeuCauDangCho(id: "1", loai: loai, phut: 15, trangThai: st, muc: muc) }
     XCTAssertNil(TrayLogic.dongYeuCau([]))
-    XCTAssertTrue(TrayLogic.dongYeuCau([yc("them_gio", "cho")])!.contains("thêm giờ"))
-    XCTAssertTrue(TrayLogic.dongYeuCau([yc("mo_web", "cho")])!.contains("mở trang"))
-    XCTAssertTrue(TrayLogic.dongYeuCau([yc("cai_app", "cho")])!.contains("mở app"))
-    XCTAssertEqual(TrayLogic.dongYeuCau([yc("them_gio", "duyet")]), "Ba Mẹ đã cho thêm giờ. Học tốt nhé!")
-    XCTAssertEqual(TrayLogic.dongYeuCau([yc("mo_web", "duyet")]), "Ba Mẹ đã đồng ý cho mở trang.")
-    XCTAssertEqual(TrayLogic.dongYeuCau([yc("mo_web", "tu_choi")]), "Ba Mẹ chưa đồng ý lần này.")
-    XCTAssertNil(TrayLogic.dongYeuCau([yc("mo_web", "khac")]))
-    // lấy cái cuối
-    XCTAssertEqual(TrayLogic.dongYeuCau([yc("mo_web", "cho"), yc("mo_web", "tu_choi")]), "Ba Mẹ chưa đồng ý lần này.")
-  }
-
-  func testNhanVaTenMuc() {
-    XCTAssertEqual(TrayLogic.nhanLuaChonPhut(30), "30 phút")
-    XCTAssertEqual(TrayLogic.nhanLuaChonPhut(60), "1 giờ")
-    XCTAssertEqual(TrayLogic.nhanLuaChonPhut(120), "2 giờ")
-    XCTAssertEqual(TrayLogic.tenMucNguoiDung(.khoa), "Đang khoá")
+    XCTAssertEqual(TrayLogic.dongYeuCau([yc("vay_sao", "cho")]), "Đã gửi Ba Mẹ xin vay 15 sao — đang chờ Ba Mẹ trả lời…")
+    var luu = yc("vay_sao", "cho"); luu.choMang = true
+    XCTAssertTrue(TrayLogic.dongYeuCau([luu])!.contains("có mạng là AiiGrow tự gửi"))
+    var cho = yc("vay_sao", "duyet"); cho.tenNguoiDuyet = "Mẹ Lan"
+    XCTAssertEqual(TrayLogic.dongYeuCau([cho]), "Mẹ Lan cho vay 15 sao!")
+    XCTAssertEqual(TrayLogic.dongYeuCau([yc("vay_sao", "tu_choi")]), "Ba Mẹ chưa cho vay sao.")
+    XCTAssertEqual(TrayLogic.dongYeuCau([yc("cai_app", "cho", muc: "com.roblox.roblox")]), "Đã xin thêm Roblox vào danh sách — đang chờ Ba Mẹ trả lời…")
+    XCTAssertEqual(TrayLogic.dongYeuCau([yc("cai_app", "duyet", muc: "YouTube")]), "Ba Mẹ đã thêm YouTube!")
+    var tam = yc("mo_web", "duyet", muc: "youtube.com"); tam.ketQua = "mo_tam"; tam.moTamPhut = 30
+    XCTAssertTrue(TrayLogic.dongYeuCau([tam])!.contains("cho mở"))
+    XCTAssertEqual(TrayLogic.dongYeuCau([yc("cai_app", "tu_choi", muc: "YouTube")]), "Ba Mẹ chưa thêm YouTube.")
+    XCTAssertNil(TrayLogic.dongYeuCau([yc("mo_web", "het_han")]))
   }
 
   func testTaiKhoanThuong() {

@@ -181,8 +181,10 @@ struct ManChonTenView: View {
               VStack(spacing: 12) {
                 AvatarBe(chu: chuCai[b.id] ?? "?", thu: i)
                 Text(b.ten).font(.system(size: 19, weight: .bold)).foregroundColor(ClayMau.chu).lineLimit(1)
+                if let sao = b.sao { VienSao(sao: sao, co: 14) }                        // 15/11: sao đi theo từng bé
+                if let no = ManMac.noCua(b) { Text("Đang nợ Ba Mẹ \(ChuSao.so(no)) sao").font(.system(size: 12, weight: .semibold)).foregroundColor(ClayMau.canh).lineLimit(1) }
               }
-              .frame(width: 172, height: 170).clayThe(bo: 24)
+              .frame(width: 172, height: b.sao == nil ? 170 : 214).clayThe(bo: 24)
             }
             .buttonStyle(.plain).disabled(m.dangGui)
             .accessibilityLabel("Chọn \(b.ten)")
@@ -190,7 +192,7 @@ struct ManChonTenView: View {
         }
         .padding(.top, 6)
         if let c = m.cau { Text(c).font(.system(size: 13, weight: .semibold)).foregroundColor(m.cauLoi ? ClayMau.loi : ClayMau.ngocInk) }
-        Text("Chưa ai vào thì máy chỉ mở màn này.").font(.system(size: 12)).foregroundColor(ClayMau.chu3)
+        Text("Chưa ai vào thì máy chỉ mở màn này · sao và luật đi theo từng bé.").font(.system(size: 12)).foregroundColor(ClayMau.chu3)
       }
       .padding(.horizontal, 60).padding(.vertical, 24)
       .frame(width: 576)

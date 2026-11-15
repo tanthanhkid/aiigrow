@@ -79,14 +79,13 @@ final class PinBeTests: XCTestCase {
     XCTAssertNil(p2.cucBo)
 
     var p = policyMau(mode: "hoc", allowed: ["com.apple.textedit", "com.roblox.roblox"], now: t)
-    p.blockedApps = [AppBiChan(muc: "com.x")]
     let hl = DanhGiaPolicy.tinh(p, now: t, daDungGiay: 0)
     let (q1, h1) = PhienMay.apDung(p, hl, .chua, now: t)
     XCTAssertTrue(q1.allowedApps.isEmpty); XCTAssertTrue(h1.chiAppHoc); XCTAssertFalse(h1.khoa, "màn chọn tên không đếm ngược đăng xuất")
     var k = p; k.mode = "khoa"; k.locked = true
     XCTAssertTrue(PhienMay.apDung(k, DanhGiaPolicy.tinh(k, now: t, daDungGiay: 0), .chua, now: t).1.khoa, "giờ ngủ/khoá vẫn khoá khi chưa ai vào")
     let (q2, h2) = PhienMay.apDung(k, DanhGiaPolicy.tinh(k, now: t, daDungGiay: 0), .baMe(den: t.addingTimeInterval(60)), now: t)
-    XCTAssertFalse(h2.khoa); XCTAssertFalse(h2.chiAppHoc); XCTAssertTrue(q2.blockedApps.isEmpty)
+    XCTAssertFalse(h2.khoa); XCTAssertFalse(h2.chiAppHoc); XCTAssertEqual(q2.mode, CheDo.tuDo.rawValue)
     XCTAssertTrue(PhienMay.tinhGioCon(nil)); XCTAssertTrue(PhienMay.tinhGioCon(.con(id: "c", ten: "")))
     XCTAssertFalse(PhienMay.tinhGioCon(.chua)); XCTAssertFalse(PhienMay.tinhGioCon(.baMe(den: nil)))
   }

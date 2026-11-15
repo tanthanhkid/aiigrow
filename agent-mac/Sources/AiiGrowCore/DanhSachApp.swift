@@ -1,6 +1,6 @@
 // «Danh sách app thật trên máy» (hợp đồng 25/10): agent quét app đã cài, gửi lên `POST api/device/ung-dung` (đủ / phần đổi),
-// máy chủ báo tín hiệu ở gốc phản hồi dong-bo (`danhSachApp.bam`, `danhSachApp.yeuCau`) và gửi lại `windows.blockedApps` = app Ba Mẹ đặt «Chặn».
-// File này chỉ có phần THUẦN (lọc, gộp, băm tất định, diff, quyết định gửi/quét, quyết định đóng) — quét thật ở QuetAppMac.swift.
+// máy chủ báo tín hiệu ở gốc phản hồi dong-bo (`danhSachApp.bam`, `danhSachApp.yeuCau`) để Ba Mẹ xếp app vào danh sách của Con (#262: «Chặn» đã bỏ).
+// File này chỉ có phần THUẦN (lọc, gộp, băm tất định, diff, quyết định gửi/quét) — quét thật ở QuetAppMac.swift.
 import CryptoKit
 import Foundation
 
@@ -31,41 +31,6 @@ public struct AppMay: Codable, Equatable, Sendable {
 
   /// Bản không kèm byte icon (vẫn giữ iconBam).
   public var khongIcon: AppMay { var a = self; a.icon = nil; return a }
-}
-
-/// Một mục `windows.blockedApps` — Mac chỉ dùng `muc` (bundle id) để đóng, `teamId` để ghi log.
-public struct AppBiChan: Codable, Equatable, Sendable {
-  public var muc: String
-  public var duongDan: String?
-  public var thuMuc: String?
-  public var sha256: String?
-  public var nhaPhatHanh: String?
-  public var teamId: String?
-
-  public init(muc: String, duongDan: String? = nil, thuMuc: String? = nil, sha256: String? = nil, nhaPhatHanh: String? = nil, teamId: String? = nil) {
-    self.muc = muc; self.duongDan = duongDan; self.thuMuc = thuMuc; self.sha256 = sha256; self.nhaPhatHanh = nhaPhatHanh; self.teamId = teamId
-  }
-
-  /// Dễ tính: nhận cả chuỗi trần («com.roblox.roblox»); thiếu/sai kiểu trường phụ ⇒ bỏ trường đó. `muc` luôn chữ thường, đã cắt khoảng trắng.
-  public init(from decoder: Decoder) throws {
-    if let s = try? decoder.singleValueContainer().decode(String.self) {
-      self.init(muc: s.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()); return
-    }
-    let c = try decoder.container(keyedBy: CodingKeys.self)
-    func s(_ k: CodingKeys) -> String? {
-      let v = ((try? c.decodeIfPresent(String.self, forKey: k)) ?? nil)?.trimmingCharacters(in: .whitespacesAndNewlines)
-      return (v?.isEmpty ?? true) ? nil : v
-    }
-    self.init(muc: (s(.muc) ?? "").lowercased(), duongDan: s(.duongDan), thuMuc: s(.thuMuc), sha256: s(.sha256), nhaPhatHanh: s(.nhaPhatHanh), teamId: s(.teamId))
-  }
-
-  /// Đọc mảng blockedApps: phần tử hỏng không làm hỏng cả mảng; bỏ mục rỗng, gộp trùng theo muc.
-  static func docDs(_ c: KeyedDecodingContainer<Policy.CodingKeys>, _ k: Policy.CodingKeys) -> [AppBiChan] {
-    struct Mem: Decodable { let v: AppBiChan?; init(from d: Decoder) throws { v = try? AppBiChan(from: d) } }
-    let ds = ((try? c.decodeIfPresent([Mem].self, forKey: k)) ?? nil)?.compactMap(\.v) ?? []
-    var thay = Set<String>()
-    return ds.filter { !$0.muc.isEmpty && thay.insert($0.muc).inserted }
-  }
 }
 
 /// Tín hiệu `danhSachApp` ở gốc phản hồi dong-bo. Vắng cả khối (máy chủ cũ) ⇒ nil ở KetQuaDongBo.
@@ -275,29 +240,6 @@ public enum DanhSachApp {
     if coYeuCauMoi(tinHieu, daXuLy: yeuCauDaXuLy) || bamDaGui == nil || soLanLoi > 0 || conThieuIcon { return thuDuoc }
     if let t = tinHieu, t.bam == nil || t.bam != bamDaGui { return thuDuoc }              // máy chủ giữ bản khác / mất dữ liệu
     return false
-  }
-
-  // MARK: thực thi chặn
-
-  /// Tiến trình của Con thuộc app bị Ba Mẹ «Chặn» (bundle id ngoài cùng HOẶC gần nhất == muc, không phân biệt hoa/thường).
-  /// Không bao giờ chọn app hệ thống / AiiGrow / thư mục hệ thống / bộ gõ miễn trừ / tiến trình phụ (app chính đóng thì chúng tự chết).
-  public static func canDongBiChan(_ ds: [TienTrinh], uidCon: UInt32, biChan: [AppBiChan]) -> [(TienTrinh, AppBiChan)] {
-    guard !biChan.isEmpty else { return [] }
-    var theoMuc: [String: AppBiChan] = [:]
-    for b in biChan where !b.muc.isEmpty && !QuyetDinhApp.heThong.contains(b.muc) && !laAiiGrow(b.muc) { theoMuc[b.muc] = theoMuc[b.muc] ?? b }
-    guard !theoMuc.isEmpty else { return [] }
-    var kq: [(TienTrinh, AppBiChan)] = []
-    for t in ds where t.uid == uidCon && t.pid > 1 {
-      guard let app = t.duongDanApp else { continue }
-      let duongThap = t.duongDan.lowercased()
-      if QuyetDinhApp.thuMucMienTru.contains(where: { duongThap.hasPrefix($0) }) || QuyetDinhApp.laTienTrinhPhu(t.duongDan) { continue }
-      if QuyetDinhApp.thuMucHeThong.contains(where: { app.hasPrefix($0) || t.duongDan.hasPrefix($0) }) { continue }
-      if app.lowercased() == DuongDan.app.lowercased() { continue }
-      let ung = [t.bundleId, t.bundleIdGan].compactMap { $0?.lowercased() }
-      if ung.contains(where: { QuyetDinhApp.heThong.contains($0) || laAiiGrow($0) }) { continue }
-      if let b = ung.lazy.compactMap({ theoMuc[$0] }).first { kq.append((t, b)) }
-    }
-    return kq
   }
 }
 
