@@ -1,6 +1,7 @@
 // «Đã bỏ qua YouTube» (thiết kế chốt 15/11 bm-ung-dung/12 them-hppe9qh6 — luồng #258): Grow, thẻ «Đã báo Bảo Anh trên Laptop · «Ba Mẹ chưa cho lúc này» ·
 // 19:41» + «Không ghi gì vào danh sách · Con xin lại được bất cứ lúc nào», «Xong», «Hoàn tác, xem lại lời xin» (POST yeu-cau/:id/hoan-tac — trong 60
-// giây; máy chủ chỉ báo Con sau 60 giây nên Hoàn tác kịp thì Con không thấy gì). params: id, ten (mục), con (tên Con), may, den (hạn hoàn tác ISO).
+// giây; máy chủ chỉ báo Con sau 60 giây nên Hoàn tác kịp thì Con không thấy gì). 60 giây đếm theo ĐỒNG HỒ MÁY từ lúc bấm (lúc mở màn này) — không so
+// giờ máy chủ (lệch đồng hồ). Trước 60 giây: «Sẽ báo <con> sau 60 giây»; sau đó: «Đã báo <con> trên <máy>». params: id, ten (mục), con (tên Con), may.
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -10,15 +11,15 @@ import { OIcon, veHoac } from "@/lib/ui-bm3";
 import { BaoLoi, Chu, gioPhut, M, Man, Nut, Rob, useLam } from "@/lib/ui";
 
 export default function DaBoQua() {
-  const p = useLocalSearchParams<{ id: string; ten?: string; con?: string; may?: string; den?: string }>();
+  const p = useLocalSearchParams<{ id: string; ten?: string; con?: string; may?: string }>();
   const [luc] = useState(() => new Date());
-  const han = p.den ? new Date(p.den).getTime() : luc.getTime() + 60_000;
-  const [con, setCon] = useState(() => Math.max(0, Math.ceil((han - Date.now()) / 1000)));
+  const han = luc.getTime() + 60_000;
+  const [conGiay, setConGiay] = useState(60);
   useEffect(() => {
-    if (con <= 0) return;
-    const t = setTimeout(() => setCon(Math.max(0, Math.ceil((han - Date.now()) / 1000))), 1000);
+    if (conGiay <= 0) return;
+    const t = setTimeout(() => setConGiay(Math.max(0, Math.ceil((han - Date.now()) / 1000))), 1000);
     return () => clearTimeout(t);
-  }, [con, han]);
+  }, [conGiay, han]);
   const { lam, loi, dangChay } = useLam();
   const ve = () => veHoac("/chan");
   const may = p.may?.replace(/ của .*$/, "");
@@ -30,7 +31,7 @@ export default function DaBoQua() {
     <Man lui={{ chu: "", bam: ve }} day={<>
       <BaoLoi loi={loi} />
       <Nut chu="Xong" rong bam={ve} />
-      {con > 0 ? <Nut chu="Hoàn tác, xem lại lời xin" loai="vien" rong dangChay={dangChay} bam={hoan} nhanDoc={`Hoàn tác, còn ${con} giây`} /> : null}
+      {conGiay > 0 ? <Nut chu="Hoàn tác, xem lại lời xin" loai="vien" rong dangChay={dangChay} bam={hoan} nhanDoc={`Hoàn tác, còn ${conGiay} giây`} /> : null}
     </>}>
       <View style={{ alignItems: "center", paddingTop: 24, gap: 6 }}>
         <Rob ten="xong" co={200} />
@@ -40,8 +41,8 @@ export default function DaBoQua() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 8 }}>
           <OIcon ic="gui" />
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Chu kieu="rat" co={15}>{`Đã báo ${p.con ?? "con"}${may ? ` trên ${may}` : ""}`}</Chu>
-            <Chu kieu="dam" co={12.5} mau={M.chu3}>{`«Ba Mẹ chưa cho lúc này» · ${gioPhut(luc)}`}</Chu>
+            <Chu kieu="rat" co={15}>{conGiay > 0 ? `Sẽ báo ${p.con ?? "con"} sau 60 giây` : `Đã báo ${p.con ?? "con"}${may ? ` trên ${may}` : ""}`}</Chu>
+            <Chu kieu="dam" co={12.5} mau={M.chu3}>{conGiay > 0 ? `«Ba Mẹ chưa cho lúc này» · còn ${conGiay} giây để hoàn tác` : `«Ba Mẹ chưa cho lúc này» · ${gioPhut(new Date(han))}`}</Chu>
           </View>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 8, borderTopWidth: 1.5, borderTopColor: "rgba(0,0,0,0.06)" }}>

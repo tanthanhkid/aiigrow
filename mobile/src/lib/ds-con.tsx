@@ -6,8 +6,8 @@
 import { useState } from "react";
 import { View } from "react-native";
 import { router } from "expo-router";
-import { laChiXem } from "./api";
-import { boKhoiDs, doiNhom, hangCua, napDanhSach, phuHomNay, themVaoDs, type DongDs, type Kieu, type Nhom } from "./app-web";
+import { bm, laChiXem } from "./api";
+import { boKhoiDs, doiNhom, hangCua, napBoQua, napDanhSach, phuHomNay, themVaoDs, type DongDs, type Kieu, type Nhom } from "./app-web";
 import { ChonNhom, DauMuc, DongDen, HangBoQua, HangVang, KhoiNhom, MucNhom, OIcon, icCuaApp, lucNgan, veHoac } from "./ui-bm3";
 import { BaoLoi, ChoTai, Chu, M, Man, Nut, useLam, useTai, type TenIcon } from "./ui";
 
@@ -16,8 +16,9 @@ const khoa = (t: string) => t.trim().toLowerCase();
 
 export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [ds, xem] = await Promise.all([napDanhSach(con), laChiXem()]);
-    return { ds, xem };
+    // «Đã bỏ qua N lời xin» đếm ĐÚNG loại của màn (app / web) — danh-sach chỉ trả tổng ⇒ đọc danh sách bỏ qua của Con
+    const [ds, xem, bq] = await Promise.all([napDanhSach(con), laChiXem(), napBoQua(con).catch(() => null)]);
+    return { ds, xem, soBoQua: bq ? bq.ds.filter((x) => x.kieu === kieu).length : 0 };
   });
   const web = kieu === "web";
   const ve = () => veHoac(`/chan?con=${con}`);
@@ -57,7 +58,7 @@ export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
             : `${ten} chỉ mở được ${tat.length} app này. Bấm vào app để đổi loại hoặc bỏ khỏi danh sách.`}
         </Chu>
       ) : null}
-      {web && d.ds.boQua.so ? <HangBoQua so={d.ds.boQua.so} bam={() => router.push({ pathname: "/bo-qua", params: { con } })} /> : null}
+      {d.soBoQua ? <HangBoQua so={d.soBoQua} bam={() => router.push({ pathname: "/bo-qua", params: { con, kieu } })} /> : null}
       {d.xem ? null : (
         <Nut chu={web ? `Thêm trang web cho ${ten}` : `Thêm app cho ${ten}`} ic="cong" rong
           bam={() => router.push({ pathname: web ? "/web/them" : "/ung-dung/them", params: { con } })} />
@@ -66,8 +67,9 @@ export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
   );
 }
 
-/** Một app / một trang trong danh sách. `muc` (không bắt buộc) = định danh khi mục CHƯA có trong danh sách (thẻ «app mới» Trang chủ ⇒ thêm mới). */
-export function MotMuc({ con, kieu, ten, muc }: { con: string; kieu: Kieu; ten: string; muc?: string }) {
+/** Một app / một trang trong danh sách. `muc` (không bắt buộc) = định danh khi mục CHƯA có trong danh sách (thẻ «app mới» Trang chủ ⇒ thêm mới).
+ *  `caNha`: thẻ «app mới» của cả nhà (không kèm con) ⇒ ghi luật cả nhà (POST luat không `con`, loai tinh_phut | khong_tinh_phut) — mọi bé + máy chung. */
+export function MotMuc({ con, kieu, ten, muc, caNha }: { con: string; kieu: Kieu; ten: string; muc?: string; caNha?: boolean }) {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [ds, xem] = await Promise.all([napDanhSach(con), laChiXem()]);
     return { ds, xem };
@@ -78,19 +80,20 @@ export function MotMuc({ con, kieu, ten, muc }: { con: string; kieu: Kieu; ten: 
   const ve = () => veHoac(web ? `/web/${con}` : `/ung-dung?con=${con}`);
   if (!d) return <Man lui={{ chu: "", bam: ve }} tieu={ten}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const tenCon = d.ds.con.ten;
-  const h = hangCua(d.ds, kieu).find((x) => khoa(x.ten) === khoa(ten) || (!!muc && x.muc.includes(muc)));
+  const h = caNha ? undefined : hangCua(d.ds, kieu).find((x) => khoa(x.ten) === khoa(ten) || (!!muc && x.muc.includes(muc)));
   const nhom = chon ?? h?.nhom ?? null;
   const luu = () => lam(async () => {
     if (!nhom) return;
-    if (!h) await themVaoDs(con, [{ nhom, kieu, ...(muc ? { muc, ten } : { ten }) }]);
+    if (caNha) await bm.goi("luat", { muc: muc ?? ten, ten, loai: nhom });
+    else if (!h) await themVaoDs(con, [{ nhom, kieu, ...(muc ? { muc, ten } : { ten }) }]);
     else if (nhom !== h.nhom) await doiNhom(con, h, nhom);
     ve();
   });
   const bo = () => lam(async () => { if (h) await boKhoiDs(con, h); ve(); });
-  const phu = h ? (h.phutHomNay ? `Hôm nay đã ${web ? "vào" : h.nhom === "tinh_phut" ? "chơi" : "dùng"} ${h.phutHomNay} phút` : `Hôm nay chưa ${web ? "vào" : "dùng"}`)
+  const phu = caNha ? "Áp cho cả nhà · mọi bé" : h ? (h.phutHomNay ? `Hôm nay đã ${web ? "vào" : h.nhom === "tinh_phut" ? "chơi" : "dùng"} ${h.phutHomNay} phút` : `Hôm nay chưa ${web ? "vào" : "dùng"}`)
     : "Chưa có trong danh sách";
   return (
-    <Man lui={{ chu: "", bam: ve }} tieu={`${web ? "Web" : "App"} của ${tenCon}`}>
+    <Man lui={{ chu: "", bam: ve }} tieu={caNha ? `${web ? "Web" : "App"} của cả nhà` : `${web ? "Web" : "App"} của ${tenCon}`}>
       <DauMuc ic={icMuc(`${ten} ${muc ?? ""}`, kieu)} tieu={ten} phu={phu} />
       <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginTop: 14, marginHorizontal: 6 }}>{`${ten} có tính phút không?`}</Chu>
       <ChonNhom gia={nhom} doi={setChon} tat={d.xem} />

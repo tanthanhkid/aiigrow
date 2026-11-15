@@ -4,6 +4,7 @@
 // Cuối màn: chế độ của con («Theo danh sách — Chỉ mở app, web Ba Mẹ đã thêm · Đổi ›» → App & web) + «Được mở N app». Lời xin app / web: 3 nút
 // Tính phút / Không tính phút / Bỏ qua (15/11 — #258).
 // Mở từ Hôm nay / Báo cáo / Thông báo (?con=).
+import { cheDoTu } from "@/lib/app-web";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
@@ -28,7 +29,7 @@ export default function DangXin() {
   if (!d) return <Man lui={{ chu: "Hôm nay" }} tieu="Con đang xin"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const ten = d.ct?.ten ?? "Con";
   const q = d.qy;
-  const moHet = d.ct?.cheDoChan === "mo_het";
+  const moHet = cheDoTu(d.ct) === "mo_het";
   return (
     <Man lui={{ chu: "Hôm nay" }} tieuLon={d.ds.length ? `${ten} đang xin phép` : `${ten} không xin gì`} tai={tai} vongTai day={ve}>
       {!d.ds.length ? <CanhGiua lv="canh-trong" tieu="Không có lời xin nào" loi={`Khi ${ten} xin thêm giờ hay xin mở app, Grow báo Ba Mẹ ngay.`} /> : null}

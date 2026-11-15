@@ -9,7 +9,7 @@ import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { boKhoiDs, doiNhom, hangCua, napDanhSach, type Nhom } from "@/lib/app-web";
 import { BONG, MEN } from "@/lib/clay";
-import { hoanTacThemGio, SaoVien, type QuyCon } from "@/lib/hang-ngay";
+import { hoanTacThemGio, quyenToi, SaoVien, type QuyCon } from "@/lib/hang-ngay";
 import { BaoLoi, BieuTron, Chu, gioPhut, Icon, M, Man, Nut, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 const veHomNay = () => router.replace("/hom-nay" as never);
@@ -28,16 +28,20 @@ function Dong({ ic, tieu, phu, phai, dau }: { ic: TenIcon; tieu: string; phu?: s
 }
 
 export default function XongYeuCau() {
-  const p = useLocalSearchParams<{ kieu: string; ten: string; con: string; phut?: string; muc?: string; may?: string; grant?: string }>();
+  const p = useLocalSearchParams<{ kieu: string; ten: string; con: string; phut?: string; muc?: string; ma?: string; may?: string; grant?: string }>();
   const phut = Number(p.phut) || 0;
   const [luc] = useState(() => Date.now());          // mốc lúc trả lời — một lần, không đổi khi vẽ lại
   const { d } = useTai(() => (p.con ? bm.goi<QuyCon>(`con/${p.con}/quy`) : Promise.resolve(null)));
+  // danh sách chỉ Ba Mẹ sửa được (người trông giúp: máy chủ 403) ⇒ ẩn «Đổi sang…» / «Hoàn tác» của kieu «mo»
+  const q0 = useTai(() => (p.kieu === "mo" ? quyenToi() : Promise.resolve("ba_me" as const)));
   const { lam, loi, dangChay } = useLam();
   const [nhom, setNhom] = useState<Nhom>(phut ? "tinh_phut" : "khong_tinh_phut");      // kieu «mo»: nhóm vừa thêm
   const tinh = nhom === "tinh_phut";
   // hàng vừa thêm trong danh sách của Con (đủ mọi định danh) — để đổi nhóm / hoàn tác
-  const timHang = async () => { const ds = await napDanhSach(p.con); const k = (p.muc ?? "").toLowerCase();
-    const h = [...hangCua(ds, "app"), ...hangCua(ds, "web")].find((x) => x.ten.toLowerCase() === k || x.muc.includes(k));
+  // ưu tiên định danh máy chủ trả (`ma`); không có (máy chủ cũ) ⇒ so tên hiển thị
+  const timHang = async () => { const ds = await napDanhSach(p.con); const tat = [...hangCua(ds, "app"), ...hangCua(ds, "web")];
+    const ma = (p.ma ?? "").toLowerCase(), k = (p.muc ?? "").toLowerCase();
+    const h = (ma ? tat.find((x) => x.muc.some((m) => m.toLowerCase() === ma)) : undefined) ?? tat.find((x) => x.ten.toLowerCase() === k || x.muc.includes(k));
     if (!h) throw new Error("Mục này không còn trong danh sách"); return h; };
   const may = p.may ? p.may.replace(/ của .*$/, "") : null;
   const baoLuc = `${may ? `Trên ${may} · ` : ""}${gioPhut(new Date(luc))}`;
@@ -57,7 +61,7 @@ export default function XongYeuCau() {
     phu = tinh ? `${p.ten} dùng ${p.muc} sẽ trừ sao của con` : `${p.ten} dùng ${p.muc} thoải mái, không trừ sao`;
     vien = tinh ? "Tính phút · 1 sao = 1 phút xem" : "Không tính phút · vào thoải mái";
     ds = <Dong dau ic="tin" tieu={`Đã báo ${p.ten}`} phu={baoLuc} />;
-    if (p.con && p.muc) {
+    if (p.con && p.muc && q0.d === "ba_me") {
       doiMo = () => lam(async () => { const moi: Nhom = tinh ? "khong_tinh_phut" : "tinh_phut"; await doiNhom(p.con, await timHang(), moi); setNhom(moi); });
       hoanMo = () => lam(async () => { await boKhoiDs(p.con, await timHang()); router.back(); });
     }

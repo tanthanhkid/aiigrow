@@ -11,7 +11,7 @@ import { bm, laChiXem, type GiaDinh } from "@/lib/api";
 import { ChipCon } from "@/lib/hang-ngay";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 import { HangBoQua, HangVang, icCuaApp, lucNgan } from "@/lib/ui-bm3";
-import { doiCheDo as ghiCheDo, hangCua, IC_CHE_DO, MAU_NHOM, napDanhSach, TEN_CHE_DO, TEN_NHOM, type CheDo, type DanhSach, type DongDs, type Nhom } from "@/lib/app-web";
+import { cheDoTu, doiCheDo as ghiCheDo, hangCua, IC_CHE_DO, MAU_NHOM, napDanhSach, TEN_CHE_DO, TEN_NHOM, type CheDo, type DanhSach, type DongDs, type Nhom } from "@/lib/app-web";
 import { BaoLoi, CanhGiua, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Rob, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 // Grow ở thẻ chế độ: cỡ + lệch phải; tên chế độ (25px) chừa phần Grow nằm trong thẻ − lề 16 (khổ 320 đè — cổng DE-ANH)
@@ -47,7 +47,7 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
   if (!d) return <View style={{ flex: 1 }}><Man tieuLon={TIEU}>{dau}{chips}<ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
 
   const ten = d.ds.con.ten;
-  const cheDo: CheDo = d.ds.cheDo === "mo_het" ? "mo_het" : "theo_danh_sach";
+  const cheDo: CheDo = cheDoTu(d.ds);
   const moHet = cheDo === "mo_het";
   const app = hangCua(d.ds, "app"), web = hangCua(d.ds, "web");
   const doiCheDo = (v: CheDo) => {

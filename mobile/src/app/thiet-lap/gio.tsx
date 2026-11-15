@@ -1,7 +1,7 @@
 // bm1-ob-gio «X chơi máy bao lâu mỗi ngày?» (bước 4/5 Lần đầu, thiết kế chốt 14/11): chip 30p · 60p · 90p (cuối tuần +30) + «Tự chọn»
 // (hai dòng Ngày thường / Cuối tuần, mỗi lần bấm ±15 phút), «Giờ đi ngủ» hai ô giờ ⇒ bảng them-hijzsz0z (bánh xe), câu tóm tắt.
-// «Tiếp: chọn app cho con» ⇒ them-35vyl4cx «X dùng được gì?» (/thiet-lap/che-do) ⇒ App ⇒ Web ⇒ lưu một lần (POST thiet-lap) ⇒ Ghép máy.
-// Khối chặn app cũ (bản 04/11) đã tách sang màn che-do + app + web. Quỹ giờ tính chung mọi máy (L2); hết giờ máy tự khoá.
+// «Tiếp: chọn app cho con» ⇒ them-mdujxlg2 «X dùng app thế nào?» (/thiet-lap/app — chọn Mở hết / Theo danh sách + app) ⇒ Web ⇒ lưu một lần (POST thiet-lap) ⇒ Ghép máy.
+// Khối chọn app cũ (bản 04/11) đã tách sang màn app + web. Quỹ giờ tính chung mọi máy (L2); hết giờ máy tự khoá.
 import { useCallback, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { Pressable, Text, View } from "react-native";
@@ -39,7 +39,7 @@ export default function ObGio() {
   }, [setQuy, setCt, setTu, setNgu]));
   const dat = (q: number, c: number) => { setQuy(q); setCt(c); datTl({ quy: q, cuoiTuan: c }); };
   const chip = (p: number) => { setTu(false); dat(p, cuoiTuanCua(p)); };
-  const tiep = () => { datTl({ quy, cuoiTuan: ct, ngu }); router.push("/thiet-lap/che-do"); };
+  const tiep = () => { datTl({ quy, cuoiTuan: ct, ngu }); router.push("/thiet-lap/app"); };
   const oChip = (on: boolean) => ({ flex: 1, minHeight: 60, borderRadius: 20, alignItems: "center" as const, justifyContent: "center" as const, paddingHorizontal: 2,
     // thiết kế 07 (clay-kit): ô chưa chọn trắng nổi, ô chọn ngọc đặc chữ trắng + viền ngoài sáng
     backgroundColor: on ? M.chinh : "#fff", boxShadow: on ? `0px 0px 0px 3px #fdf3dc, 0px 0px 0px 5.5px ${M.chinh}` : BONG.nho });

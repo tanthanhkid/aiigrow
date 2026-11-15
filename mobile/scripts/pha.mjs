@@ -1269,7 +1269,9 @@ await kichBan("Lời xin app: «Bỏ qua» ⇒ bo-qua ⇒ «Đã bỏ qua YouTub
   xet(await choGoi((x) => x.d === "yeu-cau/y5/bo-qua" && x.m === "POST"), "Bỏ qua ⇒ POST yeu-cau/:id/bo-qua (không tu-choi)");
   xet(!nhatKy.some((x) => /tu-choi$/.test(x.d)), "không gọi tu-choi kiểu cũ");
   xet(await doi("Đã bỏ qua YouTube"), "màn «Đã bỏ qua YouTube»");
-  xet((await chu()).includes("Không ghi gì vào danh sách") && (await chu()).includes(`Đã báo ${KEN} trên Laptop`), "thẻ «Đã báo … trên Laptop» + «Không ghi gì vào danh sách»");
+  xet((await chu()).includes("Không ghi gì vào danh sách") && (await chu()).includes(`Sẽ báo ${KEN} sau 60 giây`), "trong 60 giây: «Sẽ báo <con> sau 60 giây» + «Không ghi gì vào danh sách»");
+  xet(/còn \d+ giây để hoàn tác/.test(await chu()), "đếm ngược theo đồng hồ máy");
+  xet(!nhatKy.some((x) => x.d === "yeu-cau/y5/bo-qua" && x.q), "không mang hạn của máy chủ sang màn");
   nhatKy.length = 0;
   await bam("Hoàn tác, xem lại lời xin");
   xet(await choGoi((x) => x.d === "yeu-cau/y5/hoan-tac" && x.m === "POST"), "Hoàn tác ⇒ POST yeu-cau/:id/hoan-tac");
@@ -1292,6 +1294,38 @@ await kichBan("Lời xin đã bỏ qua: tab ⇒ «Đã bỏ qua 2 lời xin · X
   xet(await choGoi((x) => x.d === "yeu-cau/y7/them-luon" && x.body?.nhom === "khong_tinh_phut"), "POST yeu-cau/:id/them-luon {nhom: khong_tinh_phut}");
   xet(await doi(`Đã thêm Minecraft cho ${KEN} · Không tính phút`), "báo đã thêm");
   { const cu = await chuChan(); xet(!cu.length, `không còn «Luôn chặn» (${cu.join(", ")})`); }
+});
+
+await kichBan("Review #279: App của con có «Đã bỏ qua 1 lời xin» (chỉ app) ⇒ /bo-qua?kieu=app; thẻ «app mới» không con ⇒ luật cả nhà; người trông giúp không thấy «Đổi sang…»; Chờ duyệt «Bỏ qua» ⇒ toast + Hoàn tác tại chỗ", async () => {
+  await di("/ung-dung?con=c1");
+  xet(await doi("Đã bỏ qua 1 lời xin"), "danh sách App đếm đúng lời xin APP đã bỏ qua (1, không phải tổng 2)");
+  await bamChon('[aria-label^="Đã bỏ qua 1 lời xin"]');
+  xet(await doi("Bỏ qua là chưa thêm, không ghi gì."), "mở «Lời xin đã bỏ qua»");
+  await sleep(400);
+  xet((await chu()).includes("Minecraft") && !(await chu()).includes("tiktok.com"), "?kieu=app ⇒ chỉ lời xin app");
+  await di("/app-web?xep=capcut.exe&ten=CapCut");
+  xet(await doi("App của cả nhà"), "thẻ «app mới» không kèm con ⇒ màn «App của cả nhà»");
+  await bamChon('[role="radio"][aria-label^="Tính phút"]');
+  nhatKy.length = 0;
+  await bam("Lưu: CapCut tính phút");
+  xet(await choGoi((x) => x.d === "luat" && x.m === "POST" && x.body?.muc === "capcut.exe" && x.body?.loai === "tinh_phut" && !x.body?.con), "POST luat cả nhà (không con) loai tinh_phut");
+  kb["GET toi"] = { baMe: { ...coBan["GET toi"].baMe, quyen: "trong_giup", vai: "xem", laChuNha: false } };
+  await di(`/yeu-cau/xong?kieu=mo&ten=${encodeURIComponent(KEN)}&con=c1&muc=YouTube&ma=youtube.exe&phut=1`);
+  xet(await doi("Đã thêm YouTube · Tính phút"), "màn kết quả");
+  await sleep(1200);
+  xet(!(await chu()).includes("Đổi sang Không tính phút") && !(await chu()).includes("Hoàn tác"), "người trông giúp: không có «Đổi sang…» / «Hoàn tác»");
+  kb["GET toi"] = coBan["GET toi"];
+  kb["GET cho-duyet"] = CHO_DUYET_Y5();
+  await di("/cho-duyet");
+  xet(await doi("Xin thêm YouTube") || await doi("Dùng app YouTube"), "Chờ duyệt có lời xin YouTube");
+  nhatKy.length = 0;
+  await bamDau("Bỏ qua");
+  xet(await choGoi((x) => x.d === "yeu-cau/y5/bo-qua"), "Bỏ qua ⇒ bo-qua");
+  xet(await doi("Đã bỏ qua YouTube"), "toast «Đã bỏ qua YouTube · … xin lại được» tại Chờ duyệt (không đẩy màn)");
+  xet((await chu()).includes("Chờ duyệt"), "vẫn ở Chờ duyệt");
+  nhatKy.length = 0;
+  await bam("Hoàn tác");
+  xet(await choGoi((x) => x.d === "yeu-cau/y5/hoan-tac"), "Hoàn tác trên toast ⇒ hoan-tac");
 });
 
 await kichBan("Lời xin app ở «<Con> đang xin phép» (them-a4nqjrmp): 3 nút Tính phút / Không tính phút / Bỏ qua; «Không tính phút» ⇒ dong-y {nhom}", async () => {

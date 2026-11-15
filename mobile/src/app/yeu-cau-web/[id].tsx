@@ -30,12 +30,14 @@ export default function YeuCauWeb() {
   const may = y.device_id ? d.ct?.may.find((m) => m.id === y.device_id)?.ten ?? null : null;
   const cho = Math.max(0, Math.round((d.luc - new Date(y.created_at).getTime()) / 60000));
   const them = (nhom: Nhom) => lam(async () => {
-    await themTuXin(y.id, nhom);
-    router.replace({ pathname: "/yeu-cau/xong", params: { kieu: "mo", ten: tenCon, con: y.child_id, muc: ten, ...(may ? { may } : {}), ...(nhom === "tinh_phut" ? { phut: "1" } : {}) } } as never);
+    const r = await themTuXin(y.id, nhom);
+    // `ma` = định danh máy chủ vừa ghi (app: tên thật máy báo / tên miền) — màn kết quả tìm hàng bằng nó, không bằng nhãn hiển thị
+    router.replace({ pathname: "/yeu-cau/xong", params: { kieu: "mo", ten: tenCon, con: y.child_id, muc: ten, ...(r?.muc ? { ma: r.muc } : {}), ...(may ? { may } : {}),
+      ...(nhom === "tinh_phut" ? { phut: "1" } : {}) } } as never);
   });
   const boQua = () => lam(async () => {
-    const r = await boQuaXin(y.id);
-    router.replace({ pathname: "/yeu-cau-web/bo-qua", params: { id: y.id, ten, con: tenCon, ...(may ? { may } : {}), den: r.hoanTacDen } });
+    await boQuaXin(y.id);
+    router.replace({ pathname: "/yeu-cau-web/bo-qua", params: { id: y.id, ten, con: tenCon, ...(may ? { may } : {}) } });
   });
   return (
     <Man lui={{ chu: "", bam: ve }} tieu="Con xin mở">

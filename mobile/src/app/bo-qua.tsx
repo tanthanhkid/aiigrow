@@ -19,8 +19,9 @@ function lucBoQua(s: string) {
 }
 
 export default function LoiXinBoQua() {
-  const { con } = useLocalSearchParams<{ con?: string }>();
-  const { d, loi, matMang, tai } = useTai(() => napBoQua(con));
+  const { con, kieu } = useLocalSearchParams<{ con?: string; kieu?: string }>();
+  // ?kieu=app | web (mở từ «App của <con>» / «Web của <con>») ⇒ chỉ lời xin loại đó
+  const { d, loi, matMang, tai } = useTai(() => napBoQua(con).then((r) => (kieu === "app" || kieu === "web" ? { ds: r.ds.filter((x) => x.kieu === kieu) } : r)));
   const [chon, setChon] = useState<BoQua | null>(null);
   const [nhom, setNhom] = useState<Nhom>("tinh_phut");
   const { lam, loi: loiLam, dangChay } = useLam();

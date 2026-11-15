@@ -39,6 +39,8 @@ export default function ChonApp() {
     datTl({ apps: moi });
   };
   const tinh = (a: AppChon) => "tinhGio" in a && a.tinhGio;
+  // nhãn nhóm của một dòng = nhóm ĐÃ LƯU của app đó (Ba Mẹ có thể đã đổi ở «Thêm app»); app theo mã (không có tinhGio) ⇒ nhóm của danh mục
+  const nhomDa = (t: string, macDinh: ReturnType<typeof nhomCua>) => { const a = apps.find((x) => boDau(x.ten) === boDau(t)); return a && "tinhGio" in a ? nhomCua(a.tinhGio) : macDinh; };
   const soTinh = apps.filter(tinh).length;
   // app Ba Mẹ gõ thêm (ngoài danh mục) — hiện đầu danh sách để bỏ được
   const rieng = apps.filter((a) => !DM_APP.some((x) => boDau(x.ten) === boDau(a.ten)));
@@ -75,7 +77,7 @@ export default function ChonApp() {
             <View key={g.nhom} style={{ gap: 6 }}>
               <DauNhom chu={`${g.eN} ${tenNhomDm(g.nhom)}`} het={het} bam={() => doi(g.ds, !het)} />
               <DongVaoNhom nhom={n} />
-              <TheDs>{g.ds.map((x, i) => <DongChon key={x.ten} dau={!i} e={x.e} ten={x.ten} phu={x.phu} chon={co(x.ten)} nhom={n} bam={() => doi([x], !co(x.ten))} />)}</TheDs>
+              <TheDs>{g.ds.map((x, i) => <DongChon key={x.ten} dau={!i} e={x.e} ten={x.ten} phu={x.phu} chon={co(x.ten)} nhom={nhomDa(x.ten, n)} bam={() => doi([x], !co(x.ten))} />)}</TheDs>
             </View>
           );
         })}

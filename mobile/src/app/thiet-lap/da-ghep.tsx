@@ -4,6 +4,7 @@
 //  · máy chung: thẻ từng bé (sao + chế độ) + «Luật đi theo bé đang dùng · Chơi trên máy này chỉ trừ sao của bé đó».
 // «Lưu tên & xong» (POST may/:id/doi-ten khi tên đổi), «+ Ghép thêm máy khác». Dữ liệu: GET may/:id/tuan-thu (tên, nền, conDs) + con/:id/thiet-lap
 // (chế độ từng bé) + GET luat (đếm app Tính phút / Không tính phút) + gia-dinh (sao từng bé) + tuan-thu (tên trùng).
+import { cheDoTu } from "@/lib/app-web";
 import { useRef, useState, type ComponentRef } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
@@ -45,7 +46,7 @@ export default function DaGhep() {
   const ten = chuanHoaTen(tenMay);
   // so trùng sau khi bỏ hậu tố « · <hệ điều hành>» (agent cũ gắn vào tên máy)
   const trung = ten ? d?.khac.find((x) => chuanHoaTen(nganTen(x.ten)) === chuanHoaTen(nganTen(ten))) : undefined;
-  const moHet = d?.tl[0]?.cheDoChan === "mo_het";
+  const moHet = cheDoTu(d?.tl[0]) === "mo_het";
   // đếm app theo nhóm của bé (máy riêng): luật riêng bé + luật cả nhà, bỏ trang web; «giai_tri» = Tính phút (trả bằng sao), «hoc» = Không tính phút
   const dem = (loai: string) => new Set((d?.luat ?? []).filter((l) => (!l.child_id || l.child_id === be?.id) && l.loai === loai && !laWeb(l.muc)).map((l) => (l.ten || l.muc).toLowerCase())).size;
   const xong = () => (nguon === "lan-dau" ? router.replace({ pathname: "/thiet-lap/xong", params: { con } }) : router.replace({ pathname: "/may", params: con ? { con } : {} }));
@@ -114,7 +115,7 @@ export default function DaGhep() {
                 <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                   <Chu kieu="rat" co={15} dong={1}>{tenGoi(c.ten)}</Chu>
                   {s != null ? <SaoNho n={s} /> : null}
-                  <Chu kieu="dam7" co={12} mau="#565c59" dong={1}>{d!.tl[k]?.cheDoChan === "mo_het" ? "Mở hết" : "Theo danh sách"}</Chu>
+                  <Chu kieu="dam7" co={12} mau="#565c59" dong={1}>{cheDoTu(d!.tl[k]) === "mo_het" ? "Mở hết" : "Theo danh sách"}</Chu>
                 </View>
               </View>
             );

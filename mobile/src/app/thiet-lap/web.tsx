@@ -29,6 +29,8 @@ export default function ChonWeb() {
     setWebs(moi);
     datTl({ webs: moi });
   };
+  // nhãn nhóm của một dòng = nhóm ĐÃ LƯU của trang (có thể đã đổi ở «Thêm web»), không theo danh mục
+  const nhomDa = (m: string, macDinh: ReturnType<typeof nhomCua>) => { const w = webs.find((x) => x.muc === m); return w ? nhomCua(w.tinhGio) : macDinh; };
   const rieng = webs.filter((w) => !DM_WEB.some((x) => x.ten === w.muc));
   const tiep = () => lam(async () => {
     datTl({ webs });
@@ -63,7 +65,7 @@ export default function ChonWeb() {
           <View key={g.nhom} style={{ gap: 6 }}>
             <DauNhom chu={`${g.eN} ${tenNhomDm(g.nhom)}`} het={het} bam={() => doi(g.ds, !het)} />
             <DongVaoNhom nhom={n} />
-            <TheDs>{g.ds.map((x, i) => <DongChon key={x.ten} dau={!i} e={x.e} ten={x.ten} phu={x.phu} chon={co(x.ten)} nhom={n} bam={() => doi([x], !co(x.ten))} />)}</TheDs>
+            <TheDs>{g.ds.map((x, i) => <DongChon key={x.ten} dau={!i} e={x.e} ten={x.ten} phu={x.phu} chon={co(x.ten)} nhom={nhomDa(x.ten, n)} bam={() => doi([x], !co(x.ten))} />)}</TheDs>
           </View>
         );
       })}

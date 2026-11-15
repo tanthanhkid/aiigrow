@@ -2,6 +2,7 @@
 // · đã 42/60» có vạch + «Xem ›» (⇒ con dùng gì hôm nay); «Cài đặt của X»: Giờ chơi (60 phút/ngày · T7, CN 90 phút), App & web (15/11 #262: bỏ Giờ ngủ, Giờ học)
 // («Theo danh sách» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
 // PIN vào máy (Đặt lại) · «Xoá hồ sơ X» (⇒ /ho-so/<id>/xoa, them-canktzlq). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
+import { cheDoTu } from "@/lib/app-web";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
@@ -79,7 +80,7 @@ export default function HoSoCon() {
         <HangViec dau ic="dongho" mau="cam" tieu="Giờ chơi" phai={<GiaPhai tren={d.gio ? `${d.gio.quyNgayThuong} phút/ngày` : "Quỹ mỗi ngày"} duoi={d.gio ? `T7, CN ${d.gio.quyCuoiTuan} phút` : undefined} />}
           bam={() => router.push(`/gio/${id}` as never)} />
         <HangViec ic="khien" mau="lam" tieu="App & web"
-          phai={<GiaPhai tren={c.cheDoChan === "mo_het" ? "Mở hết" : "Theo danh sách"} duoi={c.cheDoChan === "mo_het" ? "Không tính phút" : d.duocMo !== null ? `Được mở ${d.duocMo} app` : undefined} />}
+          phai={<GiaPhai tren={cheDoTu(c) === "mo_het" ? "Mở hết" : "Theo danh sách"} duoi={cheDoTu(c) === "mo_het" ? "Không tính phút" : d.duocMo !== null ? `Được mở ${d.duocMo} app` : undefined} />}
           bam={() => router.push(`/app-web?con=${id}` as never)} />
         <HangViec ic="laptop" mau="xam" tieu={`Máy của ${c.ten}`}
           phai={<GiaPhai tren={c.may.length ? `${c.may.length} máy` : "Chưa ghép"} duoi={canSua.length ? `${canSua.map((m) => m.ten.replace(/ của .*$/, "")).join(", ")} cần sửa` : undefined} canh={!!canSua.length} />}

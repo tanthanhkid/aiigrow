@@ -10,6 +10,7 @@
 // Bỏ so với 05/11 (N8): danh sách nhiệm vụ hôm nay (tab Nhiệm vụ), «Hôm nay con dùng» (tab Báo cáo › Hôm nay con dùng gì), «Cài cho con», «Con khác»
 // (chip đổi con ở đầu màn đã đủ; hồ sơ con mở từ tab Cả nhà / Báo cáo).
 // Người trông giúp vẫn khoá máy / cho thêm giờ / trả lời lời xin (máy chủ cho phép — quyen.ts › trongGiupDuoc).
+import { cheDoTu } from "@/lib/app-web";
 import { memo, useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -155,7 +156,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const dauTien: { loai: "muc"; m: MucDeY } | { loai: "xin" } | null = muc[0] ? { loai: "muc", m: muc[0] } : xin[0] ? { loai: "xin" } : sau[0] ? { loai: "muc", m: sau[0] } : null;
 
   // ---- 3. app & web của con
-  const moHet = ct.d?.cheDoChan === "mo_het";
+  const moHet = cheDoTu(ct.d) === "mo_het";
   const soApp = soAppDuocMo(d.luat, conId);
 
   // ---- 4. vừa làm xong (chờ duyệt + tự cộng hôm nay), ≤ 3
