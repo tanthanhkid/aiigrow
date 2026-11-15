@@ -2,7 +2,8 @@
 //  · Giờ chơi đã dùng / quỹ hôm nay + Giờ học (phút app học hôm nay, khung giờ học)
 //  · «Đã dùng»: từng app / trang web hôm nay — giờ bắt đầu (lần đầu thấy trong ngày), máy, phút, «Chơi» (tính giờ) hay «Học» (dùng thoải mái),
 //    «Đang mở» khi đang có phiên chơi của app đó, «Mất mạng» khi máy đó mất mạng hôm nay.
-//  · «Bị chặn hôm nay»: con xin mà Ba Mẹ chưa trả lời (Trả lời ›) / đã không cho (Chưa cho) · trang Grow chặn ở tầng DNS (Grow chặn).
+//  · «Bị chặn hôm nay»: con xin mà Ba Mẹ chưa trả lời (Trả lời ›) / đã bỏ qua (Chưa cho). #258: bỏ dòng «web người lớn · Grow chặn» (DNS).
+//  · #262: «Giờ học» ⇒ «Không tính phút» (`khongTinhPhut` = phút app / web nhóm Không tính phút; `hoc` giữ cho app cũ, khung luôn null).
 // Chỉ tên app / tên miền + thời lượng — không nội dung (như man-hinh.ts).
 import { one, q } from "./db.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
@@ -10,17 +11,17 @@ import { chuanMuc } from "./luat-app.ts";
 import { tenDoc, TRINH_DUYET } from "./man-hinh.ts";
 import { quyHomNay } from "./quy-gio.ts";
 import { mayMatMang } from "./can-de-y.ts";
-import { bangMang } from "./dns-gia-dinh.ts";
 
 type Luat = { child_id: string; muc: string; ten: string; loai: string; nhom: string };
 export type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
   phut: number; tinhGio: boolean; dangMo: boolean; matMang: boolean };
+/** `ly` «grow_chan» (cũ) không còn trả từ #258. */
 export type DongChan = { luc: string; ten: string; may: string | null; ly: "dang_xin" | "chua_cho" | "grow_chan"; yeuCau: string | null; phut: number | null };
 
 /** «Tính giờ» (đèn Vàng, trừ quỹ giờ chơi chung) hay «Dùng thoải mái» (đèn Xanh, luật hoc / cho_phep) — N3 14/11.
  *  Luật Đỏ «chan» không có giờ dùng (đã chặn) nhưng nếu có thì coi như tính giờ. App hệ thống / chưa xếp ⇒ theo `usage.loai` agent ghi. */
 export function tinhGioCua(loaiUsage: string | null, luat: { loai: string } | undefined) {
-  if (luat) return luat.loai !== "hoc";
+  if (luat && luat.loai !== "loai_tru") return luat.loai !== "hoc";
   return loaiUsage !== "hoc" && loaiUsage !== "he_thong";
 }
 
@@ -29,8 +30,7 @@ export async function homNayDung(fam: string, con: string, now = new Date()) {
     one<{ ten: string }>(`select ten from children where id = $1 and family_id = $2`, [con, fam])]);
   const tz = f?.tz ?? "Asia/Ho_Chi_Minh";
   const ngay = gioDiaPhuong(now, tz).ngay, tu = dauNgayUtc(ngay, tz);
-  await bangMang();   // bảng DNS tạo lười (dns-gia-dinh.ts)
-  const [app, web, luat, phien, may, mm, yc, dns, qy] = await Promise.all([
+  const [app, web, luat, phien, may, mm, yc, qy] = await Promise.all([
     q<{ device_id: string; muc: string; loai: string; phut: number; dau_luc: Date | null }>(
       `select device_id, muc, loai, phut, dau_luc from usage where child_id = $1 and ngay = $2 and phut > 0`, [con, ngay]),
     q<{ device_id: string; ten_mien: string; giay: number; dau_luc: Date | null; lan_cuoi: Date | null }>(
@@ -42,11 +42,8 @@ export async function homNayDung(fam: string, con: string, now = new Date()) {
     mayMatMang(fam, now),
     q<{ id: string; loai: string; gia_tri: string | null; phut: number | null; trang_thai: string; device_id: string | null; created_at: Date }>(
       `select id, loai, gia_tri, phut, trang_thai, device_id, created_at from requests where child_id = $1 and created_at >= $2
-        and loai in ('mo_web', 'cai_app') and (trang_thai = 'tu_choi' or (trang_thai = 'cho' and het_han > $3))
+        and loai in ('mo_web', 'cai_app') and (trang_thai in ('tu_choi', 'bo_qua') or (trang_thai = 'cho' and het_han > $3))
         order by created_at desc limit 20`, [con, tu, now]),   // lời xin «cho» đã quá hạn (con thôi chờ) không còn là «đang xin»
-    q<{ ten_mien: string; ten: string; so_lan_chan: number; device_id: string | null }>(
-      `select n.ten_mien, t.ten, n.so_lan_chan, t.device_id from dns_nhat_ky n join dns_thiet_bi t on t.id = n.thiet_bi_id
-        where t.family_id = $1 and t.child_id = $2 and n.ngay = $3 and n.so_lan_chan > 0 order by n.so_lan_chan desc limit 10`, [fam, con, ngay]),
     quyHomNay(con, now),
   ]);
   const tenMay = new Map(may.map((m) => [m.id, m]));
@@ -83,14 +80,14 @@ export async function homNayDung(fam: string, con: string, now = new Date()) {
   const biChan: DongChan[] = [
     ...yc.map((r) => ({ luc: new Date(r.created_at).toISOString(), ten: r.gia_tri || (r.loai === "cai_app" ? "App mới" : r.loai === "mo_web" ? "Trang web" : "Mở máy"),
       may: r.device_id ? tenMay.get(r.device_id)?.name ?? null : null, ly: (r.trang_thai === "cho" ? "dang_xin" : "chua_cho") as DongChan["ly"], yeuCau: r.id, phut: r.phut })),
-    ...dns.map((x) => ({ luc: tu.toISOString(), ten: x.ten_mien, may: x.device_id ? tenMay.get(x.device_id)?.name ?? x.ten : x.ten, ly: "grow_chan" as const, yeuCau: null, phut: null })),
   ];
   const phutHoc = dung.filter((x) => !x.tinhGio).reduce((s, x) => s + x.phut, 0);
   return {
     ten: c?.ten ?? "", ngay,
     // 15/11: conPhut = sao tiêu được (1 sao = 1 phút) · sao = sổ sao (số dư âm được, nợ)
     choi: { daDung: qy.daDung, tongPhut: qy.tongPhut, conPhut: qy.conPhut, sao: qy.soSao },
-    hoc: { phut: phutHoc, khung: qy.gioHoc ? { tu: qy.gioHoc.tu, den: qy.gioHoc.den } : null },
+    khongTinhPhut: { phut: phutHoc },
+    /** (cũ) = khongTinhPhut; giờ học đã bỏ (#258) ⇒ khung luôn null */ hoc: { phut: phutHoc, khung: null },
     dung, biChan,
   };
 }

@@ -150,11 +150,11 @@ test("sao dùng chung mọi thiết bị; một phiên cùng lúc; không còn k
   await v.dieuChinhTay(fam, con, 60, "Thưởng", (await one<{ id: string }>(`select id from parents where family_id = $1`, [fam]))!.id);
   // không còn khung giờ chơi: 10:00 thứ Hai vẫn chơi được (60 sao)
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T10:00:00"))).phutToiDa, 60);
-  assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T21:30:00"))).lyDo, "gio_ngu");
+  // #258: bỏ giờ ngủ, giờ học — 21:30 vẫn chơi được; giờ học cũ còn lưu bị bỏ qua
+  assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T21:30:00"))).duoc, true);
   await q(`update children set lich = '{"hoc": {"tu": "17:00", "den": "18:00", "thu": [1]}}'::jsonb where id = $1`, [con]);
-  assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T17:10:00"))).lyDo, "gio_hoc");
-  assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T16:30:00"))).phutToiDa, 30, "tới giờ học 17:00 là dừng");
-  assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-27T17:10:00"))).duoc, true, "thứ Ba không có giờ học");
+  assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T17:10:00"))).duoc, true);
+  assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T16:30:00"))).phutToiDa, 60, "không còn mốc giờ học");
   await q(`update children set cau_hinh = cau_hinh || '{"khoa_ngay": true}'::jsonb where id = $1`, [con]);
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T18:00:00"))).lyDo, "ba_me_khoa");
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", { gioMaySai: true }, VN("2026-10-26T18:00:00"))).lyDo, "ba_me_khoa");
@@ -162,16 +162,11 @@ test("sao dùng chung mọi thiết bị; một phiên cùng lúc; không còn k
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", { gioMaySai: true }, VN("2026-10-26T18:00:00"))).lyDo, "gio_may_sai");
 });
 
-test("đến giờ ngủ giữa phiên ⇒ tự kết thúc, chỉ trừ phút đã chơi", async () => {
+test("#258: không còn giờ ngủ — phiên lúc 20:50 không bị cắt ở 21:00", async () => {
   const { con } = await nha(100);
   const t0 = VN("2026-10-21T20:50:00");
   const p = await ph.moPhien(con, "may-f", "roblox.exe", {}, t0);
-  assert.equal(p.phutToiDa, 10, "chỉ tới giờ ngủ 21:00");
-  const k = await choi(con, p.id, t0, 11);
-  assert.equal(k.trangThai, "ket_thuc");
-  assert.ok(["gio_ngu", "het_thoi_gian"].includes(k.lyDoKet!));
-  assert.ok((await v.soDu(con)) >= 89 && (await v.soDu(con)) <= 90);
-  assert.equal((await one<{ n: number }>(`select count(*)::int as n from play_sessions where child_id = $1 and trang_thai <> 'ket_thuc'`, [con]))!.n, 0);
+  assert.ok((p.phutToiDa ?? 0) > 10, "không dừng ở 21:00");
 });
 
 test("máy Windows (không gửi phien/nhip): nhịp dong-bo của chính máy mở phiên trừ sao, hết giờ đóng; Con đăng xuất 3 phút ⇒ đóng; máy khác không đụng", async () => {

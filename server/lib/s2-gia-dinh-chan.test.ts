@@ -49,7 +49,8 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const con = r.body.conId;
   // 15/11 (#264): quỹ ngày bỏ — gioChoi gửi lên bị bỏ qua; tặng 30 sao khởi đầu (mặc định)
-  assert.deepEqual([r.body.ten, r.body.cheDoChan, r.body.gioChoi, r.body.ngu, r.body.saoKhoiDau], ["Bảo Anh", "chi_app_duoc_phep", { ngayThuong: null, cuoiTuan: null }, { tu: "21:30", den: "06:30" }, 30]);
+  // #258: giờ ngủ bỏ — `ngu` gửi lên được nhận, không lưu (tóm tắt trả giờ ngủ «tắt»); #262: cheDo mới + cheDoChan cũ
+  assert.deepEqual([r.body.ten, r.body.cheDo, r.body.cheDoChan, r.body.gioChoi, r.body.ngu, r.body.saoKhoiDau], ["Bảo Anh", "theo_danh_sach", "chi_app_duoc_phep", { ngayThuong: null, cuoiTuan: null }, { tu: "00:00", den: "00:00" }, 30]);
   assert.deepEqual(r.body.app.choKhop, ["Duolingo ABC", "抖音"]);
   assert.equal(r.body.soApp, 4, "Roblox + YouTube Kids (AiiRob là mục hệ thống, luôn mở) + Duolingo ABC chờ khớp");
   const luat = await q<{ muc: string; loai: string; nhom: string }>(`select muc, loai, nhom from app_rules where child_id = $1 order by muc`, [con]);
@@ -58,7 +59,7 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.ok(luat.some((l) => l.muc === "youtubekids.com" && l.loai === "hoc"), "tinhGio false ⇒ không tính giờ (hoc)");
   assert.ok(!luat.some((l) => l.muc === "aiirob.aiilab.vn"));
   const c = (await q<{ cau_hinh: any; lich: any }>(`select cau_hinh, lich from children where id = $1`, [con]))[0];
-  assert.deepEqual([c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan, c.lich.ngu], [undefined, undefined, { tu: "21:30", den: "06:30" }]);
+  assert.deepEqual([c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan, c.lich.ngu], [undefined, undefined, undefined]);
   // gửi lại (mất phản hồi) với con.id ⇒ sửa, không tạo Con thứ hai
   const lai = await m("thiet-lap", { tok: bm, body: { ...body, con: { id: con, ten: "Bảo Anh" }, cheDoChan: "mo_het" } });
   assert.equal(lai.body.conId, con);
@@ -70,8 +71,10 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "X" }, saoKhoiDau: 25 } })).body.error, "sao_khoi_dau_sai");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "Y" }, apps: [{ ma: "khong-co" }] } })).body.error, "app_sai");
   assert.equal((await m("gia-dinh", { tok: bm })).body.con.length, 1, "lỗi dữ liệu không để lại Con");
-  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, ngu: { tu: "25:00", den: "06:00" } } })).body.error, "gio_sai");
-  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, cheDoChan: "tu_do" } })).body.error, "che_do_chan_sai");
+  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, ngu: { tu: "25:00", den: "06:00" } } })).status, 200, "giờ ngủ bỏ (#258): không kiểm, không lưu");
+  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, cheDoChan: "tu_do" } })).body.error, "che_do_sai");
+  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, cheDo: "theo_danh_sach" } })).body.cheDo, "theo_danh_sach");
+  await m("thiet-lap", { tok: bm, body: { con: { id: con }, cheDo: "mo_het" } });
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, apps: [{ ma: "khong-co" }] } })).body.error, "app_sai");
   // tóm tắt cho màn «Đã ghép máy»
   const tl = (await m(`con/${con}/thiet-lap`, { tok: bm })).body;
@@ -88,16 +91,16 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "Z" }, web: ["pornhub.com"] } })).body.error, "web_cam");
   assert.equal((await m("gia-dinh", { tok: bm })).body.con.length, 1, "web sai không để lại Con");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: Array.from({ length: 61 }, (_, i) => `t${i}.vn`) } })).body.error, "qua_nhieu_web");
-  // gửi lại: trang đã bỏ tick bị gỡ (chỉ trang Lần đầu ghi); trang Ba Mẹ đổi sang «Chặn» ở nơi khác giữ nguyên
-  await q(`update app_rules set loai = 'chan' where child_id = $1 and muc = 'poki.com'`, [con]);
+  // gửi lại: trang đã bỏ tick bị gỡ (chỉ trang Lần đầu ghi); trang Ba Mẹ đổi tên / thêm ở nơi khác giữ nguyên
+  await q(`update app_rules set ten = 'Poki' where child_id = $1 and muc = 'poki.com'`, [con]);
   const w2 = await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: ["olm.vn"] } });
   assert.equal(w2.body.soWeb, 1);
   const con2 = await q<{ muc: string; loai: string }>(`select muc, loai from app_rules where child_id = $1 and muc in ('khanacademy.org','poki.com','olm.vn') order by muc`, [con]);
-  assert.deepEqual(con2.map((x) => [x.muc, x.loai]), [["olm.vn", "hoc"], ["poki.com", "chan"]]);
+  assert.deepEqual(con2.map((x) => [x.muc, x.loai]), [["olm.vn", "hoc"], ["poki.com", "giai_tri"]]);
   // luật app Ba Mẹ duyệt (cai_app) có ten = muc (mã gói) vẫn đếm là app, không phải web
   await q(`insert into app_rules(family_id, child_id, muc, ten, loai) select family_id, id, 'com.vng.game', 'com.vng.game', 'giai_tri' from children where id = $1`, [con]);
   const w3 = (await m(`con/${con}/thiet-lap`, { tok: bm })).body;
-  assert.deepEqual([w3.soApp, w3.soWeb], [5, 1]);
+  assert.deepEqual([w3.soApp, w3.soWeb], [6, 1], "poki.com Ba Mẹ đặt tên «Poki» ⇒ tính là app");
   // kiểm một địa chỉ trước khi thêm (màn «Thêm web»)
   assert.equal((await m("thiet-lap/kiem-web", { tok: bm, body: { muc: "https://www.Vi.KhanAcademy.org/math" } })).body.muc, "vi.khanacademy.org");
   assert.equal((await m("thiet-lap/kiem-web", { tok: bm, body: { muc: "m.pornhub.com" } })).body.error, "web_cam");
@@ -159,7 +162,7 @@ test("L8 «Cài giống máy trước»: máy mới của Con khác nhận chế
   assert.equal(pgM.giongMay, mayA.deviceId);
   await dv("ghep-goi", { body: { token: pgM.tokenGoi, nen: "windows", tenMay: "PC của Bảo Minh" } });
   const c = (await q<{ che_do_chan: string; lich: any; cau_hinh: any }>(`select che_do_chan, lich, cau_hinh from children where id = $1`, [minh]))[0];
-  assert.deepEqual([c.che_do_chan, c.lich.ngu, c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan], ["mo_het", { tu: "21:30", den: "06:30" }, undefined, undefined]);
+  assert.deepEqual([c.che_do_chan, c.lich.ngu, c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan], ["mo_het", undefined, undefined, undefined]);
   const luat = await q<{ muc: string; loai: string }>(`select muc, loai from app_rules where child_id = $1`, [minh]);
   assert.ok(luat.some((l) => l.muc === "minecraft.exe" && l.loai === "giai_tri"));
   assert.equal(luat.find((l) => l.muc === "tiktok.com")!.loai, "hoc", "luật riêng của Con đích giữ nguyên");
@@ -180,7 +183,8 @@ test("L7 «Thêm app khác» theo tên: máy gửi danh sách app thật ⇒ kh�
     { khoa: "exe:c:/x/x.exe", muc: "x.exe", ten: "Khác" }];
   assert.equal((await dv("ung-dung", { tok: may, body: { du: true, bam: "a".repeat(64), ds } })).status, 200);
   const luat = await q<{ muc: string; loai: string }>(`select muc, loai from app_rules where child_id = $1 order by muc`, [con]);
-  assert.deepEqual(luat.map((l) => [l.muc, l.loai]), [["gamela.exe", "chan"], ["sachdientu.exe", "hoc"]]);
+  // #262: «chan» (app cũ) = bỏ khỏi danh sách ⇒ Game Lạ (chờ khớp theo tên) vẫn được khớp vì chưa có luật nào
+  assert.deepEqual(luat.map((l) => [l.muc, l.loai]), [["gamela.exe", "giai_tri"], ["sachdientu.exe", "hoc"]]);
   assert.equal((await q(`select 1 from app_theo_ten where child_id = $1 and khop_luc is not null`, [con])).length, 2);
   // thêm app sau thiết lập: app thật đã có trên máy ⇒ khớp ngay
   const them = (await m(`con/${con}/app-cho-phep`, { tok: bm, body: { apps: [{ ten: "KHÁC" }] } })).body;
@@ -190,7 +194,8 @@ test("L7 «Thêm app khác» theo tên: máy gửi danh sách app thật ⇒ kh�
 test("L4 chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duyệt» (lý do không bắt buộc, bấm lại không trùng); Policy mang chế độ", async () => {
   const bm = await dangKy("Ba Khoa");
   const con = (await m("con", { tok: bm, body: { ten: "Na" } })).body.id;
-  assert.equal((await m(`con/${con}`, { tok: bm })).body.cheDoChan, "chi_app_duoc_phep", "Con mới: Chặn app & web");
+  assert.equal((await m(`con/${con}`, { tok: bm })).body.cheDoChan, "chi_app_duoc_phep", "Con mới: Theo danh sách (giá trị cũ)");
+  assert.equal((await m(`con/${con}`, { tok: bm })).body.cheDo, "theo_danh_sach");
   const pg = (await m("ghep-may", { tok: bm, body: { con } })).body;
   const may = (await dv("ghep", { body: { ma: pg.ma, nen: "windows", tenMay: "PC của Na" } })).body.token;
   await luonChoiDuoc(con);
@@ -200,12 +205,14 @@ test("L4 chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duy�
   assert.equal((await m(`con/${con}/che-do-chan`, { tok: bm, body: { cheDo: "mo_het" } })).body.cheDoChan, "mo_het");
   p = (await dv("dong-bo", { tok: may, body: {} })).body;
   assert.deepEqual([p.cheDoChan, p.windows.mode, p.windows.web.cheDo], ["mo_het", "tu_do", "mo"]);
-  assert.ok(p.windows.web.chan.includes("bet365.com"), "Mở hết vẫn chặn cờ bạc");
-  assert.equal((await m(`con/${con}/che-do-chan`, { tok: bm, body: { cheDo: "giam_sat" } })).body.error, "che_do_chan_sai");
+  assert.ok(!p.windows.web.chan.includes("bet365.com"), "#258: Mở hết không chặn gì");
+  assert.deepEqual(p.webLuonChan, []);
+  assert.equal((await m(`con/${con}/che-do-chan`, { tok: bm, body: { cheDo: "giam_sat" } })).body.error, "che_do_sai");
   assert.equal((await q(`select 1 from events where loai = 'doi_che_do_chan' and child_id = $1`, [con])).length, 1);
-  // Ba Mẹ không cho phép được web luôn chặn
+  // lưới an toàn chung: không thêm vào danh sách được; «chan» (cũ) = bỏ khỏi danh sách, luôn được
   assert.equal((await m("luat", { tok: bm, body: { con, muc: "www.pornhub.com", loai: "hoc" } })).body.error, "web_cam");
   assert.equal((await m("luat", { tok: bm, body: { con, muc: "pornhub.com", loai: "chan" } })).status, 200);
+  await m(`con/${con}/che-do`, { tok: bm, body: { cheDo: "theo_danh_sach" } });
   // Con xin duyệt app lạ từ màn chặn (agent) — không lý do
   const x = (await dv("xin-duyet", { tok: may, body: { muc: "CapCut.exe" } })).body;
   assert.deepEqual([x.trang_thai, x.daCo, x.loai, x.muc], ["cho", false, "cai_app", "capcut.exe"]);

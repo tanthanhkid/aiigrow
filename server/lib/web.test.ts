@@ -67,14 +67,16 @@ test("Ba Mẹ cho phép / chặn / mặc định từng trang; thống kê phả
   assert.equal((await goiBm(`con/${con}/web/trang`, tokBm, { muc: "https://www.gamek.vn/", trangThai: "chan" })).status, 200);
   await goiBm(`con/${con}/web/trang`, tokBm, { muc: "scratch.mit.edu", trangThai: "cho_phep" });
   let tk = (await goiBm(`con/${con}/web`, tokBm)).body;
-  const tt = Object.fromEntries(tk.top.map((x: any) => [x.tenMien, x.trangThai]));
-  assert.deepEqual(tt, { "gamek.vn": "chan", "scratch.mit.edu": "cho_phep" });
-  assert.deepEqual(tk.luat.map((x: any) => [x.tenMien, x.trangThai]), [["gamek.vn", "chan"], ["scratch.mit.edu", "cho_phep"]]);
+  // #262: «Chặn» (cũ) = bỏ khỏi danh sách ⇒ chưa xếp; Cho phép = Không tính phút
+  const tt = Object.fromEntries(tk.top.map((x: any) => [x.tenMien, [x.trangThai, x.nhom]]));
+  assert.deepEqual(tt, { "gamek.vn": ["chua_xep", null], "scratch.mit.edu": ["cho_phep", "khong_tinh_phut"] });
+  assert.deepEqual(tk.luat.map((x: any) => [x.tenMien, x.trangThai]), [["scratch.mit.edu", "cho_phep"]]);
+  assert.equal((await goiBm(`con/${con}/web/trang`, tokBm, { muc: "gamek.vn", nhom: "tinh_phut" })).body.nhom, "tinh_phut");
   await goiBm(`con/${con}/web/trang`, tokBm, { muc: "gamek.vn", trangThai: "mac_dinh" });
   tk = (await goiBm(`con/${con}/web`, tokBm)).body;
   assert.equal(tk.top.find((x: any) => x.tenMien === "gamek.vn").trangThai, "chua_xep");
   assert.equal((await goiBm(`con/${con}/web/trang`, tokBm, { muc: "khong hop le", trangThai: "chan" })).status, 400);
-  assert.equal((await goiBm(`con/${con}/web/trang`, tokBm, { muc: "zoom.us", trangThai: "chan" })).status, 409, "Allowlist hệ thống không chặn được");
+  assert.equal((await goiBm(`con/${con}/web/trang`, tokBm, { muc: "zoom.us", nhom: "tinh_phut" })).status, 409, "Allowlist hệ thống luôn mở, không xếp được");
   const lạ = await nha();
   assert.equal((await goiBm(`con/${con}/web`, lạ.tokBm)).status, 404);
 });
@@ -82,7 +84,7 @@ test("Ba Mẹ cho phép / chặn / mặc định từng trang; thống kê phả
 test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải trí chỉ mở khi còn quỹ / có phiên / đang mở; chỉ-cho-phép bật bằng web_chi_cho_phep", async () => {
   const { tok, con, tokBm } = await nha();
   await goiBm(`con/${con}/cau-hinh`, tokBm, { quy_ngay_thuong: 0, quy_cuoi_tuan: 0 });     // hết quỹ ⇒ trang Giải trí bị chặn
-  await goiBm(`con/${con}/web/trang`, tokBm, { muc: "gamek.vn", trangThai: "chan" });
+  await goiBm(`con/${con}/web/trang`, tokBm, { muc: "gamek.vn", trangThai: "chan" });          // (cũ) = không có trong danh sách
   await goiBm(`con/${con}/web/trang`, tokBm, { muc: "khanacademy.org", trangThai: "cho_phep" });
   await goiBm("luat", tokBm, { con, muc: "youtube.com", loai: "giai_tri", nhom: "video_ngan" });
   const db = (await goiMay("dong-bo", tok, {})).body;
@@ -90,13 +92,14 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   assert.equal(db.windows.web.cheDo, "chi_cho_phep");
   assert.equal(db.cheDoChan, "chi_app_duoc_phep");
   const rieng = (ds: string[]) => ds.filter((m) => !laWebCam(m));
-  assert.deepEqual(rieng(db.windows.web.chan), ["gamek.vn", "youtube.com"]);
+  assert.deepEqual(rieng(db.windows.web.chan), ["youtube.com"], "Theo danh sách: gamek.vn ngoài danh sách đã bị chặn bởi chi_cho_phep");
+  assert.ok(!db.windows.web.cho.includes("gamek.vn"));
   assert.ok(db.windows.web.chan.includes("xnxx.com"));
   assert.ok(db.windows.web.cho.includes("khanacademy.org") && db.windows.web.cho.includes("classroom.google.com"));
   assert.ok(!db.windows.web.cho.includes("explorer.exe"), "chỉ tên miền, không .exe");
   // phiên điểm đang chạy cho youtube.com ⇒ youtube.com chuyển sang danh sách mở
   const co = chinhSachWindows({ ...db, phien: { id: "p", muc: "youtube.com", conPhut: 10 } });
-  assert.deepEqual(rieng(co.web.chan), ["gamek.vn"]);
+  assert.deepEqual(rieng(co.web.chan), []);
   assert.ok(co.web.cho.includes("youtube.com"));
   assert.equal(co.web.choKhiMo, undefined, "mở nhờ phiên điểm ⇒ không phải choKhiMo");
   // 05/11: còn quỹ (ngoài giờ ngủ) ⇒ trang Giải trí mở, không cần phiên
@@ -119,7 +122,7 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   // Nghi 07/11: «Mở hết» = dùng như bình thường — hết quỹ (đặt 0 ở đầu test) cũng KHÔNG chặn trang Giải trí.
   // Nghi 11/11: trang Ba Mẹ từng «Chặn» (gamek.vn) cũng mở — chỉ còn web luôn chặn
   assert.deepEqual(rieng(mh.windows.web.chan), [], "«Mở hết» hết quỹ vẫn xem youtube.com, trang Ba Mẹ từng chặn cũng mở");
-  assert.ok(mh.windows.web.chan.includes("xnxx.com"), "web luôn chặn vẫn chặn");
+  assert.ok(!mh.windows.web.chan.includes("xnxx.com"), "#258: Mở hết không chặn gì");
   assert.deepEqual([mh.windows.appTinhGio, mh.windows.quyConPhut, mh.quy], [undefined, undefined, null], "«Mở hết»: không quỹ giờ");
   // giờ ngủ + giờ học đang diễn ra cũng không chặn ở «Mở hết»
   const caNgay = { tu: "00:00", den: "23:59" };
@@ -133,14 +136,12 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   await goiBm(`con/${con}/khoa`, tokBm, { khoa: false });
   await luonChoiDuoc(con);
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "mo");
-  // về «Chặn app & web» ⇒ luật «Chặn» vẫn lưu nên chặn lại ngay
+  // về «Theo danh sách» ⇒ web chỉ cho phép, gamek.vn (ngoài danh sách) không mở; danh sách «tạm nghỉ» dùng tiếp
   assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "chi_app_duoc_phep" })).status, 200);
-  assert.ok((await goiMay("dong-bo", tok, {})).body.windows.web.chan.includes("gamek.vn"), "về Chặn app & web: gamek.vn chặn lại");
-  await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "mo_het" });
-  // Con cũ (che_do_chan null) ⇒ vẫn theo tham số web_chi_cho_phep như trước
+  const lai = (await goiMay("dong-bo", tok, {})).body.windows.web;
+  assert.ok(lai.cheDo === "chi_cho_phep" && !lai.cho.includes("gamek.vn") && lai.cho.includes("khanacademy.org"));
+  // #262: Con cũ (che_do_chan null — trước khi chuyển dữ liệu) ⇒ Theo danh sách, không còn theo tham số web_chi_cho_phep
   await q(`update children set che_do_chan = null where id = $1`, [con]);
-  assert.equal((await goiMay("dong-bo", tok, {})).body.windows.web.cheDo, "mo");
-  await goiBm(`con/${con}/cau-hinh`, tokBm, { web_chi_cho_phep: 1 });
   assert.equal((await goiMay("dong-bo", tok, {})).body.windows.web.cheDo, "chi_cho_phep");
   assert.equal((await goiBm(`con/${con}/web`, tokBm)).body.cheDoWeb, "chi_cho_phep");
 });

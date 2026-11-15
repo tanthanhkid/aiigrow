@@ -30,7 +30,7 @@ export const YEN_LANG_MD = { bat: false, tu: "22:00", den: "06:30" };
 
 const LOAI_SU_KIEN = ["nop_nhiem_vu", "gui_yeu_cau", "doi_qua", "dung_voucher", "nap_quy", "huy_hieu", "tu_duyet_nhiem_vu",
   "duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "dong_y_yeu_cau", "tu_choi_yeu_cau", "xac_nhan_qua", "huy_qua",
-  "bat_dau_nhiem_vu", "phan_hoi_con", "mo_khan_cap", "lenh_go", "thanh_vien_vao", "doi_vai", "moi_ra", "loi_khen", "dong_bang_chuoi", "cho_vay"];
+  "bat_dau_nhiem_vu", "phan_hoi_con", "mo_khan_cap", "lenh_go", "thanh_vien_vao", "doi_vai", "moi_ra", "loi_khen", "dong_bang_chuoi", "cho_vay", "bo_qua_yeu_cau"];
 
 const GIO = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -86,7 +86,7 @@ type CanhBaoRow = { id: string; child_id: string | null; loai: string; muc: MucT
 const xinVay = (c: Record<string, any>) => `xin vay ${c.so_sao ?? c.phut ?? ""} sao${c.muc_dich === "qua" ? " để đổi quà" : ""}`.replace("  ", " ");
 const YC: Record<string, (c: Record<string, any>) => string> = {
   vay_sao: xinVay, them_gio: (c) => (c.vay ? xinVay(c) : `xin thêm ${c.phut ?? ""} phút`.replace("  ", " ")), mo_web: (c) => `xin mở ${c.gia_tri ?? "một trang web"}`,
-  cai_app: (c) => `xin cài ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: xinVay, ngoai_gio: xinVay,
+  cai_app: (c) => `xin mở ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: xinVay, ngoai_gio: xinVay,
   khac: (c) => (c.gia_tri ? `xin: ${c.gia_tri}` : "gửi một yêu cầu"),
 };
 const so = soVN;
@@ -101,7 +101,8 @@ function tuSuKien(e: SuKien): Omit<ThongBao, "moi" | "day" | "imLang" | "so" | "
     case "nop_nhiem_vu": return g("nhiem_vu", `${con} vừa nộp «${c.ten ?? "nhiệm vụ"}»`, c.nghi_trung ? "Ảnh giống ảnh cũ — Ba Mẹ xem kỹ nhé" : "Chờ Ba Mẹ duyệt", "/cho-duyet", c.nghi_trung ? "chu_y" : "thong_tin");
     case "bat_dau_nhiem_vu": return g("nhiem_vu", `${con} đã nhận «${c.ten ?? "nhiệm vụ"}»`, "Đang làm, nộp xong sẽ báo Ba Mẹ", veCon);
     case "phan_hoi_con": return g("nhiem_vu", `${con} nhắn lại Ba Mẹ`, `«${String(c.noi_dung ?? "").slice(0, 80)}»`, veCon);
-    case "gui_yeu_cau": return g("yeu_cau", `${con} ${(YC[c.loai] ?? YC.khac)(c)}`, "Đồng ý hoặc từ chối trong Chờ duyệt", "/cho-duyet");
+    case "gui_yeu_cau": return g("yeu_cau", `${con} ${(YC[c.loai] ?? YC.khac)(c)}`,
+      c.loai === "mo_web" || c.loai === "cai_app" ? "Chưa có trong danh sách · Tính phút, Không tính phút hoặc Bỏ qua" : "Đồng ý hoặc từ chối trong Chờ duyệt", "/cho-duyet");
     case "doi_qua": return g("qua", `${con} đổi «${c.ten ?? "phần thưởng"}»`, `${c.diem ?? 0} sao${c.cho_xac_nhan ? " · chờ Ba Mẹ trao quà" : ""}`, "/diem-qua");
     case "dung_voucher": return g("qua", `Phiếu quà ${tien(Number(c.menh_gia ?? 0))} đã dùng ở AiiCafe`, c.ma ? `Mã ${c.ma}` : "Quầy đã quét", "/quy");
     case "nap_quy": return g("qua", `Quỹ phiếu quà +${tien(Number(c.so_tien ?? 0))}`, e.nguoi ? `${ai} ghi nạp` : "AiiLab đã ghi nhận khoản nạp", "/quy");
@@ -111,7 +112,11 @@ function tuSuKien(e: SuKien): Omit<ThongBao, "moi" | "day" | "imLang" | "so" | "
     case "tu_choi_nhiem_vu": return g("ba_me_khac", `${ai} chưa duyệt «${c.ten ?? "nhiệm vụ"}» của ${con}`, c.ly_do ? `Lý do: ${c.ly_do}` : "Đã báo Con lý do", "/hom-nay");
     case "can_bo_sung": return g("ba_me_khac", `${ai} nhờ ${con} chụp lại «${c.ten ?? "nhiệm vụ"}»`, c.ly_do ? `Lý do: ${c.ly_do}` : "Con được nộp lại", "/hom-nay");
     // đồng ý lời xin vay ⇒ dòng «cho_vay» (không hiện hai dòng)
-    case "dong_y_yeu_cau": return c.vay ? null : g("ba_me_khac", `${ai} đã đồng ý yêu cầu của ${con}`, "Theo quy tắc gia đình", veCon);
+    case "dong_y_yeu_cau": return c.vay ? null
+      // #262: lời xin app / web ⇒ «Mẹ Lan đã thêm YouTube cho Bảo Anh · Tính phút»
+      : c.nhom ? g("ba_me_khac", `${ai} đã thêm ${c.gia_tri ?? "một mục"} cho ${con}`, c.nhom === "khong_tinh_phut" ? "Không tính phút · vào thoải mái" : "Tính phút · 1 sao = 1 phút", veCon)
+      : g("ba_me_khac", `${ai} đã đồng ý yêu cầu của ${con}`, "Theo quy tắc gia đình", veCon);
+    case "bo_qua_yeu_cau": return g("ba_me_khac", `${ai} đã bỏ qua lời xin ${c.gia_tri ?? ""} của ${con}`.replace("  ", " "), "Không ghi gì vào danh sách · con xin lại được", veCon);
     case "cho_vay": return g("ba_me_khac", `${ai} đã cho ${con} vay ${so(c.so_sao)} sao`, `${con} đang nợ ${so(c.no_sau)} sao · sao nhiệm vụ trả nợ trước`, veCon);
     case "tu_choi_yeu_cau": return g("ba_me_khac", `${ai} đã từ chối yêu cầu của ${con}`, c.ly_do ? `Lý do: ${c.ly_do}` : "Đã báo Con lý do", veCon);
     case "xac_nhan_qua": return g("ba_me_khac", `${ai} đã trao «${c.ten ?? "quà"}» cho ${con}`, "Đã trao quà cho con", "/diem-qua");

@@ -164,17 +164,17 @@ test("Hoàn tác xếp app ở Trang chủ: POST luat trả luật cũ; khôi ph
   // đã có luật có hạn ⇒ truoc mang đủ loại/nhóm/hạn; gửi lại truoc khôi phục y nguyên
   const het = new Date(Date.now() + 3600_000);
   await datLuat(fam, { muc: "minecraft.exe", ten: "Minecraft", loai: "giai_tri", nhom: "game", het });
-  const r2 = await m("luat", { tok, body: { muc: "minecraft.exe", loai: "chan" } });
+  const r2 = await m("luat", { tok, body: { muc: "minecraft.exe", loai: "hoc" } });
   assert.equal(r2.body.truoc.loai, "giai_tri");
-  assert.equal((await phanLoai(fam, con, "minecraft.exe")).loai, "chan");
+  assert.equal((await phanLoai(fam, con, "minecraft.exe")).loai, "hoc");
   await m("luat", { tok, body: r2.body.truoc });
   const sau = (await q<{ loai: string; nhom: string; ten: string; het: Date }>(`select loai, nhom, ten, het from app_rules where family_id = $1 and muc = 'minecraft.exe'`, [fam]))[0];
   assert.deepEqual([sau.loai, sau.nhom, sau.ten, +new Date(sau.het)], ["giai_tri", "game", "Minecraft", +het]);
   // luat/xoa chỉ xoá trong nhà mình
   const khac = await nha();
-  await datLuat(khac.fam, { muc: "minecraft.exe", loai: "chan" });
+  await datLuat(khac.fam, { muc: "minecraft.exe", loai: "hoc" });
   await m("luat/xoa", { tok, body: { muc: "minecraft.exe" } });
-  assert.equal((await phanLoai(khac.fam, khac.con, "minecraft.exe")).loai, "chan");
+  assert.equal((await phanLoai(khac.fam, khac.con, "minecraft.exe")).loai, "hoc");
 });
 
 test("DX-028: «loại hiện tại» theo luật cả nhà cụ thể nhất — luật riêng một Con hay luật có hạn không làm sai nhãn", async () => {
@@ -184,12 +184,12 @@ test("DX-028: «loại hiện tại» theo luật cả nhà cụ thể nhất �
   for (const muc of ["m.youtube.com", "zing.vn", "tiktok.com"])
     await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,$4,'chua_phan_loai',5)`, [may.deviceId, con, ngay, muc]);
   await datLuat(fam, { muc: "youtube.com", ten: "A youtube", loai: "giai_tri" });
-  await datLuat(fam, { muc: "m.youtube.com", ten: "Z youtube di động", loai: "chan" });   // cụ thể hơn ⇒ thắng dù xếp tên sau
-  await datLuat(fam, { con, muc: "zing.vn", ten: "Zing", loai: "chan" });                  // riêng một Con ⇒ không là loại cả nhà
+  await datLuat(fam, { muc: "m.youtube.com", ten: "Z youtube di động", loai: "hoc" });    // cụ thể hơn ⇒ thắng dù xếp tên sau
+  await datLuat(fam, { con, muc: "zing.vn", ten: "Zing", loai: "hoc" });                   // riêng một Con ⇒ không là loại cả nhà
   await datLuat(fam, { muc: "tiktok.com", ten: "TikTok", loai: "giai_tri", het: new Date(Date.now() + 3600_000) }); // có hạn
   const r = (await m("luat?thay=1", { tok })).body.daThay;
   const loai = (muc: string) => r.find((x: any) => x.muc === muc).loai;
-  assert.deepEqual([loai("m.youtube.com"), loai("zing.vn"), loai("tiktok.com")], ["chan", "chua_xep", "chua_xep"]);
+  assert.deepEqual([loai("m.youtube.com"), loai("zing.vn"), loai("tiktok.com")], ["hoc", "chua_xep", "chua_xep"]);
 });
 
 test("Review lượt 2: Hoàn tác không hồi sinh luật đã hết hạn; app có luật hết hạn quay lại «chưa xếp»; mẫu riêng tên ngắn không làm gãy áp mẫu", async () => {
@@ -241,9 +241,9 @@ test("Review lượt 6: Hoàn tác không đè luật người khác vừa đổ
   await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,'notepad.exe','chua_phan_loai',4)`, [may.deviceId, con, ngay]);
   assert.ok(!(await m("luat", { tok })).body.chuaXep.some((x: any) => x.muc === "notepad.exe"));
   const r = await m("luat", { tok, body: { muc: "capcut.exe", loai: "hoc" } });
-  await datLuat(fam, { muc: "capcut.exe", loai: "chan" });                          // người khác đổi trong lúc chờ Hoàn tác
+  await datLuat(fam, { muc: "capcut.exe", loai: "giai_tri" });                      // người khác đổi trong lúc chờ Hoàn tác
   const h = await m("luat/xoa", { tok, body: { muc: r.body.muc, neuLoai: "hoc" } });
   assert.deepEqual([h.status, h.body.error], [409, "da_doi"]);
-  assert.equal((await q<{ loai: string }>(`select loai from app_rules where family_id = $1 and muc = 'capcut.exe'`, [fam]))[0].loai, "chan");
-  assert.equal((await m("luat/xoa", { tok, body: { muc: r.body.muc, neuLoai: "chan" } })).status, 200);
+  assert.equal((await q<{ loai: string }>(`select loai from app_rules where family_id = $1 and muc = 'capcut.exe'`, [fam]))[0].loai, "giai_tri");
+  assert.equal((await m("luat/xoa", { tok, body: { muc: r.body.muc, neuLoai: "giai_tri" } })).status, 200);
 });

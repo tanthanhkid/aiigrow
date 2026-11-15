@@ -191,10 +191,10 @@ test("Policy máy dùng chung có phiên: ghép app chơi / trình duyệt + pla
   assert.ok(w.allowedApps.includes("roblox.exe"));
   assert.ok(!w.learningApps.includes("scratch.exe"), "app học vẫn theo máy dùng chung");
   assert.deepEqual([w.playSessionId, w.playApp, w.playWeb, w.playOfflineMinutes], [p.id, "roblox.exe", false, 100], "100 sao = 100 phút");
-  // ngưỡng offline theo lịch của Con: Con ngủ từ 17:20 ⇒ 20 phút (lịch máy mặc định ngủ 21:00)
+  // #258: giờ ngủ bỏ — giờ ngủ cũ còn lưu không cắt ngưỡng offline
   await q(`update children set lich = $2::jsonb where id = $1`, [con, JSON.stringify({ ngu: { tu: "17:20", den: "06:30" } })]);
   const gh2 = (await pw.ghepPhienMayChung(may, pol, t0))!;
-  assert.equal(aw.chinhSachWindows(gh2.pol, undefined, undefined, gh2.mo).playOfflineMinutes, 20);
+  assert.equal(aw.chinhSachWindows(gh2.pol, undefined, undefined, gh2.mo).playOfflineMinutes, 100);
   assert.deepEqual(gh2.pol.lich, pol.lich, "lịch thực thi vẫn của máy");
   const chung = aw.chinhSachWindows(pol);
   assert.ok(!chung.allowedApps.includes("roblox.exe"));
@@ -247,7 +247,7 @@ test("playOfflineMinutes = min(phút còn lại, phút mua được + thưởng,
       undefined, undefined, { conThuong, phienTien: await pw.tienPhien(p.id) });
   let x = await w(sau(t0, 10));
   assert.deepEqual([x.playSessionId, x.playApp, x.playWeb, x.playOfflineMinutes], [p.id, "roblox.exe", false, 90], "100 sao − 10 phút đã chơi");
-  assert.equal((await w(sau(t0, 10), 0, "2026-10-21T20:52:00")).playOfflineMinutes, 8, "tới giờ ngủ 21:00");
+  assert.equal((await w(sau(t0, 10), 0, "2026-10-21T20:52:00")).playOfflineMinutes, 90, "#258: không còn giờ ngủ cắt ngưỡng");
   await v.dieuChinhTay(fam, con, -87, "Đổi quà", bm);                // còn 3 sao — 15/11: 1 sao = 1 phút ⇒ offline tối đa 3 phút
   x = await w(sau(t0, 10));
   assert.equal(x.playOfflineMinutes, 3);

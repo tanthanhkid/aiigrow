@@ -1,25 +1,33 @@
-// Chặn app theo Con (L4, thiết kế chốt 05/11) — phần có CSDL: đổi chế độ, danh sách app được phép (lưới gợi ý + «Thêm app khác» theo tên),
-// khớp app theo tên khi máy gửi danh sách app thật, Con «Xin Ba Mẹ duyệt» app / web lạ. Phần thuần (chế độ, web luôn chặn): lib/chan-co-ban.ts.
-// Không dùng điểm / sao để mở app: app lạ chỉ mở khi Ba Mẹ duyệt (yêu cầu cai_app / mo_web — lib/yeu-cau.ts).
+// App & web theo Con (#262 / #258, thiết kế chốt 14–15/11 — hành trình «Ứng dụng & web trên máy») — phần có CSDL: đổi chế độ «Mở hết» /
+// «Theo danh sách», DANH SÁCH TRẮNG của Con (app + web, mỗi mục một nhóm «Tính phút» / «Không tính phút»): xem, thêm (lưới gợi ý, theo tên app,
+// theo tên miền), đổi nhóm, bỏ khỏi danh sách; khớp app theo tên khi máy gửi danh sách app thật; Con «Xin Ba Mẹ mở» app / web chưa có.
+// Phần thuần (chế độ, nhóm, lưới an toàn): lib/chan-co-ban.ts. Lời xin + 3 cách trả lời (Tính phút / Không tính phút / Bỏ qua): lib/yeu-cau.ts.
 import { q, one, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { conCua, type May } from "./gia-dinh.ts";
-import { allowlistHieuLuc, chuanMuc, datLuat, khoaSo, type NhomGiaiTri } from "./luat-app.ts";
+import { allowlistHieuLuc, boMucChoCon, chuanMuc, datLuat, khoaSo, type NhomGiaiTri } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
-import { guiYeuCau } from "./yeu-cau.ts";
-import { CHE_DO_CHAN, cheDoChanCua, laWebCam, TEN_CHE_DO_CHAN, WEB_CAM, type CheDoChan } from "./chan-co-ban.ts";
+import { dsBoQua, guiYeuCau } from "./yeu-cau.ts";
+import { gioDiaPhuong } from "./gio.ts";
+import { tenMienSach } from "./web.ts";
+import {
+  CHE_DO, CHE_DO_CHAN, cheDoChanCua, cheDoCua, laWebCam, loaiTuNhom, nhanCheDo, nhanNhom, nhomTuLoai, TEN_CHE_DO, TEN_CHE_DO_CHAN, TEN_NHOM_DS, WEB_CAM,
+  type CheDo, type CheDoChan, type NhomDs,
+} from "./chan-co-ban.ts";
 
-export { CHE_DO_CHAN, cheDoChanCua, laWebCam, TEN_CHE_DO_CHAN, WEB_CAM, type CheDoChan };
+export { CHE_DO, CHE_DO_CHAN, cheDoChanCua, cheDoCua, laWebCam, TEN_CHE_DO, TEN_CHE_DO_CHAN, WEB_CAM, type CheDo, type CheDoChan };
 
-/** POST /api/m/con/:id/che-do-chan {cheDo: mo_het | chi_app_duoc_phep}. Máy nhận ở lần đồng bộ kế. */
+/** POST /api/m/con/:id/che-do {cheDo: mo_het | theo_danh_sach} (đường cũ con/:id/che-do-chan, giá trị cũ chi_app_duoc_phep vẫn nhận).
+ *  Máy nhận ở lần đồng bộ kế. → { cheDo, cheDoChan (giá trị cũ), ten }. */
 export async function datCheDoChan(fam: string, con: string, v: unknown, nguoi?: string) {
-  if (!(CHE_DO_CHAN as readonly string[]).includes(String(v))) throw new LoiNghiepVu("che_do_chan_sai", "Chọn «Mở hết» hoặc «Chặn app & web»");
+  const moi = nhanCheDo(v);
+  if (!moi) throw new LoiNghiepVu("che_do_sai", "Chọn «Mở hết» hoặc «Theo danh sách»");
   const c = await conCua(fam, con);
-  const moi = v as CheDoChan, cu = cheDoChanCua((c as { che_do_chan?: unknown }).che_do_chan);
+  const cu = cheDoCua((c as { che_do_chan?: unknown }).che_do_chan);
   await q(`update children set che_do_chan = $2 where id = $1`, [con, moi]);
   if (cu !== moi) await ghiSuKien(fam, "doi_che_do_chan", { tu: cu, sang: moi }, { con, nguoi });
-  return { cheDoChan: moi, ten: TEN_CHE_DO_CHAN[moi] };
+  return { cheDo: moi, cheDoChan: cheDoChanCua(moi), ten: TEN_CHE_DO[moi] };
 }
 
 // ---------------------------------------------------------------- lưới app gợi ý (màn «Con được dùng app nào?» / «Thêm app»)
@@ -63,12 +71,13 @@ export async function luoiApp(fam: string, con?: string | null) {
   return { ds: APP_GOI_Y.map((a) => ({ ma: a.ma, ten: a.ten, tinhGio: a.tinhGio, chon: !!a.goiY?.includes(nhom) })) };
 }
 
-export type AppVao = { ma?: unknown; ten?: unknown; tinhGio?: unknown };
+/** `nhom` (#262): tinh_phut | khong_tinh_phut — đè `tinhGio` (cũ). Không gửi cả hai ⇒ theo lưới (app ngoài lưới ⇒ Tính phút). */
+export type AppVao = { ma?: unknown; ten?: unknown; tinhGio?: unknown; nhom?: unknown };
 
 /** Cho Con dùng các app (thêm, không bỏ app đã cho): app trong lưới (theo `ma`, hoặc tên trùng tên lưới) ⇒ luật cho mọi định danh của app;
  *  app khác theo TÊN ⇒ khớp ngay với app thật máy của Con đã báo (app_may), chưa thấy thì chờ (app_theo_ten) tới khi máy báo danh sách app.
  *  → { daDat: [{ten, muc[]}], choKhop: [ten] }. */
-export async function datAppChoPhep(fam: string, con: string, ds: unknown, nguoi?: string, t: Q = q) {
+export async function datAppChoPhep(fam: string, con: string, ds: unknown, nguoi?: string, t: Q = q, ghi = true) {
   if (!Array.isArray(ds)) throw new LoiNghiepVu("thieu_app", "Gửi danh sách app");
   const daDat: { ten: string; muc: string[] }[] = [], choKhop: string[] = [];
   const he = allowlistHieuLuc();
@@ -78,7 +87,8 @@ export async function datAppChoPhep(fam: string, con: string, ds: unknown, nguoi
     const goi = APP_GOI_Y.find((a) => (ma && a.ma === ma) || (!ma && ten && khoaTen(a.ten) === khoaTen(ten)));
     if (ma && !goi) throw new LoiNghiepVu("app_sai", `Không có app «${ma}» trong lưới`);
     if (!goi && !ten) continue;
-    const tinhGio = x?.tinhGio === undefined ? goi?.tinhGio ?? true : x.tinhGio === true;
+    const nhomVao = x?.nhom !== undefined ? nhanNhom(x.nhom) : null;
+    const tinhGio = nhomVao ? nhomVao === "tinh_phut" : x?.tinhGio === undefined ? goi?.tinhGio ?? true : x.tinhGio === true;
     const loai = tinhGio ? "giai_tri" : "hoc", nhom = tinhGio ? goi?.nhom ?? "khac" : undefined;
     if (goi) {
       const muc = goi.muc.filter((m) => !khoaSo(m).some((k) => he.includes(k)));     // mục hệ thống luôn mở sẵn
@@ -97,7 +107,7 @@ export async function datAppChoPhep(fam: string, con: string, ds: unknown, nguoi
       [con, fam, ten, khoaTen(ten), tinhGio, khop.length ? new Date() : null]);
     if (khop.length) daDat.push({ ten, muc: khop.map((a) => a.muc) }); else choKhop.push(ten);
   }
-  if (daDat.length || choKhop.length) await ghiSuKien(fam, "cho_phep_app", { app: [...daDat.map((x) => x.ten), ...choKhop] }, { con, nguoi }, t);
+  if (ghi && (daDat.length || choKhop.length)) await ghiSuKien(fam, "cho_phep_app", { app: [...daDat.map((x) => x.ten), ...choKhop] }, { con, nguoi }, t);
   return { daDat, choKhop };
 }
 
@@ -115,7 +125,7 @@ export async function khopAppTheoTen(may: Pick<May, "id" | "family_id" | "child_
     await tx(async (t) => {
       for (const a of khop) {
         const co = await t(`select 1 from app_rules where family_id = $1 and child_id = $2 and muc = $3`, [may.family_id, c.child_id, chuanMuc(a.muc)]);
-        if (co.length) continue;                                        // Ba Mẹ đã xếp app này (có thể là «Chặn») — không đè
+        if (co.length) continue;                                        // Ba Mẹ đã xếp app này vào nhóm khác — không đè
         await datLuat(may.family_id, { con: c.child_id, muc: a.muc, ten: a.ten, loai: c.tinh_gio ? "giai_tri" : "hoc", nhom: c.tinh_gio ? "khac" : undefined }, t);
         n++;
       }
@@ -125,19 +135,168 @@ export async function khopAppTheoTen(may: Pick<May, "id" | "family_id" | "child_
   return n;
 }
 
-// ---------------------------------------------------------------- Con «Xin Ba Mẹ duyệt» app / web lạ (L4)
+// ---------------------------------------------------------------- Con «Xin Ba Mẹ mở» app / web chưa có trong danh sách
 
-/** App / web chưa được phép ⇒ yêu cầu chờ Ba Mẹ (cai_app cho app, mo_web cho trang web). Lý do không bắt buộc. Đã có lời xin chờ cho đúng mục
- *  ⇒ trả lời xin đó (bấm lại không gửi trùng). Web luôn chặn (người lớn / cờ bạc / bạo lực) ⇒ 409 web_cam, không gửi Ba Mẹ.
- *  → { id, trang_thai: "cho", daCo, loai, muc }. */
+/** App / web ngoài danh sách ⇒ lời xin chờ Ba Mẹ (cai_app cho app, mo_web cho trang web) — Ba Mẹ trả lời Tính phút / Không tính phút / Bỏ qua
+ *  (lib/yeu-cau.ts). Lý do không bắt buộc. Đã có lời xin chờ cho đúng mục ⇒ trả lời xin đó (bấm lại không gửi trùng). Bị bỏ qua thì xin lại được.
+ *  Trang thuộc lưới an toàn chung (chan-co-ban.ts › WEB_CAM) ⇒ 409 web_cam, không gửi Ba Mẹ. → { id, trang_thai: "cho", daCo, loai, muc }. */
 export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unknown; ten?: unknown; lyDo?: unknown }) {
   const muc = chuanMuc(b.muc);
   if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên app hoặc trang web");
-  if (laWebCam(muc)) throw new LoiNghiepVu("web_cam", "Trang này luôn bị chặn để an toàn cho con", 409);
+  if (laWebCam(muc)) throw new LoiNghiepVu("web_cam", "Trang này không mở được để an toàn cho con", 409);
   const loai = kieuMuc(muc) === "web" ? "mo_web" : "cai_app";
   const co = await one<{ id: string }>(`select id from requests where child_id = $1 and gia_tri = $2 and loai = $3 and trang_thai = 'cho' and het_han > now()
                                         order by created_at desc limit 1`, [con, muc, loai]);
   if (co) return { id: co.id, trang_thai: "cho", daCo: true, loai, muc };
   const r = await guiYeuCau(con, mayId, { loai, giaTri: muc, lyDo: b.lyDo ?? "" });
   return { ...r, daCo: false, loai, muc };
+}
+
+// ---------------------------------------------------------------- Danh sách của Con (#262 — màn «App & web», «App của <Con>», «Web của <Con>»)
+
+/** Luật hiển thị là TRANG WEB (hàng «Web») hay APP (hàng «App»): trang = tên miền mà tên hiển thị chính là tên miền (trang Ba Mẹ thêm / duyệt);
+ *  tên miền đi cùng app trong lưới (roblox.com ⇒ «Roblox») thuộc app đó. Cùng luật với thiet-lap.ts › tomTatThietLap. */
+export const laMucWeb = (l: { muc: string; ten: string }) => l.ten === l.muc && kieuMuc(l.muc) === "web";
+
+export type DongDanhSach = {
+  ten: string; kieu: "app" | "web"; nhom: NhomDs; muc: string[];
+  /** phút dùng hôm nay (mọi máy) — nhóm Tính phút: = số sao đã trừ («Hôm nay trừ 39 phút · −39 sao») */ phutHomNay: number;
+  /** có mục là luật CẢ NHÀ (đổi / bỏ ở đây chỉ áp cho Con này) */ theoCaNha: boolean;
+  /** app thêm theo tên, máy của Con chưa báo app trùng tên (app_theo_ten) — chưa có định danh để máy mở */ choKhop?: boolean;
+};
+
+/** GET /api/m/con/:id/danh-sach — chế độ + danh sách trắng của Con (app / web, theo nhóm) + lời xin đang chờ + số lời xin đã bỏ qua. */
+export async function danhSachCon(fam: string, con: string, now = new Date()) {
+  const c = await conCua(fam, con);
+  const tz = (await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))?.tz ?? "Asia/Ho_Chi_Minh";
+  const ngay = gioDiaPhuong(now, tz).ngay;
+  const [luat, choKhop, app, web, xin, boQua] = await Promise.all([
+    q<{ child_id: string; muc: string; ten: string; loai: string }>(`select child_id, muc, ten, loai from app_rules where family_id = $1 and child_id in ('', $2)
+       and loai in ('hoc', 'giai_tri', 'loai_tru') and (het is null or het > $3) order by ten, muc`, [fam, con, now]),
+    q<{ ten: string; tinh_gio: boolean }>(`select ten, tinh_gio from app_theo_ten where child_id = $1 and khop_luc is null order by ten`, [con]),
+    q<{ muc: string; phut: number }>(`select lower(muc) as muc, sum(phut)::int as phut from usage where child_id = $1 and ngay = $2 group by lower(muc)`, [con, ngay]),
+    q<{ ten_mien: string; giay: number }>(`select w.ten_mien, sum(w.giay)::int as giay from web_nhat_ky w left join devices d on d.id = w.device_id
+       where (w.child_id = $1 or (w.child_id is null and d.child_id = $1)) and w.ngay = $2 group by w.ten_mien`, [con, ngay]),
+    q<{ id: string; loai: string; gia_tri: string | null; ly_do: string; created_at: Date; may: string | null }>(
+      `select r.id, r.loai, r.gia_tri, r.ly_do, r.created_at, d.name as may from requests r left join devices d on d.id = r.device_id
+        where r.child_id = $1 and r.loai in ('mo_web', 'cai_app') and r.trang_thai = 'cho' and r.het_han > $2 order by r.created_at`, [con, now]),
+    dsBoQua(fam, con, now),                     // cùng điều kiện với màn «Lời xin đã bỏ qua» (yeu-cau.ts)
+  ]);
+  // luật riêng của Con đè luật cả nhà cùng mục
+  const theoMuc = new Map<string, (typeof luat)[number]>();
+  for (const l of [...luat].sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);
+  for (const [k, l] of theoMuc) if (l.loai === "loai_tru") theoMuc.delete(k);       // mục cả nhà Ba Mẹ đã bỏ khỏi danh sách của Con này
+  const phutApp = new Map(app.map((x) => [x.muc, x.phut]));
+  const gop = new Map<string, DongDanhSach>();
+  for (const l of theoMuc.values()) {
+    const kieu = laMucWeb(l) ? "web" as const : "app" as const;
+    const k = `${kieu}|${kieu === "app" ? l.ten.toLowerCase() : l.muc}`;
+    const x = gop.get(k) ?? { ten: l.ten, kieu, nhom: nhomTuLoai(l.loai), muc: [], phutHomNay: 0, theoCaNha: false };
+    x.muc.push(l.muc);
+    if (!l.child_id) x.theoCaNha = true;
+    // một app hai nhóm (hiếm: luật cũ lệch) ⇒ hiện «Tính phút» (an toàn: con không dùng tự do cái Ba Mẹ đã cho tính phút)
+    if (l.loai === "giai_tri") x.nhom = "tinh_phut";
+    gop.set(k, x);
+  }
+  for (const x of gop.values()) {
+    const ds = new Set(x.muc);
+    let phut = x.muc.reduce((a, m) => a + (phutApp.get(m) ?? 0), 0);
+    for (const w of web) if (khoaSo(w.ten_mien).some((m) => ds.has(m))) phut += w.giay / 60;
+    x.phutHomNay = Math.round(phut);
+  }
+  for (const a of choKhop) {
+    if ([...gop.values()].some((x) => x.kieu === "app" && khoaTen(x.ten) === khoaTen(a.ten))) continue;
+    gop.set(`app|cho|${a.ten}`, { ten: a.ten, kieu: "app", nhom: a.tinh_gio ? "tinh_phut" : "khong_tinh_phut", muc: [], phutHomNay: 0, theoCaNha: false, choKhop: true });
+  }
+  const tat = [...gop.values()].sort((a, b) => b.phutHomNay - a.phutHomNay || a.ten.localeCompare(b.ten, "vi"));
+  const chia = (kieu: "app" | "web") => ({ tinhPhut: tat.filter((x) => x.kieu === kieu && x.nhom === "tinh_phut"),
+    khongTinhPhut: tat.filter((x) => x.kieu === kieu && x.nhom === "khong_tinh_phut") });
+  const cheDo = cheDoCua((c as { che_do_chan?: unknown }).che_do_chan);
+  return {
+    con: { id: c.id, ten: c.ten }, cheDo, cheDoChan: cheDoChanCua(cheDo), tenCheDo: TEN_CHE_DO[cheDo],
+    /** «Mở hết»: danh sách vẫn giữ, «tạm nghỉ» */ tamNghi: cheDo === "mo_het",
+    app: chia("app"), web: chia("web"),
+    soMuc: { app: tat.filter((x) => x.kieu === "app").length, web: tat.filter((x) => x.kieu === "web").length, tinhPhut: tat.filter((x) => x.nhom === "tinh_phut").length },
+    dangXin: xin.map((r) => ({ id: r.id, loai: r.loai, kieu: r.loai === "mo_web" ? "web" : "app", muc: r.gia_tri, ten: r.gia_tri, lyDo: r.ly_do || null,
+      luc: new Date(r.created_at).toISOString(), may: r.may })),
+    boQua: { so: boQua.ds.length },
+    nhom: Object.entries(TEN_NHOM_DS).map(([ma, ten]) => ({ ma, ten })),
+  };
+}
+
+/** Một mục Ba Mẹ thêm: app trong lưới (`ma`) / app theo tên (`ten`, không `muc`) / tên miền hoặc định danh app (`muc`). */
+export type MucThem = { nhom?: unknown; ma?: unknown; ten?: unknown; muc?: unknown; kieu?: unknown };
+
+/** POST /api/m/con/:id/danh-sach {nhom, ma? | ten? | muc?} hoặc {ds: [...]} — thêm vào danh sách của Con (đã có thì đổi sang nhóm mới).
+ *  → { daDat: [{ten, muc[], nhom}], choKhop: [ten] }. */
+export async function themVaoDanhSach(fam: string, con: string, b: MucThem & { ds?: unknown }, nguoi?: string) {
+  await conCua(fam, con);
+  const ds = (Array.isArray(b.ds) ? b.ds : [b]).slice(0, 60) as MucThem[];
+  if (!ds.length) throw new LoiNghiepVu("thieu_muc", "Chọn app hoặc trang web để thêm");
+  return tx(async (t) => {
+    const daDat: { ten: string; muc: string[]; nhom: NhomDs }[] = [], choKhop: string[] = [];
+    for (const x of ds) {
+      const nhom = nhanNhom(x?.nhom);
+      if (!nhom) throw new LoiNghiepVu("nhom_sai", "Chọn «Tính phút» hoặc «Không tính phút»");
+      if (x.muc !== undefined && x.muc !== null && String(x.muc).trim()) {
+        const tho = String(x.muc);
+        const laWeb = x.kieu === "web" || (x.kieu !== "app" && kieuMuc(chuanMuc(tho)) === "web");
+        const muc = laWeb ? tenMienSach(tho) : chuanMuc(tho);
+        if (!muc) throw new LoiNghiepVu("ten_mien_sai", "Nhập tên miền dạng ten.com (dán link cũng được)");
+        // trang web: tên hiển thị = tên miền (hàng «Web»); app theo định danh: tên Ba Mẹ gõ hoặc chính định danh
+        const ten = laWeb ? muc : String(x.ten ?? muc).trim().slice(0, 60) || muc;
+        await datLuat(fam, { con, muc, ten, loai: loaiTuNhom(nhom), nhom: nhom === "tinh_phut" ? "khac" : undefined }, t);
+        daDat.push({ ten, muc: [muc], nhom });
+        continue;
+      }
+      const r = await datAppChoPhep(fam, con, [{ ma: x.ma, ten: x.ten, nhom }], nguoi, t, false);
+      for (const d of r.daDat) daDat.push({ ...d, nhom });
+      choKhop.push(...r.choKhop);
+    }
+    if (daDat.length || choKhop.length)
+      await ghiSuKien(fam, "them_vao_danh_sach", { ds: [...daDat.map((d) => ({ ten: d.ten, nhom: d.nhom })), ...choKhop.map((ten) => ({ ten, nhom: null }))] }, { con, nguoi }, t);
+    return { daDat, choKhop };
+  });
+}
+
+const dsMuc = (v: unknown) => [...new Set((Array.isArray(v) ? v : v === undefined || v === null ? [] : [v]).map((m) => chuanMuc(m)).filter(Boolean))].slice(0, 60);
+
+/** POST /api/m/con/:id/danh-sach/doi {muc: string | string[], nhom, ten?} — đổi nhóm một hàng (mọi định danh của app đó). `ten` (app chờ khớp
+ *  theo tên, chưa có `muc`) ⇒ đổi nhóm lời chờ khớp. → { muc[], nhom }. */
+export async function doiNhomDanhSach(fam: string, con: string, b: { muc?: unknown; nhom?: unknown; ten?: unknown }, nguoi?: string) {
+  await conCua(fam, con);
+  const nhom = nhanNhom(b.nhom);
+  if (!nhom) throw new LoiNghiepVu("nhom_sai", "Chọn «Tính phút» hoặc «Không tính phút»");
+  const ds = dsMuc(b.muc);
+  if (!ds.length && !b.ten) throw new LoiNghiepVu("thieu_muc", "Chọn app hoặc trang web");
+  return tx(async (t) => {
+    const doi: string[] = [];
+    for (const muc of ds) {
+      const cu = (await t<{ child_id: string; ten: string }>(`select child_id, ten from app_rules where family_id = $1 and child_id in ('', $2) and muc = $3
+        and (het is null or het > now()) order by child_id desc limit 1`, [fam, con, muc]))[0];
+      if (!cu) continue;
+      await datLuat(fam, { con, muc, ten: cu.ten, loai: loaiTuNhom(nhom), nhom: nhom === "tinh_phut" ? "khac" : undefined }, t);
+      doi.push(muc);
+    }
+    if (b.ten) await t(`update app_theo_ten set tinh_gio = $3 where child_id = $1 and ten_khoa = $2`, [con, khoaTen(b.ten), nhom === "tinh_phut"]);
+    if (!doi.length && !b.ten) throw new LoiNghiepVu("khong_thay", "Mục này không còn trong danh sách", 404);
+    await ghiSuKien(fam, "doi_nhom_danh_sach", { muc: doi, ten: b.ten ? String(b.ten).slice(0, 60) : null, nhom }, { con, nguoi }, t);
+    return { muc: doi, nhom };
+  });
+}
+
+/** POST /api/m/con/:id/danh-sach/bo {muc: string | string[], ten?} — bỏ khỏi danh sách (Con xin lại được). Luật cả nhà ⇒ chỉ bỏ cho Con này
+ *  bằng luật riêng «loai_tru» (luat-app.ts › boMucChoCon) — luật cả nhà giữ cho máy dùng chung + Con khác + Con tạo sau.
+ *  `ten`: bỏ cả lời chờ khớp app theo tên. → { bo: số mục đã bỏ }. */
+export async function boKhoiDanhSach(fam: string, con: string, b: { muc?: unknown; ten?: unknown }, nguoi?: string) {
+  await conCua(fam, con);
+  const ds = dsMuc(b.muc);
+  if (!ds.length && !b.ten) throw new LoiNghiepVu("thieu_muc", "Chọn app hoặc trang web");
+  return tx(async (t) => {
+    let n = 0;
+    for (const muc of ds) if (await boMucChoCon(t, fam, con, muc)) n++;
+    if (b.ten) n += (await t(`delete from app_theo_ten where child_id = $1 and ten_khoa = $2 returning ten`, [con, khoaTen(b.ten)])).length;
+    await ghiSuKien(fam, "bo_khoi_danh_sach", { muc: ds, ten: b.ten ? String(b.ten).slice(0, 60) : null }, { con, nguoi }, t);
+    return { bo: n };
+  });
 }

@@ -4,7 +4,7 @@
 // Sự kiện kỹ thuật (phiên chơi, nhịp máy, lệch giờ…) không hiện — Cảnh báo đã lo.
 import { q } from "./db.ts";
 import { gioDiaPhuong } from "./gio.ts";
-import { TEN_CHE_DO_CHAN } from "./chan-co-ban.ts";
+import { TEN_NHOM_DS, tenCheDo } from "./chan-co-ban.ts";
 import { soVN } from "./so-sao.ts";
 
 export type DongNhatKy = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null;
@@ -16,7 +16,7 @@ const XIN: Record<string, string> = { vay_sao: "vay sao", them_gio: "thêm giờ
 export const LOAI_NHAT_KY = ["gui_yeu_cau", "dong_y_yeu_cau", "tu_choi_yeu_cau", "cho_vay", "hoan_tac_vay", "them_gio", "hoan_tac_them_gio", "doi_sao_lay_gio", "nop_nhiem_vu",
   "duyet_nhiem_vu", "tu_duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "lam_lai_nhiem_vu", "hoan_tac_duyet", "giao_nhiem_vu", "doi_qua", "xac_nhan_qua",
   "huy_qua", "doi_che_do_chan", "cho_phep_app", "doi_luat_web", "dat_luat_app", "doi_gio_choi", "doi_lich", "khoa_ngay", "mo_lai", "dat_pin", "go_may", "doi_ten_may",
-  "khoa_may", "mo_khoa_may", "xoa_con"];
+  "khoa_may", "mo_khoa_may", "xoa_con", "bo_qua_yeu_cau", "them_vao_danh_sach", "doi_nhom_danh_sach", "bo_khoi_danh_sach"];
 const s = (v: unknown) => (typeof v === "string" ? v : v == null ? "" : String(v));
 const n = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
 
@@ -33,7 +33,24 @@ export function cauSuKien(loai: string, ct: Record<string, unknown>, ai: string 
     }
     // đồng ý lời xin vay ⇒ dòng «cho_vay» đã nói đủ (không hiện hai dòng)
     case "dong_y_yeu_cau": return ct.vay === true ? null
+      // #262: lời xin app / web ⇒ «Mẹ Lan thêm YouTube · Tính phút»
+      : ct.nhom ? { tieu: `${nguoi} thêm ${s(ct.gia_tri) || "một mục"}`, nhan: TEN_NHOM_DS[ct.nhom === "khong_tinh_phut" ? "khong_tinh_phut" : "tinh_phut"], kieu: "thuong" }
       : { tieu: `${nguoi} cho ${XIN[s(ct.loai)] ?? "lời xin"}`, nhan: ct.tru_diem === true ? "Trừ sao" : null, kieu: "thuong" };
+    case "bo_qua_yeu_cau": return { tieu: `${nguoi} bỏ qua lời xin ${s(ct.gia_tri) || XIN[s(ct.loai)] || ""}`.trim(), nhan: "Bỏ qua", kieu: "thuong" };
+    case "them_vao_danh_sach": {
+      const ds = Array.isArray(ct.ds) ? (ct.ds as { ten?: unknown; nhom?: unknown }[]) : [];
+      const ten = ds.length === 1 ? s(ds[0]?.ten) : `${ds.length} mục`;
+      const nh = ds.length === 1 && (ds[0]?.nhom === "tinh_phut" || ds[0]?.nhom === "khong_tinh_phut") ? TEN_NHOM_DS[ds[0].nhom] : null;
+      return { tieu: `${nguoi} thêm ${ten} vào danh sách`, nhan: nh, kieu: "thuong" };
+    }
+    case "doi_nhom_danh_sach": {
+      const muc = Array.isArray(ct.muc) ? (ct.muc as unknown[]).map(s) : [];
+      return { tieu: `${nguoi} đổi ${s(ct.ten) || muc[0] || "một mục"}`, nhan: ct.nhom === "khong_tinh_phut" ? TEN_NHOM_DS.khong_tinh_phut : TEN_NHOM_DS.tinh_phut, kieu: "thuong" };
+    }
+    case "bo_khoi_danh_sach": {
+      const muc = Array.isArray(ct.muc) ? (ct.muc as unknown[]).map(s) : [];
+      return { tieu: `${nguoi} bỏ ${s(ct.ten) || muc[0] || "một mục"} khỏi danh sách`, nhan: null, kieu: "thuong" };
+    }
     case "cho_vay": return { tieu: `${nguoi} cho vay ${n(ct.so_sao)} sao`, nhan: "Cho vay", kieu: "ngoai",
       phu: n(ct.no_sau) ? `đang nợ ${soVN(ct.no_sau)} sao` : undefined };
     case "hoan_tac_vay": return { tieu: `${nguoi} rút lại ${n(ct.so_sao)} sao đã cho vay`, nhan: null, kieu: "thuong" };
@@ -51,15 +68,14 @@ export function cauSuKien(loai: string, ct: Record<string, unknown>, ai: string 
     case "doi_qua": return { tieu: `Đổi quà «${s(ct.ten)}»`, nhan: `−${n(ct.diem)}`, kieu: "thuong" };
     case "xac_nhan_qua": return { tieu: `${nguoi} trao quà`, nhan: null, kieu: "tot", phu: s(ct.ten) };
     case "huy_qua": return { tieu: `${nguoi} huỷ quà «${s(ct.ten)}»`, nhan: n(ct.hoan) ? `+${n(ct.hoan)}` : null, kieu: "thuong" };
-    case "doi_che_do_chan": {
-      const ten = TEN_CHE_DO_CHAN[s(ct.sang) as keyof typeof TEN_CHE_DO_CHAN] ?? s(ct.sang);
-      return { tieu: `${nguoi} bật «${ten}»`, nhan: null, kieu: "thuong" };
-    }
+    case "doi_che_do_chan": return { tieu: `${nguoi} bật «${tenCheDo(ct.sang)}»`, nhan: null, kieu: "thuong" };
     case "cho_phep_app": { const a = Array.isArray(ct.app) ? ct.app.length : 0; return { tieu: `${nguoi} cho dùng ${a} app`, nhan: null, kieu: "thuong" }; }
     case "doi_luat_web": return { tieu: `${nguoi} đổi trang ${s(ct.muc)}`, nhan: null, kieu: "thuong" };
-    case "dat_luat_app": return { tieu: `${nguoi} đổi app ${s(ct.muc)}`, nhan: ct.loai === "chan" ? "Chặn" : null, kieu: "thuong" };
+    // «Chặn» không còn (#258): luật cũ «chan» = bỏ khỏi danh sách
+    case "dat_luat_app": return { tieu: ct.loai === "chan" ? `${nguoi} bỏ ${s(ct.muc)} khỏi danh sách` : `${nguoi} đổi app ${s(ct.muc)}`,
+      nhan: ct.loai === "giai_tri" || ct.loai === "tinh_phut" ? TEN_NHOM_DS.tinh_phut : ct.loai === "hoc" || ct.loai === "cho_phep" || ct.loai === "khong_tinh_phut" ? TEN_NHOM_DS.khong_tinh_phut : null, kieu: "thuong" };
     case "doi_gio_choi": return { tieu: `${nguoi} đổi giờ chơi`, nhan: null, kieu: "thuong" };
-    case "doi_lich": return { tieu: `${nguoi} đổi giờ ngủ, giờ học`, nhan: null, kieu: "thuong" };
+    case "doi_lich": return null;     // giờ ngủ / giờ học đã bỏ (#258)
     case "khoa_ngay": return ct.hoanTac ? null : { tieu: `${nguoi} khoá máy`, nhan: null, kieu: "thuong" };
     case "mo_lai": return { tieu: `${nguoi} mở lại máy`, nhan: null, kieu: "thuong" };
     case "dat_pin": return { tieu: `${nguoi} đặt PIN mới`, nhan: null, kieu: "thuong" };

@@ -1,6 +1,7 @@
 // Báo cáo (FR-06.01–06.03, 06.05): bảng «Hôm nay» theo Con, báo cáo tuần (thời gian theo nhóm, top mục, điểm kiếm theo nhóm nhiệm vụ,
 // điểm tiêu theo loại, tỷ lệ duyệt, so tuần trước) với câu chú giải đời thường. Chỉ tên mục + thời lượng, không nội dung.
 // 15/11 (#264–#266): báo cáo theo SAO — sao kiếm / sao vay / sao tiêu (chơi 1 sao = 1 phút + đổi quà) / trả nợ; «ngoại lệ» bỏ (= số lần cho vay).
+// #262: «Giờ học» ⇒ «Không tính phút» (phutKhongTinhPhut / khongTinhPhutTheoNgay; dungNhieu[].nhom tinh_phut | khong_tinh_phut).
 import { one, q } from "./db.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { congNgay, dauNgayUtc, dauTuan, gioDiaPhuong } from "./gio.ts";
@@ -8,6 +9,7 @@ import { tomTatVi } from "./vi.ts";
 import { conTheoTran } from "./phien.ts";
 import { thongKeSao } from "./so-sao.ts";
 import { tenDoc } from "./man-hinh.ts";
+import { nhomTuLoai } from "./chan-co-ban.ts";
 
 const NHOM_NV_CHU: Record<string, string> = { doc_sach: "đọc sách", viec_nha: "việc nhà", hoc_tap: "học tập", van_dong: "vận động", ky_nang: "kỹ năng", khac: "việc khác" };
 
@@ -76,7 +78,9 @@ async function tuan(con: string, tz: string, dau: string) {
   const hoc = dung.filter((x) => x.loai === "hoc" || x.loai === "he_thong").reduce((a, x) => a + x.phut, 0);
   const hocNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
   for (const x of dung) if (x.loai === "hoc" || x.loai === "he_thong") hocNgay[x.ngay] = (hocNgay[x.ngay] ?? 0) + x.phut;
-  return { dau, hocTheoNgay: ngayDs.map((d) => ({ ngay: d, phut: hocNgay[d] })), dungNhieu, giaiTriTheoNgay: ngayDs.map((d) => ({ ngay: d, phut: giaiTriNgay[d] })), tongGiaiTri: Object.values(giaiTriNgay).reduce((a, b) => a + b, 0),
+  const khongTinhPhutTheoNgay = ngayDs.map((d) => ({ ngay: d, phut: hocNgay[d] }));
+  // #262: ô «Giờ học» ⇒ «Không tính phút» (app / web nhóm Không tính phút + app hệ thống). hocTheoNgay / phutHoc (cũ) = cùng số, giữ cho app cũ.
+  return { dau, khongTinhPhutTheoNgay, phutKhongTinhPhut: hoc, hocTheoNgay: khongTinhPhutTheoNgay, dungNhieu, giaiTriTheoNgay: ngayDs.map((d) => ({ ngay: d, phut: giaiTriNgay[d] })), tongGiaiTri: Object.values(giaiTriNgay).reduce((a, b) => a + b, 0),
     phutHoc: hoc, diemKiemTheoNhom: kiem, diemTieuTheoLoai: tieu, duyet,
     /** (cũ) ngoại lệ — đã bỏ; giữ trường = số lần Ba Mẹ cho vay để app cũ không vỡ */ ngoaiLe: sao.lanVay, top,
     xinThemGio: { so: xin0?.so ?? 0, cho: xin0?.cho ?? 0 }, xinVay: { so: xin0?.so ?? 0, cho: xin0?.cho ?? 0 },
@@ -102,6 +106,6 @@ export async function baoCaoTuan(fam: string, con: string, now = new Date(), bay
   if (nay.lanVay) cau.push(`Ba Mẹ cho ${c.ten} vay ${nay.lanVay} lần · ${nay.saoVay} sao`);
   // «Dùng nhiều nhất» kèm % so tuần trước (thiết kế bm-bao-cao); mục mới tuần này ⇒ lech null
   const dungNhieu = nay.dungNhieu.map((x) => { const cu = truoc.dungNhieu.find((y) => y.muc === x.muc)?.phut;
-    return { ...x, ten: tenDoc(x.muc, "app"), lech: cu ? Math.round(((x.phut - cu) / cu) * 100) : null }; });
+    return { ...x, ten: tenDoc(x.muc, "app"), nhom: nhomTuLoai(x.loai), lech: cu ? Math.round(((x.phut - cu) / cu) * 100) : null }; });
   return { ten: c.ten, tuanNay: { ...nay, dungNhieu }, tuanTruoc: truoc, chuGiai: cau.slice(0, 4) };
 }

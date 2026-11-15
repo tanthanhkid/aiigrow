@@ -2,7 +2,7 @@
 // Chỉ dùng SQL tham số $1, $2… — cùng một câu chạy được trên cả hai.
 // Ghi cột jsonb luôn bằng `$n::text::jsonb` + JSON.stringify: postgres.js qua pooler Neon biết kiểu jsonb và bọc chuỗi lần nữa.
 import { createHash } from "node:crypto";
-import { SCHEMA, SCHEMA_M4B, SCHEMA_M5, SCHEMA_S2, SCHEMA_S3, SCHEMA_SAO, SCHEMA_TV_TB } from "./schema.ts";
+import { SCHEMA, SCHEMA_APP_WEB, SCHEMA_M4B, SCHEMA_M5, SCHEMA_S2, SCHEMA_S3, SCHEMA_SAO, SCHEMA_TV_TB } from "./schema.ts";
 import { napHeThong } from "./he-thong.ts";
 
 export type Row = Record<string, any>;
@@ -12,7 +12,7 @@ export type Q = <T = Row>(sql: string, params?: unknown[]) => Promise<T[]>;
 export type Nghe = (kenh: string, khiBao: (payload: string) => void, khiNghe?: () => void) => Promise<void>;
 type Db = { q: Q; tx: <T>(fn: (q: Q) => Promise<T>) => Promise<T>; nghe: Nghe };
 
-const BAM_LUOC_DO = createHash("sha256").update([SCHEMA, SCHEMA_M5, ...SCHEMA_M4B, ...SCHEMA_TV_TB, ...SCHEMA_S2, ...SCHEMA_S3, ...SCHEMA_SAO].join("\n;\n")).digest("hex").slice(0, 16);
+const BAM_LUOC_DO = createHash("sha256").update([SCHEMA, SCHEMA_M5, ...SCHEMA_M4B, ...SCHEMA_TV_TB, ...SCHEMA_S2, ...SCHEMA_S3, ...SCHEMA_SAO, ...SCHEMA_APP_WEB].join("\n;\n")).digest("hex").slice(0, 16);
 
 const g = globalThis as unknown as { __aiigDb?: Promise<Db> };
 
@@ -28,7 +28,7 @@ async function mo(): Promise<Db> {
       await sql.unsafe(SCHEMA);
       await sql.unsafe(SCHEMA_M5);
       for (const c of SCHEMA_M4B) await sql.unsafe(c);
-      for (const c of [...SCHEMA_TV_TB, ...SCHEMA_S2, ...SCHEMA_S3, ...SCHEMA_SAO]) await sql.unsafe(c);      // S2 (L4–L8) sửa loi_moi ⇒ bảng thành viên phải có trước
+      for (const c of [...SCHEMA_TV_TB, ...SCHEMA_S2, ...SCHEMA_S3, ...SCHEMA_SAO, ...SCHEMA_APP_WEB]) await sql.unsafe(c);      // S2 (L4–L8) sửa loi_moi ⇒ bảng thành viên phải có trước
       await sql.unsafe(`create table if not exists _luoc_do (id int primary key, bam text not null, luc timestamptz not null default now());
         insert into _luoc_do(id, bam) values (1, '${BAM_LUOC_DO}') on conflict (id) do update set bam = excluded.bam, luc = now()`);
     }
@@ -49,7 +49,7 @@ async function mo(): Promise<Db> {
   await pg.exec(SCHEMA);
   await pg.exec(SCHEMA_M5);
   for (const c of SCHEMA_M4B) await pg.exec(c);
-  for (const c of [...SCHEMA_TV_TB, ...SCHEMA_S2, ...SCHEMA_S3, ...SCHEMA_SAO]) await pg.exec(c);
+  for (const c of [...SCHEMA_TV_TB, ...SCHEMA_S2, ...SCHEMA_S3, ...SCHEMA_SAO, ...SCHEMA_APP_WEB]) await pg.exec(c);
   const q: Q = async (s, p = []) => (await pg.query(s, p as any[])).rows as any;
   napHeThong(await q(`select khoa, gia_tri from he_thong`));
   return {

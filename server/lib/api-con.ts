@@ -14,6 +14,7 @@ import { chaoMung, thanhTich } from "./thanh-tich.ts";
 import { homNay } from "./bao-cao.ts";
 import * as tre from "./choi-tre.ts";
 import { xinDuyet } from "./che-do-chan.ts";
+import { cheDoCua } from "./chan-co-ban.ts";
 import { xuLyConSao } from "./api-sao.ts";
 import { xuLyConS3 } from "./api-s3.ts";
 
@@ -38,7 +39,9 @@ export async function xuLyCon(req: Request, p: string[]): Promise<Response> {
     { const r = await xuLyConSao(c.id, c.device_id, req, p, b); if (r) return r; }   // 05/11: quỹ giờ chơi, đổi sao, ghi âm, quà
     if (d === "toi" && get) {
       const loiKhen = await q(`select id, noi_dung, phan_hoi, created_at from messages where child_id = $1 order by created_at desc limit 5`, [c.id]);
-      return json({ con: { id: c.id, ten: c.ten, nhom: c.nhom, avatar: c.avatar, daChao: !!c.chao_luc }, ...(await homNay(c.family_id, c.id)), loiKhen });
+      // #262: cheDo — «Hôm nay Ba Mẹ để chế độ Mở hết · không tính phút» (them-upgropiw)
+      const cheDo = cheDoCua((c as { che_do_chan?: unknown }).che_do_chan);
+      return json({ con: { id: c.id, ten: c.ten, nhom: c.nhom, avatar: c.avatar, daChao: !!c.chao_luc }, ...(await homNay(c.family_id, c.id)), loiKhen, cheDo });
     }
     if (d === "chao" && post) return json({ diemChaoMung: await chaoMung(c.id) });
     if (d === "nhiem-vu" && get) return json({ ds: await nv.nvCuaCon(c.id) });
