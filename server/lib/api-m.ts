@@ -56,6 +56,7 @@ import { xuLyMS3 } from "./api-s3.ts";
 import { canDeY, mayMatMang } from "./can-de-y.ts";
 import { baMeDen } from "./pin-be.ts";
 import { baoThayDoi } from "./cho-thay-doi.ts";
+import * as mnc from "./may-nhieu-con.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 /** `den` của con/:id/khoa và may/:id/khoa: "sang" | ISO | không có (không hạn) — kiểm ở may-con.ts › hanKhoa. */
@@ -63,12 +64,13 @@ const hanTuBody = (den: unknown): Date | "sang" | null => (den === "sang" ? "san
 
 async function chiTietCon(bm: BaMe, id: string) {
   const c = await gd.conCua(bm.family_id, id);
-  const may = await q<gd.May>(`select * from devices where child_id = $1 or (dung_chung and family_id = $2) order by created_at`, [id, bm.family_id]);
+  const may = await q<gd.May>(`select d.* from devices d where d.family_id = $2 and exists (select 1 from device_children x where x.device_id = d.id and x.child_id = $1) order by d.created_at`, [id, bm.family_id]);
   const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [bm.family_id]))!;
   const matMang = new Set((await mayMatMang(bm.family_id)).map((x) => x.mayId));
   // «bé đang dùng» chỉ khi phiên Con của bé trên máy còn hạn (như api-may.ts / pin-be.ts › hoSoMay)
   const conPhien = new Set((await q<{ d: string }>(`select distinct k.device_id || ':' || k.child_id as d from kid_sessions k
       where k.device_id = any($1::text[]) and k.expires_at > now()`, [may.map((m) => m.id)])).map((x) => x.d));
+  const noi = await mnc.tomTatNoi(bm.family_id, may);
   return {
     // coPin + pinDatLuc: 06/11 L13 (PIN theo bé — đảo L5); xem PIN ở GET con/:id/pin. cheDoChan: L4.
     id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: !!c.pin_ma,
@@ -82,7 +84,9 @@ async function chiTietCon(bm: BaMe, id: string) {
       dangDung: m.con_dang_dung && conPhien.has(`${m.id}:${m.con_dang_dung}`) ? m.con_dang_dung : null, baMeDungDen: baMeDen(m)?.toISOString() ?? null,
       matMang: matMang.has(m.id),
       // 14/11: khoá riêng máy này (lib/khoa-may.ts) — {khoa, den}
-      khoaMay: trangThaiKhoaMay(m.khoa_may) })),
+      khoaMay: trangThaiKhoaMay(m.khoa_may),
+      // #267: Con nối với máy · số Con · iPhone/iPad (một Con)
+      conDs: noi.get(m.id)?.conDs ?? [], soCon: noi.get(m.id)?.soCon ?? 0, motCon: noi.get(m.id)?.motCon ?? false })),
   };
 }
 
@@ -233,6 +237,11 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (sau === "khoa" && post)
         return json(await khoaMay(fam, p[1], b.khoa !== false, bm.id, hanTuBody(b.den)));
       if (sau === "gan-con" && post) return json(await gd.ganConMay(fam, p[1], b.con, bm.id));
+      // #267 «Máy này ai dùng?»: GET danh sách Con (đã gán, đang dùng, sao, phút hôm nay…) · POST {ds} đặt danh sách · gán / bỏ gán một Con
+      if (sau === "con" && get) return json(await mnc.conMay(fam, p[1]));
+      if (sau === "con" && post) return json(await mnc.datConMay(fam, p[1], b.ds ?? b.con, bm.id));
+      if (p[2] === "con" && p[3] && p[4] === "gan" && p.length === 5 && post) return json(await mnc.ganThemCon(fam, p[1], p[3], bm.id));
+      if (p[2] === "con" && p[3] && p[4] === "bo" && p.length === 5 && post) return json(await mnc.boGanCon(fam, p[1], p[3], bm.id));
       if (sau === "mo-khan-cap/huy" && post) { await tt.huyMoKhanCap(fam, p[1], bm.id); return json({ ok: true }); }
       // L6: Người trông giúp được duyệt lời xin (mở máy) ⇒ cũng được đọc mã mở offline cho Con lúc máy mất mạng
       if (sau === "ma-offline" && get) return json(await tt.maOfflineChoMay(fam, p[1], bm.id, new Date(), new URL(req.url).searchParams.get("phut") ?? 60));

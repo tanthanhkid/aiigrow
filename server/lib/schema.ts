@@ -666,6 +666,56 @@ export const SCHEMA_S2 = [
 //   thư viện mẫu, lib/qua-bang-gia.ts). families.qua_seed_luc: đã gieo 7 quà mặc định (gieo MỘT lần — Ba Mẹ xoá hết thì không gieo lại).
 // vouchers.trao_tay: voucher AiiCafe kiểu 06/11 — Con đổi ⇒ giữ sao + voucher «cho_xac_nhan»; Ba Mẹ trao ⇒ «da_phat_hanh», hạn tính từ lúc trao
 //   (tham số voucher_han_ngay, mặc định 60 như màn), KHÔNG trừ quỹ phiếu quà (quỹ đã ngừng 05/11).
+// ================================================================ #267 «một máy nhiều Con» (lib/may-nhieu-con.ts — đọc đầu tệp đó)
+// device_children: máy ⇄ Con. 1 Con = máy riêng, ≥ 2 Con = máy chung (chọn tên + PIN). iPhone/iPad đúng 1 Con (kiểm ở mã, không ở CSDL).
+// devices.child_id / dung_chung GIỮ trong giai đoạn chuyển = bản sao suy ra (may-nhieu-con.ts › dongBoCotCu) — agent / mã cũ đọc vẫn đúng.
+// pair_codes.con_ds / goi_cai.con_ds: mảng id Con (≥ 2) khi Ba Mẹ ghép một máy cho nhiều Con; một Con vẫn ở child_id như trước.
+// Chuyển dữ liệu (chạy lại được — mỗi câu chỉ chạm máy CHƯA có dòng nối): máy riêng cũ ⇒ nối child_id; máy dùng chung cũ ⇒ nối MỌI Con trong nhà;
+// iPhone/iPad dùng chung cũ ⇒ MỘT Con (bé đang dùng › bé đăng nhập gần nhất › bé tạo trước); rồi đồng bộ cột cũ theo bảng nối.
+export const CHUYEN_DOI_MAY_NHIEU_CON = "device_children_267";
+export const SCHEMA_MAY_NHIEU_CON = [
+  `create table if not exists device_children (
+    device_id text not null references devices(id) on delete cascade,
+    child_id text not null references children(id) on delete cascade,
+    family_id text not null references families(id) on delete cascade,
+    created_at timestamptz not null default now(),
+    primary key (device_id, child_id)
+  )`,
+  `create index if not exists device_children_con on device_children(child_id)`,
+  `create index if not exists device_children_gd on device_children(family_id)`,
+  `alter table pair_codes add column if not exists con_ds jsonb`,
+  `alter table goi_cai add column if not exists con_ds jsonb`,
+  // chuyển dữ liệu MỘT lần (đánh dấu ở _chuyen_doi): lược đồ chạy lại mỗi lần mở PGlite / mỗi lần băm lược đồ đổi trên Postgres —
+  // không quét lại devices, không nối lại cả nhà cho máy Ba Mẹ đã sửa / máy 0 Con đang chờ gán
+  `create table if not exists _chuyen_doi (ten text primary key, luc timestamptz not null default now())`,
+  `do $$ begin
+     if not exists (select 1 from _chuyen_doi where ten = '${CHUYEN_DOI_MAY_NHIEU_CON}') then
+       insert into device_children(device_id, child_id, family_id)
+     select d.id, d.child_id, d.family_id from devices d join children c on c.id = d.child_id and c.family_id = d.family_id
+      where not exists (select 1 from device_children x where x.device_id = d.id)
+     on conflict do nothing;
+       insert into device_children(device_id, child_id, family_id)
+     select d.id, c.id, d.family_id from devices d join children c on c.family_id = d.family_id
+      where d.child_id is null and d.dung_chung and d.platform not in ('ios', 'ipados')
+        and not exists (select 1 from device_children x where x.device_id = d.id)
+     on conflict do nothing;
+       insert into device_children(device_id, child_id, family_id)
+     select d.id, (select c.id from children c where c.family_id = d.family_id
+                    order by (c.id = d.con_dang_dung) desc,
+                             (select max(k.expires_at) from kid_sessions k where k.device_id = d.id and k.child_id = c.id) desc nulls last,
+                             c.created_at, c.id limit 1), d.family_id
+       from devices d
+      where d.child_id is null and d.dung_chung and d.platform in ('ios', 'ipados')
+        and not exists (select 1 from device_children x where x.device_id = d.id)
+        and exists (select 1 from children c where c.family_id = d.family_id)
+     on conflict do nothing;
+       update devices d set child_id = x.mot, dung_chung = x.n >= 2
+     from (select device_id, count(*)::int as n, case when count(*) = 1 then min(child_id) end as mot from device_children group by device_id) x
+    where x.device_id = d.id and (d.child_id is distinct from x.mot or d.dung_chung <> (x.n >= 2));
+       insert into _chuyen_doi(ten) values ('${CHUYEN_DOI_MAY_NHIEU_CON}');
+     end if;
+   end $$`,
+];
 export const SCHEMA_S3 = [
   `alter table children add column if not exists pin_ma text`,
   `alter table children add column if not exists pin_dat_luc timestamptz`,
@@ -701,4 +751,5 @@ export const SCHEMA_S3 = [
   `alter table devices add column if not exists khoa_may jsonb not null default '{}'`,
   // hộp thư hỗ trợ quản trị (ho-tro-admin.ts › dsHoTro): tin mới nhất / trả lời cuối theo gia đình
   `create index if not exists ho_tro_fam_seq on ho_tro(family_id, seq)`,
+  ...SCHEMA_MAY_NHIEU_CON,
 ];

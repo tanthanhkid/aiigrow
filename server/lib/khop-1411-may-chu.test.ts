@@ -129,9 +129,11 @@ test("con/:id/xoa: xoá hẳn Con + dữ liệu; máy riêng ⇒ dùng chung; s�
   assert.deepEqual(r.body, { ok: true, ten: "Bảo Anh", mayChuyenDungChung: [{ id: may.deviceId, ten: "Laptop của Anh" }] });
   assert.equal((await m(`con/${a}`, { tok })).status, 404);
   assert.deepEqual((await m("gia-dinh", { tok })).body.con.map((c: any) => c.ten), ["Bảo Minh"]);
+  // #267: máy riêng của bé bị xoá ⇒ nối mọi Con còn lại — nhà còn đúng Bảo Minh ⇒ máy riêng của Bảo Minh (1 Con = máy riêng)
   const d = (await one<{ child_id: string | null; dung_chung: boolean }>(`select child_id, dung_chung from devices where id = $1`, [may.deviceId]))!;
-  assert.deepEqual([d.child_id, d.dung_chung], [null, true]);
-  assert.equal((await dv("dong-bo", { tok: may.token, body: {} })).body.canChonCon, true, "máy về màn chọn tên");
+  assert.deepEqual([d.child_id, d.dung_chung], [b, false]);
+  const pol = (await dv("dong-bo", { tok: may.token, body: {} })).body;
+  assert.deepEqual([pol.canChonCon, pol.con?.id], [false, b]);
   assert.equal((await q(`select 1 from app_rules where child_id = $1`, [a])).length, 0);
   assert.equal((await q(`select 1 from rewards where id = $1`, [quaRieng])).length, 0);
   assert.deepEqual((await one<{ ap_cho: string[] }>(`select ap_cho from rewards where id = $1`, [quaChung]))!.ap_cho, [b]);

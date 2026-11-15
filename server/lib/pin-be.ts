@@ -14,6 +14,8 @@ import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { conCua, type May } from "./gia-dinh.ts";
 import { biMatOfflineMay } from "./tuan-thu.ts";
 import { kiemMaOfflinePhut } from "./ma-offline.ts";
+import { coNoi, conNoiMay, ketThucPhienTrenMay, laMotCon } from "./may-nhieu-con.ts";
+import { soDu } from "./vi.ts";
 
 export const PIN_SAI_TOI_DA = 5;
 export const PIN_CHO_GIAY = 15;
@@ -62,10 +64,10 @@ export const baMeDen = (may: MayS3, now = new Date()) =>
 /** Vân PIN để agent tự kiểm khi MẤT MẠNG: HMAC-SHA256(khoá = bí mật mã offline của máy, «<id Con>:<PIN>») hex. Máy khác bí mật ⇒ vân khác. */
 export const vanPin = (biMat: string, con: string, pin: string) => createHmac("sha256", biMat).update(`${con}:${pin}`).digest("hex");
 
-/** «Ai đang dùng máy?» — danh sách bé của máy + ai đang dùng. Máy riêng của Con ⇒ chỉ Con đó (vẫn hỏi PIN khi mở khoá). */
+/** «Ai đang dùng máy?» — danh sách bé của máy + ai đang dùng. #267: chỉ Con trong danh sách nối của máy (device_children); máy riêng ⇒ chỉ Con
+ *  đó (vẫn hỏi PIN khi mở khoá). Mỗi bé kèm `sao` (số dư hiện có — vi.ts › soDu) để màn chọn tên hiện sao từng bé. */
 export async function hoSoMay(may: MayS3, now = new Date()) {
-  const ds = await q<{ id: string; ten: string; avatar: string; pin_ma: string | null }>(
-    `select id, ten, avatar, pin_ma from children where family_id = $1 order by created_at`, [may.family_id]);
+  const ds = await conNoiMay(may.id);
   const bm = await biMatOfflineMay(may.id);
   const khoa = await q<{ khoa: string; khoa_den: Date }>(`select khoa, khoa_den from pin_sai where khoa like $1 and khoa_den > $2`, [`pin:${may.id}:%`, now]);
   const khoaTheo = new Map(khoa.map((k) => [k.khoa.split(":")[2], new Date(k.khoa_den)]));
@@ -74,14 +76,15 @@ export async function hoSoMay(may: MayS3, now = new Date()) {
     [may.id, may.con_dang_dung, now]) ? may.con_dang_dung : null;
   const dangDung = may.child_id ?? conPhien;
   const den = baMeDen(may, now);
-  const con = ds.filter((c) => !may.child_id || c.id === may.child_id).map((c) => {
+  const con = await Promise.all(ds.map(async (c) => {
     const k = khoaTheo.get(c.id);
-    return { id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, ...(c.pin_ma && bm ? { vanPin: vanPin(bm, c.id, c.pin_ma) } : {}),
+    return { id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, sao: await soDu(c.id), ...(c.pin_ma && bm ? { vanPin: vanPin(bm, c.id, c.pin_ma) } : {}),
       ...(k ? { khoaDen: k.toISOString(), choGiay: Math.ceil((k.getTime() - now.getTime()) / 1000) } : {}) };
-  });
+  }));
   const tenDung = dangDung ? ds.find((c) => c.id === dangDung) : undefined;
   return {
-    con, mayRieng: !!may.child_id,
+    // #267: tenMay · soCon · mayChung (≥ 2 Con) · motCon (iPhone/iPad — không đổi người)
+    con, mayRieng: !!may.child_id, mayChung: ds.length >= 2, soCon: ds.length, tenMay: may.name, motCon: laMotCon(may.platform),
     dangDung: !den && tenDung && (!may.child_id || conPhien === may.child_id) ? { id: tenDung.id, ten: tenDung.ten, avatar: tenDung.avatar,
       tu: may.dang_nhap_luc ? new Date(may.dang_nhap_luc).toISOString() : null } : null,
     baMeDung: den ? { den: den.toISOString(), tu: may.ba_me_tu ? new Date(may.ba_me_tu).toISOString() : null } : null,
@@ -123,7 +126,7 @@ const bang = (a: string, b: string) => a.length === b.length && timingSafeEqual(
 export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = new Date()) {
   const c = await one<{ id: string; family_id: string; ten: string; avatar: string; pin_ma: string | null }>(
     `select id, family_id, ten, avatar, pin_ma from children where id = $1`, [conId]);
-  if (!c || c.family_id !== may.family_id || (may.child_id && may.child_id !== c.id))
+  if (!c || c.family_id !== may.family_id || !(await coNoi(may.id, c.id)))
     throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ này trên máy", 404);
   const khoa = `pin:${may.id}:${c.id}`;
   if (c.pin_ma) {
@@ -141,6 +144,11 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
     }
     await q(`delete from pin_sai where khoa = $1`, [khoa]);
   }
+  // #267 «Đổi người»: máy chỉ một bé một lúc — bé trước (khác bé này) hết phiên Con trên máy + phiên chơi trên máy dừng (phút bé trước dừng tính)
+  const truoc = (await q<{ child_id: string }>(`select distinct child_id from kid_sessions where device_id = $1 and child_id <> $2`, [may.id, c.id])).map((r) => r.child_id);
+  if (may.con_dang_dung && may.con_dang_dung !== c.id && !truoc.includes(may.con_dang_dung)) truoc.push(may.con_dang_dung);
+  if (truoc.length) await q(`delete from kid_sessions where device_id = $1 and child_id <> $2`, [may.id, c.id]);
+  for (const x of truoc) await ketThucPhienTrenMay(may.id, x, now);
   const t = taoToken();
   await q(`insert into kid_sessions(id, child_id, device_id, expires_at) values ($1,$2,$3, $4::timestamptz + interval '12 hours')`, [sha(t), c.id, may.id, now.toISOString()]);
   await q(`update devices set con_dang_dung = $2, dang_nhap_luc = $3, ba_me_den = null, ba_me_tu = null where id = $1`, [may.id, c.id, now]);
@@ -150,9 +158,10 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
 
 /** «Đổi bé / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ đang dùng) ⇒ máy về màn chọn tên: bỏ bé đang dùng, xoá phiên Con của máy, hết «Ba Mẹ dùng». */
 export async function roiMay(may: MayS3, now = new Date()) {
-  const ai = may.con_dang_dung ?? null, baMe = !!baMeDen(may, now);
+  const ai = may.con_dang_dung ?? may.child_id ?? null, baMe = !!baMeDen(may, now);   // máy riêng: Con của máy dù chưa ghi con_dang_dung
   await q(`update devices set con_dang_dung = null, dang_nhap_luc = null, ba_me_den = null, ba_me_tu = null where id = $1`, [may.id]);
   await q(`delete from kid_sessions where device_id = $1`, [may.id]);
+  await ketThucPhienTrenMay(may.id, ai, now);            // #267: «Đổi người» / đăng xuất ⇒ phút của bé trước dừng tính
   await ghiSuKien(may.family_id, baMe ? "ba_me_khoa_lai" : "dang_xuat_may", {}, { con: ai, may: may.id });
   return { ok: true, khoa: true };
 }
@@ -160,7 +169,7 @@ export async function roiMay(may: MayS3, now = new Date()) {
 /** «Quên PIN» ⇒ báo Ba Mẹ (cảnh báo loai quen_pin — mục «Cần Ba Mẹ để ý»). Đang có báo chưa xử lý ⇒ không báo trùng. */
 export async function quenPin(may: MayS3, conId: string) {
   const c = await one<{ id: string; family_id: string; ten: string }>(`select id, family_id, ten from children where id = $1`, [conId]);
-  if (!c || c.family_id !== may.family_id || (may.child_id && may.child_id !== c.id)) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ này trên máy", 404);
+  if (!c || c.family_id !== may.family_id || !(await coNoi(may.id, c.id))) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ này trên máy", 404);
   // cùng cửa sổ 7 ngày với «Cần Ba Mẹ để ý» (can-de-y.ts) — báo cũ hơn không còn hiện ⇒ không được chặn báo mới
   const co = await one(`select 1 from alerts where family_id = $1 and child_id = $2 and loai = 'quen_pin' and not da_doc
                           and created_at > now() - interval '7 days'`, [c.family_id, c.id]);

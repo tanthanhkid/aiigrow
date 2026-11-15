@@ -731,3 +731,46 @@ Cột mới: `usage.dau_luc`, `web_nhat_ky.dau_luc` (timestamptz — giờ con b
 «Sáng mai» = **6:30** (`server/lib/may-con.ts › SANG_MAI_PHUT`, trước 7:00) cho `con/:id/khoa {den: "sang"}` và `may/:id/khoa {den: "sang"}`.
 Phía app (chưa sửa — 2 agent khác đang làm màn): `mobile/src/lib/hang-ngay.tsx:221` («tới 7:00») và `mobile/src/lib/khoa-may.tsx:51` («mở lúc 7:00»), `:67` («tới 7:00 sáng»).
 App Ba Mẹ đã nối (logic thuần `mobile/src/lib/noi-1411.ts`, test `noi-1411.test.ts`): bảng «Khoá máy <Con>?» chọn từng máy (đủ máy ⇒ `con/:id/khoa`, một phần ⇒ `may/:id/khoa`), màn máy khoá / mở riêng (`may/[id].tsx`), xoá hồ sơ (`ho-so/[id]/xoa.tsx` — kết quả gắn máy dùng chung cho Con khác / gỡ), «Trao luôn» (`vi/qua-mua.tsx`, voucher ẩn nút), hộp thư (`admin-ho-tro.tsx` ?loc=).
+
+## #267 Mô hình máy — một Con một máy, một Con nhiều máy, một máy nhiều Con (`server/lib/may-nhieu-con.ts`, test `may-nhieu-con.test.ts`)
+
+Bảng nối **`device_children`** (máy ⇄ Con). Máy nối **1 Con = máy riêng**, **≥ 2 Con = máy chung** (Windows / Mac / Android: bé chọn tên + PIN,
+chưa ai vào ⇒ khoá). **iPhone / iPad** (`nen` `ios` / `ipados`) chỉ nối **đúng một Con** ⇒ gán thêm bị từ chối `409 ios_mot_con`
+(`message`: lý do để hiện; `toiDa: 1`). Luật đi theo Con (sao, nợ, chế độ app & web, danh sách); máy chỉ biết bé đang dùng và áp luật bé đó.
+
+**Giai đoạn chuyển (tương thích ngược):** `devices.child_id` / `dung_chung` GIỮ, là bản sao suy ra từ bảng nối (1 Con ⇒ `child_id` = Con đó;
+≥ 2 ⇒ `child_id` null + `dung_chung` true; **0 ⇒ null + true** — máy 0 Con không chạy tự do: `canChonCon`, không bé nào vào được, chờ Ba Mẹ gán). Mọi trường cũ trả ra (`con`, `dungChung`, `childName`, `mayRieng`, `canChonCon`) giữ
+nghĩa cũ. Bỏ hai cột khi app Ba Mẹ đọc `conDs` thay `con`/`dungChung`, máy chủ đọc hết từ bảng nối, và mọi agent đang chạy là bản phát hành sau #267
+(sớm nhất 2 bản sau). **Chuyển dữ liệu** (MỘT lần — dấu `device_children_267` ở bảng `_chuyen_doi`; mở DB lại không quét): máy riêng cũ ⇒ nối `child_id`; máy dùng chung cũ ⇒ nối **mọi Con trong nhà**;
+iPhone/iPad dùng chung cũ ⇒ một Con (bé đang dùng › bé đăng nhập gần nhất › bé tạo trước). Máy cũ không phải ghép lại.
+**Đổi nghĩa:** mã ghép không gắn Con (cả nhà) ở nhà chỉ có **một** Con giờ là máy riêng của Con đó (`dungChung: false`). **Con mới tạo tự nối**
+vào máy chung sẵn có của nhà (máy nối ≥ 2 Con hoặc 0 Con, không phải iPhone/iPad; máy riêng không đổi) — như trước; Ba Mẹ bỏ gán được.
+Gán / bỏ gán khoá dòng máy (`select … for update`) ⇒ hai lần song song không mất lần nào. Xoá Con: mã / gói cài nhiều Con (`con_ds`) bỏ bé khỏi mảng
+(còn 1 ⇒ về `child_id`, rỗng ⇒ mã chưa dùng bị huỷ).
+
+### App Ba Mẹ — `/api/m/*`
+| Đường | Mô tả |
+|---|---|
+| `GET may/:id/con` | «Máy này ai dùng?» / «Máy cả nhà · chi tiết» → `{may{id, ten, nen, motCon, soCon, mayChung, mayRieng}, dangDung{id, ten, avatar, tu, phutHomNay}\|null, baMeDungDen, khoaMay{khoa, den}, ds[]}`. `ds` = **mọi Con trong nhà**: `{id, ten, avatar, coPin, gan, dangDung, sao, phutHomNay, lanCuoi, khoaCon{khoa, den}, mayKhac[{id, ten, nen, rieng}], ganDuoc, lyDo?}` — `sao` = số dư hiện có (`vi.ts › soDu`); `phutHomNay` = phút ghi trên máy này hôm nay; `lanCuoi` = lần cuối bé vào máy này; iPhone/iPad: Con chưa gán ⇒ `ganDuoc: false` + `lyDo`. Người trông giúp xem được |
+| `POST may/:id/con {ds: string[]}` | Đặt danh sách Con dùng máy (thay toàn bộ, ≥ 1). → `{ok, them, bo, ...như GET}`. Con bị bỏ gán đang dùng máy ⇒ thả ra (phiên Con trên máy xoá, phiên chơi dừng `het_dang_nhap`). Lỗi: `[]` ⇒ 400 `can_mot_con` (muốn bỏ hẳn: gỡ máy); Con nhà khác / máy nhà khác ⇒ 404; iPhone/iPad > 1 ⇒ 409 `ios_mot_con`; Người trông giúp ⇒ 403. Sự kiện `doi_con_may {ten, ds, them, bo}` |
+| `POST may/:id/con/:con/gan` · `POST may/:id/con/:con/bo` | Gán thêm / bỏ gán một Con (cùng trả + lỗi như trên). iPhone/iPad đã có Con ⇒ 409 `ios_mot_con`; bỏ Con cuối ⇒ 400 `can_mot_con` |
+| `POST may/:id/gan-con {con}` (cũ) | `con` chuỗi = máy riêng của đúng Con đó (thay danh sách, như trước); `con` mảng = như `may/:id/con {ds}` |
+| `POST ghep-may {conDs?: string[], con?, nen?, giongMay?}` | Ghép một máy cho **một hay nhiều** Con (`conDs`, hoặc `con` là mảng). ≥ 2 Con ⇒ máy chung; trả thêm `conDs`, `mayChung`. `nen: "ios"` + ≥ 2 Con ⇒ 409 `ios_mot_con`; `nen` trống mà máy hoá ra iPhone ⇒ lúc ghép agent chọn một Con (xem Agent). «Cài giống máy trước» chép cho từng Con. `GET ghep-may/:ma` thêm `conDs` (đã ghép ⇒ Con thật nối với máy) |
+| `GET tuan-thu` · `GET may/:id/tuan-thu` | mỗi máy thêm `khoaMay{khoa, den}` (trước thiếu), `conDs[{id, ten, avatar}]`, `dangDung{id, ten, avatar}\|null` (máy riêng = Con của máy), `soCon`, `motCon`, `baMeDungDen`. `may/:id/tuan-thu` thêm `tungCon` (phần tử `ds` của `GET may/:id/con`, chỉ Con đã gán) và sự kiện `doi_con_may`, `khoa_may`, `mo_khoa_may` |
+| `GET con/:id` | `may[]` = máy **nối với Con** (trước: máy riêng + mọi máy dùng chung của nhà); mỗi máy thêm `conDs`, `soCon`, `motCon` |
+
+**Khoá:** theo máy = `POST may/:id/khoa` (mọi Con trên máy đó; máy riêng khác vẫn dùng) · theo Con = `POST con/:id/khoa` (mọi máy của Con; máy chung
+chỉ khoá lúc Con đó đang dùng, bé khác vẫn vào). Không đổi đường — test `may-nhieu-con.test.ts` khoá hành vi.
+
+### Agent / Con — `/api/device/*`
+| Đường | Mô tả |
+|---|---|
+| `GET\|POST ho-so` (bí danh `nguoi-dung`) | `con[]` chỉ gồm Con **nối với máy**, mỗi bé thêm `sao` (số dư hiện có). Thêm `mayChung`, `soCon`, `tenMay`, `motCon` |
+| `POST dang-nhap-be` · `POST chon-con` · `POST quen-pin` | Con không nối với máy ⇒ 404 `khong_thay`. **«Đổi người»**: bé mới vào ⇒ phiên Con của bé trước trên máy xoá + phiên chơi của bé trước trên máy dừng (`het_dang_nhap`) — phút bé trước dừng tính |
+| `POST dang-xuat` / `khoa-lai` | như cũ + phiên chơi của bé vừa ra trên máy dừng |
+| header `X-Phien-Con` | chỉ có hiệu lực khi Con của phiên nối với máy (phiên của bé không gán ⇒ bỏ qua, như không gửi) |
+| `POST ghep {ma, nen, tenMay, maMay?, con?}` · `POST ghep-goi {token, nen, tenMay, maMay?, con?}` | → thêm `conDs[{id, ten, avatar}]`; `dungChung` = nối ≠ 1 Con. iPhone/iPad với mã / gói cài cho nhiều Con: thiếu `con` (hoặc `con` không trong danh sách) ⇒ 409 `ios_mot_con` `{conChon[{id, ten, avatar}], canChon: true}` — mã / gói **không** bị đốt; agent hỏi chọn bé rồi gửi lại kèm `con` |
+
+**Xoá hồ sơ Con (`POST con/:id/xoa`) từ #267:** bé bỏ khỏi mọi máy. Máy còn Con khác ⇒ giữ (máy chung còn ≥ 2 Con vẫn chung). Máy riêng của bé ⇒ nối mọi
+Con còn lại (còn một Con ⇒ máy riêng Con đó) và nằm trong `mayChuyenDungChung`; iPhone/iPad riêng của bé mà nhà còn ≥ 2 Con ⇒ chưa nối ai (máy khoá,
+Ba Mẹ chọn ở `may/:id/con`; trong lúc đó máy khoá, `canChonCon` true).

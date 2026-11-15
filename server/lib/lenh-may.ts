@@ -12,6 +12,7 @@ import { thamSo } from "./cau-hinh.ts";
 import { NEN_TANG, conCua, ghepMayGd, taoMaGhep, type May, type NenTang } from "./gia-dinh.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { bangM4b } from "./tuan-thu.ts";
+import { laMotCon, loiMotCon } from "./may-nhieu-con.ts";
 import { huongDanCai, CACH_GO_TU_XA } from "./chuyen-doi.ts";
 import type { BaMe } from "./auth.ts";
 import { chiBaMe } from "./quyen.ts";
@@ -33,11 +34,12 @@ export async function taoGoiCai(fam: string, b: { con?: unknown; nen?: unknown }
 }
 
 /** Agent đổi token gói cài ⇒ token máy (một lần). */
-export async function doiGoiCai(token: string, nen: string, tenMay: string, now = new Date(), maMay?: unknown) {
+export async function doiGoiCai(token: string, nen: string, tenMay: string, now = new Date(), maMay?: unknown, chon?: unknown) {
   await bangM4b();
   const h = sha(String(token ?? ""));
-  const g = await one<{ family_id: string; child_id: string | null; platform: string; expires_at: Date; used_at: Date | null; giong_may: string | null; ma_ghep: string | null }>(
-    `select family_id, child_id, platform, expires_at, used_at, giong_may, ma_ghep from goi_cai where token_hash = $1`, [h]);
+  const g = await one<{ family_id: string; child_id: string | null; platform: string; expires_at: Date; used_at: Date | null; giong_may: string | null;
+    ma_ghep: string | null; con_ds: string[] | null }>(
+    `select family_id, child_id, platform, expires_at, used_at, giong_may, ma_ghep, con_ds from goi_cai where token_hash = $1`, [h]);
   if (!g) throw new LoiNghiepVu("ma_sai", "Gói cài không hợp lệ — tải lại gói mới từ app Ba Mẹ", 404);
   if (g.used_at) throw new LoiNghiepVu("ma_da_dung", "Gói cài này đã dùng rồi — tải gói mới từ app Ba Mẹ", 409);
   if (new Date(g.expires_at) < now) throw new LoiNghiepVu("ma_het_han", "Gói cài đã hết hạn — tải gói mới từ app Ba Mẹ", 410);
@@ -51,7 +53,15 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
   if (g.ma_ghep) await q(`update pair_codes set used_at = coalesce(used_at, $3) where code = $1 and goi_cai = $2`, [g.ma_ghep, h, now]);
   let kq: Awaited<ReturnType<typeof ghepMayGd>>;
   try {
-    kq = await ghepMayGd(await taoMaGhep(g.family_id, g.child_id, nen, { giongMay: g.giong_may }), nen, tenMay, maMay);
+    // con_ds (#267): gói cài cho nhiều Con. iPhone/iPad chỉ một Con ⇒ agent gửi `chon` (một id trong danh sách) — thiếu ⇒ 409 ios_mot_con kèm conChon
+    let conMa = g.child_id, conDs = g.con_ds?.length ? g.con_ds : null;
+    if (conDs && laMotCon(nen)) {
+      const c = String(chon ?? "").trim();
+      if (!conDs.includes(c)) throw loiMotCon({ canChon: true,
+        conChon: await q(`select id, ten, avatar from children where family_id = $1 and id = any($2::text[]) order by created_at`, [g.family_id, conDs]) });
+      conMa = c; conDs = null;
+    }
+    kq = await ghepMayGd(await taoMaGhep(g.family_id, conMa, nen, { giongMay: g.giong_may, conDs }), nen, tenMay, maMay, chon);
   } catch (e) {
     // ghép hỏng ⇒ trả lại link + mã cùng phiên (không để «Đang chờ» treo mãi, không đốt cả hai đường)
     await q(`update goi_cai set used_at = null where token_hash = $1 and device_id is null`, [h]);
@@ -62,8 +72,7 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
   // mã 6 số của cùng «phiên ghép» hết dùng; app Ba Mẹ đang chờ thấy «đã ghép» qua mã đó (ghep-may.ts › trangThaiGhep)
   if (g.ma_ghep) await q(`update pair_codes set device_id = coalesce(device_id, $3) where code = $1 and goi_cai = $2`,
     [g.ma_ghep, h, kq.deviceId]);
-  const c = g.child_id ? await one<{ ten: string }>(`select ten from children where id = $1`, [g.child_id]) : undefined;
-  return { ...kq, ...(c ? { childName: c.ten } : {}) };
+  return kq;
 }
 
 // ---------------------------------------------------------------- lệnh gỡ từ xa

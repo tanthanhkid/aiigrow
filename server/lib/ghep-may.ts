@@ -11,6 +11,7 @@ import { thamSo } from "./cau-hinh.ts";
 import { conCua, MA_GHEP_PHUT, NEN_TANG, taoMaGhep } from "./gia-dinh.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { bangM4b } from "./tuan-thu.ts";
+import { dsConVao, kiemConNha, laMotCon, loiMotCon } from "./may-nhieu-con.ts";
 
 /** Khoá cấu hình Con KHÔNG chép (trạng thái tức thời của chính Con đó, không phải «cài đặt»). */
 const KHONG_CHEP = ["khoa_ngay", "khoa_den", "khoa_mo_tam_den"];
@@ -39,14 +40,20 @@ export async function saoChepCaiDat(t: Q, fam: string, tuMay: string, denCon: st
 
 const hienMaGhep = (ma: string) => `${ma.slice(0, 3)} ${ma.slice(3)}`;
 
-/** POST /api/m/ghep-may {con?, giongMay?, nen?} — một lần «Ghép máy»: mã 6 số (10 phút) + link bộ cài tự ghép + QR + câu chia sẻ.
- *  `nen` bỏ trống (mặc định) = không gắn loại máy. `giongMay`: id máy trong nhà để «Cài giống máy trước». */
-export async function taoPhienGhep(fam: string, b: { con?: unknown; giongMay?: unknown; nen?: unknown }, goc: string, nguoi?: string, now = new Date()) {
+/** POST /api/m/ghep-may {con?, conDs?, giongMay?, nen?} — một lần «Ghép máy»: mã 6 số (10 phút) + link bộ cài tự ghép + QR + câu chia sẻ.
+ *  `nen` bỏ trống (mặc định) = không gắn loại máy. `giongMay`: id máy trong nhà để «Cài giống máy trước».
+ *  #267: `conDs` (hoặc `con` là mảng) = một hay nhiều Con dùng máy; ≥ 2 Con = máy chung (chọn tên + PIN). `nen` ios + ≥ 2 Con ⇒ 409 ios_mot_con;
+ *  `nen` bỏ trống mà máy hoá ra iPhone/iPad ⇒ lúc ghép agent chọn một Con trong danh sách (ghep {chon}). */
+export async function taoPhienGhep(fam: string, b: { con?: unknown; conDs?: unknown; giongMay?: unknown; nen?: unknown }, goc: string, nguoi?: string, now = new Date()) {
   await bangM4b();
-  const con = b.con ? String(b.con).slice(0, 40) : null;
+  let ds = dsConVao(b.conDs);
+  if (!ds.length) ds = dsConVao(b.con);               // conDs rỗng / null ⇒ dùng `con` (chuỗi hoặc mảng)
+  await kiemConNha(q, fam, ds);
+  const con = ds.length === 1 ? ds[0] : null, conDs = ds.length >= 2 ? ds : null;
   const c = con ? await conCua(fam, con) : null;
   const nen = b.nen ? String(b.nen) : "";
   if (nen && !(NEN_TANG as readonly string[]).includes(nen)) throw new LoiNghiepVu("nen_tang_sai", "Chọn loại thiết bị");
+  if (conDs && laMotCon(nen)) throw loiMotCon({ toiDa: 1 });
   let giongMay: string | null = null;
   if (b.giongMay) {
     const m = await one<{ id: string }>(`select id from devices where id = $1 and family_id = $2`, [String(b.giongMay), fam]);
@@ -56,27 +63,27 @@ export async function taoPhienGhep(fam: string, b: { con?: unknown; giongMay?: u
   const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [fam]))!;
   const hetGoi = new Date(now.getTime() + thamSo(f.cau_hinh).goi_cai_gio * 3600_000);
   const token = taoToken(), bam = sha(token);
-  const ma = await taoMaGhep(fam, con, nen, { giongMay, nguoi: nguoi ?? null, goiCai: bam });
+  const ma = await taoMaGhep(fam, con, nen, { giongMay, nguoi: nguoi ?? null, goiCai: bam, conDs });
   await q(`delete from goi_cai where expires_at < $1::timestamptz - interval '7 days'`, [now]);
-  await q(`insert into goi_cai(token_hash, family_id, child_id, platform, expires_at, nguoi, giong_may, ma_ghep) values ($1,$2,$3,$4,$5,$6,$7,$8)`,
-    [bam, fam, con, nen, hetGoi, nguoi ?? null, giongMay, ma]);
+  await q(`insert into goi_cai(token_hash, family_id, child_id, platform, expires_at, nguoi, giong_may, ma_ghep, con_ds) values ($1,$2,$3,$4,$5,$6,$7,$8,$9::text::jsonb)`,
+    [bam, fam, con, nen, hetGoi, nguoi ?? null, giongMay, ma, conDs ? JSON.stringify(conDs) : null]);
   const het = (await one<{ expires_at: Date }>(`select expires_at from pair_codes where code = $1`, [ma]))!.expires_at;
   const g = goc.replace(/\/+$/, "");
   // Link mở trang tải: trang tự nhận loại máy, trao `g` cho bộ cài ⇒ bộ cài gọi POST /api/device/ghep-goi {token: g} — tự ghép, không gõ mã.
   const lienKet = `${g}/tai?g=${encodeURIComponent(token)}&ma=${ma}`;
-  const ai = c ? `máy của ${c.ten}` : "máy của con";
+  const ai = c ? `máy của ${c.ten}` : conDs ? "máy dùng chung của các con" : "máy của con";
   await ghiSuKien(fam, "tao_phien_ghep", { het: new Date(het).toISOString(), giong_may: giongMay }, { con, nguoi });
   return {
     ma, maHien: hienMaGhep(ma), het: new Date(het).toISOString(), hanPhut: MA_GHEP_PHUT, conGiay: Math.max(0, Math.round((new Date(het).getTime() - now.getTime()) / 1000)),
-    lienKet, qr: lienKet, tokenGoi: token, hetGoi: hetGoi.toISOString(), con, giongMay,
+    lienKet, qr: lienKet, tokenGoi: token, hetGoi: hetGoi.toISOString(), con, conDs: conDs ?? (con ? [con] : []), mayChung: !!conDs, giongMay,
     chiaSe: { tieuDe: `Cài AiiGrow cho ${ai}`, noiDung: `Mở link này trên ${ai} để cài AiiGrow, máy tự ghép: ${lienKet}\nHoặc nhập mã ${hienMaGhep(ma)} (dùng trong ${MA_GHEP_PHUT} phút).`, lienKet },
   };
 }
 
 /** GET /api/m/ghep-may/:ma — màn «Đang chờ máy của con»: đã ghép chưa (bằng mã hoặc bằng link), máy nào, mã còn bao lâu. */
 export async function trangThaiGhep(fam: string, ma: string, now = new Date()) {
-  const r = await one<{ used_at: Date | null; device_id: string | null; expires_at: Date; child_id: string | null; link_den: Date | null }>(
-    `select p.used_at, p.device_id, p.expires_at, p.child_id,
+  const r = await one<{ used_at: Date | null; device_id: string | null; expires_at: Date; child_id: string | null; link_den: Date | null; con_ds: string[] | null }>(
+    `select p.used_at, p.device_id, p.expires_at, p.child_id, p.con_ds,
             (select g.expires_at from goi_cai g where g.token_hash = p.goi_cai and g.used_at is null) as link_den
        from pair_codes p where p.code = $1 and p.family_id = $2`, [String(ma ?? "").trim(), fam]);
   if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy mã ghép này — lấy mã mới nhé", 404);
@@ -85,6 +92,9 @@ export async function trangThaiGhep(fam: string, ma: string, now = new Date()) {
   const conGiay = Math.max(0, Math.round((new Date(r.expires_at).getTime() - now.getTime()) / 1000));
   // mã 6 số hết 10 phút nhưng link cùng phiên còn hạn ⇒ chưa «hết hạn» (máy mở link muộn vẫn tự ghép, màn «Đang chờ» tiếp tục hỏi)
   const linkConHan = !!r.link_den && new Date(r.link_den).getTime() > now.getTime();
+  // conDs: Con của mã (#267); máy đã ghép ⇒ Con THẬT nối với máy (iPhone/iPad ghép mã nhiều Con chỉ nối một)
+  const conDs = may ? (await q<{ child_id: string }>(`select child_id from device_children where device_id = $1 order by created_at, child_id`, [may.id])).map((x) => x.child_id)
+    : dsConVao(r.con_ds).length ? dsConVao(r.con_ds) : r.child_id ? [r.child_id] : [];
   return { daGhep: !!r.used_at && !!r.device_id, hetHan: !r.used_at && conGiay === 0 && !linkConHan, conGiay, maHetHan: conGiay === 0, linkConHan, con: r.child_id,
-    may: may ? { id: may.id, ten: may.name, nen: may.platform } : null };
+    conDs, may: may ? { id: may.id, ten: may.name, nen: may.platform } : null };
 }

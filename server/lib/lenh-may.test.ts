@@ -57,7 +57,8 @@ test("gói cài: token một lần, có hạn, chỉ lưu băm; agent đổi l�
   const g2 = (await dv("ghep-goi", { body: { token: gc2.token, nen: "windows", tenMay: "PC 3" } })).body;
   assert.ok(g2.token && g2.childName === "Ken");
   assert.equal((await dv("ghep-goi", { body: { token: gc2.token, nen: "windows" } })).status, 409);
-  // máy dùng chung + cách cũ
+  // máy dùng chung + cách cũ (#267: máy chung = ≥ 2 Con — gói cài không gắn Con ⇒ mọi Con trong nhà)
+  await g.taoCon(fam, { ten: "Mi" });
   const chung = (await m("goi-cai", { tok: bmTok, body: { nen: "android" } })).body;
   assert.equal((await dv("ghep", { body: { token: chung.token, nen: "android", tenMay: "Máy tính bảng" } })).body.dungChung, true);
   assert.ok(chung.cai.chiTiet.qrCaiDat["android.app.extra.PROVISIONING_ADMIN_EXTRAS_BUNDLE"].aiigrow_token === chung.token);

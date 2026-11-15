@@ -89,7 +89,7 @@ export async function datAppChoPhep(fam: string, con: string, ds: unknown, nguoi
     // «Thêm app khác»: app thật máy của Con đã báo có tên khớp ⇒ ghi luật ngay
     if (!khoaTen(ten)) continue;
     that ??= await t<{ muc: string; ten: string }>(
-      `select distinct a.muc, a.ten from app_may a join devices d on d.id = a.device_id where d.family_id = $1 and (d.child_id = $2 or d.dung_chung)`, [fam, con]);
+      `select distinct a.muc, a.ten from app_may a join devices d on d.id = a.device_id where d.family_id = $1 and exists (select 1 from device_children x where x.device_id = d.id and x.child_id = $2)`, [fam, con]);
     const khop = that.filter((a) => khoaTen(a.ten) === khoaTen(ten) && !laHeThong(a.muc, he));    // mục hệ thống luôn mở sẵn
     for (const a of khop) await datLuat(fam, { con, muc: a.muc, ten: a.ten, loai, nhom }, t);
     await t(`insert into app_theo_ten(child_id, family_id, ten, ten_khoa, tinh_gio, khop_luc) values ($1,$2,$3,$4,$5,$6)

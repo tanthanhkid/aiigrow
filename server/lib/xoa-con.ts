@@ -14,6 +14,7 @@ import { ghiSuKien } from "./nhat-ky.ts";
 import { damBaoBang, ghiKiemToan } from "./admin.ts";
 import { bangM4b } from "./tuan-thu.ts";
 import { bangMang } from "./dns-gia-dinh.ts";
+import { dongBoCotCu, ghiNoi, idConMay, laMotCon } from "./may-nhieu-con.ts";
 
 export type KetQuaXoaCon = { ok: true; ten: string; mayChuyenDungChung: { id: string; ten: string }[] };
 
@@ -26,7 +27,9 @@ export async function xoaCon(fam: string, con: string, b: { xacNhan?: unknown },
     await t(`select id from families where id = $1 for update`, [fam]);
     const c = (await t<{ ten: string }>(`select ten from children where id = $1 and family_id = $2 for update`, [con, fam]))[0];
     if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-    const may = await t<{ id: string; name: string }>(`select id, name from devices where family_id = $1 and child_id = $2 order by created_at`, [fam, con]);
+    // #267: máy nối với Con này (riêng hoặc chung)
+    const mayNoi = await t<{ id: string; name: string; platform: string }>(`select d.id, d.name, d.platform from devices d join device_children x on x.device_id = d.id
+      where d.family_id = $1 and x.child_id = $2 order by d.created_at`, [fam, con]);
     const conKhac = (await t(`select 1 from children where family_id = $1 and id <> $2 limit 1`, [fam, con])).length > 0;
     // Thiết bị mạng đứng riêng (TV, console — dns_thiet_bi không có máy AiiGrow) gắn Con này: bỏ gắn ⇒ resolver dựng chính sách «không Con»
     // gần như mở hết ⇒ chặn, Ba Mẹ gắn cho Con khác / xoá thiết bị mạng trước
@@ -38,9 +41,25 @@ export async function xoaCon(fam: string, con: string, b: { xacNhan?: unknown },
       union all select ten from dns_thiet_bi where family_id = $1 and device_id is null`, [fam]);
     if (mayNha.length) throw new LoiNghiepVu("con_may",
       `Nhà còn ${mayNha.length} máy đã ghép: ${mayNha.map((m) => m.name).join(", ")}. ${c.ten} là bé cuối — gỡ máy trước (mở máy › Gỡ máy này) hoặc thêm Con khác rồi mới xoá hồ sơ.`, 409);
-    // máy riêng ⇒ dùng chung (chọn tên); máy dùng chung đang có bé này đăng nhập ⇒ thả ra
-    await t(`update devices set child_id = null, dung_chung = true where family_id = $1 and child_id = $2`, [fam, con]);
+    // #267: bỏ nối Con này khỏi mọi máy. Máy RIÊNG của bé (bé là Con duy nhất) ⇒ nối mọi Con còn lại (= máy dùng chung như trước 15/11;
+    // còn đúng một Con ⇒ máy riêng của Con đó). iPhone/iPad chỉ một Con: nhà còn đúng một Con ⇒ nối Con đó, nhiều Con ⇒ chưa nối ai (máy khoá,
+    // Ba Mẹ chọn ở «Máy này ai dùng?»). Máy dùng chung đang có bé này đăng nhập ⇒ thả ra.
+    const conConLai = (await t<{ id: string }>(`select id from children where family_id = $1 and id <> $2 order by created_at`, [fam, con])).map((r) => r.id);
+    const may: { id: string; ten: string }[] = [];          // máy riêng của bé ⇒ chuyển (app gợi ý «Gắn cho Con khác / Gỡ máy»)
+    for (const m of mayNoi) {
+      const conLai = (await idConMay(m.id, t)).filter((x) => x !== con);
+      if (conLai.length) { await t(`delete from device_children where device_id = $1 and child_id = $2`, [m.id, con]); await dongBoCotCu(t, m.id); continue; }
+      may.push({ id: m.id, ten: m.name });
+      await ghiNoi(t, { id: m.id, family_id: fam }, laMotCon(m.platform) ? (conConLai.length === 1 ? conConLai : []) : conConLai);
+    }
     await t(`update devices set con_dang_dung = null, dang_nhap_luc = null where family_id = $1 and con_dang_dung = $2`, [fam, con]);
+    // #267: mã / gói cài ghép cho NHIỀU Con (con_ds) có bé này ⇒ bỏ bé khỏi mảng; còn 1 ⇒ về child_id; rỗng ⇒ mã chưa dùng bị huỷ
+    for (const bang of ["pair_codes", "goi_cai"]) {
+      await t(`update ${bang} set con_ds = con_ds - $2 where family_id = $1 and con_ds is not null and con_ds ? $2`, [fam, con]);
+      await t(`update ${bang} set child_id = con_ds->>0, con_ds = null where family_id = $1 and con_ds is not null and jsonb_array_length(con_ds) = 1`, [fam]);
+      await t(`delete from ${bang} where family_id = $1 and con_ds is not null and jsonb_array_length(con_ds) = 0 and used_at is null`, [fam]);
+      await t(`update ${bang} set con_ds = null where family_id = $1 and con_ds is not null and jsonb_array_length(con_ds) = 0`, [fam]);
+    }
     // gói cài CHƯA dùng của Con ⇒ xoá (link còn hạn không ghép được máy mới vào nhà không còn Con); đã dùng ⇒ chỉ bỏ gắn
     await t(`delete from goi_cai where family_id = $1 and child_id = $2 and used_at is null`, [fam, con]);
     await t(`update goi_cai set child_id = null where family_id = $1 and child_id = $2`, [fam, con]);
@@ -58,6 +77,6 @@ export async function xoaCon(fam: string, con: string, b: { xacNhan?: unknown },
     await t(`delete from children where id = $1 and family_id = $2`, [con, fam]);
     await ghiSuKien(fam, "xoa_con", { ten: c.ten, so_may: may.length }, { nguoi }, t);
     await ghiKiemToan(null, "xoa_con", { con, soMay: may.length, nguoi }, fam, t);
-    return { ok: true as const, ten: c.ten, mayChuyenDungChung: may.map((m) => ({ id: m.id, ten: m.name })) };
+    return { ok: true as const, ten: c.ten, mayChuyenDungChung: may };
   });
 }

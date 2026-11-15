@@ -7,7 +7,8 @@
 // Máy chưa từng gửi nhịp (agent M4 cũ chỉ dong-bo) ⇒ «chua_co_nhip»: không khoá (tương thích), Ba Mẹ thấy rõ trạng thái này.
 import { one, q, type Q, sanSang } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { dangKhoa, khoaMayHieuLuc, thamSo, type ThamSo } from "./cau-hinh.ts";
+import { dangKhoa, khoaDen, khoaMayHieuLuc, thamSo, type ThamSo } from "./cau-hinh.ts";
+import { conMay, tomTatNoi } from "./may-nhieu-con.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { chiTietBaoVe, type May } from "./gia-dinh.ts";
@@ -220,6 +221,7 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
   if (!o.nhe) await quetMatNhip(fam, now);
   const ds = await q<May>(`select * from devices where family_id = $1 order by created_at`, [fam]);
   const cfgCon = new Map((await q<{ id: string; c: Record<string, unknown> }>(`select id, cau_hinh as c from children where family_id = $1`, [fam])).map((x) => [x.id, x.c]));
+  const noi = await tomTatNoi(fam, ds, now);
   return Promise.all(ds.map(async (m) => {
     const r = await dongTT(m.id);
     const tt = await tuanThuMay(m, now);
@@ -235,7 +237,11 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
       lenhCho: (await q<{ id: string; loai: string }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho'`, [m.id])),
       // An toàn & gỡ cài đặt: chế độ agent (Ba Mẹ chọn từ xa) + trạng thái gỡ (đang chờ máy nhận lệnh / xoá hẳn được chưa)
       // cheDo: hiển thị (Ba Mẹ chọn, không thì máy báo; null = chưa biết) · cheDoMay: agent THẬT SỰ đang chạy · cheDoBaMeChon: null = chưa chọn
-      cheDo: cheDoCua(m), cheDoMay: cheDoMayBao(m), cheDoBaMeChon: cheDoBaMeChon(m), ...(await trangThaiGo(m, now)) };
+      cheDo: cheDoCua(m), cheDoMay: cheDoMayBao(m), cheDoBaMeChon: cheDoBaMeChon(m), ...(await trangThaiGo(m, now)),
+      // #267: khoá riêng máy này {khoa, den} (trước chỉ ở con/:id) · Con nối với máy · bé đang dùng · số Con · iPhone/iPad (một Con) · Ba Mẹ đang dùng tới
+      khoaMay: { khoa: dangKhoa(m.khoa_may, now), den: khoaDen(m.khoa_may, now) },
+      conDs: noi.get(m.id)?.conDs ?? [], dangDung: noi.get(m.id)?.dangDung ?? null, soCon: noi.get(m.id)?.soCon ?? 0, motCon: noi.get(m.id)?.motCon ?? false,
+      baMeDungDen: m.ba_me_den && new Date(m.ba_me_den).getTime() > now.getTime() ? new Date(m.ba_me_den).toISOString() : null };
   }));
 }
 
@@ -243,9 +249,11 @@ export async function chiTietTuanThu(fam: string, mayId: string, now = new Date(
   await mayCua(fam, mayId);
   const may = (await dsTuanThu(fam, now)).find((x) => x.id === mayId)!;
   const suKien = await q(`select loai, chi_tiet, nguoi, created_at from events where family_id = $1 and device_id = $2 and
-      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline','doi_che_do','doi_ten_may','may_chuyen_nha')
+      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline','doi_che_do','doi_ten_may','may_chuyen_nha','doi_con_may','khoa_may','mo_khoa_may')
       order by created_at desc, seq desc limit 50`, [fam, mayId]);
-  return { ...may, suKien };
+  // #267 «Máy cả nhà · chi tiết»: từng Con đã gán (sao, phút hôm nay trên máy này, lần cuối, khoá theo Con) — đủ danh sách nhà ở GET may/:id/con
+  const tungCon = (await conMay(fam, mayId, now)).ds.filter((c) => c.gan);
+  return { ...may, tungCon, suKien };
 }
 
 /** Ba Mẹ mở khẩn cấp (có hạn, ghi nhật ký, báo các Ba Mẹ khác). Chỉ gỡ khoá do KHÔNG TUÂN THỦ; khoá ngay / giờ ngủ / điểm vẫn giữ. */
