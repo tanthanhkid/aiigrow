@@ -12,6 +12,7 @@ import type { May } from "./gia-dinh.ts";
  *  Đồng hồ là giờ thật (máy ngủ vẫn tính). */
 export const CHU_KY_KIEM_PHUT = 15;
 
+// 0.2.19 (15/11, sao = phút, vay sao, Mở hết / Theo danh sách, máy chung theo bé — PR #277): exe từ CI agent-win run 43700041925 (job build goc, main 7ff7691b), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.19.
 // 0.2.18 (14/11, khớp thiết kế 14/11 phía Con; PR #240, bản #245): exe từ CI agent-win run 43568022758 (job build goc, main 2688a3a), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.18.
 // 0.2.17 (11/11, sửa 0.2.16: HostsWorker đọc windows.moHet; PR #231): exe từ CI agent-win run 42991084389 (job build goc, main 7ea132b), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.17.
 // 0.2.16 (11/11, «Mở hết» gỡ chặn web ngoài AiiGrow trong tệp hosts; PR #229): exe từ CI agent-win run 42979852301 (job build goc, PR head trên main 339e67b), e2e xanh; sha256 đo trên tệp tải về từ Release v0.2.16.
@@ -22,24 +23,25 @@ export const CHU_KY_KIEM_PHUT = 15;
 // (0.2.12: run 40648893556, commit ae9f0c1, PR #171.)
 export const BAN_AGENT_WINDOWS = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
-  version: "0.2.18",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.18.exe",
-  sha256: "b17a96202c4cafb27846a065338e78e4a8b5b322ecedf03cb17f382a07aa05bb",
+  version: "0.2.19",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.19.exe",
+  sha256: "935999e4981f0c79f35a6493ee6dd9113429de5201e315535c9245449d0851c2",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
  *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
  *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + theo chuKyKiemPhut từ 0.1.6, bản cũ hơn mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
  *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
+// 0.1.12 (15/11, sao = phút, vay sao, Mở hết / Theo danh sách, máy chung theo bé — PR #275 #280): build-pkg.sh từ 3a0e311b, notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.12.
 // 0.1.11 (14/11, khớp thiết kế 14/11 phía Con — PR #240, bản #248): build-pkg.sh từ c75e858, notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.11.
 // 0.1.10 (07/11, ví quà /vi-qua): build-pkg.sh từ c8b8d87, notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.10.
 // 0.1.8 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN — PR #185): build-pkg.sh trên Mac của Thanh từ commit 3a43ca0 (tag phathanh-0511-src, PR #190, trên main 87be9d6),
 // notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.8. (0.1.7: commit 562fabc, PR #174 + #176.)
 export const BAN_AGENT_MAC = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
-  version: "0.1.11",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.11.pkg",
-  sha256: "4b59536731a18746a28294ade1fc77bcffee2125c6ca7e823797473191e35de0",
+  version: "0.1.12",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.12.pkg",
+  sha256: "0a39be2ff9b4e9a30953138a1c3df60de071f83e6856794321f35500845721cd",
 } as const;
 
 /** Bản app Con Android (agent-android, vn.aiilab.aiigrow.con, APK ký khoá phát hành aiigrow-con — chứng chỉ SHA-256 ED:65:…:C5:93).
@@ -49,15 +51,16 @@ export const BAN_AGENT_MAC = {
  *  Phát bản: tăng versionCode/versionName trong agent-android/app/build.gradle.kts → assembleRelease (ky.env) → `gh release create
  *  con-android-<bản>` ở tanthanhkid/aiigrow-tai, tệp AiiGrow-Con-android.apk → điền ba giá trị dưới (sha256 của đúng tệp tải về từ Release)
  *  → sửa redirect /tai/aiigrow-con.apk trong next.config. versionCode PHẢI khớp APK (app kiểm, lệch ⇒ không cài). */
+// 0.3.0 (15/11, sao = phút, vay sao, Mở hết / Theo danh sách, máy chung theo bé — PR #273): assembleRelease khoá aiigrow-con từ 3a0e311b; sha256 đo trên tệp tải về từ Release con-android-0.3.0.
 // 0.2.6 (14/11, khớp thiết kế 14/11 — PR #239, bản #248): assembleRelease khoá aiigrow-con từ c75e858; sha256 đo trên tệp tải về từ Release con-android-0.2.6.
 // 0.2.5 (07/11, bản Dịu + PIN theo bé): assembleRelease khoá aiigrow-con từ c8b8d87; sha256 đo trên tệp tải về từ Release con-android-0.2.5.
 // 0.2.4 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN, sao — PR #185): assembleRelease khoá aiigrow-con từ commit 3a43ca0 (tag phathanh-0511-src, PR #190);
 // sha256 đo trên tệp tải về từ Release con-android-0.2.4. (0.2.3: commit 68d44f6, PR #128.)
 export const BAN_CON_ANDROID = {
-  version: "0.2.6",
-  versionCode: 8,
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.2.6.apk",
-  sha256: "7729b3add16010ebe543bc3452db880b87e981f2cb483154dc8d292d79b51415",
+  version: "0.3.0",
+  versionCode: 9,
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.3.0.apk",
+  sha256: "94c1ff78fc488140a3c92bad0b39b766decbdf63a115805bc7741900ff93d960",
 } as const;
 
 /** Đổi host của URL gói sang CHÍNH máy chủ được hỏi (`origin` https — vd staging): agent Mac/Android chỉ nhận gói cùng host với máy chủ
