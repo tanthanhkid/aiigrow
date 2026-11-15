@@ -29,6 +29,12 @@ data class Lenh(val id: String, val loai: String)
 data class Quy(val ngayPhut: Int, val themPhut: Int, val daDung: Int, val conPhut: Int, val dangHoc: Boolean, val phut10Sao: Int = 10) {
     val tongPhut get() = ngayPhut + themPhut
 }
+/** 15/11 (#263/#264 — docs/API.md «Sổ sao 15/11»): sổ sao của bé đang dùng máy. `sao` = số dư Con thấy (ÂM khi nợ Ba Mẹ),
+ *  `phutCon` = sao tiêu được = phút «Tính phút» còn chơi (1 sao = 1 phút), `hetSao` ⇒ khoá nhóm «Tính phút». */
+data class Sao(
+    val sao: Int, val no: Int, val phutCon: Int, val saoVayChuaTieu: Int = 0, val hetSao: Boolean = phutCon <= 0, val canhBaoNo: Boolean = false,
+    val cauSoDu: String? = null, val cauPhut: String? = null, val cauNo: String? = null,
+)
 /** Giờ học: chỉ app Học (thu 0 = CN). */
 data class GioHoc(val tu: String, val den: String, val thu: List<Int>) { val khung get() = Khung(tu, den) }
 /** Ngoại lệ Ba Mẹ mở: `muc` null = cả máy; `nhom` = nhóm máy (may_tinh | ios | android). */
@@ -61,7 +67,15 @@ data class ChinhSach(
     val chuaXepChoPhep: Boolean = false,
     /** Web luôn chặn (người lớn, cờ bạc, bạo lực) — chặn ở mọi chế độ. */
     val webLuonChan: List<String> = emptyList(),
-)
+    // ---- 15/11 (máy chủ cũ không gửi ⇒ null ⇒ chạy luật quỹ / luật cũ)
+    /** Sổ sao (`chinhSach.sao`); null = máy chủ cũ hoặc máy dùng chung chưa chọn bé. */
+    val sao: Sao? = null,
+    /** #262 `ungDung.cheDo`: `theo_danh_sach` | `mo_het`; null = máy chủ trước App & web 15/11 (khi đó «mo_het» cũ vẫn tính phút). */
+    val cheDo: String? = null,
+) {
+    /** «Mở hết» kiểu 15/11: không chặn gì, không tính phút. Chỉ khi máy chủ gửi `cheDo` (máy chủ cũ: Mở hết vẫn đếm phút giải trí). */
+    val moHet: Boolean get() = cheDo == "mo_het"
+}
 
 /** Phản hồi nhịp đã đọc. `grantEndsAt`: hạn «thêm giờ được duyệt» — xem CAN-SERVER.md (nhịp Android chưa trả trường này). */
 data class PhanHoiNhip(
@@ -157,7 +171,19 @@ fun docChinhSach(o: JSONObject): ChinhSach {
         },
         chuaXepChoPhep = u.optString("chuaXep") == "cho_phep",
         webLuonChan = u.optJSONArray("webLuonChan").chuoiDs(),
+        sao = docSao(o.optJSONObject("sao")),
+        cheDo = u.chuoi("cheDo")?.takeIf { it == "mo_het" || it == "theo_danh_sach" },
     )
+}
+
+/** `{sao, no, phutCon, saoVayChuaTieu, hetSao, canhBaoNo, cau {soDu, phut, no}}` (Policy / chính sách chung / hoc-vien/sao). */
+fun docSao(o: JSONObject?): Sao? {
+    if (o == null || !o.has("sao") || !o.has("phutCon")) return null
+    val c = o.optJSONObject("cau")
+    val phut = o.optInt("phutCon", 0).coerceAtLeast(0)
+    return Sao(o.optInt("sao", 0), o.optInt("no", 0).coerceAtLeast(0), phut, o.optInt("saoVayChuaTieu", 0).coerceAtLeast(0),
+        if (o.has("hetSao")) o.optBoolean("hetSao") else phut <= 0, o.optBoolean("canhBaoNo"),
+        c?.chuoi("soDu"), c?.chuoi("phut"), c?.chuoi("no"))
 }
 
 fun docPhanHoiNhip(s: String): PhanHoiNhip {

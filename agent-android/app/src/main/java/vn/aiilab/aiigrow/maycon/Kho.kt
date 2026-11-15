@@ -57,6 +57,8 @@ class Kho(ctx: Context) {
     var yeuCauId: String? get() = p.getString("yeuCauId", null); set(v) = p.edit().putString("yeuCauId", v).apply()
     var yeuCauPhut: Int get() = p.getInt("yeuCauPhut", 0); set(v) = p.edit().putInt("yeuCauPhut", v).apply()
     var yeuCauLuc: Long get() = p.getLong("yeuCauLuc", 0); set(v) = p.edit().putLong("yeuCauLuc", v).apply()
+    /** 15/11: lời xin đang theo dõi là xin vay sao (`yeuCauPhut` = số sao). */
+    var yeuCauVay: Boolean get() = p.getBoolean("yeuCauVay", false); set(v) = p.edit().putBoolean("yeuCauVay", v).apply()
     var yeuCauTrangThai: String? get() = p.getString("yeuCauTrangThai", null); set(v) = p.edit().putString("yeuCauTrangThai", v).apply()
     /** Phiên điểm máy này biết là đã hết (luật nhớ còn `phienDiem.phien` cũ khi nhịp máy lỗi ⇒ bỏ qua). */
     var phienHet: String? get() = p.getString("phienHet", null); set(v) = p.edit().putString("phienHet", v).apply()
@@ -71,6 +73,11 @@ class Kho(ctx: Context) {
     var demPin: String? get() = p.getString("demPin", null); set(v) = p.edit().putString("demPin", v).apply()
     var viecCho: String? get() = p.getString("viecCho", null); set(v) = p.edit().putString("viecCho", v).apply()
     /** Máy dùng chung: mốc phút giải trí cả máy lúc bé hiện tại vào (logic/PinBe.kt › MocPhut, JSON). */
+    /** 15/11: sổ phút theo bé (logic/SoPhutBe.kt) — gửi `dong-bo {usage[].con, phutBoiMa}` để máy chủ trừ sao. */
+    var soPhutBe: String? get() = p.getString("soPhutBe", null); set(v) = p.edit().putString("soPhutBe", v).apply()
+    /** 15/11: lời xin vay sao lưu lúc mất mạng (thân JSON) — có mạng là gửi (them-qpj5mdyr «Đã lưu lời xin»). */
+    var xinVayCho: String? get() = p.getString("xinVayCho", null); set(v) = p.edit().putString("xinVayCho", v).apply()
+    var xinVayChoLuc: Long get() = p.getLong("xinVayChoLuc", 0); set(v) = p.edit().putLong("xinVayChoLuc", v).apply()
     var mocBe: String? get() = p.getString("mocBe", null); set(v) = p.edit().putString("mocBe", v).apply()
     var lanDoiNguoi: Long get() = p.getLong("lanDoiNguoi", 0); set(v) = p.edit().putLong("lanDoiNguoi", v).apply()
 
@@ -110,14 +117,20 @@ data class HienThi(
     val goiChuaXep: Set<String> = emptySet(),
     /** 06/11 L13: cổng PIN (logic/PinBe.kt › Cong.name) — CHON_TEN ⇒ màn khoá hiện chọn tên + PIN; BA_ME ⇒ «Ba Mẹ đang dùng máy» tới `baMeDen`. */
     val cong: String = "MO", val baMeDen: Long = 0,
+    /** 15/11 sổ sao: số dư Con thấy (âm khi nợ; null = máy chủ cũ), nợ Ba Mẹ, chế độ «Mở hết» (không chặn, không tính phút). */
+    val soDu: Int? = null, val no: Int = 0, val moHet: Boolean = false,
 ) {
+    /** Máy chủ có sổ sao (1 sao = 1 phút) — giao diện nói «sao» thay «phút chơi hôm nay». */
+    val coSao: Boolean get() = soDu != null
+
     fun json(): String = JSONObject()
         .put("trangThai", trangThai).put("conPhut", conPhut).put("cauCon", cauCon).put("moLaiLuc", moLaiLuc)
         .put("khoaCaMay", khoaCaMay).put("demNguoc", demNguoc).put("dangKhoaThat", dangKhoaThat)
         .put("goiChan", JSONArray(goiChan.toList()))
         .put("dungTop", JSONArray(dungTop.map { JSONObject().put("goi", it.first).put("phut", it.second) }))
         .put("capNhat", capNhat).put("deviceOwner", deviceOwner).put("tenCon", tenCon ?: "")
-        .put("goiChuaXep", JSONArray(goiChuaXep.toList())).put("cong", cong).put("baMeDen", baMeDen).toString()
+        .put("goiChuaXep", JSONArray(goiChuaXep.toList())).put("cong", cong).put("baMeDen", baMeDen)
+        .apply { soDu?.let { put("soDu", it) } }.put("no", no).put("moHet", moHet).toString()
 
     companion object {
         fun doc(s: String?): HienThi? = try {
@@ -131,6 +144,7 @@ data class HienThi(
                     o.optLong("capNhat"), o.optBoolean("deviceOwner"), o.optString("tenCon").ifBlank { null },
                     (o.optJSONArray("goiChuaXep") ?: JSONArray()).let { a -> (0 until a.length()).map { a.optString(it) }.toSet() },
                     o.optString("cong", "MO").ifBlank { "MO" }, o.optLong("baMeDen"),
+                    if (o.has("soDu")) o.optInt("soDu") else null, o.optInt("no"), o.optBoolean("moHet"),
                 )
             }
         } catch (_: Exception) { null }
@@ -138,6 +152,7 @@ data class HienThi(
         fun tu(qd: QuyetDinh, demNguoc: Int, dungTop: List<Pair<String, Int>>, now: Long, deviceOwner: Boolean, tenCon: String?) = HienThi(
             qd.trangThai.name, qd.conPhut, qd.cauCon, qd.moLaiLuc?.toEpochMilli() ?: 0, qd.khoaCaMay, demNguoc,
             demNguoc == 0 && vn.aiilab.aiigrow.maycon.logic.laKhoa(qd.trangThai), qd.goiChan, dungTop, now, deviceOwner, tenCon, qd.goiChuaXep,
+            soDu = qd.soDu, no = qd.no, moHet = qd.moHet,
         )
     }
 }

@@ -8,7 +8,7 @@ Tinh thần như `agent-mac/THIET-KE.md`: chỉ dùng cơ chế chính thức c�
 | Tệp | Việc |
 |---|---|
 | `logic/ChinhSach.kt` | đọc phản hồi `POST /api/device/nhip` (ChinhSachChung + lenh + grantEndsAt) — thuần JVM |
-| `logic/QuyetDinh.kt` | quyết trạng thái (bình thường / thêm giờ / hết giờ / ngoài khung / không tuân thủ / giờ ngủ / khoá ngay), gói phải chặn, phút còn, đếm ngược 60 giây |
+| `logic/QuyetDinh.kt` | quyết trạng thái (bình thường / thêm giờ / hết giờ / ngoài khung / không tuân thủ / giờ ngủ / khoá ngay), gói phải chặn, phút còn, đếm ngược 60 giây | · 15/11 (`chinhSach.sao` có mặt): 1 sao = 1 phút cho nhóm «Tính phút», hết sao ⇒ `HET_GIO` (= hết sao, chỉ dừng «Tính phút»); «Theo danh sách» chặn app ngoài danh sách; «Mở hết» (`ungDung.cheDo`) không chặn, không đếm; bỏ giờ ngủ / giờ học / ngoại lệ / khung giờ
 | `logic/DemPhut.kt` | đếm phút tiền cảnh theo app từ sự kiện UsageStats; thân ghép / nhịp / xin thêm giờ |
 | `DichVuNhip` | dịch vụ tiền cảnh: vòng 5 giây, gọi máy chủ mỗi 60 giây, đo → quyết → thực thi, thông báo thường trực, mở màn khoá |
 | `NenTang.kt` | `UngDung` (hẹn WorkManager 15 phút), `ViecNhip`, `KhoiDong` (BOOT_COMPLETED), `ManCaiDat` (cài QR Android 10+) |
@@ -16,7 +16,8 @@ Tinh thần như `agent-mac/THIET-KE.md`: chỉ dùng cơ chế chính thức c�
 | `QuanTri` | DeviceAdminReceiver `vn.aiilab.aiigrow.con/vn.aiilab.aiigrow.maycon.QuanTri` |
 | `ThucThi` | Device Owner: `setPackagesSuspended`, `setLockTaskPackages`, hạn chế người dùng, Chrome `URLBlocklist`, DNS riêng tư, `lockNow`; gỡ từ xa |
 | `TroNang` | AccessibilityService (đường không reset): app bị chặn lên tiền cảnh ⇒ về Home + phủ màn chặn; khoá cả máy ⇒ phủ màn khoá |
-| `ManChinh` / `ManKhoa` | màn Con (còn phút, xin 30/60/120 + lời nhắn, đã dùng gì, ghép mã 6 số, cấp quyền) / màn khoá + đếm ngược |
+| `ManChinh` / `ManKhoa` | màn Con (15/11: «Còn 18 sao = 18 phút chơi», số âm + «Đang nợ Ba Mẹ M sao», «Sao của con», «Xin Ba Mẹ cho vay sao» 10/15/30 — mất mạng thì lưu, có mạng gửi; «Mở hết» không tính phút; máy chủ cũ: còn phút / xin thêm giờ) / màn khoá + đếm ngược («Hết sao rồi»: Làm nhiệm vụ kiếm sao / Xin Ba Mẹ cho vay sao; app ngoài danh sách: «Roblox chưa có trong danh sách» + «Xin Ba Mẹ mở Roblox») |
+| `logic/SoPhutBe.kt` | 15/11 (#264/#267): sổ phút theo bé ⇒ `POST dong-bo {usage[].con, phutBoiMa}` mỗi nhịp (máy chủ trừ sao 1 sao = 1 phút; nhịp Android chỉ lưu phút cho Ba Mẹ xem). «Đổi bé / Đăng xuất» chốt phút bé trước rồi gửi ngay. Phút app «Tính phút» lúc mở bằng mã offline ⇒ `phutBoiMa` (không trừ sao) |
 | `logic/MaOffline.kt` · `MoMaOffline` | mã mở khi mất mạng (TOTP như `server/lib/ma-offline.ts`, `agent-win` `MaOffline.cs` / `MoTamOffline.cs`): bí mật đến trong nhịp (`maOfflineBiMat`), ô nhập trên màn khoá / màn phủ khi mất mạng > 3 phút; mở 60 phút, sai 5 lần / 10 phút phải chờ, có mạng lại ⇒ hết lượt |
 | `logic/NhacGio.kt` | nhắc «Còn 5 phút» / «Còn 1 phút» (kênh thông báo ưu tiên cao «Nhắc giờ») + thông báo đồng hồ đếm ngược khi bắt đầu 60 giây trước khoá |
 | `NhatKy` · `logic/HangDoi.kt` | nhật ký agent ⇒ `POST /api/device/log`, sự kiện (`mo_ma_offline`, `sai_ma_offline`, `het_ma_offline`) ⇒ `POST /api/device/su-kien`; hàng đợi tệp, gửi bù sau nhịp thành công (≤ mỗi 2 phút), che token |
