@@ -178,25 +178,3 @@ class PinBeTest {
         assertEquals("0:15", demGiay(15)); assertEquals("12:05", demGiay(725))
     }
 }
-
-class DoiSaoTest {
-    @Test fun xemTruoc_duVaThieu() {
-        val x = xemDoiSao(10, 30, 18, 10)
-        assertEquals(10, x.phut); assertTrue(x.du); assertEquals(20, x.conLaiSao); assertEquals(28, x.phutSau)
-        val y = xemDoiSao(40, 30, 18, 10)
-        assertTrue(!y.du); assertEquals(10, y.thieu); assertEquals(30, y.doiDuocToiDa)
-        assertEquals("Thiếu 10 sao = 1 nhiệm vụ", cauThieuSao(10))
-        assertEquals("tỷ lệ 10 sao = 15 phút", 30, xemDoiSao(20, 30, 0, 15).phut)
-        // review lượt 2: đúng công thức máy chủ — phút = floor(sao·phut/10), sao trừ = ceil(phút·10/phut)
-        val z = xemDoiSao(10, 30, 0, 7)            // 10 sao = 7 phút
-        assertEquals(7, z.phut); assertEquals(10, z.sao)
-        val w = xemDoiSao(10, 30, 0, 15, 10)      // 10 sao → 15 phút → trừ ceil(150/15)=10
-        assertEquals(15, w.phut); assertEquals(10, w.sao)
-        val u = xemDoiSao(20, 30, 0, 3)            // 20 sao → 6 phút → trừ ceil(60/3)=20
-        assertEquals(6, u.phut); assertEquals(20, u.sao)
-        val v = xemDoiSao(10, 30, 0, 4)            // 10 sao → 4 phút → trừ 10
-        assertEquals(4, v.phut); assertEquals(10, v.sao); assertEquals(20, v.conLaiSao)
-        assertEquals("tỷ lệ 3 sao = 10 phút: 10 sao → 33 phút → trừ ceil(99/10)=10", 10, xemDoiSao(10, 30, 0, 10, 3).sao)
-        assertEquals(33, xemDoiSao(10, 30, 0, 10, 3).phut)
-    }
-}

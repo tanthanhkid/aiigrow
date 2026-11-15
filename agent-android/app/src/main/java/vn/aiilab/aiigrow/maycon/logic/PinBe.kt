@@ -28,7 +28,9 @@ fun chuanPin(s: String?): String? = (s ?: "").filter { it.isDigit() }.takeIf { i
 private fun JSONObject.chuoi(k: String): String? = if (has(k) && !isNull(k)) optString(k).takeIf { it.isNotBlank() && it != "null" } else null
 private fun iso(s: String?): Long? = try { s?.let { Instant.parse(it).toEpochMilli() } } catch (_: Exception) { null }
 
-data class BeHoSo(val id: String, val ten: String, val avatar: String?, val coPin: Boolean, val vanPin: String?, val khoaDen: Long?) {
+data class BeHoSo(val id: String, val ten: String, val avatar: String?, val coPin: Boolean, val vanPin: String?, val khoaDen: Long?,
+                  /** #267: số dư sao của bé (âm khi nợ) — màn chọn tên hiện sao từng bé; null = máy chủ cũ. */
+                  val sao: Int? = null) {
     /** Chữ cái đầu cho vòng avatar («B» của Bảo Anh). */
     val chuDau: String get() = ten.trim().firstOrNull()?.uppercase() ?: "?"
 }
@@ -36,6 +38,8 @@ data class BeHoSo(val id: String, val ten: String, val avatar: String?, val coPi
 data class HoSoMay(
     val con: List<BeHoSo>, val mayRieng: Boolean, val dangDung: String?, val baMeDen: Long?,
     val pinSaiToiDa: Int = PIN_SAI_TOI_DA, val pinChoGiay: Int = PIN_CHO_GIAY,
+    /** #267: tên máy («Máy cả nhà») — null khi máy chủ cũ. */
+    val tenMay: String? = null,
 ) {
     fun be(id: String?) = con.firstOrNull { it.id == id }
 }
@@ -50,10 +54,12 @@ fun docHoSo(o: JSONObject, nhanLuc: Long): HoSoMay {
         val id = c.chuoi("id") ?: return@mapNotNull null
         BeHoSo(id, c.chuoi("ten") ?: "", c.chuoi("avatar"), c.optBoolean("coPin"), c.chuoi("vanPin"),
             // ưu tiên choGiay (không phụ thuộc đồng hồ máy lệch máy chủ); thiếu thì ISO
-            c.optInt("choGiay", 0).takeIf { it > 0 }?.let { nowMs + it * 1000L } ?: iso(c.chuoi("khoaDen")))
+            c.optInt("choGiay", 0).takeIf { it > 0 }?.let { nowMs + it * 1000L } ?: iso(c.chuoi("khoaDen")),
+            if (c.has("sao") && !c.isNull("sao")) c.optInt("sao") else null)
     }
     return HoSoMay(ds, o.optBoolean("mayRieng"), o.optJSONObject("dangDung")?.chuoi("id"), iso(o.optJSONObject("baMeDung")?.chuoi("den")),
-        o.optInt("pinSaiToiDa", PIN_SAI_TOI_DA).coerceIn(1, 20), o.optInt("pinChoGiay", PIN_CHO_GIAY).coerceIn(1, 3600))
+        o.optInt("pinSaiToiDa", PIN_SAI_TOI_DA).coerceIn(1, 20), o.optInt("pinChoGiay", PIN_CHO_GIAY).coerceIn(1, 3600),
+        o.chuoi("tenMay"))
 }
 
 enum class LoaiNguoiDung { CON, BA_ME, CHUA }

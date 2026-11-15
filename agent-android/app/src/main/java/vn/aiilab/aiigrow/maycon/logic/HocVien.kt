@@ -34,11 +34,23 @@ fun duongChoTin(t: Tin): String = if (t.loai in setOf("giao_nhiem_vu", "nhiem_vu
 enum class TrangThaiXin { CHO, DUOC, TU_CHOI, HET_HAN }
 
 /** GET yeu-cau/:id ⇒ { status: cho|duoc|tu_choi, trangThai: cho|dong_y|tu_choi|het_han|huy|da_thuc_thi }. */
-fun docTrangThaiXin(o: JSONObject): TrangThaiXin = when (o.optString("trangThai").ifBlank { o.optString("status") }) {
+fun docTrangThaiXin(o: JSONObject): TrangThaiXin = when (o.optString("ketQua").takeIf { it.isNotBlank() && it != "null" }
+    ?: o.optString("trangThai").ifBlank { o.optString("status") }) {
+    // 15/11 `ketQua` (App & web): da_them / mo_tam = được · chua_them = Ba Mẹ chưa thêm (bỏ qua — xin lại được) · «Bỏ qua» 60 giây đầu vẫn «cho»
     "cho" -> TrangThaiXin.CHO
+    "da_them", "mo_tam" -> TrangThaiXin.DUOC
+    "chua_them" -> TrangThaiXin.TU_CHOI
     "dong_y", "da_thuc_thi", "duoc", "tu_duyet" -> TrangThaiXin.DUOC
     "het_han", "huy" -> TrangThaiXin.HET_HAN
     else -> TrangThaiXin.TU_CHOI
+}
+
+/** 15/11 lời xin vay sao (#263): «Mẹ Lan cho vay 20 sao!» / «Ba Mẹ chưa cho vay sao lần này». */
+fun cauXinVay(t: TrangThaiXin, soSao: Int): String = when (t) {
+    TrangThaiXin.CHO -> "Đang chờ Ba Mẹ trả lời lời xin vay $soSao sao…"
+    TrangThaiXin.DUOC -> "Ba Mẹ đã cho con vay sao! Sao vay là nợ — sao nhiệm vụ trả nợ trước."
+    TrangThaiXin.TU_CHOI -> "Ba Mẹ chưa cho vay sao lần này."
+    TrangThaiXin.HET_HAN -> "Lời xin đã hết hạn hoặc bị huỷ. Con gửi lại nhé."
 }
 
 fun cauXin(t: TrangThaiXin, phut: Int): String = when (t) {

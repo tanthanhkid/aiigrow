@@ -45,6 +45,9 @@ import vn.aiilab.aiigrow.maycon.logic.thanGhepToken
 import vn.aiilab.aiigrow.maycon.logic.thanNhip
 import vn.aiilab.aiigrow.maycon.logic.truGoi
 import vn.aiilab.aiigrow.maycon.logic.webChan
+import vn.aiilab.aiigrow.maycon.logic.SoPhutBe
+import vn.aiilab.aiigrow.maycon.logic.beGhiPhut
+import vn.aiilab.aiigrow.maycon.logic.boViecCho
 import java.time.Instant
 
 /**
@@ -189,9 +192,13 @@ class DichVuNhip : Service() {
             gioDiaPhuong(now, cs.tz).zdt.toLocalDate().toString(), phutCaMay, k.lanDoiNguoi)
         if (moc != mocCu) k.mocBe = moc?.json()
         val phutGT = truMoc(phutCaMay, moc)
+        // 15/11: sổ phút theo bé (gửi dong-bo ⇒ máy chủ trừ sao đúng bé; phút lúc mở bằng mã offline ⇒ phutBoiMa)
+        if (!k.cheDoThu && cs.sao != null) ghiSo(k, cs, dung, cong, anhCong.nd?.conId, now, MoTamOffline.doc(k.moTamOffline).dangMo(nowMay))
+        //     phút bởi mã chưa báo của bé này: máy chủ không trừ sao ⇒ đếm lùi tại chỗ cũng không trừ (không khoá oan «Hết sao»)
+        val boiMaPhut = if (cs.sao != null) SoPhutBe.doc(k.soPhutBe).phutBoiMa(beGhiPhut(cong, anhCong.nd?.conId)) else 0
         val phutLucNhip = k.phutLucNhip.takeIf { it >= 0 }?.let { truMoc(it, moc) }
         val qd0 = quyetDinh(cs, now, phutGT, daCai, ph.grantEndsAt, moOff,
-            if (laDo) trinhDuyet else emptySet(), phutLucNhip, k.ngayNhip)
+            if (laDo) trinhDuyet else emptySet(), phutLucNhip, k.ngayNhip, boiMaPhut)
         // L13: máy chưa ai vào (dùng chung) / máy riêng chưa nhập PIN ⇒ khoá cả máy ở màn chọn tên (không đếm ngược 60 giây)
         val chonTen = cong == Cong.CHON_TEN
         val qd = if (chonTen) qd0.copy(trangThai = TrangThai.KHOA_NGAY, khoaCaMay = true, goiChan = qd0.goiChan + goiAndroid(cs.giaiTri),
@@ -222,11 +229,13 @@ class DichVuNhip : Service() {
         // (phút chơi trong lúc thêm giờ vẫn tính vào trần ngày ⇒ cộng phút còn tới hạn vào phút đã dùng; giờ ngủ tới trước hạn thì khoá sớm hơn)
         val sauHan = if (qd.trangThai == TrangThai.DUOC_THEM_GIO) qd.moLaiLuc?.let { mo ->
             val toiHanPhut = java.time.Duration.between(now, mo).toMinutes().toInt().coerceAtLeast(0)
+            // mở bằng mã: phút tới hạn cũng là phút bởi mã (không trừ sao)
             quyetDinh(cs, mo.plusSeconds(1), phutGT + toiHanPhut, daCai, ph.grantEndsAt, moOff, if (laDo) trinhDuyet else emptySet(),
-                phutLucNhip, k.ngayNhip)
+                phutLucNhip, k.ngayNhip, boiMaPhut + if (moOff != null) toiHanPhut else 0)
         } else null
-        val nguToi = if (moOff == null) giayToiNgu(cs, now) else null   // mã offline gỡ cả giờ ngủ
-        nhacTruocKhoa(k, if (cong == Cong.BA_ME || chonTen) null else giayConTruocKhoa(qd, sauHan, now.toEpochMilli(), nguToi), demNguoc, khoaThat, nowMay)
+        val nguToi = if (moOff == null && cs.sao == null) giayToiNgu(cs, now) else null   // mã offline gỡ cả giờ ngủ; 15/11 không còn giờ ngủ
+        nhacTruocKhoa(k, if (cong == Cong.BA_ME || chonTen) null else giayConTruocKhoa(qd, sauHan, now.toEpochMilli(), nguToi), demNguoc, khoaThat, nowMay,
+            cs.sao != null)
         if (laKhoa(qd.trangThai) && ManKhoa.dangMo == null && QuanTri.laDeviceOwner(this) && (qd.khoaCaMay || k.daBoQua != k.khoaTu)) {
             // Device Owner được mở activity từ nền (miễn trừ BAL cho DPC). Đường không reset: TroNang phủ màn khoá.
             startActivity(Intent(this, ManKhoa::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
@@ -257,12 +266,16 @@ class DichVuNhip : Service() {
         val batDau = System.currentTimeMillis()
         // L13: bé vào / đăng xuất lúc mất mạng ⇒ báo máy chủ trước nhịp. Mất mạng ⇒ bỏ nhịp vòng này (khỏi chờ hết hạn kết nối lần nữa)
         if (!PinMay.guiViecCho(k)) { Log.i(TAG, "mất mạng (gửi việc chờ) — bỏ nhịp vòng này"); return }
+        // 15/11: phút theo bé (dong-bo) gửi TRƯỚC nhịp ⇒ `sao.phutCon` trong phản hồi nhịp đã trừ đủ, đếm lùi tại chỗ tính từ đây
+        if (csCu?.sao != null) guiNen { guiDongBo(this, k) }
         try {
             val r = MayChu(k.mayChu, k.token).nhip(than)
             k.phanHoi = r.toString()
             k.lanNhipThanhCong = System.currentTimeMillis()
             try {   // mốc phút giải trí đo tại chỗ lúc máy chủ chốt quỹ (đếm lùi khi mất mạng)
                 val csMoi = docPhanHoiNhip(r.toString()).chinhSach
+                // 15/11: máy chủ có sổ sao ⇒ báo phút theo bé để trừ sao (+ gửi lời xin vay lưu lúc mất mạng)
+                if (csMoi.sao != null) guiNen { if (csCu?.sao == null) guiDongBo(this, k); guiXinVayCho(this, k) }
                 k.phutLucNhip = phutGiaiTri(DoPhut.homNay(this, csMoi.tz), goiAndroid(csMoi.giaiTri))
                 // ngày theo ĐỒNG HỒ MÁY CHỦ (như `now` của vòng thực thi) — đồng hồ máy lệch không làm lệch ngày
                 val st = r.optString("serverTime").takeIf { it.isNotBlank() }?.let { Instant.parse(it) } ?: Instant.now()
@@ -286,16 +299,18 @@ class DichVuNhip : Service() {
     }
 
     /** Nhắc 5 phút / 1 phút (thông báo ưu tiên cao, như bóng báo khay Windows) + thông báo đếm ngược khi bắt đầu 60 giây trước khoá. */
-    private fun nhacTruocKhoa(k: Kho, conGiay: Int?, demNguoc: Int, khoaThat: Boolean, nowMay: Long) {
+    private fun nhacTruocKhoa(k: Kho, conGiay: Int?, demNguoc: Int, khoaThat: Boolean, nowMay: Long, sao: Boolean = false) {
         val nm = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
         val (moc, moi) = nhac.xet(conGiay)
         nhac = moi
-        if (moc != null) nm.notify(MA_NHAC, thongBaoNhac(this, tieuDeNhac(moc), noiDungNhac(moc), null))
+        if (moc != null) nm.notify(MA_NHAC, thongBaoNhac(this, tieuDeNhac(moc, sao), noiDungNhac(moc, sao), null))
         if (demNguoc > 0 && !khoaThat) {
             if (daBaoDemNguoc != k.khoaTu) {
                 daBaoDemNguoc = k.khoaTu
                 nm.cancel(MA_NHAC)
-                nm.notify(MA_DEM, thongBaoNhac(this, "Máy sắp khoá", "Lưu bài đang làm nhé. Hết đếm ngược máy sẽ khoá.", nowMay + demNguoc * 1000L))
+                val tieu = if (sao && k.trangThaiKhoa == TrangThai.HET_GIO.name) "Sắp hết sao" else "Máy sắp khoá"
+                nm.notify(MA_DEM, thongBaoNhac(this, tieu, "Lưu bài đang làm nhé. Hết đếm ngược app Tính phút sẽ dừng.".takeIf { tieu == "Sắp hết sao" }
+                    ?: "Lưu bài đang làm nhé. Hết đếm ngược máy sẽ khoá.", nowMay + demNguoc * 1000L))
             }
         } else if (daBaoDemNguoc != 0L) { daBaoDemNguoc = 0; nm.cancel(MA_DEM) }
     }
@@ -375,6 +390,9 @@ class DichVuNhip : Service() {
                 ht == null -> "Chưa ghép với gia đình"
                 ht.cong == Cong.BA_ME.name -> "Ba Mẹ đang dùng máy tới ${GiaoDien.gio(ht.baMeDen)} · không trừ giờ của con"
                 ht.cong == Cong.CHON_TEN.name -> "Máy đang khoá — chạm tên của con để vào"
+                ht.moHet -> "Hôm nay Mở hết · không tính phút"
+                ht.coSao && ht.trangThai == TrangThai.HET_GIO.name -> "Hết sao rồi · app học vẫn mở"
+                ht.coSao && ht.trangThai == TrangThai.BINH_THUONG.name -> "Còn ${ht.conPhut} sao = ${ht.conPhut} phút chơi"
                 ht.trangThai == TrangThai.BINH_THUONG.name || ht.trangThai == TrangThai.DUOC_THEM_GIO.name -> "Còn ${ht.conPhut} phút chơi hôm nay"
                 else -> ht.cauCon
             }
@@ -411,7 +429,93 @@ class DichVuNhip : Service() {
             } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Chưa gửi được — máy đang mất mạng." }
         }
 
-        /** Xin thêm giờ / xin mở ngoại lệ (luồng nền). Trả câu báo cho Con. */
+        /** Khoá ghi sổ phút theo bé (vòng nhịp và «Đổi bé» trên luồng giao diện). */
+        private val KHOA_SO = Any()
+        /** Khoá gửi dong-bo (một lượt một lúc). */
+        private val KHOA_GUI_SO = Any()
+
+        /** Chốt phần tăng phút cả máy cho bé đang dùng (null = không ai). `boiMa` = máy đang mở bằng mã offline. */
+        private fun ghiSo(k: Kho, cs: vn.aiilab.aiigrow.maycon.logic.ChinhSach, dungMs: Map<String, Long>, cong: Cong, conId: String?, now: Instant, boiMa: Boolean) {
+            synchronized(KHOA_SO) {
+                val cu = SoPhutBe.doc(k.soPhutBe)
+                val moi = cu.chotToi(gioDiaPhuong(now, cs.tz).zdt.toLocalDate().toString(), dungMs, beGhiPhut(cong, conId), goiAndroid(cs.giaiTri), boiMa)
+                if (moi != cu) k.soPhutBe = moi.json()
+            }
+        }
+
+        /** Một luồng gửi riêng cho dong-bo / lời xin vay — vòng thực thi 5 giây không chờ mạng; việc xếp hàng tuần tự. */
+        private val nen: java.util.concurrent.ExecutorService = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "aiigrow-gui").apply { isDaemon = true } }
+        private fun guiNen(f: () -> Unit) { try { nen.execute { try { f() } catch (e: Exception) { Log.i(TAG, "gửi nền lỗi: ${e.message}") } } } catch (_: Exception) {} }
+
+        /** `POST dong-bo {usage[], phutBoiMa}` — máy chủ ghi phút theo bé + trừ sao «Tính phút». Gọi trên luồng nền (chặn tới khi xong). */
+        fun guiDongBo(ctx: Context, k: Kho) {
+            if (k.cheDoThu || k.token == null) return
+            synchronized(KHOA_GUI_SO) {
+                val so = synchronized(KHOA_SO) { SoPhutBe.doc(k.soPhutBe) }
+                // phutBoiMa máy chủ chỉ áp cho bé đang dùng máy ⇒ gửi phần của đúng bé đó
+                val a = PinMay.anh(k)
+                val conHienTai = beGhiPhut(a.cong, a.nd?.conId)
+                val than = so.thanDongBo(Instant.now().toString(), a.nd != null, conHienTai)
+                if (than.getJSONArray("usage").length() == 0 && !than.has("phutBoiMa")) return
+                try {
+                    MayChu(k.mayChu, k.token).dongBo(than)
+                    synchronized(KHOA_SO) { k.soPhutBe = SoPhutBe.doc(k.soPhutBe).daGui(so.ngay, conHienTai, than.optInt("phutBoiMa", 0), so.ngayCu).json() }
+                } catch (e: Exception) { Log.i(TAG, "dong-bo (phút theo bé) chưa gửi được: ${e.message}") }
+            }
+        }
+
+        /**
+         * «Đổi bé» / «Đăng xuất» (#267): chốt phút của bé đang dùng NGAY (trước khi cổng đổi) rồi gửi `dong-bo` có `con` của bé đó — phút
+         * bé trước dừng tính, không đổ sang bé sau. Gọi trên luồng NỀN, TRƯỚC khi báo dang-xuat (tuần tự: dong-bo tới máy chủ khi bé đó
+         * vẫn là người dùng máy ⇒ `phutBoiMa` áp đúng bé).
+         */
+        fun chotPhut(ctx: Context) {
+            val k = Kho(ctx)
+            if (k.cheDoThu) return
+            val cs = k.phanHoi?.let { try { docPhanHoiNhip(it).chinhSach } catch (_: Exception) { null } } ?: return
+            if (cs.sao == null) return
+            val nowMay = System.currentTimeMillis()
+            val a = PinMay.anh(k, nowMay)
+            ghiSo(k, cs, DoPhut.homNay(ctx, cs.tz, nowMay), a.cong, a.nd?.conId, Instant.ofEpochMilli(nowMay + k.lechGioMs),
+                MoTamOffline.doc(k.moTamOffline).dangMo(nowMay))
+            guiDongBo(ctx, k)
+        }
+
+        /**
+         * «Xin Ba Mẹ cho vay sao» (#263 — `POST hoc-vien/xin-vay {soSao, mucDich, loiNhan?}`) trên luồng nền. Mất mạng ⇒ lưu, có mạng là gửi
+         * (them-qpj5mdyr «Đã lưu lời xin · Có mạng là gửi Ba Mẹ ngay»). Trả câu báo cho Con.
+         */
+        fun xinVay(ctx: Context, soSao: Int, loiNhan: String = ""): String {
+            val k = Kho(ctx)
+            val than = vn.aiilab.aiigrow.maycon.logic.thanXinVay(soSao, loiNhan)
+            if (k.cheDoThu) { k.tepYeuCauThu.appendText(than.toString() + "\n"); return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé." }
+            fun luu(): String {
+                k.xinVayCho = than.toString(); k.xinVayChoLuc = System.currentTimeMillis(); k.xinVayChoCon = PinMay.nguoiDung(k)?.conId ?: ""
+                return "Đã lưu lời xin vay $soSao sao. Có mạng là gửi Ba Mẹ ngay!"
+            }
+            return try {
+                val r = MayChu(k.mayChu, k.token).xinVay(than)
+                HocVien.ghiLoiXin(ctx, r.optString("id").ifBlank { null }, soSao, false, vay = true)
+                "Đã gửi Ba Mẹ lời xin vay $soSao sao. Chờ Ba Mẹ trả lời nhé."
+            } catch (e: MayChu.Loi) { if (boViecCho(e.http)) e.cau else luu()   // 5xx / 408 / 429 = như mất mạng
+            } catch (e: Exception) { luu() }
+        }
+
+        /** Gửi lời xin vay đã lưu lúc mất mạng (≤ 24 giờ). */
+        fun guiXinVayCho(ctx: Context, k: Kho) {
+            val s = k.xinVayCho ?: return
+            if (System.currentTimeMillis() - k.xinVayChoLuc > 24 * 3600_000L) { k.xinVayCho = null; return }
+            // lời xin của bé khác (đã Đổi bé) ⇒ huỷ, không gửi nhầm tên bé đang dùng
+            if ((PinMay.nguoiDung(k)?.conId ?: "") != (k.xinVayChoCon ?: "")) { k.xinVayCho = null; return }
+            try {
+                val than = JSONObject(s)
+                val r = MayChu(k.mayChu, k.token).xinVay(than)
+                k.xinVayCho = null
+                HocVien.ghiLoiXin(ctx, r.optString("id").ifBlank { null }, than.optInt("soSao"), false, vay = true)
+            } catch (e: MayChu.Loi) { if (boViecCho(e.http)) k.xinVayCho = null } catch (_: Exception) {}
+        }
+
+        /** Xin thêm giờ / xin mở ngoại lệ (luồng nền, máy chủ cũ trước 15/11). Trả câu báo cho Con. */
         fun xinThemGio(ctx: Context, than: JSONObject): String {
             val k = Kho(ctx)
             if (k.cheDoThu) { k.tepYeuCauThu.appendText(than.toString() + "\n"); return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé." }

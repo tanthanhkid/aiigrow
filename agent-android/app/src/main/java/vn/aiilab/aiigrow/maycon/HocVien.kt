@@ -11,6 +11,7 @@ import vn.aiilab.aiigrow.maycon.logic.HOI_XIN_TOI_DA_MS
 import vn.aiilab.aiigrow.maycon.logic.KetXet
 import vn.aiilab.aiigrow.maycon.logic.TrangThaiXin
 import vn.aiilab.aiigrow.maycon.logic.cauXin
+import vn.aiilab.aiigrow.maycon.logic.cauXinVay
 import vn.aiilab.aiigrow.maycon.logic.dangDungPhien
 import vn.aiilab.aiigrow.maycon.logic.docTin
 import vn.aiilab.aiigrow.maycon.logic.docTrangThaiXin
@@ -106,9 +107,9 @@ object HocVien {
             .build()
 
     // ------------------------------------------------------------ lời xin thêm giờ (như RequestForm.cs › PollAsync)
-    fun ghiLoiXin(ctx: Context, id: String?, phut: Int, daDuyet: Boolean) {
+    fun ghiLoiXin(ctx: Context, id: String?, phut: Int, daDuyet: Boolean, vay: Boolean = false) {
         val k = Kho(ctx)
-        k.yeuCauId = id; k.yeuCauPhut = phut; k.yeuCauLuc = System.currentTimeMillis()
+        k.yeuCauId = id; k.yeuCauPhut = phut; k.yeuCauLuc = System.currentTimeMillis(); k.yeuCauVay = vay
         // không có id (máy chủ cũ) ⇒ không theo dõi được ⇒ không hiện «đang chờ» mãi
         k.yeuCauTrangThai = if (daDuyet) TrangThaiXin.DUOC.name else if (id != null) TrangThaiXin.CHO.name else null
     }
@@ -116,7 +117,8 @@ object HocVien {
     /** Câu trạng thái lời xin gần nhất cho thẻ trên màn chính (null = không có / đã cũ quá 24 giờ). */
     fun cauLoiXin(k: Kho): String? {
         if (k.yeuCauTrangThai == null || System.currentTimeMillis() - k.yeuCauLuc > HOI_XIN_TOI_DA_MS) return null
-        return cauXin(try { TrangThaiXin.valueOf(k.yeuCauTrangThai!!) } catch (_: Exception) { return null }, k.yeuCauPhut)
+        val t = try { TrangThaiXin.valueOf(k.yeuCauTrangThai!!) } catch (_: Exception) { return null }
+        return if (k.yeuCauVay) cauXinVay(t, k.yeuCauPhut) else cauXin(t, k.yeuCauPhut)
     }
 
     fun hoiLoiXin(ctx: Context) {
@@ -130,7 +132,8 @@ object HocVien {
         k.yeuCauTrangThai = t.name
         if (t == TrangThaiXin.DUOC) DichVuNhip.lamMoi(ctx)
         (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-            .notify(MA_XIN, thongBao(ctx, if (t == TrangThaiXin.DUOC) "Ba Mẹ đã đồng ý" else "Ba Mẹ đã trả lời", cauXin(t, k.yeuCauPhut), null, 31))
+            .notify(MA_XIN, thongBao(ctx, if (t == TrangThaiXin.DUOC) (if (k.yeuCauVay) "Ba Mẹ cho vay sao!" else "Ba Mẹ đã đồng ý") else "Ba Mẹ đã trả lời",
+                if (k.yeuCauVay) cauXinVay(t, k.yeuCauPhut) else cauXin(t, k.yeuCauPhut), null, 31))
     }
 
     // ------------------------------------------------------------ chơi bằng điểm (như ChoiBangDiemForm / RequestForm.ExchangeAsync)
@@ -160,14 +163,6 @@ object HocVien {
         if (k.token == null) return CAU_THU
         return try { may(k).goi("phien/dung", JSONObject().put("id", id)); ketThuc(ctx, k, id); null }
         catch (e: MayChu.Loi) { e.cau } catch (_: Exception) { "Chưa dừng được — máy đang mất mạng." }
-    }
-
-    /** 05/11 «Dùng sao» (hoc-vien/doi-sao {phut}) ⇒ null nếu được (nạp lại tổng quan + áp quỹ mới ngay), câu lỗi nếu không. */
-    fun doiSao(ctx: Context, phut: Int): String? {
-        val k = Kho(ctx)
-        if (k.cheDoThu || k.token == null) return CAU_THU
-        return try { may(k).goi("hoc-vien/doi-sao", JSONObject().put("phut", phut)); napTongQuan(ctx); DichVuNhip.lamMoi(ctx); null }
-        catch (e: MayChu.Loi) { e.cau } catch (_: Exception) { "Chưa đổi được — máy đang mất mạng." }
     }
 
     /** Con trả lời lời nhắn của Ba Mẹ (hoc-vien/loi-khen/:id/phan-hoi) ⇒ null nếu được, câu lỗi nếu không. */

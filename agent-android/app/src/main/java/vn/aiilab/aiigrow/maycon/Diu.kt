@@ -33,6 +33,10 @@ object Diu {
     const val VANG = 0xFFFFF5D9.toInt()      // CHỈ cho sao
     const val VANG_VIEN = 0xFFF3DD9C.toInt()
     const val VANG_CHU = 0xFF8A5A00.toInt()
+    /** 15/11 số sao âm (đang nợ): nền #f9e7d2, chữ #8a3c0c (brief «Cách thể hiện thống nhất»). */
+    const val NO_NEN = 0xFFF9E7D2.toInt()
+    const val NO_CHU = 0xFF8A3C0C.toInt()
+    const val NO_VIEN = 0xFFEFCFAE.toInt()
     const val LOI = 0xFFD9534F.toInt()       // «Chưa đúng · còn 3 lần thử»
     const val LOI_NHAT = 0xFFFDECEA.toInt()
     const val LOI_DAM = 0xFFA3302B.toInt()
@@ -125,8 +129,10 @@ object Diu {
     }
 
     /** Chip sao vàng «★ 30 sao» — vàng CHỈ dùng ở đây. */
-    fun chipSao(c: Context, sao: Int, to: Boolean = false) = chu(c, "★  $sao sao", if (to) 19f else 15f, VANG_CHU, true).apply {
-        background = khoi(c, VANG, if (to) 20 else 16, VANG_VIEN)
+    /** Viên sao: dương = vàng «★ 30 sao»; ÂM (đang nợ Ba Mẹ — 15/11) = viên cảnh báo cam «★ −20 sao» (dấu trừ thật). */
+    fun chipSao(c: Context, sao: Int, to: Boolean = false) = chu(c, "★  ${vn.aiilab.aiigrow.maycon.logic.soSao(sao)}", if (to) 19f else 15f,
+        if (sao < 0) NO_CHU else VANG_CHU, true).apply {
+        background = khoi(c, if (sao < 0) NO_NEN else VANG, if (to) 20 else 16, if (sao < 0) NO_VIEN else VANG_VIEN)
         setPadding(dp(c, 12), dp(c, 4), dp(c, 12), dp(c, 4)); gravity = Gravity.CENTER
         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(c, if (to) 40 else 32))
     }

@@ -82,10 +82,10 @@ object GiaoDien {
 
     fun gio(ms: Long): String = DateTimeFormatter.ofPattern("HH:mm").format(Instant.ofEpochMilli(ms).atZone(ZoneId.systemDefault()))
 
-    fun tieuDeKhoa(t: String) = when (t) {
+    fun tieuDeKhoa(t: String, sao: Boolean = false) = when (t) {
         TrangThai.KHOA_NGAY.name -> "Ba Mẹ đang khoá máy"
+        TrangThai.HET_GIO.name -> if (sao) "Hết sao rồi" else "Hết giờ chơi"
         TrangThai.GIO_NGU.name -> "Đến giờ ngủ rồi"
-        TrangThai.HET_GIO.name -> "Hết giờ chơi"
         TrangThai.NGOAI_KHUNG.name -> "Chưa tới giờ chơi"
         TrangThai.GIO_HOC.name -> "Đang giờ học"
         else -> "AiiGrow"
@@ -93,7 +93,9 @@ object GiaoDien {
 
     /** Dòng đếm ngược trên màn khoá. */
     fun dongDemNguoc(ht: HienThi, now: Long = System.currentTimeMillis()): String = when {
+        ht.demNguoc > 0 && ht.coSao && ht.trangThai == TrangThai.HET_GIO.name -> "Hết sao sau ${mmss(ht.demNguoc)}"
         ht.demNguoc > 0 -> "Khoá sau ${mmss(ht.demNguoc)}"
+        ht.coSao && ht.trangThai == TrangThai.HET_GIO.name -> vn.aiilab.aiigrow.maycon.logic.soSao(ht.soDu ?: 0)
         ht.moLaiLuc > now -> mmssDai(((ht.moLaiLuc - now) / 1000).toInt())
         else -> "Chờ Ba Mẹ mở"
     }
@@ -143,6 +145,8 @@ object GiaoDien {
         private val moLai = Diu.chu(c, "", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER }
         private val goiY = Diu.chu(c, "Đọc sách hoặc ra ngoài chơi nhé!", 15f, Diu.XANH_DAM).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 6), 0, 0) }
         val nutXin = Diu.nut(c, "Xin Ba Mẹ mở máy") { val g = goiDuyet; val f = onDuyet; if (g != null && f != null) f(g) else onXin() }
+        /** 15/11 «Hết sao rồi» (them-n4iivj6d, cdt-het-phien): lối «Làm nhiệm vụ kiếm sao» cạnh «Xin Ba Mẹ cho vay sao». */
+        private val nutNhiemVu = Diu.nut(c, "Làm nhiệm vụ kiếm sao") { ManTre.mo(c, "nhiem-vu") }.apply { visibility = View.GONE }
         private val linkMa = Diu.nut(c, "Mất mạng? Nhập mã của Ba Mẹ", Diu.KieuNut.CHU) { moNhapMa(false) }
         private val linkBaMe = Diu.nut(c, "Ba Mẹ mở máy", Diu.KieuNut.CHU) { moNhapMa(true) }
         val nutVe = onVe?.let { f -> Diu.nut(c, "Về màn hình chính", Diu.KieuNut.PHU) { f() } }
@@ -173,7 +177,7 @@ object GiaoDien {
         init {
             phanKhoa.addView(vien); phanKhoa.addView(tieuDe); phanKhoa.addView(cau)
             theDem.addView(dem); theDem.addView(moLai); theDem.addView(goiY)
-            phanKhoa.addView(theDem); phanKhoa.addView(nutXin); nutVe?.let(phanKhoa::addView)
+            phanKhoa.addView(theDem); phanKhoa.addView(nutNhiemVu); phanKhoa.addView(nutXin); nutVe?.let(phanKhoa::addView)
             phanKhoa.addView(linkMa); phanKhoa.addView(linkBaMe); phanKhoa.addView(theMa); phanKhoa.addView(ghi)
             cot.addView(phanKhoa); cot.addView(pin.goc)
             pin.goc.visibility = View.GONE
@@ -243,16 +247,36 @@ object GiaoDien {
             val chanApp = goiChan != null && !ht.dangKhoaThat
             val duyet = chanApp && goiChan in ht.goiChuaXep
             val goiMoi = if (duyet) goiChan else null
+            // 15/11: hết sao ⇒ Làm nhiệm vụ / Xin Ba Mẹ cho vay sao; app ngoài danh sách ⇒ «Xin Ba Mẹ mở <app>» (#262)
+            val hetSao = ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && !duyet
             nutXin.text = when {
+                duyet && ht.coSao -> "Xin Ba Mẹ mở ${DoPhut.tenApp(c, goiChan!!)}"
                 duyet -> "Xin Ba Mẹ duyệt"
+                hetSao -> "Xin Ba Mẹ cho vay sao"
                 chiNgoaiLe(ht.trangThai) -> "Xin Ba Mẹ mở máy"
-                ht.trangThai == TrangThai.HET_GIO.name -> "Xin Ba Mẹ thêm giờ"
+                ht.coSao -> "Xin Ba Mẹ mở máy"
                 else -> "Xin Ba Mẹ thêm giờ"
             }
+            if (hetSao != xinPhu) { xinPhu = hetSao; Diu.chon(c, nutXin, !hetSao) }
+            nutNhiemVu.visibility = if (hetSao) View.VISIBLE else View.GONE
             // «Ba Mẹ mở máy» chỉ khi máy chủ có PIN theo bé (cổng ≠ MO) và đang khoá thật
             linkBaMe.visibility = if (!chanApp && ht.cong != Cong.MO.name) View.VISIBLE else View.GONE
             datToi(!chanApp && ht.trangThai == TrangThai.GIO_NGU.name)
-            if (chanApp) {
+            if (chanApp && ht.coSao) {
+                // 15/11 (them-4e5fwl16 / them-n4iivj6d): ngoài danh sách ⇒ «Roblox chưa có trong danh sách»; app Tính phút lúc hết sao ⇒ «Hết sao rồi»
+                val ten = DoPhut.tenApp(c, goiChan!!)
+                tieuDe.text = if (duyet) "$ten chưa có trong danh sách" else if (hetSao) "Hết sao rồi" else "$ten đang tạm dừng"
+                dem.text = if (hetSao) vn.aiilab.aiigrow.maycon.logic.soSao(ht.soDu ?: 0) else ten; dem.textSize = 24f
+                moLai.visibility = View.GONE
+                goiY.text = if (duyet) "Theo danh sách của Ba Mẹ" else "1 nhiệm vụ = +10 sao"
+                goiY.visibility = if (duyet || hetSao) View.VISIBLE else View.GONE
+                if (goiMoi == null || goiMoi != goiDuyet) cau.text = when {
+                    duyet -> "Máy chỉ mở app Ba Mẹ đã thêm vào danh sách."
+                    hetSao -> "Còn 0 sao = 0 phút chơi · $ten dừng, app học vẫn mở."
+                    else -> ht.cauCon
+                }
+                goiDuyet = goiMoi
+            } else if (chanApp) {
                 tieuDe.text = "Ứng dụng này đang bị chặn"
                 dem.text = DoPhut.tenApp(c, goiChan!!); dem.textSize = 24f
                 moLai.visibility = View.GONE; goiY.visibility = View.GONE
@@ -262,13 +286,13 @@ object GiaoDien {
                 goiDuyet = goiMoi
             } else {
                 goiDuyet = null
-                tieuDe.text = tieuDeKhoa(ht.trangThai)
-                cau.text = ht.cauCon
+                tieuDe.text = tieuDeKhoa(ht.trangThai, ht.coSao)
+                cau.text = if (hetSao) "Còn 0 sao = 0 phút chơi · app học vẫn mở" else ht.cauCon
                 val now = System.currentTimeMillis()
-                dem.text = dongDemNguoc(ht, now); dem.textSize = if (ht.demNguoc > 0 || ht.moLaiLuc > now) 44f else 24f
+                dem.text = dongDemNguoc(ht, now); dem.textSize = if (ht.demNguoc > 0 || ht.moLaiLuc > now || hetSao) 44f else 24f
                 moLai.text = if (ht.demNguoc == 0 && ht.moLaiLuc > now) "Mở lại lúc ${gio(ht.moLaiLuc)}" else ""
                 moLai.visibility = if (moLai.text.isEmpty()) View.GONE else View.VISIBLE
-                goiY.text = if (ht.trangThai == TrangThai.GIO_NGU.name) "Ngủ ngon nhé! Mai chơi tiếp." else "Đọc sách hoặc ra ngoài chơi nhé!"
+                goiY.text = if (ht.trangThai == TrangThai.GIO_NGU.name) "Ngủ ngon nhé! Mai chơi tiếp." else if (hetSao) "1 nhiệm vụ = +10 sao" else "Đọc sách hoặc ra ngoài chơi nhé!"
                 goiY.visibility = if (ht.demNguoc > 0) View.GONE else View.VISIBLE
             }
             ht.tenCon?.let { ghi.text = "Vẫn gọi được Ba Mẹ · $it" }
@@ -276,5 +300,7 @@ object GiaoDien {
             if (hinh != hinhDangHien) { hinhDangHien = hinh; anh.setImageResource(hinh) }
         }
         private var hinhDangHien = 0
+        /** nút xin đang vẽ kiểu phụ (màn «Hết sao rồi»: nút chính là «Làm nhiệm vụ kiếm sao»). */
+        private var xinPhu = false
     }
 }

@@ -79,8 +79,13 @@ class ManPin(val c: Context) {
 
     // ---- 05 chọn tên
     private fun veChonTen(ds: List<BeHoSo>?, mayRieng: Boolean) {
-        goc.addView(chu("Máy đang khoá", 26f, dac = true).apply { setPadding(0, dp(20), 0, 0) })
-        goc.addView(chu("Ai đang dùng máy? Chạm vào tên của con nhé.", 16f, Diu.CHU2))
+        // #267 (them-28ir0qe4): «Máy cả nhà · Android · đang khoá», sao từng bé, «Sao, danh sách đi theo bé đang dùng.»
+        val hs = PinMay.hoSo(Kho(c))
+        val tenMay = hs?.tenMay
+        goc.addView(chu(if (tenMay != null) "$tenMay · Android · đang khoá" else "Máy đang khoá", if (tenMay != null) 15f else 26f, if (tenMay != null) Diu.CHU2 else Diu.CHU,
+            dac = tenMay == null).apply { setPadding(0, dp(20), 0, 0) })
+        if (tenMay != null) goc.addView(chu("Ai đang dùng máy?", 26f, dac = true))
+        goc.addView(chu(if (tenMay != null) "Chạm vào tên của con nhé." else "Ai đang dùng máy? Chạm vào tên của con nhé.", 16f, Diu.CHU2))
         if (ds == null) {
             goc.addView(chu(if (Kho(c).cheDoThu) "Chế độ thử: chưa có hồ sơ." else "Đang lấy danh sách… (máy cần nối mạng một lần)", 15f, Diu.CHU3).apply { setPadding(0, dp(24), 0, 0) })
         }
@@ -89,7 +94,10 @@ class ManPin(val c: Context) {
             goc.addView(Diu.the(c).apply {
                 orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
                 addView(Diu.vongTen(c, b.chuDau, i, 56))
-                addView(Diu.chu(c, b.ten, 22f, Diu.CHU, true).apply {
+                addView(LinearLayout(c).apply {
+                    orientation = LinearLayout.VERTICAL
+                    addView(Diu.chu(c, b.ten, 22f, Diu.CHU, true))
+                    b.sao?.let { s -> addView(Diu.chipSao(c, s).apply { (layoutParams as LinearLayout.LayoutParams).topMargin = dp(4) }) }
                     layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(14) } })
                 val cho = choGiay(b, DemPin.doc(Kho(c).demPin), now)
                 if (cho > 0) addView(Diu.chu(c, "chờ ${cho}s", 14f, Diu.CHU3))
@@ -98,6 +106,7 @@ class ManPin(val c: Context) {
             })
         }
         goc.addView(chu(if (mayRieng) "Nhập PIN để vào máy." else "Chưa ai vào thì máy chỉ mở màn này.", 14f, Diu.CHU3).apply { setPadding(0, dp(14), 0, 0) })
+        if (!mayRieng && ds?.any { it.sao != null } == true) goc.addView(chu("Sao, danh sách đi theo bé đang dùng.", 14f, Diu.CHU3))
         goc.addView(Diu.nut(c, "Ba Mẹ dùng máy", Diu.KieuNut.PHU) { buoc = Buoc.BA_ME; go = ""; loi = null; ve() })
     }
 

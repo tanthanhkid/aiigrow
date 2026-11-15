@@ -197,6 +197,8 @@ object PinMay {
         // chạy nền hết: ghi Kho + gửi máy chủ. Việc chờ thành «roi» (thay «vao» đang chờ) rồi gửi ngay; mất mạng / 5xx ⇒ nhịp sau gửi lại.
         // «Khoá lại» và «Đăng xuất» cùng một tác dụng ở máy chủ (pin-be.ts › roiMay) ⇒ đều gửi dang-xuat.
         Thread {
+            // 15/11 (#267): chốt phút bé đang dùng TRƯỚC khi máy về chọn tên ⇒ phút bé trước dừng tính, gửi dong-bo có `con` của bé đó
+            try { DichVuNhip.chotPhut(ctx) } catch (e: Exception) { NhatKy.canh(TAG, "chốt phút bé trước lỗi", e) }
             synchronized(khoa) {
                 k.baMeDen = 0; datNguoi(k, NguoiDung(LoaiNguoiDung.CHUA), null)
                 if (!k.cheDoThu) k.viecCho = viecSauRoi(ViecCho.doc(k.viecCho), System.currentTimeMillis()).json()

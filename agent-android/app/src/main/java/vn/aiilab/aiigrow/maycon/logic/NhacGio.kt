@@ -21,7 +21,7 @@ data class NhacGio(val da5: Boolean = false, val da1: Boolean = false) {
  * Giây còn trước khi khoá: bình thường ⇒ phút còn (trần ngày, khung giờ, phiên điểm). Thêm giờ / mở bằng mã ⇒ tới hạn mở, cộng phút còn
  * SAU hạn nếu lúc đó máy không khoá (`sau` = quyết định tại hạn + 1 giây; vẫn được thêm giờ ⇒ không nhắc). Đang khoá / không tuân thủ ⇒ null.
  */
-fun giayConTruocKhoa(qd: QuyetDinh, sau: QuyetDinh?, nowMs: Long, giayToiNgu: Int? = null): Int? = when (qd.trangThai) {
+fun giayConTruocKhoa(qd: QuyetDinh, sau: QuyetDinh?, nowMs: Long, giayToiNgu: Int? = null): Int? = if (qd.moHet) null else when (qd.trangThai) {
     TrangThai.BINH_THUONG -> listOfNotNull(qd.conPhut * 60, giayToiNgu).min()
     TrangThai.DUOC_THEM_GIO -> {
         val toiHan = qd.moLaiLuc?.let { ((it.toEpochMilli() - nowMs) / 1000).toInt().coerceAtLeast(0) }
@@ -38,5 +38,11 @@ fun giayConTruocKhoa(qd: QuyetDinh, sau: QuyetDinh?, nowMs: Long, giayToiNgu: In
 }
 
 // 06/11 bản «Dịu» (docs/thiet-ke-chot/con-dt-gio/04-cdt-nhac-5-phut.html): «Còn 5 phút chơi · Lưu bài đang chơi nhé.» — thêm giờ bằng sao hoặc xin Ba Mẹ.
-fun tieuDeNhac(moc: Int) = if (moc == 5) "Còn 5 phút chơi" else "Còn 1 phút chơi"
-fun noiDungNhac(moc: Int) = if (moc == 5) "Lưu bài đang chơi nhé. Muốn chơi thêm thì đổi sao lấy giờ hoặc xin Ba Mẹ." else "Máy sắp khoá. Lưu bài ngay nhé."
+// 15/11 (#264, cdt-nhac-5-phut): nhắc theo sao — «Còn 5 sao = 5 phút chơi · Lưu bài đang chơi nhé.», lối Làm nhiệm vụ / Xin Ba Mẹ cho vay sao.
+fun tieuDeNhac(moc: Int, sao: Boolean = false) = if (sao) "Còn $moc sao = $moc phút chơi" else if (moc == 5) "Còn 5 phút chơi" else "Còn 1 phút chơi"
+fun noiDungNhac(moc: Int, sao: Boolean = false) = when {
+    sao && moc == 5 -> "Lưu bài đang chơi nhé. Hết sao là dừng — làm nhiệm vụ kiếm sao hoặc xin Ba Mẹ cho vay sao."
+    sao -> "Sắp hết sao. Lưu bài ngay nhé."
+    moc == 5 -> "Lưu bài đang chơi nhé. Muốn chơi thêm thì xin Ba Mẹ."
+    else -> "Máy sắp khoá. Lưu bài ngay nhé."
+}
