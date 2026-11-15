@@ -3,6 +3,7 @@
 // bóng hay chuyển động). Nên: nền kem #fbf8f2, icon Fluent 3D trong viên tròn kem, nút xanh lá đặc, chữ khớp màn con-dt-gio / con-dt-chan.
 import ManagedSettings
 import ManagedSettingsUI
+import FamilyControls
 import UIKit
 import ConCore
 
@@ -16,9 +17,20 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
   static let nenIcon = UIColor(red: 0xf6 / 255, green: 0xf3 / 255, blue: 0xec / 255, alpha: 1)
 
   /// `web`: màn chặn trang web (cdt-chan-web) — chữ khác màn chặn app.
-  func cauHinh(ten: String?, web: Bool = false) -> ShieldConfiguration {
+  /// App / trang bị khiên có nằm trong nhóm «Tính phút» (Giải trí) Ba Mẹ chọn không — token đọc từ app group.
+  static func trongTinhPhut(app: ApplicationToken? = nil, web: WebDomainToken? = nil) -> Bool {
+    guard let d = KhoUserDefaults().data(Khoa.chonGiaiTri), let s = try? JSONDecoder().decode(FamilyActivitySelection.self, from: d) else { return false }
+    if let app { return s.applicationTokens.contains(app) }
+    if let web { return s.webDomainTokens.contains(web) }
+    return false
+  }
+
+  /// `trongDs`: app / trang thuộc danh sách «Tính phút» (nil = không biết).
+  func cauHinh(ten: String?, web: Bool = false, trongDs: Bool? = nil) -> ShieldConfiguration {
     let k = KhoUserDefaults().doc(KhienMuonCo.self, Khoa.khienDangAp)
-    let lyDo = k?.lyDo ?? .ngoaiGio
+    var lyDo = k?.lyDo ?? .ngoaiGio
+    // Theo danh sách + hết sao: app NGOÀI danh sách bị khiên vì ngoài danh sách, không phải vì hết sao
+    if lyDo == .hetGio, k?.danhSach == true, trongDs == false { lyDo = .khong }
     let tieuDe: String, phu: String, nut: String
     switch lyDo {
     case .ngu: tieuDe = "Đến giờ ngủ rồi"; phu = "Chúc con ngủ ngon! Mai mình chơi tiếp nhé."; nut = "Mở AiiGrow Con"
@@ -52,12 +64,18 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
       secondaryButtonLabel: .init(text: "Về trang chính", color: Self.xanhDam))
   }
 
-  override func configuration(shielding application: Application) -> ShieldConfiguration { cauHinh(ten: application.localizedDisplayName) }
-  override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
-    cauHinh(ten: application.localizedDisplayName)
+  override func configuration(shielding application: Application) -> ShieldConfiguration {
+    cauHinh(ten: application.localizedDisplayName, trongDs: Self.trongTinhPhut(app: application.token))
   }
-  override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration { cauHinh(ten: webDomain.domain, web: true) }
-  override func configuration(shielding webDomain: WebDomain, in category: ActivityCategory) -> ShieldConfiguration { cauHinh(ten: webDomain.domain, web: true) }
+  override func configuration(shielding application: Application, in category: ActivityCategory) -> ShieldConfiguration {
+    cauHinh(ten: application.localizedDisplayName, trongDs: Self.trongTinhPhut(app: application.token))
+  }
+  override func configuration(shielding webDomain: WebDomain) -> ShieldConfiguration {
+    cauHinh(ten: webDomain.domain, web: true, trongDs: Self.trongTinhPhut(web: webDomain.token))
+  }
+  override func configuration(shielding webDomain: WebDomain, in category: ActivityCategory) -> ShieldConfiguration {
+    cauHinh(ten: webDomain.domain, web: true, trongDs: Self.trongTinhPhut(web: webDomain.token))
+  }
 }
 
 /// Viên clay tròn tráng men (bóng kép, men trắng nửa trên, phản chiếu đáy) với icon Fluent 3D ở giữa — vẽ thành một UIImage

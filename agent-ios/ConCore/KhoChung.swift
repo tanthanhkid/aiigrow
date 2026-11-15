@@ -45,6 +45,8 @@ public enum Khoa {
   public static let conCuoi = "conCuoi"
   /// Lời xin thêm giờ lưu lúc mất mạng — gửi khi có mạng (màn «Đã lưu lời xin»).
   public static let xinChoMang = "xinChoMang"
+  /// 15/11: nút màn chặn dẫn tới đâu — "cai" (ngoài danh sách ⇒ Xin Ba Mẹ mở) | "vay" (hết sao ⇒ Xin Ba Mẹ cho vay sao).
+  public static let xinTuManChanLoai = "xinTuManChanLoai"
 }
 
 /// Sự kiện agent (POST api/device/su-kien, server/lib/may-con.ts › SU_KIEN_MAY): `ma` một lần ⇒ gửi lại khi có mạng không ghi trùng.

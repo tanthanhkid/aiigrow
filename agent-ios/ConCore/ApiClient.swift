@@ -128,27 +128,36 @@ public final class ApiClient {
     return r
   }
 
-  func goi<T: Decodable>(_ method: String, _ duong: String, _ body: Data? = nil, _ kieu: T.Type) async throws -> T {
-    let (d, ma): (Data, Int)
-    do { (d, ma) = try await vc.gui(yeuCau(method, duong, body)) } catch { throw LoiApi.mang(error.localizedDescription) }
-    guard (200..<300).contains(ma) else {
-      let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
-      throw LoiApi.mayChu(ma: o?["error"] as? String ?? "http_\(ma)",
-                          cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)). Thử lại sau ít phút nhé.", http: ma)
-    }
+  /// Gửi yêu cầu, trả (dữ liệu, mã HTTP) — lỗi mạng ⇒ LoiApi.mang.
+  func goiTho(_ method: String, _ duong: String, _ body: Data?) async throws -> (Data, Int) {
+    do { return try await vc.gui(yeuCau(method, duong, body)) } catch { throw LoiApi.mang(error.localizedDescription) }
+  }
+
+  static func giaiMa<T: Decodable>(_ d: Data, _ kieu: T.Type) throws -> T {
     do { return try JSONDecoder().decode(T.self, from: d) } catch { throw LoiApi.giaiMa }
+  }
+
+  static func loiMayChu(_ d: Data, _ ma: Int) -> LoiApi {
+    let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
+    return LoiApi.mayChu(ma: o?["error"] as? String ?? "http_\(ma)",
+                         cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)). Thử lại sau ít phút nhé.", http: ma)
+  }
+
+  func goi<T: Decodable>(_ method: String, _ duong: String, _ body: Data? = nil, _ kieu: T.Type) async throws -> T {
+    let (d, ma) = try await goiTho(method, duong, body)
+    guard (200..<300).contains(ma) else { throw Self.loiMayChu(d, ma) }
+    return try Self.giaiMa(d, T.self)
   }
 
   /// Như `goi` nhưng lỗi máy chủ ⇒ `.chiTiet` (đọc thêm `conLan`, `choGiay`).
   func goiChiTiet<T: Decodable>(_ method: String, _ duong: String, _ body: Data? = nil, _ kieu: T.Type) async throws -> T {
-    let (d, ma): (Data, Int)
-    do { (d, ma) = try await vc.gui(yeuCau(method, duong, body)) } catch { throw LoiApi.mang(error.localizedDescription) }
+    let (d, ma) = try await goiTho(method, duong, body)
     guard (200..<300).contains(ma) else {
       let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
       throw LoiApi.chiTiet(ma: o?["error"] as? String ?? "http_\(ma)", cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)). Thử lại sau ít phút nhé.",
                            http: ma, conLan: (o?["conLan"] as? NSNumber)?.intValue, choGiay: (o?["choGiay"] as? NSNumber)?.intValue)
     }
-    do { return try JSONDecoder().decode(T.self, from: d) } catch { throw LoiApi.giaiMa }
+    return try Self.giaiMa(d, T.self)
   }
 
   static func json(_ o: [String: Any]) -> Data { (try? JSONSerialization.data(withJSONObject: o)) ?? Data() }
@@ -167,15 +176,10 @@ public final class ApiClient {
   }
 
   func ghep(_ duong: String, _ b: [String: Any]) async throws -> KetQuaGhep {
-    let (d, ma): (Data, Int)
-    do { (d, ma) = try await vc.gui(yeuCau("POST", duong, Self.json(b))) } catch { throw LoiApi.mang(error.localizedDescription) }
+    let (d, ma) = try await goiTho("POST", duong, Self.json(b))
     if let e = Self.docIosMotCon(d, http: ma) { throw e }
-    guard (200..<300).contains(ma) else {
-      let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
-      throw LoiApi.mayChu(ma: o?["error"] as? String ?? "http_\(ma)",
-                          cau: o?["message"] as? String ?? "Máy chủ báo lỗi (\(ma)). Thử lại sau ít phút nhé.", http: ma)
-    }
-    do { return try JSONDecoder().decode(KetQuaGhep.self, from: d) } catch { throw LoiApi.giaiMa }
+    guard (200..<300).contains(ma) else { throw Self.loiMayChu(d, ma) }
+    return try Self.giaiMa(d, KetQuaGhep.self)
   }
 
   /// `409 {error: "ios_mot_con", conChon: [...]}` ⇒ LoiIosMotCon; khác ⇒ nil.

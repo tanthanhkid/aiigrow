@@ -46,12 +46,6 @@ public struct KhienMuonCo: Codable, Equatable {
   public var danhSach: Bool? = nil
 }
 
-extension LyDoKhien {
-  /// Giờ ngủ / Ba Mẹ khoá (05/11): không thêm giờ được — Con chỉ «Xin Ba Mẹ mở ngoại lệ».
-  /// 15/11: không còn «ngoại lệ» — lý do này không xin vay sao được (vay sao chỉ giải «hết sao»).
-  public var chiNgoaiLe: Bool { self == .ngu || self == .khoaNgay || self == .gioHoc }
-}
-
 /// Phút giải trí đã dùng trong ngày (ghi bởi DeviceActivityMonitor khi chạm mốc «dung.N» / «tran»).
 public struct NhatKyDung: Codable, Equatable {
   public var ngay: String
@@ -107,10 +101,12 @@ public enum TinhKhien {
     // 15/11: sổ sao — còn = sao tiêu được lúc đồng bộ − phút Tính phút chơi SAU lúc đó (bỏ phút mở bằng mã). Sang ngày: không có quỹ mới, sao vẫn vậy.
     if let s = kh.sao {
       let raw = phutDoTaiCho(kh, now: now, dung: dung), bm = phutBoiMa(kh, now: now, dung: dung)
-      let daChoi = kh.ngayDaDung == diaPhuong(now, tz: kh.tz).ngay
-        ? max(0, raw - (kh.dungTaiChoLucDongBo ?? 0)) - max(0, bm - (kh.boiMaLucDongBo ?? 0))
-        : raw - bm
-      return max(0, s.phutCon - max(0, daChoi))
+      // phút đã chơi tại máy mà máy chủ CHƯA xác nhận lúc đồng bộ (`phutChuaXacNhan`) mang qua mốc — kéo để làm mới không cho chơi lại
+      if kh.ngayDaDung == diaPhuong(now, tz: kh.tz).ngay {
+        let sau = max(0, raw - (kh.dungTaiChoLucDongBo ?? 0)) - max(0, bm - (kh.boiMaLucDongBo ?? 0))
+        return max(0, s.phutCon - (kh.phutChuaXacNhan ?? 0) - max(0, sau))
+      }
+      return max(0, s.phutCon - max(0, raw - bm))
     }
     // quỹ của ngày đồng bộ; sang ngày (chưa đồng bộ lại) ⇒ quỹ ngày, không gồm phút cộng thêm hôm qua
     let tran = (kh.ngayDaDung != nil && kh.ngayDaDung != diaPhuong(now, tz: kh.tz).ngay) ? (kh.quyNgayPhut ?? kh.tranPhut) : kh.tranPhut
@@ -131,7 +127,9 @@ public enum TinhKhien {
   public static func lucNay(_ kh: KeHoach, now: Date, dung: NhatKyDung?, moOfflineDen: Date? = nil, phien: PhienMay? = nil,
                             dungSai: TimeInterval = 0) -> KhienMuonCo {
     var k = lucNay0(kh, now: now, dung: dung, moOfflineDen: moOfflineDen, phien: phien, dungSai: dungSai)
-    if kh.theoDanhSach && k.dangMoHet != true { k.danhSach = true }
+    // danh sách trắng chỉ áp khi máy KHÔNG ở trạng thái mở hoàn toàn (mở bằng mã, Ba Mẹ đang dùng, mở tạm / thêm giờ, ngoại lệ, phiên điểm, Mở hết)
+    let moHoanToan = k.dangMoHet == true || k.dangMoOffline == true || k.dangBaMe == true || k.dangThemGio || k.dangNgoaiLe == true || k.dangChoiDiem == true
+    if kh.theoDanhSach && !moHoanToan { k.danhSach = true }
     return k
   }
 

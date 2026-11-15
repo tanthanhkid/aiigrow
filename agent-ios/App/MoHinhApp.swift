@@ -59,6 +59,8 @@ final class MoHinhApp: ObservableObject {
   @Published var manPhu: ManPhu?
   // 15/11: sổ sao (GET hoc-vien/sao) · chọn một bé khi ghép iPhone/iPad
   @Published var saoCon: ChinhSach.SaoCon?
+  /// Lúc tải `saoCon` — so với lần đồng bộ để lấy bản sổ sao MỚI NHẤT.
+  @Published var saoConLuc: Date?
   @Published var chonBeGhep: ChonBeGhep?
 
   let kho: KhoGiaTri
@@ -114,13 +116,20 @@ final class MoHinhApp: ObservableObject {
   var dangKhoaChoTen: Bool { phien?.khoa(Date()) ?? false }
   var baMeDangDung: Bool { phien?.baMeDangDung(Date()) ?? false }
   /// 15/11: số dư Con thấy — ÂM khi đang nợ Ba Mẹ (sổ sao › kế hoạch › tổng quan cũ).
-  var soSao: Int { saoCon?.sao ?? keHoach?.sao?.sao ?? tq?.soSao ?? cuaHang?.soSao ?? 0 }
+  /// Sổ sao mới nhất: `GET hoc-vien/sao` nếu tải SAU lần đồng bộ, không thì sổ sao trong kế hoạch (mỗi lần đồng bộ).
+  var saoMoi: ChinhSach.SaoCon? {
+    guard let kh = keHoach?.sao else { return saoCon }
+    guard let s = saoCon, let luc = saoConLuc, luc > (lanDongBo ?? .distantPast) else { return kh }
+    return s
+  }
+  var soSao: Int { saoMoi?.sao ?? tq?.soSao ?? cuaHang?.soSao ?? 0 }
   /// Đang nợ Ba Mẹ bao nhiêu sao (0 = không nợ).
-  var soNo: Int { saoCon?.soNo ?? keHoach?.sao?.soNo ?? max(0, -soSao) }
+  var soNo: Int { saoMoi?.soNo ?? max(0, -soSao) }
   var tongPhut: Int { tq?.quy?.tongPhut ?? keHoach?.tranPhut ?? 0 }
   /// Phút «Tính phút» còn chơi = sao tiêu được (1 sao = 1 phút).
   var conPhut: Int {
-    if keHoach?.sao != nil { return matMang ? phutConLai : min(phutConLai, saoCon?.phutCon ?? phutConLai) }
+    // sổ sao: kế hoạch tính cả phút tại máy chưa được máy chủ xác nhận ⇒ là nguồn đúng (vay xong, đồng bộ là có ngay)
+    if keHoach?.sao != nil { return phutConLai }
     return matMang || tq?.quy == nil ? phutConLai : min(phutConLai, tq?.quy?.conPhut ?? phutConLai)
   }
   /// Phút Tính phút đã chơi hôm nay (= sao đã tiêu cho chơi hôm nay).
@@ -131,8 +140,6 @@ final class MoHinhApp: ObservableObject {
   /// Mức vay (10/15/30 — máy chủ gửi).
   var mucVay: [Int] { saoCon?.mucVay ?? [10, 15, 30] }
   var vayMacDinh: Int { saoCon?.vayMacDinh ?? 15 }
-  /// Giờ ngủ / Ba Mẹ khoá / giờ học: vay sao không giải được (15/11 bỏ ngoại lệ).
-  var chiNgoaiLe: Bool { khien?.lyDo.chiNgoaiLe == true }
 
   // MARK: ghép máy
   /// `con`: bé đã chọn sau `409 ios_mot_con` (#267 — iPhone, iPad chỉ dùng cho một bé).
@@ -167,6 +174,8 @@ final class MoHinhApp: ObservableObject {
         loiGhep = ma == "ma_het_han" ? .hetHan : .sai(cau)
       default: loiGhep = .sai(e.errorDescription ?? "Chưa ghép được")
       }
+      // đang chọn bé mà mã hết hạn ⇒ thoát màn chọn bé về màn nhập mã (báo hết hạn)
+      if chonBeGhep != nil, loiGhep == .hetHan { chonBeGhep = nil; man = .nhapMa }
     } catch { loiGhep = .sai(error.localizedDescription) }
   }
 
@@ -179,8 +188,11 @@ final class MoHinhApp: ObservableObject {
   }
 
   /// Nút trên màn chặn ⇒ màn xin (máy đang khoá chờ PIN thì để màn chọn tên, không mở xin).
-  func moXinTuManChan() {
+  /// `loai`: màn chặn đã biết app bị chặn ở đâu — "cai" (ngoài danh sách) | "vay" (trong danh sách, hết sao).
+  func moXinTuManChan(loai: String? = nil) {
     guard man == .chinh, !dangKhoaChoTen, !baMeDangDung else { return }
+    if loai == "cai" { manPhu = .xinCai; return }
+    if loai == "vay" { manPhu = .xinThem; return }
     switch khien?.lyDo {
     case .khong?: manPhu = .xinCai          // ngoài danh sách ⇒ «Xin Ba Mẹ mở»
     case .hetGio?: manPhu = .xinThem        // hết sao ⇒ «Xin Ba Mẹ cho vay sao»
@@ -206,7 +218,11 @@ final class MoHinhApp: ObservableObject {
       if case .mang = error as? LoiApi { matMang = true } else { loi = error.localizedDescription }
     }
     napTuKho()
-    if kho.doc(Date.self, Khoa.xinTuManChan) != nil { kho.ghi(nil, Khoa.xinTuManChan); moXinTuManChan() }
+    if kho.doc(Date.self, Khoa.xinTuManChan) != nil {
+      let loai = kho.doc(String.self, Khoa.xinTuManChanLoai)
+      kho.ghi(nil, Khoa.xinTuManChan); kho.ghi(nil, Khoa.xinTuManChanLoai)
+      moXinTuManChan(loai: loai)
+    }
     if nen { return }
     if dungChung || phien != nil { hoSo = await vaoMay().taiHoSo().0 }
     if !matMang && !dangKhoaChoTen && !baMeDangDung { await taiNgay(); await guiBaiCho() }
@@ -253,7 +269,7 @@ final class MoHinhApp: ObservableObject {
     async let q = try? a.quyCon()
     async let s = try? a.saoCon()
     let (t1, c1, v1, n1, q1, s1) = await (t, c, v, n, q, s)
-    if let s1 { saoCon = s1 }
+    if let s1 { saoCon = s1; saoConLuc = Date() }
     if let t1 { tq = t1 }
     if let c1 { cuaHang = c1 }
     if let v1 { viQua = v1 }

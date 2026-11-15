@@ -74,6 +74,8 @@ public struct KeHoach: Codable, Equatable {
   public var sao: ChinhSach.SaoCon? = nil
   /// Phút mở bằng mã đã đo lúc đồng bộ (mốc trừ ra khỏi phút chơi sau đồng bộ).
   public var boiMaLucDongBo: Int? = nil
+  /// Phút tính sao đã chơi hôm nay TẠI MÁY mà máy chủ chưa trừ lúc đồng bộ (= phút tại máy − `quy.daDung` máy chủ báo) — trừ thêm khỏi `sao.phutCon`.
+  public var phutChuaXacNhan: Int? = nil
 
   /// «Mở hết»: không chặn, không đếm phút, không trừ sao.
   public var moHet: Bool { cheDo == "mo_het" }
@@ -131,7 +133,8 @@ public enum LapKeHoach {
 
   /// `truoc`: kế hoạch đã lưu (giữ hạn phiên điểm đã neo).
   /// `taiCho`: phút «Tính phút» đo tại chỗ hôm nay lúc đồng bộ (đã trừ phút lúc mở bằng mã) — mốc của trần sao.
-  public static func tu(_ n: NhipTraVe, now: Date = Date(), truoc: KeHoach? = nil, taiCho: Int = 0) -> KeHoach {
+  /// `boiMa`: phần trong `taiCho` đo lúc mở bằng mã (không trừ sao).
+  public static func tu(_ n: NhipTraVe, now: Date = Date(), truoc: KeHoach? = nil, taiCho: Int = 0, boiMa: Int = 0) -> KeHoach {
     let cs = n.chinhSach, nt = n.nenTang
     var canhBao: [String] = []
 
@@ -147,7 +150,9 @@ public enum LapKeHoach {
     // 05/11: có quỹ ⇒ trần = quỹ ngày + phút cộng thêm hôm nay (đổi sao / Ba Mẹ cho / quà); khung giờ chơi không còn chặn
     let moHet = cs.ungDung.cheDo == "mo_het"
     // 15/11: có sổ sao ⇒ 1 sao = 1 phút: trần (theo phút đo tại chỗ) = đã đo lúc đồng bộ + phút còn chơi; bỏ quỹ ngày
-    let tran = cs.sao.map { max(0, taiCho) + max(0, $0.phutCon) }
+    // phút tính sao chơi hôm nay tại máy mà máy chủ chưa trừ (quy.daDung = phút máy chủ đã tính hôm nay, mọi máy) ⇒ mang qua mốc đồng bộ
+    let chuaXacNhan = cs.sao == nil ? 0 : max(0, max(0, taiCho - boiMa) - (cs.quy?.daDung ?? 0))
+    let tran = cs.sao.map { max(0, taiCho) + max(0, $0.phutCon - chuaXacNhan) }
       ?? cs.quy.map { max(0, $0.ngayPhut + $0.themPhut) } ?? max(0, tranNgay + max(0, cs.ngoaiLe.phutThemHomNay))
     let caNgay = [Khung(tu: "00:00", den: "24:00")]
     let coQuy = cs.quy != nil || cs.sao != nil
@@ -230,6 +235,7 @@ public enum LapKeHoach {
       // sổ sao: phút còn = trần − phút đo tại chỗ (không dùng phút máy chủ cộng, không quỹ ngày)
       kh.sao = s; kh.daDungMayChu = nil; kh.quyNgayPhut = nil; kh.phut10Sao = nil
       kh.ngayDaDung = TinhKhien.diaPhuong(now, tz: tz).ngay; kh.dungTaiChoLucDongBo = max(0, taiCho)
+      kh.boiMaLucDongBo = max(0, boiMa); kh.phutChuaXacNhan = chuaXacNhan
     }
     return kh
   }

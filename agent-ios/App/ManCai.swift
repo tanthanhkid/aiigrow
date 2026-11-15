@@ -216,7 +216,7 @@ struct ManQuyen: View {
         HangDs(icon: "ic_khien", t1: "Không đọc tin nhắn, ảnh", t2: "Chỉ đếm phút và app")
       }
       .theDiu(dem: 14)
-      if true { Text("Xong thì \(m.tenCon ?? "con") chạm tên + nhập PIN để vào máy.").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center) }
+      Text("Xong thì \(m.tenCon ?? "con") chạm tên + nhập PIN để vào máy.").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       Toggle(isOn: $giaDinh) { Text("Máy dùng Apple ID của con (Chia sẻ trong gia đình)").font(Diu.t2).foregroundColor(Diu.chu2) }
         .tint(Diu.xanh).frame(minHeight: 44)
       Button { Task { await m.xinQuyen(conTrongGiaDinh: giaDinh) } } label: { Label { Text("Cho phép đếm phút chơi") } icon: { Anh(ten: "ic_tick", co: 26) } }
@@ -289,9 +289,20 @@ struct ManChonBeGhep: View {
       }
       .theDiu(dem: 14)
       if m.dangBan { ProgressView() }
-      if case .sai(let cau)? = m.loiGhep { Text(cau).font(Diu.t2).foregroundColor(Diu.doChu).multilineTextAlignment(.center) }
+      if let l = m.loiGhep {
+        Text(Self.cau(l)).font(Diu.t2).foregroundColor(Diu.doChu).multilineTextAlignment(.center)
+        if l == .matMang { Button("Thử lại") { m.loiGhep = nil }.buttonStyle(NutDiu(kieu: .lk)) }
+      }
       Text("Bé khác dùng iPhone, iPad riêng — Ba Mẹ ghép thêm máy trong AiiGrow.").font(Diu.t2).foregroundColor(Diu.chu3).multilineTextAlignment(.center)
-      Button("Huỷ") { m.chonBeGhep = nil }.buttonStyle(NutDiu(kieu: .lk))
+      Button("Huỷ") { m.chonBeGhep = nil; m.loiGhep = nil }.buttonStyle(NutDiu(kieu: .lk))
+    }
+  }
+
+  static func cau(_ l: LoiGhep) -> String {
+    switch l {
+    case .sai(let c): return c
+    case .hetHan: return "Mã đã hết hạn. Nhờ Ba Mẹ tạo mã mới nhé."
+    case .matMang: return "Chưa kết nối được máy chủ. Kiểm tra Wi-Fi hoặc 4G rồi chạm tên bé lại nhé."
     }
   }
 }

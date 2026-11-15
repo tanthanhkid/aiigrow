@@ -76,10 +76,12 @@ public final class DongBo {
     let bm = docBiMatOffline
     await VaoMay(api: api, kho: kho, khoCho: khoCho, biMat: { bm?() }).phatLai(now: now)
     await guiXinChoMang()
+    let nkGui = kho.doc(NhatKyDung.self, Khoa.nhatKyDung)
     let gui = nhipGui(now: now, nguon: nguon)
     let tra = try await api.nhip(gui)
-    if let bm = gui.phutBoiMa, var nk = kho.doc(NhatKyDung.self, Khoa.nhatKyDung) {
-      nk.boiMaDaGui = (nk.boiMaDaGui ?? 0) + bm; kho.luu(nk, Khoa.nhatKyDung)
+    // đã báo phutBoiMa: ghi MỐC tổng đã gửi của đúng ngày bản đã gửi (đọc lại ngay trước khi ghi — extension Monitor có thể vừa ghi phút mới)
+    if gui.phutBoiMa != nil, let nkGui, var nk = kho.doc(NhatKyDung.self, Khoa.nhatKyDung), nk.ngay == nkGui.ngay {
+      nk.boiMaDaGui = max(nk.boiMaDaGui ?? 0, nkGui.boiMa ?? 0); kho.luu(nk, Khoa.nhatKyDung)
     }
     // Lệnh «go» (gỡ từ xa): thu hồi quyền, gỡ khiên + lịch, báo xong, quên token. iOS không cho app tự xoá ⇒ màn hướng dẫn xoá biểu tượng.
     if let go = tra.lenh.first(where: { $0.loai == "go" }) {
@@ -100,8 +102,8 @@ public final class DongBo {
     ghiPhien(tra.nguoiDung, now: now)
     let truoc = kho.doc(KeHoach.self, Khoa.keHoach), nk = kho.doc(NhatKyDung.self, Khoa.nhatKyDung)
     let taiCho = truoc.map { TinhKhien.phutDoTaiCho($0, now: now, dung: nk) } ?? 0
-    var kh = LapKeHoach.tu(tra, now: now, truoc: truoc, taiCho: taiCho)
-    if kh.sao != nil { kh.boiMaLucDongBo = truoc.map { TinhKhien.phutBoiMa($0, now: now, dung: nk) } ?? 0 }
+    let boiMaNay = truoc.map { TinhKhien.phutBoiMa($0, now: now, dung: nk) } ?? 0
+    var kh = LapKeHoach.tu(tra, now: now, truoc: truoc, taiCho: taiCho, boiMa: boiMaNay)
     let conCuoi = kho.doc(String.self, Khoa.conCuoi)
     if let id = tra.chinhSach.con?.id, conCuoi != nil, conCuoi != id { kh.daDungMayChu = nil; kh.ngayDaDung = nil }   // chính sách của bé khác (phản hồi cũ)
     if let den = kho.doc(PhienMay.self, Khoa.phienMay)?.baMeDen, den > now { kh.lich = LapKeHoach.themLich(kh.lich, LapKeHoach.lichMotLan("bame", den: den, now: now)) }
@@ -135,9 +137,10 @@ public final class DongBo {
     VaoMay.luuPhien(moi, kho: kho)       // bé khác ⇒ phút đo tại máy + phút máy chủ của bé trước không tính
   }
 
-  /// Lời xin vay sao lưu lúc mất mạng ⇒ gửi khi có mạng. (Lời xin cũ «thêm giờ» / «ngoại lệ» trong kho ⇒ gửi thành xin vay cùng số.)
+  /// Lời xin vay sao lưu lúc mất mạng ⇒ gửi khi có mạng. Lời xin cũ «thêm giờ» / «ngoại lệ» (bản trước 15/11) ⇒ BỎ, không tự thành khoản vay.
   public func guiXinChoMang(now: Date = Date()) async {
     guard let x = kho.doc(YeuCauDangCho.self, Khoa.xinChoMang) else { return }
+    guard x.loai == "vay_sao" else { kho.ghi(nil, Khoa.xinChoMang); return }
     do {
       let r = try await api.xinVay(soSao: x.phut, loiNhan: x.loiNhan)
       kho.luu(YeuCauDangCho(id: r.id, phut: x.phut, loiNhan: x.loiNhan, guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho", loai: "vay_sao"), Khoa.yeuCauDangCho)

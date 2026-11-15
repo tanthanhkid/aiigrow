@@ -491,7 +491,6 @@ final class QuyGioTests: XCTestCase {
     let k = TinhKhien.lucNay(kh, now: vn(26, 22), dung: nil)
     XCTAssertEqual(k.muc, .khong); XCTAssertEqual(k.dangNgoaiLe, true)
     XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 23, 1), dung: nil).lyDo, .ngu, "hết hạn ⇒ khoá lại")
-    XCTAssertTrue(LyDoKhien.ngu.chiNgoaiLe); XCTAssertTrue(LyDoKhien.gioHoc.chiNgoaiLe); XCTAssertFalse(LyDoKhien.hetGio.chiNgoaiLe)
   }
 
   func testWebLuonChanVaMayChuCu() throws {
@@ -843,6 +842,39 @@ final class SaoAppWebTests: XCTestCase {
     // máy chủ cũ không gửi cheDo ⇒ luật cũ (không danh sách trắng)
     let cu = LapKeHoach.tu(try nhip(sao: du), now: vn(26, 10))
     XCTAssertNil(TinhKhien.lucNay(cu, now: vn(26, 10), dung: nil).danhSach)
+  }
+
+  func testDanhSachTatKhiMoHoanToan() throws {
+    let kh = LapKeHoach.tu(try nhip(sao: no, cheDo: "theo_danh_sach"), now: vn(26, 10))
+    let k = TinhKhien.lucNay(kh, now: vn(26, 10), dung: nil, moOfflineDen: vn(26, 11))
+    XCTAssertEqual(k.dangMoOffline, true); XCTAssertNotEqual(k.danhSach, true, "mở bằng mã ⇒ không khiên ngoài danh sách")
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 10), dung: nil).danhSach, true)
+  }
+
+  /// Review #272 điểm 2: phút chơi tại máy mà máy chủ chưa trừ (quy.daDung) mang qua mốc đồng bộ — kéo làm mới không có lại phút.
+  func testPhutChuaXacNhanMangQuaDongBo() throws {
+    // máy chủ báo daDung 42, máy đo 60 phút hôm nay ⇒ 18 phút chưa xác nhận
+    let kh = LapKeHoach.tu(try nhip(sao: du), now: vn(26, 10), taiCho: 60)
+    XCTAssertEqual(kh.phutChuaXacNhan, 18); XCTAssertEqual(kh.tranPhut, 60 + 12)
+    XCTAssertEqual(TinhKhien.phutConLai(kh, now: vn(26, 10), dung: NhatKyDung(ngay: "2026-10-26", phut: 60, tranHet: false)), 12)
+    // đồng bộ lại ngay (chưa chơi thêm) — vẫn 12, không về 30
+    let lai = LapKeHoach.tu(try nhip(sao: du), now: vn(26, 10, 1), truoc: kh, taiCho: 60)
+    XCTAssertEqual(TinhKhien.phutConLai(lai, now: vn(26, 10, 1), dung: NhatKyDung(ngay: "2026-10-26", phut: 60, tranHet: false)), 12)
+    // phút lúc mở bằng mã không tính là chưa xác nhận
+    XCTAssertEqual(LapKeHoach.tu(try nhip(sao: du), now: vn(26, 10), taiCho: 60, boiMa: 18).phutChuaXacNhan, 0)
+  }
+
+  func testLoiXinCuTrongHangChoBiBo() async throws {
+    let vc = VanChuyenGia(), kho = KhoBoNho()
+    let d = DongBo(api: ApiClient(goc: URL(string: "https://may.chu")!, token: "tk", vanChuyen: vc), kho: kho, khien: KhienGia(), lich: LichGia(),
+                   uyQuyen: UyQuyenGia(), chon: ChonGia(), xoaToken: {})
+    kho.luu(YeuCauDangCho(id: "cho-mang", phut: 60, loiNhan: "", guiLuc: Date(), trangThai: "ngoai_le"), Khoa.xinChoMang)
+    await d.guiXinChoMang()
+    XCTAssertNil(kho.data(Khoa.xinChoMang)); XCTAssertTrue(vc.da.isEmpty, "lời xin ngoại lệ cũ không thành khoản vay")
+    kho.luu(YeuCauDangCho(id: "cho-mang", phut: 15, loiNhan: "", guiLuc: Date(), trangThai: "vay_sao", loai: "vay_sao"), Khoa.xinChoMang)
+    vc.tra["POST /api/device/hoc-vien/xin-vay"] = (#"{"id":"Y9","trang_thai":"cho"}"#.data(using: .utf8)!, 200)
+    await d.guiXinChoMang()
+    XCTAssertEqual(vc.than(0)["soSao"] as? Int, 15); XCTAssertEqual(kho.doc(YeuCauDangCho.self, Khoa.yeuCauDangCho)?.id, "Y9")
   }
 
   func testMayChuCuKhongCoSaoVanChayQuy() throws {

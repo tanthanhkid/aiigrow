@@ -147,7 +147,7 @@ struct ManConDangXin: View {
         Anh(ten: "rob_xong", co: 120)
         Text(daThem ? "\(yc.nguoi) đã thêm \(ten)!" : "\(yc.nguoi) cho mở \(ten)!").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
         HangDs(icon: "ic_web", t1: ten, t2: daThem ? "Đã vào danh sách · lần sau không cần xin" : "Mở lần này",
-               phai: AnyView(NhanNho(chu: "✓ Đã thêm", mau: Diu.xanhDam, nen: Diu.xanhNhat))).theDiu(dem: 12)
+               phai: AnyView(NhanNho(chu: daThem ? "✓ Đã thêm" : "Mở lần này", mau: Diu.xanhDam, nen: Diu.xanhNhat))).theDiu(dem: 12)
         if daThem {
           HangDs(icon: tinhPhut ? "ic_dongho" : "ic_sach", t1: tinhPhut ? "Nhóm «Tính phút»" : "Nhóm «Không tính phút»",
                  t2: tinhPhut ? "1 sao = 1 phút · còn \(m.conPhut) sao = \(m.conPhut) phút chơi" : "Vào thoải mái, không trừ sao").theDiu(dem: 12)
