@@ -11,6 +11,7 @@ import { dsBo, dsKho, giaoBo, giaoKho } from "./bo-nhiem-vu.ts";
 import { themTuDanhMuc, xemDanhMuc } from "./danh-muc-viec.ts";
 import * as ss from "./so-sao.ts";
 import * as yc from "./yeu-cau.ts";
+import { appHomNayCon } from "./hom-nay-dung.ts";
 
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
@@ -82,7 +83,15 @@ export async function xuLyConSao(con: string, mayId: string | null, req: Request
   }
   if (d === "doi-sao" && post) return json(await qg.doiSaoLayGio(con, b.phut, mayId));
   // 15/11: sổ sao của Con — «còn N sao = N phút», hết sao, đang nợ · gửi lời xin vay (chơi / đổi quà)
-  if (d === "sao" && get) { const st = await ss.trangThaiSao(con); return json({ ...st, cau: ss.cauSao(st), mucVay: [...ss.MUC_VAY], vayMacDinh: ss.VAY_MAC_DINH }); }
+  // + lichSu[] (sổ sao gần đây — cùng sổ ví sao Ba Mẹ) · appHomNay[] (màn «Đang chơi»: «Roblox 30 phút · −30 sao») · phutChoiHomNay (= sao trừ hôm nay)
+  if (d === "sao" && get) {
+    const gh = Number(new URL(req.url).searchParams.get("gioiHan")) || 20;
+    const c = await one<{ family_id: string; tz: string }>(`select c.family_id, f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]);
+    const now = new Date();
+    const [st, lichSu, appHomNay, phutChoiHomNay] = await Promise.all([ss.trangThaiSao(con), ss.lichSuSaoCon(con, gh), appHomNayCon(con, now, c),
+      ss.phutDaTruHomNay(q, con, c?.tz ?? "Asia/Ho_Chi_Minh", now)]);
+    return json({ ...st, cau: ss.cauSao(st), mucVay: [...ss.MUC_VAY], vayMacDinh: ss.VAY_MAC_DINH, lichSu, appHomNay, phutChoiHomNay });
+  }
   if (d === "xin-vay" && post) {
     const r = await yc.guiYeuCau(con, mayId, { loai: "vay_sao", soSao: b.soSao ?? ss.VAY_MAC_DINH, mucDich: b.mucDich, quaId: b.quaId, lyDo: b.loiNhan ?? b.lyDo });
     return json(r);

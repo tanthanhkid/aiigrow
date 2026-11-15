@@ -112,7 +112,7 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
       phut = Math.min(phut, Math.max(0, (now.getTime() - new Date(may.dang_nhap_luc).getTime()) / 60000));
     if (phut <= 0) continue;
     // lỗi trừ sao không làm hỏng cả lượt đồng bộ (agent vẫn cần Policy) — phút đã ghi usage, lần sau không tính lại
-    try { await truPhutChoi(be, phut, now, { muc: x.muc }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
+    try { await truPhutChoi(be, phut, now, { muc: x.muc, tz: f.tz }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
   }
   const status = { ...(may.status ?? {}), ...(b.status ?? {}), lechGiay: gioMaySai ? lechGiay : null };
   await q(`update devices set last_seen = $2, status = $3::text::jsonb where id = $1`, [may.id, now, JSON.stringify(status)]);

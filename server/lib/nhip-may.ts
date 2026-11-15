@@ -8,7 +8,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { conCua } from "./gia-dinh.ts";
 import { lenhCho } from "./lenh-may.ts";
 import { coCuaSoThemGio } from "./chuyen-doi.ts";
-import { luuAndroidNhip, luuIosNhip, thanhPhanChoTuanThu } from "./ios-may.ts";
+import { luuAndroidNhip, luuIosNhip, thanhPhanChoTuanThu, type NhipIosVao } from "./ios-may.ts";
 import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { tinHieuDanhSachApp } from "./app-may.ts";
 import { createHash } from "node:crypto";
@@ -18,6 +18,9 @@ export const vanBiMat = (s: string) => createHash("sha256").update(s, "utf8").di
 
 export async function nhipMay(may: May, con: string | null, b: NhipVao, now = new Date()) {
   const kq = await nhanNhip(may, may.platform === "android" ? { ...b, thanhPhan: thanhPhanChoTuanThu(b.thanhPhan) } : b, now);
+  // iPhone/iPad: lưu phần `ios` + trừ sao theo phút «Tính phút» tăng thêm (ios-may.ts › truSaoIos) TRƯỚC khi dựng chính sách ⇒ `sao` trả về đã mới
+  // (trừ cho `con` = bé đang dùng của nhịp; agent iOS cũ / Ba Mẹ đang dùng máy ⇒ chỉ lưu mốc)
+  if (may.platform === "ios") await luuIosNhip(may, con, b as NhipIosVao, now);
   const cs = await chinhSachChung(may, con, kq.tuanThu, now);
   const nen = ((NEN_CHUYEN_DOI as readonly string[]).includes(may.platform) ? may.platform : "windows") as NenChuyenDoi;
   const kqNhip = { serverTime: now.toISOString(), tuanThu: kq.tuanThu, chinhSach: cs, nenTang: chuyenDoi(cs, nen), lenh: await lenhCho(may),
@@ -25,8 +28,7 @@ export async function nhipMay(may: May, con: string | null, b: NhipVao, now = ne
   if (may.platform !== "ios" && may.platform !== "android") return kqNhip;
   // iPhone/iPad: lưu phần `ios` + trả hạn «thêm giờ đã duyệt / mở khẩn cấp» (app lập lịch DeviceActivity «themgio» kết thúc đúng hạn).
   // Máy Con Android: lưu `android` (phút dùng theo app + quyền) + cùng hạn ở gốc phản hồi (tác tử đọc `grantEndsAt`).
-  if (may.platform === "ios") await luuIosNhip(may, (b as { ios?: unknown }).ios, now);
-  else await luuAndroidNhip(may, b, now);
+  if (may.platform === "android") await luuAndroidNhip(may, b, now);
   const den = coCuaSoThemGio(may.platform) ? await hanMoCuaMay(may, con, now) : null;
   // Android + iOS: bí mật mã mở offline (lib/ma-offline.ts) — tác tử nhớ khi còn mạng để tự kiểm mã Ba Mẹ đọc lúc mất mạng (như dong-bo.windows.maOfflineBiMat).
   // Agent báo vân bí mật đang nhớ (`maOfflineVan`) ⇒ khớp thì không gửi lại (bí mật ít đi qua mạng); thiếu / lệch ⇒ gửi bí mật đúng.
