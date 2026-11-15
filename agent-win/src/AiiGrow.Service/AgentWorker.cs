@@ -185,7 +185,7 @@ public sealed class AgentWorker : BackgroundService
             // 0.2.4: có phút chơi khi mất mạng chưa gửi ⇒ gửi phien/bu TRƯỚC dong-bo (máy chủ đo thời gian thật từ nhịp cuối).
             var doan = _rt.DoanCanBu();
             var status = _rt.BuildStatus(active);
-            var boiMa = _rt.PhutBoiMa;   // 15/11: phút «Tính phút» lúc mở bằng mã — máy chủ không trừ sao
+            var boiMa = _rt.BoiMaTheoBe();   // 15/11: phút «Tính phút» lúc mở bằng mã THEO BÉ — máy chủ không trừ sao đúng bé (boiMaCon)
             var (policy, raw) = await GuiBu.DongBoAsync(api, doan, (kq, loi) =>
             {
                 if (kq == KetQuaBu.DaGui) _log.LogInformation("Đã gửi bù {phut} phút chơi khi mất mạng (phiên {id})", doan!.PhutChoi, doan.PhienId);

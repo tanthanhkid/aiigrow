@@ -77,9 +77,10 @@ public sealed class ApiClient : IDisposable
         return res;
     }
 
-    /// <param name="phutBoiMa">15/11: phút «Tính phút» dùng lúc máy mở bằng mã offline của Ba Mẹ kể từ lần đồng bộ trước — máy chủ không trừ sao phần này. 0 ⇒ không gửi.</param>
+    /// <param name="boiMa">15/11: phút «Tính phút» dùng lúc máy mở bằng mã offline của Ba Mẹ kể từ lần đồng bộ trước, THEO BÉ — máy chủ không trừ sao
+    /// phần này (`boiMaCon`; `phutBoiMa` = tổng, cho máy chủ cũ). Rỗng ⇒ không gửi.</param>
     public async Task<(Policy Policy, string Raw)> SyncAsync(AgentStatus status, IReadOnlyList<UsageEntry> usage,
-        CancellationToken ct = default, int phutBoiMa = 0)
+        CancellationToken ct = default, IReadOnlyList<(string? Con, int Phut)>? boiMa = null)
     {
         // Máy chủ AiiGrow: POST /api/device/dong-bo. Policy cho agent nằm ở trường `windows` (máy chủ dịch sẵn — server/lib/agent-windows.ts) + khối gốc `sao`, `cheDo`.
         // Máy chủ ghi phút dùng bằng greatest(…) ⇒ gửi TỔNG trong ngày theo (app, bé) (UsageTotals), không gửi phần tăng. 15/11 (#267): `con` = bé của dòng.
@@ -88,7 +89,8 @@ public sealed class ApiClient : IDisposable
         {
             Status = status, ClientTime = DateTimeOffset.Now.ToString("O"),
             Usage = tong.Select(u => new DongBoUsage { Muc = u.AppId, Phut = u.Minutes, Day = u.Day, Con = u.Con }).ToList(),
-            PhutBoiMa = phutBoiMa > 0 ? phutBoiMa : null,
+            PhutBoiMa = boiMa is { Count: > 0 } ? boiMa.Sum(x => x.Phut) : null,
+            BoiMaCon = boiMa is { Count: > 0 } ? boiMa.Select(x => new DongBoBoiMa { Con = x.Con, Phut = x.Phut }).ToList() : null,
         }, ct);
         return (PolicyParser.TuDongBo(raw), raw);
     }
@@ -100,6 +102,13 @@ public sealed class ApiClient : IDisposable
         public string ClientTime { get; set; } = "";
         public List<DongBoUsage> Usage { get; set; } = new();
         public int? PhutBoiMa { get; set; }
+        public List<DongBoBoiMa>? BoiMaCon { get; set; }
+    }
+
+    internal sealed class DongBoBoiMa
+    {
+        public string? Con { get; set; }
+        public int Phut { get; set; }
     }
 
     internal sealed class DongBoUsage

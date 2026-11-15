@@ -114,11 +114,19 @@ public sealed class SoSaoMay
     public bool CanhBaoNo { get; set; }
 }
 
-/// <summary>Số giây Con đã chơi app «Tính phút» tại máy kể từ Policy nhận lúc <see cref="PolicyAt"/> (lưu để dịch vụ khởi động lại vẫn trừ đúng sao).</summary>
+/// <summary>Số giây Con đã chơi app «Tính phút» tại máy kể từ Policy nhận lúc <see cref="PolicyAt"/> (lưu để dịch vụ khởi động lại vẫn trừ đúng sao).
+/// 15/11 (PR #277): máy chung đếm THEO BÉ — <see cref="Giay"/> là của bé mà Policy đang giữ (<see cref="PolicyBe"/>), bé khác vào lúc mất mạng
+/// đếm riêng ở <see cref="GiayBe"/>; phút mở bằng mã chưa báo máy chủ theo bé ở <see cref="BoiMa"/> (khoá rỗng = không rõ bé).</summary>
 public sealed class QuyDaDem
 {
     public DateTimeOffset PolicyAt { get; set; }
     public double Giay { get; set; }
+    public string? PolicyBe { get; set; }
+    public Dictionary<string, double> GiayBe { get; set; } = new();
+    public Dictionary<string, double> BoiMa { get; set; } = new();
+    /// <summary>Giây mở bằng mã HÔM NAY theo bé (ngày <see cref="BoiMaNgay"/>, giờ máy) — «Hôm nay đã chơi N phút · −N sao» không tính phần không trừ sao.</summary>
+    public Dictionary<string, double> BoiMaHomNay { get; set; } = new();
+    public DateTime BoiMaNgay { get; set; }
 }
 
 /// <param name="Con">15/11 (#267): id bé của dòng (máy chung) — máy chủ ghi phút cho đúng bé; null = không biết (máy chủ coi là bé đang dùng).</param>

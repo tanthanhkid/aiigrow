@@ -114,7 +114,9 @@ public class AppConTests
             new() { AppId = "tudien.exe", Ten = "Từ điển", Phut = 5 },
         };
         Assert.Equal("Roblox 30 phút · YouTube Kids 12 phút · Từ điển không tính phút", SaoView.DungTheoApp(dung, new[] { "tudien.exe" }));
-        Assert.Equal(42, SaoView.PhutTinh(dung, new[] { "tudien.exe" }));
+        Assert.Equal(42, SaoView.PhutTinh(dung, new[] { "roblox.exe", "youtubekids.exe" }));
+        Assert.Equal(30, SaoView.PhutTinh(dung, new[] { "roblox.exe" }));            // chỉ app «Tính phút», không đếm app lạ / Không tính phút
+        Assert.Equal(32, SaoView.PhutTinh(dung, new[] { "roblox.exe", "youtubekids.exe" }, phutBoiMa: 10));   // bỏ phút mở bằng mã (không trừ sao)
         Assert.Equal("Chào Bảo Anh!", AppConView.Chao(" Bảo Anh "));
         Assert.Equal("Thứ Năm · 19:30", AppConView.NgayGio(new DateTime(2026, 11, 5, 19, 30, 0)));
     }
@@ -364,5 +366,31 @@ public class AppConTests
         Assert.Equal(4, t.DungHomNay(now).Single().Phut);
         var tong = new UsageTotals().Add(new[] { new UsageEntry("2026-11-15", "roblox.exe", "Roblox", 2, "be-a"), new UsageEntry("2026-11-15", "roblox.exe", "Roblox", 1, "be-b") });
         Assert.Equal(2, tong.Count);
+    }
+
+    [Fact]
+    public void TuDongBo_PhangCu_VaLoiJson()
+    {
+        var p = PolicyParser.TuDongBo("""{"mode":"hoc","allowedApps":["a.exe"],"sao":5}""");   // phản hồi phẳng (máy chủ cũ / test): `sao` là số ⇒ không có khối sổ sao
+        Assert.Equal(5, p.Sao);
+        Assert.Null(p.SoSao);
+        Assert.Throws<PolicyException>(() => PolicyParser.TuDongBo("{khong"));
+        Assert.False(PolicyParser.TryParse("", out _));
+    }
+
+    [Fact]
+    public void PhienOffline_MoBangMa_DemRieng_GuiBoiMa()
+    {
+        var p = PolicyParser.Parse("""{"mode":"hoc","playSessionId":"p1","playApp":"roblox.exe","playOfflineMinutes":10}""");
+        var now = DateTimeOffset.UtcNow;
+        var (d, _) = PhienOffline.Dem(null, p, offline: true, dangChoi: true, giayDonDieu: 60, daChoiGiay: 0, now, boiMa: true);
+        Assert.Equal(0, d!.GiayChoi);
+        Assert.Equal(60, d.GiayBoiMa);
+        Assert.True(d.CanGui);
+        Assert.Contains("boiMa = True", d.TaoBu().ToString());
+        (d, _) = PhienOffline.Dem(d, p, true, true, 60, 0, now);
+        Assert.Equal(60, d!.GiayChoi);
+        Assert.Contains("boiMa = False", d.TaoBu().ToString());   // lẫn lộn ⇒ chỉ gửi phần thường (phút mở bằng mã đi boiMaCon)
+        Assert.False(d.HetHan);
     }
 }

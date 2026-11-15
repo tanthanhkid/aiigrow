@@ -35,8 +35,14 @@ public sealed class AgentRuntime
     /// <summary>15/11: giây Con đã chơi app «Tính phút» (Policy.AppTinhGio) tại máy kể từ Policy đang giữ — QuyTaiCho trừ vào sao (cả lúc mất mạng).</summary>
     private double _quyGiay;
     private double _quyChoGhi;
-    /// <summary>15/11: giây chơi app «Tính phút» lúc máy mở bằng mã offline của Ba Mẹ (không trừ sao) chưa báo máy chủ — dong-bo `phutBoiMa`.</summary>
-    private double _boiMaGiay;
+    /// <summary>15/11 (PR #277): bé mà Policy đang giữ thuộc về (bé đang dùng lúc đồng bộ; null = máy riêng / chưa biết) — <see cref="_quyGiay"/> là của bé này.</summary>
+    private string? _policyBe;
+    /// <summary>Máy chung: bé KHÁC vào máy sau lượt đồng bộ (thường lúc mất mạng) — giây «Tính phút» đếm riêng theo bé, số dư lấy từ ho-so (không dùng sổ bé trước).</summary>
+    private Dictionary<string, double> _giayBe = new();
+    /// <summary>15/11: giây chơi app «Tính phút» lúc máy mở bằng mã offline của Ba Mẹ (không trừ sao) chưa báo máy chủ, THEO BÉ (khoá rỗng = không rõ) — dong-bo `boiMaCon`.</summary>
+    private Dictionary<string, double> _boiMaGiay = new();
+    private Dictionary<string, double> _boiMaHomNay = new();
+    private DateTime _boiMaNgay;
 
     public ConfigStore Store { get; } = new();
     public AgentConfig? Config { get; private set; }
@@ -100,7 +106,22 @@ public sealed class AgentRuntime
             }
             _cheDo = AiiGrow.Core.CheDoHieuLuc.Chon(_policy?.CheDo, Config?.CheDo, MoCoi.La(Config, DateTimeOffset.UtcNow));
             // quỹ đã đếm cho đúng Policy đang giữ (dịch vụ khởi động lại lúc mất mạng vẫn trừ đúng)
-            if (Config?.QuyDem is { } qd && _policy != null && qd.PolicyAt == _policyAt && qd.Giay > _quyGiay) _quyGiay = qd.Giay;
+            if (Config?.QuyDem is { } qd)
+            {
+                if (_policy != null && qd.PolicyAt == _policyAt)
+                {
+                    if (qd.Giay > _quyGiay) _quyGiay = qd.Giay;
+                    _policyBe ??= qd.PolicyBe;
+                    foreach (var (k, v) in qd.GiayBe) if (!_giayBe.TryGetValue(k, out var c0) || v > c0) _giayBe[k] = v;
+                }
+                // phút mở bằng mã chưa báo: giữ qua khởi động lại (không gắn với Policy — có mạng lại mới gửi)
+                foreach (var (k, v) in qd.BoiMa) if (!_boiMaGiay.TryGetValue(k, out var c1) || v > c1) _boiMaGiay[k] = v;
+                if (qd.BoiMaNgay != default && (_boiMaNgay == default || qd.BoiMaNgay == _boiMaNgay))
+                {
+                    _boiMaNgay = qd.BoiMaNgay;
+                    foreach (var (k, v) in qd.BoiMaHomNay) if (!_boiMaHomNay.TryGetValue(k, out var c2) || v > c2) _boiMaHomNay[k] = v;
+                }
+            }
             // nạp lại khi worker khác ghi cấu hình: bản trong bộ nhớ có thể mới hơn bản trên đĩa (đĩa ghi 30 giây/lần)
             _phienOffline = PhienOffline.Chon(_phienOffline, Config?.PhienOffline);
             if (Config?.DaChoi is { } dc && (dc.PhienId != _daChoi.PhienId || dc.Giay > _daChoi.Giay)
@@ -222,6 +243,9 @@ public sealed class AgentRuntime
             _policyAt = DateTimeOffset.UtcNow;
             _usedSeconds = 0;
             _quyGiay = 0; _quyChoGhi = 0;   // số sao mới của máy chủ đã trừ phần đã chơi (usage gửi cùng lượt đồng bộ)
+            _giayBe = new();
+            // Policy (sao, danh sách) là của bé máy chủ đang thấy dùng máy — bé đăng nhập lúc mất mạng được báo TRƯỚC dong-bo (NguoiDungMay.TruocDongBoAsync)
+            _policyBe = BeHienTai();
             _offline = false;
             _offlineSince = null;
             _lastSyncAt = DateTimeOffset.Now;
@@ -237,7 +261,7 @@ public sealed class AgentRuntime
                     c.LastPolicyJson = raw;
                     c.LastPolicyAt = at;
                     c.DaChoi = null;
-                    c.QuyDem = null;
+                    c.QuyDem = BanQuyDem(at);
                     // Đồng bộ được ⇒ hết mồ côi + ghi mốc liên lạc (fail-open 14 ngày tính từ đây). Ba Mẹ đã chọn chế độ ⇒ giá trị máy chủ thắng, lưu lại cho lúc mất mạng.
                     MoCoi.GhiThanhCong(c, at);
                     if (p.CheDo != null) c.CheDo = p.CheDo;
@@ -260,15 +284,65 @@ public sealed class AgentRuntime
     /// <summary>Policy để THỰC THI (AppLocker + đóng app): Policy cuối, trừ app chơi khi đoạn chơi offline đã vượt ngưỡng (<see cref="PhienOffline.ApDung"/>).</summary>
     public Policy? CurrentPolicy { get { lock (_gate) return ThucThi(DateTimeOffset.Now); } }
 
-    /// <summary>Policy đã áp phiên chơi offline + sao đếm tại máy (QuyTaiCho). Gọi trong khoá.</summary>
+    /// <summary>Bé đang dùng máy (đã đăng nhập bằng tên + PIN) — null = máy riêng / Ba Mẹ / chưa ai. Gọi trong khoá.</summary>
+    private string? BeHienTai() => Config?.DangNhap is { Loai: LoaiNguoiDung.Con, ConId: { Length: > 0 } c } ? c : null;
+
+    /// <summary>Policy + giây đã đếm CỦA BÉ ĐANG DÙNG. Bé khác bé của Policy (máy chung, đổi bé lúc mất mạng) ⇒ không dùng sổ bé trước:
+    /// số dư lấy từ ho-so của bé này (con[].sao), danh sách app vẫn của Policy cuối (tới lượt đồng bộ sau). Gọi trong khoá.</summary>
+    private (Policy P, double Giay) PolicyChoBe()
+    {
+        var be = BeHienTai();
+        if (_policy == null || be == null || _policyBe == null || be == _policyBe) return (_policy!, _quyGiay);
+        var p = _policy.SaoNong();
+        var sao = Config?.DangNhap?.HoSo?.Con.FirstOrDefault(c => c.Id == be)?.Sao;
+        p.Sao = sao;
+        p.SoSao = sao is int s ? new SoSaoMay { Sao = s, PhutCon = Math.Max(0, s), HetSao = s <= 0 } : null;
+        p.QuyConPhut = sao is int s2 ? Math.Max(0, s2) : null;   // không biết số dư bé này ⇒ không đếm, giữ danh sách Policy cuối
+        return (p, _giayBe.TryGetValue(be, out var g) ? g : 0);
+    }
+
+    /// <summary>Policy đã áp phiên chơi offline + sao đếm tại máy (QuyTaiCho) cho bé đang dùng. Gọi trong khoá.</summary>
     private Policy? ThucThi(DateTimeOffset now)
-        => _policy == null ? null : QuyTaiCho.ApDung(PhienOffline.ApDung(_policy, _phienOffline), _quyGiay, MoTamDangMo(now));
+    {
+        if (_policy == null) return null;
+        var (p, giay) = PolicyChoBe();
+        return QuyTaiCho.ApDung(PhienOffline.ApDung(p, _phienOffline), giay, MoTamDangMo(now));
+    }
 
-    /// <summary>15/11: phút «Tính phút» dùng lúc mở bằng mã chưa báo (làm tròn xuống) — gửi ở dong-bo `phutBoiMa`.</summary>
-    public int PhutBoiMa { get { lock (_gate) return (int)Math.Floor(_boiMaGiay / 60.0); } }
+    /// <summary>15/11 (PR #277): phút «Tính phút» dùng lúc mở bằng mã chưa báo, THEO BÉ (làm tròn xuống; Con null = không rõ bé) — dong-bo `boiMaCon`.</summary>
+    public List<(string? Con, int Phut)> BoiMaTheoBe()
+    {
+        lock (_gate)
+            return _boiMaGiay.Select(x => (Con: x.Key.Length > 0 ? x.Key : null, Phut: (int)Math.Floor(x.Value / 60.0))).Where(x => x.Phut > 0).ToList();
+    }
 
-    /// <summary>Đồng bộ thành công đã mang <paramref name="daGui"/> phút mở bằng mã ⇒ trừ đi (phần lẻ giữ cho lần sau).</summary>
-    public void DaGuiBoiMa(int daGui) { lock (_gate) _boiMaGiay = Math.Max(0, _boiMaGiay - daGui * 60.0); }
+    /// <summary>Đồng bộ thành công đã mang các phút này ⇒ trừ đi (phần lẻ giữ cho lần sau).</summary>
+    public void DaGuiBoiMa(IEnumerable<(string? Con, int Phut)> daGui)
+    {
+        lock (_gate)
+        {
+            var doi = false;
+            foreach (var (con, phut) in daGui)
+            {
+                var k = con ?? string.Empty;
+                if (!_boiMaGiay.TryGetValue(k, out var g)) continue;
+                g -= phut * 60.0;
+                if (g <= 0.5) _boiMaGiay.Remove(k); else _boiMaGiay[k] = g;
+                doi = true;
+            }
+            if (doi) LuuQuy();
+        }
+    }
+
+    /// <summary>Phút mở bằng mã hôm nay của bé (không trừ sao) — khay bỏ khỏi «Hôm nay đã chơi N phút · −N sao».</summary>
+    private int PhutBoiMaHomNay(DateTimeOffset now, string? be)
+        => _boiMaNgay == now.ToLocalTime().Date && _boiMaHomNay.TryGetValue(be ?? string.Empty, out var g) ? (int)Math.Floor(g / 60.0) : 0;
+
+    private QuyDaDem BanQuyDem(DateTimeOffset policyAt) => new()
+    {
+        PolicyAt = policyAt, Giay = _quyGiay, PolicyBe = _policyBe, GiayBe = new(_giayBe), BoiMa = new(_boiMaGiay),
+        BoiMaHomNay = new(_boiMaHomNay), BoiMaNgay = _boiMaNgay,
+    };
 
     /// <summary>0.2.4 (BRD 4.4 / 6.7): mỗi vòng thực thi — «đang chơi thật» (<see cref="TienCanhChoi"/>), cộng giây vào status.playSeconds
     /// (lúc có mạng) + số giây đã chơi theo Policy, đếm phút chơi khi mất mạng (đồng hồ đơn điệu), lưu khi cần.</summary>
@@ -286,7 +360,7 @@ public sealed class AgentRuntime
             if (_daChoi.PhienId != (id ?? "")) _daChoi = new DaChoiTheoPolicy { PhienId = id ?? "" };
             var daTruoc = _daChoi.Giay;
             var truocHet = _phienOffline?.HetHan == true;
-            var (doan, luu) = PhienOffline.Dem(_phienOffline, p, _offline, dangChoi, giayDonDieu, daTruoc, now);
+            var (doan, luu) = PhienOffline.Dem(_phienOffline, p, _offline, dangChoi, giayDonDieu, daTruoc, now, MoTamDangMo(now));
             _phienOffline = doan;
             var g = dangChoi && id != null && giayDonDieu > 0 ? Math.Min(giayDonDieu, 60) : 0;
             if (g > 0)
@@ -511,14 +585,27 @@ public sealed class AgentRuntime
         {
             bool learning = _policy?.LearningApps.Contains(appId.ToLowerInvariant()) == true;
             if (!learning) _usedSeconds += seconds;
-            if (seconds > 0 && QuyTaiCho.TinhGio(_policy, appId) || (seconds > 0 && MoTamDangMo(now) && LaTinhPhut(appId)))
+            if (seconds <= 0 || _policy == null) return;
+            // mở bằng mã của Ba Mẹ: không trừ sao — đếm riêng theo bé để máy chủ bỏ khỏi phút tính sao (boiMaCon / phutBoiMa)
+            if (MoTamDangMo(now))
             {
-                // mở bằng mã của Ba Mẹ: không trừ sao — đếm riêng để máy chủ bỏ khỏi phút tính sao (phutBoiMa)
-                if (MoTamDangMo(now)) { _boiMaGiay += seconds; return; }
-                _quyGiay += seconds;
-                _quyChoGhi += seconds;
-                if (_quyChoGhi >= 60) LuuQuy();
+                if (!LaTinhPhut(appId)) return;
+                var k = con ?? string.Empty;
+                _boiMaGiay[k] = (_boiMaGiay.TryGetValue(k, out var g0) ? g0 : 0) + seconds;
+                var ngay = now.ToLocalTime().Date;
+                if (ngay != _boiMaNgay) { _boiMaNgay = ngay; _boiMaHomNay = new(); }
+                _boiMaHomNay[k] = (_boiMaHomNay.TryGetValue(k, out var g1) ? g1 : 0) + seconds;
             }
+            else
+            {
+                var (p, _) = PolicyChoBe();
+                if (!QuyTaiCho.TinhGio(p, appId)) return;
+                // máy chung: bé khác bé của Policy ⇒ đếm vào sổ riêng của bé đó (không trừ vào số dư bé trước)
+                if (con != null && _policyBe != null && con != _policyBe) _giayBe[con] = (_giayBe.TryGetValue(con, out var g2) ? g2 : 0) + seconds;
+                else _quyGiay += seconds;
+            }
+            _quyChoGhi += seconds;
+            if (_quyChoGhi >= 60) LuuQuy();
         }
     }
 
@@ -528,7 +615,7 @@ public sealed class AgentRuntime
     private void LuuQuy()
     {
         _quyChoGhi = 0;
-        var qd = new QuyDaDem { PolicyAt = _policyAt, Giay = _quyGiay };
+        var qd = BanQuyDem(_policyAt);
         AgentConfig? moi = null;
         try { moi = Store.Update(c => c.QuyDem = qd); } catch { }
         if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
@@ -615,10 +702,13 @@ public sealed class AgentRuntime
             s.AppDuocPhep = _policy.LearningApps.ToList();
             // 15/11 sổ sao: phút còn chơi (= sao tiêu được) + số dư đã trừ phần đếm tại máy; nợ; «Mở hết»; app «Tính phút» đang ở tiền cảnh
             s.MoHet = CheDoCon.La(_policy);
-            s.QuyConPhut = s.MoHet ? null : QuyTaiCho.ConPhut(_policy, _quyGiay);
-            var saoGoc = _policy.SoSao?.Sao ?? _policy.Sao;
-            s.Sao = s.MoHet ? saoGoc : SaoView.SoDuTaiMay(saoGoc, _policy.QuyConPhut, s.QuyConPhut);
-            s.No = _policy.SoSao?.No;
+            // máy chung: số dư / đếm của BÉ ĐANG DÙNG (đổi bé lúc mất mạng ⇒ số dư bé mới theo ho-so, không dùng sổ bé trước)
+            var (pBe, giayBe) = PolicyChoBe();
+            s.QuyConPhut = s.MoHet ? null : QuyTaiCho.ConPhut(pBe, giayBe);
+            var saoGoc = pBe.SoSao?.Sao ?? pBe.Sao;
+            s.Sao = s.MoHet ? saoGoc : SaoView.SoDuTaiMay(saoGoc, pBe.QuyConPhut, s.QuyConPhut);
+            s.No = pBe.SoSao?.No;
+            s.PhutBoiMaHomNay = PhutBoiMaHomNay(now, s.NguoiDung == LoaiNguoiDung.Con ? s.BeId : null);
             s.AppTinhPhut = QuyTaiCho.MucTinhPhut(_policy).ToList();
             var fgTuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;
             s.DangChoiTinhPhut = !s.MoHet && !moTam && fgTuoi && !string.IsNullOrEmpty(_fgId) && LaTinhPhut(_fgId!) && _fgId != UsageTracker.KhongRo;

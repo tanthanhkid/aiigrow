@@ -33,11 +33,21 @@ public static class PolicyParser
     /// Phản hồi phẳng (máy chủ cũ / test) ⇒ như <see cref="Parse"/>.</summary>
     public static Policy TuDongBo(string raw)
     {
-        var p = Parse(ApiClient.LayWindows(raw));
-        try
+        if (string.IsNullOrWhiteSpace(raw)) throw new PolicyException("Policy rỗng");
+        JsonDocument doc;
+        try { doc = JsonDocument.Parse(raw, new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }); }
+        catch (JsonException e) { throw new PolicyException("Policy không đúng JSON: " + e.Message); }
+        using (doc)
         {
-            using var doc = JsonDocument.Parse(raw);
+            // đọc MỘT lần: `windows` (hoặc cả phản hồi khi phẳng) ⇒ Policy; khối gốc `sao` / `cheDo` từ cùng cây
             var g = doc.RootElement;
+            var laDoi = g.ValueKind == JsonValueKind.Object && g.TryGetProperty("windows", out var w) && w.ValueKind == JsonValueKind.Object;
+            var nguon = laDoi ? g.GetProperty("windows") : g;
+            Policy? p;
+            try { p = nguon.Deserialize<Policy>(Json.Options); }
+            catch (JsonException e) { throw new PolicyException("Policy không đúng JSON: " + e.Message); }
+            if (p == null) throw new PolicyException("Policy rỗng");
+            p = Normalize(p);
             if (g.ValueKind != JsonValueKind.Object) return p;
             if (g.TryGetProperty("sao", out var s) && s.ValueKind == JsonValueKind.Object)
             {
@@ -51,9 +61,8 @@ public static class PolicyParser
                 var cd = c.GetString()?.Trim().ToLowerInvariant();
                 p.CheDoCon = cd is CheDoCon.MoHet or CheDoCon.TheoDanhSach ? cd : null;
             }
+            return p;
         }
-        catch (JsonException) { }
-        return p;
     }
 
     public static bool TryParse(string? json, out Policy? policy)

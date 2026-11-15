@@ -110,6 +110,8 @@ public sealed class TrayState
     public List<string> AppTinhPhut { get; set; } = new();
     /// <summary>15/11: app tiền cảnh (lượt báo gần nhất của khay) là app «Tính phút» đang trừ sao ⇒ nhắc 5 sao / đếm ngược hết sao.</summary>
     public bool DangChoiTinhPhut { get; set; }
+    /// <summary>15/11 (PR #277): phút «Tính phút» hôm nay lúc máy mở bằng mã của Ba Mẹ (không trừ sao) — bỏ khỏi «Hôm nay đã chơi N phút · −N sao».</summary>
+    public int PhutBoiMaHomNay { get; set; }
     /// <summary>Tên đẹp app tiền cảnh khi <see cref="DangChoiTinhPhut"/> («Roblox»).</summary>
     public string? AppDangChoi { get; set; }
     /// <summary>05/11 (L11): số bài nộp lúc mất mạng đang chờ có mạng để tự gửi (BaiChoMang).</summary>

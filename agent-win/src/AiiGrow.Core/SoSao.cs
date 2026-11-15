@@ -36,11 +36,11 @@ public static class SaoView
     public static string DaChoi(int phut, bool matMang = false)
         => $"Hôm nay đã chơi {Math.Max(0, phut)} phút · {Tru}{Math.Max(0, phut)} sao" + (matMang ? " · mất mạng vẫn trừ" : "");
 
-    /// <summary>Phút «Tính phút» đã chơi hôm nay theo dòng app của dịch vụ (bỏ app «Không tính phút» và «không rõ»).</summary>
-    public static int PhutTinh(IEnumerable<DungApp> ds, IEnumerable<string>? appKhongTinh)
+    /// <summary>Phút «Tính phút» đã trừ sao hôm nay: chỉ app trong <paramref name="appTinhPhut"/>, bỏ phần dùng lúc máy mở bằng mã (không trừ sao).</summary>
+    public static int PhutTinh(IEnumerable<DungApp> ds, IEnumerable<string>? appTinhPhut, int phutBoiMa = 0)
     {
-        var hoc = new HashSet<string>(appKhongTinh ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-        return ds.Where(x => !hoc.Contains(x.AppId) && x.AppId != UsageTracker.KhongRo).Sum(x => Math.Max(0, x.Phut));
+        var tinh = new HashSet<string>(appTinhPhut ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        return Math.Max(0, ds.Where(x => tinh.Contains(x.AppId)).Sum(x => Math.Max(0, x.Phut)) - Math.Max(0, phutBoiMa));
     }
 
     /// <summary>«Roblox 30 phút · YouTube Kids 12 phút · Từ điển không tính phút» — app «Tính phút» trước, tối đa 3 mục.</summary>

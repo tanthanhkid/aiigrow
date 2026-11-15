@@ -298,3 +298,36 @@ test("review #269 dong-bo: usage ngày cũ không trừ sao; máy chung: dòng c
   const kq = await mc.buPhien(may, c, { ma: "bm-1", muc: "roblox.exe", phut: 4, boiMa: true });
   assert.deepEqual([kq.phut, kq.diemTru, await v.soDu(c)], [4, 0, 20]);
 });
+
+test("PR #277: boiMaCon theo bé — phút mở bằng mã của bé trước không trừ sao dù máy đã «Đổi người»; bé khác vẫn trừ", async () => {
+  const { fam, bm } = await taoNha();
+  const tok = await taoPhien(bm);
+  const a = (await m(tok, "con", { ten: "Bảo Anh", saoKhoiDau: 30 })).body.id;
+  const b = (await m(tok, "con", { ten: "Bảo Minh", saoKhoiDau: 30 })).body.id;
+  await la.datLuat(fam, { muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" });
+  const chung = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "Máy cả nhà");
+  await q(`insert into device_children(device_id, child_id, family_id) values ($1,$2,$4),($1,$3,$4) on conflict do nothing`, [chung.deviceId, a, b, fam]);
+  await q(`update devices set child_id = null, dung_chung = true, con_dang_dung = $2, dang_nhap_luc = now() - interval '1 hour' where id = $1`, [chung.deviceId, b]);
+  // a chơi 6′ lúc mở bằng mã (bé trước), b chơi 4′ thường — phutBoiMa vô hướng cũ sẽ trừ nhầm vào b (bé đang dùng)
+  await dv(chung.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 6, con: a }, { muc: "roblox.exe", phut: 4, con: b }], phutBoiMa: 6, boiMaCon: [{ con: a, phut: 6 }] });
+  assert.deepEqual([await v.soDu(a), await v.soDu(b)], [30, 26]);
+});
+
+test("PR #277: tin khay «Ba Mẹ cho vay N sao» (sau 60 giây Hoàn tác) và «Ba Mẹ chưa cho vay sao»", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Bảo Anh" });
+  const hv = await import("./hoc-vien.ts");
+  await ss.choVay(fam, con, 15, bm, { mucDich: "choi" });
+  assert.equal((await hv.tinCho(con)).ds.filter((t) => t.loai === "cho_vay").length, 0, "chưa qua 60 giây Hoàn tác ⇒ chưa báo");
+  await q(`update events set created_at = now() - interval '2 minutes' where child_id = $1 and loai = 'cho_vay'`, [con]);
+  const t = (await hv.tinCho(con)).ds.find((x) => x.loai === "cho_vay")!;
+  assert.match(t.tieu, /cho vay 15 sao$/);
+  assert.match(t.noi, /^\+15 sao · con đang nợ 15 sao/);
+  const { ghiSuKien } = await import("./nhat-ky.ts");
+  await ghiSuKien(fam, "tu_choi_yeu_cau", { loai: "vay_sao", ly_do: "Mai chơi tiếp nhé" }, { con, nguoi: bm });
+  await ghiSuKien(fam, "tu_choi_yeu_cau", { loai: "mo_web", ly_do: "x" }, { con, nguoi: bm });
+  const tc = (await hv.tinCho(con)).ds.filter((x) => x.loai === "tu_choi_yeu_cau");
+  assert.equal(tc.length, 1);
+  assert.match(tc[0].tieu, /chưa cho vay sao$/);
+  assert.equal(tc[0].noi, "«Mai chơi tiếp nhé»");
+});

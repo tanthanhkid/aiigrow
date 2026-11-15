@@ -21,6 +21,8 @@ internal sealed class XinVayForm : HopKhayCoBan
     private string? _pendingId;
     private int _soDaXin;
     private bool _busy;
+    /// <summary>Con đã bấm / gõ gì trên hộp ⇒ lượt tải số sao về muộn chỉ cập nhật dữ liệu, KHÔNG vẽ lại màn (không kéo Con về màn đầu, không mất tiêu điểm).</summary>
+    private bool _daThaoTac;
     private Label? _msg;
 
     /// <summary>Số hộp đang mở — khay không bật thêm màn kết quả khi hộp này đang tự báo.</summary>
@@ -40,6 +42,7 @@ internal sealed class XinVayForm : HopKhayCoBan
         Interlocked.Increment(ref DangMo);
         FormClosed += (_, _) => { Interlocked.Decrement(ref DangMo); _poll.Dispose(); if (_note.Parent == null) _note.Dispose(); };
         if (taiNgay) Shown += async (_, _) => await TaiAsync();
+        _note.TextChanged += (_, _) => _daThaoTac = true;
         VeDau();
     }
 
@@ -54,7 +57,7 @@ internal sealed class XinVayForm : HopKhayCoBan
         var (r, _) = await HvApi.GetAsync<HvSao>("hoc-vien/sao");
         if (IsDisposed) return;
         if (r != null) { _sao = r; if (r.MucVay.Count > 0 && !r.MucVay.Contains(_soSao)) _soSao = r.VayMacDinh; }
-        if (_pendingId == null) VeDau();
+        if (_pendingId == null && !_daThaoTac) VeDau();
     }
 
     /// <summary>Công cụ chụp màn: dựng với số liệu mẫu.</summary>
@@ -82,7 +85,7 @@ internal sealed class XinVayForm : HopKhayCoBan
                 Width = (W - UI.Px(16)) / 3, Height = Clay.Si(44) + VeNut.LeBong.Vertical, Font = UI.F(11.5f, FontStyle.Bold), Margin = new Padding(0, 0, UI.Px(8), 0),
             };
             var nn = n;
-            r.CheckedChanged += (_, _) => { if (r.Checked && _soSao != nn) { _soSao = nn; BeginInvoke(VeXin); } };
+            r.CheckedChanged += (_, _) => { if (r.Checked && _soSao != nn) { _daThaoTac = true; _soSao = nn; BeginInvoke(VeXin); } };
             r.BackColor = r.Checked ? Clay.NgocSoft : UI.Card;
             r.ForeColor = r.Checked ? Clay.NgocInk : UI.Ink;
             chips.Add(r);
@@ -93,7 +96,7 @@ internal sealed class XinVayForm : HopKhayCoBan
         gui.Click += async (_, _) => await XinAsync(gui);
         Flow.Controls.Add(gui);
         var lk = KhoiCon.Hang();
-        var trai = KhoiCon.LienKet(XinVayView.VayTraTheNao, "dau_hoi", VeSaoDung);
+        var trai = KhoiCon.LienKet(XinVayView.VayTraTheNao, "dau_hoi", () => { _daThaoTac = true; VeSaoDung(); });
         trai.Margin = new Padding(0, 0, UI.Px(40), 0);
         lk.Controls.Add(trai);
         lk.Controls.Add(KhoiCon.LienKet(XinVayView.XinThemApp, "khoa", () => { Sau = SauXinMo; Close(); }));
@@ -106,7 +109,7 @@ internal sealed class XinVayForm : HopKhayCoBan
     private async Task XinAsync(Button b)
     {
         if (_busy) return;
-        _busy = true; b.Enabled = false;
+        _busy = true; b.Enabled = false; _daThaoTac = true;
         if (_msg != null) _msg.Text = "";
         var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Request, Kind = LoaiXin.VaySao, Minutes = _soSao, Note = XinVayView.LyDo(_note.Text) });
         _busy = false;
@@ -245,7 +248,7 @@ internal sealed class XinVayForm : HopKhayCoBan
         var lam = KhoiCon.Nut(SaoDungView.LamNhiemVu, true, W, "tick");
         lam.Click += (_, _) => { Sau = SauNhiemVu; Close(); };
         Flow.Controls.Add(lam);
-        Flow.Controls.Add(KhoiCon.LienKet(SaoDungView.XinVay, "gui", VeXin));
+        Flow.Controls.Add(KhoiCon.LienKet(SaoDungView.XinVay, "gui", () => { _daThaoTac = true; VeXin(); }));
         Xong();
     }
 

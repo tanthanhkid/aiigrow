@@ -235,7 +235,7 @@ internal sealed class AppForm : Form
         _kn = kn;
         ApplyKetNoiUi();
         // 15/11: số sao / phút còn đổi (mỗi phút chơi một lần) ⇒ dựng lại thẻ Hôm nay (chip, màu số âm, dòng nợ đổi theo)
-        var sig = $"{kn.Loai}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.Sao}|{SaoView.Phut(_s.QuyConPhut)}|{_s.QuyConPhut.HasValue}|{_s.No}|{_s.MoHet}|{_s.BaiChoMang}";
+        var sig = $"{kn.Loai}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.Sao}|{SaoView.Phut(_s.QuyConPhut)}|{_s.QuyConPhut.HasValue}|{_s.No}|{_s.MoHet}|{_s.BaiChoMang}|{_s.OfflineSince}|{_s.PhutBoiMaHomNay}";
         if (sig != _sig)
         {
             _sig = sig;
@@ -250,7 +250,7 @@ internal sealed class AppForm : Form
         _pill.Text = _kn.Loai switch
         {
             KetNoi.DaKetNoi => "● Đã kết nối · " + gio,
-            KetNoi.MatKetNoi => "● Mất mạng · " + DateTime.Now.ToString("HH:mm"),
+            KetNoi.MatKetNoi => "● Mất mạng · " + (_s.OfflineSince ?? DateTimeOffset.Now).ToLocalTime().ToString("HH:mm"),
             _ => "● " + _kn.Dong,
         };
         _pill.BackColor = _kn.DungIconKetNoi ? UI.GreenSoft : _kn.Loai == KetNoi.MatKetNoi ? Clay.CanhSoft : UI.ErrorSoft;
@@ -579,7 +579,7 @@ internal sealed class AppForm : Form
             the.Controls.Add(T(SaoView.VanMo(_s.AppDuocPhep), 11f, false, UI.Muted, r));
             return the;
         }
-        var daChoi = SaoView.PhutTinh(_s.DungTheoApp, _s.AppDuocPhep);
+        var daChoi = SaoView.PhutTinh(_s.DungTheoApp, _s.AppTinhPhut, _s.PhutBoiMaHomNay);
         if (_s.DungTheoApp.Count > 0) the.Controls.Add(T(SaoView.DaChoi(daChoi, matMang), 12f, true, Clay.Chu2, r));
         _lblApp = T("", 11f, false, UI.Muted, r);
         the.Controls.Add(_lblApp);

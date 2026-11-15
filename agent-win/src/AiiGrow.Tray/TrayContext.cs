@@ -277,14 +277,16 @@ internal sealed class TrayContext : ApplicationContext
     /// <summary>Lời xin vay còn chờ sau khi Con đóng hộp: hỏi dịch vụ mỗi 15 giây, có kết quả thì bật màn (them-fsif1cbl / them-zo8kohea).</summary>
     private async Task TheoDoiVayAsync()
     {
-        if (_vayCho is not { } v || (DateTimeOffset.Now - _vayHoiLuc).TotalSeconds < 15 || XinVayForm.DangMo > 0) return;
+        // máy đang khoá ⇒ chưa hỏi, giữ lời xin: mở khoá rồi mới báo kết quả
+        if (_vayCho is not { } v || _state.Locked || (DateTimeOffset.Now - _vayHoiLuc).TotalSeconds < 15 || XinVayForm.DangMo > 0) return;
         _vayHoiLuc = DateTimeOffset.Now;
         var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Status, Id = v.Id });
         if (!r.Ok || _vayCho?.Id != v.Id) return;
         var kq = TrayView.XinGio(r.Status);
         if (kq == TrayView.KetQuaXin.Cho) return;
+        if (_state.Locked) return;   // vừa khoá trong lúc hỏi ⇒ giữ, lượt sau
         _vayCho = null;
-        if (kq == TrayView.KetQuaXin.HetHan || _state.Locked) return;
+        if (kq == TrayView.KetQuaXin.HetHan) return;
         var (sao, _) = await HvApi.GetAsync<HvSao>("hoc-vien/sao");
         if (kq == TrayView.KetQuaXin.Duoc) _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });
         var f = new XinVayForm(taiNgay: false);
@@ -389,7 +391,8 @@ internal sealed class TrayContext : ApplicationContext
         if (kq.Phut is int p)
         {
             // 15/11: quà «Thêm N phút» đã trao = +N sao (1 sao = 1 phút) — tổng quan vừa tải SAU khi Ba Mẹ trao ⇒ số sao đã gồm phần thưởng
-            h.Chip($"+{p} sao", true, _state.QuyConPhut is double c ? SaoView.ConPhut(c + p) : null);
+            var con = tq?.SoSaoCt?.PhutCon;   // tổng quan tải SAU khi Ba Mẹ trao ⇒ đã gồm phần thưởng; không có thì không đoán (không cộng thêm)
+            h.Chip($"+{p} sao", true, con is double c ? SaoView.ConPhut(c) : null);
             _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });   // sao tăng ⇒ app «Tính phút» được thả ngay
         }
         if (tq != null) h.Dong(tq.SoSao > 0 ? $"Còn {AppConView.Sao(tq.SoSao)}" : $"Còn {AppConView.Sao(tq.SoSao)} · làm nhiệm vụ để có thêm", false, Clay.DiemInk);
