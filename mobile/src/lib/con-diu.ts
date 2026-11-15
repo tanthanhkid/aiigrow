@@ -1,5 +1,5 @@
 // Luật thuần của phía Con bản «Dịu» (không import React Native ⇒ chạy thẳng `node --test src/lib/con-diu.test.ts`):
-// đọc mã ghép từ QR, xếp lỗi ghép máy, trạng thái nhập PIN theo bé (L13 — API S3 `dang-nhap-be`), chip đổi sao lấy phút, quà gần nhất.
+// đọc mã ghép từ QR, xếp lỗi ghép máy, trạng thái nhập PIN theo bé (L13 — API S3 `dang-nhap-be`), sổ sao 15/11 (1 sao = 1 phút, vay sao, số âm), quà gần nhất.
 
 /** QR trên máy Ba Mẹ = link cài `<máy chủ>/tai?g=<token gói>&ma=<6 số>` (server/lib/ghep-may.ts). Cũng nhận 6 số trần.
  *  → `{ma}` (ghép bằng mã 6 số) / `{goi}` (chỉ có token gói ⇒ `ghep-goi`) / null (QR lạ). */
@@ -53,16 +53,50 @@ export function choTuHoSo(c: { khoaDen?: string; choGiay?: number }, now = Date.
   return null;
 }
 
-/** Chip «Con muốn đổi» 10 / 20 / 30 sao (cdt-choi, cdt-android-doi-diem): mỗi chip = số sao ⇒ số phút theo tỷ lệ Ba Mẹ đặt.
- *  Không đủ sao / quá phần còn đổi được hôm nay ⇒ `thieu` (vẫn bấm được để xem màn «Chưa đủ sao»). */
-export function chipDoiSao(sao: number, tyLe: { sao: number; phut: number }, conDoiDuoc: number, buoc = [10, 20, 30]) {
-  const ts = Math.max(1, tyLe.sao), tp = Math.max(1, tyLe.phut);
-  return buoc.map((s) => {
-    const phut = Math.floor((s * tp) / ts);
-    const tru = Math.ceil((phut * ts) / tp);       // máy chủ trừ ceil(phút × sao / phút) — hiện đúng số sao bị trừ
-    return { sao: s, phut, tru, thieu: tru > sao || phut <= 0, quaHan: phut > conDoiDuoc };
-  });
+// ---------------------------------------------------------------- sổ sao 15/11 (#263–#266): 1 sao = 1 phút, vay sao, số dư âm
+
+/** Số kiểu Việt có dấu trừ thật «−» (U+2212) và chấm hàng nghìn: −1.020 (khớp server/lib/so-sao.ts › soVN). */
+export const soVN = (n: unknown) => { const x = Math.round(Number(n ?? 0)) || 0; return `${x < 0 ? "\u2212" : ""}${Math.abs(x).toLocaleString("en-US").replace(/,/g, ".")}`; };
+/** «18 sao» / «−20 sao». */
+export const soSao = (n: number) => `${soVN(n)} sao`;
+
+/** GET /api/kid/sao (15/11). Trường nào thiếu (máy chủ cũ) ⇒ suy từ kid/quy. */
+export type SaoMayChu = { sao?: number; no?: number; phutCon?: number; saoVayChuaTieu?: number; hetSao?: boolean; canhBaoNo?: boolean;
+  cau?: { soDu?: string; phut?: string; no?: string | null }; mucVay?: number[]; vayMacDinh?: number };
+/** Phần kid/quy cần cho sổ sao (máy chủ cũ / «hôm nay chơi N phút» / Ba Mẹ khoá). */
+export type QuySao = { sao?: number; quy?: { conPhut?: number; daDung?: number; khoa?: boolean } | null } | null;
+export type SaoCon = { sao: number; no: number; phutCon: number; saoVayChuaTieu: number; hetSao: boolean; phutHomNay: number; khoa: boolean;
+  mucVay: number[]; vayMacDinh: number; cau: { soDu: string; phut: string; no: string | null } };
+
+export const MUC_VAY = [10, 15, 30];
+/** «còn 18 sao = 18 phút chơi» · hết sao ⇒ «còn 0 sao = 0 phút chơi». */
+export const cauPhut = (phutCon: number) => `còn ${soVN(Math.max(0, phutCon))} sao = ${soVN(Math.max(0, phutCon))} phút chơi`;
+/** «Đang nợ Ba Mẹ 20 sao» (không nợ ⇒ null). */
+export const cauNo = (no: number) => (no > 0 ? `Đang nợ Ba Mẹ ${soVN(no)} sao` : null);
+
+export function saoTuMayChu(s: SaoMayChu | null, q: QuySao): SaoCon {
+  const sao = Math.round(Number(s?.sao ?? q?.sao ?? 0)) || 0;
+  const no = Math.max(0, Math.round(Number(s?.no ?? 0)) || 0);
+  const phutCon = Math.max(0, Math.round(Number(s?.phutCon ?? q?.quy?.conPhut ?? Math.max(0, sao))) || 0);
+  const muc = Array.isArray(s?.mucVay) && s!.mucVay!.length ? s!.mucVay! : MUC_VAY;
+  return {
+    sao, no, phutCon, saoVayChuaTieu: Math.max(0, Number(s?.saoVayChuaTieu ?? 0) || 0), hetSao: s?.hetSao ?? phutCon <= 0,
+    phutHomNay: Math.max(0, Number(q?.quy?.daDung ?? 0) || 0), khoa: !!q?.quy?.khoa,
+    mucVay: muc, vayMacDinh: s?.vayMacDinh && muc.includes(s.vayMacDinh) ? s.vayMacDinh : muc.includes(15) ? 15 : muc[0],
+    cau: { soDu: soSao(sao), phut: cauPhut(phutCon), no: cauNo(no) },
+  };
 }
+
+/** Màn «Được duyệt» khi đang nợ: sao nhiệm vụ trả nợ trước. `saoSau` = số dư sau khi duyệt, `diem` = sao vừa được.
+ *  ⇒ `truoc` (số dư trước), `traNo` (phần trả nợ), `conNo` (nợ còn lại = phần âm của số dư sau). */
+export function traNoKhiDuyet(saoSau: number, diem: number) {
+  const truoc = saoSau - diem;
+  const traNo = truoc < 0 ? Math.min(diem, -truoc) : 0;
+  return { truoc, traNo, conNo: Math.max(0, -saoSau) };
+}
+
+/** «= 15 phút chơi hoặc đổi quà · con sẽ nợ 15 sao» (bảng xin vay). Đang có sao dương ⇒ nợ = phần vượt số dư sau khi tiêu hết. */
+export const cauVay = (soSaoVay: number) => `= ${soVN(soSaoVay)} phút chơi hoặc đổi quà · con sẽ nợ ${soVN(soSaoVay)} sao`;
 
 /** Quà gần nhất chưa đủ sao (thanh «tới mốc» ở Ví quà: «Chọn món bữa tối 50 sao · còn 10»). Đủ hết ⇒ quà rẻ nhất. */
 export function quaGanNhat<T extends { diem: number; ten: string }>(qua: T[], sao: number): (T & { conThieu: number }) | null {

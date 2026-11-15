@@ -1,31 +1,22 @@
-// «Quy tắc nhà mình» bản «Dịu» (con-dt-khac 01 cdt-quy-tac, PIN 06/11): chip «Bảo Anh ▾»; giờ chơi 60 phút / cuối tuần 90; 10 sao = 10 phút
-// (làm nhiệm vụ để có sao); giờ học (chỉ mở app học); giờ ngủ (máy nghỉ); «Chặn app & web · app mới xin Ba Mẹ»; «Vào máy bằng tên + PIN ·
-// Giờ chơi tính riêng cho con». «Con hiểu rồi». Công khai — ai cũng thấy giống nhau (BRD 8.1, FR-06.05).
+// «Quy tắc nhà mình» bản «Dịu» (con-dt-khac 01 cdt-quy-tac, 15/11 #262–#264): «1 sao = 1 phút chơi · App Tính phút trả bằng sao», «Làm nhiệm vụ
+// để có sao · Hết sao: xin Ba Mẹ cho vay», «Theo danh sách Ba Mẹ · Ngoài danh sách: xin Ba Mẹ mở» (chế độ Mở hết ⇒ «Hôm nay Mở hết · app, web
+// dùng tự do»), «Sao vay là nợ · Sao nhiệm vụ trả nợ trước». «Con hiểu rồi». Bỏ quỹ 60 / 90 phút, giờ ngủ, giờ học. Công khai (BRD 8.1, FR-06.05).
 import { router } from "expo-router";
 import { View } from "react-native";
-import { kid, type NhaTreSao, type QuyTac } from "@/lib/api-tre";
+import { kid, type ToiTre } from "@/lib/api-tre";
 import { D } from "@/lib/diu";
-import { ChoD, ChuD, IcO, ManD, NutD, TheD } from "@/lib/ui-diu";
+import { useTai } from "@/lib/ui";
+import { ChuD, IcO, ManD, NutD, TheD } from "@/lib/ui-diu";
 import { ChipBe } from "@/lib/man-con";
-import { useTaiTre } from "@/lib/ui-tre";
-
-type QuyTacSao = QuyTac & { quyNgayThuong?: number; quyCuoiTuan?: number; phut10Sao?: number };
 
 export default function QuyTacNha() {
-  const { d, loi, matMang, tai } = useTaiTre("quy-tac", async () => {
-    const [qt, nha] = await Promise.all([kid.goi<QuyTacSao>("quy-tac"), kid.goi<NhaTreSao>("nha").catch(() => null)]);
-    return { qt, nha };
-  });
-  if (!d) return <ManD lui="/tre/nha"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
-  const { qt } = d;
-  const hoc = d.nha?.quy?.gioHoc;
+  const toi = useTai(() => kid.goi<ToiTre>("toi").catch(() => null));
+  const moHet = toi.d?.cheDo === "mo_het";
   const dong: [Parameters<typeof IcO>[0]["ic"], string, string][] = [
-    ["dongho", `Giờ chơi ${qt.quyNgayThuong ?? qt.tranNgay} phút`, `Cuối tuần ${qt.quyCuoiTuan ?? qt.quyNgayThuong ?? qt.tranNgay} phút`],
-    ["sao", `10 sao = ${qt.phut10Sao ?? 10} phút`, "Làm nhiệm vụ để có sao"],
-    ...(hoc ? [["sach", `Giờ học ${hoc.tu} – ${hoc.den}`, "Chỉ mở app học"] as [Parameters<typeof IcO>[0]["ic"], string, string]] : []),
-    ["trang_ngu", `Giờ ngủ ${qt.lich.ngu.tu} – ${qt.lich.ngu.den}`, "Máy nghỉ"],
-    ["khien", "Chặn app & web", "App mới xin Ba Mẹ"],
-    ["nguoi", "Vào máy bằng tên + PIN", "Giờ chơi tính riêng cho con"],
+    ["dongho", "1 sao = 1 phút chơi", "App Tính phút trả bằng sao"],
+    ["sao", "Làm nhiệm vụ để có sao", "Hết sao: xin Ba Mẹ cho vay"],
+    moHet ? ["khien", "Hôm nay Mở hết", "App, web dùng tự do · không trừ sao"] : ["khien", "Theo danh sách Ba Mẹ", "Ngoài danh sách: xin Ba Mẹ mở"],
+    ["tin", "Sao vay là nợ", "Sao nhiệm vụ trả nợ trước"],
   ];
   return (
     <ManD lui="/tre/nha" phai={<ChipBe />} day={<NutD chu="Con hiểu rồi" bam={() => router.replace("/tre/nha")} />}>

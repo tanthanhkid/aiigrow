@@ -1,9 +1,11 @@
 // Client màn Con: /api/kid/* (phiên Con, dùng `kid` của api.ts) + vài lệnh thiết bị /api/device/* (ghép máy, chọn tên trên máy dùng chung).
-// 05/11 (thiết kế chốt): «sao» thay «điểm» (số vẫn là cột diem), quỹ giờ chơi mỗi ngày, đổi sao lấy phút, xin ngoại lệ, không PIN.
+// 05/11 (thiết kế chốt): «sao» thay «điểm» (số vẫn là cột diem), không PIN. 15/11 (#262–#267): 1 sao = 1 phút «Tính phút», vay sao (số dư âm),
+// bỏ quỹ ngày / đổi sao lấy giờ / ngoại lệ / giờ ngủ; «Mở hết» / «Theo danh sách» (GET kid/sao, POST kid/xin-vay, kid/toi › cheDo).
 // Hàng chờ nộp bằng chứng khi mất mạng: ảnh nằm trên máy, tự gửi lại khi có mạng (con-cho-duyet «mất mạng»).
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { GOC, LoiApi, kid } from "./api";
+import { saoTuMayChu, type SaoCon, type SaoMayChu } from "./con-diu";
 
 export { kid };
 
@@ -49,13 +51,15 @@ export function nenMay(): "windows" | "mac" | "ios" | "android" {
 }
 
 /** Máy dùng chung (S3 06/11, `GET|POST /api/device/ho-so`): bé trên máy, ai đang dùng, Ba Mẹ đang dùng tới lúc nào. */
-export type HoSoBe = { id: string; ten: string; avatar: string; coPin?: boolean; khoaDen?: string; choGiay?: number };
-export type HoSoMay = { con: HoSoBe[]; mayRieng?: boolean; dangDung?: { id: string; ten: string } | null; baMeDung?: { den: string; tu?: string | null } | null;
+export type HoSoBe = { id: string; ten: string; avatar: string; coPin?: boolean; khoaDen?: string; choGiay?: number; /** #267: số dư (âm khi nợ) */ sao?: number };
+export type HoSoMay = { con: HoSoBe[]; mayRieng?: boolean; /** #267 */ mayChung?: boolean; tenMay?: string; soCon?: number; motCon?: boolean; dangDung?: { id: string; ten: string } | null; baMeDung?: { den: string; tu?: string | null } | null;
   pinSaiToiDa?: number; pinChoGiay?: number };
 
 // ------------------------------------------------------------------ kiểu dữ liệu (khớp server/lib/api-con.ts + choi-tre.ts)
 export type NhomTre = "nhi" | "teen";
-export type ToiTre = { con: { id: string; ten: string; nhom: NhomTre; avatar: string; daChao: boolean }; soDu: number; diemChoDuyet: number;
+/** #262: chế độ app & web của Con (máy chủ cũ không có ⇒ undefined = Theo danh sách). */
+export type CheDo = "mo_het" | "theo_danh_sach";
+export type ToiTre = { con: { id: string; ten: string; nhom: NhomTre; avatar: string; daChao: boolean }; soDu: number; diemChoDuyet: number; cheDo?: CheDo;
   loiKhen: { id: string; noi_dung: string; phan_hoi: string | null; created_at: string }[] };
 export type NhaTre = { soDu: number; diemChoDuyet: number; tongKiem: number; capDo: { cap: number; diemCapSau: number; conThieu: number }; chuoiNgay: number;
   mucTieu: { id: string; ten: string; diem: number; conThieu: number } | null; nhiemVuMo: number; canBoSung: { id: string; ten: string; luot: string | null }[];
@@ -69,8 +73,12 @@ export type QuaTre = { id: string; ten: string; loai: "voucher" | "qua" | "dac_q
   toi_da_thang: number | null; du: boolean; conThieu: number };
 export type ViQua = { daTrao?: QuaDaTrao[]; voucher: { ma: string; menh_gia: number; trang_thai: string; het_han: string; dung_luc: string | null }[];
   phieu: { id: string; ten: string; loai: string; diem: number; trang_thai: string; created_at: string }[] };
-export type YcTre = { id: string; loai: "them_gio" | "mo_web" | "cai_app" | "ngoai_le" | "ngoai_gio" | "khac"; phut: number | null; gia_tri: string | null;
-  ly_do: string; trang_thai: string; created_at: string; xu_ly_luc?: string | null; ly_do_tu_choi?: string | null; het_han: string; pham_vi?: "ca_may" | "app" | null };
+export type YcTre = { id: string; loai: "vay_sao" | "them_gio" | "mo_web" | "cai_app" | "ngoai_le" | "ngoai_gio" | "khac"; phut: number | null; gia_tri: string | null;
+  ly_do: string; trang_thai: string; created_at: string; xu_ly_luc?: string | null; ly_do_tu_choi?: string | null; het_han: string; pham_vi?: "ca_may" | "app" | null;
+  /** 15/11: lời xin vay (`so_sao` / `soSao`), kết quả lời xin app / web (#258) — máy chủ cũ không có */
+  so_sao?: number | null; soSao?: number | null; muc_dich?: string | null; ketQua?: KetQuaYc; nhom?: "tinh_phut" | "khong_tinh_phut" | null; loiNhan?: string | null;
+  tenNguoiDuyet?: string | null; moTam?: { den: string; phut: number } | null };
+export type KetQuaYc = "cho" | "da_them" | "mo_tam" | "chua_them" | "het_han" | "huy";
 /** Quỹ giờ chơi hôm nay (server/lib/quy-gio.ts › quyHomNay) — mọi app Giải trí Ba Mẹ cho phép dùng chung; app Học không tính. */
 export type QuyTre = { ngay: string; cuoiTuan: boolean; quyNgayPhut: number; themPhut: number; doiSaoPhut: number; daDung: number; conPhut: number; tongPhut: number;
   dangNgu: boolean; dangHoc: boolean; khoa: boolean; gioNgu: { tu: string; den: string }; gioHoc: { tu: string; den: string; thu: number[] } | null;
@@ -80,13 +88,29 @@ export type QuyCon = { quy: QuyTre; sao: number; phutDoiDuoc: number; ngoaiLe: {
   yeuCauCho: { id: string; loai: string; phut: number | null; gia_tri: string | null; pham_vi: string | null; ly_do: string; created_at: string }[] };
 /** Nhà của Con kèm quỹ (05/11: `nha` trả thêm `quy`, `sao`). App bản cũ của máy chủ không có ⇒ undefined. */
 export type NhaTreSao = NhaTre & { quy?: QuyTre; sao?: number };
-/** Vì sao lúc này không thêm giờ được (giống quy-gio.ts › lyDoKhongThemGio) — chỉ xin Ba Mẹ mở ngoại lệ. */
-export function lyDoKhoa(q: Pick<QuyTre, "khoa" | "dangNgu" | "dangHoc"> | undefined | null): "ba_me_khoa" | "gio_ngu" | "gio_hoc" | null {
-  if (!q) return null;
-  return q.khoa ? "ba_me_khoa" : q.dangNgu ? "gio_ngu" : q.dangHoc ? "gio_hoc" : null;
+/** Máy đang bị Ba Mẹ khoá? (15/11: giờ ngủ / giờ học đã bỏ — chỉ còn Ba Mẹ khoá máy.) */
+export function lyDoKhoa(q: Pick<QuyTre, "khoa"> | undefined | null): "ba_me_khoa" | null {
+  return q?.khoa ? "ba_me_khoa" : null;
 }
-/** Số sao cần cho `phut` phút (làm tròn lên, như máy chủ). */
-export const saoChoPhut = (q: Pick<QuyTre, "tyLe">, phut: number) => Math.ceil((phut * q.tyLe.sao) / Math.max(1, q.tyLe.phut));
+
+/** Sổ sao của Con (15/11): GET kid/sao (+ kid/quy để biết «hôm nay chơi N phút», Ba Mẹ khoá). Máy chủ cũ chưa có kid/sao ⇒ suy từ kid/quy. */
+export async function taiSao(): Promise<SaoCon> {
+  const [s, q] = await Promise.all([
+    kid.goi<SaoMayChu>("sao").catch((e) => { if (e instanceof LoiApi && e.status === 404) return null; throw e; }),
+    kid.goi<QuyCon>("quy").catch(() => null),
+  ]);
+  return saoTuMayChu(s, q);
+}
+
+/** «Xin Ba Mẹ cho vay sao» (POST kid/xin-vay). Máy chủ cũ (404) ⇒ lời xin «thêm giờ» cũ cùng số (Ba Mẹ đồng ý = cho vay ở máy chủ mới). */
+export async function xinVay(b: { soSao: number; mucDich?: "choi" | "qua"; quaId?: string; loiNhan?: string }): Promise<{ id: string }> {
+  try {
+    return await kid.goi<{ id: string }>("xin-vay", b);
+  } catch (e) {
+    if (!(e instanceof LoiApi) || e.status !== 404) throw e;
+    return kid.goi<{ id: string }>("yeu-cau", { loai: "them_gio", phut: b.soSao, lyDo: b.loiNhan ?? "" });
+  }
+}
 /** Quà đã Ba Mẹ trao (GET vi-qua › daTrao). */
 export type QuaDaTrao = { id: string; ten: string; loai: string; diem: number; xu_ly_luc: string };
 /** Việc của Con, trường mới 05/11 (GET nhiem-vu?tuCham=1). */

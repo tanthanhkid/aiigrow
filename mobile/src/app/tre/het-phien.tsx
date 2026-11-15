@@ -1,41 +1,34 @@
-// «Hết giờ chơi rồi» bản «Dịu» (con-dt-gio 05 cdt-het-phien, L3): «Hôm nay đã chơi 70 / 70 phút», «Từ điển, AiiRob vẫn mở», «Con có 30 sao» +
-// «Đổi 10 sao lấy 10 phút» · «Làm nhiệm vụ kiếm sao» · «Xin Ba Mẹ thêm giờ»; «Ba Mẹ mở máy» (mã Ba Mẹ — PIN 06/11). Chân màn «AiiGrow · Bảo Anh ·
-// Ba Mẹ quản lý». Còn giờ ⇒ về Giờ chơi; giờ ngủ / khoá / học ⇒ màn khoá tương ứng. (Đường cũ /tre/het-phien của agent vẫn dùng.)
+// «Hết sao rồi» bản «Dịu» (con-dt-gio 05 cdt-het-phien, sổ sao 15/11 #264 #263): «Còn 0 sao = 0 phút chơi», «App học, AiiRob vẫn mở»,
+// đang nợ ⇒ «Đang nợ Ba Mẹ 20 sao»; «Làm nhiệm vụ» · «Xin Ba Mẹ cho vay sao» · «Ba Mẹ mở máy» (mã Ba Mẹ — không trừ sao). Chân màn «AiiGrow ·
+// Bảo Anh · Ba Mẹ quản lý». Còn sao ⇒ về «Đang chơi»; Ba Mẹ khoá ⇒ màn khoá. (Đường cũ /tre/het-phien của agent vẫn dùng.)
 import { Redirect, router } from "expo-router";
-import { View } from "react-native";
-import { kid, lyDoKhoa, type QuyCon } from "@/lib/api-tre";
+import { may, taiSao } from "@/lib/api-tre";
+import { soSao } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
-import { Icon3D } from "@/lib/ui";
-import { CamXuc, ChoD, ChuD, ManD, NutD, TheD } from "@/lib/ui-diu";
-import { ChanMan } from "@/lib/man-con";
+import { CamXuc, ChoD, ChuD, ManD, NutD } from "@/lib/ui-diu";
+import { ChanMan, NO, VienSao } from "@/lib/man-con";
 import { useTaiTre, useTre } from "@/lib/ui-tre";
-import { may } from "@/lib/api-tre";
+import { View } from "react-native";
 
-export default function HetPhien() {
+export default function HetSao() {
   const { ten } = useTre();
-  const { d, loi, matMang, tai } = useTaiTre("quy", () => kid.goi<QuyCon>("quy"));
+  const { d, loi, matMang, tai } = useTaiTre("sao", taiSao);
   if (!d) return <ManD><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
-  const q = d.quy;
-  const ly = lyDoKhoa(q);
-  if (ly) return <Redirect href={`/tre/gio-ngu?ly=${ly}`} />;
-  if (q.conPhut > 0) return <Redirect href="/tre/gio" />;
-  const doiDuoc = q.doiSao.bat && q.doiSao.conDoiDuoc > 0;
+  if (d.khoa) return <Redirect href="/tre/gio-ngu?ly=ba_me_khoa" />;
+  if (!d.hetSao) return <Redirect href="/tre/gio" />;
   return (
     <ManD day={<>
-      {doiDuoc ? <NutD chu={`Đổi ${q.tyLe.sao} sao lấy ${q.tyLe.phut} phút`} ic="dongho" bam={() => router.push("/tre/choi")} /> : null}
-      <NutD chu="Làm nhiệm vụ kiếm sao" loai={doiDuoc ? "phu" : "chinh"} ic="sao" bam={() => router.push("/tre/nhiem-vu")} />
-      {q.choXinThem ? <NutD chu="Xin Ba Mẹ thêm giờ" loai="chu" bam={() => router.push("/tre/them-gio")} /> : null}
+      <NutD chu="Làm nhiệm vụ" ic="sao" bam={() => router.push("/tre/nhiem-vu")} />
+      <NutD chu="Xin Ba Mẹ cho vay sao" loai="phu" ic="tin" bam={() => router.push("/tre/them-gio")} />
       {may.co() ? <NutD chu="Ba Mẹ mở máy" loai="chu" bam={() => router.push("/tre/ba-me")} /> : null}
       <ChanMan chu={`AiiGrow · ${ten} · Ba Mẹ quản lý`} />
     </>}>
-      <CamXuc lv="nghi" co={150} tieu="Hết giờ chơi rồi" phu={`Hôm nay đã chơi ${q.daDung} / ${q.tongPhut} phút`} />
+      <CamXuc lv="nghi" co={150} tieu="Hết sao rồi" phu="Còn 0 sao = 0 phút chơi" />
       <ChuD kieu="rat" co={14} mau={D.xanhD} giua>App học, AiiRob vẫn mở</ChuD>
-      <TheD vang mong>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, justifyContent: "center" }}>
-          <Icon3D ten="sao" co={30} />
-          <ChuD kieu="den" co={17} mau={D.saoInk}>{`Con có ${d.sao} sao`}</ChuD>
-        </View>
-      </TheD>
+      <View style={{ alignItems: "center", gap: 6 }}>
+        <VienSao sao={d.sao} chu={soSao(d.sao)} />
+        {d.cau.no ? <ChuD kieu="rat" co={13.5} mau={NO.chu} giua>{`${d.cau.no} · sao nhiệm vụ trả nợ trước`}</ChuD> : null}
+      </View>
     </ManD>
   );
 }

@@ -1,10 +1,11 @@
 // «Xin cài phần mềm» bản «Dịu» (con-dt-cai 02 cdt-cai, L4): app mới / tệp cài lạ ⇒ «Chặn app & web · Minecraft cần Ba Mẹ cho phép»,
-// «Con muốn cài để làm gì?» (chip «Học xây nhà» / «Chơi với bạn» + tự viết — không bắt buộc), «Nếu được cho phép: tính vào giờ chơi · còn N phút»,
+// «Con muốn cài để làm gì?» (chip «Học xây nhà» / «Chơi với bạn» + tự viết — không bắt buộc), «Nếu Ba Mẹ thêm vào danh sách: app Tính phút 1 sao = 1 phút · con đang có N sao» (15/11),
 // «Gửi Ba Mẹ xin cài Minecraft» / «Thôi, để sau». Agent mở `/tre/cai?tep=MinecraftInstaller.exe` hoặc `?ten=Minecraft`.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { TextInput, View } from "react-native";
-import { kid, type QuyCon } from "@/lib/api-tre";
+import { kid, taiSao } from "@/lib/api-tre";
+import { soSao } from "@/lib/con-diu";
 import { D, FD } from "@/lib/diu";
 import { useLam } from "@/lib/ui";
 import { ChuD, IcO, LoiD, ManD, NutD, PillD, TheD, TieuD } from "@/lib/ui-diu";
@@ -17,7 +18,7 @@ const tenApp = (tep: string) => tep.replace(/\.(exe|msi|apk)$/i, "").replace(/(s
 export default function XinCai() {
   const p = useLocalSearchParams<{ tep?: string; ten?: string }>();
   const ten = p.ten || tenApp(p.tep || "App mới");
-  const quy = useTaiTre("quy", () => kid.goi<QuyCon>("quy"));
+  const sao = useTaiTre("sao", taiSao);
   const [lyDo, setLyDo] = useState<string | null>(null);
   const [tuViet, setTuViet] = useState("");
   const { dangChay, loi, lam } = useLam();
@@ -25,11 +26,10 @@ export default function XinCai() {
     await kid.goi("yeu-cau", { loai: "cai_app", giaTri: ten, lyDo: [lyDo, tuViet.trim()].filter(Boolean).join(" · ") });
     router.replace("/tre/yeu-cau");
   }, { hangDoi: true });
-  const conPhut = quy.d?.quy.conPhut;
   return (
     <ManD lui={true} day={<><LoiD loi={loi} /><NutD chu={`Gửi Ba Mẹ xin cài ${ten}`} ic="gui" bam={xin} dangChay={dangChay} />
       <NutD chu="Thôi, để sau" loai="chu" bam={() => (router.canGoBack() ? router.back() : router.replace("/tre/nha"))} /></>}>
-      <View style={{ alignSelf: "flex-start" }}><PillD chu="Chặn app & web" ic="khien" /></View>
+      <View style={{ alignSelf: "flex-start" }}><PillD chu="Chưa có trong danh sách" ic="khien" /></View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <IcO ic="game" co={64} />
         <View style={{ flex: 1 }}>
@@ -46,8 +46,8 @@ export default function XinCai() {
           placeholderTextColor={D.chu3} style={{ fontFamily: FD.dam, fontSize: 16, color: D.chu, minHeight: 48, padding: 0, textAlignVertical: "top" }} />
       </TheD>
       <TheD mong>
-        <ChuD kieu="rat" co={13} mau={D.chu2}>Nếu được cho phép</ChuD>
-        <ChuD kieu="rat" co={15}>{`Tính vào giờ chơi${conPhut != null ? ` · còn ${conPhut} phút` : ""}`}</ChuD>
+        <ChuD kieu="rat" co={13} mau={D.chu2}>Nếu Ba Mẹ thêm vào danh sách</ChuD>
+        <ChuD kieu="rat" co={15}>{`App Tính phút: 1 sao = 1 phút${sao.d ? ` · con đang có ${soSao(sao.d.sao)}` : ""}`}</ChuD>
       </TheD>
     </ManD>
   );

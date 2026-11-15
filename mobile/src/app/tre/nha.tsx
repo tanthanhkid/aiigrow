@@ -1,15 +1,17 @@
-// «Hôm nay» bản «Dịu» (con-dt-ngay 02 cdt-nha-chinh, PIN 06/11): «Chào Bảo Anh!» + chip «Bảo Anh ▾» (Đổi bé / Đăng xuất); thẻ giờ chơi
-// (vòng «18 phút», «Đã chơi 42 / 60 phút», «Xin Ba Mẹ thêm giờ»); thẻ sao vàng (thẻ màu duy nhất, «⏳ chờ thêm 10», «Đổi 10 sao lấy 10 phút»);
-// «5 nhiệm vụ hôm nay · ⏳ 1 chờ duyệt · 4 chưa làm»; chip «Giờ học 17:00–18:00» · «Ngủ 21:30». Giờ ngủ / Ba Mẹ khoá / giờ học ⇒ thẻ giờ
-// dẫn tới màn khoá tương ứng. Được duyệt ⇒ mở màn ăn mừng một lần; Ba Mẹ nhờ làm lại ⇒ thẻ báo ngay đầu màn. Mất mạng ⇒ băng nhẹ + số đã có.
+// «Hôm nay» bản «Dịu» (con-dt-ngay 02 cdt-nha-chinh, PIN 06/11, sổ sao 15/11 #263–#265): «Chào Bảo Anh!» + chip «Bảo Anh ▾» (Đổi bé / Đăng xuất);
+// thẻ sao = phút (vòng «18 sao», «Còn 18 sao = 18 phút chơi», «Hôm nay chơi 42 phút», «Xin Ba Mẹ cho vay sao»); thẻ sao (vàng, âm ⇒ màu cảnh
+// báo + «Đang nợ Ba Mẹ 20 sao», «⏳ chờ duyệt +10», «Chơi bằng sao · 1 sao = 1 phút»); «5 nhiệm vụ hôm nay · ⏳ 1 chờ duyệt · 4 chưa làm».
+// Chế độ «Mở hết» (#262, them-uero9k5x): thẻ «Hôm nay Mở hết · không tính phút», sao chỉ để đổi quà. Ba Mẹ khoá máy ⇒ dòng dẫn tới màn khoá.
+// Được duyệt ⇒ mở màn ăn mừng một lần; Ba Mẹ nhờ làm lại ⇒ thẻ báo ngay đầu màn. Mất mạng ⇒ băng nhẹ + số đã có. (Bỏ giờ ngủ, giờ học 14/11.)
 import { useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { View } from "react-native";
-import { daXem, ghiDaXem, guiHangCho, kid, lyDoKhoa, type LuotTre, type NhaTreSao, type NvTreSao } from "@/lib/api-tre";
-import { thuGio } from "@/lib/con-diu";
+import { daXem, ghiDaXem, guiHangCho, kid, taiSao, type LuotTre, type NhaTreSao, type NvTreSao, type ToiTre } from "@/lib/api-tre";
+import { soSao, thuGio } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
-import { ChaoDau, TheGio, TheSao, diGio } from "@/lib/man-con";
-import { ChipD, ChoD, ChuD, DongD, ManD, MatMangD, PillD } from "@/lib/ui-diu";
+import { Icon3D } from "@/lib/ui";
+import { ChaoDau, ThePhut, TheSao, diGio } from "@/lib/man-con";
+import { ChuD, ChoD, DongD, ManD, MatMangD, PillD, TheD } from "@/lib/ui-diu";
 import { useTaiTre, useTre } from "@/lib/ui-tre";
 
 const MOT_NGAY = 86_400_000;
@@ -17,8 +19,9 @@ const MOT_NGAY = 86_400_000;
 export default function Nha() {
   const { ten } = useTre();
   const { d, loi, matMang, tai, cu } = useTaiTre("nha-diu", async () => {
-    const [nha, nv] = await Promise.all([kid.goi<NhaTreSao>("nha"), kid.goi<{ ds: NvTreSao[] }>("nhiem-vu?tuCham=1").catch(() => ({ ds: [] as NvTreSao[] }))]);
-    return { nha, nv: nv.ds };
+    const [nha, nv, s, toi] = await Promise.all([kid.goi<NhaTreSao>("nha"), kid.goi<{ ds: NvTreSao[] }>("nhiem-vu?tuCham=1").catch(() => ({ ds: [] as NvTreSao[] })),
+      taiSao(), kid.goi<ToiTre>("toi").catch(() => null)]);
+    return { nha, nv: nv.ds, s, cheDo: toi?.cheDo ?? null };
   });
   // ăn mừng nhiệm vụ vừa được duyệt (một lần), gửi lại bài đang chờ mạng
   useFocusEffect(useCallback(() => {
@@ -31,32 +34,33 @@ export default function Nha() {
     }).catch(() => {});
   }, []));
   if (!d) return <ManD tab="nha"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
-  const { nha } = d;
-  const q = nha.quy;
-  const sao = nha.sao ?? nha.soDu;
-  const ly = lyDoKhoa(q);
-  const conPhut = q?.conPhut ?? nha.conPhut;
-  const tong = q?.tongPhut ?? nha.tranNgay;
-  const daDung = q?.daDung ?? nha.phutChoi;
+  const { nha, s } = d;
+  const moHet = d.cheDo === "mo_het";
   const choDuyet = d.nv.filter((x) => x.dang_cho > 0).length;
   const chuaLam = d.nv.filter((x) => x.trang_thai_con === "san_sang" || x.trang_thai_con === "dang_lam" || x.trang_thai_con === "can_bo_sung").length;
-  const doiDuoc = !!q && !ly && q.doiSao.bat && q.doiSao.conDoiDuoc > 0;
-  const tyLe = q?.tyLe ?? { sao: 10, phut: 10 };
   return (
     <ManD tab="nha">
       <ChaoDau ten={ten} phu={thuGio()} />
-      {matMang || cu ? <MatMangD chu={`Mất mạng rồi — giờ chơi vẫn tính, ${ten} vẫn có ${sao} sao. Bài nộp tự gửi khi có mạng.`} /> : null}
-      {ly ? (
-        <DongD ic={ly === "gio_ngu" ? "trang_ngu" : ly === "gio_hoc" ? "sach" : "khoa"}
-          tieu={ly === "gio_ngu" ? "Đến giờ ngủ rồi" : ly === "gio_hoc" ? "Giờ học rồi!" : "Ba Mẹ đang khoá máy"}
-          phu={ly === "gio_ngu" ? `Sáng mai máy mở lúc ${q!.gioNgu.den}` : ly === "gio_hoc" && q!.gioHoc ? `${q!.gioHoc.tu} – ${q!.gioHoc.den} · chỉ mở app học` : "Cần gấp thì xin Ba Mẹ"}
-          bam={() => router.push(`/tre/gio-ngu?ly=${ly}`)} />
+      {matMang || cu ? <MatMangD chu={`Mất mạng rồi — ${ten} vẫn có ${soSao(s.sao)}. Bài nộp tự gửi khi có mạng.`} /> : null}
+      {s.khoa ? (
+        <DongD ic="khoa" tieu="Ba Mẹ đang khoá máy" phu="Cần gấp thì nhắn Ba Mẹ" bam={() => router.push("/tre/gio-ngu?ly=ba_me_khoa")} />
+      ) : moHet ? (
+        <TheD nhanDoc="Hôm nay Mở hết. Không tính phút">
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+            <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: D.xanhN, alignItems: "center", justifyContent: "center" }}><Icon3D ten="tick" co={40} /></View>
+            <View style={{ flex: 1, gap: 2 }}>
+              <ChuD kieu="rat" co={13.5} mau={D.chu2}>Hôm nay Mở hết</ChuD>
+              <ChuD kieu="den" co={20}>Mở hết · không tính phút</ChuD>
+            </View>
+          </View>
+          <ChuD co={14} mau={D.chu2}>Ba Mẹ để mở hết: app, web dùng tự do, chơi không trừ sao.</ChuD>
+        </TheD>
       ) : (
-        <TheGio q={q} conPhut={conPhut} daDung={daDung} tong={tong} bam={() => diGio(conPhut)}
-          nut={q && !q.choXinThem ? undefined : { chu: "Xin Ba Mẹ thêm giờ", bam: () => router.push("/tre/them-gio") }} />
+        <ThePhut s={s} bam={() => diGio(s.hetSao)} nut={{ chu: "Xin Ba Mẹ cho vay sao", bam: () => router.push("/tre/them-gio") }} />
       )}
-      <TheSao sao={sao} choThem={nha.diemChoDuyet || undefined}
-        nut={doiDuoc ? { chu: `Đổi ${tyLe.sao} sao lấy ${tyLe.phut} phút`, bam: () => router.push("/tre/choi") } : undefined} />
+      <TheSao sao={s.sao} no={s.no} choThem={nha.diemChoDuyet || undefined} nhan={moHet ? "Sao để đổi quà" : "Sao của con"}
+        nut={moHet ? { chu: "Đổi quà bằng sao", ic: "qua", bam: () => router.push("/tre/cua-hang") }
+          : { chu: "Chơi bằng sao · 1 sao = 1 phút", bam: () => router.push("/tre/choi") }} />
       {nha.canBoSung.map((x) => (
         <DongD key={x.id} ic="tro_lai" tieu="Ba Mẹ nhờ làm lại" phu={x.ten} bam={() => router.push(`/tre/chup-lai/${x.luot}?nv=${x.id}`)} />
       ))}
@@ -65,12 +69,6 @@ export default function Nha() {
           {choDuyet ? <PillD chu={`⏳ ${choDuyet} chờ duyệt`} loai="cho" /> : null}
           {chuaLam ? <View style={{ justifyContent: "center", height: 28 }}><ChuD kieu="rat" co={13} mau={D.xanhD}>{`${chuaLam} chưa làm`}</ChuD></View> : null}
         </> : undefined} />
-      {q ? (
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {q.gioHoc ? <ChipD ic="sach" chu={`Giờ học ${q.gioHoc.tu}–${q.gioHoc.den}`} bam={() => router.push("/tre/gio-ngu?ly=gio_hoc")} /> : null}
-          <ChipD ic="trang_ngu" chu={`Ngủ ${q.gioNgu.tu}`} bam={() => router.push("/tre/quy-tac")} />
-        </View>
-      ) : null}
     </ManD>
   );
 }
