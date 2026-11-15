@@ -5,7 +5,9 @@
 // MỚI 14/11: them-q44uxha5 «Mã đã hết hạn» (mã quá 10 phút — Lấy mã mới / Để sau, vào trang chủ) và them-ytmgijqo «Chưa thấy máy của con»
 // (chờ 5 phút chưa ghép — 3 việc cần thử, «Thử lại, chờ máy con» / «Hỏi AiiGrow»).
 // Link mang sẵn mã gia đình (…/tai?g=…&ma=…) ⇒ trang tải tự ghép; mã 6 số là dự phòng. Không chọn loại máy (trang tải tự nhận).
-// Tham số: con, giong (= «Cài giống máy trước»: id máy), nguon = lan-dau | them, moi = 1 (bắt buộc lấy mã mới).
+// Tham số: con, giong (= «Cài giống máy trước»: id máy), nguon = lan-dau | them, moi = 1 (bắt buộc lấy mã mới),
+// conDs = «c1,c2» (#267 — máy chung nhiều bé: tiêu đề «Ghép máy chung · N bé», dòng «Cho … dùng chung. Máy con là iPhone/iPad thì chọn 1 bé khi quét.»).
+// Một bé: dòng «Máy riêng của <bé>. Windows, Mac, Android thêm bé khác dùng chung sau được.» (thiết kế chốt 15/11 bm1-ob-ghep / bm1-may-ghep).
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -15,14 +17,19 @@ import { DauMan, DongTrangThai, HangChiaSe, KhoiTrangThaiGhep, LienKet, NutHoi }
 import { MaQr } from "@/lib/qr";
 import { xoaTl } from "@/lib/thiet-lap";
 import { BangTruot, BaoLoi, Chu, LopMen, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
-import { bm, type ConChiTiet } from "@/lib/api";
+import { bm, type GiaDinh } from "@/lib/api";
+import { tenGoi } from "@/lib/hang-ngay";
+import { AvtCon, CapAvt } from "@/lib/may-nhieu-con";
 
 const CHO_PHUT = 5;
 const gioPhut = (ms: number) => { const d = new Date(ms); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`; };
 
 export default function GhepMay() {
-  const p = useLocalSearchParams<{ con?: string; giong?: string; nguon?: string; moi?: string }>();
+  const p = useLocalSearchParams<{ con?: string; giong?: string; nguon?: string; moi?: string; conDs?: string }>();
   const con = p.con ? String(p.con) : null;
+  const conDsChu = p.conDs ? String(p.conDs) : "";
+  const conDs = useMemo(() => conDsChu.split(",").filter(Boolean), [conDsChu]);
+  const chung = conDs.length > 1;
   const nguon = p.nguon === "them" ? "them" : "lan-dau";
   const [kq, setKq] = useState<KqGhep | null>(null);
   const [qrTo, setQrTo] = useState(false);
@@ -32,15 +39,17 @@ export default function GhepMay() {
   const [bay, setBay] = useState(() => Date.now());
   const { lam, loi } = useLam();
   const { bao, noi } = useHoanTac();
-  const { d: c } = useTai(() => (con ? bm.goi<ConChiTiet>(`con/${con}`) : Promise.resolve(null)));
-  const ten = c?.ten ?? "con";
+  // tên + avatar các bé (gia-dinh): tiêu đề «Ghép máy của <bé>» / dòng «Cho <bé>, <bé> dùng chung»
+  const { d: caNha } = useTai(() => bm.goi<GiaDinh>("gia-dinh").then((g) => g.con.map((x) => ({ id: x.id, ten: x.ten, avatar: x.avatar }))));
+  const cacBe = (caNha ?? []).filter((x) => (chung ? conDs.includes(x.id) : x.id === con));
+  const ten = cacBe[0] ? tenGoi(cacBe[0].ten) : "con";
   const lay = useCallback((moi: boolean) => lam(async () => {
-    const r = await layMaGhep(con, p.giong ? String(p.giong) : null, moi);
+    const r = await layMaGhep(con, p.giong ? String(p.giong) : null, moi, conDs);
     const h = Date.now() + r.conGiay * 1000;
     setKq(r); setHetLuc(h); setBay(Date.now());
     // mã dùng lại (còn hạn) ⇒ mốc chờ = lúc mã được tạo
     setMoc(Math.min(Date.now(), h - r.hanPhut * 60_000));
-  }), [lam, con, p.giong]);
+  }), [lam, con, p.giong, conDs]);
   useEffect(() => { lay(p.moi === "1"); }, [lay, p.moi]);
   // chỉ vẽ lại đúng lúc tới mốc kế (5 phút chờ / hết hạn) — không đếm từng giây (vẽ lại cả QR)
   useEffect(() => {
@@ -51,7 +60,7 @@ export default function GhepMay() {
     return () => clearTimeout(t);
   }, [hetLuc, moc, bay]);
   const qr = useMemo(() => (kq ? <MaQr noiDung={kq.qr} co={150} /> : <View style={{ width: 150, height: 150 }} />), [kq]);
-  const sangCho = useCallback(() => kq && router.push({ pathname: "/thiet-lap/cho", params: { ma: kq.ma, con: con ?? "", nguon } }), [kq, con, nguon]);
+  const sangCho = useCallback(() => kq && router.push({ pathname: "/thiet-lap/cho", params: { ma: kq.ma, con: con ?? "", nguon, ...(chung ? { conDs: conDsChu } : {}) } }), [kq, con, nguon, chung, conDsChu]);
   // Máy mở link là tự ghép — đang ở màn này cũng chuyển thẳng sang «Đã ghép». CHỈ khi màn đang hiện: đã sang «Đang chờ» thì màn đó lo.
   useFocusEffect(useCallback(() => {
     if (!kq) return;
@@ -59,7 +68,7 @@ export default function GhepMay() {
       try {
         const g = await xemGhep(kq.ma);
         if (!g.daGhep && !g.hetHan) setHetLuc(Date.now() + g.conGiay * 1000);        // đồng bộ lại hạn theo máy chủ
-        if (g.daGhep) { clearInterval(t); router.replace({ pathname: "/thiet-lap/da-ghep", params: { con: g.con ?? con ?? "", may: g.may?.id ?? "", nguon } }); }
+        if (g.daGhep) { clearInterval(t); router.replace({ pathname: "/thiet-lap/da-ghep", params: { con: g.conDs?.[0]?.id ?? g.con ?? con ?? "", may: g.may?.id ?? "", nguon } }); }
       } catch { /* thử lại nhịp sau */ }
     }, 4000);
     return () => clearInterval(t);
@@ -73,7 +82,7 @@ export default function GhepMay() {
 
   if (hetHan) return (
     <Man dau={<DauMan bamLui={lui} />}
-      day={<><BaoLoi loi={loi} /><Nut chu={`Lấy mã mới cho ${ten}`} rong bam={() => lay(true)} /><LienKet chu={nguon === "lan-dau" ? "Để sau, vào trang chủ" : "Để sau"} bam={veTrangChu} /></>}>
+      day={<><BaoLoi loi={loi} /><Nut chu={chung ? "Lấy mã mới" : `Lấy mã mới cho ${ten}`} rong bam={() => lay(true)} /><LienKet chu={nguon === "lan-dau" ? "Để sau, vào trang chủ" : "Để sau"} bam={veTrangChu} /></>}>
       <KhoiTrangThaiGhep lv="cho" ic="dong_ho_cat" tieu="Mã đã hết hạn" phu="Mã chỉ dùng được 10 phút">
         <DongTrangThai ic="khien" chu="Mã 6 số cũ không dùng được nữa" phu={`Chưa máy nào ghép vào nhà bằng mã này${linkConHan ? " · link đã gửi vẫn dùng được trong 48 giờ" : ""}`} />
       </KhoiTrangThaiGhep>
@@ -91,7 +100,7 @@ export default function GhepMay() {
     </Man>
   );
   return (
-    <Man noi={noi} dau={<DauMan tieu={`Ghép máy của ${ten}`} bamLui={lui} phai={<NutHoi />} />}
+    <Man noi={noi} dau={<DauMan tieu={chung ? `Ghép máy chung · ${conDs.length} bé` : `Ghép máy của ${ten}`} bamLui={lui} phai={<NutHoi />} />}
       day={<>
         <BaoLoi loi={loi} />
         {/* thiết kế 01/03: viên lõm «● Đang chờ máy con…» rồi nút trắng «Để sau, ghép máy sau» */}
@@ -102,6 +111,16 @@ export default function GhepMay() {
           </View>
           <Chu kieu="rat" co={14} mau={M.chinhInk} style={{ flex: 1 }}>Đang chờ máy con… ghép xong tự chuyển</Chu>
         </View>
+        {cacBe.length ? (
+          // #267: máy riêng một bé / máy chung nhiều bé — iPhone/iPad chỉ một bé (chọn khi quét)
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 8 }}>
+            {chung ? <CapAvt ds={cacBe} co={24} /> : <AvtCon c={cacBe[0]} co={24} />}
+            <Chu kieu="dam7" co={12.5} mau="#3a403d" style={{ flex: 1, lineHeight: 17, textAlign: "center" }}>
+              {chung ? `Cho ${cacBe.map((x) => tenGoi(x.ten)).join(", ")} dùng chung.\nMáy con là iPhone/iPad thì chọn 1 bé khi quét.`
+                : `Máy riêng của ${ten}. Windows, Mac, Android thêm bé khác dùng chung sau được.`}
+            </Chu>
+          </View>
+        ) : null}
         <Nut chu="Để sau, ghép máy sau" loai="vien" rong bam={deSau} />
       </>}>
       <View style={{ borderRadius: 32, backgroundColor: "#dcebe6", paddingVertical: 18, paddingHorizontal: 16, alignItems: "center", gap: 6, ...KHOI.the }}>

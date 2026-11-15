@@ -13,6 +13,7 @@ import { View } from "react-native";
 import { bm, type TuanThuMay } from "@/lib/api";
 import { hinhNv, hoanTacThemGio, SaoVien, TieuMuc, HangViec, type ChoDuyetMoi, type PhieuCho } from "@/lib/hang-ngay";
 import { BangTraoQua } from "@/lib/trao-qua";
+import { mayCuaCon } from "@/lib/may-nhieu-con";
 import { tenMayXin, TheXin, type KetQua } from "@/lib/hom-nay-xin";
 import { KHOA_TAB } from "@/lib/tab-ba-me";
 import {
@@ -36,7 +37,7 @@ export default function ChoDuyet() {
   if (chon !== "ca" && ![...d.yeuCau, ...d.nhiemVu, ...(d.phieu ?? [])].some((x) => x.child_id === chon)) setChon("ca");
   const theo = <T extends { child_id: string | null }>(a: T[]) => (chon === "ca" ? a : a.filter((x) => x.child_id === chon));
   const yc = theo(d.yeuCau), nv = theo(d.nhiemVu), qua = theo(d.phieu ?? []), tuDong = theo(d.tuDong ?? []);
-  const canDeY = d.may.filter((m) => m.baoVe && m.baoVe !== "day_du" && !m.dangGo && (chon === "ca" || m.con === chon || m.dungChung));
+  const canDeY = d.may.filter((m) => m.baoVe && m.baoVe !== "day_du" && !m.dangGo && (chon === "ca" || mayCuaCon(m, chon)));
   const tong = yc.length + nv.length + qua.length + canDeY.length;
   // chip: Cả nhà + mọi Con có việc (tên lấy từ chính việc)
   const tenCon = new Map<string, string>();

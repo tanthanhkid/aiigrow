@@ -1,19 +1,25 @@
-// Chi tiết một máy của con (thiết kế chốt 14/11, bm-may-con/02 tuân thủ · 06 lệch chuẩn · 03 xác nhận khoá máy · 04/07 đổi tên · 05/08 gỡ · 09 hướng dẫn sửa):
-// thẻ trạng thái «Grow đang trông máy này ✓ · Đang bảo vệ · Chặn app & web» / «! <máy> chưa được bảo vệ» + «Nếu để vậy» (3 hậu quả), app đang mở,
-// giờ chơi còn lại hôm nay (quỹ chung mọi máy — N3), lời xin đang chờ trên máy này, «Cài đặt máy» (chế độ, ứng dụng trên máy, mã mở máy), Đổi tên / Gỡ máy,
-// «Sửa <máy> trong N bước», «Khoá <máy> ngay» (bảng xác nhận 03). Mục «An toàn & sự cố» giữ các tính năng an toàn cũ: mở khẩn cấp,
-// gán con cho máy dùng chung, gỡ từ xa (nhập lại mật khẩu — máy chỉ rời danh sách khi agent báo đã gỡ), gỡ tại máy, nhật ký.
-// 06/11 (L19): hàng «Mã mở máy khi mất mạng» ⇒ màn them-rz77kk45 (/may/<id>/ma-offline). Bỏ «Giám sát / Chặn thật» (L4: máy luôn chặn thật). Người trông giúp: xem, khoá máy, xem mã mất mạng; không đổi tên / gỡ.
+// Chi tiết một máy (thiết kế chốt 15/11, #267 một máy nhiều Con): bm2-may-m1 «Máy cả nhà» (bảo vệ đủ) · bm2-may-m2 «iPad của Bảo Minh» (chưa bảo vệ) ·
+// them-tmezw761 «Khoá <máy>?» (khoá theo máy) · them-sll7clha «Khoá máy <bé>?» (khoá theo bé, lib/hang-ngay › BangKhoaMay) · 04/07 đổi tên · 05/08 gỡ · 09 sửa.
+// Bảo vệ đủ: thẻ sân «<bé> đang dùng · ✓ Đang bảo vệ · Máy chung · 2 bé» (chạm ⇒ «Máy cả nhà · chi tiết» /may/<id>/chi-tiet), hai ô «<app> N phút ·
+// ● Đang mở» / «<bé> còn N sao = N phút chơi», lời xin đang chờ trên máy, «Máy này ai dùng?» (công tắc gán / bỏ gán từng bé — POST may/:id/con/:con/gan|bo;
+// đầu mục ⇒ /may/<id>/con), «Cài đặt», Đổi tên / Gỡ, «Khoá <máy> ngay» + «Chỉ khoá <bé> · mọi máy».
+// Chưa bảo vệ: cảnh đào (bong bóng việc thiếu, chip «Hôm nay N phút · vẫn trừ sao»), «Nếu để vậy», «Sửa <máy> trong N bước», Đổi tên / Gỡ, «Để sau».
+// iPhone / iPad: «Máy riêng của <bé> · iPad không đổi người dùng được nên chỉ một bé dùng» (không có «Máy này ai dùng?»).
+// Mục «An toàn & sự cố» giữ các tính năng cũ: mở khẩn cấp, gỡ từ xa (nhập lại mật khẩu), gỡ tại máy, nhật ký. Người trông giúp: xem, khoá máy, mã mất mạng.
+// Dữ liệu: GET may/:id/tuan-thu (conDs, dangDung, khoaMay, tungCon) + GET may/:id/con (mọi bé, gán chưa, sao) + GET tuan-thu (máy khác) + gia-dinh.
 import { useCallback, useState } from "react";
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
-import { bm, chuanHoaTen, coMaOff, GOC, LoiApi, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type PhienDang, type SuKienTuanThu } from "@/lib/api";
-import { HangViec, IC_MAY, quyenToi, TieuMuc, type ChoDuyetMoi, type ConCt, type QuyCon } from "@/lib/hang-ngay";
+import { Pressable, View } from "react-native";
+import { bm, chuanHoaTen, coMaOff, GOC, LoiApi, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type PhienDang, type SuKienTuanThu, type TuanThuMay } from "@/lib/api";
+import { BangKhoaMay, HangViec, quyenToi, tenGoi, TieuMuc, type ChoDuyetMoi, type ConCt } from "@/lib/hang-ngay";
 import { cauMoTam, conHan, datKhoaMay } from "@/lib/khoa-may";
 import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { tieuXin } from "@/lib/hom-nay-xin";
 import {
-  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, Dong, gioPhut, HaiNut, Icon3D, M, Man, Nhan, NhanMen, Nhom, NhomTieu, Nut, ONhap, Rob, The, TickDong, truoc, useHoanTac, useLam, useTai,
+  appTrenMay, AvtCon, BangKhoaTheoMay, conCuaMay, mayCuaCon, nganTen as ngan, ganBoCon, hinhMay, keDau, laMayChung, laMotCon, MucPhai, SaoNho, TEN_NEN, TheDs, type ConMay, type ConNganMay,
+} from "@/lib/may-nhieu-con";
+import {
+  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, CongTac, Dong, gioPhut, HaiNut, Icon3D, M, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 import { BONG, KHOI } from "@/lib/clay";
 
@@ -22,6 +28,7 @@ const SU_KIEN: Record<string, string> = {
   tuan_thu_lech: "Lệch chuẩn tuân thủ", tuan_thu_on: "Tuân thủ trở lại", may_ngoai_vong: "Máy ngoài vòng kiểm soát", may_tro_lai: "Máy đồng bộ trở lại",
   mo_khan_cap: "Ba Mẹ mở khẩn cấp", huy_mo_khan_cap: "Huỷ mở khẩn cấp", het_mo_khan_cap: "Hết giờ mở khẩn cấp", tin_cay_admin: "Xác nhận tài khoản quản trị",
   lenh_go: "Ra lệnh gỡ từ xa", go_may: "Máy đã gỡ AiiGrow", xem_ma_offline: "Xem mã mở offline", may_mo_ma_offline: "Máy mở bằng mã offline", may_sai_ma_offline: "Gõ sai mã offline nhiều lần", may_het_ma_offline: "Có mạng lại, hết mở bằng mã", doi_che_do: "Đổi chế độ", doi_ten_may: "Đổi tên máy",
+  doi_con_may: "Đổi bé dùng máy", khoa_may: "Ba Mẹ khoá máy", mo_khoa_may: "Ba Mẹ mở khoá máy",
 };
 const NGAY_XOA_HAN = 7;
 /** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
@@ -34,28 +41,38 @@ export default function AnToanMay() {
     const [quyen, coMk] = await Promise.all([quyenToi(), bm.goi<{ baMe: { coMatKhau?: boolean } }>("toi").then((t) => t.baMe.coMatKhau !== false, () => true)]);
     // Máy đã gỡ xong (agent báo đã gỡ / đã xoá hẳn) ⇒ không còn trong gia đình
     const m = await bm.goi<ChiTietTuanThu>(`may/${id}/tuan-thu`).catch((e) => { if (e instanceof LoiApi && e.ma === "khong_thay") return null; throw e; });
-    // máy Windows «dùng chung» ⇒ cần danh sách Con để gán (POST may/:id/gan-con)
-    const g = await bm.goi<GiaDinh>("gia-dinh");
-    // Con dùng máy này: danh sách máy (khoá mọi máy), chế độ chặn; lời xin đang chờ của con — lỗi thì chỉ ẩn phần đó
-    const [ct, cd, qy, ph] = await Promise.all([m?.con ? bm.goi<ConCt>(`con/${m.con}`).catch(() => null) : null, bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null),
-      m?.con ? bm.goi<QuyCon>(`con/${m.con}/quy`).catch(() => null) : null, bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null)]);
+    // bé «chính» của máy (bé đang dùng › máy riêng = bé của máy) suy ngay từ tuan-thu ⇒ gọi con/:id SONG SONG với các lời gọi khác
+    const aiId = m ? m.dangDung?.id ?? (m.conDs ? (m.conDs.length === 1 ? m.conDs[0].id : null) : m.con) ?? null : null;
+    const [g, tt, cm, cd, ph, ct0] = await Promise.all([bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu").catch(() => null),
+      // «Máy này ai dùng?»: mọi bé trong nhà kèm đã gán chưa, sao — máy chủ trước #267 không có ⇒ null (ẩn công tắc)
+      m ? bm.goi<ConMay>(`may/${id}/con`).catch(() => null) : null,
+      bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null),
+      aiId ? bm.goi<ConCt>(`con/${aiId}`).catch(() => null) : null]);
+    const caNha: ConNganMay[] = g.con.map((c) => ({ id: c.id, ten: c.ten, avatar: c.avatar }));
+    const conDs = m ? cm ? cm.ds.filter((c) => c.gan) : conCuaMay(m, caNha) : [];
+    // bé «chính» của máy — luật (chế độ chặn) và sao hiện theo bé này
+    const ai = m ? (m.dangDung ? conDs.find((c) => c.id === m.dangDung!.id) ?? m.dangDung : conDs.length === 1 ? conDs[0] : null) : null;
+    const ct = ai && ai.id === aiId ? ct0 : ai ? await bm.goi<ConCt>(`con/${ai.id}`).catch(() => null) : null;
     const xem = quyen === "trong_giup";
-    const ngan = (t: string) => t.replace(/ của .*$/, "");
-    // lời xin trên MÁY NÀY trước (requests.device_id), rồi lời xin khác của con
-    const xin = (m?.con ? cd?.yeuCau.filter((y) => y.child_id === m.con) ?? [] : [])
+    const ids = new Set(conDs.map((c) => c.id));
+    // lời xin của các bé dùng máy: lời xin trên MÁY NÀY trước (requests.device_id)
+    const xin = (cd?.yeuCau ?? []).filter((y) => ids.has(y.child_id))
       .sort((a, b) => Number((b as { device_id?: string | null }).device_id === id) - Number((a as { device_id?: string | null }).device_id === id));
-    const app = m ? ph?.ds.find((p) => p.may && ngan(p.may) === ngan(m.ten) && (!m.con || p.con === m.con)) ?? null : null;
-    // khoá riêng máy (khoaMay) chỉ có ở GET con/:id › may[] — máy dùng chung chưa gắn Con có trong may[] của MỌI Con ⇒ hỏi Con đầu tiên
-    const ctMay = m?.con ? ct : m && g.con[0] ? await bm.goi<ConCt>(`con/${g.con[0].id}`).catch(() => null) : null;
-    const km = ctMay?.may.find((x) => x.id === id)?.khoaMay ?? null;
-    return { m, con: m?.dungChung && m.nen === "windows" ? g.con : [], ct, xin, quy: qy?.quy ?? null, app, chu: !xem, xem, coMk, km };
+    const app = m ? appTrenMay(ph?.ds ?? [], m, ai?.id) : null;
+    // khoá theo máy: máy chủ #267 trả `khoaMay` ở tuan-thu; máy chủ cũ chỉ có ở GET con/:id › may[] — máy dùng chung chưa gắn Con có trong may[]
+    // của MỌI Con ⇒ hỏi Con đầu tiên
+    const ctMay = m && !m.khoaMay && !ct?.may.some((x) => x.id === id) && g.con[0] ? await bm.goi<ConCt>(`con/${g.con[0].id}`).catch(() => null) : ct;
+    const km = m?.khoaMay ?? ctMay?.may.find((x) => x.id === id)?.khoaMay ?? null;
+    const sao = (cid: string) => cm?.ds.find((c) => c.id === cid)?.sao ?? g.con.find((c) => c.id === cid)?.soDu ?? null;
+    return { m, caNha, conDs, cm, ai, ct, xin, app, km, sao, khac: (tt?.ds ?? []).filter((x) => x.id !== id), chu: !xem, xem, coMk };
   });
-  const [mo, setMo] = useState<"khan" | "go" | "xoa" | "tai_may" | "ten" | "sua" | "khoa" | null>(null);
+  const [mo, setMo] = useState<"khan" | "go" | "xoa" | "tai_may" | "ten" | "sua" | "khoa" | "khoa_be" | null>(null);
   const [phut, setPhut] = useState(30);
   const [lyDo, setLyDo] = useState("");
   const [mk, setMk] = useState("");
   const [tenMoi, setTenMoi] = useState("");
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
+  const { lam: lamGan, loi: loiGan, dangChay: dangGan } = useLam();
   const { bao, noi } = useHoanTac();
   const dong = () => { setMo(null); setLyDo(""); setMk(""); setLoi(null); };
   // Trang chủ mở thẳng bảng «Mở khẩn cấp» / «Mã mở khi mất mạng» (?mo=khan|offline): Ba Mẹ đang vội, không đi qua thêm màn nào
@@ -66,7 +83,7 @@ export default function AnToanMay() {
     // đang mở khẩn cấp / đang gỡ ⇒ không mở bảng (màn này cũng ẩn nút đó): khỏi tạo/kéo dài mở khẩn cấp thứ hai
     const dangKhan = !!d.m.moKhanCapDen && new Date(d.m.moKhanCapDen) > new Date();
     if (moSan === "khan" && !d.xem && !dangKhan && !d.m.dangGo) setMo("khan");
-    // «Gỡ máy này» từ màn kết quả xoá hồ sơ Con (máy thành dùng chung — ho-so/[id]/xoa)
+    // «Gỡ máy này» từ màn kết quả xoá hồ sơ Con (ho-so/[id]/xoa)
     if (moSan === "go" && d.chu && !d.m.dangGo) setMo(d.m.daDongBo ? "go" : "xoa");
   }
   const dangGo = !!d?.m?.dangGo;
@@ -103,44 +120,110 @@ export default function AnToanMay() {
   const m = d.m;
   const win = m.nen === "windows";
   const tot = m.baoVe ? m.baoVe === "day_du" : m.trangThai === "tuan_thu";
-  const tenCon = d.ct?.ten ?? null;
-  const ngan = m.ten.replace(/ của .*$/, "");
+  const ten = ngan(m.ten);
+  const tenNgan = ten.replace(/ của .*$/, "");
+  const ai = d.ai;
+  const tenAi = ai ? tenGoi(ai.ten) : null;
+  const motCon = laMotCon(m);
+  const chung = d.conDs.length >= 2 || (d.cm ? d.cm.may.mayChung : laMayChung(m));
+  const saoAi = ai ? d.sao(ai.id) : null;
+  const phutAi = ai ? d.cm?.ds.find((c) => c.id === ai.id)?.phutHomNay ?? m.tungCon?.find((c) => c.id === ai.id)?.phutHomNay ?? null : null;
   const khanCap = m.moKhanCapDen && new Date(m.moKhanCapDen) > new Date();
   // Windows: «đang mở» gồm cả thêm giờ đã duyệt (moDen) — «Khoá lại ngay» đóng cả hai
   const moDen = m.moDen && new Date(m.moDen) > new Date() ? m.moDen : khanCap ? m.moKhanCapDen : null;
   const cheDo = d.ct?.cheDoChan === "mo_het" ? "Mở hết" : "Chặn app & web";
-  // khoá RIÊNG máy này (PR #253 may/:id/khoa) — trạng thái lấy từ GET con/:id › may[].khoaMay (máy dùng chung chưa có Con ⇒ không biết, ẩn)
+  // khoá theo máy (POST may/:id/khoa) — mọi bé trên máy này
   const km = d.km;
   const khoaRieng = mayDangKhoa(km);
   const cauKhoaRieng = cauKhoaMay(km);
-  // khoá theo Con vẫn còn ⇒ mở khoá riêng xong máy VẪN khoá — nói rõ
+  // khoá theo bé (bé chính) vẫn còn ⇒ mở khoá máy xong máy VẪN khoá với bé đó — nói rõ
   const conConKhoa = !!d.ct?.khoaNgay && conHan(d.ct.khoaDen) && !cauMoTam(d.ct.moTamDen, d.ct.khoaDen);
   const moKhoaRieng = () => lam(async () => {
     await datKhoaMay(id, false);
-    bao(conConKhoa ? `Đã bỏ khoá riêng ${ngan} — máy vẫn khoá theo khoá của ${tenCon}` : `Đã mở khoá ${ngan}`, () => { datKhoaMay(id, true, km?.den ? new Date(km.den) : null).then(tai, tai); }); await tai();
+    bao(conConKhoa && !chung ? `Đã mở khoá ${tenNgan} — máy vẫn khoá theo khoá của ${tenAi}` : `Đã mở khoá ${tenNgan}`, () => { datKhoaMay(id, true, km?.den ? new Date(km.den) : null).then(tai, tai); }); await tai();
   });
-  const ganCon = (con: string, ten: string) => lam(async () => { await bm.goi(`may/${id}/gan-con`, { con }); bao(`${m.ten} giờ là máy của ${ten}`); await tai(); });
+  // công tắc «Máy này ai dùng?»: gán / bỏ gán một bé (máy chủ chặn bỏ bé cuối — 400 can_mot_con; iPhone/iPad — 409 ios_mot_con)
+  const doiGan = (c: ConNganMay, gan: boolean) => lamGan(async () => {
+    await ganBoCon(id, c.id, gan);
+    bao(gan ? `${tenGoi(c.ten)} dùng được ${tenNgan}` : `${tenGoi(c.ten)} không còn dùng ${tenNgan}`, () => { ganBoCon(id, c.id, !gan).then(tai, tai); });
+    await tai();
+  });
+  const khac = d.khac.map((x) => ({ id: x.id, ten: ngan(x.ten), nen: x.nen, rieng: !laMayChung(x) }));
+  const mayCuaAi = ai ? [{ ...m, id }, ...d.khac].filter((x) => mayCuaCon(x, ai.id)) : [];
+  const xin0 = d.xin[0];
+  const tenXin = xin0 ? tenGoi(d.caNha.find((c) => c.id === xin0.child_id)?.ten ?? xin0.ten_con) : "";
+
+  const hangRieng = motCon && d.conDs[0] ? (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 10, paddingRight: 14, borderRadius: 18, backgroundColor: "#ecebe7" }}>
+      <AvtCon c={d.conDs[0]} co={26} />
+      <Chu kieu="rat" co={13} mau="#3a403d" style={{ flex: 1, lineHeight: 18 }}>{`Máy riêng của ${tenGoi(d.conDs[0].ten)} · ${tenNgan} không đổi người dùng được nên chỉ một bé dùng.`}</Chu>
+    </View>
+  ) : null;
+  const doiTen = () => { setTenMoi(m.ten); setMo("ten"); };
+  const nutSuaGo = d.xem ? null : (
+    <HaiNut>
+      <Nut chu="Đổi tên máy" ic="but" ic3d loai="vien" bam={doiTen} />
+      {!m.dangGo ? <Nut chu="Gỡ máy này" loai="huy" bam={() => setMo(m.daDongBo ? "go" : "xoa")} /> : null}
+    </HaiNut>
+  );
+  const caiDat = (
+    <>
+      <TieuMuc chu="Cài đặt" />
+      <TheDs>
+        {chung && ["windows", "mac", "android"].includes(m.nen) ? (
+          <HangViec dau ic="khien" mau="xanh" tieu="App & web theo từng bé" phu="Theo bé đang dùng máy"
+            phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Xem ›</Chu>} bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} />
+        ) : <>
+          <HangViec dau ic="khien" mau="xanh" tieu={cheDo} phu={d.ct?.cheDoChan === "mo_het" ? "Chỉ chặn web người lớn" : "App, web mới con phải xin Ba Mẹ"}
+            phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>} bam={() => router.push((ai ? `/app-web?con=${ai.id}` : "/app-web") as never)} />
+          {["windows", "mac", "android"].includes(m.nen) ? <HangViec ic="laptop" mau="lam" tieu="Ứng dụng trên máy này" phu="App đã cài thật trên máy — chặn hoặc cho phép"
+            bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} /> : null}
+        </>}
+        {coMaOff(m) ? <HangViec ic="mo_khoa" mau="xanh" tieu="Mã mở máy khi mất mạng" phu={d.ct?.may.find((x) => x.id === id)?.matMang ? "Máy đang mất mạng · lấy mã cho con" : "Mã 6 số, máy không cần mạng"}
+          bam={() => router.push({ pathname: "/may/[id]/ma-offline", params: { id } })} /> : null}
+      </TheDs>
+    </>
+  );
   return (
-    <Man lui={{ chu: "Quay lại" }} tieu={m.ten} noi={noi} tai={tai}>
-      {/* thẻ trạng thái (05 / 08): xanh khi Grow trông đủ */}
+    <Man lui={{ chu: "Quay lại" }} tieu={ten} noi={noi} tai={tai}
+      phai={tot && !d.xem ? (
+        <Pressable onPress={doiTen} accessibilityRole="button" accessibilityLabel="Đổi tên máy" style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon3D ten="but" co={20} /></View>
+        </Pressable>
+      ) : undefined}>
       {tot ? (
-        <The dem style={{ gap: 10, backgroundColor: M.chinhSoft }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <BieuTron ic={IC_MAY[m.nen]} mau="xanh" lon />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Chu kieu="rat" co={17} mau={M.chinhInk}>Grow đang trông máy này ✓</Chu>
-              <Chu co={13.5} mau={M.chu2}>{`Đang bảo vệ${d.ct ? ` · ${cheDo}` : ""}${m.dungChung ? " · máy dùng chung" : ""}`}</Chu>
-            </View>
+        // thiết kế m1 .san: thẻ ngọc nhạt — hình máy 88 (khiên) · bé đang dùng · «✓ Đang bảo vệ» + chip «Máy chung · 2 bé» · nền máy
+        <Pressable onPress={chung ? () => router.push({ pathname: "/may/[id]/chi-tiet", params: { id } }) : undefined} disabled={!chung} accessibilityRole={chung ? "button" : undefined}
+          accessibilityLabel={chung ? `${ten}, xem chi tiết từng bé` : undefined}
+          style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 28, backgroundColor: "#e2efea", backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", overflow: "hidden", ...KHOI.the }}>
+          <View style={{ width: 88, height: 88, borderRadius: 24, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.the }}>
+            <Icon3D ten={hinhMay(m.nen, chung)} co={64} />
+            <View style={{ position: "absolute", right: -6, bottom: -6 }}><Icon3D ten="khien" co={36} /></View>
           </View>
-        </The>
+          <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+            {ai ? (
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <AvtCon c={ai} co={28} />
+                <Chu kieu="rat" co={16} dong={2} style={{ flexShrink: 1 }}>{chung ? `${tenAi} đang dùng` : tenAi!}</Chu>
+              </View>
+            ) : <Chu kieu="rat" co={16}>{d.conDs.length ? "Chưa bé nào đang dùng" : "Chưa có bé dùng máy"}</Chu>}
+            <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8, rowGap: 2, marginTop: 2 }}>
+              <Chu kieu="rat" co={13} mau={M.chinhInk}>✓ Đang bảo vệ</Chu>
+              <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.7)" }}>
+                <Chu kieu="rat" co={11.5} mau={M.chinhInk}>{chung ? `Máy chung · ${d.conDs.length} bé` : "Máy riêng"}</Chu>
+              </View>
+            </View>
+            <Chu kieu="dam7" co={12} mau="#565c59" dong={1}>{`${TEN_NEN[m.nen] ?? m.nen}${!chung && d.ct ? ` · ${cheDo}` : ""}${chung ? " · xem từng bé ›" : ""}`}</Chu>
+          </View>
+        </Pressable>
       ) : (
-        // bm-may-con/06 «lệch chuẩn»: cảnh đào cao 210 — bong bóng việc thiếu đầu tiên, máy 3D + dấu «!» cam, Grow «so-tay» góc phải, chip «… · vẫn tính giờ»;
+        // bm2-may-m2 «lệch chuẩn»: cảnh đào cao 210 — bong bóng việc thiếu đầu tiên, máy 3D + dấu «!» cam, Grow «so-tay» góc phải, chip «… · vẫn trừ sao»;
         // dưới là tiêu đề «<máy> chưa được bảo vệ» 20/800 + một câu
         <>
           <View style={{ height: 210, borderRadius: 28, backgroundColor: "#fbe5ce", backgroundImage: "linear-gradient(#f9dcc0, #fdeedd)", overflow: "hidden", ...KHOI.the }}
             accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <View style={{ position: "absolute", left: 22, top: 54 }}><Icon3D ten={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"} co={80} /></View>
-            {/* máy 80 (HTML 104): chip «Báo về … · vẫn tính giờ» xuống 2–3 dòng khi giãn chữ (WCAG 1.4.12) không chạm máy — cổng DE-ANH */}
+            <View style={{ position: "absolute", left: 22, top: 54 }}><Icon3D ten={hinhMay(m.nen, chung)} co={80} /></View>
+            {/* máy 80 (HTML 104): chip «… · vẫn trừ sao» xuống 2–3 dòng khi giãn chữ (WCAG 1.4.12) không chạm máy — cổng DE-ANH */}
             <View style={{ position: "absolute", left: 88, top: 48, width: 40, height: 40, borderRadius: 20, backgroundColor: "#e2660f", alignItems: "center", justifyContent: "center",
               boxShadow: "0px 6px 10px -4px rgba(161,75,0,0.6), inset 0px 1.5px 0px rgba(255,255,255,0.4)" }}>
               <Chu kieu="rat" co={24} mau="#fff">!</Chu>
@@ -155,101 +238,139 @@ export default function AnToanMay() {
               </View>
             ) : null}
             <View style={{ position: "absolute", left: 16, bottom: 14, right: 132, alignItems: "flex-start" }}><View style={{ paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: "#fff" }}>
-              <Chu kieu="rat" co={12.5} mau="#8a3c0c" dong={2}>{`Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn tính giờ`}</Chu>
+              <Chu kieu="rat" co={12.5} mau="#8a3c0c" dong={2}>{phutAi != null ? `Hôm nay ${phutAi} phút · vẫn trừ sao` : `Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn trừ sao`}</Chu>
             </View></View>
           </View>
           <View style={{ paddingHorizontal: 6, gap: 4 }}>
-            <Chu kieu="rat" co={20} style={{ lineHeight: 26, letterSpacing: -0.3 }}>{`${ngan} chưa được bảo vệ`}</Chu>
+            <Chu kieu="rat" co={20} style={{ lineHeight: 26, letterSpacing: -0.3 }}>{`${tenNgan} chưa được bảo vệ`}</Chu>
             <Chu kieu="dam" co={14} mau={M.chu2} style={{ lineHeight: 20 }}>{m.baoVeCau && !/việc cần sửa/.test(m.baoVeCau) ? m.baoVeCau
-              : `Grow vẫn tính giờ, nhưng ${ngan} chưa được khoá đủ nên con tự tắt được.`}</Chu>
+              : `Grow vẫn trừ sao khi ${tenAi ?? "con"} chơi, nhưng ${tenNgan} chưa được khoá đủ nên con tự tắt được.`}</Chu>
             {/* bong bóng chỉ nêu việc đầu ⇒ các việc còn lại (và vấn đề tuân thủ khi không có danh sách việc thiếu) liệt kê ở đây */}
             {(m.baoVeThieu?.length ?? 0) > 1 ? <View>{m.baoVeThieu!.slice(1).map((x) => <TickDong key={x.ma} trang="x" chu={x.ten} />)}</View> : null}
             {!m.baoVeThieu?.length && m.vanDe.length ? <View>{m.vanDe.map((v) => <TickDong key={v.loai} trang="x" chu={v.cauBaMe} />)}</View> : null}
           </View>
         </>
       )}
+      {hangRieng}
 
-      {/* 06 «Nếu để vậy»: 3 hậu quả khi máy chưa được bảo vệ — ô lõm xám 88 (thiết kế .vi) */}
+      {/* Máy chưa nối bé nào (bé riêng của máy vừa bị xoá hồ sơ…): máy khoá, chờ Ba Mẹ chọn bé */}
+      {!d.conDs.length && d.cm ? (
+        <Bao loai="canh" ic="canh_bao" tieu="Chưa bé nào dùng máy này" loi="Máy đang khoá cho tới khi Ba Mẹ chọn bé dùng máy.">
+          {d.xem ? null : <Nut chu="Chọn bé dùng máy này" loai="vien" nho bam={() => router.push({ pathname: "/may/[id]/con", params: { id } })} />}
+        </Bao>
+      ) : null}
+
+      {/* m2 «Nếu để vậy»: 3 hậu quả khi máy chưa được bảo vệ — ô lõm xám 88 (thiết kế .vi) */}
       {!tot && !m.dangGo ? (
         <>
           <TieuMuc chu="Nếu để vậy" />
           <View style={{ flexDirection: "row", gap: 8 }}>
-            {([["mo_khoa", "Con tự tắt\nđược Grow"], ["game", "App lạ\nmở được"], ["trang_ngu", "Giờ ngủ\nbị bỏ qua"]] as const).map(([ic, chu]) => (
-              <View key={ic} style={{ flex: 1, height: 88, borderRadius: 20, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center", gap: 6 }}>
+            {([["mo_khoa", "Con tự tắt\nđược Grow"], ["game", "Mở cả app\nngoài danh sách"], ["dongho", "Chơi không\ntrừ sao"]] as const).map(([ic, chu]) => (
+              <View key={ic} style={{ flex: 1, minHeight: 88, paddingVertical: 8, borderRadius: 20, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center", gap: 6 }}>
                 <Icon3D ten={ic} co={28} />
                 <Chu kieu="rat" co={12.5} mau={M.chu2} style={{ textAlign: "center", lineHeight: 16 }}>{chu}</Chu>
               </View>
             ))}
           </View>
+          {!d.xem && m.baoVeThieu?.length ? <Nut chu={`Sửa ${tenNgan} trong ${m.baoVeThieu.length} bước`} rong bam={() => setMo("sua")} /> : null}
         </>
       ) : null}
+      {/* «Đổi tên máy» luôn có cho Ba Mẹ (cả lúc máy đang gỡ — chỉ ẩn «Gỡ máy này») */}
+      {!tot ? <>
+        {nutSuaGo}
+        <Nut chu="Để sau" loai="vien" rong bam={() => (router.canGoBack() ? router.back() : router.replace("/may"))} />
+      </> : null}
 
-      {/* 02: app đang mở + giờ chơi còn lại (quỹ chung mọi máy) + lời xin đang chờ */}
-      {d.app || d.quy || d.xin.length ? (
-        <>
-          {/* thiết kế 02: hai ô nổi cạnh nhau — app đang mở · giờ chơi còn (số to) */}
-          {d.app || d.quy ? (
-            <View style={{ flexDirection: "row", gap: 10 }}>
-              {d.app ? (
-                <View style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 24, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="game" co={18} /><Chu kieu="dam7" co={12.5} mau="#565c59" dong={1}>{d.app.tenApp}</Chu></View>
-                  <Chu kieu="rat" co={22} mau={M.chinhInk}>Đang mở</Chu>
-                  <Chu kieu="dam7" co={12} mau={M.chinhInk}>● trên máy này</Chu>
-                </View>
-              ) : null}
-              {d.quy ? (
-                <NhanMen onPress={m.con ? () => router.push(`/gio/${m.con}` as never) : undefined} disabled={!m.con} accessibilityRole="button" muc="khoi" sang
-                  style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 24, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-                  <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="dongho" co={18} /><Chu kieu="dam7" co={12.5} mau="#565c59">Giờ chơi</Chu></View>
-                  <Chu kieu="rat" co={26} so style={{ letterSpacing: -0.5 }}>{`${d.quy.conPhut}′`}</Chu>
-                  <Chu kieu="dam7" co={12} mau="#565c59">còn lại hôm nay</Chu>
-                </NhanMen>
-              ) : null}
-            </View>
+      {/* m1: hai ô nổi — app đang mở (phút trên máy này) · sao còn của bé (= phút chơi) */}
+      {tot && ai && (d.app || saoAi != null || phutAi != null) ? (
+        <View style={{ flexDirection: "row", gap: 10 }}>
+          <Pressable onPress={() => router.push(`/da-dung/${ai.id}` as never)} accessibilityRole="button" style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 26, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten={d.app ? "game" : "dongho"} co={22} /><Chu kieu="rat" co={13.5} mau="#3a403d" dong={1} style={{ flexShrink: 1 }}>{d.app?.tenApp ?? "Hôm nay"}</Chu></View>
+            <Chu kieu="rat" co={28} so style={{ letterSpacing: -0.8, lineHeight: 32, marginTop: 4 }}>{String(phutAi ?? 0)}<Chu kieu="rat" co={14} mau="#3a403d"> phút</Chu></Chu>
+            {d.app ? <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}><Chu kieu="rat" co={12.5} mau={M.chinh}>● Đang mở</Chu> trên máy này</Chu>
+              : <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}>trên máy này</Chu>}
+          </Pressable>
+          {saoAi != null ? (
+            <Pressable onPress={() => router.push(`/vi/${ai.id}` as never)} accessibilityRole="button" style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 26, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="sao" co={22} /><Chu kieu="rat" co={13.5} mau="#3a403d" dong={1} style={{ flexShrink: 1 }}>{`${tenAi} còn`}</Chu></View>
+              <Chu kieu="rat" co={28} so mau={saoAi < 0 ? "#8a3c0c" : "#6e4300"} style={{ letterSpacing: -0.8, lineHeight: 32, marginTop: 4 }}>{`${saoAi < 0 ? "−" : ""}${Math.abs(saoAi)}`}<Chu kieu="rat" co={14} mau={saoAi < 0 ? "#8a3c0c" : "#6e4300"}> sao</Chu></Chu>
+              <Chu kieu="rat" co={12.5} mau={saoAi < 0 ? "#8a3c0c" : M.chinhInk} dong={1}>{saoAi < 0 ? "đang nợ Ba Mẹ" : `= ${saoAi} phút chơi`}</Chu>
+            </Pressable>
           ) : null}
-          {d.xin.length ? <The dem style={{ paddingVertical: 4 }}>{d.xin.slice(0, 2).map((y, k) => {
-            const tren = (y as { device_id?: string | null }).device_id === id;
-            return <HangViec key={y.id} dau={k === 0} ic={y.loai === "them_gio" ? "dongho" : "web"} mau="cam" tieu={`Xin ${tieuXin(y).charAt(0).toLowerCase()}${tieuXin(y).slice(1)}`}
-              phu={`${gioPhut(y.created_at)} · ${tren ? "con đang chờ trên máy này" : "con đang chờ"}`} phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Xem ›</Chu>}
-              bam={() => router.push(`/yeu-cau/${y.id}` as never)} />;
-          })}</The> : null}
+        </View>
+      ) : null}
+
+      {/* lời xin đang chờ của bé dùng máy (thẻ đào .xin) */}
+      {tot && xin0 ? (
+        <Pressable onPress={() => router.push(`/yeu-cau/${xin0.id}` as never)} accessibilityRole="button"
+          style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 66, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 28, backgroundColor: "#f9e7d2", ...KHOI.the }}>
+          <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#f3d6b8", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten={xin0.loai === "them_gio" ? "dongho" : "web"} co={24} /></View>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Chu kieu="rat" co={15} dong={1}>{`${tenXin} xin ${tieuXin(xin0).charAt(0).toLowerCase()}${tieuXin(xin0).slice(1)}`}</Chu>
+            <Chu kieu="dam7" co={12.5} mau="#8a3c0c" dong={1}>{`${gioPhut(xin0.created_at)} · ${(xin0 as { device_id?: string | null }).device_id === id ? "đang chờ trên máy này" : "đang chờ"}${d.xin.length > 1 ? ` · +${d.xin.length - 1} lời xin` : ""}`}</Chu>
+          </View>
+          <Chu kieu="rat" co={14} mau="#8a3c0c">Xem ›</Chu>
+        </Pressable>
+      ) : null}
+
+      {/* «Máy này ai dùng?» (Windows / Mac / Android): công tắc gán / bỏ gán từng bé; đầu mục ⇒ màn chọn đủ (them-okpa735o) */}
+      {!motCon && d.cm && d.cm.ds.length > 1 ? (
+        <>
+          <MucPhai chu="Máy này ai dùng?" phai={`${d.conDs.length}/${d.cm.ds.length} bé ›`} bam={() => router.push({ pathname: "/may/[id]/con", params: { id } })} />
+          <TheDs>
+            {d.cm.ds.map((c, k) => {
+              const rieng = c.mayKhac.find((x) => x.rieng);
+              return (
+                <View key={c.id} style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60 }, keDau(k)]}>
+                  <AvtCon c={c} co={36} />
+                  <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+                    <Chu kieu="rat" dong={1}>{tenGoi(c.ten)}</Chu>
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                      {c.dangDung ? <Chu kieu="dam" co={12.5} mau="#565c59">Đang dùng ·</Chu> : null}
+                      <SaoNho n={c.sao} />
+                      {!c.dangDung && rieng ? <Chu kieu="dam" co={12.5} mau="#565c59" dong={1} style={{ flexShrink: 1 }}>{`· có ${rieng.ten.replace(/ (của|·) .*$/, "")} riêng`}</Chu> : null}
+                    </View>
+                  </View>
+                  {d.xem ? null : <CongTac bat={c.gan} nhan={`${tenGoi(c.ten)} được dùng ${tenNgan}`} doi={(v) => { if (!dangGan) doiGan(c, v); }} />}
+                </View>
+              );
+            })}
+          </TheDs>
+          <BaoLoi loi={loiGan} />
+          <Chu kieu="dam" co={12.5} mau="#565c59" style={{ marginHorizontal: 8, lineHeight: 18 }}>
+            Mỗi bé chọn tên + PIN để vào máy. Chơi trên máy này chỉ trừ sao của bé đang dùng; «Đổi người» dừng tính phút của bé trước.
+          </Chu>
         </>
       ) : null}
 
-      <TieuMuc chu="Cài đặt máy" />
-      <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="khien" mau="xanh" tieu={cheDo} phu={d.ct?.cheDoChan === "mo_het" ? "Chỉ chặn web người lớn" : "App, web mới con phải xin Ba Mẹ"}
-          phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>} bam={() => router.push((m.con ? `/app-web?con=${m.con}` : "/app-web") as never)} />
-        {["windows", "mac", "android"].includes(m.nen) ? <HangViec ic="laptop" mau="lam" tieu="Ứng dụng trên máy này" phu="App đã cài thật trên máy — chặn hoặc cho phép"
-          bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} /> : null}
-        {coMaOff(m) ? <HangViec ic="mo_khoa" mau="xanh" tieu="Mã mở máy khi mất mạng" phu={d.ct?.may.find((x) => x.id === id)?.matMang ? "Máy đang mất mạng · lấy mã cho con" : "Mã 6 số, máy không cần mạng"}
-          bam={() => router.push({ pathname: "/may/[id]/ma-offline", params: { id } })} /> : null}
-      </The>
-
-      {!tot && !d.xem && m.baoVeThieu?.length ? <Nut chu={`Sửa ${ngan} trong ${m.baoVeThieu.length} bước`} rong bam={() => setMo("sua")} /> : null}
-      {d.xem ? null : (
-        <HaiNut>
-          <Nut chu="Đổi tên máy" ic="but" ic3d loai="vien" bam={() => { setTenMoi(m.ten); setMo("ten"); }} />
-          {!m.dangGo ? <Nut chu="Gỡ máy này" loai="huy" bam={() => setMo(m.daDongBo ? "go" : "xoa")} /> : null}
-        </HaiNut>
-      )}
+      {tot ? caiDat : null}
+      {tot ? nutSuaGo : null}
       {khoaRieng && cauKhoaRieng ? (
-        <Bao loai="lam" ic="khoa" tieu={`${ngan} ${cauKhoaRieng.charAt(0).toLowerCase()}${cauKhoaRieng.slice(1)}`} loi="Chỉ máy này khoá — máy khác của con vẫn dùng bình thường.">
-          <Nut chu={`Mở khoá ${ngan}`} ic="mo_khoa" loai="vien" nho dangChay={dangChay} bam={moKhoaRieng} />
+        <Bao loai="lam" ic="khoa" tieu={`${tenNgan} ${cauKhoaRieng.charAt(0).toLowerCase()}${cauKhoaRieng.slice(1)}`}
+          loi={chung ? "Mọi bé đều không vào được máy này — máy khác vẫn dùng bình thường." : "Chỉ máy này khoá — máy khác của con vẫn dùng bình thường."}>
+          <Nut chu={`Mở khoá ${tenNgan}`} ic="mo_khoa" loai="vien" nho dangChay={dangChay} bam={moKhoaRieng} />
         </Bao>
-      ) : d.ct && m.con ? <Nut chu={`Khoá ${ngan} ngay`} ic="khoa" loai="huy" rong bam={() => setMo("khoa")} /> : null}
+      ) : d.conDs.length ? (
+        <>
+          <Nut chu={`Khoá ${tenNgan} ngay`} ic="khoa" ic3d rong bam={() => setMo("khoa")} />
+          <Chu kieu="dam" co={12.5} mau="#565c59" style={{ textAlign: "center", lineHeight: 18, marginHorizontal: 8 }}>
+            {`Khoá máy: ${chung ? `cả ${d.conDs.length} bé` : tenAi ?? "con"} không vào được máy này.${khac.length ? ` ${khac.slice(0, 2).map((x) => x.ten.replace(/ của .*$/, "")).join(", ")} vẫn dùng bình thường.` : ""}`}
+          </Chu>
+        </>
+      ) : null}
+      {ai && !khoaRieng ? (
+        // «Chỉ khoá <bé> · mọi máy» ⇒ bảng khoá theo bé (them-sll7clha)
+        <Pressable onPress={() => setMo("khoa_be")} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 44 }}>
+          <AvtCon c={ai} co={24} />
+          <Chu kieu="rat" co={14} mau={M.chinhInk}>{chung ? `Chỉ khoá ${tenAi} · mọi máy` : `Khoá ${tenAi} · mọi máy`}</Chu>
+        </Pressable>
+      ) : null}
+      {!tot ? caiDat : null}
 
       <NhomTieu chu="An toàn & sự cố" />
-      {win && m.dungChung ? (
-        <Bao loai="canh" ic="canh_bao" tieu="Máy này của ai?"
-          loi="Máy đang ghép «dùng chung» nên chưa nhận nhiệm vụ, giờ chơi, luật web của Con nào. Chọn Con dùng máy này — máy đổi ở lần đồng bộ tới.">
-          {d.xem ? null : d.con.map((c) => <Nut key={c.id} chu={`Máy của ${c.ten}`} loai="vien" nho dangChay={dangChay} bam={() => ganCon(c.id, c.ten)} />)}
-        </Bao>
-      ) : null}
-
       {moDen ? (
         <Bao loai="lam" ic="mo_khoa" tieu={khanCap && moDen === m.moKhanCapDen ? "Đang mở khẩn cấp" : "Đang mở thêm giờ"} loi={`Giải trí được mở tới ${gio(moDen)} — trừ khi đang Khoá ngay hoặc giờ ngủ (lúc đó máy vẫn khoá).`}>
-          {d.xem ? null : <Nut chu="Khoá lại ngay" loai="vien" nho bam={() => lam(async () => { await bm.goi(`may/${id}/mo-khan-cap/huy`, {}); bao(m.con ? `Đã khoá lại ${m.ten} — thêm giờ của Con trên mọi máy cũng đóng` : `Đã khoá lại ${m.ten}`); await tai(); })} />}
+          {d.xem ? null : <Nut chu="Khoá lại ngay" loai="vien" nho bam={() => lam(async () => { await bm.goi(`may/${id}/mo-khan-cap/huy`, {}); bao(ai ? `Đã khoá lại ${ten} — thêm giờ của ${tenAi} trên mọi máy cũng đóng` : `Đã khoá lại ${ten}`); await tai(); })} />}
         </Bao>
       ) : null}
 
@@ -287,7 +408,7 @@ export default function AnToanMay() {
         </>
       ) : null}
 
-      <BangTruot mo={mo === "ten"} dong={dong} tieu="Đổi tên máy" hinh={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"}>
+      <BangTruot mo={mo === "ten"} dong={dong} tieu="Đổi tên máy" hinh={hinhMay(m.nen, chung)}>
         <ONhap nhan="Tên máy" value={tenMoi} onChangeText={setTenMoi} autoCapitalize="sentences" placeholder="VD: Laptop của Bảo Anh" maxLength={80} />
         <Chu co={13} mau={M.chu3}>Tên này hiện trên app của Ba Mẹ và trên màn khoá của con.</Chu>
         <BaoLoi loi={loiLam} />
@@ -313,8 +434,8 @@ export default function AnToanMay() {
         })} />
       </BangTruot>
 
-      <BangTruot mo={mo === "go"} dong={dong} hinh={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"} tieu={`Gỡ ${ngan}${tenCon ? ` của ${tenCon}` : ""}?`}>
-        <Chu mau={M.chu2}>{`Grow thôi trông máy này. Con dùng ${ngan} sẽ không bị tính giờ, không bị chặn.`}</Chu>
+      <BangTruot mo={mo === "go"} dong={dong} hinh={hinhMay(m.nen, chung)} tieu={`Gỡ ${ten}?`}>
+        <Chu mau={M.chu2}>{`Grow thôi trông máy này. ${chung ? "Các bé" : "Con"} dùng ${tenNgan} sẽ không bị trừ sao, không bị chặn.`}</Chu>
         <View>
           <TickDong chu="Báo cáo cũ vẫn giữ" phu="Lịch sử dùng máy không mất" />
           <TickDong chu="Ghép lại lúc nào cũng được" phu="Bằng mã 6 số như lần đầu" />
@@ -324,7 +445,7 @@ export default function AnToanMay() {
           {d.coMk ? <ONhap nhan="Mật khẩu của bạn" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" /> : <Chu co={13} mau={M.chu3}>Tài khoản vào bằng Google / Facebook chưa có mật khẩu — đặt mật khẩu trước để gỡ máy.</Chu>}
         </View>
         <BaoLoi loi={loiLam} />
-        {d.coMk ? <Nut chu={`Gỡ ${ngan} khỏi AiiGrow`} loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={() => goMay(false)} /> : <Nut chu="Đặt mật khẩu để gỡ máy" loai="vien" rong bam={() => { dong(); router.push("/dat-mat-khau"); }} />}
+        {d.coMk ? <Nut chu={`Gỡ ${tenNgan} khỏi AiiGrow`} loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={() => goMay(false)} /> : <Nut chu="Đặt mật khẩu để gỡ máy" loai="vien" rong bam={() => { dong(); router.push("/dat-mat-khau"); }} />}
         <View style={{ marginTop: 8 }}><Nut chu="Giữ máy này" loai="vien" rong bam={dong} /></View>
       </BangTruot>
 
@@ -360,8 +481,8 @@ export default function AnToanMay() {
         <View style={{ marginTop: 12 }}><Nut chu="Đã hiểu" loai="vien" rong bam={dong} /></View>
       </BangTruot>
 
-      <BangTruot mo={mo === "sua"} dong={dong} tieu={`Sửa trên ${ngan} của con`}>
-        <Chu mau={M.chu2}>{`Cầm ${ngan} lên, làm theo ${m.baoVeThieu?.length ?? 0} bước`}</Chu>
+      <BangTruot mo={mo === "sua"} dong={dong} tieu={`Sửa trên ${tenNgan} của con`}>
+        <Chu mau={M.chu2}>{`Cầm ${tenNgan} lên, làm theo ${m.baoVeThieu?.length ?? 0} bước`}</Chu>
         <View style={{ gap: 10 }}>
           {/* thiết kế 09: mỗi bước một thẻ nổi — ô hình 3D lõm 72 có số ngọc góc, tên bước 15/800 + cách làm */}
           {(m.baoVeThieu ?? []).map((x, k) => (
@@ -380,27 +501,16 @@ export default function AnToanMay() {
         <Nut chu="Làm không được? Hỏi AiiGrow" loai="ma" rong bam={() => { dong(); router.push("/ho-tro"); }} />
       </BangTruot>
 
-      {/* 03 «Khoá <máy> của <Con>?»: khoá RIÊNG máy này (POST may/:id/khoa — PR #253); máy khác của con «Không đổi gì · Dùng bình thường» */}
-      {d.ct && m.con ? (
-        <BangTruot mo={mo === "khoa"} dong={dong} hinh={m.nen === "ios" || m.nen === "android" ? "tablet" : "laptop"} tieu={`Khoá ${ngan} của ${tenCon}?`}>
-          <Chu kieu="dam" mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>{d.app ? `${d.app.tenApp} sẽ đóng, con thấy màn khoá.` : "Con thấy màn khoá tới khi Ba Mẹ mở."}</Chu>
-          {/* thiết kế bm-may-con/03: một thẻ, mỗi máy một hàng; nhãn viên «Sẽ khoá» (than chì) / «Dùng bình thường» (ngọc nhạt) */}
-          <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-            {[...d.ct.may].sort((a, b) => Number(b.id === id) - Number(a.id === id)).map((x, k) => (
-              <HangViec key={x.id} dau={k === 0} ic={IC_MAY[x.nen]} mau="xam" tieu={x.ten.replace(/ của .*$/, "")}
-                phu={x.id === id ? (d.app ? `● ${d.app.tenApp}${d.quy ? ` · còn ${d.quy.conPhut} phút` : ""}` : x.truc ? "Đang mở" : "Đang tắt") : conConKhoa ? `Đang khoá theo khoá của ${tenCon}` : cauKhoaMay(x.khoaMay) ?? "Không đổi gì"}
-                phai={x.id === id
-                  ? <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 11, backgroundColor: M.nut }}><Chu kieu="rat" co={12.5} mau="#fff">Sẽ khoá</Chu></View>
-                  : <Nhan chu="Dùng bình thường" loai="ok" />} />
-            ))}
-          </View>
-          <BaoLoi loi={loiLam} />
-          <Nut chu={`Khoá ${ngan} ngay`} ic="khoa" ic3d rong dangChay={dangChay} bam={() => lam(async () => {
-            await datKhoaMay(id, true); dong();
-            bao(`Đã khoá ${ngan} của ${tenCon}`, () => { datKhoaMay(id, false).then(tai, tai); }); await tai();
-          })} />
-          <Nut chu="Để sau" loai="vien" rong bam={dong} />
-        </BangTruot>
+      {/* them-tmezw761 «Khoá <máy>?»: khoá THEO MÁY (POST may/:id/khoa) — mọi bé trên máy «Sẽ khoá», máy khác «Vẫn dùng» */}
+      <BangKhoaTheoMay mo={mo === "khoa"} dong={dong} may={{ id, ten: tenNgan, nen: m.nen }} con={d.conDs} dangDung={m.dangDung?.id ?? null} app={d.app?.tenApp ?? null}
+        khac={khac} xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
+      {/* them-sll7clha «Khoá máy <bé>?»: khoá THEO BÉ (mọi máy của bé; máy chung chỉ khoá phần của bé) */}
+      {ai ? (
+        <BangKhoaMay mo={mo === "khoa_be"} dong={dong} con={ai.id} ten={tenAi!}
+          may={mayCuaAi.map((x) => ({ id: x.id, ten: ngan(x.ten), nen: x.nen, truc: x.trangThai === "tuan_thu" || x.trangThai === "lech_chuan", khoaMay: x.khoaMay,
+            dungChung: laMayChung(x), conKhac: conCuaMay(x, d.caNha).filter((c) => c.id !== ai.id).map((c) => tenGoi(c.ten)) }))}
+          dang={d.app ? { [id]: { chu: `● ${d.app.tenApp} · đang mở`, mo: true } } : undefined}
+          xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
       ) : null}
     </Man>
   );

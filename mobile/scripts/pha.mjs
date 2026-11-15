@@ -357,6 +357,31 @@ coBan["POST con/c1/xoa"] = (b) => b?.xacNhan === true
 coBan["POST may/m1/gan-con"] = { ok: true }; coBan["POST may/m2/gan-con"] = { ok: true };
 const XOA_CON_MAY = { "POST con/c1/xoa": { status: 409, body: { error: "con_may", message: "Nhà còn 2 máy đã ghép: Laptop, iPad. Bảo Anh là bé cuối — gỡ máy trước" } } };
 const XOA_CON_MANG = { "POST con/c1/xoa": { status: 409, body: { error: "con_thiet_bi_mang", message: "Bảo Anh còn 1 thiết bị lọc mạng: TV phòng khách." } } };
+// ---- #267 một máy nhiều Con (docs/API.md mục #267): «Máy cả nhà» (m4, Windows, dùng chung Bảo Anh + Bill, Bill đang dùng Roblox), iPad (m2) chỉ một bé.
+// Để riêng (MAY_CHUNG) — dữ liệu chung giữ 3 máy (kịch bản xoá tài khoản đếm «3 máy»).
+const cn = (id) => (id === "c1" ? { id: "c1", ten: KEN, avatar: "mau-0" } : { id: "c2", ten: BILL, avatar: "mau-1" });
+const M4 = { ...coBan["GET tuan-thu"].ds[0], id: "m4", ten: "Máy cả nhà", con: null, dungChung: true, lanCuoi: luc(1), conDs: [cn("c1"), cn("c2")], dangDung: { ...cn("c2"), tu: luc(40) },
+  soCon: 2, motCon: false, khoaMay: { khoa: false, den: null }, baMeDungDen: null };
+const conMayGia = (c, o = {}) => ({ ...cn(c), coPin: true, gan: true, dangDung: false, sao: 30, phutHomNay: 0, lanCuoi: null, khoaCon: { khoa: false, den: null }, mayKhac: [], ganDuoc: true, ...o });
+const M4_CON = { may: { id: "m4", ten: "Máy cả nhà", nen: "windows", motCon: false, soCon: 2, mayChung: true, mayRieng: false }, dangDung: { ...cn("c2"), tu: luc(40), phutHomNay: 39 },
+  baMeDungDen: null, khoaMay: { khoa: false, den: null }, ds: [
+    conMayGia("c1", { sao: -20, lanCuoi: luc(120), mayKhac: [{ id: "m1", ten: "Laptop của Bảo Anh · Windows 11", nen: "windows", rieng: true }, { id: "m2", ten: "iPad của Bảo Anh", nen: "ios", rieng: true }] }),
+    conMayGia("c2", { dangDung: true, sao: 25, phutHomNay: 39, lanCuoi: luc(40), mayKhac: [{ id: "m3", ten: "Laptop của Bill", nen: "windows", rieng: true }] })] };
+const datConM4 = (ds) => ({ ...M4_CON, may: { ...M4_CON.may, soCon: ds.length, mayChung: ds.length >= 2, mayRieng: ds.length === 1 }, ds: M4_CON.ds.map((c) => ({ ...c, gan: ds.includes(c.id) })) });
+const MAY_CHUNG = {
+  "GET tuan-thu": { ds: [...coBan["GET tuan-thu"].ds.map((m) => ({ ...m, conDs: [cn(m.con)], dangDung: m.id === "m1" ? cn("c1") : null, soCon: 1, motCon: m.nen === "ios",
+    khoaMay: { khoa: false, den: null } })), M4] },
+  "GET may/m4/tuan-thu": { ...M4, daDongBo: true, dangGo: null, coTheXoaHan: false, moDen: null, suKien: [], tungCon: M4_CON.ds },
+  "GET may/m4/con": M4_CON,
+  "GET may/m2/con": { may: { id: "m2", ten: "iPad của Bảo Anh", nen: "ios", motCon: true, soCon: 1, mayChung: false, mayRieng: true }, dangDung: null, baMeDungDen: null,
+    khoaMay: { khoa: false, den: null }, ds: [conMayGia("c1", { sao: -20 }), conMayGia("c2", { gan: false, sao: 25, ganDuoc: false,
+      lyDo: "iPhone, iPad chỉ dùng cho một bé: hệ điều hành của Apple không cho đổi người dùng trên máy. Muốn bé khác dùng, gỡ máy rồi ghép lại cho bé đó." })] },
+  "POST may/m4/con": (b) => (!b?.ds?.length ? { status: 400, body: { error: "can_mot_con", message: "Máy cần ít nhất một bé. Muốn bỏ hẳn: gỡ máy." } } : { ok: true, them: [], bo: [], ...datConM4(b.ds) }),
+  "POST may/m4/con/c1/bo": datConM4(["c2"]), "POST may/m4/con/c1/gan": datConM4(["c1", "c2"]),
+  "POST may/m4/khoa": (b) => ({ khoa: b?.khoa === true, den: null }),
+  "GET phien-dang": { ds: [...coBan["GET phien-dang"].ds, { id: "p4", con: "c2", tenCon: BILL, may: "Máy cả nhà", muc: "roblox.exe", tenApp: "Roblox", tam: false, conPhut: 25 }] },
+  "GET gia-dinh": { ...coBan["GET gia-dinh"], con: coBan["GET gia-dinh"].con.map((c) => ({ ...c, soDu: c.id === "c1" ? -20 : 25 })) },
+};
 // kho quà có Lego (quà Ba Mẹ mua — trao luôn được) + voucher AiiCafe 20k (409 voucher_can_thanh_toan) đã áp cho c1
 const QUA_KHO = {
   "GET qua": { ds: [...coBan["GET qua"].ds, { id: "q4", mau: "lego", ten: "Bộ Lego", loai: "qua", diem: 800, menh_gia: null, ton_kho: 1, toi_da_thang: null, chi_cuoi_tuan: false, bat: true, ap_cho: null },
@@ -515,8 +540,19 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-may-chi-tiet (bảo vệ chưa đủ)", "/may/m2", "Tài khoản của Con vẫn là quản trị"),
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
     // PR #253 nối app (lib/noi-1411): khoá riêng máy (bm-may-con/03), xoá hồ sơ Con (bm-gio-ho-so/07), «Trao luôn» (bm-sao-qua/03), hộp thư (bm-cai-dat/13)
-    M("bm-may (khoá riêng · bảng 03)", "/may/m1", "Không đổi gì", { truoc: async () => { await di("/may/m1"); await doi("Khoá Laptop ngay"); await bam("Khoá Laptop ngay"); } }),
+    M("bm-may (khoá riêng · bảng 03)", "/may/m1", "Máy khác · không đổi gì", { truoc: async () => { await di("/may/m1"); await doi("Khoá Laptop ngay"); await bam("Khoá Laptop ngay"); } }),
     M("bm-may (đang khoá riêng)", "/may/m1", "Mở khoá Laptop", { kb: CON_KHOA_M1 }),
+    // #267 một máy nhiều Con (thiết kế chốt 15/11: bm2-may-ds, bm2-may-m1, them-okpa735o, them-1016dwpz, them-tmezw761, them-sll7clha, bm1-may-chon-loai)
+    M("bm-may (máy chung · Tất cả)", "/may", "đang dùng:", { kb: MAY_CHUNG }),
+    M("bm-may-m1 (máy chung)", "/may/m4", "Máy này ai dùng?", { kb: MAY_CHUNG }),
+    M("bm-may (khoá theo máy · tmezw761)", "/may/m4", "Máy khác · không đổi gì", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Khoá Máy cả nhà ngay"); await bam("Khoá Máy cả nhà ngay"); } }),
+    M("bm-may (khoá theo bé · sll7clha)", "/may/m4", "Khoá theo bé", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Chỉ khoá "); // lượt chữ dài đổi tên bé ⇒ bấm theo đầu chữ
+      await nhanChuot(await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => !e.children.length && e.innerText?.trim().startsWith("Chỉ khoá ")).pop()`)); } }),
+    M("bm-may-con (Máy này ai dùng?)", "/may/m4/con", "Chọn bé dùng máy này", { kb: MAY_CHUNG }),
+    M("bm-may-con (iPad một bé)", "/may/m2/con", "Không thêm được", { kb: MAY_CHUNG }),
+    M("bm-may-chi-tiet (Máy cả nhà)", "/may/m4/chi-tiet", "Sao của từng bé", { kb: MAY_CHUNG }),
+    M("bm-may-ghep (máy chung 2 bé)", "/thiet-lap/ghep?con=c1&conDs=c1,c2&nguon=them", "Ghép máy chung · 2 bé"),
+    M("bm-may-moi (máy chung đã ghép)", "/thiet-lap/da-ghep?con=c1&may=m4&nguon=them", "Luật đi theo bé đang dùng", { kb: MAY_CHUNG }),
     M("bm-trang (bảng khoá máy · bỏ chọn iPad)", "/hom-nay", "Khoá máy tới", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy");
       await doi("Khoá bao lâu?"); // bamChon định nghĩa sau khối cổng ⇒ bấm trực tiếp bằng viTriYen + nhanChuot
       await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"][aria-label="Khoá iPad"]')`)); } }),
@@ -962,9 +998,9 @@ await kichBan("Hôm nay ⇒ «Khoá máy con» mở bảng «Khoá máy <Con>?»
   xet(await doi("Khoá bao lâu?"), "chọn khoá bao lâu");
   await bamChon('[role="radio"][aria-label^="1 giờ"]');
   nhatKy.length = 0;
-  xet(await bamDauCo(`Khoá 2 máy tới `), "nút «Khoá 2 máy tới HH:MM»");
+  xet(await bamDauCo(`Khoá ${KEN} tới `), "nút «Khoá <Con> tới HH:MM» (đủ máy ⇒ khoá theo bé)");
   xet(await choGoi((x) => x.d === "con/c1/khoa" && x.m === "POST" && x.body?.khoa === true && !!x.body?.den), "gửi khoá máy của Con kèm hạn");
-  xet(await doi(`Đã khoá máy của ${KEN}`), "báo đã khoá");
+  xet(await doi(`Đã khoá ${KEN} trên mọi máy`), "báo đã khoá");
   await bam("Hoàn tác");
   xet(await choGoi((x) => x.d === "con/c1/khoa" && x.body?.khoa === false), "Hoàn tác ⇒ mở lại máy");
 });
@@ -1228,6 +1264,83 @@ await kichBan("Đổi tên máy: mở từ màn máy, gửi POST may/m1/doi-ten,
   xet(nhatKy.some((x) => x.d === "may/m1/doi-ten" && x.m === "POST" && x.body?.ten === "Máy học bài"), "gửi tên máy đã chuẩn hoá");
 });
 
+// ---------------------------------------------------------------- #267 một máy nhiều Con (docs/API.md mục #267)
+await kichBan("#267 Máy trong nhà: máy chung «2 bé · đang dùng: Bill», máy riêng «Máy riêng», sao = phút; lọc theo bé", async () => {
+  kb = { ...kb, ...MAY_CHUNG };
+  await di("/may");
+  xet(await doi("Máy cả nhà"), "hiện máy chung «Máy cả nhà»");
+  xet(await doi("2 bé · đang dùng: Bill"), "máy chung: 2 bé + bé đang dùng");
+  xet(await doi("Máy riêng"), "máy riêng có nhãn «Máy riêng»");
+  xet(await doi("Roblox · đang mở"), "app đang mở trên máy chung");
+  xet(await doi("còn 25 sao = 25 phút chơi"), "sao bé đang dùng = phút chơi");
+  await bamChon('[role="tab"][aria-label="Bill"]');
+  await sleep(400);
+  const c = await chu();
+  xet(c.includes("Máy cả nhà") && c.includes("Laptop của Bill") && !c.includes("iPad của Bảo Anh"), "lọc Bill: chỉ máy Bill dùng (máy chung + máy riêng)");
+});
+
+await kichBan("#267 Máy cả nhà: công tắc bỏ gán Bảo Anh ⇒ may/m4/con/c1/bo ⇒ Hoàn tác gán lại", async () => {
+  kb = { ...kb, ...MAY_CHUNG };
+  await di("/may/m4");
+  xet(await doi("Bill đang dùng"), "thẻ sân: bé đang dùng");
+  xet(await doi("Máy chung · 2 bé"), "chip «Máy chung · 2 bé»");
+  xet(await doi("= 25 phút chơi"), "ô sao «= 25 phút chơi»");
+  xet(await doi("Máy này ai dùng?"), "mục «Máy này ai dùng?»");
+  nhatKy.length = 0;
+  xet(await bamChon('[role="switch"][aria-label="Bảo Anh được dùng Máy cả nhà"]'), "bấm công tắc Bảo Anh");
+  xet(await choGoi((x) => x.d === "may/m4/con/c1/bo" && x.m === "POST"), "gửi bỏ gán Bảo Anh");
+  xet(await doi("Bảo Anh không còn dùng Máy cả nhà"), "báo đã bỏ + Hoàn tác");
+  await bam("Hoàn tác");
+  xet(await choGoi((x) => x.d === "may/m4/con/c1/gan"), "Hoàn tác ⇒ gán lại");
+});
+
+await kichBan("#267 Máy này ai dùng?: bỏ Bảo Anh ⇒ «Lưu · máy riêng của Bill» ⇒ POST may/m4/con {ds:[c2]}; iPad: bé khác «Không thêm được»", async () => {
+  kb = { ...kb, ...MAY_CHUNG };
+  await di("/may/m4/con");
+  xet(await doi("2 bé = máy dùng chung."), "hộp ngọc «2 bé = máy dùng chung»");
+  xet(await doi("−20 sao"), "sao âm hiện «−20 sao»");
+  await bamChon('[role="checkbox"][aria-label="Bảo Anh"]');
+  xet(await doi("Lưu · máy riêng của Bill"), "nút đổi thành «Lưu · máy riêng của Bill»");
+  nhatKy.length = 0;
+  await bam("Lưu · máy riêng của Bill");
+  xet(await choGoi((x) => x.d === "may/m4/con" && x.m === "POST" && JSON.stringify(x.body?.ds) === JSON.stringify(["c2"])), "gửi ds = [c2]");
+  await di("/may/m2/con");
+  xet(await doi("Không thêm được"), "iPad: Bill «Không thêm được»");
+  xet(await doi("iPhone, iPad chỉ một bé:"), "iPad: giải thích chỉ một bé");
+});
+
+await kichBan("#267 Ghép thêm máy chọn 2 bé ⇒ «Ghép máy chung · 2 bé» ⇒ POST ghep-may {conDs}", async () => {
+  await di("/may/them?con=c1");
+  xet(await doi("Máy mới cho bé nào?"), "màn chọn bé");
+  await bamChon('[role="checkbox"][aria-label="Bill"]');
+  xet(await doi("Máy dùng chung · 2 bé"), "chọn 2 bé ⇒ «Máy dùng chung · 2 bé»");
+  nhatKy.length = 0;
+  await bam("Lấy mã ghép máy chung cho 2 bé");
+  xet(await choGoi((x) => x.d === "ghep-may" && x.m === "POST" && x.body?.conDs?.length === 2), "gửi ghep-may kèm conDs 2 bé");
+  xet(await doi("Ghép máy chung · 2 bé"), "tiêu đề «Ghép máy chung · 2 bé»");
+  xet(await doi("chọn 1 bé khi quét"), "nhắc iPhone/iPad chọn 1 bé khi quét");
+});
+
+await kichBan("#267 Khoá theo máy (Máy cả nhà: mọi bé «Sẽ khoá», máy khác «Vẫn dùng») · khoá theo bé ở «chi tiết» ⇒ con/c2/khoa", async () => {
+  kb = { ...kb, ...MAY_CHUNG };
+  await di("/may/m4");
+  await doi("Khoá Máy cả nhà ngay"); await bam("Khoá Máy cả nhà ngay");
+  xet(await doi("Máy khác · không đổi gì"), "bảng khoá theo máy");
+  xet(await doi("Sẽ khoá"), "bé trên máy «Sẽ khoá»");
+  nhatKy.length = 0;
+  await bam("Khoá Máy cả nhà ngay");
+  xet(await choGoi((x) => x.d === "may/m4/khoa" && x.m === "POST" && x.body?.khoa === true), "gửi khoá theo máy");
+  xet(!nhatKy.some((x) => /^con\/.*\/khoa$/.test(x.d)), "không khoá theo bé");
+  await di("/may/m4/chi-tiet");
+  xet(await doi("Sao của từng bé"), "màn «Máy cả nhà · chi tiết»");
+  xet(await doi("Đang nợ Ba Mẹ 20 sao"), "bé nợ hiện «Đang nợ Ba Mẹ 20 sao»");
+  await bam("Khoá Bill");
+  xet(await doi("Khoá theo bé: Bill"), "bảng khoá theo bé");
+  nhatKy.length = 0;
+  xet(await bamDauCo("Khoá Bill tới "), "nút «Khoá Bill tới HH:MM»");
+  xet(await choGoi((x) => x.d === "con/c2/khoa" && x.m === "POST" && x.body?.khoa === true), "gửi khoá theo bé Bill");
+});
+
 // ---------------------------------------------------------------- PR #253 nối app (docs/API.md «Khớp thiết kế 14/11 — phần máy chủ còn lệch»)
 await kichBan("Khoá máy <Con>? bỏ chọn iPad ⇒ khoá RIÊNG Laptop (may/m1/khoa, không khoá theo Con) ⇒ Hoàn tác mở đúng máy đó", async () => {
   await di("/hom-nay");
@@ -1244,10 +1357,10 @@ await kichBan("Khoá máy <Con>? bỏ chọn iPad ⇒ khoá RIÊNG Laptop (may/m
   xet(await choGoi((x) => x.d === "may/m1/khoa" && x.body?.khoa === false), "Hoàn tác ⇒ mở khoá Laptop");
 });
 
-await kichBan("Màn máy: «Khoá Laptop ngay» ⇒ bảng 03 (máy khác «Không đổi gì») ⇒ may/m1/khoa; máy đang khoá riêng ⇒ «Mở khoá Laptop»", async () => {
+await kichBan("Màn máy: «Khoá Laptop ngay» ⇒ bảng them-tmezw761 (máy khác «Vẫn dùng») ⇒ may/m1/khoa; máy đang khoá riêng ⇒ «Mở khoá Laptop»", async () => {
   await di("/may/m1");
   await doi("Khoá Laptop ngay"); await bam("Khoá Laptop ngay");
-  xet(await doi("Không đổi gì"), "bảng 03: iPad «Không đổi gì»");
+  xet(await doi("Máy khác · không đổi gì"), "bảng khoá theo máy: máy khác «Vẫn dùng»");
   nhatKy.length = 0;
   await bam("Khoá Laptop ngay");
   xet(await choGoi((x) => x.d === "may/m1/khoa" && x.m === "POST" && x.body?.khoa === true && !x.body?.den), "gửi khoá riêng Laptop (tới khi Ba Mẹ mở)");

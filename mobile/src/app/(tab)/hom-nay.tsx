@@ -22,6 +22,7 @@ import {
   type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon,
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
+import { mayCuaCon } from "@/lib/may-nhieu-con";
 import { DaiCon } from "@/lib/ui-viec";
 import { type MucCanDeY } from "@/lib/s3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
@@ -140,7 +141,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   for (const m of c.matMang ?? []) muc.push({ id: `mm:${m.mayId}`, ic: "wifi", tieu: `${m.ten.replace(/ của .*$/, "")} mất mạng`, phu: "Grow vẫn khoá đúng giờ · con cần mã",
     nut: "Lấy mã mở máy", den: `/may/${m.mayId}/ma-offline`, maMay: m.mayId });
   const sau: MucDeY[] = [];
-  for (const m of d.tt.filter((x) => (x.con === conId || x.dungChung) && x.baoVe && x.baoVe !== "day_du" && !x.dangGo))
+  for (const m of d.tt.filter((x) => mayCuaCon(x, conId) && x.baoVe && x.baoVe !== "day_du" && !x.dangGo))
     sau.push({ id: `bv:${m.id}`, ic: IC_MAY[m.nen], tieu: `${m.ten} chưa được bảo vệ`, phu: m.baoVeCau ?? "Con tự tắt Grow được", nut: "Sửa ›", den: `/may/${m.id}` });
   // quên PIN: từ can-de-y; lời gọi đó lỗi ⇒ dựng lại từ cảnh báo loai quen_pin
   const quenPin = d.cdy.some((x) => x.loai === "quen_pin") ? d.cdy.filter((x) => x.loai === "quen_pin" && x.con === conId)

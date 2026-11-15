@@ -16,6 +16,8 @@ export default async function TrangCai({ params }: { params: Promise<{ token: st
           <h1>Cài cho iPhone / iPad: 3 bước là xong!</h1>
           <p className="phu-de">Làm trên máy của con.</p>
         </header>
+        {/* #267: iPhone / iPad chỉ một bé — máy dùng chung là Windows, Mac, Android */}
+        <div className="bao canh-b"><I3d ten="mobile-phone" mau="tim" /><div><b>Máy này chỉ dùng cho một bé</b><br />iPhone, iPad không đổi bé được. Máy dùng chung: Windows, Mac, Android.</div></div>
         <ol className="buoc">
           <li><b>Cài app AiiGrow Con</b> từ App Store.</li>
           <li><b>Cài hồ sơ:</b> bấm «Cho phép» rồi «Cài đặt».</li>
