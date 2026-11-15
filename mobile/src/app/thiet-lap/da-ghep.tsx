@@ -12,7 +12,7 @@ import { BONG, KHOI } from "@/lib/clay";
 import { tomTat } from "@/lib/ghep-may";
 import { tenGoi } from "@/lib/hang-ngay";
 import { DauMan, LienKet } from "@/lib/lan-dau";
-import { AvtCon, conCuaMay, hinhMay, SaoNho } from "@/lib/may-nhieu-con";
+import { AvtCon, conCuaMay, hinhMay, nganTen, SaoNho } from "@/lib/may-nhieu-con";
 import { laWeb } from "@/lib/ui-bm3";
 import { BaoLoi, Chu, F, Icon3D, M, Man, Nut, Rob, useLam, useTai, type TenIcon } from "@/lib/ui";
 
@@ -43,7 +43,8 @@ export default function DaGhep() {
   const tenBe = be ? tenGoi(be.ten) : d?.tl[0]?.ten ? tenGoi(d.tl[0].ten) : "con";
   const tenMay = tenMoi ?? d?.m?.ten ?? "";
   const ten = chuanHoaTen(tenMay);
-  const trung = d?.khac.find((x) => chuanHoaTen(x.ten) === ten);
+  // so trùng sau khi bỏ hậu tố « · <hệ điều hành>» (agent cũ gắn vào tên máy)
+  const trung = ten ? d?.khac.find((x) => chuanHoaTen(nganTen(x.ten)) === chuanHoaTen(nganTen(ten))) : undefined;
   const moHet = d?.tl[0]?.cheDoChan === "mo_het";
   // đếm app theo nhóm của bé (máy riêng): luật riêng bé + luật cả nhà, bỏ trang web; «giai_tri» = Tính phút (trả bằng sao), «hoc» = Không tính phút
   const dem = (loai: string) => new Set((d?.luat ?? []).filter((l) => (!l.child_id || l.child_id === be?.id) && l.loai === loai && !laWeb(l.muc)).map((l) => (l.ten || l.muc).toLowerCase())).size;

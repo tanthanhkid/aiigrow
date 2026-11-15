@@ -10,12 +10,11 @@ import { KHOI } from "@/lib/clay";
 import { BangKhoaMay, quyenToi, tenGoi } from "@/lib/hang-ngay";
 import { datKhoaMay } from "@/lib/khoa-may";
 import {
-  AvtCon, BangKhoaTheoMay, conCuaMay, DauHaiDong, keDau, laMayChung, MucPhai, SaoNho, TheDs, type ConCuaMay, type ConMay,
+  appTrenMay, AvtCon, BangKhoaTheoMay, conCuaMay, mayCuaCon, nganTen as ngan, DauHaiDong, keDau, laMayChung, MucPhai, SaoNho, TheDs, type ConCuaMay, type ConMay,
 } from "@/lib/may-nhieu-con";
 import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { BangTruot, BaoLoi, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, TickDong, useHoanTac, useLam, useTai } from "@/lib/ui";
 
-const ngan = (t: string) => t.replace(/ · .*$/, "");
 
 export default function MayChiTiet() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -34,13 +33,12 @@ export default function MayChiTiet() {
   const ten = ngan(cm.may.ten), tenNgan = ten.replace(/ của .*$/, "");
   const gan = cm.ds.filter((c) => c.gan);
   const dangDung = cm.dangDung ? gan.find((c) => c.id === cm.dangDung!.id) ?? null : null;
-  const goc = (t: string) => ngan(t).replace(/ của .*$/, "");
-  const app = d.phien.find((p) => p.may && goc(p.may) === goc(cm.may.ten) && (!dangDung || p.con === dangDung.id)) ?? null;
+  const app = appTrenMay(d.phien, { ten: cm.may.ten, dangDung }, gan.length === 1 ? gan[0].id : null);
   const caNha = cm.ds.map((c) => ({ id: c.id, ten: c.ten, avatar: c.avatar }));
   const khac = d.may.filter((x) => x.id !== id).map((x) => ({ id: x.id, ten: ngan(x.ten), nen: x.nen, rieng: !laMayChung(x) }));
   const be = gan.find((c) => c.id === beKhoa) ?? dangDung ?? gan[0] ?? null;
   const tenBe = be ? tenGoi(be.ten) : "";
-  const mayCuaBe = be ? d.may.filter((x) => (x.conDs ? x.conDs.some((c) => c.id === be.id) : x.id === id || x.con === be.id)) : [];
+  const mayCuaBe = be ? d.may.filter((x) => mayCuaCon(x, be.id)) : [];
   const khoaMay = mayDangKhoa(cm.khoaMay);
   const xong = (chu: string, hoan: () => Promise<unknown>) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); };
   const dongBe = (c: ConCuaMay, k: number) => {

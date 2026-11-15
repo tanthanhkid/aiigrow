@@ -4,7 +4,7 @@
 // và các mảnh giao diện dùng chung của các màn máy (thiết kế chốt 15/11: bm2-may-ds, bm2-may-m1, them-okpa735o, them-1016dwpz, them-tmezw761).
 import { type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
-import { bm, type TuanThuMay } from "@/lib/api";
+import { bm, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { mauHoSo } from "@/lib/lan-dau";
 import { Avt, BangTruot, BaoLoi, Chu, F, Icon, Icon3D, M, Nut, useLam, type TenIcon } from "@/lib/ui";
@@ -37,6 +37,17 @@ export const mayCuaCon = (m: Pick<TuanThuMay, "con" | "dungChung" | "conDs">, co
   m.conDs ? m.conDs.some((c) => c.id === con) : m.con === con || m.dungChung;
 /** Máy chung = nối ≥ 2 Con. */
 export const laMayChung = (m: Pick<TuanThuMay, "con" | "dungChung" | "conDs" | "soCon">) => (m.soCon ?? m.conDs?.length ?? (m.con ? 1 : m.dungChung ? 2 : 0)) >= 2;
+
+/** Tên máy bỏ hậu tố « · <hệ điều hành>» agent cũ gắn («Laptop của Bảo Anh · Windows 11» ⇒ «Laptop của Bảo Anh»). */
+export const nganTen = (t: string) => t.replace(/ · .*$/, "");
+/** Tên gốc để so khớp (bỏ cả « của <bé>»): «Laptop của Bảo Anh · Windows 11» ⇒ «Laptop». */
+export const tenGocMay = (t: string) => nganTen(t).replace(/ của .*$/, "");
+/** Phiên chơi đang chạy trên một máy (GET phien-dang — khớp theo tên máy) của bé đang dùng máy; chưa biết bé đang dùng ⇒ `con` (bé riêng của máy) hoặc bất kỳ. */
+export function appTrenMay(phien: PhienDang[], may: { ten: string; dangDung?: { id: string } | null }, con?: string | null) {
+  const ai = may.dangDung?.id ?? con ?? null;
+  const goc = tenGocMay(may.ten);
+  return phien.find((p) => p.may && tenGocMay(p.may) === goc && (!ai || p.con === ai)) ?? null;
+}
 
 /** Hình máy: máy tính bàn cho máy chung Windows / Mac (thiết kế «Máy cả nhà»), còn lại theo nền. */
 export const hinhMay = (nen: string, chung = false): TenIcon =>

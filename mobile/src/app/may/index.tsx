@@ -9,16 +9,15 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type GiaDinh, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI, MEN } from "@/lib/clay";
-import { BangKhoaMay, tenGoi } from "@/lib/hang-ngay";
+import { BangKhoaMay, tenGoi, type ConCt } from "@/lib/hang-ngay";
 import { LienKet } from "@/lib/lan-dau";
-import { AvtCon, CapAvt, cauSao, conCuaMay, DauHaiDong, hinhMay, laMayChung, laMotCon, mayCuaCon, type ConNganMay } from "@/lib/may-nhieu-con";
+import { appTrenMay, AvtCon, CapAvt, cauSao, conCuaMay, nganTen as ngan, DauHaiDong, hinhMay, laMayChung, laMotCon, mayCuaCon, type ConNganMay } from "@/lib/may-nhieu-con";
 import { ChoTai, Chu, gioPhut, Icon3D, LopMen, M, Man, Nut, truoc, useHoanTac, useTai } from "@/lib/ui";
 
 const dangMo = (m: TuanThuMay) => { const den = m.moKhanCapDen ?? m.moDen ?? null; return !!den && Date.parse(den) > Date.now(); };
 const trungTinh = (m: TuanThuMay) => (m.trangThai === "tat_may" || m.trangThai === "chua_co_nhip") && !m.dangGo && !dangMo(m);
 /** Máy đang được bảo vệ đủ (mức bảo vệ máy chủ tính + còn liên lạc, không lệch chuẩn). «chua» = máy không báo quyền ⇒ không báo đỏ. */
 const dangBaoVe = (m: TuanThuMay) => m.trangThai === "tuan_thu" && m.baoVe !== "mot_phan" && !dangMo(m) && !m.dangGo;
-const ngan = (t: string) => t.replace(/ · .*$/, "");
 function cauTrangThai(m: TuanThuMay) {
   if (m.dangGo) return "Đang gỡ AiiGrow khỏi máy này";
   if (m.moKhanCapDen && Date.parse(m.moKhanCapDen) > Date.now()) return `Đang mở khẩn cấp tới ${gioPhut(m.moKhanCapDen)}`;
@@ -38,7 +37,9 @@ export default function MayTrongNha() {
   const { bao, noi } = useHoanTac();
   const { d, loi, matMang, tai } = useTai(async () => {
     const [tt, g, ph] = await Promise.all([bm.goi<{ ds: TuanThuMay[] }>("tuan-thu"), bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null)]);
-    return { may: tt.ds, con: g.con, phien: ph?.ds ?? [] };
+    // khoá theo bé đang có của từng bé — «Khoá tất cả máy» Hoàn tác trả lại đúng khoá cũ (lỗi ⇒ coi như chưa khoá)
+    const khoa = await Promise.all(g.con.map((c) => bm.goi<ConCt>(`con/${c.id}`).then((x) => ({ khoa: !!x.khoaNgay, den: x.khoaDen ?? null }), () => null)));
+    return { may: tt.ds, con: g.con.map((c, i) => ({ ...c, khoa: khoa[i] })), phien: ph?.ds ?? [] };
   });
   const lui = () => (router.canGoBack() ? router.back() : router.replace("/hom-nay"));
   if (!d) return <Man dau={<DauHaiDong tieu="Máy trong nhà" lui={lui} />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -47,7 +48,7 @@ export default function MayTrongNha() {
   const ds = c ? d.may.filter((m) => mayCuaCon(m, c.id)) : d.may;
   const sao = (id: string) => d.con.find((x) => x.id === id)?.soDu ?? null;
   // app đang mở trên từng máy (phiên chơi đang chạy — khớp theo tên máy, và theo bé đang dùng khi biết)
-  const appMo = (m: TuanThuMay) => d.phien.find((p) => p.may && ngan(p.may).replace(/ của .*$/, "") === ngan(m.ten).replace(/ của .*$/, "") && (!m.dangDung || p.con === m.dangDung.id));
+  const appMo = (m: TuanThuMay) => appTrenMay(d.phien, m, conCuaMay(m, caNha).length === 1 ? conCuaMay(m, caNha)[0].id : null);
   const canSua = ds.filter((m) => !dangBaoVe(m) && !trungTinh(m));
   const baoVe = ds.filter(dangBaoVe);
   const tat = ds.filter((m) => trungTinh(m) && !dangBaoVe(m));
@@ -82,7 +83,7 @@ export default function MayTrongNha() {
           {"Sao và danh sách app đi theo từng bé: máy chung áp luật của bé đang dùng.\nMột bé mở 2 máy cùng lúc chỉ trừ sao một lần.\niPhone, iPad chỉ dùng được cho một bé."}
         </Chu>
       ) : <LienKet chu="Máy của con cài AiiGrow ở đâu?" bam={() => router.push("/ho-tro")} />}
-      <BangKhoaMay mo={khoa} dong={() => setKhoa(false)} con={c?.id ?? null} ten={c ? tenGoi(c.ten) : ""} caNha={c ? undefined : caNha} may={mayKhoa} dang={dang}
+      <BangKhoaMay mo={khoa} dong={() => setKhoa(false)} con={c?.id ?? null} ten={c ? tenGoi(c.ten) : ""} caNha={c ? undefined : d.con.map((x) => ({ id: x.id, ten: x.ten, khoa: x.khoa }))} may={mayKhoa} dang={dang}
         xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
     </Man>
   );

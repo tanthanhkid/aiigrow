@@ -8,6 +8,7 @@ import { bm, type ConChiTiet, type LuotCho, type MayCon, type YeuCau } from "./a
 import { BONG, KHOI, MEN } from "./clay";
 import { datKhoa, datKhoaMay } from "./khoa-may";
 import { cachKhoa, cauKhoaMay, mayDangKhoa } from "./noi-1411";
+import { nganTen, tenGocMay } from "./may-nhieu-con";
 import { khoaTen, laWeb } from "./ui-bm3";
 import {
   Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
@@ -219,7 +220,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
   may: (Pick<MayCon, "id" | "ten" | "nen" | "truc" | "khoaMay" | "dungChung"> & { /** máy chung: tên các bé khác vẫn vào được */ conKhac?: string[] })[];
   dang?: Record<string, { chu: string; mo?: boolean }>;
   xong: (chu: string, hoan: () => Promise<void>) => void;
-  caNha?: { id: string; ten: string }[];
+  /** khoá mọi bé — `khoa`: khoá theo bé đang có (Hoàn tác trả lại đúng khoá cũ) */ caNha?: { id: string; ten: string; khoa?: { khoa: boolean; den: string | null } | null }[];
 }) {
   type Han = "30" | "60" | "sang" | "mo";
   const [han, setHan] = useState<Han>("30");
@@ -238,7 +239,6 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
   const denLuc = (h: Han, tu = new Date()) => (h === "sang" || h === "mo" ? null : new Date(tu.getTime() + Number(h) * 60_000));
   const cauDen = (h: Han, tu = new Date()) => (h === "mo" ? "tới khi Ba Mẹ mở" : h === "sang" ? "tới 6:30" : `tới ${gioPhut(denLuc(h, tu)!.toISOString())}`);
   const lua: { gia: Han; chu: string }[] = [{ gia: "30", chu: "30 phút" }, { gia: "60", chu: "1 giờ" }, { gia: "sang", chu: "Sáng mai" }];
-  const ngan = (t: string) => t.replace(/ · .*$/, "");
   const khoa = () => lam(async () => {
     if (!cach) return;
     const luc = new Date();
@@ -249,8 +249,10 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
       if (!ok.length) throw (kq[0] as PromiseRejectedResult).reason;
       dongBang();
       const hong = caNha.filter((_, i) => kq[i].status === "rejected");
+      // Hoàn tác: bé đang khoá từ trước ⇒ khoá lại đúng hạn cũ; bé chưa khoá ⇒ mở
       xong(`Đã khoá mọi máy ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${hong.map((c) => tenGoi(c.ten)).join(", ")}, thử lại` : ""}`,
-        async () => { await Promise.all(ok.map((c) => datKhoa(c.id, false, null))); });
+        async () => { await Promise.all(ok.map((c) => (c.khoa?.khoa && (!c.khoa.den || Date.parse(c.khoa.den) > Date.now())
+          ? datKhoa(c.id, true, c.khoa.den ? new Date(c.khoa.den) : null) : datKhoa(c.id, false, null)))); });
       return;
     }
     if (!con) return;
@@ -267,7 +269,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
     const hong = cach.ids.filter((_, i) => kq[i].status === "rejected");
     if (!ok.length) throw (kq[0] as PromiseRejectedResult).reason;
     dongBang();
-    const tenCua = (ids: string[]) => may.filter((m) => ids.includes(m.id)).map((m) => ngan(m.ten)).join(", ");
+    const tenCua = (ids: string[]) => may.filter((m) => ids.includes(m.id)).map((m) => nganTen(m.ten)).join(", ");
     xong(`Đã khoá ${tenCua(ok)} ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${tenCua(hong)}, thử lại` : ""}`, async () => {
       await Promise.all(ok.map((id) => { const cu = truocDo.get(id);
         return mayDangKhoa(cu) ? datKhoaMay(id, true, cu!.den ? new Date(cu!.den) : null) : datKhoaMay(id, false); }));
@@ -278,7 +280,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
   const doiChon = (id: string) => setBoChon((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const phuMay = (m: (typeof may)[number]) => {
     const kh = cauKhoaMay(m.khoaMay);
-    if (m.dungChung) return `Máy chung${m.conKhac?.length ? ` · ${m.conKhac.join(", ")} vẫn vào được` : ""}`;
+    if (m.dungChung) return caNha ? "Máy chung · khoá mọi bé" : `Máy chung${m.conKhac?.length ? ` · ${m.conKhac.join(", ")} vẫn vào được` : ""}`;
     return dang?.[m.id]?.chu ?? kh ?? (m.truc ? "Máy riêng" : "Đang tắt · khoá khi máy mở lên");
   };
   return (
@@ -294,11 +296,11 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
             const on = caNha ? true : !boChon.has(m.id);
             return (
               <Pressable key={m.id} onPress={caNha ? undefined : () => doiChon(m.id)} disabled={!!caNha} accessibilityRole="checkbox"
-                accessibilityState={{ checked: on, disabled: !!caNha }} accessibilityLabel={`Khoá ${ngan(m.ten).replace(/ của .*$/, "")}`}
+                accessibilityState={{ checked: on, disabled: !!caNha }} accessibilityLabel={`Khoá ${tenGocMay(m.ten)}`}
                 style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
                 <BieuTron ic={m.dungChung && (m.nen === "windows" || m.nen === "mac") ? "may_tinh" : IC_MAY[m.nen]} mau="xam" />
                 <View style={{ flex: 1 }}>
-                  <Chu kieu="rat">{ngan(m.ten)}</Chu>
+                  <Chu kieu="rat">{nganTen(m.ten)}</Chu>
                   <Chu kieu="dam" co={12.5} mau={x?.mo && !m.dungChung ? M.chinhInk : "#565c59"}>{phuMay(m)}</Chu>
                 </View>
                 {/* ô tick ngọc 30 (thiết kế .chk); bỏ chọn ⇒ ô lõm trống */}

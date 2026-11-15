@@ -12,8 +12,11 @@ import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { BaoLoi, Chu, Icon3D, M, Man, Nut, useHoanTac, useTai } from "@/lib/ui";
 
 export default function ChoMayCon() {
-  const p = useLocalSearchParams<{ ma?: string; con?: string; nguon?: string }>();
+  const p = useLocalSearchParams<{ ma?: string; con?: string; nguon?: string; conDs?: string }>();
   const ma = String(p.ma ?? "");
+  // #267 máy chung nhiều bé: giữ danh sách bé khi quay về màn Ghép («Lấy mã mới» / «Gửi lại link»)
+  const conDs = p.conDs ? String(p.conDs) : (kqTheoMa(ma)?.conDs ?? []).join(",");
+  const thamDs = conDs.split(",").filter(Boolean).length > 1 ? { conDs } : {};
   const con = p.con ? String(p.con) : "";
   const nguon = p.nguon === "them" ? "them" : "lan-dau";
   const kq = kqTheoMa(ma);
@@ -49,8 +52,8 @@ export default function ChoMayCon() {
   // Chỉ iPhone/iPad tự ghép bằng link khi mã đã hết hạn (bộ cài .exe/.pkg/.apk chưa mang được token — xem PR M1, Câu mở 1) ⇒ việc chính vẫn là lấy mã mới
   const hetHan = maHet;
   const maHien = kq?.maHien ?? hienMa(ma);
-  const layMoi = () => router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon, moi: "1", ...(kq?.giongMay ? { giong: kq.giongMay } : {}) } });
-  const guiLai = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon } }));
+  const layMoi = () => router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon, moi: "1", ...thamDs, ...(kq?.giongMay ? { giong: kq.giongMay } : {}) } });
+  const guiLai = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon, ...thamDs } }));
   const daNhap = () => hoi().then((ok) => { if (!ok) bao(`Máy ${nguon === "them" ? "mới" : "của con"} chưa nhập mã — làm 3 bước trên máy đó nhé`); }, (e) => setLoi(e?.message ?? null));
   const may = nguon === "them" ? "máy mới" : "máy con";
   const chuaThay = !hetHan && het != null && het - con0 * 1000 - moc >= 5 * 60_000;

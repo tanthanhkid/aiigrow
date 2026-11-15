@@ -12,14 +12,14 @@ import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-rou
 import { Pressable, View } from "react-native";
 import { bm, chuanHoaTen, coMaOff, GOC, LoiApi, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type PhienDang, type SuKienTuanThu, type TuanThuMay } from "@/lib/api";
 import { BangKhoaMay, HangViec, quyenToi, tenGoi, TieuMuc, type ChoDuyetMoi, type ConCt } from "@/lib/hang-ngay";
-import { conHan, datKhoaMay } from "@/lib/khoa-may";
+import { cauMoTam, conHan, datKhoaMay } from "@/lib/khoa-may";
 import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { tieuXin } from "@/lib/hom-nay-xin";
 import {
-  AvtCon, BangKhoaTheoMay, conCuaMay, ganBoCon, hinhMay, keDau, laMayChung, laMotCon, MucPhai, SaoNho, TEN_NEN, TheDs, type ConMay, type ConNganMay,
+  appTrenMay, AvtCon, BangKhoaTheoMay, conCuaMay, mayCuaCon, nganTen as ngan, ganBoCon, hinhMay, keDau, laMayChung, laMotCon, MucPhai, SaoNho, TEN_NEN, TheDs, type ConMay, type ConNganMay,
 } from "@/lib/may-nhieu-con";
 import {
-  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, CongTac, Dong, gioPhut, HaiNut, Icon3D, M, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, truoc, useBaoKhiVe, useHoanTac, useLam, useTai,
+  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, CongTac, Dong, gioPhut, HaiNut, Icon3D, M, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 import { BONG, KHOI } from "@/lib/clay";
 
@@ -33,7 +33,6 @@ const SU_KIEN: Record<string, string> = {
 const NGAY_XOA_HAN = 7;
 /** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
 const GIO_MO_COI = 6;
-const ngan = (t: string) => t.replace(/ · .*$/, "");
 
 export default function AnToanMay() {
   const { id, mo: moSan } = useLocalSearchParams<{ id: string; mo?: string }>();
@@ -42,24 +41,28 @@ export default function AnToanMay() {
     const [quyen, coMk] = await Promise.all([quyenToi(), bm.goi<{ baMe: { coMatKhau?: boolean } }>("toi").then((t) => t.baMe.coMatKhau !== false, () => true)]);
     // Máy đã gỡ xong (agent báo đã gỡ / đã xoá hẳn) ⇒ không còn trong gia đình
     const m = await bm.goi<ChiTietTuanThu>(`may/${id}/tuan-thu`).catch((e) => { if (e instanceof LoiApi && e.ma === "khong_thay") return null; throw e; });
-    const [g, tt, cm, cd, ph] = await Promise.all([bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu").catch(() => null),
+    // bé «chính» của máy (bé đang dùng › máy riêng = bé của máy) suy ngay từ tuan-thu ⇒ gọi con/:id SONG SONG với các lời gọi khác
+    const aiId = m ? m.dangDung?.id ?? (m.conDs ? (m.conDs.length === 1 ? m.conDs[0].id : null) : m.con) ?? null : null;
+    const [g, tt, cm, cd, ph, ct0] = await Promise.all([bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu").catch(() => null),
       // «Máy này ai dùng?»: mọi bé trong nhà kèm đã gán chưa, sao — máy chủ trước #267 không có ⇒ null (ẩn công tắc)
       m ? bm.goi<ConMay>(`may/${id}/con`).catch(() => null) : null,
-      bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null)]);
+      bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), bm.goi<{ ds: PhienDang[] }>("phien-dang").catch(() => null),
+      aiId ? bm.goi<ConCt>(`con/${aiId}`).catch(() => null) : null]);
     const caNha: ConNganMay[] = g.con.map((c) => ({ id: c.id, ten: c.ten, avatar: c.avatar }));
     const conDs = m ? cm ? cm.ds.filter((c) => c.gan) : conCuaMay(m, caNha) : [];
-    // bé «chính» của máy: bé đang dùng › máy riêng = bé của máy — luật (chế độ chặn) và sao hiện theo bé này
+    // bé «chính» của máy — luật (chế độ chặn) và sao hiện theo bé này
     const ai = m ? (m.dangDung ? conDs.find((c) => c.id === m.dangDung!.id) ?? m.dangDung : conDs.length === 1 ? conDs[0] : null) : null;
-    const ct = ai ? await bm.goi<ConCt>(`con/${ai.id}`).catch(() => null) : null;
+    const ct = ai && ai.id === aiId ? ct0 : ai ? await bm.goi<ConCt>(`con/${ai.id}`).catch(() => null) : null;
     const xem = quyen === "trong_giup";
     const ids = new Set(conDs.map((c) => c.id));
     // lời xin của các bé dùng máy: lời xin trên MÁY NÀY trước (requests.device_id)
     const xin = (cd?.yeuCau ?? []).filter((y) => ids.has(y.child_id))
       .sort((a, b) => Number((b as { device_id?: string | null }).device_id === id) - Number((a as { device_id?: string | null }).device_id === id));
-    const goc = (t: string) => ngan(t).replace(/ của .*$/, "");
-    const app = m ? ph?.ds.find((p) => p.may && goc(p.may) === goc(m.ten) && (!ai || p.con === ai.id)) ?? null : null;
-    // khoá theo máy: máy chủ #267 trả `khoaMay` ở tuan-thu; máy chủ cũ chỉ có ở GET con/:id › may[]
-    const km = m?.khoaMay ?? ct?.may.find((x) => x.id === id)?.khoaMay ?? null;
+    const app = m ? appTrenMay(ph?.ds ?? [], m, ai?.id) : null;
+    // khoá theo máy: máy chủ #267 trả `khoaMay` ở tuan-thu; máy chủ cũ chỉ có ở GET con/:id › may[] — máy dùng chung chưa gắn Con có trong may[]
+    // của MỌI Con ⇒ hỏi Con đầu tiên
+    const ctMay = m && !m.khoaMay && !ct?.may.some((x) => x.id === id) && g.con[0] ? await bm.goi<ConCt>(`con/${g.con[0].id}`).catch(() => null) : ct;
+    const km = m?.khoaMay ?? ctMay?.may.find((x) => x.id === id)?.khoaMay ?? null;
     const sao = (cid: string) => cm?.ds.find((c) => c.id === cid)?.sao ?? g.con.find((c) => c.id === cid)?.soDu ?? null;
     return { m, caNha, conDs, cm, ai, ct, xin, app, km, sao, khac: (tt?.ds ?? []).filter((x) => x.id !== id), chu: !xem, xem, coMk };
   });
@@ -71,7 +74,6 @@ export default function AnToanMay() {
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const { lam: lamGan, loi: loiGan, dangChay: dangGan } = useLam();
   const { bao, noi } = useHoanTac();
-  useBaoKhiVe(bao);
   const dong = () => { setMo(null); setLyDo(""); setMk(""); setLoi(null); };
   // Trang chủ mở thẳng bảng «Mở khẩn cấp» / «Mã mở khi mất mạng» (?mo=khan|offline): Ba Mẹ đang vội, không đi qua thêm màn nào
   // Chỉ đổi state ⇒ chỉnh ngay lúc render (mẫu «điều chỉnh state khi dữ liệu đổi» của React), không setState trong effect; mở MỘT lần khi dữ liệu máy về.
@@ -135,7 +137,7 @@ export default function AnToanMay() {
   const khoaRieng = mayDangKhoa(km);
   const cauKhoaRieng = cauKhoaMay(km);
   // khoá theo bé (bé chính) vẫn còn ⇒ mở khoá máy xong máy VẪN khoá với bé đó — nói rõ
-  const conConKhoa = !!d.ct?.khoaNgay && conHan(d.ct.khoaDen);
+  const conConKhoa = !!d.ct?.khoaNgay && conHan(d.ct.khoaDen) && !cauMoTam(d.ct.moTamDen, d.ct.khoaDen);
   const moKhoaRieng = () => lam(async () => {
     await datKhoaMay(id, false);
     bao(conConKhoa && !chung ? `Đã mở khoá ${tenNgan} — máy vẫn khoá theo khoá của ${tenAi}` : `Đã mở khoá ${tenNgan}`, () => { datKhoaMay(id, true, km?.den ? new Date(km.den) : null).then(tai, tai); }); await tai();
@@ -147,7 +149,7 @@ export default function AnToanMay() {
     await tai();
   });
   const khac = d.khac.map((x) => ({ id: x.id, ten: ngan(x.ten), nen: x.nen, rieng: !laMayChung(x) }));
-  const mayCuaAi = ai ? [{ ...m, id }, ...d.khac].filter((x) => (x.conDs ? x.conDs.some((c) => c.id === ai.id) : x.id === id || x.con === ai.id)) : [];
+  const mayCuaAi = ai ? [{ ...m, id }, ...d.khac].filter((x) => mayCuaCon(x, ai.id)) : [];
   const xin0 = d.xin[0];
   const tenXin = xin0 ? tenGoi(d.caNha.find((c) => c.id === xin0.child_id)?.ten ?? xin0.ten_con) : "";
 
@@ -271,10 +273,13 @@ export default function AnToanMay() {
             ))}
           </View>
           {!d.xem && m.baoVeThieu?.length ? <Nut chu={`Sửa ${tenNgan} trong ${m.baoVeThieu.length} bước`} rong bam={() => setMo("sua")} /> : null}
-          {nutSuaGo}
-          <Nut chu="Để sau" loai="vien" rong bam={() => (router.canGoBack() ? router.back() : router.replace("/may"))} />
         </>
       ) : null}
+      {/* «Đổi tên máy» luôn có cho Ba Mẹ (cả lúc máy đang gỡ — chỉ ẩn «Gỡ máy này») */}
+      {!tot ? <>
+        {nutSuaGo}
+        <Nut chu="Để sau" loai="vien" rong bam={() => (router.canGoBack() ? router.back() : router.replace("/may"))} />
+      </> : null}
 
       {/* m1: hai ô nổi — app đang mở (phút trên máy này) · sao còn của bé (= phút chơi) */}
       {tot && ai && (d.app || saoAi != null || phutAi != null) ? (

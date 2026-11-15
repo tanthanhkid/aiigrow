@@ -6,7 +6,7 @@ import { appsRobChonSan, datTl, layTl, thanThietLap } from "./thiet-lap";
 export type KqGhep = {
   ma: string; maHien: string; het: string; hanPhut: number; conGiay: number; lienKet: string; qr: string; tokenGoi: string; hetGoi: string;
   con: string | null; giongMay: string | null; chiaSe: { tieuDe: string; noiDung: string; lienKet: string };
-  /** #267: các Con dùng chung máy sắp ghép (≥ 2 = máy chung) — máy chủ cũ không gửi */ conDs?: string[]; mayChung?: boolean;
+  /** #267: các Con dùng chung máy sắp ghép (≥ 2 = máy chung) — máy chủ cũ không gửi */ conDs?: string[] | null; mayChung?: boolean;
 };
 export type TrangGhep = { daGhep: boolean; hetHan: boolean; conGiay: number; /** mã 6 số hết 10 phút */ maHetHan?: boolean; /** link cài (48 giờ) còn dùng được */ linkConHan?: boolean; con: string | null; may: { id: string; ten: string; nen: string } | null;
   /** #267: đã ghép ⇒ Con thật nối với máy (iPhone/iPad: bé được chọn lúc quét) */ conDs?: { id: string; ten: string; avatar: string }[] };
