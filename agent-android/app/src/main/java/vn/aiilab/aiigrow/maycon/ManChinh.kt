@@ -29,6 +29,7 @@ import vn.aiilab.aiigrow.maycon.logic.Cong
 import vn.aiilab.aiigrow.maycon.logic.MUC_VAY
 import vn.aiilab.aiigrow.maycon.logic.VAY_MAC_DINH
 import vn.aiilab.aiigrow.maycon.logic.cauNoSao
+import vn.aiilab.aiigrow.maycon.logic.docLichSuSao
 import vn.aiilab.aiigrow.maycon.logic.soSao
 import vn.aiilab.aiigrow.maycon.logic.chuanMaGhep
 import vn.aiilab.aiigrow.maycon.logic.docPhanHoiNhip
@@ -418,6 +419,21 @@ class ManChinh : Activity() {
             .apply { setPadding(0, G.dp(this@ManChinh, 6), 0, 0) })
         cauNoSao(ht.no)?.let { the.addView(Diu.chu(this, it, 14f, Diu.NO_CHU, true).apply { setPadding(0, G.dp(this@ManChinh, 6), 0, 0) }) }
         cot.addView(the)
+        // lịch sử sao (cdt-android-doi-diem «Hôm nay · Dọn phòng +10 sao · Chơi YouTube 20 phút −20 sao») — máy chủ có `lichSu` mới hiện
+        val ls = Diu.the(this).apply { visibility = View.GONE }
+        cot.addView(ls)
+        if (!k.cheDoThu && k.token != null) Thread {
+            val ds = try { docLichSuSao(MayChu(k.mayChu, k.token).soSao()) } catch (_: Exception) { emptyList() }
+            if (ds.isNotEmpty()) runOnUiThread {
+                ls.addView(Diu.chu(this, "Gần đây", 17f, Diu.CHU, true))
+                for (x in ds) ls.addView(LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; minimumHeight = G.dp(this@ManChinh, 40)
+                    addView(Diu.chu(this@ManChinh, x.chu, 15f, Diu.CHU).apply { layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
+                    addView(Diu.chu(this@ManChinh, (if (x.sao > 0) "+" else "") + soSao(x.sao), 15f, if (x.sao < 0) Diu.NO_CHU else Diu.XANH_DAM, true))
+                })
+                ls.visibility = View.VISIBLE
+            }
+        }.start()
         val luat = Diu.the(this, Diu.XANH_NHAT)
         luat.addView(Diu.chu(this, "Chơi app Tính phút", 17f, Diu.CHU, true))
         luat.addView(Diu.chu(this, "1 sao = 1 phút · ${ht.conPhut} sao = ${ht.conPhut} phút", 15f, Diu.CHU2))

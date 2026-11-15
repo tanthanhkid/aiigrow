@@ -175,4 +175,12 @@ class SoSaoTest {
         assertEquals(listOf(18, -20, null), hs.con.map { it.sao })
         assertEquals("Máy cả nhà", hs.tenMay)
     }
+
+    @Test fun lichSuSao() {
+        val ds = docLichSuSao(JSONObject("""{"lichSu":[{"kieu":"vay","sao":15,"tenNguoi":"Mẹ Lan"},{"kieu":"tra_no","sao":-10,"chuThich":"Dọn phòng"},
+            {"kieu":"choi","sao":-20,"chuThich":"Chơi YouTube 20 phút"}]}"""))
+        assertEquals(listOf("Mẹ Lan cho vay 15 sao", "Trả nợ 10 sao · Dọn phòng", "Chơi YouTube 20 phút"), ds.map { it.chu })
+        assertEquals(-20, ds[2].sao)
+        assertTrue("máy chủ cũ", docLichSuSao(JSONObject("{}")).isEmpty())
+    }
 }

@@ -105,3 +105,23 @@ fun thanXinVay(soSao: Int, loiNhan: String = "", mucDich: String = "choi"): JSON
     loiNhan.trim().take(100).takeIf { it.isNotEmpty() }?.let { o.put("loiNhan", it) }
     return o
 }
+
+/** Một dòng lịch sử sao («Sổ sao» của bé — `hoc-vien/sao › lichSu[]`, máy chủ sau 15/11; máy chủ cũ không có ⇒ rỗng). */
+data class DongSao(val chu: String, val sao: Int)
+
+/** `lichSu[{kieu, sao, chuThich, tenNguoi}]` ⇒ «Ba Mẹ cho vay 15 sao» / «Trả nợ 10 sao · Dọn phòng» / «Chơi YouTube 20 phút · −20 sao». */
+fun docLichSuSao(o: JSONObject?, toiDa: Int = 6): List<DongSao> {
+    val a = o?.optJSONArray("lichSu") ?: return emptyList()
+    return (0 until minOf(a.length(), toiDa)).mapNotNull { i ->
+        val x = a.optJSONObject(i) ?: return@mapNotNull null
+        val sao = x.optInt("sao", x.optInt("delta"))
+        val ct = x.optString("chuThich").takeIf { it.isNotBlank() && it != "null" }
+        val ten = x.optString("tenNguoi").takeIf { it.isNotBlank() && it != "null" } ?: "Ba Mẹ"
+        val chu = when (x.optString("kieu")) {
+            "vay" -> "$ten cho vay $sao sao"
+            "tra_no" -> listOfNotNull("Trả nợ ${kotlin.math.abs(sao)} sao", ct).joinToString(" · ")
+            else -> ct ?: if (sao >= 0) "Được $sao sao" else "Dùng ${-sao} sao"
+        }
+        DongSao(chu, sao)
+    }
+}

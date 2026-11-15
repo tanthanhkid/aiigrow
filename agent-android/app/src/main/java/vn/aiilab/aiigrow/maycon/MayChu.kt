@@ -45,6 +45,8 @@ class MayChu(private val goc: String, private val token: String?, private val do
     fun dongBo(than: JSONObject) = goi("dong-bo", than)
     /** 15/11 (#263): «Xin Ba Mẹ cho vay sao» ⇒ {id, trang_thai, soSao, mucDich}. */
     fun xinVay(than: JSONObject) = goi("hoc-vien/xin-vay", than)
+    /** 15/11: sổ sao của bé đang dùng (+ `lichSu[]` khi máy chủ có) — màn «Sao của con». */
+    fun soSao() = goi("hoc-vien/sao")
     /** 05/11: Con «Xin Ba Mẹ duyệt» app lạ (máy chủ tự xếp app / web; lời xin trùng trả lại lời xin cũ). */
     fun xinDuyet(than: JSONObject) = goi("xin-duyet", than)
     fun hoSoDns() = goi("ho-so-dns")
