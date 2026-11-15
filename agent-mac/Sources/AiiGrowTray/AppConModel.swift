@@ -10,6 +10,8 @@ final class AppConModel: ObservableObject {
   @Published var tq: HvTongQuan?
   @Published var ch: HvCuaHang?
   @Published var tin: HvTinDs?
+  /// `hoc-vien/sao` (lịch sử sao + app hôm nay) — nil = máy chủ chưa có / chưa tải.
+  @Published var sao: HvSao?
   /// Lần tải tổng quan gần nhất lỗi (nil = chưa lỗi / đã tải được).
   @Published var loiTai: String?
   @Published var thongBao = ""
@@ -118,6 +120,7 @@ final class AppConModel: ObservableObject {
     async let viQuaXong: Void = taiViQua()          // song song với cua-hang / tin (GioiHanIPC giữ tối đa 2 lệnh)
     if let c = await hoi("GET", "hoc-vien/cua-hang").0.flatMap(HvCuaHang.doc) { ch = c }
     if let x = await hoi("GET", "hoc-vien/tin").0.flatMap(HvTinDs.doc) { tin = x }
+    sao = await hoi("GET", "hoc-vien/sao").0.flatMap(HvSao.doc)
     await viQuaXong
     await lamMoiPhutChoi(dsChoi: dsChoi)
   }

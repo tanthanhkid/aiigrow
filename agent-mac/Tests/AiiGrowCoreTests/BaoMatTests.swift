@@ -912,8 +912,8 @@ final class BaoMatTests: XCTestCase {
                   dongHo: { dongHo.thuc }, donDieu: { dongHo.donDieu })
     let sync = Task { await b.vongDongBo() }
     try await Task.sleep(nanoseconds: 300_000_000)
-    _ = await b.xuLyIPC(.xinThem(phut: 15, loiNhan: "bài tập"), uidGoi: 501)
-    XCTAssertEqual(api.lanYeuCau.count, 1)
+    _ = await b.xuLyIPC(.xinVay(soSao: 15, mucDich: nil, quaId: nil, loiNhan: "bài tập"), uidGoi: 501)
+    XCTAssertEqual(api.lanXinVay.count, 1)
     await sync.value
     api.treDongBo = 0
     dongHo.tien(6); await b.vongDongBo()

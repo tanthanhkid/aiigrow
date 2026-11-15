@@ -1,6 +1,6 @@
 // «Danh sách app thật trên máy» (hợp đồng 25/10): agent quét app đã cài, gửi lên `POST api/device/ung-dung` (đủ / phần đổi),
-// máy chủ báo tín hiệu ở gốc phản hồi dong-bo (`danhSachApp.bam`, `danhSachApp.yeuCau`) và gửi lại `windows.blockedApps` = app Ba Mẹ đặt «Chặn».
-// File này chỉ có phần THUẦN (lọc, gộp, băm tất định, diff, quyết định gửi/quét, quyết định đóng) — quét thật ở QuetAppMac.swift.
+// máy chủ báo tín hiệu ở gốc phản hồi dong-bo (`danhSachApp.bam`, `danhSachApp.yeuCau`) và gửi lại `windows.blockedApps` (máy chủ #262 gửi rỗng — agent vẫn tôn trọng nếu khác rỗng).
+// File này chỉ có phần THUẦN (lọc, gộp, băm tất định, diff, quyết định gửi/quét) — quét thật ở QuetAppMac.swift.
 import CryptoKit
 import Foundation
 

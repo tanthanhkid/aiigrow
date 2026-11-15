@@ -43,6 +43,22 @@ lệnh của Con chỉ nhận từ uid Con; `ghep` chỉ từ uid nhóm admin v�
 - Giao diện theo màn: chọn tên, PIN, sai 5 lần, Quên PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng (10–16); app Con thanh bên «Đổi bé / Đăng xuất» (17–19);
   Sao & quà bảng giá + đổi quà giữ sao (23–25); đổi sao lấy giờ (49–51); màn khoá sáng hết giờ / giờ ngủ / mất mạng (32–39, 58); ghép máy 03–09.
 
+### 3e. Sao = phút, vay sao, App & web (15/11, #258 #262–#267, bản 0.1.12 — docs/API.md «Sổ sao 15/11», «App & web 15/11», «#267»)
+- **Sao = phút** (`SaoPhut.swift`, `SoSao.swift`): gốc dong-bo `sao {sao, no, phutCon, hetSao…}` ⇒ `Policy.soSao`. Daemon đếm lùi `phutCon` theo giây app
+  «Tính phút» (`appTinhGio`, rỗng ⇒ `playChoices`) ở tiền cảnh, cả lúc mất mạng; hết ⇒ bỏ app / trang «Tính phút» khỏi danh sách (lý do `het_sao`),
+  nhóm «Không tính phút» vẫn mở. Máy chủ cũ (không có `sao`) ⇒ dùng `quyConPhut`. Đã bỏ: quỹ ngày, đổi sao lấy giờ (`hoc-vien/doi-sao`),
+  ngoại lệ (`xinNgoaiLe`), giờ ngủ / giờ học. `blockedApps` máy chủ mới gửi rỗng; khác rỗng (máy chủ cũ) vẫn đóng như trước.
+- Máy chung: sổ sao trong Policy gắn bé lúc đồng bộ (`saoCuaBe`); đổi bé ⇒ bộ đếm sao cục bộ đặt lại, không hiện / không áp sổ sao bé trước tới lần đồng bộ kế. Dòng usage không-bé (bản cũ) gộp vào bé đang dùng. `phien/bu` tách phần mở bằng mã thành lượt riêng `{boiMa: true}`. Lời xin vay chờ mạng tối đa 3 (5xx cũng coi là mất mạng).
+- `hoc-vien/sao` (`lichSu[]`, `appHomNay[]`, `phutChoiHomNay`) đọc có điều kiện: dòng sổ sao ở Hôm nay đang nợ / Sao & quà, «Roblox 30 phút · −30 sao».
+- **Mở hết** (`windows.moHet` / gốc `cheDo: mo_het`): không đếm, không đóng, không trừ sao. **Mở bằng mã offline**: không trừ sao, không đóng; giây «Tính phút»
+  lúc đó cộng vào `boiMaGiayTuSync` ⇒ `dong-bo {phutBoiMa}`; `phien/bu {boiMa: true}`.
+- **Máy chung**: `usage[].con` = bé đang dùng (khoá `DemPhut` «ngày|app|bé», phút = tổng của bé); «Đổi bé» đồng bộ trước khi thả bé (chốt phút).
+  `ho-so` `con[].sao/no` ⇒ màn chọn tên hiện viên sao từng bé.
+- **Xin vay** IPC `xinVay(soSao, mucDich, quaId, loiNhan)` ⇒ `POST device/yeu-cau {loai: vay_sao}` (máy chủ cũ ⇒ `them_gio`); mất mạng ⇒ lưu `xinVayCho`,
+  có mạng tự gửi. Lời xin vay / mở app được theo dõi (`GET device/yeu-cau/:id`: `ketQua` da_them | mo_tam | chua_them, `nhom`, `tenNguoiDuyet`, `loiNhan`)
+  sau mỗi lần đồng bộ ⇒ `TrangThai.yeuCauCho` ⇒ tray hiện «Ba Mẹ cho vay 15 sao!» / «Mẹ Lan đã thêm YouTube · Tính phút / Không tính phút» / «chưa cho».
+- Tray: `TrangThai.soSao / phutSao / moHet / dsTinhPhut / dsKhongTinhPhut / dangTinhPhut`; màn theo con-cai-mac 15/11 (`SaoViews.swift`).
+
 ## 4. Ghép máy
 Ba Mẹ cài `.pkg` (mật khẩu quản trị một lần) ⇒ tray trong phiên admin thấy `daGhep=false` ⇒ cửa sổ «Ghép máy»: chọn tài khoản Con
 (liệt kê user thường trên máy) + mã 6 số ⇒ `ghep` ⇒ daemon gọi server pair (platform `mac`), lưu token, **hạ tài khoản Con về Standard**

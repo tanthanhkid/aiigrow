@@ -3,7 +3,7 @@ import Foundation
 
 public enum PhienBan {
   /// Bản tác tử Mac — gửi lên máy chủ ở header X-AiiGrow-Ban và status.version (server/lib/ban-agent.ts).
-  public static let hienTai = "0.1.11"
+  public static let hienTai = "0.1.12"
 }
 
 /// Chế độ chạy tác tử do Ba Mẹ chọn (dong-bo.<nền>.cheDo). Mặc định GIÁM SÁT: chỉ ghi việc SẼ làm, không đóng app, không khoá — như agent-win.
@@ -30,8 +30,7 @@ public enum LyDoKhoa {
   public static func choTray(_ s: String?) -> String? {
     switch s {
     case nil: return nil
-    case khoa: return "ba_me_khoa"
-    case ngu: return "gio_ngu"
+    case khoa, ngu: return "ba_me_khoa"          // giờ ngủ bỏ từ #258 — máy chủ cũ gửi «ngu» thì coi như Ba Mẹ khoá
     default: return s
     }
   }
@@ -100,7 +99,7 @@ public struct Policy: Codable, Equatable {
   /// Chế độ Ba Mẹ chọn trên app — «giam-sat» | «chan»; nil = chưa chọn (giữ chế độ cục bộ).
   public var cheDo: String?
   public var web: ChinhSachWeb?
-  /// App Ba Mẹ đặt «Chặn» (DanhSachApp.swift) — đóng ở MỌI mode khi chặn thật.
+  /// App Ba Mẹ đặt «Chặn» (DanhSachApp.swift). Máy chủ #262 luôn gửi rỗng (bỏ «Chặn»); khác rỗng (máy chủ cũ) thì vẫn đóng ở MỌI mode khi chặn thật.
   public var blockedApps: [AppBiChan] = []
   /// App / trang Giải trí Ba Mẹ đã xếp — cửa sổ «Chơi bằng điểm» cho Con chọn (máy chủ: agent-windows.ts › playChoices; phien/xet vẫn quyết).
   public var playChoices: [String] = []
@@ -113,18 +112,19 @@ public struct Policy: Codable, Equatable {
   public var playOfflineMinutes: Int?
   /// Bí mật chung của mã mở offline (server/lib/ma-offline.ts) — CHỈ nằm trong cấu hình root 0600, không bao giờ sang tray.
   public var maOfflineBiMat: String?
-  // ---- 05/11 quỹ giờ chơi (server/lib/agent-windows.ts) — máy chủ cũ không gửi ⇒ nil / rỗng, tác tử chạy như trước
-  /// Phút chơi còn lại hôm nay lúc đồng bộ (0 = hết / không được chơi). nil = máy chủ cũ hoặc máy dùng chung chưa chọn Con.
+  // ---- quỹ cũ (05/11) — từ 15/11 máy chủ gửi quyConPhut = sao tiêu được (khi được chơi); chỉ dùng khi máy chủ chưa gửi `sao {…}`
   public var quyConPhut: Int?
   public var quyTongPhut: Int?
   public var quyDaDung: Int?
-  /// App Giải trí đang được thả nhờ quỹ — đếm lùi khi ở tiền cảnh (cả lúc mất mạng), quỹ về 0 ⇒ đóng.
+  /// App / trang «Tính phút» đang thả (đã nằm trong allowedApps) — đếm lùi sao khi ở tiền cảnh (cả lúc mất mạng), hết sao ⇒ đóng.
   public var appTinhGio: [String] = []
-  public var gioNgu: KhungGio?
-  public var gioHoc: KhungGio?
-  public var dangGioHoc: Bool = false
-  /// Ngoại lệ Ba Mẹ mở: `app` nil = cả máy.
-  public var ngoaiLe: [NgoaiLeMo] = []
+  // ---- 15/11 sổ sao (#263–#266) + app & web (#262)
+  /// Sổ sao của Con đang dùng (gốc dong-bo `sao {…}`). nil = máy chủ cũ / máy dùng chung chưa chọn Con.
+  public var soSao: SoSao?
+  /// `windows.sao` — số dư Con thấy (âm được) khi máy chủ chưa gửi object `sao`.
+  public var saoCon: Int?
+  /// Con ở «Mở hết» (`windows.moHet` / gốc `cheDo: mo_het`): không chặn, không đếm phút, không trừ sao.
+  public var moHet: Bool = false
 
   public init() {}
 
@@ -144,7 +144,6 @@ public struct Policy: Codable, Equatable {
     canExchangePoints = ((try? c.decodeIfPresent(Bool.self, forKey: .canExchangePoints)) ?? nil) ?? false
     cheDo = s(.cheDo)
     web = (try? c.decodeIfPresent(ChinhSachWeb.self, forKey: .web)) ?? nil
-    blockedApps = AppBiChan.docDs(c, .blockedApps)
     playChoices = (((try? c.decodeIfPresent([String].self, forKey: .playChoices)) ?? nil) ?? [])
       .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
     if let id = s(.playSessionId), !id.isEmpty { playSessionId = id }
@@ -160,10 +159,11 @@ public struct Policy: Codable, Equatable {
     quyConPhut = so(.quyConPhut); quyTongPhut = so(.quyTongPhut); quyDaDung = so(.quyDaDung)
     appTinhGio = (((try? c.decodeIfPresent([String].self, forKey: .appTinhGio)) ?? nil) ?? [])
       .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }.filter { !$0.isEmpty }
-    gioNgu = (try? c.decodeIfPresent(KhungGio.self, forKey: .gioNgu)) ?? nil
-    gioHoc = (try? c.decodeIfPresent(KhungGio.self, forKey: .gioHoc)) ?? nil
-    dangGioHoc = ((try? c.decodeIfPresent(Bool.self, forKey: .dangGioHoc)) ?? nil) ?? false
-    ngoaiLe = (((try? c.decodeIfPresent([KhoanDung<NgoaiLeMo>].self, forKey: .ngoaiLe)) ?? nil) ?? []).compactMap(\.v)
+    blockedApps = AppBiChan.docDs(c, .blockedApps)
+    soSao = (try? c.decodeIfPresent(SoSao.self, forKey: .soSao)) ?? nil
+    if let d = (try? c.decodeIfPresent(Double.self, forKey: .sao)) ?? nil, d.isFinite { saoCon = Int(d.rounded(.down)) }
+    else { saoCon = (try? c.decodeIfPresent(Int.self, forKey: .saoCon)) ?? nil }
+    moHet = ((try? c.decodeIfPresent(Bool.self, forKey: .moHet)) ?? nil) ?? false
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -181,7 +181,6 @@ public struct Policy: Codable, Equatable {
     try c.encode(canExchangePoints, forKey: .canExchangePoints)
     try c.encodeIfPresent(cheDo, forKey: .cheDo)
     try c.encodeIfPresent(web, forKey: .web)
-    if !blockedApps.isEmpty { try c.encode(blockedApps, forKey: .blockedApps) }
     if !playChoices.isEmpty { try c.encode(playChoices, forKey: .playChoices) }
     try c.encodeIfPresent(playSessionId, forKey: .playSessionId)
     try c.encodeIfPresent(maOfflineBiMat, forKey: .maOfflineBiMat)
@@ -192,15 +191,15 @@ public struct Policy: Codable, Equatable {
     try c.encodeIfPresent(quyTongPhut, forKey: .quyTongPhut)
     try c.encodeIfPresent(quyDaDung, forKey: .quyDaDung)
     if !appTinhGio.isEmpty { try c.encode(appTinhGio, forKey: .appTinhGio) }
-    try c.encodeIfPresent(gioNgu, forKey: .gioNgu)
-    try c.encodeIfPresent(gioHoc, forKey: .gioHoc)
-    if dangGioHoc { try c.encode(dangGioHoc, forKey: .dangGioHoc) }
-    if !ngoaiLe.isEmpty { try c.encode(ngoaiLe, forKey: .ngoaiLe) }
+    if !blockedApps.isEmpty { try c.encode(blockedApps, forKey: .blockedApps) }
+    try c.encodeIfPresent(soSao, forKey: .soSao)
+    try c.encodeIfPresent(saoCon, forKey: .saoCon)
+    if moHet { try c.encode(moHet, forKey: .moHet) }
   }
 
   enum CodingKeys: String, CodingKey {
     case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps, playChoices, playSessionId, playApp, playWeb, playOfflineMinutes, maOfflineBiMat
-    case quyConPhut, quyTongPhut, quyDaDung, appTinhGio, gioNgu, gioHoc, dangGioHoc, ngoaiLe
+    case quyConPhut, quyTongPhut, quyDaDung, appTinhGio, soSao, saoCon, sao, moHet
   }
 }
 
@@ -308,5 +307,7 @@ public struct MucDung: Codable, Equatable {
   public var muc: String
   public var phut: Int
   public var day: String
-  public init(muc: String, phut: Int, day: String) { self.muc = muc; self.phut = phut; self.day = day }
+  /// #267 máy dùng chung: bé của dòng (`phut` = tổng của bé đó trong ngày). nil = máy cũ / chưa biết bé (máy chủ tính cho bé đang dùng).
+  public var con: String?
+  public init(muc: String, phut: Int, day: String, con: String? = nil) { self.muc = muc; self.phut = phut; self.day = day; self.con = con }
 }

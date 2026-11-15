@@ -142,6 +142,20 @@ final class MayChuGia: MayChuApi, @unchecked Sendable {
     lanYeuCau.append((loai, phut, giaTri, lyDo)); return yeuCauTraVe
   }
   func trangThaiYeuCau(id: String) async throws -> String { "cho" }
+  /// Sổ sao 15/11: phutBoiMa mỗi lần đồng bộ, lời xin vay, kết quả lời xin theo id.
+  @Khoa var lanBoiMa: [Int] = []
+  func dongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date, phutBoiMa: Int) async throws -> KetQuaDongBo {
+    lanBoiMa.append(phutBoiMa)
+    return try await dongBo(trangThai: trangThai, dung: dung, luc: luc)
+  }
+  @Khoa var lanXinVay: [(soSao: Int, mucDich: String?, quaId: String?)] = []
+  var xinVayLoi: LoiApi?
+  func xinVay(soSao: Int, mucDich: String?, quaId: String?, lyDo: String?) async throws -> KetQuaYeuCau {
+    if let e = xinVayLoi { throw e }
+    lanXinVay.append((soSao, mucDich, quaId)); return yeuCauTraVe
+  }
+  @Khoa var ketQuaXin: [String: KetQuaLoiXin] = [:]
+  func chiTietYeuCau(id: String) async throws -> KetQuaLoiXin { ketQuaXin[id] ?? KetQuaLoiXin(status: "cho") }
   /// Máy dùng chung (PIN theo bé): trả theo «METHOD path»; thiếu ⇒ lỗi mạng. `matMang` ⇒ mọi lời gọi lỗi mạng.
   @Khoa var mayChungTra: [String: Result<Data, LoiApi>] = [:]
   @Khoa var lanMayChung: [(String, [String: Any]?)] = []

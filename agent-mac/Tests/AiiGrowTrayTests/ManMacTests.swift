@@ -32,7 +32,6 @@ final class ManMacTests: XCTestCase {
 
   func testChuMan() {
     XCTAssertEqual(ManMac.dongHoCho(15), "0:15")
-    XCTAssertEqual(ManMac.khung(KhungGio(tu: "21:30", den: "06:30")), "21:30 – 6:30")
     XCTAssertEqual(ManMac.chuCai([HoSoBe(id: "1", ten: "Bảo Anh", coPin: true), HoSoBe(id: "2", ten: "Bảo Minh", coPin: false)]), ["1": "B", "2": "M"])
     XCTAssertEqual(ManMac.cauPin("pin_sai", conLan: 3), "Chưa đúng · còn 3 lần thử")
     XCTAssertEqual(ManMac.manLoiGhep("ma_sai"), .maSai)
@@ -43,20 +42,33 @@ final class ManMacTests: XCTestCase {
   }
 
   func testChuMauKhoa() {
-    var h = tt("con", lyDo: "het_gio", khoa: true); h.beTen = "Bảo Anh"; h.quyTongPhut = 60
-    XCTAssertEqual(ManMac.chuKhoa(h), ManMac.ChuKhoa(tieuDe: "Hết giờ chơi hôm nay", phu: "Bảo Anh đã chơi đủ 60 / 60 phút. Giỏi lắm!", nhan: nil, ngoaiLe: false))
-    var n = tt("con", lyDo: "gio_ngu", khoa: true); n.beTen = "Bảo Anh"; n.gioNgu = KhungGio(tu: "21:30", den: "06:30")
+    var h = tt("con", lyDo: "het_gio", khoa: true); h.beTen = "Bảo Anh"
+    XCTAssertEqual(ManMac.chuKhoa(h, phutDaChoi: 60),
+                   ManMac.ChuKhoa(tieuDe: "Hết sao rồi", phu: "Bảo Anh đã chơi 60 phút hôm nay · dùng hết 60 sao. App không tính phút vẫn mở được.", hetSao: true))
+    var n = tt("con", lyDo: "ba_me_khoa", khoa: true); n.beTen = "Bảo Anh"
     let c = ManMac.chuKhoa(n)
-    XCTAssertEqual(c.tieuDe, "Đến giờ ngủ rồi"); XCTAssertEqual(c.phu, "Máy mở lại lúc 6:30 sáng mai. Chúc Bảo Anh ngủ ngon!")
-    XCTAssertEqual(c.nhan, "Giờ ngủ 21:30 – 6:30"); XCTAssertTrue(c.ngoaiLe)
+    XCTAssertEqual(c.tieuDe, "Ba Mẹ đang khoá máy"); XCTAssertFalse(c.hetSao, "Ba Mẹ khoá: không còn «xin mở ngoại lệ»")
   }
 
-  func testDoiSaoLayGio() {
-    // thiết kế 49: 30 sao, đổi 10 phút ⇒ trừ 10 sao, còn 20
-    XCTAssertEqual(ManMac.doiSao(phut: 10, sao: 30, phut10Sao: 10), ManMac.DoiSao(saoCan: 10, conSao: 20, du: true, thieu: 0))
-    // thiết kế 51: đổi 40 phút cần 40 sao, có 30 ⇒ thiếu 10
-    XCTAssertEqual(ManMac.doiSao(phut: 40, sao: 30, phut10Sao: 10), ManMac.DoiSao(saoCan: 40, conSao: 0, du: false, thieu: 10))
-    XCTAssertEqual(ManMac.buocPhut(10, them: false), 10); XCTAssertEqual(ManMac.buocPhut(60, them: true), 60); XCTAssertEqual(ManMac.buocPhut(10, them: true), 20)
+  func testSaoTheoBeVaQuaXinVay() {
+    XCTAssertNil(ManMac.noCua(HoSoBe(id: "a", ten: "Bảo Anh", coPin: true, sao: 30, no: 0)))
+    XCTAssertEqual(ManMac.noCua(HoSoBe(id: "m", ten: "Bảo Minh", coPin: true, sao: -20, no: 20)), 20)
+    XCTAssertEqual(ManMac.noCua(HoSoBe(id: "m", ten: "Bảo Minh", coPin: true, sao: -20)), 20, "máy chủ chưa gửi no ⇒ phần âm")
+    var phim = HvQua(); phim.id = "phim"; phim.conThieu = 270; phim.chiCuoiTuan = true
+    var com = HvQua(); com.id = "com"; com.conThieu = 20
+    var kem = HvQua(); kem.id = "kem"; kem.conThieu = 0; kem.choTraoTu = Date()
+    var hong = HvQua(); hong.id = "hong"; hong.conThieu = 5; hong.conHopLe = false
+    XCTAssertEqual(ManMac.quaXinVay([phim, com, kem, hong])?.id, "com")
+    XCTAssertEqual(ManMac.cauHetNo(no: 20, choDuyet: 20, soViecCho: 2)?.0, "Để hết nợ còn 20 sao")
+    XCTAssertEqual(ManMac.cauHetNo(no: 20, choDuyet: 20, soViecCho: 2)?.1, "2 việc chờ duyệt (+20 sao) là hết nợ")
+    XCTAssertNil(ManMac.cauHetNo(no: 0, choDuyet: 20, soViecCho: 2))
+    let hom = Date()
+    var g = HvLuot(); g.trangThai = "duoc_duyet"; g.diem = 10; g.luc = hom
+    var g2 = g; g2.diem = 20
+    var cu = g; cu.luc = hom.addingTimeInterval(-3 * 86_400)
+    XCTAssertEqual(ManMac.saoKiemHomNay([g, g2, cu], bayGio: hom), 30)
+    var t = tt("con"); t.dsKhongTinhPhut = ["com.apple.dictionary"]; t.dsTinhPhut = ["com.roblox.roblox"]
+    XCTAssertEqual(ManMac.dsCuaCon(t).map(\.nhom), ["Không tính phút", "Tính phút · 1 sao/phút"])
   }
 
   func testDongQuaBangGia() {

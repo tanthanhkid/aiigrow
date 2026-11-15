@@ -26,12 +26,12 @@ public enum YeuCauTray: Codable, Equatable {
   case ping
   /// tray đời cũ gửi — daemon coi như `ping`, bỏ nội dung
   case appTienCanh(bundleId: String, ten: String)
-  /// Con xin thêm giờ (chip 10/20/30 phút — Thanh chốt 05/11; máy chủ nhận 5–240)
+  /// (cũ — tray trước 15/11) xin thêm giờ ⇒ daemon coi như `xinVay(soSao: phut)`.
   case xinThem(phut: Int, loiNhan: String?)
+  /// #263 «Xin Ba Mẹ cho vay sao» (10 / 15 / 30): `mucDich` «choi» | «qua» (+ `quaId`). Mất mạng ⇒ daemon lưu, có mạng tự gửi. Trả `.ok(id)` | `.thongBao("cho_mang")` | `.loi`.
+  case xinVay(soSao: Int, mucDich: String?, quaId: String?, loiNhan: String?)
   /// Con xin mở một trang web / app đang bị chặn («Xin Ba Mẹ duyệt» — daemon gọi api/device/xin-duyet)
   case xinMo(muc: String, loai: String, loiNhan: String?)
-  /// Giờ ngủ / Ba Mẹ khoá (05/11): «Xin Ba Mẹ mở ngoại lệ» — `phamVi` ca_may | app (`app` = bundle id), `phut` có hạn.
-  case xinNgoaiLe(phamVi: String, app: String?, phut: Int, loiNhan: String?)
   /// Ba Mẹ (admin) ghép máy lần đầu: mã 6 số trong app + tên tài khoản macOS của Con (short name)
   case ghep(ma: String, taiKhoanCon: String)
   /// Ba Mẹ (admin) bấm «Kiểm tra cập nhật»: daemon hỏi manifest ngay; có bản mới thì tải + cài nền. Trả `.thongBao`.
@@ -75,7 +75,7 @@ public struct TrangThai: Codable, Equatable {
   public var tenCon: String?
   public var cheDo: CheDo
   public var lyDoKhoa: String?             // "het_gio" | "gio_ngu" | "ba_me_khoa" | ... — tray dịch ra câu
-  public var conPhut: Int?                 // phút giải trí còn lại hôm nay (nil = không giới hạn)
+  public var conPhut: Int?                 // phút còn theo minutesLeft cũ (máy chủ 15/11 không gửi ⇒ nil); sao = phút ở `soSao` / `phutSao`
   public var moDen: Date?                  // cửa sổ mở (được thêm giờ) tới lúc nào
   public var khoaDen: Date?                // «Khoá ngay» có hạn
   public var demNguocGiay: Int?            // >0: sắp khoá phiên, tray hiện màn đếm ngược
@@ -100,9 +100,17 @@ public struct TrangThai: Codable, Equatable {
   public var nhapMaOffline: Bool?
   /// Phút đã dùng hôm nay theo app (bundle id, nhiều nhất trước) — mục Hôm nay của app Con. Chỉ cho phiên Con.
   public var homNayTheoApp: [MucDung]?
-  /// Quỹ giờ chơi hôm nay (05/11): phút còn (đếm lùi tại chỗ khi app tính giờ ở tiền cảnh) / tổng quỹ. nil = máy chủ cũ. Chỉ cho phiên Con.
-  public var quyConPhut: Int?
-  public var quyTongPhut: Int?
+  /// Sổ sao 15/11 (#263–#266): số dư (âm được) + nợ, phút / số dư đã trừ tại chỗ. nil = máy chủ cũ / chưa chọn bé. Chỉ cho phiên Con.
+  public var soSao: SoSao?
+  /// Sao còn tiêu được = phút «Tính phút» còn chơi (đếm lùi tại chỗ). nil = không giới hạn («Mở hết») / không biết.
+  public var phutSao: Int?
+  /// #262: Con ở «Mở hết» — không chặn, không tính phút.
+  public var moHet: Bool?
+  /// Danh sách của Con (bundle id / tên miền): nhóm «Tính phút» / «Không tính phút» — màn «… chưa có trong danh sách».
+  public var dsTinhPhut: [String]?
+  public var dsKhongTinhPhut: [String]?
+  /// App «Tính phút» đang ở tiền cảnh (đang trừ sao) — nhắc «Còn 5 sao» ghi «Hết sao thì Roblox dừng».
+  public var dangTinhPhut: String?
   /// 06/11 PIN theo bé: «chua» (máy khoá ⇒ màn chọn tên) | «con» | «ba_me». nil = máy chủ / daemon cũ (không màn chọn tên). Chỉ cho phiên Con.
   public var nguoiDung: String?
   public var beId: String?
@@ -111,9 +119,6 @@ public struct TrangThai: Codable, Equatable {
   public var baMeDungDen: Date?
   /// Máy chỉ gán một bé.
   public var mayRieng: Bool?
-  /// Khung giờ ngủ / giờ học (màn khoá ghi «Giờ ngủ 21:30 – 6:30», «mở lại tất cả lúc 18:00»). Chỉ cho phiên Con.
-  public var gioNgu: KhungGio?
-  public var gioHoc: KhungGio?
   /// Máy chưa ghép nhưng có token gói cài một chạm ⇒ cửa sổ Ghép chỉ hỏi tài khoản của Con, không hỏi mã 6 số. Chỉ cho phiên Ba Mẹ.
   public var coGoiCai: Bool?
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
@@ -127,10 +132,25 @@ public struct TrangThai: Codable, Equatable {
 
 public struct YeuCauDangCho: Codable, Equatable {
   public var id: String
-  public var loai: String                  // them_gio | mo_web | cai_app
-  public var phut: Int?
-  public var trangThai: String             // cho | duyet | tu_choi
-  public init(id: String, loai: String, phut: Int?, trangThai: String) { self.id = id; self.loai = loai; self.phut = phut; self.trangThai = trangThai }
+  public var loai: String                  // vay_sao | mo_web | cai_app (them_gio cũ)
+  public var phut: Int?                    // vay_sao: số sao xin vay
+  public var trangThai: String             // cho | duyet | tu_choi | het_han
+  /// App / trang xin mở (tên hiện), mục đích vay («choi» | «qua»), quà (tên) — để tray soạn câu.
+  public var muc: String?
+  public var mucDich: String?
+  /// Kết quả máy chủ (#258): da_them | mo_tam | chua_them …, nhóm khi đã thêm, người duyệt («Mẹ Lan»), lời nhắn.
+  public var ketQua: String?
+  public var nhom: String?
+  public var tenNguoiDuyet: String?
+  public var loiNhan: String?
+  public var moTamPhut: Int?
+  /// Lúc Con gửi (hoặc lúc lưu khi mất mạng).
+  public var luc: Date?
+  /// Mất mạng: đã lưu, có mạng daemon tự gửi (id tạm).
+  public var choMang: Bool?
+  public init(id: String, loai: String, phut: Int?, trangThai: String, muc: String? = nil, mucDich: String? = nil, luc: Date? = nil, choMang: Bool? = nil) {
+    self.id = id; self.loai = loai; self.phut = phut; self.trangThai = trangThai; self.muc = muc; self.mucDich = mucDich; self.luc = luc; self.choMang = choMang
+  }
 }
 
 /// Daemon trả mọi lệnh bằng một trong hai.

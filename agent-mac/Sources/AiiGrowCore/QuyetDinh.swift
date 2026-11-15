@@ -157,7 +157,7 @@ public enum QuyenIPC {
     switch y {
     case .trangThai:
       return .duoc                                                                       // ai cũng hỏi được; phần riêng của Con chỉ trả cho uid Con
-    case .ping, .appTienCanh, .xinThem, .xinMo, .xinNgoaiLe, .hocVien, .choi, .choiThu, .maOffline,
+    case .ping, .appTienCanh, .xinThem, .xinVay, .xinMo, .hocVien, .choi, .choiThu, .maOffline,
          .hoSo, .dangNhapBe, .quenPin, .baMeMo, .dangXuat, .khoaLai, .baoThoat:     // app của Con: chỉ uid Con (token máy không cho tài khoản khác dùng)
       guard daGhep, let c = uidCon, c == uidGoi else { return .tuChoi(ma: "khong_phai_con", chu: "Lệnh này chỉ nhận từ tài khoản của Con.") }
       return .duoc
@@ -181,11 +181,30 @@ public enum QuyenIPC {
 public enum DemPhut {
   public static let khongRo = "khong-ro"         // tray tắt ⇒ vẫn tính giờ dưới tên «Không rõ» (không dừng được đồng hồ bằng cách tắt tray)
 
-  public static func khoa(ngay: String, app: String) -> String { ngay + "|" + app.lowercased() }
+  /// «ngày|app» (máy riêng / chưa biết bé) hoặc «ngày|app|bé» (#267: máy dùng chung gửi `usage[].con` — phút là tổng CỦA BÉ đó).
+  public static func khoa(ngay: String, app: String, con: String? = nil) -> String {
+    ngay + "|" + app.lowercased() + ((con?.isEmpty ?? true) ? "" : "|" + con!)
+  }
 
-  public static func cong(_ d: inout [String: Double], ngay: String, app: String, giay: Double) {
+  public static func cong(_ d: inout [String: Double], ngay: String, app: String, giay: Double, con: String? = nil) {
     guard giay > 0, !app.isEmpty else { return }
-    d[khoa(ngay: ngay, app: app), default: 0] += giay
+    d[khoa(ngay: ngay, app: app, con: con), default: 0] += giay
+  }
+
+  /// Gộp dòng không-bé (bản trước #267 / trước khi biết bé) vào bé đang dùng — máy chủ không nhận song song hai dòng cho cùng (ngày, app).
+  public static func gopVaoBe(_ d: inout [String: Double], con: String) {
+    for (k, giay) in d {
+      guard let t = tach(k), t.con == nil else { continue }
+      d[k] = nil
+      d[khoa(ngay: t.ngay, app: t.app, con: con), default: 0] += giay
+    }
+  }
+
+  /// Tách khoá ⇒ (ngày, app, bé?).
+  public static func tach(_ k: String) -> (ngay: String, app: String, con: String?)? {
+    let p = k.split(separator: "|", omittingEmptySubsequences: false).map(String.init)
+    guard p.count == 2 || p.count == 3, !p[0].isEmpty, !p[1].isEmpty else { return nil }
+    return (p[0], p[1], p.count == 3 && !p[2].isEmpty ? p[2] : nil)
   }
 
   /// Giữ 3 ngày gần nhất.
@@ -196,10 +215,10 @@ public enum DemPhut {
 
   public static func tong(_ d: [String: Double]) -> [MucDung] {
     d.compactMap { k, giay in
-      let p = k.split(separator: "|", maxSplits: 1).map(String.init)
       let phut = Int(giay / 60)
-      return p.count == 2 && phut > 0 ? MucDung(muc: p[1], phut: phut, day: p[0]) : nil
-    }.sorted { ($0.day, $0.muc) < ($1.day, $1.muc) }
+      guard let t = tach(k), phut > 0 else { return nil }
+      return MucDung(muc: t.app, phut: phut, day: t.ngay, con: t.con)
+    }.sorted { ($0.day, $0.muc, $0.con ?? "") < ($1.day, $1.muc, $1.con ?? "") }
   }
 
   public static func ngay(_ d: Date, lich: Calendar = .current) -> String {
