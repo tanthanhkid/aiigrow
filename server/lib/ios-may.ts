@@ -2,13 +2,16 @@
 // Lưu vào devices.status.ios để app Ba Mẹ hiện «đã chọn N app giải trí, hôm nay dùng M phút». Con tự bỏ chọn app trong FamilyActivityPicker
 // ⇒ số app giải trí / chặn GIẢM so với lần trước ⇒ cảnh báo Ba Mẹ (cơ chế canhBao có khoá chống trùng — mỗi lần giảm cùng mức chỉ báo một lần/ngày, số dao động không thành bão cảnh báo).
 import type { May } from "./gia-dinh.ts";
-import { q } from "./db.ts";
+import { q, tx, type Q } from "./db.ts";
 import { canhBao } from "./nhat-ky.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
-import { truPhutChoi } from "./so-sao.ts";
+import { laMoHetCon, tinhPhutChoi } from "./so-sao.ts";
+import { khoaCon } from "./vi.ts";
 
 export type IosNhip = { soAppHoc: number; soAppGiaiTri: number; soAppChan: number; soDanhMucGiaiTri: number; phutDaDung: number; uyQuyen: string; luc: string;
-  /** phút lúc máy mở bằng mã hôm nay (cộng dồn từ `phutBoiMa` app gửi phần chênh) — chỉ để hiện, không trừ sao */ boiMaHomNay?: number };
+  /** phút lúc máy mở bằng mã hôm nay (cộng dồn từ `phutBoiMa` app gửi phần chênh) — chỉ để hiện, không trừ sao */ boiMaHomNay?: number;
+  /** MỐC trừ sao: phutDaDung + lúc của lần đã tính sao gần nhất (chỉ đổi khi trừ xong / quyết định chỉ lấy mốc — lỗi thì giữ mốc cũ) */
+  mocPhut?: number; mocLuc?: string };
 
 const so = (v: unknown) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.min(100000, Math.round(Number(v))) : 0);
 
@@ -21,23 +24,46 @@ export function chuanIos(v: unknown, now: Date): IosNhip | null {
 }
 
 /** Gộp một khoá vào devices.status (dùng chung `ios` / `android`). */
-export const luuStatusKhoa = (mayId: string, khoa: string, giaTri: unknown) =>
-  q(`update devices set status = coalesce(status, '{}'::jsonb) || jsonb_build_object($2::text, $3::text::jsonb) where id = $1`, [mayId, khoa, JSON.stringify(giaTri)]);
+export const luuStatusKhoa = (mayId: string, khoa: string, giaTri: unknown, t: Q = q) =>
+  t(`update devices set status = coalesce(status, '{}'::jsonb) || jsonb_build_object($2::text, $3::text::jsonb) where id = $1`, [mayId, khoa, JSON.stringify(giaTri)]);
 
-/** Lưu `ios` vào status máy + cảnh báo khi số app giải trí / chặn giảm. Trả về các mục đã giảm (rỗng = không báo). Chỉ máy platform «ios». */
-export async function luuIosNhip(may: Pick<May, "id" | "family_id" | "child_id" | "name" | "platform" | "status">, ios: unknown, now = new Date(),
-  o: { phutBoiMa?: unknown } = {}) {
+/** Agent iOS ≥ 0.2.0 (#272): `phutDaDung` đã bỏ phút mở bằng mã. Nhận ra qua trường `phutBoiMa` (Swift bỏ trường khi nil ⇒ chỉ có lúc > 0)
+ *  hoặc `phienBan` «ios-x.y.z» ≥ 0.2.0. Agent cũ ⇒ không trừ sao theo phutDaDung (giữ hành vi cũ — khoá tại máy theo quỹ). */
+export function laIosMoi(b: { phutBoiMa?: unknown; phienBan?: unknown }) {
+  if (b.phutBoiMa !== undefined && b.phutBoiMa !== null) return true;
+  const m = /^ios-(\d+)\.(\d+)(?:\.(\d+))?/.exec(String(b.phienBan ?? ""));
+  return !!m && (Number(m[1]) > 0 || Number(m[2]) >= 2);
+}
+
+type MayIos = Pick<May, "id" | "family_id" | "child_id" | "name" | "platform" | "status"> & { ba_me_den?: Date | string | null };
+export type NhipIosVao = { ios?: unknown; phutBoiMa?: unknown; phienBan?: unknown; clientTime?: unknown };
+
+/** Lưu `ios` vào status máy + trừ sao (truSaoIos) + cảnh báo khi số app giải trí / chặn giảm. Trả về các mục đã giảm. Chỉ máy platform «ios».
+ *  `con` = bé đang dùng máy theo nhịp (null ⇒ không trừ, chỉ lấy mốc). Đọc mốc + trừ + ghi mốc trong MỘT giao dịch có khoá dòng máy
+ *  (`select … for update`) ⇒ hai nhịp song song không trừ đôi; trừ lỗi ⇒ cả giao dịch lùi, ghi lại status với mốc CŨ (lần sau trừ lại). */
+export async function luuIosNhip(may: MayIos, con: string | null, b: NhipIosVao, now = new Date()) {
   if (may.platform !== "ios") return [];
-  const moi = chuanIos(ios, now);
+  const moi = chuanIos(b.ios, now);
   if (!moi) return [];
-  const cu = (may.status?.ios ?? null) as Partial<IosNhip> | null;
   const tz = (await q<{ tz: string }>(`select tz from families where id = $1`, [may.family_id]))[0]?.tz ?? "Asia/Ho_Chi_Minh";
-  const cungNgay = !!cu?.luc && gioDiaPhuong(new Date(cu.luc), tz).ngay === gioDiaPhuong(now, tz).ngay;
-  const bm = so(o.phutBoiMa);
-  if (bm > 0 || cungNgay) moi.boiMaHomNay = (cungNgay ? so(cu?.boiMaHomNay) : 0) + bm;
-  await luuStatusKhoa(may.id, "ios", moi);
-  // lỗi trừ sao không làm hỏng nhịp (app vẫn cần chính sách) — phút đã lưu vào status, lần sau không tính lại
-  try { await truSaoIos(may, cu, moi, tz, now); } catch (e) { console.error("nhip ios: trừ sao phút chơi lỗi", e); }
+  const ghi = async (t: Q, moc: boolean) => {
+    const r = (await t<{ status: Record<string, unknown> | null; ba_me_den: Date | null }>(`select status, ba_me_den from devices where id = $1 for update`, [may.id]))[0];
+    const cu = (r?.status?.ios ?? null) as Partial<IosNhip> | null;
+    const cungNgay = !!cu?.luc && gioDiaPhuong(new Date(cu.luc), tz).ngay === gioDiaPhuong(now, tz).ngay;
+    const bm = so(b.phutBoiMa);
+    const ra: IosNhip = { ...moi };
+    if (bm > 0 || cungNgay) ra.boiMaHomNay = (cungNgay ? so(cu?.boiMaHomNay) : 0) + bm;
+    const mocCu = mocCua(cu);
+    if (moc) {
+      await truSaoIos(t, { ...may, ba_me_den: r?.ba_me_den ?? may.ba_me_den }, con, mocCu, moi, tz, now, { moi: laIosMoi(b), gioMay: b.clientTime });
+      ra.mocPhut = moi.phutDaDung; ra.mocLuc = moi.luc;
+    } else if (mocCu) { ra.mocPhut = mocCu.phut; ra.mocLuc = mocCu.luc; }
+    await luuStatusKhoa(may.id, "ios", ra, t);
+    return cu;
+  };
+  let cu: Partial<IosNhip> | null;
+  try { cu = await tx((t) => ghi(t, true)); }
+  catch (e) { console.error("nhip ios: trừ sao phút chơi lỗi — giữ mốc cũ", e); cu = await tx((t) => ghi(t, false)); }
   const giam: { muc: string; truoc: number; sau: number }[] = [];
   if (cu) {
     if (typeof cu.soAppGiaiTri === "number" && moi.soAppGiaiTri < cu.soAppGiaiTri) giam.push({ muc: "app giải trí", truoc: cu.soAppGiaiTri, sau: moi.soAppGiaiTri });
@@ -50,21 +76,37 @@ export async function luuIosNhip(may: Pick<May, "id" | "family_id" | "child_id" 
   return giam;
 }
 
-/** iPhone/iPad trừ sao (#264, 1 sao = 1 phút): app gửi `ios.phutDaDung` = phút app «Tính phút» CỘNG DỒN hôm nay trên máy, ĐÃ BỎ phút lúc
- *  mở bằng mã (agent-ios DongBo.nhipGui: phutDoTaiCho − phutBoiMa) ⇒ không trừ `phutBoiMa` lần nữa. Phút trừ = phần tăng so với lần nhịp trước
- *  CÙNG NGÀY (giờ gia đình), qua đồng hồ cửa sổ của so-sao.ts › truPhutChoi (máy khác của Con chơi cùng lúc không trừ đôi; Mở hết ⇒ không trừ).
- *  Chống trừ khống: lần đầu máy báo (chưa có mốc) chỉ lấy mốc; phần tăng kẹp ≤ thời gian thật từ lần nhịp trước (hoặc đầu ngày) — app cài lại
- *  đếm từ 0 rồi tăng lại không bị tính hai lần. Số giảm (cài lại / sang ngày trên máy) ⇒ chỉ lấy mốc mới. */
-export async function truSaoIos(may: Pick<May, "id" | "child_id" | "name">, cu: Partial<IosNhip> | null, moi: IosNhip, tz: string, now = new Date()) {
-  if (!may.child_id || !cu?.luc || typeof cu.phutDaDung !== "number") return { tru: 0, tinh: 0 };
-  const cuLuc = new Date(cu.luc);
-  if (!Number.isFinite(cuLuc.getTime())) return { tru: 0, tinh: 0 };
-  const nay = gioDiaPhuong(now, tz).ngay;
-  const truoc = gioDiaPhuong(cuLuc, tz).ngay === nay ? cu.phutDaDung : 0;
-  const moc = Math.max(cuLuc.getTime(), dauNgayUtc(nay, tz).getTime());
-  const them = Math.min(moi.phutDaDung - truoc, Math.max(0, (now.getTime() - moc) / 60_000) + 1);
-  if (!(them > 0)) return { tru: 0, tinh: 0 };
-  return truPhutChoi(may.child_id, them, now, { muc: `ios:${may.id}`, ten: may.name });
+/** Mốc trừ sao của status cũ (status trước bản này chưa có mocPhut ⇒ lấy phutDaDung / luc đã lưu). */
+function mocCua(cu: Partial<IosNhip> | null): { phut: number; luc: string } | null {
+  if (cu && typeof cu.mocPhut === "number" && cu.mocLuc) return { phut: cu.mocPhut, luc: cu.mocLuc };
+  if (cu && typeof cu.phutDaDung === "number" && cu.luc) return { phut: cu.phutDaDung, luc: cu.luc };
+  return null;
+}
+
+/** iPhone/iPad trừ sao (#264, 1 sao = 1 phút) — GỌI TRONG giao dịch đã khoá dòng máy. `ios.phutDaDung` = phút app «Tính phút» CỘNG DỒN hôm nay
+ *  trên máy, agent ≥ 0.2.0 đã BỎ phút mở bằng mã (DongBo.nhipGui: phutDoTaiCho − phutBoiMa) ⇒ không trừ `phutBoiMa` lần nữa. Phút trừ = phần
+ *  tăng so với mốc CÙNG NGÀY (giờ gia đình), qua đồng hồ cửa sổ của so-sao.ts › tinhPhutChoi (máy khác chơi cùng lúc không trừ đôi).
+ *  KHÔNG trừ (chỉ lấy mốc): agent cũ · không có bé đang dùng · Ba Mẹ đang dùng máy (ba_me_den) · Mở hết · lần đầu (chưa mốc) · số giảm
+ *  (cài lại app) · qua nửa đêm mà máy còn báo tổng hôm qua (ngày theo đồng hồ máy khác ngày gia đình, hoặc phutDaDung > phút từ nửa đêm + 1).
+ *  Phần tăng kẹp ≤ thời gian thật từ mốc (hoặc nửa đêm) + 1 phút. */
+export async function truSaoIos(t: Q, may: Pick<May, "id" | "name"> & { ba_me_den?: Date | string | null }, con: string | null,
+  moc: { phut: number; luc: string } | null, moi: IosNhip, tz: string, now = new Date(), o: { moi?: boolean; gioMay?: unknown } = {}) {
+  const khong = { tru: 0, tinh: 0 };
+  if (!o.moi || !con || !moc) return khong;
+  if (may.ba_me_den && new Date(may.ba_me_den).getTime() > now.getTime()) return khong;
+  const mocLuc = new Date(moc.luc);
+  if (!Number.isFinite(mocLuc.getTime())) return khong;
+  const nay = gioDiaPhuong(now, tz).ngay, nuaDem = dauNgayUtc(nay, tz).getTime();
+  const gm = o.gioMay !== undefined && o.gioMay !== null ? new Date(String(o.gioMay)) : null;
+  if (gm && Number.isFinite(gm.getTime()) && gioDiaPhuong(gm, tz).ngay !== nay) return khong;   // máy còn ở ngày hôm qua
+  const tuNuaDem = (now.getTime() - nuaDem) / 60_000;
+  if (moi.phutDaDung > tuNuaDem + 1) return khong;                                               // tổng hôm qua chưa về 0
+  const truoc = gioDiaPhuong(mocLuc, tz).ngay === nay ? moc.phut : 0;
+  const them = Math.min(moi.phutDaDung - truoc, Math.max(0, (now.getTime() - Math.max(mocLuc.getTime(), nuaDem)) / 60_000) + 1);
+  if (!(them > 0)) return khong;
+  await khoaCon(t, con);
+  if (await laMoHetCon(con, t)) return khong;
+  return tinhPhutChoi(t, con, them, now, { muc: `ios:${may.id}`, ten: may.name, tz });
 }
 
 // ---------------------------------------------------------------- tác tử Android (agent-android/CAN-SERVER.md mục 3)

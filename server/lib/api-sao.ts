@@ -86,9 +86,10 @@ export async function xuLyConSao(con: string, mayId: string | null, req: Request
   // + lichSu[] (sổ sao gần đây — cùng sổ ví sao Ba Mẹ) · appHomNay[] (màn «Đang chơi»: «Roblox 30 phút · −30 sao») · phutChoiHomNay (= sao trừ hôm nay)
   if (d === "sao" && get) {
     const gh = Number(new URL(req.url).searchParams.get("gioiHan")) || 20;
-    const [st, lichSu, appHomNay, phutChoiHomNay] = await Promise.all([ss.trangThaiSao(con), ss.lichSuSaoCon(con, gh), appHomNayCon(con),
-      one<{ tz: string }>(`select f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con])
-        .then((f) => ss.phutDaTruHomNay(q, con, f?.tz ?? "Asia/Ho_Chi_Minh"))]);
+    const c = await one<{ family_id: string; tz: string }>(`select c.family_id, f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]);
+    const now = new Date();
+    const [st, lichSu, appHomNay, phutChoiHomNay] = await Promise.all([ss.trangThaiSao(con), ss.lichSuSaoCon(con, gh), appHomNayCon(con, now, c),
+      ss.phutDaTruHomNay(q, con, c?.tz ?? "Asia/Ho_Chi_Minh", now)]);
     return json({ ...st, cau: ss.cauSao(st), mucVay: [...ss.MUC_VAY], vayMacDinh: ss.VAY_MAC_DINH, lichSu, appHomNay, phutChoiHomNay });
   }
   if (d === "xin-vay" && post) {

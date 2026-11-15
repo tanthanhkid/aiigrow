@@ -8,7 +8,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { conCua } from "./gia-dinh.ts";
 import { lenhCho } from "./lenh-may.ts";
 import { coCuaSoThemGio } from "./chuyen-doi.ts";
-import { luuAndroidNhip, luuIosNhip, thanhPhanChoTuanThu } from "./ios-may.ts";
+import { luuAndroidNhip, luuIosNhip, thanhPhanChoTuanThu, type NhipIosVao } from "./ios-may.ts";
 import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { tinHieuDanhSachApp } from "./app-may.ts";
 import { createHash } from "node:crypto";
@@ -19,7 +19,8 @@ export const vanBiMat = (s: string) => createHash("sha256").update(s, "utf8").di
 export async function nhipMay(may: May, con: string | null, b: NhipVao, now = new Date()) {
   const kq = await nhanNhip(may, may.platform === "android" ? { ...b, thanhPhan: thanhPhanChoTuanThu(b.thanhPhan) } : b, now);
   // iPhone/iPad: lưu phần `ios` + trừ sao theo phút «Tính phút» tăng thêm (ios-may.ts › truSaoIos) TRƯỚC khi dựng chính sách ⇒ `sao` trả về đã mới
-  if (may.platform === "ios") await luuIosNhip(may, (b as { ios?: unknown }).ios, now, { phutBoiMa: (b as { phutBoiMa?: unknown }).phutBoiMa });
+  // (trừ cho `con` = bé đang dùng của nhịp; agent iOS cũ / Ba Mẹ đang dùng máy ⇒ chỉ lưu mốc)
+  if (may.platform === "ios") await luuIosNhip(may, con, b as NhipIosVao, now);
   const cs = await chinhSachChung(may, con, kq.tuanThu, now);
   const nen = ((NEN_CHUYEN_DOI as readonly string[]).includes(may.platform) ? may.platform : "windows") as NenChuyenDoi;
   const kqNhip = { serverTime: now.toISOString(), tuanThu: kq.tuanThu, chinhSach: cs, nenTang: chuyenDoi(cs, nen), lenh: await lenhCho(may),

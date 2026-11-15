@@ -13,7 +13,7 @@ const im = await import("./ios-may.ts");
 const { appHomNayCon } = await import("./hom-nay-dung.ts");
 const { xuLyMay } = await import("./api-may.ts");
 const { xuLyCon } = await import("./api-con.ts");
-const { q, one } = await import("./db.ts");
+const { q, one, tx } = await import("./db.ts");
 const { taoNha, luonChoiDuoc } = await import("./test-fixtures/nha.ts");
 
 const goi = (xuLy: (r: Request, p: string[]) => Promise<Response>, goc: string) => async (tok: string, duong: string, body?: unknown) => {
@@ -34,8 +34,12 @@ async function nhaIos(ten = "Mi", sao = 50) {
   await luonChoiDuoc(con);
   await v.dieuChinhTay(fam, con, sao, "Thưởng", bm);
   const r = await g.ghepMay(await g.taoMaGhep(fam, con, "ios"), "ios", `iPhone của ${ten}`);
-  const nhip = async (n: number, now: Date, o: { phutBoiMa?: number } = {}) => im.luuIosNhip((await g.mayTuToken(r.token))!, ios(n), now, o);
-  return { fam, bm, con, r, nhip };
+  /** nhịp agent iOS 0.2.0 (mặc định); `o.phienBan` / `o.con` / `o.gioMay` đè */
+  const nhip = async (n: number, now: Date, o: { phutBoiMa?: number; phienBan?: string; con?: string | null; gioMay?: Date } = {}) =>
+    im.luuIosNhip((await g.mayTuToken(r.token))!, o.con === undefined ? con : o.con,
+      { ios: ios(n), phienBan: o.phienBan ?? "ios-0.2.0", clientTime: (o.gioMay ?? now).toISOString(), ...(o.phutBoiMa ? { phutBoiMa: o.phutBoiMa } : {}) }, now);
+  const moc = async () => ((await g.mayTuToken(r.token))!.status as any).ios;
+  return { fam, bm, con, r, nhip, moc };
 }
 
 // Thứ Bảy 24/10/2026 18:00 giờ VN
@@ -66,7 +70,7 @@ test("iOS: phutDaDung tăng ⇒ trừ sao 1:1 (lần đầu chỉ lấy mốc); 
 });
 
 test("iOS: không trừ đôi với kênh khác (đồng hồ cửa sổ); Mở hết không trừ; phutBoiMa chỉ cộng dồn để hiện (phutDaDung đã bỏ phút mở bằng mã)", async () => {
-  const { con, nhip, r } = await nhaIos("Na");
+  const { con, nhip, r } = await nhaIos("Na", 50);
   await nhip(0, T);
   const t1 = new Date(T.getTime() + phut(10));
   await nhip(10, t1, { phutBoiMa: 8 });
@@ -87,7 +91,7 @@ test("iOS: không trừ đôi với kênh khác (đồng hồ cửa sổ); Mở 
 
 test("iOS qua /api/device/nhip: phút tăng ⇒ chinhSach.sao trả về đã trừ ngay trong lượt đó", async () => {
   const { con, r } = await nhaIos("Su");
-  const nhip = async (n: number) => (await dv(r.token, "nhip", { clientTime: new Date().toISOString(), appQuanLyBat: true, ios: ios(n) }));
+  const nhip = async (n: number) => (await dv(r.token, "nhip", { phienBan: "ios-0.2.0", clientTime: new Date().toISOString(), appQuanLyBat: true, ios: ios(n) }));
   const a = await nhip(10);
   assert.equal(a.status, 200);
   assert.equal(await v.soDu(con), 50);
@@ -127,11 +131,19 @@ test("kid/sao + hoc-vien/sao: lichSu[] (vay / trả nợ / chơi / nhiệm vụ 
   const ip = await g.ghepMay(await g.taoMaGhep(fam, con, "ios"), "ios", "iPad của Bảo Anh");
   const may = await g.mayTuToken(ip.token);
   const now = new Date();
-  await im.luuIosNhip(may!, ios(4), new Date(now.getTime() - phut(10)));
-  await im.luuIosNhip((await g.mayTuToken(ip.token))!, ios(9), now);
+  const t0 = new Date(now.getTime() - phut(10));
+  await im.luuIosNhip(may!, con, { ios: ios(4), phienBan: "ios-0.2.0", clientTime: t0.toISOString() }, t0);
+  await im.luuIosNhip((await g.mayTuToken(ip.token))!, con, { ios: ios(9), phienBan: "ios-0.2.0", clientTime: now.toISOString() }, now);
+  // dòng sổ `choi` không mục (đường cũ) ⇒ gom «Khác»; tổng sao appHomNay = phutChoiHomNay
+  await v.dieuChinhTay(fam, con, 3, "Thưởng", bm);
+  await tx(async (t) => { await v.khoaCon(t, con); await v.ghiDiem(t, con, -3, "choi", "Chơi"); });
   const ds = await appHomNayCon(con, now);
   const dIos = ds.find((x) => x.muc === `ios:${ip.deviceId}`)!;
   assert.deepEqual([dIos.ten, dIos.phut, dIos.nhom, dIos.sao], ["Tính phút trên iPad của Bảo Anh", 9, "tinh_phut", 5]);
+  assert.deepEqual(ds.at(-1), { ten: "Khác", muc: "", kieu: "app", phut: 3, nhom: "tinh_phut", sao: 3, dangMo: false, may: null });
+  const tong = (await dv(a.token, "hoc-vien/sao")).body;
+  assert.equal(tong.appHomNay.reduce((x: number, d: any) => x + d.sao, 0), tong.phutChoiHomNay);
+  assert.equal(tong.phutChoiHomNay, 28);
   // kid/sao (phiên Con) cùng hợp đồng
   const tok = await phienCon(con);
   const kk = await k(tok, "sao");
@@ -146,3 +158,41 @@ async function phienCon(con: string) {
   const r = await g.ghepMay(await g.taoMaGhep(fam, null, "android"), "android", "Máy chung");
   return (await dv(r.token, "chon-con", { con })).body.phienCon as string;
 }
+
+test("iOS review: agent cũ / không bé / Ba Mẹ đang dùng máy ⇒ chỉ lấy mốc; qua nửa đêm máy còn tổng hôm qua ⇒ chỉ lấy mốc; trừ lỗi ⇒ giữ mốc cũ; song song không trừ đôi", async () => {
+  const { con, nhip, moc, r } = await nhaIos("Ti", 100);
+  await nhip(0, T);
+  await nhip(10, new Date(T.getTime() + phut(10)), { phienBan: "ios-0.1.0" });
+  assert.equal(await v.soDu(con), 100, "agent cũ (không phutBoiMa, phienBan < 0.2.0) ⇒ không trừ");
+  assert.equal((await moc()).mocPhut, 10, "nhưng vẫn lấy mốc");
+  assert.equal(im.laIosMoi({ phutBoiMa: 3, phienBan: "ios-0.1.0" }), true);
+  assert.equal(im.laIosMoi({ phienBan: "ios-0.10.1" }), true);
+  assert.equal(im.laIosMoi({ phienBan: "ios-0.1.9" }), false);
+  await nhip(20, new Date(T.getTime() + phut(20)), { con: null });
+  assert.equal(await v.soDu(con), 100, "không có bé đang dùng ⇒ không trừ");
+  await q(`update devices set ba_me_den = $2 where id = $1`, [r.deviceId, new Date(T.getTime() + phut(60))]);
+  await nhip(30, new Date(T.getTime() + phut(30)));
+  assert.equal(await v.soDu(con), 100, "Ba Mẹ đang dùng máy ⇒ không trừ");
+  await q(`update devices set ba_me_den = null where id = $1`, [r.deviceId]);
+  await nhip(35, new Date(T.getTime() + phut(40)));
+  assert.equal(await v.soDu(con), 95);
+  // trừ lỗi (bé không tồn tại ⇒ khoaCon lỗi) ⇒ giao dịch lùi, mốc giữ 35; phutDaDung báo vẫn lưu
+  await nhip(45, new Date(T.getTime() + phut(50)), { con: "khong-co" });
+  assert.deepEqual([(await moc()).mocPhut, (await moc()).phutDaDung], [35, 45]);
+  await nhip(45, new Date(T.getTime() + phut(51)));
+  assert.equal(await v.soDu(con), 85, "lần sau trừ lại phần 10 phút");
+  // hai nhịp song song cùng số ⇒ trừ một lần
+  const t2 = new Date(T.getTime() + phut(70));
+  await Promise.all([nhip(55, t2), nhip(55, t2)]);
+  assert.equal(await v.soDu(con), 75);
+  // 00:05 hôm sau: máy còn báo tổng hôm qua (đồng hồ máy còn ngày cũ, hoặc tổng > phút từ nửa đêm + 1) ⇒ chỉ lấy mốc
+  const nuaDem = new Date("2026-10-24T17:05:00Z");
+  await nhip(60, nuaDem, { gioMay: new Date("2026-10-24T16:58:00Z") });
+  assert.equal(await v.soDu(con), 75);
+  await nhip(62, new Date(nuaDem.getTime() + phut(1)));
+  assert.equal(await v.soDu(con), 75);
+  await nhip(2, new Date(nuaDem.getTime() + phut(3)));
+  assert.equal(await v.soDu(con), 75, "về 0 rồi tăng: mốc trước cùng ngày là 62 ⇒ số giảm, chỉ lấy mốc");
+  await nhip(4, new Date(nuaDem.getTime() + phut(5)));
+  assert.equal(await v.soDu(con), 73);
+});
