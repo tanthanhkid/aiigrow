@@ -96,6 +96,8 @@ fun quyetDinh(
      *  cộng thêm vào `quy.daDung` của máy chủ (đã gồm máy khác) khi mất mạng; khác ngày ⇒ quỹ hôm qua không còn đúng. */
     phutLucNhip: Int? = null,
     ngayNhip: String? = null,
+    /** 15/11: phút «Tính phút» dùng lúc mở bằng mã offline chưa báo máy chủ (SoPhutBe) — máy chủ không trừ sao ⇒ đếm lùi tại chỗ cũng không trừ. */
+    phutBoiMa: Int = 0,
 ): QuyetDinh {
     val g = gioDiaPhuong(now, cs.tz)
     // Máy chủ hạ chữ thường `muc` (danh sách app thật, server/lib/app-may.ts) mà package Android phân biệt hoa thường
@@ -129,7 +131,7 @@ fun quyetDinh(
         QuyetDinh(t, coThe(goi), ca, phut.coerceAtLeast(0), moLai, cau, coThe(goi).intersect(chuaXepThat))
 
     if (cs.sao != null) return quyetDinhSao(cs, cs.sao, now, g, phutGiaiTriHomNay, grantEndsAt, moOfflineDen, chan, giaiTri, chuaXep, khongLoc,
-        ::kq, phutLucNhip, ngayNhip)
+        ::kq, phutLucNhip, ngayNhip, phutBoiMa)
     if (cs.quy != null) return quyetDinhQuy(cs, cs.quy, now, g, phutGiaiTriHomNay, grantEndsAt, moOfflineDen, chan, giaiTri, chuaXep, khongLoc,
         theoMay(goiAndroid(cs.hoc)), ::theoMay, ::kq, trongNgu, phutLucNhip, ngayNhip)
 
@@ -220,14 +222,16 @@ private fun quyetDinhSao(
     cs: ChinhSach, s: Sao, now: Instant, g: GioDiaPhuong, phutGiaiTriHomNay: Int, grantEndsAt: Instant?, moOfflineDen: Instant?,
     chan: Set<String>, giaiTri: Set<String>, chuaXep: Set<String>, khongLoc: Set<String>,
     kq: (TrangThai, Set<String>, Boolean, Int, Instant?, String) -> QuyetDinh,
-    phutLucNhip: Int?, ngayNhip: String?,
+    phutLucNhip: Int?, ngayNhip: String?, phutBoiMa: Int,
 ): QuyetDinh {
     val cungNgay = ngayNhip == null || ngayNhip == g.zdt.toLocalDate().toString()
-    // UsageStats đếm theo ngày: cùng ngày ⇒ phần đo thêm sau nhịp; sang ngày mới mà chưa nhịp được ⇒ cả phút hôm nay
-    val tieuTaiCho = if (cs.moHet) 0 else if (cungNgay) (phutGiaiTriHomNay - (phutLucNhip ?: phutGiaiTriHomNay)).coerceAtLeast(0) else phutGiaiTriHomNay
+    // UsageStats đếm theo ngày: cùng ngày ⇒ phần đo thêm sau nhịp; sang ngày mới mà chưa nhịp được ⇒ cả phút hôm nay. Trừ phần dùng lúc mở bằng mã.
+    val tieuTaiCho = if (cs.moHet) 0 else ((if (cungNgay) (phutGiaiTriHomNay - (phutLucNhip ?: phutGiaiTriHomNay)).coerceAtLeast(0) else phutGiaiTriHomNay)
+        - phutBoiMa).coerceAtLeast(0)
     val conPhut = if (s.hetSao) 0 else (s.phutCon - tieuTaiCho).coerceAtLeast(0)
     val soDu = conPhut - s.no
-    fun ra(q: QuyetDinh) = q.copy(soDu = soDu, no = s.no, moHet = cs.moHet)
+    // «Mở hết» chỉ là nhãn khi máy thật sự mở bình thường — khoá / không tuân thủ / mở bằng mã thì trạng thái đó ưu tiên
+    fun ra(q: QuyetDinh) = q.copy(soDu = soDu, no = s.no, moHet = cs.moHet && q.trangThai == TrangThai.BINH_THUONG)
     if (moOfflineDen != null && moOfflineDen.isAfter(now)) {
         val p = Duration.between(now, moOfflineDen).toMinutes().toInt() + 1
         return ra(kq(TrangThai.DUOC_THEM_GIO, chan + khongLoc, false, p, moOfflineDen, "Ba Mẹ đã mở máy bằng mã · không trừ sao."))
@@ -251,9 +255,6 @@ private fun quyetDinhSao(
 
 /** «−20 sao» (dấu trừ thật U+2212). */
 fun soSao(n: Int): String = (if (n < 0) "\u2212${-n}" else "$n") + " sao"
-
-/** «còn 18 sao = 18 phút chơi». */
-fun cauPhutSao(phut: Int): String = "còn $phut sao = $phut phút chơi"
 
 /** «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước» (null khi không nợ). */
 fun cauNoSao(no: Int): String? = if (no > 0) "Đang nợ Ba Mẹ $no sao · sao nhiệm vụ trả nợ trước" else null

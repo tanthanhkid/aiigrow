@@ -38,8 +38,8 @@ data class BeHoSo(val id: String, val ten: String, val avatar: String?, val coPi
 data class HoSoMay(
     val con: List<BeHoSo>, val mayRieng: Boolean, val dangDung: String?, val baMeDen: Long?,
     val pinSaiToiDa: Int = PIN_SAI_TOI_DA, val pinChoGiay: Int = PIN_CHO_GIAY,
-    /** #267: tên máy («Máy cả nhà») + máy chung (≥ 2 bé) — null / false khi máy chủ cũ. */
-    val tenMay: String? = null, val mayChung: Boolean = false,
+    /** #267: tên máy («Máy cả nhà») — null khi máy chủ cũ. */
+    val tenMay: String? = null,
 ) {
     fun be(id: String?) = con.firstOrNull { it.id == id }
 }
@@ -59,7 +59,7 @@ fun docHoSo(o: JSONObject, nhanLuc: Long): HoSoMay {
     }
     return HoSoMay(ds, o.optBoolean("mayRieng"), o.optJSONObject("dangDung")?.chuoi("id"), iso(o.optJSONObject("baMeDung")?.chuoi("den")),
         o.optInt("pinSaiToiDa", PIN_SAI_TOI_DA).coerceIn(1, 20), o.optInt("pinChoGiay", PIN_CHO_GIAY).coerceIn(1, 3600),
-        o.chuoi("tenMay"), o.optBoolean("mayChung"))
+        o.chuoi("tenMay"))
 }
 
 enum class LoaiNguoiDung { CON, BA_ME, CHUA }

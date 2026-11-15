@@ -18,58 +18,75 @@ data class SoPhutBe(
     val chot: Map<String, Long> = emptyMap(),
     /** bé → app → ms đã ghi cho bé hôm nay. */
     val be: Map<String, Map<String, Long>> = emptyMap(),
-    /** ms app «Tính phút» dùng lúc mở bằng mã offline, chưa báo máy chủ. */
-    val boiMaMs: Long = 0,
+    /** bé → ms app «Tính phút» dùng lúc mở bằng mã offline, chưa báo máy chủ (chỉ HÔM NAY — máy chủ chỉ trừ sao phút hôm nay). */
+    val boiMa: Map<String, Long> = emptyMap(),
+    /** Ngày trước + sổ của ngày đó chưa gửi được (sang ngày lúc mất mạng) — gửi bù (`usage[].day`, chỉ ghi báo cáo) rồi xoá. */
+    val ngayCu: String? = null,
+    val beCu: Map<String, Map<String, Long>> = emptyMap(),
 ) {
     /**
      * Chốt tới hiện tại: `caMay` = ms cả máy theo app hôm nay (DoPhut.homNay), `conId` = bé đang dùng (null = không ai: Ba Mẹ dùng / chọn tên),
-     * `tinhPhut` = gói «Tính phút», `boiMa` = máy đang mở bằng mã offline. Sang ngày ⇒ sổ mới (phút hôm qua đã gửi theo từng nhịp).
+     * `tinhPhut` = gói «Tính phút», `boiMa` = máy đang mở bằng mã offline. Sang ngày ⇒ sổ hôm qua chuyển sang `beCu` (gửi bù), phút bởi mã
+     * hôm qua bỏ (không cho mang sang hôm nay).
      */
     fun chotToi(ngayNay: String, caMay: Map<String, Long>, conId: String?, tinhPhut: Set<String>, boiMa: Boolean): SoPhutBe {
-        if (ngayNay != ngay) return SoPhutBe(ngayNay, caMay, emptyMap(), boiMaMs)
-        var dsBe = be
-        var bm = boiMaMs
-        if (conId != null) {
-            val cua = (be[conId] ?: emptyMap()).toMutableMap()
-            for ((app, ms) in caMay) {
-                val them = ms - (chot[app] ?: 0L)
-                if (them <= 0) continue
-                cua[app] = (cua[app] ?: 0L) + them
-                if (boiMa && tinhPhut.any { it.equals(app, ignoreCase = true) }) bm += them
-            }
-            dsBe = be + (conId to cua)
+        if (ngayNay != ngay) return SoPhutBe(ngayNay, caMay, emptyMap(), emptyMap(),
+            if (ngay.isNotEmpty() && be.isNotEmpty()) ngay else ngayCu, if (ngay.isNotEmpty() && be.isNotEmpty()) be else beCu)
+        if (conId == null) return copy(chot = caMay)
+        val cua = (be[conId] ?: emptyMap()).toMutableMap()
+        var bm = this.boiMa[conId] ?: 0L
+        for ((app, ms) in caMay) {
+            val them = ms - (chot[app] ?: 0L)
+            if (them <= 0) continue
+            cua[app] = (cua[app] ?: 0L) + them
+            if (boiMa && tinhPhut.any { it.equals(app, ignoreCase = true) }) bm += them
         }
-        return copy(chot = caMay, be = dsBe, boiMaMs = bm)
+        return copy(chot = caMay, be = be + (conId to cua), boiMa = if (bm > 0) this.boiMa + (conId to bm) else this.boiMa)
     }
 
-    /** Thân `dong-bo`: mỗi (bé, app) một dòng, phút = TỔNG CỦA BÉ hôm nay (≤ 300 dòng). `coCon` = gửi `con` (máy có PIN theo bé). */
-    fun thanDongBo(clientTime: String, coCon: Boolean): JSONObject {
+    /** Phút bởi mã chưa báo của bé `conId` (đếm lùi tại chỗ không trừ phần này — máy chủ không trừ sao). */
+    fun phutBoiMa(conId: String?): Int = ((boiMa[conId ?: BE_MAY] ?: 0L) / 60_000).toInt()
+
+    /**
+     * Thân `dong-bo`: mỗi (bé, app) một dòng, phút = TỔNG CỦA BÉ trong ngày (≤ 300 dòng, hôm nay trước, ngày cũ gửi bù sau).
+     * `coCon` = gửi `con` (máy có PIN theo bé). `conHienTai` = bé máy chủ đang coi là người dùng máy — `phutBoiMa` máy chủ chỉ áp cho bé đó.
+     */
+    fun thanDongBo(clientTime: String, coCon: Boolean, conHienTai: String?): JSONObject {
         val ds = JSONArray()
-        for ((con, apps) in be) for ((app, ms) in apps) {
-            val phut = (ms / 60_000).toInt()
-            if (phut <= 0 || ds.length() >= 300) continue
-            ds.put(JSONObject().put("muc", app).put("phut", phut).put("day", ngay).apply { if (coCon && con != BE_MAY) put("con", con) })
+        fun them(day: String, sobe: Map<String, Map<String, Long>>) {
+            for ((con, apps) in sobe) for ((app, ms) in apps) {
+                val phut = (ms / 60_000).toInt()
+                if (phut <= 0 || ds.length() >= 300) continue
+                ds.put(JSONObject().put("muc", app).put("phut", phut).put("day", day).apply { if (coCon && con != BE_MAY) put("con", con) })
+            }
         }
-        return JSONObject().put("clientTime", clientTime).put("usage", ds).apply { phutBoiMa().takeIf { it > 0 }?.let { put("phutBoiMa", it) } }
+        them(ngay, be)
+        ngayCu?.let { them(it, beCu) }
+        return JSONObject().put("clientTime", clientTime).put("usage", ds)
+            .apply { phutBoiMa(conHienTai).takeIf { it > 0 }?.let { put("phutBoiMa", it) } }
     }
 
-    fun phutBoiMa(): Int = (boiMaMs / 60_000).toInt()
+    /** Máy chủ đã nhận lượt gửi: trừ `daGui` phút bởi mã của bé `conId` (phần lẻ giữ lại, chỉ khi còn cùng ngày) và xoá sổ ngày cũ đã gửi. */
+    fun daGui(ngayGui: String, conId: String?, daGui: Int, ngayCuGui: String?): SoPhutBe {
+        val k = conId ?: BE_MAY
+        val bm = if (ngayGui == ngay && daGui > 0) boiMa + (k to ((boiMa[k] ?: 0L) - daGui * 60_000L).coerceAtLeast(0)) else boiMa
+        return if (ngayCuGui != null && ngayCuGui == ngayCu) copy(boiMa = bm, ngayCu = null, beCu = emptyMap()) else copy(boiMa = bm)
+    }
 
-    /** Máy chủ đã nhận `daGui` phút bởi mã ⇒ trừ khỏi phần chờ (phần lẻ giữ lại). */
-    fun daGuiBoiMa(daGui: Int): SoPhutBe = copy(boiMaMs = (boiMaMs - daGui * 60_000L).coerceAtLeast(0))
-
-    fun json(): String = JSONObject().put("ngay", ngay).put("boiMaMs", boiMaMs)
-        .put("chot", JSONObject().apply { chot.forEach { (k, v) -> put(k, v) } })
-        .put("be", JSONObject().apply { be.forEach { (c, m) -> put(c, JSONObject().apply { m.forEach { (k, v) -> put(k, v) } }) } })
-        .toString()
+    fun json(): String {
+        fun m(x: Map<String, Long>) = JSONObject().apply { x.forEach { (k, v) -> put(k, v) } }
+        fun mm(x: Map<String, Map<String, Long>>) = JSONObject().apply { x.forEach { (c, v) -> put(c, m(v)) } }
+        return JSONObject().put("ngay", ngay).put("chot", m(chot)).put("be", mm(be)).put("boiMa", m(boiMa))
+            .apply { ngayCu?.let { put("ngayCu", it); put("beCu", mm(beCu)) } }.toString()
+    }
 
     companion object {
-        private fun JSONObject.soDai(): Map<String, Long> = keys().asSequence().associateWith { optLong(it) }
+        private fun JSONObject?.soDai(): Map<String, Long> = this?.keys()?.asSequence()?.associateWith { optLong(it) } ?: emptyMap()
+        private fun JSONObject?.soBe(): Map<String, Map<String, Long>> = this?.keys()?.asSequence()?.associateWith { optJSONObject(it).soDai() } ?: emptyMap()
         fun doc(s: String?): SoPhutBe = try {
             if (s.isNullOrBlank()) SoPhutBe() else JSONObject(s).let { o ->
-                val b = o.optJSONObject("be") ?: JSONObject()
-                SoPhutBe(o.optString("ngay"), (o.optJSONObject("chot") ?: JSONObject()).soDai(),
-                    b.keys().asSequence().associateWith { (b.optJSONObject(it) ?: JSONObject()).soDai() }, o.optLong("boiMaMs"))
+                SoPhutBe(o.optString("ngay"), o.optJSONObject("chot").soDai(), o.optJSONObject("be").soBe(), o.optJSONObject("boiMa").soDai(),
+                    o.optString("ngayCu").ifBlank { null }, o.optJSONObject("beCu").soBe())
             }
         } catch (_: Exception) { SoPhutBe() }
     }

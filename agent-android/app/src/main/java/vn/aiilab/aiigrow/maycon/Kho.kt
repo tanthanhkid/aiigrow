@@ -72,12 +72,14 @@ class Kho(ctx: Context) {
     var baMeDen: Long get() = p.getLong("baMeDen", 0); set(v) = p.edit().putLong("baMeDen", v).apply()
     var demPin: String? get() = p.getString("demPin", null); set(v) = p.edit().putString("demPin", v).apply()
     var viecCho: String? get() = p.getString("viecCho", null); set(v) = p.edit().putString("viecCho", v).apply()
-    /** Máy dùng chung: mốc phút giải trí cả máy lúc bé hiện tại vào (logic/PinBe.kt › MocPhut, JSON). */
     /** 15/11: sổ phút theo bé (logic/SoPhutBe.kt) — gửi `dong-bo {usage[].con, phutBoiMa}` để máy chủ trừ sao. */
     var soPhutBe: String? get() = p.getString("soPhutBe", null); set(v) = p.edit().putString("soPhutBe", v).apply()
     /** 15/11: lời xin vay sao lưu lúc mất mạng (thân JSON) — có mạng là gửi (them-qpj5mdyr «Đã lưu lời xin»). */
     var xinVayCho: String? get() = p.getString("xinVayCho", null); set(v) = p.edit().putString("xinVayCho", v).apply()
     var xinVayChoLuc: Long get() = p.getLong("xinVayChoLuc", 0); set(v) = p.edit().putLong("xinVayChoLuc", v).apply()
+    /** Bé gửi lời xin vay đã lưu ("" = máy riêng / không rõ) — bé đổi thì lời xin đó huỷ, không gửi nhầm bé. */
+    var xinVayChoCon: String? get() = p.getString("xinVayChoCon", null); set(v) = p.edit().putString("xinVayChoCon", v).apply()
+    /** Máy dùng chung: mốc phút giải trí cả máy lúc bé hiện tại vào (logic/PinBe.kt › MocPhut, JSON). */
     var mocBe: String? get() = p.getString("mocBe", null); set(v) = p.edit().putString("mocBe", v).apply()
     var lanDoiNguoi: Long get() = p.getLong("lanDoiNguoi", 0); set(v) = p.edit().putLong("lanDoiNguoi", v).apply()
 

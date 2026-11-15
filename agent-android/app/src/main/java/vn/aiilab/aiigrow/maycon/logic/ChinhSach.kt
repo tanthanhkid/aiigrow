@@ -31,10 +31,7 @@ data class Quy(val ngayPhut: Int, val themPhut: Int, val daDung: Int, val conPhu
 }
 /** 15/11 (#263/#264 — docs/API.md «Sổ sao 15/11»): sổ sao của bé đang dùng máy. `sao` = số dư Con thấy (ÂM khi nợ Ba Mẹ),
  *  `phutCon` = sao tiêu được = phút «Tính phút» còn chơi (1 sao = 1 phút), `hetSao` ⇒ khoá nhóm «Tính phút». */
-data class Sao(
-    val sao: Int, val no: Int, val phutCon: Int, val saoVayChuaTieu: Int = 0, val hetSao: Boolean = phutCon <= 0, val canhBaoNo: Boolean = false,
-    val cauSoDu: String? = null, val cauPhut: String? = null, val cauNo: String? = null,
-)
+data class Sao(val sao: Int, val no: Int, val phutCon: Int, val hetSao: Boolean = phutCon <= 0)
 /** Giờ học: chỉ app Học (thu 0 = CN). */
 data class GioHoc(val tu: String, val den: String, val thu: List<Int>) { val khung get() = Khung(tu, den) }
 /** Ngoại lệ Ba Mẹ mở: `muc` null = cả máy; `nhom` = nhóm máy (may_tinh | ios | android). */
@@ -176,14 +173,11 @@ fun docChinhSach(o: JSONObject): ChinhSach {
     )
 }
 
-/** `{sao, no, phutCon, saoVayChuaTieu, hetSao, canhBaoNo, cau {soDu, phut, no}}` (Policy / chính sách chung / hoc-vien/sao). */
+/** `{sao, no, phutCon, hetSao, …}` (Policy / chính sách chung) — agent chỉ cần số dư, nợ, phút còn, hết sao; câu chữ dựng tại máy. */
 fun docSao(o: JSONObject?): Sao? {
     if (o == null || !o.has("sao") || !o.has("phutCon")) return null
-    val c = o.optJSONObject("cau")
     val phut = o.optInt("phutCon", 0).coerceAtLeast(0)
-    return Sao(o.optInt("sao", 0), o.optInt("no", 0).coerceAtLeast(0), phut, o.optInt("saoVayChuaTieu", 0).coerceAtLeast(0),
-        if (o.has("hetSao")) o.optBoolean("hetSao") else phut <= 0, o.optBoolean("canhBaoNo"),
-        c?.chuoi("soDu"), c?.chuoi("phut"), c?.chuoi("no"))
+    return Sao(o.optInt("sao", 0), o.optInt("no", 0).coerceAtLeast(0), phut, if (o.has("hetSao")) o.optBoolean("hetSao") else phut <= 0)
 }
 
 fun docPhanHoiNhip(s: String): PhanHoiNhip {

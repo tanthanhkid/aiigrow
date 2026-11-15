@@ -27,7 +27,6 @@ class SoSaoTest {
             "sao":{"sao":-20,"no":20,"phutCon":0,"saoVayChuaTieu":0,"hetSao":true,"canhBaoNo":false,
                    "cau":{"soDu":"−20 sao","phut":"Hết sao — xin Ba Mẹ cho vay sao nhé","no":"Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước"}}}"""))
         assertEquals(-20, c.sao!!.sao); assertEquals(20, c.sao!!.no); assertTrue(c.sao!!.hetSao)
-        assertEquals("Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước", c.sao!!.cauNo)
         assertFalse(c.moHet)
         assertTrue(docChinhSach(JSONObject("""{"ungDung":{"cheDo":"mo_het","chuaXep":"cho_phep"}}""")).moHet)
         // máy chủ cũ: không sao, không cheDo ⇒ null (chạy luật quỹ); «mo_het» cũ (cheDoChan) không phải Mở hết 15/11
@@ -70,7 +69,6 @@ class SoSaoTest {
         assertEquals(TrangThai.HET_GIO, hs.trangThai); assertEquals(-20, hs.soDu)
         assertEquals("−20 sao", soSao(-20)); assertEquals("18 sao", soSao(18))
         assertEquals("Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước", cauNoSao(20)); assertNull(cauNoSao(0))
-        assertEquals("còn 18 sao = 18 phút chơi", cauPhutSao(18))
     }
 
     @Test fun moHetKhongChanKhongDem() {
@@ -82,6 +80,18 @@ class SoSaoTest {
         assertNull("Mở hết ⇒ không nhắc giờ", giayConTruocKhoa(q, null, 0))
         // Ba Mẹ khoá máy vẫn khoá
         assertEquals(TrangThai.KHOA_NGAY, quyetDinh(c.copy(khoaNgay = true), vn("19:30"), 0, daCai, null).trangThai)
+    }
+
+    @Test fun phutBoiMaKhongTruDemLui() {
+        // nhịp lúc 0 phút, 30 sao; chơi 40 phút trong đó 20 phút lúc mở bằng mã ⇒ còn 10, không «Hết sao»
+        val q = quyetDinh(cs, vn("19:30"), 40, daCai, null, phutLucNhip = 0, ngayNhip = "2026-11-15", phutBoiMa = 20)
+        assertEquals(TrangThai.BINH_THUONG, q.trangThai); assertEquals(10, q.conPhut)
+    }
+
+    @Test fun khoaUuTienHonNhanMoHet() {
+        val c = cs.copy(cheDo = "mo_het", khoaNgay = true)
+        val q = quyetDinh(c, vn("19:30"), 0, daCai, null)
+        assertEquals(TrangThai.KHOA_NGAY, q.trangThai); assertFalse(q.moHet)
     }
 
     @Test fun maOfflineMoHetKhongTruSao() {
@@ -107,27 +117,41 @@ class SoSaoTest {
         so = so.chotToi("2026-11-15", mapOf("com.google.android.youtube" to 3_600_000L, "vn.olm.app" to 120_000L), "be-a", tp, false)  // Bảo Anh vào lại +10, +2 học
         assertEquals(1_800_000L, so.be["be-a"]!!["com.google.android.youtube"])
         assertEquals(600_000L, so.be["be-m"]!!["com.google.android.youtube"])
-        val than = so.thanDongBo("2026-11-15T12:00:00Z", coCon = true)
+        val than = so.thanDongBo("2026-11-15T12:00:00Z", coCon = true, conHienTai = "be-a")
         val ds = than.getJSONArray("usage")
         val dong = (0 until ds.length()).map { ds.getJSONObject(it) }.associate { "${it.optString("con")}|${it.getString("muc")}" to it.getInt("phut") }
         assertEquals(mapOf("be-a|com.google.android.youtube" to 30, "be-a|vn.olm.app" to 2, "be-m|com.google.android.youtube" to 10), dong)
         assertFalse(than.has("phutBoiMa"))
         // sổ lưu / đọc lại
         assertEquals(so, SoPhutBe.doc(so.json()))
-        // sang ngày ⇒ sổ mới, mốc = hôm nay
+        // sang ngày ⇒ sổ mới, mốc = hôm nay; sổ hôm qua gửi bù (day cũ) rồi xoá khi máy chủ nhận
         val mai = so.chotToi("2026-11-16", mapOf("com.google.android.youtube" to 60_000L), "be-a", tp, false)
-        assertTrue(mai.be.isEmpty()); assertEquals("2026-11-16", mai.ngay)
+        assertTrue(mai.be.isEmpty()); assertEquals("2026-11-16", mai.ngay); assertEquals("2026-11-15", mai.ngayCu)
+        val bu = mai.thanDongBo("t", true, "be-a").getJSONArray("usage")
+        assertEquals(3, bu.length()); assertEquals("2026-11-15", bu.getJSONObject(0).getString("day"))
+        val xong = mai.daGui("2026-11-16", "be-a", 0, "2026-11-15")
+        assertNull(xong.ngayCu); assertTrue(xong.beCu.isEmpty())
     }
 
     @Test fun soPhutTheoBe_boiMaVaMayRieng() {
         val tp = setOf("com.google.android.youtube")
         var so = SoPhutBe().chotToi("2026-11-15", emptyMap(), BE_MAY, tp, false)
         so = so.chotToi("2026-11-15", mapOf("com.google.android.youtube" to 900_000L, "vn.olm.app" to 300_000L), BE_MAY, tp, boiMa = true)
-        assertEquals("chỉ app Tính phút lúc mở bằng mã", 15, so.phutBoiMa())
-        val than = so.thanDongBo("t", coCon = false)
+        assertEquals("chỉ app Tính phút lúc mở bằng mã", 15, so.phutBoiMa(BE_MAY))
+        val than = so.thanDongBo("t", coCon = false, conHienTai = BE_MAY)
         assertEquals(15, than.getInt("phutBoiMa"))
         assertFalse("máy riêng không gửi con", than.getJSONArray("usage").getJSONObject(0).has("con"))
-        assertEquals(0, so.daGuiBoiMa(15).phutBoiMa())
+        assertEquals(0, so.daGui("2026-11-15", BE_MAY, 15, null).phutBoiMa(BE_MAY))
+        // phút bởi mã theo bé: bé khác đang dùng ⇒ không gửi phần của bé trước
+        val chung = SoPhutBe().chotToi("2026-11-15", emptyMap(), "a", tp, false)
+            .chotToi("2026-11-15", mapOf("com.google.android.youtube" to 600_000L), "a", tp, boiMa = true)
+        assertEquals(10, chung.phutBoiMa("a")); assertEquals(0, chung.phutBoiMa("m"))
+        assertFalse(chung.thanDongBo("t", true, "m").has("phutBoiMa"))
+        // qua ngày: phút bởi mã hôm qua KHÔNG mang sang hôm nay
+        assertEquals(0, chung.chotToi("2026-11-16", emptyMap(), "a", tp, false).phutBoiMa("a"))
+        // đã gửi nhưng sổ đã sang ngày ⇒ không trừ nhầm phần hôm nay
+        val sau = chung.chotToi("2026-11-16", emptyMap(), "a", tp, false)
+        assertEquals(sau, sau.daGui("2026-11-15", "a", 10, null))
         assertEquals(BE_MAY, beGhiPhut(Cong.MO, null)); assertEquals("x", beGhiPhut(Cong.CON, "x"))
         assertNull(beGhiPhut(Cong.BA_ME, "x")); assertNull(beGhiPhut(Cong.CHON_TEN, null))
     }
@@ -149,6 +173,6 @@ class SoSaoTest {
         val hs = docHoSo(JSONObject("""{"mayRieng":false,"mayChung":true,"tenMay":"Máy cả nhà","con":[
             {"id":"a","ten":"Bảo Anh","coPin":true,"sao":18},{"id":"m","ten":"Bảo Minh","coPin":true,"sao":-20},{"id":"c","ten":"Cũ","coPin":false}]}"""), 0)
         assertEquals(listOf(18, -20, null), hs.con.map { it.sao })
-        assertEquals("Máy cả nhà", hs.tenMay); assertTrue(hs.mayChung)
+        assertEquals("Máy cả nhà", hs.tenMay)
     }
 }

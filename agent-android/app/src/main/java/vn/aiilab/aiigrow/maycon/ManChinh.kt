@@ -259,7 +259,7 @@ class ManChinh : Activity() {
         val guiNut = G.nut(this, "") {}
         fun capNhatChon() {
             nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, MUC_VAY[i] == saoChon) }
-            xem.text = "= $saoChon phút chơi hoặc đổi quà · con sẽ nợ $saoChon sao"
+            xem.text = "= $saoChon phút chơi hoặc đổi quà · con sẽ nợ ${ht.no + saoChon} sao"   // nợ sau vay = nợ đang có + N
             guiNut.text = "Xin vay $saoChon sao"
         }
         nutPhut = MUC_VAY.map { s ->
