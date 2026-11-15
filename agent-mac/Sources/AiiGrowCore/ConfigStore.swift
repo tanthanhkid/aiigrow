@@ -21,6 +21,8 @@ public struct CauHinhMay: Codable, Equatable {
   public var quyGiayTuSync: Double = 0
   /// Giây «Tính phút» lúc máy mở bằng mã offline kể từ lần đồng bộ được — gửi `phutBoiMa` (máy chủ không trừ sao phần này).
   public var boiMaGiayTuSync: Double = 0
+  /// Bé của sổ sao trong policyCuoi (máy dùng chung): đổi bé ⇒ bộ đếm sao cục bộ không áp sang bé khác tới lần đồng bộ kế.
+  public var saoCuaBe: String?
   /// Lời xin vay sao lưu lúc mất mạng — có mạng daemon tự gửi (màn «Đã lưu lời xin vay sao»).
   public var xinVayCho: [XinVayCho] = []
   /// Phút dùng theo app đã đếm (giữ ~3 ngày) — gửi TỔNG mỗi lần đồng bộ (máy chủ ghi greatest).
@@ -61,7 +63,7 @@ public struct CauHinhMay: Codable, Equatable {
     cheDo = CheDoAgent.chuan(g(.cheDo, "")) ?? CheDoAgent.giamSat
     policyCuoi = (try? c.decodeIfPresent(Policy.self, forKey: .policyCuoi)) ?? nil
     policyLuc = (try? c.decodeIfPresent(Date.self, forKey: .policyLuc)) ?? nil
-    daDungGiayTuSync = g(.daDungGiayTuSync, 0); quyGiayTuSync = g(.quyGiayTuSync, 0); boiMaGiayTuSync = g(.boiMaGiayTuSync, 0); xinVayCho = g(.xinVayCho, []); demPhut = g(.demPhut, [:]); daHaQuyen = g(.daHaQuyen, [])
+    daDungGiayTuSync = g(.daDungGiayTuSync, 0); quyGiayTuSync = g(.quyGiayTuSync, 0); boiMaGiayTuSync = g(.boiMaGiayTuSync, 0); saoCuaBe = (try? c.decodeIfPresent(String.self, forKey: .saoCuaBe)) ?? nil; xinVayCho = g(.xinVayCho, []); demPhut = g(.demPhut, [:]); daHaQuyen = g(.daHaQuyen, [])
     lienLacCuoi = (try? c.decodeIfPresent(Date.self, forKey: .lienLacCuoi)) ?? nil
     tuChoiTu = (try? c.decodeIfPresent(Date.self, forKey: .tuChoiTu)) ?? nil
     tuChoiCuoi = (try? c.decodeIfPresent(Date.self, forKey: .tuChoiCuoi)) ?? nil
@@ -85,15 +87,23 @@ public struct PhienBu: Codable, Equatable {
   public var giay: Double
   public var batDau: Date
   public var ketThuc: Date
-  /// Phần bù có lúc máy đang mở bằng mã offline (sổ sao 15/11 `phien/bu {boiMa: true}` ⇒ máy chủ không trừ sao phần bù).
-  public var boiMa: Bool?
-  public init(ma: String = UUID().uuidString, id: String, muc: String, giay: Double = 0, batDau: Date, ketThuc: Date, boiMa: Bool? = nil) {
-    self.ma = ma; self.id = id; self.muc = muc; self.giay = giay; self.batDau = batDau; self.ketThuc = ketThuc; self.boiMa = boiMa
+  /// Phần của `giay` rơi vào lúc máy mở bằng mã offline (sổ sao 15/11) — gửi thành lượt bù riêng `{boiMa: true}` (máy chủ không trừ sao phần đó).
+  public var giayBoiMa: Double?
+  public init(ma: String = UUID().uuidString, id: String, muc: String, giay: Double = 0, batDau: Date, ketThuc: Date, giayBoiMa: Double? = nil) {
+    self.ma = ma; self.id = id; self.muc = muc; self.giay = giay; self.batDau = batDau; self.ketThuc = ketThuc; self.giayBoiMa = giayBoiMa
   }
-  public var than: [String: Any] {
-    var t: [String: Any] = ["ma": ma, "id": id, "muc": muc, "phut": (giay / 60 * 100).rounded() / 100, "batDau": NgayGio.viet(batDau), "ketThuc": NgayGio.viet(ketThuc)]
-    if boiMa == true { t["boiMa"] = true }
-    return t
+  private func mot(_ m: String, _ g: Double) -> [String: Any] {
+    ["ma": m, "id": id, "muc": muc, "phut": (g / 60 * 100).rounded() / 100, "batDau": NgayGio.viet(batDau), "ketThuc": NgayGio.viet(ketThuc)]
+  }
+  /// Lượt thường (phần không mở bằng mã).
+  public var than: [String: Any] { mot(ma, max(0, giay - (giayBoiMa ?? 0))) }
+  /// Các lượt gửi: phần thường + phần mở bằng mã (`boiMa: true`, mã riêng ⇒ gửi lại không trừ đôi). Phần < 1 giây bỏ.
+  public var thanDs: [[String: Any]] {
+    let bm = min(giay, max(0, giayBoiMa ?? 0))
+    var ds: [[String: Any]] = []
+    if giay - bm >= 1 { ds.append(than) }
+    if bm >= 1 { var t = mot(ma + "-bm", bm); t["boiMa"] = true; ds.append(t) }
+    return ds
   }
 }
 

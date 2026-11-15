@@ -67,7 +67,6 @@ struct XinMoView: View {
     .padding(22).padding(.bottom, 12).frame(width: 440).nenClay()   // đáy dư cho bóng thẻ (lệch 16 + mờ 15)
     .foregroundColor(ClayMau.chu)
     .animation(ClayMotion.bat, value: xin.daGui)
-    .onAppear { if !appBanDau.isEmpty, appBanDau.contains("."), !appBanDau.hasSuffix(".app") { loai = "web" } }
   }
 }
 
@@ -313,7 +312,7 @@ struct ManKhoaView: View {
   @ObservedObject var app: AppConModel = AppConModel(goi: { _ in .loi(ma: "", chu: "") })
   var doiBe: () -> Void = {}
   var baMeMoMay: () -> Void = {}
-  enum Khoi: Equatable { case khong, xin, ma }
+  enum Khoi: Equatable { case khong, xin, ma, nhiemVu }
   @State private var khoi: Khoi = .khong
 
   private var ten: String { tray.tt?.beTen ?? tray.tt?.tenCon ?? "Con" }
@@ -358,6 +357,23 @@ struct ManKhoaView: View {
     }
   }
 
+  /// «Làm nhiệm vụ» ngay trên màn khoá (cửa sổ app không nổi trên màn khoá): việc chưa làm + số sao; nộp bài trong app khi máy mở.
+  @ViewBuilder private var nhiemVuNgay: some View {
+    let ds = ManMac.nhomNhiemVu(app.tq?.nhiemVu ?? []).chuaLam
+    VStack(alignment: .leading, spacing: 8) {
+      Text(ds.isEmpty ? "Chưa có việc nào chờ làm" : "Việc con làm được để kiếm sao").font(.system(size: 17, weight: .bold))
+      ForEach(Array(ds.prefix(5))) { v in
+        HStack {
+          Chu(v.ten, co: 15, dam: .semibold, dong: 1)
+          Text("+\(ChuSao.vien(v.diem))").font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.diemInk)
+            .padding(.horizontal, 10).padding(.vertical, 3).background(Capsule().fill(ClayMau.diemSoft)).fixedSize()
+        }
+      }
+      Chu("Làm xong thì báo Ba Mẹ duyệt — có sao là máy mở lại, con nộp bài trong AiiGrow (mục Nhiệm vụ).", co: 13, mau: ClayMau.chu3)
+    }
+    .foregroundColor(ClayMau.chu)
+  }
+
   @ViewBuilder private func nutHanhDong(hetSao: Bool) -> some View {
     let t = tray.tt
     if hetSao {
@@ -371,10 +387,14 @@ struct ManKhoaView: View {
       }
       .padding(18).clayThe(bo: 30, nen: ClayMau.diemSoft)
       HStack(spacing: 14) {
+        Button { withAnimation(ClayMotion.bat) { khoi = khoi == .nhiemVu ? .khong : .nhiemVu } } label: {
+          HStack(spacing: 8) { HinhFluent(ten: "memo", duPhong: "doc.text", co: 22); Text("Làm nhiệm vụ") }
+        }
+        .buttonStyle(NutClayStyle(kieu: .ngoc, bo: 26, cao: 54))
         Button { xin.moi(); withAnimation(ClayMotion.bat) { khoi = khoi == .xin ? .khong : .xin } } label: {
           HStack(spacing: 8) { HinhFluent(ten: "star", duPhong: "star.fill", co: 22); Text("Xin Ba Mẹ cho vay sao") }
         }
-        .buttonStyle(NutClayStyle(kieu: .ngoc, bo: 26, cao: 54))
+        .buttonStyle(NutClayStyle(kieu: .sang, bo: 26, cao: 54))
         Button { xin.moi(); withAnimation(ClayMotion.bat) { khoi = .xin } } label: {
           HStack(spacing: 8) { HinhFluent(ten: "speech_balloon", duPhong: "bubble.left.fill", co: 22); Text("Nhắn Ba Mẹ") }
         }
@@ -389,6 +409,8 @@ struct ManKhoaView: View {
         .padding(20).clayThe(bo: 28).vaoLanLuot(0)
     case .ma:
       MaOfflineView().padding(20).clayThe(bo: 28).vaoLanLuot(0)
+    case .nhiemVu:
+      nhiemVuNgay.padding(20).clayThe(bo: 28).vaoLanLuot(0)
     case .khong:
       EmptyView()
     }

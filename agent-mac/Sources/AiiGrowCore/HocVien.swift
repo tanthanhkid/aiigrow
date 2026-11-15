@@ -105,6 +105,46 @@ public struct HvQuy: Equatable {
   }
 }
 
+/// GET hoc-vien/sao (máy chủ bù app Con): sổ sao + `lichSu[]` (dòng sổ: «Ba Mẹ cho vay 15 sao», «Chơi Roblox 20 phút») + `appHomNay[]`.
+/// Máy chủ chưa có hai mảng ⇒ rỗng (tray giữ cách hiện cũ).
+public struct HvSao: Equatable {
+  public struct Dong: Equatable, Identifiable {
+    public var id = "", kieu = "", chuThich = ""
+    public var sao = 0
+    public var luc: Date?
+  }
+  public struct App: Equatable {
+    public var ten = "", muc = "", nhom = ""
+    public var phut = 0, sao = 0
+  }
+  public var soSao: SoSao?
+  public var phutChoiHomNay: Int?
+  public var lichSu: [Dong] = []
+  public var appHomNay: [App] = []
+  public init() {}
+  public static func doc(_ raw: Data) -> HvSao? {
+    guard let o = JsonMem.doc(raw), o["sao"] != nil else { return nil }
+    var h = HvSao()
+    h.soSao = SoSao.doc(o)
+    h.phutChoiHomNay = JsonMem.so(o["phutChoiHomNay"])
+    h.lichSu = JsonMem.ds(o["lichSu"]).compactMap { d in
+      guard let c = d["chuThich"] as? String, !c.isEmpty else { return nil }
+      var x = Dong(); x.id = JsonMem.chuoi(d["id"]) ?? UUID().uuidString; x.kieu = d["kieu"] as? String ?? ""; x.chuThich = c
+      x.sao = JsonMem.so(d["sao"]) ?? 0; x.luc = NgayGio.doc(d["luc"] as? String); return x
+    }
+    h.appHomNay = JsonMem.ds(o["appHomNay"]).compactMap { d in
+      guard let t = d["ten"] as? String, !t.isEmpty else { return nil }
+      var a = App(); a.ten = t; a.muc = d["muc"] as? String ?? ""; a.nhom = d["nhom"] as? String ?? ""
+      a.phut = JsonMem.so(d["phut"]) ?? 0; a.sao = JsonMem.so(d["sao"]) ?? 0; return a
+    }
+    return h
+  }
+  /// «Roblox 30 phút · −30 sao» / «Từ điển không tính phút».
+  public static func dongApp(_ a: App) -> String {
+    a.nhom == "khong_tinh_phut" ? "\(a.ten) không tính phút" : "\(a.ten) \(a.phut) phút" + (a.sao > 0 ? " · " + ChuSao.so(-a.sao) + " sao" : "")
+  }
+}
+
 /// GET hoc-vien/tong-quan.
 public struct HvTongQuan: Equatable {
   public var tenCon = ""

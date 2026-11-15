@@ -28,8 +28,9 @@ public enum SaoPhut {
   }
 
   /// Số dư Con thấy tại chỗ (âm được): số dư lúc đồng bộ − phút đã trừ thêm tại chỗ (không xuống dưới phần nợ).
+  /// Máy chủ trước sổ sao (không có `sao {…}`): chỉ hiện `windows.sao` nguyên văn — KHÔNG trừ chéo với `quyConPhut` (hai nguồn khác nhau).
   public static func soDu(_ p: Policy, giay: Double) -> Int? {
-    guard let s = p.soSao ?? p.saoCon.map({ SoSao(sao: $0) }) else { return nil }
+    guard let s = p.soSao else { return p.saoCon }
     guard !p.moHet, let c = conPhut(p, giay: giay) else { return s.sao }
     return s.sao - max(0, s.phutCon - c)
   }

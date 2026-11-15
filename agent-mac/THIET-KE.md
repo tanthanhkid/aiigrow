@@ -47,7 +47,9 @@ lệnh của Con chỉ nhận từ uid Con; `ghep` chỉ từ uid nhóm admin v�
 - **Sao = phút** (`SaoPhut.swift`, `SoSao.swift`): gốc dong-bo `sao {sao, no, phutCon, hetSao…}` ⇒ `Policy.soSao`. Daemon đếm lùi `phutCon` theo giây app
   «Tính phút» (`appTinhGio`, rỗng ⇒ `playChoices`) ở tiền cảnh, cả lúc mất mạng; hết ⇒ bỏ app / trang «Tính phút» khỏi danh sách (lý do `het_sao`),
   nhóm «Không tính phút» vẫn mở. Máy chủ cũ (không có `sao`) ⇒ dùng `quyConPhut`. Đã bỏ: quỹ ngày, đổi sao lấy giờ (`hoc-vien/doi-sao`),
-  ngoại lệ (`xinNgoaiLe`), giờ ngủ / giờ học, app «Chặn» (`blockedApps`).
+  ngoại lệ (`xinNgoaiLe`), giờ ngủ / giờ học. `blockedApps` máy chủ mới gửi rỗng; khác rỗng (máy chủ cũ) vẫn đóng như trước.
+- Máy chung: sổ sao trong Policy gắn bé lúc đồng bộ (`saoCuaBe`); đổi bé ⇒ bộ đếm sao cục bộ đặt lại, không hiện / không áp sổ sao bé trước tới lần đồng bộ kế. Dòng usage không-bé (bản cũ) gộp vào bé đang dùng. `phien/bu` tách phần mở bằng mã thành lượt riêng `{boiMa: true}`. Lời xin vay chờ mạng tối đa 3 (5xx cũng coi là mất mạng).
+- `hoc-vien/sao` (`lichSu[]`, `appHomNay[]`, `phutChoiHomNay`) đọc có điều kiện: dòng sổ sao ở Hôm nay đang nợ / Sao & quà, «Roblox 30 phút · −30 sao».
 - **Mở hết** (`windows.moHet` / gốc `cheDo: mo_het`): không đếm, không đóng, không trừ sao. **Mở bằng mã offline**: không trừ sao, không đóng; giây «Tính phút»
   lúc đó cộng vào `boiMaGiayTuSync` ⇒ `dong-bo {phutBoiMa}`; `phien/bu {boiMa: true}`.
 - **Máy chung**: `usage[].con` = bé đang dùng (khoá `DemPhut` «ngày|app|bé», phút = tổng của bé); «Đổi bé» đồng bộ trước khi thả bé (chốt phút).

@@ -191,6 +191,15 @@ public enum DemPhut {
     d[khoa(ngay: ngay, app: app, con: con), default: 0] += giay
   }
 
+  /// Gộp dòng không-bé (bản trước #267 / trước khi biết bé) vào bé đang dùng — máy chủ không nhận song song hai dòng cho cùng (ngày, app).
+  public static func gopVaoBe(_ d: inout [String: Double], con: String) {
+    for (k, giay) in d {
+      guard let t = tach(k), t.con == nil else { continue }
+      d[k] = nil
+      d[khoa(ngay: t.ngay, app: t.app, con: con), default: 0] += giay
+    }
+  }
+
   /// Tách khoá ⇒ (ngày, app, bé?).
   public static func tach(_ k: String) -> (ngay: String, app: String, con: String?)? {
     let p = k.split(separator: "|", omittingEmptySubsequences: false).map(String.init)

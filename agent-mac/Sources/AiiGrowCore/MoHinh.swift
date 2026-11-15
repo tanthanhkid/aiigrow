@@ -99,6 +99,8 @@ public struct Policy: Codable, Equatable {
   /// Chế độ Ba Mẹ chọn trên app — «giam-sat» | «chan»; nil = chưa chọn (giữ chế độ cục bộ).
   public var cheDo: String?
   public var web: ChinhSachWeb?
+  /// App Ba Mẹ đặt «Chặn» (DanhSachApp.swift). Máy chủ #262 luôn gửi rỗng (bỏ «Chặn»); khác rỗng (máy chủ cũ) thì vẫn đóng ở MỌI mode khi chặn thật.
+  public var blockedApps: [AppBiChan] = []
   /// App / trang Giải trí Ba Mẹ đã xếp — cửa sổ «Chơi bằng điểm» cho Con chọn (máy chủ: agent-windows.ts › playChoices; phien/xet vẫn quyết).
   public var playChoices: [String] = []
   /// Phiên chơi bằng điểm đang mở TRÊN MÁY NÀY (máy chủ chỉ gửi cho máy sở hữu phiên) — daemon gửi phien/nhip cho phiên này.
@@ -157,6 +159,7 @@ public struct Policy: Codable, Equatable {
     quyConPhut = so(.quyConPhut); quyTongPhut = so(.quyTongPhut); quyDaDung = so(.quyDaDung)
     appTinhGio = (((try? c.decodeIfPresent([String].self, forKey: .appTinhGio)) ?? nil) ?? [])
       .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() }.filter { !$0.isEmpty }
+    blockedApps = AppBiChan.docDs(c, .blockedApps)
     soSao = (try? c.decodeIfPresent(SoSao.self, forKey: .soSao)) ?? nil
     if let d = (try? c.decodeIfPresent(Double.self, forKey: .sao)) ?? nil, d.isFinite { saoCon = Int(d.rounded(.down)) }
     else { saoCon = (try? c.decodeIfPresent(Int.self, forKey: .saoCon)) ?? nil }
@@ -188,13 +191,14 @@ public struct Policy: Codable, Equatable {
     try c.encodeIfPresent(quyTongPhut, forKey: .quyTongPhut)
     try c.encodeIfPresent(quyDaDung, forKey: .quyDaDung)
     if !appTinhGio.isEmpty { try c.encode(appTinhGio, forKey: .appTinhGio) }
+    if !blockedApps.isEmpty { try c.encode(blockedApps, forKey: .blockedApps) }
     try c.encodeIfPresent(soSao, forKey: .soSao)
     try c.encodeIfPresent(saoCon, forKey: .saoCon)
     if moHet { try c.encode(moHet, forKey: .moHet) }
   }
 
   enum CodingKeys: String, CodingKey {
-    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, playChoices, playSessionId, playApp, playWeb, playOfflineMinutes, maOfflineBiMat
+    case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps, playChoices, playSessionId, playApp, playWeb, playOfflineMinutes, maOfflineBiMat
     case quyConPhut, quyTongPhut, quyDaDung, appTinhGio, soSao, saoCon, sao, moHet
   }
 }

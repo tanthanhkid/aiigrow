@@ -191,7 +191,7 @@ public struct PhienMay: Codable, Equatable, Sendable {
       // giờ ngủ / Ba Mẹ khoá vẫn giữ (đếm ngược đăng xuất chạy tiếp — «Đổi bé» không thoát được giờ ngủ); chỉ không tự KHOÁ vì «chưa ai vào»
       h.moDen = nil; h.chiAppHoc = true
     case let .baMe(den)? where (den ?? .distantFuture) > now:
-      q.mode = CheDo.tuDo.rawValue; q.appTinhGio = []
+      q.mode = CheDo.tuDo.rawValue; q.blockedApps = []; q.appTinhGio = []
       h.khoa = false; h.lyDoKhoa = nil; h.chiAppHoc = false; h.moDen = den
     default: break
     }

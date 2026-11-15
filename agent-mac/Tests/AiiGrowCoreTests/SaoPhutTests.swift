@@ -223,4 +223,55 @@ final class SaoPhutTests: XCTestCase {
     XCTAssertEqual(s.yeuCauCho.first?.loai, "cai_app"); XCTAssertEqual(s.yeuCauCho.first?.muc, "YouTube")
     XCTAssertEqual(s.yeuCauCho.first?.trangThai, "duyet"); XCTAssertEqual(s.yeuCauCho.first?.nhom, "khong_tinh_phut")
   }
+
+  // MARK: review lượt 1
+
+  func testMayChuCuKhongTruCheoHaiNguon() {
+    var p = policyMau(mode: "hoc", allowed: ["com.roblox.roblox"], now: now)
+    p.appTinhGio = ["com.roblox.roblox"]; p.saoCon = 40; p.quyConPhut = 10
+    XCTAssertEqual(SaoPhut.soDu(p, giay: 300), 40, "không có sổ sao ⇒ hiện windows.sao nguyên văn")
+    XCTAssertEqual(SaoPhut.conPhut(p, giay: 300), 5, "được chơi theo quyConPhut")
+  }
+
+  func testGopDongKhongBeVaPhienBuTachBoiMa() {
+    var d: [String: Double] = [:]
+    DemPhut.cong(&d, ngay: "2026-11-15", app: "com.roblox.roblox", giay: 600)
+    DemPhut.cong(&d, ngay: "2026-11-15", app: "com.roblox.roblox", giay: 120, con: "c1")
+    DemPhut.gopVaoBe(&d, con: "c1")
+    XCTAssertEqual(DemPhut.tong(d), [MucDung(muc: "com.roblox.roblox", phut: 12, day: "2026-11-15", con: "c1")])
+    var bu = PhienBu(ma: "m", id: "p1", muc: "com.roblox.roblox", giay: 600, batDau: now, ketThuc: now, giayBoiMa: 240)
+    XCTAssertEqual(bu.thanDs.map { $0["phut"] as? Double }, [6, 4])
+    XCTAssertEqual(bu.thanDs.map { $0["boiMa"] as? Bool }, [nil, true])
+    XCTAssertEqual(bu.thanDs.last?["ma"] as? String, "m-bm")
+    bu.giayBoiMa = nil
+    XCTAssertEqual(bu.thanDs.count, 1)
+  }
+
+  func testDocHvSao() {
+    let h = HvSao.doc(Data(#"{"sao":-20,"no":30,"phutCon":10,"phutChoiHomNay":42,"lichSu":[{"id":1,"kieu":"vay","sao":30,"chuThich":"Ba Mẹ cho vay 30 sao · chơi"},{"id":2,"kieu":"choi","sao":-30,"chuThich":"Chơi Roblox 30 phút"}],"appHomNay":[{"ten":"Roblox","muc":"com.roblox.roblox","phut":30,"nhom":"tinh_phut","sao":30},{"ten":"Từ điển","phut":10,"nhom":"khong_tinh_phut","sao":0}]}"#.utf8))
+    XCTAssertEqual(h?.soSao?.sao, -20); XCTAssertEqual(h?.phutChoiHomNay, 42)
+    XCTAssertEqual(h?.lichSu.map(\.chuThich), ["Ba Mẹ cho vay 30 sao · chơi", "Chơi Roblox 30 phút"])
+    XCTAssertEqual(h?.appHomNay.map(HvSao.dongApp), ["Roblox 30 phút · \u{2212}30 sao", "Từ điển không tính phút"])
+    XCTAssertEqual(HvSao.doc(Data(#"{"sao":5}"#.utf8))?.lichSu, [], "máy chủ chưa có lichSu ⇒ rỗng")
+  }
+
+  /// 5xx = mất mạng ⇒ lưu chờ; hàng chờ đủ 3 ⇒ báo rõ, không nhận thêm (không bỏ lặng lẽ).
+  func testXinVay5xxLuuVaGioiHanHangCho() async throws {
+    let tm = try tamThuMuc()
+    let fake = HeThongGia(), dongHo = DongHoGia(), api = MayChuGia()
+    api.dongBoTraVe = .tu(policyMau(mode: CheDo.hoc.rawValue, now: dongHo.thuc), next: 600)
+    let (b, kho) = try boMay(tm, api: api, fake: fake, dongHo: dongHo)
+    _ = await b.motVong()
+    api.xinVayLoi = LoiApi(maHttp: 502, chu: "Bad gateway")
+    for _ in 0..<3 {
+      guard case .thongBao("cho_mang") = await b.xuLyIPC(.xinVay(soSao: 15, mucDich: nil, quaId: nil, loiNhan: nil), uidGoi: 501) else { return XCTFail() }
+    }
+    guard case let .loi(ma, chu) = await b.xuLyIPC(.xinVay(soSao: 10, mucDich: nil, quaId: nil, loiNhan: nil), uidGoi: 501) else { return XCTFail() }
+    XCTAssertEqual(ma, "cho_qua_nhieu"); XCTAssertTrue(chu.contains("3 lời xin"))
+    XCTAssertEqual(kho.doc()?.xinVayCho.count, 3)
+    dongHo.tien(700); _ = await b.motVong()                    // máy chủ vẫn 5xx ⇒ giữ nguyên hàng chờ
+    XCTAssertEqual(kho.doc()?.xinVayCho.count, 3)
+    api.xinVayLoi = LoiApi(maHttp: 400, ma: "so_sao_sai", chu: "sai")
+    guard case .loi = await b.xuLyIPC(.xinVay(soSao: 15, mucDich: nil, quaId: nil, loiNhan: nil), uidGoi: 501) else { return XCTFail() }
+  }
 }

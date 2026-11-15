@@ -208,7 +208,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   func doiBeXong(moi t: TrangThai) {
     if cuaSoChuoi != nil { chuoiDaBam = true; cuaSoChuoi?.close() }   // «Giỏi lắm!» của bé trước: đóng lặng, không mở app
     cuaSoThoat?.close()                                                  // «Cần mã của Ba Mẹ» của bé trước
-    appCon.tq = nil; appCon.ch = nil; appCon.tin = nil; appCon.tinMoi = 0; appCon.phutChoi = nil
+    appCon.tq = nil; appCon.ch = nil; appCon.tin = nil; appCon.sao = nil; appCon.tinMoi = 0; appCon.phutChoi = nil
     cuaSoTraLoi?.close(); daBaoTraLoi = []
     appCon.viQua = nil; appCon.viQuaDaLuu = false; appCon.tenBe = t.beTen ?? t.tenCon ?? ""
     tinTheo = TinTracker(); xin.moi(); nhac = NhacGio()
@@ -294,16 +294,29 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         nhanBaMe: { [weak self] in self?.cuaSoTraLoi?.close(); self?.moApp(.tinNhan) }))
     } else {
       hienCuaSo(&cuaSoTraLoi, "AiiGrow · Ba Mẹ trả lời", AppKetQuaView(y: y, phutSao: t?.moHet == true ? nil : phut,
-        mo: { [weak self] in self?.cuaSoTraLoi?.close(); if let m = y.muc { TrayApp.moMuc(m) } },
+        mo: { [weak self] in self?.cuaSoTraLoi?.close(); if let m = y.muc { TrayApp.moMuc(m, laWeb: y.loai == "mo_web") } },
         nhanBaMe: { [weak self] in self?.cuaSoTraLoi?.close(); self?.moApp(.tinNhan) },
         veHomNay: { [weak self] in self?.cuaSoTraLoi?.close(); self?.moApp(.homNay) }))
     }
   }
 
-  /// Mở app (bundle id) / trang (tên miền) Ba Mẹ vừa thêm.
-  static func moMuc(_ m: String) {
-    if m.contains("."), !m.hasPrefix("com."), !m.hasPrefix("vn."), !m.hasSuffix(".app"), let u = URL(string: "https://" + m) { NSWorkspace.shared.open(u); return }
-    if let u = NSWorkspace.shared.urlForApplication(withBundleIdentifier: m) { NSWorkspace.shared.openApplication(at: u, configuration: .init()) }
+  /// Mở app / trang Ba Mẹ vừa thêm — theo loại lời xin (`mo_web` = trang, `cai_app` = app), không đoán theo chữ.
+  /// App: thử bundle id rồi tên .app trong /Applications, ~/Applications; không thấy thì thôi (không mở nhầm thành trang web).
+  static func moMuc(_ m: String, laWeb: Bool) {
+    if laWeb {
+      let dc = m.contains("://") ? m : "https://" + m
+      if let u = URL(string: dc) { NSWorkspace.shared.open(u) }
+      return
+    }
+    if let u = TrayApp.timApp(m) { NSWorkspace.shared.openApplication(at: u, configuration: .init()) }
+  }
+
+  static func timApp(_ m: String) -> URL? {
+    if let u = NSWorkspace.shared.urlForApplication(withBundleIdentifier: m) { return u }
+    let ten = m.hasSuffix(".app") ? m : m + ".app"
+    let nha = FileManager.default.homeDirectoryForCurrentUser.path
+    return ["/Applications", "/System/Applications", nha + "/Applications"].map { URL(fileURLWithPath: $0).appendingPathComponent(ten) }
+      .first { FileManager.default.fileExists(atPath: $0.path) }
   }
 
   // MARK: app «AiiGrow của Con»
@@ -417,6 +430,9 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     case SaoPhut.lyDoHetSao, "het_gio":
       v = AnyView(HetSaoView(tenApp: ten, lamNhiemVu: { [weak self] in self?.cuaSoChan?.close(); self?.moApp(.nhiemVu) },
                              xinVay: { [weak self] in self?.cuaSoChan?.close(); self?.moXinVay(tuHetSao: true) }, dong: dong))
+    case "ba_me_chan":                                 // máy chủ cũ còn gửi app «Chặn»
+      v = AnyView(ChuaCoDanhSachView(ten: ten, tieu: "\(ten) chưa được mở", phu: "Ba Mẹ đã chặn app này trên máy.",
+                                     xinMo: { [weak self] in self?.cuaSoChan?.close(); self?.moXinMoApp(ten) }, veHomNay: { [weak self] in self?.cuaSoChan?.close(); self?.moApp(.homNay) }))
     case "trinh_duyet":
       v = AnyView(ChuaCoDanhSachView(ten: ten, tieu: "\(ten) chưa mở được", phu: "Trình duyệt này chưa lọc web được. Con dùng trình duyệt Ba Mẹ cho phép nhé.",
                                      xinMo: { [weak self] in self?.cuaSoChan?.close(); self?.moXinMoApp(ten) }, veHomNay: { [weak self] in self?.cuaSoChan?.close(); self?.moApp(.homNay) }))

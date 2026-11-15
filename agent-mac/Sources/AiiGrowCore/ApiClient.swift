@@ -269,7 +269,10 @@ public final class ApiClient: MayChuApi {
     if let lyDo, !lyDo.isEmpty { body["lyDo"] = lyDo }
     do { return try ApiClient.tachYeuCau(try await gui("POST", "api/device/yeu-cau", body)) }
     catch let e as LoiApi where e.maHttp == 400 && e.ma == "loai_sai" {
-      // máy chủ trước sổ sao chưa biết «vay_sao» ⇒ lời xin thêm giờ cũ (cùng số = số phút)
+      // máy chủ trước sổ sao chưa biết «vay_sao» ⇒ lời xin thêm giờ cũ (cùng số = số phút; máy chủ cũ chỉ nhận 5–240)
+      guard (5...240).contains(so) else {
+        throw LoiApi(maHttp: 400, ma: "so_sao_sai", chu: "Máy chủ chưa hỗ trợ vay sao. Con xin từ 5 đến 240 phút nhé.")
+      }
       return try await taoYeuCau(loai: "them_gio", phut: so, giaTri: nil, lyDo: lyDo ?? "Con xin thêm giờ")
     }
   }

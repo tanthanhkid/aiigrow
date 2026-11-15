@@ -336,8 +336,10 @@ struct AppConView: View {
         if let n = ChuSao.no(s?.no ?? 0) { Chu(n, co: 14, dam: .bold, mau: ClayMau.canh, dong: 2) }
         Chu(t.cheDo == .khoa ? "Đang khoá" : ChuSao.phut(phut) + (het ? dongKhongTinh(t).map { " · \($0) vẫn mở (không tính phút)" } ?? "" : ""),
             co: 15, dam: .bold, mau: ClayMau.ngocInk, dong: 2)
-        if !het, let da = app.tq?.quy?.daDung, da > 0 { Chu("Hôm nay đã chơi \(da) phút · đã trả \(ChuSao.so(da)) sao", co: 14, dam: .semibold, dong: 1) }
-        if let ds = t.homNayTheoApp, !ds.isEmpty {
+        if !het, let da = app.sao?.phutChoiHomNay ?? app.tq?.quy?.daDung, da > 0 { Chu("Hôm nay đã chơi \(da) phút · đã trả \(ChuSao.so(da)) sao", co: 14, dam: .semibold, dong: 1) }
+        if let ah = app.sao?.appHomNay, !ah.isEmpty {                // máy chủ: phút gộp mọi máy của Con
+          Chu(ah.prefix(3).map(HvSao.dongApp).joined(separator: " · "), co: 13, mau: ClayMau.chu3, dong: 1)
+        } else if let ds = t.homNayTheoApp, !ds.isEmpty {
           let tinh = Set(t.dsTinhPhut ?? []), khong = Set(t.dsKhongTinhPhut ?? [])
           let dong = ds.filter { tinh.contains($0.muc) || khong.contains($0.muc) }.prefix(3)
             .map { tinh.contains($0.muc) ? "\(HocVienView.tenMucChoi($0.muc)) \($0.phut) phút" : "\(HocVienView.tenMucChoi($0.muc)) không tính phút" }
@@ -357,6 +359,7 @@ struct AppConView: View {
     let soViecCho = ManMac.nhomNhiemVu(tq?.nhiemVu ?? []).choDuyet.count
     return TheCon(nen: ClayMau.diemSoft) {
       if let (dau, sau) = ManMac.cauHetNo(no: s?.no ?? 0, choDuyet: cho, soViecCho: soViecCho) {
+        lichSuSao(3)
         Chu(dau, co: 18, dam: .bold, mau: ClayMau.diemInk, dong: 1)
         if let sau { Chu(sau, co: 13, dam: .semibold, mau: ClayMau.diemInk, dong: 2) }
       } else {
@@ -512,6 +515,15 @@ struct AppConView: View {
 
   private var quaVay: HvQua? { ManMac.quaXinVay(app.quaHienThi) }
 
+  /// Vài dòng sổ sao gần nhất («Ba Mẹ cho vay 30 sao», «Chơi Roblox 30 phút · −30 sao», «Trả nợ 10 sao · Dọn phòng») — máy chủ có `lichSu` mới hiện.
+  @ViewBuilder private func lichSuSao(_ n: Int) -> some View {
+    if let ls = app.sao?.lichSu, !ls.isEmpty {
+      ForEach(Array(ls.prefix(n))) { d in
+        Chu(d.chuThich + (d.kieu == "choi" ? " · " + ChuSao.vien(d.sao) : ""), co: 13, mau: ClayMau.chu2, dong: 1)
+      }
+    }
+  }
+
   /// Đầu «Sao & quà» (them-r6eya42m / them-r12v4x2d đang nợ).
   private func theSaoQua(_ tq: HvTongQuan) -> some View {
     let s = soSao(tt)
@@ -526,6 +538,7 @@ struct AppConView: View {
           if let n = s?.no, n > 0 {
             Chu("Đang nợ Ba Mẹ \(ChuSao.so(n)) sao", co: 14, dam: .bold, mau: ClayMau.canh, dong: 1)
             Chu("Sao nhiệm vụ trả nợ trước", co: 13, mau: ClayMau.canh, dong: 1)
+            lichSuSao(3)
           }
           if tq.diemChoDuyet > 0 { Chu("+\(ChuSao.so(tq.diemChoDuyet)) sao chờ Ba Mẹ duyệt", co: 13, mau: ClayMau.diemInk, dong: 1) }
           if let g = app.ch?.saoGiu, g > 0 { Chu("Đang giữ \(ChuSao.so(g)) sao chờ Ba Mẹ trao", co: 13, mau: ClayMau.diemInk, dong: 1) }
