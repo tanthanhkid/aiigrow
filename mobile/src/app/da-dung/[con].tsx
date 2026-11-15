@@ -6,16 +6,16 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
-import { gioGon, TieuMuc } from "@/lib/hang-ngay";
+import { TieuMuc } from "@/lib/hang-ngay";
 import { BieuTron, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nhan, The, useTai, type TenIcon } from "@/lib/ui";
 
 type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
   phut: number; tinhGio: boolean; dangMo: boolean; matMang: boolean };
 type DongChan = { luc: string; ten: string; may: string | null; ly: "dang_xin" | "chua_cho" | "grow_chan"; yeuCau: string | null; phut: number | null };
 export type HomNayDung = { ten: string; ngay: string; choi: { daDung: number; tongPhut: number; conPhut: number };
-  hoc: { phut: number; khung: { tu: string; den: string } | null }; dung: DongDung[]; biChan: DongChan[] };
+  hoc: { phut: number; khung: { tu: string; den: string } | null }; /** 15/11 (#262): phút nhóm «Không tính phút» hôm nay */ khongTinhPhut?: { phut: number };
+  dung: DongDung[]; biChan: DongChan[] };
 
-const phutCua = (g: string) => { const m = /^(\d{1,2}):(\d{2})/.exec(g); return m ? Number(m[1]) * 60 + Number(m[2]) : 0; };
 const tenNgan = (may: string | null) => (may ?? "").replace(/ của .*$/, "");
 /** Icon theo tên app (đủ cho các app hay gặp); web → «web». */
 function icCua(x: { ten: string; kieu: "app" | "web"; tinhGio: boolean }): TenIcon {
@@ -31,8 +31,6 @@ export default function DaDung() {
   const { con } = useLocalSearchParams<{ con: string }>();
   const { d, loi, matMang, tai } = useTai(() => bm.goi<HomNayDung>(`con/${con}/hom-nay`));
   if (!d) return <Man lui={{ chu: "Báo cáo" }} tieu="Hôm nay con dùng gì"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const bayGio = new Date().getHours() * 60 + new Date().getMinutes();
-  const hocXong = !!d.hoc.khung && bayGio >= phutCua(d.hoc.khung.den);
   return (
     <Man lui={{ chu: "Báo cáo" }} tieuLon={`${d.ten} đã dùng gì`} tai={tai} vongTai>
       <View style={{ flexDirection: "row", gap: 10 }}>
@@ -43,11 +41,12 @@ export default function DaDung() {
             <Chu co={13} mau={d.choi.conPhut ? M.chinhInk : M.loi}>{d.choi.conPhut ? `Còn ${d.choi.conPhut} phút` : "Hết giờ chơi"}</Chu>
           </The>
         </Pressable>
-        <Pressable onPress={() => router.push(`/gio/hoc?con=${con}` as never)} accessibilityRole="button" style={{ flex: 1 }}>
+        {/* 15/11 (#262): ô «Giờ học» ⇒ «Không tính phút» (app / web nhóm Không tính phút hôm nay — GET hom-nay › khongTinhPhut) */}
+        <Pressable onPress={() => router.push({ pathname: "/chan", params: { con } })} accessibilityRole="button" style={{ flex: 1 }}>
           <The dem style={{ gap: 4, padding: 14 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="sach" co={18} mau={M.chu2} /><Chu kieu="dam" co={13} mau={M.chu2}>Giờ học</Chu></View>
-            <Chu kieu="rat" co={22} so>{`${d.hoc.phut}′`}</Chu>
-            <Chu co={13} mau={M.chu3}>{d.hoc.khung ? `${gioGon(d.hoc.khung.tu)}–${gioGon(d.hoc.khung.den)}${hocXong ? " ✓" : ""}` : "Chưa đặt giờ học"}</Chu>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="sach" co={18} mau={M.chu2} /><Chu kieu="dam" co={13} mau={M.chu2}>Không tính phút</Chu></View>
+            <Chu kieu="rat" co={22} so>{`${d.khongTinhPhut?.phut ?? d.hoc.phut}′`}</Chu>
+            <Chu co={13} mau={M.chu3}>Vào thoải mái, không trừ sao</Chu>
           </The>
         </Pressable>
       </View>

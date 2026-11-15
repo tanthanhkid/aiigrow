@@ -1,12 +1,13 @@
 // bm2-ho-so «Hồ sơ con» (thiết kế chốt 14/11, bm-gio-ho-so/04): chip đổi con (N9); thẻ đầu ảnh + tên + «9 tuổi · 2 máy» + sao, ô «Còn N phút chơi
-// · đã 42/60» có vạch + «Xem ›» (⇒ con dùng gì hôm nay); «Cài đặt của X»: Giờ chơi (60 phút/ngày · T7, CN 90 phút), Giờ ngủ, Giờ học, App & web
-// («Chặn app & web» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
+// · đã 42/60» có vạch + «Xem ›» (⇒ con dùng gì hôm nay); «Cài đặt của X»: Giờ chơi (60 phút/ngày · T7, CN 90 phút), App & web (15/11 #262: bỏ Giờ ngủ, Giờ học)
+// («Theo danh sách» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
 // PIN vào máy (Đặt lại) · «Xoá hồ sơ X» (⇒ /ho-so/<id>/xoa, them-canktzlq). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
+import { cheDoTu } from "@/lib/app-web";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import {
-  CAU_TRONG_GIUP, gioGon, HangViec, mauCon, TieuMuc, quyenToi, SaoVien, soAppDuocMo, tuoiCua, cauThu, type ConCt, type LuatDem, type GioChoi, type GioHoc, type NhiemVuMoi,
+  CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, quyenToi, SaoVien, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type GioChoi, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
 import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
 import { saoChep } from "@/lib/luu-tep";
@@ -40,8 +41,6 @@ export default function HoSoCon() {
   const sao = c.sao ?? c.soDu;
   const homNay = d.gio?.homNay;
   const canSua = c.may.filter((m) => m.baoVe !== "day_du");
-  const hoc = d.gio ? d.gio.gioHoc : (c.lich as { hoc?: GioHoc | null }).hoc ?? null;
-  const ngu = d.gio?.gioNgu ?? c.lich.ngu;
   return (
     <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
       {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
@@ -80,11 +79,8 @@ export default function HoSoCon() {
         {/* thiết kế .lg: tên mục bên trái, giá trị (1–2 dòng nhỏ) canh phải + › */}
         <HangViec dau ic="dongho" mau="cam" tieu="Giờ chơi" phai={<GiaPhai tren={d.gio ? `${d.gio.quyNgayThuong} phút/ngày` : "Quỹ mỗi ngày"} duoi={d.gio ? `T7, CN ${d.gio.quyCuoiTuan} phút` : undefined} />}
           bam={() => router.push(`/gio/${id}` as never)} />
-        <HangViec ic="trang_ngu" mau="tim" tieu="Giờ ngủ" phai={<GiaPhai tren={`${gioGon(ngu.tu)} – ${gioGon(ngu.den)}`} />} bam={() => router.push(`/gio/ngu?con=${id}` as never)} />
-        <HangViec ic="mu" mau="xanh" tieu="Giờ học" phai={<GiaPhai tren={hoc ? `${gioGon(hoc.tu)} – ${gioGon(hoc.den)}` : "Chưa đặt"} duoi={hoc ? cauThu(hoc.thu) : undefined} />}
-          bam={() => router.push(`/gio/hoc?con=${id}` as never)} />
         <HangViec ic="khien" mau="lam" tieu="App & web"
-          phai={<GiaPhai tren={c.cheDoChan === "mo_het" ? "Mở hết" : "Chặn app & web"} duoi={c.cheDoChan === "mo_het" ? "Chỉ chặn web người lớn" : d.duocMo !== null ? `Được mở ${d.duocMo} app` : undefined} />}
+          phai={<GiaPhai tren={cheDoTu(c) === "mo_het" ? "Mở hết" : "Theo danh sách"} duoi={cheDoTu(c) === "mo_het" ? "Không tính phút" : d.duocMo !== null ? `Được mở ${d.duocMo} app` : undefined} />}
           bam={() => router.push(`/app-web?con=${id}` as never)} />
         <HangViec ic="laptop" mau="xam" tieu={`Máy của ${c.ten}`}
           phai={<GiaPhai tren={c.may.length ? `${c.may.length} máy` : "Chưa ghép"} duoi={canSua.length ? `${canSua.map((m) => m.ten.replace(/ của .*$/, "")).join(", ")} cần sửa` : undefined} canh={!!canSua.length} />}

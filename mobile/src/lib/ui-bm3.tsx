@@ -1,10 +1,11 @@
 // Thành phần riêng cho hành trình Ba Mẹ «Ứng dụng & web» + «Cài đặt & hỗ trợ» (docs/thiet-ke-chot/bm-ung-dung, bm-cai-dat — thiết kế chốt 05/11).
 // Chỉ THÊM (không đổi thành phần chung trong ui.tsx): tiêu đề mục chữ thường đậm (.muc), hàng vàng «Con đang xin» (.xin), ô icon lõm (.ic),
-// đèn 3 màu cho app / web (14/11), ô tìm, màn kết quả (Grow + .tin + Hoàn tác), ba nút quyết (.ba). Dùng token Clay (mau.ts, clay.ts).
+// hai nhóm danh sách Tính phút / Không tính phút (15/11 — #262), ô tìm, màn kết quả (Grow + .tin + Hoàn tác), ba nút quyết (.ba). Token Clay (mau.ts, clay.ts).
 import type { ReactNode } from "react";
 import { Image, Pressable, TextInput, View } from "react-native";
 import { router } from "expo-router";
-import { bm, type ManHinhTuan, type YeuCau } from "./api";
+import { bm } from "./api";
+import { MAU_NHOM, PHU_NHOM, TEN_NHOM, type Nhom } from "./app-web";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
 import { Bao, Chu, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, type LinhVat, type TenIcon } from "./ui";
 
@@ -55,101 +56,9 @@ export function HangVang({ ic = "chuong", tieu, phu, nut = "Xem ›", bam, bamNu
     : <View style={st}>{noi}</View>;
 }
 
-export type CheDoChan = "chi_app_duoc_phep" | "mo_het";
-/** Tên hai chế độ chặn (Nghi chốt 14/11 — N2). Mã nội bộ giữ `chi_app_duoc_phep`. */
-export const TEN_CHE_DO: Record<CheDoChan, string> = { mo_het: "Mở hết", chi_app_duoc_phep: "Chặn app & web" };
-export const IC_CHE_DO: Record<CheDoChan, TenIcon> = { mo_het: "mo_khoa", chi_app_duoc_phep: "khien" };
-
-// ---------------------------------------------------------------- đèn 3 màu cho từng app / trang web (thiết kế chốt 14/11 bm-ung-dung — N3, N4)
-// Xanh «Dùng / Vào thoải mái» = luật `hoc` (không trừ giờ chơi) · Vàng «Tính giờ» = `giai_tri` (trừ vào quỹ giờ chơi chung) · Đỏ «Chặn» = `chan`.
-export type Den = "x" | "v" | "d";
-export const LOAI_DEN: Record<Den, LuatApp["loai"]> = { x: "hoc", v: "giai_tri", d: "chan" };
-/** Luật / trạng thái ⇒ đèn (`cho_phep` của web = luật `hoc`). Chưa có luật ⇒ null. */
-export const denCua = (loai: string | null | undefined): Den | null =>
-  loai === "hoc" || loai === "cho_phep" ? "x" : loai === "giai_tri" ? "v" : loai === "chan" ? "d" : null;
-export const MAU_DEN: Record<Den, string> = { x: "#1f9d6a", v: "#f2b218", d: "#d23b2a" };
-const NEN_DEN: Record<Den, string> = { x: "#f7f6f3", v: "#fdf6e2", d: "#fbebe8" };
-/** Chữ của một đèn — app «Dùng thoải mái», web «Vào thoải mái»; chỉ nói «Tính giờ / Trừ vào giờ chơi», không nói còn bao nhiêu phút. */
-export const chuDen = (d: Den, web?: boolean) => ({
-  x: { tieu: web ? "Vào thoải mái" : "Dùng thoải mái", phu: "Không trừ giờ chơi" },
-  v: { tieu: "Tính giờ", phu: "Trừ vào giờ chơi" },
-  d: { tieu: "Chặn", phu: web ? "Con không vào được" : "Con không mở được" },
-})[d];
-
-/** Bóng đèn tròn (.bong) — mờ khi chưa chọn. */
-export const BongDen = ({ den, co = 48, mo }: { den: Den; co?: number; mo?: boolean }) => (
-  <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: MAU_DEN[den], opacity: mo ? 0.35 : 1,
-    boxShadow: "inset 0px 3px 0px rgba(255,255,255,0.45), inset 0px -8px 12px -4px rgba(0,0,0,0.25), 0px 8px 14px -8px rgba(0,0,0,0.4)" }} />
-);
-
-/** Ba ô đèn xếp dọc (.den .o) — màn chi tiết một app / một trang. */
-export function ChonDen({ gia, doi, web, ds = ["x", "v", "d"], tat }: { gia: Den | null; doi: (d: Den) => void; web?: boolean; ds?: Den[]; tat?: boolean }) {
-  return (
-    <View style={{ gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel="Đèn">
-      {ds.map((k) => {
-        const on = gia === k, c = chuDen(k, web);
-        return (
-          <NhanMen key={k} onPress={() => doi(k)} disabled={tat} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: tat }} aria-checked={on}
-            accessibilityLabel={`${c.tieu}, ${c.phu}`} muc="khoi" sang men={MEN.the}
-            style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 26, backgroundColor: on && k === "v" ? "#fdf3d8" : M.the, ...KHOI.the },
-              on && { boxShadow: `0px 0px 0px 3px ${k === "v" ? "#e0a20c" : MAU_DEN[k]}, ${BONG.the}` }]}>
-            <BongDen den={k} mo={!on} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Chu kieu="rat" co={16}>{c.tieu}</Chu>
-              <Chu kieu="dam" co={13} mau={M.chu3}>{c.phu}</Chu>
-            </View>
-            <View style={[{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" }, on ? { backgroundColor: M.chinh } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
-              {on ? <Icon ten="tick" mau="#fff" co={15} /> : null}
-            </View>
-          </NhanMen>
-        );
-      })}
-    </View>
-  );
-}
-
-/** Hai ô đèn ngang trong rãnh lõm (.chon .den) — ngay dưới mục vừa chọn ở màn Thêm app / Thêm web. */
-export function ChonDenNgang({ gia, doi, web }: { gia: Den; doi: (d: Den) => void; web?: boolean }) {
-  return (
-    <View style={{ flexDirection: "row", gap: 6, padding: 4, borderRadius: 20, backgroundColor: "#ecebe7", boxShadow: BONG.lom }} accessibilityRole="radiogroup">
-      {(["x", "v"] as const).map((k) => {
-        const on = gia === k, c = chuDen(k, web);
-        return (
-          <NhanMen key={k} onPress={() => doi(k)} accessibilityRole="radio" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={`${c.tieu}, ${c.phu}`}
-            muc="chip" sang={!on} men={on ? MEN.the : undefined}
-            style={[{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16 },
-              on && { backgroundColor: k === "v" ? "#fdf3d8" : "#fff", boxShadow: `inset 0px 0px 0px 2px ${k === "v" ? "#e0a20c" : MAU_DEN.x}, ${BONG.nho}` }]}>
-            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: MAU_DEN[k] }} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Chu kieu="rat" co={13.5} mau={on ? (k === "v" ? "#6b4800" : M.chinhInk) : M.chu2}>{c.tieu}</Chu>
-              <Chu kieu="dam" co={11.5} mau={M.chu3}>{c.phu}</Chu>
-            </View>
-          </NhanMen>
-        );
-      })}
-    </View>
-  );
-}
-
-/** Tiêu đề nhóm đèn (.muc + chấm màu), bên phải số nhỏ («2 app»). */
-export function MucDen({ den, chu, phai }: { den: Den; chu: string; phai?: string }) {
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, marginHorizontal: 6, marginBottom: -2 }}>
-      <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: MAU_DEN[den], boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.4), inset 0px -4px 6px -2px rgba(0,0,0,0.25)" }} />
-      <Chu kieu="rat" co={15} mau={M.chu2} style={{ flex: 1 }}>{chu}</Chu>
-      {phai ? <Chu kieu="dam" co={12.5} mau={M.chu3}>{phai}</Chu> : null}
-    </View>
-  );
-}
-
-/** Khối một nhóm đèn (.ds / .ds.vang / .ds.do): các dòng cách nhau vạch mảnh. */
-export function NhomDen({ den = "x", children }: { den?: Den; children: ReactNode }) {
-  return <View style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 26, backgroundColor: NEN_DEN[den], ...KHOI.the }}>{children}</View>;
-}
-
-/** Một dòng trong nhóm đèn (.lg): icon, tên, phụ; bên phải «›», nút «Gỡ chặn» (`go`) hoặc phần tuỳ ý (`phai`). */
-export function DongDen({ dau, trai, tieu, phu, bam, go, phai }: {
-  dau?: boolean; trai: ReactNode; tieu: string; phu?: string; bam?: () => void; go?: () => void; phai?: ReactNode;
+/** Một dòng trong một nhóm (.lg): icon, tên, phụ; bên phải «›» (khi bấm được) hoặc phần tuỳ ý (`phai`). */
+export function DongDen({ dau, trai, tieu, phu, bam, phai }: {
+  dau?: boolean; trai: ReactNode; tieu: string; phu?: string; bam?: () => void; phai?: ReactNode;
 }) {
   const noi = (
     <>
@@ -158,16 +67,11 @@ export function DongDen({ dau, trai, tieu, phu, bam, go, phai }: {
         <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
         {phu ? <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{phu}</Chu> : null}
       </View>
-      {phai ?? (go ? (
-        <NhanMen onPress={go} accessibilityRole="button" accessibilityLabel={`Gỡ chặn ${tieu}`} muc="chip" sang men={MEN.sang}
-          style={{ minHeight: 40, paddingHorizontal: 14, borderRadius: 20, backgroundColor: "#fff", justifyContent: "center", ...KHOI.the }}>
-          <Chu kieu="rat" co={13.5} mau={M.chinhInk}>Gỡ chặn</Chu>
-        </NhanMen>
-      ) : bam ? <Icon ten="phai" mau="#8a908d" co={18} /> : null)}
+      {phai ?? (bam ? <Icon ten="phai" mau="#8a908d" co={18} /> : null)}
     </>
   );
   const st = [{ flexDirection: "row" as const, alignItems: "center" as const, gap: 10, minHeight: 62 }, !dau && { borderTopWidth: 1.5, borderTopColor: "rgba(0,0,0,0.06)" }];
-  return bam && !go ? <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}${phu ? `, ${phu}` : ""}`} style={st}>{noi}</Pressable> : <View style={st}>{noi}</View>;
+  return bam ? <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}${phu ? `, ${phu}` : ""}`} style={st}>{noi}</Pressable> : <View style={st}>{noi}</View>;
 }
 
 /** Đầu màn chi tiết (.hd): icon to trong ô clay, tên, một dòng phụ. */
@@ -202,15 +106,85 @@ export function OTim({ gia, doi, goiY, nhan, url }: { gia: string; doi: (t: stri
   );
 }
 
-/** Hàng lõm «Luôn chặn web người lớn, cờ bạc, bạo lực — Xem ›» (.luon) ở tab Chặn và danh sách Web. */
-export function HangLuonChan({ them }: { them?: string }) {
+/** Hàng lõm «Đã bỏ qua N lời xin · con xin lại được — Xem ›» (thay hàng «Luôn chặn» — #258) ở tab App & web và danh sách App / Web. */
+export function HangBoQua({ so, bam }: { so: number; bam: () => void }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 4, paddingLeft: 14, paddingRight: 12, borderRadius: 22, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
-      <Icon3D ten="khoa" co={24} />
-      <Chu kieu="dam" co={13} mau={M.chu2} style={{ flex: 1 }}><Chu kieu="rat" co={13}>Luôn chặn</Chu>{` web người lớn, cờ bạc, bạo lực${them ?? ""}`}</Chu>
-      <Pressable onPress={() => router.push("/web/luon-chan")} accessibilityRole="button" accessibilityLabel="Xem Luôn chặn" hitSlop={6} style={{ minHeight: 44, justifyContent: "center" }}>
-        <Chu kieu="rat" co={13} mau={M.chinhInk}>Xem ›</Chu>
-      </Pressable>
+    <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`Đã bỏ qua ${so} lời xin, con xin lại được. Xem`}
+      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, paddingVertical: 4, paddingLeft: 14, paddingRight: 12, borderRadius: 22, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+      <Icon3D ten="tro_lai" co={24} />
+      <Chu kieu="dam" co={13} mau={M.chu2} style={{ flex: 1 }}><Chu kieu="rat" co={13}>{`Đã bỏ qua ${so} lời xin`}</Chu> · con xin lại được</Chu>
+      <Chu kieu="rat" co={13} mau={M.chinhInk}>Xem ›</Chu>
+    </Pressable>
+  );
+}
+
+// ---------------------------------------------------------------- hai nhóm của danh sách (15/11 — #262): Tính phút (vàng) · Không tính phút (xanh)
+
+const NEN_NHOM: Record<Nhom, string> = { tinh_phut: "#fdf6e2", khong_tinh_phut: "#eef6f2" };
+const VIEN_NHOM: Record<Nhom, string> = { tinh_phut: "#e0a20c", khong_tinh_phut: "#1f9d6a" };
+
+/** Tiêu đề nhóm (.muc + chấm màu): «● Tính phút ……… trả bằng sao». */
+export function MucNhom({ nhom, phai }: { nhom: Nhom; phai?: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, marginHorizontal: 6, marginBottom: -2 }}>
+      <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: MAU_NHOM[nhom], boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.4), inset 0px -4px 6px -2px rgba(0,0,0,0.25)" }} />
+      <Chu kieu="rat" co={15} mau={M.chu2} style={{ flex: 1 }}>{TEN_NHOM[nhom]}</Chu>
+      <Chu kieu="dam" co={12.5} mau={M.chu3}>{phai ?? (nhom === "tinh_phut" ? "trả bằng sao" : "vào thoải mái")}</Chu>
+    </View>
+  );
+}
+
+/** Khối một nhóm (.ds vàng / xanh nhạt): các dòng cách nhau vạch mảnh. Không nhóm ⇒ nền thẻ. */
+export function KhoiNhom({ nhom, children }: { nhom?: Nhom; children: ReactNode }) {
+  return <View style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 26, backgroundColor: nhom ? NEN_NHOM[nhom] : "#f7f6f3", ...KHOI.the }}>{children}</View>;
+}
+
+/** Hai ô nhóm xếp dọc (màn một app / một trang): bóng tròn màu nhóm, tên, câu phụ, dấu chọn. */
+export function ChonNhom({ gia, doi, tat }: { gia: Nhom | null; doi: (n: Nhom) => void; tat?: boolean }) {
+  return (
+    <View style={{ gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel="Nhóm">
+      {(["tinh_phut", "khong_tinh_phut"] as const).map((k) => {
+        const on = gia === k;
+        return (
+          <NhanMen key={k} onPress={() => doi(k)} disabled={tat} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: tat }} aria-checked={on}
+            accessibilityLabel={`${TEN_NHOM[k]}, ${PHU_NHOM[k]}`} muc="khoi" sang men={MEN.the}
+            style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 26, backgroundColor: on && k === "tinh_phut" ? "#fdf3d8" : M.the, ...KHOI.the },
+              on && { boxShadow: `0px 0px 0px 3px ${VIEN_NHOM[k]}, ${BONG.the}` }]}>
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: MAU_NHOM[k], opacity: on ? 1 : 0.35,
+              boxShadow: "inset 0px 3px 0px rgba(255,255,255,0.45), inset 0px -8px 12px -4px rgba(0,0,0,0.25), 0px 8px 14px -8px rgba(0,0,0,0.4)" }} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Chu kieu="rat" co={16}>{TEN_NHOM[k]}</Chu>
+              <Chu kieu="dam" co={13} mau={M.chu3}>{PHU_NHOM[k]}</Chu>
+            </View>
+            <View style={[{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" }, on ? { backgroundColor: M.chinh } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+              {on ? <Icon ten="tick" mau="#fff" co={15} /> : null}
+            </View>
+          </NhanMen>
+        );
+      })}
+    </View>
+  );
+}
+
+/** Hai ô nhóm ngang trong rãnh lõm — ngay dưới mục vừa chọn ở màn Thêm app / Thêm web («Tính phút · Trả bằng sao» | «Không tính phút · Vào thoải mái»). */
+export function ChonNhomNgang({ gia, doi }: { gia: Nhom; doi: (n: Nhom) => void }) {
+  return (
+    <View style={{ flexDirection: "row", gap: 6, padding: 4, borderRadius: 20, backgroundColor: "#ecebe7", boxShadow: BONG.lom }} accessibilityRole="radiogroup">
+      {(["tinh_phut", "khong_tinh_phut"] as const).map((k) => {
+        const on = gia === k;
+        return (
+          <NhanMen key={k} onPress={() => doi(k)} accessibilityRole="radio" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={`${TEN_NHOM[k]}, ${PHU_NHOM[k]}`}
+            muc="chip" sang={!on} men={on ? MEN.the : undefined}
+            style={[{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, paddingVertical: 6, paddingHorizontal: 10, borderRadius: 16 },
+              on && { backgroundColor: k === "tinh_phut" ? "#fdf3d8" : "#fff", boxShadow: `inset 0px 0px 0px 2px ${VIEN_NHOM[k]}, ${BONG.nho}` }]}>
+            <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: MAU_NHOM[k] }} />
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Chu kieu="rat" co={13.5} mau={on ? (k === "tinh_phut" ? "#6b4800" : M.chinhInk) : M.chu2}>{TEN_NHOM[k]}</Chu>
+              <Chu kieu="dam" co={11.5} mau={M.chu3}>{k === "tinh_phut" ? "Trả bằng sao" : "Vào thoải mái"}</Chu>
+            </View>
+          </NhanMen>
+        );
+      })}
     </View>
   );
 }
@@ -221,27 +195,6 @@ export const NutCong = ({ chon }: { chon: boolean }) => (
     <Icon ten={chon ? "tick" : "cong"} mau={chon ? "#fff" : M.chinhInk} co={chon ? 18 : 20} />
   </View>
 );
-
-/** Phút con đã dùng HÔM NAY cho các mục (GET con/:id/man-hinh — tuần này, giây theo ngày). Web khớp cả tên miền con. null = không có số liệu. */
-export function phutHomNay(mh: ManHinhTuan | null | undefined, muc: string[], kieu: "app" | "web") {
-  if (!mh) return null;
-  const i = mh.theoNgay.findIndex((n) => n.ngay === mh.homNay);
-  if (i < 0) return null;
-  const ds = muc.map((m) => m.toLowerCase());
-  const khop = (id: string) => ds.some((m) => id === m || (kieu === "web" && id.endsWith(`.${m}`)));
-  const giay = mh.ds.filter((x) => x.kieu === kieu && khop(x.id.toLowerCase())).reduce((a, x) => a + (x.theoNgay[i] ?? 0), 0);
-  return Math.round(giay / 60);
-}
-export const napManHinh = (con: string) => bm.goi<ManHinhTuan>(`con/${con}/man-hinh`).catch(() => null);
-
-/** Nhãn «Tính giờ» (vàng) / «Dùng thoải mái» (ngọc) — .tg.v / .tg.x. */
-export function NhanGio({ tinh, nho }: { tinh: boolean; nho?: boolean }) {
-  return (
-    <View style={{ paddingHorizontal: nho ? 8 : 10, paddingVertical: nho ? 2 : 4, borderRadius: 11, backgroundColor: tinh ? M.diemSoft : M.chinhSoft, flexShrink: 0 }}>
-      <Chu kieu="rat" co={nho ? 11 : 12} mau={tinh ? M.diemInk : M.chinhInk}>{tinh ? "Tính giờ" : "Dùng thoải mái"}</Chu>
-    </View>
-  );
-}
 
 /** Nhãn trắng «Luôn bật» (.luon). */
 export const NhanLuon = ({ chu = "Luôn bật" }: { chu?: string }) => (
@@ -287,16 +240,18 @@ export function ManKetQua({ lv = "xong", tieu, ic, tin, phu, nut, hoan, lui, loi
   );
 }
 
-/** Ba nút quyết lớn (.ba — thiết kế 14/11 bm-ung-dung/13): `x` than chì chữ trắng (đồng ý), `c` trắng chữ đậm (cho mở, tính giờ), `d` trắng chữ đỏ (không cho). */
-export function NutQuyet({ loai, ic, chu, phu, bam, dangChay }: { loai: "x" | "c" | "d"; ic: TenIcon; chu: string; phu?: string; bam: () => void; dangChay?: boolean }) {
-  const nen = loai === "x" ? M.nut : M.the;
-  const mau = loai === "x" ? "#fff" : loai === "c" ? M.chu : M.loi;
+/** Ba nút quyết lớn (.ba — thiết kế 15/11 bm-ung-dung/13): `x` than chì chữ trắng (nút chính «Tính phút»), `c` trắng chữ đậm («Không tính phút»),
+ *  `b` xám lõm («Bỏ qua»), `d` trắng chữ đỏ. `cham` = bóng tròn màu nhóm thay icon. */
+export function NutQuyet({ loai, ic, cham, chu, phu, bam, dangChay }: { loai: "x" | "c" | "b" | "d"; ic?: TenIcon; cham?: string; chu: string; phu?: string; bam: () => void; dangChay?: boolean }) {
+  const nen = loai === "x" ? M.nut : loai === "b" ? "#ecebe7" : M.the;
+  const mau = loai === "x" ? "#fff" : loai === "d" ? M.loi : M.chu;
   return (
     <NhanMen onPress={bam} disabled={dangChay} accessibilityRole="button" accessibilityLabel={phu ? `${chu}, ${phu}` : chu} muc="khoi" sang={loai !== "x"}
-      men={loai === "x" ? MEN.toi : MEN.sang}
+      men={loai === "x" ? MEN.toi : loai === "b" ? undefined : MEN.sang}
       style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 10, paddingHorizontal: 16, borderRadius: BO_CLAY.o, backgroundColor: nen,
-        boxShadow: loai === "x" ? BONG.toi : BONG.the, opacity: dangChay ? 0.6 : 1 }}>
-      <Icon3D ten={ic} co={32} mau={mau} />
+        boxShadow: loai === "x" ? BONG.toi : loai === "b" ? BONG.lom : BONG.the, opacity: dangChay ? 0.6 : 1 }}>
+      {cham ? <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: cham,
+        boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.45), inset 0px -5px 8px -3px rgba(0,0,0,0.25)" }} /> : ic ? <Icon3D ten={ic} co={32} mau={mau} /> : null}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={16} mau={mau}>{chu}</Chu>
         {phu ? <Chu kieu="dam" co={12} mau={mau} style={{ opacity: 0.85 }}>{phu}</Chu> : null}
@@ -339,17 +294,6 @@ export const laWeb = (muc: string) => /\.[a-z]{2,24}$/i.test(muc) && !/\.(exe|ap
   && DUOI_WEB.has(muc.split(".").pop()!.toLowerCase());
 /** Một app có thể có nhiều định danh (roblox.exe, robloxplayerbeta.exe, com.roblox.client…) cùng tên ⇒ gom theo tên hiện. */
 export const khoaTen = (l: Pick<LuatApp, "ten" | "muc">) => (l.ten || l.muc).trim().toLowerCase();
-export const gomTheoTen = (ds: LuatApp[]) => {
-  const m = new Map<string, LuatApp[]>();
-  for (const l of ds) { const k = khoaTen(l); m.set(k, [...(m.get(k) ?? []), l]); }
-  return [...m.values()];
-};
-/** Luật trước khi đặt (POST luat trả `truoc` — luật riêng đúng phạm vi đó, null = chưa có). */
-export type LuatTruoc = { con: string; muc: string; ten: string; loai: string; nhom: string | null; het: string | null } | null;
-/** Hoàn tác một lần đặt luật: có luật cũ ⇒ đặt lại đúng luật cũ (giữ hạn), không ⇒ xoá luật vừa tạo; `neuLoai` = chỉ khi luật vẫn là loại vừa đặt. */
-export const hoanLuat = (con: string | undefined, muc: string, truoc: LuatTruoc, neuLoai: string) =>
-  truoc ? bm.goi("luat", { con, muc: truoc.muc, ten: truoc.ten, loai: truoc.loai, nhom: truoc.nhom ?? undefined, het: truoc.het ?? undefined, neuLoai })
-    : bm.goi("luat/xoa", { con, muc, neuLoai });
 /** Luật hiệu lực cho một Con: luật riêng của Con thắng luật cả nhà cùng mục. */
 export const luatCuaCon = (ds: LuatApp[], con: string) => {
   const m = new Map<string, LuatApp>();
@@ -357,11 +301,6 @@ export const luatCuaCon = (ds: LuatApp[], con: string) => {
   for (const l of ds) if (l.child_id === con) m.set(l.muc, l);
   return [...m.values()];
 };
-/** «Con đang xin mở YouTube» / «… dùng Minecraft». */
-export const tieuXin = (y: YeuCau) => `Con đang xin ${y.loai === "cai_app" ? "dùng" : "mở"} ${y.gia_tri ?? "app mới"}`;
-export const phuXin = (y: YeuCau) => [y.phut ? `${y.phut} phút` : null, `lúc ${lucNgan(y.created_at)}`].filter(Boolean).join(" · ");
-
-
 // ---------------------------------------------------------------- thẻ dòng rời (.tb thông báo · .cc hộp thư hỗ trợ), nút viên đầu màn (.cai · .faq)
 
 /** Thẻ một dòng rời (mỗi việc một thẻ): `vach` = vạch màu bên trái (cam: việc mới cần để ý · đỏ: gấp). `phai` = chữ hành động «Xem ›» hoặc nút tuỳ ý. */

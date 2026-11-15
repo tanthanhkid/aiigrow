@@ -2,14 +2,15 @@
 //  • thêm giờ: «Ba Mẹ tặng thêm» (không trừ sao, chỉ hôm nay) hoặc «Trừ sao của con» (10 sao = N phút, ví a → b), chọn phút, lời nhắn ngắn
 //    (không bắt buộc — gửi kèm lời trả lời qua `loi-khen` của Con) ⇒ dong-y {phut, truDiem}
 //  • ngoại lệ (giờ ngủ / Ba Mẹ khoá / giờ học): «Không trừ giờ chơi, không trừ sao», phạm vi cả máy hoặc một app, chọn phút ≤ tối đa ⇒ dong-y {phut}
-//  • app / web lạ: «Cho, dùng thoải mái» (Học, luôn) · «Cho, trừ giờ chơi» (Giải trí, luôn) · «Không cho»
+//  • app / web chưa có trong danh sách (15/11 — #262): chưa trả lời ⇒ chuyển sang «Con xin mở» (/yeu-cau-web/:id — Tính phút / Không tính phút / Bỏ qua);
+//    đã trả lời ⇒ chỉ báo «Lời xin này đã được trả lời»
 // Xử lý xong ⇒ /yeu-cau/xong (lib/hom-nay-xin › denXong).
 import { useState } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { type ConCt, type GioChoi, type YeuCauMoi } from "@/lib/hang-ngay";
-import { choAppWeb, denXong, khongChoXin, laAppWeb, laThemGio, mucXin, tenMayXin, tieuXin } from "@/lib/hom-nay-xin";
+import { denXong, khongChoXin, laAppWeb, laThemGio, mucXin, tenMayXin, tieuXin } from "@/lib/hom-nay-xin";
 import {
   Bao, BaoLoi, BieuTron, Canh, Chips, ChoTai, ChonMot, Chu, gioPhut, M, Man, Nut, OChon, ONhap, useLam, useTai,
 } from "@/lib/ui";
@@ -40,6 +41,8 @@ export default function XuLyYeuCau() {
   const tyLe = gc?.phut10Sao ?? 10;
   const saoCan = Math.ceil((p * 10) / tyLe);
   const daXuLy = y.trang_thai !== "cho";
+  // 15/11 (#262): lời xin app / web trả lời ở màn «Con xin mở» (Tính phút / Không tính phút / Bỏ qua)
+  if (laAppWeb(y) && !daXuLy) return <Redirect href={{ pathname: "/yeu-cau-web/[id]", params: { id: y.id } }} />;
   const loiNhan = nhan === "tu_viet" ? tuViet.trim() : nhan;
   const guiNhan = async () => { if (loiNhan) await bm.goi(`con/${y.child_id}/loi-khen`, { noiDung: loiNhan }).catch(() => {}); };
   const cho = (soPhut: number) => lam(async () => {
@@ -49,16 +52,8 @@ export default function XuLyYeuCau() {
       : { kieu: "ngoai_le", ten, con: y.child_id, phut: soPhut, muc: mucXin(y), may });
   });
   const khong = () => lam(async () => { const k = await khongChoXin(y, may, loiNhan || undefined); denXong(k); });
-  const appWeb = (tinhGio: boolean) => lam(async () => denXong(await choAppWeb(y, may, tinhGio)));
 
-  const nutDay = daXuLy ? <Nut chu="Quay lại" rong bam={() => router.back()} /> : laAppWeb(y) ? (
-    <>
-      <BaoLoi loi={loiLam} />
-      <Nut chu="Cho, dùng thoải mái" ic="tick" rong dangChay={dangChay} bam={() => appWeb(false)} />
-      <Nut chu="Cho, trừ giờ chơi" loai="vien" rong bam={() => appWeb(true)} />
-      <Nut chu="Không cho" loai="huy" rong bam={khong} />
-    </>
-  ) : (
+  const nutDay = daXuLy ? <Nut chu="Quay lại" rong bam={() => router.back()} /> : (
     <>
       <BaoLoi loi={loiLam} />
       <Nut chu={laThemGio(y) && tru ? `Cho ${p} phút · trừ ${saoCan} sao` : `Cho ${p} phút`} rong dangChay={dangChay} tat={laThemGio(y) && tru && sao < saoCan} bam={() => cho(p)} />
@@ -74,10 +69,7 @@ export default function XuLyYeuCau() {
     <Man lui={{ chu: "Quay lại" }} tieu={laAppWeb(y) ? "Con xin mở" : laThemGio(y) ? "Con xin thêm giờ" : "Con xin mở ngoại lệ"} day={nutDay}>
       <Canh lv={laAppWeb(y) ? "nghi" : "cho"} thap tieu={`${ten} xin ${tieuXin(y).charAt(0).toLowerCase()}${tieuXin(y).slice(1)}`}
         loi={`${y.ly_do?.trim() ? `Con nói: «${y.ly_do.trim()}» · ` : ""}${gioPhut(y.created_at)}${may ? ` · ${may}` : ""}`} />
-      {daXuLy ? <Bao loai="lam" ic="tick" tieu="Lời xin này đã được trả lời" loi="Có thể người khác trong nhà đã trả lời trước." /> : laAppWeb(y) ? (
-        <Bao loai="lam" ic="dau_hoi" tieu={`${y.gia_tri} chưa có trong app được phép`}
-          loi="«Dùng thoải mái» = không tính giờ (hợp app học). «Trừ giờ chơi» = dùng trong quỹ phút chơi mỗi ngày." />
-      ) : laThemGio(y) ? (
+      {daXuLy ? <Bao loai="lam" ic="tick" tieu="Lời xin này đã được trả lời" loi="Có thể người khác trong nhà đã trả lời trước." /> : laThemGio(y) ? (
         <>
           {gc ? <Chu co={14.5} mau={M.chu2}>{`Hôm nay đã chơi ${gc.homNay.daDung}/${gc.homNay.tongPhut} phút, còn ${gc.homNay.conPhut} phút.`}</Chu> : null}
           <Chu kieu="rat" co={15}>Cho thêm theo cách nào</Chu>

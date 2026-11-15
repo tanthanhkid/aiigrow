@@ -1,13 +1,14 @@
-// bm1-ob-xong «Xong rồi!» (đã ghép máy) / them-w8q8hcfk (chưa ghép máy) — tóm tắt: chế độ chặn + số app, giờ chơi + giờ ngủ, số việc mỗi ngày;
+// bm1-ob-xong «Xong rồi!» (đã ghép máy) / them-w8q8hcfk (chưa ghép máy) — tóm tắt: chế độ chặn + số app, giờ chơi (15/11 #262: bỏ giờ ngủ), số việc mỗi ngày;
 // đã ghép ⇒ thẻ «Con xin gì, điện thoại Ba Mẹ sẽ báo» (mẫu), «Vào trang của X», «Ghép thêm máy cho X»; chưa ghép ⇒ «Ghép máy cho X».
 // Thiết kế 14/11: «Grow» thay «Rob» (N6); tên chế độ «Chặn app & web» / «Mở hết» (N2 — thiết kế 04/05 còn ghi «Chỉ app Ba Mẹ chọn», chọn theo luật N2).
+import { cheDoTu } from "@/lib/app-web";
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type ConChiTiet, type NhiemVu } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { tomTat } from "@/lib/ghep-may";
-import { gioGon, LienKet, TieuDe } from "@/lib/lan-dau";
+import { LienKet, TieuDe } from "@/lib/lan-dau";
 import { datTl, layTl, xoaTl } from "@/lib/thiet-lap";
 import { Avt, Chu, Icon, Icon3D, M, MAU_CON, Man, Nut, Rob, The, useTai, XuongTai, type TenIcon } from "@/lib/ui";
 
@@ -46,8 +47,8 @@ export default function ObXong() {
       </View>
       {d ? (
         <The>
-          {dong("khien", d.t.cheDoChan === "mo_het" ? "Mở hết · chỉ tính giờ" : `Chặn app & web · ${d.t.soApp} app`)}
-          {dong("dongho", `Chơi ${d.t.gioChoi.ngayThuong ?? "—"} phút · ngủ ${gioGon(d.t.ngu.tu)}`)}
+          {dong("khien", cheDoTu(d.t) === "mo_het" ? "Mở hết · không tính phút" : `Theo danh sách · ${d.t.soApp} app`)}
+          {dong("dongho", `Chơi ${d.t.gioChoi.ngayThuong ?? "—"} phút`)}
           {dong("sao", `${d.soViec} việc mỗi ngày`)}
         </The>
       ) : null}

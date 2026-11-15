@@ -1,5 +1,5 @@
 // «Đã tạo hồ sơ <Con> · bước tiếp» (thiết kế 14/11 bm-ca-nha/03 them-fi17hb99, MỚI): sau «Thêm con» từ Cả nhà — Grow «Chào Khang! Còn 5 bước nữa nhé»,
-// avatar con, «Đã tạo hồ sơ <Con>» · «PIN vào máy đã đặt», 5 bước (Một ngày · Quà · Giờ chơi & giờ ngủ · App & web · Ghép máy) mở thẳng màn tương ứng,
+// avatar con, «Đã tạo hồ sơ <Con>» · «PIN vào máy đã đặt», 5 bước (Một ngày · Quà · Giờ chơi · App & web · Ghép máy) mở thẳng màn tương ứng,
 // «Bắt đầu: Một ngày của <Con>» · «Để sau» (về Cả nhà). Không lưu tiến độ riêng: Ba Mẹ làm bước nào thì mở màn đó.
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -17,8 +17,8 @@ export default function BuocTiep() {
   const buoc: [TenIcon, string, string, string][] = [
     ["lich", `Một ngày của ${ten}`, "Học · Vận động · Giúp Ba Mẹ", `/giao-nv?con=${id}`],
     ["qua", `Quà của ${ten}`, "Voucher hoặc Ba Mẹ tự điền", `/vi/qua?con=${id}`],
-    ["dongho", "Giờ chơi & giờ ngủ", "Ba Mẹ tự chọn", `/gio/${id}`],
-    ["khien", `App & web cho ${ten}`, "Mở hết hoặc Chặn app & web", `/app-web?con=${id}`],
+    ["dongho", "Giờ chơi", "Ba Mẹ tự chọn", `/gio/${id}`],
+    ["khien", `App & web cho ${ten}`, "Mở hết hoặc Theo danh sách", `/app-web?con=${id}`],
     ["laptop", `Ghép máy cho ${ten}`, "Máy riêng hoặc máy dùng chung", `/may/them?con=${id}`],
   ];
   return (

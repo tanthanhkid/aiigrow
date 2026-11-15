@@ -5,8 +5,9 @@ import { appsRobChonSan, thanThietLap } from "./thiet-lap.ts";
 
 const MAC = { quy: 60, cuoiTuan: (p: number) => p + 30, ngu: { tu: "21:30", den: "06:30" } };
 
-test("chưa chọn chế độ ⇒ KHÔNG gửi cheDoChan (máy chủ giữ chế độ đang có, Con mới = Chặn app & web)", () => {
+test("chưa chọn chế độ ⇒ KHÔNG gửi cheDo (máy chủ giữ chế độ đang có, Con mới = Theo danh sách)", () => {
   const b = thanThietLap({ conId: "c1", tenCon: "Phát" }, MAC);
+  assert.equal("cheDo" in b, false);
   assert.equal("cheDoChan" in b, false);
   assert.deepEqual(b.gioChoi, { ngayThuong: 60, cuoiTuan: 90 });
   assert.deepEqual(b.ngu, MAC.ngu);
@@ -14,9 +15,11 @@ test("chưa chọn chế độ ⇒ KHÔNG gửi cheDoChan (máy chủ giữ ch�
 
 test("Ba Mẹ đã chọn «Mở hết» ⇒ gửi đúng mo_het; app theo mã / theo tên", () => {
   const b = thanThietLap({ conId: "c1", tenCon: "Phát", cheDoChan: "mo_het", quy: 30, apps: [{ ma: "roblox", ten: "Roblox" }, { ten: "Sách", tinhGio: false }] }, MAC);
-  assert.equal(b.cheDoChan, "mo_het");
+  assert.equal(b.cheDo, "mo_het");
   assert.deepEqual(b.gioChoi, { ngayThuong: 30, cuoiTuan: 60 });
-  assert.deepEqual(b.apps, [{ ma: "roblox" }, { ten: "Sách", tinhGio: false }]);
+  assert.deepEqual(b.apps, [{ ma: "roblox" }, { ten: "Sách", tinhGio: false, nhom: "khong_tinh_phut" }]);
+  // mã nội bộ cũ «chi_app_duoc_phep» ⇒ gửi «theo_danh_sach» (#262)
+  assert.equal(thanThietLap({ conId: "c1", cheDoChan: "chi_app_duoc_phep" }, MAC).cheDo, "theo_danh_sach");
 });
 
 test("quỹ cuối tuần đã nạp từ máy chủ được giữ; Ba Mẹ chọn quỹ khác (cuoiTuan xoá) ⇒ tính lại +30", () => {
@@ -35,6 +38,6 @@ test("Thêm con: áp sẵn app Grow gợi ý hợp tuổi, chỉ lấy app `chon
 
 test("thiết kế 14/11: web Ba Mẹ chọn gửi kèm (muc + tinhGio); chưa vào màn Web thì không gửi", () => {
   assert.deepEqual(thanThietLap({ conId: "c1", webs: [{ muc: "olm.vn", tinhGio: false }, { muc: "poki.com", tinhGio: true }] }, MAC).web,
-    [{ muc: "olm.vn", tinhGio: false }, { muc: "poki.com", tinhGio: true }]);
+    [{ muc: "olm.vn", tinhGio: false, nhom: "khong_tinh_phut" }, { muc: "poki.com", tinhGio: true, nhom: "tinh_phut" }]);
   assert.equal("web" in thanThietLap({ conId: "c1" }, MAC), false);
 });

@@ -4,8 +4,10 @@
 import type { ReactNode } from "react";
 import { Image } from "expo-image";
 import { Pressable, Text, View } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { BONG, KHOI } from "./clay";
 import { ICON_3D } from "./icon-3d";
+import { MAU_NHOM, TEN_NHOM, type Nhom } from "./app-web";
 import { Chu, F, Icon, M, Rob, type LinhVat } from "./ui";
 
 /** Màu nền ô emoji + màu nút «Chọn tất cả» theo mục (thiết kế: Học ngọc, Vận động lam, Giúp Ba Mẹ cam). */
@@ -52,9 +54,10 @@ export const TheDs = ({ children }: { children: ReactNode }) => (
   <View style={{ borderRadius: 24, backgroundColor: "#f7f6f3", paddingLeft: 12, paddingRight: 10, paddingVertical: 2, ...KHOI.the }}>{children}</View>
 );
 
-/** Một dòng: ô emoji, tên (+ dòng phụ / nhãn 12+), sao (tuỳ), nút tròn ＋ (chưa chọn) / ✓ ngọc (đã chọn). `dau` = không kẻ vạch trên. */
-export function DongChon({ e, mau = "ngoc", ten, phu, sao, lon, chon, bam, dau }: {
-  e: string; mau?: MauMuc; ten: string; phu?: string; sao?: number; lon?: boolean; chon: boolean; bam: () => void; dau?: boolean;
+/** Một dòng: ô emoji, tên (+ dòng phụ / nhãn 12+), sao (tuỳ), nút tròn ＋ (chưa chọn) / ✓ ngọc (đã chọn). `dau` = không kẻ vạch trên.
+ *  `nhom` (app / web — 15/11 #262): đã chọn thì hiện viên «● Tính phút» / «● Không tính phút» thay dấu ✓. */
+export function DongChon({ e, mau = "ngoc", ten, phu, sao, lon, chon, bam, dau, nhom }: {
+  e: string; mau?: MauMuc; ten: string; phu?: string; sao?: number; lon?: boolean; chon: boolean; bam: () => void; dau?: boolean; nhom?: Nhom;
 }) {
   return (
     <Pressable onPress={bam} accessibilityRole="checkbox" accessibilityState={{ checked: chon }} accessibilityLabel={`${ten}${sao ? `, ${sao} sao` : ""}`}
@@ -72,16 +75,41 @@ export function DongChon({ e, mau = "ngoc", ten, phu, sao, lon, chon, bam, dau }
           <Chu kieu="rat" co={12.5} mau="#6e4300" so>{sao}</Chu>
         </View>
       ) : null}
-      <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center",
-        backgroundColor: chon ? M.chinh : "#ecebe7", boxShadow: chon ? BONG.ngoc : BONG.lom }}>
-        {chon ? <Icon ten="tick" mau="#fff" co={18} /> : <Chu kieu="rat" co={20} mau={M.chinhInk}>＋</Chu>}
-      </View>
+      {chon && nhom ? <VienNhom nhom={nhom} /> : (
+        <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center",
+          backgroundColor: chon ? M.chinh : "#ecebe7", boxShadow: chon ? BONG.ngoc : BONG.lom }}>
+          {chon ? <Icon ten="tick" mau="#fff" co={18} /> : <Chu kieu="rat" co={20} mau={M.chinhInk}>＋</Chu>}
+        </View>
+      )}
     </Pressable>
   );
 }
 
-/** Dòng kết quả ở màn tìm (them-at57ypdc / them-ubomxl31): «✓ Đã thêm» chữ ngọc hoặc nút ＋. */
-export function DongKetQua({ e, ten, phu, da, bam, dau }: { e: string; ten: string; phu?: string; da: boolean; bam: () => void; dau?: boolean }) {
+/** Viên «● Tính phút» (vàng nhạt) / «● Không tính phút» (ngọc nhạt) — mục đã thêm vào danh sách. */
+export function VienNhom({ nhom }: { nhom: Nhom }) {
+  const tinh = nhom === "tinh_phut";
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 5, minHeight: 32, paddingHorizontal: 10, borderRadius: 16, backgroundColor: tinh ? M.diemSoft : M.chinhSoft, boxShadow: BONG.nho }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: MAU_NHOM[nhom] }} />
+      <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 12, color: tinh ? M.diemInk : M.chinhInk }}>{TEN_NHOM[nhom]}</Text>
+    </View>
+  );
+}
+
+/** «● Thêm vào nhóm Không tính phút · vào thoải mái» — dưới đầu mỗi nhóm danh mục. */
+export function DongVaoNhom({ nhom }: { nhom: Nhom }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 4, flexWrap: "wrap" }}>
+      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: MAU_NHOM[nhom] }} />
+      <Chu kieu="dam" co={12} mau={M.chu2}>Thêm vào nhóm</Chu>
+      <Chu kieu="rat" co={12}>{TEN_NHOM[nhom]}</Chu>
+      <Chu kieu="dam" co={12} mau={M.chu3}>{nhom === "tinh_phut" ? "· 1 sao = 1 phút chơi" : "· vào thoải mái"}</Chu>
+    </View>
+  );
+}
+
+/** Dòng kết quả ở màn tìm (them-at57ypdc / them-ubomxl31): «✓ Không tính phút» / «✓ Tính phút» (viên, 15/11) hoặc nút ＋. */
+export function DongKetQua({ e, ten, phu, da, bam, dau, nhom }: { e: string; ten: string; phu?: string; da: boolean; bam: () => void; dau?: boolean; nhom?: Nhom }) {
   return (
     <Pressable onPress={bam} accessibilityRole="checkbox" accessibilityState={{ checked: da }} accessibilityLabel={ten}
       style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 6, borderTopWidth: dau ? 0 : 1, borderTopColor: "#e9e8e3" }}>
@@ -92,7 +120,11 @@ export function DongKetQua({ e, ten, phu, da, bam, dau }: { e: string; ten: stri
         <Chu kieu="rat" co={14.5} dong={1}>{ten}</Chu>
         {phu ? <Chu kieu="dam" co={12} mau={M.chu3} dong={1}>{phu}</Chu> : null}
       </View>
-      {da ? <Chu kieu="rat" co={13} mau={M.chinhInk}>✓ Đã thêm</Chu> : (
+      {da && nhom ? (
+        <View style={{ minHeight: 34, paddingHorizontal: 12, borderRadius: 17, justifyContent: "center", backgroundColor: nhom === "tinh_phut" ? M.diem : M.chinh }}>
+          <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 12.5, color: nhom === "tinh_phut" ? "#3d2600" : "#fff" }}>{`✓ ${TEN_NHOM[nhom]}`}</Text>
+        </View>
+      ) : da ? <Chu kieu="rat" co={13} mau={M.chinhInk}>✓ Đã thêm</Chu> : (
         <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
           <Chu kieu="rat" co={20} mau={M.chinhInk}>＋</Chu>
         </View>
@@ -144,11 +176,74 @@ export const tenMien = (t: string) => {
   return s.length <= 100 && /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/.test(s) && !/^\d+(\.\d+)+$/.test(s) ? s : null;
 };
 
-/** Mục danh mục thuộc nhóm giải trí («Giải trí · Ba Mẹ cân nhắc») ⇒ tính vào giờ chơi (vàng «Tính giờ» — N3); nhóm khác dùng thoải mái. */
+/** Mục danh mục thuộc nhóm giải trí («Giải trí») ⇒ «Tính phút» (trả bằng sao); nhóm khác «Không tính phút». */
 export const tinhGioDm = (m: { nhom: string }) => m.nhom.startsWith("Giải trí");
 /** Danh mục chia nhóm theo thứ tự xuất hiện. */
 export function theoNhom<T extends { nhom: string; eN: string }>(ds: T[]) {
   const ra: { nhom: string; eN: string; ds: T[] }[] = [];
   for (const x of ds) { const n = ra.find((g) => g.nhom === x.nhom); if (n) n.ds.push(x); else ra.push({ nhom: x.nhom, eN: x.eN, ds: [x] }); }
   return ra;
+}
+
+type CheDoTl = "chi_app_duoc_phep" | "mo_het";
+/** Tên nhóm danh mục hiển thị: «Giải trí · Ba Mẹ cân nhắc» ⇒ «Giải trí» (thiết kế 15/11). */
+export const tenNhomDm = (n: string) => n.replace(/ · Ba Mẹ cân nhắc$/, "");
+
+/** Hai thẻ chọn chế độ (dùng chung cho màn Web khi Ba Mẹ bấm «Đổi ›»). */
+export function ChonCheDo({ gia, doi }: { gia: CheDoTl; doi: (v: CheDoTl) => void }) {
+  const O: { v: CheDoTl; tieu: string; phu: string }[] = [
+    { v: "mo_het", tieu: "Mở hết", phu: "Mở mọi app, mọi web\nKhông tính phút" },
+    { v: "chi_app_duoc_phep", tieu: "Theo danh sách", phu: "Chỉ mở app, web\nBa Mẹ đã thêm" },
+  ];
+  return (
+    <View style={{ flexDirection: "row", gap: 10 }} accessibilityRole="radiogroup">
+      {O.map((o) => {
+        const on = gia === o.v;
+        const noi = (
+          <>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center", ...(on ? { backgroundColor: "#fff" } : { backgroundColor: "#e6e5e1", boxShadow: BONG.lom }) }}>
+                {on ? <Text style={{ fontSize: 12, lineHeight: 14, color: M.chinh, fontFamily: F.rat }}>✓</Text> : null}
+              </View>
+              <Chu kieu="rat" co={15.5} mau={on ? "#fff" : M.chu} style={{ flexShrink: 1 }}>{o.tieu}</Chu>
+            </View>
+            <Chu kieu="dam" co={12} mau={on ? "rgba(255,255,255,0.9)" : M.chu3}>{o.phu}</Chu>
+          </>
+        );
+        return (
+          <Pressable key={o.v} onPress={() => doi(o.v)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${o.tieu}: ${o.phu.replace("\n", ", ")}`}
+            style={{ flex: 1, minWidth: 0, borderRadius: 24, overflow: "hidden", ...KHOI.the, ...(on ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.the}` } : {}) }}>
+            {on ? <LinearGradient colors={["#1d7a66", M.chinh]} style={{ flexGrow: 1, padding: 12, gap: 6, minHeight: 84 }}>{noi}</LinearGradient>
+              : <View style={{ flexGrow: 1, padding: 12, gap: 6, minHeight: 84, backgroundColor: "#f7f6f3" }}>{noi}</View>}
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+
+/** «Duolingo ABC có tính phút không?» + hai ô «Không tính phút · Vào thoải mái» | «Tính phút · 1 sao = 1 phút chơi» (them-at57ypdc / them-ubomxl31). */
+export function HoiNhom({ ten, nhom, doi }: { ten: string; nhom: Nhom; doi: (n: Nhom) => void }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <Chu kieu="rat" co={14} mau="#5a3d00">{`${ten} có tính phút không?`}</Chu>
+      <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
+        {(["khong_tinh_phut", "tinh_phut"] as const).map((k) => {
+          const on = nhom === k;
+          return (
+            <Pressable key={k} onPress={() => doi(k)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={TEN_NHOM[k]}
+              style={{ flex: 1, minWidth: 0, minHeight: 56, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 8, justifyContent: "center",
+                backgroundColor: on ? M.chinh : "#fff", boxShadow: on ? `0px 0px 0px 2.5px #0a5246, ${BONG.ngoc}` : BONG.nho }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: on ? "#bfe6d6" : MAU_NHOM[k] }} />
+                <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 14.5, color: on ? "#fff" : M.chu, flexShrink: 1 }}>{TEN_NHOM[k]}</Text>
+              </View>
+              <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11.5, color: on ? "rgba(255,255,255,0.85)" : M.chu3 }}>{k === "tinh_phut" ? "1 sao = 1 phút chơi" : "Vào thoải mái"}</Text>
+            </Pressable>
+          );
+        })}
+      </View>
+    </View>
+  );
 }

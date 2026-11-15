@@ -10,6 +10,7 @@
 // Bỏ so với 05/11 (N8): danh sách nhiệm vụ hôm nay (tab Nhiệm vụ), «Hôm nay con dùng» (tab Báo cáo › Hôm nay con dùng gì), «Cài cho con», «Con khác»
 // (chip đổi con ở đầu màn đã đủ; hồ sơ con mở từ tab Cả nhà / Báo cáo).
 // Người trông giúp vẫn khoá máy / cho thêm giờ / trả lời lời xin (máy chủ cho phép — quyen.ts › trongGiupDuoc).
+import { cheDoTu } from "@/lib/app-web";
 import { memo, useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -34,7 +35,6 @@ const CHIP_CAO = 38, TIEU_TU = 16 + CHIP_CAO + 16;
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 const ngayHomNay = () => { const t = new Date(); return `${THU[t.getDay()]}, ${t.getDate()}/${t.getMonth() + 1}`; };
 /** «21:30» → phút trong ngày. */
-const phutCua = (g: string | null | undefined) => { const m = /^(\d{1,2}):(\d{2})/.exec(g ?? ""); return m ? Number(m[1]) * 60 + Number(m[2]) : null; };
 
 export default function HomNay() {
   const { d, loi, matMang, tai } = useTai(async () => {
@@ -155,13 +155,9 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   // gấp nhất trước: máy mất mạng (con đang kẹt) › lời xin (con đang chờ) › còn lại
   const dauTien: { loai: "muc"; m: MucDeY } | { loai: "xin" } | null = muc[0] ? { loai: "muc", m: muc[0] } : xin[0] ? { loai: "xin" } : sau[0] ? { loai: "muc", m: sau[0] } : null;
 
-  // ---- 3. đang bị chặn gì
-  const moHet = ct.d?.cheDoChan === "mo_het";
+  // ---- 3. app & web của con
+  const moHet = cheDoTu(ct.d) === "mo_het";
   const soApp = soAppDuocMo(d.luat, conId);
-  const bayGio = new Date().getHours() * 60 + new Date().getMinutes();
-  const hocDen = phutCua(q?.gioHoc?.den);
-  const hocHomNay = !!q?.gioHoc && q.gioHoc.thu.includes(new Date().getDay());
-  const hocXong = hocHomNay && hocDen !== null && bayGio >= hocDen;
 
   // ---- 4. vừa làm xong (chờ duyệt + tự cộng hôm nay), ≤ 3
   const nopCho = (d.cd?.nhiemVu ?? []).filter((x) => x.child_id === conId);
@@ -250,27 +246,18 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         )}
       </The>
 
-      {/* 3. đang bị chặn gì */}
-      <TieuMuc chu={`${c.ten} đang bị chặn gì`} />
+      {/* 3. app & web của con (15/11 #262: Mở hết / Theo danh sách — bỏ giờ học, giờ ngủ, «web người lớn») */}
+      <TieuMuc chu={`App & web của ${c.ten}`} />
       <The>
-        <HangViec dau ic={moHet ? "mo_khoa" : "khien"} mau="lam" tieu={moHet ? "Mở hết" : "Chặn app & web"}
-          phu={moHet ? "Chỉ chặn web người lớn" : `${soApp} app được mở · app mới phải xin`}
+        <HangViec dau ic={moHet ? "mo_khoa" : "khien"} mau="lam" tieu={moHet ? "Mở hết" : "Theo danh sách"}
+          phu={moHet ? "Con mở mọi app, web · không tính phút" : `${soApp} app trong danh sách · app mới con xin Ba Mẹ`}
           phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>} bam={() => router.push(`/app-web?con=${conId}` as never)} />
         {q ? (
           <View style={{ flexDirection: "row", gap: 6, marginTop: 6 }}>
-            {q.gioHoc && hocHomNay ? (
-              <MocGio ic="sach" tieu="Giờ học" phu={`${gioGon(q.gioHoc.tu)}–${gioGon(q.gioHoc.den)}${hocXong ? " ✓" : ""}`} nay={q.dangHoc} mo={hocXong}
-                bam={() => router.push(`/gio/hoc?con=${conId}` as never)} />
-            ) : null}
             <MocGio ic="game" tieu="Giờ chơi" phu={khoa ? "đang khoá" : `còn ${conPhut} phút`} nay={!q.dangHoc && !q.dangNgu}
               bam={() => router.push(`/gio/${conId}` as never)} />
-            <MocGio ic="trang_ngu" tieu="Giờ ngủ" phu={`khoá ${gioGon(q.gioNgu.tu)}`} nay={q.dangNgu} bam={() => router.push(`/gio/ngu?con=${conId}` as never)} />
           </View>
         ) : null}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 10 }}>
-          <Icon3D ten="khien" co={18} mau={M.chu2} />
-          <Chu kieu="dam" co={13.5} mau={M.chu2}>Web người lớn luôn bị chặn</Chu>
-        </View>
       </The>
 
       {/* 4. vừa làm xong */}

@@ -2,12 +2,14 @@
 // dùng ở Hôm nay, «<Con> đang xin» (/yeu-cau?con=) và Chờ duyệt.
 //  • them_gio  — «Thêm 20 phút chơi»: Cho = yeu-cau/:id/dong-y {phut} (Ba Mẹ tặng, không trừ sao, cộng vào quỹ hôm nay) ⇒ có grantId để Hoàn tác 60 giây.
 //  • ngoai_le / ngoai_gio — «Mở YouTube 30 phút» / «Mở cả máy 30 phút»: Cho = dong-y {phut} (không trừ giờ chơi, không trừ sao, tới hạn).
-//  • mo_web / cai_app — app / web lạ: chọn «dùng thoải mái» (Học, luôn) hay «trừ giờ chơi» (Giải trí, luôn) — Hôm nay mở màn chi tiết.
+//  • mo_web / cai_app — app / web chưa có trong danh sách (15/11 — #262, #258): «Tính phút» / «Không tính phút» = yeu-cau/:id/dong-y {nhom} (thêm lâu dài
+//    vào danh sách) · «Bỏ qua» = yeu-cau/:id/bo-qua ⇒ màn «Đã bỏ qua» (/yeu-cau-web/bo-qua, Hoàn tác 60 giây).
 //  • Không cho = yeu-cau/:id/tu-choi {lyDo: «Ba Mẹ chưa cho lúc này»}.
 // Sau khi xử lý ⇒ màn kết quả /yeu-cau/xong (params: kieu, ten, phut, muc, may, grant, con).
 import { router } from "expo-router";
 import { View } from "react-native";
 import { bm, type MayCon } from "./api";
+import { boQuaXin, hoanTacXin, themTuXin } from "./app-web";
 import type { YeuCauMoi } from "./hang-ngay";
 import { Chu, gioPhut, HaiNut, M, Nut } from "./ui";
 
@@ -35,11 +37,13 @@ export const tenMayXin = (y: YeuCauMoi, may: Pick<MayCon, "id" | "ten">[] | unde
   return (id && may?.find((m) => m.id === id)?.ten) || null;
 };
 
-export type KetQua = { kieu: "them_gio" | "mo" | "khong" | "ngoai_le"; ten: string; con: string; phut?: number; muc?: string; may?: string | null; grant?: string };
+export type KetQua = { kieu: "them_gio" | "mo" | "khong" | "ngoai_le" | "bo_qua"; ten: string; con: string; phut?: number; muc?: string; may?: string | null; grant?: string;
+  /** «Bỏ qua» (app / web): hoàn tác trong 60 giây — POST yeu-cau/:id/hoan-tac */ hoan?: () => Promise<unknown>;
+  /** «mo»: định danh máy chủ trả (dong-y › muc) — tìm đúng hàng trong danh sách khi đổi nhóm / hoàn tác */ ma?: string };
 /** Mở màn kết quả. */
 export const denXong = (k: KetQua) => router.push({ pathname: "/yeu-cau/xong", params: {
   kieu: k.kieu, ten: k.ten, con: k.con, ...(k.phut ? { phut: String(k.phut) } : {}), ...(k.muc ? { muc: k.muc } : {}), ...(k.may ? { may: k.may } : {}),
-  ...(k.grant ? { grant: k.grant } : {}) } } as never);
+  ...(k.grant ? { grant: k.grant } : {}), ...(k.ma ? { ma: k.ma } : {}) } } as never);
 
 /** «Cho» một chạm (thêm giờ / ngoại lệ) đúng số phút con xin (hoặc `phut`). Trả thông tin cho màn kết quả. */
 export async function choXin(y: YeuCauMoi, may: string | null, phut = y.phut ?? 15): Promise<KetQua> {
@@ -47,10 +51,17 @@ export async function choXin(y: YeuCauMoi, may: string | null, phut = y.phut ?? 
   return laThemGio(y) ? { kieu: "them_gio", ten: y.ten_con, con: y.child_id, phut, may, grant: r.grantId }
     : { kieu: "ngoai_le", ten: y.ten_con, con: y.child_id, phut, muc: mucXin(y), may };
 }
-/** App / web lạ: «dùng thoải mái» (Học, luôn) hoặc «trừ giờ chơi» (Giải trí, luôn). */
-export async function choAppWeb(y: YeuCauMoi, may: string | null, tinhGio: boolean): Promise<KetQua> {
-  await bm.goi(`yeu-cau/${y.id}/dong-y`, { phanLoai: tinhGio ? "giai_tri" : "hoc", phamVi: "vinh_vien" });
-  return { kieu: "mo", ten: y.ten_con, con: y.child_id, muc: y.gia_tri ?? "", may, phut: tinhGio ? 1 : undefined };
+/** App / web chưa có trong danh sách: thêm vào nhóm «Tính phút» (trừ sao) hoặc «Không tính phút». */
+export async function choAppWeb(y: YeuCauMoi, may: string | null, tinhPhut: boolean): Promise<KetQua> {
+  const r = await themTuXin(y.id, tinhPhut ? "tinh_phut" : "khong_tinh_phut");
+  return { kieu: "mo", ten: y.ten_con, con: y.child_id, muc: y.gia_tri ?? "", ma: r?.muc, may, phut: tinhPhut ? 1 : undefined };
+}
+/** «Bỏ qua» lời xin app / web: không ghi gì, Con xin lại được. Không có `sau` ⇒ màn «Đã bỏ qua» có Hoàn tác (60 giây, đếm theo đồng hồ máy);
+ *  có `sau` (Chờ duyệt) ⇒ trả kết quả kèm `hoan` để màn đó báo toast + tải lại tại chỗ. */
+export async function boQuaAppWeb(y: YeuCauMoi, may: string | null, sau?: (k: KetQua) => void) {
+  await boQuaXin(y.id);
+  if (sau) { sau({ kieu: "bo_qua", ten: y.ten_con, con: y.child_id, muc: y.gia_tri ?? "lời xin", may, hoan: () => hoanTacXin(y.id) }); return; }
+  router.push({ pathname: "/yeu-cau-web/bo-qua", params: { id: y.id, ten: y.gia_tri ?? "lời xin", con: y.ten_con, ...(may ? { may } : {}) } });
 }
 export async function khongChoXin(y: YeuCauMoi, may: string | null, lyDo = LY_DO_KHONG): Promise<KetQua> {
   const ly = lyDo.trim().slice(0, 120) || LY_DO_KHONG;
@@ -74,17 +85,19 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc }: {
       {y.ly_do?.trim() ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
       {phu ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}
       {laAppWeb(y) && truc ? (
+        // thiết kế 15/11 them-a4nqjrmp: «Tính phút · Trừ sao của con · 1 sao = 1 phút» (nút chính) · «Không tính phút» | «Bỏ qua»
         <View style={{ gap: 8 }}>
-          <Nut chu="Cho, dùng thoải mái" ic="tick" nho rong dangChay={dang} bam={() => xong(() => choAppWeb(y, may, false))} />
+          <Nut chu="Tính phút" nho rong dangChay={dang} bam={() => xong(() => choAppWeb(y, may, true))} />
           <HaiNut>
-            <Nut chu="Cho, trừ giờ chơi" loai="vien" nho dangChay={dang} bam={() => xong(() => choAppWeb(y, may, true))} />
-            <Nut chu="Không cho" loai="huy" nho dangChay={dang} bam={() => xong(() => khongChoXin(y, may))} />
+            <Nut chu="Không tính phút" loai="vien" nho dangChay={dang} bam={() => xong(() => choAppWeb(y, may, false))} />
+            <Nut chu="Bỏ qua" loai="vien" nho dangChay={dang} bam={() => lam(() => boQuaAppWeb(y, may, sau === denXong ? undefined : sau))} />
           </HaiNut>
         </View>
       ) : laAppWeb(y) ? (
+        // Trang chủ (bm2-trang-chu 15/11): «Bỏ qua» | «Thêm · Tính phút»
         <HaiNut>
-          <Nut chu="Không cho" loai="vien" nho dangChay={dang} bam={() => xong(() => khongChoXin(y, may))} />
-          <Nut chu="Xem rồi cho" nho bam={() => router.push(`/yeu-cau/${y.id}` as never)} />
+          <Nut chu="Bỏ qua" loai="vien" nho dangChay={dang} bam={() => lam(() => boQuaAppWeb(y, may, sau === denXong ? undefined : sau))} />
+          <Nut chu="Thêm · Tính phút" nho dangChay={dang} bam={() => xong(() => choAppWeb(y, may, true))} />
         </HaiNut>
       ) : (
         <HaiNut>

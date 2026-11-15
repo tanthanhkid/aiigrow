@@ -7,6 +7,7 @@
 // iPhone / iPad: «Máy riêng của <bé> · iPad không đổi người dùng được nên chỉ một bé dùng» (không có «Máy này ai dùng?»).
 // Mục «An toàn & sự cố» giữ các tính năng cũ: mở khẩn cấp, gỡ từ xa (nhập lại mật khẩu), gỡ tại máy, nhật ký. Người trông giúp: xem, khoá máy, mã mất mạng.
 // Dữ liệu: GET may/:id/tuan-thu (conDs, dangDung, khoaMay, tungCon) + GET may/:id/con (mọi bé, gán chưa, sao) + GET tuan-thu (máy khác) + gia-dinh.
+import { cheDoTu } from "@/lib/app-web";
 import { useCallback, useState } from "react";
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -131,7 +132,7 @@ export default function AnToanMay() {
   const khanCap = m.moKhanCapDen && new Date(m.moKhanCapDen) > new Date();
   // Windows: «đang mở» gồm cả thêm giờ đã duyệt (moDen) — «Khoá lại ngay» đóng cả hai
   const moDen = m.moDen && new Date(m.moDen) > new Date() ? m.moDen : khanCap ? m.moKhanCapDen : null;
-  const cheDo = d.ct?.cheDoChan === "mo_het" ? "Mở hết" : "Chặn app & web";
+  const cheDo = cheDoTu(d.ct) === "mo_het" ? "Mở hết" : "Theo danh sách";
   // khoá theo máy (POST may/:id/khoa) — mọi bé trên máy này
   const km = d.km;
   const khoaRieng = mayDangKhoa(km);
@@ -174,9 +175,9 @@ export default function AnToanMay() {
           <HangViec dau ic="khien" mau="xanh" tieu="App & web theo từng bé" phu="Theo bé đang dùng máy"
             phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Xem ›</Chu>} bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} />
         ) : <>
-          <HangViec dau ic="khien" mau="xanh" tieu={cheDo} phu={d.ct?.cheDoChan === "mo_het" ? "Chỉ chặn web người lớn" : "App, web mới con phải xin Ba Mẹ"}
+          <HangViec dau ic="khien" mau="xanh" tieu={cheDo} phu={cheDoTu(d.ct) === "mo_het" ? "Con mở mọi app, web · không tính phút" : "Chỉ mở app, web Ba Mẹ đã thêm"}
             phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>} bam={() => router.push((ai ? `/app-web?con=${ai.id}` : "/app-web") as never)} />
-          {["windows", "mac", "android"].includes(m.nen) ? <HangViec ic="laptop" mau="lam" tieu="Ứng dụng trên máy này" phu="App đã cài thật trên máy — chặn hoặc cho phép"
+          {["windows", "mac", "android"].includes(m.nen) ? <HangViec ic="laptop" mau="lam" tieu="Ứng dụng trên máy này" phu="App đã cài thật trên máy — thêm vào danh sách"
             bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} /> : null}
         </>}
         {coMaOff(m) ? <HangViec ic="mo_khoa" mau="xanh" tieu="Mã mở máy khi mất mạng" phu={d.ct?.may.find((x) => x.id === id)?.matMang ? "Máy đang mất mạng · lấy mã cho con" : "Mã 6 số, máy không cần mạng"}

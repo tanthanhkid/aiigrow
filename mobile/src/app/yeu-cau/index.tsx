@@ -1,8 +1,10 @@
 // «<Con> đang xin phép» (thiết kế chốt 14/11 — bm-con-xin/01 them-a4nqjrmp): mọi lời xin đang chờ của một Con, mỗi lời xin một thẻ
 // «Không cho / Cho N phút» (lib/hom-nay-xin). App / web lạ: «YouTube chưa nằm trong N app được mở». Thêm giờ: viên «S sao · Con tự đổi sao ra phút được».
 // «Đã trả lời hôm nay»: lời xin app / web Ba Mẹ đã không cho hôm nay (GET con/:id/hom-nay › biChan «chua_cho»).
-// Cuối màn: chế độ chặn của con («Chặn app & web — App, web mới con phải xin Ba Mẹ · Đổi ›» → App & web) + «Được mở N app».
+// Cuối màn: chế độ của con («Theo danh sách — Chỉ mở app, web Ba Mẹ đã thêm · Đổi ›» → App & web) + «Được mở N app». Lời xin app / web: 3 nút
+// Tính phút / Không tính phút / Bỏ qua (15/11 — #258).
 // Mở từ Hôm nay / Báo cáo / Thông báo (?con=).
+import { cheDoTu } from "@/lib/app-web";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
@@ -27,7 +29,7 @@ export default function DangXin() {
   if (!d) return <Man lui={{ chu: "Hôm nay" }} tieu="Con đang xin"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const ten = d.ct?.ten ?? "Con";
   const q = d.qy;
-  const moHet = d.ct?.cheDoChan === "mo_het";
+  const moHet = cheDoTu(d.ct) === "mo_het";
   return (
     <Man lui={{ chu: "Hôm nay" }} tieuLon={d.ds.length ? `${ten} đang xin phép` : `${ten} không xin gì`} tai={tai} vongTai day={ve}>
       {!d.ds.length ? <CanhGiua lv="canh-trong" tieu="Không có lời xin nào" loi={`Khi ${ten} xin thêm giờ hay xin mở app, Grow báo Ba Mẹ ngay.`} /> : null}
@@ -35,7 +37,7 @@ export default function DangXin() {
       {d.ds.map((y) => (
         <The key={y.id}>
           <TheXin y={y} may={tenMayXin(y, d.ct?.may)} lam={(fn) => lam(fn)} dang={dangChay}
-            phu={laAppWeb(y) ? `${y.gia_tri} chưa nằm trong ${d.soApp ?? "các"} app được mở` : undefined} />
+            truc={laAppWeb(y)} phu={laAppWeb(y) ? `${y.gia_tri} chưa có trong danh sách` : undefined} />
           {laThemGio(y) && q && q.quy.doiSao.bat && q.sao ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 8 }}>
               <SaoVien n={q.sao} nho />
@@ -51,7 +53,7 @@ export default function DangXin() {
           <The style={{ paddingVertical: 4 }}>
             {d.daTraLoi.map((x, k) => (
               <HangViec key={`${x.ten}:${k}`} dau={k === 0} ic="khoa" mau="xam" tieu={x.ten}
-                phu={`${gioPhut(x.luc)}${x.may ? ` · ${x.may.replace(/ của .*$/, "")}` : ""}`} phai={<Nhan chu="Chưa cho" loai="xam" />} />
+                phu={`${gioPhut(x.luc)}${x.may ? ` · ${x.may.replace(/ của .*$/, "")}` : ""} · xin lại được`} phai={<Nhan chu="Đã bỏ qua" loai="xam" />} />
             ))}
           </The>
         </>
@@ -59,8 +61,8 @@ export default function DangXin() {
 
       {d.ct && d.id ? (
         <The style={{ paddingVertical: 4 }}>
-          <HangViec dau ic={moHet ? "mo_khoa" : "khien"} mau="lam" tieu={moHet ? "Mở hết" : "Chặn app & web"}
-            phu={moHet ? "Chỉ chặn web người lớn" : "App, web mới con phải xin Ba Mẹ"} phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>}
+          <HangViec dau ic={moHet ? "mo_khoa" : "khien"} mau="lam" tieu={moHet ? "Mở hết" : "Theo danh sách"}
+            phu={moHet ? "Không chặn, không tính phút" : "Chỉ mở app, web Ba Mẹ đã thêm"} phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>}
             bam={() => router.push(`/app-web?con=${d.id}` as never)} />
           {!moHet && d.soApp !== null ? <HangViec ic="luoi" mau="xanh" tieu={`Được mở ${d.soApp} app`} bam={() => router.push(`/app-web?con=${d.id}` as never)} /> : null}
         </The>

@@ -50,8 +50,10 @@ export default function ChoDuyet() {
   // Chờ duyệt: trả lời xong ở lại màn, toast (cho thêm giờ có Hoàn tác — them-gio/:id/hoan-tac)
   const sau = (k: KetQua) => {
     const chu = k.kieu === "them_gio" ? `Đã cho ${k.ten} thêm ${k.phut} phút` : k.kieu === "ngoai_le" ? `Đã cho ${k.ten} mở ${k.muc} ${k.phut} phút`
-      : k.kieu === "mo" ? `Đã cho ${k.ten} dùng ${k.muc}` : `Đã trả lời ${k.ten}: Ba Mẹ chưa cho lúc này`;
-    bao(chu, k.grant ? () => { hoanTacThemGio(k.grant!).then(tai, () => { bao("Đã quá 60 giây — không hoàn tác được"); tai(); }); } : undefined);
+      : k.kieu === "mo" ? `Đã cho ${k.ten} dùng ${k.muc}` : k.kieu === "bo_qua" ? `Đã bỏ qua ${k.muc} · ${k.ten} xin lại được`
+      : `Đã trả lời ${k.ten}: Ba Mẹ chưa cho lúc này`;
+    const loiHoan = () => { bao("Đã quá 60 giây — không hoàn tác được"); tai(); };
+    bao(chu, k.hoan ? () => { k.hoan!().then(tai, loiHoan); } : k.grant ? () => { hoanTacThemGio(k.grant!).then(tai, loiHoan); } : undefined);
     tai();
   };
   const duyetCa = () => lam(async () => {
