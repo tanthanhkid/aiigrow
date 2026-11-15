@@ -64,7 +64,7 @@ export default function ObGio() {
         </View>
       </View>
       <RobNoi lv="rob-goc">
-        <Chu kieu="dam" co={14}>Không còn giờ chơi miễn phí mỗi ngày: <Chu kieu="rat" co={14}>1 sao = 1 phút</Chu>. App học để «Không tính phút» thì không trừ sao.</Chu>
+        <Chu kieu="dam" co={14}>Không còn giờ chơi miễn phí mỗi ngày: 1 sao = 1 phút. App học để «Không tính phút» thì không trừ sao.</Chu>
       </RobNoi>
     </Man>
   );
