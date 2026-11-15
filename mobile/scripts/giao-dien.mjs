@@ -90,7 +90,8 @@ export const DO = String.raw`(() => {
     // 4. tràn khung có nền/viền
     if (!cuoi) for (let k = el; k && k !== document.body; k = k.parentElement) { const ks = getComputedStyle(k);
       if (mau(ks.backgroundColor)[3] > 0 || parseFloat(ks.borderTopWidth) > 0 || ks.overflow !== 'visible') { const q = k.getBoundingClientRect();
-        const ra = dongCua(n).some(r => r.right > q.right + 2 || r.left < q.left - 2 || r.bottom > q.bottom + 2);
+        // bỏ hộp hẹp ≤ 8px: khoảng trắng cuối dòng trước chỗ ngắt (Chrome trả riêng một hộp ~5–7px ló qua mép phải, mắt không thấy — đo 15/11 màn Cảnh báo nợ @390 giãn)
+        const ra = dongCua(n).filter(r => r.width > 8).some(r => r.right > q.right + 2 || r.left < q.left - 2 || r.bottom > q.bottom + 2);
         if (ra && ks.overflow === 'visible' && !daBao.has('tr'+chu)) { daBao.add('tr'+chu); L.push({luat:'TRAN', chu, el:ten(el), khung: ten(k)}); }
         break; } }
   }
