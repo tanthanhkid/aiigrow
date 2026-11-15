@@ -256,7 +256,7 @@ export default function AnToanMay() {
       {/* Máy chưa nối bé nào (bé riêng của máy vừa bị xoá hồ sơ…): máy khoá, chờ Ba Mẹ chọn bé */}
       {!d.conDs.length && d.cm ? (
         <Bao loai="canh" ic="canh_bao" tieu="Chưa bé nào dùng máy này" loi="Máy đang khoá cho tới khi Ba Mẹ chọn bé dùng máy.">
-          {d.xem ? null : <Nut chu="Chọn bé dùng máy này" loai="vien" nho bam={() => router.push({ pathname: "/may/[id]/con", params: { id } })} />}
+          {d.xem ? null : <Nut chu="Chọn bé dùng máy này" loai="vien" nho bam={() => router.push({ pathname: "/may/[id]/ai-dung", params: { id } })} />}
         </Bao>
       ) : null}
 
@@ -316,7 +316,7 @@ export default function AnToanMay() {
       {/* «Máy này ai dùng?» (Windows / Mac / Android): công tắc gán / bỏ gán từng bé; đầu mục ⇒ màn chọn đủ (them-okpa735o) */}
       {!motCon && d.cm && d.cm.ds.length > 1 ? (
         <>
-          <MucPhai chu="Máy này ai dùng?" phai={`${d.conDs.length}/${d.cm.ds.length} bé ›`} bam={() => router.push({ pathname: "/may/[id]/con", params: { id } })} />
+          <MucPhai chu="Máy này ai dùng?" phai={`${d.conDs.length}/${d.cm.ds.length} bé ›`} bam={() => router.push({ pathname: "/may/[id]/ai-dung", params: { id } })} />
           <TheDs>
             {d.cm.ds.map((c, k) => {
               const rieng = c.mayKhac.find((x) => x.rieng);

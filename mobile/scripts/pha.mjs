@@ -548,8 +548,8 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-may (khoá theo máy · tmezw761)", "/may/m4", "Máy khác · không đổi gì", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Khoá Máy cả nhà ngay"); await bam("Khoá Máy cả nhà ngay"); } }),
     M("bm-may (khoá theo bé · sll7clha)", "/may/m4", "Khoá theo bé", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Chỉ khoá "); // lượt chữ dài đổi tên bé ⇒ bấm theo đầu chữ
       await nhanChuot(await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => !e.children.length && e.innerText?.trim().startsWith("Chỉ khoá ")).pop()`)); } }),
-    M("bm-may-con (Máy này ai dùng?)", "/may/m4/con", "Chọn bé dùng máy này", { kb: MAY_CHUNG }),
-    M("bm-may-con (iPad một bé)", "/may/m2/con", "Không thêm được", { kb: MAY_CHUNG }),
+    M("bm-may-con (Máy này ai dùng?)", "/may/m4/ai-dung", "Chọn bé dùng máy này", { kb: MAY_CHUNG }),
+    M("bm-may-con (iPad một bé)", "/may/m2/ai-dung", "Không thêm được", { kb: MAY_CHUNG }),
     M("bm-may-chi-tiet (Máy cả nhà)", "/may/m4/chi-tiet", "Sao của từng bé", { kb: MAY_CHUNG }),
     M("bm-may-ghep (máy chung 2 bé)", "/thiet-lap/ghep?con=c1&conDs=c1,c2&nguon=them", "Ghép máy chung · 2 bé"),
     M("bm-may-moi (máy chung đã ghép)", "/thiet-lap/da-ghep?con=c1&may=m4&nguon=them", "Luật đi theo bé đang dùng", { kb: MAY_CHUNG }),
@@ -1296,7 +1296,7 @@ await kichBan("#267 Máy cả nhà: công tắc bỏ gán Bảo Anh ⇒ may/m4/c
 
 await kichBan("#267 Máy này ai dùng?: bỏ Bảo Anh ⇒ «Lưu · máy riêng của Bill» ⇒ POST may/m4/con {ds:[c2]}; iPad: bé khác «Không thêm được»", async () => {
   kb = { ...kb, ...MAY_CHUNG };
-  await di("/may/m4/con");
+  await di("/may/m4/ai-dung");
   xet(await doi("2 bé = máy dùng chung."), "hộp ngọc «2 bé = máy dùng chung»");
   xet(await doi("−20 sao"), "sao âm hiện «−20 sao»");
   await bamChon('[role="checkbox"][aria-label="Bảo Anh"]');
@@ -1304,7 +1304,7 @@ await kichBan("#267 Máy này ai dùng?: bỏ Bảo Anh ⇒ «Lưu · máy riên
   nhatKy.length = 0;
   await bam("Lưu · máy riêng của Bill");
   xet(await choGoi((x) => x.d === "may/m4/con" && x.m === "POST" && JSON.stringify(x.body?.ds) === JSON.stringify(["c2"])), "gửi ds = [c2]");
-  await di("/may/m2/con");
+  await di("/may/m2/ai-dung");
   xet(await doi("Không thêm được"), "iPad: Bill «Không thêm được»");
   xet(await doi("iPhone, iPad chỉ một bé:"), "iPad: giải thích chỉ một bé");
 });
