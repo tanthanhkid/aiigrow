@@ -81,9 +81,7 @@ api POST /api/m/dang-ky "{\"dinhDanh\":\"$SDT\",\"ma\":\"$OTP\",\"ten\":\"Ba E2E
 dat 1.2 'Đăng ký Ba Mẹ → token phiên' "$([ -n "$TOKEN_BM" ] && echo 1 || echo 0)" "mã HTTP $API_MA"
 api POST /api/m/con "{\"ten\":\"Con E2E\",\"namSinh\":$(( $(date +%Y) - 10 )),\"pin\":\"1234\"}" "$TOKEN_BM"; CON_ID=$(jqr "$API_THAN" .id)
 dat 1.3 'Tạo Con' "$([ -n "$CON_ID" ] && echo 1 || echo 0)" "con $CON_ID"
-# giờ ngủ dời xa giờ hiện tại (+11h..+12h theo UTC+7) để kết quả không phụ thuộc lúc chạy
-TU=$(TZ=Asia/Ho_Chi_Minh date -v+11H +%H:00); DEN=$(TZ=Asia/Ho_Chi_Minh date -v+12H +%H:00)
-api POST "/api/m/con/$CON_ID/lich" "{\"ngu\":{\"tu\":\"$TU\",\"den\":\"$DEN\"}}" "$TOKEN_BM"; log "giờ ngủ thử ${TU}–${DEN} (HTTP $API_MA)"
+# #258: giờ ngủ / giờ học đã bỏ — không đặt lịch
 MK_CON="Aa1!$(uuidgen | tr -d -)"
 sudo sysadminctl -addUser "$TEN_CON" -fullName 'Con E2E' -password "$MK_CON" >"$LOG/sysadminctl.log" 2>&1
 UID_CON=$(id -u "$TEN_CON" 2>/dev/null); LA_ADMIN=$(id -Gn "$TEN_CON" 2>/dev/null | grep -qw admin && echo 1 || echo 0)
@@ -141,23 +139,22 @@ dat 3.6 'Máy gắn đúng Con của gói cài' "$([ "$(jqr "$MAY" .con)" = "$CO
 STT=$(trang_thai)
 dat 3.7 'IPC trangThai: đã ghép, tên Con' "$([ "$(jqr "$STT" .daGhep)" = true ] && echo 1 || echo 0)" "$(printf '%s' "$STT" | jq -c '{daGhep,tenCon,cheDo,lyDoKhoa,matMang,banDaemon}' 2>/dev/null)"
 
-# ------------------------------------------------------------------ KB4 — đồng bộ chính sách: chế độ máy, web chặn
+# ------------------------------------------------------------------ KB4 — đồng bộ chính sách: chế độ máy, «Theo danh sách» (#262 danh sách trắng)
 api POST "/api/m/may/$MAY_ID/che-do" '{"cheDo":"chan"}' "$TOKEN_BM"
-api POST "/api/m/con/$CON_ID/che-do-chan" '{"cheDo":"chi_app_duoc_phep"}' "$TOKEN_BM"; log "che-do-chan chi_app_duoc_phep HTTP $API_MA"
+api POST "/api/m/con/$CON_ID/che-do" '{"cheDo":"theo_danh_sach"}' "$TOKEN_BM"; log "che-do theo_danh_sach HTTP $API_MA"
 T0=$SECONDS; cho 60 1 cho_che_do hoc; G=$((SECONDS-T0))
-dat 4.1 '«Chỉ app được phép» ⇒ daemon mode hoc (long-poll, không chờ chu kỳ)' "$(cho_che_do hoc && echo 1 || echo 0)" "mode $(tt_truong cheDo), sau $G giây (thiết kế ≤5 giây; ngưỡng chấp nhận 20)"
+dat 4.1 '«Theo danh sách» ⇒ daemon mode hoc (long-poll, không chờ chu kỳ)' "$(cho_che_do hoc && echo 1 || echo 0)" "mode $(tt_truong cheDo), sau $G giây (thiết kế ≤5 giây; ngưỡng chấp nhận 20)"
 dat 4.1b 'Long-poll cho-thay-doi áp nhanh: ≤ 20 giây' "$([ "$G" -le 20 ] && [ "$(tt_truong cheDo)" = hoc ] && echo 1 || echo 0)" "$G giây"
-TEN_CHAN="chan-thu-e2e.vn"
-api POST "/api/m/con/$CON_ID/web/trang" "{\"muc\":\"$TEN_CHAN\",\"trangThai\":\"chan\"}" "$TOKEN_BM"
-CO_CHAN() { trang_thai | jq -e --arg d "$TEN_CHAN" '(.trangChan // []) | map(select(contains($d))) | length > 0' >/dev/null; }
 CO_DS() { trang_thai | jq -e '(.trangChan // []) | length > 0' >/dev/null; }
+KHONG_CHAN() { trang_thai | jq -e '(.trangChan // []) | length == 0' >/dev/null; }
 cho 60 2 CO_DS
-dat 4.2 'Chính sách web về daemon: status.trangChan có danh sách web cấm luôn chặn' "$(CO_DS && echo 1 || echo 0)" "$(trang_thai | jq -c '(.trangChan // []) | {so: length, dau: .[0:3]}' 2>/dev/null) (ở «Chỉ app được phép» «*» nằm ở luật trình duyệt, không ở trangChan)"
+dat 4.2 'Chính sách web về daemon: «Theo danh sách» có lưới an toàn (trangChan khác rỗng)' "$(CO_DS && echo 1 || echo 0)" "$(trang_thai | jq -c '(.trangChan // []) | {so: length, dau: .[0:3]}' 2>/dev/null) (ngoài danh sách = «*» ở luật trình duyệt, không ở trangChan)"
+TEN_LUOI=$(trang_thai | jq -r '(.trangChan // [])[0] // empty')
 sleep 8
-if grep -q "$TEN_CHAN" /etc/hosts 2>/dev/null; then ghi 4.3 'Khối /etc/hosts có mốc # AiiGrow + tên miền chặn' PASS "$(grep -c '# AiiGrow' /etc/hosts) dòng"
+if [ -n "$TEN_LUOI" ] && grep -q "$TEN_LUOI" /etc/hosts 2>/dev/null; then ghi 4.3 'Khối /etc/hosts có mốc # AiiGrow + tên miền lưới an toàn' PASS "$(grep -c '# AiiGrow' /etc/hosts) dòng"
 else bo 4.3 'Khối /etc/hosts / chính sách trình duyệt áp cho Con' "daemon chỉ đặt hosts + Managed Preferences khi Con đang ở màn hình (phienConsole); runner không có phiên đăng nhập của Con"; fi
 
-# ------------------------------------------------------------------ KB5 — chặn app thật: app ngoài danh sách đang chạy dưới uid Con bị đóng
+# ------------------------------------------------------------------ KB5 — «Theo danh sách»: app NGOÀI danh sách đang chạy dưới uid Con bị đóng (#262 bỏ «Chặn»)
 # danh sách app: daemon quét /Applications ở lần đồng bộ kế ⇒ Ba Mẹ thấy E2EChan
 KHOA_APP=""; T0=$SECONDS
 while [ $((SECONDS-T0)) -lt 240 ]; do
@@ -167,7 +164,7 @@ done
 dat 5.1 'App thật quét từ /Applications lên máy chủ (E2EChan)' "$([ -n "$KHOA_APP" ] && echo 1 || echo 0)" "khoa «${KHOA_APP}» · $(jqr "$API_THAN" '[.ds[]? | (.ten // .khoa)] | join(",")' | cut -c1-200) · sau $((SECONDS-T0)) giây"
 if [ -n "$KHOA_APP" ]; then
   # chạy app dưới uid Con TRƯỚC, kiểm còn sống, rồi mới chặn (vòng áp 5 giây có thể đóng nó trước khi kịp kiểm)
-  api POST "/api/m/con/$CON_ID/che-do-chan" '{"cheDo":"mo_het"}' "$TOKEN_BM"; cho 60 1 cho_che_do tu_do
+  api POST "/api/m/con/$CON_ID/che-do" '{"cheDo":"mo_het"}' "$TOKEN_BM"; cho 60 1 cho_che_do tu_do
   : > /tmp/e2echan.log; chmod 666 /tmp/e2echan.log
   sudo -u "$TEN_CON" "$APP/Contents/MacOS/e2echan" 3000 >>/tmp/e2echan.log 2>&1 &
   sleep 1
@@ -175,16 +172,15 @@ if [ -n "$KHOA_APP" ]; then
   SONG0=$(DANG_CHAY && echo 1 || echo 0)
   [ "$SONG0" = 1 ] || { sudo -u "$TEN_CON" "$APP/Contents/MacOS/e2echan" >>/tmp/e2echan.log 2>&1 & DP=$!; sleep 2; kill "$DP" 2>/dev/null; wait "$DP" 2>/dev/null; echo "chạy thử 2 giây: mã $?" >>/tmp/e2echan.log; }
   log "E2EChan chạy dưới uid Con: $SONG0 · log: $(cat /tmp/e2echan.log | head -c 200) · ps: $(ps -u "$UID_CON" -o pid=,comm= | head -5 | tr '\n' ';')"
-  api POST "/api/m/may/$MAY_ID/ung-dung/dat" "{\"khoa\":\"$KHOA_APP\",\"trangThai\":\"chan\"}" "$TOKEN_BM"; log "ung-dung/dat chan HTTP $API_MA"
-  api POST "/api/m/con/$CON_ID/che-do-chan" '{"cheDo":"chi_app_duoc_phep"}' "$TOKEN_BM"
+  # E2EChan không nằm trong danh sách của Con ⇒ về «Theo danh sách» là bị đóng
+  api POST "/api/m/con/$CON_ID/che-do" '{"cheDo":"theo_danh_sach"}' "$TOKEN_BM"; log "che-do theo_danh_sach HTTP $API_MA"
   T0=$SECONDS; cho 40 2 sh -c "! ps -axo uid=,comm= | awk -v u=$UID_CON '\$1==u' | grep -q e2echan"; G=$((SECONDS-T0))
-  if [ "$SONG0" != 1 ]; then bo 5.2 'App chặn đang chạy dưới uid Con bị đóng' "không khởi chạy được tiến trình E2EChan dưới uid Con: $(head -c 200 /tmp/e2echan.log)"
-  elif DANG_CHAY && [ "$(stat -f %Su /dev/console 2>/dev/null)" != "$TEN_CON" ]; then bo 5.2 'App chặn đang chạy dưới uid Con bị đóng' "daemon chỉ áp chính sách (đóng app) khi Con là người dùng console (BoMay.apChinhSachTho: laCon = phienConsole.uid == uidCon); console runner = $(stat -f %Su /dev/console), không đăng nhập phiên GUI của Con được trên runner · tiến trình còn chạy sau 40 giây (mode $(tt_truong cheDo))"
-  elif DANG_CHAY; then ghi 5.2 'App chặn đang chạy dưới uid Con bị đóng' FAIL "E2EChan (uid Con) còn chạy sau 40 giây dù Con là console · mode $(tt_truong cheDo) · chanApp $(tt_truong chanApp)"
-  else ghi 5.2 'App chặn đang chạy dưới uid Con bị đóng' PASS "bị đóng sau ~$G giây · chanApp $(tt_truong chanApp) chanLyDo $(tt_truong chanLyDo)"; fi
+  if [ "$SONG0" != 1 ]; then bo 5.2 'App ngoài danh sách đang chạy dưới uid Con bị đóng' "không khởi chạy được tiến trình E2EChan dưới uid Con: $(head -c 200 /tmp/e2echan.log)"
+  elif DANG_CHAY && [ "$(stat -f %Su /dev/console 2>/dev/null)" != "$TEN_CON" ]; then bo 5.2 'App ngoài danh sách đang chạy dưới uid Con bị đóng' "daemon chỉ áp chính sách (đóng app) khi Con là người dùng console (BoMay.apChinhSachTho: laCon = phienConsole.uid == uidCon); console runner = $(stat -f %Su /dev/console), không đăng nhập phiên GUI của Con được trên runner · tiến trình còn chạy sau 40 giây (mode $(tt_truong cheDo))"
+  elif DANG_CHAY; then ghi 5.2 'App ngoài danh sách đang chạy dưới uid Con bị đóng' FAIL "E2EChan (uid Con) còn chạy sau 40 giây dù Con là console · mode $(tt_truong cheDo) · chanApp $(tt_truong chanApp)"
+  else ghi 5.2 'App ngoài danh sách đang chạy dưới uid Con bị đóng' PASS "bị đóng sau ~$G giây · chanApp $(tt_truong chanApp) chanLyDo $(tt_truong chanLyDo)"; fi
   pkill -u "$UID_CON" e2echan 2>/dev/null
-  api POST "/api/m/may/$MAY_ID/ung-dung/dat" "{\"khoa\":\"$KHOA_APP\",\"trangThai\":\"bo\"}" "$TOKEN_BM" || true
-else bo 5.2 'App chặn đang chạy dưới uid Con bị đóng' 'không thấy E2EChan trong danh sách app'; fi
+else bo 5.2 'App ngoài danh sách đang chạy dưới uid Con bị đóng' 'không thấy E2EChan trong danh sách app'; fi
 bo 5.3 'Màn «chưa được mở» / thông báo cho Con' 'cần phiên GUI đăng nhập của Con (tray) + quyền Thông báo (TCC) — runner không có'
 bo 5.4 'Thời gian dùng theo app (appTienCanh), Screen Time' 'cần phiên GUI + quyền TCC (Accessibility / Screen Recording) không cấp được trên runner'
 
@@ -199,13 +195,15 @@ dat 6.2 'Mở lại ⇒ hết khoá' "$(khong_khoa && echo 1 || echo 0)" "mode $
 bo 6.3 'Màn khoá toàn màn hình / ngắt phiên Con (dongPhien)' 'cần phiên đăng nhập của Con (loginwindow/tray) — runner không có'
 
 # ------------------------------------------------------------------ KB7 — «Mở hết»
-api POST "/api/m/con/$CON_ID/che-do-chan" '{"cheDo":"mo_het"}' "$TOKEN_BM"; T0=$SECONDS
+api POST "/api/m/con/$CON_ID/che-do" '{"cheDo":"mo_het"}' "$TOKEN_BM"; T0=$SECONDS
 cho 60 1 cho_che_do tu_do; G=$((SECONDS-T0))
 dat 7.1 '«Mở hết» ⇒ daemon mode tu_do (≤ 20 giây)' "$([ "$(tt_truong cheDo)" = tu_do ] && [ "$G" -le 20 ] && echo 1 || echo 0)" "mode $(tt_truong cheDo) sau $G giây"
-# 11/11 (#226) «Mở hết» mở THẬT hết: trang Ba Mẹ chặn bỏ khỏi trangChan, web cấm luôn chặn vẫn còn
-het_chan_bm() { ! CO_CHAN && CO_DS; }
-cho 60 2 het_chan_bm
-dat 7.2 'Mở hết: trang Ba Mẹ chặn được mở, web cấm vẫn chặn' "$(het_chan_bm && echo 1 || echo 0)" "trangChan: $(trang_thai | jq -c '.trangChan' 2>/dev/null | cut -c1-200)"
+# #258/#262: «Mở hết» không chặn gì — kể cả lưới an toàn (webLuonChan = [])
+cho 60 2 KHONG_CHAN
+dat 7.2 'Mở hết: không chặn trang nào (trangChan rỗng)' "$(KHONG_CHAN && echo 1 || echo 0)" "trangChan: $(trang_thai | jq -c '.trangChan' 2>/dev/null | cut -c1-200)"
+api POST "/api/m/con/$CON_ID/che-do" '{"cheDo":"theo_danh_sach"}' "$TOKEN_BM"
+cho 60 2 CO_DS
+dat 7.2b 'Về «Theo danh sách»: lưới an toàn chặn lại' "$(CO_DS && [ "$(tt_truong cheDo)" = hoc ] && echo 1 || echo 0)" "mode $(tt_truong cheDo) · trangChan $(trang_thai | jq -c '(.trangChan // []) | length' 2>/dev/null) mục"
 api POST "/api/m/may/$MAY_ID/che-do" '{"cheDo":"giam-sat"}' "$TOKEN_BM"
 dat 7.3 'Máy chủ từ chối «Giám sát» (409 che_do_bo)' "$([ "$API_MA" = 409 ] && printf '%s' "$API_THAN" | grep -q che_do_bo && echo 1 || echo 0)" "HTTP $API_MA $API_THAN"
 
