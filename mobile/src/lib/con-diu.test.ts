@@ -1,7 +1,7 @@
 // node --test src/lib/con-diu.test.ts — luật thuần phía Con bản «Dịu» (QR ghép máy, lỗi ghép, PIN theo bé, sổ sao 15/11, quà).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cauNo, cauPhut, cauVay, chuAvt, choTuHoSo, ketQuaPin, loaiLoiGhep, maTuQr, nhanQua, phuQua, quaGanNhat, saoTuMayChu, soSao, soVN, thuGio, traNoKhiDuyet } from "./con-diu.ts";
+import { cauNo, cauPhut, cauVay, chuAvt, choTuHoSo, ketQuaPin, loaiLoiGhep, maTuQr, nhanQua, phuQua, quaGanNhat, saoTuMayChu, soSao, soVN, thuGio, tiVong, traNoKhiDuyet, dongLichSu } from "./con-diu.ts";
 
 test("QR ghép máy: link cài có mã 6 số / chỉ token gói / 6 số trần / QR lạ", () => {
   assert.deepEqual(maTuQr("https://aiigrow.aiilab.vn/tai?g=abc_123&ma=482913"), { ma: "482913", goi: "abc_123" });
@@ -68,6 +68,21 @@ test("được duyệt khi đang nợ: sao nhiệm vụ trả nợ trước", ()
   assert.deepEqual(traNoKhiDuyet(5, 10), { truoc: -5, traNo: 5, conNo: 0 });
   assert.deepEqual(traNoKhiDuyet(40, 10), { truoc: 30, traNo: 0, conNo: 0 });
   assert.equal(cauVay(15), "= 15 phút chơi hoặc đổi quà · con sẽ nợ 15 sao");
+  assert.equal(cauVay(15, 20), "= 15 phút chơi hoặc đổi quà · con sẽ nợ 35 sao");
+});
+
+test("kid/sao máy chủ mới: lichSu + appHomNay + phutChoiHomNay; thiếu ⇒ null", () => {
+  const m = saoTuMayChu({ sao: -20, no: 20, phutCon: 0, phutChoiHomNay: 42, lichSu: [
+    { id: "1", loai: "vay", kieu: "vay", sao: 50, luc: "x", chuThich: "Chọn món bữa tối", tenNguoi: "Mẹ Lan" },
+    { id: "2", loai: "tra_no", kieu: "tra_no", sao: -20, luc: "x", chuThich: "Dọn phòng" },
+    { id: "3", loai: "choi", kieu: "choi", sao: -20, luc: "x", chuThich: "Chơi Roblox 20 phút" }], appHomNay: [] }, null);
+  assert.equal(m.phutHomNay, 42);
+  assert.deepEqual(m.lichSu!.map(dongLichSu), [
+    { chu: "Mẹ Lan cho vay 50 sao · Chọn món bữa tối", so: "\u221250" }, { chu: "Trả nợ 20 sao · Dọn phòng", so: "+20" },
+    { chu: "Chơi Roblox 20 phút", so: "\u221220" }]);
+  assert.deepEqual(m.appHomNay, []);
+  assert.equal(saoTuMayChu({ sao: 3 }, null).lichSu, null);
+  assert.equal(tiVong({ phutCon: 28, phutHomNay: 42 }), 0.4);
 });
 
 test("quà gần nhất + dòng phụ + nhãn điều kiện", () => {

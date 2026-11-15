@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
-import { taiSao } from "@/lib/api-tre";
+import { taiCheDo, taiSao } from "@/lib/api-tre";
 import { D } from "@/lib/diu";
 import { CamXuc, ChuD, ManD, NutD, VongD, mmss, useDemNguoc } from "@/lib/ui-diu";
 import { amBao, useTaiTre } from "@/lib/ui-tre";
@@ -12,11 +12,14 @@ import { amBao, useTaiTre } from "@/lib/ui-tre";
 export default function Nhac() {
   const p = useLocalSearchParams<{ phut?: string }>();
   const { d } = useTaiTre("sao", taiSao);
+  const cd = useTaiTre("che-do", taiCheDo);
   const phut = Math.max(1, Math.min(60, Number(p.phut) || d?.phutCon || 5));
   const [den] = useState(() => Date.now() + phut * 60_000);
   const con = useDemNguoc(den);
   useEffect(() => { amBao(); }, []);
-  useEffect(() => { if (con === 0) router.replace("/tre/het-phien"); }, [con]);
+  const moHet = cd.d === "mo_het";
+  useEffect(() => { if (moHet) router.replace("/tre/nha"); }, [moHet]);      // «Mở hết»: không đếm ngược
+  useEffect(() => { if (con === 0 && !moHet) router.replace("/tre/het-phien"); }, [con, moHet]);
   return (
     <ManD giua day={<>
       <NutD chu="Làm nhiệm vụ kiếm sao" ic="sao" bam={() => router.replace("/tre/nhiem-vu")} />

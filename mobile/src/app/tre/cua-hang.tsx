@@ -5,11 +5,11 @@
 import { router } from "expo-router";
 import { View } from "react-native";
 import { kid, taiSao, type QuaTre } from "@/lib/api-tre";
-import { nhanQua, phuQua, soSao } from "@/lib/con-diu";
+import { nhanQua, phuQua, soSao, soVN } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { Icon3D, type TenIcon } from "@/lib/ui";
 import { CamXuc, ChoD, ChuD, IcO, ManD, MatMangD, NutD, PillD, TheD, ThanhD } from "@/lib/ui-diu";
-import { VienSao } from "@/lib/man-con";
+import { NO, VienSao } from "@/lib/man-con";
 import { useTaiTre, useTre } from "@/lib/ui-tre";
 
 type QuaS3 = QuaTre & { hinh?: string | null; tonKho?: number | null; chiCuoiTuan?: boolean; choTraoTu?: string | null };
@@ -23,13 +23,16 @@ export default function CuaHang() {
     return { ch, s };
   });
   if (!d) return <ManD lui="/tre/vi-qua" tieu="Đổi quà"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
-  const sao = d.s?.sao ?? d.ch.sao ?? d.ch.soDu;
+  // sao TIÊU ĐƯỢC (đổi quà được) — cùng số máy chủ dùng cho `du` / «Còn thiếu» từng món; nợ hiện dòng riêng
+  const sao = d.s?.phutCon ?? d.ch.soDu ?? d.ch.sao ?? 0;
+  const no = d.s?.no ?? 0;
   const qua = d.ch.qua.filter((q) => q.loai !== "phut");
   return (
     <ManD lui="/tre/vi-qua" tieu="Đổi quà" phai={<VienSao sao={sao} chu={`Có ${soSao(sao)}`} />}
       day={<><NutD chu="Thiếu sao? Xin Ba Mẹ cho vay sao" loai="phu" ic="tin" bam={() => router.push("/tre/them-gio")} />
         <ChuD kieu="rat" co={13} mau={D.chu2} giua>Sao vay ghi nợ · sao nhiệm vụ trả nợ trước</ChuD></>}>
       {matMang || cu ? <MatMangD chu={`Mất mạng rồi — xem được quà nhưng chưa đổi được; sao của ${ten} không bị trừ.`} /> : null}
+      {no > 0 ? <ChuD kieu="rat" co={13.5} mau={NO.chu}>{`Đang nợ Ba Mẹ ${soVN(no)} sao · sao nhiệm vụ trả nợ trước`}</ChuD> : null}
       {!qua.length ? (
         <CamXuc lv="canh-trong" co={130} tieu="Chưa có quà nào" phu={`Nhờ Ba Mẹ thêm quà cho ${ten} nhé.`} />
       ) : (

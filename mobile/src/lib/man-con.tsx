@@ -6,7 +6,7 @@ import { Icon3D, Rob, type TenIcon } from "./ui";
 import { ChipTen, ChuD, NutD, SaoD, TheD, TieuD, VongD } from "./ui-diu";
 import { D } from "./diu";
 import { useTre } from "./ui-tre";
-import { soSao, soVN, type SaoCon } from "./con-diu";
+import { soSao, soVN, tiVong, type SaoCon } from "./con-diu";
 
 /** Grow chào (cdt-chao): «Chào con! Mình là Grow» + 3 dòng quy tắc bằng icon (15/11: 1 sao = 1 phút chơi). */
 export function RobChao({ ten }: { ten?: string }) {
@@ -68,11 +68,10 @@ export function VienSao({ sao, chu }: { sao: number; chu?: string }) {
 
 /** Thẻ sao = phút (cdt-nha-chinh 15/11): vòng «18 sao» + «Còn 18 sao = 18 phút chơi» + «Hôm nay chơi 42 phút» + nút «Xin Ba Mẹ cho vay sao». */
 export function ThePhut({ s, bam, nut }: { s: SaoCon; bam?: () => void; nut?: { chu: string; bam: () => void } }) {
-  const vong = Math.max(s.phutCon, 1);
   return (
     <TheD bam={bam} nhanDoc={`Còn ${s.phutCon} sao bằng ${s.phutCon} phút chơi. Hôm nay chơi ${s.phutHomNay} phút`}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        <VongD ti={s.phutCon / Math.max(vong, s.phutCon + s.phutHomNay)} so={soVN(s.phutCon)} don="sao" co={104} day={11} />
+        <VongD ti={tiVong(s)} so={soVN(s.phutCon)} don="sao" co={104} day={11} />
         <View style={{ flex: 1, gap: 4 }}>
           <ChuD kieu="den" co={20}>{s.hetSao ? "Hết sao rồi" : `Còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút chơi`}</ChuD>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>

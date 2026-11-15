@@ -60,13 +60,19 @@ export const soVN = (n: unknown) => { const x = Math.round(Number(n ?? 0)) || 0;
 /** «18 sao» / «−20 sao». */
 export const soSao = (n: number) => `${soVN(n)} sao`;
 
+/** Dòng sổ sao gần đây (kid/sao › lichSu — máy chủ mới). `sao` = delta sổ cái (vay +N, trả nợ −N, chơi −N, nhiệm vụ +N). */
+export type DongSao = { id: string; loai: string; kieu: string; sao: number; luc: string; chuThich?: string | null; tenNguoi?: string | null };
+/** Phút từng app hôm nay (kid/sao › appHomNay — máy chủ mới): «Roblox 30 phút · −30 sao». */
+export type AppHomNay = { ten: string; muc: string; kieu?: "app" | "web"; phut: number; nhom: "tinh_phut" | "khong_tinh_phut"; sao: number; dangMo?: boolean };
 /** GET /api/kid/sao (15/11). Trường nào thiếu (máy chủ cũ) ⇒ suy từ kid/quy. */
 export type SaoMayChu = { sao?: number; no?: number; phutCon?: number; saoVayChuaTieu?: number; hetSao?: boolean; canhBaoNo?: boolean;
-  cau?: { soDu?: string; phut?: string; no?: string | null }; mucVay?: number[]; vayMacDinh?: number };
+  cau?: { soDu?: string; phut?: string; no?: string | null }; mucVay?: number[]; vayMacDinh?: number; phutChoiHomNay?: number; khoa?: boolean;
+  lichSu?: DongSao[]; appHomNay?: AppHomNay[] };
 /** Phần kid/quy cần cho sổ sao (máy chủ cũ / «hôm nay chơi N phút» / Ba Mẹ khoá). */
 export type QuySao = { sao?: number; quy?: { conPhut?: number; daDung?: number; khoa?: boolean } | null } | null;
 export type SaoCon = { sao: number; no: number; phutCon: number; saoVayChuaTieu: number; hetSao: boolean; phutHomNay: number; khoa: boolean;
-  mucVay: number[]; vayMacDinh: number; cau: { soDu: string; phut: string; no: string | null } };
+  mucVay: number[]; vayMacDinh: number; cau: { soDu: string; phut: string; no: string | null };
+  /** máy chủ mới mới có (null = chưa có — màn bỏ phần đó) */ lichSu: DongSao[] | null; appHomNay: AppHomNay[] | null };
 
 export const MUC_VAY = [10, 15, 30];
 /** «còn 18 sao = 18 phút chơi» · hết sao ⇒ «còn 0 sao = 0 phút chơi». */
@@ -81,10 +87,28 @@ export function saoTuMayChu(s: SaoMayChu | null, q: QuySao): SaoCon {
   const muc = Array.isArray(s?.mucVay) && s!.mucVay!.length ? s!.mucVay! : MUC_VAY;
   return {
     sao, no, phutCon, saoVayChuaTieu: Math.max(0, Number(s?.saoVayChuaTieu ?? 0) || 0), hetSao: s?.hetSao ?? phutCon <= 0,
-    phutHomNay: Math.max(0, Number(q?.quy?.daDung ?? 0) || 0), khoa: !!q?.quy?.khoa,
+    phutHomNay: Math.max(0, Number(s?.phutChoiHomNay ?? q?.quy?.daDung ?? 0) || 0), khoa: !!(s?.khoa ?? q?.quy?.khoa),
     mucVay: muc, vayMacDinh: s?.vayMacDinh && muc.includes(s.vayMacDinh) ? s.vayMacDinh : muc.includes(15) ? 15 : muc[0],
     cau: { soDu: soSao(sao), phut: cauPhut(phutCon), no: cauNo(no) },
+    lichSu: Array.isArray(s?.lichSu) ? s!.lichSu! : null, appHomNay: Array.isArray(s?.appHomNay) ? s!.appHomNay! : null,
   };
+}
+
+/** Tỉ lệ vòng «N sao còn lại»: phần còn trên (còn + đã chơi hôm nay). */
+export const tiVong = (s: Pick<SaoCon, "phutCon" | "phutHomNay">) => s.phutCon / Math.max(1, s.phutCon + s.phutHomNay);
+
+/** Dòng lịch sử sao cho Con (cdt-vi-qua): «Ba Mẹ cho vay 50 sao · −50» (nợ tăng), «Trả nợ 20 sao · Dọn phòng · +20», «Chơi Roblox 20 phút · −20». */
+export function dongLichSu(x: DongSao): { chu: string; so: string } {
+  const n = Math.abs(Math.round(Number(x.sao) || 0));
+  const ct = x.chuThich ? ` · ${x.chuThich}` : "";
+  const ai = x.tenNguoi || "Ba Mẹ";
+  switch (x.kieu) {
+    case "vay": return { chu: `${ai} cho vay ${soVN(n)} sao${ct}`, so: `\u2212${soVN(n)}` };
+    case "hoan_vay": return { chu: `${ai} rút lại ${soVN(n)} sao vay`, so: `+${soVN(n)}` };
+    case "tra_no": return { chu: `Trả nợ ${soVN(n)} sao${ct}`, so: `+${soVN(n)}` };
+    default: return { chu: x.chuThich || (x.kieu === "choi" ? `Chơi ${soVN(n)} phút` : x.kieu === "nhiem_vu" ? "Nhiệm vụ" : x.kieu === "khoi_dau" ? "Sao khởi đầu" : "Sao"),
+      so: `${x.sao < 0 ? "\u2212" : "+"}${soVN(n)}` };
+  }
 }
 
 /** Màn «Được duyệt» khi đang nợ: sao nhiệm vụ trả nợ trước. `saoSau` = số dư sau khi duyệt, `diem` = sao vừa được.
@@ -95,8 +119,8 @@ export function traNoKhiDuyet(saoSau: number, diem: number) {
   return { truoc, traNo, conNo: Math.max(0, -saoSau) };
 }
 
-/** «= 15 phút chơi hoặc đổi quà · con sẽ nợ 15 sao» (bảng xin vay). Đang có sao dương ⇒ nợ = phần vượt số dư sau khi tiêu hết. */
-export const cauVay = (soSaoVay: number) => `= ${soVN(soSaoVay)} phút chơi hoặc đổi quà · con sẽ nợ ${soVN(soSaoVay)} sao`;
+/** «= 15 phút chơi hoặc đổi quà · con sẽ nợ 15 sao» (bảng xin vay). Nợ sau vay = nợ đang có + số vay (như máy chủ `cho-vay/xem-truoc`). */
+export const cauVay = (soSaoVay: number, noDangCo = 0) => `= ${soVN(soSaoVay)} phút chơi hoặc đổi quà · con sẽ nợ ${soVN(Math.max(0, noDangCo) + soSaoVay)} sao`;
 
 /** Quà gần nhất chưa đủ sao (thanh «tới mốc» ở Ví quà: «Chọn món bữa tối 50 sao · còn 10»). Đủ hết ⇒ quà rẻ nhất. */
 export function quaGanNhat<T extends { diem: number; ten: string }>(qua: T[], sao: number): (T & { conThieu: number }) | null {

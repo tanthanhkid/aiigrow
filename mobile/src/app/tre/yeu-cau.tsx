@@ -10,7 +10,8 @@
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
-import { kid, laMaApp, taiSao, type YcTre } from "@/lib/api-tre";
+import { LoiApi } from "@/lib/api";
+import { guiXinMo, kid, taiSao, type YcTre } from "@/lib/api-tre";
 import { soSao, soVN } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { gioPhut, useLam } from "@/lib/ui";
@@ -24,15 +25,18 @@ const soVayCua = (y: YcTre) => Number(y.so_sao ?? y.soSao ?? y.phut ?? 0) || 0;
 const tieuYc = (y: YcTre) => laAppWeb(y) ? `Mở ${y.gia_tri ?? "app"}` : laVay(y) ? `Vay ${soVN(soVayCua(y))} sao` : y.gia_tri || y.ly_do;
 
 type Kq = "cho" | "duoc" | "mo_tam" | "chua" | "het_han" | "huy";
-/** Kết quả lời xin cho Con: `ketQua` mới (#258) hoặc suy từ `trang_thai` (vay sao / máy chủ cũ; «bo_qua» = chưa thêm). */
-function kqCua(y: YcTre): Kq {
+const BO_QUA_HOAN_TAC_MS = 60_000;
+/** Kết quả lời xin cho Con: `ketQua` mới (#258) hoặc suy từ `trang_thai` (vay sao / máy chủ cũ). «bo_qua» trong 60 giây Ba Mẹ còn Hoàn tác được
+ *  ⇒ vẫn «chờ» (như máy chủ `ketQuaYc`), quá 60 giây mới «chưa cho». */
+function kqCua(y: YcTre, now: number): Kq {
   if (y.ketQua === "da_them") return "duoc";
   if (y.ketQua === "mo_tam") return "mo_tam";
   if (y.ketQua === "chua_them") return "chua";
   if (y.ketQua === "cho" || y.ketQua === "het_han" || y.ketQua === "huy") return y.ketQua;
   switch (y.trang_thai) {
     case "dong_y": case "da_thuc_thi": return "duoc";
-    case "tu_choi": case "bo_qua": return "chua";
+    case "bo_qua": return y.xu_ly_luc && now - Date.parse(y.xu_ly_luc) < BO_QUA_HOAN_TAC_MS ? "cho" : "chua";
+    case "tu_choi": return "chua";
     case "het_han": return "het_han";
     case "huy": return "huy";
     default: return "cho";
@@ -53,12 +57,13 @@ const LY_DO_XIN_LAI = ["Chơi cùng bạn", "Con làm xong bài rồi"];
 export default function YeuCau() {
   const { d, loi, matMang, tai } = useTaiTre("yeu-cau", async () => {
     const [s, r] = await Promise.all([taiSao().catch(() => null), kid.goi<{ ds: YcTre[] }>("yeu-cau")]);
-    return { s, ds: r.ds };
+    return { s, ds: r.ds, luc: Date.now() };
   });
   const [huy, setHuy] = useState<YcTre | null>(null);
   const [lyDo, setLyDo] = useState<string | null>(null);
+  const [daySo, setDaySo] = useState(false);
   const { dangChay, loi: loiLam, lam } = useLam();
-  const coCho = !!d?.ds.some((y) => kqCua(y) === "cho");
+  const coCho = !!d?.ds.some((y) => kqCua(y, d.luc) === "cho");
   useEffect(() => {
     if (!coCho) return;
     const t = setInterval(() => { tai(); }, 15_000);
@@ -74,7 +79,7 @@ export default function YeuCau() {
     );
   }
   const dau = d.ds[0];
-  const kq = kqCua(dau);
+  const kq = kqCua(dau, d.luc);
   const vuaTraLoi = kq === "duoc" || kq === "mo_tam" || kq === "chua";
   const ai = dau.tenNguoiDuyet || "Ba Mẹ";
   const loiBaMe = dau.loiNhan ?? (dau as { loi_nhan?: string | null }).loi_nhan ?? dau.ly_do_tu_choi ?? null;
@@ -82,12 +87,16 @@ export default function YeuCau() {
   const xacNhanHuy = () => lam(async () => { await kid.goi(`yeu-cau/${huy!.id}/huy`, {}); setHuy(null); await tai(); });
   // «Xin lại» app / web chưa thêm: lời xin mới cùng mục (kèm lý do nếu chọn)
   const xinLai = () => lam(async () => {
-    const r = dau.loai === "mo_web" || laMaApp(tenMuc)
-      ? await kid.goi<{ id: string }>("xin-duyet", { muc: tenMuc, ten: tenMuc, lyDo: lyDo ?? "" })
-      : await kid.goi<{ id: string }>("yeu-cau", { loai: "cai_app", giaTri: tenMuc, lyDo: lyDo ?? "" });
-    setLyDo(null);
-    router.replace(`/tre/yeu-cau?moi=${r.id}`);
-    await tai();
+    try {
+      const r = await guiXinMo({ loai: dau.loai === "mo_web" ? "mo_web" : "cai_app", muc: tenMuc, lyDo: lyDo ?? "" });
+      setLyDo(null);
+      router.replace(`/tre/yeu-cau?moi=${r.id}`);
+      await tai();
+    } catch (e) {
+      if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { setDaySo(true); return; }
+      if (e instanceof LoiApi && e.ma === "web_cam") { router.replace(`/tre/chan-web?url=${encodeURIComponent(tenMuc)}&cam=1`); return; }
+      throw e;
+    }
   }, { hangDoi: true });
   const loiNhanThe = loiBaMe ? (
     <TheD mong>
@@ -99,16 +108,20 @@ export default function YeuCau() {
   // ---- vay sao: được / chưa được
   if (vuaTraLoi && laVay(dau)) {
     const so = soVayCua(dau);
+    // vay để đổi quà (muc_dich qua, gia_tri = id quà): được ⇒ về màn đổi quà đó; xin lại ⇒ giữ mục đích quà
+    const quaId = dau.muc_dich === "qua" && dau.gia_tri ? dau.gia_tri : null;
     if (kq === "duoc") {
       return (
-        <ManD lui="/tre/nha" day={<><NutD chu={`Chơi ${soVN(s?.phutCon ?? so)} phút`} ic="game" bam={() => router.replace("/tre/gio")} />
+        <ManD lui="/tre/nha" day={<>{quaId
+          ? <NutD chu="Đổi quà ngay" ic="qua" bam={() => router.replace(`/tre/doi/${quaId}`)} />
+          : <NutD chu={`Chơi ${soVN(s?.phutCon ?? so)} phút`} ic="game" bam={() => router.replace("/tre/gio")} />}
           <NutD chu={`Cảm ơn ${ai} ›`} loai="chu" bam={() => router.push("/tre/tin")} /></>}>
           <TieuD chu={`${ai} cho vay ${soVN(so)} sao!`} />
           <TheD>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
               <View style={{ flex: 1 }}>
                 <ChuD kieu="den" co={17}>{`Vay ${soVN(so)} sao`}</ChuD>
-                <ChuD co={14} mau={D.chu2}>{`= ${soVN(so)} phút chơi hoặc đổi quà`}</ChuD>
+                <ChuD co={14} mau={D.chu2}>{quaId ? "Để đổi quà" : `= ${soVN(so)} phút chơi hoặc đổi quà`}</ChuD>
               </View>
               <PillD chu="✓ Đã nhận" loai="xanh" />
             </View>
@@ -129,7 +142,8 @@ export default function YeuCau() {
       );
     }
     return (
-      <ManD lui="/tre/nha" day={<><NutD chu="Xin lại" ic="tin" bam={() => router.replace(`/tre/them-gio?soSao=${so}`)} />
+      <ManD lui="/tre/nha" day={<><NutD chu="Xin lại" ic="tin"
+        bam={() => router.replace(`/tre/them-gio?soSao=${so}${quaId ? `&mucDich=qua&quaId=${encodeURIComponent(quaId)}` : ""}`)} />
         <NutD chu="Về trang chính" loai="phu" bam={() => router.replace("/tre/nha")} />
         <NutD chu="Làm nhiệm vụ kiếm sao" loai="chu" bam={() => router.replace("/tre/nhiem-vu")} /></>}>
         <TieuD chu={`${ai} chưa cho vay sao lúc này. Con làm nhiệm vụ kiếm sao nhé!`} nho />
@@ -151,7 +165,8 @@ export default function YeuCau() {
   if (vuaTraLoi && laAppWeb(dau)) {
     if (kq === "chua") {
       return (
-        <ManD lui="/tre/nha" day={<><LoiD loi={loiLam} /><NutD chu="Xin lại" ic="tin" bam={xinLai} dangChay={dangChay} />
+        <ManD lui="/tre/nha" day={<><LoiD loi={daySo ? "Con đang có 3 lời xin chờ — đợi Ba Mẹ trả lời một lời rồi xin lại nhé." : loiLam} />
+          <NutD chu="Xin lại" ic="tin" bam={xinLai} dangChay={dangChay} tat={daySo} />
           <NutD chu="Về trang chính" loai="chu" bam={() => router.replace("/tre/nha")} /></>}>
           <View style={{ alignItems: "center", gap: 8 }}>
             <IcO ic={dau.loai === "mo_web" ? "web" : "game"} co={72} />
@@ -226,7 +241,7 @@ export default function YeuCau() {
         </View>
       )}
       {d.ds.slice(vuaTraLoi ? 1 : 0, 8).map((y) => {
-        const k = kqCua(y);
+        const k = kqCua(y, d.luc);
         const [chu, loai] = nhanYc(k);
         return (
           <TheD key={y.id} mong bam={k === "cho" ? () => setHuy(y) : undefined} nhanDoc={`${tieuYc(y)}. ${chu}`}>

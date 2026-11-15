@@ -49,7 +49,7 @@ export default function XinVay() {
       {laQua && p.ten ? <ChuD kieu="rat" co={14.5} mau={D.chu2}>{`Để đổi ${p.ten}`}</ChuD> : null}
       <ChuD kieu="den" co={15}>Con xin vay</ChuD>
       <ChonD nhan="Con xin vay bao nhiêu sao" ds={muc.map((x) => ({ gia: x, chu: `${soVN(x)} sao` }))} gia={soVay} doi={setChon} />
-      <ChuD kieu="rat" co={14} mau={D.xanhD}>{cauVay(soVay)}</ChuD>
+      <ChuD kieu="rat" co={14} mau={D.xanhD}>{cauVay(soVay, d.no)}</ChuD>
       <TheD mong>
         <ChuD kieu="rat" co={13} mau={D.chu2}>Nhắn Ba Mẹ (không bắt buộc)</ChuD>
         <TextInput value={nhan} onChangeText={setNhan} maxLength={100} accessibilityLabel="Nhắn Ba Mẹ" placeholder="vd Con làm nốt bài với bạn ạ"

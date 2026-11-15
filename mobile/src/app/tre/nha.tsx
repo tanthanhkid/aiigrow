@@ -7,7 +7,7 @@ import { useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { View } from "react-native";
 import { daXem, ghiDaXem, guiHangCho, kid, taiSao, type LuotTre, type NhaTreSao, type NvTreSao, type ToiTre } from "@/lib/api-tre";
-import { soSao, thuGio } from "@/lib/con-diu";
+import { saoTuMayChu, soSao, thuGio } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { Icon3D } from "@/lib/ui";
 import { ChaoDau, ThePhut, TheSao, diGio } from "@/lib/man-con";
@@ -20,8 +20,10 @@ export default function Nha() {
   const { ten } = useTre();
   const { d, loi, matMang, tai, cu } = useTaiTre("nha-diu", async () => {
     const [nha, nv, s, toi] = await Promise.all([kid.goi<NhaTreSao>("nha"), kid.goi<{ ds: NvTreSao[] }>("nhiem-vu?tuCham=1").catch(() => ({ ds: [] as NvTreSao[] })),
-      taiSao(), kid.goi<ToiTre>("toi").catch(() => null)]);
-    return { nha, nv: nv.ds, s, cheDo: toi?.cheDo ?? null };
+      taiSao().catch(() => null), kid.goi<ToiTre>("toi").catch(() => null)]);
+    // kid/sao lỗi ⇒ màn vẫn hiện, số suy từ kid/nha (sao + quỹ cũ)
+    const s2 = s ?? saoTuMayChu(null, { sao: nha.sao ?? nha.soDu, quy: nha.quy ?? null });
+    return { nha, nv: nv.ds, s: { ...s2, khoa: s2.khoa || !!nha.quy?.khoa }, cheDo: toi?.cheDo ?? null };
   });
   // ăn mừng nhiệm vụ vừa được duyệt (một lần), gửi lại bài đang chờ mạng
   useFocusEffect(useCallback(() => {

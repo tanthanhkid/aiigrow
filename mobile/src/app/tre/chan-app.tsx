@@ -6,7 +6,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { LoiApi } from "@/lib/api";
-import { kid, laMaApp, tenMuc } from "@/lib/api-tre";
+import { guiXinMo, tenMuc } from "@/lib/api-tre";
 import { useLam } from "@/lib/ui";
 import { CamXuc, LoiD, ManD, NutD, PillD } from "@/lib/ui-diu";
 import { ChanMan } from "@/lib/man-con";
@@ -21,10 +21,7 @@ export default function ChanApp() {
   const { dangChay, loi, lam } = useLam();
   const xin = () => lam(async () => {
     try {
-      // mã app thật (roblox.exe, com.google.android.youtube) ⇒ xin-duyet; tên trần ⇒ yeu-cau cai_app (xin-duyet hiểu tên trần là tên miền)
-      const r = muc && laMaApp(muc)
-        ? await kid.goi<{ id: string }>("xin-duyet", { muc, ten: tenApp, lyDo: "" })
-        : await kid.goi<{ id: string }>("yeu-cau", { loai: "cai_app", giaTri: tenApp, lyDo: "" });
+      const r = await guiXinMo({ loai: "cai_app", muc: muc || tenApp, ten: tenApp });
       router.replace(`/tre/yeu-cau?moi=${r.id}`);
     } catch (e) {
       if (e instanceof LoiApi && e.ma === "web_cam") { setCam(true); return; }

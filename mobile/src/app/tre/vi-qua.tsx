@@ -6,7 +6,7 @@ import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
 import { kid, taiSao, type QuaTre, type ViQua } from "@/lib/api-tre";
-import { quaGanNhat, soSao, soVN } from "@/lib/con-diu";
+import { dongLichSu, quaGanNhat, saoTuMayChu, soSao, soVN } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { MaQr } from "@/lib/qr";
 import { Icon3D, tien } from "@/lib/ui";
@@ -20,8 +20,8 @@ type ThanhTichNgan = { huyHieu: { dat: boolean }[] };
 export default function ViQuaTre() {
   const { d, loi, matMang, tai, cu } = useTaiTre("vi-qua", async () => {
     const [vi, ch, s, tt] = await Promise.all([kid.goi<ViQua>("vi-qua"), kid.goi<{ sao?: number; soDu: number; saoGiu?: number; qua: QuaTre[] }>("cua-hang"),
-      taiSao(), kid.goi<ThanhTichNgan>("thanh-tich").catch(() => ({ huyHieu: [] }))]);
-    return { vi, ch, s, tt };
+      taiSao().catch(() => null), kid.goi<ThanhTichNgan>("thanh-tich").catch(() => ({ huyHieu: [] }))]);
+    return { vi, ch, s: s ?? saoTuMayChu(null, { sao: ch.sao ?? ch.soDu }), tt };
   });
   const [qr, setQr] = useState<VoucherCon | null>(null);
   if (!d) return <ManD tab="vi-qua" tieu="Sao & quà"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
@@ -50,6 +50,19 @@ export default function ViQuaTre() {
           <ChuD kieu="rat" co={13} mau={NO.chu}>Sao nhiệm vụ trả nợ trước · hết nợ mới cộng</ChuD>
         </View> : null}
         {giu ? <ChuD kieu="rat" co={13.5} mau={mau}>{`Đang giữ ${giu} sao cho quà chờ trao`}</ChuD> : null}
+        {d.s.lichSu?.length ? (
+          <View style={{ gap: 4 }}>
+            {d.s.lichSu.slice(0, 5).map((x) => {
+              const l = dongLichSu(x);
+              return (
+                <View key={x.id} style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  <ChuD kieu="rat" co={13.5} mau={mau} style={{ flex: 1 }} dong={1}>{l.chu}</ChuD>
+                  <ChuD kieu="den" co={13.5} mau={mau} so>{l.so}</ChuD>
+                </View>
+              );
+            })}
+          </View>
+        ) : null}
         {!am && gan && gan.conThieu > 0 ? (
           <View style={{ gap: 6 }}>
             <ThanhD ti={gan.diem ? sao / gan.diem : 0} />

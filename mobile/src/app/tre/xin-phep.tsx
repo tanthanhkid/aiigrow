@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { TextInput, View } from "react-native";
 import { LoiApi } from "@/lib/api";
-import { kid, laMaApp, taiSao, type YcTre } from "@/lib/api-tre";
+import { guiXinMo, kid, taiSao, type YcTre } from "@/lib/api-tre";
 import { soSao } from "@/lib/con-diu";
 import { D, FD } from "@/lib/diu";
 import { useLam, useTai } from "@/lib/ui";
@@ -38,10 +38,7 @@ export default function XinPhep() {
   const gui = () => (!tenMuc ? setLoi(loai === "mo_web" ? "Ghi trang web con muốn mở nhé" : loai === "cai_app" ? "Ghi tên app nhé" : "Ghi điều con muốn xin nhé")
     : lam(async () => {
       try {
-        // web lạ / mã app thật: «Xin Ba Mẹ duyệt»; tên app gõ tay («Minecraft») ⇒ yeu-cau cai_app (xin-duyet hiểu tên trần là tên miền)
-        const r = loai === "mo_web" || (loai === "cai_app" && laMaApp(tenMuc))
-          ? await kid.goi<{ id: string }>("xin-duyet", { muc: tenMuc, ten: tenMuc, lyDo: loiNhan })
-          : await kid.goi<{ id: string }>("yeu-cau", { loai, lyDo: loiNhan, giaTri: tenMuc });
+        const r = await guiXinMo({ loai, muc: tenMuc, lyDo: loiNhan });
         router.replace(`/tre/yeu-cau?moi=${r.id}`);
       } catch (e) {
         if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { setDay(true); return; }

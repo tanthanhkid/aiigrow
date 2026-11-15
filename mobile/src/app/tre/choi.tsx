@@ -4,7 +4,7 @@
 // agent-android cũ vẫn mở đường /tre/choi. Hết sao ⇒ «Hết sao rồi»; Ba Mẹ khoá máy ⇒ màn khoá.
 import { Redirect, router } from "expo-router";
 import { View } from "react-native";
-import { kid, taiSao, tenMuc, type TroChoi } from "@/lib/api-tre";
+import { kid, taiCheDo, taiSao, tenMuc, type TroChoi } from "@/lib/api-tre";
 import { soSao, soVN } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { Icon3D } from "@/lib/ui";
@@ -27,12 +27,22 @@ function Nhom({ tieu, ds, phu }: { tieu: string; ds: string[]; phu: string }) {
 
 export default function ChoiBangSao() {
   const { d, loi, matMang, tai, cu } = useTaiTre("choi-sao", async () => {
-    const [s, tc] = await Promise.all([taiSao(), kid.goi<{ ds: TroChoi[] }>("tro-choi").catch(() => ({ ds: [] as TroChoi[] }))]);
-    return { s, tc: tc.ds };
+    const [s, tc, cheDo] = await Promise.all([taiSao(), kid.goi<{ ds: TroChoi[] }>("tro-choi").catch(() => ({ ds: [] as TroChoi[] })), taiCheDo()]);
+    return { s, tc: tc.ds, moHet: cheDo === "mo_het" };
   });
   if (!d) return <ManD lui={true} tieu="Chơi bằng sao"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
   const { s } = d;
   if (s.khoa) return <Redirect href="/tre/gio-ngu?ly=ba_me_khoa" />;
+  if (d.moHet) {
+    return (
+      <ManD lui={true} tieu="Chơi bằng sao" day={<NutD chu="Đổi quà bằng sao" ic="qua" bam={() => router.replace("/tre/cua-hang")} />}>
+        <TheD>
+          <ChuD kieu="den" co={20}>Hôm nay Mở hết · không tính phút</ChuD>
+          <ChuD co={14.5} mau={D.chu2}>{`Ba Mẹ để mở hết: chơi không trừ sao. ${soSao(s.sao)} để dành đổi quà.`}</ChuD>
+        </TheD>
+      </ManD>
+    );
+  }
   // tro-choi = app «Tính phút» trong danh sách của Con (luật giai_tri); «Không tính phút» = app học + AiiRob
   const tinh = [...new Set(d.tc.map((x) => tenMuc(x.muc, x.ten)))];
   const khong = ["App học", "AiiRob"];

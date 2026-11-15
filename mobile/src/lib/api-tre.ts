@@ -88,18 +88,27 @@ export type QuyCon = { quy: QuyTre; sao: number; phutDoiDuoc: number; ngoaiLe: {
   yeuCauCho: { id: string; loai: string; phut: number | null; gia_tri: string | null; pham_vi: string | null; ly_do: string; created_at: string }[] };
 /** Nhà của Con kèm quỹ (05/11: `nha` trả thêm `quy`, `sao`). App bản cũ của máy chủ không có ⇒ undefined. */
 export type NhaTreSao = NhaTre & { quy?: QuyTre; sao?: number };
-/** Máy đang bị Ba Mẹ khoá? (15/11: giờ ngủ / giờ học đã bỏ — chỉ còn Ba Mẹ khoá máy.) */
-export function lyDoKhoa(q: Pick<QuyTre, "khoa"> | undefined | null): "ba_me_khoa" | null {
-  return q?.khoa ? "ba_me_khoa" : null;
+/** Sổ sao của Con (15/11): MỘT lần GET kid/sao (máy chủ mới có cả `phutChoiHomNay`, `lichSu`, `appHomNay`). Máy chủ cũ: chưa có kid/sao (404)
+ *  hoặc kid/sao thiếu `phutChoiHomNay` ⇒ thêm kid/quy để biết sao / «hôm nay chơi N phút» / Ba Mẹ khoá. */
+export async function taiSao(): Promise<SaoCon> {
+  const s = await kid.goi<SaoMayChu>("sao").catch((e) => { if (e instanceof LoiApi && e.status === 404) return null; throw e; });
+  const q = !s || s.phutChoiHomNay === undefined ? await kid.goi<QuyCon>("quy").catch((e) => { if (!s) throw e; return null; }) : null;
+  return saoTuMayChu(s, q);
 }
 
-/** Sổ sao của Con (15/11): GET kid/sao (+ kid/quy để biết «hôm nay chơi N phút», Ba Mẹ khoá). Máy chủ cũ chưa có kid/sao ⇒ suy từ kid/quy. */
-export async function taiSao(): Promise<SaoCon> {
-  const [s, q] = await Promise.all([
-    kid.goi<SaoMayChu>("sao").catch((e) => { if (e instanceof LoiApi && e.status === 404) return null; throw e; }),
-    kid.goi<QuyCon>("quy").catch(() => null),
-  ]);
-  return saoTuMayChu(s, q);
+/** Ba Mẹ có đang khoá máy không (kid/quy › quy.khoa). */
+export const taiKhoa = () => kid.goi<QuyCon>("quy").then((r) => !!r.quy?.khoa);
+
+/** Chế độ app & web của Con (kid/toi › cheDo — #262). Lỗi / máy chủ cũ ⇒ null (= Theo danh sách). */
+export const taiCheDo = () => kid.goi<ToiTre>("toi").then((r) => r.cheDo ?? null).catch(() => null);
+
+/** «Xin Ba Mẹ mở» app / web ngoài danh sách (= xin thêm vào danh sách): mã app thật / web ⇒ POST kid/xin-duyet; tên app gõ tay
+ *  («Minecraft») ⇒ yeu-cau cai_app (xin-duyet hiểu tên trần là tên miền). Lỗi `qua_nhieu_cho` (≥ 3 lời chờ) / `web_cam` (lưới an toàn) ném ra
+ *  cho màn gọi xử lý. */
+export async function guiXinMo(b: { loai: "mo_web" | "cai_app" | "khac"; muc: string; ten?: string; lyDo?: string }): Promise<{ id: string }> {
+  const muc = b.muc.trim();
+  if (b.loai === "mo_web" || (b.loai === "cai_app" && laMaApp(muc))) return kid.goi<{ id: string }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "" });
+  return kid.goi<{ id: string }>("yeu-cau", { loai: b.loai, giaTri: b.ten ?? muc, lyDo: b.lyDo ?? "" });
 }
 
 /** «Xin Ba Mẹ cho vay sao» (POST kid/xin-vay). Máy chủ cũ (404) ⇒ lời xin «thêm giờ» cũ cùng số (Ba Mẹ đồng ý = cho vay ở máy chủ mới). */

@@ -2,7 +2,7 @@
 // đang nợ ⇒ «Đang nợ Ba Mẹ 20 sao»; «Làm nhiệm vụ» · «Xin Ba Mẹ cho vay sao» · «Ba Mẹ mở máy» (mã Ba Mẹ — không trừ sao). Chân màn «AiiGrow ·
 // Bảo Anh · Ba Mẹ quản lý». Còn sao ⇒ về «Đang chơi»; Ba Mẹ khoá ⇒ màn khoá. (Đường cũ /tre/het-phien của agent vẫn dùng.)
 import { Redirect, router } from "expo-router";
-import { may, taiSao } from "@/lib/api-tre";
+import { may, taiCheDo, taiSao } from "@/lib/api-tre";
 import { soSao } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { CamXuc, ChoD, ChuD, ManD, NutD } from "@/lib/ui-diu";
@@ -13,9 +13,10 @@ import { View } from "react-native";
 export default function HetSao() {
   const { ten } = useTre();
   const { d, loi, matMang, tai } = useTaiTre("sao", taiSao);
+  const cd = useTaiTre("che-do", taiCheDo);
   if (!d) return <ManD><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
   if (d.khoa) return <Redirect href="/tre/gio-ngu?ly=ba_me_khoa" />;
-  if (!d.hetSao) return <Redirect href="/tre/gio" />;
+  if (!d.hetSao || cd.d === "mo_het") return <Redirect href="/tre/gio" />;     // «Mở hết»: không tính phút ⇒ không có «Hết sao»
   return (
     <ManD day={<>
       <NutD chu="Làm nhiệm vụ" ic="sao" bam={() => router.push("/tre/nhiem-vu")} />

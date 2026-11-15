@@ -2,7 +2,7 @@
 // 14/11–15/11 (#262 #265): bỏ giờ ngủ, giờ học, bỏ «Xin Ba Mẹ mở ngoại lệ» ⇒ `?ly=gio_ngu | gio_hoc` cũ về Hôm nay; hết sao ⇒ «Hết sao rồi».
 // Giữ tên đường cũ /tre/gio-ngu (agent + màn khác trỏ vào).
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { may, taiSao } from "@/lib/api-tre";
+import { may, taiKhoa, taiSao } from "@/lib/api-tre";
 import { soSao } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { CamXuc, ChoD, ChuD, ManD, MatMangD, NutD } from "@/lib/ui-diu";
@@ -11,10 +11,13 @@ import { useTaiTre, useTre } from "@/lib/ui-tre";
 export default function BaMeKhoa() {
   const p = useLocalSearchParams<{ ly?: string }>();
   const { ten } = useTre();
-  const { d, loi, matMang, tai, cu } = useTaiTre("sao", taiSao);
+  const { d, loi, matMang, tai, cu } = useTaiTre("khoa-sao", async () => {
+    const [s, khoa] = await Promise.all([taiSao(), taiKhoa().catch(() => null)]);
+    return { ...s, khoa: khoa ?? s.khoa };
+  });
   if (!d) return <ManD><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
-  if (!d.khoa && p.ly !== "ba_me_khoa") return <Redirect href={d.hetSao ? "/tre/het-phien" : "/tre/nha"} />;
-  if (!d.khoa && !matMang && !cu) return <Redirect href="/tre/nha" />;
+  // không còn khoá (hoặc link cũ ?ly=gio_ngu | gio_hoc) ⇒ về Hôm nay / Hết sao; mất mạng thì giữ màn khoá theo bản nhớ
+  if (!d.khoa && (p.ly !== "ba_me_khoa" || (!matMang && !cu))) return <Redirect href={d.hetSao ? "/tre/het-phien" : "/tre/nha"} />;
   return (
     <ManD giua day={<>
       <NutD chu="Nhắn Ba Mẹ" ic="tin" bam={() => router.push("/tre/tin")} />
