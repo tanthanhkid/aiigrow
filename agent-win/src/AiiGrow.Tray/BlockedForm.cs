@@ -4,20 +4,25 @@ using AiiGrow.Core;
 namespace AiiGrow.Tray;
 
 /// <summary>
-/// Hộp «app chưa được mở» theo thiết kế chốt 05/11 (docs/thiet-ke-chot/con-bi-chan 04–22, con-mat-mang 12–14): giữa màn hình, nền phủ tối.
-/// Luồng: app lạ ⇒ tự gửi lời xin Ba Mẹ duyệt (L4) → «Đã gửi Ba Mẹ duyệt» → chờ → «Ba Mẹ đã cho» / «Ba Mẹ chưa cho».
+/// Hộp «app chưa có trong danh sách» theo bàn thiết kế (bản 15/11 — con-bi-chan: them-vc4dmaei, them-cbdu6n78, them-jj6fglkl, them-q9a3vr5r, them-fliq9312,
+/// them-zxuekzer; con-mat-mang: them-wt782i6x, them-rn7iaunn): giữa màn hình, nền phủ tối.
+/// Luồng (#258): app mới cài ⇒ tự gửi lời xin Ba Mẹ thêm vào danh sách (L4) → «Đã gửi Ba Mẹ duyệt» → chờ → «Ba Mẹ đã thêm · Nhóm «Tính phút» / «Không tính phút»»,
+/// «Ba Mẹ cho mở N phút» (mở tạm) hoặc «Ba Mẹ chưa thêm · Xin lại». App «Tính phút» bị đóng vì hết sao ⇒ «Hết sao rồi» (<see cref="HetSao"/>).
 /// App Ba Mẹ đã chặn ⇒ «… chưa được mở» + chỉ nút «Xin Ba Mẹ mở …» và «Về Hôm nay». KHÔNG dùng sao / điểm để mở app.
 /// Web cờ bạc / người lớn (máy chủ 409 web_cam) ⇒ «Trang này luôn bị chặn». Mất mạng ⇒ vẫn chặn; lời xin lưu lại, có mạng tự gửi; Ba Mẹ ở cạnh đọc mã 6 số.
 /// Nút chỉ GỬI lên máy chủ (qua dịch vụ); mọi quyết định do máy chủ. Chữ lấy từ lớp thuần <see cref="ManChanView"/>.
 /// </summary>
 internal sealed class BlockedForm : Form
 {
-    private enum Buoc { ChuaMo, DaGui, Duoc, ChuaCho, WebCam, MatMang, DaLuu }
+    private enum Buoc { ChuaMo, DaGui, Duoc, MoTam, ChuaCho, WebCam, MatMang, DaLuu, HetSao }
 
     private readonly string? _appId;
     private readonly string _ten;
     private readonly bool _web;
     private readonly IReadOnlyList<string> _appDuocPhep;
+    private readonly IReadOnlyList<string> _appTinhPhut;
+    private readonly double? _phutCon;
+    private RequestStatus? _kq;
     private readonly bool _tuGui;
     private readonly FlowLayoutPanel _flow;
     private readonly Label _msg;
@@ -35,12 +40,19 @@ internal sealed class BlockedForm : Form
     public event Action? NhanBaMe;
     /// <summary>Đã gửi được lời xin (id) — khay ghi nhớ để không tự gửi lặp cho cùng app.</summary>
     public event Action<string>? DaXin;
+    /// <summary>15/11 «Hết sao rồi»: Con bấm «Làm nhiệm vụ» / «Xin Ba Mẹ cho vay sao».</summary>
+    public event Action? LamNhiemVu;
+    public event Action? XinVay;
 
     /// <param name="appId">Định danh app vừa bị đóng (roblox.exe) hoặc tên miền (web).</param>
     /// <param name="boiBaMe">App Ba Mẹ đặt «Chặn» ⇒ không tự gửi, chỉ có nút xin.</param>
     /// <param name="daXin">Lời xin cho app này đã gửi trong phiên khay ⇒ không tự gửi lại.</param>
-    public BlockedForm(string? appId, string? appName, bool boiBaMe, bool offline, IReadOnlyList<string>? appDuocPhep = null, bool web = false, bool daXin = false)
+    /// <param name="appTinhPhut">Mục «Tính phút» (tô vàng trong danh sách của con); <paramref name="appDuocPhep"/> = «Không tính phút» (tô xanh).</param>
+    public BlockedForm(string? appId, string? appName, bool boiBaMe, bool offline, IReadOnlyList<string>? appDuocPhep = null, bool web = false, bool daXin = false,
+        IReadOnlyList<string>? appTinhPhut = null, double? phutCon = null, bool hetSao = false)
     {
+        _appTinhPhut = appTinhPhut ?? Array.Empty<string>();
+        _phutCon = phutCon;
         AiiGrow.ClayUi.Clay.KhongMnemonic(this);
         _appId = appId?.Trim();
         _ten = TrayView.FriendlyAppName(appId, appName);
@@ -73,10 +85,14 @@ internal sealed class BlockedForm : Form
         FormClosed += (_, _) => { _dong = true; _poll.Stop(); _poll.Dispose(); try { _phu?.Close(); _phu?.Dispose(); } catch { } };
         _poll.Tick += async (_, _) => await PollAsync();
 
-        if (offline) Ve(Buoc.MatMang);
+        if (hetSao) Ve(Buoc.HetSao);
+        else if (offline) Ve(Buoc.MatMang);
         else if (_tuGui) { Ve(Buoc.DaGui); Shown += async (_, _) => await GuiAsync(); }
         else Ve(Buoc.ChuaMo);
     }
+
+    /// <summary>15/11 (them-zxuekzer): app «Tính phút» bị đóng vì hết sao ⇒ «Hết sao rồi · Con dùng hết sao · Roblox sắp đóng».</summary>
+    public static BlockedForm HetSao(string appId, string? appName) => new(appId, appName, boiBaMe: true, offline: false, hetSao: true);
 
     /// <summary>Hộp kết quả cho lời xin đã gửi từ chỗ khác («Xin mở trang hoặc app»): đang chờ / web cấm / đã lưu chờ mạng.</summary>
     public static BlockedForm SauKhiGui(string muc, string? ten, bool web, PipeResponse r)
@@ -102,14 +118,29 @@ internal sealed class BlockedForm : Form
         _msg.ForeColor = UI.Error;
         switch (b)
         {
-            case Buoc.ChuaMo:
-                _flow.Controls.Add(KhoiCon.Dau("khoa", KhoiCon.Mau.Cam, ManChanView.TieuDe(_ten), ManChanView.Phu, _w));
-                if (_appDuocPhep.Count > 0)
+            case Buoc.ChuaMo when _web:
+                // them-dnm1pzqs: «Trang này chưa có trong danh sách» · Xin Ba Mẹ mở · Về trang chính
+                _flow.Controls.Add(KhoiCon.Dau("web", KhoiCon.Mau.Cam, ManChanView.WebTieu, null, _w));
+                _flow.Controls.Add(KhoiCon.RobNoi("chi", ManChanView.WebVui1, ManChanView.WebVui2, _w));
+                if (ManChanView.CoNutXin(_appId))
                 {
-                    var dd = UI.Text(ManChanView.DangDung(_appDuocPhep.Count), 9.75f, true, Clay.Chu2, _w);
+                    var xw = KhoiCon.Nut(ManChanView.WebNutXin, true, _w, "gui");
+                    xw.Click += async (_, _) => { Ve(Buoc.DaGui); await GuiAsync(); };
+                    _flow.Controls.Add(xw);
+                }
+                ThemNutVeHomNay(chinh: false, chu: ManChanView.VeTrangChinh);
+                break;
+
+            case Buoc.ChuaMo:
+                // them-vc4dmaei: «YouTube chưa được thêm» · «Chưa có trong danh sách của con» · danh sách xanh / vàng · «Xin Ba Mẹ thêm YouTube»
+                _flow.Controls.Add(KhoiCon.Dau("khoa", KhoiCon.Mau.Cam, ManChanView.TieuDe(_ten), ManChanView.Phu, _w));
+                if (_appDuocPhep.Count + _appTinhPhut.Count > 0)
+                {
+                    var dd = UI.Text(ManChanView.ChuThichDs, 9.75f, true, Clay.Chu2, _w);
                     _flow.Controls.Add(dd);
-                    _flow.Controls.Add(KhoiCon.Chips(_w, _appDuocPhep.Take(8)
-                        .Select(a => (Control)new ChipClay(TrayView.FriendlyAppName(a, null), Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon("sach"))).ToArray()));
+                    _flow.Controls.Add(KhoiCon.Chips(_w, _appDuocPhep.Take(6).Select(a => (Control)new ChipClay(TrayView.FriendlyAppName(a, null), Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon("sach")))
+                        .Concat(_appTinhPhut.Where(a => !_appDuocPhep.Contains(a)).Take(6).Select(a => (Control)new ChipClay(TrayView.FriendlyAppName(a, null), Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao"))))
+                        .ToArray()));
                 }
                 if (ManChanView.CoNutXin(_appId))
                 {
@@ -119,6 +150,21 @@ internal sealed class BlockedForm : Form
                 }
                 ThemNutVeHomNay(chinh: false);
                 break;
+
+            case Buoc.HetSao:
+            {
+                _flow.Controls.Add(KhoiCon.Dau("sao", KhoiCon.Mau.Vang, HetSaoView.PopTieu, HetSaoView.PopPhu(_ten), _w));
+                _flow.Controls.Add(KhoiCon.Chips(_w, KhoiApp.ChipSao(HetSaoView.PopSao)));
+                _flow.Controls.Add(UI.Text(HetSaoView.PopDong, 10f, false, UI.Muted, _w));
+                var lam = KhoiCon.Nut("Làm nhiệm vụ", true, _w, "tick");
+                lam.Click += (_, _) => { LamNhiemVu?.Invoke(); DongHan(); };
+                _flow.Controls.Add(lam);
+                var vay = KhoiCon.Nut(SaoView.NutXinVay, false, _w, "gui");
+                vay.Click += (_, _) => { DongHan(); XinVay?.Invoke(); };
+                _flow.Controls.Add(vay);
+                CancelButton = vay;
+                break;
+            }
 
             case Buoc.DaGui:
             {
@@ -134,11 +180,26 @@ internal sealed class BlockedForm : Form
 
             case Buoc.Duoc:
             {
-                var d = ManChanView.Duoc(_ten, _web, DateTimeOffset.Now);
-                _flow.Controls.Add(KhoiCon.Dau("tick", KhoiCon.Mau.Ngoc, d.Tieu, d.Luc, _w));
-                _flow.Controls.Add(KhoiCon.RobNoi("xong", d.Vui, d.Phu, _w));
-                _flow.Controls.Add(KhoiCon.DongIcon("dongho", ManChanView.TinhGioChoi, _w));
-                var mo = KhoiCon.Nut(d.Nut, true, _w);
+                // them-jj6fglkl / them-q9a3vr5r / them-0uw5wpyr: «Ba Mẹ đã thêm CapCut» · «Mẹ Lan thêm vào danh sách lúc 19:32» · nhóm · «Mở CapCut»
+                var luc = _kq?.Luc ?? DateTimeOffset.Now;
+                var khong = _kq?.Nhom == "khong_tinh_phut";
+                _flow.Controls.Add(KhoiCon.Dau("tick", KhoiCon.Mau.Ngoc, KetQuaXinView.DaThemTieu(_ten), KetQuaXinView.DaThemLuc(_kq?.TenNguoiDuyet, luc, _web), _w));
+                _flow.Controls.Add(KhoiCon.RobNoi("xong", KetQuaXinView.DaThemVui(_ten, khong, _web), KetQuaXinView.LanSau, _w));
+                if (!string.IsNullOrWhiteSpace(_kq?.LoiNhan)) _flow.Controls.Add(KhoiCon.DongIcon("tin", $"«{_kq!.LoiNhan!.Trim()}»", _w, false));
+                _flow.Controls.Add(KhoiCon.Chips(_w, new ChipClay(KetQuaXinView.Nhom(khong, _web), khong ? Clay.NgocSoft : Clay.DiemSoft, khong ? Clay.NgocInk : Clay.DiemInk),
+                    new ChipClay(KetQuaXinView.NhomPhu(khong, _phutCon), Color.FromArgb(0xe3, 0xe2, 0xde), Clay.Chu2)));
+                var mo = KhoiCon.Nut(KetQuaXinView.Mo(_ten), true, _w);
+                mo.Click += (_, _) => { MoMuc(); DongHan(); };
+                _flow.Controls.Add(mo);
+                break;
+            }
+
+            case Buoc.MoTam:
+            {
+                var phut = _kq?.MoTam?.Phut ?? 0;
+                _flow.Controls.Add(KhoiCon.Dau("mo_khoa", KhoiCon.Mau.Ngoc, KetQuaXinView.MoTamTieu(phut), KetQuaXinView.MoTamPhu(_ten, _kq?.MoTam?.Den), _w));
+                if (!string.IsNullOrWhiteSpace(_kq?.LoiNhan)) _flow.Controls.Add(KhoiCon.DongIcon("tin", $"«{_kq!.LoiNhan!.Trim()}»", _w, false));
+                var mo = KhoiCon.Nut(KetQuaXinView.Mo(_ten), true, _w);
                 mo.Click += (_, _) => { MoMuc(); DongHan(); };
                 _flow.Controls.Add(mo);
                 break;
@@ -146,13 +207,18 @@ internal sealed class BlockedForm : Form
 
             case Buoc.ChuaCho:
             {
-                var c = ManChanView.ChuaCho(_ten, _web, DateTimeOffset.Now);
-                _flow.Controls.Add(KhoiCon.Dau("khoa", KhoiCon.Mau.Cam, c.Tieu, c.Luc, _w));
-                _flow.Controls.Add(KhoiCon.DongIcon("khoa", c.VanKhoa, _w));
-                var nhan = KhoiCon.Nut(ManChanView.NhanBaMe, true, _w, "tin");
-                nhan.Click += (_, _) => { NhanBaMe?.Invoke(); DongHan(); };
-                _flow.Controls.Add(nhan);
-                ThemNutVeHomNay(chinh: false);
+                // them-fliq9312 / them-vkdikuo0: «Ba Mẹ chưa thêm CapCut» · «Mẹ Lan trả lời lúc 19:32» · lời nhắn · «Xin lại» · «Về trang chính»
+                var luc = _kq?.Luc ?? DateTimeOffset.Now;
+                _flow.Controls.Add(KhoiCon.Dau("khoa", KhoiCon.Mau.Cam, KetQuaXinView.ChuaThemTieu(_ten), KetQuaXinView.ChuaThemLuc(_kq?.TenNguoiDuyet, luc), _w));
+                if (!string.IsNullOrWhiteSpace(_kq?.LoiNhan)) _flow.Controls.Add(KhoiCon.DongIcon("tin", $"«{_kq!.LoiNhan!.Trim()}»", _w, false));
+                _flow.Controls.Add(KhoiCon.RobNoi("chi", KetQuaXinView.ChuaThemCau(_ten), KetQuaXinView.XinLaiSau, _w));
+                if (ManChanView.CoNutXin(_appId))
+                {
+                    var lai = KhoiCon.Nut(KetQuaXinView.XinLai, true, _w, "gui");
+                    lai.Click += async (_, _) => { Ve(Buoc.DaGui); await GuiAsync(); };
+                    _flow.Controls.Add(lai);
+                }
+                ThemNutVeHomNay(chinh: false, chu: KetQuaXinView.VeTrangChinh);
                 break;
             }
 
@@ -193,9 +259,9 @@ internal sealed class BlockedForm : Form
         _flow.ResumeLayout(true);
     }
 
-    private void ThemNutVeHomNay(bool chinh, string? icon = null)
+    private void ThemNutVeHomNay(bool chinh, string? icon = null, string? chu = null)
     {
-        var b = KhoiCon.Nut(ManChanView.VeHomNay, chinh, _w, icon);
+        var b = KhoiCon.Nut(chu ?? ManChanView.VeHomNay, chinh, _w, icon);
         b.Click += (_, _) => { VeHomNay?.Invoke(); DongHan(); };
         _flow.Controls.Add(b);
         CancelButton = b;
@@ -233,10 +299,9 @@ internal sealed class BlockedForm : Form
         }
         if (_appId != null) DaXin?.Invoke(_appId);
         _id = r.Id;
-        var kq = TrayView.XinGio(r.Status);
-        if (kq == TrayView.KetQuaXin.Duoc) { Ve(Buoc.Duoc); return; }
-        if (kq is TrayView.KetQuaXin.TuChoi) { Ve(Buoc.ChuaCho); return; }
-        if (kq is TrayView.KetQuaXin.HetHan) { HetHan(); return; }
+        var kq = KetQuaXinView.Doc(r.KetQua?.KetQua, r.Status);
+        _kq = r.KetQua ?? _kq;
+        if (kq != KetQuaXinView.Loai.Cho) { VeKetQua(kq); return; }
         Ve(Buoc.DaGui);
         if (!string.IsNullOrEmpty(_id)) _poll.Start();
     }
@@ -248,11 +313,22 @@ internal sealed class BlockedForm : Form
         var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Status, Id = _id });
         _busy = false;
         if (!r.Ok || _dong || IsDisposed) return;
-        var kq = TrayView.XinGio(r.Status);
-        if (kq == TrayView.KetQuaXin.Cho) return;
+        var kq = KetQuaXinView.Doc(r.KetQua?.KetQua, r.Status);
+        if (kq == KetQuaXinView.Loai.Cho) return;
         _poll.Stop();
-        if (kq == TrayView.KetQuaXin.HetHan) { HetHan(); return; }
-        Ve(kq == TrayView.KetQuaXin.Duoc ? Buoc.Duoc : Buoc.ChuaCho);
+        _kq = r.KetQua;
+        VeKetQua(kq);
+    }
+
+    private void VeKetQua(KetQuaXinView.Loai kq)
+    {
+        switch (kq)
+        {
+            case KetQuaXinView.Loai.DaThem: Ve(Buoc.Duoc); break;
+            case KetQuaXinView.Loai.MoTam: Ve(Buoc.MoTam); break;
+            case KetQuaXinView.Loai.ChuaThem: Ve(Buoc.ChuaCho); break;
+            case KetQuaXinView.Loai.HetHan: HetHan(); break;
+        }
     }
 
     /// <summary>Lời xin hết hạn / bị huỷ mà Ba Mẹ chưa trả lời ⇒ KHÔNG nói «Ba Mẹ chưa cho»: về màn chặn, Con gửi lại được.</summary>

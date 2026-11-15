@@ -77,27 +77,55 @@ public sealed class ApiClient : IDisposable
         return res;
     }
 
+    /// <param name="boiMa">15/11: phút «Tính phút» dùng lúc máy mở bằng mã offline của Ba Mẹ kể từ lần đồng bộ trước, THEO BÉ — máy chủ không trừ sao
+    /// phần này (`boiMaCon`; `phutBoiMa` = tổng, cho máy chủ cũ). Rỗng ⇒ không gửi.</param>
     public async Task<(Policy Policy, string Raw)> SyncAsync(AgentStatus status, IReadOnlyList<UsageEntry> usage,
-        CancellationToken ct = default)
+        CancellationToken ct = default, IReadOnlyList<(string? Con, int Phut)>? boiMa = null)
     {
-        // Máy chủ AiiGrow: POST /api/device/dong-bo. Policy cho agent nằm ở trường `windows` (máy chủ dịch sẵn — server/lib/agent-windows.ts).
-        // Máy chủ ghi phút dùng bằng greatest(…) ⇒ gửi TỔNG trong ngày theo app (UsageTotals), không gửi phần tăng.
+        // Máy chủ AiiGrow: POST /api/device/dong-bo. Policy cho agent nằm ở trường `windows` (máy chủ dịch sẵn — server/lib/agent-windows.ts) + khối gốc `sao`, `cheDo`.
+        // Máy chủ ghi phút dùng bằng greatest(…) ⇒ gửi TỔNG trong ngày theo (app, bé) (UsageTotals), không gửi phần tăng. 15/11 (#267): `con` = bé của dòng.
         var tong = UsageTotals.Shared.Add(usage);
-        var raw = await SendAsync(HttpMethod.Post, "api/device/dong-bo", new
+        var raw = await SendAsync(HttpMethod.Post, "api/device/dong-bo", new DongBoBody
         {
-            status, clientTime = DateTimeOffset.Now.ToString("O"),
-            usage = tong.Select(u => new { muc = u.AppId, phut = u.Minutes, day = u.Day }),
+            Status = status, ClientTime = DateTimeOffset.Now.ToString("O"),
+            Usage = tong.Select(u => new DongBoUsage { Muc = u.AppId, Phut = u.Minutes, Day = u.Day, Con = u.Con }).ToList(),
+            PhutBoiMa = boiMa is { Count: > 0 } ? boiMa.Sum(x => x.Phut) : null,
+            BoiMaCon = boiMa is { Count: > 0 } ? boiMa.Select(x => new DongBoBoiMa { Con = x.Con, Phut = x.Phut }).ToList() : null,
         }, ct);
-        return (PolicyParser.Parse(LayWindows(raw)), raw);
+        return (PolicyParser.TuDongBo(raw), raw);
     }
 
-    public Task<RequestResult> CreateRequestAsync(string kind, int minutes, string? appId, string? appName,
-        string? note, CancellationToken ct = default)
+    /// <summary>Thân dong-bo (null bị bỏ khỏi JSON — máy chủ cũ không thấy trường lạ).</summary>
+    internal sealed class DongBoBody
     {
-        // Máy chủ AiiGrow: POST /api/device/yeu-cau {loai, phut, giaTri, lyDo} → {id, trang_thai}. lyDo bắt buộc.
-        var lyDo = string.IsNullOrWhiteSpace(note) ? (kind == "doi_diem" ? "Con muốn dùng điểm để chơi" : "Con xin thêm giờ") : note!;
-        return PostAsync<RequestResult>("api/device/yeu-cau", new { loai = "them_gio", phut = Math.Clamp(minutes, 5, 240), giaTri = appId, lyDo }, ct);
+        public AgentStatus Status { get; set; } = new();
+        public string ClientTime { get; set; } = "";
+        public List<DongBoUsage> Usage { get; set; } = new();
+        public int? PhutBoiMa { get; set; }
+        public List<DongBoBoiMa>? BoiMaCon { get; set; }
     }
+
+    internal sealed class DongBoBoiMa
+    {
+        public string? Con { get; set; }
+        public int Phut { get; set; }
+    }
+
+    internal sealed class DongBoUsage
+    {
+        public string Muc { get; set; } = "";
+        public int Phut { get; set; }
+        public string Day { get; set; } = "";
+        public string? Con { get; set; }
+    }
+
+    /// <summary>15/11 (#263/#265): «Xin Ba Mẹ cho vay sao» — POST yeu-cau {loai: vay_sao, soSao, mucDich, quaId?, lyDo?} → {id, trang_thai}. Lời nhắn không bắt buộc.</summary>
+    public Task<RequestResult> XinVayAsync(int soSao, string? loiNhan, string? quaId = null, CancellationToken ct = default)
+        => PostAsync<RequestResult>("api/device/yeu-cau", new
+        {
+            loai = LoaiXin.VaySao, soSao = XinVayView.Kep(soSao), mucDich = quaId == null ? "choi" : "qua", quaId,
+            lyDo = string.IsNullOrWhiteSpace(loiNhan) ? null : loiNhan!.Trim(),
+        }, ct);
 
     /// <summary>«Xin mở trang hoặc app» (POST yeu-cau {loai: mo_web | cai_app, giaTri, lyDo}). Ba Mẹ đồng ý ⇒ máy chủ đặt luật cho mục đó (lib/yeu-cau.ts).</summary>
     public Task<RequestResult> CreateOpenRequestAsync(string loai, string muc, string? note, CancellationToken ct = default)
@@ -107,14 +135,6 @@ public sealed class ApiClient : IDisposable
     /// Máy chủ tự nhận app / web; web luôn chặn ⇒ ApiException Code «web_cam» (409). Lý do không bắt buộc.</summary>
     public Task<RequestResult> XinDuyetAsync(string muc, string? ten, string? lyDo, CancellationToken ct = default)
         => PostAsync<RequestResult>("api/device/xin-duyet", new { muc, ten, lyDo = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo!.Trim() }, ct);
-
-    /// <summary>Thiết kế 05/11 (L3, docs/API.md mục S1): xin mở ngoại lệ (giờ ngủ / Ba Mẹ khoá / hết giờ) —
-    /// POST yeu-cau {loai: ngoai_le, phamVi: ca_may | app, giaTri: &lt;app khi phamVi app&gt;, phut, lyDo}.</summary>
-    public Task<RequestResult> CreateNgoaiLeAsync(int phut, string muc, string lyDo, CancellationToken ct = default)
-    {
-        var caMay = muc == NgoaiLeView.CaMay;
-        return PostAsync<RequestResult>("api/device/yeu-cau", new { loai = LoaiXin.NgoaiLe, phamVi = caMay ? "ca_may" : "app", giaTri = caMay ? null : muc, phut = NgoaiLeView.Kep(phut), lyDo }, ct);
-    }
 
     /// <summary>Xét trước «Dùng điểm để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
     public Task<PlayCheck> CheckPlayAsync(string muc, CancellationToken ct = default)
@@ -127,10 +147,6 @@ public sealed class ApiClient : IDisposable
     /// <summary>Gửi bù phút chơi khi mất mạng (POST phien/bu, agent 0.2.4) — thân do <see cref="PhienOffline.TaoBu"/> dựng; `ma` một lần.</summary>
     public Task<string> BuPhienAsync(object body, CancellationToken ct = default)
         => SendAsync(HttpMethod.Post, "api/device/phien/bu", body, ct);
-
-    /// <summary>Gửi lời xin Ba Mẹ từ màn chặn (POST yeu-cau). Chỉ gửi; quyết định do máy chủ trả về.</summary>
-    public Task<RequestResult> AskParentAsync(string loai, int phut, string? appId, string? lyDo, CancellationToken ct = default)
-        => PostAsync<RequestResult>("api/device/yeu-cau", new { loai, phut, muc = appId, lyDo }, ct);
 
     public async Task<RequestStatus> GetRequestAsync(string id, CancellationToken ct = default)
     {

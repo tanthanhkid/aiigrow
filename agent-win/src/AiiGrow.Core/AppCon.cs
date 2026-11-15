@@ -3,65 +3,19 @@ using System.Text.RegularExpressions;
 
 namespace AiiGrow.Core;
 
-// App của Con trên Windows theo thiết kế đã chốt 05/11 (docs/thiet-ke-chot/con-ngay-thuong, con-xin): Hôm nay · Nhiệm vụ · Sao & quà · Tin nhắn,
-// hộp «Thêm giờ chơi» (Dùng sao / Xin Ba Mẹ), nộp bài (ảnh / ghi âm / viết / bấm Xong) và các màn kết quả. Con 9 tuổi: ít chữ, chỉ «sao»
-// (10 sao = 10 phút), «Ba Mẹ». Lớp THUẦN (không WinForms) để test. Máy chủ quyết mọi luật (server/lib/quy-gio.ts, nhiem-vu.ts, phan-thuong.ts).
+// App của Con trên Windows theo thiết kế đã chốt (con-ngay-thuong, con-xin — bản 15/11): Hôm nay · Nhiệm vụ · Sao & quà · Tin nhắn,
+// nộp bài (ảnh / ghi âm / viết / bấm Xong) và các màn kết quả. Con 9 tuổi: ít chữ, chỉ «sao» (1 sao = 1 phút chơi — SoSao.cs), «Ba Mẹ».
+// Lớp THUẦN (không WinForms) để test. Máy chủ quyết mọi luật (server/lib/so-sao.ts, nhiem-vu.ts, phan-thuong.ts).
 
-/// <summary>Giờ ngủ / giờ học «HH:mm» (Policy windows.gioNgu / gioHoc, tong-quan.quy.gioNgu).</summary>
-public sealed class KhungGio
+/// <summary>15/11: GET hoc-vien/sao — sổ sao của bé đang dùng máy (docs/API.md «Sổ sao 15/11»).</summary>
+public sealed class HvSao
 {
-    public string Tu { get; set; } = "";
-    public string Den { get; set; } = "";
-    /// <summary>Giờ học: các thứ áp dụng (0 = Chủ nhật … 6 = Thứ Bảy); giờ ngủ: rỗng = mọi ngày.</summary>
-    public List<int> Thu { get; set; } = new();
-}
-
-public sealed class HvTyLe
-{
-    public int Sao { get; set; } = 10;
-    public int Phut { get; set; } = 10;
-}
-
-public sealed class HvDoiSaoCau
-{
-    public bool Bat { get; set; } = true;
-    public int ToiDaNgay { get; set; } = 30;
-    public int ConDoiDuoc { get; set; } = 30;
-}
-
-/// <summary>Quỹ giờ chơi hôm nay (tong-quan.quy / GET quy › quy): «còn 18 phút (42/60)» = ConPhut (DaDung / TongPhut).</summary>
-public sealed class HvQuy
-{
-    public double ConPhut { get; set; }
-    public double DaDung { get; set; }
-    public double TongPhut { get; set; }
-    public double QuyNgayPhut { get; set; }
-    public double ThemPhut { get; set; }
-    public bool DangNgu { get; set; }
-    public bool DangHoc { get; set; }
-    public bool Khoa { get; set; }
-    public KhungGio? GioNgu { get; set; }
-    public KhungGio? GioHoc { get; set; }
-    public HvTyLe TyLe { get; set; } = new();
-    public HvDoiSaoCau DoiSao { get; set; } = new();
-    public bool ChoXinThem { get; set; } = true;
-}
-
-/// <summary>GET hoc-vien/quy.</summary>
-public sealed class HvQuyDs
-{
-    public HvQuy Quy { get; set; } = new();
     public int Sao { get; set; }
-    public int PhutDoiDuoc { get; set; }
-}
-
-/// <summary>POST hoc-vien/doi-sao {phut}.</summary>
-public sealed class HvDoiSaoKq
-{
-    public int Phut { get; set; }
-    public int Sao { get; set; }
-    public int SoDu { get; set; }
-    public double ConPhut { get; set; }
+    public int No { get; set; }
+    public double PhutCon { get; set; }
+    public bool HetSao { get; set; }
+    public List<int> MucVay { get; set; } = new();
+    public int VayMacDinh { get; set; } = XinVayView.MacDinh;
 }
 
 /// <summary>Một việc của GET hoc-vien/nhiem-vu?tuCham=1 (chữ snake_case như màn Con) — khay chỉ lấy việc AiiRob tự chấm.</summary>
@@ -88,9 +42,11 @@ public sealed class HvNvDs
 /// <param name="Nut">Chữ nút (null = không nút, chỉ nhãn «Chờ duyệt»).</param>
 public sealed record ViecCon(string Nhom, string Ten, string Phu, int Sao, string Icon, string? Nut, HvNhiemVu? NhiemVu, string? LoiNhan = null);
 
-/// <summary>Kết quả Ba Mẹ trả lời, đọc từ tin (hoc-vien/tin) để bật màn kết quả: duyệt · nhờ làm lại · trao quà · cho thêm giờ.</summary>
-/// <param name="Loai">duyet | lam_lai | trao_qua | them_gio.</param>
-public sealed record KetQuaTin(string Loai, string Ten, int? Sao, int? Phut, string? LoiNhan);
+/// <summary>Kết quả Ba Mẹ trả lời, đọc từ tin (hoc-vien/tin) để bật màn kết quả: duyệt · nhờ làm lại · trao quà · đã thêm / chưa thêm app, web.</summary>
+/// <param name="Loai">duyet | lam_lai | trao_qua | da_them | chua_them | cho_vay | chua_vay.</param>
+/// <param name="Nhom">da_them: tinh_phut | khong_tinh_phut.</param>
+/// <param name="Nguoi">Người trả lời («Mẹ Lan»), đọc từ tiêu đề tin.</param>
+public sealed record KetQuaTin(string Loai, string Ten, int? Sao, int? Phut, string? LoiNhan, string? Nhom = null, string? Nguoi = null);
 
 public static class AppConView
 {
@@ -104,48 +60,7 @@ public static class AppConView
     /// <summary>«Thứ Ba · 19:30».</summary>
     public static string NgayGio(DateTime now) => $"{Thu[(int)now.DayOfWeek]} · {now:HH:mm}";
 
-    public static string Phut(double phut) => $"{Math.Max(0, (int)Math.Floor(phut))} phút";
-    public static string Sao(int sao) => $"{sao} sao";
-
-    /// <summary>«Đã chơi 42 / 60 phút».</summary>
-    public static string DaChoi(double daDung, double tong) => $"Đã chơi {Math.Max(0, (int)Math.Round(daDung))} / {Math.Max(0, (int)Math.Round(tong))} phút";
-
-    /// <summary>Phần đã chơi trên thanh (0–1).</summary>
-    public static double TiLe(double daDung, double tong) => tong <= 0 ? 1 : Math.Clamp(daDung / tong, 0, 1);
-
-    /// <summary>«Roblox 30 phút · YouTube Kids 12 phút · Từ điển không tính giờ» — app tính giờ trước, tối đa 3 mục; app Học ⇒ «không tính giờ».</summary>
-    public static string DungTheoApp(IEnumerable<DungApp> ds, IEnumerable<string>? appHoc)
-    {
-        var hoc = new HashSet<string>(appHoc ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
-        var tinh = ds.Where(x => x.Phut > 0 && !hoc.Contains(x.AppId) && x.AppId != UsageTracker.KhongRo).Select(x => $"{x.Ten} {x.Phut} phút");
-        var khong = ds.Where(x => x.Phut > 0 && hoc.Contains(x.AppId)).Select(x => $"{x.Ten} không tính giờ");
-        return string.Join(" · ", tinh.Take(2).Concat(khong.Take(1)).Concat(tinh.Skip(2)).Take(3));
-    }
-
-    /// <summary>«10 sao = 10 phút chơi».</summary>
-    public static string TyLe(HvTyLe? t) => $"{t?.Sao ?? 10} sao = {t?.Phut ?? 10} phút chơi";
-
-    /// <summary>«Đổi 10 sao lấy 10 phút» (tỷ lệ do Ba Mẹ đặt).</summary>
-    public static string NutDoiSao(HvTyLe? t) => $"Đổi {t?.Sao ?? 10} sao lấy {t?.Phut ?? 10} phút";
-
-    /// <summary>Số sao cần để đổi <paramref name="phut"/> phút (làm tròn lên, như máy chủ saoChoPhut).</summary>
-    public static int SaoChoPhut(int phut, HvTyLe? t)
-    {
-        var p = Math.Max(1, t?.Phut ?? 10);
-        var s = Math.Max(1, t?.Sao ?? 10);
-        return (int)Math.Ceiling(phut * (double)s / p);
-    }
-
-    /// <summary>Số phút đổi được nhiều nhất lúc này: theo sao hiện có và phần còn đổi được hôm nay.</summary>
-    public static int PhutDoiToiDa(int sao, HvQuy? q)
-    {
-        var t = q?.TyLe ?? new HvTyLe();
-        var theoSao = (int)Math.Floor(sao * (double)Math.Max(1, t.Phut) / Math.Max(1, t.Sao));
-        return Math.Max(0, Math.Min(theoSao, q?.DoiSao.ConDoiDuoc ?? theoSao));
-    }
-
-    /// <summary>Đang giờ ngủ / Ba Mẹ khoá / giờ học ⇒ không thêm giờ (chỉ xin ngoại lệ — màn khoá của W2).</summary>
-    public static bool KhongThemGio(HvQuy? q) => q != null && (q.DangNgu || q.Khoa || q.DangHoc);
+    public static string Sao(int sao) => SaoView.SoDu(sao);
 
     // ------------------------------------------------------------------ nhiệm vụ
 
@@ -319,6 +234,10 @@ public static class AppConView
     private static readonly Regex TenTrongNgoac = new("«([^»]+)»", RegexOptions.Compiled);
     private static readonly Regex SoSaoRe = new(@"\+(\d+)\s*sao", RegexOptions.Compiled);
     private static readonly Regex SoPhutRe = new(@"\+(\d+)\s*phút", RegexOptions.Compiled);
+    private static readonly Regex ChoVayRe = new(@"^(.+?) cho vay (\d+) sao$", RegexOptions.Compiled);
+    private static readonly Regex ChuaVayRe = new(@"^(.+?) chưa cho vay sao$", RegexOptions.Compiled);
+    private static readonly Regex DaThemRe = new(@"^(.+?) đã thêm (.+)$", RegexOptions.Compiled);
+    private static readonly Regex ChuaThemRe = new(@"^(.+?) chưa thêm (.+?)(?: lúc này)?$", RegexOptions.Compiled);
 
     /// <summary>Đọc một tin thành kết quả cần bật màn (null = tin không cần màn kết quả).</summary>
     public static KetQuaTin? DocTin(HvTin t)
@@ -344,8 +263,33 @@ public static class AppConView
                 var tenQua = noi.Split('·')[0].Trim();
                 return tenQua.Length == 0 ? null : new KetQuaTin("trao_qua", tenQua, null, phut, null);
             }
-            case "them_gio":
-                return phut is > 0 ? new KetQuaTin("them_gio", "", null, phut, null) : null;
+            // 15/11 (#258): «Mẹ Lan đã thêm Roblox» / «Nhóm «Tính phút» · 1 sao = 1 phút · «lời nhắn»» · «Mẹ Lan chưa thêm Roblox lúc này»
+            case "dong_y_yeu_cau":
+            {
+                var m2 = DaThemRe.Match(t.Tieu ?? "");
+                if (!m2.Success) return null;
+                var khong = noi.Contains("Không tính phút");
+                var loi = TenTrongNgoac.Matches(noi).Select(x => x.Groups[1].Value).FirstOrDefault(x => x is not ("Tính phút" or "Không tính phút"));
+                return new KetQuaTin("da_them", m2.Groups[2].Value.Trim(), null, null, loi, khong ? "khong_tinh_phut" : "tinh_phut", m2.Groups[1].Value.Trim());
+            }
+            // 15/11 (PR #277): kết quả lời xin vay — «Mẹ Lan cho vay 15 sao» / «Mẹ Lan chưa cho vay sao» · «lý do»
+            case "cho_vay":
+            {
+                var m4 = ChoVayRe.Match(t.Tieu ?? "");
+                return m4.Success && int.TryParse(m4.Groups[2].Value, out var nv) ? new KetQuaTin("cho_vay", "", nv, null, null, null, m4.Groups[1].Value.Trim()) : null;
+            }
+            case "tu_choi_yeu_cau":
+            {
+                var m5 = ChuaVayRe.Match(t.Tieu ?? "");
+                if (!m5.Success) return null;
+                var loi = TenTrongNgoac.Match(noi) is { Success: true } lm ? lm.Groups[1].Value : null;
+                return new KetQuaTin("chua_vay", "", null, null, loi, null, m5.Groups[1].Value.Trim());
+            }
+            case "bo_qua_yeu_cau":
+            {
+                var m3 = ChuaThemRe.Match(t.Tieu ?? "");
+                return m3.Success ? new KetQuaTin("chua_them", m3.Groups[2].Value.Trim(), null, null, null, null, m3.Groups[1].Value.Trim()) : null;
+            }
             default:
                 return null;
         }
@@ -354,16 +298,4 @@ public static class AppConView
     /// <summary>Trong một lượt tin mới: kết quả MỚI NHẤT cần bật màn (một màn một lượt).</summary>
     public static KetQuaTin? ChonKetQua(IEnumerable<HvTin> moi)
         => moi.OrderByDescending(t => t.Luc ?? DateTimeOffset.MinValue).Select(DocTin).FirstOrDefault(k => k != null);
-
-    // ------------------------------------------------------------------ hộp Thêm giờ chơi
-
-    /// <summary>Tab «Dùng sao»: chip phút nhanh.</summary>
-    public static readonly int[] PhutDungSao = { 15, 30, 60 };
-    /// <summary>Tab «Xin Ba Mẹ»: chip phút (thiết kế con-xin 02: 10 / 20 / 30).</summary>
-    public static readonly int[] PhutXin = { 10, 20, 30 };
-    public const int BuocDoi = 5;
-
-    /// <summary>«Còn 20 sao · giờ chơi thành 28 phút».</summary>
-    public static string SauKhiDoi(int sao, int phut, double conPhut, HvTyLe? t)
-        => $"Còn {Math.Max(0, sao - SaoChoPhut(phut, t))} sao · giờ chơi thành {Phut(conPhut + phut)}";
 }

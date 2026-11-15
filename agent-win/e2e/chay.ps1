@@ -29,7 +29,7 @@ $Svc = 'AiiGrowService'
 $DataDir = Join-Path $env:ProgramData 'AiiGrow'
 $InstallDir = Join-Path $env:ProgramFiles 'AiiGrow'
 $TenCon = 'aiicon'
-$TenMienChan = 'chan-thu-e2e.vn'
+$TenMienChan = 'chan-thu-e2e.vn'   # 15/11 (#262): không còn «Chặn» — tên miền này Ba Mẹ THÊM vào danh sách «Không tính phút» (danh sách trắng)
 $WebCam = 'pornhub.com'   # một tên miền thuộc nhóm web luôn chặn (server lib/chan-co-ban.ts › WEB_CAM)
 $WebQuanTri = 'quan-tri-gia.example.com'
 $KQ = New-Object System.Collections.ArrayList
@@ -380,11 +380,14 @@ KichBan 'KB10' 'Named pipe (lệnh của khay)' {
 }
 
 # ------------------------------------------------------------------ KB4 — Chặn thật: AppLocker + chính sách web
-KichBan 'KB4' 'Chặn thật: AppLocker + web' {
+KichBan 'KB4' 'Chặn thật: AppLocker + web (Theo danh sách — danh sách trắng)' {
   if (-not $Chung.MayId) { Bo 'KB4' 'Chặn thật' 'chưa có máy'; return }
-  $w = Api POST "/api/m/con/$($Chung.ConId)/web/trang" @{ muc = $TenMienChan; trangThai = 'chan' } $Chung.TokenBaMe
+  # 15/11 (#262 / #258): Con «Theo danh sách» = danh sách trắng — ngoài danh sách không mở. Ba Mẹ thêm một tên miền vào nhóm «Không tính phút».
+  $cdCon = Api POST "/api/m/con/$($Chung.ConId)/che-do" @{ cheDo = 'theo_danh_sach' } $Chung.TokenBaMe
+  $w = Api POST "/api/m/con/$($Chung.ConId)/danh-sach" @{ nhom = 'khong_tinh_phut'; muc = $TenMienChan; kieu = 'web' } $Chung.TokenBaMe
   $cd = Api POST "/api/m/may/$($Chung.MayId)/che-do" @{ cheDo = 'chan' } $Chung.TokenBaMe
-  Dat '4.1' 'Ba Mẹ đặt Chặn thật + chặn một tên miền' ($cd.cheDo -eq 'chan' -and $w.trangThai -eq 'chan') "cheDo $($cd.cheDo) doi $($cd.doi) · web $($w.muc)=$($w.trangThai)"
+  $daThem = [bool]@($w.daDat | Where-Object { @($_.muc) -contains $TenMienChan -or $_.ten -eq $TenMienChan }).Count
+  Dat '4.1' 'Ba Mẹ để «Theo danh sách» + thêm một tên miền vào «Không tính phút» (máy chặn thật)' ($cd.cheDo -eq 'chan' -and $cdCon.cheDo -eq 'theo_danh_sach' -and $daThem) "cheDo máy $($cd.cheDo) · cheDo Con $($cdCon.cheDo) · thêm $TenMienChan=$daThem ($(ConvertTo-Json $w -Compress -Depth 4))"
   DongBoNgay
   $st = Cho { $x = TrangThai; if ($x.cheDo -eq 'chan') { $x } } 60 3
   Dat '4.2' 'Agent nhận chế độ chan sau đồng bộ' ([bool]$st) "cheDo $((TrangThai).cheDo) mode $((TrangThai).mode)"
@@ -392,10 +395,10 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   $may = Cho { $m = @(MayCuaToi | Where-Object { $_.id -eq $Chung.MayId -and $_.cheDoMay -eq 'chan' }); if ($m.Count) { $m[0] } } 90 5
   Dat '4.3' 'Máy chủ thấy cheDoMay = chan' ([bool]$may) "cheDoMay $((@(MayCuaToi))[0].cheDoMay)"
 
-  # 4.4 — chính sách web trong registry (không cần SID Con)
-  $webOk = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { if (-not (@(MucAiiGrow $k 'URLBlocklist') | Where-Object { $_.GiaTri -like "*$TenMienChan*" })) { $all = $false } }; $all } 90 5
-  $chiTiet = ($KhoaWebCon.GetEnumerator() | ForEach-Object { "$($_.Key): " + ((@(MucAiiGrow $_.Value 'URLBlocklist') | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';') }) -join ' · '
-  Dat '4.4' "URLBlocklist Chrome + Edge có $TenMienChan" $webOk $chiTiet
+  # 4.4 — chính sách web trong registry (không cần SID Con): danh sách trắng ⇒ URLBlocklist có «*» (ngoài danh sách không mở), tên miền đã thêm KHÔNG bị chặn
+  $webOk = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { $m = @(MucAiiGrow $k 'URLBlocklist'); if (-not @($m | Where-Object { $_.GiaTri -eq '*' }).Count -or @($m | Where-Object { $_.GiaTri -like "*$TenMienChan*" }).Count) { $all = $false } }; $all } 90 5
+  $chiTiet = ($KhoaWebCon.GetEnumerator() | ForEach-Object { $m = @(MucAiiGrow $_.Value 'URLBlocklist'); "$($_.Key): «*»=$([bool]@($m | Where-Object { $_.GiaTri -eq '*' }).Count) $TenMienChan=$([bool]@($m | Where-Object { $_.GiaTri -like "*$TenMienChan*" }).Count) ($($m.Count) mục)" }) -join ' · '
+  Dat '4.4' "URLBlocklist Chrome + Edge có «*» (ngoài danh sách không mở), $TenMienChan (trong danh sách) không bị chặn" $webOk $chiTiet
   # 4.4c — thiết kế 05/11 (L4): web người lớn / cờ bạc / bạo lực LUÔN chặn ở mọi chế độ (server lib/chan-co-ban.ts › WEB_LUON_CHAN)
   $camOk = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { if (-not (@(MucAiiGrow $k 'URLBlocklist') | Where-Object { $_.GiaTri -eq $WebCam })) { $all = $false } }; $all } 60 5
   $ctCam = ($KhoaWebCon.GetEnumerator() | ForEach-Object { $m = @(MucAiiGrow $_.Value 'URLBlocklist'); "$($_.Key): $WebCam=$([bool]@($m | Where-Object { $_.GiaTri -eq $WebCam }).Count) ($($m.Count) mục, đầu: $((@($m | Select-Object -First 4 | ForEach-Object { $_.GiaTri })) -join ','))" }) -join ' · '
@@ -526,11 +529,12 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web' {
   Dat '4.17' 'Chrome chạy bằng tài khoản Con: trang Ba Mẹ cho phép vào được, trang Ba Mẹ chặn thì không' ($vaoDuoc -and $biChan) $ct
 }
 
-# ------------------------------------------------------------------ KB11 — Ba Mẹ chặn app lấy từ DANH SÁCH APP THẬT của máy (25/10)
-# Agent quét app đã cài (registry / Start Menu / Store) ⇒ POST /api/device/ung-dung; Ba Mẹ đọc GET /api/m/may/<id>/ung-dung, đặt «chan» một app thật
-# ⇒ dong-bo.windows.blockedApps mang đường dẫn / thư mục / SHA-256 của chính máy ⇒ AppLocker có Deny cho SID Con theo đường dẫn + băm.
+# ------------------------------------------------------------------ KB11 — Ba Mẹ thêm / bỏ app lấy từ DANH SÁCH APP THẬT của máy (25/10; 15/11 #262 danh sách trắng)
+# Agent quét app đã cài (registry / Start Menu / Store) ⇒ POST /api/device/ung-dung; Ba Mẹ đọc GET /api/m/may/<id>/ung-dung, THÊM một app thật vào
+# «Không tính phút» ⇒ allowedApps có exe đó ⇒ luật AppLocker «Deny * cho SID Con» có ngoại lệ *\<exe>; «bỏ khỏi danh sách» ⇒ ngoại lệ mất (không mở được).
+# (Bỏ «Chặn» / blockedApps / luật Deny theo băm — #262.)
 # Chạy app thật dưới phiên Con: BỎ (runner không có phiên đăng nhập của Con — README).
-KichBan 'KB11' 'Chặn app chọn từ danh sách app thật của máy' {
+KichBan 'KB11' 'Thêm / bỏ app chọn từ danh sách app thật của máy (danh sách trắng)' {
   if (-not $Chung.MayId -or -not $Chung.CoSid) { Bo 'KB11' 'Chặn app thật' 'chưa có máy / chưa gắn tài khoản Con (KB4)'; return }
   $t = Get-Date
   $ds = @(Cho { $r = Api GET "/api/m/may/$($Chung.MayId)/ung-dung" $null $Chung.TokenBaMe; $d = @($r.ds); if ($d.Count) { $d } } 300 10)
@@ -546,22 +550,19 @@ KichBan 'KB11' 'Chặn app chọn từ danh sách app thật của máy' {
   Dat '11.2' 'Chọn một app thật trong danh sách' ([bool]$app) ("chọn «{0}» muc {1} · {2} · thuMuc {3} · nguon {4}" -f $app.ten, $app.muc, $app.duongDan, $app.thuMuc, $app.nguon)
   if (-not $app) { return }
   $Chung.AppChan = $app
-  $dat = Api POST "/api/m/may/$($Chung.MayId)/ung-dung/dat" @{ khoa = $app.khoa; trangThai = 'chan' } $Chung.TokenBaMe
-  Dat '11.3' 'Ba Mẹ đặt «Chặn» app đó (ung-dung/dat)' ([bool]$dat) (ConvertTo-Json $dat -Compress -Depth 4)
+  $dat = Api POST "/api/m/may/$($Chung.MayId)/ung-dung/dat" @{ khoa = $app.khoa; trangThai = 'khong_tinh_phut' } $Chung.TokenBaMe
+  Dat '11.3' 'Ba Mẹ thêm app đó vào «Không tính phút» (ung-dung/dat)' ([bool]$dat) (ConvertTo-Json $dat -Compress -Depth 4)
   DongBoNgay
-  # AppLocker: Deny cho SID Con theo đường dẫn exe (+ thư mục cài nếu có) + băm AppLocker (Get-AppLockerFileInformation — băm Authenticode AppLocker so)
-  $duong = [string]$app.duongDan
-  $luat = @(Cho { $l = @(LuatAiiGrow (AppLocker) $Chung.SidCon | Where-Object { $_.Action -eq 'Deny' -and @($_.SelectNodes('.//FilePathCondition') | Where-Object { $_.Path -eq $duong }).Count }); if ($l.Count) { $l } } 180 5)
-  Dat '11.4' 'AppLocker có luật Deny cho SID Con đúng đường dẫn exe' ($luat.Count -gt 0) ("{0} luật: {1}" -f $luat.Count, ((@($luat) | ForEach-Object { $_.Name }) -join ' | '))
-  $bamApp = $null
-  try { $bamApp = ([xml](Get-AppLockerFileInformation -Path $duong | New-AppLockerPolicy -RuleType Hash -User Everyone -Xml)).SelectSingleNode('//FileHash').Data } catch { }
-  $bam = @(Cho { $h = @((AppLocker).SelectNodes("//FileHashRule[starts-with(@Name,'AiiGrow: ') and @Action='Deny' and @UserOrGroupSid='$($Chung.SidCon)']") | Where-Object { $_.Conditions.FileHashCondition.FileHash.Data -eq $bamApp }); if ($h.Count) { $h } } 60 5)
-  Dat '11.5' 'AppLocker có luật Deny theo băm của exe đó' ($bamApp -and $bam.Count -gt 0) ("băm AppLocker {0} · {1} luật băm khớp" -f $bamApp, $bam.Count)
-  if ($app.thuMuc) {
-    $tm = ([string]$app.thuMuc).TrimEnd('\') + '\*'
-    $luatTm = @(LuatAiiGrow (AppLocker) $Chung.SidCon | Where-Object { $_.Action -eq 'Deny' -and @($_.SelectNodes('.//FilePathCondition') | Where-Object { $_.Path -eq $tm }).Count })
-    Dat '11.6' 'AppLocker có luật Deny theo thư mục cài' ($luatTm.Count -gt 0) "$tm · $($luatTm.Count) luật"
-  } else { Bo '11.6' 'AppLocker có luật Deny theo thư mục cài' 'app không có thuMuc (thư mục quá rộng hoặc không rõ — agent không gửi)' }
+  $exe = [System.IO.Path]::GetFileName([string]$app.duongDan).ToLowerInvariant()
+  $ngoaiLe = "*\$exe"
+  function CoNgoaiLe { @(LuatAiiGrow (AppLocker) $Chung.SidCon | Where-Object { $_.Action -eq 'Deny' -and @($_.SelectNodes('.//Exceptions/FilePathCondition') | Where-Object { $_.Path -eq $ngoaiLe }).Count }).Count -gt 0 }
+  $co = Cho { CoNgoaiLe } 180 5
+  Dat '11.4' "AppLocker «chỉ app trong danh sách» cho SID Con có ngoại lệ $ngoaiLe (app trong danh sách mở được)" ([bool]$co) ("{0} luật Deny AiiGrow của Con" -f @(LuatAiiGrow (AppLocker) $Chung.SidCon | Where-Object { $_.Action -eq 'Deny' }).Count)
+  [void](Api POST "/api/m/may/$($Chung.MayId)/ung-dung/dat" @{ khoa = $app.khoa; trangThai = 'chan' } $Chung.TokenBaMe)   # «chan» cũ = bỏ khỏi danh sách
+  DongBoNgay
+  $bo = Cho { -not (CoNgoaiLe) } 180 5
+  Dat '11.5' "Bỏ app khỏi danh sách ⇒ ngoại lệ $ngoaiLe mất (ngoài danh sách không mở)" ([bool]$bo) "còn ngoại lệ: $(CoNgoaiLe)"
+  Bo '11.6' 'AppLocker có luật Deny theo thư mục cài' '15/11 (#262): bỏ «Chặn» — máy chủ luôn gửi blockedApps rỗng, chặn bằng danh sách trắng'
   Dat '11.7' 'Luật quản trị giả vẫn còn' (@(LuatQuanTri (AppLocker)).Count -eq 1) "$(@(LuatQuanTri (AppLocker)).Count) luật"
   Bo '11.8' "Chạy $($app.muc) dưới phiên Con ⇒ bị chặn / bị đóng" 'runner không có phiên đăng nhập của Con (xem README) — đã kiểm luật AppLocker ở 11.4–11.6'
   # trả lại như trước để KB5–KB9 không mang luật chặn app này
@@ -610,7 +611,7 @@ KichBan 'KB5' 'Khoá ngay rồi mở lại' {
 # Máy luôn chặn thật (POST may/:id/che-do {giam-sat} ⇒ 409 che_do_bo). Mức chặn đổi theo CON: «Mở hết» ⇒ mode tu_do (không grantEndsAt)
 # ⇒ agent gỡ luật AppLocker «chỉ app được phép» của AiiGrow, giữ luật quản trị; web về «mở» (không «*») nhưng trang Ba Mẹ chặn + web cấm VẪN chặn.
 # Để Con ở «Mở hết» cho KB7a/KB8/KB7b (gần nhất với «Giám sát» cũ: không luật AppLocker AiiGrow); KB9 tự bật lại «Chỉ app được phép».
-KichBan 'KB6' 'Mở hết: gỡ luật chỉ-app-được-phép, giữ luật quản trị, web cấm vẫn chặn' {
+KichBan 'KB6' 'Mở hết: gỡ luật chỉ-app-được-phép, giữ luật quản trị, web không chặn' {
   foreach ($k in $KhoaWeb.Values) { New-Item -Path "$k\URLBlocklist" -Force | Out-Null; New-ItemProperty -Path "$k\URLBlocklist" -Name '1' -Value $WebQuanTri -PropertyType String -Force | Out-Null }   # đặt lại mục IT gỡ tạm ở KB4.12
   if (-not $Chung.MayId -or -not $Chung.ConId) { Bo 'KB6' 'Mở hết' 'chưa có máy / chưa có Con'; return }
   # «Giám sát» đã bỏ ⇒ máy chủ phải từ chối rõ (409 che_do_bo), không âm thầm đổi. Api ghi «lỗi <mã HTTP>: <thân>» vào thông điệp.
@@ -627,10 +628,10 @@ KichBan 'KB6' 'Mở hết: gỡ luật chỉ-app-được-phép, giữ luật qu
   Dat '6.1' 'Mở hết ⇒ agent mode tu_do + AppLocker không còn luật AiiGrow' ([bool]$tuDo -and $het) "cheDoChan $($cd.cheDoChan) · mode tu_do: $([bool]$tuDo) · còn $(@(LuatAiiGrow (AppLocker)).Count) luật (mode agent $($st.mode), cheDo $($st.cheDo))"
   Dat '6.2' 'Luật quản trị giả vẫn còn' (@(LuatQuanTri (AppLocker)).Count -eq 1) "$(@(LuatQuanTri (AppLocker)).Count) luật"
   function XetWebMo($k) { $m = @(MucAiiGrow $k 'URLBlocklist'); [pscustomobject]@{ Sao = [bool]@($m | Where-Object { $_.GiaTri -eq '*' }).Count; Cam = [bool]@($m | Where-Object { $_.GiaTri -eq $WebCam }).Count; Chan = [bool]@($m | Where-Object { $_.GiaTri -like "*$TenMienChan*" }).Count; So = $m.Count } }
-  $webMo = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { $x = XetWebMo $k; if ($x.Sao -or -not $x.Cam -or $x.Chan) { $all = $false } }; $all } 90 5
+  # 15/11 (#262): «Mở hết» = không chặn gì (máy chủ: web.chan rỗng, webLuonChan []) ⇒ không «*», không cả web nhóm cấm
+  $webMo = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { $x = XetWebMo $k; if ($x.Sao -or $x.Cam -or $x.Chan) { $all = $false } }; $all } 90 5
   $ct = ($KhoaWebCon.GetEnumerator() | ForEach-Object { $x = XetWebMo $_.Value; "$($_.Key): «*»=$($x.Sao) $WebCam=$($x.Cam) $TenMienChan=$($x.Chan) ($($x.So) mục)" }) -join ' · '
-  # 11/11 (#226, Nghi chốt «Mở thật hết»): Mở hết bỏ cả luật «Chặn» của Ba Mẹ — chỉ web cấm (người lớn/cờ bạc/bạo lực) còn chặn
-  Dat '6.3' "Web về «mở» (không «*»), trang Ba Mẹ chặn ($TenMienChan) được mở, web cấm ($WebCam) vẫn chặn" $webMo $ct
+  Dat '6.3' "Mở hết: web không chặn gì (không «*», $TenMienChan, $WebCam đều mở)" $webMo $ct
   $it = MucIT; Dat '6.4' 'Mục web «IT» vẫn còn' $it.Ok $it.ChiTiet
 }
 

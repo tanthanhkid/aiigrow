@@ -85,23 +85,18 @@ public sealed class Policy
     public List<string> PlayChoices { get; set; } = new();
     /// <summary>25/10: app Ba Mẹ đặt «Chặn» kèm định danh thật của máy này (dong-bo.windows.blockedApps — ChanAppThat.cs). Áp khi «chan», mọi mode.</summary>
     public List<AppBiChan> BlockedApps { get; set; } = new();
-    /// <summary>Thiết kế 05/11 (L1): số sao hiện có của Con (dong-bo.windows.sao, = số dư điểm); null = máy chủ cũ ⇒ màn không ghi số.</summary>
+    /// <summary>Số dư sao Con thấy (dong-bo.windows.sao) — 15/11: ÂM khi đang nợ Ba Mẹ; null = máy chủ cũ / máy chung chưa chọn bé.</summary>
     public int? Sao { get; set; }
-    // ---- 05/11 quỹ giờ chơi (server/lib/agent-windows.ts — S1): agent đếm quỹ TẠI MÁY, kể cả lúc mất mạng (QuyTaiCho.cs)
-    /// <summary>Phút chơi còn lại hôm nay lúc máy chủ tính (0 = không được chơi); null = máy chủ cũ / máy dùng chung chưa chọn Con.</summary>
+    // ---- 15/11 sổ sao (#263–#266): 1 sao = 1 phút app / web «Tính phút». Máy chủ gửi phút còn chơi ở `quyConPhut` (= sao tiêu được, tên trường giữ
+    //      cho agent cũ); agent đếm lùi TẠI MÁY khi app «Tính phút» ở tiền cảnh, kể cả lúc mất mạng (QuyTaiCho.cs). Không còn quỹ ngày / giờ ngủ / ngoại lệ.
+    /// <summary>Phút «Tính phút» còn chơi lúc máy chủ tính = sao tiêu được (0 = hết sao); null = máy chủ cũ / máy chung chưa chọn bé.</summary>
     public double? QuyConPhut { get; set; }
-    /// <summary>Quỹ hôm nay (đã cộng thêm giờ / đổi sao) — «Đã chơi X / Y phút».</summary>
-    public double? QuyTongPhut { get; set; }
-    public double? QuyDaDung { get; set; }
-    /// <summary>App Giải trí đang được thả nhờ quỹ (đã trong AllowedApps, chữ thường .exe) — app tính giờ: ở tiền cảnh thì trừ quỹ.</summary>
+    /// <summary>App «Tính phút» đang được thả nhờ còn sao (đã trong AllowedApps, chữ thường .exe) — ở tiền cảnh thì trừ sao.</summary>
     public List<string> AppTinhGio { get; set; } = new();
-    public KhungGio? GioNgu { get; set; }
-    public KhungGio? GioHoc { get; set; }
-    public bool DangGioHoc { get; set; }
-    /// <summary>Ngoại lệ Ba Mẹ mở cho máy này: App null = cả máy. Hết hạn ⇒ agent tự khoá lại như cũ (cả khi mất mạng).</summary>
-    public List<NgoaiLeMay> NgoaiLe { get; set; } = new();
-    /// <summary>Ngoại lệ đang mở trong lúc Ba Mẹ khoá / giờ ngủ: hết ngoại lệ thì khoá lại với lý do này («khoa» | «ngu»); null = không khoá.</summary>
-    public string? KhoaKhiHetNgoaiLe { get; set; }
+    /// <summary>15/11: khối `sao` ở GỐC phản hồi dong-bo (số dư, nợ, phút còn, hết sao) — <see cref="PolicyParser.TuDongBo"/> gắn vào. null = máy chủ cũ.</summary>
+    [JsonIgnore] public SoSaoMay? SoSao { get; set; }
+    /// <summary>15/11 (#262): chế độ app &amp; web của Con ở gốc phản hồi dong-bo — «theo_danh_sach» | «mo_het»; null = máy chủ cũ (xem <see cref="MoHet"/>).</summary>
+    [JsonIgnore] public string? CheDoCon { get; set; }
     /// <summary>11/11 (dong-bo.windows.moHet): Con ở «Mở hết» ⇒ HostsWorker gỡ dòng chặn 0.0.0.0 / :: trong tệp hosts do phần mềm khác đặt.</summary>
     public bool MoHet { get; set; }
 
@@ -109,24 +104,33 @@ public sealed class Policy
     public Policy SaoNong() => (Policy)MemberwiseClone();
 }
 
-/// <summary>Một ngoại lệ đang mở (dong-bo.windows.ngoaiLe): tới <see cref="Den"/>; <see cref="App"/> null = cả máy, có giá trị = .exe hoặc tên miền.</summary>
-public sealed class NgoaiLeMay
+/// <summary>Khối `sao` của dong-bo (docs/API.md «Sổ sao 15/11»): `sao` âm khi nợ, `no` ≥ 0, `phutCon` = sao tiêu được.</summary>
+public sealed class SoSaoMay
 {
-    public DateTimeOffset Den { get; set; }
-    public string? App { get; set; }
+    public int Sao { get; set; }
+    public int No { get; set; }
+    public double PhutCon { get; set; }
+    public bool HetSao { get; set; }
+    public bool CanhBaoNo { get; set; }
 }
 
-/// <summary>Số giây Con đã chơi app tính giờ tại máy kể từ Policy nhận lúc <see cref="PolicyAt"/> (lưu để dịch vụ khởi động lại vẫn giữ).</summary>
+/// <summary>Số giây Con đã chơi app «Tính phút» tại máy kể từ Policy nhận lúc <see cref="PolicyAt"/> (lưu để dịch vụ khởi động lại vẫn trừ đúng sao).
+/// 15/11 (PR #277): máy chung đếm THEO BÉ — <see cref="Giay"/> là của bé mà Policy đang giữ (<see cref="PolicyBe"/>), bé khác vào lúc mất mạng
+/// đếm riêng ở <see cref="GiayBe"/>; phút mở bằng mã chưa báo máy chủ theo bé ở <see cref="BoiMa"/> (khoá rỗng = không rõ bé).</summary>
 public sealed class QuyDaDem
 {
     public DateTimeOffset PolicyAt { get; set; }
     public double Giay { get; set; }
-    /// <summary>Ngày (giờ máy) của <see cref="GiayNgay"/> — giây chơi từ nửa đêm, để quỹ ngày mới khi mất mạng qua đêm không về đầy sau khởi động lại.</summary>
-    public DateTime Ngay { get; set; }
-    public double GiayNgay { get; set; }
+    public string? PolicyBe { get; set; }
+    public Dictionary<string, double> GiayBe { get; set; } = new();
+    public Dictionary<string, double> BoiMa { get; set; } = new();
+    /// <summary>Giây mở bằng mã HÔM NAY theo bé (ngày <see cref="BoiMaNgay"/>, giờ máy) — «Hôm nay đã chơi N phút · −N sao» không tính phần không trừ sao.</summary>
+    public Dictionary<string, double> BoiMaHomNay { get; set; } = new();
+    public DateTime BoiMaNgay { get; set; }
 }
 
-public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes);
+/// <param name="Con">15/11 (#267): id bé của dòng (máy chung) — máy chủ ghi phút cho đúng bé; null = không biết (máy chủ coi là bé đang dùng).</param>
+public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes, string? Con = null);
 
 /// <summary>Trạng thái bảo vệ do tác tử gửi kèm mỗi lần sync (máy chủ lưu JSON này).</summary>
 public sealed class AgentStatus
@@ -206,6 +210,21 @@ public sealed class RequestStatus
 {
     public string Status { get; set; } = "";
     public DateTimeOffset? GrantEndsAt { get; set; }
+    /// <summary>15/11 (#258, GET yeu-cau/:id): lời xin app / web — cho | da_them | mo_tam | chua_them | het_han | huy; null = lời xin khác / máy chủ cũ.</summary>
+    public string? KetQua { get; set; }
+    /// <summary>tinh_phut | khong_tinh_phut (khi da_them).</summary>
+    public string? Nhom { get; set; }
+    public string? TenNguoiDuyet { get; set; }
+    public string? LoiNhan { get; set; }
+    public DateTimeOffset? Luc { get; set; }
+    /// <summary>Ba Mẹ cho mở tạm (ketQua mo_tam): tới lúc nào, bao nhiêu phút.</summary>
+    public MoTamYc? MoTam { get; set; }
+}
+
+public sealed class MoTamYc
+{
+    public DateTimeOffset? Den { get; set; }
+    public int Phut { get; set; }
 }
 
 /// <summary>Kết quả xét trước «Dùng điểm để chơi?» (POST phien/xet). KHÔNG mang số điểm/số dư sang khay — chỉ "được / không" + câu nhắc.</summary>

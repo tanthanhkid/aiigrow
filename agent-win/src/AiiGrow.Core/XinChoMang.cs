@@ -4,9 +4,10 @@ namespace AiiGrow.Core;
 public sealed class LoiXinCho
 {
     public string Ma { get; set; } = Guid.NewGuid().ToString("N");
-    /// <summary><see cref="LoaiXin.XinDuyet"/> (app / web lạ) | <see cref="LoaiXin.ThemGio"/> | <see cref="LoaiXin.NgoaiLe"/>.</summary>
-    public string Loai { get; set; } = LoaiXin.ThemGio;
-    /// <summary>App (.exe) / trang web (xin duyệt); app hoặc «ca_may» (ngoại lệ); app đang dùng (thêm giờ, có thể trống).</summary>
+    /// <summary><see cref="LoaiXin.XinDuyet"/> (app / web ngoài danh sách) | <see cref="LoaiXin.VaySao"/> (số sao ở <see cref="Phut"/>).
+    /// Lời xin loại cũ còn trong cấu hình (them_gio / ngoai_le của bản trước 15/11) ⇒ dịch vụ bỏ, không gửi.</summary>
+    public string Loai { get; set; } = LoaiXin.VaySao;
+    /// <summary>App (.exe) / trang web (xin duyệt); trống (vay sao).</summary>
     public string? Muc { get; set; }
     public string? Ten { get; set; }
     public int Phut { get; set; }
@@ -28,7 +29,7 @@ public sealed class HangXinCho
 {
     public const int ToiDa = 20;
     public const int ThuToiDa = 3;
-    /// <summary>Lời xin cũ hơn chừng này (mất mạng lâu) không gửi nữa — «thêm 20 phút» của 3 ngày trước không còn ý nghĩa với Ba Mẹ.</summary>
+    /// <summary>Lời xin cũ hơn chừng này (mất mạng lâu) không gửi nữa — «xin vay 15 sao» của 3 ngày trước không còn ý nghĩa với Ba Mẹ.</summary>
     public static readonly TimeSpan HetHan = TimeSpan.FromHours(12);
     public List<LoiXinCho> Items { get; set; } = new();
 

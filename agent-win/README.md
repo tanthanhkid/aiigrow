@@ -37,6 +37,29 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
   hạ xuống Users, bắt buộc còn một quản trị viên khác), nhập mã 6 số. Đồng thời đặt thông báo trước khi đăng nhập
   (`LegalNoticeCaption/Text`). Gỡ: `AiiGrow.Setup.exe --uninstall`.
 
+## Sổ sao + App & web 15/11 (#262–#267, #258) — THAY các mục quỹ giờ / đổi sao / ngoại lệ / giờ ngủ bên dưới
+
+- **1 sao = 1 phút** app / web «Tính phút». Máy chủ gửi phút còn chơi ở `windows.quyConPhut` (= sao tiêu được) + khối gốc `sao {sao, no, phutCon, hetSao}`
+  và `cheDo` (`PolicyParser.TuDongBo`). Dịch vụ đếm lùi TẠI MÁY khi app «Tính phút» ở tiền cảnh (`QuyTaiCho`, cả lúc mất mạng); hết sao ⇒ app «Tính phút»
+  rời danh sách được phép (không khoá máy, «Không tính phút» vẫn mở). Sao không tự đầy qua đêm. Số dư âm khi nợ («−15 sao», dấu U+2212).
+- **«Mở hết»** (`cheDo: mo_het` / `windows.moHet`): không đếm, không đóng app «Tính phút» (kể cả khi máy chủ cũ còn gửi `appTinhGio`).
+- **Mở bằng mã offline**: app «Tính phút» chạy được, không trừ sao; phút đó gửi ở `dong-bo {phutBoiMa}`.
+- **Máy chung (#267)**: `dong-bo usage[].con` = bé của dòng (`UsageTracker` theo bé) ⇒ «Đổi người» thì lượt đồng bộ sau chốt phút bé trước; màn chọn tên hiện
+  sao từng bé (`ho-so.con[].sao`), hộp «Đổi bé» «● Đang dùng · còn 18 sao · Đổi bé là dừng trừ sao». `409 ios_mot_con` chỉ áp iPhone/iPad — Windows không gặp.
+- **Khay** (khớp bàn thiết kế aiigrow-figma bản 15/11): Hôm nay «Sao để chơi · 1 sao = 1 phút» + «còn N sao = N phút chơi» + «Xin Ba Mẹ cho vay sao»
+  (cmt-hom-nay), đang nợ (them-er4nxw6z), «Mở hết» (them-upgropiw); «Chờ Ba Mẹ duyệt +N sao» + «Sao dùng thế nào?» (them-a7sh10qs); nhắc «Còn 5 sao»
+  (`NhacSaoForm`, them-da3zy02w) → «Sắp hết sao rồi» đếm ngược (≤ 1 phút) → «Hết sao rồi» toàn màn hình KHÔNG khoá (`LockForm(chiBao)`, Esc đóng);
+  mở app «Tính phút» lúc 0 sao ⇒ popup «Hết sao rồi» (them-zxuekzer). `XinVayForm`: 10 / 15 / 30 sao (mặc định 15) → `yeu-cau {loai: vay_sao, soSao}`
+  → «Đã gửi» → «Mẹ Lan cho vay rồi! +15 sao» / «Ba Mẹ chưa cho vay sao»; mất mạng ⇒ lưu `XinCho`, có mạng tự gửi. Đổi quà thiếu sao ⇒ «Xin Ba Mẹ cho vay 20 sao»
+  (`mucDich: qua`). Màn khoá chỉ còn «Ba Mẹ đang khoá máy» (lý do `ngu`/`het_gio` của máy chủ cũ hiện như vậy) và mất mạng «Hết sao rồi» + mã 6 số.
+- **Theo danh sách (#258)**: app / trang ngoài danh sách ⇒ «YouTube chưa được thêm · Chưa có trong danh sách của con» (danh sách tô xanh «Không tính phút» /
+  vàng «Tính phút») · «Xin Ba Mẹ thêm …» → kết quả `GET yeu-cau/:id › ketQua`: `da_them` + nhóm («Ba Mẹ đã thêm CapCut · Nhóm «Tính phút» · Còn 18 sao = 18 phút»
+  / «Không tính phút · Không trừ sao»), `mo_tam` («Ba Mẹ cho mở 30 phút»), `chua_them` («Ba Mẹ chưa thêm … · Xin lại»). Máy chủ cũ chỉ có `status` ⇒ vẫn đọc.
+  Tin khay `dong_y_yeu_cau` / `bo_qua_yeu_cau` ⇒ hộp kết quả.
+- **Gỡ**: hộp «Thêm giờ chơi» (đổi sao lấy giờ, xin thêm giờ), `NgoaiLeForm` (xin mở ngoại lệ), giờ ngủ / giờ học tại máy, quỹ ngày; đường khay `hoc-vien/quy`,
+  `hoc-vien/doi-sao`; lời xin chờ mạng loại cũ (`them_gio`, `ngoai_le`) bị bỏ khi gửi. Ảnh: `chup-man` thêm `app-hom-nay-dang-no`, `app-hom-nay-mo-het`,
+  `het-sao*`, `nhac-5-sao`, `xin-vay*`, `sao-dung-the-nao`, `chan-ba-me-*`, `het-sao-popup`, `chan-web`.
+
 ## Màn Con theo thiết kế chốt 05/11 (`docs/thiet-ke-chot/con-cai-win|con-bi-chan|con-het-gio|con-mat-mang`)
 
 - Bộ cài (`SetupForm`): 5 bước Chào → Đồng ý → Tài khoản → Ghép máy (6 ô số, mã 10 phút) → Cài → Xong; lỗi mã sai / hết hạn / mất mạng mỗi loại một màn.

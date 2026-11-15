@@ -33,6 +33,8 @@ export type DongBoVao = {
   usage?: { muc: string; phut: number; day?: string; /** giờ bắt đầu dùng app trong ngày (ISO, tuỳ chọn) */ dauLuc?: string; con?: string }[];
   /** 15/11: phút «Tính phút» dùng lúc máy đang mở bằng mã offline / mã mở máy kể từ lần đồng bộ trước ⇒ không trừ sao (agent mới gửi). */
   phutBoiMa?: number;
+  /** 15/11 (agent Windows ≥ 0.2.19, máy chung): phút mở bằng mã THEO BÉ — có thì thay `phutBoiMa` (không trừ sao đúng bé dù đã «Đổi người»). */
+  boiMaCon?: { con?: string; phut?: number }[];
   conDangDung?: string | null;               // máy dùng chung: Con đang dùng (chọn tên — không còn PIN)
 };
 
@@ -104,9 +106,16 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     cuMap.set(khoa(be, ngay, muc), Math.max(cu, phan));
   }
   const boiMa = Math.max(0, Number(b.phutBoiMa) || 0);
+  const boiMaBe = new Map<string, number>();
+  if (Array.isArray(b.boiMaCon)) for (const x of b.boiMaCon.slice(0, 50)) {
+    const be = x?.con ? String(x.con) : con;
+    const n = Math.max(0, Math.min(1440, Number(x?.phut) || 0));
+    if (be && n > 0) boiMaBe.set(be, (boiMaBe.get(be) ?? 0) + n);
+  }
   for (const [be, x] of truTheoBe) {
     let phut = x.phut;
-    if (be === con) phut = Math.max(0, phut - boiMa);
+    if (Array.isArray(b.boiMaCon)) phut = Math.max(0, phut - (boiMaBe.get(be) ?? 0));
+    else if (be === con) phut = Math.max(0, phut - boiMa);
     // máy chung + dòng agent cũ: không quá thời gian bé này đã đăng nhập máy
     if (x.cu && !may.child_id && may.dang_nhap_luc && may.con_dang_dung === be)
       phut = Math.min(phut, Math.max(0, (now.getTime() - new Date(may.dang_nhap_luc).getTime()) / 60000));

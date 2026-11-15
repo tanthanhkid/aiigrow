@@ -73,13 +73,19 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
   const c = await one<{ family_id: string }>(`select family_id from children where id = $1`, [con]);
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   const tu = sau && Number.isFinite(sau.getTime()) ? new Date(sau.getTime() - LUI_PHUT * 60_000) : new Date(Date.now() - SO_NGAY_TIN * 86_400_000);
-  const ev = await q<{ id: string; loai: string; chi_tiet: Record<string, unknown>; created_at: Date }>(
-    `select id, loai, chi_tiet, created_at from events where child_id = $1 and created_at > $2
-     and loai in ('giao_nhiem_vu', 'duyet_nhiem_vu', 'tu_duyet_nhiem_vu', 'tu_choi_nhiem_vu', 'can_bo_sung', 'loi_khen', 'xac_nhan_qua', 'huy_qua', 'huy_hieu',
-                  'lam_lai_nhiem_vu', 'them_gio', 'dong_y_yeu_cau', 'bo_qua_yeu_cau')
+  const ev = await q<{ id: string; loai: string; chi_tiet: Record<string, unknown>; created_at: Date; ten_nguoi: string | null }>(
+    `select e.id, e.loai, e.chi_tiet, e.created_at, p.ten as ten_nguoi from events e left join parents p on p.id = e.nguoi
+     where e.child_id = $1 and e.created_at > $2
+     and e.loai in ('giao_nhiem_vu', 'duyet_nhiem_vu', 'tu_duyet_nhiem_vu', 'tu_choi_nhiem_vu', 'can_bo_sung', 'loi_khen', 'xac_nhan_qua', 'huy_qua', 'huy_hieu',
+                  'lam_lai_nhiem_vu', 'them_gio', 'dong_y_yeu_cau', 'bo_qua_yeu_cau', 'cho_vay', 'tu_choi_yeu_cau')
        -- #258: «Bỏ qua» chỉ báo Con sau 60 giây (Ba Mẹ còn Hoàn tác được — hoàn tác thì sự kiện bị thu hồi)
-       and (loai <> 'bo_qua_yeu_cau' or created_at <= now() - interval '60 seconds')
-     order by created_at desc limit 50`, [con, tu]);
+       and (e.loai <> 'bo_qua_yeu_cau' or e.created_at <= now() - interval '60 seconds')
+       -- #263: «Ba Mẹ cho vay N sao» cũng chờ hết 60 giây Hoàn tác; khoản vay đã rút trọn (hoan_tac_vay không «mot_phan») thì không báo
+       and (e.loai <> 'cho_vay' or (e.created_at <= now() - interval '60 seconds' and not exists (select 1 from events h where h.child_id = e.child_id
+              and h.loai = 'hoan_tac_vay' and h.created_at >= e.created_at and h.created_at <= e.created_at + interval '61 seconds' and not (h.chi_tiet ? 'mot_phan'))))
+       -- «Ba Mẹ chưa cho vay sao»: chỉ lời xin vay (lời xin cũ them_gio / ngoai_le / ngoai_gio cũng là vay từ 15/11)
+       and (e.loai <> 'tu_choi_yeu_cau' or e.chi_tiet->>'loai' in ('vay_sao', 'them_gio', 'ngoai_le', 'ngoai_gio'))
+     order by e.created_at desc limit 50`, [con, tu]);
   const moi = await q<{ id: string; ten: string; diem: number; created_at: Date }>(
     `select id, ten, diem, created_at from tasks where family_id = $1 and bat and giao_cho is null and bang_chung <> 'tu_dong' and created_at > $2
      and (han is null or han > now()) order by created_at desc limit 20`, [c.family_id, tu]);
@@ -109,6 +115,9 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
             : `Nhóm «${TEN_NHOM_DS.tinh_phut}» · 1 sao = 1 phút${d.loi_nhan ? ` · «${s(d.loi_nhan)}»` : ""}`);
         break;
       case "bo_qua_yeu_cau": them(`${s(d.ten_nguoi) || "Ba Mẹ"} chưa thêm ${s(d.gia_tri)} lúc này`, "Con xin lại sau được nhé"); break;
+      // #263 / #265: kết quả lời xin vay sao — «Mẹ Lan cho vay 15 sao» / «Mẹ Lan chưa cho vay sao» (khay Windows bật màn them-fsif1cbl / them-zo8kohea)
+      case "cho_vay": them(`${s(e.ten_nguoi) || "Ba Mẹ"} cho vay ${s(d.so_sao)} sao`, `+${s(d.so_sao)} sao · con đang nợ ${s(d.no_sau)} sao · sao nhiệm vụ trả nợ trước`); break;
+      case "tu_choi_yeu_cau": them(`${s(e.ten_nguoi) || "Ba Mẹ"} chưa cho vay sao`, d.ly_do ? `«${s(d.ly_do)}»` : "Con làm nhiệm vụ để có sao nhé"); break;
     }
   }
   for (const t of moi) ra.push({ id: "nv:" + t.id, loai: "nhiem_vu_moi", tieu: "Nhiệm vụ mới cho cả nhà", noi: `«${t.ten}» · ${t.diem} sao`, luc: new Date(t.created_at).toISOString() });

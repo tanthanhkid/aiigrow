@@ -35,6 +35,8 @@ public sealed class HoSoBe
     public string? VanPin { get; set; }
     public DateTimeOffset? KhoaDen { get; set; }
     public int? ChoGiay { get; set; }
+    /// <summary>15/11 (#267, ho-so.con[].sao): số dư sao của bé (âm khi nợ) — màn chọn tên «sao tính riêng từng con». null = máy chủ cũ.</summary>
+    public int? Sao { get; set; }
 }
 
 public sealed class HoSoDangDung
@@ -65,7 +67,7 @@ public sealed class HoSoMay
     /// <summary>Bản gửi sang khay: bỏ vân PIN (khay là tiến trình của Con).</summary>
     public HoSoMay ChoKhay() => new()
     {
-        Con = Con.Select(c => new HoSoBe { Id = c.Id, Ten = c.Ten, Avatar = c.Avatar, CoPin = c.CoPin, KhoaDen = c.KhoaDen, ChoGiay = c.ChoGiay }).ToList(),
+        Con = Con.Select(c => new HoSoBe { Id = c.Id, Ten = c.Ten, Avatar = c.Avatar, CoPin = c.CoPin, KhoaDen = c.KhoaDen, ChoGiay = c.ChoGiay, Sao = c.Sao }).ToList(),
         MayRieng = MayRieng, DangDung = DangDung, BaMeDung = BaMeDung, PinSaiToiDa = PinSaiToiDa, PinChoGiay = PinChoGiay,
     };
 }

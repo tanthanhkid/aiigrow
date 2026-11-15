@@ -59,10 +59,21 @@ public static class ManChonTenView
     public const string TieuBaMe = "Ba Mẹ nhập mã";
     public const string PhuBaMe = "Mở app AiiGrow của Ba Mẹ → Mã mở máy";
     public const string GhiMa = "Mã 6 số · đổi sau 10 phút · gõ bằng bàn phím";
-    public const string KhongTru = "Ba Mẹ dùng thì không trừ giờ của con";
+    public const string KhongTru = "Ba Mẹ dùng thì không trừ sao của con";
     public const string NutMo = "Mở máy cho Ba Mẹ";
     public const string ChuaDatPin = "Ba Mẹ chưa đặt PIN cho con — nhờ Ba Mẹ đặt trong app nhé.";
     public const int SoChuSoMa = 6;
+
+    /// <summary>15/11 (them-x8kmmyl5): «Máy này dành cho Bảo Anh và Bảo Minh · sao tính riêng từng con.» (≥ 2 bé); một bé ⇒ null.</summary>
+    public static string? DanhCho(IReadOnlyList<string> ten)
+    {
+        var ds = ten.Where(t => !string.IsNullOrWhiteSpace(t)).Select(t => t.Trim()).ToList();
+        if (ds.Count < 2) return null;
+        var noi = ds.Count == 2 ? $"{ds[0]} và {ds[1]}" : string.Join(", ", ds.Take(ds.Count - 1)) + " và " + ds[^1];
+        return $"Máy này dành cho {noi} · sao tính riêng từng con.";
+    }
+    public const string KhongThayTen = "Không thấy tên con?";
+    public const string NhoBaMeThem = "Nhờ Ba Mẹ thêm con vào máy này trên điện thoại.";
 
     public static string Buoc2(string? ten) => "Vào hồ sơ " + (string.IsNullOrWhiteSpace(ten) ? "của con" : ten.Trim());
     public static string ChuaDung(int conLan) => $"Chưa đúng · còn {conLan} lần thử";

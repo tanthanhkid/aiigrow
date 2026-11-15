@@ -28,6 +28,8 @@ public sealed class PhienOffline
     /// <summary>Ngưỡng phút chơi offline (Policy.PlayOfflineMinutes lúc bắt đầu đoạn).</summary>
     public double GioiHanPhut { get; set; }
     public double GiayChoi { get; set; }
+    /// <summary>15/11: giây chơi lúc máy mở bằng mã offline của Ba Mẹ — không tiêu ngưỡng, gửi bù `boiMa: true` (máy chủ không trừ sao).</summary>
+    public double GiayBoiMa { get; set; }
     public bool HetHan { get; set; }
     /// <summary>Giờ máy lúc bắt đầu / lần cuối đếm (chỉ để máy chủ ghi; máy chủ tự kẹp theo đồng hồ của nó).</summary>
     public DateTimeOffset? BatDau { get; set; }
@@ -35,7 +37,7 @@ public sealed class PhienOffline
 
     [JsonIgnore] public double PhutChoi => Math.Round(GiayChoi / 60.0, 1);
     /// <summary>Có gì để gửi bù: đã chơi, hoặc đã vượt ngưỡng (báo máy chủ đóng phiên).</summary>
-    [JsonIgnore] public bool CanGui => PhienId.Length > 0 && (GiayChoi > 0 || HetHan);
+    [JsonIgnore] public bool CanGui => PhienId.Length > 0 && (GiayChoi > 0 || GiayBoiMa > 0 || HetHan);
 
     public static bool LaAppChoi(Policy p, string? appId)
     {
@@ -52,8 +54,9 @@ public sealed class PhienOffline
     /// đã gửi bù) — ngưỡng của đoạn MỚI = PlayOfflineMinutes − chừng đó (review PR #59, P2-5: gửi bù được mà dong-bo lỗi thì Policy cũ
     /// vẫn ghi ngưỡng cũ). → <c>Luu</c> = nên ghi đĩa ngay (đoạn mới / vừa hết hạn / mỗi 30 giây).
     /// </summary>
+    /// <param name="boiMa">Máy đang mở bằng mã offline ⇒ giây đếm vào <see cref="GiayBoiMa"/> (không trừ sao, không tiêu ngưỡng).</param>
     public static (PhienOffline? Doan, bool Luu) Dem(PhienOffline? doan, Policy? p, bool offline, bool dangChoi,
-        double giayDonDieu, double daChoiGiay, DateTimeOffset now)
+        double giayDonDieu, double daChoiGiay, DateTimeOffset now, bool boiMa = false)
     {
         if (!offline || p?.PlaySessionId == null || p.PlayApp == null) return (doan, false);
         bool luu = false;
@@ -65,6 +68,14 @@ public sealed class PhienOffline
             luu = true;
         }
         if (doan.HetHan || !dangChoi || !(giayDonDieu > 0)) return (doan, luu);
+        if (boiMa)
+        {
+            var bm = doan.GiayBoiMa;
+            doan.GiayBoiMa += Math.Min(giayDonDieu, 60);
+            doan.BatDau ??= now.ToUniversalTime();
+            doan.KetThuc = now.ToUniversalTime();
+            return (doan, luu || (int)(bm / GhiMoiGiay) != (int)(doan.GiayBoiMa / GhiMoiGiay));
+        }
         var truoc = doan.GiayChoi;
         doan.GiayChoi += Math.Min(giayDonDieu, 60);
         doan.BatDau ??= now.ToUniversalTime();
@@ -89,7 +100,11 @@ public sealed class PhienOffline
     }
 
     /// <summary>Thân <c>POST api/device/phien/bu</c> (server/lib/may-con.ts › BuVao). <c>ketThuc</c> = true ⇒ máy chủ đóng phiên.</summary>
-    public object TaoBu() => new { ma = Ma, id = PhienId, muc = Muc, phut = PhutChoi, batDau = BatDau, ketThuc = HetHan };
+    /// 15/11: đoạn chỉ có phút lúc mở bằng mã ⇒ `boiMa: true` (máy chủ ghi phút, không trừ sao); đoạn lẫn lộn ⇒ chỉ gửi phần thường (phút mở bằng mã
+    /// đã ở `usage` + `boiMaCon` của dong-bo).
+    public object TaoBu() => GiayChoi <= 0 && GiayBoiMa > 0
+        ? new { ma = Ma, id = PhienId, muc = Muc, phut = Math.Round(GiayBoiMa / 60.0, 1), batDau = BatDau, ketThuc = HetHan, boiMa = true }
+        : new { ma = Ma, id = PhienId, muc = Muc, phut = PhutChoi, batDau = BatDau, ketThuc = HetHan, boiMa = false };
 
     /// <summary>Chọn bản giữ khi nạp lại cấu hình từ đĩa: cùng mã ⇒ bản đếm được nhiều hơn (đĩa ghi 30 giây/lần); khác ⇒ bản trong bộ nhớ (mới hơn).</summary>
     public static PhienOffline? Chon(PhienOffline? boNho, PhienOffline? dia)
@@ -129,10 +144,10 @@ public static class GuiBu
     /// <summary>Một lượt đồng bộ của vòng thực thi: gửi bù (nếu có) rồi dong-bo. <paramref name="sauBu"/> chạy NGAY sau bước gửi bù
     /// (kể cả khi dong-bo lỗi sau đó) để người gọi xoá / giữ đoạn.</summary>
     public static async Task<(Policy Policy, string Raw)> DongBoAsync(ApiClient api, PhienOffline? doan, Action<KetQuaBu, ApiException?> sauBu,
-        AgentStatus status, IReadOnlyList<UsageEntry> usage, CancellationToken ct = default)
+        AgentStatus status, IReadOnlyList<UsageEntry> usage, CancellationToken ct = default, IReadOnlyList<(string? Con, int Phut)>? boiMa = null)
     {
         var (kq, loi) = await GuiAsync(api, doan, ct);
         sauBu(kq, loi);
-        return await api.SyncAsync(status, usage, ct);
+        return await api.SyncAsync(status, usage, ct, boiMa);
     }
 }

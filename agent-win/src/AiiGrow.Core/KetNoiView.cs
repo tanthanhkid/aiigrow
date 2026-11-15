@@ -48,8 +48,8 @@ public static class KetNoiView
         {
             var tu = s.OfflineSince is { } t ? " · " + t.ToLocalTime().ToString("HH:mm") : "";
             var dong = "Mất mạng" + tu;
-            return new KetNoiInfo(KetNoi.MatKetNoi, "AiiGrow · " + dong + " — máy vẫn tính giờ", dong,
-                "Mất mạng rồi, không sao đâu! Máy vẫn tính giờ và giữ luật như cũ.");
+            return new KetNoiInfo(KetNoi.MatKetNoi, "AiiGrow · " + dong + " — máy vẫn trừ sao đúng luật", dong,
+                "Mất mạng rồi, không sao đâu! Máy vẫn trừ sao và giữ luật như cũ.");
         }
 
         var luc = s.LastSyncAt is { } l ? " · đồng bộ lúc " + l.ToLocalTime().ToString("HH:mm") : "";
