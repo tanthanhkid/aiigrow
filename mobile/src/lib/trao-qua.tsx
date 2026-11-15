@@ -1,11 +1,14 @@
 // Bảng trượt «Trao quà cho con» (them-5otw85h4, Nghi chốt 06/11 — L14): quà chờ trao đang GIỮ sao (chưa trừ). «Đã trao, trừ N sao» = POST phieu/:id/trao
 // (trừ hẳn; voucher AiiCafe ⇒ máy chủ phát mã: hiện QR + hạn dùng để Ba Mẹ đưa con / chụp lại), «Chưa, để tối mai» = đóng, «Huỷ & hoàn sao» =
 // POST phieu/:id/huy (hoàn sao cho con). Dùng ở tab Nhiệm vụ và Chờ duyệt.
-import { useState } from "react";
+// 15/11 (#263, them-5otw85h4): sao giữ cho quà có thể là sao Ba Mẹ cho vay ⇒ «trong đó N sao Ba Mẹ cho vay», «<Con> sẽ còn −20 sao, trả dần bằng nhiệm vụ».
+// Sao đã trừ tạm lúc con đổi (máy chủ phan-thuong › doiQua) ⇒ số dư hiện tại (GET con/:id/vi) chính là số còn lại sau khi trao.
+import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { bm } from "./api";
 import { type PhieuCho } from "./hang-ngay";
 import { MaQr } from "./qr";
+import { saoTu, soVN, type SaoCon } from "./so-sao";
 import { cauHanVoucher, icQua, type KqTrao, type VoucherPhat } from "./s3";
 import { BangTruot, BaoLoi, Chu, M, Nut, tien, useLam } from "./ui";
 import { GiaSao, OHinhQuaTo } from "./ui-s3";
@@ -24,6 +27,18 @@ export function BangTraoQua({ p, dong, xong }: {
   const { lam, loi, dangChay, setLoi } = useLam();
   const [vc, setVc] = useState<{ v: VoucherPhat; ten: string; con: string } | null>(null);
   const dongHet = () => { setLoi(null); setVc(null); dong(); };
+  // sổ sao của con (đọc khi mở bảng) — máy chủ cũ / lỗi ⇒ bỏ hai dòng nợ
+  const [saoCua, setSaoCua] = useState<{ con: string; s: SaoCon } | null>(null);
+  const conId = p?.child_id;
+  const sao = saoCua && saoCua.con === conId ? saoCua.s : null;   // sổ của con khác (bảng trước) ⇒ chưa có
+  useEffect(() => {
+    if (!conId) return;
+    let huy = false;
+    bm.goi<Partial<SaoCon> & { soDu: number }>(`con/${conId}/vi`).then((v) => { if (!huy) setSaoCua({ con: conId, s: saoTu(v) }); }, () => {});
+    return () => { huy = true; };
+  }, [conId]);
+  // phần sao vay trong quà: sao vay chưa tiêu trước khi đổi − bây giờ (nợ không đổi khi đổi quà)
+  const vay = p && sao && sao.no > 0 ? Math.max(0, Math.min(sao.phutCon + p.diem, sao.no) - Math.min(sao.phutCon, sao.no)) : 0;
   const trao = (x: PhieuCho) => lam(async () => {
     const r = await bm.goi<KqTrao>(`phieu/${x.id}/trao`, {});
     if (r.voucher) setVc({ v: r.voucher, ten: x.ten, con: x.ten_con });
@@ -56,8 +71,11 @@ export function BangTraoQua({ p, dong, xong }: {
           <Chu co={15} mau={M.chu2}>{`Con chọn ${khiNao(p.created_at)} · đang giữ`}</Chu>
           <GiaSao n={p.diem} />
         </View>
+        {vay > 0 ? <Chu kieu="rat" co={14} mau="#8a3c0c" style={{ textAlign: "center", marginTop: -4 }}>{`trong đó ${soVN(vay)} sao Ba Mẹ cho vay`}</Chu> : null}
         <View style={{ padding: 12, borderRadius: 18, backgroundColor: M.chinhSoft }}>
-          <Chu kieu="dam" co={13.5} mau={M.chinhInk}>{`Bấm «Đã trao» thì mới trừ ${p.diem} sao. Grow báo con và chúc mừng con.`}</Chu>
+          <Chu kieu="dam" co={13.5} mau={M.chinhInk}>{sao && sao.no > 0
+            ? `Bấm «Đã trao» thì mới trừ ${p.diem} sao. ${p.ten_con} sẽ còn ${soVN(sao.sao)} sao, trả dần bằng nhiệm vụ.`
+            : `Bấm «Đã trao» thì mới trừ ${p.diem} sao. Grow báo con và chúc mừng con.`}</Chu>
         </View>
         <BaoLoi loi={loi} />
         <Nut chu={`Đã trao, trừ ${p.diem} sao`} ic="qua" rong dangChay={dangChay} bam={() => trao(p)} />

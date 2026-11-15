@@ -1,7 +1,7 @@
 // «Chờ duyệt» (thiết kế chốt 05/11; bố cục bm-duyet 02/03/10/11, chữ «sao»): route trong nhóm tab nhưng KHÔNG có nút trên thanh (mở từ Thông báo,
 // Hôm nay, màn duyệt). Đầu: «N việc cần Ba Mẹ · cũ nhất từ HH:MM», chip Cả nhà / từng Con kèm số. Các mục theo mức gấp:
-//  • Con xin · n — thêm giờ / ngoại lệ: «Cho N phút» / «Không cho» một chạm (toast Hoàn tác 60 giây khi cho thêm giờ); app / web lạ: «Cho, dùng thoải mái»
-//    · «Cho, trừ giờ chơi» · «Không cho» (lib/hom-nay-xin)
+//  • Con xin · n — xin vay sao (15/11): «Cho vay N sao» / «Không cho» một chạm (toast Hoàn tác 60 giây); app / web chưa có trong danh sách:
+//    «Thêm · Tính phút» · «Thêm · Không tính phút» · «Bỏ qua» (lib/hom-nay-xin)
 //  • Cần để ý · n — máy chưa được bảo vệ đủ (tuan-thu?nhe=1) → /may/<id>
 //  • Con đã nộp · n — «Duyệt cả n · +S sao» (duyet-hang-loat) + từng việc → màn bằng chứng /duyet/<id>
 //  • Quà chờ trao — «Trao quà» ⇒ bảng them-5otw85h4 (lib/trao-qua: Đã trao trừ sao / Huỷ & hoàn sao / voucher QR + hạn)
@@ -10,7 +10,8 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
-import { bm, type TuanThuMay } from "@/lib/api";
+import { bm, type GiaDinh, type TuanThuMay } from "@/lib/api";
+import { saoTu, soVN } from "@/lib/so-sao";
 import { hinhNv, hoanTacThemGio, SaoVien, TieuMuc, HangViec, type ChoDuyetMoi, type PhieuCho } from "@/lib/hang-ngay";
 import { BangTraoQua } from "@/lib/trao-qua";
 import { mayCuaCon } from "@/lib/may-nhieu-con";
@@ -21,8 +22,9 @@ import {
 } from "@/lib/ui";
 
 const napCho = async () => {
-  const [cd, tt] = await Promise.all([bm.goi<ChoDuyetMoi>("cho-duyet"), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null)]);
-  return { ...cd, may: tt?.ds ?? [] };
+  const [cd, tt, g] = await Promise.all([bm.goi<ChoDuyetMoi>("cho-duyet"), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu?nhe=1").catch(() => null),
+    bm.goi<GiaDinh>("gia-dinh").catch(() => null)]);   // sổ sao từng con (lời xin vay hiện «−20 sao · Đang nợ Ba Mẹ 20 sao»)
+  return { ...cd, may: tt?.ds ?? [], con: g?.con ?? [] };
 };
 
 export default function ChoDuyet() {
@@ -47,13 +49,13 @@ export default function ChoDuyet() {
   const cuNhat = [...yc.map((x) => x.created_at), ...nv.map((x) => x.nop_luc), ...qua.map((x) => x.created_at)].sort()[0];
   const tenMay = (y: (typeof yc)[number]) => tenMayXin(y, d.may.map((m) => ({ id: m.id, ten: m.ten })));
 
-  // Chờ duyệt: trả lời xong ở lại màn, toast (cho thêm giờ có Hoàn tác — them-gio/:id/hoan-tac)
+  // Chờ duyệt: trả lời xong ở lại màn, toast (cho vay có Hoàn tác — vay/:id/hoan-tac, 60 giây)
   const sau = (k: KetQua) => {
-    const chu = k.kieu === "them_gio" ? `Đã cho ${k.ten} thêm ${k.phut} phút` : k.kieu === "ngoai_le" ? `Đã cho ${k.ten} mở ${k.muc} ${k.phut} phút`
-      : k.kieu === "mo" ? `Đã cho ${k.ten} dùng ${k.muc}` : k.kieu === "bo_qua" ? `Đã bỏ qua ${k.muc} · ${k.ten} xin lại được`
+    const chu = k.kieu === "vay" ? `Đã cho ${k.ten} vay ${soVN(k.phut ?? 0)} sao${k.canh ? ` · ${k.canh}` : ""}` : k.kieu === "mo_khoa" ? `Đã mở khoá máy cho ${k.ten}`
+      : k.kieu === "mo" ? `Đã thêm ${k.muc} cho ${k.ten}${k.phut ? " · Tính phút" : " · Không tính phút"}` : k.kieu === "bo_qua" ? `Đã bỏ qua ${k.muc} · ${k.ten} xin lại được`
       : `Đã trả lời ${k.ten}: Ba Mẹ chưa cho lúc này`;
     const loiHoan = () => { bao("Đã quá 60 giây — không hoàn tác được"); tai(); };
-    bao(chu, k.hoan ? () => { k.hoan!().then(tai, loiHoan); } : k.grant ? () => { hoanTacThemGio(k.grant!).then(tai, loiHoan); } : undefined);
+    bao(chu, k.hoan ? () => { k.hoan!().then(tai, loiHoan); } : k.kieu === "vay" && k.grant ? () => { hoanTacThemGio(k.grant!).then(tai, loiHoan); } : undefined);
     tai();
   };
   const duyetCa = () => lam(async () => {
@@ -97,6 +99,7 @@ export default function ChoDuyet() {
         <>
           <TieuMuc chu={`Con xin · ${yc.length}`} />
           <The>{yc.map((y, k) => <TheXin key={y.id} y={y} may={tenMay(y)} lam={(fn) => lam(fn)} dang={dangChay} bo={k > 0} sau={sau} truc
+            sao={d!.con.some((c) => c.id === y.child_id) ? saoTu(d!.con.find((c) => c.id === y.child_id)) : null}
             phu={chon === "ca" ? y.ten_con : undefined} />)}</The>
         </>
       ) : null}

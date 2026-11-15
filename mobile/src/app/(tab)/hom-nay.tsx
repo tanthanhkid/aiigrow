@@ -1,29 +1,31 @@
 // «Hôm nay» — Trang chủ Ba Mẹ (thiết kế chốt 14/11: bm-hang-ngay/14 «Trang chủ gọn: để ý + đang chặn», 02 «máy đang khoá», 04 «máy con mất mạng»,
 // 13/03 nhà nhiều con — luật N8 docs/KE-HOACH-KHOP-THIET-KE-1411.md: Trang chủ KHÔNG lặp tab):
-//  1. Thẻ con: đang làm gì (chip → máy) · «<Con> còn chơi N phút» + vạch quỹ · «trong T phút hôm nay ›» (→ Giờ chơi) · «Khoá máy con» / «Cho thêm giờ»
-//     (bảng trượt lib/hang-ngay). Máy đang khoá (02): «Laptop, iPad đã khoá» · «Mở lại lúc HH:MM» · «Mở khoá ngay» / «Đổi giờ».
-//  2. «Cần Ba Mẹ để ý N» — CHỈ 1 mục gấp nhất + «Tất cả ›» (→ Thông báo): máy mất mạng (+ «Lấy mã mở máy») › lời xin của con (Không cho / Cho N phút)
+//  1. Thẻ con: đang làm gì (chip → máy) · SỐ SAO (15/11 #263–#266, lib/so-sao: «⭐ 30 sao» · «còn 10 sao = 10 phút chơi» + «Đang nợ Ba Mẹ 20 sao» ·
+//     «⭐ −20 sao» + «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước ›» → Ví sao) · «Khoá máy» / «Cho vay sao» (bảng them-6wjhze1d / them-y1r1eidm).
+//     Máy đang khoá (them-0kwhgpq6): «Laptop, iPad đã khoá» · «Mở lại lúc HH:MM» · «Đang khoá · còn N sao = N phút ›» · «Mở khoá ngay» / «Đổi giờ».
+//     Dải avatar: viên sao dưới tên mỗi con (âm = viên cảnh báo). Bỏ vạch quỹ phút, «Giờ dùng máy» (bm2-gio đã bỏ).
+//  2. «Cần Ba Mẹ để ý N» — CHỈ 1 mục gấp nhất + «Tất cả ›» (→ Thông báo): máy mất mạng (+ «Lấy mã mở máy») › lời xin của con (Không cho / Cho vay N sao;
+//     máy đang khoá ⇒ «Xin mở khoá máy · chơi vẫn trừ sao» Không cho / Mở khoá)
 //     › máy chưa được bảo vệ › quên PIN › cảnh báo › app mới chờ xếp. N = tổng các mục của con này.
-//  3. «<Con> đang bị chặn gì»: chế độ chặn (Chặn app & web / Mở hết — «Đổi ›» → App & web), dải giờ trong ngày (Giờ học ✓ · Bây giờ: giờ chơi còn N ·
-//     Giờ ngủ khoá HH:MM), «Web người lớn luôn bị chặn».
+//  3. «App & web của <Con>»: Mở hết / Theo danh sách (#262 — PR #279) + ô «Tính phút · còn N sao» (→ Ví sao).
 //  4. «<Con> vừa làm xong N» (≤ 3 việc chờ duyệt / tự cộng hôm nay) → màn bằng chứng; «Xem và duyệt N việc».
 // Bỏ so với 05/11 (N8): danh sách nhiệm vụ hôm nay (tab Nhiệm vụ), «Hôm nay con dùng» (tab Báo cáo › Hôm nay con dùng gì), «Cài cho con», «Con khác»
 // (chip đổi con ở đầu màn đã đủ; hồ sơ con mở từ tab Cả nhà / Báo cáo).
-// Người trông giúp vẫn khoá máy / cho thêm giờ / trả lời lời xin (máy chủ cho phép — quyen.ts › trongGiupDuoc).
+// Người trông giúp vẫn khoá máy / cho vay sao / trả lời lời xin (máy chủ cho phép — quyen.ts › trongGiupDuoc).
 import { cheDoTu } from "@/lib/app-web";
 import { memo, useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type AppChuaXep, type CanhBao, type GiaDinh, type PhienDang, type TuanThuMay } from "@/lib/api";
-import { ThanhClay } from "@/lib/bieu-do";
 import { ChuongTb } from "@/lib/chuong-tb";
 import { moLaiMay } from "@/lib/khoa-may";
 import {
-  BangKhoaMay, BangThemGio, quyenToi, soAppDuocMo, gioGon, HangViec, hinhNv, hoanTacThemGio, IC_MAY, SaoVien, TieuMuc,
+  BangKhoaMay, quyenToi, soAppDuocMo, gioGon, HangViec, hinhNv, IC_MAY, SaoVien, TieuMuc,
   type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon,
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
 import { mayCuaCon } from "@/lib/may-nhieu-con";
+import { BangChoVay, chuVien, kieuSao, saoTu, SoSaoLon, soVN, thamSoXongVay, VienSao } from "@/lib/so-sao";
 import { DaiCon } from "@/lib/ui-viec";
 import { type MucCanDeY } from "@/lib/s3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
@@ -96,17 +98,17 @@ function DaiConTrangChu({ d, chon, doi }: { d: DuLieu & { quyen?: string }; chon
   const taiQs = qs.tai;
   useEffect(() => { if (dau.current) { dau.current = false; return; } taiQs(); }, [d, taiQs]);
   const quy = Object.fromEntries(qs.d ?? []);
-  const tt = Object.fromEntries(d.g.con.map((x) => {
-    const q = quy[x.id], con = q?.conPhut ?? x.conPhut ?? Math.max(0, x.tranNgay - x.phutChoi);
+  // thiết kế bm2-trang-chu 15/11: dưới tên là VIÊN SAO (⭐ 35 sao · ⭐ −20 sao cảnh báo), icon trạng thái nhỏ góc dưới avatar
+  const ic = Object.fromEntries(d.g.con.map((x) => {
+    const q = quy[x.id];
     const dangChoi = d.choi.some((p) => p.con === x.id);
-    const [ic, chu]: [TenIcon | null, string] = q?.khoa ? ["khoa", "đã khoá"] : dangChoi ? ["game", `còn ${con}′`] : q?.dangHoc ? ["sach", "đang học"]
-      : q?.dangNgu ? ["trang_ngu", "đang ngủ"] : !x.phutChoi ? ["trang_ngu", "chưa dùng"] : [null, `còn ${con}′`];
-    return [x.id, { ic, chu }];
+    const i: TenIcon | null = q?.khoa ? "khoa" : dangChoi ? "game" : q?.dangHoc ? "sach" : q?.dangNgu || !x.phutChoi ? "trang_ngu" : null;
+    return [x.id, i];
   }));
   return (
     <DaiCon ds={d.g.con} chon={chon} doi={(x) => doi(x.id)}
-      so={Object.fromEntries(d.g.con.map((x) => [x.id, x.yeuCauCho]))}
-      phu={Object.fromEntries(d.g.con.map((x) => [x.id, tt[x.id].chu]))} ic={Object.fromEntries(d.g.con.map((x) => [x.id, tt[x.id].ic]))}
+      so={Object.fromEntries(d.g.con.map((x) => [x.id, x.yeuCauCho]))} ic={ic}
+      duoi={Object.fromEntries(d.g.con.map((x) => [x.id, <VienSao key={x.id} s={saoTu(x)} nho />]))}
       nhanSo="lời xin" them={d.quyen === "ba_me" ? () => router.push("/ho-so/them" as never) : undefined} />
   );
 }
@@ -121,7 +123,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const c = d.g.con.find((x) => x.id === conId)!;
   const ct = useTai(() => bm.goi<ConCt>(`con/${conId}`));
   const qy = useTai(() => bm.goi<QuyCon>(`con/${conId}/quy`));
-  const [bang, setBang] = useState<"khoa" | "gio" | null>(null);
+  const [bang, setBang] = useState<"khoa" | "vay" | null>(null);
   const { lam, loi, dangChay } = useLam();
   const tai = () => { ct.tai(); qy.tai(); taiLai(); };
 
@@ -129,10 +131,9 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const choi = d.choi.find((p) => p.con === conId);
   const dangMo = may.find((m) => m.truc);
   const q = qy.d?.quy;
-  const sao = qy.d?.sao ?? c.soDu;
-  const phutDoi = q && q.doiSao.bat ? Math.min(Math.floor((sao * q.tyLe.phut) / 10), q.doiSao.conDoiDuoc) : 0;
+  // sổ sao (lib/so-sao): con/:id/quy › soSao mới nhất, không có ⇒ gia-dinh › con[] (máy chủ cũ: soDu, không nợ)
+  const s = saoTu(qy.d?.soSao ?? c);
   const khoa = !!ct.d?.khoaNgay || !!q?.khoa;
-  const conPhut = q?.conPhut ?? c.conPhut ?? 0, tongPhut = q?.tongPhut ?? c.tranNgay;
 
   // ---- 2. cần Ba Mẹ để ý (mục của con này; mục cả nhà — cảnh báo không gắn con — cũng tính)
   const xin = (d.cd?.yeuCau ?? []).filter((y) => y.child_id === conId);
@@ -181,11 +182,14 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
     const p = d.choi.find((x) => x.con === conId && x.may === m.ten);
     if (p) dangTheoMay[m.id] = { chu: `● ${p.tenApp}`, mo: true };
   }
-  // thiết kế bm2-trang-chu 14/11: một dòng to «Còn 18 phút chơi» (không «<Con> còn chơi» + số riêng)
+  // máy khoá / giờ ngủ: tiêu đề giờ mở lại; còn lại: SỐ SAO (bm2-trang-chu 15/11)
   const tieuNho = khoa ? null : q?.dangNgu ? `${c.ten} đang giờ ngủ` : null;
-  const tieuLon = khoa ? (khoaDen ? `Mở lại lúc ${gioPhut(khoaDen)}` : "Khoá tới khi Ba Mẹ mở") : q?.dangNgu ? `Mở lại lúc ${gioGon(q.gioNgu.den)}`
-    : conPhut ? null : `${c.ten} hết giờ chơi hôm nay`;
-  const phuGio = khoa ? `Đang khoá · còn ${conPhut} phút chơi ›` : `trong ${tongPhut} phút hôm nay ›`;
+  const tieuLon = khoa ? (khoaDen ? `Mở lại lúc ${gioPhut(khoaDen)}` : "Khoá tới khi Ba Mẹ mở") : q?.dangNgu ? `Mở lại lúc ${gioGon(q.gioNgu.den)}` : null;
+  const kieu = kieuSao(s);
+  const veVi = () => router.push(`/vi/${conId}` as never);
+  // dòng dưới số: khoá / giờ ngủ ⇒ «… · còn N sao = N phút ›»; chưa nợ ⇒ «= N phút chơi ›» / hết sao; đang nợ ⇒ SoSaoLon tự vẽ dòng nợ
+  const phuSao = khoa || q?.dangNgu ? `${khoa ? "Đang khoá" : chuVien(s)} · còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút ›`
+    : kieu !== "thuong" ? null : s.phutCon > 0 ? `= ${soVN(s.phutCon)} phút chơi ›` : "Hết sao · con xin Ba Mẹ cho vay khi cần ›";
 
   return (
     <>
@@ -198,21 +202,17 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           <Icon3D ten={chipIc} co={20} mau={M.chu2} />
           <Chu kieu="dam" co={14} dong={1} style={{ flexShrink: 1 }}>{`${chipChu} ›`}</Chu>
         </Pressable>
-        {/* máy đang khoá: không có vạch quỹ ⇒ câu «Đang khoá · còn N phút chơi ›» (cả bề ngang) lên cao, ở khổ 320 đè Grow «nghi» (cổng DE-ANH)
-            ⇒ khối tiêu đề cao tối thiểu tới đáy Grow. Tiêu đề số «Còn N phút chơi» (.so strong 800, giãn −1) KHÔNG đè Grow (cổng DE-ANH) ⇒ Grow 100 + chữ 26: một dòng từ khổ 375 khi số phút 1–2 chữ số (3 chữ số / chữ hệ thống to thì xuống dòng) */}
-        <View style={{ marginTop: 16, marginRight: CHUA_ROB, minHeight: khoa ? ROB_TREN + ROB_CO - TIEU_TU : undefined }}>
+        {/* khối tiêu đề cao tối thiểu tới đáy Grow (khổ 320 câu dài không đè Grow «nghi» — cổng DE-ANH). Số sao (viên 26/800, .so .am) không đè Grow:
+            chừa CHUA_ROB bên phải; «còn N sao = N phút chơi» dài thì xuống dòng */}
+        <View style={{ marginTop: 16, marginRight: CHUA_ROB, minHeight: ROB_TREN + ROB_CO - TIEU_TU - 36 }}>
           {tieuNho ? <Chu kieu="dam" co={14} mau={M.chu2}>{tieuNho}</Chu> : null}
-          {tieuLon ? <Chu kieu="den" co={26} so style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu>
-            : <Chu kieu="den" co={26} so style={{ letterSpacing: -1 }}>{`Còn ${conPhut} phút chơi`}</Chu>}
+          {tieuLon ? <Chu kieu="den" co={26} so style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} />}
         </View>
-        {!khoa && tongPhut ? (
-          <View style={{ marginTop: 8, marginRight: CHUA_ROB - 24 }}>
-            <ThanhClay ti={Math.max(0, Math.min(1, conPhut / tongPhut))} cao={10} nhanDoc={`Còn ${conPhut} trên ${tongPhut} phút`} />
-          </View>
+        {phuSao ? (
+          <Pressable onPress={veVi} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center", alignSelf: "flex-start" }}>
+            <Chu kieu="dam" co={14} mau={M.chinhInk}>{phuSao}</Chu>
+          </Pressable>
         ) : null}
-        <Pressable onPress={() => router.push(`/gio/${conId}` as never)} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center", alignSelf: "flex-start" }}>
-          <Chu kieu="dam" co={14} mau={M.chinhInk}>{phuGio}</Chu>
-        </Pressable>
         {/* 2 nút chia đều bề ngang; máy hẹp (320) không đủ 2 × 140 ⇒ xuống hàng, mỗi nút một dòng chữ (cổng NUT-2-DONG). Nhãn + icon 3D theo thiết kế 14/11 */}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
           <View style={{ flexGrow: 1, flexBasis: 140 }}>
@@ -221,7 +221,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           </View>
           <View style={{ flexGrow: 1, flexBasis: 140 }}>
             {khoa ? <Nut chu="Đổi giờ" ic="dongho" ic3d sat rong loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />
-              : <Nut chu="Cho thêm giờ" ic="dongho" ic3d sat rong loai="vien" bam={() => setBang("gio")} />}
+              : <Nut chu="Cho vay sao" ic="sao" ic3d sat rong loai="vien" nhanDoc={`Cho ${c.ten} vay sao`} bam={() => setBang("vay")} />}
           </View>
         </View>
         <BaoLoi loi={loi ?? ct.loi ?? qy.loi} />
@@ -231,7 +231,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
       <TieuMuc chu="Cần Ba Mẹ để ý" so={soDeY} phai={{ chu: "Tất cả ›", bam: () => router.push("/thong-bao" as never) }} />
       <The>
         {!dauTien ? <HangViec dau ic="tick" mau="xanh" tieu="Không có gì cần Ba Mẹ trả lời" /> : dauTien.loai === "xin" ? (
-          <TheXin y={xin[0]} may={tenMayXin(xin[0], may)} lam={(fn) => lam(fn)} dang={dangChay} />
+          <TheXin y={xin[0]} may={tenMayXin(xin[0], may)} lam={(fn) => lam(fn)} dang={dangChay} sao={s}
+            moKhoa={khoa ? async () => { await moLaiMay(conId, c.ten, bao, tai); } : undefined} />
         ) : (
           <>
             <HangViec dau ic={dauTien.m.ic} mau="cam" tieu={dauTien.m.tieu} phu={dauTien.m.phu}
@@ -254,8 +255,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>} bam={() => router.push(`/app-web?con=${conId}` as never)} />
         {q ? (
           <View style={{ flexDirection: "row", gap: 6, marginTop: 6 }}>
-            <MocGio ic="game" tieu="Giờ chơi" phu={khoa ? "đang khoá" : `còn ${conPhut} phút`} nay={!q.dangHoc && !q.dangNgu}
-              bam={() => router.push(`/gio/${conId}` as never)} />
+            <MocGio ic="sao" tieu="Tính phút" phu={khoa ? "đang khoá" : `còn ${soVN(s.phutCon)} sao`} nay={!q.dangHoc && !q.dangNgu} bam={veVi} />
           </View>
         ) : null}
       </The>
@@ -280,8 +280,9 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
 
       <BangKhoaMay mo={bang === "khoa"} dong={() => setBang(null)} con={conId} ten={c.ten} may={may} dang={dangTheoMay}
         xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
-      <BangThemGio mo={bang === "gio"} dong={() => setBang(null)} con={conId} ten={c.ten} sao={sao} phutDoiDuoc={phutDoi} conPhut={conPhut}
-        xong={(chu, grant) => { bao(chu, () => { hoanTacThemGio(grant).then(tai, () => { bao("Đã quá 60 giây — không hoàn tác được"); tai(); }); }); tai(); }} />
+      {/* «Cho vay sao» (them-6wjhze1d) ⇒ màn «Đã cho <Con> vay N sao» (them-3wp5ty1o) có Hoàn tác */}
+      <BangChoVay mo={bang === "vay"} dong={() => setBang(null)} con={conId} ten={c.ten}
+        xong={(k) => { tai(); router.push({ pathname: "/yeu-cau/xong", params: thamSoXongVay({ ...k, ten: c.ten, con: conId }) } as never); }} />
     </>
   );
 });

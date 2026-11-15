@@ -1,6 +1,9 @@
-// «Ví sao của <Con>» (thiết kế 14/11 bm-sao-qua/01 them-1akngbxb; trước: 05/11 bm-hang-ngay/40, L1 L10): số sao lớn = bao nhiêu phút chơi, tuần này kiếm bao nhiêu sao, tỷ lệ đổi
-// (10 sao = X phút, con tự đổi trên máy), quà con đổi bằng sao (chờ Ba Mẹ trao / còn thiếu bao nhiêu), «Sao vào, sao ra» (lịch sử ví).
-// Giữ «± Điều chỉnh» tay của bản cũ (thiết kế không nói ⇒ giữ hành vi cũ) — chỉ Ba Mẹ, kèm lý do.
+// «Ví sao của <Con>» (thiết kế chốt 15/11 bm-sao-qua/01 them-1akngbxb — #263/#264/#266; máy chủ GET con/:id/vi-sao, docs/API.md «Sổ sao 15/11»):
+// thẻ lớn theo cách hiện sao chốt (lib/so-sao): chưa nợ ⇒ thẻ vàng «⭐ 30 sao = 30 phút chơi»; đang nợ ⇒ thẻ cảnh báo «−20 sao · Đang nợ Ba Mẹ 20 sao ·
+// Sao nhiệm vụ trả nợ trước · Tuần này: vay 45 · đã trả 25 sao» (còn sao vay chưa tiêu ⇒ «còn N sao = N phút chơi»). Dải «1 sao = 1 phút chơi app
+// «Tính phút». Hết sao thì con xin Ba Mẹ cho vay.» Quà con đổi bằng sao (chờ trao / còn thiếu). «Sao vào, sao ra, vay và trả»: cho vay «vay 15»,
+// chơi «Chơi YouTube 20 phút −20 sao», sao kiếm đã trả nợ gộp một dòng «Trả nợ 10 sao · Tự xếp cặp +10 sao». Giữ «± Điều chỉnh» tay (chỉ Ba Mẹ).
+// Máy chủ cũ (chưa có vi-sao) ⇒ dự phòng con/:id/vi.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -8,9 +11,51 @@ import { bm, type Diem, type Qua } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
 import { BangTruot, BaoLoi, ChoTai, ChonMot, Chu, gioPhut, Icon3D, M, Man, Nhan, Nut, ONhap, Rob, The, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { OLomIcon } from "@/lib/ui-viec";
-import { HangViec, quyenToi, TieuMuc, type ChoDuyetMoi, type QuyCon } from "@/lib/hang-ngay";
+import { HangViec, quyenToi, TieuMuc, type ChoDuyetMoi } from "@/lib/hang-ngay";
+import { cauNo, kieuSao, MAU_NO, saoTu, soChinh, soVN, type SaoCon } from "@/lib/so-sao";
+import type { TenIcon } from "@/lib/ui";
 
 type Vi = { soDu: number; sao?: number; lichSu: Diem[] };
+/** GET con/:id/vi-sao */
+type DongVi = { id: string; delta: number; loai: string; kieu: "vay" | "hoan_vay" | "tra_no" | "choi" | "doi_qua" | "kiem" | "tru"; lyDo: string; nguoi: string | null;
+  tenNguoi: string | null; luc: string };
+type ViSaoT = SaoCon & { ten: string; bayNgay?: { saoKiem: number; saoVay: number; lanVay: number; saoTraNo: number; saoTieu: number }; lichSu: DongVi[] };
+/** Một dòng lịch sử đã gộp để vẽ. */
+type Hang = { key: string; ic: TenIcon; tieu: string; phu: string; nhan: string; loai: "diem" | "xam" | "canh" };
+const boNv = (t: string) => t.replace(/^Nhiệm vụ\s+/, "");
+/** Dòng ví → hàng: kiếm + trả nợ cùng lúc (cùng giây) ⇒ «Trả nợ 10 sao · <việc>» «+10 sao»; vay «vay 15»; chơi «−20 sao». */
+function hangVi(ds: DongVi[]): Hang[] {
+  const traNo = ds.filter((x) => x.kieu === "tra_no" && x.delta < 0);
+  const daGop = new Set<string>();
+  const out: Hang[] = [];
+  for (const x of ds) {
+    const khi = `${ngay(x.luc)} · ${gioPhut(x.luc)}`;
+    if (x.kieu === "tra_no") {
+      if (daGop.has(x.id)) continue;
+      // trả nợ không có dòng kiếm đi kèm (hoàn tác duyệt ⇒ +N) — giữ dòng riêng
+      out.push({ key: x.id, ic: "sao", tieu: x.lyDo, phu: khi, nhan: `${x.delta > 0 ? "nợ +" : "trả "}${Math.abs(x.delta)}`, loai: "canh" });
+      continue;
+    }
+    if (x.kieu === "kiem") {
+      const t = traNo.find((r) => !daGop.has(r.id) && Math.abs(new Date(r.luc).getTime() - new Date(x.luc).getTime()) < 2000);
+      if (t) {
+        daGop.add(t.id);
+        out.push({ key: x.id, ic: x.nguoi ? "mu" : "may_tinh", tieu: `Trả nợ ${-t.delta} sao · ${boNv(x.lyDo)}`, phu: `${khi}${x.tenNguoi ? ` · ${x.tenNguoi} duyệt` : ""}`,
+          nhan: `+${x.delta} sao`, loai: "diem" });
+        continue;
+      }
+    }
+    if (x.kieu === "vay") { out.push({ key: x.id, ic: "sao", tieu: `Ba Mẹ cho vay ${soVN(x.delta)} sao`, phu: `${khi}${x.tenNguoi ? ` · ${x.tenNguoi}` : ""}`, nhan: `vay ${soVN(x.delta)}`, loai: "canh" }); continue; }
+    if (x.kieu === "hoan_vay") { out.push({ key: x.id, ic: "sao", tieu: "Hoàn tác cho vay", phu: `${khi}${x.tenNguoi ? ` · ${x.tenNguoi}` : ""}`, nhan: `${soVN(x.delta)} sao`, loai: "xam" }); continue; }
+    out.push({ key: x.id, ic: x.delta > 0 ? (x.nguoi ? "mu" : "may_tinh") : x.kieu === "doi_qua" ? "coc" : x.kieu === "choi" ? "game" : "dongho",
+      tieu: x.lyDo, phu: `${khi}${x.tenNguoi ? ` · ${x.tenNguoi}` : ""}`, nhan: `${x.delta > 0 ? "+" : ""}${soVN(x.delta)} sao`, loai: x.delta > 0 ? "diem" : "xam" });
+  }
+  return out;
+}
+/** Ví cũ (con/:id/vi) → dòng dạng vi-sao. */
+const tuViCu = (l: Diem[]): DongVi[] => l.map((x, i) => ({ id: `cu${i}`, delta: x.delta, loai: x.loai, lyDo: x.ly_do, nguoi: x.nguoi, tenNguoi: x.ten_nguoi ?? null, luc: x.created_at,
+  kieu: x.loai === "vay" ? (x.delta > 0 ? "vay" : "hoan_vay") : x.loai === "tra_no" ? "tra_no" : x.loai === "doi_qua" || x.loai === "voucher" ? "doi_qua"
+    : x.loai === "choi" || x.loai === "phien" || x.loai === "doi_gio" ? "choi" : x.delta > 0 ? "kiem" : "tru" }));
 /** «Hôm nay» / «Hôm qua» / «3/11». */
 const ngay = (iso: string) => {
   const t = new Date(iso), h = new Date();
@@ -22,12 +67,14 @@ const ngay = (iso: string) => {
 export default function ViSao() {
   const { con } = useLocalSearchParams<{ con: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [vi, c, quy, qua, cd, quyen] = await Promise.all([
-      bm.goi<Vi>(`con/${con}/vi`), bm.goi<{ ten: string }>(`con/${con}`), bm.goi<QuyCon>(`con/${con}/quy`).catch(() => null),
+    const [vs, c, qua, cd, quyen] = await Promise.all([
+      bm.goi<ViSaoT>(`con/${con}/vi-sao`).catch(() => null), bm.goi<{ ten: string }>(`con/${con}`),
       bm.goi<{ ds: Qua[] }>(`qua?con=${encodeURIComponent(con)}`), bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null), quyenToi(),
     ]);
-    return { bay: Date.now(), vi, ten: c.ten, quy, qua: qua.ds.filter((x) => x.bat), phieu: (cd?.phieu ?? []).filter((p) => p.child_id === con),
-      baMe: quyen === "ba_me" };
+    // máy chủ cũ: không có vi-sao ⇒ ví cũ
+    const cu = vs ? null : await bm.goi<Vi & Partial<SaoCon>>(`con/${con}/vi`);
+    return { bay: Date.now(), s: saoTu(vs ?? cu), bayNgay: vs?.bayNgay ?? null, lich: vs ? vs.lichSu : tuViCu(cu!.lichSu), ten: c.ten,
+      qua: qua.ds.filter((x) => x.bat), phieu: (cd?.phieu ?? []).filter((p) => p.child_id === con), baMe: quyen === "ba_me" };
   });
   const [mo, setMo] = useState(false);
   const [dau, setDau] = useState<1 | -1>(1);
@@ -36,11 +83,10 @@ export default function ViSao() {
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
   if (!d) return <Man lui={{ chu: "Nhiệm vụ" }} tieu="Ví sao"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const sao = d.vi.sao ?? d.vi.soDu;
-  const tyLe = d.quy?.quy.tyLe.phut ?? 10;
-  const phut = Math.floor((Math.max(0, sao) * tyLe) / 10);
-  const kiem = d.vi.lichSu.filter((x) => x.delta > 0 && x.loai !== "hoan" && d.bay - new Date(x.created_at).getTime() < 7 * 86_400_000).reduce((a, x) => a + x.delta, 0);
-  const tuDoi = d.quy?.quy.doiSao.bat !== false;
+  const s = d.s, sao = s.sao, k = kieuSao(s), no = cauNo(s);
+  const kiem = d.bayNgay?.saoKiem ?? d.lich.filter((x) => x.kieu === "kiem" && d.bay - new Date(x.luc).getTime() < 7 * 86_400_000).reduce((a, x) => a + x.delta, 0);
+  const mauThe = k === "thuong" ? "#6e4300" : MAU_NO.chu;
+  const hang = hangVi(d.lich).slice(0, 40);
   const luu = () => lam(async () => {
     await bm.goi(`con/${con}/diem`, { delta: dau * Number(so), lyDo });
     setMo(false);
@@ -51,23 +97,30 @@ export default function ViSao() {
   return (
     <Man lui={{ chu: "Nhiệm vụ" }} tieu={`Ví sao của ${d.ten}`} noi={noi} tai={tai}
       phai={d.baMe ? <Pressable onPress={() => setMo(true)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Nhan chu="± Điều chỉnh" /></Pressable> : undefined}>
-      {/* thiết kế .vi: thẻ vàng cao 164 — «⭐ 30 sao» 50/800 trái, «= 30 phút chơi», «Tuần này kiếm N sao»; Grow «xong» 118 tràn góc phải dưới */}
-      <View style={[{ height: 164, padding: 20, borderRadius: 28, backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf1d3, #fbecc0)", overflow: "hidden" }, KHOI.the]}
-        accessible accessibilityLabel={`${sao} sao, bằng ${phut} phút chơi. Tuần này kiếm ${kiem} sao`}>
+      {/* thiết kế .vi: thẻ cao ~164 — «⭐ 30 sao» 50/800 trái; nợ ⇒ nền cảnh báo #f9e7d2 chữ #8a3c0c; Grow «xong» tràn góc phải dưới */}
+      <View style={[{ minHeight: 164, padding: 20, borderRadius: 28, overflow: "hidden" },
+        k === "thuong" ? { backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf1d3, #fbecc0)" } : { backgroundColor: MAU_NO.nen, backgroundImage: "linear-gradient(#fbeedd, #f9e7d2)" }, KHOI.the]}
+        accessible accessibilityLabel={`${soChinh(s)}${no ? `. ${no}` : ""}`}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingRight: 100 }}>
           <Icon3D ten="sao" co={48} />
-          <Chu kieu="rat" co={50} so style={{ lineHeight: 56, letterSpacing: -1 }}>{String(sao)}</Chu>
-          <Chu kieu="rat" co={22} style={{ marginTop: 10 }}>sao</Chu>
+          {k === "vay" ? <Chu kieu="rat" co={24} mau={mauThe} so style={{ flexShrink: 1 }}>{soChinh(s)}</Chu> : <>
+            <Chu kieu="rat" co={50} mau={k === "am" ? mauThe : M.chu} so style={{ lineHeight: 56, letterSpacing: -1 }}>{soVN(k === "am" ? -s.no : sao)}</Chu>
+            <Chu kieu="rat" co={22} mau={k === "am" ? mauThe : M.chu} style={{ marginTop: 10 }}>sao</Chu>
+          </>}
         </View>
-        <Chu kieu="rat" co={16} mau="#6e4300" style={{ marginTop: 6 }}>{`= ${phut} phút chơi`}</Chu>
-        <Chu kieu="dam" co={13} mau="#6e4300" style={{ marginTop: 4 }}>{`Tuần này kiếm ${kiem} sao`}</Chu>
+        {k === "thuong" ? <>
+          <Chu kieu="rat" co={16} mau={mauThe} style={{ marginTop: 6 }}>{`= ${soVN(sao)} phút chơi`}</Chu>
+          <Chu kieu="dam" co={13} mau={mauThe} style={{ marginTop: 4 }}>{`Tuần này kiếm ${kiem} sao`}</Chu>
+        </> : <View style={{ paddingRight: 96 }}>
+          <Chu kieu="rat" co={16} mau={mauThe} style={{ marginTop: 6 }}>{`Đang nợ Ba Mẹ ${soVN(s.no)} sao`}</Chu>
+          <Chu kieu="dam" co={13} mau={mauThe} style={{ marginTop: 4 }}>Sao nhiệm vụ trả nợ trước</Chu>
+          {d.bayNgay ? <Chu kieu="dam" co={13} mau={mauThe}>{`Tuần này: vay ${soVN(d.bayNgay.saoVay)} · đã trả ${soVN(d.bayNgay.saoTraNo)} sao`}</Chu> : null}
+        </View>}
         <View pointerEvents="none" style={{ position: "absolute", right: -8, bottom: -22 }}><Rob ten="xong" co={118} /></View>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: "#dcebe6" }}>
-        <Icon3D ten="dongho" co={32} />
-        <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1, lineHeight: 20 }}>
-          {tuDoi ? `10 sao đổi được ${tyLe} phút chơi. Con tự đổi trên máy, không cần xin Ba Mẹ.` : `10 sao = ${tyLe} phút chơi. Con tự đổi sao đang tắt — bật ở «Giờ chơi».`}
-        </Chu>
+        <Icon3D ten="sao" co={32} />
+        <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1, lineHeight: 20 }}>1 sao = 1 phút chơi app «Tính phút». Hết sao thì con xin Ba Mẹ cho vay.</Chu>
       </View>
 
       <TieuMuc chu="Con đổi sao lấy quà" phai={{ chu: d.baMe ? "Sửa quà ›" : "Quà ›", bam: () => router.push({ pathname: "/vi/qua", params: { con, tab: "nha" } }) }} />
@@ -78,18 +131,16 @@ export default function ViSao() {
         ))}
         {d.qua.filter((q) => !d.phieu.some((p) => p.ten === q.ten)).map((q, i) => (
           <HangViec key={q.id} dau={!d.phieu.length && i === 0} trai={<OLomIcon ic="qua" />} tieu={q.ten}
-            phu={sao >= q.diem ? `Cần ${q.diem} sao · con tự đổi trên máy` : `Cần ${q.diem} sao · còn thiếu ${q.diem - Math.max(0, sao)}`}
+            phu={sao >= q.diem ? `Cần ${q.diem} sao · con tự đổi trên máy` : `Cần ${q.diem} sao · còn thiếu ${soVN(q.diem - sao)}`}
             phai={<Nhan loai={sao >= q.diem ? "ok" : "xam"} chu={sao >= q.diem ? "Đủ sao" : "Chưa đủ"} />} />
         ))}
         {!d.phieu.length && !d.qua.length ? <Chu co={14} mau={M.chu2}>Chưa có quà nào. Thêm quà để con có mục tiêu.</Chu> : null}
       </The>
 
-      <TieuMuc chu="Sao vào, sao ra" />
+      <TieuMuc chu="Sao vào, sao ra, vay và trả" />
       <The>
-        {d.vi.lichSu.length ? d.vi.lichSu.slice(0, 40).map((x, i) => (
-          <HangViec key={i} dau={i === 0} trai={<OLomIcon ic={x.delta > 0 ? (x.nguoi ? "mu" : "may_tinh") : x.loai === "doi_qua" ? "coc" : "dongho"} />}
-            tieu={x.ly_do} phu={`${ngay(x.created_at)} · ${gioPhut(x.created_at)}${x.ten_nguoi ? ` · ${x.ten_nguoi}` : ""}`}
-            phai={<Nhan loai={x.delta > 0 ? "diem" : "xam"} chu={`${x.delta > 0 ? "+" : "−"}${Math.abs(x.delta)} sao`} />} />
+        {hang.length ? hang.map((x, i) => (
+          <HangViec key={x.key} dau={i === 0} trai={<OLomIcon ic={x.ic} />} tieu={x.tieu} phu={x.phu} phai={<Nhan loai={x.loai} chu={x.nhan} />} />
         )) : <Chu co={14} mau={M.chu2}>{`Ví của ${d.ten} còn trống — sao đầu tiên đến khi con làm xong việc đầu tiên.`}</Chu>}
       </The>
 

@@ -17,7 +17,7 @@ import { allowlistHieuLuc, datLuat, khoaSo, xoaLuat } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { laWebCam } from "./chan-co-ban.ts";
 import { tenMienSach } from "./web.ts";
-import { saoKhoiDauHopLe } from "./so-sao.ts";
+import { saoKhoiDauHopLe, tangSaoKhoiDau } from "./so-sao.ts";
 
 
 export type ThietLapVao = {
@@ -62,9 +62,12 @@ export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string)
   }
   const web = b.web !== undefined ? webLanDau(b.web) : null;
   let conId: string;
+  let daTang = 0;
   if (vaoCon.id) {
     conId = (await conCua(fam, String(vaoCon.id))).id;
     await suaCon(fam, conId, { ten: vaoCon.ten, avatar: vaoCon.avatar }, nguoi);
+    // Lần đầu: Con tạo ở bước tên (saoKhoiDau 0), bước «Chơi bằng sao» chọn sau ⇒ gửi kèm con.id thì tặng lúc này — tangSaoKhoiDau chỉ tặng MỘT lần mỗi Con
+    if (b.saoKhoiDau !== undefined && b.saoKhoiDau !== null && b.saoKhoiDau !== "") daTang = await tangSaoKhoiDau(conId, saoKhoiDau, nguoi);
   } else {
     conId = await taoCon(fam, { ten: vaoCon.ten, namSinh: vaoCon.namSinh, avatar: vaoCon.avatar, saoKhoiDau }, nguoi);
   }
@@ -90,7 +93,7 @@ export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string)
       await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('web_lan_dau', $2::jsonb) where id = $1`, [conId, JSON.stringify([...moi])]);
     });
   }
-  await ghiSuKien(fam, "thiet_lap_lan_dau", { sao_khoi_dau: vaoCon.id ? 0 : saoKhoiDau, che_do: cheDo, so_app: app.daDat.length + app.choKhop.length, so_web: soWebGhi }, { con: conId, nguoi });
+  await ghiSuKien(fam, "thiet_lap_lan_dau", { sao_khoi_dau: vaoCon.id ? daTang : saoKhoiDau, che_do: cheDo, so_app: app.daDat.length + app.choKhop.length, so_web: soWebGhi }, { con: conId, nguoi });
   return tomTatThietLap(fam, conId, app);
 }
 

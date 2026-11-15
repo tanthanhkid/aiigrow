@@ -1,7 +1,7 @@
 // Một người lớn trong nhà (thiết kế 14/11 bm-ca-nha/06 them-7vmoufz3 = bm-cai-dat/10 bm2-thanh-vien; bảng «Mời … rời nhà?» 07 them-xnbiksmr):
 // ảnh chữ, tên, «Vào nhà từ 20/10 · Làm được như Ba Mẹ», «<tên> trong nhà» (SĐT / email, quyền, cùng trông «Cả N con» + ảnh chữ các con),
 // «Mời <tên> rời nhà» + dòng giải thích. 2 quyền (S2): Ba Mẹ đổi được quyền người khác (trừ người tạo nhà, trừ chính mình).
-// Dòng của chính mình ⇒ «Tài khoản của bạn» (/tai-khoan). «7 ngày qua · Cho thêm giờ N lần» của thiết kế chưa làm (máy chủ chưa đếm theo người lớn).
+// Dòng của chính mình ⇒ «Tài khoản của bạn» (/tai-khoan). «7 ngày qua · Cho vay N lần · S sao» (15/11 #265): GET nhat-ky?ca-nha=1 › choVay.theoNguoi (theo tên).
 // Không có `id` (thông báo cũ trỏ /thanh-vien) ⇒ về tab Cả nhà — danh sách người lớn + lời mời nằm ở đó.
 import { useState } from "react";
 import { View } from "react-native";
@@ -11,6 +11,7 @@ import { IC_QUYEN, MO_TA_QUYEN, TEN_QUYEN, chuDau, type DsThanhVien, type Quyen 
 import { MucTieu, OIcon, veHoac } from "@/lib/ui-bm3";
 import { KHOI } from "@/lib/clay";
 import { ChuCaiCon } from "@/lib/ui-viec";
+import { soVN } from "@/lib/so-sao";
 import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, OChon, TickDong, useLam, useTai } from "@/lib/ui";
 
 /** Màu avatar người lớn (thiết kế .ng — cùng bảng tab Cả nhà). */
@@ -19,8 +20,9 @@ const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#3f9a86", "#b5838d"];
 export default function ThanhVien() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [tv, g] = await Promise.all([bm.goi<DsThanhVien>("thanh-vien"), bm.goi<GiaDinh>("gia-dinh")]);
-    return { tv, con: g.con };
+    const [tv, g, nk] = await Promise.all([bm.goi<DsThanhVien>("thanh-vien"), bm.goi<GiaDinh>("gia-dinh"),
+      bm.goi<{ choVay?: { theoNguoi: { ten: string; so: number; sao: number }[] } }>("nhat-ky?ca-nha=1&ngay=7").catch(() => null)]);
+    return { tv, con: g.con, vay: nk?.choVay?.theoNguoi ?? null };
   });
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const [mo, setMo] = useState<null | "quyen" | "roi">(null);
@@ -52,7 +54,7 @@ export default function ThanhVien() {
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={x.ten} day={roiDuoc ? <>
       <Nut chu={`Mời ${x.ten} rời nhà`} loai="huy" rong bam={() => setMo("roi")} />
-      <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, không cho giờ được nữa.`}</Chu>
+      <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, không cho vay sao được nữa.`}</Chu>
     </> : undefined}>
       {/* thiết kế 06 (bm-ca-nha) / 10 (bm-cai-dat): thẻ ngang — avatar 56 · tên · «Vào nhà từ 20/10» · nhãn quyền ngọc */}
       <View style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
@@ -73,6 +75,8 @@ export default function ThanhVien() {
         <Dong tieu="Quyền" phu={TEN_QUYEN[x.quyen]} trai={<OIcon ic={IC_QUYEN[x.quyen]} />} bam={doiDuoc ? () => setMo("quyen") : undefined} />
         <Dong tieu="Cùng trông" phu={soCon ? (soCon > 1 ? `Cả ${soCon} con` : d.con[0].ten) : "Chưa có con nào"} trai={<OIcon ic="nguoi" />}
           phai={soCon ? <ChuCaiCon ds={d.con.slice(0, 4)} co={24} /> : undefined} />
+        {d.vay ? (() => { const v = d.vay.find((n) => n.ten === x.ten);
+          return <Dong tieu="7 ngày qua" phu={v?.so ? `Cho vay ${v.so} lần · ${soVN(v.sao)} sao` : "Chưa cho vay sao"} trai={<OIcon ic="sao" />} />; })() : null}
       </Nhom>
 
       <BangTruot mo={mo === "quyen"} dong={dong} tieu={`Quyền của ${x.ten}`}>
@@ -82,7 +86,7 @@ export default function ThanhVien() {
         <BaoLoi loi={loiLam} />
       </BangTruot>
       <BangTruot mo={mo === "roi"} dong={dong} tieu={`Mời ${x.ten} rời nhà?`} hinh="thoat">
-        <Chu mau={M.chu2}>{`${x.ten} sẽ không xem, cho giờ hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
+        <Chu mau={M.chu2}>{`${x.ten} sẽ không xem, cho vay sao hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
         <TickDong trang="sau" chu="Muốn mời lại thì gửi lời mời mới" />
         <BaoLoi loi={loiLam} />
         <Nut chu={`Mời ${x.ten} rời nhà`} loai="huy" rong dangChay={dangChay} bam={roi} />

@@ -1,5 +1,6 @@
 // «Cảnh báo» (thiết kế chốt 05/11, bm-duyet/04 — chữ «sao»): «Ba Mẹ cần sửa · n» (máy mất bảo vệ, bị gỡ, ngoài vòng…) / «AiiGrow đã tự xử lý · n»
-// (giờ máy bị đổi đã khoá trò chơi, ảnh trùng…) / «Grow gợi ý · Ba Mẹ chọn» khi ngoại lệ tăng (giao thêm nhiệm vụ, cho con tự đổi sao khi hết giờ).
+// (giờ máy bị đổi đã khoá trò chơi, ảnh trùng…) / «Grow gợi ý · Ba Mẹ chọn» khi cảnh báo cũ «xin nhiều» còn sót (15/11: không còn ngoại lệ / đổi sao —
+// chỉ gợi ý giao thêm nhiệm vụ để con tự kiếm sao và trả nợ). Cảnh báo nợ > 1.000 (no_qua_1000) ⇒ chi tiết them-5twxl6hf.
 // Bấm một cảnh báo ⇒ chi tiết (canh-bao/[id]). AiiGrow không đọc tin nhắn hay nội dung trang web.
 import { useState } from "react";
 import { router } from "expo-router";
@@ -17,8 +18,8 @@ export default function DsCanhBao() {
     const [cb, g, q] = await Promise.all([bm.goi<{ ds: CanhBao[] }>("canh-bao"), bm.goi<GiaDinh>("gia-dinh"), quyenToi()]);
     return { ds: cb.ds, g, xem: q === "trong_giup" };
   });
-  const { lam, loi: loiLam } = useLam();
-  const { bao, noi } = useHoanTac();
+  const { loi: loiLam } = useLam();
+  const { noi } = useHoanTac();
   const [boQua, setBoQua] = useState<string[]>([]);       // «Bỏ qua» gợi ý — chỉ ẩn trên màn này, không đổi cấu hình
   if (!d) return <Man lui={{ chu: "Quay lại" }} tieu="Cảnh báo"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const ten = (id: string | null) => d.g.con.find((c) => c.id === id)?.ten ?? "";
@@ -58,22 +59,13 @@ export default function DsCanhBao() {
       {ngoaiLe.length && conNl ? (
         <>
           <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Grow gợi ý · Ba Mẹ chọn</Chu>
-          <Chu co={13.5} mau={M.chu2} style={{ marginHorizontal: 4 }}>{ngoaiLe[0].noi_dung}</Chu>
+          <Chu co={13.5} mau={M.chu2} style={{ marginHorizontal: 4 }}>{`${ten(conNl)} xin Ba Mẹ nhiều lần tuần này.`}</Chu>
           {boQua.includes("giao") ? null : (
             <The dem style={{ gap: 8 }}>
               <Chu kieu="rat">{`Giao thêm nhiệm vụ cho ${ten(conNl)}`}</Chu>
-              <Chu co={13.5} mau={M.chu3}>Con tự kiếm sao, rồi đổi sao lấy phút chơi — bớt phải xin Ba Mẹ.</Chu>
+              <Chu co={13.5} mau={M.chu3}>Con tự kiếm sao để chơi và trả nợ — bớt phải xin Ba Mẹ cho vay. 1 sao = 1 phút chơi.</Chu>
               {d.xem ? null : <HaiNut><Nut chu="Giao nhiệm vụ" nho bam={() => router.push(`/giao-nv?con=${conNl}` as never)} />
                 <Nut chu="Bỏ qua" nho loai="vien" bam={() => setBoQua((x) => [...x, "giao"])} /></HaiNut>}
-            </The>
-          )}
-          {boQua.includes("doi") ? null : (
-            <The dem style={{ gap: 8 }}>
-              <Chu kieu="rat">Cho con tự đổi sao khi hết giờ</Chu>
-              <Chu co={13.5} mau={M.chu3}>10 sao = 10 phút, không cần hỏi Ba Mẹ. Mọi lần đổi vẫn hiện trong Báo cáo.</Chu>
-              {d.xem ? null : <HaiNut>
-                <Nut chu="Bật" nho loai="vien" bam={() => lam(async () => { await bm.goi(`con/${conNl}/gio-choi`, { doiSaoBat: true }); setBoQua((x) => [...x, "doi"]); bao(`Đã cho ${ten(conNl)} tự đổi sao khi hết giờ`); })} />
-                <Nut chu="Bỏ qua" nho loai="ma" bam={() => setBoQua((x) => [...x, "doi"])} /></HaiNut>}
             </The>
           )}
           <BaoLoi loi={loiLam} />

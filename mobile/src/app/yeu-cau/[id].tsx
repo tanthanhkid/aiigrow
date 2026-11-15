@@ -1,93 +1,82 @@
-// Trả lời MỘT lời xin của Con (thiết kế chốt 05/11; bố cục bm-duyet 06 «Con xin thêm giờ», 07 «App mới con vừa tải» — chữ «sao»):
-//  • thêm giờ: «Ba Mẹ tặng thêm» (không trừ sao, chỉ hôm nay) hoặc «Trừ sao của con» (10 sao = N phút, ví a → b), chọn phút, lời nhắn ngắn
-//    (không bắt buộc — gửi kèm lời trả lời qua `loi-khen` của Con) ⇒ dong-y {phut, truDiem}
-//  • ngoại lệ (giờ ngủ / Ba Mẹ khoá / giờ học): «Không trừ giờ chơi, không trừ sao», phạm vi cả máy hoặc một app, chọn phút ≤ tối đa ⇒ dong-y {phut}
-//  • app / web chưa có trong danh sách (15/11 — #262): chưa trả lời ⇒ chuyển sang «Con xin mở» (/yeu-cau-web/:id — Tính phút / Không tính phút / Bỏ qua);
+// Trả lời MỘT lời xin của Con (thiết kế chốt 15/11 — bm-con-xin, bảng «Cho vay sao» them-6wjhze1d / them-y1r1eidm):
+//  • xin vay sao (vay_sao + them_gio / ngoai_le / ngoai_gio của máy cũ): sao hiện có của con («−20 sao · Đang nợ Ba Mẹ 20 sao»), chọn 10 / 15 / 30 sao
+//    (+ số con xin), «vay xong sẽ nợ N sao», dải nhắc khi đang nợ > 1.000 (vẫn cho vay được), lời nhắn ngắn (không bắt buộc — gửi qua `loi-khen`)
+//    ⇒ dong-y {soSao}. Không còn «tặng thêm giờ», «trừ sao lấy phút», «ngoại lệ».
+//  • app / web chưa có trong danh sách (#262 — PR #279): chưa trả lời ⇒ chuyển sang «Con xin mở» (/yeu-cau-web/:id — Tính phút / Không tính phút / Bỏ qua);
 //    đã trả lời ⇒ chỉ báo «Lời xin này đã được trả lời»
 // Xử lý xong ⇒ /yeu-cau/xong (lib/hom-nay-xin › denXong).
 import { useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
-import { type ConCt, type GioChoi, type YeuCauMoi } from "@/lib/hang-ngay";
-import { denXong, khongChoXin, laAppWeb, laThemGio, mucXin, tenMayXin, tieuXin } from "@/lib/hom-nay-xin";
-import {
-  Bao, BaoLoi, BieuTron, Canh, Chips, ChoTai, ChonMot, Chu, gioPhut, M, Man, Nut, OChon, ONhap, useLam, useTai,
-} from "@/lib/ui";
+import { type ConCt, type YeuCauMoi } from "@/lib/hang-ngay";
+import { choXin, denXong, khongChoXin, laAppWeb, laVay, tenMayXin, tieuXin } from "@/lib/hom-nay-xin";
+import { cauNhacNo, cauNo, DaiNhacNo, MUC_VAY, saoTu, soVN, VienSao, type SaoCon } from "@/lib/so-sao";
+import { Bao, BaoLoi, Canh, Chips, ChoTai, ChonMot, Chu, gioPhut, M, Man, Nut, ONhap, useLam, useTai } from "@/lib/ui";
 
-type ChiTiet = YeuCauMoi & { trang_thai: string; sao?: number; soDu: number; phutDoiDuoc?: number };
-const NHAN = ["Hôm nay đủ rồi con nhé", "Chơi xong nhớ đi tắm", "Làm bài xong Ba Mẹ cho thêm"];
+type ChiTiet = YeuCauMoi & Partial<SaoCon> & { trang_thai: string; soDu: number; laVay?: boolean; soSao?: number | null; mucDich?: "choi" | "qua" | null;
+  qua?: { id: string; ten: string; diem: number } | null; xemTruoc?: { nhacNo?: string | null } | null };
+const NHAN = ["Nhớ làm nhiệm vụ trả nợ nhé", "Chơi xong nhớ đi tắm", "Hôm nay vay lần cuối nhé"];
 
 export default function XuLyYeuCau() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
     const y = await bm.goi<ChiTiet>(`yeu-cau/${id}`);
-    const [ct, gc] = await Promise.all([bm.goi<ConCt>(`con/${y.child_id}`).catch(() => null), bm.goi<GioChoi>(`con/${y.child_id}/gio-choi`).catch(() => null)]);
-    return { y, ct, gc };
+    const ct = await bm.goi<ConCt>(`con/${y.child_id}`).catch(() => null);
+    return { y, ct };
   });
-  const [tru, setTru] = useState(false);
-  const [phut, setPhut] = useState<number | null>(null);
+  const [chon, setChon] = useState<number | null>(null);
   const [nhan, setNhan] = useState<string | null>(null);
   const [tuViet, setTuViet] = useState("");
   const { lam, loi: loiLam, dangChay } = useLam();
   if (!d) return <Man lui={{ chu: "Quay lại" }} tieu="Lời xin của con"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const { y, gc } = d;
+  const { y } = d;
   const ten = y.ten_con, may = tenMayXin(y, d.ct?.may);
-  const sao = y.sao ?? y.soDu;
-  const toiDaNl = gc?.ngoaiLeToiDaPhut ?? 60;
-  // ngoại lệ: kẹp theo «tối đa ngoại lệ» Ba Mẹ đặt — máy chủ dong-y chỉ kiểm 5–240 (review PR #183)
-  const nhanh = laThemGio(y) ? 10 : 15;
-  const p0 = phut ?? y.phut ?? nhanh, p = y.loai === "ngoai_le" || y.loai === "ngoai_gio" ? Math.min(p0, toiDaNl) : p0;
-  const tyLe = gc?.phut10Sao ?? 10;
-  const saoCan = Math.ceil((p * 10) / tyLe);
+  const vay = laVay(y);
+  const sao = saoTu(y.no !== undefined ? y : { soDu: y.soDu });
+  const xin = y.soSao ?? y.phut ?? 15;
+  const n = chon ?? xin;
   const daXuLy = y.trang_thai !== "cho";
-  // 15/11 (#262): lời xin app / web trả lời ở màn «Con xin mở» (Tính phút / Không tính phút / Bỏ qua)
+  // lời xin app / web trả lời ở màn «Con xin mở» (Tính phút / Không tính phút / Bỏ qua)
   if (laAppWeb(y) && !daXuLy) return <Redirect href={{ pathname: "/yeu-cau-web/[id]", params: { id: y.id } }} />;
+  const nhac = y.xemTruoc?.nhacNo ?? cauNhacNo(ten, sao.no);
   const loiNhan = nhan === "tu_viet" ? tuViet.trim() : nhan;
   const guiNhan = async () => { if (loiNhan) await bm.goi(`con/${y.child_id}/loi-khen`, { noiDung: loiNhan }).catch(() => {}); };
-  const cho = (soPhut: number) => lam(async () => {
-    const r = await bm.goi<{ grantId?: string }>(`yeu-cau/${id}/dong-y`, laThemGio(y) ? { phut: soPhut, truDiem: tru } : { phut: soPhut });
-    await guiNhan();
-    denXong(laThemGio(y) ? { kieu: "them_gio", ten, con: y.child_id, phut: soPhut, may, grant: r.grantId }
-      : { kieu: "ngoai_le", ten, con: y.child_id, phut: soPhut, muc: mucXin(y), may });
-  });
+  const choVay = (so: number) => lam(async () => { const k = await choXin(y, may, so, sao); await guiNhan(); denXong(k); });
   const khong = () => lam(async () => { const k = await khongChoXin(y, may, loiNhan || undefined); denXong(k); });
 
-  const nutDay = daXuLy ? <Nut chu="Quay lại" rong bam={() => router.back()} /> : (
+  const nutDay = daXuLy ? <Nut chu="Quay lại" rong bam={() => router.back()} /> : vay ? (
     <>
       <BaoLoi loi={loiLam} />
-      <Nut chu={laThemGio(y) && tru ? `Cho ${p} phút · trừ ${saoCan} sao` : `Cho ${p} phút`} rong dangChay={dangChay} tat={laThemGio(y) && tru && sao < saoCan} bam={() => cho(p)} />
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        {/* nút nhanh: xin thêm giờ = chip đầu 10 phút (Thanh chốt 05/11); ngoại lệ giữ 15 phút */}
-        {p !== nhanh && (laThemGio(y) || toiDaNl >= nhanh) ? <Nut chu={`Cho ${nhanh} phút`} loai="vien" dangChay={dangChay} bam={() => cho(nhanh)} tat={laThemGio(y) && tru && sao < Math.ceil(nhanh * 10 / tyLe)} /> : null}
-        <Nut chu="Không cho" loai="huy" bam={khong} />
-      </View>
+      <Nut chu={`Cho ${ten} vay ${soVN(n)} sao`} rong dangChay={dangChay} bam={() => choVay(n)} />
+      <Nut chu="Không cho" loai="huy" rong bam={khong} />
+    </>
+  ) : (
+    <>
+      <BaoLoi loi={loiLam} />
+      <Nut chu="Không cho" loai="huy" rong bam={khong} />
     </>
   );
 
+  const no = cauNo(sao);
   return (
-    <Man lui={{ chu: "Quay lại" }} tieu={laAppWeb(y) ? "Con xin mở" : laThemGio(y) ? "Con xin thêm giờ" : "Con xin mở ngoại lệ"} day={nutDay}>
-      <Canh lv={laAppWeb(y) ? "nghi" : "cho"} thap tieu={`${ten} xin ${tieuXin(y).charAt(0).toLowerCase()}${tieuXin(y).slice(1)}`}
+    <Man lui={{ chu: "Quay lại" }} tieu={laAppWeb(y) ? "Con xin thêm vào danh sách" : vay ? "Con xin vay sao" : "Lời xin của con"} day={nutDay}>
+      <Canh lv={laAppWeb(y) ? "nghi" : "cho"} thap tieu={`${ten} ${tieuXin(y).charAt(0).toLowerCase()}${tieuXin(y).slice(1)}${y.qua ? ` «${y.qua.ten}»` : ""}`}
         loi={`${y.ly_do?.trim() ? `Con nói: «${y.ly_do.trim()}» · ` : ""}${gioPhut(y.created_at)}${may ? ` · ${may}` : ""}`} />
-      {daXuLy ? <Bao loai="lam" ic="tick" tieu="Lời xin này đã được trả lời" loi="Có thể người khác trong nhà đã trả lời trước." /> : laThemGio(y) ? (
+      {daXuLy ? <Bao loai="lam" ic="tick" tieu="Lời xin này đã được trả lời" loi="Có thể người khác trong nhà đã trả lời trước." /> : vay ? (
         <>
-          {gc ? <Chu co={14.5} mau={M.chu2}>{`Hôm nay đã chơi ${gc.homNay.daDung}/${gc.homNay.tongPhut} phút, còn ${gc.homNay.conPhut} phút.`}</Chu> : null}
-          <Chu kieu="rat" co={15}>Cho thêm theo cách nào</Chu>
-          <View style={{ gap: 8 }}>
-            <OChon chon={!tru} bam={() => setTru(false)} trai={<BieuTron ic="qua" mau="xanh" />} tieu="Ba Mẹ tặng thêm" phu="Không trừ sao · chỉ tính hôm nay" />
-            <OChon chon={tru} bam={() => setTru(true)} trai={<BieuTron ic="sao" mau="vang" />} tieu="Trừ sao của con"
-              phu={sao >= saoCan ? `10 sao = ${tyLe} phút · ví ${sao} → ${sao - saoCan} sao` : `Cần ${saoCan} sao — con có ${sao} sao`} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Chu kieu="dam" co={14} mau={M.chu2}>Đang có</Chu>
+            <VienSao s={sao} />
+            {no ? <Chu kieu="dam" co={13.5} mau="#8a3c0c">{no}</Chu> : null}
           </View>
-          {/* chip xin thêm giờ 10/20/30 (Thanh chốt 05/11, mọi nền); lời xin cũ số phút khác vẫn có chip của nó */}
-          <ChonMot ds={[...new Set([10, 20, 30, ...(y.phut ? [y.phut] : [])])].sort((x, z) => x - z).map((x) => ({ gia: x, chu: `${x} phút` }))} gia={p} doi={setPhut} />
+          <Chu kieu="rat" co={15}>{`Cho ${ten} vay bao nhiêu?`}</Chu>
+          <ChonMot ds={[...new Set([...MUC_VAY, xin])].sort((a, b) => a - b).map((x) => ({ gia: x, chu: `${x} sao` }))} gia={n} doi={setChon} />
+          <Chu kieu="dam" co={14} mau={M.chu2}>{`= ${soVN(n)} phút chơi hoặc đổi quà · vay xong ${ten} sẽ nợ ${soVN(sao.no + n)} sao. Sao nhiệm vụ của con trả nợ trước.`}</Chu>
+          {nhac ? <DaiNhacNo chu={nhac} phu="Chỉ nhắc thôi · Ba Mẹ vẫn cho vay được" /> : null}
         </>
-      ) : (
-        <>
-          <Bao loai="ok" ic="tick" tieu="Không trừ giờ chơi, không trừ sao" loi={`Mở ${mucXin(y)} tới khi hết số phút này, rồi máy tự khoá lại.`} />
-          <ChonMot ds={[15, 30, 60].filter((x) => x <= toiDaNl).map((x) => ({ gia: x, chu: `${x} phút` }))} gia={Math.min(p, toiDaNl)} doi={setPhut} />
-        </>
-      )}
-      {!daXuLy && !laAppWeb(y) ? (
+      ) : null}
+      {!daXuLy && vay ? (
         <View style={{ gap: 6 }}>
           <Chu kieu="rat" co={15}>{`Nhắn ${ten} · không bắt buộc`}</Chu>
           <Chips ds={[...NHAN.map((x) => ({ gia: x, chu: x })), { gia: "tu_viet", chu: "Tự viết…" }]} chon={nhan ? [nhan] : []} doi={(v) => setNhan(v === nhan ? null : v)} />

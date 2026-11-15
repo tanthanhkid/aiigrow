@@ -10,6 +10,7 @@ import { bm } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
 import { cachBao, SaoVien, type BangChung, type ChoDuyetMoi, type LuotChoMoi } from "@/lib/hang-ngay";
 import { SongAm } from "@/lib/song-am";
+import { soVN } from "@/lib/so-sao";
 import { BangMang, BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, TickDong, useLam, useTai } from "@/lib/ui";
 
 const KHEN_LOAT = "Giỏi lắm con!";
@@ -27,12 +28,12 @@ export default function DuyetDs() {
     const conId = con ?? (new Set(ds.map((x) => x.child_id)).size === 1 ? ds[0]?.child_id : undefined);
     // ba lời gọi độc lập ⇒ song song (review PR #183)
     const [vi, ct, quy] = await Promise.all([
-      conId ? bm.goi<{ soDu: number; sao?: number }>(`con/${conId}/vi`).catch(() => null) : null,
+      conId ? bm.goi<{ soDu: number; sao?: number; no?: number }>(`con/${conId}/vi`).catch(() => null) : null,
       conId && !ds[0] ? bm.goi<{ ten: string }>(`con/${conId}`).catch(() => null) : null,
       conId ? bm.goi<{ quy: { tyLe: { sao: number; phut: number } } }>(`con/${conId}/quy`).catch(() => null) : null,
     ]);
     const ten = ds[0]?.ten_con ?? ct?.ten;
-    return { ds, conId, ten: ten ?? "Con", sao: vi ? (vi.sao ?? vi.soDu) : null, tyLe: quy?.quy.tyLe ?? { sao: 10, phut: 10 } };
+    return { ds, conId, ten: ten ?? "Con", sao: vi ? (vi.sao ?? vi.soDu) : null, no: vi?.no ?? 0, tyLe: quy?.quy.tyLe ?? { sao: 10, phut: 10 } };
   });
   const { lam, loi: loiLam, dangChay } = useLam();
   const [guiLoat, setGuiLoat] = useState(false);
@@ -40,7 +41,6 @@ export default function DuyetDs() {
   const nhieuCon = new Set(d.ds.map((x) => x.child_id)).size > 1;
   const ten = nhieuCon ? "Các con" : d.ten;
   const tong = d.ds.reduce((n, x) => n + (x.sao ?? x.diem), 0);
-  const phutCua = (s: number) => Math.floor((s * d.tyLe.phut) / d.tyLe.sao);
 
   if (!d.ds.length) {
     // 31 «Không còn việc chờ duyệt»
@@ -52,7 +52,7 @@ export default function DuyetDs() {
         <CanhGiua lv="xong" tieu="Duyệt hết rồi!" loi="Không còn việc nào chờ Ba Mẹ. Con nộp việc mới, Grow sẽ báo ngay.">
           {d.sao !== null ? (
             <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.diemSoft }, KHOI.vien]}>
-              <Chu kieu="rat" co={15} mau={M.diemInk}>{`${d.ten} có ${d.sao} sao = ${phutCua(d.sao)} phút chơi`}</Chu>
+              <Chu kieu="rat" co={15} mau={M.diemInk}>{d.no > 0 ? `${d.ten} có ${soVN(d.sao)} sao · đang nợ Ba Mẹ ${soVN(d.no)} sao` : `${d.ten} có ${d.sao} sao = ${d.sao} phút chơi`}</Chu>
             </View>
           ) : null}
         </CanhGiua>
@@ -67,6 +67,7 @@ export default function DuyetDs() {
       router.replace({ pathname: "/duyet-xong", params: {
         loat: "1", con: d.conId ?? "", ten, sao: String(r.sao || tong), khen: KHEN_LOAT, ids: d.ds.map((x) => x.id).join(","),
         ds: JSON.stringify(d.ds.map((x) => ({ t: x.ten, s: x.sao ?? x.diem }))),
+        ...(d.sao !== null && d.conId ? { saoTruoc: String(d.sao), noTruoc: String(d.no) } : {}),
       } } as never);
     }, { hangDoi: true }).finally(() => setGuiLoat(false));
   };

@@ -1,6 +1,6 @@
 // Phần dùng chung của app Ba Mẹ «Hằng ngày» + «Duyệt» theo thiết kế đã chốt 05/11 (docs/thiet-ke-chot/bm-hang-ngay, bm-duyet —
 // docs/KE-HOACH-KHOP-THIET-KE-0511.md L1–L3, L9, L10, L12): kiểu dữ liệu các đường S1/S2 mới (docs/API.md cuối tệp), quyền «Người trông giúp»,
-// chip đổi Con, hàng việc có sao, màn kết quả (Grow + dòng tick + 2 nút), bảng trượt «Khoá máy ngay?» và «Cho thêm giờ».
+// chip đổi Con, hàng việc có sao, màn kết quả (Grow + dòng tick + 2 nút), bảng trượt «Khoá máy ngay?» («Cho vay sao»: lib/so-sao).
 // Chữ: «sao» (không «điểm»), «Ba Mẹ». Chỉ THÊM — không đổi chữ ký thành phần cũ của lib/ui.
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
@@ -24,7 +24,8 @@ export type Quy = {
 };
 export type GioHoc = { tu: string; den: string; thu: number[] };
 /** GET con/:id/quy */
-export type QuyCon = { quy: Quy; sao: number; ngoaiLe: { id: string; den: string; muc: string | null; nhom: string }[] };
+/** GET con/:id/quy — 15/11: `sao` = số dư Con thấy (âm được), `soSao` = trạng thái sổ sao (lib/so-sao); `quy.conPhut` = sao tiêu được; `ngoaiLe` luôn []. */
+export type QuyCon = { quy: Quy; sao: number; soSao?: import("./so-sao").SaoCon; ngoaiLe: { id: string; den: string; muc: string | null; nhom: string }[] };
 /** GET/POST con/:id/gio-choi */
 export type GioChoi = { quyNgayThuong: number; quyCuoiTuan: number; phut10Sao: number; doiSaoBat: boolean; doiSaoToiDaNgay: number; choXinThemGio: boolean;
   ngoaiLeToiDaPhut: number; gioNgu: { tu: string; den: string }; gioHoc: GioHoc | null; homNay: Quy };
@@ -340,56 +341,8 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
   );
 }
 
-/** Bảng trượt «Cho <Con> thêm giờ» (thiết kế 14/11 them-6wjhze1d): «Đang còn N phút · chỉ tính hôm nay», 15 / 30 / 60 phút, nhắc sao con tự đổi được,
- *  nút «Cho thêm 30 phút · còn 48′». POST con/:id/them-gio. `conPhut`: phút chơi còn hôm nay (không có ⇒ bỏ phần «còn»).
- *  `xong(chu, grantId, phut)` ⇒ màn gọi hiện toast «Hoàn tác» (them-gio/:id/hoan-tac, 60 giây). */
-export function BangThemGio({ mo, dong, con, ten, sao, phutDoiDuoc, conPhut, xong }: {
-  mo: boolean; dong: () => void; con: string; ten: string; sao?: number | null; phutDoiDuoc?: number | null; conPhut?: number | null;
-  xong: (chu: string, grantId: string, phut: number) => void;
-}) {
-  const [phut, setPhut] = useState(30);
-  const { lam, loi, dangChay } = useLam();
-  const coCon = typeof conPhut === "number";
-  const cho = () => lam(async () => {
-    const r = await bm.goi<{ id: string; phut: number; quy: Quy }>(`con/${con}/them-gio`, { phut });
-    dong();
-    xong(`Đã cho ${ten} thêm ${phut} phút · còn ${r.quy.conPhut} phút hôm nay`, r.id, phut);
-  });
-  return (
-    <BangTruot mo={mo} dong={dong} tieu={`Cho ${ten} thêm giờ`} hinh="dongho">
-      <Chu kieu="dam" co={15} mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>{coCon ? `Đang còn ${conPhut} phút · chỉ tính hôm nay` : "Chỉ tính cho hôm nay."}</Chu>
-      {/* thiết kế .chon: 3 ô lõm cao 76 — số 28/800 + «phút»; ô chọn ngọc */}
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }} accessibilityRole="radiogroup">
-        {[15, 30, 60].map((x) => {
-          const on = x === phut;
-          return (
-            <Pressable key={x} onPress={() => setPhut(x)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${x} phút`}
-              style={[{ flex: 1, height: 76, borderRadius: 24, alignItems: "center", justifyContent: "center" },
-                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
-              <Chu kieu="rat" co={28} so mau={on ? "#fff" : M.chu} style={{ lineHeight: 30 }}>{String(x)}</Chu>
-              <Chu kieu="dam7" co={12.5} mau={on ? "#dcebe6" : "#565c59"}>phút</Chu>
-            </Pressable>
-          );
-        })}
-      </View>
-      {sao ? (
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
-          <Chu kieu="dam" co={13} mau="#565c59">Con có</Chu>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingVertical: 3, paddingLeft: 5, paddingRight: 9, borderRadius: 12, backgroundColor: "#fbecc0" }}>
-            <Icon3D ten="sao" co={16} /><Chu kieu="rat" co={13} mau="#6e4300">{`${sao} sao`}</Chu>
-          </View>
-          <Chu kieu="dam" co={13} mau="#565c59">{phutDoiDuoc ? `tự đổi ra ${phutDoiDuoc} phút được` : "tự đổi ra phút được"}</Chu>
-        </View>
-      ) : null}
-      <BaoLoi loi={loi} />
-      <Nut chu={coCon ? `Cho thêm ${phut} phút · còn ${conPhut! + phut}′` : `Cho thêm ${phut} phút`} rong dangChay={dangChay} bam={cho} />
-      <Nut chu="Thôi" loai="vien" rong bam={dong} />
-    </BangTruot>
-  );
-}
-
-/** Hoàn tác «Cho thêm giờ» (60 giây, đúng người cho). Lỗi (quá hạn) ⇒ báo lại. */
-export const hoanTacThemGio = (grantId: string) => bm.goi(`them-gio/${grantId}/hoan-tac`, {});
+/** Hoàn tác cho vay sao (60 giây, đúng người cho — 15/11 «Cho thêm giờ» đã thành «Cho vay sao», lib/so-sao › BangChoVay). Lỗi (quá hạn / đã tiêu) ⇒ báo lại. */
+export const hoanTacThemGio = (grantId: string) => bm.goi(`vay/${grantId}/hoan-tac`, {});
 
 /** «19:20 · trên Laptop» */
 export const cauLuc = (iso: string | null | undefined, may?: string | null) => `Lúc ${gioPhut(iso)}${may ? ` · trên ${may}` : ""}`;

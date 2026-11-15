@@ -430,6 +430,60 @@ coBan["GET yeu-cau/bo-qua?con=c1"] = coBan["GET yeu-cau/bo-qua"];
 coBan["POST yeu-cau/y7/them-luon"] = (b) => ({ ok: true, nhom: b?.nhom, muc: "minecraft.exe" });
 coBan["POST yeu-cau/y8/them-luon"] = (b) => ({ ok: true, nhom: b?.nhom, muc: "tiktok.com" });
 coBan["POST may/m1/ung-dung/dat"] = (b) => ({ muc: kb["GET may/m1/ung-dung"].ds.find((x) => x.khoa === b?.khoa)?.muc ?? "x", con: "c1", truoc: null });
+// ---------------------------------------------------------------- Sổ sao 15/11 (#263–#266, máy chủ PR #269 — docs/API.md «Sổ sao 15/11»): vay sao, số dư âm, 1 sao = 1 phút
+/** Trạng thái sao (so-sao.ts › tinhTrangThai): `tong` = sao tiêu được, `no` = nợ. */
+const saoGia = (tong, no, o = {}) => ({ sao: tong - no, no, phutCon: Math.max(0, tong), saoVayChuaTieu: Math.min(Math.max(0, tong), no), hetSao: tong <= 0, canhBaoNo: no > 1000, tongVay: no, daTraNo: 0, ...o });
+const SAO_C1 = saoGia(0, 20), SAO_C2 = saoGia(35, 0);
+/** Nhà có sổ sao: Bảo Anh (c1) tiêu hết, đang nợ 20 (−20 sao) · Bill (c2) 35 sao, không nợ. Kịch bản sổ sao trộn vào `kb` (dữ liệu chung giữ nguyên cho kịch bản cũ). */
+const SO_SAO = {
+  "GET gia-dinh": { ...coBan["GET gia-dinh"], con: coBan["GET gia-dinh"].con.map((x) => (x.id === "c1" ? { ...x, ...SAO_C1, soDu: 0 } : { ...x, ...SAO_C2, soDu: 35 })) },
+  "GET con/c1/quy": { quy: quyGia(0, 0, { tongPhut: 0, daDung: 42 }), sao: -20, soSao: SAO_C1, ngoaiLe: [] },
+  "GET con/c2/quy": { quy: quyGia(35, 35), sao: 35, soSao: SAO_C2, ngoaiLe: [] },
+  "GET con/c1/vi": { ...coBan["GET con/c1/vi"], ...SAO_C1, soDu: 0 },
+  "GET con/c1/bao-cao": { ...coBan["GET con/c1/bao-cao"], tuanNay: { ...coBan["GET con/c1/bao-cao"].tuanNay, saoKiem: 120, saoVay: 45, lanVay: 2, saoTieu: 435, saoTieuChoi: 385,
+    saoTieuQua: 50, saoTraNo: 25, xinVay: { so: 3, cho: 2 } } },
+  "GET nhat-ky": { soNgay: 7, choVay: { so: 4, sao: 75, theoNguoi: [{ ten: "Bà Hoa", so: 3, sao: 60 }, { ten: "Mẹ Lan", so: 1, sao: 15 }] },
+    ds: [{ luc: luc(30), ngay: "2026-11-15", con: "c1", tenCon: KEN, nguoi: "p3", tenNguoi: "Bà Hoa", tieu: "Bà Hoa cho vay 30 sao", phu: "Laptop", nhan: "Cho vay", kieu: "ngoai", delta: null }] },
+};
+const xemTruocGia = (st, ten) => ({ ten, soSao: 15, mucVay: [10, 15, 30], macDinh: 15, ...st, noSau: st.no + 15, cau: `= 15 phút chơi hoặc đổi quà · ${ten} sẽ nợ ${st.no + 15} sao`,
+  nhacNo: st.no > 1000 ? `${ten} đã nợ quá 1.000 sao (đang nợ ${st.no.toLocaleString("en-US").replace(/,/g, ".")})` : null, seCanhBao: st.no + 15 > 1000 });
+coBan["GET con/c1/cho-vay/xem-truoc"] = xemTruocGia(SAO_C1, KEN);
+coBan["GET con/c2/cho-vay/xem-truoc"] = xemTruocGia(SAO_C2, BILL);
+coBan["POST con/c1/cho-vay"] = (b) => ({ id: "v1", soSao: b?.soSao ?? 15, ...saoGia(b?.soSao ?? 15, 20 + (b?.soSao ?? 15)), canhBaoNo: null });
+coBan["POST con/c2/cho-vay"] = (b) => ({ id: "v2", soSao: b?.soSao ?? 15, ...saoGia(35 + (b?.soSao ?? 15), b?.soSao ?? 15), canhBaoNo: null });
+coBan["POST vay/v1/hoan-tac"] = { ok: true, soSaoHoan: 30, tron: true, ...SAO_C1 };
+coBan["POST vay/v4/hoan-tac"] = { ok: true, soSaoHoan: 20, tron: true, ...SAO_C1 };
+coBan["GET con/c1/vi-sao"] = { ten: KEN, ...SAO_C1, tongVay: 45, daTraNo: 25, saoGiu: 0, tyLe: { sao: 1, phut: 1 }, phutChoiHomNay: 42,
+  cau: { soDu: "−20 sao", phut: "Hết sao — xin Ba Mẹ cho vay sao nhé", no: "Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước" },
+  bayNgay: { saoKiem: 120, saoVay: 45, lanVay: 2, saoTraNo: 25, saoTieu: 140, saoTieuChoi: 90, saoTieuQua: 50, phutChoi: 90 },
+  lichSu: [
+    { id: "p1", delta: 10, loai: "nhiem_vu", kieu: "kiem", lyDo: "Nhiệm vụ Tự xếp cặp", nguoi: "p1", tenNguoi: "Mẹ Lan", luc: luc(30) },
+    { id: "p2", delta: -10, loai: "tra_no", kieu: "tra_no", lyDo: "Trả nợ 10 sao · Nhiệm vụ Tự xếp cặp", nguoi: "p1", tenNguoi: "Mẹ Lan", luc: luc(30) },
+    { id: "p3", delta: -20, loai: "choi", kieu: "choi", lyDo: "Chơi YouTube 20 phút", nguoi: null, tenNguoi: null, luc: luc(60) },
+    { id: "p4", delta: 15, loai: "vay", kieu: "vay", lyDo: "Ba Mẹ cho vay 15 sao · chơi", nguoi: "p1", tenNguoi: "Mẹ Lan", luc: luc(90) },
+    { id: "p5", delta: -50, loai: "doi_qua", kieu: "doi_qua", lyDo: "Đổi «Chọn món bữa tối»", nguoi: null, tenNguoi: null, luc: luc(1500) }] };
+coBan["GET con/c2/vi-sao"] = { ...coBan["GET con/c1/vi-sao"], ten: BILL, ...SAO_C2, tongVay: 0, daTraNo: 0, cau: { soDu: "35 sao", phut: "còn 35 sao = 35 phút chơi", no: null },
+  bayNgay: { saoKiem: 250, saoVay: 0, lanVay: 0, saoTraNo: 0, saoTieu: 230, saoTieuChoi: 230, saoTieuQua: 0, phutChoi: 230 }, lichSu: [] };
+/** Lời xin vay của Bảo Anh (c1, hết sao, đang nợ 20) — loai mới vay_sao, phut = số sao xin. */
+const YC_VAY = { ...yc("y4", "vay_sao", { child_id: "c1", ten_con: KEN, phut: 20, ly_do: "Con làm xong bài rồi ạ", created_at: luc(4) }), muc_dich: "choi" };
+coBan["GET yeu-cau/y4"] = { ...YC_VAY, trang_thai: "cho", soDu: 0, laVay: true, soSao: 20, mucDich: "choi", qua: null, ...SAO_C1, xemTruoc: { ...xemTruocGia(SAO_C1, KEN), nhacNo: null } };
+coBan["POST yeu-cau/y4/dong-y"] = (b) => ({ ngoaiLe: false, grantId: "v4", vay: { id: "v4", soSao: b?.soSao ?? 20, ...saoGia(b?.soSao ?? 20, 20 + (b?.soSao ?? 20)), canhBaoNo: null } });
+coBan["POST yeu-cau/y4/tu-choi"] = { ok: true };
+/** Kịch bản lời xin vay: chỉ lời xin y4 đang chờ. */
+const CO_XIN_VAY = { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"], yeuCau: [YC_VAY] } };
+/** Nợ > 1.000: bảng cho vay có dải nhắc, cảnh báo no_qua_1000 ở Thông báo + màn «Cảnh báo nợ sao». */
+const SAO_NO_LON = saoGia(0, 1020);
+const CANH_NO = { id: "a9", child_id: "c1", loai: "no_qua_1000", muc: "chu_y", noi_dung: `${KEN} đã nợ quá 1.000 sao (đang nợ 1.020)`, chi_tiet: { no: 1020, no_truoc: 990, vuot_moc: true },
+  da_doc: false, created_at: luc(5) };
+const NO_LON = { ...SO_SAO,
+  "GET con/c1/cho-vay/xem-truoc": xemTruocGia(SAO_NO_LON, KEN),
+  "GET con/c1/vi-sao": { ...coBan["GET con/c1/vi-sao"], ...SAO_NO_LON, bayNgay: { ...coBan["GET con/c1/vi-sao"].bayNgay, saoVay: 180, saoTraNo: 40 } },
+  "GET canh-bao": { ds: [CANH_NO, ...coBan["GET canh-bao"].ds] }, "POST canh-bao/a9/doc": { ok: true },
+  "GET thong-bao": { ...coBan["GET thong-bao"], ds: [tbDong("a:a9", "canh_bao_no", CANH_NO.noi_dung, `Cảnh báo · ${KEN}`, 5, { muc: "chu_y", moi: true, den: "/canh-bao/a9" }),
+    ...coBan["GET thong-bao"].ds] },
+};
+/** Máy của Bảo Anh đang khoá (Ba Mẹ khoá tới 20:10) — lời xin chơi hiện «Xin mở khoá máy». */
+const MAY_KHOA = { ...CO_XIN_VAY, "GET con/c1": { ...coBan["GET con/c1"], khoaNgay: true, khoaDen: luc(-30) }, "POST con/c1/khoa": { ok: true } };
 
 let kb = { ...coBan };          // "METHOD đường" → dữ liệu | { status, body } | "mat_mang"
 let matMang = false;
@@ -562,11 +616,18 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ob-xong", "/thiet-lap/xong", "Xong rồi!", { truoc: diTl("/thiet-lap/xong") }),
     M("bm-may-them", "/may/them?con=c1", "Máy mới"),
     // Hằng ngày (bm-hang-ngay — L2, L3, L12)
-    M("bm-trang", "/hom-nay", "Còn 18 phút chơi"),
+    M("bm-trang", "/hom-nay", "Cho vay sao"),
     M("bm-trang (trống)", "/hom-nay", "Chưa có con nào", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] } } }),
     M("bm-trang (mất mạng)", "/hom-nay", "Đang chờ mạng", { matMang: true }),
     M("bm-trang (bảng khoá máy)", "/hom-nay", "Thôi, để con chơi tiếp", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy"); } }),
-    M("bm-trang (bảng thêm giờ)", "/hom-nay", "chỉ tính hôm nay", { truoc: async () => { await di("/hom-nay"); await doi("Cho thêm giờ"); await bam("Cho thêm giờ"); } }),
+    M("bm-trang (bảng cho vay sao)", "/hom-nay", "Sao nhiệm vụ của con sẽ trả nợ trước", { kb: SO_SAO, truoc: async () => { await di("/hom-nay"); await doi("Cho vay sao"); await bam("Cho vay sao"); } }),
+    M("bm-trang (bảng cho vay · nợ > 1.000)", "/hom-nay", "Chỉ nhắc thôi", { kb: NO_LON, truoc: async () => { await di("/hom-nay"); await doi("Cho vay sao"); await bam("Cho vay sao"); } }),
+    M("bm-trang (ví âm)", "/hom-nay", "Đang nợ Ba Mẹ 20 sao", { kb: SO_SAO }),
+    M("bm-canh-bao-no", "/canh-bao/a9", "Không chặn việc cho vay", { kb: NO_LON }),
+    M("bm-vi (âm)", "/vi/c1", "Đang nợ Ba Mẹ 20 sao", { kb: SO_SAO }),
+    M("bm-xin-vay", "/yeu-cau?con=c1", "Xin Ba Mẹ cho vay 20 sao", { kb: CO_XIN_VAY }),
+    M("bm-xin-vay (chi tiết)", "/yeu-cau/y4", "Con xin vay sao", { kb: CO_XIN_VAY }),
+    M("bm-trang (máy khoá · xin mở khoá)", "/hom-nay", "Xin mở khoá máy", { kb: MAY_KHOA }),
     M("bm-trang (đang khoá)", "/hom-nay", "đang khoá", { kb: { "GET con/c1": { ...conCt("c1", KEN), cheDoChan: "chi_app_duoc_phep", khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
     M("bm-trang (giờ ngủ)", "/hom-nay", "đang giờ ngủ", { kb: { "GET con/c1/quy": { quy: quyGia(0, 60, { dangNgu: true }), sao: 145, ngoaiLe: [] } } }),
     M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
@@ -596,7 +657,6 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-qua-mua (voucher chưa trao luôn)", "/vi/qua-mua?ma=aiicafe_20k&con=c1", "mới trao luôn được", { kb: QUA_KHO }),
     M("admin-ho-tro", "/admin-ho-tro", "Đang chờ"),
     M("admin-ho-tro (của tôi)", "/admin-ho-tro", "AiiGrow đã cộng giúp", { truoc: async () => { await di("/admin-ho-tro"); await doi("Của tôi"); await bam("Của tôi"); } }),
-    M("bm-gio", "/gio/c1", "Giờ chơi của"),
     M("bm-ho-so-con", "/ho-so/c1", "Cài đặt của"),
     M("bm-ho-so-sua", "/ho-so/sua?id=c1", "Lưu"),
     M("bm-ho-so-con (liên kết AiiRob)", "/ho-so/c1", "Liên kết AiiRob"),
@@ -605,7 +665,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-man-hinh (trống)", "/man-hinh/c1", "Hôm nay con chưa dùng app nào", { kb: { "GET con/c1/man-hinh": { ten: KEN, lui: 0, dau: "2026-10-19", cuoi: "2026-10-25", homNay: "2026-10-23", tongGiay: 0, tbNgayGiay: 0, tuanTruocGiay: 0, tatCa: 0, theoNgay: [], theoMuc: [], ds: [] } } }),
     M("bm-yeu-cau (danh sách)", "/yeu-cau?con=c2", "Thêm 15 phút"),
     M("bm-yeu-cau-web", "/yeu-cau/y5", "Thêm YouTube cho", { kb: { "GET cho-duyet": CHO_DUYET_Y5() } }),
-    M("bm-them-gio", "/yeu-cau/y2", "Cho thêm theo cách nào"),
+    M("bm-xin-vay (máy cũ them_gio)", "/yeu-cau/y2", "Con xin vay sao"),
     M("bm-yeu-cau-xong", "/yeu-cau/xong?kieu=them_gio&ten=Bill&con=c2&phut=15&grant=g-moi", "15 phút"),
     M("bm-canh-bao", "/canh-bao", "Grow gợi ý"),
     M("bm-canh-bao-may", "/canh-bao/a1", "Đã nói chuyện · mở khoá trò chơi"),
@@ -742,7 +802,7 @@ const choGoi = async (dk, ms = 6000) => { for (let t = 0; t < ms; t += 100) { if
 const coChon = async (chon, ms = 6000) => { for (let t = 0; t < ms; t += 250) { if (await js(`!!document.querySelector(${JSON.stringify(chon)})`)) return true; await sleep(250); } return false; };
 
 // ---- khối A (fork A): kịch bản luồng nhóm A theo thiết kế chốt 05/11 (cần bamChon / choGoi / coChon định nghĩa TRƯỚC khối này)
-const HOM_NAY_TAI = "Còn 18 phút chơi";     // thẻ đầu Trang chủ «Hôm nay» (quỹ giờ chơi — con/c1/quy)
+const HOM_NAY_TAI = "Cho vay sao";     // thẻ đầu Trang chủ «Hôm nay» (15/11: số sao + «Cho vay sao»)
 
 await kichBan("Đăng ký bằng số điện thoại → mã 6 số → vào bước 1 thiết lập (tên con)", async () => {
   await dangKyToiOtp();
@@ -756,6 +816,8 @@ await kichBan("Đăng ký bằng số điện thoại → mã 6 số → vào b�
 });
 
 await kichBan("Duyệt nhiệm vụ: bằng chứng ⇒ «Duyệt · nhận 10 sao» kèm lời khen ⇒ màn +10 sao ⇒ Hoàn tác trừ lại", async () => {
+  // ví đọc trước + sau khi duyệt: 145 → 155 (mock tĩnh trả cùng một số ⇒ «155 → 155»)
+  kb["GET con/c1/vi"] = () => ({ ...coBan["GET con/c1/vi"], ...(nhatKy.some((x) => x.d === "luot/l1/duyet") ? { sao: 155, soDu: 155 } : { sao: 145, soDu: 145 }), no: 0 });
   await di("/duyet/l1");
   xet(await doi(`Duyệt · ${KEN} nhận 10 sao`), "nút duyệt nói rõ số sao");
   xet(await doi("Ảnh «Ảnh 1»"), "hiện nhãn ảnh bằng chứng");
@@ -792,31 +854,28 @@ await kichBan("Không đúng việc ⇒ đóng hẳn (tu-choi, không bổ sung)
   xet(await choGoi((x) => x.d === "luot/l3/tu-choi" && x.body?.boSung === false), "gửi tu-choi boSung=false");
 });
 
-await kichBan("Con xin thêm giờ: Ba Mẹ chọn «Trừ sao của con» ⇒ số sao đúng tỷ lệ ⇒ cho kèm lời nhắn ⇒ màn kết quả có Hoàn tác", async () => {
+await kichBan("Lời xin thêm giờ của máy cũ (them_gio) = xin vay 15 sao: chọn số sao + lời nhắn ⇒ dong-y {soSao} ⇒ kết quả có Hoàn tác", async () => {
   await di("/yeu-cau/y2");
-  xet(await doi("Bill xin thêm 15 phút chơi"), "tiêu đề lời xin");
-  xet(await doi("Hôm nay đã chơi 42/60 phút, còn 18 phút."), "nói rõ quỹ hôm nay");
-  xet(await doi("Cho 15 phút"), "mặc định đúng số phút con xin, Ba Mẹ tặng");
-  await bam("Trừ sao của con");
-  xet(await doi("10 sao = 10 phút · ví 32 → 17 sao"), "trừ sao theo tỷ lệ 10 sao = 10 phút");
-  await bam("Hôm nay đủ rồi con nhé");
-  await bam("Cho 15 phút · trừ 15 sao");
-  xet(await choGoi((x) => x.d === "yeu-cau/y2/dong-y" && x.body?.phut === 15 && x.body?.truDiem === true), "gửi dong-y 15 phút, trừ sao");
-  xet(await choGoi((x) => x.d === "con/c2/loi-khen" && x.body?.noiDung === "Hôm nay đủ rồi con nhé"), "gửi lời nhắn cho con");
-  xet(await doi("Đã cho Bill thêm 15 phút"), "màn kết quả");
-  xet(await doi("Hoàn tác"), "có Hoàn tác (grantId)");
+  xet(await doi("Bill xin Ba Mẹ cho vay 15 sao"), "tiêu đề lời xin vay");
+  xet(await doi("sẽ nợ 15 sao"), "nói rõ vay xong sẽ nợ bao nhiêu");
+  xet(await doi("Cho Bill vay 15 sao"), "mặc định đúng số sao con xin");
+  await bam("30 sao");
+  await bam("Nhớ làm nhiệm vụ trả nợ nhé");
+  await bam("Cho Bill vay 30 sao");
+  xet(await choGoi((x) => x.d === "yeu-cau/y2/dong-y" && x.body?.soSao === 30), "gửi dong-y soSao 30");
+  xet(await choGoi((x) => x.d === "con/c2/loi-khen" && x.body?.noiDung === "Nhớ làm nhiệm vụ trả nợ nhé"), "gửi lời nhắn cho con");
+  xet(await doi("Đã cho Bill vay 30 sao"), "màn kết quả");
   await bam("Hoàn tác");
-  xet(await choGoi((x) => x.d === "them-gio/g2/hoan-tac"), "Hoàn tác gọi them-gio/:id/hoan-tac");
+  xet(await choGoi((x) => x.d === "vay/g2/hoan-tac"), "Hoàn tác gọi vay/:id/hoan-tac");
 });
 
-await kichBan("Con xin mở ngoại lệ YouTube lúc khoá: không trừ giờ chơi / sao, phút kẹp theo tối đa ngoại lệ", async () => {
+await kichBan("Lời xin ngoại lệ của máy cũ (ngoai_le 30 phút) = xin vay 30 sao, không còn chữ «ngoại lệ»", async () => {
   await di("/yeu-cau/y3");
-  xet(await doi("Không trừ giờ chơi, không trừ sao"), "nói rõ không trừ");
-  xet(await doi("Bill xin mở YouTube 30 phút"), "tiêu đề ngoại lệ một app");
-  await bam("15 phút");
-  await bam("Cho 15 phút");
-  xet(await choGoi((x) => x.d === "yeu-cau/y3/dong-y" && x.body?.phut === 15 && x.body?.truDiem === undefined), "gửi ngoại lệ 15 phút, không trừ sao");
-  xet(await doi("Đã cho Bill mở YouTube 15 phút"), "màn kết quả ngoại lệ");
+  xet(await doi("Bill xin Ba Mẹ cho vay 30 sao"), "tiêu đề xin vay 30 sao");
+  xet(!(await chu()).includes("ngoại lệ"), "không còn chữ «ngoại lệ»");
+  await bam("15 sao");
+  await bam("Cho Bill vay 15 sao");
+  xet(await choGoi((x) => x.d === "yeu-cau/y3/dong-y" && x.body?.soSao === 15), "gửi dong-y soSao 15");
 });
 
 await kichBan("Mất mạng lúc mở Hôm nay ⇒ Rob chờ + nói rõ, có mạng lại tự tải", async () => {
@@ -948,6 +1007,8 @@ await kichBan("Thông báo: chuông có số ⇒ danh sách gộp ⇒ đánh d�
 });
 
 await kichBan("Ví sao: số sao = phút chơi, quà đủ / thiếu sao, Ba Mẹ trừ sao kèm lý do", async () => {
+  // kịch bản ví cũ: con KHÔNG nợ, 155 sao (mặc định coBan là Bảo Anh đang nợ 20 — kịch bản sổ sao)
+  kb["GET con/c1/vi-sao"] = { ...coBan["GET con/c1/vi-sao"], ...saoGia(155, 0), tongVay: 0, daTraNo: 0, cau: { soDu: "155 sao", phut: "còn 155 sao = 155 phút chơi", no: null } };
   await di("/vi/c1");
   xet(await doi("155 sao"), "ví hiện số sao");
   xet(await doi("= 155 phút chơi"), "đổi ra phút theo tỷ lệ 10 sao = 10 phút");
@@ -1013,38 +1074,34 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   xet(await doi("Xem và duyệt 3 việc"), "nút «Xem và duyệt N việc»");
   await bam("Rửa chén sau bữa tối");
   xet(await doi(`Duyệt · ${KEN} nhận 10 sao`), "việc vừa làm xong mở THẲNG màn bằng chứng (nút duyệt nói rõ số sao)");
-  // Bill: lời xin thêm giờ là mục gấp nhất
+  // Bill: lời xin vay (máy cũ them_gio 15 phút = vay 15 sao) là mục gấp nhất
   await di("/hom-nay");
   await doi("Khoá máy");
   await bam(BILL);
-  xet(await doi("Thêm 15 phút chơi"), "chọn Bill ⇒ lời xin thêm giờ có tiêu đề rõ số phút");
+  xet(await doi("Xin Ba Mẹ cho vay 15 sao"), "chọn Bill ⇒ lời xin vay có tiêu đề rõ số sao");
   xet(await doi("«Con đang xây dở nhà»"), "hiện lời nhắn của con");
   nhatKy.length = 0;
-  await bam("Cho 15 phút");
-  xet(await choGoi((x) => x.d === "yeu-cau/y2/dong-y" && x.body?.phut === 15), "Cho ⇒ đồng ý đúng số phút con xin");
-  xet(await doi(`Đã cho ${BILL} thêm 15 phút`), "màn kết quả «Đã cho <Con> thêm N phút»");
-  xet(await doi("chỉ tính hôm nay"), "màn kết quả nói rõ chỉ hôm nay");
+  await bam("Cho vay 15 sao");
+  xet(await choGoi((x) => x.d === "yeu-cau/y2/dong-y" && x.body?.soSao === 15), "Cho vay ⇒ đồng ý đúng số sao con xin");
+  xet(await doi(`Đã cho ${BILL} vay 15 sao`), "màn kết quả «Đã cho <Con> vay N sao»");
+  xet(await doi("Sao nhiệm vụ sẽ trả nợ trước"), "màn kết quả nói rõ trả nợ trước");
   await bam("Hoàn tác");
-  xet(await choGoi((x) => x.d === "them-gio/g2/hoan-tac"), "Hoàn tác ⇒ gọi them-gio/:grant/hoan-tac");
+  xet(await choGoi((x) => x.d === "vay/g2/hoan-tac"), "Hoàn tác ⇒ gọi vay/:grant/hoan-tac");
   await di("/hom-nay");
   await doi("Khoá máy");
   await bam(BILL);
-  await doi("Thêm 15 phút chơi");
+  await doi("Xin Ba Mẹ cho vay 15 sao");
   nhatKy.length = 0;
   await bamDau("Không cho");
   xet(await choGoi((x) => /^yeu-cau\/y[23]\/tu-choi$/.test(x.d) && x.body?.lyDo === "Ba Mẹ chưa cho lúc này"), "Không cho ⇒ từ chối kèm câu nhẹ nhàng");
   xet(await doi("Đã không cho lần này"), "màn kết quả «Đã không cho lần này»");
-  // lời xin ngoại lệ một app (Mở YouTube) là mục gấp nhất ⇒ phải «Xem rồi cho», không cho mù một chạm
+  // lời xin ngoại lệ cũ (YouTube 30 phút) = xin vay 30 sao — không còn «ngoại lệ»
   kb["GET cho-duyet"] = { ...coBan["GET cho-duyet"], yeuCau: coBan["GET cho-duyet"].yeuCau.filter((y) => y.id === "y3") };
   await di("/hom-nay");
   await doi("Khoá máy");
   await bam(BILL);
-  xet(await doi("Mở YouTube 30 phút"), "lời xin ngoại lệ một app có tiêu đề rõ app + phút");
-  nhatKy.length = 0;
-  await bam("Xem rồi cho");
-  xet(await doi("Không trừ giờ chơi, không trừ sao"), "ngoại lệ ⇒ mở màn chi tiết, không cho mù");
-  await sleep(600);
-  xet(!nhatKy.some((x) => x.d === "yeu-cau/y3/dong-y"), "chưa gửi đồng ý ngoại lệ khi chưa xem");
+  xet(await doi("Xin Ba Mẹ cho vay 30 sao"), "lời xin ngoại lệ cũ hiện thành xin vay 30 sao");
+  xet(!(await chu()).includes("ngoại lệ"), "không còn chữ «ngoại lệ»");
 });
 
 await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm được + cuộn được (TestFlight build 10: Trang chủ đứng)", async () => {
@@ -1053,7 +1110,7 @@ await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm đư
   // màn đang mở = chữ đặc trưng của tab nằm trong khung nhìn (màn tab khác vẫn gắn nhưng trượt ra ngoài / ẩn)
   // (lỗi gốc chỉ có ở bản native — react-native-screens + native driver; web không tái hiện được, kịch bản này giữ hành vi đổi tab ở web.)
   const tab = (t) => `[role="tab"][aria-label^="${t}"]`;
-  const DAU = { "Hôm nay": "Khoá máy", "Nhiệm vụ": "Việc mỗi ngày", "Báo cáo": "Sao và giờ thêm", "Cả nhà": "Người lớn trông con" };
+  const DAU = { "Hôm nay": "Khoá máy", "Nhiệm vụ": "Việc mỗi ngày", "Báo cáo": "Sao kiếm, sao vay", "Cả nhà": "Người lớn trông con" };
   const dangMo = async (t) => { for (const het = Date.now() + 5000; Date.now() < het;) {
     if (await js(`[...document.querySelectorAll("div,span")].some((e) => e.innerText?.trim().startsWith(${JSON.stringify(DAU[t])}) && e.children.length <= 1 && (() => { const b = e.getBoundingClientRect();
       return b.width > 0 && b.left >= 0 && b.right <= innerWidth + 1 && b.top < innerHeight && b.bottom > 0 && document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2) !== null && e.contains(document.elementFromPoint(b.x + b.width / 2, Math.min(b.y + b.height / 2, innerHeight - 1))); })())`)) return true;
@@ -1067,7 +1124,7 @@ await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm đư
   const r = await viTriYen(chip);
   xet(!!r?.trung, "chip Con không bị lớp nào che (elementFromPoint trúng chip)");
   if (r) await nhanChuot(r);
-  xet(await doi("Thêm 15 phút chơi"), "bấm chip Bill ⇒ hiện lời xin của Bill");
+  xet(await doi("Xin Ba Mẹ cho vay 15 sao"), "bấm chip Bill ⇒ hiện lời xin của Bill");
   // cuộn: lăn chuột giữa màn ⇒ khung cuộn của Hôm nay phải đổi vị trí
   const khung = `(() => [...document.querySelectorAll("div")].filter((e) => e.scrollHeight > e.clientHeight + 40 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)
     && e.innerText.includes("Khoá máy") && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().left > -5 && e.getBoundingClientRect().left < 5).pop())()`;
@@ -1111,23 +1168,16 @@ await kichBan("Hồ sơ Con: mục «Liên kết AiiRob» hiện mã <family_id>
   xet(!(await chu())?.includes("Liên kết AiiRob"), "lỗi tải mã: ẩn mục liên kết");
 });
 
-await kichBan("Hôm nay: thẻ «còn chơi X phút» (quỹ) + «Cho thêm giờ» bảng trượt ⇒ cộng quỹ + Hoàn tác; đang chơi; app mới chờ xếp; không chữ cũ", async () => {
+await kichBan("Hôm nay: thẻ số sao (145 sao, không nợ) + «Cho vay sao» bảng trượt; đang chơi; app mới chờ xếp; không chữ cũ", async () => {
   await di("/hom-nay");
-  xet(await doi("Còn 18 phút chơi"), "thẻ đầu: «Còn N phút chơi» theo quỹ hôm nay");
-  xet((await chu()).includes("trong 60 phút hôm nay"), "ghi tổng quỹ hôm nay");
+  xet(await doi("145 sao"), "thẻ đầu: «⭐ 145 sao» (chưa nợ)");
+  xet((await chu()).includes("= 145 phút chơi"), "dòng «= N phút chơi» (1 sao = 1 phút)");
   xet((await chu()).includes("Roblox · Laptop"), "dòng con đang làm gì (app đang chơi · máy)");
   { const cu = await chuCu(); xet(!cu.length, `không còn chữ cũ (${cu.join(", ")})`); }
-  await bam("Cho thêm giờ");
-  xet(await doi(`Cho ${KEN} thêm giờ`), "mở bảng «Cho <Con> thêm giờ»");
-  xet(await doi("Đang còn 18 phút · chỉ tính hôm nay"), "nói rõ còn bao nhiêu, chỉ tính hôm nay");
-  xet(await doi("tự đổi ra 30 phút được"), "nhắc số sao con tự đổi được (145 sao, tối đa 30 phút/ngày)");
-  await bamTrong('[role="radio"]', "15");   // ô «15 / phút» hai dòng (thiết kế .chon)
-  nhatKy.length = 0;
-  await bam("Cho thêm 15 phút · còn 33′");
-  xet(await choGoi((x) => x.d === "con/c1/them-gio" && x.m === "POST" && x.body?.phut === 15), "gửi them-gio đúng số phút");
-  xet(await doi(`Đã cho ${KEN} thêm 15 phút · còn 33 phút hôm nay`), "báo đã cho + phút còn mới");
-  await bam("Hoàn tác");
-  xet(await choGoi((x) => x.d === "them-gio/g-moi/hoan-tac"), "Hoàn tác ⇒ them-gio/:id/hoan-tac");
+  await bam("Cho vay sao");
+  xet(await doi(`Cho ${KEN} vay sao`), "mở bảng «Cho <Con> vay sao»");
+  xet(await doi(`Cho ${KEN} vay 15 sao`), "mặc định 15 sao");
+  await bam("Thôi");
   // app mới chưa xếp: chỉ hiện khi là mục gấp nhất (N8 — «Cần Ba Mẹ để ý» chỉ 1 mục)
   kb["GET tuan-thu"] = { ds: coBan["GET tuan-thu"].ds.map((m) => ({ ...m, baoVe: "day_du", baoVeThieu: [] })) };
   kb["GET canh-bao"] = { ds: [] };
@@ -1579,6 +1629,129 @@ await kichBan("Hộp thư hỗ trợ (admin): ?loc=cho ⇒ «4 chờ», «Gấp 
   await bam("Của tôi");
   xet(await choGoi((x) => x.d === "admin/ho-tro" && x.q === "?loc=cua_toi"), "tab «Của tôi» ⇒ ?loc=cua_toi");
   xet(await doi("AiiGrow đã cộng giúp"), "hiện thư mình đã trả lời");
+});
+
+// ---------------------------------------------------------------- Sổ sao 15/11 (#263–#266): ví âm, cho vay + Hoàn tác, lời xin vay, nợ > 1.000, máy khoá
+/** Chữ đã bỏ khỏi app Ba Mẹ từ 15/11 (bỏ quỹ ngày, ngoại lệ, «Giờ dùng máy»). */
+const CHU_BO_SAO = [/giờ chơi hôm nay/i, /(^|[^\p{L}])quỹ(?![\p{L}])(?! phiếu)/iu, /ngoại lệ/i, /ngoài quy tắc/i, /cho thêm giờ/i];
+const chuBoSao = async () => { const t = (await chu()) ?? ""; return CHU_BO_SAO.filter((r) => r.test(t)).map(String); };
+
+await kichBan("Sổ sao · Trang chủ ví âm: viên «−20 sao» + dòng nợ, viên sao từng con, không còn quỹ / thêm giờ", async () => {
+  kb = { ...kb, ...SO_SAO };
+  await di("/hom-nay");
+  xet(await doi("−20 sao"), "số âm «−20 sao» (dấu trừ thật)");
+  xet(await doi("Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước"), "dòng nợ dưới số");
+  xet(await doi("35 sao"), "dải avatar có viên sao của Bill");
+  xet(await doi("Cho vay sao"), "nút «Cho vay sao» thay «Cho thêm giờ»");
+  const bo = await chuBoSao();
+  xet(!bo.length, `không còn chữ đã bỏ ${bo.join(" ")}`);
+  await bam("Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước ›");
+  xet(await doi(`Ví sao của ${KEN}`), "dòng nợ ⇒ Ví sao");
+});
+
+await kichBan("Sổ sao · Cho vay: bảng 10/15/30 (mặc định 15) ⇒ chọn 30 ⇒ con/c1/cho-vay ⇒ «Đã cho … vay 30 sao» ⇒ Hoàn tác", async () => {
+  kb = { ...kb, ...SO_SAO };
+  await di("/hom-nay");
+  await doi("Cho vay sao"); await bam("Cho vay sao");
+  xet(await doi(`Cho ${KEN} vay sao`), "mở bảng «Cho <Con> vay sao»");
+  xet(await doi(`Cho ${KEN} vay 15 sao`), "mặc định 15 sao");
+  xet(await doi("sẽ nợ 35 sao"), "«vay xong sẽ nợ 35 sao»");
+  xet(!(await chu()).includes("đã nợ quá"), "nợ nhỏ ⇒ không có dải nhắc");
+  await bam("30");
+  xet(await doi(`Cho ${KEN} vay 30 sao`), "chọn 30 ⇒ nút đổi theo");
+  await bam(`Cho ${KEN} vay 30 sao`);
+  xet(await choGoi((x) => x.d === "con/c1/cho-vay" && x.m === "POST" && x.body?.soSao === 30), "gửi cho-vay soSao 30");
+  xet(await doi(`Đã cho ${KEN} vay 30 sao`), "màn kết quả them-3wp5ty1o");
+  xet(await doi("Nợ cũ 20 + vay 30 sao"), "dòng «Nợ cũ 20 + vay 30 sao»");
+  xet(await doi("−50 sao"), "viên nợ sau vay «−50 sao»");
+  await bam("Hoàn tác");
+  xet(await choGoi((x) => x.d === "vay/v1/hoan-tac" && x.m === "POST"), "Hoàn tác ⇒ vay/v1/hoan-tac");
+});
+
+await kichBan("Sổ sao · Cho vay khi đang nợ > 1.000: dải nhắc, vẫn cho vay được", async () => {
+  kb = { ...kb, ...NO_LON };
+  await di("/hom-nay");
+  await doi("Cho vay sao"); await bam("Cho vay sao");
+  xet(await doi("đã nợ quá 1.000 sao (đang nợ 1.020)"), "dải nhắc nợ > 1.000 (them-y1r1eidm)");
+  xet(await doi("Chỉ nhắc thôi · Ba Mẹ vẫn cho vay được"), "nói rõ không chặn");
+  xet(await doi("sẽ nợ 1.035 sao"), "số nợ sau vay có dấu chấm nghìn");
+  await bam(`Cho ${KEN} vay 15 sao`);
+  xet(await choGoi((x) => x.d === "con/c1/cho-vay" && x.body?.soSao === 15), "vẫn gửi cho-vay");
+});
+
+await kichBan("Sổ sao · Lời xin vay: «Xin Ba Mẹ cho vay 20 sao» ⇒ Cho vay 20 sao ⇒ dong-y {soSao: 20} ⇒ kết quả + Hoàn tác", async () => {
+  kb = { ...kb, ...CO_XIN_VAY };
+  await di("/yeu-cau?con=c1");
+  xet(await doi("Xin Ba Mẹ cho vay 20 sao"), "tiêu đề lời xin vay (them-a4nqjrmp)");
+  xet(await doi("hết sao, muốn chơi tiếp"), "dòng phụ «hết sao, muốn chơi tiếp»");
+  xet(await doi("Đang nợ Ba Mẹ 20 sao"), "viên sao + đang nợ của con");
+  await bam("Cho vay 20 sao");
+  xet(await choGoi((x) => x.d === "yeu-cau/y4/dong-y" && x.body?.soSao === 20), "gửi dong-y soSao 20");
+  xet(await doi(`Đã cho ${KEN} vay 20 sao`), "màn kết quả");
+  await bam("Hoàn tác");
+  xet(await choGoi((x) => x.d === "vay/v4/hoan-tac"), "Hoàn tác ⇒ vay/v4/hoan-tac");
+  await di("/yeu-cau/y4");
+  xet(await doi("Con xin vay sao"), "màn chi tiết lời xin vay");
+  xet(await doi("sẽ nợ 40 sao"), "chi tiết: «vay xong … sẽ nợ 40 sao»");
+  const bo = await chuBoSao();
+  xet(!bo.length, `chi tiết không còn chữ đã bỏ ${bo.join(" ")}`);
+});
+
+await kichBan("Sổ sao · Ví sao âm: thẻ «−20 sao», vay / trả / chơi, «1 sao = 1 phút»", async () => {
+  kb = { ...kb, ...SO_SAO };
+  await di("/vi/c1");
+  xet(await doi("−20"), "số dư âm");
+  xet(await doi("Đang nợ Ba Mẹ 20 sao"), "dòng đang nợ");
+  xet(await doi("vay 45"), "«Tuần này: vay 45 · đã trả 25 sao»");
+  xet(await doi("1 sao = 1 phút"), "tỷ lệ 1 sao = 1 phút");
+  xet(await doi("Ba Mẹ cho vay 15 sao"), "dòng lịch sử cho vay");
+  xet(await doi("Trả nợ 10 sao"), "dòng lịch sử trả nợ");
+  xet(await doi("Chơi YouTube 20 phút"), "dòng lịch sử chơi");
+  const bo = await chuBoSao();
+  xet(!bo.length, `ví không còn chữ đã bỏ ${bo.join(" ")}`);
+});
+
+await kichBan("Sổ sao · Cảnh báo nợ > 1.000: Thông báo «Nợ quá 1.000 sao» ⇒ màn «Cảnh báo nợ sao» ⇒ Cho vay thêm / Đã biết", async () => {
+  kb = { ...kb, ...NO_LON };
+  await di("/thong-bao");
+  xet(await doi("Nợ quá 1.000 sao"), "dòng «Nợ quá 1.000 sao» (them-0xf9hrgn)");
+  xet(await doi("đang nợ 1.020"), "dòng phụ «<Con> · đang nợ 1.020»");
+  await di("/canh-bao/a9");
+  xet(await doi("Cảnh báo nợ sao"), "màn them-5twxl6hf");
+  xet(await doi("vượt mốc sau lần cho vay 30 sao"), "nói rõ vượt mốc sau khoản vay");
+  xet(await doi("Không chặn việc cho vay"), "Ba Mẹ nên biết: không chặn");
+  xet(await doi("7 ngày qua: vay 180, trả 40 sao"), "7 ngày qua vay / trả");
+  await bam("Cho vay thêm");
+  xet(await doi("đã nợ quá 1.000 sao (đang nợ 1.020)"), "Cho vay thêm ⇒ bảng có dải nhắc");
+  await bam("Thôi");
+  await sleep(400);
+  await bam("Đã biết");
+  xet(await choGoi((x) => x.d === "canh-bao/a9/doc"), "Đã biết ⇒ đánh dấu đã đọc");
+});
+
+await kichBan("Sổ sao · Báo cáo + Nhật ký: «Sao kiếm, sao vay», «cho vay 4 lần · 75 sao»", async () => {
+  kb = { ...kb, ...SO_SAO };
+  await di("/bao-cao");
+  xet(await doi("Sao kiếm, sao vay"), "khối «Sao kiếm, sao vay» (them-gftgyspn)");
+  xet(await doi("45 sao vay"), "ô sao vay");
+  let bo = await chuBoSao();
+  xet(!bo.length, `báo cáo không còn chữ đã bỏ ${bo.join(" ")}`);
+  await di("/nhat-ky");
+  xet(await doi("cho vay 4 lần · 75 sao"), "dải «7 ngày qua cho vay 4 lần · 75 sao» (them-r3dsl3py)");
+  bo = await chuBoSao();
+  xet(!bo.length, `nhật ký không còn chữ đã bỏ ${bo.join(" ")}`);
+});
+
+await kichBan("Sổ sao · Máy đang khoá: lời xin chơi = «Xin mở khoá máy · chơi vẫn trừ sao» ⇒ Mở khoá (không cho vay)", async () => {
+  kb = { ...kb, ...MAY_KHOA };
+  await di("/hom-nay");
+  xet(await doi("Xin mở khoá máy"), "thẻ «Xin mở khoá máy» (them-0kwhgpq6)");
+  xet(await doi("chơi vẫn trừ sao"), "nói rõ chơi vẫn trừ sao");
+  xet(await doi("còn 0 sao = 0 phút"), "dòng «Đang khoá · còn N sao = N phút»");
+  await bam("Mở khoá");
+  xet(await choGoi((x) => x.d === "con/c1/khoa" && x.body?.khoa === false), "Mở khoá ⇒ con/c1/khoa {khoa: false}");
+  xet(await choGoi((x) => x.d === "yeu-cau/y4/tu-choi"), "đóng lời xin (không cho vay)");
+  xet(!nhatKy.some((x) => x.d === "yeu-cau/y4/dong-y"), "không gọi dong-y (không tạo nợ)");
 });
 
 ws.close();

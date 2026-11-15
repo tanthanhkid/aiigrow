@@ -88,8 +88,8 @@ test("thư viện: «Đã có» không chọn được, bấm lại thì bỏ", 
   assert.deepEqual(doiChonMau(["a"], { ma: "b", daCo: true }), ["a"]);
   assert.equal(cauThemQua(2, "Bảo Anh"), "Thêm 2 quà cho Bảo Anh");
   assert.equal(cauThemQua(0, "Bảo Anh"), "Chọn quà để thêm");
-  assert.equal(cauLuuQuaLanDau(7), "Lưu 7 quà, sang giờ chơi");
-  assert.equal(cauLuuQuaLanDau(0), "Chưa cần quà, sang giờ chơi");
+  assert.equal(cauLuuQuaLanDau(7), "Lưu 7 quà, sang chơi bằng sao");
+  assert.equal(cauLuuQuaLanDau(0), "Chưa cần quà, sang chơi bằng sao");
 });
 
 test("voucher: hạn dùng + số ngày còn", () => {

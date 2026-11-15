@@ -1,7 +1,7 @@
 // them-s416tfdj / them-x9x2u07e «Quà của X» (bước 3/5 Lần đầu, thiết kế chốt 14/11): 2 tab.
 //  · «🎟️ Voucher AiiGrow»: Ba Mẹ mua một lần, quà nằm sẵn trong kho của con (bảng giá thiết kế) — «Mua» ⇒ chi tiết them-hn2754ce (/thiet-lap/qua-mua).
 //  · «✏️ Ba Mẹ tự điền»: tên quà (gợi ý chip) + số sao 50/100/200/300 ⇒ «＋ Thêm quà» = POST qua {ten, sao, apCho:[con]}; danh sách «Quà Ba Mẹ đã điền».
-// 7 quà mặc định (N12) máy chủ đã gieo khi tạo Con (qua-bang-gia › gieoQuaMacDinh) — màn này không bỏ chúng. «Xong / Để sau» ⇒ Giờ chơi.
+// 7 quà mặc định (N12) máy chủ đã gieo khi tạo Con (qua-bang-gia › gieoQuaMacDinh) — màn này không bỏ chúng. «Xong / Để sau» ⇒ Chơi bằng sao (thiết kế 15/11 them-s416tfdj).
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
@@ -26,7 +26,7 @@ export default function ObQua() {
   const sang = () => router.push("/thiet-lap/gio");
   return (
     <Man dau={<DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc5 dang={2} />} />}
-      day={<><Nut chu="Xong, sang giờ chơi" rong bam={sang} /><LienKet chu="Để sau, chọn quà sau" bam={sang} /></>}>
+      day={<><Nut chu="Xong, sang chơi bằng sao" rong bam={sang} /><LienKet chu="Để sau, chọn quà sau" bam={sang} /></>}>
       <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 26, letterSpacing: -0.5, color: M.chu }}>Quà của {ten}</Text>
       <TabMuc ds={[{ ma: "voucher" as Tab, chu: "🎟️ Voucher AiiGrow" }, { ma: "tu_dien" as Tab, chu: "✏️ Ba Mẹ tự điền" }]} dang={tab} doi={setTab} />
       {tab === "voucher" ? <TabVoucher /> : <TabTuDien con={tl.conId} />}
@@ -37,7 +37,7 @@ export default function ObQua() {
 function TabVoucher() {
   return (
     <>
-      <Chu co={14} mau={M.chu2}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi.</Chu>
+      <Chu co={14} mau={M.chu2}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi, thiếu thì xin Ba Mẹ cho vay sao.</Chu>
       <TheDs>
         {VOUCHER.map((v, i) => (
           <Pressable key={v.ma} onPress={() => router.push({ pathname: "/thiet-lap/qua-mua", params: { ma: v.ma } })} accessibilityRole="button" accessibilityLabel={`${v.ten}, ${dong(v.gia)}, ${v.sao} sao. Mua`}

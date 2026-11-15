@@ -4,6 +4,8 @@ type TL = { conId?: string; tenCon?: string; nhom?: "nhi" | "teen"; nen?: "windo
   /** Lần đầu (thiết kế 05/11): năm sinh + màu hồ sơ, các Con đã lưu trong lượt này, lựa chọn màn Giờ chơi / Chọn app (gửi một lần POST thiet-lap). */
   namSinh?: number | null; mau?: number; daLuu?: { id: string; ten: string; mau?: number; namSinh?: number | null }[];
   cheDoChan?: "chi_app_duoc_phep" | "mo_het"; quy?: number; cuoiTuan?: number; ngu?: { tu: string; den: string };
+  /** 15/11 (bm1-ob-gio): sao tặng khởi đầu 0 / 20 / 30 / 60 Ba Mẹ chọn ở bước «Chơi bằng sao» — Con tạo ở bước tên với 0 sao, gửi kèm thiet-lap cuối mới tặng (một lần). */
+  saoKhoiDau?: number;
   apps?: AppChon[];
   /** Thiết kế 14/11 «Web cho <Con>» (them-3xbscpzm): tên miền Ba Mẹ chọn; `tinhGio` = trang giải trí (vàng «Tính giờ»). */
   webs?: WebChon[] };
@@ -26,16 +28,15 @@ export const nhomCua = (tinhGio: boolean) => (tinhGio ? "tinh_phut" : "khong_tin
 /** App trong lưới (có `ma`) hay app thêm theo tên. */
 export const coMa = (a: AppChon): a is { ma: string; ten: string } => "ma" in a;
 
-/** Thân POST thiet-lap (Lần đầu, màn Giờ chơi) — hàm thuần. 06/11 (B1): chế độ chặn CHỈ gửi khi Ba Mẹ đã chọn / màn đã nạp chế độ thật của Con;
- *  trước đây thiếu thì gửi chế độ mặc định ⇒ đi lại Lần đầu cho Con đang «Mở hết» là lặng lẽ đổi về «Theo danh sách» (máy Con khoá lại).
- *  Con mới tạo đã «Theo danh sách» sẵn ở máy chủ nên bỏ trống vẫn đúng mặc định.
- *  Quỹ cuối tuần: giữ số thật đã nạp (`cuoiTuan`) tới khi Ba Mẹ chọn quỹ khác. */
-export function thanThietLap(t: TL, mac: { quy: number; cuoiTuan: (p: number) => number; ngu: { tu: string; den: string } }) {
-  const quy = t.quy ?? mac.quy;
+/** Thân POST thiet-lap (Lần đầu) — hàm thuần. 06/11 (B1): chế độ chặn CHỈ gửi khi Ba Mẹ đã chọn / màn đã nạp chế độ thật của Con;
+ *  trước đây thiếu thì gửi «chi_app_duoc_phep» ⇒ đi lại Lần đầu cho Con đang «Mở hết» là lặng lẽ đổi về «Chặn app & web» (máy Con khoá lại).
+ *  Con mới tạo đã có «chi_app_duoc_phep» sẵn ở máy chủ (gia-dinh.ts › taoCon) nên bỏ trống vẫn đúng mặc định.
+ *  15/11 (#264): bỏ quỹ giờ chơi mỗi ngày — không gửi `gioChoi` nữa (máy chủ bỏ qua); `saoKhoiDau` chỉ gửi khi Ba Mẹ đã qua bước «Chơi bằng sao». */
+export function thanThietLap(t: TL, mac: { ngu: { tu: string; den: string }; quy?: number; cuoiTuan?: (p: number) => number }) {
   return {
     con: { id: t.conId, ten: t.tenCon },
-    gioChoi: { ngayThuong: quy, cuoiTuan: t.quy != null && t.cuoiTuan != null ? t.cuoiTuan : mac.cuoiTuan(quy) },
     ngu: t.ngu ?? mac.ngu,
+    ...(t.saoKhoiDau !== undefined ? { saoKhoiDau: t.saoKhoiDau } : {}),
     // 15/11 (#262): chế độ mới `cheDo` theo_danh_sach | mo_het (mã nội bộ cũ «chi_app_duoc_phep» = Theo danh sách); mỗi app / web một `nhom`
     ...(t.cheDoChan ? { cheDo: t.cheDoChan === "mo_het" ? "mo_het" : "theo_danh_sach" } : {}),
     ...(t.apps ? { apps: t.apps.map((a) => (coMa(a) ? { ma: a.ma } : { ten: a.ten, tinhGio: a.tinhGio, nhom: nhomCua(a.tinhGio) })) } : {}),
