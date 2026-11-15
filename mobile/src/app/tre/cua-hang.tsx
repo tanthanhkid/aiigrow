@@ -1,13 +1,15 @@
 // «Đổi quà» (cửa hàng) bản «Dịu» (con-dt-ngay 16 cdt-cua-hang, Nghi chốt 06/11 — L14): quà theo bảng giá sao (50 / 100 / 200 / 200 / 300 /
 // 500 / 800), mỗi quà: ô icon + tên + nhãn điều kiện nhỏ («Ba Mẹ trao», «Mã QR», «T7, CN», «Còn 1 bộ») + «Còn thiếu X sao» + thanh tới giá +
-// giá sao; đủ sao ⇒ thẻ nổi «Đủ sao rồi! Bấm để đổi»; quà đang giữ sao ⇒ «chờ Ba Mẹ trao». Đổi phút ở nút riêng «Đổi 10 sao lấy 10 phút» (L2).
+// giá sao; đủ sao ⇒ thẻ nổi «Đủ sao rồi! Bấm để đổi»; quà đang giữ sao ⇒ «chờ Ba Mẹ trao». 15/11 (#263): chạm quà chưa đủ ⇒ xin vay phần thiếu;
+// chân màn «Thiếu sao? Xin Ba Mẹ cho vay sao · Sao vay ghi nợ · sao nhiệm vụ trả nợ trước» (bỏ «Đổi 10 sao lấy 10 phút» — sao chính là phút).
 import { router } from "expo-router";
 import { View } from "react-native";
-import { kid, type NhaTreSao, type QuaTre } from "@/lib/api-tre";
-import { nhanQua, phuQua } from "@/lib/con-diu";
+import { kid, taiSao, type QuaTre } from "@/lib/api-tre";
+import { nhanQua, phuQua, soSao, soVN } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { Icon3D, type TenIcon } from "@/lib/ui";
-import { CamXuc, ChoD, ChuD, IcO, ManD, MatMangD, NutD, PillD, SaoD, TheD, ThanhD } from "@/lib/ui-diu";
+import { CamXuc, ChoD, ChuD, IcO, ManD, MatMangD, NutD, PillD, TheD, ThanhD } from "@/lib/ui-diu";
+import { NO, VienSao } from "@/lib/man-con";
 import { useTaiTre, useTre } from "@/lib/ui-tre";
 
 type QuaS3 = QuaTre & { hinh?: string | null; tonKho?: number | null; chiCuoiTuan?: boolean; choTraoTu?: string | null };
@@ -17,19 +19,20 @@ const icQua = (q: QuaS3): TenIcon => (q.hinh && HINH[q.hinh]) || (q.loai === "vo
 export default function CuaHang() {
   const { ten } = useTre();
   const { d, loi, matMang, tai, cu } = useTaiTre("cua-hang", async () => {
-    const [ch, nha] = await Promise.all([kid.goi<{ soDu: number; sao?: number; saoGiu?: number; qua: QuaS3[] }>("cua-hang"), kid.goi<NhaTreSao>("nha")]);
-    return { ch, nha };
+    const [ch, s] = await Promise.all([kid.goi<{ soDu: number; sao?: number; saoGiu?: number; qua: QuaS3[] }>("cua-hang"), taiSao().catch(() => null)]);
+    return { ch, s };
   });
   if (!d) return <ManD lui="/tre/vi-qua" tieu="Đổi quà"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
-  const sao = d.ch.sao ?? d.ch.soDu;
+  // sao TIÊU ĐƯỢC (đổi quà được) — cùng số máy chủ dùng cho `du` / «Còn thiếu» từng món; nợ hiện dòng riêng
+  const sao = d.s?.phutCon ?? d.ch.soDu ?? d.ch.sao ?? 0;
+  const no = d.s?.no ?? 0;
   const qua = d.ch.qua.filter((q) => q.loai !== "phut");
-  const q = d.nha.quy;
-  const doiPhut = !!q && q.doiSao.bat;
   return (
-    <ManD lui="/tre/vi-qua" tieu="Đổi quà" phai={<SaoD chu={`Có ${sao} sao`} />}
-      day={doiPhut ? <><NutD chu={`Đổi ${q!.tyLe.sao} sao lấy ${q!.tyLe.phut} phút`} ic="dongho" bam={() => router.push("/tre/choi")} />
-        <ChuD kieu="rat" co={13} mau={D.chu2} giua>Quà do Ba Mẹ đặt · đổi xong Ba Mẹ trao</ChuD></> : undefined}>
+    <ManD lui="/tre/vi-qua" tieu="Đổi quà" phai={<VienSao sao={sao} chu={`Có ${soSao(sao)}`} />}
+      day={<><NutD chu="Thiếu sao? Xin Ba Mẹ cho vay sao" loai="phu" ic="tin" bam={() => router.push("/tre/them-gio")} />
+        <ChuD kieu="rat" co={13} mau={D.chu2} giua>Sao vay ghi nợ · sao nhiệm vụ trả nợ trước</ChuD></>}>
       {matMang || cu ? <MatMangD chu={`Mất mạng rồi — xem được quà nhưng chưa đổi được; sao của ${ten} không bị trừ.`} /> : null}
+      {no > 0 ? <ChuD kieu="rat" co={13.5} mau={NO.chu}>{`Đang nợ Ba Mẹ ${soVN(no)} sao · sao nhiệm vụ trả nợ trước`}</ChuD> : null}
       {!qua.length ? (
         <CamXuc lv="canh-trong" co={130} tieu="Chưa có quà nào" phu={`Nhờ Ba Mẹ thêm quà cho ${ten} nhé.`} />
       ) : (
@@ -38,7 +41,7 @@ export default function CuaHang() {
           {qua.map((x) => {
             const dangGiu = !!x.choTraoTu;
             const nhan = nhanQua(x) ?? (x.loai === "qua" || x.loai === "dac_quyen" ? "Ba Mẹ trao" : null);
-            const bam = x.du && !dangGiu ? () => router.push(`/tre/doi/${x.id}`) : undefined;
+            const bam = !dangGiu ? () => router.push(`/tre/doi/${x.id}`) : undefined;     // chưa đủ ⇒ màn đổi hiện «Xin Ba Mẹ cho vay N sao»
             return (
               <TheD key={x.id} bam={bam} mong xanh={x.du && !dangGiu} nhanDoc={`${x.ten}, ${x.diem} sao. ${phuQua(x)}`}>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
@@ -50,7 +53,7 @@ export default function CuaHang() {
                         <ChuD kieu="rat" co={11.5} mau={D.chu2}>{nhan}</ChuD></View> : null}
                     </View>
                     <ChuD kieu="rat" co={13} mau={x.du && !dangGiu ? D.xanhD : D.saoInk}>{phuQua(x)}</ChuD>
-                    {!x.du && !dangGiu ? <ThanhD ti={x.diem ? sao / x.diem : 0} mau={D.sao} /> : null}
+                    {!x.du && !dangGiu ? <ThanhD ti={x.diem ? Math.max(0, sao) / x.diem : 0} mau={D.sao} /> : null}
                     {dangGiu ? <PillD chu="⏳ Chờ Ba Mẹ trao" loai="cho" /> : null}
                   </View>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>

@@ -1,6 +1,8 @@
 // «Máy đang khoá · Ai đang dùng máy?» (con-dt-khac 05 them-28ir0qe4, PIN theo bé 06/11 — L13): chạm tên ⇒ nhập PIN 4 số (/tre/pin);
 // bé chưa có PIN ⇒ vào thẳng (máy chủ trả `canDatPin`, Ba Mẹ được nhắc đặt). «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã mở máy (/tre/ba-me).
 // Máy chưa ghép ⇒ /tre/ghep. Ba Mẹ đang dùng máy (ho-so › baMeDung) ⇒ /tre/ba-me (màn «Ba Mẹ đang dùng»).
+// #267 (máy dùng chung nhiều bé): «Máy cả nhà · Android · đang khoá», mỗi bé hiện số sao (ho-so › con[].sao — âm khi nợ), «Sao, danh sách đi
+// theo bé đang dùng.»
 import { useState } from "react";
 import { Platform, Pressable, View } from "react-native";
 import { Redirect, router } from "expo-router";
@@ -10,6 +12,7 @@ import { useTre } from "@/lib/ui-tre";
 import { may, type HoSoBe, type HoSoMay } from "@/lib/api-tre";
 import { D } from "@/lib/diu";
 import { chuAvt } from "@/lib/con-diu";
+import { VienSao } from "@/lib/man-con";
 import { AvtD, ChoD, ChuD, LoiD, ManD, NutD, PillD } from "@/lib/ui-diu";
 
 export default function ChonTen() {
@@ -37,7 +40,7 @@ function DanhSach() {
   };
   return (
     <ManD day={<NutD chu="Ba Mẹ dùng máy" loai="phu" ic="khoa" bam={() => router.push("/tre/ba-me")} />}>
-      <View style={{ alignSelf: "flex-start" }}><PillD chu="Máy đang khoá" ic="khoa" /></View>
+      <View style={{ alignSelf: "flex-start" }}><PillD chu={d.tenMay ? `${d.tenMay} · đang khoá` : "Máy đang khoá"} ic="khoa" /></View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <Rob ten="rob-goc" co={110} />
         <View style={{ flex: 1, backgroundColor: D.the, borderRadius: 20, borderWidth: 1, borderColor: D.vien, padding: 14 }}>
@@ -56,13 +59,14 @@ function DanhSach() {
                 borderWidth: dang ? 2 : 1, borderColor: dang ? D.xanh : D.vien, boxShadow: "0px 2px 8px rgba(30,30,20,0.06)", opacity: pressed ? 0.9 : 1 })}>
               <AvtD ten={c.ten} i={i} co={80} chu={chuAvt(c.ten, ds.map((x) => x.ten))} />
               <ChuD kieu="den" co={18} dong={1}>{c.ten}</ChuD>
+              {typeof c.sao === "number" ? <VienSao sao={c.sao} /> : null}
             </Pressable>
           );
         })}
       </View>
       {dangChay ? <ChuD kieu="rat" co={14} mau={D.chu2} giua>Đang mở…</ChuD> : null}
       <LoiD loi={loiVao} />
-      <ChuD co={13.5} mau={D.chu2} giua>Chưa ai vào thì máy chỉ mở màn này.</ChuD>
+      <ChuD co={13.5} mau={D.chu2} giua>{"Chưa ai vào thì máy chỉ mở màn này.\nSao, danh sách đi theo bé đang dùng."}</ChuD>
       <VeBaMe />
     </ManD>
   );

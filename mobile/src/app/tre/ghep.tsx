@@ -2,6 +2,8 @@
 // Grow chào → «Máy này chưa ghép» (3 bước) → gõ mã 6 số (bàn phím to, «Mã còn N phút») hoặc quét QR trên máy Ba Mẹ → lỗi: mã chưa đúng
 // (còn N lần thử) / mã hết hạn (10 phút) / mất mạng → «Đã ghép» → máy dùng chung: giải thích tên + PIN → cho AiiGrow giữ giờ chơi
 // (Thời gian sử dụng / Truy cập dữ liệu sử dụng) → màn Chọn tên (máy khoá). POST /api/device/ghep {ma} hoặc ghep-goi {token} (QR).
+// #267: iPhone / iPad chỉ một bé — mã / gói cài cho nhiều bé ⇒ máy chủ trả 409 `ios_mot_con` + `conChon` (mã chưa bị đốt) ⇒ «Máy này của bé
+// nào?» chọn một bé rồi gửi lại kèm `con`.
 import { useEffect, useRef, useState } from "react";
 import { Linking, Platform, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
@@ -14,7 +16,9 @@ import { Icon3D } from "@/lib/ui";
 import { BanPhim, BuocD, CamXuc, ChuD, IcO, LoiD, ManD, MatMangD, NutD, O6, PillD, TheD, TieuD, useDemNguoc } from "@/lib/ui-diu";
 import { RobChao } from "@/lib/man-con";
 
-type Buoc = "chao" | "chua" | "nhap" | "qr" | LoiGhep | "chung" | "quyen" | "quyen_chua";
+type Buoc = "chao" | "chua" | "nhap" | "qr" | LoiGhep | "chung" | "quyen" | "quyen_chua" | "chon_be";
+type BeChon = { id: string; ten: string; avatar?: string };
+type GuiGhep = { ma?: string; goi?: string; con?: string };
 const MA_PHUT = 10;
 
 export default function Ghep() {
@@ -26,24 +30,27 @@ export default function Ghep() {
   const [tenMay, setTenMay] = useState<string | null>(null);
   const [dangChay, setDangChay] = useState(false);
   const [loi, setLoi] = useState<string | null>(null);
+  const [chonBe, setChonBe] = useState<{ b: GuiGhep; ds: BeChon[]; cau: string | null } | null>(null);
   // «Mã còn 9 phút»: đếm từ lúc con mở màn gõ mã (mã Ba Mẹ sống 10 phút)
   const [mocMa, setMocMa] = useState<number | null>(null);
   const conGiay = useDemNguoc(mocMa);
 
   const dangGui = useRef(false);      // chặn gửi trùng (gõ số thứ 6 + bấm nút cùng lúc)
-  const ghep = async (b: { ma?: string; goi?: string }) => {
+  const ghep = async (b: GuiGhep) => {
     if (dangGui.current) return;
     dangGui.current = true;
     setDangChay(true); setLoi(null);
     try {
       const r = b.ma
-        ? await may.goi<{ token: string; dungChung?: boolean; childName?: string }>("ghep", { ma: b.ma, nen: nenMay(), tenMay: "AiiGrow Con" })
-        : await may.goi<{ token: string; dungChung?: boolean; childName?: string }>("ghep-goi", { token: b.goi, nen: nenMay(), tenMay: "AiiGrow Con" });
+        ? await may.goi<{ token: string; dungChung?: boolean; childName?: string }>("ghep", { ma: b.ma, nen: nenMay(), tenMay: "AiiGrow Con", ...(b.con ? { con: b.con } : {}) })
+        : await may.goi<{ token: string; dungChung?: boolean; childName?: string }>("ghep-goi", { token: b.goi, nen: nenMay(), tenMay: "AiiGrow Con", ...(b.con ? { con: b.con } : {}) });
       await may.dat(r.token);
       setDungChung(!!r.dungChung);
       setTenMay(r.childName ?? null);
       setBuoc(r.dungChung ? "chung" : "quyen");
     } catch (e) {
+      const ds = e instanceof LoiApi && e.ma === "ios_mot_con" ? (e.them?.conChon as BeChon[] | undefined) : undefined;
+      if (Array.isArray(ds) && ds.length) { setChonBe({ b: { ma: b.ma, goi: b.goi }, ds, cau: e instanceof LoiApi ? e.message : null }); setBuoc("chon_be"); return; }
       const k = loaiLoiGhep(e instanceof LoiApi ? e.ma : undefined);
       if (k === "sai") setConLan((n) => Math.max(1, n - 1));
       if (k === "khac") setLoi(e instanceof LoiApi ? e.message : "Chưa ghép được — thử lại nhé.");
@@ -124,6 +131,20 @@ export default function Ghep() {
         </ManD>
       );
 
+    case "chon_be":
+      return (
+        <ManD lui={() => setBuoc("chua")} tieu="Máy này của bé nào?">
+          <ChuD co={15} mau={D.chu2}>iPhone, iPad chỉ dùng cho một bé. Con chạm vào tên của mình nhé.</ChuD>
+          <LoiD loi={loi} />
+          <View style={{ gap: 10 }}>
+            {(chonBe?.ds ?? []).map((c) => (
+              <NutD key={c.id} chu={c.ten} loai="phu" ic="nguoi" dangChay={dangChay} bam={() => chonBe && ghep({ ...chonBe.b, con: c.id })} />
+            ))}
+          </View>
+          <ChuD co={13.5} mau={D.chu3} giua>Sao, danh sách đi theo bé dùng máy này. Đổi bé thì Ba Mẹ đổi trong app.</ChuD>
+        </ManD>
+      );
+
     case "qr":
       return <QuetQr lui={() => setBuoc("chua")} go={moNhap} ghep={ghep} dangChay={dangChay} loi={loi} />;
 
@@ -134,7 +155,7 @@ export default function Ghep() {
           <TieuD chu="Máy dùng chung" />
           <ChuD co={15} mau={D.chu2}>Mỗi bé vào bằng tên + PIN của mình.</ChuD>
           <TheD style={{ gap: 14 }}>
-            <Dong ic="dongho" a="Giờ chơi riêng từng bé" b="Ai vào thì trừ giờ của người đó" />
+            <Dong ic="sao" a="Sao riêng từng bé" b="Ai vào thì trừ sao của người đó · 1 sao = 1 phút" />
             <Dong ic="nguoi" a="Chạm tên + nhập PIN" b="PIN 4 số do Ba Mẹ đặt" />
             <Dong ic="khoa" a="Không ai vào thì máy khoá" b="Ba Mẹ mở bằng mã Ba Mẹ" />
           </TheD>

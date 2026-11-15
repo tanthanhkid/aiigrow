@@ -177,7 +177,7 @@ export function ChipTen({ ten, i = 0, doiBe, dangXuat }: { ten: string; i?: numb
         </View>
         <NutD chu="Đổi bé" loai="phu" ic="nguoi" bam={() => { setMo(false); doiBe(); }} />
         <NutD chu="Đăng xuất" ic="thoat" bam={() => { setMo(false); dangXuat(); }} />
-        <ChuD co={13.5} mau={D.chu2} giua>{"Đăng xuất thì máy khoá lại.\nVào lại bằng tên + PIN."}</ChuD>
+        <ChuD co={13.5} mau={D.chu2} giua>{`Đổi bé hay đăng xuất đều dừng tính phút của ${ten}.\nVào lại bằng tên + PIN.`}</ChuD>
         <NutD chu="Ở lại" loai="chu" bam={() => setMo(false)} />
       </TamTruot>
     </>

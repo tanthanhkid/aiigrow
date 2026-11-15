@@ -1,5 +1,5 @@
-// «Trang này chưa mở» bản «Dịu» (con-dt-chan 01 cdt-chan-web, 02 «Trang này luôn bị chặn», BRD 6.4, FR-05.01): «Ba Mẹ chưa cho phép trang này.
-// Con xin thử nhé!», thẻ «youtube.com · Cần Ba Mẹ cho phép · Chưa mở», «Xin Ba Mẹ mở YouTube» (1 chạm mở form điền sẵn, 1 chạm gửi) / «Về trang
+// «Trang web chưa có trong danh sách» bản «Dịu» (con-dt-chan 01 cdt-chan-web, 02 «Trang này luôn bị chặn», App & web 15/11 #262): «Trang này chưa
+// có trong danh sách. Con xin Ba Mẹ mở nhé!», thẻ «youtube.com · Chưa có trong danh sách», «Xin Ba Mẹ mở YouTube» (1 chạm mở form điền sẵn, 1 chạm gửi) / «Về trang
 // chính». `?cam=1` (web người lớn / cờ bạc — máy chủ trả `web_cam`) ⇒ «AiiGrow luôn chặn trang này. Không xin mở được.» + «Thấy lạ? Nhắn Ba Mẹ».
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
@@ -24,15 +24,14 @@ export default function ChanWeb() {
   return (
     <ManD lui="/tre/nha" day={<><NutD chu={`Xin Ba Mẹ mở ${tenDep}`} ic="tin" bam={() => router.replace(`/tre/xin-phep?loai=mo_web&gia=${encodeURIComponent(trang)}&tu=chan-web`)} />
       <NutD chu="Về trang chính" loai="chu" bam={() => router.replace("/tre/nha")} /></>}>
-      <CamXuc lv="chi" co={130} tieu="Trang này chưa mở" phu="Ba Mẹ chưa cho phép trang này. Con xin thử nhé!" />
+      <CamXuc lv="chi" co={130} tieu="Trang web" phu="Trang này chưa có trong danh sách. Con xin Ba Mẹ mở nhé!" />
       <TheD>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <IcO ic="web" co={52} />
           <View style={{ flex: 1, gap: 4 }}>
             <ChuD kieu="den" co={17} dong={1}>{trang}</ChuD>
-            <ChuD co={13.5} mau={D.chu2}>Cần Ba Mẹ cho phép</ChuD>
+            <ChuD co={13.5} mau={D.chu2}>Chưa có trong danh sách</ChuD>
           </View>
-          <PillD chu="Chưa mở" />
         </View>
       </TheD>
     </ManD>

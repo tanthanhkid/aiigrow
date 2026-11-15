@@ -1,75 +1,64 @@
-// «Xin thêm giờ» bản «Dịu» (con-dt-xin 05 cdt-ios-xin-them — L2/L3): vòng «18 phút · Giờ chơi còn lại · Đã chơi 42 / 60 phút», «Con xin thêm
-// 10 / 20 / 30 phút» (Thanh chốt 05/11), «Nhắn Ba Mẹ» (không bắt buộc), thẻ «Con có 30 sao · Đổi ngay, không cần chờ» + nút «Đổi sao»,
-// «Xin Ba Mẹ thêm 20 phút» (POST /api/kid/yeu-cau {loai: them_gio}), «Xin mở app ›». Giờ ngủ / Ba Mẹ khoá / giờ học ⇒ chỉ xin ngoại lệ.
+// «Xin Ba Mẹ cho vay sao» bản «Dịu» (con-dt-xin 05 cdt-ios-xin-them, sổ sao 15/11 #263 #265 — thay «Xin thêm giờ» theo phút): số dư hiện tại
+// («0 sao · Hết sao rồi · 0 sao = 0 phút», «Hôm nay chơi 42 phút · −42 sao»), «Con xin vay 10 / 15 / 30 sao» (mặc định 15), «= 15 phút chơi hoặc
+// đổi quà · con sẽ nợ 15 sao», «Nhắn Ba Mẹ» (không bắt buộc), «Sao vay là nợ · Sao nhiệm vụ trả nợ trước», «Xin Ba Mẹ cho vay 15 sao»
+// (POST /api/kid/xin-vay {soSao, mucDich, quaId?, loiNhan}; máy chủ cũ ⇒ lời xin them_gio cùng số), «Xin mở app ›». Đường giữ tên cũ
+// /tre/them-gio (agent + màn khác trỏ vào). `?soSao=&mucDich=qua&quaId=` từ màn Đổi quà (vay đúng phần thiếu).
 import { useState } from "react";
-import { Redirect, router } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { TextInput, View } from "react-native";
-import { LoiApi } from "@/lib/api";
-import { kid, lyDoKhoa, type QuyCon } from "@/lib/api-tre";
+import { taiSao, xinVay } from "@/lib/api-tre";
+import { cauVay, soSao, soVN } from "@/lib/con-diu";
 import { D, FD } from "@/lib/diu";
 import { Icon3D, useLam } from "@/lib/ui";
-import { CamXuc, ChoD, ChonD, ChuD, LoiD, ManD, NutD, TheD, VongD } from "@/lib/ui-diu";
+import { ChoD, ChonD, ChuD, LoiD, ManD, NutD, TheD } from "@/lib/ui-diu";
+import { NO } from "@/lib/man-con";
 import { useTaiTre } from "@/lib/ui-tre";
 
-const PHUT_XIN = [10, 20, 30];
-
-export default function ThemGio() {
-  const { d, loi, matMang, tai } = useTaiTre("quy", () => kid.goi<QuyCon>("quy"));
-  const [phut, setPhut] = useState(20);
+export default function XinVay() {
+  const p = useLocalSearchParams<{ soSao?: string; mucDich?: string; quaId?: string; ten?: string }>();
+  const { d, loi, matMang, tai } = useTaiTre("sao", taiSao);
+  const xinTheo = Math.round(Number(p.soSao) || 0);
+  const [chon, setChon] = useState<number | null>(xinTheo > 0 && xinTheo <= 1000 ? xinTheo : null);
   const [nhan, setNhan] = useState("");
   const { dangChay, loi: loiLam, lam } = useLam();
-  if (!d) return <ManD lui={true} tieu="Xin thêm giờ"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
-  const q = d.quy;
-  const ly = lyDoKhoa(q);
-  if (ly) return <Redirect href={`/tre/gio-ngu?ly=${ly}`} />;
+  if (!d) return <ManD lui={true} tieu="Xin Ba Mẹ cho vay sao"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
+  if (d.khoa) return <Redirect href="/tre/gio-ngu?ly=ba_me_khoa" />;
+  const soVay = chon ?? d.vayMacDinh;
+  const muc = [...new Set([...d.mucVay, soVay])].sort((a, b) => a - b);
+  const laQua = p.mucDich === "qua";
   const xin = () => lam(async () => {
-    try {
-      const r = await kid.goi<{ id: string }>("yeu-cau", { loai: "them_gio", phut, lyDo: nhan.trim() });
-      router.replace(`/tre/yeu-cau?moi=${r.id}`);
-    } catch (e) {
-      if (e instanceof LoiApi && e.ma === "chi_ngoai_le") { await tai(); return; }
-      throw e;
-    }
+    const r = await xinVay({ soSao: soVay, mucDich: laQua ? "qua" : "choi", ...(laQua && p.quaId ? { quaId: p.quaId } : {}), loiNhan: nhan.trim() });
+    router.replace(`/tre/yeu-cau?moi=${r.id}`);
   }, { hangDoi: true });
-  if (!q.choXinThem && !q.doiSao.bat) {
-    return (
-      <ManD lui={true} giua day={<NutD chu="Làm nhiệm vụ" bam={() => router.replace("/tre/nhiem-vu")} />}>
-        <CamXuc lv="chi" co={140} tieu="Hôm nay không thêm giờ được" phu="Ba Mẹ đã tắt đổi sao và xin thêm giờ. Mai chơi tiếp nhé!" />
-      </ManD>
-    );
-  }
+  const am = d.sao < 0;
   return (
-    <ManD lui={true} tieu="Xin thêm giờ" day={<><LoiD loi={loiLam} />
-      {q.choXinThem ? <NutD chu={`Xin Ba Mẹ thêm ${phut} phút`} ic="gui" bam={xin} dangChay={dangChay} /> : null}
+    <ManD lui={true} tieu="Xin Ba Mẹ cho vay sao" day={<><LoiD loi={loiLam} />
+      <NutD chu={`Xin Ba Mẹ cho vay ${soVN(soVay)} sao`} ic="gui" bam={xin} dangChay={dangChay} />
       <NutD chu="Xin mở app ›" loai="chu" bam={() => router.push("/tre/xin-phep?loai=cai_app")} /></>}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-        <VongD ti={q.tongPhut ? q.conPhut / q.tongPhut : 0} so={String(q.conPhut)} don="phút" co={96} day={10} />
-        <View style={{ flex: 1 }}>
-          <ChuD kieu="den" co={18}>Giờ chơi còn lại</ChuD>
-          <ChuD kieu="rat" co={14} mau={D.chu2}>{`Đã chơi ${q.daDung} / ${q.tongPhut} phút`}</ChuD>
-        </View>
-      </View>
-      {q.choXinThem ? <>
-        <ChuD kieu="den" co={15}>Con xin thêm</ChuD>
-        <ChonD nhan="Con xin thêm bao lâu" ds={PHUT_XIN.map((x) => ({ gia: x, chu: `${x} phút` }))} gia={phut} doi={setPhut} />
-        <TheD mong>
-          <ChuD kieu="rat" co={13} mau={D.chu2}>Nhắn Ba Mẹ (không bắt buộc)</ChuD>
-          <TextInput value={nhan} onChangeText={setNhan} maxLength={100} accessibilityLabel="Nhắn Ba Mẹ" placeholder="vd Con làm nốt bài với bạn ạ"
-            placeholderTextColor={D.chu3} style={{ fontFamily: FD.dam, fontSize: 16, color: D.chu, minHeight: 28, padding: 0 }} />
-        </TheD>
-      </> : null}
-      {q.doiSao.bat ? (
-        <TheD vang mong>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Icon3D ten="sao" co={34} />
-            <View style={{ flex: 1 }}>
-              <ChuD kieu="den" co={16} mau={D.saoInk}>{`Con có ${d.sao} sao`}</ChuD>
-              <ChuD kieu="rat" co={13} mau={D.saoInk}>Đổi ngay, không cần chờ</ChuD>
-            </View>
-            <NutD chu="Đổi sao" loai="phu" nho style={{ alignSelf: "center", paddingHorizontal: 18 }} bam={() => router.push("/tre/choi")} />
+      <TheD vang={!am} style={am ? { backgroundColor: NO.nen, borderColor: NO.vien } : undefined}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Icon3D ten="sao" co={56} />
+          <View style={{ flex: 1 }}>
+            <ChuD kieu="den" co={30} mau={am ? NO.chu : D.saoInk} so>{soSao(d.sao)}</ChuD>
+            <ChuD kieu="rat" co={14} mau={am ? NO.chu : D.saoInk}>{d.hetSao ? "Hết sao rồi · 0 sao = 0 phút" : `${soVN(d.phutCon)} sao = ${soVN(d.phutCon)} phút`}</ChuD>
           </View>
-        </TheD>
-      ) : null}
+        </View>
+        {d.cau.no ? <ChuD kieu="rat" co={13} mau={NO.chu}>{d.cau.no}</ChuD> : null}
+        {d.phutHomNay ? <ChuD co={13} mau={am ? NO.chu : D.saoInk}>{`Hôm nay chơi ${d.phutHomNay} phút · −${d.phutHomNay} sao`}</ChuD> : null}
+      </TheD>
+      {laQua && p.ten ? <ChuD kieu="rat" co={14.5} mau={D.chu2}>{`Để đổi ${p.ten}`}</ChuD> : null}
+      <ChuD kieu="den" co={15}>Con xin vay</ChuD>
+      <ChonD nhan="Con xin vay bao nhiêu sao" ds={muc.map((x) => ({ gia: x, chu: `${soVN(x)} sao` }))} gia={soVay} doi={setChon} />
+      <ChuD kieu="rat" co={14} mau={D.xanhD}>{cauVay(soVay, d.no)}</ChuD>
+      <TheD mong>
+        <ChuD kieu="rat" co={13} mau={D.chu2}>Nhắn Ba Mẹ (không bắt buộc)</ChuD>
+        <TextInput value={nhan} onChangeText={setNhan} maxLength={100} accessibilityLabel="Nhắn Ba Mẹ" placeholder="vd Con làm nốt bài với bạn ạ"
+          placeholderTextColor={D.chu3} style={{ fontFamily: FD.dam, fontSize: 16, color: D.chu, minHeight: 28, padding: 0 }} />
+      </TheD>
+      <TheD mong style={{ backgroundColor: NO.nen, borderColor: NO.vien }}>
+        <ChuD kieu="den" co={15} mau={NO.chu}>Sao vay là nợ</ChuD>
+        <ChuD kieu="rat" co={13.5} mau={NO.chu}>Sao nhiệm vụ trả nợ trước</ChuD>
+      </TheD>
     </ManD>
   );
 }

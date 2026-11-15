@@ -1,9 +1,12 @@
 // «Được duyệt» bản «Dịu» (con-dt-ngay 12 cdt-duoc-duyet): «+10 sao» to, «Giỏi quá! Ba Mẹ duyệt <việc> rồi!», sao cũ → sao mới, lời Ba Mẹ
-// trong thẻ, «Đổi 10 sao lấy 10 phút» / «Về Hôm nay»; Con gửi lại một biểu cảm (phản hồi lời khen). Hiện một lần mỗi lượt.
+// trong thẻ, «Về Hôm nay»; Con gửi lại một biểu cảm (phản hồi lời khen). Hiện một lần mỗi lượt. 15/11 (#263): đang nợ ⇒ «−20 → −10 sao»,
+// «Trả nợ 10 sao · còn nợ Ba Mẹ 10 sao», «Làm thêm việc trả nợ» (sao nhiệm vụ trả nợ trước); bỏ «Đổi 10 sao lấy 10 phút».
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
-import { ghiDaXem, kid, type LuotTre, type NhaTreSao, type ToiTre } from "@/lib/api-tre";
+import { ghiDaXem, kid, taiSao, type LuotTre, type NhaTreSao, type ToiTre } from "@/lib/api-tre";
+import { soSao, soVN, traNoKhiDuyet } from "@/lib/con-diu";
+import { NO } from "@/lib/man-con";
 import { D, FD } from "@/lib/diu";
 import { Rob } from "@/lib/ui";
 import { ChoD, ChuD, ManD, NutD, TheD, TieuD } from "@/lib/ui-diu";
@@ -14,35 +17,37 @@ const BIEU_CAM = ["😍", "🤗", "💪"];
 export default function DuocDuyet() {
   const { luot } = useLocalSearchParams<{ luot: string }>();
   const { d, loi, matMang, tai } = useTaiTre(`duyet-${luot}`, async () => {
-    const [nha, ls, toi] = await Promise.all([kid.goi<NhaTreSao>("nha"), kid.goi<{ ds: LuotTre[] }>("luot"), kid.goi<ToiTre>("toi")]);
+    const [nha, ls, toi, s] = await Promise.all([kid.goi<NhaTreSao>("nha"), kid.goi<{ ds: LuotTre[] }>("luot"), kid.goi<ToiTre>("toi"), taiSao().catch(() => null)]);
     const l = ls.ds.find((x) => x.id === luot) ?? null;
     const khen = l?.loi_khen ? toi.loiKhen.find((x) => x.noi_dung === l.loi_khen) ?? null : null;
-    return { nha, l, khen };
+    return { nha, l, khen, s };
   });
   const [chon, setChon] = useState<string | null>(null);
   useEffect(() => { ghiDaXem(luot); }, [luot]);
   if (!d) return <ManD><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
   const diem = d.l?.diem ?? 0;
-  const sao = d.nha.sao ?? d.nha.soDu;
-  const q = d.nha.quy;
+  const sao = d.s?.sao ?? d.nha.sao ?? d.nha.soDu;
+  const tn = traNoKhiDuyet(sao, diem);
+  const coNo = tn.traNo > 0 || tn.conNo > 0;
   const ve = async (den: string) => {
     if (chon && d.khen) await kid.goi(`loi-khen/${d.khen.id}/phan-hoi`, { phanHoi: chon }).catch(() => {});
     router.replace(den as never);
   };
   return (
     <ManD giua day={<>
-      {q?.doiSao.bat ? <NutD chu={`Đổi ${q.tyLe.sao} sao lấy ${q.tyLe.phut} phút`} ic="dongho" bam={() => ve("/tre/choi")} /> : null}
-      <NutD chu="Về Hôm nay" loai={q?.doiSao.bat ? "chu" : "chinh"} bam={() => ve("/tre/nha")} />
+      {tn.conNo > 0 ? <NutD chu="Làm thêm việc trả nợ" ic="sao" bam={() => ve("/tre/nhiem-vu")} /> : null}
+      <NutD chu="Về Hôm nay" loai={tn.conNo > 0 ? "chu" : "chinh"} bam={() => ve("/tre/nha")} />
     </>}>
       <View style={{ alignItems: "center", gap: 6 }}>
         <Rob ten="xong" co={150} />
         <Text style={{ fontFamily: FD.den, fontSize: 44, color: D.saoInk }}>{`+${diem} sao`}</Text>
         <TieuD chu={`Giỏi quá! Ba Mẹ duyệt ${d.l?.ten ?? "nhiệm vụ"} rồi!`} nho giua />
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 }}>
-          <ChuD kieu="den" co={20} mau={D.chu3} so>{String(Math.max(0, sao - diem))}</ChuD>
+          <ChuD kieu="den" co={20} mau={coNo ? NO.chu : D.chu3} so>{soVN(tn.truoc)}</ChuD>
           <ChuD kieu="den" co={18} mau={D.chu3}>→</ChuD>
-          <ChuD kieu="den" co={22} mau={D.saoInk} so>{`${sao} sao`}</ChuD>
+          <ChuD kieu="den" co={22} mau={sao < 0 ? NO.chu : D.saoInk} so>{soSao(sao)}</ChuD>
         </View>
+        {tn.traNo > 0 ? <ChuD kieu="rat" co={14} mau={NO.chu} giua>{`Trả nợ ${soVN(tn.traNo)} sao · ${tn.conNo > 0 ? `còn nợ Ba Mẹ ${soVN(tn.conNo)} sao` : "hết nợ rồi!"}`}</ChuD> : null}
       </View>
       {d.l?.loi_khen ? (
         <TheD>

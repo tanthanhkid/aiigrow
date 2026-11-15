@@ -1,7 +1,7 @@
-// node --test src/lib/con-diu.test.ts — luật thuần phía Con bản «Dịu» (QR ghép máy, lỗi ghép, PIN theo bé, đổi sao, quà).
+// node --test src/lib/con-diu.test.ts — luật thuần phía Con bản «Dịu» (QR ghép máy, lỗi ghép, PIN theo bé, sổ sao 15/11, quà).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chipDoiSao, chuAvt, choTuHoSo, ketQuaPin, loaiLoiGhep, maTuQr, nhanQua, phuQua, quaGanNhat, thuGio } from "./con-diu.ts";
+import { cauNo, cauPhut, cauVay, chuAvt, choTuHoSo, ketQuaPin, loaiLoiGhep, maTuQr, nhanQua, phuQua, quaGanNhat, saoTuMayChu, soSao, soVN, thuGio, tiVong, traNoKhiDuyet, dongLichSu } from "./con-diu.ts";
 
 test("QR ghép máy: link cài có mã 6 số / chỉ token gói / 6 số trần / QR lạ", () => {
   assert.deepEqual(maTuQr("https://aiigrow.aiilab.vn/tai?g=abc_123&ma=482913"), { ma: "482913", goi: "abc_123" });
@@ -41,14 +41,48 @@ test("ho-so: bé đang bị chờ ⇒ mốc hết chờ", () => {
   assert.equal(choTuHoSo({}, now), null);
 });
 
-test("chip đổi sao: 10 sao = 10 phút; thiếu sao / quá phần còn đổi được hôm nay", () => {
-  assert.deepEqual(chipDoiSao(30, { sao: 10, phut: 10 }, 60), [
-    { sao: 10, phut: 10, tru: 10, thieu: false, quaHan: false }, { sao: 20, phut: 20, tru: 20, thieu: false, quaHan: false },
-    { sao: 30, phut: 30, tru: 30, thieu: false, quaHan: false }]);
-  // 15 sao = 10 phút: chip 10 sao ⇒ 6 phút, máy chủ trừ 9 sao
-  assert.deepEqual(chipDoiSao(25, { sao: 15, phut: 10 }, 60, [10, 15]).map((x) => [x.phut, x.tru]), [[6, 9], [10, 15]]);
-  const c = chipDoiSao(15, { sao: 10, phut: 5 }, 10);
-  assert.deepEqual(c.map((x) => [x.phut, x.thieu, x.quaHan]), [[5, false, false], [10, true, false], [15, true, true]]);
+test("sổ sao 15/11: số âm có dấu − thật, câu phút / nợ, suy từ kid/quy khi máy chủ cũ", () => {
+  assert.equal(soSao(-20), "\u221220 sao");
+  assert.equal(soSao(1020), "1.020 sao");
+  assert.equal(soVN(-1020), "\u22121.020");
+  assert.equal(cauPhut(18), "còn 18 sao = 18 phút chơi");
+  assert.equal(cauPhut(-5), "còn 0 sao = 0 phút chơi");
+  assert.equal(cauNo(0), null);
+  assert.equal(cauNo(20), "Đang nợ Ba Mẹ 20 sao");
+  // máy chủ mới
+  const m = saoTuMayChu({ sao: -20, no: 20, phutCon: 0, hetSao: true, mucVay: [10, 15, 30], vayMacDinh: 15 }, { quy: { daDung: 42, khoa: false } });
+  assert.equal(m.sao, -20); assert.equal(m.no, 20); assert.equal(m.hetSao, true); assert.equal(m.phutHomNay, 42);
+  assert.equal(m.cau.soDu, "\u221220 sao"); assert.equal(m.cau.no, "Đang nợ Ba Mẹ 20 sao"); assert.equal(m.vayMacDinh, 15);
+  // vừa vay 30 ở 0 sao: số dư 0, còn 30 phút, chưa hết sao
+  const v = saoTuMayChu({ sao: 0, no: 30, phutCon: 30, hetSao: false }, null);
+  assert.equal(v.hetSao, false); assert.equal(v.cau.phut, "còn 30 sao = 30 phút chơi");
+  // máy chủ cũ: không có kid/sao ⇒ sao + conPhut từ kid/quy, không nợ
+  const c = saoTuMayChu(null, { sao: 40, quy: { conPhut: 18, daDung: 42, khoa: true } });
+  assert.deepEqual([c.sao, c.no, c.phutCon, c.hetSao, c.khoa], [40, 0, 18, false, true]);
+  assert.deepEqual(c.mucVay, [10, 15, 30]);
+  assert.equal(saoTuMayChu(null, null).hetSao, true);
+});
+
+test("được duyệt khi đang nợ: sao nhiệm vụ trả nợ trước", () => {
+  assert.deepEqual(traNoKhiDuyet(-10, 10), { truoc: -20, traNo: 10, conNo: 10 });
+  assert.deepEqual(traNoKhiDuyet(5, 10), { truoc: -5, traNo: 5, conNo: 0 });
+  assert.deepEqual(traNoKhiDuyet(40, 10), { truoc: 30, traNo: 0, conNo: 0 });
+  assert.equal(cauVay(15), "= 15 phút chơi hoặc đổi quà · con sẽ nợ 15 sao");
+  assert.equal(cauVay(15, 20), "= 15 phút chơi hoặc đổi quà · con sẽ nợ 35 sao");
+});
+
+test("kid/sao máy chủ mới: lichSu + appHomNay + phutChoiHomNay; thiếu ⇒ null", () => {
+  const m = saoTuMayChu({ sao: -20, no: 20, phutCon: 0, phutChoiHomNay: 42, lichSu: [
+    { id: "1", loai: "vay", kieu: "vay", sao: 50, luc: "x", chuThich: "Chọn món bữa tối", tenNguoi: "Mẹ Lan" },
+    { id: "2", loai: "tra_no", kieu: "tra_no", sao: -20, luc: "x", chuThich: "Dọn phòng" },
+    { id: "3", loai: "choi", kieu: "choi", sao: -20, luc: "x", chuThich: "Chơi Roblox 20 phút" }], appHomNay: [] }, null);
+  assert.equal(m.phutHomNay, 42);
+  assert.deepEqual(m.lichSu!.map(dongLichSu), [
+    { chu: "Mẹ Lan cho vay 50 sao · Chọn món bữa tối", so: "\u221250" }, { chu: "Trả nợ 20 sao · Dọn phòng", so: "+20" },
+    { chu: "Chơi Roblox 20 phút", so: "\u221220" }]);
+  assert.deepEqual(m.appHomNay, []);
+  assert.equal(saoTuMayChu({ sao: 3 }, null).lichSu, null);
+  assert.equal(tiVong({ phutCon: 28, phutHomNay: 42 }), 0.4);
 });
 
 test("quà gần nhất + dòng phụ + nhãn điều kiện", () => {
