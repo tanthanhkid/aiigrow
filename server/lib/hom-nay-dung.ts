@@ -11,6 +11,7 @@ import { chuanMuc } from "./luat-app.ts";
 import { tenDoc, TRINH_DUYET } from "./man-hinh.ts";
 import { quyHomNay } from "./quy-gio.ts";
 import { mayMatMang } from "./can-de-y.ts";
+import { LA_APP } from "./so-sao.ts";
 
 type Luat = { child_id: string; muc: string; ten: string; loai: string; nhom: string };
 export type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
@@ -90,4 +91,49 @@ export async function homNayDung(fam: string, con: string, now = new Date()) {
     /** (cũ) = khongTinhPhut; giờ học đã bỏ (#258) ⇒ khung luôn null */ hoc: { phut: phutHoc, khung: null },
     dung, biChan,
   };
+}
+
+export type AppHomNay = { ten: string; muc: string; kieu: "app" | "web"; phut: number; nhom: "tinh_phut" | "khong_tinh_phut"; sao: number;
+  dangMo: boolean; may: string | null };
+
+/** Màn Con «Đang chơi» (`kid/sao` › appHomNay): phút từng app / trang hôm nay + số sao đã trừ cho app đó («Roblox 30 phút · −30 sao»).
+ *  Phút = «đã dùng gì» của Ba Mẹ (homNayDung — gộp mọi máy của Con); `sao` = tổng dòng sổ `choi` hôm nay của mục đó (ref `choi:<ngày>:<mục>`),
+ *  nên «Không tính phút» / «Mở hết» / phút mở bằng mã ⇒ 0 sao. iPhone/iPad (Apple không cho biết tên app) ⇒ một dòng «Tính phút trên <máy>»
+ *  từ `devices.status.ios.phutDaDung` + sao trừ theo máy đó (ref `choi:<ngày>:ios:<id máy>`). Mục chỉ có trong sổ (phiên app Con…) cũng hiện. */
+export async function appHomNayCon(con: string, now = new Date()): Promise<AppHomNay[]> {
+  const c = await one<{ family_id: string; tz: string }>(`select c.family_id, f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]);
+  if (!c) return [];
+  const ngay = gioDiaPhuong(now, c.tz).ngay, goc = `choi:${ngay}:`;
+  const [hn, so, ios] = await Promise.all([
+    homNayDung(c.family_id, con, now),
+    q<{ muc: string; sao: number }>(`select substr(ref, $3::int) as muc, coalesce(-sum(delta), 0)::int as sao from points
+      where child_id = $1 and loai = 'choi' and left(ref, $3::int - 1) = $2 group by 1`, [con, goc, goc.length + 1]),
+    q<{ id: string; name: string; status: Record<string, unknown> | null }>(
+      `select d.id, d.name, d.status from devices d where d.family_id = $2 and d.platform = 'ios'
+        and (d.child_id = $1 or exists (select 1 from device_children dc where dc.device_id = d.id and dc.child_id = $1))`, [con, c.family_id]),
+  ]);
+  const saoMuc = new Map<string, number>();
+  for (const r of so) {
+    if (!r.muc) continue;
+    const k = r.muc.startsWith("ios:") ? r.muc : chuanMuc(r.muc);
+    saoMuc.set(k, (saoMuc.get(k) ?? 0) + Number(r.sao));
+  }
+  const ra: AppHomNay[] = hn.dung.map((x) => {
+    const sao = saoMuc.get(x.muc) ?? 0;
+    saoMuc.delete(x.muc);
+    return { ten: x.ten, muc: x.muc, kieu: x.kieu, phut: x.phut, nhom: x.tinhGio ? "tinh_phut" : "khong_tinh_phut", sao, dangMo: x.dangMo, may: x.may };
+  });
+  for (const m of ios) {
+    const st = (m.status?.ios ?? null) as { phutDaDung?: number; luc?: string } | null;
+    const phut = st?.luc && gioDiaPhuong(new Date(st.luc), c.tz).ngay === ngay ? Math.max(0, Math.round(Number(st.phutDaDung) || 0)) : 0;
+    const k = `ios:${m.id}`, sao = saoMuc.get(k) ?? 0;
+    saoMuc.delete(k);
+    if (phut > 0 || sao > 0) ra.push({ ten: `Tính phút trên ${m.name}`, muc: k, kieu: "app", phut: Math.max(phut, sao), nhom: "tinh_phut", sao, dangMo: false, may: m.name });
+  }
+  for (const [muc, sao] of saoMuc) {
+    if (!(sao > 0) || muc.startsWith("ios:")) continue;
+    const kieu = LA_APP.test(muc) ? "app" : "web";
+    ra.push({ ten: tenDoc(muc, kieu), muc, kieu, phut: sao, nhom: "tinh_phut", sao, dangMo: false, may: null });
+  }
+  return ra.sort((a, b) => b.phut - a.phut || b.sao - a.sao).slice(0, 50);
 }

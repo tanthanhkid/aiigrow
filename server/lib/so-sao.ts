@@ -67,14 +67,14 @@ export async function phutDaTruHomNay(t: Q, con: string, tz: string, now = new D
 
 const GOP_DONG_PHUT = 10;   // nhịp cách dòng «choi» cuối ≤ 10 phút (và không có dòng khác xen giữa) ⇒ cộng dồn vào dòng đó
 /** Mục là app (tệp .exe / .app, gói / bundle dạng com.x.y — như chinh-sach.ts › kieuMuc) hay tên miền. */
-const LA_APP = /\.(exe|app)$|^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app|dev)\.[a-z0-9_-]+(\.[a-z0-9_-]+)+$/i;
+export const LA_APP = /\.(exe|app)$|^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app|dev)\.[a-z0-9_-]+(\.[a-z0-9_-]+)+$/i;
 
 /** Trừ `phut` phút «Tính phút» Con vừa dùng (một lần báo của MỘT kênh: một máy / một phiên) — GỌI TRONG giao dịch đã khoaCon(con).
  *  Đồng hồ theo CỬA SỔ: lần báo `phut` phút lúc `now` được coi là chơi trong (now − phut, now]; phút trừ thêm =
  *  phut − phút đã tính (mọi kênh) trong chính cửa sổ đó ⇒ hai máy chơi SONG SONG không trừ đôi, còn chơi NỐI TIẾP (Roblox 5′ rồi YouTube 5′,
  *  kênh báo thưa / dày khác nhau) không mất phút. Mỗi lần tính ghi một dòng choi_tru (lúc, phút). Phần lẻ cộng dồn (phut_le) — đủ 1 phút
  *  trừ 1 sao. Hết sao thì dừng trừ (không tự ghi nợ — máy khoá ở lần đồng bộ này). → { tru: sao vừa trừ, tinh: phút được tính } */
-export async function tinhPhutChoi(t: Q, con: string, phut: number, now = new Date(), o: { muc?: string | null; tz?: string } = {}) {
+export async function tinhPhutChoi(t: Q, con: string, phut: number, now = new Date(), o: { muc?: string | null; tz?: string; ten?: string | null } = {}) {
   if (!(Number.isFinite(phut) && phut > 0)) return { tru: 0, tinh: 0 };
   const tu = new Date(now.getTime() - phut * 60_000);
   const da = Number((await t<{ p: number }>(`select coalesce(sum(phut), 0)::real as p from choi_tru where child_id = $1 and luc > $2 and luc <= $3`,
@@ -92,17 +92,17 @@ export async function tinhPhutChoi(t: Q, con: string, phut: number, now = new Da
   if (nguyen > 0 && du > 0) {
     tru = Math.min(nguyen, du);
     const tz = o.tz ?? (await t<{ tz: string }>(`select f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]))[0]?.tz ?? "Asia/Ho_Chi_Minh";
-    await ghiChoi(t, con, tru, o.muc ?? null, now, tz);
+    await ghiChoi(t, con, tru, o.muc ?? null, now, tz, o.ten ?? null);
   }
   if (du - tru <= 0) le = 0;                        // hết sao: phần lẻ bỏ (không nợ phút)
   await t(`insert into choi_dong_ho(child_id, phut_le) values ($1, $2) on conflict (child_id) do update set phut_le = excluded.phut_le`, [con, le]);
   return { tru, tinh };
 }
 
-async function ghiChoi(t: Q, con: string, tru: number, muc: string | null, now: Date, tz: string) {
+async function ghiChoi(t: Q, con: string, tru: number, muc: string | null, now: Date, tz: string, ten0: string | null) {
   const ref = `choi:${gioDiaPhuong(now, tz).ngay}:${muc ?? ""}`;
   // nạp lười: man-hinh → chinh-sach → may-con → so-sao là vòng import
-  const ten = muc ? (await import("./man-hinh.ts")).tenDoc(muc, LA_APP.test(muc) ? "app" : "web") : "Tính phút";
+  const ten = ten0 ? ten0 : muc ? (await import("./man-hinh.ts")).tenDoc(muc, LA_APP.test(muc) ? "app" : "web") : "Tính phút";
   const cuoi = (await t<{ id: string; loai: string; ref: string | null; delta: number; cap_nhat: Date | null; created_at: Date }>(
     `select id, loai, ref, delta, cap_nhat, created_at from points where child_id = $1 order by seq desc limit 1`, [con]))[0];
   if (cuoi && cuoi.loai === "choi" && cuoi.ref === ref
@@ -121,7 +121,7 @@ export async function laMoHetCon(con: string, t: Q = q) {
 }
 
 /** Gói một lần trừ phút trong giao dịch riêng (khoá Con) — dùng ở đồng bộ máy / lịch sử web. Mở hết ⇒ không trừ. */
-export async function truPhutChoi(con: string, phut: number, now = new Date(), o: { muc?: string | null } = {}) {
+export async function truPhutChoi(con: string, phut: number, now = new Date(), o: { muc?: string | null; ten?: string | null } = {}) {
   if (!(phut > 0)) return { tru: 0, tinh: 0 };
   return tx(async (t) => {
     await khoaCon(t, con);
@@ -261,14 +261,10 @@ export async function viSao(fam: string, con: string, o: { gioiHan?: number } = 
   const tu7 = new Date(now.getTime() - 7 * 86_400_000);
   const [vi, ls, tuan, homNay] = await Promise.all([
     tomTatVi(con),
-    q<{ id: string; delta: number; loai: string; ly_do: string; nguoi: string | null; ten_nguoi: string | null; created_at: Date }>(
-      `select p.id, p.delta, p.loai, p.ly_do, p.nguoi, pa.ten as ten_nguoi, p.created_at from points p left join parents pa on pa.id = p.nguoi
-        where p.child_id = $1 order by p.created_at desc, p.seq desc limit $2`, [con, Math.max(1, Math.min(200, Math.round(o.gioiHan ?? 50)))]),
+    dongSoSao(con, o.gioiHan ?? 50),
     thongKeSao(con, tu7, now),
     phutDaTruHomNay(q, con, c.tz, now),
   ]);
-  const kieu = (l: string, d: number) => (l === "vay" ? (d > 0 ? "vay" : "hoan_vay") : l === "tra_no" ? "tra_no" : l === "choi" || l === "phien" || l === "doi_gio" ? "choi"
-    : l === "doi_qua" || l === "voucher" ? "doi_qua" : d > 0 ? "kiem" : "tru");
   return {
     ten: c.ten, sao: vi.sao, no: vi.no, phutCon: vi.phutCon, saoVayChuaTieu: vi.saoVayChuaTieu, hetSao: vi.hetSao, canhBaoNo: vi.canhBaoNo,
     tongVay: vi.tongVay, daTraNo: vi.daTraNo, saoGiu: vi.saoGiu, tyLe: { sao: 1, phut: 1 }, phutChoiHomNay: homNay,
@@ -277,4 +273,26 @@ export async function viSao(fam: string, con: string, o: { gioiHan?: number } = 
     lichSu: ls.map((x) => ({ id: x.id, delta: x.delta, loai: x.loai, kieu: kieu(x.loai, x.delta), lyDo: x.ly_do, nguoi: x.nguoi, tenNguoi: x.ten_nguoi,
       luc: new Date(x.created_at).toISOString() })),
   };
+}
+
+type DongSoSao = { id: string; delta: number; loai: string; ly_do: string; nguoi: string | null; ten_nguoi: string | null; created_at: Date };
+/** `gioiHan` dòng sổ sao mới nhất (kèm tên Ba Mẹ) — dùng chung ví sao Ba Mẹ và lịch sử sao của Con. */
+const dongSoSao = (con: string, gioiHan: number, t: Q = q) => t<DongSoSao>(
+  `select p.id, p.delta, p.loai, p.ly_do, p.nguoi, pa.ten as ten_nguoi, p.created_at from points p left join parents pa on pa.id = p.nguoi
+    where p.child_id = $1 order by p.created_at desc, p.seq desc limit $2`, [con, Math.max(1, Math.min(200, Math.round(gioiHan) || 1))]);
+
+const kieu = (l: string, d: number) => (l === "vay" ? (d > 0 ? "vay" : "hoan_vay") : l === "tra_no" ? "tra_no" : l === "choi" || l === "phien" || l === "doi_gio" ? "choi"
+  : l === "doi_qua" || l === "voucher" ? "doi_qua" : d > 0 ? "kiem" : "tru");
+
+export type KieuSaoCon = "vay" | "hoan_vay" | "tra_no" | "choi" | "nhiem_vu" | "qua" | "khoi_dau" | "ba_me" | "khac";
+/** Loại dòng cho màn Con: vay / rút lại sao vay / trả nợ / chơi / nhiệm vụ / quà (đổi quà, hoàn quà, quà phút) / sao khởi đầu / Ba Mẹ cộng-trừ tay / khác. */
+export const kieuSaoCon = (l: string, d: number): KieuSaoCon => (l === "vay" ? (d > 0 ? "vay" : "hoan_vay") : l === "tra_no" ? "tra_no"
+  : l === "choi" || l === "phien" || l === "doi_gio" ? "choi" : l === "nhiem_vu" ? "nhiem_vu"
+  : l === "doi_qua" || l === "voucher" || l === "qua_phut" || l === "hoan" ? "qua" : l === "khoi_dau" ? "khoi_dau" : l === "tay" ? "ba_me" : "khac");
+
+/** Lịch sử sao gần đây cho màn Con (`kid/sao`, khay `hoc-vien/sao`) — cùng sổ với ví sao Ba Mẹ (`con/:id/vi-sao`).
+ *  Mỗi dòng: loại thô + kiểu Con, số sao (+/−), lúc, chú thích (ly_do), tên Ba Mẹ (cho vay / cộng tay). */
+export async function lichSuSaoCon(con: string, gioiHan = 20, t: Q = q) {
+  return (await dongSoSao(con, Math.min(100, gioiHan), t)).map((x) => ({ id: x.id, loai: x.loai, kieu: kieuSaoCon(x.loai, x.delta), sao: x.delta,
+    luc: new Date(x.created_at).toISOString(), chuThich: x.ly_do, tenNguoi: x.ten_nguoi }));
 }
