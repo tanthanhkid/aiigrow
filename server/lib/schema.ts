@@ -672,6 +672,7 @@ export const SCHEMA_S2 = [
 // pair_codes.con_ds / goi_cai.con_ds: mảng id Con (≥ 2) khi Ba Mẹ ghép một máy cho nhiều Con; một Con vẫn ở child_id như trước.
 // Chuyển dữ liệu (chạy lại được — mỗi câu chỉ chạm máy CHƯA có dòng nối): máy riêng cũ ⇒ nối child_id; máy dùng chung cũ ⇒ nối MỌI Con trong nhà;
 // iPhone/iPad dùng chung cũ ⇒ MỘT Con (bé đang dùng › bé đăng nhập gần nhất › bé tạo trước); rồi đồng bộ cột cũ theo bảng nối.
+export const CHUYEN_DOI_MAY_NHIEU_CON = "device_children_267";
 export const SCHEMA_MAY_NHIEU_CON = [
   `create table if not exists device_children (
     device_id text not null references devices(id) on delete cascade,
@@ -684,16 +685,21 @@ export const SCHEMA_MAY_NHIEU_CON = [
   `create index if not exists device_children_gd on device_children(family_id)`,
   `alter table pair_codes add column if not exists con_ds jsonb`,
   `alter table goi_cai add column if not exists con_ds jsonb`,
-  `insert into device_children(device_id, child_id, family_id)
+  // chuyển dữ liệu MỘT lần (đánh dấu ở _chuyen_doi): lược đồ chạy lại mỗi lần mở PGlite / mỗi lần băm lược đồ đổi trên Postgres —
+  // không quét lại devices, không nối lại cả nhà cho máy Ba Mẹ đã sửa / máy 0 Con đang chờ gán
+  `create table if not exists _chuyen_doi (ten text primary key, luc timestamptz not null default now())`,
+  `do $$ begin
+     if not exists (select 1 from _chuyen_doi where ten = '${CHUYEN_DOI_MAY_NHIEU_CON}') then
+       insert into device_children(device_id, child_id, family_id)
      select d.id, d.child_id, d.family_id from devices d join children c on c.id = d.child_id and c.family_id = d.family_id
       where not exists (select 1 from device_children x where x.device_id = d.id)
-     on conflict do nothing`,
-  `insert into device_children(device_id, child_id, family_id)
+     on conflict do nothing;
+       insert into device_children(device_id, child_id, family_id)
      select d.id, c.id, d.family_id from devices d join children c on c.family_id = d.family_id
       where d.child_id is null and d.dung_chung and d.platform not in ('ios', 'ipados')
         and not exists (select 1 from device_children x where x.device_id = d.id)
-     on conflict do nothing`,
-  `insert into device_children(device_id, child_id, family_id)
+     on conflict do nothing;
+       insert into device_children(device_id, child_id, family_id)
      select d.id, (select c.id from children c where c.family_id = d.family_id
                     order by (c.id = d.con_dang_dung) desc,
                              (select max(k.expires_at) from kid_sessions k where k.device_id = d.id and k.child_id = c.id) desc nulls last,
@@ -702,10 +708,13 @@ export const SCHEMA_MAY_NHIEU_CON = [
       where d.child_id is null and d.dung_chung and d.platform in ('ios', 'ipados')
         and not exists (select 1 from device_children x where x.device_id = d.id)
         and exists (select 1 from children c where c.family_id = d.family_id)
-     on conflict do nothing`,
-  `update devices d set child_id = x.mot, dung_chung = x.n >= 2
+     on conflict do nothing;
+       update devices d set child_id = x.mot, dung_chung = x.n >= 2
      from (select device_id, count(*)::int as n, case when count(*) = 1 then min(child_id) end as mot from device_children group by device_id) x
-    where x.device_id = d.id and (d.child_id is distinct from x.mot or d.dung_chung <> (x.n >= 2))`,
+    where x.device_id = d.id and (d.child_id is distinct from x.mot or d.dung_chung <> (x.n >= 2));
+       insert into _chuyen_doi(ten) values ('${CHUYEN_DOI_MAY_NHIEU_CON}');
+     end if;
+   end $$`,
 ];
 export const SCHEMA_S3 = [
   `alter table children add column if not exists pin_ma text`,

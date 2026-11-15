@@ -158,7 +158,7 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
 
 /** «Đổi bé / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ đang dùng) ⇒ máy về màn chọn tên: bỏ bé đang dùng, xoá phiên Con của máy, hết «Ba Mẹ dùng». */
 export async function roiMay(may: MayS3, now = new Date()) {
-  const ai = may.con_dang_dung ?? null, baMe = !!baMeDen(may, now);
+  const ai = may.con_dang_dung ?? may.child_id ?? null, baMe = !!baMeDen(may, now);   // máy riêng: Con của máy dù chưa ghi con_dang_dung
   await q(`update devices set con_dang_dung = null, dang_nhap_luc = null, ba_me_den = null, ba_me_tu = null where id = $1`, [may.id]);
   await q(`delete from kid_sessions where device_id = $1`, [may.id]);
   await ketThucPhienTrenMay(may.id, ai, now);            // #267: «Đổi người» / đăng xuất ⇒ phút của bé trước dừng tính

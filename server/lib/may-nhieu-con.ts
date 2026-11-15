@@ -7,7 +7,8 @@
 //     khoá lúc Con đó đang dùng) — cả hai gộp ở may-con.ts › taoPolicy, không đổi ở đây.
 //
 // GIAI ĐOẠN CHUYỂN (tương thích ngược agent + app cũ): cột cũ devices.child_id / devices.dung_chung GIỮ, là BẢN SAO SUY RA từ bảng nối —
-//   child_id = Con duy nhất khi nối đúng 1 Con (null khi 0 hoặc ≥ 2), dung_chung = nối ≥ 2 Con. CHỈ ghi qua `dongBoCotCu` (mọi chỗ đổi nối gọi nó);
+//   child_id = Con duy nhất khi nối đúng 1 Con (null khi 0 hoặc ≥ 2), dung_chung = nối ≠ 1 Con (0 Con cũng «chung» ⇒ canChonCon, máy khoá
+//   chờ Ba Mẹ gán — không bao giờ chạy tự do). CHỈ ghi qua `dongBoCotCu` (mọi chỗ đổi nối gọi nó);
 //   mã cũ đọc child_id («máy riêng của ai») / dung_chung («máy chung») vẫn đúng. Bỏ hai cột khi: (1) mã máy chủ đọc hết từ device_children
 //   (chỗ còn đọc: grep `child_id|dung_chung` trên bảng devices), (2) app Ba Mẹ đọc `conDs` thay `con` / `dungChung`, (3) mọi agent đang chạy báo
 //   phiên bản phát hành sau #267 (tuan_thu_may.phien_ban) — sớm nhất 2 bản phát hành sau bản kèm #267.
@@ -33,9 +34,10 @@ export const loiMotCon = (them?: Record<string, unknown>) => {
 
 /** Cột cũ devices.child_id / dung_chung = bản sao suy ra từ bảng nối (xem đầu tệp). Gọi sau MỌI lần đổi nối, trong cùng giao dịch. */
 export async function dongBoCotCu(t: Q, mayId: string) {
-  await t(`update devices d set child_id = x.mot, dung_chung = x.n >= 2
+  // 0 Con ⇒ dung_chung true: Policy canChonCon, không bé nào vào được (hoSoMay rỗng) ⇒ máy khoá chờ Ba Mẹ gán
+  await t(`update devices d set child_id = x.mot, dung_chung = x.n <> 1
              from (select count(*)::int as n, case when count(*) = 1 then min(child_id) end as mot from device_children where device_id = $1) x
-            where d.id = $1 and (d.child_id is distinct from x.mot or d.dung_chung <> (x.n >= 2))`, [mayId]);
+            where d.id = $1 and (d.child_id is distinct from x.mot or d.dung_chung <> (x.n <> 1))`, [mayId]);
 }
 
 /** id các Con nối với máy (thứ tự nối). */
@@ -89,12 +91,16 @@ type MayNoi = { id: string; family_id: string; platform: string; name: string; c
 
 /** POST /api/m/may/:id/con {ds: string[]} — đặt danh sách Con dùng máy (≥ 1; iPhone/iPad đúng 1). Con bị bỏ gán đang dùng máy ⇒ thả ra
  *  (phiên Con trên máy xoá, phiên chơi dừng). → chi tiết `conMay`. */
-export async function datConMay(fam: string, mayId: string, dsVao: unknown, nguoi?: string | null, now = new Date()) {
-  const ds = dsConVao(dsVao);
-  if (!ds.length) throw new LoiNghiepVu("can_mot_con", "Máy cần ít nhất một bé dùng — muốn bỏ hẳn thì gỡ máy", 400);
+export const datConMay = (fam: string, mayId: string, dsVao: unknown, nguoi?: string | null, now = new Date()) =>
+  doiConMay(fam, mayId, () => dsConVao(dsVao), nguoi, now);
+
+/** Đổi danh sách nối: `tinh(cu)` chạy SAU khi khoá dòng máy (select … for update) ⇒ hai lần gán / bỏ gán song song nối đuôi, không mất lần nào. */
+async function doiConMay(fam: string, mayId: string, tinh: (cu: string[], m: MayNoi) => string[], nguoi?: string | null, now = new Date()) {
   const kq = await tx(async (t) => {
     const m = (await t<MayNoi>(`select id, family_id, platform, name, con_dang_dung from devices where id = $1 and family_id = $2 for update`, [mayId, fam]))[0];
     if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
+    const ds = tinh(await idConMay(m.id, t), m);
+    if (!ds.length) throw new LoiNghiepVu("can_mot_con", "Máy cần ít nhất một bé dùng — muốn bỏ hẳn thì gỡ máy", 400);
     await kiemConNha(t, fam, ds);
     if (laMotCon(m.platform) && ds.length > 1) throw loiMotCon({ toiDa: 1 });
     const r = await ghiNoi(t, m, ds);
@@ -117,23 +123,29 @@ export async function datConMay(fam: string, mayId: string, dsVao: unknown, nguo
 }
 
 /** POST /api/m/may/:id/con/:con/gan — gán thêm một Con (máy riêng thành máy chung). iPhone/iPad đã có Con ⇒ 409 ios_mot_con. */
-export async function ganThemCon(fam: string, mayId: string, con: string, nguoi?: string | null, now = new Date()) {
-  const m = await one<{ platform: string }>(`select platform from devices where id = $1 and family_id = $2`, [mayId, fam]);
-  if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
-  const cu = await idConMay(mayId);
-  if (cu.includes(con)) { await kiemConNha(q, fam, [con]); return { ok: true, them: [], bo: [], ...(await conMay(fam, mayId, now)) }; }
-  if (laMotCon(m.platform) && cu.length >= 1) throw loiMotCon({ toiDa: 1 });
-  return datConMay(fam, mayId, [...cu, con], nguoi, now);
-}
+export const ganThemCon = (fam: string, mayId: string, con: string, nguoi?: string | null, now = new Date()) =>
+  doiConMay(fam, mayId, (cu, m) => {
+    if (cu.includes(con)) return cu;
+    if (laMotCon(m.platform) && cu.length >= 1) throw loiMotCon({ toiDa: 1 });
+    return [...cu, con];
+  }, nguoi, now);
 
 /** POST /api/m/may/:id/con/:con/bo — bỏ gán một Con. Con cuối cùng ⇒ 400 can_mot_con (muốn bỏ hẳn: gỡ máy). */
-export async function boGanCon(fam: string, mayId: string, con: string, nguoi?: string | null, now = new Date()) {
-  const cu = await idConMay(mayId);
-  if (!cu.includes(con)) {
-    if (!(await one(`select 1 from devices where id = $1 and family_id = $2`, [mayId, fam]))) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
-    return { ok: true, them: [], bo: [], ...(await conMay(fam, mayId, now)) };
-  }
-  return datConMay(fam, mayId, cu.filter((x) => x !== con), nguoi, now);
+export const boGanCon = (fam: string, mayId: string, con: string, nguoi?: string | null, now = new Date()) =>
+  doiConMay(fam, mayId, (cu) => cu.filter((x) => x !== con), nguoi, now);
+
+/** Con MỚI tạo ⇒ tự nối vào máy chung sẵn có của nhà (máy nối ≠ 1 Con — ≥ 2, hoặc 0 đang khoá chờ Con; không phải iPhone/iPad) — như trước
+ *  #267 máy dùng chung «cả nhà» tự có bé mới. Ba Mẹ bỏ gán được. → số máy được nối. */
+export async function noiConMoiVaoMayChung(fam: string, con: string) {
+  return tx(async (t) => {
+    const ds = await t<{ id: string }>(`select d.id from devices d where d.family_id = $1 and d.platform not in ('ios', 'ipados')
+        and (select count(*) from device_children x where x.device_id = d.id) <> 1 for update`, [fam]);
+    for (const m of ds) {
+      await t(`insert into device_children(device_id, child_id, family_id) values ($1,$2,$3) on conflict do nothing`, [m.id, con, fam]);
+      await dongBoCotCu(t, m.id);
+    }
+    return ds.length;
+  });
 }
 
 /** Bé đang dùng máy (con_dang_dung còn phiên Con trên máy) — như api-may.ts / pin-be.ts › hoSoMay. Máy riêng ⇒ Con của máy khi Ba Mẹ không dùng. */
@@ -150,7 +162,7 @@ export type ConNgan = { id: string; ten: string; avatar: string };
 export async function tomTatNoi(fam: string, ds: { id: string; platform: string; con_dang_dung?: string | null; ba_me_den?: Date | null }[], now = new Date()) {
   const noi = await q<{ device_id: string; id: string; ten: string; avatar: string }>(
     `select x.device_id, c.id, c.ten, c.avatar from device_children x join children c on c.id = x.child_id
-      where x.family_id = $1 order by x.created_at, c.created_at`, [fam]);
+      where x.family_id = $1 and x.device_id = any($2::text[]) order by x.created_at, c.created_at`, [fam, ds.map((m) => m.id)]);
   const theoMay = new Map<string, ConNgan[]>();
   for (const r of noi) theoMay.set(r.device_id, [...(theoMay.get(r.device_id) ?? []), { id: r.id, ten: r.ten, avatar: r.avatar }]);
   const phien = await dangDungCua(ds, now);

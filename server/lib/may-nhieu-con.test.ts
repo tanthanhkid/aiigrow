@@ -36,7 +36,12 @@ const ghep = async (fam: string, con: string | null, ten: string, nen = "windows
   g.ghepMay(await g.taoMaGhep(fam, con, nen, { conDs }), nen, ten);
 const cot = (id: string) => one<{ child_id: string | null; dung_chung: boolean }>(`select child_id, dung_chung from devices where id = $1`, [id]);
 const noi = async (id: string) => (await mnc.idConMay(id)).sort();
-const chay = async () => { for (const c of SCHEMA_MAY_NHIEU_CON) await q(c); };
+const { CHUYEN_DOI_MAY_NHIEU_CON } = await import("./schema.ts");
+/** Chạy lại khối lược đồ #267; `moi` = xoá dấu «đã chuyển» trước (giả lập DB chưa chuyển). */
+const chay = async (moi = true) => {
+  if (moi) await q(`delete from _chuyen_doi where ten = $1`, [CHUYEN_DOI_MAY_NHIEU_CON]);
+  for (const c of SCHEMA_MAY_NHIEU_CON) await q(c);
+};
 
 // ---------------------------------------------------------------- chuyển dữ liệu
 test("chuyển dữ liệu: máy riêng cũ ⇒ nối child_id; máy dùng chung cũ ⇒ mọi Con; iPad dùng chung cũ ⇒ một Con; chạy lại không đổi; Ba Mẹ sửa rồi chạy lại vẫn giữ", async () => {
@@ -64,6 +69,12 @@ test("chuyển dữ liệu: máy riêng cũ ⇒ nối child_id; máy dùng chung
   await chay();
   assert.deepEqual(await noi(chung.deviceId), [b]);
   assert.deepEqual(await cot(chung.deviceId), { child_id: b, dung_chung: false });
+  // đã đánh dấu chuyển ⇒ mở DB lại không quét nữa (máy 0 Con đang chờ gán không bị nối lại cả nhà)
+  await q(`delete from device_children where device_id = $1`, [chung.deviceId]);
+  await chay(false);
+  assert.deepEqual(await noi(chung.deviceId), []);
+  assert.equal((await one(`select 1 from _chuyen_doi where ten = $1`, [CHUYEN_DOI_MAY_NHIEU_CON])) !== undefined, true);
+  await m(`may/${chung.deviceId}/con`, { tok, body: { ds: [b] } });
   // máy cũ vẫn đồng bộ được, không phải ghép lại
   assert.equal((await dv("dong-bo", { tok: rieng.token, body: {} })).body.con.id, a);
 });
@@ -261,5 +272,54 @@ test("tương thích: gan-con {con} chuỗi = máy riêng; ghép mã không Con 
   const ipad = await ghep(n.fam, n.a, "iPad", "ios");
   const r = await m(`con/${n.a}/xoa`, { tok: n.tok, body: { xacNhan: true } });
   assert.deepEqual(r.body.mayChuyenDungChung, [{ id: ipad.deviceId, ten: "iPad" }]);
-  assert.deepEqual([await noi(ipad.deviceId), await cot(ipad.deviceId)], [[], { child_id: null, dung_chung: false }]);
+  assert.deepEqual([await noi(ipad.deviceId), await cot(ipad.deviceId)], [[], { child_id: null, dung_chung: true }]);
+  const pi = (await dv("dong-bo", { tok: ipad.token, body: {} })).body;
+  assert.deepEqual([pi.con, pi.canChonCon], [null, true], "máy 0 Con không chạy tự do: chờ chọn, không bé nào vào được");
+  assert.deepEqual((await dv("ho-so", { tok: ipad.token })).body.con, []);
+});
+
+test("máy 0 Con (ghép mã cũ khi nhà chưa có Con) khoá chờ; Con mới tự nối vào máy chung / máy 0 Con (không iPhone, không máy riêng); Ba Mẹ bỏ gán được", async () => {
+  const { fam, bm } = await taoNha("Ba Tùng");
+  const tok = await taoPhien(bm);
+  const pc = await ghep(fam, null, "PC");
+  assert.deepEqual([pc.dungChung, await cot(pc.deviceId)], [true, { child_id: null, dung_chung: true }]);
+  assert.deepEqual([(await dv("dong-bo", { tok: pc.token, body: {} })).body.canChonCon, (await dv("dong-bo", { tok: pc.token, body: {} })).body.con], [true, null]);
+  const a = await g.taoCon(fam, { ten: "An" });
+  assert.deepEqual(await cot(pc.deviceId), { child_id: a, dung_chung: false }, "bé đầu tiên ⇒ máy riêng của bé");
+  const lap = await ghep(fam, a, "Laptop An");
+  const ipad = await ghep(fam, a, "iPad An", "ios");
+  const b = await g.taoCon(fam, { ten: "Bình" });
+  assert.deepEqual([await noi(pc.deviceId), await noi(lap.deviceId), await noi(ipad.deviceId)], [[a], [a], [a]], "máy riêng không tự thêm bé");
+  await m(`may/${pc.deviceId}/con`, { tok, body: { ds: [a, b] } });
+  const c = await g.taoCon(fam, { ten: "Chi" });
+  assert.deepEqual(await noi(pc.deviceId), [a, b, c].sort(), "máy chung tự có bé mới");
+  assert.equal((await m(`may/${pc.deviceId}/con/${c}/bo`, { tok, body: {} })).status, 200);
+  assert.deepEqual(await noi(pc.deviceId), [a, b].sort());
+});
+
+test("gán song song không mất lần nào; roiMay máy riêng dừng phiên chơi; ghep-may conDs rỗng ⇒ dùng con; xoá Con dọn mã / gói cài nhiều Con", async () => {
+  const { fam, a, b, tok } = await nha();
+  const c = await g.taoCon(fam, { ten: "Bé Ba" });
+  const pc = await ghep(fam, a, "PC");
+  await Promise.all([m(`may/${pc.deviceId}/con/${b}/gan`, { tok, body: {} }), m(`may/${pc.deviceId}/con/${c}/gan`, { tok, body: {} })]);
+  assert.deepEqual(await noi(pc.deviceId), [a, b, c].sort());
+  // máy riêng: đăng xuất khi chưa ghi con_dang_dung vẫn dừng phiên chơi của Con của máy
+  const lap = await ghep(fam, a, "Laptop");
+  await q(`insert into play_sessions(id, child_id, device_id, muc, nhom, gia_phan_nghin, toi_da_phut) values ('ps-r', $1, $2, 'roblox.exe', 'game', 0, 60)`, [a, lap.deviceId]);
+  await dv("dang-xuat", { tok: lap.token, body: {} });
+  assert.equal((await one<{ trang_thai: string }>(`select trang_thai from play_sessions where id = 'ps-r'`))!.trang_thai, "ket_thuc");
+  // conDs rỗng ⇒ con
+  const p = (await m("ghep-may", { tok, body: { conDs: [], con: b } })).body;
+  assert.deepEqual([p.con, p.conDs, p.mayChung], [b, [b], false]);
+  // mã / gói cài cho [a, c] và [b, c]: xoá c ⇒ còn 1 Con ⇒ về child_id
+  const p1 = (await m("ghep-may", { tok, body: { conDs: [a, c] } })).body;
+  const p2 = (await m("ghep-may", { tok, body: { conDs: [b, c] } })).body;
+  assert.equal((await m(`con/${c}/xoa`, { tok, body: { xacNhan: true } })).status, 200);
+  const r1 = (await one<{ child_id: string | null; con_ds: unknown }>(`select child_id, con_ds from pair_codes where code = $1`, [p1.ma]))!;
+  assert.deepEqual([r1.child_id, r1.con_ds], [a, null]);
+  assert.equal((await one<{ child_id: string | null }>(`select child_id from pair_codes where code = $1`, [p2.ma]))!.child_id, b);
+  assert.equal((await q(`select 1 from goi_cai where family_id = $1 and con_ds ? $2`, [fam, c])).length, 0);
+  // ghép bằng mã p1 ⇒ máy riêng của a
+  const gh = await dv("ghep", { body: { ma: p1.ma, nen: "windows", tenMay: "PC 2" } });
+  assert.deepEqual(await noi(gh.body.deviceId), [a]);
 });

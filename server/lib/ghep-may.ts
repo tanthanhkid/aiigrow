@@ -46,7 +46,8 @@ const hienMaGhep = (ma: string) => `${ma.slice(0, 3)} ${ma.slice(3)}`;
  *  `nen` bỏ trống mà máy hoá ra iPhone/iPad ⇒ lúc ghép agent chọn một Con trong danh sách (ghep {chon}). */
 export async function taoPhienGhep(fam: string, b: { con?: unknown; conDs?: unknown; giongMay?: unknown; nen?: unknown }, goc: string, nguoi?: string, now = new Date()) {
   await bangM4b();
-  const ds = dsConVao(b.conDs !== undefined ? b.conDs : b.con);
+  let ds = dsConVao(b.conDs);
+  if (!ds.length) ds = dsConVao(b.con);               // conDs rỗng / null ⇒ dùng `con` (chuỗi hoặc mảng)
   await kiemConNha(q, fam, ds);
   const con = ds.length === 1 ? ds[0] : null, conDs = ds.length >= 2 ? ds : null;
   const c = con ? await conCua(fam, con) : null;

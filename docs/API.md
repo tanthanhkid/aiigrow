@@ -739,12 +739,14 @@ chưa ai vào ⇒ khoá). **iPhone / iPad** (`nen` `ios` / `ipados`) chỉ nối
 (`message`: lý do để hiện; `toiDa: 1`). Luật đi theo Con (sao, nợ, chế độ app & web, danh sách); máy chỉ biết bé đang dùng và áp luật bé đó.
 
 **Giai đoạn chuyển (tương thích ngược):** `devices.child_id` / `dung_chung` GIỮ, là bản sao suy ra từ bảng nối (1 Con ⇒ `child_id` = Con đó;
-≥ 2 ⇒ `child_id` null + `dung_chung` true; 0 ⇒ null + false). Mọi trường cũ trả ra (`con`, `dungChung`, `childName`, `mayRieng`, `canChonCon`) giữ
+≥ 2 ⇒ `child_id` null + `dung_chung` true; **0 ⇒ null + true** — máy 0 Con không chạy tự do: `canChonCon`, không bé nào vào được, chờ Ba Mẹ gán). Mọi trường cũ trả ra (`con`, `dungChung`, `childName`, `mayRieng`, `canChonCon`) giữ
 nghĩa cũ. Bỏ hai cột khi app Ba Mẹ đọc `conDs` thay `con`/`dungChung`, máy chủ đọc hết từ bảng nối, và mọi agent đang chạy là bản phát hành sau #267
-(sớm nhất 2 bản sau). **Chuyển dữ liệu** (chạy lại được, lúc mở DB): máy riêng cũ ⇒ nối `child_id`; máy dùng chung cũ ⇒ nối **mọi Con trong nhà**;
+(sớm nhất 2 bản sau). **Chuyển dữ liệu** (MỘT lần — dấu `device_children_267` ở bảng `_chuyen_doi`; mở DB lại không quét): máy riêng cũ ⇒ nối `child_id`; máy dùng chung cũ ⇒ nối **mọi Con trong nhà**;
 iPhone/iPad dùng chung cũ ⇒ một Con (bé đang dùng › bé đăng nhập gần nhất › bé tạo trước). Máy cũ không phải ghép lại.
-**Đổi nghĩa:** mã ghép không gắn Con (cả nhà) ở nhà chỉ có **một** Con giờ là máy riêng của Con đó (`dungChung: false`). Con mới tạo **không** tự vào
-máy chung cũ — Ba Mẹ gán ở «Máy này ai dùng?».
+**Đổi nghĩa:** mã ghép không gắn Con (cả nhà) ở nhà chỉ có **một** Con giờ là máy riêng của Con đó (`dungChung: false`). **Con mới tạo tự nối**
+vào máy chung sẵn có của nhà (máy nối ≥ 2 Con hoặc 0 Con, không phải iPhone/iPad; máy riêng không đổi) — như trước; Ba Mẹ bỏ gán được.
+Gán / bỏ gán khoá dòng máy (`select … for update`) ⇒ hai lần song song không mất lần nào. Xoá Con: mã / gói cài nhiều Con (`con_ds`) bỏ bé khỏi mảng
+(còn 1 ⇒ về `child_id`, rỗng ⇒ mã chưa dùng bị huỷ).
 
 ### App Ba Mẹ — `/api/m/*`
 | Đường | Mô tả |
@@ -771,4 +773,4 @@ chỉ khoá lúc Con đó đang dùng, bé khác vẫn vào). Không đổi đư
 
 **Xoá hồ sơ Con (`POST con/:id/xoa`) từ #267:** bé bỏ khỏi mọi máy. Máy còn Con khác ⇒ giữ (máy chung còn ≥ 2 Con vẫn chung). Máy riêng của bé ⇒ nối mọi
 Con còn lại (còn một Con ⇒ máy riêng Con đó) và nằm trong `mayChuyenDungChung`; iPhone/iPad riêng của bé mà nhà còn ≥ 2 Con ⇒ chưa nối ai (máy khoá,
-Ba Mẹ chọn ở `may/:id/con`).
+Ba Mẹ chọn ở `may/:id/con`; trong lúc đó máy khoá, `canChonCon` true).

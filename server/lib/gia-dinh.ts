@@ -7,7 +7,7 @@ import { sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { saoChepCaiDat } from "./ghep-may.ts";
-import { coNoi, conChoMayMoi, datConMay, ghiNoi, kiemConNha, laMotCon, loiMotCon } from "./may-nhieu-con.ts";
+import { coNoi, conChoMayMoi, datConMay, ghiNoi, kiemConNha, laMotCon, loiMotCon, noiConMoiVaoMayChung } from "./may-nhieu-con.ts";
 
 export const NEN_TANG = ["windows", "mac", "ios", "android"] as const;
 export type NenTang = (typeof NEN_TANG)[number];
@@ -73,6 +73,7 @@ export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown;
   await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan, pin_ma, pin_dat_luc)
             values ($1,$2,$3,$4,$5,$6,'chi_app_duoc_phep',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom, pin, pin ? new Date() : null]);
   await ghiSuKien(fam, "tao_con", { ten, nhom, ...(pin ? { pin: true } : {}) }, { con: id, nguoi });
+  await noiConMoiVaoMayChung(fam, id);           // #267: bé mới tự có ở máy chung sẵn có (Ba Mẹ bỏ gán được)
   // 06/11 L14: nhà chưa có quà ⇒ gieo 7 quà mặc định một lần (lib/qua-bang-gia.ts). Lỗi gieo không làm hỏng việc tạo Con.
   try { await (await import("./qua-bang-gia.ts")).gieoQuaMacDinh(fam); } catch (e) { console.error("gieo quà mặc định lỗi", e); }
   return id;
@@ -241,7 +242,7 @@ export function ghepMayGd(code: string, platform: string, tenMay: string, maMayV
     const cheDo = cheDoMayMoi(platform, conMot);
     await t(`insert into devices(id, child_id, family_id, platform, name, token_hash, dung_chung, last_seen, che_do, che_do_ba_me, ma_may)
              values ($1,$2,$3,$4,$5,$6,$7, now(), $8, $9, $10)`,
-      [id, conMot, m.family_id, platform, tenLuu, sha(token), dsCon.length >= 2, cheDo ?? "giam-sat", !!cheDo, maMay]);
+      [id, conMot, m.family_id, platform, tenLuu, sha(token), dsCon.length !== 1, cheDo ?? "giam-sat", !!cheDo, maMay]);
     await ghiNoi(t, { id, family_id: m.family_id }, dsCon);
     if (maMay) await thuHoiMayCu(t, maMay, id, m.family_id);
     await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);

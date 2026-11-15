@@ -53,6 +53,13 @@ export async function xoaCon(fam: string, con: string, b: { xacNhan?: unknown },
       await ghiNoi(t, { id: m.id, family_id: fam }, laMotCon(m.platform) ? (conConLai.length === 1 ? conConLai : []) : conConLai);
     }
     await t(`update devices set con_dang_dung = null, dang_nhap_luc = null where family_id = $1 and con_dang_dung = $2`, [fam, con]);
+    // #267: mã / gói cài ghép cho NHIỀU Con (con_ds) có bé này ⇒ bỏ bé khỏi mảng; còn 1 ⇒ về child_id; rỗng ⇒ mã chưa dùng bị huỷ
+    for (const bang of ["pair_codes", "goi_cai"]) {
+      await t(`update ${bang} set con_ds = con_ds - $2 where family_id = $1 and con_ds is not null and con_ds ? $2`, [fam, con]);
+      await t(`update ${bang} set child_id = con_ds->>0, con_ds = null where family_id = $1 and con_ds is not null and jsonb_array_length(con_ds) = 1`, [fam]);
+      await t(`delete from ${bang} where family_id = $1 and con_ds is not null and jsonb_array_length(con_ds) = 0 and used_at is null`, [fam]);
+      await t(`update ${bang} set con_ds = null where family_id = $1 and con_ds is not null and jsonb_array_length(con_ds) = 0`, [fam]);
+    }
     // gói cài CHƯA dùng của Con ⇒ xoá (link còn hạn không ghép được máy mới vào nhà không còn Con); đã dùng ⇒ chỉ bỏ gắn
     await t(`delete from goi_cai where family_id = $1 and child_id = $2 and used_at is null`, [fam, con]);
     await t(`update goi_cai set child_id = null where family_id = $1 and child_id = $2`, [fam, con]);
