@@ -1,6 +1,6 @@
 // bm2-gio «Giờ chơi của <Con>» (thiết kế chốt 14/11, bm-gio-ho-so/01): thẻ HÔM NAY (Còn N phút trong M phút · vạch · Đã dùng / Còn),
 // «Mỗi ngày chơi bao lâu?» 2 hàng nút −/+ 15 phút (Thứ 2 – Thứ 6 · Thứ 7, CN; hàng của hôm nay ghi «Hôm nay áp mức này»),
-// «Giờ máy tự đổi chế độ»: Giờ ngủ 21:30 → 6:30 (chạm giờ ⇒ /gio/ngu), câu «Giờ học không trừ giờ chơi…», nút «Lưu giờ chơi».
+// Nút «Lưu giờ chơi». (15/11 #262: bỏ khối Giờ ngủ / câu Giờ học.)
 // N3: một QUỸ giờ chơi chung mọi máy, mọi app «Tính giờ» — không có phút riêng từng app.
 // Đã chọn GIỮ «Khi hết giờ» (cho xin thêm giờ / cho tự đổi sao) dạng gọn cuối màn dù thiết kế 14/11 bỏ: thiết kế không nói tắt ⇒ giữ hành vi,
 // và nhà đã tắt thì không còn chỗ bật lại. Giờ học đặt ở Hồ sơ con (dòng «Giờ học») như thiết kế. Người trông giúp: chỉ xem (máy chủ 403 khi lưu).
@@ -9,7 +9,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
-import { CAU_TRONG_GIUP, gioGon, HangViec, quyenToi, type GioChoi } from "@/lib/hang-ngay";
+import { CAU_TRONG_GIUP, HangViec, quyenToi, type GioChoi } from "@/lib/hang-ngay";
 import { BaoLoi, baoKhiVe, ChoTai, Chu, CongTac, Icon, Icon3D, M, Man, Nut, The, useLam, useTai } from "@/lib/ui";
 
 const THU_DAI = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
@@ -71,7 +71,6 @@ export default function GioChoiCon() {
     baoKhiVe(`Đã lưu giờ chơi cho ${d.ten} — máy nhận ở lần đồng bộ kế`);
     router.back();
   }, { hangDoi: true });
-  const moNgu = () => router.push(`/gio/ngu?con=${con}` as never);
   return (
     <Man lui={{ chu: "Hồ sơ con" }} tieu={`Giờ chơi của ${d.ten}`} tai={tai} day={xem ? <Chu co={13.5} mau={M.chu3}>{CAU_TRONG_GIUP}</Chu> : <>
       <BaoLoi loi={loiLam} />
@@ -102,27 +101,6 @@ export default function GioChoiCon() {
         <HangQuy tieu="Thứ 7, CN" max={MAX_CUOI} phut={cn} doi={setCuoi} xem={xem} nay={cuoiTuan}
           phu={cuoiTuan ? "Hôm nay áp mức này" : cn > t ? "Cuối tuần chơi thêm" : cn < t ? "Cuối tuần chơi ít hơn" : "Bằng ngày thường"} />
       </The>
-
-      <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Giờ máy tự đổi chế độ</Chu>
-      <The dem style={{ paddingVertical: 4 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 68 }}>
-          <Icon3D ten="trang_ngu" co={30} mau={M.chu2} />
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Chu kieu="rat" co={15}>Giờ ngủ</Chu>
-            <Chu kieu="dam" co={12.5} mau={M.chu2}>Máy khoá cả đêm</Chu>
-          </View>
-          {[g.gioNgu.tu, g.gioNgu.den].map((h, k) => (
-            <View key={k} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              {k ? <Chu kieu="rat" co={15} mau={M.chu3}>→</Chu> : null}
-              <Pressable onPress={moNgu} accessibilityRole="button" accessibilityLabel={k ? `Mở lại lúc ${gioGon(h)}` : `Máy khoá lúc ${gioGon(h)}`}
-                style={{ height: 44, paddingHorizontal: 10, borderRadius: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, justifyContent: "center" }}>
-                <Chu kieu="rat" co={15} so mau={M.chinhInk}>{gioGon(h)}</Chu>
-              </Pressable>
-            </View>
-          ))}
-        </View>
-      </The>
-      <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>Giờ học không trừ giờ chơi. Hết giờ chơi, con đổi sao lấy phút hoặc xin Ba Mẹ.</Chu>
 
       <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginTop: 6, marginHorizontal: 4 }}>Khi hết giờ</Chu>
       <The dem style={{ paddingVertical: 4 }}>

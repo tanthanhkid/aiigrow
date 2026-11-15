@@ -180,8 +180,8 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
       {!het && ds.length > hien.length ? <Nut chu={`Xem thêm ${ds.length - hien.length} mục`} loai="vien" nho bam={() => setHet(true)} /> : null}
 
       <Nhom>
-        <Dong dau tieu="Chặn hoặc cho phép trang web" phu="Chọn từng trang, hoặc chỉ cho vào trang bạn duyệt" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${con}`)} />
-        <Dong tieu="Chặn hoặc xếp loại ứng dụng" phu="Học tập, giải trí, chặn" trai={<BieuTron ic="luoi" mau="tim" />} bam={() => router.push(`/app-web?con=${con}`)} />
+        <Dong dau tieu="Web của con" phu="Thêm trang vào danh sách: Tính phút hoặc Không tính phút" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${con}`)} />
+        <Dong tieu="App & web" phu="Mở hết hoặc Theo danh sách" trai={<BieuTron ic="luoi" mau="tim" />} bam={() => router.push(`/app-web?con=${con}`)} />
         <Dong tieu="Báo cáo tuần" phu="Học và giải trí theo ngày, xuất CSV cho Excel" trai={<BieuTron ic="cot" />} bam={() => router.push({ pathname: "/bao-cao", params: { con } })} />
       </Nhom>
       <Chu co={13} mau={M.chu3}>

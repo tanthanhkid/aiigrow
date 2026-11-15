@@ -5,7 +5,7 @@
 //  • app / web lạ: «Cho, dùng thoải mái» (Học, luôn) · «Cho, trừ giờ chơi» (Giải trí, luôn) · «Không cho»
 // Xử lý xong ⇒ /yeu-cau/xong (lib/hom-nay-xin › denXong).
 import { useState } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { type ConCt, type GioChoi, type YeuCauMoi } from "@/lib/hang-ngay";
@@ -40,6 +40,8 @@ export default function XuLyYeuCau() {
   const tyLe = gc?.phut10Sao ?? 10;
   const saoCan = Math.ceil((p * 10) / tyLe);
   const daXuLy = y.trang_thai !== "cho";
+  // 15/11 (#262): lời xin app / web trả lời ở màn «Con xin mở» (Tính phút / Không tính phút / Bỏ qua)
+  if (laAppWeb(y) && !daXuLy) return <Redirect href={{ pathname: "/yeu-cau-web/[id]", params: { id: y.id } }} />;
   const loiNhan = nhan === "tu_viet" ? tuViet.trim() : nhan;
   const guiNhan = async () => { if (loiNhan) await bm.goi(`con/${y.child_id}/loi-khen`, { noiDung: loiNhan }).catch(() => {}); };
   const cho = (soPhut: number) => lam(async () => {

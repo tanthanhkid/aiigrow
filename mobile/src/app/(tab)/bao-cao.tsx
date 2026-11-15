@@ -122,9 +122,9 @@ function BaoCaoCon({ id }: { id: string }) {
               const hoc = x.loai === "hoc";
               return (
                 <HangViec key={x.muc} dau={k === 0} trai={<OLomIcon ic={hoc ? (/điển|sách/i.test(x.ten ?? x.muc) ? "sach" : "may_tinh") : "game"} />} tieu={x.ten ?? x.muc}
-                  phu={x.may ? x.may.replace(/ của .*$/, "").replace(/ · .*$/, "") : hoc ? "Không trừ giờ chơi" : "Tính vào giờ chơi"}
+                  phu={x.may ? x.may.replace(/ của .*$/, "").replace(/ · .*$/, "") : hoc ? "Không trừ sao" : "Trừ sao · 1 phút = 1 sao"}
                   phai={<View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: hoc ? "#ecebe7" : "#dcebe6" }}>
-                    <Chu kieu="rat" co={12.5} so mau={hoc ? M.chu2 : M.chinhInk}>{`${hoc ? "Học" : "Chơi"} ${gioNgan(x.phut)}`}</Chu>
+                    <Chu kieu="rat" co={12.5} so mau={hoc ? M.chu2 : M.chinhInk}>{`${hoc ? "Không tính" : "Chơi"} ${gioNgan(x.phut)}`}</Chu>
                   </View>}
                   bam={xemDung} />
               );
@@ -152,7 +152,7 @@ function BaoCaoCon({ id }: { id: string }) {
 
       {qua.length || (!nay.duyet.duoc && nay.tongGiaiTri) ? (
         // thiết kế .rob: thẻ ngọc nhạt, Grow 58 trái, câu 14/700 + liên kết đậm
-        <NhanMen onPress={() => router.push((qua.length ? `/gio/ngu?con=${id}` : `/giao-nv?con=${id}`) as never)} accessibilityRole="button" muc="khoi" sang
+        <NhanMen onPress={() => router.push((qua.length ? `/vi/${id}` : `/giao-nv?con=${id}`) as never)} accessibilityRole="button" muc="khoi" sang
           style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 28, backgroundColor: "#dcebe6", ...KHOI.the }}>
           <Rob ten="chi" co={58} />
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -160,7 +160,7 @@ function BaoCaoCon({ id }: { id: string }) {
               {qua.length ? `${THU_DAI[thuCua(qua[0].ngay)]} ${tenGoi(bc.ten)} chơi quá ${gio(qua[0].qua)}.` : `Ngày của ${tenGoi(bc.ten)} còn trống.`}
             </Chu>
             <View style={{ minHeight: 32, justifyContent: "center" }}>
-              <Chu kieu="rat" co={14} mau={M.chinhInk}>{qua.length ? "Đặt giờ ngủ sớm hơn ›" : "Thêm vào ngày của con ›"}</Chu>
+              <Chu kieu="rat" co={14} mau={M.chinhInk}>{qua.length ? "Xem luật sao của con ›" : "Thêm vào ngày của con ›"}</Chu>
             </View>
           </View>
         </NhanMen>

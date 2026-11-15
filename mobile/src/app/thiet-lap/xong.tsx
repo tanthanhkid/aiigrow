@@ -46,7 +46,7 @@ export default function ObXong() {
       </View>
       {d ? (
         <The>
-          {dong("khien", d.t.cheDoChan === "mo_het" ? "Mở hết · chỉ tính giờ" : `Chặn app & web · ${d.t.soApp} app`)}
+          {dong("khien", d.t.cheDoChan === "mo_het" ? "Mở hết · không tính phút" : `Theo danh sách · ${d.t.soApp} app`)}
           {dong("dongho", `Chơi ${d.t.gioChoi.ngayThuong ?? "—"} phút · ngủ ${gioGon(d.t.ngu.tu)}`)}
           {dong("sao", `${d.soViec} việc mỗi ngày`)}
         </The>

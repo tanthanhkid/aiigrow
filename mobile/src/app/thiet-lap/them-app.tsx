@@ -1,30 +1,39 @@
 // them-at57ypdc «Thêm app cho X» (thiết kế chốt 14/11): «Gõ tên app trên máy con» ⇒ «Kết quả N» — app trong danh mục khớp chữ gõ
 // (lib/danh-muc-lan-dau.ts) + đúng tên Ba Mẹ gõ (khi không trùng danh mục); mỗi dòng ＋ / «✓ Đã thêm» (chạm lại để bỏ). «Xong» ⇒ về App cho X.
-// App ngoài danh mục gửi theo tên, tính vào giờ chơi (thiết kế: «App thêm vào cũng tính vào giờ chơi»); máy chủ khớp với app thật máy Con báo.
+// 15/11 (#262): chạm ＋ ⇒ trong thẻ vàng hỏi «<app> có tính phút không?» (Không tính phút | Tính phút · 1 sao = 1 phút), dòng đã thêm hiện «✓ <nhóm>».
+// App ngoài danh mục mặc định «Tính phút», gửi theo tên; máy chủ khớp với app thật máy Con báo.
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { DM_APP } from "@/lib/danh-muc-lan-dau";
 import { DauMan } from "@/lib/lan-dau";
-import { boDau, DongKetQua, TheDs, tinhGioDm } from "@/lib/lan-dau-ds";
+import { boDau, DongKetQua, HoiNhom, TheDs, tinhGioDm } from "@/lib/lan-dau-ds";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { datTl, layTl, type AppChon } from "@/lib/thiet-lap";
+import { datTl, layTl, nhomCua, type AppChon } from "@/lib/thiet-lap";
 import { Chu, F, Icon3D, M, Man, Nut } from "@/lib/ui";
 
 export default function ThemApp() {
   const ten = layTl().tenCon ?? "con";
   const [go, setGo] = useState("");
   const [apps, setApps] = useState<AppChon[]>(layTl().apps ?? []);
+  const [dang, setDang] = useState<string | null>(null);      // app vừa thêm ⇒ hỏi nhóm
   const k = boDau(go);
   const khop = k ? DM_APP.filter((a) => boDau(a.ten).includes(k) || boDau(a.phu).includes(k)) : [];
   const ds: { ten: string; e: string; phu: string; tinhGio: boolean }[] = [
     ...khop.map((a) => ({ ten: a.ten, e: a.e, phu: a.phu, tinhGio: tinhGioDm(a) })),
-    ...(k && !khop.some((a) => boDau(a.ten) === k) ? [{ ten: go.trim().slice(0, 60), e: "📱", phu: "Đúng tên Ba Mẹ gõ · tính vào giờ chơi", tinhGio: true }] : []),
+    ...(k && !khop.some((a) => boDau(a.ten) === k) ? [{ ten: go.trim().slice(0, 60), e: "📱", phu: "Đúng tên Ba Mẹ gõ", tinhGio: true }] : []),
   ];
   const co = (t: string) => apps.some((a) => boDau(a.ten) === boDau(t));
   const doi = (x: (typeof ds)[number]) => {
     const moi = co(x.ten) ? apps.filter((a) => boDau(a.ten) !== boDau(x.ten)) : [...apps, { ten: x.ten, tinhGio: x.tinhGio }];
+    setDang(co(x.ten) ? null : x.ten);
+    setApps(moi);
+    datTl({ apps: moi });
+  };
+  const tinhCua = (t: string) => { const a = apps.find((x) => boDau(x.ten) === boDau(t)); return !!a && "tinhGio" in a && a.tinhGio; };
+  const datNhom = (t: string, tinh: boolean) => {
+    const moi = apps.map((a) => (boDau(a.ten) === boDau(t) ? { ten: a.ten, tinhGio: tinh } : a));
     setApps(moi);
     datTl({ apps: moi });
   };
@@ -41,17 +50,18 @@ export default function ThemApp() {
           {go ? <Pressable onPress={() => setGo("")} accessibilityRole="button" hitSlop={6} style={{ minHeight: 40, paddingHorizontal: 10, justifyContent: "center" }}>
             <Chu kieu="rat" co={13} mau={M.chinhInk}>Xoá</Chu></Pressable> : null}
         </View>
+        {dang && co(dang) ? <HoiNhom ten={dang} nhom={nhomCua(tinhCua(dang))} doi={(n) => datNhom(dang, n === "tinh_phut")} /> : null}
       </View>
       {k ? (
         <>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 }}>
             <Chu kieu="rat" co={16} style={{ flex: 1 }}>Kết quả</Chu><Chu kieu="dam" co={13} mau={M.chu3}>{ds.length}</Chu>
           </View>
-          <TheDs>{ds.map((x, i) => <DongKetQua key={x.ten} dau={!i} e={x.e} ten={x.ten} phu={x.phu} da={co(x.ten)} bam={() => doi(x)} />)}</TheDs>
+          <TheDs>{ds.map((x, i) => <DongKetQua key={x.ten} dau={!i} e={x.e} ten={x.ten} phu={x.phu} da={co(x.ten)} nhom={nhomCua(tinhCua(x.ten))} bam={() => doi(x)} />)}</TheDs>
         </>
       ) : null}
       <Chu co={13} mau={M.chu2} style={{ paddingHorizontal: 4 }}>
-        Không thấy? Gõ <Chu kieu="rat" co={13}>đúng tên app</Chu> như trên máy con. App thêm vào cũng tính vào giờ chơi.
+        Không thấy? Gõ <Chu kieu="rat" co={13}>đúng tên app</Chu> như trên máy con. App <Chu kieu="rat" co={13} mau={M.chinhInk}>Tính phút</Chu>: 1 sao = 1 phút.
       </Chu>
     </Man>
   );

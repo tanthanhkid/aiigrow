@@ -1,4 +1,4 @@
-// Thanh điều hướng Ba Mẹ (thiết kế chốt 14/11 — N1): năm mục — Hôm nay · Nhiệm vụ · Chặn (icon khiên, bm-ung-dung) · Báo cáo · Cả nhà. «Chờ duyệt» vẫn là route trong nhóm
+// Thanh điều hướng Ba Mẹ (thiết kế chốt 14/11 — N1): năm mục — Hôm nay · Nhiệm vụ · App & web (icon khiên, bm-ung-dung — #262; route giữ tên «chan») · Báo cáo · Cả nhà. «Chờ duyệt» vẫn là route trong nhóm
 // tab (/cho-duyet, mở từ Thông báo / Hôm nay) nhưng không có nút trên thanh; số đỏ ở Nhiệm vụ = nhiệm vụ + quà đang chờ, ở Hôm nay = lời xin của mọi Con.
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated as RNAnimated, Platform, Text, View, useWindowDimensions } from "react-native";
@@ -45,7 +45,7 @@ function useChuyenTab(ds: string[], dang: number, giam: boolean) {
 // + icon Phosphor + ô chọn lõm) lệch thiết kế rõ nhất trên iOS (Nghi 14/11) ⇒ đổi theo HTML chốt; THIET-KE-CLAY §2 «icon tab Phosphor» bị HTML 14/11 thay.
 // Số đỏ chờ duyệt / lời xin giữ như cũ (thiết kế không vẽ, hành vi cũ giữ — KE-HOACH-KHOP-THIET-KE-1411 §0).
 const MUC: Record<string, { ic: TenIcon; chu: string }> = {
-  "hom-nay": { ic: "nha", chu: "Hôm nay" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ" }, chan: { ic: "khien", chu: "Chặn" }, "bao-cao": { ic: "lich", chu: "Báo cáo" },     // thiết kế 05/11: Chờ duyệt không còn là tab (route ẩn /cho-duyet)
+  "hom-nay": { ic: "nha", chu: "Hôm nay" }, "diem-qua": { ic: "sao", chu: "Nhiệm vụ" }, chan: { ic: "khien", chu: "App & web" }, "bao-cao": { ic: "lich", chu: "Báo cáo" },     // thiết kế 05/11: Chờ duyệt không còn là tab (route ẩn /cho-duyet)
   "cai-dat": { ic: "nguoi", chu: "Cả nhà" },
 };
 
