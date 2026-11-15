@@ -96,7 +96,9 @@ export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" |
   /** Quyền bảo vệ còn thiếu + cách khắc phục (server/lib/gia-dinh.ts › chiTietBaoVe); baoVeCau = một câu giải thích. */
   baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string;
   /** S3 06/11: máy im lặng > 10 phút hôm nay (không phải tắt / ngủ) */ matMang?: boolean;
-  /** 14/11 (PR #253): khoá RIÊNG máy này do Ba Mẹ đặt (POST may/:id/khoa) — den null = tới khi Ba Mẹ mở; máy chủ cũ không gửi */ khoaMay?: { khoa: boolean; den: string | null } };
+  /** 14/11 (PR #253): khoá RIÊNG máy này do Ba Mẹ đặt (POST may/:id/khoa) — den null = tới khi Ba Mẹ mở; máy chủ cũ không gửi */ khoaMay?: { khoa: boolean; den: string | null };
+  /** #267: Con nối với máy (≥ 2 = máy chung) · số Con · iPhone/iPad chỉ một Con — máy chủ cũ không gửi */
+  conDs?: { id: string; ten: string; avatar: string }[]; soCon?: number; motCon?: boolean };
 export type Khung = { tu: string; den: string };
 export type Lich = { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung };
 export type ConChiTiet = Omit<HomNay, "phutChoi" | "tranNgay" | "nhiemVuCho" | "yeuCauCho" | "phieuCho" | "nhiemVuXong" | "homNayConDa" | "phutDoiDuoc" | "conPhut"> & {
@@ -155,13 +157,18 @@ export type TuanThuMay = {
   dangGo: { lenhId: string; tu: string } | null;
   /** Được xoá hẳn khỏi danh sách (chưa đồng bộ lần nào, hoặc đang gỡ > 7 ngày không liên lạc). */
   coTheXoaHan: boolean;
+  /** #267 (docs/API.md): khoá theo máy · Con nối với máy (≥ 2 = máy chung, 0 = chờ Ba Mẹ gán) · bé đang dùng (máy riêng = Con của máy) ·
+   *  số Con · iPhone/iPad chỉ một Con · Ba Mẹ đang dùng máy tới. Máy chủ cũ không gửi ⇒ suy từ con / dungChung (lib/may-nhieu-con). */
+  khoaMay?: { khoa: boolean; den: string | null }; conDs?: { id: string; ten: string; avatar: string }[];
+  dangDung?: { id: string; ten: string; avatar: string; tu?: string | null } | null; soCon?: number; motCon?: boolean; baMeDungDen?: string | null;
 };
 export type CheDoMay = "giam-sat" | "chan";
 export const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", chan: "Chặn thật" };
 /** POST may/:id/go {matKhau, xoaHan?} */
 export type KqGoMay = { trangThai: "dang_go"; id: string; lapLai: boolean; cach: string } | { trangThai: "da_xoa"; canGoTaiMay: boolean };
 export type SuKienTuanThu = { loai: string; chi_tiet: Record<string, unknown>; nguoi: string | null; created_at: string };
-export type ChiTietTuanThu = TuanThuMay & { suKien: SuKienTuanThu[] };
+/** `GET may/:id/tuan-thu`: #267 thêm `tungCon` (Con đã gán, cùng dạng `GET may/:id/con › ds`). */
+export type ChiTietTuanThu = TuanThuMay & { suKien: SuKienTuanThu[]; tungCon?: import("./may-nhieu-con").ConCuaMay[] };
 /** Máy có «Mã mở khi mất mạng»: theo cờ máy chủ (tuan-thu.ts › coMaOffline); máy chủ cũ không gửi ⇒ chỉ Windows. */
 export const coMaOff = (m: Pick<TuanThuMay, "coMaOffline" | "nen">) => m.coMaOffline ?? m.nen === "windows";
 

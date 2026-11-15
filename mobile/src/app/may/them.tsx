@@ -1,90 +1,86 @@
-// bm1-may-chon-loai / them-o76iq8p5 «Ghép thêm máy» (thiết kế chốt 04/11, L8): «Máy mới của ai?» (chọn Con / + Thêm con),
-// «Cài cho máy mới»: Giống <máy trước> (y như máy trước · nên chọn: chép chế độ chặn, giờ chơi, giờ ngủ, app) / Cài riêng (chỉnh sau).
-// Không chọn loại máy — trang tải tự nhận. «Lấy mã ghép máy mới cho X» ⇒ màn Ghép máy (mã 6 số + QR + chia sẻ).
-import { useEffect, useState, type ReactNode } from "react";
+// bm1-may-chon-loai «Ghép thêm máy» (thiết kế chốt 15/11, #267): «Máy mới cho bé nào? · chọn một hoặc nhiều bé» — dải avatar có dấu tick (chọn nhiều),
+// «＋ Thêm con»; thẻ kết quả «Máy dùng chung · N bé» (bé chọn tên + PIN, chỉ trừ sao bé đang dùng) / «Máy riêng của <bé>»; hộp «iPhone, iPad: chỉ một bé»
+// (máy hoá ra iPhone/iPad thì Grow hỏi chọn đúng một bé lúc quét); «Không cần cài riêng cho máy: sao và danh sách app đi theo từng bé» (bỏ «Cài giống
+// máy trước» — luật đi theo bé). «Lấy mã ghép máy chung cho N bé» ⇒ màn Ghép máy (POST ghep-may {conDs}).
+import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
-import { bm, type GiaDinh, type TuanThuMay } from "@/lib/api";
+import { bm, type GiaDinh } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
-import { tomTat, type TomTat } from "@/lib/ghep-may";
-import { Anh3D, DauMan, gioGon, mauHoSo } from "@/lib/lan-dau";
+import { Anh3D, DauMan } from "@/lib/lan-dau";
 import { tenGoi } from "@/lib/hang-ngay";
-import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, Nut, Rob, useTai, type TenIcon } from "@/lib/ui";
+import { AvtCon } from "@/lib/may-nhieu-con";
+import { ChoTai, Chu, Icon, Icon3D, M, Man, Nut, Rob, useTai } from "@/lib/ui";
 
 export default function GhepThemMay() {
   const { con: conVao } = useLocalSearchParams<{ con?: string }>();
-  const { d, loi, matMang, tai } = useTai(async () => {
-    const [g, tt] = await Promise.all([bm.goi<GiaDinh>("gia-dinh"), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu")]);
-    return { con: g.con, may: tt.ds };
-  });
-  const [con, setCon] = useState<string | null>(conVao ? String(conVao) : null);
-  const [giong, setGiong] = useState(true);
-  const [tom, setTom] = useState<{ may: string; v: TomTat } | null>(null);
-  const c = d?.con.find((x) => x.id === con) ?? d?.con[0] ?? null;
-  // «Máy trước» = máy của chính Con này; Con chưa có máy ⇒ máy gần nhất trong nhà (chép cấu hình sang Con mới)
-  const truoc = d ? d.may.find((m) => m.con === c?.id && !m.dungChung) ?? d.may.find((m) => !m.dungChung && m.con) ?? null : null;
-  useEffect(() => {
-    let bo = false;
-    if (truoc?.con) tomTat(truoc.con).then((v) => { if (!bo) setTom({ may: truoc.id, v }); }, () => {});
-    return () => { bo = true; };
-  }, [truoc?.id, truoc?.con]);
-  const tt = tom && tom.may === truoc?.id ? tom.v : null;
+  const { d, loi, matMang, tai } = useTai(() => bm.goi<GiaDinh>("gia-dinh").then((g) => g.con));
+  // bé chọn: mặc định bé đang xem (?con) — không có thì bé đầu tiên; nhà một bé ⇒ bé đó
+  const [chon, setChon] = useState<ReadonlySet<string> | null>(null);
   if (!d) return <Man dau={<DauMan tieu="Ghép thêm máy" ve="/may" />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const chuMay = truoc ? d.con.find((x) => x.id === truoc.con)?.ten : undefined;
-  const chuTruoc = truoc ? `${truoc.ten}${chuMay ? ` của ${chuMay}` : ""}` : "";
-  const lay = () => c && router.push({ pathname: "/thiet-lap/ghep", params: { con: c.id, nguon: "them", moi: "1", ...(giong && truoc ? { giong: truoc.id } : {}) } });
-  const chip = (ic: TenIcon, chu: string) => (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 8, paddingVertical: 4, borderRadius: 99, backgroundColor: "#f1f0ec" }}>
-      <Icon3D ten={ic} co={16} /><Chu kieu="rat" co={12}>{chu}</Chu>
-    </View>
-  );
-  const oChon = (chon: boolean, bam: () => void, trai: ReactNode, tieu: string, phu: string, duoi?: ReactNode) => (
-    <Pressable onPress={bam} accessibilityRole="radio" accessibilityState={{ checked: chon }}
-      style={{ borderRadius: 24, backgroundColor: "#fff", padding: 16, gap: 10, ...KHOI.nho, ...(chon ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}`, backgroundColor: "#f3faf7" } : {}) }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <View style={{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", ...(chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#e6e5e1", boxShadow: BONG.lom }) }}>
-          {chon ? <Icon ten="tick" mau="#fff" co={15} /> : null}
-        </View>
-        {trai}
-        <View style={{ flex: 1 }}><Chu kieu="rat" co={15.5}>{tieu}</Chu><Chu co={12.5} mau={M.chu3}>{phu}</Chu></View>
-      </View>
-      {duoi}
-    </Pressable>
-  );
+  const macDinh = new Set([d.find((x) => x.id === conVao)?.id ?? d[0]?.id].filter(Boolean) as string[]);
+  const dang = chon ?? macDinh;
+  const ds = d.filter((x) => dang.has(x.id));
+  const so = ds.length;
+  const doi = (id: string) => { const n = new Set(dang); if (n.has(id)) n.delete(id); else n.add(id); setChon(n); };
+  const lay = () => so && router.push({ pathname: "/thiet-lap/ghep", params: { con: ds[0].id, nguon: "them", moi: "1", ...(so > 1 ? { conDs: ds.map((x) => x.id).join(",") } : {}) } });
   return (
-    <Man dau={<DauMan tieu="Ghép thêm máy" ve="/may" />} day={<Nut chu={`Lấy mã ghép máy mới cho ${c?.ten ?? "con"}`} rong tat={!c} bam={lay} />}>
-      <Chu kieu="rat" co={14} mau={M.chu2} style={{ paddingHorizontal: 4 }}>Máy mới của ai?</Chu>
-      {/* thiết kế 02 / 06: dải avatar tròn 54 + tên (con đang chọn có vòng ngọc), «＋ Thêm con» cuối dải */}
-      <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 8 }} accessibilityRole="radiogroup">
-        {d.con.map((x) => {
-          const chon = x.id === c?.id;
+    <Man dau={<DauMan tieu="Ghép thêm máy" ve="/may" />}
+      day={<Nut chu={so > 1 ? `Lấy mã ghép máy chung cho ${so} bé` : so ? `Lấy mã ghép máy mới cho ${tenGoi(ds[0].ten)}` : "Chọn bé dùng máy mới"} rong tat={!so} bam={lay} />}>
+      <View style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", gap: 6, paddingHorizontal: 6, marginTop: 4 }}>
+        <Chu kieu="rat" co={15} mau="#3a403d">Máy mới cho bé nào?</Chu>
+        {d.length > 1 ? <Chu kieu="dam7" co={12.5} mau="#565c59">· chọn một hoặc nhiều bé</Chu> : null}
+      </View>
+      {/* dải avatar tròn 54 (bé chọn: vòng ngọc + dấu tick), «＋ Thêm con» cuối dải */}
+      <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 10, columnGap: 22, paddingHorizontal: 6 }}>
+        {d.map((x) => {
+          const on = dang.has(x.id);
           return (
-            <Pressable key={x.id} onPress={() => setCon(x.id)} accessibilityRole="radio" accessibilityState={{ checked: chon }} accessibilityLabel={x.ten}
-              style={{ width: "20%", alignItems: "center", gap: 5 }}>
-              <View style={{ padding: 3, borderRadius: 34, borderWidth: 3, borderColor: chon ? M.chinh : "transparent" }}>
-                <Avt ten={x.ten} mau={mauHoSo(x.avatar)[0]} co={50} />
+            <Pressable key={x.id} onPress={() => doi(x.id)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={x.ten}
+              style={{ width: 62, alignItems: "center", gap: 7 }}>
+              <View style={{ width: 62, height: 62, borderRadius: 31, alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: on ? M.chinh : "transparent" }}>
+                <AvtCon c={x} co={52} />
               </View>
-              <Chu kieu="rat" co={13} mau={chon ? M.chinhInk : M.chu2} dong={1}>{tenGoi(x.ten)}</Chu>
+              {on ? (
+                <View style={{ position: "absolute", top: 40, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center",
+                  borderWidth: 2.5, borderColor: M.nen }}><Icon ten="tick" mau="#fff" co={12} /></View>
+              ) : null}
+              <Chu kieu="rat" co={12.5} mau={on ? M.chinhInk : "#3a403d"} dong={1}>{tenGoi(x.ten)}</Chu>
             </Pressable>
           );
         })}
-        <Pressable onPress={() => router.push("/thiet-lap/ten-con")} accessibilityRole="button" accessibilityLabel="Thêm con" style={{ width: "20%", alignItems: "center", gap: 5 }}>
-          <View style={{ margin: 6, width: 50, height: 50, borderRadius: 25, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
+        <Pressable onPress={() => router.push("/thiet-lap/ten-con")} accessibilityRole="button" accessibilityLabel="Thêm con" style={{ width: 62, alignItems: "center", gap: 7 }}>
+          <View style={{ margin: 5, width: 52, height: 52, borderRadius: 26, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
             <Icon ten="cong" mau={M.chinhInk} co={22} />
           </View>
-          <Chu kieu="rat" co={12} mau={M.chinhInk} dong={1}>Thêm con</Chu>
+          <Chu kieu="rat" co={12.5} mau="#3a403d" dong={1}>Thêm con</Chu>
         </Pressable>
       </View>
-      <Chu kieu="rat" co={14} mau={M.chu2} style={{ paddingHorizontal: 4, marginTop: 4 }}>Cài cho máy mới</Chu>
-      {truoc ? oChon(giong, () => setGiong(true), null, `Giống ${chuTruoc}`, "Y như máy trước · nên chọn",
-        tt ? <View style={{ flexDirection: "row", gap: 6, flexWrap: "wrap", paddingLeft: 38 }}>
-          {chip("dongho", `${tt.gioChoi.ngayThuong ?? "—"} phút`)}{chip("khien", tt.cheDoChan === "mo_het" ? "Mở hết" : "Chặn app & web")}{chip("trang_ngu", `Ngủ ${gioGon(tt.ngu.tu)} – ${gioGon(tt.ngu.den)}`)}
-        </View> : undefined) : null}
-      {oChon(!giong || !truoc, () => setGiong(false), <Icon3D ten="banhrang" co={30} />, "Cài riêng cho máy này", "Chỉnh sau khi ghép xong")}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 }}>
-        <Anh3D ten="lap_lanh" co={20} /><Chu kieu="dam" co={13.5} mau={M.chu2}>Không cần chọn loại máy, trang tải tự nhận.</Chu>
+      {so ? (
+        <View style={{ padding: 16, borderRadius: 24, backgroundColor: "#dcebe6", boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}`, gap: 4 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Icon3D ten="nguoi" co={24} />
+            <Chu kieu="rat" co={15} mau={M.chinhInk} style={{ flexShrink: 1 }}>{so > 1 ? `Máy dùng chung · ${so} bé` : `Máy riêng của ${tenGoi(ds[0].ten)}`}</Chu>
+          </View>
+          <Chu kieu="dam" co={13} style={{ lineHeight: 18 }}>
+            {so > 1 ? "Khi mở máy, bé chọn tên + nhập PIN của mình. Chơi chỉ trừ sao của bé đang dùng."
+              : `${tenGoi(ds[0].ten)} vào thẳng, không hỏi PIN. Windows, Mac, Android thêm bé khác dùng chung sau được.`}
+          </Chu>
+        </View>
+      ) : null}
+      <View style={{ flexDirection: "row", gap: 10, padding: 16, borderRadius: 24, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+        <Icon3D ten="tablet" co={30} />
+        <View style={{ flex: 1 }}>
+          <Chu kieu="rat" co={14}>iPhone, iPad: chỉ một bé</Chu>
+          <Chu kieu="dam" co={13} mau="#3a403d" style={{ lineHeight: 18 }}>
+            {`Hệ điều hành của Apple không đổi người dùng được, nên nếu máy mới là iPhone/iPad${so > 1 ? ", Grow sẽ hỏi chọn đúng một bé" : ", máy chỉ dành cho một bé"}. Windows, Mac, Android dùng chung được.`}
+          </Chu>
+        </View>
       </View>
-      <View style={{ alignItems: "center" }}><Rob ten="chi" co={150} /></View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 6 }}>
+        <Anh3D ten="lap_lanh" co={24} /><Chu kieu="dam" co={13.5} mau="#3a403d" style={{ flex: 1 }}>Không cần cài riêng cho máy: sao và danh sách app đi theo từng bé.</Chu>
+      </View>
+      <View style={{ alignItems: "center" }}><Rob ten="chi" co={130} /></View>
     </Man>
   );
 }

@@ -208,39 +208,56 @@ export function ManKetQua({ lv = "xong", tieu, loi, dong, chinh, phu, noi, child
   );
 }
 
-/** Bảng trượt «Khoá máy <Con>?» (thiết kế 14/11 them-sll7clha): liệt kê máy (app đang mở / lần dùng gần nhất) có dấu chọn từng máy, «Khoá bao lâu?»
- *  30 phút · 1 giờ · Sáng mai, nút «Khoá N máy tới HH:MM». Chọn đủ mọi máy ⇒ POST con/:id/khoa {khoa, den} (khoá theo Con, như trước); bỏ chọn
- *  bớt ⇒ khoá RIÊNG từng máy đã chọn POST may/:id/khoa (PR #253 — lib/noi-1411 › cachKhoa). Máy chủ tự hết khoá khi qua hạn; «sang» = 6:30.
- *  Máy đang khoá riêng hiện «Đang khoá tới HH:MM» (`may[].khoaMay`).
- *  `dang`: dòng phụ từng máy (vd «● Roblox · từ 19:02») — không có thì «Đang mở» / «Đang tắt». `xong(chu, hoan)` ⇒ toast + Hoàn tác (mở lại). */
-export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
-  mo: boolean; dong: () => void; con: string; ten: string; may: Pick<MayCon, "id" | "ten" | "nen" | "truc" | "khoaMay" | "dungChung">[];
+/** Bảng trượt «Khoá máy <Con>?» (thiết kế chốt 15/11 them-sll7clha, #267): «Khoá theo bé: <Con> không vào được máy nào. Máy chung chỉ khoá phần của <Con>.»
+ *  Liệt kê máy của bé (app đang mở / «máy riêng» / «Máy chung · <bé khác> vẫn vào được») có dấu chọn từng máy, «Khoá bao lâu?» 30 phút · 1 giờ · Sáng mai,
+ *  nút «Khoá <Con> tới HH:MM». Chọn đủ mọi máy ⇒ POST con/:id/khoa {khoa, den} (khoá THEO BÉ — máy chung chỉ khoá lúc bé này đang dùng, máy chủ #267);
+ *  bỏ chọn bớt ⇒ khoá RIÊNG từng máy riêng đã chọn POST may/:id/khoa (lib/noi-1411 › cachKhoa) — máy chung không khoá riêng cho một bé (khoá máy ⇒ mọi bé).
+ *  `caNha` (màn «Máy trong nhà» lọc «Tất cả»): khoá theo bé cho MỌI bé ⇒ mọi máy trong nhà khoá. Máy chủ tự hết khoá khi qua hạn; «sang» = 6:30.
+ *  `dang`: dòng phụ từng máy (vd «● Roblox · từ 19:02»). `xong(chu, hoan)` ⇒ toast + Hoàn tác (mở lại). */
+export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
+  mo: boolean; dong: () => void; con: string | null; ten: string;
+  may: (Pick<MayCon, "id" | "ten" | "nen" | "truc" | "khoaMay" | "dungChung"> & { /** máy chung: tên các bé khác vẫn vào được */ conKhac?: string[] })[];
   dang?: Record<string, { chu: string; mo?: boolean }>;
   xong: (chu: string, hoan: () => Promise<void>) => void;
+  caNha?: { id: string; ten: string }[];
 }) {
   type Han = "30" | "60" | "sang" | "mo";
   const [han, setHan] = useState<Han>("30");
   const [hanTruoc, setHanTruoc] = useState<Han>("30");   // lựa chọn trước khi bấm «Khoá tới khi Ba Mẹ mở» — bỏ tick là trả lại
   // máy Ba Mẹ BỎ chọn (mặc định chọn hết — danh sách máy có thể về sau khi bảng đã dựng)
   const [boChon, setBoChon] = useState<ReadonlySet<string>>(new Set());
-  // máy dùng chung không khoá riêng được cho MỘT Con (khoá máy ⇒ mọi bé trên máy đó) ⇒ không tự chọn; chỉ khoá khi chọn đủ máy riêng (khoá theo Con)
+  // máy chung không khoá riêng cho MỘT Con (khoá máy ⇒ mọi bé trên máy đó) ⇒ bỏ chọn máy chung = không khoá được theo bé; chỉ khoá riêng các máy riêng
   const rieng = may.filter((m) => !m.dungChung).map((m) => m.id);
-  const cach = cachKhoa(rieng, rieng.filter((id) => !boChon.has(id)));
+  const chungBo = may.some((m) => m.dungChung && boChon.has(m.id));
+  const cach = caNha ? (caNha.length ? { kieu: "con" as const } : null)
+    : chungBo ? (() => { const ids = rieng.filter((id) => !boChon.has(id)); return ids.length ? { kieu: "may" as const, ids } : null; })()
+      : cachKhoa(rieng, rieng.filter((id) => !boChon.has(id)));
   const soChon = cach?.kieu === "con" ? may.length : cach ? cach.ids.length : 0;
   const { lam, loi, dangChay } = useLam();
   // giờ hiện trên nút chỉ để xem trước; hạn THẬT tính lúc bấm (bảng có thể mở lâu — review PR #241)
   const denLuc = (h: Han, tu = new Date()) => (h === "sang" || h === "mo" ? null : new Date(tu.getTime() + Number(h) * 60_000));
   const cauDen = (h: Han, tu = new Date()) => (h === "mo" ? "tới khi Ba Mẹ mở" : h === "sang" ? "tới 6:30" : `tới ${gioPhut(denLuc(h, tu)!.toISOString())}`);
   const lua: { gia: Han; chu: string }[] = [{ gia: "30", chu: "30 phút" }, { gia: "60", chu: "1 giờ" }, { gia: "sang", chu: "Sáng mai" }];
-  const ngan = (t: string) => t.replace(/ của .*$/, "");
+  const ngan = (t: string) => t.replace(/ · .*$/, "");
   const khoa = () => lam(async () => {
     if (!cach) return;
     const luc = new Date();
     const den = han === "sang" ? "sang" : han === "mo" ? null : denLuc(han, luc)!;
+    if (caNha) {
+      const kq = await Promise.allSettled(caNha.map((c) => datKhoa(c.id, true, den)));
+      const ok = caNha.filter((_, i) => kq[i].status === "fulfilled");
+      if (!ok.length) throw (kq[0] as PromiseRejectedResult).reason;
+      dongBang();
+      const hong = caNha.filter((_, i) => kq[i].status === "rejected");
+      xong(`Đã khoá mọi máy ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${hong.map((c) => tenGoi(c.ten)).join(", ")}, thử lại` : ""}`,
+        async () => { await Promise.all(ok.map((c) => datKhoa(c.id, false, null))); });
+      return;
+    }
+    if (!con) return;
     if (cach.kieu === "con") {
       await datKhoa(con, true, den);
       dongBang();
-      xong(`Đã khoá máy của ${ten} ${cauDen(han, luc)}`, () => datKhoa(con, false, null));
+      xong(`Đã khoá ${ten} trên mọi máy ${cauDen(han, luc)}`, () => datKhoa(con, false, null));
       return;
     }
     // khoá riêng từng máy: máy nào lỗi thì báo, máy đã khoá vẫn có Hoàn tác; Hoàn tác trả lại khoá riêng CŨ (nếu có), không mở trắng
@@ -251,7 +268,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
     if (!ok.length) throw (kq[0] as PromiseRejectedResult).reason;
     dongBang();
     const tenCua = (ids: string[]) => may.filter((m) => ids.includes(m.id)).map((m) => ngan(m.ten)).join(", ");
-    xong(`Đã khoá ${tenCua(ok)} của ${ten} ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${tenCua(hong)}, thử lại` : ""}`, async () => {
+    xong(`Đã khoá ${tenCua(ok)} ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${tenCua(hong)}, thử lại` : ""}`, async () => {
       await Promise.all(ok.map((id) => { const cu = truocDo.get(id);
         return mayDangKhoa(cu) ? datKhoaMay(id, true, cu!.den ? new Date(cu!.den) : null) : datKhoaMay(id, false); }));
     });
@@ -259,23 +276,30 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
   // đóng bảng ⇒ lần mở sau chọn lại đủ máy (không giữ máy đã bỏ chọn lần trước)
   const dongBang = () => { setBoChon(new Set()); dong(); };
   const doiChon = (id: string) => setBoChon((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const phuMay = (m: (typeof may)[number]) => {
+    const kh = cauKhoaMay(m.khoaMay);
+    if (m.dungChung) return `Máy chung${m.conKhac?.length ? ` · ${m.conKhac.join(", ")} vẫn vào được` : ""}`;
+    return dang?.[m.id]?.chu ?? kh ?? (m.truc ? "Máy riêng" : "Đang tắt · khoá khi máy mở lên");
+  };
   return (
-    <BangTruot mo={mo} dong={dongBang} tieu={`Khoá máy ${ten}?`} hinh="khoa">
+    <BangTruot mo={mo} dong={dongBang} tieu={caNha ? "Khoá tất cả máy?" : `Khoá máy ${ten}?`} hinh="khoa">
+      <Chu kieu="dam" co={13} mau="#565c59" style={{ textAlign: "center", marginTop: -4, lineHeight: 18 }}>
+        {caNha ? "Mọi bé không vào được máy nào tới khi hết hạn khoá." : `Khoá theo bé: ${ten} không vào được máy nào. Máy chung chỉ khoá phần của ${ten}.`}
+      </Chu>
       {may.length ? (
         // thiết kế .ds: một thẻ, mỗi máy một hàng (ô icon lõm · tên · trạng thái · ô tick ngọc 30)
         <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
           {may.map((m, k) => {
             const x = dang?.[m.id];
-            const on = m.dungChung ? cach?.kieu === "con" : !boChon.has(m.id);
-            const kh = m.dungChung && !on ? "Máy dùng chung · chỉ khoá khi chọn đủ máy" : cauKhoaMay(m.khoaMay);
+            const on = caNha ? true : !boChon.has(m.id);
             return (
-              <Pressable key={m.id} onPress={m.dungChung ? undefined : () => doiChon(m.id)} disabled={m.dungChung} accessibilityRole="checkbox"
-                accessibilityState={{ checked: on, disabled: m.dungChung }} accessibilityLabel={`Khoá ${ngan(m.ten)}`}
+              <Pressable key={m.id} onPress={caNha ? undefined : () => doiChon(m.id)} disabled={!!caNha} accessibilityRole="checkbox"
+                accessibilityState={{ checked: on, disabled: !!caNha }} accessibilityLabel={`Khoá ${ngan(m.ten).replace(/ của .*$/, "")}`}
                 style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
-                <BieuTron ic={IC_MAY[m.nen]} mau="xam" />
+                <BieuTron ic={m.dungChung && (m.nen === "windows" || m.nen === "mac") ? "may_tinh" : IC_MAY[m.nen]} mau="xam" />
                 <View style={{ flex: 1 }}>
                   <Chu kieu="rat">{ngan(m.ten)}</Chu>
-                  <Chu kieu="dam" co={12.5} mau={x?.mo ? M.chinhInk : "#565c59"}>{(m.dungChung && !on ? kh : x?.chu) ?? kh ?? (m.truc ? "Đang mở" : "Đang tắt · khoá khi máy mở lên")}</Chu>
+                  <Chu kieu="dam" co={12.5} mau={x?.mo && !m.dungChung ? M.chinhInk : "#565c59"}>{phuMay(m)}</Chu>
                 </View>
                 {/* ô tick ngọc 30 (thiết kế .chk); bỏ chọn ⇒ ô lõm trống */}
                 {on ? <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}><Icon ten="tick" co={16} mau="#fff" /></View>
@@ -285,6 +309,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
           })}
         </View>
       ) : null}
+      {chungBo && !caNha ? <Chu co={12.5} mau={M.chu3} style={{ marginHorizontal: 6 }}>Bỏ máy chung thì chỉ khoá riêng các máy riêng đã chọn — khoá máy chung là khoá mọi bé (vào máy đó › «Khoá máy này»).</Chu> : null}
       <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>Khoá bao lâu?</Chu>
       <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
         {lua.map((x) => {
@@ -306,7 +331,8 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong }: {
         <Chu kieu="rat" co={13.5} mau={M.chinhInk}>Khoá tới khi Ba Mẹ mở</Chu>
       </Pressable>
       <BaoLoi loi={loi} />
-      <Nut chu={`Khoá ${soChon > 1 ? `${soChon} máy` : "máy"} ${cauDen(han)}`} ic="khoa" ic3d rong dangChay={dangChay} tat={!cach} bam={khoa} />
+      <Nut chu={caNha ? `Khoá mọi máy ${cauDen(han)}` : cach?.kieu === "con" ? `Khoá ${ten} ${cauDen(han)}` : `Khoá ${soChon > 1 ? `${soChon} máy` : "máy"} ${cauDen(han)}`}
+        ic="khoa" ic3d rong dangChay={dangChay} tat={!cach} bam={khoa} />
       <Nut chu="Thôi, để con chơi tiếp" loai="vien" rong bam={dongBang} />
     </BangTruot>
   );

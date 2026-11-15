@@ -95,9 +95,10 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
     return (
       <div className="ag"><main className="trang vao tai-trang">
         <Dau may="iPhone / iPad" />
-        <header className="dau-trang"><h1>Đây là iPhone / iPad.</h1><p className="phu-de">Không cần tải file, mình dẫn từng bước.</p></header>
+        <header className="dau-trang"><h1>Đây là iPhone / iPad.</h1><p className="phu-de">Không cần tải file. Máy này chỉ dùng cho một bé.</p></header>
         <section className="the the-tai">
-          <div className="dau-tai"><I3d ten="mobile-phone" mau="tim" co={48} /><div><h2>Cài cho máy này</h2><p className="ghi-chu">Khi đây là máy của con</p></div></div>
+          {/* #267: iPhone / iPad không đổi người dùng ⇒ chỉ một bé (máy dùng chung: Windows, Mac, Android) */}
+          <div className="dau-tai"><I3d ten="mobile-phone" mau="tim" co={48} /><div><h2>Cài cho máy này</h2><p className="ghi-chu">Máy riêng của một bé · iPhone, iPad không dùng chung được</p></div></div>
           {t.moApp
             ? <a className="nut ngoc rong tai-nut-lon" href={t.moApp}><Ph ten="download-simple" co={22} />Mở trang cài cho iPhone</a>
             : <p className="ghi-chu">Nhờ Ba Mẹ gửi link «Ghép máy» trong app Ba Mẹ, mở link đó trên máy này để cài. Đang thử qua TestFlight, nhắn AiiLab để nhận lời mời.</p>}
