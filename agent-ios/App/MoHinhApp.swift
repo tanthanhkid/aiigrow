@@ -8,6 +8,8 @@ import FamilyControls
 
 enum Man: Equatable { case chao, chuaGhep, nhapMa, quetQR, chinh, daGo }
 enum LoiGhep: Equatable { case sai(String), hetHan, matMang }
+/// #267: mã / gói cài cho nhiều bé mà máy là iPhone/iPad ⇒ chọn MỘT bé rồi ghép lại (them-b3prchz2).
+struct ChonBeGhep: Equatable { var cach: CachGhep; var ds: [BeChon]; var cau: String }
 enum TabCon: Hashable { case homNay, nhiemVu, saoQua, tin }
 
 /// Bài nộp chưa gửi được (mất mạng) — lưu ở máy, gửi khi có mạng.
@@ -55,6 +57,9 @@ final class MoHinhApp: ObservableObject {
   @Published var baiCho: [BaiCho] = []
   // điều hướng màn phụ (sheet)
   @Published var manPhu: ManPhu?
+  // 15/11: sổ sao (GET hoc-vien/sao) · chọn một bé khi ghép iPhone/iPad
+  @Published var saoCon: ChinhSach.SaoCon?
+  @Published var chonBeGhep: ChonBeGhep?
 
   let kho: KhoGiaTri
   let luaChon: LuaChonApp
@@ -108,16 +113,30 @@ final class MoHinhApp: ObservableObject {
   /// Máy đang khoá chờ chọn tên + PIN.
   var dangKhoaChoTen: Bool { phien?.khoa(Date()) ?? false }
   var baMeDangDung: Bool { phien?.baMeDangDung(Date()) ?? false }
-  var soSao: Int { tq?.soSao ?? cuaHang?.soSao ?? 0 }
+  /// 15/11: số dư Con thấy — ÂM khi đang nợ Ba Mẹ (sổ sao › kế hoạch › tổng quan cũ).
+  var soSao: Int { saoCon?.sao ?? keHoach?.sao?.sao ?? tq?.soSao ?? cuaHang?.soSao ?? 0 }
+  /// Đang nợ Ba Mẹ bao nhiêu sao (0 = không nợ).
+  var soNo: Int { saoCon?.soNo ?? keHoach?.sao?.soNo ?? max(0, -soSao) }
   var tongPhut: Int { tq?.quy?.tongPhut ?? keHoach?.tranPhut ?? 0 }
-  var conPhut: Int { matMang || tq?.quy == nil ? phutConLai : min(phutConLai, tq?.quy?.conPhut ?? phutConLai) }
+  /// Phút «Tính phút» còn chơi = sao tiêu được (1 sao = 1 phút).
+  var conPhut: Int {
+    if keHoach?.sao != nil { return matMang ? phutConLai : min(phutConLai, saoCon?.phutCon ?? phutConLai) }
+    return matMang || tq?.quy == nil ? phutConLai : min(phutConLai, tq?.quy?.conPhut ?? phutConLai)
+  }
+  /// Phút Tính phút đã chơi hôm nay (= sao đã tiêu cho chơi hôm nay).
   var daDung: Int { max(phutDaDung, matMang ? 0 : (tq?.quy?.daDung ?? 0)) }
-  var phut10Sao: Int { tq?.quy?.phut10Sao ?? keHoach?.phut10Sao ?? 10 }
-  /// Giờ ngủ / Ba Mẹ khoá / giờ học: không thêm giờ được — chỉ xin ngoại lệ.
+  /// «Mở hết»: app, web tự do, không trừ sao (them-uero9k5x).
+  var moHet: Bool { keHoach?.moHet ?? false }
+  var hetSao: Bool { conPhut <= 0 }
+  /// Mức vay (10/15/30 — máy chủ gửi).
+  var mucVay: [Int] { saoCon?.mucVay ?? [10, 15, 30] }
+  var vayMacDinh: Int { saoCon?.vayMacDinh ?? 15 }
+  /// Giờ ngủ / Ba Mẹ khoá / giờ học: vay sao không giải được (15/11 bỏ ngoại lệ).
   var chiNgoaiLe: Bool { khien?.lyDo.chiNgoaiLe == true }
 
   // MARK: ghép máy
-  func ghep(_ c: CachGhep) async {
+  /// `con`: bé đã chọn sau `409 ios_mot_con` (#267 — iPhone, iPad chỉ dùng cho một bé).
+  func ghep(_ c: CachGhep, con: String? = nil) async {
     guard demo == nil else { return }
     dangBan = true; loi = nil; loiGhep = nil
     defer { dangBan = false }
@@ -125,11 +144,12 @@ final class MoHinhApp: ObservableObject {
       let ten = UIDevice.current.name
       let kq: KetQuaGhep
       switch c {
-      case .ma(let ma): kq = try await ApiClient(goc: mayChu).ghepBangMa(ma, tenMay: ten)
+      case .ma(let ma): kq = try await ApiClient(goc: mayChu).ghepBangMa(ma, tenMay: ten, con: con)
       case .token(let t, let goc):
         if let goc { kho.luu(goc.absoluteString, Khoa.mayChu) }
-        kq = try await ApiClient(goc: mayChu).ghepBangToken(t, tenMay: ten)
+        kq = try await ApiClient(goc: mayChu).ghepBangToken(t, tenMay: ten, con: con)
       }
+      chonBeGhep = nil
       KhoBiMat.ghi(kq.token)
       kho.luu(ThongTinMay(deviceId: kq.deviceId, tenCon: kq.childName, dungChung: kq.dungChung ?? false), Khoa.thongTinMay)
       // 06/11 (cdt-quyen): ghép xong + cho phép giữ giờ ⇒ màn Chọn tên (máy khoá), bé chạm tên + PIN để vào máy
@@ -138,6 +158,8 @@ final class MoHinhApp: ObservableObject {
       moQuyen = true
       _ = await vaoMay().taiHoSo()
       await dongBoNgay()
+    } catch let e as LoiIosMotCon {
+      chonBeGhep = ChonBeGhep(cach: c, ds: e.conChon, cau: e.cau)
     } catch let e as LoiApi {
       switch e {
       case .mang: loiGhep = .matMang
@@ -159,7 +181,11 @@ final class MoHinhApp: ObservableObject {
   /// Nút trên màn chặn ⇒ màn xin (máy đang khoá chờ PIN thì để màn chọn tên, không mở xin).
   func moXinTuManChan() {
     guard man == .chinh, !dangKhoaChoTen, !baMeDangDung else { return }
-    manPhu = khien?.lyDo == .khong ? .xinCai : .xinThem
+    switch khien?.lyDo {
+    case .khong?: manPhu = .xinCai          // ngoài danh sách ⇒ «Xin Ba Mẹ mở»
+    case .hetGio?: manPhu = .xinThem        // hết sao ⇒ «Xin Ba Mẹ cho vay sao»
+    default: break                          // khoá / ngủ: mở app là đủ (không còn ngoại lệ)
+    }
   }
 
   // MARK: đồng bộ
@@ -225,7 +251,9 @@ final class MoHinhApp: ObservableObject {
     async let v = try? a.viQua()
     async let n = try? a.tin()
     async let q = try? a.quyCon()
-    let (t1, c1, v1, n1, q1) = await (t, c, v, n, q)
+    async let s = try? a.saoCon()
+    let (t1, c1, v1, n1, q1, s1) = await (t, c, v, n, q, s)
+    if let s1 { saoCon = s1 }
     if let t1 { tq = t1 }
     if let c1 { cuaHang = c1 }
     if let v1 { viQua = v1 }
@@ -283,44 +311,35 @@ final class MoHinhApp: ObservableObject {
     manPhu = nil
     if demo != nil { phien = PhienMay(loai: .chua, luc: Date()); return }
     await vaoMay().roiMay(baMe: baMe)
-    tq = nil; cuaHang = nil; viQua = nil; tin = []
+    tq = nil; cuaHang = nil; viQua = nil; tin = []; saoCon = nil
     apLaiKhien()
     await taiHoSo()
   }
 
-  // MARK: giờ chơi
-  func doiSao(phut: Int) async -> Result<KetQuaDoiSao, LoiApi> {
-    if demo != nil { return .success(Self.j(#"{"phut":\#(phut),"sao":\#(phut),"soDu":\#(soSao - phut),"conPhut":\#(conPhut + phut)}"#)) }
-    dangBan = true; defer { dangBan = false }
-    do {
-      let r = try await api.doiSao(phut: phut)
-      await dongBoNgay()      // quỹ tăng ⇒ trần mới ⇒ gỡ khiên ngay
-      return .success(r)
-    } catch let e as LoiApi { return .failure(e) } catch { return .failure(.mang(error.localizedDescription)) }
-  }
-
-  /// Xin thêm giờ / ngoại lệ. Mất mạng ⇒ lưu lời xin, gửi khi có mạng (→ "luu").
-  func xin(phut: Int, loiNhan: String, ngoaiLe: Bool) async -> String? {
+  // MARK: sao (15/11 — 1 sao = 1 phút; bỏ đổi sao lấy giờ / xin thêm giờ / ngoại lệ)
+  /// «Xin Ba Mẹ cho vay sao». Mất mạng ⇒ lưu lời xin, gửi khi có mạng (→ "luu").
+  func xinVay(soSao: Int, loiNhan: String, mucDich: String? = nil, quaId: String? = nil) async -> String? {
     if demo != nil {
-      yeuCau = YeuCauDangCho(id: "demo", phut: phut, loiNhan: loiNhan, guiLuc: Date(), trangThai: "cho"); return "gui"
+      yeuCau = YeuCauDangCho(id: "demo", phut: soSao, loiNhan: loiNhan, guiLuc: Date(), trangThai: "cho", loai: "vay_sao"); return "gui"
     }
     dangBan = true; defer { dangBan = false }
     do {
-      yeuCau = ngoaiLe ? try await dongBo().xinNgoaiLe(phut: phut, loiNhan: loiNhan) : try await dongBo().xinThemGio(phut: phut, loiNhan: loiNhan)
+      yeuCau = try await dongBo().xinVay(soSao: soSao, loiNhan: loiNhan, mucDich: mucDich, quaId: quaId)
       loi = nil
       if let q = try? await api.quyCon() { yeuCauCho = q.yeuCauCho ?? [] }
       return "gui"
     } catch LoiApi.mang {
-      let x = YeuCauDangCho(id: "cho-mang", phut: phut, loiNhan: loiNhan, guiLuc: Date(), trangThai: ngoaiLe ? "ngoai_le" : "them_gio")
+      let x = YeuCauDangCho(id: "cho-mang", phut: soSao, loiNhan: loiNhan, guiLuc: Date(), trangThai: "vay_sao", loai: "vay_sao")
       kho.luu(x, Khoa.xinChoMang); xinCho = x; matMang = true
       return "luu"
     } catch { loi = (error as? LoiApi)?.errorDescription ?? error.localizedDescription; return nil }
   }
 
+  /// «Xin Ba Mẹ mở <app>» — app ngoài danh sách (Ba Mẹ thêm vào Tính phút / Không tính phút, hoặc chưa thêm).
   func xinCaiApp(ten: String, lyDo: String) async -> Bool {
-    if demo != nil { return true }
+    if demo != nil { yeuCau = YeuCauDangCho(id: "demo", phut: 0, loiNhan: lyDo, guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: ten); return true }
     dangBan = true; defer { dangBan = false }
-    do { try await api.xinDuyet(ten: ten, lyDo: lyDo); loi = nil; return true }
+    do { yeuCau = try await dongBo().xinMoApp(ten: ten, lyDo: lyDo); loi = nil; return true }
     catch { loi = (error as? LoiApi)?.errorDescription ?? error.localizedDescription; return false }
   }
 
@@ -448,11 +467,15 @@ final class MoHinhApp: ObservableObject {
     var kh = KeHoach(tz: TimeZone.current.identifier, moNgayThuong: [Khung(tu: "00:00", den: "24:00")], moCuoiTuan: [Khung(tu: "00:00", den: "24:00")],
                      ngu: Khung(tu: "21:30", den: "06:30"), tranPhut: 60, buocPhut: 5, webChan: [], webGiaiTri: [], khoaNgay: m == "khoaMay", khoaGiaiTri: false,
                      lyDoKhoa: [], moDen: nil, chanCaiApp: true, lich: [], canhBao: [], serverTime: now, tenCon: "Bảo Anh", dungChung: false)
-    kh.hoc = Khung(tu: "17:00", den: "18:00"); kh.phut10Sao = 10
+    kh.ngu = nil
+    let soDu = m == "no" ? -20 : (["hetGio", "maOffline", "maSai", "maHetHan", "luuXin"].contains(m) ? 0 : 18)
+    kh.sao = ChinhSach.SaoCon(sao: soDu, no: m == "no" ? 20 : 0, phutCon: max(0, soDu), hetSao: soDu <= 0)
+    kh.tranPhut = 42 + max(0, soDu); kh.ngayDaDung = TinhKhien.diaPhuong(now, tz: kh.tz).ngay; kh.dungTaiChoLucDongBo = 42
+    if m == "moHet" { kh.cheDo = "mo_het" }
     if m == "gioNgu" { kh.ngu = Khung(tu: TinhKhien.diaPhuong(now.addingTimeInterval(-60), tz: kh.tz).phut.gio, den: "06:30") }
     kho.luu(kh, Khoa.keHoach)
-    let daDung = ["hetGio", "maOffline", "maSai", "maHetHan", "luuXin"].contains(m) ? 60 : (m == "matMang" ? 52 : 42)
-    kho.luu(NhatKyDung(ngay: TinhKhien.diaPhuong(now, tz: kh.tz).ngay, phut: daDung, tranHet: daDung >= 60), Khoa.nhatKyDung)
+    let daDung = 42
+    kho.luu(NhatKyDung(ngay: TinhKhien.diaPhuong(now, tz: kh.tz).ngay, phut: daDung, tranHet: soDu <= 0), Khoa.nhatKyDung)
     let ph: PhienMay
     switch m {
     case "chonTen", "nhapPin", "pinSai", "choPin", "quenPin", "baMeMa": ph = PhienMay(loai: .chua, luc: now)
@@ -468,11 +491,12 @@ final class MoHinhApp: ObservableObject {
     napTuKho(now: now)
     soLuong = SoLuongChon(hoc: 4, giaiTri: 6, chan: 2, danhMucGiaiTri: 2)
     coBiMatOffline = true
-    tq = Self.tqDemo(conPhut: max(0, 60 - daDung), daDung: daDung)
+    tq = Self.tqDemo(conPhut: max(0, soDu), daDung: daDung)
+    saoCon = kh.sao
     cuaHang = Self.cuaHangDemo
     viQua = Self.j(#"{"daTrao":[],"voucher":[{"ma":"AII-7K2P","menh_gia":50000,"trang_thai":"da_phat_hanh","het_han":"2026-12-25T00:00:00.000Z","ten":"Voucher AiiCafe 50k","qr":"AII-7K2P","conNgay":49}],"phieu":[{"id":"r1","ten":"Chọn món bữa tối","loai":"dac_quyen","diem":50,"trang_thai":"giu"}]}"#)
     tin = Self.j(#"[{"id":"e1","loai":"loi_khen","tieu":"Mẹ Lan khen con","noi":"Phòng con gọn ghê!","luc":"\#(NgayISO.viet(now.addingTimeInterval(-300)))"}]"#)
-    yeuCauCho = Self.j(#"[{"id":"y1","loai":"them_gio","phut":20,"ly_do":"Con làm nốt bài với bạn ạ","created_at":"\#(NgayISO.viet(now.addingTimeInterval(-360)))"},{"id":"y2","loai":"mo_web","phut":30,"gia_tri":"YouTube","created_at":"\#(NgayISO.viet(now.addingTimeInterval(-60)))"}]"#)
+    yeuCauCho = Self.j(#"[{"id":"y2","loai":"mo_web","gia_tri":"YouTube","created_at":"\#(NgayISO.viet(now.addingTimeInterval(-60)))"},{"id":"y1","loai":"vay_sao","phut":20,"ly_do":"Con làm nốt bài với bạn ạ","created_at":"\#(NgayISO.viet(now.addingTimeInterval(-360)))"}]"#)
     man = .chinh
     switch m {
     case "chao": man = .chao
@@ -489,7 +513,10 @@ final class MoHinhApp: ObservableObject {
     case "saoQua": tab = .saoQua
     case "tin": tab = .tin
     case "cuaHang": tab = .saoQua; manPhu = .cuaHang
-    case "doiSao": manPhu = .doiSao
+    case "chonBeGhep":
+      man = .nhapMa
+      chonBeGhep = ChonBeGhep(cach: .ma("123456"), ds: [BeChon(id: "c1", ten: "Bảo Anh"), BeChon(id: "c2", ten: "Bảo Minh")],
+                              cau: "iPhone, iPad chỉ dùng cho một bé. Chọn bé dùng máy này nhé.")
     case "xinThem": manPhu = .xinThem
     case "conDangXin": manPhu = .conDangXin
     case "doiBe": manPhu = .doiBe
@@ -499,7 +526,20 @@ final class MoHinhApp: ObservableObject {
     case "maOffline", "maSai", "maHetHan", "luuXin", "matMang": matMang = true
     default: break
     }
-    if m == "luuXin" { xinCho = YeuCauDangCho(id: "cho-mang", phut: 20, loiNhan: "", guiLuc: now, trangThai: "them_gio") }
+    if m == "luuXin" { xinCho = YeuCauDangCho(id: "cho-mang", phut: 15, loiNhan: "", guiLuc: now, trangThai: "vay_sao", loai: "vay_sao") }
+    if m == "daChoVay" || m == "chuaChoVay" {
+      manPhu = .conDangXin
+      var y = YeuCauDangCho(id: "y1", phut: 20, loiNhan: "", guiLuc: now, trangThai: m == "daChoVay" ? "dong_y" : "tu_choi", loai: "vay_sao")
+      y.tenNguoiDuyet = "Mẹ Lan"; y.loiNhanBaMe = m == "daChoVay" ? "Xem xong nhớ đi tắm nha con!" : "Tối nay con chơi đủ rồi. Mai mẹ cho nhé!"
+      yeuCau = y
+    }
+    if m == "daThem" || m == "chuaThem" {
+      manPhu = .conDangXin
+      var y = YeuCauDangCho(id: "y3", phut: 0, loiNhan: "", guiLuc: now, trangThai: m == "daThem" ? "dong_y" : "bo_qua", loai: "mo_app", ten: "Roblox")
+      y.ketQua = m == "daThem" ? "da_them" : "chua_them"; y.nhom = "tinh_phut"; y.tenNguoiDuyet = "Mẹ Lan"
+      y.loiNhanBaMe = m == "daThem" ? "Chơi xong nhớ làm bài nha con!" : nil
+      yeuCau = y
+    }
   }
 
   static func tqDemo(conPhut: Int, daDung: Int) -> TongQuanCon {

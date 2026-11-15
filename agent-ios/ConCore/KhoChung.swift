@@ -83,21 +83,39 @@ public struct ThongTinMay: Codable, Equatable {
   public init(deviceId: String, tenCon: String?, dungChung: Bool) { self.deviceId = deviceId; self.tenCon = tenCon; self.dungChung = dungChung }
 }
 
-/// Lời xin thêm giờ Con đã gửi — để màn chính theo dõi trạng thái.
+/// Lời xin Con đã gửi (15/11: vay sao `loai: vay_sao`, `phut` = số sao; xin mở app `loai: mo_app`, `ten` = tên app) — để màn chính theo dõi.
+/// Lời xin cũ trong kho (thêm giờ) không có `loai` ⇒ coi là vay sao.
 public struct YeuCauDangCho: Codable, Equatable {
   public var id: String; public var phut: Int; public var loiNhan: String; public var guiLuc: Date; public var trangThai: String
-  public init(id: String, phut: Int, loiNhan: String, guiLuc: Date, trangThai: String) {
-    self.id = id; self.phut = phut; self.loiNhan = loiNhan; self.guiLuc = guiLuc; self.trangThai = trangThai
+  public var loai: String? = nil
+  public var ten: String? = nil
+  public var ketQua: String? = nil
+  public var nhom: String? = nil
+  public var tenNguoiDuyet: String? = nil
+  public var loiNhanBaMe: String? = nil
+  public init(id: String, phut: Int, loiNhan: String, guiLuc: Date, trangThai: String, loai: String? = nil, ten: String? = nil) {
+    self.id = id; self.phut = phut; self.loiNhan = loiNhan; self.guiLuc = guiLuc; self.trangThai = trangThai; self.loai = loai; self.ten = ten
   }
-  /// Câu cho Con theo trạng thái máy chủ (cho | duoc | tu_choi) hoặc trangThai nguyên văn.
+  public var laApp: Bool { loai == "mo_app" }
+  public var soSao: Int { phut }
+  public var duoc: Bool { ["duoc", "dong_y", "da_thuc_thi", "tu_duyet"].contains(trangThai) }
+  /// Người trả lời («Mẹ Lan») — máy chủ cũ không gửi ⇒ «Ba Mẹ».
+  public var nguoi: String { tenNguoiDuyet ?? "Ba Mẹ" }
+  /// Câu cho Con theo trạng thái máy chủ (cho | duoc | tu_choi) / kết quả lời xin app.
   public var cau: String {
-    switch trangThai {
-    case "cho": return "Đang chờ Ba Mẹ trả lời…"
-    case "duoc", "dong_y", "da_thuc_thi", "tu_duyet": return "Ba Mẹ đã đồng ý thêm \(phut) phút!"
-    case "het_han": return "Lời xin đã hết hạn — con gửi lại nhé."
-    case "huy": return "Lời xin đã huỷ."
-    default: return "Ba Mẹ chưa đồng ý lần này."
+    if trangThai == "cho" { return "Đang chờ Ba Mẹ trả lời…" }
+    if trangThai == "het_han" { return "Lời xin đã hết hạn — con gửi lại nhé." }
+    if trangThai == "huy" { return "Lời xin đã huỷ." }
+    if laApp {
+      switch ketQua {
+      case "da_them": return "\(nguoi) đã thêm \(ten ?? "app") vào danh sách!"
+      case "mo_tam": return "\(nguoi) cho mở \(ten ?? "app") lần này."
+      default: return duoc ? "\(nguoi) đã đồng ý!" : "\(nguoi) chưa thêm \(ten ?? "app") · con xin lại được nhé."
+      }
     }
+    return duoc ? "\(nguoi) cho vay \(soSao) sao!" : "\(nguoi) chưa cho vay sao lúc này."
   }
   public var xong: Bool { trangThai != "cho" }
+  /// Tiêu đề lời xin: «Vay 20 sao» / «Mở Roblox».
+  public var tieuDe: String { laApp ? "Mở \(ten ?? "app")" : "Vay \(soSao) sao" }
 }

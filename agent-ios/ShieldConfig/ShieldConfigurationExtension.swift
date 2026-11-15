@@ -1,4 +1,4 @@
-// Màn chặn của AiiGrow: câu tiếng Việt thân thiện theo lý do (đọc từ app group) + nút «Xin thêm giờ».
+// Màn chặn của AiiGrow: câu tiếng Việt thân thiện theo lý do (đọc từ app group) + nút «Xin Ba Mẹ cho vay sao» (hết sao) / «Xin Ba Mẹ mở» (ngoài danh sách).
 // Bản «Dịu» (06/11) trong giới hạn của Apple: ShieldConfiguration chỉ nhận màu nền, một ảnh icon, màu chữ và màu nút (không bo góc,
 // bóng hay chuyển động). Nên: nền kem #fbf8f2, icon Fluent 3D trong viên tròn kem, nút xanh lá đặc, chữ khớp màn con-dt-gio / con-dt-chan.
 import ManagedSettings
@@ -21,17 +21,18 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     let lyDo = k?.lyDo ?? .ngoaiGio
     let tieuDe: String, phu: String, nut: String
     switch lyDo {
-    case .ngu: tieuDe = "Đến giờ ngủ rồi"; phu = "Chúc con ngủ ngon! Cần gấp thì xin Ba Mẹ mở nhé."; nut = "Xin Ba Mẹ mở máy"
-    case .khoaNgay: tieuDe = "Ba Mẹ đang khoá máy"; phu = "Đọc sách hoặc ra ngoài chơi nhé!"; nut = "Xin Ba Mẹ mở máy"
-    case .hetGio: tieuDe = "Hết giờ chơi rồi"; phu = "Con đổi sao lấy phút hoặc xin Ba Mẹ thêm giờ nhé."; nut = "Thêm giờ chơi"
-    case .gioHoc: tieuDe = "Giờ học rồi!"; phu = "Chỉ mở app học. Học xong được chơi tiếp."; nut = "Xin Ba Mẹ mở app khác"
+    case .ngu: tieuDe = "Đến giờ ngủ rồi"; phu = "Chúc con ngủ ngon! Mai mình chơi tiếp nhé."; nut = "Mở AiiGrow Con"
+    case .khoaNgay: tieuDe = "Ba Mẹ đang khoá máy"; phu = "Đọc sách hoặc ra ngoài chơi nhé!"; nut = "Mở AiiGrow Con"
+    // 15/11 (#264): hết sao = hết phút «Tính phút» (cdt-het-phien)
+    case .hetGio: tieuDe = "Hết sao rồi"; phu = "Còn 0 sao = 0 phút chơi. Con làm nhiệm vụ hoặc xin Ba Mẹ cho vay sao nhé."; nut = "Xin Ba Mẹ cho vay sao"
+    case .gioHoc: tieuDe = "Giờ học rồi!"; phu = "Chỉ mở app học. Học xong được chơi tiếp."; nut = "Mở AiiGrow Con"
     case .chuaVao: tieuDe = "Máy đang khoá"; phu = "Mở AiiGrow Con, chạm tên con rồi nhập PIN nhé."; nut = "Mở AiiGrow Con"
     case .khong:
-      // khiên lúc không khoá giờ = app / trang Ba Mẹ chặn (them-4e5fwl16 · cdt-chan-web)
-      tieuDe = web ? "Trang này chưa mở" : "\(ten ?? "App này") chưa mở"
-      phu = web ? "Ba Mẹ chưa cho phép trang này. Con xin thử nhé!" : "Ba Mẹ chưa cho phép app này."
-      nut = "Xin Ba Mẹ mở"
-    default: tieuDe = "Tạm nghỉ chút nhé"; phu = lyDo.cauChoCon; nut = "Thêm giờ chơi"
+      // 15/11 (#262, them-4e5fwl16 · cdt-chan-web): ngoài danh sách trắng của Ba Mẹ
+      tieuDe = web ? "Trang này chưa có trong danh sách" : "\(ten ?? "App này") chưa có trong danh sách"
+      phu = web ? "Máy chỉ mở trang Ba Mẹ đã thêm vào danh sách." : "Máy chỉ mở app Ba Mẹ đã thêm vào danh sách."
+      nut = web || ten == nil ? "Xin Ba Mẹ mở" : "Xin Ba Mẹ mở \(ten!)"
+    default: tieuDe = "Tạm nghỉ chút nhé"; phu = lyDo.cauChoCon; nut = "Mở AiiGrow Con"
     }
     let hinh: String
     switch lyDo {

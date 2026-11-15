@@ -1,7 +1,7 @@
 // Màn hằng ngày của Con ngay trong app iOS (bản «Dịu», 06/11 — L16) — cổng `/api/device/hoc-vien/*` (Bearer = token máy; máy dùng chung
 // tự lấy bé đang đăng nhập — docs/API.md mục «S3»; chưa ai vào ⇒ 409 chua_chon_con):
 //   GET  hoc-vien/tong-quan  → TongQuanCon (sao, quỹ giờ, nhiệm vụ, lượt gần đây, lời khen, quà đang giữ)
-//   GET  hoc-vien/quy        → {quy, sao, phutDoiDuoc, yeuCauCho[]}       · POST hoc-vien/doi-sao {phut} → {phut, sao, soDu, conPhut}
+//   GET  hoc-vien/quy        → {quy, sao, phutDoiDuoc, yeuCauCho[]}       · (15/11: bỏ «đổi sao lấy giờ» — 1 sao = 1 phút; GET hoc-vien/sao, POST hoc-vien/xin-vay)
 //   POST hoc-vien/nhiem-vu/:id/bat-dau → {luot}                            · POST hoc-vien/luot/:id/nop {anh?, ghiAm?, ghiChu?} → {trangThai}
 //   GET  hoc-vien/cua-hang   → {sao, saoGiu, qua[]}                        · POST hoc-vien/doi/:id → {phieu, trangThai, saoGiu}
 //   GET  hoc-vien/vi-qua     → {daTrao[], voucher[], phieu[]}               · GET hoc-vien/tin?sau= → {ds[], bay}
@@ -200,9 +200,6 @@ extension ApiClient {
   // ---- hằng ngày
   public func tongQuan() async throws -> TongQuanCon { try await goi("GET", "api/device/hoc-vien/tong-quan", nil, TongQuanCon.self) }
   public func quyCon() async throws -> QuyDayDu { try await goi("GET", "api/device/hoc-vien/quy", nil, QuyDayDu.self) }
-  public func doiSao(phut: Int) async throws -> KetQuaDoiSao {
-    try await goi("POST", "api/device/hoc-vien/doi-sao", Self.json(["phut": phut]), KetQuaDoiSao.self)
-  }
   public func batDau(nhiemVu id: String) async throws -> String {
     struct R: Decodable { var luot: String }
     return try await goi("POST", "api/device/hoc-vien/nhiem-vu/\(id)/bat-dau", Self.json([:]), R.self).luot
@@ -224,9 +221,10 @@ extension ApiClient {
     _ = try await goi("POST", "api/device/hoc-vien/loi-khen/\(id)/phan-hoi", Self.json(["phanHoi": String(noi.prefix(60))]), Ok.self)
   }
   /// «Xin Ba Mẹ cài / mở app» — iOS không biết app nào đang bị khiên (token mờ) ⇒ Con gõ tên app.
-  public func xinDuyet(ten: String, lyDo: String?) async throws {
+  @discardableResult
+  public func xinDuyet(ten: String, lyDo: String?) async throws -> KetQuaYeuCau {
     var b: [String: Any] = ["muc": ten, "ten": ten]
     if let lyDo, !lyDo.isEmpty { b["lyDo"] = String(lyDo.prefix(100)) }
-    _ = try await goi("POST", "api/device/xin-duyet", Self.json(b), Ok.self)
+    return try await goi("POST", "api/device/xin-duyet", Self.json(b), KetQuaYeuCau.self)
   }
 }

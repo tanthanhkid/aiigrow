@@ -75,6 +75,25 @@ public struct ChinhSach: Codable {
     /// 05/11 (máy chủ mới): chế độ chặn của Con — chi_app_duoc_phep | mo_het; web luôn chặn (người lớn, cờ bạc, bạo lực).
     public var cheDoChan: String? = nil
     public var webLuonChan: [String]? = nil
+    /// 15/11 (#262): theo_danh_sach (danh sách trắng: Giải trí = «Tính phút», Học = «Không tính phút») | mo_het (không chặn, không đếm). Máy chủ cũ: nil.
+    public var cheDo: String? = nil
+  }
+  /// 15/11 (#263–#266, server/lib/so-sao.ts): sổ sao của bé — `sao` số dư Con thấy (ÂM khi nợ), `phutCon` = sao tiêu được = phút «Tính phút» còn chơi.
+  public struct SaoCon: Codable, Equatable {
+    public struct Cau: Codable, Equatable { public var soDu: String?; public var phut: String?; public var no: String? }
+    public var sao: Int
+    public var no: Int?
+    public var phutCon: Int
+    public var saoVayChuaTieu: Int?
+    public var hetSao: Bool?
+    public var canhBaoNo: Bool?
+    public var cau: Cau?
+    /// chỉ `GET hoc-vien/sao`
+    public var mucVay: [Int]?
+    public var vayMacDinh: Int?
+    public init(sao: Int, no: Int? = nil, phutCon: Int, hetSao: Bool? = nil) { self.sao = sao; self.no = no; self.phutCon = phutCon; self.hetSao = hetSao }
+    public var soNo: Int { max(0, no ?? 0) }
+    public var het: Bool { hetSao ?? (phutCon <= 0) }
   }
   /// 05/11: quỹ phút chơi hôm nay (server/lib/quy-gio.ts) — mọi app Giải trí dùng chung; `daDung` = phút đã dùng (mọi máy).
   public struct Quy: Codable, Equatable {
@@ -118,6 +137,8 @@ public struct ChinhSach: Codable {
   public var quy: Quy?
   public var gioHoc: GioHoc?
   public var ngoaiLeMo: [NgoaiLeMo]?
+  /// 15/11: sổ sao — nil = máy chủ cũ, hoặc máy chung chưa chọn bé.
+  public var sao: SaoCon? = nil
 }
 
 public struct MucNenTang: Codable {

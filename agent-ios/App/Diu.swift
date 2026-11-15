@@ -25,6 +25,9 @@ enum Diu {
   static let saoChu = Color(hex: 0x8a5a00)
   static let saoNen = Color(hex: 0xfff5d9)
   static let saoVien = Color(hex: 0xf3dd9c)
+  // 15/11: số sao ÂM (đang nợ Ba Mẹ) — viên cảnh báo
+  static let noNen = Color(hex: 0xf9e7d2)
+  static let noChu = Color(hex: 0x8a3c0c)
   static let do_ = Color(hex: 0xe5484d)
   static let doChu = Color(hex: 0xb42318)
   static let cam = Color(hex: 0xf5a957)
@@ -97,14 +100,33 @@ struct OIcon: View {
   }
 }
 
-/// Chip sao vàng «⭐ 30 sao».
+/// Chip sao vàng «⭐ 30 sao»; số âm (đang nợ) ⇒ viên cảnh báo «⭐ −20 sao».
 struct ChipSao: View {
   let so: Int
   var chu = "sao"
   var body: some View {
-    HStack(spacing: 6) { Anh(ten: "ic_sao", co: 22); Text("\(so) \(chu)").font(Diu.chu(15, .black)) }
-      .foregroundColor(Diu.saoChu).padding(.horizontal, 12).frame(height: 32)
-      .background(Capsule().fill(Diu.saoNen)).overlay(Capsule().stroke(Diu.saoVien, lineWidth: 1))
+    let am = so < 0
+    HStack(spacing: 6) { Anh(ten: "ic_sao", co: 22); Text(Diu.soSao(so, chu)).font(Diu.chu(15, .black)) }
+      .foregroundColor(am ? Diu.noChu : Diu.saoChu).padding(.horizontal, 12).frame(height: 32)
+      .background(Capsule().fill(am ? Diu.noNen : Diu.saoNen)).overlay(Capsule().stroke(am ? Diu.noNen : Diu.saoVien, lineWidth: 1))
+  }
+}
+
+/// «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước» (viên cảnh báo).
+struct DongNo: View {
+  let no: Int
+  var body: some View {
+    Text("Đang nợ Ba Mẹ \(no) sao · sao nhiệm vụ trả nợ trước").font(Diu.t2).foregroundColor(Diu.noChu)
+      .multilineTextAlignment(.center).padding(.horizontal, 12).padding(.vertical, 6)
+      .background(Capsule().fill(Diu.noNen))
+  }
+}
+
+extension Diu {
+  /// «30 sao» · «−20 sao» (dấu trừ thật U+2212).
+  static func soSao(_ so: Int, _ chu: String = "sao") -> String {
+    let n = so < 0 ? "\u{2212}\(-so)" : "\(so)"
+    return chu.isEmpty ? n : "\(n) \(chu)"
   }
 }
 
