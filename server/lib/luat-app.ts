@@ -1,10 +1,14 @@
 // Phân loại ứng dụng / website (FR-02.01–02.03): Allowlist hệ thống (Admin, Ba Mẹ không bỏ được) → luật riêng của Con → luật gia đình.
-// Chưa phân loại ⇒ CHẶN, gợi ý «Xin phép Ba Mẹ» (an toàn mặc định). Website so theo tên miền, gồm cả tên miền con (m.youtube.com ⇒ youtube.com).
+// Website so theo tên miền, gồm cả tên miền con (m.youtube.com ⇒ youtube.com).
+// #262 (15/11): app_rules chính là DANH SÁCH TRẮNG của Con — loai «giai_tri» = nhóm «Tính phút», «hoc» = «Không tính phút». Không còn luật «chan»
+// (dữ liệu cũ đã xoá — schema.ts › SCHEMA_APP_WEB); ghi «chan» từ app cũ = BỎ mục khỏi danh sách. Ngoài danh sách ⇒ «chua_phan_loai»:
+// «Theo danh sách» không mở (Con «Xin Ba Mẹ mở»), «Mở hết» mở.
 import { q, one, type Q } from "./db.ts";
 import { heThong } from "./he-thong.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { laWebCam } from "./chan-co-ban.ts";
 
+/** «chan» chỉ còn trong kiểu để đọc dữ liệu / lời gọi cũ — không ghi mới. */
 export type LoaiMuc = "hoc" | "giai_tri" | "chan";
 export type NhomGiaiTri = "game" | "video_ngan" | "mxh" | "phim_gd" | "khac";
 export const NHOM_GT: NhomGiaiTri[] = ["game", "video_ngan", "mxh", "phim_gd", "khac"];
@@ -57,7 +61,8 @@ export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q =
   const khoa = khoaSo(muc);
   if (khoa.some((k) => allowlistHieuLuc().includes(k))) return { loai: "he_thong", nhom: null, nguon: "he_thong" };
   const ds = await t<{ child_id: string; muc: string; loai: LoaiMuc; nhom: NhomGiaiTri }>(
-    `select child_id, muc, loai, nhom from app_rules where family_id = $1 and child_id in ('', $2) and muc = any($3::text[]) and (het is null or het > now())`,
+    `select child_id, muc, loai, nhom from app_rules where family_id = $1 and child_id in ('', $2) and muc = any($3::text[]) and (het is null or het > now())
+       and loai <> 'chan'`,
     [fam, con, khoa]);
   // khớp cụ thể hơn thắng (mục dài hơn), luật riêng của Con thắng luật gia đình
   ds.sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0));
@@ -65,15 +70,17 @@ export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q =
   return r ? { loai: r.loai, nhom: r.loai === "giai_tri" ? r.nhom : null, nguon: r.child_id ? "con" : "gia_dinh" } : { loai: "chua_phan_loai", nhom: null, nguon: null };
 }
 
-/** Ba Mẹ phân loại (FR-02.02). `con` '' = cả gia đình. `het` = hết hạn (phê duyệt Lần này / Hôm nay). */
+/** Ba Mẹ thêm / đổi nhóm một mục của danh sách (FR-02.02). `con` '' = cả gia đình. `het` = hết hạn (phê duyệt Lần này / Hôm nay — cũ).
+ *  `loai`: giai_tri (Tính phút) | hoc (Không tính phút) | tinh_phut | khong_tinh_phut · «chan» (app cũ) ⇒ bỏ mục khỏi danh sách (#262). */
 export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?: unknown; loai: unknown; nhom?: unknown; het?: Date | null }, t: Q = q) {
   const muc = chuanMuc(b.muc);
   if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên ứng dụng hoặc website");
   if (khoaSo(muc).some((k) => allowlistHieuLuc().includes(k))) throw new LoiNghiepVu("he_thong", "Mục này thuộc danh sách hệ thống, luôn được dùng", 409);
-  const loai = ["hoc", "giai_tri", "chan"].includes(String(b.loai)) ? String(b.loai) : null;
-  if (!loai) throw new LoiNghiepVu("loai_sai", "Chọn Học tập, Giải trí hoặc Chặn");
-  // L4: web người lớn / cờ bạc / bạo lực luôn chặn — không ai cho phép được (lib/chan-co-ban.ts)
-  if (loai !== "chan" && laWebCam(muc)) throw new LoiNghiepVu("web_cam", "Trang này thuộc nhóm luôn chặn (người lớn, cờ bạc, bạo lực) — không mở được", 409);
+  if (b.loai === "chan") return xoaLuat(fam, { con: b.con, muc }, t);
+  const loai = b.loai === "tinh_phut" ? "giai_tri" : b.loai === "khong_tinh_phut" ? "hoc" : ["hoc", "giai_tri"].includes(String(b.loai)) ? String(b.loai) : null;
+  if (!loai) throw new LoiNghiepVu("loai_sai", "Chọn «Tính phút» hoặc «Không tính phút»");
+  // lưới an toàn chung (lib/chan-co-ban.ts › WEB_CAM): các trang này không vào được danh sách
+  if (laWebCam(muc)) throw new LoiNghiepVu("web_cam", "Trang này không thêm vào danh sách được", 409);
   // «Cho phép» (màn Ứng dụng trên máy): luật hoc + nhóm cho_phep — dùng mọi lúc, không trừ điểm; thống kê màn hình tính Tiện ích (man-hinh.ts › xepMuc)
   const nhom = loai === "hoc" && b.nhom === "cho_phep" ? "cho_phep" : (NHOM_GT as string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";
   const con = b.con ?? "";
@@ -111,9 +118,9 @@ export async function xoaLuat(fam: string, b: { con?: string; muc: unknown }, t:
   return muc;
 }
 
-export const dsLuat = (fam: string) =>
-  q<{ child_id: string; muc: string; ten: string; loai: LoaiMuc; nhom: NhomGiaiTri; het: Date | null }>(
-    `select child_id, muc, ten, loai, nhom, het from app_rules where family_id = $1 and (het is null or het > now()) order by ten`, [fam]);
+export const dsLuat = (fam: string, t: Q = q) =>
+  t<{ child_id: string; muc: string; ten: string; loai: LoaiMuc; nhom: NhomGiaiTri; het: Date | null }>(
+    `select child_id, muc, ten, loai, nhom, het from app_rules where family_id = $1 and (het is null or het > now()) and loai <> 'chan' order by ten`, [fam]);
 
 /** Allowlist hệ thống hiệu lực: danh sách trong mã + mục Admin AiiLab thêm ở /admin. */
 export const allowlistHieuLuc = () => (heThong.allowlistThem.length ? [...ALLOWLIST_HE_THONG, ...heThong.allowlistThem] : ALLOWLIST_HE_THONG);

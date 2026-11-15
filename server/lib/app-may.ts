@@ -1,7 +1,8 @@
 // Danh sách APP ĐÃ CÀI THẬT trên từng máy Con (Thanh 25/10: «danh sách ứng dụng load trực tiếp từ máy thực tế để phụ huynh chọn đúng app
 // muốn chặn, không chặn chủ quan từ trên app xuống»). Agent quét máy (Windows: registry Uninstall + Start Menu + gói Store của tài khoản Con ·
 // macOS: /Applications + ~/Applications · Android: app có biểu tượng) rồi gửi lên `POST /api/device/ung-dung` — đủ hoặc phần đổi.
-// Ba Mẹ mở «Ứng dụng trên máy <tên>» (GET /api/m/may/<id>/ung-dung), chọn Cho phép / Học tập / Giải trí / Chặn cho từng app: máy chủ lấy
+// Ba Mẹ mở «Ứng dụng trên máy <tên>» (GET /api/m/may/<id>/ung-dung), thêm app vào danh sách — nhóm «Tính phút» / «Không tính phút» (#262;
+// trạng thái cũ Cho phép / Học tập / Giải trí vẫn nhận, «Chặn» = bỏ khỏi danh sách): máy chủ lấy
 // `muc` THẬT từ danh sách của máy (tên exe chính / tên gói Store / bundle id / package) — không tin chữ app gửi — rồi ghi luật như luồng xếp loại
 // cũ (app_rules). Agent Windows/Mac nhận thêm `windows.blockedApps` (đường dẫn, thư mục cài, SHA-256, Team ID của chính máy đó) để chặn đúng app.
 // Hợp đồng: docs/API.md › «Danh sách app thật».
@@ -10,6 +11,7 @@ import { one, q, tx, type Q } from "./db.ts";
 import type { May } from "./gia-dinh.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { allowlistHieuLuc, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc, type NhomGiaiTri } from "./luat-app.ts";
+import type { NhomDs } from "./chan-co-ban.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 
 export const TOI_DA_APP = 1500;
@@ -125,17 +127,19 @@ export async function tinHieuDanhSachApp(mayId: string) {
 
 type LuatGon = { child_id: string; muc: string; loai: LoaiMuc; nhom: string; ten?: string; het?: Date | null };
 export type TrangThaiApp = "he_thong" | "cho_phep" | "hoc" | "giai_tri" | "chan" | "chua_xep";
+const nhomDsCua = (tt: TrangThaiApp): NhomDs | null => (tt === "giai_tri" ? "tinh_phut" : tt === "hoc" || tt === "cho_phep" ? "khong_tinh_phut" : null);
 
 /** Trạng thái của một app trên máy của Con `con` ('' = máy dùng chung ⇒ chỉ luật cả nhà) — cùng thứ tự với phanLoai:
  *  Allowlist hệ thống → luật riêng của Con → luật cả nhà. */
 export function trangThaiApp(mucTho: string, con: string, luat: LuatGon[], allow: string[] = allowlistHieuLuc()) {
   const khoa = khoaSo(mucTho.toLowerCase());
-  if (khoa.some((k) => allow.includes(k))) return { trangThai: "he_thong" as TrangThaiApp, nhom: null, theoCaNha: false };
-  const r = luat.filter((l) => khoa.includes(l.muc) && (l.child_id === "" || (con && l.child_id === con)))
+  if (khoa.some((k) => allow.includes(k))) return { trangThai: "he_thong" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
+  const r = luat.filter((l) => l.loai !== "chan" && khoa.includes(l.muc) && (l.child_id === "" || (con && l.child_id === con)))
     .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
-  if (!r) return { trangThai: "chua_xep" as TrangThaiApp, nhom: null, theoCaNha: false };
+  if (!r) return { trangThai: "chua_xep" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
   const tt: TrangThaiApp = r.loai === "hoc" ? (r.nhom === "cho_phep" ? "cho_phep" : "hoc") : r.loai;
-  return { trangThai: tt, nhom: r.loai === "giai_tri" ? r.nhom : null, theoCaNha: !r.child_id && !!con, tamThoi: !!r.het };
+  // nhomDs (#262): nhóm của danh sách — tinh_phut | khong_tinh_phut; null = ngoài danh sách / hệ thống
+  return { trangThai: tt, nhom: r.loai === "giai_tri" ? r.nhom : null, nhomDs: nhomDsCua(tt), theoCaNha: !r.child_id && !!con, tamThoi: !!r.het };
 }
 
 async function mayCua(fam: string, mayId: string) {
@@ -164,14 +168,16 @@ export async function dsAppMay(fam: string, mayId: string) {
   };
 }
 
-export const TRANG_THAI_DAT = ["cho_phep", "hoc", "giai_tri", "chan", "bo"] as const;
+export const TRANG_THAI_DAT = ["tinh_phut", "khong_tinh_phut", "cho_phep", "hoc", "giai_tri", "chan", "bo"] as const;
 
-/** Ba Mẹ đặt trạng thái một app CỦA MÁY NÀY (theo `khoa` trong danh sách máy gửi). Máy riêng của Con ⇒ luật riêng của Con đó; máy dùng chung ⇒ luật cả nhà.
- *  «bo» = bỏ luật (về «chưa xếp»). Trả luật cũ để app «Hoàn tác». */
+/** Ba Mẹ đặt một app CỦA MÁY NÀY (theo `khoa` trong danh sách máy gửi) vào danh sách. Máy riêng của Con ⇒ luật riêng của Con đó; máy dùng chung ⇒
+ *  luật cả nhà. `trangThai` (hoặc `nhom`): tinh_phut | khong_tinh_phut (#262) · cũ: cho_phep / hoc (= Không tính phút), giai_tri (= Tính phút),
+ *  chan / bo (= bỏ khỏi danh sách). Trả luật cũ để app «Hoàn tác». */
 export async function datTrangThaiApp(fam: string, mayId: string, b: Record<string, unknown>) {
   const may = await mayCua(fam, mayId);
-  const tt = String(b.trangThai ?? "");
-  if (!(TRANG_THAI_DAT as readonly string[]).includes(tt)) throw new LoiNghiepVu("trang_thai_sai", "Chọn Cho phép, Học tập, Giải trí hoặc Chặn");
+  const tho = String(b.trangThai ?? b.nhom ?? "");
+  if (!(TRANG_THAI_DAT as readonly string[]).includes(tho)) throw new LoiNghiepVu("trang_thai_sai", "Chọn «Tính phút», «Không tính phút» hoặc «Bỏ khỏi danh sách»");
+  const tt = tho === "chan" ? "bo" : tho === "tinh_phut" ? "giai_tri" : tho === "khong_tinh_phut" ? "hoc" : tho;
   const app = await one<DongApp>(`select * from app_may where device_id = $1 and khoa = $2`, [may.id, may.platform === "android" ? String(b.khoa ?? "") : String(b.khoa ?? "").toLowerCase()]);
   if (!app) throw new LoiNghiepVu("khong_thay_app", "Máy này không còn app đó — bấm Làm mới để lấy danh sách mới", 404);
   const con = may.dung_chung ? "" : may.child_id ?? "";
@@ -211,7 +217,8 @@ export async function goiAndroidThat(fam: string): Promise<Map<string, string>> 
 export type AppChan = { muc: string; duongDan?: string; thuMuc?: string; sha256?: string; nhaPhatHanh?: string; teamId?: string };
 
 /** `windows.blockedApps` cho agent Win/Mac: app Ba Mẹ đặt Chặn (luật hiệu lực của Con dùng máy / cả nhà), kèm định danh thật lấy từ danh sách
- *  app của CHÍNH MÁY NÀY. Luật Chặn không có trong danh sách (xếp ở màn cũ / app chưa cài) ⇒ chỉ `muc` (Windows: .exe; Mac: bundle id). */
+ *  app của CHÍNH MÁY NÀY. #262: không còn luật «Chặn» (danh sách trắng — app ngoài danh sách đã không mở ở «Theo danh sách») ⇒ luôn []; giữ
+ *  trường cho agent cũ. */
 export async function appChanCuaMay(may: Pick<May, "id" | "family_id" | "platform" | "dung_chung" | "child_id">, con: string | null): Promise<AppChan[]> {
   if (may.platform !== "windows" && may.platform !== "mac") return [];
   const ai = may.dung_chung ? con ?? "" : may.child_id ?? con ?? "";

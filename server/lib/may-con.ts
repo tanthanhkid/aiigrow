@@ -5,7 +5,7 @@
 import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
 import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { dangKhoa, khoaDen, khoaGoc, khoaMayHieuLuc, lichCua, moTamDen, nhipToiKhoaLai, thamSo } from "./cau-hinh.ts";
+import { dangKhoa, khoaDen, khoaGoc, khoaMayHieuLuc, lichCua, moTamDen, NGU_TAT, nhipToiKhoaLai, thamSo } from "./cau-hinh.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
 import { allowlistHieuLuc, dsLuat, phanLoai } from "./luat-app.ts";
 import { giaPhut, phienDang } from "./phien.ts";
@@ -19,7 +19,7 @@ import { quyenTuVai } from "./quyen.ts";
 import { chuanMuc } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
-import { cheDoChanCua, laWebCam, WEB_LUON_CHAN, type CheDoChan } from "./chan-co-ban.ts";
+import { cheDoChanCua, cheDoCua, laWebCam, WEB_LUON_CHAN, type CheDo, type CheDoChan } from "./chan-co-ban.ts";
 import { quyHomNay } from "./quy-gio.ts";
 import { cauSao, laMoHetCon, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
 
@@ -127,6 +127,7 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
 export type Policy = {
   serverTime: string; nextCheckSec: number; gioMaySai: boolean; con: { id: string; ten: string; nhom: string } | null;
   canChonCon: boolean; allowlistHeThong: string[];
+  /** danh sách trắng của Con: giai_tri = nhóm «Tính phút», hoc = «Không tính phút» (không còn «chan» — #262) */
   luat: { muc: string; loai: "hoc" | "giai_tri" | "chan"; nhom: string | null; giaPhanNghin: number | null }[];
   lich: ReturnType<typeof lichCua>; khoaNgay: boolean; soDu: number;
   /** đang mở tạm (yeu-cau.ts › dongY): khoá trở lại lúc này (ISO); hạn khoá hiện tại — agent đồng bộ đúng các mốc đó */ khoaLaiLuc?: string | null; khoaHetLuc?: string | null;
@@ -134,12 +135,13 @@ export type Policy = {
   phien: { id: string; muc: string; conPhut: number; may?: string | null } | null;
   // M4 agent Windows — chỉ thêm: múi giờ gia đình (agent tự xét khung giờ / giờ ngủ khi mất mạng), ngưỡng lệch giờ, phiên tối đa.
   tz: string; lechGioPhut: number; phienToiDa: number;
-  /** Web: true = «chỉ cho phép» (chặn mọi trang trừ trang được cho phép), false = «mở» (chỉ chặn trang Ba Mẹ chặn). tham số web_chi_cho_phep;
-   *  Con đã có chế độ chặn rõ (L4): chi_app_duoc_phep ⇒ true, mo_het ⇒ false. */
+  /** Web: true = «chỉ cho phép» (chặn mọi trang trừ trang trong danh sách) — «Theo danh sách»; false = «mở» — «Mở hết» (#262). */
   webChiChoPhep?: boolean;
-  /** L4 (thiết kế 05/11): chế độ chặn của Con — chi_app_duoc_phep (mặc định) | mo_het. Máy dùng chung chưa chọn Con ⇒ chi_app_duoc_phep. */
+  /** #262: chế độ của Con — theo_danh_sach (mặc định) | mo_het. Máy dùng chung chưa chọn Con ⇒ theo_danh_sach. */
+  cheDo?: CheDo;
+  /** (cũ) cùng chế độ, giá trị trước 15/11 — chi_app_duoc_phep (= theo_danh_sach) | mo_het. Agent cũ đọc trường này. */
   cheDoChan?: CheDoChan;
-  /** L4: tên miền LUÔN chặn ở mọi chế độ (web người lớn, cờ bạc, bạo lực) — agent chặn kể cả tên miền con. */
+  /** Lưới an toàn chung (chan-co-ban.ts › WEB_CAM) — agent chặn kể cả tên miền con. «Mở hết» ⇒ [] (không chặn gì, #258). */
   webLuonChan?: string[];
   /** Thiết kế 05/11 (lib/quy-gio.ts): QUỸ phút chơi hôm nay — mọi app Giải trí dùng chung. null = máy dùng chung chưa chọn Con.
    *  conPhut = phút còn chơi được · daDung = phút Giải trí đã dùng (mọi máy) · dangHoc = giờ học (chỉ app Học) · phutToiNgu / phutToiHoc = phút tới mốc. */
@@ -157,9 +159,9 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   const c = con ? await one<{ id: string; ten: string; nhom: string; cau_hinh: Record<string, unknown>; lich: Record<string, unknown>; che_do_chan: string | null }>(
     `select id, ten, nhom, cau_hinh, lich, che_do_chan from children where id = $1`, [con]) : undefined;
   const ts = thamSo(f.cau_hinh, c?.cau_hinh);
-  const cheDoChan = cheDoChanCua(c?.che_do_chan);
-  // web luôn chặn (L4) không bao giờ là luật cho phép — kể cả luật cũ ghi trước 05/11
-  const luat = c ? (await dsLuat(may.family_id)).filter((l) => (!l.child_id || l.child_id === c.id) && (l.loai === "chan" || !laWebCam(l.muc))) : [];
+  const cheDo = cheDoCua(c?.che_do_chan), cheDoChan = cheDoChanCua(cheDo);
+  // danh sách trắng của Con (#262): chỉ «Tính phút» (giai_tri) / «Không tính phút» (hoc); lưới an toàn không bao giờ là mục mở — kể cả luật cũ
+  const luat = c ? (await dsLuat(may.family_id)).filter((l) => (!l.child_id || l.child_id === c.id) && (l.loai === "hoc" || l.loai === "giai_tri") && !laWebCam(l.muc)) : [];
   // luật riêng của Con đè luật gia đình cùng mục
   const theoMuc = new Map<string, (typeof luat)[number]>();
   for (const l of luat.sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);
@@ -184,9 +186,9 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     soDu: c ? await soDu(c.id) : 0,          // = sao tiêu được (≥ 0)
     phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)), may: ph.device_id } : null,
     tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da,
-    // Con đã có chế độ rõ (Con mới / Ba Mẹ đã chọn) ⇒ web theo chế độ; Con cũ (null) ⇒ tham số web_chi_cho_phep như trước
-    webChiChoPhep: c?.che_do_chan ? cheDoChan === "chi_app_duoc_phep" : ts.web_chi_cho_phep === 1,
-    cheDoChan, webLuonChan: WEB_LUON_CHAN,
+    // #262: web theo chế độ — «Theo danh sách» chỉ mở trang trong danh sách; «Mở hết» mở mọi trang
+    webChiChoPhep: cheDo === "theo_danh_sach",
+    cheDo, cheDoChan, webLuonChan: c && cheDo === "mo_het" ? [] : WEB_LUON_CHAN,
     // 15/11: quỹ ngày bỏ — conPhut = sao tiêu được; ngayPhut 0 + themPhut (= conPhut + daDung) để agent cũ tính «còn» đúng bằng số sao
     quy: qy && { ngayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, daDung: qy.daDung, conPhut: qy.conPhut, dangNgu: qy.dangNgu, dangHoc: qy.dangHoc,
       phutToiNgu: qy.phutToiNgu, phutToiHoc: qy.phutToiHoc, tyLe: qy.tyLe },
@@ -195,17 +197,12 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   });
 }
 
-/** Giờ ngủ «tắt»: khung tu = den không bao giờ trúng (lib/gio.ts › trongKhung; agent Windows / Android cùng luật). */
-const NGU_TAT = { tu: "00:00", den: "00:00" };
-
-/** Nghi 07/11: «Mở hết» = máy Con dùng như bình thường. Mọi máy (Windows, Mac, Android, iOS) nhận chính sách không giới hạn:
- *  không quỹ giờ chơi, không giờ ngủ, không giờ học; app / trang Giải trí bỏ khỏi luật ⇒ thành «chưa xếp» = cho phép (chuaXep cho_phep).
- *  Nghi 11/11: «Mở hết» mở THẬT hết — luật «Chặn» (thường do Ba Mẹ gạt tắt app lúc còn «Chặn app & web», vd youtube.com) cũng bỏ khỏi
- *  chính sách gửi máy, khớp chữ «Mở hết · chỉ chặn web người lớn» trên app Ba Mẹ. Luật vẫn nằm trong CSDL ⇒ về «Chặn app & web» thì chặn lại.
- *  CHỈ còn chặn: web luôn chặn (người lớn, cờ bạc, bạo lực) và «Khoá ngay». Thời gian dùng vẫn ghi để báo cáo. */
+/** «Mở hết» (#258/#262): máy Con dùng như bình thường — mọi máy (Windows, Mac, Android, iOS) nhận chính sách không giới hạn: không quỹ, không
+ *  giờ ngủ / giờ học (đã bỏ hẳn); mục «Tính phút» bỏ khỏi luật ⇒ thành «chưa xếp» = mở (chuaXep cho_phep), không trừ sao (so-sao.ts › laMoHetCon).
+ *  Danh sách vẫn nằm trong CSDL («tạm nghỉ») ⇒ về «Theo danh sách» là dùng tiếp. CHỈ còn «Khoá ngay» / khoá máy. Thời gian dùng vẫn ghi để báo cáo. */
 export function apMoHet(p: Policy): Policy {
   if (!laMoHet(p)) return p;
-  return { ...p, luat: p.luat.filter((l) => l.loai === "hoc"), lich: { ...p.lich, ngu: NGU_TAT, hoc: null }, quy: null };
+  return { ...p, luat: p.luat.filter((l) => l.loai === "hoc"), lich: { ...p.lich, ngu: NGU_TAT, hoc: null }, quy: null, webLuonChan: [] };
 }
 
 /** Con đang ở «Mở hết» (máy dùng chung chưa chọn Con ⇒ không). */

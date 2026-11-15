@@ -198,12 +198,13 @@ test("cách ly gia đình: Ba Mẹ nhà khác không xem / mở khẩn cấp / x
 test("TV / tầng mạng: Ba Mẹ lấy luật router + DNS theo MAC cho Con (không cần TV / router)", async () => {
   const { con, bmTok } = await nha();
   await la.datLuat((await q<{ family_id: string }>(`select family_id from children where id = $1`, [con]))[0].family_id,
-    { muc: "tiktok.com", loai: "chan" });
+    { muc: "khanacademy.org", loai: "hoc" });
   const r = (await m(`con/${con}/luat-mang?mac=AA:BB:CC:DD:EE:01&nen=tizen&ten=TV%20ph%C3%B2ng%20kh%C3%A1ch`, { tok: bmTok })).body;
   assert.equal(r.nen, "tizen");
   assert.equal(r.mang.thietBi.mac, "aa:bb:cc:dd:ee:01");
   assert.equal(r.mang.thietBi.ten, "TV phòng khách");
-  assert.ok(r.mang.dns.chan.includes("tiktok.com"));
+  assert.deepEqual(r.mang.dns.chan, [], "#262: không còn luật chặn đích danh");
+  assert.ok(r.mang.dns.choPhep.includes("khanacademy.org"));
   assert.ok(r.mang.router.length >= 2);
 });
 

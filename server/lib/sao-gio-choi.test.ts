@@ -93,11 +93,11 @@ test("API Ba Mẹ: Giờ chơi (giờ ngủ, giờ học; ô quỹ cũ bỏ qua)
     gioHoc: { tu: "17:00", den: "18:00", thu: [1, 2, 3, 4, 5] }, doiSaoToiDaNgay: 9999, choXinThemGio: false });
   assert.equal(r.status, 200);
   assert.deepEqual([r.body.quyNgayThuong, r.body.quyCuoiTuan], [0, 0], "ô quỹ cũ bỏ qua");
-  assert.deepEqual([r.body.gioNgu, r.body.gioHoc], [{ tu: "21:30", den: "06:30" }, { tu: "17:00", den: "18:00", thu: [1, 2, 3, 4, 5] }]);
+  // #258: giờ ngủ / giờ học bỏ — nhận mà không lưu; trả giờ ngủ «tắt», giờ học null
+  assert.deepEqual([r.body.gioNgu, r.body.gioHoc], [{ tu: "00:00", den: "00:00" }, null]);
   assert.equal((await one<{ c: any }>(`select cau_hinh as c from children where id = $1`, [con]))!.c.quy_ngay_thuong, undefined);
-  assert.equal((await m(tokBm, `con/${con}/gio-choi`, { gioNgu: { tu: "25:00", den: "06:00" } })).status, 400);
-  assert.equal((await m(tokBm, `con/${con}/gio-choi`, { gioHoc: null })).body.gioHoc, null);
-  assert.ok((await one<{ lich: any }>(`select lich from children where id = $1`, [con]))!.lich.ngu.tu === "21:30");
+  assert.equal((await m(tokBm, `con/${con}/gio-choi`, { gioNgu: { tu: "25:00", den: "06:00" } })).status, 200);
+  assert.equal((await one<{ lich: any }>(`select lich from children where id = $1`, [con]))!.lich.ngu, undefined);
   // xin thêm giờ (máy cũ) luôn gửi được — là lời xin vay
   await luonChoiDuoc(con);
   assert.equal((await k(tokMay, "yeu-cau", { loai: "them_gio", phut: 30 })).status, 200);
@@ -155,14 +155,14 @@ test("Policy Windows: giờ học chỉ mở app Học; giờ ngủ khoá; giờ
   const w = async (s: string, o: { gioMaySai?: boolean } = {}) => aw.chinhSachWindows(await mc.taoPolicy(may, con, { gioMaySai: !!o.gioMaySai }, VN(s)));
   assert.ok(!(await w("2026-10-21T18:10:00")).allowedApps.includes("roblox.exe"), "0 sao ⇒ không thả app Tính phút");
   await v.dieuChinhTay(fam, con, 30, "Thưởng", bm);
+  // #258: giờ học / giờ ngủ bỏ — 17:10 và 21:10 đều thả app Tính phút khi còn sao
   let x = await w("2026-10-21T17:10:00");
-  assert.deepEqual([x.mode, x.dangGioHoc, x.appTinhGio], ["hoc", true, []]);
-  assert.ok(x.allowedApps.includes("tudien.exe") && !x.allowedApps.includes("roblox.exe"));
-  assert.deepEqual(x.gioHoc, { tu: "17:00", den: "18:00", thu: [3] });
+  assert.deepEqual([x.dangGioHoc, x.gioHoc], [false, null]);
+  assert.ok(x.allowedApps.includes("tudien.exe") && x.allowedApps.includes("roblox.exe"));
   x = await w("2026-10-21T18:10:00");
   assert.ok(x.allowedApps.includes("roblox.exe"));
   x = await w("2026-10-21T21:10:00");
-  assert.deepEqual([x.mode, x.locked, x.lockReason], ["khoa", true, "ngu"]);
+  assert.deepEqual([x.locked, x.lockReason], [false, null]);
   x = await w("2026-10-21T18:10:00", { gioMaySai: true });
   assert.ok(!x.allowedApps.includes("roblox.exe"));
   void ph;
@@ -296,7 +296,8 @@ test("rà PR: hoàn tác cho vay không hoàn dư; quà phút chốt lúc đổi
   const n3 = await yc.guiYeuCau(con, mayId, { loai: "ngoai_le", phamVi: "app", giaTri: "https://www.youtube.com/watch?v=1", phut: 15 }, T2);
   await yc.dongY(fam, n3.id, bm, {}, T2);
   const w = aw.chinhSachWindows(await mc.taoPolicy(may, con, { gioMaySai: false }, sau(T2, 1)));
-  assert.deepEqual([w.locked, w.ngoaiLe, w.khoaKhiHetNgoaiLe], [true, undefined, undefined], "giờ ngủ vẫn khoá — không còn ngoại lệ");
+  assert.deepEqual([w.locked, w.ngoaiLe, w.khoaKhiHetNgoaiLe], [false, undefined, undefined], "#258 không còn giờ ngủ; không còn ngoại lệ");
+  assert.ok(!w.allowedApps.includes("youtube.com"), "không mở mục ngoài luật");
   // quà phút: số phút chốt lúc đổi (trao xong = +N sao)
   const qua = await pt.taoQua(fam, { ten: "Thêm 20 phút chơi", loai: "phut", diem: 5, phut: 20 });
   const doi = await pt.doiQua(con, qua, t);

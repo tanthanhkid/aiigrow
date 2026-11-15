@@ -54,11 +54,14 @@ export type ThamSo = Record<TenThamSo, number>;
 
 /** Giờ học (thiết kế 05/11): trong khung này máy chỉ mở app Học, app giải trí tạm khoá. `thu`: 0 = CN … 6 = T7. */
 export type GioHoc = Khung & { thu: number[] };
-/** ngayThuong / cuoiTuan: khung giờ chơi CŨ — từ 05/11 không còn chặn (quỹ phút thay), giữ để app/agent cũ đọc được. */
+/** Giờ ngủ «tắt»: khung tu = den không bao giờ trúng (lib/gio.ts › trongKhung; agent Windows / Mac / Android / iOS cùng luật). */
+export const NGU_TAT: Khung = { tu: "00:00", den: "00:00" };
+/** ngayThuong / cuoiTuan: khung giờ chơi CŨ — từ 05/11 không còn chặn (quỹ phút thay), giữ để app/agent cũ đọc được.
+ *  #258 (15/11): bỏ hẳn GIỜ NGỦ và GIỜ HỌC — `ngu` luôn NGU_TAT, `hoc` luôn null (agent cũ đọc ra «không có giờ ngủ / giờ học»). */
 export const LICH_MAC_DINH: { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung; hoc?: GioHoc | null } = {
   ngayThuong: [{ tu: "17:00", den: "20:00" }],
   cuoiTuan: [{ tu: "09:00", den: "21:00" }],
-  ngu: { tu: "21:00", den: "06:30" },
+  ngu: NGU_TAT,
   hoc: null,
 };
 export type Lich = typeof LICH_MAC_DINH;
@@ -91,18 +94,18 @@ const GIO = /^([01]\d|2[0-3]):[0-5]\d$/;
 const sachKhung = (ds: unknown): Khung[] =>
   (Array.isArray(ds) ? ds : []).filter((k) => GIO.test(k?.tu) && GIO.test(k?.den) && k.tu !== k.den).slice(0, 4).map((k) => ({ tu: k.tu, den: k.den }));
 
-/** Lịch hiệu lực: lịch Con (nếu đặt) đè mặc định từng phần. */
+/** Lịch hiệu lực: lịch Con (nếu đặt) đè mặc định từng phần. #258: giờ ngủ / giờ học Con cũ còn lưu (trước khi chuyển dữ liệu) bị bỏ qua. */
 export function lichCua(l: Partial<Lich> | null | undefined): Lich {
-  const ngu = l?.ngu && GIO.test(l.ngu.tu) && GIO.test(l.ngu.den) ? { tu: l.ngu.tu, den: l.ngu.den } : LICH_MAC_DINH.ngu;
   return {
     ngayThuong: l?.ngayThuong ? sachKhung(l.ngayThuong) : LICH_MAC_DINH.ngayThuong,
     cuoiTuan: l?.cuoiTuan ? sachKhung(l.cuoiTuan) : LICH_MAC_DINH.cuoiTuan,
-    ngu,
-    hoc: sachGioHoc(l?.hoc),
+    ngu: NGU_TAT,
+    hoc: null,
   };
 }
 
-function sachGioHoc(h: unknown): GioHoc | null {
+/** Kiểm một khung giờ học (cũ — chỉ còn để nhận dữ liệu app cũ gửi mà không báo lỗi; không lưu). */
+export function sachGioHoc(h: unknown): GioHoc | null {
   const x = h as Partial<GioHoc> | null | undefined;
   if (!x || !GIO.test(String(x.tu)) || !GIO.test(String(x.den)) || x.tu === x.den) return null;
   const thu = [...new Set((Array.isArray(x.thu) ? x.thu : [1, 2, 3, 4, 5]).map(Number).filter((n) => Number.isInteger(n) && n >= 0 && n <= 6))].sort();

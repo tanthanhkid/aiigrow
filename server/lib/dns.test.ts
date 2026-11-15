@@ -148,7 +148,8 @@ test("máy con loại mạng qua API: thêm TV, lấy hồ sơ + .mobileconfig; 
   process.env.AIIGROW_DNS_BI_MAT = "bi-mat-resolver-thu";
   assert.equal((await rs(`chinh-sach/${h.thietBi.nhan}`, { tok: "sai" })).status, 401);
   const cs = (await rs(`chinh-sach/${h.thietBi.nhan}`, { tok: "bi-mat-resolver-thu" })).body;
-  assert.deepEqual([cs.thietBi.loai, cs.chanTatCaNgoaiGio, cs.chan], ["tv", true, ["tiktok.com"]]);
+  // #262: luật «chan» (app cũ) = bỏ khỏi danh sách ⇒ không còn tên miền chặn đích danh; TV ngoài giờ vẫn chặn mọi thứ ngoài danh sách cho phép
+  assert.deepEqual([cs.thietBi.loai, cs.chanTatCaNgoaiGio, cs.chan], ["tv", true, []]);
   assert.equal((await rs("chinh-sach/khong-co", { tok: "bi-mat-resolver-thu" })).status, 404);
   const n = await rs("nhat-ky", { tok: "bi-mat-resolver-thu", body: { nhan: h.thietBi.nhan, ds: [
     { tenMien: "YouTube.com", soLan: 12, soLanChan: 12, ngoaiGio: 12 }, { tenMien: "khong hop le", soLan: 1 }] } });

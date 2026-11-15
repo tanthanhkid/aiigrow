@@ -9,7 +9,7 @@ import { taoPolicy, type Policy } from "./may-con.ts";
 import type { May } from "./gia-dinh.ts";
 import type { NhomGiaiTri } from "./luat-app.ts";
 import { goiAndroidThat, mucAppThat } from "./app-may.ts";
-import { WEB_LUON_CHAN, type CheDoChan } from "./chan-co-ban.ts";
+import { WEB_LUON_CHAN, type CheDo, type CheDoChan } from "./chan-co-ban.ts";
 
 export type KieuMuc = "app" | "web";
 export type MucChung = { muc: string; kieu: KieuMuc; nhom?: NhomGiaiTri | null; giaPhanNghin?: number | null };
@@ -36,9 +36,10 @@ export type ChinhSachChung = {
     ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung;
     tranNgayPhut: number; tranTuanPhut: number; phienToiDaPhut: number; nghiGiuaPhut: number; tuDongDongPhut: number;
   };
-  /** chuaXep: app / web chưa xếp loại — «chan» (chế độ Chặn app & web: Con «Xin Ba Mẹ duyệt») | «cho_phep» (Mở hết). L4 thiết kế 05/11.
-   *  cheDoChan: chế độ chặn của Con · webLuonChan: tên miền luôn chặn ở mọi chế độ (người lớn, cờ bạc, bạo lực). */
-  ungDung: { heThong: string[]; hoc: MucChung[]; giaiTri: MucChung[]; chan: MucChung[]; chuaXep: "chan" | "cho_phep"; cheDoChan: CheDoChan; webLuonChan: string[] };
+  /** #262 danh sách trắng: giaiTri = nhóm «Tính phút» (trừ sao) · hoc = «Không tính phút» · chan luôn [] (không còn quy tắc chặn).
+   *  chuaXep: app / web ngoài danh sách — «chan» (Theo danh sách: Con «Xin Ba Mẹ mở») | «cho_phep» (Mở hết).
+   *  cheDo: theo_danh_sach | mo_het · cheDoChan (cũ): chi_app_duoc_phep | mo_het · webLuonChan: lưới an toàn chung («Mở hết» ⇒ []). */
+  ungDung: { heThong: string[]; hoc: MucChung[]; giaiTri: MucChung[]; chan: MucChung[]; chuaXep: "chan" | "cho_phep"; cheDo: CheDo; cheDoChan: CheDoChan; webLuonChan: string[] };
   phienDiem: { soDu: number; phien: Policy["phien"]; giaTheoNhom: Record<NhomGiaiTri, number> };
   khoaNgay: boolean;
   ngoaiLe: { phutThemHomNay: number; mucTamThoi: { muc: string; loai: string; het: string }[]; moKhanCapDen: string | null };
@@ -92,8 +93,9 @@ export function dungChinhSach(p: Policy, o: {
       heThong: p.allowlistHeThong,
       hoc: p.luat.filter((l) => l.loai === "hoc").map(m),
       giaiTri: p.luat.filter((l) => l.loai === "giai_tri").map(m),
-      chan: p.luat.filter((l) => l.loai === "chan").map(m),
+      chan: p.luat.filter((l) => l.loai === "chan").map(m),     // #262: taoPolicy không còn luật «chan» ⇒ luôn []
       chuaXep: p.cheDoChan === "mo_het" ? "cho_phep" : "chan",
+      cheDo: p.cheDo ?? (p.cheDoChan === "mo_het" ? "mo_het" : "theo_danh_sach"),
       cheDoChan: p.cheDoChan ?? "chi_app_duoc_phep",
       webLuonChan: p.webLuonChan ?? WEB_LUON_CHAN,
     },

@@ -4,13 +4,13 @@
 // File giữ tên + hình dạng `Quy` để agent / app cũ đang chạy đọc đúng tới khi bản mới phát hành:
 //   conPhut = sao tiêu được (= phút còn chơi) · daDung = phút «Tính phút» đã dùng hôm nay · quyNgayPhut = 0 · themPhut = conPhut + daDung
 //   (agent cũ tính «còn» = ngayPhut + themPhut − daDung − phút máy đếm thêm sau lần đồng bộ ⇒ đúng bằng số sao còn lại).
-// Giờ ngủ / giờ học còn ở đây cho tới khi #262 gỡ (không thuộc phạm vi sổ sao).
+// #258 (15/11): bỏ giờ ngủ / giờ học — lichCua luôn trả giờ ngủ «tắt» (tu = den) và giờ học null; các trường cũ (dangNgu, dangHoc, gioNgu,
+// gioHoc, phutToiNgu, phutToiHoc) giữ hình dạng cho agent / app cũ: false / null / 1440.
 import { q, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, lichCua, thamSo, type GioHoc, type Lich, type ThamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan, phutCua, trongKhung, type Khung } from "./gio.ts";
 import { khoaSo } from "./luat-app.ts";
-import { ghiSuKien } from "./nhat-ky.ts";
 import { choVay, hoanTacVay, phutDaTruHomNay, trangThaiSao, type TrangThaiSao } from "./so-sao.ts";
 
 /** 1 sao = 1 phút (giữ tên hàm cũ cho nơi gọi cũ). */
@@ -24,6 +24,8 @@ export function trongGioHoc(hoc: GioHoc | null | undefined, thu: number, phut: n
 
 /** Phút từ `phut` tới mốc `hhmm` kế tiếp (0 < x ≤ 1440). */
 const toiMoc = (phut: number, hhmm: string) => ((phutCua(hhmm) - phut + 1440) % 1440) || 1440;
+/** Phút tới giờ ngủ — giờ ngủ «tắt» (tu = den, #258) ⇒ 1440 (không có mốc nào). */
+const toiNgu = (phut: number, k: Khung) => (k.tu === k.den ? 1440 : toiMoc(phut, k.tu));
 
 export type BoiCanhCon = { fam: string; tz: string; ts: ThamSo; lich: Lich; cfg: Record<string, unknown> };
 
@@ -94,7 +96,7 @@ export async function quyHomNay(con: string, now = new Date(), t: Q = q, b0?: Bo
     ngay: g.ngay, cuoiTuan: laCuoiTuan(g.thu),
     quyNgayPhut: 0, themPhut: st.phutCon + daDung, doiSaoPhut: 0, daDung, conPhut: st.phutCon, tongPhut: st.phutCon + daDung,
     dangNgu: trongKhung(g.phut, b.lich.ngu), dangHoc, khoa: dangKhoa(b.cfg, now),
-    gioNgu: b.lich.ngu, gioHoc: hoc, phutToiNgu: toiMoc(g.phut, b.lich.ngu.tu), phutToiHoc,
+    gioNgu: b.lich.ngu, gioHoc: hoc, phutToiNgu: toiNgu(g.phut, b.lich.ngu), phutToiHoc,
     tyLe: { sao: 10, phut: 10 },
     doiSao: { bat: false, toiDaNgay: 0, conDoiDuoc: 0 },
     choXinThem: true,
@@ -128,29 +130,10 @@ export async function gioChoiCua(fam: string, con: string, now = new Date()) {
   };
 }
 
-const GIO = /^([01]\d|2[0-3]):[0-5]\d$/;
 
-/** Lưu giờ ngủ / giờ học (chỉ các khoá gửi lên). `gioHoc: null` = bỏ giờ học. Ô quỹ / đổi sao / ngoại lệ (cũ) gửi lên bị bỏ qua. */
-export async function datGioChoi(fam: string, con: string, b: Record<string, unknown>, nguoi: string) {
+/** (cũ) Lưu giờ ngủ / giờ học — #258 bỏ hẳn: app cũ gửi lên được nhận mà KHÔNG lưu gì (không báo lỗi). Ô quỹ / đổi sao / ngoại lệ cũng bỏ qua. */
+export async function datGioChoi(fam: string, con: string, _b: Record<string, unknown>, _nguoi: string) {
   const cu = await boiCanhCon(con);
   if (cu.fam !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  const lich: Record<string, unknown> = {};
-  const ngu = b.gioNgu as Khung | undefined;
-  if (ngu !== undefined) {
-    if (!ngu || !GIO.test(String(ngu.tu)) || !GIO.test(String(ngu.den)) || ngu.tu === ngu.den) throw new LoiNghiepVu("gio_sai", "Giờ ngủ chưa đúng (HH:MM)");
-    lich.ngu = { tu: ngu.tu, den: ngu.den };
-  }
-  if (b.gioHoc !== undefined) {
-    if (b.gioHoc === null) lich.hoc = null;
-    else {
-      const h = lichCua({ hoc: b.gioHoc as GioHoc }).hoc;
-      if (!h) throw new LoiNghiepVu("gio_sai", "Giờ học chưa đúng (HH:MM, chọn ít nhất một ngày)");
-      lich.hoc = h;
-    }
-  }
-  if (Object.keys(lich).length) {
-    await q(`update children set lich = coalesce(lich, '{}'::jsonb) || $2::text::jsonb where id = $1`, [con, JSON.stringify(lich)]);
-    await ghiSuKien(fam, "doi_gio_choi", lich, { con, nguoi });
-  }
   return gioChoiCua(fam, con);
 }

@@ -14,7 +14,7 @@ import { biMatOfflineMay, hanMoCuaMay } from "./tuan-thu.ts";
 import { buPhien, goCoMatKhau, nhanSuKien, taoPhienWeb } from "./may-con.ts";
 import { dungPhien, moPhien, nhip, xetMoPhien, lyDoChu } from "./phien.ts";
 import { conChoBu, ghepPhienMayChung, laAgentMoi, moRongPhienMay, nhipPhienWindows, type TrangThaiNhip } from "./phien-windows.ts";
-import { apQuyTacTuDong, guiYeuCau } from "./yeu-cau.ts";
+import { apQuyTacTuDong, guiYeuCau, ketQuaYc } from "./yeu-cau.ts";
 import * as hocVien from "./hoc-vien.ts";
 import * as nv from "./nhiem-vu.ts";
 // M4b độ bền máy con (chỉ thêm): nhịp + tuân thủ, gói cài một chạm, lệnh gỡ từ xa
@@ -187,13 +187,18 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       const tu = await apQuyTacTuDong(may.family_id, r.id);
       return json({ ...r, ...(tu ? { trang_thai: "dong_y" } : {}), status: tu ? "tu_duyet" : r.trang_thai });
     }
-    // agent Windows hỏi trạng thái lời xin đã gửi từ màn chặn (cho | dong_y | tu_choi | het_han | huy | da_thuc_thi) — chỉ lời xin của máy này
+    // agent hỏi trạng thái lời xin đã gửi từ màn chặn (cho | dong_y | tu_choi | bo_qua | het_han | huy | da_thuc_thi) — chỉ lời xin của máy này.
+    // #258: kèm kết quả lời xin app / web — ketQua (cho | da_them | chua_them | het_han | huy), nhom (tinh_phut | khong_tinh_phut), muc,
+    // tenNguoiDuyet («Mẹ Lan»), loiNhan, luc (lúc Ba Mẹ trả lời) — màn «Ba Mẹ đã thêm Roblox · Tính phút» / «Ba Mẹ chưa thêm Roblox · Xin lại».
     if (p[0] === "yeu-cau" && p[1] && req.method === "GET") {
-      const r = await one<{ trang_thai: string }>(`select trang_thai from requests where id = $1 and device_id = $2`, [p[1], may.id]);
+      const r = await one<{ trang_thai: string; loai: string; gia_tri: string | null; phan_loai: string | null; loi_nhan: string | null; xu_ly_luc: Date | null; ten: string | null }>(
+        `select r.trang_thai, r.loai, r.gia_tri, r.phan_loai, r.loi_nhan, r.xu_ly_luc, p.ten from requests r left join parents p on p.id = r.nguoi_duyet
+          where r.id = $1 and r.device_id = $2`, [p[1], may.id]);
       if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy lời xin", 404);
-      // `status` theo từ của khay 0.2.0/0.2.1 (RequestForm hiểu duoc | tu_choi | cho); `trangThai` nguyên văn cho bản mới
+      // `status` theo từ của khay 0.2.0/0.2.1 (RequestForm hiểu duoc | tu_choi | cho); `trangThai` nguyên văn cho bản mới (bo_qua ⇒ status tu_choi)
       const st = r.trang_thai === "dong_y" || r.trang_thai === "da_thuc_thi" ? "duoc" : r.trang_thai === "cho" ? "cho" : "tu_choi";
-      return json({ status: st, trangThai: r.trang_thai });
+      return json({ status: st, trangThai: r.trang_thai, ...ketQuaYc(r), muc: r.gia_tri, tenNguoiDuyet: r.ten,
+        luc: r.xu_ly_luc ? new Date(r.xu_ly_luc).toISOString() : null });
     }
     // M4: phiên Con cho khung Kid (WebView2) · bù phút chơi khi mất mạng
     if (d === "phien-web") return json(await taoPhienWeb(may, con));

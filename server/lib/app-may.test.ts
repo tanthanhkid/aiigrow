@@ -80,13 +80,16 @@ test("Ba Mẹ đặt Chặn theo định danh thật ⇒ blockedApps của máy 
   assert.equal(dat.body.muc, "robloxplayerbeta.exe");
   assert.equal(dat.body.con, con);                                       // máy riêng của Con ⇒ luật riêng của Con đó
   assert.equal(dat.body.truoc, null);
+  // #262: «Chặn» (app cũ) = bỏ khỏi danh sách ⇒ chưa xếp; app ngoài danh sách vốn không mở ở «Theo danh sách»
   await goiBm(`may/${mayId}/ung-dung/dat`, tokBm, { khoa: MINECRAFT.khoa, trangThai: "cho_phep" });
   await goiBm(`may/${mayId}/ung-dung/dat`, tokBm, { khoa: SCRATCH.khoa, trangThai: "hoc" });
   const ds = (await goiBm(`may/${mayId}/ung-dung`, tokBm)).body.ds;
   assert.deepEqual(Object.fromEntries(ds.map((x: any) => [x.muc, x.trangThai])),
-    { "robloxplayerbeta.exe": "chan", "microsoft.minecraftuwp": "cho_phep", "scratch 3.exe": "hoc" });
+    { "robloxplayerbeta.exe": "chua_xep", "microsoft.minecraftuwp": "cho_phep", "scratch 3.exe": "hoc" });
+  assert.deepEqual(Object.fromEntries(ds.map((x: any) => [x.muc, x.nhomDs])),
+    { "robloxplayerbeta.exe": null, "microsoft.minecraftuwp": "khong_tinh_phut", "scratch 3.exe": "khong_tinh_phut" });
   const db = (await goiMay("dong-bo", tok, {})).body;
-  assert.deepEqual(db.windows.blockedApps, [{ muc: "robloxplayerbeta.exe", duongDan: ROBLOX.duongDan, thuMuc: ROBLOX.thuMuc, sha256: "ab".repeat(32), nhaPhatHanh: "Roblox Corporation" }]);
+  assert.deepEqual(db.windows.blockedApps, [], "không còn luật Chặn");
   // gói Store không đuôi .exe vẫn vào allowedApps (biết là app nhờ danh sách thật); app bị Chặn không vào
   assert.ok(db.windows.allowedApps.includes("microsoft.minecraftuwp"));
   assert.ok(db.windows.allowedApps.includes("scratch 3.exe"));
@@ -95,28 +98,28 @@ test("Ba Mẹ đặt Chặn theo định danh thật ⇒ blockedApps của máy 
   // gói Store không lọt vào danh sách web (chính sách trình duyệt) như một tên miền
   assert.ok(![...db.windows.web.chan, ...db.windows.web.cho].includes("microsoft.minecraftuwp"));
   // agent bị sửa gửi «youtube.com» như app không gỡ được luật web của Ba Mẹ
-  await goiBm("luat", tokBm, { muc: "youtube.com", loai: "chan" });
+  await goiBm("luat", tokBm, { muc: "youtube.com", loai: "khong_tinh_phut" });
   await goiMay("ung-dung", tok, { du: false, bamTruoc: "a".repeat(64), bam: "c".repeat(64), them: [{ khoa: "x", muc: "youtube.com", ten: "x" }], bo: [] });
-  assert.ok((await goiMay("dong-bo", tok, {})).body.windows.web.chan.includes("youtube.com"));
+  assert.ok((await goiMay("dong-bo", tok, {})).body.windows.web.cho.includes("youtube.com"));
   await goiMay("ung-dung", tok, { du: false, bamTruoc: "c".repeat(64), bam: "a".repeat(64), them: [], bo: ["x"] });
   assert.equal(db.danhSachApp.yeuCau, null);
-  // Nghi 11/11: «Mở hết» mở thật hết — app / trang Ba Mẹ từng «Chặn» không còn chặn; về «Chặn app & web» thì chặn lại
+  // #258: «Mở hết» không chặn gì (kể cả lưới an toàn); về «Theo danh sách» thì chỉ danh sách mở
   assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "mo_het" })).status, 200);
   const mh = (await goiMay("dong-bo", tok, {})).body;
-  assert.deepEqual([mh.windows.mode, mh.windows.blockedApps], ["tu_do", []]);
-  assert.ok(!mh.windows.web.chan.includes("youtube.com"), "Mở hết: youtube.com Ba Mẹ từng chặn được mở");
-  assert.ok(mh.windows.web.chan.includes("pornhub.com"), "Mở hết vẫn chặn web người lớn");
+  assert.deepEqual([mh.windows.mode, mh.windows.blockedApps, mh.windows.web.cheDo], ["tu_do", [], "mo"]);
+  assert.ok(!mh.windows.web.chan.includes("pornhub.com"), "Mở hết không chặn gì");
   assert.equal((await goiBm(`con/${con}/che-do-chan`, tokBm, { cheDo: "chi_app_duoc_phep" })).status, 200);
   const lai = (await goiMay("dong-bo", tok, {})).body;
-  assert.equal(lai.windows.blockedApps.length, 1);
-  assert.ok(lai.windows.web.chan.includes("youtube.com"));
+  assert.deepEqual([lai.windows.blockedApps, lai.windows.web.cheDo], [[], "chi_cho_phep"]);
+  assert.ok(lai.windows.web.cho.includes("youtube.com"));
   // «Cho phép» tính Tiện ích ở thời gian màn hình, «Học tập» tính Học tập
   const luat = [{ child_id: "", muc: "microsoft.minecraftuwp", ten: "Minecraft", loai: "hoc", nhom: "cho_phep" }, { child_id: "", muc: "scratch 3.exe", ten: "Scratch", loai: "hoc", nhom: "khac" }] as any;
   assert.equal(xepMuc("microsoft.minecraftuwp", luat).muc, "tien_ich");
   assert.equal(xepMuc("scratch 3.exe", luat).muc, "hoc");
   // bỏ luật ⇒ về chưa xếp, trả luật cũ để Hoàn tác
+  await goiBm(`may/${mayId}/ung-dung/dat`, tokBm, { khoa: ROBLOX.khoa, trangThai: "tinh_phut" });
   const bo = await goiBm(`may/${mayId}/ung-dung/dat`, tokBm, { khoa: ROBLOX.khoa, trangThai: "bo" });
-  assert.equal(bo.body.truoc.loai, "chan");
+  assert.equal(bo.body.truoc.loai, "giai_tri");
   assert.equal((await goiBm(`may/${mayId}/ung-dung`, tokBm)).body.ds.find((x: any) => x.khoa === ROBLOX.khoa).trangThai, "chua_xep");
   assert.deepEqual((await goiMay("dong-bo", tok, {})).body.windows.blockedApps, []);
 });
@@ -139,26 +142,26 @@ test("Mac: bundle id + Team ID; luật Chặn cả nhà không có trong danh s�
   const mac = await nha("mac");
   const TELE = { khoa: "ru.keepcoder.Telegram", muc: "ru.keepcoder.Telegram", ten: "Telegram", nguon: "applications", teamId: "6n38vwS5bx", nhaPhatHanh: "Developer ID Application: Telegram FZ-LLC", duongDan: "/Applications/Telegram.app" };
   assert.equal((await goiMay("ung-dung", mac.tok, { du: true, bam: "e".repeat(64), ds: [TELE] })).status, 200);
-  await goiBm(`may/${mac.mayId}/ung-dung/dat`, mac.tokBm, { khoa: "ru.keepcoder.telegram", trangThai: "chan" });
-  await goiBm("luat", mac.tokBm, { muc: "com.roblox.RobloxPlayer", loai: "chan" });       // luật cả nhà ở màn cũ
+  // #262: không còn luật Chặn ⇒ blockedApps luôn []; app trong danh sách (Không tính phút) vào allowedApps theo bundle id
+  await goiBm(`may/${mac.mayId}/ung-dung/dat`, mac.tokBm, { khoa: "ru.keepcoder.telegram", trangThai: "khong_tinh_phut" });
+  await goiBm("luat", mac.tokBm, { muc: "com.roblox.RobloxPlayer", loai: "chan" });       // (cũ) = bỏ khỏi danh sách
   const w = (await goiMay("dong-bo", mac.tok, {})).body.windows;
-  assert.deepEqual(w.blockedApps, [
-    { muc: "ru.keepcoder.telegram", duongDan: "/Applications/Telegram.app", nhaPhatHanh: TELE.nhaPhatHanh, teamId: "6N38VWS5BX" },
-    { muc: "com.roblox.robloxplayer" },
-  ]);
+  assert.deepEqual(w.blockedApps, []);
+  assert.ok(w.allowedApps.map((x: string) => x.toLowerCase()).includes("ru.keepcoder.telegram"));
   const an = await nha("android");
   await goiMay("ung-dung", an.tok, { du: true, bam: "f".repeat(64), ds: [{ khoa: "ru.ok.android", muc: "ru.ok.android", ten: "OK", nguon: "launcher" }] });
-  await goiBm(`may/${an.mayId}/ung-dung/dat`, an.tokBm, { khoa: "ru.ok.android", trangThai: "chan" });
+  await goiBm(`may/${an.mayId}/ung-dung/dat`, an.tokBm, { khoa: "ru.ok.android", trangThai: "khong_tinh_phut" });
   const nh = (await goiMay("nhip", an.tok, {})).body;
-  assert.deepEqual(nh.chinhSach.ungDung.chan, [{ muc: "ru.ok.android", kieu: "app" }]);
+  assert.deepEqual(nh.chinhSach.ungDung.hoc, [{ muc: "ru.ok.android", kieu: "app" }]);
+  assert.deepEqual(nh.chinhSach.ungDung.chan, []);
   assert.equal(nh.danhSachApp.bam, "f".repeat(64));
   // package Android phân biệt hoa thường: giữ đúng com.UCMobile.intl từ máy tới chinhSach (luật vẫn lưu chữ thường)
   await goiMay("ung-dung", an.tok, { du: false, bamTruoc: "f".repeat(64), bam: "9".repeat(64), them: [{ khoa: "com.UCMobile.intl", muc: "com.UCMobile.intl", ten: "UC Browser", nguon: "launcher" }] });
   const ds = (await goiBm(`may/${an.mayId}/ung-dung`, an.tokBm)).body.ds;
   assert.ok(ds.some((x: any) => x.khoa === "com.UCMobile.intl" && x.muc === "com.UCMobile.intl"));
-  assert.equal((await goiBm(`may/${an.mayId}/ung-dung/dat`, an.tokBm, { khoa: "com.UCMobile.intl", trangThai: "chan" })).status, 200);
-  assert.equal((await goiBm(`may/${an.mayId}/ung-dung`, an.tokBm)).body.ds.find((x: any) => x.khoa === "com.UCMobile.intl").trangThai, "chan");
-  const cs2 = (await goiMay("nhip", an.tok, {})).body.chinhSach.ungDung.chan;
+  assert.equal((await goiBm(`may/${an.mayId}/ung-dung/dat`, an.tokBm, { khoa: "com.UCMobile.intl", trangThai: "tinh_phut" })).status, 200);
+  assert.equal((await goiBm(`may/${an.mayId}/ung-dung`, an.tokBm)).body.ds.find((x: any) => x.khoa === "com.UCMobile.intl").trangThai, "giai_tri");
+  const cs2 = (await goiMay("nhip", an.tok, {})).body.chinhSach.ungDung.giaiTri;
   assert.ok(cs2.some((x: any) => x.muc === "com.UCMobile.intl" && x.kieu === "app"), JSON.stringify(cs2));
 });
 

@@ -11,6 +11,7 @@ import { tomTatVi } from "./vi.ts";
 import { tuanChuoi } from "./thanh-tich.ts";
 import { quyHomNay } from "./quy-gio.ts";
 import { cauSao } from "./so-sao.ts";
+import { cheDoCua, TEN_NHOM_DS } from "./chan-co-ban.ts";
 
 export type TinHocVien = { id: string; loai: string; tieu: string; noi: string; luc: string };
 
@@ -19,7 +20,7 @@ const KHONG_LAM_DUOC = new Set(["da_xong"]);
 
 /** Màn chính của khay: điểm + cấp, việc cần làm (kèm lý do «cần bổ sung»), lượt gần đây, lời khen, quà đang chờ Ba Mẹ trao. */
 export async function tongQuan(con: string) {
-  const c = await one<{ id: string; ten: string; family_id: string }>(`select id, ten, family_id from children where id = $1`, [con]);
+  const c = await one<{ id: string; ten: string; family_id: string; che_do_chan: string | null }>(`select id, ten, family_id, che_do_chan from children where id = $1`, [con]);
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   // 14/11: chuỗi ngày (thanh-tich.tuanChuoi) chạy song song với phần còn lại — máy Con hỏi tong-quan thường xuyên
   const [vi, nvs, boSung, qy, chuoi] = await Promise.all([
@@ -32,6 +33,8 @@ export async function tongQuan(con: string) {
   const lyDo = new Map(boSung.map((x) => [x.task_id, x.ly_do]));
   return {
     con: { id: c.id, ten: c.ten },
+    // #262: «Mở hết» (không chặn, không trừ sao) | «Theo danh sách» — khay «Hôm nay Ba Mẹ để chế độ Mở hết»
+    cheDo: cheDoCua(c.che_do_chan),
     soDu: vi.soDu, tongKiem: vi.tongKiem, capDo: vi.capDo, diemChoDuyet: vi.diemChoDuyet,
     // 05/11: sao (= điểm) + quỹ giờ chơi hôm nay (lib/quy-gio.ts) cho khay mới «Hôm nay»: «Giờ chơi còn lại 18 phút · Đã chơi 42 / 60»
     // 15/11: `sao` = số dư Con thấy (ÂM khi đang nợ) · soSao = nợ, phút còn chơi (1 sao = 1 phút), hết sao + câu sẵn
@@ -73,7 +76,7 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
   const ev = await q<{ id: string; loai: string; chi_tiet: Record<string, unknown>; created_at: Date }>(
     `select id, loai, chi_tiet, created_at from events where child_id = $1 and created_at > $2
      and loai in ('giao_nhiem_vu', 'duyet_nhiem_vu', 'tu_duyet_nhiem_vu', 'tu_choi_nhiem_vu', 'can_bo_sung', 'loi_khen', 'xac_nhan_qua', 'huy_qua', 'huy_hieu',
-                  'lam_lai_nhiem_vu', 'them_gio')
+                  'lam_lai_nhiem_vu', 'them_gio', 'dong_y_yeu_cau', 'bo_qua_yeu_cau')
      order by created_at desc limit 50`, [con, tu]);
   const moi = await q<{ id: string; ten: string; diem: number; created_at: Date }>(
     `select id, ten, diem, created_at from tasks where family_id = $1 and bat and giao_cho is null and bang_chung <> 'tu_dong' and created_at > $2
@@ -96,6 +99,13 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
       case "xac_nhan_qua": them("Ba Mẹ đã trao quà!", d.phut ? `${s(d.ten)} · +${s(d.phut)} phút` : s(d.ten)); break;
       case "huy_qua": them("Phiếu quà đã huỷ", `«${s(d.ten)}» · hoàn ${s(d.hoan)} sao`); break;
       case "huy_hieu": them("Huy hiệu mới", s(d.ten ?? d.ma)); break;
+      // #258: kết quả lời xin app / web — «Mẹ Lan đã thêm Roblox · Tính phút» / «Ba Mẹ chưa thêm Roblox lúc này. Con xin lại sau được nhé»
+      case "dong_y_yeu_cau":
+        if (d.gia_tri && d.nhom) them(`${s(d.ten_nguoi) || "Ba Mẹ"} đã thêm ${s(d.gia_tri)}`,
+          d.nhom === "khong_tinh_phut" ? `Nhóm «${TEN_NHOM_DS.khong_tinh_phut}» · không trừ sao${d.loi_nhan ? ` · «${s(d.loi_nhan)}»` : ""}`
+            : `Nhóm «${TEN_NHOM_DS.tinh_phut}» · 1 sao = 1 phút${d.loi_nhan ? ` · «${s(d.loi_nhan)}»` : ""}`);
+        break;
+      case "bo_qua_yeu_cau": them(`${s(d.ten_nguoi) || "Ba Mẹ"} chưa thêm ${s(d.gia_tri)} lúc này`, "Con xin lại sau được nhé"); break;
     }
   }
   for (const t of moi) ra.push({ id: "nv:" + t.id, loai: "nhiem_vu_moi", tieu: "Nhiệm vụ mới cho cả nhà", noi: `«${t.ten}» · ${t.diem} sao`, luc: new Date(t.created_at).toISOString() });

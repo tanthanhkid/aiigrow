@@ -112,7 +112,7 @@ export function phutChoiOffline(conPhut: number, soDu: number, conThuong: number
 export function phutToiHetLich(p: Pick<Policy, "lich" | "tz" | "serverTime">): number {
   const g = gioDiaPhuong(new Date(p.serverTime), p.tz);
   let ra = 1440;
-  if (p.lich?.ngu) {
+  if (p.lich?.ngu && p.lich.ngu.tu !== p.lich.ngu.den) {     // giờ ngủ «tắt» (tu = den, #258) ⇒ không có mốc
     if (trongKhung(g.phut, p.lich.ngu)) return 0;
     ra = ((phutCua(p.lich.ngu.tu) - g.phut + 1440) % 1440) || 1440;
   }

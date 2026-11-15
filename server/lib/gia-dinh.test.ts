@@ -23,7 +23,7 @@ test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, nhiều Con mỗi 
   await loi(g.taoCon(fam, { ten: "X", pin: "12" }), "pin_sai_dang");
   const x = await g.taoCon(fam, { ten: "X" });
   assert.equal((await q<{ pin_ma: string | null }>(`select pin_ma from children where id = $1`, [ken]))[0].pin_ma, "1234");
-  assert.equal((await q<{ pin_ma: string | null; che_do_chan: string }>(`select pin_ma, che_do_chan from children where id = $1`, [x]))[0].che_do_chan, "chi_app_duoc_phep");
+  assert.equal((await q<{ pin_ma: string | null; che_do_chan: string }>(`select pin_ma, che_do_chan from children where id = $1`, [x]))[0].che_do_chan, "theo_danh_sach", "#262: Con mới ở Theo danh sách");
   await loi(g.suaCon(fam, x, { pin: "9" }), "pin_sai_dang");
   await g.suaCon(fam, x, { pin: "0912" });
   assert.equal((await q<{ pin_ma: string | null }>(`select pin_ma from children where id = $1`, [x]))[0].pin_ma, "0912");

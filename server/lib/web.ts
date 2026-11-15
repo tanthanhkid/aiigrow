@@ -2,7 +2,8 @@
 //   1) agent đọc LỊCH SỬ trình duyệt của Con rồi gửi về TỔNG theo (ngày, tên miền): số lần mở + số giây ở trang  → POST /api/device/web/lich-su
 //   2) Ba Mẹ xem THỐNG KÊ (top trang, theo ngày) và đặt từng trang Cho phép / Chặn / Mặc định         → GET/POST /api/m/con/:id/web…
 //   3) máy chủ dịch luật tên miền sang `windows.web` (lib/agent-windows.ts) để agent ghi chính sách Chrome/Edge (URLBlocklist/URLAllowlist).
-// Kho luật là app_rules sẵn có (muc = tên miền): Cho phép = loai «hoc», Chặn = «chan», «Giải trí» = giai_tri (mở khi có phiên điểm đúng trang).
+// Kho luật là app_rules sẵn có (muc = tên miền) = DANH SÁCH TRẮNG của Con (#262): «Không tính phút» = loai «hoc», «Tính phút» = giai_tri
+// (mở khi còn sao, trừ 1 sao = 1 phút). Không còn «Chặn»: ngoài danh sách ⇒ «Theo danh sách» không mở, «Mở hết» mở.
 // Chỉ lưu TÊN MIỀN GỐC (bỏ www) + đếm — không URL, không tiêu đề, không nội dung (đúng cam kết riêng tư của nhật ký DNS).
 import { coTacTu } from "./chuyen-doi.ts";
 import { q, tx } from "./db.ts";
@@ -14,7 +15,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { cheDoCua } from "./lenh-may.ts";
 import type { May } from "./gia-dinh.ts";
 import type { Policy } from "./may-con.ts";
-import { laWebCam, WEB_LUON_CHAN } from "./chan-co-ban.ts";
+import { cheDoCua as cheDoConCua, laWebCam, nhanNhom, nhomTuLoai, WEB_LUON_CHAN, type NhomDs } from "./chan-co-ban.ts";
 import { truPhutChoi } from "./so-sao.ts";
 
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -72,7 +73,8 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
 }
 
 export type TrangThaiTrang = "cho_phep" | "chan" | "giai_tri" | "he_thong" | "chua_xep";
-export type TrangWeb = { tenMien: string; giay: number; soLan: number; lanCuoi: string | null; trangThai: TrangThaiTrang; nguon: "he_thong" | "con" | "gia_dinh" | null };
+/** `nhom` (#262): tinh_phut | khong_tinh_phut — null = hệ thống / ngoài danh sách. `trangThai` (cũ) giữ cho app cũ. */
+export type TrangWeb = { tenMien: string; giay: number; soLan: number; lanCuoi: string | null; trangThai: TrangThaiTrang; nhom: NhomDs | null; nguon: "he_thong" | "con" | "gia_dinh" | null };
 
 const doiLoai = (l: string): TrangThaiTrang => (l === "hoc" ? "cho_phep" : l === "chan" ? "chan" : l === "giai_tri" ? "giai_tri" : l === "he_thong" ? "he_thong" : "chua_xep");
 
@@ -100,43 +102,47 @@ export async function thongKeWeb(fam: string, con: string, soNgay = 7, now = new
   const trang: TrangWeb[] = [];
   for (const [tenMien, m] of theoMien) {
     const pl = await phanLoai(fam, con, tenMien);
-    trang.push({ tenMien, giay: m.giay, soLan: m.soLan, lanCuoi: m.lanCuoi ? m.lanCuoi.toISOString() : null, trangThai: doiLoai(pl.loai), nguon: pl.nguon });
+    trang.push({ tenMien, giay: m.giay, soLan: m.soLan, lanCuoi: m.lanCuoi ? m.lanCuoi.toISOString() : null, trangThai: doiLoai(pl.loai),
+      nhom: pl.loai === "hoc" || pl.loai === "giai_tri" ? nhomTuLoai(pl.loai) : null, nguon: pl.nguon });
   }
   trang.sort((a, b) => b.giay - a.giay || b.soLan - a.soLan || a.tenMien.localeCompare(b.tenMien));
   const appThat = await mucAppThat(fam);           // gói Store / bundle id máy gửi không phải tên miền
   const luat = (await q<{ child_id: string; muc: string; loai: string }>(
-    `select child_id, muc, loai from app_rules where family_id = $1 and child_id in ('', $2) and (het is null or het > $3) order by muc`, [fam, con, now]))
+    `select child_id, muc, loai from app_rules where family_id = $1 and child_id in ('', $2) and (het is null or het > $3) and loai in ('hoc', 'giai_tri') order by muc`,
+    [fam, con, now]))
     .filter((r) => kieuMuc(r.muc) === "web" && !appThat.has(r.muc.toLowerCase()))
-    .map((r) => ({ tenMien: r.muc, trangThai: doiLoai(r.loai), nguon: r.child_id ? "con" as const : "gia_dinh" as const }));
-  const c = (await q<{ cau_hinh: Record<string, unknown>; che_do_chan: string | null }>(`select cau_hinh, che_do_chan from children where id = $1`, [con]))[0];
-  // L4: Con có chế độ chặn rõ ⇒ web theo chế độ (như may-con.ts › taoPolicy); Con cũ ⇒ tham số web_chi_cho_phep
-  const chiChoPhep = c?.che_do_chan ? c.che_do_chan === "chi_app_duoc_phep"
-    : Number(c?.cau_hinh?.web_chi_cho_phep ?? f?.cau_hinh?.web_chi_cho_phep ?? 0) === 1;
+    .map((r) => ({ tenMien: r.muc, trangThai: doiLoai(r.loai), nhom: nhomTuLoai(r.loai), nguon: r.child_id ? "con" as const : "gia_dinh" as const }));
+  const c = (await q<{ che_do_chan: string | null }>(`select che_do_chan from children where id = $1`, [con]))[0];
+  // #262: web theo chế độ (như may-con.ts › taoPolicy) — «Theo danh sách» chỉ mở trang trong danh sách
+  const cheDo = cheDoConCua(c?.che_do_chan);
+  const chiChoPhep = cheDo === "theo_danh_sach";
   const ngayDs = [...theoNgayMap.entries()].map(([ngay, v]) => ({ ngay, ...v }));
   const homNay = theoNgayMap.get(hom) ?? { giay: 0, soLan: 0, soTrang: 0 };
   const may = await q<{ id: string; name: string; platform: string; last_seen: Date | null; che_do: string; che_do_ba_me: boolean; status: Record<string, unknown> | null }>(
     `select id, name, platform, last_seen, che_do, che_do_ba_me, status from devices where family_id = $1 and exists (select 1 from device_children x where x.device_id = devices.id and x.child_id = $2)`, [fam, con]);
   return {
     soNgay: sn, homNay, theoNgay: ngayDs, tongGiay: ngayDs.reduce((a, x) => a + x.giay, 0), top: trang.slice(0, 30), tatCa: trang.length, luat,
-    cheDoWeb: chiChoPhep ? "chi_cho_phep" as const : "mo" as const,
+    cheDoWeb: chiChoPhep ? "chi_cho_phep" as const : "mo" as const, cheDo,
     heThong: allowlistHieuLuc().filter((x) => kieuMuc(x) === "web"),
     // chỉ máy có tác tử (Windows/Mac) lọc được web; Ba Mẹ cần biết có máy nào thực thi và đang ở chế độ nào
     mayLoc: may.filter((m) => coTacTu(m.platform)).map((m) => ({ id: m.id, ten: m.name, cheDo: cheDoCua(m as never) ?? "giam-sat", lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null })),
   };
 }
 
-/** Ba Mẹ đặt một trang: cho_phep | chan | mac_dinh (bỏ luật). `con` '' = cả gia đình. */
-export async function datTrangWeb(fam: string, con: string, b: { muc?: unknown; trangThai?: unknown }) {
+/** Ba Mẹ đặt một trang (đường cũ — app mới dùng con/:id/danh-sach): `nhom` tinh_phut | khong_tinh_phut, hoặc `trangThai` cũ
+ *  cho_phep (= khong_tinh_phut) | giai_tri (= tinh_phut) | chan / mac_dinh / bo (= bỏ khỏi danh sách — #262 không còn «Chặn»). `con` '' = cả gia đình. */
+export async function datTrangWeb(fam: string, con: string, b: { muc?: unknown; trangThai?: unknown; nhom?: unknown }) {
   const muc = tenMienSach(b.muc);
   if (!muc) throw new LoiNghiepVu("ten_mien_sai", "Nhập tên miền dạng ten.com (không cần https://)");
   const tt = String(b.trangThai ?? "");
-  if (tt === "mac_dinh") {
+  if (b.nhom === undefined && (tt === "mac_dinh" || tt === "chan" || tt === "bo")) {
     await tx((t) => xoaLuat(fam, { con, muc }, t));   // khoá (nhà, Con, mục) như mọi đường ghi luật
-    return { muc, trangThai: "mac_dinh" as const };
+    return { muc, trangThai: "mac_dinh" as const, nhom: null };
   }
-  if (tt !== "cho_phep" && tt !== "chan") throw new LoiNghiepVu("trang_thai_sai", "Chọn Cho phép, Chặn hoặc Mặc định");
-  await datLuat(fam, { con, muc, ten: muc, loai: tt === "cho_phep" ? "hoc" : "chan" });
-  return { muc, trangThai: tt };
+  const nhom = nhanNhom(b.nhom ?? tt);
+  if (!nhom) throw new LoiNghiepVu("nhom_sai", "Chọn «Tính phút» hoặc «Không tính phút»");
+  await datLuat(fam, { con, muc, ten: muc, loai: nhom === "tinh_phut" ? "giai_tri" : "hoc", nhom: nhom === "tinh_phut" ? "khac" : undefined });
+  return { muc, trangThai: nhom === "tinh_phut" ? "giai_tri" as const : "cho_phep" as const, nhom };
 }
 
 // ---------------------------------------------------------------- dịch sang agent Windows
@@ -175,8 +181,8 @@ export type ChinhSachWeb = {
 /** Hàm THUẦN: Policy ⇒ chính sách web cho agent. Giải trí (giai_tri) bị chặn trừ khi đang có phiên chơi bằng điểm đúng trang đó. */
 /** `appThat`: mục app thật máy gửi (lib/app-may.ts) — gói Store «microsoft.minecraftuwp», bundle «ru.keepcoder.telegram» không phải tên miền. */
 /** `moGiaiTri`: mở trang Giải trí (cửa sổ «mở» có hạn, hoặc Con ở chế độ «Mở hết» — L4); `choKhiMo` chỉ khi mở NHỜ cửa sổ có hạn (`moCoHan`, mặc định = moGiaiTri).
- *  Web luôn chặn (người lớn / cờ bạc / bạo lực — lib/chan-co-ban.ts) vào `chan` ở MỌI chế độ và không bao giờ nằm trong `cho`. */
-export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "phien" | "webChiChoPhep">, o: { moGiaiTri?: boolean; moCoHan?: boolean; appThat?: Set<string> } = {}): ChinhSachWeb {
+ *  Lưới an toàn (`p.webLuonChan`, lib/chan-co-ban.ts — «Mở hết» gửi []) vào `chan` và không bao giờ nằm trong `cho`. */
+export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "phien" | "webChiChoPhep"> & Partial<Pick<Policy, "webLuonChan">>, o: { moGiaiTri?: boolean; moCoHan?: boolean; appThat?: Set<string> } = {}): ChinhSachWeb {
   const web = p.luat.filter((l) => kieuMuc(l.muc) === "web" && !o.appThat?.has(l.muc.toLowerCase()));
   const phien = p.phien?.muc?.toLowerCase() ?? "";
   // moGiaiTri: Ba Mẹ đang «mở» có hạn (mở khẩn cấp / thêm giờ — agent-windows.ts) ⇒ mọi trang Giải trí mở, trang «chan» vẫn chặn.
@@ -187,7 +193,7 @@ export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "p
   // choKhiMo: trang Giải trí chỉ mở NHỜ cửa sổ «mở» có hạn ⇒ agent tự chặn lại khi grantEndsAt qua mà máy đang mất mạng
   const theoPhien = (m: string) => phien === m.toLowerCase() || (phien !== "" && phien.endsWith("." + m.toLowerCase()));
   const choKhiMo = (o.moCoHan ?? o.moGiaiTri) ? web.filter((l) => l.loai === "giai_tri" && !theoPhien(l.muc)).map((l) => l.muc.toLowerCase()) : [];
-  const chanHet = [...chan, ...WEB_LUON_CHAN];
+  const chanHet = [...chan, ...(p.webLuonChan ?? WEB_LUON_CHAN)];     // «Mở hết» ⇒ webLuonChan [] (#258: không chặn gì)
   // tên miền đi kèm (TEN_MIEN_DI_KEM) — trừ trang Ba Mẹ chặn đích danh; kèm của trang chỉ mở nhờ cửa sổ có hạn cũng vào choKhiMo
   const kem = (ds: string[]) => tenMienDiKem(ds).filter((m) => !chan.includes(m));
   const choLau = cho.filter((m) => !choKhiMo.includes(m)), kemLau = new Set(kem(choLau));

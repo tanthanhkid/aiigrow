@@ -45,8 +45,8 @@ import { cauHinhMxh, dangNhapMxh, datMatKhauMxh, doiMatKhau, lienKetMxh } from "
 import { baMeTuToken } from "./auth.ts";
 import { laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
 import { doiTenToi, loiMoiChoToi } from "./thanh-vien.ts";
-import { datAppChoPhep, datCheDoChan, luoiApp, TEN_CHE_DO_CHAN, WEB_CAM } from "./che-do-chan.ts";
-import { cheDoChanCua } from "./chan-co-ban.ts";
+import { boKhoiDanhSach, danhSachCon, datAppChoPhep, datCheDoChan, doiNhomDanhSach, luoiApp, TEN_CHE_DO, themVaoDanhSach } from "./che-do-chan.ts";
+import { cheDoChanCua, cheDoCua } from "./chan-co-ban.ts";
 import { thietLapLanDau, tomTatThietLap, webLanDau } from "./thiet-lap.ts";
 import { taoPhienGhep, trangThaiGhep } from "./ghep-may.ts";
 // Thiết kế chốt 05/11 (S1): sao, quỹ giờ chơi, nhiệm vụ theo bộ, làm lại, quà trao tay — lib/api-sao.ts
@@ -73,10 +73,10 @@ async function chiTietCon(bm: BaMe, id: string) {
       where k.device_id = any($1::text[]) and k.expires_at > now()`, [may.map((m) => m.id)])).map((x) => x.d));
   const noi = await mnc.tomTatNoi(bm.family_id, may);
   return {
-    // coPin + pinDatLuc: 06/11 L13 (PIN theo bé — đảo L5); xem PIN ở GET con/:id/pin. cheDoChan: L4.
+    // coPin + pinDatLuc: 06/11 L13 (PIN theo bé — đảo L5); xem PIN ở GET con/:id/pin. cheDo (#262): mo_het | theo_danh_sach · cheDoChan: giá trị cũ.
     id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: !!c.pin_ma,
     pinDatLuc: c.pin_dat_luc ? new Date(c.pin_dat_luc).toISOString() : null,
-    cheDoChan: cheDoChanCua((c as { che_do_chan?: unknown }).che_do_chan), khoaNgay: khoaGoc(c.cau_hinh), khoaDen: khoaDen(c.cau_hinh), moTamDen: moTamDen(c.cau_hinh),
+    cheDo: cheDoCua((c as { che_do_chan?: unknown }).che_do_chan), cheDoChan: cheDoChanCua((c as { che_do_chan?: unknown }).che_do_chan), khoaNgay: khoaGoc(c.cau_hinh), khoaDen: khoaDen(c.cau_hinh), moTamDen: moTamDen(c.cau_hinh),
     lich: lichCua(c.lich as never), thamSo: thamSo(f.cau_hinh, c.cau_hinh), ...(await tomTatVi(c.id)),
     may: may.map((m) => ({ id: m.id, ten: m.name, nen: m.platform, dungChung: m.dung_chung, baoVe: gd.mucBaoVe(m), baoVeThieu: gd.chiTietBaoVe(m).thieu, baoVeCau: gd.chiTietBaoVe(m).cau,
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null,
@@ -170,8 +170,13 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (sau === "sua" && post) { await gd.suaCon(fam, id, b, bm.id); return json({ ok: true }); }
       // 14/11: xoá hồ sơ Con (chỉ quyền Ba Mẹ — trongGiupDuoc không có) — lib/xoa-con.ts
       if (sau === "xoa" && post) return json(await xoaCon(fam, id, b, bm.id));
-      // L4: chế độ chặn theo Con (Mở hết / Chặn app & web) · app được phép (lưới gợi ý + «Thêm app khác» theo tên)
-      if (sau === "che-do-chan" && post) return json(await datCheDoChan(fam, id, b.cheDo ?? b.cheDoChan, bm.id));
+      // #262: chế độ theo Con (Mở hết / Theo danh sách — đường cũ che-do-chan vẫn nhận) · app được phép (lưới gợi ý + «Thêm app khác» theo tên)
+      if ((sau === "che-do" || sau === "che-do-chan") && post) return json(await datCheDoChan(fam, id, b.cheDo ?? b.cheDoChan, bm.id));
+      // #262 danh sách trắng của Con: xem · thêm {nhom, ma | ten | muc} · đổi nhóm {muc[], nhom} · bỏ {muc[]} (che-do-chan.ts)
+      if (sau === "danh-sach" && get) return json(await danhSachCon(fam, id));
+      if (sau === "danh-sach" && post) return json(await themVaoDanhSach(fam, id, b, bm.id));
+      if (sau === "danh-sach/doi" && post) return json(await doiNhomDanhSach(fam, id, b, bm.id));
+      if (sau === "danh-sach/bo" && post) return json(await boKhoiDanhSach(fam, id, b, bm.id));
       if (sau === "app-cho-phep" && post) return json(await tx((t) => datAppChoPhep(fam, id, b.apps, bm.id, t)));
       if (sau === "thiet-lap" && get) return json(await tomTatThietLap(fam, id));
       if (sau === "lich" && post) {
@@ -220,8 +225,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     // Lần đầu «Thêm web»: kiểm một địa chỉ Ba Mẹ dán TRƯỚC khi thêm (cùng luật với thiet-lap › web) ⇒ {muc} hoặc ten_mien_sai / web_cam
     if (d === "thiet-lap/kiem-web" && post) return json({ muc: webLanDau([b.muc])[0].muc });
     if (d === "app-goi-y" && get) return json(await luoiApp(fam, new URL(req.url).searchParams.get("con")));
-    if (d === "luon-chan" && get) return json({ nhom: Object.entries(WEB_CAM).map(([ma, n]) => ({ ma, ten: n.ten, soTrang: n.mien.length })),
-      cheDo: Object.entries(TEN_CHE_DO_CHAN).map(([ma, ten]) => ({ ma, ten })) });
+    // (cũ) màn «Luôn chặn» đã bỏ (#258) — app cũ còn gọi: không còn nhóm nào Ba Mẹ chỉnh; cheDo = hai chế độ mới
+    if (d === "luon-chan" && get) return json({ nhom: [], cheDo: Object.entries(TEN_CHE_DO).map(([ma, ten]) => ({ ma, ten })) });
     // «Gỡ máy này» an toàn: chủ gia đình + mật khẩu; máy đã đồng bộ ⇒ lệnh gỡ (xoá khi agent báo xong) — lib/lenh-may.ts › goMayAnToan
     if (p[0] === "may" && p[2] === "go" && !p[3] && post) return json(await goMayAnToan(bm, p[1], b));
     // M4b
@@ -305,8 +310,14 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     }
     if (d === "duyet-hang-loat" && post) return json({ daDuyet: await nv.duyetHangLoat(fam, Array.isArray(b.ids) ? b.ids.map(String) : [], bm.id) });
 
+    // #258 «Lời xin đã bỏ qua» (?con= bỏ trống = cả nhà) — đặt TRƯỚC yeu-cau/:id
+    if (d === "yeu-cau/bo-qua" && get) return json(await yc.dsBoQua(fam, new URL(req.url).searchParams.get("con") || null));
     if (p[0] === "yeu-cau" && p[1]) {
       if (p.length === 2 && get) return json(await yc.chiTietYc(fam, p[1]));
+      // #258: «Bỏ qua» {loiNhan?} ⇒ {hoanTacDen} · «Hoàn tác» (60 giây sau Bỏ qua) · «Thêm luôn» {nhom} (lời xin đã bỏ qua)
+      if (p[2] === "bo-qua" && post) return json(await yc.boQuaYc(fam, p[1], bm.id, b));
+      if (p[2] === "hoan-tac" && post) return json(await yc.moLaiYc(fam, p[1], bm.id));
+      if (p[2] === "them-luon" && post) return json(await yc.themLuonYc(fam, p[1], bm.id, b));
       if (p[2] === "xem-truoc" && get) return json(await yc.xemTruocDongY(fam, p[1], new URL(req.url).searchParams.get("soSao") ?? undefined));
       if (p[2] === "dong-y" && post) return json(await yc.dongY(fam, p[1], bm.id, b as yc.DongY));
       if (p[2] === "tu-choi" && post) { await yc.tuChoiYc(fam, p[1], bm.id, s(b.lyDo)); return json({ ok: true }); }
