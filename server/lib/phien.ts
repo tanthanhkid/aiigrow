@@ -1,3 +1,5 @@
+// TỪ 15/11 (#264, lib/so-sao.ts): phút chơi của phiên (app / web «Tính phút») TRỪ SAO 1 sao = 1 phút theo đồng hồ máy chủ (tinhPhutChoi —
+// cùng một đồng hồ với phút agent báo qua dong-bo, nên phiên + usage của cùng lần chơi không trừ đôi); phiên dài tới khi hết sao.
 // Phiên giải trí (FR-04.02, BRD 6.3, Phụ lục A.3). TỪ 05/11 (thiết kế chốt, lib/quy-gio.ts): phiên KHÔNG trừ điểm/sao nữa — mọi app Giải trí
 // dùng chung QUỸ phút chơi hôm nay; phiên chỉ còn là bộ đếm phút cho app/agent cũ (khay «Chơi bằng điểm», iOS gỡ khiên), giới hạn bởi quỹ còn
 // lại, giờ ngủ, giờ học. Khung giờ chơi, trần ngày/tuần, nghỉ giữa hai phiên, giá theo nhóm: bỏ. Phần mô tả cũ bên dưới giữ cho lịch sử.
@@ -14,6 +16,7 @@ import { ghiDiem, khoaCon, soDu } from "./vi.ts";
 import { phanLoai, type NhomGiaiTri } from "./luat-app.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { quyHomNay, trongGioHoc } from "./quy-gio.ts";
+import { laMoHetCon, tinhPhutChoi } from "./so-sao.ts";
 
 export type LyDoTuChoi = "khong_phai_giai_tri" | "bi_chan" | "chua_phan_loai" | "gio_ngu" | "ngoai_khung" | "dang_nghi" | "dat_tran_ngay"
   | "dat_tran_tuan" | "het_diem" | "phien_khac" | "ba_me_khoa" | "gio_may_sai" | "khong_tuan_thu"
@@ -141,6 +144,8 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
       const tinhTien = them - dungThuong;
       phutThuong += dungThuong;
       phutDung = Math.round((phutDung + them) * 100) / 100;
+      // 15/11: 1 sao = 1 phút «Tính phút» (Mở hết ⇒ không trừ)
+      if (!(await laMoHetCon(con, t))) await tinhPhutChoi(t, con, them, now, { muc: p.muc, tz: b.tz });
       phanNghin += Math.round(tinhTien * p.gia_phan_nghin);
       const nguyen = Math.floor(phanNghin / 1000) - diemTru;
       if (nguyen > 0) {
@@ -157,10 +162,10 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
     if (!ket && trongKhung(g.phut, b.lich.ngu)) ket = "gio_ngu";
     if (!ket && trongGioHoc(b.lich.hoc, g.thu, g.phut)) ket = "gio_hoc";
     if (!ket) {
-      // Quỹ hôm nay (đọc TRƯỚC khi ghi nhịp này ⇒ trừ phần vừa cộng): còn bao nhiêu thì phiên được tới đó — Con đổi sao / Ba Mẹ cho thêm giờ
-      // giữa chừng ⇒ phiên tự dài ra; quỹ hết ⇒ kết thúc «het_thoi_gian» (từ agent cũ hiểu sẵn).
+      // 15/11: còn bao nhiêu SAO (đã trừ phút của nhịp này) thì phiên được tới đó — Con kiếm thêm sao / Ba Mẹ cho vay giữa chừng ⇒ phiên tự
+      // dài ra; hết sao ⇒ kết thúc «het_thoi_gian» (từ agent cũ hiểu sẵn).
       const qy = await quyHomNay(con, now, t);
-      const conLai = qy.tongPhut - qy.daDung - (phutDung - p.phut_dung);
+      const conLai = qy.conPhut;
       toiDa = Math.max(0, Math.round((phutDung + Math.max(0, Math.min(conLai, qy.phutToiNgu, qy.phutToiHoc ?? Infinity))) * 100) / 100);
       if (conLai <= 0) ket = "het_thoi_gian";
     }
@@ -221,7 +226,7 @@ export function lyDoChu(x: XetPhien): string {
     case "dat_tran_ngay": return "Hôm nay con đã chơi đủ giờ rồi";
     case "dat_tran_tuan": return "Tuần này con đã chơi đủ giờ rồi";
     case "het_diem": return "Con chưa đủ sao — làm nhiệm vụ để có thêm sao nhé";
-    case "het_gio": return "Hết giờ chơi hôm nay rồi — con đổi sao lấy giờ hoặc xin Ba Mẹ thêm giờ nhé";
+    case "het_gio": return "Con hết sao rồi (0 sao) — làm nhiệm vụ hoặc xin Ba Mẹ cho vay sao nhé";
     case "gio_hoc": return "Đang giờ học — chỉ mở app học thôi nhé";
     case "phien_khac": return "Con đang chơi trên một thiết bị khác";
     case "may_dang_choi": return "Máy này đang có bạn khác chơi — bạn ấy cần bấm «Dừng» hoặc «Đổi người» trước";

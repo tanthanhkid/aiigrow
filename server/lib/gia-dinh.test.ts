@@ -127,7 +127,7 @@ test("máy dùng chung (L5): Con chọn TÊN (không PIN) ⇒ phiên Con; Con nh
   await loi(g.chonCon(rieng, b), "khong_thay");
 });
 
-test("ví điểm: không âm, trừ song song không vượt số dư; điều chỉnh tay cần lý do và tính là ngoại lệ", async () => {
+test("ví điểm: sao tiêu được không âm, trừ song song không vượt số dư; điều chỉnh tay cần lý do (không còn «ngoại lệ»)", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
   await v.dieuChinhTay(fam, con, 30, "Thưởng sinh nhật", bm);
@@ -138,8 +138,8 @@ test("ví điểm: không âm, trừ song song không vượt số dư; điều 
   assert.equal(kq.filter((x) => x.status === "fulfilled").length, 1, "chỉ một lần trừ 20 thành công khi còn 30");
   assert.equal(await v.soDu(con), 10);
   await loi(v.dieuChinhTay(fam, con, -50, "Phạt", bm), "khong_du_diem");
-  const ngoaiLe = await q(`select 1 from exceptions where child_id = $1 and loai = 'dieu_chinh_tay'`, [con]);
-  assert.equal(ngoaiLe.length, 1);
+  // #265: bỏ ngoại lệ — điều chỉnh tay không ghi bảng exceptions nữa
+  assert.equal((await q(`select 1 from exceptions where child_id = $1`, [con])).length, 0);
   const nha2 = await taoNha("Hoa");
   await loi(v.dieuChinhTay(nha2.fam, con, 10, "lạ", bm), "khong_thay");
 });

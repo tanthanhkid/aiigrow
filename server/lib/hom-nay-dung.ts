@@ -42,7 +42,7 @@ export async function homNayDung(fam: string, con: string, now = new Date()) {
     mayMatMang(fam, now),
     q<{ id: string; loai: string; gia_tri: string | null; phut: number | null; trang_thai: string; device_id: string | null; created_at: Date }>(
       `select id, loai, gia_tri, phut, trang_thai, device_id, created_at from requests where child_id = $1 and created_at >= $2
-        and loai in ('mo_web', 'cai_app', 'ngoai_le', 'ngoai_gio') and (trang_thai = 'tu_choi' or (trang_thai = 'cho' and het_han > $3))
+        and loai in ('mo_web', 'cai_app') and (trang_thai = 'tu_choi' or (trang_thai = 'cho' and het_han > $3))
         order by created_at desc limit 20`, [con, tu, now]),   // lời xin «cho» đã quá hạn (con thôi chờ) không còn là «đang xin»
     q<{ ten_mien: string; ten: string; so_lan_chan: number; device_id: string | null }>(
       `select n.ten_mien, t.ten, n.so_lan_chan, t.device_id from dns_nhat_ky n join dns_thiet_bi t on t.id = n.thiet_bi_id
@@ -88,7 +88,8 @@ export async function homNayDung(fam: string, con: string, now = new Date()) {
   const phutHoc = dung.filter((x) => !x.tinhGio).reduce((s, x) => s + x.phut, 0);
   return {
     ten: c?.ten ?? "", ngay,
-    choi: { daDung: qy.daDung, tongPhut: qy.tongPhut, conPhut: qy.conPhut },
+    // 15/11: conPhut = sao tiêu được (1 sao = 1 phút) · sao = sổ sao (số dư âm được, nợ)
+    choi: { daDung: qy.daDung, tongPhut: qy.tongPhut, conPhut: qy.conPhut, sao: qy.soSao },
     hoc: { phut: phutHoc, khung: qy.gioHoc ? { tu: qy.gioHoc.tu, den: qy.gioHoc.den } : null },
     dung, biChan,
   };

@@ -51,6 +51,7 @@ import { thietLapLanDau, tomTatThietLap, webLanDau } from "./thiet-lap.ts";
 import { taoPhienGhep, trangThaiGhep } from "./ghep-may.ts";
 // Thiết kế chốt 05/11 (S1): sao, quỹ giờ chơi, nhiệm vụ theo bộ, làm lại, quà trao tay — lib/api-sao.ts
 import { xuLyMSao } from "./api-sao.ts";
+import { SAO_KHOI_DAU_MD } from "./so-sao.ts";
 // S3 thiết kế 06/11 (L13 L14 L19): PIN theo bé, quà bảng giá, mã mở máy, chuông «Cần Ba Mẹ để ý» — lib/api-s3.ts
 import { xuLyMS3 } from "./api-s3.ts";
 import { canDeY, mayMatMang } from "./can-de-y.ts";
@@ -160,7 +161,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
           coPin: !!c.pin_ma,
           matMang: mm.filter((x) => x.conId === c.id).map((x) => ({ mayId: x.mayId, ten: x.ten, nen: x.nen, tu: x.tu, phut: x.phut })) }))) });
     }
-    if (d === "con" && post) return json({ id: await gd.taoCon(fam, b, bm.id) });
+    // 15/11: tặng sao khởi đầu (0 / 20 / 30 / 60) — không gửi ⇒ 30 (lib/so-sao.ts)
+    if (d === "con" && post) return json({ id: await gd.taoCon(fam, { ...b, saoKhoiDau: b.saoKhoiDau ?? SAO_KHOI_DAU_MD }, bm.id) });
     if (p[0] === "con" && p[1]) {
       const id = p[1], sau = p.slice(2).join("/");
       if (!sau && get) return json(await chiTietCon(bm, id));
@@ -305,7 +307,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
 
     if (p[0] === "yeu-cau" && p[1]) {
       if (p.length === 2 && get) return json(await yc.chiTietYc(fam, p[1]));
-      if (p[2] === "xem-truoc" && get) return json(await yc.xemTruocDongY(fam, p[1]));
+      if (p[2] === "xem-truoc" && get) return json(await yc.xemTruocDongY(fam, p[1], new URL(req.url).searchParams.get("soSao") ?? undefined));
       if (p[2] === "dong-y" && post) return json(await yc.dongY(fam, p[1], bm.id, b as yc.DongY));
       if (p[2] === "tu-choi" && post) { await yc.tuChoiYc(fam, p[1], bm.id, s(b.lyDo)); return json({ ok: true }); }
       if (p[2] === "mo-lai" && post) return json(await yc.moLaiYc(fam, p[1], bm.id));

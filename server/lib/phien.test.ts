@@ -1,4 +1,4 @@
-// Phiên giải trí (05/11: không trừ sao — đếm phút vào quỹ; FR-04.02, FR-02.04, FR-02.05, BRD 6.3, Phụ lục A.3). Mốc giờ cố định (giờ VN = UTC+7).
+// Phiên giải trí (15/11: trừ 1 sao mỗi phút «Tính phút», tới khi hết sao; FR-04.02, FR-02.04, FR-02.05, BRD 6.3, Phụ lục A.3). Mốc giờ cố định (giờ VN = UTC+7).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
@@ -44,26 +44,28 @@ test("phân loại: Allowlist hệ thống luôn dùng; chưa phân loại bị 
   assert.equal((await ph.xetMoPhien(con, "khanacademy.org", {}, VN("2026-10-21T18:00:00"))).lyDo, "khong_phai_giai_tri");
 });
 
-test("05/11: phiên KHÔNG trừ sao; còn quỹ 60 phút ⇒ được tối đa 60; dừng sớm không bị bắt nghỉ", async () => {
+test("15/11: phiên trừ 1 sao / phút; 25 sao ⇒ tối đa 25 phút; dừng sớm không bị bắt nghỉ", async () => {
   const { con } = await nha(25);
-  const t0 = VN("2026-10-21T18:00:00");               // thứ Tư, quỹ ngày thường 60
+  const t0 = VN("2026-10-21T18:00:00");
   const p = await ph.moPhien(con, "may-a", "roblox.exe", {}, t0);
-  assert.equal(p.phutToiDa, 60);
+  assert.equal(p.phutToiDa, 25, "25 sao = 25 phút");
   assert.equal(p.giaPhanNghin, 0);
   const k = await choi(con, p.id, t0, 10);
-  assert.equal(k.soDu, 25, "không trừ sao theo phút");
+  assert.equal(k.soDu, 15, "10 phút = 10 sao");
   assert.equal(k.trangThai, "chay");
-  assert.equal(k.conPhut, 50);
+  assert.equal(k.conPhut, 15);
   await ph.dungPhien(con, p.id, "con_dung", sau(t0, 10));
-  assert.equal(await v.soDu(con), 25);
+  assert.equal(await v.soDu(con), 15);
   const x = await ph.xetMoPhien(con, "roblox.exe", {}, sau(t0, 11));
   assert.equal(x.duoc, true, "không còn nghỉ giữa hai phiên");
-  assert.equal(x.phutToiDa, 50, "quỹ còn 60 − 10");
+  assert.equal(x.phutToiDa, 15, "còn 15 sao");
+  // lịch sử: một dòng «Chơi Roblox 10 phút» (gom các nhịp liền nhau)
+  const choiDs = (await v.lichSu(con)).filter((x) => x.loai === "choi");
+  assert.deepEqual(choiDs.map((x) => [x.delta, x.ly_do]), [[-10, "Chơi Roblox 10 phút"]]);
 });
 
-test("hết quỹ ⇒ kết thúc het_thoi_gian, cảnh báo 5 / 1 phút; Ba Mẹ cho thêm ⇒ chơi tiếp; khoá màn hình tạm dừng; im 3 phút ⇒ đóng", async () => {
-  const { fam, bm, con } = await nha(100);
-  await q(`update children set cau_hinh = '{"quy_ngay_thuong": 30}'::jsonb where id = $1`, [con]);
+test("hết sao ⇒ kết thúc het_thoi_gian, cảnh báo 5 / 1 phút; Ba Mẹ cho vay ⇒ chơi tiếp (số dư âm); khoá màn hình tạm dừng; im 3 phút ⇒ đóng", async () => {
+  const { fam, bm, con } = await nha(30);
   const t0 = VN("2026-10-21T17:00:00");
   const p = await ph.moPhien(con, "may-b", "roblox.exe", {}, t0);
   assert.equal(p.phutToiDa, 30);
@@ -75,11 +77,13 @@ test("hết quỹ ⇒ kết thúc het_thoi_gian, cảnh báo 5 / 1 phút; Ba M�
   assert.equal(k30.trangThai, "ket_thuc");
   assert.equal(k30.lyDoKet, "het_thoi_gian");
   assert.equal(k30.nghiDen, undefined);
-  assert.equal(await v.soDu(con), 100);
+  assert.equal(await v.soDu(con), 0);
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, sau(t0, 31))).lyDo, "het_gio");
-  // Ba Mẹ cho thêm 30 phút ⇒ mở lại được; khoá máy giữa chừng — không tính; im quá 3 phút ⇒ tự đóng
+  assert.match(ph.lyDoChu({ duoc: false, lyDo: "het_gio" }), /0 sao.*cho vay sao/);
+  // «Cho thêm 30 phút» (app cũ) = cho vay 30 sao ⇒ mở lại được; khoá máy giữa chừng — không tính; im quá 3 phút ⇒ tự đóng
   const { baMeThemGio } = await import("./quy-gio.ts");
-  await baMeThemGio(fam, con, 30, bm, sau(t0, 32));
+  const vay = await baMeThemGio(fam, con, 30, bm, sau(t0, 32));
+  assert.deepEqual([vay.soSao, vay.no, vay.sao, vay.phutCon], [30, 30, 0, 30]);
   const t1 = sau(t0, 33);
   const p2 = await ph.moPhien(con, "may-b", "roblox.exe", {}, t1);
   assert.equal(p2.phutToiDa, 30);
@@ -90,6 +94,8 @@ test("hết quỹ ⇒ kết thúc het_thoi_gian, cảnh báo 5 / 1 phút; Ba M�
   assert.equal(dong.trangThai, "ket_thuc");
   assert.equal(dong.lyDoKet, "khong_hoat_dong");
   assert.equal((await one<{ p: number }>(`select phut_dung as p from play_sessions where id = $1`, [p2.id]))!.p, 5, "chỉ tính 5 phút dùng thật");
+  const vi = await v.tomTatVi(con);
+  assert.deepEqual([vi.soDu, vi.sao, vi.no], [25, -5, 30], "chơi 5 phút bằng sao vay ⇒ số dư −5");
   // nhịp tạm dừng MỖI PHÚT vẫn đóng sau 3 phút tính từ lúc bắt đầu tạm dừng; dùng lại thì đếm lại
   const t2 = sau(t1, 20);
   const p3 = await ph.moPhien(con, "may-b", "roblox.exe", {}, t2);
@@ -105,45 +111,44 @@ test("hết quỹ ⇒ kết thúc het_thoi_gian, cảnh báo 5 / 1 phút; Ba M�
   assert.equal(dong3.lyDoKet, "khong_hoat_dong");
 });
 
-test("đổi sao giữa phiên ⇒ phiên tự dài ra theo quỹ mới", async () => {
-  const { con } = await nha(100);
-  await q(`update children set cau_hinh = '{"quy_ngay_thuong": 20}'::jsonb where id = $1`, [con]);
+test("Con kiếm thêm sao giữa phiên ⇒ phiên tự dài ra; «Đổi sao lấy giờ» (cũ) không trừ gì", async () => {
+  const { fam, bm, con } = await nha(20);
   const t0 = VN("2026-10-21T17:00:00");
   const p = await ph.moPhien(con, "may-c", "roblox.exe", {}, t0);
   assert.equal(p.phutToiDa, 20);
   await choi(con, p.id, t0, 15);
   const { doiSaoLayGio } = await import("./quy-gio.ts");
   const r = await doiSaoLayGio(con, 10, null, sau(t0, 15));
-  assert.deepEqual([r.sao, r.soDu], [10, 90]);
+  assert.deepEqual([r.sao, r.soDu, r.daBo], [0, 5, true]);
+  await v.dieuChinhTay(fam, con, 10, "Thưởng", bm);
   const k = await ph.nhip(con, p.id, true, sau(t0, 16));
   assert.equal(k.trangThai, "chay");
-  assert.equal(k.conPhut, 14, "quỹ 20 + 10 − 16");
+  assert.equal(k.conPhut, 14, "20 − 16 + 10");
 });
 
-test("giá 0 với mọi nhóm: Con 0 sao vẫn chơi bằng quỹ", async () => {
+test("hết sao (0 sao) ⇒ không mở được phiên «Tính phút»; sáng hôm sau vẫn không (không còn quỹ ngày)", async () => {
   const { con } = await nha(0);
-  const t0 = VN("2026-10-21T18:00:00");
-  const p = await ph.moPhien(con, "may-d", "youtube.com", {}, t0);
-  assert.equal(p.giaPhanNghin, 0);
-  assert.equal(p.phutToiDa, 60);
-  const k = await choi(con, p.id, t0, 4);
-  assert.deepEqual([k.trangThai, k.diemTru, k.soDu], ["chay", 0, 0]);
+  const x = await ph.xetMoPhien(con, "youtube.com", {}, VN("2026-10-21T18:00:00"));
+  assert.deepEqual([x.duoc, x.lyDo], [false, "het_gio"]);
+  assert.equal((await ph.xetMoPhien(con, "youtube.com", {}, VN("2026-10-22T09:00:00"))).lyDo, "het_gio");
+  await loi(ph.moPhien(con, "may-d", "youtube.com", {}, VN("2026-10-21T18:00:00")), "khong_mo_duoc");
 });
 
-test("quỹ 90 phút cuối tuần gộp mọi thiết bị; một phiên cùng lúc; không còn khung giờ; giờ ngủ, giờ học, Ba Mẹ khoá", async () => {
-  const { fam, con } = await nha(1000);
-  const t0 = VN("2026-10-24T09:00:00");               // thứ Bảy, quỹ cuối tuần 90
+test("sao dùng chung mọi thiết bị; một phiên cùng lúc; không còn khung giờ; giờ ngủ, giờ học, Ba Mẹ khoá", async () => {
+  const { fam, con } = await nha(90);
+  const t0 = VN("2026-10-24T09:00:00");
   const p1 = await ph.moPhien(con, "tablet", "roblox.exe", {}, t0);
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", { mayId: "laptop" }, sau(t0, 1))).lyDo, "phien_khac");
   await choi(con, p1.id, t0, 60);
   await ph.dungPhien(con, p1.id, "con_dung", sau(t0, 60));
   const t1 = sau(t0, 61);
   const p2 = await ph.moPhien(con, "laptop", "roblox.exe", {}, t1);
-  assert.equal(p2.phutToiDa, 30, "60 trên tablet + 30 trên laptop = quỹ 90");
+  assert.equal(p2.phutToiDa, 30, "60 trên tablet + 30 trên laptop = 90 sao");
   const k = await choi(con, p2.id, t1, 30);
   assert.equal(k.trangThai, "ket_thuc");
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", { mayId: "tablet" }, sau(t1, 31))).lyDo, "het_gio");
-  // không còn khung giờ chơi: 10:00 thứ Hai vẫn chơi được (quỹ ngày thường 60)
+  await v.dieuChinhTay(fam, con, 60, "Thưởng", (await one<{ id: string }>(`select id from parents where family_id = $1`, [fam]))!.id);
+  // không còn khung giờ chơi: 10:00 thứ Hai vẫn chơi được (60 sao)
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T10:00:00"))).phutToiDa, 60);
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", {}, VN("2026-10-26T21:30:00"))).lyDo, "gio_ngu");
   await q(`update children set lich = '{"hoc": {"tu": "17:00", "den": "18:00", "thu": [1]}}'::jsonb where id = $1`, [con]);
@@ -155,10 +160,9 @@ test("quỹ 90 phút cuối tuần gộp mọi thiết bị; một phiên cùng 
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", { gioMaySai: true }, VN("2026-10-26T18:00:00"))).lyDo, "ba_me_khoa");
   await q(`update children set cau_hinh = cau_hinh - 'khoa_ngay' where id = $1`, [con]);
   assert.equal((await ph.xetMoPhien(con, "roblox.exe", { gioMaySai: true }, VN("2026-10-26T18:00:00"))).lyDo, "gio_may_sai");
-  void fam;
 });
 
-test("đến giờ ngủ giữa phiên ⇒ tự kết thúc, sao giữ nguyên", async () => {
+test("đến giờ ngủ giữa phiên ⇒ tự kết thúc, chỉ trừ phút đã chơi", async () => {
   const { con } = await nha(100);
   const t0 = VN("2026-10-21T20:50:00");
   const p = await ph.moPhien(con, "may-f", "roblox.exe", {}, t0);
@@ -166,11 +170,11 @@ test("đến giờ ngủ giữa phiên ⇒ tự kết thúc, sao giữ nguyên",
   const k = await choi(con, p.id, t0, 11);
   assert.equal(k.trangThai, "ket_thuc");
   assert.ok(["gio_ngu", "het_thoi_gian"].includes(k.lyDoKet!));
-  assert.equal(await v.soDu(con), 100);
+  assert.ok((await v.soDu(con)) >= 89 && (await v.soDu(con)) <= 90);
   assert.equal((await one<{ n: number }>(`select count(*)::int as n from play_sessions where child_id = $1 and trang_thai <> 'ket_thuc'`, [con]))!.n, 0);
 });
 
-test("máy Windows (không gửi phien/nhip): nhịp dong-bo của chính máy mở phiên trừ điểm, hết giờ đóng; Con đăng xuất 3 phút ⇒ đóng; máy khác không đụng", async () => {
+test("máy Windows (không gửi phien/nhip): nhịp dong-bo của chính máy mở phiên trừ sao, hết giờ đóng; Con đăng xuất 3 phút ⇒ đóng; máy khác không đụng", async () => {
   const { con } = await nha(100);
   const t0 = VN("2026-10-21T17:00:00");
   const p = await ph.moPhien(con, "pc1", "roblox.exe", {}, t0);
@@ -179,7 +183,7 @@ test("máy Windows (không gửi phien/nhip): nhịp dong-bo của chính máy m
   for (let i = 1; i <= 10; i++) k = await ph.nhipTuDongBo("pc1", con, true, sau(t0, i));
   assert.equal(k!.trangThai, "chay");
   assert.equal(k!.phutDung, 10);
-  assert.equal(await v.soDu(con), 100, "05/11: phiên không trừ sao");
+  assert.equal(await v.soDu(con), 90, "15/11: 10 phút = 10 sao");
   for (let i = 11; i <= 13; i++) k = await ph.nhipTuDongBo("pc1", con, false, sau(t0, i));
   assert.equal(k!.trangThai, "tam");
   k = await ph.nhipTuDongBo("pc1", con, false, sau(t0, 14));

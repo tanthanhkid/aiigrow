@@ -48,7 +48,8 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   const r = await m("thiet-lap", { tok: bm, body });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const con = r.body.conId;
-  assert.deepEqual([r.body.ten, r.body.cheDoChan, r.body.gioChoi, r.body.ngu], ["Bảo Anh", "chi_app_duoc_phep", { ngayThuong: 60, cuoiTuan: 90 }, { tu: "21:30", den: "06:30" }]);
+  // 15/11 (#264): quỹ ngày bỏ — gioChoi gửi lên bị bỏ qua; tặng 30 sao khởi đầu (mặc định)
+  assert.deepEqual([r.body.ten, r.body.cheDoChan, r.body.gioChoi, r.body.ngu, r.body.saoKhoiDau], ["Bảo Anh", "chi_app_duoc_phep", { ngayThuong: null, cuoiTuan: null }, { tu: "21:30", den: "06:30" }, 30]);
   assert.deepEqual(r.body.app.choKhop, ["Duolingo ABC", "抖音"]);
   assert.equal(r.body.soApp, 4, "Roblox + YouTube Kids (AiiRob là mục hệ thống, luôn mở) + Duolingo ABC chờ khớp");
   const luat = await q<{ muc: string; loai: string; nhom: string }>(`select muc, loai, nhom from app_rules where child_id = $1 order by muc`, [con]);
@@ -57,7 +58,7 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.ok(luat.some((l) => l.muc === "youtubekids.com" && l.loai === "hoc"), "tinhGio false ⇒ không tính giờ (hoc)");
   assert.ok(!luat.some((l) => l.muc === "aiirob.aiilab.vn"));
   const c = (await q<{ cau_hinh: any; lich: any }>(`select cau_hinh, lich from children where id = $1`, [con]))[0];
-  assert.deepEqual([c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan, c.lich.ngu], [60, 90, { tu: "21:30", den: "06:30" }]);
+  assert.deepEqual([c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan, c.lich.ngu], [undefined, undefined, { tu: "21:30", den: "06:30" }]);
   // gửi lại (mất phản hồi) với con.id ⇒ sửa, không tạo Con thứ hai
   const lai = await m("thiet-lap", { tok: bm, body: { ...body, con: { id: con, ten: "Bảo Anh" }, cheDoChan: "mo_het" } });
   assert.equal(lai.body.conId, con);
@@ -66,14 +67,16 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.equal((await m(`con/${con}`, { tok: bm })).body.cheDoChan, "mo_het");
   assert.equal((await m(`con/${con}`, { tok: bm })).body.coPin, false);
   // dữ liệu sai
-  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "X" }, gioChoi: { ngayThuong: 999 } } })).body.error, "phut_sai");
+  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "X" }, saoKhoiDau: 25 } })).body.error, "sao_khoi_dau_sai");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "Y" }, apps: [{ ma: "khong-co" }] } })).body.error, "app_sai");
   assert.equal((await m("gia-dinh", { tok: bm })).body.con.length, 1, "lỗi dữ liệu không để lại Con");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, ngu: { tu: "25:00", den: "06:00" } } })).body.error, "gio_sai");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, cheDoChan: "tu_do" } })).body.error, "che_do_chan_sai");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, apps: [{ ma: "khong-co" }] } })).body.error, "app_sai");
   // tóm tắt cho màn «Đã ghép máy»
-  assert.equal((await m(`con/${con}/thiet-lap`, { tok: bm })).body.gioChoi.ngayThuong, 60);
+  const tl = (await m(`con/${con}/thiet-lap`, { tok: bm })).body;
+  assert.deepEqual([tl.gioChoi.ngayThuong, tl.saoKhoiDau], [null, 30], "gửi lại với con.id không tặng thêm");
+  assert.equal((await m(`con/${con}`, { tok: bm })).body.sao, 30);
   // thiết kế 14/11 «Web cho <Con>»: web Ba Mẹ chọn ⇒ luật web (Vào thoải mái = hoc · Tính giờ = giai_tri), đếm ở soWeb, không cộng vào soApp
   const w = await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: [{ muc: "https://www.KhanAcademy.org/math" }, { muc: "poki.com", tinhGio: true }, "olm.vn", "olm.vn"] } });
   assert.equal(w.status, 200, JSON.stringify(w.body));
@@ -156,7 +159,7 @@ test("L8 «Cài giống máy trước»: máy mới của Con khác nhận chế
   assert.equal(pgM.giongMay, mayA.deviceId);
   await dv("ghep-goi", { body: { token: pgM.tokenGoi, nen: "windows", tenMay: "PC của Bảo Minh" } });
   const c = (await q<{ che_do_chan: string; lich: any; cau_hinh: any }>(`select che_do_chan, lich, cau_hinh from children where id = $1`, [minh]))[0];
-  assert.deepEqual([c.che_do_chan, c.lich.ngu, c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan], ["mo_het", { tu: "21:30", den: "06:30" }, 60, 120]);
+  assert.deepEqual([c.che_do_chan, c.lich.ngu, c.cau_hinh.quy_ngay_thuong, c.cau_hinh.quy_cuoi_tuan], ["mo_het", { tu: "21:30", den: "06:30" }, undefined, undefined]);
   const luat = await q<{ muc: string; loai: string }>(`select muc, loai from app_rules where child_id = $1`, [minh]);
   assert.ok(luat.some((l) => l.muc === "minecraft.exe" && l.loai === "giai_tri"));
   assert.equal(luat.find((l) => l.muc === "tiktok.com")!.loai, "hoc", "luật riêng của Con đích giữ nguyên");

@@ -16,6 +16,7 @@ import { biMatOfflineMay } from "./tuan-thu.ts";
 import { kiemMaOfflinePhut } from "./ma-offline.ts";
 import { coNoi, conNoiMay, ketThucPhienTrenMay, laMotCon } from "./may-nhieu-con.ts";
 import { soDu } from "./vi.ts";
+import { trangThaiSao } from "./so-sao.ts";
 
 export const PIN_SAI_TOI_DA = 5;
 export const PIN_CHO_GIAY = 15;
@@ -65,7 +66,7 @@ export const baMeDen = (may: MayS3, now = new Date()) =>
 export const vanPin = (biMat: string, con: string, pin: string) => createHmac("sha256", biMat).update(`${con}:${pin}`).digest("hex");
 
 /** «Ai đang dùng máy?» — danh sách bé của máy + ai đang dùng. #267: chỉ Con trong danh sách nối của máy (device_children); máy riêng ⇒ chỉ Con
- *  đó (vẫn hỏi PIN khi mở khoá). Mỗi bé kèm `sao` (số dư hiện có — vi.ts › soDu) để màn chọn tên hiện sao từng bé. */
+ *  đó (vẫn hỏi PIN khi mở khoá). Mỗi bé kèm `sao` (15/11: số dư Con thấy, ÂM khi nợ — so-sao.ts; `soDu` = sao tiêu được, `no` = nợ) để màn chọn tên hiện sao từng bé. */
 export async function hoSoMay(may: MayS3, now = new Date()) {
   const ds = await conNoiMay(may.id);
   const bm = await biMatOfflineMay(may.id);
@@ -78,7 +79,7 @@ export async function hoSoMay(may: MayS3, now = new Date()) {
   const den = baMeDen(may, now);
   const con = await Promise.all(ds.map(async (c) => {
     const k = khoaTheo.get(c.id);
-    return { id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, sao: await soDu(c.id), ...(c.pin_ma && bm ? { vanPin: vanPin(bm, c.id, c.pin_ma) } : {}),
+    return { id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, ...(await (async () => { const st = await trangThaiSao(c.id); return { sao: st.sao, no: st.no, soDu: await soDu(c.id) }; })()), ...(c.pin_ma && bm ? { vanPin: vanPin(bm, c.id, c.pin_ma) } : {}),
       ...(k ? { khoaDen: k.toISOString(), choGiay: Math.ceil((k.getTime() - now.getTime()) / 1000) } : {}) };
   }));
   const tenDung = dangDung ? ds.find((c) => c.id === dangDung) : undefined;

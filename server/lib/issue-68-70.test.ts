@@ -116,29 +116,24 @@ test("«≈ X phút chơi»: điểm đổi ra phút trò chơi theo giá của 
   void fam;
 });
 
-test("05/11 «≈ X phút chơi»: conPhut = quỹ hôm nay (+ thêm giờ − đã chơi); phutDoiDuoc = sao đổi được (10 sao = 10 phút, ≤ tối đa đổi/ngày)", async () => {
+test("15/11 «còn N sao = N phút»: conPhut = sao tiêu được (không còn quỹ ngày); phutDoiDuoc = phút còn; Con nợ ⇒ sao âm, conPhut 0", async () => {
   const { fam, con, tok } = await nha();
-  const { gioDiaPhuong } = await import("./gio.ts");
   await q(`insert into points(id, child_id, delta, loai, ly_do) values ($1,$2,30,'thuong','thử')`, [newId(), con]);
+  // cấu hình quỹ cũ còn sót (trước migration) không còn tác dụng
   await q(`update families set cau_hinh = cau_hinh || '{"quy_ngay_thuong": 50, "quy_cuoi_tuan": 50}'::jsonb where id = $1`, [fam]);
-  const tz = (await q<{ tz: string }>(`select tz from families where id = $1`, [fam]))[0]!.tz;
-  await q(`insert into grants(id, child_id, phut, ngay) values ($1, $2, 3, $3)`, [newId(), con, gioDiaPhuong(new Date(), tz).ngay]);
   const ph = newId();
   await q(`insert into play_sessions(id, child_id, muc, nhom, gia_phan_nghin, toi_da_phut, phut_dung, trang_thai) values ($1,$2,'roblox.exe','game',1000,60,35,'ket_thuc')`, [ph, con]);
   const lay = async () => (await m("gia-dinh", { tok })).body.con[0];
   let c = await lay();
-  assert.deepEqual([c.soDu, c.sao, c.conPhut, c.phutDoiDuoc], [30, 30, 18, 30], "quỹ 50 + 3 − 35 = 18; 30 sao đổi được 30 phút (tối đa 30/ngày)");
-  assert.deepEqual([c.phutChoi, c.tranNgay], [35, 53], "tranNgay = quỹ hôm nay (50 + 3)");
-  await q(`update families set cau_hinh = cau_hinh || '{"doi_sao_toi_da_ngay": 10}'::jsonb where id = $1`, [fam]);
-  c = await lay();
-  assert.equal(c.phutDoiDuoc, 10, "không quá phần Con còn được tự đổi hôm nay");
+  assert.deepEqual([c.soDu, c.sao, c.conPhut, c.phutDoiDuoc, c.no], [30, 30, 30, 30, 0], "30 sao = 30 phút");
+  assert.deepEqual([c.phutChoi, c.tranNgay], [35, 65], "phutChoi = đã chơi hôm nay · tranNgay (cũ) = còn + đã chơi");
   const { nhaTre } = await import("./choi-tre.ts");
-  assert.equal((await nhaTre({ id: con, family_id: fam } as never)).conPhut, 18, "trang «Nhà» của Con cùng quỹ");
-  await q(`update play_sessions set phut_dung = 70 where id = $1`, [ph]);
+  assert.equal((await nhaTre({ id: con, family_id: fam } as never)).conPhut, 30, "trang «Nhà» của Con cùng số");
+  // tiêu hết 30 rồi Ba Mẹ cho vay 15, tiêu hết ⇒ số dư −15, hết sao
+  await q(`insert into points(id, child_id, delta, loai, ly_do) values ($1,$2,-30,'choi','Chơi')`, [newId(), con]);
+  await q(`insert into points(id, child_id, delta, loai, ly_do) values ($1,$2,15,'vay','vay'), ($3,$2,-15,'choi','Chơi')`, [newId(), con, newId()]);
   c = await lay();
-  assert.equal(c.conPhut, 0, "đã chơi quá quỹ ⇒ 0, không âm");
-  await q(`update families set cau_hinh = cau_hinh || '{"doi_sao_bat": 0}'::jsonb where id = $1`, [fam]);
-  assert.equal((await lay()).phutDoiDuoc, 0, "Ba Mẹ tắt đổi sao ⇒ 0");
+  assert.deepEqual([c.sao, c.no, c.conPhut, c.hetSao, c.soDu], [-15, 15, 0, true, 0]);
 });
 
 test("Xếp / hoàn tác app: giữ khoá tư vấn theo (nhà, Con, mục) TRƯỚC khi đọc luật cũ — `for update` không khoá dòng chưa tồn tại", async () => {

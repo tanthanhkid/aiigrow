@@ -34,8 +34,8 @@ async function nha() {
   const sdt = `09112223${String(++soNha).padStart(2, "0")}`;
   const otp = await m("otp", { body: { dinhDanh: sdt } });
   const bm = (await m("dang-ky", { body: { dinhDanh: sdt, ma: otp.body.ma, ten: "Mẹ Lan", matKhau: "matkhau123" } })).body.token as string;
-  const ken = (await m("con", { tok: bm, body: { ten: "Ken", namSinh: new Date().getFullYear() - 9, pin: "1234" } })).body.id as string;
-  const bill = (await m("con", { tok: bm, body: { ten: "Bill", namSinh: new Date().getFullYear() - 13, pin: "5678" } })).body.id as string;
+  const ken = (await m("con", { tok: bm, body: { ten: "Ken", namSinh: new Date().getFullYear() - 9, pin: "1234", saoKhoiDau: 0 } })).body.id as string;
+  const bill = (await m("con", { tok: bm, body: { ten: "Bill", namSinh: new Date().getFullYear() - 13, pin: "5678", saoKhoiDau: 0 } })).body.id as string;
   const ma = (await m("ma-ghep", { tok: bm, body: { nen: "android" } })).body.ma;
   const may = (await dv("ghep", { body: { ma, nen: "android", tenMay: "Máy tính bảng chung" } })).body.token as string;
   return { bm, ken, bill, may };
@@ -66,7 +66,7 @@ test("Nhà: số dư, mục tiêu còn thiếu, nhiệm vụ mở, phút chơi c
   assert.equal(n.soDu, 45);
   assert.ok(n.nhiemVuMo >= 3);
   assert.ok(n.mucTieu && n.mucTieu.conThieu === n.mucTieu.diem - 45);
-  assert.equal(n.conPhut, n.quy.quyNgayPhut, "05/11: phút còn = quỹ hôm nay (chưa chơi)");
+  assert.equal(n.conPhut, 45, "15/11: phút còn = số sao (1 sao = 1 phút)");
   assert.equal(n.sao, 45);
   assert.equal(n.phien, null);
   // nộp ≤ 3 chạm: Bắt đầu → Xong, chụp ảnh → chụp (gửi luôn)
@@ -76,7 +76,7 @@ test("Nhà: số dư, mục tiêu còn thiếu, nhiệm vụ mở, phút chơi c
   assert.equal((await k("nha", { tok })).body.diemChoDuyet, chen.diem);
 });
 
-test("05/11 chơi bằng quỹ: xét → mở → nhịp không trừ sao → dừng sớm, không bắt nghỉ; không còn khung giờ chơi", async () => {
+test("15/11 chơi bằng sao: xét → mở → nhịp trừ 1 sao/phút → dừng sớm, không bắt nghỉ; không còn khung giờ chơi", async () => {
   const { bm, ken, may } = await nha();
   await m("luat", { tok: bm, body: { muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" } });
   await m(`con/${ken}/diem`, { tok: bm, body: { delta: 45, lyDo: "Thưởng" } });
@@ -86,20 +86,20 @@ test("05/11 chơi bằng quỹ: xét → mở → nhịp không trừ sao → d�
   const con = (await one<{ id: string; family_id: string }>(`select id, family_id from children where id = $1`, [ken]))!;
   const ct = { ...con, device_id: null };
   const ngoai = await tre.xetTre(ct, "roblox.exe", T15);
-  assert.equal(ngoai.duoc, true, "không còn khung giờ chơi — quỹ là giới hạn");
+  assert.equal(ngoai.duoc, true, "không còn khung giờ chơi — sao là giới hạn");
   const x = await tre.xetTre(ct, "roblox.exe", T18);
   assert.equal(x.duoc, true);
-  assert.equal(x.phutToiDa, 60);
+  assert.equal(x.phutToiDa, 45, "45 sao = 45 phút");
   assert.equal(x.soDu, 45);
   const p = await tre.moTre(ct, "roblox.exe", T18);
   const nh = await tre.nhipTre(ct, p.id, true, new Date(T18.getTime() + 60_000));
   assert.equal(nh.trangThai, "chay");
-  assert.equal(nh.soDu, 45);
+  assert.equal(nh.soDu, 44, "1 phút = 1 sao");
   assert.equal(nh.muc, "roblox.exe");
   const nh2 = await tre.nhipTre(ct, p.id, true, new Date(T18.getTime() + 120_000));
-  assert.equal(nh2.conPhut, 58);
+  assert.equal(nh2.conPhut, 43);
   const d = await tre.dungTre(ct, p.id, new Date(T18.getTime() + 150_000));
-  assert.equal(d.soDu, 45);
+  assert.equal(d.soDu, 43, "nửa phút lẻ chưa đủ 1 sao");
   assert.equal(d.nghiDen, null);
   const lai = await tre.xetTre(ct, "roblox.exe", new Date(T18.getTime() + 10 * 60_000));
   assert.equal(lai.duoc, true);

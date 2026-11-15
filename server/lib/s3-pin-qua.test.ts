@@ -40,8 +40,9 @@ const m = goi(xuLyM, "m"), k = goi(xuLyCon, "kid"), dv = goi(xuLyMay, "device");
 async function nha() {
   const { fam, bm } = await taoNha();
   const tokBm = await taoPhien(bm);
-  const anh = (await m(tokBm, "con", { ten: "Bảo Anh", pin: "4821" })).body.id as string;
-  const minh = (await m(tokBm, "con", { ten: "Bảo Minh" })).body.id as string;
+  // 15/11: saoKhoiDau 0 — số sao trong các test này tính từ 0 (mặc định API tặng 30)
+  const anh = (await m(tokBm, "con", { ten: "Bảo Anh", pin: "4821", saoKhoiDau: 0 })).body.id as string;
+  const minh = (await m(tokBm, "con", { ten: "Bảo Minh", saoKhoiDau: 0 })).body.id as string;
   const chung = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "PC phòng khách");
   const rieng = await g.ghepMay(await g.taoMaGhep(fam, anh, "windows"), "windows", "Laptop của Bảo Anh");
   return { fam, bm, tokBm, anh, minh, chung: { id: chung.deviceId as string, tok: chung.token as string }, rieng: { id: rieng.deviceId as string, tok: rieng.token as string } };

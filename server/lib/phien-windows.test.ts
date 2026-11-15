@@ -82,7 +82,7 @@ test("playSeconds xen kẽ (chơi / khoá / chơi dở lượt): tính đúng s�
   k = await nh(10, 6, "phien-cu");
   assert.deepEqual([k!.trangThai, k!.phutDung], ["tam", 3.25], "số giây của phiên khác ⇒ không tính");
   assert.equal((await nh(60, 7))!.phutDung, 4.25);
-  assert.equal(await v.soDu(con), 100, "05/11: không trừ sao — phút chỉ đếm vào quỹ");
+  assert.equal(await v.soDu(con), 96, "15/11: 4,25 phút ⇒ trừ 4 sao (phần lẻ chờ đủ phút)");
 });
 
 test("khoá màn hình (playSeconds 0) ⇒ tạm dừng, không trừ điểm; 3 phút ⇒ đóng phiên", async () => {
@@ -135,7 +135,7 @@ test("máy dùng chung + agent 0.2.4: nhịp tìm phiên mở trên máy ⇒ tr�
   let k = null as Awaited<ReturnType<typeof pw.nhipPhienWindows>>;
   for (let i = 1; i <= 5; i++) k = await pw.nhipPhienWindows(may, null, ps(60, p.id), sau(t0, i));
   assert.deepEqual([k!.trangThai, k!.phutDung], ["chay", 5]);
-  assert.equal(await v.soDu(con), 100);
+  assert.equal(await v.soDu(con), 95, "5 phút = 5 sao");
   assert.equal((await pw.phienCuaMay(may, null))!.id, p.id);
   const may2 = (await g.mayTuToken((await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "PC 2")).token))!;
   assert.equal(await pw.nhipPhienWindows(may2, null, ps(60, p.id), sau(t0, 6)), null);
@@ -190,7 +190,7 @@ test("Policy máy dùng chung có phiên: ghép app chơi / trình duyệt + pla
   const w = aw.chinhSachWindows(gh.pol, undefined, undefined, gh.mo);
   assert.ok(w.allowedApps.includes("roblox.exe"));
   assert.ok(!w.learningApps.includes("scratch.exe"), "app học vẫn theo máy dùng chung");
-  assert.deepEqual([w.playSessionId, w.playApp, w.playWeb, w.playOfflineMinutes], [p.id, "roblox.exe", false, 60], "quỹ ngày thường 60");
+  assert.deepEqual([w.playSessionId, w.playApp, w.playWeb, w.playOfflineMinutes], [p.id, "roblox.exe", false, 100], "100 sao = 100 phút");
   // ngưỡng offline theo lịch của Con: Con ngủ từ 17:20 ⇒ 20 phút (lịch máy mặc định ngủ 21:00)
   await q(`update children set lich = $2::jsonb where id = $1`, [con, JSON.stringify({ ngu: { tu: "17:20", den: "06:30" } })]);
   const gh2 = (await pw.ghepPhienMayChung(may, pol, t0))!;
@@ -240,17 +240,17 @@ test("playOfflineMinutes = min(phút còn lại, phút mua được + thưởng,
 
   const { fam, bm, con, may } = await nha(100);
   const t0 = VN("2026-10-21T17:00:00");
-  const p = await ph.moPhien(con, may.id, "roblox.exe", {}, t0);       // quỹ 60 phút
+  const p = await ph.moPhien(con, may.id, "roblox.exe", {}, t0);       // 100 sao = 100 phút
   for (let i = 1; i <= 10; i++) await pw.nhipPhienWindows(may, con, ps(60, p.id), sau(t0, i));
   const w = async (now: Date, conThuong = 0, gio?: string) =>
     aw.chinhSachWindows({ ...(await mc.taoPolicy(may, con, { gioMaySai: false }, now)), ...(gio ? { serverTime: VN(gio).toISOString() } : {}) },
       undefined, undefined, { conThuong, phienTien: await pw.tienPhien(p.id) });
   let x = await w(sau(t0, 10));
-  assert.deepEqual([x.playSessionId, x.playApp, x.playWeb, x.playOfflineMinutes], [p.id, "roblox.exe", false, 50], "quỹ 60 − 10 phút đã chơi");
+  assert.deepEqual([x.playSessionId, x.playApp, x.playWeb, x.playOfflineMinutes], [p.id, "roblox.exe", false, 90], "100 sao − 10 phút đã chơi");
   assert.equal((await w(sau(t0, 10), 0, "2026-10-21T20:52:00")).playOfflineMinutes, 8, "tới giờ ngủ 21:00");
-  await v.dieuChinhTay(fam, con, -87, "Đổi quà", bm);                // còn 3 sao — 05/11: sao không giới hạn phút chơi
+  await v.dieuChinhTay(fam, con, -87, "Đổi quà", bm);                // còn 3 sao — 15/11: 1 sao = 1 phút ⇒ offline tối đa 3 phút
   x = await w(sau(t0, 10));
-  assert.equal(x.playOfflineMinutes, 50);
+  assert.equal(x.playOfflineMinutes, 3);
   void q; void newId;
   const kp = aw.chinhSachWindows({ ...(await mc.taoPolicy(may, con, { gioMaySai: false }, sau(t0, 10))), phien: null });
   for (const k of ["playSessionId", "playApp", "playWeb", "playOfflineMinutes"]) assert.ok(!(k in kp), k);
@@ -280,7 +280,7 @@ test("trang khay nhịp phiên Windows agent 0.2.4 (nhipTre) chỉ đọc: khôn
   assert.equal(new Date((await phienDb(p.id))!.nhip_cuoi).getTime(), new Date(truoc).getTime());
   const b = await mc.buPhien(may, con, { ma: "bu-tre", id: p.id, phut: 4 }, sau(t0, 5));
   assert.equal(b.phut, 4);
-  assert.equal(await v.soDu(con), 50);
+  assert.equal(await v.soDu(con), 45, "1 phút online + 4 phút bù = 5 sao");
   assert.equal((await phienDb(p.id))!.phut_dung, 5);
 });
 
@@ -297,7 +297,7 @@ test("agent cũ (< 0.2.4): trang khay vẫn nhịp như #58 — máy dùng chung
   let k = null as Awaited<ReturnType<typeof tre.nhipTre>> | null;
   for (const i of [1, 2, 3]) k = await tre.nhipTre(ct, p.id, false, sau(t0, i));    // trang thu nhỏ gửi «không dùng» — như #58 vẫn tính
   assert.deepEqual([k!.trangThai, k!.phutDung], ["chay", 3]);
-  assert.equal(await v.soDu(con), 50);
+  assert.equal(await v.soDu(con), 47, "3 phút = 3 sao");
 });
 
 test("phien/bu từ máy dùng chung: Con lấy từ phiên mở trên máy; phiên máy khác ⇒ 404; không id ⇒ 409; gửi lại cùng mã không trừ đôi", async () => {
@@ -309,11 +309,11 @@ test("phien/bu từ máy dùng chung: Con lấy từ phiên mở trên máy; phi
   assert.equal((await phienDb(p.id))!.phut_dung, 2);
   const b = await dv("phien/bu", token, { ma: "bu-chung-1", id: p.id, muc: "roblox.exe", phut: 5, ketThuc: true });
   assert.equal(b.status, 200);
-  assert.deepEqual([b.body.phut, b.body.diemTru, b.body.ketThuc], [5, 0, true]);
+  assert.deepEqual([b.body.phut, b.body.diemTru, b.body.ketThuc], [5, 5, true]);
   assert.equal((await phienDb(p.id))!.phut_dung, 7);
   assert.equal((await dv("phien/bu", token, { ma: "bu-chung-1", id: p.id, phut: 5, ketThuc: true })).body.lapLai, true);
   assert.equal((await phienDb(p.id))!.phut_dung, 7, "gửi lại cùng mã không tính đôi");
-  assert.equal(await v.soDu(con), 50);
+  assert.equal(await v.soDu(con), 43, "2 phút online + 5 phút bù = 7 sao, gửi lại không trừ đôi");
   const ghep2 = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "PC 2");
   assert.equal((await dv("phien/bu", ghep2.token, { ma: "bu-chung-2", id: p.id, phut: 5 })).status, 404);
   assert.equal((await dv("phien/bu", token, { ma: "bu-chung-3", muc: "roblox.exe", phut: 5 })).status, 409);

@@ -64,9 +64,9 @@ export async function xuLyCon(req: Request, p: string[]): Promise<Response> {
     if (d === "quy-tac" && get) {
       const f = (await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [c.family_id]))!;
       const ts = thamSo(f.cau_hinh, c.cau_hinh);
-      // 05/11: quỹ ngày thường / cuối tuần + tỷ lệ sao (tranNgay = quỹ ngày thường cho app cũ)
-      return json({ lich: lichCua(c.lich as never), tranNgay: ts.quy_ngay_thuong, tranTuan: ts.tran_tuan, phienToiDa: ts.phien_toi_da, nghiGiua: ts.nghi_giua,
-        quyNgayThuong: ts.quy_ngay_thuong, quyCuoiTuan: ts.quy_cuoi_tuan, phut10Sao: ts.phut_10_sao,
+      // 15/11: quỹ ngày bỏ (1 sao = 1 phút) — tranNgay / quyNgayThuong / quyCuoiTuan = 0, phut10Sao = 10 giữ cho app cũ
+      return json({ lich: lichCua(c.lich as never), tranNgay: 0, tranTuan: ts.tran_tuan, phienToiDa: ts.phien_toi_da, nghiGiua: ts.nghi_giua,
+        quyNgayThuong: 0, quyCuoiTuan: 0, phut10Sao: 10, saoMoiPhut: 1,
         giaPhut: { game: ts.gia_game / 1000, video_ngan: ts.gia_video_ngan / 1000, mxh: ts.gia_mxh / 1000, phim_gd: ts.gia_phim_gd / 1000 },
         nhiemVu: (await nv.nvCuaCon(c.id)).map((x) => ({ ten: x.ten, diem: x.diem })), qua: (await pt.cuaHang(c.id)).qua.map((x) => ({ ten: x.ten, diem: x.diem })) });
     }

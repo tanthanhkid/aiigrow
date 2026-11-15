@@ -37,7 +37,7 @@ test("next.config: /.well-known/... và /cai/... không bị rewrite fallback nu
   assert.ok(![...rw.beforeFiles, ...rw.afterFiles].some((r) => /cai|well-known/.test(r.source)));
 });
 
-test("ngoại lệ cả máy cho iOS (05/11; thêm giờ thì vào quỹ) ⇒ cua_so_den + nhịp trả grantEndsAt/moDen; iOS KHÔNG phải «có tác tử»; Khoá lại ngay đóng cửa sổ", async () => {
+test("mở khẩn cấp iPhone ⇒ nhịp trả grantEndsAt/moDen; lời xin ngoại lệ cũ = xin vay sao (#265, không mở cửa sổ); iOS KHÔNG phải «có tác tử»; Khoá lại ngay đóng cửa sổ", async () => {
   assert.ok(cd.coCuaSoThemGio("ios") && cd.coCuaSoThemGio("mac") && cd.coCuaSoThemGio("android") && !cd.coCuaSoThemGio("tvos"));
   assert.equal(cd.coTacTu("android"), false);
   assert.equal(cd.coTacTu("ios"), false);
@@ -55,11 +55,14 @@ test("ngoại lệ cả máy cho iOS (05/11; thêm giờ thì vào quỹ) ⇒ cu
   const coVan = await xuLyMay(new Request("http://x/api/device/nhip", { method: "POST", headers: { "content-type": "application/json", authorization: `Bearer ${r.token}` },
     body: JSON.stringify({ clientTime: new Date().toISOString(), appQuanLyBat: true, ios: ios(), maOfflineVan: vanBiMat(truoc.body.maOfflineBiMat) }) }), ["nhip"]);
   assert.equal(((await coVan.json()) as any).maOfflineBiMat, undefined);
+  // #265: «xin ngoại lệ» của app cũ ⇒ lời xin vay 30 sao; đồng ý ⇒ cho vay, KHÔNG có cửa sổ mở (grants)
   const a = await yc.guiYeuCau(con, may.id, { loai: "ngoai_le", phamVi: "ca_may", phut: 30, lyDo: "Để làm bài tập" }, T);
   await yc.dongY(fam, a.id, bm, { phut: 30 }, T);
-  assert.ok((await one<{ cua_so_den: Date | null }>(`select cua_so_den from grants where request_id = $1`, [a.id]))?.cua_so_den, "iOS phải có cửa sổ mở");
-  const den = new Date(Date.now() + 30 * 60000);
-  await q(`update grants set cua_so_den = $2 where request_id = $1`, [a.id, den]);
+  assert.equal((await one(`select 1 from grants where request_id = $1`, [a.id])), undefined);
+  assert.equal(Number((await one<{ s: number }>(`select sum(delta)::int as s from points where child_id = $1 and loai = 'vay'`, [con]))?.s), 30);
+  assert.equal((await nhip(r.token, ios())).body.grantEndsAt, null);
+  const kc = await tt.moKhanCap(fam, may.id, { phut: 30 }, bm);
+  const den = new Date(kc.den);
   const sau = await nhip(r.token, ios());
   assert.equal(sau.body.grantEndsAt, den.toISOString());
   assert.equal(sau.body.moDen, den.toISOString());
@@ -123,7 +126,7 @@ test("QR Device Owner Android: component + APK của tác tử máy Con, giữ C
     `https://github.com/tanthanhkid/aiigrow-tai/releases/download/con-android-${(await import("./ban-agent.ts")).BAN_CON_ANDROID.version}/AiiGrow-Con-android.apk`);
 });
 
-test("máy Android: ngoại lệ cả máy ⇒ cua_so_den + nhịp trả grantEndsAt/moDen + bí mật mã offline", async () => {
+test("máy Android: mở khẩn cấp ⇒ nhịp trả grantEndsAt/moDen + bí mật mã offline; lời xin ngoại lệ cũ = xin vay sao", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "An" });
   const r = await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Android của An");
@@ -132,9 +135,8 @@ test("máy Android: ngoại lệ cả máy ⇒ cua_so_den + nhịp trả grantEn
   await q(`update devices set status = coalesce(status, '{}'::jsonb) || '{"android": {}}'::jsonb where id = $1`, [may.id]);   // tác tử mới đã gửi nhịp
   const a = await yc.guiYeuCau(con, may.id, { loai: "ngoai_le", phut: 60, lyDo: "Để làm bài tập" }, T);
   await yc.dongY(fam, a.id, bm, { phut: 60 }, T);
-  assert.ok((await one<{ cua_so_den: Date | null }>(`select cua_so_den from grants where request_id = $1`, [a.id]))?.cua_so_den);
-  const den = new Date(Date.now() + 45 * 60000);
-  await q(`update grants set cua_so_den = $2 where request_id = $1`, [a.id, den]);
+  assert.equal((await one(`select 1 from grants where request_id = $1`, [a.id])), undefined, "#265: không còn cửa sổ ngoại lệ");
+  const den = new Date((await tt.moKhanCap(fam, may.id, { phut: 45 }, bm)).den);
   const sau = await nhipAnd(r.token, {});
   assert.equal(sau.body.grantEndsAt, den.toISOString());
   assert.equal(sau.body.moDen, den.toISOString());
@@ -169,7 +171,7 @@ test("nhịp Android lưu status.android (phút dùng theo app + quyền); devic
   assert.equal((await g.mayTuToken(i.token))!.status.android, undefined);
 });
 
-test("xin thêm giờ 10/20/30 (chip 05/11) và 60/120 đều hợp lệ; ngoài 5–240 báo câu lỗi đúng", async () => {
+test("xin thêm giờ (máy cũ) = xin vay 10/20/30/60/120 sao đều hợp lệ; ngoài 1–1000 báo câu lỗi đúng", async () => {
   const { fam } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Vu" });
   for (const p of [10, 20, 30, 60, 120]) {
@@ -177,5 +179,6 @@ test("xin thêm giờ 10/20/30 (chip 05/11) và 60/120 đều hợp lệ; ngoài
     assert.ok(a.id);
     await q(`update requests set trang_thai = 'het_han' where id = $1`, [a.id]);
   }
-  await assert.rejects(yc.guiYeuCau(con, null, { loai: "them_gio", phut: 300, lyDo: "x" }, T), (e: { ma?: string; message?: string }) => e.ma === "phut_sai" && /5 đến 240.*10, 20, 30/.test(String(e.message)));
+  await assert.rejects(yc.guiYeuCau(con, null, { loai: "them_gio", phut: 1001, lyDo: "x" }, T), (e: { ma?: string; message?: string }) => e.ma === "so_sao_sai" && /1 đến 1000.*10, 15, 30/.test(String(e.message)));
+  await assert.rejects(yc.guiYeuCau(con, null, { loai: "vay_sao", soSao: 0 }, T), (e: { ma?: string }) => e.ma === "so_sao_sai");
 });

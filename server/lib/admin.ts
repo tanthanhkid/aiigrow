@@ -122,18 +122,13 @@ export const TEN_THAM_SO: Record<TenThamSo, [string, string]> = {
   tran_ngay: ["Trần giải trí mỗi ngày", "phút"], tran_tuan: ["Trần giải trí mỗi tuần", "phút"],
   yc_cho_toi_da: ["Yêu cầu chờ tối đa", "yêu cầu"], yc_ngay_toi_da: ["Yêu cầu mỗi ngày tối đa", "yêu cầu"],
   yc_het_gio_them: ["Yêu cầu thêm giờ hết hạn sau", "giờ"], yc_het_ngay_cai: ["Yêu cầu mở web / cài app hết hạn sau", "ngày"],
-  ngoai_le_mem_tuan: ["Cảnh báo mềm: ngoại lệ mỗi tuần", "lần"], ngoai_le_mem_thang: ["Cảnh báo mềm: ngoại lệ mỗi tháng", "lần"],
-  ngoai_le_manh_tuan: ["Cảnh báo mạnh: ngoại lệ mỗi tuần", "lần"], offline_gio: ["Báo máy mất kết nối sau", "giờ"],
+  offline_gio: ["Báo máy mất kết nối sau", "giờ"],
   lech_gio_phut: ["Khoá giải trí khi giờ máy lệch quá", "phút"], ngung_chay_phut: ["Báo AiiGrow ngừng chạy sau", "phút"],
   chan_lan_gio: ["Báo khi bị chặn nhiều lần mỗi giờ", "lần"], luu_bang_chung_ngay: ["Lưu ảnh bằng chứng", "ngày"],
   mat_nhip_di_dong_phut: ["Báo máy di động mất nhịp sau", "phút"], tuan_thu_nguong: ["Ngưỡng điểm tuân thủ (dưới ⇒ khoá giải trí)", "điểm"],
   mo_khan_cap_toi_da_phut: ["Mở khẩn cấp tối đa", "phút"], goi_cai_gio: ["Gói cài (token ghép) hết hạn sau", "giờ"],
   dns_mat_truy_van_phut: ["Báo thiết bị mạng mất truy vấn DNS sau", "phút"], dns_vuot_gio_nguong: ["Số truy vấn ngoài giờ trong ngày để cảnh báo", "lần"],
   web_chi_cho_phep: ["Web trên máy Windows: 0 = mở (chặn trang bị chặn) · 1 = chỉ cho phép", "0/1"],
-  quy_ngay_thuong: ["Giờ chơi mỗi ngày thường", "phút"], quy_cuoi_tuan: ["Giờ chơi mỗi ngày T7, CN", "phút"],
-  phut_10_sao: ["10 sao đổi được", "phút"], doi_sao_bat: ["Con tự đổi sao lấy giờ (0 tắt · 1 bật)", "0/1"],
-  doi_sao_toi_da_ngay: ["Con tự đổi sao tối đa mỗi ngày", "phút"], cho_xin_them_gio: ["Hết giờ cho Con xin thêm (0 tắt · 1 bật)", "0/1"],
-  ngoai_le_toi_da_phut: ["Một lần mở ngoại lệ dài tối đa", "phút"],
 };
 
 /** Bảng tham số: mặc định trong mã + giá trị hệ thống Admin đặt (đã kẹp min–max). */

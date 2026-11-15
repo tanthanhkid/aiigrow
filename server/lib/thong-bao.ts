@@ -9,11 +9,12 @@ import { gioDiaPhuong, trongKhung } from "./gio.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { bangTvTb, TEN_VAI } from "./thanh-vien.ts";
 
-export const NHOM_TB = ["nhiem_vu", "yeu_cau", "qua", "thanh_tich", "ba_me_khac", "canh_bao", "gia_dinh"] as const;
+// canh_bao_no (15/11, #266): «<Tên> đã nợ quá 1.000 sao» — công tắc «Cảnh báo nợ» trong cài đặt thông báo (tắt ⇒ vẫn có dòng, không đẩy)
+export const NHOM_TB = ["nhiem_vu", "yeu_cau", "qua", "thanh_tich", "ba_me_khac", "canh_bao", "canh_bao_no", "gia_dinh"] as const;
 export type NhomTb = (typeof NHOM_TB)[number];
 export const TEN_NHOM_TB: Record<NhomTb, string> = {
   nhiem_vu: "Con nộp nhiệm vụ", yeu_cau: "Con xin phép", qua: "Đổi quà, phiếu quà", thanh_tich: "Huy hiệu, AiiRob",
-  ba_me_khac: "Việc Ba Mẹ khác làm", canh_bao: "Cảnh báo", gia_dinh: "Thành viên gia đình",
+  ba_me_khac: "Việc Ba Mẹ khác làm", canh_bao: "Cảnh báo", canh_bao_no: "Cảnh báo nợ", gia_dinh: "Thành viên gia đình",
 };
 export const GOP_PHUT = 60;          // nộp nhiệm vụ cách nhau ≤ 60 phút ⇒ gộp một dòng
 export const NGAY_GIU = 14;          // dòng thời gian lấy 14 ngày gần nhất
@@ -28,7 +29,7 @@ export const YEN_LANG_MD = { bat: false, tu: "22:00", den: "06:30" };
 
 const LOAI_SU_KIEN = ["nop_nhiem_vu", "gui_yeu_cau", "doi_qua", "dung_voucher", "nap_quy", "huy_hieu", "tu_duyet_nhiem_vu",
   "duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "dong_y_yeu_cau", "tu_choi_yeu_cau", "xac_nhan_qua", "huy_qua",
-  "bat_dau_nhiem_vu", "phan_hoi_con", "mo_khan_cap", "lenh_go", "thanh_vien_vao", "doi_vai", "moi_ra", "loi_khen", "dong_bang_chuoi"];
+  "bat_dau_nhiem_vu", "phan_hoi_con", "mo_khan_cap", "lenh_go", "thanh_vien_vao", "doi_vai", "moi_ra", "loi_khen", "dong_bang_chuoi", "cho_vay"];
 
 const GIO = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -80,11 +81,14 @@ type SuKien = { id: string; loai: string; child_id: string | null; chi_tiet: Rec
   ten_con: string | null; ten_nguoi: string | null };
 type CanhBaoRow = { id: string; child_id: string | null; loai: string; muc: MucTb; noi_dung: string; created_at: Date; ten_con: string | null };
 
+// 15/11 (#265): lời xin thêm giờ / ngoại lệ (cả từ máy cũ) đều là xin VAY sao (chi_tiet.vay = true, so_sao)
+const xinVay = (c: Record<string, any>) => `xin vay ${c.so_sao ?? c.phut ?? ""} sao${c.muc_dich === "qua" ? " để đổi quà" : ""}`.replace("  ", " ");
 const YC: Record<string, (c: Record<string, any>) => string> = {
-  them_gio: (c) => `xin thêm ${c.phut ?? ""} phút`.replace("  ", " "), mo_web: (c) => `xin mở ${c.gia_tri ?? "một trang web"}`,
-  cai_app: (c) => `xin cài ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: (c) => `xin ngoại lệ ${c.phut ?? ""} phút${c.gia_tri ? ` cho ${c.gia_tri}` : ""}`.replace("  ", " "),
-  ngoai_gio: (c) => `xin chơi ngoài giờ ${c.phut ?? ""} phút`.replace("  ", " "), khac: (c) => (c.gia_tri ? `xin: ${c.gia_tri}` : "gửi một yêu cầu"),
+  vay_sao: xinVay, them_gio: (c) => (c.vay ? xinVay(c) : `xin thêm ${c.phut ?? ""} phút`.replace("  ", " ")), mo_web: (c) => `xin mở ${c.gia_tri ?? "một trang web"}`,
+  cai_app: (c) => `xin cài ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: xinVay, ngoai_gio: xinVay,
+  khac: (c) => (c.gia_tri ? `xin: ${c.gia_tri}` : "gửi một yêu cầu"),
 };
+const so = (n: unknown) => Number(n ?? 0).toLocaleString("en-US").replace(/,/g, ".");
 const tien = (n: number) => `${Math.round(n).toLocaleString("en-US").replace(/,/g, ".")}đ`;
 
 /** Một sự kiện ⇒ một dòng thông báo (null = không báo). */
@@ -105,7 +109,9 @@ function tuSuKien(e: SuKien): Omit<ThongBao, "moi" | "day" | "imLang" | "so" | "
     case "duyet_nhiem_vu": return g("ba_me_khac", `${ai} đã duyệt «${c.ten ?? "nhiệm vụ"}» của ${con}`, `+${c.diem ?? 0} sao`, e.child_id ? `/vi/${e.child_id}` : "/hom-nay");
     case "tu_choi_nhiem_vu": return g("ba_me_khac", `${ai} chưa duyệt «${c.ten ?? "nhiệm vụ"}» của ${con}`, c.ly_do ? `Lý do: ${c.ly_do}` : "Đã báo Con lý do", "/hom-nay");
     case "can_bo_sung": return g("ba_me_khac", `${ai} nhờ ${con} chụp lại «${c.ten ?? "nhiệm vụ"}»`, c.ly_do ? `Lý do: ${c.ly_do}` : "Con được nộp lại", "/hom-nay");
-    case "dong_y_yeu_cau": return g("ba_me_khac", `${ai} đã đồng ý yêu cầu của ${con}`, c.ngoai_le ? "Ngoại lệ — không trừ sao" : "Theo quy tắc gia đình", veCon);
+    // đồng ý lời xin vay ⇒ dòng «cho_vay» (không hiện hai dòng)
+    case "dong_y_yeu_cau": return c.vay ? null : g("ba_me_khac", `${ai} đã đồng ý yêu cầu của ${con}`, "Theo quy tắc gia đình", veCon);
+    case "cho_vay": return g("ba_me_khac", `${ai} đã cho ${con} vay ${so(c.so_sao)} sao`, `${con} đang nợ ${so(c.no_sau)} sao · sao nhiệm vụ trả nợ trước`, veCon);
     case "tu_choi_yeu_cau": return g("ba_me_khac", `${ai} đã từ chối yêu cầu của ${con}`, c.ly_do ? `Lý do: ${c.ly_do}` : "Đã báo Con lý do", veCon);
     case "xac_nhan_qua": return g("ba_me_khac", `${ai} đã trao «${c.ten ?? "quà"}» cho ${con}`, "Đã trao quà cho con", "/diem-qua");
     case "huy_qua": return g("ba_me_khac", `${ai} đã huỷ một quà của ${con}`, "Sao đã hoàn lại cho Con", "/diem-qua");
@@ -140,7 +146,7 @@ export async function dsThongBao(bm: BaMe, now = new Date()) {
     if (d) tho.push({ ...d, id: `e:${e.id}`, so: 1, luc: new Date(e.created_at).toISOString(), t: new Date(e.created_at).getTime(), loai: e.loai });
   }
   for (const a of cb) {
-    tho.push({ id: `a:${a.id}`, nhom: "canh_bao", muc: a.muc, tieu: a.noi_dung, phu: a.ten_con ? `Cảnh báo · ${a.ten_con}` : "Cảnh báo",
+    tho.push({ id: `a:${a.id}`, nhom: a.loai === "no_qua_1000" ? "canh_bao_no" : "canh_bao", muc: a.muc, tieu: a.noi_dung, phu: a.ten_con ? `Cảnh báo · ${a.ten_con}` : "Cảnh báo",
       luc: new Date(a.created_at).toISOString(), t: new Date(a.created_at).getTime(), con: a.child_id, den: `/canh-bao/${a.id}`, so: 1, loai: "canh_bao" });
   }
   tho.sort((a, b) => b.t - a.t);
