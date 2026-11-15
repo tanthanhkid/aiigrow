@@ -29,9 +29,6 @@ export const THAM_SO = {
   yc_ngay_toi_da: s(10, 1, 50),
   yc_het_gio_them: s(24, 1, 72),           // giờ
   yc_het_ngay_cai: s(7, 1, 30),            // ngày (mở web / cài app)
-  ngoai_le_mem_tuan: s(3, 1, 20),
-  ngoai_le_mem_thang: s(10, 1, 20),
-  ngoai_le_manh_tuan: s(6, 2, 30),
   offline_gio: s(24, 1, 168),
   lech_gio_phut: s(10, 1, 30),             // BRD mặc định 5; master 21/10 («độ bền máy con») chốt 10
   ngung_chay_phut: s(15, 5, 120),          // máy đang bật mà agent im lặng quá ⇒ báo Ba Mẹ (M4b)
@@ -48,15 +45,8 @@ export const THAM_SO = {
   dns_vuot_gio_nguong: s(20, 1, 1000),
   // Web trên máy Windows (lib/web.ts): 0 = mở (mọi trang mở được, trừ trang Ba Mẹ chặn) · 1 = chỉ cho phép (chỉ trang Ba Mẹ cho phép + danh sách hệ thống).
   web_chi_cho_phep: s(0, 0, 1),
-  // Thiết kế chốt 05/11 (L1–L3, lib/quy-gio.ts): QUỸ phút chơi mỗi ngày dùng chung cho mọi app giải trí (thay giá điểm/phút + trần
-  // ngày/tuần + khung giờ chơi). Sao = điểm cũ (1 điểm = 1 sao). Con đổi sao ⇒ phút cộng vào quỹ hôm nay.
-  quy_ngay_thuong: s(60, 0, 600),          // phút chơi mỗi ngày thường (T2–T6)
-  quy_cuoi_tuan: s(90, 0, 720),            // phút chơi mỗi ngày T7, CN
-  phut_10_sao: s(10, 1, 60),               // 10 sao đổi được bao nhiêu phút chơi (mặc định 10 sao = 10 phút)
-  doi_sao_bat: s(1, 0, 1),                 // 1 = Con tự đổi sao lấy giờ («Cho con tự đổi sao»)
-  doi_sao_toi_da_ngay: s(30, 0, 480),      // phút tối đa Con tự đổi mỗi ngày
-  cho_xin_them_gio: s(1, 0, 1),            // 1 = hết giờ Con được «Xin Ba Mẹ thêm giờ»
-  ngoai_le_toi_da_phut: s(60, 5, 240),     // một lần mở ngoại lệ (giờ ngủ / Ba Mẹ khoá / giờ học) dài tối đa
+  // 15/11 (#264/#265, lib/so-sao.ts): quỹ phút mỗi ngày, tỷ lệ sao/phút, đổi sao lấy giờ, xin thêm giờ, ngoại lệ (+ ngưỡng cảnh báo ngoại lệ)
+  // ĐÃ BỎ — 1 sao = 1 phút «Tính phút»; cấu hình cũ của các nhà xoá ở migration SCHEMA_SAO.
 } satisfies Record<string, So>;
 
 export type TenThamSo = keyof typeof THAM_SO;

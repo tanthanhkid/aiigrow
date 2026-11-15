@@ -35,7 +35,7 @@ test("ghép máy platform «mac» lưu đúng; mã ghép của nền khác bị 
   await assert.rejects(g.ghepMay(await g.taoMaGhep(fam, con, "mac"), "windows", "X"), (e: { ma?: string }) => e.ma === "sai_nen_tang");
 });
 
-test("ngoại lệ cả máy cho máy Mac ⇒ cua_so_den, hanMoCuaMay, dong-bo nhận mode tu_do + grantEndsAt; Khoá lại ngay đóng cửa sổ", async () => {
+test("máy Mac: lời xin ngoại lệ cũ = xin vay sao (#265, không cửa sổ); mở khẩn cấp ⇒ hanMoCuaMay, dong-bo nhận mode tu_do + grantEndsAt; Khoá lại ngay đóng cửa sổ", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Phi" });
   await luonChoiDuoc(con, [T]);   // dong-bo dùng đồng hồ thật: giờ ngủ mặc định 21:00–06:30 khoá máy (mode «khoa») dù đang có thêm giờ
@@ -43,10 +43,8 @@ test("ngoại lệ cả máy cho máy Mac ⇒ cua_so_den, hanMoCuaMay, dong-bo n
   const may = (await g.mayTuToken(r.token))!;
   const a = await yc.guiYeuCau(con, may.id, { loai: "ngoai_le", phut: 30, lyDo: "Để làm bài tập" }, T);
   await yc.dongY(fam, a.id, bm, { phut: 30 }, T);
-  const g1 = await one<{ cua_so_den: Date | null }>(`select cua_so_den from grants where request_id = $1`, [a.id]);
-  assert.ok(g1?.cua_so_den, "máy Mac phải có cửa sổ mở");
-  const den = new Date(Date.now() + 30 * 60000);
-  await q(`update grants set cua_so_den = $2 where request_id = $1`, [a.id, den]);        // dong-bo dùng đồng hồ thật ⇒ đặt hạn tương đối với «bây giờ»
+  assert.equal(await one(`select 1 from grants where request_id = $1`, [a.id]), undefined, "#265: không còn cửa sổ ngoại lệ");
+  const den = new Date((await tt.moKhanCap(fam, may.id, { phut: 30 }, bm)).den);
   const s = await dongBo(r.token, { agent: "mac", version: "0.1.0", trayAlive: true, childSessionActive: true });
   assert.equal(s.status, 200);
   assert.equal(s.body.windows.mode, "tu_do");

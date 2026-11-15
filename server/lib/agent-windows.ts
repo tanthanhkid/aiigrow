@@ -186,8 +186,8 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     nextCheckSec: nhipToiKhoaLai(Math.min(nhipDongBo({ coPhien: !!p.phien, moDen: den, now }),
       quyMo && p.quy!.conPhut <= 10 ? 60 : Infinity), [p.khoaLaiLuc, p.khoaHetLuc, ...nl.map((x) => x.den)], now),
     canExchangePoints: p.soDu > 0 || (mo.conThuong ?? 0) > 0,
-    // 05/11: số sao của Con (= số dư điểm) — màn khoá / nhắc 5 phút của khay «con có 30 sao» (agent-win Policy.Sao)
-    ...(p.con ? { sao: p.soDu } : {}),
+    // số sao của Con — màn khoá / nhắc 5 phút của khay «con có 30 sao» (agent-win Policy.Sao). 15/11: số dư Con thấy, ÂM khi đang nợ
+    ...(p.con ? { sao: p.sao?.sao ?? p.soDu } : {}),
     ...(den ? { grantEndsAt: den.toISOString() } : {}),
     // Đang «mở» có hạn / còn quỹ ⇒ trang Giải trí mở trong trình duyệt (trang Ba Mẹ CHẶN vẫn chặn) — khớp AppLocker đã thả.
     web: moWebNgoaiLe(chinhSachWebCho(p, { moGiaiTri: !!den || (moHet && (!p.quy || (p.quy.conPhut > 0 && !p.gioMaySai))) || quyMo, moCoHan: !!den, appThat: mo.appThat }), nlWeb, khoaGoc && !nlCaMay),
@@ -204,7 +204,9 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     ...(p.phien && mo.phienTien && (choi.length || phienWeb) ? {
       playSessionId: p.phien.id, playApp: chuan(p.phien.muc), playWeb: !!phienWeb,
       playOfflineMinutes: Math.min(phutToiHetLich(mo.lichPhien ? { ...p, lich: mo.lichPhien } : p),
-        phutChoiOffline(p.phien.conPhut, p.soDu, mo.conThuong ?? 0, mo.phienTien.giaPhanNghin, mo.phienTien.noPhanNghin)),
+        phutChoiOffline(p.phien.conPhut, p.soDu, mo.conThuong ?? 0, mo.phienTien.giaPhanNghin, mo.phienTien.noPhanNghin),
+        // 15/11: 1 sao = 1 phút — mất mạng cũng không chơi quá số sao đang có (soDu = sao tiêu được)
+        Math.max(0, p.soDu)),
     } : {}),
   };
 }

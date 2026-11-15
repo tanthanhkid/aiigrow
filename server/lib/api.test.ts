@@ -55,16 +55,19 @@ test("đầu-cuối: đăng ký → Con → ghép máy → đồng bộ → nhi�
   const cho = (await m("cho-duyet", { tok: bm })).body;
   assert.equal(cho.nhiemVu.length, 1);
   assert.equal((await m(`luot/${luot}/anh`, { tok: bm })).body.anh.length, 1);
-  assert.equal((await m(`luot/${luot}/duyet`, { tok: bm, body: { loiKhen: "Giỏi lắm!" } })).body.soDu, 20);
+  // 15/11: Con tạo qua API được tặng 30 sao khởi đầu (mặc định) + 10 chào mừng + 10 nhiệm vụ
+  assert.equal((await m(`luot/${luot}/duyet`, { tok: bm, body: { loiKhen: "Giỏi lắm!" } })).body.soDu, 50);
   const toi = (await k("toi", { tok: may })).body;
-  assert.equal(toi.soDu, 20);
+  assert.equal(toi.soDu, 50);
   assert.equal(toi.loiKhen[0].noi_dung, "Giỏi lắm!");
   assert.deepEqual(toi.homNayConDa, ["Rửa chén sau bữa ăn"]);
   const y = (await k("yeu-cau", { tok: may, body: { loai: "them_gio", phut: 15, lyDo: "Hôm nay con ngoan" } })).body;
   assert.equal(y.trang_thai, "cho");
   assert.equal((await m(`yeu-cau/${y.id}/xem-truoc`, { tok: bm })).body.mucCanhBao, "khong");
+  // 15/11: lời xin thêm giờ (agent cũ) = xin vay 15 sao ⇒ Ba Mẹ đồng ý = cho vay 15: tiêu được 65, số dư Con thấy 50, nợ 15
   assert.equal((await m(`yeu-cau/${y.id}/dong-y`, { tok: bm, body: { truDiem: true } })).status, 200);
-  assert.equal((await k("toi", { tok: may })).body.soDu, 5);
+  const sauVay = (await k("toi", { tok: may })).body;
+  assert.deepEqual([sauVay.soDu, sauVay.sao, sauVay.no], [65, 50, 15]);
   const gd = (await m("gia-dinh", { tok: bm })).body;
   assert.equal(gd.con[0].ten, "Ken");
   assert.equal((await m(`con/${con}`, { tok: bm })).body.may[0].baoVe, "day_du");

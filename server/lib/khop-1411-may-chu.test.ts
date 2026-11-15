@@ -222,17 +222,18 @@ test("admin/ho-tro: lọc cho / da_tra_loi / cua_toi, soCho, soGap, người g�
 });
 
 // ---------------------------------------------------------------- vòng review 1
-test("khoá riêng máy thắng ngoại lệ cả máy đang mở của Con (chỉ máy đó); phiên chơi trên máy khoá bị từ chối", async () => {
+test("khoá riêng máy (chỉ máy đó); #265 ngoại lệ cũ còn trong grants không còn mở máy; phiên chơi trên máy khoá bị từ chối", async () => {
   const { fam, a, tok } = await nha();
   const m1 = await ghepMay(fam, a, "Laptop");
   const m2 = await ghepMay(fam, a, "PC");
   await q(`insert into grants(id, child_id, phut, ngoai_le, ngay, nguon, den) values ($1,$2,60,true,$3,'ngoai_le', now() + interval '1 hour')`,
     [newId(), a, gioDiaPhuong(new Date(), "Asia/Ho_Chi_Minh").ngay]);
-  assert.equal((await dv("dong-bo", { tok: m1.token, body: {} })).body.windows.mode, "tu_do", "ngoại lệ cả máy mở");
+  const p0 = (await dv("dong-bo", { tok: m1.token, body: {} })).body;
+  assert.deepEqual([p0.ngoaiLe, p0.windows.mode], [[], "hoc"], "#265: Policy không còn gửi ngoại lệ");
   await m(`may/${m1.deviceId}/khoa`, { tok, body: { khoa: true } });
   const p1 = (await dv("dong-bo", { tok: m1.token, body: {} })).body;
   assert.deepEqual([p1.khoaNgay, p1.ngoaiLe, p1.khoaLaiLuc, p1.windows.locked, p1.windows.mode], [true, [], null, true, "khoa"]);
-  assert.equal((await dv("dong-bo", { tok: m2.token, body: {} })).body.windows.mode, "tu_do", "máy khác vẫn theo ngoại lệ");
+  assert.equal((await dv("dong-bo", { tok: m2.token, body: {} })).body.windows.locked, false, "máy khác không bị khoá");
   const { xetMoPhien } = await import("./phien.ts");
   await q(`insert into app_rules(family_id, child_id, muc, ten, loai) values ($1,'','roblox.exe','Roblox','giai_tri')`, [fam]);
   assert.equal((await xetMoPhien(a, "roblox.exe", { mayId: m1.deviceId })).lyDo, "ba_me_khoa");

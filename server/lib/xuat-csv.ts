@@ -1,5 +1,5 @@
 // Xuất báo cáo tuần ra CSV (FR-06.02 «Xuất PDF/CSV»): mở bằng Excel / Google Sheets. Chỉ tên app / tên miền + thời lượng, điểm theo nhóm,
-// duyệt / từ chối, ngoại lệ — không có nội dung, ảnh bằng chứng hay tin nhắn. CSV có BOM UTF-8 để Excel đọc đúng tiếng Việt.
+// duyệt / từ chối, sao kiếm / vay / tiêu (15/11) — không có nội dung, ảnh bằng chứng hay tin nhắn. CSV có BOM UTF-8 để Excel đọc đúng tiếng Việt.
 import { baoCaoTuan } from "./bao-cao.ts";
 
 type BaoCao = Awaited<ReturnType<typeof baoCaoTuan>>;
@@ -36,7 +36,11 @@ export function csvBaoCao(bc: BaoCao) {
     "",
     dong("Được duyệt", nay.duyet.duoc),
     dong("Từ chối / cần bổ sung", nay.duyet.tu_choi),
-    dong("Ngoại lệ", nay.ngoaiLe),
+    "",
+    dong("Sao kiếm", nay.saoKiem),
+    dong("Sao vay", nay.saoVay, `${nay.lanVay} lần`),
+    dong("Sao tiêu", nay.saoTieu, `chơi ${nay.saoTieuChoi} · đổi quà ${nay.saoTieuQua}`),
+    dong("Sao trả nợ", nay.saoTraNo),
     ...(bc.chuGiai.length ? ["", dong("Ghi chú"), ...bc.chuGiai.map((x) => dong(x))] : []),
   ];
   const ten = bc.ten.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "D").replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "") || "con";

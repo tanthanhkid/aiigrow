@@ -365,6 +365,8 @@ Máy Windows / Mac mới ghép ⇒ `che_do = chan` ngay (kể cả máy dùng ch
 
 ## Thiết kế chốt 05/11 — sao, quỹ giờ chơi, ngoại lệ, nhiệm vụ theo bộ, quà trao tay (S1, chỉ thêm)
 
+> **15/11 (#263–#266): phần quỹ giờ chơi / đổi sao / cho thêm giờ / ngoại lệ dưới đây ĐÃ THAY** bởi mục «Sổ sao 15/11» cuối tệp (1 sao = 1 phút, vay sao, số dư âm). Đường cũ còn trả lời để app / agent cũ không vỡ — xem bảng tương thích ở đó.
+
 Xử lý: `server/lib/quy-gio.ts` (quỹ + đổi sao + cài đặt giờ chơi), `bo-nhiem-vu.ts`, `api-sao.ts` (router các đường mới — api-m / api-con /
 api-may gọi trước đường cũ), sửa `phien.ts`, `yeu-cau.ts`, `nhiem-vu.ts`, `phan-thuong.ts`, `agent-windows.ts`. Test: `sao-gio-choi.test.ts`.
 Luật: `docs/KE-HOACH-KHOP-THIET-KE-0511.md` L1 L2 L3 L9 L10 — thiết kế thắng BRD / CHOT-BRD khi khác.
@@ -774,3 +776,59 @@ chỉ khoá lúc Con đó đang dùng, bé khác vẫn vào). Không đổi đư
 **Xoá hồ sơ Con (`POST con/:id/xoa`) từ #267:** bé bỏ khỏi mọi máy. Máy còn Con khác ⇒ giữ (máy chung còn ≥ 2 Con vẫn chung). Máy riêng của bé ⇒ nối mọi
 Con còn lại (còn một Con ⇒ máy riêng Con đó) và nằm trong `mayChuyenDungChung`; iPhone/iPad riêng của bé mà nhà còn ≥ 2 Con ⇒ chưa nối ai (máy khoá,
 Ba Mẹ chọn ở `may/:id/con`; trong lúc đó máy khoá, `canChonCon` true).
+
+## Sổ sao 15/11 — vay sao, số dư âm, 1 sao = 1 phút «Tính phút», bỏ quỹ ngày + ngoại lệ (#263–#266; `server/lib/so-sao.ts`, test `so-sao.test.ts`)
+
+**Mô hình.** Sổ cái `points`. Tổng delta = **sao tiêu được** (≥ 0, = phút «Tính phút» còn chơi). **Nợ** = tổng delta loại `vay` + `tra_no` (≥ 0, không trần).
+**Số dư Con thấy `sao` = sao tiêu được − nợ** — ÂM khi đang nợ. Ví dụ: 0 sao, vay 30 ⇒ `sao` 0 / `phutCon` 30 / `no` 30; tiêu hết ⇒ `sao` −30;
+nhiệm vụ +10 ⇒ trả nợ trước ⇒ −20; +30 ⇒ +10. **Hết sao** (`hetSao`) = sao tiêu được ≤ 0 (số dư ≤ 0 và không còn sao vay chưa tiêu) ⇒ máy khoá nhóm «Tính phút».
+- `points.loai` mới: `vay` (+N Ba Mẹ cho vay, −N hoàn tác) · `tra_no` (−N sao kiếm được trả nợ; +N khi hoàn tác duyệt nhiệm vụ đã trả nợ) · `choi` (−N phút
+  Tính phút, một dòng «Chơi Roblox 20 phút» gom các nhịp liền nhau ≤ 10 phút) · `khoi_dau` (sao tặng khởi đầu) · `qua_phut` (quà «Thêm N phút» đã trao = +N sao).
+  Khoản trả nợ: mọi khoản cộng trừ `vay`, `hoan`, `qua_phut`, `khoi_dau`.
+- **Trừ phút**: app / web luật `giai_tri` («Tính phút») — phút agent báo thêm trong `dong-bo` (`usage`), giây trang web (`web/lich-su`), nhịp phiên
+  (`phien/nhip`, nhịp Windows), bù offline (`phien/bu`) — đều qua MỘT đồng hồ cửa sổ mỗi Con (bảng `choi_tru`): một lần báo `d` phút lúc `t` = chơi
+  trong (t − d, t]; phút trừ thêm = d − phút đã tính (mọi kênh) trong cửa sổ đó ⇒ 2 máy chơi song song không trừ đôi, chơi nối tiếp / kênh báo thưa không
+  mất phút. Phần lẻ cộng dồn, đủ 1 phút trừ 1 sao. Hết sao thì dừng trừ (không tự ghi nợ). Chỉ phút HÔM NAY mới trừ (usage ngày cũ gửi bù chỉ ghi báo cáo).
+  «Không tính phút» (`hoc`), chế độ «Mở hết», lúc «Ba Mẹ đang dùng máy» (mã mở máy) ⇒ không trừ. Mã mở máy giữ nguyên, không trừ sao.
+- **Máy chung**: `dong-bo` `usage[].con` (agent mới) = bé của dòng, `phut` = TỔNG CỦA BÉ đó (gửi cả lúc «Đổi người» để chốt phút bé trước). Dòng không
+  `con` (agent cũ) = bé đang dùng, phần = tổng máy − các bé khác, phút trừ kẹp ≤ thời gian bé đó đã đăng nhập máy.
+- **Mở bằng mã offline (agent mới gửi — CHƯA agent nào gửi)**: `dong-bo {phutBoiMa}` = phút «Tính phút» dùng lúc máy mở bằng mã kể từ lần đồng bộ trước ⇒
+  trừ khỏi phút tính sao của bé đang dùng; `phien/bu {…, boiMa: true}` ⇒ phần bù không trừ sao. Agent cũ không gửi ⇒ phút lúc mở bằng mã vẫn bị trừ.
+- **Bỏ quỹ ngày**: tham số `quy_ngay_thuong`, `quy_cuoi_tuan`, `phut_10_sao`, `doi_sao_bat`, `doi_sao_toi_da_ngay`, `cho_xin_them_gio`, `ngoai_le_*`
+  bỏ khỏi bảng tham số; migration `SCHEMA_SAO` (chạy lại được) XOÁ chúng khỏi `children.cau_hinh` / `families.cau_hinh` (không quy đổi thành sao).
+- **Bỏ ngoại lệ** (`lib/ngoai-le.ts` gỡ): không ghi `exceptions`, không cảnh báo «ngoại lệ», Policy `ngoaiLe` luôn `[]`. Ngoại lệ còn hiệu lực lúc nâng cấp
+  (≤ 240 phút) **kết thúc ngay** ở migration (`grants.den = now()`), KHÔNG quy thành khoản vay (không tạo nợ Ba Mẹ chưa đồng ý).
+- **Sao khởi đầu**: tạo Con qua `POST con` / `POST thiet-lap` tặng `saoKhoiDau` ∈ {0, 20, 30, 60} (không gửi ⇒ 30; sai ⇒ 400 `sao_khoi_dau_sai`), một lần.
+
+### App Ba Mẹ — `/api/m/*`
+| Đường | Mô tả |
+|---|---|
+| `GET gia-dinh` · `GET con/:id` · `GET con/:id/vi` | mỗi Con thêm `sao` (âm được), `no`, `phutCon`, `saoVayChuaTieu`, `hetSao`, `canhBaoNo` (nợ > 1.000), `tongVay`, `daTraNo`; `soDu` = sao tiêu được (≥ 0). Ở `gia-dinh`, `phutChoi` = phút Tính phút đã dùng hôm nay (như cũ) |
+| `GET con/:id/vi-sao[?gioiHan=50]` | Ví sao: `{ten, sao, no, phutCon, saoVayChuaTieu, hetSao, canhBaoNo, tongVay, daTraNo, saoGiu, tyLe {sao:1, phut:1}, phutChoiHomNay, cau {soDu: "−20 sao", phut: "còn 30 sao = 30 phút chơi", no: "Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước" \| null}, bayNgay {saoKiem, saoVay, lanVay, saoTraNo, saoTieu, saoTieuChoi, saoTieuQua, phutChoi}, lichSu[{id, delta, loai, kieu: vay\|hoan_vay\|tra_no\|choi\|doi_qua\|kiem\|tru, lyDo, nguoi, tenNguoi, luc}]}` |
+| `GET con/:id/cho-vay/xem-truoc?soSao=15` | Bảng «Cho vay sao»: `{ten, soSao, mucVay [10,15,30], macDinh 15, sao, no, phutCon, …, noSau, cau: "= 15 phút chơi hoặc đổi quà · Bảo Anh sẽ nợ 35 sao", nhacNo: "Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.020)" \| null (chỉ khi ĐANG nợ > 1.000), seCanhBao}` |
+| `POST con/:id/cho-vay {soSao: 1–1000, mucDich?: choi\|qua, quaId?}` | Cho vay ⇒ `{id (khoản vay — để Hoàn tác), soSao, sao, no, phutCon, saoVayChuaTieu, hetSao, canhBaoNo: {cau, no, vuotMoc} \| null}`. Nhật ký `cho_vay {so_sao, muc_dich, no_truoc, no_sau}`. Không chặn khi nợ lớn |
+| `POST vay/:id/hoan-tac` (= `them-gio/:id/hoan-tac`) | Trong 60 giây, đúng người cho (409 `het_hoan_tac`). Rút x = min(khoản vay, nợ còn, sao tiêu được) — phần chưa tiêu, chưa được trả nợ; nợ không âm, sao Con tự kiếm không mất. x = 0 ⇒ 409 `da_tieu`. → `{ok, soSaoHoan, tron, sao, no, phutCon, …}`. Rút trọn ⇒ lời xin vay về «chờ» + gỡ cảnh báo nợ của khoản đó; lần vay rút trọn không tính vào `lanVay` |
+| `GET yeu-cau/:id` | thêm `laVay, soSao, mucDich, qua {id, ten, diem} \| null, sao, no, phutCon, hetSao, canhBaoNo`; `xemTruoc` = như `cho-vay/xem-truoc`. `ngoaiLeTheoNguoi` luôn `[]` |
+| `GET yeu-cau/:id/xem-truoc[?soSao=]` | lời xin vay ⇒ như `cho-vay/xem-truoc` + `mucCanhBao` (`manh` khi đang nợ > 1.000, không thì `khong`), `soTuan`/`soThang` 0 (cũ) |
+| `POST yeu-cau/:id/dong-y {soSao?}` | lời xin vay (và `them_gio`/`ngoai_le`/`ngoai_gio` cũ) ⇒ cho vay `soSao` (mặc định số Con xin; `phut` cũ cũng nhận) ⇒ `{ngoaiLe: false, grantId (= id khoản vay), vay}`. `truDiem` bỏ qua |
+| `GET con/:id/bao-cao` | `tuanNay`/`tuanTruoc` thêm `saoKiem, saoVay, lanVay, saoTieu, saoTieuChoi, saoTieuQua, saoTraNo, xinVay {so, cho}`; `ngoaiLe` (cũ) = số lần cho vay; chú giải «Ba Mẹ cho <Con> vay N lần · S sao». CSV thêm 4 dòng sao |
+| `GET nhat-ky?ca-nha=1` | thêm `choVay {so, sao, theoNguoi[{ten, so, sao}]}` (hoàn tác trừ lại); dòng «Bà Hoa cho vay 30 sao» (nhãn «Cho vay»), «Xin vay 15 sao»; không còn «Ngoài quy tắc». `ngoaiQuyTac` (cũ) = số lần cho vay |
+| `GET thong-bao` · cài đặt | nhóm mới `canh_bao_no` «Cảnh báo nợ» (công tắc trong `tat[]`: tắt ⇒ vẫn có dòng, không đẩy). Dòng «<Tên> đã nợ quá 1.000 sao (đang nợ 1.020)» (alert `no_qua_1000`, mức `chu_y`) — MỖI khoản vay mà nợ sau vay > 1.000 (vượt mốc + mọi lần cho vay thêm). Dòng «Mẹ đã cho Bảo Anh vay 15 sao». Đẩy thật: hạ tầng push vẫn CHỜ THIẾT BỊ — `day` của dòng là quyết định đẩy |
+| `POST con {…, saoKhoiDau?}` · `POST thiet-lap {…, saoKhoiDau?}` | tặng sao khởi đầu; `thiet-lap` bỏ qua `gioChoi`, tóm tắt trả `saoKhoiDau`, `gioChoi {null, null}` |
+
+### Màn Con `/api/kid/*` + khay `/api/device/hoc-vien/*` + agent
+| Đường | Mô tả |
+|---|---|
+| `GET sao` | `{sao, no, phutCon, saoVayChuaTieu, hetSao, canhBaoNo, cau {soDu, phut, no}, mucVay [10,15,30], vayMacDinh 15}` |
+| `POST xin-vay {soSao?: 15, mucDich?: choi\|qua, quaId?, loiNhan?}` | = `POST yeu-cau {loai: "vay_sao", soSao, mucDich, quaId, lyDo}` ⇒ `{id, trang_thai: "cho", soSao, mucDich}`. Giới hạn chờ / ngày như mọi lời xin |
+| `POST yeu-cau {loai: vay_sao \| them_gio \| ngoai_le \| ngoai_gio, soSao \| phut}` | 1–1000 sao (`so_sao_sai`). Loại cũ giữ nguyên `loai` (máy cũ đọc được), `phut` = số sao. Không còn 409 `chi_ngoai_le` / `khong_cho_xin` |
+| `GET quy` | thêm `soSao` + `cau`; `sao` = số dư Con thấy (âm được); `phutDoiDuoc` = phút còn; `ngoaiLe` `[]`; `yeuCauCho` gồm `vay_sao` (+ `muc_dich`) |
+| `POST doi-sao` | (cũ) không trừ gì ⇒ 200 `{phut: 0, sao: 0, soDu, conPhut, daBo: true}` |
+| `GET tong-quan` (khay) | `sao` = số dư Con thấy (âm được); thêm `soSao {…, cau}` |
+| Policy `dong-bo` / `nhip` / chính sách chung | thêm `sao {sao, no, phutCon, saoVayChuaTieu, hetSao, canhBaoNo, cau}` (null = máy dùng chung chưa chọn Con). `windows.sao` = số dư Con thấy (âm được). `windows.playOfflineMinutes` ≤ sao tiêu được |
+
+**Tương thích agent / app cũ (tới khi bản mới phát hành).** `quy.conPhut` = sao tiêu được; `quy.ngayPhut` = 0, `quy.themPhut` = conPhut + daDung,
+`quy.daDung` = max(phút Tính phút đã dùng hôm nay, phút đã trừ sao) ⇒ agent cũ tính «còn» = ngayPhut + themPhut − daDung − phút đếm thêm sau đồng bộ = đúng
+số sao. `soDu` (Policy, ví, `toi`) = sao tiêu được (không âm). `windows.quyConPhut` / `appTinhGio` theo sao (hết sao ⇒ 0 / rỗng ⇒ app Tính phút bị đóng).
+`ngoaiLe` = `[]`. `quy.tyLe` {10, 10}, `quy.doiSao.bat` false, `quy.choXinThem` true. `GET con/:id/gio-choi` trả ô quỹ cố định (0), POST chỉ lưu giờ ngủ / giờ học.
+`POST con/:id/them-gio {phut}` = cho vay `phut` sao (trả thêm `quy`). Quy tắc tự động «tự đồng ý thêm 15 phút» bỏ (luôn không tự cho).

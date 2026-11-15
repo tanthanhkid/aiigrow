@@ -174,9 +174,8 @@ async function xacNhanTrong(t: Q, fam: string, phieu: string, nguoi: string, now
   if (p.loai === "phut") {
     // số phút chốt lúc Con đổi (redemptions.phut); phiếu cũ trước cột này ⇒ đọc quà hiện tại
     phut = p.phut ?? (await t<{ phut: number | null }>(`select phut from rewards where id = $1`, [p.reward_id]))[0]?.phut ?? null;
-    const tz = (await t<{ tz: string }>(`select tz from families where id = $1`, [fam]))[0].tz;
-    if (phut) await t(`insert into grants(id, child_id, phut, ngoai_le, ngay, nguon, nguoi, created_at) values ($1,$2,$3,false,$4,'qua',$5,$6)`,
-      [newId(), p.child_id, phut, gioDiaPhuong(now, tz).ngay, nguoi, now]);
+    // 15/11 (#264): không còn quỹ ngày — quà «Thêm N phút chơi» trao xong = +N sao (1 sao = 1 phút, không dùng trả nợ)
+    if (phut) await ghiDiem(t, p.child_id, phut, "qua_phut", `Quà ${phut} phút chơi`, { ref: p.id, nguoi });
   }
   let voucher: { ma: string; qr: string; hetHan: string; menhGia: number } | undefined;
   const vt = p.loai === "voucher" ? (await t<{ ma: string; menh_gia: number; trao_tay: boolean }>(`select ma, menh_gia, trao_tay from vouchers where redemption_id = $1`, [p.id]))[0] : undefined;

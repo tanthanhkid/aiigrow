@@ -20,12 +20,19 @@ import { chuanMuc } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
 import { cheDoChanCua, laWebCam, WEB_LUON_CHAN, type CheDoChan } from "./chan-co-ban.ts";
-import { ngoaiLeDangMo, quyHomNay, type NgoaiLeMo } from "./quy-gio.ts";
+import { quyHomNay } from "./quy-gio.ts";
+import { cauSao, laMoHetCon, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
+
+/** (cũ, #265 đã bỏ) ngoại lệ đang mở — Policy luôn gửi mảng rỗng cho agent cũ. */
+export type NgoaiLeMo = { id: string; den: string; muc: string | null; nhom: string };
 
 export type DongBoVao = {
   status?: Record<string, unknown>;
   clientTime?: string | number;
-  usage?: { muc: string; phut: number; day?: string; /** giờ bắt đầu dùng app trong ngày (ISO, tuỳ chọn) */ dauLuc?: string }[];
+  /** `con` (15/11, agent mới, máy chung): bé của dòng này — phút là TỔNG CỦA BÉ đó (không phải tổng máy); gửi cả lúc «Đổi người» để chốt phút bé trước. */
+  usage?: { muc: string; phut: number; day?: string; /** giờ bắt đầu dùng app trong ngày (ISO, tuỳ chọn) */ dauLuc?: string; con?: string }[];
+  /** 15/11: phút «Tính phút» dùng lúc máy đang mở bằng mã offline / mã mở máy kể từ lần đồng bộ trước ⇒ không trừ sao (agent mới gửi). */
+  phutBoiMa?: number;
   conDangDung?: string | null;               // máy dùng chung: Con đang dùng (chọn tên — không còn PIN)
 };
 
@@ -50,26 +57,62 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
   const lechGiay = gm ? Math.round((gm.getTime() - now.getTime()) / 1000) : null;
   const gioMaySai = lechGiay !== null && Math.abs(lechGiay) > ts.lech_gio_phut * 60;
   const nay = gioDiaPhuong(now, f.tz).ngay;
-  if (con) {
-    for (const u of (b.usage ?? []).slice(0, 300)) {
-      const ngay = ngayGhi(u?.day, nay, f.tz, gm);
-      if (!ngay || !u?.muc || !Number.isFinite(u.phut)) continue;
-      // Mac báo bundle id giữ chữ hoa (com.roblox.RobloxPlayer) mà luật luôn chữ thường (luat-app.ts › chuanMuc) ⇒ hạ chữ thường để «Chưa xếp» khớp luật
-      const muc = may.platform === "mac" ? String(u.muc).toLowerCase() : String(u.muc);
-      const pl = await phanLoai(may.family_id, con, muc);
-      // Agent gửi TỔNG phút của MÁY theo app trong ngày (không phân bé) ⇒ phần của bé này = tổng − phần các bé khác đã ghi trên máy (L13/S4)
-      const tong = Math.max(0, Math.min(1440, Math.round(u.phut)));
-      const khac = Number((await q<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from usage where device_id = $1 and ngay = $2 and muc = $3 and child_id <> $4`,
-        [may.id, ngay, muc.slice(0, 200), con]))[0]?.p ?? 0);
-      // dau_luc (giờ con bắt đầu dùng app trong ngày — «đã dùng gì»): agent gửi `dauLuc` thì lấy; không thì giờ đồng bộ đầu tiên của HÔM NAY
-      // (dòng ngày cũ gửi bù khi máy offline ⇒ null, không đoán). Gửi lại nhiều lần ⇒ giữ giờ SỚM nhất.
-      const dl = u?.dauLuc ? new Date(String(u.dauLuc)) : null;
-      const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 300_000 ? dl : ngay === nay ? now : null;
-      await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,$4,$5,$6,$7)
-               on conflict (device_id, child_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai,
-                 dau_luc = least(coalesce(usage.dau_luc, excluded.dau_luc), coalesce(excluded.dau_luc, usage.dau_luc))`,
-        [may.id, con, ngay, muc.slice(0, 200), pl.loai, Math.max(0, tong - khac), dauLuc]);
+  // 15/11 (#264): phút app «Tính phút» (giai_tri) HÔM NAY máy vừa báo thêm so với lần trước ⇒ trừ sao 1:1 cho đúng bé (so-sao.ts › truPhutChoi).
+  // Ngày cũ (máy gửi bù) chỉ ghi báo cáo, không trừ sao. Máy chung: dòng có `con` (agent mới, cả lúc «Đổi người» chốt phút bé trước) ⇒ ghi
+  // thẳng cho bé đó (TỔNG của bé); dòng không `con` (agent cũ) ⇒ bé đang dùng, phần = tổng máy − các bé khác, và phút trừ kẹp ≤ thời gian
+  // bé này đã đăng nhập máy (không đổ phút bé trước sang bé sau). `phutBoiMa` = phút dùng lúc máy mở bằng mã ⇒ không trừ.
+  const usage = (b.usage ?? []).slice(0, 300);
+  const noi = usage.some((u) => u?.con) ? new Set([...(may.child_id ? [may.child_id] : []),
+    ...(await q<{ child_id: string }>(`select child_id from device_children where device_id = $1`, [may.id])).map((x) => x.child_id)]) : new Set<string>();
+  const ngays = [...new Set(usage.map((u) => ngayGhi(u?.day, nay, f.tz, gm)).filter((x): x is string => !!x))];
+  const cuDs = ngays.length ? await q<{ child_id: string; ngay: string; muc: string; phut: number }>(
+    `select child_id, ngay, muc, phut from usage where device_id = $1 and ngay = any($2::text[])`, [may.id, ngays]) : [];
+  const cuMap = new Map<string, number>();
+  const khoa = (c: string, n: string, mu: string) => `${c}|${n}|${mu}`;
+  for (const r of cuDs) cuMap.set(khoa(r.child_id, r.ngay, r.muc), Number(r.phut));
+  const truTheoBe = new Map<string, { phut: number; muc: string | null; max: number; cu: boolean }>();
+  for (const u of usage) {
+    const ngay = ngayGhi(u?.day, nay, f.tz, gm);
+    if (!ngay || !u?.muc || !Number.isFinite(u.phut)) continue;
+    const be = u.con && noi.has(String(u.con)) ? String(u.con) : con;
+    if (!be) continue;
+    // Mac báo bundle id giữ chữ hoa (com.roblox.RobloxPlayer) mà luật luôn chữ thường (luat-app.ts › chuanMuc) ⇒ hạ chữ thường để «Chưa xếp» khớp luật
+    const muc = (may.platform === "mac" ? String(u.muc).toLowerCase() : String(u.muc)).slice(0, 200);
+    const pl = await phanLoai(may.family_id, be, muc);
+    const tong = Math.max(0, Math.min(1440, Math.round(u.phut)));
+    // agent cũ gửi TỔNG phút của MÁY theo app (không phân bé) ⇒ phần của bé = tổng − phần các bé khác đã ghi trên máy (L13/S4)
+    let khac = 0;
+    if (!u.con) for (const r of cuDs) if (r.ngay === ngay && r.muc === muc && r.child_id !== be) khac += Number(r.phut);
+    const phan = Math.max(0, tong - khac);
+    const cu = cuMap.get(khoa(be, ngay, muc)) ?? 0;
+    // dau_luc (giờ con bắt đầu dùng app trong ngày — «đã dùng gì»): agent gửi `dauLuc` thì lấy; không thì giờ đồng bộ đầu tiên của HÔM NAY
+    // (dòng ngày cũ gửi bù khi máy offline ⇒ null, không đoán). Gửi lại nhiều lần ⇒ giữ giờ SỚM nhất.
+    const dl = u?.dauLuc ? new Date(String(u.dauLuc)) : null;
+    const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 300_000 ? dl : ngay === nay ? now : null;
+    if (pl.loai === "giai_tri" && ngay === nay && phan > cu) {
+      const x = truTheoBe.get(be) ?? { phut: 0, muc: null, max: 0, cu: false };
+      const them = phan - cu;
+      x.phut += them;
+      if (them > x.max) { x.max = them; x.muc = muc; }
+      if (!u.con) x.cu = true;
+      truTheoBe.set(be, x);
     }
+    await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,$4,$5,$6,$7)
+             on conflict (device_id, child_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai,
+               dau_luc = least(coalesce(usage.dau_luc, excluded.dau_luc), coalesce(excluded.dau_luc, usage.dau_luc))`,
+      [may.id, be, ngay, muc, pl.loai, phan, dauLuc]);
+    cuMap.set(khoa(be, ngay, muc), Math.max(cu, phan));
+  }
+  const boiMa = Math.max(0, Number(b.phutBoiMa) || 0);
+  for (const [be, x] of truTheoBe) {
+    let phut = x.phut;
+    if (be === con) phut = Math.max(0, phut - boiMa);
+    // máy chung + dòng agent cũ: không quá thời gian bé này đã đăng nhập máy
+    if (x.cu && !may.child_id && may.dang_nhap_luc && may.con_dang_dung === be)
+      phut = Math.min(phut, Math.max(0, (now.getTime() - new Date(may.dang_nhap_luc).getTime()) / 60000));
+    if (phut <= 0) continue;
+    // lỗi trừ sao không làm hỏng cả lượt đồng bộ (agent vẫn cần Policy) — phút đã ghi usage, lần sau không tính lại
+    try { await truPhutChoi(be, phut, now, { muc: x.muc }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
   }
   const status = { ...(may.status ?? {}), ...(b.status ?? {}), lechGiay: gioMaySai ? lechGiay : null };
   await q(`update devices set last_seen = $2, status = $3::text::jsonb where id = $1`, [may.id, now, JSON.stringify(status)]);
@@ -102,8 +145,11 @@ export type Policy = {
    *  conPhut = phút còn chơi được · daDung = phút Giải trí đã dùng (mọi máy) · dangHoc = giờ học (chỉ app Học) · phutToiNgu / phutToiHoc = phút tới mốc. */
   quy?: { ngayPhut: number; themPhut: number; daDung: number; conPhut: number; dangNgu: boolean; dangHoc: boolean; phutToiNgu: number;
     phutToiHoc: number | null; tyLe: { sao: 10; phut: number } } | null;
-  /** Ngoại lệ Ba Mẹ đang mở (giờ ngủ / khoá / giờ học): `muc` null = cả máy; `nhom` = nhóm máy được mở (may_tinh | ios | android). */
+  /** (cũ) Ngoại lệ — #265 bỏ hẳn: luôn [] (agent cũ đọc mảng rỗng = không có ngoại lệ). */
   ngoaiLe?: NgoaiLeMo[];
+  /** 15/11 (#263/#264, lib/so-sao.ts): sổ sao của Con — `sao` số dư Con thấy (âm khi nợ) · `no` nợ Ba Mẹ · `phutCon` sao tiêu được = phút
+   *  «Tính phút» còn chơi (1 sao = 1 phút) · `hetSao` ⇒ khoá nhóm «Tính phút», hiện lối «Xin Ba Mẹ cho vay sao». null = máy dùng chung chưa chọn Con. */
+  sao?: (TrangThaiSao & { cau: { soDu: string; phut: string; no: string | null } }) | null;
 };
 
 export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: boolean }, now = new Date()): Promise<Policy> {
@@ -135,16 +181,17 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     // 14/11 «Khoá riêng máy này»: khoá của MÁY gộp vào cùng trường khoaNgay (agent mọi OS đã đọc) — khoá của Con thắng (giữ mở tạm / hạn của Con)
     lich: lichCua(c?.lich as never), khoaNgay: conKhoa || mayKhoa,
     khoaLaiLuc: mayKhoa ? null : moTamDen(c?.cau_hinh, now), khoaHetLuc,
-    soDu: c ? await soDu(c.id) : 0,
+    soDu: c ? await soDu(c.id) : 0,          // = sao tiêu được (≥ 0)
     phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)), may: ph.device_id } : null,
     tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da,
     // Con đã có chế độ rõ (Con mới / Ba Mẹ đã chọn) ⇒ web theo chế độ; Con cũ (null) ⇒ tham số web_chi_cho_phep như trước
     webChiChoPhep: c?.che_do_chan ? cheDoChan === "chi_app_duoc_phep" : ts.web_chi_cho_phep === 1,
     cheDoChan, webLuonChan: WEB_LUON_CHAN,
+    // 15/11: quỹ ngày bỏ — conPhut = sao tiêu được; ngayPhut 0 + themPhut (= conPhut + daDung) để agent cũ tính «còn» đúng bằng số sao
     quy: qy && { ngayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, daDung: qy.daDung, conPhut: qy.conPhut, dangNgu: qy.dangNgu, dangHoc: qy.dangHoc,
       phutToiNgu: qy.phutToiNgu, phutToiHoc: qy.phutToiHoc, tyLe: qy.tyLe },
-    // máy đang khoá riêng ⇒ ngoại lệ đang mở của Con (cấp cho cả các máy) không mở máy NÀY — khoá máy thắng (agent-windows: nlCaMay thắng khoaNgay)
-    ngoaiLe: c && !mayKhoa ? await ngoaiLeDangMo(c.id, now) : [],
+    ngoaiLe: [],
+    sao: qy ? { ...qy.soSao, cau: cauSao(qy.soSao) } : null,
   });
 }
 
@@ -177,9 +224,6 @@ export async function khoaNgay(fam: string, con: string, khoa: boolean, nguoi: s
                        else (cau_hinh - 'khoa_den' - 'khoa_mo_tam_den') || jsonb_strip_nulls(jsonb_build_object('khoa_ngay', true, 'khoa_den', $4::text)) end
                      where id = $1 and family_id = $2 returning id, cau_hinh as c`, [con, fam, khoa, den?.toISOString() ?? null, khoa && hoanTac]);
   if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  // khoá mới (không phải Hoàn tác) ⇒ đóng luôn ngoại lệ đang mở (05/11) — như mở tạm bị xoá ở trên
-  if (khoa && !hoanTac) await q(`update grants set den = $2, cua_so_den = case when cua_so_den > $2 then $2 else cua_so_den end
-                                 where child_id = $1 and nguon = 'ngoai_le' and den > $2`, [con, now]);
   // Hoàn tác: ghi đúng khoá đã khôi phục; hạn đã qua thì không có gì để khoá lại ⇒ không ghi «Khoá máy» giả
   const c = (r[0] as { c: Record<string, unknown> }).c;
   if (khoa && hoanTac && !khoaGoc(c, now)) return;
@@ -288,7 +332,8 @@ export async function nhanSuKien(may: May, con: string | null, ds: SuKienVao[]) 
 // Offline, agent chỉ cho chơi tới `windows.playOfflineMinutes` (số điểm/phút đã đồng bộ — agent-windows.ts) rồi tự đóng; có mạng lại thì gửi
 // `phien/bu` TRƯỚC dong-bo (nhip_cuoi còn là nhịp online cuối ⇒ đo được thời gian thật đã trôi). Máy dùng chung: Con lấy từ phiên (api-may). Máy chủ vẫn là sổ sách:
 // phút bù không vượt thời gian thật đã trôi (đồng hồ máy chủ từ nhịp cuối), không vượt phút tối đa của phiên; trừ điểm không âm; `ma` một lần.
-export type BuVao = { ma?: unknown; id?: unknown; muc?: unknown; phut?: unknown; batDau?: unknown; ketThuc?: unknown };
+/** `boiMa` (15/11, agent mới): phần bù này dùng lúc máy mở bằng mã offline ⇒ ghi phút, không trừ sao. */
+export type BuVao = { ma?: unknown; id?: unknown; muc?: unknown; phut?: unknown; batDau?: unknown; ketThuc?: unknown; boiMa?: unknown };
 
 const thuongCon = async (t: Q, con: string, ngay: string, tz: string) => {
   const cho = (await t<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2 and cua_so_den is null
@@ -346,6 +391,8 @@ export async function buPhien(may: May, con: string, b: BuVao, now = new Date())
     const can = (ket ? Math.ceil(phanNghin / 1000) : Math.floor(phanNghin / 1000)) - p.diem_tru;
     const tru = Math.max(0, Math.min(can, await soDu(con, t)));
     if (tru > 0) await ghiDiem(t, con, -tru, "phien", `Chơi ${p.muc} (khi mất mạng)`, { ref: p.id });
+    // 15/11: phút chơi khi mất mạng cũng trừ sao 1:1 (cùng đồng hồ với dong-bo — phần đã tính qua usage không trừ lại)
+    const truSao = them > 0 && b.boiMa !== true && !(await laMoHetCon(con, t)) ? (await tinhPhutChoi(t, con, them, now, { muc: p.muc, tz: r.tz })).tru : 0;
     await t(`update play_sessions set phut_dung = phut_dung + $2, phan_nghin_tru = $3, diem_tru = diem_tru + $4, phut_thuong = phut_thuong + $5,
              nhip_cuoi = $6::timestamptz,
              -- có phút chơi bù ⇒ phiên đang chơi (hết tạm dừng); không có ⇒ giữ mốc tạm dừng cũ (không kéo dài «tạm» thêm 3 phút)
@@ -354,7 +401,7 @@ export async function buPhien(may: May, con: string, b: BuVao, now = new Date())
              ly_do_ket = case when $7::boolean then coalesce(ly_do_ket, 'offline') else ly_do_ket end,
              ket_thuc = case when $7::boolean then coalesce(ket_thuc, $6::timestamptz) else ket_thuc end where id = $1`,
       [p.id, them, phanNghin, tru, dungThuong, now, ket]);
-    const kq = { ma, phien: p.id, phut: them, diemTru: tru, ketThuc: ket };
+    const kq = { ma, phien: p.id, phut: them, diemTru: tru + truSao, ketThuc: ket };
     await ghiSuKien(fam, "bu_phien", kq, { con, may: may.id }, t);
     return { ...kq, soDu: await soDu(con, t) };
   });

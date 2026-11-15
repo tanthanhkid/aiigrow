@@ -1,9 +1,9 @@
 // Thiết lập lần đầu của Ba Mẹ (L7, thiết kế chốt 05/11 — docs/thiet-ke-chot/bm-lan-dau): chỉ phụ huynh đăng ký; bỏ bước «Bật thông báo»,
 // bỏ «Ba hay Mẹ». Luồng: tên Con → Giờ chơi (+ khối chặn 2 chế độ) → Chọn app → Ghép máy (lib/ghep-may.ts) → Đang chờ → Đã ghép → Xong.
 // Nhánh «Tôi được mời vào nhà» KHÔNG gọi API này (không tạo Con) — đi lib/thanh-vien.ts (moi/cho-toi, moi/nhan).
-// POST /api/m/thiet-lap gom một lần: tạo (hoặc sửa, khi gửi lại `con.id`) hồ sơ Con + quỹ giờ chơi + giờ ngủ + chế độ chặn + app được phép.
-// Quỹ giờ chơi (L2) do nhánh S1 làm phần tính; ở đây chỉ LƯU vào children.cau_hinh theo khoá rõ ràng:
-//   quy_ngay_thuong, quy_cuoi_tuan (phút / ngày, 0–480) — docs/API.md › «Thiết lập lần đầu».
+// POST /api/m/thiet-lap gom một lần: tạo (hoặc sửa, khi gửi lại `con.id`) hồ sơ Con + sao tặng khởi đầu + giờ ngủ + chế độ chặn + app được phép.
+// 15/11 (#264, bm1-ob-gio): bỏ quỹ giờ chơi mỗi ngày — `gioChoi` (cũ) gửi lên bị bỏ qua; `saoKhoiDau` 0 / 20 / 30 / 60 (mặc định 30) tặng MỘT lần
+// khi tạo Con («chơi máy bằng sao tự kiếm», 1 sao = 1 phút) — docs/API.md › «Thiết lập lần đầu».
 import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
@@ -16,24 +16,9 @@ import { allowlistHieuLuc, datLuat, khoaSo, xoaLuat } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { laWebCam } from "./chan-co-ban.ts";
 import { tenMienSach } from "./web.ts";
+import { saoKhoiDauHopLe } from "./so-sao.ts";
 
-export const QUY_PHUT_TOI_DA = 480;
 const GIO = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-const phutHopLe = (v: unknown, ten: string) => {
-  const n = Math.round(Number(v));
-  if (!Number.isFinite(n) || n < 0 || n > QUY_PHUT_TOI_DA) throw new LoiNghiepVu("phut_sai", `Giờ chơi ${ten} từ 0 đến ${QUY_PHUT_TOI_DA} phút`);
-  return n;
-};
-
-/** Lưu quỹ giờ chơi mỗi ngày (ngày thường / T7–CN) vào cấu hình Con. */
-export async function datQuyGio(con: string, b: { ngayThuong?: unknown; cuoiTuan?: unknown }) {
-  const moi: Record<string, number> = {};
-  if (b.ngayThuong !== undefined) moi.quy_ngay_thuong = phutHopLe(b.ngayThuong, "ngày thường");
-  if (b.cuoiTuan !== undefined) moi.quy_cuoi_tuan = phutHopLe(b.cuoiTuan, "cuối tuần");
-  if (Object.keys(moi).length) await q(`update children set cau_hinh = cau_hinh || $2::text::jsonb where id = $1`, [con, JSON.stringify(moi)]);
-  return moi;
-}
 
 /** Giờ ngủ {tu, den} (bánh xe) — ghi vào children.lich.ngu, giữ khung giờ chơi đang có. */
 export async function datGioNgu(con: string, ngu: { tu?: unknown; den?: unknown }) {
@@ -45,7 +30,9 @@ export async function datGioNgu(con: string, ngu: { tu?: unknown; den?: unknown 
 
 export type ThietLapVao = {
   con?: { id?: unknown; ten?: unknown; namSinh?: unknown; avatar?: unknown };
-  gioChoi?: { ngayThuong?: unknown; cuoiTuan?: unknown };
+  /** (cũ) quỹ phút mỗi ngày — bỏ 15/11, gửi lên bị bỏ qua */ gioChoi?: { ngayThuong?: unknown; cuoiTuan?: unknown };
+  /** 15/11: sao tặng khởi đầu 0 / 20 / 30 / 60 (không gửi ⇒ 30). Chỉ tặng khi TẠO Con (gửi lại với con.id không tặng thêm). */
+  saoKhoiDau?: unknown;
   ngu?: { tu?: unknown; den?: unknown };
   cheDoChan?: unknown;
   apps?: unknown;
@@ -73,7 +60,7 @@ export function webLanDau(v: unknown): { muc: string; tinhGio: boolean }[] {
 export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string) {
   const vaoCon = b.con ?? {};
   // Kiểm MỌI dữ liệu TRƯỚC khi tạo Con: lỗi giữa chừng không để lại Con (app chưa nhận con.id ⇒ gửi lại sẽ tạo Con thứ hai)
-  if (b.gioChoi) { if (b.gioChoi.ngayThuong !== undefined) phutHopLe(b.gioChoi.ngayThuong, "ngày thường"); if (b.gioChoi.cuoiTuan !== undefined) phutHopLe(b.gioChoi.cuoiTuan, "cuối tuần"); }
+  const saoKhoiDau = saoKhoiDauHopLe(b.saoKhoiDau);
   if (b.ngu) { const tu = String(b.ngu.tu ?? ""), den = String(b.ngu.den ?? ""); if (!GIO.test(tu) || !GIO.test(den) || tu === den) throw new LoiNghiepVu("gio_sai", "Giờ ngủ dạng HH:MM, giờ khoá khác giờ mở"); }
   if (b.cheDoChan !== undefined && !(CHE_DO_CHAN as readonly string[]).includes(String(b.cheDoChan))) throw new LoiNghiepVu("che_do_chan_sai", "Chọn «Mở hết» hoặc «Chặn app & web»");
   if (b.apps !== undefined) {
@@ -86,9 +73,8 @@ export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string)
     conId = (await conCua(fam, String(vaoCon.id))).id;
     await suaCon(fam, conId, { ten: vaoCon.ten, avatar: vaoCon.avatar }, nguoi);
   } else {
-    conId = await taoCon(fam, { ten: vaoCon.ten, namSinh: vaoCon.namSinh, avatar: vaoCon.avatar }, nguoi);
+    conId = await taoCon(fam, { ten: vaoCon.ten, namSinh: vaoCon.namSinh, avatar: vaoCon.avatar, saoKhoiDau }, nguoi);
   }
-  const quy = b.gioChoi ? await datQuyGio(conId, b.gioChoi) : {};
   const ngu = b.ngu ? await datGioNgu(conId, b.ngu) : null;
   const cheDo = b.cheDoChan !== undefined ? (await datCheDoChan(fam, conId, b.cheDoChan, nguoi)).cheDoChan : null;
   const app = b.apps !== undefined ? await tx((t) => datAppChoPhep(fam, conId, b.apps, nguoi, t)) : { daDat: [], choKhop: [] };
@@ -112,7 +98,7 @@ export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string)
       await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('web_lan_dau', $2::jsonb) where id = $1`, [conId, JSON.stringify([...moi])]);
     });
   }
-  await ghiSuKien(fam, "thiet_lap_lan_dau", { quy, ngu, che_do_chan: cheDo, so_app: app.daDat.length + app.choKhop.length, so_web: soWebGhi }, { con: conId, nguoi });
+  await ghiSuKien(fam, "thiet_lap_lan_dau", { sao_khoi_dau: vaoCon.id ? 0 : saoKhoiDau, ngu, che_do_chan: cheDo, so_app: app.daDat.length + app.choKhop.length, so_web: soWebGhi }, { con: conId, nguoi });
   return tomTatThietLap(fam, conId, app);
 }
 
@@ -129,6 +115,8 @@ export async function tomTatThietLap(fam: string, conId: string, app?: { daDat: 
   const soApp = dem.app + (await one<{ n: number }>(`select count(*)::int as n from app_theo_ten where child_id = $1 and khop_luc is null`, [conId]))!.n;
   const num = (v: unknown) => (typeof v === "number" ? v : null);
   return { conId, ten: c.ten, cheDoChan: cheDoChanCua(c.che_do_chan),
-    gioChoi: { ngayThuong: num(c.cau_hinh.quy_ngay_thuong), cuoiTuan: num(c.cau_hinh.quy_cuoi_tuan) },
+    // 15/11: quỹ ngày bỏ — gioChoi (cũ) luôn null; saoKhoiDau = sao đã tặng khởi đầu · sao = số dư hiện tại
+    gioChoi: { ngayThuong: null, cuoiTuan: null },
+    saoKhoiDau: (await one<{ s: number }>(`select coalesce(sum(delta), 0)::int as s from points where child_id = $1 and loai = 'khoi_dau'`, [conId]))!.s,
     ngu: lichCua(c.lich as never).ngu, soApp, soWeb: dem.web, ...(app ? { app } : {}) };
 }

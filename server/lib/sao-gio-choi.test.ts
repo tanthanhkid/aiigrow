@@ -1,4 +1,5 @@
-// Thiết kế chốt 05/11 (S1 — docs/KE-HOACH-KHOP-THIET-KE-0511.md L1 L2 L3 L9 L10): sao, quỹ giờ chơi + đổi sao, ngoại lệ, nhiệm vụ theo bộ,
+// Thiết kế chốt 05/11 (S1 — docs/KE-HOACH-KHOP-THIET-KE-0511.md L1 L2 L3 L9 L10) + 15/11 (#263–#266: 1 sao = 1 phút, bỏ quỹ ngày / đổi sao /
+// ngoại lệ, cho vay sao): sao, giờ chơi bằng sao, nhiệm vụ theo bộ,
 // bằng chứng ghi âm / viết / bấm xong, «Nhờ làm lại», duyệt cả loạt, quà trao tay + quà phút, ngừng phát voucher.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -44,128 +45,116 @@ async function nha(sao = 0) {
   return { fam, bm, con, tokMay: may.token as string, mayId: may.deviceId as string, tokBm: await taoPhien(bm) };
 }
 
-test("quỹ hôm nay: phút Giải trí mọi máy (usage + web + phiên cũ, lấy lớn hơn theo máy); app Học không tính; thêm giờ cộng vào", async () => {
-  const { fam, bm, con, mayId } = await nha();
-  const t = VN("2026-10-21T19:30:00");                       // thứ Tư, quỹ ngày thường 60
+test("15/11 giờ chơi = sao: daDung = phút Giải trí mọi máy (usage + web + phiên cũ, lấy lớn hơn theo máy); conPhut = sao; «Cho thêm giờ» = cho vay + Hoàn tác", async () => {
+  const { fam, bm, con, mayId } = await nha(60);
+  const t = VN("2026-10-21T19:30:00");
   let qy = await qg.quyHomNay(con, t);
-  assert.deepEqual([qy.quyNgayPhut, qy.daDung, qy.conPhut, qy.dangNgu, qy.tyLe.phut], [60, 0, 60, false, 10]);
+  assert.deepEqual([qy.quyNgayPhut, qy.daDung, qy.conPhut, qy.tongPhut, qy.dangNgu, qy.soSao.sao], [0, 0, 60, 60, false, 60], "60 sao = 60 phút");
   await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,'2026-10-21','roblox.exe','giai_tri',30),
            ($1,$2,'2026-10-21','tudien.exe','hoc',10)`, [mayId, con]);
   await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay) values ($1,$2,'2026-10-21','m.youtube.com',3,720),
            ($1,$2,'2026-10-21','vnexpress.net',1,600)`, [mayId, con]);
   qy = await qg.quyHomNay(con, t);
   assert.equal(qy.daDung, 42, "Roblox 30 + YouTube 12; Từ điển + trang chưa xếp không tính");
-  assert.equal(qy.conPhut, 18);
-  // phiên cũ trên CÙNG máy (35 phút) < usage + web (42) ⇒ không cộng đôi; phiên trên máy khác ⇒ cộng
+  assert.deepEqual([qy.conPhut, qy.themPhut, qy.tongPhut], [60, 102, 102], "agent cũ: ngayPhut + themPhut − daDung = 60 = số sao");
   await q(`insert into play_sessions(id, child_id, device_id, muc, nhom, gia_phan_nghin, toi_da_phut, phut_dung, trang_thai, bat_dau)
            values ($1,$2,$3,'roblox.exe','game',0,60,35,'ket_thuc',$4)`, [newId(), con, mayId, VN("2026-10-21T18:00:00")]);
   assert.equal((await qg.quyHomNay(con, t)).daDung, 42);
   await q(`insert into play_sessions(id, child_id, device_id, muc, nhom, gia_phan_nghin, toi_da_phut, phut_dung, trang_thai, bat_dau)
            values ($1,$2,'ipad','roblox.exe','game',0,60,5,'ket_thuc',$3)`, [newId(), con, VN("2026-10-21T18:00:00")]);
   assert.equal((await qg.quyHomNay(con, t)).daDung, 47);
+  // sáng hôm sau: không có quỹ mới — vẫn đúng số sao
+  assert.equal((await qg.quyHomNay(con, VN("2026-10-22T08:00:00"))).conPhut, 60);
   const them = await qg.baMeThemGio(fam, con, 20, bm, t);
-  assert.deepEqual([them.quy.themPhut, them.quy.tongPhut, them.quy.conPhut], [20, 80, 33], "Chỉ hôm nay: 60 + 20 = 80 phút");
-  assert.equal((await qg.quyHomNay(con, VN("2026-10-22T19:30:00"))).themPhut, 0, "thêm giờ chỉ tính cho hôm nay");
-  // cuối tuần dùng quỹ riêng
-  assert.equal((await qg.quyHomNay(con, VN("2026-10-24T10:00:00"))).quyNgayPhut, 90);
+  assert.deepEqual([them.soSao, them.quy.conPhut, them.quy.soSao.no, them.quy.soSao.sao], [20, 80, 20, 60], "cho vay 20 sao: chơi được 80 phút, nợ 20");
   // hoàn tác: 60 giây, đúng người
   await loi(qg.hoanTacThemGio(fam, them.id, "nguoi-khac", t), "het_hoan_tac");
   await loi(qg.hoanTacThemGio(fam, them.id, bm, sau(t, 2)), "het_hoan_tac");
   await qg.hoanTacThemGio(fam, them.id, bm, sau(t, 0.5));
-  assert.equal((await qg.quyHomNay(con, t)).themPhut, 0);
+  assert.deepEqual([(await qg.quyHomNay(con, t)).conPhut, (await v.tomTatVi(con)).no], [60, 0]);
+  await loi(qg.hoanTacThemGio(fam, them.id, bm, sau(t, 0.6)), "het_hoan_tac");
 });
 
-test("đổi sao lấy giờ: 10 sao = 10 phút; thiếu sao / vượt tối đa ngày / tắt / giờ ngủ ⇒ từ chối; phút vào quỹ hôm nay", async () => {
-  const { fam, con } = await nha(30);
+test("«Đổi sao lấy giờ» (cũ) không còn trừ gì — 1 sao = 1 phút; agent cũ gọi vẫn 200", async () => {
+  const { con } = await nha(30);
   const t = VN("2026-10-21T19:30:00");
-  await loi(qg.doiSaoLayGio(con, 40, null, t), "vuot_toi_da_doi");     // mặc định tối đa 30 phút / ngày
-  await q(`update children set cau_hinh = cau_hinh || '{"doi_sao_toi_da_ngay": 60}'::jsonb where id = $1`, [con]);
-  await assert.rejects(qg.doiSaoLayGio(con, 40, null, t), (e: { ma?: string; message?: string }) => e.ma === "khong_du_sao" && /thiếu 10 sao/.test(e.message!));
   const r = await qg.doiSaoLayGio(con, 10, null, t);
-  assert.deepEqual([r.sao, r.soDu, r.conPhut], [10, 20, 70], "Đã đổi 10 sao · +10 phút · còn 20 sao");
-  const qy = await qg.quyHomNay(con, t);
-  assert.deepEqual([qy.doiSaoPhut, qy.tongPhut], [10, 70]);
-  assert.equal((await one<{ loai: string; delta: number }>(`select loai, delta from points where child_id = $1 and loai = 'doi_gio'`, [con]))!.delta, -10);
-  // tỷ lệ cấu hình được: 10 sao = 20 phút ⇒ 20 phút chỉ tốn 10 sao
-  await q(`update children set cau_hinh = cau_hinh || '{"phut_10_sao": 20}'::jsonb where id = $1`, [con]);
-  assert.equal((await qg.doiSaoLayGio(con, 20, null, t)).sao, 10);
-  await loi(qg.doiSaoLayGio(con, 5, null, VN("2026-10-21T21:30:00")), "khong_them_gio");   // giờ ngủ: chỉ ngoại lệ
-  await q(`update children set cau_hinh = cau_hinh || '{"doi_sao_bat": 0}'::jsonb where id = $1`, [con]);
-  await loi(qg.doiSaoLayGio(con, 5, null, t), "khong_cho_doi");
-  void fam;
+  assert.deepEqual([r.sao, r.soDu, r.conPhut, r.daBo], [0, 30, 30, true]);
+  assert.equal(await one(`select 1 from points where child_id = $1 and loai = 'doi_gio'`, [con]), undefined);
 });
 
-test("API Ba Mẹ: Giờ chơi (quỹ ngày thường / cuối tuần, giờ ngủ, giờ học, khi hết giờ), quỹ hôm nay, Cho thêm giờ + Hoàn tác", async () => {
+test("API Ba Mẹ: Giờ chơi (giờ ngủ, giờ học; ô quỹ cũ bỏ qua), quỹ hôm nay = sao, Cho thêm giờ = cho vay + Hoàn tác", async () => {
   const { con, tokBm, tokMay } = await nha(30);
   let r = await m(tokBm, `con/${con}/gio-choi`);
   assert.equal(r.status, 200);
-  assert.deepEqual([r.body.quyNgayThuong, r.body.quyCuoiTuan, r.body.phut10Sao, r.body.doiSaoBat, r.body.doiSaoToiDaNgay, r.body.choXinThemGio, r.body.gioHoc],
-    [60, 90, 10, true, 30, true, null]);
+  assert.deepEqual([r.body.quyNgayThuong, r.body.quyCuoiTuan, r.body.phut10Sao, r.body.doiSaoBat, r.body.choXinThemGio, r.body.gioHoc],
+    [0, 0, 10, false, true, null]);
   r = await m(tokBm, `con/${con}/gio-choi`, { quyNgayThuong: 45, quyCuoiTuan: 120, gioNgu: { tu: "21:30", den: "06:30" },
     gioHoc: { tu: "17:00", den: "18:00", thu: [1, 2, 3, 4, 5] }, doiSaoToiDaNgay: 9999, choXinThemGio: false });
   assert.equal(r.status, 200);
-  assert.deepEqual([r.body.quyNgayThuong, r.body.quyCuoiTuan, r.body.doiSaoToiDaNgay, r.body.choXinThemGio], [45, 120, 480, false], "kẹp min–max");
+  assert.deepEqual([r.body.quyNgayThuong, r.body.quyCuoiTuan], [0, 0], "ô quỹ cũ bỏ qua");
   assert.deepEqual([r.body.gioNgu, r.body.gioHoc], [{ tu: "21:30", den: "06:30" }, { tu: "17:00", den: "18:00", thu: [1, 2, 3, 4, 5] }]);
+  assert.equal((await one<{ c: any }>(`select cau_hinh as c from children where id = $1`, [con]))!.c.quy_ngay_thuong, undefined);
   assert.equal((await m(tokBm, `con/${con}/gio-choi`, { gioNgu: { tu: "25:00", den: "06:00" } })).status, 400);
   assert.equal((await m(tokBm, `con/${con}/gio-choi`, { gioHoc: null })).body.gioHoc, null);
-  // lịch cũ (khung giờ chơi) vẫn còn trong lịch sau khi lưu
   assert.ok((await one<{ lich: any }>(`select lich from children where id = $1`, [con]))!.lich.ngu.tu === "21:30");
-  // tắt «xin thêm giờ» ⇒ Con không gửi được
+  // xin thêm giờ (máy cũ) luôn gửi được — là lời xin vay
   await luonChoiDuoc(con);
-  assert.equal((await k(tokMay, "yeu-cau", { loai: "them_gio", phut: 30 })).body.error, "khong_cho_xin");
-  // Cho thêm giờ + Hoàn tác
+  assert.equal((await k(tokMay, "yeu-cau", { loai: "them_gio", phut: 30 })).status, 200);
+  // Cho thêm giờ (app cũ) = cho vay + Hoàn tác
   const them = await m(tokBm, `con/${con}/them-gio`, { phut: 30 });
   assert.equal(them.status, 200);
-  assert.equal(them.body.quy.themPhut, 30);
-  assert.equal((await m(tokBm, `con/${con}/quy`)).body.quy.themPhut, 30);
+  assert.deepEqual([them.body.quy.conPhut, them.body.no], [60, 30]);
+  const quy = (await m(tokBm, `con/${con}/quy`)).body;
+  assert.deepEqual([quy.quy.conPhut, quy.sao, quy.soSao.no, quy.ngoaiLe], [60, 30, 30, []]);
   assert.equal((await m(tokBm, `them-gio/${them.body.id}/hoan-tac`, {})).status, 200);
-  assert.equal((await m(tokBm, `con/${con}/quy`)).body.quy.themPhut, 0);
-  assert.equal((await m(tokBm, `con/${con}/them-gio`, { phut: 1 })).status, 400);
+  assert.equal((await m(tokBm, `con/${con}/quy`)).body.quy.conPhut, 30);
+  assert.equal((await m(tokBm, `con/${con}/them-gio`, { phut: 0 })).status, 400);
 });
 
-test("API Con + khay: xem quỹ, đổi sao, xin thêm giờ (lời nhắn không bắt buộc) ⇒ Ba Mẹ cho ⇒ quỹ tăng; Policy thả app Giải trí theo quỹ", async () => {
+test("API Con + khay: xem sao, xin vay (lời nhắn không bắt buộc) ⇒ Ba Mẹ cho vay ⇒ phút tăng; Policy thả app Giải trí theo sao, hết sao ⇒ đóng", async () => {
   const { fam, con, tokMay, tokBm, mayId } = await nha(30);
   await luonChoiDuoc(con);
-  await q(`update children set cau_hinh = cau_hinh || '{"quy_ngay_thuong": 60, "quy_cuoi_tuan": 60}'::jsonb where id = $1`, [con]);
   let r = await k(tokMay, "quy");
   assert.equal(r.status, 200);
-  assert.deepEqual([r.body.sao, r.body.quy.conPhut, r.body.phutDoiDuoc, r.body.yeuCauCho.length], [30, 60, 30, 0]);
-  assert.equal((await dv(tokMay, "hoc-vien/quy")).body.quy.tongPhut, 60, "khay dùng cùng đường");
+  assert.deepEqual([r.body.sao, r.body.quy.conPhut, r.body.phutDoiDuoc, r.body.yeuCauCho.length, r.body.cau.phut], [30, 30, 30, 0, "còn 30 sao = 30 phút chơi"]);
+  assert.equal((await dv(tokMay, "hoc-vien/quy")).body.quy.conPhut, 30, "khay dùng cùng đường");
   r = await dv(tokMay, "hoc-vien/doi-sao", { phut: 10 });
-  assert.deepEqual([r.status, r.body.soDu, r.body.conPhut], [200, 20, 70]);
+  assert.deepEqual([r.status, r.body.soDu, r.body.conPhut], [200, 30, 30], "đổi sao (cũ) không trừ gì");
   const tq = (await dv(tokMay, "hoc-vien/tong-quan")).body;
-  assert.deepEqual([tq.sao, tq.quy.tongPhut, tq.quy.doiSao.conDoiDuoc], [20, 70, 20]);
-  // xin thêm giờ không cần lời nhắn ⇒ Ba Mẹ thấy, cho
-  const yc = await k(tokMay, "yeu-cau", { loai: "them_gio", phut: 30 });
+  assert.deepEqual([tq.sao, tq.quy.conPhut, tq.soSao.phutCon], [30, 30, 30]);
+  // xin vay không cần lời nhắn ⇒ Ba Mẹ thấy, cho vay
+  const yc = await k(tokMay, "xin-vay", { soSao: 30 });
   assert.equal(yc.status, 200);
+  assert.deepEqual([yc.body.soSao, yc.body.mucDich], [30, "choi"]);
   assert.equal((await k(tokMay, "quy")).body.yeuCauCho.length, 1);
   const cho = (await m(tokBm, `yeu-cau/${yc.body.id}`)).body;
-  assert.deepEqual([cho.sao, cho.phutDoiDuoc], [20, 20], "«Con có 20 sao, tự đổi được 20 phút»");
-  const dy = await m(tokBm, `yeu-cau/${yc.body.id}/dong-y`, { phut: 30 });
+  assert.deepEqual([cho.sao, cho.phutDoiDuoc, cho.laVay, cho.soSao, cho.xemTruoc.noSau], [30, 30, true, 30, 30]);
+  const dy = await m(tokBm, `yeu-cau/${yc.body.id}/dong-y`, { soSao: 15 });
   assert.equal(dy.status, 200);
-  assert.ok(dy.body.grantId, "trả grantId để Hoàn tác");
-  assert.equal((await k(tokMay, "quy")).body.quy.tongPhut, 100);
+  assert.ok(dy.body.grantId, "trả grantId (= id khoản vay) để Hoàn tác");
+  assert.deepEqual([(await k(tokMay, "quy")).body.quy.conPhut, (await k(tokMay, "sao")).body.no], [45, 15], "Ba Mẹ chọn cho vay 15 (Con xin 30)");
   // Hoàn tác duyệt ⇒ lời xin về «chờ»
-  assert.equal((await m(tokBm, `them-gio/${dy.body.grantId}/hoan-tac`, {})).status, 200);
+  assert.equal((await m(tokBm, `vay/${dy.body.grantId}/hoan-tac`, {})).status, 200);
   assert.equal((await one<{ trang_thai: string }>(`select trang_thai from requests where id = $1`, [yc.body.id]))!.trang_thai, "cho");
-  // Policy agent: còn quỹ ⇒ Roblox chạy được, có quyConPhut + appTinhGio; hết quỹ ⇒ rời danh sách
+  // Policy agent: còn sao ⇒ Roblox chạy được, có quyConPhut + appTinhGio; hết sao ⇒ rời danh sách
   const dong = (await dv(tokMay, "dong-bo", {})).body;
   assert.ok(dong.windows.allowedApps.includes("roblox.exe"));
-  assert.deepEqual([dong.windows.quyConPhut, dong.windows.appTinhGio], [70, ["roblox.exe"]]);
+  assert.deepEqual([dong.windows.quyConPhut, dong.windows.appTinhGio, dong.sao.phutCon, dong.ngoaiLe], [30, ["roblox.exe"], 30, []]);
   assert.ok(dong.windows.allowedApps.includes("tudien.exe"));
-  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,'roblox.exe','giai_tri',70)`,
-    [mayId, con, (await qg.quyHomNay(con)).ngay]);
-  const het = (await dv(tokMay, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 70 }] })).body;
-  assert.ok(!het.windows.allowedApps.includes("roblox.exe"), "hết quỹ ⇒ app Giải trí bị đóng");
-  assert.deepEqual([het.windows.quyConPhut, het.windows.appTinhGio, het.quy.conPhut], [0, [], 0]);
+  const het = (await dv(tokMay, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 30 }] })).body;
+  assert.ok(!het.windows.allowedApps.includes("roblox.exe"), "hết sao ⇒ app Giải trí bị đóng");
+  assert.deepEqual([het.windows.quyConPhut, het.windows.appTinhGio, het.quy.conPhut, het.sao.hetSao, het.sao.cau.soDu], [0, [], 0, true, "0 sao"]);
   void fam;
 });
 
-test("Policy Windows: giờ học chỉ mở app Học; giờ ngủ khoá; giờ máy sai không thả app Giải trí", async () => {
-  const { con, mayId } = await nha();
+test("Policy Windows: giờ học chỉ mở app Học; giờ ngủ khoá; giờ máy sai không thả app Giải trí; 0 sao ⇒ không thả", async () => {
+  const { con, mayId, fam, bm } = await nha();
   const may = (await one<any>(`select * from devices where id = $1`, [mayId]))!;
   await q(`update children set lich = '{"hoc": {"tu": "17:00", "den": "18:00", "thu": [3]}}'::jsonb where id = $1`, [con]);
   const w = async (s: string, o: { gioMaySai?: boolean } = {}) => aw.chinhSachWindows(await mc.taoPolicy(may, con, { gioMaySai: !!o.gioMaySai }, VN(s)));
+  assert.ok(!(await w("2026-10-21T18:10:00")).allowedApps.includes("roblox.exe"), "0 sao ⇒ không thả app Tính phút");
+  await v.dieuChinhTay(fam, con, 30, "Thưởng", bm);
   let x = await w("2026-10-21T17:10:00");
   assert.deepEqual([x.mode, x.dangGioHoc, x.appTinhGio], ["hoc", true, []]);
   assert.ok(x.allowedApps.includes("tudien.exe") && !x.allowedApps.includes("roblox.exe"));
@@ -282,52 +271,40 @@ test("quà đổi bằng sao: chờ trao ⇒ Ba Mẹ «Đã trao» (quà phút c
   assert.ok((await dv(tokMay, "hoc-vien/tin")).body.ds.some((x: any) => x.loai === "xac_nhan_qua" && /\+30 phút/.test(x.noi)));
 });
 
-test("rà PR: hoàn tác thêm giờ hoàn sao đã trừ; Khoá lại ngay / Khoá ngay đóng ngoại lệ; ngoại lệ trang web; quà phút chốt lúc đổi; làm lại phải bằng chứng mới; bỏ «Một lần»; ô trống không lưu 0", async () => {
+test("rà PR: hoàn tác cho vay không hoàn dư; quà phút chốt lúc đổi; làm lại phải bằng chứng mới; bỏ «Một lần»; ngoại lệ cũ không còn mở gì", async () => {
   const yc = await import("./yeu-cau.ts");
-  const tt = await import("./tuan-thu.ts");
+  const ss = await import("./so-sao.ts");
   const nv = await import("./nhiem-vu.ts");
   const pt = await import("./phan-thuong.ts");
-  const { fam, bm, con, mayId, tokBm, tokMay } = await nha(40);
+  const { fam, bm, con, mayId, tokMay } = await nha(40);
   const may = (await one<any>(`select * from devices where id = $1`, [mayId]))!;
   const t = VN("2026-10-21T19:00:00");
-  // hoàn tác lần duyệt «Trừ sao» ⇒ hoàn đúng số sao, duyệt lại chỉ trừ một lần
+  // duyệt lời xin vay ⇒ hoàn tác ⇒ duyệt lại: nợ chỉ một lần
   const r = await yc.guiYeuCau(con, mayId, { loai: "them_gio", phut: 30 }, t);
-  const d = await yc.dongY(fam, r.id, bm, { truDiem: true, phut: 30 }, t);
-  assert.equal(await v.soDu(con), 10);
-  await qg.hoanTacThemGio(fam, d.grantId!, bm, sau(t, 0.5));
-  assert.equal(await v.soDu(con), 40, "hoàn 30 sao");
-  await yc.dongY(fam, r.id, bm, { truDiem: true, phut: 30 }, sau(t, 1));
-  assert.equal(await v.soDu(con), 10);
-  const g2 = (await one<{ id: string }>(`select id from grants where request_id = $1`, [r.id]))!.id;
-  await qg.hoanTacThemGio(fam, g2, bm, sau(t, 1.5));
-  assert.equal(await v.soDu(con), 40, "duyệt / hoàn tác hai lần không hoàn dư");
-  await yc.dongY(fam, r.id, bm, { truDiem: true, phut: 30 }, sau(t, 2));
-  assert.equal(await v.soDu(con), 10);
-  // Khoá lại ngay (trên máy) đóng ngoại lệ một app; Ba Mẹ «Khoá ngay» đóng ngoại lệ cả máy
+  const d = await yc.dongY(fam, r.id, bm, { phut: 30 }, t);
+  assert.equal(await v.soDu(con), 70);
+  await ss.hoanTacVay(fam, d.grantId!, bm, sau(t, 0.5));
+  assert.deepEqual([await v.soDu(con), await v.noCua(con)], [40, 0]);
+  const d2 = await yc.dongY(fam, r.id, bm, { phut: 30 }, sau(t, 1));
+  await ss.hoanTacVay(fam, d2.grantId!, bm, sau(t, 1.5));
+  await loi(ss.hoanTacVay(fam, d2.grantId!, bm, sau(t, 1.6)), "het_hoan_tac");
+  assert.deepEqual([await v.soDu(con), await v.noCua(con)], [40, 0], "duyệt / hoàn tác hai lần không hoàn dư");
+  await yc.dongY(fam, r.id, bm, { phut: 30 }, sau(t, 2));
+  assert.deepEqual([await v.soDu(con), await v.noCua(con)], [70, 30]);
+  // ngoại lệ cũ (một app / trang web lúc giờ ngủ) = xin vay ⇒ không mở app / web nào ngoài luật
   const T2 = VN("2026-10-21T21:30:00");
-  const n1 = await yc.guiYeuCau(con, mayId, { loai: "ngoai_le", phamVi: "app", giaTri: "tudien.exe", phut: 30 }, T2);
-  await yc.dongY(fam, n1.id, bm, {}, T2);
-  assert.equal((await qg.ngoaiLeDangMo(con, sau(T2, 1))).length, 1);
-  await tt.huyMoKhanCap(fam, mayId, bm, sau(T2, 2));
-  assert.equal((await qg.ngoaiLeDangMo(con, sau(T2, 3))).length, 0);
-  const n2 = await yc.guiYeuCau(con, mayId, { loai: "ngoai_le", phut: 30 }, sau(T2, 4));
-  await yc.dongY(fam, n2.id, bm, {}, sau(T2, 4));
-  assert.equal((await qg.ngoaiLeDangMo(con, sau(T2, 5))).length, 1);
-  await mc.khoaNgay(fam, con, true, bm, null, sau(T2, 6));
-  assert.equal((await qg.ngoaiLeDangMo(con, sau(T2, 7))).length, 0);
-  assert.equal(await tt.hanMoCuaMay(may, con, sau(T2, 7)), null);
-  await mc.khoaNgay(fam, con, false, bm, null, sau(T2, 8));
-  // ngoại lệ trang web lúc giờ ngủ ⇒ trình duyệt + chỉ trang đó (chế độ chỉ cho phép)
-  const n3 = await yc.guiYeuCau(con, mayId, { loai: "ngoai_le", phamVi: "app", giaTri: "https://www.youtube.com/watch?v=1", phut: 15 }, sau(T2, 10));
-  await yc.dongY(fam, n3.id, bm, {}, sau(T2, 10));
-  const w = aw.chinhSachWindows(await mc.taoPolicy(may, con, { gioMaySai: false }, sau(T2, 11)));
-  assert.deepEqual([w.locked, w.web.cheDo], [false, "chi_cho_phep"]);
-  assert.ok(w.allowedApps.includes("msedge.exe") && w.web.cho.includes("youtube.com") && !w.web.chan.includes("youtube.com"));
-  // quà phút: số phút chốt lúc đổi
+  const n3 = await yc.guiYeuCau(con, mayId, { loai: "ngoai_le", phamVi: "app", giaTri: "https://www.youtube.com/watch?v=1", phut: 15 }, T2);
+  await yc.dongY(fam, n3.id, bm, {}, T2);
+  const w = aw.chinhSachWindows(await mc.taoPolicy(may, con, { gioMaySai: false }, sau(T2, 1)));
+  assert.deepEqual([w.locked, w.ngoaiLe, w.khoaKhiHetNgoaiLe], [true, undefined, undefined], "giờ ngủ vẫn khoá — không còn ngoại lệ");
+  // quà phút: số phút chốt lúc đổi (trao xong = +N sao)
   const qua = await pt.taoQua(fam, { ten: "Thêm 20 phút chơi", loai: "phut", diem: 5, phut: 20 });
   const doi = await pt.doiQua(con, qua, t);
   await pt.suaQua(fam, qua, { phut: 5 });
+  const truoc = await v.soDu(con);
   assert.equal((await pt.xacNhanPhieu(fam, doi.phieu, bm, t)).phut, 20);
+  assert.equal(await v.soDu(con), truoc + 20, "quà phút trao xong = +20 sao");
+  assert.equal(await v.noCua(con), 45, "30 + 15 (lời xin ngoại lệ cũ = vay 15); quà phút không dùng trả nợ (Ba Mẹ tặng)");
   // làm lại: nộp lại đúng ảnh cũ ⇒ từ chối
   const id = await nv.taoNv(fam, { ten: "Dọn phòng", diem: 10, bang_chung: "anh" });
   const luot = await nv.batDau(con, id);
@@ -341,19 +318,8 @@ test("rà PR: hoàn tác thêm giờ hoàn sao đã trừ; Khoá lại ngay / Kh
   assert.equal((await dv(tokMay, `hoc-vien/luot/${ld}/nop`, {})).body.trangThai, "cho_duyet");
   await nv.nhoLamLai(fam, ld, bm, {});
   assert.ok((await nv.nvCuaCon(con, VN("2026-10-24T10:00:00"))).some((x) => x.id === doc && x.lam_lai), "thứ Bảy vẫn thấy việc phải làm lại");
-  // ngoại lệ web: tên miền con không gỡ chặn tên miền cha
-  const n4 = await yc.guiYeuCau(con, mayId, { loai: "ngoai_le", phamVi: "app", giaTri: "m.example.com", phut: 15 }, sau(T2, 40));
-  await la.datLuat(fam, { muc: "example.com", loai: "chan" });
-  await yc.dongY(fam, n4.id, bm, {}, sau(T2, 40));
-  const w4 = aw.chinhSachWindows(await mc.taoPolicy(may, con, { gioMaySai: false }, sau(T2, 41)));
-  assert.ok(w4.web.chan.includes("example.com") && w4.web.cho.includes("m.example.com"));
   // «Một lần» rồi sửa lặp lại ⇒ không còn một lần
   const motLan = await nv.taoNv(fam, { ten: "Gói quà", diem: 5, lap_lai: "mot_lan" });
   await nv.suaNv(fam, motLan, { lap_lai: "hang_ngay" });
   assert.equal((await one<{ kieu: string }>(`select kieu from tasks where id = $1`, [motLan]))!.kieu, "thuong");
-  // ô bỏ trống không lưu thành 0
-  await m(tokBm, `con/${con}/gio-choi`, { quyNgayThuong: "", doiSaoToiDaNgay: "  " });
-  const gc = (await m(tokBm, `con/${con}/gio-choi`)).body;
-  assert.deepEqual([gc.quyNgayThuong, gc.doiSaoToiDaNgay], [60, 30]);
-  void tokMay;
 });

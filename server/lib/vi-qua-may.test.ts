@@ -24,8 +24,8 @@ const m = goi(xuLyM, "m"), dv = goi(xuLyMay, "device");
 test("device/vi-qua: bé theo phiên máy — quà, điều kiện, phiếu chờ, đã trao + voucher QR, huy hiệu", async () => {
   const { fam, bm } = await taoNha();
   const tokBm = await taoPhien(bm);
-  const anh = (await m(tokBm, "con", { ten: "Bảo Anh", pin: "4821" })).body.id as string;
-  const minh = (await m(tokBm, "con", { ten: "Bảo Minh" })).body.id as string;
+  const anh = (await m(tokBm, "con", { ten: "Bảo Anh", pin: "4821", saoKhoiDau: 0 })).body.id as string;
+  const minh = (await m(tokBm, "con", { ten: "Bảo Minh", saoKhoiDau: 0 })).body.id as string;
   const chung = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "PC chung");
   const tok = chung.token as string;
   // chưa ai đăng nhập ⇒ 409

@@ -10,6 +10,7 @@ import { cuaHang, doiQua } from "./phan-thuong.ts";
 import { tomTatVi } from "./vi.ts";
 import { tuanChuoi } from "./thanh-tich.ts";
 import { quyHomNay } from "./quy-gio.ts";
+import { cauSao } from "./so-sao.ts";
 
 export type TinHocVien = { id: string; loai: string; tieu: string; noi: string; luc: string };
 
@@ -33,7 +34,8 @@ export async function tongQuan(con: string) {
     con: { id: c.id, ten: c.ten },
     soDu: vi.soDu, tongKiem: vi.tongKiem, capDo: vi.capDo, diemChoDuyet: vi.diemChoDuyet,
     // 05/11: sao (= điểm) + quỹ giờ chơi hôm nay (lib/quy-gio.ts) cho khay mới «Hôm nay»: «Giờ chơi còn lại 18 phút · Đã chơi 42 / 60»
-    sao: vi.soDu, saoChoDuyet: vi.diemChoDuyet,
+    // 15/11: `sao` = số dư Con thấy (ÂM khi đang nợ) · soSao = nợ, phút còn chơi (1 sao = 1 phút), hết sao + câu sẵn
+    sao: vi.sao, saoChoDuyet: vi.diemChoDuyet, soSao: { ...qy.soSao, cau: cauSao(qy.soSao) },
     // 14/11 (con-ngay-thuong 25): «5 ngày liền!» + 7 ô ngày — máy Con hiện sau «Ba Mẹ duyệt rồi!»
     chuoi,
     quy: { conPhut: qy.conPhut, daDung: qy.daDung, tongPhut: qy.tongPhut, quyNgayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, dangNgu: qy.dangNgu,

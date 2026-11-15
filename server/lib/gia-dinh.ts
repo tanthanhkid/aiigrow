@@ -60,19 +60,23 @@ async function trungTenCon(t: Q, fam: string, ten: string, boQua: string | null)
 }
 const khoaTen = (t: Q, fam: string) => t(`select pg_advisory_xact_lock(hashtext($1))`, ["ten-con:" + fam]);
 
-export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown; pin?: unknown; avatar?: unknown; nhom?: unknown }, nguoi?: string) {
+/** `saoKhoiDau` (15/11, bm1-ob-gio): sao tặng khởi đầu 0 / 20 / 30 / 60 — hàm này mặc định 0; API Ba Mẹ (POST con, thiet-lap) mặc định 30. */
+export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown; pin?: unknown; avatar?: unknown; nhom?: unknown; saoKhoiDau?: unknown }, nguoi?: string) {
   const ten = tenConHopLe(b.ten);
   const nam = Number(b.namSinh) || null;
   if (nam && (nam < new Date().getFullYear() - 18 || nam > new Date().getFullYear() - 3)) throw new LoiNghiepVu("nam_sinh_sai", "Năm sinh chưa đúng");
   // 06/11 L13 (đảo L5): PIN 4 số Ba Mẹ đặt ở «Thêm con» (không bắt buộc — bé chưa có PIN thì chọn tên vào thẳng)
   const pin = pinVao(b.pin);
   const nhom = b.nhom === "teen" || b.nhom === "nhi" ? b.nhom : nhomTheoTuoi(nam);
+  const { saoKhoiDauHopLe, tangSaoKhoiDau } = await import("./so-sao.ts");
+  const saoKhoiDau = saoKhoiDauHopLe(b.saoKhoiDau, 0);
   const id = newId();
   // Tạo mới KHÔNG chặn trùng tên (bước thiết lập thử lại / mất phản hồi không được kẹt); chỉ đổi tên (suaCon) mới chặn.
   // L4: Con mới chạy «Chặn app & web» (chi_app_duoc_phep) — đặt rõ để web cũng theo chế độ (Con cũ null ⇒ web theo tham số cũ).
   await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan, pin_ma, pin_dat_luc)
             values ($1,$2,$3,$4,$5,$6,'chi_app_duoc_phep',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom, pin, pin ? new Date() : null]);
-  await ghiSuKien(fam, "tao_con", { ten, nhom, ...(pin ? { pin: true } : {}) }, { con: id, nguoi });
+  await ghiSuKien(fam, "tao_con", { ten, nhom, ...(pin ? { pin: true } : {}), ...(saoKhoiDau ? { sao_khoi_dau: saoKhoiDau } : {}) }, { con: id, nguoi });
+  if (saoKhoiDau) await tangSaoKhoiDau(id, saoKhoiDau, nguoi ?? null);
   await noiConMoiVaoMayChung(fam, id);           // #267: bé mới tự có ở máy chung sẵn có (Ba Mẹ bỏ gán được)
   // 06/11 L14: nhà chưa có quà ⇒ gieo 7 quà mặc định một lần (lib/qua-bang-gia.ts). Lỗi gieo không làm hỏng việc tạo Con.
   try { await (await import("./qua-bang-gia.ts")).gieoQuaMacDinh(fam); } catch (e) { console.error("gieo quà mặc định lỗi", e); }
