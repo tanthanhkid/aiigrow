@@ -43,7 +43,7 @@ public sealed class HvNvDs
 public sealed record ViecCon(string Nhom, string Ten, string Phu, int Sao, string Icon, string? Nut, HvNhiemVu? NhiemVu, string? LoiNhan = null);
 
 /// <summary>Kết quả Ba Mẹ trả lời, đọc từ tin (hoc-vien/tin) để bật màn kết quả: duyệt · nhờ làm lại · trao quà · đã thêm / chưa thêm app, web.</summary>
-/// <param name="Loai">duyet | lam_lai | trao_qua | da_them | chua_them.</param>
+/// <param name="Loai">duyet | lam_lai | trao_qua | da_them | chua_them | cho_vay | chua_vay.</param>
 /// <param name="Nhom">da_them: tinh_phut | khong_tinh_phut.</param>
 /// <param name="Nguoi">Người trả lời («Mẹ Lan»), đọc từ tiêu đề tin.</param>
 public sealed record KetQuaTin(string Loai, string Ten, int? Sao, int? Phut, string? LoiNhan, string? Nhom = null, string? Nguoi = null);
@@ -234,6 +234,8 @@ public static class AppConView
     private static readonly Regex TenTrongNgoac = new("«([^»]+)»", RegexOptions.Compiled);
     private static readonly Regex SoSaoRe = new(@"\+(\d+)\s*sao", RegexOptions.Compiled);
     private static readonly Regex SoPhutRe = new(@"\+(\d+)\s*phút", RegexOptions.Compiled);
+    private static readonly Regex ChoVayRe = new(@"^(.+?) cho vay (\d+) sao$", RegexOptions.Compiled);
+    private static readonly Regex ChuaVayRe = new(@"^(.+?) chưa cho vay sao$", RegexOptions.Compiled);
     private static readonly Regex DaThemRe = new(@"^(.+?) đã thêm (.+)$", RegexOptions.Compiled);
     private static readonly Regex ChuaThemRe = new(@"^(.+?) chưa thêm (.+?)(?: lúc này)?$", RegexOptions.Compiled);
 
@@ -269,6 +271,19 @@ public static class AppConView
                 var khong = noi.Contains("Không tính phút");
                 var loi = TenTrongNgoac.Matches(noi).Select(x => x.Groups[1].Value).FirstOrDefault(x => x is not ("Tính phút" or "Không tính phút"));
                 return new KetQuaTin("da_them", m2.Groups[2].Value.Trim(), null, null, loi, khong ? "khong_tinh_phut" : "tinh_phut", m2.Groups[1].Value.Trim());
+            }
+            // 15/11 (PR #277): kết quả lời xin vay — «Mẹ Lan cho vay 15 sao» / «Mẹ Lan chưa cho vay sao» · «lý do»
+            case "cho_vay":
+            {
+                var m4 = ChoVayRe.Match(t.Tieu ?? "");
+                return m4.Success && int.TryParse(m4.Groups[2].Value, out var nv) ? new KetQuaTin("cho_vay", "", nv, null, null, null, m4.Groups[1].Value.Trim()) : null;
+            }
+            case "tu_choi_yeu_cau":
+            {
+                var m5 = ChuaVayRe.Match(t.Tieu ?? "");
+                if (!m5.Success) return null;
+                var loi = TenTrongNgoac.Match(noi) is { Success: true } lm ? lm.Groups[1].Value : null;
+                return new KetQuaTin("chua_vay", "", null, null, loi, null, m5.Groups[1].Value.Trim());
             }
             case "bo_qua_yeu_cau":
             {

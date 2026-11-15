@@ -262,7 +262,7 @@ internal sealed class TrayContext : ApplicationContext
         {
             if (chu != null) f.ShowDialog(chu); else f.ShowDialog();
             sau = f.Sau;
-            if (f.ChoId is { } id) { _vayCho = (id, f.SoDaXin); _vayHoiLuc = DateTimeOffset.MinValue; }
+            if (f.ChoId is { } id) { _vayCho = (id, f.SoDaXin); _vayHoiLuc = DateTimeOffset.MinValue; _vayDaBao = false; }
         }
         var tuKhoa = chu != null && (_state.Locked || chu == _hetSao);
         switch (sau)
@@ -289,6 +289,7 @@ internal sealed class TrayContext : ApplicationContext
         if (kq == TrayView.KetQuaXin.HetHan) return;
         var (sao, _) = await HvApi.GetAsync<HvSao>("hoc-vien/sao");
         if (kq == TrayView.KetQuaXin.Duoc) _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });
+        _vayDaBao = true;
         var f = new XinVayForm(taiNgay: false);
         if (kq == TrayView.KetQuaXin.Duoc) f.VeDuoc(r.KetQua?.TenNguoiDuyet, r.KetQua?.LoiNhan, v.SoSao, sao);
         else f.VeChuaCho(r.KetQua?.TenNguoiDuyet, r.KetQua?.LoiNhan, sao);
@@ -309,6 +310,7 @@ internal sealed class TrayContext : ApplicationContext
     private async Task HienKetQuaAsync(KetQuaTin kq)
     {
         if (_ketQua is { IsDisposed: false } || _dangMoKetQua) return;
+        if (kq.Loai is "cho_vay" or "chua_vay") { await HienKetQuaVayAsync(kq); return; }
         _dangMoKetQua = true;   // giữ chỗ qua lượt await — hai lượt tin gần nhau không mở hai hộp
         HvTongQuan? tq;
         try { (tq, _) = await HvApi.GetAsync<HvTongQuan>("hoc-vien/tong-quan"); }
@@ -334,6 +336,30 @@ internal sealed class TrayContext : ApplicationContext
         };
         h.Show();
     }
+
+    /// <summary>Tin «Mẹ Lan cho vay 15 sao» / «chưa cho vay sao» (máy chủ báo sau 60 giây Hoàn tác) ⇒ màn them-fsif1cbl / them-zo8kohea — trừ khi hộp xin vay
+    /// đang mở hoặc khay đã tự báo qua lời xin đang theo dõi.</summary>
+    private async Task HienKetQuaVayAsync(KetQuaTin kq)
+    {
+        if (XinVayForm.DangMo > 0 || _vayDaBao) { _vayDaBao = false; return; }
+        _vayCho = null;
+        var (sao, _) = await HvApi.GetAsync<HvSao>("hoc-vien/sao");
+        if (_state.Locked) return;
+        if (kq.Loai == "cho_vay") _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });
+        var f = new XinVayForm(taiNgay: false);
+        if (kq.Loai == "cho_vay") f.VeDuoc(kq.Nguoi, null, kq.Sao ?? 0, sao); else f.VeChuaCho(kq.Nguoi, kq.LoiNhan, sao);
+        f.FormClosed += (_, _) =>
+        {
+            var sau = f.Sau;
+            f.Dispose();
+            if (sau == XinVayForm.SauNhiemVu) OpenApp(MucApp.NhiemVu);
+            else if (sau == XinVayForm.SauNhan) OpenApp(MucApp.TinNhan);
+        };
+        f.Show();
+    }
+
+    /// <summary>Khay vừa báo kết quả lời xin vay (theo dõi trạng thái) ⇒ tin cùng kết quả đến sau không bật thêm màn.</summary>
+    private bool _vayDaBao;
 
     private readonly MungChuoi _mung = new();   // ngày (giờ gia đình) đã hiện «Giỏi lắm!» — mỗi ngày một lần, theo từng bé
 

@@ -264,6 +264,8 @@ public class AppConTests
         Assert.Equal(new KetQuaTin("chua_them", "tiktok.com", null, null, null, null, "Lan"),
             AppConView.DocTin(new HvTin { Loai = "bo_qua_yeu_cau", Tieu = "Lan chưa thêm tiktok.com lúc này", Noi = "Con xin lại sau được nhé" }));
         Assert.Null(AppConView.DocTin(new HvTin { Loai = "loi_khen", Noi = "Giỏi lắm" }));
+        Assert.Equal(new KetQuaTin("cho_vay", "", 15, null, null, null, "Mẹ Lan"), AppConView.DocTin(new HvTin { Loai = "cho_vay", Tieu = "Mẹ Lan cho vay 15 sao", Noi = "+15 sao · con đang nợ 15 sao" }));
+        Assert.Equal(new KetQuaTin("chua_vay", "", null, null, "Mai chơi tiếp nhé", null, "Mẹ Lan"), AppConView.DocTin(new HvTin { Loai = "tu_choi_yeu_cau", Tieu = "Mẹ Lan chưa cho vay sao", Noi = "«Mai chơi tiếp nhé»" }));
         var moi = new List<HvTin>
         {
             new() { Loai = "duyet_nhiem_vu", Noi = "«A» · +10 sao", Luc = new DateTimeOffset(2026, 11, 5, 10, 0, 0, TimeSpan.Zero) },
