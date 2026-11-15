@@ -161,6 +161,7 @@ test("máy MỚI ghép vào thẳng Chặn thật (Thanh 25/10); máy dùng chun
   assert.deepEqual((await q<{ che_do: string; che_do_ba_me: boolean }>(`select che_do, che_do_ba_me from devices where id = $1`, [dt.deviceId]))[0],
     { che_do: "giam-sat", che_do_ba_me: false });
   // máy dùng chung chưa chọn Con: không ép chặn (luật rỗng sẽ khoá nhầm cả nhà); Con chọn tên ⇒ «chan»
+  await g.taoCon(fam, { ten: "Mi" });                          // #267: máy chung = ≥ 2 Con
   const chung = await g.ghepMay(await g.taoMaGhep(fam, null, "windows"), "windows", "PC phòng khách");
   assert.equal((await dv("dong-bo", { tok: chung.token, body: {} })).body.windows.cheDo, "giam-sat");
   const pc = (await dv("chon-con", { tok: chung.token, body: { con } })).body.phienCon;

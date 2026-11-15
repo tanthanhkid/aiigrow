@@ -29,6 +29,7 @@ import { xuLyConSao } from "./api-sao.ts";
 import { xuLyMayS3 } from "./api-s3.ts";
 import { baMeDen, nguoiDungMay } from "./pin-be.ts";
 import { viQuaMay } from "./vi-qua-may.ts";
+import { coNoi } from "./may-nhieu-con.ts";
 import { chinhSachWebCho } from "./web.ts";
 import { choThayDoi, phienBanDoi } from "./cho-thay-doi.ts";
 
@@ -36,11 +37,12 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
     const d = p.join("/");
     // M4b: ghép bằng token gói cài — đường chính ghep-goi (agent-win PR #11); ghep {token} là bí danh (giữ cách cũ {ma})
-    if (d === "ghep-goi" && req.method === "POST") { const bb = await docJson(req); return json(await doiGoiCai(String(bb.token ?? ""), String(bb.nen ?? ""), String(bb.tenMay ?? ""), new Date(), bb.maMay)); }
-    if (d === "ghep" && req.method === "POST") { const bb = await docJson(req.clone()); if (bb.token) return json(await doiGoiCai(String(bb.token), String(bb.nen ?? ""), String(bb.tenMay ?? ""), new Date(), bb.maMay)); }
+    if (d === "ghep-goi" && req.method === "POST") { const bb = await docJson(req); return json(await doiGoiCai(String(bb.token ?? ""), String(bb.nen ?? ""), String(bb.tenMay ?? ""), new Date(), bb.maMay, bb.con)); }
+    if (d === "ghep" && req.method === "POST") { const bb = await docJson(req.clone()); if (bb.token) return json(await doiGoiCai(String(bb.token), String(bb.nen ?? ""), String(bb.tenMay ?? ""), new Date(), bb.maMay, bb.con)); }
     if (d === "ghep" && req.method === "POST") {
       const b = await docJson(req);
-      return json(await ghepMay(String(b.ma ?? ""), String(b.nen ?? ""), String(b.tenMay ?? ""), nguonGoi(req.headers), Date.now(), b.maMay));
+      // #267: `con` = iPhone/iPad chọn MỘT Con khi mã ghép cho nhiều Con (409 ios_mot_con kèm conChon nếu thiếu)
+      return json(await ghepMay(String(b.ma ?? ""), String(b.nen ?? ""), String(b.tenMay ?? ""), nguonGoi(req.headers), Date.now(), b.maMay, b.con));
     }
     // M4b: agent báo xong lệnh — trước bước kiểm token máy vì máy đã gỡ (đã xoá) vẫn báo lại được, không ghi đôi
     if (p[0] === "lenh" && p[1] && p[2] === "xong" && req.method === "POST") return json(await xongLenh(bearer(req), p[1]));
@@ -55,7 +57,9 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
     // Con đang dùng: máy riêng ⇒ chủ máy; máy dùng chung ⇒ phiên Con (chọn tên + PIN) gửi kèm header X-Phien-Con, không kèm ⇒ bé đang đăng nhập
     // trên máy (06/11 L13: devices.con_dang_dung — giờ, sao, nhiệm vụ, chính sách tính theo bé này). «Ba Mẹ đang dùng máy» ⇒ không bé nào.
     const phienCon = req.headers.get("x-phien-con");
-    const k = phienCon ? await conTuPhien(phienCon) : undefined;
+    // #267: phiên Con chỉ có hiệu lực khi Con nằm trong danh sách nối của máy (máy chung chỉ cho Con được gán)
+    const k0 = phienCon ? await conTuPhien(phienCon) : undefined;
+    const k = k0 && k0.family_id === may.family_id && (may.child_id ? k0.id === may.child_id : await coNoi(may.id, k0.id)) ? k0 : undefined;
     const bmDen = baMeDen(may);
     // «bé đang dùng» chỉ còn hiệu lực khi phiên Con của bé trên máy này còn hạn (12 giờ) — hết phiên / đăng xuất ⇒ máy thả ra như trước
     const dangDung = !may.child_id && !bmDen && !(k && k.family_id === may.family_id) && may.con_dang_dung

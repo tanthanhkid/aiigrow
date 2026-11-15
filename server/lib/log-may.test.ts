@@ -78,6 +78,7 @@ test("lời xin từ máy được Ba Mẹ đồng ý ⇒ khay nhận «duoc» (
   // máy dùng chung (mã không gắn Con) ⇒ ghép trả childName null; Ba Mẹ gán Con ⇒ máy thành của Con
   const n = await taoNha();
   const con = await g.taoCon(n.fam, { ten: "Phi" });
+  await g.taoCon(n.fam, { ten: "Bo" });                        // #267: máy chung = ≥ 2 Con
   const ghep = await g.ghepMay(await g.taoMaGhep(n.fam, null, "windows"), "windows", "PC chung");
   assert.equal(ghep.dungChung, true);
   assert.equal("childName" in ghep, false, "không Con ⇒ không gửi childName null cho bộ cài cũ");

@@ -42,6 +42,7 @@ async function dv(duong: string, tok: string, body: unknown) {
 async function nha(diem: number, o: { dungChung?: boolean } = {}) {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
+  if (o.dungChung) await g.taoCon(fam, { ten: "Mi" });        // #267: máy chung = nối ≥ 2 Con (mã không gắn Con ⇒ mọi Con trong nhà)
   if (diem) await v.dieuChinhTay(fam, con, diem, "Điểm thử", bm);
   await la.datLuat(fam, { muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" });
   await la.datLuat(fam, { muc: "youtube.com", ten: "YouTube", loai: "giai_tri", nhom: "video_ngan" });

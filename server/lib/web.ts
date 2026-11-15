@@ -102,7 +102,7 @@ export async function thongKeWeb(fam: string, con: string, soNgay = 7, now = new
   const ngayDs = [...theoNgayMap.entries()].map(([ngay, v]) => ({ ngay, ...v }));
   const homNay = theoNgayMap.get(hom) ?? { giay: 0, soLan: 0, soTrang: 0 };
   const may = await q<{ id: string; name: string; platform: string; last_seen: Date | null; che_do: string; che_do_ba_me: boolean; status: Record<string, unknown> | null }>(
-    `select id, name, platform, last_seen, che_do, che_do_ba_me, status from devices where family_id = $1 and (child_id = $2 or dung_chung)`, [fam, con]);
+    `select id, name, platform, last_seen, che_do, che_do_ba_me, status from devices where family_id = $1 and exists (select 1 from device_children x where x.device_id = devices.id and x.child_id = $2)`, [fam, con]);
   return {
     soNgay: sn, homNay, theoNgay: ngayDs, tongGiay: ngayDs.reduce((a, x) => a + x.giay, 0), top: trang.slice(0, 30), tatCa: trang.length, luat,
     cheDoWeb: chiChoPhep ? "chi_cho_phep" as const : "mo" as const,
