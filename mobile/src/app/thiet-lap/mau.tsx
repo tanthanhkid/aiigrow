@@ -97,7 +97,7 @@ function ThemViecRieng({ mo, dong, con, xong }: { mo: boolean; dong: () => void;
   const [sao, setSao] = useState(10);
   const [nop, setNop] = useState("anh");
   const { lam, loi, dangChay } = useLam();
-  const oChon = (on: boolean) => ({ minHeight: 44, borderRadius: 16, alignItems: "center" as const, justifyContent: "center" as const, flexDirection: "row" as const, gap: 6, paddingHorizontal: 12,
+  const oChon = (on: boolean) => ({ minHeight: 40, borderRadius: 16, alignItems: "center" as const, justifyContent: "center" as const, flexDirection: "row" as const, gap: 6, paddingHorizontal: 12,
     backgroundColor: on ? M.chinhSoft : "#ecebe7", boxShadow: on ? `0px 0px 0px 2px ${M.chinh}` : BONG.lom });
   const luu = () => lam(async () => {
     const t = ten.trim();
@@ -107,9 +107,12 @@ function ThemViecRieng({ mo, dong, con, xong }: { mo: boolean; dong: () => void;
     xong(t);
   });
   return (
-    <BangTruot mo={mo} dong={dong} tieu="Ba Mẹ tự thêm">
+    <BangTruot mo={mo} dong={dong} tieu="Ba Mẹ tự thêm" gon chan={<>
+      <BaoLoi loi={loi} />
+      <Nut chu="Thêm vào mục đã chọn" rong dangChay={dangChay} tat={!ten.trim()} bam={luu} />
+    </>}>
       <Chu kieu="rat" co={15}>Con sẽ làm gì?</Chu>
-      <View style={{ minHeight: 50, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom, justifyContent: "center", paddingHorizontal: 16 }}>
+      <View style={{ minHeight: 46, borderRadius: 23, backgroundColor: "#ecebe7", boxShadow: BONG.lom, justifyContent: "center", paddingHorizontal: 16 }}>
         <TextInput value={ten} onChangeText={setTen} placeholder="Ví dụ: Tưới cây" placeholderTextColor={M.chu3} maxLength={60} accessibilityLabel="Con sẽ làm gì?"
           style={{ fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 10, outlineStyle: "none" } as never} />
       </View>
@@ -135,7 +138,7 @@ function ThemViecRieng({ mo, dong, con, xong }: { mo: boolean; dong: () => void;
       <TheDs>
         {NOP.map((x, i) => (
           <Pressable key={x.ma} onPress={() => setNop(x.ma)} accessibilityRole="radio" accessibilityState={{ checked: nop === x.ma }}
-            style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, borderTopWidth: i ? 1 : 0, borderTopColor: "#e9e8e3" }}>
+            style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 48, paddingLeft: 4, borderTopWidth: i ? 1 : 0, borderTopColor: "#e9e8e3" }}>
             <Icon3D ten={x.ic} co={26} />
             <View style={{ flex: 1 }}><Chu kieu="rat" co={14}>{x.chu}</Chu><Chu co={12} mau={M.chu3}>{x.phu}</Chu></View>
             <View style={{ width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: nop === x.ma ? M.chinh : "#e6e5e1", boxShadow: nop === x.ma ? BONG.ngoc : BONG.lom }}>
@@ -147,8 +150,6 @@ function ThemViecRieng({ mo, dong, con, xong }: { mo: boolean; dong: () => void;
       <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
         <Icon3D ten="chuong" co={20} /><Chu co={12.5} mau={M.chu2} style={{ flex: 1 }}>Con nộp xong, Ba Mẹ nhận thông báo. Ba Mẹ duyệt thì con mới nhận sao.</Chu>
       </View>
-      <BaoLoi loi={loi} />
-      <Nut chu="Thêm vào mục đã chọn" rong dangChay={dangChay} tat={!ten.trim()} bam={luu} />
     </BangTruot>
   );
 }

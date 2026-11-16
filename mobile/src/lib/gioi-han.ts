@@ -5,23 +5,16 @@
 /** Giá trị gửi / nhận máy chủ (phút; 0 = không giới hạn). */
 export type GioiHan = { ngayThuong: number; cuoiTuan: number; moiLuot: number };
 
-/** Chip giới hạn ngày (thiết kế bm1-ob-gio): «30p · T7, CN 60p» · «60p · T7, CN 90p» · «90p · T7, CN 120p» · «Tự chọn». */
-export const MUC_NGAY: { ngay: number; cuoiTuan: number }[] = [{ ngay: 30, cuoiTuan: 60 }, { ngay: 60, cuoiTuan: 90 }, { ngay: 90, cuoiTuan: 120 }];
-/** «Mỗi lượt tối đa»: Không giới hạn / 15p / 30p / 45p / 60p / Tự chọn. */
-export const MUC_LUOT = [0, 15, 30, 45, 60] as const;
 export const KHOANG_NGAY = { min: 10, max: 720 } as const;
 export const KHOANG_LUOT = { min: 5, max: 240 } as const;
-/** Mặc định Lần đầu: 60 phút ngày thường, 90 phút T7–CN, mỗi lượt không giới hạn (chip được chọn sẵn trên thiết kế). */
-export const GIOI_HAN_MD: GioiHan = { ngayThuong: 60, cuoiTuan: 90, moiLuot: 0 };
+/** Bước nút −/+ (phút). */
+export const BUOC_PHUT = 15;
+/** Mặc định Lần đầu (bàn bm1-ob-gio v21): 60 phút ngày thường, 90 phút T7–CN, chơi liền 30 phút rồi nghỉ 30 phút. */
+export const GIOI_HAN_MD: GioiHan = { ngayThuong: 60, cuoiTuan: 90, moiLuot: 30 };
+/** Con tick «Không cần nghỉ» rồi bỏ tick ⇒ quay về chừng này phút (khi chưa có số nào để nhớ). */
+export const LUOT_MD = 30;
 
-/** Chip ngày đang chọn: chỉ số trong MUC_NGAY, hoặc "tu_chon" khi không khớp chip nào. */
-export const chipNgay = (g: GioiHan, muc: { ngay: number; cuoiTuan: number }[] = MUC_NGAY): number | "tu_chon" => {
-  const i = muc.findIndex((x) => x.ngay === g.ngayThuong && x.cuoiTuan === g.cuoiTuan);
-  return i >= 0 ? i : "tu_chon";
-};
-export const chipLuot = (g: GioiHan, muc: readonly number[] = MUC_LUOT): number | "tu_chon" => (muc.includes(g.moiLuot) ? g.moiLuot : "tu_chon");
-
-/** Ô «Tự chọn»: chuỗi Ba Mẹ gõ ⇒ số phút (trống / 0 = không giới hạn) hoặc lỗi. */
+/** Ô số phút: chuỗi Ba Mẹ gõ ⇒ số phút (trống / 0 = không giới hạn) hoặc lỗi. */
 export function docPhut(chu: string, k: { min: number; max: number }): { phut: number; loi: string | null } {
   const s = chu.replace(/\D/g, "");
   if (!s) return { phut: 0, loi: null };
@@ -29,6 +22,20 @@ export function docPhut(chu: string, k: { min: number; max: number }): { phut: n
   if (n === 0) return { phut: 0, loi: null };
   if (n < k.min || n > k.max) return { phut: n, loi: `Từ ${k.min} đến ${k.max} phút` };
   return { phut: n, loi: null };
+}
+
+/** Nút −/+ : cộng / trừ BUOC_PHUT, kẹp trong khoảng. 0 (không giới hạn) bấm − thì giữ nguyên; bấm + thì vào đầu khoảng làm tròn bước. */
+export function buocPhut(n: number, huong: 1 | -1, k: { min: number; max: number }): number {
+  if (!(n > 0)) return huong > 0 ? Math.max(k.min, BUOC_PHUT) : 0;
+  return Math.min(k.max, Math.max(k.min, n + huong * BUOC_PHUT));
+}
+
+/** Quy ra tiếng: 30 «nửa tiếng» · 60 «1 tiếng» · 90 «1 tiếng rưỡi» · 150 «2 tiếng rưỡi» · 45 «45 phút» · 75 «1 tiếng 15 phút». */
+export function quyRaTieng(n: number): string {
+  if (!(n > 0)) return "không giới hạn";
+  const g = Math.floor(n / 60), p = n % 60;
+  if (!g) return p === 30 ? "nửa tiếng" : `${p} phút`;
+  return !p ? `${g} tiếng` : p === 30 ? `${g} tiếng rưỡi` : `${g} tiếng ${p} phút`;
 }
 
 /** Dòng giải thích dưới lựa chọn — khớp máy chủ (moTaGioiHan): «Mỗi ngày tối đa 60 phút · mỗi lượt 30 phút rồi nghỉ 30 phút · chơi bằng sao». */
@@ -49,15 +56,6 @@ export function tomTatGioiHan(c: GioiHan): { tren: string; duoi?: string } {
     : !c.ngayThuong ? `Ngày thường không giới hạn · cuối tuần ${c.cuoiTuan} phút`
     : `${c.ngayThuong} · T7, CN ${c.cuoiTuan} phút`;
   return { tren, ...(c.moiLuot ? { duoi: `mỗi lượt ${c.moiLuot} phút` } : {}) };
-}
-
-/** Lựa chọn máy chủ trả (gio-choi › mucGioiHan) — thiếu / sai ⇒ dùng mặc định trong app. */
-export type MucMayChu = { ngay?: { ngay: number; cuoiTuan: number }[] | number[]; luot?: number[] } | null | undefined;
-export function mucTu(m: MucMayChu): { ngay: { ngay: number; cuoiTuan: number }[]; luot: number[] } {
-  const ngay = Array.isArray(m?.ngay) && m!.ngay.length && m!.ngay.every((x) => typeof x === "object" && x && Number(x.ngay) > 0)
-    ? (m!.ngay as { ngay: number; cuoiTuan: number }[]).map((x) => ({ ngay: Number(x.ngay), cuoiTuan: Number(x.cuoiTuan) || 0 })) : MUC_NGAY;
-  const luot = Array.isArray(m?.luot) && m!.luot.length && m!.luot.every((x) => Number.isInteger(x) && x >= 0) ? m!.luot : [...MUC_LUOT];
-  return { ngay, luot };
 }
 
 /** Thân gửi máy chủ (POST thiet-lap / con/<id>/gio-choi). */

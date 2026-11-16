@@ -540,22 +540,27 @@ function NutChat() {
 }
 
 /** Bảng trượt từ đáy (kit .phu + .bang-truot): nền phía sau tối mờ, bấm nền để đóng. */
-export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
-  /** khối đứng TRÊN tiêu đề (vd ô hình to của bảng «Trao quà») */ dauBang?: ReactNode; /** tiêu đề canh giữa */ giua?: boolean;
+export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, chan, gon }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
+  /** khối đứng TRÊN tiêu đề (vd ô hình to của bảng «Trao quà») */ dauBang?: ReactNode; /** tiêu đề canh giữa */ giua?: boolean; /** bảng nhiều ô: khoảng cách 8, lề đáy 20 (#306) */ gon?: boolean; /** khối ghim ở ĐÁY bảng, không cuộn theo nội dung (nút chính — #306) */ chan?: ReactNode;
   /** thiết kế 14/11 .sheet .hinh: ô ngọc nhạt 76 bo 26 + icon 3D 48 giữa, tiêu đề 23/800 canh giữa */ hinh?: TenIcon }) {
+  const cao = useWindowDimensions().height;
   return (
     <Modal visible={mo} transparent animationType="slide" onRequestClose={dong}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Pressable style={{ flex: 1, backgroundColor: "rgba(16,35,31,.38)" }} onPress={dong} accessibilityLabel="Đóng" />
-      <View style={s.bangTruot}>
+      {/* #306: bảng cao quá màn hình thì cuộn trong bảng (trước đây bị cắt nửa dưới, không với tới nút cuối) */}
+      <View style={[s.bangTruot, { maxHeight: Math.round(cao * 0.95) }, gon && { gap: 8, paddingBottom: 20 }]}>
         <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: "#d4d5d1", alignSelf: "center" }} />
-        {dauBang}
-        {hinh ? (
-          <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: "#e2efea",
-            backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", ...KHOI.the }}><Icon3D ten={hinh} co={48} /></View>
-        ) : null}
-        <Chu kieu="rat" co={hinh ? 23 : 21} style={[{ marginTop: 4, letterSpacing: -0.4 }, (giua || hinh) && { textAlign: "center" }]}>{tieu}</Chu>
-        {children}
+        <ScrollView style={{ flexGrow: 0 }} contentContainerStyle={{ gap: gon ? 8 : 12, paddingBottom: 6 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          {dauBang}
+          {hinh ? (
+            <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: "#e2efea",
+              backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", ...KHOI.the }}><Icon3D ten={hinh} co={48} /></View>
+          ) : null}
+          <Chu kieu="rat" co={hinh ? 23 : 21} style={[{ marginTop: 4, letterSpacing: -0.4 }, (giua || hinh) && { textAlign: "center" }]}>{tieu}</Chu>
+          {children}
+        </ScrollView>
+        {chan}
       </View>
       </KeyboardAvoidingView>
     </Modal>

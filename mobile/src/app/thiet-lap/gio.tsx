@@ -1,80 +1,63 @@
-// bm1-ob-gio «<Con> chơi máy bằng sao tự kiếm» (bước 4/5 Lần đầu, thiết kế chốt 15/11 — #264): bỏ quỹ phút miễn phí mỗi ngày (1 sao = 1 phút «Tính phút»).
-// Thẻ vàng: «Tặng sao khởi đầu» 0 (không tặng) · 20 · 30 · 60 sao (mặc định 30) + 3 dòng luật (Làm nhiệm vụ → nhận sao · Chơi «Tính phút» → trừ sao ·
-// Hết sao → app tự khoá, con xin Ba Mẹ cho vay sao), Grow nói «Không còn giờ chơi miễn phí mỗi ngày: 1 sao = 1 phút…».
-// «Tiếp: chọn app cho con» ⇒ /thiet-lap/app (Mở hết / Theo danh sách + app) ⇒ Web ⇒ lưu một lần (POST thiet-lap {saoKhoiDau} — lib/thiet-lap › thanThietLap; máy chủ tặng một lần).
-// Giờ ngủ (bước cũ) không còn ở màn này theo thiết kế 15/11 — thiet-lap gửi giờ ngủ đang có / mặc định như trước.
-// #302 (16/11): thêm «<Con> chơi bao lâu mỗi ngày?» — GIỚI HẠN TỐI ĐA mỗi ngày (30p / 60p / 90p / Tự chọn, kèm T7–CN; mặc định 60 · 90) + «Mỗi lượt
-// tối đa» (chơi đủ lượt thì nghỉ đúng chừng đó phút) — lib/gioi-han-ui › ChonGioiHan; gửi kèm POST thiet-lap (gioiHanNgayThuong, gioiHanCuoiTuan, phutMoiLuot).
+// bm1-ob-gio «<Con> chơi máy thế nào?» (bước 4/5 Lần đầu; bàn v21 chốt 16/11 — #306): thẻ vàng «Quà khởi đầu cho con» (Grow + sao bay, số sao to, − / +
+// bước 10, 0…200, mặc định 30, «1 sao = chơi 1 phút») + «Mỗi ngày chơi bao lâu?» + «Chơi liền bao lâu thì nghỉ?» (lib/gioi-han-ui › ChonGioiHan: ô số phút gõ
+// trực tiếp + − / + 15 phút). «Tiếp: chọn app cho con» ⇒ /thiet-lap/app ⇒ Web ⇒ lưu một lần (POST thiet-lap {saoKhoiDau, gioiHanNgayThuong, gioiHanCuoiTuan, phutMoiLuot}
+// — lib/thiet-lap › thanThietLap; máy chủ tặng sao một lần). Giờ ngủ không còn ở màn này (thiết kế 15/11).
 import { useState } from "react";
 import { router } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Pressable, Text, useWindowDimensions, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { DauMan } from "@/lib/lan-dau";
-import { SAO_KHOI_DAU, SAO_KHOI_DAU_MD } from "@/lib/so-sao";
+import { doiSaoKhoiDau, SAO_KHOI_DAU_MD, SAO_KHOI_DAU_TOI_DA } from "@/lib/so-sao";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { RobNoi } from "@/lib/ui-bm3";
 import { datTl, layTl } from "@/lib/thiet-lap";
 import { GIOI_HAN_MD, type GioiHan } from "@/lib/gioi-han";
 import { ChonGioiHan } from "@/lib/gioi-han-ui";
-import { Chu, F, Icon3D, M, Man, Nut, type TenIcon } from "@/lib/ui";
+import { Chu, F, Icon3D, M, Man, Nut, Rob } from "@/lib/ui";
 
-const LUAT: [TenIcon, string, string][] = [
-  ["tick", "Làm nhiệm vụ → nhận sao", "Sao do con tự kiếm"],
-  ["game", "Chơi «Tính phút» → trừ sao", "1 sao = 1 phút chơi"],
-  ["khoa", "Hết sao → app tự khoá", "Con xin Ba Mẹ cho vay sao"],
-];
-const NAU = "#4a3000";
+const NAU = "#6e4300";
+
+function NutSao({ dau, nhan, bam, tat }: { dau: "−" | "+"; nhan: string; bam: () => void; tat: boolean }) {
+  return (
+    <Pressable onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={nhan} hitSlop={4}
+      style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#fffaf0", alignItems: "center", justifyContent: "center", opacity: tat ? 0.45 : 1, boxShadow: BONG.nho }}>
+      <Chu kieu="rat" co={22} mau="#0a5246">{dau}</Chu>
+    </Pressable>
+  );
+}
 
 export default function ObGio() {
   const tl = layTl();
+  const nho = useWindowDimensions().width < 360;        // máy hẹp (320): Grow nhỏ lại, bảng quà lùi sang phải cho khỏi đè nút −
   const ten = tl.tenCon ?? "con";
   const [sao, setSao] = useState<number>(tl.saoKhoiDau ?? SAO_KHOI_DAU_MD);
   const [gh, setGh] = useState<GioiHan>(tl.gioiHan ?? GIOI_HAN_MD);
   const [ghLoi, setGhLoi] = useState<string | null>(null);
-  const chon = (n: number) => { setSao(n); datTl({ saoKhoiDau: n }); };
+  const doi = (h: 1 | -1) => { const n = doiSaoKhoiDau(sao, h); setSao(n); datTl({ saoKhoiDau: n }); };
   const doiGh = (g: GioiHan, loi: string | null) => { setGh(g); setGhLoi(loi); if (!loi) datTl({ gioiHan: g }); };
   const tiep = () => { datTl({ saoKhoiDau: sao, gioiHan: gh }); router.push("/thiet-lap/app"); };
-  const oChip = (on: boolean) => ({ flex: 1, minWidth: 0, height: 68, borderRadius: 22, alignItems: "center" as const, justifyContent: "center" as const, gap: 2,
-    backgroundColor: on ? M.chinh : "#fff", boxShadow: on ? `0px 0px 0px 3px #fbe9c4, 0px 0px 0px 5px ${M.chinh}` : BONG.nho });
   return (
     <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={3} />} />}
       day={<Nut chu="Tiếp: chọn app cho con" rong tat={!!ghLoi} bam={tiep} />}>
-      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 25, lineHeight: 30, letterSpacing: -0.5, color: M.chu }}>{`${ten} chơi máy\nbằng sao tự kiếm`}</Text>
-      <View style={{ borderRadius: 30, backgroundColor: "#fdecc8", backgroundImage: "linear-gradient(160deg, #fff4dc, #fbe3b4)", padding: 16, gap: 12, ...KHOI.the }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon3D ten="sao" co={26} /></View>
-          <Chu kieu="rat" co={15} mau={NAU} style={{ flex: 1 }}>Tặng sao khởi đầu</Chu>
-          <View style={{ paddingVertical: 2, paddingHorizontal: 8, borderRadius: 9, backgroundColor: "#f9e7d2" }}><Chu kieu="rat" co={11.5} mau="#8a3c0c">ĐỀ XUẤT</Chu></View>
-        </View>
-        <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
-          {SAO_KHOI_DAU.map((n) => {
-            const on = sao === n;
-            return (
-              <Pressable key={n} onPress={() => chon(n)} accessibilityRole="radio" accessibilityState={{ checked: on }}
-                accessibilityLabel={n ? `Tặng ${n} sao` : "Không tặng sao"} style={oChip(on)}>
-                <Chu kieu="rat" co={19} so mau={on ? "#fff" : M.chu}>{String(n)}</Chu>
-                <Chu kieu="dam7" co={10.5} mau={on ? "#dcebe6" : "#565c59"} dong={1}>{n ? "sao" : "không tặng"}</Chu>
-              </Pressable>
-            );
-          })}
-        </View>
-        <View style={{ borderRadius: 22, backgroundColor: "#fdf3dc", boxShadow: BONG.lom, paddingVertical: 6, paddingHorizontal: 10, gap: 4 }}>
-          {LUAT.map(([ic, tieu, phu]) => (
-            <View key={tieu} style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 }}>
-              <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon3D ten={ic} co={22} /></View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Chu kieu="rat" co={14} mau={NAU}>{tieu}</Chu>
-                <Chu kieu="dam7" co={13} mau={NAU}>{phu}</Chu>
-              </View>
+      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 25, lineHeight: 30, letterSpacing: -0.5, color: M.chu }}>{`${ten} chơi máy thế nào?`}</Text>
+      <View style={{ height: 138, borderRadius: 28, overflow: "hidden", backgroundColor: "#fdecc8", backgroundImage: "linear-gradient(160deg, #fff4dc, #f9d996)", ...KHOI.the }}>
+        <View style={{ position: "absolute", left: 16, top: 12 }}><Icon3D ten="sao" co={15} /></View>
+        <View style={{ position: "absolute", left: nho ? 66 : 106, top: 16 }}><Icon3D ten="sao" co={22} /></View>
+        <View style={{ position: "absolute", left: -2, bottom: -8 }}><Rob ten="rob-goc" co={nho ? 92 : 124} /></View>
+        <View style={{ position: "absolute", right: 14, top: 12, ...(nho ? { left: 92 } : { width: 186 }), alignItems: "center" }}>
+          <Chu kieu="rat" co={14} mau={NAU} dong={1}>Quà khởi đầu cho con</Chu>
+          <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", alignSelf: "stretch", marginTop: 6, marginBottom: 8 }}>
+            <NutSao dau="−" nhan="Bớt 10 sao" bam={() => doi(-1)} tat={sao <= 0} />
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }} accessibilityLabel={`${sao} sao`}>
+              <Icon3D ten="sao" co={30} /><Chu kieu="rat" co={nho ? 32 : 40} mau="#3b2600" so style={{ letterSpacing: -1.5 }}>{String(sao)}</Chu>
             </View>
-          ))}
+            <NutSao dau="+" nhan="Thêm 10 sao" bam={() => doi(1)} tat={sao >= SAO_KHOI_DAU_TOI_DA} />
+          </View>
+          <View style={{ paddingVertical: 5, paddingHorizontal: 12, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.75)", boxShadow: BONG.lom }}>
+            <Chu kieu="rat" co={12.5} mau="#0a5246" dong={1}>1 sao = chơi 1 phút</Chu>
+          </View>
         </View>
       </View>
-      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 20, lineHeight: 26, letterSpacing: -0.3, color: M.chu, marginTop: 4 }}>{`${ten} chơi máy bao lâu mỗi ngày?`}</Text>
       <ChonGioiHan gt={gh} doi={doiGh} />
-      <RobNoi lv="rob-goc">
-        <Chu kieu="dam" co={14}>Không còn giờ chơi miễn phí mỗi ngày: 1 sao = 1 phút, và không quá giới hạn Ba Mẹ đặt. App học để «Không tính phút» thì không trừ sao.</Chu>
-      </RobNoi>
     </Man>
   );
 }

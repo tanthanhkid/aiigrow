@@ -212,6 +212,9 @@ test("API Ba Mẹ: gia-dinh có số sao từng Con (âm được); ví sao; xem
   const anh = (await m(tok, "con", { ten: "Bảo Anh" })).body.id;
   const minh = (await m(tok, "con", { ten: "Bảo Minh", saoKhoiDau: 60 })).body.id;
   assert.equal((await m(tok, "con", { ten: "X", saoKhoiDau: 15 })).body.error, "sao_khoi_dau_sai");
+  // #306: nới trần — số nguyên 0…200, bước 10
+  assert.equal((await m(tok, "con", { ten: "X", saoKhoiDau: 210 })).body.error, "sao_khoi_dau_sai");
+  assert.equal((await m(tok, "con", { ten: "X", saoKhoiDau: -10 })).body.error, "sao_khoi_dau_sai");
   let gd = (await m(tok, "gia-dinh")).body.con;
   assert.deepEqual(gd.map((c: any) => [c.ten, c.sao, c.no]), [["Bảo Anh", 30, 0], ["Bảo Minh", 60, 0]]);
   const xt = (await m(tok, `con/${anh}/cho-vay/xem-truoc?soSao=30`)).body;
@@ -231,6 +234,11 @@ test("API Ba Mẹ: gia-dinh có số sao từng Con (âm được); ví sao; xem
   const khang = (await m(tok, "thiet-lap", { con: { ten: "Khang" }, saoKhoiDau: 0 })).body.conId;
   assert.equal((await m(tok, "thiet-lap", { con: { id: khang }, saoKhoiDau: 20 })).body.saoKhoiDau, 20);
   assert.equal((await m(tok, "thiet-lap", { con: { id: khang }, saoKhoiDau: 60 })).body.saoKhoiDau, 20);
+  // #306: trần 200, bước 10 — cũng qua thiet-lap
+  const nam = (await m(tok, "thiet-lap", { con: { ten: "Bảo Nam" }, saoKhoiDau: 200 })).body;
+  assert.equal(nam.saoKhoiDau, 200);
+  assert.equal((await m(tok, "thiet-lap", { con: { ten: "Bảo Lan" }, saoKhoiDau: 110 })).body.saoKhoiDau, 110);
+  assert.equal((await m(tok, "thiet-lap", { con: { ten: "Bảo Tín" }, saoKhoiDau: 210 })).body.error, "sao_khoi_dau_sai");
 });
 
 test("review #269: hoàn tác cho vay chỉ rút phần chưa trả / chưa tiêu — vay 30 → nhiệm vụ +10 → hoàn tác → vay 15 ⇒ nợ 15; gỡ cảnh báo nợ; lần vay đã hoàn tác không đếm", async () => {
