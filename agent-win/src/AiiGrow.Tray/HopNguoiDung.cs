@@ -34,7 +34,7 @@ internal sealed class DoiBeHop : HopKhayCoBan
         ra.Click += (_, _) => { Chon = false; Close(); };
         hai.Controls.Add(ra);
         Flow.Controls.Add(hai);
-        var ghi = UI.Text((mayRieng ? "Đăng xuất là dừng trừ sao" : "Đổi người là dừng trừ sao") + $" của {(string.IsNullOrWhiteSpace(tenBe) ? "con" : tenBe.Trim())}.\nVào lại bằng tên + PIN.", 10.5f, false, UI.Muted, W);
+        var ghi = UI.Text((mayRieng ? "Đăng xuất là dừng trừ sao" : "Đổi người là dừng trừ sao") + $" của {(string.IsNullOrWhiteSpace(tenBe) ? "con" : tenBe.Trim())}." + (mayRieng ? "" : "\nVào lại bằng tên + PIN."), 10.5f, false, UI.Muted, W);
         Flow.Controls.Add(Giua(ghi, 10));
         var o = KhoiCon.Nut("Ở lại", true, W, "nha", 48, 12f);
         o.Margin = new Padding(0, UI.Px(12), 0, 0);

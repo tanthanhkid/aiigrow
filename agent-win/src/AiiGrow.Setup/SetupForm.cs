@@ -865,11 +865,11 @@ internal sealed class SetupForm : Form
         _body.Controls.Add(ph);
         // #267: máy riêng một bé không nói «cả nhà» / «mỗi bé chọn tên + PIN»; máy cả nhà giữ nguyên
         X(_body, 290, 80, mayRieng ? "Máy của " + tenHoSo + "\nđã sẵn sàng!" : "Máy đã sẵn sàng\ncho cả nhà!", Kieu.H30, 400);
-        X(_body, 290, 164, mayRieng ? "Con vào máy bằng PIN 4 số." : "Mỗi bé vào máy bằng tên + PIN 4 số.", Kieu.P, 400);
+        X(_body, 290, 164, mayRieng ? "Con mở máy là vào thẳng." : "Mỗi bé vào máy bằng tên + PIN 4 số.", Kieu.P, 400);
         foreach (var (y, icon, tieu, phu) in new[]
                  {
                      (206, "dongho", mayRieng ? "Sao chơi tính cho " + tenHoSo : "Giờ chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
-                     (284, "nguoi", string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, "PIN do Ba Mẹ đặt trong app"),
+                     (284, "nguoi", string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, mayRieng ? "Máy riêng của con" : "PIN do Ba Mẹ đặt trong app"),
                      (362, "khoa", "Chỉ mở app Ba Mẹ cho phép", "App mới thì bấm xin Ba Mẹ"),
                  })
         {
@@ -878,7 +878,7 @@ internal sealed class SetupForm : Form
             X(the, 374, y + 12, tieu, Kieu.B, 300);
             X(the, 374, y + 36, phu, Kieu.S, 300);
         }
-        X(_body, 36, 556, mayRieng ? $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: con nhập PIN để vào." : $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
+        X(_body, 36, 556, mayRieng ? $"Máy chuyển sang tài khoản {TenHien(child.Name)}: con vào thẳng." : $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
         NutLui(Close, "Để sau");
         // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở. Vào tài khoản Con ⇒ AiiGrow hiện «Ai đang dùng máy?».
         NutChinh(mayRieng ? "Khoá máy" : "Mở màn chọn tên", mayRieng ? 200 : 250, () => LockWorkStation());

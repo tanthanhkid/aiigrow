@@ -84,12 +84,12 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
 ## Máy dùng chung — chọn tên + PIN, quà bảng giá (thiết kế chốt 06/11, L13 L14 — `docs/KE-HOACH-KHOP-THIET-KE-0611.md`)
 
 - **Một tài khoản Windows giới hạn dùng chung** cho các bé (bộ cài bước 3: «Các con dùng chung 1 tài khoản giới hạn»; tạo mới = tài khoản `con` KHÔNG mật khẩu
-  Windows — `New-LocalUser -NoPassword`). Cài xong: máy cả nhà «Máy đã sẵn sàng cho cả nhà!» → «Mở màn chọn tên» (khoá phiên, vào tài khoản Con là thấy màn chọn tên); máy riêng một bé (ghép `dungChung=false`) «Máy của <tên> đã sẵn sàng!», không nói «cả nhà» / «mỗi bé chọn tên + PIN».
+  Windows — `New-LocalUser -NoPassword`). Cài xong: máy cả nhà «Máy đã sẵn sàng cho cả nhà!» → «Mở màn chọn tên» (khoá phiên, vào tài khoản Con là thấy màn chọn tên); máy riêng một bé (ghép `dungChung=false`) «Máy của <tên> đã sẵn sàng!», không nói «cả nhà» / PIN / «mỗi bé chọn tên».
 - **Duyệt nhiệm vụ lúc đang nợ (#263)**: tin «Ba Mẹ đã duyệt» thêm «Sao nhiệm vụ trả nợ trước, còn nợ N sao» khi Con còn nợ; `NopThongBao` cùng chữ.
 - **Ai đang dùng máy** (`Core/DangNhapMay.cs`, lưu `config.DangNhap`): chưa ai ⇒ dịch vụ khoá lý do `chon_ten` (không đếm ngược, KHÔNG ngắt phiên Windows, không
   tính giờ) ⇒ màn khoá «Ai đang dùng máy?» (`Tray/LockForm.ChonTen.cs`): chạm tên → PIN 4 số (bàn phím số trên màn hoặc bàn phím thật) → «Chưa đúng · còn N
   lần thử» → sai 5 lần chờ 15 giây → «Quên PIN rồi à?» («Báo Ba Mẹ giúp con» = `POST quen-pin`) · «Ba Mẹ dùng máy» → «Ba Mẹ nhập mã» (6 số). Máy riêng
-  (một bé) vào thẳng ô PIN. Bé chưa có PIN chạm tên là vào (khay nhắc Ba Mẹ đặt PIN).
+  (một bé) vào thẳng, không hiện lưới tên / ô PIN (PIN chỉ dành cho máy chung, #267); khoá do hết sao / Ba Mẹ khoá vẫn có «Ba Mẹ nhập mã». Bé chưa có PIN chạm tên là vào (khay nhắc Ba Mẹ đặt PIN).
 - Lệnh pipe mới (`PipeCmd.HoSo / DangNhapBe / QuenPin / BaMeMo / DangXuat / KhoaLai`, chỉ khay đã cài) ⇒ dịch vụ (`Service/NguoiDungMay.cs`) gọi
   `/api/device/ho-so | dang-nhap-be | quen-pin | ba-me-mo | dang-xuat | khoa-lai` (docs/API.md mục «S3»). Máy chủ ghi bé đang dùng ⇒ `dong-bo`, `hoc-vien/*`
   không cần header vẫn tính giờ, sao, nhiệm vụ theo bé đó. **Đổi người / Đăng xuất / Khoá lại**: máy về màn chọn tên NGAY; báo máy chủ sau lượt `dong-bo` kế

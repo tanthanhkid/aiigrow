@@ -11,7 +11,7 @@ namespace AiiGrow.Core;
 //   • «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã mở máy của máy này (cùng mã khi mất mạng, 15/30/60 phút nằm trong mã) ⇒ «Ba Mẹ đang dùng máy»:
 //     máy mở hết, không tính giờ con, «Khoá lại» ⇒ về màn chọn tên.
 //   • «Đổi người / Đăng xuất» ⇒ về màn chọn tên. Giờ, sao, nhiệm vụ tính theo bé đang đăng nhập (máy chủ: devices.con_dang_dung — docs/API.md mục «S3»).
-// Máy chỉ gán một bé (máy riêng) vẫn hỏi PIN khi máy khoá. Mất mạng: máy tự kiểm PIN bằng «vân PIN» (HMAC-SHA256 bằng bí mật mã offline) và
+// PIN chỉ dành cho MÁY CHUNG (#267). Máy chỉ gán một bé (máy riêng) vào thẳng, không hỏi tên / PIN của bé; khoá do hết sao / Ba Mẹ khoá vẫn giữ lối «Ba Mẹ nhập mã». Mất mạng: máy tự kiểm PIN bằng «vân PIN» (HMAC-SHA256 bằng bí mật mã offline) và
 // tự kiểm mã Ba Mẹ (TOTP, thử biến thể 60 → 30 → 15 phút); có mạng lại thì báo máy chủ.
 // Lớp THUẦN (test được): trạng thái ai đang dùng máy lưu ở AgentConfig.DangNhap; dịch vụ (AgentRuntime / NguoiDungMay) chỉ gọi vào đây.
 
