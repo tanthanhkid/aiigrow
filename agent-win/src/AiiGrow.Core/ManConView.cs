@@ -130,7 +130,7 @@ public static class CapNhatKhayView
 {
     public const string CoBanMoiTieu = "AiiGrow tìm ra cách sửa rồi!";
     public static string CoBanMoiPhu(string ban) => $"Có bản mới {ban} sửa lỗi này.";
-    public const string GiuNguyen = "Sao và luật giữ nguyên.";
+    public const string GiuNguyen = "Phút chơi, sao và luật giữ nguyên.";
     public const string MotPhut = "Mất khoảng 1 phút, không cần ghép lại.";
     public const string NutCapNhat = "Cập nhật để sửa lỗi";
     public const string DeSau = "Để sau";
@@ -138,7 +138,7 @@ public static class CapNhatKhayView
     public const string DangPhu = "Mất khoảng 1 phút · đừng tắt máy nhé. AiiGrow tự chạy lại.";
     public const string MoiNhatTieu = "AiiGrow đã là bản mới nhất";
     public static string MoiNhatPhu(string ban) => $"Bản {ban} · mới nhất";
-    public const string NhuCu = "Sao và luật vẫn như cũ.";
+    public const string NhuCu = "Phút chơi, sao và luật vẫn như cũ.";
     public const string OKhay = "AiiGrow ở khay góc phải ›";
     public const string VeHomNay = "Về Hôm nay";
     public const string DangKiem = "Đang kiểm bản mới…";
