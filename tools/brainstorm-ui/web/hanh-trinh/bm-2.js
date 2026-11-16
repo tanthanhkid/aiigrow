@@ -150,7 +150,7 @@ const ADMIN = dt(`${sb('07:35')}<div class="cuon" style="align-items:center;text
 
 const A = 'chinchu-ios/';
 export default [
-  { id: 'bm-hang-ngay', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Trang chủ & thông báo', mo: 'Ba Mẹ mở app: trang chủ, khoá máy, cho thêm giờ, mã mở máy, thông báo và cảnh báo.',
+  { id: 'bm-hang-ngay', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Trang chủ & thông báo', mo: 'Ba Mẹ mở app: trang chủ, khoá máy, cho vay sao, mã mở máy, thông báo và cảnh báo.',
     buoc: [
       { key: 'bm2-trang-chu', ten: 'Trang chủ', w: 390, h: 844, html: BM_TRANG_CHU, anh: A + 'sau-bm-trang.png', toi: 'Bấm «Khoá máy» hoặc thẻ máy' },
     ] },
@@ -164,7 +164,7 @@ export default [
     buoc: [
       { key: 'bm2-gio', ten: 'Giờ dùng máy', w: 390, h: 844, html: GIO, anh: A + 'sau-bm-gio.png', toi: 'Chạm tên con' },
       { key: 'bm2-ho-so', ten: 'Hồ sơ con', w: 390, h: 844, html: HO_SO, anh: A + 'sau-bm-ho-so-con.png' }] },
-  { id: 'bm-con-xin', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Con xin dùng', mo: 'Con xin mở app/web hoặc thêm giờ: Ba Mẹ cho, cho thêm phút hoặc không cho.', chiThem: true, buoc: [] },
+  { id: 'bm-con-xin', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Con xin dùng', mo: 'Con xin mở app/web hoặc xin vay sao: Ba Mẹ thêm vào danh sách, cho vay sao hoặc bỏ qua.', chiThem: true, buoc: [] },
   { id: 'bm-viec-duyet', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Nhiệm vụ & duyệt', mo: 'Tab Nhiệm vụ, giao việc theo bộ, tự đặt việc, sửa/xoá việc, duyệt bằng chứng, nhờ làm lại.', chiThem: true, buoc: [] },
   { id: 'bm-sao-qua', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Sao & quà', mo: 'Ví sao của con, danh sách quà (Quà Ba Mẹ mua + Quà nhà), thêm/sửa/xoá quà, trao quà.', chiThem: true, buoc: [] },
   { id: 'bm-bao-cao-ngay', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Báo cáo', mo: 'Tab Báo cáo, hôm nay con dùng gì, nhật ký cả nhà.', chiThem: true, buoc: [] },

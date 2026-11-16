@@ -43,18 +43,18 @@ export default [
       S('tin-nhan', 'Tin nhắn', 'Có tin mới thì hiện thông báo ở góc màn hình (Mac)'),
     ] },
 
-  { id: 'con-het-gio', vai: 'Con', nen: 'Windows', ten: 'Sắp hết giờ', mo: 'Máy nhắc còn 5 phút, đếm ngược rồi khoá khi hết giờ, giờ ngủ hoặc Ba Mẹ khoá; Con có thể xin thêm giờ.',
+  { id: 'con-het-gio', vai: 'Con', nen: 'Windows', ten: 'Sắp hết giờ', mo: 'Máy nhắc còn 5 sao (5 phút), đếm ngược rồi khoá khi hết sao hoặc Ba Mẹ khoá; Con hết sao thì xin Ba Mẹ cho vay sao.',
     buoc: [
       S('khoa-het-gio-dem-nguoc', 'Đếm ngược trên Windows', 'Hết đếm ngược'),
       S('khoa-gio-ngu', 'Khoá giờ nghỉ / giờ ngủ', 'Ba Mẹ bấm khoá từ điện thoại'),
       S('khoa-ba-me-khoa', 'Ba Mẹ khoá máy'),
     ] },
 
-  { id: 'con-xin', chiThem: true, vai: 'Con', nen: 'Windows', ten: 'Xin vay sao · xin mở app', mo: 'Con xin Ba Mẹ thêm giờ, xin mở trang hoặc app, hoặc tự đổi điểm lấy giờ chơi.',
+  { id: 'con-xin', chiThem: true, vai: 'Con', nen: 'Windows', ten: 'Xin vay sao · xin mở app', mo: 'Con hết sao thì xin Ba Mẹ cho vay sao, hoặc xin Ba Mẹ thêm app/web vào danh sách.',
     buoc: [
     ] },
 
-  { id: 'con-bi-chan', chiThem: true, vai: 'Con', nen: 'Windows', ten: 'App & web ngoài danh sách', mo: 'Con mở app chưa được Ba Mẹ phân loại thì bị chặn; Con dùng điểm, xin phép hoặc xin thêm giờ.',
+  { id: 'con-bi-chan', chiThem: true, vai: 'Con', nen: 'Windows', ten: 'App & web ngoài danh sách', mo: 'Con mở app/web chưa có trong danh sách của Ba Mẹ thì chưa mở được; Con xin Ba Mẹ thêm, hoặc xin vay sao khi hết sao.',
     buoc: [
     ] },
 

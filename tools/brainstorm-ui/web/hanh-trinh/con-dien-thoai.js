@@ -235,13 +235,13 @@ export default [
       { key: 'cdt-het-phien', ten: 'Hết phiên — nghỉ', w: 390, h: 844, html: hetPhien, anh: A + 'het-phien.png', toi: 'Tới giờ ngủ' },
       { key: 'cdt-gio-ngu', ten: 'Giờ ngủ', w: 390, h: 844, html: gioNgu, anh: A + 'gio-ngu.png', toi: 'Ba Mẹ khoá máy (Android)' },
       { key: 'cdt-android-khoa', ten: 'Máy đang khoá', w: 390, h: 844, html: androidKhoa, anh: A + 'android-khoa.png' }] },
-  { id: 'con-dt-xin', vai: 'Con', nen: 'Điện thoại', ten: 'Xin phép', mo: 'Con xin thêm giờ, mở web hoặc cài app, theo dõi câu trả lời; trên iPhone xin thêm giờ hoặc chơi bằng điểm ngay.',
+  { id: 'con-dt-xin', vai: 'Con', nen: 'Điện thoại', ten: 'Xin phép', mo: 'Con xin vay sao, xin thêm web hoặc app vào danh sách, theo dõi câu trả lời.',
     buoc: [
       { key: 'cdt-xin-phep', ten: 'Xin phép', w: 390, h: 844, html: xinPhep, anh: A + 'xin-phep.png', toi: 'Bấm «Gửi cho Ba Mẹ»' },
-      { key: 'cdt-yeu-cau', ten: 'Yêu cầu của con', w: 390, h: 844, html: yeuCau, anh: A + 'yeu-cau.png', toi: 'iPhone: xin thêm giờ' },
-      { key: 'cdt-ios-xin-them', ten: 'iPhone: xin vay sao', w: 390, h: 844, html: xinThemIos, anh: A + 'ios-iphone-xinThem.png', toi: 'Hoặc đổi điểm lấy giờ chơi' },
+      { key: 'cdt-yeu-cau', ten: 'Yêu cầu của con', w: 390, h: 844, html: yeuCau, anh: A + 'yeu-cau.png', toi: 'iPhone: xin vay sao' },
+      { key: 'cdt-ios-xin-them', ten: 'iPhone: xin vay sao', w: 390, h: 844, html: xinThemIos, anh: A + 'ios-iphone-xinThem.png', toi: 'Hoặc làm nhiệm vụ kiếm sao' },
       { key: 'cdt-ios-choi-diem', ten: 'iPhone: chơi bằng điểm', w: 390, h: 844, html: choiDiem, anh: 'man-dienthoai-2510/ios-con-choiDiem.jpg' }] },
-  { id: 'con-dt-chan', vai: 'Con', nen: 'Điện thoại', ten: 'Ngoài danh sách & mất mạng', mo: 'Con gặp trang web bị chặn, máy khoá khi mất mạng, nhập mã của Ba Mẹ để mở 60 phút, và lọc web DNS trên iPhone.',
+  { id: 'con-dt-chan', vai: 'Con', nen: 'Điện thoại', ten: 'Ngoài danh sách & mất mạng', mo: 'Con gặp trang web chưa có trong danh sách, máy khoá khi mất mạng, nhập mã của Ba Mẹ để mở 60 phút, và lọc web DNS trên iPhone.',
     buoc: [
       { key: 'cdt-chan-web', ten: 'Trang chưa có trong danh sách', w: 390, h: 844, html: chanWeb, anh: A + 'chan-web.png', toi: 'Mở trong app (Android)' },
       khop({ key: 'cdt-webview', ten: 'Không tải được', w: 390, h: 844, html: webview, anh: 'man-android-2510/man-tre-webview.jpg', toi: 'Máy khoá, mất mạng' }, 'android-tre-webview'),
@@ -249,7 +249,7 @@ export default [
       khop({ key: 'cdt-ma-da-mo', ten: 'Đã mở bằng mã', w: 390, h: 844, html: maOff(false, true), anh: 'man-android-2510/man-khoa-ma-da-mo.jpg', toi: 'iPhone: mở bằng mã' }, 'android-khoa-ma-da-mo'),
       { key: 'cdt-ios-ma-offline', ten: 'iPhone: mở bằng mã', w: 390, h: 844, html: maOfflineIos, anh: 'man-dienthoai-2510/ios-con-maOffline.jpg', toi: 'Cài lọc web gia đình' },
       { key: 'cdt-ios-dns', ten: 'iPhone: lọc web DNS', w: 390, h: 844, html: dns, anh: 'man-dienthoai-2510/ios-con-dns.jpg' }] },
-  { id: 'con-dt-android', vai: 'Con', nen: 'Android', ten: 'Màn chính Android', mo: 'App Con trên Android (agent-android): việc của con hôm nay và đổi điểm lấy giờ chơi.',
+  { id: 'con-dt-android', vai: 'Con', nen: 'Android', ten: 'Màn chính Android', mo: 'App Con trên Android (agent-android): việc của con hôm nay và dùng sao chơi (1 sao = 1 phút) chơi.',
     buoc: [khop({ key: 'cdt-android-viec', ten: 'Việc của con', w: 360, h: 800, html: '', toi: 'Đổi điểm lấy giờ chơi' }, 'android-chinh-viec-cua-con'),
       khop({ key: 'cdt-android-doi-diem', ten: 'Sao của con · hết sao', w: 360, h: 800, html: '' }, 'android-chinh-doi-diem')] },
 
