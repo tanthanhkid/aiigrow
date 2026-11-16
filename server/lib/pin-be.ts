@@ -14,7 +14,7 @@ import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { conCua, type May } from "./gia-dinh.ts";
 import { biMatOfflineMay } from "./tuan-thu.ts";
 import { kiemMaOfflinePhut } from "./ma-offline.ts";
-import { coNoi, conNoiMay, ketThucPhienTrenMay, laMotCon } from "./may-nhieu-con.ts";
+import { coNoi, conNoiMay, idConMay, ketThucPhienTrenMay, laMotCon } from "./may-nhieu-con.ts";
 import { trangThaiSao } from "./so-sao.ts";
 
 export const PIN_SAI_TOI_DA = 5;
@@ -65,7 +65,7 @@ export const baMeDen = (may: MayS3, now = new Date()) =>
 export const vanPin = (biMat: string, con: string, pin: string) => createHmac("sha256", biMat).update(`${con}:${pin}`).digest("hex");
 
 /** «Ai đang dùng máy?» — danh sách bé của máy + ai đang dùng. #267: chỉ Con trong danh sách nối của máy (device_children); máy riêng ⇒ chỉ Con
- *  đó (vẫn hỏi PIN khi mở khoá). Mỗi bé kèm `sao` (15/11: số dư Con thấy, ÂM khi nợ — so-sao.ts; `soDu` = sao tiêu được, `no` = nợ) để màn chọn tên hiện sao từng bé. */
+ *  đó (vào thẳng, không hỏi PIN — PIN chỉ cho máy chung). Mỗi bé kèm `sao` (15/11: số dư Con thấy, ÂM khi nợ — so-sao.ts; `soDu` = sao tiêu được, `no` = nợ) để màn chọn tên hiện sao từng bé. */
 export async function hoSoMay(may: MayS3, now = new Date()) {
   const ds = await conNoiMay(may.id);
   const bm = await biMatOfflineMay(may.id);
@@ -84,7 +84,7 @@ export async function hoSoMay(may: MayS3, now = new Date()) {
   const tenDung = dangDung ? ds.find((c) => c.id === dangDung) : undefined;
   return {
     // #267: tenMay · soCon · mayChung (≥ 2 Con) · motCon (iPhone/iPad — không đổi người)
-    con, mayRieng: !!may.child_id, mayChung: ds.length >= 2, soCon: ds.length, tenMay: may.name, motCon: laMotCon(may.platform),
+    con, mayRieng: !!may.child_id || ds.length === 1, mayChung: ds.length >= 2, soCon: ds.length, tenMay: may.name, motCon: laMotCon(may.platform),
     dangDung: !den && tenDung && (!may.child_id || conPhien === may.child_id) ? { id: tenDung.id, ten: tenDung.ten, avatar: tenDung.avatar,
       tu: may.dang_nhap_luc ? new Date(may.dang_nhap_luc).toISOString() : null } : null,
     baMeDung: den ? { den: den.toISOString(), tu: may.ba_me_tu ? new Date(may.ba_me_tu).toISOString() : null } : null,
@@ -129,7 +129,9 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
   if (!c || c.family_id !== may.family_id || !(await coNoi(may.id, c.id)))
     throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ này trên máy", 404);
   const khoa = `pin:${may.id}:${c.id}`;
-  if (c.pin_ma) {
+  // #267: PIN chỉ dành cho máy chung — máy có đúng một Con nối (máy riêng, cùng định nghĩa `mayRieng` ở hoSoMay) và là Con này ⇒ vào thẳng, không kiểm PIN
+  const mayRieng = (await idConMay(may.id)).length === 1;
+  if (c.pin_ma && !mayRieng) {
     const tamKhoa = (den: Date) => new LoiPin("pin_tam_khoa", `Sai ${PIN_SAI_TOI_DA} lần rồi — chờ ${choThu(den, now)} giây rồi thử lại nhé`, 429,
       { choGiay: choThu(den, now), khoaDen: den.toISOString() });
     const vao = String(pin ?? "").trim();
@@ -152,7 +154,7 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
   const t = taoToken();
   await q(`insert into kid_sessions(id, child_id, device_id, expires_at) values ($1,$2,$3, $4::timestamptz + interval '12 hours')`, [sha(t), c.id, may.id, now.toISOString()]);
   await q(`update devices set con_dang_dung = $2, dang_nhap_luc = $3, ba_me_den = null, ba_me_tu = null where id = $1`, [may.id, c.id, now]);
-  await ghiSuKien(may.family_id, "doi_nguoi_may", { pin: !!c.pin_ma }, { con: c.id, may: may.id });
+  await ghiSuKien(may.family_id, "doi_nguoi_may", { pin: !!c.pin_ma && !mayRieng }, { con: c.id, may: may.id });
   return { phienCon: t, con: { id: c.id, ten: c.ten, avatar: c.avatar }, coPin: !!c.pin_ma, ...(c.pin_ma ? {} : { canDatPin: true }) };
 }
 
