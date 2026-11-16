@@ -121,9 +121,11 @@ export function saoKepGioiHan(qy: Quy) {
 }
 
 /** #302: khối `gioiHan` gửi máy Con (bỏ phần cấu hình / mô tả chỉ app Ba Mẹ cần). */
-export const gioiHanMay = (g: Quy["gioiHan"]) => ({ apDung: g.apDung, ngayPhut: g.ngayPhut, daChoi: g.daChoi, conNgay: g.conNgay, luotPhut: g.luotPhut,
-  luotDaChoi: g.luotDaChoi, conLuot: g.conLuot, dangNghi: g.dangNghi, nghiDen: g.nghiDen, nghiDenGio: g.nghiDenGio, hetNgay: g.hetNgay,
-  lyDoKhoa: g.lyDoKhoa, phutToiDa: g.phutToiDa, cau: g.cau });
+/** Số phút gửi máy Con là SỐ NGUYÊN (agent iOS / Mac giải mã Int — số lẻ làm hỏng cả chính sách): đã chơi làm tròn, phần còn làm tròn xuống. */
+const nguyen = (x: number | null) => (x === null ? null : Math.floor(x + 1e-6));
+export const gioiHanMay = (g: Quy["gioiHan"]) => ({ apDung: g.apDung, ngayPhut: g.ngayPhut, daChoi: Math.round(g.daChoi), conNgay: nguyen(g.conNgay),
+  luotPhut: g.luotPhut, luotDaChoi: Math.round(g.luotDaChoi), conLuot: nguyen(g.conLuot), dangNghi: g.dangNghi, nghiDen: g.nghiDen,
+  nghiDenGio: g.nghiDenGio, hetNgay: g.hetNgay, lyDoKhoa: g.lyDoKhoa, phutToiDa: nguyen(g.phutToiDa), cau: g.cau });
 
 /** (cũ) «Đổi sao lấy giờ» — đã bỏ (#264: sao chính là phút). Agent / app cũ gọi ⇒ trả thành công mà không trừ gì: phút còn = số sao. */
 export async function doiSaoLayGio(con: string, _phutVao: unknown, _mayId: string | null = null, now = new Date()) {

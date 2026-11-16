@@ -103,6 +103,11 @@ test("Giới hạn ngày: chơi được min(giới hạn còn, sao); hết gi�
   assert.deepEqual([p.sao?.phutCon, p.sao?.hetSao, p.sao?.sao, p.sao?.saoTieuDuoc, p.quy?.conPhut, p.gioiHan?.lyDoKhoa],
     [0, true, 70, 70, 0, "het_gio_ngay"]);
   assert.equal(p.sao?.cau.phut, "Hôm nay đã chơi đủ 30 phút — mai chơi tiếp nhé");
+  // số phút gửi máy Con là số nguyên (agent iOS / Mac giải mã Int)
+  for (const k of ["daChoi", "conNgay", "luotDaChoi", "phutToiDa"] as const) {
+    const x = (p.gioiHan as Record<string, unknown>)[k];
+    assert.ok(x === null || Number.isInteger(x), `${k} = ${x}`);
+  }
   // mở phiên: lý do riêng
   const x = await ph.xetMoPhien(con, "roblox.exe", {}, t1);
   assert.deepEqual([x.duoc, x.lyDo, ph.lyDoChu(x)], [false, "dat_tran_ngay", "Hôm nay con đã chơi đủ giờ rồi — mai chơi tiếp nhé"]);
