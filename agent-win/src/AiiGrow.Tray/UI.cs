@@ -144,6 +144,18 @@ internal static class UI
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
 
+    [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
+    private static readonly IntPtr HwndTopMost = new(-1);
+    private const uint SwpNoSize = 0x0001, SwpNoMove = 0x0002, SwpNoActivate = 0x0010;
+
+    /// <summary>#308: đưa cửa sổ lên đầu nhóm «luôn trên cùng» KHÔNG kích hoạt, không đổi cỡ / chỗ (không lấy tiêu điểm, không vẽ lại nội dung) —
+    /// cửa sổ topmost khác (Task Manager, game, PiP) không đè được màn khoá.</summary>
+    public static void KhangDinhTopMost(IntPtr hWnd)
+    {
+        if (hWnd == IntPtr.Zero) return;
+        try { SetWindowPos(hWnd, HwndTopMost, 0, 0, 0, 0, SwpNoMove | SwpNoSize | SwpNoActivate); } catch { }
+    }
+
     /// <summary>#308: cửa sổ tiền cảnh thuộc chính tiến trình khay (màn khoá / app to / hộp con) ⇒ màn khoá không cần kéo lên lại.</summary>
     public static bool ForegroundLaCuaMinh()
     {

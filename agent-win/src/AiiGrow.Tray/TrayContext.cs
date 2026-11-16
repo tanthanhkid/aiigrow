@@ -151,7 +151,7 @@ internal sealed class TrayContext : ApplicationContext
     /// <summary>Mở app to (một bản duy nhất; đã mở thì đưa lên trước). <paramref name="tuToast"/> = bấm từ bóng báo ⇒ coi như đã xem tin mới.
     /// <paramref name="tuBat"/> = khay tự bật (nhiệm vụ mới), không do Con bấm ⇒ ép cửa sổ nổi lên trên cùng.</summary>
     /// <param name="tuManKhoa">Con bấm «Nhắn Ba Mẹ» trên màn khoá ⇒ mở app to NỔI TRÊN màn khoá (chỉ để nhắn tin).</param>
-    private void OpenApp(MucApp muc, bool tuToast = false, bool tuBat = false, bool tuManKhoa = false)
+    private void OpenApp(MucApp? muc, bool tuToast = false, bool tuBat = false, bool tuManKhoa = false)
     {
         if (_state.Locked && !tuManKhoa) { Toast(4000, "Máy đang khoá", "Khi máy mở lại, con xem nhiệm vụ và sao nhé.", ToolTipIcon.Info, MucApp.HomNay); return; }
         // 06/11 (L13): Ba Mẹ đang dùng máy ⇒ app của Con không có bé nào để hiện
@@ -175,15 +175,25 @@ internal sealed class TrayContext : ApplicationContext
 
     /// <summary>#308: Con bấm AiiGrow (menu Start / biểu tượng màn hình) khi khay đang chạy ⇒ bản mới báo về đây (Program.cs) ⇒ mở app to lên trước.
     /// Phiên không phải của Con ⇒ bỏ qua (khay đang ẩn ở phiên Ba Mẹ). Máy khoá / Ba Mẹ đang dùng ⇒ OpenApp báo bằng bóng báo như bấm biểu tượng khay.</summary>
+    /// <remarks>Chưa biết phiên (dịch vụ chưa trả lời / chưa chào) ⇒ chỉ ghi nhớ, mở ở <see cref="MoNeuDangCho"/> sau lượt trạng thái đầu.
+    /// Phiên Ba Mẹ / quản trị ⇒ bỏ. Máy khoá / Ba Mẹ đang dùng máy ⇒ không mở app Con (OpenApp chỉ hiện bóng báo). App đang mở ⇒ giữ nguyên mục, chỉ đưa lên trước.</remarks>
     internal void MoTuLanBamLai()
     {
         try
         {
-            if (_anPhienKhac) return;
-            if (_daChao && !_ni.Visible) _ni.Visible = true;
-            OpenApp(MucApp.HomNay, tuBat: true);
+            if (_anPhienKhac) { _choMo = false; return; }
+            if (!_daChao) { _choMo = true; return; }
+            _choMo = false;
+            OpenApp(null, tuBat: true);
         }
         catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+    }
+
+    private bool _choMo;   // Con bấm mở lúc khay chưa biết phiên ⇒ mở sau lượt trạng thái đầu
+
+    private void MoNeuDangCho()
+    {
+        if (_choMo) MoTuLanBamLai();
     }
 
     private void PushApp()
@@ -593,7 +603,7 @@ internal sealed class TrayContext : ApplicationContext
                 // phiên đã biết KHÔNG phải của Con ⇒ giữ ẩn (dịch vụ khởi động lại không làm biểu tượng hiện ở phiên Ba Mẹ — review #75)
                 // CHƯA biết phiên này của ai (dịch vụ chưa trả lời lần nào — máy vừa khởi động, Ba Mẹ đăng nhập trước khi dịch vụ lên) ⇒ chờ ~2 phút
                 // mới hiện biểu tượng lỗi, không nháy biểu tượng đỏ ở phiên Ba Mẹ (BUG-007, review #75)
-                if (++_pipeFail >= (_daBietPhien ? 2 : 40) && !_anPhienKhac) { Chao(false); SetKetNoi(KetNoiView.Chon(false, null), false); }
+                if (++_pipeFail >= (_daBietPhien ? 2 : 40) && !_anPhienKhac) { Chao(false); SetKetNoi(KetNoiView.Chon(false, null), false); MoNeuDangCho(); }
                 return;
             }
             _pipeFail = 0;
@@ -615,7 +625,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         try
         {
-            if (!st.PhienCon) { AnVoiPhienKhac(); return; }
+            if (!st.PhienCon) { _choMo = false; AnVoiPhienKhac(); return; }
             HienLaiNeuDaAn();
             Chao(true);
             _state = st;
@@ -633,6 +643,7 @@ internal sealed class TrayContext : ApplicationContext
             HandleBlocked();
             HandleWarnings();
             _ = TheoDoiVayAsync();
+            MoNeuDangCho();
         }
         catch (Exception e)
         {

@@ -62,12 +62,17 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
 
         // Giữ cửa sổ ở trên cùng, nhưng con vẫn mở được hộp xin giờ / ngoại lệ / tin nhắn.
         var keep = new System.Windows.Forms.Timer { Interval = 2000 };
-        // #308: chỉ kéo lên khi tiêu điểm THẬT ở tiến trình khác; TopMost chỉ đặt khi chưa đặt (đặt lại mỗi 2 giây = SetWindowPos lại thứ tự cửa sổ)
+        // #308: mỗi nhịp tái khẳng định HWND_TOPMOST KHÔNG kích hoạt (cửa sổ topmost khác không đè được, không lấy tiêu điểm / không vẽ lại);
+        // chỉ Activate khi tiêu điểm THẬT ở tiến trình khác (trước đây TopMost = true + Activate() mỗi 2 giây kéo tiêu điểm khỏi thanh tác vụ…)
         keep.Tick += (_, _) =>
         {
-            if (!GiuTrenCung.CanKeoLen(_allowClose, OwnedForms.Length, Form.ActiveForm != null, UI.ForegroundLaCuaMinh())) return;
-            if (GiuTrenCung.CanDatTopMost(TopMost, true)) TopMost = true;
-            Activate();
+            if (!IsHandleCreated) return;
+            if (GiuTrenCung.CanKhangDinhTopMost(_allowClose, OwnedForms.Length))
+            {
+                if (GiuTrenCung.CanDatTopMost(TopMost, true)) TopMost = true;
+                UI.KhangDinhTopMost(Handle);
+            }
+            if (GiuTrenCung.CanKeoLen(_allowClose, OwnedForms.Length, Form.ActiveForm != null, UI.ForegroundLaCuaMinh())) Activate();
         };
         keep.Start();
         FormClosing += (_, e) => { if (!_allowClose && !ChiBao) e.Cancel = true; };
@@ -162,7 +167,16 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
 
     private void Dung(ManKhoa m)
     {
-        using var veMotLan = KhongNhay.DungVe(_center);   // #308: dựng lại thẻ không lộ nền trống giữa chừng
+        string? giuMa;
+        using (KhongNhay.DungVe(_center))   // #308: dựng lại thẻ không lộ nền trống giữa chừng
+            giuMa = DungTrong(m);
+        // đặt lại mã đang gõ (có Focus) SAU khi bật vẽ lại — trong khối tắt vẽ control chưa nhận tiêu điểm được
+        if (_code != null && !string.IsNullOrEmpty(giuMa)) _code.MaDangGo = giuMa;
+    }
+
+    /// <summary>Dựng thẻ (gọi trong khối tắt vẽ). → mã Con đang gõ dở ở thẻ cũ.</summary>
+    private string? DungTrong(ManKhoa m)
+    {
         _center.SuspendLayout();
         if (_khoi != null) { _center.Controls.Remove(_khoi); if (_count.Parent != null) _count.Parent.Controls.Remove(_count); _khoi.Dispose(); }
         var giuMa = _code?.MaDangGo;   // Ba Mẹ đang đọc mã cho Con gõ mà thẻ dựng lại ⇒ không mất số đã gõ
@@ -184,9 +198,9 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
             _center.Controls.Add(_khoi);
             _center.ResumeLayout(true);
         }
-        if (_code != null && !string.IsNullOrEmpty(giuMa)) _code.MaDangGo = giuMa;
         GiuaKhoi();
         DatGocChu();
+        return giuMa;
     }
 
     private ClayFlow TheMoi(int rong, bool giua)

@@ -71,7 +71,79 @@ public class KhongNhayTests
         Assert.True(lai.LaBanDau);
     }
 
+    [Fact]
+    public void KhayCuKhongNgheLoiGoi_BanMoiGianhLaiKhiKhayCuNhaMutex()
+    {
+        var (m, e) = Ten();
+        using var cuDaGiu = new ManualResetEventSlim(false);
+        using var choNha = new ManualResetEventSlim(false);
+        // «khay cũ»: chỉ giữ mutex, không tạo sự kiện (như bản trước #308)
+        var cu = new Thread(() =>
+        {
+            using var mutex = new Mutex(true, m, out _);
+            cuDaGiu.Set();
+            choNha.Wait(10000);
+            mutex.ReleaseMutex();
+        });
+        cu.Start();
+        Assert.True(cuDaGiu.Wait(5000));
+        using var moi = MotBanKhay.Nhan(m, e);
+        Assert.False(moi.LaBanDau);
+        Assert.False(MotBanKhay.GoiBanDangChay(e, 300));   // không ai nghe
+        Assert.False(moi.GianhLai(200));                    // khay cũ còn giữ
+        choNha.Set();                                        // (khay cũ bị kết thúc)
+        Assert.True(moi.GianhLai(5000));
+        Assert.True(moi.LaBanDau);
+        Assert.True(cu.Join(5000));
+        // giờ bản mới nhận được lời gọi của bản sau
+        using var daGoi = new ManualResetEventSlim(false);
+        moi.KhiDuocGoi(() => daGoi.Set());
+        Assert.True(MotBanKhay.GoiBanDangChay(e, 1000));
+        Assert.True(daGoi.Wait(5000));
+    }
+
+    [Theory]
+    [InlineData("AiiGrow.Tray", 1, 20, true)]
+    [InlineData("AiiGrow.Tray.exe.cu-1a2b3c4d", 1, 20, true)]   // khay cũ bộ cập nhật đổi tên
+    [InlineData("aiigrow.tray", 1, 20, true)]
+    [InlineData("AiiGrow.Tray", 2, 20, false)]                  // phiên khác (Ba Mẹ)
+    [InlineData("AiiGrow.Tray", 1, 10, false)]                  // chính mình
+    [InlineData("AiiGrow.Service", 1, 20, false)]
+    [InlineData("chrome", 1, 20, false)]
+    public void NhanDienKhayKhacCungPhien(string ten, int phien, int pid, bool la)
+        => Assert.Equal(la, MotBanKhay.LaKhayKhac(ten, phien, pid, phienMinh: 1, pidMinh: 10));
+
+    [Fact]
+    public void SuKienTenKhongHopLe_KhongNem()
+    {
+        // tên có dấu gạch chéo ngược thừa ⇒ không tạo / mở được: trả false, không ném (khay không chết lúc khởi động)
+        var tenHong = @"Local\" + Guid.NewGuid().ToString("N") + @"\x\y";
+        Assert.False(MotBanKhay.GoiBanDangChay(tenHong, 0));
+        using var b = MotBanKhay.Nhan(@"Local\AiiGrowTest.Mutex." + Guid.NewGuid().ToString("N"), tenHong);
+        Assert.True(b.LaBanDau);
+        b.KhiDuocGoi(() => { });   // không có sự kiện ⇒ bỏ qua, không ném
+    }
+
     // ------------------------------------------------------------ màn khoá giữ trên cùng không gây nháy
+
+    [Fact]
+    public void ManKhoa_KhangDinhTopMostMoiNhip_TruKhiDangDongHoacCoHopCon()
+    {
+        Assert.True(GiuTrenCung.CanKhangDinhTopMost(choDong: false, soFormCon: 0));
+        Assert.False(GiuTrenCung.CanKhangDinhTopMost(false, 1));
+        Assert.False(GiuTrenCung.CanKhangDinhTopMost(true, 0));
+    }
+
+    [Fact]
+    public void Pin_GoSoMaLoiKhongDoi_ChiVeLaiCham()
+    {
+        Assert.True(ManChonTenView.ChiDoiCham(BuocChonTen.NhapPin, null, null));
+        Assert.True(ManChonTenView.ChiDoiCham(BuocChonTen.NhapPin, "x", "x"));
+        Assert.False(ManChonTenView.ChiDoiCham(BuocChonTen.NhapPin, "Sai", null));   // số đầu xoá dòng lỗi ⇒ dựng lại thẻ
+        Assert.False(ManChonTenView.ChiDoiCham(BuocChonTen.BaMeMa, null, null));
+        Assert.False(ManChonTenView.ChiDoiCham(BuocChonTen.ChonTen, null, null));
+    }
+
 
     [Fact]
     public void ManKhoa_ChiKeoLenKhiTieuDiemOTienTrinhKhac()
