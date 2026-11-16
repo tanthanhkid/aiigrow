@@ -130,7 +130,10 @@ public enum ManMac {
   /// Thiết kế them-kofpo0dl «Hết sao rồi» / Ba Mẹ khoá. «het_gio» (máy chủ cũ, minutesLeft) = hết sao. Giờ ngủ đã bỏ (#258) ⇒ như Ba Mẹ khoá.
   public static func chuKhoa(_ t: TrangThai, phutDaChoi: Int? = nil) -> ChuKhoa {
     let ten = t.beTen ?? t.tenCon ?? "Con"
-    if t.lyDoKhoa == nil || ["het_gio", SaoPhut.lyDoHetSao].contains(t.lyDoKhoa ?? ""), let g = chuGioiHan(t) {
+    // chữ giới hạn CHỈ khi khoá vì hết phút/nghỉ (het_gio, hết sao, hoặc không rõ lý do mà phút chơi đã về 0); Ba Mẹ khoá, v.v. giữ chữ mặc định
+    let phutCon = t.phutSao ?? t.soSao?.phutCon
+    let khoaVoiGio = t.lyDoKhoa.map { ["het_gio", SaoPhut.lyDoHetSao].contains($0) } ?? ((phutCon ?? 1) <= 0)
+    if khoaVoiGio, let g = chuGioiHan(t) {
       return ChuKhoa(tieuDe: g.tieuDe, phu: g.phu, hetSao: false, theoGioiHan: true)
     }
     switch t.lyDoKhoa {
