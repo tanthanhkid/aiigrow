@@ -1,5 +1,5 @@
 // Dữ liệu của app «AiiGrow của Con» (agent-win AppForm + HvApi): tải tổng quan / cửa hàng / tin qua daemon (lệnh IPC `hocVien`),
-// nhận việc, nộp bài, đổi quà, trả lời Ba Mẹ, hỏi số phút chơi bằng điểm. Tray KHÔNG giữ token — mọi lời gọi máy chủ đi qua daemon.
+// nhận việc, nộp bài, đổi quà, trả lời Ba Mẹ, hỏi số phút chơi bằng sao. Tray KHÔNG giữ token — mọi lời gọi máy chủ đi qua daemon.
 import AppKit
 import Foundation
 import AiiGrowCore
@@ -19,7 +19,7 @@ final class AppConModel: ObservableObject {
   @Published var dangBan = false
   /// Số tin mới chưa đọc (tray đặt khi hỏi tin).
   @Published var tinMoi = 0
-  /// «≈ X phút chơi» đổi được bằng điểm cho mục chơi đầu tiên (`phutChoiCua`); nil = chưa biết.
+  /// «≈ X phút chơi» đổi được bằng sao cho mục chơi đầu tiên (`phutChoiCua`); nil = chưa biết.
   @Published var phutChoi: Int?
   var phutChoiCua: String?
   private var dangTai = false
@@ -72,7 +72,7 @@ final class AppConModel: ObservableObject {
     await GioiHanIPC.chung.vao()
     defer { Task { await GioiHanIPC.chung.ra() } }
     // daemon có thể gọi máy chủ HAI lần (choi: xet rồi mo, mỗi lần tới 20–30 giây) ⇒ chờ lâu hơn trường hợp xấu nhất, không báo lỗi giả
-    // trong khi daemon vẫn mở phiên / đổi quà (Con bấm lại ⇒ trừ điểm hai lần).
+    // trong khi daemon vẫn mở phiên / đổi quà (Con bấm lại ⇒ trừ sao hai lần).
     do { return try await IPCClient.guiAsync(yc, giay: 70) } catch {
       return .loi(ma: "ipc", chu: "Chưa nối được dịch vụ AiiGrow. Con thử lại sau vài giây nhé.")
     }

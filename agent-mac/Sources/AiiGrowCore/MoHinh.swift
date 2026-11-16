@@ -101,9 +101,9 @@ public struct Policy: Codable, Equatable {
   public var web: ChinhSachWeb?
   /// App Ba Mẹ đặt «Chặn» (DanhSachApp.swift). Máy chủ #262 luôn gửi rỗng (bỏ «Chặn»); khác rỗng (máy chủ cũ) thì vẫn đóng ở MỌI mode khi chặn thật.
   public var blockedApps: [AppBiChan] = []
-  /// App / trang Giải trí Ba Mẹ đã xếp — cửa sổ «Chơi bằng điểm» cho Con chọn (máy chủ: agent-windows.ts › playChoices; phien/xet vẫn quyết).
+  /// App / trang Giải trí Ba Mẹ đã xếp — cửa sổ «Chơi bằng sao» cho Con chọn (máy chủ: agent-windows.ts › playChoices; phien/xet vẫn quyết).
   public var playChoices: [String] = []
-  /// Phiên chơi bằng điểm đang mở TRÊN MÁY NÀY (máy chủ chỉ gửi cho máy sở hữu phiên) — daemon gửi phien/nhip cho phiên này.
+  /// Phiên chơi bằng sao đang mở TRÊN MÁY NÀY (máy chủ chỉ gửi cho máy sở hữu phiên) — daemon gửi phien/nhip cho phiên này.
   public var playSessionId: String?
   /// Phiên đang chơi: app (bundle id) / trang web (playWeb) — daemon đo «đang chơi thật» khi gửi phien/nhip.
   public var playApp: String?
@@ -290,7 +290,7 @@ public struct TrangThaiAgent: Codable, Equatable {
   public var quyen: [String: Bool]
   public var phienKhac: Bool
   public var conLaAdmin: Bool?                   // true khi tài khoản Con còn quyền admin (nil = ổn, bỏ khỏi JSON)
-  public var playSeconds: Double?                // Mac chưa đo giây theo phiên chơi bằng điểm ⇒ để nil (Codable bỏ hẳn khỏi JSON) — máy chủ coi như agent đời cũ, trang khay là nguồn nhịp. Gửi 0 sẽ làm phiên bị tạm rồi đóng sau 3 phút
+  public var playSeconds: Double?                // Mac chưa đo giây theo phiên chơi bằng sao ⇒ để nil (Codable bỏ hẳn khỏi JSON) — máy chủ coi như agent đời cũ, trang khay là nguồn nhịp. Gửi 0 sẽ làm phiên bị tạm rồi đóng sau 3 phút
 
   public init(mode: String, trayAlive: Bool, childSessionActive: Bool, offline: Bool, cheDo: String, phienKhac: Bool) {
     self.mode = mode; self.trayAlive = trayAlive; self.childSessionActive = childSessionActive; self.offline = offline

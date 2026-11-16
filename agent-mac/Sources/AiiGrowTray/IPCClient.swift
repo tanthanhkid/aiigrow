@@ -53,7 +53,7 @@ enum IPCClient {
   }
 
   /// Bản async: chạy trên luồng nền.
-  /// `giay`: lệnh đi máy chủ (app Con, chơi bằng điểm) chờ tới 25 giây; lệnh cục bộ 3 giây.
+  /// `giay`: lệnh đi máy chủ (app Con, chơi bằng sao) chờ tới 25 giây; lệnh cục bộ 3 giây.
   static func guiAsync(_ yc: YeuCauTray, giay: Int = 3) async throws -> TraLoi {
     try await Task.detached(priority: .userInitiated) { try gui(yc, giayChoToiDa: giay) }.value
   }

@@ -39,14 +39,17 @@ public enum YeuCauTray: Codable, Equatable {
   /// App của Con (nhiệm vụ / nộp bài / phần quà / tin nhắn): daemon chuyển tới `api/device/<path>` bằng token máy (CHỈ đường trong
   /// `HocVienPaths`, như agent-win PipeCmd.HocVien) và trả JSON nguyên văn ở `.duLieu`. `than` = thân JSON (chuỗi) cho POST.
   case hocVien(method: String, path: String, than: String?)
-  /// «Chơi bằng điểm»: daemon xét (phien/xet) rồi mở (phien/mo) cho `muc` — chỉ mục trong `playChoices` của Policy. Trả `.choi`.
+  /// «Chơi bằng sao»: daemon xét (phien/xet) rồi mở (phien/mo) cho `muc` — chỉ mục trong `playChoices` của Policy. Trả `.choi`.
   case choi(muc: String)
-  /// Hỏi «đổi được khoảng bao nhiêu phút» cho `muc` (phien/xet, nhớ 60/15 giây) — chỉ trả SỐ PHÚT, không trả số điểm. Trả `.choi`.
+  /// Hỏi «đổi được khoảng bao nhiêu phút» cho `muc` (phien/xet, nhớ 60/15 giây) — chỉ trả SỐ PHÚT, không trả số sao. Trả `.choi`.
   case choiThu(muc: String)
   /// Con gõ mã mở offline Ba Mẹ đọc (MaOffline.swift) — daemon tự kiểm, không cần máy chủ. Trả `.thongBao` (mở được) hoặc `.loi`.
   case maOffline(ma: String)
   /// Ba Mẹ (admin) lấy hồ sơ DNS gia đình (GET api/device/ho-so-dns) ⇒ `.duLieu(json)` có `apple.mobileconfig` + `apple.tep`.
   case hoSoDns
+  /// 16/11 (#267): Ba Mẹ (admin) xem máy này có mấy bé / máy riêng một bé không — màn «Máy đã sẵn sàng» sau khi ghép rẽ theo đó.
+  /// ⇒ `.duLieu(json HoSoMay)` (không có vân PIN).
+  case hoSoGhep
   // ---- 06/11 PIN theo bé (L13, PinBe.swift) — chỉ từ uid tài khoản Con (màn chọn tên chạy trong phiên đó)
   /// «Ai đang dùng máy?» ⇒ `.duLieu(json HoSoMay)` (KHÔNG có vân PIN). Mất mạng ⇒ bản nhớ.
   case hoSo
@@ -56,7 +59,7 @@ public enum YeuCauTray: Codable, Equatable {
   case quenPin(con: String)
   /// «Ba Mẹ nhập mã» (mã mở máy 6 số) ⇒ `.thongBao` (Ba Mẹ đang dùng máy) | `.pin("ma_sai", conLan)` | `.pin("ma_tam_khoa", choGiay)` | `.loi`.
   case baMeMo(ma: String)
-  /// «Đổi bé / Đăng xuất» của bé ⇒ máy về màn chọn tên.
+  /// «Đổi người / Đăng xuất» của bé ⇒ máy về màn chọn tên.
   case dangXuat
   /// «Khoá lại» khi Ba Mẹ dùng xong ⇒ máy về màn chọn tên.
   case khoaLai
@@ -80,14 +83,14 @@ public struct TrangThai: Codable, Equatable {
   public var khoaDen: Date?                // «Khoá ngay» có hạn
   public var demNguocGiay: Int?            // >0: sắp khoá phiên, tray hiện màn đếm ngược
   public var yeuCauCho: [YeuCauDangCho]
-  public var duocDoiDiem: Bool             // KHÔNG bao giờ có số điểm
+  public var duocDoiDiem: Bool             // KHÔNG bao giờ có số sao
   public var matMang: Bool                 // đang chạy theo Policy nhớ
   public var trangChan: [String]           // tên miền đang chặn (để tray giải thích khi Con hỏi)
   public var capNhat: String?              // trạng thái tự cập nhật («Đang là bản mới nhất (0.1.1)»…) — KHÔNG trả cho phiên Con
   public var capNhatLuc: Date?
   public var banDaemon: String?            // bản daemon ĐANG chạy (tray cũ chưa nạp lại vẫn hiện đúng bản thật); nil = daemon cũ chưa gửi
   public var canhBaoAdmin: String?         // Con còn quyền admin: câu cảnh báo + cách xử lý cho Ba Mẹ (KHÔNG trả cho phiên Con; máy chủ vẫn nhận conLaAdmin)
-  /// App / trang Giải trí Ba Mẹ cho đổi điểm (Policy.playChoices) — cửa sổ «Chơi bằng điểm». nil = daemon cũ.
+  /// App / trang Giải trí Ba Mẹ cho chơi bằng sao (Policy.playChoices) — cửa sổ «Chơi bằng sao». nil = daemon cũ.
   public var dsChoi: [String]?
   /// App vừa bị AiiGrow đóng trong phiên Con (màn «… chưa được mở»): `chanSeq` tăng mỗi lần đóng một app MỚI; nil = chưa có / daemon cũ.
   public var chanSeq: Int?

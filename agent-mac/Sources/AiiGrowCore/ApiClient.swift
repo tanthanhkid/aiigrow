@@ -48,11 +48,11 @@ public protocol MayChuApi: AnyObject {
   func guiUngDung(_ than: ThanGuiApp) async throws -> KetQuaGuiApp
   /// App của Con: GET/POST api/device/<path> (path đã qua HocVienPaths), trả thân JSON nguyên văn.
   func hocVien(method: String, path: String, than: Data?) async throws -> Data
-  /// POST api/device/phien/xet {muc} — máy chủ quyết cho chơi bằng điểm hay không (+ số phút tối đa).
+  /// POST api/device/phien/xet {muc} — máy chủ quyết cho chơi bằng sao hay không (+ số phút tối đa).
   func xetChoi(muc: String) async throws -> KetQuaXetChoi
-  /// POST api/device/phien/mo {muc} — mở phiên chơi bằng điểm (sau khi xét «được»).
+  /// POST api/device/phien/mo {muc} — mở phiên chơi bằng sao (sau khi xét «được»).
   func moChoi(muc: String) async throws -> KetQuaMoChoi
-  /// POST api/device/phien/nhip {id, dangDung} — nhịp phiên chơi (máy chủ trừ điểm theo phút, hết thì «ket_thuc»). Trả trangThai.
+  /// POST api/device/phien/nhip {id, dangDung} — nhịp phiên chơi (máy chủ trừ sao theo phút, hết thì «ket_thuc»). Trả trangThai.
   func nhipChoi(id: String, dangDung: Bool) async throws -> String
   /// POST api/device/phien/bu {ma, id, muc, phut, batDau, ketThuc} — gửi bù phút chơi lúc mất mạng (TRƯỚC dong-bo), `ma` một lần.
   func guiPhienBu(_ than: [String: Any]) async throws
@@ -77,7 +77,7 @@ public enum DuongMayChung {
   public static func duoc(_ method: String, _ path: String) -> Bool { ds.contains(method.uppercased() + " " + path) }
 }
 
-/// Kết quả phien/xet. KHÔNG mang số điểm sang tray — chỉ «được / không», câu nhắc, số phút.
+/// Kết quả phien/xet. KHÔNG mang số sao sang tray — chỉ «được / không», câu nhắc, số phút.
 public struct KetQuaXetChoi: Equatable, Sendable {
   public var duoc: Bool
   public var lyDo: String?
@@ -101,8 +101,8 @@ public extension MayChuApi {
   func banMoi() async throws -> BanMoi? { nil }
   func guiUngDung(_ than: ThanGuiApp) async throws -> KetQuaGuiApp { throw LoiApi(maHttp: 404, ma: "not_found", chu: "Máy chủ chưa có danh sách app") }
   func hocVien(method: String, path: String, than: Data?) async throws -> Data { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa có app của Con") }
-  func xetChoi(muc: String) async throws -> KetQuaXetChoi { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ chơi bằng điểm") }
-  func moChoi(muc: String) async throws -> KetQuaMoChoi { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ chơi bằng điểm") }
+  func xetChoi(muc: String) async throws -> KetQuaXetChoi { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ chơi bằng sao") }
+  func moChoi(muc: String) async throws -> KetQuaMoChoi { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ chơi bằng sao") }
   func nhipChoi(id: String, dangDung: Bool) async throws -> String { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ nhịp phiên") }
   func guiPhienBu(_ than: [String: Any]) async throws {}
   func ghepGoi(token: String, tenMay: String) async throws -> KetQuaGhep { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ ghép một chạm") }
@@ -273,7 +273,7 @@ public final class ApiClient: MayChuApi {
       guard (5...240).contains(so) else {
         throw LoiApi(maHttp: 400, ma: "so_sao_sai", chu: "Máy chủ chưa hỗ trợ vay sao. Con xin từ 5 đến 240 phút nhé.")
       }
-      return try await taoYeuCau(loai: "them_gio", phut: so, giaTri: nil, lyDo: lyDo ?? "Con xin thêm giờ")
+      return try await taoYeuCau(loai: "them_gio", phut: so, giaTri: nil, lyDo: lyDo ?? "Con xin vay \(so) sao")
     }
   }
 

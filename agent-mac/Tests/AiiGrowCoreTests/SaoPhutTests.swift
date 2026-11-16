@@ -274,4 +274,21 @@ final class SaoPhutTests: XCTestCase {
     api.xinVayLoi = LoiApi(maHttp: 400, ma: "so_sao_sai", chu: "sai")
     guard case .loi = await b.xuLyIPC(.xinVay(soSao: 15, mucDich: nil, quaId: nil, loiNhan: nil), uidGoi: 501) else { return XCTFail() }
   }
+
+  func testTraNoKhiDuyet() {
+    XCTAssertEqual(ChuSao.traNoKhiDuyet(cong: 10, noTruoc: 20), "Trả nợ 10 sao · còn nợ 10 sao")
+    XCTAssertEqual(ChuSao.traNoKhiDuyet(cong: 30, noTruoc: 20), "Trả nợ 20 sao trước · con còn 10 sao")
+    XCTAssertEqual(ChuSao.traNoKhiDuyet(cong: 20, noTruoc: 20), "Trả nợ 20 sao · còn nợ 0 sao")
+    XCTAssertNil(ChuSao.traNoKhiDuyet(cong: 10, noTruoc: 0))
+    XCTAssertNil(ChuSao.traNoKhiDuyet(cong: 0, noTruoc: 5))
+    XCTAssertEqual(ChuSao.choDuyet(20, no: 0), "Duyệt xong +20 sao (đang nợ thì trả nợ trước)")
+    XCTAssertEqual(ChuSao.choDuyet(20, no: 15), "Trả nợ 15 sao trước · con còn 5 sao")
+    XCTAssertEqual(ChuSao.choDuyet(10, no: 15), "Trả nợ 10 sao · còn nợ 5 sao")
+  }
+
+  func testQuyenHoSoGhepChiBaMe() {
+    XCTAssertEqual(QuyenIPC.kiem(.hoSoGhep, uidGoi: 501, uidCon: 502, daGhep: true, laAdmin: { $0 == 501 }), .duoc)
+    if case .tuChoi = QuyenIPC.kiem(.hoSoGhep, uidGoi: 502, uidCon: 502, daGhep: true, laAdmin: { _ in false }) {} else { XCTFail("Con không được") }
+    if case .tuChoi = QuyenIPC.kiem(.hoSoGhep, uidGoi: 501, uidCon: nil, daGhep: false, laAdmin: { _ in true }) {} else { XCTFail("chưa ghép") }
+  }
 }

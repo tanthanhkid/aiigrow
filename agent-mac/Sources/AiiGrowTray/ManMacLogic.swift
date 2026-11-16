@@ -24,6 +24,44 @@ public enum BuocChonTen: Equatable {
 /// Màn ghép máy đang hiện (03 / 05 / 06 / 07 / 08 / 09).
 public enum ManGhep: Equatable { case nhap, maSai, hetHan, matMang, batQuyen, xong }
 
+/// «Hỏi AiiGrow» — tự tìm lỗi (con-mat-mang 10; bản Windows `HoiAiiGrowView`): cùng bốn thẻ tình huống, cùng chữ; cách xử lý theo khả năng của Mac.
+public enum HoiAiiGrow {
+  /// (mã, icon Fluent, tiêu đề, dòng phụ) — y như Windows (thu_lai | ma_mo | bat_lai | cap_nhat).
+  public static let the: [(ma: String, icon: String, tieu: String, phu: String)] = [
+    ("thu_lai", "wifi", "Mất mạng?", "Máy vẫn trừ sao đúng luật"),
+    ("ma_mo", "key", "Máy bị khoá?", "Xin Ba Mẹ mã mở máy"),
+    ("bat_lai", "warning", "AiiGrow báo lỗi?", "Bấm «Bật lại AiiGrow»"),
+    ("cap_nhat", "hourglass_not_done", "Cần cập nhật?", "Bấm cập nhật, chờ 1 phút"),
+  ]
+  public static let tieu = "Hỏi AiiGrow"
+  public static let phu = "Con đang gặp gì? Bấm vào thẻ nhé"
+  public static let goiBaMe = "Gọi Ba Mẹ giúp"
+  /// Windows nói «màn khoá»; Mac: mã gõ ở ô «Mất mạng? Mở bằng mã của Ba Mẹ ›» trên màn khoá.
+  public static let maMoCau = "Nhờ Ba Mẹ mở app AiiGrow trên điện thoại, đọc mã 6 số cho con gõ vào màn khoá."
+  public static let maMoCho = "Màn khoá có dòng «Mất mạng? Mở bằng mã của Ba Mẹ ›» — bấm vào rồi gõ mã."
+
+  public struct KetQua: Equatable { public var tieu: String, phu: String, tot: Bool }
+
+  /// Thẻ «Mất mạng?» / «AiiGrow báo lỗi?» sau khi hỏi lại dịch vụ (Windows: thử lại / bật lại; Mac không khởi động lại được dịch vụ root từ khay,
+  /// nó tự bật lại nhờ KeepAlive ⇒ chỉ hỏi lại và nói thật).
+  public static func ketQuaThuLai(ma: String, matKetNoi: Bool, matMang: Bool, banDaemon: String?) -> KetQua {
+    if matKetNoi {
+      return KetQua(tieu: "AiiGrow chưa trả lời",
+                    phu: ma == "bat_lai" ? "AiiGrow tự bật lại sau vài giây, máy vẫn giữ luật cũ. Vẫn lỗi thì khởi động lại máy hoặc nhờ Ba Mẹ cài lại gói AiiGrow."
+                                         : "Máy vẫn giữ luật như cũ. Con chờ vài giây rồi thử lại nhé.", tot: false)
+    }
+    if matMang { return KetQua(tieu: "Vẫn chưa có mạng", phu: "Máy vẫn trừ sao đúng luật. Có mạng là AiiGrow gửi Ba Mẹ ngay.", tot: false) }
+    return KetQua(tieu: "AiiGrow chạy bình thường", phu: "Sao và luật vẫn như cũ." + (banDaemon.map { " Bản \($0)." } ?? ""), tot: true)
+  }
+  /// Thẻ «Cần cập nhật?» cho Con: Mac tự cập nhật nền; nút kiểm ngay chỉ có ở menu tài khoản Ba Mẹ.
+  public static func ketQuaCapNhat(banDaemon: String?) -> KetQua {
+    KetQua(tieu: "AiiGrow tự cập nhật",
+           phu: "Có bản mới là máy tự cài trong khoảng 1 phút, không cần ghép lại. Sao và luật giữ nguyên." + (banDaemon.map { " Đang chạy bản \($0)." } ?? "")
+                + " Muốn kiểm ngay: nhờ Ba Mẹ chọn «Kiểm tra cập nhật» ở menu AiiGrow trong tài khoản của Ba Mẹ.", tot: true)
+  }
+  public static func ketQuaMaMo() -> KetQua { KetQua(tieu: "Máy bị khoá?", phu: maMoCau + " " + maMoCho, tot: true) }
+}
+
 public enum ManMac {
   /// Máy dùng chung chưa ai vào ⇒ màn chọn tên che máy (chỉ phiên Con, đã ghép).
   public static func canChonTen(_ t: TrangThai?) -> Bool { t?.laPhienCon == true && t?.daGhep == true && t?.nguoiDung == "chua" }
@@ -109,6 +147,30 @@ public enum ManMac {
   /// Sao Ba Mẹ duyệt hôm nay (tổng `gan` đã duyệt có lúc hôm nay) — «Sao kiếm hôm nay +30 sao».
   public static func saoKiemHomNay(_ gan: [HvLuot], bayGio: Date = Date(), lich: Calendar = .current) -> Int {
     gan.filter { $0.trangThai == "duoc_duyet" && ($0.luc.map { lich.isDate($0, inSameDayAs: bayGio) } ?? false) }.reduce(0) { $0 + ($1.diem ?? 0) }
+  }
+
+  /// Chữ màn «Máy đã sẵn sàng» sau khi ghép (con-cai-mac 09 + biến thể máy riêng #267). Máy riêng = hồ sơ chỉ có MỘT bé (hoặc máy chủ báo `mayRieng`):
+  /// không nói tên + PIN, không nói «cả nhà». Chưa biết hồ sơ (mất mạng…) ⇒ bản máy chung như cũ.
+  public struct ChuXong: Equatable {
+    public var tieuDe: String
+    public var phu: String
+    public var cacDong: [String]
+    public var nut: String
+    /// «Máy khoá lại; …» dưới nút.
+    public var chanTrang: String
+  }
+  public static func chuXong(_ h: HoSoMay?, taiKhoan: String) -> ChuXong {
+    let chung = "Chỉ mở app, web Ba Mẹ đã thêm · Ba Mẹ có thể để Mở hết"
+    if let h, h.con.count == 1, let be = h.con.first {
+      return ChuXong(tieuDe: "Máy của \(be.ten) đã sẵn sàng!", phu: "\(be.ten) mở máy là vào thẳng, không cần làm gì thêm.",
+                     cacDong: ["⭐  Sao của \(be.ten) · 1 sao = 1 phút chơi", "🛡  " + chung],
+                     nut: "Mở màn khoá",
+                     chanTrang: "Máy khoá lại; \(be.ten) đăng nhập tài khoản «\(taiKhoan)» để vào.")
+    }
+    return ChuXong(tieuDe: "Máy đã sẵn sàng cho cả nhà!", phu: "Mỗi bé vào máy bằng tên + PIN 4 số.",
+                   cacDong: ["⭐  Sao riêng từng bé · 1 sao = 1 phút chơi", "🔑  PIN do Ba Mẹ đặt trong app", "🛡  " + chung],
+                   nut: "Mở màn chọn tên",
+                   chanTrang: "Máy khoá lại; các bé đăng nhập tài khoản «\(taiKhoan)» rồi chọn tên + PIN.")
   }
 
   /// Câu «để hết nợ»: «Để hết nợ còn 20 sao» + «2 việc chờ duyệt (+20 sao) là hết nợ» (nil = không nợ).

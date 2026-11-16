@@ -8,7 +8,7 @@ không ẩn mình, Con luôn biết máy được quản lý. Server coi máy n�
 |---|---|---|
 | `AiiGrowCore` (thư viện) | — | `IPC.swift` (chỗ nối, đã chốt), API client, cấu hình, Policy, đếm giờ |
 | `aiigrow-daemon` | LaunchDaemon root `vn.aiilab.aiigrow.daemon`, KeepAlive | sync server, áp chính sách: đóng app ngoài danh sách / app bị chặn trong phiên Con, chặn web, khoá phiên, đếm phút; socket IPC |
-| `AiiGrowTray` | LaunchAgent `vn.aiilab.aiigrow.tray` (Aqua, mọi phiên) — app `AiiGrow.app` LSUIElement | menu bar: giờ còn lại, xin thêm giờ, màn chặn/hết giờ/đếm ngược toàn màn hình; báo app tiền cảnh; phiên admin chưa ghép ⇒ cửa sổ Ghép máy |
+| `AiiGrowTray` | LaunchAgent `vn.aiilab.aiigrow.tray` (Aqua, mọi phiên) — app `AiiGrow.app` LSUIElement | menu bar: sao còn lại, xin vay sao, màn chưa-có-trong-danh-sách / hết sao / đếm ngược/hết giờ/đếm ngược toàn màn hình; báo app tiền cảnh; phiên admin chưa ghép ⇒ cửa sổ Ghép máy |
 | `goi/` | build máy Mac | `build-pkg.sh` ⇒ `ra/AiiGrow-<bản>.pkg`: dựng `AiiGrow.app` (tray + daemon trong Contents/MacOS), plist, postinstall nạp daemon + tray, `go-cai.sh` |
 
 ## 2. Đường dẫn — `DuongDan` trong `IPC.swift`
@@ -18,19 +18,19 @@ Unix socket, một dòng JSON yêu cầu (`YeuCauTray`) ⇒ một dòng JSON tr�
 lệnh của Con chỉ nhận từ uid Con; `ghep` chỉ từ uid nhóm admin và khi chưa ghép. Tray hỏi `trangThai` mỗi 5 giây.
 
 ### 3b. App «AiiGrow của Con» (ngang agent-win AppForm, 25/10/2026)
-- Menu (phiên Con, đã ghép) «Mở AiiGrow của Con…» ⇒ cửa sổ 4 mục Hôm nay · Nhiệm vụ · Phần quà & điểm · Tin nhắn (`AppConViews.swift`, `AppConModel.swift`); nộp bài (ảnh nén ≤ 300 KB), chơi bằng điểm, màn «… chưa được mở», bảng tin mới (hỏi `hoc-vien/tin` mỗi 30 giây; nhiệm vụ mới ⇒ tự bật mục Nhiệm vụ theo `BatNhiemVu`).
+- Menu (phiên Con, đã ghép) «Mở AiiGrow của Con…» ⇒ cửa sổ 4 mục Hôm nay · Nhiệm vụ · Phần quà & điểm · Tin nhắn (`AppConViews.swift`, `AppConModel.swift`); nộp bài (ảnh nén ≤ 300 KB), chơi bằng sao, màn «… chưa được thêm», bảng tin mới (hỏi `hoc-vien/tin` mỗi 30 giây; nhiệm vụ mới ⇒ tự bật mục Nhiệm vụ theo `BatNhiemVu`).
 - IPC: `hocVien(method, path, than)` ⇒ `.duLieu(json)` — daemon chỉ chuyển đường trong `HocVienPaths` tới `api/device/hoc-vien/*` bằng token máy (tray không giữ token). `choi(muc)` (phien/xet → phien/mo) / `choiThu(muc)` (phien/xet, nhớ 60/15 giây) ⇒ `.choi(trangThai, phut, chu)`; chỉ mục trong `Policy.playChoices`. Cả ba chỉ nhận từ uid Con.
 - Nhịp phiên chơi: Policy có `playSessionId` (máy chủ chỉ gửi cho máy sở hữu phiên) ⇒ daemon gửi `phien/nhip {id, dangDung}` 30 giây/lần (`vongNhipChoi`, Task riêng); «ket_thuc» ⇒ đồng bộ ngay.
-- `TrangThai` thêm (chỉ cho phiên Con): `dsChoi`, `chanSeq/chanApp/chanTen/chanLyDo` (app vừa bị đóng — tray hiện màn chặn khi `chanSeq` tăng). Số điểm CHỈ có trong dữ liệu `hocVien` (như Windows); menu / màn khoá vẫn không hiện điểm.
+- `TrangThai` thêm (chỉ cho phiên Con): `dsChoi`, `chanSeq/chanApp/chanTen/chanLyDo` (app vừa bị đóng — tray hiện màn chặn khi `chanSeq` tăng). Số sao CHỈ có trong dữ liệu `hocVien` và `soSao` (như Windows).
 
 ### 3c. Ngang các nền (BANG-TINH-NANG-OS mục 5, 25/10/2026)
 - Mã mở offline (`MaOffline.swift`, TOTP như server/lib/ma-offline.ts): IPC `maOffline(ma)` từ uid Con; sai 5 lần/10 phút ⇒ chờ; một mã một lượt; có mạng lại ⇒ kết thúc. Màn khoá hiện ô nhập khi `TrangThai.nhapMaOffline`.
 - Log + sự kiện (`NhatKyMay.swift`): mọi `ghiLog` vào bộ đệm, 5 phút gửi `api/device/log`; sự kiện (chan_app, mo/sai/het_ma_offline) lưu đĩa, gửi `su-kien` mã một lần.
 - Lịch sử web (`LichSuWeb.swift`): Chromium `History` + Safari `History.db` (Safari cần Full Disk Access cho daemon, thiếu thì bỏ qua) ⇒ tổng theo (ngày, tên miền) ⇒ `web/lich-su`.
-- Safari ở «chỉ cho phép» (không phải giờ học) bị đóng — hosts chỉ chặn được danh sách đen.
+- Safari ở «Theo danh sách» bị đóng (Safari không có chế độ «chỉ cho phép»); Chrome / Edge / Brave / Cốc Cốc có allowlist qua chính sách trình duyệt.
 - Ghép một chạm: postinstall lấy token từ tên `AiiGrow_<token>.pkg` ⇒ `goi-cai-token` (root 0600) ⇒ cửa sổ Ghép chỉ hỏi tài khoản Con (`ghep-goi`); token hỏng ⇒ quay về mã 6 số.
 - Hồ sơ DNS gia đình: menu Ba Mẹ «Cài hồ sơ DNS gia đình…» ⇒ IPC `hoSoDns` ⇒ lưu .mobileconfig vào Tải về và mở.
-- Tray: icon thanh menu = Grow; Hôm nay theo app (`homNayTheoApp`); «Ba Mẹ dùng máy» (khoá màn hình); «Hoặc đổi điểm lấy giờ chơi» trong Xin thêm giờ; tin mới qua UNUserNotification (trong AiiGrow.app).
+- Tray: icon thanh menu = Grow; Hôm nay theo app (`homNayTheoApp`); «Ba Mẹ dùng máy» (khoá màn hình); (đã bỏ 15/11: «Đổi sao lấy giờ», «Xin thêm giờ» — nay «Xin Ba Mẹ cho vay sao»); tin mới qua UNUserNotification (trong AiiGrow.app).
 
 ### 3d. Mac của cả nhà — PIN theo bé (06/11, L13, `docs/thiet-ke-chot/con-cai-mac` 60 màn)
 - Một tài khoản macOS giới hạn cho các bé (tài khoản chọn lúc ghép); AiiGrow nhận từng bé bằng **tên + PIN 4 số**. Máy chủ gửi `nguoiDung`
@@ -39,9 +39,9 @@ lệnh của Con chỉ nhận từ uid Con; `ghep` chỉ từ uid nhóm admin v�
 - IPC (chỉ uid Con): `hoSo` (không vân PIN), `dangNhapBe`, `quenPin`, `baMeMo`, `dangXuat`, `khoaLai` ⇒ `api/device/{ho-so, dang-nhap-be, quen-pin,
   ba-me-mo, dang-xuat, khoa-lai}`. Lỗi PIN/mã trả `.pin(ketQua, conLan, choGiay, chu)`.
 - Mất mạng: PIN kiểm bằng vân PIN đã nhớ (HMAC-SHA256 khoá = `maOfflineBiMat`), đếm sai 5 lần / 15 giây tại máy; mã «Ba Mẹ nhập mã» kiểm
-  biến thể 60 / 30 / 15 phút (`MaOffline.kiemPhut`), một mã một lượt; lượt đăng nhập / Đổi bé gửi lại máy chủ khi có mạng.
-- Giao diện theo màn: chọn tên, PIN, sai 5 lần, Quên PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng (10–16); app Con thanh bên «Đổi bé / Đăng xuất» (17–19);
-  Sao & quà bảng giá + đổi quà giữ sao (23–25); đổi sao lấy giờ (49–51); màn khoá sáng hết giờ / giờ ngủ / mất mạng (32–39, 58); ghép máy 03–09.
+  biến thể 60 / 30 / 15 phút (`MaOffline.kiemPhut`), một mã một lượt; lượt đăng nhập / Đổi người gửi lại máy chủ khi có mạng.
+- Giao diện theo màn: chọn tên, PIN, sai 5 lần, Quên PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng (10–16); app Con thanh bên «Đổi người / Đăng xuất» (17–19);
+  Sao & quà bảng giá + đổi quà giữ sao (23–25); ~~đổi sao lấy giờ (49–51)~~ (bỏ 15/11); màn khoá sáng Ba Mẹ khoá / hết sao / mất mạng (32–39, 58); ghép máy 03–09.
 
 ### 3e. Sao = phút, vay sao, App & web (15/11, #258 #262–#267, bản 0.1.12 — docs/API.md «Sổ sao 15/11», «App & web 15/11», «#267»)
 - **Sao = phút** (`SaoPhut.swift`, `SoSao.swift`): gốc dong-bo `sao {sao, no, phutCon, hetSao…}` ⇒ `Policy.soSao`. Daemon đếm lùi `phutCon` theo giây app
@@ -52,7 +52,7 @@ lệnh của Con chỉ nhận từ uid Con; `ghep` chỉ từ uid nhóm admin v�
 - `hoc-vien/sao` (`lichSu[]`, `appHomNay[]`, `phutChoiHomNay`) đọc có điều kiện: dòng sổ sao ở Hôm nay đang nợ / Sao & quà, «Roblox 30 phút · −30 sao».
 - **Mở hết** (`windows.moHet` / gốc `cheDo: mo_het`): không đếm, không đóng, không trừ sao. **Mở bằng mã offline**: không trừ sao, không đóng; giây «Tính phút»
   lúc đó cộng vào `boiMaGiayTuSync` ⇒ `dong-bo {phutBoiMa}`; `phien/bu {boiMa: true}`.
-- **Máy chung**: `usage[].con` = bé đang dùng (khoá `DemPhut` «ngày|app|bé», phút = tổng của bé); «Đổi bé» đồng bộ trước khi thả bé (chốt phút).
+- **Máy chung**: `usage[].con` = bé đang dùng (khoá `DemPhut` «ngày|app|bé», phút = tổng của bé); «Đổi người» đồng bộ trước khi thả bé (chốt phút).
   `ho-so` `con[].sao/no` ⇒ màn chọn tên hiện viên sao từng bé.
 - **Xin vay** IPC `xinVay(soSao, mucDich, quaId, loiNhan)` ⇒ `POST device/yeu-cau {loai: vay_sao}` (máy chủ cũ ⇒ `them_gio`); mất mạng ⇒ lưu `xinVayCho`,
   có mạng tự gửi. Lời xin vay / mở app được theo dõi (`GET device/yeu-cau/:id`: `ketQua` da_them | mo_tam | chua_them, `nhom`, `tenNguoiDuyet`, `loiNhan`)
@@ -102,3 +102,19 @@ Theo `docs/THIET-KE-CLAY.md`. `Sources/AiiGrowTray/Clay.swift`: token màu, th�
 ổ khoá đóng sập, đồng hồ rung. Reduce Motion ⇒ chỉ fade. Icon minh hoạ = Fluent Emoji 3D (MIT, `microsoft/fluentui-emoji` commit
 `1ffb34c752ecf5d402f04cfb4b392c77f57c54bc`, 128px) ở `Sources/AiiGrowTray/Fluent/` kèm `LICENSE-fluentui-emoji.txt`; gói cài chép vào
 `AiiGrow.app/Contents/Resources/Fluent` (thiếu tệp ⇒ SF Symbol). Chụp duyệt: `CHUP_CLAY=<thư mục> swift test --filter ChupClay`.
+
+### 3f. Khớp #262–#267 lần hai + «Hỏi AiiGrow» (16/11, issue #289, như agent-win)
+- Chữ: «điểm» ⇒ «sao» mọi nơi Con thấy; lời xin vay dự phòng cho máy chủ cũ gửi `lyDo` «Con xin vay N sao» (không còn «Con xin thêm giờ»).
+- Trả nợ (#263): tin «Ba Mẹ đã duyệt …» khi Con đang nợ thêm câu «Trả nợ 10 sao · còn nợ 10 sao» / «Trả nợ 20 sao trước · con còn 5 sao»
+  (`ChuSao.traNoKhiDuyet`, nợ lấy TRƯỚC lần làm mới); thẻ «Chờ Ba Mẹ duyệt» ở Nhiệm vụ / Sao & quà dùng `ChuSao.choDuyet`. Tin có câu trả nợ luôn hiện, không nhường chỗ «Giỏi lắm!».
+- «Đổi bé» ⇒ «Đổi người» (menu, app Con, màn khoá); giữ «Đăng xuất».
+- Cài xong (#267): IPC mới `hoSoGhep` (chỉ Ba Mẹ / admin, sau khi ghép) ⇒ hồ sơ máy; một bé ⇒ «Máy của Bảo Anh đã sẵn sàng!» (không nói PIN / tên / cả nhà), nhiều bé ⇒ «Máy đã sẵn sàng cho cả nhà!».
+  Chữ chung: «Chỉ mở app, web Ba Mẹ đã thêm · Ba Mẹ có thể để Mở hết».
+- **«Hỏi AiiGrow»** (con-mat-mang 10; `HoiAiiGrowViews.swift`, `HoiAiiGrow` trong `ManMacLogic.swift`): menu «Hỏi AiiGrow…» (phiên Con, luôn có cả lúc mất kết nối dịch vụ) + link «Hỏi AiiGrow cách sửa ›» ở thanh báo mất mạng của app Con.
+  Cùng bốn thẻ và chữ như Windows (Mất mạng? / Máy bị khoá? / AiiGrow báo lỗi? / Cần cập nhật?) + «Gọi Ba Mẹ giúp» (⇒ Tin nhắn). Khác Windows vì Mac:
+  | Thẻ | Windows | Mac |
+  |---|---|---|
+  | Mất mạng? | thử kết nối lại | hỏi lại daemon, nói thật: chưa trả lời / vẫn chưa có mạng / chạy bình thường |
+  | Máy bị khoá? | báo bong bóng «đọc mã 6 số» | thẻ chữ: Ba Mẹ đọc mã 6 số; gõ ở «Mất mạng? Mở bằng mã của Ba Mẹ ›» trên màn khoá |
+  | AiiGrow báo lỗi? | «Bật lại AiiGrow» khởi động lại dịch vụ | khay không khởi động lại được daemon root (KeepAlive tự bật lại) ⇒ hỏi lại + hướng dẫn khởi động lại máy / cài lại gói |
+  | Cần cập nhật? | Con kiểm + cập nhật ngay | Con không có quyền IPC `capNhat` (chỉ Ba Mẹ) ⇒ nói máy tự cập nhật nền, kiểm ngay nhờ Ba Mẹ; phiên Ba Mẹ bấm thẻ ⇒ «Kiểm tra cập nhật» |
