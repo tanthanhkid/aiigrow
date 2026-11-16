@@ -17,3 +17,6 @@ export const viecCuaCon = (ds: NhiemVuMoi[], con: string) => ds.filter((x) => x.
 /** Tên bộ / mục theo mã (`tasks.bo`): bộ 05/11 (server/lib/bo-nhiem-vu.ts), mục danh mục 14/11 (danh-muc-viec.ts), kho việc (`kho_<mục>`). */
 export const TEN_BO: Record<string, string> = { tu_lap: "Tự lập", viec_nha: "Phụ việc nhà", hoc_tap: "Học tập", khoe_manh: "Khoẻ mạnh",
   hoc: "Học", van_dong: "Vận động", giup_ba_me: "Giúp Ba Mẹ", kho_hoc: "Học", kho_van_dong: "Vận động", kho_giup: "Giúp Ba Mẹ" };
+
+/** Tên mục hiển thị của `tasks.bo`: mã có sẵn (TEN_BO), mục Ba Mẹ tự đặt «khac:<tên>» (#302) ⇒ chính tên đó. */
+export const tenBo = (bo: string | null | undefined) => (!bo ? "" : bo.startsWith("khac:") ? bo.slice(5) : TEN_BO[bo] ?? bo);

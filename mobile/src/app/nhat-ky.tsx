@@ -47,7 +47,7 @@ export default function NhatKyCaNha() {
               <NhanMen key={c.id ?? "tat-ca"} onPress={() => setLoc(c.id)} accessibilityRole="tab" accessibilityState={{ selected: on }} muc="chip" sang={!on} men={on ? MEN.ngoc : MEN.sang}
                 style={[{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, paddingLeft: c.id ? 4 : 14, paddingRight: 14, borderRadius: 20 },
                   on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-                {c.id ? <Avt ten={c.ten} mau={mauCon(c.avatar, thuCon(c.id))} co={28} /> : null}
+                {c.id ? <Avt ten={c.ten} mau={mauCon(c.avatar, thuCon(c.id))} co={28} con={c} /> : null}
                 <Chu kieu="rat" co={14} mau={on ? "#fff" : M.chu}>{c.id ? tenGoi(c.ten) : c.ten}</Chu>
               </NhanMen>
             );
@@ -92,7 +92,7 @@ function DanhSach({ loc, cacCon }: { loc: string | null; cacCon: GiaDinh["con"] 
                 {n.ds.map((x, k) => (
                   <View key={`${x.luc}:${k}`} style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: "#efefec" }}>
                     {x.nguoi && x.tenNguoi ? <Avt ten={chuCai(x.tenNguoi)} mau={M.lam} co={40} />
-                      : x.con && x.tenCon ? <Avt ten={x.tenCon} mau={mauCon(cacCon.find((c) => c.id === x.con)?.avatar, thuCon(x.con))} co={40} />
+                      : x.con && x.tenCon ? <Avt ten={x.tenCon} mau={mauCon(cacCon.find((c) => c.id === x.con)?.avatar, thuCon(x.con))} co={40} con={cacCon.find((c) => c.id === x.con)} />
                       : <BieuTron ic="khien" mau="xam" />}
                     <View style={{ flex: 1, minWidth: 0 }}>
                       <Chu kieu="rat" co={15}>{x.tieu}</Chu>

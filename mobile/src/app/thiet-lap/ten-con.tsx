@@ -7,12 +7,13 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { bm } from "@/lib/api";
-import { ChonMauCon, namCua, ONamSinh, TheHoSoCon, ThePinCon } from "@/lib/form-ho-so";
+import { ChonMauCon, HangAnhCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
+import { CHUA_LUU_ANH, coAnh, dongBoAnhCon, useAnhCon } from "@/lib/anh-con";
 import { DauMan, LienKet, MAU_HO_SO, OLom } from "@/lib/lan-dau";
 import { kiemPin } from "@/lib/s3";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { datTl, layTl } from "@/lib/thiet-lap";
-import { BaoLoi, Chu, Man, Nut, useLam } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, Chu, Man, Nut, useLam } from "@/lib/ui";
 
 type KqThietLap = { conId: string; ten: string };
 
@@ -25,6 +26,12 @@ export default function ObCon() {
   const [mau, setMau] = useState(sua ? tl0.mau ?? 0 : (tl0.daLuu?.length ?? 0) % MAU_HO_SO.length);
   const [conId, setConId] = useState<string | undefined>(sua ? tl0.conId : undefined);
   const [pin, setPin] = useState("");
+  const af = useAnhForm();
+  // mở lại màn (sua) ⇒ hiện ảnh đã lưu ở máy chủ + «Bỏ ảnh» (gỡ khi lưu)
+  const [avatarLuu, setAvatarLuu] = useState<string | undefined>(sua ? tl0.daLuu?.find((c) => c.id === tl0.conId)?.avatar : undefined);
+  const [boAnhLuu, setBoAnhLuu] = useState(false);
+  const anhMay = useAnhCon(conId && !boAnhLuu ? { id: conId, avatar: avatarLuu } : null);
+  const coAnhLuu = !!conId && !boAnhLuu && coAnh(avatarLuu);
   const daLuu = (tl0.daLuu ?? []).filter((c) => c.id !== conId);
   const { lam, loi, dangChay, setLoi } = useLam();
   const namSo = namCua(nam);
@@ -36,8 +43,13 @@ export default function ObCon() {
     // nhớ Con vừa tạo TRƯỚC khi đặt PIN: lời đặt PIN lỗi ⇒ bấm lại chỉ sửa Con này (gửi con.id), không tạo Con thứ hai
     setConId(r.conId);
     if (pin) await bm.goi(`con/${r.conId}/pin`, { pin });
-    const ds = [...(layTl().daLuu ?? []).filter((c) => c.id !== r.conId), { id: r.conId, ten: r.ten, mau, namSinh: namSo }];
-    return { r, ds };
+    // ảnh lỗi KHÔNG làm hỏng việc lưu hồ sơ: báo «Chưa lưu được ảnh» rồi đi tiếp
+    const anhKq = await dongBoAnhCon(r.conId, af.anh, boAnhLuu && !af.anh && coAnh(avatarLuu));
+    if (!anhKq.ok) baoKhiVe(CHUA_LUU_ANH);
+    const avatar = anhKq.avatar ?? (anhKq.ok ? `mau-${mau}${coAnh(avatarLuu) && !boAnhLuu ? avatarLuu!.slice(avatarLuu!.indexOf("|")) : ""}` : avatarLuu);
+    if (anhKq.avatar) setAvatarLuu(anhKq.avatar);
+    const ds = [...(layTl().daLuu ?? []).filter((c) => c.id !== r.conId), { id: r.conId, ten: r.ten, mau, namSinh: namSo, avatar }];
+    return { r, ds, anhLoi: !anhKq.ok };
   };
   const tiep = () => lam(async () => {
     const { r, ds } = await luu();
@@ -48,19 +60,21 @@ export default function ObCon() {
   const themCon = () => lam(async () => {
     const { ds } = await luu();
     datTl({ daLuu: ds, conId: undefined });
-    setTen(""); setNam(""); setConId(undefined); setPin(""); setMau(ds.length % MAU_HO_SO.length);
+    setTen(""); setNam(""); setConId(undefined); setPin(""); af.bo(); setAvatarLuu(undefined); setBoAnhLuu(false); setMau(ds.length % MAU_HO_SO.length);
   });
   const conDau = daLuu[0];
   return (
     <Man dau={<DauMan ve="/" phai={<ThanhBuoc5 dang={0} />} />}
       day={<><BaoLoi loi={loi} /><Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo) || !!loiPin} bam={tiep} />
+        {/* #302: «+ Thêm con khác» luôn có — thêm bao nhiêu con cũng được (trước đây từ con thứ hai trở đi bị thay bằng «Xong, giao việc cho …») */}
+        <LienKet chu="+ Thêm con khác" bam={() => (!tenGon ? setLoi("Nhập tên con này trước, rồi thêm con khác.") : loiPin ? setLoi(loiPin) : themCon())} />
         {conDau ? <LienKet chu={`Xong, giao việc cho ${conDau.ten} trước`} bam={() => lam(async () => {
           if (tenGon) { if (loiPin) throw new Error(loiPin); const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
           datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined });
           router.push("/thiet-lap/mau");
-        })} />
-          : <LienKet chu="+ Thêm con khác" bam={() => (!tenGon ? setLoi("Nhập tên con này trước, rồi thêm con khác.") : loiPin ? setLoi(loiPin) : themCon())} />}</>}>
-      <TheHoSoCon ten={ten} nam={nam} mau={mau} />
+        })} /> : null}</>}>
+      <TheHoSoCon ten={ten} nam={nam} mau={mau} anh={af.uri ?? anhMay} chup={af.chup} />
+      <HangAnhCon f={af} coAnh={coAnhLuu} boDaLuu={() => setBoAnhLuu(true)} />
       <OLom nhan="Tên gọi ở nhà" value={ten} onChangeText={setTen} placeholder="Bảo Anh" maxLength={30} autoComplete="off" />
       <ONamSinh nam={nam} doi={setNam} />
       <ChonMauCon mau={mau} doi={setMau} />

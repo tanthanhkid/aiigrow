@@ -423,7 +423,7 @@ export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhV
 
 /** 5 màu hồ sơ (thiết kế «Màu của con»): [màu đậm, nền thẻ nhạt]. Lưu ở `children.avatar` dạng «mau-<số>». */
 export const MAU_HO_SO: [string, string][] = [["#f29a4a", "#fde3c8"], ["#6aa3ef", "#dce9fb"], ["#ec8db2", "#fbe0ea"], ["#5bbf95", "#d9f1e6"], ["#a98bea", "#e9e1fb"]];
-export const mauHoSo = (avatar?: string | null) => { const k = Number(/^mau-(\d)$/.exec(avatar ?? "")?.[1]); return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : 0]; };
+export const mauHoSo = (avatar?: string | null) => { const k = Number(/^mau-(\d)(?:\||$)/.exec(avatar ?? "")?.[1]); return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : 0]; };
 /** «9 tuổi · khoảng lớp 4» (lớp = tuổi − 5, chỉ 6–17 tuổi). */
 export const cauTuoi = (namSinh: number | null) => {
   if (!namSinh) return null;

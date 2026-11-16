@@ -74,7 +74,7 @@ export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown;
   // Tạo mới KHÔNG chặn trùng tên (bước thiết lập thử lại / mất phản hồi không được kẹt); chỉ đổi tên (suaCon) mới chặn.
   // #262: Con mới ở «Theo danh sách» (danh sách trắng — chan-co-ban.ts).
   await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan, pin_ma, pin_dat_luc)
-            values ($1,$2,$3,$4,$5,$6,'theo_danh_sach',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").slice(0, 30), nhom, pin, pin ? new Date() : null]);
+            values ($1,$2,$3,$4,$5,$6,'theo_danh_sach',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").split("|")[0].slice(0, 12), nhom, pin, pin ? new Date() : null]);
   await ghiSuKien(fam, "tao_con", { ten, nhom, ...(pin ? { pin: true } : {}), ...(saoKhoiDau ? { sao_khoi_dau: saoKhoiDau } : {}) }, { con: id, nguoi });
   if (saoKhoiDau) await tangSaoKhoiDau(id, saoKhoiDau, nguoi ?? null);
   await noiConMoiVaoMayChung(fam, id);           // #267: bé mới tự có ở máy chung sẵn có (Ba Mẹ bỏ gán được)
@@ -111,10 +111,43 @@ export async function suaCon(fam: string, id: string, b: { ten?: unknown; avatar
       await ghiSuKien(fam, "doi_ten_con", { tu: tenCu, den: ten }, { con: id, nguoi }, t);
     });
   }
-  if (b.avatar !== undefined) await q(`update children set avatar = $2 where id = $1`, [id, String(b.avatar).slice(0, 30)]);
+  if (b.avatar !== undefined) {
+    // #302: đổi màu («mau-N») không làm mất ảnh đại diện đang có
+    const cu = (await one<{ avatar: string }>(`select avatar from children where id = $1`, [id]))?.avatar ?? "";
+    const dauAnh = cu.includes("|anh:") ? cu.slice(cu.indexOf("|anh:")) : "";
+    const moi = String(b.avatar).split("|")[0].slice(0, 12);
+    await q(`update children set avatar = $2 where id = $1`, [id, moi + dauAnh]);
+  }
   if (b.nhom === "nhi" || b.nhom === "teen") await q(`update children set nhom = $2 where id = $1`, [id, b.nhom]);
   // 06/11 L13: đặt lại PIN cũng nhận ở đây (đường riêng: POST con/:id/pin — lib/pin-be.ts › datPin, kèm xoá bộ đếm sai + báo quên PIN)
   if (b.pin !== undefined && b.pin !== "") await (await import("./pin-be.ts")).datPin(fam, id, b.pin, nguoi);
+}
+
+/** Ảnh đại diện (#302): ≤ ~600 KB sau giải mã; `null` = gỡ ảnh, trở về chữ cái + màu. Ảnh nằm ở cột riêng, avatar chỉ giữ dấu «|anh:<giây>». */
+export const ANH_DAI_DIEN_TOI_DA = 600 * 1024;
+export async function datAnhDaiDien(fam: string, id: string, b: { base64?: unknown; mime?: unknown; xoa?: unknown }, nguoi?: string) {
+  const c = await conCua(fam, id);
+  const goc = String(c.avatar).split("|")[0];
+  if (b.xoa === true) {
+    await q(`update children set anh_dai_dien = null, anh_mime = null, avatar = $2 where id = $1`, [id, goc]);
+    return { ok: true, avatar: goc };
+  }
+  const mime = String(b.mime ?? "image/jpeg");
+  if (!["image/jpeg", "image/png", "image/webp"].includes(mime)) throw new LoiNghiepVu("anh_sai", "Ảnh cần là JPEG, PNG hoặc WebP");
+  const raw = String(b.base64 ?? "").replace(/^data:[^,]*,/, "");
+  const buf = Buffer.from(raw, "base64");
+  if (!buf.length) throw new LoiNghiepVu("anh_sai", "Chưa nhận được ảnh");
+  if (buf.length > ANH_DAI_DIEN_TOI_DA) throw new LoiNghiepVu("anh_lon", "Ảnh lớn quá — chụp lại hoặc chọn ảnh nhỏ hơn nhé", 413);
+  const avatar = `${goc}|anh:${Math.floor(Date.now() / 1000)}`;
+  await q(`update children set anh_dai_dien = $2, anh_mime = $3, avatar = $4 where id = $1`, [id, buf, mime, avatar]);
+  await ghiSuKien(fam, "doi_anh_con", {}, { con: id, nguoi });
+  return { ok: true, avatar };
+}
+export async function anhDaiDien(fam: string, id: string) {
+  await conCua(fam, id);
+  const r = await one<{ anh_dai_dien: Buffer | null; anh_mime: string | null }>(`select anh_dai_dien, anh_mime from children where id = $1`, [id]);
+  if (!r?.anh_dai_dien) throw new LoiNghiepVu("khong_thay", "Con chưa có ảnh đại diện", 404);
+  return { mime: r.anh_mime ?? "image/jpeg", base64: Buffer.from(r.anh_dai_dien).toString("base64") };
 }
 
 /** PIN lúc tạo Con: bỏ trống ⇒ null; có thì đúng 4 chữ số. */

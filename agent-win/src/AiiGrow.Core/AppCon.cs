@@ -73,7 +73,7 @@ public static class AppConView
     public static string BoViec(IEnumerable<string?> bo, int soViec)
     {
         var chinh = bo.Where(b => !string.IsNullOrWhiteSpace(b)).GroupBy(b => b!).OrderByDescending(g => g.Count()).FirstOrDefault()?.Key;
-        var ten = chinh == null ? null : TenBo.TryGetValue(chinh, out var t) ? t : chinh;
+        var ten = chinh == null ? null : TenBo.TryGetValue(chinh, out var t) ? t : chinh.StartsWith("khac:") ? chinh[5..] : chinh;   // «khac:<tên>» = mục Ba Mẹ tự đặt (#302)
         return ten == null ? $"{soViec} việc hôm nay" : $"Bộ {ten} · {soViec} việc";
     }
 

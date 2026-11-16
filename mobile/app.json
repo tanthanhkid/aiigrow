@@ -36,6 +36,14 @@
         { "image": "./assets/splash-icon.png", "imageWidth": 200, "resizeMode": "contain", "backgroundColor": "#16776F" }
       ],
       [
+        "expo-image-picker",
+        {
+          "cameraPermission": "AiiGrow dùng camera để Ba Mẹ chụp ảnh đại diện cho con. Ảnh chỉ gia đình xem.",
+          "photosPermission": "AiiGrow cần đọc ảnh bạn chọn làm ảnh đại diện cho con. Ảnh chỉ gia đình xem.",
+          "microphonePermission": false
+        }
+      ],
+      [
         "expo-camera",
         {
           "cameraPermission": "AiiGrow dùng camera để quét mã ghép máy và để Con chụp ảnh bằng chứng nhiệm vụ. Ảnh chỉ gia đình xem.",

@@ -30,7 +30,7 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
           <Pressable key={x.id} onPress={doi ? () => doi(x) : undefined} disabled={!doi} accessibilityRole="tab" accessibilityState={{ selected: on }}
             accessibilityLabel={[x.ten, n ? `${n} ${nhanSo}` : "", phu?.[x.id] ?? ""].filter(Boolean).join(", ")} style={{ width: 72, alignItems: "center", gap: 5 }}>
             <View style={[{ borderRadius: 34, padding: 3 }, on ? { borderWidth: 3, borderColor: M.chinh } : { borderWidth: 3, borderColor: "transparent" }]}>
-              <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={50} />
+              <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={50} con={x} />
               {n ? (
                 <View style={{ position: "absolute", right: -4, top: -4, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, backgroundColor: M.camDam,   // thiết kế #e2660f + chữ trắng 12px chỉ 3.42:1 (WCAG cần 4.5) ⇒ token cam đậm (≈5.2:1)
                   alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: M.nen }}>
@@ -68,7 +68,7 @@ export function ChuCaiCon({ ds, co = 30 }: { ds: { ten: string; avatar?: string 
     <View style={{ flexDirection: "row" }} accessibilityLabel={ds.map((c) => c.ten).join(", ")}>
       {ds.map((c, k) => (
         <View key={`${c.ten}-${k}`} style={{ marginLeft: k ? -6 : 0, borderRadius: co, borderWidth: 2, borderColor: "#fff" }}>
-          <Avt ten={chuCai(c.ten)} mau={mauCon(c.avatar, k)} co={co} />
+          <Avt ten={chuCai(c.ten)} mau={mauCon(c.avatar, k)} co={co} con={c} />
         </View>
       ))}
     </View>

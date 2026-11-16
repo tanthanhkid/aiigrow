@@ -66,7 +66,7 @@ const MAU_HO_SO = ["#f29a4a", "#6aa3ef", "#ec8db2", "#5bbf95", "#a98bea"];
 /** «Nguyễn Ngọc Bảo Anh» → «Bảo Anh»: tên gọi (2 chữ cuối) — thiết kế 14/11 gọi con bằng tên gọi ở dải avatar, Báo cáo, «bước tiếp». */
 export const tenGoi = (ten: string) => ten.trim().split(/\s+/).slice(-2).join(" ");
 export const mauCon = (avatar: string | null | undefined, thu = 0) => {
-  const k = Number(/^mau-(\d)$/.exec(avatar ?? "")?.[1]);
+  const k = Number(/^mau-(\d)(?:\||$)/.exec(avatar ?? "")?.[1]);
   return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : thu % MAU_HO_SO.length];
 };
 /** «21:30» → «21:30», «06:30» → «6:30» (thiết kế viết giờ không số 0 đầu). */
@@ -131,7 +131,7 @@ export function ChipCon<T extends { id: string; ten: string; avatar?: string | n
           <NhanMen key={x.id} onPress={() => doi(x)} accessibilityRole="tab" accessibilityState={{ selected: on }} muc="chip" sang={!on} men={on ? MEN.ngoc : MEN.sang}
             style={[{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingLeft: 6, paddingRight: 16, borderRadius: 22, maxWidth: "100%", flexShrink: 1 },
               on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-            <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={32} />
+            <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={32} con={x} />
             <Chu kieu="rat" co={15} mau={on ? "#fff" : M.chu} dong={1} style={{ flexShrink: 1 }}>{x.ten}</Chu>
           </NhanMen>
         );

@@ -167,6 +167,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       const id = p[1], sau = p.slice(2).join("/");
       if (!sau && get) return json(await chiTietCon(bm, id));
       await gd.conCua(fam, id);
+      if (sau === "anh" && get) return json(await gd.anhDaiDien(fam, id));
+      if (sau === "anh" && post) return json(await gd.datAnhDaiDien(fam, id, b, bm.id));
       if (sau === "sua" && post) { await gd.suaCon(fam, id, b, bm.id); return json({ ok: true }); }
       // 14/11: xoá hồ sơ Con (chỉ quyền Ba Mẹ — trongGiupDuoc không có) — lib/xoa-con.ts
       if (sau === "xoa" && post) return json(await xoaCon(fam, id, b, bm.id));

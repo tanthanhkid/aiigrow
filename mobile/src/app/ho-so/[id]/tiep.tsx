@@ -7,11 +7,12 @@ import { bm, type ConChiTiet } from "@/lib/api";
 import { mauCon, tenGoi } from "@/lib/hang-ngay";
 import { OLomIcon } from "@/lib/ui-viec";
 import { BONG, KHOI } from "@/lib/clay";
-import { ChoTai, Chu, Icon, M, Man, Nut, Rob, useTai, type TenIcon } from "@/lib/ui";
+import { ChoTai, Chu, Icon, M, Man, Nut, Rob, useHoanTac, useTai, type TenIcon } from "@/lib/ui";
 
 export default function BuocTiep() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d, loi, matMang, tai } = useTai(() => bm.goi<ConChiTiet & { coPin?: boolean }>(`con/${id}`));
+  const { noi } = useHoanTac();                      // nhận câu «báo khi quay về» (vd. «Chưa lưu được ảnh, thử lại sau»)
   if (!d) return <Man><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const ten = tenGoi(d.ten);
   const buoc: [TenIcon, string, string, string][] = [
@@ -23,7 +24,7 @@ export default function BuocTiep() {
     ["laptop", `Ghép máy cho ${ten}`, "Máy riêng hoặc máy dùng chung", `/may/them?con=${id}`],
   ];
   return (
-    <Man day={<View style={{ gap: 2 }}>
+    <Man noi={noi} day={<View style={{ gap: 2 }}>
       <Nut chu={`Bắt đầu: Một ngày của ${ten}`} rong bam={() => router.push(buoc[0][3] as never)} />
       <Pressable onPress={() => router.replace("/cai-dat")} accessibilityRole="button" style={{ minHeight: 46, alignItems: "center", justifyContent: "center" }}>
         <Chu kieu="rat" co={15} mau={M.chu2}>Để sau</Chu>

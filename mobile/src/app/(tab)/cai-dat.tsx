@@ -60,7 +60,7 @@ export default function CaiDat() {
         {d.g.con.map((c, i) => (
           <Pressable key={c.id} onPress={() => router.push(`/ho-so/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Hồ sơ ${c.ten}`}
             style={{ width: "20%", alignItems: "center", gap: 6, minHeight: 84 }}>
-            <Avt ten={c.ten} mau={mauCon(c.avatar, i)} co={54} />
+            <Avt ten={c.ten} mau={mauCon(c.avatar, i)} co={54} con={c} />
             <Chu kieu="rat" co={13} mau={M.chu2} dong={1}>{tenGoi(c.ten)}</Chu>
           </Pressable>
         ))}

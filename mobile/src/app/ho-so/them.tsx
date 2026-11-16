@@ -7,10 +7,11 @@ import { router } from "expo-router";
 import { bm } from "@/lib/api";
 import { type AppGoiY } from "@/lib/ghep-may";
 import { appsRobChonSan, thanThietLap } from "@/lib/thiet-lap";
-import { ChonMauCon, namCua, ONamSinh, TheHoSoCon, ThePinCon } from "@/lib/form-ho-so";
+import { ChonMauCon, HangAnhCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
+import { CHUA_LUU_ANH, dongBoAnhCon } from "@/lib/anh-con";
 import { OLom } from "@/lib/lan-dau";
 import { boTheoTuoi, kiemPin } from "@/lib/s3";
-import { BaoLoi, Chu, Man, Nut, useLam } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, Chu, Man, Nut, useLam } from "@/lib/ui";
 
 /** Tuổi ⇒ chỉ số chip tuổi của bộ việc (4–5 · 6–7 · 8–9 · 10–12 · 13+); chưa có năm sinh ⇒ null. */
 const chipTuNam = (nam: number | null) => {
@@ -24,6 +25,7 @@ export default function ThemCon() {
   const [nam, setNam] = useState("");
   const [mau, setMau] = useState(0);
   const [pin, setPin] = useState("");
+  const af = useAnhForm();
   const { lam, loi, dangChay } = useLam();
   const tenGon = ten.trim();
   const goi = tenGon.split(/\s+/).pop() ?? "";
@@ -35,6 +37,9 @@ export default function ThemCon() {
     // POST con tạo Con + PIN trong MỘT lời (PIN sai ⇒ không tạo gì). Đã tạo (lỗi ở bước sau) ⇒ bấm lại không tạo Con thứ hai.
     const id = conId ?? (await bm.goi<{ id: string }>("con", { ten: tenGon, ...(namSinh ? { namSinh } : {}), avatar: `mau-${mau}`, ...(pin ? { pin } : {}) })).id;
     setConId(id);
+    // ảnh lỗi KHÔNG chặn: hồ sơ đã tạo, báo «Chưa lưu được ảnh» ở màn kế rồi đi tiếp (Ba Mẹ thêm ảnh ở Sửa hồ sơ)
+    const anhKq = await dongBoAnhCon(id, af.anh);
+    if (!anhKq.ok) baoKhiVe(CHUA_LUU_ANH);
     // «Grow cài sẵn giờ chơi, nhiệm vụ theo tuổi»: mặc định như bước Lần đầu + bộ việc hợp chip tuổi; lỗi không chặn (Ba Mẹ chỉnh ở Hồ sơ)
     // Thiết kế không có bước Chọn app ⇒ áp sẵn app Grow gợi ý hợp tuổi (như Lần đầu) để máy ghép xong không phải xin duyệt từng app; Ba Mẹ sửa ở App & web.
     const layApps = () => bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(id)}`).then((r) => appsRobChonSan(r.ds));
@@ -50,7 +55,8 @@ export default function ThemCon() {
     <Man lui={{ chu: "", ve: "/cai-dat" }} tieu="Thêm con"
       day={<><BaoLoi loi={loi} />
         <Nut chu={`Lưu hồ sơ ${tenGon || "con"}`} rong dangChay={dangChay} tat={!tenGon || !!loiPin} bam={tao} /></>}>
-      <TheHoSoCon ten={ten} nam={nam} mau={mau} />
+      <TheHoSoCon ten={ten} nam={nam} mau={mau} anh={af.uri} chup={af.chup} />
+      <HangAnhCon f={af} />
       <OLom nhan="Tên gọi ở nhà" value={ten} onChangeText={setTen} placeholder="Khang" maxLength={30} autoComplete="off" />
       <ONamSinh nam={nam} doi={setNam} />
       <ChonMauCon mau={mau} doi={setMau} />

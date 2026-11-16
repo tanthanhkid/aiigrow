@@ -4,6 +4,7 @@
 // bản sao chép đủ cột của việc (giữ bang_chung / tu_duyet gốc — việc AiiRob tự chấm vẫn tự chấm) cho con mới chọn + tắt việc này nếu con của nó bị bỏ.
 // Đã chọn (review PR #243): thiết kế chỉ có hình ở đầu màn và không có giờ nhắc ⇒ giữ hai thứ này ở dạng gọn — dải chọn hình dưới icon, chip «Nhắc con».
 // Xoá = tắt việc (bat: false — sao con đang có giữ nguyên, lịch sử giữ). Người trông giúp (dữ liệu cũ): chỉ xem.
+import { useSaoTu } from "@/lib/sao-tu-nhap";
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
@@ -30,6 +31,8 @@ export default function SuaViec() {
   const [hinh, setHinh] = useState<string | null>(null);
   const [nhac, setNhac] = useState<string | null>(null);
   const [sao, setSao] = useState<number | null>(null);
+  const st = useSaoTu(1000);                     // #302: ô tự nhập số sao (1–1000)
+  const saoLoi = st.loi;
   const [lap, setLap] = useState<string | null>(null);
   const [bc, setBc] = useState<string | null>(null);
   const [duyet, setDuyet] = useState<boolean | null>(null);
@@ -44,7 +47,7 @@ export default function SuaViec() {
   const bcGoc = v.bang_chung === "tu_dong" ? "xong" : v.bang_chung;
   const goc = { ten: v.ten, sao: v.diem, lap: lapGoc, bc: bcGoc, duyet: !v.tu_duyet, apCho: v.giao_cho ? [v.giao_cho] : d.con.map((c) => c.id),
     hinh: v.hinh ?? "", nhac: v.gio_nhac ?? "" };
-  const f = { ten: ten ?? goc.ten, sao: sao ?? goc.sao, lap: lap ?? goc.lap, bc: bc ?? goc.bc, duyet: duyet ?? goc.duyet, apCho: apCho ?? goc.apCho,
+  const f = { ten: ten ?? goc.ten, sao: st.dung(sao ?? goc.sao), lap: lap ?? goc.lap, bc: bc ?? goc.bc, duyet: duyet ?? goc.duyet, apCho: apCho ?? goc.apCho,
     hinh: hinh ?? goc.hinh, nhac: nhac ?? goc.nhac };
   const dsHinh = goc.hinh && !HINH.includes(goc.hinh) ? [goc.hinh, ...HINH] : HINH;
   const dsNhac = [{ gia: "", chu: "Không nhắc" }, ...[...new Set([...NHAC, ...(goc.nhac ? [goc.nhac] : [])])].sort().map((x) => ({ gia: x, chu: x.replace(/^0/, "") }))];
@@ -80,14 +83,16 @@ export default function SuaViec() {
   return (
     <Man lui={{ chu: "" }} tieu={tieu}
       day={d.baMe ? <><BaoLoi loi={xoa ? null : loiLam} /><Nut chu={`Lưu việc «${f.ten.trim() || v.ten}»`} ic="tick" rong dangChay={dangChay}
-        tat={!tenHopLe(f.ten) || !f.apCho.length} bam={luu} /></> : undefined}>
+        tat={!tenHopLe(f.ten) || !f.apCho.length || saoLoi} bam={luu} /></> : undefined}>
       {d.baMe ? (
         <>
           <View style={{ alignItems: "center" }}><OLomIcon ic={ic} co={72} nen="#f9e7d2" /></View>
           <ChonO ds={dsHinh.map((h) => ({ gia: h, chu: "", ic: hinhNv({ hinh: h })[0], nhan: `Hình ${h}` }))} chon={f.hinh || null} doi={setHinh} />
           <ONhap nhan="Tên việc" value={f.ten} onChangeText={setTen} maxLength={90} />
           <MucTieu chu="Con nhận bao nhiêu sao?" />
-          <ChonO ds={dsSao.map((x) => ({ gia: x, chu: `${x}` }))} chon={f.sao} doi={setSao} sao />
+          <ChonO ds={dsSao.map((x) => ({ gia: x, chu: `${x}` }))} chon={st.chu === "" ? f.sao : null} doi={(x) => { st.xoa(); setSao(x); }} sao />
+          <ONhap nhan="Hoặc tự nhập số sao" value={st.chu} onChangeText={st.nhap}
+            placeholder="Ví dụ: 25" keyboardType="number-pad" maxLength={st.maxLength} loi={st.thongBao} />
           <MucTieu chu="Làm khi nào?" />
           <ChonO ds={dsLap} chon={f.lap} doi={setLap} />
           <MucTieu chu="Nhắc con" />

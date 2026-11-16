@@ -2,6 +2,7 @@
 //  · «🎟️ Voucher AiiGrow»: Ba Mẹ mua một lần, quà nằm sẵn trong kho của con (bảng giá thiết kế) — «Mua» ⇒ chi tiết them-hn2754ce (/thiet-lap/qua-mua).
 //  · «✏️ Ba Mẹ tự điền»: tên quà (gợi ý chip) + số sao 50/100/200/300 ⇒ «＋ Thêm quà» = POST qua {ten, sao, apCho:[con]}; danh sách «Quà Ba Mẹ đã điền».
 // 7 quà mặc định (N12) máy chủ đã gieo khi tạo Con (qua-bang-gia › gieoQuaMacDinh) — màn này không bỏ chúng. «Xong / Để sau» ⇒ Chơi bằng sao (thiết kế 15/11 them-s416tfdj).
+import { useSaoTu } from "@/lib/sao-tu-nhap";
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
@@ -10,7 +11,7 @@ import { BONG, KHOI } from "@/lib/clay";
 import { DauMan, LienKet } from "@/lib/lan-dau";
 import { MAU_MUC, TabMuc, TheDs } from "@/lib/lan-dau-ds";
 import { layTl } from "@/lib/thiet-lap";
-import { BaoLoi, Chu, F, Icon3D, M, Man, Nut, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, Chu, F, Icon, Icon3D, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { dong, soCham, VOUCHER } from "@/lib/voucher-lan-dau";
 
@@ -18,18 +19,20 @@ type Tab = "voucher" | "tu_dien";
 type Qua = { id: string; ten: string; sao: number; mau: string | null; loai: string };
 const GOI_Y = ["🍦 Đi ăn kem", "🎬 Xem phim", "🍲 Chọn món tối", "🏞️ Đi công viên", "🧸 Đồ chơi nhỏ"];
 const SAO = [50, 100, 200, 300];
+const SAO_TOI_DA = 100000;                       // trần hợp lý máy chủ nhận cho một quà (kiemQua)
 
 export default function ObQua() {
   const tl = layTl();
   const ten = tl.tenCon ?? "con";
   const [tab, setTab] = useState<Tab>("voucher");
   const sang = () => router.push("/thiet-lap/gio");
+  const { guiCham, noi } = useHoanTac();            // xoá quà đã điền: hoàn tác 8 giây trước khi gửi máy chủ
   return (
-    <Man dau={<DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc5 dang={2} />} />}
+    <Man dau={<DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc5 dang={2} />} />} noi={noi}
       day={<><Nut chu="Xong, sang chơi bằng sao" rong bam={sang} /><LienKet chu="Để sau, chọn quà sau" bam={sang} /></>}>
       <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 26, letterSpacing: -0.5, color: M.chu }}>Quà của {ten}</Text>
       <TabMuc ds={[{ ma: "voucher" as Tab, chu: "🎟️ Voucher AiiGrow" }, { ma: "tu_dien" as Tab, chu: "✏️ Ba Mẹ tự điền" }]} dang={tab} doi={setTab} />
-      {tab === "voucher" ? <TabVoucher /> : <TabTuDien con={tl.conId} />}
+      {tab === "voucher" ? <TabVoucher /> : <TabTuDien con={tl.conId} guiCham={guiCham} />}
     </Man>
   );
 }
@@ -62,17 +65,31 @@ function TabVoucher() {
   );
 }
 
-function TabTuDien({ con }: { con?: string }) {
+function TabTuDien({ con, guiCham }: { con?: string; guiCham: (chu: string, lam: () => void, huy?: () => void) => void }) {
   const { d, tai } = useTai(() => bm.goi<{ ds: Qua[] }>(`qua${con ? `?con=${encodeURIComponent(con)}` : ""}`));
   const [ten, setTen] = useState("");
   const [sao, setSao] = useState(100);
-  const { lam, loi, dangChay } = useLam();
-  const rieng = (d?.ds ?? []).filter((q) => !q.mau && q.loai !== "voucher");
+  const st = useSaoTu(SAO_TOI_DA);                   // ô «Số sao khác» (rỗng = dùng chip)
+  const [daXoa, setDaXoa] = useState<string[]>([]);      // quà đang chờ xoá (ẩn ngay, gửi sau 8 giây nếu không Hoàn tác)
+  const { lam, loi, dangChay, setLoi } = useLam();
+  const rieng = (d?.ds ?? []).filter((q) => !q.mau && q.loai !== "voucher" && !daXoa.includes(q.id));
+  const saoDung = st.dung(sao);
+  const saoLoi = st.loi;
+  const xoa = (q: Qua) => {
+    setDaXoa((x) => [...x, q.id]);
+    guiCham(`Đã xoá quà «${q.ten}»`, () => {
+      bm.goi(`qua/${q.id}/xoa`, {}).then(() => tai(), () => {
+        setDaXoa((x) => x.filter((y) => y !== q.id));          // máy chủ không xoá được ⇒ quà hiện lại + báo, không giả vờ đã xoá
+        setLoi(`Chưa xoá được quà «${q.ten}», thử lại nhé.`);
+        tai();
+      });
+    }, () => setDaXoa((x) => x.filter((y) => y !== q.id)));
+  };
   const them = () => lam(async () => {
     const t = ten.replace(/^\p{Extended_Pictographic}️?\s*/u, "").trim();
     if ([...t].length < 2) throw new Error("Điền tên quà con muốn.");
-    await bm.goi("qua", { ten: t, sao, loai: t === "Đồ chơi nhỏ" ? "qua" : "dac_quyen", ...(con ? { apCho: [con] } : {}) });
-    setTen("");
+    await bm.goi("qua", { ten: t, sao: saoDung, loai: t === "Đồ chơi nhỏ" ? "qua" : "dac_quyen", ...(con ? { apCho: [con] } : {}) });
+    setTen(""); st.xoa();
     await tai();
   });
   const oChon = (on: boolean) => ({ minHeight: 40, borderRadius: 20, paddingHorizontal: 12, alignItems: "center" as const, justifyContent: "center" as const, flexDirection: "row" as const, gap: 4,
@@ -93,11 +110,18 @@ function TabTuDien({ con }: { con?: string }) {
         </View>
         <Chu kieu="rat" co={15}>Con đổi bằng</Chu>
         <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
-          {SAO.map((s) => <Pressable key={s} onPress={() => setSao(s)} accessibilityRole="radio" accessibilityState={{ checked: sao === s }} accessibilityLabel={`${s} sao`}
-            style={[oChon(sao === s), { flex: 1, paddingHorizontal: 0 }]}><Icon3D ten="sao" co={16} /><Chu kieu="rat" co={14} so>{s}</Chu></Pressable>)}
+          {SAO.map((s) => <Pressable key={s} onPress={() => { st.xoa(); setSao(s); }} accessibilityRole="radio" accessibilityState={{ checked: st.chu === "" && sao === s }} accessibilityLabel={`${s} sao`}
+            style={[oChon(st.chu === "" && sao === s), { flex: 1, paddingHorizontal: 0 }]}><Icon3D ten="sao" co={16} /><Chu kieu="rat" co={14} so>{s}</Chu></Pressable>)}
         </View>
+        <View style={{ minHeight: 50, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 }}>
+          <Icon3D ten="sao" co={18} />
+          <TextInput value={st.chu} onChangeText={st.nhap} placeholder="Hoặc tự nhập số sao, ví dụ 150" placeholderTextColor={M.chu3}
+            keyboardType="number-pad" maxLength={st.maxLength} accessibilityLabel="Số sao con cần để đổi"
+            style={{ flex: 1, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 10, outlineStyle: "none" } as never} />
+        </View>
+        {st.thongBao ? <Chu kieu="dam" co={13} mau={M.loi}>{st.thongBao}</Chu> : null}
         <BaoLoi loi={loi} />
-        <Nut chu="＋ Thêm quà" loai="ngoc" rong dangChay={dangChay} tat={!ten.trim()} bam={them} />
+        <Nut chu="＋ Thêm quà" loai="ngoc" rong dangChay={dangChay} tat={!ten.trim() || saoLoi} bam={them} />
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 4 }}>
         <Chu kieu="rat" co={16} style={{ flex: 1 }}>Quà Ba Mẹ đã điền</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>{rieng.length} quà</Chu>
@@ -109,6 +133,8 @@ function TabTuDien({ con }: { con?: string }) {
               <Text style={{ fontSize: 20 }}>🎁</Text>
               <Chu kieu="rat" co={14.5} style={{ flex: 1 }} dong={1}>{q.ten}</Chu>
               <Icon3D ten="sao" co={15} /><Chu kieu="rat" co={13} mau="#6e4300" so>{soCham(q.sao)}</Chu>
+              <Pressable onPress={() => xoa(q)} accessibilityRole="button" accessibilityLabel={`Xoá quà ${q.ten}`} hitSlop={6}
+                style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}><Icon ten="x" mau={M.chu3} co={18} /></Pressable>
             </View>
           ))}
         </TheDs>
