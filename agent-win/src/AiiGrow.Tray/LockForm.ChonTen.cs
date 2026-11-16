@@ -168,7 +168,7 @@ internal sealed partial class LockForm
         if (_ct.Be is not { } be || _ct.DangGui) return;
         _ct.DangGui = true;
         VeChonTen();
-        var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.DangNhapBe, Id = be.Id, Code = be.CoPin && !(_hs?.MayRieng ?? false) ? _ct.So : null   // máy riêng: không PIN });
+        var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.DangNhapBe, Id = be.Id, Code = be.CoPin && !(_hs?.MayRieng ?? false) ? _ct.So : null });   // máy riêng: không PIN
         if (IsDisposed) return;
         ManChonTenView.KetQuaPin(_ct, r.Ok, r.Status, r.ConLan, r.ChoGiay, r.Error ?? r.Message, DateTimeOffset.Now);
         VeChonTen();
