@@ -118,19 +118,20 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   // MARK: hỏi daemon
 
-  func hoi() {
-    Task {
-      do {
-        if case .trangThai(let t) = try await IPCClient.guiAsync(.trangThai) {
-          if t.beId != model.tt?.beId { doiBeXong(moi: t) }
-          model.capNhat(t)
-        } else { model.matNoi() }
-      } catch { model.matNoi() }
-      veLai()
-      xetAppVuaChan()
-      xetMoKhoa()
-      xetTraLoi()
-    }
+  func hoi() { Task { await hoiAsync() } }
+
+  /// Một lượt hỏi trạng thái + cập nhật mọi thứ phụ thuộc (đổi bé, menu, màn chặn, mở khoá, trả lời lời xin). «Hỏi AiiGrow» cũng gọi đúng hàm này.
+  func hoiAsync() async {
+    do {
+      if case .trangThai(let t) = try await IPCClient.guiAsync(.trangThai) {
+        if t.beId != model.tt?.beId { doiBeXong(moi: t) }
+        model.capNhat(t)
+      } else { model.matNoi() }
+    } catch { model.matNoi() }
+    veLai()
+    xetAppVuaChan()
+    xetMoKhoa()
+    xetTraLoi()
   }
 
   /// Mỗi giây: cập nhật chữ «Còn X phút» và nhắc giờ.
@@ -174,7 +175,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       muc("Xin mở trang hoặc app…", #selector(moXinMo))
       m.addItem(.separator())
     }
-    if t?.laPhienCon == true && t?.daGhep == true || model.matKetNoi {
+    if t?.laPhienCon == true && t?.daGhep == true {
       muc("Hỏi AiiGrow…", #selector(moHoiAiiGrow))
       m.addItem(.separator())
     }
@@ -271,14 +272,11 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   @objc func moXinMo() { hien(&cuaSoMo, "AiiGrow · Xin mở app", XinMoView(tray: model, xin: xin, veHomNay: { [weak self] in self?.cuaSoMo?.close(); self?.moApp(.homNay) })) }
   @objc func moAppCon() { moApp(nil) }
-  /// «Hỏi AiiGrow…» (con-mat-mang 10) — tự tìm lỗi; Con hay bấm khi máy mất mạng / AiiGrow không trả lời nên menu luôn có (không chờ kết nối).
+  /// «Hỏi AiiGrow…» (con-mat-mang 10) — tự tìm lỗi; chỉ phiên Con (đã ghép) có mục này; vẫn hiện khi dịch vụ không trả lời (Con hay bấm lúc đó).
   @objc func moHoiAiiGrow() {
     let admin = model.tt?.laPhienCon != true && laAdmin()
     hien(&cuaSoHoi, "AiiGrow · Hỏi AiiGrow", HoiAiiGrowView(tray: model, hoiLai: { [weak self] in
-      guard let self else { return }
-      do {
-        if case .trangThai(let t) = try await IPCClient.guiAsync(.trangThai) { self.model.capNhat(t) } else { self.model.matNoi() }
-      } catch { self.model.matNoi() }
+      await self?.hoiAsync()
     }, nhanBaMe: { [weak self] in self?.moApp(.tinNhan) },
     kiemCapNhat: admin ? { [weak self] in self?.kiemCapNhat() } : nil,
     dong: { [weak self] in self?.cuaSoHoi?.close() }))
@@ -385,8 +383,8 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let lamMoiApp = appDangHien && luotTin % 2 == 0
     Task {
       defer { dangHoiTin = false }
-      // nợ TRƯỚC khi làm mới: tin «Ba Mẹ đã duyệt» thêm câu «Trả nợ N sao · còn nợ M sao» (#263)
-      let noTruoc = appCon.tq?.soSao?.no ?? model.tt?.soSao?.no ?? 0
+      // đang nợ ⇒ tin «Ba Mẹ đã duyệt» thêm «Sao nhiệm vụ trả nợ trước» (không kèm số — tin không mang số nợ; như Windows). Đọc TRƯỚC khi làm mới.
+      let dangNo = ManMac.dangNo(ManMac.soSao(tt: model.tt, tq: appCon.tq))
       if lamMoiApp { await appCon.lamMoi(dsChoi: model.tt?.dsChoi ?? []) }
       var path = "hoc-vien/tin"
       if let m = tinTheo.moc {
@@ -406,18 +404,14 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
         // 14/11 (con-ngay-thuong 25): Ba Mẹ vừa duyệt + chuỗi ≥ 2 ngày ⇒ «Giỏi lắm! N ngày liền» thay bảng tin
         // chỉ bỏ báo của tin duyệt đó — tin khác trong cùng lô vẫn báo
         var conLai = moi
-        // đang nợ lúc duyệt ⇒ thêm câu trả nợ vào tin; tin có câu này luôn hiện (không nhường chỗ cho «Giỏi lắm!»)
-        var noCon = noTruoc, coTraNo = false
-        for i in conLai.indices where conLai[i].loai == "duyet_nhiem_vu" {
-          let cong = ChuoiView.saoTrongTin(conLai[i].noi)
-          if let c = ChuSao.traNoKhiDuyet(cong: cong, noTruoc: noCon) { conLai[i].noi += (conLai[i].noi.isEmpty ? "" : " · ") + c; coTraNo = true }
-          noCon = max(0, noCon - cong)
-        }
-        if !coTraNo, let duyet = moi.last(where: { $0.loai == "duyet_nhiem_vu" }), await hienChuoi(vuaCong: ChuoiView.saoTrongTin(duyet.noi)) {
+        // «Giỏi lắm!» thay tin duyệt; đang nợ thì VẪN giữ tin (có dòng trả nợ) bên cạnh
+        let coDuyet = moi.contains { $0.loai == "duyet_nhiem_vu" }
+        if let duyet = moi.last(where: { $0.loai == "duyet_nhiem_vu" }), await hienChuoi(vuaCong: ChuoiView.saoTrongTin(duyet.noi)), !dangNo {
           conLai.removeAll { $0.id == duyet.id }
         }
         guard !conLai.isEmpty else { return }
-        let (tieu, noi) = HocVienView.thongBaoTin(conLai)
+        var (tieu, noi) = HocVienView.thongBaoTin(conLai)
+        if dangNo, coDuyet, conLai.contains(where: { $0.loai == "duyet_nhiem_vu" }) { noi += (noi.isEmpty ? "" : " · ") + ChuSao.traNoTruocHoa }
         baoTinMoi(tieu, noi, muc: HocVienView.mucChoTin(conLai))
       }
     }

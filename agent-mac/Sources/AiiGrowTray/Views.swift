@@ -116,6 +116,7 @@ struct GhepMayView: View {
     .foregroundColor(ClayMau.chu)
     .animation(ClayMotion.bat, value: man)
     .onAppear { if chon.isEmpty { chon = taiKhoan.first ?? "" }; man = manDau }
+    .task(id: man) { if man == .batQuyen || man == .xong { await layHoSo() } }
   }
 
   private var buoc: some View {
@@ -284,6 +285,15 @@ struct GhepMayView: View {
     quyenTB = st.authorizationStatus == .authorized
   }
 
+  /// Hồ sơ máy để màn «xong» rẽ máy riêng / máy chung: lấy sau khi ghép (không chặn nút / `dangGui`), thử lại tối đa 4 lần cách 3 giây;
+  /// chưa có thì màn «xong» hiện chữ trung tính.
+  private func layHoSo() async {
+    for _ in 0..<4 where hoSo == nil && (man == .batQuyen || man == .xong) {
+      if case .duLieu(let j)? = try? await IPCClient.guiAsync(.hoSoGhep, giay: 5), let h = try? IPCMa.decoder.decode(HoSoMay.self, from: Data(j.utf8)) { hoSo = h; return }
+      try? await Task.sleep(nanoseconds: 3_000_000_000)
+    }
+  }
+
   private func gui() {
     guard !dangGui else { return }
     dangGui = true; loi = ""; khiGui(true)
@@ -291,17 +301,14 @@ struct GhepMayView: View {
     Task {
       defer { dangGui = false }                                  // thành công: KHÔNG khiGui(false) — cửa sổ giữ tới khi Ba Mẹ bấm «Mở màn chọn tên»
       do {
-        var daGhep = true
         switch try await IPCClient.guiAsync(.ghep(ma: ma, taiKhoanCon: chon), giay: 40) {
         case .loi(let mx, let chu):
-          daGhep = false
           khiGui(false)
           if let m = ManMac.manLoiGhep(mx) { man = m } else { loi = chu; man = .nhap }
           if LoiApi.maTokenGoiHong.contains(mx) && motCham { dungMa = true }   // token gói hỏng ⇒ hiện ô mã 6 số
         case .canhBao(_, let chu): canhBao = chu; khiCanhBao(); man = .batQuyen
         default: man = .batQuyen
         }
-        if daGhep, case .duLieu(let j)? = try? await IPCClient.guiAsync(.hoSoGhep, giay: 15), let h = try? IPCMa.decoder.decode(HoSoMay.self, from: Data(j.utf8)) { hoSo = h }
       } catch { loi = "AiiGrow đang khởi động lại, Ba Mẹ thử lại sau vài giây nhé."; khiGui(false) }
     }
   }

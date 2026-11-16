@@ -303,7 +303,7 @@ struct AppConView: View {
   static let gioPhut: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
 
   /// Số dư Con thấy: daemon (đã trừ tại chỗ) › tổng quan.
-  private func soSao(_ t: TrangThai?) -> SoSao? { t?.soSao ?? app.tq?.soSao ?? app.tq.map { SoSao(sao: $0.soDu) } }
+  private func soSao(_ t: TrangThai?) -> SoSao? { ManMac.soSao(tt: t, tq: app.tq) }
 
   /// Thẻ chính Hôm nay (them-z86gsj81 / them-ncml9v7v đang nợ / them-02wt8s99 «Mở hết»).
   @ViewBuilder private func theSao(_ t: TrangThai) -> some View {
@@ -411,7 +411,8 @@ struct AppConView: View {
       ForEach(Array(nhom.chuaLam.enumerated()), id: \.element.id) { i, v in theViec(v).vaoLanLuot(min(i + 1, 6)) }
       ForEach(khac, id: \.id) { v in theViec(v) }
       if !ds.isEmpty {
-        Chu((tq.diemChoDuyet > 0 ? ChuSao.choDuyet(tq.diemChoDuyet, no: soSao(tt)?.no ?? 0) : "Ba Mẹ duyệt xong là sao vào ví ngay (đang nợ thì trả nợ trước)") + " · Đang có \(ChuSao.vien(tq.saoThay))",
+        Chu((tq.diemChoDuyet > 0 ? ChuSao.choDuyet(tq.diemChoDuyet, no: soSao(tt)?.no ?? 0)
+              : ManMac.dangNo(soSao(tt)) ? "Ba Mẹ duyệt xong, " + ChuSao.traNoTruocHoa.lowercased() : "Ba Mẹ duyệt xong là sao vào ví ngay") + " · Đang có \(ChuSao.vien(tq.saoThay))",
             co: 13, dam: .semibold, mau: ClayMau.diemInk, dong: 2)
       }
       let gan = tq.gan.filter { ["cho_duyet", "tu_choi", "duoc_duyet"].contains($0.trangThai) }.prefix(8)

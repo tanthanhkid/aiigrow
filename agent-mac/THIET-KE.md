@@ -105,12 +105,13 @@ Theo `docs/THIET-KE-CLAY.md`. `Sources/AiiGrowTray/Clay.swift`: token màu, th�
 
 ### 3f. Khớp #262–#267 lần hai + «Hỏi AiiGrow» (16/11, issue #289, như agent-win)
 - Chữ: «điểm» ⇒ «sao» mọi nơi Con thấy; lời xin vay dự phòng cho máy chủ cũ gửi `lyDo` «Con xin vay N sao» (không còn «Con xin thêm giờ»).
-- Trả nợ (#263): tin «Ba Mẹ đã duyệt …» khi Con đang nợ thêm câu «Trả nợ 10 sao · còn nợ 10 sao» / «Trả nợ 20 sao trước · con còn 5 sao»
-  (`ChuSao.traNoKhiDuyet`, nợ lấy TRƯỚC lần làm mới); thẻ «Chờ Ba Mẹ duyệt» ở Nhiệm vụ / Sao & quà dùng `ChuSao.choDuyet`. Tin có câu trả nợ luôn hiện, không nhường chỗ «Giỏi lắm!».
+- Trả nợ (#263): tin «Ba Mẹ đã duyệt …» khi Con đang nợ thêm «Sao nhiệm vụ trả nợ trước» (không kèm số — tin không mang số nợ; như Windows), cả trong thông báo gộp;
+  «Giỏi lắm!» vẫn hiện, tin không bị nuốt khi đang nợ. Thẻ «Chờ Ba Mẹ duyệt»: «+N sao chờ Ba Mẹ duyệt», đang nợ mới thêm «Trả nợ … sao». Mọi màn đọc sổ sao theo một thứ tự (`ManMac.soSao`).
 - «Đổi bé» ⇒ «Đổi người» (menu, app Con, màn khoá); giữ «Đăng xuất».
-- Cài xong (#267): IPC mới `hoSoGhep` (chỉ Ba Mẹ / admin, sau khi ghép) ⇒ hồ sơ máy; một bé ⇒ «Máy của Bảo Anh đã sẵn sàng!» (không nói PIN / tên / cả nhà), nhiều bé ⇒ «Máy đã sẵn sàng cho cả nhà!».
+- Cài xong (#267): IPC mới `hoSoGhep` (chỉ Ba Mẹ / admin, sau khi ghép; lấy nền, thử lại, không chặn nút) ⇒ hồ sơ máy; `mayRieng == true` ⇒ «Máy của Bảo Anh đã sẵn sàng!» (không nói PIN / tên / cả nhà);
+  `mayRieng == false` ⇒ «Máy đã sẵn sàng cho cả nhà!»; chưa có hồ sơ ⇒ chữ trung tính. **Màn khoá máy riêng KHÔNG hỏi tên / PIN** (máy chủ cho `nguoiDung` = «con», màn chọn tên chỉ cho `chua`); PIN chỉ còn ở «Ba Mẹ nhập mã».
   Chữ chung: «Chỉ mở app, web Ba Mẹ đã thêm · Ba Mẹ có thể để Mở hết».
-- **«Hỏi AiiGrow»** (con-mat-mang 10; `HoiAiiGrowViews.swift`, `HoiAiiGrow` trong `ManMacLogic.swift`): menu «Hỏi AiiGrow…» (phiên Con, luôn có cả lúc mất kết nối dịch vụ) + link «Hỏi AiiGrow cách sửa ›» ở thanh báo mất mạng của app Con.
+- **«Hỏi AiiGrow»** (con-mat-mang 10; `HoiAiiGrowViews.swift`, `HoiAiiGrow` trong `ManMacLogic.swift`): menu «Hỏi AiiGrow…» (chỉ phiên Con, vẫn hiện khi dịch vụ không trả lời) + link «Hỏi AiiGrow cách sửa ›» ở thanh báo mất mạng của app Con.
   Cùng bốn thẻ và chữ như Windows (Mất mạng? / Máy bị khoá? / AiiGrow báo lỗi? / Cần cập nhật?) + «Gọi Ba Mẹ giúp» (⇒ Tin nhắn). Khác Windows vì Mac:
   | Thẻ | Windows | Mac |
   |---|---|---|

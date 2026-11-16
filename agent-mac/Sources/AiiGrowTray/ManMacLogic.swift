@@ -149,8 +149,13 @@ public enum ManMac {
     gan.filter { $0.trangThai == "duoc_duyet" && ($0.luc.map { lich.isDate($0, inSameDayAs: bayGio) } ?? false) }.reduce(0) { $0 + ($1.diem ?? 0) }
   }
 
-  /// Chữ màn «Máy đã sẵn sàng» sau khi ghép (con-cai-mac 09 + biến thể máy riêng #267). Máy riêng = hồ sơ chỉ có MỘT bé (hoặc máy chủ báo `mayRieng`):
-  /// không nói tên + PIN, không nói «cả nhà». Chưa biết hồ sơ (mất mạng…) ⇒ bản máy chung như cũ.
+  /// Sổ sao Con thấy — MỘT thứ tự đọc cho mọi màn: trạng thái daemon (`soSao`) → tổng quan (`soSao`) → số dư tổng quan.
+  public static func soSao(tt: TrangThai?, tq: HvTongQuan?) -> SoSao? { tt?.soSao ?? tq?.soSao ?? tq.map { SoSao(sao: $0.soDu) } }
+  public static func dangNo(_ s: SoSao?) -> Bool { (s?.no ?? 0) > 0 || (s?.sao ?? 0) < 0 }
+
+  /// Chữ màn «Máy đã sẵn sàng» sau khi ghép (con-cai-mac 09 + biến thể máy riêng #267). Máy riêng = máy chủ báo `mayRieng == true` (máy gắn một bé,
+  /// `nguoiDung` luôn «con» ⇒ màn khoá KHÔNG hỏi tên / PIN; PIN chỉ còn ở «Ba Mẹ nhập mã»): không nói tên + PIN, không nói «cả nhà».
+  /// `mayRieng == false` ⇒ máy chung (chọn tên + PIN). Chưa lấy được hồ sơ ⇒ chữ trung tính, không đoán.
   public struct ChuXong: Equatable {
     public var tieuDe: String
     public var phu: String
@@ -161,11 +166,17 @@ public enum ManMac {
   }
   public static func chuXong(_ h: HoSoMay?, taiKhoan: String) -> ChuXong {
     let chung = "Chỉ mở app, web Ba Mẹ đã thêm · Ba Mẹ có thể để Mở hết"
-    if let h, h.con.count == 1, let be = h.con.first {
-      return ChuXong(tieuDe: "Máy của \(be.ten) đã sẵn sàng!", phu: "\(be.ten) mở máy là vào thẳng, không cần làm gì thêm.",
-                     cacDong: ["⭐  Sao của \(be.ten) · 1 sao = 1 phút chơi", "🛡  " + chung],
+    guard let h else {
+      return ChuXong(tieuDe: "Máy đã sẵn sàng!", phu: "AiiGrow đã ghép với Ba Mẹ.",
+                     cacDong: ["⭐  1 sao = 1 phút chơi", "🛡  " + chung], nut: "Mở màn khoá",
+                     chanTrang: "Máy khoá lại; Con đăng nhập tài khoản «\(taiKhoan)» để vào.")
+    }
+    if h.mayRieng {
+      let ten = h.con.first?.ten
+      return ChuXong(tieuDe: ten.map { "Máy của \($0) đã sẵn sàng!" } ?? "Máy của con đã sẵn sàng!", phu: "Con mở máy là vào thẳng, không cần làm gì thêm.",
+                     cacDong: ["⭐  " + (ten.map { "Sao của \($0)" } ?? "Sao của con") + " · 1 sao = 1 phút chơi", "🛡  " + chung],
                      nut: "Mở màn khoá",
-                     chanTrang: "Máy khoá lại; \(be.ten) đăng nhập tài khoản «\(taiKhoan)» để vào.")
+                     chanTrang: "Máy khoá lại; con đăng nhập tài khoản «\(taiKhoan)» để vào.")
     }
     return ChuXong(tieuDe: "Máy đã sẵn sàng cho cả nhà!", phu: "Mỗi bé vào máy bằng tên + PIN 4 số.",
                    cacDong: ["⭐  Sao riêng từng bé · 1 sao = 1 phút chơi", "🔑  PIN do Ba Mẹ đặt trong app", "🛡  " + chung],

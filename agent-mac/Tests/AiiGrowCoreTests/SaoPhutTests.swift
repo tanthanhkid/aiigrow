@@ -281,9 +281,10 @@ final class SaoPhutTests: XCTestCase {
     XCTAssertEqual(ChuSao.traNoKhiDuyet(cong: 20, noTruoc: 20), "Trả nợ 20 sao · còn nợ 0 sao")
     XCTAssertNil(ChuSao.traNoKhiDuyet(cong: 10, noTruoc: 0))
     XCTAssertNil(ChuSao.traNoKhiDuyet(cong: 0, noTruoc: 5))
-    XCTAssertEqual(ChuSao.choDuyet(20, no: 0), "Duyệt xong +20 sao (đang nợ thì trả nợ trước)")
-    XCTAssertEqual(ChuSao.choDuyet(20, no: 15), "Trả nợ 15 sao trước · con còn 5 sao")
-    XCTAssertEqual(ChuSao.choDuyet(10, no: 15), "Trả nợ 10 sao · còn nợ 5 sao")
+    XCTAssertEqual(ChuSao.choDuyet(20, no: 0), "+20 sao chờ Ba Mẹ duyệt", "không nợ: không nhắc trả nợ")
+    XCTAssertEqual(ChuSao.choDuyet(20, no: 15), "+20 sao chờ Ba Mẹ duyệt · Trả nợ 15 sao trước · con còn 5 sao")
+    XCTAssertEqual(ChuSao.choDuyet(10, no: 15), "+10 sao chờ Ba Mẹ duyệt · Trả nợ 10 sao · còn nợ 5 sao")
+    XCTAssertEqual(ChuSao.traNoTruocHoa, "Sao nhiệm vụ trả nợ trước")
   }
 
   func testQuyenHoSoGhepChiBaMe() {

@@ -132,7 +132,7 @@ final class ManMacTests: XCTestCase {
   }
 
   // ---- 16/11 (#289): khớp #262–#267 + «Hỏi AiiGrow»
-  func testChuXongRẽTheoSoCon() {
+  func testChuXongRẽTheoMayRieng() {
     var h = HoSoMay(); h.con = [HoSoBe(id: "1", ten: "Bảo Anh", coPin: false)]; h.mayRieng = true
     let r = ManMac.chuXong(h, taiKhoan: "baoanh")
     XCTAssertEqual(r.tieuDe, "Máy của Bảo Anh đã sẵn sàng!")
@@ -141,8 +141,21 @@ final class ManMacTests: XCTestCase {
     let chung = ManMac.chuXong(h, taiKhoan: "con")
     XCTAssertEqual(chung.tieuDe, "Máy đã sẵn sàng cho cả nhà!")
     XCTAssertTrue(chung.chanTrang.contains("tên + PIN"))
-    XCTAssertEqual(ManMac.chuXong(nil, taiKhoan: "con"), chung, "chưa biết hồ sơ ⇒ bản máy chung")
+    h.con = [h.con[0]]
+    XCTAssertEqual(ManMac.chuXong(h, taiKhoan: "con").tieuDe, "Máy đã sẵn sàng cho cả nhà!", "một bé nhưng mayRieng=false ⇒ máy chung (tên + PIN)")
+    let la = ManMac.chuXong(nil, taiKhoan: "con")
+    for c in [la.tieuDe, la.phu, la.chanTrang] + la.cacDong { XCTAssertFalse(c.contains("PIN") || c.contains("cả nhà") || c.contains("tên"), "chưa có hồ sơ ⇒ trung tính: \(c)") }
     XCTAssertTrue((r.cacDong + chung.cacDong).allSatisfy { !$0.contains("điểm") && !$0.contains("App mới thì xin") })
+  }
+
+  func testSoSaoMotThuTuDoc() {
+    XCTAssertFalse(ManMac.dangNo(nil))
+    XCTAssertTrue(ManMac.dangNo(SoSao(sao: -20, no: 20)))
+    XCTAssertTrue(ManMac.dangNo(SoSao(sao: -5)), "số dư âm là đang nợ")
+    XCTAssertFalse(ManMac.dangNo(SoSao(sao: 10)))
+    var t = tt("con"); t.soSao = SoSao(sao: 3)
+    XCTAssertEqual(ManMac.soSao(tt: t, tq: nil)?.sao, 3)
+    XCTAssertNil(ManMac.soSao(tt: tt("con"), tq: nil))
   }
 
   func testHoiAiiGrowCungChuVoiWindows() {
