@@ -27,7 +27,8 @@ export async function xuLyMSao(bm: { id: string; family_id: string }, req: Reque
       if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
       const quy = await qg.quyHomNay(p[1]);
       // #302: soSao kẹp theo giới hạn ngày / lượt (phutCon = phút chơi được, saoTieuDuoc = sao thật) — khớp khoá trên máy Con
-      return json({ quy, sao: quy.soSao.sao, soSao: qg.saoKepGioiHan(quy), gioiHan: qg.gioiHanMay(quy.gioiHan), ngoaiLe: [] });
+      // ví Ba Mẹ: `sao` = tiêu được − nợ (số Ba Mẹ thấy) — khối soSao giữ số đó, chỉ phút / hết sao kẹp như máy Con
+      return json({ quy, sao: quy.soSao.sao, soSao: { ...qg.saoKepGioiHan(quy), sao: quy.soSao.sao }, gioiHan: qg.gioiHanMay(quy.gioiHan), ngoaiLe: [] });
     }
     // 15/11 sổ sao (#263–#266): ví sao + lịch sử vay / trả / chơi · xem trước + cho vay · «Cho thêm giờ» cũ = cho vay N sao
     if (sau === "vi-sao" && get) return json(await ss.viSao(fam, p[1], { gioiHan: Number(new URL(req.url).searchParams.get("gioiHan")) || 50 }));
@@ -81,7 +82,7 @@ export async function xuLyConSao(con: string, mayId: string | null, req: Request
                and loai in ('vay_sao', 'them_gio', 'ngoai_le', 'ngoai_gio') and het_han > now() order by created_at desc`, [con])]);
     // `sao` (cũ = số dư ≥ 0) nay là số dư Con thấy (âm khi nợ) · `phutDoiDuoc` (cũ) = phút còn chơi · `soSao` + `cau` mới
     const kep = qg.saoKepGioiHan(quy);      // #302: kẹp theo giới hạn — khớp khoá
-    return json({ quy, sao: quy.soSao.sao, soSao: kep, cau: kep.cau, phutDoiDuoc: quy.conPhut, gioiHan: qg.gioiHanMay(quy.gioiHan), ngoaiLe: [], yeuCauCho: cho });
+    return json({ quy, sao: kep.sao, soSao: kep, cau: kep.cau, phutDoiDuoc: quy.conPhut, gioiHan: qg.gioiHanMay(quy.gioiHan), ngoaiLe: [], yeuCauCho: cho });
   }
   if (d === "doi-sao" && post) return json(await qg.doiSaoLayGio(con, b.phut, mayId));
   // 15/11: sổ sao của Con — «còn N sao = N phút», hết sao, đang nợ · gửi lời xin vay (chơi / đổi quà)

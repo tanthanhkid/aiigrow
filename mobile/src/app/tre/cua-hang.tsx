@@ -23,8 +23,9 @@ export default function CuaHang() {
     return { ch, s };
   });
   if (!d) return <ManD lui="/tre/vi-qua" tieu="Đổi quà"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
-  // sao TIÊU ĐƯỢC (đổi quà được) — cùng số máy chủ dùng cho `du` / «Còn thiếu» từng món; nợ hiện dòng riêng
-  const sao = d.s?.phutCon ?? d.ch.soDu ?? d.ch.sao ?? 0;
+  // sao TIÊU ĐƯỢC (đổi quà được, gồm sao Ba Mẹ cho vay chưa tiêu) — đúng số máy chủ dùng cho `du` / «Còn thiếu» từng món; nợ hiện dòng riêng.
+  // #315: không lấy kid/sao › phutCon — số đó là PHÚT CHƠI ĐƯỢC, kẹp theo giới hạn ngày / lượt (#302) ⇒ hết giờ chơi thì hiện «Có 0 sao» dù còn sao
+  const sao = d.ch.soDu ?? d.ch.sao ?? d.s?.phutCon ?? 0;
   const no = d.s?.no ?? 0;
   const qua = d.ch.qua.filter((q) => q.loai !== "phut");
   return (

@@ -49,6 +49,12 @@ export async function trangThaiSao(con: string, t: Q = q): Promise<TrangThaiSao>
   return tinhTrangThai(r.s, r.n);
 }
 
+/** #315: số sao MÀN CON hiện («Con đang có N sao») — còn sao tiêu được (gồm sao Ba Mẹ vừa cho vay, chưa tiêu) ⇒ đúng số đó, vì Con đổi quà /
+ *  chơi được bằng chừng ấy sao; tiêu hết mà còn nợ ⇒ ÂM đúng số nợ (Con 0 sao vay 30 ⇒ thấy 30, đổi quà 30 ⇒ −30, nhiệm vụ +10 ⇒ −20). Nợ hiện
+ *  dòng riêng. Trước đây màn Con nhận `sao` = tiêu được − nợ ⇒ vay xong số không nhích (0 sao vay 30 vẫn thấy 0) và khay Windows lấy chính số đó
+ *  để chặn «còn thiếu» ⇒ Con không đổi được quà vừa xin vay. Ví Ba Mẹ (`viSao`) giữ `sao` = tiêu được − nợ. */
+export const saoConThay = (st: Pick<TrangThaiSao, "phutCon" | "no">) => (st.phutCon > 0 ? st.phutCon : st.no > 0 ? -st.no : 0);
+
 /** Câu cho máy Con / app: «còn 30 sao = 30 phút chơi» · nợ: «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước». */
 export function cauSao(st: TrangThaiSao) {
   const so = soVN;

@@ -15,7 +15,7 @@ import { conCua, type May } from "./gia-dinh.ts";
 import { biMatOfflineMay } from "./tuan-thu.ts";
 import { kiemMaOfflinePhut } from "./ma-offline.ts";
 import { coNoi, conNoiMay, idConMay, ketThucPhienTrenMay, laMotCon } from "./may-nhieu-con.ts";
-import { trangThaiSao } from "./so-sao.ts";
+import { saoConThay, trangThaiSao } from "./so-sao.ts";
 
 export const PIN_SAI_TOI_DA = 5;
 export const PIN_CHO_GIAY = 15;
@@ -78,7 +78,7 @@ export async function hoSoMay(may: MayS3, now = new Date()) {
   const den = baMeDen(may, now);
   const con = await Promise.all(ds.map(async (c) => {
     const k = khoaTheo.get(c.id);
-    return { id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, ...(await (async () => { const st = await trangThaiSao(c.id); return { sao: st.sao, no: st.no, soDu: st.phutCon }; })()), ...(c.pin_ma && bm ? { vanPin: vanPin(bm, c.id, c.pin_ma) } : {}),
+    return { id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, ...(await (async () => { const st = await trangThaiSao(c.id); return { sao: saoConThay(st), no: st.no, soDu: st.phutCon }; })()), ...(c.pin_ma && bm ? { vanPin: vanPin(bm, c.id, c.pin_ma) } : {}),
       ...(k ? { khoaDen: k.toISOString(), choGiay: Math.ceil((k.getTime() - now.getTime()) / 1000) } : {}) };
   }));
   const tenDung = dangDung ? ds.find((c) => c.id === dangDung) : undefined;
