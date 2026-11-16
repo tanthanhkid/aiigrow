@@ -201,8 +201,16 @@ public static class AppConView
     /// <summary>Dòng phụ quà đang chờ trao: «Đang giữ 50 sao · chờ Ba Mẹ trao».</summary>
     public static string DangGiu(int sao, bool ngan = false) => ngan ? $"Đang giữ {sao} sao · Ba Mẹ trao mới trừ" : $"Đang giữ {sao} sao · chờ Ba Mẹ trao";
 
-    /// <summary>Hộp đổi quà: «Con có 30 sao · còn thiếu 20 sao» (chưa đủ) hoặc null (đủ — hiện «30 sao → còn 0 sao»).</summary>
-    public static string? ThieuSao(HvQua q, int sao) => sao >= q.SoSao ? null : $"Con có {sao} sao · còn thiếu {q.SoSao - sao} sao";
+    /// <summary>Hộp đổi quà: <paramref name="dungDuoc"/> = sao TIÊU ĐƯỢC (gồm sao Ba Mẹ cho vay chưa tiêu — không phải số dư «sao», âm khi nợ).
+    /// «Con dùng được 30 sao · còn thiếu 20 sao» (chưa đủ) hoặc null (đủ — hiện «30 sao → còn 0 sao»).</summary>
+    public static string? ThieuSao(HvQua q, int dungDuoc) => dungDuoc >= q.SoSao ? null : $"{DungDuoc(dungDuoc)} · còn thiếu {q.SoSao - Math.Max(0, dungDuoc)} sao";
+
+    /// <summary>#315: «Con dùng được 30 sao» — sao tiêu được để đổi quà / chơi, gồm sao vay chưa tiêu.</summary>
+    public static string DungDuoc(int dungDuoc) => $"Con dùng được {Math.Max(0, dungDuoc)} sao";
+
+    /// <summary>#315: sao TIÊU ĐƯỢC của tong-quan — `soDu` (≥ 0, gồm sao vay chưa tiêu; máy chủ đổi quà kiểm theo đúng số này).
+    /// KHÔNG dùng `sao` (= tiêu được − nợ): Ba Mẹ cho vay N sao thì `sao` đứng yên ⇒ trước đây hộp đổi quà báo «còn thiếu» mãi.</summary>
+    public static int SaoDungDuoc(HvTongQuan tq) => Math.Max(0, tq.SoDu);
 
     public static string IconQua(HvQua q) => q.Phut is > 0 || q.Loai == "phut" ? "dongho" : q.Ten.ToLowerInvariant() switch
     {

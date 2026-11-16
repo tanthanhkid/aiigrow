@@ -162,6 +162,11 @@ public struct HvTongQuan: Equatable {
   public var gioiHan: GioiHan?
   /// Số dư Con thấy (âm được) — `soSao.sao`, máy chủ cũ thì `soDu`.
   public var saoThay: Int { soSao?.sao ?? soDu }
+  /// #315: sao TIÊU ĐƯỢC (`soDu` ≥ 0, gồm sao Ba Mẹ cho vay chưa tiêu) — đổi quà chặn / mở theo số này, không theo `saoThay`
+  /// (Ba Mẹ cho vay N sao thì số dư đứng yên ⇒ hộp đổi quà báo «còn thiếu» mãi).
+  public var saoDungDuoc: Int { max(0, soDu) }
+  /// Nợ Ba Mẹ còn lại (0 khi máy chủ cũ).
+  public var noBaMe: Int { max(0, soSao?.no ?? 0) }
   /// 14/11: chuỗi ngày + 7 ô ngày gần nhất (máy chủ cũ không gửi ⇒ nil, không hiện «Giỏi lắm!»).
   public var chuoi: HvChuoi?
   public init() {}

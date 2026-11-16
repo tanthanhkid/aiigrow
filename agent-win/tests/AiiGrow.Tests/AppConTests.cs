@@ -395,4 +395,24 @@ public class AppConTests
         Assert.Contains("boiMa = False", d.TaoBu().ToString());   // lẫn lộn ⇒ chỉ gửi phần thường (phút mở bằng mã đi boiMaCon)
         Assert.False(d.HetHan);
     }
+
+    [Fact]
+    public void DoiQua_ChanTheoSaoTieuDuoc_GomSaoVay_KhongTheoSoDu()
+    {
+        // #315: 0 sao, Ba Mẹ cho vay 30 để đổi quà 30 ⇒ tong-quan: sao (số dư) = 0, soDu (tiêu được) = 30
+        var tq = System.Text.Json.JsonSerializer.Deserialize<HvTongQuan>("""{"soDu":30,"sao":0,"soSao":{"sao":0,"no":30,"phutCon":30}}""",
+            new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+        Assert.Equal(0, tq.SoSao);                                  // thẻ Sao giữ số dư như thiết kế
+        var dung = AppConView.SaoDungDuoc(tq);
+        Assert.Equal(30, dung);
+        var qua = new HvQua { Id = "q", Ten = "Chọn món bữa tối", Diem = 30 };
+        Assert.Null(AppConView.ThieuSao(qua, dung));                // đổi được
+        Assert.True(AppConView.TrangThaiDoi(qua, dung).Du);
+        Assert.Equal("Con dùng được 30 sao", AppConView.DungDuoc(dung));
+        // 30 sao riêng + vay 20, quà 50 ⇒ dùng được 50 (số dư vẫn 30)
+        Assert.Null(AppConView.ThieuSao(new HvQua { Diem = 50 }, 50));
+        // chưa đủ ⇒ câu theo sao tiêu được
+        Assert.Equal("Con dùng được 10 sao · còn thiếu 20 sao", AppConView.ThieuSao(qua, 10));
+        Assert.Equal(0, AppConView.SaoDungDuoc(new HvTongQuan { SoDu = -5 }));
+    }
 }
