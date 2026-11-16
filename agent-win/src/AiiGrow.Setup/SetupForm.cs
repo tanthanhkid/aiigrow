@@ -249,6 +249,18 @@ internal sealed class SetupForm : Form
         return l;
     }
 
+    /// <summary>Chữ trong hộp cao <paramref name="cao"/> (toạ độ thiết kế), căn giữa dọc như CSS flex — chữ dài xuống 2 dòng thì lên cao hơn.</summary>
+    private Label XGiua(Control cha, int x, int y, int cao, string text, Kieu k, int rong)
+    {
+        var l = X(cha, x, y, text, k, rong);
+        // đo một lần bằng TextRenderer (cùng bộ vẽ với Label, giới hạn rộng như MaximumSize), tính bằng pixel so với S(cao) — không chia S(1) làm tròn nên không lệch ở DPI lẻ.
+        // Form chạy SystemAware (csproj) ⇒ DPI cố định từ lúc mở, không cần tự cập nhật khi đổi DPI giữa chừng.
+        var h = TextRenderer.MeasureText(text, l.Font, new Size(S(rong), int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height;
+        var p = ToaDo(cha, x, y);
+        l.Location = new Point(p.X, p.Y + Math.Max(0, (S(cao) - h) / 2));
+        return l;
+    }
+
     /// <summary>Thẻ Clay tại toạ độ thiết kế; <paramref name="chon"/> = thẻ đang chọn (nền ngọc nhạt + viền ngọc 2,5).</summary>
     private ClayCard The(int x, int y, int w, int h, bool chon = false, Color? nen = null, Action? bam = null, Control? cha = null)
     {
@@ -332,7 +344,8 @@ internal sealed class SetupForm : Form
 
     /// <summary>Nút chính: lề phải 34px như thiết kế (left = 687 − w).</summary>
     private ClayButton NutChinh(string text, int w, Action bam) => NutChan(text, 687 - w, w, true, bam);
-    private ClayButton NutLui(Action bam, string text = "Quay lại") => NutChan(text, 36, 132, false, bam);
+    // bàn: «‹ Quay lại» (mũi tên trái trước chữ); «Để sau» không có mũi tên
+    private ClayButton NutLui(Action bam, string text = "‹  Quay lại") => NutChan(text, 36, 132, false, bam);
 
     /// <summary>Sang một màn: xoá thân + chân, đặt thanh bước.</summary>
     private void Man(int buoc, string ten, bool daiNgoc = false)
@@ -356,7 +369,7 @@ internal sealed class SetupForm : Form
         Rob("chi", 24, 96, 240, 320);
         X(_body, 282, 100, "Cài AiiGrow lên\n" + (_child != null ? "máy của " + _child.Name : "máy tính của con"), Kieu.H28);
         X(_body, 282, 180, "Khoảng 2 phút · Ba Mẹ chỉ cần bấm theo", Kieu.P);
-        Vien(_body, 282, 232, "lich", mau: "ngoc"); X(_body, 354, 238, "Ba Mẹ đặt giờ chơi", Kieu.B); X(_body, 354, 262, "ngay trên điện thoại", Kieu.S);
+        Vien(_body, 282, 232, "lich", mau: "ngoc"); X(_body, 354, 238, "Ba Mẹ đặt luật chơi bằng sao", Kieu.B); X(_body, 354, 262, "ngay trên điện thoại", Kieu.S);
         Vien(_body, 282, 306, "sao", mau: "ngoc"); X(_body, 354, 312, "Làm việc tốt, nhận sao", Kieu.B); X(_body, 354, 336, "10 sao = 10 phút chơi", Kieu.S);
         Vien(_body, 282, 380, "mat", mau: "ngoc"); X(_body, 354, 386, "Con luôn thấy AiiGrow", Kieu.B); X(_body, 354, 410, "Không có gì giấu con", Kieu.S);
         if (Installer.IsAdmin())
@@ -378,12 +391,12 @@ internal sealed class SetupForm : Form
         X(_body, 36, 72, "AiiGrow làm gì trên máy này?", Kieu.H);
         var co = The(36, 128, 315, 262);
         ChipTai(co, 56, 146, "AiiGrow có", Clay.NgocSoft, Clay.NgocInk, "tick");
-        foreach (var (y, icon, chu) in new[] { (196, "dong_ho_cat", "Đếm phút con dùng app, web"), (260, "khoa", "Chỉ mở app Ba Mẹ cho phép"), (324, "chuong", "Báo khi con xin app mới") })
-        { Vien(co, 56, y, icon, 44, "ngoc"); X(co, 112, y + 11, chu, Kieu.B, 230); }
+        foreach (var (y, icon, chu) in new[] { (196, "dong_ho_cat", "Đếm phút con dùng app, web"), (260, "khoa", "Chỉ mở app, web Ba Mẹ cho phép"), (324, "chuong", "Báo khi con xin app mới") })
+        { Vien(co, 56, y, icon, 44, "ngoc"); XGiua(co, 112, y, 44, chu, Kieu.B, 226); }
         var khong = The(372, 128, 315, 262);
         ChipTai(khong, 392, 146, "AiiGrow không", Clay.CanhSoft, Clay.Canh, "x");
         foreach (var (y, icon, chu) in new[] { (196, "camera", "Không chụp màn hình"), (260, "tin", "Không đọc tin nhắn"), (324, "x", "Không ghi phím con gõ") })
-        { Vien(khong, 392, y, icon, 44, "cam"); X(khong, 448, y + 11, chu, Kieu.B, 230); }
+        { Vien(khong, 392, y, icon, 44, "cam"); XGiua(khong, 448, y, 44, chu, Kieu.B, 226); }
         X(_body, 38, 410, "Gỡ AiiGrow lúc nào cũng được, cần mật khẩu máy của Ba Mẹ.", Kieu.P);
         var cb = new CheckBox
         {
@@ -860,17 +873,18 @@ internal sealed class SetupForm : Form
     {
         // 06/11 (L13 — con-cai-win 12): máy dùng chung cho cả nhà — cài xong máy chuyển sang tài khoản Con và khoá lại, các bé chọn tên + PIN
         Man(6, "Xong", daiNgoc: true);
+        var ten = string.IsNullOrWhiteSpace(tenHoSo) ? "con" : tenHoSo!;   // mayRieng chỉ khi có tên (nơi gọi đã chặn), «con» là dự phòng không để null lọt vào chuỗi
         Rob("xong", 24, 84, 250, 330);
         var ph = new ClayIcon { Size = new Size(S(56), S(56)), MauVien = Color.Transparent, Hinh = Anh3D.Icon("phao_hoa"), Location = ToaDo(_body, 206, 84) };
         _body.Controls.Add(ph);
         // #267: máy riêng một bé không nói «cả nhà» / «mỗi bé chọn tên + PIN»; máy cả nhà giữ nguyên
-        X(_body, 290, 80, mayRieng ? "Máy của " + tenHoSo + "\nđã sẵn sàng!" : "Máy đã sẵn sàng\ncho cả nhà!", Kieu.H30, 400);
+        X(_body, 290, 80, mayRieng ? "Máy của " + ten + "\nđã sẵn sàng!" : "Máy đã sẵn sàng\ncho cả nhà!", Kieu.H30, 400);
         X(_body, 290, 164, mayRieng ? "Con mở máy là vào thẳng." : "Mỗi bé vào máy bằng tên + PIN 4 số.", Kieu.P, 400);
         foreach (var (y, icon, tieu, phu) in new[]
                  {
-                     (206, "dongho", mayRieng ? "Sao chơi tính cho " + tenHoSo : "Giờ chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
-                     (284, "nguoi", string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, mayRieng ? "Máy riêng của con" : "PIN do Ba Mẹ đặt trong app"),
-                     (362, "khoa", "Chỉ mở app Ba Mẹ cho phép", "App mới thì bấm xin Ba Mẹ"),
+                     (206, "lich", mayRieng ? "Sao chơi tính cho " + ten : "Phút chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
+                     (284, "nguoi", mayRieng ? "Máy riêng của con" : string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, mayRieng ? "Chỉ " + ten + " dùng máy này" : "PIN do Ba Mẹ đặt trong app"),
+                     (362, "khoa", "Mở app, web theo danh sách Ba Mẹ", "App mới thì bấm xin Ba Mẹ"),
                  })
         {
             var the = The(290, y, 397, 68);
@@ -878,7 +892,7 @@ internal sealed class SetupForm : Form
             X(the, 374, y + 12, tieu, Kieu.B, 300);
             X(the, 374, y + 36, phu, Kieu.S, 300);
         }
-        X(_body, 36, 556, mayRieng ? $"Máy chuyển sang tài khoản {TenHien(child.Name)}: con vào thẳng." : $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
+        X(_body, 36, 556, mayRieng ? $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại." : $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
         NutLui(Close, "Để sau");
         // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở. Vào tài khoản Con ⇒ AiiGrow hiện «Ai đang dùng máy?».
         NutChinh(mayRieng ? "Khoá máy" : "Mở màn chọn tên", mayRieng ? 200 : 250, () => LockWorkStation());
