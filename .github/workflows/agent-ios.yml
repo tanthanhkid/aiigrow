@@ -1,0 +1,101 @@
+name: agent-ios
+
+# Agent iOS/iPadOS (AiiGrow Con) trên runner macOS (repo public ⇒ miễn phí). Không ký (CODE_SIGNING_ALLOWED=NO).
+# Giả lập KHÔNG chạy FamilyControls/Screen Time ⇒ chỉ kiểm logic (ConCoreTests) + giao diện (chụp màn demo).
+#   test     — xcodegen + xcodebuild test ConCoreTests, ma trận iPhone + iPad
+#   chup-man — build app cho giả lập + chụp màn (-demo) iPhone + iPad ⇒ artifact; không chặn (continue-on-error)
+on:
+  pull_request:
+    paths: &duong
+      - 'agent-ios/**'
+      - 'scripts/ci/chon-gia-lap.sh'
+      - 'scripts/ci/chup-ios.sh'
+      - '.github/workflows/agent-ios.yml'
+  push:
+    branches: [main]
+    paths: *duong
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: agent-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test (${{ matrix.loai }})
+    runs-on: macos-15
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        loai: [iPhone, iPad]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cài xcodegen
+        run: brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: agent-ios/DerivedData
+          key: ios-dd-${{ matrix.loai }}-${{ hashFiles('agent-ios/project.yml', 'agent-ios/ConCore/**', 'agent-ios/Tests/**') }}
+          restore-keys: ios-dd-${{ matrix.loai }}-
+      - name: Chọn giả lập
+        id: gl
+        run: |
+          echo "udid=$(scripts/ci/chon-gia-lap.sh '${{ matrix.loai }}')" >> "$GITHUB_OUTPUT"
+      - name: xcodegen
+        working-directory: agent-ios
+        run: xcodegen generate
+      - name: xcodebuild test
+        working-directory: agent-ios
+        run: |
+          set -o pipefail
+          xcodebuild test -project AiiGrowCon.xcodeproj -scheme AiiGrowCon \
+            -destination "id=${{ steps.gl.outputs.udid }}" \
+            -derivedDataPath DerivedData -resultBundlePath ../test-results/${{ matrix.loai }}.xcresult \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO 2>&1 | tee ../test-results.log | tail -n 80
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-test-${{ matrix.loai }}
+          path: |
+            test-results
+            test-results.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  chup-man:
+    name: chup-man (${{ matrix.loai }})
+    runs-on: macos-15
+    timeout-minutes: 25
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        loai: [iPhone, iPad]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cài xcodegen
+        run: brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+      - name: Chọn giả lập
+        id: gl
+        run: echo "udid=$(scripts/ci/chon-gia-lap.sh '${{ matrix.loai }}')" >> "$GITHUB_OUTPUT"
+      - name: Build app cho giả lập (không ký)
+        working-directory: agent-ios
+        run: |
+          xcodegen generate
+          xcodebuild build -project AiiGrowCon.xcodeproj -scheme AiiGrowCon \
+            -destination "id=${{ steps.gl.outputs.udid }}" -derivedDataPath DerivedData \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO 2>&1 | tail -n 40
+      - name: Chụp màn
+        run: scripts/ci/chup-ios.sh "${{ steps.gl.outputs.udid }}" man-ios "$(ls -d agent-ios/DerivedData/Build/Products/Debug-iphonesimulator/AiiGrowCon.app)" "${{ matrix.loai }}"
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: man-ios-${{ matrix.loai }}
+          path: man-ios
+          if-no-files-found: warn
+          retention-days: 14
