@@ -533,7 +533,7 @@ internal sealed class TrayContext : ApplicationContext
                     var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Request, Kind = LoaiXin.VaySao, Minutes = XinVayView.MacDinh });
                     if (r.Ok && r.Status == "cho_mang")
                     {
-                        using var h = HopDaLuu.Hop(XinVayView.DaLuu, XinVayView.Nut(XinVayView.MacDinh), int.TryParse(r.Message, out var n) ? n : 1, ManKhoaView.VeManKhoa);
+                        using var h = HopDaLuu.Hop(XinVayView.DaLuu, XinVayView.Nut(XinVayView.MacDinh), int.TryParse(r.Message, out var n) ? n : 1, ManKhoaView.VeManKhoa, iconNut: "khoa");
                         h.ShowDialog(chu);
                     }
                     else

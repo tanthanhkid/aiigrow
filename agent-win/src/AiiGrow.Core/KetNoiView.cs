@@ -32,7 +32,12 @@ public static class KetNoiView
     public static string DongMenu(KetNoiInfo info, TrayState? s)
     {
         var dong = "● " + info.Dong;
-        if (info.Loai == KetNoi.DaKetNoi && s is { MoHet: false, QuyConPhut: double p }) { var n = SaoView.Phut(p); dong += $" · còn {n} sao = {n} phút"; }
+        if (info.Loai == KetNoi.DaKetNoi && s is { MoHet: false, QuyConPhut: double p })
+        {
+            // số sao THẬT (âm khi nợ) và phút chơi được tính riêng
+            var phut = SaoView.Phut(p);
+            dong += s.Sao is int sao ? (sao >= 0 ? $" · còn {SaoView.SoDu(sao)} = {phut} phút" : $" · {SaoView.SoDu(sao)} · còn {phut} phút") : $" · còn {phut} phút";
+        }
         return dong;
     }
 

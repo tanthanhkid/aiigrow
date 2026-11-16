@@ -13,6 +13,7 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
     private readonly Button _go;
     private readonly Label _msg;
     private readonly string _chuNut;
+    private const string ThuLai = "Thử lại mã mới";
     private FlowLayoutPanel? _nhapLai;
     private bool _busy;
 
@@ -42,7 +43,10 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
         _box.KeyDown += async (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await SendAsync(); } };
         // #307 (cmt-khoa-mat-mang, them-wt782i6x): nút mở bằng mã là nút PHỤ (trắng) như Bàn; nút chính của màn là «Xin Ba Mẹ …»
         _chuNut = nut ?? "Mở";
-        _go = UI.Btn(_chuNut, false, ngang ? UI.Px(120) : width);
+        // ngang: nút rộng theo chữ dài nhất nó có thể mang («Thử lại mã mới») + icon
+        var rongNgang = Math.Max(TextRenderer.MeasureText(_chuNut, UI.F(ptNut, FontStyle.Bold)).Width, TextRenderer.MeasureText(ThuLai, UI.F(ptNut, FontStyle.Bold)).Width)
+            + UI.Px(72) + VeNut.LeBong.Horizontal;
+        _go = UI.Btn(_chuNut, false, ngang ? Math.Min(rongNgang, width / 2) : width);
         _go.Image = Anh3D.Icon("mo_khoa");
         _go.Font = UI.F(ptNut, FontStyle.Bold);
         _go.Height = UI.Px(48) + VeNut.LeBong.Vertical;
@@ -85,8 +89,8 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
             t.Tick += (_, _) => { t.Stop(); t.Dispose(); Unlocked?.Invoke(); };
             t.Start();
         }
-        else if (res.Error == null || !res.Error.StartsWith("Chưa nối được", StringComparison.Ordinal)) DatSai();
-        else { _box.SelectAll(); _box.Focus(); }
+        else if (res.Status == "sai") DatSai();
+        else { _msg.ForeColor = UI.Error; _box.SelectAll(); _box.Focus(); }   // chờ thử lại / mã đã dùng / chưa có bí mật / lỗi dịch vụ: giữ câu thật
     }
 
     /// <summary>them-y4zv21p3: mã sai ⇒ «Mã chưa đúng. Nhờ Ba Mẹ đọc lại nhé.» · nút «Thử lại mã mới» · «‹ Nhập lại» (xoá ô).</summary>
@@ -96,7 +100,7 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
         _msg.Text = ManKhoaView.MaSai;
         _box.ForeColor = UI.Error;   // Bàn them-y4zv21p3: số đỏ, câu báo NẰM TRÊN nút
         if (_go.Parent == this && Controls.GetChildIndex(_msg) > Controls.GetChildIndex(_go)) Controls.SetChildIndex(_msg, Controls.GetChildIndex(_go));
-        _go.Text = "Thử lại mã mới";
+        _go.Text = ThuLai;
         if (_nhapLai == null)
         {
             _nhapLai = KhoiCon.LienKet("‹ Nhập lại", null, () =>

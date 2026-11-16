@@ -83,7 +83,7 @@ internal static class ChupMain
             TrangThai(s => { s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddMinutes(-25); s.BaiChoMang = 1; }), true));
         await Mot("app-hom-nay-dich-vu-tat", () => ManApp("app-hom-nay-dich-vu-tat", MucApp.HomNay, TrangThai(), true, kn: KetNoiView.Chon(false, null)));
         await Mot("app-hom-nay-mo-bang-ma", () => ManApp("app-hom-nay-mo-bang-ma", MucApp.HomNay,
-            TrangThai(s => { s.MinutesLeft = null; s.MoOfflineDen = DateTimeOffset.Now.AddMinutes(30); s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddHours(-2); s.BaiChoMang = 1; }), true));
+            TrangThai(s => { s.MinutesLeft = null; s.MoOfflineDen = DateTimeOffset.Now.AddMinutes(30); s.MoOfflineTu = DateTimeOffset.Now; s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddHours(-2); s.BaiChoMang = 1; }), true));
         // 15/11 (bàn thiết kế them-er4nxw6z / them-upgropiw): Hôm nay đang nợ Ba Mẹ (hết sao) · chế độ «Mở hết»
         await Mot("app-hom-nay-dang-no", () => ManApp("app-hom-nay-dang-no", MucApp.HomNay, TrangThai(s => { s.Sao = -15; s.No = 15; s.QuyConPhut = 0; }), true));
         await Mot("app-hom-nay-mo-het", () => ManApp("app-hom-nay-mo-het", MucApp.HomNay, TrangThai(s => { s.MoHet = true; s.QuyConPhut = null; s.Sao = 18; }), true));

@@ -512,6 +512,9 @@ public sealed class AgentRuntime
     /// Mở được ⇒ lưu hạn mở + ghi sự kiện «mo_ma_offline» vào hàng đợi offline; sai đủ ngưỡng ⇒ sự kiện «sai_ma_offline».
     /// </summary>
     /// <param name="choBaMe">06/11 (L13): «Ba Mẹ nhập mã» lúc mất mạng ⇒ mã đúng thì «Ba Mẹ đang dùng máy» (đúng số phút trong mã), không phải mở tạm cho Con.</param>
+    /// <summary>#307: kết quả lượt kiểm mã gần nhất (null = chưa kiểm được) — khay chỉ ghi «Mã chưa đúng» khi đúng là <see cref="KetQuaMoOffline.Sai"/>.</summary>
+    public KetQuaMoOffline? KetQuaMaCuoi { get; private set; }
+
     public (bool Ok, string Message) TryMaOffline(string? code, DateTimeOffset now, bool choBaMe = false)
     {
         lock (_gate)
@@ -565,6 +568,7 @@ public sealed class AgentRuntime
                 });
             }
             catch { moi = null; }
+            KetQuaMaCuoi = daKiem ? kq : null;
 
             // Không đọc được cấu hình trên đĩa ⇒ chưa kiểm mã (không ai dò được khi giới hạn lượt sai không lưu được).
             if (!daKiem) return (false, chuaLuu);
@@ -711,7 +715,7 @@ public sealed class AgentRuntime
             var effChinhSach = PolicyEvaluator.Evaluate(tt, now, _usedSeconds);
             var eff0 = MoTamOffline.ApDung(effChinhSach, moTam);
             var eff = coDn ? DangNhapView.ApDung(eff0, dn, now) : eff0;
-            if (moTam) s.MoOfflineDen = Config!.MoTamOffline.UnlockUntil;
+            if (moTam) { s.MoOfflineDen = Config!.MoTamOffline.UnlockUntil; s.MoOfflineTu = Config.MoTamOffline.UnlockFrom; }
             s.ChildName = string.IsNullOrEmpty(_policy.ChildName) ? (Config?.ChildName ?? "") : _policy.ChildName;
             // 06/11 (L13): ai đang dùng máy — tên trên màn là bé đang đăng nhập (Policy có thể còn của lượt đồng bộ trước)
             s.NguoiDung = coDn ? DangNhapView.HienTai(dn, now) : LoaiNguoiDung.Con;

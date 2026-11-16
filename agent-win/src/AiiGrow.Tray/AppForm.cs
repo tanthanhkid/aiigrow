@@ -479,7 +479,20 @@ internal sealed class AppForm : Form
         hai.Controls.Add(cho);
         var nv = KhoiApp.The(nua);
         nv.Margin = Padding.Empty;
-        if (_tq == null)
+        if (_kn.Loai == KetNoi.MatKetNoi && _s.BaiChoMang > 0)
+        {
+            // cmt-hom-nay-mat-mang: «Bài chờ gửi · N bài · có mạng là tự gửi» — cả khi chưa tải được tổng quan
+            nv.Controls.Add(KhoiApp.DauThe("gui", "Bài chờ gửi", $"{_s.BaiChoMang} bài", UI.Ink, 22f, rn));
+            nv.Controls.Add(T("Có mạng là tự gửi", 10.5f, true, Clay.Canh, rn));
+            if (_tq != null)
+            {
+                var dsc = Viec();
+                var xemc = KhoiCon.Nut(dsc.Count > 0 ? $"Xem {dsc.Count} nhiệm vụ" : "Xem nhiệm vụ", true, rn, "tick", 44, 11f);
+                xemc.Click += (_, _) => Select(MucApp.NhiemVu);
+                nv.Controls.Add(xemc);
+            }
+        }
+        else if (_tq == null)
         {
             nv.Controls.Add(KhoiApp.DauThe("tick", "Nhiệm vụ hôm nay", _loiTai != null ? "Chưa tải được" : "Đang tải…", UI.Ink, 16f, rn));
             if (_loiTai != null) nv.Controls.Add(NutTaiLai("Tải lại", rn));
@@ -487,17 +500,8 @@ internal sealed class AppForm : Form
         else
         {
             var ds = Viec();
-            if (_kn.Loai == KetNoi.MatKetNoi && _s.BaiChoMang > 0)
-            {
-                // cmt-hom-nay-mat-mang: «Bài chờ gửi · 1 bài · có mạng là tự gửi»
-                nv.Controls.Add(KhoiApp.DauThe("gui", "Bài chờ gửi", $"{_s.BaiChoMang} bài", UI.Ink, 22f, rn));
-                nv.Controls.Add(T("Có mạng là tự gửi", 10.5f, true, Clay.Canh, rn));
-            }
-            else
-            {
-                nv.Controls.Add(KhoiApp.DauThe("tick", "Nhiệm vụ hôm nay", $"{ds.Count} việc", UI.Ink, 22f, rn));
-                nv.Controls.Add(T(AppConView.TomTatViec(ds), 10.5f, true, ds.Any(x => x.Nhom != "cho_duyet") ? Clay.Canh : Clay.NgocInk, rn));
-            }
+            nv.Controls.Add(KhoiApp.DauThe("tick", "Nhiệm vụ hôm nay", $"{ds.Count} việc", UI.Ink, 22f, rn));
+            nv.Controls.Add(T(AppConView.TomTatViec(ds), 10.5f, true, ds.Any(x => x.Nhom != "cho_duyet") ? Clay.Canh : Clay.NgocInk, rn));
             var xem = KhoiCon.Nut(ds.Count > 0 ? $"Xem {ds.Count} nhiệm vụ" : "Xem nhiệm vụ", true, rn, "tick", 44, 11f);
             xem.Click += (_, _) => Select(MucApp.NhiemVu);
             nv.Controls.Add(xem);
@@ -535,7 +539,7 @@ internal sealed class AppForm : Form
         if (_kn.Loai == KetNoi.MatKetNoi || moMa != null)
         {
             // Bàn: thẻ một dòng — «Vẫn «Theo danh sách» · 4 app · App khác? ›» (khiên) / «Hết 30 phút máy khoá lại · sao của con vẫn còn 30» (đồng hồ cát)
-            var phutMa = moMa is { } dm ? Math.Max(0, (int)Math.Ceiling((dm - DateTimeOffset.Now).TotalMinutes)) : 0;
+            var phutMa = moMa is { } dm ? PhutMa(dm) : 0;
             var chu = moMa != null ? $"Hết {phutMa} phút máy khoá lại · sao của con vẫn còn {SaoHienTai() ?? SaoView.Phut(PhutConHienTai())}"
                 : MoHet() ? "Vẫn «Mở hết» · không tính phút" : $"Vẫn «Theo danh sách» · {_s.AppDuocPhep.Count + _s.AppTinhPhut.Count} app";
             var t = TheDay();
@@ -642,6 +646,10 @@ internal sealed class AppForm : Form
         return cot;
     }
 
+    /// <summary>Thời lượng thật của lượt mở bằng mã (phút): đến − từ; dịch vụ cũ không gửi «từ» ⇒ số phút còn lại.</summary>
+    private int PhutMa(DateTimeOffset den) => _s.MoOfflineTu is { } tu && den > tu
+        ? (int)Math.Round((den - tu).TotalMinutes) : Math.Max(1, (int)Math.Ceiling((den - DateTimeOffset.Now).TotalMinutes));
+
     /// <summary>cmt-hom-nay-mo-bang-ma: «Mở bằng mã còn · 30 phút» + thanh + «Đang mở tạm bằng mã · 30 phút, không trừ sao».</summary>
     private ClayFlow TheMoBangMa(int r, DateTimeOffset den)
     {
@@ -649,7 +657,7 @@ internal sealed class AppForm : Form
         var con = Math.Max(0, (int)Math.Ceiling((den - DateTimeOffset.Now).TotalMinutes));
         var so = T($"{con} phút", 40f, true, UI.GreenDark, r); so.Margin = Padding.Empty;
         the.Controls.Add(DauTheLon(r, "dong_ho_cat", "Mở bằng mã còn", so, NutVay()));
-        var thanh = new ThanhTienDo { Width = r, TiLe = Math.Min(1, con / 30.0), Margin = new Padding(0, 0, 0, Px(8)) };
+        var thanh = new ThanhTienDo { Width = r, TiLe = Math.Min(1, con / (double)Math.Max(1, PhutMa(den))), Margin = new Padding(0, 0, 0, Px(8)) };
         the.Controls.Add(thanh);
         the.Controls.Add(T($"Đang mở tạm bằng mã · {con} phút, không trừ sao", 12f, true, Clay.Chu2, r));
         return the;
@@ -692,7 +700,7 @@ internal sealed class AppForm : Form
         if (moMa is { } den)
         {
             var phut = Math.Max(0, (int)Math.Ceiling((den - DateTimeOffset.Now).TotalMinutes));
-            (tieu, phu) = ("Ba Mẹ đã mở máy bằng mã", $"Mở tạm {phut} phút, đến {den.ToLocalTime():HH:mm} · sao giữ nguyên");
+            (tieu, phu) = ("Ba Mẹ đã mở máy bằng mã", $"Mở tạm {PhutMa(den)} phút, đến {den.ToLocalTime():HH:mm} · sao giữ nguyên");
         }
         else (tieu, phu) = ("Mất mạng rồi, không sao đâu!", MoHet() ? "Máy vẫn giữ luật như cũ." : "Máy vẫn trừ sao và giữ luật như cũ.");
         var a = T(tieu, 15f, true, mau, rc); a.Margin = new Padding(0, Px(2), 0, Px(2));
