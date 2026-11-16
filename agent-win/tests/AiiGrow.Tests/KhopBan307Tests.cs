@@ -38,6 +38,18 @@ public class KhopBan307Tests
     }
 
     [Fact]
+    public void TenDaGiai_DiQuaNguyenVen_VaDanhSachTenTheoMuc()
+    {
+        Assert.Equal("Học với AiiRob", TrayView.FriendlyAppName("Học với AiiRob", null));
+        Assert.Equal("YouTube Kids", TrayView.FriendlyAppName("YouTube Kids", null));
+        Assert.Equal("Tudien", TrayView.FriendlyAppName("tudien.exe", null));   // không bảng ⇒ đoán từ mục (dịch vụ đã giải sẵn trước khi gửi)
+        var s = new TrayState { AppDuocPhep = new() { "tudien.exe" }, TenAppDuocPhep = new() { "Từ điển" }, AppTinhPhut = new() { "roblox.exe" } };
+        Assert.Equal(new[] { "Từ điển" }, TrayView.TenKhongTinh(s));
+        Assert.Equal(new[] { "roblox.exe" }, TrayView.TenTinh(s));   // dịch vụ cũ không gửi tên ⇒ dùng mục
+        Assert.Equal("Từ điển vẫn mở · không tính phút", SaoView.VanMo(TrayView.TenKhongTinh(s)));
+    }
+
+    [Fact]
     public void KhoaLuc_GiuMocCu_BoKhiMo()
     {
         var t0 = new DateTimeOffset(2026, 11, 16, 19, 30, 0, TimeSpan.FromHours(7));

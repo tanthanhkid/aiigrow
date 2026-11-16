@@ -279,8 +279,8 @@ internal sealed class TrayContext : ApplicationContext
     private void OpenXinVay(IWin32Window? chu = null, bool saoDung = false, Action? quayLaiHetSao = null)
     {
         string? sau;
-        XinVayForm.AppDs.AppTinh = _state.AppTinhPhut;
-        XinVayForm.AppDs.AppKhong = _state.AppDuocPhep;
+        XinVayForm.AppDs.AppTinh = TrayView.TenTinh(_state);
+        XinVayForm.AppDs.AppKhong = TrayView.TenKhongTinh(_state);
         using (var f = new XinVayForm(saoDung, tuHetSao: quayLaiHetSao != null))
         {
             if (chu != null) f.ShowDialog(chu); else f.ShowDialog();
@@ -631,7 +631,6 @@ internal sealed class TrayContext : ApplicationContext
             Chao(true);
             _state = st;
             _at = DateTimeOffset.Now;
-            TrayView.DatTenApp(st.TenApp);   // #307: tên app theo danh sách app máy, không tên tiến trình
             DoiNguoi();
             HandleBaMe();
             SetKetNoi(KetNoiView.Chon(true, _state), true);
@@ -817,7 +816,8 @@ internal sealed class TrayContext : ApplicationContext
         // #307: Con đang ở hộp «Xin thêm …» cho đúng app này ⇒ đưa hộp lên trước, không chồng màn chặn mới
         if (id != null && _xinThem is { IsDisposed: false } dangXin && string.Equals(dangXin.Muc, id.Trim(), StringComparison.OrdinalIgnoreCase)) { dangXin.Activate(); return; }
         if (ManChanView.TuGui(id, _state.BlockedBoiBaMe, _state.Offline, daXin)) _soTuGui++;
-        _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep, daXin: daXin, appTinhPhut: _state.AppTinhPhut, phutCon: _state.QuyConPhut);
+        _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep, daXin: daXin, appTinhPhut: _state.AppTinhPhut, phutCon: _state.QuyConPhut,
+            tenDuocPhep: TrayView.TenKhongTinh(_state), tenTinhPhut: TrayView.TenTinh(_state));
         _blocked.VeHomNay += () => OpenApp(MucApp.HomNay);
         _blocked.NhanBaMe += () => OpenApp(MucApp.TinNhan);
         _blocked.DaXin += x => _daXin.Add(x);
@@ -891,7 +891,7 @@ internal sealed class TrayContext : ApplicationContext
         if (HetSaoView.DemNguoc(con, _state.DangChoiTinhPhut) && (_hetSao is { IsDisposed: false } || truoc is null or > 1))
         {
             var giay = (int)Math.Ceiling(con * 60);
-            HienHetSao(_state.GioiHanChan ? HetSaoView.ForSapHetGio(giay, _state.AppDangChoi, _state.GioiHanChanLuot, _state.AppDuocPhep, doiBe) : HetSaoView.For(giay, _state.AppDangChoi, _state.AppDuocPhep, doiBe), giay);
+            HienHetSao(_state.GioiHanChan ? HetSaoView.ForSapHetGio(giay, _state.AppDangChoi, _state.GioiHanChanLuot, TrayView.TenKhongTinh(_state), doiBe) : HetSaoView.For(giay, _state.AppDangChoi, TrayView.TenKhongTinh(_state), doiBe), giay);
             return;
         }
         var vuaHet = con <= 0 && !_daBaoHetSao && (_hetSao is { IsDisposed: false } || (truoc is > 0 && _state.DangChoiTinhPhut));
@@ -899,8 +899,8 @@ internal sealed class TrayContext : ApplicationContext
         {
             _daBaoHetSao = true;
             // #302: khoá vì giới hạn ngày / đang nghỉ (còn sao) ⇒ «Nghỉ một chút · chơi tiếp lúc HH:MM» / «Hôm nay chơi đủ rồi», không «Hết sao rồi»
-            var m = HetSaoView.ForGioiHan(_state.GioiHanLyDo, _state.GioiHanGio, _state.GioiHanCau, _state.AppDuocPhep, doiBe)
-                ?? (_state.Offline ? ManKhoaView.For(null, _state.ChildName, offline: true, hetSao: true) : HetSaoView.For(null, null, _state.AppDuocPhep, doiBe));
+            var m = HetSaoView.ForGioiHan(_state.GioiHanLyDo, _state.GioiHanGio, _state.GioiHanCau, TrayView.TenKhongTinh(_state), doiBe)
+                ?? (_state.Offline ? ManKhoaView.For(null, _state.ChildName, offline: true, hetSao: true) : HetSaoView.For(null, null, TrayView.TenKhongTinh(_state), doiBe));
             HienHetSao(m, null);
             return;
         }

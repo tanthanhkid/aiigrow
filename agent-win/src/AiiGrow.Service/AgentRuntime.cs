@@ -708,7 +708,8 @@ public sealed class AgentRuntime
             var tt = ThucThi(now)!;
             var dn = Config?.DangNhap;
             var coDn = DangNhapCoHieuLuc(now);
-            var eff0 = MoTamOffline.ApDung(PolicyEvaluator.Evaluate(tt, now, _usedSeconds), moTam);
+            var effChinhSach = PolicyEvaluator.Evaluate(tt, now, _usedSeconds);
+            var eff0 = MoTamOffline.ApDung(effChinhSach, moTam);
             var eff = coDn ? DangNhapView.ApDung(eff0, dn, now) : eff0;
             if (moTam) s.MoOfflineDen = Config!.MoTamOffline.UnlockUntil;
             s.ChildName = string.IsNullOrEmpty(_policy.ChildName) ? (Config?.ChildName ?? "") : _policy.ChildName;
@@ -720,7 +721,9 @@ public sealed class AgentRuntime
             s.Mode = tt.Mode;
             s.Locked = eff.Locked;
             s.LockReason = eff.LockReason;
-            s.KhoaLuc = KhoaLuc(eff0.Locked && eff0.LockReason == LockReasons.Khoa, now);
+            // #307: mốc theo lệnh khoá của CHÍNH SÁCH (trước mở tạm bằng mã — mở tạm không xoá mốc); chỉ gửi khi màn đang là «Ba Mẹ khoá» (cùng nguồn LockReason)
+            var khoaLuc = KhoaLuc(effChinhSach.Locked && effChinhSach.LockReason == LockReasons.Khoa, now);
+            s.KhoaLuc = s.Locked && s.LockReason == LockReasons.Khoa ? khoaLuc : null;
             s.MinutesLeft = eff.MinutesLeft;
             s.GrantEndsAt = eff.GrantEndsAt;
             s.CanExchangePoints = _policy.CanExchangePoints;
@@ -760,9 +763,11 @@ public sealed class AgentRuntime
             s.DangChoiTinhPhut = !s.MoHet && !moTam && fgTuoi && !string.IsNullOrEmpty(_fgId) && LaTinhPhut(_fgId!) && _fgId != UsageTracker.KhongRo;
             s.AppDangChoi = s.DangChoiTinhPhut ? TrayView.FriendlyAppName(_fgId, _fgName, TenAppMay) : null;
             s.DungTheoApp = Usage.DungHomNay(now, con: s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng ? s.BeId : null);
-            if (TenAppMay is { Count: > 0 } tenMay)
-                foreach (var muc in s.AppDuocPhep.Concat(s.AppTinhPhut).Append(s.BlockedAppId).Append(_fgId).Concat(s.DungTheoApp.Select(x => x.AppId)))
-                    if (TrayView.TenTheoDanhSach(muc, tenMay) is { } ten) s.TenApp[muc!.Trim()] = ten;   // có / không «.exe» đều khớp
+            // #307: dịch vụ giải tên hiển thị (danh sách app máy) — khay hiện đúng tên này, không tra bảng
+            var tenMay = TenAppMay;
+            s.TenAppDuocPhep = s.AppDuocPhep.Select(m => TrayView.FriendlyAppName(m, null, tenMay)).ToList();
+            s.TenAppTinhPhut = s.AppTinhPhut.Select(m => TrayView.FriendlyAppName(m, null, tenMay)).ToList();
+            if (!string.IsNullOrEmpty(s.BlockedAppId)) s.BlockedAppName = TrayView.FriendlyAppName(s.BlockedAppId, s.BlockedAppName, tenMay);
             if (eff.Locked && _lockStartedAt.HasValue)
                 s.LockGraceLeftSec = (int)Math.Max(0, Math.Ceiling(_lockGraceSec - (now - _lockStartedAt.Value).TotalSeconds));
             // Giám sát (hoặc mồ côi): KHÔNG hiện màn khoá toàn màn hình — chỉ ghi lại ở dịch vụ.

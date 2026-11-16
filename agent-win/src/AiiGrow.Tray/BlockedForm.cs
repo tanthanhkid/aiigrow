@@ -22,6 +22,15 @@ internal sealed class BlockedForm : Form
     private readonly IReadOnlyList<string> _appDuocPhep;
     private readonly IReadOnlyList<string> _appTinhPhut;
     private readonly double? _phutCon;
+    private readonly IReadOnlyList<string>? _tenDuocPhep, _tenTinhPhut;   // #307: tên dịch vụ đã giải, cùng thứ tự với mục
+
+    private static string TenChip(IReadOnlyList<string> muc, IReadOnlyList<string>? ten, string m)
+    {
+        var i = IndexOf(muc, m);
+        return ten != null && ten.Count == muc.Count && i >= 0 ? ten[i] : TrayView.FriendlyAppName(m, null);
+    }
+
+    private static int IndexOf(IReadOnlyList<string> ds, string m) { for (int i = 0; i < ds.Count; i++) if (ds[i] == m) return i; return -1; }
     private readonly (string Tieu, string Phu, string Dong)? _gioiHan;   // #302: khoá vì giới hạn (còn sao) thay «Hết sao rồi»
     private RequestStatus? _kq;
     private readonly bool _tuGui;
@@ -52,8 +61,11 @@ internal sealed class BlockedForm : Form
     /// <param name="daXin">Lời xin cho app này đã gửi trong phiên khay ⇒ không tự gửi lại.</param>
     /// <param name="appTinhPhut">Mục «Tính phút» (tô vàng trong danh sách của con); <paramref name="appDuocPhep"/> = «Không tính phút» (tô xanh).</param>
     public BlockedForm(string? appId, string? appName, bool boiBaMe, bool offline, IReadOnlyList<string>? appDuocPhep = null, bool web = false, bool daXin = false,
-        IReadOnlyList<string>? appTinhPhut = null, double? phutCon = null, bool hetSao = false, (string Tieu, string Phu, string Dong)? gioiHan = null)
+        IReadOnlyList<string>? appTinhPhut = null, double? phutCon = null, bool hetSao = false, (string Tieu, string Phu, string Dong)? gioiHan = null,
+        IReadOnlyList<string>? tenDuocPhep = null, IReadOnlyList<string>? tenTinhPhut = null)
     {
+        _tenDuocPhep = tenDuocPhep;
+        _tenTinhPhut = tenTinhPhut;
         _gioiHan = gioiHan;
         _appTinhPhut = appTinhPhut ?? Array.Empty<string>();
         _phutCon = phutCon;
@@ -146,8 +158,8 @@ internal sealed class BlockedForm : Form
                 {
                     var dd = UI.Text(ManChanView.ChuThichDs, 9.75f, true, Clay.Chu2, _w);
                     _flow.Controls.Add(dd);
-                    _flow.Controls.Add(KhoiCon.Chips(_w, _appDuocPhep.Take(6).Select(a => (Control)new ChipClay(TrayView.FriendlyAppName(a, null), Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon("sach")))
-                        .Concat(_appTinhPhut.Where(a => !_appDuocPhep.Contains(a)).Take(6).Select(a => (Control)new ChipClay(TrayView.FriendlyAppName(a, null), Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon(LaTrangWeb(a) ? "web" : "game"))))
+                    _flow.Controls.Add(KhoiCon.Chips(_w, _appDuocPhep.Take(6).Select(a => (Control)new ChipClay(TenChip(_appDuocPhep, _tenDuocPhep, a), Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon("sach")))
+                        .Concat(_appTinhPhut.Where(a => !_appDuocPhep.Contains(a)).Take(6).Select(a => (Control)new ChipClay(TenChip(_appTinhPhut, _tenTinhPhut, a), Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon(LaTrangWeb(a) ? "web" : "game"))))
                         .ToArray()));
                 }
                 if (ManChanView.CoNutXin(_appId))

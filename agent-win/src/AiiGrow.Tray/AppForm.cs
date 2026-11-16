@@ -580,8 +580,8 @@ internal sealed class AppForm : Form
         var matMang = _kn.Loai == KetNoi.MatKetNoi;
         if (phut is <= 0)
         {
-            the.Controls.Add(T(SaoView.HetSaoKhoa(_s.AppTinhPhut), 12f, true, Clay.Chu2, r));
-            the.Controls.Add(T(SaoView.VanMo(_s.AppDuocPhep), 11f, false, UI.Muted, r));
+            the.Controls.Add(T(SaoView.HetSaoKhoa(TrayView.TenTinh(_s)), 12f, true, Clay.Chu2, r));
+            the.Controls.Add(T(SaoView.VanMo(TrayView.TenKhongTinh(_s)), 11f, false, UI.Muted, r));
             return the;
         }
         var daChoi = SaoView.PhutTinh(_s.DungTheoApp, _s.AppTinhPhut, _s.PhutBoiMaHomNay);

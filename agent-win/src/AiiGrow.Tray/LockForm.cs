@@ -133,7 +133,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         // 06/11 (L13): chưa ai đăng nhập ⇒ «Ai đang dùng máy?» (chọn tên + PIN / Ba Mẹ nhập mã) — LockForm.ChonTen.cs
         if (ApChonTen(s)) return;
         var m = ManKhoaView.For(s.LockReason, s.ChildName, s.Offline && MoTamOffline.MoDuocKhoa(s.LockReason), ManKhoaView.KhoaLucCau(s.KhoaLuc));
-        var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma + n.Chu)), s.ChildName);
+        var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma + n.Chu + (n.Chinh ? "*" : ""))), s.ChildName);
         if (khoa != _khoa && !DangNhapMaTuManKhoa)
         {
             _khoa = khoa;
@@ -154,7 +154,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
     public void ApHetSao(ManKhoa m, string tenCon, int? giayCon, DateTimeOffset? matMangTu, bool dangDung = false)
     {
         _matMangTu = matMangTu;
-        var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma + n.Chu)), tenCon, dangDung);
+        var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma + n.Chu + (n.Chinh ? "*" : ""))), tenCon, dangDung);
         if (khoa != _khoa && !DangNhapMaTuManKhoa)
         {
             _khoa = khoa;

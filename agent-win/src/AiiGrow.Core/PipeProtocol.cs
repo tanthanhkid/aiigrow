@@ -137,9 +137,10 @@ public sealed class TrayState
     public DateTimeOffset? BaMeDen { get; set; }
     /// <summary>Máy chỉ gán một bé (không có «Đổi người»).</summary>
     public bool MayRieng { get; set; }
-    /// <summary>16/11 (#307): tên hiển thị của app theo danh sách app máy gửi máy chủ (mục .exe / gói Store chữ thường → «Từ điển», «YouTube Kids») —
-    /// chỉ các mục khay cần hiện (danh sách của con, app vừa bị chặn, app đang chơi). Khay KHÔNG hiện tên tiến trình (Tudien, Youtubekids).</summary>
-    public Dictionary<string, string> TenApp { get; set; } = new();
+    /// <summary>16/11 (#307): tên hiển thị (dịch vụ đã giải theo danh sách app máy) của <see cref="AppDuocPhep"/> / <see cref="AppTinhPhut"/>, cùng thứ tự —
+    /// khay hiện đúng tên này («Từ điển», «YouTube Kids»), không tự tra tên, không hiện tên tiến trình. Rỗng = dịch vụ cũ (khay dùng mục).</summary>
+    public List<string> TenAppDuocPhep { get; set; } = new();
+    public List<string> TenAppTinhPhut { get; set; } = new();
 }
 
 public sealed class PipeRequest
