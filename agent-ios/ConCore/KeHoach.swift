@@ -76,6 +76,10 @@ public struct KeHoach: Codable, Equatable {
   public var boiMaLucDongBo: Int? = nil
   /// Phút tính sao đã chơi hôm nay TẠI MÁY mà máy chủ chưa trừ lúc đồng bộ (= phút tại máy − `quy.daDung` máy chủ báo) — trừ thêm khỏi `sao.phutCon`.
   public var phutChuaXacNhan: Int? = nil
+  /// 16/11 (#302): giới hạn giờ chơi lúc đồng bộ — giữ lại để app/khiên hiện đúng chữ khi offline. Kế hoạch cũ: nil.
+  public var gioiHan: ChinhSach.GioiHan? = nil
+  /// Khoá vì giới hạn (đang nghỉ / hết giờ hôm nay) — chỉ để chọn chữ, khoá thật đã nằm trong `sao.phutCon`.
+  public var gioiHanKhoa: ChinhSach.GioiHan? { moHet ? nil : gioiHan.flatMap { $0.dangKhoa ? $0 : nil } }
 
   /// «Mở hết»: không chặn, không đếm phút, không trừ sao.
   public var moHet: Bool { cheDo == "mo_het" }
@@ -239,6 +243,7 @@ public enum LapKeHoach {
            phut10Sao: cs.quy?.tyLe.map { max(1, $0.phut * 10 / max(1, $0.sao)) }, quyNgay: cs.quy?.ngayPhut)
     kh.cheDo = cs.ungDung.cheDo
     kh.webKhongTinhPhut = webHoc; kh.webTinhPhut = webTinhPhut
+    kh.gioiHan = cs.gioiHan
     if let s = cs.sao {
       // sổ sao: phút còn = trần − phút đo tại chỗ (không dùng phút máy chủ cộng, không quỹ ngày)
       kh.sao = s; kh.daDungMayChu = nil; kh.quyNgayPhut = nil; kh.phut10Sao = nil

@@ -75,7 +75,8 @@ struct ManHomNay: View {
       }
       ChipSao(so: m.soSao)
       VongGio(con: m.conPhut, tong: max(1, m.conPhut + m.daDung), nhan: "sao")
-      Text("\(m.conPhut) sao = \(m.conPhut) phút chơi").font(Diu.t1).foregroundColor(Diu.chu)
+      Text("\(m.saoHienThi) sao = \(m.saoHienThi) phút chơi").font(Diu.t1).foregroundColor(Diu.chu)
+      if let c = m.conHomNay { Text("Còn \(c) phút hôm nay").font(Diu.t2).foregroundColor(Diu.chu2) }
       if m.daDung > 0 {
         HStack(spacing: 6) { Anh(ten: "ic_dongho", co: 20); Text("Hôm nay đã chơi \(m.daDung) phút · −\(m.daDung) sao").font(Diu.t2).foregroundColor(Diu.chu2) }
       }
@@ -145,6 +146,16 @@ struct TheKhoa: View {
   var body: some View {
     VStack(spacing: 14) {
       switch lyDo {
+      case .hetGio where m.khoaGioiHan != nil:
+        // 16/11 (#302): khoá vì giới hạn giờ chơi — «Nghỉ một chút» (nghỉ giữa lượt) / «Hôm nay chơi đủ rồi»; không nói «Hết sao»
+        let g = m.khoaGioiHan!
+        Anh(ten: g.dangNghiThat ? "rob_nghi" : "rob_ngu", co: 120)
+        Text(g.tieuDe() ?? "Nghỉ một chút").font(Diu.tieuDe).foregroundColor(Diu.chu)
+        Text(g.cauPhu(tz: m.keHoach?.tz) ?? "").font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
+        HStack { Text("Con có").font(Diu.t1).foregroundColor(Diu.chu); Spacer(); ChipSao(so: m.soSao) }.theDiu(dem: 12)
+        HangDs(icon: "ic_sach", t1: "App «Không tính phút» vẫn mở", t2: "Sao của con vẫn giữ nguyên").theDiu(dem: 12)
+        Button { m.manPhu = .xinThem } label: { Label { Text(m.matMang ? "Xin Ba Mẹ · gửi khi có mạng" : "Xin Ba Mẹ") } icon: { Anh(ten: "ic_gui", co: 26) } }
+          .buttonStyle(NutDiu(kieu: .phu))
       case .hetGio:
         // cdt-het-phien (15/11): hết sao = hết phút «Tính phút»
         Anh(ten: "rob_nghi", co: 120)
@@ -246,7 +257,7 @@ struct ManSaoQua: View {
       VStack(spacing: 10) {
         Anh(ten: "ic_sao", co: 56)
         Text("Con đang có \(Diu.soSao(m.soSao))").font(Diu.chu(22, .black)).foregroundColor(m.soSao < 0 ? Diu.noChu : Diu.chu)
-        if m.soNo > 0 { DongNo(no: m.soNo) } else if !m.moHet { Text("\(m.conPhut) sao = \(m.conPhut) phút chơi").font(Diu.t2).foregroundColor(Diu.chu2) }
+        if m.soNo > 0 { DongNo(no: m.soNo) } else if !m.moHet { Text("\(m.saoHienThi) sao = \(m.saoHienThi) phút chơi").font(Diu.t2).foregroundColor(Diu.chu2) }
         if giu > 0 { Text("Đang giữ \(giu) sao cho quà chờ trao").font(Diu.t2).foregroundColor(Diu.chu2) }
         // cdt-vi-qua (15/11): bỏ «Đổi sao lấy phút» — sao chính là phút
         Button { m.tab = .nhiemVu } label: { Label { Text(m.soNo > 0 ? "Làm nhiệm vụ trả nợ" : "Làm nhiệm vụ kiếm sao") } icon: { Anh(ten: "ic_tick", co: 26) } }.buttonStyle(NutDiu())

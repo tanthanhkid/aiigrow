@@ -87,12 +87,68 @@ public struct ChinhSach: Codable {
     public var hetSao: Bool?
     public var canhBaoNo: Bool?
     public var cau: Cau?
+    /// 16/11 (#302): sao THẬT tiêu được (`phutCon` đã kẹp theo giới hạn ngày/lượt nên có thể nhỏ hơn). Máy chủ cũ: nil ⇒ dùng `phutCon`.
+    public var saoTieuDuoc: Int?
     /// chỉ `GET hoc-vien/sao`
     public var mucVay: [Int]?
     public var vayMacDinh: Int?
     public init(sao: Int, no: Int? = nil, phutCon: Int, hetSao: Bool? = nil) { self.sao = sao; self.no = no; self.phutCon = phutCon; self.hetSao = hetSao }
     public var soNo: Int { max(0, no ?? 0) }
     public var het: Bool { hetSao ?? (phutCon <= 0) }
+    /// Số sao thật Con có thể tiêu (hiện «X sao»).
+    public var saoThat: Int { saoTieuDuoc ?? phutCon }
+  }
+  /// 16/11 (#302, server/lib/gioi-han-choi.ts): giới hạn giờ chơi — tối đa mỗi ngày + mỗi lượt N phút rồi nghỉ đúng N phút. Máy chủ cũ: không gửi ⇒ nil ⇒ chạy như trước.
+  /// GIỚI HẠN iOS: DeviceActivity không hẹn được mốc mở khoá chính xác lúc hết nghỉ khi app bị treo — khiên chỉ gỡ ở lần đồng bộ / ngưỡng DeviceActivity kế tiếp
+  /// (máy chủ ép `nextCheckSec` ≤ hết nghỉ nên app đồng bộ sớm nhất có thể). Chữ «chơi tiếp lúc HH:MM» là giờ dự kiến.
+  /// Khoá thật đã nằm trong `sao.phutCon` / `sao.hetSao` (kẹp sẵn); khối này chỉ để hiện đúng chữ + biết giờ chơi tiếp.
+  public struct GioiHan: Codable, Equatable {
+    public var apDung: Bool
+    public var ngayPhut: Int?
+    public var daChoi: Int?
+    public var conNgay: Int?
+    public var luotPhut: Int?
+    public var luotDaChoi: Int?
+    public var conLuot: Int?
+    public var dangNghi: Bool?
+    public var nghiDen: String?
+    public var nghiDenGio: String?
+    public var hetNgay: Bool?
+    /// het_gio_ngay | dang_nghi | nil
+    public var lyDoKhoa: String?
+    public var phutToiDa: Int?
+    public var cau: String?
+    public init(apDung: Bool = true, ngayPhut: Int? = nil, daChoi: Int? = nil, conNgay: Int? = nil, lyDoKhoa: String? = nil, nghiDen: String? = nil,
+                nghiDenGio: String? = nil, phutToiDa: Int? = nil, cau: String? = nil) {
+      self.apDung = apDung; self.ngayPhut = ngayPhut; self.daChoi = daChoi; self.conNgay = conNgay; self.lyDoKhoa = lyDoKhoa
+      self.nghiDen = nghiDen; self.nghiDenGio = nghiDenGio; self.phutToiDa = phutToiDa; self.cau = cau
+    }
+    public var dangNghiThat: Bool { apDung && lyDoKhoa == "dang_nghi" }
+    public var hetGioNgay: Bool { apDung && lyDoKhoa == "het_gio_ngay" }
+    /// Đang khoá vì giới hạn (không phải vì hết sao).
+    public var dangKhoa: Bool { dangNghiThat || hetGioNgay }
+    /// «HH:MM» chơi tiếp (giờ gia đình do máy chủ tính; thiếu thì đọc từ `nghiDen` theo múi giờ `tz`).
+    public func gioChoiTiep(tz: String? = nil) -> String? {
+      if let g = nghiDenGio, !g.isEmpty { return g }
+      guard let d = NgayISO.doc(nghiDen) else { return nil }
+      var c = Calendar(identifier: .gregorian)
+      c.timeZone = tz.flatMap { TimeZone(identifier: $0) } ?? .current
+      let h = c.dateComponents([.hour, .minute], from: d)
+      return String(format: "%02d:%02d", h.hour ?? 0, h.minute ?? 0)
+    }
+    /// Tiêu đề màn khoá; nil khi không khoá vì giới hạn.
+    public func tieuDe() -> String? { dangNghiThat ? "Nghỉ một chút" : (hetGioNgay ? "Hôm nay chơi đủ rồi" : nil) }
+    /// Dòng phụ màn khoá / khiên: «Nghỉ một chút · chơi tiếp lúc HH:MM» hoặc `cau` của máy chủ.
+    public func cauPhu(tz: String? = nil) -> String? {
+      if dangNghiThat {
+        if let g = gioChoiTiep(tz: tz) { return "Nghỉ một chút · chơi tiếp lúc \(g)" }
+        return cau ?? "Nghỉ một chút rồi chơi tiếp nhé"
+      }
+      if hetGioNgay { return (cau?.isEmpty == false ? cau : nil) ?? "Hôm nay chơi đủ rồi — mai chơi tiếp nhé" }
+      return nil
+    }
+    /// «Còn X phút hôm nay» khi có trần ngày và chưa khoá.
+    public var conHomNay: Int? { apDung && !dangKhoa ? conNgay.map { max(0, $0) } : nil }
   }
   /// 05/11: quỹ phút chơi hôm nay (server/lib/quy-gio.ts) — mọi app Giải trí dùng chung; `daDung` = phút đã dùng (mọi máy).
   public struct Quy: Codable, Equatable {
@@ -138,6 +194,8 @@ public struct ChinhSach: Codable {
   public var ngoaiLeMo: [NgoaiLeMo]?
   /// 15/11: sổ sao — nil = máy chủ cũ, hoặc máy chung chưa chọn bé.
   public var sao: SaoCon? = nil
+  /// 16/11 (#302): giới hạn ngày + mỗi lượt. Máy chủ cũ / máy chung chưa chọn bé: nil.
+  public var gioiHan: GioiHan? = nil
 }
 
 public struct MucNenTang: Codable {
