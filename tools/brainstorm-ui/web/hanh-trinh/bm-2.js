@@ -157,7 +157,7 @@ export default [
   { id: 'bm-may-con', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Máy của con', mo: 'Danh sách máy, chi tiết từng máy (tuân thủ / lệch chuẩn), đổi tên, gỡ máy, hướng dẫn sửa.',
     buoc: [
       { key: 'bm2-may-ds', ten: 'Máy của con', w: 390, h: 844, html: BM_MAY, anh: A + 'sau-bm-may-ds.png', toi: 'Chạm Laptop của Bảo Anh' },
-      { key: 'bm2-may-m1', ten: 'Chi tiết máy (tuân thủ)', w: 390, h: 844, html: MAY_M1, anh: A + 'sau-bm-may-m1.png', toi: 'Quay lại, chạm iPad' },
+      { key: 'bm2-may-m1', ten: 'Máy cả nhà', w: 390, h: 844, html: MAY_M1, anh: A + 'sau-bm-may-m1.png', toi: 'Quay lại, chạm iPad' },
       { key: 'bm2-may-m2', ten: 'Chi tiết máy (lệch chuẩn)', w: 390, h: 844, html: MAY_M2, anh: A + 'sau-bm-may-m2.png', toi: 'Về Trang chủ, mở Giờ dùng máy' },
     ] },
   { id: 'bm-gio-ho-so', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Giờ & hồ sơ con', mo: 'Giờ dùng máy, giờ ngủ, giờ học, hồ sơ con, PIN, app & web của con.',

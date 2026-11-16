@@ -213,7 +213,7 @@ export default [
       { key: 'cdt-chinh-ios', ten: 'Màn chính iPhone', w: 390, h: 844, html: chinhIos, anh: A + 'ios-iphone-chinh.png' }] },
   { id: 'con-dt-ngay', vai: 'Con', nen: 'Điện thoại', ten: 'Ngày thường (điện thoại)', mo: 'Con làm nhiệm vụ, chụp ảnh nộp, nhận điểm khi Ba Mẹ duyệt rồi đổi quà ở cửa hàng và xem huy hiệu.',
     buoc: [
-      { key: 'cdt-nha', ten: 'Nhà — nhận điểm', w: 390, h: 844, html: nha, anh: A + 'nha.png', toi: 'Cảm ơn Ba Mẹ, về màn Nhà' },
+      { key: 'cdt-nha', ten: 'Nhà — nhận sao', w: 390, h: 844, html: nha, anh: A + 'nha.png', toi: 'Cảm ơn Ba Mẹ, về màn Nhà' },
       { key: 'cdt-nha-chinh', ten: 'Nhà', w: 390, h: 844, html: nhaHome, anh: '../aiigrow-thiet-ke/man-dienthoai-2510/expo-con-trang.jpg'.replace('../aiigrow-thiet-ke/', ''), toi: 'Bấm «Làm gì để có điểm?»' },
       { key: 'cdt-nhiem-vu', ten: 'Nhiệm vụ', w: 390, h: 844, html: nhiemVu, anh: A + 'nhiem-vu.png', toi: 'Chọn một nhiệm vụ' },
       { key: 'cdt-nv-chi-tiet', ten: 'Chi tiết nhiệm vụ', w: 390, h: 844, html: nvCT, anh: A + 'nv-chi-tiet.png', toi: 'Bấm «Bắt đầu»' },
@@ -239,11 +239,11 @@ export default [
     buoc: [
       { key: 'cdt-xin-phep', ten: 'Xin phép', w: 390, h: 844, html: xinPhep, anh: A + 'xin-phep.png', toi: 'Bấm «Gửi cho Ba Mẹ»' },
       { key: 'cdt-yeu-cau', ten: 'Yêu cầu của con', w: 390, h: 844, html: yeuCau, anh: A + 'yeu-cau.png', toi: 'iPhone: xin thêm giờ' },
-      { key: 'cdt-ios-xin-them', ten: 'iPhone: xin thêm giờ', w: 390, h: 844, html: xinThemIos, anh: A + 'ios-iphone-xinThem.png', toi: 'Hoặc đổi điểm lấy giờ chơi' },
+      { key: 'cdt-ios-xin-them', ten: 'iPhone: xin vay sao', w: 390, h: 844, html: xinThemIos, anh: A + 'ios-iphone-xinThem.png', toi: 'Hoặc đổi điểm lấy giờ chơi' },
       { key: 'cdt-ios-choi-diem', ten: 'iPhone: chơi bằng điểm', w: 390, h: 844, html: choiDiem, anh: 'man-dienthoai-2510/ios-con-choiDiem.jpg' }] },
-  { id: 'con-dt-chan', vai: 'Con', nen: 'Điện thoại', ten: 'Bị chặn & mất mạng', mo: 'Con gặp trang web bị chặn, máy khoá khi mất mạng, nhập mã của Ba Mẹ để mở 60 phút, và lọc web DNS trên iPhone.',
+  { id: 'con-dt-chan', vai: 'Con', nen: 'Điện thoại', ten: 'Ngoài danh sách & mất mạng', mo: 'Con gặp trang web bị chặn, máy khoá khi mất mạng, nhập mã của Ba Mẹ để mở 60 phút, và lọc web DNS trên iPhone.',
     buoc: [
-      { key: 'cdt-chan-web', ten: 'Trang web bị chặn', w: 390, h: 844, html: chanWeb, anh: A + 'chan-web.png', toi: 'Mở trong app (Android)' },
+      { key: 'cdt-chan-web', ten: 'Trang chưa có trong danh sách', w: 390, h: 844, html: chanWeb, anh: A + 'chan-web.png', toi: 'Mở trong app (Android)' },
       khop({ key: 'cdt-webview', ten: 'Không tải được', w: 390, h: 844, html: webview, anh: 'man-android-2510/man-tre-webview.jpg', toi: 'Máy khoá, mất mạng' }, 'android-tre-webview'),
       khop({ key: 'cdt-ma-offline', ten: 'Khoá — nhập mã offline', w: 390, h: 844, html: maOff(true, false), anh: 'man-android-2510/man-khoa-ma-offline.jpg', toi: 'Gõ mã 6 số của Ba Mẹ' }, 'android-khoa-ma-offline'),
       khop({ key: 'cdt-ma-da-mo', ten: 'Đã mở bằng mã', w: 390, h: 844, html: maOff(false, true), anh: 'man-android-2510/man-khoa-ma-da-mo.jpg', toi: 'iPhone: mở bằng mã' }, 'android-khoa-ma-da-mo'),
@@ -251,7 +251,7 @@ export default [
       { key: 'cdt-ios-dns', ten: 'iPhone: lọc web DNS', w: 390, h: 844, html: dns, anh: 'man-dienthoai-2510/ios-con-dns.jpg' }] },
   { id: 'con-dt-android', vai: 'Con', nen: 'Android', ten: 'Màn chính Android', mo: 'App Con trên Android (agent-android): việc của con hôm nay và đổi điểm lấy giờ chơi.',
     buoc: [khop({ key: 'cdt-android-viec', ten: 'Việc của con', w: 360, h: 800, html: '', toi: 'Đổi điểm lấy giờ chơi' }, 'android-chinh-viec-cua-con'),
-      khop({ key: 'cdt-android-doi-diem', ten: 'Đổi điểm', w: 360, h: 800, html: '' }, 'android-chinh-doi-diem')] },
+      khop({ key: 'cdt-android-doi-diem', ten: 'Sao của con · hết sao', w: 360, h: 800, html: '' }, 'android-chinh-doi-diem')] },
 
   { id: 'con-dt-khac', vai: 'Con', nen: 'Điện thoại', ten: 'Quy tắc & PIN', mo: 'Con xem quy tắc nhà mình và ghép máy, chọn tên rồi nhập PIN khi dùng chung một điện thoại.',
     buoc: [

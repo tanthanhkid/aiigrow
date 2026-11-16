@@ -38,7 +38,7 @@ export default [
       S('hom-nay', 'Hôm nay', 'Chọn «Nhiệm vụ»'),
       S('nhiem-vu-loi-tai', 'Nhiệm vụ: chưa tải được', 'Bấm «Thử lại»'),
       S('nhiem-vu', 'Nhiệm vụ', 'Bấm «Nộp bài»'),
-      S('phan-qua', 'Phần quà & điểm', 'Bấm «Đổi quà», rồi xem Ví quà'),
+      S('phan-qua', 'Sao & quà', 'Bấm «Đổi quà», rồi xem Ví quà'),
       S('vi-qua', 'Ví quà & huy hiệu', 'Sang «Tin nhắn»'),
       S('tin-nhan', 'Tin nhắn', 'Có tin mới thì hiện thông báo ở góc màn hình (Mac)'),
     ] },
@@ -50,11 +50,11 @@ export default [
       S('khoa-ba-me-khoa', 'Ba Mẹ khoá máy'),
     ] },
 
-  { id: 'con-xin', chiThem: true, vai: 'Con', nen: 'Windows', ten: 'Xin thêm giờ · xin mở · chơi bằng điểm', mo: 'Con xin Ba Mẹ thêm giờ, xin mở trang hoặc app, hoặc tự đổi điểm lấy giờ chơi.',
+  { id: 'con-xin', chiThem: true, vai: 'Con', nen: 'Windows', ten: 'Xin vay sao · xin mở app', mo: 'Con xin Ba Mẹ thêm giờ, xin mở trang hoặc app, hoặc tự đổi điểm lấy giờ chơi.',
     buoc: [
     ] },
 
-  { id: 'con-bi-chan', chiThem: true, vai: 'Con', nen: 'Windows', ten: 'Bị chặn app/web', mo: 'Con mở app chưa được Ba Mẹ phân loại thì bị chặn; Con dùng điểm, xin phép hoặc xin thêm giờ.',
+  { id: 'con-bi-chan', chiThem: true, vai: 'Con', nen: 'Windows', ten: 'App & web ngoài danh sách', mo: 'Con mở app chưa được Ba Mẹ phân loại thì bị chặn; Con dùng điểm, xin phép hoặc xin thêm giờ.',
     buoc: [
     ] },
 
