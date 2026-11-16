@@ -44,6 +44,8 @@ public struct KhienMuonCo: Codable, Equatable {
   public var dangMoHet: Bool? = nil
   /// 15/11: «Theo danh sách» — khiên theo danh sách trắng (app / web ngoài danh sách không mở). nil/false = luật cũ (chỉ khiên app Giải trí).
   public var danhSach: Bool? = nil
+  /// #262: web được mở khi «Theo danh sách» (mọi web khác bị chặn); hết sao ⇒ chỉ nhóm «Không tính phút». nil = không theo danh sách.
+  public var webDuocMo: [String]? = nil
 }
 
 /// Phút giải trí đã dùng trong ngày (ghi bởi DeviceActivityMonitor khi chạm mốc «dung.N» / «tran»).
@@ -129,7 +131,12 @@ public enum TinhKhien {
     var k = lucNay0(kh, now: now, dung: dung, moOfflineDen: moOfflineDen, phien: phien, dungSai: dungSai)
     // danh sách trắng chỉ áp khi máy KHÔNG ở trạng thái mở hoàn toàn (mở bằng mã, Ba Mẹ đang dùng, mở tạm / thêm giờ, ngoại lệ, phiên điểm, Mở hết)
     let moHoanToan = k.dangMoHet == true || k.dangMoOffline == true || k.dangBaMe == true || k.dangThemGio || k.dangNgoaiLe == true || k.dangChoiDiem == true
-    if kh.theoDanhSach && !moHoanToan { k.danhSach = true }
+    if kh.theoDanhSach && !moHoanToan {
+      k.danhSach = true
+      let hoc = kh.webKhongTinhPhut ?? [], tinhPhut = kh.webTinhPhut ?? []
+      k.webDuocMo = k.muc == .khong ? hoc + tinhPhut : hoc     // đang đóng nhóm «Tính phút» (hết sao…) ⇒ chỉ web «Không tính phút»
+      k.webChan = []      // web theo danh sách trắng, không còn danh sách đen
+    }
     return k
   }
 

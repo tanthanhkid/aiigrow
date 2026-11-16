@@ -44,7 +44,6 @@ import vn.aiilab.aiigrow.maycon.logic.quyetDinh
 import vn.aiilab.aiigrow.maycon.logic.thanGhepToken
 import vn.aiilab.aiigrow.maycon.logic.thanNhip
 import vn.aiilab.aiigrow.maycon.logic.truGoi
-import vn.aiilab.aiigrow.maycon.logic.webChan
 import vn.aiilab.aiigrow.maycon.logic.SoPhutBe
 import vn.aiilab.aiigrow.maycon.logic.beGhiPhut
 import vn.aiilab.aiigrow.maycon.logic.boViecCho
@@ -216,7 +215,7 @@ class DichVuNhip : Service() {
         val khoaThat = laKhoa(qd.trangThai) && demNguoc == 0
         // trong lúc đếm ngược: app giải trí còn chạy; app bị chặn / chưa xếp vẫn chặn ngay
         val goiChan = if (laKhoa(qd.trangThai) && !khoaThat) truGoi(qd.goiChan, goiAndroid(cs.giaiTri)) else qd.goiChan
-        ThucThi.apDung(this, qd, goiChan, khoaThat, webChan(cs))
+        ThucThi.apDung(this, qd, goiChan, khoaThat, vn.aiilab.aiigrow.maycon.logic.luatWeb(cs, listOfNotNull(vn.aiilab.aiigrow.maycon.logic.tenMienMayChu(k.mayChu))))
         if (ph.privateDns != null && QuanTri.laDeviceOwner(this)) Log.i(TAG, "DNS: " + ThucThi.datPrivateDns(this, ph.privateDns))   // mỗi vòng ⇒ chỉ logcat
 
         val top = dung.entries.sortedByDescending { it.value }.map { it.key to (it.value / 60_000).toInt() }.filter { it.second > 0 }.take(5)
@@ -418,18 +417,33 @@ class DichVuNhip : Service() {
             } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Không kết nối được máy chủ AiiGrow. Kiểm tra mạng rồi thử lại." }
         }
 
-        /** «Xin Ba Mẹ duyệt» app đang bị chặn vì chưa được cho phép (luồng nền). Trả câu báo cho Con. */
-        fun xinDuyet(ctx: Context, goi: String, ten: String?): String {
+        /** Kết quả gửi lời xin app / web: `id` (null = chưa gửi được) + câu báo cho Con. */
+        class KetXinApp(val id: String?, val cau: String)
+
+        /** «Xin Ba Mẹ mở <app>» — app ngoài danh sách (luồng nền). `lyDo` = lời Con nhắn Ba Mẹ (không bắt buộc, như /tre/xin-phep). */
+        fun xinDuyet(ctx: Context, goi: String, ten: String?, lyDo: String = ""): KetXinApp {
             val k = Kho(ctx)
-            if (k.cheDoThu) return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé."
+            if (k.cheDoThu) return KetXinApp(null, "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé.")
             return try {
                 val than = JSONObject().put("muc", goi); ten?.takeIf { it.isNotBlank() && it != goi }?.let { than.put("ten", it) }
-                MayChu(k.mayChu, k.token).xinDuyet(than)
-                "Đã gửi Ba Mẹ. Ba Mẹ đồng ý là con mở được ngay."
-            } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Chưa gửi được — máy đang mất mạng." }
+                lyDo.trim().take(100).takeIf { it.isNotEmpty() }?.let { than.put("lyDo", it) }
+                val r = MayChu(k.mayChu, k.token).xinDuyet(than)
+                KetXinApp(r.optString("id").ifBlank { null }, "Đã gửi Ba Mẹ. Chờ Ba Mẹ trả lời nhé.")
+            } catch (e: MayChu.Loi) { KetXinApp(null, e.cau) } catch (e: Exception) { KetXinApp(null, "Chưa gửi được — máy đang mất mạng.") }
         }
 
-        /** Khoá ghi sổ phút theo bé (vòng nhịp và «Đổi bé» trên luồng giao diện). */
+        /** Hỏi kết quả lời xin app / web `id` (luồng nền); null = chưa hỏi được (mất mạng, lỗi). Được thêm ⇒ áp luật mới ngay. */
+        fun hoiKetQuaXinApp(ctx: Context, id: String): vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp? {
+            val k = Kho(ctx)
+            if (k.cheDoThu || k.token == null) return null
+            return try {
+                val kq = vn.aiilab.aiigrow.maycon.logic.docKetQuaXinApp(MayChu(k.mayChu, k.token).yeuCau(id))
+                if (kq.loai == vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.DA_THEM) lamMoi(ctx)
+                kq
+            } catch (e: MayChu.Loi) { if (e.http == 404) vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp(vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.HET_HAN, null) else null } catch (_: Exception) { null }
+        }
+
+        /** Khoá ghi sổ phút theo bé (vòng nhịp và «Đổi người» trên luồng giao diện). */
         private val KHOA_SO = Any()
         /** Khoá gửi dong-bo (một lượt một lúc). */
         private val KHOA_GUI_SO = Any()
@@ -465,7 +479,7 @@ class DichVuNhip : Service() {
         }
 
         /**
-         * «Đổi bé» / «Đăng xuất» (#267): chốt phút của bé đang dùng NGAY (trước khi cổng đổi) rồi gửi `dong-bo` có `con` của bé đó — phút
+         * «Đổi người» / «Đăng xuất» (#267): chốt phút của bé đang dùng NGAY (trước khi cổng đổi) rồi gửi `dong-bo` có `con` của bé đó — phút
          * bé trước dừng tính, không đổ sang bé sau. Gọi trên luồng NỀN, TRƯỚC khi báo dang-xuat (tuần tự: dong-bo tới máy chủ khi bé đó
          * vẫn là người dùng máy ⇒ `phutBoiMa` áp đúng bé).
          */
@@ -505,7 +519,7 @@ class DichVuNhip : Service() {
         fun guiXinVayCho(ctx: Context, k: Kho) {
             val s = k.xinVayCho ?: return
             if (System.currentTimeMillis() - k.xinVayChoLuc > 24 * 3600_000L) { k.xinVayCho = null; return }
-            // lời xin của bé khác (đã Đổi bé) ⇒ huỷ, không gửi nhầm tên bé đang dùng
+            // lời xin của bé khác (đã Đổi người) ⇒ huỷ, không gửi nhầm tên bé đang dùng
             if ((PinMay.nguoiDung(k)?.conId ?: "") != (k.xinVayChoCon ?: "")) { k.xinVayCho = null; return }
             try {
                 val than = JSONObject(s)
@@ -513,18 +527,6 @@ class DichVuNhip : Service() {
                 k.xinVayCho = null
                 HocVien.ghiLoiXin(ctx, r.optString("id").ifBlank { null }, than.optInt("soSao"), false, vay = true)
             } catch (e: MayChu.Loi) { if (boViecCho(e.http)) k.xinVayCho = null } catch (_: Exception) {}
-        }
-
-        /** Xin thêm giờ / xin mở ngoại lệ (luồng nền, máy chủ cũ trước 15/11). Trả câu báo cho Con. */
-        fun xinThemGio(ctx: Context, than: JSONObject): String {
-            val k = Kho(ctx)
-            if (k.cheDoThu) { k.tepYeuCauThu.appendText(than.toString() + "\n"); return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé." }
-            return try {
-                val r = MayChu(k.mayChu, k.token).xinThemGio(than)
-                val tuDuyet = r.optString("status") == "tu_duyet"
-                HocVien.ghiLoiXin(ctx, r.optString("id").ifBlank { null }, than.optInt("phut"), tuDuyet)   // theo dõi yeu-cau/:id tới khi Ba Mẹ trả lời
-                if (tuDuyet) { lamMoi(ctx); "Ba Mẹ đã tự động đồng ý!" } else "Đã gửi Ba Mẹ. Chờ Ba Mẹ trả lời nhé."
-            } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Chưa gửi được — máy đang mất mạng." }
         }
     }
 }

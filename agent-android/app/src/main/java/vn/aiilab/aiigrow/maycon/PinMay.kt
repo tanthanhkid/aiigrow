@@ -28,7 +28,7 @@ import java.io.IOException
 
 /**
  * PIN theo bé trên máy Android (L13): chọn tên → PIN 4 số → `dang-nhap-be`; «Quên PIN», «Ba Mẹ nhập mã» (`ba-me-mo` hoặc tự kiểm mã offline),
- * «Đổi bé / Đăng xuất» (`dang-xuat`), «Khoá lại» (`khoa-lai`). MẤT MẠNG: kiểm PIN bằng `vanPin` nhớ từ `ho-so`, tự đếm 5 lần / 15 giây,
+ * «Đổi người / Đăng xuất» (`dang-xuat`), «Khoá lại» (`khoa-lai`). MẤT MẠNG: kiểm PIN bằng `vanPin` nhớ từ `ho-so`, tự đếm 5 lần / 15 giây,
  * việc tại máy gửi bù khi có mạng (ViecCho). Mọi hàm gọi mạng chạy trên luồng nền. Logic thuần: logic/PinBe.kt.
  */
 object PinMay {
@@ -191,7 +191,7 @@ object PinMay {
         return KetQuaVao.Vao
     }
 
-    /** «Đổi bé / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ): máy về màn chọn tên ngay, báo máy chủ (mất mạng ⇒ gửi bù). */
+    /** «Đổi người / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ): máy về màn chọn tên ngay, báo máy chủ (mất mạng ⇒ gửi bù). */
     fun roiMay(ctx: Context, @Suppress("UNUSED_PARAMETER") baMe: Boolean) {
         val k = Kho(ctx)
         // chạy nền hết: ghi Kho + gửi máy chủ. Việc chờ thành «roi» (thay «vao» đang chờ) rồi gửi ngay; mất mạng / 5xx ⇒ nhịp sau gửi lại.

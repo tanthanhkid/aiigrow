@@ -7,7 +7,10 @@ lưu phần `ios` của nhịp (`luuIosNhip`).
 - `quy {ngayPhut, themPhut, daDung}` ⇒ trần hôm nay = quỹ ngày + phút cộng thêm; khung giờ chơi không còn chặn (không lập lịch `mo.*`).
   Phút đã dùng = max(phút DeviceActivity đo trên máy, `daDung` máy chủ — mọi máy của Con). Không có `quy` ⇒ luật cũ.
 - `gioHoc {tu, den, thu}` ⇒ lịch `hoc.t<thu>` + lý do khiên `gio_hoc` (khiên app Giải trí). `ngoaiLeMo[]` nhóm `ios`, `muc` null ⇒ lịch
-  không lặp `ngoaile`, thắng giờ ngủ / khoá. `ungDung.webLuonChan` vào danh sách web chặn.
+  không lặp `ngoaile`, thắng giờ ngủ / khoá. (Máy chủ 15/11 không còn gửi.)
+- **Web (#262)**: «Theo danh sách» ⇒ `ManagedSettings webContent.blockedByFilter = .all(except: WebDomain…)` với các mục `kieu: web` của `ungDung.hoc`
+  («Không tính phút») + `ungDung.giaiTri` («Tính phút»; hết sao thì chỉ còn nhóm Học), tối đa 50 tên miền; «Mở hết» ⇒ `nil`.
+  `ungDung.webLuonChan` bỏ qua (máy chủ gửi `[]`; không còn lưới web cấm cứng).
 - Giờ ngủ / khoá: màn chặn + app chỉ «Xin Ba Mẹ mở ngoại lệ» (`yeu-cau {loai: ngoai_le, phamVi: ca_may}`, 15/30/60). Hết giờ: «Dùng sao»
   mở màn Con (`/tre/nha` › Thêm giờ) hoặc xin thêm giờ.
 

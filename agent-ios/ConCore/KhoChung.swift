@@ -112,7 +112,7 @@ public struct YeuCauDangCho: Codable, Equatable {
       switch ketQua {
       case "da_them": return "\(nguoi) đã thêm \(ten ?? "app") vào danh sách!"
       case "mo_tam": return "\(nguoi) cho mở \(ten ?? "app") lần này."
-      default: return duoc ? "\(nguoi) đã đồng ý!" : "\(nguoi) chưa thêm \(ten ?? "app") · con xin lại được nhé."
+      default: return duoc ? "\(nguoi) đã đồng ý!" : "Ba Mẹ chưa thêm \(ten ?? "app") lúc này. Con xin lại sau được nhé"
       }
     }
     return duoc ? "\(nguoi) cho vay \(soSao) sao!" : "\(nguoi) chưa cho vay sao lúc này."

@@ -40,7 +40,7 @@ object ThucThi {
         } catch (e: Exception) { NhatKy.canh(TAG, "cài đặt Device Owner lỗi", e) }
     }
 
-    fun apDung(ctx: Context, qd: QuyetDinh, goiChan: Set<String>, khoaThat: Boolean, webChan: List<String>) {
+    fun apDung(ctx: Context, qd: QuyetDinh, goiChan: Set<String>, khoaThat: Boolean, web: vn.aiilab.aiigrow.maycon.logic.LuatWeb) {
         val k = Kho(ctx)
         if (QuanTri.laDeviceOwner(ctx)) {
             caiDatDeviceOwner(ctx)
@@ -52,7 +52,7 @@ object ThucThi {
             // gói chưa cài / gói hệ thống bắt buộc trả về «không tạm dừng được» — không ghi là đã tạm dừng
             k.goiDaTamDung = goiChan - loi
             if (loi != k.goiKhongDung) { k.goiKhongDung = loi; if (loi.isNotEmpty()) NhatKy.tin(TAG, "không tạm dừng được: $loi") }   // chỉ ghi khi đổi
-            datWebChrome(ctx, webChan)
+            datWebChrome(ctx, web)
             if (khoaThat && qd.khoaCaMay && k.daLockNow != k.khoaTu) { k.daLockNow = k.khoaTu; d.lockNow() }
         } else {
             k.goiDaTamDung = emptySet()   // đường không reset: TroNang đọc HienThi.goiChan
@@ -63,13 +63,16 @@ object ThucThi {
         }
     }
 
-    /** Cấu hình quản lý Chrome: URLBlocklist (chỉ Device Owner). */
-    private fun datWebChrome(ctx: Context, web: List<String>) {
+    /** Cấu hình quản lý Chrome: URLBlocklist + URLAllowlist (chỉ Device Owner). «Theo danh sách» ⇒ ["*"] + allowlist; «Mở hết» ⇒ không đặt gì. */
+    private fun datWebChrome(ctx: Context, web: vn.aiilab.aiigrow.maycon.logic.LuatWeb) {
         val k = Kho(ctx)
-        val khoa = web.sorted().joinToString(",")
+        val khoa = web.chan.sorted().joinToString(",") + "|" + web.cho.sorted().joinToString(",")
         if (k.webDaDat == khoa) return
         try {
-            val b = Bundle().apply { if (web.isNotEmpty()) putStringArray("URLBlocklist", web.toTypedArray()) }
+            val b = Bundle().apply {
+                if (web.chan.isNotEmpty()) putStringArray("URLBlocklist", web.chan.toTypedArray())
+                if (web.cho.isNotEmpty()) putStringArray("URLAllowlist", web.cho.toTypedArray())
+            }
             QuanTri.dpm(ctx).setApplicationRestrictions(QuanTri.ten(ctx), "com.android.chrome", b)
             k.webDaDat = khoa
         } catch (e: Exception) { NhatKy.canh(TAG, "Chrome restrictions", e) }

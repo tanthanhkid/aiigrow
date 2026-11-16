@@ -1,5 +1,5 @@
 // PIN theo bé (L13, 06/11 — docs/API.md mục «S3»): máy khoá → chọn tên → PIN 4 số; sai 5 lần chờ 15 giây; «Quên PIN» báo Ba Mẹ;
-// «Ba Mẹ nhập mã» (mã mở máy của chính máy này, 15 / 30 / 60 phút) ⇒ «Ba Mẹ đang dùng máy»; «Đổi bé / Đăng xuất» ⇒ máy về màn chọn tên.
+// «Ba Mẹ nhập mã» (mã mở máy của chính máy này, 15 / 30 / 60 phút) ⇒ «Ba Mẹ đang dùng máy»; «Đổi người / Đăng xuất» ⇒ máy về màn chọn tên.
 //   GET  api/device/ho-so                 → HoSoMay (danh sách bé + vanPin để kiểm PIN khi MẤT MẠNG)
 //   POST api/device/dang-nhap-be {con, pin?} → {phienCon, con, coPin, canDatPin?} · 401 pin_sai {conLan} · 429 pin_tam_khoa {choGiay}
 //   POST api/device/quen-pin {con}         → {daGui, lapLai}
@@ -180,7 +180,7 @@ public final class VaoMay {
     kho.luu(ds, Khoa.demSai)
   }
 
-  /// Đổi bé đang dùng ⇒ phút đo tại máy (theo máy, không theo bé) và phút máy chủ của bé trước không được tính cho bé sau.
+  /// Đổi người đang dùng ⇒ phút đo tại máy (theo máy, không theo bé) và phút máy chủ của bé trước không được tính cho bé sau.
   func datPhien(_ p: PhienMay) { Self.luuPhien(p, kho: kho) }
   /// Ghi «ai đang dùng máy» (dùng chung VaoMay + DongBo).
   public static func luuPhien(_ p: PhienMay, kho: KhoGiaTri) {
@@ -278,7 +278,7 @@ public final class VaoMay {
     } catch { return .loi((error as? LoiApi)?.errorDescription ?? "Chưa mở được. Thử lại nhé.") }
   }
 
-  /// «Đổi bé / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ). Máy về màn chọn tên ngay, kể cả khi mất mạng.
+  /// «Đổi người / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ). Máy về màn chọn tên ngay, kể cả khi mất mạng.
   public func roiMay(baMe: Bool = false, now: Date = Date()) async {
     datPhien(PhienMay(loai: .chua, luc: now))
     kho.ghi(nil, Khoa.xinChoMang)       // lời xin lưu lúc mất mạng là của bé vừa rời máy — không gửi nhầm tên bé sau

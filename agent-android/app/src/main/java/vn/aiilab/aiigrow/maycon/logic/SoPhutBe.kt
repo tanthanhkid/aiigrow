@@ -7,7 +7,7 @@ import org.json.JSONObject
 // (đường duy nhất máy chủ trừ sao 1 sao = 1 phút từ phút agent báo — nhịp Android chỉ lưu `phutDungHomNay` cho Ba Mẹ xem).
 // UsageStats chỉ đếm phút CẢ MÁY theo app ⇒ mỗi vòng lấy phần tăng so với lần chốt trước rồi ghi cho bé đang dùng (cổng CON / máy riêng);
 // lúc Ba Mẹ dùng, máy khoá chọn tên ⇒ không ghi cho ai. Máy chung: mỗi dòng `usage` mang `con` + phút là TỔNG CỦA BÉ hôm nay (theo app);
-// «Đổi bé» ⇒ chốt rồi gửi ngay để phút bé trước dừng tính. Phút dùng lúc máy mở bằng mã offline (app «Tính phút») ⇒ `phutBoiMa` (không trừ sao).
+// «Đổi người» ⇒ chốt rồi gửi ngay để phút bé trước dừng tính. Phút dùng lúc máy mở bằng mã offline (app «Tính phút») ⇒ `phutBoiMa` (không trừ sao).
 
 /** Khoá bé khi không biết id (máy riêng / máy chủ chưa có PIN theo bé) — dòng `usage` gửi không `con`, máy chủ hiểu là Con của máy. */
 const val BE_MAY = ""

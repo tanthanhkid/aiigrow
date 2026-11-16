@@ -115,7 +115,7 @@ data class HienThi(
     val trangThai: String, val conPhut: Int, val cauCon: String, val moLaiLuc: Long, val khoaCaMay: Boolean,
     val demNguoc: Int, val dangKhoaThat: Boolean, val goiChan: Set<String>, val dungTop: List<Pair<String, Int>>, val capNhat: Long,
     val deviceOwner: Boolean, val tenCon: String?,
-    /** 05/11: app tạm dừng vì chưa được Ba Mẹ cho phép ⇒ màn chặn «Xin Ba Mẹ duyệt». */
+    /** 05/11: app tạm dừng vì chưa được Ba Mẹ cho phép ⇒ màn tạm dừng «Xin Ba Mẹ mở». */
     val goiChuaXep: Set<String> = emptySet(),
     /** 06/11 L13: cổng PIN (logic/PinBe.kt › Cong.name) — CHON_TEN ⇒ màn khoá hiện chọn tên + PIN; BA_ME ⇒ «Ba Mẹ đang dùng máy» tới `baMeDen`. */
     val cong: String = "MO", val baMeDen: Long = 0,
