@@ -170,19 +170,22 @@ export async function choVay(fam: string, con: string, soSao: unknown, nguoi: st
     const noSau = noTruoc + n;
     await ghiSuKien(fam, "cho_vay", { so_sao: n, muc_dich: o.mucDich ?? null, no_truoc: noTruoc, no_sau: noSau, ...(o.yeuCau ? { yeu_cau: o.yeuCau } : {}),
       ...(o.quaId ? { qua: o.quaId } : {}) }, { con, nguoi }, t);
-    const canh = await canhBaoNoNeuCan(t, fam, con, id, noTruoc, noSau);
+    const canh = await canhBaoNoNeuCan(t, fam, con, id, noTruoc, noSau, n, nguoi);
     return { id, soSao: n, ...(await trangThaiSao(con, t)), canhBaoNo: canh };
   };
   return t0 ? chay(t0) : tx(chay);
 }
 
-/** Cảnh báo «<Tên> đã nợ quá 1.000 sao (đang nợ 1.020)» khi nợ SAU khoản vay > 1.000 — mỗi khoản vay một dòng (khoá = id khoản vay). */
-async function canhBaoNoNeuCan(t: Q, fam: string, con: string, vayId: string, noTruoc: number, noSau: number) {
+/** Cảnh báo khi nợ SAU khoản vay > 1.000 — mỗi khoản vay một dòng (khoá = id khoản vay). Vượt mốc: «<Tên> đã nợ quá 1.000 sao (đang nợ 1.020)»; nhắc lại: «vẫn nợ quá…». */
+async function canhBaoNoNeuCan(t: Q, fam: string, con: string, vayId: string, noTruoc: number, noSau: number, soVayN: number, nguoi: string | null) {
   if (noSau <= NGUONG_NO) return null;
   const ten = (await t<{ ten: string }>(`select ten from children where id = $1`, [con]))[0]?.ten ?? "Con";
   const so = soVN;
   const vuotMoc = noTruoc <= NGUONG_NO;
-  const cau = `${ten} đã nợ quá ${so(NGUONG_NO)} sao (đang nợ ${so(noSau)})`;
+  // lần vượt mốc: «<Tên> đã nợ quá 1.000 sao»; cho vay thêm khi đã quá mốc: «<Tên> vẫn nợ quá 1.000 sao · <Mẹ> vừa cho vay thêm N sao» (#266)
+  const nguoiVay = !vuotMoc && nguoi ? (await t<{ ten: string }>(`select ten from parents where id = $1`, [nguoi]))[0]?.ten : null;
+  const cau = vuotMoc ? `${ten} đã nợ quá ${so(NGUONG_NO)} sao (đang nợ ${so(noSau)})`
+    : `${ten} vẫn nợ quá ${so(NGUONG_NO)} sao · ${nguoiVay || "Ba Mẹ"} vừa cho vay thêm ${so(soVayN)} sao (đang nợ ${so(noSau)})`;
   await canhBao(fam, "no_qua_1000", "chu_y", cau, { con, khoa: `no_1000:${vayId}`, chiTiet: { no: noSau, no_truoc: noTruoc, vuot_moc: vuotMoc } }, t);
   return { cau, no: noSau, vuotMoc };
 }

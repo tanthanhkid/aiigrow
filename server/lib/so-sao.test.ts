@@ -114,7 +114,7 @@ test("cảnh báo nợ > 1.000 (#266): −990 vay 20 ⇒ −1.010 có cảnh bá
   xt = await ss.xemTruocVay(fam, con, 5);
   assert.equal(xt.nhacNo, "Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.010)", "bảng cho vay hiện dòng nhắc");
   const b = await ss.choVay(fam, con, 5, bm);
-  assert.deepEqual([b.no, b.canhBaoNo?.vuotMoc, b.canhBaoNo?.cau], [1015, false, "Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.015)"]);
+  assert.deepEqual([b.no, b.canhBaoNo?.vuotMoc, b.canhBaoNo?.cau], [1015, false, "Bảo Anh vẫn nợ quá 1.000 sao · Lan vừa cho vay thêm 5 sao (đang nợ 1.015)"]);
   const cb = await q<{ noi_dung: string; muc: string }>(`select noi_dung, muc from alerts where family_id = $1 and loai = 'no_qua_1000' order by created_at`, [fam]);
   assert.equal(cb.length, 2, "mỗi lần vượt mốc / cho vay thêm khi đang nợ > 1.000 một cảnh báo");
   assert.equal(cb[0].muc, "chu_y");

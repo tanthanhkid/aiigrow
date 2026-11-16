@@ -1,5 +1,5 @@
 // S2 thiết kế chốt 05/11 (docs/KE-HOACH-KHOP-THIET-KE-0511.md L4 L5 L7 L8) qua API như app / agent gọi:
-// chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duyệt»; thiết lập lần đầu; phiên ghép máy (mã 10 phút + link bộ cài tự ghép,
+// chế độ chặn theo Con + Con «Xin Ba Mẹ duyệt»; thiết lập lần đầu; phiên ghép máy (mã 10 phút + link bộ cài tự ghép,
 // không gắn loại máy) + «Cài giống máy trước»; app cho phép theo tên khớp khi máy gửi danh sách app.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -88,7 +88,6 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   const lw = await q<{ muc: string; loai: string; ten: string }>(`select muc, loai, ten from app_rules where child_id = $1 and muc in ('khanacademy.org','poki.com','olm.vn') order by muc`, [con]);
   assert.deepEqual(lw.map((x) => [x.muc, x.loai, x.ten]), [["khanacademy.org", "hoc", "khanacademy.org"], ["olm.vn", "hoc", "olm.vn"], ["poki.com", "giai_tri", "poki.com"]]);
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: ["khong phai web"] } })).body.error, "ten_mien_sai");
-  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "Z" }, web: ["pornhub.com"] } })).body.error, "web_cam");
   assert.equal((await m("gia-dinh", { tok: bm })).body.con.length, 1, "web sai không để lại Con");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: Array.from({ length: 61 }, (_, i) => `t${i}.vn`) } })).body.error, "qua_nhieu_web");
   // gửi lại: trang đã bỏ tick bị gỡ (chỉ trang Lần đầu ghi); trang Ba Mẹ đổi tên / thêm ở nơi khác giữ nguyên
@@ -103,7 +102,7 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   assert.deepEqual([w3.soApp, w3.soWeb], [6, 1], "poki.com Ba Mẹ đặt tên «Poki» ⇒ tính là app");
   // kiểm một địa chỉ trước khi thêm (màn «Thêm web»)
   assert.equal((await m("thiet-lap/kiem-web", { tok: bm, body: { muc: "https://www.Vi.KhanAcademy.org/math" } })).body.muc, "vi.khanacademy.org");
-  assert.equal((await m("thiet-lap/kiem-web", { tok: bm, body: { muc: "m.pornhub.com" } })).body.error, "web_cam");
+  assert.equal((await m("thiet-lap/kiem-web", { tok: bm, body: { muc: "m.pornhub.com" } })).body.muc, "m.pornhub.com", "không còn nhóm luôn chặn");
   assert.equal((await m("thiet-lap/kiem-web", { tok: bm, body: { muc: "192.168.1.1" } })).body.error, "ten_mien_sai");
 });
 
@@ -191,7 +190,7 @@ test("L7 «Thêm app khác» theo tên: máy gửi danh sách app thật ⇒ kh�
   assert.deepEqual(them.daDat, [{ ten: "KHÁC", muc: ["x.exe"] }]);
 });
 
-test("L4 chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duyệt» (lý do không bắt buộc, bấm lại không trùng); Policy mang chế độ", async () => {
+test("L4 chế độ chặn theo Con + Con «Xin Ba Mẹ duyệt» (lý do không bắt buộc, bấm lại không trùng); Policy mang chế độ", async () => {
   const bm = await dangKy("Ba Khoa");
   const con = (await m("con", { tok: bm, body: { ten: "Na" } })).body.id;
   assert.equal((await m(`con/${con}`, { tok: bm })).body.cheDoChan, "chi_app_duoc_phep", "Con mới: Theo danh sách (giá trị cũ)");
@@ -201,7 +200,8 @@ test("L4 chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duy�
   await luonChoiDuoc(con);
   let p = (await dv("dong-bo", { tok: may, body: {} })).body;
   assert.deepEqual([p.cheDoChan, p.windows.mode, p.windows.web.cheDo], ["chi_app_duoc_phep", "hoc", "chi_cho_phep"]);
-  assert.ok(p.webLuonChan.includes("pornhub.com") && p.windows.web.chan.includes("pornhub.com"));
+  assert.deepEqual(p.webLuonChan, [], "webLuonChan giữ cho agent cũ, luôn []");
+  assert.ok(!p.windows.web.chan.includes("pornhub.com"));
   assert.equal((await m(`con/${con}/che-do-chan`, { tok: bm, body: { cheDo: "mo_het" } })).body.cheDoChan, "mo_het");
   p = (await dv("dong-bo", { tok: may, body: {} })).body;
   assert.deepEqual([p.cheDoChan, p.windows.mode, p.windows.web.cheDo], ["mo_het", "tu_do", "mo"]);
@@ -209,8 +209,7 @@ test("L4 chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duy�
   assert.deepEqual(p.webLuonChan, []);
   assert.equal((await m(`con/${con}/che-do-chan`, { tok: bm, body: { cheDo: "giam_sat" } })).body.error, "che_do_sai");
   assert.equal((await q(`select 1 from events where loai = 'doi_che_do_chan' and child_id = $1`, [con])).length, 1);
-  // lưới an toàn chung: không thêm vào danh sách được; «chan» (cũ) = bỏ khỏi danh sách, luôn được
-  assert.equal((await m("luat", { tok: bm, body: { con, muc: "www.pornhub.com", loai: "hoc" } })).body.error, "web_cam");
+  // không còn lưới cấm cứng; «chan» (cũ) = bỏ khỏi danh sách, luôn được
   assert.equal((await m("luat", { tok: bm, body: { con, muc: "pornhub.com", loai: "chan" } })).status, 200);
   await m(`con/${con}/che-do`, { tok: bm, body: { cheDo: "theo_danh_sach" } });
   // Con xin duyệt app lạ từ màn chặn (agent) — không lý do
@@ -219,7 +218,6 @@ test("L4 chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duy�
   assert.equal((await dv("xin-duyet", { tok: may, body: { muc: "capcut.exe" } })).body.id, x.id, "bấm lại không gửi trùng");
   const w = (await k("xin-duyet", { tok: may, body: { muc: "https://www.youtube.com/watch?v=1", lyDo: "Con xem video hướng dẫn vẽ ạ" } })).body;
   assert.deepEqual([w.loai, w.muc], ["mo_web", "youtube.com"]);
-  assert.equal((await dv("xin-duyet", { tok: may, body: { muc: "m.xvideos.com" } })).body.error, "web_cam");
   const cho = (await m("cho-duyet", { tok: bm })).body.yeuCau;
   assert.equal(cho.length, 2);
   // Ba Mẹ đồng ý app ⇒ luật cho phép (không dùng điểm)
