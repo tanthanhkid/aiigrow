@@ -28,6 +28,14 @@ public sealed record KetNoiInfo(KetNoi Loai, string Tooltip, string Dong, string
 /// </summary>
 public static class KetNoiView
 {
+    /// <summary>#307 them-g4d1cfk1: dòng trạng thái đầu menu khay — «● Đã kết nối · còn 18 sao = 18 phút» (biết số sao, không «Mở hết»).</summary>
+    public static string DongMenu(KetNoiInfo info, TrayState? s)
+    {
+        var dong = "● " + info.Dong;
+        if (info.Loai == KetNoi.DaKetNoi && s is { MoHet: false, QuyConPhut: double p }) { var n = SaoView.Phut(p); dong += $" · còn {n} sao = {n} phút"; }
+        return dong;
+    }
+
     // Chữ theo thiết kế chốt 05/11 (con-mat-mang 01, 08, 21): câu ngắn trấn an — mất mạng / AiiGrow lỗi vẫn tính giờ, vẫn chặn.
     public const string DichVuKhongChayDong = "AiiGrow đang lỗi";
     public const string ChuaGhepDong = "Máy chưa ghép — mở AiiGrow-Setup để ghép lại";
@@ -78,7 +86,7 @@ public static class MascotView
 {
     public static string Chon(MucApp muc, KetNoi ketNoi, bool xongHetViec)
     {
-        if (ketNoi != KetNoi.DaKetNoi && muc == MucApp.HomNay) return "trong-loi";
+        // #307 (cmt-hom-nay-mat-mang, cmt-hom-nay-dich-vu-tat): thanh bên vẫn Grow thường — Grow «trục trặc» nằm trong thẻ của màn
         return muc switch
         {
             MucApp.NhiemVu => xongHetViec ? "xong" : "so-tay",

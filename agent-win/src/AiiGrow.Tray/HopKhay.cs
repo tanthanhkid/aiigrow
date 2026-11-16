@@ -82,19 +82,46 @@ internal sealed class NhacSaoForm : HopKhayCoBan
 /// <summary>Nội dung «Đã lưu lời xin» lúc mất mạng (them-a86wn24i, them-dsrf5ift, them-rn7iaunn) — dùng chung cho màn khoá, hộp xin vay.</summary>
 internal static class HopDaLuu
 {
-    public static void Ve(FlowLayoutPanel flow, int w, string tieu, string dong, int choMang, Action ve, string chuNut)
+    /// <param name="lui">#307 them-rn7iaunn: «‹ Lùi» về màn trước cạnh nút chính (null = không có).</param>
+    public static void Ve(FlowLayoutPanel flow, int w, string tieu, string dong, int choMang, Action ve, string chuNut, string icon = "gui", Action? lui = null, string? phu = null)
     {
-        flow.Controls.Add(KhoiCon.Dau("tick", KhoiCon.Mau.Ngoc, tieu, XinVayView.DaLuuPhu, w));
-        flow.Controls.Add(KhoiCon.Chips(w, new ChipClay(ManChanView.ChoCoMang(choMang), Clay.CanhSoft, Clay.Canh, chamCho: true)));
-        flow.Controls.Add(KhoiCon.DongIcon("gui", dong + $" · vừa xong · {DateTime.Now:HH:mm}", w));
+        // Bàn them-a86wn24i / them-dsrf5ift / them-rn7iaunn: tiêu đề ngọc · thẻ trắng «Chờ có mạng (n)» + dòng lời xin (vừa xong · HH:mm) · nút chính
+        var dau = KhoiCon.Dau("tick", KhoiCon.Mau.Ngoc, tieu, phu ?? XinVayView.DaLuuPhu, w);
+        foreach (Control c in dau.Controls) if (c is FlowLayoutPanel cot && cot.Controls.Count > 0) cot.Controls[0].ForeColor = Clay.NgocInk;
+        flow.Controls.Add(dau);
+        flow.Controls.Add(TheCho(w, choMang, icon, dong, $"vừa xong · {DateTime.Now:HH:mm}"));
         flow.Controls.Add(UI.Text(ManChanView.KhongCanGuiLai, 9.75f, false, UI.Muted, w));
-        var b = KhoiCon.Nut(chuNut, false, w, "nha");
+        var hang = KhoiCon.Hang();
+        var b = KhoiCon.Nut(chuNut, true, lui != null ? w * 2 / 3 : w, "nha");
         b.Click += (_, _) => ve();
-        flow.Controls.Add(b);
+        hang.Controls.Add(b);
+        if (lui != null)
+        {
+            var l = KhoiCon.LienKet("‹ Lùi", null, lui);
+            l.Margin = new Padding(UI.Px(14), 0, 0, 0);
+            hang.Controls.Add(l);
+        }
+        flow.Controls.Add(hang);
+    }
+
+    /// <summary>Thẻ trắng «Chờ có mạng (n)» + một dòng (icon · tiêu đề đậm / dòng phụ).</summary>
+    public static ClayFlow TheCho(int w, int choMang, string icon, string tieu, string phu)
+    {
+        var the = new ClayFlow
+        {
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, BoGoc = UI.Px(18),
+            BackColor = Color.White, Padding = VeThe.Pad(UI.Px(14), UI.Px(10), UI.Px(14), UI.Px(8)),
+            MinimumSize = new Size(w, 0), MaximumSize = new Size(w, 0), Margin = new Padding(0, 0, 0, UI.Px(10)),
+        };
+        var r = w - the.Padding.Horizontal - UI.Px(2);
+        var n = UI.Text(ManChanView.ChoCoMang(choMang), 10.5f, true, Clay.Canh, r); n.Margin = new Padding(0, 0, 0, UI.Px(6));
+        the.Controls.Add(n);
+        the.Controls.Add(KhoiThietKe.Dong(icon, tieu, phu, r, false, 32, 10.5f));
+        return the;
     }
 
     /// <summary>Hộp riêng (màn khoá mất mạng › «Xin Ba Mẹ cho vay sao»).</summary>
-    public static Form Hop(string tieu, string dong, int choMang, string chuNut)
+    public static Form Hop(string tieu, string dong, int choMang, string chuNut, string icon = "gui")
     {
         var f = new Form
         {
@@ -108,7 +135,7 @@ internal static class HopDaLuu
             AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false,
             Padding = new Padding(UI.Px(24), UI.Px(18), UI.Px(24), UI.Px(14)), BackColor = UI.Paper,
         };
-        Ve(flow, UI.Px(340), tieu, dong, choMang, f.Close, chuNut);
+        Ve(flow, UI.Px(340), tieu, dong, choMang, f.Close, chuNut, icon);
         f.Controls.Add(flow);
         return f;
     }
@@ -122,11 +149,19 @@ internal sealed class HoiAiiGrowForm : HopKhayCoBan
 
     public HoiAiiGrowForm() : base("AiiGrow · Hỏi AiiGrow", UI.Px(388))
     {
-        Flow.Controls.Add(KhoiCon.Dau("dau_hoi", KhoiCon.Mau.Ngoc, HoiAiiGrowView.Tieu, HoiAiiGrowView.Phu, W));
+        // Bàn them-yzos9w9i: nút tròn «‹» (về màn «AiiGrow bị trục trặc») · đầu hộp · lưới 2 × 2 thẻ
+        var dau = KhoiCon.Hang();
+        var lui = KhoiCon.Nut("‹", false, UI.Px(40) + VeNut.LeBong.Horizontal, null, 36, 12f);
+        lui.Margin = new Padding(0, UI.Px(8), UI.Px(8), 0);
+        lui.Click += (_, _) => Close();
+        dau.Controls.Add(lui);
+        dau.Controls.Add(KhoiCon.Dau("dau_hoi", KhoiCon.Mau.Trang, HoiAiiGrowView.Tieu, HoiAiiGrowView.Phu, W - lui.Width - lui.Margin.Horizontal));
+        Flow.Controls.Add(dau);
         var luoi = new FlowLayoutPanel
         {
             AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.LeftToRight, WrapContents = true,
-            BackColor = Color.Transparent, MaximumSize = new Size(W + UI.Px(4), 0), Margin = new Padding(0, 0, 0, UI.Px(6)),
+            // hai thẻ (rongThe + lề phải 8) mỗi hàng: tối đa W + 8 + chút dư — trước đây W + 4 làm thẻ thứ hai rớt dòng (lưới 1 cột)
+            BackColor = Color.Transparent, MaximumSize = new Size(W + UI.Px(12), 0), Margin = new Padding(0, 0, 0, UI.Px(6)),
         };
         var rongThe = (W - UI.Px(8)) / 2;
         foreach (var (ma, icon, tieu, phu) in HoiAiiGrowView.The)
@@ -136,7 +171,7 @@ internal sealed class HoiAiiGrowForm : HopKhayCoBan
                 FlowDirection = FlowDirection.TopDown, WrapContents = false, BoGoc = UI.Px(20), Cursor = Cursors.Hand,
                 Size = new Size(rongThe, UI.Px(118)), Padding = VeThe.Pad(UI.Px(12), UI.Px(10), UI.Px(12), UI.Px(8)), Margin = new Padding(0, 0, UI.Px(8), UI.Px(8)),
             };
-            var v = KhoiThietKe.Vien(icon, 40); v.Margin = new Padding(0, 0, 0, UI.Px(4));
+            var v = new ClayIcon { Size = new Size(UI.Px(40), UI.Px(40)), MauVien = Color.Transparent, Hinh = Anh3D.Icon(icon), Margin = new Padding(0, 0, 0, UI.Px(4)) };   // Bàn: icon 3D trơn, không viên
             var rc = rongThe - the.Padding.Horizontal;
             var a = UI.Text(tieu, 10.5f, true, UI.Ink, rc); a.Margin = Padding.Empty;
             var b = UI.Text(phu, 9.4f, false, UI.Muted, rc); b.Margin = Padding.Empty;
@@ -190,9 +225,13 @@ internal sealed class CapNhatKhayForm : HopKhayCoBan
     private void VeCoBanMoi(string ban)
     {
         Flow.Controls.Add(KhoiCon.Dau("tai", KhoiCon.Mau.Ngoc, CapNhatKhayView.CoBanMoiTieu, CapNhatKhayView.CoBanMoiPhu(ban), W));
-        Flow.Controls.Add(KhoiCon.DongIcon("khien", CapNhatKhayView.GiuNguyen, W));
-        Flow.Controls.Add(UI.Text(CapNhatKhayView.MotPhut, 9.75f, false, UI.Muted, W));
-        var cap = KhoiCon.Nut(CapNhatKhayView.NutCapNhat, true, W, "tai");
+        // Bàn them-yx0id8do: thẻ trắng (khiên · «Phút chơi, sao và luật giữ nguyên.» / «Mất khoảng 1 phút…») · hai nút ngang
+        var the = HopDaLuu.TheCho(W, 0, "khien", CapNhatKhayView.GiuNguyen, CapNhatKhayView.MotPhut);
+        the.Controls.RemoveAt(0);   // không có dòng «Chờ có mạng»
+        Flow.Controls.Add(the);
+        var hai = KhoiCon.Hang();
+        var cap = KhoiCon.Nut(CapNhatKhayView.NutCapNhat, true, W * 3 / 5, "tai");
+        cap.Margin = new Padding(0, 0, UI.Px(10), 0);
         cap.Click += async (_, _) =>
         {
             cap.Enabled = false;
@@ -206,10 +245,12 @@ internal sealed class CapNhatKhayForm : HopKhayCoBan
             Flow.Controls.Add(ok);
             Xong();
         };
-        Flow.Controls.Add(cap);
-        var sau = KhoiCon.Nut(CapNhatKhayView.DeSau, false, W);
+        hai.Controls.Add(cap);
+        var sau = KhoiCon.Nut(CapNhatKhayView.DeSau, false, W - W * 3 / 5 - UI.Px(10));
+        sau.Margin = Padding.Empty;
         sau.Click += (_, _) => Close();
-        Flow.Controls.Add(sau);
+        hai.Controls.Add(sau);
+        Flow.Controls.Add(hai);
     }
 
     private void VeMoiNhat(string ban)

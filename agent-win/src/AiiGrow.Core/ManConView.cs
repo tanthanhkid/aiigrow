@@ -123,6 +123,8 @@ public static class ManKhoaView
     public const string WinL = "Ba Mẹ cần dùng máy? Bấm Win + L";
     public const string MaSai = "Mã chưa đúng. Nhờ Ba Mẹ đọc lại nhé.";
     public const string VeManKhoa = "Về màn khoá";
+    /// <summary>Chân màn khoá lúc mất mạng (cmt-khoa-mat-mang).</summary>
+    public const string ChanMatMang = "AiiGrow · máy này do Ba Mẹ quản lý";
 }
 
 /// <summary>«Kiểm tra cập nhật» từ khay (con-mat-mang 17, 19).</summary>

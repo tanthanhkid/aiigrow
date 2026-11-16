@@ -56,7 +56,8 @@ internal sealed class TrayContext : ApplicationContext
         // Thiết kế chốt 15/11 (con-mat-mang 13 them-g4d1cfk1): ● trạng thái · Đồng bộ ngay · Mở AiiGrow · Xin Ba Mẹ cho vay sao… · Kiểm tra cập nhật
         // · Thoát AiiGrow… (⇒ «Cần mã của Ba Mẹ», con-ngay-thuong 24) · dòng chân.
         // «Hỏi AiiGrow…» chỉ hiện khi mất mạng / AiiGrow lỗi (con-mat-mang 08–10).
-        _statusItem = new ToolStripMenuItem("● " + _kn.Dong) { Enabled = false };
+        // #307 them-g4d1cfk1: dòng trạng thái chữ ngọc đậm «● Đã kết nối · còn 18 sao = 18 phút» (bấm ⇒ mở Hôm nay)
+        _statusItem = new ToolStripMenuItem("● " + _kn.Dong, null, (_, _) => OpenApp(MucApp.HomNay)) { ForeColor = AiiGrow.ClayUi.Clay.NgocInk, Font = UI.F(10.5f, FontStyle.Bold) };
         _retryItem = new ToolStripMenuItem(ChuDongBo, Anh3D.Icon("lap"), async (_, _) => await RetryAsync());
         _hoiItem = new ToolStripMenuItem("Hỏi AiiGrow…", Anh3D.Icon("dau_hoi"), (_, _) => OpenHoiAiiGrow()) { Visible = false };
         menu.Items.Add(_statusItem);
@@ -212,7 +213,7 @@ internal sealed class TrayContext : ApplicationContext
             _ni.Icon = UI.TrayIcon(info.DungIconKetNoi);
         }
         _ni.Text = KetNoiView.Tooltip(info, stateFresh ? _state : null, _at, DateTimeOffset.Now);
-        _statusItem.Text = "● " + info.Dong;
+        _statusItem.Text = KetNoiView.DongMenu(info, stateFresh ? _state : null);
         _hoiItem.Visible = !info.DungIconKetNoi;
         _thoatItem.Visible = stateFresh && ThoatView.HienMenu(_state);   // dịch vụ không trả lời / Ba Mẹ đang dùng / chưa ai vào ⇒ ẩn
         PushApp();

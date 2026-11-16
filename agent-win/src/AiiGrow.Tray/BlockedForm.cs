@@ -276,19 +276,21 @@ internal sealed class BlockedForm : Form
                     _flow.Controls.Add(UI.Text(ManChanView.CoMangLaGui, 9.75f, false, UI.Muted, _w));
                 }
                 // Ba Mẹ ở cạnh: đọc mã 6 số (mã mở offline — dịch vụ tự kiểm, mở cả máy có hạn)
-                var code = new OfflineCodePanel(_w, nhan: ManChanView.BaMeOCanh, nut: ManChanView.MoApp);
+                // #307 them-wt782i6x: ô mã + «Mở app» cạnh nhau; «‹ Về Hôm nay» là nút phụ rộng hết hộp
+                var code = new OfflineCodePanel(_w, nhan: ManChanView.BaMeOCanh, nut: ManChanView.MoApp, ngang: true);
                 code.Unlocked += DongHan;
                 _flow.Controls.Add(code);
-                _flow.Controls.Add(KhoiCon.LienKet("‹ " + ManChanView.VeHomNay, null, () => { VeHomNay?.Invoke(); DongHan(); }));
+                var ve = KhoiCon.Nut("‹ " + ManChanView.VeHomNay, false, _w);
+                ve.Margin = new Padding(0, UI.Px(12), 0, 0);
+                ve.Click += (_, _) => { VeHomNay?.Invoke(); DongHan(); };
+                _flow.Controls.Add(ve);
                 break;
             }
 
             case Buoc.DaLuu:
-                _flow.Controls.Add(KhoiCon.Dau("tick", KhoiCon.Mau.Ngoc, ManChanView.DaLuuTieu, ManChanView.DaLuuPhu, _w));
-                _flow.Controls.Add(KhoiCon.Chips(_w, new ChipClay(ManChanView.ChoCoMang(_choMang), Clay.CanhSoft, Clay.Canh, chamCho: true)));
-                _flow.Controls.Add(KhoiCon.DongIcon("khien", (_web ? "Xin mở " : "Xin mở ") + _ten + $" · vừa xong · {_guiLuc:HH:mm}", _w));
-                _flow.Controls.Add(UI.Text(ManChanView.KhongCanGuiLai, 9.75f, false, UI.Muted, _w));
-                ThemNutVeHomNay(chinh: false, icon: "nha");
+                // Bàn them-rn7iaunn: «Đã lưu lời xin của con» · thẻ «Chờ có mạng (n)» · «Về Hôm nay» (chính) + «‹ Lùi» (về màn mất mạng)
+                HopDaLuu.Ve(_flow, _w, ManChanView.DaLuuTieu, "Xin mở " + _ten, _choMang, () => { VeHomNay?.Invoke(); DongHan(); }, ManChanView.VeHomNay,
+                    "khien", () => Ve(Buoc.MatMang), ManChanView.DaLuuPhu);
                 break;
         }
         _flow.Controls.Add(_msg);
