@@ -44,6 +44,8 @@ internal sealed class BlockedForm : Form
     /// <summary>15/11 «Hết sao rồi»: Con bấm «Làm nhiệm vụ» / «Xin Ba Mẹ cho vay sao».</summary>
     public event Action? LamNhiemVu;
     public event Action? XinVay;
+    /// <summary>16/11 (#307, them-vc4dmaei → them-bxw40sw9): Con bấm «Xin Ba Mẹ thêm …» ⇒ khay mở hộp «Xin thêm …» (chip nhóm + lời nhắn) — (mục, tên).</summary>
+    public event Action<string, string>? XinThem;
 
     /// <param name="appId">Định danh app vừa bị đóng (roblox.exe) hoặc tên miền (web).</param>
     /// <param name="boiBaMe">App Ba Mẹ đặt «Chặn» ⇒ không tự gửi, chỉ có nút xin.</param>
@@ -151,7 +153,12 @@ internal sealed class BlockedForm : Form
                 if (ManChanView.CoNutXin(_appId))
                 {
                     var xin = KhoiCon.Nut(ManChanView.NutXin(_ten), true, _w, "gui");
-                    xin.Click += async (_, _) => { Ve(Buoc.DaGui); await GuiAsync(); };
+                    // #307: Bàn đi tới «Xin thêm …» (them-bxw40sw9); không có khay nghe (hộp mở riêng) thì gửi thẳng như trước
+                    xin.Click += async (_, _) =>
+                    {
+                        if (XinThem is { } mo && _appId != null) { var (m, t) = (_appId, _ten); DongHan(); mo(m, t); return; }
+                        Ve(Buoc.DaGui); await GuiAsync();
+                    };
                     _flow.Controls.Add(xin);
                 }
                 ThemNutVeHomNay(chinh: false);

@@ -133,10 +133,13 @@ internal sealed class XinVayForm : HopKhayCoBan
     {
         Xoa();
         Text = "AiiGrow · Đã gửi";
-        Flow.Controls.Add(KhoiCon.Dau("gui", KhoiCon.Mau.Ngoc, XinVayView.DaGui, XinVayView.ConXin(_soDaXin > 0 ? _soDaXin : _soSao), W));
-        Flow.Controls.Add(KhoiCon.Chips(W, KhoiApp.ChipCho(XinVayView.DangCho)));
-        Flow.Controls.Add(UI.Text(XinVayView.TraLoiBaoNgay, 11f, false, UI.Muted, W));
-        var lam = KhoiCon.Nut(XinVayView.LamNhiemVuTrongLucCho, true, W, "tick");
+        // Bàn them-luui7gvq: «‹» về hộp xin vay · Grow cầm sổ · «Đã gửi Ba Mẹ!» · «Con xin vay 15 sao» · chip vàng «Đang chờ Ba Mẹ» · nút phụ
+        Flow.Controls.Add(KhoiXin.DauRob("so-tay", W, () => { VeXin(); if (_pendingId != null) _poll.Start(); },
+            KhoiXin.Chu(XinVayView.DaGui, 15f, true, UI.Ink),
+            KhoiXin.Chu(XinVayView.ConXin(_soDaXin > 0 ? _soDaXin : _soSao), 10.5f, true, UI.Ink),
+            KhoiXin.Chip(XinVayView.DangCho, Clay.DiemSoft, Clay.Canh, "dongho")));
+        Flow.Controls.Add(UI.Text(XinVayView.TraLoiBaoNgay, 10.5f, false, UI.Muted, W));
+        var lam = KhoiCon.Nut(XinVayView.LamNhiemVuTrongLucCho, false, W, "tick");
         lam.Click += (_, _) => { Sau = SauNhiemVu; Close(); };
         Flow.Controls.Add(lam);
         Xong();
@@ -189,12 +192,17 @@ internal sealed class XinVayForm : HopKhayCoBan
     {
         Xoa();
         Text = "AiiGrow · Ba Mẹ trả lời";
-        Flow.Controls.Add(KhoiCon.Dau("phao_hoa", KhoiCon.Mau.Ngoc, XinVayView.ChoVayTieu(nguoi), null, W));
-        Flow.Controls.Add(KhoiCon.Chips(W, KhoiApp.ChipSao(XinVayView.ChoVayChip(soSao))));
-        if (sao != null) Flow.Controls.Add(UI.Text(SaoView.ConPhut(sao.PhutCon), 12f, true, Clay.DiemInk, W));
-        Flow.Controls.Add(UI.Text(XinVayView.ChoVayDong(soSao, sao?.No ?? soSao), 10.5f, false, Clay.Canh, W));
-        if (!string.IsNullOrWhiteSpace(loiNhan)) Flow.Controls.Add(KhoiCon.DongIcon("tin", $"{XinVayView.TenBaMe(nguoi)} · «{loiNhan!.Trim()}»", W, false));
-        var tiep = KhoiCon.Nut(XinVayView.ChoiTiep(sao?.PhutCon ?? soSao), true, W, "game");
+        // Bàn them-fsif1cbl: Grow cầm quà · chip «Mẹ Lan cho vay rồi!» · «+15 sao» lớn · chip «còn 15 sao = 15 phút chơi» · dòng nợ · bong bóng lời Mẹ
+        var cot = new List<Control>
+        {
+            KhoiXin.Chip(XinVayView.ChoVayTieu(nguoi), Clay.NgocSoft, Clay.NgocInk, "tick"),
+            KhoiXin.Chu(XinVayView.ChoVayChip(soSao), 24f, true, Clay.DiemInk),
+        };
+        if (sao != null) cot.Add(KhoiXin.Chip(SaoView.ConPhut(sao.PhutCon), Clay.DiemSoft, Clay.DiemInk, "sao"));
+        Flow.Controls.Add(KhoiXin.DauRob("qua", W, null, cot.ToArray()));
+        Flow.Controls.Add(UI.Text(XinVayView.ChoVayDong(soSao, sao?.No ?? soSao), 10.5f, true, Clay.Canh, W));
+        if (!string.IsNullOrWhiteSpace(loiNhan)) Flow.Controls.Add(KhoiXin.BongLoi(XinVayView.TenBaMe(nguoi), loiNhan!, W));
+        var tiep = KhoiCon.Nut(XinVayView.ChoiTiep(sao?.PhutCon ?? soSao), true, W, "dongho");
         tiep.Click += (_, _) => Close();
         Flow.Controls.Add(tiep);
         Xong();
@@ -212,15 +220,13 @@ internal sealed class XinVayForm : HopKhayCoBan
     {
         Xoa();
         Text = "AiiGrow · Ba Mẹ trả lời";
-        Flow.Controls.Add(KhoiCon.Dau("khoa", KhoiCon.Mau.Cam, XinVayView.ChuaChoTieu, XinVayView.ChuaChoPhu(SaoView.Phut(sao?.PhutCon)), W));
-        if (!string.IsNullOrWhiteSpace(loiNhan)) Flow.Controls.Add(KhoiCon.DongIcon("tin", $"{XinVayView.TenBaMe(nguoi)} · «{loiNhan!.Trim()}»", W, false));
+        // Bàn them-zo8kohea: viên bong bóng chat · bong bóng lời Mẹ · «Làm nhiệm vụ kiếm sao» · hai nút ngang «Nhắn Ba Mẹ | Về Hôm nay»
+        Flow.Controls.Add(KhoiCon.Dau("tin", KhoiCon.Mau.Trang, XinVayView.ChuaChoTieu, XinVayView.ChuaChoPhu(SaoView.Phut(sao?.PhutCon)), W));
+        if (!string.IsNullOrWhiteSpace(loiNhan)) Flow.Controls.Add(KhoiXin.BongLoi(XinVayView.TenBaMe(nguoi), loiNhan!, W));
         var lam = KhoiCon.Nut(XinVayView.LamNhiemVuKiemSao, true, W, "tick");
         lam.Click += (_, _) => { Sau = SauNhiemVu; Close(); };
         Flow.Controls.Add(lam);
-        var nhan = KhoiCon.Nut(XinVayView.NhanBaMe, false, W, "tin");
-        nhan.Click += (_, _) => { Sau = SauNhan; Close(); };
-        Flow.Controls.Add(nhan);
-        Flow.Controls.Add(KhoiCon.LienKet(XinVayView.VeHomNay, "nha", Close));
+        Flow.Controls.Add(KhoiXin.HaiNut(W, (XinVayView.NhanBaMe, "tin", () => { Sau = SauNhan; Close(); }), (XinVayView.VeHomNay, null, Close)));
         Xong();
     }
 
@@ -234,17 +240,21 @@ internal sealed class XinVayForm : HopKhayCoBan
         var the = KhoiApp.The(W + VeThe.LeBong.Horizontal, vang: true, le: 16);
         the.Margin = new Padding(0, 0, 0, UI.Px(10));
         var r = KhoiApp.TrongThe(W + VeThe.LeBong.Horizontal, 16);
-        the.Controls.Add(KhoiApp.DauThe("sao", SaoDungView.ConDangCo, _sao != null ? SaoView.SoDu(_sao.Sao) : "…", Clay.DiemInk, 22f, r, Clay.DiemInk, Clay.DiemSoft));
-        if (_sao != null) the.Controls.Add(UI.Text(SaoDungView.BangPhut(_sao.PhutCon), 11f, true, Clay.DiemInk, r));
+        // Bàn them-a7sh10qs: «Con đang có / 18 sao» bên trái, «= 18 phút chơi» cùng hàng bên phải
+        var hangSo = KhoiCon.Hang();
+        var dauSo = KhoiApp.DauThe("sao", SaoDungView.ConDangCo, _sao != null ? SaoView.SoDu(_sao.Sao) : "…", Clay.DiemInk, 22f, r * 3 / 5, Clay.DiemInk, Clay.DiemSoft);
+        hangSo.Controls.Add(dauSo);
+        if (_sao != null)
+        {
+            var bang = UI.Text(SaoDungView.BangPhut(_sao.PhutCon), 11f, true, Clay.DiemInk, r * 2 / 5);
+            bang.Margin = new Padding(UI.Px(4), Math.Max(0, (dauSo.PreferredSize.Height - bang.PreferredHeight) / 2), 0, 0);
+            hangSo.Controls.Add(bang);
+        }
+        the.Controls.Add(hangSo);
         if (_sao != null && SaoView.No(_sao.No) is { } no) the.Controls.Add(UI.Text(no, 10f, true, Clay.Canh, r));
         Flow.Controls.Add(the);
         foreach (var (icon, tieu, phu) in SaoDungView.Dong(AppDs.AppTinh, AppDs.AppKhong))
-        {
-            var d = KhoiCon.DongIcon(icon, tieu, W);
-            Flow.Controls.Add(d);
-            var p = UI.Text(phu, 10f, false, UI.Muted, W); p.Margin = new Padding(UI.Px(30), 0, 0, UI.Px(6));
-            Flow.Controls.Add(p);
-        }
+            Flow.Controls.Add(KhoiThietKe.Dong(icon, tieu, phu, W, false, 40, 10.5f));
         var lam = KhoiCon.Nut(SaoDungView.LamNhiemVu, true, W, "tick");
         lam.Click += (_, _) => { Sau = SauNhiemVu; Close(); };
         Flow.Controls.Add(lam);

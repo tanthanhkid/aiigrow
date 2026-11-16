@@ -130,6 +130,21 @@ internal static class ChupMain
         await Mot("xin-vay-ba-me-cho", () => ManHop("xin-vay-ba-me-cho", () => HopXinVay(false, f => f.VeDuoc("Mẹ Lan", "Chơi xong nhớ làm việc nhà trả nợ nhé!", 15, new HvSao { Sao = 0, No = 15, PhutCon = 15 }))));
         await Mot("xin-vay-chua-cho", () => ManHop("xin-vay-chua-cho", () => HopXinVay(false, f => f.VeChuaCho("Mẹ Lan", "Hôm nay đủ rồi con, mai chơi tiếp nhé.", new HvSao()))));
         await Mot("sao-dung-the-nao", () => ManHop("sao-dung-the-nao", () => HopXinVay(true, null)));
+        // #307 con-xin: «Xin thêm YouTube» (them-bxw40sw9) → Đã gửi (them-6tn8aozf) → Mẹ Lan đã thêm (them-359v1pre) / chưa thêm (them-vkdikuo0)
+        await Mot("xin-them", () => ManHop("xin-them", () => new XinThemForm("youtube.exe", null, 18)));
+        await Mot("xin-them-da-gui", () => ManHop("xin-them-da-gui", () => { var f = new XinThemForm("youtube.exe", null, 18); f.VeDaGui(); return f; }));
+        await Mot("xin-them-ba-me-them", () => ManHop("xin-them-ba-me-them", () =>
+        {
+            var f = new XinThemForm("youtube.exe", null, 18);
+            f.VeKetQua(KetQuaXinView.Loai.DaThem, new RequestStatus { KetQua = "da_them", Nhom = "tinh_phut", TenNguoiDuyet = "Mẹ Lan", LoiNhan = "Xem xong thì nghỉ mắt nhé con." });
+            return f;
+        }));
+        await Mot("xin-them-chua-them", () => ManHop("xin-them-chua-them", () =>
+        {
+            var f = new XinThemForm("youtube.exe", null, 18);
+            f.VeKetQua(KetQuaXinView.Loai.ChuaThem, new RequestStatus { KetQua = "chua_them", TenNguoiDuyet = "Mẹ Lan", LoiNhan = "Con xem YouTube Kids trước nha." });
+            return f;
+        }));
         // Nộp bài (con-ngay-thuong 05 / 07 / 14)
         await Mot("nop-anh", () => ManHop("nop-anh", () => new NopBaiForm(NhiemVuMoi()[3])));
         await Mot("nop-ghi-am", () => ManHop("nop-ghi-am", () => new NopBaiForm(NhiemVuMoi()[1])));

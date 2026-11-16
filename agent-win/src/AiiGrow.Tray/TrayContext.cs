@@ -266,7 +266,7 @@ internal sealed class TrayContext : ApplicationContext
                 if (_bat.Nhan(HocVienView.CoNhiemVuMoi(moi), _state.Locked, AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now))
                     OpenApp(MucApp.NhiemVu, tuBat: true);
                 // 05/11: Ba Mẹ duyệt / nhờ làm lại / trao quà / cho thêm giờ ⇒ màn kết quả (con-ngay-thuong 09/11/12/26) — không khi máy khoá / Con đang toàn màn hình
-                else if (AppConView.ChonKetQua(moi) is { } kq && !_state.Locked && !UI.DangBanToanManHinh() && !(kq.Loai is "da_them" or "chua_them" && _blocked is { IsDisposed: false }))
+                else if (AppConView.ChonKetQua(moi) is { } kq && !_state.Locked && !UI.DangBanToanManHinh() && !(kq.Loai is "da_them" or "chua_them" && (_blocked is { IsDisposed: false } || _xinThem is { IsDisposed: false })))
                     _ = HienKetQuaAsync(kq);
             }
             PushApp();
@@ -807,12 +807,36 @@ internal sealed class TrayContext : ApplicationContext
             _blocked.Show();
             return;
         }
+        // #307: Con đang ở hộp «Xin thêm …» cho đúng app này ⇒ đưa hộp lên trước, không chồng màn chặn mới
+        if (id != null && _xinThem is { IsDisposed: false } dangXin && string.Equals(dangXin.Muc, id.Trim(), StringComparison.OrdinalIgnoreCase)) { dangXin.Activate(); return; }
         if (ManChanView.TuGui(id, _state.BlockedBoiBaMe, _state.Offline, daXin)) _soTuGui++;
         _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep, daXin: daXin, appTinhPhut: _state.AppTinhPhut, phutCon: _state.QuyConPhut);
         _blocked.VeHomNay += () => OpenApp(MucApp.HomNay);
         _blocked.NhanBaMe += () => OpenApp(MucApp.TinNhan);
         _blocked.DaXin += x => _daXin.Add(x);
+        // #307: mở hộp «Xin thêm …» SAU khi màn chặn đã đóng hẳn (không lồng trong Click của form vừa đóng)
+        _blocked.XinThem += (m, t) => { var sc = SynchronizationContext.Current; if (sc != null) sc.Post(_ => OpenXinThem(m, t), null); else OpenXinThem(m, t); };
         _blocked.Show();
+    }
+
+    /// <summary>16/11 (#307): «Xin thêm …» (them-bxw40sw9 → them-6tn8aozf → them-359v1pre / them-vkdikuo0).</summary>
+    private XinThemForm? _xinThem;
+
+    private void OpenXinThem(string muc, string ten)
+    {
+        if (_xinThem is { IsDisposed: false } cu) { cu.Activate(); return; }   // một hộp một lúc
+        var f = new XinThemForm(muc, ten, _state.QuyConPhut);
+        _xinThem = f;
+        f.DaXin += x => _daXin.Add(x);
+        f.FormClosed += (_, _) =>
+        {
+            var sau = f.Sau;
+            if (_xinThem == f) _xinThem = null;
+            f.Dispose();
+            if (sau == XinThemForm.SauNhan) OpenApp(MucApp.TinNhan);
+            else if (sau == XinThemForm.SauHomNay) OpenApp(MucApp.HomNay);
+        };
+        f.Show();
     }
 
     private void HandleWarnings()
