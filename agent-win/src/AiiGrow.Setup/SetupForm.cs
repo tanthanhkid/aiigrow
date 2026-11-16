@@ -253,8 +253,11 @@ internal sealed class SetupForm : Form
     private Label XGiua(Control cha, int x, int y, int cao, string text, Kieu k, int rong)
     {
         var l = X(cha, x, y, text, k, rong);
-        var h = (int)Math.Round(l.PreferredSize.Height / (double)S(1));
-        l.Location = ToaDo(cha, x, y + Math.Max(0, (cao - h) / 2));
+        // đo một lần bằng TextRenderer (cùng bộ vẽ với Label, giới hạn rộng như MaximumSize), tính bằng pixel so với S(cao) — không chia S(1) làm tròn nên không lệch ở DPI lẻ.
+        // Form chạy SystemAware (csproj) ⇒ DPI cố định từ lúc mở, không cần tự cập nhật khi đổi DPI giữa chừng.
+        var h = TextRenderer.MeasureText(text, l.Font, new Size(S(rong), int.MaxValue), TextFormatFlags.WordBreak | TextFormatFlags.NoPrefix).Height;
+        var p = ToaDo(cha, x, y);
+        l.Location = new Point(p.X, p.Y + Math.Max(0, (S(cao) - h) / 2));
         return l;
     }
 
@@ -342,7 +345,7 @@ internal sealed class SetupForm : Form
     /// <summary>Nút chính: lề phải 34px như thiết kế (left = 687 − w).</summary>
     private ClayButton NutChinh(string text, int w, Action bam) => NutChan(text, 687 - w, w, true, bam);
     // bàn: «‹ Quay lại» (mũi tên trái trước chữ); «Để sau» không có mũi tên
-    private ClayButton NutLui(Action bam, string text = "Quay lại") => NutChan(text == "Quay lại" ? "‹  Quay lại" : text, 36, 132, false, bam);
+    private ClayButton NutLui(Action bam, string text = "‹  Quay lại") => NutChan(text, 36, 132, false, bam);
 
     /// <summary>Sang một màn: xoá thân + chân, đặt thanh bước.</summary>
     private void Man(int buoc, string ten, bool daiNgoc = false)
@@ -870,16 +873,17 @@ internal sealed class SetupForm : Form
     {
         // 06/11 (L13 — con-cai-win 12): máy dùng chung cho cả nhà — cài xong máy chuyển sang tài khoản Con và khoá lại, các bé chọn tên + PIN
         Man(6, "Xong", daiNgoc: true);
+        var ten = string.IsNullOrWhiteSpace(tenHoSo) ? "con" : tenHoSo!;   // mayRieng chỉ khi có tên (nơi gọi đã chặn), «con» là dự phòng không để null lọt vào chuỗi
         Rob("xong", 24, 84, 250, 330);
         var ph = new ClayIcon { Size = new Size(S(56), S(56)), MauVien = Color.Transparent, Hinh = Anh3D.Icon("phao_hoa"), Location = ToaDo(_body, 206, 84) };
         _body.Controls.Add(ph);
         // #267: máy riêng một bé không nói «cả nhà» / «mỗi bé chọn tên + PIN»; máy cả nhà giữ nguyên
-        X(_body, 290, 80, mayRieng ? "Máy của " + tenHoSo + "\nđã sẵn sàng!" : "Máy đã sẵn sàng\ncho cả nhà!", Kieu.H30, 400);
+        X(_body, 290, 80, mayRieng ? "Máy của " + ten + "\nđã sẵn sàng!" : "Máy đã sẵn sàng\ncho cả nhà!", Kieu.H30, 400);
         X(_body, 290, 164, mayRieng ? "Con mở máy là vào thẳng." : "Mỗi bé vào máy bằng tên + PIN 4 số.", Kieu.P, 400);
         foreach (var (y, icon, tieu, phu) in new[]
                  {
-                     (206, "lich", mayRieng ? "Sao chơi tính cho " + tenHoSo : "Phút chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
-                     (284, "nguoi", mayRieng ? "Máy riêng của con" : string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, mayRieng ? "Chỉ " + tenHoSo + " dùng máy này" : "PIN do Ba Mẹ đặt trong app"),
+                     (206, "lich", mayRieng ? "Sao chơi tính cho " + ten : "Phút chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
+                     (284, "nguoi", mayRieng ? "Máy riêng của con" : string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, mayRieng ? "Chỉ " + ten + " dùng máy này" : "PIN do Ba Mẹ đặt trong app"),
                      (362, "khoa", "Mở app, web theo danh sách Ba Mẹ", "App mới thì bấm xin Ba Mẹ"),
                  })
         {
@@ -888,7 +892,7 @@ internal sealed class SetupForm : Form
             X(the, 374, y + 12, tieu, Kieu.B, 300);
             X(the, 374, y + 36, phu, Kieu.S, 300);
         }
-        X(_body, 36, 556, mayRieng ? $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: con mở máy là vào thẳng." : $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
+        X(_body, 36, 556, mayRieng ? $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại." : $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
         NutLui(Close, "Để sau");
         // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở. Vào tài khoản Con ⇒ AiiGrow hiện «Ai đang dùng máy?».
         NutChinh(mayRieng ? "Khoá máy" : "Mở màn chọn tên", mayRieng ? 200 : 250, () => LockWorkStation());
