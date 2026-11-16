@@ -348,7 +348,7 @@ public static class DangNhapView
     // ------------------------------------------------------------------ chữ trên màn
 
     public static string ChanTrang(string? tenCon) => string.IsNullOrWhiteSpace(tenCon)
-        ? "AiiGrow · Máy tính của cả nhà · máy do Ba Mẹ quản lý"
+        ? "AiiGrow · Máy tính này · máy do Ba Mẹ quản lý"
         : "AiiGrow · " + tenCon.Trim() + " · máy do Ba Mẹ quản lý";
 
     /// <summary>Chữ cái đầu trên viên ảnh bé («Bảo Anh» ⇒ «B», «Bảo Minh» ⇒ «M» khi trùng chữ đầu với bé trước).</summary>

@@ -88,7 +88,7 @@ public sealed class MoTamOffline
         if (WrongAt.Count > 50) WrongAt.RemoveRange(0, WrongAt.Count - 50);
     }
 
-    /// <summary>Câu trả lời cho Con (không nhắc điểm/số dư).</summary>
+    /// <summary>Câu trả lời cho Con (không nhắc sao/số dư).</summary>
     public string Cau(KetQuaMoOffline kq, DateTimeOffset now) => kq switch
     {
         KetQuaMoOffline.DaMo => $"Đã mở {Math.Max(1, (int)Math.Round((UnlockUntil!.Value - now).TotalMinutes))} phút (tới {UnlockUntil!.Value.ToLocalTime():HH:mm}). Chơi vui nhé!",

@@ -30,7 +30,11 @@ public static class SaoView
     public static string ConPhutNgan(double? phutCon) { var p = Phut(phutCon); return $"Còn {p} sao = {p} phút"; }
 
     /// <summary>«Đang nợ Ba Mẹ 15 sao · sao nhiệm vụ trả nợ trước»; không nợ ⇒ null.</summary>
-    public static string? No(int no) => no > 0 ? $"Đang nợ Ba Mẹ {no} sao · sao nhiệm vụ trả nợ trước" : null;
+    public static string? No(int no) => no > 0 ? $"Đang nợ Ba Mẹ {no} sao · {TraNoTruoc}" : null;
+
+    /// <summary>Câu chung «sao nhiệm vụ trả nợ trước» (viết thường, nối sau dấu «·»); <see cref="TraNoTruocHoa"/> = đầu câu.</summary>
+    public const string TraNoTruoc = "sao nhiệm vụ trả nợ trước";
+    public const string TraNoTruocHoa = "Sao nhiệm vụ trả nợ trước";
 
     /// <summary>«Hôm nay đã chơi 42 phút · −42 sao» (+ «· mất mạng vẫn trừ»).</summary>
     public static string DaChoi(int phut, bool matMang = false)

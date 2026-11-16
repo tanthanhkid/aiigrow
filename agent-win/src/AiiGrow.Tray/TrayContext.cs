@@ -236,7 +236,7 @@ internal sealed class TrayContext : ApplicationContext
             if (moi.Count > 0)
             {
                 _tinMoi += moi.Count;
-                var (tieu, noi) = HocVienView.ToastText(moi, _state.No ?? 0);
+                var (tieu, noi) = HocVienView.ToastText(moi, (_state.No ?? 0) > 0);
                 if (_app is { Visible: true }) _ = _app.RefreshAsync();       // app đang mở ⇒ cập nhật luôn, bóng báo vẫn hiện nhẹ
                 Toast(8000, tieu, noi, ToolTipIcon.Info, HocVienView.MucChoTin(moi));
                 // Nhiệm vụ mới ⇒ bật app to ngay mục Nhiệm vụ (đang khoá ⇒ chờ mở khoá; app đang hiện / Con đang toàn màn hình / vừa bật ⇒ chỉ bóng báo)

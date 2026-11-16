@@ -29,10 +29,10 @@ public static class BlockScreenView
     };
 
     /// <summary>
-    /// Nút «Dùng điểm để chơi» luôn hiện khi máy chủ cho phép đổi điểm (BUG-006) — trừ khi Ba Mẹ khoá máy.
+    /// Nút «Dùng sao để chơi» luôn hiện khi máy chủ cho phép đổi sao (BUG-006) — trừ khi Ba Mẹ khoá máy.
     /// Ngoài giờ / giờ ngủ: máy chủ (phien/xet) quyết định và trả lời bằng lời; màn chặn chỉ hiển thị câu đó.
     /// </summary>
-    /// <param name="appId">App vừa bị chặn: công cụ của Windows (cmd, taskmgr…) không bao giờ là app Giải trí ⇒ không mời «dùng điểm» (phien/xet luôn từ chối).</param>
+    /// <param name="appId">App vừa bị chặn: công cụ của Windows (cmd, taskmgr…) không bao giờ là app Giải trí ⇒ không mời «dùng sao» (phien/xet luôn từ chối).</param>
     /// <param name="offline">Mất mạng ⇒ phien/xet không gọi được ⇒ không mời.</param>
     public static bool CanUsePoints(string? reason, bool canExchangePoints, string? appId = null, bool offline = false)
         => canExchangePoints && reason != LockReasons.Khoa && !offline && !(appId != null && LaCongCuWindows(appId));
@@ -47,7 +47,7 @@ public static class BlockScreenView
     public const string AskOpenLabel = "Xin mở hẳn app này";
 
     /// <summary>Nút «Xin mở hẳn app này» trên màn chặn: chỉ khi app bị chặn vì LUẬT (chưa phân loại / Ba Mẹ chặn) — Ba Mẹ đồng ý thì máy chủ đổi luật cho app đó.
-    /// Ngoài giờ, giờ ngủ, hết điểm, máy đang khoá: đổi luật không mở được ⇒ không mời (Con xin thêm giờ / dùng điểm). Không mời với công cụ của Windows.</summary>
+    /// Ngoài giờ, giờ ngủ, hết sao, máy đang khoá: đổi luật không mở được ⇒ không mời (Con xin thêm giờ / dùng sao). Không mời với công cụ của Windows.</summary>
     public static bool CanAskOpen(string? appId, string? reason = null)
     {
         var t = (appId ?? "").Trim();

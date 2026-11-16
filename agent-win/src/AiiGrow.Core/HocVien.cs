@@ -309,26 +309,25 @@ public static class HocVienView
         _ => $"Đã đổi «{tenQua}». Nhờ Ba Mẹ trao quà cho con nhé!",
     };
 
-    /// <param name="no">Số sao Con đang nợ Ba Mẹ (0 = không nợ): đang nợ thì sao nhiệm vụ trả nợ trước (#263).</param>
-    public static string NopThongBao(HvNopKq r, int no = 0) => r.TrangThai switch
+    /// <param name="dangNo">Con đang nợ Ba Mẹ: sao nhiệm vụ trả nợ trước (#263). Máy chủ không trả số nợ trong kết quả nộp ⇒ không ghi con số.</param>
+    public static string NopThongBao(HvNopKq r, bool dangNo = false) => r.TrangThai switch
     {
-        "duoc_duyet" => no > 0 ? $"Xong rồi! Sao nhiệm vụ trả nợ trước, con còn nợ {no} sao." : "Xong rồi! Sao đã vào ví.",
+        "duoc_duyet" => dangNo ? "Xong rồi! " + SaoView.TraNoTruocHoa + "." : "Xong rồi! Sao đã vào ví.",
         _ => r.NghiTrung ? "Đã nộp. Ảnh này giống ảnh con từng nộp, Ba Mẹ sẽ xem kỹ nhé." : "Đã nộp cho Ba Mẹ. Chờ Ba Mẹ duyệt nhé!",
     };
 
     /// <summary>Gộp nhiều tin mới thành MỘT toast: (tiêu đề, nội dung). Ít nhất một tin.</summary>
-    /// <param name="no">Số sao Con còn nợ Ba Mẹ: Ba Mẹ duyệt nhiệm vụ lúc Con đang nợ ⇒ thêm «Sao nhiệm vụ trả nợ trước · còn nợ N sao» (#263).</param>
-    public static (string Tieu, string Noi) ToastText(IReadOnlyList<HvTin> moi, int no = 0)
+    /// <param name="dangNo">Con đang nợ Ba Mẹ: có tin duyệt nhiệm vụ (Ba Mẹ duyệt / tự cộng sao) ⇒ thêm «Sao nhiệm vụ trả nợ trước» (#263). Tin không mang số nợ ⇒ không ghi con số.</param>
+    public static (string Tieu, string Noi) ToastText(IReadOnlyList<HvTin> moi, bool dangNo = false)
     {
-        if (moi.Count == 1)
-        {
-            var noi = moi[0].Noi;
-            if (no > 0 && moi[0].Loai == "duyet_nhiem_vu") noi += $" · Sao nhiệm vụ trả nợ trước, còn nợ {no} sao";
-            return (Cat(moi[0].Tieu, 60), Cat(noi, 180));
-        }
+        var them = dangNo && moi.Any(LaTinDuyet) ? " · " + SaoView.TraNoTruocHoa : "";
+        if (moi.Count == 1) return (Cat(moi[0].Tieu, 60), Cat(moi[0].Noi, 180 - them.Length) + them);
         var dau = moi.Take(3).Select(t => t.Tieu).Distinct();
-        return ($"Có {moi.Count} tin mới", Cat(string.Join(" · ", dau), 180));
+        return ($"Có {moi.Count} tin mới", Cat(string.Join(" · ", dau), 180 - them.Length) + them);
     }
+
+    /// <summary>Tin Ba Mẹ duyệt nhiệm vụ hoặc nhiệm vụ tự cộng sao — sao cộng vào ví, đang nợ thì trả nợ trước.</summary>
+    public static bool LaTinDuyet(HvTin t) => t.Loai is "duyet_nhiem_vu" or "tu_duyet_nhiem_vu";
 
     /// <summary>Bấm vào toast ⇒ mở app to đúng mục: tin về nhiệm vụ → Nhiệm vụ, quà / huy hiệu → Phần quà, lời khen → Tin nhắn;
     /// nhiều loại lẫn nhau ⇒ Tin nhắn (hộp thư liệt kê hết).</summary>

@@ -136,11 +136,11 @@ public sealed class ApiClient : IDisposable
     public Task<RequestResult> XinDuyetAsync(string muc, string? ten, string? lyDo, CancellationToken ct = default)
         => PostAsync<RequestResult>("api/device/xin-duyet", new { muc, ten, lyDo = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo!.Trim() }, ct);
 
-    /// <summary>Xét trước «Dùng điểm để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
+    /// <summary>Xét trước «Dùng sao để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
     public Task<PlayCheck> CheckPlayAsync(string muc, CancellationToken ct = default)
         => PostAsync<PlayCheck>("api/device/phien/xet", new { muc }, ct);
 
-    /// <summary>Mở phiên chơi bằng điểm (POST phien/mo) sau khi phien/xet trả "được".</summary>
+    /// <summary>Mở phiên chơi bằng sao (POST phien/mo) sau khi phien/xet trả "được".</summary>
     public Task<PlayOpen> OpenPlayAsync(string muc, CancellationToken ct = default)
         => PostAsync<PlayOpen>("api/device/phien/mo", new { muc }, ct);
 

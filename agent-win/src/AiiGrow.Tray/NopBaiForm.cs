@@ -31,10 +31,12 @@ internal sealed class NopBaiForm : HopKhayCoBan
 
     /// <summary>Kết quả sau khi nộp (null nếu chưa nộp).</summary>
     public HvNopKq? Ket { get; private set; }
+    private readonly bool _dangNo;   // Con đang nợ Ba Mẹ ⇒ sao nhiệm vụ trả nợ trước (#263)
 
-    public NopBaiForm(HvNhiemVu nv) : base("AiiGrow · Nộp bài", UI.Px(425))
+    public NopBaiForm(HvNhiemVu nv, bool dangNo = false) : base("AiiGrow · Nộp bài", UI.Px(425))
     {
         _nv = nv;
+        _dangNo = dangNo;
         _theViet = nv.BangChung is "van_ban" or "viet";
         Text = "AiiGrow · " + TieuCuaSo();
         _note.PlaceholderText = nv.BangChung is "van_ban" or "viet" ? "Con viết vài câu kể lại nhé" : "Viết cho Ba Mẹ (nếu cần)";
@@ -376,7 +378,7 @@ internal sealed class NopBaiForm : HopKhayCoBan
         var choMang = kq.TrangThai == "cho_mang";   // mất mạng: dịch vụ đã lưu bài, có mạng tự gửi (L11)
         Flow.Controls.Add(KhoiCon.Dau(tuDuyet ? "phao_hoa" : choMang ? "wifi" : "gui", tuDuyet ? KhoiCon.Mau.Vang : choMang ? KhoiCon.Mau.Cam : KhoiCon.Mau.Ngoc,
             tuDuyet ? "Xong rồi!" : choMang ? "Đã lưu bài của con" : "Đã nộp cho Ba Mẹ",
-            tuDuyet ? "Sao đã vào ví của con" : choMang ? "Có mạng là AiiGrow gửi Ba Mẹ ngay. Không cần nộp lại đâu." : "Chờ Ba Mẹ xem…", W));
+            tuDuyet ? (_dangNo ? SaoView.TraNoTruocHoa : "Sao đã vào ví của con") : choMang ? "Có mạng là AiiGrow gửi Ba Mẹ ngay. Không cần nộp lại đâu." : "Chờ Ba Mẹ xem…", W));
         var phu = _nv.BangChung switch
         {
             "ghi_am" => _ghiAm != null && !_theViet ? "ghi âm " + DongHo(_doDai) : "bài viết",

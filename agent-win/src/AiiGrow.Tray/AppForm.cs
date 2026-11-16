@@ -748,7 +748,7 @@ internal sealed class AppForm : Form
             nv.Luot = kq.Luot;
         }
         Say("", false);
-        using var f = new NopBaiForm(nv);
+        using var f = new NopBaiForm(nv, NoHienTai() > 0);
         var kqNop = f.ShowDialog(this);
         if (kqNop == DialogResult.OK || f.Ket != null) await RefreshAsync();
     }

@@ -301,7 +301,7 @@ public class DangNhapMayTests
     public void Chan_trang_theo_be_hoac_ca_nha()
     {
         Assert.Equal("AiiGrow · Bảo Anh · máy do Ba Mẹ quản lý", ManKhoaView.ChanTrang("Bảo Anh"));
-        Assert.Equal("AiiGrow · Máy tính của cả nhà · máy do Ba Mẹ quản lý", DangNhapView.ChanTrang(null));
+        Assert.Equal("AiiGrow · Máy tính này · máy do Ba Mẹ quản lý", DangNhapView.ChanTrang(null));
     }
 
     [Fact]

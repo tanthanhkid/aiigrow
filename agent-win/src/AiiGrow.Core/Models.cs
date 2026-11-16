@@ -44,7 +44,7 @@ public static class LockReasons
     public const string Khoa = "khoa";
     public const string Ngu = "ngu";
     public const string HetGio = "het_gio";
-    /// <summary>Màn chặn giải trí: hết điểm để mở phiên chơi.</summary>
+    /// <summary>Màn chặn giải trí: hết sao để mở phiên chơi.</summary>
     public const string HetDiem = "het_diem";
     /// <summary>Màn chặn giải trí: app chưa được Ba Mẹ phân loại nên chưa cho mở.</summary>
     public const string ChuaPhanLoai = "chua_phan_loai";
@@ -71,7 +71,7 @@ public sealed class Policy
     /// <summary>AiiGrow: chế độ Ba Mẹ chọn trên app (dong-bo.windows.cheDo) — «giam-sat» | «chan»; null = Ba Mẹ chưa chọn (giữ chế độ cục bộ).
     /// Có giá trị thì THẮNG <see cref="AgentConfig.CheDo"/> (xem <see cref="CheDoHieuLuc"/>). Đang có lệnh gỡ ⇒ máy chủ luôn gửi giam-sat.</summary>
     public string? CheDo { get; set; }
-    /// <summary>AiiGrow 0.2.4: phiên chơi bằng điểm đang chạy (dong-bo.windows.playSessionId) — chỉ có khi agent đang cho chạy app chơi.
+    /// <summary>AiiGrow 0.2.4: phiên chơi bằng sao đang chạy (dong-bo.windows.playSessionId) — chỉ có khi agent đang cho chạy app chơi.
     /// Dùng khi MẤT MẠNG (BRD 6.7, <see cref="PhienOffline"/>): đếm phút chơi, vượt <see cref="PlayOfflineMinutes"/> ⇒ tự bỏ app chơi.</summary>
     [JsonConverter(typeof(FlexStringConverter))]
     public string? PlaySessionId { get; set; }
@@ -81,7 +81,7 @@ public sealed class Policy
     public bool PlayWeb { get; set; }
     /// <summary>Số phút tối đa được chơi tiếp khi mất mạng (máy chủ tính từ phút còn lại của phiên, số dư, phút thưởng, giá phiên).</summary>
     public double? PlayOfflineMinutes { get; set; }
-    /// <summary>0.2.6: app / trang Giải trí Ba Mẹ đã xếp (chữ thường: .exe hoặc tên miền) — Grow cho Con chọn khi bấm «Chơi bằng điểm» (máy chủ: windows.playChoices).</summary>
+    /// <summary>0.2.6: app / trang Giải trí Ba Mẹ đã xếp (chữ thường: .exe hoặc tên miền) — Grow cho Con chọn khi bấm «Chơi bằng sao» (máy chủ: windows.playChoices).</summary>
     public List<string> PlayChoices { get; set; } = new();
     /// <summary>25/10: app Ba Mẹ đặt «Chặn» kèm định danh thật của máy này (dong-bo.windows.blockedApps — ChanAppThat.cs). Áp khi «chan», mọi mode.</summary>
     public List<AppBiChan> BlockedApps { get; set; } = new();
@@ -192,8 +192,8 @@ public sealed class PairResult
     public string Token { get; set; } = "";
     public string ChildName { get; set; } = "";
     public string? Server { get; set; }
-    /// <summary>AiiGrow (thêm): máy dùng chung (Con chọn hồ sơ + PIN).</summary>
-    public bool DungChung { get; set; }
+    /// <summary>AiiGrow (thêm): máy dùng chung (Con chọn hồ sơ + PIN). null = máy chủ không trả ⇒ KHÔNG coi là máy riêng.</summary>
+    public bool? DungChung { get; set; }
 }
 
 public sealed class RequestResult
@@ -227,15 +227,15 @@ public sealed class MoTamYc
     public int Phut { get; set; }
 }
 
-/// <summary>Kết quả xét trước «Dùng điểm để chơi?» (POST phien/xet). KHÔNG mang số điểm/số dư sang khay — chỉ "được / không" + câu nhắc.</summary>
+/// <summary>Kết quả xét trước «Dùng sao để chơi?» (POST phien/xet). KHÔNG mang số sao/số dư sang khay — chỉ "được / không" + câu nhắc.</summary>
 public sealed class PlayCheck
 {
     public bool Duoc { get; set; }
     public string? LyDo { get; set; }
     /// <summary>Câu hiển thị cho con (do máy chủ soạn).</summary>
     public string? Cau { get; set; }
-    /// <summary>Số phút tối đa mở được lúc này (phien/xet.phutToiDa) — Grow hiện «≈ X phút chơi». Số điểm KHÔNG sang khay.
-    /// Số THỰC: máy chủ cộng phút thưởng (real) nên có thể lẻ (22.5) — int? thì đọc JSON lỗi ⇒ cả «Dùng điểm để chơi» hỏng (review #75).
+    /// <summary>Số phút tối đa mở được lúc này (phien/xet.phutToiDa) — Grow hiện «≈ X phút chơi». Số sao KHÔNG sang khay.
+    /// Số THỰC: máy chủ cộng phút thưởng (real) nên có thể lẻ (22.5) — int? thì đọc JSON lỗi ⇒ cả «Dùng sao để chơi» hỏng (review #75).
     /// Hiển thị bằng <see cref="PhutHienThi"/>.</summary>
     public double? PhutToiDa { get; set; }
     /// <summary>Số phút làm tròn xuống để hiện cho Con (không hứa hơn máy chủ cho).</summary>
@@ -271,8 +271,8 @@ public sealed class AgentConfig
     public string ChildSid { get; set; } = "";
     public string? LastPolicyJson { get; set; }
     public DateTimeOffset? LastPolicyAt { get; set; }
-    /// <summary>AiiGrow (thêm): máy dùng chung (Con chọn hồ sơ + PIN khi vào).</summary>
-    public bool DungChung { get; set; }
+    /// <summary>AiiGrow (thêm): máy dùng chung (Con chọn hồ sơ + PIN khi vào). null = chưa biết (không coi là máy riêng).</summary>
+    public bool? DungChung { get; set; }
     /// <summary>AiiGrow (thêm): chế độ chạy của agent trên máy con.
     /// <see cref="CheDoAgent.GiamSat"/> (mặc định) = chỉ GHI LOG việc SẼ chặn/khoá, KHÔNG áp AppLocker, KHÔNG đóng app, KHÔNG ngắt phiên — để phụ huynh thử an toàn.
     /// <see cref="CheDoAgent.Chan"/> = áp thật (AppLocker + đóng app ngoài danh sách + khoá ngoài giờ).</summary>
