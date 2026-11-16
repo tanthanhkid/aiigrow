@@ -27,7 +27,19 @@ data class Lenh(val id: String, val loai: String)
 
 /** 15/11 (#263/#264 — docs/API.md «Sổ sao 15/11»): sổ sao của bé đang dùng máy. `sao` = số dư Con thấy (ÂM khi nợ Ba Mẹ),
  *  `phutCon` = sao tiêu được = phút «Tính phút» còn chơi (1 sao = 1 phút), `hetSao` ⇒ khoá nhóm «Tính phút». */
-data class Sao(val sao: Int, val no: Int, val phutCon: Int, val hetSao: Boolean = phutCon <= 0)
+data class Sao(
+    val sao: Int, val no: Int, val phutCon: Int, val hetSao: Boolean = phutCon <= 0,
+    /** 16/11 #302: sao thật tiêu được (phutCon đã kẹp theo giới hạn giờ chơi); null = máy chủ cũ ⇒ coi như phutCon. */
+    val saoTieuDuoc: Int? = null,
+)
+
+/** 16/11 #302 mục 4 «Giờ chơi» (`gioiHan` trong Policy): tối đa mỗi ngày + mỗi lượt rồi nghỉ. null = máy chủ cũ ⇒ không đổi gì. */
+data class GioiHan(
+    val apDung: Boolean, val conNgay: Int?, val lyDoKhoa: String?, val nghiDen: Instant?, val nghiDenGio: String?, val cau: String?,
+)
+
+const val KHOA_HET_NGAY = "het_gio_ngay"
+const val KHOA_DANG_NGHI = "dang_nghi"
 
 data class ChinhSach(
     val tz: String = "Asia/Ho_Chi_Minh",
@@ -53,6 +65,8 @@ data class ChinhSach(
     // ---- 15/11 (máy chủ cũ không gửi ⇒ null ⇒ chạy luật quỹ / luật cũ)
     /** Sổ sao (`chinhSach.sao`); null = máy chủ cũ hoặc máy dùng chung chưa chọn bé. */
     val sao: Sao? = null,
+    /** Giới hạn giờ chơi (`chinhSach.gioiHan`); null = máy chủ cũ. */
+    val gioiHan: GioiHan? = null,
     /** #262 `ungDung.cheDo`: `theo_danh_sach` | `mo_het`; null = máy chủ trước App & web 15/11 (khi đó «mo_het» cũ vẫn tính phút). */
     val cheDo: String? = null,
 ) {
@@ -136,6 +150,7 @@ fun docChinhSach(o: JSONObject): ChinhSach {
         cauTuanThuCon = cauCon,
         chuaXepChoPhep = u.optString("chuaXep") == "cho_phep",
         sao = docSao(o.optJSONObject("sao")),
+        gioiHan = docGioiHan(o.optJSONObject("gioiHan")),
         cheDo = u.chuoi("cheDo")?.takeIf { it == "mo_het" || it == "theo_danh_sach" },
     )
 }
@@ -144,7 +159,36 @@ fun docChinhSach(o: JSONObject): ChinhSach {
 fun docSao(o: JSONObject?): Sao? {
     if (o == null || !o.has("sao") || !o.has("phutCon")) return null
     val phut = o.optInt("phutCon", 0).coerceAtLeast(0)
-    return Sao(o.optInt("sao", 0), o.optInt("no", 0).coerceAtLeast(0), phut, if (o.has("hetSao")) o.optBoolean("hetSao") else phut <= 0)
+    return Sao(o.optInt("sao", 0), o.optInt("no", 0).coerceAtLeast(0), phut, if (o.has("hetSao")) o.optBoolean("hetSao") else phut <= 0,
+        if (o.has("saoTieuDuoc") && !o.isNull("saoTieuDuoc")) o.optInt("saoTieuDuoc").coerceAtLeast(0) else null)
+}
+
+/** `gioiHan {apDung, conNgay, lyDoKhoa, nghiDen, nghiDenGio, cau, …}`; thiếu / null ⇒ null (máy chủ cũ). */
+fun docGioiHan(o: JSONObject?): GioiHan? {
+    if (o == null) return null
+    fun chuoiOpt(k: String) = if (o.isNull(k)) null else o.optString(k).ifBlank { null }
+    return GioiHan(
+        apDung = o.optBoolean("apDung", false),
+        conNgay = if (o.has("conNgay") && !o.isNull("conNgay")) o.optInt("conNgay").coerceAtLeast(0) else null,
+        lyDoKhoa = chuoiOpt("lyDoKhoa")?.takeIf { it == KHOA_HET_NGAY || it == KHOA_DANG_NGHI },
+        nghiDen = chuoiOpt("nghiDen")?.let { try { Instant.parse(it) } catch (_: Exception) { null } },
+        nghiDenGio = chuoiOpt("nghiDenGio"),
+        cau = chuoiOpt("cau"),
+    )
+}
+
+/** Câu màn khoá khi khoá vì giới hạn giờ chơi (không nói «hết sao»). null = không phải khoá vì giới hạn. */
+fun cauKhoaGioiHan(g: GioiHan?): String? = when (g?.lyDoKhoa) {
+    KHOA_DANG_NGHI -> "Nghỉ một chút" + (g.nghiDenGio?.let { " · chơi tiếp lúc $it" } ?: "")
+    KHOA_HET_NGAY -> g.cau ?: "Hôm nay chơi đủ rồi — mai chơi tiếp nhé"
+    else -> null
+}
+
+/** Tiêu đề màn khoá khi khoá vì giới hạn. */
+fun tieuDeKhoaGioiHan(lyDo: String?): String? = when (lyDo) {
+    KHOA_DANG_NGHI -> "Nghỉ một chút"
+    KHOA_HET_NGAY -> "Hôm nay chơi đủ rồi"
+    else -> null
 }
 
 fun docPhanHoiNhip(s: String): PhanHoiNhip {
