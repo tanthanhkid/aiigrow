@@ -99,8 +99,10 @@ internal sealed partial class LockForm
             if (IsDisposed) return;
             HoSoMay? hs = null;
             if (r.Ok && !string.IsNullOrEmpty(r.Data)) { try { hs = JsonSerializer.Deserialize<HoSoMay>(r.Data, Json.Options); } catch (JsonException) { } }
+            var dauCu = ThayDoi.Bam(_hs, _hsLoi);
             _hs = hs ?? _hs;
             _hsLoi = hs == null ? (r.Error ?? ManChonTenView.ChuaCoDs) : null;
+            var doi = ThayDoi.Bam(_hs, _hsLoi) != dauCu;
             // máy riêng (một bé): bỏ lưới tên và ô PIN, vào thẳng (PIN chỉ dành cho máy chung — #267)
             if (_chonTen && _ct.Buoc == BuocChonTen.ChonTen && _hs is { MayRieng: true, Con.Count: 1 } && _ct.Be == null)
             {
@@ -109,7 +111,8 @@ internal sealed partial class LockForm
                 VeChonTen();
                 return;
             }
-            if (_chonTen && _ct.Buoc == BuocChonTen.ChonTen) VeChonTen();
+            // #308: tải lại mỗi 60 giây mà danh sách tên y nguyên ⇒ KHÔNG dựng lại lưới tên (trước đây cả thẻ nháy mỗi phút)
+            if (doi && _chonTen && _ct.Buoc == BuocChonTen.ChonTen) VeChonTen();
         }
         finally { _dangTaiHs = false; }
     }
@@ -213,6 +216,7 @@ internal sealed partial class LockForm
         }
         HienGocChonTen(_chonTen && _ct.Buoc == BuocChonTen.ChonTen);
         _chan.Text = _chonTen ? DangNhapView.ChanTrang(null) : _chan.Text;
+        using var veMotLan = KhongNhay.DungVe(_center);   // #308
         _center.SuspendLayout();
         if (_khoi != null) { _center.Controls.Remove(_khoi); if (_count.Parent != null) _count.Parent.Controls.Remove(_count); _khoi.Dispose(); }
         _code = null; _demTamKhoa = null; _vong = null;

@@ -62,7 +62,13 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
 
         // Giữ cửa sổ ở trên cùng, nhưng con vẫn mở được hộp xin giờ / ngoại lệ / tin nhắn.
         var keep = new System.Windows.Forms.Timer { Interval = 2000 };
-        keep.Tick += (_, _) => { if (!_allowClose && OwnedForms.Length == 0 && Form.ActiveForm == null) { TopMost = true; Activate(); } };
+        // #308: chỉ kéo lên khi tiêu điểm THẬT ở tiến trình khác; TopMost chỉ đặt khi chưa đặt (đặt lại mỗi 2 giây = SetWindowPos lại thứ tự cửa sổ)
+        keep.Tick += (_, _) =>
+        {
+            if (!GiuTrenCung.CanKeoLen(_allowClose, OwnedForms.Length, Form.ActiveForm != null, UI.ForegroundLaCuaMinh())) return;
+            if (GiuTrenCung.CanDatTopMost(TopMost, true)) TopMost = true;
+            Activate();
+        };
         keep.Start();
         FormClosing += (_, e) => { if (!_allowClose && !ChiBao) e.Cancel = true; };
         if (chiBao) { KeyPreview = true; KeyDown += (_, e) => { if (e.KeyCode == Keys.Escape && !DangNhapMaTuManKhoa) CloseForReal(); }; }
@@ -156,6 +162,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
 
     private void Dung(ManKhoa m)
     {
+        using var veMotLan = KhongNhay.DungVe(_center);   // #308: dựng lại thẻ không lộ nền trống giữa chừng
         _center.SuspendLayout();
         if (_khoi != null) { _center.Controls.Remove(_khoi); if (_count.Parent != null) _count.Parent.Controls.Remove(_count); _khoi.Dispose(); }
         var giuMa = _code?.MaDangGo;   // Ba Mẹ đang đọc mã cho Con gõ mà thẻ dựng lại ⇒ không mất số đã gõ

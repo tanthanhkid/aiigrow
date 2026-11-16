@@ -168,9 +168,22 @@ internal sealed class TrayContext : ApplicationContext
             _app.XinVayClicked += sd => OpenXinVay(_app, saoDung: sd);
         }
         if (tuToast) _tinMoi = 0;
-        _app.TopMost = tuManKhoa;
+        if (GiuTrenCung.CanDatTopMost(_app.TopMost, tuManKhoa)) _app.TopMost = tuManKhoa;
         PushApp();
         _app.ShowFront(muc, tuBat || tuManKhoa);
+    }
+
+    /// <summary>#308: Con bấm AiiGrow (menu Start / biểu tượng màn hình) khi khay đang chạy ⇒ bản mới báo về đây (Program.cs) ⇒ mở app to lên trước.
+    /// Phiên không phải của Con ⇒ bỏ qua (khay đang ẩn ở phiên Ba Mẹ). Máy khoá / Ba Mẹ đang dùng ⇒ OpenApp báo bằng bóng báo như bấm biểu tượng khay.</summary>
+    internal void MoTuLanBamLai()
+    {
+        try
+        {
+            if (_anPhienKhac) return;
+            if (_daChao && !_ni.Visible) _ni.Visible = true;
+            OpenApp(MucApp.HomNay, tuBat: true);
+        }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
     }
 
     private void PushApp()

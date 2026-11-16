@@ -144,6 +144,19 @@ internal static class UI
     [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
     [DllImport("shell32.dll")] private static extern int SHQueryUserNotificationState(out int state);
 
+    /// <summary>#308: cửa sổ tiền cảnh thuộc chính tiến trình khay (màn khoá / app to / hộp con) ⇒ màn khoá không cần kéo lên lại.</summary>
+    public static bool ForegroundLaCuaMinh()
+    {
+        try
+        {
+            var h = GetForegroundWindow();
+            if (h == IntPtr.Zero) return false;
+            GetWindowThreadProcessId(h, out var pid);
+            return pid == (uint)Environment.ProcessId;
+        }
+        catch { return false; }
+    }
+
     /// <summary>Con đang toàn màn hình / game D3D / trình chiếu / app đặt chế độ không làm phiền (Zoom, Teams…) ⇒ đừng bật cửa sổ đè lên.
     /// QUNS: 1 không có người, 2 bận (toàn màn hình), 3 D3D, 4 trình chiếu, 5 nhận thông báo, 6 giờ yên lặng sau cài, 7 app Store toàn màn hình.</summary>
     public static bool DangBanToanManHinh()
