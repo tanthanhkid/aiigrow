@@ -106,6 +106,11 @@ internal static class ChupMain
         await Mot("chan-ba-me-chua-cho", () => ManChan("chan-ba-me-chua-cho", "capcut.exe", "CapCut", "ChuaCho",
             kq: new RequestStatus { KetQua = "chua_them", TenNguoiDuyet = "Mẹ Lan", LoiNhan = "Cuối tuần Mẹ làm video cùng con nhé." }));
         await Mot("chan-web", () => ManChan("chan-web", "y8.com", "y8.com", null, web: true));
+        // #307 con-bi-chan: Ba Mẹ mở trang «Tính phút» (them-0uw5wpyr) / chưa mở (them-nle7pkdv)
+        await Mot("chan-web-ba-me-cho", () => ManChan("chan-web-ba-me-cho", "y8.com", "y8.com", "Duoc", web: true,
+            kq: new RequestStatus { KetQua = "da_them", Nhom = "tinh_phut", TenNguoiDuyet = "Mẹ Lan" }));
+        await Mot("chan-web-chua-cho", () => ManChan("chan-web-chua-cho", "y8.com", "y8.com", "ChuaCho", web: true,
+            kq: new RequestStatus { KetQua = "chua_them", TenNguoiDuyet = "Mẹ Lan", LoiNhan = "Trang này nhiều quảng cáo, con chơi Roblox nhé." }));
         await Mot("het-sao-popup", () => ManChan("het-sao-popup", "robloxplayerbeta.exe", "Roblox", "HetSao"));
         await Mot("chan-web-da-gui", () => ManChan("chan-web-da-gui", "y8.com", "y8.com", "DaGui", web: true));
         await Mot("chan-app-mat-mang", () => ManChan("chan-app-mat-mang", "capcut.exe", "CapCut", "MatMang"));
@@ -130,6 +135,16 @@ internal static class ChupMain
         await Mot("xin-vay-ba-me-cho", () => ManHop("xin-vay-ba-me-cho", () => HopXinVay(false, f => f.VeDuoc("Mẹ Lan", "Chơi xong nhớ làm việc nhà trả nợ nhé!", 15, new HvSao { Sao = 0, No = 15, PhutCon = 15 }))));
         await Mot("xin-vay-chua-cho", () => ManHop("xin-vay-chua-cho", () => HopXinVay(false, f => f.VeChuaCho("Mẹ Lan", "Hôm nay đủ rồi con, mai chơi tiếp nhé.", new HvSao()))));
         await Mot("sao-dung-the-nao", () => ManHop("sao-dung-the-nao", () => HopXinVay(true, null)));
+        // #307 them-rgy15s87: xin vay mở từ popup «Hết sao rồi»
+        await Mot("xin-vay-tu-het-sao", () => ManHop("xin-vay-tu-het-sao", () =>
+        {
+            XinVayForm.AppDs.AppTinh = TrangThai().AppTinhPhut;
+            XinVayForm.AppDs.AppKhong = TrangThai().AppDuocPhep;
+            var f = new XinVayForm(taiNgay: false, tuHetSao: true);
+            f.DatMau(new HvSao());
+            ((TextBox)Lay(f, "_note")!).Text = "Con đang xây dở nhà với bạn";
+            return f;
+        }));
         // #307 con-xin: «Xin thêm YouTube» (them-bxw40sw9) → Đã gửi (them-6tn8aozf) → Mẹ Lan đã thêm (them-359v1pre) / chưa thêm (them-vkdikuo0)
         await Mot("xin-them", () => ManHop("xin-them", () => new XinThemForm("youtube.exe", null, 18)));
         await Mot("xin-them-da-gui", () => ManHop("xin-them-da-gui", () => { var f = new XinThemForm("youtube.exe", null, 18); f.VeDaGui(); return f; }));
@@ -331,6 +346,8 @@ internal static class ChupMain
         }
         try
         {
+            // #307: hộp chặn nằm giữa màn — con trỏ chuột của runner ở giữa màn làm nút chính «hover» (trông như xám/mờ) ⇒ dời con trỏ ra góc
+            try { Cursor.Position = new Point(0, 0); } catch { }
             f.Show();
             await Cho(1200);
             Chup(f, ten);

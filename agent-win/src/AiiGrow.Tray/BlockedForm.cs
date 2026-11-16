@@ -128,11 +128,11 @@ internal sealed class BlockedForm : Form
         {
             case Buoc.ChuaMo when _web:
                 // them-dnm1pzqs: «Trang này chưa có trong danh sách» · Xin Ba Mẹ mở · Về trang chính
-                _flow.Controls.Add(KhoiCon.Dau("web", KhoiCon.Mau.Cam, ManChanView.WebTieu, null, _w));
-                _flow.Controls.Add(KhoiCon.RobNoi("chi", ManChanView.WebVui1, ManChanView.WebVui2, _w));
+                _flow.Controls.Add(KhoiCon.Dau("web", KhoiCon.Mau.Ngoc, ManChanView.WebTieu, null, _w));
+                _flow.Controls.Add(KhoiCon.RobNoi("cho", ManChanView.WebVui1, ManChanView.WebVui2, _w));
                 if (ManChanView.CoNutXin(_appId))
                 {
-                    var xw = KhoiCon.Nut(ManChanView.WebNutXin, true, _w, "gui");
+                    var xw = KhoiCon.Nut(ManChanView.WebNutXin, true, _w);
                     xw.Click += async (_, _) => { Ve(Buoc.DaGui); await GuiAsync(); };
                     _flow.Controls.Add(xw);
                 }
@@ -147,7 +147,7 @@ internal sealed class BlockedForm : Form
                     var dd = UI.Text(ManChanView.ChuThichDs, 9.75f, true, Clay.Chu2, _w);
                     _flow.Controls.Add(dd);
                     _flow.Controls.Add(KhoiCon.Chips(_w, _appDuocPhep.Take(6).Select(a => (Control)new ChipClay(TrayView.FriendlyAppName(a, null), Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon("sach")))
-                        .Concat(_appTinhPhut.Where(a => !_appDuocPhep.Contains(a)).Take(6).Select(a => (Control)new ChipClay(TrayView.FriendlyAppName(a, null), Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao"))))
+                        .Concat(_appTinhPhut.Where(a => !_appDuocPhep.Contains(a)).Take(6).Select(a => (Control)new ChipClay(TrayView.FriendlyAppName(a, null), Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon(LaTrangWeb(a) ? "web" : "game"))))
                         .ToArray()));
                 }
                 if (ManChanView.CoNutXin(_appId))
@@ -177,13 +177,13 @@ internal sealed class BlockedForm : Form
 
             case Buoc.HetSao:
             {
-                _flow.Controls.Add(KhoiCon.Dau("sao", KhoiCon.Mau.Vang, HetSaoView.PopTieu, HetSaoView.PopPhu(_ten), _w));
-                _flow.Controls.Add(KhoiCon.Chips(_w, KhoiApp.ChipSao(HetSaoView.PopSao)));
-                _flow.Controls.Add(UI.Text(HetSaoView.PopDong, 10f, false, UI.Muted, _w));
+                // Bàn them-zxuekzer: đồng hồ cát · thẻ trắng «Con còn 0 sao» + dòng phụ · Làm nhiệm vụ · Xin Ba Mẹ cho vay sao (nút phụ, không icon)
+                _flow.Controls.Add(KhoiCon.Dau("dong_ho_cat", KhoiCon.Mau.Cam, HetSaoView.PopTieu, HetSaoView.PopPhu(_ten), _w));
+                _flow.Controls.Add(KhoiXin.TheIcon("sao", HetSaoView.PopSao, HetSaoView.PopDong, _w, Clay.DiemInk));
                 var lam = KhoiCon.Nut("Làm nhiệm vụ", true, _w, "tick");
                 lam.Click += (_, _) => { LamNhiemVu?.Invoke(); DongHan(); };
                 _flow.Controls.Add(lam);
-                var vay = KhoiCon.Nut(SaoView.NutXinVay, false, _w, "gui");
+                var vay = KhoiCon.Nut(SaoView.NutXinVay, false, _w);
                 vay.Click += (_, _) => { DongHan(); XinVay?.Invoke(); };
                 _flow.Controls.Add(vay);
                 CancelButton = vay;
@@ -210,8 +210,11 @@ internal sealed class BlockedForm : Form
                 _flow.Controls.Add(KhoiCon.Dau("tick", KhoiCon.Mau.Ngoc, KetQuaXinView.DaThemTieu(_ten), KetQuaXinView.DaThemLuc(_kq?.TenNguoiDuyet, luc, _web), _w));
                 _flow.Controls.Add(KhoiCon.RobNoi("xong", KetQuaXinView.DaThemVui(_ten, khong, _web), KetQuaXinView.LanSau, _w));
                 if (!string.IsNullOrWhiteSpace(_kq?.LoiNhan)) _flow.Controls.Add(KhoiCon.DongIcon("tin", $"«{_kq!.LoiNhan!.Trim()}»", _w, false));
-                _flow.Controls.Add(KhoiCon.Chips(_w, new ChipClay(KetQuaXinView.Nhom(khong, _web), khong ? Clay.NgocSoft : Clay.DiemSoft, khong ? Clay.NgocInk : Clay.DiemInk),
-                    new ChipClay(KetQuaXinView.NhomPhu(khong, _phutCon), Color.FromArgb(0xe3, 0xe2, 0xde), Clay.Chu2)));
+                // Bàn them-jj6fglkl / them-q9a3vr5r / them-0uw5wpyr: chip nhóm (ngọc, đồng hồ / sách) trên, chip sao dưới
+                var c1 = new ChipClay(KetQuaXinView.Nhom(khong, _web), Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon(khong ? "sach" : "dongho"));
+                var c2 = new ChipClay(KetQuaXinView.NhomPhu(khong, _phutCon), khong ? Clay.NgocSoft : Clay.DiemSoft, khong ? Clay.NgocInk : Clay.DiemInk, Anh3D.Icon("sao"));
+                _flow.Controls.Add(KhoiCon.Chips(_w, c1));
+                _flow.Controls.Add(KhoiCon.Chips(_w, c2));
                 var mo = KhoiCon.Nut(KetQuaXinView.Mo(_ten), true, _w);
                 mo.Click += (_, _) => { MoMuc(); DongHan(); };
                 _flow.Controls.Add(mo);
@@ -233,13 +236,17 @@ internal sealed class BlockedForm : Form
             {
                 // them-fliq9312 / them-vkdikuo0: «Ba Mẹ chưa thêm CapCut» · «Mẹ Lan trả lời lúc 19:32» · lời nhắn · «Xin lại» · «Về trang chính»
                 var luc = _kq?.Luc ?? DateTimeOffset.Now;
-                _flow.Controls.Add(KhoiCon.Dau("khoa", KhoiCon.Mau.Cam, KetQuaXinView.ChuaThemTieu(_ten), KetQuaXinView.ChuaThemLuc(_kq?.TenNguoiDuyet, luc), _w));
-                if (!string.IsNullOrWhiteSpace(_kq?.LoiNhan)) _flow.Controls.Add(KhoiCon.DongIcon("tin", $"«{_kq!.LoiNhan!.Trim()}»", _w, false));
-                _flow.Controls.Add(KhoiCon.RobNoi("chi", KetQuaXinView.ChuaThemCau(_ten), KetQuaXinView.XinLaiSau, _w));
+                _flow.Controls.Add(KhoiCon.Dau(_web ? "web" : "game", KhoiCon.Mau.Ngoc, KetQuaXinView.ChuaThemTieu(_ten), KetQuaXinView.ChuaThemLuc(_kq?.TenNguoiDuyet, luc), _w));
+                if (!string.IsNullOrWhiteSpace(_kq?.LoiNhan)) _flow.Controls.Add(KhoiXin.TheIcon("tin", null, $"«{_kq!.LoiNhan!.Trim()}»", _w, UI.Ink));
+                var cau = UI.Text(KetQuaXinView.ChuaThemCau(_ten) + "\n" + KetQuaXinView.XinLaiSau, 10.5f, true, UI.Ink, _w);
+                cau.AutoSize = false; cau.Width = _w; cau.TextAlign = ContentAlignment.TopCenter;
+                cau.Height = TextRenderer.MeasureText(cau.Text, cau.Font, new Size(_w, 0), TextFormatFlags.WordBreak).Height + UI.Px(10);
+                _flow.Controls.Add(cau);
                 if (ManChanView.CoNutXin(_appId))
                 {
-                    var lai = KhoiCon.Nut(KetQuaXinView.XinLai, true, _w, "gui");
-                    lai.Click += async (_, _) => { Ve(Buoc.DaGui); await GuiAsync(); };
+                    // Bàn: «Xin lại» → Tin nhắn (nhắn Ba Mẹ xin lại)
+                    var lai = KhoiCon.Nut(KetQuaXinView.XinLai, true, _w, "tin");
+                    lai.Click += (_, _) => { NhanBaMe?.Invoke(); DongHan(); };
                     _flow.Controls.Add(lai);
                 }
                 ThemNutVeHomNay(chinh: false, chu: KetQuaXinView.VeTrangChinh);
@@ -275,6 +282,9 @@ internal sealed class BlockedForm : Form
         _flow.Controls.Add(_msg);
         _flow.ResumeLayout(true);
     }
+
+    /// <summary>Mục là tên miền (y8.com) chứ không phải app (.exe / gói Store).</summary>
+    private static bool LaTrangWeb(string muc) => muc.Contains('.') && !muc.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
 
     private void ThemNutVeHomNay(bool chinh, string? icon = null, string? chu = null)
     {

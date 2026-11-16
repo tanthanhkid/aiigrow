@@ -78,6 +78,28 @@ internal static class KhoiXin
         return b;
     }
 
+    /// <summary>Thẻ trắng một dòng: viên icon 40 · [tiêu đề đậm] · dòng chữ (them-zxuekzer «Con còn 0 sao», lời nhắn Ba Mẹ ở them-fliq9312).</summary>
+    public static ClayFlow TheIcon(string icon, string? tieu, string chu, int rong, Color mauTieu)
+    {
+        var the = new ClayFlow
+        {
+            AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BoGoc = UI.Px(18),
+            BackColor = Color.White, Padding = VeThe.Pad(UI.Px(12), UI.Px(8), UI.Px(12), UI.Px(8)),
+            MinimumSize = new Size(rong, 0), MaximumSize = new Size(rong, 0), Margin = new Padding(0, 0, 0, UI.Px(10)),
+        };
+        var v = KhoiApp.Vien(icon, 40);
+        v.Margin = new Padding(0, 0, UI.Px(10), 0);
+        the.Controls.Add(v);
+        var cot = KhoiCon.Cot();
+        var r = rong - the.Padding.Horizontal - v.Width - v.Margin.Horizontal - UI.Px(2);
+        if (tieu != null) { var a = UI.Text(tieu, 12f, true, mauTieu, r); a.Margin = Padding.Empty; cot.Controls.Add(a); }
+        var b = UI.Text(chu, tieu != null ? 9.4f : 10.5f, false, tieu != null ? UI.Muted : UI.Ink, r); b.Margin = Padding.Empty;
+        cot.Controls.Add(b);
+        cot.Margin = new Padding(0, Math.Max(0, (v.Height - cot.PreferredSize.Height) / 2), 0, 0);
+        the.Controls.Add(cot);
+        return the;
+    }
+
     /// <summary>Hai nút phụ ngang nhau (them-zo8kohea «Nhắn Ba Mẹ | Về Hôm nay»).</summary>
     public static FlowLayoutPanel HaiNut(int rong, (string Chu, string? Icon, Action Bam) a, (string Chu, string? Icon, Action Bam) b)
     {

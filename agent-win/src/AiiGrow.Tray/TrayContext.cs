@@ -276,12 +276,12 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     /// <summary>«Xin Ba Mẹ cho vay sao» / «Sao dùng thế nào?» (XinVayForm). Màn khoá / màn hết sao gọi với chủ là màn đó.</summary>
-    private void OpenXinVay(IWin32Window? chu = null, bool saoDung = false)
+    private void OpenXinVay(IWin32Window? chu = null, bool saoDung = false, Action? quayLaiHetSao = null)
     {
         string? sau;
         XinVayForm.AppDs.AppTinh = _state.AppTinhPhut;
         XinVayForm.AppDs.AppKhong = _state.AppDuocPhep;
-        using (var f = new XinVayForm(saoDung))
+        using (var f = new XinVayForm(saoDung, tuHetSao: quayLaiHetSao != null))
         {
             if (chu != null) f.ShowDialog(chu); else f.ShowDialog();
             sau = f.Sau;
@@ -291,6 +291,7 @@ internal sealed class TrayContext : ApplicationContext
         switch (sau)
         {
             case XinVayForm.SauXinMo: OpenXinMo(); break;
+            case XinVayForm.SauHetSao: quayLaiHetSao?.Invoke(); break;
             case XinVayForm.SauNhan: OpenApp(MucApp.TinNhan, tuManKhoa: tuKhoa); break;
             case XinVayForm.SauNhiemVu: DongHetSao(); OpenApp(MucApp.NhiemVu, tuManKhoa: _state.Locked && chu != null); break;
         }
@@ -801,10 +802,16 @@ internal sealed class TrayContext : ApplicationContext
         {
             // #302: đang nghỉ / chơi đủ hôm nay (còn sao) ⇒ «Nghỉ một chút · chơi tiếp lúc HH:MM» thay «Hết sao rồi»
             var gh = HetSaoView.PopGioiHan(_state.GioiHanLyDo, _state.GioiHanGio, _state.GioiHanCau, TrayView.FriendlyAppName(id, _state.BlockedAppName));
-            _blocked = gh is { } chu ? BlockedForm.GioiHan(id, _state.BlockedAppName, chu) : BlockedForm.HetSao(id, _state.BlockedAppName);
-            _blocked.LamNhiemVu += () => OpenApp(MucApp.NhiemVu);
-            _blocked.XinVay += () => OpenXinVay();
-            _blocked.Show();
+            var ten = _state.BlockedAppName;
+            void HienPopup()
+            {
+                _blocked = gh is { } chu ? BlockedForm.GioiHan(id, ten, chu) : BlockedForm.HetSao(id, ten);
+                _blocked.LamNhiemVu += () => OpenApp(MucApp.NhiemVu);
+                // #307 them-rgy15s87: hộp xin vay mở từ popup có «‹» quay lại popup
+                _blocked.XinVay += () => OpenXinVay(quayLaiHetSao: HienPopup);
+                _blocked.Show();
+            }
+            HienPopup();
             return;
         }
         // #307: Con đang ở hộp «Xin thêm …» cho đúng app này ⇒ đưa hộp lên trước, không chồng màn chặn mới

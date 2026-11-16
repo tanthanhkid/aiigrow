@@ -118,6 +118,8 @@ public static class XinVayView
     public const string Tieu = "Xin Ba Mẹ cho vay sao";
     /// <summary>Dòng phụ: hết sao ⇒ «Con hết sao rồi · 1 sao = 1 phút chơi»; còn ⇒ «Con còn 18 sao · 1 sao = 1 phút chơi».</summary>
     public static string Phu(double? phutCon) => SaoView.Phut(phutCon) > 0 ? $"Con còn {SaoView.Phut(phutCon)} sao · 1 sao = 1 phút chơi" : "Con hết sao rồi · 1 sao = 1 phút chơi";
+    /// <summary>Mở từ popup «Hết sao rồi» (them-rgy15s87): «Chọn số sao con muốn vay · 1 sao = 1 phút».</summary>
+    public const string PhuChon = "Chọn số sao con muốn vay · 1 sao = 1 phút";
     public const string ConXinVay = "Con xin vay";
     public const string GoiYNhan = "Nhắn Ba Mẹ: con làm nốt bài với bạn ạ";
     public static string Nut(int soSao) => $"Xin Ba Mẹ cho vay {soSao} sao";
