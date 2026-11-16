@@ -320,8 +320,14 @@ internal sealed partial class LockForm
         }
         else
         {
-            var luoi = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, WrapContents = true, BackColor = Color.Transparent,
-                MaximumSize = new Size(w, 0), Margin = Padding.Empty };
+            // lưới đặt vị trí tay (không FlowLayoutPanel tự co): các thẻ tên nằm HÀNG NGANG, hết chỗ mới xuống hàng
+            var luoi = new Panel { BackColor = Color.Transparent, Margin = Padding.Empty };
+            var oRong = UI.Px(240) + VeThe.LeBong.Horizontal;
+            var oCao = UI.Px(ds.Any(c => c.Sao.HasValue) ? 276 : 236) + VeThe.LeBong.Vertical;
+            var khe = UI.Px(28);
+            var cot = Math.Max(1, Math.Min(ds.Count, (w + khe) / (oRong + khe)));
+            var hang = (ds.Count + cot - 1) / cot;
+            luoi.Size = new Size(cot * oRong + (cot - 1) * khe, UI.Px(26) + hang * oCao + (hang - 1) * UI.Px(26));
             var chu = DangNhapView.ChuDauDs(ds.Select(c => c.Ten));
             for (int i = 0; i < ds.Count; i++)
             {
@@ -329,7 +335,7 @@ internal sealed partial class LockForm
                 var coSao = ds.Any(c => c.Sao.HasValue);
                 var o = new ClayFlow { FlowDirection = FlowDirection.TopDown, WrapContents = false, BoGoc = UI.Px(32), Cursor = Cursors.Hand,
                     Size = new Size(UI.Px(240) + VeThe.LeBong.Horizontal, UI.Px(coSao ? 276 : 236) + VeThe.LeBong.Vertical), Padding = VeThe.Pad(0, UI.Px(coSao ? 26 : 32), 0, 0),
-                    Margin = new Padding(UI.Px(i == 0 ? 0 : 14), UI.Px(26), UI.Px(14), 0) };
+                    Margin = Padding.Empty, Location = new Point((i % cot) * (oRong + khe), UI.Px(26) + (i / cot) * (oCao + UI.Px(26))) };
                 var v = new VienTen { Chu = chu[i], Mau = i, Size = new Size(UI.Px(120), UI.Px(120)), Margin = new Padding((UI.Px(240) - UI.Px(120)) / 2, 0, 0, 0), Cursor = Cursors.Hand };
                 var t = Chu(be.Ten, 21f, true, UI.Ink, UI.Px(240), true);
                 t.Margin = new Padding(0, UI.Px(10), 0, 0);
@@ -348,7 +354,6 @@ internal sealed partial class LockForm
                 }
                 luoi.Controls.Add(o);
             }
-            luoi.PerformLayout();
             the.Controls.Add(Giua(luoi, w));
         }
         if (_ct.Loi != null) the.Controls.Add(ChuGiua(_ct.Loi, 12f, true, Clay.Canh, w, 12));
