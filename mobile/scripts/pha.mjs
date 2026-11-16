@@ -623,13 +623,12 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-trang (bảng cho vay sao)", "/hom-nay", "Sao nhiệm vụ của con sẽ trả nợ trước", { kb: SO_SAO, truoc: async () => { await di("/hom-nay"); await doi("Cho vay sao"); await bam("Cho vay sao"); } }),
     M("bm-trang (bảng cho vay · nợ > 1.000)", "/hom-nay", "Chỉ nhắc thôi", { kb: NO_LON, truoc: async () => { await di("/hom-nay"); await doi("Cho vay sao"); await bam("Cho vay sao"); } }),
     M("bm-trang (ví âm)", "/hom-nay", "Đang nợ Ba Mẹ 20 sao", { kb: SO_SAO }),
-    M("bm-canh-bao-no", "/canh-bao/a9", "Không chặn việc cho vay", { kb: NO_LON }),
+    M("bm-canh-bao-no", "/canh-bao/a9", "Không cản việc cho vay", { kb: NO_LON }),
     M("bm-vi (âm)", "/vi/c1", "Đang nợ Ba Mẹ 20 sao", { kb: SO_SAO }),
     M("bm-xin-vay", "/yeu-cau?con=c1", "Xin Ba Mẹ cho vay 20 sao", { kb: CO_XIN_VAY }),
     M("bm-xin-vay (chi tiết)", "/yeu-cau/y4", "Con xin vay sao", { kb: CO_XIN_VAY }),
     M("bm-trang (máy khoá · xin mở khoá)", "/hom-nay", "Xin mở khoá máy", { kb: MAY_KHOA }),
     M("bm-trang (đang khoá)", "/hom-nay", "đang khoá", { kb: { "GET con/c1": { ...conCt("c1", KEN), cheDoChan: "chi_app_duoc_phep", khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
-    M("bm-trang (giờ ngủ)", "/hom-nay", "đang giờ ngủ", { kb: { "GET con/c1/quy": { quy: quyGia(0, 60, { dangNgu: true }), sao: 145, ngoaiLe: [] } } }),
     M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
     M("bm-may-chi-tiet (bảo vệ chưa đủ)", "/may/m2", "Tài khoản của Con vẫn là quản trị"),
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
@@ -1719,7 +1718,7 @@ await kichBan("Sổ sao · Cảnh báo nợ > 1.000: Thông báo «Nợ quá 1.0
   await di("/canh-bao/a9");
   xet(await doi("Cảnh báo nợ sao"), "màn them-5twxl6hf");
   xet(await doi("vượt mốc sau lần cho vay 30 sao"), "nói rõ vượt mốc sau khoản vay");
-  xet(await doi("Không chặn việc cho vay"), "Ba Mẹ nên biết: không chặn");
+  xet(await doi("Không cản việc cho vay"), "Ba Mẹ nên biết: không cản việc cho vay");
   xet(await doi("7 ngày qua: vay 180, trả 40 sao"), "7 ngày qua vay / trả");
   await bam("Cho vay thêm");
   xet(await doi("đã nợ quá 1.000 sao (đang nợ 1.020)"), "Cho vay thêm ⇒ bảng có dải nhắc");
