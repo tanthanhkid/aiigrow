@@ -60,7 +60,7 @@ async function trungTenCon(t: Q, fam: string, ten: string, boQua: string | null)
 }
 const khoaTen = (t: Q, fam: string) => t(`select pg_advisory_xact_lock(hashtext($1))`, ["ten-con:" + fam]);
 
-/** `saoKhoiDau` (15/11, bm1-ob-gio): sao tặng khởi đầu 0 / 20 / 30 / 60 — hàm này mặc định 0; API Ba Mẹ (POST con, thiet-lap) mặc định 30. */
+/** `saoKhoiDau` (15/11, bm1-ob-gio): sao tặng khởi đầu 0…200 (bước 10) — hàm này mặc định 0; API Ba Mẹ (POST con, thiet-lap) mặc định 30. */
 export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown; pin?: unknown; avatar?: unknown; nhom?: unknown; saoKhoiDau?: unknown }, nguoi?: string) {
   const ten = tenConHopLe(b.ten);
   const nam = Number(b.namSinh) || null;

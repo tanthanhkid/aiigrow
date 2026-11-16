@@ -219,7 +219,7 @@ coBan["POST xoa-tai-khoan"] = (b) => {
 const quyGia = (con = 18, tong = 60, o = {}) => ({ ngay: "2026-11-05", cuoiTuan: false, quyNgayPhut: 60, themPhut: tong - 60, doiSaoPhut: 0, daDung: tong - con, conPhut: con,
   tongPhut: tong, dangNgu: false, dangHoc: false, khoa: false, gioNgu: { tu: "21:30", den: "06:30" }, gioHoc: null, phutToiNgu: 300, phutToiHoc: null,
   tyLe: { sao: 10, phut: 10 }, doiSao: { bat: true, toiDaNgay: 30, conDoiDuoc: 30 }, choXinThem: true, ...o });
-const gioChoi = (o = {}) => ({ quyNgayThuong: 60, quyCuoiTuan: 90, phut10Sao: 10, doiSaoBat: true, doiSaoToiDaNgay: 30, choXinThemGio: true, ngoaiLeToiDaPhut: 60,
+const gioChoi = (o = {}) => ({ gioiHanNgayThuong: 60, gioiHanCuoiTuan: 90, phutMoiLuot: 30, quyNgayThuong: 60, quyCuoiTuan: 90, phut10Sao: 10, doiSaoBat: true, doiSaoToiDaNgay: 30, choXinThemGio: true, ngoaiLeToiDaPhut: 60,
   gioNgu: { tu: "21:30", den: "06:30" }, gioHoc: { tu: "19:00", den: "20:30", thu: [1, 2, 3, 4, 5] }, homNay: quyGia(), ...o });
 const viecBo = (ten, sao, bangChung, lapLai, hinh, nhan, moTa = "") => ({ ten, moTa, sao, bangChung, tuCham: bangChung === "tu_dong", lapLai, hinh, nhan, toiDaNgay: 1 });
 const BO_NV = [
@@ -603,7 +603,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-quen-mat-khau", "/quen-mat-khau", "Quên mật khẩu", { token: null }),
     M("bm-tao-tai-khoan", "/tao-tai-khoan", "Tạo tài khoản", { token: null }),
     M("bm-ob-con", "/thiet-lap/ten-con", "Tên gọi ở nhà"),
-    M("bm-ob-gio", "/thiet-lap/gio", "Tặng sao khởi đầu", { truoc: diTl("/thiet-lap/gio") }),
+    M("bm-ob-gio", "/thiet-lap/gio", "Quà khởi đầu cho con", { truoc: diTl("/thiet-lap/gio") }),
     M("bm-ob-app", "/thiet-lap/app", "Google Classroom", { truoc: diTl("/thiet-lap/app") }),
     M("bm-ob-app (mở hết)", "/thiet-lap/app", "Tiếp: ghép máy của con", { truoc: async () => { await diTl("/thiet-lap/app")(); await doi("Theo danh sách"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="radio"][aria-label^="Mở hết"]')`)); } }),
     M("bm-ob-them-app", "/thiet-lap/them-app", "Gõ tên app", { truoc: diTl("/thiet-lap/them-app") }),
@@ -613,6 +613,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ob-cho", "/thiet-lap/cho?ma=482017&con=c1", "482"),
     M("bm-ob-da-ghep", "/thiet-lap/da-ghep?con=c1&may=m1", "đã ghép!"),
     M("bm-ob-mau", "/thiet-lap/mau", "Một ngày của", { truoc: diTl("/thiet-lap/mau") }),
+    M("bm-ob-mau (bảng Ba Mẹ tự thêm · them-bwlkjyw5)", "/thiet-lap/mau", "Thêm vào mục đã chọn", { truoc: async () => { await diTl("/thiet-lap/mau")(); await doi("+ Ba Mẹ tự thêm"); await bam("+ Ba Mẹ tự thêm"); } }),
     M("bm-ob-xong", "/thiet-lap/xong", "Xong rồi!", { truoc: diTl("/thiet-lap/xong") }),
     M("bm-may-them", "/may/them?con=c1", "Máy mới"),
     // Hằng ngày (bm-hang-ngay — L2, L3, L12)
@@ -657,6 +658,7 @@ if (process.argv.includes("--giao-dien")) {
     M("admin-ho-tro", "/admin-ho-tro", "Đang chờ"),
     M("admin-ho-tro (của tôi)", "/admin-ho-tro", "AiiGrow đã cộng giúp", { truoc: async () => { await di("/admin-ho-tro"); await doi("Của tôi"); await bam("Của tôi"); } }),
     M("bm-ho-so-con", "/ho-so/c1", "Cài đặt của"),
+    M("bm-ho-so-gio-choi", "/ho-so/c1/gio-choi", "Chơi liền bao lâu thì nghỉ?"),
     M("bm-ho-so-sua", "/ho-so/sua?id=c1", "Lưu"),
     M("bm-ho-so-con (liên kết AiiRob)", "/ho-so/c1", "Liên kết AiiRob"),
     M("bm-man-hinh", "/man-hinh/c1", "Theo app"),
@@ -1457,6 +1459,93 @@ await kichBan("Sửa hồ sơ Con: điền sẵn tên cũ, gửi tên đã chu�
   await bam("Lưu hồ sơ Bill");
   xet(await doi("Nhà đã có Con tên"), "tên trùng ⇒ hiện lỗi từ máy chủ");
   xet(await js(`document.body.innerText.includes("Lưu hồ sơ Bill")`), "lỗi ⇒ vẫn ở màn sửa");
+});
+
+await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở cả 3 nút; «+ Thêm con khác» trên, nút nổi dưới (Lưu hồ sơ / Xong, giao việc cho <Con đầu> trước)", async () => {
+  const viTri = (a, b) => js(`(() => { const t = document.body.innerText; return [t.indexOf(${JSON.stringify(a)}), t.indexOf(${JSON.stringify(b)})]; })()`);
+  await di("/thiet-lap/ten-con");
+  await doi("Tên gọi ở nhà");
+  await go("Tên gọi ở nhà", "Bảo Anh");
+  await sleep(300);
+  const [a, b] = await viTri("+ Thêm con khác", "Lưu hồ sơ Bảo Anh");
+  xet(a > 0 && b > a, "«+ Thêm con khác» nằm trên «Lưu hồ sơ Bảo Anh»");
+  nhatKy.length = 0;
+  await bam("Lưu hồ sơ Bảo Anh");
+  await bam("+ Thêm con khác");
+  await sleep(600);
+  xet(!nhatKy.some((x) => x.d === "thiet-lap") && (await chu()).includes("Đặt mã PIN 4 số cho con trước"), "chưa có PIN: «Lưu hồ sơ» tắt, «+ Thêm con khác» báo cần PIN, không gửi gì");
+  await go("Đặt PIN 4 số", "48");
+  await bam("Lưu hồ sơ Bảo Anh");
+  await sleep(400);
+  xet(!nhatKy.some((x) => x.d === "thiet-lap"), "PIN mới 2 số vẫn không lưu");
+  await go("Đặt PIN 4 số", "4821");
+  await sleep(300);
+  nhatKy.length = 0;
+  await bam("Lưu hồ sơ Bảo Anh");
+  xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "đủ PIN 4 số ⇒ lưu hồ sơ");
+  xet(await choGoi((x) => /^con\/[^/]+\/pin$/.test(x.d) && x.m === "POST" && x.body?.pin === "4821"), "đặt PIN cho con vừa lưu");
+  // đã có con khác ⇒ «Xong, giao việc cho <Con đầu> trước» thay «Lưu hồ sơ»
+  await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify({ daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }] }))})`);
+  await goi("Page.navigate", { url: `${GOC}/thiet-lap/ten-con` });
+  await doi("Tên gọi ở nhà");
+  await go("Tên gọi ở nhà", "Bảo Minh");
+  await sleep(300);
+  const c = await chu();
+  const [a2, b2] = await viTri("+ Thêm con khác", "Xong, giao việc cho Bảo Anh trước");
+  xet(a2 > 0 && b2 > a2 && !c.includes("Lưu hồ sơ"), "con thứ hai: «+ Thêm con khác» trên, «Xong, giao việc cho Bảo Anh trước» dưới, không còn «Lưu hồ sơ»");
+  nhatKy.length = 0;
+  await bam("Xong, giao việc cho Bảo Anh trước");
+  await sleep(500);
+  xet(!nhatKy.some((x) => x.d === "thiet-lap"), "chưa PIN: «Xong, giao việc…» không lưu con đang điền");
+  await go("Đặt PIN 4 số", "7391");
+  await sleep(300);
+  await bam("Xong, giao việc cho Bảo Anh trước");
+  xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST" && x.body?.con?.ten === "Bảo Minh"), "có PIN ⇒ lưu Bảo Minh rồi sang Giao việc");
+});
+
+await kichBan("Lần đầu · mở lại hồ sơ Con ĐÃ có PIN (#306): không bắt gõ lại PIN, ô trống không POST PIN; gõ dở thì báo đủ 4 số", async () => {
+  kb["GET con/c1"] = { ...(kb["GET con/c1"] ?? {}), coPin: true };
+  await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify({ conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }] }))})`);
+  await goi("Page.navigate", { url: `${GOC}/thiet-lap/ten-con` });
+  xet(await doi("Con đã có PIN"), "Con đã có PIN ⇒ ghi chú «để trống nếu giữ nguyên»");
+  nhatKy.length = 0;
+  await bam("Lưu hồ sơ Bảo Anh");
+  xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "PIN trống vẫn lưu được");
+  await sleep(400);
+  xet(!nhatKy.some((x) => /^con\/[^/]+\/pin$/.test(x.d)), "không POST PIN khi ô trống (không đè PIN cũ)");
+});
+
+await kichBan("Lần đầu · Giờ chơi (#306): quà khởi đầu −/+ bước 10 (0…200), ô số phút gõ trực tiếp, −/+ 15 phút, «Không cần nghỉ» ⇒ phutMoiLuot 0, gửi đúng", async () => {
+  const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }] };
+  await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`);
+  await goi("Page.navigate", { url: `${GOC}/thiet-lap/gio` });
+  xet(await doi("Bảo Anh chơi máy thế nào?"), "tiêu đề «<Tên> chơi máy thế nào?»");
+  const c = await chu();
+  xet(c.includes("Quà khởi đầu cho con") && c.includes("1 sao = chơi 1 phút") && c.includes("= 1 tiếng rưỡi") && c.includes("= nửa tiếng") && c.includes("Chơi 30 phút") && c.includes("Nghỉ 30 phút"), "đủ thẻ quà + quy ra tiếng + hình Chơi / Nghỉ 30 phút");
+  xet(!/tối đa|lượt|Hết giờ/.test(c), "không còn chữ «tối đa», «lượt»");
+  const bamNhan = (nhan) => js(`(() => { const e = [...document.querySelectorAll('[aria-label]')].find((x) => x.getAttribute("aria-label") === ${JSON.stringify(nhan)}); if (!e) return false; e.click(); return true; })()`);
+  const so = () => js(`(() => { const e = [...document.querySelectorAll("[aria-label]")].find((x) => /^\\d+ sao$/.test(x.getAttribute("aria-label"))); return e ? e.getAttribute("aria-label") : null; })()`);
+  for (let i = 0; i < 3; i++) await bamNhan("Thêm 10 sao");
+  xet(await so() === "60 sao", "bấm + ba lần: 30 → 60 sao");
+  for (let i = 0; i < 25; i++) await bamNhan("Thêm 10 sao");
+  xet(await so() === "200 sao", "trần 200 sao");
+  await go("Số phút ngày thường", "100");
+  await bamNhan("Thêm 15 phút · Thứ 2 – Thứ 6");
+  await go("Số phút cuối tuần", "5");
+  await sleep(300);
+  xet((await chu()).includes("Từ 10 đến 720 phút"), "ngày 5 phút ⇒ báo «Từ 10 đến 720 phút», nút Tiếp tắt");
+  await go("Số phút cuối tuần", "150");
+  await bamNhan("Bớt 15 phút · Chơi liền");
+  await sleep(300);
+  xet((await chu()).includes("= 2 tiếng rưỡi") && (await chu()).includes("Chơi 15 phút"), "150 phút = 2 tiếng rưỡi; hình đổi theo ô «Chơi liền» (15 phút)");
+  await js(`(() => { const e = document.querySelector('[role=checkbox][aria-label="Không cần nghỉ"]'); e.click(); })()`);
+  await sleep(200);
+  nhatKy.length = 0;
+  await bam("Tiếp: chọn app cho con");
+  xet(await doi("Google Classroom"), "sang bước chọn app");
+  const t = await js(`sessionStorage.getItem("aiigrow.thiet-lap")`);
+  const j = JSON.parse(t ?? "{}");
+  xet(j.saoKhoiDau === 200 && j.gioiHan?.ngayThuong === 115 && j.gioiHan?.cuoiTuan === 150 && j.gioiHan?.moiLuot === 0, "nhớ 200 sao · ngày 115 · cuối tuần 150 · Không cần nghỉ = 0");
 });
 
 await kichBan("Đổi tên máy: mở từ màn máy, gửi POST may/m1/doi-ten, báo kết quả; nút tắt khi chưa đổi", async () => {

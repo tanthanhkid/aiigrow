@@ -12,9 +12,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan } from "./gio.ts";
 import type { Q } from "./db.ts";
 
-/** Lựa chọn trên app Ba Mẹ (màn Lần đầu bm1-ob-gio + Giờ chơi trong hồ sơ Con). «Tự chọn» nhận số trong khoảng GH_NGAY / GH_LUOT. */
-export const MUC_NGAY = [{ ngay: 30, cuoiTuan: 60 }, { ngay: 60, cuoiTuan: 90 }, { ngay: 90, cuoiTuan: 120 }] as const;   // chip «30p · T7, CN 60p»…
-export const MUC_LUOT = [0, 15, 30, 45, 60] as const;     // 0 = Không giới hạn
+/** Khoảng «Tự chọn» của ô số phút trên app Ba Mẹ (màn Lần đầu bm1-ob-gio v21 + Giờ chơi trong hồ sơ Con). */
 export const GH_NGAY = { min: 10, max: 720 } as const;
 export const GH_LUOT = { min: 5, max: 240 } as const;
 

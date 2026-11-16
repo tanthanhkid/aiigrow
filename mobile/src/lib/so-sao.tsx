@@ -22,9 +22,8 @@ export type SaoCon = {
 export const NGUONG_NO = 1000;
 export const MUC_VAY = [10, 15, 30] as const;
 export const VAY_MAC_DINH = 15;
-/** Sao tặng khởi đầu khi tạo hồ sơ Con (POST con / thiet-lap › saoKhoiDau). */
-export const SAO_KHOI_DAU = [0, 20, 30, 60] as const;
-export const SAO_KHOI_DAU_MD = 30;
+/** Sao tặng khởi đầu khi tạo hồ sơ Con (POST con / thiet-lap › saoKhoiDau): số nguyên 0…200, nút −/+ bước 10, mặc định 30 (#306). */
+export { doiSaoKhoiDau, SAO_KHOI_DAU_BUOC, SAO_KHOI_DAU_MD, SAO_KHOI_DAU_TOI_DA } from "./sao-khoi-dau";
 
 /** Số kiểu Việt: 1.020 · âm dùng dấu trừ thật «−» (U+2212). */
 export const soVN = (n: number | null | undefined) => {

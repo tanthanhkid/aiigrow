@@ -3,7 +3,7 @@
 // Nhánh «Tôi được mời vào nhà» KHÔNG gọi API này (không tạo Con) — đi lib/thanh-vien.ts (moi/cho-toi, moi/nhan).
 // POST /api/m/thiet-lap gom một lần: tạo (hoặc sửa, khi gửi lại `con.id`) hồ sơ Con + sao tặng khởi đầu + chế độ (Mở hết / Theo danh sách) +
 // app / web vào danh sách (#262; giờ ngủ bỏ — #258).
-// 15/11 (#264, bm1-ob-gio): bỏ quỹ giờ chơi mỗi ngày — `gioChoi` (cũ) gửi lên bị bỏ qua; `saoKhoiDau` 0 / 20 / 30 / 60 (mặc định 30) tặng MỘT lần
+// 15/11 (#264, bm1-ob-gio): bỏ quỹ giờ chơi mỗi ngày — `gioChoi` (cũ) gửi lên bị bỏ qua; `saoKhoiDau` 0…200 bước 10 (mặc định 30) tặng MỘT lần
 // khi tạo Con («chơi máy bằng sao tự kiếm», 1 sao = 1 phút) — docs/API.md › «Thiết lập lần đầu».
 import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -24,7 +24,7 @@ import { gioiHanBm, luuGioiHan } from "./quy-gio.ts";
 export type ThietLapVao = {
   con?: { id?: unknown; ten?: unknown; namSinh?: unknown; avatar?: unknown };
   /** (cũ) quỹ phút mỗi ngày — bỏ 15/11, gửi lên bị bỏ qua */ gioChoi?: { ngayThuong?: unknown; cuoiTuan?: unknown };
-  /** 15/11: sao tặng khởi đầu 0 / 20 / 30 / 60 (không gửi ⇒ 30). Chỉ tặng khi TẠO Con (gửi lại với con.id không tặng thêm). */
+  /** 15/11: sao tặng khởi đầu 0…200 bước 10 (không gửi ⇒ 30). Chỉ tặng khi TẠO Con (gửi lại với con.id không tặng thêm). */
   saoKhoiDau?: unknown;
   /** #302: giới hạn tối đa mỗi ngày (ngày thường / T7–CN) + mỗi lượt tối đa — phút, 0 = không giới hạn (lib/gioi-han-choi.ts) */
   gioiHanNgayThuong?: unknown; gioiHanCuoiTuan?: unknown; phutMoiLuot?: unknown;

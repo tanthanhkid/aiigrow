@@ -1,15 +1,15 @@
 // #302 «Giờ chơi của <Con>» trong hồ sơ Con: GIỚI HẠN TỐI ĐA mỗi ngày (ngày thường / T7–CN) + «Mỗi lượt tối đa» (chơi đủ lượt thì máy nghỉ
 // đúng chừng đó phút) — chơi vẫn trả bằng sao (1 sao = 1 phút). GET / POST con/:id/gio-choi {gioiHanNgayThuong, gioiHanCuoiTuan, phutMoiLuot}.
-// Bàn thiết kế chưa có màn này (màn bm2-gio cũ đã bỏ 15/11) — dựng bằng cùng khối ChonGioiHan của Lần đầu. Người trông giúp: chỉ xem.
+// Cùng khối ChonGioiHan với Lần đầu (bàn bm1-ob-gio v21, #306) — không có thanh bước, không có thẻ «Quà khởi đầu». Người trông giúp: chỉ xem.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { bm } from "@/lib/api";
 import { CAU_TRONG_GIUP, quyenToi } from "@/lib/hang-ngay";
-import { thanGioiHan, type GioiHan, type MucMayChu } from "@/lib/gioi-han";
+import { thanGioiHan, type GioiHan } from "@/lib/gioi-han";
 import { ChonGioiHan } from "@/lib/gioi-han-ui";
 import { BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, useLam, useTai } from "@/lib/ui";
 
-type GioChoi = { gioiHanNgayThuong?: number; gioiHanCuoiTuan?: number; phutMoiLuot?: number; moTaGioiHan?: string; mucGioiHan?: MucMayChu;
+type GioChoi = { gioiHanNgayThuong?: number; gioiHanCuoiTuan?: number; phutMoiLuot?: number;
   homNay?: { gioiHan?: { cau: string | null } } };
 
 export default function GioChoiCon() {
@@ -36,7 +36,7 @@ export default function GioChoiCon() {
       day={d.xem ? undefined : <><BaoLoi loi={loiLam} /><Nut chu="Lưu giờ chơi" rong dangChay={dangChay} tat={!doi || !!loiO} bam={luu} /></>}>
       <Chu kieu="rat" co={22}>{`${d.ten} chơi máy bao lâu mỗi ngày?`}</Chu>
       {d.xem ? <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{CAU_TRONG_GIUP}</Chu> : null}
-      <ChonGioiHan gt={gt} muc={d.g.mucGioiHan} moTa={d.g.moTaGioiHan} doi={(g, l) => { setMoi(g); setLoiO(l); }} />
+      <ChonGioiHan gt={gt} doi={(g, l) => { setMoi(g); setLoiO(l); }} />
       {d.g.homNay?.gioiHan?.cau ? <Chu kieu="dam" co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{`Hôm nay: ${d.g.homNay.gioiHan.cau}`}</Chu> : null}
     </Man>
   );

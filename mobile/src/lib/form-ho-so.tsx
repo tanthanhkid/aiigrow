@@ -89,7 +89,7 @@ export function ChonMauCon({ mau, doi }: { mau: number; doi: (i: number) => void
 }
 
 /** Thẻ «Mã PIN vào máy · 4 số»: ô icon lõm khoá, 4 ô PIN lõm, câu dưới; lỗi / nhắc gõ đủ. */
-export function ThePinCon({ pin, doi, cau, loi }: { pin: string; doi: (p: string) => void; cau: React.ReactNode; loi: string | null }) {
+export function ThePinCon({ pin, doi, cau, loi, batBuoc }: { pin: string; doi: (p: string) => void; cau: React.ReactNode; loi: string | null; /** #306: PIN bắt buộc (Lần đầu) — không gợi ý «xoá hết để đặt sau» */ batBuoc?: boolean }) {
   return (
     <View style={{ gap: 10, padding: 14, borderRadius: BO_CLAY.the, backgroundColor: M.the, ...KHOI.the }} accessibilityLabel="Mã PIN vào máy">
       <LopMen men={MEN.the} bo={BO_CLAY.the} />
@@ -99,7 +99,7 @@ export function ThePinCon({ pin, doi, cau, loi }: { pin: string; doi: (p: string
       </View>
       <OPin gia={pin} doi={doi} nhan="Đặt PIN 4 số" />
       <Chu co={13} mau={M.chu2}>{cau}</Chu>
-      {loi && pin.length === 4 ? <Chu kieu="dam" co={13} mau={M.loi}>{loi}</Chu> : pin.length > 0 && pin.length < 4 ? <Chu kieu="dam" co={13} mau={M.chu3}>Gõ đủ 4 số, hoặc xoá hết để đặt sau</Chu> : null}
+      {loi && pin.length === 4 ? <Chu kieu="dam" co={13} mau={M.loi}>{loi}</Chu> : pin.length > 0 && pin.length < 4 ? <Chu kieu="dam" co={13} mau={M.chu3}>{batBuoc ? "Gõ đủ 4 số" : "Gõ đủ 4 số, hoặc xoá hết để đặt sau"}</Chu> : null}
     </View>
   );
 }

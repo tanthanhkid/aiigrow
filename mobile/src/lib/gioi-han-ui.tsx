@@ -1,108 +1,133 @@
-// #302 «Giờ chơi»: khối chọn GIỚI HẠN TỐI ĐA mỗi ngày (thẻ vàng «Hết giờ, máy tự khoá» — 30p / 60p / 90p / Tự chọn, kèm T7, CN) + «Mỗi lượt tối đa»
-// (Không giới hạn / 15p / 30p / 45p / 60p / Tự chọn) + dòng giải thích. Dùng ở Lần đầu (thiet-lap/gio) và hồ sơ Con (ho-so/[id]/gio-choi).
-// Bàn thiết kế chưa có màn cho «Mỗi lượt tối đa» / nghỉ giữa lượt — dựng theo kiểu thẻ + chip của bm1-ob-gio (bổ sung lên bàn sau).
-import { useState } from "react";
+// «Giờ chơi» theo bàn bm1-ob-gio v21 (#306): hai thẻ kem — «Mỗi ngày chơi bao lâu?» (Thứ 2 – Thứ 6 · Thứ 7, Chủ nhật) và «Chơi liền bao lâu thì nghỉ?»
+// (+ hình Chơi → Nghỉ → Chơi tiếp, ô tick «Không cần nghỉ»). Mỗi thời gian là ô số phút gõ trực tiếp + nút −/+ (15 phút/lần), dưới nhãn ghi quy ra tiếng.
+// Dùng ở Lần đầu (thiet-lap/gio — có thêm thẻ vàng «Quà khởi đầu» ở màn) và hồ sơ Con (ho-so/[id]/gio-choi). Gửi máy chủ: gioiHanNgayThuong / gioiHanCuoiTuan / phutMoiLuot (0 = không giới hạn / không cần nghỉ).
+import { useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
-import { chipLuot, chipNgay, docPhut, KHOANG_LUOT, KHOANG_NGAY, moTaGioiHan, mucTu, type GioiHan, type MucMayChu } from "@/lib/gioi-han";
+import { buocPhut, docPhut, GIOI_HAN_MD, KHOANG_LUOT, KHOANG_NGAY, LUOT_MD, quyRaTieng, type GioiHan } from "@/lib/gioi-han";
 import { Chu, F, Icon3D, M } from "@/lib/ui";
 
-const NAU = "#4a3000";
+const XANH = "#0a5246";
 
-const oChip = (on: boolean) => ({ flex: 1, minWidth: 0, height: 64, borderRadius: 22, alignItems: "center" as const, justifyContent: "center" as const, gap: 2,
-  backgroundColor: on ? M.chinh : "#fff", boxShadow: on ? `0px 0px 0px 3px #fbe9c4, 0px 0px 0px 5px ${M.chinh}` : BONG.nho });
-
-function Chip({ on, tren, duoi, nhan, bam }: { on: boolean; tren: string; duoi?: string; nhan: string; bam: () => void }) {
+/** Nút tròn −/+ dùng chung (Giờ chơi + thẻ «Quà khởi đầu»): `nen` màu nền, `co` cỡ dấu; `tat` ⇒ mờ + không bấm. */
+export function NutTron({ dau, nhan, bam, tat, nen = "#fff", co = 20 }: { dau: "−" | "+"; nhan: string; bam: () => void; tat?: boolean; nen?: string; co?: number }) {
   return (
-    <Pressable onPress={bam} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={nhan} style={oChip(on)}>
-      <Chu kieu="rat" co={tren.length > 6 ? 14 : 18} so mau={on ? "#fff" : M.chu} dong={1}>{tren}</Chu>
-      {duoi ? <Chu kieu="dam7" co={10.5} mau={on ? "#dcebe6" : "#565c59"} dong={1}>{duoi}</Chu> : null}
+    <Pressable onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={nhan} hitSlop={4}
+      style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: nen, alignItems: "center", justifyContent: "center", opacity: tat ? 0.45 : 1, boxShadow: BONG.nho }}>
+      <Chu kieu="rat" co={co} mau={XANH}>{dau}</Chu>
     </Pressable>
   );
 }
 
-function OPhut({ nhan, chu, doi, goiY }: { nhan: string; chu: string; doi: (s: string) => void; goiY: string }) {
+/** Một dòng: nhãn + «= quy ra tiếng» ở trái; − [ô số phút] + ở phải. */
+function DongPhut({ nhan, quy, chu, doi, nhanO, tru, cong, mo }: { nhan: string; quy: string; chu: string; doi: (s: string) => void; nhanO: string;
+  tru: () => void; cong: () => void; mo?: boolean }) {
+  const [dang, setDang] = useState(false);
   return (
-    <View style={{ flex: 1, minWidth: 0, gap: 4 }}>
-      <Chu kieu="dam7" co={12.5} mau={NAU}>{nhan}</Chu>
-      <View style={{ minHeight: 46, borderRadius: 23, backgroundColor: "#fdf3dc", boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", paddingHorizontal: 14, gap: 6 }}>
-        <TextInput value={chu} onChangeText={doi} placeholder={goiY} placeholderTextColor={M.chu3} keyboardType="number-pad" maxLength={3} accessibilityLabel={nhan}
-          style={{ flex: 1, minWidth: 0, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 8, outlineStyle: "none" } as never} />
-        <Chu kieu="dam7" co={13} mau={M.chu2}>phút</Chu>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, opacity: mo ? 0.4 : 1 }}>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Chu kieu="rat" co={14.5} dong={1}>{nhan}</Chu>
+        <Chu kieu="rat" co={12} mau={XANH} dong={1}>{`= ${quy}`}</Chu>
       </View>
+      <NutTron dau="−" nhan={`Bớt 15 phút · ${nhan}`} bam={tru} tat={mo} />
+      <View style={{ width: 92, height: 48, borderRadius: 16, backgroundColor: "#fff", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3,
+        boxShadow: dang ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.lom}` : `0px 0px 0px 2px #cfe5de, ${BONG.lom}` }}>
+        <TextInput value={chu} onChangeText={doi} editable={!mo} keyboardType="number-pad" inputMode="numeric" maxLength={3} accessibilityLabel={nhanO} placeholder="…" placeholderTextColor={M.chu3}
+          onFocus={() => setDang(true)} onBlur={() => setDang(false)} selectTextOnFocus
+          style={{ width: 40, textAlign: "center", fontFamily: F.rat, fontSize: 22, color: XANH, padding: 0, outlineStyle: "none" } as never} />
+        <Chu kieu="dam7" co={12.5} mau="#565c59">phút</Chu>
+      </View>
+      <NutTron dau="+" nhan={`Thêm 15 phút · ${nhan}`} bam={cong} tat={mo} />
     </View>
   );
 }
 
-/** `doi(gt, loi)`: loi ≠ null khi ô «Tự chọn» đang sai (màn tắt nút Lưu / Tiếp). */
-/** `muc` / `moTa`: lựa chọn + dòng giải thích máy chủ trả (gio-choi) — thiếu thì dùng mặc định trong app; `moTa` chỉ dùng khi chưa đổi gì. */
-export function ChonGioiHan({ gt, doi, muc: mucVao, moTa }: { gt: GioiHan; doi: (g: GioiHan, loi: string | null) => void; muc?: MucMayChu; moTa?: string | null }) {
-  const muc = mucTu(mucVao);
-  const [gt0] = useState(gt);
+const theKem = { borderRadius: 28, backgroundColor: "#f7f6f3", paddingHorizontal: 16, paddingVertical: 14, gap: 10, ...KHOI.the };
+
+function Hoi({ ic, chu }: { ic: "dongho" | "dong_ho_cat"; chu: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 2 }}>
+      <Icon3D ten={ic} co={28} /><Chu kieu="rat" co={16} dong={1} style={{ flex: 1 }}>{chu}</Chu>
+    </View>
+  );
+}
+
+function BuocMinh({ ic, chu }: { ic: "game" | "khoa"; chu: string }) {
+  return (
+    <View style={{ flex: 1, alignItems: "center", gap: 4 }}>
+      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={21} /></View>
+      <Chu kieu="rat" co={12} mau="#2b302e" dong={1}>{chu}</Chu>
+    </View>
+  );
+}
+
+/** `doi(gt, loi)`: loi ≠ null khi một ô đang sai (màn tắt nút Lưu / Tiếp). Ô ngày bắt buộc 10–720 (bàn v21 không có «không giới hạn»): Con cũ đang 0 ⇒ hiện 60 / 90 và ghi chú. */
+export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: string | null) => void }) {
+  const cu0 = !gt.ngayThuong || !gt.cuoiTuan;
+  const dau = { nt: String(gt.ngayThuong || GIOI_HAN_MD.ngayThuong), ct: String(gt.cuoiTuan || GIOI_HAN_MD.cuoiTuan), l: String(gt.moiLuot || LUOT_MD) };
+  const [chu, setChu] = useState(dau);
+  const [khongNghi, setKhongNghi] = useState(!gt.moiLuot);
   const [loi, setLoi] = useState<string | null>(null);
-  const bao = (g: GioiHan, l: string | null) => { setLoi(l); doi(g, l); };
-  const [tuNgay, setTuNgay] = useState(chipNgay(gt, muc.ngay) === "tu_chon");
-  const [tuLuot, setTuLuot] = useState(chipLuot(gt, muc.luot) === "tu_chon");
-  const [chu, setChu] = useState({ nt: gt.ngayThuong ? String(gt.ngayThuong) : "", ct: gt.cuoiTuan ? String(gt.cuoiTuan) : "", l: gt.moiLuot ? String(gt.moiLuot) : "" });
-  const kiem = (c: typeof chu, tn: boolean, tl: boolean) => {
-    const nt = docPhut(c.nt, KHOANG_NGAY), ct = docPhut(c.ct, KHOANG_NGAY), l = docPhut(c.l, KHOANG_LUOT);
-    const g: GioiHan = { ngayThuong: tn ? nt.phut : gt.ngayThuong, cuoiTuan: tn ? ct.phut : gt.cuoiTuan, moiLuot: tl ? l.phut : gt.moiLuot };
-    return { g, loi: (tn ? nt.loi ?? ct.loi : null) ?? (tl ? l.loi : null) };
+  // giá trị MỚI NHẤT (bấm − / + liên tiếp rất nhanh không mất bước: đọc từ ref, không từ state của lần vẽ trước)
+  const cur = useRef({ chu: dau, kn: !gt.moiLuot });
+  /** tính lại giới hạn từ các ô + ô tick, báo lên màn */
+  const bao = (c: typeof chu, kn: boolean) => {
+    const nt = docPhut(c.nt, KHOANG_NGAY, true), ct = docPhut(c.ct, KHOANG_NGAY, true), l = docPhut(c.l, KHOANG_LUOT);
+    const loiLuot = kn ? null : !l.phut ? `Từ ${KHOANG_LUOT.min} đến ${KHOANG_LUOT.max} phút` : l.loi;
+    const e = nt.loi ?? ct.loi ?? loiLuot;
+    setLoi(e);
+    doi({ ngayThuong: nt.phut, cuoiTuan: ct.phut, moiLuot: kn ? 0 : l.phut }, e);
   };
-  const goNgay = (k: "nt" | "ct", s: string) => { const c = { ...chu, [k]: s }; setChu(c); const r = kiem(c, true, tuLuot); bao(r.g, r.loi); };
-  const goLuot = (s: string) => { const c = { ...chu, l: s }; setChu(c); const r = kiem(c, tuNgay, true); bao(r.g, r.loi); };
-  const chonNgay = (i: number) => { setTuNgay(false); const r = kiem(chu, false, tuLuot); bao({ ...r.g, ngayThuong: muc.ngay[i].ngay, cuoiTuan: muc.ngay[i].cuoiTuan }, r.loi); };
-  const moTuNgay = () => {
-    setTuNgay(true);
-    const c = { ...chu, nt: gt.ngayThuong ? String(gt.ngayThuong) : "", ct: gt.cuoiTuan ? String(gt.cuoiTuan) : "" };
-    setChu(c); const r = kiem(c, true, tuLuot); bao(r.g, r.loi);
+  // Con cũ không giới hạn ngày: ô đã đổi sang 60 / 90 ⇒ báo màn có thay đổi chờ lưu
+  useEffect(() => { if (cu0) bao(cur.current.chu, cur.current.kn); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const dat = (c: typeof chu, kn: boolean) => { cur.current = { chu: c, kn }; setChu(c); setKhongNghi(kn); bao(c, kn); };
+  const go = (k: "nt" | "ct" | "l", s: string) => dat({ ...cur.current.chu, [k]: s.replace(/\D/g, "") }, cur.current.kn);
+  const buoc = (k: "nt" | "ct" | "l", h: 1 | -1) => {
+    const kh = k === "l" ? KHOANG_LUOT : KHOANG_NGAY;
+    const n = buocPhut(docPhut(cur.current.chu[k], kh).phut, h, kh);
+    go(k, String(n));
   };
-  const chonLuot = (n: number) => { setTuLuot(false); const r = kiem(chu, tuNgay, false); bao({ ...r.g, moiLuot: n }, r.loi); };
-  const moTuLuot = () => { setTuLuot(true); const c = { ...chu, l: gt.moiLuot ? String(gt.moiLuot) : "" }; setChu(c); const r = kiem(c, tuNgay, true); bao(r.g, r.loi); };
-  const cn = tuNgay ? "tu_chon" : chipNgay(gt, muc.ngay), cl = tuLuot ? "tu_chon" : chipLuot(gt, muc.luot);
-  const theVang = { borderRadius: 30, backgroundColor: "#fdecc8", backgroundImage: "linear-gradient(160deg, #fff4dc, #fbe3b4)", padding: 16, gap: 12, ...KHOI.the };
+  const tick = () => {
+    const kn = !cur.current.kn;
+    const c = cur.current.chu;
+    // bỏ tick mà ô đang trống / 0 ⇒ quay về 30 phút
+    dat(!kn && !docPhut(c.l, KHOANG_LUOT).phut ? { ...c, l: String(LUOT_MD) } : c, kn);
+  };
+  const phutL = docPhut(chu.l, KHOANG_LUOT).phut;
+  const choi = khongNghi ? "…" : `${phutL || "…"} phút`;
+  const quyNgay = (s: string) => { const p = docPhut(s, KHOANG_NGAY, true).phut; return p ? quyRaTieng(p) : "chưa nhập"; };
   return (
     <>
-      <View style={theVang}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon3D ten="dongho" co={26} /></View>
-          <Chu kieu="rat" co={15} mau={NAU} style={{ flex: 1 }}>Hết giờ, máy tự khoá</Chu>
-        </View>
-        <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
-          {muc.ngay.map((x, i) => <Chip key={x.ngay} on={cn === i} tren={`${x.ngay}p`} duoi={`T7, CN ${x.cuoiTuan}p`}
-            nhan={`Tối đa ${x.ngay} phút mỗi ngày, thứ Bảy Chủ nhật ${x.cuoiTuan} phút`} bam={() => chonNgay(i)} />)}
-          <Chip on={cn === "tu_chon"} tren="Tự chọn" duoi={cn === "tu_chon" && (gt.ngayThuong || gt.cuoiTuan) ? `${gt.ngayThuong || "∞"}p · ${gt.cuoiTuan || "∞"}p` : undefined}
-            nhan="Tự chọn giới hạn mỗi ngày" bam={moTuNgay} />
-        </View>
-        {cn === "tu_chon" ? (
-          <View style={{ flexDirection: "row", gap: 10 }}>
-            <OPhut nhan="Thứ 2 – Thứ 6" chu={chu.nt} doi={(s) => goNgay("nt", s)} goiY="không giới hạn" />
-            <OPhut nhan="T7, CN" chu={chu.ct} doi={(s) => goNgay("ct", s)} goiY="không giới hạn" />
-          </View>
-        ) : null}
+      <View style={theKem}>
+        <Hoi ic="dongho" chu="Mỗi ngày chơi bao lâu?" />
+        <DongPhut nhan="Thứ 2 – Thứ 6" quy={quyNgay(chu.nt)} chu={chu.nt} doi={(s) => go("nt", s)} nhanO="Số phút ngày thường"
+          tru={() => buoc("nt", -1)} cong={() => buoc("nt", 1)} />
+        <DongPhut nhan="Thứ 7, Chủ nhật" quy={quyNgay(chu.ct)} chu={chu.ct} doi={(s) => go("ct", s)} nhanO="Số phút cuối tuần"
+          tru={() => buoc("ct", -1)} cong={() => buoc("ct", 1)} />
+        {cu0 ? <Chu co={12.5} mau={M.chu2}>Trước đây chưa giới hạn giờ mỗi ngày — đã đặt sẵn 60 và 90 phút, chỉnh rồi lưu.</Chu> : null}
       </View>
-      <View style={theVang}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon3D ten="game" co={26} /></View>
-          <View style={{ flex: 1, minWidth: 0 }}>
-            <Chu kieu="rat" co={15} mau={NAU}>Mỗi lượt tối đa</Chu>
-            <Chu kieu="dam7" co={12.5} mau={NAU}>Chơi đủ lượt thì máy nghỉ đúng chừng đó phút</Chu>
+      <View style={theKem}>
+        <Hoi ic="dong_ho_cat" chu="Chơi liền bao lâu thì nghỉ?" />
+        <DongPhut nhan="Chơi liền" quy={khongNghi ? "không nghỉ" : phutL ? quyRaTieng(phutL) : "chưa nhập"} chu={chu.l} doi={(s) => go("l", s)} nhanO="Số phút mỗi lần chơi"
+          tru={() => buoc("l", -1)} cong={() => buoc("l", 1)} mo={khongNghi} />
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingVertical: 8, paddingHorizontal: 8, borderRadius: 18, backgroundColor: "#efeeea",
+          boxShadow: BONG.lom, opacity: khongNghi ? 0.4 : 1 }}>
+          <BuocMinh ic="game" chu={`Chơi ${choi}`} />
+          <Chu kieu="rat" co={18} mau={M.chinh} style={{ marginTop: 7 }}>→</Chu>
+          <BuocMinh ic="khoa" chu={`Nghỉ ${choi}`} />
+          <Chu kieu="rat" co={18} mau={M.chinh} style={{ marginTop: 7 }}>→</Chu>
+          <BuocMinh ic="game" chu="Chơi tiếp" />
+        </View>
+        <Pressable onPress={tick} accessibilityRole="checkbox" accessibilityState={{ checked: khongNghi }} accessibilityLabel="Không cần nghỉ"
+          style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingLeft: 2, alignSelf: "flex-start" }}>
+          <View style={{ width: 20, height: 20, borderRadius: 6, alignItems: "center", justifyContent: "center", backgroundColor: khongNghi ? M.chinh : "#fff",
+            boxShadow: khongNghi ? BONG.ngoc : `0px 0px 0px 2px #c9ccc9, ${BONG.lom}` }}>
+            {khongNghi ? <Chu kieu="rat" co={13} mau="#fff">✓</Chu> : null}
           </View>
-        </View>
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityRole="radiogroup">
-          {[...muc.luot, -1].map((n) => (
-            <View key={n} style={{ width: "31%", flexGrow: 1 }}>
-              {n < 0
-                ? <Chip on={cl === "tu_chon"} tren="Tự chọn" duoi={cl === "tu_chon" && gt.moiLuot ? `${gt.moiLuot}p` : undefined} nhan="Tự chọn phút mỗi lượt" bam={moTuLuot} />
-                : <Chip on={cl === n} tren={n ? `${n}p` : "Không giới hạn"} duoi={n ? `nghỉ ${n}p` : undefined}
-                    nhan={n ? `Mỗi lượt tối đa ${n} phút rồi nghỉ ${n} phút` : "Mỗi lượt không giới hạn"} bam={() => chonLuot(n)} />}
-            </View>
-          ))}
-        </View>
-        {cl === "tu_chon" ? <OPhut nhan={`Mỗi lượt (${KHOANG_LUOT.min}–${KHOANG_LUOT.max} phút)`} chu={chu.l} doi={goLuot} goiY="ví dụ 20" /> : null}
+          <Chu kieu="rat" co={12.5} mau="#565c59">Không cần nghỉ</Chu>
+        </Pressable>
       </View>
       {loi ? <Chu kieu="dam" co={13} mau={M.loi} style={{ marginHorizontal: 4 }}>{loi}</Chu> : null}
-      <Chu kieu="dam" co={14} mau={M.chu2} style={{ marginHorizontal: 4 }}>{moTa && JSON.stringify(gt) === JSON.stringify(gt0) ? moTa : moTaGioiHan(gt)}</Chu>
     </>
   );
 }

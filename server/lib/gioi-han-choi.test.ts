@@ -75,13 +75,12 @@ test("tinhLuot (thuần): đủ lượt ⇒ nghỉ đúng N phút; tự dừng �
 test("API Giờ chơi: lưu giới hạn ngày + mỗi lượt, dòng giải thích; giá trị sai ⇒ 400; ô cũ không đụng", async () => {
   const { con, tokBm } = await nha(10);
   let r = await m(tokBm, `con/${con}/gio-choi`);
-  assert.deepEqual([r.body.gioiHanNgayThuong, r.body.gioiHanCuoiTuan, r.body.phutMoiLuot, r.body.moTaGioiHan],
-    [0, 0, 0, "Mỗi ngày không giới hạn · mỗi lượt không giới hạn · chơi bằng sao"], "Con cũ: không giới hạn");
-  assert.deepEqual(r.body.mucGioiHan.luot, [0, 15, 30, 45, 60]);
+  assert.deepEqual([r.body.gioiHanNgayThuong, r.body.gioiHanCuoiTuan, r.body.phutMoiLuot],
+    [0, 0, 0], "Con cũ: không giới hạn");
+  assert.equal("moTaGioiHan" in r.body || "mucGioiHan" in r.body, false, "#306: bỏ chip + dòng giải thích");
   r = await m(tokBm, `con/${con}/gio-choi`, { gioiHanNgayThuong: 60, gioiHanCuoiTuan: 90, phutMoiLuot: 30 });
   assert.equal(r.status, 200);
   assert.deepEqual([r.body.gioiHanNgayThuong, r.body.gioiHanCuoiTuan, r.body.phutMoiLuot], [60, 90, 30]);
-  assert.equal(r.body.moTaGioiHan, "Mỗi ngày tối đa 60 phút (T7, CN 90 phút) · mỗi lượt 30 phút rồi nghỉ 30 phút · chơi bằng sao");
   r = await m(tokBm, `con/${con}/gio-choi`, { phutMoiLuot: 0 });
   assert.deepEqual([r.body.gioiHanNgayThuong, r.body.phutMoiLuot], [60, 0], "chỉ đổi khoá có gửi");
   assert.equal((await m(tokBm, `con/${con}/gio-choi`, { phutMoiLuot: 2 })).status, 400);
