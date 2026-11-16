@@ -63,8 +63,15 @@ public static class ManChanView
     public const string KhongCanGuiLai = "Không cần bấm gửi lại đâu.";
 }
 
-/// <summary>Một nút trên màn khoá. <see cref="Ma"/>: nhan_ba_me | ba_me_dung_may | doi_be | xin_vay | lam_nhiem_vu.</summary>
-public sealed record NutKhoa(string Ma, string Chu, string Icon);
+/// <summary>Một nút trên màn khoá. <see cref="Ma"/>: nhan_ba_me | ba_me_dung_may | doi_be | xin_vay | lam_nhiem_vu.
+/// <see cref="Chinh"/> = nút lớn xanh (ngoài «Làm nhiệm vụ» / «Xin vay» vốn luôn lớn) — #307: «Nhắn Ba Mẹ» khi Ba Mẹ khoá máy.</summary>
+public sealed record NutKhoa(string Ma, string Chu, string Icon, bool Chinh = false);
+
+/// <summary>#307: mốc «Ba Mẹ khoá lúc …» — giữ mốc cũ khi vẫn khoá, lấy <paramref name="now"/> khi vừa khoá, bỏ khi đã mở.</summary>
+public static class KhoaLucMay
+{
+    public static DateTimeOffset? Cap(DateTimeOffset? cu, bool baMeKhoa, DateTimeOffset now) => baMeKhoa ? cu ?? now : null;
+}
 
 /// <summary>Nội dung màn khoá toàn màn hình (cmt-khoa-ba-me-khoa, cmt-khoa-mat-mang) và màn «Hết sao» (<see cref="HetSaoView"/>).</summary>
 public sealed record ManKhoa(string Rob, string Tieu, string Phu, string? Phu2, bool DemNguoc, string? SaoDong, IReadOnlyList<NutKhoa> Nut, bool MatMang);
@@ -101,7 +108,8 @@ public static class ManKhoaView
             }
             return new ManKhoa("ngu", "Ba Mẹ đang khoá máy", "Mở lại là máy báo con ngay", null, false, null, nut, true);
         }
-        nut.Add(new NutKhoa(NhanBaMe, "Nhắn Ba Mẹ", "tin"));
+        // #307 cmt-khoa-ba-me-khoa: Ba Mẹ «Khoá ngay» ⇒ «Nhắn Ba Mẹ» là nút chính; lý do cũ (ngu / het_gio) giữ liên kết chữ
+        nut.Add(new NutKhoa(NhanBaMe, "Nhắn Ba Mẹ", "tin", lyDo == LockReasons.Khoa));
         nut.Add(new NutKhoa(BaMeDungMay, "Ba Mẹ dùng máy", "khoa"));
         return new ManKhoa("cho", "Ba Mẹ đang khoá máy", khoaLuc ?? "Mở lại là máy báo con ngay", khoaLuc != null ? "Mở lại là máy báo con ngay" : null, false, null, nut, false);
     }

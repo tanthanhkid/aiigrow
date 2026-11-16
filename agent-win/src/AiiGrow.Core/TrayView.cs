@@ -77,33 +77,47 @@ public static class TrayView
         ["discord"] = "Discord", ["spotify"] = "Spotify", ["notepad"] = "Notepad", ["calculatorapp"] = "Máy tính",
     };
 
-    private static volatile Dictionary<string, string>? _tenMay;
+    private static volatile IReadOnlyDictionary<string, string> _tenMay = new Dictionary<string, string>();
 
-    /// <summary>16/11 (#307): đặt bảng tên app theo danh sách app máy (mục → tên hiển thị, <see cref="TrayState.TenApp"/>). Rỗng / null ⇒ giữ bảng cũ.</summary>
-    public static void DatTenApp(IEnumerable<KeyValuePair<string, string>>? ds)
+    /// <summary>16/11 (#307): bảng tên app của KHAY = <see cref="TrayState.TenApp"/> của lượt trạng thái mới nhất (nguồn duy nhất: danh sách app máy gửi máy chủ).
+    /// Thay hẳn mỗi lần (kể cả rỗng) — không giữ tên của bé / lượt trước. Dịch vụ không dùng bảng tĩnh này (truyền bảng của nó vào các hàm tra).</summary>
+    public static void DatTenApp(IEnumerable<KeyValuePair<string, string>>? ds) => _tenMay = TaoBang(ds);
+
+    /// <summary>Bảng mục → tên (không phân biệt hoa thường, bỏ mục / tên trống).</summary>
+    public static Dictionary<string, string> TaoBang(IEnumerable<KeyValuePair<string, string>>? ds)
     {
-        if (ds == null) return;
         var m = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var (k, v) in ds)
+        foreach (var (k, v) in ds ?? Array.Empty<KeyValuePair<string, string>>())
             if (!string.IsNullOrWhiteSpace(k) && !string.IsNullOrWhiteSpace(v)) m[k.Trim()] = v.Trim();
-        if (m.Count > 0) _tenMay = m;
+        return m;
     }
 
-    /// <summary>Tên hiển thị theo danh sách app máy (null = không có).</summary>
-    public static string? TenTheoDanhSach(string? appId)
+    /// <summary>Tên hiển thị của <paramref name="appId"/> trong bảng (có / không đuôi «.exe» đều khớp); <paramref name="bang"/> null = bảng của khay. null = không có.</summary>
+    public static string? TenTheoDanhSach(string? appId, IReadOnlyDictionary<string, string>? bang = null)
     {
-        var m = _tenMay;
+        var m = bang ?? _tenMay;
         var g = (appId ?? "").Trim();
-        if (m == null || g.Length == 0) return null;
-        if (m.TryGetValue(g, out var t)) return t;
-        var exe = g.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? g[..^4] : g + ".exe";
-        return m.TryGetValue(exe, out t) ? t : null;
+        if (m.Count == 0 || g.Length == 0) return null;
+        if (m.TryGetValue(g, out var t) && !string.IsNullOrWhiteSpace(t)) return t;
+        var khac = g.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? g[..^4] : g + ".exe";
+        return m.TryGetValue(khac, out t) && !string.IsNullOrWhiteSpace(t) ? t : null;
     }
 
-    public static string FriendlyAppName(string? appId, string? appName)
+    /// <summary><paramref name="appName"/> chỉ là tên tiến trình trần của app (tudien / tudien.exe cho tudien.exe) — không phải tên hiển thị. Tên miền (y8.com) không tính.</summary>
+    public static bool LaTenTienTrinh(string? appId, string? appName)
     {
-        if (!string.IsNullOrWhiteSpace(appName)) return appName!;
-        if (TenTheoDanhSach(appId) is { } tenDs) return tenDs;
+        var id = (appId ?? "").Trim();
+        var ten = (appName ?? "").Trim();
+        if (id.Length == 0 || ten.Length == 0 || !id.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return false;
+        return ten.Equals(id, StringComparison.OrdinalIgnoreCase) || ten.Equals(id[..^4], StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Tên hiển thị: bảng tên danh sách app TRƯỚC (<paramref name="bang"/> / bảng của khay), rồi <paramref name="appName"/> nếu không phải tên tiến trình trần,
+    /// rồi tên đẹp có sẵn / viết hoa chữ đầu.</summary>
+    public static string FriendlyAppName(string? appId, string? appName, IReadOnlyDictionary<string, string>? bang = null)
+    {
+        if (TenTheoDanhSach(appId, bang) is { } tenDs) return tenDs;
+        if (!string.IsNullOrWhiteSpace(appName) && !LaTenTienTrinh(appId, appName)) return appName!.Trim();
         var n = (appId ?? "").Trim();
         if (n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) n = n[..^4];
         if (TenDepApp.TryGetValue(n, out var dep)) return dep;

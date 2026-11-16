@@ -887,7 +887,7 @@ internal sealed class TrayContext : ApplicationContext
             _hetSao = f;
             f.Show();
         }
-        _hetSao.ApHetSao(m, _state.ChildName, giay, _state.OfflineSince);
+        _hetSao.ApHetSao(m, _state.ChildName, giay, _state.OfflineSince, dangDung: _state.NguoiDung == LoaiNguoiDung.Con && !_state.MayRieng);
     }
 
     protected override void Dispose(bool disposing)

@@ -652,6 +652,30 @@ public sealed class AgentRuntime
         lock (_gate) { Config = c; _cfgStamp = Store.LastWriteUtc; }
     }
 
+    private DateTimeOffset? _khoaTu;
+    private bool _khoaTuDaDoc;
+    private static string TepKhoaTu => Path.Combine(Paths.DataDir, "khoa-tu.txt");
+
+    /// <summary>#307 (cmt-khoa-ba-me-khoa): lúc máy nhận lệnh «Khoá ngay» của Ba Mẹ — giữ nguyên tới khi Ba Mẹ mở (không theo phiên Windows / đổi người /
+    /// khởi động lại dịch vụ: lưu tệp). Máy chủ chưa gửi mốc khoá ⇒ đây là lần đầu máy thấy lệnh. Gọi trong <c>_gate</c>.</summary>
+    private DateTimeOffset? KhoaLuc(bool baMeKhoa, DateTimeOffset now)
+    {
+        if (!_khoaTuDaDoc)
+        {
+            _khoaTuDaDoc = true;
+            try { if (File.Exists(TepKhoaTu) && DateTimeOffset.TryParse(File.ReadAllText(TepKhoaTu).Trim(), System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d)) _khoaTu = d; }
+            catch { /* không đọc được ⇒ coi như chưa có */ }
+        }
+        var moi = KhoaLucMay.Cap(_khoaTu, baMeKhoa, now);
+        if (moi != _khoaTu)
+        {
+            _khoaTu = moi;
+            try { if (moi is { } m) File.WriteAllText(TepKhoaTu, m.ToString("o")); else if (File.Exists(TepKhoaTu)) File.Delete(TepKhoaTu); }
+            catch { /* chỉ để hiện giờ khoá — lỗi ghi không ảnh hưởng khoá */ }
+        }
+        return _khoaTu;
+    }
+
     public void SetLock(bool locked, string? reason, DateTimeOffset now, bool sessionActive)
     {
         lock (_gate)
@@ -696,7 +720,7 @@ public sealed class AgentRuntime
             s.Mode = tt.Mode;
             s.Locked = eff.Locked;
             s.LockReason = eff.LockReason;
-            s.KhoaLuc = eff.Locked && eff.LockReason == LockReasons.Khoa ? _lockStartedAt : null;
+            s.KhoaLuc = KhoaLuc(eff0.Locked && eff0.LockReason == LockReasons.Khoa, now);
             s.MinutesLeft = eff.MinutesLeft;
             s.GrantEndsAt = eff.GrantEndsAt;
             s.CanExchangePoints = _policy.CanExchangePoints;
@@ -734,11 +758,11 @@ public sealed class AgentRuntime
             s.AppTinhPhut = QuyTaiCho.MucTinhPhut(_policy).ToList();
             var fgTuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;
             s.DangChoiTinhPhut = !s.MoHet && !moTam && fgTuoi && !string.IsNullOrEmpty(_fgId) && LaTinhPhut(_fgId!) && _fgId != UsageTracker.KhongRo;
-            s.AppDangChoi = s.DangChoiTinhPhut ? TrayView.FriendlyAppName(_fgId, _fgName) : null;
+            s.AppDangChoi = s.DangChoiTinhPhut ? TrayView.FriendlyAppName(_fgId, _fgName, TenAppMay) : null;
             s.DungTheoApp = Usage.DungHomNay(now, con: s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng ? s.BeId : null);
             if (TenAppMay is { Count: > 0 } tenMay)
                 foreach (var muc in s.AppDuocPhep.Concat(s.AppTinhPhut).Append(s.BlockedAppId).Append(_fgId).Concat(s.DungTheoApp.Select(x => x.AppId)))
-                    if (!string.IsNullOrWhiteSpace(muc) && tenMay.TryGetValue(muc.Trim(), out var ten)) s.TenApp[muc.Trim()] = ten;
+                    if (TrayView.TenTheoDanhSach(muc, tenMay) is { } ten) s.TenApp[muc!.Trim()] = ten;   // có / không «.exe» đều khớp
             if (eff.Locked && _lockStartedAt.HasValue)
                 s.LockGraceLeftSec = (int)Math.Max(0, Math.Ceiling(_lockGraceSec - (now - _lockStartedAt.Value).TotalSeconds));
             // Giám sát (hoặc mồ côi): KHÔNG hiện màn khoá toàn màn hình — chỉ ghi lại ở dịch vụ.

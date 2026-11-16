@@ -410,7 +410,7 @@ internal static class ChupMain
         try
         {
             f.Show();
-            f.ApHetSao(m, tenCon, giay, DateTimeOffset.Now.AddMinutes(-20));
+            f.ApHetSao(m, tenCon, giay, DateTimeOffset.Now.AddMinutes(-20), dangDung: m.Nut.Any(n => n.Ma == HetSaoView.DoiBe));
             await Cho(1500);
             Chup(f, ten);
         }
