@@ -30,7 +30,7 @@ $DataDir = Join-Path $env:ProgramData 'AiiGrow'
 $InstallDir = Join-Path $env:ProgramFiles 'AiiGrow'
 $TenCon = 'aiicon'
 $TenMienChan = 'chan-thu-e2e.vn'   # 15/11 (#262): không còn «Chặn» — tên miền này Ba Mẹ THÊM vào danh sách «Không tính phút» (danh sách trắng)
-$WebCam = 'pornhub.com'   # một tên miền thuộc nhóm web luôn chặn (server lib/chan-co-ban.ts › WEB_CAM)
+$WebCam = 'pornhub.com'   # một tên miền ngoài danh sách (lưới web cấm cứng đã bỏ theo #258)
 $WebQuanTri = 'quan-tri-gia.example.com'
 $KQ = New-Object System.Collections.ArrayList
 $TienTrinh = @()
@@ -399,10 +399,10 @@ KichBan 'KB4' 'Chặn thật: AppLocker + web (Theo danh sách — danh sách tr
   $webOk = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { $m = @(MucAiiGrow $k 'URLBlocklist'); if (-not @($m | Where-Object { $_.GiaTri -eq '*' }).Count -or @($m | Where-Object { $_.GiaTri -like "*$TenMienChan*" }).Count) { $all = $false } }; $all } 90 5
   $chiTiet = ($KhoaWebCon.GetEnumerator() | ForEach-Object { $m = @(MucAiiGrow $_.Value 'URLBlocklist'); "$($_.Key): «*»=$([bool]@($m | Where-Object { $_.GiaTri -eq '*' }).Count) $TenMienChan=$([bool]@($m | Where-Object { $_.GiaTri -like "*$TenMienChan*" }).Count) ($($m.Count) mục)" }) -join ' · '
   Dat '4.4' "URLBlocklist Chrome + Edge có «*» (ngoài danh sách không mở), $TenMienChan (trong danh sách) không bị chặn" $webOk $chiTiet
-  # 4.4c — thiết kế 05/11 (L4): web người lớn / cờ bạc / bạo lực LUÔN chặn ở mọi chế độ (server lib/chan-co-ban.ts › WEB_LUON_CHAN)
-  $camOk = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { if (-not (@(MucAiiGrow $k 'URLBlocklist') | Where-Object { $_.GiaTri -eq $WebCam })) { $all = $false } }; $all } 60 5
-  $ctCam = ($KhoaWebCon.GetEnumerator() | ForEach-Object { $m = @(MucAiiGrow $_.Value 'URLBlocklist'); "$($_.Key): $WebCam=$([bool]@($m | Where-Object { $_.GiaTri -eq $WebCam }).Count) ($($m.Count) mục, đầu: $((@($m | Select-Object -First 4 | ForEach-Object { $_.GiaTri })) -join ','))" }) -join ' · '
-  Dat '4.4c' "Web cấm luôn chặn ($WebCam) có trong URLBlocklist Chrome + Edge" $camOk $ctCam
+  # 4.4c — #258/#262: không còn lưới web cấm riêng; ở «Theo danh sách» web ngoài danh sách (vd $WebCam) bị «*» chặn và KHÔNG có trong URLAllowlist
+  $camOk = Cho { $all = $true; foreach ($k in $KhoaWebCon.Values) { $bl = @(MucAiiGrow $k 'URLBlocklist'); $al = @(MucAiiGrow $k 'URLAllowlist'); if (-not @($bl | Where-Object { $_.GiaTri -eq '*' }).Count -or @($al | Where-Object { $_.GiaTri -like "*$WebCam*" }).Count) { $all = $false } }; $all } 60 5
+  $ctCam = ($KhoaWebCon.GetEnumerator() | ForEach-Object { $bl = @(MucAiiGrow $_.Value 'URLBlocklist'); $al = @(MucAiiGrow $_.Value 'URLAllowlist'); "$($_.Key): «*»=$([bool]@($bl | Where-Object { $_.GiaTri -eq '*' }).Count) $WebCam trong allowlist=$([bool]@($al | Where-Object { $_.GiaTri -like "*$WebCam*" }).Count)" }) -join ' · '
+  Dat '4.4c' "Web ngoài danh sách ($WebCam) bị chặn bởi «*» và không có trong URLAllowlist" $camOk $ctCam
   $hklmCu = @(); foreach ($k in $KhoaWeb.Values) { $hklmCu += MucAiiGrow $k 'URLBlocklist' }
   Dat '4.4b' 'HKLM không còn luật AiiGrow (luật cũ 90001 đã gỡ — luật chỉ ở hive Con)' ($hklmCu.Count -eq 0) ("còn {0} mục HKLM: {1}" -f $hklmCu.Count, (($hklmCu | ForEach-Object { "$($_.Ten)=$($_.GiaTri)" }) -join ';'))
   $co = CoWebCon
