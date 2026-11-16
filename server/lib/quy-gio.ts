@@ -91,10 +91,10 @@ export type Quy = {
 export async function quyHomNay(con: string, now = new Date(), t: Q = q, b0?: BoiCanhCon): Promise<Quy> {
   const b = b0 ?? (await boiCanhCon(con, t));
   const g = gioDiaPhuong(now, b.tz);
-  const [st, dung, tru] = await Promise.all([trangThaiSao(con, t), phutDaDung(t, con, b.fam, g.ngay, b.tz), phutDaTruHomNay(t, con, b.tz, now)]);
+  const [st, dung, tru, gh0] = await Promise.all([trangThaiSao(con, t), phutDaDung(t, con, b.fam, g.ngay, b.tz), phutDaTruHomNay(t, con, b.tz, now),
+    gioiHanCua(t, con, b.cfg, b.tz, { moHet: !!b.moHet }, now)]);
   // daDung ≥ phút đã trừ sao (phút dùng lúc «Mở hết» / trước khi có sao vẫn tính vào «đã dùng» để agent cũ đếm đúng phần còn)
   const daDung = Math.max(dung, tru);
-  const gh0 = await gioiHanCua(t, con, b.cfg, b.tz, daDung, { moHet: !!b.moHet }, now);
   // lý do khoá cho máy Con: hết giới hạn ngày THẮNG hết sao (có sao hôm nay cũng không chơi được); đang nghỉ CHỈ khi còn sao thật —
   // hết sao thì máy nói «Hết sao rồi» + «Làm nhiệm vụ» (nghỉ xong vẫn không chơi được)
   const gh = gh0.lyDoKhoa === "dang_nghi" && st.hetSao ? { ...gh0, lyDoKhoa: null, cau: null } : gh0;
@@ -162,7 +162,7 @@ export async function gioChoiCua(fam: string, con: string, now = new Date()) {
 export function gioiHanBm(cfg: Record<string, unknown>) {
   const c = cauHinhCua(cfg);
   return { gioiHanNgayThuong: c.ngayThuong, gioiHanCuoiTuan: c.cuoiTuan, phutMoiLuot: c.moiLuot, moTaGioiHan: moTaGioiHan(c),
-    mucGioiHan: { ngay: [...MUC_NGAY], luot: [...MUC_LUOT], ngayKhoang: GH_NGAY, luotKhoang: GH_LUOT } };
+    mucGioiHan: { ngay: MUC_NGAY.map((x) => ({ ...x })), luot: [...MUC_LUOT], ngayKhoang: GH_NGAY, luotKhoang: GH_LUOT } };
 }
 
 

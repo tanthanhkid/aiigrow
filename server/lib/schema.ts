@@ -811,4 +811,8 @@ export const SCHEMA_APP_WEB = [
   // tham số web_chi_cho_phep bỏ (web theo chế độ Con)
   `update children set cau_hinh = cau_hinh - 'web_chi_cho_phep' where cau_hinh ? 'web_chi_cho_phep'`,
   `update families set cau_hinh = cau_hinh - 'web_chi_cho_phep' where cau_hinh ? 'web_chi_cho_phep'`,
+  // #302: mục đích khoản vay có cấu trúc (choi | qua | null) — giới hạn giờ chơi chỉ cộng sao vay để CHƠI. Dữ liệu cũ suy MỘT lần theo ly_do.
+  `alter table points add column if not exists muc_dich text`,
+  `update points set muc_dich = case when ly_do like '%· đổi quà%' then 'qua' when ly_do like '%· chơi%' then 'choi' else null end
+     where loai = 'vay' and delta > 0 and muc_dich is null and (ly_do like '%· đổi quà%' or ly_do like '%· chơi%')`,
 ];
