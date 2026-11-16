@@ -121,6 +121,8 @@ data class HienThi(
     val cong: String = "MO", val baMeDen: Long = 0,
     /** 15/11 sổ sao: số dư Con thấy (âm khi nợ; null = máy chủ cũ), nợ Ba Mẹ, chế độ «Mở hết» (không chặn, không tính phút). */
     val soDu: Int? = null, val no: Int = 0, val moHet: Boolean = false,
+    /** 16/11 #302 giới hạn giờ chơi: lý do khoá (`het_gio_ngay` | `dang_nghi`), giờ chơi tiếp «HH:MM», phút còn của ngày. */
+    val lyDoKhoa: String? = null, val nghiDenGio: String? = null, val conNgay: Int? = null,
 ) {
     /** Máy chủ có sổ sao (1 sao = 1 phút) — giao diện nói «sao» thay «phút chơi hôm nay». */
     val coSao: Boolean get() = soDu != null
@@ -132,7 +134,8 @@ data class HienThi(
         .put("dungTop", JSONArray(dungTop.map { JSONObject().put("goi", it.first).put("phut", it.second) }))
         .put("capNhat", capNhat).put("deviceOwner", deviceOwner).put("tenCon", tenCon ?: "")
         .put("goiChuaXep", JSONArray(goiChuaXep.toList())).put("cong", cong).put("baMeDen", baMeDen)
-        .apply { soDu?.let { put("soDu", it) } }.put("no", no).put("moHet", moHet).toString()
+        .apply { soDu?.let { put("soDu", it) } }.put("no", no).put("moHet", moHet)
+        .apply { lyDoKhoa?.let { put("lyDoKhoa", it) }; nghiDenGio?.let { put("nghiDenGio", it) }; conNgay?.let { put("conNgay", it) } }.toString()
 
     companion object {
         fun doc(s: String?): HienThi? = try {
@@ -147,6 +150,7 @@ data class HienThi(
                     (o.optJSONArray("goiChuaXep") ?: JSONArray()).let { a -> (0 until a.length()).map { a.optString(it) }.toSet() },
                     o.optString("cong", "MO").ifBlank { "MO" }, o.optLong("baMeDen"),
                     if (o.has("soDu")) o.optInt("soDu") else null, o.optInt("no"), o.optBoolean("moHet"),
+                    o.optString("lyDoKhoa").ifBlank { null }, o.optString("nghiDenGio").ifBlank { null }, if (o.has("conNgay")) o.optInt("conNgay") else null,
                 )
             }
         } catch (_: Exception) { null }
@@ -155,6 +159,7 @@ data class HienThi(
             qd.trangThai.name, qd.conPhut, qd.cauCon, qd.moLaiLuc?.toEpochMilli() ?: 0, qd.khoaCaMay, demNguoc,
             demNguoc == 0 && vn.aiilab.aiigrow.maycon.logic.laKhoa(qd.trangThai), qd.goiChan, dungTop, now, deviceOwner, tenCon, qd.goiChuaXep,
             soDu = qd.soDu, no = qd.no, moHet = qd.moHet,
+            lyDoKhoa = qd.lyDoKhoa, nghiDenGio = qd.nghiDenGio, conNgay = qd.conNgay,
         )
     }
 }

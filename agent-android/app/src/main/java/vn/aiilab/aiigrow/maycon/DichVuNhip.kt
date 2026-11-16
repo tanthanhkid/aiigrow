@@ -393,7 +393,9 @@ class DichVuNhip : Service() {
                 ht.cong == Cong.BA_ME.name -> "Ba Mẹ đang dùng máy tới ${GiaoDien.gio(ht.baMeDen)} · không trừ giờ của con"
                 ht.cong == Cong.CHON_TEN.name -> "Máy đang khoá — chạm tên của con để vào"
                 ht.moHet -> "Hôm nay Mở hết · không tính phút"
+                ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && ht.lyDoKhoa != null -> ht.cauCon
                 ht.coSao && ht.trangThai == TrangThai.HET_GIO.name -> "Hết sao rồi · app học vẫn mở"
+                ht.coSao && ht.trangThai == TrangThai.BINH_THUONG.name && ht.conNgay != null -> "Còn ${minOf(ht.conPhut, ht.conNgay)} phút hôm nay"
                 ht.coSao && ht.trangThai == TrangThai.BINH_THUONG.name -> "Còn ${ht.conPhut} sao = ${ht.conPhut} phút chơi"
                 ht.trangThai == TrangThai.BINH_THUONG.name || ht.trangThai == TrangThai.DUOC_THEM_GIO.name -> "Còn ${ht.conPhut} phút chơi hôm nay"
                 else -> ht.cauCon

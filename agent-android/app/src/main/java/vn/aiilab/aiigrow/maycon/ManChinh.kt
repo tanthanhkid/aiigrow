@@ -303,8 +303,9 @@ class ManChinh : Activity() {
             tPhut.textSize = if (ht.moHet || moi.length > 7) 20f else 26f
             tCau.text = when {
                 ht.moHet -> "Hôm nay Mở hết"
+                ht.trangThai == TrangThai.HET_GIO.name && ht.lyDoKhoa != null -> ht.cauCon
                 ht.trangThai == TrangThai.HET_GIO.name -> "Hết sao rồi"
-                ht.trangThai == TrangThai.BINH_THUONG.name -> "Còn ${ht.conPhut} sao"
+                ht.trangThai == TrangThai.BINH_THUONG.name -> "Còn ${ht.soDu?.plus(ht.no) ?: ht.conPhut} sao"
                 else -> ht.cauCon
             }
             tDaChoi.text = when {

@@ -39,6 +39,10 @@ data class QuyetDinh(
     val no: Int = 0,
     /** 15/11 «Mở hết»: không chặn, không tính phút. */
     val moHet: Boolean = false,
+    /** 16/11 #302: khoá vì giới hạn giờ chơi (`het_gio_ngay` | `dang_nghi`; null = không / máy chủ cũ) + giờ chơi tiếp «HH:MM». */
+    val lyDoKhoa: String? = null, val nghiDenGio: String? = null,
+    /** 16/11 #302: phút còn của giới hạn ngày (null = không giới hạn / máy chủ cũ). */
+    val conNgay: Int? = null,
 )
 
 /** Gói không bao giờ chặn: chính AiiGrow Con, app Ba Mẹ, trình cài / Cài đặt / điện thoại khẩn cấp. */
@@ -173,9 +177,16 @@ private fun quyetDinhSao(
     val tieuTaiCho = if (cs.moHet) 0 else ((if (cungNgay) (phutGiaiTriHomNay - (phutLucNhip ?: phutGiaiTriHomNay)).coerceAtLeast(0) else phutGiaiTriHomNay)
         - phutBoiMa).coerceAtLeast(0)
     val conPhut = if (s.hetSao) 0 else (s.phutCon - tieuTaiCho).coerceAtLeast(0)
-    val soDu = conPhut - s.no
+    // sao THẬT (phutCon đã kẹp theo giới hạn giờ chơi ⇒ không dùng để hiện «X sao»)
+    val saoThat = s.saoTieuDuoc ?: if (s.hetSao) 0 else s.phutCon
+    val soDu = (saoThat - tieuTaiCho).coerceAtLeast(0) - s.no
+    val gh = cs.gioiHan?.takeIf { it.apDung && !cs.moHet }
     // «Mở hết» chỉ là nhãn khi máy thật sự mở bình thường — khoá / không tuân thủ / mở bằng mã thì trạng thái đó ưu tiên
-    fun ra(q: QuyetDinh) = q.copy(soDu = soDu, no = s.no, moHet = cs.moHet && q.trangThai == TrangThai.BINH_THUONG)
+    fun ra(q: QuyetDinh): QuyetDinh {
+        val vi = gh?.takeIf { q.trangThai == TrangThai.HET_GIO }
+        return q.copy(soDu = soDu, no = s.no, moHet = cs.moHet && q.trangThai == TrangThai.BINH_THUONG,
+            lyDoKhoa = vi?.lyDoKhoa, nghiDenGio = vi?.nghiDenGio, conNgay = gh?.conNgay)
+    }
     if (moOfflineDen != null && moOfflineDen.isAfter(now)) {
         val p = Duration.between(now, moOfflineDen).toMinutes().toInt() + 1
         return ra(kq(TrangThai.DUOC_THEM_GIO, chan + khongLoc, false, p, moOfflineDen, "Ba Mẹ đã mở máy bằng mã · không trừ sao."))
@@ -193,7 +204,13 @@ private fun quyetDinhSao(
     }
     // «Mở hết»: không chặn gì (kể cả trình duyệt — web không lọc), không đếm phút
     if (cs.moHet) return ra(kq(TrangThai.BINH_THUONG, emptySet(), false, conPhut, null, "Hôm nay Ba Mẹ để chế độ Mở hết · không tính phút."))
-    if (conPhut <= 0) return ra(kq(TrangThai.HET_GIO, chan + giaiTri + chuaXep, false, 0, null, "Hết sao rồi. App học vẫn dùng được."))
+    if (conPhut <= 0) {
+        val cauGh = cauKhoaGioiHan(gh)
+        if (cauGh != null) return ra(kq(TrangThai.HET_GIO, chan + giaiTri + chuaXep, false, 0,
+            if (gh!!.lyDoKhoa == KHOA_DANG_NGHI) gh.nghiDen else null, cauGh))
+        return ra(kq(TrangThai.HET_GIO, chan + giaiTri + chuaXep, false, 0, null, "Hết sao rồi. App học vẫn dùng được."))
+    }
+    if (gh?.conNgay != null) return ra(kq(TrangThai.BINH_THUONG, chan + chuaXep, false, conPhut, null, "Còn ${minOf(conPhut, gh.conNgay)} phút hôm nay."))
     return ra(kq(TrangThai.BINH_THUONG, chan + chuaXep, false, conPhut, null, "Còn $conPhut sao = $conPhut phút chơi."))
 }
 
