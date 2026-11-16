@@ -630,6 +630,7 @@ internal sealed class TrayContext : ApplicationContext
             Chao(true);
             _state = st;
             _at = DateTimeOffset.Now;
+            TrayView.DatTenApp(st.TenApp);   // #307: tên app theo danh sách app máy, không tên tiến trình
             DoiNguoi();
             HandleBaMe();
             SetKetNoi(KetNoiView.Chon(true, _state), true);
@@ -886,7 +887,7 @@ internal sealed class TrayContext : ApplicationContext
             _hetSao = f;
             f.Show();
         }
-        _hetSao.ApHetSao(m, _state.ChildName, giay, _state.OfflineSince);
+        _hetSao.ApHetSao(m, _state.ChildName, giay, _state.OfflineSince, dangDung: _state.NguoiDung == LoaiNguoiDung.Con && !_state.MayRieng);
     }
 
     protected override void Dispose(bool disposing)

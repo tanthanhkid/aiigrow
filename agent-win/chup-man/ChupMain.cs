@@ -78,6 +78,7 @@ internal static class ChupMain
 
     private static async Task ChayHet()
     {
+        TrayView.DatTenApp(TenAppMau());
         await Mot("app-hom-nay", () => ManApp("app-hom-nay", MucApp.HomNay, TrangThai(), true));
         await Mot("app-hom-nay-mat-mang", () => ManApp("app-hom-nay-mat-mang", MucApp.HomNay,
             TrangThai(s => { s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddMinutes(-25); }), true));
@@ -110,7 +111,8 @@ internal static class ChupMain
         await Mot("chan-app-mat-mang", () => ManChan("chan-app-mat-mang", "capcut.exe", "CapCut", "MatMang"));
         await Mot("chan-da-luu-cho-mang", () => ManChan("chan-da-luu-cho-mang", "capcut.exe", "CapCut", "DaLuu"));
 
-        await Mot("khoa-ba-me-khoa", () => ManKhoa("khoa-ba-me-khoa", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; })));
+        // #307 cmt-khoa-ba-me-khoa: «Ba Mẹ khoá lúc HH:mm.» + «Nhắn Ba Mẹ» nút chính
+        await Mot("khoa-ba-me-khoa", () => ManKhoa("khoa-ba-me-khoa", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; s.KhoaLuc = DateTimeOffset.Now.AddMinutes(-3); })));
         await Mot("khoa-mat-mang", () => ManKhoa("khoa-mat-mang", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; s.Offline = true; })));
         // 15/11 «Sắp hết sao» (đếm ngược) → «Hết sao rồi» (không khoá máy) · mất mạng hết sao (cmt-khoa-mat-mang) · nhắc «Còn 5 sao»
         await Mot("het-sao-dem-nguoc", () => ManHetSao("het-sao-dem-nguoc", HetSaoView.For(45, "Roblox", TrangThai().AppDuocPhep, false), 45));
@@ -408,7 +410,7 @@ internal static class ChupMain
         try
         {
             f.Show();
-            f.ApHetSao(m, tenCon, giay, DateTimeOffset.Now.AddMinutes(-20));
+            f.ApHetSao(m, tenCon, giay, DateTimeOffset.Now.AddMinutes(-20), dangDung: m.Nut.Any(n => n.Ma == HetSaoView.DoiBe));
             await Cho(1500);
             Chup(f, ten);
         }
@@ -503,10 +505,19 @@ internal static class ChupMain
             Sao = 18,
             AppDuocPhep = new List<string> { "hocvoiairob.exe", "tudien.exe" },
             AppTinhPhut = new List<string> { "robloxplayerbeta.exe", "youtubekids.exe" },
+            // #307: tên hiển thị theo danh sách app máy (không tên tiến trình «Tudien», «Youtubekids»)
+            TenApp = TenAppMau(),
         };
         sua?.Invoke(s);
+        TrayView.DatTenApp(s.TenApp);
         return s;
     }
+
+    private static Dictionary<string, string> TenAppMau() => new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["hocvoiairob.exe"] = "Học với AiiRob", ["tudien.exe"] = "Từ điển", ["robloxplayerbeta.exe"] = "Roblox",
+        ["youtubekids.exe"] = "YouTube Kids", ["youtube.exe"] = "YouTube", ["capcut.exe"] = "CapCut",
+    };
 
     private static List<HvNhiemVu> NhiemVu() => new()
     {
