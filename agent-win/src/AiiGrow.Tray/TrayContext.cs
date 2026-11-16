@@ -67,8 +67,8 @@ internal sealed class TrayContext : ApplicationContext
         _thoatItem = new ToolStripMenuItem(ThoatView.Menu, Anh3D.Icon("khien"), (_, _) => OpenThoat()) { Visible = false };   // ThoatView.HienMenu
         menu.Items.Add(_thoatItem);
         menu.Items.Add(_hoiItem);
-        // 06/11 (L13): máy dùng chung — «Đổi bé / Đăng xuất» khi bé đang dùng, «Khoá lại» khi Ba Mẹ đang dùng
-        _doiBeItem = new ToolStripMenuItem("Đổi bé / Đăng xuất…", Anh3D.Icon("nguoi"), (_, _) => MoDoiBe()) { Visible = false };
+        // 06/11 (L13): máy dùng chung — «Đổi người / Đăng xuất» khi bé đang dùng, «Khoá lại» khi Ba Mẹ đang dùng
+        _doiBeItem = new ToolStripMenuItem("Đổi người / Đăng xuất…", Anh3D.Icon("nguoi"), (_, _) => MoDoiBe()) { Visible = false };
         _khoaLaiItem = new ToolStripMenuItem("Khoá lại (Ba Mẹ xong việc)", Anh3D.Icon("khoa"), async (_, _) => await RoiMayAsync(khoaLai: true)) { Visible = false };
         menu.Items.Add(_doiBeItem);
         menu.Items.Add(_khoaLaiItem);
@@ -236,7 +236,7 @@ internal sealed class TrayContext : ApplicationContext
             if (moi.Count > 0)
             {
                 _tinMoi += moi.Count;
-                var (tieu, noi) = HocVienView.ToastText(moi);
+                var (tieu, noi) = HocVienView.ToastText(moi, (_state.No ?? 0) > 0);
                 if (_app is { Visible: true }) _ = _app.RefreshAsync();       // app đang mở ⇒ cập nhật luôn, bóng báo vẫn hiện nhẹ
                 Toast(8000, tieu, noi, ToolTipIcon.Info, HocVienView.MucChoTin(moi));
                 // Nhiệm vụ mới ⇒ bật app to ngay mục Nhiệm vụ (đang khoá ⇒ chờ mở khoá; app đang hiện / Con đang toàn màn hình / vừa bật ⇒ chỉ bóng báo)
@@ -684,7 +684,7 @@ internal sealed class TrayContext : ApplicationContext
         _baMeVien = null;
     }
 
-    /// <summary>«Đổi bé / Đăng xuất» (thanh bên app, menu khay) — hộp xác nhận con-ngay-thuong 08.</summary>
+    /// <summary>«Đổi người / Đăng xuất» (thanh bên app, menu khay) — hộp xác nhận con-ngay-thuong 08.</summary>
     private async void MoDoiBe()
     {
         try

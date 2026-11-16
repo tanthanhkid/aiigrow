@@ -10,7 +10,7 @@ public static class LoaiXin
     /// <summary>Xin mở / cài một app (giá trị = tên exe hoặc tên app).</summary>
     public const string CaiApp = "cai_app";
     /// <summary>Thiết kế 05/11 (L4): Con «Xin Ba Mẹ duyệt» app / web ngoài danh sách — POST /api/device/xin-duyet {muc, ten?, lyDo?}; máy chủ tự xếp app / web,
-    /// web luôn chặn ⇒ 409 web_cam. Lời xin chờ cùng mục ⇒ máy chủ trả lại lời xin cũ (daCo).</summary>
+    /// Lời xin chờ cùng mục ⇒ máy chủ trả lại lời xin cũ (daCo).</summary>
     public const string XinDuyet = "xin_duyet";
 
     public static bool LaXinMo(string? kind) => kind is MoWeb or CaiApp;

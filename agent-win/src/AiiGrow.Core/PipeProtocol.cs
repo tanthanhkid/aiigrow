@@ -15,7 +15,7 @@ public static class PipeCmd
     public const string Foreground = "fg";
     public const string Request = "request";
     public const string Status = "status";
-    /// <summary>«Dùng điểm để chơi»: dịch vụ gọi phien/xet → phien/mo rồi trả kết quả cho màn chặn.</summary>
+    /// <summary>«Dùng sao để chơi»: dịch vụ gọi phien/xet → phien/mo rồi trả kết quả cho màn chặn.</summary>
     public const string Play = "play";
     /// <summary>Con gõ mã mở offline Ba Mẹ đọc (<see cref="PipeRequest.Code"/>); dịch vụ tự kiểm, không cần máy chủ.</summary>
     public const string MaOffline = "ma-offline";
@@ -25,10 +25,10 @@ public static class PipeCmd
     /// <summary>«Thử kết nối lại»: bảo dịch vụ đồng bộ với máy chủ ngay (không chờ nhịp sau). Trả trạng thái hiện tại.</summary>
     public const string SyncNow = "sync-now";
     /// <summary>0.2.6: Grow hỏi «đổi được bao nhiêu phút» — dịch vụ gọi phien/xet cho <see cref="PipeRequest.AppId"/> (hoặc mục Giải trí đầu tiên) và trả số phút ở
-    /// <see cref="PipeResponse.PlayMinutes"/> (không trả số điểm).</summary>
+    /// <see cref="PipeResponse.PlayMinutes"/> (không trả số sao).</summary>
     public const string PlayInfo = "play-info";
     /// <summary>Thiết kế 05/11: «Xin Ba Mẹ mở …» app / web lạ (<see cref="PipeRequest.AppId"/> = mục, <see cref="PipeRequest.AppName"/> = tên, Note = lời nhắn).
-    /// Trả <see cref="PipeResponse.Status"/>: cho | duoc | tu_choi | web_cam (web luôn chặn) | cho_mang (mất mạng — đã lưu, có mạng tự gửi).</summary>
+    /// Trả <see cref="PipeResponse.Status"/>: cho | duoc | tu_choi | cho_mang (mất mạng — đã lưu, có mạng tự gửi).</summary>
     public const string XinDuyet = "xin-duyet";
     /// <summary>«Kiểm tra cập nhật» từ khay: dịch vụ hỏi manifest máy chủ ⇒ <see cref="PipeResponse.Message"/> = bản mới (null = đã mới nhất),
     /// <see cref="PipeResponse.Status"/> = bản đang chạy.</summary>
@@ -45,7 +45,7 @@ public static class PipeCmd
     public const string QuenPin = "quen-pin";
     /// <summary>Code = mã mở máy 6 số Ba Mẹ gõ ⇒ «Ba Mẹ đang dùng máy».</summary>
     public const string BaMeMo = "ba-me-mo";
-    /// <summary>«Đổi bé / Đăng xuất» của bé.</summary>
+    /// <summary>«Đổi người / Đăng xuất» của bé.</summary>
     public const string DangXuat = "dang-xuat";
     /// <summary>«Khoá lại» của Ba Mẹ.</summary>
     public const string KhoaLai = "khoa-lai";
@@ -85,7 +85,7 @@ public sealed class TrayState
     /// <summary>0.2.6: tăng mỗi lần dịch vụ đổi / gỡ luật web trong hive của Con. Khay (chạy trong phiên Con) thấy đổi ⇒ gọi RefreshPolicyEx(user) để trình duyệt
     /// đọc lại ngay và nhắc «mở lại trình duyệt nếu luật mới chưa áp» (dịch vụ SYSTEM không làm mới được chính sách của người dùng khác).</summary>
     public int WebRev { get; set; }
-    /// <summary>0.2.6: các app / trang Giải trí Ba Mẹ đã xếp (chữ thường) — Grow liệt kê cho nút «Chơi bằng điểm» (máy chủ: windows.playChoices).</summary>
+    /// <summary>0.2.6: các app / trang Giải trí Ba Mẹ đã xếp (chữ thường) — Grow liệt kê cho nút «Chơi bằng sao» (máy chủ: windows.playChoices).</summary>
     public List<string> PlayChoices { get; set; } = new();
     /// <summary>0.2.6 (BUG-007): khay đang chạy trong phiên của tài khoản Con? false ⇒ khay (phiên Ba Mẹ / tài khoản quản trị) tự thoát, không hiện biểu tượng / màn chặn.
     /// Mặc định true (dịch vụ cũ không gửi ⇒ như trước).</summary>
@@ -123,7 +123,7 @@ public sealed class TrayState
     public string? BeTen { get; set; }
     /// <summary>«Ba Mẹ đang dùng máy» tới lúc này (null = không).</summary>
     public DateTimeOffset? BaMeDen { get; set; }
-    /// <summary>Máy chỉ gán một bé (không có «Đổi bé»).</summary>
+    /// <summary>Máy chỉ gán một bé (không có «Đổi người»).</summary>
     public bool MayRieng { get; set; }
 }
 
@@ -159,7 +159,7 @@ public sealed class PipeResponse
     public DateTimeOffset? GrantEndsAt { get; set; }
     /// <summary>15/11 lệnh <see cref="PipeCmd.Status"/>: kết quả đầy đủ của lời xin (ketQua, nhóm, người duyệt, lời nhắn, mở tạm).</summary>
     public RequestStatus? KetQua { get; set; }
-    /// <summary>Câu nhắc do máy chủ trả (ví dụ kết quả «Dùng điểm để chơi»). Không chứa số điểm.</summary>
+    /// <summary>Câu nhắc do máy chủ trả (ví dụ kết quả «Dùng sao để chơi»). Không chứa số sao.</summary>
     public string? Message { get; set; }
     /// <summary>Lệnh <see cref="PipeCmd.HocVien"/>: thân JSON máy chủ trả (nguyên văn).</summary>
     public string? Data { get; set; }

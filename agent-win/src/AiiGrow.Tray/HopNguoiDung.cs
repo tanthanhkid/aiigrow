@@ -5,10 +5,10 @@ namespace AiiGrow.Tray;
 
 // Thiết kế chốt 06/11 (L13 — docs/thiet-ke-chot/con-ngay-thuong 06–08): máy dùng chung, ai đang dùng máy.
 
-/// <summary>«Đổi bé / Đăng xuất» (con-ngay-thuong 08): viên chữ + tên bé + «● Đang dùng máy này», hai nút Đổi bé · Đăng xuất, «Ở lại».</summary>
+/// <summary>«Đổi người / Đăng xuất» (con-ngay-thuong 08): viên chữ + tên bé + «● Đang dùng máy này», hai nút Đổi người · Đăng xuất, «Ở lại».</summary>
 internal sealed class DoiBeHop : HopKhayCoBan
 {
-    /// <summary>true = «Đổi bé», false = «Đăng xuất» (cả hai ⇒ máy về «Ai đang dùng máy?»); null = Ở lại.</summary>
+    /// <summary>true = «Đổi người», false = «Đăng xuất» (cả hai ⇒ máy về «Ai đang dùng máy?»); null = Ở lại.</summary>
     public bool? Chon { get; private set; }
 
     /// <param name="sao">15/11 (them-7puhbc72): «● Đang dùng · còn 18 sao» — null = không ghi số.</param>
@@ -24,7 +24,7 @@ internal sealed class DoiBeHop : HopKhayCoBan
         var rong = mayRieng ? W : (W - UI.Px(12)) / 2;
         if (!mayRieng)
         {
-            var doi = KhoiCon.Nut("Đổi bé", false, rong, "nguoi", 56, 12f);
+            var doi = KhoiCon.Nut("Đổi người", false, rong, "nguoi", 56, 12f);
             doi.Margin = new Padding(0, 0, UI.Px(12), 0);
             doi.Click += (_, _) => { Chon = true; Close(); };
             hai.Controls.Add(doi);
@@ -34,7 +34,7 @@ internal sealed class DoiBeHop : HopKhayCoBan
         ra.Click += (_, _) => { Chon = false; Close(); };
         hai.Controls.Add(ra);
         Flow.Controls.Add(hai);
-        var ghi = UI.Text((mayRieng ? "Đăng xuất là dừng trừ sao" : "Đổi bé là dừng trừ sao") + $" của {(string.IsNullOrWhiteSpace(tenBe) ? "con" : tenBe.Trim())}.\nVào lại bằng tên + PIN.", 10.5f, false, UI.Muted, W);
+        var ghi = UI.Text((mayRieng ? "Đăng xuất là dừng trừ sao" : "Đổi người là dừng trừ sao") + $" của {(string.IsNullOrWhiteSpace(tenBe) ? "con" : tenBe.Trim())}." + (mayRieng ? "" : "\nVào lại bằng tên + PIN."), 10.5f, false, UI.Muted, W);
         Flow.Controls.Add(Giua(ghi, 10));
         var o = KhoiCon.Nut("Ở lại", true, W, "nha", 48, 12f);
         o.Margin = new Padding(0, UI.Px(12), 0, 0);

@@ -301,7 +301,7 @@ public class DangNhapMayTests
     public void Chan_trang_theo_be_hoac_ca_nha()
     {
         Assert.Equal("AiiGrow · Bảo Anh · máy do Ba Mẹ quản lý", ManKhoaView.ChanTrang("Bảo Anh"));
-        Assert.Equal("AiiGrow · Máy tính của cả nhà · máy do Ba Mẹ quản lý", DangNhapView.ChanTrang(null));
+        Assert.Equal("AiiGrow · Máy tính này · máy do Ba Mẹ quản lý", DangNhapView.ChanTrang(null));
     }
 
     [Fact]
@@ -429,7 +429,7 @@ public class ManChonTenTests
     public void Man_het_sao_may_dung_chung_co_Doi_be_va_Ba_Me_mo_may()
     {
         var m = HetSaoView.For(null, null, null, doiBe: true);
-        Assert.Contains(m.Nut, n => n.Ma == ManKhoaView.DoiBe && n.Chu == "Đổi bé");
+        Assert.Contains(m.Nut, n => n.Ma == ManKhoaView.DoiBe && n.Chu == "Đổi người");
         Assert.Contains(m.Nut, n => n.Ma == ManKhoaView.BaMeDungMay && n.Chu == "Ba Mẹ mở máy");
         var rieng = HetSaoView.For(null, null, null, doiBe: false);
         Assert.DoesNotContain(rieng.Nut, n => n.Ma == ManKhoaView.DoiBe);

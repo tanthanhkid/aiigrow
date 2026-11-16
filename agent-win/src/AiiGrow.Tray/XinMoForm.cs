@@ -121,7 +121,7 @@ internal sealed class XinMoForm : Form
         CapNhatNut();
         _msg.ForeColor = UI.Green;
         _msg.Text = "Đang gửi…";
-        // 05/11 (L4): «Xin Ba Mẹ duyệt» qua xin-duyet — máy chủ tự xếp app / web, web cờ bạc / người lớn ⇒ web_cam; mất mạng ⇒ lưu, có mạng tự gửi.
+        // 05/11 (L4): «Xin Ba Mẹ duyệt» qua xin-duyet — máy chủ tự xếp app / web; mất mạng ⇒ lưu, có mạng tự gửi.
         var res = await PipeClient.CallAsync(new PipeRequest
         {
             Cmd = PipeCmd.XinDuyet, AppId = muc, AppName = muc,

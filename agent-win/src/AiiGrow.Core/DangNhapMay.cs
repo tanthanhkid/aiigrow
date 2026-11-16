@@ -10,8 +10,8 @@ namespace AiiGrow.Core;
 //   • Máy khoá («Ai đang dùng máy?») ⇒ chạm tên ⇒ PIN. Sai 5 lần ⇒ chờ 15 giây. «Quên PIN» ⇒ báo Ba Mẹ đặt lại. Bé chưa có PIN ⇒ vào thẳng.
 //   • «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã mở máy của máy này (cùng mã khi mất mạng, 15/30/60 phút nằm trong mã) ⇒ «Ba Mẹ đang dùng máy»:
 //     máy mở hết, không tính giờ con, «Khoá lại» ⇒ về màn chọn tên.
-//   • «Đổi bé / Đăng xuất» ⇒ về màn chọn tên. Giờ, sao, nhiệm vụ tính theo bé đang đăng nhập (máy chủ: devices.con_dang_dung — docs/API.md mục «S3»).
-// Máy chỉ gán một bé (máy riêng) vẫn hỏi PIN khi máy khoá. Mất mạng: máy tự kiểm PIN bằng «vân PIN» (HMAC-SHA256 bằng bí mật mã offline) và
+//   • «Đổi người / Đăng xuất» ⇒ về màn chọn tên. Giờ, sao, nhiệm vụ tính theo bé đang đăng nhập (máy chủ: devices.con_dang_dung — docs/API.md mục «S3»).
+// PIN chỉ dành cho MÁY CHUNG (#267). Máy chỉ gán một bé (máy riêng) vào thẳng, không hỏi tên / PIN của bé; khoá do hết sao / Ba Mẹ khoá vẫn giữ lối «Ba Mẹ nhập mã». Mất mạng: máy tự kiểm PIN bằng «vân PIN» (HMAC-SHA256 bằng bí mật mã offline) và
 // tự kiểm mã Ba Mẹ (TOTP, thử biến thể 60 → 30 → 15 phút); có mạng lại thì báo máy chủ.
 // Lớp THUẦN (test được): trạng thái ai đang dùng máy lưu ở AgentConfig.DangNhap; dịch vụ (AgentRuntime / NguoiDungMay) chỉ gọi vào đây.
 
@@ -228,7 +228,7 @@ public static class DangNhapView
         d.DoiLuc = now;
     }
 
-    /// <summary>«Đổi bé / Đăng xuất» hoặc «Khoá lại» ⇒ về màn chọn tên. <paramref name="baoMayChu"/> = còn phải báo máy chủ (dang-xuat / khoa-lai).</summary>
+    /// <summary>«Đổi người / Đăng xuất» hoặc «Khoá lại» ⇒ về màn chọn tên. <paramref name="baoMayChu"/> = còn phải báo máy chủ (dang-xuat / khoa-lai).</summary>
     public static void Roi(DangNhapMay d, DateTimeOffset now, bool baoMayChu)
     {
         var coPhien = d.Loai == LoaiNguoiDung.Con && d.ChoMang == null || d.Loai == LoaiNguoiDung.BaMe && !d.BaMeOffline;
@@ -348,7 +348,7 @@ public static class DangNhapView
     // ------------------------------------------------------------------ chữ trên màn
 
     public static string ChanTrang(string? tenCon) => string.IsNullOrWhiteSpace(tenCon)
-        ? "AiiGrow · Máy tính của cả nhà · máy do Ba Mẹ quản lý"
+        ? "AiiGrow · Máy tính này · máy do Ba Mẹ quản lý"
         : "AiiGrow · " + tenCon.Trim() + " · máy do Ba Mẹ quản lý";
 
     /// <summary>Chữ cái đầu trên viên ảnh bé («Bảo Anh» ⇒ «B», «Bảo Minh» ⇒ «M» khi trùng chữ đầu với bé trước).</summary>

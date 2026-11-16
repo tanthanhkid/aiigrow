@@ -10,7 +10,7 @@ public sealed class EnrollResult
     [JsonConverter(typeof(FlexStringConverter))]
     public string DeviceId { get; set; } = "";
     public string Token { get; set; } = "";
-    public bool DungChung { get; set; }
+    public bool? DungChung { get; set; }
     public string ChildName { get; set; } = "";
 }
 

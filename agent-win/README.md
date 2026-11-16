@@ -30,8 +30,8 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
   - Service và tray nói chuyện qua named pipe `\\.\pipe\AiiGrow.Tray`, ACL: SYSTEM + Administrators toàn quyền,
     người dùng đã đăng nhập đọc/ghi; lệnh gửi lời xin và báo app chỉ nhận từ phiên của con.
 - **Tray** (WinForms, Segoe UI, xanh lá `#15803d`): biểu tượng "AiiGrow đang bật" + thời gian còn lại; cửa sổ Xin thêm
-  thời gian (30 phút / 1 giờ / 2 giờ + lời nhắn) rồi chờ bố mẹ; nút Đổi điểm chỉ hiện khi `canExchangePoints`
-  (**không bao giờ hiện số điểm**, tray cũng không nhận số điểm); màn "chưa được bố mẹ cho mở"; màn hết giờ;
+  thời gian (30 phút / 1 giờ / 2 giờ + lời nhắn) rồi chờ bố mẹ; nút «Dùng sao để chơi» chỉ hiện khi `canExchangePoints`
+  (**không bao giờ hiện số sao**, tray cũng không nhận số sao); màn "chưa được bố mẹ cho mở"; màn hết giờ;
   đếm ngược khi được thêm giờ; nhắc còn 5 phút / 1 phút.
 - **Setup** (3 bước theo thiết kế tre-win-1..3): quyền quản trị, chọn/tạo tài khoản của con (đang là Administrator thì
   hạ xuống Users, bắt buộc còn một quản trị viên khác), nhập mã 6 số. Đồng thời đặt thông báo trước khi đăng nhập
@@ -45,7 +45,7 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
 - **«Mở hết»** (`cheDo: mo_het` / `windows.moHet`): không đếm, không đóng app «Tính phút» (kể cả khi máy chủ cũ còn gửi `appTinhGio`).
 - **Mở bằng mã offline**: app «Tính phút» chạy được, không trừ sao; phút đó gửi ở `dong-bo {phutBoiMa}`.
 - **Máy chung (#267)**: `dong-bo usage[].con` = bé của dòng (`UsageTracker` theo bé) ⇒ «Đổi người» thì lượt đồng bộ sau chốt phút bé trước; màn chọn tên hiện
-  sao từng bé (`ho-so.con[].sao`), hộp «Đổi bé» «● Đang dùng · còn 18 sao · Đổi bé là dừng trừ sao». `409 ios_mot_con` chỉ áp iPhone/iPad — Windows không gặp.
+  sao từng bé (`ho-so.con[].sao`), hộp «Đổi người» «● Đang dùng · còn 18 sao · Đổi người là dừng trừ sao». `409 ios_mot_con` chỉ áp iPhone/iPad — Windows không gặp.
 - **Khay** (khớp bàn thiết kế aiigrow-figma bản 15/11): Hôm nay «Sao để chơi · 1 sao = 1 phút» + «còn N sao = N phút chơi» + «Xin Ba Mẹ cho vay sao»
   (cmt-hom-nay), đang nợ (them-er4nxw6z), «Mở hết» (them-upgropiw); «Chờ Ba Mẹ duyệt +N sao» + «Sao dùng thế nào?» (them-a7sh10qs); nhắc «Còn 5 sao»
   (`NhacSaoForm`, them-da3zy02w) → «Sắp hết sao rồi» đếm ngược (≤ 1 phút) → «Hết sao rồi» toàn màn hình KHÔNG khoá (`LockForm(chiBao)`, Esc đóng);
@@ -65,7 +65,7 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
 - Bộ cài (`SetupForm`): 5 bước Chào → Đồng ý → Tài khoản → Ghép máy (6 ô số, mã 10 phút) → Cài → Xong; lỗi mã sai / hết hạn / mất mạng mỗi loại một màn.
   Bộ cài mang gói ghép (tên tệp `AiiGrow-Setup.enroll-<gói>.exe` / trailer / `--enroll=`) mà không `--silent` ⇒ vẫn chọn tài khoản, bước Ghép tự ghép (`ghep-goi`).
 - Màn chặn (`BlockedForm`): app lạ ⇒ khay TỰ gửi `POST /api/device/xin-duyet` → «Đã gửi Ba Mẹ duyệt» → chờ → được / chưa cho; app Ba Mẹ đặt «Chặn» ⇒ chỉ nút
-  «Xin Ba Mẹ mở …» + «Về Hôm nay». Web cờ bạc / người lớn (409 `web_cam`) ⇒ «Trang này luôn bị chặn». Không dùng sao / điểm để mở app.
+  «Xin Ba Mẹ mở …» + «Về Hôm nay». Không còn lưới web cấm cứng: máy chủ gửi `webLuonChan: []`, web nào ngoài danh sách đều qua «Ba Mẹ chưa thêm … · Xin lại». Không dùng sao để mở app.
 - Màn khoá (`LockForm`): đếm ngược «Sắp hết giờ chơi» → «Hết giờ chơi hôm nay» (đổi 10 sao lấy 10 phút / xin Ba Mẹ thêm giờ / ngoại lệ / nhắn / Ba Mẹ dùng máy);
   giờ ngủ và Ba Mẹ khoá chỉ «Xin Ba Mẹ mở ngoại lệ» (`NgoaiLeForm`: 1 app học hoặc cả máy, 5–120 phút, `yeu-cau loai ngoai_le`). Nút đổi sao / thêm giờ mở hộp
   «Thêm giờ chơi» của W1 (`RequestForm`).
@@ -84,22 +84,23 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
 ## Máy dùng chung — chọn tên + PIN, quà bảng giá (thiết kế chốt 06/11, L13 L14 — `docs/KE-HOACH-KHOP-THIET-KE-0611.md`)
 
 - **Một tài khoản Windows giới hạn dùng chung** cho các bé (bộ cài bước 3: «Các con dùng chung 1 tài khoản giới hạn»; tạo mới = tài khoản `con` KHÔNG mật khẩu
-  Windows — `New-LocalUser -NoPassword`). Cài xong: «Máy đã sẵn sàng cho cả nhà!» → «Mở màn chọn tên» (khoá phiên, vào tài khoản Con là thấy màn chọn tên).
+  Windows — `New-LocalUser -NoPassword`). Cài xong: máy cả nhà «Máy đã sẵn sàng cho cả nhà!» → «Mở màn chọn tên» (khoá phiên, vào tài khoản Con là thấy màn chọn tên); máy riêng một bé (ghép `dungChung=false`) «Máy của <tên> đã sẵn sàng!», không nói «cả nhà» / PIN / «mỗi bé chọn tên».
+- **Duyệt nhiệm vụ lúc đang nợ (#263)**: tin «Ba Mẹ đã duyệt» thêm «Sao nhiệm vụ trả nợ trước, còn nợ N sao» khi Con còn nợ; `NopThongBao` cùng chữ.
 - **Ai đang dùng máy** (`Core/DangNhapMay.cs`, lưu `config.DangNhap`): chưa ai ⇒ dịch vụ khoá lý do `chon_ten` (không đếm ngược, KHÔNG ngắt phiên Windows, không
   tính giờ) ⇒ màn khoá «Ai đang dùng máy?» (`Tray/LockForm.ChonTen.cs`): chạm tên → PIN 4 số (bàn phím số trên màn hoặc bàn phím thật) → «Chưa đúng · còn N
   lần thử» → sai 5 lần chờ 15 giây → «Quên PIN rồi à?» («Báo Ba Mẹ giúp con» = `POST quen-pin`) · «Ba Mẹ dùng máy» → «Ba Mẹ nhập mã» (6 số). Máy riêng
-  (một bé) vào thẳng ô PIN. Bé chưa có PIN chạm tên là vào (khay nhắc Ba Mẹ đặt PIN).
+  (một bé) vào thẳng, không hiện lưới tên / ô PIN (PIN chỉ dành cho máy chung, #267); khoá do hết sao / Ba Mẹ khoá vẫn có «Ba Mẹ nhập mã». Bé chưa có PIN chạm tên là vào (khay nhắc Ba Mẹ đặt PIN).
 - Lệnh pipe mới (`PipeCmd.HoSo / DangNhapBe / QuenPin / BaMeMo / DangXuat / KhoaLai`, chỉ khay đã cài) ⇒ dịch vụ (`Service/NguoiDungMay.cs`) gọi
   `/api/device/ho-so | dang-nhap-be | quen-pin | ba-me-mo | dang-xuat | khoa-lai` (docs/API.md mục «S3»). Máy chủ ghi bé đang dùng ⇒ `dong-bo`, `hoc-vien/*`
-  không cần header vẫn tính giờ, sao, nhiệm vụ theo bé đó. **Đổi bé / Đăng xuất / Khoá lại**: máy về màn chọn tên NGAY; báo máy chủ sau lượt `dong-bo` kế
+  không cần header vẫn tính giờ, sao, nhiệm vụ theo bé đó. **Đổi người / Đăng xuất / Khoá lại**: máy về màn chọn tên NGAY; báo máy chủ sau lượt `dong-bo` kế
   (lượt đó gửi nốt phút dùng của bé vừa ra). Máy chủ báo `nguoiDung.loai = chua` (phiên bé hết 12 giờ) ⇒ về màn chọn tên.
 - **Mất mạng**: PIN kiểm tại máy bằng vân PIN của `ho-so` (HMAC-SHA256 bằng bí mật mã offline, máy tự đếm 5 lần / 15 giây), lượt vào chờ báo máy chủ
   (`DangNhapCho`, PIN giữ trong cấu hình DPAPI tới khi báo được); mã Ba Mẹ kiểm TOTP thử biến thể **60 → 30 → 15 phút** (`MaOffline.KiemPhut`, cũng áp cho ô mã
   trên màn mất mạng).
 - **Ba Mẹ đang dùng máy**: mở hết (không danh sách app, không chặn app, gỡ luật web khi mở lúc mất mạng), KHÔNG tính giờ con, hộp nổi góc phải dưới + viên
   trên đầu màn hình, «Khoá lại» (hộp / menu khay) ⇒ màn chọn tên; hết hạn ⇒ tự khoá (không chờ mạng).
-- App Con: thanh bên viên chữ + tên bé, «Đổi bé / Đăng xuất» (hộp con-ngay-thuong 08), «Ba Mẹ dùng máy» (→ nhập mã). Màn hết giờ máy dùng chung thêm
-  «Đổi bé · Ba Mẹ mở máy». Đổi bé ⇒ khay xoá tin / app của bé trước.
+- App Con: thanh bên viên chữ + tên bé, «Đổi người / Đăng xuất» (hộp con-ngay-thuong 08), «Ba Mẹ dùng máy» (→ nhập mã). Màn hết giờ máy dùng chung thêm
+  «Đổi người · Ba Mẹ mở máy». Đổi người ⇒ khay xoá tin / app của bé trước.
 - **Sao & quà = bảng giá** (L14): «Con chọn quà → Ba Mẹ trao → mới trừ sao», mục «Đang chờ Ba Mẹ trao» (đang giữ N sao), «Quà con đổi được» xếp theo
   giá (nhãn «Mã QR» / «Chỉ cuối tuần» / «Còn 1 bộ»), bấm quà chưa đủ sao ⇒ «Con có 30 sao · còn thiếu 20 sao». «Quà của con»: voucher AiiCafe Ba Mẹ đã
   trao hiện mã (= nội dung QR quầy quét) + hạn + «Còn N ngày».
@@ -167,7 +168,7 @@ Chạy trên một **máy ảo Windows riêng** (Hyper-V / VirtualBox) hoặc **
    cài dịch vụ (LocalSystem), đặt recovery, dựng AppLocker. Đăng nhập lại bằng tài khoản con.
 3. **Ngoài giờ ⇒ bị chặn**: ở app Ba Mẹ đặt lịch sao cho đang là giờ nghỉ. Mở `game-thu.exe` ⇒ mong đợi màn chặn hiện
    tên app + lý do «Ngoài giờ dùng máy», chỉ có nút «Xin phép Ba Mẹ». Kiểm `Get-AppLockerPolicy -Local -Xml` thấy luật `AiiGrow:`.
-4. **«Dùng điểm để chơi» ⇒ mở được**: chuyển sang tình huống chặn giải trí (hết điểm / chưa phân loại). Bấm «Dùng điểm để chơi»
+4. **«Dùng sao để chơi» ⇒ mở được**: chuyển sang tình huống chặn giải trí (hết sao / chưa phân loại). Bấm «Dùng sao để chơi»
    ⇒ dịch vụ gọi `phien/xet` → `phien/mo`; máy chủ cho ⇒ phiên bắt đầu, `game-thu.exe` chạy được.
 5. **Hết phiên ⇒ bị đóng**: để phiên chạy tới hết số phút đã đổi ⇒ mong đợi `game-thu.exe` bị đóng và màn chặn hiện lại.
 6. **Thu bằng chứng**: lưu `Get-AppLockerPolicy -Local -Xml > applocker.xml`, nhật ký dịch vụ trong Event Viewer, nhật ký

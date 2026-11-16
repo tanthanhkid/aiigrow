@@ -51,13 +51,6 @@ public static class ManChanView
 
     public const string NhanBaMe = "Nhắn Ba Mẹ";
 
-    // Web cờ bạc / người lớn: luôn chặn, không xin được (máy chủ trả 409 web_cam — con-bi-chan 16).
-    public const string WebCamTieu = "Trang này luôn bị chặn";
-    public const string WebCamPhu = "Trang cờ bạc, trang người lớn";
-    public const string WebCamVui1 = "Trang này không hợp với con.";
-    public const string WebCamVui2 = "Mình chơi trò khác vui hơn nhé!";
-    public const string WebCamMoiMay = "Chặn trên mọi máy, không xin mở được";
-
     // Mất mạng (con-mat-mang 12, 14): vẫn chặn; lời xin lưu lại, có mạng tự gửi; Ba Mẹ ở cạnh thì đọc mã 6 số.
     public static string MatMangTieu(string ten) => ten + " chưa có trong danh sách";
     public const string MatMangPhu = "Mất mạng vẫn dùng danh sách cũ nhé.";
@@ -81,7 +74,7 @@ public sealed record ManKhoa(string Rob, string Tieu, string Phu, string? Phu2, 
 public static class ManKhoaView
 {
     public const string NhanBaMe = "nhan_ba_me", BaMeDungMay = "ba_me_dung_may", XinVay = "xin_vay";
-    /// <summary>06/11 (L13): «Đổi bé» (máy dùng chung) ⇒ đăng xuất, về «Ai đang dùng máy?».</summary>
+    /// <summary>06/11 (L13): «Đổi người» (máy dùng chung) ⇒ đăng xuất, về «Ai đang dùng máy?».</summary>
     public const string DoiBe = "doi_be";
 
     /// <summary>06/11: «AiiGrow · Bảo Anh · máy do Ba Mẹ quản lý».</summary>

@@ -13,7 +13,7 @@ namespace AiiGrow.Tray;
 ///   • Sao &amp; quà: ví sao (còn N sao = N phút chơi), đổi quà gửi Ba Mẹ (chờ trao / đã trao) — không còn «đổi sao lấy phút».
 ///   • Tin nhắn: tin của Ba Mẹ + Con trả lời nhanh / tự nhắn; thông báo.
 /// Chỉ dùng «sao» (1 sao = 1 phút chơi app «Tính phút»), không «điểm», không «giờ chơi», không «ngoại lệ».
-/// 06/11 (L13): thanh bên có viên chữ của bé đang đăng nhập + «Đổi bé / Đăng xuất» + «Ba Mẹ dùng máy» (→ Ba Mẹ nhập mã); Sao &amp; quà theo bảng giá (L14).
+/// 06/11 (L13): thanh bên có viên chữ của bé đang đăng nhập + «Đổi người / Đăng xuất» + «Ba Mẹ dùng máy» (→ Ba Mẹ nhập mã); Sao &amp; quà theo bảng giá (L14).
 /// Mọi quyết định do máy chủ; form chỉ hiện và gửi qua dịch vụ (named pipe → api/device/hoc-vien/…). Đóng cửa sổ = ẩn (khay vẫn chạy).
 /// </summary>
 internal sealed class AppForm : Form
@@ -77,7 +77,7 @@ internal sealed class AppForm : Form
     public event Action? TinDaXem;
     /// <summary>«Hỏi AiiGrow cách sửa» / «Có mạng mà vẫn lỗi?» (khay mở hộp Hỏi AiiGrow — con-mat-mang 10).</summary>
     public event Action? HoiAiiGrowClicked;
-    /// <summary>06/11 (L13): «Đổi bé / Đăng xuất» ở thanh bên (con-ngay-thuong 09 → 08).</summary>
+    /// <summary>06/11 (L13): «Đổi người / Đăng xuất» ở thanh bên (con-ngay-thuong 09 → 08).</summary>
     public event Action? DoiBeClicked;
     /// <summary>06/11 (L13): «Ba Mẹ dùng máy» ⇒ Ba Mẹ nhập mã (con-ngay-thuong 06).</summary>
     public event Action? BaMeDungClicked;
@@ -154,10 +154,10 @@ internal sealed class AppForm : Form
         };
         var inner = Px(272) - Px(32);
 
-        // 06/11 (con-ngay-thuong 09): chân thanh bên «Đổi bé / Đăng xuất» + «Ba Mẹ dùng máy» thu nhỏ (→ Ba Mẹ nhập mã)
+        // 06/11 (con-ngay-thuong 09): chân thanh bên «Đổi người / Đăng xuất» + «Ba Mẹ dùng máy» thu nhỏ (→ Ba Mẹ nhập mã)
         var chan = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = Px(100), BackColor = Color.Transparent, Padding = new Padding(Px(12), 0, 0, 0),
             FlowDirection = FlowDirection.TopDown, WrapContents = false };
-        var doi = KhoiCon.LienKet("Đổi bé / Đăng xuất", "nguoi", () => DoiBeClicked?.Invoke(), 12f, Clay.NgocInk);
+        var doi = KhoiCon.LienKet("Đổi người / Đăng xuất", "nguoi", () => DoiBeClicked?.Invoke(), 12f, Clay.NgocInk);
         doi.Margin = Padding.Empty;
         chan.Controls.Add(doi);
         var bm = KhoiCon.LienKet("Ba Mẹ dùng máy", "khoa", () => BaMeDungClicked?.Invoke(), 10.5f, Clay.Chu2);
@@ -748,7 +748,7 @@ internal sealed class AppForm : Form
             nv.Luot = kq.Luot;
         }
         Say("", false);
-        using var f = new NopBaiForm(nv);
+        using var f = new NopBaiForm(nv, NoHienTai() > 0);
         var kqNop = f.ShowDialog(this);
         if (kqNop == DialogResult.OK || f.Ket != null) await RefreshAsync();
     }

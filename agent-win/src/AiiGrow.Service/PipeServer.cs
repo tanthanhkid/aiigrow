@@ -16,7 +16,7 @@ public sealed class PipeServer : BackgroundService
     /// <summary>Khách của pipe có phải đúng exe khay đã cài không (review PR #59, P2-3a) — tiêm được cho dev/test.</summary>
     private readonly Func<IntPtr, bool> _laKhayThat;
     private readonly Dictionary<string, (DateTimeOffset Luc, PipeResponse Tra)> _playInfoNho = new(StringComparer.OrdinalIgnoreCase);
-    private int _playInfoRev = -1;   // AgentRuntime.PolicyRev lúc nhớ — dong-bo đổi phần ảnh hưởng đổi điểm (bật/tắt, chế độ, phiên chơi, mục) ⇒ bỏ hết. Policy KHÔNG mang số điểm / giá ⇒ điểm đổi trên máy chủ chỉ hiện sau hạn nhớ (60 / 15 giây)
+    private int _playInfoRev = -1;   // AgentRuntime.PolicyRev lúc nhớ — dong-bo đổi phần ảnh hưởng đổi sao (bật/tắt, chế độ, phiên chơi, mục) ⇒ bỏ hết. Policy KHÔNG mang số sao / giá ⇒ sao đổi trên máy chủ chỉ hiện sau hạn nhớ (60 / 15 giây)
 
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt) : this(log, rt, KhayDaCai) { }
     public PipeServer(ILogger<PipeServer> log, AgentRuntime rt, Func<IntPtr, bool> laKhayThat) { _log = log; _rt = rt; _laKhayThat = laKhayThat; _nd = new NguoiDungMay(rt, log); }
@@ -138,7 +138,7 @@ public sealed class PipeServer : BackgroundService
 
             case PipeCmd.PlayInfo:
             {
-                // Grow hiện «≈ X phút chơi»: phien/xet cho mục Giải trí đầu tiên (hoặc AppId nếu có). Chỉ trả số phút, không trả điểm.
+                // Grow hiện «≈ X phút chơi»: phien/xet cho mục Giải trí đầu tiên (hoặc AppId nếu có). Chỉ trả số phút, không trả sao.
                 if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con xem được" };
                 // như Play: chỉ khay đã cài, chỉ mục trong PlayChoices (không cho tiến trình lạ dùng token máy hỏi phien/xet tuỳ ý — review #75)
                 if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được hỏi" };
@@ -147,8 +147,8 @@ public sealed class PipeServer : BackgroundService
                 var choices = _rt.PlayChoices;
                 var muc = !string.IsNullOrWhiteSpace(req.AppId) ? req.AppId!.Trim() : choices.FirstOrDefault() ?? "";
                 if (muc.Length == 0) return new PipeResponse { Ok = true, Status = "khong_co_muc" };
-                if (!choices.Contains(muc, StringComparer.OrdinalIgnoreCase)) return new PipeResponse { Ok = false, Error = "Mục này Ba Mẹ chưa cho đổi điểm" };
-                // nhớ: «được» 60 giây, «từ chối» 15 giây (hết điểm thì mỗi lần mở hộp / làm mới không bắn thêm phien/xet; Ba Mẹ thêm điểm thì hiện sau ≤15 giây)
+                if (!choices.Contains(muc, StringComparer.OrdinalIgnoreCase)) return new PipeResponse { Ok = false, Error = "Mục này Ba Mẹ chưa cho đổi sao" };
+                // nhớ: «được» 60 giây, «từ chối» 15 giây (hết sao thì mỗi lần mở hộp / làm mới không bắn thêm phien/xet; Ba Mẹ thêm sao thì hiện sau ≤15 giây)
                 lock (_playInfoNho)
                 {
                     if (_playInfoRev != _rt.PolicyRev) { _playInfoNho.Clear(); _playInfoRev = _rt.PolicyRev; }
@@ -224,7 +224,8 @@ public sealed class PipeServer : BackgroundService
                 }
                 catch (ApiException e) when (e.Code == "web_cam")
                 {
-                    return new PipeResponse { Ok = true, Status = "web_cam", Message = e.Message };
+                    // máy chủ cũ (trước khi bỏ lưới web cấm) còn trả 409 web_cam ⇒ hiện như «Ba Mẹ chưa thêm … · xin lại sau», không lỗi thô / không thử lại
+                    return new PipeResponse { Ok = true, Status = "chua_them", KetQua = new RequestStatus { KetQua = "chua_them" } };
                 }
                 catch (ApiException e) when (e.LaLoiDuongTruyen)
                 {
@@ -256,10 +257,10 @@ public sealed class PipeServer : BackgroundService
 
             case PipeCmd.Play:
             {
-                // «Dùng điểm để chơi»: xét trước (phien/xet) rồi mở (phien/mo). Máy chủ quyết định; khay không thấy số điểm.
+                // «Dùng sao để chơi»: xét trước (phien/xet) rồi mở (phien/mo). Máy chủ quyết định; khay không thấy số sao.
                 if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được mở phiên chơi" };
                 if (!khayThat) return new PipeResponse { Ok = false, Error = "Chỉ ứng dụng AiiGrow đã cài trên máy được mở phiên chơi" };
-                lock (_playInfoNho) _playInfoNho.Clear();   // điểm sắp đổi ⇒ số phút nhớ không còn đúng (xoá SAU khi kiểm quyền)
+                lock (_playInfoNho) _playInfoNho.Clear();   // sao sắp đổi ⇒ số phút nhớ không còn đúng (xoá SAU khi kiểm quyền)
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
                 var muc = string.IsNullOrWhiteSpace(req.AppId) ? "" : req.AppId!;
@@ -299,7 +300,7 @@ public sealed class PipeServer : BackgroundService
 
             case PipeCmd.HocVien:
             {
-                // Khay học viên: nhiệm vụ / nộp bài / điểm / phần quà / thông báo. Xem: mọi phiên; ghi: phiên Con/console (QuyenPhien); chỉ các đường trong HocVienPaths.
+                // Khay học viên: nhiệm vụ / nộp bài / sao / phần quà / thông báo. Xem: mọi phiên; ghi: phiên Con/console (QuyenPhien); chỉ các đường trong HocVienPaths.
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với bố mẹ" };
                 if (!HocVienPaths.Allowed(req.Method, req.Path)) return new PipeResponse { Ok = false, Error = "Đường không hỗ trợ" };
