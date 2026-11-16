@@ -6,7 +6,6 @@
 import { q, one, type Q } from "./db.ts";
 import { heThong } from "./he-thong.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { laWebCam } from "./chan-co-ban.ts";
 
 /** «chan» chỉ còn trong kiểu để đọc dữ liệu / lời gọi cũ — không ghi mới.
  *  «loai_tru» (#262): luật RIÊNG một Con đè luật cả nhà cùng mục — «mục này không nằm trong danh sách của Con này» (luật cả nhà vẫn giữ cho máy
@@ -111,8 +110,6 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
   }
   const loai = b.loai === "tinh_phut" ? "giai_tri" : b.loai === "khong_tinh_phut" ? "hoc" : ["hoc", "giai_tri"].includes(String(b.loai)) ? String(b.loai) : null;
   if (!loai) throw new LoiNghiepVu("loai_sai", "Chọn «Tính phút» hoặc «Không tính phút»");
-  // lưới an toàn chung (lib/chan-co-ban.ts › WEB_CAM): các trang này không vào được danh sách
-  if (laWebCam(muc)) throw new LoiNghiepVu("web_cam", "Trang này không thêm vào danh sách được", 409);
   // «Cho phép» (màn Ứng dụng trên máy): luật hoc + nhóm cho_phep — dùng mọi lúc, không trừ điểm; thống kê màn hình tính Tiện ích (man-hinh.ts › xepMuc)
   const nhom = loai === "hoc" && b.nhom === "cho_phep" ? "cho_phep" : (NHOM_GT as string[]).includes(String(b.nhom)) ? String(b.nhom) : "khac";
   const con = b.con ?? "";

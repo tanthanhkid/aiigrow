@@ -1,7 +1,7 @@
 // Luồng chính đầu-cuối trên MÁY CHỦ THẬT (không giả API): Ba Mẹ thao tác bằng giao diện web /app trong Chrome headless riêng
 // (hồ sơ tạm, điều khiển qua CDP — không đụng trình duyệt của ai); máy con + màn Con đi qua /api/device, /api/kid thật.
-//   đăng ký (OTP chế độ thử) → thêm Con → ghép máy → giao nhiệm vụ → Con nộp ảnh → Ba Mẹ duyệt trên giao diện → điểm
-//   → dùng điểm chơi (phiên trừ theo phút) → đổi quà → Ba Mẹ xác nhận trao → báo cáo.
+//   đăng ký (OTP chế độ thử) → thêm Con → ghép máy → giao nhiệm vụ → Con nộp ảnh → Ba Mẹ duyệt trên giao diện → sao
+//   → chơi «Tính phút» (1 sao = 1 phút, phiên trừ sao theo đồng hồ máy chủ) → đổi quà → Ba Mẹ xác nhận trao → báo cáo.
 // Dùng: `pnpm build:app` rồi chạy máy chủ (next dev/start), sau đó `node scripts/luong-chinh.mjs [http://localhost:3320]`.
 // Mã thoát 1 nếu có bước SAI. Ảnh lỗi: LC_CHUP=<thư mục>.
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -133,29 +133,35 @@ try {
   await mo("/cho-duyet");
   await xet(await doi("Dọn đồ chơi"), "hộp Chờ duyệt có lượt của Ken");
   await bam("Dọn đồ chơi");
-  await xet(await doi("Duyệt · +5 điểm"), "màn duyệt hiện ảnh + nút điểm");
-  const nutDuyet = (await chu())?.match(/Duyệt · \+5 điểm[^\n]*/)?.[0];
+  await xet(await doi("Duyệt · Ken nhận 5 sao"), "màn duyệt hiện ảnh + nút sao");
+  const nutDuyet = (await chu())?.match(/Duyệt · Ken nhận 5 sao[^\n]*/)?.[0];
   await bam(nutDuyet);
-  await xet(await doi("+5 điểm cho Ken!"), "duyệt xong, Ken được +5 điểm");
+  await xet(await doi("+5 sao cho Ken!"), "duyệt xong, Ken được +5 sao");
   const vi1 = await api("kid", "toi", undefined, may.token);
   const soDu1 = vi1.vi?.soDu ?? vi1.soDu;
-  await xet(soDu1 >= 5, `ví Con trên máy chủ: ${soDu1} điểm`);
+  await xet(soDu1 >= 5, `ví Con trên máy chủ: ${soDu1} sao`);
 
-  // 6. Dùng điểm để chơi: luật Fun list → xét → mở phiên → nhịp → dừng
-  console.log("\n# Dùng điểm để chơi");
+  // 6. Chơi «Tính phút» (1 sao = 1 phút): luật Tính phút → xét → mở phiên → nhịp → dừng
+  console.log("\n# Chơi Tính phút bằng sao");
   await api("m", `con/${con.id}/diem`, { delta: 100, lyDo: "Thưởng cuối tuần" }, bmTok);
   await api("m", "luat", { con: con.id, muc: "roblox.exe", ten: "Roblox", loai: "giai_tri" }, bmTok);
-  // kịch bản chạy giờ nào cũng được: mở khung chơi cả ngày, giờ ngủ dời ra 03:00–03:01
+  // kịch bản chạy giờ nào cũng được: mở khung chơi cả ngày (không còn giờ ngủ / giờ học — #258)
   const caNgay = [{ tu: "00:00", den: "23:59" }];
-  await api("m", `con/${con.id}/lich`, { ngayThuong: caNgay, cuoiTuan: caNgay, ngu: { tu: "03:00", den: "03:01" } }, bmTok);
+  await api("m", `con/${con.id}/lich`, { ngayThuong: caNgay, cuoiTuan: caNgay }, bmTok);
   const xetPhien = await api("device", "phien/xet", { muc: "roblox.exe" }, may.token);
-  await xet(xetPhien.duoc, `máy hỏi «Dùng điểm để chơi?» — ${xetPhien.duoc ? `được, tối đa ${xetPhien.phutToiDa} phút` : `không: ${xetPhien.lyDo} ${xetPhien.cau ?? ""}`}`);
+  await xet(xetPhien.duoc, `máy hỏi «Chơi bằng sao được không?» — ${xetPhien.duoc ? `được, tối đa ${xetPhien.phutToiDa} phút` : `không: ${xetPhien.lyDo} ${xetPhien.cau ?? ""}`}`);
   if (xetPhien.duoc) {
     const ph = await api("device", "phien/mo", { muc: "roblox.exe" }, may.token);
     const nh = await api("device", "phien/nhip", { id: ph.id ?? ph.phien?.id, dangDung: true }, may.token);
     await xet(!!nh.trangThai, `nhịp phiên: ${nh.trangThai}, còn ${nh.conPhut} phút`);
     await api("device", "phien/dung", { id: ph.id ?? ph.phien?.id }, may.token);
   }
+
+  // 6b. Không còn lưới web cấm cứng (#262): policy vẫn gửi webLuonChan [] cho agent cũ; Con xin web nào cũng thành lời xin chờ Ba Mẹ, không 409
+  const dbo = await api("device", "dong-bo", {}, may.token);
+  await xet(Array.isArray(dbo.webLuonChan) && dbo.webLuonChan.length === 0, "policy: webLuonChan = [] (không còn web cấm cứng)");
+  const xin = await api("device", "xin-duyet", { muc: "m.pornhub.com" }, may.token);
+  await xet(xin.trang_thai === "cho", "Con xin web bất kỳ ⇒ lời xin chờ Ba Mẹ (không 409 web_cam)");
 
   // 7. Đổi quà + Ba Mẹ xác nhận trao
   console.log("\n# Đổi quà");
@@ -164,7 +170,7 @@ try {
   const qua = (ch.ds ?? ch.qua ?? ch).find?.((x) => x.ten === "Chọn thực đơn bữa tối");
   await xet(!!qua, "cửa hàng có quà «Chọn thực đơn bữa tối»");
   const phieu = await api("kid", `doi/${qua.id}`, {}, may.token);
-  await xet(!!phieu, "Con đổi quà, giữ điểm chờ Ba Mẹ trao");
+  await xet(!!phieu, "Con đổi quà, giữ sao chờ Ba Mẹ trao");
   const dsPhieu = await api("m", "phieu", undefined, bmTok);
   const p1 = (dsPhieu.ds ?? dsPhieu.choTrao ?? dsPhieu).find?.((x) => (x.ten ?? x.ten_qua ?? "").includes("thực đơn"));
   if (p1) await api("m", `phieu/${p1.id}/xac-nhan`, {}, bmTok);

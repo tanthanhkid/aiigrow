@@ -9,7 +9,7 @@ import { taoPolicy, type Policy } from "./may-con.ts";
 import type { May } from "./gia-dinh.ts";
 import type { NhomGiaiTri } from "./luat-app.ts";
 import { goiAndroidThat, mucAppThat } from "./app-may.ts";
-import { WEB_LUON_CHAN, type CheDo, type CheDoChan } from "./chan-co-ban.ts";
+import { type CheDo, type CheDoChan } from "./chan-co-ban.ts";
 
 export type KieuMuc = "app" | "web";
 export type MucChung = { muc: string; kieu: KieuMuc; nhom?: NhomGiaiTri | null; giaPhanNghin?: number | null };
@@ -38,7 +38,7 @@ export type ChinhSachChung = {
   };
   /** #262 danh sách trắng: giaiTri = nhóm «Tính phút» (trừ sao) · hoc = «Không tính phút» · chan luôn [] (không còn quy tắc chặn).
    *  chuaXep: app / web ngoài danh sách — «chan» (Theo danh sách: Con «Xin Ba Mẹ mở») | «cho_phep» (Mở hết).
-   *  cheDo: theo_danh_sach | mo_het · cheDoChan (cũ): chi_app_duoc_phep | mo_het · webLuonChan: lưới an toàn chung («Mở hết» ⇒ []). */
+   *  cheDo: theo_danh_sach | mo_het · cheDoChan (cũ): chi_app_duoc_phep | mo_het · webLuonChan: luôn [] (giữ cho agent cũ). */
   ungDung: { heThong: string[]; hoc: MucChung[]; giaiTri: MucChung[]; chan: MucChung[]; chuaXep: "chan" | "cho_phep"; cheDo: CheDo; cheDoChan: CheDoChan; webLuonChan: string[] };
   phienDiem: { soDu: number; phien: Policy["phien"]; giaTheoNhom: Record<NhomGiaiTri, number> };
   khoaNgay: boolean;
@@ -97,7 +97,7 @@ export function dungChinhSach(p: Policy, o: {
       chuaXep: p.cheDoChan === "mo_het" ? "cho_phep" : "chan",
       cheDo: p.cheDo ?? (p.cheDoChan === "mo_het" ? "mo_het" : "theo_danh_sach"),
       cheDoChan: p.cheDoChan ?? "chi_app_duoc_phep",
-      webLuonChan: p.webLuonChan ?? WEB_LUON_CHAN,
+      webLuonChan: [],      // lưới web cấm cứng đã bỏ; giữ trường cho agent cũ
     },
     phienDiem: {
       soDu: p.soDu, phien: p.phien,

@@ -13,7 +13,6 @@ const { chinhSachWindows } = await import("./agent-windows.ts");
 const { taoNha } = await import("./test-fixtures/nha.ts");
 const { gioDiaPhuong } = await import("./gio.ts");
 const { q } = await import("./db.ts");
-const { laWebCam } = await import("./chan-co-ban.ts");
 const { luonChoiDuoc } = await import("./test-fixtures/nha.ts");
 
 const HOM = gioDiaPhuong(new Date(), "Asia/Ho_Chi_Minh").ngay;
@@ -91,10 +90,10 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   // L4: Con mới «Chặn app & web» ⇒ web chỉ cho phép; web luôn chặn (người lớn / cờ bạc / bạo lực) có trong chan ở mọi chế độ
   assert.equal(db.windows.web.cheDo, "chi_cho_phep");
   assert.equal(db.cheDoChan, "chi_app_duoc_phep");
-  const rieng = (ds: string[]) => ds.filter((m) => !laWebCam(m));
+  const rieng = (ds: string[]) => ds;
   assert.deepEqual(rieng(db.windows.web.chan), ["youtube.com"], "Theo danh sách: gamek.vn ngoài danh sách đã bị chặn bởi chi_cho_phep");
   assert.ok(!db.windows.web.cho.includes("gamek.vn"));
-  assert.ok(db.windows.web.chan.includes("xnxx.com"));
+  assert.ok(!db.windows.web.chan.includes("xnxx.com"), "không còn lưới web cấm cứng");
   assert.ok(db.windows.web.cho.includes("khanacademy.org") && db.windows.web.cho.includes("classroom.google.com"));
   assert.ok(!db.windows.web.cho.includes("explorer.exe"), "chỉ tên miền, không .exe");
   // phiên điểm đang chạy cho youtube.com ⇒ youtube.com chuyển sang danh sách mở

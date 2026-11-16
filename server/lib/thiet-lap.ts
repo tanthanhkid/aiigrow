@@ -15,7 +15,6 @@ import { cheDoChanCua, cheDoCua, nhanCheDo, nhanNhom, type NhomDs } from "./chan
 import { APP_GOI_Y } from "./che-do-chan.ts";
 import { allowlistHieuLuc, datLuat, khoaSo, xoaLuat } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
-import { laWebCam } from "./chan-co-ban.ts";
 import { tenMienSach } from "./web.ts";
 import { saoKhoiDauHopLe, tangSaoKhoiDau } from "./so-sao.ts";
 
@@ -34,7 +33,7 @@ export type ThietLapVao = {
 };
 
 const WEB_TOI_DA = 60;
-/** Kiểm + chuẩn hoá danh sách web Lần đầu: tên miền sạch, không thuộc nhóm luôn chặn, không trùng. → [{muc, tinhGio}]. */
+/** Kiểm + chuẩn hoá danh sách web Lần đầu: tên miền sạch, không trùng. → [{muc, tinhGio}]. */
 export function webLanDau(v: unknown): { muc: string; tinhGio: boolean; nhom: NhomDs }[] {
   if (!Array.isArray(v)) throw new LoiNghiepVu("thieu_web", "Gửi danh sách trang web");
   if (v.length > WEB_TOI_DA) throw new LoiNghiepVu("qua_nhieu_web", `Chọn tối đa ${WEB_TOI_DA} trang web`);
@@ -43,7 +42,6 @@ export function webLanDau(v: unknown): { muc: string; tinhGio: boolean; nhom: Nh
     const o = (typeof x === "string" ? { muc: x } : x ?? {}) as { muc?: unknown; tinhGio?: unknown; nhom?: unknown };
     const muc = tenMienSach(o.muc);
     if (!muc) throw new LoiNghiepVu("ten_mien_sai", `«${String(o.muc ?? "").slice(0, 60)}» không phải địa chỉ web (dạng ten.com)`);
-    if (laWebCam(muc)) throw new LoiNghiepVu("web_cam", `Trang ${muc} thuộc nhóm luôn chặn (người lớn, cờ bạc, bạo lực) — không mở được`, 409);
     ra.set(muc, o.nhom !== undefined ? nhanNhom(o.nhom) === "tinh_phut" : o.tinhGio === true);
   }
   return [...ra].map(([muc, tinhGio]) => ({ muc, tinhGio, nhom: (tinhGio ? "tinh_phut" : "khong_tinh_phut") as NhomDs }));
