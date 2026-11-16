@@ -49,6 +49,20 @@ public enum ChuSao {
   public static func phut(_ n: Int) -> String { let s = so(max(0, n)); return "còn \(s) sao = \(s) phút chơi" }
   /// «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước» (không nợ ⇒ nil).
   public static func no(_ n: Int) -> String? { n > 0 ? "Đang nợ Ba Mẹ \(so(n)) sao · sao nhiệm vụ trả nợ trước" : nil }
+  /// Câu chung (như agent-win `SaoView.TraNoTruocHoa`): thêm vào tin «Ba Mẹ đã duyệt …» khi Con đang nợ — KHÔNG kèm số (tin duyệt không mang số nợ).
+  public static let traNoTruocHoa = "Sao nhiệm vụ trả nợ trước"
+  /// Thẻ «Chờ Ba Mẹ duyệt»: không nợ ⇒ «+20 sao chờ Ba Mẹ duyệt»; đang nợ ⇒ thêm «· Trả nợ 15 sao trước · con còn 5 sao» / «· Trả nợ 10 sao · còn nợ 5 sao».
+  public static func choDuyet(_ choDuyet: Int, no: Int) -> String {
+    let dau = "+\(so(max(0, choDuyet))) sao chờ Ba Mẹ duyệt"
+    guard no > 0, choDuyet > 0, let tra = traNoKhiDuyet(cong: choDuyet, noTruoc: no) else { return dau }
+    return dau + " · " + tra
+  }
+  /// Phần trả nợ của thẻ «Chờ Ba Mẹ duyệt» (`noTruoc` = nợ HIỆN CÓ, `cong` = sao đang chờ duyệt). Không nợ / không có sao ⇒ nil.
+  public static func traNoKhiDuyet(cong: Int, noTruoc: Int) -> String? {
+    guard noTruoc > 0, cong > 0 else { return nil }
+    let tra = min(noTruoc, cong)
+    return cong > noTruoc ? "Trả nợ \(so(tra)) sao trước · con còn \(so(cong - noTruoc)) sao" : "Trả nợ \(so(tra)) sao · còn nợ \(so(noTruoc - tra)) sao"
+  }
   /// Mức vay Con chọn (máy chủ `mucVay`, mặc định 15).
   public static let mucVay = [10, 15, 30]
   public static let vayMacDinh = 15

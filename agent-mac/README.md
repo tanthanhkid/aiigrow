@@ -56,3 +56,11 @@ Máy 0.1.1 trở lên chỉ tự cập nhật bằng gói ký đúng «Developer
 nên `build-pkg.sh` từ chối build thiếu `NOTARY=1` (ký + notarize) trừ khi đặt `THU=1` (chỉ để thử trên máy dev).
 
 Không cài thử trên máy phát triển (luật `THIET-KE.md` mục 7): chỉ kiểm cú pháp (`bash -n`) và build gói.
+
+## 16/11 (#289): khớp #262–#267 + «Hỏi AiiGrow»
+
+- Chữ «sao» thay «điểm»; «Đổi bé» thành «Đổi người»; lời xin vay dự phòng ghi «Con xin vay N sao».
+- Duyệt nhiệm vụ lúc đang nợ ⇒ tin báo «Trả nợ N sao · còn nợ M sao».
+- Cài xong rẽ theo số bé: máy riêng một bé không nói PIN / tên / cả nhà (IPC `hoSoGhep`, chỉ Ba Mẹ).
+- Màn «Hỏi AiiGrow» (menu khay «Hỏi AiiGrow…», link ở thanh báo mất mạng): bốn thẻ tình huống như Windows; khác biệt của Mac ở `THIET-KE.md` mục 3f.
+- Mục cũ «xin thêm giờ», «đổi điểm lấy giờ», «ngoại lệ» ở các đoạn trên của THIET-KE đã bỏ từ 15/11.

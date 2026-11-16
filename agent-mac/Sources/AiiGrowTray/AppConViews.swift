@@ -1,5 +1,5 @@
 // Giao diện app «AiiGrow của Con» trên Mac — ngang bản Windows (agent-win AppForm / NopBaiForm / ChoiBangDiemForm / BlockedForm):
-// thanh bên (Rob, tên Con, trạng thái kết nối, 4 mục) + nội dung Hôm nay · Nhiệm vụ · Phần quà & điểm · Tin nhắn; nộp bài; chơi bằng điểm;
+// thanh bên (Rob, tên Con, trạng thái kết nối, 4 mục) + nội dung Hôm nay · Nhiệm vụ · Phần quà & sao · Tin nhắn; nộp bài; chơi bằng sao;
 // màn «… chưa được mở». Clay gương (docs/THIET-KE-CLAY.md): lề thẻ ≥ 16, vùng bấm ≥ 44, chữ dài cắt «…» (không co cỡ chữ).
 import AppKit
 import SwiftUI
@@ -78,10 +78,12 @@ struct AppConView: View {
   /// «1 sao = 1 phút chơi ›» (cửa sổ them-0k1r3wsl «Sao là phút chơi»).
   var moChoi: () -> Void = {}
   var moNop: (HvNhiemVu) -> Void = { _ in }
-  /// «Ba Mẹ dùng máy»: khoá màn hình để Ba Mẹ chọn tài khoản của mình (không đăng xuất Con, không trừ điểm).
+  /// «Ba Mẹ dùng máy»: khoá màn hình để Ba Mẹ chọn tài khoản của mình (không đăng xuất Con, không trừ sao).
   var nhuongMay: () -> Void = { NhuongMay.khoaManHinh() }
-  /// «Đổi bé / Đăng xuất» (máy dùng chung, L13) — máy về màn chọn tên.
+  /// «Đổi người / Đăng xuất» (máy dùng chung, L13) — máy về màn chọn tên.
   var doiBe: () -> Void = {}
+  /// «Hỏi AiiGrow cách sửa ›» ở thanh báo mất mạng / AiiGrow không trả lời.
+  var hoiAiiGrow: () -> Void = {}
   /// Chữ trên ảnh bé (ManMac.chuCai — giống màn chọn tên); nil = chữ đầu tên.
   var chuCai: String? = nil
   private var chuAnh: String { chuCai ?? String(tenCon.split(separator: " ").first?.first ?? "?").uppercased() }
@@ -175,7 +177,7 @@ struct AppConView: View {
       Spacer(minLength: 8)
       if coDoiBe {
         Button { hoiDoiBe = true } label: {
-          HStack(spacing: 8) { HinhFluent(ten: "seedling", duPhong: "person.2.fill", co: 20); Text("Đổi bé / Đăng xuất") }
+          HStack(spacing: 8) { HinhFluent(ten: "seedling", duPhong: "person.2.fill", co: 20); Text("Đổi người / Đăng xuất") }
         }
         .buttonStyle(.plain).font(.system(size: 15, weight: .bold)).foregroundColor(ClayMau.ngocInk).frame(minHeight: 44)
       }
@@ -210,6 +212,7 @@ struct AppConView: View {
     VStack(alignment: .leading, spacing: 2) {
       Chu(b.0, co: 15, dam: .bold, mau: ClayMau.loi, dong: 1)
       Chu(b.1, co: 13, mau: ClayMau.loi, dong: 2)
+      LinkNho(chu: "Hỏi AiiGrow cách sửa ›", lam: hoiAiiGrow)
     }
     .padding(14).frame(maxWidth: 760, alignment: .leading)
     .background(RoundedRectangle(cornerRadius: 18, style: .continuous).fill(ClayMau.canhSoft))
@@ -300,7 +303,7 @@ struct AppConView: View {
   static let gioPhut: DateFormatter = { let f = DateFormatter(); f.dateFormat = "HH:mm"; return f }()
 
   /// Số dư Con thấy: daemon (đã trừ tại chỗ) › tổng quan.
-  private func soSao(_ t: TrangThai?) -> SoSao? { t?.soSao ?? app.tq?.soSao ?? app.tq.map { SoSao(sao: $0.soDu) } }
+  private func soSao(_ t: TrangThai?) -> SoSao? { ManMac.soSao(tt: t, tq: app.tq) }
 
   /// Thẻ chính Hôm nay (them-z86gsj81 / them-ncml9v7v đang nợ / them-02wt8s99 «Mở hết»).
   @ViewBuilder private func theSao(_ t: TrangThai) -> some View {
@@ -376,17 +379,17 @@ struct AppConView: View {
     }
   }
 
-  /// 17 «Đổi bé / Đăng xuất».
+  /// 17 «Đổi người / Đăng xuất».
   private var doiBeSheet: some View {
     VStack(spacing: 14) {
       AvatarBe(chu: chuAnh, co: 64)
       Text(tenCon).font(.system(size: 20, weight: .bold))
       Text("● Đang dùng" + (soSao(tt).map { " · còn \(ChuSao.vien($0.sao))" } ?? " máy này")).font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
       HStack(spacing: 12) {
-        Button("Đổi bé") { hoiDoiBe = false; doiBe() }.buttonStyle(NutClayStyle(kieu: .ngoc))
+        Button("Đổi người") { hoiDoiBe = false; doiBe() }.buttonStyle(NutClayStyle(kieu: .ngoc))
         Button("Đăng xuất") { hoiDoiBe = false; doiBe() }.buttonStyle(NutClayStyle(kieu: .sang))
       }
-      Text("Đổi bé hay đăng xuất: dừng tính phút của \(tenCon.isEmpty ? "con" : tenCon), máy khoá lại chờ tên + PIN.").font(.system(size: 12)).foregroundColor(ClayMau.chu3)
+      Text("Đổi người hay đăng xuất: dừng tính phút của \(tenCon.isEmpty ? "con" : tenCon), máy khoá lại chờ tên + PIN.").font(.system(size: 12)).foregroundColor(ClayMau.chu3)
         .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
       Button("Ở lại") { hoiDoiBe = false }.buttonStyle(NutClayStyle(kieu: .sang)).keyboardShortcut(.cancelAction)
     }
@@ -408,7 +411,8 @@ struct AppConView: View {
       ForEach(Array(nhom.chuaLam.enumerated()), id: \.element.id) { i, v in theViec(v).vaoLanLuot(min(i + 1, 6)) }
       ForEach(khac, id: \.id) { v in theViec(v) }
       if !ds.isEmpty {
-        Chu("Ba Mẹ duyệt xong là sao vào ví ngay (đang nợ thì trả nợ trước) · Đang có \(ChuSao.vien(tq.saoThay))" + (tq.diemChoDuyet > 0 ? " · chờ thêm \(tq.diemChoDuyet) sao" : ""),
+        Chu((tq.diemChoDuyet > 0 ? ChuSao.choDuyet(tq.diemChoDuyet, no: soSao(tt)?.no ?? 0)
+              : ManMac.dangNo(soSao(tt)) ? "Ba Mẹ duyệt xong, " + ChuSao.traNoTruocHoa.lowercased() : "Ba Mẹ duyệt xong là sao vào ví ngay") + " · Đang có \(ChuSao.vien(tq.saoThay))",
             co: 13, dam: .semibold, mau: ClayMau.diemInk, dong: 2)
       }
       let gan = tq.gan.filter { ["cho_duyet", "tu_choi", "duoc_duyet"].contains($0.trangThai) }.prefix(8)
@@ -455,7 +459,7 @@ struct AppConView: View {
     }
   }
 
-  // ---- Phần quà & điểm
+  // ---- Phần quà & sao
 
   @ViewBuilder private var phanQua: some View {
     if quaCuaCon { ViQuaView(app: app, quay: { quaCuaCon = false }) }
@@ -540,7 +544,7 @@ struct AppConView: View {
             Chu("Sao nhiệm vụ trả nợ trước", co: 13, mau: ClayMau.canh, dong: 1)
             lichSuSao(3)
           }
-          if tq.diemChoDuyet > 0 { Chu("+\(ChuSao.so(tq.diemChoDuyet)) sao chờ Ba Mẹ duyệt", co: 13, mau: ClayMau.diemInk, dong: 1) }
+          if tq.diemChoDuyet > 0 { Chu(ChuSao.choDuyet(tq.diemChoDuyet, no: soSao(tt)?.no ?? 0), co: 13, mau: ClayMau.diemInk, dong: 1) }
           if let g = app.ch?.saoGiu, g > 0 { Chu("Đang giữ \(ChuSao.so(g)) sao chờ Ba Mẹ trao", co: 13, mau: ClayMau.diemInk, dong: 1) }
         }
         Spacer(minLength: 8)

@@ -10,7 +10,7 @@ import AiiGrowCore
 enum QrAnh {
   static func tao(_ chuoi: String, canh: CGFloat = 132) -> NSImage? { sinh(chuoi, canh: canh)?.anh }
 
-  /// (ảnh, số điểm ảnh mỗi mô-đun). Ảnh phóng nguyên số lần nên mô-đun đều; viền lặng chuẩn = 4 mô-đun.
+  /// (ảnh, số sao ảnh mỗi mô-đun). Ảnh phóng nguyên số lần nên mô-đun đều; viền lặng chuẩn = 4 mô-đun.
   static func sinh(_ chuoi: String, canh: CGFloat) -> (anh: NSImage, he: Int)? {
     guard !chuoi.isEmpty else { return nil }
     let f = CIFilter.qrCodeGenerator()
