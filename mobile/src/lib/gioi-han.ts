@@ -14,19 +14,19 @@ export const GIOI_HAN_MD: GioiHan = { ngayThuong: 60, cuoiTuan: 90, moiLuot: 30 
 /** Con tick «Không cần nghỉ» rồi bỏ tick ⇒ quay về chừng này phút (khi chưa có số nào để nhớ). */
 export const LUOT_MD = 30;
 
-/** Ô số phút: chuỗi Ba Mẹ gõ ⇒ số phút (trống / 0 = không giới hạn) hoặc lỗi. */
-export function docPhut(chu: string, k: { min: number; max: number }): { phut: number; loi: string | null } {
+/** Ô số phút: chuỗi Ba Mẹ gõ ⇒ số phút hoặc lỗi. `batBuoc` (ô ngày — bàn v21 không có «không giới hạn»): trống / 0 là lỗi; không thì trống / 0 = không giới hạn (ô lượt). */
+export function docPhut(chu: string, k: { min: number; max: number }, batBuoc = false): { phut: number; loi: string | null } {
+  const loiKhoang = `Từ ${k.min} đến ${k.max} phút`;
   const s = chu.replace(/\D/g, "");
-  if (!s) return { phut: 0, loi: null };
+  if (!s || Number(s) === 0) return { phut: 0, loi: batBuoc ? loiKhoang : null };
   const n = Number(s);
-  if (n === 0) return { phut: 0, loi: null };
-  if (n < k.min || n > k.max) return { phut: n, loi: `Từ ${k.min} đến ${k.max} phút` };
+  if (n < k.min || n > k.max) return { phut: n, loi: loiKhoang };
   return { phut: n, loi: null };
 }
 
-/** Nút −/+ : cộng / trừ BUOC_PHUT, kẹp trong khoảng. 0 (không giới hạn) bấm − thì giữ nguyên; bấm + thì vào đầu khoảng làm tròn bước. */
+/** Nút −/+ : cộng / trừ BUOC_PHUT, kẹp trong khoảng. Ô trống / 0 thì − và + đều về đầu khoảng (làm tròn bước 15 khi bấm +). */
 export function buocPhut(n: number, huong: 1 | -1, k: { min: number; max: number }): number {
-  if (!(n > 0)) return huong > 0 ? Math.max(k.min, BUOC_PHUT) : 0;
+  if (!(n > 0)) return huong > 0 ? Math.max(k.min, BUOC_PHUT) : k.min;
   return Math.min(k.max, Math.max(k.min, n + huong * BUOC_PHUT));
 }
 
@@ -36,17 +36,6 @@ export function quyRaTieng(n: number): string {
   const g = Math.floor(n / 60), p = n % 60;
   if (!g) return p === 30 ? "nửa tiếng" : `${p} phút`;
   return !p ? `${g} tiếng` : p === 30 ? `${g} tiếng rưỡi` : `${g} tiếng ${p} phút`;
-}
-
-/** Dòng giải thích dưới lựa chọn — khớp máy chủ (moTaGioiHan): «Mỗi ngày tối đa 60 phút · mỗi lượt 30 phút rồi nghỉ 30 phút · chơi bằng sao». */
-export function moTaGioiHan(c: GioiHan): string {
-  const ngay = !c.ngayThuong && !c.cuoiTuan ? "Mỗi ngày không giới hạn"
-    : c.ngayThuong === c.cuoiTuan ? `Mỗi ngày tối đa ${c.ngayThuong} phút`
-    : !c.cuoiTuan ? `Ngày thường tối đa ${c.ngayThuong} phút · cuối tuần không giới hạn`
-    : !c.ngayThuong ? `Ngày thường không giới hạn · cuối tuần tối đa ${c.cuoiTuan} phút`
-    : `Mỗi ngày tối đa ${c.ngayThuong} phút (T7, CN ${c.cuoiTuan} phút)`;
-  const luot = c.moiLuot ? `mỗi lượt ${c.moiLuot} phút rồi nghỉ ${c.moiLuot} phút` : "mỗi lượt không giới hạn";
-  return `${ngay} · ${luot} · chơi bằng sao`;
 }
 
 /** Hàng «Giờ chơi» trong hồ sơ Con: «60 phút/ngày» + «mỗi lượt 30 phút». */

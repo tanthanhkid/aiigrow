@@ -5,7 +5,7 @@
 // Nút đáy (#306): «+ Thêm con khác» trên cùng; dưới nó MỘT nút nổi — chưa có con nào khác ⇒ «Lưu hồ sơ <Tên>»; đã thêm con khác ⇒ «Xong, giao việc cho <Con đầu> trước».
 // Thiết kế chốt 14/11 (bm1-ob-ten-con «Sửa tay», them-hjjdppuw, them-4sujddkb): thẻ hồ sơ «Bảo Anh · 🐓 9 tuổi» (con giáp theo năm sinh — N11),
 // ô năm sinh là nút mở bảng «Năm sinh» (bánh xe năm, «Chọn 2017»); PIN một ô (thiết kế bỏ «Nhập lại PIN» — PIN hiện số khi gõ nên không cần gõ lại).
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { bm } from "@/lib/api";
 import { ChonMauCon, HangAnhCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
@@ -27,6 +27,14 @@ export default function ObCon() {
   const [mau, setMau] = useState(sua ? tl0.mau ?? 0 : (tl0.daLuu?.length ?? 0) % MAU_HO_SO.length);
   const [conId, setConId] = useState<string | undefined>(sua ? tl0.conId : undefined);
   const [pin, setPin] = useState("");
+  // mở lại màn cho Con ĐÃ lưu (sua): máy chủ báo Con đã có PIN ⇒ không bắt gõ lại, ô trống = giữ PIN cũ (không POST PIN)
+  const [daCoPin, setDaCoPin] = useState(false);
+  useEffect(() => {
+    if (!sua || !tl0.conId) return;
+    let huy = false;
+    bm.goi<{ coPin?: boolean }>(`con/${tl0.conId}`).then((c) => { if (!huy) setDaCoPin(!!c?.coPin); }).catch(() => {});
+    return () => { huy = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const af = useAnhForm();
   // mở lại màn (sua) ⇒ hiện ảnh đã lưu ở máy chủ + «Bỏ ảnh» (gỡ khi lưu)
   const [avatarLuu, setAvatarLuu] = useState<string | undefined>(sua ? tl0.daLuu?.find((c) => c.id === tl0.conId)?.avatar : undefined);
@@ -38,7 +46,8 @@ export default function ObCon() {
   const namSo = namCua(nam);
   const tenGon = ten.trim();
   const loiPin = kiemPin(pin, null, namSo);
-  const thieuPin = !/^\d{4}$/.test(pin);        // #306: PIN 4 số bắt buộc
+  const pinDu = /^\d{4}$/.test(pin);
+  const thieuPin = daCoPin ? pin !== "" && !pinDu : !pinDu;        // #306: PIN 4 số bắt buộc với Con chưa có PIN; Con đã có PIN: trống = giữ, gõ thì phải đủ 4 số
   const CAU_PIN = "Đặt mã PIN 4 số cho con trước.";
   const luu = async () => {
     if (thieuPin) throw new Error(CAU_PIN);        // #306: chốt chặn chung cho cả 3 nút
@@ -46,7 +55,7 @@ export default function ObCon() {
     const r = await bm.goi<KqThietLap>("thiet-lap", { con: { ...(conId ? { id: conId } : {}), ten: tenGon, namSinh: namSo, avatar: `mau-${mau}` }, ...(conId ? {} : { saoKhoiDau: 0 }) });
     // nhớ Con vừa tạo TRƯỚC khi đặt PIN: lời đặt PIN lỗi ⇒ bấm lại chỉ sửa Con này (gửi con.id), không tạo Con thứ hai
     setConId(r.conId);
-    await bm.goi(`con/${r.conId}/pin`, { pin });
+    if (pin) await bm.goi(`con/${r.conId}/pin`, { pin });        // trống (Con đã có PIN) ⇒ không đụng PIN cũ
     // ảnh lỗi KHÔNG làm hỏng việc lưu hồ sơ: báo «Chưa lưu được ảnh» rồi đi tiếp
     const anhKq = await dongBoAnhCon(r.conId, af.anh, boAnhLuu && !af.anh && coAnh(avatarLuu));
     if (!anhKq.ok) baoKhiVe(CHUA_LUU_ANH);
@@ -58,12 +67,12 @@ export default function ObCon() {
   const tiep = () => lam(async () => {
     const { r, ds } = await luu();
     datTl({ conId: r.conId, tenCon: r.ten, namSinh: namSo, mau, daLuu: ds, nhom: namSo && new Date().getFullYear() - namSo >= 11 ? "teen" : "nhi",
-      apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined });
+      apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined });
     router.push("/thiet-lap/mau");
   });
   const themCon = () => lam(async () => {
     const { ds } = await luu();
-    datTl({ daLuu: ds, conId: undefined });
+    datTl({ daLuu: ds, conId: undefined, gioiHan: undefined });
     setTen(""); setNam(""); setConId(undefined); setPin(""); af.bo(); setAvatarLuu(undefined); setBoAnhLuu(false); setMau(ds.length % MAU_HO_SO.length);
   });
   const conDau = daLuu[0];
@@ -75,7 +84,7 @@ export default function ObCon() {
         {conDau ? (
           <Nut chu={`Xong, giao việc cho ${conDau.ten} trước`} rong dangChay={dangChay} tat={!!tenGon && (thieuPin || !!loiPin || (nam !== "" && !namSo))} bam={() => lam(async () => {
             if (tenGon) { if (thieuPin) throw new Error(CAU_PIN); if (loiPin) throw new Error(loiPin); const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
-            datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined });
+            datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined });
             router.push("/thiet-lap/mau");
           })} />
         ) : (
@@ -87,7 +96,7 @@ export default function ObCon() {
       <ONamSinh nam={nam} doi={setNam} />
       <ChonMauCon mau={mau} doi={setMau} />
       {/* PIN vào máy (06/11): bé chạm tên + PIN để vào máy dùng chung — không mắng lúc đang gõ (ThePinCon chỉ báo khi đủ 4 số) */}
-      <ThePinCon pin={pin} doi={setPin} loi={loiPin} batBuoc cau={<><Chu kieu="rat" co={13}>Bé dùng PIN này để vào máy</Chu> · không dùng ngày sinh</>} />
+      <ThePinCon pin={pin} doi={setPin} loi={loiPin} batBuoc={!daCoPin} cau={daCoPin ? <>Con đã có PIN — để trống nếu giữ nguyên, gõ 4 số mới để đổi</> : <><Chu kieu="rat" co={13}>Bé dùng PIN này để vào máy</Chu> · không dùng ngày sinh</>} />
     </Man>
   );
 }

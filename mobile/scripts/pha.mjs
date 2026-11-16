@@ -1503,6 +1503,18 @@ await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở 
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST" && x.body?.con?.ten === "Bảo Minh"), "có PIN ⇒ lưu Bảo Minh rồi sang Giao việc");
 });
 
+await kichBan("Lần đầu · mở lại hồ sơ Con ĐÃ có PIN (#306): không bắt gõ lại PIN, ô trống không POST PIN; gõ dở thì báo đủ 4 số", async () => {
+  kb["GET con/c1"] = { ...(kb["GET con/c1"] ?? {}), coPin: true };
+  await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify({ conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }] }))})`);
+  await goi("Page.navigate", { url: `${GOC}/thiet-lap/ten-con` });
+  xet(await doi("Con đã có PIN"), "Con đã có PIN ⇒ ghi chú «để trống nếu giữ nguyên»");
+  nhatKy.length = 0;
+  await bam("Lưu hồ sơ Bảo Anh");
+  xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "PIN trống vẫn lưu được");
+  await sleep(400);
+  xet(!nhatKy.some((x) => /^con\/[^/]+\/pin$/.test(x.d)), "không POST PIN khi ô trống (không đè PIN cũ)");
+});
+
 await kichBan("Lần đầu · Giờ chơi (#306): quà khởi đầu −/+ bước 10 (0…200), ô số phút gõ trực tiếp, −/+ 15 phút, «Không cần nghỉ» ⇒ phutMoiLuot 0, gửi đúng", async () => {
   const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }] };
   await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`);

@@ -107,7 +107,7 @@ function ThemViecRieng({ mo, dong, con, xong }: { mo: boolean; dong: () => void;
     xong(t);
   });
   return (
-    <BangTruot mo={mo} dong={dong} tieu="Ba Mẹ tự thêm" gon chan={<>
+    <BangTruot mo={mo} dong={dong} tieu="Ba Mẹ tự thêm" cuon gon chan={<>
       <BaoLoi loi={loi} />
       <Nut chu="Thêm vào mục đã chọn" rong dangChay={dangChay} tat={!ten.trim()} bam={luu} />
     </>}>

@@ -161,7 +161,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
           coPin: !!c.pin_ma,
           matMang: mm.filter((x) => x.conId === c.id).map((x) => ({ mayId: x.mayId, ten: x.ten, nen: x.nen, tu: x.tu, phut: x.phut })) }))) });
     }
-    // 15/11: tặng sao khởi đầu (0 / 20 / 30 / 60) — không gửi ⇒ 30 (lib/so-sao.ts)
+    // 15/11: tặng sao khởi đầu (0…200, bước 10) — không gửi ⇒ 30 (lib/so-sao.ts)
     if (d === "con" && post) return json({ id: await gd.taoCon(fam, { ...b, saoKhoiDau: b.saoKhoiDau ?? SAO_KHOI_DAU_MD }, bm.id) });
     if (p[0] === "con" && p[1]) {
       const id = p[1], sau = p.slice(2).join("/");

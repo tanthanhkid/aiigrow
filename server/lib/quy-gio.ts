@@ -13,7 +13,7 @@ import { dauNgayUtc, gioDiaPhuong, laCuoiTuan, phutCua, trongKhung, type Khung }
 import { khoaSo } from "./luat-app.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { cauSao, choVay, hoanTacVay, phutDaTruHomNay, trangThaiSao, type TrangThaiSao } from "./so-sao.ts";
-import { cauHinhCua, gioiHanCua, MUC_LUOT, MUC_NGAY, GH_LUOT, GH_NGAY, moTaGioiHan, phanGhi, type GioiHanChoi } from "./gioi-han-choi.ts";
+import { cauHinhCua, gioiHanCua, phanGhi, type GioiHanChoi } from "./gioi-han-choi.ts";
 
 /** 1 sao = 1 phút (giữ tên hàm cũ cho nơi gọi cũ). */
 export const saoChoPhut = (_ts: unknown, phut: number) => Math.ceil(phut);
@@ -158,11 +158,10 @@ export async function gioChoiCua(fam: string, con: string, now = new Date()) {
   };
 }
 
-/** Phần «Giờ chơi» #302 trả cho app Ba Mẹ: giá trị đang lưu + lựa chọn + dòng giải thích. */
+/** Phần «Giờ chơi» #302 trả cho app Ba Mẹ: giá trị đang lưu (app tự dựng ô số phút; #306 bỏ chip + dòng giải thích). */
 export function gioiHanBm(cfg: Record<string, unknown>) {
   const c = cauHinhCua(cfg);
-  return { gioiHanNgayThuong: c.ngayThuong, gioiHanCuoiTuan: c.cuoiTuan, phutMoiLuot: c.moiLuot, moTaGioiHan: moTaGioiHan(c),
-    mucGioiHan: { ngay: MUC_NGAY.map((x) => ({ ...x })), luot: [...MUC_LUOT], ngayKhoang: GH_NGAY, luotKhoang: GH_LUOT } };
+  return { gioiHanNgayThuong: c.ngayThuong, gioiHanCuoiTuan: c.cuoiTuan, phutMoiLuot: c.moiLuot };
 }
 
 

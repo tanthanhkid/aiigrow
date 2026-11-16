@@ -5,7 +5,7 @@ type TL = { conId?: string; tenCon?: string; nhom?: "nhi" | "teen"; nen?: "windo
   /** Lần đầu (thiết kế 05/11): năm sinh + màu hồ sơ, các Con đã lưu trong lượt này, lựa chọn màn Giờ chơi / Chọn app (gửi một lần POST thiet-lap). */
   namSinh?: number | null; mau?: number; daLuu?: { id: string; ten: string; mau?: number; namSinh?: number | null; /** avatar máy chủ («mau-N|anh:…») — để mở lại màn thấy ảnh đã lưu */ avatar?: string }[];
   cheDoChan?: "chi_app_duoc_phep" | "mo_het";
-  /** 15/11 (bm1-ob-gio): sao tặng khởi đầu 0 / 20 / 30 / 60 Ba Mẹ chọn ở bước «Chơi bằng sao» — Con tạo ở bước tên với 0 sao, gửi kèm thiet-lap cuối mới tặng (một lần). */
+  /** 15/11 (bm1-ob-gio): sao tặng khởi đầu 0…200 (bước 10) Ba Mẹ chọn ở bước «Chơi bằng sao» — Con tạo ở bước tên với 0 sao, gửi kèm thiet-lap cuối mới tặng (một lần). */
   saoKhoiDau?: number;
   /** #302: giới hạn tối đa mỗi ngày (ngày thường / T7–CN) + mỗi lượt tối đa — phút, 0 = không giới hạn (lib/gioi-han) */
   gioiHan?: GioiHan;

@@ -18,7 +18,7 @@ export { NGUONG_NO };
 export const MUC_VAY = [10, 15, 30] as const;
 export const VAY_MAC_DINH = 15;
 export const VAY_TOI_DA = 1000;
-/** Sao tặng khởi đầu khi tạo hồ sơ Con (bm1-ob-gio): Ba Mẹ chọn 0 / 20 / 30 / 60, mặc định 30. */
+/** Sao tặng khởi đầu khi tạo hồ sơ Con (bm1-ob-gio): số nguyên 0…200 (bước 10), mặc định 30. */
 /** #306: số nguyên 0…200, bước 10, mặc định 30. */
 export const SAO_KHOI_DAU_TOI_DA = 200;
 export const SAO_KHOI_DAU_BUOC = 10;
