@@ -83,11 +83,10 @@ test("«Mở» có hạn ⇒ trang Giải trí mở trong trình duyệt, trang 
   const now = new Date("2026-10-21T10:00:00.000Z");
   const mo = chinhSachWindows(goc({ luat }), undefined, "chan", { moDen: new Date(now.getTime() + 600_000) });
   // lưới web cấm cứng đã bỏ (#262): `chan` chỉ có trang Ba Mẹ chặn
-  const rieng = (ds: string[]) => ds;
-  assert.deepEqual(rieng(mo.web.chan), ["gamek.vn"]);
+  assert.deepEqual(mo.web.chan, ["gamek.vn"]);
   assert.ok(mo.web.cho.includes("youtube.com"));
   const het = chinhSachWindows(goc({ luat }), undefined, "chan", { moDen: new Date(now.getTime() - 1000) });
-  assert.deepEqual(rieng(het.web.chan), ["gamek.vn", "youtube.com"]);
+  assert.deepEqual(het.web.chan, ["gamek.vn", "youtube.com"]);
 });
 
 test("L4 «Mở hết»: mode tu_do (không grantEndsAt), web mở + trang Giải trí mở; app/trang Ba Mẹ chặn vẫn chặn; khoá ngay / giờ ngủ vẫn thắng", () => {

@@ -223,7 +223,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     if (p[0] === "ghep-may" && p[1] && p.length === 2 && get) return json(await trangThaiGhep(fam, p[1]));
     // L7: thiết lập lần đầu (tên Con + giờ chơi + giờ ngủ + chế độ chặn + app) · lưới app gợi ý · nhóm web luôn chặn
     if (d === "thiet-lap" && post) return json(await thietLapLanDau(fam, b, bm.id));
-    // Lần đầu «Thêm web»: kiểm một địa chỉ Ba Mẹ dán TRƯỚC khi thêm (cùng luật với thiet-lap › web) ⇒ {muc} hoặc ten_mien_sai / web_cam
+    // Lần đầu «Thêm web»: kiểm một địa chỉ Ba Mẹ dán TRƯỚC khi thêm (cùng luật với thiet-lap › web) ⇒ {muc} hoặc ten_mien_sai
     if (d === "thiet-lap/kiem-web" && post) return json({ muc: webLanDau([b.muc])[0].muc });
     if (d === "app-goi-y" && get) return json(await luoiApp(fam, new URL(req.url).searchParams.get("con")));
     // (cũ) màn «Luôn chặn» đã bỏ (#258) — app cũ còn gọi: không còn nhóm nào Ba Mẹ chỉnh; cheDo = hai chế độ mới

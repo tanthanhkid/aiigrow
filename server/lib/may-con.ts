@@ -169,7 +169,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     `select id, ten, nhom, cau_hinh, lich, che_do_chan from children where id = $1`, [con]) : undefined;
   const ts = thamSo(f.cau_hinh, c?.cau_hinh);
   const cheDo = cheDoCua(c?.che_do_chan), cheDoChan = cheDoChanCua(cheDo);
-  // danh sách trắng của Con (#262): chỉ «Tính phút» (giai_tri) / «Không tính phút» (hoc); lưới an toàn không bao giờ là mục mở — kể cả luật cũ
+  // danh sách trắng của Con (#262): chỉ «Tính phút» (giai_tri) / «Không tính phút» (hoc); không còn lưới web cấm cứng
   const luat = c ? (await dsLuat(may.family_id)).filter((l) => (!l.child_id || l.child_id === c.id)) : [];
   // luật riêng của Con đè luật gia đình cùng mục — «loai_tru» (Ba Mẹ bỏ mục cả nhà khỏi danh sách của Con này) đè rồi bỏ ra
   const theoMuc = new Map<string, (typeof luat)[number]>();

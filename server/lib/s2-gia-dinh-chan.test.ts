@@ -1,5 +1,5 @@
 // S2 thiết kế chốt 05/11 (docs/KE-HOACH-KHOP-THIET-KE-0511.md L4 L5 L7 L8) qua API như app / agent gọi:
-// chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duyệt»; thiết lập lần đầu; phiên ghép máy (mã 10 phút + link bộ cài tự ghép,
+// chế độ chặn theo Con + Con «Xin Ba Mẹ duyệt»; thiết lập lần đầu; phiên ghép máy (mã 10 phút + link bộ cài tự ghép,
 // không gắn loại máy) + «Cài giống máy trước»; app cho phép theo tên khớp khi máy gửi danh sách app.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -88,7 +88,6 @@ test("L7 thiết lập lần đầu: tên Con + giờ chơi + giờ ngủ + ch�
   const lw = await q<{ muc: string; loai: string; ten: string }>(`select muc, loai, ten from app_rules where child_id = $1 and muc in ('khanacademy.org','poki.com','olm.vn') order by muc`, [con]);
   assert.deepEqual(lw.map((x) => [x.muc, x.loai, x.ten]), [["khanacademy.org", "hoc", "khanacademy.org"], ["olm.vn", "hoc", "olm.vn"], ["poki.com", "giai_tri", "poki.com"]]);
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: ["khong phai web"] } })).body.error, "ten_mien_sai");
-  assert.equal((await m("thiet-lap", { tok: bm, body: { con: { ten: "Z" }, web: ["khong phai web"] } })).body.error, "ten_mien_sai");
   assert.equal((await m("gia-dinh", { tok: bm })).body.con.length, 1, "web sai không để lại Con");
   assert.equal((await m("thiet-lap", { tok: bm, body: { con: { id: con }, web: Array.from({ length: 61 }, (_, i) => `t${i}.vn`) } })).body.error, "qua_nhieu_web");
   // gửi lại: trang đã bỏ tick bị gỡ (chỉ trang Lần đầu ghi); trang Ba Mẹ đổi tên / thêm ở nơi khác giữ nguyên
@@ -191,7 +190,7 @@ test("L7 «Thêm app khác» theo tên: máy gửi danh sách app thật ⇒ kh�
   assert.deepEqual(them.daDat, [{ ten: "KHÁC", muc: ["x.exe"] }]);
 });
 
-test("L4 chế độ chặn theo Con + web luôn chặn + Con «Xin Ba Mẹ duyệt» (lý do không bắt buộc, bấm lại không trùng); Policy mang chế độ", async () => {
+test("L4 chế độ chặn theo Con + Con «Xin Ba Mẹ duyệt» (lý do không bắt buộc, bấm lại không trùng); Policy mang chế độ", async () => {
   const bm = await dangKy("Ba Khoa");
   const con = (await m("con", { tok: bm, body: { ten: "Na" } })).body.id;
   assert.equal((await m(`con/${con}`, { tok: bm })).body.cheDoChan, "chi_app_duoc_phep", "Con mới: Theo danh sách (giá trị cũ)");

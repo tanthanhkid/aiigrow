@@ -128,9 +128,8 @@ export function phutToiHetLich(p: Pick<Policy, "lich" | "tz" | "serverTime">): n
 function moWebNgoaiLe(w: ChinhSachWeb, ds: string[], chiNgoaiLe: boolean): ChinhSachWeb {
   if (!ds.length) return w;
   // chỉ gỡ chặn đúng tên miền ngoại lệ hoặc tên miền con của nó — không gỡ tên miền cha
-  const mo = ds;
-  const bo = (m: string) => mo.some((d) => m === d || m.endsWith("." + d));
-  return { ...w, ...(chiNgoaiLe ? { cheDo: "chi_cho_phep" as const } : {}), chan: w.chan.filter((m) => !bo(m)), cho: [...new Set([...w.cho, ...mo])].sort() };
+  const bo = (m: string) => ds.some((d) => m === d || m.endsWith("." + d));
+  return { ...w, ...(chiNgoaiLe ? { cheDo: "chi_cho_phep" as const } : {}), chan: w.chan.filter((m) => !bo(m)), cho: [...new Set([...w.cho, ...ds])].sort() };
 }
 
 export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "giam-sat" | "chan", mo: MoRong = {}): PolicyWindows {

@@ -110,7 +110,7 @@ test("danh sách của Con: thêm (lưới / tên miền), đổi nhóm, bỏ �
   assert.equal(r.body.daDat[0].ten, "Roblox");
   r = await m(tok, `con/${con}/danh-sach`, { ds: [{ muc: "https://www.khanacademy.org/math", nhom: "khong_tinh_phut" }, { muc: "y8.com", nhom: "tinh_phut" }] });
   assert.deepEqual(r.body.daDat.map((x: any) => `${x.ten}:${x.nhom}`), ["khanacademy.org:khong_tinh_phut", "y8.com:tinh_phut"]);
-    assert.equal((await m(tok, `con/${con}/danh-sach`, { muc: "y8.com", nhom: "chan" })).body.error, "nhom_sai");
+  assert.equal((await m(tok, `con/${con}/danh-sach`, { muc: "y8.com", nhom: "chan" })).body.error, "nhom_sai");
   // luật cả nhà (app cũ) — hiện trong danh sách với theoCaNha
   await la.datLuat(fam, { muc: "scratch.mit.edu", ten: "scratch.mit.edu", loai: "hoc" });
   const may = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop");

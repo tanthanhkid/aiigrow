@@ -183,7 +183,7 @@ async function canhBaoNoNeuCan(t: Q, fam: string, con: string, vayId: string, no
   const so = soVN;
   const vuotMoc = noTruoc <= NGUONG_NO;
   // lần vượt mốc: «<Tên> đã nợ quá 1.000 sao»; cho vay thêm khi đã quá mốc: «<Tên> vẫn nợ quá 1.000 sao · <Mẹ> vừa cho vay thêm N sao» (#266)
-  const nguoiVay = nguoi ? (await t<{ ten: string }>(`select ten from parents where id = $1`, [nguoi]))[0]?.ten : null;
+  const nguoiVay = !vuotMoc && nguoi ? (await t<{ ten: string }>(`select ten from parents where id = $1`, [nguoi]))[0]?.ten : null;
   const cau = vuotMoc ? `${ten} đã nợ quá ${so(NGUONG_NO)} sao (đang nợ ${so(noSau)})`
     : `${ten} vẫn nợ quá ${so(NGUONG_NO)} sao · ${nguoiVay || "Ba Mẹ"} vừa cho vay thêm ${so(soVayN)} sao (đang nợ ${so(noSau)})`;
   await canhBao(fam, "no_qua_1000", "chu_y", cau, { con, khoa: `no_1000:${vayId}`, chiTiet: { no: noSau, no_truoc: noTruoc, vuot_moc: vuotMoc } }, t);
