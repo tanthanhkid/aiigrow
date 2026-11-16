@@ -21,6 +21,12 @@ class Kho(ctx: Context) {
     var phanHoi: String? get() = p.getString("phanHoi", null); set(v) = p.edit().putString("phanHoi", v).apply()
     /** 05/11: phút giải trí đo tại chỗ lúc nhịp thành công gần nhất (-1 = chưa có) + ngày của nhịp (tz gia đình) — QuyetDinh.kt › quyetDinhQuy. */
     var phutLucNhip: Int get() = p.getInt("phutLucNhip", -1); set(v) = p.edit().putInt("phutLucNhip", v).apply()
+    /** 16/11 #302: lúc chạm trần lượt suy tại chỗ, ghim theo nhịp (khoá = ngayNhip|phutLucNhip) ⇒ giờ nghỉ không trôi theo `now`. */
+    private var chamLuotRaw: String? get() = p.getString("chamLuotRaw", null); set(v) = p.edit().putString("chamLuotRaw", v).apply()
+    private fun khoaNhip() = "$ngayNhip|$phutLucNhip"
+    fun mocChamLuot(): java.time.Instant? =
+        chamLuotRaw?.split('#')?.takeIf { it.size == 2 && it[0] == khoaNhip() }?.get(1)?.toLongOrNull()?.let { java.time.Instant.ofEpochMilli(it) }
+    fun ghimChamLuot(t: java.time.Instant) { if (mocChamLuot() == null) chamLuotRaw = khoaNhip() + "#" + t.toEpochMilli() }
     var ngayNhip: String? get() = p.getString("ngayNhip", null); set(v) = p.edit().putString("ngayNhip", v).apply()
     var lechGioMs: Long get() = p.getLong("lechGioMs", 0); set(v) = p.edit().putLong("lechGioMs", v).apply()
     var lanNhipThanhCong: Long get() = p.getLong("lanNhip", 0); set(v) = p.edit().putLong("lanNhip", v).apply()

@@ -36,6 +36,8 @@ data class Sao(
 /** 16/11 #302 mục 4 «Giờ chơi» (`gioiHan` trong Policy): tối đa mỗi ngày + mỗi lượt rồi nghỉ. null = máy chủ cũ ⇒ không đổi gì. */
 data class GioiHan(
     val apDung: Boolean, val conNgay: Int?, val lyDoKhoa: String?, val nghiDen: Instant?, val nghiDenGio: String?, val cau: String?,
+    /** Phút còn của lượt / tối đa mỗi lượt / tối đa mỗi ngày lúc máy chủ chốt (null = không giới hạn) — suy tại chỗ giữa hai nhịp. */
+    val conLuot: Int? = null, val luotPhut: Int? = null, val ngayPhut: Int? = null,
 )
 
 const val KHOA_HET_NGAY = "het_gio_ngay"
@@ -167,6 +169,7 @@ fun docSao(o: JSONObject?): Sao? {
 fun docGioiHan(o: JSONObject?): GioiHan? {
     if (o == null) return null
     fun chuoiOpt(k: String) = if (o.isNull(k)) null else o.optString(k).ifBlank { null }
+    fun soOpt(k: String) = if (o.has(k) && !o.isNull(k)) o.optInt(k).coerceAtLeast(0) else null
     return GioiHan(
         apDung = o.optBoolean("apDung", false),
         conNgay = if (o.has("conNgay") && !o.isNull("conNgay")) o.optInt("conNgay").coerceAtLeast(0) else null,
@@ -174,6 +177,7 @@ fun docGioiHan(o: JSONObject?): GioiHan? {
         nghiDen = chuoiOpt("nghiDen")?.let { try { Instant.parse(it) } catch (_: Exception) { null } },
         nghiDenGio = chuoiOpt("nghiDenGio"),
         cau = chuoiOpt("cau"),
+        conLuot = soOpt("conLuot"), luotPhut = soOpt("luotPhut"), ngayPhut = soOpt("ngayPhut"),
     )
 }
 
@@ -236,3 +240,33 @@ fun tenMienMayChu(goc: String): String? = try { java.net.URI(goc.trim()).host?.l
 
 /** Tên miền web ngoài luật máy chủ gửi (cho cấu hình quản lý Chrome URLBlocklist). #258: không còn lưới web cấm cứng — chỉ theo danh sách của Ba Mẹ. */
 fun webChan(cs: ChinhSach): List<String> = cs.chan.filter { it.kieu == "web" }.map { it.muc }.distinct()
+
+/** Giới hạn giờ chơi hiệu lực tại chỗ: `gh` (null = không khoá vì giới hạn) + lúc chạm trần lượt (ghim một lần, lưu lại) nếu vừa suy ra. */
+data class GioiHanHieuLuc(val gh: GioiHan?, val chamLuc: Instant?)
+
+/**
+ * 16/11 #302: quyết định khoá theo giới hạn giờ chơi.
+ *  - máy chủ báo `het_gio_ngay` ⇒ luôn áp dụng (thắng hết sao); `dang_nghi` ⇒ chỉ khi còn sao thật (`saoCon` > 0).
+ *  - máy chủ chưa báo (giữa hai nhịp): lấy conNgay / conLuot lúc nhịp trừ `tieu` phút đã chơi tại chỗ; ngày hết ⇒ `het_gio_ngay`;
+ *    lượt hết mà ngày còn + còn sao thật ⇒ `dang_nghi` tới `chamLuc` + luotPhut (`mocCham` đã ghim thì dùng lại, không tính lại từ `now`).
+ */
+fun gioiHanHieuLuc(gh: GioiHan, saoCon: Int, tieu: Int, now: Instant, mocCham: Instant?, tz: String): GioiHanHieuLuc {
+    when (gh.lyDoKhoa) {
+        KHOA_HET_NGAY -> return GioiHanHieuLuc(gh, null)
+        KHOA_DANG_NGHI -> return GioiHanHieuLuc(gh.takeIf { saoCon > 0 }, null)
+    }
+    val ngay = gh.conNgay?.let { it - tieu }
+    val luot = gh.conLuot?.let { it - tieu }
+    if (ngay != null && ngay <= 0)
+        return GioiHanHieuLuc(gh.copy(lyDoKhoa = KHOA_HET_NGAY, nghiDen = null, nghiDenGio = null,
+            cau = gh.ngayPhut?.let { "Hôm nay đã chơi đủ $it phút — mai chơi tiếp nhé" }), null)
+    if (luot != null && luot <= 0 && saoCon > 0 && gh.luotPhut != null) {
+        val cham = mocCham ?: now
+        val den = cham.plusSeconds(gh.luotPhut * 60L)
+        if (!den.isAfter(now)) return GioiHanHieuLuc(null, null)   // nghỉ xong giữa hai nhịp: không khoá oan, nhịp sau chốt lại
+        val z = try { java.time.ZoneId.of(tz) } catch (_: Exception) { java.time.ZoneId.of("Asia/Ho_Chi_Minh") }
+        return GioiHanHieuLuc(gh.copy(lyDoKhoa = KHOA_DANG_NGHI, nghiDen = den,
+            nghiDenGio = java.time.format.DateTimeFormatter.ofPattern("HH:mm").format(den.atZone(z)), cau = null), cham)
+    }
+    return GioiHanHieuLuc(null, null)
+}

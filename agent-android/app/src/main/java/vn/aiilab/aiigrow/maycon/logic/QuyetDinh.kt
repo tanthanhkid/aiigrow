@@ -43,6 +43,8 @@ data class QuyetDinh(
     val lyDoKhoa: String? = null, val nghiDenGio: String? = null,
     /** 16/11 #302: phút còn của giới hạn ngày (null = không giới hạn / máy chủ cũ). */
     val conNgay: Int? = null,
+    /** 16/11 #302: lúc chạm trần lượt suy tại chỗ (giữa hai nhịp) — dịch vụ ghim lại để giờ nghỉ không trôi theo `now`. */
+    val chamLuotLuc: Instant? = null,
 )
 
 /** Gói không bao giờ chặn: chính AiiGrow Con, app Ba Mẹ, trình cài / Cài đặt / điện thoại khẩn cấp. */
@@ -101,6 +103,8 @@ fun quyetDinh(
     ngayNhip: String? = null,
     /** 15/11: phút «Tính phút» dùng lúc mở bằng mã offline chưa báo máy chủ (SoPhutBe) — máy chủ không trừ sao ⇒ đếm lùi tại chỗ cũng không trừ. */
     phutBoiMa: Int = 0,
+    /** 16/11 #302: lúc chạm trần lượt đã ghim cho nhịp hiện tại (null = chưa). */
+    mocChamLuot: Instant? = null,
 ): QuyetDinh {
     val g = gioDiaPhuong(now, cs.tz)
     // Máy chủ hạ chữ thường `muc` (danh sách app thật, server/lib/app-may.ts) mà package Android phân biệt hoa thường
@@ -134,7 +138,7 @@ fun quyetDinh(
         QuyetDinh(t, coThe(goi), ca, phut.coerceAtLeast(0), moLai, cau, coThe(goi).intersect(chuaXepThat))
 
     if (cs.sao != null) return quyetDinhSao(cs, cs.sao, now, g, phutGiaiTriHomNay, grantEndsAt, moOfflineDen, chan, giaiTri, chuaXep, khongLoc,
-        ::kq, phutLucNhip, ngayNhip, phutBoiMa)
+        ::kq, phutLucNhip, ngayNhip, phutBoiMa, mocChamLuot)
 
     // Mã mở offline của Ba Mẹ thắng mọi khoá (máy mất mạng, đây là đường duy nhất để mở) — chỉ app Ba Mẹ chặn hẳn vẫn chặn.
     if (moOfflineDen != null && moOfflineDen.isAfter(now)) {
@@ -170,7 +174,7 @@ private fun quyetDinhSao(
     cs: ChinhSach, s: Sao, now: Instant, g: GioDiaPhuong, phutGiaiTriHomNay: Int, grantEndsAt: Instant?, moOfflineDen: Instant?,
     chan: Set<String>, giaiTri: Set<String>, chuaXep: Set<String>, khongLoc: Set<String>,
     kq: (TrangThai, Set<String>, Boolean, Int, Instant?, String) -> QuyetDinh,
-    phutLucNhip: Int?, ngayNhip: String?, phutBoiMa: Int,
+    phutLucNhip: Int?, ngayNhip: String?, phutBoiMa: Int, mocChamLuot: Instant?,
 ): QuyetDinh {
     val cungNgay = ngayNhip == null || ngayNhip == g.zdt.toLocalDate().toString()
     // UsageStats đếm theo ngày: cùng ngày ⇒ phần đo thêm sau nhịp; sang ngày mới mà chưa nhịp được ⇒ cả phút hôm nay. Trừ phần dùng lúc mở bằng mã.
@@ -180,12 +184,18 @@ private fun quyetDinhSao(
     // sao THẬT (phutCon đã kẹp theo giới hạn giờ chơi ⇒ không dùng để hiện «X sao»)
     val saoThat = s.saoTieuDuoc ?: if (s.hetSao) 0 else s.phutCon
     val soDu = (saoThat - tieuTaiCho).coerceAtLeast(0) - s.no
-    val gh = cs.gioiHan?.takeIf { it.apDung && !cs.moHet }
+    val ghMayChu = cs.gioiHan?.takeIf { it.apDung && !cs.moHet }
+    val saoCon = (saoThat - tieuTaiCho).coerceAtLeast(0)
+    val hl = ghMayChu?.let { gioiHanHieuLuc(it, saoCon, tieuTaiCho, now, mocChamLuot, cs.tz) }
+    val gh = hl?.gh
+    // phút còn của ngày / lượt = số máy chủ chốt − phút đã chơi tại chỗ (không dùng conPhut: đã kẹp theo lượt)
+    val conNgayCho = ghMayChu?.conNgay?.let { (it - tieuTaiCho).coerceAtLeast(0) }
+    val conLuotCho = ghMayChu?.conLuot?.let { (it - tieuTaiCho).coerceAtLeast(0) }
     // «Mở hết» chỉ là nhãn khi máy thật sự mở bình thường — khoá / không tuân thủ / mở bằng mã thì trạng thái đó ưu tiên
     fun ra(q: QuyetDinh): QuyetDinh {
         val vi = gh?.takeIf { q.trangThai == TrangThai.HET_GIO }
         return q.copy(soDu = soDu, no = s.no, moHet = cs.moHet && q.trangThai == TrangThai.BINH_THUONG,
-            lyDoKhoa = vi?.lyDoKhoa, nghiDenGio = vi?.nghiDenGio, conNgay = gh?.conNgay)
+            lyDoKhoa = vi?.lyDoKhoa, nghiDenGio = vi?.nghiDenGio, conNgay = conNgayCho, chamLuotLuc = hl?.chamLuc.takeIf { vi != null })
     }
     if (moOfflineDen != null && moOfflineDen.isAfter(now)) {
         val p = Duration.between(now, moOfflineDen).toMinutes().toInt() + 1
@@ -210,7 +220,10 @@ private fun quyetDinhSao(
             if (gh!!.lyDoKhoa == KHOA_DANG_NGHI) gh.nghiDen else null, cauGh))
         return ra(kq(TrangThai.HET_GIO, chan + giaiTri + chuaXep, false, 0, null, "Hết sao rồi. App học vẫn dùng được."))
     }
-    if (gh?.conNgay != null) return ra(kq(TrangThai.BINH_THUONG, chan + chuaXep, false, conPhut, null, "Còn ${minOf(conPhut, gh.conNgay)} phút hôm nay."))
+    if (conNgayCho != null) {
+        val luot = if (conLuotCho != null && conLuotCho < conNgayCho) " Lượt này còn $conLuotCho phút." else ""
+        return ra(kq(TrangThai.BINH_THUONG, chan + chuaXep, false, conPhut, null, "Còn $conNgayCho phút hôm nay.$luot"))
+    }
     return ra(kq(TrangThai.BINH_THUONG, chan + chuaXep, false, conPhut, null, "Còn $conPhut sao = $conPhut phút chơi."))
 }
 
