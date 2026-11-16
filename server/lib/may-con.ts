@@ -20,8 +20,8 @@ import { chuanMuc } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
 import { cheDoChanCua, cheDoCua, type CheDo, type CheDoChan } from "./chan-co-ban.ts";
-import { quyHomNay } from "./quy-gio.ts";
-import { cauSao, laMoHetCon, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
+import { gioiHanMay, quyHomNay, saoKepGioiHan } from "./quy-gio.ts";
+import { laMoHetCon, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
 
 /** (cũ, #265 đã bỏ) ngoại lệ đang mở — Policy luôn gửi mảng rỗng cho agent cũ. */
 export type NgoaiLeMo = { id: string; den: string; muc: string | null; nhom: string };
@@ -160,7 +160,13 @@ export type Policy = {
   ngoaiLe?: NgoaiLeMo[];
   /** 15/11 (#263/#264, lib/so-sao.ts): sổ sao của Con — `sao` số dư Con thấy (âm khi nợ) · `no` nợ Ba Mẹ · `phutCon` sao tiêu được = phút
    *  «Tính phút» còn chơi (1 sao = 1 phút) · `hetSao` ⇒ khoá nhóm «Tính phút», hiện lối «Xin Ba Mẹ cho vay sao». null = máy dùng chung chưa chọn Con. */
-  sao?: (TrangThaiSao & { cau: { soDu: string; phut: string; no: string | null } }) | null;
+  sao?: (TrangThaiSao & { cau: { soDu: string; phut: string; no: string | null }; saoTieuDuoc?: number }) | null;
+  /** #302 (lib/gioi-han-choi.ts): giới hạn ngày + mỗi lượt. `lyDoKhoa` het_gio_ngay | dang_nghi ⇒ khoá nhóm «Tính phút» (màn khoá dùng `cau`:
+   *  «Nghỉ một chút · chơi tiếp lúc HH:MM» / «Hôm nay đã chơi đủ N phút — mai chơi tiếp nhé»); `nghiDen` ISO — agent tự mở lại đúng giờ.
+   *  Agent cũ không đọc khối này vẫn khoá đúng: `sao.phutCon` / `sao.hetSao` / `quy.conPhut` đã kẹp theo giới hạn. null = máy chung chưa chọn Con. */
+  gioiHan?: { apDung: boolean; ngayPhut: number | null; daChoi: number; conNgay: number | null; luotPhut: number | null; luotDaChoi: number;
+    conLuot: number | null; dangNghi: boolean; nghiDen: string | null; nghiDenGio: string | null; hetNgay: boolean;
+    lyDoKhoa: "het_gio_ngay" | "dang_nghi" | null; phutToiDa: number | null; cau: string | null } | null;
 };
 
 export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: boolean }, now = new Date()): Promise<Policy> {
@@ -185,7 +191,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
   const conGoc = khoaGoc(c?.cau_hinh, now);
   const khoaHetLuc = !mayKhoa ? denCon : !conGoc ? denMay : denMay && denCon ? (Date.parse(denMay) > Date.parse(denCon) ? denMay : denCon) : null;
   return apMoHet({
-    serverTime: now.toISOString(), nextCheckSec: nhipToiKhoaLai(ph ? 30 : 120, [moTamDen(c?.cau_hinh, now), khoaDen(c?.cau_hinh, now), khoaDen(may.khoa_may, now)], now), gioMaySai: o.gioMaySai,
+    serverTime: now.toISOString(), nextCheckSec: nhipToiKhoaLai(ph ? 30 : 120, [moTamDen(c?.cau_hinh, now), khoaDen(c?.cau_hinh, now), khoaDen(may.khoa_may, now), qy?.gioiHan.nghiDen], now), gioMaySai: o.gioMaySai,
     con: c ? { id: c.id, ten: c.ten, nhom: c.nhom } : null, canChonCon: !c && may.dung_chung,
     allowlistHeThong: allowlistHieuLuc(),
     luat: [...theoMuc.values()].map((l) => ({ muc: l.muc, loai: l.loai as "hoc" | "giai_tri", nhom: l.loai === "giai_tri" ? l.nhom : null,
@@ -203,7 +209,8 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     quy: qy && { ngayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, daDung: qy.daDung, conPhut: qy.conPhut, dangNgu: qy.dangNgu, dangHoc: qy.dangHoc,
       phutToiNgu: qy.phutToiNgu, phutToiHoc: qy.phutToiHoc, tyLe: qy.tyLe },
     ngoaiLe: [],
-    sao: qy ? { ...qy.soSao, cau: cauSao(qy.soSao) } : null,
+    sao: qy ? saoKepGioiHan(qy) : null,
+    gioiHan: qy ? gioiHanMay(qy.gioiHan) : null,
   });
 }
 

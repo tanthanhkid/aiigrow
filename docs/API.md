@@ -837,6 +837,16 @@ số sao. `soDu` (Policy, ví, `toi`) = sao tiêu được (không âm). `window
 `ngoaiLe` = `[]`. `quy.tyLe` {10, 10}, `quy.doiSao.bat` false, `quy.choXinThem` true. `GET con/:id/gio-choi` trả ô quỹ cố định (0); POST nhận mà không lưu gì (giờ ngủ / giờ học bỏ từ #258).
 `POST con/:id/them-gio {phut}` = cho vay `phut` sao (trả thêm `quy`). Quy tắc tự động «tự đồng ý thêm 15 phút» bỏ (luôn không tự cho).
 
+## Giới hạn giờ chơi 16/11 — tối đa mỗi ngày + mỗi lượt tối đa rồi nghỉ (#302 mục 4; `server/lib/gioi-han-choi.ts`, test `gioi-han-choi.test.ts`, chỉ thêm)
+
+- Không phải quỹ phút miễn phí: chơi vẫn trả bằng sao (1 sao = 1 phút). Bé chơi được `min(giới hạn ngày còn lại, sao tiêu được [gồm sao vay], phút còn của lượt)`.
+  Hết giới hạn ngày ⇒ khoá tới hôm sau dù còn sao. Ba Mẹ cho thêm = **cho vay sao** (không có «ngoại lệ»): sao vay hôm nay (trừ vay đổi quà) cộng vào giới hạn hôm nay và kết thúc lượt nghỉ đang chạy.
+- Mỗi lượt N phút: chơi đủ N phút «Tính phút» (đồng hồ máy chủ, bảng `choi_tru`, chung mọi máy) ⇒ khoá NGHỈ đúng N phút; tự dừng ≥ N phút cũng tính là đã nghỉ. Nghỉ không trừ sao. «Mở hết» ⇒ không áp dụng.
+- Cấu hình theo Con (`children.cau_hinh`: `gh_ngay_thuong`, `gh_cuoi_tuan`, `gh_moi_luot`; 0 = không giới hạn). `GET/POST /api/m/con/:id/gio-choi` nhận / trả `gioiHanNgayThuong` (10–720), `gioiHanCuoiTuan`, `phutMoiLuot` (5–240), `moTaGioiHan`, `mucGioiHan`; ngoài khoảng ⇒ 400 `gioi_han_sai`. `POST /api/m/thiet-lap` nhận cùng ba trường.
+- Máy Con: Policy / chính sách chung / Windows có khối `gioiHan {apDung, ngayPhut, daChoi, conNgay, luotPhut, luotDaChoi, conLuot, dangNghi, nghiDen, nghiDenGio, hetNgay, lyDoKhoa: het_gio_ngay|dang_nghi|null, phutToiDa, cau}`.
+  Agent cũ không đọc vẫn khoá đúng: `sao.phutCon` / `sao.hetSao` / `quy.conPhut` / `quyConPhut` đã kẹp theo giới hạn (`sao.saoTieuDuoc` = số sao thật; `sao.cau.phut` = câu giới hạn khi khoá vì giới hạn). `nextCheckSec` không vượt `nghiDen`.
+- Phiên: `phien/xet` ⇒ `dang_nghi` («Nghỉ một chút · chơi tiếp lúc HH:MM», `nghiDen`, `moLai`) / `dat_tran_ngay`; nhịp kết thúc phiên khi đủ lượt kèm `nghiDen`. `kid/nha` có `gioiHan`.
+
 ## App & web 15/11 — «Mở hết» / «Theo danh sách», danh sách trắng 2 nhóm, lời xin 3 cách trả lời (#262 / #258; `server/lib/chan-co-ban.ts`, `che-do-chan.ts`, `yeu-cau.ts`, test `app-web.test.ts`)
 
 **Mô hình.** Mỗi Con một chế độ `cheDo`: `theo_danh_sach` (mặc định, Con mới) | `mo_het`. Lưu ở `children.che_do_chan`.

@@ -50,6 +50,8 @@ export type ChinhSachChung = {
   quy: Policy["quy"] | null;
   /** 15/11 (lib/so-sao.ts): sổ sao — số dư (âm được), nợ, phút còn chơi (1 sao = 1 phút), hết sao. null = máy dùng chung chưa chọn Con. */
   sao: Policy["sao"] | null;
+  /** #302: giới hạn ngày + mỗi lượt (may-con.ts › Policy.gioiHan) */
+  gioiHan: Policy["gioiHan"] | null;
   gioHoc: Policy["lich"]["hoc"];
   ngoaiLeMo: NonNullable<Policy["ngoaiLe"]>;
   /** Tổng hợp: giải trí có được mở không + vì sao (khoá ngay / giờ máy sai / không tuân thủ). Không có «chế độ cục bộ». */
@@ -112,6 +114,7 @@ export function dungChinhSach(p: Policy, o: {
     gioMaySai: p.gioMaySai,
     tuanThu: o.tuanThu,
     quy: p.quy ?? null, sao: p.sao ?? null, gioHoc: p.lich.hoc ?? null, ngoaiLeMo: p.ngoaiLe ?? [],
+    gioiHan: p.gioiHan ?? null,    // #302: giới hạn ngày + mỗi lượt (đang nghỉ / hết giờ hôm nay + câu màn khoá)
     hieuLuc: { giaiTriDuocMo: lyDo.length === 0, lyDo },
   };
 }

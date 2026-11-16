@@ -6,6 +6,7 @@ import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { GOC, LoiApi, kid } from "./api";
 import { saoTuMayChu, type SaoCon, type SaoMayChu } from "./con-diu";
+import type { GioiHanTre } from "./gioi-han";
 
 export { kid };
 
@@ -86,7 +87,8 @@ export type QuyTre = { ngay: string; cuoiTuan: boolean; quyNgayPhut: number; the
 export type QuyCon = { quy: QuyTre; sao: number; phutDoiDuoc: number; ngoaiLe: { id: string; den: string; muc: string | null; nhom: string }[];
   yeuCauCho: { id: string; loai: string; phut: number | null; gia_tri: string | null; pham_vi: string | null; ly_do: string; created_at: string }[] };
 /** Nhà của Con kèm quỹ (05/11: `nha` trả thêm `quy`, `sao`). App bản cũ của máy chủ không có ⇒ undefined. */
-export type NhaTreSao = NhaTre & { quy?: QuyTre; sao?: number };
+/** #302: `gioiHan` — giới hạn ngày + mỗi lượt (máy chủ cũ không có) ⇒ «Còn X phút hôm nay» / «Đang nghỉ tới HH:MM». */
+export type NhaTreSao = NhaTre & { quy?: QuyTre; sao?: number; gioiHan?: GioiHanTre | null };
 /** Sổ sao của Con (15/11): MỘT lần GET kid/sao (máy chủ mới có cả `phutChoiHomNay`, `lichSu`, `appHomNay`). Máy chủ cũ: chưa có kid/sao (404)
  *  hoặc kid/sao thiếu `phutChoiHomNay` ⇒ thêm kid/quy để biết sao / «hôm nay chơi N phút» / Ba Mẹ khoá. */
 export async function taiSao(): Promise<SaoCon> {

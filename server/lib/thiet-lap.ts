@@ -17,6 +17,8 @@ import { allowlistHieuLuc, datLuat, khoaSo, xoaLuat } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { tenMienSach } from "./web.ts";
 import { saoKhoiDauHopLe, tangSaoKhoiDau } from "./so-sao.ts";
+import { phanGhi } from "./gioi-han-choi.ts";
+import { gioiHanBm, luuGioiHan } from "./quy-gio.ts";
 
 
 export type ThietLapVao = {
@@ -24,6 +26,8 @@ export type ThietLapVao = {
   /** (cũ) quỹ phút mỗi ngày — bỏ 15/11, gửi lên bị bỏ qua */ gioChoi?: { ngayThuong?: unknown; cuoiTuan?: unknown };
   /** 15/11: sao tặng khởi đầu 0 / 20 / 30 / 60 (không gửi ⇒ 30). Chỉ tặng khi TẠO Con (gửi lại với con.id không tặng thêm). */
   saoKhoiDau?: unknown;
+  /** #302: giới hạn tối đa mỗi ngày (ngày thường / T7–CN) + mỗi lượt tối đa — phút, 0 = không giới hạn (lib/gioi-han-choi.ts) */
+  gioiHanNgayThuong?: unknown; gioiHanCuoiTuan?: unknown; phutMoiLuot?: unknown;
   /** (cũ) giờ ngủ — #258 bỏ: gửi lên được nhận, không lưu */ ngu?: { tu?: unknown; den?: unknown };
   /** #262: mo_het | theo_danh_sach (cũ: `cheDoChan` mo_het | chi_app_duoc_phep — vẫn nhận) */ cheDo?: unknown;
   cheDoChan?: unknown;
@@ -52,6 +56,7 @@ export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string)
   const vaoCon = b.con ?? {};
   // Kiểm MỌI dữ liệu TRƯỚC khi tạo Con: lỗi giữa chừng không để lại Con (app chưa nhận con.id ⇒ gửi lại sẽ tạo Con thứ hai)
   const saoKhoiDau = saoKhoiDauHopLe(b.saoKhoiDau);
+  phanGhi(b as Record<string, unknown>);            // #302: giới hạn sai ⇒ lỗi trước khi tạo Con
   const cheDoVao = b.cheDo ?? b.cheDoChan;
   if (cheDoVao !== undefined && !nhanCheDo(cheDoVao)) throw new LoiNghiepVu("che_do_sai", "Chọn «Mở hết» hoặc «Theo danh sách»");
   if (b.apps !== undefined) {
@@ -69,6 +74,7 @@ export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string)
   } else {
     conId = await taoCon(fam, { ten: vaoCon.ten, namSinh: vaoCon.namSinh, avatar: vaoCon.avatar, saoKhoiDau }, nguoi);
   }
+  await luuGioiHan(fam, conId, b as Record<string, unknown>, nguoi);
   const cheDo = cheDoVao !== undefined ? (await datCheDoChan(fam, conId, cheDoVao, nguoi)).cheDo : null;
   const app = b.apps !== undefined ? await tx((t) => datAppChoPhep(fam, conId, b.apps, nguoi, t)) : { daDat: [], choKhop: [] };
   // trang web Ba Mẹ chọn: «Không tính phút» (hoc, vào thoải mái) / «Tính phút» (giai_tri, trừ sao) — #262; tên hiển thị = tên miền (ten = muc).
@@ -111,5 +117,6 @@ export async function tomTatThietLap(fam: string, conId: string, app?: { daDat: 
     // 15/11: quỹ ngày bỏ — gioChoi (cũ) luôn null; saoKhoiDau = sao đã tặng khởi đầu · sao = số dư hiện tại
     gioChoi: { ngayThuong: null, cuoiTuan: null },
     saoKhoiDau: (await one<{ s: number }>(`select coalesce(sum(delta), 0)::int as s from points where child_id = $1 and loai = 'khoi_dau'`, [conId]))!.s,
-    ngu: lichCua(c.lich as never).ngu, soApp, soWeb: dem.web, ...(app ? { app } : {}) };
+    ngu: lichCua(c.lich as never).ngu, soApp, soWeb: dem.web, ...(app ? { app } : {}),
+    ...gioiHanBm(c.cau_hinh ?? {}) };
 }
