@@ -162,10 +162,10 @@ public static class SaoDungView
     public static string BangPhut(double? phutCon) => $"= {SaoView.Phut(phutCon)} phút chơi";
     public static (string Icon, string Tieu, string Phu)[] Dong(IEnumerable<string>? appTinh, IEnumerable<string>? appKhong)
     {
-        var tinh = SaoView.TenMuc(appTinh); var khong = SaoView.TenMuc(appKhong);
+        var tinh = SaoView.TenMuc(appTinh); var khong = SaoView.TenMuc(appKhong); var khong1 = SaoView.TenMuc(appKhong, 1);
         return new[]
         {
-            ("dongho", "Chơi app «Tính phút»: 1 phút trừ 1 sao", (tinh.Length > 0 ? tinh : "Game, video") + (khong.Length > 0 ? $" · {khong} không tính phút" : "")),
+            ("game", "Chơi app «Tính phút»: 1 phút trừ 1 sao", (tinh.Length > 0 ? tinh : "Game, video") + (khong1.Length > 0 ? $" · {khong1} không tính phút" : "")),
             ("khoa", "Hết sao thì app «Tính phút» khoá", khong.Length > 0 ? $"{khong} vẫn mở" : "App «Không tính phút» vẫn mở"),
             ("gui", "Cần thêm? Xin Ba Mẹ cho vay sao", "Vay thì nợ · sao nhiệm vụ trả nợ trước"),
         };

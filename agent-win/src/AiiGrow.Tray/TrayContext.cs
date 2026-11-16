@@ -812,7 +812,22 @@ internal sealed class TrayContext : ApplicationContext
         _blocked.VeHomNay += () => OpenApp(MucApp.HomNay);
         _blocked.NhanBaMe += () => OpenApp(MucApp.TinNhan);
         _blocked.DaXin += x => _daXin.Add(x);
+        _blocked.XinThem += OpenXinThem;
         _blocked.Show();
+    }
+
+    /// <summary>16/11 (#307): «Xin thêm …» (them-bxw40sw9 → them-6tn8aozf → them-359v1pre / them-vkdikuo0).</summary>
+    private void OpenXinThem(string muc, string ten)
+    {
+        string? sau;
+        using (var f = new XinThemForm(muc, ten, _state.QuyConPhut))
+        {
+            f.DaXin += x => _daXin.Add(x);
+            f.ShowDialog();
+            sau = f.Sau;
+        }
+        if (sau == XinThemForm.SauNhan) OpenApp(MucApp.TinNhan);
+        else if (sau == XinThemForm.SauHomNay) OpenApp(MucApp.HomNay);
     }
 
     private void HandleWarnings()
