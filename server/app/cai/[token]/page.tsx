@@ -10,7 +10,7 @@ export default async function TrangCai({ params }: { params: Promise<{ token: st
   const token = chuanToken((await params).token);
   return (
     <div className="tb"><div className="tb-pg hep" style={{ minHeight: "100vh" }}>
-      <div className="tb-top"><a className="tb-ve" href="/tai?os=ios" aria-label="Quay lại"><MuiVe /></a><b>Cài cho iPhone / iPad</b></div>
+      <div className="tb-top"><a className="tb-ve" href={token ? `/tai?os=ios&g=${encodeURIComponent(token)}` : "/tai?os=ios"} aria-label="Quay lại"><MuiVe /></a><b>Cài cho iPhone / iPad</b></div>
       <Canh rob="chi" co={110} nho="Làm trên máy của con.">3 bước là xong!</Canh>
       <div className="tb-ds">
         {/* #267: iPhone / iPad chỉ một bé — máy dùng chung là Windows, Mac, Android */}

@@ -2,6 +2,7 @@
 // Thuần trình bày (không hook) nên dùng được ở cả trang máy chủ và thành phần client.
 import type { ReactNode } from "react";
 import "./tai.css";
+import { oMa } from "@/lib/trang-tai.ts";
 
 export type NenTai = "windows" | "mac" | "android" | "ios";
 export const TEN: Record<NenTai, string> = { windows: "Windows", mac: "Mac", android: "Android", ios: "iPhone / iPad" };
@@ -62,7 +63,7 @@ export const Khac = ({ nen, hrefHe }: { nen: NenTai; hrefHe: (x: NenTai) => stri
 
 /** Hàng 6 ô mã; chưa có mã ⇒ ô chấm. */
 export function OMa({ ma }: { ma: string }) {
-  const c = ma.length === 6 ? ma.split("") : ["•", "•", "•", "•", "•", "•"];
+  const c = oMa(ma).length ? oMa(ma) : ["•", "•", "•", "•", "•", "•"];
   return <div className="tb-ma" aria-label={ma ? `Mã ${ma}` : "Mã 6 số trong app Ba Mẹ"}>{c.map((x, i) => <i key={i}>{x}</i>)}</div>;
 }
 

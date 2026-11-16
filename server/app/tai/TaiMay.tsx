@@ -19,11 +19,14 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
   const hre = (x: NenTai) => hrefHe[x];
   const veCho = (e: React.MouseEvent) => { e.preventDefault(); setPha("cho"); };
 
+  const ThongDiep = () => tuGhep ? <p className="tb-nho" style={{ marginTop: 0 }}>Ba Mẹ vừa gửi link này để ghép máy vào gia đình, bộ cài tự ghép, không cần gõ mã.</p> : null;
+
   // ---- Tải không được (them-rreafg7p) ----
   if (pha === "dung") return (
     <div className="tb-pg hep">
       <Dau ve={hre(nen)} />
       <Canh rob="trong-loi" co={104} nho="Mạng chập chờn hoặc vừa mất mạng.">Tải bị dừng</Canh>
+      <ThongDiep />
       <div className="tb-the">
         <div className="tb-vach" role="img" aria-label="Đã dừng"><i /></div>
         <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}><span className="tb-ghi" style={{ color: "#8a3c0c" }}>Đã dừng</span></div>
@@ -53,15 +56,16 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
         <div className="tb-vach chay" style={{ marginTop: 14 }} role="progressbar" aria-label="Đang tải"><i /></div>
         <div className="tb-dung"><span className="tb-ghi" style={{ fontSize: 13.5, color: "#3a403d" }}>Tải bị dừng?</span><a className="tb-lk" href={link} onClick={(e) => { e.preventDefault(); setPha("dung"); }}>Tải lại</a></div>
       </div>
+      <ThongDiep />
       <p className="tb-tieu">Tải xong, làm theo hình:</p>
       <ol className="tb-cac">
         {CHU[nen].sau.map(([ten, phu], i) => (
-          <Buoc key={i} so={i + 1} lo={<HinhBuoc nen={nen} b={(i + 1) as 1 | 2 | 3} xong ma={ma} />}
+          <Buoc key={i} so={i + 1} lo={<HinhBuoc nen={nen} b={(i + 1) as 1 | 2 | 3} xong={i < 2 || tuGhep} ma={ma} />}
             ten={i === 2 && tuGhep ? "Bộ cài tự ghép máy" : ten}
             phu={i === 2 && tuGhep ? "Không cần gõ mã. Link hết hạn thì gõ mã 6 số trên điện thoại Ba Mẹ" : phu} />
         ))}
       </ol>
-      <div><NutTai tiep href="#" onClick={() => { document.querySelector(".tb-cac li:last-child")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>Bộ cài mở rồi, cài tiếp</NutTai><p className="tb-nho">{tep}</p></div>
+      <div><NutTai tiep onClick={() => { document.querySelector(".tb-cac li:last-child")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>Bộ cài mở rồi, cài tiếp</NutTai><p className="tb-nho">{tep}</p></div>
       <Khac nen={nen} hrefHe={hre} />
     </div>
   );
@@ -88,7 +92,9 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
       </div>
       <ol className="tb-cac3 tb-cac" style={{ padding: 0 }}>
         {CHU[nen].truoc.map(([ten, phu], i) => (
-          <Buoc key={i} so={i + 1} lo={<HinhBuoc nen={nen} b={(i + 1) as 1 | 2 | 3} xong={false} ma={ma} />} ten={ten} phu={phu} />
+          <Buoc key={i} so={i + 1} lo={<HinhBuoc nen={nen} b={(i + 1) as 1 | 2 | 3} xong={false} ma={ma} />}
+            ten={i === 2 && tuGhep ? "Bộ cài tự ghép máy" : ten}
+            phu={i === 2 && tuGhep ? "Không cần gõ mã. Link hết hạn thì gõ mã 6 số trên điện thoại Ba Mẹ" : phu} />
         ))}
       </ol>
       <div className="tb-cuoi"><Bt ten="khien" c={44} /><span className="ft">Cài xong, máy của con tự báo về điện thoại Ba Mẹ.</span></div>

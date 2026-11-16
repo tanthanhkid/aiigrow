@@ -9,7 +9,7 @@ import { headers } from "next/headers";
 import { BAN_AGENT_MAC, BAN_AGENT_WINDOWS, BAN_CON_ANDROID } from "@/lib/ban-agent.ts";
 import { heDieuHanh } from "@/lib/he-dieu-hanh.ts";
 import { linkTaiWindowsGhep, thamSoTai, type NenTai } from "@/lib/trang-tai.ts";
-import { Anh, Bt, Buoc, Canh, Chips, Dau, Khac, NutTai, OMa } from "./Ban";
+import { Anh, Bt, Buoc, Canh, Chips, Dau, Khac, MuiTiep, NutTai, OMa, Tay } from "./Ban";
 import Chep from "./Chep";
 import TaiMay from "./TaiMay";
 
@@ -32,7 +32,7 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
   const MayTinh = () => (
     <div className="tb-the">
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}><Bt ten="laptop" mau="vang" c={56} /><div><div className="tb-t1" style={{ fontSize: 18 }}>Cài cho máy tính?</div><div className="tb-t2">Mở link này trên máy tính của con</div></div></div>
-      <Chep url={linkChia} hien={`${host}/tai`} />
+      <Chep url={linkChia} />
     </div>
   );
 
@@ -53,7 +53,7 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
         <div className="tb-cachs">
           <div className="tb-cach">
             <div className="dau"><Bt ten="laptop" c={72} /><div><h3>Dùng máy tính khác</h3><p>Mở link này trên máy Windows 10/11 hoặc Mac</p></div></div>
-            <Chep url={linkChia} hien={`${host}/tai`} />
+            <Chep url={linkChia} />
           </div>
           <div className="tb-cach">
             <div className="dau"><Bt ten="dt" mau="lam" c={72} /><div><h3>Cài cho điện thoại của con</h3><p>Điện thoại hoặc máy tính bảng của con</p></div></div>
@@ -84,7 +84,7 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="" width={34} height={34} style={{ borderRadius: 9 }} /><div style={{ fontSize: 14, fontWeight: 800 }}>AiiGrow Con</div></div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: "#3a403d", margin: "10px 0 14px", lineHeight: 1.35 }}>Cho phép cài ứng dụng từ nguồn này?</div>
                 <div style={{ display: "flex", gap: 8 }}><span className="tb-mn" style={{ flex: 1 }}>Huỷ</span><span className="tb-mn ok" style={{ flex: 1 }}>Cho phép</span></div>
-                <svg className="tb-tay" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path fill="#0f1312" stroke="#fff" strokeWidth="1.4" d="M9 3.5a1.6 1.6 0 0 1 3.2 0V10l.4-.1a1.6 1.6 0 0 1 3 .6l.3-.1a1.6 1.6 0 0 1 2.9.8l.3-.1a1.5 1.5 0 0 1 2.4 1.2v4.3c0 3.4-2.6 5.9-5.9 5.9h-1.4c-2 0-3.5-.8-4.7-2.4l-3.7-5a1.6 1.6 0 0 1 2.4-2.1L9 14.5Z" /></svg>
+                <Tay />
               </div>
             </div>} ten="Bấm «Cho phép»" phu="Android hỏi một lần" />
           <Buoc so={3} lo={<div className="tb-lo"><span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 800, color: "#3a403d" }}><Anh ten="dt" co={28} />Trên điện thoại Ba Mẹ</span><OMa ma={t.ma} /></div>} ten="Nhập mã 6 số" phu="Mã dùng được 10 phút" />
@@ -93,7 +93,7 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
         <a className="tb-the" href={LINK_APK} style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: 26, padding: "12px 14px", minHeight: 72 }}>
           <Bt ten="nguoi" c={48} />
           <span style={{ flex: 1 }}><b style={{ display: "block", fontSize: 16, fontWeight: 800 }}>Đây là máy của Ba Mẹ?</b><span className="tb-t2" style={{ marginTop: 0 }}>Cài app Ba Mẹ thay vì app Con</span></span>
-          <svg viewBox="0 0 256 256" width="26" height="26" fill="#0a5246" aria-hidden="true"><path d="M184.5 136.5l-80 80a12 12 0 0 1-17-17L159 128 87.5 56.5a12 12 0 0 1 17-17l80 80a12 12 0 0 1 0 17Z" /></svg>
+          <span style={{ fill: "#0a5246", display: "flex" }}><MuiTiep /></span>
         </a>
         <Khac nen="android" hrefHe={hrefHe} />
       </div></div>
