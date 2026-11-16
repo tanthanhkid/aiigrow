@@ -115,6 +115,33 @@ public enum TinhKhien {
     return max(0, tran - phutDaDung(kh, now: now, dung: dung))
   }
 
+  /// Phút Tính phút chơi tại máy mà số liệu giới hạn lúc đồng bộ (`gioiHan.conNgay/conLuot`) chưa tính. nil = khác ngày lúc đồng bộ (số liệu cũ, không suy ra).
+  public static func phutSauDongBo(_ kh: KeHoach, now: Date, dung: NhatKyDung?) -> Int? {
+    guard kh.ngayDaDung == diaPhuong(now, tz: kh.tz).ngay else { return nil }
+    let raw = phutDoTaiCho(kh, now: now, dung: dung), bm = phutBoiMa(kh, now: now, dung: dung)
+    let sau = max(0, raw - (kh.dungTaiChoLucDongBo ?? 0)) - max(0, bm - (kh.boiMaLucDongBo ?? 0))
+    return max(0, (kh.phutChuaXacNhan ?? 0) + max(0, sau))
+  }
+
+  /// Sao thật còn sau khi trừ phút chơi tại máy (như `MoHinhApp.saoHienThi`).
+  public static func saoThatLuc(_ kh: KeHoach, now: Date, dung: NhatKyDung?) -> Int {
+    let con = phutConLai(kh, now: now, dung: dung)
+    guard let ks = kh.sao, let that = ks.saoTieuDuoc else { return con }
+    return max(0, that - max(0, ks.phutCon - con))
+  }
+
+  /// Giới hạn đang khoá tại máy (kể cả suy ra giữa hai lần đồng bộ). Đọc/ghi mốc nghỉ đã ghim ở `kho` (app group) — app và khiên dùng chung.
+  public static func gioiHanKhoa(_ kh: KeHoach, now: Date, dung: NhatKyDung?, kho: KhoGiaTri?) -> ChinhSach.GioiHan? {
+    guard !kh.moHet, let g = kh.gioiHan else { return nil }
+    var ghim = kho?.doc(ChinhSach.MocNghi.self, Khoa.mocNghiTaiMay)
+    if ghim?.serverTime != kh.serverTime { ghim = nil }
+    let d = phutSauDongBo(kh, now: now, dung: dung)
+    // khác ngày lúc đồng bộ: chỉ tin khoá máy chủ báo, không suy ra
+    let gg = d == nil && g.lyDoKhoa == nil ? nil : g.hieuLuc(saoThat: saoThatLuc(kh, now: now, dung: dung), daChoiSauDongBo: d ?? 0, now: now, tz: kh.tz, moc: ghim?.moc)
+    if let m = gg?.moc, m != ghim?.moc, gg?.gh.lyDoKhoa == "dang_nghi", g.lyDoKhoa == nil { kho?.luu(ChinhSach.MocNghi(serverTime: kh.serverTime, moc: m), Khoa.mocNghiTaiMay) }
+    return gg?.gh.dangKhoa == true ? gg?.gh : nil
+  }
+
   public static func trongGioChoi(_ kh: KeHoach, now: Date) -> Bool {
     let d = diaPhuong(now, tz: kh.tz)
     let ds = (d.thu == 1 || d.thu == 7) ? kh.moCuoiTuan : kh.moNgayThuong

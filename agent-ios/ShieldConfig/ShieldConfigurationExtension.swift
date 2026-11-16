@@ -30,7 +30,8 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     let k = KhoUserDefaults().doc(KhienMuonCo.self, Khoa.khienDangAp)
     var lyDo = k?.lyDo ?? .ngoaiGio
     let kh = KhoUserDefaults().doc(KeHoach.self, Khoa.keHoach)
-    let gioiHan = kh?.gioiHanKhoa
+    let kho = KhoUserDefaults()
+    let gioiHan = kh.flatMap { TinhKhien.gioiHanKhoa($0, now: Date(), dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), kho: kho) }
     // Theo danh sách + hết sao: app NGOÀI danh sách bị khiên vì ngoài danh sách, không phải vì hết sao
     if lyDo == .hetGio, k?.danhSach == true, trongDs == false { lyDo = .khong }
     let tieuDe: String, phu: String, nut: String

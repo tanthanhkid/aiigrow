@@ -77,6 +77,7 @@ struct ManHomNay: View {
       VongGio(con: m.conPhut, tong: max(1, m.conPhut + m.daDung), nhan: "sao")
       Text("\(m.saoHienThi) sao = \(m.saoHienThi) phút chơi").font(Diu.t1).foregroundColor(Diu.chu)
       if let c = m.conHomNay { Text("Còn \(c) phút hôm nay").font(Diu.t2).foregroundColor(Diu.chu2) }
+      if let l = m.conLuotNay { Text("Lượt này còn \(l) phút").font(Diu.t2).foregroundColor(Diu.chu2) }
       if m.daDung > 0 {
         HStack(spacing: 6) { Anh(ten: "ic_dongho", co: 20); Text("Hôm nay đã chơi \(m.daDung) phút · −\(m.daDung) sao").font(Diu.t2).foregroundColor(Diu.chu2) }
       }

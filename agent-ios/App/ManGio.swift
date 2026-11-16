@@ -25,6 +25,7 @@ struct ManXinThem: View {
           Text(m.hetSao ? "Hết sao rồi" : "Còn \(m.saoHienThi) sao").font(Diu.chu(26, .black)).foregroundColor(Diu.chu)
           Text("\(m.saoHienThi) sao = \(m.saoHienThi) phút").font(Diu.t2).foregroundColor(Diu.chu2)
           if let c = m.conHomNay { Text("Còn \(c) phút hôm nay").font(Diu.t2).foregroundColor(Diu.chu2) }
+          if let l = m.conLuotNay { Text("Lượt này còn \(l) phút").font(Diu.t2).foregroundColor(Diu.chu2) }
         }
         if m.daDung > 0 { Text("Hôm nay chơi \(m.daDung) phút · −\(m.daDung) sao").font(Diu.t2).foregroundColor(Diu.chu3) }
         if m.soNo > 0 { DongNo(no: m.soNo).padding(.top, 4) }

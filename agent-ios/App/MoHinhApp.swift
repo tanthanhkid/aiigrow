@@ -140,7 +140,13 @@ final class MoHinhApp: ObservableObject {
   /// 16/11 (#302): giới hạn giờ chơi mới nhất (kế hoạch lúc đồng bộ) — «Mở hết» không áp dụng.
   var gioiHan: ChinhSach.GioiHan? { moHet ? nil : keHoach?.gioiHan }
   /// Đang khoá vì giới hạn (nghỉ giữa lượt / hết giờ hôm nay), không phải hết sao.
-  var khoaGioiHan: ChinhSach.GioiHan? { hetSao ? gioiHan.flatMap { $0.dangKhoa ? $0 : nil } : nil }
+  /// «dang_nghi» chỉ khi còn sao thật; «het_gio_ngay» luôn; giữa hai lần đồng bộ suy ra tại máy (ConCore `hieuLuc`).
+  var khoaGioiHan: ChinhSach.GioiHan? {
+    guard hetSao, !moHet, let kh = keHoach else { return nil }
+    return TinhKhien.gioiHanKhoa(kh, now: Date(), dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), kho: kho)
+  }
+  /// Phút chơi tại máy sau lúc đồng bộ (số liệu giới hạn chưa tính).
+  var phutSauDongBo: Int { keHoach.flatMap { TinhKhien.phutSauDongBo($0, now: Date(), dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung)) } ?? 0 }
   /// «X sao» hiện số sao thật (không phải phút đã kẹp theo giới hạn).
   /// Máy chủ cũ (không có `saoTieuDuoc`) ⇒ như trước = `conPhut`. Phút đã chơi tại máy sau lúc đồng bộ trừ thêm.
   var saoHienThi: Int {
@@ -148,7 +154,9 @@ final class MoHinhApp: ObservableObject {
     return max(0, that - max(0, ks.phutCon - conPhut))
   }
   /// «Còn X phút hôm nay» khi có trần ngày và chưa khoá.
-  var conHomNay: Int? { hetSao ? nil : gioiHan?.conHomNay.map { min($0, conPhut) } }
+  var conHomNay: Int? { hetSao ? nil : gioiHan?.conHomNay(daChoiSauDongBo: phutSauDongBo) }
+  /// «Lượt này còn Y phút».
+  var conLuotNay: Int? { hetSao ? nil : gioiHan?.conLuotNay(daChoiSauDongBo: phutSauDongBo) }
   /// Mức vay (10/15/30 — máy chủ gửi).
   var mucVay: [Int] { saoCon?.mucVay ?? [10, 15, 30] }
   var vayMacDinh: Int { saoCon?.vayMacDinh ?? 15 }

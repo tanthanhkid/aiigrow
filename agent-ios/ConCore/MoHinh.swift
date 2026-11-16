@@ -119,7 +119,8 @@ public struct ChinhSach: Codable {
     public var phutToiDa: Int?
     public var cau: String?
     public init(apDung: Bool = true, ngayPhut: Int? = nil, daChoi: Int? = nil, conNgay: Int? = nil, lyDoKhoa: String? = nil, nghiDen: String? = nil,
-                nghiDenGio: String? = nil, phutToiDa: Int? = nil, cau: String? = nil) {
+                nghiDenGio: String? = nil, phutToiDa: Int? = nil, cau: String? = nil, luotPhut: Int? = nil, conLuot: Int? = nil) {
+      self.luotPhut = luotPhut; self.conLuot = conLuot
       self.apDung = apDung; self.ngayPhut = ngayPhut; self.daChoi = daChoi; self.conNgay = conNgay; self.lyDoKhoa = lyDoKhoa
       self.nghiDen = nghiDen; self.nghiDenGio = nghiDenGio; self.phutToiDa = phutToiDa; self.cau = cau
     }
@@ -147,8 +148,49 @@ public struct ChinhSach: Codable {
       if hetGioNgay { return (cau?.isEmpty == false ? cau : nil) ?? "Hôm nay chơi đủ rồi — mai chơi tiếp nhé" }
       return nil
     }
-    /// «Còn X phút hôm nay» khi có trần ngày và chưa khoá.
+    /// «Còn X phút hôm nay» khi có trần ngày và chưa khoá (số lúc đồng bộ; trừ phút chơi tại máy: `conHomNay(daChoiSauDongBo:)`).
     public var conHomNay: Int? { apDung && !dangKhoa ? conNgay.map { max(0, $0) } : nil }
+    /// «Còn X phút hôm nay» = `conNgay` trừ phút đã chơi tại máy sau lúc đồng bộ (không kẹp theo sao).
+    public func conHomNay(daChoiSauDongBo d: Int) -> Int? { apDung && !dangKhoa ? conNgay.map { max(0, $0 - max(0, d)) } : nil }
+    /// «Lượt này còn Y phút» (chỉ khi có giới hạn mỗi lượt).
+    public func conLuotNay(daChoiSauDongBo d: Int) -> Int? { apDung && !dangKhoa ? conLuot.map { max(0, $0 - max(0, d)) } : nil }
+
+    /// Giới hạn đang áp tại máy (pure — kiểm thử được). `saoThat` = sao thật còn sau khi trừ phút chơi tại máy; `daChoiSauDongBo` = phút chơi tại máy
+    /// máy chủ chưa tính; `moc` = mốc bắt đầu nghỉ đã ghim (nil = chưa ghim ⇒ dùng `now`, người gọi lưu lại `moc` trả về).
+    /// Luật máy chủ: hết giờ ngày luôn «het_gio_ngay» (thắng hết sao); «dang_nghi» CHỈ khi còn sao thật. nil = không khoá vì giới hạn (hiện «Hết sao rồi» nếu hết sao).
+    public func hieuLuc(saoThat: Int, daChoiSauDongBo: Int, now: Date, tz: String?, moc: Date?) -> (gh: GioiHan, moc: Date?)? {
+      guard apDung else { return nil }
+      if lyDoKhoa == "het_gio_ngay" { return (self, moc) }
+      if lyDoKhoa == "dang_nghi" { return saoThat > 0 ? (self, moc) : nil }
+      // máy chủ chưa báo khoá: suy ra từ số liệu lần đồng bộ cuối trừ phút chơi tại máy
+      guard let cn = conNgay else { return nil }
+      let d = max(0, daChoiSauDongBo)
+      let conN = cn - d, conL = conLuot.map { $0 - d }
+      guard min(conN, conL ?? Int.max) <= 0 else { return nil }
+      var g = self
+      if conN <= 0 {
+        g.lyDoKhoa = "het_gio_ngay"; g.dangNghi = false; g.hetNgay = true; g.nghiDen = nil; g.nghiDenGio = nil
+        g.cau = ngayPhut.map { "Hôm nay đã chơi đủ \($0) phút — mai chơi tiếp nhé" } ?? "Hôm nay chơi đủ rồi — mai chơi tiếp nhé"
+        return (g, moc)
+      }
+      // chạm trần lượt (conLuot ≤ conNgay) mà còn sao thật ⇒ nghỉ luotPhut phút kể từ mốc đã ghim
+      guard saoThat > 0, let lp = luotPhut, lp > 0 else { return nil }
+      let batDau = moc ?? now
+      let den = batDau.addingTimeInterval(Double(lp) * 60)
+      guard now < den else { return nil }
+      var c = Calendar(identifier: .gregorian)
+      c.timeZone = tz.flatMap { TimeZone(identifier: $0) } ?? .current
+      let h = c.dateComponents([.hour, .minute], from: den)
+      g.lyDoKhoa = "dang_nghi"; g.dangNghi = true; g.hetNgay = false; g.nghiDen = nil
+      g.nghiDenGio = String(format: "%02d:%02d", h.hour ?? 0, h.minute ?? 0)
+      g.cau = "Nghỉ một chút · chơi tiếp lúc \(g.nghiDenGio!)"
+      return (g, batDau)
+    }
+  }
+  /// Mốc nghỉ suy ra tại máy, ghim theo kế hoạch (`serverTime`) — đồng bộ mới ⇒ kế hoạch mới ⇒ mốc cũ bỏ.
+  public struct MocNghi: Codable, Equatable {
+    public var serverTime: Date; public var moc: Date
+    public init(serverTime: Date, moc: Date) { self.serverTime = serverTime; self.moc = moc }
   }
   /// 05/11: quỹ phút chơi hôm nay (server/lib/quy-gio.ts) — mọi app Giải trí dùng chung; `daDung` = phút đã dùng (mọi máy).
   public struct Quy: Codable, Equatable {
