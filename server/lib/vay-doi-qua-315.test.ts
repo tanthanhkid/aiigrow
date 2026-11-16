@@ -1,5 +1,6 @@
-// #315: Ba Mẹ cho vay sao để đổi quà ⇒ màn Con THẤY sao vay và đổi được đúng quà đã xin (#263: sao vay dùng cho cả đổi quà lẫn chơi).
-// Lỗi gốc: màn Con nhận `sao` = tiêu được − nợ ⇒ vay xong số không nhích; khay Windows 0.2.x chặn «còn thiếu» theo chính số đó ⇒ không gửi đổi quà.
+// #315: Ba Mẹ cho vay sao để đổi quà ⇒ máy chủ đưa đủ trường để màn Con đổi được đúng quà đã xin (#263: sao vay dùng cho cả đổi quà lẫn chơi).
+// `sao` = SỐ DƯ (tiêu được − nợ, âm khi nợ) — giữ nghĩa; sao DÙNG ĐƯỢC để đổi quà = `soDu` / `soSao.saoTieuDuoc` (gồm sao vay chưa tiêu).
+// Lỗi gốc ở máy Con: khay Windows 0.2.20 chặn «còn thiếu» theo `sao` ⇒ không gửi đổi quà (agent-win sửa trong cùng PR).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
@@ -57,25 +58,22 @@ test("nghiệm thu #315 (khay Windows + màn Con điện thoại): 0 sao xin qu�
   assert.equal(xin.status, 200);
   await yc.dongY(fam, xin.body.id, bm);
 
-  // khay: «Con đang có 30 sao» (số khay dùng để chặn «còn thiếu» khi đổi quà) + nợ 30 ở dòng riêng
+  // khay: số dư 0 (thẻ Sao), dùng được 30 (`soDu` — khay chặn đổi quà theo số này), nợ 30
   let tq = (await dv(tok, "hoc-vien/tong-quan")).body;
-  assert.deepEqual([tq.sao, tq.soSao.sao, tq.soSao.no, tq.soSao.saoTieuDuoc], [30, 30, 30, 30]);
+  assert.deepEqual([tq.sao, tq.soDu, tq.soSao.sao, tq.soSao.no, tq.soSao.saoTieuDuoc], [0, 30, 0, 30, 30]);
   const ch = (await dv(tok, "hoc-vien/cua-hang")).body;
   assert.equal(ch.qua.find((x: any) => x.id === qua).du, true);
   assert.equal((await dv(tok, "vi-qua")).body.qua.find((x: any) => x.id === qua).doiDuoc, true);
-  // màn Con điện thoại: kid/sao + kid/quy thấy 30 sao, nợ 30
-  let s = (await kid(con, "sao")).body;
-  assert.deepEqual([s.sao, s.no, s.saoTieuDuoc, s.cau.soDu], [30, 30, 30, "30 sao"]);
-  assert.equal((await kid(con, "quy")).body.sao, 30);
-  // máy chọn bé (pin-be / nhiều bé) thấy cùng số
-  const dsCon = (await dv(tok, "con")).body;
-  if (Array.isArray(dsCon?.ds)) assert.equal(dsCon.ds.find((x: any) => x.id === con)?.sao, 30);
+  assert.equal(ch.soDu, 30, "cửa hàng: sao dùng được để đổi quà");
+  // màn Con điện thoại: kid/sao — số dư 0, dùng được 30, nợ 30
+  const s = (await kid(con, "sao")).body;
+  assert.deepEqual([s.sao, s.no, s.saoTieuDuoc], [0, 30, 30]);
 
   // đổi đúng quà đã xin
   const doi = await dv(tok, `hoc-vien/doi/${qua}`, {});
   assert.equal(doi.status, 200, JSON.stringify(doi.body));
   tq = (await dv(tok, "hoc-vien/tong-quan")).body;
-  assert.deepEqual([tq.sao, tq.soSao.no, tq.soSao.saoTieuDuoc], [-30, 30, 0], "tiêu hết ⇒ âm đúng số nợ");
+  assert.deepEqual([tq.sao, tq.soDu, tq.soSao.no, tq.soSao.saoTieuDuoc], [-30, 0, 30, 0], "tiêu hết ⇒ số dư âm đúng số nợ");
   assert.equal((await kid(con, "sao")).body.sao, -30);
   // Ba Mẹ thấy nợ
   let vi = (await m(tokBm, `con/${con}/vi-sao`)).body;
@@ -90,16 +88,15 @@ test("nghiệm thu #315 (khay Windows + màn Con điện thoại): 0 sao xin qu�
   assert.deepEqual([vi.sao, vi.no], [-20, 20]);
 });
 
-test("#315: Con còn sao riêng + vay phần thiếu (30 có, quà 50, vay 20) ⇒ thấy 50 sao, đổi được; Ba Mẹ giữ số dư = tiêu được − nợ", async () => {
+test("#315: Con còn sao riêng + vay phần thiếu (30 có, quà 50, vay 20) ⇒ dùng được 50, đổi được; số dư 30 → −20", async () => {
   const { fam, bm, con, tok, tokBm } = await nha();
   await ss.tangSaoKhoiDau(con, 30, bm);
   const qua = await pt.taoQua(fam, { ten: "Đi xem phim", loai: "qua", diem: 50 });
   const xin = await dv(tok, "yeu-cau", { loai: "vay_sao", soSao: 20, mucDich: "qua", quaId: qua });
   await yc.dongY(fam, xin.body.id, bm);
   const tq = (await dv(tok, "hoc-vien/tong-quan")).body;
-  assert.deepEqual([tq.sao, tq.soSao.no], [50, 20], "trước đây khay thấy 30 ⇒ «còn thiếu 20 sao» và xin vay lại mãi");
-  assert.equal((await m(tokBm, `con/${con}/vi-sao`)).body.sao, 30, "ví Ba Mẹ: số dư = tiêu được − nợ (không đổi)");
-  assert.equal((await m(tokBm, `con/${con}/quy`)).body.soSao.sao, 30);
+  assert.deepEqual([tq.sao, tq.soDu, tq.soSao.no], [30, 50, 20], "khay 0.2.20 chặn theo sao=30 ⇒ «còn thiếu 20 sao» và xin vay lại mãi");
+  assert.equal((await m(tokBm, `con/${con}/vi-sao`)).body.sao, 30);
   assert.equal((await dv(tok, `hoc-vien/doi/${qua}`, {})).status, 200);
   assert.equal((await dv(tok, "hoc-vien/tong-quan")).body.sao, -20);
 });
@@ -123,8 +120,7 @@ test("#315 + #302: Con có giới hạn ngày / lượt đã chơi đủ ⇒ vay
     await yc.dongY(fam, r.id, bm, {}, sau(t1, 2));
     qy = await qg.quyHomNay(con, sau(t1, 3));
     const st = qg.saoKepGioiHan(qy);
-    assert.deepEqual([st.sao, st.saoTieuDuoc, st.no, st.phutCon], [30, 30, 30, 0], `${JSON.stringify(cfg)}: thấy 30 sao, chơi vẫn khoá`);
-    assert.equal(st.cau.soDu, "30 sao");
+    assert.deepEqual([st.sao, st.saoTieuDuoc, st.no, st.phutCon], [0, 30, 30, 0], `${JSON.stringify(cfg)}: dùng được 30 (không kẹp), chơi vẫn khoá`);
     const ch = await pt.cuaHang(con);
     assert.equal(ch.qua.find((x) => x.id === qua)!.du, true);
     await pt.doiQua(con, qua, sau(t1, 4));
@@ -134,12 +130,4 @@ test("#315 + #302: Con có giới hạn ngày / lượt đã chơi đủ ⇒ vay
     qy = await qg.quyHomNay(con, sau(t1, 6));
     assert.deepEqual([qg.saoKepGioiHan(qy).sao, qy.soSao.no], [-20, 20]);
   }
-});
-
-test("saoConThay: còn sao tiêu được ⇒ số đó; hết ⇒ âm đúng số nợ; không nợ không sao ⇒ 0", () => {
-  assert.equal(ss.saoConThay({ phutCon: 30, no: 30 }), 30);
-  assert.equal(ss.saoConThay({ phutCon: 50, no: 20 }), 50);
-  assert.equal(ss.saoConThay({ phutCon: 0, no: 30 }), -30);
-  assert.equal(Object.is(ss.saoConThay({ phutCon: 0, no: 0 }), 0), true);
-  assert.equal(ss.saoConThay({ phutCon: 12, no: 0 }), 12);
 });

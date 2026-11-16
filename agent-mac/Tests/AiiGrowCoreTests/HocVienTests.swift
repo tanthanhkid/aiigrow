@@ -335,3 +335,14 @@ final class HocVienTests: XCTestCase {
 
 private func == (a: (Int, Int), b: (Int, Int)) -> Bool { a.0 == b.0 && a.1 == b.1 }
 private func == (a: (chu: String, duoc: Bool), b: (String, Bool)) -> Bool { a.chu == b.0 && a.duoc == b.1 }
+
+/// #315: 0 sao, Ba Mẹ cho vay 30 để đổi quà ⇒ số dư 0 (thẻ Sao) nhưng dùng được 30 (đổi quà) + nợ 30.
+final class SaoDungDuoc315Tests: XCTestCase {
+  func testSaoDungDuocGomSaoVay() throws {
+    let raw = #"{"soDu":30,"nhiemVu":[],"soSao":{"sao":0,"no":30,"phutCon":30,"hetSao":false}}"#
+    let t = try XCTUnwrap(HvTongQuan.doc(Data(raw.utf8)))
+    XCTAssertEqual(t.saoThay, 0)
+    XCTAssertEqual(t.saoDungDuoc, 30)
+    XCTAssertEqual(t.noBaMe, 30)
+  }
+}

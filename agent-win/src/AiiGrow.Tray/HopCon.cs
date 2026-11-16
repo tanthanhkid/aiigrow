@@ -160,7 +160,9 @@ internal sealed class KetQuaHop : HopKhayCoBan
 internal sealed class DoiQuaHop : HopKhayCoBan
 {
     private readonly HvQua _qua;
+    /// <summary>Sao TIÊU ĐƯỢC (gồm sao vay chưa tiêu) — #315: không phải số dư «sao».</summary>
     private readonly int _sao;
+    private readonly int _no;
     private readonly Label _loi;
     private bool _busy;
 
@@ -169,9 +171,9 @@ internal sealed class DoiQuaHop : HopKhayCoBan
     /// <summary>«Làm thêm sao» ⇒ mở mục Nhiệm vụ.</summary>
     public event Action? LamThemSao;
 
-    public DoiQuaHop(HvQua qua, int sao) : base("AiiGrow · Đổi quà", UI.Px(425))
+    public DoiQuaHop(HvQua qua, int dungDuoc, int no = 0) : base("AiiGrow · Đổi quà", UI.Px(425))
     {
-        _qua = qua; _sao = sao;
+        _qua = qua; _sao = dungDuoc; _no = no;
         _loi = UI.Text("", 10.5f, true, UI.Error, W);
         VeXacNhan();
     }
@@ -194,7 +196,9 @@ internal sealed class DoiQuaHop : HopKhayCoBan
             hang.Controls.Add(con);
         }
         Flow.Controls.Add(hang);
-        if (thieu != null) Flow.Controls.Add(UI.Text(thieu, 11f, true, Clay.Canh, W));
+        // #315: «Con dùng được N sao» (gồm sao Ba Mẹ cho vay) + đang nợ thì thêm dòng nợ
+        Flow.Controls.Add(UI.Text(thieu ?? AppConView.DungDuoc(_sao), 11f, true, thieu != null ? Clay.Canh : Clay.DiemInk, W));
+        if (_no > 0) Flow.Controls.Add(UI.Text($"Đang nợ Ba Mẹ {_no} sao", 10.5f, true, Clay.Canh, W));
         if (AppConView.NhanQua(_qua) is { } nhan) Flow.Controls.Add(UI.Text(nhan + (_qua.MoTa is { Length: > 0 } mt ? " · " + mt : ""), 10.5f, true, Clay.NgocInk, W));
         // 15/11 (them-1zxa6ip0): chưa đủ sao ⇒ «Con sẽ nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước» + «Xin Ba Mẹ cho vay 20 sao» (vay để đổi quà)
         var canVay = Math.Max(0, _qua.SoSao - Math.Max(0, _sao));

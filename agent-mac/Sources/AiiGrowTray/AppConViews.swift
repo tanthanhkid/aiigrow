@@ -127,7 +127,7 @@ struct AppConView: View {
     .frame(minWidth: 880, minHeight: 600)
     .nenClay()
     .sheet(item: $quaHoi) { q in
-      DoiQuaView(q: q, sao: app.tq?.saoThay ?? app.ch?.soDu ?? 0, app: app, dsChoi: dsChoi, dong: { quaHoi = nil },
+      DoiQuaView(q: q, sao: app.tq?.saoDungDuoc ?? app.ch?.soDu ?? 0, no: app.tq?.noBaMe ?? 0, app: app, dsChoi: dsChoi, dong: { quaHoi = nil },
                  lamThem: { quaHoi = nil; app.chon(.nhiemVu) }, xemQua: { quaHoi = nil; app.chon(.phanQua); quaCuaCon = true })
     }
     .sheet(isPresented: $hoiDoiBe) { doiBeSheet }
@@ -693,8 +693,10 @@ struct TinMoiView: View {
 
 struct DoiQuaView: View {
   let q: HvQua
-  /// Số dư Con thấy (âm được).
+  /// #315: sao TIÊU ĐƯỢC (gồm sao vay chưa tiêu) — không phải số dư (âm khi nợ).
   let sao: Int
+  /// Nợ Ba Mẹ còn lại — hiện dòng «Đang nợ Ba Mẹ M sao».
+  var no: Int = 0
   @ObservedObject var app: AppConModel
   var dsChoi: [String] = []
   var dong: () -> Void = {}
@@ -738,7 +740,8 @@ struct DoiQuaView: View {
         Text("Đổi quà").font(.system(size: 13, weight: .semibold)).foregroundColor(ClayMau.chu3)
         dongQua
         let du = thieu <= 0 && HocVienView.doiDuoc(q)
-        Chu(du ? "Con có \(ChuSao.vien(sao)) · đủ rồi!" : "Con có \(ChuSao.vien(sao)) · còn thiếu \(ChuSao.so(thieu)) sao", co: 15, dam: .bold, mau: du ? ClayMau.ngocInk : ClayMau.canh, dong: 1)
+        Chu(du ? "Con dùng được \(ChuSao.vien(max(0, sao))) · đủ rồi!" : "Con dùng được \(ChuSao.vien(max(0, sao))) · còn thiếu \(ChuSao.so(thieu)) sao", co: 15, dam: .bold, mau: du ? ClayMau.ngocInk : ClayMau.canh, dong: 1)
+        if no > 0 { Chu("Đang nợ Ba Mẹ \(ChuSao.so(no)) sao", co: 13, dam: .bold, mau: ClayMau.canh, dong: 1) }
         if du {
           Chu("Gửi Ba Mẹ · Ba Mẹ trao quà mới trừ sao", co: 13, mau: ClayMau.chu3, dong: 2)
           Button(dangGui ? "Đang gửi…" : "Gửi Ba Mẹ: đổi \(q.diem) sao") {

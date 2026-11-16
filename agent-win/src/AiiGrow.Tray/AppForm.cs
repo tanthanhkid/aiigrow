@@ -770,7 +770,9 @@ internal sealed class AppForm : Form
             if (_loiTai != null) _content.Controls.Add(NutTaiLai("Tải lại", Px(240)));
             return;
         }
-        var sao = _tq.SoSao;
+        var sao = _tq.SoSao;                                   // số dư (âm khi nợ) — số chính trên thẻ Sao
+        var dung = AppConView.SaoDungDuoc(_tq);                // #315: sao tiêu được (gồm sao vay) — chặn / mở đổi quà theo số này
+        var noHt = NoHienTai();
         var vi = TheDay(vang: true);
         var r = Trong(_cw);
         var bang = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Width = r, Height = Px(104), BackColor = Color.Transparent, Margin = Padding.Empty };
@@ -831,30 +833,30 @@ internal sealed class AppForm : Form
                 if (du)
                 {
                     var b = KhoiApp.NutGon($"Đổi {vq.Sao} sao", true, "qua", 40, 10.5f);
-                    b.Click += (_, _) => MoDoiQua(q, sao);
+                    b.Click += (_, _) => MoDoiQua(q, dung, noHt);
                     ph.Add(b);
                 }
                 else ph.Add(chan ? KhoiApp.ChipCho(vq.ChoTraoTu != null ? "Chờ trao" : "Chưa đổi được") : KhoiApp.ChipSao(AppConView.Sao(vq.Sao)));
                 var dong = KhoiApp.Dong(_cw, AppConView.IconQua(q), nhan != null ? $"{q.Ten}  ·  {nhan}" : q.Ten, chu, du ? Clay.NgocInk : null, ph.ToArray());
-                if (!chan) BamCaDong(dong, () => MoDoiQua(q, sao));
+                if (!chan) BamCaDong(dong, () => MoDoiQua(q, dung, noHt));
                 _content.Controls.Add(dong);
             }
         else
             foreach (var q in _ch!.Qua.OrderBy(q => q.SoSao))
             {
-                var (chu, du) = AppConView.TrangThaiDoi(q, sao);
+                var (chu, du) = AppConView.TrangThaiDoi(q, dung);
                 var nhan = AppConView.NhanQua(q);
                 var ph = new List<Control>();
                 var qq = q;
                 if (du)
                 {
                     var b = KhoiApp.NutGon($"Đổi {q.SoSao} sao", true, "qua", 40, 10.5f);
-                    b.Click += (_, _) => MoDoiQua(qq, sao);
+                    b.Click += (_, _) => MoDoiQua(qq, dung, noHt);
                     ph.Add(b);
                 }
                 else ph.Add(KhoiApp.ChipSao(AppConView.Sao(q.SoSao)));
                 var dong = KhoiApp.Dong(_cw, AppConView.IconQua(q), nhan != null ? $"{q.Ten}  ·  {nhan}" : q.Ten, chu, du ? Clay.NgocInk : null, ph.ToArray());
-                BamCaDong(dong, () => MoDoiQua(qq, sao));
+                BamCaDong(dong, () => MoDoiQua(qq, dung, noHt));
                 _content.Controls.Add(dong);
             }
     }
@@ -875,9 +877,9 @@ internal sealed class AppForm : Form
         foreach (Control con in c.Controls) BamCaDong(con, bam);
     }
 
-    private void MoDoiQua(HvQua q, int sao)
+    private void MoDoiQua(HvQua q, int dungDuoc, int no)
     {
-        using var h = new DoiQuaHop(q, sao);
+        using var h = new DoiQuaHop(q, dungDuoc, no);
         var lam = false;
         h.LamThemSao += () => lam = true;
         h.ShowDialog(this);

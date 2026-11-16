@@ -12,7 +12,7 @@ import { dangKhoa, lichCua, thamSo, type GioHoc, type Lich, type ThamSo } from "
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan, phutCua, trongKhung, type Khung } from "./gio.ts";
 import { khoaSo } from "./luat-app.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
-import { cauSao, choVay, hoanTacVay, phutDaTruHomNay, saoConThay, trangThaiSao, type TrangThaiSao } from "./so-sao.ts";
+import { cauSao, choVay, hoanTacVay, phutDaTruHomNay, trangThaiSao, type TrangThaiSao } from "./so-sao.ts";
 import { cauHinhCua, gioiHanCua, phanGhi, type GioiHanChoi } from "./gioi-han-choi.ts";
 
 /** 1 sao = 1 phút (giữ tên hàm cũ cho nơi gọi cũ). */
@@ -117,9 +117,7 @@ export async function quyHomNay(con: string, now = new Date(), t: Q = q, b0?: Bo
 /** #302: khối `sao` cho máy Con — `phutCon` = phút CHƠI ĐƯỢC (sao tiêu được kẹp theo giới hạn ngày / lượt), `hetSao` = không chơi được nữa
  *  (agent cũ khoá nhóm «Tính phút» theo đúng cờ này), `saoTieuDuoc` = số sao thật. Số dư `sao` / nợ giữ nguyên. Không có giới hạn ⇒ như cũ. */
 export function saoKepGioiHan(qy: Quy) {
-  // #315: `sao` = số màn Con hiện (sao tiêu được — gồm sao vay chưa tiêu; tiêu hết thì âm đúng số nợ) — KHÔNG kẹp theo giới hạn (giới hạn chỉ chặn chơi)
-  const sao = saoConThay(qy.soSao);
-  const st = qy.gioiHan.apDung ? { ...qy.soSao, sao, phutCon: qy.conPhut, hetSao: qy.soSao.hetSao || qy.conPhut <= 0 } : { ...qy.soSao, sao };
+  const st = qy.gioiHan.apDung ? { ...qy.soSao, phutCon: qy.conPhut, hetSao: qy.soSao.hetSao || qy.conPhut <= 0 } : qy.soSao;
   const cau = cauSao(st);
   return { ...st, saoTieuDuoc: qy.soSao.phutCon,
     cau: qy.gioiHan.lyDoKhoa ? { ...cau, phut: qy.gioiHan.cau ?? cau.phut } : cau };

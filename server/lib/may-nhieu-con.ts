@@ -17,7 +17,7 @@
 import { one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
-import { saoConThay, trangThaiSao } from "./so-sao.ts";
+import { trangThaiSao } from "./so-sao.ts";
 import { dangKhoa, khoaDen } from "./cau-hinh.ts";
 import { gioDiaPhuong } from "./gio.ts";
 
@@ -204,8 +204,8 @@ export async function conMay(fam: string, mayId: string, now = new Date()) {
     const ganDuoc = daGan || !motCon || gan.length === 0;
     return {
       id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, gan: daGan, dangDung: tom.dangDung?.id === c.id,
-      // 15/11 sổ sao: số Con thấy (#315: gồm sao vay chưa tiêu; tiêu hết thì ÂM đúng số nợ) + nợ
-      ...(await (async () => { const st = await trangThaiSao(c.id); return { sao: saoConThay(st), no: st.no }; })()),
+      // 15/11 sổ sao: số dư Con thấy (ÂM khi nợ) + nợ
+      ...(await (async () => { const st = await trangThaiSao(c.id); return { sao: st.sao, no: st.no }; })()),
       phutHomNay: phut.get(c.id) ?? 0,
       lanCuoi: lanCuoi.get(c.id) ? new Date(lanCuoi.get(c.id)!).toISOString() : null,
       khoaCon: { khoa: dangKhoa(c.cau_hinh, now), den: khoaDen(c.cau_hinh, now) },
