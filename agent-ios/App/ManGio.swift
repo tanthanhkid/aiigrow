@@ -157,8 +157,8 @@ struct ManConDangXin: View {
         Button("Cảm ơn \(yc.nguoi) ›") { m.tab = .homNay; dong() }.buttonStyle(NutDiu(kieu: .lk))
       } else {
         Anh(ten: "rob_trong_loi", co: 120)
-        Text("\(yc.nguoi) chưa thêm \(ten)").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
-        Text("\(yc.nguoi) chưa thêm \(ten) vào danh sách. Con xin lại được nhé.").font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
+        Text("Ba Mẹ chưa thêm \(ten)").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
+        Text("Ba Mẹ chưa thêm \(ten) lúc này. Con xin lại sau được nhé").font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
         loiNhanBaMe(yc)
         Button { m.manPhu = .xinCai } label: { Label { Text("Xin lại") } icon: { Anh(ten: "ic_gui", co: 26) } }.buttonStyle(NutDiu())
         Button("Về trang chính") { m.tab = .homNay; dong() }.buttonStyle(NutDiu(kieu: .lk))
@@ -295,7 +295,7 @@ struct ManDns: View {
       VStack(alignment: .leading, spacing: 14) {
         BuocSo(i: 1, t1: "Bấm «Tải bộ lọc», chọn Cho phép")
         BuocSo(i: 2, t1: "Mở Cài đặt › Đã tải về hồ sơ › Cài đặt", t2: "Ba Mẹ tự gõ mật mã máy.")
-        BuocSo(i: 3, t1: "Xong!", t2: "Trang Ba Mẹ chặn sẽ chặn cả khi dùng 4G.")
+        BuocSo(i: 3, t1: "Xong!", t2: "iPhone chỉ mở web trong danh sách Ba Mẹ thêm, cả khi dùng 4G.")
       }
       .theDiu()
       Text("Gỡ: Cài đặt › Cài đặt chung › VPN & Quản lý thiết bị").font(Diu.t2).foregroundColor(Diu.chu3)

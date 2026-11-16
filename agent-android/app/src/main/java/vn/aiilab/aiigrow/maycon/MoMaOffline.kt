@@ -46,7 +46,7 @@ object MoMaOffline {
         Triple(kq, st.moDen.takeIf { kq == KetQuaMoOffline.DA_MO }, cauMoOffline(kq, st, now) { GiaoDien.gio(it) })
     }
 
-    /** Bé rời máy (Đổi bé / Đăng xuất / Khoá lại) ⇒ cửa sổ mở bằng mã offline đang chạy kết thúc (giữ dấu mã đã dùng) — bé sau không hưởng. */
+    /** Bé rời máy (Đổi người / Đăng xuất / Khoá lại) ⇒ cửa sổ mở bằng mã offline đang chạy kết thúc (giữ dấu mã đã dùng) — bé sau không hưởng. */
     fun dongCuaSo(ctx: Context) = synchronized(khoa) {
         val k = Kho(ctx)
         MoTamOffline.doc(k.moTamOffline).ketThucKhiCoMang(System.currentTimeMillis())?.let { k.moTamOffline = it.json() }

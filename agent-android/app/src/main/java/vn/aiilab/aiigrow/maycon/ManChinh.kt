@@ -20,10 +20,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
-import vn.aiilab.aiigrow.maycon.logic.PHUT_NGOAI_LE
-import vn.aiilab.aiigrow.maycon.logic.PHUT_XIN
 import vn.aiilab.aiigrow.maycon.logic.chiNgoaiLe
-import vn.aiilab.aiigrow.maycon.logic.thanXinNgoaiLe
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
 import vn.aiilab.aiigrow.maycon.logic.Cong
 import vn.aiilab.aiigrow.maycon.logic.MUC_VAY
@@ -33,14 +30,12 @@ import vn.aiilab.aiigrow.maycon.logic.docLichSuSao
 import vn.aiilab.aiigrow.maycon.logic.soSao
 import vn.aiilab.aiigrow.maycon.logic.chuanMaGhep
 import vn.aiilab.aiigrow.maycon.logic.docPhanHoiNhip
-import vn.aiilab.aiigrow.maycon.logic.thanXinThemGio
 import vn.aiilab.aiigrow.maycon.GiaoDien as G
 
 /** Màn chính của Con: còn bao nhiêu sao (= phút chơi, 15/11), xin Ba Mẹ cho vay sao, hôm nay đã dùng gì; chưa ghép thì ghép bằng mã 6 số + cấp quyền. */
 class ManChinh : Activity() {
     private val h = Handler(Looper.getMainLooper())
     private lateinit var goc: LinearLayout
-    private var phutChon = PHUT_XIN.first()
     private var dangGhep = false
     private lateinit var tPhut: TextView
     private lateinit var tCau: TextView
@@ -89,7 +84,6 @@ class ManChinh : Activity() {
         // quyền cài chỉ cần hỏi khi có bản chờ (đỡ một lời gọi PackageManager mỗi 2 giây)
         val duocCai = k.banMoiCho != null && (laDo || Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())
         val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai"
-        // 05/11: giờ ngủ / Ba Mẹ khoá ⇒ thẻ xin đổi thành «Xin Ba Mẹ mở ngoại lệ» (dựng lại thẻ khi đổi)
         // 15/11: có sổ sao / Ba Mẹ khoá ⇒ thẻ xin khác (cho vay sao / xin mở máy) — dựng lại khi đổi
         val htV = if (k.daGhep) HienThi.doc(k.hienThi) else null
         val appDiem = if (htV != null) "${chiNgoaiLe(htV.trangThai)}${htV.coSao}${htV.coSao && htV.trangThai == TrangThai.KHOA_NGAY.name}" else ""
@@ -129,7 +123,7 @@ class ManChinh : Activity() {
         val ten = PinMay.tenDangDung(k) ?: HienThi.doc(k.hienThi)?.tenCon ?: k.tenCon
         tChao = Diu.chu(this, if (k.daGhep) "Chào ${ten ?: "con"}!" else "Máy của Con", 28f, Diu.CHU, true).apply { setPadding(G.dp(this@ManChinh, 4), G.dp(this@ManChinh, 8), 0, 0) }
         goc.addView(tChao)
-        // 06/11 L13: chip «Bảo Anh ▾» dưới lời chào (máy có PIN theo bé) ⇒ «Đổi bé / Đăng xuất»
+        // 06/11 L13: chip «Bảo Anh ▾» dưới lời chào (máy có PIN theo bé) ⇒ «Đổi người / Đăng xuất»
         val nd = PinMay.nguoiDung(k)
         if (k.daGhep && PinMay.cong(k) == Cong.CON && nd?.conId != null) {
             val tenBe = ten ?: "Con"
@@ -139,7 +133,7 @@ class ManChinh : Activity() {
         if (k.cheDoThu) goc.addView(G.chu(this, "Chế độ thử cục bộ (bản debug) — không gọi máy chủ", 13f, 0xFFB45309.toInt()))
     }
 
-    /** «Đổi bé / Đăng xuất» (con-dt-khac/13): thẻ dưới đáy — Đổi bé, Đăng xuất, Ở lại. */
+    /** «Đổi người / Đăng xuất» (con-dt-khac/13): thẻ dưới đáy — Đổi người, Đăng xuất, Ở lại. */
     private fun hoiDoiBe(ten: String) {
         val k = Kho(this)
         val d = android.app.Dialog(this)
@@ -147,7 +141,7 @@ class ManChinh : Activity() {
         t.addView(Diu.vongTen(this, ten.trim().firstOrNull()?.uppercase() ?: "?", PinMay.hoSo(k)?.con?.indexOfFirst { it.id == PinMay.nguoiDung(k)?.conId }?.coerceAtLeast(0) ?: 0, 64))
         t.addView(Diu.chu(this, ten, 22f, Diu.CHU, true).apply { gravity = Gravity.CENTER; setPadding(0, G.dp(this@ManChinh, 8), 0, 0) })
         t.addView(Diu.chu(this, "Đang dùng máy này", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER })
-        t.addView(Diu.nut(this, "Đổi bé", Diu.KieuNut.PHU) { d.dismiss(); PinMay.roiMay(this, baMe = false) })
+        t.addView(Diu.nut(this, "Đổi người", Diu.KieuNut.PHU) { d.dismiss(); PinMay.roiMay(this, baMe = false) })
         t.addView(Diu.nut(this, "Đăng xuất") { d.dismiss(); PinMay.roiMay(this, baMe = false) })
         t.addView(Diu.chu(this, "Đăng xuất thì máy khoá lại. Vào lại bằng tên + PIN.", 14f, Diu.CHU3).apply { gravity = Gravity.CENTER; setPadding(0, G.dp(this@ManChinh, 10), 0, 0) })
         t.addView(Diu.nut(this, "Ở lại", Diu.KieuNut.CHU) { d.dismiss() })
@@ -236,8 +230,7 @@ class ManChinh : Activity() {
 
         val x = G.the(this)
         theXin = x
-        if (coSao) dungTheVay(x, ht0!!) else dungTheXinCu(x)
-        goc.addView(x)
+        if (coSao) { dungTheVay(x, ht0!!); goc.addView(x) }
 
         val d = G.the(this)
         d.addView(G.dauKhoi(this, R.drawable.fl_bieu_do, "Hôm nay con đã dùng"))
@@ -288,39 +281,6 @@ class ManChinh : Activity() {
         capNhatChon()
     }
 
-    /** Máy chủ cũ (chưa có sổ sao): xin thêm giờ 10 / 20 / 30 phút (giờ ngủ / Ba Mẹ khoá ⇒ xin mở máy). */
-    private fun dungTheXinCu(x: LinearLayout) {
-        val laNl = HienThi.doc(Kho(this).hienThi)?.trangThai?.let(::chiNgoaiLe) ?: false
-        val dsPhut = if (laNl) PHUT_NGOAI_LE else PHUT_XIN
-        if (phutChon !in dsPhut) phutChon = if (laNl) 30 else dsPhut.first()
-        x.addView(G.dauKhoi(this, R.drawable.fl_gio_tay, if (laNl) "Xin Ba Mẹ mở máy" else "Xin Ba Mẹ thêm giờ"))
-        if (laNl) x.addView(G.chu(this, "Ba Mẹ đang khoá: không thêm giờ được, con xin Ba Mẹ mở máy một lúc nhé.", 15f, G.CHU_PHU))
-        val hangPhut = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false }
-        nutPhut = dsPhut.map { p ->
-            G.nut(this, "$p phút", phu = true) { phutChon = p; nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, dsPhut[i] == p) } }.apply {
-                maxLines = 1
-                val cach = G.dp(this@ManChinh, 4)
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
-                    marginStart = if (p == dsPhut.first()) 0 else cach; marginEnd = if (p == dsPhut.last()) 0 else cach; topMargin = G.dp(this@ManChinh, 8) }
-            }
-        }
-        nutPhut.forEach(hangPhut::addView)
-        nutPhut.forEachIndexed { i, b -> G.chonTrongNhom(this, b, dsPhut[i] == phutChon) }
-        x.addView(hangPhut)
-        val loi = oLoiNhan()
-        x.addView(loi)
-        val bao = G.dongBao(this, Diu.XANH_DAM)
-        tXin = G.dongBao(this, Diu.XANH_DAM)
-        x.addView(G.nut(this, "Gửi Ba Mẹ") {
-            val nhan = loi.text.toString().replace(Regex("\\s*\n\\s*"), " ")
-            val than = if (laNl) thanXinNgoaiLe(phutChon, nhan) else thanXinThemGio(phutChon, nhan)
-            bao.text = "Đang gửi…"
-            Thread { val s = DichVuNhip.xinThemGio(this, than); runOnUiThread { bao.text = s; loi.setText(""); capNhatXin(Kho(this)) } }.start()
-        })
-        x.addView(bao)
-        x.addView(tXin)
-    }
-
     private fun oLoiNhan() = EditText(this).apply {
         hint = "Lời nhắn cho Ba Mẹ (không bắt buộc)"; filters = arrayOf(InputFilter.LengthFilter(100)); minHeight = G.dp(this@ManChinh, 52)
         background = Diu.khoi(this@ManChinh, Diu.TRANG, 16, Diu.VIEN); setTextColor(G.CHU); setHintTextColor(Diu.CHU3); textSize = 16f
@@ -358,11 +318,7 @@ class ManChinh : Activity() {
             val moi = "${ht.conPhut} phút"
             if (tPhut.text.toString() != moi) tPhut.text = moi
             tCau.text = if (ht.trangThai == TrangThai.BINH_THUONG.name || ht.trangThai == TrangThai.DUOC_THEM_GIO.name) "Còn ${ht.conPhut} phút chơi" else ht.cauCon
-            val quy = chinhSach(k)?.quy
-            if (quy != null && quy.tongPhut > 0) {
-                tDaChoi.text = "chơi còn lại · đã chơi ${quy.daDung}/${quy.tongPhut}"
-                vongGio.tyLe = ht.conPhut.toFloat() / quy.tongPhut
-            } else { tDaChoi.text = "phút chơi còn lại hôm nay"; vongGio.tyLe = if (ht.conPhut > 0) 1f else 0f }
+            tDaChoi.text = "phút chơi còn lại hôm nay"; vongGio.tyLe = if (ht.conPhut > 0) 1f else 0f
         }
         tMoLai.text = when {
             ht.demNguoc > 0 -> G.dongDemNguoc(ht)
@@ -550,19 +506,19 @@ class ManChinh : Activity() {
         val t = G.the(this, G.XANH_NHAT)
         if (QuanTri.laDeviceOwner(this)) {
             t.addView(G.dauKhoi(this, R.drawable.fl_khien, "Cách quản lý: Device Owner", Clay.THE, 17f))
-            t.addView(G.chu(this, "Máy được cài bằng QR khi khôi phục gốc. App bị chặn hiện xám «Đã tạm dừng».", 15f, G.CHU_PHU))
+            t.addView(G.chu(this, "Máy được cài bằng QR khi khôi phục gốc. App ngoài danh sách hiện xám «Đã tạm dừng».", 15f, G.CHU_PHU))
             if (!DoPhut.coQuyen(this)) t.addView(G.nut(this, "Cho phép đếm thời gian dùng", phu = true) { moCaiDat(Settings.ACTION_USAGE_ACCESS_SETTINGS) })
             goc.addView(t); return
         }
         t.addView(G.dauKhoi(this, R.drawable.fl_khien, "Cách quản lý: không cần khôi phục gốc", Clay.THE, 17f))
-        t.addView(G.chu(this, "Ba Mẹ bật đủ 3 quyền dưới đây. Muốn chặn mạnh hơn (app hiện «Đã tạm dừng»), cài lại bằng QR Device Owner.", 15f, G.CHU_PHU))
+        t.addView(G.chu(this, "Ba Mẹ bật đủ 3 quyền dưới đây. Muốn giữ chặt hơn (app hiện «Đã tạm dừng»), cài lại bằng QR Device Owner.", 15f, G.CHU_PHU))
         val q = listOf(
             Triple("Quyền quản trị thiết bị (khoá máy)", QuanTri.laAdmin(this)) {
                 startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, QuanTri.ten(this))
                     .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "AiiGrow dùng quyền này để khoá màn hình khi Ba Mẹ bấm Khoá ngay hoặc tới giờ ngủ."))
             },
             Triple("Đếm thời gian dùng ứng dụng", DoPhut.coQuyen(this)) { moCaiDat(Settings.ACTION_USAGE_ACCESS_SETTINGS) },
-            Triple("Trợ năng AiiGrow (màn chặn)", TroNang.dangBat(this)) { moCaiDat(Settings.ACTION_ACCESSIBILITY_SETTINGS) },
+            Triple("Trợ năng AiiGrow (màn tạm dừng)", TroNang.dangBat(this)) { moCaiDat(Settings.ACTION_ACCESSIBILITY_SETTINGS) },
         )
         for ((ten, co, mo) in q) {
             if (co) t.addView(G.chu(this, "✓  $ten", 16f, Diu.XANH_DAM).apply { minHeight = G.dp(this@ManChinh, 48); gravity = Gravity.CENTER_VERTICAL })

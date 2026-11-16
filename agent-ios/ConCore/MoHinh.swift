@@ -72,9 +72,8 @@ public struct ChinhSach: Codable {
   }
   public struct UngDung: Codable {
     public var hoc: [MucChung]; public var giaiTri: [MucChung]; public var chan: [MucChung]
-    /// 05/11 (máy chủ mới): chế độ chặn của Con — chi_app_duoc_phep | mo_het; web luôn chặn (người lớn, cờ bạc, bạo lực).
+    /// 05/11 (máy chủ cũ): chế độ của Con — chi_app_duoc_phep | mo_het. #258: không còn lưới web cấm cứng (`webLuonChan` máy chủ gửi [] — agent bỏ qua).
     public var cheDoChan: String? = nil
-    public var webLuonChan: [String]? = nil
     /// 15/11 (#262): theo_danh_sach (danh sách trắng: Giải trí = «Tính phút», Học = «Không tính phút») | mo_het (không chặn, không đếm). Máy chủ cũ: nil.
     public var cheDo: String? = nil
   }

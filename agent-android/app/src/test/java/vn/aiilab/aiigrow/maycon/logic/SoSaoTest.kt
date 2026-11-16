@@ -17,7 +17,6 @@ class SoSaoTest {
         heThong = listOf("com.android.settings"),
         hoc = listOf(MucChung("vn.olm.app", "app")),
         giaiTri = listOf(MucChung("com.google.android.youtube", "app")),
-        quy = Quy(ngayPhut = 0, themPhut = 30, daDung = 0, conPhut = 30, dangHoc = false),
         sao = Sao(sao = 30, no = 0, phutCon = 30), cheDo = "theo_danh_sach",
     )
     private val daCai = listOf(GoiCai("com.google.android.youtube", false), GoiCai("vn.olm.app", false), GoiCai("com.roblox.client", false))

@@ -79,6 +79,9 @@ public struct KeHoach: Codable, Equatable {
 
   /// «Mở hết»: không chặn, không đếm phút, không trừ sao.
   public var moHet: Bool { cheDo == "mo_het" }
+  /// #262: web trong danh sách theo nhóm — dùng khi «Theo danh sách» (blockedByFilter = .all(except:)). Kế hoạch cũ trong kho không có ⇒ nil.
+  public var webKhongTinhPhut: [String]? = nil
+  public var webTinhPhut: [String]? = nil
   /// «Theo danh sách»: danh sách trắng — app / web ngoài danh sách không mở.
   public var theoDanhSach: Bool { cheDo == "theo_danh_sach" }
 
@@ -160,7 +163,11 @@ public enum LapKeHoach {
 
     let cw = nt.cauHinh("chan_web")
     let webCs = { (ds: [MucChung]) in ds.filter { $0.kieu == "web" }.map(\.muc) }
-    var webChan = chuanTenMien((cw["webDomainsChan"]?.dsChuoi ?? webCs(cs.ungDung.chan)) + (cs.ungDung.webLuonChan ?? []))
+    var webChan = chuanTenMien((cw["webDomainsChan"]?.dsChuoi ?? webCs(cs.ungDung.chan)))
+    // #262 «Theo danh sách»: web được mở = web trong danh sách — nhóm «Không tính phút» (Học) + «Tính phút» (Giải trí); mọi web khác bị chặn (`.all(except:)`)
+    let webHoc = Array(chuanTenMien(webCs(cs.ungDung.hoc)).prefix(webToiDa))
+    let webTinhPhut = Array(chuanTenMien(webCs(cs.ungDung.giaiTri)).filter { !webHoc.contains($0) }.prefix(max(0, webToiDa - webHoc.count)))
+    if chuanTenMien(webCs(cs.ungDung.hoc) + webCs(cs.ungDung.giaiTri)).count > webToiDa { canhBao.append("Chỉ cho mở được \(webToiDa) trang web đầu tiên trong danh sách (giới hạn của iOS)") }
     var webGT = chuanTenMien(cw["giaiTriCanPhien"]?.dsChuoi ?? webCs(cs.ungDung.giaiTri)).filter { !webChan.contains($0) }
     if webChan.count > webToiDa { canhBao.append("Chỉ chặn được \(webToiDa) trang web đầu tiên (giới hạn của iOS)"); webChan = Array(webChan.prefix(webToiDa)) }
     if webChan.count + webGT.count > webToiDa { webGT = Array(webGT.prefix(webToiDa - webChan.count)) }
@@ -231,6 +238,7 @@ public enum LapKeHoach {
       .voi(daDung: cs.quy?.daDung, ngay: cs.quy == nil ? nil : TinhKhien.diaPhuong(now, tz: tz).ngay, hoc: hoc, hocThu: hocThu, ngoaiLeDen: ngoaiLeDen,
            phut10Sao: cs.quy?.tyLe.map { max(1, $0.phut * 10 / max(1, $0.sao)) }, quyNgay: cs.quy?.ngayPhut)
     kh.cheDo = cs.ungDung.cheDo
+    kh.webKhongTinhPhut = webHoc; kh.webTinhPhut = webTinhPhut
     if let s = cs.sao {
       // sổ sao: phút còn = trần − phút đo tại chỗ (không dùng phút máy chủ cộng, không quỹ ngày)
       kh.sao = s; kh.daDungMayChu = nil; kh.quyNgayPhut = nil; kh.phut10Sao = nil

@@ -23,14 +23,13 @@ class ManKhoa : Activity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         if (android.os.Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(false); setTurnScreenOn(false) }
         v = GiaoDien.ManKhoaView(this, onXin = { startActivity(Intent(this, ManChinh::class.java).putExtra("xin", true)) }, onVe = { veNha() },
-            onMa = { MoMaOffline.thuMa(this, it) },
-            onDuyet = { g -> Thread { val s = DichVuNhip.xinDuyet(this, g, DoPhut.tenApp(this, g)); runOnUiThread { v.cau.text = s } }.start() })
+            onMa = { MoMaOffline.thuMa(this, it) }, choGoLyDo = true)
         setContentView(v.goc)
     }
 
     override fun onResume() { super.onResume(); h.post(veLai) }
     override fun onPause() { super.onPause(); h.removeCallbacks(veLai) }
-    override fun onDestroy() { if (dangMo === this) dangMo = null; super.onDestroy() }
+    override fun onDestroy() { if (dangMo === this) dangMo = null; v.huy(); super.onDestroy() }
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() { if (HienThi.doc(Kho(this).hienThi)?.khoaCaMay != true) super.onBackPressed() }
@@ -66,6 +65,6 @@ class ManKhoa : Activity() {
 
     companion object {
         @Volatile var dangMo: ManKhoa? = null
-        val KHOA = setOf(TrangThai.KHOA_NGAY.name, TrangThai.GIO_NGU.name, TrangThai.HET_GIO.name, TrangThai.NGOAI_KHUNG.name, TrangThai.GIO_HOC.name)
+        val KHOA = setOf(TrangThai.KHOA_NGAY.name, TrangThai.GIO_NGU.name, TrangThai.HET_GIO.name, TrangThai.NGOAI_KHUNG.name)
     }
 }

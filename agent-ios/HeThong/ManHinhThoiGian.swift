@@ -26,7 +26,9 @@ public final class KhienThat: HeThongKhien {
       s.shield.applicationCategories = .all(except: apps)
       s.shield.webDomainCategories = .all(except: web)
       s.shield.webDomains = nil
-      s.webContent.blockedByFilter = k.webChan.isEmpty ? nil : .specific(Set(k.webChan.map { WebDomain(domain: $0) }))
+      // #262: chặn mọi web ngoài danh sách (cả khi Con dùng 4G); «Mở hết» không vào nhánh này ⇒ blockedByFilter = nil
+      if let duoc = k.webDuocMo { s.webContent.blockedByFilter = .all(except: Set(duoc.map { WebDomain(domain: $0) })) }
+      else { s.webContent.blockedByFilter = k.webChan.isEmpty ? nil : .specific(Set(k.webChan.map { WebDomain(domain: $0) })) }   // kế hoạch cũ chưa có danh sách web
       s.application.denyAppInstallation = k.chanCaiApp ? true : nil
       return
     }

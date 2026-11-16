@@ -42,7 +42,7 @@ struct ManHomNay: View {
         Text(Self.ngayGio(Date())).font(Diu.phu).foregroundColor(Diu.chu2)
       }
       Spacer()
-      // iPhone / iPad chỉ một bé (#267): bỏ chip «Đổi bé» — chỉ hiện tên bé
+      // iPhone / iPad chỉ một bé (#267): bỏ chip «Đổi người» — chỉ hiện tên bé
       if let t = m.tenCon { HStack(spacing: 7) { AvatarBe(ten: t, co: 30); Text(t).font(Diu.chu(15, .black)).foregroundColor(Diu.chu).lineLimit(1) } }
     }
     .frame(minHeight: 52)

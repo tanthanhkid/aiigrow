@@ -497,7 +497,7 @@ final class QuyGioTests: XCTestCase {
     let d = Data(String(decoding: nhipMau(them05: quy), as: UTF8.self)
       .replacingOccurrences(of: #""chuaXep":"chan"}"#, with: #""chuaXep":"chan","cheDoChan":"chi_app_duoc_phep","webLuonChan":["pornhub.com"]}"#).utf8)
     let kh = LapKeHoach.tu(try doc(d), now: vn(26, 10))
-    XCTAssertTrue(kh.webChan.contains("pornhub.com"))
+    XCTAssertFalse(kh.webChan.contains("pornhub.com"), "#258: bỏ lưới web cấm cứng — webLuonChan máy chủ cũ gửi cũng bỏ qua")
     // máy chủ cũ (không quy) ⇒ luật cũ: khung giờ chơi vẫn chặn
     let cu = LapKeHoach.tu(try doc(nhipMau()), now: vn(26, 10))
     XCTAssertNil(cu.daDungMayChu)
@@ -838,7 +838,13 @@ final class SaoAppWebTests: XCTestCase {
   func testTheoDanhSachLaDanhSachTrang() throws {
     let kh = LapKeHoach.tu(try nhip(sao: du, cheDo: "theo_danh_sach"), now: vn(26, 10))
     XCTAssertTrue(kh.theoDanhSach)
-    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 10), dung: nil).danhSach, true)
+    let k = TinhKhien.lucNay(kh, now: vn(26, 10), dung: nil)
+    XCTAssertEqual(k.danhSach, true)
+    // #262: web ngoài danh sách bị chặn — được mở = web «Không tính phút» + «Tính phút»; không còn danh sách đen
+    XCTAssertEqual(Set(k.webDuocMo ?? []), ["khanacademy.org", "youtube.com"]); XCTAssertEqual(k.webChan, [])
+    // hết sao ⇒ chỉ còn web «Không tính phút»
+    let het = LapKeHoach.tu(try nhip(sao: no, cheDo: "theo_danh_sach"), now: vn(26, 10))
+    XCTAssertEqual(TinhKhien.lucNay(het, now: vn(26, 10), dung: nil).webDuocMo, ["khanacademy.org"])
     // máy chủ cũ không gửi cheDo ⇒ luật cũ (không danh sách trắng)
     let cu = LapKeHoach.tu(try nhip(sao: du), now: vn(26, 10))
     XCTAssertNil(TinhKhien.lucNay(cu, now: vn(26, 10), dung: nil).danhSach)

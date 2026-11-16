@@ -1,5 +1,5 @@
 // PIN theo bé (L13 — docs/thiet-ke-chot/con-dt-khac 05–13): máy khoá → «Ai đang dùng máy?» → nhập PIN 4 số (chưa đúng · còn N lần;
-// sai 5 lần chờ 15 giây; Quên PIN báo Ba Mẹ) · «Ba Mẹ dùng máy» → nhập mã mở máy → «Ba Mẹ đang dùng» (Khoá lại) · «Đổi bé / Đăng xuất».
+// sai 5 lần chờ 15 giây; Quên PIN báo Ba Mẹ) · «Ba Mẹ dùng máy» → nhập mã mở máy → «Ba Mẹ đang dùng» (Khoá lại) · «Đổi người / Đăng xuất».
 import SwiftUI
 import ConCore
 
@@ -228,7 +228,7 @@ struct ManBaMeDung: View {
   }
 }
 
-// MARK: Đổi bé / Đăng xuất (them-j424uyis)
+// MARK: Đổi người / Đăng xuất (them-j424uyis)
 struct ManDoiBe: View {
   @EnvironmentObject var m: MoHinhApp
   @Environment(\.dismiss) var dong
@@ -245,7 +245,7 @@ struct ManDoiBe: View {
       }
       .theDiu()
       if m.dungChung || (m.hoSo?.con.count ?? 0) > 1 {
-        Button { Task { await m.roiMay() } } label: { Label { Text("Đổi bé") } icon: { Anh(ten: "ic_lap", co: 26) } }.buttonStyle(NutDiu(kieu: .phu))
+        Button { Task { await m.roiMay() } } label: { Label { Text("Đổi người") } icon: { Anh(ten: "ic_lap", co: 26) } }.buttonStyle(NutDiu(kieu: .phu))
       }
       Button { Task { await m.roiMay() } } label: { Label { Text("Đăng xuất") } icon: { Anh(ten: "ic_thoat", co: 26) } }.buttonStyle(NutDiu(kieu: .phu))
       Text("Đăng xuất thì máy khoá lại. Vào lại bằng tên + PIN.").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)

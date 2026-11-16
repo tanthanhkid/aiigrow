@@ -142,7 +142,7 @@ struct AvatarBe: View {
   }
 }
 
-/// «B Bảo Anh ▾» — chạm mở Đổi bé / Đăng xuất.
+/// «B Bảo Anh ▾» — chạm mở Đổi người / Đăng xuất.
 struct ChipBe: View {
   let ten: String
   let lam: () -> Void

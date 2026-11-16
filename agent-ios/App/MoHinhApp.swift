@@ -322,7 +322,7 @@ final class MoHinhApp: ObservableObject {
     return kq
   }
 
-  /// «Đổi bé / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ).
+  /// «Đổi người / Đăng xuất» (bé) hoặc «Khoá lại» (Ba Mẹ).
   func roiMay(baMe: Bool = false) async {
     manPhu = nil
     if demo != nil { phien = PhienMay(loai: .chua, luc: Date()); return }
