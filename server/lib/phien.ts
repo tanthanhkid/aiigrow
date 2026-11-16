@@ -78,7 +78,7 @@ export async function xetMoPhien(con: string, mucTho: string, o: { gioMaySai?: b
   // #302: hết giới hạn ngày / đang nghỉ giữa hai lượt (còn sao) ⇒ lý do riêng (màn Con nói đúng chữ); hết sao ⇒ het_gio như cũ
   if (qy.conPhut <= 0 && !qy.soSao.hetSao && qy.gioiHan.lyDoKhoa === "dang_nghi")
     return { duoc: false, lyDo: "dang_nghi", nghiDen: qy.gioiHan.nghiDen ?? undefined, moLai: qy.gioiHan.nghiDenGio ?? undefined, soDu: await soDu(con, t) };
-  if (qy.conPhut <= 0 && !qy.soSao.hetSao && qy.gioiHan.lyDoKhoa === "het_gio_ngay") return { duoc: false, lyDo: "dat_tran_ngay", soDu: await soDu(con, t) };
+  if (qy.conPhut <= 0 && qy.gioiHan.lyDoKhoa === "het_gio_ngay") return { duoc: false, lyDo: "dat_tran_ngay", soDu: await soDu(con, t) };
   if (qy.conPhut <= 0) return { duoc: false, lyDo: "het_gio", soDu: await soDu(con, t) };
   const du = await soDu(con, t);
   const phutToiDa = Math.max(1, Math.min(qy.conPhut, qy.phutToiNgu, qy.phutToiHoc ?? Infinity));

@@ -94,7 +94,10 @@ export async function quyHomNay(con: string, now = new Date(), t: Q = q, b0?: Bo
   const [st, dung, tru] = await Promise.all([trangThaiSao(con, t), phutDaDung(t, con, b.fam, g.ngay, b.tz), phutDaTruHomNay(t, con, b.tz, now)]);
   // daDung ≥ phút đã trừ sao (phút dùng lúc «Mở hết» / trước khi có sao vẫn tính vào «đã dùng» để agent cũ đếm đúng phần còn)
   const daDung = Math.max(dung, tru);
-  const gh = await gioiHanCua(t, con, b.cfg, b.tz, daDung, { moHet: !!b.moHet }, now);
+  const gh0 = await gioiHanCua(t, con, b.cfg, b.tz, daDung, { moHet: !!b.moHet }, now);
+  // lý do khoá cho máy Con: hết giới hạn ngày THẮNG hết sao (có sao hôm nay cũng không chơi được); đang nghỉ CHỈ khi còn sao thật —
+  // hết sao thì máy nói «Hết sao rồi» + «Làm nhiệm vụ» (nghỉ xong vẫn không chơi được)
+  const gh = gh0.lyDoKhoa === "dang_nghi" && st.hetSao ? { ...gh0, lyDoKhoa: null, cau: null } : gh0;
   const conPhut = gh.phutToiDa === null ? st.phutCon : Math.max(0, Math.min(st.phutCon, Math.floor(gh.phutToiDa + 1e-6)));
   const hoc = b.lich.hoc ?? null;
   const dangHoc = trongGioHoc(hoc, g.thu, g.phut);
@@ -117,7 +120,7 @@ export function saoKepGioiHan(qy: Quy) {
   const st = qy.gioiHan.apDung ? { ...qy.soSao, phutCon: qy.conPhut, hetSao: qy.soSao.hetSao || qy.conPhut <= 0 } : qy.soSao;
   const cau = cauSao(st);
   return { ...st, saoTieuDuoc: qy.soSao.phutCon,
-    cau: qy.gioiHan.lyDoKhoa && !qy.soSao.hetSao ? { ...cau, phut: qy.gioiHan.cau ?? cau.phut } : cau };
+    cau: qy.gioiHan.lyDoKhoa ? { ...cau, phut: qy.gioiHan.cau ?? cau.phut } : cau };
 }
 
 /** #302: khối `gioiHan` gửi máy Con (bỏ phần cấu hình / mô tả chỉ app Ba Mẹ cần). */

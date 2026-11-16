@@ -117,6 +117,20 @@ test("Giới hạn ngày: chơi được min(giới hạn còn, sao); hết gi�
   await ss.choVay(fam, con, 15, bm, { mucDich: "choi" }, undefined, sau(t1, 3));
   qy = await qg.quyHomNay(con, sau(t1, 4));
   assert.deepEqual([qy.conPhut, qy.gioiHan.ngayPhut, qy.gioiHan.themHomNay], [15, 45, 15]);
+  // hết cả giới hạn ngày lẫn sao ⇒ vẫn «Hôm nay chơi đủ» (sao có cũng không chơi được hôm nay)
+  const c = await nha(30);
+  await qg.datGioChoi(c.fam, c.con, { gioiHanNgayThuong: 30, phutMoiLuot: 15 }, c.bm);
+  await choi(c.con, t0, 15);
+  let qc = await qg.quyHomNay(c.con, sau(t0, 16));
+  assert.deepEqual([qc.gioiHan.lyDoKhoa, qc.soSao.phutCon], ["dang_nghi", 15], "còn sao ⇒ đang nghỉ");
+  await choi(c.con, sau(t0, 31), 15);
+  qc = await qg.quyHomNay(c.con, sau(t0, 47));
+  assert.deepEqual([qc.gioiHan.lyDoKhoa, qc.soSao.hetSao], ["het_gio_ngay", true], "hết ngày thắng hết sao");
+  const d = await nha(15);
+  await qg.datGioChoi(d.fam, d.con, { gioiHanNgayThuong: 120, phutMoiLuot: 15 }, d.bm);
+  await choi(d.con, t0, 15);
+  qc = await qg.quyHomNay(d.con, sau(t0, 16));
+  assert.deepEqual([qc.gioiHan.lyDoKhoa, qc.gioiHan.dangNghi, qc.soSao.hetSao], [null, true, true], "hết sao đúng lúc hết lượt ⇒ «Hết sao», không «Nghỉ»");
   // hôm sau: giới hạn mới; T7 dùng giới hạn cuối tuần
   assert.equal((await qg.quyHomNay(con, VN("2026-11-17T09:00:00"))).conPhut, 30);
   assert.equal((await qg.quyHomNay(con, VN("2026-11-21T09:00:00"))).conPhut, 60);
