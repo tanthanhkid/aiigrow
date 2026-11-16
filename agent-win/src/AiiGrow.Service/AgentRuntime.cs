@@ -696,6 +696,7 @@ public sealed class AgentRuntime
             s.Mode = tt.Mode;
             s.Locked = eff.Locked;
             s.LockReason = eff.LockReason;
+            s.KhoaLuc = eff.Locked && eff.LockReason == LockReasons.Khoa ? _lockStartedAt : null;
             s.MinutesLeft = eff.MinutesLeft;
             s.GrantEndsAt = eff.GrantEndsAt;
             s.CanExchangePoints = _policy.CanExchangePoints;

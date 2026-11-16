@@ -111,7 +111,8 @@ internal static class ChupMain
         await Mot("chan-app-mat-mang", () => ManChan("chan-app-mat-mang", "capcut.exe", "CapCut", "MatMang"));
         await Mot("chan-da-luu-cho-mang", () => ManChan("chan-da-luu-cho-mang", "capcut.exe", "CapCut", "DaLuu"));
 
-        await Mot("khoa-ba-me-khoa", () => ManKhoa("khoa-ba-me-khoa", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; })));
+        // #307 cmt-khoa-ba-me-khoa: «Ba Mẹ khoá lúc HH:mm.» + «Nhắn Ba Mẹ» nút chính
+        await Mot("khoa-ba-me-khoa", () => ManKhoa("khoa-ba-me-khoa", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; s.KhoaLuc = DateTimeOffset.Now.AddMinutes(-3); })));
         await Mot("khoa-mat-mang", () => ManKhoa("khoa-mat-mang", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; s.Offline = true; })));
         // 15/11 «Sắp hết sao» (đếm ngược) → «Hết sao rồi» (không khoá máy) · mất mạng hết sao (cmt-khoa-mat-mang) · nhắc «Còn 5 sao»
         await Mot("het-sao-dem-nguoc", () => ManHetSao("het-sao-dem-nguoc", HetSaoView.For(45, "Roblox", TrangThai().AppDuocPhep, false), 45));

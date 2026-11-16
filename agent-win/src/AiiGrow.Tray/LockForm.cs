@@ -132,7 +132,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         _matMangTu = s.OfflineSince;
         // 06/11 (L13): chưa ai đăng nhập ⇒ «Ai đang dùng máy?» (chọn tên + PIN / Ba Mẹ nhập mã) — LockForm.ChonTen.cs
         if (ApChonTen(s)) return;
-        var m = ManKhoaView.For(s.LockReason, s.ChildName, s.Offline && MoTamOffline.MoDuocKhoa(s.LockReason));
+        var m = ManKhoaView.For(s.LockReason, s.ChildName, s.Offline && MoTamOffline.MoDuocKhoa(s.LockReason), ManKhoaView.KhoaLucCau(s.KhoaLuc));
         var khoa = string.Join("|", m.Tieu, m.Phu, m.Phu2, m.DemNguoc, m.SaoDong, m.MatMang, string.Join(",", m.Nut.Select(n => n.Ma + n.Chu)), s.ChildName);
         if (khoa != _khoa && !DangNhapMaTuManKhoa)
         {
@@ -157,7 +157,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         if (khoa != _khoa && !DangNhapMaTuManKhoa)
         {
             _khoa = khoa;
-            _chan.Text = ManKhoaView.ChanTrang(tenCon);
+            _chan.Text = ManKhoaView.ChanTrang(tenCon, m.Nut.Any(n => n.Ma == HetSaoView.DoiBe));
             Dung(m);
         }
         if (giayCon is int g) _count.Text = TrayView.FormatClock(g);
@@ -238,7 +238,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         the.Controls.Add(td);
         var ph = Chu(m.Phu, _gon ? 13f : 17f, false, UI.Muted, w, true); ph.Margin = new Padding(0, UI.Px(6), 0, 0);
         the.Controls.Add(ph);
-        if (m.Phu2 != null) { var p2 = Chu(m.Phu2, _gon ? 13f : 17f, false, UI.Muted, w, true); p2.Margin = new Padding(0, UI.Px(2), 0, 0); the.Controls.Add(p2); }
+        if (m.Phu2 != null) { var p2 = Chu(m.Phu2, _gon ? 11.5f : 14.25f, false, UI.Muted, w, true); p2.Margin = new Padding(0, UI.Px(2), 0, 0); the.Controls.Add(p2); }
         if (m.DemNguoc)
         {
             _count.Font = UI.F(_gon ? 44f : 78f, FontStyle.Bold);
@@ -255,7 +255,9 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
             the.Controls.Add(sao);
         }
         // Hai nút lớn (cao 64, chữ 22px) rồi hàng liên kết chữ.
-        var lon = m.Nut.Where(n => n.Ma is HetSaoView.LamNhiemVu or HetSaoView.XinVay).ToList();
+        // #307 (cmt-khoa-ba-me-khoa): màn không có «Làm nhiệm vụ» / «Xin vay» (Ba Mẹ khoá máy) ⇒ «Nhắn Ba Mẹ» là nút chính xanh
+        var coLon = m.Nut.Any(n => n.Ma is HetSaoView.LamNhiemVu or HetSaoView.XinVay);
+        var lon = m.Nut.Where(n => n.Ma is HetSaoView.LamNhiemVu or HetSaoView.XinVay || (!coLon && n.Ma == ManKhoaView.NhanBaMe)).ToList();
         for (int i = 0; i < lon.Count; i++)
         {
             var n = lon[i];

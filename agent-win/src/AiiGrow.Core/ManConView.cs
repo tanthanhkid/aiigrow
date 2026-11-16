@@ -80,6 +80,13 @@ public static class ManKhoaView
     /// <summary>06/11: «AiiGrow · Bảo Anh · máy do Ba Mẹ quản lý».</summary>
     public static string ChanTrang(string tenCon) => DangNhapView.ChanTrang(tenCon);
 
+    /// <summary>Máy dùng chung có bé đang dùng (them-uqukvnas): «AiiGrow · Bảo Anh đang dùng · máy do Ba Mẹ quản lý».</summary>
+    public static string ChanTrang(string tenCon, bool dangDung) => dangDung && !string.IsNullOrWhiteSpace(tenCon)
+        ? "AiiGrow · " + tenCon.Trim() + " đang dùng · máy do Ba Mẹ quản lý" : DangNhapView.ChanTrang(tenCon);
+
+    /// <summary>«Ba Mẹ khoá lúc 19:30.» (cmt-khoa-ba-me-khoa) — null khi không biết lúc khoá.</summary>
+    public static string? KhoaLucCau(DateTimeOffset? luc) => luc is { } l ? $"Ba Mẹ khoá lúc {l.ToLocalTime():HH:mm}." : null;
+
     /// <param name="khoaLuc">«Mẹ Lan khoá lúc 19:30.» khi biết (null = không ghi).</param>
     /// <param name="hetSao">Mất mạng mà Con đang hết sao ⇒ thẻ «Hết sao rồi» + «Xin Ba Mẹ cho vay sao» (lưu, có mạng tự gửi) + mã 6 số (cmt-khoa-mat-mang).</param>
     public static ManKhoa For(string? lyDo, string tenCon, bool offline, string? khoaLuc = null, bool hetSao = false)

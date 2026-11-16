@@ -62,7 +62,7 @@ internal sealed class NhacSaoForm : HopKhayCoBan
         StartPosition = FormStartPosition.Manual;
         FormBorderStyle = FormBorderStyle.FixedToolWindow;
         Flow.Padding = new Padding(UI.Px(16), UI.Px(10), UI.Px(16), UI.Px(10));
-        Flow.Controls.Add(KhoiCon.Dau("sao", KhoiCon.Mau.Vang, NhacSaoView.Tieu(conSao), NhacSaoView.Phu(app), W));
+        Flow.Controls.Add(KhoiCon.Dau("dong_ho_cat", KhoiCon.Mau.Vang, NhacSaoView.Tieu(conSao), NhacSaoView.Phu(app), W));
         var lam = KhoiCon.Nut(NhacSaoView.LamNhiemVu, true, W, "tick");
         lam.Click += (_, _) => { LamNhiemVu?.Invoke(); Close(); };
         Flow.Controls.Add(lam);

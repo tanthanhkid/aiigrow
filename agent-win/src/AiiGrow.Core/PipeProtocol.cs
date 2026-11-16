@@ -62,6 +62,8 @@ public sealed class TrayState
     public string Mode { get; set; } = Modes.TuDo;
     public bool Locked { get; set; }
     public string? LockReason { get; set; }
+    /// <summary>16/11 (#307, cmt-khoa-ba-me-khoa): lúc máy bắt đầu khoá vì Ba Mẹ «Khoá ngay» (null = không khoá / không biết) — «Ba Mẹ khoá lúc 19:30.».</summary>
+    public DateTimeOffset? KhoaLuc { get; set; }
     public double? MinutesLeft { get; set; }
     public DateTimeOffset? GrantEndsAt { get; set; }
     public bool CanExchangePoints { get; set; }
