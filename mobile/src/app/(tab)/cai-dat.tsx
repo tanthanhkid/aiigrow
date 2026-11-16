@@ -6,11 +6,10 @@
 import { useState } from "react";
 import { Pressable, Share, View } from "react-native";
 import { router } from "expo-router";
-import { bm } from "@/lib/api";
+import { bm, mauMay } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
 import { KHOA_CA_NHA, TEN_QUYEN, napCaNha, tenMoi, type LoiMoiCho } from "@/lib/ca-nha";
 import { MucTieu, OIcon } from "@/lib/ui-bm3";
-import { mauMay } from "@/lib/viec-nhanh";
 import { mauCon, tenGoi } from "@/lib/hang-ngay";
 import { BONG, KHOI } from "@/lib/clay";
 import {

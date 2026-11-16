@@ -32,7 +32,7 @@ const SU_KIEN: Record<string, string> = {
   doi_con_may: "Đổi bé dùng máy", khoa_may: "Ba Mẹ khoá máy", mo_khoa_may: "Ba Mẹ mở khoá máy",
 };
 const NGAY_XOA_HAN = 7;
-/** Agent-win tự thôi chặn khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
+/** Agent-win tự thôi theo danh sách khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
 const GIO_MO_COI = 6;
 
 export default function AnToanMay() {
@@ -51,7 +51,7 @@ export default function AnToanMay() {
       aiId ? bm.goi<ConCt>(`con/${aiId}`).catch(() => null) : null]);
     const caNha: ConNganMay[] = g.con.map((c) => ({ id: c.id, ten: c.ten, avatar: c.avatar }));
     const conDs = m ? cm ? cm.ds.filter((c) => c.gan) : conCuaMay(m, caNha) : [];
-    // bé «chính» của máy — luật (chế độ chặn) và sao hiện theo bé này
+    // bé «chính» của máy — luật (chế độ App & web) và sao hiện theo bé này
     const ai = m ? (m.dangDung ? conDs.find((c) => c.id === m.dangDung!.id) ?? m.dangDung : conDs.length === 1 ? conDs[0] : null) : null;
     const ct = ai && ai.id === aiId ? ct0 : ai ? await bm.goi<ConCt>(`con/${ai.id}`).catch(() => null) : null;
     const xem = quyen === "trong_giup";
@@ -370,20 +370,20 @@ export default function AnToanMay() {
 
       <NhomTieu chu="An toàn & sự cố" />
       {moDen ? (
-        <Bao loai="lam" ic="mo_khoa" tieu={khanCap && moDen === m.moKhanCapDen ? "Đang mở khẩn cấp" : "Đang mở thêm giờ"} loi={`Giải trí được mở tới ${gio(moDen)} — trừ khi đang Khoá ngay hoặc giờ ngủ (lúc đó máy vẫn khoá).`}>
+        <Bao loai="lam" ic="mo_khoa" tieu={khanCap && moDen === m.moKhanCapDen ? "Đang mở khẩn cấp" : "Đang mở thêm giờ"} loi={`Giải trí được mở tới ${gio(moDen)} — trừ khi đang Khoá ngay (lúc đó máy vẫn khoá).`}>
           {d.xem ? null : <Nut chu="Khoá lại ngay" loai="vien" nho bam={() => lam(async () => { await bm.goi(`may/${id}/mo-khan-cap/huy`, {}); bao(ai ? `Đã khoá lại ${ten} — thêm giờ của ${tenAi} trên mọi máy cũng đóng` : `Đã khoá lại ${ten}`); await tai(); })} />}
         </Bao>
       ) : null}
 
       {!khanCap ? (
         <Nhom>
-          <Dong dau tieu="Mở khẩn cấp" phu="Tạm mở giải trí có hạn giờ khi Con đang cần (vẫn giữ giờ ngủ, khoá ngày)" trai={<BieuTron ic="mo_khoa" mau="vang" />} bam={() => setMo("khan")} />
+          <Dong dau tieu="Mở khẩn cấp" phu="Tạm mở giải trí có hạn giờ khi Con đang cần (vẫn giữ giờ chơi trong ngày)" trai={<BieuTron ic="mo_khoa" mau="vang" />} bam={() => setMo("khan")} />
         </Nhom>
       ) : null}
 
       {m.dangGo ? (
         <Bao loai="lam" ic="dong_ho_cat" tieu="Đang chờ máy nhận lệnh gỡ…"
-          loi={`Gửi ${truoc(m.dangGo.tu)}. Trong lúc chờ, máy chạy Giám sát (không chặn gì). Khi có mạng, máy tự gỡ AiiGrow rồi tự rời danh sách; gỡ tại máy cũng tự báo về. Máy không bật lại nữa? Sau ${NGAY_XOA_HAN} ngày không liên lạc, bạn xoá hẳn được.`}>
+          loi={`Gửi ${truoc(m.dangGo.tu)}. Trong lúc chờ, máy chạy Giám sát (không theo danh sách App & web). Khi có mạng, máy tự gỡ AiiGrow rồi tự rời danh sách; gỡ tại máy cũng tự báo về. Máy không bật lại nữa? Sau ${NGAY_XOA_HAN} ngày không liên lạc, bạn xoá hẳn được.`}>
           {d.chu && m.coTheXoaHan ? <Nut chu="Xoá hẳn khỏi danh sách" loai="vien" nho bam={() => setMo("xoa")} /> : null}
         </Bao>
       ) : null}
@@ -423,7 +423,7 @@ export default function AnToanMay() {
       </BangTruot>
 
       <BangTruot mo={mo === "khan"} dong={dong} tieu={`Mở khẩn cấp ${m.ten}`}>
-        <Chu mau={M.chu2}>Giải trí được mở trong khoảng thời gian bạn chọn. Giờ ngủ và khoá ngày vẫn giữ nguyên. Việc này được ghi nhật ký và báo cho Ba Mẹ khác.</Chu>
+        <Chu mau={M.chu2}>Giải trí được mở trong khoảng thời gian bạn chọn. Khoá ngày vẫn giữ nguyên. Việc này được ghi nhật ký và báo cho Ba Mẹ khác.</Chu>
         <Chu kieu="rat" co={14} style={{ marginTop: 12, marginBottom: 6 }}>Thời lượng</Chu>
         <Chips ds={PHUT.map((p) => ({ gia: p, chu: `${p} phút` }))} chon={[phut]} doi={(v) => setPhut(v)} />
         <View style={{ marginTop: 12 }}>
@@ -436,7 +436,7 @@ export default function AnToanMay() {
       </BangTruot>
 
       <BangTruot mo={mo === "go"} dong={dong} hinh={hinhMay(m.nen, chung)} tieu={`Gỡ ${ten}?`}>
-        <Chu mau={M.chu2}>{`Grow thôi trông máy này. ${chung ? "Các bé" : "Con"} dùng ${tenNgan} sẽ không bị trừ sao, không bị chặn.`}</Chu>
+        <Chu mau={M.chu2}>{`Grow thôi trông máy này. ${chung ? "Các bé" : "Con"} dùng ${tenNgan} sẽ không bị trừ sao, không theo danh sách App & web.`}</Chu>
         <View>
           <TickDong chu="Báo cáo cũ vẫn giữ" phu="Lịch sử dùng máy không mất" />
           <TickDong chu="Ghép lại lúc nào cũng được" phu="Bằng mã 6 số như lần đầu" />
@@ -470,11 +470,11 @@ export default function AnToanMay() {
           <>
             <Chu mau={M.chu2}>Máy có mạng thì dùng «Gỡ từ xa» cho nhanh. Gỡ ngay trên máy của Con (có mạng hay không đều được):</Chu>
             <Chu style={{ marginTop: 10 }}>1. Trên máy đó, mở Cài đặt → Ứng dụng → Ứng dụng đã cài → AiiGrow → Gỡ cài đặt. Đang ở tài khoản của Con cũng được: Windows sẽ hỏi tài khoản và mật khẩu quản trị — của Ba Mẹ, nên Con không tự gỡ được.</Chu>
-            <Chu style={{ marginTop: 6 }}>2. Bấm Yes. AiiGrow gỡ dịch vụ, luật chặn app, khay, thông báo đăng nhập, tệp và cấu hình. Máy có mạng thì tự báo về và rời danh sách ở đây; không có mạng thì vào lại đây bấm «Gỡ AiiGrow khỏi máy này», sau {NGAY_XOA_HAN} ngày bạn xoá hẳn được.</Chu>
+            <Chu style={{ marginTop: 6 }}>2. Bấm Yes. AiiGrow gỡ dịch vụ, danh sách app, khay, thông báo đăng nhập, tệp và cấu hình. Máy có mạng thì tự báo về và rời danh sách ở đây; không có mạng thì vào lại đây bấm «Gỡ AiiGrow khỏi máy này», sau {NGAY_XOA_HAN} ngày bạn xoá hẳn được.</Chu>
             <Chu style={{ marginTop: 6 }}>3. Không thấy AiiGrow trong «Ứng dụng» (máy cài bản cũ)? Bấm Start, gõ PowerShell, chuột phải → «Run as administrator», rồi gõ:</Chu>
             <Chu kieu="rat" co={13.5} style={{ marginTop: 6 }} mau={M.chinhInk}>{'& "C:\\Program Files\\AiiGrow\\AiiGrow.Setup.exe" --uninstall'}</Chu>
             <Chu co={13} mau={M.chu3} style={{ marginTop: 4 }}>Báo không tìm thấy tệp thì tải lại bộ cài ở {GOC}/tai, giải nén, rồi chạy AiiGrow.Setup.exe --uninstall từ thư mục đó (thường là thư mục Tải về của tài khoản bạn đang dùng).</Chu>
-            <Chu co={13} mau={M.chu3} style={{ marginTop: 6 }}>Lỡ xoá máy khỏi danh sách mà chưa gỡ được tại máy: sau {GIO_MO_COI} giờ không còn trong gia đình, AiiGrow trên máy tự thôi chặn (không khoá, không chặn app) cho tới khi được gỡ.</Chu>
+            <Chu co={13} mau={M.chu3} style={{ marginTop: 6 }}>Lỡ xoá máy khỏi danh sách mà chưa gỡ được tại máy: sau {GIO_MO_COI} giờ không còn trong gia đình, AiiGrow trên máy tự thôi theo danh sách (không khoá, không giới hạn app) cho tới khi được gỡ.</Chu>
           </>
         ) : (
           <Chu mau={M.chu2}>Trên máy của Con: mở phần quản lý ứng dụng / hồ sơ quản lý của hệ điều hành, gỡ AiiGrow bằng mật khẩu của Ba Mẹ. Cần giúp thì chat với AiiLab.</Chu>

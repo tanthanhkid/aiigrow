@@ -1,7 +1,7 @@
 // «Thêm web cho <con>» (thiết kế chốt 15/11 bm-ung-dung/10 them-yzl99l3y — #262): TÌM TRƯỚC, làm hết trong 1 màn. Gõ địa chỉ (vd tiktok.com) ⇒ «Kết quả
 // cho «…»»: chính tên miền đó + tên miền con / tương tự đã biết (bảng dưới + trang con đã vào 30 ngày, GET con/:id/web?ngay=30). Chạm ＋ ⇒ ngay dưới hiện
 // «<trang> có tính phút không?» (Tính phút · Trả bằng sao | Không tính phút · Vào thoải mái) + lưu ý (trang 13+ khi con nhỏ hơn). «Thêm tiktok.com ·
-// Tính phút» ⇒ POST con/:id/danh-sach {ds: [{nhom, muc, kieu: web}]} ⇒ về danh sách Web. Trang thuộc lưới an toàn ⇒ máy chủ 409 web_cam (báo lỗi).
+// Tính phút» ⇒ POST con/:id/danh-sach {ds: [{nhom, muc, kieu: web}]} ⇒ về danh sách Web.
 import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
@@ -10,7 +10,7 @@ import { TEN_NHOM, themVaoDs, type Nhom } from "@/lib/app-web";
 import { ChonNhomNgang, DongDen, KhoiNhom, NutCong, OIcon, OTim, icCuaApp, veHoac } from "@/lib/ui-bm3";
 import { BaoLoi, ChoTai, Chu, M, Man, Nut, useLam, useTai } from "@/lib/ui";
 
-/** Tên miền con / tên miền đi kèm đã biết của các trang hay gặp (chặn / mở một trang mà quên trang đi kèm thì con vẫn vào được / vẫn hỏng). */
+/** Tên miền con / tên miền đi kèm đã biết của các trang hay gặp (mở một trang mà quên trang đi kèm thì con vẫn vào được / vẫn hỏng). */
 const HO: Record<string, { ten: string; mien: [string, string][]; tuoi?: number }> = {
   tiktok: { ten: "TikTok", tuoi: 13, mien: [["tiktok.com", "Trang chính TikTok"], ["m.tiktok.com", "TikTok bản cho điện thoại"], ["vm.tiktok.com", "Link chia sẻ video TikTok"], ["tiktokv.com", "Phát video TikTok"]] },
   youtube: { ten: "YouTube", tuoi: 13, mien: [["youtube.com", "Trang chính YouTube"], ["m.youtube.com", "YouTube bản cho điện thoại"], ["youtu.be", "Link chia sẻ video YouTube"], ["youtubekids.com", "YouTube cho trẻ em"]] },

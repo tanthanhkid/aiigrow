@@ -1,4 +1,4 @@
-// «Xin cài phần mềm» bản «Dịu» (con-dt-cai 02 cdt-cai, L4): app mới / tệp cài lạ ⇒ «Chặn app & web · Minecraft cần Ba Mẹ cho phép»,
+// «Xin cài phần mềm» bản «Dịu» (con-dt-cai 02 cdt-cai, L4): app mới / tệp cài lạ ⇒ «Minecraft chưa có trong danh sách»,
 // «Con muốn cài để làm gì?» (chip «Học xây nhà» / «Chơi với bạn» + tự viết — không bắt buộc), «Nếu Ba Mẹ thêm vào danh sách: app Tính phút 1 sao = 1 phút · con đang có N sao» (15/11),
 // «Gửi Ba Mẹ xin cài Minecraft» / «Thôi, để sau». Agent mở `/tre/cai?tep=MinecraftInstaller.exe` hoặc `?ten=Minecraft`.
 import { useState } from "react";
@@ -33,8 +33,8 @@ export default function XinCai() {
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <IcO ic="game" co={64} />
         <View style={{ flex: 1 }}>
-          <TieuD chu={`${ten} cần`} nho />
-          <TieuD chu="Ba Mẹ cho phép" nho />
+          <TieuD chu={`${ten} chưa có trong danh sách`} nho />
+          <TieuD chu="Xin Ba Mẹ thêm" nho />
         </View>
       </View>
       <ChuD kieu="den" co={15}>Con muốn cài để làm gì?</ChuD>

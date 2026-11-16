@@ -195,7 +195,7 @@ export const DiemPill = ({ n }: { n: number }) => (
   <View style={s.diemPill}>
     <LopMen men={MEN.vien} bo={99} />
     <Icon3D ten="xu" co={24} />
-    <Chu kieu="rat" co={15} mau={M.diemInk} so>{n} điểm</Chu>
+    <Chu kieu="rat" co={15} mau={M.diemInk} so>{n} sao</Chu>
   </View>
 );
 

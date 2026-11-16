@@ -56,7 +56,7 @@ export default function DangXin() {
       {d.ct && d.id ? (
         <The style={{ paddingVertical: 4 }}>
           <HangViec dau ic={moHet ? "mo_khoa" : "khien"} mau="lam" tieu={moHet ? "Mở hết" : "Theo danh sách"}
-            phu={moHet ? "Không chặn, không tính phút" : "Chỉ mở app, web Ba Mẹ đã thêm"} phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>}
+            phu={moHet ? "Con mở mọi app, web · không tính phút" : "Chỉ mở app, web Ba Mẹ đã thêm"} phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>}
             bam={() => router.push(`/app-web?con=${d.id}` as never)} />
           {!moHet && d.soApp !== null ? <HangViec ic="luoi" mau="xanh" tieu={`Được mở ${d.soApp} app`} bam={() => router.push(`/app-web?con=${d.id}` as never)} /> : null}
         </The>

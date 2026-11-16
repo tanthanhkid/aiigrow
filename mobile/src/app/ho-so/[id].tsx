@@ -8,7 +8,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import {
-  CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, quyenToi, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type GioChoi, type NhiemVuMoi,
+  CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, quyenToi, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
 import { cauNo, chuVien, saoTu, soVN, VienSao, type SaoCon } from "@/lib/so-sao";
 import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
@@ -21,15 +21,14 @@ type Luat = { ds: LuatDem[] };
 export default function HoSoCon() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [con, g, gio, nv, quyen, luat] = await Promise.all([
+    const [con, g, nv, quyen, luat] = await Promise.all([
       bm.goi<ConCt>(`con/${id}`), bm.goi<GiaDinh>("gia-dinh"),
-      bm.goi<GioChoi>(`con/${id}/gio-choi`).catch(() => null),                 // giờ ngủ / giờ học (quỹ phút đã bỏ 15/11)
       bm.goi<{ ds: NhiemVuMoi[] }>("nhiem-vu").catch(() => null), quyenToi(),
       bm.goi<Luat>("luat").catch(() => null),
     ]);
     // «Được mở N app»: luật Xanh / Vàng (hoc, giai_tri, cho_phep) của con này hoặc chung cả nhà (N3)
     const duocMo = luat ? soAppDuocMo(luat.ds, id) : null;
-    return { con, g, gio, nv: nv?.ds.filter((x) => x.bat && (!x.giao_cho || x.giao_cho === id)) ?? null, trongGiup: quyen === "trong_giup", duocMo };
+    return { con, g, nv: nv?.ds.filter((x) => x.bat && (!x.giao_cho || x.giao_cho === id)) ?? null, trongGiup: quyen === "trong_giup", duocMo };
   });
   // M6: mã liên kết AiiRob «<family_id>.<child_id>» — thiết kế 05/11 không nói ⇒ giữ (không có mã thì Ba Mẹ không nối được AiiRob).
   // Tải riêng: lỗi thì chỉ ẩn mục này, không hỏng cả màn.
