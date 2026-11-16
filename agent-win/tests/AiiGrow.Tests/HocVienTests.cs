@@ -27,7 +27,7 @@ public class HocVienTests
         var t = HocVienView.Parse<HvTongQuan>(TongQuanJson)!;
         Assert.Equal("Ken", t.Con.Ten);
         Assert.Equal(20, t.SoDu);
-        Assert.Equal("Cấp 2 · còn 180 điểm lên cấp", HocVienView.CapText(t.CapDo));
+        Assert.Equal("Cấp 2 · còn 180 sao lên cấp", HocVienView.CapText(t.CapDo));
         Assert.Equal(4, t.NhiemVu.Count);
         var bs = t.NhiemVu.Single(v => v.Id == "t2");
         Assert.Equal("Viết thêm vài câu", bs.LyDo);
@@ -81,29 +81,38 @@ public class HocVienTests
     [Fact]
     public void ThongBao_NopVaDoiQua()
     {
-        Assert.Equal("Xong rồi! Điểm đã được cộng.", HocVienView.NopThongBao(new HvNopKq { TrangThai = "duoc_duyet" }));
+        Assert.Equal("Xong rồi! Sao đã vào ví.", HocVienView.NopThongBao(new HvNopKq { TrangThai = "duoc_duyet" }));
+        Assert.Equal("Xong rồi! Sao nhiệm vụ trả nợ trước, con còn nợ 5 sao.", HocVienView.NopThongBao(new HvNopKq { TrangThai = "duoc_duyet" }, no: 5));
         Assert.Contains("Chờ Ba Mẹ duyệt", HocVienView.NopThongBao(new HvNopKq { TrangThai = "cho_duyet" }));
         Assert.Contains("giống ảnh", HocVienView.NopThongBao(new HvNopKq { TrangThai = "cho_duyet", NghiTrung = true }));
         Assert.Contains("trao quà", HocVienView.DoiThongBao(new HvDoiKq { TrangThai = "cho_trao" }, "Chọn món"));
         Assert.Contains("AG123", HocVienView.DoiThongBao(new HvDoiKq { TrangThai = "da_phat_hanh", Voucher = new HvVoucher { Ma = "AG123" } }, "Phiếu"));
-        Assert.Equal("Đủ điểm", HocVienView.QuaTrangThai(new HvQua { Du = true }));
-        Assert.Equal("Còn thiếu 380 điểm", HocVienView.QuaTrangThai(new HvQua { ConThieu = 380 }));
+        Assert.Equal("Đủ sao", HocVienView.QuaTrangThai(new HvQua { Du = true }));
+        Assert.Equal("Còn thiếu 380 sao", HocVienView.QuaTrangThai(new HvQua { ConThieu = 380 }));
     }
 
     [Fact]
     public void TinTracker_LanDauKhongBaoToast_LanSauChiBaoTinMoi_LocTrungTheoId()
     {
         var tr = new TinTracker();
-        var a = new HvTin { Id = "e1", Tieu = "Nhiệm vụ mới từ Ba Mẹ", Noi = "«Dọn tủ» · 20 điểm", Luc = Now.AddMinutes(-3) };
+        var a = new HvTin { Id = "e1", Tieu = "Nhiệm vụ mới từ Ba Mẹ", Noi = "«Dọn tủ» · 20 sao", Luc = Now.AddMinutes(-3) };
         Assert.Empty(tr.Nhan(new HvTinDs { Ds = { a }, Bay = Now }));
         Assert.Equal(Now, tr.Moc);
 
         // máy chủ lùi mốc 5 phút ⇒ tin cũ trả lại, chỉ tin mới được báo
-        var b = new HvTin { Id = "e2", Tieu = "Ba Mẹ đã duyệt", Noi = "«Rửa chén» · +10 điểm", Luc = Now.AddMinutes(1) };
+        var b = new HvTin { Id = "e2", Tieu = "Ba Mẹ đã duyệt", Noi = "«Rửa chén» · +10 sao", Luc = Now.AddMinutes(1) };
         var moi = tr.Nhan(new HvTinDs { Ds = { b, a }, Bay = Now.AddMinutes(2) });
         Assert.Equal("e2", Assert.Single(moi).Id);
         Assert.Equal(Now.AddMinutes(2), tr.Moc);
         Assert.Empty(tr.Nhan(new HvTinDs { Ds = { b, a }, Bay = Now.AddMinutes(3) }));
+    }
+
+    [Fact]
+    public void ToastText_DuyetLucDangNo_BaoTraNoTruoc()
+    {
+        var t = new HvTin { Id = "d1", Loai = "duyet_nhiem_vu", Tieu = "Ba Mẹ đã duyệt", Noi = "«Rửa chén» · +10 sao" };
+        Assert.Equal("«Rửa chén» · +10 sao", HocVienView.ToastText(new[] { t }).Noi);
+        Assert.Equal("«Rửa chén» · +10 sao · Sao nhiệm vụ trả nợ trước, còn nợ 5 sao", HocVienView.ToastText(new[] { t }, 5).Noi);
     }
 
     [Fact]

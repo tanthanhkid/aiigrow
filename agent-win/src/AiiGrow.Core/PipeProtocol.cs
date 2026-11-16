@@ -28,7 +28,7 @@ public static class PipeCmd
     /// <see cref="PipeResponse.PlayMinutes"/> (không trả số điểm).</summary>
     public const string PlayInfo = "play-info";
     /// <summary>Thiết kế 05/11: «Xin Ba Mẹ mở …» app / web lạ (<see cref="PipeRequest.AppId"/> = mục, <see cref="PipeRequest.AppName"/> = tên, Note = lời nhắn).
-    /// Trả <see cref="PipeResponse.Status"/>: cho | duoc | tu_choi | web_cam (web luôn chặn) | cho_mang (mất mạng — đã lưu, có mạng tự gửi).</summary>
+    /// Trả <see cref="PipeResponse.Status"/>: cho | duoc | tu_choi | cho_mang (mất mạng — đã lưu, có mạng tự gửi).</summary>
     public const string XinDuyet = "xin-duyet";
     /// <summary>«Kiểm tra cập nhật» từ khay: dịch vụ hỏi manifest máy chủ ⇒ <see cref="PipeResponse.Message"/> = bản mới (null = đã mới nhất),
     /// <see cref="PipeResponse.Status"/> = bản đang chạy.</summary>
@@ -45,7 +45,7 @@ public static class PipeCmd
     public const string QuenPin = "quen-pin";
     /// <summary>Code = mã mở máy 6 số Ba Mẹ gõ ⇒ «Ba Mẹ đang dùng máy».</summary>
     public const string BaMeMo = "ba-me-mo";
-    /// <summary>«Đổi bé / Đăng xuất» của bé.</summary>
+    /// <summary>«Đổi người / Đăng xuất» của bé.</summary>
     public const string DangXuat = "dang-xuat";
     /// <summary>«Khoá lại» của Ba Mẹ.</summary>
     public const string KhoaLai = "khoa-lai";
@@ -123,7 +123,7 @@ public sealed class TrayState
     public string? BeTen { get; set; }
     /// <summary>«Ba Mẹ đang dùng máy» tới lúc này (null = không).</summary>
     public DateTimeOffset? BaMeDen { get; set; }
-    /// <summary>Máy chỉ gán một bé (không có «Đổi bé»).</summary>
+    /// <summary>Máy chỉ gán một bé (không có «Đổi người»).</summary>
     public bool MayRieng { get; set; }
 }
 

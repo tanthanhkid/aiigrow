@@ -2,7 +2,7 @@ namespace AiiGrow.Core;
 
 /// <summary>Nghi 11/11: Con ở «Mở hết» mà máy vẫn báo «Không thể truy cập trang web này» với YouTube / TikTok / Roblox — tệp hosts
 /// (C:\Windows\System32\drivers\etc\hosts) có dòng chặn kiểu <c>0.0.0.0 youtube.com</c> / <c>:: youtube.com</c> do phần mềm khác đặt
-/// (AiiGrow Windows KHÔNG ghi hosts). «Mở hết» = không chặn gì ngoài web luôn chặn ⇒ <see cref="Loc"/> bỏ đúng các dòng chặn đó.
+/// (AiiGrow Windows KHÔNG ghi hosts). «Mở hết» = không chặn gì ⇒ <see cref="Loc"/> bỏ đúng các dòng chặn đó.
 /// CHỈ bỏ dòng trỏ về địa chỉ «không đi đâu» (0.0.0.0, ::) — giữ nguyên 127.0.0.1 / ::1 (localhost, tên miền dev), dòng Tailscale
 /// (100.x … *.ts.net), dòng trỏ IP thật, chú thích, dòng trống. Lớp THUẦN (chuỗi vào → chuỗi ra) — HostsWorker lo đọc / ghi tệp.</summary>
 public static class HostsChan

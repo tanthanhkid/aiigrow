@@ -164,7 +164,7 @@ public class AppConTests
         Assert.Equal("Hết sao rồi", het.Tieu);
         Assert.Equal("App «Tính phút» tạm khoá nhé.", het.Phu);
         Assert.Equal("Con còn 0 sao · 1 sao = 1 phút chơi", het.SaoDong);
-        Assert.Equal(new[] { "Làm nhiệm vụ", "Xin Ba Mẹ cho vay sao", "Nhắn Ba Mẹ", "Đổi bé", "Ba Mẹ mở máy" }, het.Nut.Select(n => n.Chu));
+        Assert.Equal(new[] { "Làm nhiệm vụ", "Xin Ba Mẹ cho vay sao", "Nhắn Ba Mẹ", "Đổi người", "Ba Mẹ mở máy" }, het.Nut.Select(n => n.Chu));
     }
 
     [Theory]

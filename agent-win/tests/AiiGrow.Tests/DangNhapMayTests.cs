@@ -429,7 +429,7 @@ public class ManChonTenTests
     public void Man_het_sao_may_dung_chung_co_Doi_be_va_Ba_Me_mo_may()
     {
         var m = HetSaoView.For(null, null, null, doiBe: true);
-        Assert.Contains(m.Nut, n => n.Ma == ManKhoaView.DoiBe && n.Chu == "Đổi bé");
+        Assert.Contains(m.Nut, n => n.Ma == ManKhoaView.DoiBe && n.Chu == "Đổi người");
         Assert.Contains(m.Nut, n => n.Ma == ManKhoaView.BaMeDungMay && n.Chu == "Ba Mẹ mở máy");
         var rieng = HetSaoView.For(null, null, null, doiBe: false);
         Assert.DoesNotContain(rieng.Nut, n => n.Ma == ManKhoaView.DoiBe);

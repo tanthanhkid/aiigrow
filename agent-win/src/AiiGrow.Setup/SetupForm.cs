@@ -778,7 +778,7 @@ internal sealed class SetupForm : Form
             await Installer.RunAsync(o, (i, _) => BeginInvoke(() => { if (!IsDisposed) Buoc(i); }));
             _dangCai = false;
             if (IsDisposed) return;
-            BuocXong(child, o.Pair?.ChildName);
+            BuocXong(child, o.Pair?.ChildName, mayRieng: o.Pair is { DungChung: false } && !string.IsNullOrWhiteSpace(o.Pair.ChildName));
         }
         catch (Exception e)
         {
@@ -856,19 +856,20 @@ internal sealed class SetupForm : Form
         NutChinh("Thử lại", 220, () => BuocCai(o));
     }
 
-    private void BuocXong(LocalAccount child, string? tenHoSo = null)
+    private void BuocXong(LocalAccount child, string? tenHoSo = null, bool mayRieng = false)
     {
         // 06/11 (L13 — con-cai-win 12): máy dùng chung cho cả nhà — cài xong máy chuyển sang tài khoản Con và khoá lại, các bé chọn tên + PIN
         Man(6, "Xong", daiNgoc: true);
         Rob("xong", 24, 84, 250, 330);
         var ph = new ClayIcon { Size = new Size(S(56), S(56)), MauVien = Color.Transparent, Hinh = Anh3D.Icon("phao_hoa"), Location = ToaDo(_body, 206, 84) };
         _body.Controls.Add(ph);
-        X(_body, 290, 80, "Máy đã sẵn sàng\ncho cả nhà!", Kieu.H30, 400);
-        X(_body, 290, 164, "Mỗi bé vào máy bằng tên + PIN 4 số.", Kieu.P, 400);
+        // #267: máy riêng một bé không nói «cả nhà» / «mỗi bé chọn tên + PIN»; máy cả nhà giữ nguyên
+        X(_body, 290, 80, mayRieng ? "Máy của " + tenHoSo + "\nđã sẵn sàng!" : "Máy đã sẵn sàng\ncho cả nhà!", Kieu.H30, 400);
+        X(_body, 290, 164, mayRieng ? "Con mở máy là dùng được, giờ chơi tính theo sao của con." : "Mỗi bé vào máy bằng tên + PIN 4 số.", Kieu.P, 400);
         foreach (var (y, icon, tieu, phu) in new[]
                  {
-                     (206, "dongho", "Giờ chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
-                     (284, "nguoi", string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, "PIN do Ba Mẹ đặt trong app"),
+                     (206, "dongho", mayRieng ? "Sao chơi tính cho " + tenHoSo : "Giờ chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
+                     (284, "nguoi", mayRieng ? tenHoSo! : string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, mayRieng ? "Máy riêng của con" : "PIN do Ba Mẹ đặt trong app"),
                      (362, "khoa", "Chỉ mở app Ba Mẹ cho phép", "App mới thì bấm xin Ba Mẹ"),
                  })
         {
@@ -877,10 +878,10 @@ internal sealed class SetupForm : Form
             X(the, 374, y + 12, tieu, Kieu.B, 300);
             X(the, 374, y + 36, phu, Kieu.S, 300);
         }
-        X(_body, 36, 556, $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
+        X(_body, 36, 556, mayRieng ? $"Máy chuyển sang tài khoản {TenHien(child.Name)}: con vào là dùng được." : $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
         NutLui(Close, "Để sau");
         // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở. Vào tài khoản Con ⇒ AiiGrow hiện «Ai đang dùng máy?».
-        NutChinh("Mở màn chọn tên", 250, () => LockWorkStation());
+        NutChinh(mayRieng ? "Chuyển sang tài khoản của con" : "Mở màn chọn tên", mayRieng ? 330 : 250, () => LockWorkStation());
     }
 
     /// <summary>Tên gợi ý cho tài khoản chung: «con» (đã có thì «con2», «con3»…).</summary>

@@ -194,7 +194,7 @@ public static class HetSaoView
     public static bool DemNguoc(double? phutCon, bool dangChoiTinhPhut) => dangChoiTinhPhut && phutCon is double p && p > 0 && p <= 1;
 
     /// <param name="giayCon">&gt; 0 ⇒ «Sắp hết sao rồi» (đếm ngược); null / 0 ⇒ «Hết sao rồi».</param>
-    /// <param name="doiBe">Máy dùng chung có bé đang dùng ⇒ «Đổi bé» + «Ba Mẹ mở máy».</param>
+    /// <param name="doiBe">Máy dùng chung có bé đang dùng ⇒ «Đổi người» + «Ba Mẹ mở máy».</param>
     public static ManKhoa For(int? giayCon, string? appDangChoi, IEnumerable<string>? appKhongTinh, bool doiBe)
     {
         var app = string.IsNullOrWhiteSpace(appDangChoi) ? "app «Tính phút»" : appDangChoi!;
@@ -209,7 +209,7 @@ public static class HetSaoView
             return new ManKhoa("chi", "Sắp hết sao rồi", $"Lưu bài đang làm nhé. Hết sao, {app} đóng sau", null, true, "Còn 1 sao = 1 phút chơi", nut, false);
         }
         nut.Add(new(NhanBaMe, "Nhắn Ba Mẹ", "tin"));
-        if (doiBe) nut.Add(new(DoiBe, "Đổi bé", "nguoi"));
+        if (doiBe) nut.Add(new(DoiBe, "Đổi người", "nguoi"));
         nut.Add(new(BaMeMo, doiBe ? "Ba Mẹ mở máy" : "Ba Mẹ dùng máy", "khoa"));
         return new ManKhoa("nghi", "Hết sao rồi", "App «Tính phút» tạm khoá nhé.", SaoView.VanMo(appKhongTinh), false, "Con còn 0 sao · 1 sao = 1 phút chơi", nut, false);
     }

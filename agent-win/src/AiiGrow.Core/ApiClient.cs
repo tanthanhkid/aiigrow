@@ -132,7 +132,7 @@ public sealed class ApiClient : IDisposable
         => PostAsync<RequestResult>("api/device/yeu-cau", new { loai = loai == LoaiXin.MoWeb ? LoaiXin.MoWeb : LoaiXin.CaiApp, giaTri = muc, lyDo = XinMoView.LyDo(note, muc) }, ct);
 
     /// <summary>Thiết kế 05/11 (L4): «Xin Ba Mẹ duyệt» app / web lạ — POST /api/device/xin-duyet {muc, ten?, lyDo?} → {id, trang_thai, daCo, loai, muc}.
-    /// Máy chủ tự nhận app / web; web luôn chặn ⇒ ApiException Code «web_cam» (409). Lý do không bắt buộc.</summary>
+    /// Máy chủ tự nhận app / web. Lý do không bắt buộc.</summary>
     public Task<RequestResult> XinDuyetAsync(string muc, string? ten, string? lyDo, CancellationToken ct = default)
         => PostAsync<RequestResult>("api/device/xin-duyet", new { muc, ten, lyDo = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo!.Trim() }, ct);
 
@@ -172,7 +172,7 @@ public sealed class ApiClient : IDisposable
     public Task<BaMeMoKq> BaMeMoAsync(string ma, CancellationToken ct = default)
         => PostAsync<BaMeMoKq>("api/device/ba-me-mo", new { ma }, ct);
 
-    /// <summary>POST dang-xuat (bé «Đổi bé / Đăng xuất») | khoa-lai (Ba Mẹ «Khoá lại») → {ok, khoa}.</summary>
+    /// <summary>POST dang-xuat (bé «Đổi người / Đăng xuất») | khoa-lai (Ba Mẹ «Khoá lại») → {ok, khoa}.</summary>
     public Task<string> RoiMayAsync(bool khoaLai, CancellationToken ct = default)
         => SendAsync(HttpMethod.Post, khoaLai ? "api/device/khoa-lai" : "api/device/dang-xuat", new { }, ct);
 

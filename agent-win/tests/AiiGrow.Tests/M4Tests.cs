@@ -180,7 +180,7 @@ public class BlockScreenViewTests
 {
     [Theory]
     [InlineData(LockReasons.HetGio, "Ngoài giờ dùng máy hôm nay")]
-    [InlineData(LockReasons.HetDiem, "Hết điểm chơi hôm nay")]
+    [InlineData(LockReasons.HetDiem, "Hết sao chơi hôm nay")]
     [InlineData(LockReasons.ChuaPhanLoai, "App này chưa được Ba Mẹ phân loại")]
     public void Reason_HienDungChuTheoLyDo(string reason, string expected)
         => Assert.Equal(expected, BlockScreenView.ReasonText(reason));
@@ -210,7 +210,7 @@ public class BlockScreenViewTests
         Assert.Equal("Game-thu", v.AppName);
         Assert.True(v.ShowAskParent);
         Assert.True(v.ShowUsePoints);
-        Assert.Equal("Dùng điểm để chơi", v.UsePointsLabel);
+        Assert.Equal("Dùng sao để chơi", v.UsePointsLabel);
         Assert.Equal("Xin phép Ba Mẹ", v.AskParentLabel);
     }
 }

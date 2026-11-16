@@ -9,12 +9,12 @@ namespace AiiGrow.Tray;
 /// Luồng (#258): app mới cài ⇒ tự gửi lời xin Ba Mẹ thêm vào danh sách (L4) → «Đã gửi Ba Mẹ duyệt» → chờ → «Ba Mẹ đã thêm · Nhóm «Tính phút» / «Không tính phút»»,
 /// «Ba Mẹ cho mở N phút» (mở tạm) hoặc «Ba Mẹ chưa thêm · Xin lại». App «Tính phút» bị đóng vì hết sao ⇒ «Hết sao rồi» (<see cref="HetSao"/>).
 /// App Ba Mẹ đã chặn ⇒ «… chưa được mở» + chỉ nút «Xin Ba Mẹ mở …» và «Về Hôm nay». KHÔNG dùng sao / điểm để mở app.
-/// Web cờ bạc / người lớn (máy chủ 409 web_cam) ⇒ «Trang này luôn bị chặn». Mất mạng ⇒ vẫn chặn; lời xin lưu lại, có mạng tự gửi; Ba Mẹ ở cạnh đọc mã 6 số.
+/// Mất mạng ⇒ vẫn chặn; lời xin lưu lại, có mạng tự gửi; Ba Mẹ ở cạnh đọc mã 6 số.
 /// Nút chỉ GỬI lên máy chủ (qua dịch vụ); mọi quyết định do máy chủ. Chữ lấy từ lớp thuần <see cref="ManChanView"/>.
 /// </summary>
 internal sealed class BlockedForm : Form
 {
-    private enum Buoc { ChuaMo, DaGui, Duoc, MoTam, ChuaCho, WebCam, MatMang, DaLuu, HetSao }
+    private enum Buoc { ChuaMo, DaGui, Duoc, MoTam, ChuaCho, MatMang, DaLuu, HetSao }
 
     private readonly string? _appId;
     private readonly string _ten;
@@ -222,13 +222,6 @@ internal sealed class BlockedForm : Form
                 break;
             }
 
-            case Buoc.WebCam:
-                _flow.Controls.Add(KhoiCon.Dau("khien", KhoiCon.Mau.Cam, ManChanView.WebCamTieu, ManChanView.WebCamPhu, _w));
-                _flow.Controls.Add(KhoiCon.RobNoi("chi", ManChanView.WebCamVui1, ManChanView.WebCamVui2, _w));
-                _flow.Controls.Add(KhoiCon.DongIcon("khien", ManChanView.WebCamMoiMay, _w));
-                ThemNutVeHomNay(chinh: true);
-                break;
-
             case Buoc.MatMang:
             {
                 _flow.Controls.Add(KhoiCon.Dau("khien", KhoiCon.Mau.Cam, ManChanView.MatMangTieu(_ten), ManChanView.MatMangPhu, _w));
@@ -289,7 +282,6 @@ internal sealed class BlockedForm : Form
 
     private void NhanKetQua(PipeResponse r)
     {
-        if (r.Status == "web_cam") { Ve(Buoc.WebCam); return; }
         if (r.Status == "cho_mang")
         {
             _choMang = int.TryParse(r.Message, out var n) ? n : 1;

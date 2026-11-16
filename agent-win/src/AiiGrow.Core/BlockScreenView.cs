@@ -14,7 +14,7 @@ public sealed record BlockScreen(
 
 public static class BlockScreenView
 {
-    public const string UsePointsLabel = "Dùng điểm để chơi";
+    public const string UsePointsLabel = "Dùng sao để chơi";
     public const string AskParentLabel = "Xin phép Ba Mẹ";
 
     /// <summary>Lý do hiển thị cho con, theo mã lý do từ dịch vụ.</summary>
@@ -22,7 +22,7 @@ public static class BlockScreenView
     {
         LockReasons.HetGio => "Ngoài giờ dùng máy hôm nay",
         LockReasons.Ngu => "Đang trong giờ nghỉ",
-        LockReasons.HetDiem => "Hết điểm chơi hôm nay",
+        LockReasons.HetDiem => "Hết sao chơi hôm nay",
         LockReasons.ChuaPhanLoai => "App này chưa được Ba Mẹ phân loại",
         LockReasons.Khoa => "Máy đang được Ba Mẹ khoá",
         _ => "Chưa được Ba Mẹ cho mở",

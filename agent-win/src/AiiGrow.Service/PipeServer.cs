@@ -147,7 +147,7 @@ public sealed class PipeServer : BackgroundService
                 var choices = _rt.PlayChoices;
                 var muc = !string.IsNullOrWhiteSpace(req.AppId) ? req.AppId!.Trim() : choices.FirstOrDefault() ?? "";
                 if (muc.Length == 0) return new PipeResponse { Ok = true, Status = "khong_co_muc" };
-                if (!choices.Contains(muc, StringComparer.OrdinalIgnoreCase)) return new PipeResponse { Ok = false, Error = "Mục này Ba Mẹ chưa cho đổi điểm" };
+                if (!choices.Contains(muc, StringComparer.OrdinalIgnoreCase)) return new PipeResponse { Ok = false, Error = "Mục này Ba Mẹ chưa cho đổi sao" };
                 // nhớ: «được» 60 giây, «từ chối» 15 giây (hết điểm thì mỗi lần mở hộp / làm mới không bắn thêm phien/xet; Ba Mẹ thêm điểm thì hiện sau ≤15 giây)
                 lock (_playInfoNho)
                 {
@@ -221,10 +221,6 @@ public sealed class PipeServer : BackgroundService
                     var res = await api.XinDuyetAsync(muc, req.AppName, req.Note, ct);
                     if (res.KetQua is not ("cho" or "")) _rt.RequestSyncSoon();
                     return new PipeResponse { Ok = true, Id = res.Id, Status = string.IsNullOrEmpty(res.KetQua) ? "cho" : res.KetQua };
-                }
-                catch (ApiException e) when (e.Code == "web_cam")
-                {
-                    return new PipeResponse { Ok = true, Status = "web_cam", Message = e.Message };
                 }
                 catch (ApiException e) when (e.LaLoiDuongTruyen)
                 {

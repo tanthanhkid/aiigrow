@@ -9,7 +9,7 @@ namespace AiiGrow.Tray;
 /// (Grow 170 · tiêu đề 44px · câu phụ · [đếm ngược] · [chip sao] · 2 nút lớn · liên kết chữ), chân «AiiGrow · &lt;tên bé&gt; · máy do Ba Mẹ quản lý».
 ///   • Khoá máy (cmt-khoa-ba-me-khoa): «Ba Mẹ đang khoá máy» · Nhắn Ba Mẹ · Ba Mẹ dùng máy. 06/11: chưa ai đăng nhập ⇒ «Ai đang dùng máy?» (LockForm.ChonTen.cs).
 ///   • 15/11 «Sắp hết sao rồi» (đếm ngược, cmt-khoa-het-gio-dem-nguoc) → «Hết sao rồi» (them-uqukvnas): <see cref="ChiBao"/> — KHÔNG khoá máy (app «Không tính phút»
-///     vẫn dùng được, Esc / «Làm nhiệm vụ» đóng màn): Làm nhiệm vụ · Xin Ba Mẹ cho vay sao · Nhắn Ba Mẹ · Đổi bé · Ba Mẹ mở máy.
+///     vẫn dùng được, Esc / «Làm nhiệm vụ» đóng màn): Làm nhiệm vụ · Xin Ba Mẹ cho vay sao · Nhắn Ba Mẹ · Đổi người · Ba Mẹ mở máy.
 ///   • Mất mạng (cmt-khoa-mat-mang): Grow ngủ bên trái «Mất mạng, luật vẫn vậy nhé!», thẻ trái-căn: lời xin lưu lại (có mạng tự gửi) + mã 6 số Ba Mẹ đọc + Win+L.
 /// Không còn giờ ngủ, hết giờ chơi, «đổi sao lấy giờ», ngoại lệ. Nút chỉ báo ra ngoài (sự kiện) — khay mở hộp tương ứng; chữ / nút lấy từ <see cref="ManKhoaView"/> / <see cref="HetSaoView"/>.
 /// </summary>
@@ -244,7 +244,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
             the.Controls.Add(b);
         }
         var con = m.Nut.Where(n => !lon.Contains(n)).ToList();
-        // hàng 2 (chữ xám): «Đổi bé · Ba Mẹ mở máy» (con-het-gio 07) / «Ba Mẹ dùng máy»
+        // hàng 2 (chữ xám): «Đổi người · Ba Mẹ mở máy» (con-het-gio 07) / «Ba Mẹ dùng máy»
         static bool HangHai(NutKhoa n) => n.Ma is ManKhoaView.BaMeDungMay or ManKhoaView.DoiBe;
         var xanh = con.Where(n => !HangHai(n)).ToList();
         if (xanh.Count > 0) the.Controls.Add(HangLienKet(xanh, w, UI.Px(14)));

@@ -106,7 +106,6 @@ internal static class ChupMain
             kq: new RequestStatus { KetQua = "chua_them", TenNguoiDuyet = "Mẹ Lan", LoiNhan = "Cuối tuần Mẹ làm video cùng con nhé." }));
         await Mot("chan-web", () => ManChan("chan-web", "y8.com", "y8.com", null, web: true));
         await Mot("het-sao-popup", () => ManChan("het-sao-popup", "robloxplayerbeta.exe", "Roblox", "HetSao"));
-        await Mot("chan-web-cam", () => ManChan("chan-web-cam", "y8-casino.com", "y8-casino.com", "WebCam", web: true));
         await Mot("chan-web-da-gui", () => ManChan("chan-web-da-gui", "y8.com", "y8.com", "DaGui", web: true));
         await Mot("chan-app-mat-mang", () => ManChan("chan-app-mat-mang", "capcut.exe", "CapCut", "MatMang"));
         await Mot("chan-da-luu-cho-mang", () => ManChan("chan-da-luu-cho-mang", "capcut.exe", "CapCut", "DaLuu"));
@@ -150,7 +149,7 @@ internal static class ChupMain
             .Dong("Còn 0 sao · làm nhiệm vụ để có thêm", false, AiiGrow.ClayUi.Clay.DiemInk).Nut("Tuyệt quá!", true, "game", null).LienKet("Xem quà của con", "qua", null)));
         await Mot("doi-qua", () => ManHop("doi-qua", () => new DoiQuaHop(CuaHang().Qua[0], 60)));
         await Mot("doi-qua-chua-du", () => ManHop("doi-qua-chua-du", () => new DoiQuaHop(CuaHang().Qua[0], 30)));
-        // 06/11 (L13 — con-ngay-thuong 01–08): máy dùng chung, chọn tên + PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng máy, Đổi bé / Đăng xuất
+        // 06/11 (L13 — con-ngay-thuong 01–08): máy dùng chung, chọn tên + PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng máy, Đổi người / Đăng xuất
         await Mot("chon-ten", () => ManChonTen("chon-ten", null));
         await Mot("chon-ten-nhap-pin", () => ManChonTen("chon-ten-nhap-pin", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.So = "48"; }));
         await Mot("chon-ten-pin-sai", () => ManChonTen("chon-ten-pin-sai", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.ConLan = 3; }));

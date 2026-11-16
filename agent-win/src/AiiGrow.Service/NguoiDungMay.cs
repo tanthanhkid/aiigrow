@@ -169,7 +169,7 @@ public sealed class NguoiDungMay
         finally { _rt.KhoaDoiNguoi.Release(); }
     }
 
-    /// <summary>«Đổi bé / Đăng xuất» / «Khoá lại»: máy về màn chọn tên NGAY; báo máy chủ ở lượt đồng bộ kế (≤5 giây) — lượt đó gửi nốt phút dùng của bé
+    /// <summary>«Đổi người / Đăng xuất» / «Khoá lại»: máy về màn chọn tên NGAY; báo máy chủ ở lượt đồng bộ kế (≤5 giây) — lượt đó gửi nốt phút dùng của bé
     /// vừa ra trước khi máy chủ thả bé (<see cref="SauDongBoAsync"/>). Mất mạng ⇒ báo khi có mạng.</summary>
     public PipeResponse Roi(bool khoaLai)
     {
