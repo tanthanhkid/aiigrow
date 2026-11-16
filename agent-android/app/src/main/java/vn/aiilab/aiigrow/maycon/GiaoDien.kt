@@ -97,7 +97,8 @@ object GiaoDien {
         ht.demNguoc > 0 && ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && ht.lyDoKhoa == null -> "Hết sao sau ${mmss(ht.demNguoc)}"
         ht.demNguoc > 0 -> "Khoá sau ${mmss(ht.demNguoc)}"
         ht.lyDoKhoa != null && ht.trangThai == TrangThai.HET_GIO.name ->
-            if (ht.moLaiLuc > now) mmssDai(((ht.moLaiLuc - now) / 1000).toInt()) else if (ht.lyDoKhoa == "dang_nghi") "Nghỉ một chút" else "Mai chơi tiếp"
+            if (ht.lyDoKhoa == "dang_nghi" && ht.nghiDenGio != null) "Chơi tiếp lúc ${ht.nghiDenGio}"
+            else if (ht.moLaiLuc > now) mmssDai(((ht.moLaiLuc - now) / 1000).toInt()) else if (ht.lyDoKhoa == "dang_nghi") "Nghỉ một chút" else "Mai chơi tiếp"
         ht.coSao && ht.trangThai == TrangThai.HET_GIO.name -> vn.aiilab.aiigrow.maycon.logic.soSao(ht.soDu ?: 0)
         ht.moLaiLuc > now -> mmssDai(((ht.moLaiLuc - now) / 1000).toInt())
         else -> "Chờ Ba Mẹ mở"
@@ -341,12 +342,12 @@ object GiaoDien {
             // 16/11 #302: khoá vì giới hạn giờ chơi (nghỉ giữa lượt / đủ giờ hôm nay) ⇒ không nói «hết sao», không đẩy «Làm nhiệm vụ»
             val vi = if (ht.trangThai == TrangThai.HET_GIO.name && !duyet) vn.aiilab.aiigrow.maycon.logic.tieuDeKhoaGioiHan(ht.lyDoKhoa) else null
             val hetSao = ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && !duyet && vi == null
+            val xinSao = hetSao || vi != null
             nutXin.text = when {
                 duyet -> "Xin Ba Mẹ mở ${DoPhut.tenApp(c, goiChan!!)}"
-                hetSao || vi != null -> "Xin Ba Mẹ cho vay sao"
+                xinSao -> "Xin Ba Mẹ cho vay sao"
                 else -> "Xin Ba Mẹ mở máy"
             }
-            val xinSao = hetSao || vi != null
             if (xinSao != xinPhu) { xinPhu = xinSao; Diu.chon(c, nutXin, !xinSao) }
             // máy chủ cũ (chưa có sổ sao) và không phải app ngoài danh sách: không còn gì để xin (đã gỡ xin thêm giờ / ngoại lệ) ⇒ ẩn nút; còn «Ba Mẹ mở máy» / mã offline
             nutXin.visibility = if (duyet || ht.coSao) View.VISIBLE else View.GONE
