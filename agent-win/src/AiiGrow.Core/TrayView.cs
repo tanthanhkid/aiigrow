@@ -105,6 +105,9 @@ public static class TrayView
         return t.Length > 0 && !t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && (t.Contains(' ') || t.Any(c => char.IsUpper(c) || c > 127));
     }
 
+    /// <summary>#307: có bé đăng nhập THẬT trên máy dùng chung (chân «… đang dùng», «Đổi người») — chưa ai đăng nhập / máy riêng / chưa rõ ⇒ false.</summary>
+    public static bool DangDungMayChung(TrayState s) => s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng && !string.IsNullOrEmpty(s.BeId);
+
     /// <summary>Tên «Không tính phút» / «Tính phút» để hiện: tên dịch vụ đã giải nếu đủ, không thì mục.</summary>
     public static IReadOnlyList<string> TenKhongTinh(TrayState s) => s.TenAppDuocPhep.Count == s.AppDuocPhep.Count && s.TenAppDuocPhep.Count > 0 ? s.TenAppDuocPhep : s.AppDuocPhep;
     public static IReadOnlyList<string> TenTinh(TrayState s) => s.TenAppTinhPhut.Count == s.AppTinhPhut.Count && s.TenAppTinhPhut.Count > 0 ? s.TenAppTinhPhut : s.AppTinhPhut;

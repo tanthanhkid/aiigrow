@@ -20,8 +20,13 @@ internal sealed class XinThemForm : HopKhayCoBan
     private readonly TextBox _note = new() { Font = UI.F(11f), MaxLength = XinMoView.LoiNhanToiDa, ForeColor = UI.Ink, PlaceholderText = XinThemView.GoiYNhan };
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
     private string? _id;
+    /// <summary>Đã gửi lời xin (máy chủ nhận / đang chờ) — chặn gửi trùng kể cả khi máy chủ không trả id.</summary>
+    private bool _daGui;
     private bool _busy;
     private Label? _msg;
+
+    /// <summary>Tên app đang xin (đã giải) — khay chỉ chặn popup kết quả của đúng lời xin này.</summary>
+    public string Ten => _ten;
 
     /// <summary>Mục đang xin (exe / tên miền) — khay không mở thêm màn chặn cho đúng mục này khi hộp đang mở.</summary>
     public string Muc => _muc;
@@ -31,11 +36,11 @@ internal sealed class XinThemForm : HopKhayCoBan
     /// <summary>Đã gửi được lời xin (mục) — khay ghi nhớ để không tự gửi lặp.</summary>
     public event Action<string>? DaXin;
 
-    public XinThemForm(string muc, string? ten, double? phutCon, bool web = false) : base(XinThemView.TieuDeCuaSo, UI.Px(380))
+    public XinThemForm(string muc, string? ten, double? phutCon) : base(XinThemView.TieuDeCuaSo, UI.Px(380))
     {
         _muc = muc.Trim();
         _ten = TrayView.FriendlyAppName(muc, ten);
-        _web = web;
+        _web = BlockedForm.LaTrangWeb(_muc);
         _phutCon = phutCon;
         _poll.Tick += async (_, _) => await PollAsync();
         FormClosed += (_, _) => { _poll.Dispose(); if (_note.Parent == null) _note.Dispose(); };
@@ -77,7 +82,7 @@ internal sealed class XinThemForm : HopKhayCoBan
         var gui = KhoiCon.Nut(XinThemView.Nut(_ten), true, W, "tin");
         gui.Click += async (_, _) => await GuiAsync(gui);
         // quay lại từ «Đã gửi» khi lời xin còn chờ ⇒ không cho gửi trùng
-        if (_id != null) { gui.Enabled = false; gui.Text = XinThemView.DangCho; }
+        if (_daGui) { gui.Enabled = false; gui.Text = XinThemView.DangCho; }
         Flow.Controls.Add(gui);
         _msg = UI.Text("", 10f, true, UI.Error, W);
         Flow.Controls.Add(_msg);
@@ -106,7 +111,8 @@ internal sealed class XinThemForm : HopKhayCoBan
             Xong();
             return;
         }
-        _id = r.Id;
+        _id = string.IsNullOrEmpty(r.Id) ? null : r.Id;
+        _daGui = true;
         var kq = KetQuaXinView.Doc(r.KetQua?.KetQua, r.Status);
         if (kq != KetQuaXinView.Loai.Cho) { VeKetQua(kq, r.KetQua); return; }
         VeDaGui();
@@ -146,10 +152,11 @@ internal sealed class XinThemForm : HopKhayCoBan
     {
         _poll.Stop();
         _id = null;
+        _daGui = false;
         switch (kq)
         {
-            case KetQuaXinView.Loai.DaThem: VeDaThem(s, s?.MoTam?.Phut); break;
-            case KetQuaXinView.Loai.MoTam: VeDaThem(s, s?.MoTam?.Phut ?? 0); break;
+            case KetQuaXinView.Loai.DaThem: VeDaThem(s, false); break;
+            case KetQuaXinView.Loai.MoTam: VeDaThem(s, true); break;
             case KetQuaXinView.Loai.ChuaThem: VeChuaThem(s); break;
             default:
                 VeXin();
@@ -159,16 +166,16 @@ internal sealed class XinThemForm : HopKhayCoBan
     }
 
     /// <summary>them-359v1pre (mở tạm: «Mẹ Lan cho mở 30 phút!»).</summary>
-    private void VeDaThem(RequestStatus? s, int? moTamPhut)
+    /// <param name="moTam">Kết quả đã tính (<see cref="KetQuaXinView.Loai.MoTam"/>) — không đọc lại s.KetQua.</param>
+    private void VeDaThem(RequestStatus? s, bool moTam)
     {
         Xoa();
         Text = "AiiGrow · Ba Mẹ trả lời";
         var khong = s?.Nhom == "khong_tinh_phut";
         var biet = s?.Nhom is "khong_tinh_phut" or "tinh_phut";   // máy chủ không gửi nhóm ⇒ không đoán, không hiện chip nhóm
-        var moTam = s?.KetQua == "mo_tam";
         var cot = new List<Control>
         {
-            KhoiXin.Chip(moTam ? XinThemView.MoTam(s?.TenNguoiDuyet, moTamPhut ?? 0) : XinThemView.DaThem(s?.TenNguoiDuyet), Clay.NgocSoft, Clay.NgocInk, "tick"),
+            KhoiXin.Chip(moTam ? XinThemView.MoTam(s?.TenNguoiDuyet, s?.MoTam?.Phut ?? 0) : XinThemView.DaThem(s?.TenNguoiDuyet), Clay.NgocSoft, Clay.NgocInk, "tick"),
             KhoiXin.Chu(_ten, 22f, true, UI.GreenDark),
         };
         if (moTam) cot.Add(KhoiXin.Chu(KetQuaXinView.MoTamPhu(_ten, s?.MoTam?.Den), 10f, true, Clay.Chu2));
@@ -198,13 +205,5 @@ internal sealed class XinThemForm : HopKhayCoBan
         Xong();
     }
 
-    private void MoMuc()
-    {
-        try
-        {
-            var dich = _web ? (_muc.Contains("://") ? _muc : "https://" + _muc) : _muc;
-            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dich) { UseShellExecute = true });
-        }
-        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
-    }
+    private void MoMuc() => BlockedForm.MoMuc(_muc, _web);
 }

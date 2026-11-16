@@ -69,6 +69,15 @@ public class KhopBan307Tests
         Assert.Equal(ManKhoaView.ChanTrang("", false), ManKhoaView.ChanTrang("", true));
     }
 
+    [Fact]
+    public void DangDungMayChung_ChiKhiCoBeDangNhapThat()
+    {
+        Assert.True(TrayView.DangDungMayChung(new TrayState { NguoiDung = LoaiNguoiDung.Con, BeId = "c1" }));
+        Assert.False(TrayView.DangDungMayChung(new TrayState { NguoiDung = LoaiNguoiDung.Con }));            // chưa ai đăng nhập (DungChung chưa rõ)
+        Assert.False(TrayView.DangDungMayChung(new TrayState { NguoiDung = LoaiNguoiDung.Con, BeId = "c1", MayRieng = true }));
+        Assert.False(TrayView.DangDungMayChung(new TrayState { NguoiDung = LoaiNguoiDung.BaMe, BeId = "c1" }));
+    }
+
     [Theory]
     [InlineData(LockReasons.Khoa, true)]
     [InlineData(LockReasons.Ngu, false)]

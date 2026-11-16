@@ -121,7 +121,9 @@ internal static class ChupMain
         // 15/11 «Sắp hết sao» (đếm ngược) → «Hết sao rồi» (không khoá máy) · mất mạng hết sao (cmt-khoa-mat-mang) · nhắc «Còn 5 sao»
         await Mot("het-sao-dem-nguoc", () => ManHetSao("het-sao-dem-nguoc", HetSaoView.For(45, "Roblox", TrayView.TenKhongTinh(TrangThai()), false), 45));
         await Mot("het-sao", () => ManHetSao("het-sao", HetSaoView.For(null, null, new[] { "Từ điển", "Học với AiiRob" }, false), null));
-        await Mot("het-sao-doi-be", () => ManHetSao("het-sao-doi-be", HetSaoView.For(null, null, new[] { "Từ điển", "Học với AiiRob" }, true), null, "Bảo Anh"));
+        await Mot("het-sao-doi-be", () => ManHetSao("het-sao-doi-be", HetSaoView.For(null, null, new[] { "Từ điển", "Học với AiiRob" }, true), null, "Bảo Anh",
+            // cùng tín hiệu với khay: bé đăng nhập thật trên máy dùng chung
+            dangDung: TrayView.DangDungMayChung(TrangThai(s => { s.BeId = "c1"; s.MayRieng = false; }))));
         await Mot("het-sao-mat-mang", () => ManHetSao("het-sao-mat-mang", ManKhoaView.For(null, "Bảo Anh", offline: true, hetSao: true), null));
         await Mot("nhac-5-sao", () => ManHop("nhac-5-sao", () => new NhacSaoForm(5, "Roblox")));
         await Mot("hoi-aiigrow", () => ManHop("hoi-aiigrow", () => new HoiAiiGrowForm()));
@@ -434,7 +436,7 @@ internal static class ChupMain
     }
 
     /// <summary>Màn «Sắp hết sao» / «Hết sao» (LockForm chỉ báo — không khoá máy) với nội dung dựng sẵn.</summary>
-    private static async Task ManHetSao(string ten, ManKhoa m, int? giay, string tenCon = "Bảo Anh")
+    private static async Task ManHetSao(string ten, ManKhoa m, int? giay, string tenCon = "Bảo Anh", bool dangDung = false)
     {
         var f = new LockForm(chiBao: true);
         f.WindowState = FormWindowState.Normal;
@@ -442,7 +444,7 @@ internal static class ChupMain
         try
         {
             f.Show();
-            f.ApHetSao(m, tenCon, giay, DateTimeOffset.Now.AddMinutes(-20), dangDung: m.Nut.Any(n => n.Ma == HetSaoView.DoiBe));
+            f.ApHetSao(m, tenCon, giay, DateTimeOffset.Now.AddMinutes(-20), dangDung: dangDung);
             await Cho(1500);
             Chup(f, ten);
         }

@@ -296,7 +296,7 @@ internal sealed class BlockedForm : Form
     }
 
     /// <summary>Mục là tên miền (y8.com) chứ không phải app (.exe / gói Store).</summary>
-    private static bool LaTrangWeb(string muc) => muc.Contains('.') && !muc.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+    internal static bool LaTrangWeb(string muc) => muc.Contains('.') && !muc.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
 
     private void ThemNutVeHomNay(bool chinh, string? icon = null, string? chu = null)
     {
@@ -379,12 +379,15 @@ internal sealed class BlockedForm : Form
     }
 
     /// <summary>«Mở …» sau khi Ba Mẹ cho: web ⇒ mở trang trong trình duyệt mặc định; app ⇒ thử chạy theo tên (App Paths). Không được thì thôi (Con mở lại như thường).</summary>
-    private void MoMuc()
+    private void MoMuc() => MoMuc(_appId, _web);
+
+    /// <summary>Mở app / trang sau khi Ba Mẹ cho (dùng chung với XinThemForm): web ⇒ trình duyệt mặc định; app ⇒ chạy theo tên (App Paths). Lỗi thì thôi.</summary>
+    internal static void MoMuc(string? muc, bool web)
     {
-        if (string.IsNullOrEmpty(_appId)) return;
+        if (string.IsNullOrEmpty(muc)) return;
         try
         {
-            var dich = _web ? (_appId.Contains("://") ? _appId : "https://" + _appId) : _appId;
+            var dich = web ? (muc.Contains("://") ? muc : "https://" + muc) : muc;
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(dich) { UseShellExecute = true });
         }
         catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
