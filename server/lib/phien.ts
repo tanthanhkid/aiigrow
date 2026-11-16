@@ -75,6 +75,10 @@ export async function xetMoPhien(con: string, mucTho: string, o: { gioMaySai?: b
   if (o.mayId && (await t(`select 1 from play_sessions where device_id = $1 and child_id <> $2 and trang_thai in ('chay', 'tam') limit 1`, [o.mayId, con])).length)
     return { duoc: false, lyDo: "may_dang_choi" };
   const qy = await quyHomNay(con, now, t);
+  // #302: hết giới hạn ngày / đang nghỉ giữa hai lượt (còn sao) ⇒ lý do riêng (màn Con nói đúng chữ); hết sao ⇒ het_gio như cũ
+  if (qy.conPhut <= 0 && !qy.soSao.hetSao && qy.gioiHan.lyDoKhoa === "dang_nghi")
+    return { duoc: false, lyDo: "dang_nghi", nghiDen: qy.gioiHan.nghiDen ?? undefined, moLai: qy.gioiHan.nghiDenGio ?? undefined, soDu: await soDu(con, t) };
+  if (qy.conPhut <= 0 && qy.gioiHan.lyDoKhoa === "het_gio_ngay") return { duoc: false, lyDo: "dat_tran_ngay", soDu: await soDu(con, t) };
   if (qy.conPhut <= 0) return { duoc: false, lyDo: "het_gio", soDu: await soDu(con, t) };
   const du = await soDu(con, t);
   const phutToiDa = Math.max(1, Math.min(qy.conPhut, qy.phutToiNgu, qy.phutToiHoc ?? Infinity));
@@ -158,6 +162,7 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
     }
     const g = gioDiaPhuong(now, b.tz);
     let toiDa = p.toi_da_phut;
+    let nghiGioiHan: string | null = null;                  // #302: lượt đủ phút ⇒ phiên kết thúc, nghỉ tới giờ này
     if (!ket && (b.khoa || khoaMayHieuLuc(p, now))) ket = "ba_me_khoa";   // + khoá riêng máy của phiên (14/11)
     if (!ket && trongKhung(g.phut, b.lich.ngu)) ket = "gio_ngu";
     if (!ket && trongGioHoc(b.lich.hoc, g.thu, g.phut)) ket = "gio_hoc";
@@ -168,12 +173,14 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
       const conLai = qy.conPhut;
       toiDa = Math.max(0, Math.round((phutDung + Math.max(0, Math.min(conLai, qy.phutToiNgu, qy.phutToiHoc ?? Infinity))) * 100) / 100);
       if (conLai <= 0) ket = "het_thoi_gian";
+      if (conLai <= 0 && qy.gioiHan.dangNghi) nghiGioiHan = qy.gioiHan.nghiDen;
     }
     // hết điểm cho phút kế (tính cả phần lẻ đang nợ) và không còn phút thưởng ⇒ dừng
     if (!ket && p.gia_phan_nghin > 0 && (await soDu(con, t)) * 1000 - (phanNghin - diemTru * 1000) < p.gia_phan_nghin
         && (await conThuongHomNay(t, con, g.ngay, b.tz)) - (phutThuong - p.phut_thuong) <= 0) ket = "het_diem";
     const trangThai = ket ? "ket_thuc" : dangDung ? "chay" : "tam";
-    const nghiDen = null as Date | null;          // 05/11: không còn nghỉ giữa hai phiên (cột giữ cho lịch sử)
+    // 05/11: không còn nghỉ giữa hai phiên theo tham số cũ; #302: nghỉ giữa hai LƯỢT (giới hạn mỗi lượt) ghi vào cột cũ — agent cũ hiện «nghỉ tới»
+    const nghiDen = nghiGioiHan ? new Date(nghiGioiHan) : null;
     if (ket) {
       const le = Math.ceil(phanNghin / 1000) - diemTru;                // phần lẻ cuối phiên làm tròn lên
       if (le > 0) { const du = await soDu(con, t); const tru = Math.min(le, du); if (tru > 0) await ghiDiem(t, con, -tru, "phien", `Chơi ${p.muc}`, { ref: p.id }); diemTru += tru; }
@@ -222,8 +229,8 @@ export function lyDoChu(x: XetPhien): string {
     case "gio_may_sai": return "Giờ máy không đúng, hãy nhờ Ba Mẹ";
     case "gio_ngu": return "Đến giờ ngủ rồi — mai chơi tiếp nhé";
     case "ngoai_khung": return "Bây giờ chưa phải giờ chơi";
-    case "dang_nghi": return `Nghỉ chút nhé — mở lại lúc ${x.nghiDen ? new Date(x.nghiDen).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "sau"}`;
-    case "dat_tran_ngay": return "Hôm nay con đã chơi đủ giờ rồi";
+    case "dang_nghi": return `Nghỉ một chút · chơi tiếp lúc ${x.moLai ?? (x.nghiDen ? new Date(x.nghiDen).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "sau")}`;
+    case "dat_tran_ngay": return "Hôm nay con đã chơi đủ giờ rồi — mai chơi tiếp nhé";
     case "dat_tran_tuan": return "Tuần này con đã chơi đủ giờ rồi";
     case "het_diem": return "Con chưa đủ sao — làm nhiệm vụ để có thêm sao nhé";
     case "het_gio": return "Con hết sao rồi (0 sao) — làm nhiệm vụ hoặc xin Ba Mẹ cho vay sao nhé";

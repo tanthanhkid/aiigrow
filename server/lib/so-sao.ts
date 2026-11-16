@@ -165,9 +165,11 @@ export async function choVay(fam: string, con: string, soSao: unknown, nguoi: st
     const id = newId();
     const ten = o.mucDich === "qua" && o.quaId ? (await t<{ ten: string }>(`select ten from rewards where id = $1 and family_id = $2`, [o.quaId, fam]))[0]?.ten : null;
     const lyDo = `Ba Mẹ cho vay ${n} sao${o.mucDich === "qua" ? ` · đổi quà${ten ? ` ${ten}` : ""}` : o.mucDich === "choi" ? " · chơi" : ""}`;
-    await t(`insert into points(id, child_id, delta, loai, ly_do, ref, nguoi, created_at) values ($1,$2,$3,'vay',$4,$5,$6,$7)`,
-      [id, con, n, lyDo.slice(0, 120), o.yeuCau ?? id, nguoi, now]);
+    await t(`insert into points(id, child_id, delta, loai, ly_do, ref, nguoi, created_at, muc_dich) values ($1,$2,$3,'vay',$4,$5,$6,$7,$8)`,
+      [id, con, n, lyDo.slice(0, 120), o.yeuCau ?? id, nguoi, now, o.mucDich ?? null]);
     const noSau = noTruoc + n;
+    // #302: vay để chơi kết thúc lượt nghỉ (lib/gioi-han-choi.ts) ⇒ bỏ giờ nghỉ đang ghi ở phiên
+    if (o.mucDich !== "qua") await t(`update play_sessions set nghi_den = null where child_id = $1 and nghi_den > $2`, [con, now]);
     await ghiSuKien(fam, "cho_vay", { so_sao: n, muc_dich: o.mucDich ?? null, no_truoc: noTruoc, no_sau: noSau, ...(o.yeuCau ? { yeu_cau: o.yeuCau } : {}),
       ...(o.quaId ? { qua: o.quaId } : {}) }, { con, nguoi }, t);
     const canh = await canhBaoNoNeuCan(t, fam, con, id, noTruoc, noSau, n, nguoi);

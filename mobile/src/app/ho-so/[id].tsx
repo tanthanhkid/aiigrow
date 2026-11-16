@@ -1,6 +1,6 @@
 // bm2-ho-so «Hồ sơ con» (thiết kế chốt 15/11 #264/#266, bm-gio-ho-so/04): chip đổi con (N9); thẻ đầu ảnh + tên + «9 tuổi · 2 máy» + viên sao (âm = viên
 // cảnh báo — lib/so-sao), ô «Hôm nay chơi 42 phút = 42 sao» + «Đang nợ Ba Mẹ 20 sao» + «Xem ›» (⇒ con dùng gì hôm nay); «Cài đặt của X»: «Sao & phút chơi ·
-// 1 sao = 1 phút» (⇒ Ví sao — màn Giờ chơi bm2-gio đã bỏ), App & web (15/11 #262: bỏ Giờ ngủ, Giờ học)
+// 1 sao = 1 phút» (⇒ Ví sao — màn Giờ chơi bm2-gio đã bỏ), #302 «Giờ chơi» (giới hạn ngày + mỗi lượt ⇒ /ho-so/<id>/gio-choi), App & web (15/11 #262: bỏ Giờ ngủ, Giờ học)
 // («Theo danh sách» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
 // PIN vào máy (Đặt lại) · «Xoá hồ sơ X» (⇒ /ho-so/<id>/xoa, them-canktzlq). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
 import { cheDoTu } from "@/lib/app-web";
@@ -14,6 +14,7 @@ import { cauNo, chuVien, saoTu, soVN, VienSao, type SaoCon } from "@/lib/so-sao"
 import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
 import { saoChep } from "@/lib/luu-tep";
 import { DaiCon } from "@/lib/ui-viec";
+import { tomTatGioiHan } from "@/lib/gioi-han";
 import { KHOI, MEN } from "@/lib/clay";
 
 type Luat = { ds: LuatDem[] };
@@ -21,14 +22,18 @@ type Luat = { ds: LuatDem[] };
 export default function HoSoCon() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [con, g, nv, quyen, luat] = await Promise.all([
+    const [con, g, nv, quyen, luat, gc] = await Promise.all([
       bm.goi<ConCt>(`con/${id}`), bm.goi<GiaDinh>("gia-dinh"),
       bm.goi<{ ds: NhiemVuMoi[] }>("nhiem-vu").catch(() => null), quyenToi(),
       bm.goi<Luat>("luat").catch(() => null),
+      bm.goi<{ gioiHanNgayThuong?: number; gioiHanCuoiTuan?: number; phutMoiLuot?: number }>(`con/${id}/gio-choi`).catch(() => null),
     ]);
     // «Được mở N app»: luật Xanh / Vàng (hoc, giai_tri, cho_phep) của con này hoặc chung cả nhà (N3)
     const duocMo = luat ? soAppDuocMo(luat.ds, id) : null;
-    return { con, g, nv: nv?.ds.filter((x) => x.bat && (!x.giao_cho || x.giao_cho === id)) ?? null, trongGiup: quyen === "trong_giup", duocMo };
+    // #302: giới hạn ngày + mỗi lượt (máy chủ cũ không có trường ⇒ ẩn hàng «Giờ chơi»)
+    const gioiHan = gc && gc.gioiHanNgayThuong !== undefined
+      ? { ngayThuong: gc.gioiHanNgayThuong, cuoiTuan: gc.gioiHanCuoiTuan ?? 0, moiLuot: gc.phutMoiLuot ?? 0 } : null;
+    return { con, g, nv: nv?.ds.filter((x) => x.bat && (!x.giao_cho || x.giao_cho === id)) ?? null, trongGiup: quyen === "trong_giup", duocMo, gioiHan };
   });
   // M6: mã liên kết AiiRob «<family_id>.<child_id>» — thiết kế 05/11 không nói ⇒ giữ (không có mã thì Ba Mẹ không nối được AiiRob).
   // Tải riêng: lỗi thì chỉ ẩn mục này, không hỏng cả màn.
@@ -80,6 +85,8 @@ export default function HoSoCon() {
       <The dem style={{ paddingVertical: 4 }}>
         {/* thiết kế .lg: tên mục bên trái, giá trị (1–2 dòng nhỏ) canh phải + › */}
         <HangViec dau ic="dongho" mau="cam" tieu="Sao & phút chơi" phai={<GiaPhai tren="1 sao = 1 phút" />} bam={() => router.push(`/vi/${id}` as never)} />
+        {d.gioiHan ? <HangViec ic="dong_ho_cat" mau="cam" tieu="Giờ chơi" phai={<GiaPhai {...tomTatGioiHan(d.gioiHan)} />}
+          bam={() => router.push(`/ho-so/${id}/gio-choi` as never)} /> : null}
         <HangViec ic="khien" mau="lam" tieu="App & web"
           phai={<GiaPhai tren={cheDoTu(c) === "mo_het" ? "Mở hết" : "Theo danh sách"} duoi={cheDoTu(c) === "mo_het" ? "Không tính phút" : d.duocMo !== null ? `Được mở ${d.duocMo} app` : undefined} />}
           bam={() => router.push(`/app-web?con=${id}` as never)} />

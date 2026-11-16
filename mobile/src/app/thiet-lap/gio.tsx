@@ -3,6 +3,8 @@
 // Hết sao → app tự khoá, con xin Ba Mẹ cho vay sao), Grow nói «Không còn giờ chơi miễn phí mỗi ngày: 1 sao = 1 phút…».
 // «Tiếp: chọn app cho con» ⇒ /thiet-lap/app (Mở hết / Theo danh sách + app) ⇒ Web ⇒ lưu một lần (POST thiet-lap {saoKhoiDau} — lib/thiet-lap › thanThietLap; máy chủ tặng một lần).
 // Giờ ngủ (bước cũ) không còn ở màn này theo thiết kế 15/11 — thiet-lap gửi giờ ngủ đang có / mặc định như trước.
+// #302 (16/11): thêm «<Con> chơi bao lâu mỗi ngày?» — GIỚI HẠN TỐI ĐA mỗi ngày (30p / 60p / 90p / Tự chọn, kèm T7–CN; mặc định 60 · 90) + «Mỗi lượt
+// tối đa» (chơi đủ lượt thì nghỉ đúng chừng đó phút) — lib/gioi-han-ui › ChonGioiHan; gửi kèm POST thiet-lap (gioiHanNgayThuong, gioiHanCuoiTuan, phutMoiLuot).
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, Text, View } from "react-native";
@@ -12,6 +14,8 @@ import { SAO_KHOI_DAU, SAO_KHOI_DAU_MD } from "@/lib/so-sao";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { RobNoi } from "@/lib/ui-bm3";
 import { datTl, layTl } from "@/lib/thiet-lap";
+import { GIOI_HAN_MD, type GioiHan } from "@/lib/gioi-han";
+import { ChonGioiHan } from "@/lib/gioi-han-ui";
 import { Chu, F, Icon3D, M, Man, Nut, type TenIcon } from "@/lib/ui";
 
 const LUAT: [TenIcon, string, string][] = [
@@ -25,13 +29,16 @@ export default function ObGio() {
   const tl = layTl();
   const ten = tl.tenCon ?? "con";
   const [sao, setSao] = useState<number>(tl.saoKhoiDau ?? SAO_KHOI_DAU_MD);
+  const [gh, setGh] = useState<GioiHan>(tl.gioiHan ?? GIOI_HAN_MD);
+  const [ghLoi, setGhLoi] = useState<string | null>(null);
   const chon = (n: number) => { setSao(n); datTl({ saoKhoiDau: n }); };
-  const tiep = () => { datTl({ saoKhoiDau: sao }); router.push("/thiet-lap/app"); };
+  const doiGh = (g: GioiHan, loi: string | null) => { setGh(g); setGhLoi(loi); if (!loi) datTl({ gioiHan: g }); };
+  const tiep = () => { datTl({ saoKhoiDau: sao, gioiHan: gh }); router.push("/thiet-lap/app"); };
   const oChip = (on: boolean) => ({ flex: 1, minWidth: 0, height: 68, borderRadius: 22, alignItems: "center" as const, justifyContent: "center" as const, gap: 2,
     backgroundColor: on ? M.chinh : "#fff", boxShadow: on ? `0px 0px 0px 3px #fbe9c4, 0px 0px 0px 5px ${M.chinh}` : BONG.nho });
   return (
     <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={3} />} />}
-      day={<Nut chu="Tiếp: chọn app cho con" rong bam={tiep} />}>
+      day={<Nut chu="Tiếp: chọn app cho con" rong tat={!!ghLoi} bam={tiep} />}>
       <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 25, lineHeight: 30, letterSpacing: -0.5, color: M.chu }}>{`${ten} chơi máy\nbằng sao tự kiếm`}</Text>
       <View style={{ borderRadius: 30, backgroundColor: "#fdecc8", backgroundImage: "linear-gradient(160deg, #fff4dc, #fbe3b4)", padding: 16, gap: 12, ...KHOI.the }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
@@ -63,8 +70,10 @@ export default function ObGio() {
           ))}
         </View>
       </View>
+      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 20, lineHeight: 26, letterSpacing: -0.3, color: M.chu, marginTop: 4 }}>{`${ten} chơi máy bao lâu mỗi ngày?`}</Text>
+      <ChonGioiHan gt={gh} doi={doiGh} />
       <RobNoi lv="rob-goc">
-        <Chu kieu="dam" co={14}>Không còn giờ chơi miễn phí mỗi ngày: 1 sao = 1 phút. App học để «Không tính phút» thì không trừ sao.</Chu>
+        <Chu kieu="dam" co={14}>Không còn giờ chơi miễn phí mỗi ngày: 1 sao = 1 phút, và không quá giới hạn Ba Mẹ đặt. App học để «Không tính phút» thì không trừ sao.</Chu>
       </RobNoi>
     </Man>
   );

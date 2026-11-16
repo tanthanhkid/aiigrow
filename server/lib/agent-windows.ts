@@ -52,6 +52,8 @@ export type PolicyWindows = {
   /** Phút chơi còn lại hôm nay (mọi app Giải trí dùng chung). Agent đếm lùi khi app trong `appTinhGio` (hoặc trình duyệt đang mở trang Giải trí) ở
    *  tiền cảnh + màn hình mở; về 0 ⇒ bỏ các app đó khỏi allowedApps tới lần đồng bộ kế. Không gửi = máy dùng chung chưa chọn Con. */
   quyConPhut?: number;
+  /** #302: giới hạn ngày + mỗi lượt (đang nghỉ tới / hết giờ hôm nay + câu màn khoá) — chỉ gửi khi có giới hạn */
+  gioiHan?: Policy["gioiHan"];
   /** Quỹ của hôm nay (đã cộng thêm giờ / đổi sao) — khay hiện «Đã chơi X / Y phút». */
   quyTongPhut?: number;
   quyDaDung?: number;
@@ -179,7 +181,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     minutesLeft: null,
     // 05/11: `conThuong` (= quỹ còn) KHÔNG làm nhịp dày cả ngày — chỉ phiên / đang mở / quỹ sắp hết (≤ 10 phút) mới 30–60 giây
     nextCheckSec: nhipToiKhoaLai(Math.min(nhipDongBo({ coPhien: !!p.phien, moDen: den, now }),
-      quyMo && p.quy!.conPhut <= 10 ? 60 : Infinity), [p.khoaLaiLuc, p.khoaHetLuc, ...nl.map((x) => x.den)], now),
+      quyMo && p.quy!.conPhut <= 10 ? 60 : Infinity), [p.khoaLaiLuc, p.khoaHetLuc, p.gioiHan?.nghiDen, ...nl.map((x) => x.den)], now),
     canExchangePoints: p.soDu > 0 || (mo.conThuong ?? 0) > 0,
     // số sao của Con — màn khoá / nhắc 5 phút của khay «con có 30 sao» (agent-win Policy.Sao). 15/11: số dư Con thấy, ÂM khi đang nợ
     ...(p.con ? { sao: p.sao?.sao ?? p.soDu } : {}),
@@ -193,6 +195,8 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
     ...(nl.length && khoaGoc ? { khoaKhiHetNgoaiLe: p.khoaNgay ? "khoa" as const : "ngu" as const } : {}),
     playChoices: [...new Set(p.luat.filter((l) => l.loai === "giai_tri" && (laApp(l.muc) || kieuMuc(l.muc.toLowerCase()) === "web")).map((l) => (laApp(l.muc) ? chuan(l.muc) : l.muc.toLowerCase())))].sort().slice(0, 40),   // 40: đủ mọi mục Giải trí thường gặp (khay cuộn); agent chỉ nhận mục trong danh sách này
     ...(cheDo ? { cheDo } : {}),
+    // #302: giới hạn ngày + mỗi lượt — quyConPhut đã kẹp theo giới hạn (agent cũ khoá đúng); khối này cho chữ màn khoá / giờ mở lại
+    ...(p.gioiHan?.apDung ? { gioiHan: p.gioiHan } : {}),
     ...(laMoHet(p) ? { moHet: true } : {}),
     ...(maOfflineBiMat ? { maOfflineBiMat } : {}),
     // play* CHỈ cho máy sở hữu phiên (mo.phienTien do api-may đặt khi play_sessions.device_id = máy này) — Con có 2 PC thì PC kia không đếm.

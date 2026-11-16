@@ -11,7 +11,9 @@ import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, lichCua, thamSo, type GioHoc, type Lich, type ThamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan, phutCua, trongKhung, type Khung } from "./gio.ts";
 import { khoaSo } from "./luat-app.ts";
-import { choVay, hoanTacVay, phutDaTruHomNay, trangThaiSao, type TrangThaiSao } from "./so-sao.ts";
+import { ghiSuKien } from "./nhat-ky.ts";
+import { cauSao, choVay, hoanTacVay, phutDaTruHomNay, trangThaiSao, type TrangThaiSao } from "./so-sao.ts";
+import { cauHinhCua, gioiHanCua, MUC_LUOT, MUC_NGAY, GH_LUOT, GH_NGAY, moTaGioiHan, phanGhi, type GioiHanChoi } from "./gioi-han-choi.ts";
 
 /** 1 sao = 1 phút (giữ tên hàm cũ cho nơi gọi cũ). */
 export const saoChoPhut = (_ts: unknown, phut: number) => Math.ceil(phut);
@@ -27,13 +29,13 @@ const toiMoc = (phut: number, hhmm: string) => ((phutCua(hhmm) - phut + 1440) % 
 /** Phút tới giờ ngủ — giờ ngủ «tắt» (tu = den, #258) ⇒ 1440 (không có mốc nào). */
 const toiNgu = (phut: number, k: Khung) => (k.tu === k.den ? 1440 : toiMoc(phut, k.tu));
 
-export type BoiCanhCon = { fam: string; tz: string; ts: ThamSo; lich: Lich; cfg: Record<string, unknown> };
+export type BoiCanhCon = { fam: string; tz: string; ts: ThamSo; lich: Lich; cfg: Record<string, unknown>; moHet?: boolean };
 
 export async function boiCanhCon(con: string, t: Q = q): Promise<BoiCanhCon> {
-  const r = (await t<{ family_id: string; tz: string; fcfg: Record<string, unknown>; ccfg: Record<string, unknown>; lich: Record<string, unknown> }>(
-    `select c.family_id, f.tz, f.cau_hinh as fcfg, c.cau_hinh as ccfg, c.lich from children c join families f on f.id = c.family_id where c.id = $1`, [con]))[0];
+  const r = (await t<{ family_id: string; tz: string; fcfg: Record<string, unknown>; ccfg: Record<string, unknown>; lich: Record<string, unknown>; che_do_chan: string | null }>(
+    `select c.family_id, f.tz, f.cau_hinh as fcfg, c.cau_hinh as ccfg, c.lich, c.che_do_chan from children c join families f on f.id = c.family_id where c.id = $1`, [con]))[0];
   if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  return { fam: r.family_id, tz: r.tz, ts: thamSo(r.fcfg, r.ccfg), lich: lichCua(r.lich as never), cfg: r.ccfg ?? {} };
+  return { fam: r.family_id, tz: r.tz, ts: thamSo(r.fcfg, r.ccfg), lich: lichCua(r.lich as never), cfg: r.ccfg ?? {}, moHet: r.che_do_chan === "mo_het" };
 }
 
 /** Phút Giải trí đã dùng hôm nay trên mọi máy. Mỗi máy lấy LỚN HƠN của (phút phiên chơi cũ mở trên máy đó) và (phút app Giải trí agent báo
@@ -80,29 +82,53 @@ export type Quy = {
   /** (cũ) được xin thêm giờ — nay luôn true: lời xin thêm giờ là lời xin vay sao */ choXinThem: boolean;
   /** 15/11: sổ sao — số dư (âm được), nợ, phút còn chơi (= sao tiêu được), hết sao */ soSao: TrangThaiSao;
   /** 15/11: phút đã trừ sao hôm nay (1 sao = 1 phút) */ phutTruHomNay: number;
+  /** #302: giới hạn ngày + mỗi lượt (lib/gioi-han-choi.ts). conPhut ở trên ĐÃ kẹp theo giới hạn: min(sao tiêu được, còn trong ngày, còn trong lượt),
+   *  0 khi đang nghỉ / hết giới hạn ngày ⇒ mọi nơi khoá theo conPhut (agent cũ, phiên, khay) khoá luôn theo giới hạn. */
+  gioiHan: GioiHanChoi;
 };
 
 /** «Giờ chơi» của Con lúc này — một chỗ tính cho Policy agent, màn Con, khay Windows, app Ba Mẹ. Không còn quỹ ngày: còn = số sao tiêu được. */
 export async function quyHomNay(con: string, now = new Date(), t: Q = q, b0?: BoiCanhCon): Promise<Quy> {
   const b = b0 ?? (await boiCanhCon(con, t));
   const g = gioDiaPhuong(now, b.tz);
-  const [st, dung, tru] = await Promise.all([trangThaiSao(con, t), phutDaDung(t, con, b.fam, g.ngay, b.tz), phutDaTruHomNay(t, con, b.tz, now)]);
+  const [st, dung, tru, gh0] = await Promise.all([trangThaiSao(con, t), phutDaDung(t, con, b.fam, g.ngay, b.tz), phutDaTruHomNay(t, con, b.tz, now),
+    gioiHanCua(t, con, b.cfg, b.tz, { moHet: !!b.moHet }, now)]);
   // daDung ≥ phút đã trừ sao (phút dùng lúc «Mở hết» / trước khi có sao vẫn tính vào «đã dùng» để agent cũ đếm đúng phần còn)
   const daDung = Math.max(dung, tru);
+  // lý do khoá cho máy Con: hết giới hạn ngày THẮNG hết sao (có sao hôm nay cũng không chơi được); đang nghỉ CHỈ khi còn sao thật —
+  // hết sao thì máy nói «Hết sao rồi» + «Làm nhiệm vụ» (nghỉ xong vẫn không chơi được)
+  const gh = gh0.lyDoKhoa === "dang_nghi" && st.hetSao ? { ...gh0, lyDoKhoa: null, cau: null } : gh0;
+  const conPhut = gh.phutToiDa === null ? st.phutCon : Math.max(0, Math.min(st.phutCon, Math.floor(gh.phutToiDa + 1e-6)));
   const hoc = b.lich.hoc ?? null;
   const dangHoc = trongGioHoc(hoc, g.thu, g.phut);
   const phutToiHoc = hoc && hoc.thu.includes(g.thu) && !dangHoc && phutCua(hoc.tu) > g.phut ? phutCua(hoc.tu) - g.phut : null;
   return {
     ngay: g.ngay, cuoiTuan: laCuoiTuan(g.thu),
-    quyNgayPhut: 0, themPhut: st.phutCon + daDung, doiSaoPhut: 0, daDung, conPhut: st.phutCon, tongPhut: st.phutCon + daDung,
+    quyNgayPhut: 0, themPhut: conPhut + daDung, doiSaoPhut: 0, daDung, conPhut, tongPhut: conPhut + daDung,
     dangNgu: trongKhung(g.phut, b.lich.ngu), dangHoc, khoa: dangKhoa(b.cfg, now),
     gioNgu: b.lich.ngu, gioHoc: hoc, phutToiNgu: toiNgu(g.phut, b.lich.ngu), phutToiHoc,
     tyLe: { sao: 10, phut: 10 },
     doiSao: { bat: false, toiDaNgay: 0, conDoiDuoc: 0 },
     choXinThem: true,
-    soSao: st, phutTruHomNay: tru,
+    soSao: st, phutTruHomNay: tru, gioiHan: gh,
   };
 }
+
+/** #302: khối `sao` cho máy Con — `phutCon` = phút CHƠI ĐƯỢC (sao tiêu được kẹp theo giới hạn ngày / lượt), `hetSao` = không chơi được nữa
+ *  (agent cũ khoá nhóm «Tính phút» theo đúng cờ này), `saoTieuDuoc` = số sao thật. Số dư `sao` / nợ giữ nguyên. Không có giới hạn ⇒ như cũ. */
+export function saoKepGioiHan(qy: Quy) {
+  const st = qy.gioiHan.apDung ? { ...qy.soSao, phutCon: qy.conPhut, hetSao: qy.soSao.hetSao || qy.conPhut <= 0 } : qy.soSao;
+  const cau = cauSao(st);
+  return { ...st, saoTieuDuoc: qy.soSao.phutCon,
+    cau: qy.gioiHan.lyDoKhoa ? { ...cau, phut: qy.gioiHan.cau ?? cau.phut } : cau };
+}
+
+/** #302: khối `gioiHan` gửi máy Con (bỏ phần cấu hình / mô tả chỉ app Ba Mẹ cần). */
+/** Số phút gửi máy Con là SỐ NGUYÊN (agent iOS / Mac giải mã Int — số lẻ làm hỏng cả chính sách): đã chơi làm tròn, phần còn làm tròn xuống. */
+const nguyen = (x: number | null) => (x === null ? null : Math.floor(x + 1e-6));
+export const gioiHanMay = (g: Quy["gioiHan"]) => ({ apDung: g.apDung, ngayPhut: g.ngayPhut, daChoi: Math.round(g.daChoi), conNgay: nguyen(g.conNgay),
+  luotPhut: g.luotPhut, luotDaChoi: Math.round(g.luotDaChoi), conLuot: nguyen(g.conLuot), dangNghi: g.dangNghi, nghiDen: g.nghiDen,
+  nghiDenGio: g.nghiDenGio, hetNgay: g.hetNgay, lyDoKhoa: g.lyDoKhoa, phutToiDa: nguyen(g.phutToiDa), cau: g.cau });
 
 /** (cũ) «Đổi sao lấy giờ» — đã bỏ (#264: sao chính là phút). Agent / app cũ gọi ⇒ trả thành công mà không trừ gì: phút còn = số sao. */
 export async function doiSaoLayGio(con: string, _phutVao: unknown, _mayId: string | null = null, now = new Date()) {
@@ -127,13 +153,33 @@ export async function gioChoiCua(fam: string, con: string, now = new Date()) {
   return {
     quyNgayThuong: 0, quyCuoiTuan: 0, phut10Sao: 10, doiSaoBat: false, doiSaoToiDaNgay: 0, choXinThemGio: true, ngoaiLeToiDaPhut: 0,
     gioNgu: b.lich.ngu, gioHoc: b.lich.hoc, homNay: await quyHomNay(con, now, q, b),
+    // #302: giới hạn ngày (ngày thường / T7–CN) + mỗi lượt tối đa — 0 = không giới hạn
+    ...gioiHanBm(b.cfg),
   };
 }
 
+/** Phần «Giờ chơi» #302 trả cho app Ba Mẹ: giá trị đang lưu + lựa chọn + dòng giải thích. */
+export function gioiHanBm(cfg: Record<string, unknown>) {
+  const c = cauHinhCua(cfg);
+  return { gioiHanNgayThuong: c.ngayThuong, gioiHanCuoiTuan: c.cuoiTuan, phutMoiLuot: c.moiLuot, moTaGioiHan: moTaGioiHan(c),
+    mucGioiHan: { ngay: MUC_NGAY.map((x) => ({ ...x })), luot: [...MUC_LUOT], ngayKhoang: GH_NGAY, luotKhoang: GH_LUOT } };
+}
 
-/** (cũ) Lưu giờ ngủ / giờ học — #258 bỏ hẳn: app cũ gửi lên được nhận mà KHÔNG lưu gì (không báo lỗi). Ô quỹ / đổi sao / ngoại lệ cũng bỏ qua. */
-export async function datGioChoi(fam: string, con: string, _b: Record<string, unknown>, _nguoi: string) {
+
+/** Lưu «Giờ chơi» — #302: giới hạn ngày (gioiHanNgayThuong, gioiHanCuoiTuan) + phutMoiLuot (0 = không giới hạn; ngoài khoảng ⇒ 400).
+ *  (cũ) giờ ngủ / giờ học — #258 bỏ hẳn: app cũ gửi lên được nhận mà KHÔNG lưu gì (không báo lỗi). Ô quỹ / đổi sao / ngoại lệ cũng bỏ qua. */
+export async function datGioChoi(fam: string, con: string, b: Record<string, unknown>, nguoi: string) {
   const cu = await boiCanhCon(con);
   if (cu.fam !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+  await luuGioiHan(fam, con, b, nguoi);
   return gioChoiCua(fam, con);
+}
+
+/** Ghi giới hạn #302 vào children.cau_hinh (chỉ khoá có gửi) + nhật ký. → có ghi gì không. */
+export async function luuGioiHan(fam: string, con: string, b: Record<string, unknown>, nguoi: string | null, t: Q = q) {
+  const ghi = phanGhi(b ?? {});
+  if (!Object.keys(ghi).length) return false;
+  await t(`update children set cau_hinh = coalesce(cau_hinh, '{}'::jsonb) || $3::jsonb where id = $1 and family_id = $2`, [con, fam, JSON.stringify(ghi)]);
+  await ghiSuKien(fam, "dat_gioi_han_choi", ghi, { con, ...(nguoi ? { nguoi } : {}) }, t);
+  return true;
 }
