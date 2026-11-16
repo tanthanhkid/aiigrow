@@ -36,6 +36,11 @@ internal sealed partial class LockForm
     {
         KeyPreview = true;
         KeyDown += PhimChonTen;
+        // đổi kích thước / DPI ⇒ dựng lại lưới tên (số cột, mức gọn, vị trí thẻ tính theo cỡ màn lúc dựng)
+        Resize += (_, _) =>
+        {
+            if (IsHandleCreated && ClientSize.Width > 0 && ClientSize != _kichChonTen && _chonTen && _ct.Buoc == BuocChonTen.ChonTen && _hs?.Con.Count > 0) VeChonTen();
+        };
         // chip «Máy đang khoá» (trên) + viên «Ba Mẹ dùng máy» (dưới) — chỉ ở bước lưới tên
         var chip = new ChipClay(ManChonTenView.ChipKhoa, Color.FromArgb(240, 255, 255, 255), Clay.NgocInk, Anh3D.Icon("khoa")) { Font = UI.F(14f, FontStyle.Bold), Visible = false };
         chip.Size = new Size(TextRenderer.MeasureText(chip.Text, chip.Font).Width + UI.Px(70), UI.Px(48));
@@ -242,6 +247,8 @@ internal sealed partial class LockForm
         _center.SuspendLayout();
         if (_khoi != null) { _center.Controls.Remove(_khoi); if (_count.Parent != null) _count.Parent.Controls.Remove(_count); _khoi.Dispose(); }
         _code = null; _demTamKhoa = null; _vong = null; _cham = null;
+        _kichChonTen = ClientSize;
+        _mucChonTen = 0;
         _khoi = _ct.Buoc switch
         {
             BuocChonTen.NhapPin => ThePin(),
@@ -252,7 +259,25 @@ internal sealed partial class LockForm
         };
         _center.Controls.Add(_khoi);
         _center.ResumeLayout(true);
+        if (_ct.Buoc == BuocChonTen.ChonTen && ClientSize.Height > 0)
+        {
+            // không vừa giữa đầu màn và nút «Ba Mẹ dùng máy» ⇒ dựng lại bản gọn (như màn khoá thường: cuộn sẽ lộ nền đen / đè nút)
+            var nutCao = _nutBaMe?.Height ?? UI.Px(64);
+            var choToiDa = ClientSize.Height - nutCao - UI.Px(96) - UI.Px(8) - UI.Px(60);
+            while (_khoi.Height > choToiDa && _mucChonTen < CacMucChonTen.Length - 1)
+            {
+                _mucChonTen++;
+                _center.SuspendLayout();
+                _center.Controls.Remove(_khoi);
+                _khoi.Dispose();
+                _khoi = TheChonTen();
+                _center.Controls.Add(_khoi);
+                _center.ResumeLayout(true);
+            }
+        }
         GiuaKhoi();
+        // thẻ cao tới sát chip «Máy đang khoá» (nhiều bé, màn thấp) ⇒ bỏ chip cho khỏi đè thẻ
+        if (_chipKhoa != null && _chonTen && _ct.Buoc == BuocChonTen.ChonTen) _chipKhoa.Visible = _khoi.Top >= _chipKhoa.Bottom + UI.Px(8);
         DatGocChu();
         ActiveControl = null;   // phím số đi vào màn (KeyPreview), không vào nút đang có tiêu điểm — bỏ tiêu điểm, không cần control nhận được (an toàn trong khối tắt vẽ)
     }
@@ -300,14 +325,39 @@ internal sealed partial class LockForm
         return l;
     }
 
-    /// <summary>01 «Ai đang dùng máy?» — thẻ 800, Grow 150, tiêu đề 42px, lưới thẻ tên 240×236 (viên chữ 120 + tên 28px).</summary>
+    /// <summary>Ba mức cỡ của lưới tên (px thiết kế ở 100%): 0 = đúng Bàn 1920×1080; 1, 2 = bản gọn khi nhiều bé / màn thấp để cả thẻ vừa giữa chip đầu màn và nút «Ba Mẹ dùng máy».</summary>
+    private sealed record MucChonTen(int Rong, int PadNgang, int PadTren, int PadDuoi, int Grow, float Tieu, float Phu, int OTen, int Khe, int KheHang,
+        int CaoSao, int CaoKhong, int PadOTren, int Vien, float PtTen, int TenTren, float PtSao, int CaoChip, float PtChan1, float PtChan2, int TrenChan);
+
+    private static readonly MucChonTen[] CacMucChonTen =
+    {
+        new(800, 48, 32, 28, 150, 31.5f, 16.5f, 240, 28, 26, 276, 236, 26, 120, 21f, 10, 12f, 34, 12f, 11.25f, 22),
+        new(720, 40, 20, 18, 96, 28f, 14f, 200, 24, 22, 196, 160, 18, 84, 17f, 8, 11f, 30, 11f, 10.5f, 14),
+        new(560, 28, 14, 12, 0, 22f, 12f, 132, 14, 16, 130, 102, 12, 48, 13f, 6, 9.5f, 26, 10f, 9.5f, 8),
+    };
+    private int _mucChonTen;
+    private Size _kichChonTen;
+
+    /// <summary>01 «Ai đang dùng máy?» — thẻ 800 (nở theo số cột khi cần), Grow 150, tiêu đề 42px, lưới thẻ tên 240×236 (viên chữ 120 + tên 28px); bản gọn theo <see cref="_mucChonTen"/>.</summary>
     private Control TheChonTen()
     {
-        var (the, w) = The(800);
-        the.Controls.Add(Giua(KhoiThietKe.Rob("rob-goc", 150), w));
-        the.Controls.Add(ChuGiua(ManChonTenView.TieuChon, 31.5f, true, UI.Ink, w, 10));
+        var m = CacMucChonTen[Math.Clamp(_mucChonTen, 0, CacMucChonTen.Length - 1)];
         var ds = _hs?.Con ?? new List<HoSoBe>();
-        the.Controls.Add(ChuGiua(ManChonTenView.DanhCho(ds.Select(c => c.Ten).ToList()) ?? ManChonTenView.PhuChon, 16.5f, false, UI.Muted, w, 6));
+        var le = VeThe.LeBong;
+        var oRong = UI.Px(m.OTen);
+        var khe = UI.Px(m.Khe);
+        var padN = UI.Px(m.PadNgang);
+        // bước giữa hai thẻ = rộng thẻ thật + khe thiết kế; lề bóng chỉ cộng MỘT lần ở biên khung (khe >= lề bóng nên hai ô kề nhau không chồng nhau)
+        var rongMan = ClientSize.Width > 0 ? ClientSize.Width - UI.Px(48) : UI.Px(1100);
+        var cot = Math.Max(1, Math.Min(Math.Max(1, ds.Count), (rongMan - 2 * padN - le.Horizontal + khe) / (oRong + khe)));
+        var rongLuoi = cot * oRong + (cot - 1) * khe + le.Horizontal;
+        var rongThe = Math.Max(UI.Px(m.Rong), rongLuoi + 2 * padN);   // px thật, chưa gồm lề bóng của thẻ
+        var the = TheMoi(rongThe + le.Horizontal, true);
+        the.Padding = VeThe.Pad(padN, UI.Px(m.PadTren), padN, UI.Px(m.PadDuoi));
+        var w = rongThe + le.Horizontal - the.Padding.Horizontal;
+        if (m.Grow > 0) the.Controls.Add(Giua(KhoiThietKe.Rob("rob-goc", m.Grow), w));
+        the.Controls.Add(ChuGiua(ManChonTenView.TieuChon, m.Tieu, true, UI.Ink, w, m.Grow > 0 ? 10 : 0));
+        the.Controls.Add(ChuGiua(ManChonTenView.DanhCho(ds.Select(c => c.Ten).ToList()) ?? ManChonTenView.PhuChon, m.Phu, false, UI.Muted, w, 6));
         if (ds.Count == 0)
         {
             the.Controls.Add(ChuGiua(_hs == null && _hsLoi == null ? "Đang tải tên các bé…" : _hsLoi ?? "Ba Mẹ chưa thêm con nào trong app.", 13f, false, UI.Muted, w, 26));
@@ -320,25 +370,30 @@ internal sealed partial class LockForm
         }
         else
         {
-            // lưới đặt vị trí tay (không FlowLayoutPanel tự co): các thẻ tên nằm HÀNG NGANG, hết chỗ mới xuống hàng
-            var luoi = new Panel { BackColor = Color.Transparent, Margin = Padding.Empty };
-            var oRong = UI.Px(240) + VeThe.LeBong.Horizontal;
-            var oCao = UI.Px(ds.Any(c => c.Sao.HasValue) ? 276 : 236) + VeThe.LeBong.Vertical;
-            var khe = UI.Px(28);
-            var cot = Math.Max(1, Math.Min(ds.Count, (w + khe) / (oRong + khe)));
+            // lưới đặt vị trí tay (không FlowLayoutPanel tự co): thẻ tên nằm HÀNG NGANG, hết chỗ mới xuống hàng, hàng cuối thiếu thì căn giữa.
+            // Vị trí gán lúc dựng; màn dựng lại khi đổi kích thước / DPI (Resize ở KhoiTaoChonTen) nên không cần gắn lại.
+            var coSao = ds.Any(c => c.Sao.HasValue);
+            var oCaoBody = UI.Px(coSao ? m.CaoSao : m.CaoKhong);
+            var oCao = oCaoBody + le.Vertical;
+            var buocHang = oCaoBody + UI.Px(m.KheHang);   // khoảng cách hàng đúng thiết kế (không cộng lề bóng)
             var hang = (ds.Count + cot - 1) / cot;
-            luoi.Size = new Size(cot * oRong + (cot - 1) * khe, UI.Px(26) + hang * oCao + (hang - 1) * UI.Px(26));
+            var tren = UI.Px(m.Grow > 0 ? 26 : 16);
+            var luoi = new Panel { BackColor = Color.Transparent, Margin = Padding.Empty };
+            luoi.Size = new Size(rongLuoi, tren + (hang - 1) * buocHang + oCao);
             var chu = DangNhapView.ChuDauDs(ds.Select(c => c.Ten));
+            var buocCot = oRong + khe;
             for (int i = 0; i < ds.Count; i++)
             {
                 var be = ds[i];
-                var coSao = ds.Any(c => c.Sao.HasValue);
-                var o = new ClayFlow { FlowDirection = FlowDirection.TopDown, WrapContents = false, BoGoc = UI.Px(32), Cursor = Cursors.Hand,
-                    Size = new Size(UI.Px(240) + VeThe.LeBong.Horizontal, UI.Px(coSao ? 276 : 236) + VeThe.LeBong.Vertical), Padding = VeThe.Pad(0, UI.Px(coSao ? 26 : 32), 0, 0),
-                    Margin = Padding.Empty, Location = new Point((i % cot) * (oRong + khe), UI.Px(26) + (i / cot) * (oCao + UI.Px(26))) };
-                var v = new VienTen { Chu = chu[i], Mau = i, Size = new Size(UI.Px(120), UI.Px(120)), Margin = new Padding((UI.Px(240) - UI.Px(120)) / 2, 0, 0, 0), Cursor = Cursors.Hand };
-                var t = Chu(be.Ten, 21f, true, UI.Ink, UI.Px(240), true);
-                t.Margin = new Padding(0, UI.Px(10), 0, 0);
+                var h = i / cot;
+                var trongHang = h == hang - 1 ? ds.Count - h * cot : cot;
+                var x = (i % cot) * buocCot + (cot - trongHang) * buocCot / 2;
+                var o = new ClayFlow { FlowDirection = FlowDirection.TopDown, WrapContents = false, BoGoc = UI.Px(m.OTen >= 200 ? 32 : 24), Cursor = Cursors.Hand,
+                    Size = new Size(oRong + le.Horizontal, oCao), Padding = VeThe.Pad(0, UI.Px(m.PadOTren), 0, 0),
+                    Margin = Padding.Empty, Location = new Point(x, tren + h * buocHang) };
+                var v = new VienTen { Chu = chu[i], Mau = i, Size = new Size(UI.Px(m.Vien), UI.Px(m.Vien)), Margin = new Padding((oRong - UI.Px(m.Vien)) / 2, 0, 0, 0), Cursor = Cursors.Hand };
+                var t = Chu(be.Ten, m.PtTen, true, UI.Ink, oRong, true);
+                t.Margin = new Padding(0, UI.Px(m.TenTren), 0, 0);
                 t.Cursor = Cursors.Hand;
                 o.Controls.Add(v); o.Controls.Add(t);
                 void Bam(object? _, EventArgs __) => _ = ChonBeAsync(be);
@@ -346,9 +401,13 @@ internal sealed partial class LockForm
                 // 15/11 (them-x8kmmyl5): sao từng bé — «18 sao» vàng / «−20 sao» cam (đang nợ)
                 if (be.Sao is int sb)
                 {
-                    var chip = new ChipClay(SaoView.SoDu(sb), sb < 0 ? Clay.CanhSoft : Clay.DiemSoft, sb < 0 ? Clay.Canh : Clay.DiemInk, Anh3D.Icon("sao")) { Font = UI.F(12f, FontStyle.Bold), Cursor = Cursors.Hand };
-                    chip.Size = new Size(TextRenderer.MeasureText(chip.Text, chip.Font).Width + UI.Px(48), UI.Px(34));
-                    chip.Margin = new Padding((UI.Px(240) - chip.Width) / 2, UI.Px(6), 0, 0);
+                    var chip = new ChipClay(SaoView.SoDu(sb), sb < 0 ? Clay.CanhSoft : Clay.DiemSoft, sb < 0 ? Clay.Canh : Clay.DiemInk, Anh3D.Icon("sao")) { Font = UI.F(m.PtSao, FontStyle.Bold), Cursor = Cursors.Hand };
+                    // chip không rộng hơn thẻ (vd «−1.250 sao» ở 150%): co chữ dần cho vừa
+                    var toiDa = oRong - UI.Px(8);
+                    var pt = m.PtSao;
+                    while (TextRenderer.MeasureText(chip.Text, chip.Font).Width + UI.Px(48) > toiDa && pt > 7f) { pt -= 0.5f; chip.Font = UI.F(pt, FontStyle.Bold); }
+                    chip.Size = new Size(Math.Min(toiDa, TextRenderer.MeasureText(chip.Text, chip.Font).Width + UI.Px(48)), UI.Px(m.CaoChip));
+                    chip.Margin = new Padding(Math.Max(0, (oRong - chip.Width) / 2), UI.Px(6), 0, 0);
                     chip.Click += Bam;
                     o.Controls.Add(chip);
                 }
@@ -359,10 +418,10 @@ internal sealed partial class LockForm
         if (_ct.Loi != null) the.Controls.Add(ChuGiua(_ct.Loi, 12f, true, Clay.Canh, w, 12));
         if (ds.Count > 0 && !(_hs?.MayRieng ?? false))
         {
-            the.Controls.Add(ChuGiua(ManChonTenView.KhongThayTen, 12f, true, Clay.Chu2, w, 22));
-            the.Controls.Add(ChuGiua(ManChonTenView.NhoBaMeThem, 11.25f, false, UI.Muted, w, 2));
+            the.Controls.Add(ChuGiua(ManChonTenView.KhongThayTen, m.PtChan1, true, Clay.Chu2, w, m.TrenChan));
+            the.Controls.Add(ChuGiua(ManChonTenView.NhoBaMeThem, m.PtChan2, false, UI.Muted, w, 2));
         }
-        else the.Controls.Add(ChuGiua(ManChonTenView.GhiChon, 11.25f, false, UI.Muted, w, 22));
+        else the.Controls.Add(ChuGiua(ManChonTenView.GhiChon, m.PtChan2, false, UI.Muted, w, m.TrenChan));
         return the;
     }
 

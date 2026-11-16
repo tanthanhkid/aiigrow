@@ -151,6 +151,10 @@ internal static class ChupMain
         await Mot("doi-qua-chua-du", () => ManHop("doi-qua-chua-du", () => new DoiQuaHop(CuaHang().Qua[0], 30)));
         // 06/11 (L13 — con-ngay-thuong 01–08): máy dùng chung, chọn tên + PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng máy, Đổi người / Đăng xuất
         await Mot("chon-ten", () => ManChonTen("chon-ten", null));
+        // lưới tên theo số bé (1 / 3 / 5): một hàng, thẻ vừa màn, không đè nút «Ba Mẹ dùng máy»; 150% là cỡ CI thứ hai (125% chưa có trong workflow)
+        await Mot("chon-ten-1-be", () => ManChonTen("chon-ten-1-be", null, 1));
+        await Mot("chon-ten-3-be", () => ManChonTen("chon-ten-3-be", null, 3));
+        await Mot("chon-ten-5-be", () => ManChonTen("chon-ten-5-be", null, 5));
         await Mot("chon-ten-nhap-pin", () => ManChonTen("chon-ten-nhap-pin", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.So = "48"; }));
         await Mot("chon-ten-pin-sai", () => ManChonTen("chon-ten-pin-sai", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.ConLan = 3; }));
         await Mot("chon-ten-tam-khoa", () => ManChonTen("chon-ten-tam-khoa", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.Buoc = BuocChonTen.TamKhoa; st.ChoDen = DateTimeOffset.Now.AddSeconds(15); }));
@@ -318,18 +322,18 @@ internal static class ChupMain
     }
 
     /// <summary>«Ai đang dùng máy?» với 2 bé mẫu; <paramref name="buoc"/> đặt bước (PIN, sai, chờ 15 giây, quên PIN, Ba Mẹ nhập mã) rồi vẽ lại.</summary>
-    private static async Task ManChonTen(string ten, Action<ManChonTenState>? buoc)
+    private static async Task ManChonTen(string ten, Action<ManChonTenState>? buoc, int soBe = 2)
     {
         var f = new LockForm();
         f.WindowState = FormWindowState.Normal;
         DatCuaSo(f, _man, laClient: false);
         try
         {
-            DatTruong(f, "_hs", HoSoMau());
+            DatTruong(f, "_hs", HoSoMau(soBe));
             f.Show();
             f.Apply(TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.ChonTen; s.NguoiDung = LoaiNguoiDung.Chua; s.MinutesLeft = null; }));
             await Cho(3500);   // lượt hỏi ho-so (không có dịch vụ) hết giờ trước khi đặt bước
-            DatTruong(f, "_hs", HoSoMau());
+            DatTruong(f, "_hs", HoSoMau(soBe));
             if (buoc != null) buoc((ManChonTenState)Lay(f, "_ct")!);
             Goi(f, "VeChonTen");
             await Cho(1200);
@@ -338,10 +342,14 @@ internal static class ChupMain
         finally { f.CloseForReal(); f.Dispose(); }
     }
 
-    private static HoSoMay HoSoMau() => new()
+    private static HoSoMay HoSoMau(int soBe = 2)
     {
-        Con = new() { new() { Id = "c1", Ten = "Bảo Anh", CoPin = true, Sao = 18 }, new() { Id = "c2", Ten = "Bảo Minh", CoPin = true, Sao = -20 } },
-    };
+        var ten = new[] { "Bảo Anh", "Bảo Minh", "Gia Hân", "Minh Khôi", "Thảo Nhi", "Quốc Bảo" };
+        var sao = new[] { 18, -20, 1250, 7, -1250, 64 };
+        var hs = new HoSoMay { Con = new() };
+        for (int i = 0; i < Math.Clamp(soBe, 1, 6); i++) hs.Con.Add(new() { Id = "c" + (i + 1), Ten = ten[i], CoPin = true, Sao = sao[i] });
+        return hs;
+    }
 
     private static async Task ManKhoa(string ten, TrayState s)
     {
