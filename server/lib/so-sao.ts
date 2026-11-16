@@ -211,8 +211,8 @@ export async function hoanTacVay(fam: string, vayId: string, nguoi: string, now 
       throw new LoiNghiepVu("het_hoan_tac", "Đã quá thời gian hoàn tác", 409);
     const x = Math.min(v.delta, await noCua(v.child_id, t), await soDu(v.child_id, t));
     if (x <= 0) throw new LoiNghiepVu("da_tieu", "Con đã dùng sao vay (hoặc đã trả hết khoản này) — không hoàn tác được", 409);
-    await t(`insert into points(id, child_id, delta, loai, ly_do, ref, nguoi) values ($1,$2,$3,'vay',$4,$5,$6)`,
-      [newId(), v.child_id, -x, `Ba Mẹ rút lại ${x} sao vay`, `hoan:${v.id}`, nguoi]);
+    await t(`insert into points(id, child_id, delta, loai, ly_do, ref, nguoi, created_at) values ($1,$2,$3,'vay',$4,$5,$6,$7)`,
+      [newId(), v.child_id, -x, `Ba Mẹ rút lại ${x} sao vay`, `hoan:${v.id}`, nguoi, now]);
     const tron = x === v.delta;
     if (tron) {
       // lời xin vay đã duyệt ⇒ về «chờ» để Ba Mẹ trả lời lại
