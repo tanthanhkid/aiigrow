@@ -117,11 +117,22 @@ public enum ManMac {
     public var phu: String
     /// Khoá vì hết sao (lối ra: Làm nhiệm vụ / Xin Ba Mẹ cho vay sao). false = Ba Mẹ khoá (không xin gì được, chỉ «Ba Mẹ mở máy»).
     public var hetSao: Bool
+    /// 16/11 (#302 mục 4): khoá VÌ giới hạn giờ chơi (nghỉ giữa lượt / đủ giờ hôm nay), sao còn nguyên ⇒ không «Hết sao», không đẩy «Làm nhiệm vụ»; vẫn «Xin Ba Mẹ».
+    public var theoGioiHan: Bool = false
   }
+
+  /// Sao tiêu được THẬT (không kẹp giới hạn giờ chơi): `saoTieuDuoc` › `phutCon`. nil = chưa biết.
+  public static func saoThat(_ t: TrangThai) -> Int? { t.soSao.map { $0.saoTieuDuoc ?? max(0, $0.phutCon) } }
+
+  /// Chữ khoá theo giới hạn giờ chơi (nil = không phải trường hợp này, giữ chữ cũ). Dùng cho màn khoá, popup đóng app, khay.
+  public static func chuGioiHan(_ t: TrangThai) -> GioiHan.Chu? { t.gioiHan?.chuKhoa(saoThat: saoThat(t)) }
 
   /// Thiết kế them-kofpo0dl «Hết sao rồi» / Ba Mẹ khoá. «het_gio» (máy chủ cũ, minutesLeft) = hết sao. Giờ ngủ đã bỏ (#258) ⇒ như Ba Mẹ khoá.
   public static func chuKhoa(_ t: TrangThai, phutDaChoi: Int? = nil) -> ChuKhoa {
     let ten = t.beTen ?? t.tenCon ?? "Con"
+    if t.lyDoKhoa == nil || ["het_gio", SaoPhut.lyDoHetSao].contains(t.lyDoKhoa ?? ""), let g = chuGioiHan(t) {
+      return ChuKhoa(tieuDe: g.tieuDe, phu: g.phu, hetSao: false, theoGioiHan: true)
+    }
     switch t.lyDoKhoa {
     case "het_gio", SaoPhut.lyDoHetSao:
       let da = phutDaChoi.map { " đã chơi \($0) phút hôm nay · dùng hết \(ChuSao.so($0)) sao." } ?? " đã dùng hết sao."

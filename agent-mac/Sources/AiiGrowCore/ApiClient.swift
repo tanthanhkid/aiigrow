@@ -236,6 +236,7 @@ public final class ApiClient: MayChuApi {
       nguoiDung = NguoiDungMay.doc(o["nguoiDung"])
       // 15/11: sổ sao + chế độ app & web nằm ở GỐC (khối mac/windows giữ hình dạng cũ cho agent cũ)
       p.soSao = SoSao.doc(o["sao"])
+      p.gioiHan = GioiHan.doc(o["gioiHan"])
       if (o["cheDo"] as? String) == CheDoApp.moHet { p.moHet = true }
     }
     var kq = KetQuaDongBo(policy: p, nextCheckSec: min(max(next, 10), 600), lenh: lenh, danhSachApp: dsApp)

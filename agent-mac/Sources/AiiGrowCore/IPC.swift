@@ -105,6 +105,8 @@ public struct TrangThai: Codable, Equatable {
   public var homNayTheoApp: [MucDung]?
   /// Sổ sao 15/11 (#263–#266): số dư (âm được) + nợ, phút / số dư đã trừ tại chỗ. nil = máy chủ cũ / chưa chọn bé. Chỉ cho phiên Con.
   public var soSao: SoSao?
+  /// 16/11: giới hạn giờ chơi (ngày + mỗi lượt). nil = máy chủ / daemon cũ. Chỉ cho phiên Con.
+  public var gioiHan: GioiHan?
   /// Sao còn tiêu được = phút «Tính phút» còn chơi (đếm lùi tại chỗ). nil = không giới hạn («Mở hết») / không biết.
   public var phutSao: Int?
   /// #262: Con ở «Mở hết» — không chặn, không tính phút.

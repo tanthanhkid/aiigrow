@@ -158,6 +158,8 @@ public struct HvTongQuan: Equatable {
   public var quy: HvQuy?
   /// Sổ sao 15/11 (`soSao`, số dư âm khi nợ). nil = máy chủ cũ (dùng `soDu`).
   public var soSao: SoSao?
+  /// 16/11: giới hạn giờ chơi. nil = máy chủ cũ.
+  public var gioiHan: GioiHan?
   /// Số dư Con thấy (âm được) — `soSao.sao`, máy chủ cũ thì `soDu`.
   public var saoThay: Int { soSao?.sao ?? soDu }
   /// 14/11: chuỗi ngày + 7 ô ngày gần nhất (máy chủ cũ không gửi ⇒ nil, không hiện «Giỏi lắm!»).
@@ -175,6 +177,7 @@ public struct HvTongQuan: Equatable {
     t.phieuCho = JsonMem.ds(o["phieuCho"]).map(HvPhieu.init)
     if let q = o["quy"] as? [String: Any] { t.quy = HvQuy(q) }
     t.soSao = SoSao.doc(o["soSao"])
+    t.gioiHan = GioiHan.doc(o["gioiHan"])
     if let c = o["chuoi"] as? [String: Any] { t.chuoi = HvChuoi(c) }
     return t
   }

@@ -48,7 +48,10 @@ public enum TrayLogic {
   public static func dongSao(_ t: TrangThai) -> String? {
     if t.moHet == true { return "Mở hết · không tính phút" }
     guard let p = t.phutSao ?? t.soSao?.phutCon else { return nil }
-    return p <= 0 ? "Hết sao rồi · xin Ba Mẹ cho vay sao" : ChuSao.phut(p)
+    if p <= 0, let g = ManMac.chuGioiHan(t) { return g.phu }          // khoá vì giới hạn giờ chơi, sao còn nguyên
+    if p <= 0 { return "Hết sao rồi · xin Ba Mẹ cho vay sao" }
+    let sao = ManMac.saoThat(t) ?? p                                   // «X sao» = sao thật; phút chơi được = phút còn (đã kẹp giới hạn)
+    return (sao == p ? ChuSao.phut(p) : "còn \(ChuSao.so(sao)) sao · chơi được \(ChuSao.so(p)) phút") + (t.gioiHan?.dongConNgay.map { " · " + $0 } ?? "")
   }
 
   /// Chữ cạnh biểu tượng trên thanh menu.
@@ -60,7 +63,10 @@ public enum TrayLogic {
     if t.cheDo == .khoa { return "Đang khoá" }
     if t.moHet == true { return "Mở hết" }
     if let g = giayConLai(t, nhanLuc: nhanLuc, bayGio: bayGio) { return "Còn \(Int((g / 60).rounded(.up))) phút" }
-    if let c = t.phutSao { return c <= 0 ? "Hết sao" : "\(ChuSao.so(c)) sao" }
+    if let c = t.phutSao {
+      if c <= 0, let g = ManMac.chuGioiHan(t) { return g.tieuDe }
+      return c <= 0 ? "Hết sao" : "\(ChuSao.so(ManMac.saoThat(t) ?? c)) sao"
+    }
     return ""
   }
 

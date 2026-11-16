@@ -358,9 +358,9 @@ struct ManKhoaView: View {
           let c = ManMac.chuKhoa(t, phutDaChoi: app.tq?.quy?.daDung)
           if t.matMang { VienNho(chu: "Mất mạng · " + AppConView.gioPhut.string(from: bayGio), mau: ClayMau.canh) }
           Text(t.matMang ? "Mất mạng, luật vẫn vậy nhé!" : c.tieuDe).font(.system(size: 38, weight: .bold)).fixedSize(horizontal: false, vertical: true)
-          Text(t.matMang && c.hetSao ? "Hết sao rồi · con còn 0 sao = 0 phút chơi." : t.matMang ? c.tieuDe + " · " + c.phu : c.phu)
+          Text(t.matMang && c.hetSao ? "Hết sao rồi · con còn 0 sao = 0 phút chơi." : t.matMang && !c.theoGioiHan ? c.tieuDe + " · " + c.phu : c.phu)
             .font(.system(size: 17)).foregroundColor(ClayMau.chu2).fixedSize(horizontal: false, vertical: true)
-          nutHanhDong(hetSao: c.hetSao)
+          nutHanhDong(hetSao: c.hetSao, theoGioiHan: c.theoGioiHan)
         }
       case .khong:
         EmptyView()
@@ -385,9 +385,30 @@ struct ManKhoaView: View {
     .foregroundColor(ClayMau.chu)
   }
 
-  @ViewBuilder private func nutHanhDong(hetSao: Bool) -> some View {
+  @ViewBuilder private func nutHanhDong(hetSao: Bool, theoGioiHan: Bool = false) -> some View {
     let t = tray.tt
-    if hetSao {
+    if theoGioiHan {                                    // nghỉ giữa lượt / đủ giờ hôm nay: sao còn nguyên, chỉ còn lối «Xin Ba Mẹ»
+      let sao = t.flatMap { ManMac.saoThat($0) }
+      HStack(spacing: 14) {
+        VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.the, co: 54)
+        VStack(alignment: .leading, spacing: 2) {
+          Text(sao.map { "Con có \(ChuSao.vien($0))" } ?? "Sao của con vẫn còn").font(.system(size: 21, weight: .bold)).foregroundColor(ClayMau.diemInk)
+          Text("Sao không mất khi nghỉ · 1 sao = 1 phút chơi").font(.system(size: 13)).foregroundColor(ClayMau.diemInk)
+        }
+        Spacer()
+      }
+      .padding(18).clayThe(bo: 30, nen: ClayMau.diemSoft)
+      HStack(spacing: 14) {
+        Button { xin.moi(); withAnimation(ClayMotion.bat) { khoi = khoi == .xin ? .khong : .xin } } label: {
+          HStack(spacing: 8) { HinhFluent(ten: "star", duPhong: "star.fill", co: 22); Text("Xin Ba Mẹ cho vay sao") }
+        }
+        .buttonStyle(NutClayStyle(kieu: .ngoc, bo: 26, cao: 54))
+        Button { xin.moi(); withAnimation(ClayMotion.bat) { khoi = .xin } } label: {
+          HStack(spacing: 8) { HinhFluent(ten: "speech_balloon", duPhong: "bubble.left.fill", co: 22); Text("Nhắn Ba Mẹ") }
+        }
+        .buttonStyle(NutClayStyle(kieu: .sang, bo: 26, cao: 54))
+      }
+    } else if hetSao {
       HStack(spacing: 14) {
         VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.the, co: 54)
         VStack(alignment: .leading, spacing: 2) {

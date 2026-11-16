@@ -282,6 +282,8 @@ struct SaoLaPhutView: View {
 
 struct HetSaoView: View {
   var tenApp: String?
+  /// Khoá vì giới hạn giờ chơi (sao còn nguyên): tiêu đề / phụ riêng, không «Hết sao rồi», không nút «Làm nhiệm vụ».
+  var gioiHan: GioiHan.Chu? = nil
   var lamNhiemVu: () -> Void = {}
   var xinVay: () -> Void = {}
   var dong: () -> Void = {}
@@ -290,12 +292,12 @@ struct HetSaoView: View {
       HStack(spacing: 12) {
         VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.canhSoft, co: 52)
         VStack(alignment: .leading, spacing: 2) {
-          Chu("Hết sao rồi", co: 20, dam: .bold, dong: 1)
-          Chu((tenApp.map { "\($0) dừng · " } ?? "") + "con còn 0 sao", co: 14, mau: ClayMau.chu3, dong: 2)
+          Chu(gioiHan?.tieuDe ?? "Hết sao rồi", co: 20, dam: .bold, dong: 1)
+          Chu((tenApp.map { "\($0) dừng · " } ?? "") + (gioiHan?.phu ?? "con còn 0 sao"), co: 14, mau: ClayMau.chu3, dong: 2)
         }
       }
-      Chu("1 sao = 1 phút chơi · app không tính phút vẫn mở được.", co: 13, mau: ClayMau.chu3)
-      NutIcon(chu: "Làm nhiệm vụ", icon: "memo", kieu: .ngoc, rong: nil, lam: lamNhiemVu)
+      Chu(gioiHan == nil ? "1 sao = 1 phút chơi · app không tính phút vẫn mở được." : "Sao vẫn còn nguyên · app không tính phút vẫn mở được.", co: 13, mau: ClayMau.chu3)
+      if gioiHan == nil { NutIcon(chu: "Làm nhiệm vụ", icon: "memo", kieu: .ngoc, rong: nil, lam: lamNhiemVu) }
       NutIcon(chu: "Xin Ba Mẹ cho vay sao", icon: "speech_balloon", kieu: .sang, rong: nil, lam: xinVay)
       Button("Đóng", action: dong).buttonStyle(.plain).font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.chu2).keyboardShortcut(.cancelAction)
     }

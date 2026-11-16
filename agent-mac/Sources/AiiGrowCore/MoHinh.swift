@@ -125,6 +125,8 @@ public struct Policy: Codable, Equatable {
   public var saoCon: Int?
   /// Con ở «Mở hết» (`windows.moHet` / gốc `cheDo: mo_het`): không chặn, không đếm phút, không trừ sao.
   public var moHet: Bool = false
+  /// 16/11 giới hạn giờ chơi (#302 mục 4). nil = máy chủ cũ (chạy y như trước).
+  public var gioiHan: GioiHan?
 
   public init() {}
 
@@ -164,6 +166,7 @@ public struct Policy: Codable, Equatable {
     if let d = (try? c.decodeIfPresent(Double.self, forKey: .sao)) ?? nil, d.isFinite { saoCon = Int(d.rounded(.down)) }
     else { saoCon = (try? c.decodeIfPresent(Int.self, forKey: .saoCon)) ?? nil }
     moHet = ((try? c.decodeIfPresent(Bool.self, forKey: .moHet)) ?? nil) ?? false
+    gioiHan = (try? c.decodeIfPresent(GioiHan.self, forKey: .gioiHan)) ?? nil
   }
 
   public func encode(to encoder: Encoder) throws {
@@ -195,11 +198,12 @@ public struct Policy: Codable, Equatable {
     try c.encodeIfPresent(soSao, forKey: .soSao)
     try c.encodeIfPresent(saoCon, forKey: .saoCon)
     if moHet { try c.encode(moHet, forKey: .moHet) }
+    try c.encodeIfPresent(gioiHan, forKey: .gioiHan)
   }
 
   enum CodingKeys: String, CodingKey {
     case serverTime, childName, mode, locked, lockReason, allowedApps, learningApps, minutesLeft, grantEndsAt, nextCheckSec, canExchangePoints, cheDo, web, blockedApps, playChoices, playSessionId, playApp, playWeb, playOfflineMinutes, maOfflineBiMat
-    case quyConPhut, quyTongPhut, quyDaDung, appTinhGio, soSao, saoCon, sao, moHet
+    case quyConPhut, quyTongPhut, quyDaDung, appTinhGio, soSao, saoCon, sao, moHet, gioiHan
   }
 }
 
