@@ -1,8 +1,9 @@
 // «Ba Mẹ tự thêm» (thiết kế 14/11 bm-viec-duyet/04 them-6pjz1stu — thay «Tự đặt việc» them-0qial10f): Con sẽ làm gì? (ô lõm + gợi ý),
 // Hình (6 ô), Nằm trong mục (Học · Vận động · Giúp Ba Mẹ), Con nhận ⭐5/10/15/20, Con nộp bằng (Chụp ảnh · Ghi âm · Bấm «Xong», mỗi cách có ví dụ),
 // #302: «Nằm trong mục» có chip «+ Khác» (Ba Mẹ gõ tên mục mới — lưu tasks.bo = «khac:<tên>»), «Con nhận» có ô tự nhập số sao (1–1000);
-// màn mở đủ chiều cao (card, không phải tờ nửa màn). ghi chú «Con nộp xong, Ba Mẹ nhận thông báo. Ba Mẹ duyệt thì con mới nhận sao.» ⇒ «Thêm vào mục đã chọn» = POST nhiem-vu {…, bo: mục, giao_cho: id[]}.
+// ghi chú «Con nộp xong, Ba Mẹ nhận thông báo. Ba Mẹ duyệt thì con mới nhận sao.» ⇒ «Thêm vào mục đã chọn» = POST nhiem-vu {…, bo: mục, giao_cho: id[]}.
 // Mở từ «Giao việc» (mục đang xem chọn sẵn) hoặc từ Nhiệm vụ trống. Nhà > 1 con ⇒ «Áp cho» (N9), con đang xem chọn sẵn.
+import { useSaoTu } from "@/lib/sao-tu-nhap";
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -34,7 +35,7 @@ export default function BaMeTuThem() {
   const [hinh, setHinh] = useState("choi");
   const [muc, setMuc] = useState<Muc>(MUC.some((x) => x.gia === p.muc) ? (p.muc as Muc) : "giup_ba_me");
   const [sao, setSao] = useState(10);
-  const [saoTu, setSaoTu] = useState("");                 // ô «Số sao khác» (rỗng = dùng chip)
+  const st = useSaoTu(SAO_TOI_DA);                       // ô «Số sao khác» (rỗng = dùng chip)
   const [tenMuc, setTenMuc] = useState("");
   const [nop, setNop] = useState("anh");
   const [apCho, setApCho] = useState<string[] | null>(null);
@@ -45,9 +46,8 @@ export default function BaMeTuThem() {
   const ngan = ten.trim().length > 0 && !tenHopLe(ten);
   const mucKhac = muc === "khac";
   const tenMucGon = tenMuc.trim().replace(/\s+/g, " ");
-  const saoTuSo = saoTu === "" ? null : Number(saoTu);
-  const saoDung = saoTuSo === null ? sao : saoTuSo;
-  const saoLoi = saoTuSo !== null && (!Number.isInteger(saoTuSo) || saoTuSo < 1 || saoTuSo > SAO_TOI_DA);
+  const saoDung = st.dung(sao);
+  const saoLoi = st.loi;
   const xong = tenHopLe(ten) && giao.length > 0 && !saoLoi && (!mucKhac || tenMucGon.length > 0);
   const them = () => lam(async () => {
     await bm.goi("nhiem-vu", { ten: ten.trim(), hinh, diem: saoDung, nhom: NHOM[muc], bo: mucKhac ? `khac:${tenMucGon}` : muc, bang_chung: nop, lap_lai: "hang_ngay", toi_da_ngay: 1, tu_duyet: false, giao_cho: giao });
@@ -82,9 +82,9 @@ export default function BaMeTuThem() {
       {mucKhac ? <ONhap nhan="Tên mục mới" value={tenMuc} onChangeText={(t) => setTenMuc(t.slice(0, TEN_MUC_TOI_DA))} placeholder="Ví dụ: Âm nhạc" maxLength={TEN_MUC_TOI_DA} autoFocus /> : null}
 
       <MucTieu chu="Con nhận" />
-      <ChonO ds={[5, 10, 15, 20].map((x) => ({ gia: x, chu: `${x}` }))} chon={saoTu === "" ? sao : null} doi={(x) => { setSaoTu(""); setSao(x); }} sao />
-      <ONhap nhan="Hoặc tự nhập số sao" value={saoTu} onChangeText={(t) => setSaoTu(t.replace(/\D/g, "").slice(0, 4))} placeholder="Ví dụ: 25" keyboardType="number-pad" maxLength={4}
-        loi={saoLoi ? `Số sao từ 1 đến ${SAO_TOI_DA}` : null} />
+      <ChonO ds={[5, 10, 15, 20].map((x) => ({ gia: x, chu: `${x}` }))} chon={st.chu === "" ? sao : null} doi={(x) => { st.xoa(); setSao(x); }} sao />
+      <ONhap nhan="Hoặc tự nhập số sao" value={st.chu} onChangeText={st.nhap} placeholder="Ví dụ: 25" keyboardType="number-pad" maxLength={st.maxLength}
+        loi={st.thongBao} />
 
       <MucTieu chu="Con nộp bằng" />
       <View style={{ gap: 8 }} accessibilityRole="radiogroup">

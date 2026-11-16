@@ -201,7 +201,7 @@ struct ManNhiemVu: View {
   }
 
   static func tenBo(_ ma: String) -> String {
-    ["tu_lap": "Tự lập", "viec_nha": "Phụ việc nhà", "hoc_tap": "Học tập", "khoe_manh": "Khoẻ mạnh"][ma] ?? ma
+    ["tu_lap": "Tự lập", "viec_nha": "Phụ việc nhà", "hoc_tap": "Học tập", "khoe_manh": "Khoẻ mạnh"][ma] ?? (ma.hasPrefix("khac:") ? String(ma.dropFirst(5)) : ma)   // «khac:<tên>» = mục Ba Mẹ tự đặt (#302)
   }
 
   @ViewBuilder func nhom(_ ten: String, _ ds: [NhiemVuCon]) -> some View {

@@ -2,7 +2,7 @@
 // Web: giữ trong sessionStorage — F5 / mở lại tab ở bước Ghép không làm mất Con (trước đây mã ghép ra «máy dùng chung», lịch bỏ im lặng).
 type TL = { conId?: string; tenCon?: string; nhom?: "nhi" | "teen"; nen?: "windows" | "mac" | "ios" | "android";
   /** Lần đầu (thiết kế 05/11): năm sinh + màu hồ sơ, các Con đã lưu trong lượt này, lựa chọn màn Giờ chơi / Chọn app (gửi một lần POST thiet-lap). */
-  namSinh?: number | null; mau?: number; daLuu?: { id: string; ten: string; mau?: number; namSinh?: number | null }[];
+  namSinh?: number | null; mau?: number; daLuu?: { id: string; ten: string; mau?: number; namSinh?: number | null; /** avatar máy chủ («mau-N|anh:…») — để mở lại màn thấy ảnh đã lưu */ avatar?: string }[];
   cheDoChan?: "chi_app_duoc_phep" | "mo_het";
   /** 15/11 (bm1-ob-gio): sao tặng khởi đầu 0 / 20 / 30 / 60 Ba Mẹ chọn ở bước «Chơi bằng sao» — Con tạo ở bước tên với 0 sao, gửi kèm thiet-lap cuối mới tặng (một lần). */
   saoKhoiDau?: number;

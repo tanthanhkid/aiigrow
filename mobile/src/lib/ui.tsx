@@ -700,6 +700,7 @@ export function useHoanTac() {
   const tat = () => { if (hen.current) clearTimeout(hen.current); hen.current = null; setTb(null); };
   const bao = useCallback((chu: string, hoan?: () => void) => {
     if (hen.current) clearTimeout(hen.current);
+    const f = cho.current; cho.current = null; f?.();      // lệnh «gửi chậm» đang chờ mà toast khác chen vào ⇒ gửi luôn, không để mất
     setTb({ chu, hoan });
     hen.current = setTimeout(() => { hen.current = null; setTb(null); }, HOAN_TAC_MS);
   }, []);
@@ -708,6 +709,7 @@ export function useHoanTac() {
   useBaoKhiVe(bao);
   const guiCham = useCallback((chu: string, lam: () => void, huy?: () => void) => {
     if (hen.current) clearTimeout(hen.current);
+    const truoc = cho.current; cho.current = null; truoc?.();   // lệnh trước còn chờ (xoá liên tiếp 2 quà) ⇒ gửi ngay, rồi mới chờ lệnh mới (#302)
     cho.current = lam;
     setTb({ chu, hoan: () => { cho.current = null; huy?.(); } });
     hen.current = setTimeout(() => { hen.current = null; setTb(null); const f = cho.current; cho.current = null; f?.(); }, HOAN_TAC_MS);

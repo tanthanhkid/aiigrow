@@ -8,10 +8,10 @@ import { bm } from "@/lib/api";
 import { type AppGoiY } from "@/lib/ghep-may";
 import { appsRobChonSan, thanThietLap } from "@/lib/thiet-lap";
 import { ChonMauCon, HangAnhCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
-import { luuAnhCon } from "@/lib/anh-con";
+import { CHUA_LUU_ANH, dongBoAnhCon } from "@/lib/anh-con";
 import { OLom } from "@/lib/lan-dau";
 import { boTheoTuoi, kiemPin } from "@/lib/s3";
-import { BaoLoi, Chu, Man, Nut, useLam } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, Chu, Man, Nut, useLam } from "@/lib/ui";
 
 /** Tuổi ⇒ chỉ số chip tuổi của bộ việc (4–5 · 6–7 · 8–9 · 10–12 · 13+); chưa có năm sinh ⇒ null. */
 const chipTuNam = (nam: number | null) => {
@@ -37,7 +37,9 @@ export default function ThemCon() {
     // POST con tạo Con + PIN trong MỘT lời (PIN sai ⇒ không tạo gì). Đã tạo (lỗi ở bước sau) ⇒ bấm lại không tạo Con thứ hai.
     const id = conId ?? (await bm.goi<{ id: string }>("con", { ten: tenGon, ...(namSinh ? { namSinh } : {}), avatar: `mau-${mau}`, ...(pin ? { pin } : {}) })).id;
     setConId(id);
-    if (af.anh) await luuAnhCon(id, af.anh);
+    // ảnh lỗi KHÔNG chặn: hồ sơ đã tạo, báo «Chưa lưu được ảnh» ở màn kế rồi đi tiếp (Ba Mẹ thêm ảnh ở Sửa hồ sơ)
+    const anhKq = await dongBoAnhCon(id, af.anh);
+    if (!anhKq.ok) baoKhiVe(CHUA_LUU_ANH);
     // «Grow cài sẵn giờ chơi, nhiệm vụ theo tuổi»: mặc định như bước Lần đầu + bộ việc hợp chip tuổi; lỗi không chặn (Ba Mẹ chỉnh ở Hồ sơ)
     // Thiết kế không có bước Chọn app ⇒ áp sẵn app Grow gợi ý hợp tuổi (như Lần đầu) để máy ghép xong không phải xin duyệt từng app; Ba Mẹ sửa ở App & web.
     const layApps = () => bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(id)}`).then((r) => appsRobChonSan(r.ds));

@@ -22,10 +22,7 @@ export default function Goc() {
   return (
     <SafeAreaProvider>
       <PhienProvider>
-        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: M.nen } }}>
-          {/* #302: «Ba Mẹ tự thêm» mở đủ chiều cao như mọi màn khác (iOS mới có thể vẽ màn đẩy thành tờ nửa màn) */}
-          <Stack.Screen name="giao-nv/tu-dat" options={{ presentation: "card", fullScreenGestureEnabled: true }} />
-        </Stack>
+        <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: M.nen } }} />
       </PhienProvider>
     </SafeAreaProvider>
   );
