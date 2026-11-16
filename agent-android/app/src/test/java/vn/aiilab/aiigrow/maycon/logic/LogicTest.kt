@@ -56,9 +56,6 @@ class LogicTest {
         assertFalse(q.khoaCaMay)
     }
 
-    @Test fun phutThemHomNayCongVaoTran() {
-        assertEquals(TrangThai.BINH_THUONG, quyetDinh(cs.copy(phutThemHomNay = 30), vn("18:00"), 60, daCai, null).trangThai)
-    }
 
     @Test fun ngoaiKhung_moLaiDauKhungKe() {
         val q = quyetDinh(cs, vn("10:00"), 0, daCai, null)
@@ -134,10 +131,6 @@ class LogicTest {
         assertNull(chuanMaGhep("12345"))
         assertNull(chuanMaGhep("12a456"))
         assertEquals("android", thanGhep("123456", "Pixel").getString("nen"))
-        val x = thanXinThemGio(20, "  ")
-        assertEquals("them_gio", x.getString("loai")); assertEquals(20, x.getInt("phut")); assertEquals("Con xin thêm 20 phút", x.getString("lyDo"))
-        assertEquals("cho con xem nốt", thanXinThemGio(30, "cho con xem nốt").getString("lyDo"))
-        try { thanXinThemGio(60, ""); throw AssertionError("phải lỗi") } catch (_: IllegalArgumentException) {}
         val n = thanNhip("t", "0.1.0", false, true, true, false, true, 0, mapOf("a" to 3, "b" to 0))
         assertTrue(n.getBoolean("appQuanLyBat"))
         assertEquals(1, n.getJSONObject("phutDungHomNay").length())
@@ -151,7 +144,7 @@ class LogicTest {
            "ungDung":{"heThong":["com.android.settings"],"hoc":[],"giaiTri":[{"muc":"com.google.android.youtube","kieu":"app","nhom":"video_ngan"}],
              "chan":[{"muc":"com.android.chrome","kieu":"app"},{"muc":"tiktok.com","kieu":"web"}],"chuaXep":"chan"},
            "phienDiem":{"soDu":10,"phien":null},"khoaNgay":false,
-           "ngoaiLe":{"phutThemHomNay":15,"mucTamThoi":[],"moKhanCapDen":null},
+           "ngoaiLe":{"mucTamThoi":[],"moKhanCapDen":null},
            "tuanThu":{"vanDe":[{"loai":"gio_sai","cauCon":"Giờ trên máy chưa đúng"}]},
            "hieuLuc":{"giaiTriDuocMo":true,"lyDo":[]}},
          "nenTang":{"nen":"android"},"lenh":[{"id":"l1","loai":"go"}],"grantEndsAt":"2026-10-21T12:00:00.000Z"}
@@ -159,7 +152,6 @@ class LogicTest {
         val p = docPhanHoiNhip(s)
         assertEquals("Bin", p.chinhSach.tenCon)
         assertEquals(90, p.chinhSach.tranNgayPhut)
-        assertEquals(15, p.chinhSach.phutThemHomNay)
         assertEquals(Khung("21:30", "06:30"), p.chinhSach.ngu)
         assertEquals(listOf("tiktok.com"), webChan(p.chinhSach))
         assertEquals(setOf("com.android.chrome"), goiAndroid(p.chinhSach.chan))

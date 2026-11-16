@@ -3,7 +3,6 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { chinhSachWindows, nhipDongBo, TRINH_DUYET } from "./agent-windows.ts";
 import type { Policy } from "./may-con.ts";
-import { laWebCam } from "./chan-co-ban.ts";
 
 const goc = (o: Partial<Policy> = {}): Policy => ({
   serverTime: "2026-10-21T10:00:00.000Z", nextCheckSec: 300, gioMaySai: false, con: { id: "c1", ten: "Ken", nhom: "nhi" }, canChonCon: false,
@@ -83,16 +82,14 @@ test("«Mở» có hạn ⇒ trang Giải trí mở trong trình duyệt, trang 
   const luat = [{ muc: "youtube.com", loai: "giai_tri" as const, nhom: "video_ngan", giaPhanNghin: 1000 }, { muc: "gamek.vn", loai: "chan" as const, nhom: null, giaPhanNghin: null }];
   const now = new Date("2026-10-21T10:00:00.000Z");
   const mo = chinhSachWindows(goc({ luat }), undefined, "chan", { moDen: new Date(now.getTime() + 600_000) });
-  // web luôn chặn (người lớn / cờ bạc / bạo lực — L4) có trong `chan` ở mọi chế độ; so phần còn lại
-  const rieng = (ds: string[]) => ds.filter((m) => !laWebCam(m));
-  assert.deepEqual(rieng(mo.web.chan), ["gamek.vn"]);
-  assert.ok(mo.web.chan.includes("pornhub.com") && mo.web.chan.includes("bet365.com"));
+  // lưới web cấm cứng đã bỏ (#262): `chan` chỉ có trang Ba Mẹ chặn
+  assert.deepEqual(mo.web.chan, ["gamek.vn"]);
   assert.ok(mo.web.cho.includes("youtube.com"));
   const het = chinhSachWindows(goc({ luat }), undefined, "chan", { moDen: new Date(now.getTime() - 1000) });
-  assert.deepEqual(rieng(het.web.chan), ["gamek.vn", "youtube.com"]);
+  assert.deepEqual(het.web.chan, ["gamek.vn", "youtube.com"]);
 });
 
-test("L4 «Mở hết»: mode tu_do (không grantEndsAt), web mở + trang Giải trí mở; app/trang Ba Mẹ chặn + web luôn chặn vẫn chặn; khoá ngay / giờ ngủ vẫn thắng", () => {
+test("L4 «Mở hết»: mode tu_do (không grantEndsAt), web mở + trang Giải trí mở; app/trang Ba Mẹ chặn vẫn chặn; khoá ngay / giờ ngủ vẫn thắng", () => {
   const luat = [{ muc: "youtube.com", loai: "giai_tri" as const, nhom: "video_ngan", giaPhanNghin: 1000 }, { muc: "gamek.vn", loai: "chan" as const, nhom: null, giaPhanNghin: null },
     { muc: "tiktok.exe", loai: "chan" as const, nhom: null, giaPhanNghin: null }];
   const w = chinhSachWindows(goc({ luat, cheDoChan: "mo_het", webChiChoPhep: false }), undefined, "chan");
@@ -101,7 +98,7 @@ test("L4 «Mở hết»: mode tu_do (không grantEndsAt), web mở + trang Giả
   assert.equal(w.cheDo, "chan");
   assert.equal(w.web.cheDo, "mo");
   assert.ok(w.web.cho.includes("youtube.com") && !w.web.chan.includes("youtube.com"));
-  assert.ok(w.web.chan.includes("gamek.vn") && w.web.chan.includes("xvideos.com"));
+  assert.ok(w.web.chan.includes("gamek.vn") && !w.web.chan.includes("xvideos.com"));
   assert.equal(w.web.choKhiMo, undefined, "mở hết không phải cửa sổ có hạn");
   // chỉ app được phép (mặc định) ⇒ «hoc»
   assert.equal(chinhSachWindows(goc({ luat, cheDoChan: "chi_app_duoc_phep" })).mode, "hoc");
@@ -129,11 +126,9 @@ test("15/11 (#262, PR #277) «Mở hết»: không chặn, không trừ sao — 
   assert.deepEqual(con.appTinhGio, ["roblox.exe"]);
 });
 
-test("L4 web luôn chặn: tên miền con cũng chặn; không bao giờ nằm trong danh sách mở", () => {
-  assert.ok(laWebCam("m.pornhub.com") && laWebCam("www.bet365.com") && laWebCam("kaotic.com"));
-  assert.ok(!laWebCam("khanacademy.org") && !laWebCam("pornhub.exe") && !laWebCam(""));
+test("#262: không còn lưới web cấm cứng — tên miền từng nằm trong lưới không bị chặn riêng, nằm được trong danh sách mở", () => {
   const w = chinhSachWindows(goc({ allowlistHeThong: ["pornhub.com"], cheDoChan: "mo_het" }));
-  assert.ok(!w.web.cho.includes("pornhub.com") && w.web.chan.includes("pornhub.com"));
+  assert.ok(w.web.cho.includes("pornhub.com") && !w.web.chan.includes("pornhub.com"));
 });
 
 test("05/11: ngoại lệ trong lúc khoá / giờ ngủ ⇒ khoaKhiHetNgoaiLe để agent tự khoá lại khi ngoại lệ hết hạn (cả lúc mất mạng)", () => {

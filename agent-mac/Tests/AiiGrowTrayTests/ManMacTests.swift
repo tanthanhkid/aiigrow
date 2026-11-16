@@ -130,4 +130,45 @@ final class ManMacTests: XCTestCase {
     XCTAssertTrue(daMo)
     XCTAssertEqual(lenh, [.baoThoat, .baMeMo(ma: "123456")])
   }
+
+  // ---- 16/11 (#289): khớp #262–#267 + «Hỏi AiiGrow»
+  func testChuXongRẽTheoMayRieng() {
+    var h = HoSoMay(); h.con = [HoSoBe(id: "1", ten: "Bảo Anh", coPin: false)]; h.mayRieng = true
+    let r = ManMac.chuXong(h, taiKhoan: "baoanh")
+    XCTAssertEqual(r.tieuDe, "Máy của Bảo Anh đã sẵn sàng!")
+    for c in [r.phu, r.chanTrang] + r.cacDong { XCTAssertFalse(c.contains("PIN") || c.contains("cả nhà") || c.contains("chọn tên"), c) }
+    h.con.append(HoSoBe(id: "2", ten: "Bảo Minh", coPin: true)); h.mayRieng = false
+    let chung = ManMac.chuXong(h, taiKhoan: "con")
+    XCTAssertEqual(chung.tieuDe, "Máy đã sẵn sàng cho cả nhà!")
+    XCTAssertTrue(chung.chanTrang.contains("tên + PIN"))
+    h.con = [h.con[0]]
+    XCTAssertEqual(ManMac.chuXong(h, taiKhoan: "con").tieuDe, "Máy đã sẵn sàng cho cả nhà!", "một bé nhưng mayRieng=false ⇒ máy chung (tên + PIN)")
+    let la = ManMac.chuXong(nil, taiKhoan: "con")
+    for c in [la.tieuDe, la.phu, la.chanTrang] + la.cacDong { XCTAssertFalse(c.contains("PIN") || c.contains("cả nhà") || c.contains("tên"), "chưa có hồ sơ ⇒ trung tính: \(c)") }
+    XCTAssertTrue((r.cacDong + chung.cacDong).allSatisfy { !$0.contains("điểm") && !$0.contains("App mới thì xin") })
+  }
+
+  func testSoSaoMotThuTuDoc() {
+    XCTAssertFalse(ManMac.dangNo(nil))
+    XCTAssertTrue(ManMac.dangNo(SoSao(sao: -20, no: 20)))
+    XCTAssertTrue(ManMac.dangNo(SoSao(sao: -5)), "số dư âm là đang nợ")
+    XCTAssertFalse(ManMac.dangNo(SoSao(sao: 10)))
+    var t = tt("con"); t.soSao = SoSao(sao: 3)
+    XCTAssertEqual(ManMac.soSao(tt: t, tq: nil)?.sao, 3)
+    XCTAssertNil(ManMac.soSao(tt: tt("con"), tq: nil))
+  }
+
+  func testHoiAiiGrowCungChuVoiWindows() {
+    XCTAssertEqual(HoiAiiGrow.the.map(\.ma), ["thu_lai", "ma_mo", "bat_lai", "cap_nhat"])
+    XCTAssertEqual(HoiAiiGrow.the[0].tieu, "Mất mạng?")
+    XCTAssertEqual(HoiAiiGrow.the[0].phu, "Máy vẫn trừ sao đúng luật")
+    XCTAssertEqual(HoiAiiGrow.tieu, "Hỏi AiiGrow")
+    XCTAssertEqual(HoiAiiGrow.goiBaMe, "Gọi Ba Mẹ giúp")
+    let tat = HoiAiiGrow.ketQuaThuLai(ma: "bat_lai", matKetNoi: true, matMang: false, banDaemon: nil)
+    XCTAssertFalse(tat.tot); XCTAssertTrue(tat.phu.contains("cài lại gói"))
+    XCTAssertFalse(HoiAiiGrow.ketQuaThuLai(ma: "thu_lai", matKetNoi: false, matMang: true, banDaemon: "0.1.12").tot)
+    let ok = HoiAiiGrow.ketQuaThuLai(ma: "thu_lai", matKetNoi: false, matMang: false, banDaemon: "0.1.12")
+    XCTAssertTrue(ok.tot); XCTAssertTrue(ok.phu.contains("0.1.12"))
+    XCTAssertFalse(HoiAiiGrow.ketQuaCapNhat(banDaemon: nil).phu.contains("giờ"))
+  }
 }

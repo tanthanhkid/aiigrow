@@ -63,7 +63,7 @@ export type ToiTre = { con: { id: string; ten: string; nhom: NhomTre; avatar: st
   loiKhen: { id: string; noi_dung: string; phan_hoi: string | null; created_at: string }[] };
 export type NhaTre = { soDu: number; diemChoDuyet: number; tongKiem: number; capDo: { cap: number; diemCapSau: number; conThieu: number }; chuoiNgay: number;
   mucTieu: { id: string; ten: string; diem: number; conThieu: number } | null; nhiemVuMo: number; canBoSung: { id: string; ten: string; luot: string | null }[];
-  phutChoi: number; tranNgay: number; conPhut: number; khung: { dang: boolean; den: string | null; moLai: string | null; moMai: boolean }; gioNgu: boolean;
+  phutChoi: number; tranNgay: number; conPhut: number; khung: { dang: boolean; den: string | null; moLai: string | null; moMai: boolean };
   nghiDen: string | null; phien: { id: string; muc: string; conPhut: number } | null; phienToiDa: number; nghiGiua: number };
 export type NvTre = { id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string; toi_da_ngay: number | null;
   toi_da_tuan: number | null; phut_toi_thieu: number; trang_thai_con: "san_sang" | "dang_lam" | "can_bo_sung" | "du_hom_nay" | "du_tuan" | "da_xong";
@@ -81,8 +81,7 @@ export type YcTre = { id: string; loai: "vay_sao" | "them_gio" | "mo_web" | "cai
 export type KetQuaYc = "cho" | "da_them" | "mo_tam" | "chua_them" | "het_han" | "huy";
 /** Quỹ giờ chơi hôm nay (server/lib/quy-gio.ts › quyHomNay) — mọi app Giải trí Ba Mẹ cho phép dùng chung; app Học không tính. */
 export type QuyTre = { ngay: string; cuoiTuan: boolean; quyNgayPhut: number; themPhut: number; doiSaoPhut: number; daDung: number; conPhut: number; tongPhut: number;
-  dangNgu: boolean; dangHoc: boolean; khoa: boolean; gioNgu: { tu: string; den: string }; gioHoc: { tu: string; den: string; thu: number[] } | null;
-  phutToiNgu: number; phutToiHoc: number | null; tyLe: { sao: number; phut: number }; doiSao: { bat: boolean; toiDaNgay: number; conDoiDuoc: number }; choXinThem: boolean };
+  khoa: boolean; tyLe: { sao: number; phut: number }; doiSao: { bat: boolean; toiDaNgay: number; conDoiDuoc: number }; choXinThem: boolean };
 /** GET /api/kid/quy */
 export type QuyCon = { quy: QuyTre; sao: number; phutDoiDuoc: number; ngoaiLe: { id: string; den: string; muc: string | null; nhom: string }[];
   yeuCauCho: { id: string; loai: string; phut: number | null; gia_tri: string | null; pham_vi: string | null; ly_do: string; created_at: string }[] };
@@ -103,12 +102,18 @@ export const taiKhoa = () => kid.goi<QuyCon>("quy").then((r) => !!r.quy?.khoa);
 export const taiCheDo = () => kid.goi<ToiTre>("toi").then((r) => r.cheDo ?? null).catch(() => null);
 
 /** «Xin Ba Mẹ mở» app / web ngoài danh sách (= xin thêm vào danh sách): mã app thật / web ⇒ POST kid/xin-duyet; tên app gõ tay
- *  («Minecraft») ⇒ yeu-cau cai_app (xin-duyet hiểu tên trần là tên miền). Lỗi `qua_nhieu_cho` (≥ 3 lời chờ) / `web_cam` (lưới an toàn) ném ra
- *  cho màn gọi xử lý. */
+ *  («Minecraft») ⇒ yeu-cau cai_app (xin-duyet hiểu tên trần là tên miền). Lỗi `qua_nhieu_cho` (≥ 3 lời chờ) ném ra
+ *  cho màn gọi xử lý. Máy chủ cũ còn trả 409 `web_cam` ⇒ ném lại LoiApi cùng mã với câu thân thiện «Ba Mẹ chưa thêm X lúc này…»
+ *  (màn hiện qua cauLoi, không cần tự bắt). */
 export async function guiXinMo(b: { loai: "mo_web" | "cai_app" | "khac"; muc: string; ten?: string; lyDo?: string }): Promise<{ id: string }> {
   const muc = b.muc.trim();
-  if (b.loai === "mo_web" || (b.loai === "cai_app" && laMaApp(muc))) return kid.goi<{ id: string }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "" });
-  return kid.goi<{ id: string }>("yeu-cau", { loai: b.loai, giaTri: b.ten ?? muc, lyDo: b.lyDo ?? "" });
+  try {
+    if (b.loai === "mo_web" || (b.loai === "cai_app" && laMaApp(muc))) return await kid.goi<{ id: string }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "" });
+    return await kid.goi<{ id: string }>("yeu-cau", { loai: b.loai, giaTri: b.ten ?? muc, lyDo: b.lyDo ?? "" });
+  } catch (e) {
+    if (e instanceof LoiApi && e.ma === "web_cam") throw new LoiApi(e.ma, `Ba Mẹ chưa thêm ${b.ten ?? muc} lúc này. Con xin lại sau được nhé`, e.status, e.them);
+    throw e;
+  }
 }
 
 /** «Xin Ba Mẹ cho vay sao» (POST kid/xin-vay). Máy chủ cũ (404) ⇒ lời xin «thêm giờ» cũ cùng số (Ba Mẹ đồng ý = cho vay ở máy chủ mới). */
@@ -128,7 +133,7 @@ export type TroChoi = { muc: string; ten: string; nhom: string; giaPhut: number 
 export type XetChoi = { duoc: boolean; lyDo?: string; cau: string | null; phutToiDa?: number; giaPhanNghin?: number; soDu?: number; nghiDen?: string };
 export type NhipChoi = { trangThai: "chay" | "tam" | "ket_thuc"; phutDung: number; conPhut: number; diemTru: number; soDu: number; canhBao: 5 | 1 | null;
   lyDoKet?: string; nghiDen?: string; muc: string; toiDaPhut: number; giaPhanNghin: number };
-export type QuyTac = { lich: { ngayThuong: { tu: string; den: string }[]; cuoiTuan: { tu: string; den: string }[]; ngu: { tu: string; den: string } };
+export type QuyTac = { lich: { ngayThuong: { tu: string; den: string }[]; cuoiTuan: { tu: string; den: string }[] };
   tranNgay: number; tranTuan: number; phienToiDa: number; nghiGiua: number; giaPhut: Record<"game" | "video_ngan" | "mxh" | "phim_gd", number>;
   nhiemVu: { ten: string; diem: number }[]; qua: { ten: string; diem: number }[] };
 export type ThanhTich = { chuoiNgay: number; soDu: number; tongKiem: number; capDo: { cap: number; diemCapSau: number; conThieu: number };

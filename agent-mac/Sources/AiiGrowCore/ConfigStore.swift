@@ -39,7 +39,7 @@ public struct CauHinhMay: Codable, Equatable {
   /// Danh sách app thật (DanhSachApp.swift): bam lần gửi được gần nhất + yeuCau «Làm mới» đã xử lý.
   public var bamAppDaGui: String?
   public var yeuCauAppDaXuLy: String?
-  /// Phút chơi bằng điểm lúc MẤT MẠNG chờ gửi bù (phien/bu) — lưu đĩa, gửi trước lần dong-bo kế tiếp có mạng.
+  /// Phút chơi bằng sao lúc MẤT MẠNG chờ gửi bù (phien/bu) — lưu đĩa, gửi trước lần dong-bo kế tiếp có mạng.
   public var phienBu: PhienBu?
   /// Mở tạm bằng mã offline của Ba Mẹ (MaOffline.swift) — giữ qua khởi động lại daemon.
   public var moTamOffline: MoTamOffline?

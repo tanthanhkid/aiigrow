@@ -19,7 +19,6 @@ import { gioDiaPhuong, phutCua, trongKhung } from "./gio.ts";
 import { laMoHet, type Policy } from "./may-con.ts";
 import { nhipToiKhoaLai } from "./cau-hinh.ts";
 import { chinhSachWebCho, type ChinhSachWeb } from "./web.ts";
-import { laWebCam } from "./chan-co-ban.ts";
 
 export type PolicyWindows = {
   serverTime: string; childName: string; mode: "hoc" | "khoa" | "tu_do"; locked: boolean; lockReason: string | null;
@@ -128,11 +127,9 @@ export function phutToiHetLich(p: Pick<Policy, "lich" | "tz" | "serverTime">): n
  *  không mở được trang khác ngoài danh sách cho phép + trang ngoại lệ. */
 function moWebNgoaiLe(w: ChinhSachWeb, ds: string[], chiNgoaiLe: boolean): ChinhSachWeb {
   if (!ds.length) return w;
-  // web luôn chặn (người lớn, cờ bạc…) không bao giờ mở; chỉ gỡ chặn đúng tên miền ngoại lệ hoặc tên miền con của nó — không gỡ tên miền cha
-  const mo = ds.filter((d) => !laWebCam(d));
-  if (!mo.length) return w;
-  const bo = (m: string) => !laWebCam(m) && mo.some((d) => m === d || m.endsWith("." + d));
-  return { ...w, ...(chiNgoaiLe ? { cheDo: "chi_cho_phep" as const } : {}), chan: w.chan.filter((m) => !bo(m)), cho: [...new Set([...w.cho, ...mo])].sort() };
+  // chỉ gỡ chặn đúng tên miền ngoại lệ hoặc tên miền con của nó — không gỡ tên miền cha
+  const bo = (m: string) => ds.some((d) => m === d || m.endsWith("." + d));
+  return { ...w, ...(chiNgoaiLe ? { cheDo: "chi_cho_phep" as const } : {}), chan: w.chan.filter((m) => !bo(m)), cho: [...new Set([...w.cho, ...ds])].sort() };
 }
 
 export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "giam-sat" | "chan", mo: MoRong = {}): PolicyWindows {

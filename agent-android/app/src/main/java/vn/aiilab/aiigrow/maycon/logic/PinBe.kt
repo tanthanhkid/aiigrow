@@ -192,7 +192,7 @@ data class ViecCho(val loai: String, val conId: String? = null, val pin: String?
  *  5xx / 502 / lỗi mạng ⇒ GIỮ để thử lại (bỏ «roi» thì máy chủ còn ghi bé đang dùng ⇒ nhịp sau mở máy không PIN). */
 fun boViecCho(http: Int): Boolean = http in 400..499 && http != 408 && http != 429
 
-/** Bé / Ba Mẹ rời máy (Đổi bé / Đăng xuất / Khoá lại): việc chờ cuối cùng LUÔN là «roi» — «vao» đang chờ bị thay
+/** Bé / Ba Mẹ rời máy (Đổi người / Đăng xuất / Khoá lại): việc chờ cuối cùng LUÔN là «roi» — «vao» đang chờ bị thay
  *  (gửi dang-nhap-be sau dang-xuat sẽ mở lại máy cho bé đã đăng xuất). */
 fun viecSauRoi(@Suppress("UNUSED_PARAMETER") cu: ViecCho?, now: Long): ViecCho = ViecCho("roi", luc = now)
 

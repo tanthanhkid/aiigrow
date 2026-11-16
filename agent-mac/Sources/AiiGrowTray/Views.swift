@@ -92,6 +92,8 @@ struct GhepMayView: View {
   @State private var dangChonFocus = false
   @State private var dungMa = false
   @State private var quyenTB: Bool?
+  /// Hồ sơ máy sau khi ghép (số bé / máy riêng) — màn «Máy đã sẵn sàng» rẽ theo đó. nil = chưa biết ⇒ bản máy chung.
+  @State var hoSo: HoSoMay?
   private var motCham: Bool { (coGoiCai || tray.tt?.coGoiCai == true) && !dungMa }
   private var khoaNhap: Bool { dangGui }
 
@@ -114,6 +116,7 @@ struct GhepMayView: View {
     .foregroundColor(ClayMau.chu)
     .animation(ClayMotion.bat, value: man)
     .onAppear { if chon.isEmpty { chon = taiKhoan.first ?? "" }; man = manDau }
+    .task(id: man) { if man == .batQuyen || man == .xong { await layHoSo() } }
   }
 
   private var buoc: some View {
@@ -260,17 +263,16 @@ struct GhepMayView: View {
 
   // 09
   @ViewBuilder private var xong: some View {
+    let c = ManMac.chuXong(hoSo, taiKhoan: chon)
     HStack { Spacer(); VienClay(ten: "party_popper", duPhong: "checkmark.seal.fill", nen: ClayMau.ngocSoft, co: 64); Spacer() }
-    Text("Máy đã sẵn sàng cho cả nhà!").font(.system(size: 22, weight: .bold)).frame(maxWidth: .infinity)
-    Chu("Mỗi bé vào máy bằng tên + PIN 4 số.", co: 14, mau: ClayMau.chu3, dong: 1)
+    Text(c.tieuDe).font(.system(size: 22, weight: .bold)).frame(maxWidth: .infinity)
+    Chu(c.phu, co: 14, mau: ClayMau.chu3, dong: 2)
     VStack(alignment: .leading, spacing: 8) {
-      Chu("⭐  Sao riêng từng bé · 1 sao = 1 phút chơi", co: 13, dam: .semibold, dong: 1)
-      Chu("🔑  PIN do Ba Mẹ đặt trong app", co: 13, dam: .semibold, dong: 1)
-      Chu("🛡  Chỉ mở app trong danh sách · App mới thì xin Ba Mẹ", co: 13, dam: .semibold, dong: 1)
+      ForEach(c.cacDong, id: \.self) { Chu($0, co: 13, dam: .semibold, dong: 1) }
     }
     .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
-    Button("Mở màn chọn tên") { khiGui(false); dongLai(); NhuongMay.khoaManHinh() }.buttonStyle(NutClayStyle(kieu: .ngoc))
-    Chu("Máy khoá lại; các bé đăng nhập tài khoản «\(chon)» rồi chọn tên + PIN.", co: 11, mau: ClayMau.chu3, dong: 2)
+    Button(c.nut) { khiGui(false); dongLai(); NhuongMay.khoaManHinh() }.buttonStyle(NutClayStyle(kieu: .ngoc))
+    Chu(c.chanTrang, co: 11, mau: ClayMau.chu3, dong: 2)
   }
 
   static let caiDatThongBao = URL(string: "x-apple.systempreferences:com.apple.Notifications-Settings.extension")
@@ -281,6 +283,15 @@ struct GhepMayView: View {
     guard Bundle.main.bundleURL.pathExtension == "app" else { quyenTB = false; return }
     let st = await UNUserNotificationCenter.current().notificationSettings()
     quyenTB = st.authorizationStatus == .authorized
+  }
+
+  /// Hồ sơ máy để màn «xong» rẽ máy riêng / máy chung: lấy sau khi ghép (không chặn nút / `dangGui`), thử lại tối đa 4 lần cách 3 giây;
+  /// chưa có thì màn «xong» hiện chữ trung tính.
+  private func layHoSo() async {
+    for _ in 0..<4 where hoSo == nil && (man == .batQuyen || man == .xong) {
+      if case .duLieu(let j)? = try? await IPCClient.guiAsync(.hoSoGhep, giay: 5), let h = try? IPCMa.decoder.decode(HoSoMay.self, from: Data(j.utf8)) { hoSo = h; return }
+      try? await Task.sleep(nanoseconds: 3_000_000_000)
+    }
   }
 
   private func gui() {
@@ -305,7 +316,7 @@ struct GhepMayView: View {
 
 /// Màn toàn màn hình theo bé (thiết kế con-cai-mac them-kofpo0dl «Hết sao rồi», them-2ndg9bu6 mất mạng + mã, Ba Mẹ khoá): nền sáng, Grow bên trái,
 /// tiêu đề + câu, viên «Con còn 0 sao», «Xin Ba Mẹ cho vay sao» / «Nhắn Ba Mẹ» (khối xin mở NGAY trên màn — cửa sổ khác không nổi trên màn khoá),
-/// link nhỏ «Mất mạng? Mở bằng mã của Ba Mẹ ›» · «Đổi bé ›» · «Ba Mẹ mở máy ›».
+/// link nhỏ «Mất mạng? Mở bằng mã của Ba Mẹ ›» · «Đổi người ›» · «Ba Mẹ mở máy ›».
 struct ManKhoaView: View {
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
@@ -423,7 +434,7 @@ struct ManKhoaView: View {
       }
       HStack(spacing: 40) {
         if t?.mayRieng != true, t?.nguoiDung != nil {
-          Button(action: doiBe) { HStack(spacing: 6) { HinhFluent(ten: "seedling", duPhong: "person.2.fill", co: 18); Text("Đổi bé ›") } }
+          Button(action: doiBe) { HStack(spacing: 6) { HinhFluent(ten: "seedling", duPhong: "person.2.fill", co: 18); Text("Đổi người ›") } }
             .buttonStyle(.plain)
         }
         Button(action: baMeMoMay) { HStack(spacing: 6) { HinhFluent(ten: "key", duPhong: "key.fill", co: 18); Text("Ba Mẹ mở máy ›") } }

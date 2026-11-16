@@ -40,7 +40,8 @@ class MayChu(private val goc: String, private val token: String?, private val do
     fun nhip(than: JSONObject) = goi("nhip", than)
     /** P1 07/11: long-poll — máy chủ giữ ≤ ~25 giây, trả ngay khi Ba Mẹ đổi gì. Dùng `MayChu(…, docMs = 40_000)`. */
     fun choThayDoi(ver: Long?) = goi(vn.aiilab.aiigrow.maycon.logic.duongChoThayDoi(ver))
-    fun xinThemGio(than: JSONObject) = goi("yeu-cau", than)
+    /** 15/11 (#258): trạng thái lời xin app / web — {ketQua: cho|da_them|mo_tam|chua_them|het_han|huy, nhom, muc, …}. */
+    fun yeuCau(id: String) = goi("yeu-cau/$id")
     /** 15/11 (#264): phút theo bé (`usage[].con`, `phutBoiMa`) ⇒ máy chủ trừ sao «Tính phút». Phản hồi (Policy Windows) bỏ qua. */
     fun dongBo(than: JSONObject) = goi("dong-bo", than)
     /** 15/11 (#263): «Xin Ba Mẹ cho vay sao» ⇒ {id, trang_thai, soSao, mucDich}. */

@@ -48,7 +48,7 @@ final class ChupClayTests: XCTestCase {
     chup(ManKhoaView(tray: dem, xin: xin), "mac-dem-nguoc", CGSize(width: 1280, height: 900), dir: dir)
   }
 
-  /// App «AiiGrow của Con» + nộp bài + chơi bằng điểm + màn chặn + tin mới — dữ liệu mẫu, không gọi daemon.
+  /// App «AiiGrow của Con» + nộp bài + chơi bằng sao + màn chặn + tin mới — dữ liệu mẫu, không gọi daemon.
   func appMau() -> (AppConModel, TrayModel) {
     let tray = TrayModel()
     var t = tt(cheDo: .hoc, lyDo: nil, dem: nil); t.conPhut = 47; t.duocDoiDiem = true; t.dsChoi = ["com.roblox.roblox", "youtube.com"]
@@ -79,7 +79,7 @@ final class ChupClayTests: XCTestCase {
     ch.qua = [qua("q1", "30 phút xem hoạt hình", 50, du: true), qua("q2", "Bộ Lego nhỏ", 300, du: false, thieu: 172, cuoiTuan: true)]
     app.ch = ch
     var ds = HvTinDs()
-    var t1 = HvTin(); t1.id = "t1"; t1.tieu = "Ba Mẹ đã duyệt «Quét nhà»"; t1.noi = "+5 điểm"; t1.luc = Date()
+    var t1 = HvTin(); t1.id = "t1"; t1.tieu = "Ba Mẹ đã duyệt «Quét nhà»"; t1.noi = "+5 sao"; t1.luc = Date()
     var t2 = HvTin(); t2.id = "t2"; t2.tieu = "Nhiệm vụ mới: Tưới cây"; t2.noi = "Ba Mẹ vừa giao cho con"; t2.luc = Date().addingTimeInterval(-3600)
     ds.ds = [t1, t2]; app.tin = ds
     app.tinMoi = 2; app.phutChoi = 25; app.phutChoiCua = "com.roblox.roblox"
@@ -102,7 +102,7 @@ final class ChupClayTests: XCTestCase {
     chup(GhepMayView(taiKhoan: ["bi", "na"], coGoiCai: true, dongLai: {}), "mac-ghep-mot-cham", dir: dir)
     let khoa = TrayModel(); var tk = tt(cheDo: .khoa, lyDo: "het_gio", dem: nil); tk.matMang = true; tk.nhapMaOffline = true; khoa.capNhat(tk)
     chup(ManKhoaView(tray: khoa, xin: XinModel()), "mac-man-khoa-ma-offline", CGSize(width: 1280, height: 1000), dir: dir)
-    chup(TinMoiView(tieu: "Nhiệm vụ mới: Tưới cây", noi: "Ba Mẹ vừa giao cho con. Làm xong để tích điểm nhé!"), "mac-tin-moi", dir: dir)
+    chup(TinMoiView(tieu: "Nhiệm vụ mới: Tưới cây", noi: "Ba Mẹ vừa giao cho con. Làm xong để tích sao nhé!"), "mac-tin-moi", dir: dir)
   }
 
   /// Màn Mac làm lại 06/11 (con-cai-mac) — đặt cạnh HTML thiết kế để so.

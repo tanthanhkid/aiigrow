@@ -15,7 +15,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { cheDoCua } from "./lenh-may.ts";
 import type { May } from "./gia-dinh.ts";
 import type { Policy } from "./may-con.ts";
-import { cheDoCua as cheDoConCua, laWebCam, nhanNhom, nhomTuLoai, WEB_LUON_CHAN, type NhomDs } from "./chan-co-ban.ts";
+import { cheDoCua as cheDoConCua, nhanNhom, nhomTuLoai, type NhomDs } from "./chan-co-ban.ts";
 import { truPhutChoi } from "./so-sao.ts";
 
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -184,7 +184,7 @@ export type ChinhSachWeb = {
 /** Hàm THUẦN: Policy ⇒ chính sách web cho agent. Giải trí (giai_tri) bị chặn trừ khi đang có phiên chơi bằng điểm đúng trang đó. */
 /** `appThat`: mục app thật máy gửi (lib/app-may.ts) — gói Store «microsoft.minecraftuwp», bundle «ru.keepcoder.telegram» không phải tên miền. */
 /** `moGiaiTri`: mở trang Giải trí (cửa sổ «mở» có hạn, hoặc Con ở chế độ «Mở hết» — L4); `choKhiMo` chỉ khi mở NHỜ cửa sổ có hạn (`moCoHan`, mặc định = moGiaiTri).
- *  Lưới an toàn (`p.webLuonChan`, lib/chan-co-ban.ts — «Mở hết» gửi []) vào `chan` và không bao giờ nằm trong `cho`. */
+ *  `p.webLuonChan` (cũ, luôn []) nếu có thì vào `chan`. */
 export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "phien" | "webChiChoPhep"> & Partial<Pick<Policy, "webLuonChan">>, o: { moGiaiTri?: boolean; moCoHan?: boolean; appThat?: Set<string> } = {}): ChinhSachWeb {
   const web = p.luat.filter((l) => kieuMuc(l.muc) === "web" && !o.appThat?.has(l.muc.toLowerCase()));
   const phien = p.phien?.muc?.toLowerCase() ?? "";
@@ -196,12 +196,12 @@ export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "p
   // choKhiMo: trang Giải trí chỉ mở NHỜ cửa sổ «mở» có hạn ⇒ agent tự chặn lại khi grantEndsAt qua mà máy đang mất mạng
   const theoPhien = (m: string) => phien === m.toLowerCase() || (phien !== "" && phien.endsWith("." + m.toLowerCase()));
   const choKhiMo = (o.moCoHan ?? o.moGiaiTri) ? web.filter((l) => l.loai === "giai_tri" && !theoPhien(l.muc)).map((l) => l.muc.toLowerCase()) : [];
-  const chanHet = [...chan, ...(p.webLuonChan ?? WEB_LUON_CHAN)];     // «Mở hết» ⇒ webLuonChan [] (#258: không chặn gì)
+  const chanHet = [...chan, ...(p.webLuonChan ?? [])];     // lưới web cấm cứng đã bỏ (#258/#262): webLuonChan luôn []
   // tên miền đi kèm (TEN_MIEN_DI_KEM) — trừ trang Ba Mẹ chặn đích danh; kèm của trang chỉ mở nhờ cửa sổ có hạn cũng vào choKhiMo
   const kem = (ds: string[]) => tenMienDiKem(ds).filter((m) => !chan.includes(m));
   const choLau = cho.filter((m) => !choKhiMo.includes(m)), kemLau = new Set(kem(choLau));
   const kemKhiMo = kem(choKhiMo.filter((m) => cho.includes(m))).filter((m) => !kemLau.has(m));
   const choHet = [...cho, ...kemLau, ...kemKhiMo], khiMoHet = [...choKhiMo, ...kemKhiMo];
-  return { cheDo: p.webChiChoPhep ? "chi_cho_phep" : "mo", chan: [...new Set(chanHet)].sort(), cho: [...new Set(choHet)].filter((m) => !laWebCam(m)).sort(),
+  return { cheDo: p.webChiChoPhep ? "chi_cho_phep" : "mo", chan: [...new Set(chanHet)].sort(), cho: [...new Set(choHet)].sort(),
     ...(khiMoHet.length ? { choKhiMo: [...new Set(khiMoHet)].sort() } : {}) };
 }

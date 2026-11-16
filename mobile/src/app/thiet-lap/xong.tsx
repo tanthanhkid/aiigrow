@@ -1,7 +1,7 @@
 // bm1-ob-xong «Xong rồi!» (đã ghép máy) / them-w8q8hcfk (chưa ghép máy) — tóm tắt (thiết kế 15/11 #262/#264): «Theo danh sách · N app» / «Mở hết»,
 // «Chơi bằng sao · 1 sao = 1 phút», số việc mỗi ngày; mẫu lời xin «Xin thêm YouTube vào danh sách · Bỏ qua / Thêm»;
 // đã ghép ⇒ thẻ «Con xin gì, điện thoại Ba Mẹ sẽ báo» (mẫu), «Vào trang của X», «Ghép thêm máy cho X»; chưa ghép ⇒ «Ghép máy cho X».
-// Thiết kế 14/11: «Grow» thay «Rob» (N6); tên chế độ «Chặn app & web» / «Mở hết» (N2 — thiết kế 04/05 còn ghi «Chỉ app Ba Mẹ chọn», chọn theo luật N2).
+// Thiết kế 14/11: «Grow» thay «Rob» (N6); tên chế độ «Theo danh sách» / «Mở hết» (N2 — thiết kế 04/05 còn ghi «Chỉ app Ba Mẹ chọn», chọn theo luật N2).
 import { cheDoTu } from "@/lib/app-web";
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";

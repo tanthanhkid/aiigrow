@@ -19,7 +19,7 @@ import { quyenTuVai } from "./quyen.ts";
 import { chuanMuc } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
-import { cheDoChanCua, cheDoCua, laWebCam, WEB_LUON_CHAN, type CheDo, type CheDoChan } from "./chan-co-ban.ts";
+import { cheDoChanCua, cheDoCua, type CheDo, type CheDoChan } from "./chan-co-ban.ts";
 import { quyHomNay } from "./quy-gio.ts";
 import { cauSao, laMoHetCon, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
 
@@ -150,7 +150,7 @@ export type Policy = {
   cheDo?: CheDo;
   /** (cũ) cùng chế độ, giá trị trước 15/11 — chi_app_duoc_phep (= theo_danh_sach) | mo_het. Agent cũ đọc trường này. */
   cheDoChan?: CheDoChan;
-  /** Lưới an toàn chung (chan-co-ban.ts › WEB_CAM) — agent chặn kể cả tên miền con. «Mở hết» ⇒ [] (không chặn gì, #258). */
+  /** Luôn [] — lưới web cấm cứng đã bỏ (#258/#262), giữ trường cho agent cũ. */
   webLuonChan?: string[];
   /** Thiết kế 05/11 (lib/quy-gio.ts): QUỸ phút chơi hôm nay — mọi app Giải trí dùng chung. null = máy dùng chung chưa chọn Con.
    *  conPhut = phút còn chơi được · daDung = phút Giải trí đã dùng (mọi máy) · dangHoc = giờ học (chỉ app Học) · phutToiNgu / phutToiHoc = phút tới mốc. */
@@ -169,8 +169,8 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     `select id, ten, nhom, cau_hinh, lich, che_do_chan from children where id = $1`, [con]) : undefined;
   const ts = thamSo(f.cau_hinh, c?.cau_hinh);
   const cheDo = cheDoCua(c?.che_do_chan), cheDoChan = cheDoChanCua(cheDo);
-  // danh sách trắng của Con (#262): chỉ «Tính phút» (giai_tri) / «Không tính phút» (hoc); lưới an toàn không bao giờ là mục mở — kể cả luật cũ
-  const luat = c ? (await dsLuat(may.family_id)).filter((l) => (!l.child_id || l.child_id === c.id) && !laWebCam(l.muc)) : [];
+  // danh sách trắng của Con (#262): chỉ «Tính phút» (giai_tri) / «Không tính phút» (hoc); không còn lưới web cấm cứng
+  const luat = c ? (await dsLuat(may.family_id)).filter((l) => (!l.child_id || l.child_id === c.id)) : [];
   // luật riêng của Con đè luật gia đình cùng mục — «loai_tru» (Ba Mẹ bỏ mục cả nhà khỏi danh sách của Con này) đè rồi bỏ ra
   const theoMuc = new Map<string, (typeof luat)[number]>();
   for (const l of luat.sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);
@@ -198,7 +198,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da,
     // #262: web theo chế độ — «Theo danh sách» chỉ mở trang trong danh sách; «Mở hết» mở mọi trang
     webChiChoPhep: cheDo === "theo_danh_sach",
-    cheDo, cheDoChan, webLuonChan: c && cheDo === "mo_het" ? [] : WEB_LUON_CHAN,
+    cheDo, cheDoChan, webLuonChan: [],
     // 15/11: quỹ ngày bỏ — conPhut = sao tiêu được; ngayPhut 0 + themPhut (= conPhut + daDung) để agent cũ tính «còn» đúng bằng số sao
     quy: qy && { ngayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, daDung: qy.daDung, conPhut: qy.conPhut, dangNgu: qy.dangNgu, dangHoc: qy.dangHoc,
       phutToiNgu: qy.phutToiNgu, phutToiHoc: qy.phutToiHoc, tyLe: qy.tyLe },

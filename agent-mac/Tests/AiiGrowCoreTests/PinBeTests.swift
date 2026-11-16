@@ -1,5 +1,5 @@
 // PIN theo bé trên Mac dùng chung (L13, docs/API.md «S3»): vân PIN như máy chủ, đếm sai 5 lần / 15 giây, mã mở máy 60/30/15 phút,
-// ai đang dùng máy (màn chọn tên / Ba Mẹ dùng), daemon: đăng nhập có mạng / mất mạng, Ba Mẹ nhập mã, Đổi bé.
+// ai đang dùng máy (màn chọn tên / Ba Mẹ dùng), daemon: đăng nhập có mạng / mất mạng, Ba Mẹ nhập mã, Đổi người.
 import XCTest
 @testable import AiiGrowCore
 
@@ -72,9 +72,9 @@ final class PinBeTests: XCTestCase {
     XCTAssertEqual(pm.hieuLuc(now: t.addingTimeInterval(601)), .chua, "hết hạn Ba Mẹ ⇒ màn chọn tên, không chờ mạng")
     var p2 = PhienMay(); p2.mayChu = .con(id: "c1", ten: "A"); p2.datCucBo(.chua, now: t)
     p2.nhanMayChu(.con(id: "c1", ten: "A"), guiLuc: t.addingTimeInterval(-5), now: t)
-    XCTAssertEqual(p2.hieuLuc(now: t), .chua, "đồng bộ gửi TRƯỚC lúc Đổi bé không ghi đè")
+    XCTAssertEqual(p2.hieuLuc(now: t), .chua, "đồng bộ gửi TRƯỚC lúc Đổi người không ghi đè")
     p2.nhanMayChu(.con(id: "c1", ten: "A"), guiLuc: t.addingTimeInterval(5), now: t, daGuiHet: false)
-    XCTAssertEqual(p2.hieuLuc(now: t), .chua, "lệnh Đổi bé chưa tới máy chủ ⇒ giữ màn chọn tên")
+    XCTAssertEqual(p2.hieuLuc(now: t), .chua, "lệnh Đổi người chưa tới máy chủ ⇒ giữ màn chọn tên")
     p2.nhanMayChu(.chua, guiLuc: t.addingTimeInterval(5), now: t)
     XCTAssertNil(p2.cucBo)
 
@@ -144,7 +144,7 @@ final class PinBeTests: XCTestCase {
     do { let r = await b.xuLyIPC(.dangNhapBe(con: "c1", pin: "4821"), uidGoi: 501); XCTAssertEqual(r, .pin(ketQua: "ok", conLan: nil, choGiay: nil, chu: "Bảo Anh")) }
     let t1 = await trangThai(b)
     XCTAssertEqual(t1?.nguoiDung, "con"); XCTAssertEqual(t1?.beTen, "Bảo Anh")
-    // Đổi bé ⇒ về màn chọn tên ngay
+    // Đổi người ⇒ về màn chọn tên ngay
     api.mayChungTra["POST dang-xuat"] = .success(Data(#"{"ok":true,"khoa":true}"#.utf8))
     _ = await b.xuLyIPC(.dangXuat, uidGoi: 501)
     let t2 = await trangThai(b)

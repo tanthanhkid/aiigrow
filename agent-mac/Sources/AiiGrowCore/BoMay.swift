@@ -267,7 +267,7 @@ public actor BoMay {
     do {
       let kq = try await api.dongBo(trangThai: st, dung: dung, luc: dongHo(), phutBoiMa: phutBoiMa)
       guard the == theHeGhep else { return }                    // ghép lại trong lúc chờ: kết quả của token cũ, bỏ
-      if BoMay.dauChoi(kq.policy) != policy.map(BoMay.dauChoi) { choiNho = [:] }   // bật/tắt đổi điểm, mục chơi, phiên, chế độ đổi ⇒ số phút nhớ bỏ đi
+      if BoMay.dauChoi(kq.policy) != policy.map(BoMay.dauChoi) { choiNho = [:] }   // bật/tắt chơi bằng sao, mục chơi, phiên, chế độ đổi ⇒ số phút nhớ bỏ đi
       if moTamDangMo() {                             // có mạng lại ⇒ kết thúc lượt mở offline, Ba Mẹ lại quyết bằng Policy online
         cauHinh.moTamOffline?.moDen = dongHo()
         let m = cauHinh.moTamOffline
@@ -303,7 +303,7 @@ public actor BoMay {
       }
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
       // danh sách bé + vân PIN: lấy sớm và làm mới ≥ 30 phút một lần (PIN / bí mật đổi thì kiểm PIN lúc mất mạng vẫn đúng)
-      if kq.nguoiDung != nil, cauHinh.daGhep, cauHinh.hoSoMay == nil || donDieu() - hoSoLuc > 1800 { hoSoLuc = donDieu(); _ = await hoSoMay() }   // biết máy riêng / danh sách bé sớm (menu Đổi bé, PIN lúc mất mạng)
+      if kq.nguoiDung != nil, cauHinh.daGhep, cauHinh.hoSoMay == nil || donDieu() - hoSoLuc > 1800 { hoSoLuc = donDieu(); _ = await hoSoMay() }   // biết máy riêng / danh sách bé sớm (menu Đổi người, PIN lúc mất mạng)
       tinHieuApp = kq.danhSachApp
       kichGuiDanhSachApp()                          // Task riêng — không chặn vòng đồng bộ
       await guiXinVayCho()                          // lời xin vay lưu lúc mất mạng
@@ -623,7 +623,7 @@ public actor BoMay {
     switch yc {
     case .trangThai:
       adminGoi = capNhat.so.chu != nil && uidGoi != 0 && uidGoi != cauHinh.uidCon ? await laAdminDem(uidGoi) : false
-    case .ghep, .capNhat, .hoSoDns:
+    case .ghep, .capNhat, .hoSoDns, .hoSoGhep:
       adminGoi = uidGoi != 0 ? await chayNgoaiActor { ht.laAdmin(uid: uidGoi) } : false
     default:
       adminGoi = false                                 // ping/appTienCanh/xin… không cần quyền admin — không chạy dscl
@@ -667,7 +667,7 @@ public actor BoMay {
       return await choiThu(muc: muc)
     case let .maOffline(ma):
       return thuMaOffline(ma)
-    case .hoSo:
+    case .hoSo, .hoSoGhep:
       return await hoSoMay()
     case let .dangNhapBe(con, pin):
       return await dangNhapBe(con: con, pin: pin)
@@ -698,7 +698,7 @@ public actor BoMay {
 
   // MARK: máy dùng chung — PIN theo bé (L13, PinBe.swift, docs/API.md «S3»)
 
-  /// Lệnh máy dùng chung làm lúc mất mạng (đăng nhập bé bằng vân PIN, Đổi bé, Khoá lại) — gửi lại TRƯỚC lần đồng bộ kế. Chỉ trong bộ nhớ
+  /// Lệnh máy dùng chung làm lúc mất mạng (đăng nhập bé bằng vân PIN, Đổi người, Khoá lại) — gửi lại TRƯỚC lần đồng bộ kế. Chỉ trong bộ nhớ
   /// (PIN không ghi đĩa); daemon khởi động lại thì máy chủ thấy «chưa ai vào» ⇒ màn chọn tên, bé nhập lại.
   /// Mọi lệnh loại này (dang-nhap-be / dang-xuat / khoa-lai) thay nhau ⇒ chỉ cần MỘT lệnh chờ (lệnh sau đè lệnh trước).
   private var lenhCho: (path: String, than: [String: Any], id: UUID)?
@@ -727,7 +727,7 @@ public actor BoMay {
     do { _ = try await api.mayChung("POST", v.path, v.than) }
     catch let e as LoiApi where e.laMang { return }
     catch { heThong.ghiLog("Gửi lại \(v.path) bị từ chối: \(error)") }
-    if lenhCho?.id == v.id { lenhCho = nil }         // trong lúc chờ mạng có lệnh mới (Đổi bé…) thì giữ lệnh mới
+    if lenhCho?.id == v.id { lenhCho = nil }         // trong lúc chờ mạng có lệnh mới (Đổi người…) thì giữ lệnh mới
   }
 
   private func hoSoMay() async -> TraLoi {
@@ -889,7 +889,7 @@ public actor BoMay {
     }
   }
 
-  /// «Đổi bé / Đăng xuất» (bé) và «Khoá lại» (Ba Mẹ): về màn chọn tên NGAY tại máy; máy chủ nhận ngay hoặc khi có mạng lại.
+  /// «Đổi người / Đăng xuất» (bé) và «Khoá lại» (Ba Mẹ): về màn chọn tên NGAY tại máy; máy chủ nhận ngay hoặc khi có mạng lại.
   private func roiMay(path: String) async -> TraLoi {
     guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
     if moTamDangMo() {                                 // lượt mở bằng mã (Ba Mẹ / con) kết thúc theo
@@ -1056,7 +1056,7 @@ public actor BoMay {
     }
   }
 
-  // MARK: app của Con — nhiệm vụ / phần quà / tin nhắn, chơi bằng điểm (agent-win PipeServer: HocVien, Play, PlayInfo)
+  // MARK: app của Con — nhiệm vụ / phần quà / tin nhắn, chơi bằng sao (agent-win PipeServer: HocVien, Play, PlayInfo)
 
   /// Chuyển một lời gọi học viên tới máy chủ bằng token máy — chỉ đường trong HocVienPaths (tray chạy dưới tài khoản Con).
   private func hocVien(method: String, path: String, than: String?) async -> TraLoi {
@@ -1078,7 +1078,7 @@ public actor BoMay {
   /// Câu lỗi cho Con: không tới được máy chủ ⇒ «chưa có mạng»; máy chủ trả lỗi ⇒ câu máy chủ.
   static func cauLoiCon(_ e: LoiApi) -> String { e.laMang && e.maHttp == nil ? "Chưa có mạng, con thử lại sau nhé." : e.chu }
 
-  /// Mất mạng giữa phiên chơi bằng điểm: chỉ được chơi tiếp `playOfflineMinutes` phút kể từ lần đồng bộ cuối (như Windows 0.2.4) — quá thì
+  /// Mất mạng giữa phiên chơi bằng sao: chỉ được chơi tiếp `playOfflineMinutes` phút kể từ lần đồng bộ cuối (như Windows 0.2.4) — quá thì
   /// bỏ app chơi (và trình duyệt nếu phiên web) khỏi danh sách được mở. Không có số ⇒ 0 phút (không chơi «chùa» khi tắt Wi‑Fi).
   static func gioiHanPhienOffline(_ p: Policy, matMang: Bool, tu: Date?, now: Date) -> Policy {
     guard matMang, p.playSessionId != nil, let tu else { return p }
@@ -1096,7 +1096,7 @@ public actor BoMay {
     return q
   }
 
-  /// Phần Policy ảnh hưởng «chơi bằng điểm» (serverTime / minutesLeft đổi mỗi lượt — không tính).
+  /// Phần Policy ảnh hưởng «chơi bằng sao» (serverTime / minutesLeft đổi mỗi lượt — không tính).
   static func dauChoi(_ p: Policy) -> String {
     [String(p.canExchangePoints), p.mode, String(p.locked), p.playSessionId ?? "", p.playChoices.joined(separator: ",")].joined(separator: "|")
   }
@@ -1109,7 +1109,7 @@ public actor BoMay {
   private func choiThu(muc: String) async -> TraLoi {
     guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
     guard !muc.isEmpty else { return .choi(trangThai: "khong_co_muc", phut: nil, chu: nil) }
-    guard let m = mucChoi(muc) else { return .loi(ma: "khong_co_muc", chu: "Mục này Ba Mẹ chưa cho đổi điểm.") }
+    guard let m = mucChoi(muc) else { return .loi(ma: "khong_co_muc", chu: "Mục này Ba Mẹ chưa cho chơi bằng sao.") }
     let khoa = m.lowercased()
     if let n = choiNho[khoa], case let .choi(tt, _, _) = n.tra, donDieu() - n.luc < (tt == "duoc" ? 60 : 15) { return n.tra }
     do {
@@ -1121,11 +1121,11 @@ public actor BoMay {
     catch { return .loi(ma: "choi_loi", chu: "\(error)") }
   }
 
-  /// «Chơi bằng điểm»: xét (phien/xet) rồi mở (phien/mo). Máy chủ quyết; daemon chỉ nhận mục trong Policy.playChoices.
+  /// «Chơi bằng sao»: xét (phien/xet) rồi mở (phien/mo). Máy chủ quyết; daemon chỉ nhận mục trong Policy.playChoices.
   private func choi(muc: String) async -> TraLoi {
     guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
-    guard let m = mucChoi(muc) else { return .loi(ma: "khong_co_muc", chu: "Mục này Ba Mẹ chưa cho đổi điểm.") }
-    choiNho = [:]                                     // điểm sắp đổi ⇒ số phút nhớ không còn đúng
+    guard let m = mucChoi(muc) else { return .loi(ma: "khong_co_muc", chu: "Mục này Ba Mẹ chưa cho chơi bằng sao.") }
+    choiNho = [:]                                     // sao sắp đổi ⇒ số phút nhớ không còn đúng
     do {
       let x = try await api.xetChoi(muc: m)
       guard x.duoc else { return .choi(trangThai: "tu_choi", phut: 0, chu: x.cau ?? x.lyDo) }
@@ -1267,8 +1267,8 @@ public actor BoMay {
   private var nhipLuc: Double = 0
   private var dangNhip = false
   private var nhipLoiLienTiep = 0
-  /// Nhịp phiên chơi bằng điểm đang mở TRÊN MÁY NÀY (Policy.playSessionId): 30 giây một lần, «đang dùng» = Con đang ngồi máy (phiên console
-  /// của Con, màn không khoá) VÀ app của phiên (hoặc trình duyệt nếu phiên web) ở tiền cảnh — như Windows 0.2.4. Máy chủ trừ điểm theo phút, hết phút / hết điểm / giờ ngủ ⇒ «ket_thuc» ⇒ đồng bộ ngay để khoá lại app chơi.
+  /// Nhịp phiên chơi bằng sao đang mở TRÊN MÁY NÀY (Policy.playSessionId): 30 giây một lần, «đang dùng» = Con đang ngồi máy (phiên console
+  /// của Con, màn không khoá) VÀ app của phiên (hoặc trình duyệt nếu phiên web) ở tiền cảnh — như Windows 0.2.4. Máy chủ trừ sao theo phút, hết phút / hết sao / giờ ngủ ⇒ «ket_thuc» ⇒ đồng bộ ngay để khoá lại app chơi.
   /// Daemon gọi trong Task riêng (main.swift) — mạng treo không làm ngưng vòng áp / vòng đồng bộ.
   public func vongNhipChoi() async {
     guard cauHinh.daGhep, !dangGo, !dangNhip, let id = policy?.playSessionId, donDieu() >= nhipLuc else { return }

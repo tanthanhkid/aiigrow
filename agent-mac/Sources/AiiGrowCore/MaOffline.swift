@@ -108,7 +108,7 @@ public struct MoTamOffline: Codable, Equatable {
     if saiLuc.count > 50 { saiLuc.removeFirst(saiLuc.count - 50) }
   }
 
-  /// Câu cho Con (không nhắc điểm).
+  /// Câu cho Con (không nhắc sao).
   public mutating func cau(_ kq: KetQuaMoOffline, now: Date) -> String {
     let gio = DateFormatter(); gio.dateFormat = "HH:mm"
     switch kq {

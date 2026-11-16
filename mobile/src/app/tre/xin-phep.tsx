@@ -1,7 +1,7 @@
 // «Xin mở app» bản «Dịu» (con-dt-xin 01 cdt-xin-phep, BRD 6.4, FR-05.01, App & web 15/11 #262 #258): app / web ngoài danh sách điền sẵn từ màn
-// chặn («YouTube · Chưa có trong danh sách»), «Ba Mẹ thêm vào danh sách · Nếu là app Tính phút: 1 sao = 1 phút · con đang có 18 sao», «Nhắn Ba
+// «chưa có trong danh sách» («YouTube · Chưa có trong danh sách»), «Ba Mẹ thêm vào danh sách · Nếu là app Tính phút: 1 sao = 1 phút · con đang có 18 sao», «Nhắn Ba
 // Mẹ» chip sẵn + «Tự viết…» (không bắt buộc), «Xin Ba Mẹ mở YouTube», «Hết sao? Xin Ba Mẹ cho vay sao ›». Xin mở = xin THÊM VÀO DANH SÁCH (bỏ
-// chọn 15 / 30 / 60 phút). App / web lạ ⇒ POST /api/kid/xin-duyet (web trong lưới an toàn ⇒ `web_cam` ⇒ «Trang này luôn bị chặn»). ≤ 3 lời chờ.
+// chọn 15 / 30 / 60 phút). App / web lạ ⇒ POST /api/kid/xin-duyet (máy chủ cũ trả `web_cam` ⇒ guiXinMo đổi thành «Ba Mẹ chưa thêm … lúc này»). ≤ 3 lời chờ.
 import { useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { TextInput, View } from "react-native";
@@ -24,7 +24,6 @@ export default function XinPhep() {
   const [gia, setGia] = useState(p.gia ?? "");
   const [lyDo, setLyDo] = useState<string | null>(null);
   const [tuViet, setTuViet] = useState("");
-  const [webCam, setWebCam] = useState(false);
   const [day, setDay] = useState(false);
   const yc = useTai(() => kid.goi<{ ds: YcTre[]; lyDoNhanh: string[] }>("yeu-cau"));
   const sao = useTai(() => taiSao().catch(() => null));
@@ -42,11 +41,9 @@ export default function XinPhep() {
         router.replace(`/tre/yeu-cau?moi=${r.id}`);
       } catch (e) {
         if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { setDay(true); return; }
-        if (e instanceof LoiApi && e.ma === "web_cam") { setWebCam(true); return; }
         throw e;
       }
     }, { hangDoi: true }));
-  if (webCam) return <Redirect href={`/tre/chan-web?url=${encodeURIComponent(tenMuc)}&cam=1`} />;
   if (day || cho >= 3) {
     return (
       <ManD lui={true} giua day={<NutD chu={`Xem yêu cầu của ${ten || "con"}`} bam={() => router.replace("/tre/yeu-cau")} />}>

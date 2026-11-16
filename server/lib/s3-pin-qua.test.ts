@@ -108,12 +108,21 @@ test("L13 máy dùng chung: danh sách bé + vân PIN; sai 5 lần ⇒ chờ 15 
   assert.equal((await dv(chung.tok, "hoc-vien/tong-quan")).body.error, "chua_chon_con");
 });
 
-test("L13 máy riêng vẫn hỏi PIN; agent cũ chọn tên (chon-con) vẫn chạy; Quên PIN ⇒ báo Ba Mẹ, đặt PIN mới thì báo xong", async () => {
+test("L13 máy riêng vào thẳng không PIN (#267); agent cũ chọn tên (chon-con) vẫn chạy; Quên PIN ⇒ báo Ba Mẹ, đặt PIN mới thì báo xong", async () => {
   const { fam, tokBm, anh, minh, chung, rieng } = await nha();
   assert.deepEqual((await dv(rieng.tok, "ho-so")).body.con.map((c: any) => c.ten), ["Bảo Anh"]);
   assert.equal((await dv(rieng.tok, "dang-nhap-be", { con: minh })).status, 404);
-  assert.equal((await dv(rieng.tok, "dang-nhap-be", { con: anh, pin: "1111" })).body.error, "pin_sai");
-  assert.ok((await dv(rieng.tok, "dang-nhap-be", { con: anh, pin: "4821" })).body.phienCon);
+  const hsr = (await dv(rieng.tok, "ho-so")).body;
+  assert.deepEqual([hsr.mayRieng, hsr.mayChung, hsr.soCon], [true, false, 1]);
+  // #267: bé có PIN nhưng máy riêng ⇒ không mã vào luôn (kể cả gửi mã sai), vẫn có phiên Con + sự kiện doi_nguoi_may
+  const vr = await dv(rieng.tok, "dang-nhap-be", { con: anh });
+  assert.equal(vr.status, 200);
+  assert.ok(vr.body.phienCon);
+  assert.ok((await dv(rieng.tok, "dang-nhap-be", { con: anh, pin: "1111" })).body.phienCon, "máy riêng không kiểm PIN");
+  assert.ok((await q(`select 1 from events where loai = 'doi_nguoi_may' and device_id = $1`, [rieng.id])).length >= 1, "ghi doi_nguoi_may");
+  // máy chung: bé có PIN không mã ⇒ can_pin
+  const cp = await dv(chung.tok, "dang-nhap-be", { con: anh });
+  assert.deepEqual([cp.status, cp.body.error], [400, "can_pin"]);
   // agent cũ: chon-con / pin không PIN ⇒ vẫn ra phiên như trước; không header ⇒ không bé nào (nghĩa cũ)
   const pc = (await dv(chung.tok, "pin", { con: anh, pin: "bỏ qua" })).body.phienCon;
   assert.ok(pc);

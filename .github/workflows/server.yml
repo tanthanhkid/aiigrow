@@ -1,0 +1,40 @@
+name: server
+
+# Máy chủ Next (server/): typecheck + test. pnpm theo server/pnpm-lock.yaml.
+on:
+  pull_request:
+    paths: &duong
+      - 'server/**'
+      - '.github/workflows/server.yml'
+  push:
+    branches: [main]
+    paths: *duong
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: server-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kiem:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run typecheck
+      - run: pnpm test

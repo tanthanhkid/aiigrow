@@ -19,16 +19,12 @@ import {
 /** Đối tượng `quy` — quỹ giờ chơi hôm nay (server/lib/quy-gio.ts › quyHomNay). */
 export type Quy = {
   ngay: string; cuoiTuan: boolean; quyNgayPhut: number; themPhut: number; doiSaoPhut: number; daDung: number; conPhut: number; tongPhut: number;
-  dangNgu: boolean; dangHoc: boolean; khoa: boolean; gioNgu: { tu: string; den: string }; gioHoc: GioHoc | null; phutToiNgu: number; phutToiHoc: number | null;
+  khoa: boolean;
   tyLe: { sao: number; phut: number }; doiSao: { bat: boolean; toiDaNgay: number; conDoiDuoc: number }; choXinThem: boolean;
 };
-export type GioHoc = { tu: string; den: string; thu: number[] };
 /** GET con/:id/quy */
 /** GET con/:id/quy — 15/11: `sao` = số dư Con thấy (âm được), `soSao` = trạng thái sổ sao (lib/so-sao); `quy.conPhut` = sao tiêu được; `ngoaiLe` luôn []. */
 export type QuyCon = { quy: Quy; sao: number; soSao?: import("./so-sao").SaoCon; ngoaiLe: { id: string; den: string; muc: string | null; nhom: string }[] };
-/** GET/POST con/:id/gio-choi */
-export type GioChoi = { quyNgayThuong: number; quyCuoiTuan: number; phut10Sao: number; doiSaoBat: boolean; doiSaoToiDaNgay: number; choXinThemGio: boolean;
-  ngoaiLeToiDaPhut: number; gioNgu: { tu: string; den: string }; gioHoc: GioHoc | null; homNay: Quy };
 /** GET nhiem-vu/bo */
 export type ViecBo = { ten: string; moTa: string; sao: number; bangChung: string; tuCham: boolean; lapLai: string; hinh: string; nhan: string | null; toiDaNgay: number | null };
 export type BoNv = { ma: string; ten: string; tuoi: string; soViec: number; saoToiDaNgay: number; viec: ViecBo[] };

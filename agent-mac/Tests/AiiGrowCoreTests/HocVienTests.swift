@@ -137,7 +137,7 @@ final class HocVienTests: XCTestCase {
     XCTAssertFalse(ChoiBangDiem.hienNut(duocDoiDiem: true, lyDoKhoa: nil, matMang: true, dsChoi: []))
     XCTAssertTrue(ChoiBangDiem.hienNut(duocDoiDiem: true, lyDoKhoa: nil, matMang: false, dsChoi: ["com.Roblox.Roblox"], muc: "com.roblox.roblox"))
     XCTAssertFalse(ChoiBangDiem.hienNut(duocDoiDiem: true, lyDoKhoa: nil, matMang: false, dsChoi: ["com.roblox.roblox"], muc: "com.apple.calculator"))
-    XCTAssertEqual(ChoiBangDiem.ketQua(.choi(trangThai: "tu_choi", phut: 0, chu: "Hết điểm rồi")).chu, "Hết điểm rồi")
+    XCTAssertEqual(ChoiBangDiem.ketQua(.choi(trangThai: "tu_choi", phut: 0, chu: "Hết sao rồi")).chu, "Hết sao rồi")
     XCTAssertTrue(ChoiBangDiem.ketQua(.choi(trangThai: "mo", phut: 20, chu: nil)) == ("Được rồi! Con chơi khoảng 20 phút nhé.", true))
     XCTAssertFalse(ChoiBangDiem.ketQua(.loi(ma: "yeu_cau_sai", chu: "x")).duoc)
   }
@@ -241,9 +241,9 @@ final class HocVienTests: XCTestCase {
     XCTAssertEqual(r2, .choi(trangThai: "mo", phut: 22, chu: nil))
     XCTAssertEqual(HttpMock.lanGoiCuoi("api/device/phien/mo")?["muc"] as? String, "com.roblox.roblox")
     // từ chối ⇒ câu máy chủ, không mở
-    HttpMock.dat { path, _ in path == "api/device/phien/xet" ? HttpMock.json(200, ["duoc": false, "lyDo": "het_diem", "cau": "Con hết điểm rồi"]) : HttpMock.json(500, [:]) }
+    HttpMock.dat { path, _ in path == "api/device/phien/xet" ? HttpMock.json(200, ["duoc": false, "lyDo": "het_diem", "cau": "Con hết sao rồi"]) : HttpMock.json(500, [:]) }
     let r3 = await b.xuLyIPC(.choi(muc: "com.roblox.roblox"), uidGoi: 501)
-    XCTAssertEqual(r3, .choi(trangThai: "tu_choi", phut: 0, chu: "Con hết điểm rồi"))
+    XCTAssertEqual(r3, .choi(trangThai: "tu_choi", phut: 0, chu: "Con hết sao rồi"))
     XCTAssertNil(HttpMock.lanGoiCuoi("api/device/phien/mo"))
   }
 
@@ -265,7 +265,7 @@ final class HocVienTests: XCTestCase {
     fake.phien = PhienConsole(uid: 501, manKhoa: false); fake.tienCanhThat = "com.apple.iwork.pages"
     dh.tien(31)
     await b.vongNhipChoi()
-    XCTAssertEqual(HttpMock.lanGoiCuoi("api/device/phien/nhip")?["dangDung"] as? Bool, false, "game không ở tiền cảnh ⇒ không trừ điểm")
+    XCTAssertEqual(HttpMock.lanGoiCuoi("api/device/phien/nhip")?["dangDung"] as? Bool, false, "game không ở tiền cảnh ⇒ không trừ sao")
   }
 
   func testMatMangDemBuRoiGuiTruocDongBo() async throws {

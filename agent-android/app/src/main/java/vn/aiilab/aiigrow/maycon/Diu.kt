@@ -137,7 +137,7 @@ object Diu {
         layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(c, if (to) 40 else 32))
     }
 
-    /** Chip tên bé «(B) Bảo Anh ▾» — chạm mở «Đổi bé / Đăng xuất». */
+    /** Chip tên bé «(B) Bảo Anh ▾» — chạm mở «Đổi người / Đăng xuất». */
     fun chipBe(c: Context, ten: String, thuTu: Int, onClick: (View) -> Unit) = LinearLayout(c).apply {
         orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL
         background = khoi(c, TRANG, 19, VIEN); bong(this, c, 1f)

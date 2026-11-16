@@ -5,7 +5,7 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { bm } from "@/lib/api";
-import { cuoiTuanCua, NGU_MAC_DINH, QUY_MAC_DINH, type AppGoiY } from "@/lib/ghep-may";
+import { type AppGoiY } from "@/lib/ghep-may";
 import { appsRobChonSan, thanThietLap } from "@/lib/thiet-lap";
 import { ChonMauCon, namCua, ONamSinh, TheHoSoCon, ThePinCon } from "@/lib/form-ho-so";
 import { OLom } from "@/lib/lan-dau";
@@ -40,9 +40,8 @@ export default function ThemCon() {
     const layApps = () => bm.goi<{ ds: AppGoiY[] }>(`app-goi-y?con=${encodeURIComponent(id)}`).then((r) => appsRobChonSan(r.ds));
     // Lỗi lấy app gợi ý KHÔNG nuốt: Con đã tạo (conId) nên báo lỗi, Ba Mẹ bấm lại chỉ làm tiếp bước này — không để Con nằm không có app nào mà im lặng.
     const apps = await layApps().catch(() => new Promise((r) => setTimeout(r, 600)).then(layApps));
-    const mac = { quy: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua, ngu: NGU_MAC_DINH };
     await Promise.allSettled([
-      bm.goi("thiet-lap", thanThietLap({ conId: id, ...(apps ? { apps } : {}) }, mac)),
+      bm.goi("thiet-lap", thanThietLap({ conId: id, ...(apps ? { apps } : {}) })),
       bm.goi("nhiem-vu/bo", { bo: boTheoTuoi(tuoi), con: id }),
     ]);
     router.replace(`/ho-so/${id}/tiep` as never);

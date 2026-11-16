@@ -215,7 +215,7 @@ export function RobNoi({ lv = "hoc", co = 76, children }: { lv?: LinhVat; co?: n
   );
 }
 
-/** Màn kết quả (Đã chặn Roblox / Đã không cho mở YouTube / Đã mời…): Grow lớn, tiêu đề, thẻ tin, nút về + Hoàn tác. */
+/** Màn kết quả (Đã bỏ qua YouTube / Đã mời…): Grow lớn, tiêu đề, thẻ tin, nút về + Hoàn tác. */
 export function ManKetQua({ lv = "xong", tieu, ic, tin, phu, nut, hoan, lui, loi }: {
   loi?: string | null; lv?: LinhVat; tieu: string; ic: TenIcon; tin: string; phu?: string; nut: { chu: string; bam: () => void }; hoan?: { chu: string; bam: () => void; dangChay?: boolean }; lui?: () => void;
 }) {

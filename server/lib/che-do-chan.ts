@@ -12,11 +12,11 @@ import { dsBoQua, guiYeuCau } from "./yeu-cau.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { tenMienSach } from "./web.ts";
 import {
-  CHE_DO, CHE_DO_CHAN, cheDoChanCua, cheDoCua, laWebCam, loaiTuNhom, nhanCheDo, nhanNhom, nhomTuLoai, TEN_CHE_DO, TEN_CHE_DO_CHAN, TEN_NHOM_DS, WEB_CAM,
+  CHE_DO, CHE_DO_CHAN, cheDoChanCua, cheDoCua, loaiTuNhom, nhanCheDo, nhanNhom, nhomTuLoai, TEN_CHE_DO, TEN_CHE_DO_CHAN, TEN_NHOM_DS,
   type CheDo, type CheDoChan, type NhomDs,
 } from "./chan-co-ban.ts";
 
-export { CHE_DO, CHE_DO_CHAN, cheDoChanCua, cheDoCua, laWebCam, TEN_CHE_DO, TEN_CHE_DO_CHAN, WEB_CAM, type CheDo, type CheDoChan };
+export { CHE_DO, CHE_DO_CHAN, cheDoChanCua, cheDoCua, TEN_CHE_DO, TEN_CHE_DO_CHAN, type CheDo, type CheDoChan };
 
 /** POST /api/m/con/:id/che-do {cheDo: mo_het | theo_danh_sach} (đường cũ con/:id/che-do-chan, giá trị cũ chi_app_duoc_phep vẫn nhận).
  *  Máy nhận ở lần đồng bộ kế. → { cheDo, cheDoChan (giá trị cũ), ten }. */
@@ -139,11 +139,10 @@ export async function khopAppTheoTen(may: Pick<May, "id" | "family_id" | "child_
 
 /** App / web ngoài danh sách ⇒ lời xin chờ Ba Mẹ (cai_app cho app, mo_web cho trang web) — Ba Mẹ trả lời Tính phút / Không tính phút / Bỏ qua
  *  (lib/yeu-cau.ts). Lý do không bắt buộc. Đã có lời xin chờ cho đúng mục ⇒ trả lời xin đó (bấm lại không gửi trùng). Bị bỏ qua thì xin lại được.
- *  Trang thuộc lưới an toàn chung (chan-co-ban.ts › WEB_CAM) ⇒ 409 web_cam, không gửi Ba Mẹ. → { id, trang_thai: "cho", daCo, loai, muc }. */
+ *  → { id, trang_thai: "cho", daCo, loai, muc }. */
 export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unknown; ten?: unknown; lyDo?: unknown }) {
   const muc = chuanMuc(b.muc);
   if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên app hoặc trang web");
-  if (laWebCam(muc)) throw new LoiNghiepVu("web_cam", "Trang này không mở được để an toàn cho con", 409);
   const loai = kieuMuc(muc) === "web" ? "mo_web" : "cai_app";
   const co = await one<{ id: string }>(`select id from requests where child_id = $1 and gia_tri = $2 and loai = $3 and trang_thai = 'cho' and het_han > now()
                                         order by created_at desc limit 1`, [con, muc, loai]);

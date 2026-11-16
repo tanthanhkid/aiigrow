@@ -94,7 +94,6 @@ export default function YeuCau() {
       await tai();
     } catch (e) {
       if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { setDaySo(true); return; }
-      if (e instanceof LoiApi && e.ma === "web_cam") { router.replace(`/tre/chan-web?url=${encodeURIComponent(tenMuc)}&cam=1`); return; }
       throw e;
     }
   }, { hangDoi: true });
@@ -172,7 +171,7 @@ export default function YeuCau() {
             <IcO ic={dau.loai === "mo_web" ? "web" : "game"} co={72} />
             <ChuD kieu="rat" co={15} mau={D.chu2}>{tenMuc}</ChuD>
             <TieuD chu={`Ba Mẹ chưa thêm ${tenMuc}`} giua nho />
-            <ChuD co={15} mau={D.chu2} giua>{`${ai} chưa thêm ${tenMuc} vào danh sách.\nCon xin lại được nhé.`}</ChuD>
+            <ChuD co={15} mau={D.chu2} giua>{`Ba Mẹ chưa thêm ${tenMuc} lúc này.\nCon xin lại sau được nhé!`}</ChuD>
           </View>
           {loiNhanThe}
           <ChuD kieu="den" co={15}>Lý do (không bắt buộc)</ChuD>

@@ -12,7 +12,7 @@ export type TrangGhep = { daGhep: boolean; hetHan: boolean; conGiay: number; /**
   /** #267: đã ghép ⇒ Con thật nối với máy (iPhone/iPad: bé được chọn lúc quét) */ conDs?: { id: string; ten: string; avatar: string }[] };
 /** Tóm tắt thiết lập của một Con (GET con/:id/thiet-lap) — màn «Đã ghép», «Xong rồi», «Cài giống máy trước». */
 export type TomTat = { conId: string; ten: string; cheDoChan: "chi_app_duoc_phep" | "mo_het"; gioChoi: { ngayThuong: number | null; cuoiTuan: number | null };
-  ngu: { tu: string; den: string }; soApp: number; /** số trang web được vào (thiết kế 14/11 — máy chủ cũ không có) */ soWeb?: number };
+  soApp: number; /** số trang web được vào (thiết kế 14/11 — máy chủ cũ không có) */ soWeb?: number };
 
 const KHOA = "aiigrow.ghep-may";
 const kho = () => { try { return globalThis.sessionStorage ?? null; } catch { return null; } };
@@ -43,11 +43,6 @@ export const tomTat = (con: string) => bm.goi<TomTat>(`con/${con}/thiet-lap`);
 
 // ---------------------------------------------------------------- Lần đầu: lưu Giờ chơi + Chọn app một lần (POST thiet-lap)
 export type AppGoiY = { ma: string; ten: string; tinhGio: boolean; chon: boolean };
-export const QUY_MAC_DINH = 60;
-export const NGU_MAC_DINH = { tu: "21:30", den: "06:30" };
-/** Chip quỹ giờ chơi: ngày thường ⇒ cuối tuần (+30 phút, thiết kế «30 phút · T7, CN: 60 phút»). */
-export const QUY_CHIP = [30, 60, 90] as const;
-export const cuoiTuanCua = (p: number) => p + 30;
 
 /** Lưới app gợi ý (GET app-goi-y) + điền sẵn lựa chọn của Grow vào trạng thái Lần đầu nếu Ba Mẹ chưa chọn. */
 export async function napAppGoiY(con: string) {
@@ -57,19 +52,17 @@ export async function napAppGoiY(con: string) {
 }
 
 let dangNap: { con: string; p: Promise<void> } | null = null;
-/** 06/11 (B1): nạp chế độ chặn / quỹ (cả cuối tuần) / giờ ngủ ĐANG CÓ của Con vào trạng thái Lần đầu (mục Ba Mẹ chưa chọn) — một lần mỗi Con.
- *  Đi lại Lần đầu cho Con cũ không được lưu đè mặc định («Chỉ app», 60 phút, 21:30) lên cài đặt thật. Lỗi ⇒ ném (lần sau nạp lại). */
+/** 06/11 (B1): nạp chế độ App & web ĐANG CÓ của Con vào trạng thái Lần đầu (mục Ba Mẹ chưa chọn) — một lần mỗi Con.
+ *  Đi lại Lần đầu cho Con cũ không được lưu đè mặc định («Theo danh sách») lên cài đặt thật. Lỗi ⇒ ném (lần sau nạp lại). */
 export function napCaiDatCon(): Promise<void> {
   const t = layTl();
-  if (!t.conId || (t.cheDoChan && t.quy != null && t.ngu)) return Promise.resolve();
+  if (!t.conId || t.cheDoChan) return Promise.resolve();
   if (dangNap?.con === t.conId) return dangNap.p;
   const con = t.conId;
   const p = tomTat(con).then((x) => {
     const n = layTl();
     if (n.conId !== con) return;
     if (!n.cheDoChan && x.cheDoChan) datTl({ cheDoChan: x.cheDoChan });
-    if (n.quy == null && x.gioChoi.ngayThuong != null) datTl({ quy: x.gioChoi.ngayThuong, cuoiTuan: x.gioChoi.cuoiTuan ?? undefined });
-    if (!n.ngu && x.ngu?.tu && x.ngu?.den) datTl({ ngu: x.ngu });
   }).catch((e) => { dangNap = null; throw e; });
   dangNap = { con, p };
   return p;
@@ -81,6 +74,6 @@ export async function luuThietLap() {
   await napCaiDatCon();
   if (!layTl().apps && (layTl().cheDoChan ?? "chi_app_duoc_phep") === "chi_app_duoc_phep") await napAppGoiY(layTl().conId!);
   const tl = layTl();
-  await bm.goi("thiet-lap", thanThietLap(tl, { quy: QUY_MAC_DINH, cuoiTuan: cuoiTuanCua, ngu: NGU_MAC_DINH }));
+  await bm.goi("thiet-lap", thanThietLap(tl));
   return tl.conId;
 }

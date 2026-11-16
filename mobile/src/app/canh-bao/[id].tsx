@@ -1,11 +1,11 @@
 // Chi tiết một cảnh báo (thiết kế chốt 14/11, bm-hang-ngay/10–12) — một khuôn: hình máy + biểu tượng, tiêu đề, «giờ · máy · chi tiết», viên kết quả
-// (vd «Grow đã chặn, con không xem được»), «Ba Mẹ nên biết» (lần thứ mấy trong tuần + lần trước, lời khuyên), các nút theo loại:
-//  · 10 trang bị chặn (loại có «web», người lớn, cờ bạc): «Xem <Con> dùng gì hôm nay» · «Xem <máy>» · «Đã biết»
+// (vd «Con chưa vào được, đang chờ Ba Mẹ»), «Ba Mẹ nên biết» (lần thứ mấy trong tuần + lần trước, lời khuyên), các nút theo loại:
+//  · 10 trang ngoài danh sách (loại có «web»; cảnh báo cũ): «Xem <Con> dùng gì hôm nay» · «Xem <máy>» · «Đã biết»
 //  · 11 Grow bị tắt (may_dung_dich_vu, may_thu_go, may_ngoai_vong < 1 ngày): «Khoá <máy>» · «Xem <máy>» · «Ba Mẹ tắt đấy, bỏ qua»
 //  · 12 máy mất liên lạc > 1 ngày (may_ngoai_vong, matNhipPhut ≥ 1440): «Thường do» 3 lý do · «Kiểm tra <máy> cùng con» · «Xem <máy>»
 //  · giờ máy bị đổi (lech_gio — bm-duyet/05 cũ, giữ): «Chuyện gì đã xảy ra» + mở khoá sau khi nói chuyện hoặc để khoá.
 //  · 15/11 nợ quá 1.000 sao (no_qua_1000 — thiết kế them-5twxl6hf «Cảnh báo nợ sao», #266): thẻ đào «<Con> đã nợ quá 1.000 sao · 19:41 · đang nợ 1.020 · vượt
-//    mốc sau lần cho vay 30 sao», «Ví sao của <Con> −1.020 sao», «Ba Mẹ nên biết» (không chặn cho vay · sao nhiệm vụ trả nợ trước · 7 ngày qua vay / trả),
+//    mốc sau lần cho vay 30 sao», «Ví sao của <Con> −1.020 sao», «Ba Mẹ nên biết» (không cản cho vay · sao nhiệm vụ trả nợ trước · 7 ngày qua vay / trả),
 //    «Giao thêm nhiệm vụ để trả nợ» · «Xem ví sao» · «Cho vay thêm» (bảng them-y1r1eidm) · «Đã biết».
 // Máy của cảnh báo: chi_tiet.mayId nếu có, không thì dò tên máy trong câu cảnh báo (GET canh-bao chưa trả device_id). AiiGrow không đọc nội dung của con.
 import { useState } from "react";
@@ -23,9 +23,9 @@ const ngayGio = (iso: string) => { const t = new Date(iso); return `${THU[t.getD
 const TIEU: Record<string, (ten: string) => string> = {
   lech_gio: (t) => `Giờ trên máy của ${t} bị đổi`, ngung_chay: (t) => `AiiGrow trên máy ${t} bị tắt`, go_may: (t) => `Có người gỡ AiiGrow trên máy của ${t}`,
   may_thu_go: (t) => `Có người thử gỡ Grow trên máy của ${t}`, tai_khoan_la: (t) => `Tài khoản lạ trên máy ${t}`, offline_lau: (t) => `Máy của ${t} không báo về lâu`,
-  may_go_chan_hosts: (t) => `Đã gỡ chặn web ngoài AiiGrow trên máy của ${t}`, may_chuyen_nha: (t) => `Máy của ${t} đã ghép sang tài khoản khác`, may_ngoai_vong: (t) => `Máy của ${t} chưa được bảo vệ đủ`, safe_mode: (t) => `Máy của ${t} vào Safe Mode`, bang_chung_trung: (t) => `Ảnh của ${t} giống ảnh cũ`,
+  may_go_chan_hosts: (t) => `Đã gỡ danh sách web của AiiGrow trên máy của ${t}`, may_chuyen_nha: (t) => `Máy của ${t} đã ghép sang tài khoản khác`, may_ngoai_vong: (t) => `Máy của ${t} chưa được bảo vệ đủ`, safe_mode: (t) => `Máy của ${t} vào Safe Mode`, bang_chung_trung: (t) => `Ảnh của ${t} giống ảnh cũ`,
 };
-/** Cảnh báo về web bị chặn (loại có «web» — người lớn, cờ bạc, luôn chặn). */
+/** Cảnh báo cũ về trang web ngoài danh sách (loại có «web»). */
 const laWeb = (x: Pick<CanhBao, "loai">) => /web|nguoi_lon|co_bac/.test(x.loai);
 const phutMatNhip = (x: CanhBao) => Number(x.chi_tiet.matNhipPhut ?? x.chi_tiet.vangPhut ?? 0) || 0;
 /** Kiểu màn theo thiết kế 14/11. */
@@ -73,8 +73,8 @@ export default function ChiTietCanhBao() {
   const luc = typeof x.chi_tiet.luc === "string" ? x.chi_tiet.luc : x.created_at;
   const matPhut = phutMatNhip(x);
 
-  const tieuMan = kieu === "web" ? "Trang bị chặn" : kieu === "tat" ? "Grow bị tắt" : kieu === "mat_lien_lac" ? `${tenMay} mất liên lạc` : "Cảnh báo";
-  const tieu = kieu === "web" ? `${x.ten} mở trang web ${/nguoi_lon/.test(x.loai) ? "người lớn" : "bị chặn"}`
+  const tieuMan = kieu === "web" ? "Trang ngoài danh sách" : kieu === "tat" ? "Grow bị tắt" : kieu === "mat_lien_lac" ? `${tenMay} mất liên lạc` : "Cảnh báo";
+  const tieu = kieu === "web" ? `${x.ten} mở trang web chưa có trong danh sách`
     : kieu === "tat" ? `Có người tắt Grow trên ${tenMay}`
     : kieu === "mat_lien_lac" ? `${tenMay} của ${x.ten} im hơn ${matPhut >= 2880 ? `${Math.floor(matPhut / 1440)} ngày` : "1 ngày"}`
     : TIEU[x.loai]?.(x.ten) ?? `Cảnh báo về ${x.ten}`;
@@ -82,7 +82,7 @@ export default function ChiTietCanhBao() {
     : [gioPhut(luc), may || kieu === "web" ? tenMay : null, kieu === "web" ? "trình duyệt" : kieu === "tat" && typeof x.chi_tiet.cach === "string" ? x.chi_tiet.cach : null]
       .filter(Boolean).join(" · ");
   // viên kết quả
-  const vien = kieu === "web" ? "Grow đã chặn, con không xem được"
+  const vien = kieu === "web" ? "Con chưa vào được, đang chờ Ba Mẹ"
     : kieu === "tat" ? (may && may.trangThai !== "ngoai_vong" ? `Grow đã tự bật lại${may.lanCuoi ? ` lúc ${gioPhut(may.lanCuoi)}` : ""}` : "Grow chưa báo về lại — giải trí trên máy này đang khoá")
     : null;
   const lanCau = d.lanThu <= 1 ? "Lần đầu trong tuần" : `Lần thứ ${d.lanThu} trong tuần`;
@@ -127,7 +127,7 @@ export default function ChiTietCanhBao() {
         <>
           <Chu kieu="rat" co={16} style={{ marginHorizontal: 4, marginTop: 4 }}>Ba Mẹ nên biết</Chu>
           <The dem style={{ paddingVertical: 4 }}>
-            {kieu === "tat" ? <HangViec dau ic="dong_ho_cat" mau="cam" tieu={`Grow không trông máy${matPhut ? ` ${matPhut} phút` : " một lúc"}`} phu="Lúc đó không đếm giờ, không chặn web" /> : null}
+            {kieu === "tat" ? <HangViec dau ic="dong_ho_cat" mau="cam" tieu={`Grow không trông máy${matPhut ? ` ${matPhut} phút` : " một lúc"}`} phu="Lúc đó không đếm giờ, không theo danh sách app & web" /> : null}
             <HangViec dau={kieu === "web"} ic="lap" mau="lam" tieu={lanCau} phu={lanPhu} />
             {kieu === "web" ? <HangViec ic="tin" mau="xanh" tieu="Hỏi con nhẹ nhàng, đừng la" phu="«Con thấy trang đó ở đâu?»" /> : null}
           </The>
@@ -137,7 +137,7 @@ export default function ChiTietCanhBao() {
           <Chu kieu="rat" co={16} style={{ marginHorizontal: 4, marginTop: 4 }}>Thường do</Chu>
           <The dem style={{ paddingVertical: 4 }}>
             <HangViec dau ic="tia" mau="vang" tieu={`${tenMay} hết pin hoặc tắt máy`} phu="Sạc rồi mở lại là xong" />
-            <HangViec ic="wifi" mau="lam" tieu="Tắt Wi-Fi, bật chế độ máy bay" phu="Grow vẫn chặn, nhưng chưa gửi được giờ" />
+            <HangViec ic="wifi" mau="lam" tieu="Tắt Wi-Fi, bật chế độ máy bay" phu="Grow vẫn giữ danh sách app & web, nhưng chưa gửi được giờ" />
             <HangViec ic="x" mau="cam" tieu="Cấu hình AiiGrow bị gỡ" phu="Phải cài lại cùng con" />
           </The>
         </>
@@ -206,7 +206,7 @@ function CanhBaoNo({ id, x }: { id: string; x: CanhBao & { child_id: string; ten
       <HangViec dau tieu={`Ví sao của ${x.ten}`} phai={<VienSao s={s} />} bam={() => router.push(`/vi/${con}` as never)} nhanDoc={`Xem ví sao của ${x.ten}`} />
       <Chu kieu="rat" co={16} style={{ marginHorizontal: 4, marginTop: 4 }}>Ba Mẹ nên biết</Chu>
       <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="khoa" mau="cam" tieu="Không chặn việc cho vay" phu="Còn nợ trên 1.000, mỗi lần cho vay thêm Grow sẽ nhắc lại" />
+        <HangViec dau ic="khoa" mau="cam" tieu="Không cản việc cho vay" phu="Còn nợ trên 1.000, mỗi lần cho vay thêm Grow sẽ nhắc lại" />
         <HangViec ic="tick" mau="xanh" tieu="Sao nhiệm vụ trả nợ trước"
           phu={viec ? `Duyệt «${viec.ten}» ${soVN(saoViec)} sao ⇒ còn nợ ${soVN(Math.max(0, s.no - saoViec))}` : "Mỗi sao con kiếm được trả nợ trước, hết nợ mới cộng"} />
         {bay ? <HangViec ic="lich" mau="lam" tieu={`7 ngày qua: vay ${soVN(bay.saoVay)}, trả ${soVN(bay.saoTraNo)} sao`}

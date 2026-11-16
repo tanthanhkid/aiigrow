@@ -150,7 +150,7 @@ export type TuanThuMay = {
   coMaOffline?: boolean;
   lenhCho: { id: string; loai: string }[];
   /** Chế độ hiển thị: Ba Mẹ đã chọn (POST may/:id/che-do), không thì chế độ máy báo; null = chưa biết (agent cũ / chưa đồng bộ).
-   *  giam-sat = chỉ ghi lại, không chặn · chan = chặn thật. */
+   *  giam-sat = chỉ ghi lại · chan = áp danh sách App & web. */
   cheDo: CheDoMay | null;
   /** Chế độ agent THẬT SỰ đang chạy (agent báo mỗi lần đồng bộ); null = agent chưa báo (bản cũ chưa hỗ trợ đổi chế độ từ xa). */
   cheDoMay: CheDoMay | null;
@@ -168,7 +168,9 @@ export type TuanThuMay = {
   dangDung?: { id: string; ten: string; avatar: string; tu?: string | null } | null; soCon?: number; motCon?: boolean; baMeDungDen?: string | null;
 };
 export type CheDoMay = "giam-sat" | "chan";
-export const TEN_CHE_DO: Record<CheDoMay, string> = { "giam-sat": "Giám sát", chan: "Chặn thật" };
+/** Màu icon máy — MỘT quy tắc cho Trang chủ và danh sách máy: ngoài vòng ⇒ đỏ; lệch chuẩn hoặc bảo vệ chưa đủ ⇒ cam; còn lại xanh. */
+export const mauMay = (m: TuanThuMay): "do" | "cam" | "xanh" =>
+  (m.trangThai === "ngoai_vong" ? "do" : m.trangThai === "lech_chuan" || m.baoVe === "mot_phan" ? "cam" : "xanh");
 /** POST may/:id/go {matKhau, xoaHan?} */
 export type KqGoMay = { trangThai: "dang_go"; id: string; lapLai: boolean; cach: string } | { trangThai: "da_xoa"; canGoTaiMay: boolean };
 export type SuKienTuanThu = { loai: string; chi_tiet: Record<string, unknown>; nguoi: string | null; created_at: string };

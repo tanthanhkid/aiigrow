@@ -14,8 +14,10 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import vn.aiilab.aiigrow.maycon.logic.Cong
 import vn.aiilab.aiigrow.maycon.logic.KetQuaMoOffline
+import vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp
+import vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
-import vn.aiilab.aiigrow.maycon.logic.chiNgoaiLe
+import vn.aiilab.aiigrow.maycon.logic.chuKetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.mmss
 import java.time.Instant
 import java.time.ZoneId
@@ -87,7 +89,6 @@ object GiaoDien {
         TrangThai.HET_GIO.name -> if (sao) "Hết sao rồi" else "Hết giờ chơi"
         TrangThai.GIO_NGU.name -> "Đến giờ ngủ rồi"
         TrangThai.NGOAI_KHUNG.name -> "Chưa tới giờ chơi"
-        TrangThai.GIO_HOC.name -> "Đang giờ học"
         else -> "AiiGrow"
     }
 
@@ -107,7 +108,7 @@ object GiaoDien {
         chanApp -> R.drawable.fl_khoa
         t == TrangThai.GIO_NGU.name -> R.drawable.fl_trang
         t == TrangThai.HET_GIO.name -> R.drawable.fl_dong_ho_cat
-        t == TrangThai.NGOAI_KHUNG.name || t == TrangThai.GIO_HOC.name -> R.drawable.fl_dong_ho
+        t == TrangThai.NGOAI_KHUNG.name -> R.drawable.fl_dong_ho
         else -> R.drawable.fl_khoa
     }
 
@@ -118,8 +119,8 @@ object GiaoDien {
      * Giờ ngủ ⇒ nền tối dịu. Bàn phím tự vẽ ⇒ lớp phủ trợ năng không cần bàn phím hệ thống.
      */
     class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?, val onMa: ((String) -> Triple<KetQuaMoOffline, Long?, String>)? = null,
-                      /** 05/11: app chưa được Ba Mẹ cho phép ⇒ «Xin Ba Mẹ duyệt» gửi thẳng (api/device/xin-duyet), không mở màn xin giờ. */
-                      val onDuyet: ((String) -> Unit)? = null) {
+                      /** true = Activity (có bàn phím) ⇒ ô gõ lời nhắn; false = lớp phủ trợ năng (không có IME) ⇒ chọn lý do có sẵn. */
+                      val choGoLyDo: Boolean = false) {
         private val h = Handler(Looper.getMainLooper())
         private var goiDuyet: String? = null
         private val cot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL; setPadding(dp(c, 20), dp(c, 20), dp(c, 20), dp(c, 20)) }
@@ -144,7 +145,91 @@ object GiaoDien {
         val dem = Diu.chu(c, "", 44f, CHU, true).apply { gravity = Gravity.CENTER; fontFeatureSettings = "tnum" }
         private val moLai = Diu.chu(c, "", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER }
         private val goiY = Diu.chu(c, "Đọc sách hoặc ra ngoài chơi nhé!", 15f, Diu.XANH_DAM).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 6), 0, 0) }
-        val nutXin = Diu.nut(c, "Xin Ba Mẹ mở máy") { val g = goiDuyet; val f = onDuyet; if (g != null && f != null) f(g) else onXin() }
+        /** #258: app ngoài danh sách ⇒ «Xin Ba Mẹ mở <app>» gửi thẳng (api/device/xin-duyet) kèm lời Con nhắn; xong hiện màn kết quả. */
+        val nutXin = Diu.nut(c, "Xin Ba Mẹ mở máy") { bamNutXin() }
+        private val oLyDo = android.widget.EditText(c).apply {
+            hint = "Con nhắn Ba Mẹ (không bắt buộc)"; filters = arrayOf(android.text.InputFilter.LengthFilter(100)); minHeight = dp(c, 52); visibility = View.GONE
+            background = Diu.khoi(c, Diu.TRANG, 16, Diu.VIEN); setTextColor(CHU); setHintTextColor(Diu.CHU3); textSize = 16f
+            typeface = Diu.font(c); setPadding(dp(c, 14), dp(c, 10), dp(c, 14), dp(c, 10))
+            layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(c, 10); bottomMargin = dp(c, 4) }
+            inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+        }
+        /** Lớp phủ trợ năng không dùng được bàn phím ⇒ vài lý do chọn sẵn (như /tre/xin-phep). */
+        private val LY_DO = listOf("Để làm bài tập", "Bạn rủ chơi", "Hôm nay con ngoan")
+        private var lyDoChon: String? = null
+        private val hangLyDo = LinearLayout(c).apply {
+            orientation = LinearLayout.VERTICAL; visibility = View.GONE
+            val nuts = LY_DO.map { ly -> Diu.nut(c, ly, Diu.KieuNut.PHU) { lyDoChon = if (lyDoChon == ly) null else ly; chonLyDo() } }
+            nuts.forEach(::addView)
+            tag = nuts
+        }
+        @Suppress("UNCHECKED_CAST")
+        private fun chonLyDo() { (hangLyDo.tag as List<Button>).forEachIndexed { i, b -> Diu.chon(c, b, LY_DO[i] == lyDoChon) } }
+        /** Màn kết quả lời xin app (khớp con-dt-xin them-j4g2mtm8 / them-w8po32o6): `goi` = app đã xin; null = chưa xin. */
+        private var xinGoi: String? = null
+        private var xinKq: KetQuaXinApp? = null
+        private var xinTen = ""
+        private var xinGen = 0
+        private var xinThread: Thread? = null
+        private val lamMoiSau = Runnable { DichVuNhip.lamMoi(c) }
+
+        /** Huỷ vòng hỏi kết quả (Activity bị huỷ / lớp phủ gỡ) — không giữ Context. */
+        fun huy() { xinGen++; xinThread?.interrupt(); xinThread = null; h.removeCallbacks(lamMoiSau) }
+
+        /** Bỏ màn kết quả, về màn «chưa có trong danh sách» (viết lại câu ở lần vẽ kế). */
+        private fun boKetQua() { xinGoi = null; xinKq = null; xinGen++; goiDuyet = null; nutXin.isEnabled = true; h.removeCallbacks(lamMoiSau) }
+
+        private fun xinApp(g: String) {
+            val ten = DoPhut.tenApp(c, g)
+            val ly = (if (choGoLyDo) oLyDo.text.toString().replace(Regex("\\s*\n\\s*"), " ") else lyDoChon ?: "")
+            val gen = ++xinGen
+            xinGoi = g; xinTen = ten
+            xinKq = KetQuaXinApp(LoaiKetQuaXin.CHO, null)
+            capNhatKetQua(g)
+            val ctx = c.applicationContext
+            xinThread = Thread {
+                val r = DichVuNhip.xinDuyet(ctx, g, ten, ly)
+                if (r.id == null) { h.post { if (gen == xinGen) { xinGoi = null; xinKq = null; goiDuyet = null; cau.text = r.cau; nutXin.isEnabled = true } }; return@Thread }
+                // hỏi kết quả mỗi 3 giây, tối đa 5 phút; hết hạn mà chưa có ⇒ «Lời xin đã hết hạn · Xin lại»
+                for (i in 0 until 100) {
+                    if (gen != xinGen) return@Thread
+                    val kq = DichVuNhip.hoiKetQuaXinApp(ctx, r.id)
+                    if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { h.post { if (gen == xinGen) { xinKq = kq; capNhatKetQua(g) } }; return@Thread }
+                    try { Thread.sleep(3000) } catch (_: InterruptedException) { return@Thread }
+                }
+                h.post { if (gen == xinGen) { xinKq = KetQuaXinApp(LoaiKetQuaXin.HET_HAN, null); capNhatKetQua(g) } }
+            }.also { it.start() }
+        }
+
+        /** Vẽ màn kết quả đè lên màn «chưa có trong danh sách» (gọi trên luồng giao diện). */
+        private fun capNhatKetQua(g: String) {
+            val kq = xinKq ?: return
+            val (tieu, phu, caudl) = chuKetQuaXinApp(kq, xinTen)
+            val cho = kq.loai == LoaiKetQuaXin.CHO
+            tieuDe.text = tieu; dem.text = xinTen; dem.textSize = 24f
+            goiY.text = phu; goiY.visibility = View.VISIBLE; cau.text = caudl
+            moLai.visibility = View.GONE; oLyDo.visibility = View.GONE; hangLyDo.visibility = View.GONE
+            nutXin.text = if (cho) "Đang chờ Ba Mẹ…" else if (kq.loai == LoaiKetQuaXin.DA_THEM) "Xong" else "Xin lại"
+            nutXin.isEnabled = !cho
+            // đã thêm: giữ màn kết quả cho Con đọc; áp luật mới khi Con bấm «Xong» (hoặc sau vài giây)
+            if (kq.loai == LoaiKetQuaXin.DA_THEM) { h.removeCallbacks(lamMoiSau); h.postDelayed(lamMoiSau, 6000) }
+        }
+
+        private fun bamNutXin() {
+            val kq = xinKq
+            if (kq != null) {
+                when (kq.loai) {
+                    LoaiKetQuaXin.CHO -> {}
+                    LoaiKetQuaXin.DA_THEM -> { boKetQua(); DichVuNhip.lamMoi(c); onVe?.invoke() }
+                    else -> { boKetQua(); htCuoi?.let { ve(it, goiCuoi) } }   // «Xin lại»: về màn «chưa có trong danh sách»
+                }
+                return
+            }
+            val g = goiDuyet
+            if (g != null) xinApp(g) else onXin()
+        }
+        private var goiCuoi: String? = null
+        private var htCuoi: HienThi? = null
         /** 15/11 «Hết sao rồi» (them-n4iivj6d, cdt-het-phien): lối «Làm nhiệm vụ kiếm sao» cạnh «Xin Ba Mẹ cho vay sao». */
         private val nutNhiemVu = Diu.nut(c, "Làm nhiệm vụ kiếm sao") { ManTre.mo(c, "nhiem-vu") }.apply { visibility = View.GONE }
         private val linkMa = Diu.nut(c, "Mất mạng? Nhập mã của Ba Mẹ", Diu.KieuNut.CHU) { moNhapMa(false) }
@@ -177,7 +262,7 @@ object GiaoDien {
         init {
             phanKhoa.addView(vien); phanKhoa.addView(tieuDe); phanKhoa.addView(cau)
             theDem.addView(dem); theDem.addView(moLai); theDem.addView(goiY)
-            phanKhoa.addView(theDem); phanKhoa.addView(nutNhiemVu); phanKhoa.addView(nutXin); nutVe?.let(phanKhoa::addView)
+            phanKhoa.addView(theDem); phanKhoa.addView(nutNhiemVu); phanKhoa.addView(oLyDo); phanKhoa.addView(hangLyDo); phanKhoa.addView(nutXin); nutVe?.let(phanKhoa::addView)
             phanKhoa.addView(linkMa); phanKhoa.addView(linkBaMe); phanKhoa.addView(theMa); phanKhoa.addView(ghi)
             cot.addView(phanKhoa); cot.addView(pin.goc)
             pin.goc.visibility = View.GONE
@@ -239,6 +324,7 @@ object GiaoDien {
         }
 
         fun ve(ht: HienThi, goiChan: String? = null) {
+            htCuoi = ht; goiCuoi = goiChan
             val congPin = ht.cong == Cong.CHON_TEN.name && goiChan == null
             pin.goc.visibility = if (congPin) View.VISIBLE else View.GONE
             phanKhoa.visibility = if (congPin) View.GONE else View.VISIBLE
@@ -246,23 +332,28 @@ object GiaoDien {
             pin.dung()
             val chanApp = goiChan != null && !ht.dangKhoaThat
             val duyet = chanApp && goiChan in ht.goiChuaXep
+            // đổi sang app khác / hết cảnh ngoài danh sách ⇒ bỏ màn kết quả cũ
+            if (xinKq != null && !(duyet && goiChan == xinGoi)) boKetQua()
             val goiMoi = if (duyet) goiChan else null
             // 15/11: hết sao ⇒ Làm nhiệm vụ / Xin Ba Mẹ cho vay sao; app ngoài danh sách ⇒ «Xin Ba Mẹ mở <app>» (#262)
             val hetSao = ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && !duyet
             nutXin.text = when {
-                duyet && ht.coSao -> "Xin Ba Mẹ mở ${DoPhut.tenApp(c, goiChan!!)}"
-                duyet -> "Xin Ba Mẹ duyệt"
+                duyet -> "Xin Ba Mẹ mở ${DoPhut.tenApp(c, goiChan!!)}"
                 hetSao -> "Xin Ba Mẹ cho vay sao"
-                chiNgoaiLe(ht.trangThai) -> "Xin Ba Mẹ mở máy"
-                ht.coSao -> "Xin Ba Mẹ mở máy"
-                else -> "Xin Ba Mẹ thêm giờ"
+                else -> "Xin Ba Mẹ mở máy"
             }
             if (hetSao != xinPhu) { xinPhu = hetSao; Diu.chon(c, nutXin, !hetSao) }
+            // máy chủ cũ (chưa có sổ sao) và không phải app ngoài danh sách: không còn gì để xin (đã gỡ xin thêm giờ / ngoại lệ) ⇒ ẩn nút; còn «Ba Mẹ mở máy» / mã offline
+            nutXin.visibility = if (duyet || ht.coSao) View.VISIBLE else View.GONE
             nutNhiemVu.visibility = if (hetSao) View.VISIBLE else View.GONE
             // «Ba Mẹ mở máy» chỉ khi máy chủ có PIN theo bé (cổng ≠ MO) và đang khoá thật
             linkBaMe.visibility = if (!chanApp && ht.cong != Cong.MO.name) View.VISIBLE else View.GONE
             datToi(!chanApp && ht.trangThai == TrangThai.GIO_NGU.name)
-            if (chanApp && ht.coSao) {
+            oLyDo.visibility = if (duyet && xinKq == null && choGoLyDo) View.VISIBLE else View.GONE
+            hangLyDo.visibility = if (duyet && xinKq == null && !choGoLyDo) View.VISIBLE else View.GONE
+            if (chanApp && xinKq != null) {
+                capNhatKetQua(goiChan!!)
+            } else if (chanApp) {
                 // 15/11 (them-4e5fwl16 / them-n4iivj6d): ngoài danh sách ⇒ «Roblox chưa có trong danh sách»; app Tính phút lúc hết sao ⇒ «Hết sao rồi»
                 val ten = DoPhut.tenApp(c, goiChan!!)
                 tieuDe.text = if (duyet) "$ten chưa có trong danh sách" else if (hetSao) "Hết sao rồi" else "$ten đang tạm dừng"
@@ -271,21 +362,11 @@ object GiaoDien {
                 goiY.text = if (duyet) "Theo danh sách của Ba Mẹ" else "1 nhiệm vụ = +10 sao"
                 goiY.visibility = if (duyet || hetSao) View.VISIBLE else View.GONE
                 if (goiMoi == null || goiMoi != goiDuyet) cau.text = when {
-                    duyet -> "Máy chỉ mở app Ba Mẹ đã thêm vào danh sách."
+                    duyet -> "Máy chỉ mở app, web Ba Mẹ đã thêm vào danh sách."
                     hetSao -> "Còn 0 sao = 0 phút chơi · $ten dừng, app học vẫn mở."
                     else -> ht.cauCon
                 }
-                goiDuyet = goiMoi
-            } else if (chanApp) {
-                tieuDe.text = "Ứng dụng này đang bị chặn"
-                dem.text = DoPhut.tenApp(c, goiChan!!); dem.textSize = 24f
-                moLai.visibility = View.GONE; goiY.visibility = View.GONE
-                if (goiMoi == null || goiMoi != goiDuyet) cau.text = if (duyet) "App này chưa được Ba Mẹ cho phép. Con xin Ba Mẹ duyệt nhé."
-                    else if (ht.trangThai == TrangThai.HET_GIO.name) "Hôm nay con đã chơi hết giờ. Con dùng sao hoặc xin Ba Mẹ thêm giờ nhé."
-                    else "Ba Mẹ chưa cho dùng ứng dụng này lúc này. Con có thể xin Ba Mẹ nhé."
-                goiDuyet = goiMoi
             } else {
-                goiDuyet = null
                 tieuDe.text = tieuDeKhoa(ht.trangThai, ht.coSao)
                 cau.text = if (hetSao) "Còn 0 sao = 0 phút chơi · app học vẫn mở" else ht.cauCon
                 val now = System.currentTimeMillis()
@@ -295,6 +376,7 @@ object GiaoDien {
                 goiY.text = if (ht.trangThai == TrangThai.GIO_NGU.name) "Ngủ ngon nhé! Mai chơi tiếp." else if (hetSao) "1 nhiệm vụ = +10 sao" else "Đọc sách hoặc ra ngoài chơi nhé!"
                 goiY.visibility = if (ht.demNguoc > 0) View.GONE else View.VISIBLE
             }
+            goiDuyet = goiMoi
             ht.tenCon?.let { ghi.text = "Vẫn gọi được Ba Mẹ · $it" }
             val hinh = hinhKhoa(ht.trangThai, chanApp)
             if (hinh != hinhDangHien) { hinhDangHien = hinh; anh.setImageResource(hinh) }

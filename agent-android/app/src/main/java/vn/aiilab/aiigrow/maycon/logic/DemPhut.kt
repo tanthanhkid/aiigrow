@@ -55,31 +55,6 @@ fun thanGhep(ma: String, tenMay: String): JSONObject =
 fun thanGhepToken(token: String, tenMay: String): JSONObject =
     JSONObject().put("token", token).put("nen", "android").put("tenMay", tenMay.take(80))
 
-/** Chip «Xin Ba Mẹ thêm giờ» — Thanh chốt 05/11: 10 / 20 / 30 phút như thiết kế Windows (con-xin/01), mọi nền. */
-val PHUT_XIN = listOf(10, 20, 30)
-
-/** Lời xin thêm giờ (POST /api/device/yeu-cau). Máy chủ bắt buộc lyDo ⇒ trống thì dùng câu mặc định. */
-fun thanXinThemGio(phut: Int, loiNhan: String): JSONObject {
-    require(phut in PHUT_XIN) { "phut phải là 10, 20 hoặc 30" }
-    val ly = loiNhan.trim().take(100).ifEmpty { "Con xin thêm $phut phút" }
-    return JSONObject().put("loai", "them_gio").put("phut", phut).put("lyDo", ly)
-}
-
-/** Ngoại lệ Con xin lúc giờ ngủ / Ba Mẹ khoá (≤ ngoai_le_toi_da_phut, mặc định 60). */
-val PHUT_NGOAI_LE = listOf(15, 30, 60)
-/** «Dùng sao» thêm giờ chơi (hoc-vien/doi-sao). */
-val PHUT_SAO = listOf(15, 30, 60)
-
-/** 05/11: «Xin Ba Mẹ mở ngoại lệ» cả máy (POST /api/device/yeu-cau {loai: ngoai_le, phamVi: ca_may}) — lời nhắn không bắt buộc. */
-fun thanXinNgoaiLe(phut: Int, loiNhan: String): JSONObject {
-    val o = JSONObject().put("loai", "ngoai_le").put("phamVi", "ca_may").put("phut", phut.coerceIn(5, 240))
-    loiNhan.trim().take(100).takeIf { it.isNotEmpty() }?.let { o.put("lyDo", it) }
-    return o
-}
-
-/** Số sao cần cho `phut` phút với tỷ lệ «10 sao = phut10Sao phút» (làm tròn lên). */
-fun saoCan(phut: Int, phut10Sao: Int): Int = (phut * 10 + phut10Sao.coerceAtLeast(1) - 1) / phut10Sao.coerceAtLeast(1)
-
 /** Thân nhịp (NhipVao — server/lib/tuan-thu.ts) + phút dùng hôm nay theo app (máy chủ là sổ sách — CAN-SERVER.md). */
 fun thanNhip(
     clientTime: String, phienBan: String, khoa: Boolean, deviceOwner: Boolean, deviceAdmin: Boolean,

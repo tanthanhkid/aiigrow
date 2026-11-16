@@ -148,7 +148,7 @@ public enum NguoiDungMay: Codable, Equatable, Sendable {
 }
 
 /// Trạng thái «ai đang dùng» daemon giữ: bản máy chủ + phần cục bộ lúc mất mạng (đăng nhập bé bằng vân PIN, Ba Mẹ mở bằng mã offline,
-/// Đổi bé / Khoá lại khi chưa gửi được). Hết hạn Ba Mẹ dùng ⇒ về màn chọn tên NGAY tại máy, không chờ mạng.
+/// Đổi người / Khoá lại khi chưa gửi được). Hết hạn Ba Mẹ dùng ⇒ về màn chọn tên NGAY tại máy, không chờ mạng.
 public struct PhienMay: Codable, Equatable, Sendable {
   public var mayChu: NguoiDungMay?
   /// Ghi đè cục bộ (có hiệu lực tới khi máy chủ trả lại khối `nguoiDung` MỚI hơn lúc ghi).
@@ -188,7 +188,7 @@ public struct PhienMay: Codable, Equatable, Sendable {
     switch n {
     case .chua?:
       q.allowedApps = []; q.appTinhGio = []
-      // giờ ngủ / Ba Mẹ khoá vẫn giữ (đếm ngược đăng xuất chạy tiếp — «Đổi bé» không thoát được giờ ngủ); chỉ không tự KHOÁ vì «chưa ai vào»
+      // giờ ngủ / Ba Mẹ khoá vẫn giữ (đếm ngược đăng xuất chạy tiếp — «Đổi người» không thoát được giờ ngủ); chỉ không tự KHOÁ vì «chưa ai vào»
       h.moDen = nil; h.chiAppHoc = true
     case let .baMe(den)? where (den ?? .distantFuture) > now:
       q.mode = CheDo.tuDo.rawValue; q.blockedApps = []; q.appTinhGio = []

@@ -13,7 +13,6 @@ const { chinhSachWindows } = await import("./agent-windows.ts");
 const { taoNha } = await import("./test-fixtures/nha.ts");
 const { gioDiaPhuong } = await import("./gio.ts");
 const { q } = await import("./db.ts");
-const { laWebCam } = await import("./chan-co-ban.ts");
 const { luonChoiDuoc } = await import("./test-fixtures/nha.ts");
 
 const HOM = gioDiaPhuong(new Date(), "Asia/Ho_Chi_Minh").ngay;
@@ -91,15 +90,14 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   // L4: Con mới «Chặn app & web» ⇒ web chỉ cho phép; web luôn chặn (người lớn / cờ bạc / bạo lực) có trong chan ở mọi chế độ
   assert.equal(db.windows.web.cheDo, "chi_cho_phep");
   assert.equal(db.cheDoChan, "chi_app_duoc_phep");
-  const rieng = (ds: string[]) => ds.filter((m) => !laWebCam(m));
-  assert.deepEqual(rieng(db.windows.web.chan), ["youtube.com"], "Theo danh sách: gamek.vn ngoài danh sách đã bị chặn bởi chi_cho_phep");
+  assert.deepEqual(db.windows.web.chan, ["youtube.com"], "Theo danh sách: gamek.vn ngoài danh sách đã bị chặn bởi chi_cho_phep");
   assert.ok(!db.windows.web.cho.includes("gamek.vn"));
-  assert.ok(db.windows.web.chan.includes("xnxx.com"));
+  assert.ok(!db.windows.web.chan.includes("xnxx.com"), "không còn lưới web cấm cứng");
   assert.ok(db.windows.web.cho.includes("khanacademy.org") && db.windows.web.cho.includes("classroom.google.com"));
   assert.ok(!db.windows.web.cho.includes("explorer.exe"), "chỉ tên miền, không .exe");
   // phiên điểm đang chạy cho youtube.com ⇒ youtube.com chuyển sang danh sách mở
   const co = chinhSachWindows({ ...db, phien: { id: "p", muc: "youtube.com", conPhut: 10 } });
-  assert.deepEqual(rieng(co.web.chan), []);
+  assert.deepEqual(co.web.chan, []);
   assert.ok(co.web.cho.includes("youtube.com"));
   assert.equal(co.web.choKhiMo, undefined, "mở nhờ phiên điểm ⇒ không phải choKhiMo");
   // 05/11: còn quỹ (ngoài giờ ngủ) ⇒ trang Giải trí mở, không cần phiên
@@ -121,7 +119,7 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   assert.equal(mh.windows.mode, "tu_do");
   // Nghi 07/11: «Mở hết» = dùng như bình thường — hết quỹ (đặt 0 ở đầu test) cũng KHÔNG chặn trang Giải trí.
   // Nghi 11/11: trang Ba Mẹ từng «Chặn» (gamek.vn) cũng mở — chỉ còn web luôn chặn
-  assert.deepEqual(rieng(mh.windows.web.chan), [], "«Mở hết» hết quỹ vẫn xem youtube.com, trang Ba Mẹ từng chặn cũng mở");
+  assert.deepEqual(mh.windows.web.chan, [], "«Mở hết» hết quỹ vẫn xem youtube.com, trang Ba Mẹ từng chặn cũng mở");
   assert.ok(!mh.windows.web.chan.includes("xnxx.com"), "#258: Mở hết không chặn gì");
   assert.deepEqual([mh.windows.appTinhGio, mh.windows.quyConPhut, mh.quy], [undefined, undefined, null], "«Mở hết»: không quỹ giờ");
   // giờ ngủ + giờ học đang diễn ra cũng không chặn ở «Mở hết»
@@ -129,7 +127,7 @@ test("dong-bo trả windows.web: chặn gamek.vn ⇒ nằm trong chan; giải tr
   await q(`update children set lich = lich || $2::jsonb where id = $1`, [con, JSON.stringify({ ngu: caNgay, hoc: { ...caNgay, thu: [0, 1, 2, 3, 4, 5, 6] } })]);
   const dem = (await goiMay("dong-bo", tok, {})).body;
   assert.deepEqual([dem.windows.mode, dem.windows.locked, dem.windows.dangGioHoc, dem.windows.gioHoc], ["tu_do", false, undefined, null]);
-  assert.deepEqual(rieng(dem.windows.web.chan), []);
+  assert.deepEqual(dem.windows.web.chan, []);
   // «Khoá ngay» của Ba Mẹ vẫn khoá
   assert.equal((await goiBm(`con/${con}/khoa`, tokBm, {})).status, 200);
   assert.equal((await goiMay("dong-bo", tok, {})).body.windows.mode, "khoa");

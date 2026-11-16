@@ -106,3 +106,28 @@ fun cungMayChu(url: String, goc: String): Boolean = try {
     val a = java.net.URI(url); val b = java.net.URI(goc.trimEnd('/'))
     a.scheme.equals(b.scheme, true) && a.host.equals(b.host, true) && (if (a.port == -1) a.toURL().defaultPort else a.port) == (if (b.port == -1) b.toURL().defaultPort else b.port)
 } catch (_: Exception) { false }
+
+// ---------------------------------------------------------------- kết quả lời xin app / web (#258)
+enum class LoaiKetQuaXin { CHO, DA_THEM, CHUA_THEM, HET_HAN }
+
+/** `nhom`: tinh_phut | khong_tinh_phut (chỉ khi DA_THEM; null = máy chủ không gửi). */
+data class KetQuaXinApp(val loai: LoaiKetQuaXin, val nhom: String?)
+
+/** GET yeu-cau/:id của lời xin app / web ⇒ `ketQua`: cho | da_them | mo_tam | chua_them | het_han | huy (mo_tam = Ba Mẹ chỉ mở tạm ⇒ coi như đã thêm). */
+fun docKetQuaXinApp(o: JSONObject): KetQuaXinApp {
+    val kq = o.optString("ketQua").takeIf { it.isNotBlank() && it != "null" }
+        ?: when (o.optString("trangThai").ifBlank { o.optString("status") }) {
+            "cho" -> "cho"; "dong_y", "da_thuc_thi", "duoc", "tu_duyet" -> "da_them"; "het_han", "huy" -> "het_han"; else -> "chua_them" }
+    val loai = when (kq) { "cho" -> LoaiKetQuaXin.CHO; "da_them", "mo_tam" -> LoaiKetQuaXin.DA_THEM; "het_han", "huy" -> LoaiKetQuaXin.HET_HAN; else -> LoaiKetQuaXin.CHUA_THEM }
+    return KetQuaXinApp(loai, o.optString("nhom").takeIf { it.isNotBlank() && it != "null" })
+}
+
+/** Chữ màn kết quả: tiêu đề «Ba Mẹ đã thêm Roblox» / «Ba Mẹ chưa thêm Roblox», dòng phụ, câu dưới (them-j4g2mtm8 / them-w8po32o6). */
+fun chuKetQuaXinApp(kq: KetQuaXinApp, ten: String): Triple<String, String, String> = when (kq.loai) {
+    LoaiKetQuaXin.DA_THEM -> Triple("Ba Mẹ đã thêm $ten",
+        when (kq.nhom) { "tinh_phut" -> "Tính phút"; "khong_tinh_phut" -> "Không tính phút"; else -> "Có trong danh sách" },
+        if (kq.nhom == "tinh_phut") "Con mở $ten được rồi. Chơi sẽ trừ sao (1 sao = 1 phút)." else "Con mở $ten được rồi.")
+    LoaiKetQuaXin.CHUA_THEM -> Triple("Ba Mẹ chưa thêm $ten", "Chưa có trong danh sách", "Ba Mẹ chưa thêm $ten lúc này. Con xin lại sau được nhé")
+    LoaiKetQuaXin.HET_HAN -> Triple("Lời xin đã hết hạn", "Chưa có trong danh sách", "Lời xin đã hết hạn hoặc bị huỷ. Con xin lại nhé")
+    LoaiKetQuaXin.CHO -> Triple("Đã gửi Ba Mẹ", "Chờ Ba Mẹ trả lời", "Đã gửi Ba Mẹ. Chờ Ba Mẹ trả lời nhé.")
+}

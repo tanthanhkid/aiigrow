@@ -1,7 +1,7 @@
 // App của HỌC VIÊN (Con) trên Mac — hai chiều với Ba Mẹ, cùng máy chủ với agent-win (server/lib/hoc-vien.ts, /api/device/hoc-vien/*).
 // Bản dịch THUẦN của agent-win AiiGrow.Core/HocVien.cs: mô hình + chữ hiển thị + luật nhỏ, không AppKit/SwiftUI ⇒ test được.
-// Mọi luật (tần suất, thời gian tối thiểu, ảnh trùng, trừ điểm, tồn kho) do MÁY CHỦ quyết; app chỉ hiện và gửi.
-// Số điểm: như Windows (AppForm), app Con hiện số dư / giá quà lấy từ hoc-vien/* — TrangThai (menu, màn khoá) vẫn KHÔNG mang số điểm.
+// Mọi luật (tần suất, thời gian tối thiểu, ảnh trùng, trừ sao, tồn kho) do MÁY CHỦ quyết; app chỉ hiện và gửi.
+// Số sao: như Windows (AppForm), app Con hiện số dư / giá quà lấy từ hoc-vien/* — TrangThai (menu, màn khoá) vẫn KHÔNG mang số sao.
 import Foundation
 
 // MARK: - Đọc JSON khoan dung (id số hay chuỗi, số nguyên hay thực, null)
@@ -461,7 +461,7 @@ public enum HocVienView {
     return nil
   }
 
-  /// Việc cần Con làm ngay xếp trước: cần bổ sung → đang làm → sẵn sàng (hạn gần trước, điểm cao trước) → đã đủ lượt.
+  /// Việc cần Con làm ngay xếp trước: cần bổ sung → đang làm → sẵn sàng (hạn gần trước, sao cao trước) → đã đủ lượt.
   public static func sapXep(_ ds: [HvNhiemVu]) -> [HvNhiemVu] {
     func hang(_ v: HvNhiemVu) -> Int { ["can_bo_sung": 0, "dang_lam": 1, "san_sang": 2][v.trangThai] ?? 3 }
     return ds.enumerated().sorted { a, b in
@@ -667,9 +667,9 @@ public enum AnhBangChung {
   }
 }
 
-/// «Chơi bằng điểm» (agent-win BlockScreenView.CanUsePoints + ChoiBangDiemForm): khi nào hiện nút, chữ kết quả.
+/// «Chơi bằng sao» (agent-win BlockScreenView.CanUsePoints + ChoiBangDiemForm): khi nào hiện nút, chữ kết quả.
 public enum ChoiBangDiem {
-  /// Nút hiện khi máy chủ cho đổi điểm, không bị Ba Mẹ khoá, không mất mạng (phien/xet không gọi được), và (nếu biết app) app nằm trong danh sách.
+  /// Nút hiện khi máy chủ cho chơi bằng sao, không bị Ba Mẹ khoá, không mất mạng (phien/xet không gọi được), và (nếu biết app) app nằm trong danh sách.
   public static func hienNut(duocDoiDiem: Bool, lyDoKhoa: String?, matMang: Bool, dsChoi: [String], muc: String? = nil) -> Bool {
     guard duocDoiDiem, !["ba_me_khoa", "khoa", "gio_ngu", "ngu"].contains(lyDoKhoa ?? ""), !matMang else { return false }   // giờ ngủ: máy chủ luôn từ chối
     guard let muc else { return true }
@@ -685,7 +685,7 @@ public enum ChoiBangDiem {
   public static func ketQua(_ t: TraLoi) -> (chu: String, duoc: Bool) {
     switch t {
     case let .choi(trangThai, _, chu) where trangThai == "tu_choi" || trangThai == "khong_co_muc":
-      return (chu ?? "Chưa mở được bằng điểm. Con xin Ba Mẹ nhé.", false)
+      return (chu ?? "Chưa mở được bằng sao. Con xin Ba Mẹ nhé.", false)
     case let .choi(_, phut, chu):
       if let chu, !chu.isEmpty { return (chu, true) }
       return (phut.map { "Được rồi! Con chơi khoảng \($0) phút nhé." } ?? "Được rồi! Chơi vui nhé.", true)
