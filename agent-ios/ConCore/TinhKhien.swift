@@ -133,9 +133,11 @@ public enum TinhKhien {
     let moHoanToan = k.dangMoHet == true || k.dangMoOffline == true || k.dangBaMe == true || k.dangThemGio || k.dangNgoaiLe == true || k.dangChoiDiem == true
     if kh.theoDanhSach && !moHoanToan {
       k.danhSach = true
-      let hoc = kh.webKhongTinhPhut ?? [], tinhPhut = kh.webTinhPhut ?? []
-      k.webDuocMo = k.muc == .khong ? hoc + tinhPhut : hoc     // đang đóng nhóm «Tính phút» (hết sao…) ⇒ chỉ web «Không tính phút»
-      k.webChan = []      // web theo danh sách trắng, không còn danh sách đen
+      // kế hoạch lưu trước bản này không có danh sách web (nil) ⇒ giữ hành vi cũ tới lần đồng bộ kế tiếp (không chặn hết web oan)
+      if let hoc = kh.webKhongTinhPhut {
+        k.webDuocMo = k.muc == .khong ? hoc + (kh.webTinhPhut ?? []) : hoc     // đang đóng nhóm «Tính phút» (hết sao…) ⇒ chỉ web «Không tính phút»
+        k.webChan = []      // web theo danh sách trắng, không còn danh sách đen
+      }
     }
     return k
   }

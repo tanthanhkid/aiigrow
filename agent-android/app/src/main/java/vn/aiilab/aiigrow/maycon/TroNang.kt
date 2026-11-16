@@ -65,6 +65,7 @@ class TroNang : AccessibilityService() {
     }
 
     private fun an() {
+        phu?.huy()
         phu?.let { try { (getSystemService(WINDOW_SERVICE) as WindowManager).removeView(it.goc) } catch (_: Exception) {} }
         phu = null; phuGoi = null
     }

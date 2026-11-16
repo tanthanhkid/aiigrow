@@ -215,7 +215,10 @@ class DichVuNhip : Service() {
         val khoaThat = laKhoa(qd.trangThai) && demNguoc == 0
         // trong lúc đếm ngược: app giải trí còn chạy; app bị chặn / chưa xếp vẫn chặn ngay
         val goiChan = if (laKhoa(qd.trangThai) && !khoaThat) truGoi(qd.goiChan, goiAndroid(cs.giaiTri)) else qd.goiChan
-        ThucThi.apDung(this, qd, goiChan, khoaThat, vn.aiilab.aiigrow.maycon.logic.luatWeb(cs, listOfNotNull(vn.aiilab.aiigrow.maycon.logic.tenMienMayChu(k.mayChu))))
+        // danh sách web trắng: gỡ khi máy mở hoàn toàn (mã offline, Ba Mẹ đang dùng, Ba Mẹ mở / cho thêm, Mở hết); nhóm «Tính phút» chỉ còn khi chơi được
+        val moHoanToan = moOff != null || cong == Cong.BA_ME || qd.trangThai == TrangThai.DUOC_THEM_GIO || qd.moHet
+        ThucThi.apDung(this, qd, goiChan, khoaThat, vn.aiilab.aiigrow.maycon.logic.luatWeb(cs, listOfNotNull(vn.aiilab.aiigrow.maycon.logic.tenMienMayChu(k.mayChu)),
+            moHoanToan, tinhPhutMo = qd.trangThai == TrangThai.BINH_THUONG))
         if (ph.privateDns != null && QuanTri.laDeviceOwner(this)) Log.i(TAG, "DNS: " + ThucThi.datPrivateDns(this, ph.privateDns))   // mỗi vòng ⇒ chỉ logcat
 
         val top = dung.entries.sortedByDescending { it.value }.map { it.key to (it.value / 60_000).toInt() }.filter { it.second > 0 }.take(5)
@@ -432,14 +435,12 @@ class DichVuNhip : Service() {
             } catch (e: MayChu.Loi) { KetXinApp(null, e.cau) } catch (e: Exception) { KetXinApp(null, "Chưa gửi được — máy đang mất mạng.") }
         }
 
-        /** Hỏi kết quả lời xin app / web `id` (luồng nền); null = chưa hỏi được (mất mạng, lỗi). Được thêm ⇒ áp luật mới ngay. */
+        /** Hỏi kết quả lời xin app / web `id` (luồng nền); null = chưa hỏi được (mất mạng, lỗi).  */
         fun hoiKetQuaXinApp(ctx: Context, id: String): vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp? {
             val k = Kho(ctx)
             if (k.cheDoThu || k.token == null) return null
             return try {
-                val kq = vn.aiilab.aiigrow.maycon.logic.docKetQuaXinApp(MayChu(k.mayChu, k.token).yeuCau(id))
-                if (kq.loai == vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.DA_THEM) lamMoi(ctx)
-                kq
+                vn.aiilab.aiigrow.maycon.logic.docKetQuaXinApp(MayChu(k.mayChu, k.token).yeuCau(id))   // áp luật mới (lamMoi) do màn kết quả gọi khi Con bấm «Xong»
             } catch (e: MayChu.Loi) { if (e.http == 404) vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp(vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.HET_HAN, null) else null } catch (_: Exception) { null }
         }
 

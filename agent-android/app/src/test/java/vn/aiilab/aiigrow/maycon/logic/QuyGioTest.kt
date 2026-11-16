@@ -65,6 +65,16 @@ class LuatWebTest {
         assertEquals(listOf("*"), w.chan)
         assertEquals(listOf("khanacademy.org", "youtube.com", "aiigrow.vn"), w.cho)
     }
+    @Test fun hetSaoBoWebTinhPhut() {
+        assertEquals(listOf("khanacademy.org"), luatWeb(cs, tinhPhutMo = false).cho)
+    }
+    @Test fun moHoanToanGoDanhSachTrang() {
+        assertEquals(LuatWeb(emptyList(), emptyList()), luatWeb(cs, listOf("aiigrow.vn"), moHoanToan = true))
+    }
+    @Test fun mayChuCuKhongCoCheDoKhongChanHetWeb() {
+        val cu = cs.copy(cheDo = null, chan = listOf(MucChung("tiktok.com", "web")))
+        assertEquals(LuatWeb(listOf("tiktok.com"), emptyList()), luatWeb(cu))
+    }
     @Test fun moHetKhongDatGi() {
         assertEquals(LuatWeb(emptyList(), emptyList()), luatWeb(cs.copy(cheDo = "mo_het"), listOf("aiigrow.vn")))
         assertEquals(LuatWeb(emptyList(), emptyList()), luatWeb(cs.copy(chuaXepChoPhep = true)))

@@ -14,7 +14,10 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import vn.aiilab.aiigrow.maycon.logic.Cong
 import vn.aiilab.aiigrow.maycon.logic.KetQuaMoOffline
+import vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp
+import vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
+import vn.aiilab.aiigrow.maycon.logic.chuKetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.mmss
 import java.time.Instant
 import java.time.ZoneId
@@ -116,7 +119,8 @@ object GiaoDien {
      * Giờ ngủ ⇒ nền tối dịu. Bàn phím tự vẽ ⇒ lớp phủ trợ năng không cần bàn phím hệ thống.
      */
     class ManKhoaView(val c: Context, val onXin: () -> Unit, val onVe: (() -> Unit)?, val onMa: ((String) -> Triple<KetQuaMoOffline, Long?, String>)? = null,
-                      ) {
+                      /** true = Activity (có bàn phím) ⇒ ô gõ lời nhắn; false = lớp phủ trợ năng (không có IME) ⇒ chọn lý do có sẵn. */
+                      val choGoLyDo: Boolean = false) {
         private val h = Handler(Looper.getMainLooper())
         private var goiDuyet: String? = null
         private val cot = LinearLayout(c).apply { orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL; setPadding(dp(c, 20), dp(c, 20), dp(c, 20), dp(c, 20)) }
@@ -150,51 +154,74 @@ object GiaoDien {
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(c, 10); bottomMargin = dp(c, 4) }
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
         }
+        /** Lớp phủ trợ năng không dùng được bàn phím ⇒ vài lý do chọn sẵn (như /tre/xin-phep). */
+        private val LY_DO = listOf("Để làm bài tập", "Bạn rủ chơi", "Hôm nay con ngoan")
+        private var lyDoChon: String? = null
+        private val hangLyDo = LinearLayout(c).apply {
+            orientation = LinearLayout.VERTICAL; visibility = View.GONE
+            val nuts = LY_DO.map { ly -> Diu.nut(c, ly, Diu.KieuNut.PHU) { lyDoChon = if (lyDoChon == ly) null else ly; chonLyDo() } }
+            nuts.forEach(::addView)
+            tag = nuts
+        }
+        @Suppress("UNCHECKED_CAST")
+        private fun chonLyDo() { (hangLyDo.tag as List<Button>).forEachIndexed { i, b -> Diu.chon(c, b, LY_DO[i] == lyDoChon) } }
         /** Màn kết quả lời xin app (khớp con-dt-xin them-j4g2mtm8 / them-w8po32o6): `goi` = app đã xin; null = chưa xin. */
         private var xinGoi: String? = null
-        private var xinKq: vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp? = null
+        private var xinKq: KetQuaXinApp? = null
         private var xinTen = ""
         private var xinGen = 0
+        private var xinThread: Thread? = null
+        private val lamMoiSau = Runnable { DichVuNhip.lamMoi(c) }
+
+        /** Huỷ vòng hỏi kết quả (Activity bị huỷ / lớp phủ gỡ) — không giữ Context. */
+        fun huy() { xinGen++; xinThread?.interrupt(); xinThread = null; h.removeCallbacks(lamMoiSau) }
+
+        /** Bỏ màn kết quả, về màn «chưa có trong danh sách» (viết lại câu ở lần vẽ kế). */
+        private fun boKetQua() { xinGoi = null; xinKq = null; xinGen++; goiDuyet = null; nutXin.isEnabled = true; h.removeCallbacks(lamMoiSau) }
 
         private fun xinApp(g: String) {
             val ten = DoPhut.tenApp(c, g)
-            val ly = oLyDo.text.toString().replace(Regex("\\s*\n\\s*"), " ")
+            val ly = (if (choGoLyDo) oLyDo.text.toString().replace(Regex("\\s*\n\\s*"), " ") else lyDoChon ?: "")
             val gen = ++xinGen
             xinGoi = g; xinTen = ten
-            xinKq = vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp(vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.CHO, null)
+            xinKq = KetQuaXinApp(LoaiKetQuaXin.CHO, null)
             capNhatKetQua(g)
-            Thread {
-                val r = DichVuNhip.xinDuyet(c, g, ten, ly)
-                if (r.id == null) { h.post { if (gen == xinGen) { xinGoi = null; xinKq = null; cau.text = r.cau; nutXin.isEnabled = true } }; return@Thread }
-                // hỏi kết quả mỗi 3 giây, tối đa 5 phút (hết hạn thì Con bấm xin lại)
+            val ctx = c.applicationContext
+            xinThread = Thread {
+                val r = DichVuNhip.xinDuyet(ctx, g, ten, ly)
+                if (r.id == null) { h.post { if (gen == xinGen) { xinGoi = null; xinKq = null; goiDuyet = null; cau.text = r.cau; nutXin.isEnabled = true } }; return@Thread }
+                // hỏi kết quả mỗi 3 giây, tối đa 5 phút; hết hạn mà chưa có ⇒ «Lời xin đã hết hạn · Xin lại»
                 for (i in 0 until 100) {
                     if (gen != xinGen) return@Thread
-                    val kq = DichVuNhip.hoiKetQuaXinApp(c, r.id)
-                    if (kq != null && kq.loai != vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.CHO) { h.post { if (gen == xinGen) { xinKq = kq; capNhatKetQua(g) } }; return@Thread }
+                    val kq = DichVuNhip.hoiKetQuaXinApp(ctx, r.id)
+                    if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { h.post { if (gen == xinGen) { xinKq = kq; capNhatKetQua(g) } }; return@Thread }
                     try { Thread.sleep(3000) } catch (_: InterruptedException) { return@Thread }
                 }
-            }.start()
+                h.post { if (gen == xinGen) { xinKq = KetQuaXinApp(LoaiKetQuaXin.HET_HAN, null); capNhatKetQua(g) } }
+            }.also { it.start() }
         }
 
         /** Vẽ màn kết quả đè lên màn «chưa có trong danh sách» (gọi trên luồng giao diện). */
         private fun capNhatKetQua(g: String) {
             val kq = xinKq ?: return
-            val (tieu, phu, caudl) = vn.aiilab.aiigrow.maycon.logic.chuKetQuaXinApp(kq, xinTen)
-            val cho = kq.loai == vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.CHO
+            val (tieu, phu, caudl) = chuKetQuaXinApp(kq, xinTen)
+            val cho = kq.loai == LoaiKetQuaXin.CHO
             tieuDe.text = tieu; dem.text = xinTen; dem.textSize = 24f
             goiY.text = phu; goiY.visibility = View.VISIBLE; cau.text = caudl
-            moLai.visibility = View.GONE; oLyDo.visibility = View.GONE
-            nutXin.text = if (cho) "Đang chờ Ba Mẹ…" else if (kq.loai == vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.DA_THEM) "Xong" else "Xin lại"
+            moLai.visibility = View.GONE; oLyDo.visibility = View.GONE; hangLyDo.visibility = View.GONE
+            nutXin.text = if (cho) "Đang chờ Ba Mẹ…" else if (kq.loai == LoaiKetQuaXin.DA_THEM) "Xong" else "Xin lại"
             nutXin.isEnabled = !cho
+            // đã thêm: giữ màn kết quả cho Con đọc; áp luật mới khi Con bấm «Xong» (hoặc sau vài giây)
+            if (kq.loai == LoaiKetQuaXin.DA_THEM) { h.removeCallbacks(lamMoiSau); h.postDelayed(lamMoiSau, 6000) }
         }
 
         private fun bamNutXin() {
             val kq = xinKq
             if (kq != null) {
                 when (kq.loai) {
-                    vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.CHO -> {}
-                    vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.DA_THEM -> { xinGoi = null; xinKq = null; onVe?.invoke() }
-                    else -> { xinGoi = null; xinKq = null; xinGen++; nutXin.isEnabled = true; htCuoi?.let { ve(it, goiCuoi) } }   // «Xin lại»: về màn «chưa có trong danh sách»
+                    LoaiKetQuaXin.CHO -> {}
+                    LoaiKetQuaXin.DA_THEM -> { boKetQua(); DichVuNhip.lamMoi(c); onVe?.invoke() }
+                    else -> { boKetQua(); htCuoi?.let { ve(it, goiCuoi) } }   // «Xin lại»: về màn «chưa có trong danh sách»
                 }
                 return
             }
@@ -235,7 +262,7 @@ object GiaoDien {
         init {
             phanKhoa.addView(vien); phanKhoa.addView(tieuDe); phanKhoa.addView(cau)
             theDem.addView(dem); theDem.addView(moLai); theDem.addView(goiY)
-            phanKhoa.addView(theDem); phanKhoa.addView(nutNhiemVu); phanKhoa.addView(oLyDo); phanKhoa.addView(nutXin); nutVe?.let(phanKhoa::addView)
+            phanKhoa.addView(theDem); phanKhoa.addView(nutNhiemVu); phanKhoa.addView(oLyDo); phanKhoa.addView(hangLyDo); phanKhoa.addView(nutXin); nutVe?.let(phanKhoa::addView)
             phanKhoa.addView(linkMa); phanKhoa.addView(linkBaMe); phanKhoa.addView(theMa); phanKhoa.addView(ghi)
             cot.addView(phanKhoa); cot.addView(pin.goc)
             pin.goc.visibility = View.GONE
@@ -306,7 +333,7 @@ object GiaoDien {
             val chanApp = goiChan != null && !ht.dangKhoaThat
             val duyet = chanApp && goiChan in ht.goiChuaXep
             // đổi sang app khác / hết cảnh ngoài danh sách ⇒ bỏ màn kết quả cũ
-            if (xinKq != null && !(duyet && goiChan == xinGoi)) { xinGoi = null; xinKq = null; xinGen++; nutXin.isEnabled = true }
+            if (xinKq != null && !(duyet && goiChan == xinGoi)) boKetQua()
             val goiMoi = if (duyet) goiChan else null
             // 15/11: hết sao ⇒ Làm nhiệm vụ / Xin Ba Mẹ cho vay sao; app ngoài danh sách ⇒ «Xin Ba Mẹ mở <app>» (#262)
             val hetSao = ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && !duyet
@@ -316,11 +343,14 @@ object GiaoDien {
                 else -> "Xin Ba Mẹ mở máy"
             }
             if (hetSao != xinPhu) { xinPhu = hetSao; Diu.chon(c, nutXin, !hetSao) }
+            // máy chủ cũ (chưa có sổ sao) và không phải app ngoài danh sách: không còn gì để xin (đã gỡ xin thêm giờ / ngoại lệ) ⇒ ẩn nút; còn «Ba Mẹ mở máy» / mã offline
+            nutXin.visibility = if (duyet || ht.coSao) View.VISIBLE else View.GONE
             nutNhiemVu.visibility = if (hetSao) View.VISIBLE else View.GONE
             // «Ba Mẹ mở máy» chỉ khi máy chủ có PIN theo bé (cổng ≠ MO) và đang khoá thật
             linkBaMe.visibility = if (!chanApp && ht.cong != Cong.MO.name) View.VISIBLE else View.GONE
             datToi(!chanApp && ht.trangThai == TrangThai.GIO_NGU.name)
-            oLyDo.visibility = if (duyet && xinKq == null) View.VISIBLE else View.GONE
+            oLyDo.visibility = if (duyet && xinKq == null && choGoLyDo) View.VISIBLE else View.GONE
+            hangLyDo.visibility = if (duyet && xinKq == null && !choGoLyDo) View.VISIBLE else View.GONE
             if (chanApp && xinKq != null) {
                 capNhatKetQua(goiChan!!)
             } else if (chanApp) {

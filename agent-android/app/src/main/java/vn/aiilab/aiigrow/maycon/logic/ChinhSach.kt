@@ -174,13 +174,16 @@ private val GOI = Regex("^[a-zA-Z][a-zA-Z0-9_]*(\\.[a-zA-Z][a-zA-Z0-9_]*)+$")
 fun laGoiAndroid(m: String): Boolean =
     GOI.matches(m) && !m.endsWith(".exe") && !(m.endsWith(".app") && m.count { it == '.' } < 2)
 
-/** Luật web cho Chrome (cấu hình quản lý): `chan` → URLBlocklist, `cho` → URLAllowlist. #262 «Theo danh sách»: chặn mọi web (`*`) trừ web trong
- *  danh sách (cả «Không tính phút» và «Tính phút») + tên miền để AiiGrow chạy (`them`: máy chủ AiiGrow). «Mở hết»: không đặt gì. */
+/** Luật web cho Chrome (cấu hình quản lý): `chan` → URLBlocklist, `cho` → URLAllowlist. #262 «Theo danh sách» (`cheDo` = theo_danh_sach): chặn mọi web (`*`)
+ *  trừ web «Không tính phút» + web «Tính phút» (chỉ khi `tinhPhutMo`: hết sao / khoá thì bỏ nhóm này) + tên miền để AiiGrow chạy (`them`).
+ *  Gỡ hẳn khi máy mở hoàn toàn (`moHoanToan`: mã offline, Ba Mẹ đang dùng, Ba Mẹ mở / cho vay, Mở hết). Máy chủ cũ (`cheDo` null): như trước — chỉ chặn web trong `chan`. */
 data class LuatWeb(val chan: List<String>, val cho: List<String>)
 
-fun luatWeb(cs: ChinhSach, them: List<String> = emptyList()): LuatWeb {
-    if (cs.moHet || cs.chuaXepChoPhep) return LuatWeb(webChan(cs), emptyList())
-    val duoc = (cs.hoc + cs.giaiTri).filter { it.kieu == "web" }.map { it.muc.trim().lowercase() }.filter { it.isNotEmpty() }
+fun luatWeb(cs: ChinhSach, them: List<String> = emptyList(), moHoanToan: Boolean = false, tinhPhutMo: Boolean = true): LuatWeb {
+    if (cs.cheDo != "theo_danh_sach" || cs.chuaXepChoPhep) return LuatWeb(webChan(cs), emptyList())      // Mở hết, hoặc máy chủ cũ chưa có cheDo
+    if (moHoanToan) return LuatWeb(webChan(cs), emptyList())
+    val web = { ds: List<MucChung> -> ds.filter { it.kieu == "web" }.map { it.muc.trim().lowercase() }.filter { it.isNotEmpty() } }
+    val duoc = web(cs.hoc) + (if (tinhPhutMo) web(cs.giaiTri) else emptyList())
     return LuatWeb(listOf("*"), (duoc + them.filter { it.isNotBlank() }).distinct())
 }
 
