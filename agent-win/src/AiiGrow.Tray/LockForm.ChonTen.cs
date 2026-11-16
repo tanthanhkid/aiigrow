@@ -23,6 +23,7 @@ internal sealed partial class LockForm
     private bool _dangTaiHs;
     private Label? _demTamKhoa;
     private VongDem? _vong;
+    private ChamPin? _cham;   // 4 chấm PIN của thẻ đang hiện — gõ / xoá một số chỉ vẽ lại chấm (#308)
     private Control? _chipKhoa, _nutBaMe;
 
     /// <summary>Bé đã vào / Ba Mẹ đã mở (dịch vụ trả trạng thái mới) — khay áp ngay, không chờ lượt hỏi 3 giây.</summary>
@@ -99,8 +100,10 @@ internal sealed partial class LockForm
             if (IsDisposed) return;
             HoSoMay? hs = null;
             if (r.Ok && !string.IsNullOrEmpty(r.Data)) { try { hs = JsonSerializer.Deserialize<HoSoMay>(r.Data, Json.Options); } catch (JsonException) { } }
+            var dauCu = ThayDoi.Bam(_hs, _hsLoi);
             _hs = hs ?? _hs;
             _hsLoi = hs == null ? (r.Error ?? ManChonTenView.ChuaCoDs) : null;
+            var doi = ThayDoi.Bam(_hs, _hsLoi) != dauCu;
             // máy riêng (một bé): bỏ lưới tên và ô PIN, vào thẳng (PIN chỉ dành cho máy chung — #267)
             if (_chonTen && _ct.Buoc == BuocChonTen.ChonTen && _hs is { MayRieng: true, Con.Count: 1 } && _ct.Be == null)
             {
@@ -109,7 +112,8 @@ internal sealed partial class LockForm
                 VeChonTen();
                 return;
             }
-            if (_chonTen && _ct.Buoc == BuocChonTen.ChonTen) VeChonTen();
+            // #308: tải lại mỗi 60 giây mà danh sách tên y nguyên ⇒ KHÔNG dựng lại lưới tên (trước đây cả thẻ nháy mỗi phút)
+            if (doi && _chonTen && _ct.Buoc == BuocChonTen.ChonTen) VeChonTen();
         }
         finally { _dangTaiHs = false; }
     }
@@ -138,7 +142,7 @@ internal sealed partial class LockForm
         if (so is char c) { e.Handled = e.SuppressKeyPress = true; BamSo(c); return; }
         switch (e.KeyCode)
         {
-            case Keys.Back: e.Handled = e.SuppressKeyPress = true; ManChonTenView.Xoa(_ct); VeChonTen(); break;
+            case Keys.Back: e.Handled = e.SuppressKeyPress = true; XoaSo(); break;
             case Keys.Enter when _ct.Buoc == BuocChonTen.BaMeMa: e.Handled = e.SuppressKeyPress = true; _ = GuiMaAsync(); break;
             case Keys.Escape: e.Handled = e.SuppressKeyPress = true; Lui(); break;
         }
@@ -146,8 +150,29 @@ internal sealed partial class LockForm
 
     private void BamSo(char c)
     {
+        var loi = _ct.Loi;
         if (ManChonTenView.GoSo(_ct, c)) { VeChonTen(); _ = GuiPinAsync(); return; }
-        VeChonTen();
+        if (!ChamTaiCho(loi)) VeChonTen();
+    }
+
+    private void XoaSo()
+    {
+        var loi = _ct.Loi;
+        ManChonTenView.Xoa(_ct);
+        if (!ChamTaiCho(loi)) VeChonTen();
+    }
+
+    /// <summary>#308: gõ / xoá một số PIN mà thẻ không đổi gì khác ⇒ chỉ vẽ lại 4 chấm, không dựng lại cả thẻ mỗi phím.</summary>
+    private bool ChamTaiCho(string? loiTruoc)
+    {
+        if (!ManChonTenView.ChiDoiCham(_ct.Buoc, loiTruoc, _ct.Loi) || _cham is not { IsDisposed: false } c) return false;
+        var so = _ct.So.Length;
+        var sai = _ct.ConLan is int n && n > 0 && so == 0;
+        if (c.So == so && c.Sai == sai) return true;
+        c.So = so;
+        c.Sai = sai;
+        c.Invalidate();
+        return true;
     }
 
     private void Lui()
@@ -213,9 +238,10 @@ internal sealed partial class LockForm
         }
         HienGocChonTen(_chonTen && _ct.Buoc == BuocChonTen.ChonTen);
         _chan.Text = _chonTen ? DangNhapView.ChanTrang(null) : _chan.Text;
+        using var veMotLan = KhongNhay.DungVe(_center);   // #308
         _center.SuspendLayout();
         if (_khoi != null) { _center.Controls.Remove(_khoi); if (_count.Parent != null) _count.Parent.Controls.Remove(_count); _khoi.Dispose(); }
-        _code = null; _demTamKhoa = null; _vong = null;
+        _code = null; _demTamKhoa = null; _vong = null; _cham = null;
         _khoi = _ct.Buoc switch
         {
             BuocChonTen.NhapPin => ThePin(),
@@ -228,7 +254,7 @@ internal sealed partial class LockForm
         _center.ResumeLayout(true);
         GiuaKhoi();
         DatGocChu();
-        ActiveControl = null;   // phím số đi vào màn (KeyPreview), không vào nút đang có tiêu điểm
+        ActiveControl = null;   // phím số đi vào màn (KeyPreview), không vào nút đang có tiêu điểm — bỏ tiêu điểm, không cần control nhận được (an toàn trong khối tắt vẽ)
     }
 
     private (ClayFlow The, int W) The(int rong)
@@ -353,6 +379,7 @@ internal sealed partial class LockForm
         var sai = _ct.ConLan is int n && n > 0;
         the.Controls.Add(ChuGiua(sai ? ManChonTenView.ChuaDung(_ct.ConLan!.Value) : ManChonTenView.PhuPin, 16.5f, sai, sai ? Clay.Loi : UI.Muted, w, 6));
         var cham = new ChamPin { So = _ct.So.Length, Sai = sai && _ct.So.Length == 0, Size = new Size(UI.Px(4 * 26 + 3 * 22), UI.Px(30)) };
+        _cham = cham;
         the.Controls.Add(Giua(cham, w, 18));
         if (_ct.Loi != null) the.Controls.Add(ChuGiua(_ct.Loi, 12f, true, Clay.Canh, w, 8));
         var pad = new TableLayoutPanel { ColumnCount = 3, RowCount = 4, AutoSize = true, BackColor = Color.Transparent, Margin = Padding.Empty };
@@ -365,7 +392,7 @@ internal sealed partial class LockForm
                 Kieu = xoa ? KieuClay.Phang : KieuClay.TuDong, TabStop = false, Enabled = !_ct.DangGui,
                 Size = new Size(UI.Px(104) + VeNut.LeBong.Horizontal, UI.Px(60) + VeNut.LeBong.Vertical), Margin = new Padding(UI.Px(5), UI.Px(3), UI.Px(5), UI.Px(3)) };
             var kk = k;
-            b.Click += (_, _) => { if (xoa) { ManChonTenView.Xoa(_ct); VeChonTen(); } else BamSo(kk[0]); };
+            b.Click += (_, _) => { if (xoa) XoaSo(); else BamSo(kk[0]); };
             pad.Controls.Add(b);
         }
         pad.PerformLayout();

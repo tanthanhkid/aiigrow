@@ -124,6 +124,9 @@ public static class ManChonTenView
         return st.So.Length == toiDa && st.Buoc == BuocChonTen.NhapPin;   // mã Ba Mẹ: bấm «Mở máy cho Ba Mẹ» (hoặc Enter)
     }
 
+    /// <summary>#308: sau một phím số / xoá, thẻ chỉ khác ở số chấm PIN (bước nhập PIN, dòng lỗi không đổi) ⇒ khay chỉ vẽ lại chấm.</summary>
+    public static bool ChiDoiCham(BuocChonTen buoc, string? loiTruoc, string? loiSau) => buoc == BuocChonTen.NhapPin && loiTruoc == loiSau;
+
     public static void Xoa(ManChonTenState st)
     {
         if (st.So.Length > 0) st.So = st.So[..^1];

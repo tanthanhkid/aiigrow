@@ -65,6 +65,8 @@ internal sealed class AppForm : Form
     private string _sig = "";
     // số trên Hôm nay cập nhật tại chỗ (không vẽ lại cả trang mỗi lần dịch vụ báo)
     private Label? _lblApp;
+    /// <summary>Vùng phải (tiêu đề + dòng ngày + thông báo + nội dung) — tắt vẽ cả vùng khi dựng lại (#308).</summary>
+    private readonly Panel _main = new() { Dock = DockStyle.Fill, BackColor = UI.Paper };
     private readonly TextBox _nhan = new() { Font = UI.F(11.5f), MaxLength = AppConView.TraLoiToiDa, ForeColor = UI.Ink, PlaceholderText = "Con tự nhắn Ba Mẹ…" };
 
     /// <summary>15/11: «Xin Ba Mẹ cho vay sao» (false) / «Sao dùng thế nào?» (true) — khay mở hộp XinVayForm.</summary>
@@ -100,7 +102,7 @@ internal sealed class AppForm : Form
         var wa = Screen.PrimaryScreen!.WorkingArea;   // không vượt màn hình nhỏ (laptop 1366×768)
         if (Width > wa.Width || Height > wa.Height) Size = new Size(Math.Min(Width, wa.Width), Math.Min(Height, wa.Height));
 
-        var main = new Panel { Dock = DockStyle.Fill, BackColor = UI.Paper };
+        var main = _main;
         _title.Font = UI.F(22f, FontStyle.Bold);
         _title.Height = Px(62);
         _title.Padding = new Padding(Px(30), 0, 0, Px(2));
@@ -305,7 +307,7 @@ internal sealed class AppForm : Form
             _content.AutoScrollPosition = Point.Empty;
         }
         if (WindowState == FormWindowState.Minimized) WindowState = FormWindowState.Normal;
-        if (noiLen) { TopMost = true; TopMost = false; }
+        if (noiLen && !TopMost) { TopMost = true; TopMost = false; }   // một lần khi khay tự bật / Con mở lại từ menu Start — không có timer nào gọi
         BringToFront();
         Activate();
     }
@@ -383,6 +385,8 @@ internal sealed class AppForm : Form
 
     private void Render()
     {
+        // #308: dựng lại TRONG lúc tắt vẽ — trước đây vùng nội dung trắng xoá rồi hiện lại từng thẻ (video máy Con: chớp mỗi lần số phút / dữ liệu đổi)
+        using var veMotLan = KhongNhay.DungVe(_main);
         _dauDaVe = DauDuLieu();
         _banDo = false;
         ComputeWidths();
@@ -520,8 +524,9 @@ internal sealed class AppForm : Form
     private void CapNhatSo()
     {
         if (_lblApp == null || _lblApp.IsDisposed) return;
-        _lblApp.Text = SaoView.DungTheoApp(_s.DungTheoApp, _s.AppDuocPhep);
-        _lblApp.Visible = _lblApp.Text.Length > 0;
+        var chu = SaoView.DungTheoApp(_s.DungTheoApp, _s.AppDuocPhep);
+        if (_lblApp.Text != chu) _lblApp.Text = chu;
+        if (_lblApp.Visible != chu.Length > 0) _lblApp.Visible = chu.Length > 0;
     }
 
     /// <summary>Đầu thẻ lớn: viên icon · (nhãn nhỏ + số lớn) bên trái, nút bên phải.</summary>

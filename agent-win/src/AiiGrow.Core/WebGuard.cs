@@ -415,8 +415,12 @@ public sealed class WindowsWebPolicyRegistry : IWebPolicyRegistry
     {
         using var hklm = Hklm();
         using var k = TaoKhoa(hklm, khoa);
-        k.SetValue(ten, giaTri, RegistryValueKind.DWord);
+        // #308: giá trị y hệt thì KHÔNG ghi — mỗi lần ghi (kể cả cùng giá trị) Chrome / Edge thấy khoá chính sách đổi và nạp lại toàn bộ chính sách
+        if (CanGhiDword(k.GetValue(ten), giaTri)) k.SetValue(ten, giaTri, RegistryValueKind.DWord);
     }
+
+    /// <summary>Cần ghi DWORD không: chưa có, khác kiểu (REG_SZ / QWORD… — GetValue trả int CHỈ với REG_DWORD) hoặc khác giá trị.</summary>
+    public static bool CanGhiDword(object? hienCo, int giaTri) => !(hienCo is int v && v == giaTri);
 
     public void DatChuoi(string khoa, string ten, string giaTri)
     {

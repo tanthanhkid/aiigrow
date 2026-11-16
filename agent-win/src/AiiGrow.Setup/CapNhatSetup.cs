@@ -234,6 +234,8 @@ internal sealed class CapNhatForm : Form
         _nut.Enabled = false;
         var r = await Task.Run(() => Shell.PowerShell($"Start-Service -Name {Paths.ServiceName}", 60000));
         var tray = Path.Combine(Paths.InstallDir, Paths.TrayExeName);
+        // chỉ xét khay BẢN MỚI (tên đúng «AiiGrow.Tray»): khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-…» vẫn chạy thì vẫn mở bản mới —
+        // bản mới (#308, Program.cs) thấy mutex do khay cũ giữ mà không ai nhận lời gọi ⇒ kết thúc khay cũ cùng phiên rồi tự làm bản chính
         if (File.Exists(tray) && Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Paths.TrayExeName)).Length == 0)
             try { Process.Start(new ProcessStartInfo("explorer.exe", "\"" + tray + "\"") { UseShellExecute = false })?.Dispose(); } catch { }
         _nut.Enabled = true;
