@@ -21,6 +21,12 @@ class Kho(ctx: Context) {
     var phanHoi: String? get() = p.getString("phanHoi", null); set(v) = p.edit().putString("phanHoi", v).apply()
     /** 05/11: phút giải trí đo tại chỗ lúc nhịp thành công gần nhất (-1 = chưa có) + ngày của nhịp (tz gia đình) — QuyetDinh.kt › quyetDinhQuy. */
     var phutLucNhip: Int get() = p.getInt("phutLucNhip", -1); set(v) = p.edit().putInt("phutLucNhip", v).apply()
+    /** 16/11 #302: lúc chạm trần lượt suy tại chỗ, ghim theo nhịp (khoá = ngayNhip|phutLucNhip) ⇒ giờ nghỉ không trôi theo `now`. */
+    private var chamLuotRaw: String? get() = p.getString("chamLuotRaw", null); set(v) = p.edit().putString("chamLuotRaw", v).apply()
+    private fun khoaNhip() = "$ngayNhip|$phutLucNhip"
+    fun mocChamLuot(): java.time.Instant? =
+        chamLuotRaw?.split('#')?.takeIf { it.size == 2 && it[0] == khoaNhip() }?.get(1)?.toLongOrNull()?.let { java.time.Instant.ofEpochMilli(it) }
+    fun ghimChamLuot(t: java.time.Instant) { if (mocChamLuot() == null) chamLuotRaw = khoaNhip() + "#" + t.toEpochMilli() }
     var ngayNhip: String? get() = p.getString("ngayNhip", null); set(v) = p.edit().putString("ngayNhip", v).apply()
     var lechGioMs: Long get() = p.getLong("lechGioMs", 0); set(v) = p.edit().putLong("lechGioMs", v).apply()
     var lanNhipThanhCong: Long get() = p.getLong("lanNhip", 0); set(v) = p.edit().putLong("lanNhip", v).apply()
@@ -121,6 +127,8 @@ data class HienThi(
     val cong: String = "MO", val baMeDen: Long = 0,
     /** 15/11 sổ sao: số dư Con thấy (âm khi nợ; null = máy chủ cũ), nợ Ba Mẹ, chế độ «Mở hết» (không chặn, không tính phút). */
     val soDu: Int? = null, val no: Int = 0, val moHet: Boolean = false,
+    /** 16/11 #302 giới hạn giờ chơi: lý do khoá (`het_gio_ngay` | `dang_nghi`), giờ chơi tiếp «HH:MM», phút còn của ngày. */
+    val lyDoKhoa: String? = null, val nghiDenGio: String? = null, val conNgay: Int? = null,
 ) {
     /** Máy chủ có sổ sao (1 sao = 1 phút) — giao diện nói «sao» thay «phút chơi hôm nay». */
     val coSao: Boolean get() = soDu != null
@@ -132,7 +140,8 @@ data class HienThi(
         .put("dungTop", JSONArray(dungTop.map { JSONObject().put("goi", it.first).put("phut", it.second) }))
         .put("capNhat", capNhat).put("deviceOwner", deviceOwner).put("tenCon", tenCon ?: "")
         .put("goiChuaXep", JSONArray(goiChuaXep.toList())).put("cong", cong).put("baMeDen", baMeDen)
-        .apply { soDu?.let { put("soDu", it) } }.put("no", no).put("moHet", moHet).toString()
+        .apply { soDu?.let { put("soDu", it) } }.put("no", no).put("moHet", moHet)
+        .apply { lyDoKhoa?.let { put("lyDoKhoa", it) }; nghiDenGio?.let { put("nghiDenGio", it) }; conNgay?.let { put("conNgay", it) } }.toString()
 
     companion object {
         fun doc(s: String?): HienThi? = try {
@@ -147,6 +156,7 @@ data class HienThi(
                     (o.optJSONArray("goiChuaXep") ?: JSONArray()).let { a -> (0 until a.length()).map { a.optString(it) }.toSet() },
                     o.optString("cong", "MO").ifBlank { "MO" }, o.optLong("baMeDen"),
                     if (o.has("soDu")) o.optInt("soDu") else null, o.optInt("no"), o.optBoolean("moHet"),
+                    o.optString("lyDoKhoa").ifBlank { null }, o.optString("nghiDenGio").ifBlank { null }, if (o.has("conNgay")) o.optInt("conNgay") else null,
                 )
             }
         } catch (_: Exception) { null }
@@ -155,6 +165,7 @@ data class HienThi(
             qd.trangThai.name, qd.conPhut, qd.cauCon, qd.moLaiLuc?.toEpochMilli() ?: 0, qd.khoaCaMay, demNguoc,
             demNguoc == 0 && vn.aiilab.aiigrow.maycon.logic.laKhoa(qd.trangThai), qd.goiChan, dungTop, now, deviceOwner, tenCon, qd.goiChuaXep,
             soDu = qd.soDu, no = qd.no, moHet = qd.moHet,
+            lyDoKhoa = qd.lyDoKhoa, nghiDenGio = qd.nghiDenGio, conNgay = qd.conNgay,
         )
     }
 }

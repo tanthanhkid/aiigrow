@@ -94,8 +94,11 @@ object GiaoDien {
 
     /** Dòng đếm ngược trên màn khoá. */
     fun dongDemNguoc(ht: HienThi, now: Long = System.currentTimeMillis()): String = when {
-        ht.demNguoc > 0 && ht.coSao && ht.trangThai == TrangThai.HET_GIO.name -> "Hết sao sau ${mmss(ht.demNguoc)}"
+        ht.demNguoc > 0 && ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && ht.lyDoKhoa == null -> "Hết sao sau ${mmss(ht.demNguoc)}"
         ht.demNguoc > 0 -> "Khoá sau ${mmss(ht.demNguoc)}"
+        ht.lyDoKhoa != null && ht.trangThai == TrangThai.HET_GIO.name ->
+            if (ht.lyDoKhoa == "dang_nghi" && ht.nghiDenGio != null) "Chơi tiếp lúc ${ht.nghiDenGio}"
+            else if (ht.moLaiLuc > now) mmssDai(((ht.moLaiLuc - now) / 1000).toInt()) else if (ht.lyDoKhoa == "dang_nghi") "Nghỉ một chút" else "Mai chơi tiếp"
         ht.coSao && ht.trangThai == TrangThai.HET_GIO.name -> vn.aiilab.aiigrow.maycon.logic.soSao(ht.soDu ?: 0)
         ht.moLaiLuc > now -> mmssDai(((ht.moLaiLuc - now) / 1000).toInt())
         else -> "Chờ Ba Mẹ mở"
@@ -336,13 +339,16 @@ object GiaoDien {
             if (xinKq != null && !(duyet && goiChan == xinGoi)) boKetQua()
             val goiMoi = if (duyet) goiChan else null
             // 15/11: hết sao ⇒ Làm nhiệm vụ / Xin Ba Mẹ cho vay sao; app ngoài danh sách ⇒ «Xin Ba Mẹ mở <app>» (#262)
-            val hetSao = ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && !duyet
+            // 16/11 #302: khoá vì giới hạn giờ chơi (nghỉ giữa lượt / đủ giờ hôm nay) ⇒ không nói «hết sao», không đẩy «Làm nhiệm vụ»
+            val vi = if (ht.trangThai == TrangThai.HET_GIO.name && !duyet) vn.aiilab.aiigrow.maycon.logic.tieuDeKhoaGioiHan(ht.lyDoKhoa) else null
+            val hetSao = ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && !duyet && vi == null
+            val xinSao = hetSao || vi != null
             nutXin.text = when {
                 duyet -> "Xin Ba Mẹ mở ${DoPhut.tenApp(c, goiChan!!)}"
-                hetSao -> "Xin Ba Mẹ cho vay sao"
+                xinSao -> "Xin Ba Mẹ cho vay sao"
                 else -> "Xin Ba Mẹ mở máy"
             }
-            if (hetSao != xinPhu) { xinPhu = hetSao; Diu.chon(c, nutXin, !hetSao) }
+            if (xinSao != xinPhu) { xinPhu = xinSao; Diu.chon(c, nutXin, !xinSao) }
             // máy chủ cũ (chưa có sổ sao) và không phải app ngoài danh sách: không còn gì để xin (đã gỡ xin thêm giờ / ngoại lệ) ⇒ ẩn nút; còn «Ba Mẹ mở máy» / mã offline
             nutXin.visibility = if (duyet || ht.coSao) View.VISIBLE else View.GONE
             nutNhiemVu.visibility = if (hetSao) View.VISIBLE else View.GONE
@@ -356,7 +362,7 @@ object GiaoDien {
             } else if (chanApp) {
                 // 15/11 (them-4e5fwl16 / them-n4iivj6d): ngoài danh sách ⇒ «Roblox chưa có trong danh sách»; app Tính phút lúc hết sao ⇒ «Hết sao rồi»
                 val ten = DoPhut.tenApp(c, goiChan!!)
-                tieuDe.text = if (duyet) "$ten chưa có trong danh sách" else if (hetSao) "Hết sao rồi" else "$ten đang tạm dừng"
+                tieuDe.text = if (duyet) "$ten chưa có trong danh sách" else if (vi != null) vi else if (hetSao) "Hết sao rồi" else "$ten đang tạm dừng"
                 dem.text = if (hetSao) vn.aiilab.aiigrow.maycon.logic.soSao(ht.soDu ?: 0) else ten; dem.textSize = 24f
                 moLai.visibility = View.GONE
                 goiY.text = if (duyet) "Theo danh sách của Ba Mẹ" else "1 nhiệm vụ = +10 sao"
@@ -364,14 +370,15 @@ object GiaoDien {
                 if (goiMoi == null || goiMoi != goiDuyet) cau.text = when {
                     duyet -> "Máy chỉ mở app, web Ba Mẹ đã thêm vào danh sách."
                     hetSao -> "Còn 0 sao = 0 phút chơi · $ten dừng, app học vẫn mở."
+                    vi != null -> ht.cauCon
                     else -> ht.cauCon
                 }
             } else {
-                tieuDe.text = tieuDeKhoa(ht.trangThai, ht.coSao)
+                tieuDe.text = vi ?: tieuDeKhoa(ht.trangThai, ht.coSao)
                 cau.text = if (hetSao) "Còn 0 sao = 0 phút chơi · app học vẫn mở" else ht.cauCon
                 val now = System.currentTimeMillis()
-                dem.text = dongDemNguoc(ht, now); dem.textSize = if (ht.demNguoc > 0 || ht.moLaiLuc > now || hetSao) 44f else 24f
-                moLai.text = if (ht.demNguoc == 0 && ht.moLaiLuc > now) "Mở lại lúc ${gio(ht.moLaiLuc)}" else ""
+                dem.text = dongDemNguoc(ht, now); dem.textSize = if (ht.demNguoc > 0 || ht.moLaiLuc > now || hetSao || vi != null) 44f else 24f
+                moLai.text = if (vi != null) "" else if (ht.demNguoc == 0 && ht.moLaiLuc > now) "Mở lại lúc ${gio(ht.moLaiLuc)}" else ""
                 moLai.visibility = if (moLai.text.isEmpty()) View.GONE else View.VISIBLE
                 goiY.text = if (ht.trangThai == TrangThai.GIO_NGU.name) "Ngủ ngon nhé! Mai chơi tiếp." else if (hetSao) "1 nhiệm vụ = +10 sao" else "Đọc sách hoặc ra ngoài chơi nhé!"
                 goiY.visibility = if (ht.demNguoc > 0) View.GONE else View.VISIBLE

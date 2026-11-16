@@ -824,6 +824,99 @@ final class SaoAppWebTests: XCTestCase {
     XCTAssertTrue(LyDoKhien.hetGio.cauChoCon.contains("cho vay sao"))
   }
 
+  // MARK: 16/11 #302 — giới hạn giờ chơi (gioiHan + saoTieuDuoc)
+  func nhipGioiHan(sao: String, gioiHan: String?) throws -> NhipTraVe {
+    let g = gioiHan.map { #""gioiHan":\#($0),"# } ?? ""
+    return try doc(nhipMau(them05: #""quy":{"ngayPhut":60,"themPhut":0,"daDung":10,"conPhut":0},"sao":\#(sao),\#(g)"#))
+  }
+  let saoNghi = #"{"sao":30,"no":0,"phutCon":0,"saoTieuDuoc":30,"hetSao":true,"cau":{"soDu":"30 sao","phut":"x","no":null}}"#
+  let ghNghi = #"{"apDung":true,"ngayPhut":60,"daChoi":30,"conNgay":30,"luotPhut":30,"luotDaChoi":30,"conLuot":0,"dangNghi":true,"nghiDen":"2026-10-26T03:30:00.000Z","nghiDenGio":"10:30","hetNgay":false,"lyDoKhoa":"dang_nghi","phutToiDa":30,"cau":"Nghỉ một chút · chơi tiếp lúc 10:30"}"#
+  let ghHetNgay = #"{"apDung":true,"ngayPhut":60,"daChoi":60,"conNgay":0,"luotPhut":null,"luotDaChoi":0,"conLuot":null,"dangNghi":false,"nghiDen":null,"nghiDenGio":null,"hetNgay":true,"lyDoKhoa":"het_gio_ngay","phutToiDa":null,"cau":"Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé"}"#
+
+  func testGioiHanDangNghiChuVaGiuTrongKeHoach() throws {
+    let n = try nhipGioiHan(sao: saoNghi, gioiHan: ghNghi)
+    XCTAssertEqual(n.chinhSach.sao?.saoTieuDuoc, 30); XCTAssertEqual(n.chinhSach.sao?.saoThat, 30); XCTAssertEqual(n.chinhSach.sao?.phutCon, 0)
+    let kh = LapKeHoach.tu(n, now: vn(26, 10))
+    XCTAssertEqual(kh.gioiHan?.lyDoKhoa, "dang_nghi")
+    let g = try XCTUnwrap(kh.gioiHanKhoa)
+    XCTAssertEqual(g.tieuDe(), "Nghỉ một chút")
+    XCTAssertEqual(g.cauPhu(), "Nghỉ một chút · chơi tiếp lúc 10:30")
+    // khoá thật vẫn là hết_gio (logic khoá không đổi) — chỉ chữ khác
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 10), dung: nil).lyDo, .hetGio)
+    // kế hoạch lưu/đọc lại vẫn còn khối giới hạn (khiên đọc từ app group)
+    let lai = try JSONDecoder().decode(KeHoach.self, from: JSONEncoder().encode(kh))
+    XCTAssertEqual(lai.gioiHan, kh.gioiHan)
+  }
+
+  func testGioiHanHetGioNgayChu() throws {
+    let kh = LapKeHoach.tu(try nhipGioiHan(sao: saoNghi, gioiHan: ghHetNgay), now: vn(26, 10))
+    let g = try XCTUnwrap(kh.gioiHanKhoa)
+    XCTAssertEqual(g.tieuDe(), "Hôm nay chơi đủ rồi")
+    XCTAssertEqual(g.cauPhu(), "Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé")
+    XCTAssertNil(g.conHomNay)
+  }
+
+  func testGioiHanNghiDenGioTinhTuISOKhiThieuGio() {
+    let g = ChinhSach.GioiHan(lyDoKhoa: "dang_nghi", nghiDen: "2026-10-26T03:30:00.000Z")
+    XCTAssertEqual(g.cauPhu(tz: "Asia/Ho_Chi_Minh"), "Nghỉ một chút · chơi tiếp lúc 10:30")
+  }
+
+  func testGioiHanChuaKhoaCoConHomNayVaMoHetBoQua() throws {
+    let ch = #"{"apDung":true,"ngayPhut":60,"daChoi":20,"conNgay":40,"luotPhut":null,"luotDaChoi":0,"conLuot":null,"dangNghi":false,"nghiDen":null,"nghiDenGio":null,"hetNgay":false,"lyDoKhoa":null,"phutToiDa":40,"cau":null}"#
+    let sao = #"{"sao":50,"no":0,"phutCon":40,"saoTieuDuoc":50,"hetSao":false,"cau":{"soDu":"50 sao","phut":"x","no":null}}"#
+    let kh = LapKeHoach.tu(try nhipGioiHan(sao: sao, gioiHan: ch), now: vn(26, 10))
+    XCTAssertEqual(kh.gioiHan?.conHomNay, 40); XCTAssertNil(kh.gioiHanKhoa)
+    XCTAssertEqual(kh.sao?.saoThat, 50, "X sao = sao thật, không phải phút đã kẹp")
+    XCTAssertNil(ChinhSach.GioiHan(apDung: false, lyDoKhoa: "dang_nghi").tieuDe())
+  }
+
+  // MARK: #302b — suy ra giới hạn tại máy giữa hai lần đồng bộ
+  func testHieuLucDangNghiChiKhiConSaoThat() {
+    let now = vn(26, 10)
+    let nghi = ChinhSach.GioiHan(lyDoKhoa: "dang_nghi", nghiDenGio: "10:30")
+    XCTAssertEqual(nghi.hieuLuc(saoThat: 5, daChoiSauDongBo: 0, now: now, tz: nil, moc: nil)?.gh.lyDoKhoa, "dang_nghi")
+    XCTAssertNil(nghi.hieuLuc(saoThat: 0, daChoiSauDongBo: 0, now: now, tz: nil, moc: nil), "hết sao thật ⇒ «Hết sao rồi», không nói nghỉ")
+    let het = ChinhSach.GioiHan(lyDoKhoa: "het_gio_ngay")
+    XCTAssertEqual(het.hieuLuc(saoThat: 0, daChoiSauDongBo: 0, now: now, tz: nil, moc: nil)?.gh.lyDoKhoa, "het_gio_ngay")
+  }
+
+  func testHieuLucSuyRaChamTranLuotThiNghiMocGhimMotLan() throws {
+    let t0 = vn(26, 10)
+    let g = ChinhSach.GioiHan(ngayPhut: 60, conNgay: 40, luotPhut: 30, conLuot: 20)
+    XCTAssertNil(g.hieuLuc(saoThat: 50, daChoiSauDongBo: 10, now: t0, tz: "Asia/Ho_Chi_Minh", moc: nil))
+    let r = try XCTUnwrap(g.hieuLuc(saoThat: 30, daChoiSauDongBo: 20, now: t0, tz: "Asia/Ho_Chi_Minh", moc: nil))
+    XCTAssertEqual(r.gh.lyDoKhoa, "dang_nghi"); XCTAssertEqual(r.moc, t0)
+    XCTAssertEqual(r.gh.nghiDenGio, g.hieuLuc(saoThat: 30, daChoiSauDongBo: 20, now: t0, tz: "Asia/Ho_Chi_Minh", moc: nil)?.gh.nghiDenGio)
+    // vẽ lại 10 phút sau: giờ chơi tiếp KHÔNG đổi (mốc đã ghim), hết nghỉ rồi thì thôi
+    let r2 = try XCTUnwrap(g.hieuLuc(saoThat: 30, daChoiSauDongBo: 20, now: t0.addingTimeInterval(600), tz: "Asia/Ho_Chi_Minh", moc: t0))
+    XCTAssertEqual(r2.gh.nghiDenGio, r.gh.nghiDenGio); XCTAssertEqual(r2.moc, t0)
+    XCTAssertNil(g.hieuLuc(saoThat: 30, daChoiSauDongBo: 20, now: t0.addingTimeInterval(31 * 60), tz: nil, moc: t0))
+    // hết sao thật thì không nghỉ
+    XCTAssertNil(g.hieuLuc(saoThat: 0, daChoiSauDongBo: 20, now: t0, tz: nil, moc: nil))
+  }
+
+  func testHieuLucSuyRaHetTranNgay() throws {
+    let g = ChinhSach.GioiHan(ngayPhut: 60, conNgay: 15, luotPhut: 30, conLuot: 15)
+    let r = try XCTUnwrap(g.hieuLuc(saoThat: 99, daChoiSauDongBo: 15, now: vn(26, 10), tz: nil, moc: nil))
+    XCTAssertEqual(r.gh.lyDoKhoa, "het_gio_ngay"); XCTAssertEqual(r.gh.tieuDe(), "Hôm nay chơi đủ rồi")
+    XCTAssertEqual(r.gh.cauPhu(), "Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé")
+    // cả trần ngày lẫn lượt cùng cạn ⇒ trần ngày thắng; hết sao cũng vẫn «đủ rồi»
+    XCTAssertEqual(g.hieuLuc(saoThat: 0, daChoiSauDongBo: 15, now: vn(26, 10), tz: nil, moc: nil)?.gh.lyDoKhoa, "het_gio_ngay")
+  }
+
+  func testConHomNayTruPhutChoiTaiMayVaLuotNay() {
+    let g = ChinhSach.GioiHan(ngayPhut: 60, conNgay: 40, luotPhut: 30, conLuot: 25)
+    XCTAssertEqual(g.conHomNay(daChoiSauDongBo: 10), 30)
+    XCTAssertEqual(g.conLuotNay(daChoiSauDongBo: 10), 15)
+    XCTAssertEqual(g.conHomNay(daChoiSauDongBo: 99), 0)
+  }
+
+  func testMayChuCuKhongCoGioiHan() throws {
+    let kh = LapKeHoach.tu(try nhip(sao: du), now: vn(26, 10))
+    XCTAssertNil(kh.gioiHan); XCTAssertNil(kh.gioiHanKhoa); XCTAssertNil(kh.sao?.saoTieuDuoc); XCTAssertEqual(kh.sao?.saoThat, 30)
+    XCTAssertEqual(TinhKhien.lucNay(kh, now: vn(26, 10), dung: nil).muc, .khong)
+  }
+
   func testMoHetKhongChanKhongDem() throws {
     let kh = LapKeHoach.tu(try nhip(sao: no, cheDo: "mo_het"), now: vn(26, 10))
     XCTAssertTrue(kh.moHet)

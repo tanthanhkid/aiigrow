@@ -197,7 +197,9 @@ class DichVuNhip : Service() {
         val boiMaPhut = if (cs.sao != null) SoPhutBe.doc(k.soPhutBe).phutBoiMa(beGhiPhut(cong, anhCong.nd?.conId)) else 0
         val phutLucNhip = k.phutLucNhip.takeIf { it >= 0 }?.let { truMoc(it, moc) }
         val qd0 = quyetDinh(cs, now, phutGT, daCai, ph.grantEndsAt, moOff,
-            if (laDo) trinhDuyet else emptySet(), phutLucNhip, k.ngayNhip, boiMaPhut)
+            if (laDo) trinhDuyet else emptySet(), phutLucNhip, k.ngayNhip, boiMaPhut, k.mocChamLuot())
+        // 16/11 #302: ghim lúc chạm trần lượt (suy tại chỗ) MỘT lần cho mỗi nhịp
+        qd0.chamLuotLuc?.let { k.ghimChamLuot(it) }
         // L13: máy chưa ai vào (dùng chung) / máy riêng chưa nhập PIN ⇒ khoá cả máy ở màn chọn tên (không đếm ngược 60 giây)
         val chonTen = cong == Cong.CHON_TEN
         val qd = if (chonTen) qd0.copy(trangThai = TrangThai.KHOA_NGAY, khoaCaMay = true, goiChan = qd0.goiChan + goiAndroid(cs.giaiTri),
@@ -393,7 +395,9 @@ class DichVuNhip : Service() {
                 ht.cong == Cong.BA_ME.name -> "Ba Mẹ đang dùng máy tới ${GiaoDien.gio(ht.baMeDen)} · không trừ giờ của con"
                 ht.cong == Cong.CHON_TEN.name -> "Máy đang khoá — chạm tên của con để vào"
                 ht.moHet -> "Hôm nay Mở hết · không tính phút"
+                ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && ht.lyDoKhoa != null -> ht.cauCon
                 ht.coSao && ht.trangThai == TrangThai.HET_GIO.name -> "Hết sao rồi · app học vẫn mở"
+                ht.coSao && ht.trangThai == TrangThai.BINH_THUONG.name && ht.conNgay != null -> "Còn ${ht.conNgay} phút hôm nay"
                 ht.coSao && ht.trangThai == TrangThai.BINH_THUONG.name -> "Còn ${ht.conPhut} sao = ${ht.conPhut} phút chơi"
                 ht.trangThai == TrangThai.BINH_THUONG.name || ht.trangThai == TrangThai.DUOC_THEM_GIO.name -> "Còn ${ht.conPhut} phút chơi hôm nay"
                 else -> ht.cauCon

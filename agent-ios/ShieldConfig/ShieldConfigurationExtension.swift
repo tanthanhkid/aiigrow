@@ -29,6 +29,9 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
   func cauHinh(ten: String?, web: Bool = false, trongDs: Bool? = nil) -> ShieldConfiguration {
     let k = KhoUserDefaults().doc(KhienMuonCo.self, Khoa.khienDangAp)
     var lyDo = k?.lyDo ?? .ngoaiGio
+    let kh = KhoUserDefaults().doc(KeHoach.self, Khoa.keHoach)
+    let kho = KhoUserDefaults()
+    let gioiHan = kh.flatMap { TinhKhien.gioiHanKhoa($0, now: Date(), dung: kho.doc(NhatKyDung.self, Khoa.nhatKyDung), kho: kho) }
     // Theo danh sách + hết sao: app NGOÀI danh sách bị khiên vì ngoài danh sách, không phải vì hết sao
     if lyDo == .hetGio, k?.danhSach == true, trongDs == false { lyDo = .khong }
     let tieuDe: String, phu: String, nut: String
@@ -36,6 +39,9 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     case .ngu: tieuDe = "Đến giờ ngủ rồi"; phu = "Chúc con ngủ ngon! Mai mình chơi tiếp nhé."; nut = "Mở AiiGrow Con"
     case .khoaNgay: tieuDe = "Ba Mẹ đang khoá máy"; phu = "Đọc sách hoặc ra ngoài chơi nhé!"; nut = "Mở AiiGrow Con"
     // 15/11 (#264): hết sao = hết phút «Tính phút» (cdt-het-phien)
+    // 16/11 (#302): khoá vì giới hạn giờ chơi (đọc KeHoach.gioiHan từ app group) — không nói «Hết sao»
+    case .hetGio where gioiHan != nil:
+      tieuDe = gioiHan?.tieuDe() ?? "Nghỉ một chút"; phu = gioiHan?.cauPhu(tz: kh?.tz) ?? ""; nut = "Xin Ba Mẹ"
     case .hetGio: tieuDe = "Hết sao rồi"; phu = "Còn 0 sao = 0 phút chơi. Con làm nhiệm vụ hoặc xin Ba Mẹ cho vay sao nhé."; nut = "Xin Ba Mẹ cho vay sao"
     case .gioHoc: tieuDe = "Giờ học rồi!"; phu = "Chỉ mở app học. Học xong được chơi tiếp."; nut = "Mở AiiGrow Con"
     case .chuaVao: tieuDe = "Máy đang khoá"; phu = "Mở AiiGrow Con, chạm tên con rồi nhập PIN nhé."; nut = "Mở AiiGrow Con"
@@ -50,7 +56,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     switch lyDo {
     case .ngu: hinh = "fl_trang"
     case .khoaNgay, .chuaVao, .khong: hinh = "fl_khoa"
-    case .hetGio: hinh = "fl_dong_ho_cat"
+    case .hetGio: hinh = gioiHan?.hetGioNgay == true ? "fl_trang" : "fl_dong_ho_cat"
     default: hinh = "fl_dong_ho"
     }
     return ShieldConfiguration(

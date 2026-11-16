@@ -218,11 +218,48 @@ public static class HetSaoView
         return new ManKhoa("nghi", "Hết sao rồi", "App «Tính phút» tạm khoá nhé.", SaoView.VanMo(appKhongTinh), false, "Con còn 0 sao · 1 sao = 1 phút chơi", nut, false);
     }
 
+    /// <summary>16/11 (#302): app «Tính phút» khoá vì GIỚI HẠN (còn sao) — «Nghỉ một chút · chơi tiếp lúc HH:MM» / «Hôm nay chơi đủ rồi».
+    /// Không «Làm nhiệm vụ» (sao không mở được); vẫn «Xin Ba Mẹ cho vay sao» (Ba Mẹ cho vay ⇒ thêm giờ hôm nay, hết nghỉ). null = không phải giới hạn.
+    /// Bàn thiết kế chưa có màn này — dựng theo màn «Hết sao rồi».</summary>
+    public static ManKhoa? ForGioiHan(string? lyDo, string? gio, string? cau, IEnumerable<string>? appKhongTinh, bool doiBe)
+    {
+        if (lyDo is not (GioiHanMay.DangNghi or GioiHanMay.HetGioNgay)) return null;
+        var nut = new List<NutKhoa> { new(XinVay, "Xin Ba Mẹ cho vay sao", "gui"), new(NhanBaMe, "Nhắn Ba Mẹ", "tin") };
+        if (doiBe) nut.Add(new(DoiBe, "Đổi người", "nguoi"));
+        nut.Add(new(BaMeMo, doiBe ? "Ba Mẹ mở máy" : "Ba Mẹ dùng máy", "khoa"));
+        return lyDo == GioiHanMay.DangNghi
+            ? new ManKhoa("nghi", "Nghỉ một chút", CauNghi(gio), SaoView.VanMo(appKhongTinh), false, "Lúc nghỉ không trừ sao", nut, false)
+            : new ManKhoa("nghi", "Hôm nay chơi đủ rồi", string.IsNullOrWhiteSpace(cau) ? "Mai chơi tiếp nhé" : cau!, SaoView.VanMo(appKhongTinh), false, "Ba Mẹ đặt giờ chơi tối đa mỗi ngày", nut, false);
+    }
+
+    /// <summary>«Nghỉ một chút · chơi tiếp lúc 16:30».</summary>
+    public static string CauNghi(string? gio) => $"Nghỉ một chút · chơi tiếp lúc {(string.IsNullOrWhiteSpace(gio) ? "lát nữa" : gio)}";
+
+    /// <summary>16/11 (#302): đếm ngược phút cuối khi giới hạn chặn trước số sao — «Sắp hết giờ chơi» thay «Sắp hết sao rồi».
+    /// <paramref name="luot"/>: lượt chặn trước (sắp nghỉ) / false = giới hạn ngày (hết hôm nay). Giữ «Đổi người» + chip app vẫn mở như màn hết sao.</summary>
+    public static ManKhoa ForSapHetGio(int giayCon, string? appDangChoi, bool luot, IEnumerable<string>? appKhongTinh, bool doiBe)
+    {
+        var app = string.IsNullOrWhiteSpace(appDangChoi) ? "app «Tính phút»" : appDangChoi!;
+        var nut = new List<NutKhoa> { new(XinVay, "Xin Ba Mẹ cho vay sao", "gui") };
+        if (doiBe) nut.Add(new(DoiBe, "Đổi người", "nguoi"));
+        nut.Add(new(BaMeMo, doiBe ? "Ba Mẹ mở máy" : "Ba Mẹ dùng máy", "khoa"));
+        return new ManKhoa("chi", "Sắp hết giờ chơi", $"Lưu bài đang làm nhé. {app} đóng sau", SaoView.VanMo(appKhongTinh), true,
+            luot ? "Hết lượt thì nghỉ một chút nhé" : "Hôm nay chơi đủ giờ rồi · mai chơi tiếp nhé", nut, false);
+    }
+
     // Popup trên desktop (them-zxuekzer)
     public const string PopTieu = "Hết sao rồi";
     public static string PopPhu(string app) => $"Con dùng hết sao · {app} sắp đóng";
     public const string PopSao = "Con còn 0 sao";
     public const string PopDong = "1 sao = 1 phút chơi · làm nhiệm vụ để có sao";
+
+    /// <summary>16/11 (#302): popup khi Con mở app «Tính phút» lúc đang nghỉ / đã chơi đủ hôm nay (còn sao). null = không phải giới hạn.</summary>
+    public static (string Tieu, string Phu, string Dong)? PopGioiHan(string? lyDo, string? gio, string? cau, string app) => lyDo switch
+    {
+        GioiHanMay.DangNghi => ("Nghỉ một chút", $"{app} tạm đóng · chơi tiếp lúc {(string.IsNullOrWhiteSpace(gio) ? "lát nữa" : gio)}", "Lúc nghỉ không trừ sao"),
+        GioiHanMay.HetGioNgay => ("Hôm nay chơi đủ rồi", string.IsNullOrWhiteSpace(cau) ? "Mai chơi tiếp nhé" : cau!, "Ba Mẹ cho thêm thì chơi tiếp được"),
+        _ => null,
+    };
 }
 
 /// <summary>Kết quả lời xin thêm app / web vào danh sách (#258): «Ba Mẹ đã thêm CapCut · Nhóm «Tính phút»» / «Không tính phút · không trừ sao» /

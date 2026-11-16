@@ -25,6 +25,8 @@ public final class KhoBoNho: KhoGiaTri {
 public enum Khoa {
   public static let keHoach = "keHoach"
   public static let nhatKyDung = "nhatKyDung"
+  /// 16/11 (#302): mốc bắt đầu nghỉ suy ra tại máy (ghim một lần cho mỗi kế hoạch).
+  public static let mocNghiTaiMay = "mocNghiTaiMay"
   public static let khienDangAp = "khienDangAp"
   public static let mayChu = "mayChu"
   public static let thongTinMay = "thongTinMay"

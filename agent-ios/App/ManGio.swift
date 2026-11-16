@@ -18,8 +18,15 @@ struct ManXinThem: View {
       DauMan(tieuDe: "Xin Ba Mẹ cho vay sao", lui: { dong() })
       VStack(spacing: 4) {
         ChipSao(so: m.soSao)
-        Text(m.hetSao ? "Hết sao rồi" : "Còn \(m.conPhut) sao").font(Diu.chu(26, .black)).foregroundColor(Diu.chu)
-        Text("\(m.conPhut) sao = \(m.conPhut) phút").font(Diu.t2).foregroundColor(Diu.chu2)
+        if let g = m.khoaGioiHan {
+          Text(g.tieuDe() ?? "").font(Diu.chu(26, .black)).foregroundColor(Diu.chu)
+          Text(g.cauPhu(tz: m.keHoach?.tz) ?? "").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
+        } else {
+          Text(m.hetSao ? "Hết sao rồi" : "Còn \(m.saoHienThi) sao").font(Diu.chu(26, .black)).foregroundColor(Diu.chu)
+          Text("\(m.saoHienThi) sao = \(m.saoHienThi) phút").font(Diu.t2).foregroundColor(Diu.chu2)
+          if let c = m.conHomNay { Text("Còn \(c) phút hôm nay").font(Diu.t2).foregroundColor(Diu.chu2) }
+          if let l = m.conLuotNay { Text("Lượt này còn \(l) phút").font(Diu.t2).foregroundColor(Diu.chu2) }
+        }
         if m.daDung > 0 { Text("Hôm nay chơi \(m.daDung) phút · −\(m.daDung) sao").font(Diu.t2).foregroundColor(Diu.chu3) }
         if m.soNo > 0 { DongNo(no: m.soNo).padding(.top, 4) }
       }
@@ -150,7 +157,7 @@ struct ManConDangXin: View {
                phai: AnyView(NhanNho(chu: daThem ? "✓ Đã thêm" : "Mở lần này", mau: Diu.xanhDam, nen: Diu.xanhNhat))).theDiu(dem: 12)
         if daThem {
           HangDs(icon: tinhPhut ? "ic_dongho" : "ic_sach", t1: tinhPhut ? "Nhóm «Tính phút»" : "Nhóm «Không tính phút»",
-                 t2: tinhPhut ? "1 sao = 1 phút · còn \(m.conPhut) sao = \(m.conPhut) phút chơi" : "Vào thoải mái, không trừ sao").theDiu(dem: 12)
+                 t2: tinhPhut ? "1 sao = 1 phút · còn \(m.saoHienThi) sao = \(m.saoHienThi) phút chơi" + (m.conHomNay.map { " · còn \($0) phút hôm nay" } ?? "") : "Vào thoải mái, không trừ sao").theDiu(dem: 12)
         }
         loiNhanBaMe(yc)
         Button { dong() } label: { Label { Text(tinhPhut && daThem ? "Mở \(ten) · còn \(m.conPhut) phút" : "Mở \(ten)") } icon: { Anh(ten: "ic_game", co: 26) } }.buttonStyle(NutDiu())
@@ -244,7 +251,7 @@ struct ManMaOffline: View {
     VStack(spacing: 14) {
       DauMan(tieuDe: "App đang khoá", lui: { dong() })
       HStack(spacing: 8) {
-        NhanNho(chu: m.khien?.lyDo == .hetGio ? "Hết sao · 0 sao = 0 phút" : (m.khien?.lyDo.cauChoCon.components(separatedBy: ".").first ?? "Đang khoá"), icon: "ic_dongho")
+        NhanNho(chu: m.khien?.lyDo == .hetGio ? (m.khoaGioiHan?.tieuDe() ?? "Hết sao · 0 sao = 0 phút") : (m.khien?.lyDo.cauChoCon.components(separatedBy: ".").first ?? "Đang khoá"), icon: "ic_dongho")
         if m.matMang { NhanNho(chu: "Mất mạng", icon: "ic_wifi") }
         Spacer(minLength: 0)
       }

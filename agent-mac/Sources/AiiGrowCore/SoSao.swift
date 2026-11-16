@@ -14,8 +14,11 @@ public struct SoSao: Codable, Equatable, Sendable {
   public var hetSao: Bool
   /// Nợ > 1.000.
   public var canhBaoNo: Bool
+  /// 16/11 (#302 mục 4): sao tiêu được THẬT (chưa kẹp giới hạn giờ chơi). nil = máy chủ cũ / không có giới hạn ⇒ như `phutCon`.
+  public var saoTieuDuoc: Int?
 
-  public init(sao: Int, no: Int = 0, phutCon: Int? = nil, saoVayChuaTieu: Int = 0, hetSao: Bool? = nil, canhBaoNo: Bool = false) {
+  public init(sao: Int, no: Int = 0, phutCon: Int? = nil, saoVayChuaTieu: Int = 0, hetSao: Bool? = nil, canhBaoNo: Bool = false, saoTieuDuoc: Int? = nil) {
+    self.saoTieuDuoc = saoTieuDuoc.map { max(0, $0) }
     self.sao = sao; self.no = max(0, no)
     let pc = max(0, phutCon ?? max(0, sao))
     self.phutCon = pc; self.saoVayChuaTieu = saoVayChuaTieu
@@ -28,7 +31,106 @@ public struct SoSao: Codable, Equatable, Sendable {
     guard let o = v as? [String: Any], let s = (o["sao"] as? NSNumber)?.doubleValue, s.isFinite else { return nil }
     let so = { (k: String) in (o[k] as? NSNumber).map { Int($0.doubleValue.rounded(.down)) } }
     return SoSao(sao: Int(s.rounded(.down)), no: so("no") ?? 0, phutCon: so("phutCon"), saoVayChuaTieu: so("saoVayChuaTieu") ?? 0,
-                 hetSao: o["hetSao"] as? Bool, canhBaoNo: (o["canhBaoNo"] as? Bool) ?? false)
+                 hetSao: o["hetSao"] as? Bool, canhBaoNo: (o["canhBaoNo"] as? Bool) ?? false, saoTieuDuoc: so("saoTieuDuoc"))
+  }
+}
+
+/// Giới hạn giờ chơi 16/11 (#302 mục 4, docs/API.md «Giới hạn giờ chơi 16/11»): tối đa mỗi ngày + mỗi lượt N phút rồi nghỉ N phút.
+/// Máy chủ gửi `gioiHan {…}` ở gốc dong-bo và `gioiHan` ở tong-quan. Máy chủ cũ không gửi ⇒ nil, máy chạy y như trước.
+/// Cờ khoá (`sao.phutCon` / `sao.hetSao`) máy chủ đã kẹp sẵn — khối này chỉ để hiện đúng chữ.
+public struct GioiHan: Codable, Equatable, Sendable {
+  public static let hetNgay = "het_gio_ngay"
+  public static let dangNghiMa = "dang_nghi"
+
+  public var apDung: Bool
+  public var ngayPhut: Int?
+  public var daChoi: Int
+  public var conNgay: Int?
+  public var luotPhut: Int?
+  public var luotDaChoi: Int
+  public var conLuot: Int?
+  public var dangNghi: Bool
+  public var nghiDen: Date?
+  /// «HH:MM» múi giờ nhà.
+  public var nghiDenGio: String?
+  public var hetNgay: Bool
+  /// `het_gio_ngay` | `dang_nghi` | nil (chưa khoá vì giới hạn).
+  public var lyDoKhoa: String?
+  public var phutToiDa: Int?
+  /// Câu máy chủ soạn sẵn («Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé»).
+  public var cau: String?
+
+  public init(apDung: Bool = true, ngayPhut: Int? = nil, daChoi: Int = 0, conNgay: Int? = nil, luotPhut: Int? = nil, luotDaChoi: Int = 0, conLuot: Int? = nil,
+              dangNghi: Bool = false, nghiDen: Date? = nil, nghiDenGio: String? = nil, hetNgay: Bool = false, lyDoKhoa: String? = nil, phutToiDa: Int? = nil, cau: String? = nil) {
+    self.apDung = apDung; self.ngayPhut = ngayPhut; self.daChoi = daChoi; self.conNgay = conNgay; self.luotPhut = luotPhut; self.luotDaChoi = luotDaChoi
+    self.conLuot = conLuot; self.dangNghi = dangNghi; self.nghiDen = nghiDen; self.nghiDenGio = nghiDenGio; self.hetNgay = hetNgay
+    self.lyDoKhoa = lyDoKhoa; self.phutToiDa = phutToiDa; self.cau = cau
+  }
+
+  /// Đọc khoan dung. Không phải object ⇒ nil (máy chủ cũ / null = máy chung chưa chọn Con).
+  public static func doc(_ v: Any?) -> GioiHan? {
+    guard let o = v as? [String: Any] else { return nil }
+    let so = { (k: String) in (o[k] as? NSNumber).flatMap { n -> Int? in let d = n.doubleValue; return d.isFinite ? Int(d.rounded(.down)) : nil } }
+    let ch = { (k: String) in (o[k] as? String).flatMap { $0.isEmpty ? nil : $0 } }
+    return GioiHan(apDung: (o["apDung"] as? Bool) ?? false, ngayPhut: so("ngayPhut"), daChoi: so("daChoi") ?? 0, conNgay: so("conNgay"), luotPhut: so("luotPhut"),
+                   luotDaChoi: so("luotDaChoi") ?? 0, conLuot: so("conLuot"), dangNghi: (o["dangNghi"] as? Bool) ?? false,
+                   nghiDen: NgayGio.doc(ch("nghiDen")), nghiDenGio: ch("nghiDenGio"), hetNgay: (o["hetNgay"] as? Bool) ?? false,
+                   lyDoKhoa: ch("lyDoKhoa"), phutToiDa: so("phutToiDa"), cau: ch("cau"))
+  }
+
+  /// Chữ màn khoá khi khoá VÌ giới hạn (không phải vì hết sao). nil = không phải trường hợp giới hạn ⇒ giữ chữ cũ.
+  /// - `dang_nghi` + còn sao thật ⇒ «Nghỉ một chút» · «Nghỉ một chút · chơi tiếp lúc HH:MM» (sao không mất khi nghỉ).
+  /// - `het_gio_ngay` ⇒ «Hôm nay chơi đủ rồi» · câu máy chủ.
+  /// `saoThat` = sao tiêu được thật; nil = không biết ⇒ coi như còn sao (máy chủ chỉ gửi `dang_nghi` khi còn sao thật; hết sao thì `hetSao` thắng).
+  public struct Chu: Equatable, Sendable {
+    public var tieuDe: String
+    public var phu: String
+  }
+  public func chuKhoa(saoThat: Int?, bayGio: Date = Date()) -> Chu? {
+    guard apDung else { return nil }
+    switch lyDoKhoa {
+    case GioiHan.dangNghiMa:
+      guard (saoThat ?? 1) > 0 else { return nil }
+      if let d = nghiDen, d <= bayGio { return nil }          // nghỉ xong rồi ⇒ bỏ chữ cũ, chờ đồng bộ
+      return Chu(tieuDe: "Nghỉ một chút", phu: "Nghỉ một chút" + (nghiDenGio.map { " · chơi tiếp lúc \($0)" } ?? ""))
+    case GioiHan.hetNgay:
+      return Chu(tieuDe: "Hôm nay chơi đủ rồi", phu: cau ?? (ngayPhut.map { "Hôm nay đã chơi đủ \($0) phút — mai chơi tiếp nhé" } ?? "Hôm nay chơi đủ rồi — mai chơi tiếp nhé"))
+    default: return nil
+    }
+  }
+  /// Suy tại chỗ giữa hai lần đồng bộ (lyDoKhoa nil): lấy `goc` trừ phút đã chơi tại chỗ.
+  /// Phút chơi được về 0 + còn sao thật + giới hạn lượt là cái chặn (conLuot ≤ conNgay) ⇒ `dang_nghi`, nghỉ tới `ghim` (= lúc chạm + luotPhut, ghim một lần, không tính lại mỗi nhịp);
+  /// ngược lại ⇒ `het_gio_ngay`. Máy chủ đã quyết (lyDoKhoa ≠ nil) ⇒ giữ, chỉ bỏ `dang_nghi` đã quá `nghiDen`.
+  public static func hieuLuc(_ goc: GioiHan?, daChoiTaiCho: Int, saoThat: Int?, bayGio: Date, ghim: inout Date?, mui: TimeZone = .current) -> GioiHan? {
+    guard var g = goc, g.apDung else { return goc }
+    if g.lyDoKhoa != nil {
+      if g.lyDoKhoa == dangNghiMa, let d = g.nghiDen, d <= bayGio { g.lyDoKhoa = nil; g.dangNghi = false; g.nghiDen = nil; g.nghiDenGio = nil }
+      return g
+    }
+    if let d = ghim, d <= bayGio { ghim = nil; return g }     // nghỉ xong ⇒ về số liệu gốc tới lần đồng bộ sau
+    let da = max(0, daChoiTaiCho)
+    let ngay = g.conNgay.map { $0 - da }, luot = g.conLuot.map { $0 - da }
+    let choiDuoc = [ngay, luot].compactMap { $0 }.min()
+    guard let choiDuoc else { return g }
+    g.conNgay = ngay.map { max(0, $0) }; g.conLuot = luot.map { max(0, $0) }
+    if choiDuoc > 0 { return g }
+    let conSao = (saoThat ?? 1) > 0
+    if conSao, let l = luot, let lp = g.luotPhut, lp > 0, l <= (ngay ?? Int.max) {
+      let den = ghim ?? bayGio.addingTimeInterval(Double(lp) * 60)
+      ghim = den
+      let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = mui; f.dateFormat = "HH:mm"
+      g.lyDoKhoa = dangNghiMa; g.dangNghi = true; g.nghiDen = den; g.nghiDenGio = f.string(from: den); g.hetNgay = false
+    } else {
+      ghim = nil
+      g.lyDoKhoa = hetNgay; g.hetNgay = true; g.dangNghi = false
+      g.cau = g.ngayPhut.map { "Hôm nay đã chơi đủ \($0) phút — mai chơi tiếp nhé" } ?? g.cau
+    }
+    return g
+  }
+  /// «Còn 25 phút hôm nay» (chỉ khi có giới hạn ngày).
+  public var dongConNgay: String? {
+    guard apDung, let c = conNgay, lyDoKhoa == nil else { return nil }
+    return "Còn \(ChuSao.so(max(0, c))) phút hôm nay"
   }
 }
 

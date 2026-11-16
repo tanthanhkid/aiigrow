@@ -323,11 +323,12 @@ struct AppConView: View {
       }
     } else {
       let phut = t.phutSao ?? s?.phutCon ?? 0
-      let het = t.cheDo != .khoa && (s?.hetSao == true || phut <= 0 || sao < 0)
+      let gh = (phut <= 0 && t.cheDo != .khoa) ? ManMac.chuGioiHan(t) : nil      // khoá vì giới hạn giờ chơi: sao còn nguyên
+      let het = t.cheDo != .khoa && gh == nil && (s?.hetSao == true || phut <= 0 || sao < 0)
       TheCon {
         HStack(alignment: .top, spacing: 14) {
           VStack(alignment: .leading, spacing: 4) {
-            Chu(het ? "Hết sao rồi" : "Sao của con · cũng là phút chơi", co: 15, mau: het ? ClayMau.canh : ClayMau.chu3, dong: 1)
+            Chu(het ? "Hết sao rồi" : gh?.tieuDe ?? "Sao của con · cũng là phút chơi", co: 15, mau: het ? ClayMau.canh : ClayMau.chu3, dong: 1)
             if sao < 0 { VienSao(sao: sao, co: 30) }
             else {
               Text(ChuSao.vien(sao)).font(.system(size: 50, weight: .bold, design: .rounded)).monospacedDigit().foregroundColor(ClayMau.diemInk).lineLimit(1)
@@ -337,7 +338,7 @@ struct AppConView: View {
           NutIcon(chu: "Xin Ba Mẹ cho vay sao", icon: "star", kieu: het ? .ngoc : .sang, rong: 230, lam: moXin)
         }
         if let n = ChuSao.no(s?.no ?? 0) { Chu(n, co: 14, dam: .bold, mau: ClayMau.canh, dong: 2) }
-        Chu(t.cheDo == .khoa ? "Đang khoá" : ChuSao.phut(phut) + (het ? dongKhongTinh(t).map { " · \($0) vẫn mở (không tính phút)" } ?? "" : ""),
+        Chu(t.cheDo == .khoa ? "Đang khoá" : gh?.phu ?? (ManMac.saoThat(t).map { $0 == phut ? ChuSao.phut(phut) : "còn \(ChuSao.so($0)) sao · chơi được \(ChuSao.so(phut)) phút" } ?? ChuSao.phut(phut)) + (het ? dongKhongTinh(t).map { " · \($0) vẫn mở (không tính phút)" } ?? "" : ""),
             co: 15, dam: .bold, mau: ClayMau.ngocInk, dong: 2)
         if !het, let da = app.sao?.phutChoiHomNay ?? app.tq?.quy?.daDung, da > 0 { Chu("Hôm nay đã chơi \(da) phút · đã trả \(ChuSao.so(da)) sao", co: 14, dam: .semibold, dong: 1) }
         if let ah = app.sao?.appHomNay, !ah.isEmpty {                // máy chủ: phút gộp mọi máy của Con

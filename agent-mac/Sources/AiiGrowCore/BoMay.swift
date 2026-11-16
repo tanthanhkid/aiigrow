@@ -1483,6 +1483,9 @@ public actor BoMay {
     chanCuoi = (khoa, ten, lyDo, donDieu())
   }
 
+  /// Giờ nghỉ đã ghim (suy tại chỗ giữa hai lần đồng bộ) — theo bản `gioiHan` gốc, đổi bản (đồng bộ mới) thì bỏ.
+  private var nghiGhim: (nguon: GioiHan?, den: Date)?
+
   private func trangThai(p: Policy?, hl: PolicyHieuLuc?, laCon: Bool, phutDung: Double?, demNguoc: Int? = nil) -> TrangThai {
     var che = CheDo(rawValue: p?.mode ?? CheDo.tuDo.rawValue) ?? .tuDo
     // chế độ hiển thị theo Policy HIỆU LỰC (mở tạm bằng mã offline gỡ khoá / «chỉ app học») — tray và thực thi không lệch nhau
@@ -1502,8 +1505,16 @@ public actor BoMay {
         tt.phutSao = SaoPhut.conPhut(p, giay: cauHinh.quyGiayTuSync)
         if var s = p.soSao ?? p.saoCon.map({ SoSao(sao: $0) }) {
           s.sao = SaoPhut.soDu(p, giay: cauHinh.quyGiayTuSync) ?? s.sao
-          if let c = tt.phutSao { s.phutCon = c; s.hetSao = c <= 0 }
+          if let c = tt.phutSao {
+            if let st = s.saoTieuDuoc { s.saoTieuDuoc = max(0, st - max(0, s.phutCon - c)) }   // sao thật cũng giảm theo phút đã chơi tại chỗ
+            s.phutCon = c; s.hetSao = c <= 0
+          }
           tt.soSao = s
+          let daChoiTc = max(0, (p.soSao ?? p.saoCon.map({ SoSao(sao: $0) }))?.phutCon ?? 0) - (tt.phutSao ?? 0)
+          if p.gioiHan != nghiGhim?.nguon { nghiGhim = nil }
+          var ghim = nghiGhim?.den
+          tt.gioiHan = GioiHan.hieuLuc(p.gioiHan, daChoiTaiCho: tt.phutSao == nil ? 0 : daChoiTc, saoThat: s.saoTieuDuoc ?? tt.phutSao, bayGio: dongHo(), ghim: &ghim)
+          nghiGhim = ghim.map { (nguon: p.gioiHan, den: $0) }
         }
         tt.dsTinhPhut = Array(SaoPhut.dsTinhPhut(policy ?? p)).sorted()      // Policy gốc: hết sao thì bản hiệu lực đã rút appTinhGio
         tt.dsKhongTinhPhut = p.learningApps

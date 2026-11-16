@@ -22,6 +22,7 @@ internal sealed class BlockedForm : Form
     private readonly IReadOnlyList<string> _appDuocPhep;
     private readonly IReadOnlyList<string> _appTinhPhut;
     private readonly double? _phutCon;
+    private readonly (string Tieu, string Phu, string Dong)? _gioiHan;   // #302: khoá vì giới hạn (còn sao) thay «Hết sao rồi»
     private RequestStatus? _kq;
     private readonly bool _tuGui;
     private readonly FlowLayoutPanel _flow;
@@ -49,8 +50,9 @@ internal sealed class BlockedForm : Form
     /// <param name="daXin">Lời xin cho app này đã gửi trong phiên khay ⇒ không tự gửi lại.</param>
     /// <param name="appTinhPhut">Mục «Tính phút» (tô vàng trong danh sách của con); <paramref name="appDuocPhep"/> = «Không tính phút» (tô xanh).</param>
     public BlockedForm(string? appId, string? appName, bool boiBaMe, bool offline, IReadOnlyList<string>? appDuocPhep = null, bool web = false, bool daXin = false,
-        IReadOnlyList<string>? appTinhPhut = null, double? phutCon = null, bool hetSao = false)
+        IReadOnlyList<string>? appTinhPhut = null, double? phutCon = null, bool hetSao = false, (string Tieu, string Phu, string Dong)? gioiHan = null)
     {
+        _gioiHan = gioiHan;
         _appTinhPhut = appTinhPhut ?? Array.Empty<string>();
         _phutCon = phutCon;
         AiiGrow.ClayUi.Clay.KhongMnemonic(this);
@@ -93,6 +95,10 @@ internal sealed class BlockedForm : Form
 
     /// <summary>15/11 (them-zxuekzer): app «Tính phút» bị đóng vì hết sao ⇒ «Hết sao rồi · Con dùng hết sao · Roblox sắp đóng».</summary>
     public static BlockedForm HetSao(string appId, string? appName) => new(appId, appName, boiBaMe: true, offline: false, hetSao: true);
+
+    /// <summary>16/11 (#302): app «Tính phút» bị đóng vì đang nghỉ giữa hai lượt / đã chơi đủ hôm nay (còn sao) ⇒ «Nghỉ một chút · chơi tiếp lúc HH:MM».</summary>
+    public static BlockedForm GioiHan(string appId, string? appName, (string Tieu, string Phu, string Dong) chu)
+        => new(appId, appName, boiBaMe: true, offline: false, hetSao: true, gioiHan: chu);
 
     /// <summary>Hộp kết quả cho lời xin đã gửi từ chỗ khác («Xin mở trang hoặc app»): đang chờ / web cấm / đã lưu chờ mạng.</summary>
     public static BlockedForm SauKhiGui(string muc, string? ten, bool web, PipeResponse r)
@@ -150,6 +156,17 @@ internal sealed class BlockedForm : Form
                 }
                 ThemNutVeHomNay(chinh: false);
                 break;
+
+            case Buoc.HetSao when _gioiHan is { } gh:
+            {
+                _flow.Controls.Add(KhoiCon.Dau("sao", KhoiCon.Mau.Vang, gh.Tieu, gh.Phu, _w));
+                _flow.Controls.Add(UI.Text(gh.Dong, 10f, false, UI.Muted, _w));
+                var vay = KhoiCon.Nut(SaoView.NutXinVay, true, _w, "gui");
+                vay.Click += (_, _) => { DongHan(); XinVay?.Invoke(); };
+                _flow.Controls.Add(vay);
+                CancelButton = vay;
+                break;
+            }
 
             case Buoc.HetSao:
             {
