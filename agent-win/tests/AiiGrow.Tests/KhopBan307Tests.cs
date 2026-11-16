@@ -50,6 +50,16 @@ public class KhopBan307Tests
     }
 
     [Fact]
+    public void MenuKhay_SaoThat_PhutRieng()
+    {
+        var kn = KetNoiView.Chon(true, new TrayState { Paired = true, LastSyncAt = DateTimeOffset.Now });
+        Assert.StartsWith("● ", KetNoiView.DongMenu(kn, null));
+        if (kn.Loai != KetNoi.DaKetNoi) return;
+        Assert.EndsWith(" · còn 18 sao = 18 phút", KetNoiView.DongMenu(kn, new TrayState { Sao = 18, QuyConPhut = 18.6 }));
+        Assert.EndsWith(" · −15 sao · còn 0 phút", KetNoiView.DongMenu(kn, new TrayState { Sao = -15, QuyConPhut = 0 }));
+    }
+
+    [Fact]
     public void KhoaLuc_GiuMocCu_BoKhiMo()
     {
         var t0 = new DateTimeOffset(2026, 11, 16, 19, 30, 0, TimeSpan.FromHours(7));

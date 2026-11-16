@@ -341,6 +341,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         the.Controls.Add(_code);
         var winL = UI.Text(ManKhoaView.WinL, 12f, false, UI.Muted, w); winL.Margin = new Padding(0, UI.Px(12), 0, 0);
         the.Controls.Add(winL);
+        _chan.Text = ManKhoaView.ChanMatMang;   // Bàn cmt-khoa-mat-mang: «AiiGrow · máy này do Ba Mẹ quản lý»
         hang.Controls.Add(the);
         return hang;
     }

@@ -347,7 +347,8 @@ public sealed class PipeServer : BackgroundService
                 // Mã mở offline: máy tự kiểm (TOTP), có giới hạn lượt sai, mỗi mã một lượt, có hạn giờ, ghi sự kiện. Không cần mạng.
                 var (ok, cau) = _rt.TryMaOffline(req.Code ?? req.Note, now);
                 _log.LogInformation("Mã mở offline: {kq}", ok ? "mở" : cau);
-                return new PipeResponse { Ok = ok, Message = cau, Error = ok ? null : cau, State = _rt.BuildState(now) };
+                // Status «sai» chỉ khi mã sai thật (chờ thử lại / mã đã dùng / chưa có bí mật giữ câu riêng)
+                return new PipeResponse { Ok = ok, Message = cau, Error = ok ? null : cau, Status = _rt.KetQuaMaCuoi == KetQuaMoOffline.Sai ? "sai" : null, State = _rt.BuildState(now) };
             }
 
             // 06/11 (L13): máy dùng chung — chỉ khay đã cài, ở phiên Con / phiên trước màn hình (màn khoá chọn tên nằm trong phiên Con)

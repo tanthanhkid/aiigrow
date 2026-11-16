@@ -80,10 +80,10 @@ internal static class ChupMain
     {
         await Mot("app-hom-nay", () => ManApp("app-hom-nay", MucApp.HomNay, TrangThai(), true));
         await Mot("app-hom-nay-mat-mang", () => ManApp("app-hom-nay-mat-mang", MucApp.HomNay,
-            TrangThai(s => { s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddMinutes(-25); }), true));
+            TrangThai(s => { s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddMinutes(-25); s.BaiChoMang = 1; }), true));
         await Mot("app-hom-nay-dich-vu-tat", () => ManApp("app-hom-nay-dich-vu-tat", MucApp.HomNay, TrangThai(), true, kn: KetNoiView.Chon(false, null)));
         await Mot("app-hom-nay-mo-bang-ma", () => ManApp("app-hom-nay-mo-bang-ma", MucApp.HomNay,
-            TrangThai(s => { s.MinutesLeft = null; s.MoOfflineDen = DateTimeOffset.Now.AddMinutes(55); s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddHours(-2); }), true));
+            TrangThai(s => { s.MinutesLeft = null; s.MoOfflineDen = DateTimeOffset.Now.AddMinutes(30); s.MoOfflineTu = DateTimeOffset.Now; s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddHours(-2); s.BaiChoMang = 1; }), true));
         // 15/11 (bàn thiết kế them-er4nxw6z / them-upgropiw): Hôm nay đang nợ Ba Mẹ (hết sao) · chế độ «Mở hết»
         await Mot("app-hom-nay-dang-no", () => ManApp("app-hom-nay-dang-no", MucApp.HomNay, TrangThai(s => { s.Sao = -15; s.No = 15; s.QuyConPhut = 0; }), true));
         await Mot("app-hom-nay-mo-het", () => ManApp("app-hom-nay-mo-het", MucApp.HomNay, TrangThai(s => { s.MoHet = true; s.QuyConPhut = null; s.Sao = 18; }), true));
@@ -125,6 +125,15 @@ internal static class ChupMain
             // cùng tín hiệu với khay: bé đăng nhập thật trên máy dùng chung
             dangDung: TrayView.DangDungMayChung(TrangThai(s => { s.BeId = "c1"; s.MayRieng = false; }))));
         await Mot("het-sao-mat-mang", () => ManHetSao("het-sao-mat-mang", ManKhoaView.For(null, "Bảo Anh", offline: true, hetSao: true), null));
+        // #307 con-mat-mang: mã sai (them-y4zv21p3) · đã lưu lời xin vay từ màn khoá (them-dsrf5ift) · từ app (them-a86wn24i)
+        await Mot("het-sao-mat-mang-ma-sai", () => ManHetSao("het-sao-mat-mang-ma-sai", ManKhoaView.For(null, "Bảo Anh", offline: true, hetSao: true), null, sau: f =>
+        {
+            var o = (OfflineCodePanel)Lay(f, "_code")!;
+            ((TextBox)Lay(o, "_box")!).Text = "123456";
+            o.DatSai();
+        }));
+        await Mot("khoa-mat-mang-da-luu", () => ManHop("khoa-mat-mang-da-luu", () => HopDaLuu.Hop(XinVayView.DaLuu, XinVayView.Nut(15), 1, ManKhoaView.VeManKhoa)));
+        await Mot("xin-vay-da-luu", () => ManHop("xin-vay-da-luu", () => HopXinVay(false, f => { DatTruong(f, "_soDaXin", 15); Goi(f, "VeDaLuu", 1); })));
         await Mot("nhac-5-sao", () => ManHop("nhac-5-sao", () => new NhacSaoForm(5, "Roblox")));
         await Mot("hoi-aiigrow", () => ManHop("hoi-aiigrow", () => new HoiAiiGrowForm()));
         await Mot("cap-nhat-khay-co-ban-moi", () => ManHop("cap-nhat-khay-co-ban-moi", () => { var f = new CapNhatKhayForm(kiemNgay: false); DatXong(f, "VeCoBanMoi", "0.2.10"); return f; }));
@@ -436,7 +445,7 @@ internal static class ChupMain
     }
 
     /// <summary>Màn «Sắp hết sao» / «Hết sao» (LockForm chỉ báo — không khoá máy) với nội dung dựng sẵn.</summary>
-    private static async Task ManHetSao(string ten, ManKhoa m, int? giay, string tenCon = "Bảo Anh", bool dangDung = false)
+    private static async Task ManHetSao(string ten, ManKhoa m, int? giay, string tenCon = "Bảo Anh", bool dangDung = false, Action<LockForm>? sau = null)
     {
         var f = new LockForm(chiBao: true);
         f.WindowState = FormWindowState.Normal;
@@ -445,6 +454,7 @@ internal static class ChupMain
         {
             f.Show();
             f.ApHetSao(m, tenCon, giay, DateTimeOffset.Now.AddMinutes(-20), dangDung: dangDung);
+            sau?.Invoke(f);
             await Cho(1500);
             Chup(f, ten);
         }
@@ -456,7 +466,8 @@ internal static class ChupMain
         var ctx = new TrayContext();
         ((System.Windows.Forms.Timer)Lay(ctx, "_timer")!).Stop();
         ((System.Windows.Forms.Timer)Lay(ctx, "_hvTimer")!).Stop();
-        ((ToolStripMenuItem)Lay(ctx, "_statusItem")!).Text = KetNoiView.Chon(true, TrangThai()).Dong;
+        ((ToolStripMenuItem)Lay(ctx, "_statusItem")!).Text = KetNoiView.DongMenu(KetNoiView.Chon(true, TrangThai()), TrangThai());
+        ((ToolStripMenuItem)Lay(ctx, "_thoatItem")!).Visible = true;   // #307 them-g4d1cfk1 có «Thoát AiiGrow…» (khay thật hiện khi có trạng thái dịch vụ)
         var ni = (NotifyIcon)Lay(ctx, "_ni")!;
         var menu = ni.ContextMenuStrip!;
         var wa = Screen.PrimaryScreen!.WorkingArea;

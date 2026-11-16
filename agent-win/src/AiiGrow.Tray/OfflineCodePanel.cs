@@ -12,6 +12,9 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
     private readonly TextBox _box;
     private readonly Button _go;
     private readonly Label _msg;
+    private readonly string _chuNut;
+    private const string ThuLai = "Thử lại mã mới";
+    private FlowLayoutPanel? _nhapLai;
     private bool _busy;
 
     /// <summary>Mã Con đang gõ dở — màn khoá dựng lại thẻ thì giữ nguyên.</summary>
@@ -23,7 +26,8 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
     /// <param name="nhan">Câu mời (thiết kế 05/11: «Ba Mẹ ở cạnh con?» / «Ba Mẹ ở cạnh? Nhờ đọc mã 6 số»).</param>
     /// <param name="phu">Dòng phụ dưới câu mời (màn khoá: «Nhờ Ba Mẹ đọc mã 6 số trong app AiiGrow.»).</param>
     /// <param name="nut">Chữ nút (màn khoá: «Mở máy bằng mã của Ba Mẹ»; màn chặn: «Mở app»). Nút rộng hết ô, dưới ô nhập.</param>
-    public OfflineCodePanel(int width, Color? textColor = null, Color? mutedColor = null, string? nhan = null, string? phu = null, string? nut = null, float ptNut = 11.5f)
+    /// <param name="ngang">#307 them-wt782i6x: ô nhập và nút «Mở app» nằm cạnh nhau (hộp chặn lúc mất mạng).</param>
+    public OfflineCodePanel(int width, Color? textColor = null, Color? mutedColor = null, string? nhan = null, string? phu = null, string? nut = null, float ptNut = 11.5f, bool ngang = false)
     {
         FlowDirection = FlowDirection.TopDown; WrapContents = false; AutoSize = true;
         BackColor = Color.Transparent;   // nằm trên thẻ Clay của màn khoá / màn chặn
@@ -37,15 +41,32 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
         _box = new TextBox { MaxLength = 6, Font = UI.F(16f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, PlaceholderText = "• • • • • •", ForeColor = UI.Ink };
         _box.KeyPress += (_, e) => { if (!char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar)) e.Handled = true; };
         _box.KeyDown += async (_, e) => { if (e.KeyCode == Keys.Enter) { e.SuppressKeyPress = true; await SendAsync(); } };
-        var o = ONhapClay.Boc(_box, width - VeThe.LeBong.Horizontal);
-        Controls.Add(o);
-        _go = UI.Btn(nut ?? "Mở", true, width);
+        // #307 (cmt-khoa-mat-mang, them-wt782i6x): nút mở bằng mã là nút PHỤ (trắng) như Bàn; nút chính của màn là «Xin Ba Mẹ …»
+        _chuNut = nut ?? "Mở";
+        // ngang: nút rộng theo chữ dài nhất nó có thể mang («Thử lại mã mới») + icon
+        var rongNgang = Math.Max(TextRenderer.MeasureText(_chuNut, UI.F(ptNut, FontStyle.Bold)).Width, TextRenderer.MeasureText(ThuLai, UI.F(ptNut, FontStyle.Bold)).Width)
+            + UI.Px(72) + VeNut.LeBong.Horizontal;
+        _go = UI.Btn(_chuNut, false, ngang ? Math.Min(rongNgang, width / 2) : width);
         _go.Image = Anh3D.Icon("mo_khoa");
         _go.Font = UI.F(ptNut, FontStyle.Bold);
         _go.Height = UI.Px(48) + VeNut.LeBong.Vertical;
         _go.Margin = new Padding(0, UI.Px(4), 0, 0);
         _go.Click += async (_, _) => await SendAsync();
-        Controls.Add(_go);
+        if (ngang)
+        {
+            var hang = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BackColor = Color.Transparent, Margin = Padding.Empty };
+            var o = ONhapClay.Boc(_box, width - _go.Width - UI.Px(10) - VeThe.LeBong.Horizontal);
+            o.Margin = new Padding(0, 0, UI.Px(10), 0);
+            hang.Controls.Add(o);
+            _go.Margin = new Padding(0, UI.Px(2), 0, 0);
+            hang.Controls.Add(_go);
+            Controls.Add(hang);
+        }
+        else
+        {
+            Controls.Add(ONhapClay.Boc(_box, width - VeThe.LeBong.Horizontal));
+            Controls.Add(_go);
+        }
 
         _msg = UI.Text("", 10.5f, false, mutedColor ?? UI.Muted, width);
         Controls.Add(_msg);
@@ -68,6 +89,27 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
             t.Tick += (_, _) => { t.Stop(); t.Dispose(); Unlocked?.Invoke(); };
             t.Start();
         }
-        else { _box.SelectAll(); _box.Focus(); }
+        else if (res.Status == "sai") DatSai();
+        else { _msg.ForeColor = UI.Error; _box.SelectAll(); _box.Focus(); }   // chờ thử lại / mã đã dùng / chưa có bí mật / lỗi dịch vụ: giữ câu thật
+    }
+
+    /// <summary>them-y4zv21p3: mã sai ⇒ «Mã chưa đúng. Nhờ Ba Mẹ đọc lại nhé.» · nút «Thử lại mã mới» · «‹ Nhập lại» (xoá ô).</summary>
+    internal void DatSai()
+    {
+        _msg.ForeColor = UI.Error;
+        _msg.Text = ManKhoaView.MaSai;
+        _box.ForeColor = UI.Error;   // Bàn them-y4zv21p3: số đỏ, câu báo NẰM TRÊN nút
+        if (_go.Parent == this && Controls.GetChildIndex(_msg) > Controls.GetChildIndex(_go)) Controls.SetChildIndex(_msg, Controls.GetChildIndex(_go));
+        _go.Text = ThuLai;
+        if (_nhapLai == null)
+        {
+            _nhapLai = KhoiCon.LienKet("‹ Nhập lại", null, () =>
+            {
+                _box.Text = ""; _msg.Text = ""; _go.Text = _chuNut; _box.ForeColor = UI.Ink; _box.Focus();
+                if (_nhapLai != null) { Controls.Remove(_nhapLai); _nhapLai.Dispose(); _nhapLai = null; }
+            });
+            Controls.Add(_nhapLai);
+        }
+        _box.Focus(); _box.SelectionStart = _box.TextLength;
     }
 }

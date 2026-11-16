@@ -22,6 +22,7 @@ internal sealed class XinVayForm : HopKhayCoBan
     private readonly bool _tuHetSao;
     private string? _pendingId;
     private int _soDaXin;
+    private DateTimeOffset? _luuLuc;   // lúc lưu lời xin (mất mạng)
     private bool _busy;
     /// <summary>Con đã bấm / gõ gì trên hộp ⇒ lượt tải số sao về muộn chỉ cập nhật dữ liệu, KHÔNG vẽ lại màn (không kéo Con về màn đầu, không mất tiêu điểm).</summary>
     private bool _daThaoTac;
@@ -164,7 +165,8 @@ internal sealed class XinVayForm : HopKhayCoBan
     {
         Xoa();
         Text = "AiiGrow";
-        HopDaLuu.Ve(Flow, W, XinVayView.DaLuu, XinVayView.Nut(_soDaXin), n, Close, XinVayView.VeHomNay);
+        _luuLuc ??= DateTimeOffset.Now;
+        HopDaLuu.Ve(Flow, W, XinVayView.DaLuu, XinVayView.Nut(_soDaXin), n, Close, XinVayView.VeHomNay, luc: _luuLuc);
         Xong();
     }
 
