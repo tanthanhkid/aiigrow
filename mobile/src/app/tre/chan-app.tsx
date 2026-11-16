@@ -1,8 +1,7 @@
 // «<App> chưa có trong danh sách» bản «Dịu» (con-dt-gio 08 them-4e5fwl16, App & web 15/11 #262): «Máy chỉ mở app Ba Mẹ đã thêm vào danh sách.»,
 // nhãn «Theo danh sách của Ba Mẹ», «Xin Ba Mẹ mở <App>» một chạm (POST /api/kid/xin-duyet {muc, ten?, lyDo?} = xin thêm vào danh sách), «Về trang
-// chính». Mục trong lưới an toàn (web người lớn / cờ bạc) ⇒ «luôn bị chặn».
+// chính». Máy chủ cũ còn trả `web_cam` ⇒ coi như «Ba Mẹ chưa thêm … lúc này» (không còn màn cấm cứng).
 // Agent / link sâu mở: /tre/chan-app?muc=<định danh>&ten=<tên đẹp>.
-import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { LoiApi } from "@/lib/api";
@@ -17,24 +16,16 @@ export default function ChanApp() {
   const { ten } = useTre();
   const muc = (p.muc ?? "").trim();
   const tenApp = muc ? tenMuc(muc, p.ten) : p.ten || "App này";
-  const [cam, setCam] = useState(false);
-  const { dangChay, loi, lam } = useLam();
+  const { dangChay, loi, lam, setLoi } = useLam();
   const xin = () => lam(async () => {
     try {
       const r = await guiXinMo({ loai: "cai_app", muc: muc || tenApp, ten: tenApp });
       router.replace(`/tre/yeu-cau?moi=${r.id}`);
     } catch (e) {
-      if (e instanceof LoiApi && e.ma === "web_cam") { setCam(true); return; }
+      if (e instanceof LoiApi && e.ma === "web_cam") { setLoi(`Ba Mẹ chưa thêm ${tenApp} lúc này. Con xin lại sau được nhé`); return; }
       throw e;
     }
   }, { hangDoi: true });
-  if (cam) {
-    return (
-      <ManD giua day={<NutD chu="Về trang chính" bam={() => router.replace("/tre/nha")} />}>
-        <CamXuc lv="trong-loi" co={140} tieu={`${tenApp} luôn bị chặn`} phu={"AiiGrow luôn chặn trang này.\nKhông xin mở được."} />
-      </ManD>
-    );
-  }
   return (
     <ManD giua day={<><LoiD loi={loi} /><NutD chu={`Xin Ba Mẹ mở ${tenApp}`} ic="tin" bam={xin} dangChay={dangChay} />
       <NutD chu="Về trang chính" loai="chu" bam={() => router.replace("/tre/nha")} />

@@ -1,7 +1,7 @@
 // «<Con> đã dùng gì» hôm nay (thiết kế chốt 15/11 — bm-bao-cao-ngay/03 them-c95l1cwc, #264 sao = phút): mở từ Báo cáo «Dùng nhiều nhất · Xem hết ›».
 //  · 2 ô: «Tính phút 42′ = 42 sao · Còn −20 sao (nợ 20)» (→ Ví sao) · «Không tính phút 50′ · Không trừ sao» (→ App & web)
 //  · «Đã dùng N»: từng app / trang hôm nay — giờ bắt đầu, máy, «● Đang mở» / «● Mất mạng», mục Tính phút «−39 sao» / Không tính «Không tính 10′»
-//  · «Con xin hôm nay N»: con đang xin (Trả lời ›) · Grow chặn · Chưa cho (ngoài danh sách)
+//  · «Con xin hôm nay N»: con đang xin (Trả lời ›) · Chưa cho (ngoài danh sách)
 // Số liệu: GET con/:id/hom-nay (server/lib/hom-nay-dung.ts) + con/:id/vi-sao (số dư / nợ). Chỉ tên app / tên miền + thời lượng — không nội dung.
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -85,8 +85,7 @@ export default function DaDung() {
           <TieuMuc chu="Con xin hôm nay" so={d.biChan.length} />
           <The style={{ paddingVertical: 4 }}>
             {d.biChan.map((x, k) => {
-              const phu = x.ly === "dang_xin" ? "Chưa có trong danh sách" : x.ly === "grow_chan" ? `${tenNgan(x.may) || "Máy của con"} · luôn chặn`
-                : `${tenNgan(x.may) || "Máy của con"} · ngoài danh sách`;
+              const phu = x.ly === "dang_xin" ? "Chưa có trong danh sách" : `${tenNgan(x.may) || "Máy của con"} · ngoài danh sách`;
               const ic: TenIcon = x.ly === "grow_chan" ? "khien" : x.ly === "chua_cho" ? "khoa" : "web";
               return (
                 <Pressable key={`${x.ly}:${x.ten}:${k}`} disabled={x.ly !== "dang_xin" || !x.yeuCau} accessibilityRole="button"
@@ -99,7 +98,7 @@ export default function DaDung() {
                     <Chu co={13} mau={M.chu3} dong={1}>{phu}</Chu>
                   </View>
                   {x.ly === "dang_xin" ? <Chu kieu="rat" co={14} mau={M.chinhInk}>Trả lời ›</Chu>
-                    : <Nhan chu={x.ly === "grow_chan" ? "Grow chặn" : "Chưa cho"} loai="xam" />}
+                    : <Nhan chu={"Chưa cho"} loai="xam" />}
                 </Pressable>
               );
             })}

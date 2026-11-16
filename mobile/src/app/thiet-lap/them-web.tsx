@@ -30,7 +30,7 @@ export default function ThemWeb() {
   const ghi = (moi: WebChon[]) => { setWebs(moi); datTl({ webs: moi }); };
   const tinhCua = (m: string) => !!webs.find((w) => w.muc === m)?.tinhGio;
   const dang = [...webs].reverse().find((w) => ds.some((x) => x.muc === w.muc))?.muc ?? null;     // trang đã thêm gần nhất trong kết quả ⇒ hỏi nhóm
-  // bỏ: ngay. Thêm: tối đa 60 trang; trang Ba Mẹ dán (ngoài danh mục) hỏi máy chủ trước — trang luôn chặn / địa chỉ sai báo ngay ở đây,
+  // bỏ: ngay. Thêm: tối đa 60 trang; trang Ba Mẹ dán (ngoài danh mục) hỏi máy chủ trước — địa chỉ sai báo ngay ở đây,
   // không để cả lượt lưu Lần đầu (màn Web) hỏng vì một trang
   const doi = (x: (typeof ds)[number]) => {
     setLoi(null);

@@ -1,4 +1,4 @@
-// «Xin cài phần mềm» bản «Dịu» (con-dt-cai 02 cdt-cai, L4): app mới / tệp cài lạ ⇒ «Chặn app & web · Minecraft cần Ba Mẹ cho phép»,
+// «Xin cài phần mềm» bản «Dịu» (con-dt-cai 02 cdt-cai, L4): app mới / tệp cài lạ ⇒ «Minecraft chưa có trong danh sách»,
 // «Con muốn cài để làm gì?» (chip «Học xây nhà» / «Chơi với bạn» + tự viết — không bắt buộc), «Nếu Ba Mẹ thêm vào danh sách: app Tính phút 1 sao = 1 phút · con đang có N sao» (15/11),
 // «Gửi Ba Mẹ xin cài Minecraft» / «Thôi, để sau». Agent mở `/tre/cai?tep=MinecraftInstaller.exe` hoặc `?ten=Minecraft`.
 import { useState } from "react";

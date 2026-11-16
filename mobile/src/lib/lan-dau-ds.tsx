@@ -168,7 +168,7 @@ export function BongGrow({ tieu, phu, lv = "chi" }: { tieu: string; phu?: string
 
 /** Bỏ dấu, chữ thường — so chữ Ba Mẹ gõ với tên app / tên miền. */
 export const boDau = (t: string) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").trim();
-/** «https://www.KhanAcademy.org/math?x» ⇒ «khanacademy.org»; không giống tên miền / là IP ⇒ null. Trang luôn chặn do máy chủ kiểm (thiet-lap/kiem-web). */
+/** «https://www.KhanAcademy.org/math?x» ⇒ «khanacademy.org»; không giống tên miền / là IP ⇒ null. Địa chỉ sai do máy chủ kiểm (thiet-lap/kiem-web). */
 export const WEB_TOI_DA = 60;
 export const tenMien = (t: string) => {
   const s = t.trim().toLowerCase().replace(/^[a-z]+:\/\//, "").replace(/^www\./, "").split(/[/?#\s]/)[0];

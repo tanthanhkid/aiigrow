@@ -1,4 +1,4 @@
-// «Hôm nay» — Trang chủ Ba Mẹ (thiết kế chốt 14/11: bm-hang-ngay/14 «Trang chủ gọn: để ý + đang chặn», 02 «máy đang khoá», 04 «máy con mất mạng»,
+// «Hôm nay» — Trang chủ Ba Mẹ (thiết kế chốt 14/11: bm-hang-ngay/14 «Trang chủ gọn: để ý + App & web», 02 «máy đang khoá», 04 «máy con mất mạng»,
 // 13/03 nhà nhiều con — luật N8 docs/KE-HOACH-KHOP-THIET-KE-1411.md: Trang chủ KHÔNG lặp tab):
 //  1. Thẻ con: đang làm gì (chip → máy) · SỐ SAO (15/11 #263–#266, lib/so-sao: «⭐ 30 sao» · «còn 10 sao = 10 phút chơi» + «Đang nợ Ba Mẹ 20 sao» ·
 //     «⭐ −20 sao» + «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước ›» → Ví sao) · «Khoá máy» / «Cho vay sao» (bảng them-6wjhze1d / them-y1r1eidm).
@@ -20,7 +20,7 @@ import { bm, type AppChuaXep, type CanhBao, type GiaDinh, type PhienDang, type T
 import { ChuongTb } from "@/lib/chuong-tb";
 import { moLaiMay } from "@/lib/khoa-may";
 import {
-  BangKhoaMay, quyenToi, soAppDuocMo, gioGon, HangViec, hinhNv, IC_MAY, SaoVien, TieuMuc,
+  BangKhoaMay, quyenToi, soAppDuocMo, HangViec, hinhNv, IC_MAY, SaoVien, TieuMuc,
   type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon,
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
@@ -102,7 +102,7 @@ function DaiConTrangChu({ d, chon, doi }: { d: DuLieu & { quyen?: string }; chon
   const ic = Object.fromEntries(d.g.con.map((x) => {
     const q = quy[x.id];
     const dangChoi = d.choi.some((p) => p.con === x.id);
-    const i: TenIcon | null = q?.khoa ? "khoa" : dangChoi ? "game" : q?.dangHoc ? "sach" : q?.dangNgu || !x.phutChoi ? "trang_ngu" : null;
+    const i: TenIcon | null = q?.khoa ? "khoa" : dangChoi ? "game" : !x.phutChoi ? "trang_ngu" : null;
     return [x.id, i];
   }));
   return (
@@ -172,8 +172,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   // ---- 1. thẻ con
   const mayKhoa = may.filter((m) => !m.dungChung || m.truc).map((m) => m.ten.replace(/ của .*$/, ""));
   const chipChu = khoa ? `${mayKhoa.length ? mayKhoa.join(", ") : "Máy"} đã khoá` : choi ? `${choi.tenApp}${choi.may ? ` · ${choi.may.replace(/ của .*$/, "")}` : ""}`
-    : q?.dangHoc ? "Đang giờ học" : dangMo ? `${dangMo.ten.replace(/ của .*$/, "")} đang mở` : may.length ? "Máy đang tắt" : "Chưa ghép máy";
-  const chipIc: TenIcon = khoa ? "khoa" : choi ? "game" : q?.dangHoc ? "sach" : dangMo ? IC_MAY[dangMo.nen] : "laptop";
+    : dangMo ? `${dangMo.ten.replace(/ của .*$/, "")} đang mở` : may.length ? "Máy đang tắt" : "Chưa ghép máy";
+  const chipIc: TenIcon = khoa ? "khoa" : choi ? "game" : dangMo ? IC_MAY[dangMo.nen] : "laptop";
   const mayDang = choi?.may ? may.find((m) => m.ten === choi.may) ?? dangMo : dangMo;
   const khoaDen = ct.d?.khoaDen ?? null;
   // bảng Khoá máy: máy đang chạy app gì (thiết kế 05 «Laptop ● Roblox · từ 19:02»)
@@ -182,20 +182,19 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
     const p = d.choi.find((x) => x.con === conId && x.may === m.ten);
     if (p) dangTheoMay[m.id] = { chu: `● ${p.tenApp}`, mo: true };
   }
-  // máy khoá / giờ ngủ: tiêu đề giờ mở lại; còn lại: SỐ SAO (bm2-trang-chu 15/11)
-  const tieuNho = khoa ? null : q?.dangNgu ? `${c.ten} đang giờ ngủ` : null;
-  const tieuLon = khoa ? (khoaDen ? `Mở lại lúc ${gioPhut(khoaDen)}` : "Khoá tới khi Ba Mẹ mở") : q?.dangNgu ? `Mở lại lúc ${gioGon(q.gioNgu.den)}` : null;
+  // máy khoá: tiêu đề giờ mở lại; còn lại: SỐ SAO (bm2-trang-chu 15/11)
+  const tieuLon = khoa ? (khoaDen ? `Mở lại lúc ${gioPhut(khoaDen)}` : "Khoá tới khi Ba Mẹ mở") : null;
   const kieu = kieuSao(s);
   const veVi = () => router.push(`/vi/${conId}` as never);
-  // dòng dưới số: khoá / giờ ngủ ⇒ «… · còn N sao = N phút ›»; chưa nợ ⇒ «= N phút chơi ›» / hết sao; đang nợ ⇒ SoSaoLon tự vẽ dòng nợ
-  const phuSao = khoa || q?.dangNgu ? `${khoa ? "Đang khoá" : chuVien(s)} · còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút ›`
+  // dòng dưới số: khoá ⇒ «… · còn N sao = N phút ›»; chưa nợ ⇒ «= N phút chơi ›» / hết sao; đang nợ ⇒ SoSaoLon tự vẽ dòng nợ
+  const phuSao = khoa ? `${khoa ? "Đang khoá" : chuVien(s)} · còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút ›`
     : kieu !== "thuong" ? null : s.phutCon > 0 ? `= ${soVN(s.phutCon)} phút chơi ›` : "Hết sao · con xin Ba Mẹ cho vay khi cần ›";
 
   return (
     <>
       {/* 1. thẻ con */}
       <The style={{ backgroundColor: M.chinhSoft, minHeight: 236, overflow: "visible" }}>
-        <View style={{ position: "absolute", right: ROB_PHAI, top: ROB_TREN }} pointerEvents="none"><Rob ten={khoa ? "nghi" : q?.dangNgu ? "ngu" : "chi"} co={ROB_CO} /></View>
+        <View style={{ position: "absolute", right: ROB_PHAI, top: ROB_TREN }} pointerEvents="none"><Rob ten={khoa ? "nghi" : "chi"} co={ROB_CO} /></View>
         <Pressable onPress={() => router.push((mayDang ? `/may/${mayDang.id}` : `/may?con=${conId}`) as never)} accessibilityRole="button"
           style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, minHeight: CHIP_CAO, paddingLeft: 8, paddingRight: 12, borderRadius: 19, backgroundColor: M.the, maxWidth: "72%" }}>
           {choi && !khoa ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: M.chinh }} /> : null}
@@ -205,7 +204,6 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         {/* khối tiêu đề cao tối thiểu tới đáy Grow (khổ 320 câu dài không đè Grow «nghi» — cổng DE-ANH). Số sao (viên 26/800, .so .am) không đè Grow:
             chừa CHUA_ROB bên phải; «còn N sao = N phút chơi» dài thì xuống dòng */}
         <View style={{ marginTop: 16, marginRight: CHUA_ROB, minHeight: ROB_TREN + ROB_CO - TIEU_TU - 36 }}>
-          {tieuNho ? <Chu kieu="dam" co={14} mau={M.chu2}>{tieuNho}</Chu> : null}
           {tieuLon ? <Chu kieu="den" co={26} so style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} />}
         </View>
         {phuSao ? (
@@ -247,7 +245,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         )}
       </The>
 
-      {/* 3. app & web của con (15/11 #262: Mở hết / Theo danh sách — bỏ giờ học, giờ ngủ, «web người lớn») */}
+      {/* 3. app & web của con (15/11 #262: Mở hết / Theo danh sách — bỏ giờ học, giờ ngủ) */}
       <TieuMuc chu={`App & web của ${c.ten}`} />
       <The>
         <HangViec dau ic={moHet ? "mo_khoa" : "khien"} mau="lam" tieu={moHet ? "Mở hết" : "Theo danh sách"}
@@ -255,7 +253,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>Đổi ›</Chu>} bam={() => router.push(`/app-web?con=${conId}` as never)} />
         {q ? (
           <View style={{ flexDirection: "row", gap: 6, marginTop: 6 }}>
-            <MocGio ic="sao" tieu="Tính phút" phu={khoa ? "đang khoá" : `còn ${soVN(s.phutCon)} sao`} nay={!q.dangHoc && !q.dangNgu} bam={veVi} />
+            <MocGio ic="sao" tieu="Tính phút" phu={khoa ? "đang khoá" : `còn ${soVN(s.phutCon)} sao`} nay bam={veVi} />
           </View>
         ) : null}
       </The>

@@ -1,11 +1,11 @@
 // Việc chờ Ba Mẹ duyệt ngay tại chỗ (Trang chủ, bố cục 02 «Việc chờ lên đầu» — Thanh 24/10). Cùng API với tab Chờ duyệt và màn chi tiết, gửi
 // NGAY (useLam, như màn chi tiết — không gửi trễ để khỏi mất khi tắt app):
-//  • nhiệm vụ: Duyệt = `luot/:id/duyet` điểm mặc định (như «Duyệt cả» ở Chờ duyệt), Hoàn tác = `luot/:id/hoan-tac` (useHoanTac; máy chủ cho 30 giây);
+//  • nhiệm vụ: Duyệt = `luot/:id/duyet` sao mặc định (như «Duyệt cả» ở Chờ duyệt), Hoàn tác = `luot/:id/hoan-tac` (useHoanTac; máy chủ cho 30 giây);
 //    ảnh nghi trùng ⇒ «Xem ảnh» mở màn duyệt, không duyệt mù. Từ chối = chọn lý do (như màn duyệt) rồi gửi `luot/:id/tu-choi`.
 //  • lời xin vay sao (15/11 — vay_sao và loại cũ them_gio / ngoai_le / ngoai_gio): Duyệt = `yeu-cau/:id/dong-y {soSao}` đúng số sao Con xin ⇒ toast
 //    «Đã cho <Con> vay N sao» + Hoàn tác (vay/:id/hoan-tac); đang nợ > 1.000 (xemTruoc.mucCanhBao «manh») ⇒ mở màn yêu cầu để Ba Mẹ thấy dải nhắc TRƯỚC.
 //    Web / app / khác ⇒ «Xếp loại» mở màn yêu cầu.
-//  • phiếu quà: Xác nhận / Đã trao như Chờ duyệt; Huỷ hoàn điểm hỏi lại (không hoàn tác được).
+//  • phiếu quà: Xác nhận / Đã trao như Chờ duyệt; Huỷ hoàn sao hỏi lại (không hoàn tác được).
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View, type GestureResponderEvent } from "react-native";
@@ -21,16 +21,16 @@ export const IC_QUA: Record<string, readonly ["coc" | "qua" | "ban" | "xu", "cam
 export const LY_DO_NV = [
   { chu: "Ảnh chưa rõ — chụp lại nhé", phu: "Con thấy nút «Chụp lại», nhiệm vụ vẫn mở", boSung: true },
   { chu: "Chưa xong — làm tiếp nhé", phu: "Nộp lại sau khi làm xong", boSung: true },
-  { chu: "Không đúng nhiệm vụ", phu: "Đóng nhiệm vụ này, không cộng điểm", boSung: false },
+  { chu: "Không đúng nhiệm vụ", phu: "Đóng nhiệm vụ này, không cộng sao", boSung: false },
 ];
 /** Lý do chưa cho một yêu cầu — MỘT danh sách cho màn yêu cầu và Trang chủ. */
-export const LY_DO_YC = ["Hôm nay chơi đủ rồi", "Làm nhiệm vụ để có thêm điểm nhé", "Trang này chưa phù hợp với con"];
+export const LY_DO_YC = ["Hôm nay chơi đủ rồi", "Làm nhiệm vụ để có thêm sao nhé", "Trang này chưa phù hợp với con"];
 /** Yêu cầu duyệt được bằng một chạm (chỉ cần số phút); loại khác cần chọn trên màn yêu cầu. */
 export const ycMotCham = (y: Pick<YeuCau, "loai">) => laXinVay(y);
 
 export type ViecCho = { k: "nv"; x: LuotCho } | { k: "yc"; x: YeuCau } | { k: "qua"; x: Phieu };
 type Bao = (chu: string, hoan?: () => void) => void;
-/** Duyệt nhiệm vụ xong: số điểm + chỗ ngón tay (toạ độ cửa sổ) — Trang chủ bắn confetti và cho «+N» bay vào ví. */
+/** Duyệt nhiệm vụ xong: số sao + chỗ ngón tay (toạ độ cửa sổ) — Trang chủ bắn confetti và cho «+N» bay vào ví. */
 export type AnMung = (diem: number, tu: { x: number; y: number }) => void;
 
 /** Câu nói rõ AI xin GÌ (TestFlight build 6: thẻ chỉ có Duyệt / Từ chối, không biết duyệt cái gì). */
@@ -40,8 +40,8 @@ const tieuNgan = (v: ViecCho) => (v.k === "yc" ? tieuYc(v.x) : v.x.ten);
 // tên lấy từ CHÍNH việc đó (ten_con), `ten` của thẻ chỉ dự phòng — thẻ dùng cho danh sách nhiều Con vẫn không gán nhầm Con.
 // «khac»: tieuYc trả nguyên giá trị Con gõ (tên app, tên miền — có thể là tên riêng) ⇒ không hạ chữ đầu.
 const tieu = (v: ViecCho, tenThe: string) => { const ten = v.x.ten_con || tenThe; return v.k === "yc" ? (v.x.loai === "khac" ? `${ten}: ${tieuYc(v.x)}` : `${ten} ${viet(tieuYc(v.x))}`) : v.k === "nv" ? `${ten} nộp nhiệm vụ «${v.x.ten}»` : `${ten} đổi quà «${v.x.ten}»`; };
-const phu = (v: ViecCho) => v.k === "nv" ? `+${v.x.diem} điểm · nộp ${gioPhut(v.x.nop_luc)}${v.x.nghi_trung ? " · ảnh giống lần trước" : ""}`
-  : v.k === "yc" ? `“${v.x.ly_do}” · ${gioPhut(v.x.created_at)}` : `Đổi ${v.x.diem} điểm · ${gioPhut(v.x.created_at)}`;
+const phu = (v: ViecCho) => v.k === "nv" ? `+${v.x.diem} sao · nộp ${gioPhut(v.x.nop_luc)}${v.x.nghi_trung ? " · ảnh giống lần trước" : ""}`
+  : v.k === "yc" ? `“${v.x.ly_do}” · ${gioPhut(v.x.created_at)}` : `Đổi ${v.x.diem} sao · ${gioPhut(v.x.created_at)}`;
 const moChiTiet = (v: ViecCho) => router.push(v.k === "nv" ? `/duyet/${v.x.id}` : v.k === "yc" ? `/yeu-cau/${v.x.id}` : "/cho-duyet");
 
 /** Thẻ «N việc chờ Ba Mẹ» với nút Duyệt / Từ chối từng việc. `ds` đã lọc theo Con đang xem; `xem` (Chỉ xem) ⇒ ẩn nút, chạm dòng để xem. */
@@ -77,7 +77,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
         await bm.goi(`luot/${x.id}/duyet`, {});
         if (tu) anMung?.(x.diem, tu);
         daXong(x.id);
-        bao(`Đã duyệt «${x.ten}» · +${x.diem} điểm cho ${ten}`, () => {
+        bao(`Đã duyệt «${x.ten}» · +${x.diem} sao cho ${ten}`, () => {
           setXong((a) => a.filter((i) => i !== x.id));
           setVuaHoan(x.id);
           bm.goi(`luot/${x.id}/hoan-tac`, {}).then(tai, (e) => { bao(`Chưa hoàn tác được: ${cauLoi(e)}`); tai(); });
@@ -177,7 +177,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
             <View style={{ gap: 8 }}>
               {LY_DO_NV.map((x, i) => <OChon key={x.chu} chon={lyDo === i} bam={() => setLyDo(i)} tieu={x.chu} phu={x.phu} />)}
             </View>
-            <Chu co={13} mau={M.chu3}>{`${ten} không bị trừ điểm. Grow nói với ${ten} bằng giọng vui.`}</Chu>
+            <Chu co={13} mau={M.chu3}>{`${ten} không bị trừ sao. Grow nói với ${ten} bằng giọng vui.`}</Chu>
           </>
         ) : (
           <>
@@ -193,11 +193,11 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
 
       {huyQua ? (
         <BangTruot mo dong={() => setHuyQua(null)} tieu={`Huỷ «${huyQua.ten}»?`}>
-          <Chu>{`${ten} được hoàn ${huyQua.diem} điểm. Không hoàn tác được.`}</Chu>
+          <Chu>{`${ten} được hoàn ${huyQua.diem} sao. Không hoàn tác được.`}</Chu>
           <BaoLoi loi={hlHuy.loi} />
-          <Nut chu="Huỷ phiếu, hoàn điểm" loai="huy" rong dangChay={hlHuy.dangChay} bam={async () => {
+          <Nut chu="Huỷ phiếu, hoàn sao" loai="huy" rong dangChay={hlHuy.dangChay} bam={async () => {
             const x = huyQua;
-            if (await hlHuy.lam(async () => { await bm.goi(`phieu/${x.id}/huy`, {}); bao(`Đã huỷ «${x.ten}», hoàn ${x.diem} điểm cho ${ten}`); tai(); })) setHuyQua(null);
+            if (await hlHuy.lam(async () => { await bm.goi(`phieu/${x.id}/huy`, {}); bao(`Đã huỷ «${x.ten}», hoàn ${x.diem} sao cho ${ten}`); tai(); })) setHuyQua(null);
           }} />
           <View style={{ marginTop: 8 }}><Nut chu="Giữ lại" loai="ma" rong bam={() => setHuyQua(null)} /></View>
         </BangTruot>
