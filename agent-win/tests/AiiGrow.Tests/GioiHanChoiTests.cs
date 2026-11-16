@@ -37,7 +37,11 @@ public class GioiHanChoiTests
         Assert.Equal("Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé", het.Phu);
         Assert.Contains(het.Nut, n => n.Ma == HetSaoView.DoiBe);
         Assert.Null(HetSaoView.ForGioiHan(null, null, null, null, false));
-        Assert.Equal("Sắp hết giờ chơi", HetSaoView.ForSapHetGio(45, "Roblox").Tieu);
+        var sapLuot = HetSaoView.ForSapHetGio(45, "Roblox", luot: true, new[] { "tudien.exe" }, doiBe: true);
+        Assert.Equal("Sắp hết giờ chơi", sapLuot.Tieu);
+        Assert.Equal("Hết lượt thì nghỉ một chút nhé", sapLuot.SaoDong);
+        Assert.Contains(sapLuot.Nut, n => n.Ma == HetSaoView.DoiBe);
+        Assert.Equal("Hôm nay chơi đủ giờ rồi · mai chơi tiếp nhé", HetSaoView.ForSapHetGio(45, "Roblox", luot: false, null, doiBe: false).SaoDong);
         Assert.Equal(("Nghỉ một chút", "Roblox tạm đóng · chơi tiếp lúc 16:00", "Lúc nghỉ không trừ sao"), HetSaoView.PopGioiHan(GioiHanMay.DangNghi, "16:00", null, "Roblox")!.Value);
         Assert.Null(HetSaoView.PopGioiHan(null, null, null, "Roblox"));
     }
@@ -45,7 +49,7 @@ public class GioiHanChoiTests
     [Fact]
     public void DoanKhiHet_LuotChanTruoc_NghiDungPhutLuot_NgayChanTruoc_HetHomNay()
     {
-        var luc = new DateTime(2026, 11, 16, 15, 30, 0);
+        var luc = new DateTimeOffset(new DateTime(2026, 11, 16, 15, 30, 0, DateTimeKind.Local));
         var luot = new GioiHanMay { ApDung = true, NgayPhut = 120, ConNgay = 90, LuotPhut = 30, ConLuot = 0 };
         Assert.Equal((GioiHanMay.DangNghi, "16:00", (string?)null), luot.DoanKhiHet(luc)!.Value);
         var ngay = new GioiHanMay { ApDung = true, NgayPhut = 60, ConNgay = 0, LuotPhut = 30, ConLuot = 10 };

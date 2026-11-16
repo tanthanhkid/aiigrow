@@ -235,12 +235,16 @@ public static class HetSaoView
     /// <summary>«Nghỉ một chút · chơi tiếp lúc 16:30».</summary>
     public static string CauNghi(string? gio) => $"Nghỉ một chút · chơi tiếp lúc {(string.IsNullOrWhiteSpace(gio) ? "lát nữa" : gio)}";
 
-    /// <summary>16/11 (#302): đếm ngược phút cuối khi giới hạn chặn trước số sao — «Sắp hết giờ chơi» thay «Sắp hết sao rồi».</summary>
-    public static ManKhoa ForSapHetGio(int giayCon, string? appDangChoi)
+    /// <summary>16/11 (#302): đếm ngược phút cuối khi giới hạn chặn trước số sao — «Sắp hết giờ chơi» thay «Sắp hết sao rồi».
+    /// <paramref name="luot"/>: lượt chặn trước (sắp nghỉ) / false = giới hạn ngày (hết hôm nay). Giữ «Đổi người» + chip app vẫn mở như màn hết sao.</summary>
+    public static ManKhoa ForSapHetGio(int giayCon, string? appDangChoi, bool luot, IEnumerable<string>? appKhongTinh, bool doiBe)
     {
         var app = string.IsNullOrWhiteSpace(appDangChoi) ? "app «Tính phút»" : appDangChoi!;
-        var nut = new List<NutKhoa> { new(XinVay, "Xin Ba Mẹ cho vay sao", "gui"), new(BaMeMo, "Ba Mẹ dùng máy", "khoa") };
-        return new ManKhoa("chi", "Sắp hết giờ chơi", $"Lưu bài đang làm nhé. {app} đóng sau", null, true, "Hết lượt thì nghỉ một chút nhé", nut, false);
+        var nut = new List<NutKhoa> { new(XinVay, "Xin Ba Mẹ cho vay sao", "gui") };
+        if (doiBe) nut.Add(new(DoiBe, "Đổi người", "nguoi"));
+        nut.Add(new(BaMeMo, doiBe ? "Ba Mẹ mở máy" : "Ba Mẹ dùng máy", "khoa"));
+        return new ManKhoa("chi", "Sắp hết giờ chơi", $"Lưu bài đang làm nhé. {app} đóng sau", SaoView.VanMo(appKhongTinh), true,
+            luot ? "Hết lượt thì nghỉ một chút nhé" : "Hôm nay chơi đủ giờ rồi · mai chơi tiếp nhé", nut, false);
     }
 
     // Popup trên desktop (them-zxuekzer)

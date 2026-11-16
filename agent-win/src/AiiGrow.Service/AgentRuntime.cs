@@ -12,6 +12,8 @@ public sealed class AgentRuntime
     private bool _forceSync;
 
     private Policy? _policy;
+    /// <summary>#302: lúc phút chơi tại máy chạm 0 vì giới hạn (chốt một lần cho mỗi Policy) — giờ «chơi tiếp lúc» không trôi theo mỗi lần dựng trạng thái.</summary>
+    private (Policy Of, DateTimeOffset Luc)? _ghHetLuc;
     private DateTimeOffset _policyAt = DateTimeOffset.UtcNow;
     private double _usedSeconds;
     private bool _offline;
@@ -711,13 +713,20 @@ public sealed class AgentRuntime
             s.No = pBe.SoSao?.No;
             // #302: khoá vì giới hạn ngày / đang nghỉ (còn sao) ⇒ màn khoá nói đúng lý do, không «Hết sao rồi»
             var gh = s.MoHet ? null : pBe.GioiHan;
-            s.GioiHanLyDo = gh?.ApDung == true && pBe.SoSao?.SaoTieuDuoc is > 0 ? gh.LyDoKhoa : null;
+            // hết giới hạn ngày THẮNG hết sao (có sao hôm nay cũng không chơi được); đang nghỉ chỉ khi còn sao thật
+            s.GioiHanLyDo = gh?.ApDung != true ? null : gh.LyDoKhoa == GioiHanMay.HetGioNgay || pBe.SoSao?.SaoTieuDuoc is > 0 ? gh.LyDoKhoa : null;
             s.GioiHanGio = s.GioiHanLyDo == GioiHanMay.DangNghi ? gh!.NghiDenGio : null;
             s.GioiHanCau = s.GioiHanLyDo != null ? gh!.Cau : null;
             s.GioiHanChan = gh?.ApDung == true && gh.PhutToiDa is double ptd && pBe.SoSao?.SaoTieuDuoc is double stt && ptd < stt;
-            // phút đếm tại máy vừa hết mà giới hạn chặn trước số sao (chưa tới lượt đồng bộ) ⇒ đoán lý do để màn khoá nói đúng ngay
-            if (s.GioiHanLyDo == null && s.GioiHanChan && s.QuyConPhut is <= 0 && gh!.DoanKhiHet(DateTime.Now) is { } doan)
-                (s.GioiHanLyDo, s.GioiHanGio, s.GioiHanCau) = (doan.LyDo, doan.Gio, doan.Cau);
+            s.GioiHanChanLuot = s.GioiHanChan && gh!.LuotChanTruoc;
+            // phút đếm tại máy vừa hết mà giới hạn chặn trước số sao (chưa tới lượt đồng bộ) ⇒ đoán lý do để màn khoá nói đúng ngay;
+            // lúc hết chốt MỘT lần cho Policy này (đồng bộ mới thay Policy ⇒ chốt lại / máy chủ đã tính lý do thật)
+            if (s.GioiHanLyDo == null && s.GioiHanChan && s.QuyConPhut is <= 0)
+            {
+                if (_ghHetLuc?.Of != _policy) _ghHetLuc = (_policy, now);
+                if (gh!.DoanKhiHet(_ghHetLuc!.Value.Luc) is { } doan)
+                    (s.GioiHanLyDo, s.GioiHanGio, s.GioiHanCau) = (doan.LyDo, doan.Gio, doan.Cau);
+            }
             s.PhutBoiMaHomNay = PhutBoiMaHomNay(now, s.NguoiDung == LoaiNguoiDung.Con ? s.BeId : null);
             s.AppTinhPhut = QuyTaiCho.MucTinhPhut(_policy).ToList();
             var fgTuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;

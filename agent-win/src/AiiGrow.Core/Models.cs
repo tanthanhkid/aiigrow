@@ -126,13 +126,17 @@ public sealed class GioiHanMay
     /// <summary>Câu sẵn: «Nghỉ một chút · chơi tiếp lúc 16:30» · «Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé» · «Còn 25 phút hôm nay».</summary>
     public string? Cau { get; set; }
 
+    /// <summary>Lượt (không phải ngày) là giới hạn chặn trước: còn lượt ≤ còn ngày.</summary>
+    public bool LuotChanTruoc => LuotPhut is double lp && lp > 0 && ConLuot is double cl && cl <= (ConNgay ?? double.MaxValue);
+
     /// <summary>Phút đếm TẠI MÁY vừa chạm 0 mà giới hạn chặn trước số sao (máy chủ chưa kịp tính lý do ở lượt đồng bộ sau) ⇒ đoán lý do:
-    /// lượt chặn trước ⇒ đang nghỉ tới bây giờ + phút lượt; ngày chặn trước ⇒ hết giờ hôm nay. → (lyDo, giờ nghỉ, câu) hoặc null.</summary>
-    public (string LyDo, string? Gio, string? Cau)? DoanKhiHet(DateTime bayGio)
+    /// lượt chặn trước ⇒ đang nghỉ tới <paramref name="hetLuc"/> + phút lượt (hetLuc = lúc hết, người gọi CHỐT MỘT LẦN — không truyền «bây giờ» mỗi
+    /// lần dựng trạng thái, kẻo giờ chơi tiếp trôi mãi); ngày chặn trước ⇒ hết giờ hôm nay. → (lyDo, giờ nghỉ «HH:mm» giờ máy, câu) hoặc null.</summary>
+    public (string LyDo, string? Gio, string? Cau)? DoanKhiHet(DateTimeOffset hetLuc)
     {
         if (!ApDung) return null;
-        if (LuotPhut is double lp && lp > 0 && ConLuot is double cl && cl <= (ConNgay ?? double.MaxValue))
-            return (DangNghi, bayGio.AddMinutes(lp).ToString("HH:mm"), null);
+        if (LuotChanTruoc)
+            return (DangNghi, hetLuc.AddMinutes(LuotPhut!.Value).ToLocalTime().ToString("HH:mm"), null);
         if (ConNgay is not null) return (HetGioNgay, null, NgayPhut is double np ? $"Hôm nay đã chơi đủ {Math.Round(np)} phút — mai chơi tiếp nhé" : null);
         return null;
     }

@@ -114,6 +114,8 @@ public sealed class TrayState
     public string? GioiHanCau { get; set; }
     /// <summary>16/11 (#302): phút còn bị giới hạn chặn trước số sao (sắp tới giờ nghỉ / hết giờ hôm nay, không phải sắp hết sao).</summary>
     public bool GioiHanChan { get; set; }
+    /// <summary>16/11 (#302): giới hạn chặn trước là LƯỢT (sắp nghỉ) — false = giới hạn NGÀY (sắp hết giờ hôm nay).</summary>
+    public bool GioiHanChanLuot { get; set; }
     /// <summary>15/11: mục «Tính phút» Ba Mẹ đã xếp (app .exe / tên miền) — «Roblox, YouTube Kids đang khoá», nhắc «hết sao là Roblox đóng».</summary>
     public List<string> AppTinhPhut { get; set; } = new();
     /// <summary>15/11: app tiền cảnh (lượt báo gần nhất của khay) là app «Tính phút» đang trừ sao ⇒ nhắc 5 sao / đếm ngược hết sao.</summary>

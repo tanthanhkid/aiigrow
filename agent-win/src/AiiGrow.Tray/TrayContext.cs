@@ -835,7 +835,7 @@ internal sealed class TrayContext : ApplicationContext
         if (HetSaoView.DemNguoc(con, _state.DangChoiTinhPhut) && (_hetSao is { IsDisposed: false } || truoc is null or > 1))
         {
             var giay = (int)Math.Ceiling(con * 60);
-            HienHetSao(_state.GioiHanChan ? HetSaoView.ForSapHetGio(giay, _state.AppDangChoi) : HetSaoView.For(giay, _state.AppDangChoi, _state.AppDuocPhep, doiBe), giay);
+            HienHetSao(_state.GioiHanChan ? HetSaoView.ForSapHetGio(giay, _state.AppDangChoi, _state.GioiHanChanLuot, _state.AppDuocPhep, doiBe) : HetSaoView.For(giay, _state.AppDangChoi, _state.AppDuocPhep, doiBe), giay);
             return;
         }
         var vuaHet = con <= 0 && !_daBaoHetSao && (_hetSao is { IsDisposed: false } || (truoc is > 0 && _state.DangChoiTinhPhut));
