@@ -11,13 +11,15 @@ namespace AiiGrow.Tray;
 /// </summary>
 internal sealed class XinVayForm : HopKhayCoBan
 {
-    public const string SauXinMo = "xin_mo", SauNhan = "nhan", SauNhiemVu = "nhiem_vu";
+    public const string SauXinMo = "xin_mo", SauNhan = "nhan", SauNhiemVu = "nhiem_vu", SauHetSao = "het_sao";
 
     private HvSao? _sao;
     private int _soSao = XinVayView.MacDinh;
     private readonly TextBox _note = new() { Font = UI.F(11f), MaxLength = XinMoView.LoiNhanToiDa, ForeColor = UI.Ink, PlaceholderText = XinVayView.GoiYNhan };
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
     private readonly bool _saoDung;
+    /// <summary>#307 them-rgy15s87: mở từ popup «Hết sao rồi» — «‹» quay lại popup, dòng phụ «Chọn số sao…», không «Xin thêm app ›», chip chọn tô đặc.</summary>
+    private readonly bool _tuHetSao;
     private string? _pendingId;
     private int _soDaXin;
     private bool _busy;
@@ -35,9 +37,10 @@ internal sealed class XinVayForm : HopKhayCoBan
 
     /// <param name="saoDung">Mở thẳng «Sao dùng thế nào?».</param>
     /// <param name="taiNgay">false = không hỏi dịch vụ (công cụ chụp màn dựng thẳng từng bước).</param>
-    public XinVayForm(bool saoDung = false, bool taiNgay = true) : base(saoDung ? SaoDungView.TieuDe : XinVayView.TieuDe, UI.Px(380))
+    public XinVayForm(bool saoDung = false, bool taiNgay = true, bool tuHetSao = false) : base(saoDung ? SaoDungView.TieuDe : XinVayView.TieuDe, UI.Px(380))
     {
         _saoDung = saoDung;
+        _tuHetSao = tuHetSao;
         _poll.Tick += async (_, _) => await PollAsync();
         Interlocked.Increment(ref DangMo);
         FormClosed += (_, _) => { Interlocked.Decrement(ref DangMo); _poll.Dispose(); if (_note.Parent == null) _note.Dispose(); };
@@ -74,8 +77,19 @@ internal sealed class XinVayForm : HopKhayCoBan
         _poll.Stop();
         Xoa();
         Text = XinVayView.TieuDe;
-        Flow.Controls.Add(KhoiCon.Dau("sao", KhoiCon.Mau.Vang, XinVayView.Tieu, XinVayView.Phu(_sao?.PhutCon), W));
-        Flow.Controls.Add(KhoiApp.NhanMuc(XinVayView.ConXinVay, W));
+        if (_tuHetSao)
+        {
+            var dau = KhoiCon.Hang();
+            var lui = KhoiXin.NutTron("‹", () => { Sau = SauHetSao; Close(); });
+            dau.Controls.Add(lui);
+            dau.Controls.Add(KhoiCon.Dau("sao", KhoiCon.Mau.Vang, XinVayView.Tieu, XinVayView.PhuChon, W - lui.Width - lui.Margin.Horizontal));
+            Flow.Controls.Add(dau);
+        }
+        else
+        {
+            Flow.Controls.Add(KhoiCon.Dau("sao", KhoiCon.Mau.Vang, XinVayView.Tieu, XinVayView.Phu(_sao?.PhutCon), W));
+            Flow.Controls.Add(KhoiApp.NhanMuc(XinVayView.ConXinVay, W));
+        }
         var chips = new List<Control>();
         foreach (var n in Muc)
         {
@@ -86,8 +100,8 @@ internal sealed class XinVayForm : HopKhayCoBan
             };
             var nn = n;
             r.CheckedChanged += (_, _) => { if (r.Checked && _soSao != nn) { _daThaoTac = true; _soSao = nn; BeginInvoke(VeXin); } };
-            r.BackColor = r.Checked ? Clay.NgocSoft : UI.Card;
-            r.ForeColor = r.Checked ? Clay.NgocInk : UI.Ink;
+            r.BackColor = r.Checked ? (_tuHetSao ? UI.Green : Clay.NgocSoft) : UI.Card;
+            r.ForeColor = r.Checked ? (_tuHetSao ? Color.White : Clay.NgocInk) : UI.Ink;
             chips.Add(r);
         }
         Flow.Controls.Add(KhoiCon.Chips(W + UI.Px(8), chips.ToArray()));
@@ -99,7 +113,7 @@ internal sealed class XinVayForm : HopKhayCoBan
         var trai = KhoiCon.LienKet(XinVayView.VayTraTheNao, "dau_hoi", () => { _daThaoTac = true; VeSaoDung(); });
         trai.Margin = new Padding(0, 0, UI.Px(40), 0);
         lk.Controls.Add(trai);
-        lk.Controls.Add(KhoiCon.LienKet(XinVayView.XinThemApp, "khoa", () => { Sau = SauXinMo; Close(); }));
+        if (!_tuHetSao) lk.Controls.Add(KhoiCon.LienKet(XinVayView.XinThemApp, "khoa", () => { Sau = SauXinMo; Close(); }));
         Flow.Controls.Add(lk);
         _msg = UI.Text("", 10.5f, true, UI.Error, W);
         Flow.Controls.Add(_msg);

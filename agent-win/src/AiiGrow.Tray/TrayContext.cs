@@ -266,7 +266,7 @@ internal sealed class TrayContext : ApplicationContext
                 if (_bat.Nhan(HocVienView.CoNhiemVuMoi(moi), _state.Locked, AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now))
                     OpenApp(MucApp.NhiemVu, tuBat: true);
                 // 05/11: Ba Mẹ duyệt / nhờ làm lại / trao quà / cho thêm giờ ⇒ màn kết quả (con-ngay-thuong 09/11/12/26) — không khi máy khoá / Con đang toàn màn hình
-                else if (AppConView.ChonKetQua(moi) is { } kq && !_state.Locked && !UI.DangBanToanManHinh() && !(kq.Loai is "da_them" or "chua_them" && (_blocked is { IsDisposed: false } || _xinThem is { IsDisposed: false })))
+                else if (AppConView.ChonKetQua(moi) is { } kq && !_state.Locked && !UI.DangBanToanManHinh() && !(kq.Loai is "da_them" or "chua_them" && (_blocked is { IsDisposed: false } || (_xinThem is { IsDisposed: false } x && string.Equals(x.Ten, kq.Ten, StringComparison.OrdinalIgnoreCase)))))
                     _ = HienKetQuaAsync(kq);
             }
             PushApp();
@@ -276,12 +276,12 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     /// <summary>«Xin Ba Mẹ cho vay sao» / «Sao dùng thế nào?» (XinVayForm). Màn khoá / màn hết sao gọi với chủ là màn đó.</summary>
-    private void OpenXinVay(IWin32Window? chu = null, bool saoDung = false)
+    private void OpenXinVay(IWin32Window? chu = null, bool saoDung = false, Action? quayLaiHetSao = null)
     {
         string? sau;
-        XinVayForm.AppDs.AppTinh = _state.AppTinhPhut;
-        XinVayForm.AppDs.AppKhong = _state.AppDuocPhep;
-        using (var f = new XinVayForm(saoDung))
+        XinVayForm.AppDs.AppTinh = TrayView.TenTinh(_state);
+        XinVayForm.AppDs.AppKhong = TrayView.TenKhongTinh(_state);
+        using (var f = new XinVayForm(saoDung, tuHetSao: quayLaiHetSao != null))
         {
             if (chu != null) f.ShowDialog(chu); else f.ShowDialog();
             sau = f.Sau;
@@ -291,6 +291,7 @@ internal sealed class TrayContext : ApplicationContext
         switch (sau)
         {
             case XinVayForm.SauXinMo: OpenXinMo(); break;
+            case XinVayForm.SauHetSao: quayLaiHetSao?.Invoke(); break;
             case XinVayForm.SauNhan: OpenApp(MucApp.TinNhan, tuManKhoa: tuKhoa); break;
             case XinVayForm.SauNhiemVu: DongHetSao(); OpenApp(MucApp.NhiemVu, tuManKhoa: _state.Locked && chu != null); break;
         }
@@ -630,7 +631,6 @@ internal sealed class TrayContext : ApplicationContext
             Chao(true);
             _state = st;
             _at = DateTimeOffset.Now;
-            TrayView.DatTenApp(st.TenApp);   // #307: tên app theo danh sách app máy, không tên tiến trình
             DoiNguoi();
             HandleBaMe();
             SetKetNoi(KetNoiView.Chon(true, _state), true);
@@ -799,18 +799,14 @@ internal sealed class TrayContext : ApplicationContext
         if (id != null && _state.QuyConPhut is <= 0 && _hetSao is { IsDisposed: false } && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase)) return;
         if (id != null && _state.QuyConPhut is <= 0 && !_state.MoHet && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase))
         {
-            // #302: đang nghỉ / chơi đủ hôm nay (còn sao) ⇒ «Nghỉ một chút · chơi tiếp lúc HH:MM» thay «Hết sao rồi»
-            var gh = HetSaoView.PopGioiHan(_state.GioiHanLyDo, _state.GioiHanGio, _state.GioiHanCau, TrayView.FriendlyAppName(id, _state.BlockedAppName));
-            _blocked = gh is { } chu ? BlockedForm.GioiHan(id, _state.BlockedAppName, chu) : BlockedForm.HetSao(id, _state.BlockedAppName);
-            _blocked.LamNhiemVu += () => OpenApp(MucApp.NhiemVu);
-            _blocked.XinVay += () => OpenXinVay();
-            _blocked.Show();
+            HienPopupHetSao(id, _state.BlockedAppName);
             return;
         }
         // #307: Con đang ở hộp «Xin thêm …» cho đúng app này ⇒ đưa hộp lên trước, không chồng màn chặn mới
         if (id != null && _xinThem is { IsDisposed: false } dangXin && string.Equals(dangXin.Muc, id.Trim(), StringComparison.OrdinalIgnoreCase)) { dangXin.Activate(); return; }
         if (ManChanView.TuGui(id, _state.BlockedBoiBaMe, _state.Offline, daXin)) _soTuGui++;
-        _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep, daXin: daXin, appTinhPhut: _state.AppTinhPhut, phutCon: _state.QuyConPhut);
+        _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep, daXin: daXin, appTinhPhut: _state.AppTinhPhut, phutCon: _state.QuyConPhut,
+            tenDuocPhep: TrayView.TenKhongTinh(_state), tenTinhPhut: TrayView.TenTinh(_state));
         _blocked.VeHomNay += () => OpenApp(MucApp.HomNay);
         _blocked.NhanBaMe += () => OpenApp(MucApp.TinNhan);
         _blocked.DaXin += x => _daXin.Add(x);
@@ -819,12 +815,31 @@ internal sealed class TrayContext : ApplicationContext
         _blocked.Show();
     }
 
+    /// <summary>Popup «Hết sao rồi» / #302 «Nghỉ một chút» cho app «Tính phút» vừa bị đóng. Dựng theo trạng thái HIỆN TẠI; đóng popup cũ trước (không đè).
+    /// #307 them-rgy15s87: hộp xin vay mở từ popup có «‹» quay lại — lúc đó xét lại: đã có sao / đang khoá / «Mở hết» ⇒ không hiện lại popup.</summary>
+    private void HienPopupHetSao(string id, string? ten)
+    {
+        if (_state.Locked || _state.MoHet || _state.QuyConPhut is not <= 0) return;
+        var gh = HetSaoView.PopGioiHan(_state.GioiHanLyDo, _state.GioiHanGio, _state.GioiHanCau, TrayView.FriendlyAppName(id, ten));
+        if (_blocked is { IsDisposed: false } cu) { try { cu.Close(); cu.Dispose(); } catch { } }
+        var f = gh is { } chu ? BlockedForm.GioiHan(id, ten, chu) : BlockedForm.HetSao(id, ten);
+        _blocked = f;
+        f.LamNhiemVu += () => OpenApp(MucApp.NhiemVu);
+        f.XinVay += () => OpenXinVay(quayLaiHetSao: () => HienPopupHetSao(id, ten));
+        f.Show();
+    }
+
     /// <summary>16/11 (#307): «Xin thêm …» (them-bxw40sw9 → them-6tn8aozf → them-359v1pre / them-vkdikuo0).</summary>
     private XinThemForm? _xinThem;
 
     private void OpenXinThem(string muc, string ten)
     {
-        if (_xinThem is { IsDisposed: false } cu) { cu.Activate(); return; }   // một hộp một lúc
+        if (_xinThem is { IsDisposed: false } cu)
+        {
+            // một hộp một lúc: cùng app ⇒ đưa lên; app khác ⇒ đóng hộp cũ (lời xin đã gửi vẫn được khay ghi nhớ) rồi mở cho app mới — không nuốt yêu cầu
+            if (string.Equals(cu.Muc, muc.Trim(), StringComparison.OrdinalIgnoreCase)) { cu.Activate(); return; }
+            cu.Close();
+        }
         var f = new XinThemForm(muc, ten, _state.QuyConPhut);
         _xinThem = f;
         f.DaXin += x => _daXin.Add(x);
@@ -880,11 +895,11 @@ internal sealed class TrayContext : ApplicationContext
             }
             catch { Toast(6000, NhacSaoView.Tieu(SaoView.Phut(con)), NhacSaoView.Phu(_state.AppDangChoi), ToolTipIcon.Warning, MucApp.HomNay); }
         }
-        var doiBe = _state.NguoiDung == LoaiNguoiDung.Con && !_state.MayRieng;
+        var doiBe = TrayView.DangDungMayChung(_state);
         if (HetSaoView.DemNguoc(con, _state.DangChoiTinhPhut) && (_hetSao is { IsDisposed: false } || truoc is null or > 1))
         {
             var giay = (int)Math.Ceiling(con * 60);
-            HienHetSao(_state.GioiHanChan ? HetSaoView.ForSapHetGio(giay, _state.AppDangChoi, _state.GioiHanChanLuot, _state.AppDuocPhep, doiBe) : HetSaoView.For(giay, _state.AppDangChoi, _state.AppDuocPhep, doiBe), giay);
+            HienHetSao(_state.GioiHanChan ? HetSaoView.ForSapHetGio(giay, _state.AppDangChoi, _state.GioiHanChanLuot, TrayView.TenKhongTinh(_state), doiBe) : HetSaoView.For(giay, _state.AppDangChoi, TrayView.TenKhongTinh(_state), doiBe), giay);
             return;
         }
         var vuaHet = con <= 0 && !_daBaoHetSao && (_hetSao is { IsDisposed: false } || (truoc is > 0 && _state.DangChoiTinhPhut));
@@ -892,8 +907,8 @@ internal sealed class TrayContext : ApplicationContext
         {
             _daBaoHetSao = true;
             // #302: khoá vì giới hạn ngày / đang nghỉ (còn sao) ⇒ «Nghỉ một chút · chơi tiếp lúc HH:MM» / «Hôm nay chơi đủ rồi», không «Hết sao rồi»
-            var m = HetSaoView.ForGioiHan(_state.GioiHanLyDo, _state.GioiHanGio, _state.GioiHanCau, _state.AppDuocPhep, doiBe)
-                ?? (_state.Offline ? ManKhoaView.For(null, _state.ChildName, offline: true, hetSao: true) : HetSaoView.For(null, null, _state.AppDuocPhep, doiBe));
+            var m = HetSaoView.ForGioiHan(_state.GioiHanLyDo, _state.GioiHanGio, _state.GioiHanCau, TrayView.TenKhongTinh(_state), doiBe)
+                ?? (_state.Offline ? ManKhoaView.For(null, _state.ChildName, offline: true, hetSao: true) : HetSaoView.For(null, null, TrayView.TenKhongTinh(_state), doiBe));
             HienHetSao(m, null);
             return;
         }
@@ -911,7 +926,7 @@ internal sealed class TrayContext : ApplicationContext
             _hetSao = f;
             f.Show();
         }
-        _hetSao.ApHetSao(m, _state.ChildName, giay, _state.OfflineSince, dangDung: _state.NguoiDung == LoaiNguoiDung.Con && !_state.MayRieng);
+        _hetSao.ApHetSao(m, _state.ChildName, giay, _state.OfflineSince, dangDung: TrayView.DangDungMayChung(_state));
     }
 
     protected override void Dispose(bool disposing)

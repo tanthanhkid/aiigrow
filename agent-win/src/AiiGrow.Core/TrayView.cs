@@ -77,12 +77,6 @@ public static class TrayView
         ["discord"] = "Discord", ["spotify"] = "Spotify", ["notepad"] = "Notepad", ["calculatorapp"] = "Máy tính",
     };
 
-    private static volatile IReadOnlyDictionary<string, string> _tenMay = new Dictionary<string, string>();
-
-    /// <summary>16/11 (#307): bảng tên app của KHAY = <see cref="TrayState.TenApp"/> của lượt trạng thái mới nhất (nguồn duy nhất: danh sách app máy gửi máy chủ).
-    /// Thay hẳn mỗi lần (kể cả rỗng) — không giữ tên của bé / lượt trước. Dịch vụ không dùng bảng tĩnh này (truyền bảng của nó vào các hàm tra).</summary>
-    public static void DatTenApp(IEnumerable<KeyValuePair<string, string>>? ds) => _tenMay = TaoBang(ds);
-
     /// <summary>Bảng mục → tên (không phân biệt hoa thường, bỏ mục / tên trống).</summary>
     public static Dictionary<string, string> TaoBang(IEnumerable<KeyValuePair<string, string>>? ds)
     {
@@ -92,18 +86,32 @@ public static class TrayView
         return m;
     }
 
-    /// <summary>Tên hiển thị của <paramref name="appId"/> trong bảng (có / không đuôi «.exe» đều khớp); <paramref name="bang"/> null = bảng của khay. null = không có.</summary>
-    public static string? TenTheoDanhSach(string? appId, IReadOnlyDictionary<string, string>? bang = null)
+    /// <summary>Tên hiển thị của <paramref name="appId"/> trong bảng (có / không đuôi «.exe» đều khớp). null = không có.</summary>
+    public static string? TenTheoDanhSach(string? appId, IReadOnlyDictionary<string, string>? bang)
     {
-        var m = bang ?? _tenMay;
+        var m = bang;
         var g = (appId ?? "").Trim();
-        if (m.Count == 0 || g.Length == 0) return null;
+        if (m == null || m.Count == 0 || g.Length == 0) return null;
         if (m.TryGetValue(g, out var t) && !string.IsNullOrWhiteSpace(t)) return t;
         var khac = g.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? g[..^4] : g + ".exe";
         return m.TryGetValue(khac, out t) && !string.IsNullOrWhiteSpace(t) ? t : null;
     }
 
     /// <summary><paramref name="appName"/> chỉ là tên tiến trình trần của app (tudien / tudien.exe cho tudien.exe) — không phải tên hiển thị. Tên miền (y8.com) không tính.</summary>
+    /// <summary>Chuỗi đã là tên hiển thị (dịch vụ giải sẵn: «Học với AiiRob», «YouTube Kids») — có khoảng trắng / chữ hoa / dấu, không đuôi .exe.</summary>
+    public static bool LaTenHienThi(string? s)
+    {
+        var t = (s ?? "").Trim();
+        return t.Length > 0 && !t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && (t.Contains(' ') || t.Any(c => char.IsUpper(c) || c > 127));
+    }
+
+    /// <summary>#307: có bé đăng nhập THẬT trên máy dùng chung (chân «… đang dùng», «Đổi người») — chưa ai đăng nhập / máy riêng / chưa rõ ⇒ false.</summary>
+    public static bool DangDungMayChung(TrayState s) => s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng && !string.IsNullOrEmpty(s.BeId);
+
+    /// <summary>Tên «Không tính phút» / «Tính phút» để hiện: tên dịch vụ đã giải nếu đủ, không thì mục.</summary>
+    public static IReadOnlyList<string> TenKhongTinh(TrayState s) => s.TenAppDuocPhep.Count == s.AppDuocPhep.Count && s.TenAppDuocPhep.Count > 0 ? s.TenAppDuocPhep : s.AppDuocPhep;
+    public static IReadOnlyList<string> TenTinh(TrayState s) => s.TenAppTinhPhut.Count == s.AppTinhPhut.Count && s.TenAppTinhPhut.Count > 0 ? s.TenAppTinhPhut : s.AppTinhPhut;
+
     public static bool LaTenTienTrinh(string? appId, string? appName)
     {
         var id = (appId ?? "").Trim();
@@ -112,10 +120,12 @@ public static class TrayView
         return ten.Equals(id, StringComparison.OrdinalIgnoreCase) || ten.Equals(id[..^4], StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>Tên hiển thị: bảng tên danh sách app TRƯỚC (<paramref name="bang"/> / bảng của khay), rồi <paramref name="appName"/> nếu không phải tên tiến trình trần,
+    /// <summary>Tên hiển thị: bảng tên danh sách app TRƯỚC (<paramref name="bang"/> — chỉ dịch vụ có bảng), rồi <paramref name="appName"/> nếu không phải tên tiến trình trần,
     /// rồi tên đẹp có sẵn / viết hoa chữ đầu.</summary>
     public static string FriendlyAppName(string? appId, string? appName, IReadOnlyDictionary<string, string>? bang = null)
     {
+        // tên đã giải sẵn (không .exe, không phải tên tiến trình) đi qua nguyên vẹn
+        if (appName == null && bang == null && LaTenHienThi(appId)) return appId!.Trim();
         if (TenTheoDanhSach(appId, bang) is { } tenDs) return tenDs;
         if (!string.IsNullOrWhiteSpace(appName) && !LaTenTienTrinh(appId, appName)) return appName!.Trim();
         var n = (appId ?? "").Trim();

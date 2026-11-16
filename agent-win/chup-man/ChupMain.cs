@@ -78,7 +78,6 @@ internal static class ChupMain
 
     private static async Task ChayHet()
     {
-        TrayView.DatTenApp(TenAppMau());
         await Mot("app-hom-nay", () => ManApp("app-hom-nay", MucApp.HomNay, TrangThai(), true));
         await Mot("app-hom-nay-mat-mang", () => ManApp("app-hom-nay-mat-mang", MucApp.HomNay,
             TrangThai(s => { s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddMinutes(-25); }), true));
@@ -106,6 +105,11 @@ internal static class ChupMain
         await Mot("chan-ba-me-chua-cho", () => ManChan("chan-ba-me-chua-cho", "capcut.exe", "CapCut", "ChuaCho",
             kq: new RequestStatus { KetQua = "chua_them", TenNguoiDuyet = "Mẹ Lan", LoiNhan = "Cuối tuần Mẹ làm video cùng con nhé." }));
         await Mot("chan-web", () => ManChan("chan-web", "y8.com", "y8.com", null, web: true));
+        // #307 con-bi-chan: Ba Mẹ mở trang «Tính phút» (them-0uw5wpyr) / chưa mở (them-nle7pkdv)
+        await Mot("chan-web-ba-me-cho", () => ManChan("chan-web-ba-me-cho", "y8.com", "y8.com", "Duoc", web: true,
+            kq: new RequestStatus { KetQua = "da_them", Nhom = "tinh_phut", TenNguoiDuyet = "Mẹ Lan" }));
+        await Mot("chan-web-chua-cho", () => ManChan("chan-web-chua-cho", "y8.com", "y8.com", "ChuaCho", web: true,
+            kq: new RequestStatus { KetQua = "chua_them", TenNguoiDuyet = "Mẹ Lan", LoiNhan = "Trang này nhiều quảng cáo, con chơi Roblox nhé." }));
         await Mot("het-sao-popup", () => ManChan("het-sao-popup", "robloxplayerbeta.exe", "Roblox", "HetSao"));
         await Mot("chan-web-da-gui", () => ManChan("chan-web-da-gui", "y8.com", "y8.com", "DaGui", web: true));
         await Mot("chan-app-mat-mang", () => ManChan("chan-app-mat-mang", "capcut.exe", "CapCut", "MatMang"));
@@ -115,9 +119,11 @@ internal static class ChupMain
         await Mot("khoa-ba-me-khoa", () => ManKhoa("khoa-ba-me-khoa", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; s.KhoaLuc = DateTimeOffset.Now.AddMinutes(-3); })));
         await Mot("khoa-mat-mang", () => ManKhoa("khoa-mat-mang", TrangThai(s => { s.Locked = true; s.LockReason = LockReasons.Khoa; s.Offline = true; })));
         // 15/11 «Sắp hết sao» (đếm ngược) → «Hết sao rồi» (không khoá máy) · mất mạng hết sao (cmt-khoa-mat-mang) · nhắc «Còn 5 sao»
-        await Mot("het-sao-dem-nguoc", () => ManHetSao("het-sao-dem-nguoc", HetSaoView.For(45, "Roblox", TrangThai().AppDuocPhep, false), 45));
-        await Mot("het-sao", () => ManHetSao("het-sao", HetSaoView.For(null, null, new[] { "tudien.exe", "hocvoiairob.exe" }, false), null));
-        await Mot("het-sao-doi-be", () => ManHetSao("het-sao-doi-be", HetSaoView.For(null, null, new[] { "tudien.exe", "hocvoiairob.exe" }, true), null, "Bảo Anh"));
+        await Mot("het-sao-dem-nguoc", () => ManHetSao("het-sao-dem-nguoc", HetSaoView.For(45, "Roblox", TrayView.TenKhongTinh(TrangThai()), false), 45));
+        await Mot("het-sao", () => ManHetSao("het-sao", HetSaoView.For(null, null, new[] { "Từ điển", "Học với AiiRob" }, false), null));
+        await Mot("het-sao-doi-be", () => ManHetSao("het-sao-doi-be", HetSaoView.For(null, null, new[] { "Từ điển", "Học với AiiRob" }, true), null, "Bảo Anh",
+            // cùng tín hiệu với khay: bé đăng nhập thật trên máy dùng chung
+            dangDung: TrayView.DangDungMayChung(TrangThai(s => { s.BeId = "c1"; s.MayRieng = false; }))));
         await Mot("het-sao-mat-mang", () => ManHetSao("het-sao-mat-mang", ManKhoaView.For(null, "Bảo Anh", offline: true, hetSao: true), null));
         await Mot("nhac-5-sao", () => ManHop("nhac-5-sao", () => new NhacSaoForm(5, "Roblox")));
         await Mot("hoi-aiigrow", () => ManHop("hoi-aiigrow", () => new HoiAiiGrowForm()));
@@ -130,6 +136,16 @@ internal static class ChupMain
         await Mot("xin-vay-ba-me-cho", () => ManHop("xin-vay-ba-me-cho", () => HopXinVay(false, f => f.VeDuoc("Mẹ Lan", "Chơi xong nhớ làm việc nhà trả nợ nhé!", 15, new HvSao { Sao = 0, No = 15, PhutCon = 15 }))));
         await Mot("xin-vay-chua-cho", () => ManHop("xin-vay-chua-cho", () => HopXinVay(false, f => f.VeChuaCho("Mẹ Lan", "Hôm nay đủ rồi con, mai chơi tiếp nhé.", new HvSao()))));
         await Mot("sao-dung-the-nao", () => ManHop("sao-dung-the-nao", () => HopXinVay(true, null)));
+        // #307 them-rgy15s87: xin vay mở từ popup «Hết sao rồi»
+        await Mot("xin-vay-tu-het-sao", () => ManHop("xin-vay-tu-het-sao", () =>
+        {
+            XinVayForm.AppDs.AppTinh = TrayView.TenTinh(TrangThai());
+            XinVayForm.AppDs.AppKhong = TrayView.TenKhongTinh(TrangThai());
+            var f = new XinVayForm(taiNgay: false, tuHetSao: true);
+            f.DatMau(new HvSao());
+            ((TextBox)Lay(f, "_note")!).Text = "Con đang xây dở nhà với bạn";
+            return f;
+        }));
         // #307 con-xin: «Xin thêm YouTube» (them-bxw40sw9) → Đã gửi (them-6tn8aozf) → Mẹ Lan đã thêm (them-359v1pre) / chưa thêm (them-vkdikuo0)
         await Mot("xin-them", () => ManHop("xin-them", () => new XinThemForm("youtube.exe", null, 18)));
         await Mot("xin-them-da-gui", () => ManHop("xin-them-da-gui", () => { var f = new XinThemForm("youtube.exe", null, 18); f.VeDaGui(); return f; }));
@@ -320,7 +336,8 @@ internal static class ChupMain
     private static async Task ManChan(string ten, string appId, string appName, string? buoc, bool tuGui = false, bool web = false, RequestStatus? kq = null)
     {
         var st = TrangThai();
-        var f = new BlockedForm(appId, appName, boiBaMe: true, offline: buoc == "MatMang", st.AppDuocPhep, web, appTinhPhut: st.AppTinhPhut, phutCon: st.QuyConPhut);
+        var f = new BlockedForm(appId, appName, boiBaMe: true, offline: buoc == "MatMang", st.AppDuocPhep, web, appTinhPhut: st.AppTinhPhut, phutCon: st.QuyConPhut,
+            tenDuocPhep: st.TenAppDuocPhep, tenTinhPhut: st.TenAppTinhPhut);
         if (kq != null) { kq.Luc ??= DateTimeOffset.Now; DatTruong(f, "_kq", kq); }
         if (tuGui) DatTruong(f, "_tuGui", true);
         DatTruong(f, "_choMang", 2);
@@ -331,6 +348,8 @@ internal static class ChupMain
         }
         try
         {
+            // #307: hộp chặn nằm giữa màn — con trỏ chuột của runner ở giữa màn làm nút chính «hover» (trông như xám/mờ) ⇒ dời con trỏ ra góc
+            try { Cursor.Position = new Point(0, 0); } catch { }
             f.Show();
             await Cho(1200);
             Chup(f, ten);
@@ -408,8 +427,8 @@ internal static class ChupMain
     /// <summary>Hộp «Xin Ba Mẹ cho vay sao» với dữ liệu mẫu (0 sao) — không chờ lượt tải từ dịch vụ.</summary>
     private static XinVayForm HopXinVay(bool saoDung, Action<XinVayForm>? buoc)
     {
-        XinVayForm.AppDs.AppTinh = TrangThai().AppTinhPhut;
-        XinVayForm.AppDs.AppKhong = TrangThai().AppDuocPhep;
+        XinVayForm.AppDs.AppTinh = TrayView.TenTinh(TrangThai());
+        XinVayForm.AppDs.AppKhong = TrayView.TenKhongTinh(TrangThai());
         var f = new XinVayForm(saoDung, taiNgay: false);
         f.DatMau(saoDung ? new HvSao { Sao = 18, PhutCon = 18 } : new HvSao());
         buoc?.Invoke(f);
@@ -417,7 +436,7 @@ internal static class ChupMain
     }
 
     /// <summary>Màn «Sắp hết sao» / «Hết sao» (LockForm chỉ báo — không khoá máy) với nội dung dựng sẵn.</summary>
-    private static async Task ManHetSao(string ten, ManKhoa m, int? giay, string tenCon = "Bảo Anh")
+    private static async Task ManHetSao(string ten, ManKhoa m, int? giay, string tenCon = "Bảo Anh", bool dangDung = false)
     {
         var f = new LockForm(chiBao: true);
         f.WindowState = FormWindowState.Normal;
@@ -425,7 +444,7 @@ internal static class ChupMain
         try
         {
             f.Show();
-            f.ApHetSao(m, tenCon, giay, DateTimeOffset.Now.AddMinutes(-20), dangDung: m.Nut.Any(n => n.Ma == HetSaoView.DoiBe));
+            f.ApHetSao(m, tenCon, giay, DateTimeOffset.Now.AddMinutes(-20), dangDung: dangDung);
             await Cho(1500);
             Chup(f, ten);
         }
@@ -521,18 +540,12 @@ internal static class ChupMain
             AppDuocPhep = new List<string> { "hocvoiairob.exe", "tudien.exe" },
             AppTinhPhut = new List<string> { "robloxplayerbeta.exe", "youtubekids.exe" },
             // #307: tên hiển thị theo danh sách app máy (không tên tiến trình «Tudien», «Youtubekids»)
-            TenApp = TenAppMau(),
+            TenAppDuocPhep = new List<string> { "Học với AiiRob", "Từ điển" },
+            TenAppTinhPhut = new List<string> { "Roblox", "YouTube Kids" },
         };
         sua?.Invoke(s);
-        TrayView.DatTenApp(s.TenApp);
         return s;
     }
-
-    private static Dictionary<string, string> TenAppMau() => new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["hocvoiairob.exe"] = "Học với AiiRob", ["tudien.exe"] = "Từ điển", ["robloxplayerbeta.exe"] = "Roblox",
-        ["youtubekids.exe"] = "YouTube Kids", ["youtube.exe"] = "YouTube", ["capcut.exe"] = "CapCut",
-    };
 
     private static List<HvNhiemVu> NhiemVu() => new()
     {
