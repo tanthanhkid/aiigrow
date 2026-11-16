@@ -1,72 +1,97 @@
 "use client";
-// Màn tải bộ cài máy tính (Windows / Mac) — thiết kế web-tai 01, 03, 04, 05. Ba trạng thái trên một trang:
-//  cho = nút tải đúng máy · tai = «Đang tải» + hình mở file · dung = «Tải bị dừng» (kiểm wifi, Tải lại, link dự phòng).
+// Màn tải bộ cài máy tính (Windows / Mac) — Bàn web-tai: «Trang tải trên máy tính» (bm1-web-tai-may-tinh), «Tải cho Windows» / «Tải cho Mac»
+// (Đang tải + làm theo hình) và «Tải không được». Ba trạng thái trên một trang: cho = nút tải đúng máy · tai = «Đang tải» · dung = «Tải không được».
 // Trình duyệt tự tải tệp (thẻ <a>), trang không đo được % thật ⇒ thanh «Đang tải» chạy liên tục, không bịa số.
 import { useState } from "react";
-import { F3, Ph } from "../_clay/Icon";
-import { CHU_BUOC, HinhBuoc, OMaNho, TheBuoc, type NenMay } from "./Hinh";
+import { Anh, Buoc, CHU, Canh, Chips, Dau, HinhBuoc, Khac, Bt, NutTai, TEN, type NenTai } from "./Ban";
+import Chep from "./Chep";
 
 type Pha = "cho" | "tai" | "dung";
-type Props = { duPhong: string; nen: NenMay; link: string; nut: string; tep: string; ma: string; tuGhep: boolean; dau: Pha; khac: { nen: string; ten: string; href: string }[] };
+type Props = {
+  duPhong: string; nen: "windows" | "mac"; link: string; nut: string; tep: string; ma: string; tuGhep: boolean; dau: Pha;
+  hrefHe: Record<NenTai, string>; duPhongHien: string;
+};
 
-export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, khac }: Props) {
+export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, hrefHe, duPhongHien }: Props) {
   const [pha, setPha] = useState<Pha>(dau);
   const tenTep = nen === "windows" ? "AiiGrow-Setup.exe" : "AiiGrow.pkg";
-  const Duong = () => (
-    <p className="tai-khac">Không phải {nen === "windows" ? "Windows" : "Mac"}? {khac.map((k, i) => <span key={k.nen}>{i ? " · " : ""}<a href={k.href}>{k.ten}</a></span>)}</p>
-  );
+  const kia: NenTai = nen === "windows" ? "mac" : "windows";
+  const hre = (x: NenTai) => hrefHe[x];
+  const veCho = (e: React.MouseEvent) => { e.preventDefault(); setPha("cho"); };
 
+  // ---- Tải không được (them-rreafg7p) ----
   if (pha === "dung") return (
-    <>
-      <section className="the tai-the-loi">
-        <F3 ten="mobile-phone" co={56} />
-        <h1>Tải bị dừng</h1><p className="phu-de">Mạng chập chờn hoặc vừa mất mạng.</p>
-        <div className="tai-vach dung" role="img" aria-label="Đã dừng"><i /></div>
-        <p className="ghi-chu">Đã dừng · tải lại sẽ tải tiếp từ chỗ dừng nếu trình duyệt cho phép</p>
-      </section>
-      <ol className="buoc-hinh">
-        <li><span className="so">1</span><F3 ten="eyes" co={40} className="hinh" /><div><b className="t">Kiểm tra wifi</b><small>Thử mở một trang web khác</small></div></li>
-        <li><span className="so">2</span><F3 ten="inbox-tray" co={40} className="hinh" /><div><b className="t">Bấm «Tải lại»</b><small>Tải tiếp từ chỗ dừng</small></div></li>
-      </ol>
-      <a className="nut ngoc rong tai-nut-lon" href={link} onClick={() => setPha("tai")}><Ph ten="download-simple" co={22} />Tải lại</a>
-      <p className="ghi-chu tai-giua">Vẫn không được? Dùng link dự phòng: <a href={duPhong}>Tải từ đây</a></p>
-      <Duong />
-    </>
+    <div className="tb-pg hep">
+      <Dau ve={hre(nen)} />
+      <Canh rob="trong-loi" co={104} nho="Mạng chập chờn hoặc vừa mất mạng.">Tải bị dừng</Canh>
+      <div className="tb-the">
+        <div className="tb-vach" role="img" aria-label="Đã dừng"><i /></div>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}><span className="tb-ghi" style={{ color: "#8a3c0c" }}>Đã dừng</span></div>
+        <div className="tb-ds" style={{ marginTop: 16 }}>
+          <div className="tb-dong"><Bt ten="wifi" mau="lam" c={48} /><div><div className="tb-t1">Kiểm tra wifi</div><div className="tb-t2">Thử mở một trang web khác</div></div></div>
+          <div className="tb-dong"><Bt ten="tai" c={48} /><div><div className="tb-t1">Bấm «Tải lại»</div><div className="tb-t2">Tải tiếp từ chỗ dừng nếu trình duyệt cho phép</div></div></div>
+        </div>
+      </div>
+      <NutTai href={link} onClick={() => setPha("tai")}>Tải lại</NutTai>
+      <div className="tb-the" style={{ padding: "14px 16px" }}>
+        <div className="tb-t1" style={{ fontSize: 15.5 }}>Vẫn không được? Dùng link dự phòng</div>
+        <div className="tb-du"><span>{duPhongHien}</span><a className="tb-mn ok" href={duPhong} style={{ height: 44, borderRadius: 16, fontSize: 14 }}>Tải từ đây</a></div>
+      </div>
+      <div className="tb-khac"><span>Máy {TEN[kia]}?</span><Chips ds={[{ nen: kia, href: hre(kia), ten: `Tải bản cho ${TEN[kia]}` }]} /></div>
+    </div>
   );
 
-  return (
-    <>
-      <header className="dau-trang">
-        {pha === "cho" ? <h1>Cài AiiGrow lên máy của con</h1> : <h1>Đang tải…</h1>}
-        {tuGhep ? <p className="phu-de">Ba Mẹ vừa gửi link này để ghép máy vào gia đình, bộ cài tự ghép, không cần gõ mã.</p> : null}
-      </header>
-
-      {pha === "cho" ? (
-        <section className="the the-tai">
-          <a className="nut ngoc rong tai-nut-lon" href={link} onClick={() => setPha("tai")}><Ph ten="download-simple" co={22} />{nut}</a>
-          <p className="ghi-tep">{tep}</p>
-          {khac[0] && nen === "windows" ? <p className="tai-khac">Máy Mac? <a className="chip" href={khac[0].href}>Tải bản cho Mac</a></p> : null}
-        </section>
-      ) : (
-        <section className="the tai-the-tai" aria-live="polite">
-          <b>Đang tải… {tenTep}</b>
-          <div className="tai-vach" role="progressbar" aria-label="Đang tải"><i /></div>
-          <p className="ghi-chu">Trình duyệt đang tải tệp, tiến độ xem ở góc trên trình duyệt.</p>
-          <p className="ghi-chu">Tải bị dừng? <a href={link} onClick={(e) => { e.preventDefault(); setPha("dung"); }}>Tải lại</a></p>
-        </section>
-      )}
-
-      <h2 className="tai-tieu-de">{pha === "tai" ? "Tải xong, làm theo hình:" : "Làm 3 bước là xong"}</h2>
-      <ol className="tai-cac-buoc">
-        {CHU_BUOC[nen].map(([ten, phu], i) => (
-          <TheBuoc key={i} so={i + 1}
-            ten={i === 0 && pha === "cho" ? "Tải bộ cài" : i === 2 && tuGhep ? "Bộ cài tự ghép máy" : ten}
-            phu={i === 0 && pha === "cho" ? "Bấm nút xanh ở trên" : i === 2 && tuGhep ? "Không cần gõ mã. Link hết hạn thì gõ mã 6 số trên điện thoại Ba Mẹ" : phu}
-            hinh={i === 2 && ma ? <OMaNho ma={ma} /> : <HinhBuoc nen={nen} b={(i + 1) as 1 | 2 | 3} />} />
+  // ---- Đang tải + làm theo hình (Tải cho Windows / Tải cho Mac) ----
+  if (pha === "tai") return (
+    <div className="tb-pg hep">
+      <Dau ve={hre(nen)} onVe={veCho} may={nen} />
+      <div className="tb-the" style={{ padding: "16px 18px 18px" }} aria-live="polite">
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <img src="/assets/rob/cho.webp" alt="" width={78} height={78} style={{ flex: "none", filter: "drop-shadow(0 8px 8px rgba(28,32,30,.2))" }} />
+          <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.3px" }}>Đang tải…</div><div className="tb-t2" style={{ fontSize: 14 }}>{tenTep} · tiến độ xem ở góc trên trình duyệt</div></div>
+        </div>
+        <div className="tb-vach chay" style={{ marginTop: 14 }} role="progressbar" aria-label="Đang tải"><i /></div>
+        <div className="tb-dung"><span className="tb-ghi" style={{ fontSize: 13.5, color: "#3a403d" }}>Tải bị dừng?</span><a className="tb-lk" href={link} onClick={(e) => { e.preventDefault(); setPha("dung"); }}>Tải lại</a></div>
+      </div>
+      <p className="tb-tieu">Tải xong, làm theo hình:</p>
+      <ol className="tb-cac">
+        {CHU[nen].sau.map(([ten, phu], i) => (
+          <Buoc key={i} so={i + 1} lo={<HinhBuoc nen={nen} b={(i + 1) as 1 | 2 | 3} xong ma={ma} />}
+            ten={i === 2 && tuGhep ? "Bộ cài tự ghép máy" : ten}
+            phu={i === 2 && tuGhep ? "Không cần gõ mã. Link hết hạn thì gõ mã 6 số trên điện thoại Ba Mẹ" : phu} />
         ))}
       </ol>
-      {pha === "tai" ? <p className="ghi-chu tai-giua"><b>Bộ cài mở rồi, cài tiếp.</b> {tep}</p> : null}
-      <Duong />
-    </>
+      <div><NutTai tiep href="#" onClick={() => { document.querySelector(".tb-cac li:last-child")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>Bộ cài mở rồi, cài tiếp</NutTai><p className="tb-nho">{tep}</p></div>
+      <Khac nen={nen} hrefHe={hre} />
+    </div>
+  );
+
+  // ---- Trang tải trên máy tính (bm1-web-tai-may-tinh) ----
+  return (
+    <div className="tb-pg">
+      <Dau may={nen} dt={{ android: hre("android"), ios: hre("ios") }} />
+      <div className="tb-hero">
+        <div className="tb-h">
+          <span className="tb-may tren"><Anh ten={nen === "windows" ? "laptop" : "may_tinh"} />Máy này: {TEN[nen]}</span>
+          <h1>Cài AiiGrow lên<br />máy của con</h1>
+          {tuGhep ? <p className="tb-sub" style={{ fontSize: 16 }}>Ba Mẹ vừa gửi link này để ghép máy vào gia đình, bộ cài tự ghép, không cần gõ mã.</p> : null}
+          <div className="tb-thu" style={{ marginTop: 28 }}>
+            <NutTai lon href={link} onClick={() => setPha("tai")}>{nut}</NutTai>
+            <p className="tb-nho">{tep}</p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#3a403d" }}>Máy {TEN[kia]}?</span>
+              <a className="tb-chip" href={hre(kia)}><Anh ten={ kia === "windows" ? "laptop" : "may_tinh"} />Tải bản cho {TEN[kia]}</a>
+            </div>
+          </div>
+        </div>
+        <Canh rob="rob-goc" co={260} nho="Bấm nút xanh là tải đúng bản.">Máy {TEN[nen]} đây rồi!</Canh>
+      </div>
+      <ol className="tb-cac3 tb-cac" style={{ padding: 0 }}>
+        {CHU[nen].truoc.map(([ten, phu], i) => (
+          <Buoc key={i} so={i + 1} lo={<HinhBuoc nen={nen} b={(i + 1) as 1 | 2 | 3} xong={false} ma={ma} />} ten={ten} phu={phu} />
+        ))}
+      </ol>
+      <div className="tb-cuoi"><Bt ten="khien" c={44} /><span className="ft">Cài xong, máy của con tự báo về điện thoại Ba Mẹ.</span></div>
+    </div>
   );
 }

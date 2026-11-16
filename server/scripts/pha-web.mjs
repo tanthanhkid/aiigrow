@@ -187,11 +187,11 @@ if (GIAO_DIEN) {
   };
   const P = (ten, duong, cho, ua = "windows") => ({ ten, duong, khoa: null, token: null, cho, ua });
   const dsMan = [
-    P("tai-windows", "/tai", "Tải AiiGrow cho Windows"),
-    P("tai-mac", "/tai", "Tải AiiGrow cho máy Mac", "mac"),
-    P("tai-iphone", "/tai", "Bạn đang mở trang bằng iPhone", "iphone"),
-    P("tai-android", "/tai", "Tải app Ba Mẹ", "android"),
-    P("cai", "/cai/Ab3dEf9hJk2mNp4qRs6t", "Mở app AiiGrow Con"),
+    P("tai-windows", "/tai", "Tải bộ cài cho Windows"),
+    P("tai-mac", "/tai", "Tải bộ cài cho Mac", "mac"),
+    P("tai-iphone", "/tai", "Đây là iPhone / iPad.", "iphone"),
+    P("tai-android", "/tai", "Tải AiiGrow Con cho Android", "android"),
+    P("cai", "/cai/Ab3dEf9hJk2mNp4qRs6t", "Mở AiiGrow Con, nhập mã"),
     P("chinh-sach-rieng-tu", "/chinh-sach-rieng-tu", "AiiGrow Privacy Policy"),
     P("loi-404", "/api/khong-co-duong-nay", "Không tìm thấy trang này"),
     Q("quay-dang-nhap", "Vào quầy", { token: null }),
