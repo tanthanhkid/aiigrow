@@ -13,7 +13,7 @@ import { dauNgayUtc, gioDiaPhuong, laCuoiTuan } from "./gio.ts";
 import type { Q } from "./db.ts";
 
 /** Lựa chọn trên app Ba Mẹ (màn Lần đầu bm1-ob-gio + Giờ chơi trong hồ sơ Con). «Tự chọn» nhận số trong khoảng GH_NGAY / GH_LUOT. */
-export const MUC_NGAY = [30, 60, 90] as const;            // ngày thường; T7–CN mặc định = ngày thường + 30
+export const MUC_NGAY = [{ ngay: 30, cuoiTuan: 60 }, { ngay: 60, cuoiTuan: 90 }, { ngay: 90, cuoiTuan: 120 }] as const;   // chip «30p · T7, CN 60p»…
 export const MUC_LUOT = [0, 15, 30, 45, 60] as const;     // 0 = Không giới hạn
 export const GH_NGAY = { min: 10, max: 720 } as const;
 export const GH_LUOT = { min: 5, max: 240 } as const;
@@ -75,7 +75,9 @@ export function phanGhi(b: Record<string, unknown>): Record<string, number> {
 export function moTaGioiHan(c: CauHinhGioiHan): string {
   const ngay = !c.ngayThuong && !c.cuoiTuan ? "Mỗi ngày không giới hạn"
     : c.ngayThuong === c.cuoiTuan ? `Mỗi ngày tối đa ${c.ngayThuong} phút`
-    : `Mỗi ngày tối đa ${c.ngayThuong ? `${c.ngayThuong} phút` : "không giới hạn"} (T7, CN ${c.cuoiTuan ? `${c.cuoiTuan} phút` : "không giới hạn"})`;
+    : !c.cuoiTuan ? `Ngày thường tối đa ${c.ngayThuong} phút · cuối tuần không giới hạn`
+    : !c.ngayThuong ? `Ngày thường không giới hạn · cuối tuần tối đa ${c.cuoiTuan} phút`
+    : `Mỗi ngày tối đa ${c.ngayThuong} phút (T7, CN ${c.cuoiTuan} phút)`;
   const luot = c.moiLuot ? `mỗi lượt ${c.moiLuot} phút rồi nghỉ ${c.moiLuot} phút` : "mỗi lượt không giới hạn";
   return `${ngay} · ${luot} · chơi bằng sao`;
 }
@@ -107,8 +109,8 @@ export function tinhLuot(doan: DoanChoi[], moLai: Date[], luot: number, now: Dat
     if (batDau === null) batDau = s;
     const phut = (e - s) / 60_000;
     daChoi += phut; cuoi = e;
-    if (daChoi >= luot - 1e-6) {
-      const du = daChoi - luot;                         // phút vượt (đoạn cuối báo gộp) — nghỉ tính từ lúc đủ lượt
+    if (luot - daChoi < 1 - 1e-6) {                     // còn < 1 phút ⇒ coi như đủ lượt (máy làm tròn xuống phút chơi được ⇒ 0)
+      const du = daChoi - luot;                         // phút vượt (âm: phần lẻ chưa chơi) — nghỉ tính từ lúc đủ lượt
       nghiDen = e - du * 60_000 + ms;
     }
   }
@@ -120,32 +122,40 @@ export function tinhLuot(doan: DoanChoi[], moLai: Date[], luot: number, now: Dat
 }
 
 /** Trạng thái giới hạn của Con lúc `now`. `daChoi` = phút «Tính phút» đã dùng hôm nay (quy-gio › quyHomNay.daDung). */
-export async function gioiHanCua(t: Q, con: string, cfg: Record<string, unknown> | null | undefined, tz: string, daChoi: number,
+/** Trạng thái giới hạn của Con lúc `now`. Phút đã chơi hôm nay = phút «Tính phút» theo đồng hồ máy chủ (choi_tru — chỉ ghi ở chế độ có đếm,
+ *  KHÔNG gồm phút lúc «Mở hết»). Ba truy vấn chạy song song. */
+export async function gioiHanCua(t: Q, con: string, cfg: Record<string, unknown> | null | undefined, tz: string,
   o: { moHet: boolean }, now = new Date()): Promise<GioiHanChoi> {
   const c = cauHinhCua(cfg);
   const g = gioDiaPhuong(now, tz);
   const goc = laCuoiTuan(g.thu) ? c.cuoiTuan : c.ngayThuong;
   const moTa = moTaGioiHan(c);
-  const khong: GioiHanChoi = { apDung: false, cauHinh: c, ngayPhut: null, themHomNay: 0, daChoi: tron1(daChoi), conNgay: null, luotPhut: null,
+  const khong: GioiHanChoi = { apDung: false, cauHinh: c, ngayPhut: null, themHomNay: 0, daChoi: 0, conNgay: null, luotPhut: null,
     luotBatDau: null, luotDaChoi: 0, conLuot: null, dangNghi: false, nghiDen: null, nghiDenGio: null, hetNgay: false, lyDoKhoa: null, phutToiDa: null,
     cau: null, moTa };
   if (o.moHet || (!goc && !c.moiLuot)) return khong;
   const dau = dauNgayUtc(g.ngay, tz);
-  // sao Ba Mẹ cho vay hôm nay (trừ vay để đổi quà; hoàn tác trừ lại) — cộng vào giới hạn hôm nay + kết thúc nghỉ
-  const vay = await t<{ delta: number; created_at: Date }>(
-    `select delta, created_at from points where child_id = $1 and loai = 'vay' and created_at >= $2 and created_at <= $3
-       and coalesce(ly_do, '') not like '%· đổi quà%'`, [con, new Date(dau.getTime() - 86_400_000), now]);
+  const tuLuot = new Date(now.getTime() - Math.max(c.moiLuot * 4, 180) * 60_000);
+  const [vay, doanRaw, ngay] = await Promise.all([
+    // sao Ba Mẹ cho vay (trừ vay ĐỔI QUÀ — points.muc_dich; dòng hoàn tác «hoan:<id>» theo mục đích của khoản gốc) — cộng vào giới hạn hôm nay + kết thúc nghỉ
+    t<{ delta: number; created_at: Date }>(
+      `select p.delta, p.created_at from points p left join points g on p.ref like 'hoan:%' and g.id = substr(p.ref, 6)
+        where p.child_id = $1 and p.loai = 'vay' and p.created_at >= $2 and p.created_at <= $3
+          and coalesce(p.muc_dich, g.muc_dich, '') <> 'qua'`, [con, new Date(Math.min(dau.getTime(), tuLuot.getTime())), now]),
+    c.moiLuot ? t<{ luc: Date; phut: number }>(`select luc, phut from choi_tru where child_id = $1 and luc > $2 and luc <= $3 order by luc`, [con, tuLuot, now])
+      : Promise.resolve([] as { luc: Date; phut: number }[]),
+    t<{ p: number }>(`select coalesce(sum(phut), 0)::real as p from choi_tru where child_id = $1 and luc > $2 and luc <= $3`, [con, dau, now]),
+  ]);
+  const daChoi = Number(ngay[0]?.p ?? 0);
   const themHomNay = Math.max(0, vay.filter((v) => new Date(v.created_at) >= dau).reduce((s, v) => s + Number(v.delta), 0));
   const ngayPhut = goc ? goc + themHomNay : null;
   const conNgay = ngayPhut !== null ? tron1(Math.max(0, ngayPhut - daChoi)) : null;
   let l = { dangNghi: false, nghiDen: null as Date | null, luotBatDau: null as Date | null, luotDaChoi: 0, conLuot: null as number | null };
   if (c.moiLuot) {
-    const tu = new Date(now.getTime() - Math.max(c.moiLuot * 4, 180) * 60_000);
-    const doan = (await t<{ luc: Date; phut: number }>(`select luc, phut from choi_tru where child_id = $1 and luc > $2 and luc <= $3 order by luc`,
-      [con, tu, now])).map((r) => ({ luc: new Date(r.luc), phut: Number(r.phut) }));
+    const doan = doanRaw.map((r) => ({ luc: new Date(r.luc), phut: Number(r.phut) }));
     l = tinhLuot(doan, vay.filter((v) => Number(v.delta) > 0).map((v) => new Date(v.created_at)), c.moiLuot, now);
   }
-  const hetNgay = conNgay !== null && conNgay <= 0;
+  const hetNgay = conNgay !== null && conNgay < 1 - 1e-6;   // còn < 1 phút ⇒ hết (máy làm tròn xuống phút chơi được ⇒ 0)
   const lyDoKhoa = hetNgay ? "het_gio_ngay" as const : l.dangNghi ? "dang_nghi" as const : null;
   const phutToiDa = lyDoKhoa ? 0 : conNgay === null && l.conLuot === null ? null : Math.min(conNgay ?? Infinity, l.conLuot ?? Infinity);
   const nghiDenGio = l.nghiDen ? hhmm(l.nghiDen, tz) : null;

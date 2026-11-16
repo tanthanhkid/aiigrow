@@ -1,7 +1,7 @@
 // node --test src/lib/gioi-han.test.ts — #302 «Giờ chơi»: giới hạn tối đa mỗi ngày + mỗi lượt tối đa (khớp server/lib/gioi-han-choi.ts).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chipLuot, chipNgay, docPhut, dongGioiHanTre, GIOI_HAN_MD, KHOANG_LUOT, moTaGioiHan, thanGioiHan, tomTatGioiHan } from "./gioi-han.ts";
+import { chipLuot, chipNgay, docPhut, dongGioiHanTre, GIOI_HAN_MD, KHOANG_LUOT, moTaGioiHan, mucTu, thanGioiHan, tomTatGioiHan } from "./gioi-han.ts";
 import { thanThietLap } from "./thiet-lap.ts";
 
 test("dòng giải thích khớp máy chủ", () => {
@@ -36,4 +36,13 @@ test("màn Con /tre: còn X phút hôm nay · đang nghỉ tới HH:MM · hết 
   assert.equal(dongGioiHanTre({ ...g, hetNgay: true, lyDoKhoa: "het_gio_ngay", cau: "Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé" })?.tieu, "Hôm nay chơi đủ rồi");
   assert.equal(dongGioiHanTre({ ...g, apDung: false }), null);
   assert.equal(dongGioiHanTre(null), null);
+});
+
+test("cuối tuần không giới hạn ghi rõ; lựa chọn lấy từ máy chủ, thiếu thì mặc định", () => {
+  assert.equal(moTaGioiHan({ ngayThuong: 60, cuoiTuan: 0, moiLuot: 0 }), "Ngày thường tối đa 60 phút · cuối tuần không giới hạn · mỗi lượt không giới hạn · chơi bằng sao");
+  assert.deepEqual(tomTatGioiHan({ ngayThuong: 60, cuoiTuan: 0, moiLuot: 0 }), { tren: "60 phút ngày thường · cuối tuần không giới hạn" });
+  assert.deepEqual(mucTu({ ngay: [{ ngay: 45, cuoiTuan: 90 }], luot: [0, 20] }), { ngay: [{ ngay: 45, cuoiTuan: 90 }], luot: [0, 20] });
+  assert.equal(mucTu(null).ngay.length, 3);
+  assert.equal(mucTu({ ngay: [30, 60, 90] }).ngay[0].cuoiTuan, 60, "máy chủ cũ trả mảng số ⇒ mặc định");
+  assert.equal(chipNgay({ ngayThuong: 45, cuoiTuan: 90, moiLuot: 0 }, [{ ngay: 45, cuoiTuan: 90 }]), 0);
 });

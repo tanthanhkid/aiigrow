@@ -26,7 +26,8 @@ export async function xuLyMSao(bm: { id: string; family_id: string }, req: Reque
       const c = await one(`select 1 from children where id = $1 and family_id = $2`, [p[1], fam]);
       if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
       const quy = await qg.quyHomNay(p[1]);
-      return json({ quy, sao: quy.soSao.sao, soSao: quy.soSao, ngoaiLe: [] });
+      // #302: soSao kẹp theo giới hạn ngày / lượt (phutCon = phút chơi được, saoTieuDuoc = sao thật) — khớp khoá trên máy Con
+      return json({ quy, sao: quy.soSao.sao, soSao: qg.saoKepGioiHan(quy), gioiHan: qg.gioiHanMay(quy.gioiHan), ngoaiLe: [] });
     }
     // 15/11 sổ sao (#263–#266): ví sao + lịch sử vay / trả / chơi · xem trước + cho vay · «Cho thêm giờ» cũ = cho vay N sao
     if (sau === "vi-sao" && get) return json(await ss.viSao(fam, p[1], { gioiHan: Number(new URL(req.url).searchParams.get("gioiHan")) || 50 }));
@@ -79,7 +80,8 @@ export async function xuLyConSao(con: string, mayId: string | null, req: Request
       q(`select id, loai, phut, gia_tri, pham_vi, muc_dich, ly_do, created_at from requests where child_id = $1 and trang_thai = 'cho'
                and loai in ('vay_sao', 'them_gio', 'ngoai_le', 'ngoai_gio') and het_han > now() order by created_at desc`, [con])]);
     // `sao` (cũ = số dư ≥ 0) nay là số dư Con thấy (âm khi nợ) · `phutDoiDuoc` (cũ) = phút còn chơi · `soSao` + `cau` mới
-    return json({ quy, sao: quy.soSao.sao, soSao: quy.soSao, cau: ss.cauSao(quy.soSao), phutDoiDuoc: quy.conPhut, ngoaiLe: [], yeuCauCho: cho });
+    const kep = qg.saoKepGioiHan(quy);      // #302: kẹp theo giới hạn — khớp khoá
+    return json({ quy, sao: quy.soSao.sao, soSao: kep, cau: kep.cau, phutDoiDuoc: quy.conPhut, gioiHan: qg.gioiHanMay(quy.gioiHan), ngoaiLe: [], yeuCauCho: cho });
   }
   if (d === "doi-sao" && post) return json(await qg.doiSaoLayGio(con, b.phut, mayId));
   // 15/11: sổ sao của Con — «còn N sao = N phút», hết sao, đang nợ · gửi lời xin vay (chơi / đổi quà)
@@ -88,9 +90,11 @@ export async function xuLyConSao(con: string, mayId: string | null, req: Request
     const gh = Number(new URL(req.url).searchParams.get("gioiHan")) || 20;
     const c = await one<{ family_id: string; tz: string }>(`select c.family_id, f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]);
     const now = new Date();
-    const [st, lichSu, appHomNay, phutChoiHomNay] = await Promise.all([ss.trangThaiSao(con), ss.lichSuSaoCon(con, gh), appHomNayCon(con, now, c),
+    const [qy, lichSu, appHomNay, phutChoiHomNay] = await Promise.all([qg.quyHomNay(con, now), ss.lichSuSaoCon(con, gh), appHomNayCon(con, now, c),
       ss.phutDaTruHomNay(q, con, c?.tz ?? "Asia/Ho_Chi_Minh", now)]);
-    return json({ ...st, cau: ss.cauSao(st), mucVay: [...ss.MUC_VAY], vayMacDinh: ss.VAY_MAC_DINH, lichSu, appHomNay, phutChoiHomNay });
+    // #302: phutCon / hetSao kẹp theo giới hạn ngày / lượt (saoTieuDuoc = sao thật) + gioiHan — màn Con không mâu thuẫn với khoá
+    const st = qg.saoKepGioiHan(qy);
+    return json({ ...st, gioiHan: qg.gioiHanMay(qy.gioiHan), mucVay: [...ss.MUC_VAY], vayMacDinh: ss.VAY_MAC_DINH, lichSu, appHomNay, phutChoiHomNay });
   }
   if (d === "xin-vay" && post) {
     const r = await yc.guiYeuCau(con, mayId, { loai: "vay_sao", soSao: b.soSao ?? ss.VAY_MAC_DINH, mucDich: b.mucDich, quaId: b.quaId, lyDo: b.loiNhan ?? b.lyDo });

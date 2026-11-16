@@ -64,7 +64,8 @@ export async function nhaTre(c: ConTre, now = new Date()) {
     canBoSung: nv.filter((x) => x.trang_thai_con === "can_bo_sung").map((x) => ({ id: x.id, ten: x.ten, luot: x.luot_dang })),
     phutChoi: tran.daChoi, tranNgay: tran.quy.tongPhut, conPhut: tran.conPhut, quy: tran.quy, sao: vi.soDu,   // 05/11: quỹ giờ chơi (lib/quy-gio.ts)
     khung: khungHomNay(lichCua(cc.lich as never), g.thu, g.phut), gioNgu: trongKhung(g.phut, lichCua(cc.lich as never).ngu),
-    nghiDen: nghi ? new Date(nghi.nghi_den).toISOString() : tran.quy.gioiHan.nghiDen,
+    // #302: có giới hạn ⇒ giờ nghỉ theo giới hạn (cho vay kết thúc nghỉ thì hết ngay); phiên cũ (nghi_den) chỉ khi không có giới hạn
+    nghiDen: tran.quy.gioiHan.apDung ? tran.quy.gioiHan.nghiDen : nghi ? new Date(nghi.nghi_den).toISOString() : null,
     // #302: «còn X phút hôm nay» / «đang nghỉ tới HH:MM» (lib/gioi-han-choi.ts)
     gioiHan: gioiHanMay(tran.quy.gioiHan),
     phien: dang ? { id: dang.id, muc: dang.muc, conPhut: Math.max(0, Math.ceil(dang.toi_da_phut - dang.phut_dung)) } : null,

@@ -13,7 +13,9 @@ const ph = await import("./phien.ts");
 const mc = await import("./may-con.ts");
 const ss = await import("./so-sao.ts");
 const gh = await import("./gioi-han-choi.ts");
-const { one } = await import("./db.ts");
+const { one, q } = await import("./db.ts");
+const tre = await import("./choi-tre.ts");
+const { xuLyConSao } = await import("./api-sao.ts");
 const { taoNha } = await import("./test-fixtures/nha.ts");
 const { taoPhien } = await import("./auth.ts");
 
@@ -193,4 +195,47 @@ test("Lần đầu (POST thiet-lap): gửi giới hạn ngày + mỗi lượt �
   assert.deepEqual([r.body.gioiHanNgayThuong, r.body.gioiHanCuoiTuan, r.body.phutMoiLuot], [60, 90, 30]);
   assert.equal((await m(tok, "thiet-lap", { con: { ten: "Bé 2" }, phutMoiLuot: 1 })).status, 400);
   assert.equal((await one<{ n: number }>(`select count(*)::int as n from children where family_id = $1`, [fam]))!.n, 1, "lỗi giới hạn không tạo Con");
+});
+
+test("review: còn < 1 phút = hết (lý do + nghiDen); phút «Mở hết» không đếm; vay theo muc_dich + hoàn tác; kid/sao kẹp; nhaTre hết nghỉ khi cho vay", async () => {
+  const t0 = VN("2026-11-16T15:00:00");
+  // lượt 15, chơi 14,5 phút ⇒ còn 0,5 < 1 ⇒ đang nghỉ (không phải «khoá không lý do»)
+  const a = await nha(100);
+  await qg.datGioChoi(a.fam, a.con, { gioiHanNgayThuong: 120, phutMoiLuot: 15 }, a.bm);
+  await choi(a.con, t0, 14);
+  await ss.truPhutChoi(a.con, 0.5, sau(t0, 14.5), { muc: "roblox.exe" });
+  let qy = await qg.quyHomNay(a.con, sau(t0, 14.6));
+  assert.deepEqual([qy.conPhut, qy.gioiHan.lyDoKhoa, !!qy.gioiHan.nghiDen], [0, "dang_nghi", true]);
+  // ngày 30, đã chơi 29,5 ⇒ hết hôm nay
+  const b = await nha(100);
+  await qg.datGioChoi(b.fam, b.con, { gioiHanNgayThuong: 30 }, b.bm);
+  await choi(b.con, t0, 29);
+  await ss.truPhutChoi(b.con, 0.5, sau(t0, 29.5), { muc: "roblox.exe" });
+  qy = await qg.quyHomNay(b.con, sau(t0, 29.6));
+  assert.deepEqual([qy.conPhut, qy.gioiHan.lyDoKhoa], [0, "het_gio_ngay"]);
+  // phút ở «Mở hết» (usage giai_tri, không có choi_tru) không ăn vào giới hạn ngày
+  const c = await nha(100);
+  await qg.datGioChoi(c.fam, c.con, { gioiHanNgayThuong: 30 }, c.bm);
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,'2026-11-16','roblox.exe','giai_tri',40)`, [c.mayId, c.con]);
+  qy = await qg.quyHomNay(c.con, t0);
+  assert.deepEqual([qy.gioiHan.daChoi, qy.conPhut], [0, 30]);
+  // vay: muc_dich có cấu trúc; hoàn tác trừ đúng khoản gốc
+  const v = await ss.choVay(c.fam, c.con, 10, c.bm, { mucDich: "choi" }, undefined, t0);
+  assert.equal((await one<{ m: string }>(`select muc_dich as m from points where id = $1`, [v.id]))!.m, "choi");
+  assert.equal((await qg.quyHomNay(c.con, sau(t0, 0.2))).gioiHan.ngayPhut, 40);
+  await qg.hoanTacThemGio(c.fam, v.id, c.bm, sau(t0, 0.3));
+  assert.equal((await qg.quyHomNay(c.con, sau(t0, 0.4))).gioiHan.ngayPhut, 30, "hoàn tác ⇒ bỏ phần cộng");
+  await ss.choVay(c.fam, c.con, 10, c.bm, { mucDich: "qua" }, undefined, sau(t0, 1));
+  assert.equal((await qg.quyHomNay(c.con, sau(t0, 1.1))).gioiHan.ngayPhut, 30, "vay đổi quà không cộng");
+  // kid/sao: phutCon kẹp, saoTieuDuoc thật, có gioiHan
+  const r = await xuLyConSao(b.con, null, new Request("http://x/api/kid/sao"), ["sao"], {});
+  const body = (await r!.json()) as any;
+  // (route dùng đồng hồ thật ⇒ chỉ kiểm hình dạng: có sao thật + khối gioiHan, phutCon ≤ sao thật)
+  assert.deepEqual([typeof body.saoTieuDuoc, body.gioiHan?.apDung, body.phutCon <= body.saoTieuDuoc], ["number", true, true]);
+  // nhaTre: đang nghỉ ⇒ nghiDen; cho vay ⇒ hết nghỉ ngay
+  let n = await tre.nhaTre({ id: a.con, family_id: a.fam, device_id: null }, sau(t0, 15));
+  assert.ok(n.nghiDen);
+  await ss.choVay(a.fam, a.con, 10, a.bm, { mucDich: "choi" }, undefined, sau(t0, 15.5));
+  n = await tre.nhaTre({ id: a.con, family_id: a.fam, device_id: null }, sau(t0, 16));
+  assert.deepEqual([n.nghiDen, n.gioiHan.dangNghi], [null, false]);
 });

@@ -15,11 +15,11 @@ export const KHOANG_LUOT = { min: 5, max: 240 } as const;
 export const GIOI_HAN_MD: GioiHan = { ngayThuong: 60, cuoiTuan: 90, moiLuot: 0 };
 
 /** Chip ngày đang chọn: chỉ số trong MUC_NGAY, hoặc "tu_chon" khi không khớp chip nào. */
-export const chipNgay = (g: GioiHan): number | "tu_chon" => {
-  const i = MUC_NGAY.findIndex((x) => x.ngay === g.ngayThuong && x.cuoiTuan === g.cuoiTuan);
+export const chipNgay = (g: GioiHan, muc: { ngay: number; cuoiTuan: number }[] = MUC_NGAY): number | "tu_chon" => {
+  const i = muc.findIndex((x) => x.ngay === g.ngayThuong && x.cuoiTuan === g.cuoiTuan);
   return i >= 0 ? i : "tu_chon";
 };
-export const chipLuot = (g: GioiHan): number | "tu_chon" => ((MUC_LUOT as readonly number[]).includes(g.moiLuot) ? g.moiLuot : "tu_chon");
+export const chipLuot = (g: GioiHan, muc: readonly number[] = MUC_LUOT): number | "tu_chon" => (muc.includes(g.moiLuot) ? g.moiLuot : "tu_chon");
 
 /** Ô «Tự chọn»: chuỗi Ba Mẹ gõ ⇒ số phút (trống / 0 = không giới hạn) hoặc lỗi. */
 export function docPhut(chu: string, k: { min: number; max: number }): { phut: number; loi: string | null } {
@@ -35,16 +35,29 @@ export function docPhut(chu: string, k: { min: number; max: number }): { phut: n
 export function moTaGioiHan(c: GioiHan): string {
   const ngay = !c.ngayThuong && !c.cuoiTuan ? "Mỗi ngày không giới hạn"
     : c.ngayThuong === c.cuoiTuan ? `Mỗi ngày tối đa ${c.ngayThuong} phút`
-    : `Mỗi ngày tối đa ${c.ngayThuong ? `${c.ngayThuong} phút` : "không giới hạn"} (T7, CN ${c.cuoiTuan ? `${c.cuoiTuan} phút` : "không giới hạn"})`;
+    : !c.cuoiTuan ? `Ngày thường tối đa ${c.ngayThuong} phút · cuối tuần không giới hạn`
+    : !c.ngayThuong ? `Ngày thường không giới hạn · cuối tuần tối đa ${c.cuoiTuan} phút`
+    : `Mỗi ngày tối đa ${c.ngayThuong} phút (T7, CN ${c.cuoiTuan} phút)`;
   const luot = c.moiLuot ? `mỗi lượt ${c.moiLuot} phút rồi nghỉ ${c.moiLuot} phút` : "mỗi lượt không giới hạn";
   return `${ngay} · ${luot} · chơi bằng sao`;
 }
 
 /** Hàng «Giờ chơi» trong hồ sơ Con: «60 phút/ngày» + «mỗi lượt 30 phút». */
 export function tomTatGioiHan(c: GioiHan): { tren: string; duoi?: string } {
-  const tren = !c.ngayThuong && !c.cuoiTuan ? "Không giới hạn" : c.ngayThuong === c.cuoiTuan || !c.cuoiTuan ? `${c.ngayThuong || "∞"} phút/ngày`
-    : `${c.ngayThuong || "∞"} · T7, CN ${c.cuoiTuan} phút`;
+  const tren = !c.ngayThuong && !c.cuoiTuan ? "Không giới hạn" : c.ngayThuong === c.cuoiTuan ? `${c.ngayThuong} phút/ngày`
+    : !c.cuoiTuan ? `${c.ngayThuong} phút ngày thường · cuối tuần không giới hạn`
+    : !c.ngayThuong ? `Ngày thường không giới hạn · cuối tuần ${c.cuoiTuan} phút`
+    : `${c.ngayThuong} · T7, CN ${c.cuoiTuan} phút`;
   return { tren, ...(c.moiLuot ? { duoi: `mỗi lượt ${c.moiLuot} phút` } : {}) };
+}
+
+/** Lựa chọn máy chủ trả (gio-choi › mucGioiHan) — thiếu / sai ⇒ dùng mặc định trong app. */
+export type MucMayChu = { ngay?: { ngay: number; cuoiTuan: number }[] | number[]; luot?: number[] } | null | undefined;
+export function mucTu(m: MucMayChu): { ngay: { ngay: number; cuoiTuan: number }[]; luot: number[] } {
+  const ngay = Array.isArray(m?.ngay) && m!.ngay.length && m!.ngay.every((x) => typeof x === "object" && x && Number(x.ngay) > 0)
+    ? (m!.ngay as { ngay: number; cuoiTuan: number }[]).map((x) => ({ ngay: Number(x.ngay), cuoiTuan: Number(x.cuoiTuan) || 0 })) : MUC_NGAY;
+  const luot = Array.isArray(m?.luot) && m!.luot.length && m!.luot.every((x) => Number.isInteger(x) && x >= 0) ? m!.luot : [...MUC_LUOT];
+  return { ngay, luot };
 }
 
 /** Thân gửi máy chủ (POST thiet-lap / con/<id>/gio-choi). */

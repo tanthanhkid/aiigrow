@@ -5,11 +5,11 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { bm } from "@/lib/api";
 import { CAU_TRONG_GIUP, quyenToi } from "@/lib/hang-ngay";
-import { thanGioiHan, type GioiHan } from "@/lib/gioi-han";
+import { thanGioiHan, type GioiHan, type MucMayChu } from "@/lib/gioi-han";
 import { ChonGioiHan } from "@/lib/gioi-han-ui";
 import { BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, useLam, useTai } from "@/lib/ui";
 
-type GioChoi = { gioiHanNgayThuong?: number; gioiHanCuoiTuan?: number; phutMoiLuot?: number; moTaGioiHan?: string;
+type GioChoi = { gioiHanNgayThuong?: number; gioiHanCuoiTuan?: number; phutMoiLuot?: number; moTaGioiHan?: string; mucGioiHan?: MucMayChu;
   homNay?: { gioiHan?: { cau: string | null } } };
 
 export default function GioChoiCon() {
@@ -36,7 +36,7 @@ export default function GioChoiCon() {
       day={d.xem ? undefined : <><BaoLoi loi={loiLam} /><Nut chu="Lưu giờ chơi" rong dangChay={dangChay} tat={!doi || !!loiO} bam={luu} /></>}>
       <Chu kieu="rat" co={22}>{`${d.ten} chơi máy bao lâu mỗi ngày?`}</Chu>
       {d.xem ? <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{CAU_TRONG_GIUP}</Chu> : null}
-      <ChonGioiHan gt={gt} doi={(g, l) => { setMoi(g); setLoiO(l); }} />
+      <ChonGioiHan gt={gt} muc={d.g.mucGioiHan} moTa={d.g.moTaGioiHan} doi={(g, l) => { setMoi(g); setLoiO(l); }} />
       {d.g.homNay?.gioiHan?.cau ? <Chu kieu="dam" co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{`Hôm nay: ${d.g.homNay.gioiHan.cau}`}</Chu> : null}
     </Man>
   );

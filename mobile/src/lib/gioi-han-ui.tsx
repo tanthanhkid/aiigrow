@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
-import { chipLuot, chipNgay, docPhut, KHOANG_LUOT, KHOANG_NGAY, moTaGioiHan, MUC_LUOT, MUC_NGAY, type GioiHan } from "@/lib/gioi-han";
+import { chipLuot, chipNgay, docPhut, KHOANG_LUOT, KHOANG_NGAY, moTaGioiHan, mucTu, type GioiHan, type MucMayChu } from "@/lib/gioi-han";
 import { Chu, F, Icon3D, M } from "@/lib/ui";
 
 const NAU = "#4a3000";
@@ -35,11 +35,14 @@ function OPhut({ nhan, chu, doi, goiY }: { nhan: string; chu: string; doi: (s: s
 }
 
 /** `doi(gt, loi)`: loi ≠ null khi ô «Tự chọn» đang sai (màn tắt nút Lưu / Tiếp). */
-export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: string | null) => void }) {
+/** `muc` / `moTa`: lựa chọn + dòng giải thích máy chủ trả (gio-choi) — thiếu thì dùng mặc định trong app; `moTa` chỉ dùng khi chưa đổi gì. */
+export function ChonGioiHan({ gt, doi, muc: mucVao, moTa }: { gt: GioiHan; doi: (g: GioiHan, loi: string | null) => void; muc?: MucMayChu; moTa?: string | null }) {
+  const muc = mucTu(mucVao);
+  const [gt0] = useState(gt);
   const [loi, setLoi] = useState<string | null>(null);
   const bao = (g: GioiHan, l: string | null) => { setLoi(l); doi(g, l); };
-  const [tuNgay, setTuNgay] = useState(chipNgay(gt) === "tu_chon");
-  const [tuLuot, setTuLuot] = useState(chipLuot(gt) === "tu_chon");
+  const [tuNgay, setTuNgay] = useState(chipNgay(gt, muc.ngay) === "tu_chon");
+  const [tuLuot, setTuLuot] = useState(chipLuot(gt, muc.luot) === "tu_chon");
   const [chu, setChu] = useState({ nt: gt.ngayThuong ? String(gt.ngayThuong) : "", ct: gt.cuoiTuan ? String(gt.cuoiTuan) : "", l: gt.moiLuot ? String(gt.moiLuot) : "" });
   const kiem = (c: typeof chu, tn: boolean, tl: boolean) => {
     const nt = docPhut(c.nt, KHOANG_NGAY), ct = docPhut(c.ct, KHOANG_NGAY), l = docPhut(c.l, KHOANG_LUOT);
@@ -48,7 +51,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
   };
   const goNgay = (k: "nt" | "ct", s: string) => { const c = { ...chu, [k]: s }; setChu(c); const r = kiem(c, true, tuLuot); bao(r.g, r.loi); };
   const goLuot = (s: string) => { const c = { ...chu, l: s }; setChu(c); const r = kiem(c, tuNgay, true); bao(r.g, r.loi); };
-  const chonNgay = (i: number) => { setTuNgay(false); const r = kiem(chu, false, tuLuot); bao({ ...r.g, ngayThuong: MUC_NGAY[i].ngay, cuoiTuan: MUC_NGAY[i].cuoiTuan }, r.loi); };
+  const chonNgay = (i: number) => { setTuNgay(false); const r = kiem(chu, false, tuLuot); bao({ ...r.g, ngayThuong: muc.ngay[i].ngay, cuoiTuan: muc.ngay[i].cuoiTuan }, r.loi); };
   const moTuNgay = () => {
     setTuNgay(true);
     const c = { ...chu, nt: gt.ngayThuong ? String(gt.ngayThuong) : "", ct: gt.cuoiTuan ? String(gt.cuoiTuan) : "" };
@@ -56,7 +59,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
   };
   const chonLuot = (n: number) => { setTuLuot(false); const r = kiem(chu, tuNgay, false); bao({ ...r.g, moiLuot: n }, r.loi); };
   const moTuLuot = () => { setTuLuot(true); const c = { ...chu, l: gt.moiLuot ? String(gt.moiLuot) : "" }; setChu(c); const r = kiem(c, tuNgay, true); bao(r.g, r.loi); };
-  const cn = tuNgay ? "tu_chon" : chipNgay(gt), cl = tuLuot ? "tu_chon" : chipLuot(gt);
+  const cn = tuNgay ? "tu_chon" : chipNgay(gt, muc.ngay), cl = tuLuot ? "tu_chon" : chipLuot(gt, muc.luot);
   const theVang = { borderRadius: 30, backgroundColor: "#fdecc8", backgroundImage: "linear-gradient(160deg, #fff4dc, #fbe3b4)", padding: 16, gap: 12, ...KHOI.the };
   return (
     <>
@@ -66,7 +69,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
           <Chu kieu="rat" co={15} mau={NAU} style={{ flex: 1 }}>Hết giờ, máy tự khoá</Chu>
         </View>
         <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
-          {MUC_NGAY.map((x, i) => <Chip key={x.ngay} on={cn === i} tren={`${x.ngay}p`} duoi={`T7, CN ${x.cuoiTuan}p`}
+          {muc.ngay.map((x, i) => <Chip key={x.ngay} on={cn === i} tren={`${x.ngay}p`} duoi={`T7, CN ${x.cuoiTuan}p`}
             nhan={`Tối đa ${x.ngay} phút mỗi ngày, thứ Bảy Chủ nhật ${x.cuoiTuan} phút`} bam={() => chonNgay(i)} />)}
           <Chip on={cn === "tu_chon"} tren="Tự chọn" duoi={cn === "tu_chon" && (gt.ngayThuong || gt.cuoiTuan) ? `${gt.ngayThuong || "∞"}p · ${gt.cuoiTuan || "∞"}p` : undefined}
             nhan="Tự chọn giới hạn mỗi ngày" bam={moTuNgay} />
@@ -87,7 +90,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
           </View>
         </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityRole="radiogroup">
-          {[...MUC_LUOT, -1].map((n) => (
+          {[...muc.luot, -1].map((n) => (
             <View key={n} style={{ width: "31%", flexGrow: 1 }}>
               {n < 0
                 ? <Chip on={cl === "tu_chon"} tren="Tự chọn" duoi={cl === "tu_chon" && gt.moiLuot ? `${gt.moiLuot}p` : undefined} nhan="Tự chọn phút mỗi lượt" bam={moTuLuot} />
@@ -99,7 +102,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
         {cl === "tu_chon" ? <OPhut nhan={`Mỗi lượt (${KHOANG_LUOT.min}–${KHOANG_LUOT.max} phút)`} chu={chu.l} doi={goLuot} goiY="ví dụ 20" /> : null}
       </View>
       {loi ? <Chu kieu="dam" co={13} mau={M.loi} style={{ marginHorizontal: 4 }}>{loi}</Chu> : null}
-      <Chu kieu="dam" co={14} mau={M.chu2} style={{ marginHorizontal: 4 }}>{moTaGioiHan(gt)}</Chu>
+      <Chu kieu="dam" co={14} mau={M.chu2} style={{ marginHorizontal: 4 }}>{moTa && JSON.stringify(gt) === JSON.stringify(gt0) ? moTa : moTaGioiHan(gt)}</Chu>
     </>
   );
 }
