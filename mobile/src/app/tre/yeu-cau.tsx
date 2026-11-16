@@ -62,7 +62,7 @@ export default function YeuCau() {
   const [huy, setHuy] = useState<YcTre | null>(null);
   const [lyDo, setLyDo] = useState<string | null>(null);
   const [daySo, setDaySo] = useState(false);
-  const { dangChay, loi: loiLam, lam, setLoi } = useLam();
+  const { dangChay, loi: loiLam, lam } = useLam();
   const coCho = !!d?.ds.some((y) => kqCua(y, d.luc) === "cho");
   useEffect(() => {
     if (!coCho) return;
@@ -94,7 +94,6 @@ export default function YeuCau() {
       await tai();
     } catch (e) {
       if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { setDaySo(true); return; }
-      if (e instanceof LoiApi && e.ma === "web_cam") { setLoi(`Ba Mẹ chưa thêm ${tenMuc} lúc này. Con xin lại sau được nhé`); return; }
       throw e;
     }
   }, { hangDoi: true });

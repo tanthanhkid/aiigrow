@@ -1,7 +1,7 @@
 // «Xin mở app» bản «Dịu» (con-dt-xin 01 cdt-xin-phep, BRD 6.4, FR-05.01, App & web 15/11 #262 #258): app / web ngoài danh sách điền sẵn từ màn
 // «chưa có trong danh sách» («YouTube · Chưa có trong danh sách»), «Ba Mẹ thêm vào danh sách · Nếu là app Tính phút: 1 sao = 1 phút · con đang có 18 sao», «Nhắn Ba
 // Mẹ» chip sẵn + «Tự viết…» (không bắt buộc), «Xin Ba Mẹ mở YouTube», «Hết sao? Xin Ba Mẹ cho vay sao ›». Xin mở = xin THÊM VÀO DANH SÁCH (bỏ
-// chọn 15 / 30 / 60 phút). App / web lạ ⇒ POST /api/kid/xin-duyet (máy chủ cũ còn trả `web_cam` ⇒ «Ba Mẹ chưa thêm … lúc này»). ≤ 3 lời chờ.
+// chọn 15 / 30 / 60 phút). App / web lạ ⇒ POST /api/kid/xin-duyet (máy chủ cũ trả `web_cam` ⇒ guiXinMo đổi thành «Ba Mẹ chưa thêm … lúc này»). ≤ 3 lời chờ.
 import { useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { TextInput, View } from "react-native";
@@ -41,7 +41,6 @@ export default function XinPhep() {
         router.replace(`/tre/yeu-cau?moi=${r.id}`);
       } catch (e) {
         if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { setDay(true); return; }
-        if (e instanceof LoiApi && e.ma === "web_cam") { setLoi(`Ba Mẹ chưa thêm ${tenMuc} lúc này. Con xin lại sau được nhé`); return; }
         throw e;
       }
     }, { hangDoi: true }));

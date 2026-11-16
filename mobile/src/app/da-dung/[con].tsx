@@ -85,8 +85,8 @@ export default function DaDung() {
           <TieuMuc chu="Con xin hôm nay" so={d.biChan.length} />
           <The style={{ paddingVertical: 4 }}>
             {d.biChan.map((x, k) => {
-              const phu = x.ly === "dang_xin" ? "Chưa có trong danh sách" : `${tenNgan(x.may) || "Máy của con"} · ngoài danh sách`;
-              const ic: TenIcon = x.ly === "grow_chan" ? "khien" : x.ly === "chua_cho" ? "khoa" : "web";
+              const phu = x.ly === "dang_xin" ? "Chưa có trong danh sách" : x.ly === "grow_chan" ? "Trang này chưa mở được" : `${tenNgan(x.may) || "Máy của con"} · ngoài danh sách`;
+              const ic: TenIcon = x.ly === "chua_cho" || x.ly === "grow_chan" ? "khoa" : "web";
               return (
                 <Pressable key={`${x.ly}:${x.ten}:${k}`} disabled={x.ly !== "dang_xin" || !x.yeuCau} accessibilityRole="button"
                   onPress={() => router.push(`/yeu-cau?con=${con}` as never)}

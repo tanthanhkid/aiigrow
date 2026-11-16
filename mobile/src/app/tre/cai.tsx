@@ -33,8 +33,8 @@ export default function XinCai() {
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <IcO ic="game" co={64} />
         <View style={{ flex: 1 }}>
-          <TieuD chu={`${ten} cần`} nho />
-          <TieuD chu="Ba Mẹ cho phép" nho />
+          <TieuD chu={`${ten} chưa có trong danh sách`} nho />
+          <TieuD chu="Xin Ba Mẹ thêm" nho />
         </View>
       </View>
       <ChuD kieu="den" co={15}>Con muốn cài để làm gì?</ChuD>

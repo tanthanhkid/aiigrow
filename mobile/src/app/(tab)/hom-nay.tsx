@@ -25,7 +25,7 @@ import {
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
 import { mayCuaCon } from "@/lib/may-nhieu-con";
-import { BangChoVay, chuVien, kieuSao, saoTu, SoSaoLon, soVN, thamSoXongVay, VienSao } from "@/lib/so-sao";
+import { BangChoVay, kieuSao, saoTu, SoSaoLon, soVN, thamSoXongVay, VienSao } from "@/lib/so-sao";
 import { DaiCon } from "@/lib/ui-viec";
 import { type MucCanDeY } from "@/lib/s3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
@@ -102,7 +102,7 @@ function DaiConTrangChu({ d, chon, doi }: { d: DuLieu & { quyen?: string }; chon
   const ic = Object.fromEntries(d.g.con.map((x) => {
     const q = quy[x.id];
     const dangChoi = d.choi.some((p) => p.con === x.id);
-    const i: TenIcon | null = q?.khoa ? "khoa" : dangChoi ? "game" : !x.phutChoi ? "trang_ngu" : null;
+    const i: TenIcon | null = q?.khoa ? "khoa" : dangChoi ? "game" : null;
     return [x.id, i];
   }));
   return (
@@ -187,7 +187,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const kieu = kieuSao(s);
   const veVi = () => router.push(`/vi/${conId}` as never);
   // dòng dưới số: khoá ⇒ «… · còn N sao = N phút ›»; chưa nợ ⇒ «= N phút chơi ›» / hết sao; đang nợ ⇒ SoSaoLon tự vẽ dòng nợ
-  const phuSao = khoa ? `${khoa ? "Đang khoá" : chuVien(s)} · còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút ›`
+  const phuSao = khoa ? `Đang khoá · còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút ›`
     : kieu !== "thuong" ? null : s.phutCon > 0 ? `= ${soVN(s.phutCon)} phút chơi ›` : "Hết sao · con xin Ba Mẹ cho vay khi cần ›";
 
   return (

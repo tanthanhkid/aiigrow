@@ -238,7 +238,7 @@ if (process.argv.includes("--giao-dien")) {
     M("con-quy-tac", "/tre/quy-tac", "Quy tắc nhà mình"),
     M("con-quy-tac (teen)", "/tre/quy-tac", "Quy tắc nhà mình", { kb: teen }),
     M("con-huy-hieu", "/tre/huy-hieu", "Cấp 4 · Mầm xanh"),
-    M("con-win-cai", "/tre/cai?tep=MinecraftInstaller.exe", "Minecraft cần Ba Mẹ cho phép", { kb: teen }),
+    M("con-win-cai", "/tre/cai?tep=MinecraftInstaller.exe", "Minecraft chưa có trong danh sách", { kb: teen }),
   ];
   const vao = async (m) => {
     kb = { ...coBan, ...(m.kb ?? {}) };

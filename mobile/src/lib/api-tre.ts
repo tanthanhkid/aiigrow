@@ -103,11 +103,17 @@ export const taiCheDo = () => kid.goi<ToiTre>("toi").then((r) => r.cheDo ?? null
 
 /** «Xin Ba Mẹ mở» app / web ngoài danh sách (= xin thêm vào danh sách): mã app thật / web ⇒ POST kid/xin-duyet; tên app gõ tay
  *  («Minecraft») ⇒ yeu-cau cai_app (xin-duyet hiểu tên trần là tên miền). Lỗi `qua_nhieu_cho` (≥ 3 lời chờ) ném ra
- *  cho màn gọi xử lý. */
+ *  cho màn gọi xử lý. Máy chủ cũ còn trả 409 `web_cam` ⇒ ném lại LoiApi cùng mã với câu thân thiện «Ba Mẹ chưa thêm X lúc này…»
+ *  (màn hiện qua cauLoi, không cần tự bắt). */
 export async function guiXinMo(b: { loai: "mo_web" | "cai_app" | "khac"; muc: string; ten?: string; lyDo?: string }): Promise<{ id: string }> {
   const muc = b.muc.trim();
-  if (b.loai === "mo_web" || (b.loai === "cai_app" && laMaApp(muc))) return kid.goi<{ id: string }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "" });
-  return kid.goi<{ id: string }>("yeu-cau", { loai: b.loai, giaTri: b.ten ?? muc, lyDo: b.lyDo ?? "" });
+  try {
+    if (b.loai === "mo_web" || (b.loai === "cai_app" && laMaApp(muc))) return await kid.goi<{ id: string }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "" });
+    return await kid.goi<{ id: string }>("yeu-cau", { loai: b.loai, giaTri: b.ten ?? muc, lyDo: b.lyDo ?? "" });
+  } catch (e) {
+    if (e instanceof LoiApi && e.ma === "web_cam") throw new LoiApi(e.ma, `Ba Mẹ chưa thêm ${b.ten ?? muc} lúc này. Con xin lại sau được nhé`, e.status, e.them);
+    throw e;
+  }
 }
 
 /** «Xin Ba Mẹ cho vay sao» (POST kid/xin-vay). Máy chủ cũ (404) ⇒ lời xin «thêm giờ» cũ cùng số (Ba Mẹ đồng ý = cho vay ở máy chủ mới). */
