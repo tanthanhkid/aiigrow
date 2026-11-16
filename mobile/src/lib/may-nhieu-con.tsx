@@ -71,7 +71,7 @@ export function SaoNho({ n, co = 12 }: { n: number; co?: number }) {
 }
 
 /** Avatar tròn của một Con (màu hồ sơ). */
-export const AvtCon = ({ c, co = 36 }: { c: Pick<ConNganMay, "ten" | "avatar">; co?: number }) => <Avt ten={c.ten} mau={mauHoSo(c.avatar)[0]} co={co} />;
+export const AvtCon = ({ c, co = 36 }: { c: Pick<ConNganMay, "ten" | "avatar">; co?: number }) => <Avt ten={c.ten} mau={mauHoSo(c.avatar)[0]} co={co} con={c} />;
 /** Hai–ba avatar chồng nhau (thiết kế .cap). */
 export function CapAvt({ ds, co = 22 }: { ds: ConNganMay[]; co?: number }) {
   return (

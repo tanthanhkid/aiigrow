@@ -634,6 +634,9 @@ export const SCHEMA_S2 = [
   `alter table loi_moi add column if not exists gui_luc timestamptz`,
   `create index if not exists loi_moi_dinh_danh on loi_moi(dinh_danh) where dinh_danh is not null and dung_luc is null and huy_luc is null`,
   `alter table children add column if not exists che_do_chan text`,
+  // #302: ảnh đại diện Con (JPEG/PNG đã thu nhỏ ở app) — avatar ghi «mau-N|anh:<giây>» để mọi danh sách biết có ảnh, ảnh tải riêng ở GET con/:id/anh
+  `alter table children add column if not exists anh_dai_dien bytea`,
+  `alter table children add column if not exists anh_mime text`,
   // máy luôn chặn thật: máy Windows/Mac RIÊNG của Con mang lựa chọn cũ «giam-sat» / chưa chọn ⇒ «chan» (màn Ba Mẹ không còn hiện «Giám sát»)
   `update devices set che_do = 'chan', che_do_ba_me = true where platform in ('windows', 'mac') and child_id is not null and (che_do <> 'chan' or not che_do_ba_me)`,
   `alter table pair_codes add column if not exists giong_may text`,

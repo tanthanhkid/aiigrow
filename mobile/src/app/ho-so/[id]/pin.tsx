@@ -35,7 +35,7 @@ export default function PinCuaCon() {
       day={d.xem ? undefined : <><BaoLoi loi={loiLam} /><Nut chu={d.p.coPin ? "Lưu PIN mới" : `Đặt PIN cho ${ten}`} rong dangChay={dangChay} tat={moi.length !== 4 || !!loiPin || (d.p.coPin && moi === cu)} bam={luu} /></>}>
       {/* thẻ màu của con (như thẻ hồ sơ Lần đầu): ảnh chữ cái to, «PIN của X», nhãn «Đặt lần cuối», ổ khoá nhỏ góc trên phải */}
       <The dem style={{ gap: 10, minHeight: 150, backgroundColor: mauHoSo(d.con?.avatar)[1] }}>
-        <Avt ten={ten} mau={mauHoSo(d.con?.avatar)[0]} co={72} />
+        <Avt ten={ten} mau={mauHoSo(d.con?.avatar)[0]} co={72} con={d.con} />
         <Chu kieu="rat" co={22} style={{ paddingRight: 44 }}>{`PIN của ${ten}`}</Chu>
         <View style={{ alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.75)" }}>
           <Chu kieu="rat" co={12.5} mau={M.chu2}>{cauDatPin(d.p.pinDatLuc)}</Chu>

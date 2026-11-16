@@ -20,6 +20,7 @@ import { ICON_3D, co3D } from "./icon-3d";
 import { LopMen, NhanMen, vaoLanLuot } from "./chuyen-dong";
 import { ThanhClay } from "./bieu-do";
 import { bm, LoiApi } from "./api";
+import { useAnhCon } from "./anh-con";
 
 export { M, F, BO };
 export { LopMen, NhanMen, Vao } from "./chuyen-dong";
@@ -230,10 +231,13 @@ export const chuTren = (nen: string) => {
   return 1.05 / (l + 0.05) >= (l + 0.05) / (doSang(M.chu) + 0.05) ? "#ffffff" : M.chu;
 };
 export const MAU_CON = ["#c2410c", "#4b6bdc", "#0f6b5c", "#6c5ce7", "#b45309", "#be185d"];
-export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44 }: { ten: string; mau?: string; co?: number }) {
+export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44, con, anh }: { ten: string; mau?: string; co?: number; /** Con có ảnh đại diện (#302) ⇒ hiện ảnh thay chữ cái */ con?: { id?: string | null; avatar?: string | null } | null; /** ảnh vừa chọn, chưa lưu */ anh?: string | null }) {
+  const daLuu = useAnhCon(con);
+  const uri = anh ?? daLuu;
+  const vien = "inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.25), 0px 2px 4px -1px rgba(0,0,0,0.25)";
+  if (uri) return <Image source={{ uri }} accessibilityLabel={`Ảnh của ${ten}`} style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, boxShadow: vien }} contentFit="cover" />;
   return (
-    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, alignItems: "center", justifyContent: "center",
-      boxShadow: "inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.25), 0px 2px 4px -1px rgba(0,0,0,0.25)" }}>
+    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, alignItems: "center", justifyContent: "center", boxShadow: vien }}>
       <Chu kieu="rat" mau={chuTren(mau)} co={co * 0.41}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
     </View>
   );

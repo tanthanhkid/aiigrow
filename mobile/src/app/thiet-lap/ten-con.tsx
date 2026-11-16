@@ -7,7 +7,8 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { bm } from "@/lib/api";
-import { ChonMauCon, namCua, ONamSinh, TheHoSoCon, ThePinCon } from "@/lib/form-ho-so";
+import { ChonMauCon, HangAnhCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
+import { luuAnhCon } from "@/lib/anh-con";
 import { DauMan, LienKet, MAU_HO_SO, OLom } from "@/lib/lan-dau";
 import { kiemPin } from "@/lib/s3";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
@@ -25,6 +26,7 @@ export default function ObCon() {
   const [mau, setMau] = useState(sua ? tl0.mau ?? 0 : (tl0.daLuu?.length ?? 0) % MAU_HO_SO.length);
   const [conId, setConId] = useState<string | undefined>(sua ? tl0.conId : undefined);
   const [pin, setPin] = useState("");
+  const af = useAnhForm();
   const daLuu = (tl0.daLuu ?? []).filter((c) => c.id !== conId);
   const { lam, loi, dangChay, setLoi } = useLam();
   const namSo = namCua(nam);
@@ -36,6 +38,7 @@ export default function ObCon() {
     // nhớ Con vừa tạo TRƯỚC khi đặt PIN: lời đặt PIN lỗi ⇒ bấm lại chỉ sửa Con này (gửi con.id), không tạo Con thứ hai
     setConId(r.conId);
     if (pin) await bm.goi(`con/${r.conId}/pin`, { pin });
+    if (af.anh) await luuAnhCon(r.conId, af.anh);
     const ds = [...(layTl().daLuu ?? []).filter((c) => c.id !== r.conId), { id: r.conId, ten: r.ten, mau, namSinh: namSo }];
     return { r, ds };
   };
@@ -48,19 +51,21 @@ export default function ObCon() {
   const themCon = () => lam(async () => {
     const { ds } = await luu();
     datTl({ daLuu: ds, conId: undefined });
-    setTen(""); setNam(""); setConId(undefined); setPin(""); setMau(ds.length % MAU_HO_SO.length);
+    setTen(""); setNam(""); setConId(undefined); setPin(""); af.bo(); setMau(ds.length % MAU_HO_SO.length);
   });
   const conDau = daLuu[0];
   return (
     <Man dau={<DauMan ve="/" phai={<ThanhBuoc5 dang={0} />} />}
       day={<><BaoLoi loi={loi} /><Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo) || !!loiPin} bam={tiep} />
+        {/* #302: «+ Thêm con khác» luôn có — thêm bao nhiêu con cũng được (trước đây từ con thứ hai trở đi bị thay bằng «Xong, giao việc cho …») */}
+        <LienKet chu="+ Thêm con khác" bam={() => (!tenGon ? setLoi("Nhập tên con này trước, rồi thêm con khác.") : loiPin ? setLoi(loiPin) : themCon())} />
         {conDau ? <LienKet chu={`Xong, giao việc cho ${conDau.ten} trước`} bam={() => lam(async () => {
           if (tenGon) { if (loiPin) throw new Error(loiPin); const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
           datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined });
           router.push("/thiet-lap/mau");
-        })} />
-          : <LienKet chu="+ Thêm con khác" bam={() => (!tenGon ? setLoi("Nhập tên con này trước, rồi thêm con khác.") : loiPin ? setLoi(loiPin) : themCon())} />}</>}>
-      <TheHoSoCon ten={ten} nam={nam} mau={mau} />
+        })} /> : null}</>}>
+      <TheHoSoCon ten={ten} nam={nam} mau={mau} anh={af.uri} chup={af.chup} />
+      <HangAnhCon f={af} />
       <OLom nhan="Tên gọi ở nhà" value={ten} onChangeText={setTen} placeholder="Bảo Anh" maxLength={30} autoComplete="off" />
       <ONamSinh nam={nam} doi={setNam} />
       <ChonMauCon mau={mau} doi={setMau} />

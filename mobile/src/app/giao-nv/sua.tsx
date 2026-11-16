@@ -30,6 +30,8 @@ export default function SuaViec() {
   const [hinh, setHinh] = useState<string | null>(null);
   const [nhac, setNhac] = useState<string | null>(null);
   const [sao, setSao] = useState<number | null>(null);
+  const [saoTu, setSaoTu] = useState("");        // #302: ô tự nhập số sao (1–1000)
+  const saoLoi = saoTu !== "" && !(Number(saoTu) >= 1 && Number(saoTu) <= 1000);
   const [lap, setLap] = useState<string | null>(null);
   const [bc, setBc] = useState<string | null>(null);
   const [duyet, setDuyet] = useState<boolean | null>(null);
@@ -80,14 +82,16 @@ export default function SuaViec() {
   return (
     <Man lui={{ chu: "" }} tieu={tieu}
       day={d.baMe ? <><BaoLoi loi={xoa ? null : loiLam} /><Nut chu={`Lưu việc «${f.ten.trim() || v.ten}»`} ic="tick" rong dangChay={dangChay}
-        tat={!tenHopLe(f.ten) || !f.apCho.length} bam={luu} /></> : undefined}>
+        tat={!tenHopLe(f.ten) || !f.apCho.length || saoLoi} bam={luu} /></> : undefined}>
       {d.baMe ? (
         <>
           <View style={{ alignItems: "center" }}><OLomIcon ic={ic} co={72} nen="#f9e7d2" /></View>
           <ChonO ds={dsHinh.map((h) => ({ gia: h, chu: "", ic: hinhNv({ hinh: h })[0], nhan: `Hình ${h}` }))} chon={f.hinh || null} doi={setHinh} />
           <ONhap nhan="Tên việc" value={f.ten} onChangeText={setTen} maxLength={90} />
           <MucTieu chu="Con nhận bao nhiêu sao?" />
-          <ChonO ds={dsSao.map((x) => ({ gia: x, chu: `${x}` }))} chon={f.sao} doi={setSao} sao />
+          <ChonO ds={dsSao.map((x) => ({ gia: x, chu: `${x}` }))} chon={saoTu === "" ? f.sao : null} doi={(x) => { setSaoTu(""); setSao(x); }} sao />
+          <ONhap nhan="Hoặc tự nhập số sao" value={saoTu} onChangeText={(t) => { const v = t.replace(/\D/g, "").slice(0, 4); setSaoTu(v); if (v !== "" && Number(v) >= 1 && Number(v) <= 1000) setSao(Number(v)); }}
+            placeholder="Ví dụ: 25" keyboardType="number-pad" maxLength={4} loi={saoLoi ? "Số sao từ 1 đến 1000" : null} />
           <MucTieu chu="Làm khi nào?" />
           <ChonO ds={dsLap} chon={f.lap} doi={setLap} />
           <MucTieu chu="Nhắc con" />

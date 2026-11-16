@@ -1,6 +1,7 @@
 // «Ba Mẹ tự thêm» (thiết kế 14/11 bm-viec-duyet/04 them-6pjz1stu — thay «Tự đặt việc» them-0qial10f): Con sẽ làm gì? (ô lõm + gợi ý),
 // Hình (6 ô), Nằm trong mục (Học · Vận động · Giúp Ba Mẹ), Con nhận ⭐5/10/15/20, Con nộp bằng (Chụp ảnh · Ghi âm · Bấm «Xong», mỗi cách có ví dụ),
-// ghi chú «Con nộp xong, Ba Mẹ nhận thông báo. Ba Mẹ duyệt thì con mới nhận sao.» ⇒ «Thêm vào mục đã chọn» = POST nhiem-vu {…, bo: mục, giao_cho: id[]}.
+// #302: «Nằm trong mục» có chip «+ Khác» (Ba Mẹ gõ tên mục mới — lưu tasks.bo = «khac:<tên>»), «Con nhận» có ô tự nhập số sao (1–1000);
+// màn mở đủ chiều cao (card, không phải tờ nửa màn). ghi chú «Con nộp xong, Ba Mẹ nhận thông báo. Ba Mẹ duyệt thì con mới nhận sao.» ⇒ «Thêm vào mục đã chọn» = POST nhiem-vu {…, bo: mục, giao_cho: id[]}.
 // Mở từ «Giao việc» (mục đang xem chọn sẵn) hoặc từ Nhiệm vụ trống. Nhà > 1 con ⇒ «Áp cho» (N9), con đang xem chọn sẵn.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
@@ -15,9 +16,11 @@ import { MucTieu } from "@/lib/ui-bm3";
 
 const GOI_Y = ["Tưới cây", "Tập đàn 15 phút", "Cho cún ăn", "Vẽ 1 bức tranh", "Tự tắm"];
 const HINH = ["choi", "sach", "day", "but", "cay", "bat"];
-type Muc = "hoc" | "van_dong" | "giup_ba_me";
-const MUC: { gia: Muc; chu: string; ic: TenIcon }[] = [{ gia: "hoc", chu: "Học", ic: "sach" }, { gia: "van_dong", chu: "Vận động", ic: "chay" }, { gia: "giup_ba_me", chu: "Giúp Ba Mẹ", ic: "nha" }];
-const NHOM: Record<Muc, string> = { hoc: "hoc_tap", van_dong: "van_dong", giup_ba_me: "viec_nha" };
+type Muc = "hoc" | "van_dong" | "giup_ba_me" | "khac";
+const SAO_TOI_DA = 1000;
+const TEN_MUC_TOI_DA = 30;
+const MUC: { gia: Muc; chu: string; ic: TenIcon }[] = [{ gia: "hoc", chu: "Học", ic: "sach" }, { gia: "van_dong", chu: "Vận động", ic: "chay" }, { gia: "giup_ba_me", chu: "Giúp Ba Mẹ", ic: "nha" }, { gia: "khac", chu: "+ Khác", ic: "tia" }];
+const NHOM: Record<Muc, string> = { hoc: "hoc_tap", van_dong: "van_dong", giup_ba_me: "viec_nha", khac: "khac" };
 const NOP: { gia: string; tieu: string; phu: string; ic: TenIcon }[] = [
   { gia: "anh", tieu: "Chụp ảnh", phu: "Dọn dẹp, vẽ tranh, nấu ăn", ic: "camera" },
   { gia: "ghi_am", tieu: "Ghi âm", phu: "Đọc sách, tiếng Anh, học thuộc", ic: "sach" },
@@ -31,6 +34,8 @@ export default function BaMeTuThem() {
   const [hinh, setHinh] = useState("choi");
   const [muc, setMuc] = useState<Muc>(MUC.some((x) => x.gia === p.muc) ? (p.muc as Muc) : "giup_ba_me");
   const [sao, setSao] = useState(10);
+  const [saoTu, setSaoTu] = useState("");                 // ô «Số sao khác» (rỗng = dùng chip)
+  const [tenMuc, setTenMuc] = useState("");
   const [nop, setNop] = useState("anh");
   const [apCho, setApCho] = useState<string[] | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
@@ -38,15 +43,21 @@ export default function BaMeTuThem() {
   if (!d) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const giao = apCho ?? [d.con.find((c) => c.id === p.con)?.id ?? d.con[0]?.id].filter(Boolean) as string[];
   const ngan = ten.trim().length > 0 && !tenHopLe(ten);
+  const mucKhac = muc === "khac";
+  const tenMucGon = tenMuc.trim().replace(/\s+/g, " ");
+  const saoTuSo = saoTu === "" ? null : Number(saoTu);
+  const saoDung = saoTuSo === null ? sao : saoTuSo;
+  const saoLoi = saoTuSo !== null && (!Number.isInteger(saoTuSo) || saoTuSo < 1 || saoTuSo > SAO_TOI_DA);
+  const xong = tenHopLe(ten) && giao.length > 0 && !saoLoi && (!mucKhac || tenMucGon.length > 0);
   const them = () => lam(async () => {
-    await bm.goi("nhiem-vu", { ten: ten.trim(), hinh, diem: sao, nhom: NHOM[muc], bo: muc, bang_chung: nop, lap_lai: "hang_ngay", toi_da_ngay: 1, tu_duyet: false, giao_cho: giao });
+    await bm.goi("nhiem-vu", { ten: ten.trim(), hinh, diem: saoDung, nhom: NHOM[muc], bo: mucKhac ? `khac:${tenMucGon}` : muc, bang_chung: nop, lap_lai: "hang_ngay", toi_da_ngay: 1, tu_duyet: false, giao_cho: giao });
     const tenCon = d.con.filter((c) => giao.includes(c.id)).map((c) => c.ten).join(", ");
     baoKhiVe(`Đã thêm «${ten.trim()}»${tenCon ? ` cho ${tenCon}` : ""}`);
     router.back();
   });
   return (
     <Man lui={{ chu: "" }} tieu={tieu}
-      day={<><BaoLoi loi={loiLam} /><Nut chu="Thêm vào mục đã chọn" rong dangChay={dangChay} tat={!tenHopLe(ten) || !giao.length} bam={them} /></>}>
+      day={<><BaoLoi loi={loiLam} /><Nut chu="Thêm vào mục đã chọn" rong dangChay={dangChay} tat={!xong} bam={them} /></>}>
       <MucTieu chu="Con sẽ làm gì?" />
       <ONhap nhan="Tên việc" value={ten} onChangeText={setTen} placeholder="Ví dụ: Tưới cây" maxLength={90}
         loi={ngan ? "Tên cần ít nhất 3 ký tự để con hiểu việc cần làm" : null} />
@@ -68,9 +79,12 @@ export default function BaMeTuThem() {
 
       <MucTieu chu="Nằm trong mục" />
       <ChonO ds={MUC} chon={muc} doi={setMuc} />
+      {mucKhac ? <ONhap nhan="Tên mục mới" value={tenMuc} onChangeText={(t) => setTenMuc(t.slice(0, TEN_MUC_TOI_DA))} placeholder="Ví dụ: Âm nhạc" maxLength={TEN_MUC_TOI_DA} autoFocus /> : null}
 
       <MucTieu chu="Con nhận" />
-      <ChonO ds={[5, 10, 15, 20].map((x) => ({ gia: x, chu: `${x}` }))} chon={sao} doi={setSao} sao />
+      <ChonO ds={[5, 10, 15, 20].map((x) => ({ gia: x, chu: `${x}` }))} chon={saoTu === "" ? sao : null} doi={(x) => { setSaoTu(""); setSao(x); }} sao />
+      <ONhap nhan="Hoặc tự nhập số sao" value={saoTu} onChangeText={(t) => setSaoTu(t.replace(/\D/g, "").slice(0, 4))} placeholder="Ví dụ: 25" keyboardType="number-pad" maxLength={4}
+        loi={saoLoi ? `Số sao từ 1 đến ${SAO_TOI_DA}` : null} />
 
       <MucTieu chu="Con nộp bằng" />
       <View style={{ gap: 8 }} accessibilityRole="radiogroup">
