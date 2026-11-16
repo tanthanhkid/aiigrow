@@ -448,7 +448,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let v: AnyView
     switch t.chanLyDo {
     case SaoPhut.lyDoHetSao, "het_gio":
-      v = AnyView(HetSaoView(tenApp: ten, lamNhiemVu: { [weak self] in self?.cuaSoChan?.close(); self?.moApp(.nhiemVu) },
+      v = AnyView(HetSaoView(tenApp: ten, gioiHan: ManMac.chuGioiHan(t), lamNhiemVu: { [weak self] in self?.cuaSoChan?.close(); self?.moApp(.nhiemVu) },
                              xinVay: { [weak self] in self?.cuaSoChan?.close(); self?.moXinVay(tuHetSao: true) }, dong: dong))
     case "ba_me_chan":                                 // máy chủ cũ còn gửi app «Chặn»
       v = AnyView(ChuaCoDanhSachView(ten: ten, tieu: "\(ten) chưa được mở", phu: "Ba Mẹ đã chặn app này trên máy.",

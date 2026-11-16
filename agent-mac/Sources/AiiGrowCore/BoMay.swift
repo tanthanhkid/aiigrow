@@ -1502,8 +1502,12 @@ public actor BoMay {
         tt.phutSao = SaoPhut.conPhut(p, giay: cauHinh.quyGiayTuSync)
         if var s = p.soSao ?? p.saoCon.map({ SoSao(sao: $0) }) {
           s.sao = SaoPhut.soDu(p, giay: cauHinh.quyGiayTuSync) ?? s.sao
-          if let c = tt.phutSao { s.phutCon = c; s.hetSao = c <= 0 }
+          if let c = tt.phutSao {
+            if let st = s.saoTieuDuoc { s.saoTieuDuoc = max(0, st - max(0, s.phutCon - c)) }   // sao thật cũng giảm theo phút đã chơi tại chỗ
+            s.phutCon = c; s.hetSao = c <= 0
+          }
           tt.soSao = s
+          tt.gioiHan = p.gioiHan
         }
         tt.dsTinhPhut = Array(SaoPhut.dsTinhPhut(policy ?? p)).sorted()      // Policy gốc: hết sao thì bản hiệu lực đã rút appTinhGio
         tt.dsKhongTinhPhut = p.learningApps

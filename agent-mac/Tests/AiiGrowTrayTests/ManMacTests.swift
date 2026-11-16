@@ -172,3 +172,44 @@ final class ManMacTests: XCTestCase {
     XCTAssertFalse(HoiAiiGrow.ketQuaCapNhat(banDaemon: nil).phu.contains("giờ"))
   }
 }
+
+// Giới hạn giờ chơi 16/11 (#302 mục 4): chữ màn khoá / khay khi khoá VÌ giới hạn, sao còn nguyên.
+final class GioiHanManMacTests: XCTestCase {
+  func tt(lyDo: String?, sao: SoSao?, gh: GioiHan?, phutSao: Int? = 0) -> TrangThai {
+    var t = TrangThai(daGhep: true, laPhienCon: true, tenCon: "Bảo Anh", cheDo: .khoa, lyDoKhoa: lyDo, conPhut: nil, moDen: nil, khoaDen: nil,
+                      demNguocGiay: nil, yeuCauCho: [], duocDoiDiem: true, matMang: false, trangChan: [])
+    t.soSao = sao; t.gioiHan = gh; t.phutSao = phutSao
+    return t
+  }
+  let nghi = GioiHan(dangNghi: true, nghiDenGio: "15:30", lyDoKhoa: GioiHan.dangNghiMa)
+
+  func testDangNghiConSao() {
+    let c = ManMac.chuKhoa(tt(lyDo: "het_gio", sao: SoSao(sao: 30, phutCon: 0, hetSao: true, saoTieuDuoc: 30), gh: nghi))
+    XCTAssertEqual(c.tieuDe, "Nghỉ một chút"); XCTAssertEqual(c.phu, "Nghỉ một chút · chơi tiếp lúc 15:30")
+    XCTAssertTrue(c.theoGioiHan); XCTAssertFalse(c.hetSao)
+  }
+
+  func testHetNgay() {
+    let g = GioiHan(ngayPhut: 60, hetNgay: true, lyDoKhoa: GioiHan.hetNgay, cau: "Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé")
+    let c = ManMac.chuKhoa(tt(lyDo: "het_sao", sao: SoSao(sao: 9, phutCon: 0, hetSao: true, saoTieuDuoc: 9), gh: g))
+    XCTAssertEqual(c.tieuDe, "Hôm nay chơi đủ rồi"); XCTAssertEqual(c.phu, "Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé")
+  }
+
+  func testNghiNhungHetSaoThatVaMayChuCu() {
+    let het = ManMac.chuKhoa(tt(lyDo: "het_gio", sao: SoSao(sao: 0, phutCon: 0, hetSao: true, saoTieuDuoc: 0), gh: nghi))
+    XCTAssertEqual(het.tieuDe, "Hết sao rồi"); XCTAssertTrue(het.hetSao); XCTAssertFalse(het.theoGioiHan)
+    let cu = ManMac.chuKhoa(tt(lyDo: "het_gio", sao: SoSao(sao: 0, phutCon: 0), gh: nil))
+    XCTAssertEqual(cu.tieuDe, "Hết sao rồi")
+    XCTAssertEqual(ManMac.chuKhoa(tt(lyDo: "ba_me_khoa", sao: nil, gh: nghi)).tieuDe, "Ba Mẹ đang khoá máy", "Ba Mẹ khoá thắng")
+  }
+
+  func testKhayVaSaoThat() {
+    let t = tt(lyDo: nil, sao: SoSao(sao: 30, phutCon: 0, hetSao: true, saoTieuDuoc: 30), gh: nghi)
+    XCTAssertEqual(TrayLogic.dongSao(t), "Nghỉ một chút · chơi tiếp lúc 15:30")
+    XCTAssertEqual(ManMac.chuGioiHan(t)?.tieuDe, "Nghỉ một chút")
+    let choi = tt(lyDo: nil, sao: SoSao(sao: 30, phutCon: 20, saoTieuDuoc: 30), gh: GioiHan(conNgay: 20), phutSao: 20)
+    XCTAssertEqual(TrayLogic.dongSao(choi), "còn 30 sao · chơi được 20 phút · Còn 20 phút hôm nay")
+    let cu = tt(lyDo: nil, sao: SoSao(sao: 18, phutCon: 18), gh: nil, phutSao: 18)
+    XCTAssertEqual(TrayLogic.dongSao(cu), "còn 18 sao = 18 phút chơi", "máy chủ cũ: như trước")
+  }
+}
