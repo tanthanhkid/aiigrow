@@ -150,21 +150,21 @@ const ADMIN = dt(`${sb('07:35')}<div class="cuon" style="align-items:center;text
 
 const A = 'chinchu-ios/';
 export default [
-  { id: 'bm-hang-ngay', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Trang chủ & thông báo', mo: 'Ba Mẹ mở app: trang chủ, khoá máy, cho thêm giờ, mã mở máy, thông báo và cảnh báo.',
+  { id: 'bm-hang-ngay', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Trang chủ & thông báo', mo: 'Ba Mẹ mở app: trang chủ, khoá máy, cho vay sao, mã mở máy, thông báo và cảnh báo.',
     buoc: [
       { key: 'bm2-trang-chu', ten: 'Trang chủ', w: 390, h: 844, html: BM_TRANG_CHU, anh: A + 'sau-bm-trang.png', toi: 'Bấm «Khoá máy» hoặc thẻ máy' },
     ] },
   { id: 'bm-may-con', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Máy của con', mo: 'Danh sách máy, chi tiết từng máy (tuân thủ / lệch chuẩn), đổi tên, gỡ máy, hướng dẫn sửa.',
     buoc: [
       { key: 'bm2-may-ds', ten: 'Máy của con', w: 390, h: 844, html: BM_MAY, anh: A + 'sau-bm-may-ds.png', toi: 'Chạm Laptop của Bảo Anh' },
-      { key: 'bm2-may-m1', ten: 'Chi tiết máy (tuân thủ)', w: 390, h: 844, html: MAY_M1, anh: A + 'sau-bm-may-m1.png', toi: 'Quay lại, chạm iPad' },
+      { key: 'bm2-may-m1', ten: 'Máy cả nhà', w: 390, h: 844, html: MAY_M1, anh: A + 'sau-bm-may-m1.png', toi: 'Quay lại, chạm iPad' },
       { key: 'bm2-may-m2', ten: 'Chi tiết máy (lệch chuẩn)', w: 390, h: 844, html: MAY_M2, anh: A + 'sau-bm-may-m2.png', toi: 'Về Trang chủ, mở Giờ dùng máy' },
     ] },
   { id: 'bm-gio-ho-so', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Giờ & hồ sơ con', mo: 'Giờ dùng máy, giờ ngủ, giờ học, hồ sơ con, PIN, app & web của con.',
     buoc: [
       { key: 'bm2-gio', ten: 'Giờ dùng máy', w: 390, h: 844, html: GIO, anh: A + 'sau-bm-gio.png', toi: 'Chạm tên con' },
       { key: 'bm2-ho-so', ten: 'Hồ sơ con', w: 390, h: 844, html: HO_SO, anh: A + 'sau-bm-ho-so-con.png' }] },
-  { id: 'bm-con-xin', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Con xin dùng', mo: 'Con xin mở app/web hoặc thêm giờ: Ba Mẹ cho, cho thêm phút hoặc không cho.', chiThem: true, buoc: [] },
+  { id: 'bm-con-xin', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Con xin dùng', mo: 'Con xin mở app/web hoặc xin vay sao: Ba Mẹ thêm vào danh sách, cho vay sao hoặc bỏ qua.', chiThem: true, buoc: [] },
   { id: 'bm-viec-duyet', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Nhiệm vụ & duyệt', mo: 'Tab Nhiệm vụ, giao việc theo bộ, tự đặt việc, sửa/xoá việc, duyệt bằng chứng, nhờ làm lại.', chiThem: true, buoc: [] },
   { id: 'bm-sao-qua', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Sao & quà', mo: 'Ví sao của con, danh sách quà (Quà Ba Mẹ mua + Quà nhà), thêm/sửa/xoá quà, trao quà.', chiThem: true, buoc: [] },
   { id: 'bm-bao-cao-ngay', vai: 'Ba Mẹ', nen: 'iPhone', ten: 'Hằng ngày · Báo cáo', mo: 'Tab Báo cáo, hôm nay con dùng gì, nhật ký cả nhà.', chiThem: true, buoc: [] },

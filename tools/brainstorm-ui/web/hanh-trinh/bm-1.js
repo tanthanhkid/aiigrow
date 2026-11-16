@@ -268,7 +268,7 @@ export default [
       B('bm1-may-ds', 'Máy của con', mayDs, 'ss-bm-may-ds.jpg', 'Bấm «Ghép thêm máy»'),
       B('bm1-may-chon-loai', 'Chọn loại máy', chonLoai, 'ss-bm-ob-may.jpg', 'Bấm «Tiếp: ghép máy»'),
       B('bm1-may-ghep', 'Mã ghép 6 số', ghepThem, 'ss-bm-ob-ghep.jpg', 'Con nhập mã trên máy mới'),
-      B('bm1-may-moi', 'Máy mới «Chặn thật»', mayMoi, 'ss-bm-may-m1.jpg'),
+      B('bm1-may-moi', 'Máy mới · Theo danh sách', mayMoi, 'ss-bm-may-m1.jpg'),
     ] },
   { id: 'web-tai', vai: 'Ba Mẹ', nen: 'Web', ten: 'Trang tải bộ cài', mo: 'Trang aiigrow.aiilab.vn/tai (và /cai) mở trên máy Con hoặc điện thoại: tải bộ cài theo nền tảng rồi nhập mã ghép.',
     buoc: [
