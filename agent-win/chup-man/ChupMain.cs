@@ -239,7 +239,8 @@ internal static class ChupMain
                 Server = "http://127.0.0.1:9", Code = "482915", Child = ConMau(),
                 Pair = new PairResult { DeviceId = "may1", Token = "t", ChildName = "Minh Khôi" },
             })));
-        await Mot("cai-6-xong", () => ManCai("cai-6-xong", f => Goi(f, "BuocXong", ConMau(), "Minh Khôi")));
+        await Mot("cai-6-xong", () => ManCai("cai-6-xong", f => Goi(f, "BuocXong", ConMau(), "Minh Khôi", false)));
+        await Mot("cai-6-xong-may-rieng", () => ManCai("cai-6-xong-may-rieng", f => Goi(f, "BuocXong", ConMau(), "Minh Khôi", true)));
         await Mot("cap-nhat", () => ManHop("cap-nhat", () => new CapNhatForm(new PhatHienCai(CheDoBoCai.CapNhat, new Version(0, 2, 9), new Version(0, 2, 10)))));
         await Mot("cap-nhat-da-moi-nhat", () => ManHop("cap-nhat-da-moi-nhat", () => new CapNhatForm(new PhatHienCai(CheDoBoCai.DaMoiNhat, new Version(0, 2, 10), new Version(0, 2, 10)))));
     }
