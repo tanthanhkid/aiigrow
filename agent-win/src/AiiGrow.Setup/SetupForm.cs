@@ -341,7 +341,8 @@ internal sealed class SetupForm : Form
 
     /// <summary>Nút chính: lề phải 34px như thiết kế (left = 687 − w).</summary>
     private ClayButton NutChinh(string text, int w, Action bam) => NutChan(text, 687 - w, w, true, bam);
-    private ClayButton NutLui(Action bam, string text = "Quay lại") => NutChan(text, 36, 132, false, bam);
+    // bàn: «‹ Quay lại» (mũi tên trái trước chữ); «Để sau» không có mũi tên
+    private ClayButton NutLui(Action bam, string text = "Quay lại") => NutChan(text == "Quay lại" ? "‹  Quay lại" : text, 36, 132, false, bam);
 
     /// <summary>Sang một màn: xoá thân + chân, đặt thanh bước.</summary>
     private void Man(int buoc, string ten, bool daiNgoc = false)
@@ -877,7 +878,7 @@ internal sealed class SetupForm : Form
         X(_body, 290, 164, mayRieng ? "Con mở máy là vào thẳng." : "Mỗi bé vào máy bằng tên + PIN 4 số.", Kieu.P, 400);
         foreach (var (y, icon, tieu, phu) in new[]
                  {
-                     (206, "dongho", mayRieng ? "Sao chơi tính cho " + tenHoSo : "Phút chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
+                     (206, "lich", mayRieng ? "Sao chơi tính cho " + tenHoSo : "Phút chơi tính theo từng bé", "Điện thoại + máy tính trừ chung"),
                      (284, "nguoi", mayRieng ? "Máy riêng của con" : string.IsNullOrWhiteSpace(tenHoSo) ? "Mỗi bé một tên trên màn khoá" : tenHoSo!, mayRieng ? "Chỉ " + tenHoSo + " dùng máy này" : "PIN do Ba Mẹ đặt trong app"),
                      (362, "khoa", "Mở app, web theo danh sách Ba Mẹ", "App mới thì bấm xin Ba Mẹ"),
                  })
