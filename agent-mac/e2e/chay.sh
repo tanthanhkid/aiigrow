@@ -145,10 +145,9 @@ api POST "/api/m/con/$CON_ID/che-do" '{"cheDo":"theo_danh_sach"}' "$TOKEN_BM"; l
 T0=$SECONDS; cho 60 1 cho_che_do hoc; G=$((SECONDS-T0))
 dat 4.1 '«Theo danh sách» ⇒ daemon mode hoc (long-poll, không chờ chu kỳ)' "$(cho_che_do hoc && echo 1 || echo 0)" "mode $(tt_truong cheDo), sau $G giây (thiết kế ≤5 giây; ngưỡng chấp nhận 20)"
 dat 4.1b 'Long-poll cho-thay-doi áp nhanh: ≤ 20 giây' "$([ "$G" -le 20 ] && [ "$(tt_truong cheDo)" = hoc ] && echo 1 || echo 0)" "$G giây"
-CO_DS() { trang_thai | jq -e '(.trangChan // []) | length > 0' >/dev/null; }
 KHONG_CHAN() { trang_thai | jq -e '(.trangChan // []) | length == 0' >/dev/null; }
-cho 60 2 CO_DS
-dat 4.2 'Chính sách web về daemon: «Theo danh sách» có lưới an toàn (trangChan khác rỗng)' "$(CO_DS && echo 1 || echo 0)" "$(trang_thai | jq -c '(.trangChan // []) | {so: length, dau: .[0:3]}' 2>/dev/null) (ngoài danh sách = «*» ở luật trình duyệt, không ở trangChan)"
+cho 30 2 KHONG_CHAN
+dat 4.2 'Chính sách web về daemon: «Theo danh sách» không còn lưới web cấm (trangChan rỗng, #258)' "$(KHONG_CHAN && [ "$(tt_truong cheDo)" = hoc ] && echo 1 || echo 0)" "$(trang_thai | jq -c '(.trangChan // []) | {so: length, dau: .[0:3]}' 2>/dev/null) (ngoài danh sách = «*» ở luật trình duyệt, không ở trangChan)"
 TEN_LUOI=$(trang_thai | jq -r '(.trangChan // [])[0] // empty')
 sleep 8
 if [ -n "$TEN_LUOI" ] && grep -q "$TEN_LUOI" /etc/hosts 2>/dev/null; then ghi 4.3 'Khối /etc/hosts có mốc # AiiGrow + tên miền lưới an toàn' PASS "$(grep -c '# AiiGrow' /etc/hosts) dòng"
@@ -202,8 +201,8 @@ dat 7.1 '«Mở hết» ⇒ daemon mode tu_do (≤ 20 giây)' "$([ "$(tt_truong 
 cho 60 2 KHONG_CHAN
 dat 7.2 'Mở hết: không chặn trang nào (trangChan rỗng)' "$(KHONG_CHAN && echo 1 || echo 0)" "trangChan: $(trang_thai | jq -c '.trangChan' 2>/dev/null | cut -c1-200)"
 api POST "/api/m/con/$CON_ID/che-do" '{"cheDo":"theo_danh_sach"}' "$TOKEN_BM"
-cho 60 2 CO_DS
-dat 7.2b 'Về «Theo danh sách»: lưới an toàn chặn lại' "$(CO_DS && [ "$(tt_truong cheDo)" = hoc ] && echo 1 || echo 0)" "mode $(tt_truong cheDo) · trangChan $(trang_thai | jq -c '(.trangChan // []) | length' 2>/dev/null) mục"
+cho 60 1 cho_che_do hoc
+dat 7.2b 'Về «Theo danh sách»: daemon về mode hoc (ngoài danh sách = «*» ở luật trình duyệt)' "$([ "$(tt_truong cheDo)" = hoc ] && echo 1 || echo 0)" "mode $(tt_truong cheDo) · trangChan $(trang_thai | jq -c '(.trangChan // []) | length' 2>/dev/null) mục"
 api POST "/api/m/may/$MAY_ID/che-do" '{"cheDo":"giam-sat"}' "$TOKEN_BM"
 dat 7.3 'Máy chủ từ chối «Giám sát» (409 che_do_bo)' "$([ "$API_MA" = 409 ] && printf '%s' "$API_THAN" | grep -q che_do_bo && echo 1 || echo 0)" "HTTP $API_MA $API_THAN"
 
