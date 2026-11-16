@@ -201,6 +201,7 @@ final class GioiHanManMacTests: XCTestCase {
     let cu = ManMac.chuKhoa(tt(lyDo: "het_gio", sao: SoSao(sao: 0, phutCon: 0), gh: nil))
     XCTAssertEqual(cu.tieuDe, "Hết sao rồi")
     XCTAssertEqual(ManMac.chuKhoa(tt(lyDo: "ba_me_khoa", sao: nil, gh: nghi)).tieuDe, "Ba Mẹ đang khoá máy", "Ba Mẹ khoá thắng")
+    XCTAssertEqual(ManMac.chuKhoa(tt(lyDo: nil, sao: SoSao(sao: 30, phutCon: 20, saoTieuDuoc: 30), gh: nghi, phutSao: 20)).tieuDe, "Ba Mẹ đang khoá máy", "lý do nil + còn phút ⇒ không lấy chữ giới hạn")
   }
 
   func testKhayVaSaoThat() {

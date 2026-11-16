@@ -49,4 +49,31 @@ final class GioiHanTests: XCTestCase {
     XCTAssertNil(GioiHan(conNgay: nil).dongConNgay)
     XCTAssertNil(GioiHan(conNgay: 0, lyDoKhoa: GioiHan.hetNgay).dongConNgay)
   }
+
+  // Suy tại chỗ giữa hai lần đồng bộ
+  func testSuyTaiChoNghiGhimMotLan() {
+    let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+    let goc = GioiHan(ngayPhut: 60, conNgay: 40, luotPhut: 30, conLuot: 10)
+    var ghim: Date? = nil
+    let a = GioiHan.hieuLuc(goc, daChoiTaiCho: 4, saoThat: 20, bayGio: t0, ghim: &ghim)
+    XCTAssertNil(a?.lyDoKhoa); XCTAssertEqual(a?.conNgay, 36); XCTAssertEqual(a?.conLuot, 6); XCTAssertNil(ghim)
+    let b = GioiHan.hieuLuc(goc, daChoiTaiCho: 10, saoThat: 20, bayGio: t0, ghim: &ghim)
+    XCTAssertEqual(b?.lyDoKhoa, GioiHan.dangNghiMa); XCTAssertEqual(b?.nghiDen, t0.addingTimeInterval(1800)); XCTAssertNotNil(b?.nghiDenGio)
+    let c = GioiHan.hieuLuc(goc, daChoiTaiCho: 11, saoThat: 20, bayGio: t0.addingTimeInterval(600), ghim: &ghim)
+    XCTAssertEqual(c?.nghiDen, t0.addingTimeInterval(1800), "ghim, không tính lại theo giờ hiện tại")
+    let xong = GioiHan.hieuLuc(goc, daChoiTaiCho: 11, saoThat: 20, bayGio: t0.addingTimeInterval(1900), ghim: &ghim)
+    XCTAssertNil(xong?.lyDoKhoa); XCTAssertNil(ghim)
+  }
+  func testSuyTaiChoHetNgayVaHetSao() {
+    let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+    var ghim: Date? = nil
+    let ngay = GioiHan.hieuLuc(GioiHan(ngayPhut: 60, conNgay: 5, luotPhut: 30, conLuot: 20), daChoiTaiCho: 5, saoThat: 20, bayGio: t0, ghim: &ghim)
+    XCTAssertEqual(ngay?.lyDoKhoa, GioiHan.hetNgay); XCTAssertEqual(ngay?.cau, "Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé")
+    let hetSao = GioiHan.hieuLuc(GioiHan(ngayPhut: 60, conNgay: 40, luotPhut: 30, conLuot: 5), daChoiTaiCho: 5, saoThat: 0, bayGio: t0, ghim: &ghim)
+    XCTAssertEqual(hetSao?.lyDoKhoa, GioiHan.hetNgay)
+    var g2: Date? = nil
+    let cu = GioiHan(apDung: true, ngayPhut: 60, conNgay: 10, nghiDen: t0.addingTimeInterval(-5), nghiDenGio: "10:00", lyDoKhoa: GioiHan.dangNghiMa)
+    XCTAssertNil(GioiHan.hieuLuc(cu, daChoiTaiCho: 0, saoThat: 9, bayGio: t0, ghim: &g2)?.lyDoKhoa, "nghỉ xong ⇒ bỏ gioiHan cũ")
+    XCTAssertNil(cu.chuKhoa(saoThat: 9, bayGio: t0), "chữ nghỉ quá giờ ⇒ nil")
+  }
 }

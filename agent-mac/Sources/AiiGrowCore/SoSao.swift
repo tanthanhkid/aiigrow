@@ -86,16 +86,46 @@ public struct GioiHan: Codable, Equatable, Sendable {
     public var tieuDe: String
     public var phu: String
   }
-  public func chuKhoa(saoThat: Int?) -> Chu? {
+  public func chuKhoa(saoThat: Int?, bayGio: Date = Date()) -> Chu? {
     guard apDung else { return nil }
     switch lyDoKhoa {
     case GioiHan.dangNghiMa:
       guard (saoThat ?? 1) > 0 else { return nil }
+      if let d = nghiDen, d <= bayGio { return nil }          // nghỉ xong rồi ⇒ bỏ chữ cũ, chờ đồng bộ
       return Chu(tieuDe: "Nghỉ một chút", phu: "Nghỉ một chút" + (nghiDenGio.map { " · chơi tiếp lúc \($0)" } ?? ""))
     case GioiHan.hetNgay:
       return Chu(tieuDe: "Hôm nay chơi đủ rồi", phu: cau ?? (ngayPhut.map { "Hôm nay đã chơi đủ \($0) phút — mai chơi tiếp nhé" } ?? "Hôm nay chơi đủ rồi — mai chơi tiếp nhé"))
     default: return nil
     }
+  }
+  /// Suy tại chỗ giữa hai lần đồng bộ (lyDoKhoa nil): lấy `goc` trừ phút đã chơi tại chỗ.
+  /// Phút chơi được về 0 + còn sao thật + giới hạn lượt là cái chặn (conLuot ≤ conNgay) ⇒ `dang_nghi`, nghỉ tới `ghim` (= lúc chạm + luotPhut, ghim một lần, không tính lại mỗi nhịp);
+  /// ngược lại ⇒ `het_gio_ngay`. Máy chủ đã quyết (lyDoKhoa ≠ nil) ⇒ giữ, chỉ bỏ `dang_nghi` đã quá `nghiDen`.
+  public static func hieuLuc(_ goc: GioiHan?, daChoiTaiCho: Int, saoThat: Int?, bayGio: Date, ghim: inout Date?, mui: TimeZone = .current) -> GioiHan? {
+    guard var g = goc, g.apDung else { return goc }
+    if g.lyDoKhoa != nil {
+      if g.lyDoKhoa == dangNghiMa, let d = g.nghiDen, d <= bayGio { g.lyDoKhoa = nil; g.dangNghi = false; g.nghiDen = nil; g.nghiDenGio = nil }
+      return g
+    }
+    if let d = ghim, d <= bayGio { ghim = nil; return g }     // nghỉ xong ⇒ về số liệu gốc tới lần đồng bộ sau
+    let da = max(0, daChoiTaiCho)
+    let ngay = g.conNgay.map { $0 - da }, luot = g.conLuot.map { $0 - da }
+    let choiDuoc = [ngay, luot].compactMap { $0 }.min()
+    guard let choiDuoc else { return g }
+    g.conNgay = ngay.map { max(0, $0) }; g.conLuot = luot.map { max(0, $0) }
+    if choiDuoc > 0 { return g }
+    let conSao = (saoThat ?? 1) > 0
+    if conSao, let l = luot, let lp = g.luotPhut, lp > 0, l <= (ngay ?? Int.max) {
+      let den = ghim ?? bayGio.addingTimeInterval(Double(lp) * 60)
+      ghim = den
+      let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = mui; f.dateFormat = "HH:mm"
+      g.lyDoKhoa = dangNghiMa; g.dangNghi = true; g.nghiDen = den; g.nghiDenGio = f.string(from: den); g.hetNgay = false
+    } else {
+      ghim = nil
+      g.lyDoKhoa = hetNgay; g.hetNgay = true; g.dangNghi = false
+      g.cau = g.ngayPhut.map { "Hôm nay đã chơi đủ \($0) phút — mai chơi tiếp nhé" } ?? g.cau
+    }
+    return g
   }
   /// «Còn 25 phút hôm nay» (chỉ khi có giới hạn ngày).
   public var dongConNgay: String? {
