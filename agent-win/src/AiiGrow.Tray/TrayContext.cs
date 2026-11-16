@@ -630,6 +630,7 @@ internal sealed class TrayContext : ApplicationContext
             Chao(true);
             _state = st;
             _at = DateTimeOffset.Now;
+            TrayView.DatTenApp(st.TenApp);   // #307: tên app theo danh sách app máy, không tên tiến trình
             DoiNguoi();
             HandleBaMe();
             SetKetNoi(KetNoiView.Chon(true, _state), true);

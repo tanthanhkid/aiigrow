@@ -57,6 +57,12 @@ public sealed class DanhSachAppWorker : BackgroundService
             var t0 = Environment.TickCount64;
             var ds = await Task.Run(() => QuetAppWindows.Quet(sids, _tep, m => _log.LogDebug("Quét app: {m}", m)), ct);
             _dsCuoi = ds;
+            // #307: tên hiển thị cho khay (mục .exe / gói Store → tên trong danh sách app) — cùng nguồn danh sách gửi máy chủ
+            var ten = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var a in ds)
+                if (!string.IsNullOrWhiteSpace(a.Muc) && !string.IsNullOrWhiteSpace(a.Ten)) ten.TryAdd(a.Muc.Trim(), a.Ten.Trim());
+            _rt.TenAppMay = ten;
+            TrayView.DatTenApp(ten);
             _sidDaQuet = string.Join(",", sids);
             _quetLuc = now;
             _log.LogDebug("Đã quét {n} app ({ms} ms, {s} tài khoản Con)", ds.Count, Environment.TickCount64 - t0, sids.Count);

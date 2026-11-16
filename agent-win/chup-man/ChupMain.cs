@@ -78,6 +78,7 @@ internal static class ChupMain
 
     private static async Task ChayHet()
     {
+        TrayView.DatTenApp(TenAppMau());
         await Mot("app-hom-nay", () => ManApp("app-hom-nay", MucApp.HomNay, TrangThai(), true));
         await Mot("app-hom-nay-mat-mang", () => ManApp("app-hom-nay-mat-mang", MucApp.HomNay,
             TrangThai(s => { s.Offline = true; s.OfflineSince = DateTimeOffset.Now.AddMinutes(-25); }), true));
@@ -503,10 +504,19 @@ internal static class ChupMain
             Sao = 18,
             AppDuocPhep = new List<string> { "hocvoiairob.exe", "tudien.exe" },
             AppTinhPhut = new List<string> { "robloxplayerbeta.exe", "youtubekids.exe" },
+            // #307: tên hiển thị theo danh sách app máy (không tên tiến trình «Tudien», «Youtubekids»)
+            TenApp = TenAppMau(),
         };
         sua?.Invoke(s);
+        TrayView.DatTenApp(s.TenApp);
         return s;
     }
+
+    private static Dictionary<string, string> TenAppMau() => new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["hocvoiairob.exe"] = "Học với AiiRob", ["tudien.exe"] = "Từ điển", ["robloxplayerbeta.exe"] = "Roblox",
+        ["youtubekids.exe"] = "YouTube Kids", ["youtube.exe"] = "YouTube", ["capcut.exe"] = "CapCut",
+    };
 
     private static List<HvNhiemVu> NhiemVu() => new()
     {

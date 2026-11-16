@@ -63,6 +63,8 @@ public sealed class AgentRuntime
     public int WebRev => Volatile.Read(ref _webRev);
     public void WebDaDoi() => Interlocked.Increment(ref _webRev);
     public int ChildSessionId { get; set; } = -1;
+    /// <summary>16/11 (#307): mục → tên hiển thị theo lần quét danh sách app gần nhất (DanhSachAppWorker) — khay hiện «Từ điển», không «Tudien».</summary>
+    public volatile IReadOnlyDictionary<string, string>? TenAppMay;
     /// <summary>05/11 (L11): bài nộp lúc mất mạng đang chờ gửi (BaiChoMang, mỗi bài một tệp). PipeServer / AgentWorker cập nhật số đếm.</summary>
     public BaiChoMang BaiCho { get; } = new(BaiChoMang.ThuMucMacDinh);
     public volatile int SoBaiCho = -1;
@@ -733,6 +735,9 @@ public sealed class AgentRuntime
             s.DangChoiTinhPhut = !s.MoHet && !moTam && fgTuoi && !string.IsNullOrEmpty(_fgId) && LaTinhPhut(_fgId!) && _fgId != UsageTracker.KhongRo;
             s.AppDangChoi = s.DangChoiTinhPhut ? TrayView.FriendlyAppName(_fgId, _fgName) : null;
             s.DungTheoApp = Usage.DungHomNay(now, con: s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng ? s.BeId : null);
+            if (TenAppMay is { Count: > 0 } tenMay)
+                foreach (var muc in s.AppDuocPhep.Concat(s.AppTinhPhut).Append(s.BlockedAppId).Append(_fgId).Concat(s.DungTheoApp.Select(x => x.AppId)))
+                    if (!string.IsNullOrWhiteSpace(muc) && tenMay.TryGetValue(muc.Trim(), out var ten)) s.TenApp[muc.Trim()] = ten;
             if (eff.Locked && _lockStartedAt.HasValue)
                 s.LockGraceLeftSec = (int)Math.Max(0, Math.Ceiling(_lockGraceSec - (now - _lockStartedAt.Value).TotalSeconds));
             // Giám sát (hoặc mồ côi): KHÔNG hiện màn khoá toàn màn hình — chỉ ghi lại ở dịch vụ.

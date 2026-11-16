@@ -77,9 +77,33 @@ public static class TrayView
         ["discord"] = "Discord", ["spotify"] = "Spotify", ["notepad"] = "Notepad", ["calculatorapp"] = "Máy tính",
     };
 
+    private static volatile Dictionary<string, string>? _tenMay;
+
+    /// <summary>16/11 (#307): đặt bảng tên app theo danh sách app máy (mục → tên hiển thị, <see cref="TrayState.TenApp"/>). Rỗng / null ⇒ giữ bảng cũ.</summary>
+    public static void DatTenApp(IEnumerable<KeyValuePair<string, string>>? ds)
+    {
+        if (ds == null) return;
+        var m = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (k, v) in ds)
+            if (!string.IsNullOrWhiteSpace(k) && !string.IsNullOrWhiteSpace(v)) m[k.Trim()] = v.Trim();
+        if (m.Count > 0) _tenMay = m;
+    }
+
+    /// <summary>Tên hiển thị theo danh sách app máy (null = không có).</summary>
+    public static string? TenTheoDanhSach(string? appId)
+    {
+        var m = _tenMay;
+        var g = (appId ?? "").Trim();
+        if (m == null || g.Length == 0) return null;
+        if (m.TryGetValue(g, out var t)) return t;
+        var exe = g.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? g[..^4] : g + ".exe";
+        return m.TryGetValue(exe, out t) ? t : null;
+    }
+
     public static string FriendlyAppName(string? appId, string? appName)
     {
         if (!string.IsNullOrWhiteSpace(appName)) return appName!;
+        if (TenTheoDanhSach(appId) is { } tenDs) return tenDs;
         var n = (appId ?? "").Trim();
         if (n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) n = n[..^4];
         if (TenDepApp.TryGetValue(n, out var dep)) return dep;
