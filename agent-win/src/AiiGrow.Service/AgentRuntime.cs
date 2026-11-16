@@ -298,6 +298,7 @@ public sealed class AgentRuntime
         p.Sao = sao;
         p.SoSao = sao is int s ? new SoSaoMay { Sao = s, PhutCon = Math.Max(0, s), HetSao = s <= 0 } : null;
         p.QuyConPhut = sao is int s2 ? Math.Max(0, s2) : null;   // không biết số dư bé này ⇒ không đếm, giữ danh sách Policy cuối
+        p.GioiHan = null;                                         // #302: giới hạn của bé trước — bé này chưa biết (tới lượt đồng bộ sau)
         return (p, _giayBe.TryGetValue(be, out var g) ? g : 0);
     }
 
@@ -708,6 +709,15 @@ public sealed class AgentRuntime
             var saoGoc = pBe.SoSao?.Sao ?? pBe.Sao;
             s.Sao = s.MoHet ? saoGoc : SaoView.SoDuTaiMay(saoGoc, pBe.QuyConPhut, s.QuyConPhut);
             s.No = pBe.SoSao?.No;
+            // #302: khoá vì giới hạn ngày / đang nghỉ (còn sao) ⇒ màn khoá nói đúng lý do, không «Hết sao rồi»
+            var gh = s.MoHet ? null : pBe.GioiHan;
+            s.GioiHanLyDo = gh?.ApDung == true && pBe.SoSao?.SaoTieuDuoc is > 0 ? gh.LyDoKhoa : null;
+            s.GioiHanGio = s.GioiHanLyDo == GioiHanMay.DangNghi ? gh!.NghiDenGio : null;
+            s.GioiHanCau = s.GioiHanLyDo != null ? gh!.Cau : null;
+            s.GioiHanChan = gh?.ApDung == true && gh.PhutToiDa is double ptd && pBe.SoSao?.SaoTieuDuoc is double stt && ptd < stt;
+            // phút đếm tại máy vừa hết mà giới hạn chặn trước số sao (chưa tới lượt đồng bộ) ⇒ đoán lý do để màn khoá nói đúng ngay
+            if (s.GioiHanLyDo == null && s.GioiHanChan && s.QuyConPhut is <= 0 && gh!.DoanKhiHet(DateTime.Now) is { } doan)
+                (s.GioiHanLyDo, s.GioiHanGio, s.GioiHanCau) = (doan.LyDo, doan.Gio, doan.Cau);
             s.PhutBoiMaHomNay = PhutBoiMaHomNay(now, s.NguoiDung == LoaiNguoiDung.Con ? s.BeId : null);
             s.AppTinhPhut = QuyTaiCho.MucTinhPhut(_policy).ToList();
             var fgTuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;

@@ -99,14 +99,50 @@ public sealed class Policy
     [JsonIgnore] public string? CheDoCon { get; set; }
     /// <summary>11/11 (dong-bo.windows.moHet): Con ở «Mở hết» ⇒ HostsWorker gỡ dòng chặn 0.0.0.0 / :: trong tệp hosts do phần mềm khác đặt.</summary>
     public bool MoHet { get; set; }
+    /// <summary>16/11 (#302, dong-bo.windows.gioiHan): giới hạn tối đa mỗi ngày + mỗi lượt rồi nghỉ. <see cref="QuyConPhut"/> ĐÃ kẹp theo giới hạn
+    /// (máy chủ tính) nên khoá app «Tính phút» như hết sao; khối này chỉ cho chữ màn khoá. null = máy chủ cũ / không có giới hạn.</summary>
+    public GioiHanMay? GioiHan { get; set; }
 
     /// <summary>Bản sao nông (QuyTaiCho thay danh sách mới ở bản sao, không sửa Policy đang giữ).</summary>
     public Policy SaoNong() => (Policy)MemberwiseClone();
 }
 
-/// <summary>Khối `sao` của dong-bo (docs/API.md «Sổ sao 15/11»): `sao` âm khi nợ, `no` ≥ 0, `phutCon` = sao tiêu được.</summary>
+/// <summary>16/11 (#302): khối `gioiHan` (docs/API.md «Giới hạn giờ chơi 16/11»). LyDoKhoa: «het_gio_ngay» | «dang_nghi» | null.</summary>
+public sealed class GioiHanMay
+{
+    public const string HetGioNgay = "het_gio_ngay", DangNghi = "dang_nghi";
+    public bool ApDung { get; set; }
+    public string? LyDoKhoa { get; set; }
+    /// <summary>Hết nghỉ lúc (ISO, UTC) — máy chủ đặt nextCheckSec tới mốc này.</summary>
+    public string? NghiDen { get; set; }
+    /// <summary>«HH:MM» giờ gia đình của <see cref="NghiDen"/>.</summary>
+    public string? NghiDenGio { get; set; }
+    public double? NgayPhut { get; set; }
+    public double? ConNgay { get; set; }
+    public double? LuotPhut { get; set; }
+    public double? ConLuot { get; set; }
+    /// <summary>Phút chơi được tối đa theo giới hạn (null = không giới hạn).</summary>
+    public double? PhutToiDa { get; set; }
+    /// <summary>Câu sẵn: «Nghỉ một chút · chơi tiếp lúc 16:30» · «Hôm nay đã chơi đủ 60 phút — mai chơi tiếp nhé» · «Còn 25 phút hôm nay».</summary>
+    public string? Cau { get; set; }
+
+    /// <summary>Phút đếm TẠI MÁY vừa chạm 0 mà giới hạn chặn trước số sao (máy chủ chưa kịp tính lý do ở lượt đồng bộ sau) ⇒ đoán lý do:
+    /// lượt chặn trước ⇒ đang nghỉ tới bây giờ + phút lượt; ngày chặn trước ⇒ hết giờ hôm nay. → (lyDo, giờ nghỉ, câu) hoặc null.</summary>
+    public (string LyDo, string? Gio, string? Cau)? DoanKhiHet(DateTime bayGio)
+    {
+        if (!ApDung) return null;
+        if (LuotPhut is double lp && lp > 0 && ConLuot is double cl && cl <= (ConNgay ?? double.MaxValue))
+            return (DangNghi, bayGio.AddMinutes(lp).ToString("HH:mm"), null);
+        if (ConNgay is not null) return (HetGioNgay, null, NgayPhut is double np ? $"Hôm nay đã chơi đủ {Math.Round(np)} phút — mai chơi tiếp nhé" : null);
+        return null;
+    }
+}
+
+/// <summary>Khối `sao` của dong-bo (docs/API.md «Sổ sao 15/11»): `sao` âm khi nợ, `no` ≥ 0, `phutCon` = sao tiêu được.
+/// 16/11 (#302): `phutCon` / `hetSao` đã kẹp theo giới hạn ngày / lượt; <see cref="SaoTieuDuoc"/> = số sao thật (null = máy chủ cũ).</summary>
 public sealed class SoSaoMay
 {
+    public double? SaoTieuDuoc { get; set; }
     public int Sao { get; set; }
     public int No { get; set; }
     public double PhutCon { get; set; }

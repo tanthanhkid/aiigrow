@@ -774,7 +774,9 @@ internal sealed class TrayContext : ApplicationContext
         if (id != null && _state.QuyConPhut is <= 0 && _hetSao is { IsDisposed: false } && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase)) return;
         if (id != null && _state.QuyConPhut is <= 0 && !_state.MoHet && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase))
         {
-            _blocked = BlockedForm.HetSao(id, _state.BlockedAppName);
+            // #302: đang nghỉ / chơi đủ hôm nay (còn sao) ⇒ «Nghỉ một chút · chơi tiếp lúc HH:MM» thay «Hết sao rồi»
+            var gh = HetSaoView.PopGioiHan(_state.GioiHanLyDo, _state.GioiHanGio, _state.GioiHanCau, TrayView.FriendlyAppName(id, _state.BlockedAppName));
+            _blocked = gh is { } chu ? BlockedForm.GioiHan(id, _state.BlockedAppName, chu) : BlockedForm.HetSao(id, _state.BlockedAppName);
             _blocked.LamNhiemVu += () => OpenApp(MucApp.NhiemVu);
             _blocked.XinVay += () => OpenXinVay();
             _blocked.Show();
@@ -832,14 +834,17 @@ internal sealed class TrayContext : ApplicationContext
         var doiBe = _state.NguoiDung == LoaiNguoiDung.Con && !_state.MayRieng;
         if (HetSaoView.DemNguoc(con, _state.DangChoiTinhPhut) && (_hetSao is { IsDisposed: false } || truoc is null or > 1))
         {
-            HienHetSao(HetSaoView.For((int)Math.Ceiling(con * 60), _state.AppDangChoi, _state.AppDuocPhep, doiBe), (int)Math.Ceiling(con * 60));
+            var giay = (int)Math.Ceiling(con * 60);
+            HienHetSao(_state.GioiHanChan ? HetSaoView.ForSapHetGio(giay, _state.AppDangChoi) : HetSaoView.For(giay, _state.AppDangChoi, _state.AppDuocPhep, doiBe), giay);
             return;
         }
         var vuaHet = con <= 0 && !_daBaoHetSao && (_hetSao is { IsDisposed: false } || (truoc is > 0 && _state.DangChoiTinhPhut));
         if (vuaHet)
         {
             _daBaoHetSao = true;
-            var m = _state.Offline ? ManKhoaView.For(null, _state.ChildName, offline: true, hetSao: true) : HetSaoView.For(null, null, _state.AppDuocPhep, doiBe);
+            // #302: khoá vì giới hạn ngày / đang nghỉ (còn sao) ⇒ «Nghỉ một chút · chơi tiếp lúc HH:MM» / «Hôm nay chơi đủ rồi», không «Hết sao rồi»
+            var m = HetSaoView.ForGioiHan(_state.GioiHanLyDo, _state.GioiHanGio, _state.GioiHanCau, _state.AppDuocPhep, doiBe)
+                ?? (_state.Offline ? ManKhoaView.For(null, _state.ChildName, offline: true, hetSao: true) : HetSaoView.For(null, null, _state.AppDuocPhep, doiBe));
             HienHetSao(m, null);
             return;
         }
