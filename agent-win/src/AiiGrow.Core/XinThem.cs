@@ -19,6 +19,8 @@ public static class XinThemView
     // Đã gửi (them-6tn8aozf)
     public const string DaGui = "Đã gửi Ba Mẹ!";
     public static string ConXin(string ten) => "Con xin thêm " + ten;
+    /// <summary>Dòng lời xin trong thẻ «Chờ có mạng» (mất mạng): «Xin thêm YouTube».</summary>
+    public static string DongDaLuu(string ten) => "Xin thêm " + ten;
     public const string DangCho = "Đang chờ Ba Mẹ";
     public const string TraLoiBaoNgay = "Ba Mẹ trả lời là máy báo con ngay.";
     /// <summary>«Chơi tiếp · còn 18 sao = 18 phút»; hết sao ⇒ «Về Hôm nay».</summary>

@@ -219,8 +219,16 @@ public sealed class PipeServer : BackgroundService
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
                     var res = await api.XinDuyetAsync(muc, req.AppName, req.Note, ct);
-                    if (res.KetQua is not ("cho" or "")) _rt.RequestSyncSoon();
-                    return new PipeResponse { Ok = true, Id = res.Id, Status = string.IsNullOrEmpty(res.KetQua) ? "cho" : res.KetQua };
+                    var st = string.IsNullOrEmpty(res.KetQua) ? "cho" : res.KetQua;
+                    RequestStatus? kq = null;
+                    if (st != "cho")
+                    {
+                        _rt.RequestSyncSoon();
+                        // #307: có kết quả ngay (máy chủ tự duyệt / lời xin cũ đã trả lời) ⇒ kèm đủ nhóm, người duyệt, lời nhắn — khay không phải đoán
+                        if (!string.IsNullOrEmpty(res.Id))
+                            try { kq = await api.GetRequestAsync(res.Id, ct); } catch (ApiException) { /* hộp hỏi lại theo id */ }
+                    }
+                    return new PipeResponse { Ok = true, Id = res.Id, Status = st, KetQua = kq };
                 }
                 catch (ApiException e) when (e.Code == "web_cam")
                 {

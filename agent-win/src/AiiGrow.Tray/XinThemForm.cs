@@ -23,6 +23,9 @@ internal sealed class XinThemForm : HopKhayCoBan
     private bool _busy;
     private Label? _msg;
 
+    /// <summary>Mục đang xin (exe / tên miền) — khay không mở thêm màn chặn cho đúng mục này khi hộp đang mở.</summary>
+    public string Muc => _muc;
+
     /// <summary>Con muốn đi đâu sau khi đóng hộp (null = về chỗ cũ): <see cref="SauNhan"/> | <see cref="SauHomNay"/>.</summary>
     public string? Sau { get; private set; }
     /// <summary>Đã gửi được lời xin (mục) — khay ghi nhớ để không tự gửi lặp.</summary>
@@ -73,6 +76,8 @@ internal sealed class XinThemForm : HopKhayCoBan
         Flow.Controls.Add(ONhapClay.Boc(_note, W));
         var gui = KhoiCon.Nut(XinThemView.Nut(_ten), true, W, "tin");
         gui.Click += async (_, _) => await GuiAsync(gui);
+        // quay lại từ «Đã gửi» khi lời xin còn chờ ⇒ không cho gửi trùng
+        if (_id != null) { gui.Enabled = false; gui.Text = XinThemView.DangCho; }
         Flow.Controls.Add(gui);
         _msg = UI.Text("", 10f, true, UI.Error, W);
         Flow.Controls.Add(_msg);
@@ -86,6 +91,7 @@ internal sealed class XinThemForm : HopKhayCoBan
         if (_msg != null) _msg.Text = "";
         var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.XinDuyet, AppId = _muc, AppName = _ten, Note = XinVayView.LyDo(_note.Text) });
         _busy = false;
+        if (r.Ok) DaXin?.Invoke(_muc);   // Con đóng hộp lúc đang gửi: lời xin vẫn đã gửi ⇒ khay vẫn phải biết (không tự gửi lặp)
         if (IsDisposed) return;
         if (!r.Ok)
         {
@@ -93,11 +99,10 @@ internal sealed class XinThemForm : HopKhayCoBan
             b.Enabled = true;
             return;
         }
-        DaXin?.Invoke(_muc);
         if (r.Status == "cho_mang")
         {
             Xoa();
-            HopDaLuu.Ve(Flow, W, ManChanView.DaLuuTieu, "Xin mở " + _ten, int.TryParse(r.Message, out var n) ? n : 1, Close, ManChanView.VeHomNay);
+            HopDaLuu.Ve(Flow, W, ManChanView.DaLuuTieu, XinThemView.DongDaLuu(_ten), int.TryParse(r.Message, out var n) ? n : 1, Close, ManChanView.VeHomNay);
             Xong();
             return;
         }
@@ -159,12 +164,16 @@ internal sealed class XinThemForm : HopKhayCoBan
         Xoa();
         Text = "AiiGrow · Ba Mẹ trả lời";
         var khong = s?.Nhom == "khong_tinh_phut";
+        var biet = s?.Nhom is "khong_tinh_phut" or "tinh_phut";   // máy chủ không gửi nhóm ⇒ không đoán, không hiện chip nhóm
         var moTam = s?.KetQua == "mo_tam";
-        Flow.Controls.Add(KhoiXin.DauRob("qua", W, null,
+        var cot = new List<Control>
+        {
             KhoiXin.Chip(moTam ? XinThemView.MoTam(s?.TenNguoiDuyet, moTamPhut ?? 0) : XinThemView.DaThem(s?.TenNguoiDuyet), Clay.NgocSoft, Clay.NgocInk, "tick"),
             KhoiXin.Chu(_ten, 22f, true, UI.GreenDark),
-            moTam ? (Control)KhoiXin.Chu(KetQuaXinView.MoTamPhu(_ten, s?.MoTam?.Den), 10f, true, Clay.Chu2)
-                  : KhoiXin.Chip(XinThemView.NhomDaThem(khong, _phutCon), khong ? Clay.NgocSoft : Clay.DiemSoft, khong ? Clay.NgocInk : Clay.DiemInk, khong ? "sach" : "sao")));
+        };
+        if (moTam) cot.Add(KhoiXin.Chu(KetQuaXinView.MoTamPhu(_ten, s?.MoTam?.Den), 10f, true, Clay.Chu2));
+        else if (biet) cot.Add(KhoiXin.Chip(XinThemView.NhomDaThem(khong, _phutCon), khong ? Clay.NgocSoft : Clay.DiemSoft, khong ? Clay.NgocInk : Clay.DiemInk, khong ? "sach" : "sao"));
+        Flow.Controls.Add(KhoiXin.DauRob("qua", W, null, cot.ToArray()));
         if (!string.IsNullOrWhiteSpace(s?.LoiNhan)) Flow.Controls.Add(KhoiXin.BongLoi(XinVayView.TenBaMe(s?.TenNguoiDuyet), s!.LoiNhan!, W));
         var mo = KhoiCon.Nut(XinThemView.Mo(_ten), true, W, "dongho");
         mo.Click += (_, _) => { MoMuc(); Close(); };
