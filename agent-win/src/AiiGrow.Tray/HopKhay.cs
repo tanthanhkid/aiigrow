@@ -92,7 +92,7 @@ internal static class HopDaLuu
         flow.Controls.Add(TheCho(w, choMang, icon, dong, $"vừa xong · {DateTime.Now:HH:mm}"));
         flow.Controls.Add(UI.Text(ManChanView.KhongCanGuiLai, 9.75f, false, UI.Muted, w));
         var hang = KhoiCon.Hang();
-        var b = KhoiCon.Nut(chuNut, true, lui != null ? w * 2 / 3 : w, "nha");
+        var b = KhoiCon.Nut(chuNut, true, lui != null ? w * 2 / 3 : w, chuNut == ManKhoaView.VeManKhoa ? "khoa" : "nha");
         b.Click += (_, _) => ve();
         hang.Controls.Add(b);
         if (lui != null)

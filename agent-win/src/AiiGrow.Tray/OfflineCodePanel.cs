@@ -94,16 +94,18 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
     {
         _msg.ForeColor = UI.Error;
         _msg.Text = ManKhoaView.MaSai;
+        _box.ForeColor = UI.Error;   // Bàn them-y4zv21p3: số đỏ, câu báo NẰM TRÊN nút
+        if (_go.Parent == this && Controls.GetChildIndex(_msg) > Controls.GetChildIndex(_go)) Controls.SetChildIndex(_msg, Controls.GetChildIndex(_go));
         _go.Text = "Thử lại mã mới";
         if (_nhapLai == null)
         {
             _nhapLai = KhoiCon.LienKet("‹ Nhập lại", null, () =>
             {
-                _box.Text = ""; _msg.Text = ""; _go.Text = _chuNut; _box.Focus();
+                _box.Text = ""; _msg.Text = ""; _go.Text = _chuNut; _box.ForeColor = UI.Ink; _box.Focus();
                 if (_nhapLai != null) { Controls.Remove(_nhapLai); _nhapLai.Dispose(); _nhapLai = null; }
             });
             Controls.Add(_nhapLai);
         }
-        _box.SelectAll(); _box.Focus();
+        _box.Focus(); _box.SelectionStart = _box.TextLength;
     }
 }

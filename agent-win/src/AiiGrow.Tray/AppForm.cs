@@ -508,7 +508,8 @@ internal sealed class AppForm : Form
         _content.Controls.Add(hai);
 
         // Tin mới nhất của Ba Mẹ
-        var tin = _tq?.LoiKhen.OrderByDescending(l => l.Luc ?? DateTimeOffset.MinValue).FirstOrDefault();
+        // Bàn cmt-hom-nay-mat-mang / cmt-hom-nay-mo-bang-ma: không có thẻ tin (thay bằng thẻ một dòng «Vẫn «Theo danh sách»…»)
+        var tin = _kn.Loai == KetNoi.MatKetNoi || moMa != null ? null : _tq?.LoiKhen.OrderByDescending(l => l.Luc ?? DateTimeOffset.MinValue).FirstOrDefault();
         if (tin != null)
         {
             var t = TheDay();
@@ -621,6 +622,7 @@ internal sealed class AppForm : Form
         }
         var daChoi = SaoView.PhutTinh(_s.DungTheoApp, _s.AppTinhPhut, _s.PhutBoiMaHomNay);
         if (_s.DungTheoApp.Count > 0) the.Controls.Add(T(SaoView.DaChoi(daChoi, matMang), 12f, true, Clay.Chu2, r));
+        if (matMang) return the;   // Bàn cmt-hom-nay-mat-mang: không dòng app đã dùng
         _lblApp = T("", 11f, false, UI.Muted, r);
         the.Controls.Add(_lblApp);
         CapNhatSo();
