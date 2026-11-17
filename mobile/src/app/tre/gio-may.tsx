@@ -31,7 +31,7 @@ export default function GioMay() {
   return (
     <ManD lui="/tre/nha" day={<><LoiD loi={loi} /><NutD chu="Đã chỉnh xong, thử lại" bam={chinh} />
       {daNhan ? <View style={{ alignSelf: "center" }}><PillD chu="Đã báo Ba Mẹ" loai="xanh" ic="tick" /></View> : <NutD chu="Nhờ Ba Mẹ giúp" loai="chu" bam={nhan} dangChay={dangChay} />}</>}>
-      <CamXuc lv="trong-loi" co={120} tieu="Giờ trên máy bị lệch" phu="Phút chơi tạm dừng đếm đến khi chỉnh lại." />
+      <CamXuc lv="trong-loi" co={120} tieu="Giờ trên máy bị lệch" phu="Giờ chơi tạm dừng đếm đến khi chỉnh lại." />
       <View style={{ flexDirection: "row", gap: 10 }}>
         <TheD style={{ flex: 1, alignItems: "center" }}>
           <ChuD kieu="rat" co={13} mau={D.chu2}>Máy đang để</ChuD>

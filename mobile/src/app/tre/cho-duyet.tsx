@@ -9,7 +9,8 @@ import { CamXuc, ChuD, ManD, MatMangD, NutD, PillD, SaoD, TheD } from "@/lib/ui-
 import { gioCua } from "@/lib/ui-tre";
 
 export default function ChoDuyet() {
-  const { diem, xep, ten } = useLocalSearchParams<{ diem?: string; xep?: string; ten?: string }>();
+  const { diem, xep, ten, anh } = useLocalSearchParams<{ diem?: string; xep?: string; ten?: string; anh?: string }>();
+  const vat = anh ? "Ảnh" : "Bài";                       // bàn them-6t2vvx7d: nộp ảnh ⇒ «Ảnh vẫn còn nhé!» · «Ảnh không mất»; ghi âm / viết ⇒ «Bài …»
   const [cho, setCho] = useState(xep ? Math.max(1, soViecCho()) : 0);
   const [luc] = useState(() => gioCua(new Date().toISOString()));
   const [dangGui, setDangGui] = useState(false);
@@ -22,12 +23,12 @@ export default function ChoDuyet() {
   if (cho) {
     return (
       <ManD lui="/tre/nhiem-vu" day={<><NutD chu="Thử gửi lại" bam={thu} dangChay={dangGui} /><NutD chu="Làm nhiệm vụ khác" loai="chu" bam={() => router.replace("/tre/nhiem-vu")} /></>}>
-        <CamXuc lv="trong-loi" co={130} tieu="Chưa gửi được" phu="Mất mạng rồi. Bài vẫn còn nhé!" />
+        <CamXuc lv="trong-loi" co={130} tieu="Chưa gửi được" phu={`Mất mạng rồi. ${vat} vẫn còn nhé!`} />
         <MatMangD chu="Mất mạng" />
         <TheD>
           <ChuD kieu="den" co={16}>{ten || "Bài nộp của con"}</ChuD>
           <ChuD co={14} mau={D.chu2}>Lưu ở máy, gửi khi có mạng</ChuD>
-          <PillD chu="Bài không mất" loai="xanh" ic="tick" />
+          <PillD chu={`${vat} không mất`} loai="xanh" ic="tick" />
         </TheD>
       </ManD>
     );
