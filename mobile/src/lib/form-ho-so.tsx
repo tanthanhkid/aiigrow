@@ -60,7 +60,7 @@ export function ONamSinh({ nam, doi }: { nam: string; doi: (nam: string) => void
     <View style={{ gap: 6 }}>
       <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Năm sinh</Chu>
       <Pressable onPress={() => setChon(nam || String(new Date().getFullYear() - 9))} accessibilityRole="button" accessibilityLabel={`Chọn năm sinh của con${nam ? `, đang là ${nam}` : ""}`}
-        style={{ minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", paddingHorizontal: 18 }}>
+        style={{ minHeight: 54, borderRadius: 27, backgroundColor: M.ranh, boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", paddingHorizontal: 18 }}>
         <Chu kieu={nam ? "rat" : "dam"} co={nam ? 18 : 16} mau={nam ? M.chu : M.chu3} so style={{ flex: 1 }}>
           {nam || "Chọn năm sinh"}
         </Chu>
@@ -68,7 +68,7 @@ export function ONamSinh({ nam, doi }: { nam: string; doi: (nam: string) => void
       </Pressable>
       <BangTruot mo={chon !== null} dong={() => setChon(null)} tieu="Năm sinh">
         <View style={{ alignItems: "center" }}>
-          <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 80, height: 40, borderRadius: 14, backgroundColor: "#e3efeb" }} />
+          <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: 80, height: 40, borderRadius: 14, backgroundColor: M.chinhSoft }} />
           {chon !== null ? <BanhXe ds={namDs()} gia={chon} doi={setChon} nhan="Năm sinh" /> : null}
         </View>
         <Nut chu={`Chọn ${chon ?? ""}`} rong bam={() => { if (chon) doi(chon); setChon(null); }} />
@@ -100,7 +100,7 @@ export function ThePinCon({ pin, doi, cau, loi, batBuoc }: { pin: string; doi: (
     <View style={{ gap: 10, padding: 14, borderRadius: BO_CLAY.the, backgroundColor: M.the, ...KHOI.the }} accessibilityLabel="Mã PIN vào máy">
       <LopMen men={MEN.the} bo={BO_CLAY.the} />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Anh3D ten="khoa" co={24} /></View>
+        <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Anh3D ten="khoa" co={24} /></View>
         <Chu kieu="rat" co={15} style={{ flex: 1 }}>Mã PIN vào máy</Chu><Chu kieu="dam" co={12.5} mau={M.chu2}>4 số</Chu>
       </View>
       <OPin gia={pin} doi={doi} nhan="Đặt PIN 4 số" />
@@ -127,13 +127,13 @@ export function HangAnhCon({ f, coAnh, boDaLuu }: { f: ReturnType<typeof useAnhF
       <View style={{ flexDirection: "row", gap: 8 }}>
         {nut.map(([ic, chu, bam]) => (
           <Pressable key={chu} onPress={bam} accessibilityRole="button" accessibilityLabel={`${chu} đại diện`}
-            style={[{ flex: 1, minHeight: 56, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: "#f7f6f3" }, KHOI.nho]}>
+            style={[{ flex: 1, minHeight: 56, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: M.the }, KHOI.nho]}>
             <Icon3D ten={ic} co={24} /><Chu kieu="rat" co={12.5} mau={M.chu2}>{chu}</Chu>
           </Pressable>
         ))}
         {f.anh || coAnh ? (
           <Pressable onPress={() => { f.bo(); boDaLuu?.(); }} accessibilityRole="button" accessibilityLabel="Bỏ ảnh đại diện, dùng chữ cái"
-            style={[{ flex: 1, minHeight: 56, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: "#f7f6f3" }, KHOI.nho]}>
+            style={[{ flex: 1, minHeight: 56, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: M.the }, KHOI.nho]}>
             <Icon ten="x" mau={M.chu2} co={20} /><Chu kieu="rat" co={12.5} mau={M.chu2}>Bỏ ảnh</Chu>
           </Pressable>
         ) : null}

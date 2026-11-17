@@ -86,7 +86,7 @@ export default function ViSao() {
   if (!d) return <Man lui={{ chu: "Việc & quà" }} tieu="Ví sao"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const s = d.s, sao = s.sao, k = kieuSao(s), no = cauNo(s);
   const kiem = d.bayNgay?.saoKiem ?? d.lich.filter((x) => x.kieu === "kiem" && d.bay - new Date(x.luc).getTime() < 7 * 86_400_000).reduce((a, x) => a + x.delta, 0);
-  const mauThe = k === "thuong" ? "#6e4300" : MAU_NO.chu;
+  const mauThe = k === "thuong" ? M.diemInk : MAU_NO.chu;
   const hang = hangVi(d.lich).slice(0, 40);
   const luu = () => lam(async () => {
     await bm.goi(`con/${con}/diem`, { delta: dau * Number(so), lyDo });
@@ -98,9 +98,9 @@ export default function ViSao() {
   return (
     <Man lui={{ chu: "Việc & quà" }} tieu={`Ví sao của ${d.ten}`} noi={noi} tai={tai}
       phai={d.baMe ? <Pressable onPress={() => setMo(true)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Nhan chu="± Điều chỉnh" /></Pressable> : undefined}>
-      {/* thiết kế .vi: thẻ cao ~164 — «⭐ 30 sao» 50/800 trái; nợ ⇒ nền cảnh báo #f9e7d2 chữ #8a3c0c; Grow «xong» tràn góc phải dưới */}
+      {/* thiết kế .vi: thẻ cao ~164 — «⭐ 30 sao» 50/800 trái; nợ ⇒ nền cảnh báo #ffe6d6 chữ #b34a06; Grow «xong» tràn góc phải dưới */}
       <View style={[{ minHeight: 164, padding: 20, borderRadius: 28, overflow: "hidden" },
-        k === "thuong" ? { backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf1d3, #fbecc0)" } : { backgroundColor: MAU_NO.nen, backgroundImage: "linear-gradient(#fbeedd, #f9e7d2)" }, KHOI.the]}
+        k === "thuong" ? { backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf1d3, #fbf0d6)" } : { backgroundColor: MAU_NO.nen, backgroundImage: "linear-gradient(#fbeedd, #ffe6d6)" }, KHOI.the]}
         accessible accessibilityLabel={`${soChinh(s)}${no ? `. ${no}` : ""}`}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingRight: 100 }}>
           <Icon3D ten="sao" co={48} />
@@ -119,7 +119,7 @@ export default function ViSao() {
         </View>}
         <View pointerEvents="none" style={{ position: "absolute", right: -8, bottom: -22 }}><Rob ten="so-tay" co={118} /></View>
       </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: "#dcebe6" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: M.chinhSoft }}>
         <Icon3D ten="sao" co={32} />
         <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1, lineHeight: 20 }}>1 sao = 1 phút chơi app «Tính phút». Hết sao thì con xin Ba Mẹ cho vay.</Chu>
       </View>

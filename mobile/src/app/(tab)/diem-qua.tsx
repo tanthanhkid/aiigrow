@@ -81,7 +81,7 @@ export default function TabNhiemVu() {
       {/* thiết kế .vi: thẻ vàng — «<Con> đang có» · ⭐ 30 sao (40/800) · viên trắng «= 30 phút chơi ›»; đang nợ ⇒ thẻ cảnh báo «<Con> đang nợ Ba Mẹ 20 sao» */}
       {anVi ? null : <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${ten}: ${soChinh(ss)}`}
         style={[{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 28, overflow: "hidden" },
-          k === "thuong" ? { backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf0c9, #fbecc0)" } : { backgroundColor: MAU_NO.nen, backgroundImage: "linear-gradient(#fbeedd, #f9e7d2)" }, KHOI.the]}>
+          k === "thuong" ? { backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf0c9, #fbf0d6)" } : { backgroundColor: MAU_NO.nen, backgroundImage: "linear-gradient(#fbeedd, #ffe6d6)" }, KHOI.the]}>
         <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -18 }}><Rob ten="xong" co={112} /></View>
         <Chu kieu="dam7" co={13.5} mau={k === "thuong" ? "#5a3700" : MAU_NO.chu} style={{ marginRight: 116 }}>
           {k === "thuong" ? `${ten} đang có` : `${ten} đang nợ Ba Mẹ ${soVN(ss.no)} sao`}</Chu>
@@ -93,7 +93,7 @@ export default function TabNhiemVu() {
           </>}
         </View>
         <View style={{ alignSelf: "flex-start", marginTop: 6, minHeight: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#fff", justifyContent: "center", marginRight: 100 }}>
-          <Chu kieu="rat" co={13} mau={k === "thuong" ? "#6e4300" : MAU_NO.chu}>
+          <Chu kieu="rat" co={13} mau={k === "thuong" ? M.diemInk : MAU_NO.chu}>
             {k === "thuong" ? `= ${soVN(sao)} phút chơi ›`
               : cua.cho.length ? (tongCho >= ss.no ? `Duyệt ${cua.cho.length} việc chờ là hết nợ ›` : `Duyệt ${cua.cho.length} việc chờ để trả nợ ›`)
                 : "Xem ví sao ›"}</Chu>
@@ -122,11 +122,11 @@ export default function TabNhiemVu() {
           {/* thiết kế .qua: mỗi quà một thẻ vàng — ô icon 48 nền #fff8e4 · tên 15.5/800 · «Đổi 50 sao · hôm qua» · nút đen «Trao quà» */}
           {cua.phieu.map((p) => (
             <View key={p.id} style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingLeft: 12, paddingRight: 16, borderRadius: 28,
-              backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf3d6, #fbecc0)" }, KHOI.the]}>
+              backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf3d6, #fbf0d6)" }, KHOI.the]}>
               <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "#fff8e4", alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten }) as TenIcon} co={30} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={15.5} dong={1}>{p.ten}</Chu>
-                <Chu kieu="dam" co={13} mau="#6e4300">{`Đổi ${soVN(p.diem)} sao · ${khiNao(p.created_at)}`}</Chu>
+                <Chu kieu="dam" co={13} mau={M.diemInk}>{`Đổi ${soVN(p.diem)} sao · ${khiNao(p.created_at)}`}</Chu>
               </View>
               <View><Nut chu="Trao quà" nho bam={() => setTrao(p)} nhanDoc={`Trao ${p.ten} cho ${p.ten_con}`} /></View>
             </View>
@@ -156,11 +156,11 @@ export default function TabNhiemVu() {
   );
 }
 
-/** Viên «+ Việc» / «+ Quà» cạnh tiêu đề (.them: cao 44, đệm 10 · 14, icon 3D 22, chữ 14/800 #0a5246). */
+/** Viên «+ Việc» / «+ Quà» cạnh tiêu đề (.them: cao 44, đệm 10 · 14, icon 3D 22, chữ 14/800 #0A1629). */
 function NutThem({ ic, chu, nhan, bam }: { ic: "tick" | "qua"; chu: string; nhan: string; bam: () => void }) {
   return (
     <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={nhan} muc="chip" sang
-      style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 44, paddingLeft: 10, paddingRight: 14, borderRadius: 22, backgroundColor: "#f7f6f3", ...KHOI.nho }}>
+      style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 44, paddingLeft: 10, paddingRight: 14, borderRadius: 22, backgroundColor: M.the, ...KHOI.nho }}>
       <Icon3D ten={ic} co={22} /><Chu kieu="rat" co={14} mau={M.chinhInk}>{chu}</Chu>
     </NhanMen>
   );
@@ -189,8 +189,8 @@ function ViecTrong({ con, ten, baMe }: { con: string; ten: string; baMe: boolean
 function ChonLoi({ ic, tieu, phu, bam }: { ic: "qua" | "but"; tieu: string; phu: string; bam: () => void }) {
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={tieu}
-      style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingRight: 14, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-      <OLomIcon ic={ic} co={52} nen={ic === "but" ? "#dcebe6" : "#ecebe7"} />
+      style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, paddingRight: 14, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
+      <OLomIcon ic={ic} co={52} nen={ic === "but" ? M.chinhSoft : M.xamSoft} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={16}>{tieu}</Chu>
         <Chu kieu="dam" co={13} mau={M.chu3}>{phu}</Chu>

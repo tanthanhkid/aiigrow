@@ -77,7 +77,7 @@ export default function DuyetDs() {
 
   return (
     <Man lui={{ chu: "Việc & quà" }} tieu={`${ten} nộp việc`} tai={tai}
-      phai={<View style={{ paddingHorizontal: 11, paddingVertical: 4, borderRadius: 13, backgroundColor: "#c2540a" }}><Chu kieu="rat" co={13} mau="#fff" so>{`${d.ds.length} chờ duyệt`}</Chu></View>}
+      phai={<View style={{ paddingHorizontal: 11, paddingVertical: 4, borderRadius: 13, backgroundColor: M.badge }}><Chu kieu="rat" co={13} mau={M.chu} so>{`${d.ds.length} chờ duyệt`}</Chu></View>}
       day={<>
         <Nut chu={d.ds.length > 1 ? `Duyệt cả ${d.ds.length} · ${ten} nhận ${tong} sao` : `Duyệt · ${ten} nhận ${tong} sao`} ic="sao" ic3d rong dangChay={dangChay} bam={duyetCa} />
       </>}>
@@ -100,13 +100,13 @@ export default function DuyetDs() {
                   <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: MAU_NO.chu }} /><Chu kieu="rat" co={13} mau={MAU_NO.chu}>Chờ mạng</Chu></View>} />;
             })}
           </The>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#dcebe6" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.chinhSoft }}>
             <Rob ten="chi" co={56} />
             <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1 }}>{`${ten} sẽ nhận ${tong} sao ngay khi gửi xong. Ba Mẹ không cần duyệt lại.`}</Chu>
           </View>
         </>
       ) : (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#dcebe6" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.chinhSoft }}>
           <Rob ten="chi" co={40} />
           <Chu kieu="dam" co={14} mau={M.chinhInk} style={{ flex: 1 }}>Xem ảnh, nghe ghi âm con nộp. Thấy ổn thì duyệt, con nhận sao.</Chu>
         </View>

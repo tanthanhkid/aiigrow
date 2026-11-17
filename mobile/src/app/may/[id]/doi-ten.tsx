@@ -8,7 +8,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, chuanHoaTen, type ChiTietTuanThu, type GiaDinh, type TuanThuMay } from "@/lib/api";
-import { BONG, KHOI } from "@/lib/clay";
+import { BONG, KHOI, HERO } from "@/lib/clay";
 import { tenGoi } from "@/lib/hang-ngay";
 import { CapAvt, conCuaMay, DauHaiDong, hinhMay, laMayChung, nganTen, type ConNganMay } from "@/lib/may-nhieu-con";
 import { BaoLoi, baoKhiVe, ChoTai, Chu, Icon, Icon3D, M, Man, Nut, ONhap, Rob, useLam, useTai } from "@/lib/ui";
@@ -57,9 +57,9 @@ export default function DoiTenMay() {
   });
   const nhacGrow = (dao: boolean, chu: string) => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, paddingHorizontal: 16, borderRadius: 22,
-      backgroundColor: dao ? "#f9e7d2" : "#e2efea", backgroundImage: dao ? "linear-gradient(#f9dcc0, #fdeedd)" : "linear-gradient(#d6e9e2, #eef4f1)", ...KHOI.the }}>
+      backgroundColor: dao ? M.canhSoft : HERO.nen, backgroundImage: dao ? "linear-gradient(#ffe6d6, #fff1e6)" : HERO.anh, ...(dao ? KHOI.the : { boxShadow: HERO.bong }) }}>
       <Rob ten="chi" co={48} />
-      <Chu kieu="rat" co={13} mau={dao ? "#8a3c0c" : M.chinhInk} style={{ flex: 1, lineHeight: 18 }}>{chu}</Chu>
+      <Chu kieu="rat" co={13} mau={dao ? M.canh : HERO.chu} style={{ flex: 1, lineHeight: 18 }}>{chu}</Chu>
     </View>
   );
   const oTen = (
@@ -69,7 +69,7 @@ export default function DoiTenMay() {
       {tot && gt ? (
         <Pressable onPress={() => setTen("")} accessibilityRole="button" accessibilityLabel="Xoá tên" hitSlop={6}
           style={{ position: "absolute", right: 6, top: 26, width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-          <Icon ten="x" co={18} mau="#3a403d" />
+          <Icon ten="x" co={18} mau={M.chu2} />
         </Pressable>
       ) : null}
     </View>
@@ -77,12 +77,12 @@ export default function DoiTenMay() {
   return (
     <Man dau={<DauHaiDong tieu="Đổi tên máy" lui={lui} />}>
       {tot ? <>
-        <Chu kieu="rat" co={14} mau="#3a403d" style={{ marginHorizontal: 6 }}>Ba Mẹ sẽ thấy máy thế này</Chu>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 26, backgroundColor: "#f7f6f3", ...KHOI.the }}>
-          <View style={{ position: "absolute", right: 12, top: -9, paddingHorizontal: 9, paddingVertical: 2, borderRadius: 10, backgroundColor: "#dcebe6" }}>
+        <Chu kieu="rat" co={14} mau={M.chu2} style={{ marginHorizontal: 6 }}>Ba Mẹ sẽ thấy máy thế này</Chu>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 26, backgroundColor: M.the, ...KHOI.the }}>
+          <View style={{ position: "absolute", right: 12, top: -9, paddingHorizontal: 9, paddingVertical: 2, borderRadius: 10, backgroundColor: M.chinhSoft }}>
             <Chu kieu="rat" co={11} mau={M.chinhInk}>Xem trước</Chu>
           </View>
-          <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
             <Icon3D ten={hinhMay(m.nen, chung)} co={44} />
           </View>
           <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
@@ -90,15 +90,15 @@ export default function DoiTenMay() {
             {con.length ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <CapAvt ds={con} co={20} />
-                <Chu kieu="dam7" co={12.5} mau="#565c59" dong={1} style={{ flexShrink: 1 }}>{`${con.map((c) => tenGoi(c.ten)).join(" · ")} dùng`}</Chu>
+                <Chu kieu="dam7" co={12.5} mau={M.chu3} dong={1} style={{ flexShrink: 1 }}>{`${con.map((c) => tenGoi(c.ten)).join(" · ")} dùng`}</Chu>
               </View>
             ) : null}
           </View>
         </View>
         {oTen}
         <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8, marginHorizontal: 8, marginTop: -4 }}>
-          <Chu kieu="dam7" co={12} mau="#565c59">{`Tối đa ${TOI_DA} chữ`}</Chu>
-          {moi ? <Chu kieu="rat" co={12} mau={trung ? "#8a3c0c" : M.chinhInk} dong={1} style={{ flexShrink: 1, textAlign: "right" }}>
+          <Chu kieu="dam7" co={12} mau={M.chu3}>{`Tối đa ${TOI_DA} chữ`}</Chu>
+          {moi ? <Chu kieu="rat" co={12} mau={trung ? M.canh : M.chinhInk} dong={1} style={{ flexShrink: 1, textAlign: "right" }}>
             {trung ? "! Trùng tên một máy khác trong nhà" : "✓ Chưa trùng máy nào trong nhà"}</Chu> : null}
         </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
@@ -107,16 +107,16 @@ export default function DoiTenMay() {
             return (
               <Pressable key={g} onPress={() => setTen(g)} accessibilityRole="button" accessibilityLabel={`Đặt tên ${g}`}
                 style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22,
-                  backgroundColor: chon ? "#dcebe6" : "#f7f6f3", ...KHOI.nho }}>
+                  backgroundColor: chon ? M.chinhSoft : M.the, ...KHOI.nho }}>
                 {k === 3 ? <CapAvt ds={con} co={20} /> : null}
-                <Chu kieu="rat" co={14} mau={chon ? M.chinhInk : "#3a403d"}>{g}</Chu>
+                <Chu kieu="rat" co={14} mau={chon ? M.chinhInk : M.chu2}>{g}</Chu>
               </Pressable>
             );
           })}
         </View>
         {nhacGrow(false, "Tên này hiện trên app của Ba Mẹ và trên màn khoá của con. Trùng tên máy khác thì Grow nhắc ngay.")}
       </> : <>
-        <View style={{ alignSelf: "center", width: 112, height: 112, borderRadius: 32, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", marginVertical: 6, ...KHOI.the }}>
+        <View style={{ alignSelf: "center", width: 112, height: 112, borderRadius: 32, backgroundColor: M.the, alignItems: "center", justifyContent: "center", marginVertical: 6, ...KHOI.the }}>
           <Icon3D ten={hinhMay(m.nen, chung)} co={76} />
         </View>
         {oTen}

@@ -59,8 +59,8 @@ export default function MayTrongNha() {
   const nhom = (chu: string, x: TuanThuMay[]) => x.length ? (
     <View key={chu} style={{ gap: 12 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, marginHorizontal: 6 }}>
-        <Chu kieu="rat" co={15} mau="#3a403d">{chu}</Chu>
-        <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: "#ecebe7" }}><Chu kieu="rat" co={12} mau="#3a403d" so>{String(x.length)}</Chu></View>
+        <Chu kieu="rat" co={15} mau={M.chu2}>{chu}</Chu>
+        <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: M.xamSoft }}><Chu kieu="rat" co={12} mau={M.chu2} so>{String(x.length)}</Chu></View>
       </View>
       {x.map((m) => <TheMay key={m.id} m={m} con={conCuaMay(m, caNha)} app={appMo(m)?.tenApp ?? null} sao={sao} />)}
     </View>
@@ -79,7 +79,7 @@ export default function MayTrongNha() {
       {nhom("Đang bảo vệ", baoVe)}
       {nhom("Đang tắt", tat)}
       {ds.length ? (
-        <Chu kieu="dam" co={12.5} mau="#565c59" style={{ textAlign: "center", lineHeight: 18, marginHorizontal: 8 }}>
+        <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ textAlign: "center", lineHeight: 18, marginHorizontal: 8 }}>
           {"Sao và danh sách app đi theo từng bé: máy chung áp luật của bé đang dùng.\nMột bé mở 2 máy cùng lúc chỉ trừ sao một lần.\niPhone, iPad chỉ dùng được cho một bé."}
         </Chu>
       ) : <LienKet chu="Máy của con cài AiiGrow ở đâu?" bam={() => router.push("/ho-tro")} />}
@@ -95,15 +95,15 @@ function DaiLoc({ con, loc, doi }: { con: ConNganMay[]; loc: string | null; doi:
     const chon = loc === id;
     return (
       <Pressable key={id ?? "ca"} onPress={() => doi(id)} accessibilityRole="tab" accessibilityState={{ selected: chon }} accessibilityLabel={nhan}
-        style={{ flex: 1, alignItems: "center", gap: 3, paddingTop: 6, paddingBottom: 5, borderRadius: 20, ...(chon ? { backgroundColor: "#f7f6f3", ...KHOI.nho } : {}) }}>
+        style={{ flex: 1, alignItems: "center", gap: 3, paddingTop: 6, paddingBottom: 5, borderRadius: 20, ...(chon ? { backgroundColor: M.the, ...KHOI.nho } : {}) }}>
         {hinh}
-        <Chu kieu="rat" co={11.5} mau={chon ? M.chu : "#3a403d"} dong={1}>{nhan}</Chu>
+        <Chu kieu="rat" co={11.5} mau={chon ? M.chu : M.chu2} dong={1}>{nhan}</Chu>
       </Pressable>
     );
   };
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: "row", gap: 6, marginHorizontal: 16, marginBottom: 6, padding: 6, borderRadius: 26, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
-      {o(null, "Tất cả", <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: M.nut, backgroundImage: "linear-gradient(#2e3533, #121615)", alignItems: "center", justifyContent: "center" }}><Icon3D ten="nha" co={20} /></View>)}
+    <View accessibilityRole="tablist" style={{ flexDirection: "row", gap: 6, marginHorizontal: 16, marginBottom: 6, padding: 6, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
+      {o(null, "Tất cả", <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: M.nut, backgroundImage: "linear-gradient(#1b2b47, #0A1629)", alignItems: "center", justifyContent: "center" }}><Icon3D ten="nha" co={20} /></View>)}
       {con.slice(0, 4).map((c) => o(c.id, tenGoi(c.ten), <AvtCon c={c} co={32} />))}
     </View>
   );
@@ -115,32 +115,32 @@ function TheMay({ m, con, app, sao }: { m: TuanThuMay; con: ConNganMay[]; app: s
   const chung = con.length >= 2;
   const ai = m.dangDung ? con.find((x) => x.id === m.dangDung!.id) ?? m.dangDung : con.length === 1 ? con[0] : null;
   const s = ai ? sao(ai.id) : null;
-  const [nenTt, chuTt] = loi ? ["#f9e7d2", "#8a3c0c"] : ok ? ["#dcebe6", M.chinhInk] : ["#ecebe7", "#3a403d"];
+  const [nenTt, chuTt] = loi ? [M.canhSoft, M.canh] : ok ? [M.chinhSoft, M.chinhInk] : [M.xamSoft, M.chu2];
   const buoc = m.baoVeThieu?.length ?? 0;
   return (
     <Pressable onPress={() => router.push(`/may/${m.id}`)} accessibilityRole="button" accessibilityLabel={`${ten}, ${ok ? "đang bảo vệ" : tt ? "đang tắt" : "chưa bảo vệ"}`}>
-      <View style={{ flexDirection: "row", gap: 12, padding: 12, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+      <View style={{ flexDirection: "row", gap: 12, padding: 12, borderRadius: 28, backgroundColor: M.the, ...KHOI.the }}>
         <LopMen men={MEN.the} bo={28} />
-        <View style={{ width: 76, height: 88, borderRadius: 22, backgroundColor: loi ? "#f3d6b8" : "#ecebe7", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+        <View style={{ width: 76, height: 88, borderRadius: 22, backgroundColor: loi ? "#f3d6b8" : M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
           <Icon3D ten={hinhMay(m.nen, chung)} co={56} />
           {ok ? <View style={{ position: "absolute", right: -4, bottom: -4 }}><Icon3D ten="khien" co={30} /></View> : null}
         </View>
         <View style={{ flex: 1, minWidth: 0, paddingTop: 2 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Chu kieu="rat" co={17} dong={1} style={{ flex: 1 }}>{ten}</Chu>
-            <Chu kieu="rat" co={20} mau={loi ? "#8a3c0c" : M.chinhInk}>›</Chu>
+            <Chu kieu="rat" co={20} mau={loi ? M.canh : M.chinhInk}>›</Chu>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 5 }}>
             {chung ? <>
               <CapAvt ds={con} co={22} />
-              <Chu kieu="dam7" co={12.5} mau="#565c59" dong={1} style={{ flexShrink: 1 }}>
+              <Chu kieu="dam7" co={12.5} mau={M.chu3} dong={1} style={{ flexShrink: 1 }}>
                 {`${con.length} bé · ${m.dangDung ? `đang dùng: ${tenGoi(m.dangDung.ten)}` : "chưa ai dùng"}`}
               </Chu>
             </> : con.length === 1 ? <>
               <AvtCon c={con[0]} co={22} />
-              <Chu kieu="dam7" co={12.5} mau="#565c59" dong={1} style={{ flexShrink: 1 }}>{tenGoi(con[0].ten)}</Chu>
-              <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: "#ecebe7" }}><Chu kieu="rat" co={11.5} mau="#3a403d">Máy riêng</Chu></View>
-            </> : <Chu kieu="rat" co={12.5} mau="#8a3c0c">Chưa bé nào dùng · chọn bé ›</Chu>}
+              <Chu kieu="dam7" co={12.5} mau={M.chu3} dong={1} style={{ flexShrink: 1 }}>{tenGoi(con[0].ten)}</Chu>
+              <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: M.xamSoft }}><Chu kieu="rat" co={11.5} mau={M.chu2}>Máy riêng</Chu></View>
+            </> : <Chu kieu="rat" co={12.5} mau={M.canh}>Chưa bé nào dùng · chọn bé ›</Chu>}
           </View>
           <View style={{ marginTop: 8, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 14, backgroundColor: nenTt, gap: 1 }}>
             {loi ? <>
@@ -155,8 +155,8 @@ function TheMay({ m, con, app, sao }: { m: TuanThuMay; con: ConNganMay[]; app: s
               {ai && s != null ? (
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
                   <Icon3D ten="sao" co={15} />
-                  {s < 0 ? <Chu kieu="dam7" co={12.5} mau="#8a3c0c" dong={1} style={{ flexShrink: 1 }}>{cauSao(s)}</Chu>
-                    : <Chu kieu="dam7" co={12.5} mau={chuTt} dong={1} style={{ flexShrink: 1 }}>còn <Chu kieu="rat" co={12.5} mau="#6e4300">{`${s} sao`}</Chu>{` = ${s} phút chơi`}</Chu>}
+                  {s < 0 ? <Chu kieu="dam7" co={12.5} mau={M.canh} dong={1} style={{ flexShrink: 1 }}>{cauSao(s)}</Chu>
+                    : <Chu kieu="dam7" co={12.5} mau={chuTt} dong={1} style={{ flexShrink: 1 }}>còn <Chu kieu="rat" co={12.5} mau={M.diemInk}>{`${s} sao`}</Chu>{` = ${s} phút chơi`}</Chu>}
                 </View>
               ) : null}
             </>}

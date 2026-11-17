@@ -146,7 +146,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
       {con.length ? hienRa.map((v) => (
         // mỗi việc một «lòng chảo» ấn lõm trong khối (docs/clay); duyệt xong trượt đi + thu chiều cao, Hoàn tác thì bật lại đúng chỗ
         <Animated.View key={v.x.id} entering={v.x.id === vuaHoan ? quayLai(giam) : FadeIn.duration(220)} exiting={roiDi(giam)} layout={giam ? undefined : donLen}
-          style={{ marginHorizontal: 12, marginBottom: 8, borderRadius: 24, backgroundColor: "#efeeea", boxShadow: BONG.lom, padding: 14, gap: 10 }}>
+          style={{ marginHorizontal: 12, marginBottom: 8, borderRadius: 24, backgroundColor: M.xamSoft, boxShadow: BONG.lom, padding: 14, gap: 10 }}>
           {/* nội dung việc trên một hàng riêng (chạm ⇒ màn chi tiết), nút Duyệt / Từ chối xuống hàng dưới — không bóp chữ còn 0 */}
           <NhanMen onPress={() => moChiTiet(v)} accessibilityRole="button" accessibilityLabel={`${tieu(v, ten)}. ${phu(v)}`} accessibilityHint="Mở chi tiết" hitSlop={4} muc="khoi" sang
             style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
@@ -154,7 +154,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
               <Chu kieu="rat" co={15.5}>{tieu(v, ten)}</Chu>
               <Chu co={13.5} mau={M.chu3}>{phu(v)}</Chu>
             </View>
-            <Icon ten="phai" mau="#b3b5b1" co={18} />
+            <Icon ten="phai" mau={M.oNhap} co={18} />
           </NhanMen>
           {xem ? null : (
             <View style={{ flexDirection: "row", gap: 8 }}>

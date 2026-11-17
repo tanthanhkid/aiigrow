@@ -12,7 +12,7 @@ import { nganTen, tenGocMay } from "./may-nhieu-con";
 import { khoaTen, laWeb } from "./ui-bm3";
 import { MAU_HO_SO } from "./lan-dau";
 import {
-  Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
+  Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, DauSach, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
 } from "./ui";
 
 // ---------------------------------------------------------------- kiểu dữ liệu (docs/API.md «Thiết kế chốt 05/11»)
@@ -164,28 +164,29 @@ export function HangViec({ ic, mau, trai, tieu, phu, phai, bam, dau, nhanDoc }: 
   ic?: TenIcon; mau?: MauBt; trai?: ReactNode; tieu: string; phu?: string; phai?: ReactNode; bam?: () => void; dau?: boolean; nhanDoc?: string;
 }) {
   const noi = (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, minHeight: 60, borderTopWidth: dau ? 0 : 1, borderTopColor: "#efefec" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, minHeight: 60, borderTopWidth: dau ? 0 : 1, borderTopColor: M.vien }}>
       {trai ?? (ic ? <BieuTron ic={ic} mau={mau} /> : null)}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15.5}>{tieu}</Chu>
         {phu ? <Chu co={13.5} mau={M.chu3}>{phu}</Chu> : null}
       </View>
       {phai}
-      {bam && !phai ? <Icon ten="phai" mau="#b3b5b1" co={18} /> : null}
+      {bam && !phai ? <Icon ten="phai" mau={M.oNhap} co={18} /> : null}
     </View>
   );
   return bam ? <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={nhanDoc} style={({ pressed }) => pressed && { opacity: 0.7 }}>{noi}</Pressable> : noi;
 }
 
-/** Tiêu đề mục trong thân màn (thiết kế 14/11 .muc: 15/800 #3a403d, lề trái 22 — 66 màn thống nhất) + nút chữ «Tất cả ›» bên phải. */
+/** Tiêu đề mục trong thân màn (thiết kế 14/11 .muc: 15/800 #3a3a3a, lề trái 22 — 66 màn thống nhất) + nút chữ «Tất cả ›» bên phải. */
 export function TieuMuc({ chu, so, xam, phai, ic }: { chu: string; so?: number; /** viên số xám (bàn «Để biết 8») thay viên cam */ xam?: boolean; phai?: { chu: string; bam: () => void };
   /** icon 3D 22 trước chữ (.muc .t img) */ ic?: TenIcon }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginHorizontal: 6, minHeight: ic ? 44 : undefined }}>
+      <DauSach />
       {ic ? <Icon3D ten={ic} co={22} /> : null}
-      <Chu kieu="rat" co={15} mau={M.chu2} style={{ flexShrink: 1 }}>{chu}</Chu>
-      {so ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: xam ? "#e6e5e0" : "#c2540a", alignItems: "center", justifyContent: "center" }}>{/* thiết kế .muc em #e2660f — sẫm hơn cho chữ trắng đạt 4.5:1 */}
-        <Chu kieu="rat" co={12} mau={xam ? M.chu2 : "#fff"} so>{String(so)}</Chu></View> : null}
+      <Chu kieu="rat" co={15} mau={M.chu} style={{ flexShrink: 1 }}>{chu}</Chu>
+      {so ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: xam ? M.xamSoft : M.badge, alignItems: "center", justifyContent: "center" }}>{/* bàn Navy .muc em: cam #FF751F, chữ navy */}
+        <Chu kieu="rat" co={12} mau={xam ? M.chu2 : M.chu} so>{String(so)}</Chu></View> : null}
       <View style={{ flex: 1 }} />
       {phai ? <Pressable onPress={phai.bam} hitSlop={10} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>
         <Chu kieu="rat" co={14} mau={M.chinhInk}>{phai.chu}</Chu></Pressable> : null}
@@ -287,27 +288,27 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
   };
   return (
     <BangTruot mo={mo} dong={dongBang} tieu={caNha ? "Khoá tất cả máy?" : `Khoá máy ${ten}?`} hinh="khoa">
-      <Chu kieu="dam" co={13} mau="#565c59" style={{ textAlign: "center", marginTop: -4, lineHeight: 18 }}>
+      <Chu kieu="dam" co={13} mau={M.chu3} style={{ textAlign: "center", marginTop: -4, lineHeight: 18 }}>
         {caNha ? "Mọi bé không vào được máy nào tới khi hết hạn khoá." : `Khoá theo bé: ${ten} không vào được máy nào. Máy chung chỉ khoá phần của ${ten}.`}
       </Chu>
       {may.length ? (
         // thiết kế .ds: một thẻ, mỗi máy một hàng (ô icon lõm · tên · trạng thái · ô tick ngọc 30)
-        <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+        <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
           {may.map((m, k) => {
             const x = dang?.[m.id];
             const on = caNha ? true : !boChon.has(m.id);
             return (
               <Pressable key={m.id} onPress={caNha ? undefined : () => doiChon(m.id)} disabled={!!caNha} accessibilityRole="checkbox"
                 accessibilityState={{ checked: on, disabled: !!caNha }} accessibilityLabel={`Khoá ${tenGocMay(m.ten)}`}
-                style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
+                style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
                 <BieuTron ic={m.dungChung && (m.nen === "windows" || m.nen === "mac") ? "may_tinh" : IC_MAY[m.nen]} mau="xam" />
                 <View style={{ flex: 1 }}>
                   <Chu kieu="rat">{nganTen(m.ten)}</Chu>
-                  <Chu kieu="dam" co={12.5} mau={x?.mo && !m.dungChung ? M.chinhInk : "#565c59"}>{phuMay(m)}</Chu>
+                  <Chu kieu="dam" co={12.5} mau={x?.mo && !m.dungChung ? M.chinhInk : M.chu3}>{phuMay(m)}</Chu>
                 </View>
                 {/* ô tick ngọc 30 (thiết kế .chk); bỏ chọn ⇒ ô lõm trống */}
                 {on ? <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}><Icon ten="tick" co={16} mau="#fff" /></View>
-                  : <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: "#ecebe7", boxShadow: BONG.lom }} />}
+                  : <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: M.xamSoft, boxShadow: BONG.lom }} />}
               </Pressable>
             );
           })}
@@ -321,9 +322,9 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
           return (
             <Pressable key={x.gia} onPress={() => setHan(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }}
               style={[{ flex: 1, minHeight: 64, borderRadius: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
-                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
               <Chu kieu="rat" co={16} mau={on ? "#fff" : M.chu}>{x.chu}</Chu>
-              <Chu kieu="dam7" co={12.5} mau={on ? "#dcebe6" : "#565c59"}>{cauDen(x.gia)}</Chu>
+              <Chu kieu="dam7" co={12.5} mau={on ? M.chinhSoft : M.chu3}>{cauDen(x.gia)}</Chu>
             </Pressable>
           );
         })}

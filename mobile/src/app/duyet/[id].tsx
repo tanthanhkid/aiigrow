@@ -82,7 +82,7 @@ export default function BangChungLuot() {
                 <Chu kieu="rat" co={14.5}>{`Ảnh «${nhanAnh(Math.min(trang, anh.length - 1))}» · ${gioPhut(anh[Math.min(trang, anh.length - 1)].chupLuc)}`}</Chu>
                 {anh.length > 1 ? (
                   <View style={{ flexDirection: "row", gap: 6 }}>
-                    {anh.map((a, k) => <View key={a.id} style={{ width: k === trang ? 18 : 8, height: 8, borderRadius: 4, backgroundColor: k === trang ? M.chinh : "#d4d5d1" }} />)}
+                    {anh.map((a, k) => <View key={a.id} style={{ width: k === trang ? 18 : 8, height: 8, borderRadius: 4, backgroundColor: k === trang ? M.chinh : M.vien2 }} />)}
                   </View>
                 ) : null}
               </View>

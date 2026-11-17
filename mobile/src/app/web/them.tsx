@@ -84,7 +84,7 @@ export default function ThemWeb() {
             <Chu kieu="rat" co={13.5} mau={M.chu2} style={{ marginHorizontal: 2, marginTop: 2 }}>{`${t.muc} có tính phút không?`}</Chu>
             <ChonNhomNgang gia={c.nhom} doi={(x) => datNhom(t, x)} />
             {/* lưu ý (bàn them-yzl99l3y@v9 .luu): viên cam nhạt dưới hai ô nhóm */}
-            {ly ? <View style={{ marginTop: 4, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#f9e7d2" }}><Chu kieu="dam" co={12.5} mau="#8a3c0c">{ly}</Chu></View> : null}
+            {ly ? <View style={{ marginTop: 4, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.canhSoft }}><Chu kieu="dam" co={12.5} mau={M.canh}>{ly}</Chu></View> : null}
           </View>
         ) : null}
       </View>

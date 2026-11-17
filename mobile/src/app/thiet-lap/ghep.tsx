@@ -104,9 +104,9 @@ export default function GhepMay() {
       day={<>
         <BaoLoi loi={loi} />
         {/* thiết kế 01/03: viên lõm «● Đang chờ máy con…» rồi nút trắng «Để sau, ghép máy sau» */}
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 50, paddingHorizontal: 14, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 50, paddingHorizontal: 14, borderRadius: 25, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}
           accessibilityLiveRegion="polite">
-          <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "center" }}>
+          <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center" }}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: M.chinh }} />
           </View>
           <Chu kieu="rat" co={14} mau={M.chinhInk} style={{ flex: 1 }}>Đang chờ máy con… ghép xong tự chuyển</Chu>
@@ -115,7 +115,7 @@ export default function GhepMay() {
           // #267: máy riêng một bé / máy chung nhiều bé — iPhone/iPad chỉ một bé (chọn khi quét)
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 8 }}>
             {chung ? <CapAvt ds={cacBe} co={24} /> : <AvtCon c={cacBe[0]} co={24} />}
-            <Chu kieu="dam7" co={12.5} mau="#3a403d" style={{ flex: 1, lineHeight: 17, textAlign: "center" }}>
+            <Chu kieu="dam7" co={12.5} mau={M.chu2} style={{ flex: 1, lineHeight: 17, textAlign: "center" }}>
               {chung ? `Cho ${cacBe.map((x) => tenGoi(x.ten)).join(", ")} dùng chung.\nMáy con là iPhone/iPad thì chọn 1 bé khi quét.`
                 : `Máy riêng của ${ten}. Windows, Mac, Android thêm bé khác dùng chung sau được.`}
             </Chu>
@@ -123,7 +123,7 @@ export default function GhepMay() {
         ) : null}
         <Nut chu="Để sau, ghép máy sau" loai="vien" rong bam={deSau} />
       </>}>
-      <View style={{ borderRadius: 32, backgroundColor: "#dcebe6", paddingVertical: 18, paddingHorizontal: 16, alignItems: "center", gap: 6, ...KHOI.the }}>
+      <View style={{ borderRadius: 32, backgroundColor: M.chinhSoft, paddingVertical: 18, paddingHorizontal: 16, alignItems: "center", gap: 6, ...KHOI.the }}>
         <LopMen men={MEN.vien} bo={32} />
         <Chu kieu="rat" co={15} mau={M.chinhInk} style={{ textAlign: "center" }}>Mở app AiiGrow trên máy con, quét mã này</Chu>
         <Pressable onPress={() => kq && setQrTo(true)} accessibilityRole="button" accessibilityLabel="Mã QR ghép máy — chạm để phóng to"

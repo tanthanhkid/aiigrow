@@ -157,7 +157,7 @@ export function useBat() {
 type Diem = { x: number; y: number };
 type Phat = { id: number; tu: Diem; den: Diem | null; n: number };
 export type AnMungRef = { ban: (tu: Diem, n: number) => void };
-const MAU_HAT = [M.chinh, M.chinhSang, M.diem, "#ffd75e", M.chinhDam, "#f5b70a"];
+const MAU_HAT = [M.chinh, M.chinhSang, M.diem, "#ffd75e", M.chinhDam, M.diem];
 
 /** Lớp ăn mừng phủ cả màn (pointerEvents none). `dich()` trả toạ độ (trong cửa sổ) của ví/hộp quà để «+N» bay vào; `toi()` khi tới nơi. */
 export const LopAnMung = forwardRef<AnMungRef, { dich?: () => Promise<Diem | null>; toi?: () => void }>(function LopAnMung({ dich, toi }, ref) {
@@ -225,7 +225,7 @@ function BayDiem({ tu, den, n, toi }: { tu: Diem; den: Diem | null; n: number; t
   return (
     <Animated.View style={[{ position: "absolute", left: 0, top: 0, width: 68, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center", backgroundColor: M.diem,
       boxShadow: "0px 6px 10px -4px rgba(150,100,0,0.55), inset 0px 1px 0px rgba(255,255,255,0.7)" }, st]}>
-      <Animated.Text style={{ fontFamily: F.rat, fontSize: 15, color: "#3d2600" }}>{`+${n}`}</Animated.Text>
+      <Animated.Text style={{ fontFamily: F.rat, fontSize: 15, color: M.diemInk }}>{`+${n}`}</Animated.Text>
     </Animated.View>
   );
 }

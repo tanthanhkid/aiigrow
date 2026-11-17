@@ -6,7 +6,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type PhienDang, type TuanThuMay } from "@/lib/api";
-import { KHOI } from "@/lib/clay";
+import { KHOI, HERO } from "@/lib/clay";
 import { BangKhoaMay, quyenToi, tenGoi } from "@/lib/hang-ngay";
 import { datKhoaMay } from "@/lib/khoa-may";
 import {
@@ -52,28 +52,28 @@ export default function MayChiTiet() {
             <Chu kieu="rat" dong={1} style={{ flex: 1 }}>{tenGoi(c.ten)}</Chu>
             <SaoNho n={c.sao} co={12.5} />
           </View>
-          {no ? <Chu kieu="dam7" co={12} mau="#8a3c0c" style={{ lineHeight: 16 }}>{`Đang nợ Ba Mẹ ${-c.sao} sao · sao nhiệm vụ trả nợ trước`}</Chu> : null}
-          <Chu kieu="dam" co={12} mau="#565c59" style={{ lineHeight: 16 }}>{`${c.dangDung ? "Đang dùng · " : ""}${phu}`}</Chu>
+          {no ? <Chu kieu="dam7" co={12} mau={M.canh} style={{ lineHeight: 16 }}>{`Đang nợ Ba Mẹ ${-c.sao} sao · sao nhiệm vụ trả nợ trước`}</Chu> : null}
+          <Chu kieu="dam" co={12} mau={M.chu3} style={{ lineHeight: 16 }}>{`${c.dangDung ? "Đang dùng · " : ""}${phu}`}</Chu>
         </View>
       </View>
     );
   };
   const theKhoa = (ic: "may_tinh" | "nguoi", tieu: string, phu: string, nut: React.ReactNode) => (
-    <View style={[{ flex: 1, padding: 12, borderRadius: 24, backgroundColor: "#f7f6f3", gap: 4 }, KHOI.the]}>
+    <View style={[{ flex: 1, padding: 12, borderRadius: 24, backgroundColor: M.the, gap: 4 }, KHOI.the]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten={ic} co={20} /><Chu kieu="rat" co={14}>{tieu}</Chu></View>
-      <Chu kieu="dam" co={12} mau="#565c59" style={{ lineHeight: 16, flex: 1 }}>{phu}</Chu>
+      <Chu kieu="dam" co={12} mau={M.chu3} style={{ lineHeight: 16, flex: 1 }}>{phu}</Chu>
       <View style={{ marginTop: 6 }}>{nut}</View>
     </View>
   );
   return (
     <Man noi={noi} tai={tai} dau={<DauHaiDong tieu={ten} phu={`${gan.length >= 2 ? "Máy chung" : gan.length === 1 ? "Máy riêng" : "Chưa bé nào"}${gan.length ? ` · ${gan.map((c) => tenGoi(c.ten)).join(", ")}` : ""}`} lui={lui} />}>
       {/* thẻ «<bé> đang dùng» (.dangd) */}
-      <View style={{ padding: 16, borderRadius: 28, backgroundColor: "#e2efea", backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", gap: 10, ...KHOI.the }}>
+      <View style={{ padding: 16, borderRadius: 28, backgroundColor: HERO.nen, backgroundImage: HERO.anh, gap: 10, boxShadow: HERO.bong }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           {dangDung ? <AvtCon c={dangDung} co={36} /> : <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}><Icon3D ten="nguoi" co={22} /></View>}
           <View style={{ flex: 1, minWidth: 0 }}>
-            <Chu kieu="rat" co={16} dong={2}>{dangDung ? `${tenGoi(dangDung.ten)} đang dùng` : "Chưa bé nào đang dùng"}</Chu>
-            <Chu kieu="dam7" co={12.5} mau={M.chinhInk} dong={2}>
+            <Chu kieu="rat" co={16} dong={2} mau={HERO.chu}>{dangDung ? `${tenGoi(dangDung.ten)} đang dùng` : "Chưa bé nào đang dùng"}</Chu>
+            <Chu kieu="dam7" co={12.5} mau={HERO.phu} dong={2}>
               {dangDung ? `● ${app ? `${app.tenApp}${cm.dangDung?.tu ? ` từ ${gioPhut(cm.dangDung.tu)}` : ""} · Tính phút` : cm.dangDung?.tu ? `vào máy lúc ${gioPhut(cm.dangDung.tu)}` : "đang dùng"}` : "Bé chọn tên + nhập PIN để vào máy"}
             </Chu>
           </View>
@@ -87,11 +87,11 @@ export default function MayChiTiet() {
           <View style={{ flexDirection: "row", gap: 8 }}>
             <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.75)" }}>
               <Chu kieu="rat" co={20} so style={{ lineHeight: 24 }}>{`${cm.dangDung?.phutHomNay ?? dangDung.phutHomNay} phút`}</Chu>
-              <Chu kieu="dam7" co={12} mau="#3a403d">hôm nay trên máy này</Chu>
+              <Chu kieu="dam7" co={12} mau={M.chu2}>hôm nay trên máy này</Chu>
             </View>
             <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.75)" }}>
-              <Chu kieu="rat" co={20} so mau={dangDung.sao < 0 ? "#8a3c0c" : "#6e4300"} style={{ lineHeight: 24 }}>{`${dangDung.sao < 0 ? "−" : ""}${Math.abs(dangDung.sao)} sao`}</Chu>
-              <Chu kieu="dam7" co={12} mau="#3a403d">{dangDung.sao < 0 ? "đang nợ Ba Mẹ" : `còn = ${dangDung.sao} phút chơi`}</Chu>
+              <Chu kieu="rat" co={20} so mau={dangDung.sao < 0 ? M.canh : M.diemInk} style={{ lineHeight: 24 }}>{`${dangDung.sao < 0 ? "−" : ""}${Math.abs(dangDung.sao)} sao`}</Chu>
+              <Chu kieu="dam7" co={12} mau={M.chu2}>{dangDung.sao < 0 ? "đang nợ Ba Mẹ" : `còn = ${dangDung.sao} phút chơi`}</Chu>
             </View>
           </View>
         ) : null}
@@ -105,9 +105,9 @@ export default function MayChiTiet() {
 
       <MucPhai chu="Khoá" />
       {khoaMay ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 24, backgroundColor: "#ecebe7" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 24, backgroundColor: M.xamSoft }}>
           <Icon3D ten="khoa" co={24} />
-          <Chu kieu="rat" co={13.5} mau="#3a403d" style={{ flex: 1 }}>{`${tenNgan} ${(cauKhoaMay(cm.khoaMay) ?? "đang khoá").replace(/^./, (x) => x.toLowerCase())} · mọi bé`}</Chu>
+          <Chu kieu="rat" co={13.5} mau={M.chu2} style={{ flex: 1 }}>{`${tenNgan} ${(cauKhoaMay(cm.khoaMay) ?? "đang khoá").replace(/^./, (x) => x.toLowerCase())} · mọi bé`}</Chu>
           {d.xem ? null : <Nut chu="Mở khoá" ic="mo_khoa" loai="vien" nho dangChay={dangChay} bam={() => lam(async () => {
             await datKhoaMay(id, false); xong(`Đã mở khoá ${tenNgan}`, () => datKhoaMay(id, true, cm.khoaMay.den ? new Date(cm.khoaMay.den) : null));
           })} />}
@@ -124,13 +124,13 @@ export default function MayChiTiet() {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginHorizontal: 4 }}>
           {gan.map((c) => (
             <Pressable key={c.id} onPress={() => setBeKhoa(c.id)} accessibilityRole="radio" accessibilityState={{ checked: be?.id === c.id }} accessibilityLabel={`Khoá theo bé: ${tenGoi(c.ten)}`}
-              style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 10, borderRadius: 18, backgroundColor: be?.id === c.id ? "#dcebe6" : "#ecebe7" }}>
-              <AvtCon c={c} co={22} /><Chu kieu="rat" co={12.5} mau={be?.id === c.id ? M.chinhInk : "#3a403d"}>{tenGoi(c.ten)}</Chu>
+              style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 10, borderRadius: 18, backgroundColor: be?.id === c.id ? M.chinhSoft : M.xamSoft }}>
+              <AvtCon c={c} co={22} /><Chu kieu="rat" co={12.5} mau={be?.id === c.id ? M.chinhInk : M.chu2}>{tenGoi(c.ten)}</Chu>
             </Pressable>
           ))}
         </View>
       ) : null}
-      <Chu kieu="dam" co={12.5} mau="#565c59" style={{ marginHorizontal: 8, lineHeight: 18 }}>Một bé mở 2 máy cùng lúc: phút tính theo đồng hồ thật một lần, không trừ sao gấp đôi.</Chu>
+      <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginHorizontal: 8, lineHeight: 18 }}>Một bé mở 2 máy cùng lúc: phút tính theo đồng hồ thật một lần, không trừ sao gấp đôi.</Chu>
 
       <BangKhoaTheoMay mo={mo === "may"} dong={() => setMo(null)} may={{ id, ten: tenNgan, nen: cm.may.nen }} con={gan} dangDung={dangDung?.id ?? null} app={app?.tenApp ?? null}
         khac={khac} xong={xong} />
@@ -148,10 +148,10 @@ export default function MayChiTiet() {
             ["nguoi", "2. Bé kia chọn tên, nhập PIN", "PIN 4 số do Ba Mẹ đặt"],
             ["sao", "3. Phút của bé trước dừng ngay", "Sao trừ đúng bé đang chơi"]] as const).map(([ic, tieu, phu], k) => (
             <View key={ic} style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 58 }, keDau(k)]}>
-              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={22} /></View>
+              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={22} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={14.5}>{tieu}</Chu>
-                <Chu kieu="dam" co={12} mau="#565c59">{phu}</Chu>
+                <Chu kieu="dam" co={12} mau={M.chu3}>{phu}</Chu>
               </View>
             </View>
           ))}

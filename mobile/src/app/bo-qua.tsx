@@ -43,7 +43,7 @@ export default function LoiXinBoQua() {
         <Chu kieu="dam" co={12.5} mau={M.chu3}>Con xin lại, hoặc Ba Mẹ bấm «Thêm luôn» để cho ngay.</Chu>
       </RobNoi>
       {d.ds.length ? (
-        <View style={{ marginTop: 4, paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+        <View style={{ marginTop: 4, paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: M.the, ...KHOI.the }}>
           {d.ds.map((x, i) => (
             <View key={x.id} style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 66 }, i > 0 && { borderTopWidth: 1.5, borderTopColor: "rgba(0,0,0,0.06)" }]}>
               <OIcon ic={x.kieu === "web" ? "web" : icCuaApp(ten(x))} co={42} />

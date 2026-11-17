@@ -78,13 +78,13 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
         const qq = q.d!.qua.find((x) => x.id === y.gia_tri);
         const co = saoTu(c).sao;
         return (
-          <The key={y.id} style={{ backgroundColor: "#f9e7d2" }}>
+          <The key={y.id} style={{ backgroundColor: M.canhSoft }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               {/* thiết kế 473f52w6: ô vàng nhạt 44 + sao 3D */}
               <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: "#fdf0c9", alignItems: "center", justifyContent: "center" }}><Icon3D ten="sao" co={28} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Chu kieu="rat" co={15} mau="#8a3c0c">{`${c.ten} xin vay ${soVN(y.phut ?? 15)} sao`}</Chu>
-                <Chu kieu="dam" co={12.5} mau="#8a3c0c">{`Để đổi ${qq ? tenVoucher(qq.ten) : "quà"}${qq ? ` · con có ${soVN(co)}/${soVN(qq.sao)} sao` : ""}`}</Chu>
+                <Chu kieu="rat" co={15} mau={M.canh}>{`${c.ten} xin vay ${soVN(y.phut ?? 15)} sao`}</Chu>
+                <Chu kieu="dam" co={12.5} mau={M.canh}>{`Để đổi ${qq ? tenVoucher(qq.ten) : "quà"}${qq ? ` · con có ${soVN(co)}/${soVN(qq.sao)} sao` : ""}`}</Chu>
               </View>
               {baMe ? <View><Nut chu="Cho vay" nho bam={() => setVay(y)} /></View> : null}
             </View>
@@ -107,7 +107,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
                     <GiaSao n={m.sao} />
                   </View>
                 </View>
-                <View style={[{ height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: "center" }, m.daCo ? { backgroundColor: "#dcebe6" } : { backgroundColor: M.the, ...KHOI.nho }]}>
+                <View style={[{ height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: "center" }, m.daCo ? { backgroundColor: M.chinhSoft } : { backgroundColor: M.the, ...KHOI.nho }]}>
                   <Chu kieu="rat" co={13} mau={M.chinhInk}>{m.daCo ? "Đã mua" : "Mua"}</Chu>
                 </View>
               </NhanMen>
@@ -125,7 +125,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                   <View style={[{ width: 52, height: 52, borderRadius: 18, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}><Icon3D ten="qua" co={30} /></View>
                   <TextInput value={ten} onChangeText={setTen} placeholder="Ví dụ: Đi ăn kem" placeholderTextColor={M.chu3} maxLength={60} accessibilityLabel="Quà con muốn"
-                    style={{ flex: 1, minHeight: 50, borderRadius: 25, paddingHorizontal: 18, backgroundColor: "#ecebe7", boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 16, color: M.chu }} />
+                    style={{ flex: 1, minHeight: 50, borderRadius: 25, paddingHorizontal: 18, backgroundColor: M.xamSoft, boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 16, color: M.chu }} />
                 </View>
                 <Chips ds={GOI_Y.map((x) => ({ gia: x, chu: x }))} chon={GOI_Y.includes(ten.trim()) ? [ten.trim()] : []} doi={setTen} />
                 <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4, marginTop: 4 }}>Con đổi bằng</Chu>

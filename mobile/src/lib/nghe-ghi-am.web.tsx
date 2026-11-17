@@ -62,7 +62,7 @@ export function NgheGhiAm({ mime, base64, nhan }: NgheGhiAmProps) {
         <Pressable onPress={tuDau} accessibilityRole="button" style={{ flex: 1, minHeight: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", backgroundColor: M.chinhSoft }}>
           <Chu kieu="rat" co={14.5} mau={M.chinhInk}>▶ Nghe từ đầu</Chu>
         </Pressable>
-        <Pressable onPress={doiNhanh} accessibilityRole="button" style={{ flex: 1, minHeight: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", backgroundColor: "#ecebe7" }}>
+        <Pressable onPress={doiNhanh} accessibilityRole="button" style={{ flex: 1, minHeight: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", backgroundColor: M.xamSoft }}>
           <Chu kieu="rat" co={14.5} mau={M.chu2}>{nhanh ? "Nghe thường x1" : "Nghe nhanh x2"}</Chu>
         </Pressable>
       </View>

@@ -14,7 +14,7 @@ import { GIOI_HAN_MD, type GioiHan } from "@/lib/gioi-han";
 import { ChonGioiHan, NutTron } from "@/lib/gioi-han-ui";
 import { Chu, F, Icon3D, M, Man, Nut, Rob } from "@/lib/ui";
 
-const NAU = "#6e4300";
+const NAU = M.diemInk;
 
 export default function ObGio() {
   const tl = layTl();
@@ -45,7 +45,7 @@ export default function ObGio() {
             <NutTron dau="+" nhan="Thêm 10 sao" bam={() => doi(1)} tat={sao >= SAO_KHOI_DAU_TOI_DA} nen="#fffaf0" co={22} />
           </View>
           <View style={{ paddingVertical: 5, paddingHorizontal: 12, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.75)", boxShadow: BONG.lom }}>
-            <Chu kieu="rat" co={12.5} mau="#0a5246" dong={1}>1 sao = chơi 1 phút</Chu>
+            <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}>1 sao = chơi 1 phút</Chu>
           </View>
         </View>
       </View>

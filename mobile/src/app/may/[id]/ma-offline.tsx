@@ -102,22 +102,22 @@ export default function MaMoMay() {
             <Pressable key={p} onPress={() => { if (p !== phut) { setMa(null); setPhut(p); } }} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${p} phút`}
               // thiết kế 07: ô lõm cao 64 — «30 phút» 16/800 + «tới 20:10»; ô chọn ngọc
               style={[{ flex: 1, minHeight: 64, borderRadius: 22, alignItems: "center", justifyContent: "center" },
-                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
               <Chu kieu="rat" co={16} so mau={on ? "#fff" : M.chu}>{`${p} phút`}</Chu>
-              <Chu kieu="dam7" co={12.5} mau={on ? "#dcebe6" : "#565c59"}>{`tới ${gioPhut(new Date(bayGio + p * 60_000).toISOString())}`}</Chu>
+              <Chu kieu="dam7" co={12.5} mau={on ? M.chinhSoft : M.chu3}>{`tới ${gioPhut(new Date(bayGio + p * 60_000).toISOString())}`}</Chu>
             </Pressable>
           );
         })}
       </View>
       {/* thiết kế 07: một thẻ hai dòng (ô icon lõm · chữ), cách bằng vạch mảnh */}
-      <View style={[{ marginTop: 4, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+      <View style={[{ marginTop: 4, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60 }}>
           <OLomIcon ic="khoa" />
-          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>{`Hết ${phut} phút, ${ngan} tự khoá lại`}</Chu><Chu kieu="dam" co={12.5} mau="#565c59">Không cần mạng</Chu></View>
+          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>{`Hết ${phut} phút, ${ngan} tự khoá lại`}</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>Không cần mạng</Chu></View>
         </View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderTopWidth: 1.5, borderTopColor: "#ecebe7" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderTopWidth: 1.5, borderTopColor: M.vien }}>
           <OLomIcon ic="wifi" />
-          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>Có mạng lại, sổ sao tự cập nhật</Chu><Chu kieu="dam" co={12.5} mau="#565c59">Ba Mẹ thấy ngay ở Hôm nay</Chu></View>
+          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>Có mạng lại, sổ sao tự cập nhật</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>Ba Mẹ thấy ngay ở Hôm nay</Chu></View>
         </View>
       </View>
 

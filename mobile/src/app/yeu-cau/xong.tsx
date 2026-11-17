@@ -20,7 +20,7 @@ const veHomNay = () => router.replace("/hom-nay" as never);
 
 function Dong({ ic, tieu, phu, phai, dau }: { ic: TenIcon; tieu: string; phu?: string; phai?: ReactNode; dau?: boolean }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 8, borderTopWidth: dau ? 0 : 1.5, borderTopColor: "#ecebe7" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 8, borderTopWidth: dau ? 0 : 1.5, borderTopColor: M.vien }}>
       <BieuTron ic={ic} mau="xam" />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15}>{tieu}</Chu>

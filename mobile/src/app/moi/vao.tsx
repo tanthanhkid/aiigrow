@@ -47,14 +47,14 @@ export default function VaoNha() {
       day={<><BaoLoi loi={loiLam} /><Nut chu={`Vào nhà cùng ${ai}`} rong dangChay={dangChay} bam={vao} />
         <LienKet chu={d.coNha ? "Ở lại nhà mình" : "Không phải tôi"} bam={() => router.replace(d.coNha ? "/" : "/thiet-lap/ten-con")} /></>}>
       {/* thiết kế 14/11: hàng chữ cái người mời + các bé (tối đa 4) + «T» (bạn, viền ngọc) trên khối ngọc, Grow đứng dưới */}
-      <View style={{ height: 300, borderRadius: 34, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
+      <View style={{ height: 300, borderRadius: 34, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
         <View style={{ position: "absolute", top: 24, flexDirection: "row", alignItems: "center" }}>
           {[ai, ...con.slice(0, 4)].map((t, i) => (
             <View key={t + i} style={{ marginLeft: i ? -6 : 0, borderRadius: 31, borderWidth: 4, borderColor: "#eef4f1" }}>
               <Avt ten={t} mau={MAU_CON[i % MAU_CON.length]} co={con.length > 3 ? 44 : 50} />
             </View>
           ))}
-          <View style={{ marginLeft: 10, borderRadius: 34, padding: 3, backgroundColor: "#dcebe6", boxShadow: `0px 0px 0px 3px ${M.chinh}, ${BONG.nho}` }}>
+          <View style={{ marginLeft: 10, borderRadius: 34, padding: 3, backgroundColor: M.chinhSoft, boxShadow: `0px 0px 0px 3px ${M.chinh}, ${BONG.nho}` }}>
             <Avt ten="T" mau={M.chinh} co={con.length > 3 ? 50 : 56} />
           </View>
         </View>
@@ -65,7 +65,7 @@ export default function VaoNha() {
       <View style={{ flexDirection: "row", gap: 10 }}>
         {viec.map(([ic, chu]) => (
           <The key={chu} style={{ flex: 1, alignItems: "center", gap: 8, paddingVertical: 14, paddingHorizontal: 8 }}>
-            <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten={ic} co={30} /></View>
+            <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten={ic} co={30} /></View>
             <Chu kieu="rat" co={13} style={{ textAlign: "center" }}>{chu}</Chu>
           </The>
         ))}

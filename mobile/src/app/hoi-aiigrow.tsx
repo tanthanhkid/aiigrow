@@ -22,28 +22,28 @@ export default function HoiAiiGrow() {
       {/* bàn them-zxu4yvp3@v4 .canh: Grow sổ tay sát trái, bong bóng vừa chữ (18/24, 2 dòng) đứng cao hơn đáy Grow 46 */}
       <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, height: 150 }}>
         <View style={{ marginLeft: -6 }}><Rob ten="so-tay" co={150} /></View>
-        <View style={[{ flexShrink: 1, marginBottom: 46, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 24, borderBottomLeftRadius: 8, backgroundColor: "#f7f6f3" }, KHOI.nho]}>
+        <View style={[{ flexShrink: 1, marginBottom: 46, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 24, borderBottomLeftRadius: 8, backgroundColor: M.the }, KHOI.nho]}>
           <Chu kieu="rat" co={18} style={{ lineHeight: 24, letterSpacing: -0.2 }}>{"Ba Mẹ cần\ngiúp gì ạ?"}</Chu>
         </View>
       </View>
       <NhanMen onPress={() => router.push("/ho-tro")} accessibilityRole="button" accessibilityLabel="Nhắn tin AiiGrow" muc="khoi" sang
-        style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-        <OIcon ic="tin" co={52} nen="#dcebe6" />
+        style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
+        <OIcon ic="tin" co={52} nen={M.chinhSoft} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={17}>Nhắn tin AiiGrow</Chu>
-          <Chu kieu="dam" co={13} mau="#565c59">Hỏi gì cũng được, có người trả lời</Chu>
+          <Chu kieu="dam" co={13} mau={M.chu3}>Hỏi gì cũng được, có người trả lời</Chu>
         </View>
         <Icon ten="phai" mau={M.chinhInk} co={18} />
       </NhanMen>
       <Chu kieu="rat" co={15} mau={M.chu2} style={{ paddingHorizontal: 6, marginTop: 6 }}>Ba Mẹ hay hỏi</Chu>
       {/* thiết kế: một thẻ, các câu cách nhau bằng vạch mảnh */}
-      <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+      <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
         {HAY_HOI.map((x, k) => (
           <Pressable key={x.chu} onPress={() => router.push(x.toi as never)} accessibilityRole="button" accessibilityLabel={x.chu}
-            style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
+            style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
             <OIcon ic={x.ic} />
             <Chu kieu="rat" co={15} style={{ flex: 1 }}>{x.chu}</Chu>
-            <Icon ten="phai" mau="#b3b5b1" co={18} />
+            <Icon ten="phai" mau={M.oNhap} co={18} />
           </Pressable>
         ))}
       </View>

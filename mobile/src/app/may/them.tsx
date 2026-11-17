@@ -29,8 +29,8 @@ export default function GhepThemMay() {
     <Man dau={<DauMan tieu="Ghép thêm máy" ve="/may" />}
       day={<Nut chu={so > 1 ? `Lấy mã ghép máy chung cho ${so} bé` : so ? `Lấy mã ghép máy mới cho ${tenGoi(ds[0].ten)}` : "Chọn bé dùng máy mới"} rong tat={!so} bam={lay} />}>
       <View style={{ flexDirection: "row", alignItems: "baseline", flexWrap: "wrap", gap: 6, paddingHorizontal: 6, marginTop: 4 }}>
-        <Chu kieu="rat" co={15} mau="#3a403d">Máy mới cho bé nào?</Chu>
-        {d.length > 1 ? <Chu kieu="dam7" co={12.5} mau="#565c59">· chọn một hoặc nhiều bé</Chu> : null}
+        <Chu kieu="rat" co={15} mau={M.chu2}>Máy mới cho bé nào?</Chu>
+        {d.length > 1 ? <Chu kieu="dam7" co={12.5} mau={M.chu3}>· chọn một hoặc nhiều bé</Chu> : null}
       </View>
       {/* dải avatar tròn 54 (bé chọn: vòng ngọc + dấu tick), «＋ Thêm con» cuối dải */}
       <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 10, columnGap: 22, paddingHorizontal: 6 }}>
@@ -46,19 +46,19 @@ export default function GhepThemMay() {
                 <View style={{ position: "absolute", top: 40, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center",
                   borderWidth: 2.5, borderColor: M.nen }}><Icon ten="tick" mau="#fff" co={12} /></View>
               ) : null}
-              <Chu kieu="rat" co={12.5} mau={on ? M.chinhInk : "#3a403d"} dong={1}>{tenGoi(x.ten)}</Chu>
+              <Chu kieu="rat" co={12.5} mau={on ? M.chinhInk : M.chu2} dong={1}>{tenGoi(x.ten)}</Chu>
             </Pressable>
           );
         })}
         <Pressable onPress={() => router.push("/ho-so/them")} accessibilityRole="button" accessibilityLabel="Thêm con" style={{ width: 62, alignItems: "center", gap: 7 }}>
-          <View style={{ margin: 5, width: 52, height: 52, borderRadius: 26, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
+          <View style={{ margin: 5, width: 52, height: 52, borderRadius: 26, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
             <Icon ten="cong" mau={M.chinhInk} co={22} />
           </View>
-          <Chu kieu="rat" co={12.5} mau="#3a403d" dong={1}>Thêm con</Chu>
+          <Chu kieu="rat" co={12.5} mau={M.chu2} dong={1}>Thêm con</Chu>
         </Pressable>
       </View>
       {so ? (
-        <View style={{ padding: 16, borderRadius: 24, backgroundColor: "#dcebe6", boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}`, gap: 4 }}>
+        <View style={{ padding: 16, borderRadius: 24, backgroundColor: M.chinhSoft, boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}`, gap: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Icon3D ten="nguoi" co={24} />
             <Chu kieu="rat" co={15} mau={M.chinhInk} style={{ flexShrink: 1 }}>{so > 1 ? `Máy dùng chung · ${so} bé` : `Máy riêng của ${tenGoi(ds[0].ten)}`}</Chu>
@@ -69,17 +69,17 @@ export default function GhepThemMay() {
           </Chu>
         </View>
       ) : null}
-      <View style={{ flexDirection: "row", gap: 10, padding: 16, borderRadius: 24, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+      <View style={{ flexDirection: "row", gap: 10, padding: 16, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
         <Icon3D ten="tablet" co={30} />
         <View style={{ flex: 1 }}>
           <Chu kieu="rat" co={14}>iPhone, iPad: chỉ một bé</Chu>
-          <Chu kieu="dam" co={13} mau="#3a403d" style={{ lineHeight: 18 }}>
+          <Chu kieu="dam" co={13} mau={M.chu2} style={{ lineHeight: 18 }}>
             {`Hệ điều hành của Apple không đổi người dùng được, nên nếu máy mới là iPhone/iPad${so > 1 ? ", Grow sẽ hỏi chọn đúng một bé" : ", máy chỉ dành cho một bé"}. Windows, Mac, Android dùng chung được.`}
           </Chu>
         </View>
       </View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 6 }}>
-        <Anh3D ten="lap_lanh" co={24} /><Chu kieu="dam" co={13.5} mau="#3a403d" style={{ flex: 1 }}>Không cần cài riêng cho máy: sao và danh sách app đi theo từng bé.</Chu>
+        <Anh3D ten="lap_lanh" co={24} /><Chu kieu="dam" co={13.5} mau={M.chu2} style={{ flex: 1 }}>Không cần cài riêng cho máy: sao và danh sách app đi theo từng bé.</Chu>
       </View>
       <View style={{ alignItems: "center" }}><Rob ten="chi" co={130} /></View>
     </Man>
