@@ -10,6 +10,7 @@ import { datKhoa, datKhoaMay } from "./khoa-may";
 import { cachKhoa, cauKhoaMay, mayDangKhoa } from "./noi-1411";
 import { nganTen, tenGocMay } from "./may-nhieu-con";
 import { khoaTen, laWeb } from "./ui-bm3";
+import { MAU_HO_SO } from "./lan-dau";
 import {
   Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
 } from "./ui";
@@ -61,13 +62,12 @@ export const tuoiCua = (namSinh: number | null | undefined) => {
   const t = new Date().getFullYear() - namSinh;
   return t >= 1 && t <= 25 ? t : null;
 };
-/** 5 màu hồ sơ Con «mau-<số>» — trùng bảng của luồng Lần đầu (M1 lib/lan-dau › MAU_HO_SO); avatar cũ (không «mau-») ⇒ màu theo thứ tự. */
-const MAU_HO_SO = ["#f29a4a", "#6aa3ef", "#ec8db2", "#5bbf95", "#a98bea"];
 /** «Nguyễn Ngọc Bảo Anh» → «Bảo Anh»: tên gọi (2 chữ cuối) — thiết kế 14/11 gọi con bằng tên gọi ở dải avatar, Báo cáo, «bước tiếp». */
 export const tenGoi = (ten: string) => ten.trim().split(/\s+/).slice(-2).join(" ");
+/** Màu avatar Con ở Hằng ngày: tông đậm (cột [2]) của bảng chung lib/lan-dau › MAU_HO_SO; avatar cũ (không «mau-») ⇒ màu theo thứ tự. */
 export const mauCon = (avatar: string | null | undefined, thu = 0) => {
   const k = Number(/^mau-(\d)(?:\||$)/.exec(avatar ?? "")?.[1]);
-  return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : thu % MAU_HO_SO.length];
+  return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : thu % MAU_HO_SO.length][2];
 };
 /** «21:30» → «21:30», «06:30» → «6:30» (thiết kế viết giờ không số 0 đầu). */
 export const gioGon = (g: string | null | undefined) => (g ?? "").replace(/^0(\d):/, "$1:");

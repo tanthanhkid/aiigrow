@@ -508,11 +508,12 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
 /** Bong bóng chat clay (một kiểu cho Ba Mẹ ↔ AiiLab ở cả ho-tro và admin-ho-tro): `toi` = tin của mình (ngọc, bên phải),
  *  còn lại khối sáng bên trái. Đuôi = góc dưới phía người gửi bo 8 (lớp men bo khớp góc đó). Không viền mảnh — docs/THIET-KE-CLAY.md §1. */
 export function BongChat({ toi, noiDung, luc, style }: { toi?: boolean; noiDung: string; luc: string; style?: ViewStyle }) {
-  const duoi = toi ? { borderBottomRightRadius: 8 } : { borderBottomLeftRadius: 8 };
+  // bàn bm2-ho-tro / them-dmdjjhh1 `.bub`: chữ 14.5/20 đậm 600, bo 20 góc đuôi 6; AiiGrow nền kem nổi đất sét, Ba Mẹ ngọc đặc (không men)
+  const duoi = toi ? { borderBottomRightRadius: 6 } : { borderBottomLeftRadius: 6 };
   return (
-    <View style={[s.bongChat, duoi, toi ? { alignSelf: "flex-end", backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#fff", ...KHOI.nho }, style]}>
-      <LopMen men={toi ? MEN.ngoc : MEN.sang} bo={22} goc={duoi} />
-      <Chu mau={toi ? "#fff" : M.chu}>{noiDung}</Chu><Chu co={12} mau={toi ? "#ffffff" : M.chu3}>{luc}</Chu>
+    <View style={[s.bongChat, duoi, toi ? { alignSelf: "flex-end", backgroundColor: "#0f6b5c", boxShadow: BONG.ngoc } : { backgroundColor: "#f7f6f3", ...KHOI.the }, style]}>
+      <Chu kieu="dam" co={14.5} mau={toi ? "#fff" : M.chu} style={{ lineHeight: 20 }}>{noiDung}</Chu>
+      {luc ? <Chu kieu="dam" co={12} mau={toi ? "#ffffff" : M.chu3}>{luc}</Chu> : null}
     </View>
   );
 }
@@ -527,9 +528,10 @@ export function OChat({ gia, doi, gui, dangChay, nhan }: { gia: string; doi: (t:
         <TextInput value={gia} onChangeText={doi} placeholder="Nhập tin nhắn…" placeholderTextColor={M.chu3} multiline maxLength={1000} accessibilityLabel={nhan}
           style={{ fontFamily: F.thuong, fontSize: 16, color: M.chu, paddingVertical: 12, maxHeight: 120 }} />
       </View>
-      <NhanMen onPress={gui} disabled={!co || dangChay} accessibilityRole="button" accessibilityLabel="Gửi" men={MEN.toi}
-        style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: M.nut, alignItems: "center", justifyContent: "center", boxShadow: BONG.toi, opacity: co ? 1 : 0.85 }}>
-        <Icon ten="gui" mau="#fff" />
+      {/* bàn `.gui`: tròn 52 than chì chuyển (#2e3533 → #121615), máy bay giấy trắng */}
+      <NhanMen onPress={gui} disabled={!co || dangChay} accessibilityRole="button" accessibilityLabel="Gửi"
+        style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: M.nut, backgroundImage: "linear-gradient(#2e3533, #121615)", alignItems: "center", justifyContent: "center", boxShadow: BONG.toi, opacity: co ? 1 : 0.85 }}>
+        <Icon ten="gui" mau="#fff" co={22} />
       </NhanMen>
     </View>
   );
@@ -795,7 +797,7 @@ const s = StyleSheet.create({
   lui: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
   // tiêu đề tab (thiết kế .top h1): 28 ExtraBold, giãn −0,6
   tieuLon: { marginTop: 4, marginBottom: 6, marginHorizontal: 4, fontSize: 28, lineHeight: 34, fontFamily: F.den, color: M.chu, letterSpacing: -0.6 },
-  bongChat: { paddingVertical: 10, paddingLeft: 16, paddingRight: 18, borderRadius: 22, maxWidth: "78%" },   // phải 18: web bẻ dòng giữ dấu cách cuối dòng (~4 px) trong khung chữ ⇒ chữ vẫn cách mép ≥ 12
+  bongChat: { paddingVertical: 10, paddingLeft: 14, paddingRight: 16, borderRadius: 20, maxWidth: "78%" },   // phải 18: web bẻ dòng giữ dấu cách cuối dòng (~4 px) trong khung chữ ⇒ chữ vẫn cách mép ≥ 12
   hangTieu: { flexDirection: "row", alignItems: "center", gap: 10, paddingRight: 2 },
   day: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24, gap: 8, backgroundColor: M.nen },
   canh: { position: "relative", borderRadius: BO_CLAY.the, padding: 18, marginBottom: 26, flexDirection: "row", alignItems: "center", boxShadow: BONG.the },

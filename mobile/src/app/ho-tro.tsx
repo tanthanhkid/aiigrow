@@ -11,6 +11,9 @@ import { BangTruot, BaoLoi, BongChat, ChoTai, Chu, gioPhut, M, Man, NhanMen, Nut
 
 type Tin = { id: string; tu: "ba_me" | "aiilab"; noi_dung: string; created_at: string };
 const GOI_Y = ["iPad báo lỗi", "Ghép máy mới", "Sao & phút chơi"];
+/** Vai xưng hô ở đầu tên Ba Mẹ tự đặt («Mẹ Lan» ⇒ «Mẹ») — máy chủ không lưu Ba hay Mẹ nên chỉ đọc từ tên; không có ⇒ null. */
+const vaiGoi = (ten: string) => /^(Ba|Bố|Mẹ|Má|Ông|Bà|Cô|Chú|Dì|Cậu|Anh|Chị)(?=\s|$)/i.exec(ten.trim())?.[1] ?? null;
+
 const HAY_GAP: { hoi: string; dap: string; di?: { chu: string; toi: string } }[] = [
   { hoi: "Máy của con báo «cần sửa»", dap: "Máy chưa đủ quyền bảo vệ nên con tự tắt được. Mở máy đó trong «Máy của con» và làm theo các bước sửa.", di: { chu: "Xem máy của con", toi: "/may" } },
   { hoi: "Ghép thêm máy cho con", dap: "Vào «Máy của con» › «Ghép thêm máy», gửi link cài cho máy của con — mã 6 số dùng khi link không mở được.", di: { chu: "Mở Máy của con", toi: "/may" } },
@@ -57,7 +60,9 @@ export default function HoTro() {
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : (
         <>
           <Chu kieu="dam" co={12} mau={M.chu3} style={{ textAlign: "center" }}>{(() => { const t = dauTien ? new Date(dauTien) : new Date(); return `${t.toDateString() === new Date().toDateString() ? "Hôm nay " : ""}${gioPhut(t)}`; })()}</Chu>
-          <TinAiiGrow noiDung={`Chào ${tenToi}! Mình là AiiGrow. ${tenToi} cần giúp gì ạ?`} luc="" />
+          {/* bàn: «Chào Mẹ Lan! Mình là AiiGrow. Mẹ cần giúp gì ạ?» — lần hai chỉ gọi bằng vai (Ba / Mẹ…) khi tên đã có vai; không thì câu trung tính
+              (không lấy chữ đầu của tên đầy đủ — «Nguyễn cần giúp gì ạ?») */}
+          <TinAiiGrow noiDung={`Chào ${tenToi}! Mình là AiiGrow. ${vaiGoi(tenToi) ? `${vaiGoi(tenToi)} cần giúp gì ạ?` : "Mình giúp được gì ạ?"}`} luc={dauTien ? gioPhut(dauTien) : ""} />
           {d.tin.map((t) => t.tu === "aiilab" ? <TinAiiGrow key={t.id} noiDung={t.noi_dung} luc={gioPhut(t.created_at)} />
             : <BongChat key={t.id} toi noiDung={t.noi_dung} luc={gioPhut(t.created_at)} />)}
           {!d.tin.length ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Người thật của AiiGrow trả lời, thường trong 5 phút.</Chu> : null}

@@ -5,10 +5,14 @@
 // ở máy chủ). «Con sắp hết sao», «Báo cáo tuần» của thiết kế chưa có nhóm thông báo ở máy chủ — chưa hiện (không để công tắc chết).
 // 15/11 (#264–#266, thiết kế them-2ru3t5iw): «Con xin vay sao · Và xin thêm app, web vào danh sách»; công tắc mới «Cảnh báo nợ quá 1.000 sao» (nhóm `canh_bao_no`:
 // tắt ⇒ vẫn có dòng ở Thông báo, chỉ không đẩy).
+// #325 (bàn them-2ru3t5iw@v7, 16/11 khớp #291): bỏ hàng «Cảnh báo nội dung xấu» (bàn bỏ mục ngoài phạm vi — nhóm `canh_bao` vẫn luôn bật, nằm chung
+// «Máy của con mất bảo vệ»); giờ viết «22:00 – 6:00»; câu dưới «Cảnh báo vẫn báo ngay» (chạm hàng vẫn mở bảng đổi giờ). «Báo cáo tuần · Tối Chủ nhật»
+// của bàn chưa có nhóm thông báo ở máy chủ — chưa hiện.
 import { useEffect, useState } from "react";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { MucTieu, NhanLuon, OIcon } from "@/lib/ui-bm3";
+import { gioGon } from "@/lib/hang-ngay";
 import { BangTruot, BaoLoi, ChoTai, Chu, CongTac, Dong, M, Man, Nhom, Nut, ONhap, type TenIcon, useHoanTac, useLam, useTai } from "@/lib/ui";
 
 type CaiDat = { yenLang: { bat: boolean; tu: string; den: string }; tat: string[] };
@@ -55,13 +59,12 @@ export default function CaiDatThongBao() {
       <Nhom>
         {BAO_NGAY.map(hang)}
         <Dong tieu="Máy của con mất bảo vệ" phu="Để con an toàn" trai={<OIcon ic="khien" />} phai={<NhanLuon />} />
-        <Dong tieu="Cảnh báo nội dung xấu" phu="Con vào web, app người lớn" trai={<OIcon ic="khien" />} phai={<NhanLuon />} />
       </Nhom>
       <MucTieu chu="Để biết" />
       <Nhom>{DE_BIET.map(hang)}</Nhom>
       <MucTieu chu="Giờ yên lặng" />
       <Nhom>
-        <Dong dau tieu={`Không rung ${yl.tu} – ${yl.den}`} phu="Cảnh báo vẫn báo ngay · chạm để đổi giờ" trai={<OIcon ic="trang_ngu" />}
+        <Dong dau tieu={`Không rung ${gioGon(yl.tu)} – ${gioGon(yl.den)}`} phu="Cảnh báo vẫn báo ngay" trai={<OIcon ic="trang_ngu" />}
           bam={() => { setTu(yl.tu); setDen(yl.den); setMo(true); }}
           phai={<CongTac bat={yl.bat} nhan="Giờ yên lặng" doi={(v) => luu({ yenLang: { ...yl, bat: v } }, v ? "Đã bật giờ yên lặng" : "Đã tắt giờ yên lặng")} />} />
       </Nhom>

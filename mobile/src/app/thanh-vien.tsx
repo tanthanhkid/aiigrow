@@ -13,7 +13,8 @@ import { MucTieu, OIcon, veHoac } from "@/lib/ui-bm3";
 import { KHOI } from "@/lib/clay";
 import { ChuCaiCon } from "@/lib/ui-viec";
 import { soVN } from "@/lib/so-sao";
-import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, OChon, TickDong, useLam, useTai } from "@/lib/ui";
+import { DsBang } from "@/lib/ca-nha-ui";
+import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, OChon, useLam, useTai } from "@/lib/ui";
 
 /** Màu avatar người lớn (thiết kế .ng — cùng bảng tab Cả nhà). */
 const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#3f9a86", "#b5838d"];
@@ -53,14 +54,11 @@ export default function ThanhVien() {
     ve();
   });
   return (
-    <Man lui={{ chu: "", bam: ve }} tieu={x.ten} day={roiDuoc ? <>
-      <Nut chu={`Mời ${x.ten} rời nhà`} loai="huy" rong bam={() => setMo("roi")} />
-      <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, không cho vay sao được nữa.`}</Chu>
-    </> : undefined}>
-      {/* thiết kế 06 (bm-ca-nha) / 10 (bm-cai-dat): thẻ ngang — avatar 56 · tên · «Vào nhà từ 20/10» · nhãn quyền ngọc */}
+    <Man lui={{ chu: "", bam: ve }} tieu={x.ten}>
+      {/* bàn them-7vmoufz3@v8 / bm2-thanh-vien@v7: thẻ ngang — avatar 64 · tên · «Vào nhà từ 20/10» · nhãn quyền ngọc */}
       <View style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-        <View style={{ width: 56, height: 56, borderRadius: 28, backgroundColor: MAU_NGUOI[i % MAU_NGUOI.length], alignItems: "center", justifyContent: "center" }}>
-          <Chu kieu="rat" co={24} mau="#fff">{chuDau(x.ten)}</Chu>
+        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: MAU_NGUOI[i % MAU_NGUOI.length], alignItems: "center", justifyContent: "center" }}>
+          <Chu kieu="rat" co={28} mau="#fff">{chuDau(x.ten)}</Chu>
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Chu kieu="rat" co={17} dong={1}>{x.ten}</Chu>
@@ -79,6 +77,11 @@ export default function ThanhVien() {
         {d.vay ? (() => { const v = d.vay.find((n) => n.ten === x.ten);
           return <Dong tieu="7 ngày qua" phu={v?.so ? `Cho vay ${v.so} lần · ${soVN(v.sao)} sao` : "Chưa cho vay sao"} trai={<OIcon ic="sao" />} />; })() : null}
       </Nhom>
+      {/* bàn: nút trắng «🚪 Mời <tên> rời nhà» chữ đỏ ngay dưới thẻ (không ghim đáy) + dòng giải thích */}
+      {roiDuoc ? <View style={{ gap: 8, marginTop: 6 }}>
+        <Nut chu={`Mời ${x.ten} rời nhà`} loai="huy" ic="thoat" ic3d rong bam={() => setMo("roi")} />
+        <Chu kieu="dam" co={13} mau="#565c59" style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, không cho vay sao được nữa.`}</Chu>
+      </View> : null}
 
       <BangTruot mo={mo === "quyen"} dong={dong} tieu={`Quyền của ${x.ten}`}>
         {(["ba_me", "trong_giup"] as const).map((q) => (
@@ -86,11 +89,13 @@ export default function ThanhVien() {
         ))}
         <BaoLoi loi={loiLam} />
       </BangTruot>
-      <BangTruot mo={mo === "roi"} dong={dong} tieu={`Mời ${x.ten} rời nhà?`} hinh="thoat">
-        <Chu mau={M.chu2}>{`${x.ten} sẽ không xem, cho vay sao hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
-        <TickDong trang="sau" chu="Muốn mời lại thì gửi lời mời mới" />
+      {/* bàn them-xnbiksmr@v3: ô hình đào, câu giữa, thẻ dòng icon, nút đỏ đặc. «cho giờ» của bàn ⇒ «cho vay sao» (#265). Dòng «<tên> nhận tin đã rời nhà»
+          của bàn chưa có — máy chủ chưa gửi tin cho người bị mời ra */}
+      <BangTruot mo={mo === "roi"} dong={dong} tieu={`Mời ${x.ten} rời nhà?`} hinh="thoat" hinhDao>
+        <Chu kieu="dam" co={14} mau="#3a403d" style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, cho vay sao hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
+        <DsBang ds={[{ ic: "gui", chu: "Muốn mời lại thì gửi lời mời mới" }]} />
         <BaoLoi loi={loiLam} />
-        <Nut chu={`Mời ${x.ten} rời nhà`} loai="huy" rong dangChay={dangChay} bam={roi} />
+        <Nut chu={`Mời ${x.ten} rời nhà`} loai="do" rong dangChay={dangChay} bam={roi} />
         <Nut chu={`Thôi, giữ ${x.ten}`} loai="vien" rong bam={dong} />
       </BangTruot>
     </Man>

@@ -12,6 +12,7 @@ import { chuDau, KHOA_CA_NHA, napCaNha } from "@/lib/ca-nha";
 import { MucTieu, OIcon, veHoac } from "@/lib/ui-bm3";
 import { BONG, KHOI } from "@/lib/clay";
 import { ChuCaiCon } from "@/lib/ui-viec";
+import { DsBang } from "@/lib/ca-nha-ui";
 import { BangTruot, BaoLoi, baoKhiVe, cauLoi, ChoTai, Chu, Dong, F, M, Man, Nhom, Nut, ONhap, TickDong, tien, useLam, useTai } from "@/lib/ui";
 
 export default function TaiKhoan() {
@@ -118,18 +119,19 @@ export default function TaiKhoan() {
         <Dong tieu="Xoá tài khoản" phu="Xoá hẳn, không lấy lại được" trai={<OIcon ic="x" nen={M.loiSoft} />} nguyHiem bam={moXoa} />
       </Nhom>
 
-      <BangTruot mo={mo === "roi"} dong={dong} tieu="Rời khỏi nhà này?" hinh="nha">
-        <Chu mau={M.chu2}>{`Bạn sẽ không xem, cho giờ hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
-        <View>
-          {conLai ? <TickDong chu={`${conLai} vẫn trông ${soCon ? `${soCon} con` : "các con"}`} /> : null}
-          <TickDong trang="sau" chu="Muốn vào lại thì nhờ người trong nhà mời" />
-        </View>
+      {/* bàn them-liz6hzww@v3: ô hình đào, câu giữa, thẻ dòng icon, nút đỏ đặc. «cho giờ» của bàn ⇒ «cho vay sao» (#265) */}
+      <BangTruot mo={mo === "roi"} dong={dong} tieu="Rời khỏi nhà này?" hinh="nha" hinhDao>
+        <Chu kieu="dam" co={14} mau="#3a403d" style={{ textAlign: "center" }}>{`Bạn sẽ không xem, cho vay sao hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
+        <DsBang ds={[...(conLai ? [{ ic: "nguoi" as const, chu: `${conLai} vẫn trông ${soCon ? `${soCon} con` : "các con"}` }] : []),
+          { ic: "gui", chu: "Muốn vào lại thì nhờ người trong nhà mời" }]} />
         <BaoLoi loi={loiLam} />
-        <Nut chu="Rời nhà" loai="huy" rong dangChay={dangChay} bam={roi} />
+        <Nut chu="Rời nhà" loai="do" rong dangChay={dangChay} bam={roi} />
         <Nut chu="Ở lại" loai="vien" rong bam={dong} />
       </BangTruot>
 
-      <BangTruot mo={mo === "xoa"} dong={dong} tieu={chan?.ma === "loi" ? "Chưa kiểm tra được" : chan ? "Chưa xoá được tài khoản người tạo nhà" : laChu ? "Xoá tài khoản và cả gia đình?" : `Xoá tài khoản ${toi.ten}?`}>
+      {/* bàn them-4vj35r7c@v3 (người không tạo nhà): ô hình đào ⚠️, «Xoá hẳn, không lấy lại được.», thẻ dòng icon, nút đỏ đặc. Bàn không có ô mật khẩu —
+          giữ ô «Nhập lại mật khẩu để xác nhận» (xác nhận trước khi xoá hẳn). */}
+      <BangTruot mo={mo === "xoa"} dong={dong} hinh={chan ? undefined : "canh_bao"} hinhDao tieu={chan?.ma === "loi" ? "Chưa kiểm tra được" : chan ? "Chưa xoá được tài khoản người tạo nhà" : laChu ? "Xoá tài khoản và cả gia đình?" : `Xoá tài khoản ${toi.ten}?`}>
         {chan ? (
           <>
             <Chu mau={M.chu2}>{chan.cau}</Chu>
@@ -140,8 +142,8 @@ export default function TaiKhoan() {
           </>
         ) : (
           <>
-            <Chu mau={M.chu2}>{laChu ? "Bạn là người tạo nhà: xoá tài khoản là xoá luôn cả gia đình — mọi dữ liệu dưới đây mất ngay, không lấy lại được."
-              : "Xoá hẳn, không lấy lại được."}</Chu>
+            {laChu ? <Chu mau={M.chu2}>Bạn là người tạo nhà: xoá tài khoản là xoá luôn cả gia đình — mọi dữ liệu dưới đây mất ngay, không lấy lại được.</Chu>
+              : <Chu kieu="dam" co={14} mau="#3a403d" style={{ textAlign: "center" }}>Xoá hẳn, không lấy lại được.</Chu>}
             <View>
               {laChu ? (
                 <>
@@ -151,18 +153,16 @@ export default function TaiKhoan() {
                   <Chu mau={M.chu2}>Nhật ký giao dịch cũ (nếu có) được AiiLab giữ tối đa 90 ngày để xử lý khiếu nại, sau đó xoá hẳn.</Chu>
                 </>
               ) : (
-                <>
-                  <TickDong chu="Bạn rời nhà, người khác vẫn trông con" />
-                  <TickDong trang="x" chu="Mất tin nhắn và thông báo cũ" />
-                </>
+                <DsBang ds={[{ ic: "nha", chu: "Bạn rời nhà, người khác vẫn trông con" }, { ic: "tin", chu: "Mất tin nhắn và thông báo cũ" },
+                  ...(dd && !email ? [{ ic: "dt" as const, chu: `Số ${hienSo(dd)} đăng ký lại được` }] : [])]} />
               )}
-              {dd && !email ? <TickDong trang="sau" chu={`Số ${hienSo(dd)} đăng ký lại được`} /> : null}
+              {laChu && dd && !email ? <TickDong trang="sau" chu={`Số ${hienSo(dd)} đăng ký lại được`} /> : null}
             </View>
             {/* tài khoản vào bằng Google / Facebook chưa có mật khẩu ⇒ đặt mật khẩu trước (xác minh lại bằng Google / Facebook — app/dat-mat-khau.tsx) */}
             {khongMk ? <Nut chu="Đặt mật khẩu để xác nhận" loai="vien" rong bam={() => { dong(); router.push("/dat-mat-khau"); }} /> : <>
               <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
               <BaoLoi loi={loiLam} />
-              <Nut chu="Xoá tài khoản của tôi" loai="huy" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
+              <Nut chu="Xoá tài khoản của tôi" loai="do" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
             </>}
             <View style={{ marginTop: 8 }}><Nut chu="Giữ tài khoản" loai="vien" rong bam={dong} /></View>
           </>
