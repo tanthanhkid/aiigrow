@@ -70,11 +70,25 @@ export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown;
   const nhom = b.nhom === "teen" || b.nhom === "nhi" ? b.nhom : nhomTheoTuoi(nam);
   const { saoKhoiDauHopLe, tangSaoKhoiDau } = await import("./so-sao.ts");
   const saoKhoiDau = saoKhoiDauHopLe(b.saoKhoiDau, 0);
-  const id = newId();
-  // Tạo mới KHÔNG chặn trùng tên (bước thiết lập thử lại / mất phản hồi không được kẹt); chỉ đổi tên (suaCon) mới chặn.
+  // #340: chặn trùng tên cả lúc TẠO (hai bé cùng tên dễ chọn nhầm ở màn «Ai đang dùng máy?»). Bước thiết lập gửi lại (mất phản hồi) không
+  // được kẹt ⇒ bé cùng tên + cùng năm sinh vừa tạo trong 2 phút = lần gửi lại ⇒ trả lại bé đó, không tạo thêm, không tặng sao lần nữa.
   // #262: Con mới ở «Theo danh sách» (danh sách trắng — chan-co-ban.ts).
-  await q(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan, pin_ma, pin_dat_luc)
-            values ($1,$2,$3,$4,$5,$6,'theo_danh_sach',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").split("|")[0].slice(0, 12), nhom, pin, pin ? new Date() : null]);
+  const kq = await tx(async (t) => {
+    await khoaTen(t, fam);
+    const lai = (await t<{ id: string; ten: string; nam_sinh: number | null; created_at: Date }>(
+      `select id, ten, nam_sinh, created_at from children where family_id = $1`, [fam]))
+      .find((c) => chuanHoaTen(c.ten).toLowerCase() === ten.toLowerCase());
+    if (lai) {
+      if ((lai.nam_sinh ?? null) === nam && Date.now() - new Date(lai.created_at).getTime() < 120_000) return { id: lai.id, lai: true };
+      throw new LoiNghiepVu("ten_trung", `Nhà đã có Con tên «${ten}» — chọn tên khác nhé`);
+    }
+    const id = newId();
+    await t(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan, pin_ma, pin_dat_luc)
+              values ($1,$2,$3,$4,$5,$6,'theo_danh_sach',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").split("|")[0].slice(0, 12), nhom, pin, pin ? new Date() : null]);
+    return { id, lai: false };
+  });
+  if (kq.lai) return kq.id;
+  const id = kq.id;
   await ghiSuKien(fam, "tao_con", { ten, nhom, ...(pin ? { pin: true } : {}), ...(saoKhoiDau ? { sao_khoi_dau: saoKhoiDau } : {}) }, { con: id, nguoi });
   if (saoKhoiDau) await tangSaoKhoiDau(id, saoKhoiDau, nguoi ?? null);
   await noiConMoiVaoMayChung(fam, id);           // #267: bé mới tự có ở máy chung sẵn có (Ba Mẹ bỏ gán được)

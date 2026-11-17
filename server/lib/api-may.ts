@@ -32,6 +32,7 @@ import { viQuaMay } from "./vi-qua-may.ts";
 import { coNoi } from "./may-nhieu-con.ts";
 import { chinhSachWebCho } from "./web.ts";
 import { choThayDoi, phienBanDoi } from "./cho-thay-doi.ts";
+import { dsConMay } from "./goi-offline.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
@@ -112,13 +113,14 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
         delete windows.quyConPhut; delete windows.khoaKhiHetNgoaiLe;
       }
       const nguoiDung = await nguoiDungMay(may, con);
-      return json({ ...pol, phienBanThayDoi, nextCheckSec: windows.nextCheckSec, lenh, windows, nguoiDung, ...(bmDen ? { baMeDung: { den: bmDen.toISOString() } } : {}),
+      // #339: `dsCon` = bé được gán máy — Ba Mẹ đổi gán ⇒ «chờ thay đổi» đánh thức ⇒ lượt này agent thấy ngay, tải lại ho-so / đẩy bé bị bỏ gán ra
+      return json({ ...pol, phienBanThayDoi, nextCheckSec: windows.nextCheckSec, lenh, windows, nguoiDung, dsCon: await dsConMay(may.id), ...(bmDen ? { baMeDung: { den: bmDen.toISOString() } } : {}),
         ...(danhSachApp ? { danhSachApp } : {}) });
     }
     if (d === "nhip") {
       // L13: nhịp trả chính sách của bé đang đăng nhập (`con`) + ai đang dùng máy; Ba Mẹ dùng ⇒ `baMeDung` + grantEndsAt tới hạn (máy mở hết)
       const phienBanThayDoi = await phienBanDoi(may.family_id);   // trước chính sách (như dong-bo)
-      const r: Record<string, unknown> = { ...(await nhipMay(may, con, b)), phienBanThayDoi, nguoiDung: await nguoiDungMay(may, con) };
+      const r: Record<string, unknown> = { ...(await nhipMay(may, con, b)), phienBanThayDoi, nguoiDung: await nguoiDungMay(may, con), dsCon: await dsConMay(may.id) };
       if (bmDen) {
         const den = [r.grantEndsAt, bmDen.toISOString()].filter((x): x is string => typeof x === "string").sort().pop()!;
         Object.assign(r, { baMeDung: { den: bmDen.toISOString() }, grantEndsAt: den, moDen: den });
@@ -143,9 +145,10 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       return json(kq);
     }
     if (d === "go") return json(await goCoMatKhau(may, b.dinhDanh, b.matKhau));
-    // Bù phút chơi khi mất mạng (agent 0.2.4 gửi TRƯỚC dong-bo khi có mạng lại). Máy dùng chung: Con lấy từ phiên `id` mở trên máy này.
+    // Bù phút chơi khi mất mạng (agent 0.2.4 gửi TRƯỚC dong-bo khi có mạng lại). #337: ghi cho CHỦ PHIÊN `id` (phiên mở trên máy này), không
+    // phải bé máy chủ đang coi là đang dùng (đổi bé lúc mất mạng); phiên mở lúc mất mạng (máy chủ chưa biết) ⇒ bé agent gửi kèm `con`.
     if (d === "phien/bu") {
-      const cb = await conChoBu(may, con, b.id);
+      const cb = await conChoBu(may, con, b.id, b.con);
       if (!cb) throw new LoiNghiepVu(b.id && !con ? "khong_thay" : "chua_chon_con", b.id && !con ? "Không thấy phiên trên máy này" : "Chọn tên con trước", b.id && !con ? 404 : 409);
       return json(await buPhien(may, cb, b));
     }

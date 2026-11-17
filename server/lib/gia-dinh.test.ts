@@ -188,12 +188,13 @@ test("đổi tên Con và máy: chuẩn hoá, chặn rỗng/quá dài/trùng tê
   assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy học bài");
 });
 
-test("tên Con/máy: taoCon gộp khoảng trắng + NFC và CHO PHÉP trùng tên (chỉ đổi tên mới chặn); đổi tên máy tới 80 ký tự; không đổi gì thì doi=false", async () => {
+test("tên Con/máy: taoCon gộp khoảng trắng + NFC, #340 chặn trùng tên (gửi lại trong 2 phút ⇒ cùng bé); đổi tên máy tới 80 ký tự; không đổi gì thì doi=false", async () => {
   const { fam } = await taoNha();
   const ken = await g.taoCon(fam, { ten: "  Kenny   Vũ " });
   assert.equal((await g.conCua(fam, ken)).ten, "Kenny Vũ");
-  const trung = await g.taoCon(fam, { ten: "kenny   vũ" });                       // tạo mới: trùng tên vẫn được (bước thiết lập thử lại không kẹt)
-  assert.equal((await g.conCua(fam, trung)).ten, "kenny vũ");
+  // #340: tạo mới trùng tên ⇒ gửi lại (cùng năm sinh, trong 2 phút) trả lại bé vừa tạo; khác năm sinh ⇒ ten_trung
+  assert.equal(await g.taoCon(fam, { ten: "kenny   vũ" }), ken);
+  await loi(g.taoCon(fam, { ten: "kenny   vũ", namSinh: 2016 }), "ten_trung");
   await loi(g.taoCon(fam, { ten: "x".repeat(31) }), "ten_qua_dai");
   // NFC: «ũ» dạng tổ hợp (u + dấu ngã) = «ũ» dựng sẵn; độ dài tính sau NFC
   const nfd = await g.taoCon(fam, { ten: "Vi\u0323\u0302t".repeat(5) });             // 15 ký tự tổ hợp, 5×(V,i,ệ,t)

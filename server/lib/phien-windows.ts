@@ -83,15 +83,23 @@ export async function nhipPhienWindows(may: May, con: string | null, st: TrangTh
   return nhip(ph.child_id, ph.id, d.dangDung, now, { phut: d.phut });
 }
 
-/** Con của lần gửi bù `phien/bu`: máy riêng / có PIN ⇒ `con`; máy dùng chung ⇒ Con của phiên `id` — phiên phải mở trên chính máy này
- *  và Con cùng gia đình với máy. Không xác định được ⇒ null. */
-export async function conChoBu(may: May, con: string | null, id: unknown): Promise<string | null> {
-  if (con) return con;
-  if (!id) return null;
-  const r = await one<{ child_id: string }>(
-    `select s.child_id from play_sessions s join children c on c.id = s.child_id where s.id = $1 and s.device_id = $2 and c.family_id = $3`,
-    [String(id), may.id, may.family_id]);
-  return r?.child_id ?? null;
+/** Con của lần gửi bù `phien/bu` (#337 — phút mất mạng ghi theo CHỦ PHIÊN, không theo bé máy chủ đang coi là đang dùng):
+ *  1. `id` là phiên mở trên chính máy này của một Con cùng gia đình ⇒ Con của phiên (kể cả khi đã «Đổi người» lúc mất mạng).
+ *  2. Không thấy phiên (mở lúc mất mạng, máy chủ chưa biết) + agent gửi `conVao` là Con được gán máy ⇒ Con đó.
+ *  3. Còn lại ⇒ `con` (máy riêng / bé đang dùng). Máy dùng chung không xác định được ⇒ null. */
+export async function conChoBu(may: May, con: string | null, id: unknown, conVao?: unknown): Promise<string | null> {
+  if (id) {
+    const r = await one<{ child_id: string }>(
+      `select s.child_id from play_sessions s join children c on c.id = s.child_id where s.id = $1 and s.device_id = $2 and c.family_id = $3`,
+      [String(id), may.id, may.family_id]);
+    if (r) return r.child_id;
+  }
+  if (conVao) {
+    const cv = String(conVao).slice(0, 40);
+    if (cv === may.child_id || await one(`select 1 from device_children n join children c on c.id = n.child_id
+        where n.device_id = $1 and n.child_id = $2 and c.family_id = $3`, [may.id, cv, may.family_id])) return cv;
+  }
+  return con;
 }
 
 /** Giá + phần lẻ đang nợ của phiên — cho `playOfflineMinutes` (agent-windows.ts › phutChoiOffline). */
