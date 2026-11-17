@@ -468,8 +468,8 @@ export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhV
 /** 5 màu hồ sơ (thiết kế «Màu của con»): [màu đậm, nền thẻ nhạt]. Lưu ở `children.avatar` dạng «mau-<số>». */
 /** BẢNG MÀU HỒ SƠ CON DUY NHẤT (avatar «mau-<số>»): [màu chọn ở Lần đầu, nền nhạt thẻ hồ sơ, tông đậm cho avatar chữ trắng ở Hằng ngày
  *  (bàn them-h60stad7, bm2-trang-chu `.av.a/.m/.n/.k` — đủ tương phản)]. Lần đầu / Sửa hồ sơ đọc [0][1]; lib/hang-ngay › mauCon đọc [2]. */
-export const MAU_HO_SO: [string, string, string][] = [["#f29a4a", "#fde3c8", "#f08a3c"], ["#6aa3ef", "#dce9fb", "#5b7fd6"], ["#ec8db2", "#fbe0ea", "#d86a8f"],
-  ["#5bbf95", "#d9f1e6", "#7ED957"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];
+export const MAU_HO_SO: [string, string, string][] = [["#f29a4a", "#fde3c8", "#E8600C"], ["#6aa3ef", "#dce9fb", "#1F48FF"], ["#ec8db2", "#fbe0ea", "#9b2fc0"],
+  ["#5bbf95", "#d9f1e6", "#0f8a68"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];   // [2] theo bàn Navy 17/11 (.av.a/.m/.n/.k)
 export const mauHoSo = (avatar?: string | null) => { const k = Number(/^mau-(\d)(?:\||$)/.exec(avatar ?? "")?.[1]); return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : 0]; };
 /** «9 tuổi · khoảng lớp 4» (lớp = tuổi − 5, chỉ 6–17 tuổi). */
 export const cauTuoi = (namSinh: number | null) => {
