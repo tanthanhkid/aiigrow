@@ -2,7 +2,7 @@
 // (ô lõm + gợi ý), Hình (6 ô), Nằm trong mục (Học · Vận động · Giúp Ba Mẹ), Con nhận ⭐5/10/15/20, Con nộp bằng (Chụp ảnh · Ghi âm · Bấm «Xong»),
 // #302: «Nằm trong mục» có chip «+ Khác» (Ba Mẹ gõ tên mục mới — lưu tasks.bo = «khac:<tên>»), «Con nhận» có ô tự nhập số sao (1–1000);
 // ghi chú «Con nộp xong, Ba Mẹ nhận thông báo…» ⇒ «Thêm vào mục đã chọn» = POST nhiem-vu {…, bo: mục, giao_cho: id[]}. Nhà > 1 con ⇒ «Áp cho» (N9).
-// Dùng ở bảng trượt của app/giao-nv/index.tsx và màn dự phòng app/giao-nv/tu-dat.tsx.
+// Dùng ở bảng trượt của app/giao-nv/index.tsx, app/thiet-lap/mau.tsx (Lần đầu) và màn dự phòng app/giao-nv/tu-dat.tsx.
 import { useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { bm, type GiaDinh } from "./api";

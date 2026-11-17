@@ -4,7 +4,7 @@
 // Nhà > 1 con và chưa chỉ định con ⇒ dải các con để chọn (N9). Danh mục ở server/lib/danh-muc-viec.ts (docs/API.md «Danh mục việc»).
 import { useMemo, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, The, useLam, useTai } from "@/lib/ui";
 import { FormTuThem } from "@/lib/tu-them-viec";
@@ -101,13 +101,7 @@ function GiaoCho({ c, dsCon, tatCaCon, doiCon, moTuThem }: { c: GiaDinh["con"][n
         </>
       )}
       {/* them-6pjz1stu: bảng trượt «Ba Mẹ tự thêm · Đóng» trên danh sách */}
-      <BangTruot mo={tuThem} dong={() => setTuThem(false)} tieu="" cuon gon>
-        <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: -8 }}>
-          <Chu kieu="rat" co={21} style={{ letterSpacing: -0.4 }}>Ba Mẹ tự thêm</Chu>
-          <Pressable onPress={() => setTuThem(false)} accessibilityRole="button" hitSlop={8} style={{ minHeight: 44, justifyContent: "center" }}>
-            <Chu kieu="rat" co={15} mau={M.chinhInk}>Đóng</Chu>
-          </Pressable>
-        </View>
+      <BangTruot mo={tuThem} dong={() => setTuThem(false)} tieu="Ba Mẹ tự thêm" nutDong cuon gon>
         <FormTuThem dsCon={tatCaCon} con={c.id} mucSan={muc} xong={(ten, tenCon) => { setTuThem(false); baoKhiVe(`Đã thêm «${ten}»${tenCon ? ` cho ${tenCon}` : ""}`); router.back(); }} />
       </BangTruot>
     </Man>
