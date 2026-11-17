@@ -707,6 +707,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ho-so-con", "/ho-so/c1", "Cài đặt của"),
     M("bm-ho-so-gio-choi", "/ho-so/c1/gio-choi", "Chơi liền bao lâu thì nghỉ?"),
     M("bm-ho-so-sua", "/ho-so/sua?id=c1", "Lưu"),
+    M("bm-ho-so-pin (z2fyhohj)", "/ho-so/c1/pin", "Lưu xong,", { kb: { "GET con/c1/pin": { coPin: true, pin: "2581", pinDatLuc: luc(60 * 24 * 11), ten: "Bảo Anh" } } }),
     M("bm-ho-so-con (liên kết AiiRob)", "/ho-so/c1", "Liên kết AiiRob"),
     M("bm-man-hinh", "/man-hinh/c1", "Theo app"),
     M("bm-man-hinh (cả tuần)", "/man-hinh/c1", "APP & TRANG WEB", { truoc: async () => { await di("/man-hinh/c1"); await doi("Cả tuần"); await bam("Cả tuần"); } }),
@@ -1503,8 +1504,8 @@ await kichBan("Sửa hồ sơ Con: điền sẵn tên cũ, gửi tên đã chu�
   xet(await doi("Sửa tên, năm sinh, ảnh"), "hồ sơ có «Sửa tên, năm sinh, ảnh»");
   await bam("Sửa tên, năm sinh, ảnh");
   xet(await doi("Lưu hồ sơ"), "mở màn Sửa hồ sơ");
-  xet(await js(`[...document.querySelectorAll("input")].some((e) => e.getAttribute("aria-label") === "Tên gọi" && e.value === ${JSON.stringify(KEN)})`), "ô tên điền sẵn tên hiện tại");
-  await go("Tên gọi", "  Kenny   Vũ ");
+  xet(await js(`[...document.querySelectorAll("input")].some((e) => e.getAttribute("aria-label") === "Tên gọi ở nhà" && e.value === ${JSON.stringify(KEN)})`), "ô tên điền sẵn tên hiện tại");
+  await go("Tên gọi ở nhà", "  Kenny   Vũ ");
   await sleep(200);
   nhatKy.length = 0;
   await bam("Lưu hồ sơ Kenny Vũ");
@@ -1512,8 +1513,8 @@ await kichBan("Sửa hồ sơ Con: điền sẵn tên cũ, gửi tên đã chu�
   xet(await doi("Đã lưu hồ sơ Kenny Vũ"), "báo đã lưu");
   kb["POST con/c1/sua"] = { status: 400, body: { error: "ten_trung", message: "Nhà đã có Con tên «Bill» — chọn tên khác nhé" } };
   await di("/ho-so/sua?id=c1");
-  await doi("Tên gọi");
-  await go("Tên gọi", "Bill");
+  await doi("Tên gọi ở nhà");
+  await go("Tên gọi ở nhà", "Bill");
   await sleep(200);
   await bam("Lưu hồ sơ Bill");
   xet(await doi("Nhà đã có Con tên"), "tên trùng ⇒ hiện lỗi từ máy chủ");

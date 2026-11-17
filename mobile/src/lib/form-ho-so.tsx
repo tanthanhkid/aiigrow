@@ -18,7 +18,8 @@ const namDs = () => { const y = new Date().getFullYear(); return Array.from({ le
 export const namCua = (nam: string) => (/^\d{4}$/.test(nam) ? Number(nam) : null);
 
 /** Thẻ hồ sơ đầu màn: avatar chữ cái viền trắng, tên 22/800, chip «🐓 9 tuổi»; Grow 150 bên phải. */
-export function TheHoSoCon({ ten, nam, mau, anh, chup }: { ten: string; nam: string; mau: number; /** ảnh đại diện (data URI) — có ⇒ thay chữ cái */ anh?: string | null; /** chạm ảnh ⇒ chụp */ chup?: () => void }) {
+export function TheHoSoCon({ ten, nam, mau, anh, chup, con }: { ten: string; nam: string; mau: number; /** ảnh đại diện (data URI) — có ⇒ thay chữ cái */ anh?: string | null; /** chạm ảnh ⇒ chụp */ chup?: () => void;
+  /** Con đã lưu (Sửa hồ sơ — them-vnl5rmnz): hiện ảnh đại diện đã lưu (#302) */ con?: { id?: string | null; avatar?: string | null } | null }) {
   const [dam, nhat] = MAU_HO_SO[mau];
   const namSo = namCua(nam);
   const tuoiSo = namSo ? new Date().getFullYear() - namSo : null;
@@ -31,7 +32,7 @@ export function TheHoSoCon({ ten, nam, mau, anh, chup }: { ten: string; nam: str
       <View style={{ gap: 10, alignItems: "flex-start", maxWidth: "44%" }}>
         <Pressable onPress={chup} disabled={!chup} accessibilityRole={chup ? "button" : undefined} accessibilityLabel={chup ? "Chụp ảnh đại diện" : undefined}
           style={{ width: 84, height: 84, borderRadius: 42, borderWidth: 4, borderColor: "#fff", boxShadow: BONG.nho }}>
-          <Avt ten={tenGon || "?"} mau={dam} co={76} anh={anh} />
+          <Avt ten={tenGon || "?"} mau={dam} co={76} anh={anh} con={con} />
           {chup ? (
             // bàn bm1-ob-ten-con v20: huy hiệu tròn trắng có máy ảnh ở góc dưới phải ảnh đại diện
             <View pointerEvents="none" style={{ position: "absolute", right: -8, bottom: -6, width: 34, height: 34, borderRadius: 17, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
