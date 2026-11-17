@@ -44,6 +44,9 @@ struct ManHomNay: View {
       Spacer()
       // iPhone / iPad chỉ một bé (#267): bỏ chip «Đổi người» — chỉ hiện tên bé
       if let t = m.tenCon { HStack(spacing: 7) { AvatarBe(ten: t, co: 30); Text(t).font(Diu.chu(15, .black)).foregroundColor(Diu.chu).lineLimit(1) } }
+      // cdt-chinh-ios (v7): nút «?» ở đầu màn ⇒ Quy tắc nhà mình (cdt-quy-tac)
+      Button { m.manPhu = .quyTac } label: { Anh(ten: "ic_dau_hoi", co: 28).frame(width: 44, height: 44) }
+        .accessibilityLabel("Quy tắc nhà mình")
     }
     .frame(minHeight: 52)
   }
@@ -87,6 +90,9 @@ struct ManHomNay: View {
       Button { m.tab = .nhiemVu } label: { Label { Text("Làm nhiệm vụ kiếm sao") } icon: { Anh(ten: "ic_tick", co: 26) } }
         .buttonStyle(NutDiu())
       Button { m.manPhu = .xinThem } label: { Label { Text("Xin Ba Mẹ cho vay sao") } icon: { Anh(ten: "ic_gui", co: 26) } }
+        .buttonStyle(NutDiu(kieu: .phu))
+      // cdt-nha-chinh (v8): «Chơi bằng sao · 1 sao = 1 phút» ⇒ cdt-choi
+      Button { m.manPhu = .choiBangSao } label: { Label { Text("Chơi bằng sao · 1 sao = 1 phút") } icon: { Anh(ten: "ic_game", co: 26) } }
         .buttonStyle(NutDiu(kieu: .phu))
     }
     .frame(maxWidth: .infinity)

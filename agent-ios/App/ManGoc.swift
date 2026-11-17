@@ -4,7 +4,7 @@ import ConCore
 
 /// Màn phụ mở dạng sheet.
 enum ManPhu: Identifiable, Equatable {
-  case xinThem, conDangXin, doiBe, xinCai, dns, chonApp, cuaHang, maOffline
+  case xinThem, conDangXin, doiBe, xinCai, dns, chonApp, cuaHang, maOffline, quyTac, choiBangSao
   case nhiemVu(NhiemVuCon)
   var id: String {
     switch self {
@@ -56,6 +56,8 @@ struct ManPhuView: View {
       case .chonApp: ManChonApp()
       case .cuaHang: ManCuaHang()
       case .maOffline: ManMaOffline()
+      case .quyTac: ManQuyTac()
+      case .choiBangSao: ManChoiBangSao()
       case .nhiemVu(let n): ManNvChiTiet(nv: n)
       }
     }

@@ -51,7 +51,7 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     case .khong:
       // 15/11 (#262, them-4e5fwl16 · cdt-chan-web): ngoài danh sách trắng của Ba Mẹ
       tieuDe = web ? "Trang này chưa có trong danh sách" : "\(ten ?? "App này") chưa có trong danh sách"
-      phu = web ? "Máy chỉ mở trang Ba Mẹ đã thêm vào danh sách." : "Máy chỉ mở app Ba Mẹ đã thêm vào danh sách."
+      phu = web ? "Con xin Ba Mẹ mở nhé!" : "Máy chỉ mở app Ba Mẹ đã thêm vào danh sách."
       nut = web || ten == nil ? "Xin Ba Mẹ mở" : "Xin Ba Mẹ mở \(ten!)"
     default: tieuDe = "Tạm nghỉ chút nhé"; phu = lyDo.cauChoCon; nut = "Mở AiiGrow Con"
     }

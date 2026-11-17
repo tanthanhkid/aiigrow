@@ -262,38 +262,48 @@ struct ManDaGo: View {
 }
 
 /// #267: mã / gói cài Ba Mẹ tạo cho nhiều bé mà máy này là iPhone/iPad ⇒ chọn MỘT bé (máy chủ trả `409 ios_mot_con` + `conChon`), rồi ghép lại.
+/// them-3s04rjes@v1: chọn một bé trong danh sách rồi bấm «Tiếp tục với <tên>».
 struct ManChonBeGhep: View {
   @EnvironmentObject var m: MoHinhApp
   let c: ChonBeGhep
+  @State var chon: String?
   var body: some View {
+    let be = c.ds.first { $0.id == chon }
     KhungMan {
       Spacer(minLength: 12)
       Anh(ten: "rob_chi", co: 110)
+      NhanNho(chu: "Đã nhập mã", icon: "ic_tick", mau: Diu.xanhDam, nen: Diu.xanhNhat)
       Text("Máy này của bé nào?").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
-      Text(c.cau).font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
+      Text("Mã ghép có \(c.ds.count) bé. iPhone, iPad chỉ dùng cho một bé.").font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       VStack(spacing: 0) {
-        ForEach(Array(c.ds.enumerated()), id: \.element.id) { i, be in
+        ForEach(Array(c.ds.enumerated()), id: \.element.id) { i, b in
           if i > 0 { Divider().padding(.leading, 56) }
-          Button { Task { await m.ghep(c.cach, con: be.id) } } label: {
+          Button { chon = b.id } label: {
             HStack(spacing: 12) {
-              AvatarBe(ten: be.ten, co: 40)
-              Text(be.ten).font(Diu.t1).foregroundColor(Diu.chu)
+              AvatarBe(ten: b.ten, co: 40)
+              Text(b.ten).font(Diu.t1).foregroundColor(Diu.chu)
               Spacer(minLength: 0)
-              Image(systemName: "chevron.right").font(.system(size: 16, weight: .heavy)).foregroundColor(Diu.chu3)
+              Image(systemName: chon == b.id ? "checkmark.circle.fill" : "circle").font(.system(size: 24, weight: .bold))
+                .foregroundColor(chon == b.id ? Diu.xanh : Diu.chu3)
             }
             .frame(minHeight: 56).contentShape(Rectangle())
           }
           .buttonStyle(.plain).disabled(m.dangBan)
-          .accessibilityLabel("Máy này của \(be.ten)")
+          .accessibilityLabel("Máy này của \(b.ten)").accessibilityAddTraits(chon == b.id ? .isSelected : [])
         }
       }
       .theDiu(dem: 14)
+      HangDs(icon: "ic_canh_bao", t1: "Chọn một bé thôi", t2: "Muốn đổi thì gỡ máy rồi ghép lại").theDiu(dem: 12)
       if m.dangBan { ProgressView() }
       if let l = m.loiGhep {
         Text(Self.cau(l)).font(Diu.t2).foregroundColor(Diu.doChu).multilineTextAlignment(.center)
         if l == .matMang { Button("Thử lại") { m.loiGhep = nil }.buttonStyle(NutDiu(kieu: .lk)) }
       }
-      Text("Bé khác dùng iPhone, iPad riêng — Ba Mẹ ghép thêm máy trong AiiGrow.").font(Diu.t2).foregroundColor(Diu.chu3).multilineTextAlignment(.center)
+      if be == nil { Text("Chọn một bé rồi bấm Tiếp tục.").font(Diu.t2).foregroundColor(Diu.chu3).multilineTextAlignment(.center) }
+      Button { if let be { Task { await m.ghep(c.cach, con: be.id) } } } label: {
+        Label { Text("Tiếp tục" + (be.map { " với \($0.ten)" } ?? "")) } icon: { Anh(ten: "ic_tick", co: 26) }
+      }
+      .buttonStyle(NutDiu()).disabled(be == nil || m.dangBan)
       Button("Huỷ") { m.chonBeGhep = nil; m.loiGhep = nil }.buttonStyle(NutDiu(kieu: .lk))
     }
   }
