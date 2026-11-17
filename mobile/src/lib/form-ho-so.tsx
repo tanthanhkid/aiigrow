@@ -32,9 +32,14 @@ export function TheHoSoCon({ ten, nam, mau, anh, chup }: { ten: string; nam: str
         <Pressable onPress={chup} disabled={!chup} accessibilityRole={chup ? "button" : undefined} accessibilityLabel={chup ? "Chụp ảnh đại diện" : undefined}
           style={{ width: 84, height: 84, borderRadius: 42, borderWidth: 4, borderColor: "#fff", boxShadow: BONG.nho }}>
           <Avt ten={tenGon || "?"} mau={dam} co={76} anh={anh} />
-          {chup ? <View pointerEvents="none" style={{ position: "absolute", right: -8, bottom: -8 }}><Icon3D ten="camera" co={28} /></View> : null}
+          {chup ? (
+            // bàn bm1-ob-ten-con v20: huy hiệu tròn trắng có máy ảnh ở góc dưới phải ảnh đại diện
+            <View pointerEvents="none" style={{ position: "absolute", right: -8, bottom: -6, width: 34, height: 34, borderRadius: 17, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
+              <Icon3D ten="camera" co={20} />
+            </View>
+          ) : null}
         </Pressable>
-        <Chu kieu="rat" co={22}>{tenGon || "Con nhà mình"}</Chu>
+        <Chu kieu="rat" co={24} mau="#3d2200">{tenGon || "Con nhà mình"}</Chu>
         {tuoi && namSo ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: "#fff", borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3, boxShadow: BONG.nho }}
             accessibilityLabel={`${tuoi}, tuổi ${conGiap(namSo)[0]}, theo năm sinh ${namSo}`}>

@@ -9,7 +9,7 @@ import { Pressable, Text, TextInput, View } from "react-native";
 import { bm } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { DauMan, LienKet } from "@/lib/lan-dau";
-import { MAU_MUC, TabMuc, TheDs } from "@/lib/lan-dau-ds";
+import { MAU_MUC, TabLom, TheDs } from "@/lib/lan-dau-ds";
 import { layTl } from "@/lib/thiet-lap";
 import { BaoLoi, Chu, F, Icon, Icon3D, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
@@ -30,37 +30,40 @@ export default function ObQua() {
   return (
     <Man dau={<DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc5 dang={2} />} />} noi={noi}
       day={<><Nut chu="Xong, sang chơi bằng sao" rong bam={sang} /><LienKet chu="Để sau, chọn quà sau" bam={sang} /></>}>
-      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 26, letterSpacing: -0.5, color: M.chu }}>Quà của {ten}</Text>
-      <TabMuc ds={[{ ma: "voucher" as Tab, chu: "🎟️ Voucher AiiGrow" }, { ma: "tu_dien" as Tab, chu: "✏️ Ba Mẹ tự điền" }]} dang={tab} doi={setTab} />
+      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, marginLeft: 4 }}>Quà của {ten}</Text>
+      <TabLom ds={[{ ma: "voucher" as Tab, chu: "🎟️ Voucher AiiGrow" }, { ma: "tu_dien" as Tab, chu: "✏️ Ba Mẹ tự điền" }]} dang={tab} doi={setTab} />
       {tab === "voucher" ? <TabVoucher /> : <TabTuDien con={tl.conId} guiCham={guiCham} />}
     </Man>
   );
 }
 
 function TabVoucher() {
+  // bàn them-s416tfdj v9 `.v-ve`: mỗi voucher một «vé» — ô trái 72 nền lam nhạt + vạch đứt, tên 15/800, «💳 giá · ⭐ sao», viên «Mua» lam
   return (
     <>
-      <Chu co={14} mau={M.chu2}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi, thiếu thì xin Ba Mẹ cho vay sao.</Chu>
-      <TheDs>
-        {VOUCHER.map((v, i) => (
+      <Chu kieu="dam" co={13} mau={M.chu3} style={{ marginHorizontal: 4 }}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi, thiếu thì xin Ba Mẹ cho vay sao.</Chu>
+      <View style={{ gap: 10 }}>
+        {VOUCHER.map((v) => (
           <Pressable key={v.ma} onPress={() => router.push({ pathname: "/thiet-lap/qua-mua", params: { ma: v.ma } })} accessibilityRole="button" accessibilityLabel={`${v.ten}, ${dong(v.gia)}, ${v.sao} sao. Mua`}
-            style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 8, borderTopWidth: i ? 1 : 0, borderTopColor: "#e9e8e3" }}>
-            <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: MAU_MUC.cam.nen, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontSize: 22, lineHeight: 28 }}>{v.e}</Text>
+            style={{ flexDirection: "row", alignItems: "stretch", minHeight: 76, borderRadius: 20, backgroundColor: "#f7f6f3", overflow: "hidden", ...KHOI.the }}>
+            <View style={{ width: 72, alignItems: "center", justifyContent: "center", backgroundColor: MAU_MUC.lam.nen, borderRightWidth: 2, borderRightColor: "#c9d3e4", borderStyle: "dashed" }}>
+              <Text style={{ fontSize: 30, lineHeight: 38 }}>{v.e}</Text>
             </View>
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Chu kieu="rat" co={14.5} dong={1}>{v.ten}</Chu>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
-                <Chu kieu="dam" co={12.5} mau={M.chu3}>💳 {dong(v.gia)} ·</Chu><Icon3D ten="sao" co={14} /><Chu kieu="rat" co={12.5} mau="#6e4300" so>{soCham(v.sao)}</Chu>
+            <View style={{ flex: 1, minWidth: 0, paddingVertical: 10, paddingHorizontal: 12, justifyContent: "center", gap: 4 }}>
+              <Chu kieu="rat" co={15} dong={1}>{v.ten}</Chu>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                <Chu kieu="rat" co={12} mau={MAU_MUC.lam.chu}>💳 {dong(v.gia)}</Chu><Chu kieu="dam" co={12} mau={M.chu3}>·</Chu>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}><Icon3D ten="sao" co={14} /><Chu kieu="rat" co={12} mau="#6e4300" so>{soCham(v.sao)}</Chu></View>
               </View>
             </View>
-            {/* thiết kế 06 .tag.mua: viên sáng nổi chữ ngọc */}
-            <View style={{ minHeight: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
-              <Text style={{ fontFamily: F.rat, fontSize: 13.5, color: M.chinhInk }}>Mua</Text>
+            <View style={{ justifyContent: "center", paddingRight: 16 }}>
+              <View style={{ minHeight: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: MAU_MUC.lam.nen, alignItems: "center", justifyContent: "center" }}>
+                <Text style={{ fontFamily: F.rat, fontSize: 13, color: MAU_MUC.lam.chu }}>Mua</Text>
+              </View>
             </View>
           </Pressable>
         ))}
-      </TheDs>
+      </View>
     </>
   );
 }
@@ -97,7 +100,7 @@ function TabTuDien({ con, guiCham }: { con?: string; guiCham: (chu: string, lam:
   return (
     <>
       <Chu co={14} mau={M.chu2}>Quà ở nhà Ba Mẹ tự lo, không tốn tiền trong app. Điền tên quà và số sao con cần để đổi.</Chu>
-      <View style={{ borderRadius: 24, backgroundColor: "#f7f6f3", padding: 14, gap: 10, ...KHOI.the }}>
+      <View style={{ borderRadius: 24, backgroundColor: "#f7f6f3", padding: 16, gap: 10, ...KHOI.the }}>
         <Chu kieu="rat" co={15}>Quà con muốn</Chu>
         <View style={{ minHeight: 50, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 }}>
           <Text style={{ fontSize: 18 }}>🎁</Text>

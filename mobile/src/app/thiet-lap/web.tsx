@@ -38,7 +38,7 @@ export default function ChonWeb() {
     router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } });
   }, { hangDoi: true });
   return (
-    <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} ic="khien" />} />}
+    <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} />} />}
       day={<><BaoLoi loi={loi} /><Nut chu="Tiếp: ghép máy của con" rong dangChay={dangChay} bam={tiep} /></>}>
       <Chu kieu="rat" co={26} style={{ letterSpacing: -0.5 }}>{`Web cho ${ten}`}</Chu>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, paddingLeft: 16, paddingRight: 16, borderRadius: 26, backgroundColor: "#dcebe6", boxShadow: BONG.nho }}>

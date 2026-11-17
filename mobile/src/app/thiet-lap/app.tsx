@@ -53,7 +53,7 @@ export default function ChonApp() {
     }, { hangDoi: true });
   };
   return (
-    <Man dau={<DauMan ve="/thiet-lap/gio" phai={<ThanhBuoc5 dang={4} ic="khien" />} />}
+    <Man dau={<DauMan ve="/thiet-lap/gio" phai={<ThanhBuoc5 dang={4} />} />}
       day={<><BaoLoi loi={loi} /><Nut chu={moHet ? "Tiếp: ghép máy của con" : "Tiếp: chọn web cho con"} rong dangChay={dangChay} bam={tiep} /></>}>
       <Chu kieu="rat" co={24} style={{ letterSpacing: -0.5 }}>{`${ten} dùng app thế nào?`}</Chu>
       <ChonCheDo gia={cheDo} doi={chonCheDo} />
