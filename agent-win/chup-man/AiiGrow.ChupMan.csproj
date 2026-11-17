@@ -28,6 +28,7 @@
     <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\fluent\*.png" LogicalName="fluent.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\icon3d\*.png" LogicalName="icon3d.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\aiigrow-khay.ico" LogicalName="aiigrow.ico" />
+    <EmbeddedResource Include="..\src\AiiGrow.Tray\Assets\fonts\*.ttf" LogicalName="font.%(Filename)%(Extension)" />
   </ItemGroup>
 
   <!-- Chép + biến đổi nguồn Tray/Setup rồi thêm vào Compile (item thêm trong target ⇒ thấy cả ở lần build đầu). -->

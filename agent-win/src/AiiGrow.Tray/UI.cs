@@ -6,8 +6,8 @@ namespace AiiGrow.Tray;
 
 internal static class UI
 {
-    // Token màu «Clay gương» (docs/THIET-KE-CLAY.md §1, gốc mobile/src/lib/mau.ts) — lấy từ ClayUi.Clay; giữ tên cũ để chỗ gọi không đổi.
-    // Tương phản: chữ trắng trên Green 6,4:1; Muted trên Paper 5,7:1; PointInk trên PointSoft 7,6:1; Error trên ErrorSoft 5,9:1.
+    // Token màu phong cách E «Ánh kim» — lấy từ ClayUi.Clay; giữ tên cũ để chỗ gọi không đổi (Green = «chính» = navy; nút nền Green vẽ vàng kim, chữ navy).
+    // Tương phản: Ink trên Paper 14,4:1; Muted trên Paper 5,8:1; PointInk trên PointSoft 5,6:1; Error trên ErrorSoft 5,9:1; navy trên vàng kim (điểm tối nhất) 6,9:1.
     public static readonly Color Green = Clay.Ngoc;          // chinh
     public static readonly Color GreenDark = Clay.NgocInk;   // chinhInk
     public static readonly Color GreenSoft = Clay.NgocSoft;  // chinhSoft
@@ -15,14 +15,15 @@ internal static class UI
     public static readonly Color Card = Clay.The;            // thẻ / khối
     public static readonly Color Muted = Clay.Chu3;          // chu3
     public static readonly Color Ink = Clay.Chu;             // chu
-    public static readonly Color Border = Color.FromArgb(0xe2, 0xd9, 0xca);      // vien2
+    public static readonly Color Border = Color.FromArgb(0xd9, 0xcc, 0xba);      // vien2 (kem sẫm)
     public static readonly Color PointInk = Clay.DiemInk;    // điểm: CHỈ dành cho điểm
     public static readonly Color PointSoft = Clay.DiemSoft;
     public static readonly Color Warn = Clay.Canh;           // canh
     public static readonly Color Error = Clay.Loi;           // loi
     public static readonly Color ErrorSoft = Clay.LoiSoft;
 
-    public static Font F(float pt, FontStyle st = FontStyle.Regular) => new("Segoe UI", pt, st);
+    /// <summary>Phông giao diện: Be Vietnam Pro / Fraunces SemiBold (tiêu đề) nhúng trong exe, thiếu thì Segoe UI — <see cref="PhongChu"/>.</summary>
+    public static Font F(float pt, FontStyle st = FontStyle.Regular) => PhongChu.Tao(pt, st);
 
     /// <summary>Nút Clay (kẹo bọc đường khi <paramref name="primary"/>, đất sét sứ khi không). Cao = thân 44 (theo DPI) + lề bóng.</summary>
     public static Button Btn(string text, bool primary = true, int width = 260, string? icon = null)

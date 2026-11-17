@@ -144,13 +144,13 @@ internal sealed class BaMeVienForm : Form
         ShowInTaskbar = false;
         TopMost = true;
         StartPosition = FormStartPosition.Manual;
-        BackColor = Color.FromArgb(0x0a, 0x52, 0x46);
+        BackColor = Clay.Ngoc;
         var chu = "Ba Mẹ đang dùng · không trừ sao của con";
         var f = UI.F(12.75f, FontStyle.Bold);
         var w = TextRenderer.MeasureText(chu, f).Width + UI.Px(70);
         Size = new Size(w, UI.Px(44));
         var icon = new PictureBox { Image = Anh3D.Icon("nguoi"), SizeMode = PictureBoxSizeMode.Zoom, Bounds = new Rectangle(UI.Px(18), UI.Px(10), UI.Px(24), UI.Px(24)), BackColor = Color.Transparent };
-        var l = new Label { Text = chu, Font = f, ForeColor = Color.White, BackColor = Color.Transparent, AutoSize = false, UseMnemonic = false,
+        var l = new Label { Text = chu, Font = f, ForeColor = Clay.NenSang, BackColor = Color.Transparent, AutoSize = false, UseMnemonic = false,
             TextAlign = ContentAlignment.MiddleLeft, Bounds = new Rectangle(UI.Px(50), 0, w - UI.Px(56), Height) };
         Controls.Add(icon); Controls.Add(l);
         Region = Region.FromHrgn(TaoBo(Width, Height, Height));

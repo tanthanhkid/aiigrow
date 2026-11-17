@@ -222,7 +222,7 @@ internal sealed class AppForm : Form
             var dem = new Label
             {
                 AutoSize = false, Size = new Size(Px(28), Px(24)), TextAlign = ContentAlignment.MiddleCenter, Font = UI.F(9.5f, FontStyle.Bold),
-                ForeColor = Color.White, BackColor = Color.FromArgb(0xe2, 0x66, 0x0f), Visible = false, UseMnemonic = false,
+                ForeColor = Clay.Chu, BackColor = Clay.Kim, Visible = false, UseMnemonic = false,
             };
             dem.Location = new Point(b.Width - dem.Width - Px(18), (b.Height - VeNut.LeBong.Vertical - dem.Height) / 2);
             b.Controls.Add(dem);

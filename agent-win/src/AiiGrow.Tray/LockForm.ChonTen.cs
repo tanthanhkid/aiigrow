@@ -46,7 +46,7 @@ internal sealed partial class LockForm
             if (luoi || thePin) VeChonTen();
         };
         // chip «Máy đang khoá» (trên) + viên «Ba Mẹ dùng máy» (dưới) — chỉ ở bước lưới tên
-        var chip = new ChipClay(ManChonTenView.ChipKhoa, Color.FromArgb(240, 255, 255, 255), Clay.NgocInk, Anh3D.Icon("khoa")) { Font = UI.F(14f, FontStyle.Bold), Visible = false };
+        var chip = new ChipClay(ManChonTenView.ChipKhoa, Clay.A(240, Clay.NenSang), Clay.NgocInk, Anh3D.Icon("khoa")) { Font = UI.F(14f, FontStyle.Bold), Visible = false };
         chip.Size = new Size(TextRenderer.MeasureText(chip.Text, chip.Font).Width + UI.Px(70), UI.Px(48));
         _chipKhoa = chip;
         Controls.Add(chip);
@@ -500,7 +500,7 @@ internal sealed partial class LockForm
         }
         pad.PerformLayout();
         the.Controls.Add(Giua(pad, w, 16));
-        var quen = KhoiCon.LienKet(ManChonTenView.LinkQuen, null, () => { ManChonTenView.MoQuen(_ct); VeChonTen(); }, Qf(15f), Color.FromArgb(0x19, 0x65, 0x59));
+        var quen = KhoiCon.LienKet(ManChonTenView.LinkQuen, null, () => { ManChonTenView.MoQuen(_ct); VeChonTen(); }, Qf(15f), Clay.KimInk);
         quen.PerformLayout();
         the.Controls.Add(Giua(quen, w, 6));
         if (!sai) the.Controls.Add(Giua(VienGhi(ManChonTenView.NhoMay, "tick", false, _kPin), w, 6));
@@ -522,7 +522,7 @@ internal sealed partial class LockForm
             Bounds = new Rectangle(0, Q(98), Q(170), Q(26)) };
         _vong.Controls.Add(_demTamKhoa); _vong.Controls.Add(giay);
         the.Controls.Add(Giua(_vong, w, 22));
-        var quen = KhoiCon.LienKet(ManChonTenView.LinkQuenNho, "nguoi", () => { ManChonTenView.MoQuen(_ct); VeChonTen(); }, Qf(15f), Color.FromArgb(0x19, 0x65, 0x59));
+        var quen = KhoiCon.LienKet(ManChonTenView.LinkQuenNho, "nguoi", () => { ManChonTenView.MoQuen(_ct); VeChonTen(); }, Qf(15f), Clay.KimInk);
         quen.PerformLayout();
         the.Controls.Add(Giua(quen, w, 14));
         return the;
@@ -601,19 +601,10 @@ internal sealed partial class LockForm
     }
 }
 
-/// <summary>Viên tròn chữ cái đầu tên bé (thiết kế «.av»): gradient cam / xanh / ngọc / tím theo thứ tự bé, viền trắng, bóng mềm.
-/// <see cref="Mau"/> = -1 ⇒ viên số bước (ngọc đặc, không viền).</summary>
+/// <summary>Viên tròn chữ cái đầu tên bé (phong cách E «Ánh kim»: «.be.on .av»): lòng navy sâu, viền vàng kim mảnh, chữ vàng, bóng mềm.
+/// <see cref="Mau"/> = -1 ⇒ viên số bước (navy đặc, không viền, chữ kem). <see cref="Mau"/> ≥ 0 giữ cho chỗ gọi (thứ tự bé).</summary>
 internal sealed class VienTen : Control
 {
-    private static readonly (Color Tren, Color Duoi)[] Bang =
-    {
-        (Color.FromArgb(0xf8, 0xbd, 0x78), Color.FromArgb(0xe8, 0x91, 0x3a)),
-        (Color.FromArgb(0x8f, 0xbd, 0xf0), Color.FromArgb(0x4f, 0x8f, 0xd6)),
-        (Color.FromArgb(0x7f, 0xd1, 0xb9), Color.FromArgb(0x2f, 0x9a, 0x7f)),
-        (Color.FromArgb(0xc4, 0xa8, 0xf0), Color.FromArgb(0x8a, 0x66, 0xd6)),
-        (Color.FromArgb(0xf5, 0x9f, 0xb5), Color.FromArgb(0xd9, 0x5b, 0x7d)),
-    };
-
     public string Chu { get; set; } = "";
     public int Mau { get; set; }
 
@@ -631,20 +622,31 @@ internal sealed class VienTen : Control
         var bong = Mau < 0 ? 0f : Math.Max(2f, Width / 20f);
         var r = new RectangleF(bong / 2, 0, Width - bong - 1, Height - bong - 1);
         if (bong > 0)
-            using (var b = new SolidBrush(Color.FromArgb(50, 30, 30, 20))) g.FillEllipse(b, new RectangleF(r.X, r.Y + bong, r.Width, r.Height));
-        if (vien > 0) using (var w = new SolidBrush(Color.White)) g.FillEllipse(w, r);
+            using (var b = new SolidBrush(Clay.A(70, Clay.Bong))) g.FillEllipse(b, new RectangleF(r.X + bong / 3, r.Y + bong, r.Width, r.Height));
+        if (vien > 0)
+            using (var pv = new GraphicsPath())
+            {
+                pv.AddEllipse(r);
+                Clay.ToKim(g, pv, r);
+            }
         var tron = RectangleF.Inflate(r, -vien, -vien);
         if (tron.Width < 2) return;
         if (Mau < 0) using (var b = new SolidBrush(Clay.Ngoc)) g.FillEllipse(b, tron);
         else
         {
-            var (t, d) = Bang[Mau % Bang.Length];
-            using var lg = new LinearGradientBrush(tron, t, d, 90f);
-            g.FillEllipse(lg, tron);
+            // radial-gradient(circle at 35% 30%, #1d2f52, #0A1629 70%)
+            using var pt = new GraphicsPath();
+            pt.AddEllipse(tron);
+            using var pg = new PathGradientBrush(pt)
+            {
+                CenterPoint = new PointF(tron.X + tron.Width * 0.35f, tron.Y + tron.Height * 0.3f),
+                CenterColor = Clay.ThanChi, SurroundColors = new[] { Clay.Ngoc },
+            };
+            g.FillEllipse(pg, tron);
         }
         // cỡ chữ theo cỡ viên ở 96 dpi (thiết kế: viên 120 ⇒ chữ 54px ≈ 40pt), để UI.F tự theo DPI như mọi chữ khác
         using var f = UI.F(Math.Max(6f, Height / Math.Max(0.5f, Clay.Scale) * (Mau < 0 ? 0.27f : 0.33f)), FontStyle.Bold);
-        TextRenderer.DrawText(g, Chu, f, Rectangle.Round(tron), Color.White, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        TextRenderer.DrawText(g, Chu, f, Rectangle.Round(tron), Mau < 0 ? Clay.NenSang : Clay.Kim, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
     }
 }
 
@@ -673,8 +675,8 @@ internal sealed class ChamPin : Control
             var r = new RectangleF(i * (d + gap), (Height - d) / 2f, d, d);
             Color tren, duoi;
             if (Sai) { tren = Color.FromArgb(0xf0, 0x8a, 0x5a); duoi = Color.FromArgb(0xb4, 0x23, 0x18); }
-            else if (i < So) { tren = Color.FromArgb(0x2a, 0x8f, 0x7c); duoi = Color.FromArgb(0x0a, 0x52, 0x46); }
-            else { tren = Color.FromArgb(0xd8, 0xd7, 0xd2); duoi = Clay.Lom; }
+            else if (i < So) { tren = Clay.ThanChi; duoi = Clay.Ngoc; }
+            else { tren = Clay.Tron(Clay.Lom, Clay.Bong, 0.18f); duoi = Clay.Lom; }
             using var lg = new LinearGradientBrush(r, tren, duoi, 90f);
             g.FillEllipse(lg, r);
         }
@@ -728,8 +730,8 @@ internal sealed class VongDem : Control
         var g = e.Graphics;
         Clay.ChatLuong(g);
         var r = new RectangleF(1, 1, Width - 3, Height - 3);
-        using (var b = new SolidBrush(Color.FromArgb(0xec, 0xeb, 0xe7))) g.FillEllipse(b, r);
-        using (var b = new SolidBrush(Color.FromArgb(0xe8, 0x89, 0x0c))) g.FillPie(b, r.X, r.Y, r.Width, r.Height, -90f, 360f * Math.Clamp(Phan, 0f, 1f));
+        using (var b = new SolidBrush(Clay.Lom)) g.FillEllipse(b, r);
+        using (var b = new SolidBrush(Clay.KimDam)) g.FillPie(b, r.X, r.Y, r.Width, r.Height, -90f, 360f * Math.Clamp(Phan, 0f, 1f));
         var trong = RectangleF.Inflate(r, -Width * 15f / 170f, -Height * 15f / 170f);
         using (var b = new SolidBrush(Clay.The)) g.FillEllipse(b, trong);
     }

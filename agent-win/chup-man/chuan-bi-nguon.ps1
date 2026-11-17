@@ -1,5 +1,5 @@
 # Chép mã nguồn AiiGrow.Tray + AiiGrow.Setup vào obj/nguon cho AiiGrow.ChupMan (công cụ chụp màn), kèm HAI chỗ đổi để giả lập DPI:
-#   1) mọi «new Font(» và «new("Segoe UI", pt, st)» (UI.F) → ChupDpi.Tao(…)      — cỡ chữ × hệ số (--ti-le)
+#   1) mọi «new Font(» (kể cả trong PhongChu mà UI.F gọi) và «new("Segoe UI", pt, st)» (UI.F bản cũ) → ChupDpi.Tao(…)      — cỡ chữ × hệ số (--ti-le)
 #   2) Clay.Scale «_scale = g.DpiX / 96f;» → ChupDpi.Dpi(…)                        — hệ số Px/Si × hệ số
 # Mã gốc trong src/ KHÔNG bị sửa. Nếu một mẫu không còn khớp (mã gốc đổi) ⇒ dừng build, không để ảnh 150% âm thầm sai.
 param([Parameter(Mandatory = $true)][string]$Ra)
@@ -28,4 +28,4 @@ foreach ($p in 'AiiGrow.Tray', 'AiiGrow.Setup') {
   }
 }
 Write-Host ("chuan-bi-nguon: new Font {0} chỗ, UI.F {1}, Clay.Scale {2} → {3}" -f $dem.font, $dem.uiF, $dem.scale, $Ra)
-if ($dem.uiF -ne 1 -or $dem.scale -ne 1 -or $dem.font -lt 5) { throw "chuan-bi-nguon: mẫu giả lập DPI không khớp mã nguồn (UI.F=$($dem.uiF), Clay.Scale=$($dem.scale), new Font=$($dem.font)) — sửa chup-man/chuan-bi-nguon.ps1" }
+if ($dem.uiF -gt 1 -or $dem.scale -ne 1 -or $dem.font -lt 5) { throw "chuan-bi-nguon: mẫu giả lập DPI không khớp mã nguồn (UI.F=$($dem.uiF), Clay.Scale=$($dem.scale), new Font=$($dem.font)) — sửa chup-man/chuan-bi-nguon.ps1" }

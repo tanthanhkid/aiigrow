@@ -176,11 +176,15 @@ internal sealed class ChipClay : Control
         Clay.ChatLuong(g);
         var r = new RectangleF(0, 0, Width - 1, Height - 1);
         using (var p = Clay.Bo(r, r.Height / 2))
-        using (var b = new SolidBrush(MauNen)) g.FillPath(b, p);
+        {
+            // chip sao (DiemSoft): viên vàng kim bản nhạt — chữ vàng sẫm vẫn ≥ 4,5:1
+            if (MauNen.ToArgb() == Clay.DiemSoft.ToArgb()) Clay.ToKim(g, p, r, nhat: true);
+            else using (var b = new SolidBrush(MauNen)) g.FillPath(b, p);
+        }
         var x = (float)UI.Px(12);
         if (ChamCho)
         {
-            using var b = new SolidBrush(Color.FromArgb(0xe8, 0x89, 0x0c));
+            using var b = new SolidBrush(Clay.Cam);
             g.FillEllipse(b, x, (Height - UI.Px(8)) / 2f, UI.Px(8), UI.Px(8));
         }
         else if (Hinh != null) Clay.VeHinh(g, new RectangleF(x, (Height - UI.Px(18)) / 2f, UI.Px(18), UI.Px(18)), Hinh, 1f);
@@ -203,7 +207,7 @@ internal sealed class ManPhu : Form
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
-        BackColor = Color.FromArgb(8, 14, 12);
+        BackColor = Clay.NgocDam;
         Opacity = 0.55;
         TopMost = true;
         Bounds = Screen.PrimaryScreen!.Bounds;

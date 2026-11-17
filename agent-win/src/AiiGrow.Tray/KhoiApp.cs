@@ -140,7 +140,6 @@ internal sealed class ThanhTienDo : Control
         if (_tiLe <= 0) return;
         var w = Math.Max(r.Height, (float)(r.Width * _tiLe));
         using var p2 = Clay.Bo(new RectangleF(0, 0, w, r.Height), r.Height / 2);
-        using var b2 = new SolidBrush(Clay.Ngoc);
-        g.FillPath(b2, p2);
+        Clay.ToKim(g, p2, new RectangleF(0, 0, w, r.Height));
     }
 }

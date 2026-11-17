@@ -16,6 +16,8 @@
     <EmbeddedResource Include="Assets\fluent\*.png" LogicalName="fluent.%(Filename)%(Extension)" />
     <!-- Icon 3D của thiết kế chốt 05/11 (Fluent Emoji 3D, MIT — Assets/icon3d/NGUON.md, cùng bộ với app Ba Mẹ), 112 px PNG. -->
     <EmbeddedResource Include="Assets\icon3d\*.png" LogicalName="icon3d.%(Filename)%(Extension)" />
+    <!-- Phông phong cách E «Ánh kim»: Be Vietnam Pro (Regular, Bold) + Fraunces SemiBold — SIL OFL 1.1 (Assets/fonts/OFL-*.txt). Nạp bằng ClayUi.PhongChu. -->
+    <EmbeddedResource Include="Assets\fonts\*.ttf" LogicalName="font.%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\AiiGrow.Core\AiiGrow.Core.csproj" />

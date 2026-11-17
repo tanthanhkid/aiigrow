@@ -67,7 +67,7 @@ internal static class KhoiXin
         var b = new ClayFlow
         {
             AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, BoGoc = UI.Px(18),
-            BackColor = Color.White, Padding = VeThe.Pad(UI.Px(14), UI.Px(8), UI.Px(14), UI.Px(8)),
+            BackColor = Clay.NenSang, Padding = VeThe.Pad(UI.Px(14), UI.Px(8), UI.Px(14), UI.Px(8)),
             MinimumSize = new Size(rong, 0), MaximumSize = new Size(rong, 0), Margin = new Padding(0, 0, 0, UI.Px(10)),
         };
         var rc = rong - b.Padding.Horizontal - UI.Px(2);
@@ -84,7 +84,7 @@ internal static class KhoiXin
         var the = new ClayFlow
         {
             AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.LeftToRight, WrapContents = false, BoGoc = UI.Px(18),
-            BackColor = Color.White, Padding = VeThe.Pad(UI.Px(12), UI.Px(8), UI.Px(12), UI.Px(8)),
+            BackColor = Clay.NenSang, Padding = VeThe.Pad(UI.Px(12), UI.Px(8), UI.Px(12), UI.Px(8)),
             MinimumSize = new Size(rong, 0), MaximumSize = new Size(rong, 0), Margin = new Padding(0, 0, 0, UI.Px(10)),
         };
         var v = KhoiApp.Vien(icon, 40);

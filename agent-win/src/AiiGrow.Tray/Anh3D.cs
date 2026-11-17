@@ -45,7 +45,7 @@ internal static class KhoiThietKe
     public static Label Chu(string text, float pt, bool dam, Color mau, int rong) => new()
     {
         Text = text, AutoSize = true, UseMnemonic = false, MaximumSize = new Size(rong, 0),
-        Font = new Font("Segoe UI", pt, dam ? FontStyle.Bold : FontStyle.Regular), ForeColor = mau, BackColor = Color.Transparent,
+        Font = PhongChu.Tao(pt, dam ? FontStyle.Bold : FontStyle.Regular), ForeColor = mau, BackColor = Color.Transparent,
         Margin = new Padding(0, 0, 0, Clay.Si(2)),
     };
 

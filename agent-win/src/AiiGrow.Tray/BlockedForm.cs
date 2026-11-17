@@ -210,7 +210,7 @@ internal sealed class BlockedForm : Form
                 _flow.Controls.Add(KhoiCon.RobNoi("cho", ManChanView.DangXem, ManChanView.TraLoiLaBiet, _w));
                 _flow.Controls.Add(KhoiCon.Chips(_w,
                     new ChipClay(ManChanView.DangCho, Clay.CanhSoft, Clay.Canh, chamCho: true),
-                    new ChipClay(ManChanView.ChuaMoDuoc(_ten), Color.FromArgb(0xe3, 0xe2, 0xde), Clay.Chu2)));
+                    new ChipClay(ManChanView.ChuaMoDuoc(_ten), Clay.Lom, Clay.Chu2)));
                 ThemNutVeHomNay(chinh: false);
                 break;
             }
