@@ -12,6 +12,7 @@ import type { May } from "./gia-dinh.ts";
  *  Đồng hồ là giờ thật (máy ngủ vẫn tính). */
 export const CHU_KY_KIEM_PHUT = 15;
 
+// 0.2.23 (17/11, sửa app máy tính Con — ký tự lạ ở bộ cài, màn khoá vẽ lỗi ở màn nhỏ, menu trái bị cắt — #324, PR #326): exe từ CI agent-win run 44004503806 (job build goc, PR #335 head c1c95114); sha256 đo trên tệp tải về từ Release v0.2.23.
 // 0.2.22 (16/11, giao diện app Con trên Windows khớp Bàn thiết kế — #307, PR #319 #320 #321 #322): exe từ CI agent-win run 43888373936 (job build goc, bba66aec trên main 4515ee94); sha256 đo trên tệp tải về từ Release v0.2.22.
 // 0.2.21 (16/11, máy Con đổi được quà bằng sao vay — chặn đổi quà theo sao tiêu được, #315, PR #316): exe từ CI agent-win run 43847792845 (job build goc, main eb285125); sha256 đo trên tệp tải về từ Release v0.2.21.
 // 0.2.20 (16/11, sửa màn hình chớp / mở trang chậm / bấm mở AiiGrow không lên — #308, PR #309): exe từ CI agent-win run 43824649951 (job build goc, ca346e82 trên main d2855e45); sha256 đo trên tệp tải về từ Release v0.2.20.
@@ -26,9 +27,9 @@ export const CHU_KY_KIEM_PHUT = 15;
 // (0.2.12: run 40648893556, commit ae9f0c1, PR #171.)
 export const BAN_AGENT_WINDOWS = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
-  version: "0.2.22",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.22.exe",
-  sha256: "6068dc0969f1834e1ecfb93f19626682fa95ab73db09baf068f045e4a3aaf1a7",
+  version: "0.2.23",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.23.exe",
+  sha256: "22107a8885cce2bf9e2d0577f2b554148c6d9374702d2fffcdae713129f37d8f",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
