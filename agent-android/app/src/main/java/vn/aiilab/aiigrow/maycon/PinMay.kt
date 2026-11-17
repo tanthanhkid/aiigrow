@@ -24,6 +24,11 @@ import vn.aiilab.aiigrow.maycon.logic.docLoiPin
 import vn.aiilab.aiigrow.maycon.logic.docNguoiDung
 import vn.aiilab.aiigrow.maycon.logic.thuPinOffline
 import vn.aiilab.aiigrow.maycon.logic.xetCong
+import vn.aiilab.aiigrow.maycon.logic.docDsCon
+import vn.aiilab.aiigrow.maycon.logic.docGoiOffline
+import vn.aiilab.aiigrow.maycon.logic.goiOfflineJson
+import vn.aiilab.aiigrow.maycon.logic.tachGoiOffline
+import vn.aiilab.aiigrow.maycon.logic.xetDsCon
 import java.io.IOException
 
 /**
@@ -126,6 +131,8 @@ object PinMay {
         val r = MayChu(k.mayChu, k.token).hoSo()
         val now = System.currentTimeMillis()
         synchronized(khoa) {
+            // #337: gói luật theo bé (máy chung) lưu riêng, bỏ khỏi hồ sơ nhớ (hồ sơ đọc mỗi vòng — giữ gọn)
+            k.goiOffline = goiOfflineJson(tachGoiOffline(r, docGoiOffline(k.goiOffline)))
             // trong lúc tải, tại máy vừa đổi người (vào / rời / Ba Mẹ) hoặc còn việc chưa gửi ⇒ giữ «ai đang dùng» cục bộ, không lấy bản máy chủ cũ hơn
             if (k.lanDoiNguoi != truoc || k.viecCho != null) try {
                 val cu = k.hoSo?.let { JSONObject(it) }
@@ -139,6 +146,20 @@ object PinMay {
         }
         true
     } catch (e: Exception) { NhatKy.tin(TAG, "chưa lấy được hồ sơ: ${e.message}"); false }
+
+    /**
+     * #339: nhịp có `dsCon` (bé được gán máy). Lệch danh sách hồ sơ đang nhớ ⇒ tải lại ho-so NGAY (Ba Mẹ đổi gán ⇒ «chờ thay đổi» ép nhịp
+     * ⇒ máy nhận trong ~5 giây, không chờ chu kỳ 10 phút); bé đang dùng không còn được gán ⇒ về màn chọn tên (như «Đăng xuất»).
+     * Gọi sau sauNhip, trên luồng nhịp.
+     */
+    fun sauDsCon(ctx: Context, k: Kho, r: JSONObject) {
+        val ds = docDsCon(r) ?: return
+        val nd = nguoiDung(k)
+        val conDung = nd?.takeIf { it.loai == LoaiNguoiDung.CON }?.conId
+        val x = xetDsCon(ds, hoSo(k)?.con?.map { it.id }, conDung)
+        if (x.taiLai && System.currentTimeMillis() - k.lanHoSo > 5_000) { NhatKy.tin(TAG, "Ba Mẹ đổi bé của máy — tải lại hồ sơ"); napHoSo(k) }
+        if (x.dayRa) { NhatKy.tin(TAG, "bé đang dùng không còn được gán máy — về màn chọn tên"); roiMay(ctx, false) }
+    }
 
     // ------------------------------------------------------------------ hành động trên màn (gọi trên luồng nền)
 
@@ -256,6 +277,6 @@ object PinMay {
 
     /** Máy rời gia đình / ghép lại ⇒ quên hồ sơ, người dùng, bộ đếm. */
     fun quen(k: Kho) = synchronized(khoa) {
-        k.hoSo = null; k.lanHoSo = 0; k.nguoiDung = null; k.baMeDen = 0; k.demPin = null; k.viecCho = null; k.lanDoiNguoi = 0; k.mocBe = null
+        k.hoSo = null; k.lanHoSo = 0; k.goiOffline = null; k.nguoiDung = null; k.baMeDen = 0; k.demPin = null; k.viecCho = null; k.lanDoiNguoi = 0; k.mocBe = null
     }
 }

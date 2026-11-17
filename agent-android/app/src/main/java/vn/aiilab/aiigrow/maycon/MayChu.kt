@@ -58,7 +58,8 @@ class MayChu(private val goc: String, private val token: String?, private val do
     /** Danh sách app đã cài thật (DanhSachApp.kt): đủ / phần đổi; 409 can_gui_du ⇒ gửi đủ. */
     fun ungDung(than: JSONObject) = goi("ung-dung", than)
     /** L13 PIN theo bé (docs/API.md «S3 thiết kế chốt 06/11»): ai đang dùng máy, bé vào bằng tên + PIN, quên PIN, Ba Mẹ nhập mã, đăng xuất / khoá lại. */
-    fun hoSo() = goi("ho-so")
+    /** #337: `?offline=1` ⇒ máy chung có thêm `con[i].offline` (luật của từng bé, dùng khi đổi bé lúc mất mạng). Máy chủ cũ bỏ qua tham số. */
+    fun hoSo() = goi("ho-so?offline=1")
     fun dangNhapBe(con: String, pin: String?) = goi("dang-nhap-be", JSONObject().put("con", con).apply { pin?.let { put("pin", it) } })
     fun quenPin(con: String) = goi("quen-pin", JSONObject().put("con", con))
     fun baMeMo(ma: String) = goi("ba-me-mo", JSONObject().put("ma", ma))
