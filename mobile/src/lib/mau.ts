@@ -6,14 +6,14 @@ import { Platform } from "react-native";
 export const M = {
   // 17/11 bàn thiết kế chốt «mẫu 1 Navy» cho TOÀN BỘ màn Ba Mẹ (màn mẫu bm2-trang-chu v36, issue #363): nền kem, chữ + nút + điểm nhấn navy,
   // vàng mật CHỈ cho sao, cam cho huy hiệu số, ô liu cho «xong / đã kết nối». Phía Con KHÔNG dùng bảng này (diu.ts).
-  // Tương phản (WCAG): chu #0A1629 / nen 15,9:1 · chu3 #5a5a5a / nen 6,0:1 · trắng / chinh 17,9:1 · canh #b34a06 / canhSoft 4,9:1 · loi #b81f1f / loiSoft 5,6:1.
+  // Tương phản (WCAG): chu #0A1629 / nen 15,9:1 · chu3 #5a5a5a / nen 6,0:1 · trắng / chinh 17,9:1 · canh #a84505 / canhSoft 5,0:1 (bàn #b34a06 chỉ 4,5:1 — sẫm hơn một chút cho đạt cổng) · loi #b81f1f / loiSoft 5,6:1.
   nen: "#F2EBE3", the: "#ffffff", vien: "#efe7dd", vien2: "#ebe2d7", oNhap: "#8a8478",
   chu: "#0A1629", chu2: "#3a3a3a", chu3: "#5a5a5a",
   chinh: "#0A1629", chinhDam: "#0A1629", chinhInk: "#0A1629", chinhSoft: "#F2EBE3", chinhSang: "#7ED957",
   // nút chính: viên navy (gradient #1b2b47 → #0A1629 ở MEN.toi)
   nut: "#0A1629", nutDam: "#1b2b47",
   diem: "#F4C76A", diemInk: "#0A1629", diemSoft: "#fbf0d6",
-  canh: "#b34a06", canhSoft: "#ffe6d6", loi: "#b81f1f", loiSoft: "#ffe1e1", huy: "#b81f1f",
+  canh: "#a84505", canhSoft: "#ffe6d6", loi: "#b81f1f", loiSoft: "#ffe1e1", huy: "#b81f1f",
   // huy hiệu số (chuông, tab, tiêu đề mục): cam, chữ navy
   badge: "#FF751F",
   // «xong / đã kết nối / Không tính phút»: ô liu, nền nhạt chữ navy

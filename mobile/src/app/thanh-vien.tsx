@@ -17,7 +17,7 @@ import { DsBang } from "@/lib/ca-nha-ui";
 import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, OChon, useLam, useTai } from "@/lib/ui";
 
 /** Màu avatar người lớn (thiết kế .ng — cùng bảng tab Cả nhà). */
-const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#7ED957", "#b5838d"];
+const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#0c7a5c", "#b5838d"];
 
 export default function ThanhVien() {
   const { id } = useLocalSearchParams<{ id?: string }>();
