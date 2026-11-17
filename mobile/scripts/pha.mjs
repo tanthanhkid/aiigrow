@@ -701,7 +701,8 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ho-so-xoa (bé cuối còn máy)", "/ho-so/c1/xoa", "Xem các máy", { kb: XOA_CON_MAY, truoc: async () => { await di("/ho-so/c1/xoa"); await doi("Giữ lại"); await bamXoaHs(); } }),
     M("bm-ho-so-xoa (đã xoá · máy dùng chung)", "/ho-so/c1/xoa", "thành máy dùng chung — gắn", { truoc: async () => { await di("/ho-so/c1/xoa"); await doi("Giữ lại"); await bamXoaHs(); } }),
     M("bm-qua-mua (trao luôn)", "/vi/qua-mua?ma=lego&con=c1", "Trao luôn cho", { kb: QUA_KHO }),
-    M("bm-qua-mua (voucher chưa trao luôn)", "/vi/qua-mua?ma=aiicafe_20k&con=c1", "mới trao luôn được", { kb: QUA_KHO }),
+    M("bm-qua-mua (voucher bấm trao luôn ⇒ cần thanh toán)", "/vi/qua-mua?ma=aiicafe_20k&con=c1", "phần này sắp có", { kb: QUA_KHO,
+      truoc: async () => { await di("/vi/qua-mua?ma=aiicafe_20k&con=c1"); await doi("Trao luôn cho"); await nhanChuot(await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => !e.children.length && e.innerText?.trim().startsWith("Trao luôn cho ") && e.getBoundingClientRect().width > 0).pop()`)); } }),
     M("admin-ho-tro", "/admin-ho-tro", "Đang chờ"),
     M("admin-ho-tro (của tôi)", "/admin-ho-tro", "AiiGrow đã cộng giúp", { truoc: async () => { await di("/admin-ho-tro"); await doi("Của tôi"); await bam("Của tôi"); } }),
     M("bm-ho-so-con", "/ho-so/c1", "Cài đặt của"),
@@ -1787,16 +1788,18 @@ await kichBan("Xoá hồ sơ Con: 409 con_may / con_thiet_bi_mang ⇒ câu dễ 
   xet(await doi("Nhắn AiiGrow"), "có lối «Nhắn AiiGrow»");
 });
 
-await kichBan("Quà Ba Mẹ mua: «Trao luôn cho <Con>» ⇒ qua/q4/trao-luon {con}; voucher AiiCafe ⇒ không có nút, nói rõ cần thanh toán", async () => {
+await kichBan("Quà Ba Mẹ mua: «Trao luôn cho <Con>» ⇒ qua/q4/trao-luon {con}; voucher AiiCafe ⇒ máy chủ 409, màn nói rõ cần thanh toán", async () => {
   kb = { ...kb, ...QUA_KHO };
   await di("/vi/qua-mua?ma=lego&con=c1");
-  xet(await doi(`Trao luôn cho ${KEN}`), "nút «Trao luôn cho <Con>»");
+  const TEN_NGAN = KEN.trim().split(/\s+/).slice(-2).join(" ");     // màn dùng tên gọi ngắn (tenGoi) như bàn
+  xet(await doi(`Trao luôn cho ${TEN_NGAN}`), "nút «Trao luôn cho <Con>»");
   nhatKy.length = 0;
-  await bam(`Trao luôn cho ${KEN}`);
+  await bam(`Trao luôn cho ${TEN_NGAN}`);
   xet(await choGoi((x) => x.d === "qua/q4/trao-luon" && x.m === "POST" && x.body?.con === "c1"), "gửi trao luôn đúng quà + Con");
   await di("/vi/qua-mua?ma=aiicafe_20k&con=c1");
-  xet(await doi("mới trao luôn được"), "voucher ⇒ câu cần thanh toán");
-  xet(!(await chu()).includes("Trao luôn cho"), "voucher ⇒ không có nút «Trao luôn»");
+  xet(await doi(`Trao luôn cho ${TEN_NGAN}`), "voucher cũng có nút «Trao luôn» (bàn sp8ijd1b)");
+  await bam(`Trao luôn cho ${TEN_NGAN}`);
+  xet(await doi("phần này sắp có"), "voucher ⇒ máy chủ chặn, câu cần thanh toán");
 });
 
 await kichBan("Hộp thư hỗ trợ (admin): ?loc=cho ⇒ «4 chờ», «Gấp 2» + «Chờ 42′», người gửi; tab «Của tôi» ⇒ ?loc=cua_toi", async () => {

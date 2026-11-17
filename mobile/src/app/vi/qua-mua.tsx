@@ -8,9 +8,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, LoiApi, type GiaDinh } from "@/lib/api";
-import { loiTraoLuon, quaTrongKho, traoLuonDuoc, type DongQua } from "@/lib/noi-1411";
+import { loiTraoLuon, quaTrongKho, type DongQua } from "@/lib/noi-1411";
 import { KHOI } from "@/lib/clay";
-import { quyenToi } from "@/lib/hang-ngay";
+import { quyenToi, tenGoi } from "@/lib/hang-ngay";
 import { icQua, tenVoucher, type NhomThuVien } from "@/lib/s3";
 import { OIcon } from "@/lib/ui-bm3";
 import { BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, tien, useLam, useTai, type TenIcon } from "@/lib/ui";
@@ -35,7 +35,7 @@ export default function QuaBaMeMua() {
   if (!d) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const m = d.m;
   if (!m) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi="Quà này không còn bán." tai={() => router.back()} /></Man>;
-  const ten = d.c?.ten ?? "con";
+  const ten = d.c ? tenGoi(d.c.ten) : "con";
   const thieu = d.sao !== null ? Math.max(0, m.sao - Math.max(0, d.sao)) : null;
   const cafe = /AiiCafe/i.test(m.ten);
   const them = () => lam(async () => {
@@ -45,8 +45,9 @@ export default function QuaBaMeMua() {
   });
   const qk = d.trongKho;
   // «Trao luôn»: chỉ Ba Mẹ, quà đã ở kho của con, không phải voucher (máy chủ 409 voucher_can_thanh_toan)
-  const traoDuoc = d.baMe && m.daCo && !!con && !!qk && traoLuonDuoc(qk.loai);
-  const voucherCho = d.baMe && m.daCo && !!con && !!qk && !traoLuonDuoc(qk.loai);
+  // bàn sp8ijd1b@v2 vẽ «Trao luôn» cả cho voucher ⇒ hiện nút; voucher thì máy chủ vẫn chặn 409 voucher_can_thanh_toan (chưa có thanh toán)
+  // và màn báo câu dễ hiểu (loiTraoLuon) — logic không đổi
+  const traoDuoc = d.baMe && m.daCo && !!con && !!qk;
   const trao = () => lam(async () => {
     try {
       const r = await bm.goi<{ phut?: number }>(`qua/${qk!.id}/trao-luon`, { con });
@@ -68,7 +69,6 @@ export default function QuaBaMeMua() {
         </>
       ) : m.daCo || !d.baMe ? (
         <>
-          {voucherCho ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Voucher cần Ba Mẹ thanh toán trong app mới trao luôn được — phần này sắp có.</Chu> : null}
           <Nut chu="Để con tự tích sao" rong bam={() => router.back()} />
         </>
       ) : (

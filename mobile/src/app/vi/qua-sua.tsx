@@ -7,7 +7,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
-import { type NhiemVuMoi } from "@/lib/hang-ngay";
+import { tenGoi, type NhiemVuMoi } from "@/lib/hang-ngay";
 import { buocGia, cauNgayDoi, HINH_CHON, icQua, saoMoiNgay, thanSuaQua, type QuaS3 } from "@/lib/s3";
 import { GiaSao } from "@/lib/ui-s3";
 import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chips, Chu, CongTac, Icon3D, M, Man, NhanMen, Nut, ONhap, Rob, The, useLam, useTai, type TenIcon } from "@/lib/ui";
@@ -166,14 +166,14 @@ export default function SuaQua() {
             <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua(q) as TenIcon} co={28} /></View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15}>{q.ten}</Chu>
-              <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{`Áp cho ${d.con.filter((c) => ap.includes(c.id)).map((c) => c.ten).join(", ") || "cả nhà"}`}</Chu>
+              <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{`Áp cho ${d.con.filter((c) => (q.apCho ?? moiCon).includes(c.id)).map((c) => tenGoi(c.ten)).join(", ") || "cả nhà"}`}</Chu>
             </View>
             <GiaSao n={q.sao} />
           </View>
         ) : null}
         {q?.dangGiu ? <Chu co={14} mau={M.chu2}>{`${q.dangGiu} phiếu đang chờ trao sẽ được huỷ và hoàn sao cho con.`}</Chu> : null}
         <BaoLoi loi={loiLam} />
-        <Nut chu={`Xoá quà ${q?.ten ?? ""}`} loai="huy" rong dangChay={dangChay} bam={xoaQua} />
+        <Nut chu={`Xoá quà ${q?.ten ?? ""}`} loai="do" rong dangChay={dangChay} bam={xoaQua} />
         <Nut chu="Giữ lại quà" loai="vien" rong bam={() => setXoa(false)} />
       </BangTruot>
     </Man>
