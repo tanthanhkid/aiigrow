@@ -195,7 +195,8 @@ internal static class ChupMain
         await Mot("ket-qua-lam-lai", () => ManHop("ket-qua-lam-lai", () => new KetQuaHop("Nhiệm vụ").Dau("tro_lai", KhoiCon.Mau.Cam, "Ba Mẹ nhờ con làm lại", "Đọc sách 20 phút")
             .Loi("Ba Mẹ", "Con đọc to hơn chút nhé, Mẹ nghe chưa rõ.").Chip("+10 sao", true, "Chưa cộng sao · ghi lại để nhận").Nut("Ghi âm lại cho Ba Mẹ", true, "tai", null).LienKet("Để sau", null, null)));
         await Mot("ket-qua-trao-qua", () => ManHop("ket-qua-trao-qua", () => new KetQuaHop("Quà").Dau("qua", KhoiCon.Mau.Vang, "Ba Mẹ đã trao quà!", "Đọc truyện cùng Ba")
-            .Dong("Còn 0 sao · làm nhiệm vụ để có thêm", false, AiiGrow.ClayUi.Clay.DiemInk).Nut("Tuyệt quá!", true, "game", null).LienKet("Xem quà của con", "qua", null)));
+            .TheNhan("Đã nhận", "Đổi 30 sao · 30 → 0 sao")
+            .Dong("Còn 0 sao · làm nhiệm vụ để có thêm", false, AiiGrow.ClayUi.Clay.DiemInk).Nut("Làm nhiệm vụ kiếm sao", true, "tick", null).Nut("Xem quà của con", false, null, null)));
         await Mot("doi-qua", () => ManHop("doi-qua", () => new DoiQuaHop(CuaHang().Qua[0], 60)));
         await Mot("doi-qua-chua-du", () => ManHop("doi-qua-chua-du", () => new DoiQuaHop(CuaHang().Qua[0], 30)));
         // 06/11 (L13 — con-ngay-thuong 01–08): máy dùng chung, chọn tên + PIN, Ba Mẹ nhập mã, Ba Mẹ đang dùng máy, Đổi người / Đăng xuất
