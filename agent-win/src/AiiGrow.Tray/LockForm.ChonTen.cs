@@ -354,7 +354,7 @@ internal sealed partial class LockForm
         var ds = _hs?.Con ?? new List<HoSoBe> { be };
         var i = Math.Max(0, ds.FindIndex(c => c.Id == be.Id));
         var chu = DangNhapView.ChuDauDs(ds.Select(c => c.Ten));
-        return new VienTen { Chu = i < chu.Count ? chu[i] : DangNhapView.ChuDau(be.Ten), Mau = i, Size = new Size(UI.Px(co), UI.Px(co)), Margin = Padding.Empty };
+        return new VienTen { Chu = i < chu.Count ? chu[i] : DangNhapView.ChuDau(be.Ten), Mau = i, DangChon = true, Size = new Size(UI.Px(co), UI.Px(co)), Margin = Padding.Empty };
     }
 
     private Label ChuGiua(string text, float pt, bool dam, Color mau, int w, int tren)
@@ -440,7 +440,7 @@ internal sealed partial class LockForm
                 // 15/11 (them-x8kmmyl5): sao từng bé — «18 sao» vàng / «−20 sao» cam (đang nợ)
                 if (be.Sao is int sb)
                 {
-                    var chip = new ChipClay(SaoView.SoDu(sb), sb < 0 ? Clay.CanhSoft : Clay.DiemSoft, sb < 0 ? Clay.Canh : Clay.DiemInk, Anh3D.Icon("sao")) { Font = UI.F(m.PtSao, FontStyle.Bold), Cursor = Cursors.Hand };
+                    var chip = new ChipClay(SaoView.SoDu(sb), sb < 0 ? Clay.CanhSoft : Clay.DiemSoft, sb < 0 ? Clay.Canh : Clay.DiemInk, Anh3D.Icon("sao"), kim: sb >= 0) { Font = UI.F(m.PtSao, FontStyle.Bold), Cursor = Cursors.Hand };
                     // chip không rộng hơn thẻ (vd «−1.250 sao» ở 150%): co chữ dần cho vừa
                     var toiDa = oRong - UI.Px(8);
                     var pt = m.PtSao;
@@ -601,12 +601,25 @@ internal sealed partial class LockForm
     }
 }
 
-/// <summary>Viên tròn chữ cái đầu tên bé (phong cách E «Ánh kim»: «.be.on .av»): lòng navy sâu, viền vàng kim mảnh, chữ vàng, bóng mềm.
-/// <see cref="Mau"/> = -1 ⇒ viên số bước (navy đặc, không viền, chữ kem). <see cref="Mau"/> ≥ 0 giữ cho chỗ gọi (thứ tự bé).</summary>
+/// <summary>Viên tròn chữ cái đầu tên bé (phong cách E «Ánh kim»: «.be.on .av»): lòng màu RIÊNG từng bé (bảng 5 tông ngọc trai sẫm hài hoà E, theo thứ tự bé),
+/// viền vàng kim mảnh (dày hơn khi <see cref="DangChon"/>), chữ vàng kim nhạt, bóng mềm. Chữ/lòng ≥ 4,8:1 ở điểm sáng nhất của mọi màu.
+/// <see cref="Mau"/> = -1 ⇒ viên số bước (navy đặc, không viền, chữ kem).</summary>
 internal sealed class VienTen : Control
 {
+    // (điểm sáng 35%/30%, mép) — gradient tâm như «.av», tông đậm để chữ KimSang đọc rõ: rượu vang · lam · lục thông · tím · đồng
+    private static readonly (Color Tren, Color Duoi)[] Bang =
+    {
+        (Color.FromArgb(0x7a, 0x2f, 0x3f), Color.FromArgb(0x4a, 0x16, 0x23)),
+        (Color.FromArgb(0x2f, 0x4f, 0x8a), Color.FromArgb(0x14, 0x28, 0x4f)),
+        (Color.FromArgb(0x2d, 0x6a, 0x5a), Color.FromArgb(0x12, 0x3d, 0x33)),
+        (Color.FromArgb(0x5e, 0x3f, 0x8a), Color.FromArgb(0x33, 0x20, 0x4f)),
+        (Color.FromArgb(0x8a, 0x5a, 0x2a), Color.FromArgb(0x4f, 0x2f, 0x12)),
+    };
+
     public string Chu { get; set; } = "";
     public int Mau { get; set; }
+    /// <summary>Bé đang chọn (thẻ PIN): vòng vàng kim dày hơn, vẫn giữ màu riêng.</summary>
+    public bool DangChon { get; set; }
 
     public VienTen()
     {
@@ -618,7 +631,7 @@ internal sealed class VienTen : Control
     {
         var g = e.Graphics;
         Clay.ChatLuong(g);
-        var vien = Mau < 0 ? 0f : Math.Max(2f, Width / 24f);
+        var vien = Mau < 0 ? 0f : Math.Max(2f, Width / 24f) * (DangChon ? 1.7f : 1f);
         var bong = Mau < 0 ? 0f : Math.Max(2f, Width / 20f);
         var r = new RectangleF(bong / 2, 0, Width - bong - 1, Height - bong - 1);
         if (bong > 0)
@@ -634,19 +647,20 @@ internal sealed class VienTen : Control
         if (Mau < 0) using (var b = new SolidBrush(Clay.Ngoc)) g.FillEllipse(b, tron);
         else
         {
-            // radial-gradient(circle at 35% 30%, #1d2f52, #0A1629 70%)
+            // radial-gradient(circle at 35% 30%, sáng, tối 70%) theo màu của bé
+            var (mt, md) = Bang[Mau % Bang.Length];
             using var pt = new GraphicsPath();
             pt.AddEllipse(tron);
             using var pg = new PathGradientBrush(pt)
             {
                 CenterPoint = new PointF(tron.X + tron.Width * 0.35f, tron.Y + tron.Height * 0.3f),
-                CenterColor = Clay.ThanChi, SurroundColors = new[] { Clay.Ngoc },
+                CenterColor = mt, SurroundColors = new[] { md },
             };
             g.FillEllipse(pg, tron);
         }
         // cỡ chữ theo cỡ viên ở 96 dpi (thiết kế: viên 120 ⇒ chữ 54px ≈ 40pt), để UI.F tự theo DPI như mọi chữ khác
         using var f = UI.F(Math.Max(6f, Height / Math.Max(0.5f, Clay.Scale) * (Mau < 0 ? 0.27f : 0.33f)), FontStyle.Bold);
-        TextRenderer.DrawText(g, Chu, f, Rectangle.Round(tron), Mau < 0 ? Clay.NenSang : Clay.Kim, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
+        TextRenderer.DrawText(g, Chu, f, Rectangle.Round(tron), Mau < 0 ? Clay.NenSang : Clay.KimSang, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
     }
 }
 

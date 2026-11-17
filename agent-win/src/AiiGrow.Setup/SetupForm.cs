@@ -52,7 +52,7 @@ internal sealed class SetupForm : Form
         StartPosition = FormStartPosition.CenterScreen;
         BackColor = Nen;
         _body.AutoScroll = true;
-        _chan.Paint += (_, e) => { using var p = new Pen(Color.FromArgb(0xe0, 0xdf, 0xda)); e.Graphics.DrawLine(p, 0, 0, _chan.Width, 0); };
+        _chan.Paint += (_, e) => { using var p = new Pen(Clay.Tron(Clay.Lom, Clay.Bong, 0.3f)); e.Graphics.DrawLine(p, 0, 0, _chan.Width, 0); };
         Controls.Add(_body);
         Controls.Add(_chan);
         BuocChao();
@@ -100,7 +100,7 @@ internal sealed class SetupForm : Form
             for (int i = 1; i <= TongBuoc; i++)
             {
                 using var path = Clay.Bo(new RectangleF(x, y, S(36), S(8)), Clay.S(4));
-                using var b = new SolidBrush(i <= Buoc ? Clay.Ngoc : Color.FromArgb(0xdc, 0xdb, 0xd6));
+                using var b = new SolidBrush(i <= Buoc ? Clay.Ngoc : Clay.Tron(Clay.Lom, Clay.Bong, 0.18f));
                 g.FillPath(b, path);
                 x += S(42);
             }
@@ -192,7 +192,7 @@ internal sealed class SetupForm : Form
             if (_tt == 2)
             {
                 using (var b = new SolidBrush(Clay.Ngoc)) g.FillEllipse(b, r);
-                using var pen = new Pen(Color.White, Clay.S(2.5f)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+                using var pen = new Pen(Clay.NenSang, Clay.S(2.5f)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
                 g.DrawLines(pen, new[] { new PointF(r.X + r.Width * .27f, r.Y + r.Height * .52f), new PointF(r.X + r.Width * .44f, r.Y + r.Height * .68f), new PointF(r.X + r.Width * .74f, r.Y + r.Height * .35f) });
             }
             else if (_tt == 1)
@@ -201,7 +201,7 @@ internal sealed class SetupForm : Form
                 using var pen = new Pen(Clay.Ngoc, Clay.S(2.5f));
                 g.DrawArc(pen, RectangleF.Inflate(r, -Clay.S(3), -Clay.S(3)), -90, 250);
             }
-            else using (var b = new SolidBrush(Color.FromArgb(0xdc, 0xdb, 0xd6))) g.FillEllipse(b, r);
+            else using (var b = new SolidBrush(Clay.Tron(Clay.Lom, Clay.Bong, 0.18f))) g.FillEllipse(b, r);
         }
     }
 
@@ -217,8 +217,7 @@ internal sealed class SetupForm : Form
             if (_p <= 0) return;
             var f = new RectangleF(0, 0, Math.Max(Height, (Width - 1) * _p), Height - 1);
             using var pf = Clay.Bo(f, Height / 2f);
-            using var lg = new LinearGradientBrush(f, Color.FromArgb(0x1c, 0x7d, 0x6c), Clay.NgocInk, 90f);
-            g.FillPath(lg, pf);
+            Clay.ToKim(g, pf, f);   // vàng kim 135° trên rãnh lõm (thay teal→navy cũ)
         }
     }
 
@@ -332,7 +331,7 @@ internal sealed class SetupForm : Form
         return new ClayButton
         {
             Text = text, Size = new Size(S(w) + lb.Horizontal, S(48) + lb.Vertical), Font = new Font("Segoe UI", 12f, FontStyle.Bold),
-            BackColor = chinh ? Chinh : Clay.The, ForeColor = chinh ? Color.White : Chu,
+            BackColor = chinh ? Chinh : Clay.The, ForeColor = Chu, LaChinh = chinh,   // chính: thân vàng kim, chữ navy
         };
     }
 
@@ -479,7 +478,7 @@ internal sealed class SetupForm : Form
             {
                 var chon = _child?.Sid == a.Sid;
                 h.Lom = !chon;
-                h.BackColor = chon ? Color.White : Clay.Lom;
+                h.BackColor = chon ? Clay.NenSang : Clay.Lom;
                 h.VeLaiNen();
             }
             if (tiep != null)
@@ -508,8 +507,8 @@ internal sealed class SetupForm : Form
                 Clay.ChatLuong(e.Graphics);
                 var r = new RectangleF(Clay.S(1), Clay.S(1), cham.Width - Clay.S(2), cham.Height - Clay.S(2));
                 var chon = _child?.Sid == a.Sid;
-                using (var b = new SolidBrush(Color.White)) e.Graphics.FillEllipse(b, r);
-                using var pen = new Pen(chon ? Chinh : Color.FromArgb(0xa9, 0xac, 0xa9), chon ? Clay.S(5) : Clay.S(2));
+                using (var b = new SolidBrush(Clay.NenSang)) e.Graphics.FillEllipse(b, r);
+                using var pen = new Pen(chon ? Chinh : Clay.Chu3, chon ? Clay.S(5) : Clay.S(2));
                 e.Graphics.DrawEllipse(pen, RectangleF.Inflate(r, -pen.Width / 2, -pen.Width / 2));
             };
             h.Controls.Add(cham);

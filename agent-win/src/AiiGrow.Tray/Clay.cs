@@ -22,7 +22,7 @@ internal static class Clay
     // ô lõm / đang chọn dùng bóng trong; nút chính + số sao đúc vàng kim loại (gradient 135°) chữ navy; khối nổi bật nền navy.
     // Tên token giữ như cũ (Ngoc = màu «chính», nay là navy) để chỗ gọi không đổi. Tương phản WCAG (đo bằng script, chữ thường ≥ 4,5:1):
     //   Chu/Nen 14,4 · Chu3/Nen 5,8 · Chu3/Lom 5,4 · Chu3/NgocSoft 5,1 · NgocInk/NgocSoft 12,6 · KimInk/Nen 5,0 · DiemInk/Nen 6,4 · DiemInk/DiemSoft 5,6
-    //   Chu trên KimDam (điểm tối nhất của gradient nút) 6,9 · Kim/navy 11,4 · NenSang/navy 15,3 · Canh/Nen 6,1 · Loi/Nen 5,2.
+    //   Chu trên KimDam (điểm tối nhất của gradient nút) 6,9 · Kim/navy 11,4 · NenSang/navy 15,3 · Canh/Nen 6,1 · Loi/Nen 5,2 · Xanh/Nen 5,2 · Xanh/NgocSoft 4,6.
     public static readonly Color Nen = H(0xece4d9);        // nền kem
     public static readonly Color NenSang = H(0xf2ebe3);    // kem sáng (chữ trên navy)
     public static readonly Color The = H(0xece4d9);        // mặt thẻ = nền, nổi bằng bóng đôi
@@ -30,15 +30,16 @@ internal static class Clay
     public static readonly Color Chu = H(0x0a1629);        // navy
     public static readonly Color Chu2 = H(0x3b352e);
     public static readonly Color Chu3 = H(0x5f554b);       // chữ phụ: 5,8:1 trên Nen (mẫu #7c7166 chỉ 3,8:1)
-    public static readonly Color Ngoc = H(0x0a1629);       // «chính» = navy; nút nền Ngoc vẽ thành vàng kim, chữ navy (VeNut)
+    // Token TRÙNG GIÁ TRỊ là alias tường minh (đổi một chỗ, không so màu để nhận kiểu — dùng cờ/kiểu: ClayButton.LaChinh, ChipClay.Kim):
+    public static Color Ngoc => Chu;                       // «chính» = navy (chữ/viền/chấm); nút «chính» vàng kim do cờ ClayButton.LaChinh, không do màu này
     public static readonly Color NgocDam = H(0x050c18);
-    public static readonly Color NgocInk = H(0x0a1629);
+    public static Color NgocInk => Chu;                    // chữ nhấn trên nền sáng = navy
     public static readonly Color NgocSoft = H(0xe2d6c4);   // ô chọn / chip nhấn: kem sẫm
     public static readonly Color ThanChi = H(0x1d2f52);
-    public static readonly Color ThanChiDam = H(0x0a1629);
-    public static readonly Color Diem = H(0xf4c76a);
+    public static Color ThanChiDam => Chu;                 // điểm tối của gradient navy
+    public static Color Diem => Kim;                       // vàng «điểm» = vàng kim
     public static readonly Color DiemInk = H(0x6b4a12);     // vàng sẫm: 6,4:1 trên Nen, 5,6:1 trên DiemSoft
-    public static readonly Color DiemSoft = H(0xf2d48c);
+    public static Color DiemSoft => KimNhat;               // nền chip sao = vàng kim nhạt (vẽ gradient nhạt, ChipClay.Kim)
     public static readonly Color Canh = H(0x8a3c0c);
     public static readonly Color CanhSoft = H(0xf9e7d2);
     public static readonly Color Loi = H(0xb42318);
@@ -54,6 +55,7 @@ internal static class Clay
     public static readonly Color KimNhat = H(0xf2d48c);
     public static readonly Color KimVien = H(0xd9ae57);
     public static readonly Color KimInk = H(0x7a5a1f);      // liên kết vàng sẫm: 5,0:1 trên Nen
+    public static readonly Color Xanh = H(0x2d6a14);        // xanh lục «thành công / đã kết nối» tông E: 5,2:1 trên Nen, 4,6:1 trên NgocSoft (≥4,5 chữ thường)
     public static readonly Color Cam = H(0xe8890c);         // chấm «đang chờ», vành đếm giây
 
     // ---------------------------------------------------------------- DPI, chuyển động
@@ -158,29 +160,30 @@ internal static class Clay
         }
     }
 
-    /// <summary>Bóng đôi cỡ nút (lề bóng nhỏ: trái/phải 3, trên 1, dưới 6): tối lệch xuống-phải, sáng lệch lên-trái.
+    /// <summary>Bóng đôi cỡ nút (lề bóng VeNut.LeBong: trái/phải 3, trên 1, dưới 6 — mọi lớp bóng nằm TRỌN trong lề, không bị cắt cạnh thẳng):
+    /// tối lệch xuống-phải, sáng lệch lên-trái (bóng sáng thu nhỏ vì lề trên chỉ 1).
     /// <paramref name="mau"/> ≠ null (nút tối) hoặc <paramref name="nenToi"/> (nút nằm trên nền navy) ⇒ chỉ bóng tối, không bóng sáng.</summary>
     public static void BongNut(Graphics g, RectangleF r, float k, Color? mau = null, bool nenToi = false)
     {
-        if (mau == null && !nenToi) BongMem(g, r, k, S(-1.2f), S(2.5f), S(-0.5f), 230, BongSang, S(-1.2f));
+        if (mau == null && !nenToi) BongMem(g, r, k, S(-0.2f), S(1.5f), S(-0.7f), 230, BongSang, S(-1.8f));   // ra trên 1,0 · trái 2,6
         var toi = nenToi ? Color.Black : mau ?? Bong;
-        BongMem(g, r, k, S(3f), S(4f), S(-1.5f), nenToi ? 120 : 110, toi, S(1.5f));
+        BongMem(g, r, k, S(3f), S(4f), S(-1.5f), nenToi ? 120 : 110, toi, S(0.4f));   // ra phải 2,9 · dưới 5,5
         BongMem(g, r, k, S(1.2f), S(1.5f), S(-0.5f), nenToi ? 50 : 40, toi, S(0.6f));
     }
 
-    /// <summary>Bóng đôi cỡ thẻ (lề bóng: trái/phải 6, trên 3, dưới 12) — thu nhỏ «8px 8px 16px tối · −8px −8px 16px sáng» cho vừa lề.
+    /// <summary>Bóng đôi cỡ thẻ (lề bóng VeThe.LeBong: trái/phải 6, trên 3, dưới 12; mọi lớp nằm TRỌN trong lề) — thu nhỏ «8px 8px 16px tối · −8px −8px 16px sáng» cho vừa lề.
     /// <paramref name="nenToi"/> = thẻ nằm trên nền navy ⇒ bỏ bóng sáng, bóng tối đen hơn.</summary>
     public static void BongThe(Graphics g, RectangleF r, float k, bool nenToi = false)
     {
-        if (!nenToi) BongMem(g, r, k, S(-2f), S(4f), S(-1f), 255, BongSang, S(-2f));
+        if (!nenToi) BongMem(g, r, k, S(-1f), S(3f), S(-1f), 255, BongSang, S(-2f));   // ra trên 3,0 · trái 4,0
         var toi = nenToi ? Color.Black : Bong;
-        BongMem(g, r, k, S(5.5f), S(8f), S(-4f), nenToi ? 130 : 120, toi, S(2.5f));
+        BongMem(g, r, k, S(5.5f), S(8f), S(-4f), nenToi ? 130 : 120, toi, S(1.8f));   // ra phải 5,8 · dưới 9,5
         BongMem(g, r, k, S(2f), S(3f), S(-1.5f), nenToi ? 60 : 45, toi, S(1f));
     }
 
     /// <summary>Mặt nổi (neumorphism mỏng): nền phẳng, ánh sáng rất nhẹ ở góc trên-trái, tối nhẹ góc dưới-phải, viền sáng mảnh mép trên.
-    /// <paramref name="daiCong"/> giữ cho chỗ gọi cũ (không còn dải men cong).</summary>
-    public static void KhoiSang(Graphics g, RectangleF r, float k, Color nen, bool daiCong = true)
+    /// </summary>
+    public static void KhoiSang(Graphics g, RectangleF r, float k, Color nen)
     {
         using var p = Bo(r, k);
         using (var b = new SolidBrush(nen)) g.FillPath(b, p);
@@ -216,10 +219,11 @@ internal static class Clay
     }
 
     /// <summary>Vàng kim loại (nút chính, số sao): gradient 135° KimSang → Kim → KimDam → KimNhat, gờ sáng trắng mảnh mép trên.</summary>
-    public static void KhoiKim(Graphics g, RectangleF r, float k)
+    public static void KhoiKim(Graphics g, RectangleF r, float k, bool tat = false)
     {
         using var p = Bo(r, k);
-        ToKim(g, p, r);
+        ToKim(g, p, r, tat: tat);
+        if (tat) return;   // nút tắt: thân vàng nhạt khử bão hoà, không gờ sáng
         var st = g.Save();
         g.SetClip(p, CombineMode.Intersect);
         VienTrong(g, r, k, A(155, Color.White), A(40, KimDam));
@@ -227,14 +231,15 @@ internal static class Clay
     }
 
     /// <summary>Tô <paramref name="p"/> bằng gradient vàng kim 135° theo khung <paramref name="r"/>. <paramref name="nhat"/> = bản nhạt (chip có chữ vàng sẫm: bỏ điểm KimDam).</summary>
-    public static void ToKim(Graphics g, GraphicsPath p, RectangleF r, bool nhat = false)
+    public static void ToKim(Graphics g, GraphicsPath p, RectangleF r, bool nhat = false, bool tat = false)
     {
+        Color M(Color c) => tat ? Tron(c, Nen, 0.55f) : c;   // tắt: trộn 55% với nền kem ⇒ vàng nhạt, nhìn ra ngay là không bấm được
         var rr = RectangleF.Inflate(r, 1, 1);
-        using var lg = new LinearGradientBrush(rr, KimSang, KimNhat, 45f, true)
+        using var lg = new LinearGradientBrush(rr, M(KimSang), M(KimNhat), 45f, true)
         {
             InterpolationColors = new ColorBlend
             {
-                Colors = nhat ? new[] { KimSang, Kim, KimNhat } : new[] { KimSang, Kim, KimDam, KimNhat },
+                Colors = nhat ? new[] { M(KimSang), M(Kim), M(KimNhat) } : new[] { M(KimSang), M(Kim), M(KimDam), M(KimNhat) },
                 Positions = nhat ? new[] { 0f, 0.55f, 1f } : new[] { 0f, 0.38f, 0.72f, 1f },
             },
         };
@@ -598,7 +603,7 @@ internal static class VeNut
 {
     public static Padding LeBong => new(Clay.Si(3), Clay.Si(1), Clay.Si(3), Clay.Si(6));
 
-    public static void Ve(ButtonBase b, PaintEventArgs e, NhanNay nn, bool hover, KieuClay kieu, float bo, bool focusCue)
+    public static void Ve(ButtonBase b, PaintEventArgs e, NhanNay nn, bool hover, KieuClay kieu, float bo, bool focusCue, bool laChinh = false)
     {
         var g = e.Graphics;
         Clay.ChatLuong(g);
@@ -607,8 +612,9 @@ internal static class VeNut
         if (than.Width < 4 || than.Height < 4) return;
         var k = bo > 0 ? bo : Math.Min(Clay.S(20), than.Height / 2);
         var nen = b.BackColor.A == 0 ? Clay.The : b.BackColor;
-        // E «Ánh kim»: nút nền «chính» (Ngoc) đúc vàng kim, chữ navy — chỗ gọi vẫn đặt BackColor = UI.Green, ForeColor = trắng.
-        var kim = nen.ToArgb() == Clay.Ngoc.ToArgb();
+        // E «Ánh kim»: nút «chính» (cờ ClayButton.LaChinh, UI.Btn kiểu chính đặt) đúc vàng kim, chữ navy — CHỈ khi thật sự vẽ thân vàng (kiểu TuDong);
+        // nút navy tối bình thường (không cờ) vẫn là khối navy, Phang/Lom giữ ForeColor của chỗ gọi.
+        var kim = laChinh && kieu == KieuClay.TuDong;
         var toi = !kim && Clay.LaToi(nen);
         var nenToi = Clay.NenSauToi(b);
 
@@ -630,9 +636,9 @@ internal static class VeNut
         else
         {
             Clay.BongNut(g, than, k, toi ? Clay.Tron(nen, Color.Black, 0.5f) : null, nenToi);
-            if (kim) Clay.KhoiKim(g, than, k);
+            if (kim) Clay.KhoiKim(g, than, k, !b.Enabled);
             else if (toi) Clay.KhoiBong(g, than, k, nen);
-            else Clay.KhoiSang(g, than, k, nen, than.Width > Clay.S(80));
+            else Clay.KhoiSang(g, than, k, nen);
             if (hover && b.Enabled)
                 using (var p = Clay.Bo(than, k))
                 using (var br = new SolidBrush(Clay.A(toi ? 22 : kim ? 45 : 60, Color.White)))
@@ -646,7 +652,9 @@ internal static class VeNut
 
         // chữ + icon
         var mauChu = kim ? Clay.Chu : b.ForeColor;
-        if (!b.Enabled) mauChu = Clay.Tron(mauChu, nen, 0.45f);
+        if (!b.Enabled)
+            mauChu = kim ? Clay.Tron(Clay.Chu, Clay.Tron(Clay.Kim, Clay.Nen, 0.55f), 0.5f)   // chữ navy mờ trên thân vàng nhạt
+                         : Clay.Tron(mauChu, nen, 0.45f);
         var noi = new RectangleF(than.X + b.Padding.Left + Clay.S(8), than.Y, than.Width - b.Padding.Horizontal - Clay.S(16), than.Height);
         var hinh = b.Image;
         var coHinh = Math.Min(Clay.S(24), than.Height * 0.56f);
@@ -703,6 +711,11 @@ internal class ClayButton : Button
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public KieuClay Kieu { get => _kieu; set { _kieu = value; Invalidate(); } }
 
+    /// <summary>Nút «chính» (UI.Btn kiểu chính): thân vàng kim, chữ navy. Cờ tường minh — không suy từ BackColor (navy trùng nhiều token).</summary>
+    [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool LaChinh { get => _laChinh; set { _laChinh = value; Invalidate(); } }
+    private bool _laChinh;
+
     /// <summary>Bán kính bo (px); 0 = tự (≈20, tối đa nửa chiều cao).</summary>
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float BoGoc { get; set; }
@@ -735,7 +748,7 @@ internal class ClayButton : Button
         // ButtonBase đặt ControlStyles.Opaque ⇒ WinForms KHÔNG gọi OnPaintBackground; bộ đệm đôi dùng chung còn ảnh của control vẽ trước
         // (100%: chữ ma của nút khác quanh góc bo; 150%: đen). Gốc lỗi 25/10 ⇒ tự vẽ nền ngay đầu OnPaint.
         _nen.Ve(e);
-        VeNut.Ve(this, e, _nn, _hover, _kieu, BoGoc, ShowFocusCues);
+        VeNut.Ve(this, e, _nn, _hover, _kieu, BoGoc, ShowFocusCues, _laChinh);
     }
 
     protected override void Dispose(bool disposing)
@@ -1089,6 +1102,7 @@ internal static class PhongChu
     public const float NguongTieuDe = 15f;
     private const float HeSoThan = 0.92f, HeSoTieuDe = 0.95f;
 
+    private static readonly object _khoa = new();
     private static bool _daNap;
     private static PrivateFontCollection? _bo;   // giữ sống suốt tiến trình (Font tham chiếu FontFamily của nó)
     private static FontFamily? _than, _tieuDe;
@@ -1103,8 +1117,17 @@ internal static class PhongChu
 
     private static void Nap()
     {
-        if (_daNap) return;
-        _daNap = true;
+        if (Volatile.Read(ref _daNap)) return;
+        lock (_khoa)
+        {
+            if (_daNap) return;
+            NapKhoa();
+            Volatile.Write(ref _daNap, true);   // chỉ báo «đã nạp» SAU khi _than/_tieuDe/_moTa đã đủ: luồng khác không thấy trạng thái nửa vời
+        }
+    }
+
+    private static void NapKhoa()
+    {
         try
         {
             var bo = new PrivateFontCollection();

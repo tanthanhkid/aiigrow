@@ -264,7 +264,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         }
         if (m.SaoDong != null)
         {
-            var sao = new ChipClay(m.SaoDong, Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao")) { Font = UI.F(13.5f, FontStyle.Bold) };
+            var sao = new ChipClay(m.SaoDong, Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao"), kim: true) { Font = UI.F(13.5f, FontStyle.Bold) };
             sao.Height = UI.Px(40);
             sao.Width = TextRenderer.MeasureText(m.SaoDong, sao.Font).Width + UI.Px(56);
             sao.Margin = new Padding((w - sao.Width) / 2, UI.Px(_gon ? 6 : 14), 0, 0);

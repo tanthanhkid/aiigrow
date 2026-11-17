@@ -48,7 +48,7 @@ internal static class KhoiApp
     }
 
     /// <summary>Chip sao vàng «+10 sao» / «50 sao» (thiết kế «.sao»).</summary>
-    public static ChipClay ChipSao(string chu) => new(chu, Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao"));
+    public static ChipClay ChipSao(string chu) => new(chu, Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao"), kim: true);
 
     /// <summary>Chip «Chờ duyệt» (cam, chấm chờ) / «Đã nhận» (ngọc).</summary>
     public static ChipClay ChipCho(string chu) => new(chu, Clay.CanhSoft, Clay.Canh, null, chamCho: true);

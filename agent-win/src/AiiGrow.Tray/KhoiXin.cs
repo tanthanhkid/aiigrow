@@ -53,9 +53,9 @@ internal static class KhoiXin
     }
 
     /// <summary>Chip có icon 3D (vàng «Đang chờ Ba Mẹ», ngọc «Mẹ Lan đã thêm!»).</summary>
-    public static ChipClay Chip(string chu, Color nen, Color mau, string? icon)
+    public static ChipClay Chip(string chu, Color nen, Color mau, string? icon, bool kim = false)
     {
-        var c = new ChipClay(chu, nen, mau, icon != null ? Anh3D.Icon(icon) : null) { Font = UI.F(9.5f, FontStyle.Bold) };
+        var c = new ChipClay(chu, nen, mau, icon != null ? Anh3D.Icon(icon) : null, kim: kim) { Font = UI.F(9.5f, FontStyle.Bold) };
         c.Size = new Size(TextRenderer.MeasureText(chu, c.Font).Width + UI.Px(icon != null ? 42 : 24), UI.Px(32));
         c.Margin = new Padding(0, 0, 0, UI.Px(4));
         return c;

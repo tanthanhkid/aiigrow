@@ -7,13 +7,15 @@ $ErrorActionPreference = 'Stop'
 $goc = Join-Path $PSScriptRoot '../src'
 if (Test-Path $Ra) { Remove-Item -Recurse -Force $Ra }
 $utf8 = New-Object System.Text.UTF8Encoding $true
-$dem = @{ font = 0; uiF = 0; scale = 0 }
+$dem = @{ font = 0; uiF = 0; scale = 0; phong = 0; fontClay = 0 }
 foreach ($p in 'AiiGrow.Tray', 'AiiGrow.Setup') {
   $dich = Join-Path $Ra $p
   New-Item -ItemType Directory -Force $dich | Out-Null
   foreach ($f in Get-ChildItem (Join-Path $goc $p) -Filter *.cs) {
     $t = [IO.File]::ReadAllText($f.FullName)
     $n = ([regex]::Matches($t, [regex]::Escape('new Font('))).Count
+    if ($f.Name -eq 'Clay.cs' -and $p -eq 'AiiGrow.Tray') { $dem.fontClay += $n }   # PhongChu.Tao: 3 chỗ mã + 1 trong chú thích
+    if ($f.Name -eq 'UI.cs' -and $t.Contains('=> PhongChu.Tao(pt, st);')) { $dem.phong++ }   # UI.F phải đi qua PhongChu
     $dem.font += $n
     $t = $t.Replace('new Font(', 'global::AiiGrow.ChupMan.ChupDpi.Tao(')
     if ($t.Contains('=> new("Segoe UI", pt, st);')) {
@@ -28,4 +30,4 @@ foreach ($p in 'AiiGrow.Tray', 'AiiGrow.Setup') {
   }
 }
 Write-Host ("chuan-bi-nguon: new Font {0} chỗ, UI.F {1}, Clay.Scale {2} → {3}" -f $dem.font, $dem.uiF, $dem.scale, $Ra)
-if ($dem.uiF -gt 1 -or $dem.scale -ne 1 -or $dem.font -lt 5) { throw "chuan-bi-nguon: mẫu giả lập DPI không khớp mã nguồn (UI.F=$($dem.uiF), Clay.Scale=$($dem.scale), new Font=$($dem.font)) — sửa chup-man/chuan-bi-nguon.ps1" }
+if ($dem.uiF -gt 1 -or $dem.phong -ne 1 -or $dem.fontClay -ne 4 -or $dem.scale -ne 1 -or $dem.font -lt 5) { throw "chuan-bi-nguon: mẫu giả lập DPI không khớp mã nguồn (UI.F cũ=$($dem.uiF), UI.F→PhongChu=$($dem.phong), new Font trong Clay.cs=$($dem.fontClay), Clay.Scale=$($dem.scale), new Font=$($dem.font)) — sửa chup-man/chuan-bi-nguon.ps1" }

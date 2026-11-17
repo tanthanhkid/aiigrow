@@ -15,7 +15,7 @@ internal sealed class XinMoForm : Form
     private readonly TextBox _muc = new() { Font = UI.F(12f), MaxLength = XinMoView.MucToiDa, ForeColor = UI.Ink };
     private readonly TextBox _note = new() { Font = UI.F(11f), MaxLength = XinMoView.LoiNhanToiDa, ForeColor = UI.Ink, PlaceholderText = "Con cần mở để làm gì?" };
     private readonly Button _send = UI.Btn("Xin Ba Mẹ duyệt", true, UI.Px(380), "speech_balloon");
-    private readonly Label _msg = UI.Text("", 11f, true, UI.Green, UI.Px(380));
+    private readonly Label _msg = UI.Text("", 11f, true, UI.Success, UI.Px(380));
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
     private string? _pendingId, _tenCho;
     private bool _busy;
@@ -119,7 +119,7 @@ internal sealed class XinMoForm : Form
         if (_busy || _pendingId != null || muc == null) return;
         _busy = true;
         CapNhatNut();
-        _msg.ForeColor = UI.Green;
+        _msg.ForeColor = UI.Ink;   // «đang gửi» chưa phải thành công
         _msg.Text = "Đang gửi…";
         // 05/11 (L4): «Xin Ba Mẹ duyệt» qua xin-duyet — máy chủ tự xếp app / web; mất mạng ⇒ lưu, có mạng tự gửi.
         var res = await PipeClient.CallAsync(new PipeRequest
@@ -155,7 +155,7 @@ internal sealed class XinMoForm : Form
         if (kq == TrayView.KetQuaXin.Cho) return;
         _poll.Stop();
         _pendingId = null;
-        _msg.ForeColor = kq == TrayView.KetQuaXin.Duoc ? UI.Green : UI.Warn;
+        _msg.ForeColor = kq == TrayView.KetQuaXin.Duoc ? UI.Success : UI.Warn;
         _msg.Text = XinMoView.ThongBao(kq, _tenCho ?? "");
         CapNhatNut();
     }

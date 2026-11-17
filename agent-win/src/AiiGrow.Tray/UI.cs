@@ -11,6 +11,7 @@ internal static class UI
     public static readonly Color Green = Clay.Ngoc;          // chinh
     public static readonly Color GreenDark = Clay.NgocInk;   // chinhInk
     public static readonly Color GreenSoft = Clay.NgocSoft;  // chinhSoft
+    public static readonly Color Success = Clay.Xanh;        // thành công / đã kết nối (xanh lục E; Green = navy «chính» không phân biệt được với Ink): 5,2:1 trên Paper, 4,6:1 trên GreenSoft
     public static readonly Color Paper = Clay.Nen;           // nền trang
     public static readonly Color Card = Clay.The;            // thẻ / khối
     public static readonly Color Muted = Clay.Chu3;          // chu3
@@ -35,7 +36,8 @@ internal static class UI
             Height = Clay.Si(44) + VeNut.LeBong.Vertical,   // thân 44 (theo DPI) + lề bóng — không cắt chữ ở 150–200%
             Font = F(11.5f, FontStyle.Bold),
             BackColor = primary ? Green : Card,
-            ForeColor = primary ? Color.White : Ink,
+            ForeColor = primary ? Clay.Chu : Ink,   // chính: chữ navy trên thân vàng kim
+            LaChinh = primary,
         };
         if (icon != null) b.Image = Fluent(icon);
         return b;
