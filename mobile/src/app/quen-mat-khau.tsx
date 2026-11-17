@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { CanGiup, CanhRob, DauMan, demNguoc, OLom, OLomTran, TieuDe } from "@/lib/lan-dau";
+import { CanGiup, CanhRob, DauMan, demNguoc, OLom, OLomTran, TieuDe, useOSo } from "@/lib/lan-dau";
 import { Bao, BaoLoi, Chu, Icon, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
 import { BONG } from "@/lib/clay";
 
@@ -19,6 +19,7 @@ export default function QuenMatKhau() {
   const [mk, setMk] = useState("");
   const [mk2, setMk2] = useState("");
   const [con, setCon] = useState(0);
+  const oSo = useOSo(dd, (v) => { setDd(v); setGui(null); });
   const { vao } = usePhien();
   const { lam, loi, dangChay, setLoi } = useLam();
   useEffect(() => { const t = setInterval(() => setCon((x) => Math.max(0, x - 1)), 1000); return () => clearInterval(t); }, []);
@@ -37,9 +38,9 @@ export default function QuenMatKhau() {
   });
   if (buoc2) {
     return (
-      <Man dau={<DauMan bamLui={() => setBuoc2(false)} phai={<CanGiup />} />}
+      <Man dau={<DauMan bamLui={() => setBuoc2(false)} giua={<VachBuoc dang={2} />} phai={<CanGiup />} />}
         day={<><BaoLoi loi={loi} /><Nut chu="Lưu mật khẩu và vào app" rong dangChay={dangChay} tat={!khop} bam={luu} /></>}>
-        <CanhRob lv="xong" ic="mo_khoa" tieu="Gần xong rồi! Chọn mật khẩu mới nhé." cao={200} />
+        <CanhRob lv="xong" ic="mo_khoa" tieu="Mã đúng rồi! Chọn mật khẩu mới nhé." cao={200} />
         <TieuDe chu="Đặt mật khẩu mới" giua />
         <OLom nhan="Mật khẩu mới" ghi="Ít nhất 8 ký tự" matKhau value={mk} onChangeText={setMk} autoComplete="new-password" textContentType="newPassword" />
         <OLom nhan="Nhập lại mật khẩu mới" ghi={mk2 ? (khop ? "Đã khớp" : "Chưa khớp") : undefined} ghiOk={khop} matKhau value={mk2} onChangeText={setMk2} autoComplete="new-password" />
@@ -47,13 +48,13 @@ export default function QuenMatKhau() {
     );
   }
   return (
-    <Man dau={<DauMan ve="/dang-nhap" phai={<CanGiup />} />}
+    <Man dau={<DauMan ve="/dang-nhap" giua={<VachBuoc dang={1} />} phai={<CanGiup />} />}
       day={<><BaoLoi loi={loi} /><Nut chu="Xác nhận mã" rong tat={!gui || ma.length < 6} bam={() => setBuoc2(true)} /></>}>
       <CanhRob lv="so-tay" ic="khoa" tieu="Đừng lo, Grow giúp lấy lại nè!" cao={200} />
       <TieuDe chu="Quên mật khẩu" giua />
       <SoBuoc n={1} chu="Nhập số đã đăng ký, bấm Gửi mã" />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 }}>
-        <View style={{ flex: 1 }}><OLomTran value={dd} onChangeText={(t) => { setDd(t); setGui(null); }} /></View>
+        <View style={{ flex: 1 }}><OLomTran {...oSo} /></View>
         {gui ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: M.chinh, borderRadius: 20, paddingHorizontal: 12, height: 40, boxShadow: BONG.ngoc }}>
             <Icon ten="tick" mau="#fff" co={14} /><Chu kieu="rat" co={13} mau="#fff">Đã gửi mã</Chu>
@@ -77,5 +78,12 @@ const SoBuoc = ({ n, chu }: { n: number; chu: string }) => (
   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
     <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}><Chu kieu="rat" co={12} mau="#fff">{n}</Chu></View>
     <Chu kieu="rat" co={14}>{chu}</Chu>
+  </View>
+);
+
+/** Vạch tiến độ 2 bước ở giữa thanh đầu (bàn them-2g3zpiie v4 / them-6aomy24b v8): bước đã tới vạch ngọc, bước sau vạch xám. */
+const VachBuoc = ({ dang }: { dang: 1 | 2 }) => (
+  <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang} trên 2`}>
+    {[1, 2].map((i) => <View key={i} style={{ width: 22, height: 5, borderRadius: 3, backgroundColor: i <= dang ? M.chinh : "#d4d5d1" }} />)}
   </View>
 );

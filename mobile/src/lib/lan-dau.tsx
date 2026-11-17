@@ -35,7 +35,8 @@ export function ThanhBuoc({ dang, ic }: { dang: number; /** đổi icon bước 
 }
 
 /** Hàng đầu màn: nút lùi (mũi tên) bên trái + phần phải (thanh bước / «Cần giúp?»). `ve` = đường thay khi không lùi được. */
-export function DauMan({ ve, phai, khongLui, bamLui, tieu }: { ve?: string; phai?: ReactNode; khongLui?: boolean; bamLui?: () => void; /** tiêu đề cạnh nút lùi */ tieu?: string }) {
+export function DauMan({ ve, phai, khongLui, bamLui, tieu, giua }: { ve?: string; phai?: ReactNode; khongLui?: boolean; bamLui?: () => void; /** tiêu đề cạnh nút lùi */ tieu?: string;
+  /** khối giữa thanh đầu (vd vạch tiến độ 2 bước — bàn them-2g3zpiie) */ giua?: ReactNode }) {
   const lui = () => (bamLui ? bamLui() : router.canGoBack() ? router.back() : router.replace((ve ?? "/") as never));
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8, paddingRight: 16, minHeight: 52 }}>
@@ -45,6 +46,7 @@ export function DauMan({ ve, phai, khongLui, bamLui, tieu }: { ve?: string; phai
         </Pressable>
       )}
       {tieu ? <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, minWidth: 0, fontFamily: F.rat, fontSize: 22, color: M.chu, letterSpacing: -0.4 }}>{tieu}</Text> : null}
+      {giua ? <View style={{ flex: 1, alignItems: "center" }}>{giua}</View> : null}
       {phai}
     </View>
   );
@@ -166,7 +168,8 @@ export function OLom({ nhan, ghi, ghiOk, matKhau, ...p }: TextInputProps & { nha
       </View>
       <View style={[{ flexDirection: "row", alignItems: "center", minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 },
         dang && { boxShadow: `${BONG.lom}, 0px 0px 0px 2px ${M.chinh}` }]}>
-        <TextInput placeholderTextColor={M.chu3} accessibilityLabel={nhan} secureTextEntry={matKhau && an} onFocus={() => setDang(true)} onBlur={() => setDang(false)} {...p}
+        <TextInput placeholderTextColor={M.chu3} accessibilityLabel={nhan} secureTextEntry={matKhau && an} {...p}
+          onFocus={(e) => { setDang(true); p.onFocus?.(e); }} onBlur={(e) => { setDang(false); p.onBlur?.(e); }}
           style={{ flex: 1, minWidth: 0, fontFamily: F.dam, fontSize: 17, color: M.chu, paddingVertical: 12, outlineStyle: "none" } as never} />
         {matKhau ? (
           <Pressable onPress={() => setAn((x) => !x)} accessibilityRole="button" accessibilityLabel={an ? "Hiện mật khẩu" : "Ẩn mật khẩu"} hitSlop={6}
@@ -195,8 +198,21 @@ export const LienKet = ({ chu, bam, gach }: { chu: string; bam: () => void; gach
 // ---------------------------------------------------------------- ghép máy: mã to, chia sẻ, 3 bước
 
 /** «482017» ⇒ «482 017». */
+/** Ô nhập số / email: chữ chỉ gồm số và dấu cách ⇒ bỏ dấu cách (giá trị gửi máy chủ là số liền); email giữ nguyên. */
+export const boCach = (v: string) => (/^[\d\s+]*$/.test(v) ? v.replace(/\s/g, "") : v);
 /** «0912345678» ⇒ «0912 345 678» (số 10 chữ số; dạng khác — email, +84… — giữ nguyên). */
 export const hienSo = (s = "") => (/^\d{10}$/.test(s) ? s.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : s);
+/** Ô nhập SĐT/email: lúc đang gõ giữ nguyên chữ người dùng (không dựng lại ⇒ xoá dấu cách được, con trỏ không nhảy); rời ô mới tách
+ * «0912 345 678». Giá trị lưu luôn là `boCach(chữ)`. Trả props cho TextInput / OLom / OLomTran. */
+export function useOSo(gia: string, doi: (v: string) => void) {
+  const [dangGo, setDangGo] = useState<string | null>(null);
+  return {
+    value: dangGo ?? hienSo(gia),
+    onChangeText: (t: string) => { setDangGo(t); doi(boCach(t)); },
+    onFocus: () => setDangGo(hienSo(gia)),
+    onBlur: () => setDangGo(null),
+  };
+}
 export const hienMa = (ma: string) => (ma.length === 6 ? `${ma.slice(0, 3)} ${ma.slice(3)}` : ma);
 /** «https://aiigrow.aiilab.vn/tai?g=…» ⇒ «aiigrow.aiilab.vn/tai» (chữ ngắn trên màn). */
 export const linkNgan = (lienKet: string) => lienKet.replace(/^https?:\/\//, "").replace(/\?.*$/, "");

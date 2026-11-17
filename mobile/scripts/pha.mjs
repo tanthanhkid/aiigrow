@@ -605,8 +605,16 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-otp", "/otp", "Nhập mã xác thực", { truoc: dangKyToiOtp }),
     // đúng ca bàn bm1-otp v7: đã gõ «4820», ô thứ 5 đang chọn
     M("bm-otp (đang gõ · bm1-otp)", "/otp", "Nhập mã xác thực", { truoc: async () => { await dangKyToiOtp(); await doi("Nhập mã xác thực"); await go("Mã xác thực 6 số", "4820"); } }),
-    M("dang-nhap", "/dang-nhap", "Chào Ba Mẹ!", { token: null }),
+    M("dang-nhap", "/dang-nhap", "Chào Ba Mẹ!", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } } }),
     M("bm-quen-mat-khau", "/quen-mat-khau", "Quên mật khẩu", { token: null }),
+    // đúng ca bàn: them-2g3zpiie v4 đã gửi mã + gõ «482»; them-6aomy24b v8 hai ô mật khẩu đã khớp
+    M("bm-quen-mat-khau (đã gửi mã · them-2g3zpiie)", "/quen-mat-khau", "Đã gửi mã", { token: null, truoc: async () => { await di("/quen-mat-khau", null); await doi("Quên mật khẩu");
+      await go("Số điện thoại", "0912345678"); await sleep(200); await bam("Gửi mã"); await doi("Đã gửi mã"); await go("Mã xác thực 6 số", "482"); } }),
+    M("bm-dat-mat-khau (đã khớp · them-6aomy24b)", "/quen-mat-khau", "Đã khớp", { token: null, truoc: async () => { await di("/quen-mat-khau", null); await doi("Quên mật khẩu");
+      await go("Số điện thoại", "0912345678"); await sleep(200); await bam("Gửi mã"); await doi("Đã gửi mã"); await go("Mã xác thực 6 số", "482017"); await sleep(200);
+      await bam("Xác nhận mã"); await doi("Đặt mật khẩu mới"); await go("Mật khẩu mới", "matkhau456"); await go("Nhập lại mật khẩu mới", "matkhau456"); } }),
+    M("dang-nhap (đã điền · bm1-dang-nhap)", "/dang-nhap", "Đăng nhập vào nhà mình", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } }, truoc: async () => { await di("/dang-nhap", null); await doi("Chào Ba Mẹ!");
+      await go("Số điện thoại", "0912345678"); await go("Mật khẩu", "matkhau123"); } }),
     // máy chủ báo bật Google / Facebook (nút chỉ hiện khi bản dựng có EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID / EXPO_PUBLIC_FACEBOOK_APP_ID — bm1-chao)
     M("bm-tao-tai-khoan", "/tao-tai-khoan", "Tạo tài khoản", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } } }),
     M("bm-ob-con", "/thiet-lap/ten-con", "Tên gọi ở nhà"),
