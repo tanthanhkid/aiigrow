@@ -1,11 +1,12 @@
 // bm2-admin-ho-tro «Hộp thư hỗ trợ» (thiết kế chốt 14/11 bm-cai-dat/13): quản trị AiiGrow (Ba Mẹ có cờ admin, máy chủ kiểm lại ở /api/m/admin/ho-tro).
 // Huy hiệu «N chờ» (soCho), tab lọc «Chờ trả lời / Đã trả lời / Của tôi» ⇒ GET admin/ho-tro?loc=cho|da_tra_loi|cua_toi (PR #253 — lọc trong SQL),
-// tab Chờ chia «Gấp N» (chờ ≥ 30′ — `gap`, đếm `soGap`) và «Đang chờ N»; mỗi gia đình một thẻ: người gửi («Bà Hoa»), nhà, tin, «Chờ 42′» (`cho_phut`) → chat.
+// tab Chờ chia «Gấp N» (chờ ≥ 30′ — `gap`, đếm `soGap`) và «Đang chờ N»; mỗi gia đình một dòng: người gửi («Bà Hoa»), nhà, tin, «Chờ 42′» (`cho_phut`) → chat.
+// #325 (bàn bm2-admin-ho-tro@v3): tiêu đề lớn + viên cam «N chờ» (cam đậm #bd520a thay #e2660f của bàn — chữ trắng 13 cần tương phản ≥ 4.5); mỗi nhóm MỘT thẻ, dòng cách vạch mảnh (avatar 44 · tên · «nhà …» đậm · tin 1 dòng);
+// nhãn «Chờ 42′» đỏ khi gấp / đào khi thường; số cạnh «Gấp» đỏ, cạnh «Đang chờ» xám.
 import { useEffect, useState } from "react";
-import { BackHandler, View } from "react-native";
-import { TheDong } from "@/lib/ui-bm3";
+import { BackHandler, Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
-import { TieuMuc } from "@/lib/hang-ngay";
+import { KHOI } from "@/lib/clay";
 import { cauCho, chiaHopThu, LOC_HO_TRO, type DongHoTro, type HopThu, type LocHoTro } from "@/lib/noi-1411";
 import { Avt, BaoLoi, BongChat, CanhGiua, ChoTai, ChonMot, Chu, gioPhut, M, MAU_CON, Man, OChat, useLam, useTai } from "@/lib/ui";
 
@@ -38,40 +39,58 @@ function HopThuLoc({ loc, setLoc, chon }: { loc: LocHoTro; setLoc: (v: LocHoTro)
     : loc === "da_tra_loi" ? tho.filter((x) => !x.chua_tra_loi) : tho.filter((x) => x.cua_toi);
   const soCho = d?.soCho ?? tho.filter((x) => x.chua_tra_loi).length;
   const { gap, dangCho } = chiaHopThu(ds);
-  const the = (x: Dong1, i: number) => {
+  const dong = (x: Dong1, i: number, k: number) => {
     const p = phutCho(x), g = !!x.gap && p !== null;
     const tieu = x.nguoi_gui || x.ten;
     return (
-      <TheDong key={x.family_id} vach={g ? M.loi : undefined} trai={<Avt ten={tieu} mau={MAU_CON[i % MAU_CON.length]} />} tieu={tieu}
-        phu={`${x.nguoi_gui ? `${x.ten} · ` : ""}${x.tu === "aiilab" ? "AiiGrow: " : ""}${x.noi_dung}`} bam={() => chon(x)}
-        phai={<View style={{ alignItems: "flex-end", gap: 6 }}>
+      <Pressable key={x.family_id} onPress={() => chon(x)} accessibilityRole="button" accessibilityLabel={`${tieu}, ${x.ten}${p !== null ? `, ${cauCho(p)}` : ""}`}
+        style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 76, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
+        <Avt ten={tieu} mau={MAU_CON[i % MAU_CON.length]} co={44} />
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
+          {x.nguoi_gui ? <Chu kieu="rat" co={12.5} mau="#3a403d" dong={1}>{x.ten.replace(/^Nhà /, "nhà ")}</Chu> : null}
+          <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}>{`${x.tu === "aiilab" ? "AiiGrow: " : ""}${x.noi_dung}`}</Chu>
+        </View>
+        <View style={{ alignItems: "flex-end", gap: 4 }}>
           {p !== null ? (
-            <View style={{ paddingHorizontal: 9, paddingVertical: 3, borderRadius: 10, backgroundColor: g ? M.loi : M.canhSoft }}>
-              <Chu kieu="rat" co={12} mau={g ? "#fff" : M.canh}>{cauCho(p)!}</Chu>
+            <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: g ? "#b42318" : "#f9e7d2" }}>
+              <Chu kieu="rat" co={12.5} mau={g ? "#fff" : "#8a3c0c"}>{cauCho(p)!}</Chu>
             </View>
           ) : <Chu kieu="dam" co={12} mau={M.chu3}>{gioPhut(x.created_at)}</Chu>}
-          <Chu kieu="rat" co={13} mau={M.chinhInk}>Mở chat ›</Chu>
-        </View>} />
+          <View style={{ minHeight: 30, justifyContent: "center" }}><Chu kieu="rat" co={13.5} mau={M.chinhInk}>Mở chat ›</Chu></View>
+        </View>
+      </Pressable>
     );
   };
+  const nhom = (ds: Dong1[], dau: number) => (
+    <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>{ds.map((x, k) => dong(x, dau + k, k))}</View>
+  );
   return (
-    <Man lui={{ chu: "" }} tieu="Hộp thư hỗ trợ" tai={tai} vongTai
-      phai={soCho ? <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: M.canhSoft }}><Chu kieu="rat" co={13} mau={M.canh}>{`${soCho} chờ`}</Chu></View> : undefined}>
+    <Man tieuLon="Hộp thư hỗ trợ" tai={tai} vongTai
+      phaiTieu={soCho ? <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: "#bd520a" }}><Chu kieu="rat" co={13} mau="#fff">{`${soCho} chờ`}</Chu></View> : undefined}>
       {/* máy chủ cũ không biết «Của tôi» ⇒ ẩn tab đó */}
       <ChonMot ds={LOC_HO_TRO.filter((x) => !cu || x.gia !== "cua_toi").map((x) => ({ gia: x.gia, chu: x.chu }))} gia={loc} doi={setLoc} />
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : !ds.length ? (
         <CanhGiua lv="canh-trong" tieu={loc === "cho" ? "Đã trả lời hết" : loc === "cua_toi" ? "Bạn chưa trả lời ai" : "Chưa có tin nào"} loi="Khi gia đình nhắn AiiGrow, tin hiện ở đây." />
       ) : loc === "cho" ? (
-        <View style={{ gap: 10 }}>
-          {gap.length ? <TieuMuc chu="Gấp" so={d.soGap ?? gap.length} /> : null}
-          {gap.map(the)}
-          {dangCho.length ? <TieuMuc chu="Đang chờ" so={dangCho.length} /> : null}
-          {dangCho.map((x, i) => the(x, gap.length + i))}
+        <View style={{ gap: 8 }}>
+          {gap.length ? <><MucHop chu="Gấp" so={d.soGap ?? gap.length} gap />{nhom(gap, 0)}</> : null}
+          {dangCho.length ? <><MucHop chu="Đang chờ" so={dangCho.length} />{nhom(dangCho, gap.length)}</> : null}
         </View>
-      ) : (
-        <View style={{ gap: 10 }}>{ds.map(the)}</View>
-      )}
+      ) : nhom(ds, 0)}
     </Man>
+  );
+}
+
+/** Đầu nhóm (bàn `.muc`): chữ 15/800 + số trong viên — đỏ cho «Gấp», xám cho «Đang chờ». */
+function MucHop({ chu, so, gap }: { chu: string; so: number; gap?: boolean }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, marginHorizontal: 6 }}>
+      <Chu kieu="rat" co={15} mau="#3a403d">{chu}</Chu>
+      <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: gap ? "#b42318" : "#ecebe7" }}>
+        <Chu kieu="rat" co={12} mau={gap ? "#fff" : "#3a403d"} so>{String(so)}</Chu>
+      </View>
+    </View>
   );
 }
 

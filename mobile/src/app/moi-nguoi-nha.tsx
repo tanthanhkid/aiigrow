@@ -6,8 +6,11 @@
 // #325 (bàn them-5hzkl6p5@v7 = them-0uobhmvh, them-hfd2drjy@v9 = them-wewdno56): số điện thoại hiện «0909 876 543»; nút gửi icon 3D; «Đã mời» có ô sân
 // ngọc (Grow + dấu tick), viên cam «Đang chờ … bấm vào», chỉ «Xong, về Cả nhà» + «Huỷ lời mời» (gửi link nằm ở «… chưa có app?»).
 // `?moi=<id>`: mở «Đã mời» của lời mời đang chờ (tab Cả nhà: chạm hàng «Chưa nhận lời mời» / «Gửi lại» — data-toi them-hfd2drjy).
+// #325 bm-cai-dat (bàn them-mflye65x@v6 «B3 Đã mời, <tên> chưa có app»): «… chưa có app? Xem cách gửi link» tạo lời mời rồi mở màn «Mời <tên>» —
+// Grow «<tên> chưa có app, gửi link nha!», «<tên> chưa có AiiGrow», thẻ «Tin sẽ gửi cho <tên>» (câu + link mời thật của máy chủ), «Gửi link cho <tên> qua
+// Zalo» / «Gửi bằng SMS hoặc email» (cùng mở hàng chia sẻ của máy). Lùi ⇒ «Đã mời» (lời mời đã tạo, huỷ ở đó).
 import { useState } from "react";
-import { Pressable, Share, TextInput, View } from "react-native";
+import { Pressable, Share, TextInput, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
 import { type DsThanhVien, type Quyen, type ToiCaNha } from "@/lib/ca-nha";
@@ -43,6 +46,9 @@ export default function MoiNguoiNha() {
   const [ten, setTen] = useState("");
   const quyen: Quyen = "ba_me";
   const [kq, setKq] = useState<KqMoi | null>(null);
+  const [guiLinkMo, setGuiLinkMo] = useState(false);     // màn «Mời <tên>» (B3) sau «… chưa có app?»
+  // bề ngang ô sân B3 (màn trừ lề 16 hai bên, tối đa như khung 390): bong bóng ≤ 52 %, Grow co lại cho vừa phần còn lại — màn hẹp không đè chữ
+  const rongSan = Math.min(useWindowDimensions().width, 390) - 32;
   const { lam, loi, dangChay } = useLam();
   const ve = () => veHoac("/cai-dat");
   const sach = cach === "sdt" ? chuanSdt(dd) : dd.trim();
@@ -59,17 +65,62 @@ export default function MoiNguoiNha() {
     setKq(r);
   });
   const chiaSe = (r: KqMoi | null = kq) => r && Share.share({ title: r.chiaSe.tieuDe, message: r.chiaSe.noiDung }).catch(() => {});
-  // «<tên> chưa có app? Xem cách gửi link»: gửi lời mời rồi mở luôn hàng chia sẻ (Zalo, Tin nhắn…) với link mời
+  // «<tên> chưa có app? Xem cách gửi link»: gửi lời mời rồi sang màn «Mời <tên>» (B3) — nút ở đó mở hàng chia sẻ (Zalo, Tin nhắn, email…)
   const guiLink = () => lam(async () => {
     const r = await bm.goi<KqMoi>("thanh-vien/moi", { dinhDanh: sach, quyen, tenGoi: ten.trim() || undefined });
     setKq(r);
-    chiaSe(r);
+    setGuiLinkMo(true);
   });
   const daMoi = kq ?? d?.cho ?? null;
   const huy = () => lam(async () => {
     if (daMoi) await bm.goi(`thanh-vien/moi/${daMoi.id}/huy`, {});
     ve();
   });
+
+  if (kq && guiLinkMo) {
+    const ai = kq.tenGoi || kq.dinhDanh || "người nhà";
+    const lk = kq.chiaSe.lienKet;
+    // câu máy chủ soạn («… Bấm để vào nhà: <link>») — link hiện riêng ở thẻ dưới
+    const cau = kq.chiaSe.noiDung.replace(lk, "").replace(/[\s:]+$/, "") + ".";
+    return (
+      <Man lui={{ chu: "", bam: () => setGuiLinkMo(false) }} tieu={`Mời ${ai}`} day={<>
+        <Nut chu={`Gửi link cho ${ai} qua Zalo`} ic="chia_se" rong bam={() => chiaSe()} />
+        <Pressable onPress={() => chiaSe()} accessibilityRole="button" style={{ minHeight: 46, alignItems: "center", justifyContent: "center" }}>
+          <Chu kieu="rat" co={15} mau={M.chinhInk}>Gửi bằng SMS hoặc email</Chu>
+        </Pressable>
+      </>}>
+        {/* bàn .san: ô ngọc cao 196, bong bóng trắng trái (15/20, chữ ≤ 170), Grow «chỉ» 170 tràn mép phải-dưới */}
+        <View style={[{ height: 196, borderRadius: 36, overflow: "hidden", backgroundColor: "#e2efea", backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)" }, KHOI.the]}>
+          <View style={{ position: "absolute", right: -4, bottom: -24 }}><Rob ten="chi" co={Math.min(170, Math.round(rongSan * 0.48) - 8)} /></View>
+          <View style={{ position: "absolute", left: 18, top: 30, maxWidth: Math.min(202, Math.round(rongSan * 0.52)), paddingVertical: 11, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#fff", boxShadow: BONG.nho }}>
+            <Chu kieu="dam7" co={15} style={{ lineHeight: 20 }}>{`${ai} chưa có app, gửi link nha!`}</Chu>
+          </View>
+        </View>
+        <View style={{ alignItems: "center", gap: 6, marginTop: 4 }}>
+          <Chu kieu="rat" co={26} style={{ textAlign: "center", letterSpacing: -0.5, lineHeight: 32 }}>{`${ai} chưa có AiiGrow`}</Chu>
+          <Chu co={15} mau="#3a403d" style={{ textAlign: "center", lineHeight: 21 }}>{`${ai} bấm link, tải app và đăng ký\nlà vào nhà ngay.`}</Chu>
+        </View>
+        {/* bàn .zalo: thẻ «Tin sẽ gửi cho <tên>» — bong bóng ngọc nhạt + thẻ link trắng (icon nhà, «<Ba Mẹ> mời bạn vào nhà», địa chỉ link) */}
+        <View style={[{ padding: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Avt ten={d?.toi ?? "Ba Mẹ"} mau="#e98aa6" co={28} />
+            <Chu kieu="rat" co={13} mau="#3a403d">{`Tin sẽ gửi cho ${ai}`}</Chu>
+          </View>
+          <View style={{ marginTop: 8, marginLeft: 36, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderTopLeftRadius: 4, backgroundColor: "#dcebe6", gap: 8 }}>
+            <Chu co={14} style={{ lineHeight: 19 }}>{cau}</Chu>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: 14, backgroundColor: "#fff" }}>
+              <Icon3D ten="nha" co={36} />
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Chu kieu="rat" co={14} dong={1}>{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
+                <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}>{lk.replace(/^https?:\/\//, "").split("?")[0]}</Chu>
+              </View>
+            </View>
+          </View>
+        </View>
+        <BaoLoi loi={loi} />
+      </Man>
+    );
+  }
 
   if (daMoi) {
     const ai = daMoi.tenGoi || daMoi.dinhDanh || "người nhà";

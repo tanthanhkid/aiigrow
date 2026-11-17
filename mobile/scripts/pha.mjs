@@ -882,6 +882,11 @@ if (process.argv.includes("--giao-dien")) {
     M("cn 2ru3t5iw", "/thong-bao/cai-dat", "Giờ yên lặng", { kb: BAN_CA_NHA }),
     M("cn zxu4yvp3", "/hoi-aiigrow", "Ba Mẹ hay hỏi", { kb: BAN_CA_NHA }),
     M("cn dmdjjhh1", "/ho-tro", "làm sao vậy?", { kb: { ...BAN_CA_NHA, "GET ho-tro": BAN_HO_TRO } }),
+    M("cd 0uobhmvh", "/moi-nguoi-nha", "làm được như bạn", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được như bạn");
+      await go("Số điện thoại người được mời", "0909876543"); await go("Gọi là gì trong nhà", "Ba Tuấn"); await sleep(300); } }),
+    M("cd mflye65x", "/moi-nguoi-nha", "Tin sẽ gửi cho Ba Tuấn", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được như bạn");
+      await go("Số điện thoại người được mời", "0909876543"); await go("Gọi là gì trong nhà", "Ba Tuấn"); await sleep(200); await bam("Ba Tuấn chưa có app? Xem cách gửi link"); } }),
+    M("cd admin-ho-tro", "/admin-ho-tro", "Đang chờ"),
     M("bm-cai-dat", "/cai-dat", "Người lớn trông con"),
     M("bm-cai-dat (xoá tài khoản)", "/tai-khoan", "Xoá tài khoản của tôi", { kb: { "GET thanh-vien": TV_MOT_MINH, "GET tuan-thu": { ds: [] } }, truoc: moXoaTk }),
     M("bm-cai-dat (xoá: còn máy)", "/tai-khoan", "Xem các máy", { kb: { "GET thanh-vien": TV_MOT_MINH }, truoc: moXoaTk }),
