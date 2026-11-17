@@ -57,14 +57,14 @@ export default function DaGhep() {
   const loaiMay = d?.m ? (chung ? "Máy tính" : LOAI[d.m.nen] ?? "Máy") : "Máy";
   const goiY = chung ? ["Máy phòng khách", "Máy tính chung"] : [`${loaiMay} phòng khách`];
   const oLuat = (ic: TenIcon, so: string, nhan: string) => (
-    <View style={[{ flex: 1, minHeight: 80, borderRadius: 24, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 8 }, KHOI.the]}>
+    <View style={[{ flex: 1, minHeight: 80, borderRadius: 24, backgroundColor: M.the, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 8 }, KHOI.the]}>
       <Icon3D ten={ic} co={26} />
-      <Chu kieu="rat" co={16} so dong={1}>{so}</Chu><Chu kieu="dam7" co={12} mau="#565c59" dong={1}>{nhan}</Chu>
+      <Chu kieu="rat" co={16} so dong={1}>{so}</Chu><Chu kieu="dam7" co={12} mau={M.chu3} dong={1}>{nhan}</Chu>
     </View>
   );
   const chip = (chu: string, bam: () => void, phu?: string) => (
-    <Pressable key={chu} onPress={bam} accessibilityRole="button" style={{ minHeight: 40, paddingHorizontal: 13, borderRadius: 20, backgroundColor: "#fff", justifyContent: "center", ...KHOI.nho }}>
-      <Chu kieu="rat" co={13} mau="#3a403d">{phu ? <Chu kieu="rat" co={13} mau="#565c59">{`${phu} `}</Chu> : null}{chu}</Chu>
+    <Pressable key={chu} onPress={bam} accessibilityRole="button" style={{ minHeight: 40, paddingHorizontal: 13, borderRadius: 20, backgroundColor: M.the, justifyContent: "center", ...KHOI.nho }}>
+      <Chu kieu="rat" co={13} mau={M.chu2}>{phu ? <Chu kieu="rat" co={13} mau={M.chu3}>{`${phu} `}</Chu> : null}{chu}</Chu>
     </Pressable>
   );
   return (
@@ -73,7 +73,7 @@ export default function DaGhep() {
         <LienKet chu="+ Ghép thêm máy khác" bam={() => router.push({ pathname: "/may/them", params: con ? { con } : {} })} /></>}>
       {/* máy (khung than chì) + Grow «xong» + dấu tick 3D */}
       <View style={{ alignItems: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={{ width: 120, height: 128, borderRadius: 24, borderWidth: 8, borderColor: "#1d2321", backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+        <View style={{ width: 120, height: 128, borderRadius: 24, borderWidth: 8, borderColor: "#1d2321", backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
           <Rob ten="xong" co={104} />
         </View>
         <View style={{ position: "absolute", top: -10, left: "50%", marginLeft: 36 }}><Icon3D ten="tick" co={52} /></View>
@@ -85,9 +85,9 @@ export default function DaGhep() {
         <Chu kieu="rat" co={13.5} mau={M.chinhInk} style={{ textAlign: "center" }}>{chung ? `Dùng chung ${d?.conDs.length} bé · mỗi bé chọn tên + PIN để vào` : "Máy con đã nhận luật · giờ đặt tên cho dễ nhận"}</Chu>
       </View>
       {d?.m ? (
-        <View style={[{ padding: 16, borderRadius: 28, backgroundColor: "#f7f6f3", gap: 8 }, KHOI.the]}>
-          <Chu kieu="rat" co={14} mau="#3a403d" style={{ marginHorizontal: 6 }}>Tên máy Ba Mẹ sẽ thấy</Chu>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, paddingLeft: 10, paddingRight: 4, borderRadius: 26, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+        <View style={[{ padding: 16, borderRadius: 28, backgroundColor: M.the, gap: 8 }, KHOI.the]}>
+          <Chu kieu="rat" co={14} mau={M.chu2} style={{ marginHorizontal: 6 }}>Tên máy Ba Mẹ sẽ thấy</Chu>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, paddingLeft: 10, paddingRight: 4, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
             <Icon3D ten={hinhMay(d.m.nen, chung)} co={30} />
             <TextInput ref={o} value={tenMay} onChangeText={(t) => setTenMoi(t.slice(0, 80))} accessibilityLabel="Tên máy" placeholder="VD: Laptop của Bảo Anh" autoCapitalize="sentences"
               style={{ flex: 1, minWidth: 0, fontFamily: F.rat, fontSize: 17, color: M.chu, paddingVertical: 8 }} />
@@ -96,8 +96,8 @@ export default function DaGhep() {
             </Pressable>
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", columnGap: 8, marginHorizontal: 6 }}>
-            {goc ? <Chu kieu="dam7" co={12} mau="#565c59">{`Tên gốc: ${goc}`}</Chu> : null}
-            {ten ? <Chu kieu="rat" co={12} mau={trung ? "#8a3c0c" : M.chinhInk}>{trung ? `! Trùng tên ${trung.ten}` : "✓ Chưa trùng máy nào trong nhà"}</Chu> : null}
+            {goc ? <Chu kieu="dam7" co={12} mau={M.chu3}>{`Tên gốc: ${goc}`}</Chu> : null}
+            {ten ? <Chu kieu="rat" co={12} mau={trung ? M.canh : M.chinhInk}>{trung ? `! Trùng tên ${trung.ten}` : "✓ Chưa trùng máy nào trong nhà"}</Chu> : null}
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
             {!chung && ten && !/phòng ngủ$/.test(ten) ? chip("· phòng ngủ", () => setTenMoi(`${ten} phòng ngủ`), "Thêm") : null}
@@ -110,12 +110,12 @@ export default function DaGhep() {
           {d!.conDs.map((c, k) => {
             const s = d!.sao(c.id);
             return (
-              <View key={c.id} style={[{ flexGrow: 1, flexBasis: "45%", minHeight: 80, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 24, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+              <View key={c.id} style={[{ flexGrow: 1, flexBasis: "45%", minHeight: 80, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 24, backgroundColor: M.the }, KHOI.the]}>
                 <AvtCon c={c} co={36} />
                 <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                   <Chu kieu="rat" co={15} dong={1}>{tenGoi(c.ten)}</Chu>
                   {s != null ? <SaoNho n={s} /> : null}
-                  <Chu kieu="dam7" co={12} mau="#565c59" dong={1}>{cheDoTu(d!.tl[k]) === "mo_het" ? "Mở hết" : "Theo danh sách"}</Chu>
+                  <Chu kieu="dam7" co={12} mau={M.chu3} dong={1}>{cheDoTu(d!.tl[k]) === "mo_het" ? "Mở hết" : "Theo danh sách"}</Chu>
                 </View>
               </View>
             );
@@ -128,11 +128,11 @@ export default function DaGhep() {
           {oLuat("sao", "1 sao", "= 1 phút chơi")}
         </View>
       )}
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingLeft: 10, paddingRight: 14, paddingVertical: 8, borderRadius: 26, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-        <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: "#dcebe6", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten="khien" co={24} /></View>
+      <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingLeft: 10, paddingRight: 14, paddingVertical: 8, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>
+        <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: M.chinhSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten="khien" co={24} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={14} dong={1}>{chung ? "Luật đi theo bé đang dùng" : `${moHet ? "Mở hết" : "Theo danh sách"} · máy riêng ${tenBe}`}</Chu>
-          <Chu kieu="dam" co={12.5} mau="#3a403d" dong={2}>{chung ? "Chơi trên máy này chỉ trừ sao của bé đó" : moHet ? "Mọi app, web đều mở" : "Chỉ mở app, web Ba Mẹ đã thêm"}</Chu>
+          <Chu kieu="dam" co={12.5} mau={M.chu2} dong={2}>{chung ? "Chơi trên máy này chỉ trừ sao của bé đó" : moHet ? "Mọi app, web đều mở" : "Chỉ mở app, web Ba Mẹ đã thêm"}</Chu>
         </View>
       </View>
     </Man>

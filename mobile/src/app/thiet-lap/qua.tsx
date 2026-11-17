@@ -45,7 +45,7 @@ function TabVoucher() {
       <View style={{ gap: 10 }}>
         {VOUCHER.map((v) => (
           <Pressable key={v.ma} onPress={() => router.push({ pathname: "/thiet-lap/qua-mua", params: { ma: v.ma } })} accessibilityRole="button" accessibilityLabel={`${v.ten}, ${dong(v.gia)}, ${v.sao} sao. Mua`}
-            style={{ flexDirection: "row", alignItems: "stretch", minHeight: 76, borderRadius: 20, backgroundColor: "#f7f6f3", overflow: "hidden", ...KHOI.the }}>
+            style={{ flexDirection: "row", alignItems: "stretch", minHeight: 76, borderRadius: 20, backgroundColor: M.the, overflow: "hidden", ...KHOI.the }}>
             <View style={{ width: 72, alignItems: "center", justifyContent: "center", backgroundColor: MAU_MUC.lam.nen, borderRightWidth: 2, borderRightColor: "#c9d3e4", borderStyle: "dashed" }}>
               <Text style={{ fontSize: 30, lineHeight: 38 }}>{v.e}</Text>
             </View>
@@ -53,7 +53,7 @@ function TabVoucher() {
               <Chu kieu="rat" co={15} dong={1}>{v.ten}</Chu>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
                 <Chu kieu="rat" co={12} mau={MAU_MUC.lam.chu}>💳 {dong(v.gia)}</Chu><Chu kieu="dam" co={12} mau={M.chu3}>·</Chu>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}><Icon3D ten="sao" co={14} /><Chu kieu="rat" co={12} mau="#6e4300" so>{soCham(v.sao)}</Chu></View>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}><Icon3D ten="sao" co={14} /><Chu kieu="rat" co={12} mau={M.diemInk} so>{soCham(v.sao)}</Chu></View>
               </View>
             </View>
             <View style={{ justifyContent: "center", paddingRight: 16 }}>
@@ -96,13 +96,13 @@ function TabTuDien({ con, guiCham }: { con?: string; guiCham: (chu: string, lam:
     await tai();
   });
   const oChon = (on: boolean) => ({ minHeight: 40, borderRadius: 20, paddingHorizontal: 12, alignItems: "center" as const, justifyContent: "center" as const, flexDirection: "row" as const, gap: 4,
-    backgroundColor: on ? M.chinhSoft : "#ecebe7", boxShadow: on ? `0px 0px 0px 2px ${M.chinh}` : BONG.lom });
+    backgroundColor: on ? M.chonSoft : M.xamSoft, boxShadow: on ? `0px 0px 0px 2px ${M.chinh}` : BONG.lom });
   return (
     <>
       <Chu co={14} mau={M.chu2}>Quà ở nhà Ba Mẹ tự lo, không tốn tiền trong app. Điền tên quà và số sao con cần để đổi.</Chu>
-      <View style={{ borderRadius: 24, backgroundColor: "#f7f6f3", padding: 16, gap: 10, ...KHOI.the }}>
+      <View style={{ borderRadius: 24, backgroundColor: M.the, padding: 16, gap: 10, ...KHOI.the }}>
         <Chu kieu="rat" co={15}>Quà con muốn</Chu>
-        <View style={{ minHeight: 50, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 }}>
+        <View style={{ minHeight: 50, borderRadius: 25, backgroundColor: M.xamSoft, boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 }}>
           <Text style={{ fontSize: 18 }}>🎁</Text>
           <TextInput value={ten} onChangeText={setTen} placeholder="Ví dụ: Đi ăn kem" placeholderTextColor={M.chu3} maxLength={60} accessibilityLabel="Quà con muốn"
             style={{ flex: 1, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 10, outlineStyle: "none" } as never} />
@@ -116,7 +116,7 @@ function TabTuDien({ con, guiCham }: { con?: string; guiCham: (chu: string, lam:
           {SAO.map((s) => <Pressable key={s} onPress={() => { st.xoa(); setSao(s); }} accessibilityRole="radio" accessibilityState={{ checked: st.chu === "" && sao === s }} accessibilityLabel={`${s} sao`}
             style={[oChon(st.chu === "" && sao === s), { flex: 1, paddingHorizontal: 0 }]}><Icon3D ten="sao" co={16} /><Chu kieu="rat" co={14} so>{s}</Chu></Pressable>)}
         </View>
-        <View style={{ minHeight: 50, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 }}>
+        <View style={{ minHeight: 50, borderRadius: 25, backgroundColor: M.xamSoft, boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 }}>
           <Icon3D ten="sao" co={18} />
           <TextInput value={st.chu} onChangeText={st.nhap} placeholder="Hoặc tự nhập số sao, ví dụ 150" placeholderTextColor={M.chu3}
             keyboardType="number-pad" maxLength={st.maxLength} accessibilityLabel="Số sao con cần để đổi"
@@ -132,17 +132,17 @@ function TabTuDien({ con, guiCham }: { con?: string; guiCham: (chu: string, lam:
       {rieng.length ? (
         <TheDs>
           {rieng.map((q, i) => (
-            <View key={q.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, borderTopWidth: i ? 1 : 0, borderTopColor: "#e9e8e3" }}>
+            <View key={q.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, borderTopWidth: i ? 1 : 0, borderTopColor: M.ranh }}>
               <Text style={{ fontSize: 20 }}>🎁</Text>
               <Chu kieu="rat" co={14.5} style={{ flex: 1 }} dong={1}>{q.ten}</Chu>
-              <Icon3D ten="sao" co={15} /><Chu kieu="rat" co={13} mau="#6e4300" so>{soCham(q.sao)}</Chu>
+              <Icon3D ten="sao" co={15} /><Chu kieu="rat" co={13} mau={M.diemInk} so>{soCham(q.sao)}</Chu>
               <Pressable onPress={() => xoa(q)} accessibilityRole="button" accessibilityLabel={`Xoá quà ${q.ten}`} hitSlop={6}
                 style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}><Icon ten="x" mau={M.chu3} co={18} /></Pressable>
             </View>
           ))}
         </TheDs>
       ) : (
-        <View style={{ alignItems: "center", gap: 2, paddingVertical: 14, borderRadius: 22, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+        <View style={{ alignItems: "center", gap: 2, paddingVertical: 14, borderRadius: 22, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
           <Text style={{ fontSize: 26 }}>🎁</Text>
           <Chu kieu="rat" co={14}>Chưa có quà nào.</Chu>
           <Chu co={12.5} mau={M.chu3}>Ba Mẹ điền ở trên, quà sẽ hiện ở đây.</Chu>

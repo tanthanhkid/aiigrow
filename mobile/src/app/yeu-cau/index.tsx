@@ -51,14 +51,14 @@ export default function DangXin() {
           <TieuMuc chu="Đã trả lời hôm nay" />
           <The style={{ paddingVertical: 4, paddingHorizontal: 12 }}>
             {d.daTraLoi.map((x, k) => (
-              <View key={`${x.ten}:${k}`} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
-                <Chu kieu="rat" co={13} mau="#565c59" so style={{ width: 42 }}>{gioPhut(x.luc)}</Chu>
+              <View key={`${x.ten}:${k}`} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
+                <Chu kieu="rat" co={13} mau={M.chu3} so style={{ width: 42 }}>{gioPhut(x.luc)}</Chu>
                 <OLomIcon ic="khoa" />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Chu kieu="rat" co={15} dong={1}>{x.ten}</Chu>
-                  <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}>{`${x.may ? `${x.may.replace(/ của .*$/, "")} · ` : ""}xin lại được`}</Chu>
+                  <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{`${x.may ? `${x.may.replace(/ của .*$/, "")} · ` : ""}xin lại được`}</Chu>
                 </View>
-                <Chu kieu="rat" co={12.5} mau="#565c59">Đã bỏ qua</Chu>
+                <Chu kieu="rat" co={12.5} mau={M.chu3}>Đã bỏ qua</Chu>
               </View>
             ))}
           </The>
@@ -70,7 +70,7 @@ export default function DangXin() {
         <The style={{ paddingTop: 4, paddingBottom: 8, paddingHorizontal: 12 }}>
           <Pressable onPress={() => router.push(`/app-web?con=${d.id}` as never)} accessibilityRole="button"
             style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64 }}>
-            <OLomIcon ic={moHet ? "mo_khoa" : "khien"} co={44} nen="#dcebe6" />
+            <OLomIcon ic={moHet ? "mo_khoa" : "khien"} co={44} nen={M.chinhSoft} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15}>{moHet ? "Mở hết" : "Theo danh sách"}</Chu>
               <Chu kieu="dam" co={12.5} mau={M.chu2}>{moHet ? "Con mở mọi app, web · không tính phút" : "Chỉ mở app, web Ba Mẹ đã thêm"}</Chu>
@@ -79,7 +79,7 @@ export default function DangXin() {
           </Pressable>
           {!moHet && d.soApp !== null ? (
             <Pressable onPress={() => router.push(`/app-web?con=${d.id}` as never)} accessibilityRole="button"
-              style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 18, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+              style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 10, paddingVertical: 6, borderRadius: 18, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
               <Chu kieu="rat" co={13} mau={M.chu2}>{`Được mở ${d.soApp} app`}</Chu>
             </Pressable>
           ) : null}

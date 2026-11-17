@@ -9,8 +9,9 @@ export const IC_CHE_DO = { mo_het: "mo_khoa", theo_danh_sach: "khien" } as const
 export const TEN_NHOM: Record<Nhom, string> = { tinh_phut: "Tính phút", khong_tinh_phut: "Không tính phút" };
 /** Câu phụ của một nhóm (thiết kế: «Trả bằng sao · 1 sao = 1 phút» / «Vào thoải mái»). */
 export const PHU_NHOM: Record<Nhom, string> = { tinh_phut: "Trả bằng sao · 1 sao = 1 phút", khong_tinh_phut: "Vào thoải mái" };
-/** Chấm màu của nhóm: vàng Tính phút · xanh Không tính phút. */
-export const MAU_NHOM: Record<Nhom, string> = { tinh_phut: "#f2b218", khong_tinh_phut: "#1f9d6a" };
+/** Chấm màu của nhóm (MỘT bộ với nút «Tính phút» / «Không tính phút» ở yeu-cau-web): Tính phút = M.chamTinh #A94A07 (4,5:1 trên kem #ECE4D9) · Không tính phút = M.chamKhong #3F7D1F (4,0:1). */
+// chép giá trị từ mau.ts (M.chamTinh / M.chamKhong): tệp chạy thẳng bằng node --test, không nạp mau.ts — đổi một bên phải đổi cả bên kia
+export const MAU_NHOM: Record<Nhom, string> = { tinh_phut: "#A94A07", khong_tinh_phut: "#3F7D1F" };
 
 /** Giá trị cũ của máy chủ (`chi_app_duoc_phep`, null) ⇒ «Theo danh sách». */
 export const cheDoTu = (x: { cheDo?: string | null; cheDoChan?: string | null } | null | undefined): CheDo =>

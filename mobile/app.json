@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "vn.aiilab.aiigrow",
-      "buildNumber": "20",
+      "buildNumber": "21",
       "config": { "usesNonExemptEncryption": false }
     },
     "android": {
@@ -26,10 +26,12 @@
       "expo-web-browser",
       "expo-image",
       ["expo-font", { "fonts": [
-        "./node_modules/@expo-google-fonts/inter/400Regular/Inter_400Regular.ttf",
-        "./node_modules/@expo-google-fonts/inter/600SemiBold/Inter_600SemiBold.ttf",
-        "./node_modules/@expo-google-fonts/inter/700Bold/Inter_700Bold.ttf",
-        "./node_modules/@expo-google-fonts/inter/800ExtraBold/Inter_800ExtraBold.ttf"
+        "./assets/fonts/BeVietnamPro_400Regular.ttf",
+        "./assets/fonts/BeVietnamPro_600SemiBold.ttf",
+        "./assets/fonts/BeVietnamPro_700Bold.ttf",
+        "./assets/fonts/BeVietnamPro_800ExtraBold.ttf",
+        "./assets/fonts/Fraunces_600SemiBold.ttf",
+        "./assets/fonts/Fraunces_700Bold.ttf"
       ] }],
       [
         "expo-splash-screen",

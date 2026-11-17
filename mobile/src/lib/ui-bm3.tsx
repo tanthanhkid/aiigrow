@@ -7,16 +7,19 @@ import { router } from "expo-router";
 import { bm } from "./api";
 import { MAU_NHOM, PHU_NHOM, TEN_NHOM, type Nhom } from "./app-web";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
-import { Bao, Chu, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, type LinhVat, type TenIcon } from "./ui";
+import { Bao, Chu, DauSach, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, type LinhVat, type TenIcon } from "./ui";
 
 /** Tiêu đề một mục (.muc): chữ thường đậm 15, phải là liên kết nhỏ (vd «Xem từng app ›»). */
 export function MucTieu({ chu, phai }: { chu: string; phai?: { chu: string; bam: () => void } }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginTop: 8, marginHorizontal: 6, marginBottom: -4 }}>
-      <Chu kieu="rat" co={15} mau={M.chu2} style={{ flexShrink: 1 }}>{chu}</Chu>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 }}>
+        <DauSach mau={M.dauSach} />
+        <Chu kieu="tieu" co={17} mau={M.chu} style={{ flexShrink: 1 }}>{chu}</Chu>
+      </View>
       {phai ? (
         <Pressable onPress={phai.bam} hitSlop={10} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>
-          <Chu kieu="rat" co={14} mau={M.chinhInk}>{phai.chu}</Chu>
+          <Chu kieu="rat" co={14} mau={M.lienKet}>{phai.chu}</Chu>
         </Pressable>
       ) : null}
     </View>
@@ -44,7 +47,7 @@ export function HangVang({ ic = "chuong", tieu, phu, nut = "Xem ›", bam, bamNu
       </View>
       {bamNut ? (
         <NhanMen onPress={bamNut} accessibilityRole="button" accessibilityLabel={`${nut.replace(" ›", "")}: ${tieu}`} muc="chip" sang men={MEN.sang}
-          style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: "#fff", justifyContent: "center", ...KHOI.nho }}>
+          style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: M.the, justifyContent: "center", ...KHOI.nho }}>
           <Chu kieu="rat" co={13.5} mau={M.diemInk}>{nut}</Chu>
         </NhanMen>
       ) : <Chu kieu="rat" co={14} mau={M.diemInk}>{nut}</Chu>}
@@ -93,7 +96,7 @@ export function DauMuc({ ic, anh, tieu, phu }: { ic: TenIcon; anh?: string | nul
 export function OTim({ gia, doi, goiY, nhan, url, khongKinh }: { gia: string; doi: (t: string) => void; goiY: string; nhan: string; url?: boolean;
   /** bỏ kính lúp (bàn Lần đầu them-at57ypdc / them-ubomxl31: ô tìm chỉ có chữ + «✕») */ khongKinh?: boolean }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, paddingLeft: 18, paddingRight: 4, borderRadius: 26, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, paddingLeft: 18, paddingRight: 4, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
       {khongKinh ? null : <Icon ten="tim_kiem" mau={M.chu3} co={18} />}
       <TextInput value={gia} onChangeText={doi} placeholder={goiY} placeholderTextColor={M.chu3} autoCapitalize="none" autoCorrect={false} autoFocus
         keyboardType={url ? "url" : "default"} accessibilityLabel={nhan} style={{ flex: 1, minWidth: 0, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 12 }} />
@@ -111,7 +114,7 @@ export function OTim({ gia, doi, goiY, nhan, url, khongKinh }: { gia: string; do
 export function HangBoQua({ so, bam }: { so: number; bam: () => void }) {
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`Đã bỏ qua ${so} lời xin, con xin lại được. Xem`}
-      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, paddingVertical: 4, paddingLeft: 14, paddingRight: 12, borderRadius: 22, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, paddingVertical: 4, paddingLeft: 14, paddingRight: 12, borderRadius: 22, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
       <Icon3D ten="tro_lai" co={24} />
       <Chu kieu="dam" co={13} mau={M.chu2} style={{ flex: 1 }}><Chu kieu="rat" co={13}>{`Đã bỏ qua ${so} lời xin`}</Chu> · con xin lại được</Chu>
       <Chu kieu="rat" co={13} mau={M.chinhInk}>Xem ›</Chu>
@@ -121,8 +124,9 @@ export function HangBoQua({ so, bam }: { so: number; bam: () => void }) {
 
 // ---------------------------------------------------------------- hai nhóm của danh sách (15/11 — #262): Tính phút (vàng) · Không tính phút (xanh)
 
-const NEN_NHOM: Record<Nhom, string> = { tinh_phut: "#fdf6e2", khong_tinh_phut: "#eef6f2" };
-const VIEN_NHOM: Record<Nhom, string> = { tinh_phut: "#e0a20c", khong_tinh_phut: "#1f9d6a" };
+// nền nhạt tông E của từng nhóm (kem pha cam / kem pha lục; chữ navy ≥14:1) · viền chọn = chính MAU_NHOM (M.chamTinh / M.chamKhong)
+const NEN_NHOM: Record<Nhom, string> = { tinh_phut: "#F2E0CB", khong_tinh_phut: "#E2E6CF" };
+const VIEN_NHOM: Record<Nhom, string> = MAU_NHOM;
 
 /** Tiêu đề nhóm (.muc + chấm màu): «● Tính phút ……… trả bằng sao». */
 export function MucNhom({ nhom, phai }: { nhom: Nhom; phai?: string }) {
@@ -137,7 +141,7 @@ export function MucNhom({ nhom, phai }: { nhom: Nhom; phai?: string }) {
 
 /** Khối một nhóm (.ds vàng / xanh nhạt): các dòng cách nhau vạch mảnh. Không nhóm ⇒ nền thẻ. (Bàn vẽ lề 12 — giữ 16 theo chuẩn lề thẻ LE-THE.) */
 export function KhoiNhom({ nhom, children }: { nhom?: Nhom; children: ReactNode }) {
-  return <View style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 26, backgroundColor: nhom ? NEN_NHOM[nhom] : "#f7f6f3", ...KHOI.the }}>{children}</View>;
+  return <View style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 26, backgroundColor: nhom ? NEN_NHOM[nhom] : M.the, ...KHOI.the }}>{children}</View>;
 }
 
 /** Hai ô nhóm xếp dọc (màn một app / một trang): bóng tròn màu nhóm, tên, câu phụ, dấu chọn. */
@@ -157,7 +161,7 @@ export function ChonNhom({ gia, doi, tat }: { gia: Nhom | null; doi: (n: Nhom) =
               <Chu kieu="rat" co={16}>{TEN_NHOM[k]}</Chu>
               <Chu kieu="dam" co={13} mau={M.chu3}>{PHU_NHOM[k]}</Chu>
             </View>
-            <View style={[{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" }, on ? { backgroundColor: M.chinh } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+            <View style={[{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" }, on ? { backgroundColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
               {on ? <Icon ten="tick" mau="#fff" co={15} /> : null}
             </View>
           </NhanMen>
@@ -169,7 +173,7 @@ export function ChonNhom({ gia, doi, tat }: { gia: Nhom | null; doi: (n: Nhom) =
 
 /** Ô icon trắng nổi của một dòng danh sách / kết quả — dùng chung App & web (ds-con, Thêm app/web) và Lần đầu (lan-dau-ds › DongKetQua) (.ic — bàn them-g7g1cel5@v7 · them-vw103x88@v8): 42, nền trắng, bóng đổ mềm (không lõm). */
 export const OIconTrang = ({ ic, anh, e }: { ic?: TenIcon; anh?: string | null; /** emoji thay icon (danh mục Lần đầu) */ e?: string }) => (
-  <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3)" }}>
+  <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3)" }}>
     {anh ? <Image source={{ uri: `data:image/png;base64,${anh}` }} style={{ width: 28, height: 28 }} resizeMode="contain" accessibilityIgnoresInvertColors />
       : ic ? <Icon3D ten={ic} co={26} /> : <Text style={{ fontSize: 22, lineHeight: 28 }}>{e}</Text>}
   </View>
@@ -179,7 +183,7 @@ export const OIconTrang = ({ ic, anh, e }: { ic?: TenIcon; anh?: string | null; 
 export const NutChon = ({ chon }: { chon: boolean }) => (
   <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
     <View style={[{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-      chon ? { backgroundColor: M.chinh, boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.3), inset 0px -4px 6px -2px rgba(0,0,0,0.3)" } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+      chon ? { backgroundColor: M.chinh, boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.3), inset 0px -4px 6px -2px rgba(0,0,0,0.3)" } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
       <Chu kieu="rat" co={chon ? 15 : 18} mau={chon ? "#fff" : M.chinhInk}>{chon ? "✓" : "+"}</Chu>
     </View>
   </View>
@@ -212,15 +216,15 @@ export function ChonNhomNgang({ gia, doi }: { gia: Nhom; doi: (n: Nhom) => void 
 
 /** Nút tròn ＋ / ✓ (.c) của một dòng kết quả. */
 export const NutCong = ({ chon }: { chon: boolean }) => (
-  <View style={[{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#fff", ...KHOI.the }]}>
+  <View style={[{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.the }]}>
     <Icon ten={chon ? "tick" : "cong"} mau={chon ? "#fff" : M.chinhInk} co={chon ? 18 : 20} />
   </View>
 );
 
 /** Nhãn trắng «Luôn bật» (.luon). */
-/** Nhãn «Luôn bật» (bàn them-2ru3t5iw `.luon`: viên ngọc nhạt #dcebe6, chữ ngọc 12/800, không nổi). */
+/** Nhãn «Luôn bật» (bàn them-2ru3t5iw `.luon`: viên ngọc nhạt #F2EBE3, chữ ngọc 12/800, không nổi). */
 export const NhanLuon = ({ chu = "Luôn bật" }: { chu?: string }) => (
-  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: "#dcebe6" }}>
+  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: M.chinhSoft }}>
     <Chu kieu="rat" co={12} mau={M.chinhInk}>{chu}</Chu>
   </View>
 );
@@ -230,7 +234,7 @@ export function RobNoi({ lv = "hoc", co = 76, children }: { lv?: LinhVat; co?: n
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
       <Rob ten={lv} co={co} />
-      <View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 22, backgroundColor: "#fff", ...KHOI.the }}>
+      <View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 22, backgroundColor: M.the, ...KHOI.the }}>
         {typeof children === "string" ? <Chu kieu="dam" co={14}>{children}</Chu> : children}
       </View>
     </View>
@@ -265,13 +269,14 @@ export function ManKetQua({ lv = "xong", tieu, ic, tin, phu, nut, hoan, lui, loi
 /** Ba nút quyết lớn (.ba — thiết kế 15/11 bm-ung-dung/13): `x` than chì chữ trắng (nút chính «Tính phút»), `c` trắng chữ đậm («Không tính phút»),
  *  `b` xám lõm («Bỏ qua»), `d` trắng chữ đỏ. `cham` = bóng tròn màu nhóm thay icon. */
 export function NutQuyet({ loai, ic, cham, chu, phu, bam, dangChay }: { loai: "x" | "c" | "b" | "d"; ic?: TenIcon; cham?: string; chu: string; phu?: string; bam: () => void; dangChay?: boolean }) {
-  const nen = loai === "x" ? M.nut : loai === "b" ? "#ecebe7" : M.the;
-  const mau = loai === "x" ? "#fff" : loai === "d" ? M.loi : M.chu;
+  // «Ánh kim»: `x` đúc vàng kim chữ navy, `b` ô kem lõm, `c` / `d` ô kem nổi
+  const nen = loai === "x" ? M.diem : loai === "b" ? M.xamSoft : M.the;
+  const mau = loai === "d" ? M.loi : M.chu;
   return (
     <NhanMen onPress={bam} disabled={dangChay} accessibilityRole="button" accessibilityLabel={phu ? `${chu}, ${phu}` : chu} muc="khoi" sang={loai !== "x"}
-      men={loai === "x" ? MEN.toi : loai === "b" ? undefined : MEN.sang}
+      men={loai === "x" ? MEN.vang : undefined}
       style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 10, paddingHorizontal: 16, borderRadius: BO_CLAY.o, backgroundColor: nen,
-        boxShadow: loai === "x" ? BONG.toi : loai === "b" ? BONG.lom : BONG.the, opacity: dangChay ? 0.6 : 1 }}>
+        boxShadow: loai === "x" ? BONG.vang : loai === "b" ? BONG.lom : BONG.the, opacity: dangChay ? 0.6 : 1 }}>
       {cham ? <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: cham,
         boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.45), inset 0px -5px 8px -3px rgba(0,0,0,0.25)" }} /> : ic ? <Icon3D ten={ic} co={32} mau={mau} /> : null}
       <View style={{ flex: 1, minWidth: 0 }}>

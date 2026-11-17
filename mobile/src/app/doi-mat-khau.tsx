@@ -24,7 +24,7 @@ export default function DoiMatKhau() {
       <ONhap nhan="Mật khẩu đang dùng" value={cu} onChangeText={setCu} secureTextEntry autoCapitalize="none" autoComplete="current-password" textContentType="password" />
       <ONhap nhan="Mật khẩu mới" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" />
       <ONhap nhan="Nhập lại mật khẩu mới" value={mk2} onChangeText={setMk2} secureTextEntry autoCapitalize="none" autoComplete="new-password" textContentType="newPassword" loi={ghi} />
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 24, backgroundColor: "#dcebe6" }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 24, backgroundColor: M.chinhSoft }}>
         <Rob ten="chi" co={52} />
         <Chu kieu="dam7" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>Ít nhất 8 ký tự. Quên mật khẩu cũ thì đăng xuất rồi chọn «Quên mật khẩu».</Chu>
       </View>

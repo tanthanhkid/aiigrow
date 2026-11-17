@@ -33,7 +33,7 @@ export default function DaBoQua() {
         <Rob ten="cho" co={190} />
         <Chu kieu="rat" co={24} style={{ textAlign: "center", letterSpacing: -0.4 }}>{`Đã bỏ qua ${p.ten ?? "lời xin"}`}</Chu>
       </View>
-      <View style={{ marginTop: 10, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+      <View style={{ marginTop: 10, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.the, ...KHOI.the }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 64, paddingVertical: 8 }}>
           <OIcon ic="gui" />
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -55,7 +55,7 @@ export default function DaBoQua() {
         <Nut chu="Xong" rong bam={ve} />
         {conGiay > 0 ? (
           <NhanMen onPress={hoan} disabled={dangChay} accessibilityRole="button" accessibilityLabel={`Hoàn tác, còn ${conGiay} giây`} accessibilityState={{ busy: dangChay }}
-            muc="nut" sang men={MEN.sang} style={{ minHeight: 48, alignItems: "center", justifyContent: "center", paddingHorizontal: 16, borderRadius: 24, backgroundColor: "#fff", ...KHOI.the }}>
+            muc="nut" sang men={MEN.sang} style={{ minHeight: 48, alignItems: "center", justifyContent: "center", paddingHorizontal: 16, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
             <Chu kieu="rat" co={15} mau={M.chinhInk} dong={1}>Hoàn tác, xem lại lời xin</Chu>
           </NhanMen>
         ) : null}

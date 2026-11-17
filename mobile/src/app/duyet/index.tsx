@@ -77,7 +77,7 @@ export default function DuyetDs() {
 
   return (
     <Man lui={{ chu: "Việc & quà" }} tieu={`${ten} nộp việc`} tai={tai}
-      phai={<View style={{ paddingHorizontal: 11, paddingVertical: 4, borderRadius: 13, backgroundColor: "#c2540a" }}><Chu kieu="rat" co={13} mau="#fff" so>{`${d.ds.length} chờ duyệt`}</Chu></View>}
+      phai={<View style={{ paddingHorizontal: 11, paddingVertical: 4, borderRadius: 13, backgroundColor: M.badge }}><Chu kieu="rat" co={13} mau={M.chu} so>{`${d.ds.length} chờ duyệt`}</Chu></View>}
       day={<>
         <Nut chu={d.ds.length > 1 ? `Duyệt cả ${d.ds.length} · ${ten} nhận ${tong} sao` : `Duyệt · ${ten} nhận ${tong} sao`} ic="sao" ic3d rong dangChay={dangChay} bam={duyetCa} />
       </>}>
@@ -85,7 +85,7 @@ export default function DuyetDs() {
         // 32 «Mất mạng khi đang duyệt» (them-rqioc0fd@v3): thẻ đào + ô wifi 3D, «Đã duyệt, chờ gửi · n việc» với nhãn «Chờ mạng», dải ngọc Grow
         <>
           <View accessibilityRole="alert" style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: MAU_NO.nen }, KHOI.the]}>
-            <View style={[{ width: 52, height: 52, borderRadius: 18, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }, KHOI.nho]}><Icon3D ten="wifi" co={32} /></View>
+            <View style={[{ width: 52, height: 52, borderRadius: 18, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}><Icon3D ten="wifi" co={32} /></View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={17} mau={MAU_NO.chu}>Điện thoại đang mất mạng</Chu>
               <Chu kieu="dam" co={13.5} mau={M.chu2}>Lựa chọn của Ba Mẹ vẫn được giữ, có mạng là tự gửi.</Chu>
@@ -100,13 +100,13 @@ export default function DuyetDs() {
                   <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: MAU_NO.chu }} /><Chu kieu="rat" co={13} mau={MAU_NO.chu}>Chờ mạng</Chu></View>} />;
             })}
           </The>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#dcebe6" }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.chinhSoft }}>
             <Rob ten="chi" co={56} />
             <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1 }}>{`${ten} sẽ nhận ${tong} sao ngay khi gửi xong. Ba Mẹ không cần duyệt lại.`}</Chu>
           </View>
         </>
       ) : (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#dcebe6" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.chinhSoft }}>
           <Rob ten="chi" co={40} />
           <Chu kieu="dam" co={14} mau={M.chinhInk} style={{ flex: 1 }}>Xem ảnh, nghe ghi âm con nộp. Thấy ổn thì duyệt, con nhận sao.</Chu>
         </View>
@@ -134,7 +134,7 @@ const TheLuot = memo(function TheLuot({ x, nhieuCon }: { x: LuotChoMoi; nhieuCon
         </View>
       </View>
       {/* thiết kế 08: viên TRẮNG nổi + icon 3D (máy ảnh / micro) «Xem ảnh để duyệt ›» */}
-      <View style={[{ minHeight: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6, backgroundColor: "#fff" }, KHOI.nho]}>
+      <View style={[{ minHeight: 46, borderRadius: 23, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6, backgroundColor: M.the }, KHOI.nho]}>
         <Icon3D ten={ghiAm ? "tai" : "camera"} co={20} />
         <Chu kieu="rat" co={14.5} mau={M.chu}>{`${ghiAm ? "Nghe ghi âm để duyệt" : x.so_anh ? "Xem ảnh để duyệt" : "Xem để duyệt"} ›`}</Chu>
       </View>

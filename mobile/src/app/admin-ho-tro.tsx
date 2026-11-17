@@ -44,17 +44,17 @@ function HopThuLoc({ loc, setLoc, chon }: { loc: LocHoTro; setLoc: (v: LocHoTro)
     const tieu = x.nguoi_gui || x.ten;
     return (
       <Pressable key={x.family_id} onPress={() => chon(x)} accessibilityRole="button" accessibilityLabel={`${tieu}, ${x.ten}${p !== null ? `, ${cauCho(p)}` : ""}`}
-        style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 76, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
+        style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 76, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
         <Avt ten={tieu} mau={MAU_CON[i % MAU_CON.length]} co={44} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
-          {x.nguoi_gui ? <Chu kieu="rat" co={12.5} mau="#3a403d" dong={1}>{x.ten.replace(/^Nhà /, "nhà ")}</Chu> : null}
-          <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}>{`${x.tu === "aiilab" ? "AiiGrow: " : ""}${x.noi_dung}`}</Chu>
+          {x.nguoi_gui ? <Chu kieu="rat" co={12.5} mau={M.chu2} dong={1}>{x.ten.replace(/^Nhà /, "nhà ")}</Chu> : null}
+          <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{`${x.tu === "aiilab" ? "AiiGrow: " : ""}${x.noi_dung}`}</Chu>
         </View>
         <View style={{ alignItems: "flex-end", gap: 4 }}>
           {p !== null ? (
-            <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: g ? "#b42318" : "#f9e7d2" }}>
-              <Chu kieu="rat" co={12.5} mau={g ? "#fff" : "#8a3c0c"}>{cauCho(p)!}</Chu>
+            <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: g ? M.loi : M.canhSoft }}>
+              <Chu kieu="rat" co={12.5} mau={g ? "#fff" : M.canh}>{cauCho(p)!}</Chu>
             </View>
           ) : <Chu kieu="dam" co={12} mau={M.chu3}>{gioPhut(x.created_at)}</Chu>}
           <View style={{ minHeight: 30, justifyContent: "center" }}><Chu kieu="rat" co={13.5} mau={M.chinhInk}>Mở chat ›</Chu></View>
@@ -63,11 +63,11 @@ function HopThuLoc({ loc, setLoc, chon }: { loc: LocHoTro; setLoc: (v: LocHoTro)
     );
   };
   const nhom = (ds: Dong1[], dau: number) => (
-    <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>{ds.map((x, k) => dong(x, dau + k, k))}</View>
+    <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>{ds.map((x, k) => dong(x, dau + k, k))}</View>
   );
   return (
     <Man tieuLon="Hộp thư hỗ trợ" tai={tai} vongTai
-      phaiTieu={soCho ? <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: "#bd520a" }}><Chu kieu="rat" co={13} mau="#fff">{`${soCho} chờ`}</Chu></View> : undefined}>
+      phaiTieu={soCho ? <View style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, backgroundColor: M.badge }}><Chu kieu="rat" co={13} mau={M.chu}>{`${soCho} chờ`}</Chu></View> : undefined}>
       {/* máy chủ cũ không biết «Của tôi» ⇒ ẩn tab đó */}
       <ChonMot ds={LOC_HO_TRO.filter((x) => !cu || x.gia !== "cua_toi").map((x) => ({ gia: x.gia, chu: x.chu }))} gia={loc} doi={setLoc} />
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : !ds.length ? (
@@ -86,9 +86,9 @@ function HopThuLoc({ loc, setLoc, chon }: { loc: LocHoTro; setLoc: (v: LocHoTro)
 function MucHop({ chu, so, gap }: { chu: string; so: number; gap?: boolean }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, marginHorizontal: 6 }}>
-      <Chu kieu="rat" co={15} mau="#3a403d">{chu}</Chu>
-      <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: gap ? "#b42318" : "#ecebe7" }}>
-        <Chu kieu="rat" co={12} mau={gap ? "#fff" : "#3a403d"} so>{String(so)}</Chu>
+      <Chu kieu="rat" co={15} mau={M.chu2}>{chu}</Chu>
+      <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: gap ? M.loi : M.xamSoft }}>
+        <Chu kieu="rat" co={12} mau={gap ? "#fff" : M.chu2} so>{String(so)}</Chu>
       </View>
     </View>
   );

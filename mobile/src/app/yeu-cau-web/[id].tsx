@@ -41,14 +41,14 @@ export default function YeuCauWeb() {
   });
   return (
     <Man lui={{ chu: "", bam: ve }} tieu="Con xin mở">
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 28, backgroundColor: M.the, ...KHOI.the }}>
         <OIcon ic={y.loai === "mo_web" ? "web" : icCuaApp(ten)} co={56} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={20} dong={1}>{ten}</Chu>
           <Chu kieu="dam" co={12.5} mau={M.chu3}>{[`${tenCon} xin`, lucNgan(y.created_at), may?.replace(/ của .*$/, "")].filter(Boolean).join(" · ")}</Chu>
         </View>
-        <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: "#f9e7d2", alignSelf: "flex-start" }}>
-          <Chu kieu="rat" co={12.5} mau="#8a3c0c">{`Chờ ${cho}′`}</Chu>
+        <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: M.canhSoft, alignSelf: "flex-start" }}>
+          <Chu kieu="rat" co={12.5} mau={M.canh}>{`Chờ ${cho}′`}</Chu>
         </View>
       </View>
       <RobNoi co={88}>
@@ -59,8 +59,8 @@ export default function YeuCauWeb() {
         <>
           <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6, marginTop: 8 }}>{`Thêm ${ten} cho ${tenCon}?`}</Chu>
           <View style={{ gap: 10 }}>
-            <NutQuyet loai="x" cham="#f2b218" chu="Tính phút" phu="Thêm vào danh sách · trả bằng sao" dangChay={dangChay} bam={() => them("tinh_phut")} />
-            <NutQuyet loai="c" cham="#1f9d6a" chu="Không tính phút" phu="Thêm vào danh sách · vào thoải mái" dangChay={dangChay} bam={() => them("khong_tinh_phut")} />
+            <NutQuyet loai="x" cham={M.chamTinh} chu="Tính phút" phu="Thêm vào danh sách · trả bằng sao" dangChay={dangChay} bam={() => them("tinh_phut")} />
+            <NutQuyet loai="c" cham={M.chamKhong} chu="Không tính phút" phu="Thêm vào danh sách · vào thoải mái" dangChay={dangChay} bam={() => them("khong_tinh_phut")} />
             <NutQuyet loai="b" ic="tro_lai" chu="Bỏ qua" phu="Không ghi gì · con xin lại được" dangChay={dangChay} bam={boQua} />
           </View>
         </>

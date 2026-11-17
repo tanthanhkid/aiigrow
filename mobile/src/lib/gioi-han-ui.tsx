@@ -7,7 +7,7 @@ import { BONG, KHOI } from "@/lib/clay";
 import { buocPhut, docPhut, GIOI_HAN_MD, KHOANG_LUOT, KHOANG_NGAY, LUOT_MD, quyRaTieng, type GioiHan } from "@/lib/gioi-han";
 import { Chu, F, Icon3D, M } from "@/lib/ui";
 
-const XANH = "#0a5246";
+const XANH = M.chinhInk;
 
 /** Nút tròn −/+ dùng chung (Giờ chơi + thẻ «Quà khởi đầu»): `nen` màu nền, `co` cỡ dấu; `tat` ⇒ mờ + không bấm. */
 export function NutTron({ dau, nhan, bam, tat, nen = "#fff", co = 20 }: { dau: "−" | "+"; nhan: string; bam: () => void; tat?: boolean; nen?: string; co?: number }) {
@@ -30,19 +30,19 @@ function DongPhut({ nhan, quy, chu, doi, nhanO, tru, cong, mo }: { nhan: string;
         <Chu kieu="rat" co={12} mau={XANH} dong={1}>{`= ${quy}`}</Chu>
       </View>
       <NutTron dau="−" nhan={`Bớt 15 phút · ${nhan}`} bam={tru} tat={mo} />
-      <View style={{ width: 92, height: 48, borderRadius: 16, backgroundColor: "#fff", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3,
+      <View style={{ width: 92, height: 48, borderRadius: 16, backgroundColor: M.the, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3,
         boxShadow: dang ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.lom}` : `0px 0px 0px 2px #cfe5de, ${BONG.lom}` }}>
         <TextInput value={chu} onChangeText={doi} editable={!mo} keyboardType="number-pad" inputMode="numeric" maxLength={3} accessibilityLabel={nhanO} placeholder="…" placeholderTextColor={M.chu3}
           onFocus={() => setDang(true)} onBlur={() => setDang(false)} selectTextOnFocus
           style={{ width: 40, textAlign: "center", fontFamily: F.rat, fontSize: 22, color: XANH, padding: 0, outlineStyle: "none" } as never} />
-        <Chu kieu="dam7" co={12.5} mau="#565c59">phút</Chu>
+        <Chu kieu="dam7" co={12.5} mau={M.chu3}>phút</Chu>
       </View>
       <NutTron dau="+" nhan={`Thêm 15 phút · ${nhan}`} bam={cong} tat={mo} />
     </View>
   );
 }
 
-const theKem = { borderRadius: 28, backgroundColor: "#f7f6f3", paddingHorizontal: 16, paddingVertical: 14, gap: 10, ...KHOI.the };
+const theKem = { borderRadius: 28, backgroundColor: M.the, paddingHorizontal: 16, paddingVertical: 14, gap: 10, ...KHOI.the };
 
 function Hoi({ ic, chu }: { ic: "dongho" | "dong_ho_cat"; chu: string }) {
   return (
@@ -55,8 +55,8 @@ function Hoi({ ic, chu }: { ic: "dongho" | "dong_ho_cat"; chu: string }) {
 function BuocMinh({ ic, chu }: { ic: "game" | "khoa"; chu: string }) {
   return (
     <View style={{ flex: 1, alignItems: "center", gap: 4 }}>
-      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={21} /></View>
-      <Chu kieu="rat" co={12} mau="#2b302e" dong={1}>{chu}</Chu>
+      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={21} /></View>
+      <Chu kieu="rat" co={12} mau={M.nut} dong={1}>{chu}</Chu>
     </View>
   );
 }
@@ -110,7 +110,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
         <Hoi ic="dong_ho_cat" chu="Chơi liền bao lâu thì nghỉ?" />
         <DongPhut nhan="Chơi liền" quy={khongNghi ? "không nghỉ" : phutL ? quyRaTieng(phutL) : "chưa nhập"} chu={chu.l} doi={(s) => go("l", s)} nhanO="Số phút mỗi lần chơi"
           tru={() => buoc("l", -1)} cong={() => buoc("l", 1)} mo={khongNghi} />
-        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingVertical: 8, paddingHorizontal: 8, borderRadius: 18, backgroundColor: "#efeeea",
+        <View style={{ flexDirection: "row", alignItems: "flex-start", justifyContent: "space-between", paddingVertical: 8, paddingHorizontal: 8, borderRadius: 18, backgroundColor: M.xamSoft,
           boxShadow: BONG.lom, opacity: khongNghi ? 0.4 : 1 }}>
           <BuocMinh ic="game" chu={`Chơi ${choi}`} />
           <Chu kieu="rat" co={18} mau={M.chinh} style={{ marginTop: 7 }}>→</Chu>
@@ -124,7 +124,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
             boxShadow: khongNghi ? BONG.ngoc : `0px 0px 0px 2px #c9ccc9, ${BONG.lom}` }}>
             {khongNghi ? <Chu kieu="rat" co={13} mau="#fff">✓</Chu> : null}
           </View>
-          <Chu kieu="rat" co={12.5} mau="#565c59">Không cần nghỉ</Chu>
+          <Chu kieu="rat" co={12.5} mau={M.chu3}>Không cần nghỉ</Chu>
         </Pressable>
       </View>
       {loi ? <Chu kieu="dam" co={13} mau={M.loi} style={{ marginHorizontal: 4 }}>{loi}</Chu> : null}

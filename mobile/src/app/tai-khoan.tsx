@@ -96,7 +96,7 @@ export default function TaiKhoan() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <View style={{ flex: 1, minWidth: 0 }}>
               <TextInput value={t} onChangeText={setTen} maxLength={40} placeholder="Mẹ Lan" placeholderTextColor={M.chu3} accessibilityLabel="Tên hiển thị"
-                style={{ height: 54, borderRadius: 27, paddingHorizontal: 20, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 18, color: M.chu }} />
+                style={{ height: 54, borderRadius: 27, paddingHorizontal: 20, backgroundColor: M.ranh, boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 18, color: M.chu }} />
             </View>
             {/* nút gọn theo chữ (Nut không «rong» thì giãn chia đôi hàng) */}
             <View style={{ width: 112 }}><Nut chu="Lưu tên" dangChay={luuTen.dangChay} tat={!t.trim() || t.trim() === toi.ten} bam={doiTen} /></View>
@@ -121,7 +121,7 @@ export default function TaiKhoan() {
 
       {/* bàn them-liz6hzww@v3: ô hình đào, câu giữa, thẻ dòng icon, nút đỏ đặc. «cho giờ» của bàn ⇒ «cho vay sao» (#265) */}
       <BangTruot mo={mo === "roi"} dong={dong} tieu="Rời khỏi nhà này?" hinh="nha" hinhDao>
-        <Chu kieu="dam" co={14} mau="#3a403d" style={{ textAlign: "center" }}>{`Bạn sẽ không xem, cho vay sao hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
+        <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>{`Bạn sẽ không xem, cho vay sao hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
         <DsBang ds={[...(conLai ? [{ ic: "nguoi" as const, chu: `${conLai} vẫn trông ${soCon ? `${soCon} con` : "các con"}` }] : []),
           { ic: "gui", chu: "Muốn vào lại thì nhờ người trong nhà mời" }]} />
         <BaoLoi loi={loiLam} />
@@ -143,7 +143,7 @@ export default function TaiKhoan() {
         ) : (
           <>
             {laChu ? <Chu mau={M.chu2}>Bạn là người tạo nhà: xoá tài khoản là xoá luôn cả gia đình — mọi dữ liệu dưới đây mất ngay, không lấy lại được.</Chu>
-              : <Chu kieu="dam" co={14} mau="#3a403d" style={{ textAlign: "center" }}>Xoá hẳn, không lấy lại được.</Chu>}
+              : <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>Xoá hẳn, không lấy lại được.</Chu>}
             <View>
               {laChu ? (
                 <>

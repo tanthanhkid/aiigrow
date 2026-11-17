@@ -3,15 +3,15 @@
 import { View } from "react-native";
 import { KHOI } from "./clay";
 import { OIcon } from "./ui-bm3";
-import { Chu, type TenIcon } from "./ui";
+import { Chu, M, type TenIcon } from "./ui";
 
 export function DsBang({ ds }: { ds: { ic: TenIcon; chu: string }[] }) {
   return (
-    <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+    <View style={[{ paddingVertical: 4, paddingHorizontal: 18, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
       {ds.map((x, k) => (
-        <View key={x.chu} style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
+        <View key={x.chu} style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
           <OIcon ic={x.ic} co={40} />
-          <Chu kieu="dam" co={14.5} mau="#3a403d" style={{ flex: 1 }}>{x.chu}</Chu>
+          <Chu kieu="dam" co={14.5} mau={M.chu2} style={{ flex: 1 }}>{x.chu}</Chu>
         </View>
       ))}
     </View>

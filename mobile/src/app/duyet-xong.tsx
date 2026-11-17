@@ -77,8 +77,8 @@ export default function DuyetXong() {
         {/* ví trước → sau: viên xám «⭐ −15» → viên nổi «⭐ −5 sao» (đào khi còn âm, vàng khi dương) + dòng giải thích */}
         {truoc !== null && saoSau !== null ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 46, paddingHorizontal: 14, borderRadius: 23, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
-              <Icon3D ten="sao" co={26} /><Chu kieu="rat" co={18} mau="#565c59" so>{soVN(truoc)}</Chu>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 46, paddingHorizontal: 14, borderRadius: 23, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
+              <Icon3D ten="sao" co={26} /><Chu kieu="rat" co={18} mau={M.chu3} so>{soVN(truoc)}</Chu>
             </View>
             <Icon ten="phai" co={20} mau={M.chinhInk} />
             <View style={[{ flexDirection: "row", alignItems: "center", gap: 6, height: 52, paddingHorizontal: 16, borderRadius: 26, backgroundColor: noAm ? MAU_NO.nen : M.diemSoft }, KHOI.the]}>
@@ -94,7 +94,7 @@ export default function DuyetXong() {
 
       {/* một việc: dải ngọc nhạt + tim «Đã duyệt «Dọn phòng» và gửi con «Giỏi lắm con!»» */}
       {!loat ? (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#dcebe6" }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.chinhSoft }}>
           <Icon3D ten="tim" co={26} />
           <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1 }}>{p.khen ? `Đã duyệt «${p.nv}» và gửi con «${p.khen}»` : `Đã duyệt «${p.nv}»`}</Chu>
         </View>

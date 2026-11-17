@@ -19,19 +19,19 @@ export default function SuaMay() {
   const buoc = d.baoVeThieu ?? [];
   return (
     <Man dau={<DauHaiDong tieu={`Sửa trên ${tenNgan} của con`} lui={lui} />}>
-      <Chu kieu="rat" co={14} mau="#3a403d" style={{ marginHorizontal: 6 }}>
+      <Chu kieu="rat" co={14} mau={M.chu2} style={{ marginHorizontal: 6 }}>
         {buoc.length ? `Cầm ${tenNgan} lên, làm theo ${buoc.length} bước` : `${tenNgan} không còn việc nào cần sửa`}
       </Chu>
       <View style={{ gap: 12 }}>
         {buoc.map((x, k) => (
-          <View key={x.ma} style={[{ flexDirection: "row", gap: 14, alignItems: "center", padding: 12, borderRadius: 26, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-            <View style={{ width: 92, height: 92, borderRadius: 22, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
+          <View key={x.ma} style={[{ flexDirection: "row", gap: 14, alignItems: "center", padding: 12, paddingRight: 16, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>
+            <View style={{ width: 92, height: 92, borderRadius: 22, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
               <Icon3D ten={HINH[k % 3]} co={56} />
               <View style={{ position: "absolute", left: -6, top: -6, width: 30, height: 30, borderRadius: 15, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}>
                 <Chu kieu="rat" co={14} mau="#fff">{String(k + 1)}</Chu>
               </View>
             </View>
-            <View style={{ flex: 1, gap: 3 }}><Chu kieu="rat" co={15.5}>{x.ten}</Chu><Chu kieu="dam" co={12.5} mau="#565c59" style={{ lineHeight: 18 }}>{x.cach}</Chu></View>
+            <View style={{ flex: 1, gap: 3 }}><Chu kieu="rat" co={15.5}>{x.ten}</Chu><Chu kieu="dam" co={12.5} mau={M.chu3} style={{ lineHeight: 18 }}>{x.cach}</Chu></View>
           </View>
         ))}
       </View>

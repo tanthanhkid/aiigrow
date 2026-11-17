@@ -12,7 +12,7 @@ import { ChonMauCon, HangAnhCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnh
 import { CHUA_LUU_ANH, dongBoAnhCon } from "@/lib/anh-con";
 import { OLom } from "@/lib/lan-dau";
 import { boTheoTuoi, kiemPin } from "@/lib/s3";
-import { BaoLoi, baoKhiVe, Chu, Man, Nut, useLam } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, Chu, M, Man, Nut, useLam } from "@/lib/ui";
 
 /** Tuổi ⇒ chỉ số chip tuổi của bộ việc (4–5 · 6–7 · 8–9 · 10–12 · 13+); chưa có năm sinh ⇒ null. */
 const chipTuNam = (nam: number | null) => {
@@ -66,5 +66,5 @@ export default function ThemCon() {
   );
 }
 
-/** Chữ đậm ngọc trong câu PIN (thiết kế: «Khang dùng PIN này để vào máy.» màu #0a5246). */
-const M_CHU_NGOC = "#0a5246";
+/** Chữ đậm ngọc trong câu PIN (thiết kế: «Khang dùng PIN này để vào máy.» màu #0A1629). */
+const M_CHU_NGOC = M.chinhInk;

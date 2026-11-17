@@ -48,14 +48,14 @@ export default function MayNayAiDung() {
         style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60 }, keDau(k)]}>
         <View style={khoa ? { opacity: 0.45, filter: "grayscale(1)" } : undefined}><AvtCon c={c} co={36} /></View>
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-          <Chu kieu="rat" mau={khoa ? "#565c59" : M.chu} dong={1}>{tenGoi(c.ten)}</Chu>
+          <Chu kieu="rat" mau={khoa ? M.chu3 : M.chu} dong={1}>{tenGoi(c.ten)}</Chu>
           {cm.may.motCon ? (
-            <Chu kieu="dam" co={12.5} mau="#565c59">{c.gan ? "Máy riêng" : khoa ? "Không thêm được" : "Chọn bé này"}</Chu>
+            <Chu kieu="dam" co={12.5} mau={M.chu3}>{c.gan ? "Máy riêng" : khoa ? "Không thêm được" : "Chọn bé này"}</Chu>
           ) : (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-              {c.dangDung ? <Chu kieu="dam" co={12.5} mau="#565c59">Đang dùng ·</Chu> : null}
+              {c.dangDung ? <Chu kieu="dam" co={12.5} mau={M.chu3}>Đang dùng ·</Chu> : null}
               <SaoNho n={c.sao} />
-              {rieng ? <Chu kieu="dam" co={12.5} mau="#565c59" dong={1} style={{ flexShrink: 1 }}>{`· có ${rieng.ten.replace(/ (của|·) .*$/, "")} riêng`}</Chu> : null}
+              {rieng ? <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1} style={{ flexShrink: 1 }}>{`· có ${rieng.ten.replace(/ (của|·) .*$/, "")} riêng`}</Chu> : null}
             </View>
           )}
         </View>
@@ -83,8 +83,8 @@ export default function MayNayAiDung() {
                 style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60 }, keDau(k)]}>
                 <View style={la ? undefined : { opacity: 0.45, filter: "grayscale(1)" }}><AvtCon c={c} co={36} /></View>
                 <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-                  <Chu kieu="rat" mau={la ? M.chu : "#565c59"} dong={1}>{tenGoi(c.ten)}</Chu>
-                  <Chu kieu="dam" co={12.5} mau="#565c59">{la ? "Máy riêng" : "Không thêm được"}</Chu>
+                  <Chu kieu="rat" mau={la ? M.chu : M.chu3} dong={1}>{tenGoi(c.ten)}</Chu>
+                  <Chu kieu="dam" co={12.5} mau={M.chu3}>{la ? "Máy riêng" : "Không thêm được"}</Chu>
                 </View>
                 <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}><ODanhDau chon={la} khoa={!la} /></View>
               </View>
@@ -93,7 +93,7 @@ export default function MayNayAiDung() {
         </TheDs>
         {cua && khac ? (
           <HopChu>
-            <Chu kieu="rat" co={13} mau="#3a403d">iPhone, iPad chỉ một bé: </Chu>
+            <Chu kieu="rat" co={13} mau={M.chu2}>iPhone, iPad chỉ một bé: </Chu>
             {`hệ điều hành của Apple không cho đổi người dùng trên máy. Muốn ${tenGoi(khac.ten)} dùng ${nganX}, gỡ khỏi ${tenGoi(cua.ten)} rồi ghép lại cho ${tenGoi(khac.ten)}.`}
           </HopChu>
         ) : null}
@@ -111,7 +111,7 @@ export default function MayNayAiDung() {
         <MucPhai chu={ten} phai="1 bé" />
         <TheDs>{cm.ds.map(dong)}</TheDs>
         <HopChu>
-          <Chu kieu="rat" co={13} mau="#3a403d">iPhone, iPad chỉ một bé: </Chu>
+          <Chu kieu="rat" co={13} mau={M.chu2}>iPhone, iPad chỉ một bé: </Chu>
           {`hệ điều hành của Apple không cho đổi người dùng trên máy.${nguoiKhac && goc.size ? ` Muốn ${tenGoi(nguoiKhac.ten)} dùng ${tenNgan}, gỡ khỏi ${tenGoi(cm.ds.find((c) => c.gan)!.ten)} rồi ghép lại cho ${tenGoi(nguoiKhac.ten)}.` : ""}`}
         </HopChu>
       </> : <>

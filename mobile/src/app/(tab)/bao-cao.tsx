@@ -43,7 +43,7 @@ export default function TabBaoCao() {
     // thiết kế .top: «Báo cáo» 28/800 + viên «7 ngày qua» nổi bên phải
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginHorizontal: 4, marginTop: 4 }}>
       <Chu kieu="den" co={28} style={{ flex: 1, letterSpacing: -0.6 }}>Báo cáo</Chu>
-      <View style={{ height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: "#f7f6f3", justifyContent: "center", ...KHOI.nho }}>
+      <View style={{ height: 36, paddingHorizontal: 12, borderRadius: 18, backgroundColor: M.the, justifyContent: "center", ...KHOI.nho }}>
         <Chu kieu="rat" co={13} mau={M.chinhInk}>7 ngày qua</Chu>
       </View>
     </View>
@@ -88,18 +88,18 @@ function BaoCaoCon({ id }: { id: string }) {
     <>
       <Pressable onPress={xemDung} accessibilityRole="button" accessibilityHint="Mở «Hôm nay con dùng gì»">
         <The dem style={{ gap: 2, padding: 18 }}>
-          <Chu kieu="dam7" co={14} mau="#565c59">{`Phút chơi của ${ten}${ngay.length ? ` · ${ngayNgan(ngay[0].ngay)} – ${ngayNgan(ngay[ngay.length - 1].ngay)}` : ""}`}</Chu>
+          <Chu kieu="dam7" co={14} mau={M.chu3}>{`Phút chơi của ${ten}${ngay.length ? ` · ${ngayNgan(ngay[0].ngay)} – ${ngayNgan(ngay[ngay.length - 1].ngay)}` : ""}`}</Chu>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
             <Chu kieu="rat" co={38} so style={{ letterSpacing: -1 }}>{gio(nay.tongGiaiTri)}</Chu>
-            <Chu kieu="dam7" co={15} mau="#565c59">{`= ${soVN(saoTieu)} sao đã tiêu`}</Chu>
+            <Chu kieu="dam7" co={15} mau={M.chu3}>{`= ${soVN(saoTieu)} sao đã tiêu`}</Chu>
           </View>
           {(() => {
             const cau = nay.tongGiaiTri && !saoVay ? "Chơi toàn bằng sao tự kiếm"
               : bc.tuanTruoc.tongGiaiTri ? (lech === 0 ? "Bằng 7 ngày trước" : `${lech > 0 ? "Nhiều" : "Ít"} hơn 7 ngày trước ${gio(Math.abs(lech))}`) : null;
             const xau = lech > 0 && saoVay > 0;
             return cau ? (
-              <View style={{ alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 13, backgroundColor: xau ? "#fbe3d3" : "#dcebe6" }}>
-                <Chu kieu="rat" co={13} mau={xau ? "#8a3c0c" : M.chinhInk}>{cau}</Chu>
+              <View style={{ alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 13, backgroundColor: xau ? "#fbe3d3" : M.chinhSoft }}>
+                <Chu kieu="rat" co={13} mau={xau ? M.canh : M.chinhInk}>{cau}</Chu>
               </View>
             ) : null;
           })()}
@@ -108,7 +108,7 @@ function BaoCaoCon({ id }: { id: string }) {
               const laNay = x.ngay === homNay, nhan = laNay ? "Nay" : THU[thuCua(x.ngay)];
               return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: null, doc: `${nhan}: ${gio(x.phut)} = ${x.phut} sao` };
             })} />
-          <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: "#e2660f" },
+          <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: M.badge },
             { chu: `Nay: ${phutNay} phút = ${soVN(phutNay)} sao${d.sao && !no ? ` · còn ${soVN(d.sao.phutCon)} sao` : ""}` }]} />
         </The>
       </Pressable>
@@ -122,7 +122,7 @@ function BaoCaoCon({ id }: { id: string }) {
               return (
                 <HangViec key={x.muc} dau={k === 0} trai={<OLomIcon ic={hoc ? (/điển|sách/i.test(x.ten ?? x.muc) ? "sach" : "may_tinh") : "game"} />} tieu={x.ten ?? x.muc}
                   phu={x.may ? x.may.replace(/ của .*$/, "").replace(/ · .*$/, "") : hoc ? "Không trừ sao" : "Trừ sao · 1 phút = 1 sao"}
-                  phai={<View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: hoc ? "#ecebe7" : "#dcebe6" }}>
+                  phai={<View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: hoc ? M.xamSoft : M.chinhSoft }}>
                     <Chu kieu="rat" co={12.5} so mau={hoc ? M.chu2 : M.chinhInk}>{`${hoc ? "Không tính" : "Chơi"} ${gioNgan(x.phut)}`}</Chu>
                   </View>}
                   bam={xemDung} />
@@ -136,18 +136,18 @@ function BaoCaoCon({ id }: { id: string }) {
       {/* thiết kế .hai: ô vàng «120 sao» kiếm (→ Ví sao) · ô «45 sao vay» Ba Mẹ cho vay mấy trong mấy lần xin (→ Con đang xin) */}
       <View style={{ flexDirection: "row", gap: 10 }}>
         <NhanMen onPress={() => router.push(`/vi/${id}` as never)} accessibilityRole="button" muc="khoi" sang
-          style={{ flex: 1, minHeight: 124, padding: 16, borderRadius: 26, backgroundColor: "#fdeab0", backgroundImage: "linear-gradient(#ffe39a, #fbecc0)", ...KHOI.the }}>
+          style={{ flex: 1, minHeight: 124, padding: 16, borderRadius: 26, backgroundColor: "#fdeab0", backgroundImage: "linear-gradient(#ffe39a, #fbf0d6)", ...KHOI.the }}>
           <Icon3D ten="sao" co={32} />
           <Chu kieu="rat" co={26} so style={{ marginTop: 6, letterSpacing: -0.5 }}>{`${soVN(saoKiem)} sao`}</Chu>
-          <Chu kieu="dam7" co={12.5} mau="#6e4300" style={{ lineHeight: 17 }}>
+          <Chu kieu="dam7" co={12.5} mau={M.diemInk} style={{ lineHeight: 17 }}>
             {`Kiếm từ ${nay.duyet.duoc} việc · ${traNo ? `${soVN(traNo)} sao đã trả nợ` : `đã tiêu ${soVN(nay.saoTieu ?? saoTieu)}`} ›`}
           </Chu>
         </NhanMen>
         <NhanMen onPress={() => router.push(`/yeu-cau?con=${id}` as never)} accessibilityRole="button" muc="khoi" sang
-          style={{ flex: 1, minHeight: 124, padding: 16, borderRadius: 26, backgroundColor: saoVay ? "#f9e7d2" : "#f7f6f3", ...KHOI.the }}>
+          style={{ flex: 1, minHeight: 124, padding: 16, borderRadius: 26, backgroundColor: saoVay ? M.canhSoft : M.the, ...KHOI.the }}>
           <Icon3D ten="sao" co={32} />
-          <Chu kieu="rat" co={26} so mau={saoVay ? "#8a3c0c" : M.chu} style={{ marginTop: 6, letterSpacing: -0.5 }}>{`${soVN(saoVay)} sao vay`}</Chu>
-          <Chu kieu="dam7" co={12.5} mau={saoVay ? "#8a3c0c" : "#565c59"} style={{ lineHeight: 17 }}>
+          <Chu kieu="rat" co={26} so mau={saoVay ? M.canh : M.chu} style={{ marginTop: 6, letterSpacing: -0.5 }}>{`${soVN(saoVay)} sao vay`}</Chu>
+          <Chu kieu="dam7" co={12.5} mau={saoVay ? M.canh : M.chu3} style={{ lineHeight: 17 }}>
             {`${xin.so ? `Ba Mẹ cho vay ${xin.cho} trong ${xin.so} lần xin` : "Không xin vay tuần này"} · ${no ? `đang nợ ${soVN(no)}` : "không nợ"} ›`}
           </Chu>
         </NhanMen>
@@ -156,7 +156,7 @@ function BaoCaoCon({ id }: { id: string }) {
       {saoVay > 0 || (!nay.duyet.duoc && nay.tongGiaiTri) ? (
         // thiết kế .rob: thẻ ngọc nhạt, Grow 58 trái, câu 14/700 + liên kết đậm
         <NhanMen onPress={() => router.push((saoVay > 0 ? `/vi/${id}` : `/giao-nv?con=${id}`) as never)} accessibilityRole="button" muc="khoi" sang
-          style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 28, backgroundColor: "#dcebe6", ...KHOI.the }}>
+          style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 28, backgroundColor: M.chinhSoft, ...KHOI.the }}>
           <Rob ten="chi" co={58} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ lineHeight: 20 }}>
@@ -171,11 +171,11 @@ function BaoCaoCon({ id }: { id: string }) {
       ) : null}
 
       <NhanMen onPress={() => router.push("/nhat-ky" as never)} accessibilityRole="button" muc="khoi" sang
-        style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4, minHeight: 68, paddingLeft: 12, paddingRight: 16, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+        style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4, minHeight: 68, paddingLeft: 12, paddingRight: 16, borderRadius: 28, backgroundColor: M.the, ...KHOI.the }}>
         <OLomIcon ic="lich" />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={15}>Nhật ký cả nhà</Chu>
-          <Chu kieu="dam" co={12.5} mau="#565c59">Ai cho vay sao, ai duyệt, ai đổi cài đặt</Chu>
+          <Chu kieu="dam" co={12.5} mau={M.chu3}>Ai cho vay sao, ai duyệt, ai đổi cài đặt</Chu>
         </View>
         <Chu kieu="rat" co={18} mau={M.chinhInk}>›</Chu>
       </NhanMen>

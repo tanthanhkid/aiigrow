@@ -71,7 +71,7 @@ export function BangTraoQua({ p, dong, xong }: {
           <Chu co={15} mau={M.chu2}>{`Con chọn ${khiNao(p.created_at)} · đang giữ`}</Chu>
           <GiaSao n={p.diem} />
         </View>
-        {vay > 0 ? <Chu kieu="rat" co={14} mau="#8a3c0c" style={{ textAlign: "center", marginTop: -4 }}>{`trong đó ${soVN(vay)} sao Ba Mẹ cho vay`}</Chu> : null}
+        {vay > 0 ? <Chu kieu="rat" co={14} mau={M.canh} style={{ textAlign: "center", marginTop: -4 }}>{`trong đó ${soVN(vay)} sao Ba Mẹ cho vay`}</Chu> : null}
         {/* thiết kế 5otw85h4: dải ngọc nhạt có Grow bên trái */}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 18, backgroundColor: M.chinhSoft }}>
           <Rob ten="xong" co={44} />

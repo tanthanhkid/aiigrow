@@ -17,7 +17,7 @@ export default function QuaMua() {
   const [hoi, setHoi] = useState(false);
   const nutSl = (chu: string, bam: () => void, tat: boolean, nhan: string) => (
     <Pressable onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={nhan}
-      style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: "#f7f6f3", boxShadow: BONG.nho, opacity: tat ? 0.4 : 1 }}>
+      style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: M.the, boxShadow: BONG.nho, opacity: tat ? 0.4 : 1 }}>
       <Chu kieu="rat" co={20} mau={M.chinhInk}>{chu}</Chu>
     </Pressable>
   );
@@ -34,17 +34,17 @@ export default function QuaMua() {
         <Chu kieu="dam" co={13.5} mau={M.chu3}>{v.moTa}</Chu>
       </View>
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <View style={{ flex: 1, borderRadius: 22, backgroundColor: "#f7f6f3", padding: 16, gap: 4, ...KHOI.nho }}>
+        <View style={{ flex: 1, borderRadius: 22, backgroundColor: M.the, padding: 16, gap: 4, ...KHOI.nho }}>
           <Chu kieu="rat" co={12} mau={M.chu3}>Ba Mẹ trả</Chu><Chu kieu="rat" co={20}>💳 {dong(v.gia)}</Chu>
         </View>
-        <View style={{ flex: 1, borderRadius: 22, backgroundColor: "#f7f6f3", padding: 16, gap: 4, ...KHOI.nho }}>
+        <View style={{ flex: 1, borderRadius: 22, backgroundColor: M.the, padding: 16, gap: 4, ...KHOI.nho }}>
           <Chu kieu="rat" co={12} mau={M.chu3}>Con đổi bằng</Chu>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }}><Icon3D ten="sao" co={20} /><Chu kieu="rat" co={20}>{soCham(v.sao)} sao</Chu></View>
         </View>
       </View>
-      <View style={{ borderRadius: 22, backgroundColor: "#f7f6f3", paddingVertical: 4, paddingHorizontal: 16, ...KHOI.nho }}>
+      <View style={{ borderRadius: 22, backgroundColor: M.the, paddingVertical: 4, paddingHorizontal: 16, ...KHOI.nho }}>
         {[["📱", "Đổi xong, con nhận mã QR trong app"], ["⏳", "Mã dùng trong 60 ngày"], ["🔒", "Chưa đổi thì Ba Mẹ vẫn giữ, không mất tiền"]].map(([e, x], i) => (
-          <View key={x} style={{ flexDirection: "row", gap: 10, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: "#e9e8e3" }}>
+          <View key={x} style={{ flexDirection: "row", gap: 10, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: M.ranh }}>
             <Text style={{ fontSize: 14, lineHeight: 18 }}>{e}</Text><Chu kieu="rat" co={13.5} style={{ flex: 1, lineHeight: 18 }}>{x}</Chu>
           </View>
         ))}

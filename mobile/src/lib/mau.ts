@@ -1,32 +1,57 @@
 import { Platform } from "react-native";
 
-// Token màu + chữ của AiiGrow. Bảng hiện hành: hướng A «than chì & ngọc lục bảo» (24/10, ghi chú bên dưới). Một màu nhấn xanh ngọc;
+// Token màu + chữ của AiiGrow phía Ba Mẹ. Bảng hiện hành: «Navy» (17/11, ghi chú bên dưới; trước đó hướng A «than chì & ngọc lục bảo» 24/10). Một màu nhấn xanh ngọc;
 // vàng CHỈ dùng cho điểm. Tương phản WCAG đo lại 24/10 (review PR #66): chu/nen 17:1 · chu3/nen 5,66 · chinh/trắng 6,41 · trắng/nut 18,7 ·
 // chinhInk/chinhSoft 7,72 · tim/trắng 5,94 · viền ô nhập #8a8f8c trên trắng 3,29.
 export const M = {
-  // 24/10 Thanh chọn hướng A «than chì & ngọc lục bảo» (kiểu Apple/Linear): nền xám ấm trung tính, chữ gần đen, nút chính màu mực,
-  // xanh ngọc đậm chỉ làm điểm nhấn; vàng vẫn CHỈ dùng cho điểm. Tương phản: chu3 #5c625f trên #f4f4f2 5,7:1 · chinh #0f6b5c trên trắng 6,4:1.
-  nen: "#f4f4f2", the: "#ffffff", vien: "#e7e7e3", vien2: "#d9d9d4", oNhap: "#8a8f8c",
-  chu: "#0f1312", chu2: "#3f4542", chu3: "#5c625f",
-  chinh: "#0f6b5c", chinhDam: "#0a5246", chinhInk: "#0a5246", chinhSoft: "#e3efeb", chinhSang: "#2bb7a3",
-  nut: "#0f1312", nutDam: "#000000",
-  diem: "#f5b70a", diemInk: "#7a4a00", diemSoft: "#fff1c9",
-  canh: "#92400e", canhSoft: "#fff4e0", loi: "#b42318", loiSoft: "#fef0ee", huy: "#c03a2b",
-  lam: "#1d4ed8", lamSoft: "#e8f0ff", xamSoft: "#ebebe7", tim: "#5b4fd6", timSoft: "#ecebfb",
-  // màu mục của biểu đồ Thời gian màn hình (giữ đúng giá trị cũ của man-hinh/[con].tsx, gom về token): cam video, hồng video ngắn, rêu giải trí khác
+  // 17/11 bàn thiết kế chốt «mẫu 1 Navy» cho TOÀN BỘ màn Ba Mẹ (màn mẫu bm2-trang-chu v36, issue #363): nền kem, chữ + nút + điểm nhấn navy,
+  // vàng mật CHỈ cho sao, cam cho huy hiệu số, ô liu cho «xong / đã kết nối». Phía Con KHÔNG dùng bảng này (diu.ts).
+  // Tương phản (WCAG): chu #0A1629 / nen 15,9:1 · chu3 #5a5a5a / nen 6,0:1 · trắng / chinh 17,9:1 · canh #983e04 / canhSoft 5,8:1, trên chinhSoft/xamSoft #E3D9CB 5,0:1, trên chonSoft #F1E2BF 5,4:1 (Ánh kim — #a84505 chỉ 4,3 trên kem lõm) · loi #b81f1f / loiSoft 5,6:1.
+  // «Ánh kim» (phong cách E): neumorphism mỏng — mặt thẻ CÙNG màu nền kem #ECE4D9, nổi / lõm bằng bóng đôi (clay.ts); chữ phụ nâu ấm.
+  // Tương phản trên #ECE4D9: chu 14,4 · chu2 9,0 · chu3 #5f554b 5,8 (mẫu E dùng #7c7166 chỉ 3,8 ⇒ sẫm hơn) · lienKet #7a5a1f 5,0 · canh 4,7.
+  // chinhSoft = mặt trung tính kem lõm #E3D9CB (như trước Ánh kim). Trạng thái ĐANG CHỌN (cặp bật/tắt) dùng riêng chonSoft #F1E2BF (kem ánh vàng), không dùng chinhSoft.
+  nen: "#ECE4D9", the: "#ECE4D9", vien: "#ddd2c4", vien2: "#e2d8cb", oNhap: "#8a8478",
+  chu: "#0A1629", chu2: "#3a3a3a", chu3: "#5f554b",
+  chinh: "#0A1629", chinhDam: "#0A1629", chinhInk: "#0A1629", chinhSoft: "#E3D9CB", chinhSang: "#7ED957",
+  chonSoft: "#F1E2BF",
+  // nút tắt (Nut tat): nền đặc không giảm opacity — #DDD3C6 / navy 12,3:1, chữ chu3 #5f554b / #DDD3C6 4,9:1
+  tatNen: "#DDD3C6",
+  // chấm nhóm ở nút quyết «Thêm vào danh sách» (≥3:1 trên nền nút): Tính phút cam #A94A07 / vàng #F4C76A 3,6:1 · Không tính phút ô liu #3F7D1F / kem #ECE4D9 4,0:1
+  chamTinh: "#A94A07", chamKhong: "#3F7D1F",
+  // chữ liên kết / «Tất cả ›» vàng đồng sẫm (mẫu E #8a6a2b chỉ 4,0:1)
+  lienKet: "#7a5a1f",
+  // dấu sách trước tiêu đề mục: đồng kim (giữa dải vàng kim `MEN.vang`)
+  dauSach: "#C9973B",
+  // số âm / nợ trên thẻ hero navy: cam san hô (8,8:1 trên #0A1629) — nợ vẫn phải trông như cảnh báo
+  noHero: "#FF9B6B",
+  // nút chính: viên navy (gradient #1b2b47 → #0A1629 ở MEN.toi)
+  nut: "#0A1629", nutDam: "#1b2b47",
+  diem: "#F4C76A", diemInk: "#0A1629", diemSoft: "#fbf0d6",
+  canh: "#983e04", canhSoft: "#ffe6d6", loi: "#b81f1f", loiSoft: "#ffe1e1", huy: "#b81f1f",
+  // huy hiệu số (chuông, tab, tiêu đề mục): «Ánh kim» vàng chữ navy (11,4:1) — trước là cam #FF751F
+  badge: "#F4C76A",
+  // «xong / đã kết nối / Không tính phút»: ô liu, nền nhạt chữ navy
+  ok: "#7ED957", okSoft: "#e4f5da",
+  lam: "#1d4ed8", lamSoft: "#e1e9fb", xamSoft: "#E3D9CB", tim: "#5b4fd6", timSoft: "#ecebfb",
+  // màu mục của biểu đồ Thời gian màn hình: cam video, hồng video ngắn, rêu giải trí khác
   camDam: "#c2410c", hong: "#be185d", reu: "#4d7c0f",
-  // rãnh lõm của biểu đồ / thanh tiến độ (clay-a-goc-guong.css --lom)
-  ranh: "#e9e8e3",
-  // nền đầu màn (gradient 300px): Ba Mẹ xám ngọc rất nhạt, Con Nhí vàng nhạt, Teen xanh lam xám
-  dauBaMe: "#e6ece9", dauNhi: "#fff0c7", dauTeen: "#e8ecf7",
+  // rãnh lõm của biểu đồ / thanh tiến độ
+  ranh: "#E4DACD",
+  // nền đầu màn (gradient 300px): Ba Mẹ phẳng kem (Ánh kim — trước là #e8ddcf → nền kem), Con Nhí vàng nhạt, Teen xanh lam xám (Con không đổi)
+  dauBaMe: "#ECE4D9", dauNhi: "#fff0c7", dauTeen: "#e8ecf7",
 } as const;
+
+/** BẢNG MÀU HỒ SƠ CON DUY NHẤT (avatar «mau-<số>»): [màu chọn ở Lần đầu, nền nhạt thẻ hồ sơ, tông đậm cho avatar chữ trắng ở Hằng ngày
+ *  (bàn them-h60stad7, bm2-trang-chu `.av.a/.m/.n/.k` — đủ tương phản)]. Lần đầu / Sửa hồ sơ đọc [0][1]; lib/hang-ngay › mauCon đọc [2]. */
+export const MAU_HO_SO: [string, string, string][] = [["#f29a4a", "#fde3c8", "#E8600C"], ["#6aa3ef", "#dce9fb", "#1F48FF"], ["#ec8db2", "#fbe0ea", "#be185d"],
+  ["#5bbf95", "#d9f1e6", "#0c7f5f"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];   // [2] theo bàn Navy 17/11 (.av.a/.m/.n/.k)
 
 export const BO = { nho: 12, vua: 18, the: 24 } as const;
 
-/** Inter. iOS gọi theo tên PostScript trong tệp font nhúng (Inter-Regular…); Android theo tên tệp trong assets/fonts (plugin expo-font);
- * web theo tên @font-face mà useFonts đặt (phong-chu.web.ts). Cả ba trỏ cùng ba tệp của @expo-google-fonts/inter ⇒ chữ y hệt. */
+/** Be Vietnam Pro (17/11, thay Inter — bàn Navy #363). iOS gọi theo tên PostScript trong tệp font nhúng (BeVietnamPro-Regular…); Android theo tên tệp
+ * trong assets/fonts (plugin expo-font); web theo tên @font-face mà useFonts đặt (phong-chu.web.ts). Cả ba trỏ cùng bốn tệp assets/fonts/BeVietnamPro_*.ttf. */
 export const F = Platform.OS === "ios"
-  ? ({ thuong: "Inter-Regular", dam: "Inter-SemiBold", rat: "Inter-ExtraBold", den: "Inter-ExtraBold", dam7: "Inter-Bold" } as const)
-  : ({ thuong: "Inter_400Regular", dam: "Inter_600SemiBold", rat: "Inter_800ExtraBold", den: "Inter_800ExtraBold", dam7: "Inter_700Bold" } as const);
-// 14/11 (khớp iOS): thiết kế chốt khai chữ đậm 800 ở ~1.390 / 2.000 chỗ (tiêu đề, tên dòng, nút, số) — 700 chỉ cho dòng phụ nhỏ ⇒ `rat` (đậm) = Inter
-// ExtraBold 800 (trước: Bold 700, chữ iOS mảnh hơn thiết kế). `den` giữ tên riêng cho chỗ cố ý 800; `dam7` = Bold 700 (chữ tab chưa chọn, dòng phụ đậm).
+  ? ({ thuong: "BeVietnamPro-Regular", dam: "BeVietnamPro-SemiBold", rat: "BeVietnamPro-ExtraBold", den: "BeVietnamPro-ExtraBold", dam7: "BeVietnamPro-Bold", tieu: "Fraunces-SemiBold", tieu7: "Fraunces-Bold" } as const)
+  : ({ thuong: "BeVietnamPro_400Regular", dam: "BeVietnamPro_600SemiBold", rat: "BeVietnamPro_800ExtraBold", den: "BeVietnamPro_800ExtraBold", dam7: "BeVietnamPro_700Bold", tieu: "Fraunces_600SemiBold", tieu7: "Fraunces_700Bold" } as const);
+// `tieu` / `tieu7`: Fraunces 600 / 700 — CHỈ cho tiêu đề màn / mục, chữ cái avatar, số lớn ở thẻ hero («Ánh kim»); nút và tên dòng giữ Be Vietnam Pro.
+// 14/11: chữ đậm 800 ở phần lớn chỗ (tiêu đề, tên dòng, nút, số) ⇒ `rat` = ExtraBold 800; `den` giữ tên riêng cho chỗ cố ý 800; `dam7` = Bold 700.

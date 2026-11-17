@@ -17,7 +17,7 @@ const SO_LAN = [1, 2, 4, 8];
 /** Một dòng điều kiện: tên + dòng phụ, công tắc bên phải; `duoi` = chọn số khi bật. */
 function DongDk({ tieu, phu, bat, doi, dau, duoi }: { tieu: string; phu: string; bat: boolean; doi: (v: boolean) => void; dau?: boolean; duoi?: ReactNode }) {
   return (
-    <View style={{ paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: dau ? 0 : 1, borderTopColor: "#efefec", gap: 10 }}>
+    <View style={{ paddingVertical: 12, paddingHorizontal: 14, borderTopWidth: dau ? 0 : 1, borderTopColor: M.vien, gap: 10 }}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
         <View style={{ flex: 1, minWidth: 0 }}><Chu kieu="rat" co={15}>{tieu}</Chu><Chu co={13} mau={M.chu3}>{phu}</Chu></View>
         <CongTac bat={bat} doi={doi} nhan={tieu} />
@@ -108,7 +108,7 @@ export default function SuaQua() {
             const on = h ? x === h : icQua({ hinh: x, loai: "qua" }) === icHienTai;
             return (
               <NhanMen key={x} onPress={() => setHinh(x)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Hình ${x}`} muc="chip" sang={!on}
-                style={[{ flexBasis: "21%", flexGrow: 1, height: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? "#eef5f2" : M.the },
+                style={[{ flexBasis: "21%", flexGrow: 1, height: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? M.chonSoft : M.the },
                   on ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}` } : KHOI.nho]}>
                 <Icon3D ten={icQua({ hinh: x, loai: "qua" }) as TenIcon} co={38} />
               </NhanMen>
@@ -163,7 +163,7 @@ export default function SuaQua() {
         {/* thiết kế t49meex8: thẻ quà — hình · tên · «Áp cho …» · giá sao */}
         {q ? (
           <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: M.the }, KHOI.nho]}>
-            <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua(q) as TenIcon} co={28} /></View>
+            <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua(q) as TenIcon} co={28} /></View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15}>{q.ten}</Chu>
               <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{`Áp cho ${d.con.filter((c) => (q.apCho ?? moiCon).includes(c.id)).map((c) => tenGoi(c.ten)).join(", ") || "cả nhà"}`}</Chu>

@@ -76,11 +76,11 @@ function DanhSach({ loc, cacCon }: { loc: string | null; cacCon: GiaDinh["con"] 
         <>
           {vay.so ? (
             // thiết kế 04: dải đào nổi — ô icon sao · «7 ngày qua cho vay 4 lần · 75 sao» · «Bà Hoa 3 · Mẹ Lan 1»
-            <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: "#f9e7d2" }, KHOI.the]}>
+            <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: M.canhSoft }, KHOI.the]}>
               <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}><Icon3D ten="sao" co={24} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={14.5}>{`${d.soNgay} ngày qua cho vay ${vay.so} lần${vay.sao !== null ? ` · ${soVN(vay.sao)} sao` : ""}`}</Chu>
-                <Chu kieu="dam" co={12.5} mau="#8a3c0c">{vay.theoNguoi.map((x) => `${x.ten} ${x.so}`).join(" · ")}</Chu>
+                <Chu kieu="dam" co={12.5} mau={M.canh}>{vay.theoNguoi.map((x) => `${x.ten} ${x.so}`).join(" · ")}</Chu>
               </View>
             </View>
           ) : null}
@@ -90,7 +90,7 @@ function DanhSach({ loc, cacCon }: { loc: string | null; cacCon: GiaDinh["con"] 
               <TieuMuc chu={tieuNgay(n.ngay)} />
               <The style={{ paddingVertical: 4 }}>
                 {n.ds.map((x, k) => (
-                  <View key={`${x.luc}:${k}`} style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: "#efefec" }}>
+                  <View key={`${x.luc}:${k}`} style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: M.vien }}>
                     {x.nguoi && x.tenNguoi ? <Avt ten={chuCai(x.tenNguoi)} mau={M.lam} co={40} />
                       : x.con && x.tenCon ? <Avt ten={x.tenCon} mau={mauCon(cacCon.find((c) => c.id === x.con)?.avatar, thuCon(x.con))} co={40} con={cacCon.find((c) => c.id === x.con)} />
                       : <BieuTron ic="khien" mau="xam" />}

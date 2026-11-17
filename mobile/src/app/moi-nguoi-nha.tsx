@@ -15,7 +15,7 @@ import { useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
 import { type DsThanhVien, type Quyen, type ToiCaNha } from "@/lib/ca-nha";
 import { veHoac } from "@/lib/ui-bm3";
-import { BONG, KHOI } from "@/lib/clay";
+import { BONG, KHOI, KHOI_HERO } from "@/lib/clay";
 import { Avt, BaoLoi, Chu, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, useLam, useTai } from "@/lib/ui";
 import { mauCon } from "@/lib/hang-ngay";
 
@@ -90,25 +90,25 @@ export default function MoiNguoiNha() {
         </Pressable>
       </>}>
         {/* bàn .san: ô ngọc cao 196, bong bóng trắng trái (15/20, chữ ≤ 170), Grow «chỉ» 170 tràn mép phải-dưới */}
-        <View style={[{ height: 196, borderRadius: 36, overflow: "hidden", backgroundColor: "#e2efea", backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)" }, KHOI.the]}>
+        <View style={[{ height: 196, borderRadius: 36, overflow: "hidden", ...KHOI_HERO }]}>
           <View style={{ position: "absolute", right: -4, bottom: -24 }}><Rob ten="chi" co={Math.min(170, Math.round(rongSan * 0.48) - 8)} /></View>
-          <View style={{ position: "absolute", left: 18, top: 30, maxWidth: Math.min(202, Math.round(rongSan * 0.52)), paddingVertical: 11, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#fff", boxShadow: BONG.nho }}>
+          <View style={{ position: "absolute", left: 18, top: 30, maxWidth: Math.min(202, Math.round(rongSan * 0.52)), paddingVertical: 11, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.the, boxShadow: BONG.nho }}>
             <Chu kieu="dam7" co={15} style={{ lineHeight: 20 }}>{`${ai} chưa có app, gửi link nha!`}</Chu>
           </View>
         </View>
         <View style={{ alignItems: "center", gap: 6, marginTop: 4 }}>
           <Chu kieu="rat" co={26} style={{ textAlign: "center", letterSpacing: -0.5, lineHeight: 32 }}>{`${ai} chưa có AiiGrow`}</Chu>
-          <Chu co={15} mau="#3a403d" style={{ textAlign: "center", lineHeight: 21 }}>{`${ai} bấm link, tải app và đăng ký\nlà vào nhà ngay.`}</Chu>
+          <Chu co={15} mau={M.chu2} style={{ textAlign: "center", lineHeight: 21 }}>{`${ai} bấm link, tải app và đăng ký\nlà vào nhà ngay.`}</Chu>
         </View>
         {/* bàn .zalo: thẻ «Tin sẽ gửi cho <tên>» — bong bóng ngọc nhạt + thẻ link trắng (icon nhà, «<Ba Mẹ> mời bạn vào nhà», địa chỉ link) */}
-        <View style={[{ padding: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+        <View style={[{ padding: 12, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Avt ten={d?.toi ?? "Ba Mẹ"} mau="#e98aa6" co={28} />
-            <Chu kieu="rat" co={13} mau="#3a403d">{`Tin sẽ gửi cho ${ai}`}</Chu>
+            <Chu kieu="rat" co={13} mau={M.chu2}>{`Tin sẽ gửi cho ${ai}`}</Chu>
           </View>
-          <View style={{ marginTop: 8, marginLeft: 36, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderTopLeftRadius: 4, backgroundColor: "#dcebe6", gap: 8 }}>
+          <View style={{ marginTop: 8, marginLeft: 36, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderTopLeftRadius: 4, backgroundColor: M.chinhSoft, gap: 8 }}>
             <Chu co={14} style={{ lineHeight: 19 }}>{cau}</Chu>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: 14, backgroundColor: "#fff" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: 14, backgroundColor: M.the }}>
               <Icon3D ten="nha" co={36} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={14} dong={1}>{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
@@ -128,15 +128,15 @@ export default function MoiNguoiNha() {
       <Man day={<>
         <Nut chu="Xong, về Cả nhà" rong bam={ve} />
         <Pressable onPress={huy} disabled={dangChay} accessibilityRole="button" style={{ minHeight: 46, alignItems: "center", justifyContent: "center" }}>
-          <Chu kieu="rat" co={15} mau="#565c59">Huỷ lời mời</Chu>
+          <Chu kieu="rat" co={15} mau={M.chu3}>Huỷ lời mời</Chu>
         </Pressable>
       </>}>
         {/* bàn .san: ô ngọc bo 36 cao 270, Grow «xong» 214 tràn đáy, dấu tick tròn ngọc viền trắng góc phải */}
-        <View style={[{ height: 270, borderRadius: 36, overflow: "hidden", backgroundColor: "#e2efea", backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)" }, KHOI.the]}>
+        <View style={[{ height: 270, borderRadius: 36, overflow: "hidden", ...KHOI_HERO }]}>
           <View style={{ position: "absolute", left: "50%", bottom: -20, marginLeft: -107 }}><Rob ten="xong" co={214} /></View>
-          <View style={{ position: "absolute", right: 64, top: 40, width: 56, height: 56, borderRadius: 28, backgroundColor: "#0f6b5c", borderWidth: 5, borderColor: "#fff",
+          <View style={{ position: "absolute", right: 64, top: 40, width: 56, height: 56, borderRadius: 28, backgroundColor: M.ok, borderWidth: 5, borderColor: "#fff",
             alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}>
-            <Icon ten="tick" mau="#fff" co={28} />
+            <Icon ten="tick" mau={M.chu} co={28} />
           </View>
         </View>
         <View style={{ alignItems: "center", gap: 6, marginTop: 4 }}>
@@ -145,19 +145,19 @@ export default function MoiNguoiNha() {
           <Chu co={15} mau={M.chu2} style={{ textAlign: "center" }}>{`${ai} mở AiiGrow bằng ${daMoi.dinhDanh ? soNhom(daMoi.dinhDanh) : "SĐT / email này"} là thấy lời mời, không cần nhập mã gì cả.`}</Chu>
         </View>
         <Chu kieu="rat" co={13.5} mau={M.chu3} style={{ marginTop: 6, marginHorizontal: 6 }}>{`Điện thoại ${ai} sẽ hiện:`}</Chu>
-        <View style={{ padding: 14, borderRadius: 24, backgroundColor: "#2b302e", gap: 4, boxShadow: BONG.toi }} accessible accessibilityLabel={`Thông báo mẫu: ${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}>
+        <View style={{ padding: 14, borderRadius: 24, backgroundColor: M.nut, gap: 4, boxShadow: BONG.toi }} accessible accessibilityLabel={`Thông báo mẫu: ${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten="nha" co={18} /></View>
-            <Chu kieu="dam" co={12.5} mau="#d9dedc" style={{ flex: 1 }}>AiiGrow</Chu>
-            <Chu co={12} mau="#d9dedc">bây giờ</Chu>
+            <Chu kieu="dam" co={12.5} mau={M.vien2} style={{ flex: 1 }}>AiiGrow</Chu>
+            <Chu co={12} mau={M.vien2}>bây giờ</Chu>
           </View>
           <Chu kieu="rat" co={15} mau="#fff">{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
           <Chu co={13.5} mau="#eef1f0">{`Cùng trông ${soCon} nhà mình. Bấm để vào.`}</Chu>
         </View>
         {/* bàn .cho: viên đào cao 36, chấm cam có quầng, chữ nâu 14/800 */}
-        <View style={[{ alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: "#f9e7d2", marginTop: 4 }, KHOI.nho]}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#e2660f", boxShadow: "0 0 0 4px rgba(226,102,15,.2)" }} />
-          <Chu kieu="rat" co={14} mau="#8a3c0c">{`Đang chờ ${ai} bấm vào`}</Chu>
+        <View style={[{ alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: M.canhSoft, marginTop: 4 }, KHOI.nho]}>
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: M.badge, boxShadow: "0 0 0 4px rgba(255,117,31,.2)" }} />
+          <Chu kieu="rat" co={14} mau={M.canh}>{`Đang chờ ${ai} bấm vào`}</Chu>
         </View>
         <BaoLoi loi={loi} />
       </Man>
@@ -167,8 +167,8 @@ export default function MoiNguoiNha() {
   return (
     // thiết kế: tiêu đề «Mời người nhà» ở hàng đầu (cạnh nút lùi); nút «Gửi lời mời cho <tên>» + «… chưa có app? Xem cách gửi link» ngay dưới thẻ quyền
     <Man lui={{ chu: "", bam: ve }} tieu="Mời người nhà">
-      <View style={{ alignItems: "center", gap: 10, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 30, backgroundColor: "#e3efeb",
-        backgroundImage: "linear-gradient(#e9f3ef, #d6e9e2)", ...KHOI.the }}>
+      <View style={{ alignItems: "center", gap: 10, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 30, backgroundColor: M.chinhSoft,
+        backgroundImage: "linear-gradient(#ffffff, #F2EBE3)", ...KHOI.the }}>
         <View style={{ flexDirection: "row" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {[d?.toi ?? "Ba Mẹ", ...(d?.con ?? [])].slice(0, 5).map((t, i) => (
             // Avt tự chọn màu chữ đủ tương phản trên nền (cổng TUONG-PHAN)
@@ -185,12 +185,12 @@ export default function MoiNguoiNha() {
       <View style={{ flexDirection: "row", gap: 4, backgroundColor: M.xamSoft, padding: 5, borderRadius: 22, boxShadow: BONG.lom }} accessibilityRole="tablist">
         {(["sdt", "email"] as const).map((k) => (
           <NhanMen key={k} onPress={() => { setCach(k); setDd(""); }} accessibilityRole="tab" accessibilityState={{ selected: cach === k }} muc="chip" sang
-            style={[{ flex: 1, minHeight: 44, borderRadius: 17, alignItems: "center", justifyContent: "center" }, cach === k && { backgroundColor: "#fff", ...KHOI.nho }]}>
+            style={[{ flex: 1, minHeight: 44, borderRadius: 17, alignItems: "center", justifyContent: "center" }, cach === k && { backgroundColor: M.the, ...KHOI.nho }]}>
             <Chu kieu="rat" co={14.5} mau={cach === k ? M.chinhInk : M.chu2}>{k === "sdt" ? "Số điện thoại" : "Email"}</Chu>
           </NhanMen>
         ))}
       </View>
-      <View style={{ height: 56, borderRadius: 28, backgroundColor: "#ecebe7", boxShadow: BONG.lom, paddingHorizontal: 20, justifyContent: "center" }}>
+      <View style={{ height: 56, borderRadius: 28, backgroundColor: M.xamSoft, boxShadow: BONG.lom, paddingHorizontal: 20, justifyContent: "center" }}>
         <TextInput value={dd} onChangeText={(t) => setDd(cach === "sdt" ? catSdt(t) : t)} onFocus={() => setDangGo(true)}
           onBlur={() => { setDangGo(false); if (cach === "sdt" && SDT.test(chuanSdt(dd))) setDd(soNhom(chuanSdt(dd))); }} placeholder={cach === "sdt" ? "0909 876 543" : "ten@email.com"} placeholderTextColor={M.chu3}
           keyboardType={cach === "sdt" ? "phone-pad" : "email-address"} autoCapitalize="none" autoComplete={cach === "sdt" ? "tel" : "email"}
@@ -200,13 +200,13 @@ export default function MoiNguoiNha() {
       {saiDai ? <Chu kieu="dam" co={13} mau={M.loi} style={{ marginHorizontal: 8, marginTop: -4 }}>
         {cach === "sdt" ? `Số điện thoại cần đúng 10 số, bắt đầu bằng 0 (đang có ${chuanSdt(dd).replace(/\D/g, "").length} số)` : "Email chưa đúng — ví dụ ten@email.com"}</Chu> : null}
       {/* «Gọi là gì trong nhà?» không có trên thiết kế (thiết kế lấy tên từ danh bạ — «Chọn từ danh bạ» chưa làm) ⇒ giữ ô lõm nhỏ để có tên trên lời mời */}
-      <View style={{ height: 50, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom, paddingHorizontal: 20, justifyContent: "center" }}>
+      <View style={{ height: 50, borderRadius: 25, backgroundColor: M.xamSoft, boxShadow: BONG.lom, paddingHorizontal: 20, justifyContent: "center" }}>
         <TextInput value={ten} onChangeText={setTen} placeholder="Gọi là gì trong nhà? (Ba Tuấn, Bà nội…)" placeholderTextColor={M.chu3} maxLength={30}
           accessibilityLabel="Gọi là gì trong nhà" style={{ fontFamily: F.thuong, fontSize: 15.5, color: M.chu, paddingVertical: 12 }} />
       </View>
       {/* lề thẻ 16 (cổng LE-THE: ảnh cách mép thẻ ≥ 15.5 — trước 14) */}
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-        <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten="khien" co={24} /></View>
+      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
+        <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten="khien" co={24} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={15}>{`${ten.trim() || "Người được mời"} làm được như bạn`}</Chu>
           {/* bàn «Cho giờ, …» ⇒ «Cho vay sao» (#265: không còn «cho thêm giờ») */}

@@ -2,13 +2,13 @@
 // MỘT chỗ cho cách hiện sao của app Ba Mẹ (chốt 15/11):
 //  • chưa nợ ⇒ «⭐ N sao» (viên vàng);
 //  • đang nợ mà còn sao vay chưa tiêu ⇒ số chính «còn N sao = N phút chơi» (phutCon) + dòng «Đang nợ Ba Mẹ M sao»;
-//  • tiêu hết ⇒ số âm «⭐ −M sao» viên cảnh báo (nền #f9e7d2, chữ #8a3c0c) + dòng «Đang nợ Ba Mẹ M sao · sao nhiệm vụ trả nợ trước».
+//  • tiêu hết ⇒ số âm «⭐ −M sao» viên cảnh báo (nền #ffe6d6, chữ #b34a06) + dòng «Đang nợ Ba Mẹ M sao · sao nhiệm vụ trả nợ trước».
 // Bảng «Cho <Con> vay sao» (thiết kế them-6wjhze1d · them-y1r1eidm khi đang nợ > 1.000): 10 / 15 / 30 sao (mặc định 15), «Đang có … · vay xong sẽ nợ N sao»,
 // dải nhắc nợ (không chặn) ⇒ POST con/:id/cho-vay hoặc yeu-cau/:id/dong-y {soSao}. Hoàn tác 60 giây: POST vay/:id/hoan-tac.
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { bm } from "./api";
-import { BONG } from "./clay";
+import { BONG, HERO } from "./clay";
 import { BangTruot, BaoLoi, Chu, Icon3D, M, Nut, useLam } from "./ui";
 
 /** Trạng thái sao của một Con (máy chủ so-sao.ts › TrangThaiSao + tổng vay / đã trả). */
@@ -56,7 +56,7 @@ export function cauNo(s: SaoCon) {
 /** Chữ viên nhỏ (dải avatar, danh sách): số dư Con thấy — còn sao vay chưa tiêu thì hiện số sao tiêu được. */
 export const chuVien = (s: SaoCon) => `${soVN(kieuSao(s) === "vay" ? s.phutCon : kieuSao(s) === "am" ? -s.no : s.sao)} sao`;
 
-const VANG = { nen: "#fbecc0", chu: "#6e4300" }, CANH = { nen: "#f9e7d2", chu: "#8a3c0c" };
+const VANG = { nen: M.diemSoft, chu: M.diemInk }, CANH = { nen: M.canhSoft, chu: M.canh };
 export const MAU_NO = CANH;
 
 /** Viên sao nhỏ (thiết kế .be .diem / .diem.no): vàng khi còn sao, cảnh báo khi số âm. `n` (tuỳ chọn) = số thay cho trạng thái — viên «−39 sao». */
@@ -74,32 +74,34 @@ export function VienSao({ s, n, nho, chu }: { s?: SaoCon; n?: number; nho?: bool
 }
 
 /** Số sao lớn ở thẻ con (Trang chủ bm2-trang-chu, Hồ sơ con): viên «⭐ 30 sao» / «⭐ −20 sao» (26/800) hoặc «còn N sao = N phút chơi» + dòng nợ. */
-export function SoSaoLon({ s, co = 26, bamNo }: { s: SaoCon; co?: number; bamNo?: () => void }) {
-  const k = kieuSao(s), m = k === "am" ? CANH : VANG, no = cauNo(s);
+export function SoSaoLon({ s, co = 26, bamNo, toi }: { s: SaoCon; co?: number; bamNo?: () => void;
+  /** nằm trên thẻ hero navy: số sao vàng mật HERO.phu (kể cả `vay`, còn sao tiêu được), CHỈ `am` (nợ, số âm) và dòng «Đang nợ …» cam san hô M.noHero; viên `am` nền trắng mờ 10% */ toi?: boolean }) {
+  const k = kieuSao(s), m = toi ? { nen: HERO.vien, chu: HERO.chu } : k === "am" ? CANH : VANG, no = cauNo(s), mauNo = toi ? M.noHero : CANH.chu;
   return (
     <View style={{ gap: 6, alignItems: "flex-start" }}>
       {k === "vay" ? (
-        <Chu kieu="den" co={co} so style={{ letterSpacing: -0.6 }}>{soChinh(s)}</Chu>
+        <Chu kieu="tieu7" co={co} so mau={toi ? HERO.phu : undefined} style={{ letterSpacing: -0.6 }}>{soChinh(s)}</Chu>
       ) : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: m.nen,
-          boxShadow: k === "am" ? "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(138,60,12,.18)" : "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(110,67,0,.16)" }}
+          boxShadow: toi ? undefined : k === "am" ? "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(138,60,12,.18)" : "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(110,67,0,.16)" }}
           accessible accessibilityLabel={soChinh(s)}>
           <Icon3D ten="sao" co={co} />
-          <Chu kieu="den" co={co} mau={m.chu} so style={{ letterSpacing: -1 }}>{soChinh(s)}</Chu>
+          {/* «Ánh kim»: số sao đúc Fraunces; trên hero navy là vàng (mẫu E `.am`) */}
+          <Chu kieu="tieu7" co={co} mau={toi ? (k === "am" ? M.noHero : HERO.phu) : m.chu} so style={{ letterSpacing: -1 }}>{soChinh(s)}</Chu>
         </View>
       )}
       {no ? (
         bamNo ? (
-          <Pressable onPress={bamNo} accessibilityRole="button" hitSlop={6} style={{ minHeight: 32, justifyContent: "center", alignSelf: "stretch" }}>
-            <Chu kieu="rat" co={13} mau={CANH.chu}>{`${no} ›`}</Chu>
+          <Pressable onPress={bamNo} accessibilityRole="button" hitSlop={6} style={{ minHeight: 32, paddingVertical: 6, paddingRight: 8, justifyContent: "center", alignSelf: "stretch", minWidth: 0 }}>
+            <Chu kieu="rat" co={13} mau={mauNo} style={{ flexShrink: 1, minWidth: 0 }}>{`${no} ›`}</Chu>
           </Pressable>
-        ) : <Chu kieu="rat" co={13} mau={CANH.chu}>{no}</Chu>
+        ) : <Chu kieu="rat" co={13} mau={mauNo}>{no}</Chu>
       ) : null}
     </View>
   );
 }
 
-/** Dải nhắc / cảnh báo nợ (nền #f9e7d2, chữ #8a3c0c, icon cảnh báo): «Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.020)». */
+/** Dải nhắc / cảnh báo nợ (nền #ffe6d6, chữ #b34a06, icon cảnh báo): «Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.020)». */
 export function DaiNhacNo({ chu, phu }: { chu: string; phu?: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 22, backgroundColor: CANH.nen,
@@ -172,18 +174,18 @@ export function BangChoVay({ mo, dong, con, ten, soSao, yeuCau, mucDich, quaId, 
           return (
             <Pressable key={x} onPress={() => setChon(x)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${x} sao`}
               style={[{ flex: 1, height: 76, borderRadius: 24, alignItems: "center", justifyContent: "center" },
-                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
-              <Chu kieu="rat" co={28} so mau={on ? "#fff" : M.chu} style={{ lineHeight: 30 }}>{String(x)}</Chu>
-              <Chu kieu="dam7" co={12.5} mau={on ? "#dcebe6" : "#565c59"}>sao</Chu>
+                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
+              <Chu kieu="tieu7" co={28} so mau={on ? M.diem : M.chu} style={{ lineHeight: 30 }}>{String(x)}</Chu>
+              <Chu kieu="dam7" co={12.5} mau={on ? M.chinhSoft : M.chu3}>sao</Chu>
             </Pressable>
           );
         })}
       </View>
       {s && noSau !== null ? (
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
-          <Chu kieu="dam" co={13} mau="#565c59">Đang có</Chu>
+          <Chu kieu="dam" co={13} mau={M.chu3}>Đang có</Chu>
           <VienSao s={s} />
-          <Chu kieu="dam" co={13} mau="#565c59">· vay xong</Chu>
+          <Chu kieu="dam" co={13} mau={M.chu3}>· vay xong</Chu>
           <Chu kieu="rat" co={13} mau={CANH.chu}>{`sẽ nợ ${soVN(noSau)} sao`}</Chu>
         </View>
       ) : null}

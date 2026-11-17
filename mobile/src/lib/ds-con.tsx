@@ -23,13 +23,13 @@ export const icMuc = (ten: string, kieu: Kieu): TenIcon => {
 export function HangXin({ ic, tieu, phu, bam }: { ic: TenIcon; tieu: string; phu: string; bam: () => void }) {
   return (
     <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}, ${phu}. Trả lời`} muc="khoi"
-      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f9e7d2", ...KHOI.the }}>
+      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.canhSoft, ...KHOI.the }}>
       <OIcon ic={ic} co={40} nen="#f3d6b8" />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
-        <Chu kieu="dam" co={12.5} mau="#8a3c0c" dong={1}>{phu}</Chu>
+        <Chu kieu="dam" co={12.5} mau={M.canh} dong={1}>{phu}</Chu>
       </View>
-      <Chu kieu="rat" co={14} mau="#8a3c0c">Trả lời ›</Chu>
+      <Chu kieu="rat" co={14} mau={M.canh}>Trả lời ›</Chu>
     </NhanMen>
   );
 }
@@ -141,9 +141,9 @@ export function MotMuc({ con, kieu, ten, muc, caNha }: { con: string; kieu: Kieu
 function NutBo({ chu, tat, bam }: { chu: string; tat?: boolean; bam: () => void }) {
   return (
     <NhanMen onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={chu} accessibilityState={{ disabled: !!tat }} muc="nut" sang men={MEN.sang}
-      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 48, paddingHorizontal: 16, borderRadius: 24, backgroundColor: "#fff", ...KHOI.the }}>
+      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 48, paddingHorizontal: 16, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
       <Icon3D ten="tru" co={22} />
-      <Chu kieu="rat" co={15} mau="#8a3c0c" dong={1} style={{ flexShrink: 1 }}>{chu}</Chu>
+      <Chu kieu="rat" co={15} mau={M.canh} dong={1} style={{ flexShrink: 1 }}>{chu}</Chu>
     </NhanMen>
   );
 }

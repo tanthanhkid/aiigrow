@@ -10,7 +10,7 @@
 // Sau khi xử lý ⇒ màn kết quả /yeu-cau/xong (params: kieu, ten, phut, muc, may, grant, con, no, sao, phutCon, noTruoc, canh).
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { BONG } from "./clay";
+import { MEN, BONG } from "./clay";
 import { bm, laXinVay, type MayCon } from "./api";
 import { boQuaXin, hoanTacXin, themTuXin } from "./app-web";
 import type { YeuCauMoi } from "./hang-ngay";
@@ -101,34 +101,34 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
   // icon theo bàn: xin mở khoá máy «sach», app / web «web», xin vay «dongho» (them-1mnk3mjz)
   const ic: TenIcon = xinMoKhoa ? "sach" : laAppWeb(y) ? "web" : vay ? "dongho" : "chuong";
   return (
-    <View style={{ gap: 8, paddingVertical: 12, borderTopWidth: bo ? 1 : 0, borderTopColor: "#efefec" }}>
+    <View style={{ gap: 8, paddingVertical: 12, borderTopWidth: bo ? 1 : 0, borderTopColor: M.vien }}>
       {dangXin ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <OLomIcon ic={ic} co={44} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="rat" co={16}>{tieu}</Chu>
-            <Chu kieu="dam" co={12.5} mau="#565c59">{[mayNgan, xinMoKhoa ? "chơi vẫn trừ sao" : vay && sao?.hetSao ? "hết sao" : "con đang chờ"].filter(Boolean).join(" · ")}</Chu>
+            <Chu kieu="dam" co={12.5} mau={M.chu3}>{[mayNgan, xinMoKhoa ? "chơi vẫn trừ sao" : vay && sao?.hetSao ? "hết sao" : "con đang chờ"].filter(Boolean).join(" · ")}</Chu>
           </View>
-          <Chu kieu="rat" co={13} mau="#565c59" so>{gioPhut(y.created_at)}</Chu>
+          <Chu kieu="rat" co={13} mau={M.chu3} so>{gioPhut(y.created_at)}</Chu>
         </View>
       ) : oIcon ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <OLomIcon ic={ic} co={44} nen="#f3d6b8" />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="rat" co={16} dong={1}>{tieu}</Chu>
-            <Chu kieu="dam" co={13} mau="#8a3c0c" dong={1}>{dong2}</Chu>
+            <Chu kieu="dam" co={13} mau={M.canh} dong={1}>{dong2}</Chu>
           </View>
         </View>
       ) : (
         <View>
           <Chu kieu="rat" co={16}>{tieu}</Chu>
-          <Chu co={13.5} mau={xinMoKhoa ? "#8a3c0c" : M.chu3}>{dong2}</Chu>
+          <Chu co={13.5} mau={xinMoKhoa ? M.canh : M.chu3}>{dong2}</Chu>
         </View>
       )}
       {/* Trang chủ (oIcon): bàn bm2-trang-chu / them-0kwhgpq6 không có lời con cho xin app / web, xin mở khoá; xin vay giữ (them-1mnk3mjz) */}
       {/* dangXin: lời con viết (ly_do) luôn hiện trong ô lõm; xin app / web thêm dòng phụ (máy / nhóm) dưới */}
       {dangXin ? (y.ly_do?.trim() || (laAppWeb(y) && phu)) ? (
-        <View style={{ gap: 4, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+        <View style={{ gap: 4, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
           {y.ly_do?.trim() ? <Chu kieu="dam" co={13.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
           {laAppWeb(y) && phu ? <Chu kieu="dam" co={13} mau={M.chu3}>{phu}</Chu> : null}
         </View>
@@ -136,7 +136,7 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
       {vay && sao && !xinMoKhoa ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <VienSao s={sao} />
-          {no ? <Chu kieu="dam" co={13} mau="#8a3c0c">{no.replace(/ · .*$/, "")}</Chu> : null}
+          {no ? <Chu kieu="dam" co={13} mau={M.canh}>{no.replace(/ · .*$/, "")}</Chu> : null}
         </View>
       ) : null}
       {phu && !dangXin ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}
@@ -152,9 +152,9 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
       ) : laAppWeb(y) && truc && dangXin ? (
         <View style={{ gap: 8 }}>
           <Pressable onPress={() => xong(() => choAppWeb(y, may, true))} disabled={dang} accessibilityRole="button" accessibilityLabel="Tính phút, trừ sao của con"
-            style={{ minHeight: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: M.nut, boxShadow: BONG.toi, opacity: dang ? 0.6 : 1 }}>
-            <Chu kieu="rat" co={16} mau="#fff">Tính phút</Chu>
-            <Chu kieu="dam" co={11.5} mau="#dcebe6">Trừ sao của con · 1 sao = 1 phút</Chu>
+            style={{ minHeight: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: M.diem, backgroundImage: MEN.vang, boxShadow: BONG.vang, opacity: dang ? 0.6 : 1 }}>
+            <Chu kieu="rat" co={16} mau={M.chu}>Tính phút</Chu>
+            <Chu kieu="dam" co={11.5} mau={M.chu}>Trừ sao của con · 1 sao = 1 phút</Chu>
           </Pressable>
           <HaiNut>
             <Nut chu="Không tính phút" loai="xanh" nho dangChay={dang} bam={() => xong(() => choAppWeb(y, may, false))} />

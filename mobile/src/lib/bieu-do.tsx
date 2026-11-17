@@ -61,7 +61,7 @@ export function CotClay({ ds, max, kieu = "doi", cao = 120, chon = null, bam, ta
         const dangChon = chon === i, mo = !!bam && chon !== null && chon !== undefined && !dangChon;
         const noi = (
           <>
-            <View style={[s.ranh, { height: cao }, dangChon && { backgroundColor: M.chinhSoft }, mo && { opacity: 0.45 }]}>
+            <View style={[s.ranh, { height: cao }, dangChon && { backgroundColor: M.chonSoft }, mo && { opacity: 0.45 }]}>
               {kieu === "chong"
                 ? <Cot thu={i} cao={Math.min(1, tongCot(x) / dinh) * dai} phan={phanChong(x)} giam={giam} />
                 : x.phan.map((p, k) => <Cot key={k} thu={i} cao={Math.min(1, p.gia / dinh) * dai} phan={[p]} giam={giam} />)}
@@ -128,7 +128,7 @@ export function CotGioChoi({ ds, max, cao = 120, nhanDoc, quyVach }: { ds: CotCh
       <View style={{ height: cao, flexDirection: "row", alignItems: "flex-end", gap: 10, paddingHorizontal: 2 }}>
         {yQuy !== null ? (
           <Svg pointerEvents="none" width="100%" height={2} style={{ position: "absolute", left: 0, right: 0, bottom: yQuy }}>
-            <Line x1="0" y1="1" x2="100%" y2="1" stroke="#8fb3a8" strokeWidth={2} strokeDasharray="5 4" />
+            <Line x1="0" y1="1" x2="100%" y2="1" stroke="#8d95a6" strokeWidth={2} strokeDasharray="5 4" />
           </Svg>
         ) : null}
         {ds.map((x, i) => <CotDac key={x.khoa} thu={i} h={Math.min(1, x.phut / dinh) * cao} qua={x.quy !== null && x.phut > x.quy} nay={!!x.nay} giam={giam} />)}
@@ -136,7 +136,7 @@ export function CotGioChoi({ ds, max, cao = 120, nhanDoc, quyVach }: { ds: CotCh
       <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 2, marginTop: 6 }}>
         {ds.map((x) => (
           <Text key={x.khoa} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} maxFontSizeMultiplier={2}
-            style={{ flex: 1, fontFamily: x.nay ? F.rat : F.dam7, fontSize: 12, lineHeight: 14, color: x.nay ? M.chinhInk : "#565c59", textAlign: "center" }}>{x.nhan}</Text>
+            style={{ flex: 1, fontFamily: x.nay ? F.rat : F.dam7, fontSize: 12, lineHeight: 14, color: x.nay ? M.chinhInk : M.chu3, textAlign: "center" }}>{x.nhan}</Text>
         ))}
       </View>
     </View>
@@ -151,11 +151,11 @@ function CotDac({ thu, h, qua, nay, giam }: { thu: number; h: number; qua: boole
   return (
     <Animated.View style={[{ flex: 1, height: cao, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 6, borderBottomRightRadius: 6, overflow: "hidden",
       transformOrigin: "bottom", boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.35)",
-      backgroundImage: qua ? "linear-gradient(#f2a05e, #e2660f)" : "linear-gradient(#2a8f7c, #0f6b5c)" }, st]}>
+      backgroundImage: qua ? "linear-gradient(#ff9a52, #FF751F)" : "linear-gradient(#2a3f6a, #0A1629)" }, st]}>
       {nay && !qua ? (
         <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
           <Defs><Pattern id="soc" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(45)">
-            <Rect x="0" y="0" width="6" height="12" fill="#2a8f7c" /><Rect x="6" y="0" width="6" height="12" fill="#0f6b5c" />
+            <Rect x="0" y="0" width="6" height="12" fill="#2a3f6a" /><Rect x="6" y="0" width="6" height="12" fill={M.chinh} />
           </Pattern></Defs>
           <Rect x="0" y="0" width="100%" height="100%" fill="url(#soc)" />
         </Svg>
@@ -170,9 +170,9 @@ export function ChuGiaiVuong({ ds }: { ds: { chu: string; mau?: string; dut?: bo
     <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 14, rowGap: 6, marginTop: 12 }}>
       {ds.map((x) => (
         <View key={x.chu} style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
-          {x.dut ? <Svg width={14} height={2}><Line x1="0" y1="1" x2="14" y2="1" stroke="#8fb3a8" strokeWidth={2} strokeDasharray="4 2" /></Svg>
+          {x.dut ? <Svg width={14} height={2}><Line x1="0" y1="1" x2="14" y2="1" stroke="#8d95a6" strokeWidth={2} strokeDasharray="4 2" /></Svg>
             : x.mau ? <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: x.mau }} /> : null}
-          <Text style={{ fontFamily: F.dam7, fontSize: 12, lineHeight: 16, color: "#565c59" }}>{x.chu}</Text>
+          <Text style={{ fontFamily: F.dam7, fontSize: 12, lineHeight: 16, color: M.chu3 }}>{x.chu}</Text>
         </View>
       ))}
     </View>
@@ -238,7 +238,7 @@ export function VongClay({ ti, co = 200, day, mau = M.chinhSang, children, nhanD
       </Svg>
       {children ? (
         <View style={{ width: dia, height: dia, borderRadius: dia / 2, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: dia / 2, backgroundImage: MEN.the }]} />
+          {MEN.the ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: dia / 2, backgroundImage: MEN.the }]} /> : null}
           {children}
         </View>
       ) : null}
