@@ -1,6 +1,7 @@
 // «Mọi app trên máy» (mở từ màn Máy — may/[id]): danh sách APP ĐÃ CÀI THẬT do agent trên máy Con gửi lên (Thanh 25/10: chọn đúng app của máy,
 // không đoán tên) — GET may/:id/ung-dung; tìm, «Làm mới», thêm từng app vào danh sách «Tính phút» / «Không tính phút» hoặc bỏ khỏi danh sách
 // (15/11 — #262: POST may/:id/ung-dung/dat {trangThai: tinh_phut | khong_tinh_phut | bo}; không còn «Chặn»). Màn tóm tắt theo con ở tab «App & web».
+// #338 (17/11): máy chung ⇒ chọn bé trước (máy chủ trả `conDs`; GET ?con=, POST kèm `con`) — luật đi theo từng bé, không đặt cho cả nhà.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image, View } from "react-native";
@@ -15,7 +16,8 @@ type AppMay = {
   khoa: string; muc: string; ten: string; nguon: string | null; nhaPhatHanh: string | null; teamId: string | null; duongDan: string | null;
   phienBan: string | null; icon: string | null; trangThai: TrangThai; nhom: string | null; theoCaNha: boolean; tamThoi?: boolean;
 };
-type DsMay = { may: { id: string; ten: string; nen: string; dungChung: boolean; con: string | null }; capNhatLuc: string | null; yeuCauLuc: string | null; ds: AppMay[] };
+type DsMay = { may: { id: string; ten: string; nen: string; dungChung: boolean; con: string | null }; capNhatLuc: string | null; yeuCauLuc: string | null; ds: AppMay[];
+  /** #338: bé được gán máy (máy chủ cũ không gửi) */ conDs?: { id: string; ten: string }[] };
 type LuatCu = { con: string; muc: string; ten: string; loai: string; nhom: string; het: string | null } | null;
 
 const TT: Record<TrangThai, { chu: string; nhan: "ok" | "lam" | "diem" | "loi" | "xam" | "canh" }> = {
@@ -51,7 +53,15 @@ const phuCua = (a: AppMay) => [a.nhaPhatHanh, a.nguon ? NGUON[a.nguon] : null, a
 
 export default function UngDungMay() {
   const { may } = useLocalSearchParams<{ may: string }>();
-  const { d, loi, matMang, tai } = useTai(() => bm.goi<DsMay>(`may/${may}/ung-dung`));
+  // bé đang xem (máy chung) — ref vì useTai giữ hàm tải của lần dựng đầu
+  const beRef = useRef<string | null>(null);
+  const lay = () => bm.goi<DsMay>(`may/${may}/ung-dung${beRef.current ? `?con=${encodeURIComponent(beRef.current)}` : ""}`);
+  // máy chung chưa chọn bé ⇒ máy chủ trả cả nhà (tương thích app cũ) ⇒ chọn bé gán đầu rồi tải lại theo bé đó
+  const { d, loi, matMang, tai } = useTai(async () => {
+    const r = await lay();
+    if (!beRef.current && r.may.dungChung && r.conDs?.length) { beRef.current = r.conDs[0].id; return lay(); }
+    return r;
+  });
   const [tim, setTim] = useState("");
   const [loc, setLoc] = useState<Loc>("tat_ca");
   const [chon, setChon] = useState<AppMay | null>(null);
@@ -89,7 +99,11 @@ export default function UngDungMay() {
     { gia: "tat_ca", chu: `Tất cả (${d.ds.length})` },
     ...(["chua_xep", "hoc", "giai_tri"] as TrangThai[]).filter((t) => dem(t) > 0).map((t) => ({ gia: t as Loc, chu: `${TT[t].chu} (${dem(t)})` })),
   ];
-  const cho = d.may.dungChung ? "mọi con dùng máy này" : "con trên máy này";
+  const conDs = d.may.dungChung ? d.conDs ?? [] : [];
+  const be = conDs.find((c) => c.id === d.may.con) ?? null;           // bé máy chủ đang trả trạng thái (mặc định bé gán đầu)
+  const cho = be ? be.ten : "con trên máy này";
+  const doiBe = (id: string) => { beRef.current = id; setChon(null); tai(); };
+  const conBody = be ? { con: be.id } : {};
 
   const moChon = (a: AppMay) => {
     setChon(a);
@@ -98,10 +112,10 @@ export default function UngDungMay() {
   };
   const luu = () => lam(async () => {
     const a = chon!;
-    const kq = await bm.goi<{ muc: string; con: string; truoc: LuatCu }>(`may/${may}/ung-dung/dat`, { khoa: a.khoa, trangThai: dat, nhom });
+    const kq = await bm.goi<{ muc: string; con: string; truoc: LuatCu }>(`may/${may}/ung-dung/dat`, { khoa: a.khoa, trangThai: dat, nhom, ...conBody });
     setChon(null);
     await tai();
-    bao(`Đã thêm ${a.ten} · ${TEN_DAT[dat]}`, () => {
+    bao(`Đã thêm ${a.ten} · ${TEN_DAT[dat]}${be ? ` cho ${be.ten}` : ""}`, () => {
       const t = kq.truoc;
       // neuLoai: chỉ hoàn tác khi luật vẫn đúng loại vừa đặt — người khác đổi trong lúc đó ⇒ máy chủ trả 409, không đè
       const neuLoai = LOAI_DAT[dat];
@@ -111,10 +125,10 @@ export default function UngDungMay() {
   });
   const boXep = () => lam(async () => {
     const a = chon!;
-    await bm.goi(`may/${may}/ung-dung/dat`, { khoa: a.khoa, trangThai: "bo" });
+    await bm.goi(`may/${may}/ung-dung/dat`, { khoa: a.khoa, trangThai: "bo", ...conBody });
     setChon(null);
     await tai();
-    bao(`Đã bỏ ${a.ten} khỏi danh sách`);
+    bao(`Đã bỏ ${a.ten} khỏi danh sách${be ? ` của ${be.ten}` : ""}`);
   });
   const yeuCauGui = () => lamMoi.lam(async () => {
     capTruoc.current = d.capNhatLuc;
@@ -129,6 +143,12 @@ export default function UngDungMay() {
         <Chu kieu="dam" co={22}>Ứng dụng trên máy {d.may.ten}</Chu>
         <Chu co={14} mau={M.chu3}>Danh sách lấy thẳng từ máy — chọn đúng app để thêm vào danh sách của con.</Chu>
       </View>
+      {conDs.length > 1 ? (
+        <View style={{ gap: 6 }}>
+          <Chu co={14} kieu="dam">Máy này nhiều con dùng — xếp app cho con nào?</Chu>
+          <ChonMot ds={conDs.map((c) => ({ gia: c.id, chu: c.ten }))} gia={be?.id ?? conDs[0].id} doi={doiBe} />
+        </View>
+      ) : null}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexShrink: 1, minWidth: 0, flexGrow: 1 }}>
           <Icon ten="dongho" mau={M.chu3} co={16} />
