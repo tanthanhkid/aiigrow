@@ -17,7 +17,17 @@
 | cdt-nhac-5-phut@v3 | logic/NhacGio | Khớp ý |
 | cdt-het-phien@v7 | ManKhoaView | Khớp |
 | cdt-webview, cdt-gio-may, cdt-phien, cdt-chan-web (web), them-xxgu8hk6 | — | Chưa có (Android không có trình duyệt lọc/màn «Đang chơi»/«Giờ máy lệch») |
-| cdt-yeu-cau, them-0p8dmjan, j4g2mtm8, w8po32o6, 5nxwuaxz, cdt-vi-qua, cua-hang, doi-qua, cdt-quy-tac, cdt-pin-ghep | ManTre/HocVien (web trong app) | Chưa rà (màn WebView của `mobile/`/server, ngoài phạm vi agent-android) |
+| cdt-yeu-cau, them-0p8dmjan, j4g2mtm8, w8po32o6, 5nxwuaxz | mobile/src/app/tre/yeu-cau.tsx | Khớp chữ (tên/giờ/lời Ba Mẹ mẫu thay bằng dữ liệu thật) |
+| cdt-xin-phep, them-4e5fwl16 | tre/xin-phep.tsx, chan-app.tsx | Khớp |
+| cdt-vi-qua, cdt-cua-hang, cdt-doi-qua, them-l9qeq0np, cdt-huy-hieu | tre/vi-qua, cua-hang, doi/[qua], huy-hieu | Khớp khung chữ; lệch nhỏ chưa sửa: dòng sổ «Ba Mẹ cho vay 50 sao · Chọn món bữa tối», «Đổi hôm nay · bằng 50 sao vay Ba Mẹ» (code «Đổi dd/mm · đang giữ N sao»), huy hiệu «sắp có thêm 1» (code «làm nhiệm vụ để có thêm»; cần dữ liệu huy hiệu sắp đạt) |
+| cdt-quy-tac | tre/quy-tac.tsx | Khớp |
+| cdt-pin-ghep, them-3s04rjes | — | Chưa có trên Android (màn iOS: một máy một bé) |
+| cdt-nhiem-vu, nv-chi-tiet, dang-lam, chup, them-pgpfq8of, qqzb3lnt, r6lv8p5v, chup-lai | tre/nhiem-vu, nv, dang, chup, chup-lai | Khớp; lệch nhỏ chưa sửa: chữ nút «Xong · chụp ảnh nộp» (bàn «Dọn xong · chụp ảnh nộp»), «Ảnh 1/2 · Giường» (code «Ảnh · tên việc», chưa đếm số ảnh) |
+| cdt-cho-duyet@v2 | tre/cho-duyet.tsx | Khớp chữ; Chưa có: nút «Đổi ảnh», «Rút lại» (đổi logic) |
+| them-6t2vvx7d@v2 | tre/cho-duyet.tsx | Lệch đã sửa: nộp ảnh ⇒ «Mất mạng rồi. Ảnh vẫn còn nhé!» / «Ảnh không mất» (trước luôn «Bài»; ghi âm/viết vẫn «Bài») |
+| cdt-gio-may@v2 | tre/gio-may.tsx | Lệch đã sửa: «Giờ chơi tạm dừng đếm đến khi chỉnh lại.» (trước «Phút chơi…»); bước «Cài đặt › Ngày và giờ» giữ (tên Android thật) |
+| cdt-het-phien@v7 (phần WebView) | tre/het-phien.tsx | Lệch nhỏ chưa sửa: «App học, AiiRob vẫn mở» vs bàn «Từ điển, AiiRob vẫn mở» (tên app mẫu); thiếu «1 nhiệm vụ = +10 sao», «Mất mạng? Nhập mã của Ba Mẹ» |
+| cdt-nha-chinh, cdt-nha, them-uero9k5x, cdt-choi, cdt-cai, cdt-chan-web | tre/nha, tin, choi, cai, chan-web | Khớp |
 | mo_ta_quan_tri / EXTRA_ADD_EXPLANATION | strings.xml, ManChinh | Lệch đã sửa: bỏ «hoặc tới giờ ngủ» (giờ ngủ bỏ từ #258) |
 
 ## Bàn lệch issue (không dựng)
