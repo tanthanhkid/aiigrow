@@ -41,7 +41,7 @@ struct ViQuaView: View {
   var body: some View {
     HStack {
       Spacer()
-      Button("‹ Đổi thêm quà", action: quay).buttonStyle(.plain).font(.system(size: 14, weight: .bold)).foregroundColor(ClayMau.ngocInk)
+      Button("‹ Đổi thêm quà", action: quay).buttonStyle(.plain).font(.clay(size: 14, weight: .bold)).foregroundColor(ClayMau.ngocInk)
     }
     if app.viQuaDaLuu {
       Chu("Chưa có mạng — đang hiện bản đã lưu lần trước.", co: 13, dam: .semibold, mau: ClayMau.canh, dong: 2)
@@ -90,7 +90,7 @@ struct ViQuaView: View {
   }
 
   private func nhan(_ s: String, chu: Color, nen: Color) -> some View {
-    Text(s).font(.system(size: 13, weight: .bold)).foregroundColor(chu)
+    Text(s).font(.clay(size: 13, weight: .bold)).foregroundColor(chu)
       .padding(.horizontal, 14).padding(.vertical, 6).background(Capsule().fill(nen)).fixedSize()
   }
 
@@ -118,7 +118,7 @@ struct ViQuaView: View {
         if let qr = x.qr, !HocVienView.voucherHetHan(x), let (img, he) = QrAnh.sinh(qr, canh: 132) {
           // cỡ hiển thị = đúng cỡ ảnh (mô-đun nguyên điểm ảnh) + viền lặng ≥ 4 mô-đun
           Image(nsImage: img).interpolation(.none).resizable().frame(width: img.size.width, height: img.size.height)
-            .padding(CGFloat(4 * he)).background(RoundedRectangle(cornerRadius: 14).fill(Color.white))
+            .padding(CGFloat(4 * he)).background(RoundedRectangle(cornerRadius: 14).fill(Color.white))   // QR cần nền trắng thuần để máy quét đọc được
             .accessibilityLabel("Mã QR của \(ten)")
         } else {
           VienClay(ten: "wrapped_gift", duPhong: "gift.fill", nen: ClayMau.the, co: 44)

@@ -19,7 +19,7 @@ struct HoiAiiGrowView: View {
       HStack(spacing: 12) {
         VienClay(ten: "speech_balloon", duPhong: "questionmark.bubble.fill", nen: ClayMau.ngocSoft, co: 48)
         VStack(alignment: .leading, spacing: 2) {
-          Text(HoiAiiGrow.tieu).font(.system(size: 20, weight: .bold))
+          Text(HoiAiiGrow.tieu).font(.clay(size: 20, weight: .bold))
           Chu(HoiAiiGrow.phu, co: 14, mau: ClayMau.chu3, dong: 1)
         }
       }
@@ -28,8 +28,8 @@ struct HoiAiiGrowView: View {
           Button { chon(t.ma) } label: {
             VStack(alignment: .leading, spacing: 4) {
               HinhFluent(ten: t.icon, duPhong: "questionmark.circle.fill", co: 36)
-              Text(t.tieu).font(.system(size: 14, weight: .bold))
-              Text(t.phu).font(.system(size: 12)).foregroundColor(ClayMau.chu3).fixedSize(horizontal: false, vertical: true)
+              Text(t.tieu).font(.clay(size: 14, weight: .bold))
+              Text(t.phu).font(.clay(size: 12)).foregroundColor(ClayMau.chu3).fixedSize(horizontal: false, vertical: true)
             }
             .padding(12).frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading).clayLom(bo: 20)
           }
@@ -38,8 +38,8 @@ struct HoiAiiGrowView: View {
       }
       if let k = ketQua {
         VStack(alignment: .leading, spacing: 4) {
-          Text(k.tieu).font(.system(size: 15, weight: .bold)).foregroundColor(k.tot ? ClayMau.ngocInk : ClayMau.canh)
-          Text(k.phu).font(.system(size: 13)).foregroundColor(ClayMau.chu2).fixedSize(horizontal: false, vertical: true)
+          Text(k.tieu).font(.clay(size: 15, weight: .bold)).foregroundColor(k.tot ? ClayMau.ngocInk : ClayMau.canh)
+          Text(k.phu).font(.clay(size: 13)).foregroundColor(ClayMau.chu2).fixedSize(horizontal: false, vertical: true)
         }
         .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayThe(bo: 20, nen: k.tot ? ClayMau.ngocSoft : ClayMau.canhSoft)
       }

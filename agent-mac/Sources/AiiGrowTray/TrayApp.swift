@@ -610,7 +610,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       let w = CuaSoKhongDong(contentRect: s.frame, styleMask: [.borderless], backing: .buffered, defer: false, screen: s)
       w.level = .screenSaver
       w.collectionBehavior = [.canJoinAllSpaces, .stationary, .fullScreenAuxiliary, .ignoresCycle]
-      w.isOpaque = true; w.backgroundColor = NSColor(red: 0.925, green: 0.922, blue: 0.906, alpha: 1); w.hasShadow = false; w.isReleasedWhenClosed = false
+      w.isOpaque = true; w.backgroundColor = NSColor(ClayMau.nen); w.hasShadow = false; w.isReleasedWhenClosed = false
       if loaiManHien == .chonTen {
         // màn chọn tên chỉ cần trên màn chính; màn phụ để trống (không hai bàn phím PIN)
         w.contentView = i == 0 ? NSHostingView(rootView: ManChonTenView(m: chonTen)) : NSHostingView(rootView: NenManSang(chan: "") { EmptyView() })

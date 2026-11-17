@@ -4,33 +4,87 @@
 import AppKit
 import SwiftUI
 
-// MARK: - Màu (docs/clay/clay-a-goc-guong.css)
+// MARK: - Màu (phong cách E «Ánh kim», 17/11 — ngang agent-win Clay.cs)
+// Neumorphism trên nền kem: mặt thẻ CÙNG màu nền, nổi bằng bóng đôi (tối lệch xuống-phải, sáng lệch lên-trái); ô lõm = bóng trong.
+// Nút chính + huy hiệu = vàng kim gradient 135° chữ navy; khối nổi bật = navy viền vàng mảnh. Tên token giữ như cũ
+// (ngoc = «chính» nay là navy). Tương phản WCAG (đo bằng script, chữ thường ≥ 4,5:1):
+//   chu/nen 14,4 · chu3/nen 5,8 · chu3/lom 5,4 · chu3/ngocSoft 5,1 · diemInk/nen 6,4 · diemInk/diemSoft 5,6 · canh/nen 5,0 · canh/canhSoft 5,2 · canh/lom 4,7 · loi = canh · xanh/nen 5,2
+//   chu/kimDam (điểm tối nhất của nút vàng) 6,9 · kim/navy 11,4 · nenSang/navy 15,3 · kimInk/nen 5,0
 
 enum ClayMau {
   static func hex(_ v: UInt32, _ a: Double = 1) -> Color {
     Color(.sRGB, red: Double((v >> 16) & 0xff) / 255, green: Double((v >> 8) & 0xff) / 255, blue: Double(v & 0xff) / 255, opacity: a)
   }
-  static let nen = hex(0xecebe7)
-  static let nenSang = hex(0xe3ebe7)
-  static let the = hex(0xf7f6f3)
-  static let lom = hex(0xe9e8e3)
-  static let chu = hex(0x0f1312)
-  static let chu2 = hex(0x3a403d)
-  static let chu3 = hex(0x565c59)        // chữ phụ: 6,1:1 trên #f7f6f3
-  static let ngoc = hex(0x0f6b5c)
-  static let ngocDam = hex(0x08463d)
-  static let ngocInk = hex(0x0a5246)
-  static let ngocSoft = hex(0xdcebe6)
-  static let thanChi = hex(0x2e3533)
-  static let thanChiDam = hex(0x121615)
-  static let diemInk = hex(0x6e4300)
-  static let diemSoft = hex(0xfbecc0)
-  static let canh = hex(0x8a3c0c)
+  static let nen = hex(0xece4d9)          // nền kem
+  static let nenSang = hex(0xf2ebe3)      // kem sáng (chữ trên navy)
+  static let the = hex(0xece4d9)          // mặt thẻ = nền, nổi bằng bóng đôi
+  static let lom = hex(0xe5dccf)          // ô lõm
+  static let chu = hex(0x0a1629)          // navy
+  static let chu2 = hex(0x3b352e)
+  static let chu3 = hex(0x5f554b)         // chữ phụ
+  static let ngoc = chu                   // «chính» = navy
+  static let ngocDam = hex(0x050c18)
+  static let ngocInk = chu                // chữ nhấn trên nền sáng
+  static let ngocSoft = hex(0xe2d6c4)     // ô chọn / chip nhấn: kem sẫm
+  static let thanChi = hex(0x1d2f52)
+  static let thanChiDam = chu
+  static let diemInk = hex(0x6b4a12)      // vàng sẫm
+  static let diemSoft = hex(0xf2d48c)     // chip sao = vàng kim nhạt
+  static let canh = hex(0xa2412c)         // nợ / cảnh báo: cam sẫm
   static let canhSoft = hex(0xf9e7d2)
-  static let loi = hex(0xb42318)
+  static let loi = hex(0xa2412c)
   static let lamSoft = hex(0xe1e9fb)
   static let timSoft = hex(0xe7e5f8)
-  static let bong = hex(0x1c201e)        // màu bóng đổ (rgba(28,32,30,…))
+  static let bong = hex(0x786246)         // bóng tối rgba(120,98,70,.28)
+  static let bongSang = hex(0xfffbf5)     // bóng sáng lệch lên-trái
+  static let kimSang = hex(0xfbe7b0)
+  static let kim = hex(0xf4c76a)
+  static let kimDam = hex(0xc9973b)
+  static let kimNhat = hex(0xf2d48c)
+  static let kimVien = hex(0xd9ae57)      // vòng «đang chọn»
+  static let kimInk = hex(0x7a5a1f)
+  static let xanh = hex(0x2d6a14)         // thành công
+  /// Vàng kim loại 135°: kimSang 0 → kim 38% → kimDam 72% → kimNhat 100%.
+  static var vang: LinearGradient {
+    LinearGradient(stops: [.init(color: kimSang, location: 0), .init(color: kim, location: 0.38),
+                           .init(color: kimDam, location: 0.72), .init(color: kimNhat, location: 1)],
+                   startPoint: .topLeading, endPoint: .bottomTrailing)
+  }
+  static let bongNoi: Double = 0.28
+}
+
+// MARK: - Phông (Fraunces tiêu đề + Be Vietnam Pro chữ thường, OFL; thiếu thì về phông hệ thống)
+
+/// Vai của chữ: chu = Be Vietnam Pro, tieuDe = Fraunces SemiBold, so = số đếm/đồng hồ (phông hệ thống tròn — có tnum nên .monospacedDigit() giữ bề ngang cố định).
+enum VaiTro { case chu, tieuDe, so }
+
+enum ClayFont {
+  private static let moiLanDau: Void = {
+    for d in thuMucTaiNguyen("Fonts") {
+      var duoc = false
+      for ten in ["Fraunces-SemiBold", "BeVietnamPro-Regular", "BeVietnamPro-Bold"] {
+        let u = d.appendingPathComponent(ten + ".ttf")
+        if FileManager.default.fileExists(atPath: u.path) { CTFontManagerRegisterFontsForURL(u as CFURL, .process, nil); duoc = true }
+      }
+      if duoc { break }      // dừng ở thư mục đầu có phông
+    }
+  }()
+  /// Đăng ký các tệp .ttf (process scope) đúng một lần; gọi lại vô hại.
+  static func dangKy() { _ = moiLanDau }
+  static func co(_ size: CGFloat, _ weight: Font.Weight = .regular, _ design: Font.Design = .default, _ vai: VaiTro = .chu) -> Font {
+    if design == .monospaced { return .system(size: size, weight: weight, design: .monospaced) }
+    switch vai {
+    case .so: return .system(size: size, weight: weight, design: .rounded)
+    case .tieuDe: return .custom("Fraunces-SemiBold", size: size)
+    case .chu:
+      let dam: [Font.Weight] = [.semibold, .bold, .heavy, .black]    // ultraLight/thin/light/regular/medium ⇒ Regular
+      return .custom(dam.contains(weight) ? "BeVietnamPro-Bold" : "BeVietnamPro-Regular", size: size)
+    }
+  }
+}
+
+extension Font {
+  static func clay(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default, vai: VaiTro = .chu) -> Font { ClayFont.co(size, weight, design, vai) }
 }
 
 // MARK: - Chuyển động (docs/clay/M-vui.js, M-anh-men.css)
@@ -52,7 +106,22 @@ enum ClayMotion {
 
 // MARK: - Icon Fluent Emoji 3D (đóng gói trong app, không tải mạng)
 
-private final class MocBundle {}
+final class MocBundle {}
+
+/// Các thư mục có thể chứa tài nguyên `goc` (Fluent/Mascot/Fonts): gói phát hành `Contents/Resources/<goc>`,
+/// bundle SwiftPM cạnh tệp chạy (dev), cạnh .xctest (test). KHÔNG dùng `Bundle.module` (thiếu bundle là fatalError).
+func thuMucTaiNguyen(_ goc: String) -> [URL] {
+  var thuMuc: [URL] = []
+  if let r = Bundle.main.resourceURL { thuMuc.append(r.appendingPathComponent(goc)) }
+  let canh = [Bundle.main.resourceURL, Bundle.main.bundleURL, Bundle.main.executableURL?.deletingLastPathComponent(),
+              Bundle(for: MocBundle.self).bundleURL.deletingLastPathComponent()].compactMap { $0 }   // dòng cuối: lúc chạy test
+  for g in canh {
+    let b = g.appendingPathComponent("AiiGrowMac_AiiGrowTray.bundle")
+    thuMuc.append(b.appendingPathComponent(goc))
+    thuMuc.append(b.appendingPathComponent("Contents/Resources/" + goc))
+  }
+  return thuMuc
+}
 
 @MainActor
 enum FluentIcon {
@@ -64,15 +133,7 @@ enum FluentIcon {
   static func anh(_ ten: String, thuMuc goc: String = "Fluent") -> NSImage? {
     let khoa = goc + "/" + ten
     if let c = cache[khoa] { return c }    // c: NSImage? — nil đã nhớ thì không dò đĩa lại
-    var thuMuc: [URL] = []
-    if let r = Bundle.main.resourceURL { thuMuc.append(r.appendingPathComponent(goc)) }
-    let canh = [Bundle.main.resourceURL, Bundle.main.bundleURL, Bundle.main.executableURL?.deletingLastPathComponent(),
-                Bundle(for: MocBundle.self).bundleURL.deletingLastPathComponent()].compactMap { $0 }   // dòng cuối: lúc chạy test (.xctest nằm cạnh bundle tài nguyên)
-    for g in canh {
-      let b = g.appendingPathComponent("AiiGrowMac_AiiGrowTray.bundle")
-      thuMuc.append(b.appendingPathComponent(goc))
-      thuMuc.append(b.appendingPathComponent("Contents/Resources/" + goc))
-    }
+    let thuMuc = thuMucTaiNguyen(goc)
     for d in thuMuc {
       let u = d.appendingPathComponent(ten + ".png")
       if let img = NSImage(contentsOf: u) { cache[khoa] = .some(img); return img }
@@ -100,7 +161,7 @@ struct HinhFluent: View {
   }
 }
 
-/// Viên clay tròn chứa icon 3D (`.bt` trong CSS): nền soft + men bóng trên + phản chiếu đáy + bóng nhỏ.
+/// Viên tròn chứa icon 3D: neumorphism (cùng màu nền, bóng đôi tối/sáng).
 struct VienClay: View {
   let ten: String
   var duPhong = "circle.fill"
@@ -109,22 +170,17 @@ struct VienClay: View {
   var body: some View {
     ZStack {
       Circle().fill(nen)
-      Circle().fill(RadialGradient(colors: [.white.opacity(0.95), .white.opacity(0)], center: UnitPoint(x: 0.5, y: 0.18),
-                                   startRadius: 0, endRadius: co * 0.42))
-      Circle().fill(RadialGradient(colors: [.white.opacity(0.5), .white.opacity(0)], center: UnitPoint(x: 0.5, y: 0.95),
-                                   startRadius: 0, endRadius: co * 0.3))
-      Circle().strokeBorder(LinearGradient(colors: [.white, .white.opacity(0)], startPoint: .top, endPoint: .center), lineWidth: 1.2)
       HinhFluent(ten: ten, duPhong: duPhong, co: co * 0.56)
     }
     .frame(width: co, height: co)
-    .shadow(color: ClayMau.bong.opacity(0.40), radius: 8, x: 0, y: 6)
-    .shadow(color: ClayMau.bong.opacity(0.22), radius: 2.5, x: 0, y: 2)
+    .shadow(color: ClayMau.bong.opacity(ClayMau.bongNoi), radius: co * 0.12, x: co * 0.07, y: co * 0.07)
+    .shadow(color: ClayMau.bongSang.opacity(0.95), radius: co * 0.12, x: -co * 0.07, y: -co * 0.07)
   }
 }
 
 // MARK: - Khối đất sét (thẻ)
 
-/// Thẻ clay gương: nền sứ, dải sáng cong mép trên, phản chiếu đáy, bóng kép (ngoài mềm lệch xuống + bóng gần).
+/// Thẻ neumorphism: mặt cùng màu nền, nổi bằng bóng đôi (tối xuống-phải, sáng lên-trái).
 struct ClayThe: ViewModifier {
   var bo: CGFloat = 28
   var nen: Color = ClayMau.the
@@ -132,31 +188,14 @@ struct ClayThe: ViewModifier {
     let hinh = RoundedRectangle(cornerRadius: bo, style: .continuous)
     content
       .background(
-        ZStack {
-          hinh.fill(nen)
-          hinh.fill(LinearGradient(stops: [
-            .init(color: Color(white: 0.996), location: 0), .init(color: Color(white: 0.996, opacity: 0), location: 0.26),
-            .init(color: ClayMau.bong.opacity(0.025), location: 0.6), .init(color: ClayMau.bong.opacity(0.07), location: 1),
-          ], startPoint: .top, endPoint: .bottom))
-          // dải men trắng cong sát mép trên
-          RadialGradient(colors: [.white, .white.opacity(0.95), .white.opacity(0)], center: UnitPoint(x: 0.5, y: 0),
-                         startRadius: 0, endRadius: 60)
-            .scaleEffect(x: 3.2, y: 0.32, anchor: .top)
-            .clipShape(hinh)
-          // viền sáng trên (inset 0 1.5px #fff) + vệt sáng đáy (inset 0 -2px rgba(255,255,255,.7))
-          hinh.strokeBorder(LinearGradient(stops: [
-            .init(color: .white, location: 0), .init(color: .white.opacity(0), location: 0.12),
-            .init(color: .white.opacity(0), location: 0.9), .init(color: .white.opacity(0.7), location: 1),
-          ], startPoint: .top, endPoint: .bottom), lineWidth: 1.5)
-        }
-        .compositingGroup()
-        .shadow(color: ClayMau.bong.opacity(0.38), radius: 15, x: 0, y: 16)
-        .shadow(color: ClayMau.bong.opacity(0.20), radius: 5, x: 0, y: 4)
+        hinh.fill(nen)
+          .shadow(color: ClayMau.bong.opacity(ClayMau.bongNoi), radius: 14, x: 8, y: 8)
+          .shadow(color: ClayMau.bongSang.opacity(0.95), radius: 14, x: -8, y: -8)
       )
   }
 }
 
-/// Lòng chảo ấn lõm (ô nhập, dải tiến độ): bóng trong phía trên + viền sáng đáy.
+/// Lòng chảo lõm (ô nhập, dải tiến độ): bóng trong tối phía trên-trái + viền sáng dưới-phải.
 struct ClayLom: ViewModifier {
   var bo: CGFloat = 16
   func body(content: Content) -> some View {
@@ -165,9 +204,9 @@ struct ClayLom: ViewModifier {
       .background(
         ZStack {
           hinh.fill(ClayMau.lom)
-          hinh.strokeBorder(LinearGradient(colors: [ClayMau.bong.opacity(0.16), .clear], startPoint: .top, endPoint: UnitPoint(x: 0.5, y: 0.35)), lineWidth: 3)
-            .blur(radius: 1.5).clipShape(hinh)
-          hinh.strokeBorder(LinearGradient(colors: [.clear, .white.opacity(0.95)], startPoint: UnitPoint(x: 0.5, y: 0.8), endPoint: .bottom), lineWidth: 1.5)
+          hinh.strokeBorder(LinearGradient(colors: [ClayMau.bong.opacity(0.40), .clear], startPoint: .topLeading, endPoint: UnitPoint(x: 0.6, y: 0.6)), lineWidth: 4)
+            .blur(radius: 2).clipShape(hinh)
+          hinh.strokeBorder(LinearGradient(colors: [.clear, ClayMau.bongSang], startPoint: UnitPoint(x: 0.4, y: 0.4), endPoint: .bottomTrailing), lineWidth: 2)
         }
       )
   }
@@ -178,11 +217,10 @@ extension View {
   func clayLom(bo: CGFloat = 16) -> some View { modifier(ClayLom(bo: bo)) }
   /// Tải trang: các khối vào lần lượt (stagger 55ms, translateY 26→0 + scale .92→1, spring NẢY VÀO). Reduce Motion ⇒ chỉ fade.
   func vaoLanLuot(_ i: Int) -> some View { modifier(VaoLanLuot(thuTu: i)) }
-  /// Cửa sổ clay: nền ấm có quầng ngọc nhạt phía trên, ép giao diện sáng (ô nhập, Picker vẽ đúng trên nền sáng).
+  /// Cửa sổ clay: nền kem phẳng, ép giao diện sáng (ô nhập, Picker vẽ đúng trên nền sáng).
   func nenClay() -> some View {
     background(
-      RadialGradient(colors: [ClayMau.nenSang, ClayMau.nen], center: UnitPoint(x: 0.2, y: 0), startRadius: 0, endRadius: 420)
-        .ignoresSafeArea()
+      ClayMau.nen.ignoresSafeArea()
     )
     .foregroundColor(ClayMau.chu)
     .environment(\.colorScheme, .light)
@@ -232,10 +270,10 @@ private struct NutClayThan<Nhan: View>: View {
   @State private var hienVet = false
   @State private var luot = 0                 // thế hệ vệt men: lần thả sau huỷ lượt dọn của lần trước
 
-  private var toi: Bool { kieu == .ngoc || kieu == .thanChi }
   private var mauChu: Color {
     switch kieu {
-    case .ngoc, .thanChi: return .white
+    case .ngoc: return ClayMau.chu                // vàng kim ⇒ chữ navy
+    case .thanChi: return ClayMau.nenSang         // khối navy ⇒ chữ kem sáng
     case .sang: return ClayMau.chu
     }
   }
@@ -243,18 +281,18 @@ private struct NutClayThan<Nhan: View>: View {
   var body: some View {
     let hinh = RoundedRectangle(cornerRadius: bo, style: .continuous)
     nhanView()
-      .font(.system(size: 15, weight: .bold))
+      .font(.clay(size: 15, weight: .bold))
       .lineLimit(2).multilineTextAlignment(.center).truncationMode(.tail)   // chữ dài: tối đa 2 dòng rồi «…»
       .frame(maxWidth: .infinity, minHeight: cao)
       .padding(.horizontal, 14)
-      .foregroundColor(mauChu)
+      .foregroundColor(mauChu.opacity(bat || kieu != .ngoc ? 1 : 0.6))
       .background(nen(hinh))
       .overlay(vetMen(hinh))
       .contentShape(hinh)
       .scaleEffect(x: nhan && !giamDong ? 0.95 : 1, y: nhan && !giamDong ? 0.90 : 1)
       .brightness(nhan && giamDong ? -0.06 : 0)
       .animation(nhan ? ClayMotion.nhan : (giamDong ? ClayMotion.fade : ClayMotion.tha), value: nhan)
-      .opacity(bat ? 1 : 0.5)
+      .opacity(bat || kieu == .ngoc ? 1 : 0.5)
       .onChange(of: nhan) { dang in
         guard !dang, !giamDong else { return }
         luot += 1; let lan = luot
@@ -266,37 +304,32 @@ private struct NutClayThan<Nhan: View>: View {
 
   @ViewBuilder private func nen(_ hinh: RoundedRectangle) -> some View {
     switch kieu {
-    case .ngoc, .thanChi:
-      let (tren, duoi, phanChieu, bong): (Color, Color, Color, Color) = kieu == .ngoc
-        ? (ClayMau.ngoc, ClayMau.ngocDam, ClayMau.hex(0x50dcbe, 0.4), ClayMau.hex(0x0a5246))
-        : (ClayMau.thanChi, ClayMau.thanChiDam, ClayMau.hex(0x788c87, 0.35), ClayMau.hex(0x0f1312))
+    case .ngoc:
+      // vàng kim loại 135°; tắt = vàng nhạt rõ ràng (không chỉ mờ đi)
       ZStack {
-        hinh.fill(LinearGradient(colors: [tren, duoi], startPoint: .top, endPoint: .bottom))
-        // vệt phản chiếu đáy: elip dẹt rộng, nhẹ (không thành đốm sáng giữa nút)
-        RadialGradient(colors: [phanChieu, .clear], center: UnitPoint(x: 0.5, y: 1.0), startRadius: 0, endRadius: cao * 0.6)
-          .scaleEffect(x: 4, y: 0.6, anchor: .bottom).opacity(0.7).clipShape(hinh)
-        // mảng men trắng nửa trên, cắt sắc ở ~25%
-        hinh.fill(LinearGradient(stops: [
-          .init(color: .white.opacity(0.32), location: 0), .init(color: .white.opacity(0.08), location: 0.24),
-          .init(color: .white.opacity(0), location: 0.26),
-        ], startPoint: .top, endPoint: .bottom))
-        hinh.strokeBorder(LinearGradient(colors: [.white.opacity(0.45), .clear, .black.opacity(0.35)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
+        if bat { hinh.fill(ClayMau.vang) } else { hinh.fill(ClayMau.kimNhat.opacity(0.45)) }
+        hinh.strokeBorder(ClayMau.kimDam.opacity(bat ? 0.55 : 0.25), lineWidth: 1)
       }
       .compositingGroup()
-      .shadow(color: bong.opacity(0.6), radius: 8, x: 0, y: 7)
-      .shadow(color: bong.opacity(0.35), radius: 2.5, x: 0, y: 2)
+      .shadow(color: ClayMau.bong.opacity(bat ? 0.40 : 0.15), radius: 8, x: 4, y: 5)
+      .shadow(color: ClayMau.bongSang.opacity(0.9), radius: 6, x: -3, y: -3)
+    case .thanChi:
+      // khối navy viền vàng mảnh + quầng vàng nhẹ
+      ZStack {
+        hinh.fill(LinearGradient(colors: [ClayMau.thanChi, ClayMau.chu], startPoint: .topLeading, endPoint: .bottomTrailing))
+        hinh.strokeBorder(ClayMau.kimVien.opacity(0.85), lineWidth: 1)
+      }
+      .compositingGroup()
+      .shadow(color: ClayMau.kim.opacity(0.28), radius: 8, x: 0, y: 2)
+      .shadow(color: ClayMau.bong.opacity(0.45), radius: 6, x: 3, y: 4)
     case .sang:
+      // nút phụ = kem lõm
       ZStack {
-        hinh.fill(ClayMau.the)
-        hinh.fill(LinearGradient(stops: [
-          .init(color: .white, location: 0), .init(color: .white.opacity(0.85), location: 0.44),
-          .init(color: Color(white: 0.91, opacity: 0), location: 0.5), .init(color: ClayMau.bong.opacity(0.05), location: 1),
-        ], startPoint: .top, endPoint: .bottom))
-        hinh.strokeBorder(LinearGradient(colors: [.white, .clear], startPoint: .top, endPoint: .center), lineWidth: 1.5)
+        hinh.fill(ClayMau.lom)
+        hinh.strokeBorder(LinearGradient(colors: [ClayMau.bong.opacity(0.40), .clear], startPoint: .topLeading, endPoint: UnitPoint(x: 0.6, y: 0.6)), lineWidth: 3)
+          .blur(radius: 1.5).clipShape(hinh)
+        hinh.strokeBorder(LinearGradient(colors: [.clear, ClayMau.bongSang], startPoint: UnitPoint(x: 0.4, y: 0.4), endPoint: .bottomTrailing), lineWidth: 1.5)
       }
-      .compositingGroup()
-      .shadow(color: ClayMau.bong.opacity(0.40), radius: 7, x: 0, y: 6)
-      .shadow(color: ClayMau.bong.opacity(0.24), radius: 2, x: 0, y: 2)
     }
   }
 
@@ -304,7 +337,7 @@ private struct NutClayThan<Nhan: View>: View {
     GeometryReader { g in
       LinearGradient(stops: [
         .init(color: .white.opacity(0), location: 0.34), .init(color: .white.opacity(0.10), location: 0.42),
-        .init(color: .white.opacity(toi ? 0.55 : 1), location: 0.49), .init(color: .white.opacity(0.16), location: 0.54),
+        .init(color: .white.opacity(kieu == .ngoc ? 0.55 : 0.35), location: 0.49), .init(color: .white.opacity(0.16), location: 0.54),
         .init(color: .white.opacity(0), location: 0.62),
       ], startPoint: UnitPoint(x: 0, y: 0.37), endPoint: UnitPoint(x: 1, y: 0.63))   // ~105°
       .frame(width: g.size.width * 1.4)
