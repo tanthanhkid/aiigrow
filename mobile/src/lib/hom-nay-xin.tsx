@@ -9,7 +9,8 @@
 //  • Không cho = yeu-cau/:id/tu-choi {lyDo: «Ba Mẹ chưa cho lúc này»}.
 // Sau khi xử lý ⇒ màn kết quả /yeu-cau/xong (params: kieu, ten, phut, muc, may, grant, con, no, sao, phutCon, noTruoc, canh).
 import { router } from "expo-router";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
+import { BONG } from "./clay";
 import { bm, laXinVay, type MayCon } from "./api";
 import { boQuaXin, hoanTacXin, themTuXin } from "./app-web";
 import type { YeuCauMoi } from "./hang-ngay";
@@ -81,10 +82,12 @@ export async function khongChoXin(y: YeuCauMoi, may: string | null, lyDo = LY_DO
 /** Thẻ một lời xin: tiêu đề · «19:20 · con đang chờ trên Laptop» · lời con · hàng nút. `lam` bọc thao tác (useLam của màn).
  *  `sau` (mặc định: mở màn kết quả) — Chờ duyệt dùng toast «Hoàn tác» tại chỗ. `truc`: app / web trả lời ngay 3 nút (Chờ duyệt, «đang xin»).
  *  `sao`: sao của con (lời xin vay hiện «−20 sao · Đang nợ Ba Mẹ 20 sao»). `moKhoa`: máy của con đang khoá ⇒ lời xin chơi = «Xin mở khoá máy».
- *  `oIcon` (Trang chủ — bàn bm2-trang-chu@v35 / them-0kwhgpq6@v9 .de-y .dong): ô icon đào bên trái, tiêu đề + dòng phụ mỗi thứ một dòng. */
-export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, moKhoa, oIcon }: {
+ *  `oIcon` (Trang chủ — bàn bm2-trang-chu@v35 / them-0kwhgpq6@v9 .de-y .dong): ô icon đào bên trái, tiêu đề + dòng phụ mỗi thứ một dòng.
+ *  `dangXin` («<Con> đang xin phép» — bàn them-a4nqjrmp@v13 .the): ô icon · tiêu đề · «Laptop · con đang chờ» · giờ bên phải; lời con / `phu` trong ô lõm;
+ *  app / web: «Tính phút» nút lớn 2 dòng («Trừ sao của con · 1 sao = 1 phút» — #264) · «Không tính phút» ngọc nhạt | «Bỏ qua». */
+export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, moKhoa, oIcon, dangXin }: {
   y: YeuCauMoi; may: string | null; lam: (fn: () => Promise<unknown>) => void; dang?: boolean; phu?: string; bo?: boolean; sau?: (k: KetQua) => void; truc?: boolean;
-  sao?: SaoCon | null; moKhoa?: () => Promise<void>; oIcon?: boolean;
+  sao?: SaoCon | null; moKhoa?: () => Promise<void>; oIcon?: boolean; dangXin?: boolean;
 }) {
   const xong = (fn: () => Promise<KetQua>) => lam(async () => sau(await fn()));
   const vay = laVay(y), mayNgan = may ? may.replace(/ của .*$/, "") : null;
@@ -99,7 +102,16 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
   const ic: TenIcon = xinMoKhoa ? "sach" : laAppWeb(y) ? "web" : vay ? "dongho" : "chuong";
   return (
     <View style={{ gap: 8, paddingVertical: 12, borderTopWidth: bo ? 1 : 0, borderTopColor: "#efefec" }}>
-      {oIcon ? (
+      {dangXin ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <OLomIcon ic={ic} co={44} />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Chu kieu="rat" co={16}>{tieu}</Chu>
+            <Chu kieu="dam" co={12.5} mau="#565c59">{[mayNgan, xinMoKhoa ? "chơi vẫn trừ sao" : vay && sao?.hetSao ? "hết sao" : "con đang chờ"].filter(Boolean).join(" · ")}</Chu>
+          </View>
+          <Chu kieu="rat" co={13} mau="#565c59" so>{gioPhut(y.created_at)}</Chu>
+        </View>
+      ) : oIcon ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <OLomIcon ic={ic} co={44} nen="#f3d6b8" />
           <View style={{ flex: 1, minWidth: 0 }}>
@@ -114,14 +126,20 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
         </View>
       )}
       {/* Trang chủ (oIcon): bàn bm2-trang-chu / them-0kwhgpq6 không có lời con cho xin app / web, xin mở khoá; xin vay giữ (them-1mnk3mjz) */}
-      {y.ly_do?.trim() && !(oIcon && (xinMoKhoa || laAppWeb(y))) ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
+      {/* dangXin: lời con viết (ly_do) luôn hiện trong ô lõm; xin app / web thêm dòng phụ (máy / nhóm) dưới */}
+      {dangXin ? (y.ly_do?.trim() || (laAppWeb(y) && phu)) ? (
+        <View style={{ gap: 4, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+          {y.ly_do?.trim() ? <Chu kieu="dam" co={13.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
+          {laAppWeb(y) && phu ? <Chu kieu="dam" co={13} mau={M.chu3}>{phu}</Chu> : null}
+        </View>
+      ) : null : y.ly_do?.trim() && !(oIcon && (xinMoKhoa || laAppWeb(y))) ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
       {vay && sao && !xinMoKhoa ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <VienSao s={sao} />
           {no ? <Chu kieu="dam" co={13} mau="#8a3c0c">{no.replace(/ · .*$/, "")}</Chu> : null}
         </View>
       ) : null}
-      {phu ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}
+      {phu && !dangXin ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}
       {xinMoKhoa ? (
         <HaiNut>
           <Nut chu="Không cho" loai="vien" nho dangChay={dang} bam={() => xong(() => khongChoXin(y, may))} />
@@ -131,6 +149,18 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
             return { kieu: "mo_khoa", ten: y.ten_con, con: y.child_id, may };
           })} />
         </HaiNut>
+      ) : laAppWeb(y) && truc && dangXin ? (
+        <View style={{ gap: 8 }}>
+          <Pressable onPress={() => xong(() => choAppWeb(y, may, true))} disabled={dang} accessibilityRole="button" accessibilityLabel="Tính phút, trừ sao của con"
+            style={{ minHeight: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: M.nut, boxShadow: BONG.toi, opacity: dang ? 0.6 : 1 }}>
+            <Chu kieu="rat" co={16} mau="#fff">Tính phút</Chu>
+            <Chu kieu="dam" co={11.5} mau="#dcebe6">Trừ sao của con · 1 sao = 1 phút</Chu>
+          </Pressable>
+          <HaiNut>
+            <Nut chu="Không tính phút" loai="xanh" nho dangChay={dang} bam={() => xong(() => choAppWeb(y, may, false))} />
+            <Nut chu="Bỏ qua" loai="vien" nho dangChay={dang} bam={() => lam(() => boQuaAppWeb(y, may, sau === denXong ? undefined : sau))} />
+          </HaiNut>
+        </View>
       ) : laAppWeb(y) && truc ? (
         // thiết kế 15/11 them-a4nqjrmp: «Tính phút · Trừ sao của con · 1 sao = 1 phút» (nút chính) · «Không tính phút» | «Bỏ qua»
         <View style={{ gap: 8 }}>

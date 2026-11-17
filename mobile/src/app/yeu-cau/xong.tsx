@@ -85,7 +85,7 @@ export default function XongYeuCau() {
   return (
     <Man day={<>
       <Nut chu="Về Hôm nay" rong bam={veHomNay} />
-      {doiMo ? <Nut chu={tinh ? "Đổi sang Không tính phút" : "Đổi sang Tính phút"} rong loai="ngoc" tat={dangChay} bam={doiMo} /> : null}
+      {doiMo ? <Nut chu={tinh ? "Đổi sang Không tính phút" : "Đổi sang Tính phút"} rong loai="xanh" tat={dangChay} bam={doiMo} /> : null}
       {hoan ?? hoanMo ? <Nut chu={dangChay ? "Đang hoàn tác…" : "Hoàn tác"} rong loai="vien" tat={dangChay} bam={(hoan ?? hoanMo)!} /> : null}
     </>}>
       <View style={{ alignItems: "center", gap: 6, marginTop: 24 }}>
