@@ -1,4 +1,4 @@
-// Danh sách nhiệm vụ chờ duyệt của một Con (thiết kế chốt bm-hang-ngay/23 «Bảo Anh nộp việc · 2 chờ duyệt»): mỗi lượt một thẻ có bằng chứng
+// Danh sách nhiệm vụ chờ duyệt của một Con (bàn 17/11 them-nl1nwszs@v5 «Bảo Anh nộp việc · 2 chờ duyệt»; trống them-oypre8gc@v4; mất mạng them-rqioc0fd@v3): mỗi lượt một thẻ có bằng chứng
 // THU NHỎ (ảnh đầu / khối sóng ghi âm — tải lười theo thẻ), giờ nộp, sao; bấm thẻ mở màn bằng chứng. Đáy: «Duyệt cả n · <Con> nhận S sao»
 // (POST duyet-hang-loat kèm lời khen). Trống ⇒ 31 «Duyệt hết rồi!». Mất mạng lúc duyệt cả loạt ⇒ 32: lựa chọn giữ lại, có mạng tự gửi (useLam hangDoi).
 // `?con=` tuỳ chọn — không có thì mọi Con.
@@ -8,10 +8,10 @@ import { View } from "react-native";
 import { Image } from "expo-image";
 import { bm } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
-import { cachBao, SaoVien, type BangChung, type ChoDuyetMoi, type LuotChoMoi } from "@/lib/hang-ngay";
+import { cachBao, HangViec, hinhNv, SaoVien, TieuMuc, type BangChung, type ChoDuyetMoi, type LuotChoMoi } from "@/lib/hang-ngay";
 import { SongAm } from "@/lib/song-am";
-import { soVN } from "@/lib/so-sao";
-import { BangMang, BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, TickDong, useLam, useTai } from "@/lib/ui";
+import { MAU_NO, soVN } from "@/lib/so-sao";
+import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
 
 const KHEN_LOAT = "Giỏi lắm con!";
 
@@ -37,7 +37,7 @@ export default function DuyetDs() {
   });
   const { lam, loi: loiLam, dangChay } = useLam();
   const [guiLoat, setGuiLoat] = useState(false);
-  if (!d) return <Man lui={{ chu: "Nhiệm vụ" }} tieu="Chờ duyệt"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "Việc & quà" }} tieu="Chờ duyệt"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const nhieuCon = new Set(d.ds.map((x) => x.child_id)).size > 1;
   const ten = nhieuCon ? "Các con" : d.ten;
   const tong = d.ds.reduce((n, x) => n + (x.sao ?? x.diem), 0);
@@ -45,13 +45,14 @@ export default function DuyetDs() {
   if (!d.ds.length) {
     // 31 «Không còn việc chờ duyệt»
     return (
-      <Man lui={{ chu: "Nhiệm vụ" }} tieu="Chờ duyệt" day={<>
-        <Nut chu={`Thêm việc cho ${d.ten}`} ic="cong" rong bam={() => router.push((d.conId ? `/giao-nv?con=${d.conId}` : "/giao-nv") as never)} />
-        <Nut chu="Về Trang chủ" loai="vien" rong bam={() => router.replace("/hom-nay" as never)} />
+      <Man lui={{ chu: "Việc & quà" }} tieu="Chờ duyệt" day={<>
+        <Nut chu={`Thêm việc cho ${d.ten}`} ic="cong" ic3d rong bam={() => router.push((d.conId ? `/giao-nv?con=${d.conId}` : "/giao-nv") as never)} />
+        <Nut chu="Về Trang chủ" loai="ma" rong bam={() => router.replace("/hom-nay" as never)} />
       </>}>
         <CanhGiua lv="xong" tieu="Duyệt hết rồi!" loi="Không còn việc nào chờ Ba Mẹ. Con nộp việc mới, Grow sẽ báo ngay.">
           {d.sao !== null ? (
             <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.diemSoft }, KHOI.vien]}>
+              <Icon3D ten="sao" co={26} />
               <Chu kieu="rat" co={15} mau={M.diemInk}>{d.no > 0 ? `${d.ten} có ${soVN(d.sao)} sao · đang nợ Ba Mẹ ${soVN(d.no)} sao` : `${d.ten} có ${d.sao} sao = ${d.sao} phút chơi`}</Chu>
             </View>
           ) : null}
@@ -75,18 +76,33 @@ export default function DuyetDs() {
   const choMang = guiLoat && dangChay && !!loiLam;
 
   return (
-    <Man lui={{ chu: "Nhiệm vụ" }} tieu={`${ten} nộp việc`} tai={tai}
-      phai={<View style={{ paddingHorizontal: 11, paddingVertical: 4, borderRadius: 13, backgroundColor: M.huy }}><Chu kieu="rat" co={13} mau="#fff" so>{`${d.ds.length} chờ duyệt`}</Chu></View>}
+    <Man lui={{ chu: "Việc & quà" }} tieu={`${ten} nộp việc`} tai={tai}
+      phai={<View style={{ paddingHorizontal: 11, paddingVertical: 4, borderRadius: 13, backgroundColor: "#c2540a" }}><Chu kieu="rat" co={13} mau="#fff" so>{`${d.ds.length} chờ duyệt`}</Chu></View>}
       day={<>
-        <Nut chu={d.ds.length > 1 ? `Duyệt cả ${d.ds.length} · ${ten} nhận ${tong} sao` : `Duyệt · ${ten} nhận ${tong} sao`} ic="tick" rong dangChay={dangChay} bam={duyetCa} />
+        <Nut chu={d.ds.length > 1 ? `Duyệt cả ${d.ds.length} · ${ten} nhận ${tong} sao` : `Duyệt · ${ten} nhận ${tong} sao`} ic="sao" ic3d rong dangChay={dangChay} bam={duyetCa} />
       </>}>
       {choMang ? (
+        // 32 «Mất mạng khi đang duyệt» (them-rqioc0fd@v3): thẻ đào + ô wifi 3D, «Đã duyệt, chờ gửi · n việc» với nhãn «Chờ mạng», dải ngọc Grow
         <>
-          <BangMang chu="Điện thoại đang mất mạng · Lựa chọn của Ba Mẹ vẫn được giữ, có mạng là tự gửi." />
-          <View style={[{ padding: 16, borderRadius: 28, backgroundColor: M.the, gap: 2 }, KHOI.the]}>
-            <Chu kieu="rat" co={16}>{`Đã duyệt, chờ gửi · ${d.ds.length} việc`}</Chu>
-            {d.ds.map((x) => <TickDong key={x.id} trang="cho" chu={x.ten} phu={`+${x.sao ?? x.diem} sao · kèm lời khen · Chờ mạng`} />)}
-            <Chu co={13.5} mau={M.chu3}>{`${ten} sẽ nhận ${tong} sao ngay khi gửi xong. Ba Mẹ không cần duyệt lại.`}</Chu>
+          <View accessibilityRole="alert" style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: MAU_NO.nen }, KHOI.the]}>
+            <View style={[{ width: 52, height: 52, borderRadius: 18, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }, KHOI.nho]}><Icon3D ten="wifi" co={32} /></View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Chu kieu="rat" co={17} mau={MAU_NO.chu}>Điện thoại đang mất mạng</Chu>
+              <Chu kieu="dam" co={13.5} mau={M.chu2}>Lựa chọn của Ba Mẹ vẫn được giữ, có mạng là tự gửi.</Chu>
+            </View>
+          </View>
+          <TieuMuc chu={`Đã duyệt, chờ gửi · ${d.ds.length} việc`} />
+          <The>
+            {d.ds.map((x, i) => {
+              const [ic, mau] = hinhNv(x);
+              return <HangViec key={x.id} dau={i === 0} ic={x.so_ghi_am ? "sach" : ic} mau={mau} tieu={x.ten} phu={`+${soVN(x.sao ?? x.diem)} sao · kèm lời khen`}
+                phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: MAU_NO.nen }}>
+                  <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: MAU_NO.chu }} /><Chu kieu="rat" co={13} mau={MAU_NO.chu}>Chờ mạng</Chu></View>} />;
+            })}
+          </The>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#dcebe6" }}>
+            <Rob ten="chi" co={56} />
+            <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1 }}>{`${ten} sẽ nhận ${tong} sao ngay khi gửi xong. Ba Mẹ không cần duyệt lại.`}</Chu>
           </View>
         </>
       ) : (
@@ -140,7 +156,11 @@ function ThuNho({ x }: { x: LuotChoMoi }) {
   if (laGhiAm(x)) {
     return (
       <View style={[o, { backgroundColor: M.chinhSoft, justifyContent: "center", paddingHorizontal: 12 }]}>
-        <SongAm cot={12} cao={44} />
+        <SongAm cot={12} cao={60} mau={M.chinhInk} ti={1} />
+        {/* thiết kế nl1nwszs: nút phát tròn đen giữa khối sóng */}
+        <View style={{ position: "absolute", left: 32, top: 32, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(15,19,18,0.82)", alignItems: "center", justifyContent: "center" }}>
+          <View style={{ marginLeft: 4, width: 0, height: 0, borderTopWidth: 8, borderBottomWidth: 8, borderLeftWidth: 13, borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: "#fff" }} />
+        </View>
         <View style={{ position: "absolute", left: 6, bottom: 6, paddingHorizontal: 7, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.92)" }}>
           <Chu kieu="rat" co={11} mau={M.chu2}>Ghi âm</Chu>
         </View>

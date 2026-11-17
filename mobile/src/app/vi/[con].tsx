@@ -82,7 +82,7 @@ export default function ViSao() {
   const [lyDo, setLyDo] = useState("");
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
-  if (!d) return <Man lui={{ chu: "Nhiệm vụ" }} tieu="Ví sao"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man lui={{ chu: "Việc & quà" }} tieu="Ví sao"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const s = d.s, sao = s.sao, k = kieuSao(s), no = cauNo(s);
   const kiem = d.bayNgay?.saoKiem ?? d.lich.filter((x) => x.kieu === "kiem" && d.bay - new Date(x.luc).getTime() < 7 * 86_400_000).reduce((a, x) => a + x.delta, 0);
   const mauThe = k === "thuong" ? "#6e4300" : MAU_NO.chu;
@@ -95,7 +95,7 @@ export default function ViSao() {
     await tai();
   });
   return (
-    <Man lui={{ chu: "Nhiệm vụ" }} tieu={`Ví sao của ${d.ten}`} noi={noi} tai={tai}
+    <Man lui={{ chu: "Việc & quà" }} tieu={`Ví sao của ${d.ten}`} noi={noi} tai={tai}
       phai={d.baMe ? <Pressable onPress={() => setMo(true)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Nhan chu="± Điều chỉnh" /></Pressable> : undefined}>
       {/* thiết kế .vi: thẻ cao ~164 — «⭐ 30 sao» 50/800 trái; nợ ⇒ nền cảnh báo #f9e7d2 chữ #8a3c0c; Grow «xong» tràn góc phải dưới */}
       <View style={[{ minHeight: 164, padding: 20, borderRadius: 28, overflow: "hidden" },

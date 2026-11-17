@@ -36,7 +36,7 @@ export type LuotChoMoi = LuotCho & { sao?: number; bang_chung?: string; hinh?: s
 /** Yêu cầu chờ (GET cho-duyet › yeuCau[]) + phạm vi ngoại lệ. */
 export type YeuCauMoi = YeuCau & { pham_vi?: string | null };
 /** Quà Con đã đổi, chờ Ba Mẹ trao (GET cho-duyet › phieu[], GET phieu). */
-export type PhieuCho = { id: string; child_id: string; ten_con: string; ten: string; loai: string; diem: number; created_at: string };
+export type PhieuCho = { id: string; child_id: string; ten_con: string; ten: string; loai: string; diem: number; created_at: string; hinh?: string | null };
 export type ChoDuyetMoi = { nhiemVu: LuotChoMoi[]; yeuCau: YeuCauMoi[]; phieu?: PhieuCho[];
   tuDong?: { id: string; child_id: string; ten_con: string; ten: string; diem: number; nguon: string; ghi_chu: string | null; duyet_luc: string }[] };
 /** Bằng chứng (GET luot/:id/bang-chung). */
@@ -97,6 +97,8 @@ const HINH: Record<string, [TenIcon, MauBt]> = {
   choi: ["lau", "lam"], ban_chai: ["tia", "xanh"], sach: ["sach", "xanh"], cap: ["mu", "tim"], rob: ["game", "tim"], cay: ["tia", "xanh"], bat: ["chen", "lam"],
   ao: ["lau", "lam"], rac: ["lau", "xam"], ban_an: ["chen", "cam"], ban_hoc: ["ban", "lam"], vo: ["but", "tim"], but: ["but", "tim"], the_tu: ["sach", "tim"],
   day: ["chay", "cam"], the_duc: ["chay", "cam"], rau: ["coc", "xanh"], ngu: ["trang_ngu", "tim"],
+  // hình chọn ở «Ba Mẹ tự thêm» (thiết kế 6pjz1stu / bwlkjyw5 lưu thẳng tên icon)
+  lau: ["lau", "lam"], chay: ["chay", "cam"], tim: ["tim", "do"], camera: ["camera", "lam"],
 };
 const NHOM_HINH: Record<string, [TenIcon, MauBt]> = { doc_sach: ["sach", "xanh"], viec_nha: ["chen", "lam"], hoc_tap: ["mu", "tim"], van_dong: ["chay", "cam"], ky_nang: ["sao", "vang"] };
 export const hinhNv = (x: { hinh?: string | null; nhom?: string; bang_chung?: string }): [TenIcon, MauBt] =>
@@ -176,11 +178,12 @@ export function HangViec({ ic, mau, trai, tieu, phu, phai, bam, dau, nhanDoc }: 
 }
 
 /** Tiêu đề mục trong thân màn (thiết kế 14/11 .muc: 15/800 #3a403d, lề trái 22 — 66 màn thống nhất) + nút chữ «Tất cả ›» bên phải. */
-export function TieuMuc({ chu, so, phai }: { chu: string; so?: number; phai?: { chu: string; bam: () => void } }) {
+export function TieuMuc({ chu, so, phai, ic }: { chu: string; so?: number; phai?: { chu: string; bam: () => void }; /** icon 3D 22 trước chữ (.muc .t img) */ ic?: TenIcon }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginHorizontal: 6 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginHorizontal: 6, minHeight: ic ? 44 : undefined }}>
+      {ic ? <Icon3D ten={ic} co={22} /> : null}
       <Chu kieu="rat" co={15} mau={M.chu2} style={{ flexShrink: 1 }}>{chu}</Chu>
-      {so ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: M.huy, alignItems: "center", justifyContent: "center" }}>
+      {so ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: "#c2540a", alignItems: "center", justifyContent: "center" }}>{/* thiết kế .muc em #e2660f — sẫm hơn cho chữ trắng đạt 4.5:1 */}
         <Chu kieu="rat" co={12} mau="#fff" so>{String(so)}</Chu></View> : null}
       <View style={{ flex: 1 }} />
       {phai ? <Pressable onPress={phai.bam} hitSlop={10} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>

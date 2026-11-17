@@ -1,15 +1,17 @@
 // Màn bằng chứng một việc (thiết kế chốt bm-hang-ngay/24 «Bằng chứng · Dọn phòng» — ảnh vuốt ngang; 26 «Bằng chứng · Đọc sách» — ghi âm):
 // «<Việc> · Việc i/n», bằng chứng, «<Con> nộp lúc · N sao», lời con nhắn kèm, «Khen con một câu» (chip + Tự viết),
-// «Duyệt · <Con> nhận N sao» (POST luot/:id/duyet {diem, loiKhen}) → duyet-xong · «↺ Nhờ con làm lại» → /duyet/lam-lai.
-import { useState } from "react";
+// «Duyệt · <Con> nhận N sao» (POST luot/:id/duyet {diem, loiKhen}) → duyet-xong · «Nhờ con làm lại» → bảng trượt (bàn 17/11 them-nxclxlit / them-l0saosnz),
+// gửi xong → /duyet/lam-lai?gui= (them-4u3doee9). Bàn 17/11: them-qwuifjry@v3 (ảnh) · them-d40e3495@v5 (ghi âm).
+import { useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { ScrollView, View, useWindowDimensions } from "react-native";
+import { Pressable, ScrollView, View, useWindowDimensions } from "react-native";
 import { Image } from "expo-image";
 import { bm } from "@/lib/api";
 import { BO_CLAY, KHOI } from "@/lib/clay";
 import { SaoVien, mauCon, type BangChung, type ChoDuyetMoi } from "@/lib/hang-ngay";
 import { NgheGhiAm } from "@/lib/nghe-ghi-am";
-import { Avt, Bao, BaoLoi, ChoTai, Chips, Chu, gioPhut, M, Man, Nhan, Nut, ONhap, The, useLam, useTai } from "@/lib/ui";
+import { FormLamLai } from "@/lib/lam-lai";
+import { Avt, Bao, BangTruot, BaoLoi, ChoTai, Chips, Chu, gioPhut, M, Man, Nhan, Nut, ONhap, The, useLam, useTai } from "@/lib/ui";
 
 type Luot = { id: string; child_id: string; ten_con: string; ten: string; diem_md: number; trang_thai: string; nop_luc: string; ghi_chu: string | null;
   nghi_trung: boolean };
@@ -28,6 +30,8 @@ export default function BangChungLuot() {
   const [khen, setKhen] = useState<string | null>(null);
   const [tuViet, setTuViet] = useState("");
   const [trang, setTrang] = useState(0);
+  const cuon = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const [lamLai, setLamLai] = useState(false);
   const rong = useWindowDimensions().width - 32;
   const { lam, loi: loiLam, dangChay } = useLam();
   if (!d) return <Man lui={{ chu: "Chờ duyệt" }} tieu="Bằng chứng"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -54,8 +58,9 @@ export default function BangChungLuot() {
       day={daXuLy ? <Nut chu="Về việc chờ duyệt" rong bam={() => router.replace(`/duyet?con=${l.child_id}` as never)} /> : (
         <>
           <BaoLoi loi={loiLam} />
-          <Nut chu={`Duyệt · ${l.ten_con} nhận ${l.diem_md} sao`} ic="tick" rong dangChay={dangChay} tat={chon === "tu_viet" && !loiKhen} bam={duyet} />
-          <Nut chu="↺ Nhờ con làm lại" loai="vien" rong bam={() => router.push(`/duyet/lam-lai?id=${id}` as never)} />
+          <Nut chu={`Duyệt · ${l.ten_con} nhận ${l.diem_md} sao`} ic="sao" ic3d rong dangChay={dangChay} tat={chon === "tu_viet" && !loiKhen} bam={duyet} />
+          {/* thiết kế qwuifjry / d40e3495: «Nhờ con làm lại» là nút chữ ngọc + icon 3D tro_lai; mở BẢNG TRƯỢT trên màn bằng chứng (nxclxlit / l0saosnz) */}
+          <Nut chu="Nhờ con làm lại" ic="tro_lai" ic3d loai="ma" rong bam={() => setLamLai(true)} />
         </>
       )}>
       {daXuLy ? <Bao loai="lam" ic="tick" tieu="Việc này đã được xử lý" loi="Có thể người khác trong nhà đã duyệt trước." /> : null}
@@ -64,7 +69,7 @@ export default function BangChungLuot() {
         // ảnh vuốt ngang; nhãn + giờ nằm DƯỚI ảnh (chữ trên ảnh thật khó đọc — WCAG 1.4.3). Khung = thẻ clay: bóng ở lớp ngoài, cắt bo ở lớp trong
         <View style={[{ borderRadius: BO_CLAY.the, backgroundColor: M.the }, KHOI.the]}>
           <View style={{ borderRadius: BO_CLAY.the, overflow: "hidden" }}>
-            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false}
+            <ScrollView ref={cuon} horizontal pagingEnabled showsHorizontalScrollIndicator={false}
               onMomentumScrollEnd={(e) => setTrang(Math.round(e.nativeEvent.contentOffset.x / rong))}
               onScroll={(e) => setTrang(Math.round(e.nativeEvent.contentOffset.x / rong))} scrollEventThrottle={64}>
               {anh.map((a, k) => (
@@ -81,13 +86,26 @@ export default function BangChungLuot() {
                   </View>
                 ) : null}
               </View>
-              {anh.length > 1 ? <Chu co={13} mau={M.chu3}>{`Vuốt xem ${anh.length} ảnh · ${anh.map((a, k) => `${nhanAnh(k)} · ${gioPhut(a.chupLuc)}`).join("   ")}`}</Chu> : null}
+              {anh.length > 1 ? <Chu co={13} mau={M.chu3}>{`Vuốt xem ${anh.length} ảnh`}</Chu> : null}
+              {anh.length > 1 ? (
+                // thiết kế qwuifjry: hàng ảnh nhỏ «Trước · 18:05» / «Sau · 18:40» dưới ảnh lớn, ảnh đang xem viền ngọc — chạm để xem ảnh đó
+                <View style={{ flexDirection: "row", gap: 8 }}>
+                  {anh.map((a, k) => (
+                    <Pressable key={a.id} onPress={() => { setTrang(k); cuon.current?.scrollTo({ x: k * rong, animated: true }); }} accessibilityRole="button"
+                      accessibilityLabel={`Xem ảnh ${nhanAnh(k)}`} style={{ flex: 1, gap: 4 }}>
+                      <Image source={{ uri: `data:${a.mime};base64,${a.base64}` }} contentFit="cover"
+                        style={{ height: 56, borderRadius: 14, borderWidth: 2, borderColor: k === trang ? M.chinh : "transparent", backgroundColor: "#f6e7cf" }} />
+                      <Chu kieu="dam7" co={12} mau={M.chu2}>{`${nhanAnh(k)} · ${gioPhut(a.chupLuc)}`}</Chu>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
               {l.nghi_trung ? <Nhan loai="canh" ic="canh_bao" chu="Giống ảnh đã nộp trước" /> : null}
             </View>
           </View>
         </View>
       ) : null}
-      {am.map((a) => <NgheGhiAm key={a.id} mime={a.mime} base64={a.base64} nhan={`Ghi âm ${l.ten_con} · ${gioPhut(a.chupLuc)}`} />)}
+      {am.map((a) => <NgheGhiAm key={a.id} mime={a.mime} base64={a.base64} nhan={`Ghi âm ${l.ten_con} đọc`} />)}
       {!d.bc.length ? <The><Chu mau={M.chu2}>Việc này con báo xong, không kèm ảnh hay ghi âm.</Chu></The> : null}
 
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8, marginHorizontal: 4 }}>
@@ -114,6 +132,12 @@ export default function BangChungLuot() {
           {chon === "tu_viet" ? <ONhap nhan={`Lời khen gửi ${l.ten_con}`} value={tuViet} onChangeText={setTuViet} maxLength={200} autoFocus /> : null}
         </>
       ) : null}
+      <BangTruot mo={lamLai} dong={() => setLamLai(false)} tieu="" cuon>
+        <FormLamLai l={l} ghiAm={ghiAm} huy={() => setLamLai(false)} daGui={(nhan) => {
+          setLamLai(false);
+          router.replace({ pathname: "/duyet/lam-lai", params: { id, gui: nhan, luc: new Date().toISOString() } } as never);
+        }} />
+      </BangTruot>
     </Man>
   );
 }
