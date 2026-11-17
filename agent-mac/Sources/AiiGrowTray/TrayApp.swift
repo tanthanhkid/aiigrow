@@ -597,6 +597,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let loai: LoaiManToan = (ManMac.canChonTen(t) || (epBaMeMa && t?.laPhienCon == true)) ? .chonTen
       : (TrayLogic.chonMan(t) != .khong && t?.nguoiDung != "ba_me" ? .khoa : .khong)
     if loai == .chonTen, loaiManHien != .chonTen, !epBaMeMa { chonTen.veDauLang() }
+    if loai == .chonTen { chonTen.nhanHoSoSeq(t?.hoSoSeq) }     // #339: Ba Mẹ đổi gán máy ⇒ danh sách bé đang mở cập nhật ngay
     if loai != loaiManHien || (loai != .khong && manKhoa.isEmpty) {
       loaiManHien = loai
       if loai == .khong { goManKhoa() } else { datLaiManKhoa() }

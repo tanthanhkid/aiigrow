@@ -32,8 +32,33 @@ final class ChonTenModel: ObservableObject {
     if case let .duLieu(j) = await goi(.hoSo), let h = try? IPCMa.decoder.decode(HoSoMay.self, from: Data(j.utf8)) {
       hoSo = h; taiLuc = Date()
       for b in h.con { if let d = b.khoaDen ?? b.choGiay.map({ taiLuc.addingTimeInterval(TimeInterval($0)) }), d > (choDenBe[b.id] ?? .distantPast) { choDenBe[b.id] = d } }
+      // #339: bé đang nhập PIN vừa bị Ba Mẹ bỏ gán khỏi máy ⇒ về lưới tên (chữ như agent-win ManChonTen)
+      if let b = beDangChon, !h.con.contains(where: { $0.id == b.id }) {
+        buoc = .chonTen; pin.lamLai(); choDen = nil; cau = ChonTenModel.khongThayBe; cauLoi = true
+      } else if cau == ChonTenModel.chuaLayDuoc { cau = nil; cauLoi = false }
     }
-    else if hoSo == nil { cau = "Chưa lấy được danh sách các bé. Con thử lại sau vài giây nhé."; cauLoi = true }
+    else if hoSo == nil { cau = ChonTenModel.chuaLayDuoc; cauLoi = true }
+  }
+
+  static let chuaLayDuoc = "Chưa lấy được danh sách các bé. Con thử lại sau vài giây nhé."
+  static let khongThayBe = "Không thấy tên này trên máy — chọn lại nhé."
+  /// Dòng cuối màn chọn tên như agent-win (ManChonTenView.KhongThayTen / NhoBaMeThem); chạm ⇒ tải lại danh sách.
+  static let khongThayTen = "Không thấy tên con?"
+  static let nhoBaMeThem = "Nhờ Ba Mẹ thêm con vào máy này trên điện thoại."
+
+  private var beDangChon: HoSoBe? {
+    switch buoc { case let .pin(b), let .quenPin(b): return b; default: return nil }
+  }
+
+  /// #339: `hoSoSeq` daemon trả lần trước. Đổi ⇒ danh sách bé của máy vừa đổi (Ba Mẹ thêm / bỏ gán) ⇒ màn chọn tên đang mở tải lại ngay.
+  private(set) var hoSoSeqDaThay: Int?
+  @discardableResult
+  func nhanHoSoSeq(_ seq: Int?) -> Bool {
+    guard let seq else { return false }
+    defer { hoSoSeqDaThay = seq }
+    guard let cu = hoSoSeqDaThay, cu != seq else { return false }
+    Task { await tai() }
+    return true
   }
 
   /// Về màn đầu mà không báo tray (máy vừa chuyển sang «chưa ai vào»).
@@ -193,6 +218,15 @@ struct ManChonTenView: View {
         .padding(.top, 6)
         if let c = m.cau { Text(c).font(.system(size: 13, weight: .semibold)).foregroundColor(m.cauLoi ? ClayMau.loi : ClayMau.ngocInk) }
         Text("Chưa ai vào thì máy chỉ mở màn này · sao và luật đi theo từng bé.").font(.system(size: 12)).foregroundColor(ClayMau.chu3)
+        // #339: như agent-win — bé mới chưa hiện thì chạm để tải lại; vẫn không có thì nhờ Ba Mẹ gán con vào máy
+        Button { m.cau = nil; m.cauLoi = false; Task { await m.tai() } } label: {
+          VStack(spacing: 2) {
+            Text(ChonTenModel.khongThayTen).font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.chu2)
+            Text(ChonTenModel.nhoBaMeThem).font(.system(size: 12)).foregroundColor(ClayMau.chu3)
+          }
+        }
+        .buttonStyle(.plain).disabled(m.dangGui)
+        .accessibilityLabel("Không thấy tên con? Tải lại danh sách")
       }
       .padding(.horizontal, 60).padding(.vertical, 24)
       .frame(width: 576)

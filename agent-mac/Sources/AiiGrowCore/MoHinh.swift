@@ -268,6 +268,8 @@ public struct KetQuaDongBo {
   public var danhSachApp: TinHieuDanhSachApp?
   /// L13 (06/11): ai đang dùng máy dùng chung (`nguoiDung` ở gốc). nil = máy chủ cũ.
   public var nguoiDung: NguoiDungMay?
+  /// #339 (17/11): id các bé được gán máy (`dsCon` ở gốc dong-bo / nhip). nil = máy chủ cũ.
+  public var dsCon: [String]?
   public init(policy: Policy, nextCheckSec: Int, lenh: [LenhMay], danhSachApp: TinHieuDanhSachApp? = nil) {
     self.policy = policy; self.nextCheckSec = nextCheckSec; self.lenh = lenh; self.danhSachApp = danhSachApp
   }
