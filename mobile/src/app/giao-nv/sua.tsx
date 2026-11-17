@@ -1,4 +1,4 @@
-// «Sửa việc» (thiết kế 14/11 bm-viec-duyet/06 them-ncq0jtzo) + bảng «Xoá việc «X»?» (07 them-4axhvgpl): hình + tên, Con nhận ⭐5/10/20/30,
+// «Sửa việc» (bàn 17/11 them-ncq0jtzo@v4) + bảng «Xoá việc «X»?» (them-4axhvgpl@v3): hình + tên, Con nhận ⭐5/10/20/30,
 // Làm khi nào?, Con báo xong bằng (Chụp ảnh · Ghi âm · Bấm «Xong»), «Ba Mẹ xem rồi mới cộng sao», «Áp cho» các con (nhà > 1 con), «Xoá việc này»,
 // «Lưu việc «X»». Lưu = POST nhiem-vu/:id/luu {sua (chỉ trường đã đổi), apCho?} — MỘT giao dịch ở máy chủ (nhiem-vu.ts › luuNv): «Áp cho» thêm
 // bản sao chép đủ cột của việc (giữ bang_chung / tu_duyet gốc — việc AiiRob tự chấm vẫn tự chấm) cho con mới chọn + tắt việc này nếu con của nó bị bỏ.
@@ -7,13 +7,14 @@
 import { useSaoTu } from "@/lib/sao-tu-nhap";
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
+import { BONG, KHOI } from "@/lib/clay";
 import { bm, type GiaDinh } from "@/lib/api";
-import { BangTruot, Bao, BaoLoi, baoKhiVe, Chips, ChoTai, Chu, CongTac, M, Man, Nut, ONhap, The, TickDong, useLam, useTai } from "@/lib/ui";
+import { BangTruot, Bao, BaoLoi, baoKhiVe, Chips, ChoTai, Chu, CongTac, F, Icon3D, M, Man, Nut, ONhap, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 import { CAU_TRONG_GIUP, hinhNv, quyenToi, type NhiemVuMoi } from "@/lib/hang-ngay";
 import { viecCuaCon } from "@/lib/nv-tab";
 import { tenHopLe } from "@/lib/form-viec";
-import { ChonO, OLomIcon } from "@/lib/ui-viec";
+import { ChonO } from "@/lib/ui-viec";
 import { MucTieu } from "@/lib/ui-bm3";
 
 const LAP = [{ gia: "hang_ngay", chu: "Mỗi ngày" }, { gia: "ngay_thuong", chu: "Thứ 2 – Thứ 6" }, { gia: "cuoi_tuan", chu: "Cuối tuần" }];
@@ -38,6 +39,7 @@ export default function SuaViec() {
   const [duyet, setDuyet] = useState<boolean | null>(null);
   const [apCho, setApCho] = useState<string[] | null>(null);
   const [xoa, setXoa] = useState(false);
+  const [moHinh, setMoHinh] = useState(false);
   const { lam, loi: loiLam, dangChay } = useLam();
   const tieu = "Sửa việc";
   if (!d) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -82,13 +84,20 @@ export default function SuaViec() {
   });
   return (
     <Man lui={{ chu: "" }} tieu={tieu}
-      day={d.baMe ? <><BaoLoi loi={xoa ? null : loiLam} /><Nut chu={`Lưu việc «${f.ten.trim() || v.ten}»`} ic="tick" rong dangChay={dangChay}
+      day={d.baMe ? <><BaoLoi loi={xoa ? null : loiLam} /><Nut chu={`Lưu việc «${f.ten.trim() || v.ten}»`} ic="tick" ic3d rong dangChay={dangChay}
         tat={!tenHopLe(f.ten) || !f.apCho.length || saoLoi} bam={luu} /></> : undefined}>
       {d.baMe ? (
         <>
-          <View style={{ alignItems: "center" }}><OLomIcon ic={ic} co={72} nen="#f9e7d2" /></View>
-          <ChonO ds={dsHinh.map((h) => ({ gia: h, chu: "", ic: hinhNv({ hinh: h })[0], nhan: `Hình ${h}` }))} chon={f.hinh || null} doi={setHinh} />
-          <ONhap nhan="Tên việc" value={f.ten} onChangeText={setTen} maxLength={90} />
+          {/* thiết kế ncq0jtzo@v4: hàng ô hình 56 + ô tên lõm; chạm ô hình mới mở dải chọn hình (giữ từ PR #243, bàn không vẽ) */}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <Pressable onPress={() => setMoHinh((x) => !x)} accessibilityRole="button" accessibilityLabel="Đổi hình việc" accessibilityState={{ expanded: moHinh }}
+              style={[{ width: 56, height: 56, borderRadius: 18, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
+              <Icon3D ten={ic} co={34} />
+            </Pressable>
+            <TextInput value={f.ten} onChangeText={setTen} maxLength={90} accessibilityLabel="Tên việc" placeholderTextColor={M.chu3}
+              style={{ flex: 1, minHeight: 52, borderRadius: 26, paddingHorizontal: 18, backgroundColor: "#ecebe7", boxShadow: BONG.lom, fontFamily: F.rat, fontSize: 17, color: M.chu }} />
+          </View>
+          {moHinh ? <ChonO ds={dsHinh.map((h) => ({ gia: h, chu: "", ic: hinhNv({ hinh: h })[0], nhan: `Hình ${h}` }))} chon={f.hinh || null} doi={setHinh} /> : null}
           <MucTieu chu="Con nhận bao nhiêu sao?" />
           <ChonO ds={dsSao.map((x) => ({ gia: x, chu: `${x}` }))} chon={st.chu === "" ? f.sao : null} doi={(x) => { st.xoa(); setSao(x); }} sao />
           <ONhap nhan="Hoặc tự nhập số sao" value={st.chu} onChangeText={st.nhap}
@@ -113,14 +122,15 @@ export default function SuaViec() {
                 doi={(c) => setApCho(f.apCho.includes(c) ? f.apCho.filter((x) => x !== c) : [...f.apCho, c])} />
             </>
           ) : null}
-          <Nut chu="Xoá việc này" ic="x" loai="huy" rong bam={() => setXoa(true)} />
+          <Nut chu="Xoá việc này" ic="x" ic3d loai="huy" rong bam={() => setXoa(true)} />
         </>
       ) : <Bao loai="lam" ic="khoa" tieu={v.ten} loi={CAU_TRONG_GIUP} />}
       <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá việc «${v.ten}»?`} hinh="lau">
-        <View>
-          <TickDong chu={`${tenCon} không thấy việc này nữa`} />
-          <TickDong chu={conCua ? `${conCua.soDu} sao con đang có vẫn giữ nguyên` : "Sao con đang có vẫn giữ nguyên"} />
-          {conCua && conLai !== null ? <TickDong chu={`Ngày của ${conCua.ten} còn ${conLai} việc`} /> : null}
+        {/* thiết kế 4axhvgpl: ba dòng có icon 3D — máy tính bảng · sao · lịch */}
+        <View style={[{ gap: 12, padding: 16, borderRadius: 24, backgroundColor: M.the }, KHOI.nho]}>
+          <DongXoa ic="tablet" chu={`${tenCon} không thấy việc này nữa`} />
+          <DongXoa ic="sao" chu={conCua ? `${conCua.soDu} sao con đang có vẫn giữ nguyên` : "Sao con đang có vẫn giữ nguyên"} />
+          {conCua && conLai !== null ? <DongXoa ic="lich" chu={`Ngày của ${conCua.ten} còn ${conLai} việc`} /> : null}
         </View>
         <BaoLoi loi={loiLam} />
         <Nut chu={`Xoá «${v.ten}»`} loai="huy" rong dangChay={dangChay} bam={tat} />
@@ -129,3 +139,7 @@ export default function SuaViec() {
     </Man>
   );
 }
+
+const DongXoa = ({ ic, chu }: { ic: TenIcon; chu: string }) => (
+  <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}><Icon3D ten={ic} co={24} /><Chu kieu="dam7" co={15} style={{ flex: 1 }}>{chu}</Chu></View>
+);

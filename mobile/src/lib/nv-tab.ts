@@ -1,4 +1,4 @@
-// Dữ liệu tab «Nhiệm vụ» (thiết kế chốt 05/11 bm-hang-ngay/36): MỘT hàm tải cho màn (tab)/diem-qua và nạp trước ở app/(tab)/_layout.tsx.
+// Dữ liệu tab «Việc & quà» (trước 17/11: «Nhiệm vụ») (thiết kế chốt 05/11 bm-hang-ngay/36): MỘT hàm tải cho màn (tab)/diem-qua và nạp trước ở app/(tab)/_layout.tsx.
 // Không gọi GET quy (quỹ phiếu AiiCafe — 410 từ 05/11). Sao + «đổi được P phút» lấy từ gia-dinh › con[] (soDu, phutDoiDuoc).
 import { bm, type GiaDinh } from "./api";
 import { quyenToi, type ChoDuyetMoi, type NhiemVuMoi, type Quyen } from "./hang-ngay";

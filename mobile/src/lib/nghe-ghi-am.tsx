@@ -2,7 +2,7 @@
 // nút nghe bị khoá kèm câu dẫn sang web. Bản web (nghe-ghi-am.web.tsx) phát thật. Cùng chữ ký export.
 import { View } from "react-native";
 import { KHOI } from "./clay";
-import { Chu, M, Nut } from "./ui";
+import { Chu, Icon3D, M, Nut } from "./ui";
 import { SongAm, phutGiay, type NgheGhiAmProps } from "./song-am";
 
 export { SongAm, phutGiay, type NgheGhiAmProps };
@@ -10,7 +10,12 @@ export { SongAm, phutGiay, type NgheGhiAmProps };
 export function NgheGhiAm({ nhan }: NgheGhiAmProps) {
   return (
     <View style={[{ padding: 16, borderRadius: 28, backgroundColor: M.chinhSoft, gap: 12 }, KHOI.the]}>
-      {nhan ? <Chu kieu="dam" co={13.5} mau={M.chinhInk}>{nhan}</Chu> : null}
+      {nhan ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <View style={[{ width: 56, height: 56, borderRadius: 18, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }, KHOI.nho]}><Icon3D ten="sach" co={34} /></View>
+          <Chu kieu="rat" co={17} style={{ flex: 1 }}>{nhan}</Chu>
+        </View>
+      ) : null}
       <SongAm />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
         <Nut chu="▶ Nghe từ đầu" nho tat bam={() => {}} />

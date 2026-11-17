@@ -1,6 +1,6 @@
-// Tab «Nhiệm vụ» (thiết kế 14/11 bm-viec-duyet/01 them-e91jg28j, trống 02 them-e44cwmvu): «Thêm việc» cạnh tiêu đề (→ Giao việc), dải các con
+// Tab «Việc & quà» (bàn 17/11 them-e91jg28j@v13, trống them-e44cwmvu@v8): «+ Việc» (→ Giao việc) · «+ Quà» (→ Thêm quà) cạnh tiêu đề, dải các con
 // (nhà > 1 con, số việc chờ góc trên) → ví sao (đổi được bao nhiêu phút) → việc chờ Ba Mẹ duyệt (mỗi việc mở THẲNG màn bằng chứng) → quà con đã đổi
-// chờ trao (bảng trượt «Đã trao … chưa?», them-5otw85h4 — sao GIỮ, trao mới trừ, huỷ hoàn; lib/trao-qua) → «Việc mỗi ngày · N việc · Chạm để sửa».
+// chờ trao (bảng trượt «Đã trao … chưa?», them-5otw85h4 — sao GIỮ, trao mới trừ, huỷ hoàn; lib/trao-qua) → «Việc mỗi ngày · N việc».
 // Người trông giúp (dữ liệu cũ): duyệt + trao quà được; giao / sửa việc ẩn.
 // 15/11 (#263/#266, them-e91jg28j): viên sao dưới từng con (âm = viên cảnh báo); đang nợ ⇒ thẻ cảnh báo «<Con> đang nợ Ba Mẹ 20 sao · −20 sao ·
 // Duyệt 2 việc chờ là hết nợ ›», việc chờ duyệt ghi «trả nợ 10 sao». 1 sao = 1 phút chơi (bỏ «đổi ra phút»).
@@ -9,12 +9,13 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { KHOI } from "@/lib/clay";
 import {
-  ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useTai,
+  ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useTai, type TenIcon,
 } from "@/lib/ui";
 import { cachBao, cauLapLai, HangViec, hinhNv, SaoVien, TieuMuc, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
 import { KHOA_NV_TAB, napNvTab, viecCuaCon } from "@/lib/nv-tab";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { BangTraoQua } from "@/lib/trao-qua";
+import { icQua } from "@/lib/s3";
 import { kieuSao, MAU_NO, saoTu, soChinh, soVN, VienSao, traNoLanLuot } from "@/lib/so-sao";
 
 /** «hôm nay 18:40» / «hôm qua» / «3/11». */
@@ -45,10 +46,10 @@ export default function TabNhiemVu() {
       phieu: (d.cd.phieu ?? []).filter((x) => x.child_id === c.id),
     };
   }, [d, c]);
-  if (!d) return <Man tieuLon="Nhiệm vụ"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
+  if (!d) return <Man tieuLon="Việc & quà"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!c || !cua) {
     return (
-      <Man tieuLon="Nhiệm vụ">
+      <Man tieuLon="Việc & quà">
         <The><Chu mau={M.chu2}>Chưa có hồ sơ con nào. Thêm con ở «Cả nhà» để giao việc.</Chu></The>
       </Man>
     );
@@ -60,20 +61,22 @@ export default function TabNhiemVu() {
   // sao việc chờ trả nợ lần lượt (theo thứ tự hiện)
   const traNo = traNoLanLuot(ss.no, cua.cho.map((x) => x.sao ?? x.diem)).map((x) => x.tra);
   const tongCho = cua.cho.reduce((n, x) => n + (x.sao ?? x.diem), 0);
+  // them-e44cwmvu: Con chưa có việc nào (và không có gì chờ) ⇒ chỉ dải con + «Ngày của <Con> còn trống», không thẻ ví, không nút «+ Việc / + Quà»
+  const trong = !cua.viec.length && !cua.cho.length && !cua.phieu.length;
   return (
-    <Man tieuLon="Nhiệm vụ" tai={tai} vongTai noi={noi}
-      phaiTieu={baMe ? (
-        // thiết kế .them: viên sáng 44, «＋ Thêm việc» 14/800 ngọc — gọn để tiêu đề «Nhiệm vụ» không bẻ dòng
-        <NhanMen onPress={() => router.push(`/giao-nv?con=${c.id}` as never)} accessibilityRole="button" muc="chip" sang
-          style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 44, paddingLeft: 12, paddingRight: 16, borderRadius: 22, backgroundColor: "#f7f6f3", ...KHOI.nho }}>
-          <Icon ten="cong" co={18} mau={M.chinhInk} /><Chu kieu="rat" co={14} mau={M.chinhInk}>Thêm việc</Chu>
-        </NhanMen>
+    <Man tieuLon="Việc & quà" tai={tai} vongTai noi={noi}
+      phaiTieu={baMe && !trong ? (
+        // thiết kế .them (them-e91jg28j@v13): hai viên sáng 44 — «✅ + Việc» (→ Giao việc) · «🎁 + Quà» (→ Thêm quà), icon 3D 22, chữ 14/800 ngọc
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          <NutThem ic="tick" chu="+ Việc" nhan="Thêm việc" bam={() => router.push(`/giao-nv?con=${c.id}` as never)} />
+          <NutThem ic="qua" chu="+ Quà" nhan="Thêm quà" bam={() => router.push({ pathname: "/vi/qua-thu-vien", params: { con: c.id } })} />
+        </View>
       ) : undefined}>
       {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} so={soCho}
         duoi={Object.fromEntries(d.g.con.map((x) => [x.id, <VienSao key={x.id} s={saoTu(x)} nho />]))} /> : null}
 
       {/* thiết kế .vi: thẻ vàng — «<Con> đang có» · ⭐ 30 sao (40/800) · viên trắng «= 30 phút chơi ›»; đang nợ ⇒ thẻ cảnh báo «<Con> đang nợ Ba Mẹ 20 sao» */}
-      <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}: ${soChinh(ss)}`}
+      {trong ? null : <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}: ${soChinh(ss)}`}
         style={[{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 28, overflow: "hidden" },
           k === "thuong" ? { backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf0c9, #fbecc0)" } : { backgroundColor: MAU_NO.nen, backgroundImage: "linear-gradient(#fbeedd, #f9e7d2)" }, KHOI.the]}>
         <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -18 }}><Rob ten="xong" co={112} /></View>
@@ -92,15 +95,15 @@ export default function TabNhiemVu() {
               : cua.cho.length ? (tongCho >= ss.no ? `Duyệt ${cua.cho.length} việc chờ là hết nợ ›` : `Duyệt ${cua.cho.length} việc chờ để trả nợ ›`)
                 : "Xem ví sao ›"}</Chu>
         </View>
-      </Pressable>
+      </Pressable>}
 
       {cua.cho.length ? (
         <>
-          <TieuMuc chu="Chờ Ba Mẹ duyệt" so={cua.cho.length} />
+          <TieuMuc ic="tick" chu="Việc chờ Ba Mẹ duyệt" so={cua.cho.length} />
           <The>
             {cua.cho.map((x, i) => {
               const [ic, mau] = hinhNv(x);
-              return <HangViec key={x.id} dau={i === 0} ic={x.so_ghi_am ? "tin" : ic} mau={mau} tieu={x.ten} phu={phuLuot(x, traNo[i])}
+              return <HangViec key={x.id} dau={i === 0} ic={ic} mau={mau} tieu={x.ten} phu={phuLuot(x, traNo[i])}
                 phai={<SaoVien n={x.sao ?? x.diem} nho />} bam={() => router.push(`/duyet/${x.id}` as never)} nhanDoc={`Xem bằng chứng ${x.ten}`} />;
             })}
             <View style={{ marginTop: 10 }}>
@@ -112,22 +115,25 @@ export default function TabNhiemVu() {
 
       {cua.phieu.length ? (
         <>
-          <TieuMuc chu="Con đã đổi quà, chờ trao" phai={{ chu: "Quà ›", bam: () => router.push("/vi/qua" as never) }} />
-          <The>
-            {cua.phieu.map((p, i) => (
-              <HangViec key={p.id} dau={i === 0} ic="qua" mau="cam" tieu={p.ten} phu={`Đổi ${p.diem} sao · ${khiNao(p.created_at)}`}
-                phai={<View><Nut chu="Trao quà" nho bam={() => setTrao(p)} nhanDoc={`Trao ${p.ten} cho ${p.ten_con}`} /></View>} />
-            ))}
-          </The>
+          <TieuMuc ic="qua" chu="Quà chờ trao" so={cua.phieu.length} phai={{ chu: "Danh sách quà ›", bam: () => router.push("/vi/qua" as never) }} />
+          {/* thiết kế .qua: mỗi quà một thẻ vàng — ô icon 48 nền #fff8e4 · tên 15.5/800 · «Đổi 50 sao · hôm qua» · nút đen «Trao quà» */}
+          {cua.phieu.map((p) => (
+            <View key={p.id} style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingLeft: 12, paddingRight: 16, borderRadius: 28,
+              backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf3d6, #fbecc0)" }, KHOI.the]}>
+              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "#fff8e4", alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten }) as TenIcon} co={30} /></View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Chu kieu="rat" co={15.5} dong={1}>{p.ten}</Chu>
+                <Chu kieu="dam" co={13} mau="#6e4300">{`Đổi ${soVN(p.diem)} sao · ${khiNao(p.created_at)}`}</Chu>
+              </View>
+              <View><Nut chu="Trao quà" nho bam={() => setTrao(p)} nhanDoc={`Trao ${p.ten} cho ${p.ten_con}`} /></View>
+            </View>
+          ))}
         </>
       ) : null}
 
       {cua.viec.length ? (
         <>
-          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, paddingHorizontal: 4 }}>
-            <Chu kieu="rat" co={17}>{`Việc mỗi ngày · ${cua.viec.length} việc`}</Chu>
-            {baMe ? <Chu kieu="dam" co={12.5} mau={M.chu3}>Chạm để sửa</Chu> : null}
-          </View>
+          <TieuMuc ic="lich" chu={`Việc mỗi ngày · ${cua.viec.length} việc`} />
           <The>
             {cua.viec.map((x, i) => {
               const [ic, mau] = hinhNv(x);
@@ -147,6 +153,16 @@ export default function TabNhiemVu() {
   );
 }
 
+/** Viên «+ Việc» / «+ Quà» cạnh tiêu đề (.them: cao 44, đệm 10 · 14, icon 3D 22, chữ 14/800 #0a5246). */
+function NutThem({ ic, chu, nhan, bam }: { ic: "tick" | "qua"; chu: string; nhan: string; bam: () => void }) {
+  return (
+    <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={nhan} muc="chip" sang
+      style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 44, paddingLeft: 10, paddingRight: 14, borderRadius: 22, backgroundColor: "#f7f6f3", ...KHOI.nho }}>
+      <Icon3D ten={ic} co={22} /><Chu kieu="rat" co={14} mau={M.chinhInk}>{chu}</Chu>
+    </NhanMen>
+  );
+}
+
 /** Con chưa có việc nào (them-e44cwmvu 14/11): Grow + «Ngày của <Con> còn trống», hai lối — chọn từ danh sách / tự đặt một việc. */
 function ViecTrong({ con, ten, baMe }: { con: string; ten: string; baMe: boolean }) {
   return (
@@ -159,7 +175,7 @@ function ViecTrong({ con, ten, baMe }: { con: string; ten: string; baMe: boolean
       {baMe ? (
         <View style={{ gap: 12 }}>
           <ChonLoi ic="qua" tieu="Chọn từ danh sách" phu="Học · Vận động · Giúp Ba Mẹ" bam={() => router.push(`/giao-nv?con=${con}` as never)} />
-          <ChonLoi ic="but" tieu="Tự đặt một việc" phu="Tên việc, số sao, ngày làm" bam={() => router.push(`/giao-nv/tu-dat?con=${con}` as never)} />
+          <ChonLoi ic="but" tieu="Tự đặt một việc" phu="Tên việc, số sao, ngày làm" bam={() => router.push(`/giao-nv?con=${con}&tuThem=1` as never)} />
         </View>
       ) : <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Nhờ Ba Mẹ giao việc cho con.</Chu>}
     </View>

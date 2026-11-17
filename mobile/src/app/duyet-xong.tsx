@@ -1,4 +1,4 @@
-// Duyệt xong (thiết kế chốt 15/11 bm-viec-duyet them-493dqo4i một việc · them-zj9gmh7t cả loạt; #263 sao nhiệm vụ trả nợ trước):
+// Duyệt xong (bàn 17/11 bm-viec-duyet them-493dqo4i@v6 một việc · them-zj9gmh7t@v3 cả loạt; #263 sao nhiệm vụ trả nợ trước):
 // chưa nợ ⇒ «+10 sao cho <Con>!», ví a → b sao, «= b phút chơi» (1 sao = 1 phút). Đang nợ ⇒ «+10 sao của <Con> / đã trả nợ trước», «−15 → −5 sao»,
 // «Trả nợ 10 sao · còn nợ Ba Mẹ 5 sao»; cả loạt trả hết ⇒ «<Con> nhận 20 sao / và đã hết nợ!», «Trả nợ 15 sao trước · còn 5 sao = 5 phút chơi», từng việc
 // «Trả nợ 10 · còn nợ 5» / «Trả nợ 5 · cộng 5 sao cho con». Một việc: thẻ «Còn n việc chờ duyệt» + «Duyệt tiếp» và toast «Hoàn tác» (luot/:id/hoan-tac).
@@ -8,10 +8,11 @@ import { useEffect } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
-import { KHOI } from "@/lib/clay";
+import { BONG, KHOI } from "@/lib/clay";
 import { HangViec, SaoVien, hinhNv, type ChoDuyetMoi } from "@/lib/hang-ngay";
+import { Anh3D } from "@/lib/lan-dau";
 import { MAU_NO, soVN, traNoLanLuot } from "@/lib/so-sao";
-import { CanhGiua, Chu, Icon3D, M, Man, Nut, The, useHoanTac, useTai } from "@/lib/ui";
+import { Chu, gioPhut, Icon, Icon3D, M, Man, Nut, Rob, The, useHoanTac, useTai } from "@/lib/ui";
 
 type P = { luot?: string; con: string; ten: string; diem?: string; nv?: string; khen?: string; loat?: string; sao?: string; ids?: string; ds?: string;
   saoTruoc?: string; noTruoc?: string };
@@ -49,33 +50,55 @@ export default function DuyetXong() {
   const tiep = d?.con[0];
   const veTrangChu = () => router.replace("/hom-nay" as never);
 
+  const noAm = coNo && saoSau !== null && saoSau < 0;
   return (
     <Man noi={noi} day={loat ? (
       <>
         <Nut chu="Xong, về Trang chủ" rong bam={veTrangChu} />
-        <Nut chu="Xem việc chờ duyệt" loai="vien" rong bam={() => router.replace(`/duyet${p.con ? `?con=${p.con}` : ""}` as never)} />
+        <Nut chu="Xem việc chờ duyệt" loai="ma" rong bam={() => router.replace(`/duyet${p.con ? `?con=${p.con}` : ""}` as never)} />
       </>
     ) : (
       <>
         {tiep ? <Nut chu={`Duyệt tiếp: ${tiep.ten}`} rong bam={() => router.replace(`/duyet/${tiep.id}` as never)} /> : null}
-        <Nut chu="Về Trang chủ" loai={tiep ? "vien" : "chinh"} rong bam={veTrangChu} />
+        <Nut chu="Về Trang chủ" loai={tiep ? "ma" : "chinh"} rong bam={veTrangChu} />
       </>
     )}>
-      <CanhGiua lv="sao"
-        tieu={coNo ? (loat ? `${p.ten} nhận ${cong} sao\n${noSau ? "đã trả nợ trước" : "và đã hết nợ!"}` : `+${cong} sao của ${p.ten}\nđã trả nợ trước`)
-          : loat ? `${p.ten} nhận ${cong} sao hôm nay!` : `+${cong} sao cho ${p.ten}!`}
-        loi={loat ? undefined : p.khen ? `Đã duyệt «${p.nv}» và gửi con «${p.khen}»` : `Đã duyệt «${p.nv}»`} />
-
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 16, borderRadius: 28, backgroundColor: coNo && saoSau !== null && saoSau < 0 ? MAU_NO.nen : M.diemSoft }, KHOI.the]}>
-        <Icon3D ten="sao" co={40} mau={M.diemInk} />
-        <View style={{ flex: 1 }}>
-          <Chu kieu="rat" co={22} mau={coNo && saoSau !== null && saoSau < 0 ? MAU_NO.chu : M.diemInk} so>
-            {truoc !== null && saoSau !== null ? `${soVN(truoc)} → ${soVN(saoSau)} sao` : `+${cong} sao`}</Chu>
-          <Chu kieu="dam" co={14} mau={coNo && saoSau !== null && saoSau < 0 ? MAU_NO.chu : M.diemInk}>
-            {coNo ? (noSau ? `Trả nợ ${soVN(traNo)} sao · còn nợ Ba Mẹ ${soVN(noSau)} sao` : `Trả nợ ${soVN(traNo)} sao trước · còn ${soVN(conCong)} sao = ${soVN(conCong)} phút chơi`)
-              : saoSau !== null ? `= ${soVN(Math.max(0, saoSau))} phút chơi` : ""}</Chu>
+      {/* thiết kế 493dqo4i / zj9gmh7t: Grow tung giấy màu giữa pháo hoa (trái) và lấp lánh (phải), tiêu đề 26/900 hai dòng */}
+      <View style={{ alignItems: "center", gap: 10, paddingTop: 8 }}>
+        <View style={{ width: 260, alignItems: "center" }}>
+          <Rob ten="xong" co={190} />
+          <View pointerEvents="none" style={{ position: "absolute", left: 6, top: 30 }}><Anh3D ten="phao_hoa" co={46} /></View>
+          <View pointerEvents="none" style={{ position: "absolute", right: 10, top: 92 }}><Anh3D ten="lap_lanh" co={46} /></View>
         </View>
+        <Chu kieu="den" co={26} style={{ textAlign: "center", letterSpacing: -0.6, maxWidth: 330 }}>
+          {coNo ? (loat ? `${p.ten} nhận ${cong} sao\n${noSau ? "đã trả nợ trước" : "và đã hết nợ!"}` : `+${cong} sao của ${p.ten}\nđã trả nợ trước`)
+            : loat ? `${p.ten} nhận ${cong} sao hôm nay!` : `+${cong} sao cho ${p.ten}!`}</Chu>
+
+        {/* ví trước → sau: viên xám «⭐ −15» → viên nổi «⭐ −5 sao» (đào khi còn âm, vàng khi dương) + dòng giải thích */}
+        {truoc !== null && saoSau !== null ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, height: 46, paddingHorizontal: 14, borderRadius: 23, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+              <Icon3D ten="sao" co={26} /><Chu kieu="rat" co={18} mau="#565c59" so>{soVN(truoc)}</Chu>
+            </View>
+            <Icon ten="phai" co={20} mau={M.chinhInk} />
+            <View style={[{ flexDirection: "row", alignItems: "center", gap: 6, height: 52, paddingHorizontal: 16, borderRadius: 26, backgroundColor: noAm ? MAU_NO.nen : M.diemSoft }, KHOI.the]}>
+              <Icon3D ten="sao" co={30} /><Chu kieu="rat" co={20} mau={noAm ? MAU_NO.chu : M.diemInk} so>{`${soVN(saoSau)} sao`}</Chu>
+            </View>
+          </View>
+        ) : <SaoVien n={cong} dau />}
+        <Chu kieu="dam7" co={13} mau={M.chu3} style={{ textAlign: "center" }}>
+          {coNo ? (noSau ? <>{`Trả nợ ${soVN(traNo)} sao · `}<Chu kieu="rat" co={13} mau={MAU_NO.chu}>{`còn nợ Ba Mẹ ${soVN(noSau)} sao`}</Chu></>
+            : `Trả nợ ${soVN(traNo)} sao trước · còn ${soVN(conCong)} sao = ${soVN(conCong)} phút chơi`)
+            : saoSau !== null ? `= ${soVN(Math.max(0, saoSau))} phút chơi` : ""}</Chu>
       </View>
+
+      {/* một việc: dải ngọc nhạt + tim «Đã duyệt «Dọn phòng» và gửi con «Giỏi lắm con!»» */}
+      {!loat ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#dcebe6" }}>
+          <Icon3D ten="tim" co={26} />
+          <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1 }}>{p.khen ? `Đã duyệt «${p.nv}» và gửi con «${p.khen}»` : `Đã duyệt «${p.nv}»`}</Chu>
+        </View>
+      ) : null}
 
       {loat && tung.length ? (
         <The>
@@ -83,21 +106,27 @@ export default function DuyetXong() {
             const [ic, mau] = hinhNv({ nhom: /đọc/i.test(x.t) ? "doc_sach" : "" });
             const phu = x.tra ? (x.conNo ? `Trả nợ ${x.tra} · còn nợ ${x.conNo}` : x.cong ? `Trả nợ ${x.tra} · cộng ${x.cong} sao cho con` : `Trả nợ ${x.tra} · hết nợ`)
               : p.khen ? `Đã gửi «${p.khen}»` : undefined;
-            return <HangViec key={`${x.t}${k}`} dau={k === 0} ic={ic} mau={mau} tieu={x.t} phu={phu} phai={<SaoVien n={x.s} dau nho />} />;
+            return <HangViec key={`${x.t}${k}`} dau={k === 0} ic={ic} mau={mau} tieu={x.t} phu={phu} phai={<NhanSao chu={`+${soVN(x.s)} sao`} />} />;
           })}
         </The>
       ) : null}
 
-      {!loat && d && d.con.length ? (
-        <The>
-          <Chu kieu="rat" co={16}>{`Còn ${d.con.length} việc chờ duyệt`}</Chu>
-          {d.con.slice(0, 3).map((x) => {
-            const [ic, mau] = hinhNv(x);
-            return <HangViec key={x.id} ic={ic} mau={mau} tieu={x.ten} phu={x.so_ghi_am ? "ghi âm" : x.so_anh ? `${x.so_anh} ảnh` : "bấm Xong"}
-              phai={<SaoVien n={x.sao ?? x.diem} nho />} bam={() => router.replace(`/duyet/${x.id}` as never)} />;
-          })}
-        </The>
-      ) : null}
+      {/* một việc: thẻ gọn «Còn n việc chờ duyệt · <việc kế> · ghi âm 17:15 · 10 sao» — chạm để duyệt tiếp */}
+      {!loat && tiep && d ? (() => {
+        const [ic, mau] = hinhNv(tiep);
+        return (
+          <The>
+            <HangViec dau ic={tiep.so_ghi_am ? "sach" : ic} mau={mau} tieu={`Còn ${d.con.length} việc chờ duyệt`}
+              phu={`${tiep.ten} · ${tiep.so_ghi_am ? "ghi âm" : tiep.so_anh ? `${tiep.so_anh} ảnh` : "bấm Xong"} ${gioPhut(tiep.nop_luc)}`}
+              phai={<NhanSao chu={`${soVN(tiep.sao ?? tiep.diem)} sao`} />} bam={() => router.replace(`/duyet/${tiep.id}` as never)} nhanDoc={`Duyệt tiếp ${tiep.ten}`} />
+          </The>
+        );
+      })() : null}
     </Man>
   );
 }
+
+/** Nhãn sao không icon (thiết kế .diem trong thẻ kết quả: «+10 sao» / «10 sao» nền vàng nhạt). */
+const NhanSao = ({ chu }: { chu: string }) => (
+  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: M.diemSoft }}><Chu kieu="rat" co={13} mau={M.diemInk} so>{chu}</Chu></View>
+);
