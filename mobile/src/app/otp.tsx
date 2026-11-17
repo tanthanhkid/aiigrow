@@ -8,11 +8,8 @@ import { router } from "expo-router";
 import { bm } from "@/lib/api";
 import { layDangKy, nhoDangKy, xoaDangKy } from "@/lib/dang-ky";
 import { usePhien } from "@/lib/phien";
-import { DauMan, demNguoc, TieuDe } from "@/lib/lan-dau";
+import { DauMan, demNguoc, hienSo, TieuDe } from "@/lib/lan-dau";
 import { Bao, BaoLoi, BieuTron, Chu, Icon3D, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
-
-/** «0912345678» ⇒ «0912 345 678» như bàn bm1-otp v7 (số 10 chữ số; dạng khác — email, +84… — giữ nguyên). */
-const hienSo = (s = "") => (/^\d{10}$/.test(s) ? s.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : s);
 
 export default function Otp() {
   const [dk, setDk] = useState(layDangKy);       // giữ bản chụp: xoaDangKy() lúc vào xong không được kéo màn về /dang-ky

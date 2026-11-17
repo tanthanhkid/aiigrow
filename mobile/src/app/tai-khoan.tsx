@@ -2,6 +2,7 @@
 // ảnh chữ + «Bạn cùng trông N con», «Tên hiển thị · Lưu tên» (POST toi/ten), «Đăng nhập»: SĐT / email · «Đổi mật khẩu» (/doi-mat-khau;
 // tài khoản Google / Facebook chưa có mật khẩu ⇒ /dat-mat-khau), «Rời đi»: Đăng xuất · Rời nhà (không phải người tạo nhà — POST thanh-vien/roi-nha) ·
 // Xoá tài khoản (chuyển từ tab Cả nhà — Apple 5.1.1(v), server/lib/xoa-tai-khoan.ts: hỏi máy chủ trước, bị chặn thì hiện hướng dẫn, rồi nhập mật khẩu).
+import { hienSo } from "@/lib/lan-dau";
 import { useState } from "react";
 import { router } from "expo-router";
 import { TextInput, View } from "react-native";
@@ -105,7 +106,7 @@ export default function TaiKhoan() {
 
       <MucTieu chu="Đăng nhập" />
       <Nhom>
-        <Dong dau tieu={email ? "Email" : dd ? "Số điện thoại" : "Đăng nhập bằng"} phu={dd ? `${dd.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3")} · dùng để đăng nhập` : "Google / Facebook"}
+        <Dong dau tieu={email ? "Email" : dd ? "Số điện thoại" : "Đăng nhập bằng"} phu={dd ? `${hienSo(dd)} · dùng để đăng nhập` : "Google / Facebook"}
           trai={<OIcon ic={email ? "tin" : "dt"} />} />
         <Dong tieu={khongMk ? "Đặt mật khẩu" : "Đổi mật khẩu"} trai={<OIcon ic="khoa" />} bam={() => router.push(khongMk ? "/dat-mat-khau" : "/doi-mat-khau")} />
       </Nhom>
@@ -155,7 +156,7 @@ export default function TaiKhoan() {
                   <TickDong trang="x" chu="Mất tin nhắn và thông báo cũ" />
                 </>
               )}
-              {dd && !email ? <TickDong trang="sau" chu={`Số ${dd.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3")} đăng ký lại được`} /> : null}
+              {dd && !email ? <TickDong trang="sau" chu={`Số ${hienSo(dd)} đăng ký lại được`} /> : null}
             </View>
             {/* tài khoản vào bằng Google / Facebook chưa có mật khẩu ⇒ đặt mật khẩu trước (xác minh lại bằng Google / Facebook — app/dat-mat-khau.tsx) */}
             {khongMk ? <Nut chu="Đặt mật khẩu để xác nhận" loai="vien" rong bam={() => { dong(); router.push("/dat-mat-khau"); }} /> : <>

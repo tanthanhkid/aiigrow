@@ -574,11 +574,12 @@ const bam = async (txt) => {
 const go = (nhan, gt) => js(`(() => { const i = [...document.querySelectorAll("input,textarea")].find((e) => e.getAttribute("aria-label") === ${JSON.stringify(nhan)});
   if (!i) return false; const s = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(i), "value").set; s.call(i, ${JSON.stringify(gt)});
   i.dispatchEvent(new Event("input", { bubbles: true })); return true; })()`);
-const dangKyToiOtp = async () => {
+/** Mở Đăng ký và điền đủ số + mật khẩu (dùng chung: ca «đã điền» của cổng giao diện và dangKyToiOtp). */
+const dienDangKy = async () => {
   await di("/dang-ky", null); await doi("Tạo tài khoản Ba Mẹ");
   await go("Số điện thoại", "0912345678"); await go("Mật khẩu", "matkhau123"); await go("Nhập lại mật khẩu", "matkhau123");
-  await sleep(200); await bam("Nhận mã xác thực");
 };
+const dangKyToiOtp = async () => { await dienDangKy(); await sleep(200); await bam("Nhận mã xác thực"); };
 
 // ---------------------------------------------------------------- cổng chuẩn giao diện
 if (process.argv.includes("--giao-dien")) {
@@ -598,11 +599,12 @@ if (process.argv.includes("--giao-dien")) {
     // Lần đầu (bm-lan-dau, bm-ghep-may — L7, L8)
     M("bm-chao", "/chao", "Bắt đầu cho con nhà mình", { token: null }),
     M("bm-dang-ky", "/dang-ky", "Tạo tài khoản Ba Mẹ", { token: null }),
-    M("bm-dang-ky (đã điền · bm1-dang-ky)", "/dang-ky", "Đã khớp", { token: null, truoc: async () => { await di("/dang-ky", null); await doi("Tạo tài khoản Ba Mẹ");
-      await go("Số điện thoại", "0912345678"); await go("Mật khẩu", "matkhau123"); await go("Nhập lại mật khẩu", "matkhau123"); } }),
+    M("bm-dang-ky (đã điền · bm1-dang-ky)", "/dang-ky", "Đã khớp", { token: null, truoc: dienDangKy }),
     M("bm-dang-ky (số đã có tài khoản · them-ahk69dtl)", "/dang-ky", "Số này đã có tài khoản", { token: null,
       kb: { "POST otp": { status: 409, body: { error: "da_co_tai_khoan", message: "Số này đã có tài khoản" } } }, truoc: dangKyToiOtp }),
     M("bm-otp", "/otp", "Nhập mã xác thực", { truoc: dangKyToiOtp }),
+    // đúng ca bàn bm1-otp v7: đã gõ «4820», ô thứ 5 đang chọn
+    M("bm-otp (đang gõ · bm1-otp)", "/otp", "Nhập mã xác thực", { truoc: async () => { await dangKyToiOtp(); await doi("Nhập mã xác thực"); await go("Mã xác thực 6 số", "4820"); } }),
     M("dang-nhap", "/dang-nhap", "Chào Ba Mẹ!", { token: null }),
     M("bm-quen-mat-khau", "/quen-mat-khau", "Quên mật khẩu", { token: null }),
     // máy chủ báo bật Google / Facebook (nút chỉ hiện khi bản dựng có EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID / EXPO_PUBLIC_FACEBOOK_APP_ID — bm1-chao)

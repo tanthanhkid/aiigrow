@@ -3,6 +3,7 @@
 // «Mời <tên> rời nhà» + dòng giải thích. 2 quyền (S2): Ba Mẹ đổi được quyền người khác (trừ người tạo nhà, trừ chính mình).
 // Dòng của chính mình ⇒ «Tài khoản của bạn» (/tai-khoan). «7 ngày qua · Cho vay N lần · S sao» (15/11 #265): GET nhat-ky?ca-nha=1 › choVay.theoNguoi (theo tên).
 // Không có `id` (thông báo cũ trỏ /thanh-vien) ⇒ về tab Cả nhà — danh sách người lớn + lời mời nằm ở đó.
+import { hienSo } from "@/lib/lan-dau";
 import { useState } from "react";
 import { View } from "react-native";
 import { Redirect, useLocalSearchParams } from "expo-router";
@@ -71,7 +72,7 @@ export default function ThanhVien() {
       </View>
       <MucTieu chu={`${x.ten} trong nhà`} />
       <Nhom>
-        <Dong dau tieu={fb ? "Đăng nhập bằng" : email ? "Email" : "Số điện thoại"} phu={dd ? dd.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : "Chưa có"} trai={<OIcon ic={email || fb ? "tin" : "dt"} />} />
+        <Dong dau tieu={fb ? "Đăng nhập bằng" : email ? "Email" : "Số điện thoại"} phu={dd ? hienSo(dd) : "Chưa có"} trai={<OIcon ic={email || fb ? "tin" : "dt"} />} />
         <Dong tieu="Quyền" phu={TEN_QUYEN[x.quyen]} trai={<OIcon ic={IC_QUYEN[x.quyen]} />} bam={doiDuoc ? () => setMo("quyen") : undefined} />
         <Dong tieu="Cùng trông" phu={soCon ? (soCon > 1 ? `Cả ${soCon} con` : d.con[0].ten) : "Chưa có con nào"} trai={<OIcon ic="nguoi" />}
           phai={soCon ? <ChuCaiCon ds={d.con.slice(0, 4)} co={24} /> : undefined} />
