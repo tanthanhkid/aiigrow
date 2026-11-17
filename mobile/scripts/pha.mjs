@@ -645,6 +645,8 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-may-con (Máy này ai dùng?)", "/may/m4/ai-dung", "Chọn bé dùng máy này", { kb: MAY_CHUNG }),
     M("bm-may-con (iPad một bé)", "/may/m2/ai-dung", "Không thêm được", { kb: MAY_CHUNG }),
     M("bm-may-chi-tiet (Máy cả nhà)", "/may/m4/chi-tiet", "Sao của từng bé", { kb: MAY_CHUNG }),
+    M("bm-may-them (2 bé · chon-loai)", "/may/them?con=c1", "Máy dùng chung · 2 bé", { truoc: async () => { await di("/may/them?con=c1"); await doi("Thêm con");
+      await nhanChuot(await viTriYen(`() => document.querySelectorAll('[role="checkbox"]')[1]`)); } }),
     M("bm-may-ghep (máy chung 2 bé)", "/thiet-lap/ghep?con=c1&conDs=c1,c2&nguon=them", "Ghép máy chung · 2 bé"),
     M("bm-may-moi (máy chung đã ghép)", "/thiet-lap/da-ghep?con=c1&may=m4&nguon=them", "Luật đi theo bé đang dùng", { kb: MAY_CHUNG }),
     M("bm-trang (bảng khoá máy · bỏ chọn iPad)", "/hom-nay", "Khoá máy tới", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy");
