@@ -5,13 +5,14 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, LoiApi } from "@/lib/api";
 import { nhoDangKy, TEN_MAC_DINH } from "@/lib/dang-ky";
-import { CanhRob, DauMan, hienSo, LienKet, OLom } from "@/lib/lan-dau";
+import { CanhRob, DauMan, LienKet, OLom, useOSo } from "@/lib/lan-dau";
 import { BONG } from "@/lib/clay";
 import { BangTruot, BaoLoi, Chu, M, Man, Nut, Rob, useLam } from "@/lib/ui";
 
 export default function DangKy() {
   const { moi, duocMoi, tenNha, tenGoi } = useLocalSearchParams<{ moi?: string; duocMoi?: string; tenNha?: string; tenGoi?: string }>();
   const [sdt, setSdt] = useState("");
+  const oSo = useOSo(sdt, (v) => setSdt(v.replace(/[^\d+]/g, "")));
   const [mk, setMk] = useState("");
   const [mk2, setMk2] = useState("");
   const [daCo, setDaCo] = useState(false);
@@ -35,7 +36,7 @@ export default function DangKy() {
       day={<><BaoLoi loi={loi} /><Nut chu="Nhận mã xác thực" rong dangChay={dangChay} tat={!sdt.trim() || !khop} bam={gui} />
         <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Mã 6 số gửi tới số điện thoại trên</Chu></>}>
       <CanhRob lv="so-tay" tieu={tieu} loi="Số điện thoại và mật khẩu là xong." bongTo />
-      <OLom nhan="Số điện thoại" value={hienSo(sdt)} onChangeText={(v) => setSdt(v.replace(/[^\d+]/g, ""))} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" placeholder="0912 345 678" />
+      <OLom nhan="Số điện thoại" {...oSo} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" placeholder="0912 345 678" />
       <OLom nhan="Mật khẩu" ghi="Ít nhất 8 ký tự" matKhau value={mk} onChangeText={setMk} autoComplete="new-password" textContentType="newPassword" />
       <OLom nhan="Nhập lại mật khẩu" ghi={mk2 ? (khop ? "Đã khớp" : "Chưa khớp") : undefined} ghiOk={khop} matKhau value={mk2} onChangeText={setMk2} autoComplete="new-password" onSubmitEditing={() => khop && sdt && gui()} />
       <BangTruot mo={daCo} dong={() => setDaCo(false)} tieu="">

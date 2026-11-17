@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { boCach, CanGiup, CanhRob, DauMan, demNguoc, hienSo, OLom, OLomTran, TieuDe } from "@/lib/lan-dau";
+import { CanGiup, CanhRob, DauMan, demNguoc, OLom, OLomTran, TieuDe, useOSo } from "@/lib/lan-dau";
 import { Bao, BaoLoi, Chu, Icon, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
 import { BONG } from "@/lib/clay";
 
@@ -19,6 +19,7 @@ export default function QuenMatKhau() {
   const [mk, setMk] = useState("");
   const [mk2, setMk2] = useState("");
   const [con, setCon] = useState(0);
+  const oSo = useOSo(dd, (v) => { setDd(v); setGui(null); });
   const { vao } = usePhien();
   const { lam, loi, dangChay, setLoi } = useLam();
   useEffect(() => { const t = setInterval(() => setCon((x) => Math.max(0, x - 1)), 1000); return () => clearInterval(t); }, []);
@@ -53,7 +54,7 @@ export default function QuenMatKhau() {
       <TieuDe chu="Quên mật khẩu" giua />
       <SoBuoc n={1} chu="Nhập số đã đăng ký, bấm Gửi mã" />
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 }}>
-        <View style={{ flex: 1 }}><OLomTran value={hienSo(dd)} onChangeText={(t) => { setDd(boCach(t)); setGui(null); }} /></View>
+        <View style={{ flex: 1 }}><OLomTran {...oSo} /></View>
         {gui ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: M.chinh, borderRadius: 20, paddingHorizontal: 12, height: 40, boxShadow: BONG.ngoc }}>
             <Icon ten="tick" mau="#fff" co={14} /><Chu kieu="rat" co={13} mau="#fff">Đã gửi mã</Chu>

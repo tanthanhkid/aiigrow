@@ -168,7 +168,8 @@ export function OLom({ nhan, ghi, ghiOk, matKhau, ...p }: TextInputProps & { nha
       </View>
       <View style={[{ flexDirection: "row", alignItems: "center", minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 },
         dang && { boxShadow: `${BONG.lom}, 0px 0px 0px 2px ${M.chinh}` }]}>
-        <TextInput placeholderTextColor={M.chu3} accessibilityLabel={nhan} secureTextEntry={matKhau && an} onFocus={() => setDang(true)} onBlur={() => setDang(false)} {...p}
+        <TextInput placeholderTextColor={M.chu3} accessibilityLabel={nhan} secureTextEntry={matKhau && an} {...p}
+          onFocus={(e) => { setDang(true); p.onFocus?.(e); }} onBlur={(e) => { setDang(false); p.onBlur?.(e); }}
           style={{ flex: 1, minWidth: 0, fontFamily: F.dam, fontSize: 17, color: M.chu, paddingVertical: 12, outlineStyle: "none" } as never} />
         {matKhau ? (
           <Pressable onPress={() => setAn((x) => !x)} accessibilityRole="button" accessibilityLabel={an ? "Hiện mật khẩu" : "Ẩn mật khẩu"} hitSlop={6}
@@ -201,6 +202,17 @@ export const LienKet = ({ chu, bam, gach }: { chu: string; bam: () => void; gach
 export const boCach = (v: string) => (/^[\d\s+]*$/.test(v) ? v.replace(/\s/g, "") : v);
 /** «0912345678» ⇒ «0912 345 678» (số 10 chữ số; dạng khác — email, +84… — giữ nguyên). */
 export const hienSo = (s = "") => (/^\d{10}$/.test(s) ? s.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : s);
+/** Ô nhập SĐT/email: lúc đang gõ giữ nguyên chữ người dùng (không dựng lại ⇒ xoá dấu cách được, con trỏ không nhảy); rời ô mới tách
+ * «0912 345 678». Giá trị lưu luôn là `boCach(chữ)`. Trả props cho TextInput / OLom / OLomTran. */
+export function useOSo(gia: string, doi: (v: string) => void) {
+  const [dangGo, setDangGo] = useState<string | null>(null);
+  return {
+    value: dangGo ?? hienSo(gia),
+    onChangeText: (t: string) => { setDangGo(t); doi(boCach(t)); },
+    onFocus: () => setDangGo(hienSo(gia)),
+    onBlur: () => setDangGo(null),
+  };
+}
 export const hienMa = (ma: string) => (ma.length === 6 ? `${ma.slice(0, 3)} ${ma.slice(3)}` : ma);
 /** «https://aiigrow.aiilab.vn/tai?g=…» ⇒ «aiigrow.aiilab.vn/tai» (chữ ngắn trên màn). */
 export const linkNgan = (lienKet: string) => lienKet.replace(/^https?:\/\//, "").replace(/\?.*$/, "");
