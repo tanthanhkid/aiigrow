@@ -26,6 +26,8 @@ internal static class ChupMain
     private static int _loi;
     /// <summary>«Màn hình» giả định cho màn toàn màn hình (khoá) và cỡ cửa sổ app: mặc định 1920×1080.</summary>
     private static Size _man = new(1920, 1080);
+    /// <summary>--chi a,b,…: chỉ chụp các màn có tên bắt đầu bằng một trong các tiền tố (lượt chụp phụ ở màn nhỏ 1366×768, #324).</summary>
+    private static string[]? _chi;
 
     [STAThread]
     private static int Main(string[] args)
@@ -40,6 +42,7 @@ internal static class ChupMain
                 case "--ti-le" when i + 1 < args.Length: k = float.Parse(args[++i], CultureInfo.InvariantCulture); break;
                 case "--rong" when i + 1 < args.Length: _man.Width = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
                 case "--cao" when i + 1 < args.Length: _man.Height = int.Parse(args[++i], CultureInfo.InvariantCulture); break;
+                case "--chi" when i + 1 < args.Length: _chi = args[++i].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
             }
         }
         if (ra == null)
@@ -87,6 +90,8 @@ internal static class ChupMain
         // 15/11 (bàn thiết kế them-er4nxw6z / them-upgropiw): Hôm nay đang nợ Ba Mẹ (hết sao) · chế độ «Mở hết»
         await Mot("app-hom-nay-dang-no", () => ManApp("app-hom-nay-dang-no", MucApp.HomNay, TrangThai(s => { s.Sao = -15; s.No = 15; s.QuyConPhut = 0; }), true));
         await Mot("app-hom-nay-mo-het", () => ManApp("app-hom-nay-mo-het", MucApp.HomNay, TrangThai(s => { s.MoHet = true; s.QuyConPhut = null; s.Sao = 18; }), true));
+        // #324 (ảnh 7): cửa sổ app thấp như laptop 1366×768 (vùng làm việc trừ thanh tác vụ 48 px) — thanh bên phải còn đủ «Tin nhắn» + chân «Đổi người / Ba Mẹ dùng máy»
+        await Mot("app-thanh-ben-thap", () => ManApp("app-thanh-ben-thap", MucApp.HomNay, TrangThai(), true, co: new Size(Math.Min(UI.Px(1000), _man.Width), Math.Min(UI.Px(680), _man.Height - 48))));
         await Mot("app-nhiem-vu", () => ManApp("app-nhiem-vu", MucApp.NhiemVu, TrangThai(), true));
         await Mot("app-phan-qua", () => ManApp("app-phan-qua", MucApp.PhanQua, TrangThai(), true));
         await Mot("app-qua-cua-con", () => ManApp("app-qua-cua-con", MucApp.PhanQua, TrangThai(), true, quaCuaCon: true));
@@ -198,6 +203,9 @@ internal static class ChupMain
         await Mot("chon-ten-3-be", () => ManChonTen("chon-ten-3-be", null, 3));
         await Mot("chon-ten-5-be", () => ManChonTen("chon-ten-5-be", null, 5));
         await Mot("chon-ten-nhap-pin", () => ManChonTen("chon-ten-nhap-pin", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.So = "48"; }));
+        // #324: dựng lại thẻ (PIN → «‹» về lưới tên) trong khối tắt vẽ — ảnh chụp từ màn thật phải sạch, không còn mảng thẻ PIN cũ
+        await Mot("chon-ten-pin-roi-lui", () => ManChonTen("chon-ten-pin-roi-lui", st => ManChonTenView.ChonBe(st, HoSoMau(1).Con[0], DateTimeOffset.Now), 1,
+            sau: async f => { await Cho(800); Goi(f, "Lui"); }));
         await Mot("chon-ten-pin-sai", () => ManChonTen("chon-ten-pin-sai", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.ConLan = 3; }));
         await Mot("chon-ten-tam-khoa", () => ManChonTen("chon-ten-tam-khoa", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); st.Buoc = BuocChonTen.TamKhoa; st.ChoDen = DateTimeOffset.Now.AddSeconds(15); }));
         await Mot("chon-ten-quen-pin", () => ManChonTen("chon-ten-quen-pin", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); ManChonTenView.MoQuen(st); }));
@@ -318,7 +326,7 @@ internal static class ChupMain
         },
     };
 
-    private static async Task ManApp(string ten, MucApp muc, TrayState s, bool coDuLieu, KetNoiInfo? kn = null, string? loiTai = null, bool quaCuaCon = false)
+    private static async Task ManApp(string ten, MucApp muc, TrayState s, bool coDuLieu, KetNoiInfo? kn = null, string? loiTai = null, bool quaCuaCon = false, Size? co = null)
     {
         var f = new AppForm();
         DatTruong(f, "_dangTai", true);   // chặn RefreshAsync (gọi dịch vụ qua named pipe) — dữ liệu mẫu đặt thẳng vào trường
@@ -333,7 +341,8 @@ internal static class ChupMain
         if (quaCuaCon) DatTruong(f, "_xemQuaCuaCon", true);
         DatTruong(f, "_loiTai", loiTai);
         f.TinMoi = muc == MucApp.TinNhan ? 0 : 2;
-        DatCuaSo(f, new Size(UI.Px(1000), UI.Px(680)), laClient: true);
+        if (co is Size c) { f.MinimumSize = Size.Empty; DatCuaSo(f, c, laClient: false); }   // cỡ cả cửa sổ (gồm thanh tiêu đề) như máy thật
+        else DatCuaSo(f, new Size(UI.Px(1000), UI.Px(680)), laClient: true);
         f.Apply(s, DateTimeOffset.Now, kn ?? KetNoiView.Chon(true, s));
         f.ShowFront(muc);
         await Cho(1500);
@@ -367,7 +376,7 @@ internal static class ChupMain
     }
 
     /// <summary>«Ai đang dùng máy?» với 2 bé mẫu; <paramref name="buoc"/> đặt bước (PIN, sai, chờ 15 giây, quên PIN, Ba Mẹ nhập mã) rồi vẽ lại.</summary>
-    private static async Task ManChonTen(string ten, Action<ManChonTenState>? buoc, int soBe = 2)
+    private static async Task ManChonTen(string ten, Action<ManChonTenState>? buoc, int soBe = 2, Func<LockForm, Task>? sau = null)
     {
         var f = new LockForm();
         f.WindowState = FormWindowState.Normal;
@@ -381,6 +390,7 @@ internal static class ChupMain
             DatTruong(f, "_hs", HoSoMau(soBe));
             if (buoc != null) buoc((ManChonTenState)Lay(f, "_ct")!);
             Goi(f, "VeChonTen");
+            if (sau != null) await sau(f);
             await Cho(1200);
             Chup(f, ten);
         }
@@ -646,6 +656,7 @@ internal static class ChupMain
 
     private static async Task Mot(string ten, Func<Task> lam)
     {
+        if (_chi != null && !_chi.Any(p => ten.StartsWith(p, StringComparison.Ordinal))) return;
         try { await lam(); }
         catch (Exception e) { _loi++; Log($"LỖI {ten}: {e}"); }
     }

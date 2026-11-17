@@ -170,7 +170,7 @@ jobs:
   # (nền Clay vẽ hỏng — lỗi 25/10) ⇒ job đỏ. Ảnh ở artifact «man-win» (cùng định dạng workflow chup-man-win.yml).
   chup-man:
     runs-on: windows-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     # Kiểm ảnh chỉ để báo, không chặn phát hành: lỗi ở đây hiện chú thích ::error:: + ảnh ở artifact «man-win», run vẫn xanh.
     continue-on-error: true
     steps:
@@ -189,15 +189,20 @@ jobs:
           try { Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction Stop; Write-Host 'Set-DisplayResolution: được' } catch { Write-Host "Set-DisplayResolution: không được — $($_.Exception.Message)" }
           Add-Type -AssemblyName System.Windows.Forms
           Write-Host ("Màn hình: {0}" -f [System.Windows.Forms.Screen]::PrimaryScreen.Bounds)
-      - name: Chụp 100% và 150% + kiểm khối đen
+      - name: Chụp 100% và 150% (+ 1366×768 ở 100/125/150%) + kiểm khối đen
         shell: pwsh
         run: |
           $ra = Join-Path $env:GITHUB_WORKSPACE 'man-win'
           $loi = 0
-          foreach ($tl in @(@{ ten = '100'; k = '1' }, @{ ten = '150'; k = '1.5' })) {
+          # #324: thêm lượt laptop 1366×768 ở 100 / 125 / 150% (chỉ các màn hay vỡ ở màn nhỏ: bộ cài bước 2 + 4, lưới tên, PIN, app thanh bên thấp)
+          $nho = 'cai-2,cai-4,chon-ten,app-hom-nay,app-thanh-ben'
+          foreach ($tl in @(@{ ten = '100'; k = '1' }, @{ ten = '150'; k = '1.5' },
+                            @{ ten = '1366-100'; k = '1'; nho = 1 }, @{ ten = '1366-125'; k = '1.25'; nho = 1 }, @{ ten = '1366-150'; k = '1.5'; nho = 1 })) {
             $dir = Join-Path $ra $tl.ten
+            $ts = @('--chup-man', "`"$dir`"", '--ti-le', $tl.k)
+            if ($tl.nho) { $ts += @('--rong', '1366', '--cao', '768', '--chi', $nho) }
             $p = Start-Process -FilePath (Join-Path $env:GITHUB_WORKSPACE 'chup-bin\AiiGrow.ChupMan.exe') `
-                 -ArgumentList @('--chup-man', "`"$dir`"", '--ti-le', $tl.k) -Wait -PassThru
+                 -ArgumentList $ts -Wait -PassThru
             Write-Host "== $($tl.ten)% — mã thoát $($p.ExitCode)"
             if (Test-Path "$dir\chup.log") {
               Get-Content "$dir\chup.log" -Encoding utf8

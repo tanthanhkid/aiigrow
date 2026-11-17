@@ -18,7 +18,14 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
     private readonly Label _gio = new() { AutoSize = true, ForeColor = Color.FromArgb(0xe6, 0xf2, 0xee), BackColor = Color.Transparent, Font = UI.F(21f, FontStyle.Bold) };
     private readonly Label _chan = new() { AutoSize = true, ForeColor = Color.FromArgb(0xc6, 0xdc, 0xd6), BackColor = Color.Transparent, Font = UI.F(12f) };
     private readonly Label _count = new() { AutoSize = true, ForeColor = UI.Green, BackColor = Color.Transparent, Font = UI.F(78f, FontStyle.Bold) };   // 104px — đọc được từ xa
-    private readonly Panel _center = new() { Dock = DockStyle.Fill, BackColor = Color.Transparent, AutoScroll = true };
+    private readonly Panel _center = new KhungGiua { Dock = DockStyle.Fill, BackColor = Color.Transparent, AutoScroll = true };
+
+    /// <summary>#324: khung giữa cuộn được (màn quá thấp) nhưng KHÔNG tự cuộn tới control vừa có tiêu điểm: thẻ dựng lại trong khối tắt vẽ (KhongNhay)
+    /// mà khung tự cuộn ⇒ Windows chép khối điểm ảnh cũ sang chỗ mới (ảnh 5: mảng trắng / đen, phím 7·8 nằm cạnh phím 4).</summary>
+    private sealed class KhungGiua : Panel
+    {
+        protected override Point ScrollToControl(Control activeControl) => DisplayRectangle.Location;
+    }
     private readonly System.Windows.Forms.Timer _dongHo = new() { Interval = 1000 };
     private Control? _khoi;
     private string _khoa = "";
