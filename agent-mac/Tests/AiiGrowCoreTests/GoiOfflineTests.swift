@@ -189,4 +189,49 @@ final class GoiOfflineTests: XCTestCase {
     XCTAssertNil(kho.doc()?.goiOffline?["c1"])
     XCTAssertEqual(kho.doc()?.hoSoMay?.con.map(\.id), ["c2", "c3"])
   }
+
+  /// Review #13: bé đổi mà bộ đếm sao bị xoá (demSao) ⇒ phút «Tính phút» của bé rời máy phải nằm trong gói của bé đó trước khi xoá.
+  func testDoiBeCatBoDemTruocKhiXoa() async throws {
+    let tm = try tamThuMuc()
+    let fake = HeThongGia(), dh = DongHoGia(), api = MayChuGia()
+    let (b, kho) = try boMay(tm, api: api, fake: fake, dh: dh)
+    var kq = KetQuaDongBo.tu(polA(dh.thuc), next: 600); kq.nguoiDung = .con(id: "c1", ten: "Bảo Anh")
+    api.dongBoTraVe = kq
+    api.mayChungTra["GET ho-so"] = .success(hoSo([("c1", "Bảo Anh", goi(sao: 30)), ("c2", "Bảo Minh", nil)]))
+    _ = await b.motVong()
+    let game = TienTrinh(pid: 77, uid: 501, duongDan: "/Applications/Roblox.app/Contents/MacOS/Roblox", bundleId: roblox)
+    fake.tienTrinhTheoUid = [501: [game]]; fake.conSongPid = [77]; fake.tienCanhThat = roblox
+    for _ in 0..<12 { dh.tien(5); _ = await b.apChinhSach() }
+    XCTAssertEqual(kho.doc()?.quyGiayTuSync ?? 0, 60, accuracy: 6)
+    // máy chủ cho Bảo Minh vào (Bảo Minh chưa có gói ⇒ luật chưa đổi); vòng áp kế xoá bộ đếm sao vì đổi bé
+    api.mayChungTra["POST dang-nhap-be"] = .success(Data(#"{"con":{"id":"c2","ten":"Bảo Minh"}}"#.utf8))
+    _ = await b.xuLyIPC(.dangNhapBe(con: "c2", pin: nil), uidGoi: 501)
+    dh.tien(5); _ = await b.apChinhSach()
+    XCTAssertEqual(kho.doc()?.quyGiayTuSync ?? -1, 0, accuracy: 0.01)
+    XCTAssertEqual(kho.doc()?.goiOffline?["c1"]?.quyGiay ?? 0, 60, accuracy: 6, "60 giây Roblox của Bảo Anh nằm trong gói Bảo Anh")
+  }
+
+  /// Review #14: dsCon lệch mà tải ho-so lỗi ⇒ chưa coi là xong, lượt đồng bộ sau (≥ 10 giây) thử lại.
+  func testDsConLechTaiLoiThiThuLai() async throws {
+    let tm = try tamThuMuc()
+    let fake = HeThongGia(), dh = DongHoGia(), api = MayChuGia()
+    let (b, kho) = try boMay(tm, api: api, fake: fake, dh: dh)
+    var kq = KetQuaDongBo.tu(polA(dh.thuc), next: 600); kq.nguoiDung = .con(id: "c1", ten: "Bảo Anh"); kq.dsCon = ["c1", "c2"]
+    api.dongBoTraVe = kq
+    api.mayChungTra["GET ho-so"] = .success(hoSo([("c1", "Bảo Anh", goi(sao: 30)), ("c2", "Bảo Minh", goi(sao: 5))]))
+    _ = await b.motVong()
+    let dem = { api.lanMayChung.filter { $0.0 == "GET ho-so" }.count }
+    let lan0 = dem()
+    kq.dsCon = ["c1", "c2", "c3"]; api.dongBoTraVe = kq
+    api.mayChungTra["GET ho-so"] = .failure(LoiApi(maHttp: 503, chu: "máy chủ bận"))
+    dh.tien(700); _ = await b.motVong()
+    XCTAssertEqual(dem(), lan0 + 1)
+    XCTAssertEqual(kho.doc()?.hoSoMay?.con.count, 2)
+    api.mayChungTra["GET ho-so"] = .success(hoSo([("c1", "Bảo Anh", goi(sao: 30)), ("c2", "Bảo Minh", goi(sao: 5)), ("c3", "Bảo Châu", goi(sao: 9))]))
+    dh.tien(700); _ = await b.motVong()
+    XCTAssertEqual(dem(), lan0 + 2, "lỗi lần trước ⇒ thử lại")
+    XCTAssertEqual(kho.doc()?.hoSoMay?.con.map(\.id), ["c1", "c2", "c3"])
+    dh.tien(700); _ = await b.motVong()
+    XCTAssertEqual(dem(), lan0 + 2, "đã tải được ⇒ không tải lặp")
+  }
 }

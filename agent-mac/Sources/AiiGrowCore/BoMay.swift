@@ -478,7 +478,7 @@ public actor BoMay {
     appDangTinh = nil
     let be = beDangDung()
     if !daBietBeDemSao { beDemSao = be; daBietBeDemSao = true }     // daemon vừa chạy: giữ bộ đếm đã lưu (mất mạng qua khởi động lại)
-    else if be != beDemSao { cauHinh.quyGiayTuSync = 0; beDemSao = be }
+    else if be != beDemSao { catGoiBeDangNap(); cauHinh.quyGiayTuSync = 0; beDemSao = be }   // #337: cất bộ đếm của bé rời máy vào gói bé đó TRƯỚC khi xoá
     guard saoCuaBeDangDung() else { return }
     guard let p = policy, !p.moHet, SaoPhut.phutGoc(p) != nil, !SaoPhut.dsTinhPhut(p).isEmpty else { return }
     let tc = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
@@ -752,11 +752,17 @@ public actor BoMay {
       datMayChu(.chua)
     }
     let nho = cauHinh.hoSoMay.map { Set($0.con.map(\.id)) }
-    guard nho != moi, dsConDaTai != moi else { return }
-    dsConDaTai = moi
+    // tải được mới coi là xong; lỗi ⇒ lượt đồng bộ sau thử lại, tối đa 10 giây / lần (như agent-win)
+    guard nho != moi, dsConDaTai != moi, donDieu() - dsConThuLuc >= 10 else { return }
+    dsConThuLuc = donDieu()
     hoSoLuc = donDieu()
+    hoSoTaiDuoc = false
     _ = await hoSoMay()
+    if hoSoTaiDuoc { dsConDaTai = moi }
   }
+  private var dsConThuLuc: Double = -1_000_000
+  /// Lần gọi hoSoMay() gần nhất lấy được ho-so mới từ máy chủ.
+  private var hoSoTaiDuoc = false
 
   /// Cất luật + bộ đếm tại chỗ của bé đang nạp (`saoCuaBe`) thành gói của bé đó — gói này mới hơn gói ho-so (đã gồm phút bé vừa chơi).
   private func catGoiBeDangNap() {
@@ -798,6 +804,7 @@ public actor BoMay {
       let d = try await api.mayChung("GET", "ho-so", nil)      // ApiClient xin kèm `?offline=1` (#337)
       h = HoSoMay.doc(d)
       if let h {
+        hoSoTaiDuoc = true
         if BoMay.dauDsBe(h) != cauHinh.hoSoMay.map(BoMay.dauDsBe) { hoSoSeq += 1 }   // tray đang mở màn chọn tên ⇒ tải lại danh sách
         cauHinh.hoSoMay = h
         // #337: gói luật mất mạng theo bé — máy riêng ⇒ bỏ; máy chung có gói ⇒ thay cả bộ (bé bị bỏ gán mất gói); máy chủ cũ không gửi ⇒ giữ
