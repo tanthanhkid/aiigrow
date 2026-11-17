@@ -35,7 +35,11 @@ internal static class KhongNhay
             _c = null;
             if (c == null || c.IsDisposed || !c.IsHandleCreated) return;
             SendMessage(c.Handle, WmSetRedraw, (IntPtr)1, IntPtr.Zero);
-            RedrawWindow(c.Handle, IntPtr.Zero, IntPtr.Zero, RdwErase | RdwFrame | RdwInvalidate | RdwAllChildren | RdwUpdateNow);
+            // #324 (video Đăng xuất, ảnh 5–6): lúc tắt vẽ Windows coi control là ẩn (bỏ WS_VISIBLE) — control ANH EM nằm đè lên nó (đồng hồ, chip
+            // «Máy đang khoá», nút «Ba Mẹ dùng máy» của màn khoá) và phần cha phía sau không được vẽ lại khi chỉ RedrawWindow chính control ⇒ còn
+            // mảng điểm ảnh cũ (thẻ «Ai đang dùng máy?» một nửa, ô trắng trên đầu). Vẽ lại cả CHA (gồm mọi con) một lượt.
+            var ve = c.Parent is { IsHandleCreated: true, IsDisposed: false } cha ? cha : c;
+            RedrawWindow(ve.Handle, IntPtr.Zero, IntPtr.Zero, RdwErase | RdwFrame | RdwInvalidate | RdwAllChildren | RdwUpdateNow);
         }
     }
 }

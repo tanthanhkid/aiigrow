@@ -39,7 +39,11 @@ internal sealed partial class LockForm
         // đổi kích thước / DPI ⇒ dựng lại lưới tên (số cột, mức gọn, vị trí thẻ tính theo cỡ màn lúc dựng)
         Resize += (_, _) =>
         {
-            if (IsHandleCreated && ClientSize.Width > 0 && ClientSize != _kichChonTen && _chonTen && _ct.Buoc == BuocChonTen.ChonTen && _hs?.Con.Count > 0) VeChonTen();
+            if (!IsHandleCreated || ClientSize.Width <= 0 || ClientSize == _kichChonTen) return;
+            // lưới tên: dựng lại theo số cột; thẻ PIN / chờ / quên PIN / Ba Mẹ nhập mã (#324): dựng lại theo chiều cao màn (bản gọn)
+            var luoi = _chonTen && _ct.Buoc == BuocChonTen.ChonTen && _hs?.Con.Count > 0;
+            var thePin = (_chonTen || DangNhapMaTuManKhoa) && _ct.Buoc != BuocChonTen.ChonTen;
+            if (luoi || thePin) VeChonTen();
         };
         // chip «Máy đang khoá» (trên) + viên «Ba Mẹ dùng máy» (dưới) — chỉ ở bước lưới tên
         var chip = new ChipClay(ManChonTenView.ChipKhoa, Color.FromArgb(240, 255, 255, 255), Clay.NgocInk, Anh3D.Icon("khoa")) { Font = UI.F(14f, FontStyle.Bold), Visible = false };
@@ -197,11 +201,13 @@ internal sealed partial class LockForm
     {
         if (_ct.Be is not { } be || _ct.DangGui) return;
         _ct.DangGui = true;
-        VeChonTen();
+        // #324 (video Đăng xuất, khung 18–24): máy riêng tự vào không PIN ⇒ không dựng thẻ «Nhập PIN» chỉ để chớp qua trong lúc chờ dịch vụ
+        var mayRieng = _hs?.MayRieng ?? false;
+        if (!mayRieng) VeChonTen();
         var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.DangNhapBe, Id = be.Id, Code = be.CoPin && !(_hs?.MayRieng ?? false) ? _ct.So : null });   // máy riêng: không PIN
         if (IsDisposed) return;
         ManChonTenView.KetQuaPin(_ct, r.Ok, r.Status, r.ConLan, r.ChoGiay, r.Error ?? r.Message, DateTimeOffset.Now);
-        VeChonTen();
+        if (!(mayRieng && r.Ok)) VeChonTen();   // máy riêng vào được ⇒ khay đóng màn khoá ngay (DaVao), khỏi dựng thẻ PIN
         if (r.Ok) DaVao?.Invoke(r);
     }
 
@@ -249,7 +255,9 @@ internal sealed partial class LockForm
         _code = null; _demTamKhoa = null; _vong = null; _cham = null;
         _kichChonTen = ClientSize;
         _mucChonTen = 0;
-        _khoi = _ct.Buoc switch
+        _kPin = CacMucPin[0];
+        _center.AutoScrollPosition = Point.Empty;
+        Control DungBuoc() => _ct.Buoc switch
         {
             BuocChonTen.NhapPin => ThePin(),
             BuocChonTen.TamKhoa => TheTamKhoa(),
@@ -257,8 +265,26 @@ internal sealed partial class LockForm
             BuocChonTen.BaMeMa => TheBaMe(),
             _ => TheChonTen(),
         };
+        _khoi = DungBuoc();
         _center.Controls.Add(_khoi);
         _center.ResumeLayout(true);
+        if (_ct.Buoc != BuocChonTen.ChonTen && ClientSize.Height > 0)
+        {
+            // #324 (ảnh 4–5: máy 1366×768 ở 125%): thẻ PIN 600 px cao ~790 px thiết kế — cao hơn màn ⇒ khung giữa hiện thanh cuộn, thẻ tràn đáy
+            // và lúc dựng lại (tắt vẽ) Windows chép khối điểm ảnh cũ theo vị trí cuộn ⇒ mảng trắng / đen, bàn phím số lệch. Không vừa ⇒ dựng bản gọn.
+            var cho = ClientSize.Height - UI.Px(40) - _chan.Height - UI.Px(24);   // trên: lề 40 · dưới: chừa dòng chân trang (GiuaKhoi giữ thẻ trên nó)
+            for (int i = 1; _khoi.Height > cho && i < CacMucPin.Length; i++)
+            {
+                _kPin = CacMucPin[i];
+                _center.SuspendLayout();
+                _center.Controls.Remove(_khoi);
+                _khoi.Dispose();
+                _code = null; _demTamKhoa = null; _vong = null; _cham = null;
+                _khoi = DungBuoc();
+                _center.Controls.Add(_khoi);
+                _center.ResumeLayout(true);
+            }
+        }
         if (_ct.Buoc == BuocChonTen.ChonTen && ClientSize.Height > 0)
         {
             // không vừa giữa đầu màn và nút «Ba Mẹ dùng máy» ⇒ dựng lại bản gọn (như màn khoá thường: cuộn sẽ lộ nền đen / đè nút)
@@ -284,27 +310,40 @@ internal sealed partial class LockForm
 
     private (ClayFlow The, int W) The(int rong)
     {
-        var the = TheMoi(UI.Px(rong) + VeThe.LeBong.Horizontal, true);
-        the.Padding = VeThe.Pad(UI.Px(rong >= 700 ? 48 : 40), UI.Px(rong >= 700 ? 32 : 22), UI.Px(rong >= 700 ? 48 : 40), UI.Px(28));
-        return (the, UI.Px(rong) + VeThe.LeBong.Horizontal - the.Padding.Horizontal);
+        var the = TheMoi(Q(rong) + VeThe.LeBong.Horizontal, true);
+        the.Padding = VeThe.Pad(Q(rong >= 700 ? 48 : 40), Q(rong >= 700 ? 32 : 22), Q(rong >= 700 ? 48 : 40), Q(28));
+        return (the, Q(rong) + VeThe.LeBong.Horizontal - the.Padding.Horizontal);
     }
 
-    private static Control Giua(Control c, int w, int tren = 0)
+    private Control Giua(Control c, int w, int tren = 0)
     {
-        c.Margin = new Padding(Math.Max(0, (w - c.Width) / 2), UI.Px(tren), 0, 0);
+        // #324: control tự co (bàn phím số TableLayoutPanel, «Quên PIN?», viên «Máy sẽ nhớ con») chưa vào cha thì Width vẫn là cỡ mặc định (200)
+        // ⇒ lề căn giữa tính sai, bàn phím / viên ghi lệch phải và tràn mép thẻ. Đặt đúng cỡ ưng ý trước khi tính lề.
+        if (c.AutoSize) c.Size = c.PreferredSize;
+        c.Margin = new Padding(Math.Max(0, (w - c.Width) / 2), Q(tren), 0, 0);
         return c;
     }
+
+    /// <summary>#324: các mức thu nhỏ thẻ PIN / chờ 15 giây / quên PIN / Ba Mẹ nhập mã khi màn thấp (1366×768, 125–150%) — 1 = đúng Bàn.</summary>
+    private static readonly float[] CacMucPin = { 1f, 0.84f, 0.72f, 0.6f, 0.5f };
+    private float _kPin = 1f;
+    /// <summary>px thiết kế × mức gọn × DPI.</summary>
+    private int Q(int v) => UI.Px((int)Math.Round(v * _kPin));
+    /// <summary>px thiết kế × mức gọn (cho hàm tự nhân DPI: KhoiCon.Nut, Rob, Vien).</summary>
+    private int Qd(int v) => (int)Math.Round(v * _kPin);
+    /// <summary>cỡ chữ × mức gọn (không nhỏ hơn 8pt).</summary>
+    private float Qf(float pt) => Math.Max(8f, pt * _kPin);
 
     /// <summary>Nút «‹» ở GÓC thẻ (thiết kế .lui: cách mép trái / trên thẻ 24 px, tròn 52) — không chiếm hàng riêng trong dòng chảy:
     /// lề âm kéo nút về góc và trả lại đúng chiều cao nó chiếm, nên Grow / tên bé bên dưới vẫn bắt đầu ở đỉnh thẻ như HTML (nút nằm đè lên trên).</summary>
     private Control NutLui(ClayFlow the)
     {
-        var rong = UI.Px(52) + VeNut.LeBong.Horizontal;
-        var cao = UI.Px(52) + VeNut.LeBong.Vertical;
-        var b = new ClayButton { Text = "‹", Font = UI.F(20f, FontStyle.Bold), ForeColor = Clay.NgocInk, BackColor = Clay.The, BoGoc = UI.Px(26),
+        var rong = Q(52) + VeNut.LeBong.Horizontal;
+        var cao = Q(52) + VeNut.LeBong.Vertical;
+        var b = new ClayButton { Text = "‹", Font = UI.F(Qf(20f), FontStyle.Bold), ForeColor = Clay.NgocInk, BackColor = Clay.The, BoGoc = Q(26),
             Size = new Size(rong, cao), TabStop = false };
-        var trai = UI.Px(24) + VeThe.LeBong.Left - VeNut.LeBong.Left - the.Padding.Left;
-        var tren = UI.Px(24) + VeThe.LeBong.Top - VeNut.LeBong.Top - the.Padding.Top;
+        var trai = Q(24) + VeThe.LeBong.Left - VeNut.LeBong.Left - the.Padding.Left;
+        var tren = Q(24) + VeThe.LeBong.Top - VeNut.LeBong.Top - the.Padding.Top;
         b.Margin = new Padding(trai, tren, 0, -(tren + cao));
         b.Click += (_, _) => Lui();
         return b;
@@ -320,8 +359,8 @@ internal sealed partial class LockForm
 
     private Label ChuGiua(string text, float pt, bool dam, Color mau, int w, int tren)
     {
-        var l = Chu(text, pt, dam, mau, w, true);
-        l.Margin = new Padding(0, UI.Px(tren), 0, 0);
+        var l = Chu(text, Qf(pt), dam, mau, w, true);
+        l.Margin = new Padding(0, Q(tren), 0, 0);
         return l;
     }
 
@@ -430,7 +469,7 @@ internal sealed partial class LockForm
     {
         the.Controls.Add(NutLui(the));
         if (_ct.Be is not { } be) return;
-        var v = Vien(be, 120);
+        var v = Vien(be, Qd(120));
         the.Controls.Add(Giua(v, w));
         the.Controls.Add(ChuGiua(be.Ten, 21f, true, UI.Ink, w, 10));
     }
@@ -442,7 +481,7 @@ internal sealed partial class LockForm
         DauBe(the, w);
         var sai = _ct.ConLan is int n && n > 0;
         the.Controls.Add(ChuGiua(sai ? ManChonTenView.ChuaDung(_ct.ConLan!.Value) : ManChonTenView.PhuPin, 16.5f, sai, sai ? Clay.Loi : UI.Muted, w, 6));
-        var cham = new ChamPin { So = _ct.So.Length, Sai = sai && _ct.So.Length == 0, Size = new Size(UI.Px(4 * 26 + 3 * 22), UI.Px(30)) };
+        var cham = new ChamPin { So = _ct.So.Length, Sai = sai && _ct.So.Length == 0, Size = new Size(Q(4 * 26 + 3 * 22), Q(30)) };
         _cham = cham;
         the.Controls.Add(Giua(cham, w, 18));
         if (_ct.Loi != null) the.Controls.Add(ChuGiua(_ct.Loi, 12f, true, Clay.Canh, w, 8));
@@ -450,21 +489,21 @@ internal sealed partial class LockForm
         var phim = new[] { "1", "2", "3", "4", "5", "6", "7", "8", "9", "", "0", "⌫" };
         foreach (var k in phim)
         {
-            if (k.Length == 0) { pad.Controls.Add(new Panel { Size = new Size(UI.Px(104), UI.Px(60)), BackColor = Color.Transparent, Margin = new Padding(UI.Px(8), UI.Px(6), UI.Px(8), UI.Px(6)) }); continue; }
+            if (k.Length == 0) { pad.Controls.Add(new Panel { Size = new Size(Q(104), Q(60)), BackColor = Color.Transparent, Margin = new Padding(Q(8), Q(6), Q(8), Q(6)) }); continue; }
             var xoa = k == "⌫";
-            var b = new ClayButton { Text = k, Font = UI.F(xoa ? 17f : 19.5f, FontStyle.Bold), ForeColor = xoa ? UI.Muted : UI.Ink, BackColor = Clay.The, BoGoc = UI.Px(22),
+            var b = new ClayButton { Text = k, Font = UI.F(Qf(xoa ? 17f : 19.5f), FontStyle.Bold), ForeColor = xoa ? UI.Muted : UI.Ink, BackColor = Clay.The, BoGoc = Q(22),
                 Kieu = xoa ? KieuClay.Phang : KieuClay.TuDong, TabStop = false, Enabled = !_ct.DangGui,
-                Size = new Size(UI.Px(104) + VeNut.LeBong.Horizontal, UI.Px(60) + VeNut.LeBong.Vertical), Margin = new Padding(UI.Px(5), UI.Px(3), UI.Px(5), UI.Px(3)) };
+                Size = new Size(Q(104) + VeNut.LeBong.Horizontal, Q(60) + VeNut.LeBong.Vertical), Margin = new Padding(Q(5), Q(3), Q(5), Q(3)) };
             var kk = k;
             b.Click += (_, _) => { if (xoa) XoaSo(); else BamSo(kk[0]); };
             pad.Controls.Add(b);
         }
         pad.PerformLayout();
         the.Controls.Add(Giua(pad, w, 16));
-        var quen = KhoiCon.LienKet(ManChonTenView.LinkQuen, null, () => { ManChonTenView.MoQuen(_ct); VeChonTen(); }, 15f, Color.FromArgb(0x19, 0x65, 0x59));
+        var quen = KhoiCon.LienKet(ManChonTenView.LinkQuen, null, () => { ManChonTenView.MoQuen(_ct); VeChonTen(); }, Qf(15f), Color.FromArgb(0x19, 0x65, 0x59));
         quen.PerformLayout();
         the.Controls.Add(Giua(quen, w, 6));
-        if (!sai) the.Controls.Add(Giua(VienGhi(ManChonTenView.NhoMay, "tick", false), w, 6));
+        if (!sai) the.Controls.Add(Giua(VienGhi(ManChonTenView.NhoMay, "tick", false, _kPin), w, 6));
         return the;
     }
 
@@ -476,14 +515,14 @@ internal sealed partial class LockForm
         the.Controls.Add(ChuGiua(ManChonTenView.TieuTamKhoa, 31.5f, true, UI.Ink, w, 14));
         the.Controls.Add(ChuGiua(ManChonTenView.PhuTamKhoa, 16.5f, false, UI.Muted, w, 6));
         var con = ManChonTenView.ConGiay(_ct, DateTimeOffset.Now);
-        _vong = new VongDem { Phan = Math.Clamp(con / (float)DangNhapView.PinChoGiay, 0f, 1f), Size = new Size(UI.Px(170), UI.Px(170)) };
-        _demTamKhoa = new Label { Text = $"{con / 60}:{con % 60:00}", Font = UI.F(34.5f, FontStyle.Bold), ForeColor = Clay.Canh, BackColor = Color.Transparent, AutoSize = false,
-            TextAlign = ContentAlignment.BottomCenter, Bounds = new Rectangle(0, UI.Px(30), UI.Px(170), UI.Px(66)) };
-        var giay = new Label { Text = "giây", Font = UI.F(12.75f), ForeColor = UI.Muted, BackColor = Color.Transparent, AutoSize = false, TextAlign = ContentAlignment.TopCenter,
-            Bounds = new Rectangle(0, UI.Px(98), UI.Px(170), UI.Px(26)) };
+        _vong = new VongDem { Phan = Math.Clamp(con / (float)DangNhapView.PinChoGiay, 0f, 1f), Size = new Size(Q(170), Q(170)) };
+        _demTamKhoa = new Label { Text = $"{con / 60}:{con % 60:00}", Font = UI.F(Qf(34.5f), FontStyle.Bold), ForeColor = Clay.Canh, BackColor = Color.Transparent, AutoSize = false,
+            TextAlign = ContentAlignment.BottomCenter, Bounds = new Rectangle(0, Q(30), Q(170), Q(66)) };
+        var giay = new Label { Text = "giây", Font = UI.F(Qf(12.75f)), ForeColor = UI.Muted, BackColor = Color.Transparent, AutoSize = false, TextAlign = ContentAlignment.TopCenter,
+            Bounds = new Rectangle(0, Q(98), Q(170), Q(26)) };
         _vong.Controls.Add(_demTamKhoa); _vong.Controls.Add(giay);
         the.Controls.Add(Giua(_vong, w, 22));
-        var quen = KhoiCon.LienKet(ManChonTenView.LinkQuenNho, "nguoi", () => { ManChonTenView.MoQuen(_ct); VeChonTen(); }, 15f, Color.FromArgb(0x19, 0x65, 0x59));
+        var quen = KhoiCon.LienKet(ManChonTenView.LinkQuenNho, "nguoi", () => { ManChonTenView.MoQuen(_ct); VeChonTen(); }, Qf(15f), Color.FromArgb(0x19, 0x65, 0x59));
         quen.PerformLayout();
         the.Controls.Add(Giua(quen, w, 14));
         return the;
@@ -494,34 +533,34 @@ internal sealed partial class LockForm
     {
         var (the, w) = The(600);
         the.Controls.Add(NutLui(the));
-        the.Controls.Add(Giua(KhoiThietKe.Rob("rob-goc", 150), w));
+        if (_kPin > 0.65f) the.Controls.Add(Giua(KhoiThietKe.Rob("rob-goc", Qd(150)), w));   // bản gọn nhất bỏ Grow (#324)
         the.Controls.Add(ChuGiua(ManChonTenView.TieuQuen, 31.5f, true, UI.Ink, w, 10));
         the.Controls.Add(ChuGiua(ManChonTenView.PhuQuen, 16.5f, false, UI.Muted, w, 6));
         var buoc = new[] { (1, ManChonTenView.Buoc1, "nha"), (2, ManChonTenView.Buoc2(_ct.Be?.Ten), (string?)null), (3, ManChonTenView.Buoc3, "khoa") };
         foreach (var (so, chu, icon) in buoc)
         {
-            var hang = new ClayCard { Lom = true, BoGoc = UI.Px(22), BackColor = Clay.Lom, Size = new Size(w, UI.Px(64) + VeThe.LeBong.Vertical), Margin = new Padding(0, UI.Px(so == 1 ? 20 : 10), 0, 0) };
-            var tron = new VienTen { Chu = so.ToString(), Mau = -1, Size = new Size(UI.Px(38), UI.Px(38)), Location = new Point(VeThe.LeBong.Left + UI.Px(18), VeThe.LeBong.Top + UI.Px(13)) };
-            var t = new Label { Text = chu, Font = UI.F(15f, FontStyle.Bold), ForeColor = UI.Ink, BackColor = Color.Transparent, AutoSize = true, UseMnemonic = false,
-                Location = new Point(VeThe.LeBong.Left + UI.Px(72), VeThe.LeBong.Top + UI.Px(19)) };
+            var hang = new ClayCard { Lom = true, BoGoc = Q(22), BackColor = Clay.Lom, Size = new Size(w, Q(64) + VeThe.LeBong.Vertical), Margin = new Padding(0, Q(so == 1 ? 20 : 10), 0, 0) };
+            var tron = new VienTen { Chu = so.ToString(), Mau = -1, Size = new Size(Q(38), Q(38)), Location = new Point(VeThe.LeBong.Left + Q(18), VeThe.LeBong.Top + Q(13)) };
+            var t = new Label { Text = chu, Font = UI.F(Qf(15f), FontStyle.Bold), ForeColor = UI.Ink, BackColor = Color.Transparent, AutoSize = true, UseMnemonic = false,
+                Location = new Point(VeThe.LeBong.Left + Q(72), VeThe.LeBong.Top + Q(19)) };
             hang.Controls.Add(tron); hang.Controls.Add(t);
             Control phai = icon != null
-                ? new ClayIcon { Size = new Size(UI.Px(32), UI.Px(32)), MauVien = Color.Transparent, Hinh = Anh3D.Icon(icon) }
-                : _ct.Be is { } be ? Vien(be, 38) : new Panel();
-            phai.Location = new Point(w - VeThe.LeBong.Right - UI.Px(18) - phai.Width, VeThe.LeBong.Top + (UI.Px(64) - phai.Height) / 2);
+                ? new ClayIcon { Size = new Size(Q(32), Q(32)), MauVien = Color.Transparent, Hinh = Anh3D.Icon(icon) }
+                : _ct.Be is { } be ? Vien(be, Qd(38)) : new Panel();
+            phai.Location = new Point(w - VeThe.LeBong.Right - Q(18) - phai.Width, VeThe.LeBong.Top + (Q(64) - phai.Height) / 2);
             hang.Controls.Add(phai);
             the.Controls.Add(hang);
         }
-        var bao = VienGhi(_ct.DaBao ? ManChonTenView.DaBao : ManChonTenView.NutBao, _ct.DaBao ? "tick" : "tin", !_ct.DaBao);
+        var bao = VienGhi(_ct.DaBao ? ManChonTenView.DaBao : ManChonTenView.NutBao, _ct.DaBao ? "tick" : "tin", !_ct.DaBao, _kPin);
         if (!_ct.DaBao) { bao.Cursor = Cursors.Hand; bao.Click += (_, _) => _ = BaoBaMeAsync(); foreach (Control c in bao.Controls) { c.Cursor = Cursors.Hand; c.Click += (_, _) => _ = BaoBaMeAsync(); } }
         the.Controls.Add(Giua(bao, w, 14));
         if (_ct.Loi != null) the.Controls.Add(ChuGiua(_ct.Loi, 12f, true, Clay.Canh, w, 6));
-        var moi = KhoiCon.Nut(ManChonTenView.NutCoPinMoi, true, w, "tick", 64, 16.5f);
-        moi.Margin = new Padding(0, UI.Px(16), 0, 0);
+        var moi = KhoiCon.Nut(ManChonTenView.NutCoPinMoi, true, w, "tick", Qd(64), Qf(16.5f));
+        moi.Margin = new Padding(0, Q(16), 0, 0);
         moi.Click += (_, _) => { _ = TaiHoSoAsync(); if (_ct.Be is { } b) { ManChonTenView.ChonBe(_ct, _hs?.Con.FirstOrDefault(c => c.Id == b.Id) ?? b, DateTimeOffset.Now); _ct.ConLan = null; } VeChonTen(); };
         the.Controls.Add(moi);
-        var khac = KhoiCon.Nut(ManChonTenView.NutChonKhac, false, w, "nguoi", 64, 16.5f);
-        khac.Margin = new Padding(0, UI.Px(12), 0, 0);
+        var khac = KhoiCon.Nut(ManChonTenView.NutChonKhac, false, w, "nguoi", Qd(64), Qf(16.5f));
+        khac.Margin = new Padding(0, Q(12), 0, 0);
         khac.Click += (_, _) => { ManChonTenView.VeDau(_ct); VeChonTen(); };
         the.Controls.Add(khac);
         return the;
@@ -532,15 +571,15 @@ internal sealed partial class LockForm
     {
         var (the, w) = The(600);
         the.Controls.Add(NutLui(the));
-        the.Controls.Add(Giua(new ClayIcon { Size = new Size(UI.Px(110), UI.Px(110)), MauVien = Color.Transparent, Hinh = Anh3D.Icon("khien") }, w));
+        the.Controls.Add(Giua(new ClayIcon { Size = new Size(Q(110), Q(110)), MauVien = Color.Transparent, Hinh = Anh3D.Icon("khien") }, w));
         the.Controls.Add(ChuGiua(ManChonTenView.TieuBaMe, 31.5f, true, UI.Ink, w, 10));
         the.Controls.Add(ChuGiua(ManChonTenView.PhuBaMe, 16.5f, false, UI.Muted, w, 6));
-        var o = new OMa { Ma = _ct.So, Size = new Size(UI.Px(6 * 64 + 5 * 12), UI.Px(78)) };
+        var o = new OMa { Ma = _ct.So, Size = new Size(Q(6 * 64 + 5 * 12), Q(78)) };
         the.Controls.Add(Giua(o, w, 22));
         the.Controls.Add(ChuGiua(_ct.Loi ?? ManChonTenView.GhiMa, 11.25f, _ct.Loi != null, _ct.Loi != null ? Clay.Canh : UI.Muted, w, 12));
-        the.Controls.Add(Giua(VienGhi(ManChonTenView.KhongTru, "dong_ho_cat", false), w, 12));
-        var mo = KhoiCon.Nut(_ct.DangGui ? "Đang mở…" : ManChonTenView.NutMo, true, w, "mo_khoa", 64, 16.5f);
-        mo.Margin = new Padding(0, UI.Px(16), 0, 0);
+        the.Controls.Add(Giua(VienGhi(ManChonTenView.KhongTru, "dong_ho_cat", false, _kPin), w, 12));
+        var mo = KhoiCon.Nut(_ct.DangGui ? "Đang mở…" : ManChonTenView.NutMo, true, w, "mo_khoa", Qd(64), Qf(16.5f));
+        mo.Margin = new Padding(0, Q(16), 0, 0);
         mo.Enabled = _ct.So.Length == ManChonTenView.SoChuSoMa && !_ct.DangGui;
         mo.Click += (_, _) => _ = GuiMaAsync();
         the.Controls.Add(mo);
@@ -548,13 +587,14 @@ internal sealed partial class LockForm
     }
 
     /// <summary>Viên ghi chú bo tròn cao 44 (thiết kế «.ghi»): nền ngọc nhạt (hoặc cam) + icon 24 + chữ đậm 17px.</summary>
-    internal static ClayFlow VienGhi(string chu, string icon, bool cam)
+    internal static ClayFlow VienGhi(string chu, string icon, bool cam, float k = 1f)
     {
-        var v = new ClayFlow { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BoGoc = UI.Px(22),
-            BackColor = cam ? Clay.CanhSoft : Clay.NgocSoft, Padding = VeThe.Pad(UI.Px(16), UI.Px(9), UI.Px(18), UI.Px(9)), Margin = Padding.Empty };
-        v.Controls.Add(new ClayIcon { Size = new Size(UI.Px(26), UI.Px(26)), MauVien = Color.Transparent, Hinh = Anh3D.Icon(icon), Margin = new Padding(0, 0, UI.Px(8), 0) });
-        var t = UI.Text(chu, 12.75f, true, cam ? Clay.Canh : Clay.NgocInk, UI.Px(520));
-        t.Margin = new Padding(0, UI.Px(3), 0, 0);
+        int P(int n) => UI.Px((int)Math.Round(n * k));
+        var v = new ClayFlow { FlowDirection = FlowDirection.LeftToRight, WrapContents = false, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BoGoc = P(22),
+            BackColor = cam ? Clay.CanhSoft : Clay.NgocSoft, Padding = VeThe.Pad(P(16), P(9), P(18), P(9)), Margin = Padding.Empty };
+        v.Controls.Add(new ClayIcon { Size = new Size(P(26), P(26)), MauVien = Color.Transparent, Hinh = Anh3D.Icon(icon), Margin = new Padding(0, 0, P(8), 0) });
+        var t = UI.Text(chu, Math.Max(8f, 12.75f * k), true, cam ? Clay.Canh : Clay.NgocInk, P(520));
+        t.Margin = new Padding(0, P(3), 0, 0);
         v.Controls.Add(t);
         v.PerformLayout();
         return v;
@@ -625,7 +665,9 @@ internal sealed class ChamPin : Control
     {
         var g = e.Graphics;
         Clay.ChatLuong(g);
-        float d = UI.Px(26), gap = UI.Px(22);
+        // #324: chấm 26 · khe 22 (px thiết kế) chia theo bề rộng thật — thẻ PIN bản gọn thu nhỏ control thì chấm thu theo, không mất chấm thứ 4
+        var don = Width / (Tong * 26f + Math.Max(0, Tong - 1) * 22f);
+        float d = Math.Min(26f * don, Height), gap = 22f * don;
         for (int i = 0; i < Tong; i++)
         {
             var r = new RectangleF(i * (d + gap), (Height - d) / 2f, d, d);
@@ -654,14 +696,16 @@ internal sealed class OMa : Control
     {
         var g = e.Graphics;
         Clay.ChatLuong(g);
-        float w = UI.Px(64), gap = UI.Px(12), h = Math.Min(Height - 1, UI.Px(78)), bo = UI.Px(20);
-        using var f = UI.F(27f, FontStyle.Bold);
+        // #324: ô 64×78 · khe 12 (px thiết kế) theo bề rộng thật — thẻ «Ba Mẹ nhập mã» bản gọn thu nhỏ control thì 6 ô thu theo, không tràn
+        var k = Width / (float)UI.Px(6 * 64 + 5 * 12);
+        float w = UI.Px(64) * k, gap = UI.Px(12) * k, h = Math.Min(Height - 1, UI.Px(78) * k), bo = UI.Px(20) * k;
+        using var f = UI.F(Math.Max(8f, 27f * k), FontStyle.Bold);
         for (int i = 0; i < ManChonTenView.SoChuSoMa; i++)
         {
             var r = new RectangleF(i * (w + gap), 0, w, h);
             using var p = Clay.Bo(r, bo);
             using (var b = new SolidBrush(Clay.Lom)) g.FillPath(b, p);
-            if (i == Ma.Length) using (var pen = new Pen(Clay.Ngoc, UI.Px(3))) g.DrawPath(pen, p);
+            if (i == Ma.Length) using (var pen = new Pen(Clay.Ngoc, UI.Px(3) * k)) g.DrawPath(pen, p);
             if (i < Ma.Length)
                 TextRenderer.DrawText(g, Ma[i].ToString(), f, Rectangle.Round(r), UI.Ink, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }

@@ -98,8 +98,8 @@ internal sealed class AppForm : Form
         BackColor = UI.Paper;
         Padding = new Padding(Px(10), Px(10), 0, Px(4));   // thanh bên là phiến Clay nổi, chừa chỗ cho bóng
         ClientSize = new Size(Px(1000), Px(680));
-        MinimumSize = new Size(Px(880), Px(600));
         var wa = Screen.PrimaryScreen!.WorkingArea;   // không vượt màn hình nhỏ (laptop 1366×768)
+        MinimumSize = new Size(Math.Min(Px(880), wa.Width), Math.Min(Px(600), wa.Height));   // #324: 1366×768 ở 125% — cỡ tối thiểu không cao hơn vùng làm việc
         if (Width > wa.Width || Height > wa.Height) Size = new Size(Math.Min(Width, wa.Width), Math.Min(Height, wa.Height));
 
         var main = _main;
@@ -146,6 +146,22 @@ internal sealed class AppForm : Form
     }
 
     // =========================================================== thanh bên
+
+    /// <summary>#324: chiều cao Grow ở thanh bên theo chỗ còn lại (200 px khi đủ chỗ), hết chỗ hẳn thì bật cuộn.</summary>
+    private void VuaThanhBen(FlowLayoutPanel flow)
+    {
+        if (flow.ClientSize.Height <= 0) return;
+        var khac = 0;
+        foreach (Control c in flow.Controls)
+            if (!ReferenceEquals(c, _mascot)) khac += (c.AutoSize ? c.PreferredSize.Height : c.Height) + c.Margin.Vertical;
+        var cho = flow.ClientSize.Height - flow.Padding.Vertical - khac - _mascot.Margin.Vertical;
+        var cao = Math.Min(Px(200), cho);
+        var hien = cao >= Px(72);
+        if (_mascot.Visible != hien) _mascot.Visible = hien;
+        if (hien && _mascot.Height != cao) _mascot.Height = cao;
+        var cuon = !hien && cho + _mascot.Margin.Vertical < 0;
+        if (flow.AutoScroll != cuon) flow.AutoScroll = cuon;
+    }
 
     private Control BuildSide()
     {
@@ -219,6 +235,16 @@ internal sealed class AppForm : Form
         }
         side.Controls.Add(flow);
         side.Controls.Add(chan);
+        // #324 (ảnh 7: 1366×768, cửa sổ thấp): chân «Đổi người / Đăng xuất · Ba Mẹ dùng máy» neo đáy đè mất mục «Tin nhắn», thanh bên không cuộn.
+        // Thiếu chỗ ⇒ thu Grow (tối thiểu 72 px, nhỏ hơn thì ẩn); vẫn thiếu ⇒ thanh bên cuộn được.
+        var dangVua = false;
+        flow.Layout += (_, _) =>
+        {
+            if (dangVua) return;
+            dangVua = true;
+            try { VuaThanhBen(flow); }
+            finally { dangVua = false; }
+        };
         UpdateNav();
         return side;
     }

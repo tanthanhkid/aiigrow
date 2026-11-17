@@ -18,7 +18,14 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
     private readonly Label _gio = new() { AutoSize = true, ForeColor = Color.FromArgb(0xe6, 0xf2, 0xee), BackColor = Color.Transparent, Font = UI.F(21f, FontStyle.Bold) };
     private readonly Label _chan = new() { AutoSize = true, ForeColor = Color.FromArgb(0xc6, 0xdc, 0xd6), BackColor = Color.Transparent, Font = UI.F(12f) };
     private readonly Label _count = new() { AutoSize = true, ForeColor = UI.Green, BackColor = Color.Transparent, Font = UI.F(78f, FontStyle.Bold) };   // 104px — đọc được từ xa
-    private readonly Panel _center = new() { Dock = DockStyle.Fill, BackColor = Color.Transparent, AutoScroll = true };
+    private readonly Panel _center = new KhungGiua { Dock = DockStyle.Fill, BackColor = Color.Transparent, AutoScroll = true };
+
+    /// <summary>#324: khung giữa cuộn được (màn quá thấp) nhưng KHÔNG tự cuộn tới control vừa có tiêu điểm: thẻ dựng lại trong khối tắt vẽ (KhongNhay)
+    /// mà khung tự cuộn ⇒ Windows chép khối điểm ảnh cũ sang chỗ mới (ảnh 5: mảng trắng / đen, phím 7·8 nằm cạnh phím 4).</summary>
+    private sealed class KhungGiua : Panel
+    {
+        protected override Point ScrollToControl(Control activeControl) => DisplayRectangle.Location;
+    }
     private readonly System.Windows.Forms.Timer _dongHo = new() { Interval = 1000 };
     private Control? _khoi;
     private string _khoa = "";
@@ -91,7 +98,13 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
     private void GiuaKhoi()
     {
         if (_khoi == null) return;
-        _khoi.Location = new Point(Math.Max(0, (_center.Width - _khoi.Width) / 2), Math.Max(UI.Px(60), (_center.Height - _khoi.Height) / 2 - UI.Px(10)));
+        var h = _khoi.Height;
+        var y = Math.Max(UI.Px(60), (_center.Height - h) / 2 - UI.Px(10));
+        // #324 (1366×768 ở 150%): thẻ cao không được đè dòng chân trang, và ở lưới tên không đè nút «Ba Mẹ dùng máy» — đẩy thẻ lên (tối đa sát đỉnh màn)
+        var day = ClientSize.Height - _chan.Height - UI.Px(24);
+        if (_chonTen && _ct.Buoc == BuocChonTen.ChonTen && _nutBaMe != null) day = Math.Min(day, ClientSize.Height - _nutBaMe.Height - UI.Px(96) - UI.Px(8));
+        y = Math.Max(UI.Px(16), Math.Min(y, day - h));
+        _khoi.Location = new Point(Math.Max(0, (_center.Width - _khoi.Width) / 2), y);
     }
 
     /// <summary>Nền tối ngọc sâu: gradient dọc + quầng sáng mềm sau thẻ (thiết kế: radial rgba(95,201,178,.275) ở 960,459).</summary>

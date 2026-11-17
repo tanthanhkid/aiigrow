@@ -104,7 +104,12 @@ internal sealed class SetupForm : Form
                 g.FillPath(b, path);
                 x += S(42);
             }
-            TextRenderer.DrawText(g, ChuBuoc, new Font("Segoe UI", 10f, FontStyle.Bold), new Point((int)x + S(2), (int)y - S(5)), Clay.NgocInk, Color.Transparent);
+            // #324: TextRenderer (GDI) mặc định BỎ phép dời gốc của Graphics. Nền này còn được vẽ lại vào ảnh nền đã nhớ của thẻ / chữ trong suốt
+            // (Clay.VeNenCha dời gốc theo vị trí con) ⇒ không giữ phép dời thì chữ «Bước n/5 · …» rơi vào toạ độ của CON: mẩu chữ «B», «ư» lòi ra
+            // ở lề bóng góc phải trên các thẻ (bước 2 «AiiGrow có / không», bước 4 thẻ điện thoại + «Mở bộ cài từ link…»).
+            using var fontBuoc = new Font("Segoe UI", 10f, FontStyle.Bold);
+            TextRenderer.DrawText(g, ChuBuoc, fontBuoc, new Point((int)x + S(2), (int)y - S(5)), Clay.NgocInk,
+                TextFormatFlags.PreserveGraphicsTranslateTransform | TextFormatFlags.PreserveGraphicsClipping);
         }
     }
 
