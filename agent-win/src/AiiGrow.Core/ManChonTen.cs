@@ -37,6 +37,14 @@ public sealed class ManChonTenState
 public static class ManChonTenView
 {
     public const string ChipKhoa = "Máy đang khoá";
+    /// <summary>Tên máy thật (Windows) cho chip / chân trang — Bàn ghi «Máy cả nhà · máy đang khoá» (tên mẫu); khay chưa nhận tên Ba Mẹ đặt nên dùng tên máy.</summary>
+    public static string TenMayThat()
+    {
+        try { var n = Environment.MachineName; return string.IsNullOrWhiteSpace(n) ? "Máy tính này" : n.Trim(); }
+        catch { return "Máy tính này"; }
+    }
+    /// <summary>them-x8kmmyl5: «&lt;tên máy&gt; · máy đang khoá».</summary>
+    public static string ChipKhoaMay(string tenMay) => (string.IsNullOrWhiteSpace(tenMay) ? "Máy tính này" : tenMay.Trim()) + " · máy đang khoá";
     public const string NutBaMe = "Ba Mẹ dùng máy";
     public const string TieuChon = "Ai đang dùng máy?";
     public const string PhuChon = "Bấm vào tên của con nhé.";

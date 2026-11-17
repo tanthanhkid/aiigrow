@@ -46,7 +46,7 @@ internal sealed partial class LockForm
             if (luoi || thePin) VeChonTen();
         };
         // chip «Máy đang khoá» (trên) + viên «Ba Mẹ dùng máy» (dưới) — chỉ ở bước lưới tên
-        var chip = new ChipClay(ManChonTenView.ChipKhoa, Clay.A(240, Clay.NenSang), Clay.NgocInk, Anh3D.Icon("khoa")) { Font = UI.F(14f, FontStyle.Bold), Visible = false };
+        var chip = new ChipClay(ManChonTenView.ChipKhoaMay(ManChonTenView.TenMayThat()), Clay.A(240, Clay.NenSang), Clay.NgocInk, Anh3D.Icon("laptop")) { Font = UI.F(14f, FontStyle.Bold), Visible = false };
         chip.Size = new Size(TextRenderer.MeasureText(chip.Text, chip.Font).Width + UI.Px(70), UI.Px(48));
         _chipKhoa = chip;
         Controls.Add(chip);
@@ -248,7 +248,7 @@ internal sealed partial class LockForm
             return;
         }
         HienGocChonTen(_chonTen && _ct.Buoc == BuocChonTen.ChonTen);
-        _chan.Text = _chonTen ? DangNhapView.ChanTrang(null) : _chan.Text;
+        _chan.Text = _chonTen ? DangNhapView.ChanTrang(null, ManChonTenView.TenMayThat()) : _chan.Text;
         using var veMotLan = KhongNhay.DungVe(_center);   // #308
         _center.SuspendLayout();
         if (_khoi != null) { _center.Controls.Remove(_khoi); if (_count.Parent != null) _count.Parent.Controls.Remove(_count); _khoi.Dispose(); }
@@ -457,8 +457,8 @@ internal sealed partial class LockForm
         if (_ct.Loi != null) the.Controls.Add(ChuGiua(_ct.Loi, 12f, true, Clay.Canh, w, 12));
         if (ds.Count > 0 && !(_hs?.MayRieng ?? false))
         {
-            the.Controls.Add(ChuGiua(ManChonTenView.KhongThayTen, m.PtChan1, true, Clay.Chu2, w, m.TrenChan));
-            the.Controls.Add(ChuGiua(ManChonTenView.NhoBaMeThem, m.PtChan2, false, UI.Muted, w, 2));
+            // them-x8kmmyl5: ô ấn lõm nền #efeeea, icon «?» + hai dòng (đậm / thường)
+            the.Controls.Add(Giua(new OKhongThayTen(ManChonTenView.KhongThayTen, ManChonTenView.NhoBaMeThem, Qf(m.PtChan1 + 1f), Qf(m.PtChan2 + 0.5f), Anh3D.Icon("dau_hoi"), _kPin), w, m.TrenChan));
         }
         else the.Controls.Add(ChuGiua(ManChonTenView.GhiChon, m.PtChan2, false, UI.Muted, w, m.TrenChan));
         return the;
@@ -742,4 +742,58 @@ internal sealed class VongDem : Control
         var trong = RectangleF.Inflate(r, -Width * 15f / 170f, -Height * 15f / 170f);
         using (var b = new SolidBrush(Clay.The)) g.FillEllipse(b, trong);
     }
+}
+
+
+/// <summary>Ô «Không thấy tên con?» (them-x8kmmyl5 .khong): nền #efeeea bo 24 ấn lõm, icon «?» 40, dòng đậm + dòng phụ.</summary>
+internal sealed class OKhongThayTen : Control
+{
+    private readonly string _t1, _t2;
+    private readonly Font _f1, _f2;
+    private readonly Image? _icon;
+    private readonly float _k;
+
+    public OKhongThayTen(string t1, string t2, float pt1, float pt2, Image? icon, float k)
+    {
+        SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor, true);
+        BackColor = Color.Transparent; TabStop = false;
+        _t1 = t1; _t2 = t2; _icon = icon; _k = k;
+        _f1 = UI.F(pt1, FontStyle.Bold); _f2 = UI.F(pt2, FontStyle.Regular);
+        var w1 = TextRenderer.MeasureText(t1, _f1, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width;
+        var w2 = TextRenderer.MeasureText(t2, _f2, new Size(int.MaxValue, int.MaxValue), TextFormatFlags.NoPadding).Width;
+        var h1 = _f1.Height; var h2 = _f2.Height;
+        Size = new Size(P(14) + P(40) + P(14) + Math.Max(w1, w2) + P(22), Math.Max(P(12) * 2 + h1 + h2, P(64)));
+    }
+
+    private int P(int v) => UI.Px((int)Math.Round(v * _k));
+
+    protected override void OnPaint(PaintEventArgs e)
+    {
+        var g = e.Graphics;
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        var r = new RectangleF(0.5f, 0.5f, Width - 2, Height - 2);
+        using (var path = Clay.Bo(r, Height / 2f > P(24) ? P(24) : Height / 2f))
+        {
+            using (var b = new SolidBrush(Color.FromArgb(0xef, 0xee, 0xea))) g.FillPath(b, path);
+            using var pen = new Pen(Color.FromArgb(40, 40, 44, 42), Math.Max(1f, UI.Px(2) / 1f));
+            var old = g.Clip;
+            g.SetClip(new RectangleF(0, 0, Width, Math.Max(2, Height / 4)), CombineMode.Intersect);
+            g.DrawPath(pen, path);   // viền tối mỏng ở mép trên = bóng ấn lõm
+            g.Clip = old;
+            using var sang = new Pen(Color.White, Math.Max(1f, UI.Px(1)));
+            g.SetClip(new RectangleF(0, Height * 3 / 4f, Width, Height / 4f), CombineMode.Intersect);
+            g.DrawPath(sang, path);
+            g.ResetClip();
+        }
+        var ic = P(40);
+        if (_icon != null) { g.InterpolationMode = InterpolationMode.HighQualityBicubic; g.DrawImage(_icon, new Rectangle(P(14), (Height - ic) / 2, ic, ic)); }
+        var x = P(14) + ic + P(14);
+        var h = _f1.Height + _f2.Height;
+        var y = (Height - h) / 2;
+        const TextFormatFlags f = TextFormatFlags.NoPadding | TextFormatFlags.Left | TextFormatFlags.NoPrefix;
+        TextRenderer.DrawText(g, _t1, _f1, new Point(x, y), Color.FromArgb(0x0f, 0x13, 0x12), f);
+        TextRenderer.DrawText(g, _t2, _f2, new Point(x, y + _f1.Height), Clay.Chu3, f);
+    }
+
+    protected override void Dispose(bool disposing) { if (disposing) { _f1.Dispose(); _f2.Dispose(); } base.Dispose(disposing); }
 }

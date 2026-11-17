@@ -153,6 +153,70 @@ internal sealed class SetupForm : Form
         }
     }
 
+    /// <summary>Ô tick «Tôi là người lớn…» theo bàn: vuông 26 bo 8, chọn = nền ngọc + tick trắng; bấm cả chữ; phím cách đổi.</summary>
+    internal sealed class OTichDongY : Control
+    {
+        private bool _chon;
+        public event EventHandler? CheckedChanged;
+        public bool Checked { get => _chon; set { if (_chon == value) return; _chon = value; Invalidate(); CheckedChanged?.Invoke(this, EventArgs.Empty); } }
+        public OTichDongY()
+        {
+            SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.SupportsTransparentBackColor | ControlStyles.Selectable, true);
+            BackColor = Color.Transparent; TabStop = true; Cursor = Cursors.Hand;
+            Font = PhongChu.Tao(12f, FontStyle.Bold);
+            AccessibleRole = AccessibleRole.CheckButton;
+        }
+        protected override void OnTextChanged(EventArgs e)
+        {
+            base.OnTextChanged(e);
+            Size = new Size(S(38) + TextRenderer.MeasureText(Text, Font, Size.Empty, TextFormatFlags.NoPadding).Width + S(4), S(30));
+            Invalidate();
+        }
+        protected override void OnClick(EventArgs e) { base.OnClick(e); Focus(); Checked = !Checked; }
+        protected override void OnKeyDown(KeyEventArgs e) { if (e.KeyCode == Keys.Space) { Checked = !Checked; e.Handled = true; } base.OnKeyDown(e); }
+        protected override void OnGotFocus(EventArgs e) { base.OnGotFocus(e); Invalidate(); }
+        protected override void OnLostFocus(EventArgs e) { base.OnLostFocus(e); Invalidate(); }
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            var g = e.Graphics;
+            Clay.ChatLuong(g);
+            var o = new RectangleF(S(1), (Height - S(26)) / 2f, S(26), S(26));
+            using (var p = Clay.Bo(o, S(8)))
+            {
+                if (_chon) { using var b = new SolidBrush(Clay.Ngoc); g.FillPath(b, p); }
+                else
+                {
+                    using var b = new SolidBrush(Clay.NenSang); g.FillPath(b, p);
+                    using var pen = new Pen(Clay.Chu3, S(2)); g.DrawPath(pen, p);
+                }
+            }
+            if (_chon)
+            {
+                using var pen = new Pen(Color.White, Clay.S(2.4f)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+                g.DrawLines(pen, new[] { new PointF(o.X + o.Width * .18f, o.Y + o.Height * .53f), new PointF(o.X + o.Width * .39f, o.Y + o.Height * .74f), new PointF(o.X + o.Width * .82f, o.Y + o.Height * .28f) });
+            }
+            if (Focused) { using var pen = new Pen(Clay.Ngoc, S(2)) { DashStyle = DashStyle.Dot }; g.DrawRectangle(pen, 0, 0, Width - 1, Height - 1); }
+            TextRenderer.DrawText(g, Text, Font, new Rectangle(S(38), 0, Width - S(38), Height), Chu, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        }
+    }
+
+    /// <summary>Chip «Tự vào, không mật khẩu» (màn Tạo tài khoản): nền trắng bo, tick xanh 26, chữ ngọc đậm.</summary>
+    private sealed class ChipTuVao : VeTay
+    {
+        protected override void Ve(Graphics g)
+        {
+            var r = new RectangleF(S(1), S(1), Width - S(3), Height - S(3));
+            using (var p = Clay.Bo(r, S(16)))
+            {
+                using (var b = new SolidBrush(Clay.NenSang)) g.FillPath(b, p);
+                using var pen = new Pen(Clay.A(60, Clay.Chu), Math.Max(1f, S(1))); g.DrawPath(pen, p);
+            }
+            if (Anh3D.Icon("tick") is { } ic) g.DrawImage(ic, S(16), (Height - S(26)) / 2, S(26), S(26));
+            TextRenderer.DrawText(g, "Tự vào, không mật khẩu", PhongChu.Tao(12f, FontStyle.Bold), new Rectangle(S(52), 0, Width - S(52), Height), Clay.NgocInk,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        }
+    }
+
     /// <summary>Điện thoại Ba Mẹ minh hoạ (màn Ghép máy): AiiGrow › Ghép máy hiện mã 6 số, «Dùng được 10 phút».</summary>
     private sealed class DienThoai : VeTay
     {
@@ -349,7 +413,28 @@ internal sealed class SetupForm : Form
     /// <summary>Nút chính: lề phải 34px như thiết kế (left = 687 − w).</summary>
     private ClayButton NutChinh(string text, int w, Action bam) => NutChan(text, 687 - w, w, true, bam);
     // bàn: «‹ Quay lại» (mũi tên trái trước chữ); «Để sau» không có mũi tên
-    private ClayButton NutLui(Action bam, string text = "‹  Quay lại") => NutChan(text, 36, 132, false, bam);
+    private ClayButton NutLui(Action bam, string text = "Quay lại")
+    {
+        var b = NutChan(text, 36, 132, false, bam);
+        if (text == "Quay lại") b.Image = ChevronTrai();   // bàn: icon mũi tên mảnh trước chữ, không dùng ký tự ‹
+        return b;
+    }
+
+    private static Image? _chevron;
+    /// <summary>Mũi tên trái mảnh (bàn: phosphor caret-left, nét bo tròn) — vẽ bằng GDI+ màu chữ.</summary>
+    private static Image ChevronTrai()
+    {
+        if (_chevron != null) return _chevron;
+        const int n = 96;
+        var bm = new Bitmap(n, n);
+        using (var g = Graphics.FromImage(bm))
+        {
+            g.SmoothingMode = SmoothingMode.AntiAlias;
+            using var pen = new Pen(Chu, n * 0.082f) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+            g.DrawLines(pen, new[] { new PointF(n * 0.62f, n * 0.2f), new PointF(n * 0.34f, n * 0.5f), new PointF(n * 0.62f, n * 0.8f) });
+        }
+        return _chevron = bm;
+    }
 
     /// <summary>Sang một màn: xoá thân + chân, đặt thanh bước.</summary>
     private void Man(int buoc, string ten, bool daiNgoc = false)
@@ -402,11 +487,8 @@ internal sealed class SetupForm : Form
         foreach (var (y, icon, chu) in new[] { (196, "camera", "Không chụp màn hình"), (260, "tin", "Không đọc tin nhắn"), (324, "x", "Không ghi phím con gõ") })
         { Vien(khong, 392, y, icon, 44, "cam"); XGiua(khong, 448, y, 44, chu, Kieu.B, 226); }
         X(_body, 38, 410, "Gỡ AiiGrow lúc nào cũng được, cần mật khẩu máy của Ba Mẹ.", Kieu.P);
-        var cb = new CheckBox
-        {
-            Text = "Tôi là người lớn trong nhà và đồng ý cài AiiGrow", AutoSize = true, UseMnemonic = false, Checked = _dongY,
-            Font = PhongChu.Tao(12f, FontStyle.Bold), ForeColor = Chu, BackColor = Color.Transparent, Location = ToaDo(_body, 36, 460),
-        };
+        // bàn: ô vuông bo 8 nền ngọc có dấu tick trắng + chữ đậm bên phải
+        var cb = new OTichDongY { Text = "Tôi là người lớn trong nhà và đồng ý cài AiiGrow", Checked = _dongY, Location = ToaDo(_body, 36, 460) };
         _body.Controls.Add(cb);
         NutLui(BuocChao);
         var tiep = NutChinh("Đồng ý, chọn tài khoản", 260, BuocTaiKhoan);
@@ -547,13 +629,13 @@ internal sealed class SetupForm : Form
         X(the, 58, 304, "Tên đăng nhập", Kieu.S, 0, Chu2, dam: true);
         X(the, 372, 304, "Đăng nhập Windows", Kieu.S, 0, Chu2, dam: true);
         var ten = new TextBox { Font = PhongChu.Tao(12.75f), MaxLength = 20, Text = TenTaiKhoanChung() };
-        var tu = new TextBox { Font = PhongChu.Tao(12.75f), Text = "Tự vào, không mật khẩu", ReadOnly = true, TabStop = false };
-        foreach (var (o, x, w) in new[] { (ten, 56, 296), (tu, 370, 297) })
         {
-            var vo = ONhapClay.Boc(o, S(w));
-            var p = ToaDo(the, x, 326);
+            var vo = ONhapClay.Boc(ten, S(296));
+            var p = ToaDo(the, 56, 326);
             vo.Location = new Point(p.X - VeThe.LeBong.Left, p.Y - VeThe.LeBong.Top);
             the.Controls.Add(vo);
+            // bàn: «Đăng nhập Windows» là chip trắng có dấu tick xanh «Tự vào, không mật khẩu» (không phải ô nhập)
+            the.Controls.Add(new ChipTuVao { Size = new Size(S(297), S(50)), Location = ToaDo(the, 370, 326) });
         }
         var goiY = X(the, 58, 388, "Mở máy là vào thẳng tài khoản Con · không hỏi mật khẩu Windows.", Kieu.S, 600);
         // Dải cam: máy chỉ có một tài khoản (toàn quyền) và đang là của các con ⇒ màn giải thích.

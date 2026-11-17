@@ -243,7 +243,7 @@ internal static class ChupMain
         await Mot("cai-2-dieu-khoan", () => ManCai("cai-2-dieu-khoan", f =>
         {
             Goi(f, "BuocDieuKhoan");
-            foreach (var c in TatCa(f).OfType<CheckBox>()) c.Checked = true;
+            foreach (var c in TatCa(f).OfType<SetupForm.OTichDongY>()) c.Checked = true;
         }));
         await Mot("cai-3-chon-tai-khoan", () => ManCai("cai-3-chon-tai-khoan", f =>
         {
