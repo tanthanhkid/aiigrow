@@ -89,4 +89,33 @@ class GoiOfflineTest {
         // chưa có hồ sơ ⇒ tải lại
         assertTrue(xetDsCon(listOf("A"), null, null).taiLai)
     }
+
+    @Test fun catGoi_beRoi_luuSaoMoiNhat_quayLaiDungGoi() {
+        val luc = java.time.Instant.parse("2026-11-17T05:00:00Z")
+        // nhịp của B lúc 03:00 có 30 sao; B chơi 12 phút rồi «Đổi người»
+        val nhipB = JSONObject(goi("B", false, 30)).put("lenh", org.json.JSONArray()).put("maOfflineBiMat", "bi-mat")
+        val g = catGoiBe(nhipB, 12, luc)
+        val o = JSONObject(g)
+        assertFalse(o.has("maOfflineBiMat")); assertTrue(o.optBoolean(GOI_TU_MAY))
+        val ph = docPhanHoiNhip(g)
+        assertEquals("B", ph.chinhSach.conId); assertEquals(18, ph.chinhSach.sao!!.phutCon); assertEquals(18, ph.chinhSach.sao!!.sao)
+        assertEquals(luc, ph.serverTime)
+        // tiêu quá số sao ⇒ 0, hết sao
+        assertTrue(docPhanHoiNhip(catGoiBe(nhipB, 40, luc)).chinhSach.sao!!.hetSao)
+        // B quay lại lúc mất mạng: nhịp cuối vẫn là của B (03:00) nhưng gói cắt tại máy (05:00) mới hơn ⇒ dùng gói
+        val nhipLuc = java.time.Instant.parse("2026-11-17T03:00:00Z")
+        val l = chonLuatBe("B", true, "B", g, nhipLuc)
+        assertTrue(l is LuatBe.TuGoi); assertEquals(18, (l as LuatBe.TuGoi).ph.chinhSach.sao!!.phutCon)
+        // có nhịp mới hơn gói (có mạng lại) ⇒ nhịp
+        assertEquals(LuatBe.NhipCuoi, chonLuatBe("B", true, "B", g, java.time.Instant.parse("2026-11-17T05:01:00Z")))
+        // gói máy chủ gửi (không cắt tại máy) không thay nhịp của chính bé
+        assertEquals(LuatBe.NhipCuoi, chonLuatBe("B", true, "B", goi("B", false, 30), nhipLuc))
+    }
+
+    @Test fun phutTieu_giongQuyetDinh() {
+        assertEquals(7, phutTieuTuMoc(20, 13, "2026-11-17", "2026-11-17", 0, false))
+        assertEquals(20, phutTieuTuMoc(20, 13, "2026-11-16", "2026-11-17", 0, false))   // sang ngày ⇒ cả phút hôm nay
+        assertEquals(5, phutTieuTuMoc(20, 13, null, "2026-11-17", 2, false))             // trừ phút mở bằng mã
+        assertEquals(0, phutTieuTuMoc(20, 0, null, "2026-11-17", 0, true))               // Mở hết không tính
+    }
 }

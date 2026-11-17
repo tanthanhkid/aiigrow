@@ -51,6 +51,9 @@ import vn.aiilab.aiigrow.maycon.logic.CAU_CHO_MANG_LUAT
 import vn.aiilab.aiigrow.maycon.logic.LuatBe
 import vn.aiilab.aiigrow.maycon.logic.chonLuatBe
 import vn.aiilab.aiigrow.maycon.logic.docGoiOffline
+import vn.aiilab.aiigrow.maycon.logic.catGoiBe
+import vn.aiilab.aiigrow.maycon.logic.goiOfflineJson
+import vn.aiilab.aiigrow.maycon.logic.phutTieuTuMoc
 import java.time.Instant
 
 /**
@@ -469,8 +472,25 @@ class DichVuNhip : Service() {
         private fun luatTheoBe(k: Kho, ph: PhanHoiNhip, a: PinMay.AnhCong): LuatBe =
             if (k.cheDoThu) LuatBe.NhipCuoi
             else a.nd?.conId?.takeIf { a.cong == Cong.CON }.let { con ->
-                chonLuatBe(con, a.hs?.mayRieng == false, ph.chinhSach.conId, con?.let { docGoiOffline(k.goiOffline)[it] })
+                chonLuatBe(con, a.hs?.mayRieng == false, ph.chinhSach.conId, con?.let { docGoiOffline(k.goiOffline)[it] }, ph.serverTime)
             }
+
+        /** Review #345: bé rời máy chung ⇒ lưu luật + sao mới nhất của bé vào gói của bé (logic/GoiOffline.kt › catGoiBe). */
+        private fun catGoiBeRoi(ctx: Context, k: Kho, a: PinMay.AnhCong, luat: LuatBe, ph: PhanHoiNhip,
+                                cs: vn.aiilab.aiigrow.maycon.logic.ChinhSach, nowMay: Long) {
+            val con = a.nd?.conId?.takeIf { a.cong == Cong.CON && a.hs?.mayRieng == false } ?: return
+            val tuGoi = luat is LuatBe.TuGoi
+            val goc = if (luat is LuatBe.TuGoi) JSONObject(docGoiOffline(k.goiOffline)[con] ?: return) else JSONObject(k.phanHoi ?: return)
+            if (!tuGoi && ph.chinhSach.conId != con) return
+            val moc = MocPhut.doc(k.mocBe)
+            val phutGT = truMoc(phutGiaiTri(DoPhut.homNay(ctx, cs.tz, nowMay), goiAndroid(cs.giaiTri)), moc)
+            val luc = Instant.ofEpochMilli(nowMay + k.lechGioMs)
+            val nhipLuc = if (tuGoi) (luat as LuatBe.TuGoi).ph.serverTime else null
+            val tieu = phutTieuTuMoc(phutGT, if (tuGoi) 0 else k.phutLucNhip.takeIf { it >= 0 }?.let { truMoc(it, moc) },
+                if (tuGoi) nhipLuc?.let { gioDiaPhuong(it, cs.tz).zdt.toLocalDate().toString() } else k.ngayNhip,
+                gioDiaPhuong(luc, cs.tz).zdt.toLocalDate().toString(), if (cs.sao != null) SoPhutBe.doc(k.soPhutBe).phutBoiMa(con) else 0, cs.moHet)
+            k.goiOffline = goiOfflineJson(docGoiOffline(k.goiOffline) + (con to catGoiBe(goc, tieu, luc)))
+        }
 
         /** Khoá ghi sổ phút theo bé (vòng nhịp và «Đổi người» trên luồng giao diện). */
         private val KHOA_SO = Any()
@@ -519,7 +539,9 @@ class DichVuNhip : Service() {
             val nowMay = System.currentTimeMillis()
             val a = PinMay.anh(k, nowMay)
             // #337: luật của đúng bé đang dùng (gói mất mạng khi nhịp cuối là của bé khác); chưa có luật ⇒ máy đang khoá, không có phút để chốt
-            val cs = when (val l = luatTheoBe(k, ph, a)) { is LuatBe.TuGoi -> l.ph.chinhSach; LuatBe.ChoMang -> return; LuatBe.NhipCuoi -> ph.chinhSach }
+            val luat = luatTheoBe(k, ph, a)
+            val cs = when (luat) { is LuatBe.TuGoi -> luat.ph.chinhSach; LuatBe.ChoMang -> return; LuatBe.NhipCuoi -> ph.chinhSach }
+            try { catGoiBeRoi(ctx, k, a, luat, ph, cs, nowMay) } catch (e: Exception) { NhatKy.canh(TAG, "cắt gói bé rời máy lỗi", e) }
             if (cs.sao == null) return
             ghiSo(k, cs, DoPhut.homNay(ctx, cs.tz, nowMay), a.cong, a.nd?.conId, Instant.ofEpochMilli(nowMay + k.lechGioMs),
                 MoTamOffline.doc(k.moTamOffline).dangMo(nowMay))

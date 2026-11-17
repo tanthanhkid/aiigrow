@@ -2,6 +2,7 @@ package vn.aiilab.aiigrow.maycon.logic
 
 import org.json.JSONArray
 import org.json.JSONObject
+import java.time.Instant
 
 // #337 / #339 (17/11), phần thuần JVM. Máy CHUNG (≥ 2 bé): máy chủ chỉ gửi luật của bé ĐANG đăng nhập ở nhịp ⇒ mất mạng mà «Đổi người»,
 // bé sau từng dùng luật, khoá, sao của bé trước (DichVuNhip › vong: `ph.chinhSach` là của bé trong nhịp cuối). Máy chủ (PR #342) gửi kèm
@@ -54,9 +55,15 @@ sealed class LuatBe {
  * Chọn luật theo bé (#337). `conDung` = bé đang dùng (cổng CON; null = chọn tên / Ba Mẹ / máy chủ cũ), `mayChung` = hồ sơ báo máy dùng chung,
  * `conNhip` = bé của phản hồi nhịp cuối (`chinhSach.con.id`; null = nhịp lúc chưa ai vào), `goi` = gói mất mạng của `conDung` (JSON).
  */
-fun chonLuatBe(conDung: String?, mayChung: Boolean, conNhip: String?, goi: String?): LuatBe {
-    if (!mayChung || conDung == null || conDung == conNhip) return LuatBe.NhipCuoi
+fun chonLuatBe(conDung: String?, mayChung: Boolean, conNhip: String?, goi: String?, nhipLuc: Instant? = null): LuatBe {
+    if (!mayChung || conDung == null) return LuatBe.NhipCuoi
     val ph = try { goi?.let { docPhanHoiNhip(it) } } catch (_: Exception) { null }
+    if (conDung == conNhip) {
+        // bé quay lại lúc mất mạng: gói CẮT TẠI MÁY lúc bé rời (luật + sao mới nhất) mới hơn nhịp cuối của bé ⇒ dùng gói; có nhịp mới hơn ⇒ nhịp
+        val tuMay = try { goi?.let { JSONObject(it).optBoolean(GOI_TU_MAY) } ?: false } catch (_: Exception) { false }
+        return if (ph != null && tuMay && ph.chinhSach.conId == conDung && ph.serverTime != null && (nhipLuc == null || ph.serverTime.isAfter(nhipLuc)))
+            LuatBe.TuGoi(ph) else LuatBe.NhipCuoi
+    }
     // gói phải đúng bé (chinhSach.con.id — máy chủ dựng như bé đó đang đăng nhập); thiếu id ⇒ tin khoá theo bé của Kho
     return if (ph != null && (ph.chinhSach.conId == null || ph.chinhSach.conId == conDung)) LuatBe.TuGoi(ph) else LuatBe.ChoMang
 }
@@ -79,4 +86,35 @@ fun xetDsCon(dsCon: List<String>?, hoSoCon: List<String>?, conDung: String?): Xe
     val taiLai = hoSoCon == null || dsCon.toSet() != hoSoCon.toSet()
     val dayRa = conDung != null && dsCon.isNotEmpty() && conDung !in dsCon
     return XetDsCon(taiLai, dayRa)
+}
+
+/** Đánh dấu gói do máy cắt lúc bé rời (không phải máy chủ gửi). */
+const val GOI_TU_MAY = "tuMay"
+
+/** Phút «Tính phút» bé đã tiêu tại chỗ kể từ mốc luật (y như QuyetDinh › quyetDinhSao › tieuTaiCho). */
+fun phutTieuTuMoc(phutGT: Int, phutLucNhip: Int?, ngayNhip: String?, homNay: String, phutBoiMa: Int, moHet: Boolean): Int {
+    if (moHet) return 0
+    val cungNgay = ngayNhip == null || ngayNhip == homNay
+    return ((if (cungNgay) (phutGT - (phutLucNhip ?: phutGT)).coerceAtLeast(0) else phutGT) - phutBoiMa).coerceAtLeast(0)
+}
+
+/**
+ * Review #345 (như Mac › catGoiBeDangNap): bé rời máy (Đổi người / Đăng xuất) ⇒ cắt gói từ luật ĐANG dùng của bé (`goc` = phản hồi nhịp hoặc
+ * gói) trừ `tieu` phút đã tiêu tại chỗ, mốc = `luc` (giờ máy chủ). Bé quay lại lúc mất mạng dùng luật + sao mới nhất, không phải bản lúc tải ho-so.
+ * Chỉ giữ `chinhSach` + `nenTang` (không lenh, không bí mật mã offline). Lượt chơi (`conLuot`) giữ nguyên — bé rời máy là đã nghỉ.
+ */
+fun catGoiBe(goc: JSONObject, tieu: Int, luc: Instant): String {
+    val cs = JSONObject((goc.optJSONObject("chinhSach") ?: JSONObject()).toString())
+    val t = tieu.coerceAtLeast(0)
+    cs.optJSONObject("sao")?.let { s ->
+        if (s.has("phutCon")) {
+            val con = (s.optInt("phutCon") - t).coerceAtLeast(0)
+            s.put("phutCon", con).put("hetSao", con <= 0 || s.optBoolean("hetSao"))
+        }
+        if (s.has("sao")) s.put("sao", s.optInt("sao") - t)
+        if (s.has("saoTieuDuoc") && !s.isNull("saoTieuDuoc")) s.put("saoTieuDuoc", (s.optInt("saoTieuDuoc") - t).coerceAtLeast(0))
+    }
+    cs.optJSONObject("gioiHan")?.let { g -> if (g.has("conNgay") && !g.isNull("conNgay")) g.put("conNgay", (g.optInt("conNgay") - t).coerceAtLeast(0)) }
+    return JSONObject().put("serverTime", luc.toString()).put("chinhSach", cs).put("nenTang", goc.opt("nenTang") ?: JSONObject())
+        .put(GOI_TU_MAY, true).toString()
 }
