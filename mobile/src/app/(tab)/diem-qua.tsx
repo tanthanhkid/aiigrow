@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { KHOI } from "@/lib/clay";
+import { KHOI, HERO, KHOI_HERO } from "@/lib/clay";
 import {
   ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useTai, type TenIcon,
 } from "@/lib/ui";
@@ -16,7 +16,6 @@ import { KHOA_NV_TAB, napNvTab, viecCuaCon } from "@/lib/nv-tab";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { BangTraoQua } from "@/lib/trao-qua";
 import { icQua } from "@/lib/s3";
-import { kieuSao, MAU_NO, saoTu, soChinh, soVN, VienSao, traNoLanLuot } from "@/lib/so-sao";
 
 /** «hôm nay 18:40» / «hôm qua» / «3/11». */
 const khiNao = (iso: string) => {
@@ -78,22 +77,22 @@ export default function TabNhiemVu() {
       {d.g.con.length > 1 ? <DaiCon ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={c.id} doi={(x) => setChon(x.id)} so={soCho}
         duoi={Object.fromEntries(d.g.con.map((x) => [x.id, <VienSao key={x.id} s={saoTu(x)} nho />]))} /> : null}
 
-      {/* thiết kế .vi: thẻ vàng — «<Con> đang có» · ⭐ 30 sao (40/800) · viên trắng «= 30 phút chơi ›»; đang nợ ⇒ thẻ cảnh báo «<Con> đang nợ Ba Mẹ 20 sao» */}
+      {/* bàn Navy 17/11 .vi: thẻ hero navy, số sao vàng mật, viên vàng (cả khi có sao lẫn khi nợ) — «<Con> đang có» · ⭐ 30 sao (40/800) · viên trắng «= 30 phút chơi ›»; đang nợ ⇒ thẻ cảnh báo «<Con> đang nợ Ba Mẹ 20 sao» */}
       {anVi ? null : <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${ten}: ${soChinh(ss)}`}
         style={[{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 28, overflow: "hidden" },
-          k === "thuong" ? { backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf0c9, #fbf0d6)" } : { backgroundColor: MAU_NO.nen, backgroundImage: "linear-gradient(#fbeedd, #ffe6d6)" }, KHOI.the]}>
+          KHOI_HERO]}>
         <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -18 }}><Rob ten="xong" co={112} /></View>
-        <Chu kieu="dam7" co={13.5} mau={k === "thuong" ? "#5a3700" : MAU_NO.chu} style={{ marginRight: 116 }}>
+        <Chu kieu="dam7" co={13.5} mau={HERO.chu} style={{ marginRight: 116 }}>
           {k === "thuong" ? `${ten} đang có` : `${ten} đang nợ Ba Mẹ ${soVN(ss.no)} sao`}</Chu>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, marginRight: 100 }}>
           <Icon3D ten="sao" co={38} />
-          {k === "vay" ? <Chu kieu="rat" co={20} mau={MAU_NO.chu} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
-            <Chu kieu="rat" co={40} so mau={k === "am" ? MAU_NO.chu : M.chu} style={{ lineHeight: 46, letterSpacing: -1 }}>{soVN(k === "am" ? -ss.no : sao)}</Chu>
-            <Chu kieu="rat" co={18} mau={k === "am" ? MAU_NO.chu : M.chu} style={{ marginTop: 8 }}>sao</Chu>
+          {k === "vay" ? <Chu kieu="rat" co={20} mau={HERO.phu} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
+            <Chu kieu="rat" co={40} so mau={HERO.phu} style={{ lineHeight: 46, letterSpacing: -1 }}>{soVN(k === "am" ? -ss.no : sao)}</Chu>
+            <Chu kieu="rat" co={18} mau={HERO.phu} style={{ marginTop: 8 }}>sao</Chu>
           </>}
         </View>
-        <View style={{ alignSelf: "flex-start", marginTop: 6, minHeight: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#fff", justifyContent: "center", marginRight: 100 }}>
-          <Chu kieu="rat" co={13} mau={k === "thuong" ? M.diemInk : MAU_NO.chu}>
+        <View style={{ alignSelf: "flex-start", marginTop: 6, minHeight: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.diem, backgroundImage: "linear-gradient(#f8d68e, #F4C76A)", justifyContent: "center", marginRight: 100 }}>
+          <Chu kieu="rat" co={13} mau={M.chu}>
             {k === "thuong" ? `= ${soVN(sao)} phút chơi ›`
               : cua.cho.length ? (tongCho >= ss.no ? `Duyệt ${cua.cho.length} việc chờ là hết nợ ›` : `Duyệt ${cua.cho.length} việc chờ để trả nợ ›`)
                 : "Xem ví sao ›"}</Chu>

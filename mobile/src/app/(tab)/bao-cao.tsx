@@ -108,7 +108,7 @@ function BaoCaoCon({ id }: { id: string }) {
               const laNay = x.ngay === homNay, nhan = laNay ? "Nay" : THU[thuCua(x.ngay)];
               return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: null, doc: `${nhan}: ${gio(x.phut)} = ${x.phut} sao` };
             })} />
-          <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: "#e2660f" },
+          <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: M.badge },
             { chu: `Nay: ${phutNay} phút = ${soVN(phutNay)} sao${d.sao && !no ? ` · còn ${soVN(d.sao.phutCon)} sao` : ""}` }]} />
         </The>
       </Pressable>
