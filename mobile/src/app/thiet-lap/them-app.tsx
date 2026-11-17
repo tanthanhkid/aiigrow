@@ -1,17 +1,19 @@
-// them-at57ypdc «Thêm app cho X» (thiết kế chốt 14/11): «Gõ tên app trên máy con» ⇒ «Kết quả N» — app trong danh mục khớp chữ gõ
+// them-at57ypdc «Thêm app cho X» (bàn v5, 16/11: ô tìm trơn + «Kết quả cho «…»», câu hỏi nhóm nằm dưới dòng vừa thêm, nút đáy «Thêm <app> · <nhóm>»).
+// Trước đó (thiết kế chốt 14/11): «Gõ tên app trên máy con» ⇒ «Kết quả N» — app trong danh mục khớp chữ gõ
 // (lib/danh-muc-lan-dau.ts) + đúng tên Ba Mẹ gõ (khi không trùng danh mục); mỗi dòng ＋ / «✓ Đã thêm» (chạm lại để bỏ). «Xong» ⇒ về App cho X.
 // 15/11 (#262): chạm ＋ ⇒ trong thẻ vàng hỏi «<app> có tính phút không?» (Không tính phút | Tính phút · 1 sao = 1 phút), dòng đã thêm hiện «✓ <nhóm>».
 // App ngoài danh mục mặc định «Tính phút», gửi theo tên; máy chủ khớp với app thật máy Con báo.
 import { useState } from "react";
 import { router } from "expo-router";
-import { Pressable, Text, TextInput, View } from "react-native";
-import { BONG, KHOI } from "@/lib/clay";
+import { Text } from "react-native";
 import { DM_APP } from "@/lib/danh-muc-lan-dau";
 import { DauMan } from "@/lib/lan-dau";
 import { boDau, DongKetQua, HoiNhom, TheDs, tinhGioDm } from "@/lib/lan-dau-ds";
+import { TEN_NHOM } from "@/lib/app-web-chu";
+import { OTim } from "@/lib/ui-bm3";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { datTl, layTl, nhomCua, type AppChon } from "@/lib/thiet-lap";
-import { Chu, F, Icon3D, M, Man, Nut } from "@/lib/ui";
+import { Chu, F, M, Man, Nut } from "@/lib/ui";
 
 export default function ThemApp() {
   const ten = layTl().tenCon ?? "con";
@@ -37,32 +39,25 @@ export default function ThemApp() {
     setApps(moi);
     datTl({ apps: moi });
   };
+  // app vừa thêm ⇒ hỏi nhóm ngay dưới dòng của nó, nút đáy ghi rõ kết quả — chỉ khi dòng đó còn trong kết quả đang xem
+  // (gõ tìm app khác thì nút đáy về «Xong», không ghi «Thêm <app cũ>»)
+  const chot = dang && co(dang) && ds.some((x) => x.ten === dang) ? dang : null;
+  const ve = () => (router.canGoBack() ? router.back() : router.replace("/thiet-lap/app"));
   return (
-    <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} ic="khien" />} />}
-      day={<Nut chu="Xong" rong bam={() => (router.canGoBack() ? router.back() : router.replace("/thiet-lap/app"))} />}>
-      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, color: M.chu }}>{`Thêm app\ncho ${ten}`}</Text>
-      <View style={{ borderRadius: 26, backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf3dc, #fbe9b8)", padding: 16, gap: 10, ...KHOI.the }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="tim_kiem" co={20} /><Chu kieu="rat" co={14.5} mau={M.chu2}>Gõ tên app trên máy con</Chu></View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, borderRadius: 26, backgroundColor: "#fffaf0", boxShadow: BONG.lom, paddingLeft: 16, paddingRight: 6 }}>
-          <Text style={{ fontSize: 16 }}>🔍</Text>
-          <TextInput value={go} onChangeText={setGo} autoFocus placeholder="Duolingo, Zoom, Khan Academy…" placeholderTextColor={M.chu3} accessibilityLabel="Tên app" autoCorrect={false}
-            style={{ flex: 1, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 10, outlineStyle: "none" } as never} />
-          {go ? <Pressable onPress={() => setGo("")} accessibilityRole="button" hitSlop={6} style={{ minHeight: 40, paddingHorizontal: 10, justifyContent: "center" }}>
-            <Chu kieu="rat" co={13} mau={M.chinhInk}>Xoá</Chu></Pressable> : null}
-        </View>
-        {dang && co(dang) ? <HoiNhom ten={dang} nhom={nhomCua(tinhCua(dang))} doi={(n) => datNhom(dang, n === "tinh_phut")} /> : null}
-      </View>
+    <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} />} />}
+      day={<Nut chu={chot ? `Thêm ${chot} · ${TEN_NHOM[nhomCua(tinhCua(chot))]}` : "Xong"} rong bam={ve} />}>
+      <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 22, lineHeight: 28, letterSpacing: -0.4, color: M.chu, marginLeft: 4 }}>{`Thêm app cho ${ten}`}</Text>
+      <OTim gia={go} doi={setGo} khongKinh nhan="Tên app" goiY="Duolingo, Zoom, Khan Academy…" />
       {k ? (
         <>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 }}>
-            <Chu kieu="rat" co={16} style={{ flex: 1 }}>Kết quả</Chu><Chu kieu="dam" co={13} mau={M.chu3}>{ds.length}</Chu>
-          </View>
-          <TheDs>{ds.map((x, i) => <DongKetQua key={x.ten} dau={!i} e={x.e} ten={x.ten} phu={x.phu} da={co(x.ten)} nhom={nhomCua(tinhCua(x.ten))} bam={() => doi(x)} />)}</TheDs>
+          <Chu kieu="dam" co={14} mau={M.chu2} style={{ marginHorizontal: 6 }}>Kết quả cho <Chu kieu="rat" co={14}>{`«${go.trim()}»`}</Chu></Chu>
+          <TheDs le>{ds.map((x, i) => (
+            <DongKetQua key={x.ten} dau={!i} e={x.e} ten={x.ten} phu={x.phu} da={co(x.ten)} bam={() => doi(x)}>
+              {chot === x.ten ? <HoiNhom ten={x.ten} nhom={nhomCua(tinhCua(x.ten))} doi={(n) => datNhom(x.ten, n === "tinh_phut")} /> : null}
+            </DongKetQua>
+          ))}</TheDs>
         </>
       ) : null}
-      <Chu co={13} mau={M.chu2} style={{ paddingHorizontal: 4 }}>
-        Không thấy? Gõ <Chu kieu="rat" co={13}>đúng tên app</Chu> như trên máy con. App <Chu kieu="rat" co={13} mau={M.chinhInk}>Tính phút</Chu>: 1 sao = 1 phút.
-      </Chu>
     </Man>
   );
 }

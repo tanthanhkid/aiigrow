@@ -618,12 +618,28 @@ if (process.argv.includes("--giao-dien")) {
     // máy chủ báo bật Google / Facebook (nút chỉ hiện khi bản dựng có EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID / EXPO_PUBLIC_FACEBOOK_APP_ID — bm1-chao)
     M("bm-tao-tai-khoan", "/tao-tai-khoan", "Tạo tài khoản", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } } }),
     M("bm-ob-con", "/thiet-lap/ten-con", "Tên gọi ở nhà"),
+    // đúng ca bàn bm1-ob-ten-con v20: đã gõ tên «Bảo Anh», PIN gõ 2 số
+    M("bm-ob-con (đã điền · bm1-ob-ten-con)", "/thiet-lap/ten-con", "Lưu hồ sơ Bảo Anh", { truoc: async () => { await diTl("/thiet-lap/ten-con")(); await doi("Tên gọi ở nhà");
+      await go("Tên gọi ở nhà", "Bảo Anh"); await go("Đặt PIN 4 số", "25"); } }),
+    M("bm-ob-con (bảng năm sinh · them-hjjdppuw)", "/thiet-lap/ten-con", "Chọn 20", { truoc: async () => { await diTl("/thiet-lap/ten-con")(); await doi("Tên gọi ở nhà");
+      await nhanChuot(await viTriYen(`() => document.querySelector('[aria-label^="Chọn năm sinh của con"]')`)); } }),
+    M("bm-ob-qua (them-s416tfdj)", "/thiet-lap/qua", "Voucher AiiCafe", { truoc: diTl("/thiet-lap/qua") }),
+    M("bm-ob-qua (Ba Mẹ tự điền · them-x9x2u07e)", "/thiet-lap/qua", "Quà Ba Mẹ đã điền", { truoc: async () => { await diTl("/thiet-lap/qua")(); await doi("Voucher AiiCafe");
+      await bam("✏️ Ba Mẹ tự điền"); } }),
+    M("bm-ob-qua-mua (them-hn2754ce)", "/thiet-lap/qua-mua?ma=cafe50", "Số lượng", { truoc: diTl("/thiet-lap/qua-mua?ma=cafe50") }),
     M("bm-ob-gio", "/thiet-lap/gio", "Quà khởi đầu cho con", { truoc: diTl("/thiet-lap/gio") }),
     M("bm-ob-app", "/thiet-lap/app", "Google Classroom", { truoc: diTl("/thiet-lap/app") }),
     M("bm-ob-app (mở hết)", "/thiet-lap/app", "Tiếp: ghép máy của con", { truoc: async () => { await diTl("/thiet-lap/app")(); await doi("Theo danh sách"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="radio"][aria-label^="Mở hết"]')`)); } }),
-    M("bm-ob-them-app", "/thiet-lap/them-app", "Gõ tên app", { truoc: diTl("/thiet-lap/them-app") }),
+    M("bm-ob-them-app", "/thiet-lap/them-app", "Thêm app cho", { truoc: diTl("/thiet-lap/them-app") }),
+    // them-at57ypdc v5: gõ «Duolingo» ⇒ chạm dòng ⇒ hỏi nhóm ngay dưới dòng, nút đáy «Thêm Duolingo · Không tính phút»
+    M("bm-ob-them-app (đã chọn · them-at57ypdc)", "/thiet-lap/them-app", "Duolingo có tính phút không?", { truoc: async () => { await diTl("/thiet-lap/them-app")();
+      await doi("Thêm app cho"); await go("Tên app", "Duolingo"); await doi("Kết quả cho");
+      await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"][aria-label="Duolingo"]')`)); } }),
     M("bm-ob-web", "/thiet-lap/web", "vioedu.vn", { truoc: diTl("/thiet-lap/web") }),
-    M("bm-ob-them-web", "/thiet-lap/them-web", "Gõ tên hoặc dán link", { truoc: diTl("/thiet-lap/them-web") }),
+    M("bm-ob-them-web", "/thiet-lap/them-web", "Thêm web cho", { truoc: diTl("/thiet-lap/them-web") }),
+    M("bm-ob-them-web (đã chọn · them-ubomxl31)", "/thiet-lap/them-web", "có tính phút không?", { truoc: async () => { await diTl("/thiet-lap/them-web")();
+      await doi("Thêm web cho"); await go("Tên hoặc link trang web", "khanacademy.org"); await doi("Kết quả cho");
+      await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"][aria-label="khanacademy.org"]')`)); } }),
     M("bm-ob-ghep", "/thiet-lap/ghep", "quét mã này", { truoc: diTl("/thiet-lap/ghep") }),
     M("bm-ob-cho", "/thiet-lap/cho?ma=482017&con=c1", "482"),
     M("bm-ob-da-ghep", "/thiet-lap/da-ghep?con=c1&may=m1", "đã ghép!"),

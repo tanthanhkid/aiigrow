@@ -107,7 +107,7 @@ function ThemViecRieng({ mo, dong, con, xong }: { mo: boolean; dong: () => void;
     xong(t);
   });
   return (
-    <BangTruot mo={mo} dong={dong} tieu="Ba Mẹ tự thêm" cuon gon chan={<>
+    <BangTruot mo={mo} dong={dong} tieu="Ba Mẹ tự thêm" nutDong cuon gon chan={<>
       <BaoLoi loi={loi} />
       <Nut chu="Thêm vào mục đã chọn" rong dangChay={dangChay} tat={!ten.trim()} bam={luu} />
     </>}>
@@ -132,7 +132,8 @@ function ThemViecRieng({ mo, dong, con, xong }: { mo: boolean; dong: () => void;
       <Chu kieu="rat" co={15}>Con nhận</Chu>
       <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
         {SAO.map((s) => <Pressable key={s} onPress={() => setSao(s)} accessibilityRole="radio" accessibilityState={{ checked: sao === s }} accessibilityLabel={`${s} sao`} style={[oChon(sao === s), { flex: 1 }]}>
-          <Icon3D ten="sao" co={18} /><Chu kieu="rat" co={14} so>{s}</Chu></Pressable>)}
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingLeft: 4, paddingRight: 8, paddingVertical: 3, borderRadius: 12, backgroundColor: "#fbecc0" }}>
+            <Icon3D ten="sao" co={18} /><Chu kieu="rat" co={13.5} mau="#6e4300" so>{s}</Chu></View></Pressable>)}
       </View>
       <Chu kieu="rat" co={15}>Con nộp bằng</Chu>
       <TheDs>

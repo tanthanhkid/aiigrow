@@ -400,7 +400,7 @@ export function BanhXe({ ds, gia, doi, nhan }: { ds: string[]; gia: string; doi:
         {ds.map((x) => (
           <Pressable key={x} onPress={() => { doi(x); ref.current?.scrollTo({ y: ds.indexOf(x) * CAO_O, animated: true }); }} accessibilityRole="button" accessibilityLabel={`${nhan} ${x}`}
             style={{ height: CAO_O, alignItems: "center", justifyContent: "center" }}>
-            <Chu kieu={x === gia ? "rat" : "dam"} co={x === gia ? 26 : 19} mau={x === gia ? M.chu : M.chu3} so>{x}</Chu>
+            <Chu kieu={x === gia ? "rat" : "dam"} co={x === gia ? 26 : 19} mau={x === gia ? M.chinhInk : M.chu3} so>{x}</Chu>
           </Pressable>
         ))}
       </ScrollView>

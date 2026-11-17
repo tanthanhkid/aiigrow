@@ -9,16 +9,17 @@ import { Chu, Icon, Icon3D, M, Nhan, NhanMen, type TenIcon } from "./ui";
 // ---------------------------------------------------------------- thanh 5 bước Lần đầu (Con → Nhiệm vụ → Quà → Giờ → Máy)
 
 const BUOC5: { ic: TenIcon; ten: string }[] = [
-  { ic: "nguoi", ten: "Con" }, { ic: "sao", ten: "Nhiệm vụ" }, { ic: "qua", ten: "Quà" }, { ic: "dongho", ten: "Giờ" }, { ic: "may_tinh", ten: "Máy" },
+  { ic: "tick", ten: "Con" }, { ic: "sao", ten: "Nhiệm vụ" }, { ic: "qua", ten: "Quà" }, { ic: "dongho", ten: "Giờ" }, { ic: "may_tinh", ten: "Máy" },
 ];
-/** Thanh tiến độ 5 chấm (bm1-ob-ten-con … them-z8femhpg, 06/11): bước xong có tick, bước đang làm viền ngọc. */
-export function ThanhBuoc5({ dang, ic }: { dang: number; /** đổi icon bước đang làm (vd «khien» ở màn Chọn app) */ ic?: TenIcon }) {
+/** Thanh tiến độ 5 chấm (bàn .buoc — bm1-ob-ten-con v20 … them-mdujxlg2 v12): mỗi bước giữ icon riêng (tick · sao · quà · đồng hồ · máy tính),
+ *  bước xong icon rõ, bước chưa tới icon mờ, bước đang làm nền ngọc nhạt viền ngọc. Ô 30, cách 8, icon 17. */
+export function ThanhBuoc5({ dang }: { dang: number }) {
   return (
-    <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang + 1} trên 5: ${BUOC5[dang]?.ten ?? ""}`}>
+    <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang + 1} trên 5: ${BUOC5[dang]?.ten ?? ""}`}>
       {BUOC5.map((b, i) => (
-        <View key={b.ten} style={[{ width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
+        <View key={b.ten} style={[{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
           i === dang ? { backgroundColor: "#dcebe6", boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` } : { backgroundColor: "#e6e5e1", boxShadow: BONG.lom }]}>
-          <View style={{ opacity: i <= dang ? 1 : 0.45 }}><Icon3D ten={i < dang ? "tick" : i === dang && ic ? ic : b.ic} co={19} /></View>
+          <View style={{ opacity: i <= dang ? 1 : 0.45 }}><Icon3D ten={b.ic} co={17} /></View>
         </View>
       ))}
     </View>

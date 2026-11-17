@@ -90,10 +90,11 @@ export function DauMuc({ ic, anh, tieu, phu }: { ic: TenIcon; anh?: string | nul
 }
 
 /** Ô tìm lõm (.tim) — gõ trước, kết quả hiện bên dưới; nút ✕ xoá chữ. */
-export function OTim({ gia, doi, goiY, nhan, url }: { gia: string; doi: (t: string) => void; goiY: string; nhan: string; url?: boolean }) {
+export function OTim({ gia, doi, goiY, nhan, url, khongKinh }: { gia: string; doi: (t: string) => void; goiY: string; nhan: string; url?: boolean;
+  /** bỏ kính lúp (bàn Lần đầu them-at57ypdc / them-ubomxl31: ô tìm chỉ có chữ + «✕») */ khongKinh?: boolean }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, paddingLeft: 18, paddingRight: 4, borderRadius: 26, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
-      <Icon ten="tim_kiem" mau={M.chu3} co={18} />
+      {khongKinh ? null : <Icon ten="tim_kiem" mau={M.chu3} co={18} />}
       <TextInput value={gia} onChangeText={doi} placeholder={goiY} placeholderTextColor={M.chu3} autoCapitalize="none" autoCorrect={false} autoFocus
         keyboardType={url ? "url" : "default"} accessibilityLabel={nhan} style={{ flex: 1, minWidth: 0, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 12 }} />
       {gia ? (

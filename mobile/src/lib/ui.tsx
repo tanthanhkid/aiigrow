@@ -540,7 +540,8 @@ function NutChat() {
 }
 
 /** Bảng trượt từ đáy (kit .phu + .bang-truot): nền phía sau tối mờ, bấm nền để đóng. */
-export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, chan, cuon, gon }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
+export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, chan, cuon, gon, nutDong }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
+  /** chữ «Đóng» cùng hàng tiêu đề, bên phải (bàn them-bwlkjyw5 v15 `.dong`) */ nutDong?: boolean;
   /** khối đứng TRÊN tiêu đề (vd ô hình to của bảng «Trao quà») */ dauBang?: ReactNode; /** tiêu đề canh giữa */ giua?: boolean;
   /** thiết kế 14/11 .sheet .hinh: ô ngọc nhạt 76 bo 26 + icon 3D 48 giữa, tiêu đề 23/800 canh giữa */ hinh?: TenIcon;
   /** #306: bảng NHIỀU ô — cao tối đa 95% màn hình (co lại khi bàn phím mở), nội dung cuộn trong bảng. Mặc định tắt: bố cục như cũ (không lồng cuộn với bánh xe…). */ cuon?: boolean;
@@ -554,7 +555,14 @@ export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, chan,
         <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: "#e2efea",
           backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", ...KHOI.the }}><Icon3D ten={hinh} co={48} /></View>
       ) : null}
-      <Chu kieu="rat" co={hinh ? 23 : 21} style={[{ marginTop: 4, letterSpacing: -0.4 }, (giua || hinh) && { textAlign: "center" }]}>{tieu}</Chu>
+      {nutDong ? (
+        <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>
+          <Chu kieu="rat" co={21} style={{ flex: 1, letterSpacing: -0.4 }}>{tieu}</Chu>
+          <Pressable onPress={dong} accessibilityRole="button" hitSlop={6} style={{ minHeight: 44, paddingHorizontal: 4, justifyContent: "center" }}>
+            <Chu kieu="rat" co={15} mau={M.chinhInk}>Đóng</Chu>
+          </Pressable>
+        </View>
+      ) : <Chu kieu="rat" co={hinh ? 23 : 21} style={[{ marginTop: 4, letterSpacing: -0.4 }, (giua || hinh) && { textAlign: "center" }]}>{tieu}</Chu>}
     </>
   );
   return (

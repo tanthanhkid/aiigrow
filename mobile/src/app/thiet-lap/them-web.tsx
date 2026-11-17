@@ -1,18 +1,20 @@
-// them-ubomxl31 «Thêm web cho X» (MỚI 14/11): «Gõ tên hoặc dán link» ⇒ «Kết quả N» — trang trong danh mục khớp chữ gõ (DM_WEB) + tên miền rút
+// them-ubomxl31 «Thêm web cho X» (bàn v4, 16/11: ô tìm trơn + «Kết quả cho «…»», icon web, câu hỏi nhóm dưới dòng vừa thêm, nút đáy «Thêm <trang> · <nhóm>»).
+// Trước đó (MỚI 14/11): «Gõ tên hoặc dán link» ⇒ «Kết quả N» — trang trong danh mục khớp chữ gõ (DM_WEB) + tên miền rút
 // từ link Ba Mẹ dán (https://www.khanacademy.org/math ⇒ khanacademy.org) khi chưa có trong danh mục; ＋ / «✓ Đã thêm». «Xong» ⇒ về Web cho X.
 // 15/11 (#262): trang vừa thêm ⇒ hỏi «<trang> có tính phút không?» (Không tính phút | Tính phút), dòng đã thêm hiện «✓ <nhóm>». Trang ngoài danh mục
 // mặc định «Tính phút». Mọi trang con của tên miền theo cùng nhóm (máy chủ khớp tên miền con).
 import { useState } from "react";
 import { router } from "expo-router";
-import { Pressable, Text, TextInput, View } from "react-native";
-import { BONG, KHOI } from "@/lib/clay";
+import { Text } from "react-native";
 import { DM_WEB } from "@/lib/danh-muc-lan-dau";
 import { DauMan } from "@/lib/lan-dau";
 import { boDau, DongKetQua, HoiNhom, tenMien, TheDs, tinhGioDm, WEB_TOI_DA } from "@/lib/lan-dau-ds";
+import { TEN_NHOM } from "@/lib/app-web-chu";
+import { OTim } from "@/lib/ui-bm3";
 import { bm } from "@/lib/api";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { datTl, layTl, nhomCua, type WebChon } from "@/lib/thiet-lap";
-import { BaoLoi, Chu, F, Icon3D, M, Man, Nut, useLam } from "@/lib/ui";
+import { BaoLoi, Chu, F, M, Man, Nut, useLam } from "@/lib/ui";
 
 export default function ThemWeb() {
   const ten = layTl().tenCon ?? "con";
@@ -43,34 +45,24 @@ export default function ThemWeb() {
       if (!cu.some((w) => w.muc === r.muc)) ghi([...cu, { muc: r.muc, tinhGio: x.tinhGio }]);
     });
   };
+  const ve = () => (router.canGoBack() ? router.back() : router.replace("/thiet-lap/web"));
   return (
-    <Man dau={<DauMan ve="/thiet-lap/web" phai={<ThanhBuoc5 dang={4} ic="khien" />} />}
-      day={<Nut chu="Xong" rong bam={() => (router.canGoBack() ? router.back() : router.replace("/thiet-lap/web"))} />}>
-      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, color: M.chu }}>{`Thêm web\ncho ${ten}`}</Text>
-      <View style={{ borderRadius: 26, backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf3dc, #fbe9b8)", padding: 16, gap: 10, ...KHOI.the }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="web" co={20} /><Chu kieu="rat" co={14.5} mau={M.chu2}>Gõ tên hoặc dán link</Chu></View>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, borderRadius: 26, backgroundColor: "#fffaf0", boxShadow: BONG.lom, paddingLeft: 16, paddingRight: 6 }}>
-          <Text style={{ fontSize: 16 }}>🔍</Text>
-          <TextInput value={go} onChangeText={setGo} autoFocus placeholder="khanacademy, olm.vn…" placeholderTextColor={M.chu3} accessibilityLabel="Tên hoặc link trang web"
-            autoCorrect={false} autoCapitalize="none" keyboardType="url" style={{ flex: 1, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 10, outlineStyle: "none" } as never} />
-          {go ? <Pressable onPress={() => setGo("")} accessibilityRole="button" hitSlop={6} style={{ minHeight: 40, paddingHorizontal: 10, justifyContent: "center" }}>
-            <Chu kieu="rat" co={13} mau={M.chinhInk}>Xoá</Chu></Pressable> : null}
-        </View>
-        {dang ? <HoiNhom ten={dang} nhom={nhomCua(tinhCua(dang))} doi={(n) => ghi(webs.map((w) => (w.muc === dang ? { ...w, tinhGio: n === "tinh_phut" } : w)))} /> : null}
-      </View>
+    <Man dau={<DauMan ve="/thiet-lap/web" phai={<ThanhBuoc5 dang={4} />} />}
+      day={<Nut chu={dang ? `Thêm ${dang} · ${TEN_NHOM[nhomCua(tinhCua(dang))]}` : "Xong"} rong bam={ve} />}>
+      <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 22, lineHeight: 28, letterSpacing: -0.4, color: M.chu, marginLeft: 4 }}>{`Thêm web cho ${ten}`}</Text>
+      <OTim gia={go} doi={setGo} khongKinh nhan="Tên hoặc link trang web" goiY="Gõ tên hoặc dán link" url />
       <BaoLoi loi={loi} />
       {k ? (
         <>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4 }}>
-            <Chu kieu="rat" co={16} style={{ flex: 1 }}>Kết quả</Chu><Chu kieu="dam" co={13} mau={M.chu3}>{ds.length}</Chu>
-          </View>
-          {ds.length ? <TheDs>{ds.map((x, i) => <DongKetQua key={x.muc} dau={!i} e={x.e} ten={x.muc} phu={x.phu} da={co(x.muc)} nhom={nhomCua(tinhCua(x.muc))} bam={() => doi(x)} />)}</TheDs>
+          <Chu kieu="dam" co={14} mau={M.chu2} style={{ marginHorizontal: 6 }}>Kết quả cho <Chu kieu="rat" co={14}>{`«${go.trim()}»`}</Chu></Chu>
+          {ds.length ? <TheDs le>{ds.map((x, i) => (
+            <DongKetQua key={x.muc} dau={!i} ic="web" ten={x.muc} phu={x.phu} da={co(x.muc)} bam={() => doi(x)}>
+              {dang === x.muc ? <HoiNhom ten={x.muc} nhom={nhomCua(tinhCua(x.muc))} doi={(n) => ghi(webs.map((w) => (w.muc === x.muc ? { ...w, tinhGio: n === "tinh_phut" } : w)))} /> : null}
+            </DongKetQua>
+          ))}</TheDs>
             : <Chu co={13} mau={M.chu2} style={{ paddingHorizontal: 4 }}>Chưa thấy trang nào. Gõ đủ tên miền, ví dụ olm.vn.</Chu>}
         </>
       ) : null}
-      <Chu co={13} mau={M.chu2} style={{ paddingHorizontal: 4 }}>
-        Dán được cả đường link, ví dụ <Chu kieu="rat" co={13}>https://khanacademy.org</Chu>. Mọi trang con trong web đó theo cùng nhóm. Web <Chu kieu="rat" co={13} mau={M.chinhInk}>Tính phút</Chu>: 1 sao = 1 phút.
-      </Chu>
     </Man>
   );
 }
