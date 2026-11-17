@@ -138,7 +138,7 @@ export function ChonO<T extends string | number>({ ds, chon, doi, sao }: { ds: {
         return (
           <Pressable key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={x.nhan ?? (sao ? `${x.chu} sao` : x.chu)}
             style={[{ flexGrow: 1, minWidth: 64, minHeight: 44, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 10 },
-              on ? { backgroundColor: M.chinhSoft, borderWidth: 2, borderColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
+              on ? { backgroundColor: M.chonSoft, borderWidth: 2, borderColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
             {sao ? <Icon3D ten="sao" co={18} /> : x.ic ? <Icon3D ten={x.ic} co={18} /> : null}
             <Chu kieu="rat" co={14.5} mau={on ? M.chinhInk : M.chu}>{x.chu}</Chu>
           </Pressable>

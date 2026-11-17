@@ -14,7 +14,7 @@ import Animated, { FadeIn, FadeOut, FadeOutDown, useReducedMotion } from "react-
 import Svg, { parse, Path, SvgAst } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ICON from "./icon.json";
-import { BO, F, M } from "./mau";
+import { BO, F, M, MAU_HO_SO } from "./mau";
 import { BONG, BO_CLAY, KHOI, KHOI_HERO, MEN, HERO } from "./clay";
 import { ICON_3D, co3D } from "./icon-3d";
 import { LopMen, NhanMen, vaoLanLuot } from "./chuyen-dong";
@@ -151,12 +151,12 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
 }) {
   const m = MAU_NUT[loai];
   const mo = tat || dangChay;
-  const chuMau = tat ? M.chu2 : m.chu;
+  const chuMau = tat ? M.chu3 : m.chu;
   return (
     <NhanMen onPress={bam} disabled={mo} accessibilityRole="button" muc="nut" sang={m.sang || !!tat} men={tat ? undefined : m.men}
       accessibilityLabel={nhanDoc ?? chu} accessibilityState={{ disabled: !!mo, busy: !!dangChay }}
       style={[s.nut, nho && s.nutNho, sat && { paddingHorizontal: 12 }, rong ? { alignSelf: "stretch" } : { flexGrow: 1, flexShrink: 1 }, { maxWidth: "100%", minWidth: 0 },
-        tat ? { backgroundColor: "#DDD3C6", opacity: 0.55 } : { backgroundColor: m.nen, boxShadow: m.bong }]}>
+        tat ? { backgroundColor: M.tatNen } : { backgroundColor: m.nen, boxShadow: m.bong }]}>
       {dangChay ? <ActivityIndicator color={m.chu} /> : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%" }}>
           {ic ? (ic3d && !tat ? <Icon3D ten={ic} co={nho ? 20 : 22} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
@@ -248,8 +248,8 @@ export const chuTren = (nen: string) => {
   const l = doSang(nen);
   return 1.05 / (l + 0.05) >= (l + 0.05) / (doSang(M.chu) + 0.05) ? "#ffffff" : M.chu;
 };
-// màu avatar con theo bàn Navy (.av.a/.m/.n/.k): cam, lam, tím, lục — rồi hai màu cũ cho con thứ 5–6
-export const MAU_CON = ["#E8600C", "#1F48FF", "#9b2fc0", "#0c7a5c", "#b45309", "#be185d"];
+// màu avatar con: sinh từ MAU_HO_SO[i][2] (tông đậm của bảng màu hồ sơ) ⇒ avatar không lệch màu đã chọn ở hồ sơ
+export const MAU_CON = MAU_HO_SO.map((x) => x[2]);
 export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44, con, anh, chon }: { ten: string; mau?: string; co?: number;
   /** đang chọn (dải con): vòng vàng ngoài (vẽ bằng bóng ⇒ không đổi kích thước) */ chon?: boolean; /** Con có ảnh đại diện (#302) ⇒ hiện ảnh thay chữ cái */ con?: { id?: string | null; avatar?: string | null } | null; /** ảnh vừa chọn, chưa lưu */ anh?: string | null }) {
   const daLuu = useAnhCon(con);
@@ -296,7 +296,7 @@ export function Dong({ tieu, phu, trai, phai, bam, dau, nguyHiem }: { tieu: stri
 export function OChon({ chon, bam, trai, tieu, phu }: { chon: boolean; bam: () => void; trai?: ReactNode; tieu: string; phu?: string }) {
   return (
     <NhanMen onPress={bam} accessibilityRole="radio" accessibilityState={{ checked: chon }} muc="khoi" sang men={chon ? undefined : MEN.sang}
-      style={[s.oChon, chon && { borderColor: M.chinh, backgroundColor: M.chinhSoft }]}>
+      style={[s.oChon, chon && { borderColor: M.chinh, backgroundColor: M.chonSoft }]}>
       {trai}
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15.5}>{tieu}</Chu>

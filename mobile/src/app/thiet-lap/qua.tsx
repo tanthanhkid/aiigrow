@@ -96,7 +96,7 @@ function TabTuDien({ con, guiCham }: { con?: string; guiCham: (chu: string, lam:
     await tai();
   });
   const oChon = (on: boolean) => ({ minHeight: 40, borderRadius: 20, paddingHorizontal: 12, alignItems: "center" as const, justifyContent: "center" as const, flexDirection: "row" as const, gap: 4,
-    backgroundColor: on ? M.chinhSoft : M.xamSoft, boxShadow: on ? `0px 0px 0px 2px ${M.chinh}` : BONG.lom });
+    backgroundColor: on ? M.chonSoft : M.xamSoft, boxShadow: on ? `0px 0px 0px 2px ${M.chinh}` : BONG.lom });
   return (
     <>
       <Chu co={14} mau={M.chu2}>Quà ở nhà Ba Mẹ tự lo, không tốn tiền trong app. Điền tên quà và số sao con cần để đổi.</Chu>

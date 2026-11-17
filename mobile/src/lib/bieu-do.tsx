@@ -61,7 +61,7 @@ export function CotClay({ ds, max, kieu = "doi", cao = 120, chon = null, bam, ta
         const dangChon = chon === i, mo = !!bam && chon !== null && chon !== undefined && !dangChon;
         const noi = (
           <>
-            <View style={[s.ranh, { height: cao }, dangChon && { backgroundColor: M.chinhSoft }, mo && { opacity: 0.45 }]}>
+            <View style={[s.ranh, { height: cao }, dangChon && { backgroundColor: M.chonSoft }, mo && { opacity: 0.45 }]}>
               {kieu === "chong"
                 ? <Cot thu={i} cao={Math.min(1, tongCot(x) / dinh) * dai} phan={phanChong(x)} giam={giam} />
                 : x.phan.map((p, k) => <Cot key={k} thu={i} cao={Math.min(1, p.gia / dinh) * dai} phan={[p]} giam={giam} />)}

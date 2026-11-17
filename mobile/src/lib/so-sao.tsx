@@ -75,12 +75,12 @@ export function VienSao({ s, n, nho, chu }: { s?: SaoCon; n?: number; nho?: bool
 
 /** Số sao lớn ở thẻ con (Trang chủ bm2-trang-chu, Hồ sơ con): viên «⭐ 30 sao» / «⭐ −20 sao» (26/800) hoặc «còn N sao = N phút chơi» + dòng nợ. */
 export function SoSaoLon({ s, co = 26, bamNo, toi }: { s: SaoCon; co?: number; bamNo?: () => void;
-  /** nằm trên thẻ hero navy (bàn Navy .so .am): viên trắng mờ 10%, chữ trắng, dòng nợ vàng mật */ toi?: boolean }) {
-  const k = kieuSao(s), m = toi ? { nen: HERO.vien, chu: HERO.chu } : k === "am" ? CANH : VANG, no = cauNo(s), mauNo = toi ? HERO.phu : CANH.chu;
+  /** nằm trên thẻ hero navy: số sao vàng mật HERO.phu (kể cả `vay`, còn sao tiêu được), CHỈ `am` (nợ, số âm) và dòng «Đang nợ …» cam san hô M.noHero; viên `am` nền trắng mờ 10% */ toi?: boolean }) {
+  const k = kieuSao(s), m = toi ? { nen: HERO.vien, chu: HERO.chu } : k === "am" ? CANH : VANG, no = cauNo(s), mauNo = toi ? M.noHero : CANH.chu;
   return (
     <View style={{ gap: 6, alignItems: "flex-start" }}>
       {k === "vay" ? (
-        <Chu kieu="tieu7" co={co} so mau={toi ? M.noHero : undefined} style={{ letterSpacing: -0.6 }}>{soChinh(s)}</Chu>
+        <Chu kieu="tieu7" co={co} so mau={toi ? HERO.phu : undefined} style={{ letterSpacing: -0.6 }}>{soChinh(s)}</Chu>
       ) : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: m.nen,
           boxShadow: toi ? undefined : k === "am" ? "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(138,60,12,.18)" : "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(110,67,0,.16)" }}

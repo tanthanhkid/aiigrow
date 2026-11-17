@@ -78,7 +78,7 @@ export default function TabNhiemVu() {
       {d.g.con.length > 1 ? <DaiCon ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={c.id} doi={(x) => setChon(x.id)} so={soCho}
         duoi={Object.fromEntries(d.g.con.map((x) => [x.id, <VienSao key={x.id} s={saoTu(x)} nho />]))} /> : null}
 
-      {/* bàn Navy 17/11 .vi: thẻ hero navy, số sao vàng mật, viên vàng (cả khi có sao lẫn khi nợ) — «<Con> đang có» · ⭐ 30 sao (40/800) · viên trắng «= 30 phút chơi ›»; đang nợ ⇒ thẻ cảnh báo «<Con> đang nợ Ba Mẹ 20 sao» */}
+      {/* Thẻ hero navy (bàn Navy 17/11 .vi, Ánh kim): «<Con> đang có» · ⭐ 30 sao (Fraunces 40) vàng mật khi chưa nợ / còn sao vay (`vay`); đang nợ hết sao (`am`) ⇒ tiêu đề «<Con> đang nợ Ba Mẹ 20 sao» và số + chữ «sao» cam san hô M.noHero. Viên bấm luôn vàng M.diem chữ navy: «= 30 phút chơi ›» khi chưa nợ, còn lại «Duyệt … việc chờ …» / «Xem ví sao ›». */}
       {anVi ? null : <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${ten}: ${soChinh(ss)}`}
         style={[{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 28, overflow: "hidden" },
           KHOI_HERO]}>
@@ -87,7 +87,7 @@ export default function TabNhiemVu() {
           {k === "thuong" ? `${ten} đang có` : `${ten} đang nợ Ba Mẹ ${soVN(ss.no)} sao`}</Chu>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, marginRight: 100 }}>
           <Icon3D ten="sao" co={38} />
-          {k === "vay" ? <Chu kieu="rat" co={20} mau={M.noHero} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
+          {k === "vay" ? <Chu kieu="rat" co={20} mau={HERO.phu} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
             <Chu kieu="tieu7" co={40} so mau={k === "am" ? M.noHero : HERO.phu} style={{ lineHeight: 46, letterSpacing: -1 }}>{soVN(k === "am" ? -ss.no : sao)}</Chu>
             <Chu kieu="rat" co={18} mau={k === "am" ? M.noHero : HERO.phu} style={{ marginTop: 8 }}>sao</Chu>
           </>}

@@ -13,8 +13,9 @@ export const BONG = {
   nho: "4px 4px 9px rgba(120,98,70,0.28), -4px -4px 9px #FFFBF5",
   /** lõm: hai bóng inset (ô nhập, rãnh tiến độ, nút phụ, ô đang chọn) */
   lom: "inset 4px 4px 8px rgba(120,98,70,0.28), inset -4px -4px 8px #FFFBF5",
-  /** khối navy (nút / chip / toast tối): bóng nâu xuống-phải + sáng kem lên-trái, viền trong vàng mảnh */
-  toi: "4px 4px 10px rgba(120,98,70,0.32), -4px -4px 10px #FFFBF5, inset 0px 0px 0px 1px rgba(244,199,106,0.35)",
+  /** khối TỐI đặc (toast, bảng mạng, nút xoá đỏ): bóng navy đậm hơn xuống-phải + sáng kem lên-trái, chỉ sáng mép trên (không viền vàng) */
+  toi: "5px 6px 14px rgba(10,22,41,0.34), -4px -4px 10px #FFFBF5, inset 0px 1px 0px rgba(255,255,255,0.14)",
+  /** ô nhấn navy đang bật (chip / nút «Duyệt» / viên tick): như `toi` nhưng bóng nâu ấm của E + viền trong vàng mảnh */
   ngoc: "4px 4px 10px rgba(120,98,70,0.32), -4px -4px 10px #FFFBF5, inset 0px 0px 0px 1px rgba(244,199,106,0.35)",
   /** vàng kim: nổi đôi + chỉ sáng mép trên (mẫu E `.nut`) */
   vang: "4px 4px 10px rgba(120,98,70,0.28), -4px -4px 10px #FFFBF5, inset 0px 1px 0px rgba(255,255,255,0.6)",
@@ -35,7 +36,8 @@ export const MEN = {
   vien: "radial-gradient(60% 34% at 50% 18%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%)",
   /** nút tối than chì — kẹo bọc đường: mảng men cắt sắc ở 1/4 trên */
   toi: "linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 24%, rgba(255,255,255,0) 26%), radial-gradient(60% 40% at 50% 105%, rgba(120,140,190,0.30) 0%, rgba(0,0,0,0) 100%), linear-gradient(180deg, #1b2b47 0%, #0A1629 100%)",
-  ngoc: "linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.08) 24%, rgba(255,255,255,0) 26%), radial-gradient(60% 40% at 50% 105%, rgba(126,217,87,0.4) 0%, rgba(0,0,0,0) 100%), linear-gradient(180deg, #0A1629 0%, #0A1629 100%)",
+  /** nút / chip navy đang bật: mảng men trên + quầng vàng kim ở đáy (tông E, không còn quầng ô liu) */
+  ngoc: "linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.08) 24%, rgba(255,255,255,0) 26%), radial-gradient(60% 40% at 50% 105%, rgba(244,199,106,0.22) 0%, rgba(0,0,0,0) 100%), linear-gradient(180deg, #0A1629 0%, #0A1629 100%)",
   /** vàng kim loại (mẫu E `--kim`) */
   vang: "linear-gradient(135deg, #FBE7B0 0%, #F4C76A 38%, #C9973B 72%, #F2D48C 100%)",
   /** huy hiệu số đỏ / thanh tiến độ: nửa trên men */

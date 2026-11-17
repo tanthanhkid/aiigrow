@@ -67,7 +67,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]
           return (
             <Pressable key={h} onPress={() => setHinh(h)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Hình ${h}`}
               style={[{ flex: 1, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-                on ? { backgroundColor: M.chinhSoft, borderWidth: 2, borderColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
+                on ? { backgroundColor: M.chonSoft, borderWidth: 2, borderColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
               <Icon3D ten={hinhNv({ hinh: h })[0]} co={30} />
             </Pressable>
           );

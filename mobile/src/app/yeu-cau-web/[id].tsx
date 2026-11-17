@@ -4,7 +4,6 @@
 //  · «Không tính phút» — thêm vào danh sách · vào thoải mái         ⇒ dong-y {nhom: khong_tinh_phut}
 //  · «Bỏ qua» — không ghi gì · con xin lại được                     ⇒ POST yeu-cau/:id/bo-qua ⇒ màn «Đã bỏ qua» (them-hppe9qh6, Hoàn tác 60 giây)
 // Người trông giúp cũng trả lời được (quyen.ts › trongGiupDuoc).
-import { MAU_NHOM } from "@/lib/app-web-chu";
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type ConChiTiet, type YeuCau } from "@/lib/api";
@@ -60,8 +59,8 @@ export default function YeuCauWeb() {
         <>
           <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6, marginTop: 8 }}>{`Thêm ${ten} cho ${tenCon}?`}</Chu>
           <View style={{ gap: 10 }}>
-            <NutQuyet loai="x" cham={MAU_NHOM.tinh_phut} chu="Tính phút" phu="Thêm vào danh sách · trả bằng sao" dangChay={dangChay} bam={() => them("tinh_phut")} />
-            <NutQuyet loai="c" cham={MAU_NHOM.khong_tinh_phut} chu="Không tính phút" phu="Thêm vào danh sách · vào thoải mái" dangChay={dangChay} bam={() => them("khong_tinh_phut")} />
+            <NutQuyet loai="x" cham={M.chamTinh} chu="Tính phút" phu="Thêm vào danh sách · trả bằng sao" dangChay={dangChay} bam={() => them("tinh_phut")} />
+            <NutQuyet loai="c" cham={M.chamKhong} chu="Không tính phút" phu="Thêm vào danh sách · vào thoải mái" dangChay={dangChay} bam={() => them("khong_tinh_phut")} />
             <NutQuyet loai="b" ic="tro_lai" chu="Bỏ qua" phu="Không ghi gì · con xin lại được" dangChay={dangChay} bam={boQua} />
           </View>
         </>

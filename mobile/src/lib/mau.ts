@@ -6,13 +6,18 @@ import { Platform } from "react-native";
 export const M = {
   // 17/11 bàn thiết kế chốt «mẫu 1 Navy» cho TOÀN BỘ màn Ba Mẹ (màn mẫu bm2-trang-chu v36, issue #363): nền kem, chữ + nút + điểm nhấn navy,
   // vàng mật CHỈ cho sao, cam cho huy hiệu số, ô liu cho «xong / đã kết nối». Phía Con KHÔNG dùng bảng này (diu.ts).
-  // Tương phản (WCAG): chu #0A1629 / nen 15,9:1 · chu3 #5a5a5a / nen 6,0:1 · trắng / chinh 17,9:1 · canh #983e04 / canhSoft 5,8:1, trên xamSoft #E3D9CB 5,0:1, trên chinhSoft #F1E2BF 5,4:1 (Ánh kim — #a84505 chỉ 4,3 trên kem lõm) · loi #b81f1f / loiSoft 5,6:1.
+  // Tương phản (WCAG): chu #0A1629 / nen 15,9:1 · chu3 #5a5a5a / nen 6,0:1 · trắng / chinh 17,9:1 · canh #983e04 / canhSoft 5,8:1, trên chinhSoft/xamSoft #E3D9CB 5,0:1, trên chonSoft #F1E2BF 5,4:1 (Ánh kim — #a84505 chỉ 4,3 trên kem lõm) · loi #b81f1f / loiSoft 5,6:1.
   // «Ánh kim» (phong cách E): neumorphism mỏng — mặt thẻ CÙNG màu nền kem #ECE4D9, nổi / lõm bằng bóng đôi (clay.ts); chữ phụ nâu ấm.
   // Tương phản trên #ECE4D9: chu 14,4 · chu2 9,0 · chu3 #5f554b 5,8 (mẫu E dùng #7c7166 chỉ 3,8 ⇒ sẫm hơn) · lienKet #7a5a1f 5,0 · canh 4,7.
-  // chinhSoft #F1E2BF (kem ánh vàng: đang chọn / ổn) PHẢI khác xamSoft #E3D9CB (trung tính / lõm) — nhiều chỗ phân biệt trạng thái bằng hai token này.
+  // chinhSoft = mặt trung tính kem lõm #E3D9CB (như trước Ánh kim). Trạng thái ĐANG CHỌN (cặp bật/tắt) dùng riêng chonSoft #F1E2BF (kem ánh vàng), không dùng chinhSoft.
   nen: "#ECE4D9", the: "#ECE4D9", vien: "#ddd2c4", vien2: "#e2d8cb", oNhap: "#8a8478",
   chu: "#0A1629", chu2: "#3a3a3a", chu3: "#5f554b",
-  chinh: "#0A1629", chinhDam: "#0A1629", chinhInk: "#0A1629", chinhSoft: "#F1E2BF", chinhSang: "#7ED957",
+  chinh: "#0A1629", chinhDam: "#0A1629", chinhInk: "#0A1629", chinhSoft: "#E3D9CB", chinhSang: "#7ED957",
+  chonSoft: "#F1E2BF",
+  // nút tắt (Nut tat): nền đặc không giảm opacity — #DDD3C6 / navy 12,3:1, chữ chu3 #5f554b / #DDD3C6 4,9:1
+  tatNen: "#DDD3C6",
+  // chấm nhóm ở nút quyết «Thêm vào danh sách» (≥3:1 trên nền nút): Tính phút cam #A94A07 / vàng #F4C76A 3,6:1 · Không tính phút ô liu #3F7D1F / kem #ECE4D9 4,0:1
+  chamTinh: "#A94A07", chamKhong: "#3F7D1F",
   // chữ liên kết / «Tất cả ›» vàng đồng sẫm (mẫu E #8a6a2b chỉ 4,0:1)
   lienKet: "#7a5a1f",
   // dấu sách trước tiêu đề mục: đồng kim (giữa dải vàng kim `MEN.vang`)
@@ -35,6 +40,11 @@ export const M = {
   // nền đầu màn (gradient 300px): Ba Mẹ phẳng kem (Ánh kim — trước là #e8ddcf → nền kem), Con Nhí vàng nhạt, Teen xanh lam xám (Con không đổi)
   dauBaMe: "#ECE4D9", dauNhi: "#fff0c7", dauTeen: "#e8ecf7",
 } as const;
+
+/** BẢNG MÀU HỒ SƠ CON DUY NHẤT (avatar «mau-<số>»): [màu chọn ở Lần đầu, nền nhạt thẻ hồ sơ, tông đậm cho avatar chữ trắng ở Hằng ngày
+ *  (bàn them-h60stad7, bm2-trang-chu `.av.a/.m/.n/.k` — đủ tương phản)]. Lần đầu / Sửa hồ sơ đọc [0][1]; lib/hang-ngay › mauCon đọc [2]. */
+export const MAU_HO_SO: [string, string, string][] = [["#f29a4a", "#fde3c8", "#E8600C"], ["#6aa3ef", "#dce9fb", "#1F48FF"], ["#ec8db2", "#fbe0ea", "#be185d"],
+  ["#5bbf95", "#d9f1e6", "#0f8a68"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];   // [2] theo bàn Navy 17/11 (.av.a/.m/.n/.k)
 
 export const BO = { nho: 12, vua: 18, the: 24 } as const;
 
