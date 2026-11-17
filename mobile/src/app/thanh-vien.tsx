@@ -17,7 +17,7 @@ import { DsBang } from "@/lib/ca-nha-ui";
 import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, OChon, useLam, useTai } from "@/lib/ui";
 
 /** Màu avatar người lớn (thiết kế .ng — cùng bảng tab Cả nhà). */
-const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#3f9a86", "#b5838d"];
+const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#7ED957", "#b5838d"];
 
 export default function ThanhVien() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -56,14 +56,14 @@ export default function ThanhVien() {
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={x.ten}>
       {/* bàn them-7vmoufz3@v8 / bm2-thanh-vien@v7: thẻ ngang — avatar 64 · tên · «Vào nhà từ 20/10» · nhãn quyền ngọc */}
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+      <View style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
         <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: MAU_NGUOI[i % MAU_NGUOI.length], alignItems: "center", justifyContent: "center" }}>
           <Chu kieu="rat" co={28} mau="#fff">{chuDau(x.ten)}</Chu>
         </View>
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Chu kieu="rat" co={17} dong={1}>{x.ten}</Chu>
-          <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}>{x.laChuNha ? "Người tạo nhà" : vao && !Number.isNaN(vao.getTime()) ? `Vào nhà từ ${vao.getDate()}/${vao.getMonth() + 1}` : "Đã vào nhà"}</Chu>
-          <View style={{ alignSelf: "flex-start", marginTop: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: "#dcebe6" }}>
+          <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{x.laChuNha ? "Người tạo nhà" : vao && !Number.isNaN(vao.getTime()) ? `Vào nhà từ ${vao.getDate()}/${vao.getMonth() + 1}` : "Đã vào nhà"}</Chu>
+          <View style={{ alignSelf: "flex-start", marginTop: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: M.chinhSoft }}>
             <Chu kieu="rat" co={12} mau={M.chinhInk}>{x.quyen === "ba_me" ? "Làm được như Ba Mẹ" : "Xem, duyệt, khoá máy"}</Chu>
           </View>
         </View>
@@ -80,7 +80,7 @@ export default function ThanhVien() {
       {/* bàn: nút trắng «🚪 Mời <tên> rời nhà» chữ đỏ ngay dưới thẻ (không ghim đáy) + dòng giải thích */}
       {roiDuoc ? <View style={{ gap: 8, marginTop: 6 }}>
         <Nut chu={`Mời ${x.ten} rời nhà`} loai="huy" ic="thoat" ic3d rong bam={() => setMo("roi")} />
-        <Chu kieu="dam" co={13} mau="#565c59" style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, không cho vay sao được nữa.`}</Chu>
+        <Chu kieu="dam" co={13} mau={M.chu3} style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, không cho vay sao được nữa.`}</Chu>
       </View> : null}
 
       <BangTruot mo={mo === "quyen"} dong={dong} tieu={`Quyền của ${x.ten}`}>
@@ -92,7 +92,7 @@ export default function ThanhVien() {
       {/* bàn them-xnbiksmr@v3: ô hình đào, câu giữa, thẻ dòng icon, nút đỏ đặc. «cho giờ» của bàn ⇒ «cho vay sao» (#265). Dòng «<tên> nhận tin đã rời nhà»
           của bàn chưa có — máy chủ chưa gửi tin cho người bị mời ra */}
       <BangTruot mo={mo === "roi"} dong={dong} tieu={`Mời ${x.ten} rời nhà?`} hinh="thoat" hinhDao>
-        <Chu kieu="dam" co={14} mau="#3a403d" style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, cho vay sao hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
+        <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, cho vay sao hay khoá máy của ${soCon ? `${soCon} con` : "các con"} nữa.`}</Chu>
         <DsBang ds={[{ ic: "gui", chu: "Muốn mời lại thì gửi lời mời mới" }]} />
         <BaoLoi loi={loiLam} />
         <Nut chu={`Mời ${x.ten} rời nhà`} loai="do" rong dangChay={dangChay} bam={roi} />

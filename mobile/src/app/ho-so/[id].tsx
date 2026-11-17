@@ -15,7 +15,7 @@ import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, 
 import { saoChep } from "@/lib/luu-tep";
 import { DaiCon } from "@/lib/ui-viec";
 import { tomTatGioiHan } from "@/lib/gioi-han";
-import { KHOI, MEN } from "@/lib/clay";
+import { KHOI, MEN, HERO } from "@/lib/clay";
 
 type Luat = { ds: LuatDem[] };
 
@@ -54,13 +54,13 @@ export default function HoSoCon() {
     <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
       {d.g.con.length > 1 ? <DaiCon ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
 
-      {/* thẻ đầu .hs: nền ngọc nhạt chuyển sắc, ảnh 56 + tên + «9 tuổi · 2 máy» + viên sao; ô «Hôm nay chơi …» nổi trắng */}
-      <View style={{ gap: 12, padding: 16, borderRadius: 28, backgroundColor: "#e2efea", backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", overflow: "hidden", ...KHOI.the }}>
+      {/* thẻ đầu .hs: hero navy (bàn Navy 17/11), ảnh 56 + tên + «9 tuổi · 2 máy» + viên sao; ô «Hôm nay chơi …» nổi trắng */}
+      <View style={{ gap: 12, padding: 16, borderRadius: 28, backgroundColor: HERO.nen, backgroundImage: HERO.anh, overflow: "hidden", boxShadow: HERO.bong }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Avt ten={c.ten} mau={mau} co={56} con={c} />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <Chu kieu="rat" co={22} dong={1}>{c.ten}</Chu>
-            <Chu kieu="dam" co={13.5} mau={M.chu3}>{[tuoi ? `${tuoi} tuổi` : null, `${c.may.length} máy`].filter(Boolean).join(" · ")}</Chu>
+            <Chu kieu="rat" co={22} dong={1} mau={HERO.chu}>{c.ten}</Chu>
+            <Chu kieu="dam" co={13.5} mau="rgba(255,255,255,0.75)">{[tuoi ? `${tuoi} tuổi` : null, `${c.may.length} máy`].filter(Boolean).join(" · ")}</Chu>
           </View>
           <NhanMen onPress={() => router.push(`/vi/${id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}: ${chuVien(s)}`} muc="chip" sang>
             <VienSao s={s} />
@@ -68,14 +68,14 @@ export default function HoSoCon() {
         </View>
         {/* ô «Hôm nay chơi 42 phút = 42 sao» + dòng nợ (cam); «Xem ›» = con dùng gì hôm nay */}
         <NhanMen onPress={() => router.push(`/da-dung/${id}` as never)} accessibilityRole="button" accessibilityLabel={`Xem ${c.ten} dùng gì hôm nay`} muc="khoi" sang men={MEN.sang}
-          style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 20, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+          style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 20, backgroundColor: M.the }, KHOI.the]}>
           <View style={{ flex: 1, gap: 2 }}>
             <Chu kieu="dam" co={13.5} mau={M.chu2} so>{phutHomNay !== null
               ? <>Hôm nay chơi <Chu kieu="rat" co={20} so>{`${soVN(phutHomNay)} phút`}</Chu>{` = ${soVN(phutHomNay)} sao`}</>
               : "1 sao = 1 phút chơi"}</Chu>
-            {no ? <Chu kieu="rat" co={13} mau="#8a3c0c">{no.replace(/ · .*$/, "")}</Chu> : null}
+            {no ? <Chu kieu="rat" co={13} mau={M.canh}>{no.replace(/ · .*$/, "")}</Chu> : null}
           </View>
-          <View style={{ alignItems: "center", gap: 2, paddingLeft: 10, borderLeftWidth: 1.5, borderLeftColor: "#ecebe7" }}>
+          <View style={{ alignItems: "center", gap: 2, paddingLeft: 10, borderLeftWidth: 1.5, borderLeftColor: M.vien }}>
             <Icon3D ten="laptop" co={26} mau={M.chu2} />
             <Chu kieu="rat" co={13} mau={M.chu2}>Xem ›</Chu>
           </View>
@@ -119,7 +119,7 @@ export default function HoSoCon() {
       {d.trongGiup ? null : (
         <Pressable onPress={() => router.push(`/ho-so/${id}/xoa` as never)} accessibilityRole="button"
           style={{ minHeight: 46, alignItems: "center", justifyContent: "center", marginTop: 4 }}>
-          <Chu kieu="rat" co={14} mau="#b42318" dong={1}>{`Xoá hồ sơ ${c.ten}`}</Chu>
+          <Chu kieu="rat" co={14} mau={M.loi} dong={1}>{`Xoá hồ sơ ${c.ten}`}</Chu>
         </Pressable>
       )}
 
@@ -133,9 +133,9 @@ function GiaPhai({ tren, duoi, canh }: { tren: string; duoi?: string; canh?: boo
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "58%" }}>
       <View style={{ alignItems: "flex-end", flexShrink: 1 }}>
         <Chu kieu="dam7" co={12.5} mau={M.chu2} dong={1}>{tren}</Chu>
-        {duoi ? <Chu kieu="dam7" co={12.5} mau={canh ? "#8a3c0c" : "#565c59"} dong={1}>{duoi}</Chu> : null}
+        {duoi ? <Chu kieu="dam7" co={12.5} mau={canh ? M.canh : M.chu3} dong={1}>{duoi}</Chu> : null}
       </View>
-      <Icon ten="phai" mau="#b3b5b1" co={18} />
+      <Icon ten="phai" mau={M.oNhap} co={18} />
     </View>
   );
 }

@@ -38,7 +38,7 @@ export function FormLamLai({ l, ghiAm, daGui, huy }: { l: LuotLamLai; ghiAm: boo
         {ghiAm ? <Rob ten="chi" co={60} /> : null}
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={20} style={{ lineHeight: 26, letterSpacing: -0.3 }}>{`Nhờ ${l.ten_con} ${dongTu(l.ten)} lại`}</Chu>
-          <Chu kieu="dam" co={13} mau="#565c59" style={{ lineHeight: 18 }}>{`Con chưa nhận sao. Nộp ${ghiAm ? "ghi âm" : "ảnh"} mới thì Ba Mẹ duyệt tiếp.`}</Chu>
+          <Chu kieu="dam" co={13} mau={M.chu3} style={{ lineHeight: 18 }}>{`Con chưa nhận sao. Nộp ${ghiAm ? "ghi âm" : "ảnh"} mới thì Ba Mẹ duyệt tiếp.`}</Chu>
         </View>
       </View>
       {xong ? <BaoLoi loi="Việc này đã được xử lý — có thể người khác trong nhà đã duyệt trước." /> : null}
@@ -49,11 +49,11 @@ export function FormLamLai({ l, ghiAm, daGui, huy }: { l: LuotLamLai; ghiAm: boo
       <View style={{ gap: 8 }}>
         <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>Nhắn con</Chu>
         <TextInput value={nhan ?? (ghiAm ? NHAN_AM : NHAN_ANH)} onChangeText={setNhan} maxLength={200} multiline accessibilityLabel="Nhắn con"
-          style={{ minHeight: 52, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 15, color: M.chu }} />
+          style={{ minHeight: 52, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 14, backgroundColor: M.xamSoft, boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 15, color: M.chu }} />
       </View>
       {/* thiết kế .ghi: dải đào nhắc nhẹ */}
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#f9e7d2" }}>
-        <Icon3D ten="tim" co={20} /><Chu kieu="dam7" co={13} mau="#8a3c0c" style={{ flex: 1 }}>Nói nhẹ nhàng để con vui vẻ làm lại</Chu>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.canhSoft }}>
+        <Icon3D ten="tim" co={20} /><Chu kieu="dam7" co={13} mau={M.canh} style={{ flex: 1 }}>Nói nhẹ nhàng để con vui vẻ làm lại</Chu>
       </View>
       <BaoLoi loi={loi} />
       <Nut chu={`Gửi lời nhắn cho ${l.ten_con}`} ic="gui" ic3d rong dangChay={dangChay} tat={xong} bam={gui} />
@@ -87,8 +87,8 @@ export function KetQuaLamLai({ tenCon, con, ghiAm, nhan, luc, sao }: { tenCon: s
 
 function DongKq({ ic, tieu, phu, nhan, vang, tren }: { ic: TenIcon; tieu: string; phu?: string; nhan?: string; vang?: boolean; tren?: boolean }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: tren ? 1 : 0, borderTopColor: "#efefec" }}>
-      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={24} /></View>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, borderTopWidth: tren ? 1 : 0, borderTopColor: M.vien }}>
+      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={24} /></View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15}>{tieu}</Chu>
         {phu ? <Chu kieu="dam" co={13} mau={M.chu3}>{phu}</Chu> : null}

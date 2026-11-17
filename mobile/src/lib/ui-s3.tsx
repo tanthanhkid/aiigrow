@@ -12,13 +12,13 @@ const BUOC5: { ic: TenIcon; ten: string }[] = [
   { ic: "tick", ten: "Con" }, { ic: "sao", ten: "Nhiệm vụ" }, { ic: "qua", ten: "Quà" }, { ic: "dongho", ten: "Giờ" }, { ic: "may_tinh", ten: "Máy" },
 ];
 /** Thanh tiến độ 5 chấm (bàn .buoc — bm1-ob-ten-con v20 … them-mdujxlg2 v12): mỗi bước giữ icon riêng (tick · sao · quà · đồng hồ · máy tính),
- *  bước xong icon rõ, bước chưa tới icon mờ, bước đang làm nền ngọc nhạt viền ngọc. Ô 30, cách 8, icon 17. */
+ *  bước xong icon rõ, bước chưa tới icon mờ, bước đang làm navy viền vàng mật (bàn Navy 17/11). Ô 30, cách 8, icon 17. */
 export function ThanhBuoc5({ dang }: { dang: number }) {
   return (
     <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang + 1} trên 5: ${BUOC5[dang]?.ten ?? ""}`}>
       {BUOC5.map((b, i) => (
         <View key={b.ten} style={[{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
-          i === dang ? { backgroundColor: "#dcebe6", boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` } : { backgroundColor: "#e6e5e1", boxShadow: BONG.lom }]}>
+          i === dang ? { backgroundColor: M.chinh, boxShadow: `0px 0px 0px 2.5px ${M.diem}, ${BONG.nho}` } : { backgroundColor: M.ranh, boxShadow: BONG.lom }]}>
           <View style={{ opacity: i <= dang ? 1 : 0.45 }}><Icon3D ten={b.ic} co={17} /></View>
         </View>
       ))}
@@ -42,7 +42,7 @@ export function OPin({ gia, doi, an, nhan, tuDong }: { gia: string; doi?: (v: st
         const dang = !!doi && focus && (i === gia.length || (gia.length === 4 && i === 3));
         return (
           // thiết kế 14/11 (.o4 / PIN của con): ô LÕM xám bo 20 cả khi đã có số; ô đang gõ viền ngọc
-          <View key={i} style={{ flex: 1, maxWidth: 84, height: 58, borderRadius: 20, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center",
+          <View key={i} style={{ flex: 1, maxWidth: 84, height: 58, borderRadius: 20, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center",
             boxShadow: dang ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.lom}` : BONG.lom }}>
             <Chu kieu="rat" co={26} so>{so ? (an ? "•" : so) : ""}</Chu>
           </View>
@@ -86,7 +86,7 @@ export function DongQua({ q, bam, dau, phai }: { q: QuaS3; bam?: () => void; dau
   const p = phuQua(q);
   return (
     <Pressable onPress={bam} disabled={!bam} accessibilityRole={bam ? "button" : undefined} accessibilityLabel={`${q.ten}, ${q.sao} sao${p.chu ? `, ${p.chu}` : ""}`}
-      style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 68, paddingVertical: 10, paddingHorizontal: 14, borderTopWidth: dau ? 0 : 1, borderTopColor: "#efefec" }}>
+      style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 68, paddingVertical: 10, paddingHorizontal: 14, borderTopWidth: dau ? 0 : 1, borderTopColor: M.vien }}>
       <OHinhQua ic={icQua(q)} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15.5} dong={1}>{q.ten}</Chu>

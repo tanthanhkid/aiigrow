@@ -2,7 +2,7 @@
 import { memo, useCallback, useState } from "react";
 import { Text } from "react-native";
 import Animated from "react-native-reanimated";
-import { BONG, KHOI, MEN } from "./clay";
+import { KHOI, MEN } from "./clay";
 import { useBat, useKhiTang, useRung } from "./chuyen-dong";
 import { router, useFocusEffect } from "expo-router";
 import { bm } from "./api";
@@ -24,9 +24,9 @@ export const ChuongTb = memo(function ChuongTb() {
       style={[{ width: 46, height: 46, borderRadius: 23, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
       <Animated.View style={st}><Icon3D ten="chuong" co={26} /></Animated.View>
       {so ? (
-        <Animated.View style={[{ position: "absolute", top: -4, right: -4, backgroundColor: M.huy, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
-          alignItems: "center", justifyContent: "center", boxShadow: BONG.do }, stSo]}>
-          <Text style={{ fontFamily: F.rat, fontSize: 11, color: "#fff" }}>{so > 99 ? "99+" : so}</Text>
+        <Animated.View style={[{ position: "absolute", top: -4, right: -4, backgroundColor: M.badge, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
+          alignItems: "center", justifyContent: "center", boxShadow: `0px 0px 0px 2px ${M.nen}` }, stSo]}>
+          <Text style={{ fontFamily: F.rat, fontSize: 11, color: M.chu }}>{so > 99 ? "99+" : so}</Text>
         </Animated.View>
       ) : null}
     </NhanMen>

@@ -56,7 +56,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]
     <View style={{ gap: 10 }}>
       <Nhan chu="Con sẽ làm gì?" />
       <TextInput value={ten} onChangeText={setTen} placeholder="Ví dụ: Tưới cây" placeholderTextColor={M.chu3} maxLength={90} accessibilityLabel="Con sẽ làm gì?"
-        style={{ minHeight: 50, borderRadius: 25, paddingHorizontal: 18, backgroundColor: "#ecebe7", boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 16, color: M.chu }} />
+        style={{ minHeight: 50, borderRadius: 25, paddingHorizontal: 18, backgroundColor: M.xamSoft, boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 16, color: M.chu }} />
       {ngan ? <Chu kieu="dam" co={13.5} mau={M.loi} style={{ marginHorizontal: 4 }}>Tên cần ít nhất 3 ký tự để con hiểu việc cần làm</Chu> : null}
       <Chips ds={GOI_Y.map((x) => ({ gia: x, chu: x }))} chon={[ten.trim()]} doi={setTen} />
 
@@ -67,7 +67,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]
           return (
             <Pressable key={h} onPress={() => setHinh(h)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Hình ${h}`}
               style={[{ flex: 1, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-                on ? { backgroundColor: "#dcebe6", borderWidth: 2, borderColor: M.chinh } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+                on ? { backgroundColor: M.chinhSoft, borderWidth: 2, borderColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
               <Icon3D ten={hinhNv({ hinh: h })[0]} co={30} />
             </Pressable>
           );
@@ -90,10 +90,10 @@ export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]
           const on = x.gia === nop;
           return (
             <Pressable key={x.gia} onPress={() => setNop(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={x.tieu}
-              style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingLeft: 4, borderTopWidth: i ? 1 : 0, borderTopColor: "#e9e8e3" }}>
-              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Icon3D ten={x.ic} co={24} /></View>
+              style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingLeft: 4, borderTopWidth: i ? 1 : 0, borderTopColor: M.ranh }}>
+              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={x.ic} co={24} /></View>
               <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{x.tieu}</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>{x.phu}</Chu></View>
-              <View style={{ width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: on ? M.chinh : "#e6e5e1", boxShadow: on ? BONG.ngoc : BONG.lom }}>
+              <View style={{ width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: on ? M.chinh : M.ranh, boxShadow: on ? BONG.ngoc : BONG.lom }}>
                 {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#fff" }} /> : null}
               </View>
             </Pressable>

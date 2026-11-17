@@ -55,14 +55,14 @@ export default function ThuVienQua() {
           <The sat>
             {/* thiết kế dlul0jlr@v8: đầu nhóm là dòng đầu của thẻ — ô icon 40 · «Quà Ba Mẹ mua · trả tiền» + câu phụ */}
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14 }}>
-              {IC_NHOM[g.ma] ? <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Anh3D ten={IC_NHOM[g.ma]} co={24} /></View> : null}
+              {IC_NHOM[g.ma] ? <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Anh3D ten={IC_NHOM[g.ma]} co={24} /></View> : null}
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={15}>{g.phu ? `${g.ten} · ${g.phu}` : g.ten}</Chu>
                 {MO_TA[g.ma] ? <Chu co={12.5} mau={M.chu3}>{MO_TA[g.ma]}</Chu> : null}
               </View>
             </View>
             {g.ds.map((m) => (
-              <View key={m.ma} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: "#efefec" }}>
+              <View key={m.ma} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: M.vien }}>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Chu kieu="rat" co={15}>{m.ten}</Chu>
                   {m.menhGia || m.moTa ? <Chu co={12.5} mau={M.chu3}>{[m.menhGia ? tien(m.menhGia) : null, m.moTa].filter(Boolean).join(" · ")}</Chu> : null}

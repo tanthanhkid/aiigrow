@@ -48,17 +48,17 @@ export default function BuocTiep() {
         <Chu kieu="rat" co={24} style={{ letterSpacing: -0.4, textAlign: "center" }}>{`Đã tạo hồ sơ ${ten}`}</Chu>
         <Chu kieu="dam" co={14} mau={M.chu2}>{d.coPin ? "PIN vào máy đã đặt" : "Chưa đặt PIN vào máy"}</Chu>
       </View>
-      <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
+      <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
         {buoc.map(([ic, tieu, phu, den], k) => (
           <Pressable key={den} onPress={() => router.push(den as never)} accessibilityRole="button" accessibilityLabel={`Bước ${k + 1}: ${tieu}`}
-            style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
-            <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
+            style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
+            <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
               <Chu kieu="rat" co={12.5} mau={M.chu2}>{String(k + 1)}</Chu>
             </View>
             <OLomIcon ic={ic} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
-              <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}>{phu}</Chu>
+              <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{phu}</Chu>
             </View>
             <Icon ten="phai" co={18} mau={M.chinhInk} />
           </Pressable>

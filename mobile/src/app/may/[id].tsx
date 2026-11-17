@@ -23,7 +23,7 @@ import {
 import {
   BangTruot, Bao, BaoLoi, baoKhiVe, BieuTron, Chips, ChoTai, Chu, CongTac, Dong, gioPhut, HaiNut, Icon3D, M, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
-import { BONG, KHOI } from "@/lib/clay";
+import { BONG, KHOI, HERO } from "@/lib/clay";
 
 const PHUT = [15, 30, 60, 120];
 const SU_KIEN: Record<string, string> = {
@@ -159,9 +159,9 @@ export default function AnToanMay() {
   const tenXin = xin0 ? tenGoi(d.caNha.find((c) => c.id === xin0.child_id)?.ten ?? xin0.ten_con) : "";
 
   const hangRieng = motCon && d.conDs[0] ? (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 10, paddingRight: 14, borderRadius: 18, backgroundColor: "#ecebe7" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 10, paddingRight: 14, borderRadius: 18, backgroundColor: M.xamSoft }}>
       <AvtCon c={d.conDs[0]} co={26} />
-      <Chu kieu="rat" co={13} mau="#3a403d" style={{ flex: 1, lineHeight: 18 }}>{`Máy riêng của ${tenGoi(d.conDs[0].ten)} · ${tenNgan} không đổi người dùng được nên chỉ một bé dùng.`}</Chu>
+      <Chu kieu="rat" co={13} mau={M.chu2} style={{ flex: 1, lineHeight: 18 }}>{`Máy riêng của ${tenGoi(d.conDs[0].ten)} · ${tenNgan} không đổi người dùng được nên chỉ một bé dùng.`}</Chu>
     </View>
   ) : null;
   // them-tw6apkag / them-4e4o5c72 «Đổi tên máy»: màn riêng /may/<id>/doi-ten
@@ -194,15 +194,15 @@ export default function AnToanMay() {
     <Man lui={{ chu: "Quay lại" }} tieu={ten} noi={noi} tai={tai}
       phai={tot && !d.xem ? (
         <Pressable onPress={doiTen} accessibilityRole="button" accessibilityLabel="Đổi tên máy" style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-          <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon3D ten="but" co={20} /></View>
+          <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.nho }}><Icon3D ten="but" co={20} /></View>
         </Pressable>
       ) : undefined}>
       {tot ? (
-        // thiết kế m1 .san: thẻ ngọc nhạt — hình máy 88 (khiên) · bé đang dùng · «✓ Đang bảo vệ» + chip «Máy chung · 2 bé» · nền máy
+        // thiết kế m1 .san: thẻ hero navy (bàn Navy 17/11) — hình máy 88 (khiên) · bé đang dùng · «✓ Đang bảo vệ» + chip «Máy chung · 2 bé» · nền máy
         <Pressable onPress={chung ? () => router.push({ pathname: "/may/[id]/chi-tiet", params: { id } }) : undefined} disabled={!chung} accessibilityRole={chung ? "button" : undefined}
           accessibilityLabel={chung ? `${ten}, xem chi tiết từng bé` : undefined}
-          style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 28, backgroundColor: "#e2efea", backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", overflow: "hidden", ...KHOI.the }}>
-          <View style={{ width: 88, height: 88, borderRadius: 24, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.the }}>
+          style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 28, backgroundColor: HERO.nen, backgroundImage: HERO.anh, overflow: "hidden", boxShadow: HERO.bong }}>
+          <View style={{ width: 88, height: 88, borderRadius: 24, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.the }}>
             <Icon3D ten={hinhMay(m.nen, chung)} co={64} />
             <View style={{ position: "absolute", right: -6, bottom: -6 }}><Icon3D ten="khien" co={36} /></View>
           </View>
@@ -210,16 +210,16 @@ export default function AnToanMay() {
             {ai ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
                 <AvtCon c={ai} co={28} />
-                <Chu kieu="rat" co={16} dong={2} style={{ flexShrink: 1 }}>{chung ? `${tenAi} đang dùng` : tenAi!}</Chu>
+                <Chu kieu="rat" co={16} dong={2} mau={HERO.chu} style={{ flexShrink: 1 }}>{chung ? `${tenAi} đang dùng` : tenAi!}</Chu>
               </View>
-            ) : <Chu kieu="rat" co={16}>{d.conDs.length ? "Chưa bé nào đang dùng" : "Chưa có bé dùng máy"}</Chu>}
+            ) : <Chu kieu="rat" co={16} mau={HERO.chu}>{d.conDs.length ? "Chưa bé nào đang dùng" : "Chưa có bé dùng máy"}</Chu>}
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8, rowGap: 2, marginTop: 2 }}>
               <Chu kieu="rat" co={13} mau={M.chinhInk}>✓ Đang bảo vệ</Chu>
               <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.7)" }}>
                 <Chu kieu="rat" co={11.5} mau={M.chinhInk}>{chung ? `Máy chung · ${d.conDs.length} bé` : "Máy riêng"}</Chu>
               </View>
             </View>
-            <Chu kieu="dam7" co={12} mau="#565c59" dong={1}>{`${TEN_NEN[m.nen] ?? m.nen}${!chung && d.ct ? ` · ${cheDo}` : ""}${chung ? " · xem từng bé ›" : ""}`}</Chu>
+            <Chu kieu="dam7" co={12} mau={M.chu3} dong={1}>{`${TEN_NEN[m.nen] ?? m.nen}${!chung && d.ct ? ` · ${cheDo}` : ""}${chung ? " · xem từng bé ›" : ""}`}</Chu>
           </View>
         </Pressable>
       ) : (
@@ -244,7 +244,7 @@ export default function AnToanMay() {
               </View>
             ) : null}
             <View style={{ position: "absolute", left: 16, bottom: 14, right: 132, alignItems: "flex-start" }}><View style={{ paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: "#fff" }}>
-              <Chu kieu="rat" co={12.5} mau="#8a3c0c" dong={2}>{phutAi != null ? `Hôm nay ${phutAi} phút · vẫn trừ sao` : `Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn trừ sao`}</Chu>
+              <Chu kieu="rat" co={12.5} mau={M.canh} dong={2}>{phutAi != null ? `Hôm nay ${phutAi} phút · vẫn trừ sao` : `Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn trừ sao`}</Chu>
             </View></View>
           </View>
           <View style={{ paddingHorizontal: 6, gap: 4 }}>
@@ -272,7 +272,7 @@ export default function AnToanMay() {
           <TieuMuc chu="Nếu để vậy" />
           <View style={{ flexDirection: "row", gap: 8 }}>
             {([["mo_khoa", "Con tự tắt\nđược Grow"], ["game", "Mở cả app\nngoài danh sách"], ["dongho", "Chơi không\ntrừ sao"]] as const).map(([ic, chu]) => (
-              <View key={ic} style={{ flex: 1, minHeight: 88, paddingVertical: 8, borderRadius: 20, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center", gap: 6 }}>
+              <View key={ic} style={{ flex: 1, minHeight: 88, paddingVertical: 8, borderRadius: 20, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center", gap: 6 }}>
                 <Icon3D ten={ic} co={28} />
                 <Chu kieu="rat" co={12.5} mau={M.chu2} style={{ textAlign: "center", lineHeight: 16 }}>{chu}</Chu>
               </View>
@@ -291,17 +291,17 @@ export default function AnToanMay() {
       {/* m1: hai ô nổi — app đang mở (phút trên máy này) · sao còn của bé (= phút chơi) */}
       {tot && ai && (d.app || saoAi != null || phutAi != null) ? (
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <Pressable onPress={() => router.push(`/da-dung/${ai.id}` as never)} accessibilityRole="button" style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 26, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten={d.app ? "game" : "dongho"} co={22} /><Chu kieu="rat" co={13.5} mau="#3a403d" dong={1} style={{ flexShrink: 1 }}>{d.app?.tenApp ?? "Hôm nay"}</Chu></View>
-            <Chu kieu="rat" co={28} so style={{ letterSpacing: -0.8, lineHeight: 32, marginTop: 4 }}>{String(phutAi ?? 0)}<Chu kieu="rat" co={14} mau="#3a403d"> phút</Chu></Chu>
+          <Pressable onPress={() => router.push(`/da-dung/${ai.id}` as never)} accessibilityRole="button" style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten={d.app ? "game" : "dongho"} co={22} /><Chu kieu="rat" co={13.5} mau={M.chu2} dong={1} style={{ flexShrink: 1 }}>{d.app?.tenApp ?? "Hôm nay"}</Chu></View>
+            <Chu kieu="rat" co={28} so style={{ letterSpacing: -0.8, lineHeight: 32, marginTop: 4 }}>{String(phutAi ?? 0)}<Chu kieu="rat" co={14} mau={M.chu2}> phút</Chu></Chu>
             {d.app ? <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}><Chu kieu="rat" co={12.5} mau={M.chinh}>● Đang mở</Chu>{m.dangDung?.tu ? ` từ ${gioPhut(m.dangDung.tu)}` : " trên máy này"}</Chu>
               : <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}>trên máy này</Chu>}
           </Pressable>
           {saoAi != null ? (
-            <Pressable onPress={() => router.push(`/vi/${ai.id}` as never)} accessibilityRole="button" style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 26, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="sao" co={22} /><Chu kieu="rat" co={13.5} mau="#3a403d" dong={1} style={{ flexShrink: 1 }}>{`${tenAi} còn`}</Chu></View>
-              <Chu kieu="rat" co={28} so mau={saoAi < 0 ? "#8a3c0c" : "#6e4300"} style={{ letterSpacing: -0.8, lineHeight: 32, marginTop: 4 }}>{`${saoAi < 0 ? "−" : ""}${Math.abs(saoAi)}`}<Chu kieu="rat" co={14} mau={saoAi < 0 ? "#8a3c0c" : "#6e4300"}> sao</Chu></Chu>
-              <Chu kieu="rat" co={12.5} mau={saoAi < 0 ? "#8a3c0c" : M.chinhInk} dong={1}>{saoAi < 0 ? "đang nợ Ba Mẹ" : `= ${saoAi} phút chơi`}</Chu>
+            <Pressable onPress={() => router.push(`/vi/${ai.id}` as never)} accessibilityRole="button" style={[{ flex: 1, gap: 2, padding: 16, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="sao" co={22} /><Chu kieu="rat" co={13.5} mau={M.chu2} dong={1} style={{ flexShrink: 1 }}>{`${tenAi} còn`}</Chu></View>
+              <Chu kieu="rat" co={28} so mau={saoAi < 0 ? M.canh : M.diemInk} style={{ letterSpacing: -0.8, lineHeight: 32, marginTop: 4 }}>{`${saoAi < 0 ? "−" : ""}${Math.abs(saoAi)}`}<Chu kieu="rat" co={14} mau={saoAi < 0 ? M.canh : M.diemInk}> sao</Chu></Chu>
+              <Chu kieu="rat" co={12.5} mau={saoAi < 0 ? M.canh : M.chinhInk} dong={1}>{saoAi < 0 ? "đang nợ Ba Mẹ" : `= ${saoAi} phút chơi`}</Chu>
             </Pressable>
           ) : null}
         </View>
@@ -310,13 +310,13 @@ export default function AnToanMay() {
       {/* lời xin đang chờ của bé dùng máy (thẻ đào .xin) */}
       {tot && xin0 ? (
         <Pressable onPress={() => router.push(`/yeu-cau/${xin0.id}` as never)} accessibilityRole="button"
-          style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 66, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 28, backgroundColor: "#f9e7d2", ...KHOI.the }}>
+          style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 66, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 28, backgroundColor: M.canhSoft, ...KHOI.the }}>
           <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#f3d6b8", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten={xin0.loai === "them_gio" ? "dongho" : "web"} co={24} /></View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="rat" co={15} dong={1}>{`${tenXin} xin ${/^xin\s/i.test(tieuXin(xin0)) ? tieuXin(xin0).replace(/^xin\s+/i, "") : tieuXin(xin0).replace(/^./, (x) => x.toLowerCase())}`}</Chu>
-            <Chu kieu="dam7" co={12.5} mau="#8a3c0c" dong={1}>{`${gioPhut(xin0.created_at)} · ${(xin0 as { device_id?: string | null }).device_id === id ? "đang chờ trên máy này" : "đang chờ"}${d.xin.length > 1 ? ` · +${d.xin.length - 1} lời xin` : ""}`}</Chu>
+            <Chu kieu="dam7" co={12.5} mau={M.canh} dong={1}>{`${gioPhut(xin0.created_at)} · ${(xin0 as { device_id?: string | null }).device_id === id ? "đang chờ trên máy này" : "đang chờ"}${d.xin.length > 1 ? ` · +${d.xin.length - 1} lời xin` : ""}`}</Chu>
           </View>
-          <Chu kieu="rat" co={14} mau="#8a3c0c">Xem ›</Chu>
+          <Chu kieu="rat" co={14} mau={M.canh}>Xem ›</Chu>
         </Pressable>
       ) : null}
 
@@ -333,9 +333,9 @@ export default function AnToanMay() {
                   <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
                     <Chu kieu="rat" dong={1}>{tenGoi(c.ten)}</Chu>
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                      {c.dangDung ? <Chu kieu="dam" co={12.5} mau="#565c59">Đang dùng ·</Chu> : null}
+                      {c.dangDung ? <Chu kieu="dam" co={12.5} mau={M.chu3}>Đang dùng ·</Chu> : null}
                       <SaoNho n={c.sao} />
-                      {!c.dangDung && rieng ? <Chu kieu="dam" co={12.5} mau="#565c59" dong={1} style={{ flexShrink: 1 }}>{`· có ${rieng.ten.replace(/ (của|·) .*$/, "")} riêng`}</Chu> : null}
+                      {!c.dangDung && rieng ? <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1} style={{ flexShrink: 1 }}>{`· có ${rieng.ten.replace(/ (của|·) .*$/, "")} riêng`}</Chu> : null}
                     </View>
                   </View>
                   {d.xem ? null : <CongTac bat={c.gan} nhan={`${tenGoi(c.ten)} được dùng ${tenNgan}`} doi={(v) => { if (!dangGan) doiGan(c, v); }} />}
@@ -344,7 +344,7 @@ export default function AnToanMay() {
             })}
           </TheDs>
           <BaoLoi loi={loiGan} />
-          <Chu kieu="dam" co={12.5} mau="#565c59" style={{ marginHorizontal: 8, lineHeight: 18 }}>
+          <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginHorizontal: 8, lineHeight: 18 }}>
             Mỗi bé chọn tên + PIN để vào máy. Chơi trên máy này chỉ trừ sao của bé đang dùng; «Đổi người» dừng tính phút của bé trước.
           </Chu>
         </>
@@ -360,7 +360,7 @@ export default function AnToanMay() {
       ) : d.conDs.length ? (
         <>
           <Nut chu={`Khoá ${tenNgan} ngay`} ic="khoa" ic3d rong bam={() => setMo("khoa")} />
-          <Chu kieu="dam" co={12.5} mau="#565c59" style={{ textAlign: "center", lineHeight: 18, marginHorizontal: 8 }}>
+          <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ textAlign: "center", lineHeight: 18, marginHorizontal: 8 }}>
             {`Khoá máy: ${chung ? `cả ${d.conDs.length} bé` : tenAi ?? "con"} không vào được máy này.${khac.length ? ` ${khac.slice(0, 2).map((x) => x.ten.replace(/ của .*$/, "")).join(", ")} vẫn dùng bình thường.` : ""}`}
           </Chu>
         </>
@@ -434,8 +434,8 @@ export default function AnToanMay() {
         <TheDs>
           {([["lich", "Báo cáo cũ vẫn giữ", "Lịch sử dùng máy không mất"], ["lap", "Ghép lại lúc nào cũng được", "Bằng mã 6 số như lần đầu"]] as const).map(([ic, tieu, phu], k) => (
             <View key={ic} style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 56 }, keDau(k)]}>
-              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={22} /></View>
-              <View style={{ flex: 1, minWidth: 0 }}><Chu kieu="rat" co={14.5}>{tieu}</Chu><Chu kieu="dam" co={12} mau="#565c59">{phu}</Chu></View>
+              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={22} /></View>
+              <View style={{ flex: 1, minWidth: 0 }}><Chu kieu="rat" co={14.5}>{tieu}</Chu><Chu kieu="dam" co={12} mau={M.chu3}>{phu}</Chu></View>
             </View>
           ))}
         </TheDs>

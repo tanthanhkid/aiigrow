@@ -91,11 +91,11 @@ export default function SuaViec() {
           {/* thiết kế ncq0jtzo@v4: hàng ô hình 56 + ô tên lõm; chạm ô hình mới mở dải chọn hình (giữ từ PR #243, bàn không vẽ) */}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <Pressable onPress={() => setMoHinh((x) => !x)} accessibilityRole="button" accessibilityLabel="Đổi hình việc" accessibilityState={{ expanded: moHinh }}
-              style={[{ width: 56, height: 56, borderRadius: 18, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
+              style={[{ width: 56, height: 56, borderRadius: 18, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
               <Icon3D ten={ic} co={34} />
             </Pressable>
             <TextInput value={f.ten} onChangeText={setTen} maxLength={90} accessibilityLabel="Tên việc" placeholderTextColor={M.chu3}
-              style={{ flex: 1, minHeight: 52, borderRadius: 26, paddingHorizontal: 18, backgroundColor: "#ecebe7", boxShadow: BONG.lom, fontFamily: F.rat, fontSize: 17, color: M.chu }} />
+              style={{ flex: 1, minHeight: 52, borderRadius: 26, paddingHorizontal: 18, backgroundColor: M.xamSoft, boxShadow: BONG.lom, fontFamily: F.rat, fontSize: 17, color: M.chu }} />
           </View>
           {moHinh ? <ChonO ds={dsHinh.map((h) => ({ gia: h, chu: "", ic: hinhNv({ hinh: h })[0], nhan: `Hình ${h}` }))} chon={f.hinh || null} doi={setHinh} /> : null}
           <MucTieu chu="Con nhận bao nhiêu sao?" />

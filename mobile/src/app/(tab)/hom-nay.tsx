@@ -32,16 +32,15 @@ import { BangChoVay, kieuSao, saoTu, SoSaoLon, soVN, thamSoXongVay, VienSao } fr
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { icDung, nhanDung, type HomNayDung } from "@/lib/da-dung";
 import { type MucCanDeY } from "@/lib/s3";
-import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nhan, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, gioPhut, Icon3D, M, Man, Nhan, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { HERO } from "@/lib/clay";
 
 // Grow ở thẻ đầu (bàn .rob: phải 2, trên 6, cao 112): cỡ + lệch phải. Chữ chừa = phần Grow nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
 const ROB_CO = 100, ROB_PHAI = -6, ROB_TREN = 6, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
 // máy khoá: nhãn «Laptop, iPad đã khoá» (cao 32) + khoảng 10 trên khối tiêu đề; không khoá: khối tiêu đề ở ngay lề trên thẻ (16)
 const NHAN_CAO = 32;
-/** nền thẻ đầu khi máy khoá (bàn them-0kwhgpq6 .gio: linear-gradient(#e3e6ec, #f1f2f5)) */
-const NEN_KHOA = "#e9ebf0";
 /** nền thẻ lời xin (bàn .de-y) */
-const NEN_XIN = "#f9e7d2";
+const NEN_XIN = M.canhSoft;
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 const ngayHomNay = () => { const t = new Date(); return `${THU[t.getDay()]}, ${t.getDate()}/${t.getMonth() + 1}`; };
 /** «21:30» → phút trong ngày. */
@@ -200,32 +199,34 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   return (
     <>
       {/* 1. thẻ con */}
-      <The style={{ backgroundColor: khoa ? NEN_KHOA : M.chinhSoft, overflow: "visible" }}>
+      {/* bàn Navy 17/11 (bm2-trang-chu v36 / them-0kwhgpq6 .gio): thẻ hero navy cả khi máy khoá, chữ trắng, dòng nhấn vàng mật, dấu sách vàng mép trên */}
+      <The hero style={{ overflow: "visible" }}>
+        <View style={{ position: "absolute", left: 24, top: 0 }} pointerEvents="none"><DauSach mau={HERO.phu} rong={16} cao={22} /></View>
         <View style={{ position: "absolute", right: ROB_PHAI, top: ROB_TREN }} pointerEvents="none"><Rob ten={khoa ? "ngu" : "chi"} co={ROB_CO} /></View>
         {/* máy khoá: nhãn trắng «Laptop, iPad đã khoá» (bàn .nhan — không bấm) */}
         {khoa ? (
           <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, minHeight: NHAN_CAO, paddingLeft: 8, paddingRight: 12, borderRadius: 16,
-            backgroundColor: M.the, maxWidth: "70%", marginRight: CHUA_ROB - 40 }}>
-            <Icon3D ten="khoa" co={18} mau={M.chu2} />
-            <Chu kieu="dam" co={13.5} dong={1} style={{ flexShrink: 1 }}>{nhanKhoa}</Chu>
+            backgroundColor: "rgba(255,255,255,0.12)", maxWidth: "70%", marginRight: CHUA_ROB - 40 }}>
+            <Icon3D ten="khoa" co={18} mau={HERO.chu} />
+            <Chu kieu="rat" co={13.5} dong={1} mau={HERO.chu} style={{ flexShrink: 1 }}>{nhanKhoa}</Chu>
           </View>
         ) : null}
         {/* khối tiêu đề cao tối thiểu tới đáy Grow (khổ 320 câu dài không đè Grow — cổng DE-ANH). Số sao (viên 26/800, .so .am) không đè Grow:
             chừa CHUA_ROB bên phải; «còn N sao = N phút chơi» dài thì xuống dòng */}
         <View style={{ marginTop: khoa ? 10 : 0, marginRight: CHUA_ROB, minHeight: Math.max(0, ROB_TREN + ROB_CO - 16 - (khoa ? NHAN_CAO + 10 : 0) - 36) }}>
-          {tieuLon ? <Chu kieu="den" co={26} so style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} />}
+          {tieuLon ? <Chu kieu="den" co={26} so mau={HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} toi />}
         </View>
         {phuSao ? (
           <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center", alignSelf: "flex-start" }}>
-            <Chu kieu="dam" co={14} mau={khoa ? M.chu2 : M.chinhInk}>{phuSao}</Chu>
+            <Chu kieu="dam" co={14} mau={khoa ? HERO.chu : HERO.phu}>{phuSao}</Chu>
           </Pressable>
         ) : null}
         {/* 2 nút chia đều bề ngang; máy hẹp (320) không đủ 2 × 140 ⇒ xuống hàng, mỗi nút một dòng chữ (cổng NUT-2-DONG). Nhãn + icon 3D theo thiết kế 14/11 */}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
           {/* bàn .hd: grid 1.2fr 1fr — nút chính rộng hơn («Mở khoá ngay» một dòng); khổ hẹp không đủ 168 + 140 ⇒ xuống hàng */}
           <View style={{ flexGrow: 1.2, flexBasis: 168 }}>
-            {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d sat rong dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
-              : <Nut chu="Khoá máy" ic="khoa" ic3d sat rong nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
+            {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d sat rong loai="vang" dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
+              : <Nut chu="Khoá máy" ic="khoa" ic3d sat rong loai="vang" nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
           </View>
           <View style={{ flexGrow: 1, flexBasis: 140 }}>
             {khoa ? <Nut chu="Đổi giờ" ic="dongho" ic3d sat rong loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />
@@ -237,7 +238,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
 
       {/* 2. cần Ba Mẹ để ý — 1 mục + Tất cả */}
       <TieuMuc chu="Cần Ba Mẹ để ý" so={soDeY} phai={{ chu: "Tất cả ›", bam: () => router.push("/thong-bao" as never) }} />
-      {/* mục cần để ý: thẻ đào (bàn .de-y #f9e7d2); lời xin — ô icon + tiêu đề một dòng + «Bỏ qua | Thêm · Tính phút» */}
+      {/* mục cần để ý: thẻ đào (bàn .de-y #ffe6d6); lời xin — ô icon + tiêu đề một dòng + «Bỏ qua | Thêm · Tính phút» */}
       <The style={dauTien ? { backgroundColor: NEN_XIN, paddingVertical: 4 } : undefined}>
         {!dauTien ? <HangViec dau ic="tick" mau="xanh" tieu="Không có gì cần Ba Mẹ trả lời" /> : dauTien.loai === "xin" ? (
           <TheXin y={xin[0]} may={tenMayXin(xin[0], may)} lam={(fn) => lam(fn)} dang={dangChay} sao={s} oIcon
@@ -264,12 +265,12 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
             {daDung.map((x, k) => (
               <Pressable key={`${x.kieu}:${x.muc}`} accessibilityRole="button" accessibilityLabel={`${x.ten}, ${nhanDung(x).doc}`}
                 onPress={() => (x.tinhGio && x.mayId ? router.push(`/may/${x.mayId}` as never) : veDaDung())}
-                style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
-                <Chu kieu="rat" co={13} mau="#565c59" so style={{ width: 42 }}>{x.luc ? gioPhut(x.luc) : ""}</Chu>
+                style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
+                <Chu kieu="rat" co={13} mau={M.chu3} so style={{ width: 42 }}>{x.luc ? gioPhut(x.luc) : ""}</Chu>
                 <OLomIcon ic={icDung(x)} />
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Chu kieu="rat" co={15} dong={1}>{x.ten}</Chu>
-                  <Chu kieu="dam" co={12.5} mau={x.matMang ? M.canh : "#565c59"} dong={1}>
+                  <Chu kieu="dam" co={12.5} mau={x.matMang ? M.canh : M.chu3} dong={1}>
                     {[x.matMang ? "● Mất mạng" : x.dangMo ? "● Đang mở" : null, (x.may ?? "").replace(/ của .*$/, "") || x.nen].filter(Boolean).join(" · ")}
                   </Chu>
                 </View>

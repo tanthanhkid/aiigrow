@@ -11,7 +11,7 @@ import { F, LopMen, M, NhanMen, useHoanTac } from "@/lib/ui";
 export default function Chao() {
   const { bao, noi } = useHoanTac();
   return (
-    <View style={{ flex: 1, backgroundColor: "#f3f3ef", overflow: "hidden" }}>
+    <View style={{ flex: 1, backgroundColor: M.nen, overflow: "hidden" }}>
       <NenChao>
       <SafeAreaView style={{ flex: 1, justifyContent: "flex-end" }} edges={["top", "bottom", "left", "right"]}>
         <View style={{ paddingHorizontal: 16, paddingBottom: 24, gap: 6 }}>

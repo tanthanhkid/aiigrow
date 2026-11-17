@@ -97,7 +97,7 @@ export default function QuaBaMeMua() {
         <>
           <Chu kieu="rat" co={15} mau={M.chu2} style={{ paddingHorizontal: 4 }}>{thieu ? `${ten} đang tích sao` : `${ten} đủ sao rồi`}</Chu>
           <View style={[{ padding: 16, borderRadius: 24, backgroundColor: M.the, gap: 8 }, KHOI.nho]}>
-            <View style={{ height: 12, borderRadius: 6, backgroundColor: "#ecebe7", overflow: "hidden" }}>
+            <View style={{ height: 12, borderRadius: 6, backgroundColor: M.xamSoft, overflow: "hidden" }}>
               <View style={{ width: `${Math.round(Math.min(1, Math.max(0, d.sao) / Math.max(1, m.sao)) * 100)}%`, height: 12, borderRadius: 6, backgroundColor: M.diem }} />
             </View>
             {thieu ? (
@@ -124,7 +124,7 @@ export default function QuaBaMeMua() {
 function OSo({ ic, nhan, so, vang }: { ic: TenIcon; nhan: string; so: string; vang?: boolean }) {
   return (
     <View style={[{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 24, backgroundColor: vang ? M.diemSoft : M.the }, KHOI.nho]}>
-      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: vang ? "#fff3cf" : "#ecebe7", alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={26} /></View>
+      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: vang ? "#fff3cf" : M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={26} /></View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="dam7" co={12.5} mau={vang ? M.diemInk : M.chu2}>{nhan}</Chu>
         <Chu kieu="rat" co={17} mau={vang ? M.diemInk : M.chu} so>{so}</Chu>

@@ -7,7 +7,7 @@ import { Pressable, Text, View } from "react-native";
 import { bm, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { mauHoSo } from "@/lib/lan-dau";
-import { Avt, BangTruot, BaoLoi, Chu, F, Icon, Icon3D, M, Nut, useLam, type TenIcon } from "@/lib/ui";
+import { Avt, BangTruot, BaoLoi, Chu, DauSach, F, Icon, Icon3D, M, Nut, useLam, type TenIcon } from "@/lib/ui";
 import { datKhoaMay } from "@/lib/khoa-may";
 import { tenGoi } from "@/lib/hang-ngay";
 
@@ -60,13 +60,13 @@ export const cauSao = (n: number) => (n < 0 ? `đang nợ ${-n} sao` : `còn ${n
 /** «25 sao» / «−20 sao» (dấu trừ thật U+2212). */
 export const soSao = (n: number) => `${n < 0 ? "−" : ""}${Math.abs(n)} sao`;
 
-/** Viên sao nhỏ (thiết kế .diem): vàng «⭐ 25 sao»; âm ⇒ viên cảnh báo «⭐ −20 sao» (nền #f9e7d2, chữ #8a3c0c). */
+/** Viên sao nhỏ (thiết kế .diem): vàng «⭐ 25 sao»; âm ⇒ viên cảnh báo «⭐ −20 sao» (nền #ffe6d6, chữ #b34a06). */
 export function SaoNho({ n, co = 12 }: { n: number; co?: number }) {
   const no = n < 0;
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingLeft: 4, paddingRight: 7, paddingVertical: 1, borderRadius: 10, backgroundColor: no ? "#f9e7d2" : "#fbecc0", alignSelf: "flex-start" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 3, paddingLeft: 4, paddingRight: 7, paddingVertical: 1, borderRadius: 10, backgroundColor: no ? M.canhSoft : M.diemSoft, alignSelf: "flex-start" }}>
       <Icon3D ten="sao" co={co + 2} />
-      <Chu kieu="rat" co={co} mau={no ? "#8a3c0c" : "#6e4300"} so>{soSao(n)}</Chu>
+      <Chu kieu="rat" co={co} mau={no ? M.canh : M.diemInk} so>{soSao(n)}</Chu>
     </View>
   );
 }
@@ -91,7 +91,7 @@ export function DauHaiDong({ tieu, phu, canh, phai, lui }: { tieu: string; phu?:
       </Pressable>
       <View style={{ flex: 1, minWidth: 0, flexDirection: canh ? "row" : "column", alignItems: canh ? "baseline" : "flex-start", gap: canh ? 6 : 0 }}>
         <Text accessibilityRole="header" numberOfLines={1} style={{ flexShrink: 1, fontFamily: F.den, fontSize: 22, lineHeight: 26, letterSpacing: -0.4, color: M.chu }}>{tieu}</Text>
-        {phu ? <Chu kieu="rat" co={canh ? 14 : 13} mau="#565c59" dong={1}>{phu}</Chu> : null}
+        {phu ? <Chu kieu="rat" co={canh ? 14 : 13} mau={M.chu3} dong={1}>{phu}</Chu> : null}
       </View>
       {phai}
     </View>
@@ -100,7 +100,7 @@ export function DauHaiDong({ tieu, phu, canh, phai, lui }: { tieu: string; phu?:
 
 /** Hộp chữ (thiết kế .hop): ngọc / xám / đào. */
 export function HopChu({ loai = "xam", children }: { loai?: "ngoc" | "xam" | "dao"; children: ReactNode }) {
-  const [nen, chu] = loai === "ngoc" ? ["#dcebe6", M.chinhInk] : loai === "dao" ? ["#f9e7d2", "#8a3c0c"] : ["#ecebe7", "#3a403d"];
+  const [nen, chu] = loai === "ngoc" ? [M.chinhSoft, M.chinhInk] : loai === "dao" ? [M.canhSoft, M.canh] : [M.xamSoft, M.chu2];
   return <View style={{ paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: nen }}><Chu kieu="dam" co={13} mau={chu} style={{ lineHeight: 18 }}>{children}</Chu></View>;
 }
 
@@ -108,24 +108,24 @@ export function HopChu({ loai = "xam", children }: { loai?: "ngoc" | "xam" | "da
 export function MucPhai({ chu, phai, bam }: { chu: string; phai?: string; bam?: () => void }) {
   const noi = (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 8, marginHorizontal: 6, minHeight: bam ? 44 : undefined }}>
-      <Chu kieu="rat" co={15} mau="#3a403d" style={{ flexShrink: 1 }}>{chu}</Chu>
-      {phai ? <Chu kieu="dam7" co={12.5} mau="#565c59">{phai}</Chu> : null}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 }}><DauSach /><Chu kieu="rat" co={15} mau={M.chu} style={{ flexShrink: 1 }}>{chu}</Chu></View>
+      {phai ? <Chu kieu="dam7" co={12.5} mau={M.chu3}>{phai}</Chu> : null}
     </View>
   );
   return bam ? <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={chu}>{noi}</Pressable> : noi;
 }
 
-/** Thẻ danh sách clay (thiết kế .ls): các hàng cách nhau đường kẻ #ecebe7. */
+/** Thẻ danh sách clay (thiết kế .ls): các hàng cách nhau đường kẻ #F2EBE3. */
 export const TheDs = ({ children }: { children: ReactNode }) => (
-  <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>{children}</View>
+  <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>{children}</View>
 );
-export const keDau = (k: number) => (k ? { borderTopWidth: 1.5, borderTopColor: "#ecebe7" } : null);
+export const keDau = (k: number) => (k ? { borderTopWidth: 1.5, borderTopColor: M.vien } : null);
 
 /** Ô đánh dấu ngọc 28 (thiết kế .ck): chọn / trống / khoá (icon ổ khoá). */
 export function ODanhDau({ chon, khoa }: { chon: boolean; khoa?: boolean }) {
   return (
     <View style={{ width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center",
-      ...(chon && !khoa ? { backgroundColor: M.chinh, backgroundImage: "linear-gradient(#138a75, #0a5246)", boxShadow: BONG.ngoc } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }) }}>
+      ...(chon && !khoa ? { backgroundColor: M.chinh, backgroundImage: "linear-gradient(#138a75, #0A1629)", boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }) }}>
       {khoa ? <Icon3D ten="khoa" co={18} /> : chon ? <Icon ten="tick" mau="#fff" co={16} /> : null}
     </View>
   );
@@ -133,7 +133,7 @@ export function ODanhDau({ chon, khoa }: { chon: boolean; khoa?: boolean }) {
 
 /** Nhãn viên «Sẽ khoá» (than chì) / «Vẫn dùng» (ngọc nhạt) của bảng khoá máy. */
 export const NhanKhoa = ({ seKhoa }: { seKhoa: boolean }) => (
-  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 11, backgroundColor: seKhoa ? M.nut : "#dcebe6" }}>
+  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 11, backgroundColor: seKhoa ? M.nut : M.chinhSoft }}>
     <Chu kieu="rat" co={12.5} mau={seKhoa ? "#fff" : M.chinhInk}>{seKhoa ? "Sẽ khoá" : "Vẫn dùng"}</Chu>
   </View>
 );
@@ -154,7 +154,7 @@ export function BangKhoaTheoMay({ mo, dong, may, con, dangDung, app, khac, xong 
         {`${chung ? "Khoá cho mọi bé dùng máy này" : "Khoá máy này"}${app ? ` · ${app} sẽ đóng` : ""}`}
       </Chu>
       {con.length ? <>
-        <Chu kieu="rat" co={14} mau="#3a403d" style={{ marginHorizontal: 6 }}>{`Trên ${ngan}`}</Chu>
+        <Chu kieu="rat" co={14} mau={M.chu2} style={{ marginHorizontal: 6 }}>{`Trên ${ngan}`}</Chu>
         <TheDs>
           {/* bé đang dùng lên đầu (thiết kế them-tmezw761) */}
           {[...con].sort((a, b) => Number(b.id === dangDung) - Number(a.id === dangDung)).map((c, k) => (
@@ -163,8 +163,8 @@ export function BangKhoaTheoMay({ mo, dong, may, con, dangDung, app, khac, xong 
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" dong={1}>{tenGoi(c.ten)}</Chu>
                 {c.id === dangDung
-                  ? <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}><Chu kieu="rat" co={12.5} mau={M.chinh}>● Đang dùng</Chu>{app ? ` · ${app}` : ""}</Chu>
-                  : <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}>Không vào được máy này</Chu>}
+                  ? <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}><Chu kieu="rat" co={12.5} mau={M.chinh}>● Đang dùng</Chu>{app ? ` · ${app}` : ""}</Chu>
+                  : <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>Không vào được máy này</Chu>}
               </View>
               <NhanKhoa seKhoa />
             </View>
@@ -172,16 +172,16 @@ export function BangKhoaTheoMay({ mo, dong, may, con, dangDung, app, khac, xong 
         </TheDs>
       </> : null}
       {khac.length ? <>
-        <Chu kieu="rat" co={14} mau="#3a403d" style={{ marginHorizontal: 6 }}>Máy khác · không đổi gì</Chu>
+        <Chu kieu="rat" co={14} mau={M.chu2} style={{ marginHorizontal: 6 }}>Máy khác · không đổi gì</Chu>
         <TheDs>
           {khac.map((x, k) => (
             <View key={x.id} style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60 }, keDau(k)]}>
-              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
+              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
                 <Icon3D ten={hinhMay(x.nen, !x.rieng)} co={24} />
               </View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" dong={1}>{x.ten}</Chu>
-                <Chu kieu="dam" co={12.5} mau="#565c59">{x.rieng ? "Máy riêng" : "Máy chung"}</Chu>
+                <Chu kieu="dam" co={12.5} mau={M.chu3}>{x.rieng ? "Máy riêng" : "Máy chung"}</Chu>
               </View>
               <NhanKhoa seKhoa={false} />
             </View>

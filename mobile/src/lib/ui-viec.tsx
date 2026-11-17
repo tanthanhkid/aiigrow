@@ -32,9 +32,9 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
             <View style={[{ borderRadius: 34, padding: 3 }, on ? { borderWidth: 3, borderColor: M.chinh } : { borderWidth: 3, borderColor: "transparent" }]}>
               <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={50} con={x} />
               {n ? (
-                <View style={{ position: "absolute", right: -4, top: -4, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, backgroundColor: M.camDam,   // thiết kế #e2660f + chữ trắng 12px chỉ 3.42:1 (WCAG cần 4.5) ⇒ token cam đậm (≈5.2:1)
+                <View style={{ position: "absolute", right: -4, top: -4, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, backgroundColor: M.badge,   // bàn Navy: huy hiệu cam #FF751F, chữ navy (≈7:1)
                   alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: M.nen }}>
-                  <Chu kieu="rat" co={12} mau="#fff" so>{n}</Chu>
+                  <Chu kieu="rat" co={12} mau={M.chu} so>{n}</Chu>
                 </View>
               ) : null}
               {ic?.[x.id] ? (
@@ -52,7 +52,7 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
       })}
       {them ? (
         <Pressable onPress={them} accessibilityRole="button" accessibilityLabel="Thêm con" style={{ width: 72, alignItems: "center", gap: 5 }}>
-          <View style={{ margin: 6, width: 50, height: 50, borderRadius: 25, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
+          <View style={{ margin: 6, width: 50, height: 50, borderRadius: 25, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
             <Icon ten="cong" mau={M.chinhInk} co={22} />
           </View>
           <Chu kieu="rat" co={13} mau={M.chu2} dong={1}>Thêm con</Chu>
@@ -87,7 +87,7 @@ export function ThanhMuc<T extends string>({ ds, chon, doi }: { ds: { gia: T; ch
         return (
           <NhanMen key={x.gia} onPress={() => doi(x.gia)} accessibilityRole="tab" accessibilityState={{ selected: on }} muc="chip" sang={!on} men={on ? MEN.ngoc : MEN.sang}
             style={[{ flexGrow: 1, flexShrink: 1, minHeight: 44, paddingHorizontal: 10, borderRadius: 22, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
-              on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#f7f6f3", ...KHOI.nho }]}>
+              on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
             {x.ic ? <Icon3D ten={x.ic} co={18} /> : null}
             <Chu kieu="rat" co={13.5} mau={on ? "#fff" : M.chu2} dong={1}>{x.chu}</Chu>
           </NhanMen>
@@ -103,7 +103,7 @@ export function NutCongTick({ chon, bam, nhan }: { chon: boolean; bam: () => voi
     <Pressable onPress={bam} accessibilityRole="checkbox" accessibilityState={{ checked: chon }} accessibilityLabel={nhan} hitSlop={4}
       style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
       <View style={[{ width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-        chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+        chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
         {chon ? <Icon ten="tick" mau="#fff" co={16} /> : <Chu kieu="rat" co={22} mau={M.chinhInk} style={{ lineHeight: 24 }}>+</Chu>}
       </View>
     </Pressable>
@@ -111,7 +111,7 @@ export function NutCongTick({ chon, bam, nhan }: { chon: boolean; bam: () => voi
 }
 
 /** Ô icon 3D lõm (thiết kế .e / .ic): nền xám lõm, hoặc `nen` riêng (teal nhạt cho Học / AiiRob, cam nhạt cho Giúp Ba Mẹ). */
-export function OLomIcon({ ic, co = 40, nen = "#ecebe7" }: { ic: TenIcon; co?: number; nen?: string }) {
+export function OLomIcon({ ic, co = 40, nen = M.xamSoft }: { ic: TenIcon; co?: number; nen?: string }) {
   return (
     <View style={{ width: co, height: co, borderRadius: Math.round(co * 0.35), backgroundColor: nen, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
       <Icon3D ten={ic} co={Math.round(co * 0.6)} />
@@ -122,9 +122,9 @@ export function OLomIcon({ ic, co = 40, nen = "#ecebe7" }: { ic: TenIcon; co?: n
 /** Viên sao nhỏ chỉ số (thiết kế `.d s` — «⭐ 10»), vàng chỉ cho sao. */
 export function SaoNho({ n, dau }: { n: number; dau?: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 3, paddingLeft: 4, paddingRight: 8, borderRadius: 11, backgroundColor: "#fbecc0" }}>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 3, paddingLeft: 4, paddingRight: 8, borderRadius: 11, backgroundColor: M.diemSoft }}>
       <Icon3D ten="sao" co={16} />
-      <Chu kieu="rat" co={12.5} mau="#6e4300" so>{`${dau ?? ""}${n.toLocaleString("vi-VN")}`}</Chu>
+      <Chu kieu="rat" co={12.5} mau={M.diemInk} so>{`${dau ?? ""}${n.toLocaleString("vi-VN")}`}</Chu>
     </View>
   );
 }
@@ -138,7 +138,7 @@ export function ChonO<T extends string | number>({ ds, chon, doi, sao }: { ds: {
         return (
           <Pressable key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={x.nhan ?? (sao ? `${x.chu} sao` : x.chu)}
             style={[{ flexGrow: 1, minWidth: 64, minHeight: 44, borderRadius: 16, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 10 },
-              on ? { backgroundColor: "#dcebe6", borderWidth: 2, borderColor: M.chinh } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+              on ? { backgroundColor: M.chinhSoft, borderWidth: 2, borderColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
             {sao ? <Icon3D ten="sao" co={18} /> : x.ic ? <Icon3D ten={x.ic} co={18} /> : null}
             <Chu kieu="rat" co={14.5} mau={on ? M.chinhInk : M.chu}>{x.chu}</Chu>
           </Pressable>

@@ -53,7 +53,7 @@ export default function QuenMatKhau() {
       <CanhRob lv="so-tay" ic="khoa" tieu="Đừng lo, Grow giúp lấy lại nè!" cao={200} />
       <TieuDe chu="Quên mật khẩu" giua />
       <SoBuoc n={1} chu="Nhập số đã đăng ký, bấm Gửi mã" />
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 54, borderRadius: 27, backgroundColor: M.ranh, boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 }}>
         <View style={{ flex: 1 }}><OLomTran {...oSo} /></View>
         {gui ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: M.chinh, borderRadius: 20, paddingHorizontal: 12, height: 40, boxShadow: BONG.ngoc }}>
@@ -84,6 +84,6 @@ const SoBuoc = ({ n, chu }: { n: number; chu: string }) => (
 /** Vạch tiến độ 2 bước ở giữa thanh đầu (bàn them-2g3zpiie v4 / them-6aomy24b v8): bước đã tới vạch ngọc, bước sau vạch xám. */
 const VachBuoc = ({ dang }: { dang: 1 | 2 }) => (
   <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang} trên 2`}>
-    {[1, 2].map((i) => <View key={i} style={{ width: 22, height: 5, borderRadius: 3, backgroundColor: i <= dang ? M.chinh : "#d4d5d1" }} />)}
+    {[1, 2].map((i) => <View key={i} style={{ width: 22, height: 5, borderRadius: 3, backgroundColor: i <= dang ? M.chinh : M.vien2 }} />)}
   </View>
 );

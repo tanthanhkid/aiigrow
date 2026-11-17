@@ -42,7 +42,7 @@ export default function DangKy() {
       <BangTruot mo={daCo} dong={() => setDaCo(false)} tieu="">
         <View style={{ alignItems: "center", gap: 10 }}>
           {/* bàn them-ahk69dtl v7: thẻ ngọc nhạt, viên số bên trái, Grow to đứng mép phải tràn lên khỏi đỉnh thẻ (thanh kéo vẫn trống) */}
-          <View style={{ flexDirection: "row", alignItems: "center", alignSelf: "stretch", height: 116, marginTop: 34, borderRadius: 26, backgroundColor: "#dcebe6", paddingLeft: 16, paddingRight: 150 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", alignSelf: "stretch", height: 116, marginTop: 34, borderRadius: 26, backgroundColor: M.chinhSoft, paddingLeft: 16, paddingRight: 150 }}>
             <View style={{ flex: 1, minWidth: 0, backgroundColor: "#fff", borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14, boxShadow: BONG.nho }}><Chu kieu="rat" co={20} so dong={1}>{an}</Chu></View>
             <View pointerEvents="none" style={{ position: "absolute", right: 4, bottom: -4, width: 124, height: 156, overflow: "hidden", alignItems: "center" }}>
               <View style={{ width: 156, height: 156 }}><Rob ten="chi" co={156} /></View>

@@ -68,7 +68,7 @@ export default function XuLyYeuCau() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <Chu kieu="dam" co={14} mau={M.chu2}>Đang có</Chu>
             <VienSao s={sao} />
-            {no ? <Chu kieu="dam" co={13.5} mau="#8a3c0c">{no}</Chu> : null}
+            {no ? <Chu kieu="dam" co={13.5} mau={M.canh}>{no}</Chu> : null}
           </View>
           <Chu kieu="rat" co={15}>{`Cho ${ten} vay bao nhiêu?`}</Chu>
           <ChonMot ds={[...new Set([...MUC_VAY, xin])].sort((a, b) => a - b).map((x) => ({ gia: x, chu: `${x} sao` }))} gia={n} doi={setChon} />

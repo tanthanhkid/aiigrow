@@ -46,9 +46,9 @@ export default function SuaHoSo() {
       <View style={{ gap: 6 }}>
         <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Năm sinh</Chu>
         <View accessibilityLabel={namSo ? `Năm sinh ${namSo}, tuổi ${conGiap(namSo)[0]}` : "Chưa có năm sinh"}
-          style={{ minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, flexDirection: "row", alignItems: "baseline", paddingHorizontal: 18, paddingTop: 15 }}>
+          style={{ minHeight: 54, borderRadius: 27, backgroundColor: M.ranh, boxShadow: BONG.lom, flexDirection: "row", alignItems: "baseline", paddingHorizontal: 18, paddingTop: 15 }}>
           <Chu kieu={namSo ? "rat" : "dam"} co={namSo ? 18 : 16} mau={namSo ? M.chu : M.chu3} so>{namSo ? String(namSo) : "Chưa có"}</Chu>
-          {namSo ? <Chu kieu="dam7" co={13} mau="#565c59">{` · tuổi ${conGiap(namSo)[0]}`}</Chu> : null}
+          {namSo ? <Chu kieu="dam7" co={13} mau={M.chu3}>{` · tuổi ${conGiap(namSo)[0]}`}</Chu> : null}
         </View>
         <Chu co={13} mau={M.chu3} style={{ marginHorizontal: 6 }}>Đổi năm sinh: nhắn AiiGrow trong «Hỏi AiiGrow».</Chu>
       </View>
@@ -58,7 +58,7 @@ export default function SuaHoSo() {
       <Pressable onPress={() => router.push(`/ho-so/${id}/pin` as never)} accessibilityRole="button" accessibilityLabel={d.coPin ? "PIN vào máy, đặt lại" : "PIN vào máy, đặt PIN"}
         style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingHorizontal: 6 }}>
         <Icon3D ten="khoa" co={22} />
-        <Chu kieu="rat" co={14} mau="#3a403d" style={{ flex: 1 }}>PIN vào máy</Chu>
+        <Chu kieu="rat" co={14} mau={M.chu2} style={{ flex: 1 }}>PIN vào máy</Chu>
         <Chu kieu="rat" co={14} mau={M.chinhInk}>{d.coPin ? "Đặt lại" : "Đặt PIN"}</Chu>
         <Icon ten="phai" mau={M.chinhInk} co={16} />
       </Pressable>

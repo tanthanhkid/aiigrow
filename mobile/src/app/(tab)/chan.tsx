@@ -5,15 +5,14 @@
 // (Tên tệp route giữ «chan» cho các liên kết cũ /chan?con=.)
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type GiaDinh } from "@/lib/api";
 import { ChipCon } from "@/lib/hang-ngay";
-import { BONG, KHOI, MEN } from "@/lib/clay";
+import { BONG, KHOI, MEN, HERO, KHOI_HERO } from "@/lib/clay";
 import { HangBoQua, icCuaApp, lucNgan } from "@/lib/ui-bm3";
 import { HangXin, icMuc } from "@/lib/ds-con";
 import { cheDoTu, doiCheDo as ghiCheDo, hangCua, IC_CHE_DO, MAU_NHOM, napDanhSach, TEN_CHE_DO, TEN_NHOM, type CheDo, type DanhSach, type DongDs, type Nhom } from "@/lib/app-web";
-import { BaoLoi, CanhGiua, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Rob, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, Icon, Icon3D, M, Man, NhanMen, Rob, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 // Grow ở thẻ chế độ: cỡ + lệch phải; tên chế độ (25px) chừa phần Grow nằm trong thẻ − lề 16 (khổ 320 đè — cổng DE-ANH)
 const ROB_CO = 104, ROB_PHAI = -4, CHUA_ROB = ROB_CO + ROB_PHAI - 16;
@@ -68,39 +67,41 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
         {dau}
         {chips}
         {/* thẻ lớn chế độ (.hero) — chế độ đang bật thấy đầu tiên, công tắc ngay trên thẻ */}
-        <View style={{ borderRadius: 34, overflow: "hidden", ...KHOI.the }}>
-          <LinearGradient colors={moHet ? ["#f6e6d2", "#faf2e8"] : ["#cfe6de", "#e8f2ee"]} style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
+        {/* bàn Navy 17/11: thẻ hero navy cả hai chế độ (.hero --hiBg), dấu sách vàng mép trên, chữ trắng, dòng nhỏ vàng mật */}
+        <View style={{ borderRadius: 34, overflow: "hidden", ...KHOI_HERO }}>
+          <View style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
+            <View pointerEvents="none" style={{ position: "absolute", left: 24, top: 0 }}><DauSach mau={HERO.phu} rong={16} cao={22} /></View>
             <View pointerEvents="none" style={{ position: "absolute", right: ROB_PHAI, top: 56 }}><Rob ten={moHet ? "nghi" : "chi"} co={ROB_CO} /></View>
-            <Chu kieu="dam7" co={13} mau={moHet ? "#8a3c0c" : M.chinhInk}>{`Máy của ${ten} đang ở chế độ`}</Chu>
+            <Chu kieu="dam7" co={13} mau={HERO.phu} style={{ marginTop: 10 }}>{`Máy của ${ten} đang ở chế độ`}</Chu>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginRight: CHUA_ROB }} accessibilityRole="header">
               <Icon3D ten={IC_CHE_DO[cheDo]} co={32} />
-              <Chu kieu="rat" co={25} style={{ letterSpacing: -0.5, flexShrink: 1 }}>{TEN_CHE_DO[cheDo]}</Chu>
+              <Chu kieu="rat" co={25} mau={HERO.chu} style={{ letterSpacing: -0.5, flexShrink: 1 }}>{TEN_CHE_DO[cheDo]}</Chu>
             </View>
             <View style={{ marginTop: 12, marginRight: 96, gap: 8 }}>
               {moHet ? <>
-                <DongY ic="tick" nen={M.chinh} chu="Con mở mọi app, mọi trang web" />
-                <DongY ic="tick" nen={M.chinh} chu="Không tính phút" />
+                <DongY ic="tick" nen={M.ok} chu="Con mở mọi app, mọi trang web" />
+                <DongY ic="tick" nen={M.ok} chu="Không tính phút" />
               </> : <>
-                <DongY ic="tick" nen={M.chinh} chu="Chỉ mở app, web Ba Mẹ đã thêm" />
-                <DongY kyTu="?" nen="#8a3c0c" chu="App, web mới: con xin Ba Mẹ" />
+                <DongY ic="tick" nen={M.ok} chu="Chỉ mở app, web Ba Mẹ đã thêm" />
+                <DongY kyTu="?" nen={M.badge} chu="App, web mới: con xin Ba Mẹ" />
               </>}
             </View>
-            <View style={{ flexDirection: "row", gap: 4, marginTop: 16, padding: 4, borderRadius: 24, backgroundColor: "rgba(255,255,255,0.55)", boxShadow: BONG.lom }}
+            <View style={{ flexDirection: "row", gap: 4, marginTop: 16, padding: 4, borderRadius: 24, backgroundColor: HERO.vien, boxShadow: "inset 0px 4px 8px rgba(0,0,0,0.3)" }}
               accessibilityRole="radiogroup" accessibilityLabel="Chế độ app và web">
               {(["mo_het", "theo_danh_sach"] as const).map((k) => {
                 const on = k === cheDo;
                 return (
                   <NhanMen key={k} onPress={() => doiCheDo(k)} disabled={d.xem || dangChay} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: d.xem }} aria-checked={on}
-                    accessibilityLabel={TEN_CHE_DO[k]} muc="chip" sang={!on} men={on ? MEN.ngoc : undefined}
+                    accessibilityLabel={TEN_CHE_DO[k]} muc="chip" sang={on} men={on ? MEN.vang : undefined}
                     style={[{ flex: k === "mo_het" ? 1 : 1.25, minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 48, borderRadius: 20 },
-                      on && { backgroundColor: M.chinh, boxShadow: BONG.ngoc }]}>
-                    <View style={{ opacity: on ? 1 : 0.6 }}><Icon3D ten={IC_CHE_DO[k]} co={22} /></View>
-                    <Chu kieu="rat" co={14.5} mau={on ? "#fff" : M.chu2} dong={1}>{TEN_CHE_DO[k]}</Chu>
+                      on && { backgroundColor: M.diem, boxShadow: BONG.vang }]}>
+                    <View style={{ opacity: on ? 1 : 0.7 }}><Icon3D ten={IC_CHE_DO[k]} co={22} /></View>
+                    <Chu kieu="rat" co={14.5} mau={on ? M.chu : HERO.chu} dong={1}>{TEN_CHE_DO[k]}</Chu>
                   </NhanMen>
                 );
               })}
             </View>
-          </LinearGradient>
+          </View>
         </View>
         <BaoLoi loi={loiLam} />
 
@@ -126,14 +127,14 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
             ))}
           </View>
         )}
-        <View style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+        <View style={{ paddingVertical: 8, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.the, ...KHOI.the }}>
           <View style={{ opacity: moHet ? 0.55 : 1 }}>
             <HangIcon nhan="App" ds={app} trong="Chưa thêm app nào" sua={!moHet} bam={moApp} />
-            <View style={{ height: 1.5, backgroundColor: "#ecebe7" }} />
+            <View style={{ height: 1.5, backgroundColor: M.xamSoft }} />
             <HangIcon nhan="Web" ds={web} web trong="Chưa thêm trang nào" sua={!moHet} bam={moWeb} />
           </View>
           {moHet ? (
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6, marginBottom: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6, marginBottom: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
               <Icon3D ten="dong_ho_cat" co={22} />
               <Chu kieu="dam" co={13.5} mau={M.chu2} style={{ flex: 1 }}>Đang tạm nghỉ, vẫn giữ nguyên. Bật «Theo danh sách» là dùng tiếp.</Chu>
             </View>
@@ -150,9 +151,9 @@ function DongY({ ic, kyTu, nen, chu }: { ic?: TenIcon; kyTu?: string; nen: strin
   return (
     <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
       <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: nen, alignItems: "center", justifyContent: "center" }}>
-        {ic ? <Icon ten={ic} mau="#fff" co={12} /> : <Chu kieu="rat" co={12} mau="#fff">{kyTu ?? ""}</Chu>}
+        {ic ? <Icon ten={ic} mau={M.chu} co={12} /> : <Chu kieu="rat" co={12} mau={M.chu}>{kyTu ?? ""}</Chu>}
       </View>
-      <Chu kieu="rat" co={13.5} style={{ flex: 1 }}>{chu}</Chu>
+      <Chu kieu="rat" co={13.5} mau={HERO.chu} style={{ flex: 1 }}>{chu}</Chu>
     </View>
   );
 }
@@ -160,8 +161,9 @@ function DongY({ ic, kyTu, nen, chu }: { ic?: TenIcon; kyTu?: string; nen: strin
 function TieuMuc({ chu, so }: { chu: string; so?: number }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, marginHorizontal: 6, marginBottom: -4 }}>
-      <Chu kieu="rat" co={15} mau={M.chu2}>{chu}</Chu>
-      {so ? <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: M.camDam /* #e2660f + chữ trắng 3.42:1 < 4.5 */ }}><Chu kieu="rat" co={12} mau="#fff">{String(so)}</Chu></View> : null}
+      <DauSach />
+      <Chu kieu="rat" co={15} mau={M.chu}>{chu}</Chu>
+      {so ? <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: M.badge }}><Chu kieu="rat" co={12} mau={M.chu}>{String(so)}</Chu></View> : null}
     </View>
   );
 }

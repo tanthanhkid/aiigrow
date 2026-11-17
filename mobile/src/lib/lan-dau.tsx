@@ -8,7 +8,7 @@ import { ICON_3D, type Ten3D } from "./icon-3d";
 import { Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, View, type TextInputProps } from "react-native";
 import { router } from "expo-router";
 import { SvgXml } from "react-native-svg";
-import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
+import { BONG, BO_CLAY, KHOI, MEN, HERO } from "./clay";
 import { saoChep } from "./luu-tep";
 import { Chu, F, Icon, Icon3D, LopMen, M, NhanMen, Rob, type LinhVat, type TenIcon } from "./ui";
 
@@ -19,14 +19,14 @@ export const Anh3D = ({ ten, co = 22 }: { ten: Ten3D; co?: number }) => (
 
 // ---------------------------------------------------------------- thanh bước + đầu màn
 
-/** 4 bước Lần đầu (thiết kế: icon người · sao · đồng hồ · máy tính): bước xong hiện dấu tick, bước đang làm có viền ngọc. */
+/** 4 bước Lần đầu (thiết kế: icon người · sao · đồng hồ · máy tính): bước xong hiện dấu tick, bước đang làm navy viền vàng mật (bàn Navy 17/11). */
 const BUOC_IC: TenIcon[] = ["nguoi", "sao", "dongho", "may_tinh"];
 export function ThanhBuoc({ dang, ic }: { dang: number; /** đổi icon bước đang làm (vd «khien» ở màn Chọn app) */ ic?: TenIcon }) {
   return (
     <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang + 1} trên 4`}>
       {BUOC_IC.map((t, i) => (
         <View key={t} style={[{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-          i === dang ? { backgroundColor: "#dcebe6", boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}` } : { backgroundColor: "#e6e5e1", boxShadow: BONG.lom }]}>
+          i === dang ? { backgroundColor: M.chinh, boxShadow: `0px 0px 0px 2.5px ${M.diem}, ${BONG.nho}` } : { backgroundColor: M.ranh, boxShadow: BONG.lom }]}>
           <View style={{ opacity: i <= dang ? 1 : 0.45 }}><Icon3D ten={i < dang ? "tick" : i === dang && ic ? ic : t} co={20} /></View>
         </View>
       ))}
@@ -83,11 +83,11 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai, bongTo }
   /** kiểu bàn bm1-dang-ky v11 `.hero`: thẻ cao 128, bong bóng (tiêu đề 18 + câu 13) chiếm phần còn lại, Grow to ~170 đứng mép phải tràn lên khỏi đỉnh thẻ */ bongTo?: boolean;
   /** Grow bên TRÁI, bong bóng bên phải (thiết kế «Đang chờ máy của con» bm-ghep-lan-dau/02, bm-ghep-may/04) */ robTrai?: boolean }) {
   if (bongTo) return (
-    <View style={{ height: 128, marginTop: 36, borderRadius: 30, backgroundColor: "#e3efeb", flexDirection: "row", alignItems: "center", paddingLeft: 14, paddingRight: 96, ...KHOI.the }}>
+    <View style={{ height: 128, marginTop: 36, borderRadius: 30, backgroundColor: M.chinhSoft, flexDirection: "row", alignItems: "center", paddingLeft: 14, paddingRight: 96, ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={30} />
       <View style={{ flex: 1, minWidth: 0, backgroundColor: "#fff", borderRadius: 24, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho }}>
         <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 18, lineHeight: 23, letterSpacing: -0.3, color: M.chu }}>{tieu}</Text>
-        {loi ? <Chu co={13} mau="#3a403d" style={{ marginTop: 3, lineHeight: 18 }}>{loi}</Chu> : null}
+        {loi ? <Chu co={13} mau={M.chu2} style={{ marginTop: 3, lineHeight: 18 }}>{loi}</Chu> : null}
       </View>
       {/* khung cắt phần trong suốt hai bên ảnh vuông 170 ⇒ chỉ thân Grow (~112) đứng cạnh bong bóng, không tính là đè chữ */}
       <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -10, width: 112, height: 170, overflow: "hidden", alignItems: "center" }}>
@@ -96,17 +96,17 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai, bongTo }
     </View>
   );
   if (chuTo) return (
-    <View style={{ borderRadius: 34, backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", backgroundColor: "#e2efea", height: 176, overflow: "hidden", ...KHOI.the }}>
-      <LopMen men={MEN.vien} bo={34} />
+    // bàn Navy 17/11 (.n-the.g): sân hero navy, tiêu đề trắng
+    <View style={{ borderRadius: 34, backgroundImage: HERO.anh, backgroundColor: HERO.nen, height: 176, overflow: "hidden", boxShadow: HERO.bong }}>
       <View style={{ position: "absolute", left: 22, top: 40, right: 150 }}>
-        <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 31, letterSpacing: -0.5, color: M.chu }}>{tieu}</Text>
-        {loi ? <Chu kieu="dam" co={14.5} mau="#3a403d" style={{ marginTop: 6, lineHeight: 20 }}>{loi}</Chu> : null}
+        <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 31, letterSpacing: -0.5, color: HERO.chu }}>{tieu}</Text>
+        {loi ? <Chu kieu="dam" co={14.5} mau="rgba(255,255,255,0.8)" style={{ marginTop: 6, lineHeight: 20 }}>{loi}</Chu> : null}
       </View>
       <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -26 }}><Rob ten={lv} co={150} /></View>
     </View>
   );
   return (
-    <View style={{ borderRadius: BO_CLAY.the, backgroundColor: "#dcebe6", minHeight: cao, padding: 14, flexDirection: "row", alignItems: "center", justifyContent: robTrai ? "flex-end" : undefined, ...KHOI.the }}>
+    <View style={{ borderRadius: BO_CLAY.the, backgroundColor: M.dauBaMe, minHeight: cao, padding: 14, flexDirection: "row", alignItems: "center", justifyContent: robTrai ? "flex-end" : undefined, ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={BO_CLAY.the} />
       {ic ? <View style={{ position: "absolute", left: 14, bottom: 12 }}><Icon3D ten={ic} co={44} /></View> : null}
       <View style={{ maxWidth: robTrai ? "58%" : "64%", backgroundColor: "#fff", borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
@@ -167,7 +167,7 @@ export function OLom({ nhan, ghi, ghiOk, matKhau, ...p }: TextInputProps & { nha
         <Chu kieu="rat" co={14}>{nhan}</Chu>
         {ghi ? <Chu kieu={ghiOk ? "rat" : "thuong"} co={12.5} mau={ghiOk ? M.chinhInk : M.chu3}>{ghiOk ? `✓ ${ghi}` : ghi}</Chu> : null}
       </View>
-      <View style={[{ flexDirection: "row", alignItems: "center", minHeight: 54, borderRadius: 27, backgroundColor: "#e9e8e4", boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 },
+      <View style={[{ flexDirection: "row", alignItems: "center", minHeight: 54, borderRadius: 27, backgroundColor: M.ranh, boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 },
         dang && { boxShadow: `${BONG.lom}, 0px 0px 0px 2px ${M.chinh}` }]}>
         <TextInput placeholderTextColor={M.chu3} accessibilityLabel={nhan} secureTextEntry={matKhau && an} {...p}
           onFocus={(e) => { setDang(true); p.onFocus?.(e); }} onBlur={(e) => { setDang(false); p.onBlur?.(e); }}
@@ -221,14 +221,14 @@ export const linkNgan = (lienKet: string) => lienKet.replace(/^https?:\/\//, "")
 export const demNguoc = (giay: number) => `${Math.floor(Math.max(0, giay) / 60)}:${String(Math.max(0, giay) % 60).padStart(2, "0")}`;
 
 type ChiaSe = { tieuDe: string; noiDung: string; lienKet: string };
-// glyph đơn sắc ngọc của bàn bm1-ob-ghep v23 (`.gA svg` fill #0a5246, phần khoét nền #dcebe6)
-const G = (d: string) => `<svg viewBox="0 0 24 24" fill="#0a5246">${d}</svg>`;
+// glyph đơn sắc ngọc của bàn bm1-ob-ghep v23 (`.gA svg` fill #0A1629, phần khoét nền #F2EBE3)
+const G = (d: string) => `<svg viewBox="0 0 24 24" fill={M.chinhInk}>${d}</svg>`;
 const BONG_CHAT = '<path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.6 1.4 4.9 3.6 6.5L5 21.5l4-2.1c.9.2 1.9.3 3 .3 5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/>';
 const GLYPH = {
-  zalo: G(`${BONG_CHAT}<path d="M8 8.5h7.5v1.6l-4.9 5h4.9v1.6H7.8v-1.6l4.9-5H8z" fill="#dcebe6"/>`),
-  mes: G(`${BONG_CHAT}<path d="M6.5 13.8l4-4.2 2.4 2.1 4.6-2.4-4 4.2-2.4-2.1z" fill="#dcebe6"/>`),
-  tin: G('<path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2H9l-5 4v-4a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M7 9h10v2H7zM7 12.5h6v2H7z" fill="#dcebe6"/>'),
-  mail: G('<path d="M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><path d="M3.5 7.2L12 12.6l8.5-5.4v2.2L12 14.8 3.5 9.4z" fill="#dcebe6"/>'),
+  zalo: G(`${BONG_CHAT}<path d="M8 8.5h7.5v1.6l-4.9 5h4.9v1.6H7.8v-1.6l4.9-5H8z" fill={M.chinhSoft}/>`),
+  mes: G(`${BONG_CHAT}<path d="M6.5 13.8l4-4.2 2.4 2.1 4.6-2.4-4 4.2-2.4-2.1z" fill={M.chinhSoft}/>`),
+  tin: G('<path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2H9l-5 4v-4a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M7 9h10v2H7zM7 12.5h6v2H7z" fill={M.chinhSoft}/>'),
+  mail: G('<path d="M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><path d="M3.5 7.2L12 12.6l8.5-5.4v2.2L12 14.8 3.5 9.4z" fill={M.chinhSoft}/>'),
   tele: G('<path d="M21.5 3.5L2.8 10.7c-1 .4-1 1.1-.2 1.4l4.8 1.5 1.8 5.6c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.7c.3-1.3-.5-1.9-1.4-1.3z"/>'),
   chep: G('<path d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7a5 5 0 000 10h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4a5 5 0 000-10z"/>'),
   them: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l-4.5 4.5 1.4 1.4L11 5.8V15h2V5.8l2.1 2.1 1.4-1.4z"/><path d="M6 9h3v2H6v9h12v-9h-3V9h3a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9a2 2 0 012-2z"/></svg>',
@@ -253,20 +253,20 @@ export function HangChiaSe({ chiaSe, bao, daGui }: { chiaSe: ChiaSe; bao: (chu: 
   const chep = (chu: string, cau: string) => saoChep(chu).then((ok) => { if (ok) bao(cau); });
   const mo = (url: string, duPhong: string) => Linking.openURL(url).then(() => daGui?.(), () => chep(chiaSe.noiDung, duPhong));
   const muc: { ten: string; nen: string; ve: ReactNode; bam: () => void }[] = [
-    { ten: "Zalo", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.zalo} width={24} height={24} />,
+    { ten: "Zalo", nen: M.chinhSoft, ve: <SvgXml xml={GLYPH.zalo} width={24} height={24} />,
       bam: () => (Platform.OS === "web" ? chep(chiaSe.noiDung, "Đã chép link — mở Zalo, dán gửi sang máy của con") : chiaSeHeThong(chiaSe).then(() => daGui?.())) },
-    { ten: "Messenger", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.mes} width={24} height={24} />,
+    { ten: "Messenger", nen: M.chinhSoft, ve: <SvgXml xml={GLYPH.mes} width={24} height={24} />,
       bam: () => {
         if (Platform.OS === "web") { chep(chiaSe.noiDung, "Đã chép link — mở Messenger, dán gửi sang máy của con"); return; }
         Linking.openURL(`fb-messenger://share/?link=${encodeURIComponent(chiaSe.lienKet)}`).then(() => daGui?.(), () => chiaSeHeThong(chiaSe));
       } },
-    { ten: "Tin nhắn", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.tin} width={24} height={24} />,
+    { ten: "Tin nhắn", nen: M.chinhSoft, ve: <SvgXml xml={GLYPH.tin} width={24} height={24} />,
       bam: () => { mo(`sms:${Platform.OS === "ios" ? "&" : "?"}body=${encodeURIComponent(chiaSe.noiDung)}`, "Đã chép link — dán vào tin nhắn"); } },
-    { ten: "Email", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.mail} width={24} height={24} />,
+    { ten: "Email", nen: M.chinhSoft, ve: <SvgXml xml={GLYPH.mail} width={24} height={24} />,
       bam: () => { mo(`mailto:?subject=${encodeURIComponent(chiaSe.tieuDe)}&body=${encodeURIComponent(chiaSe.noiDung)}`, "Đã chép link — dán vào email"); } },
-    { ten: "Telegram", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.tele} width={24} height={24} />,
+    { ten: "Telegram", nen: M.chinhSoft, ve: <SvgXml xml={GLYPH.tele} width={24} height={24} />,
       bam: () => { mo(`https://t.me/share/url?url=${encodeURIComponent(chiaSe.lienKet)}&text=${encodeURIComponent(chiaSe.tieuDe)}`, "Đã chép link — dán vào Telegram"); } },
-    { ten: "Sao chép", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.chep} width={24} height={24} />, bam: () => chep(chiaSe.lienKet, "Đã chép link ghép máy") },
+    { ten: "Sao chép", nen: M.chinhSoft, ve: <SvgXml xml={GLYPH.chep} width={24} height={24} />, bam: () => chep(chiaSe.lienKet, "Đã chép link ghép máy") },
   ];
   const o = (m: { ten: string; nen: string; ve: ReactNode; bam: () => void }) => (
     <Pressable key={m.ten} onPress={m.bam} accessibilityRole="button" accessibilityLabel={m.ten === "Sao chép" ? "Sao chép link" : m.ten === "Thêm…" ? "Thêm cách chia sẻ" : `Gửi qua ${m.ten}`}
@@ -284,7 +284,7 @@ export function HangChiaSe({ chiaSe, bao, daGui }: { chiaSe: ChiaSe; bao: (chu: 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 4, paddingRight: 16, paddingVertical: 4 }}>
         {muc.map(o)}
       </ScrollView>
-      <View style={{ width: 1, alignSelf: "stretch", marginVertical: 8, backgroundColor: "#e4e3df" }} />
+      <View style={{ width: 1, alignSelf: "stretch", marginVertical: 8, backgroundColor: "#efe7dd" }} />
       {o({ ten: "Thêm…", nen: M.nut, ve: <SvgXml xml={GLYPH.them} width={24} height={24} />,
         bam: () => chiaSeHeThong(chiaSe).then((chep) => { if (chep) bao("Đã chép nội dung — dán vào ứng dụng Ba Mẹ muốn gửi"); else daGui?.(); }) })}
     </View>
@@ -303,7 +303,7 @@ export function KhoiTrangThaiGhep({ lv, ic, tieu, phu, children }: { lv: LinhVat
         <View pointerEvents="none" style={{ position: "absolute", top: 20, left: "50%", marginLeft: 30 }}><Icon3D ten={ic} co={64} /></View>
         <View style={{ position: "absolute", left: 12, right: 12, bottom: 18, alignItems: "center", gap: 6 }}>
           <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 23, letterSpacing: -0.4, color: M.chu, textAlign: "center" }}>{tieu}</Text>
-          <Chu kieu="rat" co={14} mau="#8a3c0c" style={{ textAlign: "center" }}>{phu}</Chu>
+          <Chu kieu="rat" co={14} mau={M.canh} style={{ textAlign: "center" }}>{phu}</Chu>
         </View>
       </View>
       {children}
@@ -314,8 +314,8 @@ export function KhoiTrangThaiGhep({ lv, ic, tieu, phu, children }: { lv: LinhVat
 /** Một dòng thẻ trạng thái (bàn `.the`): ô tròn ngọc nhạt 48 + icon 30, chữ 15/800 (+ dòng phụ 12.5). */
 export function DongTrangThai({ ic, chu, phu }: { ic: TenIcon; chu: string; phu?: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 26, backgroundColor: "#f7f6f3", ...KHOI.the }}>
-      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={30} /></View>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 26, backgroundColor: M.the, ...KHOI.the }}>
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={30} /></View>
       <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{chu}</Chu>{phu ? <Chu kieu="dam" co={12.5} mau={M.chu3}>{phu}</Chu> : null}</View>
     </View>
   );
@@ -347,9 +347,9 @@ const TT = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M16.6 5.8A4.3 4.3 0 0 
 type HinhApp = { nen: string; svg?: string; ic?: TenIcon; rob?: boolean; chu?: string };
 const HINH_APP: Record<string, HinhApp> = {
   youtube_kids: { nen: "#ff2a2a", svg: YT }, youtube: { nen: "#ff0000", svg: YT }, roblox: { nen: "#1f2321", svg: RB }, minecraft: { nen: "#e9efe4", svg: MC },
-  aiirob: { nen: "#e3efeb", rob: true }, tu_dien: { nen: "#e8f0ff", ic: "sach" }, google: { nen: "#ffffff", svg: G_SVG }, ve: { nen: "#fff4e0", ic: "but" },
-  lich: { nen: "#ffffff", ic: "lich" }, tiktok: { nen: "#111414", svg: TT }, zalo: { nen: "#0068ff", chu: "Zalo" }, scratch: { nen: "#fff1c9", ic: "game" },
-  duolingo: { nen: "#58cc02", chu: "D" }, khan: { nen: "#14bf96", chu: "K" }, zoom: { nen: "#2d8cff", chu: "Z" }, capcut: { nen: "#111414", chu: "C" },
+  aiirob: { nen: M.chinhSoft, rob: true }, tu_dien: { nen: "#e8f0ff", ic: "sach" }, google: { nen: "#ffffff", svg: G_SVG }, ve: { nen: M.canhSoft, ic: "but" },
+  lich: { nen: "#ffffff", ic: "lich" }, tiktok: { nen: M.nut, svg: TT }, zalo: { nen: "#0068ff", chu: "Zalo" }, scratch: { nen: M.diemSoft, ic: "game" },
+  duolingo: { nen: "#58cc02", chu: "D" }, khan: { nen: "#14bf96", chu: "K" }, zoom: { nen: "#2d8cff", chu: "Z" }, capcut: { nen: M.nut, chu: "C" },
 };
 
 /** Ô icon một app: hình theo mã app trong lưới (server/lib/che-do-chan.ts › APP_GOI_Y); app «Thêm app khác» ⇒ chữ cái đầu. */
@@ -364,13 +364,13 @@ export function OApp({ ma, ten, chon, bam, nhanDoc, rong = "25%" }: { ma?: strin
             : <Chu kieu="rat" co={h.chu && h.chu.length > 2 ? 15 : 24} mau={h.nen === "#dfe9f7" ? M.lam : "#fff"}>{h.chu}</Chu>}
         </View>
         {chon !== undefined ? (
-          <View style={{ position: "absolute", right: -5, bottom: -5, width: 22, height: 22, borderRadius: 11, backgroundColor: chon ? M.chinh : "#2e3533",
-            boxShadow: "0px 0px 0px 2.5px #f7f6f3", alignItems: "center", justifyContent: "center" }}>
+          <View style={{ position: "absolute", right: -5, bottom: -5, width: 22, height: 22, borderRadius: 11, backgroundColor: chon ? M.chinh : "#1b2b47",
+            boxShadow: "0px 0px 0px 2.5px #ffffff", alignItems: "center", justifyContent: "center" }}>
             <Icon ten={chon ? "tick" : "tru"} mau="#fff" co={13} />
           </View>
         ) : null}
       </View>
-      {ten ? <Chu kieu="rat" co={12} mau={tat ? "#565c59" : M.chu} dong={2} style={{ textAlign: "center", lineHeight: 15, minHeight: 30 }}>{ten}</Chu> : null}
+      {ten ? <Chu kieu="rat" co={12} mau={tat ? M.chu3 : M.chu} dong={2} style={{ textAlign: "center", lineHeight: 15, minHeight: 30 }}>{ten}</Chu> : null}
     </View>
   );
   return bam ? (
@@ -382,7 +382,7 @@ export function OApp({ ma, ten, chon, bam, nhanDoc, rong = "25%" }: { ma?: strin
 export function OThemApp({ bam }: { bam: () => void }) {
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel="Thêm app khác" style={{ width: "25%", paddingHorizontal: 2, alignItems: "center", gap: 6 }}>
-      <View style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: "#ecebe7", boxShadow: BONG.lom, borderWidth: 2, borderStyle: "dashed", borderColor: "#9fb8b0", alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: M.xamSoft, boxShadow: BONG.lom, borderWidth: 2, borderStyle: "dashed", borderColor: "#9fb8b0", alignItems: "center", justifyContent: "center" }}>
         <Chu kieu="rat" co={28} mau={M.chinhInk}>+</Chu>
       </View>
       <Chu kieu="rat" co={12} mau={M.chinhInk} style={{ textAlign: "center", lineHeight: 15 }}>Thêm app khác</Chu>
@@ -427,7 +427,7 @@ export function BanhXeGio({ gio, doi }: { gio: string; doi: (g: string) => void 
   const mm = phutDs.includes(m) ? m : phutDs[Math.floor(Number(m) / 5) % 12];   // làm tròn XUỐNG: 21:58 ⇒ 21:55 (tròn lên 60 không cộng giờ ⇒ nhảy về 21:00)
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-      <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: CAO_O * 2, height: CAO_O, borderRadius: 14, backgroundColor: "#e3efeb" }} />
+      <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: CAO_O * 2, height: CAO_O, borderRadius: 14, backgroundColor: M.chinhSoft }} />
       <BanhXe ds={gioDs} gia={h} doi={(x) => doi(`${x}:${mm}`)} nhan="Giờ" />
       <Chu kieu="rat" co={24}>:</Chu>
       <BanhXe ds={phutDs} gia={mm} doi={(x) => doi(`${h}:${x}`)} nhan="Phút" />
@@ -446,7 +446,7 @@ export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhV
   // ảnh Grow dọc (520×740) vẽ trong ô vuông `co` ⇒ chừa đáy 4 như thiết kế (.rob bottom:4), không trừ thêm 30 (Grow bé hơn HTML — vòng 2)
   const coRob = Math.max(110, cao - 8 - (thoai || tren ? hTren + 12 : 0));
   return (
-    <View style={{ minHeight: cao, borderRadius: 34, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
+    <View style={{ minHeight: cao, borderRadius: 34, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={34} />
       {thoai || tren ? (
         <View onLayout={(e) => setHTren(Math.ceil(e.nativeEvent.layout.height))} style={{ alignSelf: "stretch", paddingHorizontal: 12, paddingTop: 12 }}>
@@ -469,7 +469,7 @@ export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhV
 /** BẢNG MÀU HỒ SƠ CON DUY NHẤT (avatar «mau-<số>»): [màu chọn ở Lần đầu, nền nhạt thẻ hồ sơ, tông đậm cho avatar chữ trắng ở Hằng ngày
  *  (bàn them-h60stad7, bm2-trang-chu `.av.a/.m/.n/.k` — đủ tương phản)]. Lần đầu / Sửa hồ sơ đọc [0][1]; lib/hang-ngay › mauCon đọc [2]. */
 export const MAU_HO_SO: [string, string, string][] = [["#f29a4a", "#fde3c8", "#f08a3c"], ["#6aa3ef", "#dce9fb", "#5b7fd6"], ["#ec8db2", "#fbe0ea", "#d86a8f"],
-  ["#5bbf95", "#d9f1e6", "#3f9a86"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];
+  ["#5bbf95", "#d9f1e6", "#7ED957"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];
 export const mauHoSo = (avatar?: string | null) => { const k = Number(/^mau-(\d)(?:\||$)/.exec(avatar ?? "")?.[1]); return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : 0]; };
 /** «9 tuổi · khoảng lớp 4» (lớp = tuổi − 5, chỉ 6–17 tuổi). */
 export const cauTuoi = (namSinh: number | null) => {

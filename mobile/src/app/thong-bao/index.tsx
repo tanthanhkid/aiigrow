@@ -56,7 +56,7 @@ export default function DsThongBaoMan() {
   // thiết kế .cai: nút tròn sáng 44 với bánh răng 3D
   const phai = (
     <Pressable onPress={() => router.push("/thong-bao/cai-dat")} accessibilityRole="button" accessibilityLabel="Cài đặt thông báo"
-      style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
+      style={[{ width: 44, height: 44, borderRadius: 22, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
       <Icon3D ten="banhrang" co={24} />
     </Pressable>
   );
@@ -92,7 +92,7 @@ export default function DsThongBaoMan() {
 
 /** Thẻ nhóm (thiết kế .de-y đào / .ds sáng): các dòng cách nhau bằng vạch mảnh. */
 function NhomTb({ deY, children }: { deY?: boolean; children: ReactNode }) {
-  return <View style={[{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: deY ? "#f9e7d2" : "#f7f6f3" }, KHOI.the]}>{children}</View>;
+  return <View style={[{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: deY ? M.canhSoft : M.the }, KHOI.the]}>{children}</View>;
 }
 
 /** Một dòng thông báo (.lg): giờ (cột 40) · ô icon lõm · tiêu đề + dòng phụ · hành động («Trả lời» viên than chì, còn lại chữ «Xem ›»). */
@@ -101,18 +101,18 @@ function DongTb({ k, deY, luc, ic, tieu, phu, lam, bam }: { k: number; deY?: boo
   const traLoi = !!deY && !!lam && /^Trả lời/.test(lam);
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={[tieu, phu, luc].filter(Boolean).join(", ")}
-      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: deY ? "#f3d6b8" : "#ecebe7" }}>
-      <Chu kieu="rat" co={13} mau="#565c59" style={{ width: 44 }} dong={2}>{luc}</Chu>
-      <OLomIcon ic={ic} nen={deY ? "#f3d6b8" : "#ecebe7"} />
+      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: deY ? "#f3d6b8" : M.xamSoft }}>
+      <Chu kieu="rat" co={13} mau={M.chu3} style={{ width: 44 }} dong={2}>{luc}</Chu>
+      <OLomIcon ic={ic} nen={deY ? "#f3d6b8" : M.xamSoft} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
-        {phu ? <Chu kieu="dam" co={12.5} mau={deY ? "#8a3c0c" : "#565c59"} dong={1}>{phu}</Chu> : null}
+        {phu ? <Chu kieu="dam" co={12.5} mau={deY ? M.canh : M.chu3} dong={1}>{phu}</Chu> : null}
       </View>
       {lam ? traLoi ? (
         <View style={{ height: 36, paddingHorizontal: 11, borderRadius: 18, backgroundColor: M.nut, justifyContent: "center", boxShadow: BONG.toi }}>
           <Chu kieu="rat" co={13} mau="#fff">{lam.replace(/ ›$/, "")}</Chu>
         </View>
-      ) : <Chu kieu="rat" co={13.5} mau={deY ? "#8a3c0c" : M.chinhInk}>{lam}</Chu> : null}
+      ) : <Chu kieu="rat" co={13.5} mau={deY ? M.canh : M.chinhInk}>{lam}</Chu> : null}
     </Pressable>
   );
 }

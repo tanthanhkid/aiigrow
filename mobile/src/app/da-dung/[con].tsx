@@ -33,7 +33,7 @@ export default function DaDung() {
           <The dem style={{ gap: 4, padding: 14 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="game" co={18} mau={M.chu2} /><Chu kieu="dam" co={13} mau={M.chu2}>Tính phút</Chu></View>
             <Chu kieu="rat" co={22} so>{`${d.choi.daDung}′`}<Chu kieu="dam" co={14} mau={M.chu3}>{` = ${soVN(d.choi.daDung)} sao`}</Chu></Chu>
-            <Chu co={13} mau={xau ? "#8a3c0c" : M.chinhInk}>{conCau}</Chu>
+            <Chu co={13} mau={xau ? M.canh : M.chinhInk}>{conCau}</Chu>
           </The>
         </Pressable>
         {/* 15/11 (#262): ô «Giờ học» ⇒ «Không tính phút» (app / web nhóm Không tính phút hôm nay — GET hom-nay › khongTinhPhut) */}
@@ -51,7 +51,7 @@ export default function DaDung() {
         {!d.dung.length ? <Chu co={14} mau={M.chu3} style={{ paddingVertical: 14 }}>{`Hôm nay ${d.ten} chưa dùng app nào.`}</Chu> : null}
         {d.dung.map((x, k) => (
           <Pressable key={`${x.kieu}:${x.muc}`} onPress={() => x.mayId && router.push(`/may/${x.mayId}` as never)} disabled={!x.mayId} accessibilityRole="button"
-            style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: "#efefec" }}>
+            style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: M.vien }}>
             <Chu kieu="dam" co={12.5} mau={M.chu3} so style={{ width: 40 }}>{x.luc ? gioPhut(x.luc) : ""}</Chu>
             <OLomIcon ic={icDung(x)} />
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -77,7 +77,7 @@ export default function DaDung() {
               return (
                 <Pressable key={`${x.ly}:${x.ten}:${k}`} disabled={x.ly !== "dang_xin" || !x.yeuCau} accessibilityRole="button"
                   onPress={() => router.push(`/yeu-cau?con=${con}` as never)}
-                  style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: "#efefec" }}>
+                  style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: M.vien }}>
                   <Chu kieu="dam" co={12.5} mau={M.chu3} so style={{ width: 40 }}>{x.ly === "grow_chan" ? "" : gioPhut(x.luc)}</Chu>
                   <OLomIcon ic={ic} />
                   <View style={{ flex: 1, minWidth: 0 }}>
