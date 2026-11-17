@@ -25,7 +25,7 @@ import java.time.format.DateTimeFormatter
 
 /**
  * Giao diện dựng bằng code (không thư viện UI). 06/11: phía Con chuyển sang bản «Dịu» (Diu.kt — L16): nền kem, một màu nhấn xanh,
- * thẻ trắng viền mảnh, nút 52dp màu đặc, Nunito. Vùng chạm ≥ 48dp, chữ tiếng Việt có dấu. Hàm ở đây giữ chữ ký cũ để ManChinh / ManKhoa /
+ * thẻ trắng viền mảnh, nút 52dp màu đặc, Be Vietnam Pro / Fraunces. Vùng chạm ≥ 48dp, chữ tiếng Việt có dấu. Hàm ở đây giữ chữ ký cũ để ManChinh / ManKhoa /
  * TroNang dùng chung; vẽ thật ở Diu.kt.
  */
 object GiaoDien {
@@ -291,7 +291,7 @@ object GiaoDien {
                 val dung = kq == KetQuaMoOffline.DA_MO || kq == KetQuaMoOffline.DANG_MO
                 daMoBangMa = dung
                 baoMa.text = if (dung) "Máy mở rồi! $s" else s
-                baoMa.setTextColor(if (dung) Diu.XANH_DAM else Diu.LOI_DAM); baoMa.visibility = View.VISIBLE
+                baoMa.setTextColor(if (dung) Diu.OK else Diu.LOI_DAM); baoMa.visibility = View.VISIBLE
                 maGo = ""; veMa(!dung)
                 return
             }
@@ -324,6 +324,8 @@ object GiaoDien {
             dem.setTextColor(if (toi) Diu.KIM else CHU); moLai.setTextColor(if (toi) Diu.DEM_CHU2 else Diu.CHU2)
             vien.background = Diu.tron(if (toi) Diu.DEM_THE else XANH_NHAT)
             ghi.setTextColor(if (toi) Diu.DEM_CHU2 else Diu.CHU3)
+            goiY.setTextColor(if (toi) Diu.DEM_CHU else Diu.XANH_DAM)
+            linkMa.setTextColor(if (toi) Diu.DEM_CHU else Diu.CHU2); linkBaMe.setTextColor(if (toi) Diu.DEM_CHU else Diu.CHU2)
         }
 
         fun ve(ht: HienThi, goiChan: String? = null) {
@@ -348,7 +350,7 @@ object GiaoDien {
                 xinSao -> "Xin Ba Mẹ cho vay sao"
                 else -> "Xin Ba Mẹ mở máy"
             }
-            if (xinSao != xinPhu) { xinPhu = xinSao; Diu.chon(c, nutXin, !xinSao) }
+            if (xinSao != xinPhu) { xinPhu = xinSao; Diu.datKieu(c, nutXin, if (xinSao) Diu.KieuNut.PHU else Diu.KieuNut.CHINH) }
             // máy chủ cũ (chưa có sổ sao) và không phải app ngoài danh sách: không còn gì để xin (đã gỡ xin thêm giờ / ngoại lệ) ⇒ ẩn nút; còn «Ba Mẹ mở máy» / mã offline
             nutXin.visibility = if (duyet || ht.coSao) View.VISIBLE else View.GONE
             nutNhiemVu.visibility = if (hetSao) View.VISIBLE else View.GONE

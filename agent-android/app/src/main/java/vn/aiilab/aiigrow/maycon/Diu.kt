@@ -15,9 +15,9 @@ import android.widget.LinearLayout
 import android.widget.TextView
 
 /**
- * Bản «Dịu» của phía Con trên điện thoại (L16, 06/11 — docs/thiet-ke-chot/con-dt-*, kit `condt-tre/kit-diu.css`): nền kem phẳng, MỘT màu
- * nhấn xanh lá, vàng chỉ cho sao, thẻ trắng bo 24 viền mảnh + bóng xám mềm, nút chính cao 52dp màu đặc, chữ Nunito (OFL, res/font —
- * giấy phép assets/NUNITO-OFL.txt), robot chỉ ở màn có cảm xúc, giờ ngủ nền tối dịu. Mọi token Dịu nằm ở tệp này; Clay.kt giữ cho phần cũ.
+ * Phía Con trên điện thoại. Bản «Dịu» (L16, 06/11) đã áp phong cách E «Ánh kim» (17/11): nền kem neumorphism, thẻ cùng màu nền nổi bằng bóng đôi,
+ * ô nhập/ô chọn lõm, nút chính vàng kim chữ navy, giờ ngủ nền navy; chữ Fraunces SemiBold (tiêu đề, số) + Be Vietnam Pro (OFL, res/font —
+ * giấy phép assets/OFL-Fraunces.txt, assets/OFL-BeVietnamPro.txt). Mọi token nằm ở tệp này; Clay.kt (cũ) trỏ về đây.
  */
 object Diu {
     // ---- màu: phong cách E «Ánh kim» (17/11) — kem neumorphism + vàng kim + navy. Tên token giữ như bản Dịu (XANH = màu «chính», nay là navy).
@@ -123,21 +123,26 @@ object Diu {
 
     enum class KieuNut { CHINH, PHU, NHAT, CHU }
 
-    /** Nút cao 52dp. CHINH = xanh đặc chữ trắng; PHU = trắng viền mảnh chữ xanh đậm; NHAT = nền xanh nhạt; CHU = chỉ chữ (liên kết). */
-    fun nut(c: Context, s: String, kieu: KieuNut = KieuNut.CHINH, onClick: (View) -> Unit) = Button(c).apply {
-        text = s; isAllCaps = false; textSize = if (kieu == KieuNut.CHU) 15f else 17f; typeface = if (kieu == KieuNut.CHU) font(c) else fontDam(c)
-        maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; gravity = Gravity.CENTER
-        stateListAnimator = null; backgroundTintList = null
+    /** Kiểu nút «chính / phụ / nhạt / chữ» — dùng khi dựng và khi nút đổi vai (vd «Xin Ba Mẹ…» chính ⇄ phụ). */
+    fun datKieu(c: Context, b: Button, kieu: KieuNut) {
         val nen: Drawable? = when (kieu) {
             KieuNut.CHINH -> kim(c, 18f)                      // vàng kim, chữ navy
             KieuNut.PHU -> khoi(c, TRANG, 18, null)           // kem lõm
             KieuNut.NHAT -> khoi(c, XANH_NHAT, 18, null)
             KieuNut.CHU -> null
         }
-        background = RippleDrawable(ColorStateList.valueOf(0x22000000), nen, mat(18f, c))
-        if (kieu == KieuNut.CHINH) ChatLieu.choBong(this)
-        setTextColor(ColorStateList(arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),
+        b.background = RippleDrawable(ColorStateList.valueOf(0x22000000), nen, mat(18f, c))
+        if (kieu == KieuNut.CHINH) ChatLieu.choBong(b)
+        b.setTextColor(ColorStateList(arrayOf(intArrayOf(-android.R.attr.state_enabled), intArrayOf()),
             intArrayOf(CHU3, if (kieu == KieuNut.CHU) CHU2 else CHU)))
+    }
+
+    /** Nút cao 52dp. CHINH = xanh đặc chữ trắng; PHU = trắng viền mảnh chữ xanh đậm; NHAT = nền xanh nhạt; CHU = chỉ chữ (liên kết). */
+    fun nut(c: Context, s: String, kieu: KieuNut = KieuNut.CHINH, onClick: (View) -> Unit) = Button(c).apply {
+        text = s; isAllCaps = false; textSize = if (kieu == KieuNut.CHU) 15f else 17f; typeface = if (kieu == KieuNut.CHU) font(c) else fontDam(c)
+        maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; gravity = Gravity.CENTER
+        stateListAnimator = null; backgroundTintList = null
+        datKieu(c, this, kieu)
         val cao = dp(c, if (kieu == KieuNut.CHU) 44 else 52)
         minHeight = cao; minimumHeight = cao; minWidth = 0; minimumWidth = 0
         setPadding(dp(c, 16), 0, dp(c, 16), 0)
@@ -147,10 +152,10 @@ object Diu {
 
     /** Chọn trong nhóm (chip phút / sao): chọn ⇒ xanh đặc; không ⇒ trắng viền. */
     fun chon(c: Context, b: Button, dangChon: Boolean) {
-        // chọn ⇒ ô lõm kem sẫm viền vàng; không ⇒ kem nổi
-        val nen: Drawable = if (dangChon) ChatLieu(ChatLieu.Kieu.LOM, dpf(c, 18f), mau = XANH_NHAT, dp = dpf(c, 1f), vienKim = true) else noi(c, 18f)
+        // chưa chọn = kem lõm (như nút phụ); đã chọn = vàng kim nổi, rõ ràng khác
+        val nen: Drawable = if (dangChon) kim(c, 18f) else khoi(c, TRANG, 18, null)
         b.background = RippleDrawable(ColorStateList.valueOf(0x22000000), nen, mat(18f, c))
-        if (!dangChon) ChatLieu.choBong(b)
+        if (dangChon) ChatLieu.choBong(b)
         b.setTextColor(CHU)
     }
 
@@ -216,7 +221,7 @@ object Diu {
             gravity = Gravity.CENTER_HORIZONTAL; topMargin = dp(c, 12) }
     }
 
-    /** Ô mã 6 số dạng 6 ô vuông (ô đang gõ viền vàng) — «7 3 1 _ _ _». */
+    /** Ô mã 6 số dạng 6 ô vuông (ô đang gõ viền navy dày 3dp, 13:1) — «7 3 1 _ _ _». */
     class OMa(val c: Context, val soO: Int = 6) {
         val goc = LinearLayout(c).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER
             layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(c, 12) } }
@@ -229,7 +234,7 @@ object Diu {
                 t.text = s.getOrNull(i)?.toString() ?: ""
                 t.background = when {
                     sai -> khoi(c, LOI_NHAT, 14, LOI, 2)
-                    i == s.length -> khoi(c, TRANG, 14, KIM_VIEN, 2)
+                    i == s.length -> khoi(c, TRANG, 14, CHU, 3)
                     else -> khoi(c, TRANG, 14, VIEN)
                 }
             }

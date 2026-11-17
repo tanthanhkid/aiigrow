@@ -245,7 +245,7 @@ class ManChinh : Activity() {
         x.addView(G.dauKhoi(this, R.drawable.fl_gio_tay, if (ht.trangThai == TrangThai.KHOA_NGAY.name) "Xin Ba Mẹ mở máy" else "Xin Ba Mẹ cho vay sao"))
         if (ht.trangThai == TrangThai.KHOA_NGAY.name) {
             x.addView(G.chu(this, "Ba Mẹ đang khoá máy. Cần gấp thì con gọi hoặc nhắn Ba Mẹ nhé.", 15f, G.CHU_PHU))
-            tXin = G.dongBao(this, Diu.XANH_DAM); x.addView(tXin); return
+            tXin = G.dongBao(this, Diu.OK); x.addView(tXin); return
         }
         x.addView(G.chu(this, "Sao vay chơi được ngay hoặc đổi quà. Sao nhiệm vụ trả nợ trước.", 15f, G.CHU_PHU))
         val hangSao = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; isBaselineAligned = false }
@@ -269,13 +269,13 @@ class ManChinh : Activity() {
         x.addView(hangSao); x.addView(xem)
         val loi = oLoiNhan()
         x.addView(loi)
-        val bao = G.dongBao(this, Diu.XANH_DAM)
-        tXin = G.dongBao(this, Diu.XANH_DAM)
+        val bao = G.dongBao(this, Diu.OK)
+        tXin = G.dongBao(this, Diu.OK)
         guiNut.setOnClickListener {
             val nhan = loi.text.toString().replace(Regex("\\s*\n\\s*"), " ")
             val so = saoChon
             bao.text = "Đang gửi…"
-            Thread { val s = DichVuNhip.xinVay(this, so, nhan); runOnUiThread { bao.text = s; loi.setText(""); capNhatXin(Kho(this)) } }.start()
+            Thread { val s = DichVuNhip.xinVay(this, so, nhan); runOnUiThread { bao.setTextColor(if (s.startsWith("Đã ")) Diu.OK else Diu.LOI_DAM); bao.text = s; loi.setText(""); capNhatXin(Kho(this)) } }.start()
         }
         x.addView(guiNut); x.addView(bao); x.addView(tXin)
         capNhatChon()
@@ -482,14 +482,14 @@ class ManChinh : Activity() {
             val x = ln.optJSONObject(i) ?: continue
             dsNhan?.addView(G.chu(this, "«${x.optString("noiDung")}»", 16f, G.CHU).apply { setPadding(0, G.dp(this@ManChinh, 6), 0, 0) })
             val ph = x.optString("phanHoi").takeIf { it.isNotBlank() && it != "null" }
-            if (ph != null) { dsNhan?.addView(G.chu(this, "Con đã trả lời: $ph", 14f, Diu.XANH_DAM)); continue }
+            if (ph != null) { dsNhan?.addView(G.chu(this, "Con đã trả lời: $ph", 14f, Diu.OK)); continue }
             val id = x.optString("id")
-            val bao = G.dongBao(this, Diu.XANH_DAM)
+            val bao = G.dongBao(this, Diu.OK)
             dsNhan?.addView(G.nut(this, "Con cảm ơn Ba Mẹ!", phu = true) { b ->
-                b.isEnabled = false; bao.text = "Đang gửi…"
+                b.isEnabled = false; bao.setTextColor(Diu.OK); bao.text = "Đang gửi…"
                 Thread {
                     val loi = HocVien.traLoi(this, id, "Con cảm ơn Ba Mẹ!")
-                    runOnUiThread { if (loi == null) { bao.text = "Đã gửi Ba Mẹ."; veViec(Kho(this)) } else { bao.text = loi; b.isEnabled = true } }
+                    runOnUiThread { if (loi == null) { bao.setTextColor(Diu.OK); bao.text = "Đã gửi Ba Mẹ."; veViec(Kho(this)) } else { bao.setTextColor(Diu.LOI_DAM); bao.text = loi; b.isEnabled = true } }
                 }.start()
             })
             dsNhan?.addView(bao)
