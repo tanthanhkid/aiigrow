@@ -57,13 +57,12 @@ public sealed class PhienOffline
     /// vẫn ghi ngưỡng cũ). → <c>Luu</c> = nên ghi đĩa ngay (đoạn mới / vừa hết hạn / mỗi 30 giây).
     /// </summary>
     /// <param name="boiMa">Máy đang mở bằng mã offline ⇒ giây đếm vào <see cref="GiayBoiMa"/> (không trừ sao, không tiêu ngưỡng).</param>
-    /// <param name="con">#337: bé đang dùng (máy chung). Đoạn chưa gửi của bé KHÁC không bị thay (phút của bé trước không mất khi đổi bé lúc mất mạng).</param>
+    /// <param name="con">#337: bé đang dùng (máy chung) — ghi vào đoạn mới (gửi kèm phien/bu). Đổi bé: <see cref="DoiBe"/> trước.</param>
     public static (PhienOffline? Doan, bool Luu) Dem(PhienOffline? doan, Policy? p, bool offline, bool dangChoi,
         double giayDonDieu, double daChoiGiay, DateTimeOffset now, bool boiMa = false, string? con = null)
     {
         if (!offline || p?.PlaySessionId == null || p.PlayApp == null) return (doan, false);
         bool luu = false;
-        if (doan != null && doan.PhienId != p.PlaySessionId && doan.CanGui && doan.Con != null && doan.Con != con) return (doan, false);
         if (doan == null || doan.PhienId != p.PlaySessionId)
         {
             // đoạn cũ của phiên khác chưa gửi được thì giữ phiên mới (Policy cuối là sự thật mới nhất); phút của đoạn cũ bỏ (máy chủ đã chốt phiên đó)
@@ -110,6 +109,20 @@ public sealed class PhienOffline
     public object TaoBu() => GiayChoi <= 0 && GiayBoiMa > 0
         ? new { ma = Ma, id = PhienId, muc = Muc, phut = Math.Round(GiayBoiMa / 60.0, 1), batDau = BatDau, ketThuc = HetHan, boiMa = true, con = Con }
         : new { ma = Ma, id = PhienId, muc = Muc, phut = PhutChoi, batDau = BatDau, ketThuc = HetHan, boiMa = false, con = Con };
+
+    /// <summary>#337 — máy chung đổi bé lúc mất mạng: đoạn đếm theo TỪNG bé / phiên. Đoạn đang đếm của bé khác (còn phút chưa gửi) cất vào
+    /// <paramref name="cho"/> (gửi bù khi có mạng, không chặn đếm của bé sau); bé quay lại đúng phiên của mình ⇒ lấy lại đoạn đã cất (ngưỡng, phút giữ nguyên).
+    /// → đoạn đang đếm cho <paramref name="con"/>. → <c>Doi</c> = <paramref name="cho"/> / đoạn đổi (nên ghi đĩa).</summary>
+    public static (PhienOffline? Doan, bool Doi) DoiBe(PhienOffline? doan, List<PhienOffline> cho, Policy? p, string? con)
+    {
+        var phien = p?.PlaySessionId;
+        if (phien == null || doan != null && doan.PhienId == phien) return (doan, false);
+        var doi = false;
+        if (doan is { CanGui: true, Con: not null } && doan.Con != con) { cho.Add(doan); doan = null; doi = true; }
+        var lai = cho.FirstOrDefault(x => x.PhienId == phien && x.Con == con);
+        if (lai != null) { cho.Remove(lai); doan = lai; doi = true; }
+        return (doan, doi);
+    }
 
     /// <summary>Chọn bản giữ khi nạp lại cấu hình từ đĩa: cùng mã ⇒ bản đếm được nhiều hơn (đĩa ghi 30 giây/lần); khác ⇒ bản trong bộ nhớ (mới hơn).</summary>
     public static PhienOffline? Chon(PhienOffline? boNho, PhienOffline? dia)

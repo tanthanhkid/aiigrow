@@ -29,6 +29,8 @@ public sealed class AgentRuntime
     private int _lockGraceSec = 60;
     /// <summary>0.2.4: phút chơi khi mất mạng chưa gửi bù (bản trong bộ nhớ; ghi đĩa ở Config.PhienOffline).</summary>
     private PhienOffline? _phienOffline;
+    /// <summary>#337: đoạn chơi offline của bé khác chờ gửi bù (ghi đĩa ở Config.PhienOfflineCho).</summary>
+    private List<PhienOffline> _phienCho = new();
     /// <summary>0.2.4: giây chơi thật (lúc có mạng) chưa báo máy chủ — status.playSeconds; trừ đi phần đã gửi khi đồng bộ thành công.</summary>
     private double _playSec;
     private string? _playSecId;
@@ -132,6 +134,7 @@ public sealed class AgentRuntime
             }
             // nạp lại khi worker khác ghi cấu hình: bản trong bộ nhớ có thể mới hơn bản trên đĩa (đĩa ghi 30 giây/lần)
             _phienOffline = PhienOffline.Chon(_phienOffline, Config?.PhienOffline);
+            if (_phienCho.Count == 0 && Config?.PhienOfflineCho is { Count: > 0 } pc) _phienCho = pc.Select(x => x.Sao()).ToList();
             if (Config?.DaChoi is { } dc && (dc.PhienId != _daChoi.PhienId || dc.Giay > _daChoi.Giay)
                 && (_daChoi.PhienId.Length == 0 || dc.PhienId == _daChoi.PhienId))
                 _daChoi = new DaChoiTheoPolicy { PhienId = dc.PhienId, Giay = dc.Giay };
@@ -306,9 +309,13 @@ public sealed class AgentRuntime
         var mayRieng = hs?.MayRieng ?? Config?.DungChung == false;
         GoiLuatBe? goi = null;
         Config?.GoiLuatBe.TryGetValue(be, out goi);
-        var p = LuatTheoBe.ChoBe(_policy, _policyBe, be, mayRieng, DocGoi(be, goi), goi?.Luc, hs?.Con.FirstOrDefault(c => c.Id == be), Config?.DangNhap?.HoSoLuc);
+        var goiP = DocGoi(be, goi);
+        // có mạng mà chưa có gói ⇒ luật hiện có (lượt dong-bo ngay sau mang luật của bé); chỉ khoá «Cần có mạng» khi mất mạng thật
+        var p = LuatTheoBe.ChoBe(_policy, _policyBe, be, mayRieng, goiP, goi?.Luc, hs?.Con.FirstOrDefault(c => c.Id == be),
+            Config?.DangNhap?.HoSoMayChuLuc, _offline);
         if (p == null) return (_policy, _quyGiay);
-        return (p, _giayBe.TryGetValue(be, out var g) ? g : 0);
+        // gói của bé: phần đã đếm trên gói lúc bé rời máy (LuatTheoBe.CatBeRoi) + phần đếm từ lúc bé quay lại
+        return (p, (goiP != null ? goi!.GiayDaDem : 0) + (_giayBe.TryGetValue(be, out var g) ? g : 0));
     }
 
     /// <summary>Gói luật đã đọc của bé (đọc lại khi gói đổi). Gọi trong khoá.</summary>
@@ -326,7 +333,8 @@ public sealed class AgentRuntime
     {
         var be = BeHienTai();
         if (be == null || be == _policyBe) return _usedSeconds;
-        return _usedBe.TryGetValue(be, out var g) ? g : 0;
+        var daDem = Config?.GoiLuatBe.TryGetValue(be, out var goi) == true ? goi.DungGiay : 0;
+        return daDem + (_usedBe.TryGetValue(be, out var g) ? g : 0);
     }
 
     /// <summary>Policy đã áp phiên chơi offline + sao đếm tại máy (QuyTaiCho) cho bé đang dùng. Gọi trong khoá.</summary>
@@ -390,6 +398,8 @@ public sealed class AgentRuntime
             if (_daChoi.PhienId != (id ?? "")) _daChoi = new DaChoiTheoPolicy { PhienId = id ?? "" };
             var daTruoc = _daChoi.Giay;
             var truocHet = _phienOffline?.HetHan == true;
+            var doiBe = false;
+            if (_offline) (_phienOffline, doiBe) = PhienOffline.DoiBe(_phienOffline, _phienCho, p, beDem);
             var (doan, luu) = PhienOffline.Dem(_phienOffline, p, _offline, dangChoi, giayDonDieu, daTruoc, now, MoTamDangMo(now), beDem);
             _phienOffline = doan;
             var g = dangChoi && id != null && giayDonDieu > 0 ? Math.Min(giayDonDieu, 60) : 0;
@@ -400,7 +410,7 @@ public sealed class AgentRuntime
             }
             luu |= (int)(daTruoc / PhienOffline.GhiMoiGiay) != (int)(_daChoi.Giay / PhienOffline.GhiMoiGiay);
             if (doan != null && doan.HetHan && !truocHet) PhienOfflineHetHan = true;
-            if (luu) LuuPhienOffline();
+            if (luu || doiBe) LuuPhienOffline();
         }
     }
 
@@ -423,26 +433,32 @@ public sealed class AgentRuntime
         if (daGui == null || kq is not (KetQuaBu.DaGui or KetQuaBu.Bo)) return;
         lock (_gate)
         {
-            if (_phienOffline?.Ma != daGui.Ma) return;
-            _phienOffline = null;
+            if (_phienOffline?.Ma == daGui.Ma) _phienOffline = null;
+            else if (_phienCho.RemoveAll(x => x.Ma == daGui.Ma) == 0) return;
             LuuPhienOffline();
         }
     }
 
+    /// <summary>#337: bản sao các đoạn của bé khác chờ gửi bù (gửi trước dong-bo, cùng luật <see cref="GuiBu"/>).</summary>
+    public List<PhienOffline> DoanChoBu() { lock (_gate) return _phienCho.Where(x => x.CanGui).Select(x => x.Sao()).ToList(); }
+
     /// <summary>Có mạng (đồng bộ được) mà đoạn không có gì để gửi ⇒ bỏ đoạn rỗng.</summary>
     private void BoDoanRong()
     {
-        if (_phienOffline is { CanGui: false }) { _phienOffline = null; LuuPhienOffline(); }
+        var bo = _phienCho.RemoveAll(x => !x.CanGui) > 0;
+        if (_phienOffline is { CanGui: false }) { _phienOffline = null; bo = true; }
+        if (bo) LuuPhienOffline();
     }
 
     private void LuuPhienOffline()
     {
         var sao = _phienOffline?.Sao();
+        var cho = _phienCho.Select(x => x.Sao()).ToList();
         AgentConfig? moi = null;
         var dc = _daChoi.Giay > 0 ? new DaChoiTheoPolicy { PhienId = _daChoi.PhienId, Giay = _daChoi.Giay } : null;
-        try { moi = Store.Update(c => { c.PhienOffline = sao; c.DaChoi = dc; }); } catch { }
+        try { moi = Store.Update(c => { c.PhienOffline = sao; c.DaChoi = dc; c.PhienOfflineCho = cho; }); } catch { }
         if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
-        else if (Config != null) { Config.PhienOffline = sao; Config.DaChoi = dc; }
+        else if (Config != null) { Config.PhienOffline = sao; Config.DaChoi = dc; Config.PhienOfflineCho = cho; }
     }
 
     public void SetOffline(bool v)
@@ -520,6 +536,8 @@ public sealed class AgentRuntime
             if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
             else if (Config != null) { Config.DangNhap ??= new DangNhapMay(); doi = f(Config.DangNhap); }
             var sau = Config?.DangNhap is { } d1 ? (d1.Loai, d1.ConId) : (LoaiNguoiDung.Chua, null);
+            // #337: bé rời máy ⇒ cất luật + phần đã đếm mới nhất của bé vào gói của bé (quay lại lúc mất mạng không dùng gói ho-so cũ)
+            if (truoc.Loai == LoaiNguoiDung.Con && truoc.ConId is { Length: > 0 } roi && sau != truoc) CatBeRoi(roi);
             // KHÔNG đặt lại quỹ đếm tại máy khi đổi người: lúc mất mạng Policy đang giữ vẫn là bản cũ ⇒ đăng xuất / vào lại không được thêm giờ;
             // có mạng, lượt đồng bộ ngay sau (RequestSyncSoon) mang Policy + quỹ của bé mới và đặt lại bộ đếm (SetPolicy).
             if (sau != truoc) _lockStartedAt = null;
@@ -529,12 +547,13 @@ public sealed class AgentRuntime
 
     /// <summary>#337: tách gói luật theo bé khỏi ho-so vừa tải (bỏ <see cref="HoSoBe.Offline"/> khỏi <paramref name="hs"/>) và lưu vào cấu hình
     /// (DPAPI, sống qua khởi động lại) — chỉ ghi khi gói đổi.</summary>
-    public void LuuGoiLuat(HoSoMay hs, DateTimeOffset luc)
+    /// <param name="thay">false ⇒ chỉ thêm gói còn thiếu (<see cref="LuatTheoBe.Gop"/>).</param>
+    public void LuuGoiLuat(HoSoMay hs, DateTimeOffset luc, bool thay = true)
     {
         lock (_gate)
         {
             var thu = new Dictionary<string, GoiLuatBe>(Config?.GoiLuatBe ?? new());
-            var doi = LuatTheoBe.Gop(thu, hs, luc);
+            var doi = LuatTheoBe.Gop(thu, hs, luc, thay);
             LuatTheoBe.BoGoi(hs);
             if (!doi) return;
             AgentConfig? moi = null;
@@ -542,6 +561,23 @@ public sealed class AgentRuntime
             if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
             else if (Config != null) Config.GoiLuatBe = thu;
         }
+    }
+
+    /// <summary>Bé <paramref name="be"/> vừa rời máy: luật + giây đã đếm của bé vào gói của bé (<see cref="LuatTheoBe.CatBeRoi"/>). Gọi trong khoá.</summary>
+    private void CatBeRoi(string be)
+    {
+        if (_policy == null || Config == null || MayRieng) return;   // lock _gate lồng nhau được (Monitor vào lại)
+        var thu = new Dictionary<string, GoiLuatBe>();
+        foreach (var (k, v) in Config.GoiLuatBe)
+            thu[k] = new GoiLuatBe { Raw = v.Raw, Luc = v.Luc, Bam = v.Bam, GiayDaDem = v.GiayDaDem, DungGiay = v.DungGiay };
+        var doi = LuatTheoBe.CatBeRoi(thu, be, _policyBe, Config.LastPolicyJson, _policy.ServerTime, _quyGiay, _usedSeconds,
+            _giayBe.TryGetValue(be, out var gb) ? gb : 0, _usedBe.TryGetValue(be, out var ub) ? ub : 0);
+        if (!doi) return;
+        if (be != _policyBe) { _giayBe.Remove(be); _usedBe.Remove(be); }   // đã chuyển vào gói
+        AgentConfig? moi = null;
+        try { moi = Store.Update(c => { c.GoiLuatBe = thu; c.QuyDem = BanQuyDem(_policyAt); }); } catch { moi = null; }
+        if (moi != null) { Config = moi; _cfgStamp = Store.LastWriteUtc; }
+        else Config.GoiLuatBe = thu;
     }
 
     /// <summary>Máy chỉ gán một bé (ho-so.mayRieng; chưa hỏi được ⇒ theo lúc ghép).</summary>

@@ -339,6 +339,8 @@ public sealed class AgentConfig
     /// <summary>AiiGrow 0.2.4: phút chơi khi mất mạng chưa gửi bù (<see cref="PhienOffline"/>) — lưu để dịch vụ khởi động lại vẫn giữ (vẫn chặn app
     /// chơi đã vượt ngưỡng, vẫn gửi bù khi có mạng lại). null = không có gì.</summary>
     public PhienOffline? PhienOffline { get; set; }
+    /// <summary>#337: đoạn chơi offline của bé KHÁC (máy chung đổi bé lúc mất mạng) chờ gửi bù (<see cref="PhienOffline.DoiBe"/>).</summary>
+    public List<PhienOffline> PhienOfflineCho { get; set; } = new();
     /// <summary>AiiGrow 0.2.4 (review PR #59, P2-5): số giây đã chơi phiên <see cref="Policy.PlaySessionId"/> tại máy kể từ khi nhận Policy đang
     /// giữ — về 0 khi có Policy mới. Ngưỡng đoạn offline mới = PlayOfflineMinutes − chừng này.</summary>
     public DaChoiTheoPolicy? DaChoi { get; set; }

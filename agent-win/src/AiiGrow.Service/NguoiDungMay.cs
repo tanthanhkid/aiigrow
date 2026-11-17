@@ -50,16 +50,18 @@ public sealed class NguoiDungMay
     }
 
     /// <summary>Lưu danh sách bé — chỉ ghi cấu hình (DPAPI) khi danh sách đổi; lúc hỏi giữ trong bộ nhớ.</summary>
-    private void LuuHoSo(HoSoMay hs)
+    /// <param name="sauDongBo">Ngay sau lượt dong-bo thành công (phút đã đếm đã gửi) ⇒ gói luật mới thay gói cũ; ngoài lượt ⇒ chỉ thêm gói còn thiếu.</param>
+    private void LuuHoSo(HoSoMay hs, bool sauDongBo = false)
     {
         var luc = DateTimeOffset.Now;
         _rt.HoSoHoiLuc = luc;
-        _rt.LuuGoiLuat(hs, luc);   // #337: luật theo từng bé (ho-so?offline=1) — tách khỏi danh sách bé trước khi so / lưu
+        var mayChuLuc = hs.OfflineLuc;
+        _rt.LuuGoiLuat(hs, luc, sauDongBo);   // #337: luật theo từng bé (ho-so?offline=1) — tách khỏi danh sách bé trước khi so / lưu
         var moi = JsonSerializer.Serialize(hs, Json.Options);
         _rt.CapNhatDangNhap(d =>
         {
             if (d.HoSo != null && JsonSerializer.Serialize(d.HoSo, Json.Options) == moi) return false;
-            d.HoSo = hs; d.HoSoLuc = luc;
+            d.HoSo = hs; d.HoSoLuc = luc; d.HoSoMayChuLuc = mayChuLuc;
             return true;
         });
     }
@@ -250,7 +252,7 @@ public sealed class NguoiDungMay
         if (taiLai && _rt.HoSoHoiLuc is { } hl && now - hl < TimeSpan.FromSeconds(10)) taiLai = false;
         if (taiLai || dayRa || DangNhapView.CanHoiHoSo(_rt.DangNhap(), now, _rt.HoSoHoiLuc))
         {
-            try { LuuHoSo(await api.HoSoAsync(ct)); }
+            try { LuuHoSo(await api.HoSoAsync(ct), sauDongBo: true); }
             catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug("Làm mới danh sách bé lỗi: {m}", e.Message); }
         }
     }

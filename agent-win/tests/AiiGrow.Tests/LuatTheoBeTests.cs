@@ -91,8 +91,57 @@ public class LuatTheoBeTests
         var cu = LuatTheoBe.ChoBe(a, "a", "b", false, LuatTheoBe.Doc(goiB), goiB.Luc, hsB, T0)!;
         Assert.Equal(10, cu.SoSao!.Sao);                                    // cùng lượt ho-so ⇒ số của gói
         var moi = LuatTheoBe.ChoBe(a, "a", "b", false, LuatTheoBe.Doc(goiB), goiB.Luc, hsB, T0.AddMinutes(10))!;
-        Assert.Equal(4, moi.SoSao!.Sao);                                    // ho-so sau đó ⇒ số dư mới hơn
+        Assert.Equal(4, moi.SoSao!.Sao);                                    // ho-so máy chủ dựng sau gói ⇒ số dư mới hơn
         Assert.Equal((double?)4, QuyTaiCho.ConPhut(moi, 0));
+        Assert.Equal(0, moi.SoSao.No);                                      // nợ: số máy chủ tính (gói), không tự suy
+        Assert.Equal((double?)4, moi.SoSao.SaoTieuDuoc);                             // sao tiêu được của máy chủ, không quá số dư mới
+        // không biết giờ máy chủ của ho-so (null) ⇒ không so được ⇒ giữ số của gói
+        Assert.Equal(10, LuatTheoBe.ChoBe(a, "a", "b", false, LuatTheoBe.Doc(goiB), goiB.Luc, hsB, null)!.SoSao!.Sao);
+    }
+
+    [Fact]
+    public void Ho_so_tai_lai_luat_y_nguyen_thi_khong_ghi_lai_luat_doi_thi_thay()
+    {
+        var goi = new Dictionary<string, GoiLuatBe>();
+        LuatTheoBe.Gop(goi, HoSo(), T0);
+        goi["b"].GiayDaDem = 120;
+        // lượt sau: chỉ serverTime / offlineLuc đổi ⇒ không ghi cấu hình, giữ phần đã đếm
+        var hs2 = HoSo();
+        hs2.OfflineLuc = T0.AddMinutes(2);
+        hs2.Con[1].Offline = JsonDocument.Parse(GoiB.Replace("\"con\":{", "\"serverTime\":\"2026-11-17T09:02:00Z\",\"con\":{")).RootElement.Clone();
+        Assert.False(LuatTheoBe.Gop(goi, hs2, T0.AddMinutes(2)));
+        Assert.Equal(120, goi["b"].GiayDaDem);
+        // luật đổi (sao mới) ⇒ thay, phần đã đếm về 0 (số máy chủ đã gồm phút gửi lên)
+        var hs3 = HoSo();
+        hs3.OfflineLuc = T0.AddMinutes(5);
+        hs3.Con[1].Offline = JsonDocument.Parse(GoiB.Replace("\"sao\":10", "\"sao\":8")).RootElement.Clone();
+        Assert.False(LuatTheoBe.Gop(goi, hs3, T0.AddMinutes(5), thay: false));   // ho-so ngoài lượt đồng bộ: không thay gói đang có
+        Assert.Equal(120, goi["b"].GiayDaDem);
+        Assert.True(LuatTheoBe.Gop(goi, hs3, T0.AddMinutes(5)));
+        Assert.Equal(0, goi["b"].GiayDaDem);
+        Assert.Equal(T0.AddMinutes(5), goi["b"].Luc);
+        Assert.Equal(8, LuatTheoBe.Doc(goi["b"])!.SoSao!.Sao);
+    }
+
+    [Fact]
+    public void Be_roi_may_cat_luat_va_phan_da_dem_moi_nhat_vao_goi()
+    {
+        var goi = new Dictionary<string, GoiLuatBe>();
+        LuatTheoBe.Gop(goi, HoSo(), T0);                                    // gói ho-so cũ của B: 10 sao
+        // B là chủ Policy cuối (đồng bộ lúc 9:30, còn 7 sao), đã đếm 120 giây «Tính phút» + 300 giây dùng máy ⇒ đổi người
+        var dongBoB = GoiB.Replace("\"sao\":10", "\"sao\":7").Replace("\"quyConPhut\":10", "\"quyConPhut\":7");
+        Assert.True(LuatTheoBe.CatBeRoi(goi, "b", "b", dongBoB, T0.AddMinutes(30), 120, 300, 0, 0));
+        Assert.Equal(7, LuatTheoBe.Doc(goi["b"])!.SoSao!.Sao);              // luật mới nhất, không phải gói ho-so cũ
+        Assert.Equal(120, goi["b"].GiayDaDem);
+        Assert.Equal(300, goi["b"].DungGiay);
+        // máy đã có gói máy chủ dựng SAU Policy đó ⇒ không đè
+        Assert.False(LuatTheoBe.CatBeRoi(goi, "b", "b", GoiB, T0.AddMinutes(10), 0, 0, 0, 0));
+        // A đang theo gói (không phải chủ Policy) rời máy ⇒ cộng giây đếm riêng vào gói của A
+        goi["a"] = new GoiLuatBe { Raw = DongBoA, Luc = T0, GiayDaDem = 60 };
+        Assert.True(LuatTheoBe.CatBeRoi(goi, "a", "b", dongBoB, T0.AddMinutes(30), 999, 999, 90, 30));
+        Assert.Equal(150, goi["a"].GiayDaDem);
+        Assert.Equal(30, goi["a"].DungGiay);
+        Assert.False(LuatTheoBe.CatBeRoi(goi, "c", "b", dongBoB, T0, 0, 0, 10, 0));   // bé chưa có gói ⇒ không bịa
     }
 
     [Fact]
@@ -100,6 +149,7 @@ public class LuatTheoBeTests
     {
         var a = PolicyParser.TuDongBo("""{"windows":{"mode":"hoc","locked":false,"allowedApps":["roblox.exe"],"quyConPhut":30,"appTinhGio":["roblox.exe"],"playSessionId":"p1","playApp":"roblox.exe"},"sao":{"sao":30,"no":0,"phutCon":30}}""");
         var hsC = new HoSoBe { Id = "c", Ten = "Bảo Châu", Sao = 5 };
+        Assert.Null(LuatTheoBe.ChoBe(a, "a", "c", false, null, null, hsC, T0, offline: false));   // có mạng, chờ dong-bo ⇒ luật hiện có
         var k = LuatTheoBe.ChoBe(a, "a", "c", false, null, null, hsC, T0)!;
         var eff = PolicyEvaluator.Evaluate(k, T0, 0);
         Assert.True(eff.Locked);
@@ -147,6 +197,10 @@ public class LuatTheoBeTests
         Assert.Equal(LoaiNguoiDung.Chua, DangNhapView.HienTai(d, T0));
         Assert.False(DangNhapView.SoDsCon(d, new[] { "a" }, T0).DayRa);
         Assert.True(DangNhapView.SoDsCon(new DangNhapMay(), new[] { "a" }, T0).TaiLai);  // chưa có danh sách
+        // dsCon rỗng (như Mac / Android) ⇒ bỏ qua, không đá bé ra
+        var d2 = new DangNhapMay { HoSo = HoSo(false) };
+        DangNhapView.VaoCon(d2, "a", "Bảo Anh", null, T0);
+        Assert.Equal((false, false), DangNhapView.SoDsCon(d2, Array.Empty<string>(), T0));
     }
 
     // ------------------------------------------------------------------ phien/bu kèm bé
@@ -161,12 +215,27 @@ public class LuatTheoBeTests
         Assert.Contains("\"con\":\"a\"", bu);
         Assert.Contains("\"id\":\"pA\"", bu);
 
-        // A «Đổi người» sang B lúc mất mạng, B có phiên chơi khác ⇒ đoạn của A (chưa gửi) giữ nguyên, không bị thay
+        // A «Đổi người» sang B lúc mất mạng, B có phiên chơi khác ⇒ đoạn của A cất chờ gửi, B đếm đoạn riêng (không bị chặn)
+        var cho = new List<PhienOffline>();
         var pb = new Policy { PlaySessionId = "pB", PlayApp = "minecraft.exe", PlayOfflineMinutes = 30 };
-        var (d2, _) = PhienOffline.Dem(d, pb, true, true, 60, 0, T0.AddMinutes(1), con: "b");
-        Assert.Same(d, d2);
-        Assert.Equal("pA", d2!.PhienId);
-        Assert.Equal(60, d2.GiayChoi);
+        var (cur, doi) = PhienOffline.DoiBe(d, cho, pb, "b");
+        Assert.True(doi);
+        Assert.Null(cur);
+        Assert.Same(d, Assert.Single(cho));
+        var (db, _) = PhienOffline.Dem(cur, pb, true, true, 60, 0, T0.AddMinutes(1), con: "b");
+        (db, _) = PhienOffline.Dem(db, pb, true, true, 30, 0, T0.AddMinutes(2), con: "b");
+        Assert.Equal("pB", db!.PhienId);
+        Assert.Equal("b", db.Con);
+        Assert.Equal(90, db.GiayChoi);
+        Assert.Equal(60, cho[0].GiayChoi);                                   // phút của A còn nguyên
+        // A quay lại đúng phiên ⇒ lấy lại đoạn của A (ngưỡng, phút giữ), đoạn của B vào hàng chờ
+        var pa2 = new Policy { PlaySessionId = "pA", PlayApp = "roblox.exe", PlayOfflineMinutes = 30 };
+        (cur, doi) = PhienOffline.DoiBe(db, cho, pa2, "a");
+        Assert.Same(d, cur);
+        Assert.Equal("pB", Assert.Single(cho).PhienId);
+        Assert.Contains("\"con\":\"b\"", JsonSerializer.Serialize(cho[0].TaoBu(), Json.Options));
+        // cùng phiên ⇒ không đổi gì
+        Assert.False(PhienOffline.DoiBe(cur, cho, pa2, "a").Doi);
 
         // máy riêng (không rõ bé) như cũ: đoạn phiên mới thay đoạn cũ
         var (d3, _) = PhienOffline.Dem(new PhienOffline { PhienId = "x", Muc = "a.exe", GiayChoi = 5 }, pb, true, true, 10, 0, T0);

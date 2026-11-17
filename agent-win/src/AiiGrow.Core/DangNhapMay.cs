@@ -144,6 +144,8 @@ public sealed class DangNhapMay
     /// <summary>Danh sách bé lần hỏi ho-so gần nhất (kèm vân PIN) — để màn chọn tên chạy cả khi mất mạng.</summary>
     public HoSoMay? HoSo { get; set; }
     public DateTimeOffset? HoSoLuc { get; set; }
+    /// <summary>#337: giờ MÁY CHỦ của lượt ho-so đang lưu (ho-so.offlineLuc) — so số sao ho-so với gói luật cùng một đồng hồ. null = không biết.</summary>
+    public DateTimeOffset? HoSoMayChuLuc { get; set; }
     /// <summary>Lượt sai PIN lúc mất mạng theo bé (máy tự đếm 5 lần / 15 giây như máy chủ).</summary>
     public Dictionary<string, List<DateTimeOffset>> SaiPin { get; set; } = new();
 }
@@ -367,10 +369,11 @@ public static class DangNhapView
     }
 
     /// <summary>So `dsCon` của máy chủ với danh sách bé đang nhớ: lệch ⇒ <c>TaiLai</c> (hỏi lại ho-so ngay, không chờ 30 phút);
-    /// bé đang dùng không còn được gán ⇒ <c>DayRa</c> (về màn chọn tên ngay). <paramref name="ds"/> null (máy chủ cũ) ⇒ không làm gì.</summary>
+    /// bé đang dùng không còn được gán ⇒ <c>DayRa</c> (về màn chọn tên ngay). <paramref name="ds"/> null (máy chủ cũ) hoặc rỗng (như Mac / Android:
+    /// không đá bé ra vì một danh sách trống — chờ ho-so / «nguoiDung» của máy chủ) ⇒ không làm gì.</summary>
     public static (bool TaiLai, bool DayRa) SoDsCon(DangNhapMay d, IReadOnlyCollection<string>? ds, DateTimeOffset now)
     {
-        if (ds == null) return (false, false);
+        if (ds == null || ds.Count == 0) return (false, false);
         var dayRa = HienTai(d, now) == LoaiNguoiDung.Con && !ds.Contains(d.ConId!);
         var taiLai = d.HoSo == null || !d.HoSo.Con.Select(c => c.Id).ToHashSet().SetEquals(ds);
         return (taiLai, dayRa);
