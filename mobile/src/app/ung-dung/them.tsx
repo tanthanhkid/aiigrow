@@ -7,8 +7,7 @@ import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { TEN_NHOM, themVaoDs, type Nhom } from "@/lib/app-web";
-import { ChonNhomNgang, DongDen, KhoiNhom, OTim, icCuaApp, laWeb, luatCuaCon, veHoac, type LuatApp } from "@/lib/ui-bm3";
-import { NutChon, OIconTrang } from "@/lib/ds-con";
+import { ChonNhomNgang, DongDen, NutChon, OIconTrang, KhoiNhom, OTim, icCuaApp, laWeb, luatCuaCon, veHoac, type LuatApp } from "@/lib/ui-bm3";
 import { BaoLoi, ChoTai, Chu, M, Man, Nut, useLam, useTai } from "@/lib/ui";
 
 type GoiY = { ma: string; ten: string; tinhGio: boolean; chon: boolean };

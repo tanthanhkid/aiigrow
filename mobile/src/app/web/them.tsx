@@ -7,8 +7,7 @@ import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, type ConChiTiet, type ThongKeWeb } from "@/lib/api";
 import { TEN_NHOM, themVaoDs, type Nhom } from "@/lib/app-web";
-import { ChonNhomNgang, DongDen, KhoiNhom, OTim, icCuaApp, veHoac } from "@/lib/ui-bm3";
-import { NutChon, OIconTrang } from "@/lib/ds-con";
+import { ChonNhomNgang, DongDen, NutChon, OIconTrang, KhoiNhom, OTim, icCuaApp, veHoac } from "@/lib/ui-bm3";
 import { BaoLoi, ChoTai, Chu, M, Man, Nut, useLam, useTai } from "@/lib/ui";
 
 /** Tên miền con / tên miền đi kèm đã biết của các trang hay gặp (mở một trang mà quên trang đi kèm thì con vẫn vào được / vẫn hỏng). */

@@ -2,7 +2,7 @@
 // Chỉ THÊM (không đổi thành phần chung trong ui.tsx): tiêu đề mục chữ thường đậm (.muc), hàng vàng «Con đang xin» (.xin), ô icon lõm (.ic),
 // hai nhóm danh sách Tính phút / Không tính phút (15/11 — #262), ô tìm, màn kết quả (Grow + .tin + Hoàn tác), ba nút quyết (.ba). Token Clay (mau.ts, clay.ts).
 import type { ReactNode } from "react";
-import { Image, Pressable, TextInput, View } from "react-native";
+import { Image, Pressable, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { bm } from "./api";
 import { MAU_NHOM, PHU_NHOM, TEN_NHOM, type Nhom } from "./app-web";
@@ -167,7 +167,24 @@ export function ChonNhom({ gia, doi, tat }: { gia: Nhom | null; doi: (n: Nhom) =
   );
 }
 
-/** Hai ô nhóm ngang — ngay dưới mục vừa chọn ở màn Thêm app / Thêm web (bàn bm-ung-dung them-vw103x88@v8 · them-yzl99l3y@v9 `.den`): hai thẻ
+/** Ô icon trắng nổi của một dòng danh sách / kết quả — dùng chung App & web (ds-con, Thêm app/web) và Lần đầu (lan-dau-ds › DongKetQua) (.ic — bàn them-g7g1cel5@v7 · them-vw103x88@v8): 42, nền trắng, bóng đổ mềm (không lõm). */
+export const OIconTrang = ({ ic, anh, e }: { ic?: TenIcon; anh?: string | null; /** emoji thay icon (danh mục Lần đầu) */ e?: string }) => (
+  <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3)" }}>
+    {anh ? <Image source={{ uri: `data:image/png;base64,${anh}` }} style={{ width: 28, height: 28 }} resizeMode="contain" accessibilityIgnoresInvertColors />
+      : ic ? <Icon3D ten={ic} co={26} /> : <Text style={{ fontSize: 22, lineHeight: 28 }}>{e}</Text>}
+  </View>
+);
+
+/** Nút tròn ＋ / ✓ của một dòng kết quả ở màn Thêm app / Thêm web (cả Lần đầu) (.c — bàn them-vw103x88@v8): hình 32 (lõm xám ＋ · xanh ✓), vùng chạm 44. */
+export const NutChon = ({ chon }: { chon: boolean }) => (
+  <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
+    <View style={[{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
+      chon ? { backgroundColor: M.chinh, boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.3), inset 0px -4px 6px -2px rgba(0,0,0,0.3)" } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
+      <Chu kieu="rat" co={chon ? 15 : 18} mau={chon ? "#fff" : M.chinhInk}>{chon ? "✓" : "+"}</Chu>
+    </View>
+  </View>
+);
+/** Hai ô nhóm ngang — ngay dưới mục vừa chọn ở màn Thêm app / Thêm web và Lần đầu (lan-dau-ds › HoiNhom) (bàn bm-ung-dung them-vw103x88@v8 · them-yzl99l3y@v9 `.den`): hai thẻ
  *  trắng phồng cạnh nhau, bóng tròn màu nhóm (mờ khi chưa chọn), «Tính phút · Trả bằng sao» | «Không tính phút · Vào thoải mái»; ô đang chọn viền 3px màu nhóm. */
 export function ChonNhomNgang({ gia, doi }: { gia: Nhom; doi: (n: Nhom) => void }) {
   return (

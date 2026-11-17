@@ -4,12 +4,12 @@
 //  · MotMuc (05 bm2-app-web · 08 them-2nupeqju): «<mục> có tính phút không?» hai ô nhóm, «Lưu: <mục> tính phút», «Bỏ <mục> khỏi danh sách»
 //    (bỏ rồi thì con xin lại được). Đọc: GET con/:id/danh-sach. Ghi: danh-sach/doi · danh-sach/bo · POST danh-sach (mục chưa có — thẻ «app mới»).
 import { useState } from "react";
-import { Image, View } from "react-native";
+import { View } from "react-native";
 import { router } from "expo-router";
 import { bm, laChiXem } from "./api";
 import { boKhoiDs, doiNhom, hangCua, napBoQua, napDanhSach, phuHomNay, themVaoDs, type DongDs, type Kieu, type Nhom } from "./app-web";
-import { BONG, KHOI, MEN } from "./clay";
-import { ChonNhom, DauMuc, DongDen, HangBoQua, KhoiNhom, MucNhom, OIcon, icCuaApp, lucNgan, veHoac } from "./ui-bm3";
+import { KHOI, MEN } from "./clay";
+import { ChonNhom, DauMuc, DongDen, HangBoQua, KhoiNhom, MucNhom, OIcon, OIconTrang, icCuaApp, lucNgan, veHoac } from "./ui-bm3";
 import { BaoLoi, ChoTai, Chu, Icon3D, M, Man, NhanMen, Nut, useLam, useTai, type TenIcon } from "./ui";
 
 /** Icon một mục trong DANH SÁCH (bàn them-g7g1cel5 / bm2-web / bm2-ung-dung-may): trang / app xem video (YouTube, Netflix, TikTok) = máy quay,
@@ -34,22 +34,6 @@ export function HangXin({ ic, tieu, phu, bam }: { ic: TenIcon; tieu: string; phu
   );
 }
 
-/** Ô icon trắng nổi của một dòng danh sách / kết quả (.ic — bàn them-g7g1cel5@v7 · them-vw103x88@v8): 42, nền trắng, bóng đổ mềm (không lõm). */
-export const OIconTrang = ({ ic, anh }: { ic: TenIcon; anh?: string | null }) => (
-  <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3)" }}>
-    {anh ? <Image source={{ uri: `data:image/png;base64,${anh}` }} style={{ width: 28, height: 28 }} resizeMode="contain" accessibilityIgnoresInvertColors /> : <Icon3D ten={ic} co={26} />}
-  </View>
-);
-
-/** Nút tròn ＋ / ✓ của một dòng kết quả ở màn Thêm app / Thêm web (.c — bàn them-vw103x88@v8): hình 32 (lõm xám ＋ · xanh ✓), vùng chạm 44. */
-export const NutChon = ({ chon }: { chon: boolean }) => (
-  <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-    <View style={[{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-      chon ? { backgroundColor: M.chinh, boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.3), inset 0px -4px 6px -2px rgba(0,0,0,0.3)" } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
-      <Chu kieu="rat" co={chon ? 15 : 18} mau={chon ? "#fff" : M.chinhInk}>{chon ? "✓" : "+"}</Chu>
-    </View>
-  </View>
-);
 const khoa = (t: string) => t.trim().toLowerCase();
 
 export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
