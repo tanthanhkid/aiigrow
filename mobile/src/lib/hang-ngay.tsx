@@ -178,13 +178,14 @@ export function HangViec({ ic, mau, trai, tieu, phu, phai, bam, dau, nhanDoc }: 
 }
 
 /** Tiêu đề mục trong thân màn (thiết kế 14/11 .muc: 15/800 #3a403d, lề trái 22 — 66 màn thống nhất) + nút chữ «Tất cả ›» bên phải. */
-export function TieuMuc({ chu, so, phai, ic }: { chu: string; so?: number; phai?: { chu: string; bam: () => void }; /** icon 3D 22 trước chữ (.muc .t img) */ ic?: TenIcon }) {
+export function TieuMuc({ chu, so, xam, phai, ic }: { chu: string; so?: number; /** viên số xám (bàn «Để biết 8») thay viên cam */ xam?: boolean; phai?: { chu: string; bam: () => void };
+  /** icon 3D 22 trước chữ (.muc .t img) */ ic?: TenIcon }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginHorizontal: 6, minHeight: ic ? 44 : undefined }}>
       {ic ? <Icon3D ten={ic} co={22} /> : null}
       <Chu kieu="rat" co={15} mau={M.chu2} style={{ flexShrink: 1 }}>{chu}</Chu>
-      {so ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: "#c2540a", alignItems: "center", justifyContent: "center" }}>{/* thiết kế .muc em #e2660f — sẫm hơn cho chữ trắng đạt 4.5:1 */}
-        <Chu kieu="rat" co={12} mau="#fff" so>{String(so)}</Chu></View> : null}
+      {so ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: xam ? "#e6e5e0" : "#c2540a", alignItems: "center", justifyContent: "center" }}>{/* thiết kế .muc em #e2660f — sẫm hơn cho chữ trắng đạt 4.5:1 */}
+        <Chu kieu="rat" co={12} mau={xam ? M.chu2 : "#fff"} so>{String(so)}</Chu></View> : null}
       <View style={{ flex: 1 }} />
       {phai ? <Pressable onPress={phai.bam} hitSlop={10} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>
         <Chu kieu="rat" co={14} mau={M.chinhInk}>{phai.chu}</Chu></Pressable> : null}
@@ -281,7 +282,8 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
   const phuMay = (m: (typeof may)[number]) => {
     const kh = cauKhoaMay(m.khoaMay);
     if (m.dungChung) return caNha ? "Máy chung · khoá mọi bé" : `Máy chung${m.conKhac?.length ? ` · ${m.conKhac.join(", ")} vẫn vào được` : ""}`;
-    return dang?.[m.id]?.chu ?? kh ?? (m.truc ? "Máy riêng" : "Đang tắt · khoá khi máy mở lên");
+    // bàn them-sll7clha@v7 / them-cjrbm5gj@v1: «● Roblox · … · máy riêng» · «Máy riêng · chưa mở»
+    return dang?.[m.id]?.chu ? `${dang[m.id].chu} · máy riêng` : kh ?? (m.truc ? "Máy riêng" : "Máy riêng · chưa mở");
   };
   return (
     <BangTruot mo={mo} dong={dongBang} tieu={caNha ? "Khoá tất cả máy?" : `Khoá máy ${ten}?`} hinh="khoa">

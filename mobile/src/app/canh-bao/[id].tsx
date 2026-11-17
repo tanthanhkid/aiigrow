@@ -5,21 +5,21 @@
 //  · 12 máy mất liên lạc > 1 ngày (may_ngoai_vong, matNhipPhut ≥ 1440): «Thường do» 3 lý do · «Kiểm tra <máy> cùng con» · «Xem <máy>»
 //  · giờ máy bị đổi (lech_gio — bm-duyet/05 cũ, giữ): «Chuyện gì đã xảy ra» + mở khoá sau khi nói chuyện hoặc để khoá.
 //  · 15/11 nợ quá 1.000 sao (no_qua_1000 — thiết kế them-5twxl6hf «Cảnh báo nợ sao», #266): thẻ đào «<Con> đã nợ quá 1.000 sao · 19:41 · đang nợ 1.020 · vượt
-//    mốc sau lần cho vay 30 sao», «Ví sao của <Con> −1.020 sao», «Ba Mẹ nên biết» (không cản cho vay · sao nhiệm vụ trả nợ trước · 7 ngày qua vay / trả),
+//    mốc sau lần cho vay 30 sao», «Ví sao của <Con> −1.020 sao», «Ba Mẹ nên biết» (không chặn việc cho vay · sao nhiệm vụ trả nợ trước · 7 ngày qua vay / trả),
 //    «Giao thêm nhiệm vụ để trả nợ» · «Xem ví sao» · «Cho vay thêm» (bảng them-y1r1eidm) · «Đã biết».
 // Máy của cảnh báo: chi_tiet.mayId nếu có, không thì dò tên máy trong câu cảnh báo (GET canh-bao chưa trả device_id). AiiGrow không đọc nội dung của con.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { bm, type CanhBao, type GiaDinh, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { HangViec, IC_MAY, quyenToi } from "@/lib/hang-ngay";
 import { BangKhoa } from "@/lib/khoa-may";
-import { BangChoVay, MAU_NO, saoTu, soVN, thamSoXongVay, VienSao, type SaoCon } from "@/lib/so-sao";
+import { BangChoVay, MAU_NO, saoTu, soVN, thamSoXongVay, type SaoCon } from "@/lib/so-sao";
 import { BaoLoi, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, The, TickDong, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
-const ngayGio = (iso: string) => { const t = new Date(iso); return `${THU[t.getDay()]} ${t.getDate()}/${t.getMonth() + 1}, ${gioPhut(iso)}`; };
+const ngayGio = (iso: string) => { const t = new Date(iso); return `${THU[t.getDay()]} ${t.getDate()}/${t.getMonth() + 1}, ${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`; };
 const TIEU: Record<string, (ten: string) => string> = {
   lech_gio: (t) => `Giờ trên máy của ${t} bị đổi`, ngung_chay: (t) => `AiiGrow trên máy ${t} bị tắt`, go_may: (t) => `Có người gỡ AiiGrow trên máy của ${t}`,
   may_thu_go: (t) => `Có người thử gỡ Grow trên máy của ${t}`, tai_khoan_la: (t) => `Tài khoản lạ trên máy ${t}`, offline_lau: (t) => `Máy của ${t} không báo về lâu`,
@@ -74,12 +74,14 @@ export default function ChiTietCanhBao() {
   const matPhut = phutMatNhip(x);
 
   const tieuMan = kieu === "web" ? "Trang ngoài danh sách" : kieu === "tat" ? "Grow bị tắt" : kieu === "mat_lien_lac" ? `${tenMay} mất liên lạc` : "Cảnh báo";
-  const tieu = kieu === "web" ? `${x.ten} mở trang web chưa có trong danh sách`
+  // tên miền con vào (chi_tiet của cảnh báo web, nếu máy chủ ghi) — bàn them-lsf4eews «Bảo Anh vào tiktok.com»
+  const mien = [x.chi_tiet.tenMien, x.chi_tiet.ten_mien, x.chi_tiet.web].find((v): v is string => typeof v === "string" && !!v);
+  const tieu = kieu === "web" ? (mien ? `${x.ten} vào ${mien}` : `${x.ten} mở trang web chưa có trong danh sách`)
     : kieu === "tat" ? `Có người tắt Grow trên ${tenMay}`
     : kieu === "mat_lien_lac" ? `${tenMay} của ${x.ten} im hơn ${matPhut >= 2880 ? `${Math.floor(matPhut / 1440)} ngày` : "1 ngày"}`
     : TIEU[x.loai]?.(x.ten) ?? `Cảnh báo về ${x.ten}`;
   const phu = kieu === "mat_lien_lac" ? `Lần cuối: ${ngayGio(may?.lanCuoi ?? new Date(Date.parse(x.created_at) - matPhut * 60_000).toISOString())}`
-    : [gioPhut(luc), may || kieu === "web" ? tenMay : null, kieu === "web" ? "trình duyệt" : kieu === "tat" && typeof x.chi_tiet.cach === "string" ? x.chi_tiet.cach : null]
+    : [gioPhut(luc), may || kieu === "web" ? tenMay : null, kieu === "web" ? "chưa có trong danh sách" : kieu === "tat" && typeof x.chi_tiet.cach === "string" ? x.chi_tiet.cach : null]
       .filter(Boolean).join(" · ");
   // viên kết quả
   const vien = kieu === "web" ? "Con chưa vào được, đang chờ Ba Mẹ"
@@ -98,30 +100,32 @@ export default function ChiTietCanhBao() {
           router.back();
         })} />
       ) : kieu === "web" && x.child_id ? <Nut chu={`Xem ${x.ten} dùng gì hôm nay`} rong bam={() => router.push(`/da-dung/${x.child_id}` as never)} />
-        : kieu === "tat" && x.child_id && !x.xem ? <Nut chu={`Khoá ${tenMay}`} ic="khoa" loai="huy" rong bam={() => setKhoa(true)} />
-        : kieu === "mat_lien_lac" ? <Nut chu={`Kiểm tra ${tenMay} cùng con`} ic="tablet" rong dangChay={dangChay}
+        : kieu === "tat" && x.child_id && !x.xem ? <Nut chu={`Khoá ${tenMay}`} ic="khoa" ic3d rong bam={() => setKhoa(true)} />
+        : kieu === "mat_lien_lac" ? <Nut chu={`Kiểm tra ${tenMay} cùng con`} ic={icMay} ic3d rong dangChay={dangChay}
           bam={() => lam(async () => { await bm.goi(`canh-bao/${id}/doc`, {}); if (may) router.replace(`/may/${may.id}` as never); else router.back(); })} />
         : x.child_id ? <Nut chu={`Xem lịch sử ${x.ten} dùng máy`} rong bam={() => router.push(`/man-hinh/${x.child_id}` as never)} /> : null}
       {xemMay && kieu !== "lech_gio" && kieu !== "khac" ? <Nut chu={`Xem ${tenMay}`} loai="vien" rong bam={xemMay} /> : null}
       {kieu === "mat_lien_lac" ? null
         : <Nut chu={x.loai === "lech_gio" ? "Để khoá, đã xem" : kieu === "tat" ? "Ba Mẹ tắt đấy, bỏ qua" : "Đã biết"} loai={kieu === "web" || kieu === "tat" ? "ma" : "vien"} rong dangChay={dangChay} bam={daBiet} />}
     </>}>
-      {/* đầu màn: hình máy / web + biểu tượng, tiêu đề, giờ · máy, viên kết quả */}
-      <View style={{ alignItems: "center", gap: 8, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 28, backgroundColor: kieu === "web" ? M.chinhSoft : M.canhSoft, ...KHOI.the }}>
-        <View>
-          <Icon3D ten={kieu === "web" ? "web" : icMay} co={72} />
-          <View style={{ position: "absolute", right: -10, bottom: -6 }}>
-            <Icon3D ten={kieu === "web" ? "khien" : kieu === "mat_lien_lac" ? "wifi" : "canh_bao"} co={34} />
-          </View>
+      {/* đầu màn (bàn them-c4ldnqj8@v4 / them-y5iwt1fv@v8 / them-lsf4eews@v8): thẻ đào ngang — ô icon lớn (máy / web + biểu tượng góc) · tiêu đề · giờ · máy */}
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: MAU_NO.nen, ...KHOI.the }}>
+        <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}>
+          <Icon3D ten={kieu === "web" ? "web" : icMay} co={46} />
+          {kieu === "web" ? null : <View style={{ position: "absolute", right: -8, bottom: -8, width: 32, height: 32, borderRadius: 16, backgroundColor: "#fff", alignItems: "center",
+            justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={kieu === "mat_lien_lac" ? "wifi" : "canh_bao"} co={20} /></View>}
         </View>
-        <Chu kieu="rat" co={20} style={{ textAlign: "center" }}>{tieu}</Chu>
-        {phu ? <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>{phu}</Chu> : null}
-        {vien ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 6, paddingLeft: 8, paddingRight: 14, borderRadius: 18, backgroundColor: M.the, boxShadow: BONG.nho }}>
-            <Icon3D ten="khien" co={20} /><Chu kieu="rat" co={13.5} mau={M.chinhInk}>{vien}</Chu>
-          </View>
-        ) : null}
+        <View style={{ flex: 1, minWidth: 0 }}>
+          <Chu kieu="rat" co={18}>{tieu}</Chu>
+          {phu ? <Chu kieu="dam" co={13} mau={MAU_NO.chu}>{phu}</Chu> : null}
+        </View>
       </View>
+      {/* viên kết quả: thẻ ngọc riêng «Grow đã tự bật lại lúc 19:39» / «Con chưa vào được, đang chờ Ba Mẹ» */}
+      {vien ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, backgroundColor: M.chinhSoft, ...KHOI.the }}>
+          <Icon3D ten={kieu === "web" ? "may_tinh" : "khien"} co={26} /><Chu kieu="rat" co={14.5} mau={M.chinhInk} style={{ flex: 1 }}>{vien}</Chu>
+        </View>
+      ) : null}
 
       {kieu === "web" || kieu === "tat" ? (
         <>
@@ -185,8 +189,8 @@ function CanhBaoNo({ id, x }: { id: string; x: CanhBao & { child_id: string; ten
       <BaoLoi loi={loi} />
       <Nut chu="Giao thêm nhiệm vụ để trả nợ" ic="sao" ic3d rong bam={() => router.push(`/giao-nv?con=${con}` as never)} />
       <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
-        <View style={{ flexGrow: 1, flexBasis: 140 }}><Nut chu="Xem ví sao" loai="vien" rong bam={() => router.push(`/vi/${con}` as never)} /></View>
-        <View style={{ flexGrow: 1, flexBasis: 140 }}><Nut chu="Cho vay thêm" ic="sao" ic3d loai="vien" rong bam={() => setVay(true)} /></View>
+        <View style={{ flexGrow: 1, flexBasis: 140 }}><Nut chu="Xem ví sao" loai="vien" sat rong bam={() => router.push(`/vi/${con}` as never)} /></View>
+        <View style={{ flexGrow: 1, flexBasis: 140 }}><Nut chu="Cho vay thêm" ic="sao" ic3d loai="vien" sat rong bam={() => setVay(true)} /></View>
       </View>
       <Nut chu="Đã biết" loai="ma" rong dangChay={dangChay} bam={daBiet} />
     </>}>
@@ -203,10 +207,17 @@ function CanhBaoNo({ id, x }: { id: string; x: CanhBao & { child_id: string; ten
           </Chu>
         </View>
       </View>
-      <HangViec dau tieu={`Ví sao của ${x.ten}`} phai={<VienSao s={s} />} bam={() => router.push(`/vi/${con}` as never)} nhanDoc={`Xem ví sao của ${x.ten}`} />
+      {/* bàn them-5twxl6hf@v3: thẻ đào «Ví sao của <Con>» + viên sao trắng bên phải */}
+      <Pressable onPress={() => router.push(`/vi/${con}` as never)} accessibilityRole="button" accessibilityLabel={`Xem ví sao của ${x.ten}`}
+        style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 24, backgroundColor: MAU_NO.nen, ...KHOI.the }}>
+        <Chu kieu="rat" co={15} mau={MAU_NO.chu} style={{ flex: 1 }}>{`Ví sao của ${x.ten}`}</Chu>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 5, paddingLeft: 8, paddingRight: 12, borderRadius: 18, backgroundColor: M.the }}>
+          <Icon3D ten="sao" co={22} /><Chu kieu="rat" co={17} mau={MAU_NO.chu} so>{`${soVN(s.sao)} sao`}</Chu>
+        </View>
+      </Pressable>
       <Chu kieu="rat" co={16} style={{ marginHorizontal: 4, marginTop: 4 }}>Ba Mẹ nên biết</Chu>
       <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="khoa" mau="cam" tieu="Không cản việc cho vay" phu="Còn nợ trên 1.000, mỗi lần cho vay thêm Grow sẽ nhắc lại" />
+        <HangViec dau ic="khoa" mau="cam" tieu="Không chặn việc cho vay" phu="Còn nợ trên 1.000, mỗi lần cho vay thêm Grow sẽ nhắc lại" />
         <HangViec ic="tick" mau="xanh" tieu="Sao nhiệm vụ trả nợ trước"
           phu={viec ? `Duyệt «${viec.ten}» ${soVN(saoViec)} sao ⇒ còn nợ ${soVN(Math.max(0, s.no - saoViec))}` : "Mỗi sao con kiếm được trả nợ trước, hết nợ mới cộng"} />
         {bay ? <HangViec ic="lich" mau="lam" tieu={`7 ngày qua: vay ${soVN(bay.saoVay)}, trả ${soVN(bay.saoTraNo)} sao`}

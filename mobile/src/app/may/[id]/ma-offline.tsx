@@ -1,6 +1,6 @@
 // them-rz77kk45 «Mã mở máy cho Bảo Anh» + them-s8nltlaa «Bảo Anh đã mở máy bằng mã» (thiết kế chốt 14/11, bm-hang-ngay/07–08). Chip «Laptop · mất mạng», 6 số to,
 // «Con nhập mã trên Laptop, không cần mạng», «Mã đổi sau N phút», «Mở máy trong 15 / 30 / 60 phút · tới HH:MM» (số phút nằm trong mã — máy tự kiểm khi offline),
-// 2 dòng giải thích (hết giờ máy tự khoá lại · có mạng lại giờ chơi tự cập nhật), «Gửi mã, mở N phút» (chia sẻ Zalo / Tin nhắn…), «Sao chép mã».
+// 2 dòng giải thích (bàn rz77kk45@v4: «Hết 30 phút, Laptop tự khoá lại» · «Có mạng lại, sổ sao tự cập nhật» — #264 sao = phút), «Gửi mã, mở N phút» (chia sẻ Zalo / Tin nhắn…), «Sao chép mã».
 // GET may/:id/ma-offline?phut= (docs/API.md «S3»).
 // Khi máy có mạng lại và báo đã mở bằng mã (sự kiện may_mo_ma_offline sau lúc mở màn) ⇒ bảng «đã mở máy bằng mã» (kiểm mỗi 30 giây khi màn đang mở,
 // qua đường nhẹ GET may/:id/mo-bang-ma?sau= — chỉ sự kiện mới, không dò cả tuan-thu).
@@ -76,7 +76,7 @@ export default function MaMoMay() {
     <Man lui={{ chu: "", ve: `/may/${id}` }} tieu={tieu} noi={noi}
       day={<>
         <BaoLoi loi={loiMa} />
-        <Nut chu={`Gửi mã, mở ${phut} phút`} ic="chuong" ic3d rong tat={!ma} bam={gui} />
+        <Nut chu={`Gửi mã, mở ${phut} phút`} ic="gui" ic3d rong tat={!ma} bam={gui} />
         <Nut chu="Sao chép mã" loai="vien" rong tat={!ma} bam={() => ma && saoChep(ma.ma).then((ok) => ok && bao("Đã sao chép mã — dán vào Zalo cho con"))} />
       </>}>
       <View style={{ alignItems: "center", gap: 14, paddingVertical: 20, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.chinhSoft, ...KHOI.the }}>
@@ -113,11 +113,11 @@ export default function MaMoMay() {
       <View style={[{ marginTop: 4, paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60 }}>
           <OLomIcon ic="khoa" />
-          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>{`Hết giờ, ${ngan} tự khoá lại`}</Chu><Chu kieu="dam" co={12.5} mau="#565c59">Không cần mạng</Chu></View>
+          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>{`Hết ${phut} phút, ${ngan} tự khoá lại`}</Chu><Chu kieu="dam" co={12.5} mau="#565c59">Không cần mạng</Chu></View>
         </View>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, borderTopWidth: 1.5, borderTopColor: "#ecebe7" }}>
           <OLomIcon ic="wifi" />
-          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>Có mạng lại, giờ chơi tự cập nhật</Chu><Chu kieu="dam" co={12.5} mau="#565c59">Ba Mẹ thấy ngay ở Hôm nay</Chu></View>
+          <View style={{ flex: 1 }}><Chu kieu="rat" co={14.5}>Có mạng lại, sổ sao tự cập nhật</Chu><Chu kieu="dam" co={12.5} mau="#565c59">Ba Mẹ thấy ngay ở Hôm nay</Chu></View>
         </View>
       </View>
 
@@ -128,7 +128,7 @@ export default function MaMoMay() {
             <Chu kieu="dam" co={14} mau={M.chu2}>{`Lúc ${gioPhut(daMo.luc)}${daMo.phut ? ` · mở ${daMo.phut} phút` : ""}`}</Chu>
           </View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 20, backgroundColor: M.the, ...KHOI.nho }}>
-            <Icon3D ten="khoa" co={30} />
+            <Icon3D ten={IC_MAY[m.nen]} co={30} />
             <View style={{ flex: 1 }}>
               <Chu kieu="rat" co={15}>{`${ngan}${tenCon ? ` của ${tenCon}` : ""}`}</Chu>
               <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>

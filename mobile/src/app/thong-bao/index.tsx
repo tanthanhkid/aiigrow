@@ -22,11 +22,14 @@ type DsThongBao = { ds: ThongBao[]; chuaDoc: number; /** S3 06/11: mục «Cần
 
 /** icon + nền ô icon (.ic · .ic.cam · .ic.vang) + chữ hành động của thẻ cần để ý */
 const KIEU: Record<Nhom, { ic: TenIcon; nen?: string; lam?: string }> = {
-  canh_bao: { ic: "khien", nen: "#fdeedd", lam: "Xem ›" }, canh_bao_no: { ic: "sao", nen: "#fdeedd", lam: "Xem ›" }, yeu_cau: { ic: "web", lam: "Trả lời ›" }, nhiem_vu: { ic: "sao", nen: M.diemSoft, lam: "Duyệt ›" },
-  qua: { ic: "coc", nen: M.diemSoft }, thanh_tich: { ic: "sao", nen: M.diemSoft }, ba_me_khac: { ic: "nguoi" }, gia_dinh: { ic: "nguoi" },
+  canh_bao: { ic: "canh_bao", nen: "#fdeedd", lam: "Xem ›" }, canh_bao_no: { ic: "canh_bao", nen: "#fdeedd", lam: "Xem ›" }, yeu_cau: { ic: "web", lam: "Trả lời ›" }, nhiem_vu: { ic: "lau", nen: M.diemSoft, lam: "Duyệt ›" },
+  qua: { ic: "qua", nen: M.diemSoft }, thanh_tich: { ic: "sao", nen: M.diemSoft }, ba_me_khac: { ic: "nguoi" }, gia_dinh: { ic: "nguoi" },
 };
 /** icon của mục «Cần Ba Mẹ để ý» theo loại (can-de-y.ts) */
-const IC_CAN: Record<string, TenIcon> = { mat_mang: "wifi", quen_pin: "mo_khoa", canh_bao: "khien", con_xin: "web", nop_bai: "sao", chua_bao_ve: "tablet" };
+// bàn them-0xf9hrgn@v15: cảnh báo / nợ quá 1.000 «canh_bao», con xin web «web» (xin vay «sao»), nộp bài «lau», máy chưa đặt mật mã «khoa»
+const IC_CAN: Record<string, TenIcon> = { mat_mang: "wifi", quen_pin: "mo_khoa", canh_bao: "canh_bao", con_xin: "web", nop_bai: "lau", chua_bao_ve: "khoa" };
+/** lời xin vay («Xin vay 20 sao» của máy chủ) ⇒ ô icon sao */
+const icXin = (tieu: string, ic: TenIcon): TenIcon => (/^Xin vay /.test(tieu) ? "sao" : ic);
 /** Dòng «moi» mà «Cần Ba Mẹ để ý» của máy chủ ĐANG có mục cùng loại cho cùng Con (con xin / nộp bài / cảnh báo) ⇒ không lặp ở «Để biết».
  *  Dòng khác (con nhắn lại, lời xin Ba/Mẹ kia đã trả lời, cảnh báo đã đọc) vẫn ở «Để biết». */
 const LOAI_GOM: Partial<Record<Nhom, string>> = { yeu_cau: "con_xin", nhiem_vu: "nop_bai", canh_bao: "canh_bao", canh_bao_no: "canh_bao" };
@@ -71,18 +74,18 @@ export default function DsThongBaoMan() {
   const dongTb = (x: ThongBao, deY: boolean, k: number) => {
     const kk = KIEU[x.nhom] ?? KIEU.canh_bao;
     const no = x.nhom === "canh_bao_no" || x.nhom === "canh_bao" ? chuNoQua(x.tieu) : null;
-    return <DongTb key={x.id} k={k} deY={deY} luc={ngayCua(x.luc)} ic={no ? "sao" : kk.ic} tieu={no?.tieu ?? x.tieu}
-      phu={[no?.phu ?? x.phu, x.imLang ? "trong giờ yên lặng" : null].filter(Boolean).join(" · ")} lam={deY ? kk.lam ?? "Xem ›" : undefined} bam={() => router.push(x.den as never)} />;
+    return <DongTb key={x.id} k={k} deY={deY} luc={ngayCua(x.luc)} ic={no ? "canh_bao" : icXin(x.tieu, kk.ic)} tieu={no?.tieu ?? x.tieu}
+      phu={[no?.phu ?? x.phu, x.imLang ? "trong giờ yên lặng" : null].filter(Boolean).join(" · ")} lam={deY ? kk.lam ?? "Xem ›" : kk.lam} bam={() => router.push(x.den as never)} />;
   };
   return (
     <Man lui={{ chu: "" }} tieu="Thông báo" phai={phai} tai={tai} vongTai>
       {mayChu?.length ? <><TieuMuc chu="Cần Ba Mẹ để ý" so={mayChu.length} /><NhomTb deY>{mayChu.map((x, k) => {
         const no = x.loai === "canh_bao" ? chuNoQua(x.tieu) : null;
-        return <DongTb key={x.id} k={k} deY luc={ngayCua(x.luc)} ic={no ? "sao" : IC_CAN[x.loai] ?? "chuong"} tieu={no?.tieu ?? x.tieu} phu={no?.phu ?? x.phu} lam={`${x.nut} ›`}
+        return <DongTb key={x.id} k={k} deY luc={ngayCua(x.luc)} ic={no ? "canh_bao" : icXin(x.tieu, IC_CAN[x.loai] ?? "chuong")} tieu={no?.tieu ?? x.tieu} phu={no?.phu ?? x.phu} lam={`${x.nut} ›`}
           bam={() => router.push(x.den as never)} />;
       })}</NhomTb></> : null}
       {can.length ? <><TieuMuc chu="Cần Ba Mẹ để ý" so={can.length} /><NhomTb deY>{can.map((x, k) => dongTb(x, true, k))}</NhomTb></> : null}
-      {biet.length ? <><TieuMuc chu="Để biết" /><NhomTb>{biet.map((x, k) => dongTb(x, false, k))}</NhomTb></> : null}
+      {biet.length ? <><TieuMuc chu="Để biết" so={biet.length} xam /><NhomTb>{biet.map((x, k) => dongTb(x, false, k))}</NhomTb></> : null}
     </Man>
   );
 }
@@ -94,15 +97,16 @@ function NhomTb({ deY, children }: { deY?: boolean; children: ReactNode }) {
 
 /** Một dòng thông báo (.lg): giờ (cột 40) · ô icon lõm · tiêu đề + dòng phụ · hành động («Trả lời» viên than chì, còn lại chữ «Xem ›»). */
 function DongTb({ k, deY, luc, ic, tieu, phu, lam, bam }: { k: number; deY?: boolean; luc: string; ic: TenIcon; tieu: string; phu?: string; lam?: string; bam: () => void }) {
-  const traLoi = !!lam && /^Trả lời/.test(lam);
+  // «Trả lời» viên than chì chỉ ở «Cần Ba Mẹ để ý»; «Để biết» là chữ «Trả lời ›» (bàn them-0xf9hrgn@v15)
+  const traLoi = !!deY && !!lam && /^Trả lời/.test(lam);
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={[tieu, phu, luc].filter(Boolean).join(", ")}
       style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: deY ? "#f3d6b8" : "#ecebe7" }}>
       <Chu kieu="rat" co={13} mau="#565c59" style={{ width: 44 }} dong={2}>{luc}</Chu>
       <OLomIcon ic={ic} nen={deY ? "#f3d6b8" : "#ecebe7"} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Chu kieu="rat" co={15} dong={2}>{tieu}</Chu>
-        {phu ? <Chu kieu="dam" co={12.5} mau={deY ? "#8a3c0c" : "#565c59"} dong={2}>{phu}</Chu> : null}
+        <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
+        {phu ? <Chu kieu="dam" co={12.5} mau={deY ? "#8a3c0c" : "#565c59"} dong={1}>{phu}</Chu> : null}
       </View>
       {lam ? traLoi ? (
         <View style={{ height: 36, paddingHorizontal: 11, borderRadius: 18, backgroundColor: M.nut, justifyContent: "center", boxShadow: BONG.toi }}>

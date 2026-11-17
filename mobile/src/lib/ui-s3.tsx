@@ -116,12 +116,13 @@ export function NutCong({ chon, bam, nhan }: { chon: boolean; bam: () => void; n
 /** 6 ô số to (them-rz77kk45): 3 ô · khoảng trống · 3 ô. */
 export function OMa6({ so }: { so: string[] }) {
   return (
-    <View style={{ flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center" }} accessibilityRole="text"
+    <View style={{ flexDirection: "row", gap: 6, alignItems: "center", justifyContent: "center", alignSelf: "stretch" }} accessibilityRole="text"
       accessibilityLabel={`Mã ${so.slice(0, 3).join(" ")}, ${so.slice(3).join(" ")}`}>
       {so.map((c, i) => (
-        <View key={i} style={{ flexDirection: "row", alignItems: "center" }}>
-          {i === 3 ? <View style={{ width: 10 }} /> : null}
-          <View style={{ width: 44, height: 58, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
+        // khổ 320: 6 ô 44 + khe không vừa thẻ ⇒ ô co lại (tối thiểu 32), không chạm mép thẻ (cổng LE-THE)
+        <View key={i} style={{ flexDirection: "row", alignItems: "center", flexShrink: 1 }}>
+          {i === 3 ? <View style={{ width: 10, flexShrink: 1 }} /> : null}
+          <View style={{ width: 44, minWidth: 32, flexShrink: 1, height: 58, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
             <Chu kieu="rat" co={30} so>{c}</Chu>
           </View>
         </View>
