@@ -821,11 +821,22 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-app-web", "/chan", "Danh sách của"),
     M("bm-app-web (mở hết)", "/chan", "Đang tạm nghỉ", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { cheDo: "mo_het", cheDoChan: "mo_het", tenCheDo: "Mở hết", tamNghi: true }) } }),
     M("bm-ung-dung", "/ung-dung?con=c1", "Thêm app cho"),
+    // đúng ca bàn them-g7g1cel5: không có lời xin app đang chờ, không có lời xin app đã bỏ qua
+    M("bm-ung-dung (như bàn)", "/ung-dung?con=c1", "Thêm app cho", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { dangXin: [] }),
+      "GET yeu-cau/bo-qua?con=c1": { ds: coBan["GET yeu-cau/bo-qua"].ds.filter((x) => x.kieu === "web") } } }),
     M("bm-ung-dung-app", "/ung-dung/app?con=c1&ten=Roblox", "Roblox có tính phút không?"),
     M("bm-ung-dung-them", "/ung-dung/them?con=c1", "Thêm app cho"),
+    // đúng ca bàn them-vw103x88: đã gõ «Minecraft», chạm ＋ dòng Minecraft ⇒ hiện «Minecraft có tính phút không?»
+    M("bm-ung-dung-them (đã chọn)", "/ung-dung/them?con=c1", "Minecraft có tính phút không?", { truoc: async () => { await di("/ung-dung/them?con=c1"); await doi("Thêm app cho");
+      await go("Tìm app", "Minecraft"); await doi("Kết quả cho"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"]')`)); } }),
     M("bm-web", "/web/c1", "Thêm trang web cho"),
+    // đúng ca bàn bm2-web: con đang xin mở một trang web (tiktok.com)
+    M("bm-web (con xin web)", "/web/c1", "Con xin mở tiktok", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { dangXin: [{ ...XIN_YT, id: "y6", loai: "mo_web", kieu: "web", muc: "tiktok.com", ten: "tiktok.com" }] }) } }),
     M("bm-web-trang", "/web/trang?con=c1&ten=youtube.com", "youtube.com có tính phút không?"),
     M("bm-web-them", "/web/them?con=c1", "Thêm web cho"),
+    // đúng ca bàn them-yzl99l3y: đã gõ «tiktok.com», chạm ＋ dòng tiktok.com
+    M("bm-web-them (đã chọn)", "/web/them?con=c1", "tiktok.com có tính phút không?", { truoc: async () => { await di("/web/them?con=c1"); await doi("Thêm web cho");
+      await go("Địa chỉ trang web", "tiktok.com"); await doi("Kết quả cho"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"]')`)); } }),
     M("bm-bo-qua", "/bo-qua?con=c1", "Lời xin đã bỏ qua"),
     M("bm-yeu-cau-web-moi", "/yeu-cau-web/y5", "Thêm YouTube cho", { kb: { "GET cho-duyet": CHO_DUYET_Y5() } }),
     M("bm-yeu-cau-web-bo-qua", `/yeu-cau-web/bo-qua?id=y5&ten=YouTube&con=${encodeURIComponent(KEN)}&may=Laptop&den=${encodeURIComponent(new Date(Date.now() + 3_600_000).toISOString())}`, "Đã bỏ qua YouTube"),

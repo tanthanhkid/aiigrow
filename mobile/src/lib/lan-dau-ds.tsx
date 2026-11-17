@@ -8,7 +8,8 @@ import { LinearGradient } from "expo-linear-gradient";
 import { BONG, KHOI } from "./clay";
 import { ICON_3D } from "./icon-3d";
 import { MAU_NHOM, TEN_NHOM, type Nhom } from "./app-web";
-import { Chu, F, Icon, Icon3D, M, Rob, type LinhVat, type TenIcon } from "./ui";
+import { Chu, F, Icon, M, Rob, type LinhVat, type TenIcon } from "./ui";
+import { ChonNhomNgang, NutChon, OIconTrang } from "./ui-bm3";
 
 /** Màu nền ô emoji + màu nút «Chọn tất cả» theo mục (thiết kế: Học ngọc, Vận động lam, Giúp Ba Mẹ cam). */
 export const MAU_MUC = { ngoc: { nen: "#dcebe6", chu: "#0a5246" }, lam: { nen: "#e1e8f4", chu: "#24427a" }, cam: { nen: "#f9e7d2", chu: "#8a3c0c" } } as const;
@@ -133,17 +134,12 @@ export function DongKetQua({ e, ic, ten, phu, da, bam, dau, children }: { e?: st
     <View style={{ borderTopWidth: dau ? 0 : 1.5, borderTopColor: "rgba(0,0,0,0.06)", paddingBottom: children ? 12 : 0 }}>
       <Pressable onPress={bam} accessibilityRole="checkbox" accessibilityState={{ checked: da }} accessibilityLabel={ten}
         style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62, paddingVertical: 6 }}>
-        <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3)" }}>
-          {ic ? <Icon3D ten={ic} co={26} /> : <Text style={{ fontSize: 22, lineHeight: 28 }}>{e}</Text>}
-        </View>
+        <OIconTrang ic={ic} e={e} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={15} dong={1}>{ten}</Chu>
           {phu ? <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{phu}</Chu> : null}
         </View>
-        <View style={[{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-          da ? { backgroundColor: M.chinh, boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.3), inset 0px -4px 6px -2px rgba(0,0,0,0.3)" } : { backgroundColor: "#ecebe7", boxShadow: BONG.lom }]}>
-          <Chu kieu="rat" co={da ? 15 : 18} mau={da ? "#fff" : M.chinhInk}>{da ? "✓" : "+"}</Chu>
-        </View>
+        <NutChon chon={da} />
       </Pressable>
       {children}
     </View>
@@ -242,27 +238,11 @@ export function ChonCheDo({ gia, doi }: { gia: CheDoTl; doi: (v: CheDoTl) => voi
 
 /** «Duolingo ABC có tính phút không?» + hai ô «Không tính phút · Vào thoải mái» | «Tính phút · 1 sao = 1 phút chơi» (them-at57ypdc / them-ubomxl31). */
 export function HoiNhom({ ten, nhom, doi }: { ten: string; nhom: Nhom; doi: (n: Nhom) => void }) {
-  // bàn them-at57ypdc v5 `.hoi` + `.den`: «Tính phút · Trả bằng sao» | «Không tính phút · Vào thoải mái», ô chọn nền vàng nhạt viền vàng 3px
+  // hai ô nhóm dùng chung với Thêm app / Thêm web của App & web (ui-bm3 › ChonNhomNgang)
   return (
     <View style={{ gap: 8 }}>
       <Chu kieu="rat" co={13.5} mau="#3a403d" style={{ marginHorizontal: 2 }}>{`${ten} có tính phút không?`}</Chu>
-      <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
-        {(["tinh_phut", "khong_tinh_phut"] as const).map((k) => {
-          const on = nhom === k;
-          return (
-            <Pressable key={k} onPress={() => doi(k)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={TEN_NHOM[k]}
-              style={{ flex: 1, minWidth: 0, minHeight: 60, borderRadius: 20, paddingHorizontal: 8, paddingVertical: 8, flexDirection: "row", alignItems: "center", gap: 6,
-                backgroundColor: on ? "#fdf3d8" : "#fff", boxShadow: on ? `0px 0px 0px 3px #e0a20c, ${BONG.nho}` : BONG.nho }}>
-              <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: MAU_NHOM[k], opacity: on ? 1 : 0.4,
-                boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.45), inset 0px -5px 7px -2px rgba(0,0,0,0.25)" }} />
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 13.5, color: M.chu }}>{TEN_NHOM[k]}</Text>
-                <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11.5, color: M.chu3 }}>{k === "tinh_phut" ? "Trả bằng sao" : "Vào thoải mái"}</Text>
-              </View>
-            </Pressable>
-          );
-        })}
-      </View>
+      <ChonNhomNgang gia={nhom} doi={doi} />
     </View>
   );
 }
