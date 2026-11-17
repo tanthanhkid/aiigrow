@@ -217,8 +217,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           {tieuLon ? <Chu kieu="tieu7" co={26} so mau={HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} toi />}
         </View>
         {phuSao ? (
-          <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center", alignSelf: "flex-start" }}>
-            <Chu kieu="dam" co={14} mau={khoa ? HERO.chu : HERO.phu}>{phuSao}</Chu>
+          <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, paddingVertical: 6, justifyContent: "center", alignSelf: "stretch", minWidth: 0 }}>
+            <Chu kieu="dam" co={14} mau={khoa ? HERO.chu : HERO.phu} style={{ flexShrink: 1, minWidth: 0 }}>{phuSao}</Chu>
           </Pressable>
         ) : null}
         {/* 2 nút chia đều bề ngang; máy hẹp (320) không đủ 2 × 140 ⇒ xuống hàng, mỗi nút một dòng chữ (cổng NUT-2-DONG). Nhãn + icon 3D theo thiết kế 14/11 */}

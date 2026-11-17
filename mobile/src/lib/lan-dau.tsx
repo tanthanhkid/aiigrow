@@ -99,8 +99,8 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai, bongTo }
   if (chuTo) return (
     // bàn Navy 17/11 (.n-the.g): sân hero navy, tiêu đề trắng
     <View style={{ borderRadius: 34, height: 176, overflow: "hidden", ...KHOI_HERO }}>
-      <View style={{ position: "absolute", left: 22, top: 40, right: 150 }}>
-        <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 31, letterSpacing: -0.5, color: HERO.chu }}>{tieu}</Text>
+      <View style={{ position: "absolute", left: 22, top: 40, right: 156 }}>
+        <Text accessibilityRole="header" numberOfLines={2} style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 31, letterSpacing: -0.5, color: HERO.chu }}>{tieu}</Text>
         {loi ? <Chu kieu="dam" co={14.5} mau="rgba(255,255,255,0.8)" style={{ marginTop: 6, lineHeight: 20 }}>{loi}</Chu> : null}
       </View>
       <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -26 }}><Rob ten={lv} co={150} /></View>
@@ -110,7 +110,7 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai, bongTo }
     <View style={{ borderRadius: BO_CLAY.the, backgroundColor: M.dauBaMe, minHeight: cao, padding: 14, flexDirection: "row", alignItems: "center", justifyContent: robTrai ? "flex-end" : undefined, ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={BO_CLAY.the} />
       {ic ? <View style={{ position: "absolute", left: 14, bottom: 12 }}><Icon3D ten={ic} co={44} /></View> : null}
-      <View style={{ maxWidth: robTrai ? "58%" : "64%", backgroundColor: M.the, borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
+      <View style={{ maxWidth: robTrai ? "58%" : "64%", backgroundColor: M.the, borderRadius: 22, paddingVertical: 12, paddingHorizontal: 18, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
         <Chu kieu="rat" co={16}>{tieu}</Chu>
         {loi ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 2 }}>{loi}</Chu> : null}
       </View>
@@ -298,7 +298,7 @@ export function KhoiTrangThaiGhep({ lv, ic, tieu, phu, children }: { lv: LinhVat
   // bàn them-q44uxha5 v2 / them-ytmgijqo v3 `.san`: thẻ «sân» cao 260 nền cam nhạt, Grow 160 giữa + icon 64 chếch phải, tiêu đề 23 + câu phụ cam đậm ở đáy thẻ
   return (
     <View style={{ gap: 14 }}>
-      <View style={{ height: 260, borderRadius: 36, overflow: "hidden", backgroundColor: "#f6e4cd", backgroundImage: "radial-gradient(90% 70% at 50% 30%, #fdf3e6, #f1d9bd)",
+      <View style={{ height: 284, borderRadius: 36, overflow: "hidden", backgroundColor: "#f6e4cd", backgroundImage: "radial-gradient(90% 70% at 50% 30%, #fdf3e6, #f1d9bd)",
         alignItems: "center", ...KHOI.the }}>
         <View style={{ marginTop: 10 }}><Rob ten={lv} co={160} /></View>
         <View pointerEvents="none" style={{ position: "absolute", top: 20, left: "50%", marginLeft: 30 }}><Icon3D ten={ic} co={64} /></View>

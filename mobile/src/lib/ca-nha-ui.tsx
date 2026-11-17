@@ -7,7 +7,7 @@ import { Chu, M, type TenIcon } from "./ui";
 
 export function DsBang({ ds }: { ds: { ic: TenIcon; chu: string }[] }) {
   return (
-    <View style={[{ paddingVertical: 4, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
+    <View style={[{ paddingVertical: 4, paddingHorizontal: 18, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
       {ds.map((x, k) => (
         <View key={x.chu} style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
           <OIcon ic={x.ic} co={40} />

@@ -44,7 +44,7 @@ export const M = {
 /** BẢNG MÀU HỒ SƠ CON DUY NHẤT (avatar «mau-<số>»): [màu chọn ở Lần đầu, nền nhạt thẻ hồ sơ, tông đậm cho avatar chữ trắng ở Hằng ngày
  *  (bàn them-h60stad7, bm2-trang-chu `.av.a/.m/.n/.k` — đủ tương phản)]. Lần đầu / Sửa hồ sơ đọc [0][1]; lib/hang-ngay › mauCon đọc [2]. */
 export const MAU_HO_SO: [string, string, string][] = [["#f29a4a", "#fde3c8", "#E8600C"], ["#6aa3ef", "#dce9fb", "#1F48FF"], ["#ec8db2", "#fbe0ea", "#be185d"],
-  ["#5bbf95", "#d9f1e6", "#0f8a68"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];   // [2] theo bàn Navy 17/11 (.av.a/.m/.n/.k)
+  ["#5bbf95", "#d9f1e6", "#0c7f5f"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];   // [2] theo bàn Navy 17/11 (.av.a/.m/.n/.k)
 
 export const BO = { nho: 12, vua: 18, the: 24 } as const;
 

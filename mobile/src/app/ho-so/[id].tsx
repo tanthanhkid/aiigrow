@@ -59,7 +59,7 @@ export default function HoSoCon() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Avt ten={c.ten} mau={mau} co={56} con={c} toi />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
-            <Chu kieu="rat" co={22} dong={1} mau={HERO.chu}>{c.ten}</Chu>
+            <Chu kieu="rat" co={22} dong={2} mau={HERO.chu}>{c.ten}</Chu>
             <Chu kieu="dam" co={13.5} mau="rgba(255,255,255,0.75)">{[tuoi ? `${tuoi} tuổi` : null, `${c.may.length} máy`].filter(Boolean).join(" · ")}</Chu>
           </View>
           <NhanMen onPress={() => router.push(`/vi/${id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}: ${chuVien(s)}`} muc="chip" sang>
