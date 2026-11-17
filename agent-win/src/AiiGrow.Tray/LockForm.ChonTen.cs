@@ -272,7 +272,7 @@ internal sealed partial class LockForm
         {
             // #324 (ảnh 4–5: máy 1366×768 ở 125%): thẻ PIN 600 px cao ~790 px thiết kế — cao hơn màn ⇒ khung giữa hiện thanh cuộn, thẻ tràn đáy
             // và lúc dựng lại (tắt vẽ) Windows chép khối điểm ảnh cũ theo vị trí cuộn ⇒ mảng trắng / đen, bàn phím số lệch. Không vừa ⇒ dựng bản gọn.
-            var cho = ClientSize.Height - UI.Px(60) - UI.Px(24);
+            var cho = ClientSize.Height - UI.Px(40) - _chan.Height - UI.Px(24);   // trên: lề 40 · dưới: chừa dòng chân trang (GiuaKhoi giữ thẻ trên nó)
             for (int i = 1; _khoi.Height > cho && i < CacMucPin.Length; i++)
             {
                 _kPin = CacMucPin[i];
@@ -325,7 +325,7 @@ internal sealed partial class LockForm
     }
 
     /// <summary>#324: các mức thu nhỏ thẻ PIN / chờ 15 giây / quên PIN / Ba Mẹ nhập mã khi màn thấp (1366×768, 125–150%) — 1 = đúng Bàn.</summary>
-    private static readonly float[] CacMucPin = { 1f, 0.84f, 0.72f, 0.6f };
+    private static readonly float[] CacMucPin = { 1f, 0.84f, 0.72f, 0.6f, 0.5f };
     private float _kPin = 1f;
     /// <summary>px thiết kế × mức gọn × DPI.</summary>
     private int Q(int v) => UI.Px((int)Math.Round(v * _kPin));
@@ -533,7 +533,7 @@ internal sealed partial class LockForm
     {
         var (the, w) = The(600);
         the.Controls.Add(NutLui(the));
-        the.Controls.Add(Giua(KhoiThietKe.Rob("rob-goc", Qd(150)), w));
+        if (_kPin > 0.65f) the.Controls.Add(Giua(KhoiThietKe.Rob("rob-goc", Qd(150)), w));   // bản gọn nhất bỏ Grow (#324)
         the.Controls.Add(ChuGiua(ManChonTenView.TieuQuen, 31.5f, true, UI.Ink, w, 10));
         the.Controls.Add(ChuGiua(ManChonTenView.PhuQuen, 16.5f, false, UI.Muted, w, 6));
         var buoc = new[] { (1, ManChonTenView.Buoc1, "nha"), (2, ManChonTenView.Buoc2(_ct.Be?.Ten), (string?)null), (3, ManChonTenView.Buoc3, "khoa") };
@@ -665,7 +665,9 @@ internal sealed class ChamPin : Control
     {
         var g = e.Graphics;
         Clay.ChatLuong(g);
-        float d = UI.Px(26), gap = UI.Px(22);
+        // #324: chấm 26 · khe 22 (px thiết kế) chia theo bề rộng thật — thẻ PIN bản gọn thu nhỏ control thì chấm thu theo, không mất chấm thứ 4
+        var don = Width / (Tong * 26f + Math.Max(0, Tong - 1) * 22f);
+        float d = Math.Min(26f * don, Height), gap = 22f * don;
         for (int i = 0; i < Tong; i++)
         {
             var r = new RectangleF(i * (d + gap), (Height - d) / 2f, d, d);
@@ -694,14 +696,16 @@ internal sealed class OMa : Control
     {
         var g = e.Graphics;
         Clay.ChatLuong(g);
-        float w = UI.Px(64), gap = UI.Px(12), h = Math.Min(Height - 1, UI.Px(78)), bo = UI.Px(20);
-        using var f = UI.F(27f, FontStyle.Bold);
+        // #324: ô 64×78 · khe 12 (px thiết kế) theo bề rộng thật — thẻ «Ba Mẹ nhập mã» bản gọn thu nhỏ control thì 6 ô thu theo, không tràn
+        var k = Width / (float)UI.Px(6 * 64 + 5 * 12);
+        float w = UI.Px(64) * k, gap = UI.Px(12) * k, h = Math.Min(Height - 1, UI.Px(78) * k), bo = UI.Px(20) * k;
+        using var f = UI.F(Math.Max(8f, 27f * k), FontStyle.Bold);
         for (int i = 0; i < ManChonTenView.SoChuSoMa; i++)
         {
             var r = new RectangleF(i * (w + gap), 0, w, h);
             using var p = Clay.Bo(r, bo);
             using (var b = new SolidBrush(Clay.Lom)) g.FillPath(b, p);
-            if (i == Ma.Length) using (var pen = new Pen(Clay.Ngoc, UI.Px(3))) g.DrawPath(pen, p);
+            if (i == Ma.Length) using (var pen = new Pen(Clay.Ngoc, UI.Px(3) * k)) g.DrawPath(pen, p);
             if (i < Ma.Length)
                 TextRenderer.DrawText(g, Ma[i].ToString(), f, Rectangle.Round(r), UI.Ink, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPadding);
         }

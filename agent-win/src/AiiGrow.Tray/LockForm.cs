@@ -98,7 +98,13 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
     private void GiuaKhoi()
     {
         if (_khoi == null) return;
-        _khoi.Location = new Point(Math.Max(0, (_center.Width - _khoi.Width) / 2), Math.Max(UI.Px(60), (_center.Height - _khoi.Height) / 2 - UI.Px(10)));
+        var h = _khoi.Height;
+        var y = Math.Max(UI.Px(60), (_center.Height - h) / 2 - UI.Px(10));
+        // #324 (1366×768 ở 150%): thẻ cao không được đè dòng chân trang, và ở lưới tên không đè nút «Ba Mẹ dùng máy» — đẩy thẻ lên (tối đa sát đỉnh màn)
+        var day = ClientSize.Height - _chan.Height - UI.Px(24);
+        if (_chonTen && _ct.Buoc == BuocChonTen.ChonTen && _nutBaMe != null) day = Math.Min(day, ClientSize.Height - _nutBaMe.Height - UI.Px(96) - UI.Px(8));
+        y = Math.Max(UI.Px(16), Math.Min(y, day - h));
+        _khoi.Location = new Point(Math.Max(0, (_center.Width - _khoi.Width) / 2), y);
     }
 
     /// <summary>Nền tối ngọc sâu: gradient dọc + quầng sáng mềm sau thẻ (thiết kế: radial rgba(95,201,178,.275) ở 960,459).</summary>
