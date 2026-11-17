@@ -14,7 +14,8 @@ import { bm, laXinVay, type MayCon } from "./api";
 import { boQuaXin, hoanTacXin, themTuXin } from "./app-web";
 import type { YeuCauMoi } from "./hang-ngay";
 import { cauNo, saoTu, soVN, VienSao, type KqVay, type SaoCon } from "./so-sao";
-import { Chu, gioPhut, HaiNut, M, Nut } from "./ui";
+import { Chu, gioPhut, HaiNut, M, Nut, type TenIcon } from "./ui";
+import { OLomIcon } from "./ui-viec";
 
 export const LY_DO_KHONG = "Ba Mẹ chưa cho lúc này";
 export const LY_DO_MO_KHOA = "Ba Mẹ đã mở khoá máy · chơi vẫn trừ sao";
@@ -79,26 +80,41 @@ export async function khongChoXin(y: YeuCauMoi, may: string | null, lyDo = LY_DO
 
 /** Thẻ một lời xin: tiêu đề · «19:20 · con đang chờ trên Laptop» · lời con · hàng nút. `lam` bọc thao tác (useLam của màn).
  *  `sau` (mặc định: mở màn kết quả) — Chờ duyệt dùng toast «Hoàn tác» tại chỗ. `truc`: app / web trả lời ngay 3 nút (Chờ duyệt, «đang xin»).
- *  `sao`: sao của con (lời xin vay hiện «−20 sao · Đang nợ Ba Mẹ 20 sao»). `moKhoa`: máy của con đang khoá ⇒ lời xin chơi = «Xin mở khoá máy». */
-export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, moKhoa }: {
+ *  `sao`: sao của con (lời xin vay hiện «−20 sao · Đang nợ Ba Mẹ 20 sao»). `moKhoa`: máy của con đang khoá ⇒ lời xin chơi = «Xin mở khoá máy».
+ *  `oIcon` (Trang chủ — bàn bm2-trang-chu@v35 / them-0kwhgpq6@v9 .de-y .dong): ô icon đào bên trái, tiêu đề + dòng phụ mỗi thứ một dòng. */
+export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, moKhoa, oIcon }: {
   y: YeuCauMoi; may: string | null; lam: (fn: () => Promise<unknown>) => void; dang?: boolean; phu?: string; bo?: boolean; sau?: (k: KetQua) => void; truc?: boolean;
-  sao?: SaoCon | null; moKhoa?: () => Promise<void>;
+  sao?: SaoCon | null; moKhoa?: () => Promise<void>; oIcon?: boolean;
 }) {
   const xong = (fn: () => Promise<KetQua>) => lam(async () => sau(await fn()));
   const vay = laVay(y), mayNgan = may ? may.replace(/ của .*$/, "") : null;
   const xinMoKhoa = vay && !!moKhoa && (y as YeuCauMoi & { muc_dich?: string | null }).muc_dich !== "qua";
-  const tieu = xinMoKhoa ? "Xin mở khoá máy" : tieuXin(y as YeuCauMoi & { muc_dich?: string | null });
+  // Trang chủ (bàn bm2-trang-chu@v35): lời xin app / web «Xin mở YouTube»
+  const tieu = xinMoKhoa ? "Xin mở khoá máy" : oIcon && laAppWeb(y) && y.gia_tri ? `Xin mở ${y.gia_tri}` : tieuXin(y as YeuCauMoi & { muc_dich?: string | null });
   const dong2 = xinMoKhoa ? `${gioPhut(y.created_at)} · chơi vẫn trừ sao`
     : laAppWeb(y) ? `${gioPhut(y.created_at)} · chưa có trong danh sách${mayNgan ? ` · ${mayNgan}` : ""}`
       : `${gioPhut(y.created_at)} · ${vay && sao?.hetSao ? "hết sao, muốn chơi tiếp" : "con đang chờ"}${mayNgan ? ` · ${mayNgan}` : ""}`;
   const no = vay && sao && !xinMoKhoa ? cauNo(sao) : null;
+  // icon theo bàn: xin mở khoá máy «sach», app / web «web», xin vay «dongho» (them-1mnk3mjz)
+  const ic: TenIcon = xinMoKhoa ? "sach" : laAppWeb(y) ? "web" : vay ? "dongho" : "chuong";
   return (
     <View style={{ gap: 8, paddingVertical: 12, borderTopWidth: bo ? 1 : 0, borderTopColor: "#efefec" }}>
-      <View>
-        <Chu kieu="rat" co={16}>{tieu}</Chu>
-        <Chu co={13.5} mau={xinMoKhoa ? "#8a3c0c" : M.chu3}>{dong2}</Chu>
-      </View>
-      {y.ly_do?.trim() ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
+      {oIcon ? (
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <OLomIcon ic={ic} co={44} nen="#f3d6b8" />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Chu kieu="rat" co={16} dong={1}>{tieu}</Chu>
+            <Chu kieu="dam" co={13} mau="#8a3c0c" dong={1}>{dong2}</Chu>
+          </View>
+        </View>
+      ) : (
+        <View>
+          <Chu kieu="rat" co={16}>{tieu}</Chu>
+          <Chu co={13.5} mau={xinMoKhoa ? "#8a3c0c" : M.chu3}>{dong2}</Chu>
+        </View>
+      )}
+      {/* Trang chủ (oIcon): bàn bm2-trang-chu / them-0kwhgpq6 không có lời con cho xin app / web, xin mở khoá; xin vay giữ (them-1mnk3mjz) */}
+      {y.ly_do?.trim() && !(oIcon && (xinMoKhoa || laAppWeb(y))) ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
       {vay && sao && !xinMoKhoa ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <VienSao s={sao} />

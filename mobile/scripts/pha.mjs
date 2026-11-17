@@ -485,6 +485,26 @@ const NO_LON = { ...SO_SAO,
 /** Máy của Bảo Anh đang khoá (Ba Mẹ khoá tới 20:10) — lời xin chơi hiện «Xin mở khoá máy». */
 const MAY_KHOA = { ...CO_XIN_VAY, "GET con/c1": { ...coBan["GET con/c1"], khoaNgay: true, khoaDen: luc(-30) }, "POST con/c1/khoa": { ok: true } };
 
+// ---------------------------------------------------------------- #325 khớp bàn «Hằng ngày» (bm-hang-ngay): Trang chủ «<Con> đã dùng gì hôm nay», máy con mất mạng,
+// cảnh báo Grow bị tắt / mất liên lạc > 1 ngày / con xin mở trang (canh-bao/[id] — them-c4ldnqj8, them-y5iwt1fv, them-lsf4eews)
+const dungGia = (ten, kieu, phut, tinhGio, phutTruoc, may, o = {}) => ({ luc: luc(phutTruoc), ten, muc: ten.toLowerCase(), kieu, may, nen: "windows", mayId: may ? "m1" : null,
+  phut, tinhGio, dangMo: false, matMang: false, ...o });
+/** GET con/c1/hom-nay (server/lib/hom-nay-dung.ts) — 4 mục như bàn bm2-trang-chu@v35 */
+const HN_C1 = { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-17", choi: { daDung: 42, tongPhut: 42, conPhut: 0 }, hoc: { phut: 50, khung: null }, khongTinhPhut: { phut: 50 },
+  dung: [dungGia("Roblox", "app", 39, true, 38, "Laptop của Bảo Anh"), dungGia("Máy ảnh", "app", 3, false, 60, "iPad của Bảo Anh", { mayId: "m2", nen: "ios" }),
+    dungGia("Từ điển", "app", 10, false, 112, "Laptop của Bảo Anh"), dungGia("Học với AiiRob", "app", 40, false, 155, "Laptop của Bảo Anh")], biChan: [] } };
+/** Laptop của Bảo Anh mất mạng (gia-dinh › con[].matMang) */
+const MAT_MANG_C1 = { ...SO_SAO, ...HN_C1, "GET gia-dinh": { ...SO_SAO["GET gia-dinh"], con: SO_SAO["GET gia-dinh"].con.map((x) => (x.id === "c1"
+  ? { ...x, matMang: [{ mayId: "m1", ten: "Laptop của Bảo Anh", tu: luc(10) }] } : x)) } };
+coBan["GET con/c1/hom-nay"] = HN_C1["GET con/c1/hom-nay"];
+coBan["GET con/c2/hom-nay"] = { ...HN_C1["GET con/c1/hom-nay"], ten: BILL, dung: [] };
+const cbMay = (id, loai, noi_dung, chi_tiet, phut) => ({ id, child_id: "c1", loai, muc: "chu_y", noi_dung, chi_tiet, da_doc: false, created_at: luc(phut) });
+const CANH_MAY = { "GET canh-bao": { ds: [
+  cbMay("a5", "may_dung_dich_vu", "Có người tắt Grow trên Laptop của Bảo Anh", { mayId: "m1", matNhipPhut: 1 }, 30),
+  cbMay("a6", "may_ngoai_vong", "iPad của Bảo Anh mất liên lạc hơn 1 ngày", { mayId: "m2", matNhipPhut: 1500 }, 60 * 26),
+  cbMay("a7", "web_ngoai_danh_sach", "Bảo Anh vào tiktok.com", { mayId: "m1", web: "tiktok.com" }, 45),
+  ...coBan["GET canh-bao"].ds] } };
+
 let kb = { ...coBan };          // "METHOD đường" → dữ liệu | { status, body } | "mat_mang"
 let matMang = false;
 const nhatKy = [];
@@ -662,12 +682,23 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-trang (bảng cho vay sao)", "/hom-nay", "Sao nhiệm vụ của con sẽ trả nợ trước", { kb: SO_SAO, truoc: async () => { await di("/hom-nay"); await doi("Cho vay sao"); await bam("Cho vay sao"); } }),
     M("bm-trang (bảng cho vay · nợ > 1.000)", "/hom-nay", "Chỉ nhắc thôi", { kb: NO_LON, truoc: async () => { await di("/hom-nay"); await doi("Cho vay sao"); await bam("Cho vay sao"); } }),
     M("bm-trang (ví âm)", "/hom-nay", "Đang nợ Ba Mẹ 20 sao", { kb: SO_SAO }),
-    M("bm-canh-bao-no", "/canh-bao/a9", "Không cản việc cho vay", { kb: NO_LON }),
+    M("bm-canh-bao-no", "/canh-bao/a9", "Không chặn việc cho vay", { kb: NO_LON }),
     M("bm-vi (âm)", "/vi/c1", "Đang nợ Ba Mẹ 20 sao", { kb: SO_SAO }),
     M("bm-xin-vay", "/yeu-cau?con=c1", "Xin Ba Mẹ cho vay 20 sao", { kb: CO_XIN_VAY }),
     M("bm-xin-vay (chi tiết)", "/yeu-cau/y4", "Con xin vay sao", { kb: CO_XIN_VAY }),
     M("bm-trang (máy khoá · xin mở khoá)", "/hom-nay", "Xin mở khoá máy", { kb: MAY_KHOA }),
-    M("bm-trang (đang khoá)", "/hom-nay", "đang khoá", { kb: { "GET con/c1": { ...conCt("c1", KEN), cheDoChan: "chi_app_duoc_phep", khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
+    M("bm-trang (đang khoá)", "/hom-nay", "Mở khoá ngay", { kb: { "GET con/c1": { ...conCt("c1", KEN), cheDoChan: "chi_app_duoc_phep", khoaNgay: true, khoaDen: new Date(Date.now() + 3600_000).toISOString() } } }),
+    // #325 khớp bàn bm-hang-ngay (bm2-trang-chu@v35, them-1mnk3mjz@v11, them-cjrbm5gj@v1, them-rz77kk45@v4, them-c4ldnqj8@v4, them-y5iwt1fv@v8, them-lsf4eews@v8)
+    M("bm-trang (đã dùng gì hôm nay)", "/hom-nay", "đã dùng gì hôm nay", { kb: { ...SO_SAO, ...HN_C1, "GET cho-duyet": CHO_DUYET_Y5() } }),
+    M("bm-trang (máy con mất mạng)", "/hom-nay", "Lấy mã mở máy", { kb: MAT_MANG_C1 }),
+    M("bm-trang (bảng khoá máy · bé thứ 2)", "/hom-nay", "Thôi, để con chơi tiếp", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy");
+      // bé thứ 2 trong dải avatar (lượt chữ dài đổi tên ⇒ chọn theo vị trí)
+      await nhanChuot(await viTriYen(`() => document.querySelectorAll('[role="tab"]')[1]`));
+      await doi("Khoá máy"); await sleep(600); await bam("Khoá máy"); } }),
+    M("bm-ma-offline", "/may/m1/ma-offline", "không cần mạng", { kb: MAT_MANG_C1 }),
+    M("bm-canh-bao (Grow bị tắt)", "/canh-bao/a5", "Ba Mẹ tắt đấy, bỏ qua", { kb: CANH_MAY }),
+    M("bm-canh-bao (mất liên lạc > 1 ngày)", "/canh-bao/a6", "Thường do", { kb: CANH_MAY }),
+    M("bm-canh-bao (con xin mở trang)", "/canh-bao/a7", "Ba Mẹ nên biết", { kb: CANH_MAY }),
     M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
     M("bm-may-chi-tiet (bảo vệ chưa đủ)", "/may/m2", "Tài khoản của Con vẫn là quản trị"),
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
@@ -1147,7 +1178,7 @@ await kichBan("Hôm nay ⇒ «Khoá máy con» mở bảng «Khoá máy <Con>?»
   await di("/hom-nay");
   await doi("Khoá máy"); await bam("Khoá máy");
   xet(await doi(`Khoá máy ${KEN}?`), "mở bảng «Khoá máy <Con>?»");
-  xet(await doi("Đang tắt · khoá khi máy mở lên"), "bảng liệt kê máy + trạng thái (máy tắt khoá khi mở lên)");
+  xet(await doi("Máy riêng · chưa mở"), "bảng liệt kê máy + trạng thái (máy tắt: «Máy riêng · chưa mở» — bàn them-cjrbm5gj)");
   xet(await doi("Khoá bao lâu?"), "chọn khoá bao lâu");
   await bamChon('[role="radio"][aria-label^="1 giờ"]');
   nhatKy.length = 0;
@@ -1265,7 +1296,7 @@ await kichBan("Hôm nay: thẻ số sao (145 sao, không nợ) + «Cho vay sao»
   await di("/hom-nay");
   xet(await doi("145 sao"), "thẻ đầu: «⭐ 145 sao» (chưa nợ)");
   xet((await chu()).includes("= 145 phút chơi"), "dòng «= N phút chơi» (1 sao = 1 phút)");
-  xet((await chu()).includes("Roblox · Laptop"), "dòng con đang làm gì (app đang chơi · máy)");
+  xet((await chu()).includes("đã dùng gì hôm nay"), "mục «<Con> đã dùng gì hôm nay» (bàn bm2-trang-chu@v35 — thay chip «Roblox · Laptop»)");
   { const cu = await chuCu(); xet(!cu.length, `không còn chữ cũ (${cu.join(", ")})`); }
   await bam("Cho vay sao");
   xet(await doi(`Cho ${KEN} vay sao`), "mở bảng «Cho <Con> vay sao»");
@@ -1902,7 +1933,7 @@ await kichBan("Sổ sao · Cảnh báo nợ > 1.000: Thông báo «Nợ quá 1.0
   await di("/canh-bao/a9");
   xet(await doi("Cảnh báo nợ sao"), "màn them-5twxl6hf");
   xet(await doi("vượt mốc sau lần cho vay 30 sao"), "nói rõ vượt mốc sau khoản vay");
-  xet(await doi("Không cản việc cho vay"), "Ba Mẹ nên biết: không cản việc cho vay");
+  xet(await doi("Không chặn việc cho vay"), "Ba Mẹ nên biết: không chặn việc cho vay");
   xet(await doi("7 ngày qua: vay 180, trả 40 sao"), "7 ngày qua vay / trả");
   await bam("Cho vay thêm");
   xet(await doi("đã nợ quá 1.000 sao (đang nợ 1.020)"), "Cho vay thêm ⇒ bảng có dải nhắc");

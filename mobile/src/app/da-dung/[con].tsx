@@ -9,24 +9,9 @@ import { bm } from "@/lib/api";
 import { TieuMuc } from "@/lib/hang-ngay";
 import { kieuSao, saoTu, soVN, type SaoCon } from "@/lib/so-sao";
 import { BieuTron, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nhan, The, useTai, type TenIcon } from "@/lib/ui";
+import { icDung, nhanDung, tenNgan, type HomNayDung } from "@/lib/da-dung";
 
-type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
-  phut: number; tinhGio: boolean; dangMo: boolean; matMang: boolean };
-type DongChan = { luc: string; ten: string; may: string | null; ly: "dang_xin" | "chua_cho" | "grow_chan"; yeuCau: string | null; phut: number | null };
-export type HomNayDung = { ten: string; ngay: string; choi: { daDung: number; tongPhut: number; conPhut: number };
-  hoc: { phut: number; khung: { tu: string; den: string } | null }; /** 15/11 (#262): phút nhóm «Không tính phút» hôm nay */ khongTinhPhut?: { phut: number };
-  dung: DongDung[]; biChan: DongChan[] };
-
-const tenNgan = (may: string | null) => (may ?? "").replace(/ của .*$/, "");
-/** Icon theo tên app (đủ cho các app hay gặp); web → «web». */
-function icCua(x: { ten: string; kieu: "app" | "web"; tinhGio: boolean }): TenIcon {
-  if (x.kieu === "web") return "web";
-  const t = x.ten.toLowerCase();
-  if (/camera|máy ảnh|ảnh/.test(t)) return "camera";
-  if (/điển|sách|đọc|book/.test(t)) return "sach";
-  if (/aiirob|học|toán|khan|duolingo/.test(t)) return "may_tinh";
-  return x.tinhGio ? "game" : "may_tinh";
-}
+export type { HomNayDung };
 
 export default function DaDung() {
   const { con } = useLocalSearchParams<{ con: string }>();
@@ -67,15 +52,15 @@ export default function DaDung() {
           <Pressable key={`${x.kieu}:${x.muc}`} onPress={() => x.mayId && router.push(`/may/${x.mayId}` as never)} disabled={!x.mayId} accessibilityRole="button"
             style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: "#efefec" }}>
             <Chu kieu="dam" co={12.5} mau={M.chu3} so style={{ width: 40 }}>{x.luc ? gioPhut(x.luc) : ""}</Chu>
-            <BieuTron ic={icCua(x)} mau={x.tinhGio ? "tim" : "xanh"} />
+            <BieuTron ic={icDung(x)} mau={x.tinhGio ? "tim" : "xanh"} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15} dong={1}>{x.ten}</Chu>
               <Chu co={13} mau={x.dangMo || x.matMang ? (x.matMang ? M.canh : M.chinhInk) : M.chu3} dong={1}>
                 {[x.matMang ? "● Mất mạng" : x.dangMo ? "● Đang mở" : null, tenNgan(x.may) || (x.nen ? x.nen : null)].filter(Boolean).join(" · ")}
               </Chu>
             </View>
-            {/* thiết kế 03 .tag: mục Tính phút «−39 sao» (1 phút = 1 sao) / «Không tính 10′» (xám) */}
-            <Nhan chu={x.tinhGio ? `${soVN(-x.phut)} sao` : `Không tính ${x.phut}′`} loai={x.tinhGio ? "canh" : "xam"} />
+            {/* cùng kiểu với Trang chủ (lib/da-dung › nhanDung): Tính phút «−39 sao» (1 phút = 1 sao) / «Không tính 10′» (xám) */}
+            <Nhan chu={nhanDung(x).chu} loai={x.tinhGio ? "canh" : "xam"} />
           </Pressable>
         ))}
       </The>

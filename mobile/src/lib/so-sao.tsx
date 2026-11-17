@@ -90,7 +90,7 @@ export function SoSaoLon({ s, co = 26, bamNo }: { s: SaoCon; co?: number; bamNo?
       )}
       {no ? (
         bamNo ? (
-          <Pressable onPress={bamNo} accessibilityRole="button" hitSlop={6} style={{ minHeight: 32, justifyContent: "center" }}>
+          <Pressable onPress={bamNo} accessibilityRole="button" hitSlop={6} style={{ minHeight: 32, justifyContent: "center", alignSelf: "stretch" }}>
             <Chu kieu="rat" co={13} mau={CANH.chu}>{`${no} ›`}</Chu>
           </Pressable>
         ) : <Chu kieu="rat" co={13} mau={CANH.chu}>{no}</Chu>
