@@ -53,10 +53,11 @@ export function DauMan({ ve, phai, khongLui, bamLui, tieu, giua }: { ve?: string
 }
 
 /** Nút «?» tròn góc phải ⇒ chat AiiLab hỗ trợ (màn Ghép máy). */
+// bàn bm1-ob-ghep v23: nút tròn trắng chữ «?» ngọc ⇒ «Hỏi AiiGrow» (them-zxu4yvp3)
 export const NutHoi = () => (
-  <Pressable onPress={() => router.push("/ho-tro")} accessibilityRole="button" accessibilityLabel="Cần giúp?" hitSlop={6}
+  <Pressable onPress={() => router.push("/hoi-aiigrow")} accessibilityRole="button" accessibilityLabel="Cần giúp?" hitSlop={6}
     style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
-    <Icon3D ten="dau_hoi" co={26} />
+    <Chu kieu="rat" co={18} mau={M.chinhInk}>?</Chu>
   </Pressable>
 );
 
@@ -220,9 +221,18 @@ export const linkNgan = (lienKet: string) => lienKet.replace(/^https?:\/\//, "")
 export const demNguoc = (giay: number) => `${Math.floor(Math.max(0, giay) / 60)}:${String(Math.max(0, giay) % 60).padStart(2, "0")}`;
 
 type ChiaSe = { tieuDe: string; noiDung: string; lienKet: string };
-const ZALO = `<svg viewBox="0 0 48 48"><text x="24" y="30" text-anchor="middle" font-family="Inter,Arial" font-weight="800" font-size="15" fill="#fff">Zalo</text></svg>`;
-const TIN = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 3C6.5 3 2 6.6 2 11c0 2.5 1.4 4.7 3.7 6.2L5 21l4-2.2c1 .3 2 .4 3 .4 5.5 0 10-3.6 10-8.1S17.5 3 12 3z"/></svg>`;
-const MES = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.5C6.6 2.5 2.5 6.4 2.5 11.4c0 2.7 1.2 5 3.1 6.6V21l2.9-1.6c1.1.3 2.3.5 3.5.5 5.4 0 9.5-3.9 9.5-8.9S17.4 2.5 12 2.5zm1 11.8-2.4-2.6-4.7 2.6 5.2-5.5 2.5 2.6 4.6-2.6z"/></svg>`;
+// glyph đơn sắc ngọc của bàn bm1-ob-ghep v23 (`.gA svg` fill #0a5246, phần khoét nền #dcebe6)
+const G = (d: string) => `<svg viewBox="0 0 24 24" fill="#0a5246">${d}</svg>`;
+const BONG_CHAT = '<path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.6 1.4 4.9 3.6 6.5L5 21.5l4-2.1c.9.2 1.9.3 3 .3 5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/>';
+const GLYPH = {
+  zalo: G(`${BONG_CHAT}<path d="M8 8.5h7.5v1.6l-4.9 5h4.9v1.6H7.8v-1.6l4.9-5H8z" fill="#dcebe6"/>`),
+  mes: G(`${BONG_CHAT}<path d="M6.5 13.8l4-4.2 2.4 2.1 4.6-2.4-4 4.2-2.4-2.1z" fill="#dcebe6"/>`),
+  tin: G('<path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2H9l-5 4v-4a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M7 9h10v2H7zM7 12.5h6v2H7z" fill="#dcebe6"/>'),
+  mail: G('<path d="M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><path d="M3.5 7.2L12 12.6l8.5-5.4v2.2L12 14.8 3.5 9.4z" fill="#dcebe6"/>'),
+  tele: G('<path d="M21.5 3.5L2.8 10.7c-1 .4-1 1.1-.2 1.4l4.8 1.5 1.8 5.6c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.7c.3-1.3-.5-1.9-1.4-1.3z"/>'),
+  chep: G('<path d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7a5 5 0 000 10h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4a5 5 0 000-10z"/>'),
+  them: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l-4.5 4.5 1.4 1.4L11 5.8V15h2V5.8l2.1 2.1 1.4-1.4z"/><path d="M6 9h3v2H6v9h12v-9h-3V9h3a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9a2 2 0 012-2z"/></svg>',
+};
 
 /** Mở bảng chia sẻ của hệ điều hành; web không có navigator.share ⇒ chép vào bộ nhớ tạm. → true nếu đã CHÉP (để báo). */
 async function chiaSeHeThong(c: ChiaSe) {
@@ -235,8 +245,6 @@ async function chiaSeHeThong(c: ChiaSe) {
   return false;
 }
 
-const MAIL = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M3 6.5A1.5 1.5 0 0 1 4.5 5h15A1.5 1.5 0 0 1 21 6.5v11a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 17.5zm2 .8v.4l7 4.6 7-4.6v-.4zm0 2.8V17h14v-6.9l-7 4.6z"/></svg>`;
-const TELE = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M20.7 4.2 3.4 10.9c-1.2.5-1.2 1.2-.2 1.5l4.4 1.4 1.7 5.2c.2.6.4.8.8.8.5 0 .7-.2 1-.5l2.1-2.1 4.5 3.3c.8.5 1.4.2 1.6-.8l2.9-13.8c.3-1.2-.4-1.8-1.5-1.3zM8.6 13.5l9.6-6.1-7.5 7-.3 3.2z"/></svg>`;
 
 /** Hàng chia sẻ (thiết kế chốt 14/11 bm1-ob-ghep): cuộn ngang Zalo · Messenger · Tin nhắn · Email · Telegram · Sao chép, ô «Thêm…» đứng yên bên
  *  phải (bảng chia sẻ của máy — gửi qua mọi app). Zalo không có đường chia sẻ chữ ra ngoài ⇒ bảng chia sẻ của máy (chọn Zalo) — web: chép sẵn
@@ -245,38 +253,39 @@ export function HangChiaSe({ chiaSe, bao, daGui }: { chiaSe: ChiaSe; bao: (chu: 
   const chep = (chu: string, cau: string) => saoChep(chu).then((ok) => { if (ok) bao(cau); });
   const mo = (url: string, duPhong: string) => Linking.openURL(url).then(() => daGui?.(), () => chep(chiaSe.noiDung, duPhong));
   const muc: { ten: string; nen: string; ve: ReactNode; bam: () => void }[] = [
-    { ten: "Zalo", nen: "#0068ff", ve: <SvgXml xml={ZALO} width={44} height={44} />,
+    { ten: "Zalo", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.zalo} width={24} height={24} />,
       bam: () => (Platform.OS === "web" ? chep(chiaSe.noiDung, "Đã chép link — mở Zalo, dán gửi sang máy của con") : chiaSeHeThong(chiaSe).then(() => daGui?.())) },
-    { ten: "Messenger", nen: "#7b5cff", ve: <SvgXml xml={MES} width={28} height={28} />,
+    { ten: "Messenger", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.mes} width={24} height={24} />,
       bam: () => {
         if (Platform.OS === "web") { chep(chiaSe.noiDung, "Đã chép link — mở Messenger, dán gửi sang máy của con"); return; }
         Linking.openURL(`fb-messenger://share/?link=${encodeURIComponent(chiaSe.lienKet)}`).then(() => daGui?.(), () => chiaSeHeThong(chiaSe));
       } },
-    { ten: "Tin nhắn", nen: "#34c759", ve: <SvgXml xml={TIN} width={28} height={28} />,
+    { ten: "Tin nhắn", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.tin} width={24} height={24} />,
       bam: () => { mo(`sms:${Platform.OS === "ios" ? "&" : "?"}body=${encodeURIComponent(chiaSe.noiDung)}`, "Đã chép link — dán vào tin nhắn"); } },
-    { ten: "Email", nen: "#e2574c", ve: <SvgXml xml={MAIL} width={28} height={28} />,
+    { ten: "Email", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.mail} width={24} height={24} />,
       bam: () => { mo(`mailto:?subject=${encodeURIComponent(chiaSe.tieuDe)}&body=${encodeURIComponent(chiaSe.noiDung)}`, "Đã chép link — dán vào email"); } },
-    { ten: "Telegram", nen: "#27a6e5", ve: <SvgXml xml={TELE} width={28} height={28} />,
+    { ten: "Telegram", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.tele} width={24} height={24} />,
       bam: () => { mo(`https://t.me/share/url?url=${encodeURIComponent(chiaSe.lienKet)}&text=${encodeURIComponent(chiaSe.tieuDe)}`, "Đã chép link — dán vào Telegram"); } },
-    { ten: "Sao chép", nen: M.the, ve: <Icon3D ten="lap" co={28} />, bam: () => chep(chiaSe.lienKet, "Đã chép link ghép máy") },
+    { ten: "Sao chép", nen: "#dcebe6", ve: <SvgXml xml={GLYPH.chep} width={24} height={24} />, bam: () => chep(chiaSe.lienKet, "Đã chép link ghép máy") },
   ];
   const o = (m: { ten: string; nen: string; ve: ReactNode; bam: () => void }) => (
     <Pressable key={m.ten} onPress={m.bam} accessibilityRole="button" accessibilityLabel={m.ten === "Sao chép" ? "Sao chép link" : m.ten === "Thêm…" ? "Thêm cách chia sẻ" : `Gửi qua ${m.ten}`}
       style={{ width: 64, alignItems: "center", gap: 6, minHeight: 44 }}>
-      <View style={{ width: 50, height: 50, borderRadius: 25, backgroundColor: m.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho, overflow: "hidden" }}>{m.ve}</View>
-      <Text numberOfLines={1} style={{ fontFamily: F.dam, fontSize: 11, lineHeight: 14, color: M.chu, textAlign: "center" }}>{m.ten}</Text>
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: m.nen, alignItems: "center", justifyContent: "center", overflow: "hidden",
+        boxShadow: m.ten === "Thêm…" ? "0px 8px 14px -8px rgba(18,22,21,0.7), inset 0px 2px 2px rgba(255,255,255,0.25), inset 0px -3px 5px rgba(0,0,0,0.4)"
+          : "0px 8px 14px -8px rgba(10,82,70,0.5), inset 0px 2px 2px rgba(255,255,255,0.9), inset 0px -3px 5px rgba(10,82,70,0.18)" }}>{m.ve}</View>
+      <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 11.5, lineHeight: 14, color: "#1c201e", textAlign: "center" }}>{m.ten}</Text>
     </Pressable>
   );
   return (
-    // thiết kế 14/11 (bm-ghep-may/03): ô tròn; «Thêm…» tròn than chì. Giữ màu thương hiệu từng app
-    // (thiết kế vẽ icon đơn sắc ngọc — đã chọn giữ logo màu vì Ba Mẹ nhận ra app nhanh hơn)
+    // bàn bm1-ob-ghep v23 / bm1-may-ghep: ô tròn ngọc nhạt, glyph đơn sắc ngọc; «Thêm…» tròn than chì glyph trắng
     // (thẻ nền của thiết kế bỏ: hàng cuộn ngang tràn mép thẻ — cổng LE-THE)
     <View style={{ flexDirection: "row", alignItems: "flex-start" }} accessibilityLabel="Chia sẻ link ghép máy">
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flex: 1 }} contentContainerStyle={{ gap: 4, paddingRight: 16, paddingVertical: 4 }}>
         {muc.map(o)}
       </ScrollView>
       <View style={{ width: 1, alignSelf: "stretch", marginVertical: 8, backgroundColor: "#e4e3df" }} />
-      {o({ ten: "Thêm…", nen: M.nut, ve: <View style={{ flexDirection: "row", gap: 4 }}>{[0, 1, 2].map((i) => <View key={i} style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: "#fff" }} />)}</View>,
+      {o({ ten: "Thêm…", nen: M.nut, ve: <SvgXml xml={GLYPH.them} width={24} height={24} />,
         bam: () => chiaSeHeThong(chiaSe).then((chep) => { if (chep) bao("Đã chép nội dung — dán vào ứng dụng Ba Mẹ muốn gửi"); else daGui?.(); }) })}
     </View>
   );
@@ -285,27 +294,29 @@ export function HangChiaSe({ chiaSe, bao, daGui }: { chiaSe: ChiaSe; bao: (chu: 
 /** Màn trạng thái ghép (MỚI 14/11 them-q44uxha5 «Mã đã hết hạn», them-ytmgijqo «Chưa thấy máy của con»): Grow + icon, tiêu đề, câu phụ,
  *  nội dung (thẻ / danh sách), nút chính + liên kết. Dùng chung cho màn Ghép (Lần đầu, Ghép thêm máy) và «Đang chờ». */
 export function KhoiTrangThaiGhep({ lv, ic, tieu, phu, children }: { lv: LinhVat; ic: TenIcon; tieu: string; phu: string; children?: ReactNode }) {
+  // bàn them-q44uxha5 v2 / them-ytmgijqo v3 `.san`: thẻ «sân» cao 260 nền cam nhạt, Grow 160 giữa + icon 64 chếch phải, tiêu đề 23 + câu phụ cam đậm ở đáy thẻ
   return (
     <View style={{ gap: 14 }}>
-      <View style={{ alignItems: "center", gap: 4, paddingTop: 8 }}>
-        <View style={{ flexDirection: "row", alignItems: "flex-end" }}>
-          <Rob ten={lv} co={150} />
-          <View style={{ marginLeft: -28, marginBottom: 12 }}><Icon3D ten={ic} co={48} /></View>
+      <View style={{ height: 260, borderRadius: 36, overflow: "hidden", backgroundColor: "#f6e4cd", backgroundImage: "radial-gradient(90% 70% at 50% 30%, #fdf3e6, #f1d9bd)",
+        alignItems: "center", ...KHOI.the }}>
+        <View style={{ marginTop: 10 }}><Rob ten={lv} co={160} /></View>
+        <View pointerEvents="none" style={{ position: "absolute", top: 20, left: "50%", marginLeft: 30 }}><Icon3D ten={ic} co={64} /></View>
+        <View style={{ position: "absolute", left: 12, right: 12, bottom: 18, alignItems: "center", gap: 6 }}>
+          <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 23, letterSpacing: -0.4, color: M.chu, textAlign: "center" }}>{tieu}</Text>
+          <Chu kieu="rat" co={14} mau="#8a3c0c" style={{ textAlign: "center" }}>{phu}</Chu>
         </View>
-        <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 25, letterSpacing: -0.4, color: M.chu, textAlign: "center" }}>{tieu}</Text>
-        <Chu co={14.5} mau={M.chu2} style={{ textAlign: "center" }}>{phu}</Chu>
       </View>
       {children}
     </View>
   );
 }
 
-/** Một dòng thẻ trạng thái: ô icon lõm + chữ (+ dòng phụ). */
+/** Một dòng thẻ trạng thái (bàn `.the`): ô tròn ngọc nhạt 48 + icon 30, chữ 15/800 (+ dòng phụ 12.5). */
 export function DongTrangThai({ ic, chu, phu }: { ic: TenIcon; chu: string; phu?: string }) {
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: M.the, ...KHOI.the }}>
-      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: "#eeede9", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten={ic} co={28} /></View>
-      <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{chu}</Chu>{phu ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}</View>
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 26, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: "#dcebe6", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={30} /></View>
+      <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{chu}</Chu>{phu ? <Chu kieu="dam" co={12.5} mau={M.chu3}>{phu}</Chu> : null}</View>
     </View>
   );
 }

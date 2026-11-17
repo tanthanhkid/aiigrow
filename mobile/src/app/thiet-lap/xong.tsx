@@ -3,6 +3,7 @@
 // đã ghép ⇒ thẻ «Con xin gì, điện thoại Ba Mẹ sẽ báo» (mẫu), «Vào trang của X», «Ghép thêm máy cho X»; chưa ghép ⇒ «Ghép máy cho X».
 // Thiết kế 14/11: «Grow» thay «Rob» (N6); tên chế độ «Theo danh sách» / «Mở hết» (N2 — thiết kế 04/05 còn ghi «Chỉ app Ba Mẹ chọn», chọn theo luật N2).
 import { cheDoTu } from "@/lib/app-web";
+import { tenGoi } from "@/lib/hang-ngay";
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
@@ -28,7 +29,7 @@ export default function ObXong() {
     const [t, c, nv] = await Promise.all([tomTat(con), bm.goi<ConChiTiet>(`con/${con}`), bm.goi<{ ds: NhiemVu[] }>("nhiem-vu")]);
     return { t, may: c.may.filter((m) => !m.dungChung), soViec: nv.ds.filter((x) => x.bat !== false && (x.giao_cho === con || !x.giao_cho)).length };
   });
-  const ten = d?.t.ten ?? "con";
+  const ten = d?.t.ten ? tenGoi(d.t.ten) : "con";      // tên gọi ngắn như bàn («Bảo Anh»)
   const coMay = !!d?.may.length;
   const dong = (ic: TenIcon, chu: string) => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 }}>
@@ -43,8 +44,13 @@ export default function ObXong() {
       <LienKet chu={`+ Ghép thêm máy cho ${ten}`} bam={() => router.push({ pathname: "/may/them", params: { con } })} /></>
       : <Nut chu="Vào Trang chủ" rong bam={() => router.replace("/hom-nay")} />}>
       <View style={{ alignItems: "center", gap: 6, paddingTop: 8 }}>
-        <Rob ten="xong" co={170} />
-        <TieuDe chu="Xong rồi!" phu={coMay ? `Grow bắt đầu trông ${d!.may[0].ten} của ${ten}.` : `${ten} đã có việc và luật chơi bằng sao.`} giua />
+        {/* bàn bm1-ob-xong v15 / them-w8q8hcfk v5: huy hiệu tick ngọc tròn chồng góc dưới phải Grow */}
+        <View>
+          <Rob ten="xong" co={170} />
+          <View style={{ position: "absolute", right: -14, bottom: 4, width: 52, height: 52, borderRadius: 26, backgroundColor: M.chinh, borderWidth: 4, borderColor: "#fff",
+            alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}><Icon ten="tick" mau="#fff" co={24} /></View>
+        </View>
+        <TieuDe chu="Xong rồi!" phu={coMay ? `Grow bắt đầu trông ${d!.may[0].ten.includes(ten) ? d!.may[0].ten : `${d!.may[0].ten} của ${ten}`}.` : `${ten} đã có việc và luật chơi bằng sao.`} giua />
       </View>
       {d ? (
         <The>

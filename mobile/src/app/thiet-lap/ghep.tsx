@@ -84,18 +84,18 @@ export default function GhepMay() {
     <Man dau={<DauMan bamLui={lui} />}
       day={<><BaoLoi loi={loi} /><Nut chu={chung ? "Lấy mã mới" : `Lấy mã mới cho ${ten}`} rong bam={() => lay(true)} /><LienKet chu={nguon === "lan-dau" ? "Để sau, vào trang chủ" : "Để sau"} bam={veTrangChu} /></>}>
       <KhoiTrangThaiGhep lv="cho" ic="dong_ho_cat" tieu="Mã đã hết hạn" phu="Mã chỉ dùng được 10 phút">
-        <DongTrangThai ic="khien" chu="Mã 6 số cũ không dùng được nữa" phu={`Chưa máy nào ghép vào nhà bằng mã này${linkConHan ? " · link đã gửi vẫn dùng được trong 48 giờ" : ""}`} />
+        <DongTrangThai ic="khien" chu="Mã cũ đã bị huỷ" phu={`${chung ? "Máy" : `Máy ${ten}`} chưa bị ghép nhầm${linkConHan ? " · link đã gửi vẫn dùng được trong 48 giờ" : ""}`} />
       </KhoiTrangThaiGhep>
     </Man>
   );
   if (chuaThay) return (
     <Man dau={<DauMan bamLui={lui} />}
-      day={<><Nut chu="Thử lại, chờ máy con" rong bam={() => setMoc(Date.now())} /><LienKet chu="Hỏi AiiGrow" bam={() => router.push("/ho-tro")} /></>}>
+      day={<><Nut chu="Thử lại, chờ máy con" rong bam={() => setMoc(Date.now())} /><LienKet chu="Hỏi AiiGrow" bam={() => router.push("/hoi-aiigrow")} /></>}>
       <KhoiTrangThaiGhep lv="nghi" ic="canh_bao" tieu="Chưa thấy máy của con" phu={`Đã chờ ${CHO_PHUT} phút, máy chưa trả lời`}>
         <Chu kieu="rat" co={15} style={{ paddingHorizontal: 4 }}>Thử một trong 3 việc</Chu>
         <DongTrangThai ic="wifi" chu="Máy con có mạng chưa?" />
         <DongTrangThai ic="tai" chu="Đã cài AiiGrow chưa?" />
-        <DongTrangThai ic="dau_hoi" chu="Mã nhập đúng chưa?" phu={kq ? `Mã đang dùng: ${kq.maHien}` : undefined} />
+        <DongTrangThai ic="dau_hoi" chu="Mã nhập đúng chưa?" />
       </KhoiTrangThaiGhep>
     </Man>
   );
