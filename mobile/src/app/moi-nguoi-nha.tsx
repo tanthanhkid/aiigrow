@@ -22,6 +22,14 @@ const chuanSdt = (t: string) => { let s = t.replace(/[\s.\-()]/g, ""); if (s.sta
 const SDT = /^0\d{9}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 /** «0909876543» → «0909 876 543» (đang gõ: chia nhóm 4-3-3 theo số đã gõ); chữ khác số (+84, email) giữ nguyên. */
+/** Ô SĐT: giữ đúng chữ hiện trên ô (giá trị lưu = giá trị hiển thị) — chỉ nhận số / cách / + . - ( ), số bắt đầu bằng 0 cắt ở 10 chữ số
+ *  (bỏ số gõ thừa, không giấu trong state). Tách nhóm «0909 876 543» khi rời ô. */
+const catSdt = (t: string) => {
+  const s = t.replace(/[^\d\s+.\-()]/g, "");
+  if (!/^\s*0/.test(s)) return s;
+  let n = 0;
+  return s.replace(/\d/g, (c) => (++n <= 10 ? c : "")).replace(/\s+$/, (m) => (n >= 10 ? "" : m));
+};
 const soNhom = (t: string) => (/^0[\d\s]*$/.test(t) ? t.replace(/\s/g, "").slice(0, 10).replace(/^(\d{4})(\d{1,3})?(\d{1,3})?$/, (_, a, b, c) => [a, b, c].filter(Boolean).join(" ")) : t);
 
 export default function MoiNguoiNha() {
@@ -39,6 +47,9 @@ export default function MoiNguoiNha() {
   const ve = () => veHoac("/cai-dat");
   const sach = cach === "sdt" ? chuanSdt(dd) : dd.trim();
   const hop = cach === "sdt" ? SDT.test(sach) : EMAIL.test(sach);
+  const [dangGo, setDangGo] = useState(false);
+  // báo sai độ dài: rời ô mà chưa đúng, hoặc đang gõ đã đủ/quá 10 số mà vẫn sai (vd không bắt đầu bằng 0)
+  const saiDai = !!dd.trim() && !hop && (!dangGo || (cach === "sdt" && sach.replace(/\D/g, "").length >= 10));
   const goi = ten.trim() || (hop ? sach : "");
   const tenCon = d?.con.length ? d.con.join(", ") : "các con";
   const soCon = d?.con.length ? `${d.con.length} bé` : "các con";
@@ -129,11 +140,14 @@ export default function MoiNguoiNha() {
         ))}
       </View>
       <View style={{ height: 56, borderRadius: 28, backgroundColor: "#ecebe7", boxShadow: BONG.lom, paddingHorizontal: 20, justifyContent: "center" }}>
-        <TextInput value={cach === "sdt" ? soNhom(dd) : dd} onChangeText={setDd} placeholder={cach === "sdt" ? "0909 876 543" : "ten@email.com"} placeholderTextColor={M.chu3}
+        <TextInput value={dd} onChangeText={(t) => setDd(cach === "sdt" ? catSdt(t) : t)} onFocus={() => setDangGo(true)}
+          onBlur={() => { setDangGo(false); if (cach === "sdt" && SDT.test(chuanSdt(dd))) setDd(soNhom(chuanSdt(dd))); }} placeholder={cach === "sdt" ? "0909 876 543" : "ten@email.com"} placeholderTextColor={M.chu3}
           keyboardType={cach === "sdt" ? "phone-pad" : "email-address"} autoCapitalize="none" autoComplete={cach === "sdt" ? "tel" : "email"}
           accessibilityLabel={cach === "sdt" ? "Số điện thoại người được mời" : "Email người được mời"}
           style={{ fontFamily: F.dam7, fontSize: 20, letterSpacing: 0.3, color: M.chu }} />
       </View>
+      {saiDai ? <Chu kieu="dam" co={13} mau={M.loi} style={{ marginHorizontal: 8, marginTop: -4 }}>
+        {cach === "sdt" ? `Số điện thoại cần đúng 10 số, bắt đầu bằng 0 (đang có ${chuanSdt(dd).replace(/\D/g, "").length} số)` : "Email chưa đúng — ví dụ ten@email.com"}</Chu> : null}
       {/* «Gọi là gì trong nhà?» không có trên thiết kế (thiết kế lấy tên từ danh bạ — «Chọn từ danh bạ» chưa làm) ⇒ giữ ô lõm nhỏ để có tên trên lời mời */}
       <View style={{ height: 50, borderRadius: 25, backgroundColor: "#ecebe7", boxShadow: BONG.lom, paddingHorizontal: 20, justifyContent: "center" }}>
         <TextInput value={ten} onChangeText={setTen} placeholder="Gọi là gì trong nhà? (Ba Tuấn, Bà nội…)" placeholderTextColor={M.chu3} maxLength={30}
