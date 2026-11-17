@@ -52,27 +52,27 @@ struct ThoatMacView: View {
     let chip = ThoatMac.chipBao(ok: m.baoOk, status: m.baoStatus)
     ZStack(alignment: .top) {
       ClayMau.nen
-      LinearGradient(colors: [ClayMau.ngocSoft, ClayMau.nen], startPoint: .top, endPoint: .bottom).frame(height: 130)
+      Color.clear.frame(height: 130)
       VStack(spacing: 0) {
         HinhFluent(ten: "shield", duPhong: "lock.shield.fill", co: 72).padding(.top, 14)
-        Text(ThoatMac.tieu).font(.system(size: 21, weight: .bold)).padding(.top, 8)
-        Text(ThoatMac.phu).font(.system(size: 13)).foregroundColor(ClayMau.chu3).padding(.top, 3)
+        Text(ThoatMac.tieu).font(.clay(size: 21, weight: .bold)).padding(.top, 8)
+        Text(ThoatMac.phu).font(.clay(size: 13)).foregroundColor(ClayMau.chu3).padding(.top, 3)
         HStack(spacing: 8) {
           ForEach(0..<6, id: \.self) { i in
             let c = Array(m.ma)
-            Text(i < c.count ? String(c[i]) : "").font(.system(size: 26, weight: .bold)).frame(width: 46, height: 56).clayLom(bo: 15)
+            Text(i < c.count ? String(c[i]) : "").font(.clay(size: 26, weight: .bold)).frame(width: 46, height: 56).clayLom(bo: 15)
               .overlay(RoundedRectangle(cornerRadius: 15).strokeBorder(ClayMau.ngoc, lineWidth: 2.5).opacity(i == c.count ? 1 : 0))
           }
         }
         .modifier(Rung(lan: m.cau != nil ? 1 : 0))
         .padding(.top, 20)
         Text(m.dangGui ? "Đang kiểm mã…" : m.cau ?? ThoatMac.ghiMa)
-          .font(.system(size: 12.5, weight: m.cau != nil ? .bold : .regular))
+          .font(.clay(size: 12.5, weight: m.cau != nil ? .bold : .regular))
           .foregroundColor(m.cau != nil ? ClayMau.loi : ClayMau.chu3)
           .lineLimit(2).multilineTextAlignment(.center).padding(.horizontal, 20).padding(.top, 10)
         HStack(spacing: 6) {
           HinhFluent(ten: chip.icon, duPhong: "bell.fill", co: 18)
-          Text(chip.chu).font(.system(size: 12.5, weight: .bold)).foregroundColor(chip.cam ? ClayMau.canh : ClayMau.ngocInk)
+          Text(chip.chu).font(.clay(size: 12.5, weight: .bold)).foregroundColor(chip.cam ? ClayMau.canh : ClayMau.ngocInk)
         }
         .padding(.horizontal, 12).frame(height: 28)
         .background(Capsule().fill(chip.cam ? ClayMau.canhSoft : ClayMau.ngocSoft))
@@ -102,10 +102,10 @@ struct GioiLamView: View {
     VStack(spacing: 0) {
       RobView(ten: "sao", cao: 96)
       HStack(alignment: .firstTextBaseline, spacing: 6) {
-        Text("\(chuoi.soNgay)").font(.system(size: 34, weight: .heavy)).foregroundColor(ClayMau.canh)
-        Text("ngày liền!").font(.system(size: 19, weight: .bold))
+        Text("\(chuoi.soNgay)").font(.clay(size: 34, weight: .heavy)).foregroundColor(ClayMau.canh)
+        Text("ngày liền!").font(.clay(size: 19, weight: .bold))
       }
-      Text(ChuoiView.phu(chuoi.soNgay)).font(.system(size: 12.5)).foregroundColor(ClayMau.chu3).padding(.top, 2)
+      Text(ChuoiView.phu(chuoi.soNgay)).font(.clay(size: 12.5)).foregroundColor(ClayMau.chu3).padding(.top, 2)
       HStack(spacing: 6) {
         ForEach(Array(chuoi.tuan.enumerated()), id: \.offset) { i, d in
           let nay = i == chuoi.tuan.count - 1
@@ -116,7 +116,7 @@ struct GioiLamView: View {
               else if d.bang { HinhFluent(ten: "shield", duPhong: "shield.fill", co: 22) }
             }
             .frame(width: 44, height: 44)
-            Text(ChuoiView.thu(d, homNay: nay)).font(.system(size: 11, weight: nay ? .bold : .regular)).foregroundColor(nay ? ClayMau.canh : ClayMau.chu3)
+            Text(ChuoiView.thu(d, homNay: nay)).font(.clay(size: 11, weight: nay ? .bold : .regular)).foregroundColor(nay ? ClayMau.canh : ClayMau.chu3)
           }
         }
       }
@@ -124,7 +124,7 @@ struct GioiLamView: View {
       HStack(spacing: 6) {
         vien("Cấp \(cap)", nen: ClayMau.ngocSoft, mau: ClayMau.ngocInk)
         if moiLen { vien("Mới lên!", nen: ClayMau.canhSoft, mau: ClayMau.canh) }
-        Text("→ Cấp \(cap + 1)").font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
+        Text("→ Cấp \(cap + 1)").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
         if sao > 0 { vien("+\(sao)", nen: ClayMau.diemSoft, mau: ClayMau.diemInk, icon: "star") }
       }
       .padding(.top, 12)
@@ -140,7 +140,7 @@ struct GioiLamView: View {
   private func vien(_ s: String, nen: Color, mau: Color, icon: String? = nil) -> some View {
     HStack(spacing: 4) {
       if let icon { HinhFluent(ten: icon, duPhong: "star.fill", co: 16) }
-      Text(s).font(.system(size: 13, weight: .bold)).foregroundColor(mau)
+      Text(s).font(.clay(size: 13, weight: .bold)).foregroundColor(mau)
     }
     .padding(.horizontal, 10).frame(height: 26).background(Capsule().fill(nen))
   }

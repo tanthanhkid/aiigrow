@@ -13,7 +13,7 @@ struct VienSao: View {
   var body: some View {
     HStack(spacing: 6) {
       HinhFluent(ten: "star", duPhong: "star.fill", co: co + 4)
-      Text(ChuSao.vien(sao)).font(.system(size: co, weight: .bold)).monospacedDigit().lineLimit(1)
+      Text(ChuSao.vien(sao)).font(.clay(size: co, weight: .bold)).monospacedDigit().lineLimit(1)
     }
     .foregroundColor(sao < 0 ? ClayMau.canh : ClayMau.diemInk)
     .padding(.horizontal, co * 0.8).padding(.vertical, co * 0.35)
@@ -27,7 +27,7 @@ struct LinkNho: View {
   let chu: String
   let lam: () -> Void
   var body: some View {
-    Button(chu, action: lam).buttonStyle(.plain).font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
+    Button(chu, action: lam).buttonStyle(.plain).font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
   }
 }
 
@@ -60,18 +60,18 @@ struct XinVayView: View {
   }
 
   @ViewBuilder private var form: some View {
-    Text(tuManKhoa ? "Hết sao rồi · xin vay nhé" : "Xin Ba Mẹ cho vay sao").font(.system(size: 20, weight: .bold))
-    Text(tuManKhoa ? "Chọn số sao con muốn vay" : "Con " + ChuSao.phut(phut)).font(.system(size: 13)).foregroundColor(ClayMau.chu3)
-    if !tuManKhoa { Text("Con xin vay").font(.system(size: 13, weight: .semibold)).foregroundColor(ClayMau.chu3) }
+    Text(tuManKhoa ? "Hết sao rồi · xin vay nhé" : "Xin Ba Mẹ cho vay sao").font(.clay(size: 20, weight: .bold))
+    Text(tuManKhoa ? "Chọn số sao con muốn vay" : "Con " + ChuSao.phut(phut)).font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
+    if !tuManKhoa { Text("Con xin vay").font(.clay(size: 13, weight: .semibold)).foregroundColor(ClayMau.chu3) }
     ChipClay(ds: ChuSao.mucVay.map { ($0, "\($0) sao") }, chon: $soSao)
     Chu(ChuSao.cauVay(soSao), co: 13, dam: .semibold, mau: ClayMau.diemInk, dong: 2)
     TextField(tuManKhoa ? "Con đang xây dở nhà với bạn" : "Nhắn Ba Mẹ: con làm nốt bài với bạn ạ", text: $loiNhan)
-      .textFieldStyle(.plain).font(.system(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
+      .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
     Button("Xin Ba Mẹ cho vay \(soSao) sao") { xin.xinVay(soSao: soSao, loiNhan: loiNhan) }
       .buttonStyle(NutClayStyle(kieu: .ngoc)).disabled(xin.dangGui)
     if tuManKhoa {
       VStack(alignment: .leading, spacing: 6) {
-        Text("Hoặc làm nhiệm vụ · 1 việc = 10 sao").font(.system(size: 14, weight: .bold)).foregroundColor(ClayMau.diemInk)
+        Text("Hoặc làm nhiệm vụ · 1 việc = 10 sao").font(.clay(size: 14, weight: .bold)).foregroundColor(ClayMau.diemInk)
         if let xemNhiemVu, soViecChuaLam > 0 { LinkNho(chu: "Xem \(soViecChuaLam) nhiệm vụ chưa làm ›", lam: xemNhiemVu) }
       }
       .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayThe(bo: 20, nen: ClayMau.diemSoft)
@@ -90,13 +90,13 @@ struct XinVayView: View {
     HStack(spacing: 12) {
       VienClay(ten: "speech_balloon", duPhong: "paperplane.fill", nen: ClayMau.ngocSoft, co: 48)
       VStack(alignment: .leading, spacing: 2) {
-        Text("Đã gửi Ba Mẹ!").font(.system(size: 20, weight: .bold))
-        Text("Con xin vay \(ChuSao.so(xin.saoDaXin ?? soSao)) sao").font(.system(size: 14)).foregroundColor(ClayMau.chu3)
+        Text("Đã gửi Ba Mẹ!").font(.clay(size: 20, weight: .bold))
+        Text("Con xin vay \(ChuSao.so(xin.saoDaXin ?? soSao)) sao").font(.clay(size: 14)).foregroundColor(ClayMau.chu3)
       }
     }
     VStack(alignment: .leading, spacing: 2) {
-      Text("Đang chờ Ba Mẹ").font(.system(size: 15, weight: .bold)).foregroundColor(ClayMau.ngocInk)
-      Text("Ba Mẹ trả lời là máy báo con ngay.").font(.system(size: 13)).foregroundColor(ClayMau.chu3)
+      Text("Đang chờ Ba Mẹ").font(.clay(size: 15, weight: .bold)).foregroundColor(ClayMau.ngocInk)
+      Text("Ba Mẹ trả lời là máy báo con ngay.").font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
     }
     Button("Chơi tiếp · còn \(ChuSao.so(phut)) sao = \(ChuSao.so(phut)) phút", action: dong).buttonStyle(NutClayStyle(kieu: .ngoc))
     LinkNho(chu: "‹ Sửa lời xin") { xin.moi() }
@@ -106,18 +106,18 @@ struct XinVayView: View {
     HStack(spacing: 12) {
       VienClay(ten: "wifi", duPhong: "wifi.slash", nen: ClayMau.canhSoft, co: 48)
       VStack(alignment: .leading, spacing: 2) {
-        Text("Đã lưu lời xin vay sao").font(.system(size: 20, weight: .bold))
-        Text("Có mạng là AiiGrow tự gửi Ba Mẹ.").font(.system(size: 14)).foregroundColor(ClayMau.chu3)
+        Text("Đã lưu lời xin vay sao").font(.clay(size: 20, weight: .bold))
+        Text("Có mạng là AiiGrow tự gửi Ba Mẹ.").font(.clay(size: 14)).foregroundColor(ClayMau.chu3)
       }
     }
     let cho = (tray.tt?.yeuCauCho ?? []).filter { $0.choMang == true }.count
     VStack(alignment: .leading, spacing: 4) {
-      Text("Chờ có mạng (\(max(1, cho)))").font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.canh)
-      Text("Xin Ba Mẹ cho vay \(ChuSao.so(xin.saoDaXin ?? soSao)) sao").font(.system(size: 15, weight: .bold))
-      Text("vừa xong · " + AppConView.gioPhut.string(from: xin.luc ?? Date())).font(.system(size: 12)).foregroundColor(ClayMau.chu3)
+      Text("Chờ có mạng (\(max(1, cho)))").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.canh)
+      Text("Xin Ba Mẹ cho vay \(ChuSao.so(xin.saoDaXin ?? soSao)) sao").font(.clay(size: 15, weight: .bold))
+      Text("vừa xong · " + AppConView.gioPhut.string(from: xin.luc ?? Date())).font(.clay(size: 12)).foregroundColor(ClayMau.chu3)
     }
     .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
-    Text("Không cần bấm gửi lại đâu.").font(.system(size: 13)).foregroundColor(ClayMau.chu3)
+    Text("Không cần bấm gửi lại đâu.").font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
     Button(tuManKhoa ? "Về màn khoá" : "Đóng", action: dong).buttonStyle(NutClayStyle(kieu: .sang))
   }
 }
@@ -138,7 +138,7 @@ struct XinVayCuaSo: View {
         .padding(18).clayThe().vaoLanLuot(0)
       HStack(spacing: 6) {
         HinhFluent(ten: "seedling", duPhong: "leaf.fill", co: 16)
-        Text(TrayLogic.dongDangBat).font(.system(size: 12)).foregroundColor(ClayMau.chu3)
+        Text(TrayLogic.dongDangBat).font(.clay(size: 12)).foregroundColor(ClayMau.chu3)
       }
       .padding(.horizontal, 6).vaoLanLuot(1)
     }
@@ -166,7 +166,7 @@ private struct DauTraLoi: View {
     }
     if let l = loiNhan, !l.isEmpty {
       VStack(alignment: .leading, spacing: 2) {
-        Text(nguoi ?? "Ba Mẹ").font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.chu2)
+        Text(nguoi ?? "Ba Mẹ").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu2)
         Chu("«\(l)»", co: 14, mau: ClayMau.chu)
       }
       .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
@@ -248,12 +248,12 @@ struct SaoLaPhutView: View {
   var lamNhiemVu: () -> Void = {}
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text(moHet ? "Sao để đổi quà" : "Sao là phút chơi").font(.system(size: 13, weight: .semibold)).foregroundColor(ClayMau.chu3)
+      Text(moHet ? "Sao để đổi quà" : "Sao là phút chơi").font(.clay(size: 13, weight: .semibold)).foregroundColor(ClayMau.chu3)
       HStack(spacing: 12) {
         VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.diemSoft, co: 52)
         VStack(alignment: .leading, spacing: 0) {
-          Text("Con đang có").font(.system(size: 13)).foregroundColor(ClayMau.chu3)
-          Text(moHet ? ChuSao.vien(phutSao) : "\(ChuSao.vien(phutSao)) = \(ChuSao.so(phutSao)) phút chơi").font(.system(size: 22, weight: .bold)).foregroundColor(ClayMau.diemInk)
+          Text("Con đang có").font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
+          Text(moHet ? ChuSao.vien(phutSao) : "\(ChuSao.vien(phutSao)) = \(ChuSao.so(phutSao)) phút chơi").font(.clay(size: 22, weight: .bold)).foregroundColor(ClayMau.diemInk)
         }
       }
       if moHet {
@@ -299,7 +299,7 @@ struct HetSaoView: View {
       Chu(gioiHan == nil ? "1 sao = 1 phút chơi · app không tính phút vẫn mở được." : "Sao vẫn còn nguyên · app không tính phút vẫn mở được.", co: 13, mau: ClayMau.chu3)
       if gioiHan == nil { NutIcon(chu: "Làm nhiệm vụ", icon: "memo", kieu: .ngoc, rong: nil, lam: lamNhiemVu) }
       NutIcon(chu: "Xin Ba Mẹ cho vay sao", icon: "speech_balloon", kieu: .sang, rong: nil, lam: xinVay)
-      Button("Đóng", action: dong).buttonStyle(.plain).font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.chu2).keyboardShortcut(.cancelAction)
+      Button("Đóng", action: dong).buttonStyle(.plain).font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu2).keyboardShortcut(.cancelAction)
     }
     .padding(18).clayThe().vaoLanLuot(0)
     .padding(20).padding(.bottom, 12).frame(width: 400).nenClay().foregroundColor(ClayMau.chu)
@@ -325,12 +325,12 @@ struct ChuaCoDanhSachView: View {
       }
       if !ds.isEmpty {
         VStack(alignment: .leading, spacing: 6) {
-          Text("Danh sách của con · \(ds.count) app:").font(.system(size: 13, weight: .bold)).foregroundColor(ClayMau.chu2)
+          Text("Danh sách của con · \(ds.count) app:").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu2)
           ForEach(Array(ds.prefix(6).enumerated()), id: \.offset) { _, m in
             HStack {
-              Text(m.ten).font(.system(size: 14, weight: .semibold)).lineLimit(1).truncationMode(.tail)
+              Text(m.ten).font(.clay(size: 14, weight: .semibold)).lineLimit(1).truncationMode(.tail)
               Spacer(minLength: 8)
-              Text(m.nhom).font(.system(size: 12, weight: .bold))
+              Text(m.nhom).font(.clay(size: 12, weight: .bold))
                 .foregroundColor(m.nhom.hasPrefix("Tính") ? ClayMau.diemInk : ClayMau.ngocInk)
                 .padding(.horizontal, 10).padding(.vertical, 3)
                 .background(Capsule().fill(m.nhom.hasPrefix("Tính") ? ClayMau.diemSoft : ClayMau.ngocSoft)).fixedSize()
