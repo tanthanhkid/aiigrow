@@ -741,6 +741,18 @@ if (process.argv.includes("--giao-dien")) {
     M("moi (đã đăng nhập)", "/moi?ma=ABCD2345", "Tài khoản này đã có nhà riêng"),
     M("moi (mã hết hạn)", "/moi?ma=ABCD2345", "quá 72 giờ", { token: null, kb: { "GET moi/ABCD2345": { status: 410, body: { error: "ma_moi_het_han", message: "Mã mời đã quá 72 giờ — xin người mời mã mới" } } } }),
     M("moi-vao", "/moi/vao?ma=ABCD2345", "Mẹ Lan"),
+    // bm-duoc-moi đúng ca bàn: them-ux0c23p4 (có Google / Facebook), them-0zrwe8yz đã điền, them-pacl0mle đã gõ 4 số
+    // bm1-moi v14: người được mời CHƯA có nhà riêng, quyền Trông giúp (ô thứ 3 «Khoá máy khi cần»)
+    M("moi-vao (chưa có nhà · bm1-moi)", "/moi/vao?ma=ABCD2345", "Không phải tôi", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] },
+      "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], quyen: "trong_giup", tenQuyen: "Trông giúp" } } }),
+    M("moi (được mời · them-ux0c23p4)", "/moi?ma=ABCD2345", "Vào nhà cùng Mẹ Lan", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } } }),
+    M("moi-dang-ky (đã điền · them-0zrwe8yz)", "/dang-ky?moi=ABCD2345&tenNha=M%E1%BA%B9%20Lan", "Đã khớp", { token: null, truoc: async () => {
+      await di("/dang-ky?moi=ABCD2345&tenNha=M%E1%BA%B9%20Lan", null); await doi("Vào nhà cùng Mẹ Lan");
+      await go("Số điện thoại", "0987654321"); await go("Mật khẩu", "matkhau123"); await go("Nhập lại mật khẩu", "matkhau123"); } }),
+    M("moi-otp (đang gõ · them-pacl0mle)", "/otp", "Xác thực, vào nhà Mẹ Lan", { token: null, kb: { "POST otp": { guiDen: "0987654321", ma: "482017" } }, truoc: async () => {
+      await di("/dang-ky?moi=ABCD2345&tenNha=M%E1%BA%B9%20Lan", null); await doi("Vào nhà cùng Mẹ Lan");
+      await go("Số điện thoại", "0987654321"); await go("Mật khẩu", "matkhau123"); await go("Nhập lại mật khẩu", "matkhau123"); await sleep(200);
+      await bam("Nhận mã xác thực"); await doi("Nhập mã xác thực"); await go("Mã xác thực 6 số", "4820"); } }),
     M("thong-bao", "/thong-bao", "vừa nộp 3 nhiệm vụ"),
     M("thong-bao (trống)", "/thong-bao", "Chưa có gì mới", { kb: { "GET thong-bao": { ds: [], chuaDoc: 0, caiDat: { yenLang: { bat: false, tu: "22:00", den: "06:30" }, tat: [] } } } }),
     M("thong-bao (mất mạng)", "/thong-bao", "Đang chờ mạng", { matMang: true }),

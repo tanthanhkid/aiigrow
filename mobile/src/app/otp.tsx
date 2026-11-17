@@ -45,7 +45,10 @@ export default function Otp() {
       <Ma6 gia={ma} doi={setMa} />
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
         <Icon3D ten="dong_ho_cat" co={18} />
-        {con > 0 ? <Chu co={13.5} mau={M.chu3}>Chưa nhận được? Gửi lại sau <Chu kieu="rat" co={13.5} so>{demNguoc(con)}</Chu></Chu> : (
+        {con > 0 ? (dk.duocMoi
+          // nhánh được mời (bàn them-pacl0mle v3): «Gửi lại mã sau 0:42»
+          ? <Chu co={13.5} mau={M.chu3}>Gửi lại mã sau <Chu kieu="rat" co={13.5} so>{demNguoc(con)}</Chu></Chu>
+          : <Chu co={13.5} mau={M.chu3}>Chưa nhận được? Gửi lại sau <Chu kieu="rat" co={13.5} so>{demNguoc(con)}</Chu></Chu>) : (
           <Pressable onPress={guiLai} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Chu kieu="rat" co={14} mau={M.chinhInk}>Chưa nhận được? Gửi lại mã</Chu></Pressable>
         )}
       </View>
