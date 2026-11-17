@@ -251,15 +251,16 @@ export const chuTren = (nen: string) => {
 // màu avatar con theo bàn Navy (.av.a/.m/.n/.k): cam, lam, tím, lục — rồi hai màu cũ cho con thứ 5–6
 export const MAU_CON = ["#E8600C", "#1F48FF", "#9b2fc0", "#0c7a5c", "#b45309", "#be185d"];
 export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44, con, anh, chon }: { ten: string; mau?: string; co?: number;
-  /** đang chọn (dải con): «Ánh kim» `.be.on .av` — đĩa navy, chữ vàng, vòng vàng ngoài (vẽ bằng bóng ⇒ không đổi kích thước) */ chon?: boolean; /** Con có ảnh đại diện (#302) ⇒ hiện ảnh thay chữ cái */ con?: { id?: string | null; avatar?: string | null } | null; /** ảnh vừa chọn, chưa lưu */ anh?: string | null }) {
+  /** đang chọn (dải con): vòng vàng ngoài (vẽ bằng bóng ⇒ không đổi kích thước) */ chon?: boolean; /** Con có ảnh đại diện (#302) ⇒ hiện ảnh thay chữ cái */ con?: { id?: string | null; avatar?: string | null } | null; /** ảnh vừa chọn, chưa lưu */ anh?: string | null }) {
   const daLuu = useAnhCon(con);
   const uri = anh ?? daLuu;
-  // «Ánh kim» (mẫu E `.av`): viên kem nổi đôi, chữ cái Fraunces navy; ảnh đại diện giữ khung tròn nổi.
+  // «Ánh kim»: giữ MÀU CỦA CON (Ba Mẹ chọn ở hồ sơ — màu là nhận diện từng bé), chữ cái Fraunces, nổi bằng bóng đôi;
+  // đang chọn: vòng vàng ngoài (mẫu E `.be.on .av`).
   const vien = chon ? `0px 0px 0px 3px ${M.nen}, 0px 0px 0px 5px #D9AE57, 4px 5px 10px rgba(120,98,70,0.28)` : BONG.nho;
   if (uri) return <Image source={{ uri }} accessibilityLabel={`Ảnh của ${ten}`} style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, boxShadow: vien }} contentFit="cover" />;
   return (
-    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: chon ? M.chinh : M.the, alignItems: "center", justifyContent: "center", boxShadow: vien }}>
-      <Chu kieu="tieu" mau={chon ? M.diem : M.chu} co={co * 0.45}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
+    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, alignItems: "center", justifyContent: "center", boxShadow: vien }}>
+      <Chu kieu="tieu" mau={chuTren(mau)} co={co * 0.45}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
     </View>
   );
 });
