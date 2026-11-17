@@ -699,6 +699,10 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-canh-bao (Grow bị tắt)", "/canh-bao/a5", "Ba Mẹ tắt đấy, bỏ qua", { kb: CANH_MAY }),
     M("bm-canh-bao (mất liên lạc > 1 ngày)", "/canh-bao/a6", "Thường do", { kb: CANH_MAY }),
     M("bm-canh-bao (con xin mở trang)", "/canh-bao/a7", "Ba Mẹ nên biết", { kb: CANH_MAY }),
+    // #325 khớp bàn bm-con-xin (them-a4nqjrmp@v13, them-1ypcydle@v5, them-3wp5ty1o@v4): Bảo Anh xin thêm YouTube + xin vay 20 sao, «Đã trả lời hôm nay» game.vn
+    M("bm-con-xin (đang xin phép)", "/yeu-cau?con=c1", "Tính phút", { kb: { ...SO_SAO, "GET cho-duyet": { ...CHO_DUYET_Y5(), yeuCau: [...CHO_DUYET_Y5().yeuCau.filter((y) => y.id === "y5"), YC_VAY] },
+      "GET con/c1/hom-nay": { ...HN_C1["GET con/c1/hom-nay"], biChan: [{ luc: luc(140), ten: "game.vn", may: "Laptop của Bảo Anh", ly: "chua_cho", yeuCau: null, phut: null }] } } }),
+    M("bm-yeu-cau-xong (vay · đang nợ)", `/yeu-cau/xong?kieu=vay&ten=${encodeURIComponent(KEN)}&con=c1&phut=20&grant=v4&no=40&sao=-40&phutCon=0&noTruoc=20&may=Laptop`, "Nợ cũ 20"),
     M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
     M("bm-may-chi-tiet (bảo vệ chưa đủ)", "/may/m2", "Tài khoản của Con vẫn là quản trị"),
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),

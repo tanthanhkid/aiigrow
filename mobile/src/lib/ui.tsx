@@ -127,7 +127,7 @@ export function CanhGiua({ lv, tieu, loi, children }: { lv: LinhVat; tieu: strin
 
 // ---------------------------------------------------------------- nút, nhãn, thẻ
 
-type LoaiNut = "chinh" | "ngoc" | "vien" | "ma" | "huy" | "vang" | "do";
+type LoaiNut = "chinh" | "ngoc" | "vien" | "ma" | "huy" | "vang" | "do" | "xanh";
 /** Kẹo dẻo tráng men: `chinh` than chì · `ngoc` xanh ngọc (Duyệt) · `vang` vàng điểm — nửa trên một mảng men trắng cắt sắc; `vien`/`huy` viên sáng. */
 const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: string; sang?: boolean }> = {
   chinh: { nen: M.nut, chu: "#ffffff", men: MEN.toi, bong: BONG.toi }, ngoc: { nen: M.chinh, chu: "#ffffff", men: MEN.ngoc, bong: BONG.ngoc },
@@ -136,6 +136,8 @@ const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: 
   // `do` đỏ đặc — nút xoá không lấy lại được (thiết kế them-canktzlq «Xoá hồ sơ <Con>»)
   do: { nen: M.huy, chu: "#ffffff", bong: BONG.toi,
     men: "linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 24%, rgba(255,255,255,0) 26%), linear-gradient(180deg, #cf4630 0%, #a3271a 100%)" },
+  /** ngọc nhạt (bàn `.nut.xanh` #dcebe6 / chữ #0a5246): lựa chọn phụ nhưng tích cực — «Không tính phút», «Đổi sang Không tính phút» */
+  xanh: { nen: "#dcebe6", chu: "#0a5246", bong: BONG.nho, sang: true },
 };
 
 /** Nút (kit.nut). Nhãn một dòng (Material 3): nút rộng theo chữ, thiếu chỗ thì `HaiNut` cho nút xuống hàng — không bẻ chữ.
