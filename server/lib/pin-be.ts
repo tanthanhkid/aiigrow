@@ -212,9 +212,13 @@ export async function baMeMoMay(may: MayS3, ma: unknown, now = new Date()) {
   if (!daDung.length) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới", 409);   // không xoá bộ đếm sai
   await q(`delete from pin_sai where khoa = $1`, [khoa]);
   const het = new Date(now.getTime() + phut * 60_000);
-  const ai = may.con_dang_dung ?? may.child_id ?? null;   // bé đang dùng (máy riêng: Con của máy) — như roiMay
-  await q(`update devices set ba_me_den = $2, ba_me_tu = $3, con_dang_dung = null, dang_nhap_luc = null where id = $1`, [may.id, het, now]);
-  await q(`delete from kid_sessions where device_id = $1`, [may.id]);
+  // bé đang dùng (máy riêng: Con của máy) — đọc SAU khi khoá dòng máy (bé vừa đăng nhập song song không bị bỏ sót), như dangNhapBe
+  const ai = await tx(async (tq) => {
+    const m = (await tq<{ con_dang_dung: string | null; child_id: string | null }>(`select con_dang_dung, child_id from devices where id = $1 for update`, [may.id]))[0];
+    await tq(`update devices set ba_me_den = $2, ba_me_tu = $3, con_dang_dung = null, dang_nhap_luc = null where id = $1`, [may.id, het, now]);
+    await tq(`delete from kid_sessions where device_id = $1`, [may.id]);
+    return m?.con_dang_dung ?? m?.child_id ?? null;
+  });
   // #340: Ba Mẹ mở máy bằng mã ⇒ phiên chơi của bé đang dùng dừng (như «Đăng xuất») — không treo «máy đang chơi» khiến bé không mở được ở máy khác
   await ketThucPhienTrenMay(may.id, ai, now);
   await ghiSuKien(may.family_id, "ba_me_mo_may", { phut }, { con: may.child_id, may: may.id });

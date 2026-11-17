@@ -101,7 +101,11 @@ test("#337 ho-so?offline=1 (máy chung Windows): mỗi bé kèm luật riêng �
   assert.equal(theo[a].windows.locked, true, "A khoá");
   assert.equal(theo[b].windows.locked, false, "B không mang khoá của A");
   assert.notEqual(theo[a].soDu, theo[b].soDu, "sao riêng từng bé");
-  assert.equal(theo[a].windows.maOfflineBiMat ?? null, null, "gói không mang bí mật mã offline");
+  assert.ok(theo[a].windows.maOfflineBiMat, "gói mang bí mật mã offline như dong-bo (không đè rỗng ở agent)");
+  // cùng khối `windows` với dong-bo khi bé đó đăng nhập (một hàm dựng chung)
+  const tokA = await dangNhap(a, (await one<{ id: string }>(`select id from devices where family_id = $1 and dung_chung`, [fam]))!.id);
+  const dA = (await dv("dong-bo", { tok: tokMay, hdr: { "x-phien-con": tokA }, body: {} })).body;
+  assert.deepEqual({ ...theo[a].windows, serverTime: null, nextCheckSec: null }, { ...dA.windows, serverTime: null, nextCheckSec: null });
   assert.ok(h.offlineLuc);
   // agent cũ (không xin) ⇒ ho-so như cũ
   assert.equal((await dv("ho-so", { tok: tokMay })).body.con.some((c: any) => c.offline), false);
@@ -116,6 +120,7 @@ test("#337 ho-so?offline=1 (máy chung Android): gói dạng nhip (chinhSach + n
   const h = (await dv("ho-so?offline=1", { tok: tokMay })).body;
   const theo = Object.fromEntries(h.con.map((c: any) => [c.id, c.offline]));
   assert.ok(theo[a]?.chinhSach && theo[a]?.nenTang, "gói Android của A");
+  assert.ok("grantEndsAt" in theo[a] && "moDen" in theo[a], "như nhip: grantEndsAt / moDen");
   assert.ok(theo[b]?.chinhSach, "gói Android của B");
   assert.notDeepEqual(theo[a].chinhSach, theo[b].chinhSach, "luật mỗi bé khác nhau");
 });
@@ -160,14 +165,19 @@ test("#340.1 Ba Mẹ mở máy chung bằng mã ⇒ phiên chơi của bé đang
   assert.equal((await one<{ trang_thai: string }>(`select trang_thai from play_sessions where id = $1`, [p.id]))!.trang_thai, "ket_thuc");
 });
 
-test("#340.2 không tạo được 2 bé trùng tên; gửi lại ngay (mất phản hồi) trả lại bé vừa tạo, không tạo thêm", async () => {
-  const { fam } = await taoNha("Ba Hùng");
-  const a = await g.taoCon(fam, { ten: "Na", namSinh: 2018 });
-  assert.equal(await g.taoCon(fam, { ten: "na ", namSinh: 2018 }), a, "gửi lại trong 2 phút ⇒ cùng bé");
+test("#340.2 không tạo được 2 bé trùng tên; cùng Ba Mẹ gửi lại ngay (cùng dữ liệu) trả lại bé vừa tạo; Ba Mẹ khác / không rõ người ⇒ ten_trung", async () => {
+  const { fam, bm } = await taoNha("Ba Hùng");
+  const { taoBaMe } = await import("./test-fixtures/nha.ts");
+  const a = await g.taoCon(fam, { ten: "Na", namSinh: 2018 }, bm);
+  assert.equal(await g.taoCon(fam, { ten: "na ", namSinh: 2018 }, bm), a, "cùng Ba Mẹ gửi lại trong 2 phút ⇒ cùng bé");
   assert.equal((await q(`select 1 from children where family_id = $1`, [fam])).length, 1);
-  await assert.rejects(g.taoCon(fam, { ten: "Na", namSinh: 2016 }), /ten_trung|Nhà đã có Con tên/);
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'tao_con'`, [fam])).length, 1, "không ghi sự kiện đôi");
+  await assert.rejects(g.taoCon(fam, { ten: "Na", namSinh: 2016 }, bm), /Nhà đã có Con tên/, "khác dữ liệu");
+  await assert.rejects(g.taoCon(fam, { ten: "Na", namSinh: 2018 }), /Nhà đã có Con tên/, "không rõ người tạo");
+  const me = await taoBaMe(fam, "Mẹ Hoa");
+  await assert.rejects(g.taoCon(fam, { ten: "Na", namSinh: 2018 }, me), /Nhà đã có Con tên/, "Ba Mẹ khác cùng thêm «Na»");
   await q(`update children set created_at = now() - interval '1 hour' where id = $1`, [a]);
-  await assert.rejects(g.taoCon(fam, { ten: "Na", namSinh: 2018 }), /Nhà đã có Con tên/);
+  await assert.rejects(g.taoCon(fam, { ten: "Na", namSinh: 2018 }, bm), /Nhà đã có Con tên/);
   assert.equal((await q(`select 1 from children where family_id = $1`, [fam])).length, 1);
 });
 
@@ -187,8 +197,7 @@ test("#338 máy chung: «Ứng dụng trên máy» chọn bé — thêm app cho 
   assert.equal((await dv("ung-dung", { tok: tokMay, body: { du: true, bam: "a".repeat(64), ds: [MC] } })).status, 200);
   const d0 = (await m(`may/${may.id}/ung-dung`, { tok })).body;
   assert.deepEqual(d0.conDs.map((c: any) => c.id).sort(), [a, b].sort(), "danh sách bé để chọn");
-  assert.equal(d0.may.con, d0.conDs[0].id, "mặc định bé gán đầu");
-  assert.equal((await m(`may/${may.id}/ung-dung/dat`, { tok, body: { khoa: MC.khoa, trangThai: "tinh_phut" } })).status, 400, "máy chung phải chọn bé");
+  assert.equal(d0.may.con, null, "không chọn bé ⇒ như cũ (cả nhà) — app Ba Mẹ bản cũ vẫn dùng được");
   const dat = await m(`may/${may.id}/ung-dung/dat`, { tok, body: { khoa: MC.khoa, trangThai: "tinh_phut", con: a } });
   assert.equal(dat.status, 200);
   assert.equal(dat.body.con, a);
@@ -200,4 +209,16 @@ test("#338 máy chung: «Ứng dụng trên máy» chọn bé — thêm app cho 
   assert.equal(await tt(a), "chua_xep");
   assert.equal(await tt(b), "hoc", "bỏ app của A không xoá luật của B");
   assert.equal((await m(`may/${may.id}/ung-dung?con=khong-co`, { tok })).status, 404);
+  // app bản cũ (không gửi con) ⇒ luật cả nhà như trước
+  const cu = await m(`may/${may.id}/ung-dung/dat`, { tok, body: { khoa: MC.khoa, trangThai: "tinh_phut" } });
+  assert.equal(cu.status, 200);
+  assert.equal(cu.body.con, "");
+});
+
+test("#337 phien/bu lúc Ba Mẹ đang dùng máy: không nhận `con` agent gửi (không tính cho bé)", async () => {
+  const { a, may, tokMay } = await nha();
+  await q(`update devices set ba_me_den = now() + interval '15 minutes', ba_me_tu = now() where id = $1`, [may.id]);
+  const r = await dv("phien/bu", { tok: tokMay, body: { ma: "bu-bm-1", con: a, muc: "roblox.exe", phut: 3, ketThuc: true } });
+  assert.equal(r.status, 409, "Ba Mẹ đang dùng ⇒ không có bé để ghi");
+  assert.equal(await v.soDu(a), 50);
 });

@@ -13,6 +13,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { allowlistHieuLuc, boMucChoCon, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc, type NhomGiaiTri } from "./luat-app.ts";
 import type { NhomDs } from "./chan-co-ban.ts";
 import { kieuMuc } from "./chinh-sach.ts";
+import { idConMay } from "./may-nhieu-con.ts";
 
 export const TOI_DA_APP = 1500;
 export const TOI_DA_ICON = 65_536;       // ký tự base64 (~48 KB PNG) — icon THẬT 96 px (nét ở 40–48 pt @2x/@3x) thường 5–25 KB
@@ -148,31 +149,32 @@ async function mayCua(fam: string, mayId: string) {
   return may;
 }
 
-/** #338: bé được gán máy (thứ tự gán, kèm tên) — màn «Ứng dụng trên máy» của máy chung chọn bé trước khi xem / thêm / bỏ app. */
+/** #338: bé được gán máy (cùng thứ tự gán với `dsCon` — may-nhieu-con.ts › idConMay), kèm tên — màn «Ứng dụng trên máy» của máy chung chọn bé. */
 async function beCuaMay(mayId: string) {
-  return q<{ id: string; ten: string; avatar: string | null }>(`select c.id, c.ten, c.avatar from device_children n join children c on c.id = n.child_id
-    where n.device_id = $1 order by n.created_at, n.child_id`, [mayId]);
+  const ids = await idConMay(mayId);
+  if (!ids.length) return [];
+  const ten = new Map((await q<{ id: string; ten: string; avatar: string | null }>(`select id, ten, avatar from children where id = any($1::text[])`, [ids])).map((c) => [c.id, c]));
+  return ids.map((id) => ten.get(id)).filter((c): c is { id: string; ten: string; avatar: string | null } => !!c);
 }
 
-/** Bé mà màn «Ứng dụng trên máy» đặt luật cho. Máy riêng ⇒ Con của máy (`chon` bỏ qua). Máy chung (#338: luật đi theo bé, không ghi luật cả nhà)
- *  ⇒ `chon` phải là bé được gán máy; đọc không chọn ⇒ bé gán đầu tiên; ghi không chọn ⇒ 400 `can_chon_be`. */
-async function beDatLuat(may: May, chon: unknown, ghi: boolean) {
+/** Bé mà màn «Ứng dụng trên máy» đặt luật cho. Máy riêng ⇒ Con của máy (`chon` bỏ qua). Máy chung (#338): `chon` là bé được gán ⇒ luật riêng bé đó;
+ *  KHÔNG chọn ⇒ như cũ (luật cả nhà, `""`) để app Ba Mẹ bản cũ vẫn dùng được màn này; chọn bé không gán máy ⇒ 404. */
+async function beDatLuat(may: May, chon: unknown) {
   const ds = await beCuaMay(may.id);
   if (!may.dung_chung) return { con: may.child_id ?? "", ds };
   const c = String(chon ?? "").trim();
-  if (c && ds.some((x) => x.id === c)) return { con: c, ds };
-  if (c) throw new LoiNghiepVu("khong_thay", "Bé này không dùng máy này", 404);
-  if (ghi) throw new LoiNghiepVu("can_chon_be", "Máy này nhiều bé dùng — chọn bé trước khi thêm hay bỏ app", 400);
-  return { con: ds[0]?.id ?? "", ds };
+  if (!c) return { con: "", ds };
+  if (ds.some((x) => x.id === c)) return { con: c, ds };
+  throw new LoiNghiepVu("khong_thay", "Bé này không dùng máy này", 404);
 }
 
-/** Màn «Ứng dụng trên máy <tên>» của Ba Mẹ. #338: máy chung ⇒ trạng thái theo bé `chon` (mặc định bé gán đầu) + `conDs` để chọn bé. */
+/** Màn «Ứng dụng trên máy <tên>» của Ba Mẹ. #338: máy chung ⇒ trạng thái theo bé `chon` (không chọn ⇒ cả nhà như cũ) + `conDs` để chọn bé. */
 export async function dsAppMay(fam: string, mayId: string, chon?: string | null) {
   const may = await mayCua(fam, mayId);
   const [rows, luat, be] = await Promise.all([
     q<DongApp>(`select * from app_may where device_id = $1 order by lower(ten), khoa`, [may.id]),
     dsLuat(fam),
-    beDatLuat(may, chon, false),
+    beDatLuat(may, chon),
   ]);
   const con = be.con;
   const allow = allowlistHieuLuc();
@@ -191,7 +193,7 @@ export async function dsAppMay(fam: string, mayId: string, chon?: string | null)
 export const TRANG_THAI_DAT = ["tinh_phut", "khong_tinh_phut", "cho_phep", "hoc", "giai_tri", "chan", "bo"] as const;
 
 /** Ba Mẹ đặt một app CỦA MÁY NÀY (theo `khoa` trong danh sách máy gửi) vào danh sách. Máy riêng của Con ⇒ luật riêng của Con đó; máy dùng chung ⇒
- *  luật riêng của bé `b.con` (#338 — bắt buộc chọn bé; không còn ghi luật cả nhà từ màn này). `trangThai` (hoặc `nhom`): tinh_phut | khong_tinh_phut (#262) · cũ: cho_phep / hoc (= Không tính phút), giai_tri (= Tính phút),
+ *  luật riêng của bé `b.con` (#338); không gửi `con` (app bản cũ) ⇒ luật cả nhà như trước. `trangThai` (hoặc `nhom`): tinh_phut | khong_tinh_phut (#262) · cũ: cho_phep / hoc (= Không tính phút), giai_tri (= Tính phút),
  *  chan / bo (= bỏ khỏi danh sách). Trả luật cũ để app «Hoàn tác». */
 export async function datTrangThaiApp(fam: string, mayId: string, b: Record<string, unknown>) {
   const may = await mayCua(fam, mayId);
@@ -200,7 +202,7 @@ export async function datTrangThaiApp(fam: string, mayId: string, b: Record<stri
   const tt = tho === "chan" ? "bo" : tho === "tinh_phut" ? "giai_tri" : tho === "khong_tinh_phut" ? "hoc" : tho;
   const app = await one<DongApp>(`select * from app_may where device_id = $1 and khoa = $2`, [may.id, may.platform === "android" ? String(b.khoa ?? "") : String(b.khoa ?? "").toLowerCase()]);
   if (!app) throw new LoiNghiepVu("khong_thay_app", "Máy này không còn app đó — bấm Làm mới để lấy danh sách mới", 404);
-  const { con } = await beDatLuat(may, b.con, true);
+  const { con } = await beDatLuat(may, b.con);
   return tx(async (t) => {
     const truoc = await luatHienCo(fam, con, app.muc, t, true);
     // «bỏ» ở máy riêng của Con: luật cả nhà cùng mục chỉ bị loại trừ cho Con đó (luat-app.ts › boMucChoCon)
