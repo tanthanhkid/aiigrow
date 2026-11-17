@@ -212,7 +212,7 @@ class ManPin(val c: Context) {
         goc.addView(chu("Mở app AiiGrow của Ba Mẹ → Mã mở máy", 15f, Diu.XANH_DAM, dac = true).apply {
             background = Diu.khoi(c, Diu.XANH_NHAT, 16, null); setPadding(dp(12), dp(8), dp(12), dp(8)) })
         val o = Diu.OMa(c); o.ve(go, loi != null && go.isEmpty()); goc.addView(o.goc)
-        goc.addView(chu(loi ?: "Mã 6 số · đổi sau vài phút", 14f, if (loi != null) Diu.LOI_DAM else Diu.CHU3, dac = loi != null))
+        goc.addView(chu(loi ?: "Mã 6 số · đổi sau 10 phút", 14f, if (loi != null) Diu.LOI_DAM else Diu.CHU3, dac = loi != null))
         goc.addView(Diu.banPhim(c, { s -> if (!dangGui && go.length < 6) { go += s; loi = null; ve() } }, { if (go.isNotEmpty() && !dangGui) { go = go.dropLast(1); ve() } }))
         goc.addView(Diu.nut(c, if (dangGui) "Đang kiểm mã…" else "Mở máy cho Ba Mẹ") {
             if (go.length != 6 || dangGui) { loi = "Mã gồm đúng 6 chữ số."; ve(); return@nut }

@@ -140,10 +140,10 @@ class ManChinh : Activity() {
         val t = Diu.the(this, dem = 20).apply { gravity = Gravity.CENTER_HORIZONTAL }
         t.addView(Diu.vongTen(this, ten.trim().firstOrNull()?.uppercase() ?: "?", PinMay.hoSo(k)?.con?.indexOfFirst { it.id == PinMay.nguoiDung(k)?.conId }?.coerceAtLeast(0) ?: 0, 64, dangChon = true))
         t.addView(Diu.chu(this, ten, 22f, Diu.CHU, true).apply { gravity = Gravity.CENTER; setPadding(0, G.dp(this@ManChinh, 8), 0, 0) })
-        t.addView(Diu.chu(this, "Đang dùng máy này", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER })
+        t.addView(Diu.chu(this, "Đang dùng Máy cả nhà · Android", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER })
         t.addView(Diu.nut(this, "Đổi người", Diu.KieuNut.PHU) { d.dismiss(); PinMay.roiMay(this, baMe = false) })
         t.addView(Diu.nut(this, "Đăng xuất") { d.dismiss(); PinMay.roiMay(this, baMe = false) })
-        t.addView(Diu.chu(this, "Đăng xuất thì máy khoá lại. Vào lại bằng tên + PIN.", 14f, Diu.CHU3).apply { gravity = Gravity.CENTER; setPadding(0, G.dp(this@ManChinh, 10), 0, 0) })
+        t.addView(Diu.chu(this, "Đổi người hay đăng xuất đều dừng tính phút của $ten. Vào lại bằng tên + PIN.", 14f, Diu.CHU3).apply { gravity = Gravity.CENTER; setPadding(0, G.dp(this@ManChinh, 10), 0, 0) })
         t.addView(Diu.nut(this, "Ở lại", Diu.KieuNut.CHU) { d.dismiss() })
         d.setContentView(t)
         d.window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(0))
@@ -157,7 +157,7 @@ class ManChinh : Activity() {
     private fun dungManBaMe() {
         val t = G.the(this, G.XANH_NHAT)
         t.addView(Diu.chu(this, "Ba Mẹ đang dùng", 24f, Diu.CHU, true))
-        t.addView(Diu.chu(this, "Không trừ giờ của con", 16f, Diu.XANH_DAM))
+        t.addView(Diu.chu(this, "Không trừ sao của con", 16f, Diu.XANH_DAM))
         tBaMe = Diu.chu(this, "", 15f, Diu.CHU2).apply { setPadding(0, G.dp(this@ManChinh, 6), 0, 0) }
         t.addView(tBaMe)
         t.addView(Diu.nut(this, "Khoá lại") { PinMay.roiMay(this, baMe = true); daVe = null })
@@ -516,7 +516,7 @@ class ManChinh : Activity() {
         val q = listOf(
             Triple("Quyền quản trị thiết bị (khoá máy)", QuanTri.laAdmin(this)) {
                 startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, QuanTri.ten(this))
-                    .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "AiiGrow dùng quyền này để khoá màn hình khi Ba Mẹ bấm Khoá ngay hoặc tới giờ ngủ."))
+                    .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "AiiGrow dùng quyền này để khoá màn hình khi Ba Mẹ bấm Khoá ngay."))
             },
             Triple("Đếm thời gian dùng ứng dụng", DoPhut.coQuyen(this)) { moCaiDat(Settings.ACTION_USAGE_ACCESS_SETTINGS) },
             Triple("Trợ năng AiiGrow (màn tạm dừng)", TroNang.dangBat(this)) { moCaiDat(Settings.ACTION_ACCESSIBILITY_SETTINGS) },
