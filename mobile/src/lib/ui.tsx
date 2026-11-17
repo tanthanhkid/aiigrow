@@ -405,13 +405,13 @@ export function ONhap({ nhan, loi, ...p }: TextInputProps & { nhan: string; loi?
 export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số" }: { gia: string; doi: (v: string) => void; nhan?: string }) {
   const ref = useRef<React.ComponentRef<typeof TextInput>>(null);
   return (
-    <Pressable onPress={() => ref.current?.focus()} accessibilityLabel={nhan} style={{ flexDirection: "row", gap: 6, justifyContent: "center" }}>
+    <Pressable onPress={() => ref.current?.focus()} accessibilityLabel={nhan} style={{ flexDirection: "row", gap: 8, justifyContent: "center" }}>
       {Array.from({ length: 6 }, (_, k) => (
-        <View key={k} style={[s.ma6, k === Math.min(gia.length, 5) && s.ma6Dang]}><Chu kieu="rat" co={24} so>{gia[k] ?? ""}</Chu></View>
+        <View key={k} style={[s.ma6, k === Math.min(gia.length, 5) && s.ma6Dang]}><Chu kieu="rat" co={26} so>{gia[k] ?? ""}</Chu></View>
       ))}
       <TextInput ref={ref} value={gia} onChangeText={(t) => doi(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" autoComplete="one-time-code"
         textContentType="oneTimeCode" maxLength={6} accessibilityLabel={nhan} autoFocus
-        style={{ position: "absolute", opacity: 0.011, width: "100%", height: "100%", color: "transparent" }} />
+        style={{ position: "absolute", opacity: 0.011, width: "100%", height: "100%", color: "transparent", borderWidth: 0, outlineStyle: "none" } as never} />
     </Pressable>
   );
 }
@@ -810,7 +810,7 @@ const s = StyleSheet.create({
   o: { backgroundColor: "#e9e8e4", borderWidth: 2, borderColor: "transparent", borderRadius: 27, paddingHorizontal: 18, minHeight: 54, fontSize: 17, fontFamily: F.dam, color: M.chu, boxShadow: BONG.lom },
   oDang: { borderColor: M.chinh },
   oSai: { borderColor: M.loi },
-  ma6: { flex: 1, maxWidth: 46, height: 56, borderRadius: 16, backgroundColor: "#e9e8e4", borderWidth: 2, borderColor: "transparent", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
+  ma6: { flex: 1, maxWidth: 50, height: 60, borderRadius: 18, backgroundColor: "#e9e8e4", borderWidth: 2, borderColor: "transparent", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
   ma6Dang: { backgroundColor: "#f7f6f3", borderColor: M.chinh },
   chat: { width: 46, height: 46, borderRadius: 23, backgroundColor: "#fff", ...KHOI.nho },
   chatMat: { width: 46, height: 46, borderRadius: 23, overflow: "hidden", alignItems: "center", borderWidth: 2, borderColor: M.chinhSoft },

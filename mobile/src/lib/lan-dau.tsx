@@ -5,7 +5,7 @@
 import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import { Image } from "expo-image";
 import { ICON_3D, type Ten3D } from "./icon-3d";
-import { Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, View, type TextInputProps } from "react-native";
+import { Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, useWindowDimensions, View, type TextInputProps } from "react-native";
 import { router } from "expo-router";
 import { SvgXml } from "react-native-svg";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
@@ -66,10 +66,11 @@ export const CanGiup = () => (
 );
 
 /** Tiêu đề lớn của màn (thiết kế: 26–28px, đậm). */
-export const TieuDe = ({ chu, phu, giua, co = 27 }: { chu: string; phu?: string; giua?: boolean; co?: number }) => (
+export const TieuDe = ({ chu, phu, dam, giua, co = 27 }: { chu: string; phu?: string; /** phần in đậm nối sau `phu` (vd số điện thoại — bm1-otp) */ dam?: string;
+  giua?: boolean; co?: number }) => (
   <View style={{ gap: 4, alignItems: giua ? "center" : undefined }}>
     <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: co, lineHeight: Math.round(co * 1.18), letterSpacing: -0.5, color: M.chu, textAlign: giua ? "center" : undefined }}>{chu}</Text>
-    {phu ? <Chu co={15} mau={M.chu2} style={giua ? { textAlign: "center" } : undefined}>{phu}</Chu> : null}
+    {phu ? <Chu co={15} mau={M.chu2} style={giua ? { textAlign: "center" } : undefined}>{phu}{dam ? <Chu kieu="rat" co={15} so>{dam}</Chu> : null}</Chu> : null}
   </View>
 );
 
@@ -77,6 +78,8 @@ export const TieuDe = ({ chu, phu, giua, co = 27 }: { chu: string; phu?: string;
  *  `chuTo`: kiểu «Đăng nhập» (bm-dang-nhap/01) — không bong bóng, tiêu đề 26/800 + câu 14.5 thẳng trên thẻ cao 176, Grow 150 tràn đáy. */
 export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai }: { lv: LinhVat; tieu: string; loi?: string; ic?: TenIcon; cao?: number; chuTo?: boolean;
   /** Grow bên TRÁI, bong bóng bên phải (thiết kế «Đang chờ máy của con» bm-ghep-lan-dau/02, bm-ghep-may/04) */ robTrai?: boolean }) {
+  // bong bóng có câu phụ (bm1-dang-ky v11): khổ ≥ 375 câu phụ đứng một dòng như bàn; khổ hẹp hơn giữ bề rộng cũ (không đè Grow)
+  const rongMan = useWindowDimensions().width;
   if (chuTo) return (
     <View style={{ borderRadius: 34, backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", backgroundColor: "#e2efea", height: 176, overflow: "hidden", ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={34} />
@@ -91,9 +94,9 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai }: { lv: 
     <View style={{ borderRadius: BO_CLAY.the, backgroundColor: "#dcebe6", minHeight: cao, padding: 14, flexDirection: "row", alignItems: "center", justifyContent: robTrai ? "flex-end" : undefined, ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={BO_CLAY.the} />
       {ic ? <View style={{ position: "absolute", left: 14, bottom: 12 }}><Icon3D ten={ic} co={44} /></View> : null}
-      <View style={{ maxWidth: robTrai ? "58%" : "64%", backgroundColor: "#fff", borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
-        <Chu kieu="rat" co={16}>{tieu}</Chu>
-        {loi ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 2 }}>{loi}</Chu> : null}
+      <View style={{ maxWidth: robTrai ? "58%" : loi && rongMan >= 375 ? "77%" : "64%", backgroundColor: "#fff", borderRadius: 22, paddingVertical: 12, paddingHorizontal: loi ? 16 : 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
+        <Chu kieu="rat" co={loi ? 18 : 16}>{tieu}</Chu>
+        {loi ? <Chu co={13} mau={M.chu2} dong={2} style={{ marginTop: 3, lineHeight: 18 }}>{loi}</Chu> : null}
       </View>
       <View pointerEvents="none" style={{ position: "absolute", ...(robTrai ? { left: 4 } : { right: 4 }), bottom: 0, top: 4, width: "36%", alignItems: robTrai ? "flex-start" : "flex-end", justifyContent: "flex-end" }}>
         <Rob ten={lv} co={Math.min(cao - 6, 130)} />

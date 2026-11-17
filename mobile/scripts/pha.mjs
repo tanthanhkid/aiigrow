@@ -598,10 +598,15 @@ if (process.argv.includes("--giao-dien")) {
     // Lần đầu (bm-lan-dau, bm-ghep-may — L7, L8)
     M("bm-chao", "/chao", "Bắt đầu cho con nhà mình", { token: null }),
     M("bm-dang-ky", "/dang-ky", "Tạo tài khoản Ba Mẹ", { token: null }),
+    M("bm-dang-ky (đã điền · bm1-dang-ky)", "/dang-ky", "Đã khớp", { token: null, truoc: async () => { await di("/dang-ky", null); await doi("Tạo tài khoản Ba Mẹ");
+      await go("Số điện thoại", "0912345678"); await go("Mật khẩu", "matkhau123"); await go("Nhập lại mật khẩu", "matkhau123"); } }),
+    M("bm-dang-ky (số đã có tài khoản · them-ahk69dtl)", "/dang-ky", "Số này đã có tài khoản", { token: null,
+      kb: { "POST otp": { status: 409, body: { error: "da_co_tai_khoan", message: "Số này đã có tài khoản" } } }, truoc: dangKyToiOtp }),
     M("bm-otp", "/otp", "Nhập mã xác thực", { truoc: dangKyToiOtp }),
     M("dang-nhap", "/dang-nhap", "Chào Ba Mẹ!", { token: null }),
     M("bm-quen-mat-khau", "/quen-mat-khau", "Quên mật khẩu", { token: null }),
-    M("bm-tao-tai-khoan", "/tao-tai-khoan", "Tạo tài khoản", { token: null }),
+    // máy chủ báo bật Google / Facebook (nút chỉ hiện khi bản dựng có EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID / EXPO_PUBLIC_FACEBOOK_APP_ID — bm1-chao)
+    M("bm-tao-tai-khoan", "/tao-tai-khoan", "Tạo tài khoản", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } } }),
     M("bm-ob-con", "/thiet-lap/ten-con", "Tên gọi ở nhà"),
     M("bm-ob-gio", "/thiet-lap/gio", "Quà khởi đầu cho con", { truoc: diTl("/thiet-lap/gio") }),
     M("bm-ob-app", "/thiet-lap/app", "Google Classroom", { truoc: diTl("/thiet-lap/app") }),

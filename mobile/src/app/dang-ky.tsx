@@ -33,7 +33,7 @@ export default function DangKy() {
     <Man dau={<DauMan ve={moi || duocMoi ? "/moi" : "/tao-tai-khoan"} />}
       day={<><BaoLoi loi={loi} /><Nut chu="Nhận mã xác thực" rong dangChay={dangChay} tat={!sdt.trim() || !khop} bam={gui} />
         <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Mã 6 số gửi tới số điện thoại trên</Chu></>}>
-      <CanhRob lv="so-tay" tieu={tieu} loi="Số điện thoại và mật khẩu là xong." cao={140} />
+      <CanhRob lv="so-tay" tieu={tieu} loi="Số điện thoại và mật khẩu là xong." cao={128} />
       <OLom nhan="Số điện thoại" value={sdt} onChangeText={setSdt} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" placeholder="0912 345 678" />
       <OLom nhan="Mật khẩu" ghi="Ít nhất 8 ký tự" matKhau value={mk} onChangeText={setMk} autoComplete="new-password" textContentType="newPassword" />
       <OLom nhan="Nhập lại mật khẩu" ghi={mk2 ? (khop ? "Đã khớp" : "Chưa khớp") : undefined} ghiOk={khop} matKhau value={mk2} onChangeText={setMk2} autoComplete="new-password" onSubmitEditing={() => khop && sdt && gui()} />
@@ -41,7 +41,7 @@ export default function DangKy() {
         <View style={{ alignItems: "center", gap: 10, marginTop: -30 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, alignSelf: "stretch", borderRadius: 26, backgroundColor: "#dcebe6", padding: 14 }}>
             <View style={{ flex: 1, backgroundColor: "#fff", borderRadius: 18, paddingVertical: 10, paddingHorizontal: 14 }}><Chu kieu="rat" co={20} so>{an}</Chu></View>
-            <Rob ten="chi" co={96} />
+            <View style={{ marginVertical: -22, marginRight: -6 }}><Rob ten="chi" co={132} /></View>
           </View>
           <Chu kieu="rat" co={21} style={{ textAlign: "center" }}>Số này đã có tài khoản</Chu>
           <Chu co={14.5} mau={M.chu2} style={{ textAlign: "center" }}>Đăng nhập để vào lại nhà mình nhé.</Chu>
