@@ -39,7 +39,9 @@ export default function ThemApp() {
     setApps(moi);
     datTl({ apps: moi });
   };
-  const chot = dang && co(dang) ? dang : null;     // app vừa thêm ⇒ hỏi nhóm ngay dưới dòng của nó, nút đáy ghi rõ kết quả
+  // app vừa thêm ⇒ hỏi nhóm ngay dưới dòng của nó, nút đáy ghi rõ kết quả — chỉ khi dòng đó còn trong kết quả đang xem
+  // (gõ tìm app khác thì nút đáy về «Xong», không ghi «Thêm <app cũ>»)
+  const chot = dang && co(dang) && ds.some((x) => x.ten === dang) ? dang : null;
   const ve = () => (router.canGoBack() ? router.back() : router.replace("/thiet-lap/app"));
   return (
     <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} />} />}
