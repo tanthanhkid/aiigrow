@@ -34,13 +34,14 @@ export default function PinCuaCon() {
     <Man lui={{ chu: "Hồ sơ con", ve: `/ho-so/${id}` }} tieu={tieu}
       day={d.xem ? undefined : <><BaoLoi loi={loiLam} /><Nut chu={d.p.coPin ? "Lưu PIN mới" : `Đặt PIN cho ${ten}`} rong dangChay={dangChay} tat={moi.length !== 4 || !!loiPin || (d.p.coPin && moi === cu)} bam={luu} /></>}>
       {/* thẻ màu của con (như thẻ hồ sơ Lần đầu): ảnh chữ cái to, «PIN của X», nhãn «Đặt lần cuối», ổ khoá nhỏ góc trên phải */}
-      <The dem style={{ gap: 10, minHeight: 150, backgroundColor: mauHoSo(d.con?.avatar)[1] }}>
-        <Avt ten={ten} mau={mauHoSo(d.con?.avatar)[0]} co={72} con={d.con} />
-        <Chu kieu="rat" co={22} style={{ paddingRight: 44 }}>{`PIN của ${ten}`}</Chu>
+      <The dem style={{ gap: 10, minHeight: 190, backgroundColor: mauHoSo(d.con?.avatar)[1] }}>
+        {/* thiết kế them-z2fyhohj @v4: ảnh 84 viền trắng, tên 26, ổ khoá 3D to góc phải */}
+        <View style={{ alignSelf: "flex-start", borderRadius: 46, borderWidth: 4, borderColor: "#fff" }}><Avt ten={ten} mau={mauHoSo(d.con?.avatar)[0]} co={84} con={d.con} /></View>
+        <Chu kieu="rat" co={26} style={{ paddingRight: 72, letterSpacing: -0.4 }}>{`PIN của ${ten}`}</Chu>
         <View style={{ alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, backgroundColor: "rgba(255,255,255,0.75)" }}>
           <Chu kieu="rat" co={12.5} mau={M.chu2}>{cauDatPin(d.p.pinDatLuc)}</Chu>
         </View>
-        <View style={{ position: "absolute", right: 14, top: 12 }}><Anh3D ten="khoa" co={30} /></View>
+        <View style={{ position: "absolute", right: 16, top: 16 }}><Anh3D ten="khoa" co={68} /></View>
       </The>
 
       {/* Người trông giúp không xem / đặt PIN của bé (chỉ Ba Mẹ) */}

@@ -2,13 +2,13 @@
 // cảnh báo — lib/so-sao), ô «Hôm nay chơi 42 phút = 42 sao» + «Đang nợ Ba Mẹ 20 sao» + «Xem ›» (⇒ con dùng gì hôm nay); «Cài đặt của X»: «Sao & phút chơi ·
 // 1 sao = 1 phút» (⇒ Ví sao — màn Giờ chơi bm2-gio đã bỏ), #302 «Giờ chơi» (giới hạn ngày + mỗi lượt ⇒ /ho-so/<id>/gio-choi), App & web (15/11 #262: bỏ Giờ ngủ, Giờ học)
 // («Theo danh sách» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
-// PIN vào máy (Đặt lại) · «Xoá hồ sơ X» (⇒ /ho-so/<id>/xoa, them-canktzlq). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
+// PIN vào máy (Đặt lại) · «Xoá hồ sơ X» chữ đỏ canh giữa (⇒ /ho-so/<id>/xoa, them-canktzlq). #325: theo bm2-ho-so@v22 (thẻ đầu ngọc nhạt). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
 import { cheDoTu } from "@/lib/app-web";
 import { router, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import {
-  CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, quyenToi, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type NhiemVuMoi,
+  CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, tenGoi, quyenToi, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
 import { cauNo, chuVien, saoTu, soVN, VienSao, type SaoCon } from "@/lib/so-sao";
 import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
@@ -52,11 +52,12 @@ export default function HoSoCon() {
   const canSua = c.may.filter((m) => m.baoVe !== "day_du");
   return (
     <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
-      {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
+      {d.g.con.length > 1 ? <DaiCon ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
 
-      <The dem style={{ gap: 14 }}>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <Avt ten={c.ten} mau={mau} co={64} con={c} />
+      {/* thẻ đầu .hs: nền ngọc nhạt chuyển sắc, ảnh 56 + tên + «9 tuổi · 2 máy» + viên sao; ô «Hôm nay chơi …» nổi trắng */}
+      <View style={{ gap: 12, padding: 16, borderRadius: 28, backgroundColor: "#e2efea", backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", overflow: "hidden", ...KHOI.the }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Avt ten={c.ten} mau={mau} co={56} con={c} />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <Chu kieu="rat" co={22} dong={1}>{c.ten}</Chu>
             <Chu kieu="dam" co={13.5} mau={M.chu3}>{[tuoi ? `${tuoi} tuổi` : null, `${c.may.length} máy`].filter(Boolean).join(" · ")}</Chu>
@@ -67,7 +68,7 @@ export default function HoSoCon() {
         </View>
         {/* ô «Hôm nay chơi 42 phút = 42 sao» + dòng nợ (cam); «Xem ›» = con dùng gì hôm nay */}
         <NhanMen onPress={() => router.push(`/da-dung/${id}` as never)} accessibilityRole="button" accessibilityLabel={`Xem ${c.ten} dùng gì hôm nay`} muc="khoi" sang men={MEN.sang}
-          style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 20, backgroundColor: M.the }, KHOI.vien]}>
+          style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 20, backgroundColor: "#f7f6f3" }, KHOI.the]}>
           <View style={{ flex: 1, gap: 2 }}>
             <Chu kieu="dam" co={13.5} mau={M.chu2} so>{phutHomNay !== null
               ? <>Hôm nay chơi <Chu kieu="rat" co={20} so>{`${soVN(phutHomNay)} phút`}</Chu>{` = ${soVN(phutHomNay)} sao`}</>
@@ -79,9 +80,9 @@ export default function HoSoCon() {
             <Chu kieu="rat" co={13} mau={M.chu2}>Xem ›</Chu>
           </View>
         </NhanMen>
-      </The>
+      </View>
 
-      <TieuMuc chu={`Cài đặt của ${c.ten}`} />
+      <TieuMuc chu={`Cài đặt của ${tenGoi(c.ten)}`} />
       <The dem style={{ paddingVertical: 4 }}>
         {/* thiết kế .lg: tên mục bên trái, giá trị (1–2 dòng nhỏ) canh phải + › */}
         <HangViec dau ic="dongho" mau="cam" tieu="Sao & phút chơi" phai={<GiaPhai tren="1 sao = 1 phút" />} bam={() => router.push(`/vi/${id}` as never)} />
@@ -90,7 +91,7 @@ export default function HoSoCon() {
         <HangViec ic="khien" mau="lam" tieu="App & web"
           phai={<GiaPhai tren={cheDoTu(c) === "mo_het" ? "Mở hết" : "Theo danh sách"} duoi={cheDoTu(c) === "mo_het" ? "Không tính phút" : d.duocMo !== null ? `Được mở ${d.duocMo} app` : undefined} />}
           bam={() => router.push(`/app-web?con=${id}` as never)} />
-        <HangViec ic="laptop" mau="xam" tieu={`Máy của ${c.ten}`}
+        <HangViec ic="laptop" mau="xam" tieu={`Máy của ${tenGoi(c.ten)}`}
           phai={<GiaPhai tren={c.may.length ? `${c.may.length} máy` : "Chưa ghép"} duoi={canSua.length ? `${canSua.map((m) => m.ten.replace(/ của .*$/, "")).join(", ")} cần sửa` : undefined} canh={!!canSua.length} />}
           bam={() => router.push(`/may?con=${id}` as never)} />
         <HangViec ic="sao" mau="vang" tieu="Nhiệm vụ & sao"
@@ -106,14 +107,20 @@ export default function HoSoCon() {
         </The>
       ) : null}
 
-      <TieuMuc chu={`Về ${c.ten}`} />
+      <TieuMuc chu={`Về ${tenGoi(c.ten)}`} />
       {d.trongGiup ? <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{CAU_TRONG_GIUP}</Chu> : (
         <The dem style={{ paddingVertical: 4 }}>
           <HangViec dau ic="but" mau="lam" tieu="Sửa tên, năm sinh, ảnh" bam={() => router.push(`/ho-so/sua?id=${id}` as never)} />
           <HangViec ic="mo_khoa" mau="xanh" tieu="PIN vào máy" phu={c.coPin ? undefined : "Chưa đặt · chạm tên là vào thẳng"}
             phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>{c.coPin ? "Đặt lại" : "Đặt PIN"}</Chu>} bam={() => router.push(`/ho-so/${id}/pin` as never)} />
-          <HangViec ic="x" mau="do" tieu={`Xoá hồ sơ ${c.ten}`} bam={() => router.push(`/ho-so/${id}/xoa` as never)} />
         </The>
+      )}
+      {/* .xoa: chữ đỏ canh giữa dưới thẻ «Về X» */}
+      {d.trongGiup ? null : (
+        <Pressable onPress={() => router.push(`/ho-so/${id}/xoa` as never)} accessibilityRole="button"
+          style={{ minHeight: 46, alignItems: "center", justifyContent: "center", marginTop: 4 }}>
+          <Chu kieu="rat" co={14} mau="#b42318" dong={1}>{`Xoá hồ sơ ${c.ten}`}</Chu>
+        </Pressable>
       )}
 
     </Man>

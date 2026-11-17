@@ -1,5 +1,6 @@
-// them-canktzlq «Xoá hồ sơ <Con>?» (thiết kế chốt 14/11, bm-gio-ho-so/07 — màn riêng, thay bảng trượt 05/11): «Xoá rồi không lấy lại được.»
-// + 3 hậu quả (máy của Con · Mất N sao, cả quà đang chờ trao · Mất báo cáo và cài đặt), «Xoá hồ sơ X» / «Giữ lại».
+// them-canktzlq @v5 «Xoá hồ sơ <Con>?» (thiết kế bm-gio-ho-so): ô hình đào (nguoi), «Xoá rồi không lấy lại được.», thẻ 3 hậu quả có icon
+// (laptop: máy của Con · sao: Mất N sao, cả quà đang chờ trao · lich: Mất báo cáo và cài đặt), «Xoá hồ sơ X» đỏ đặc / «Giữ lại» viền. Bàn vẽ dạng bảng trượt
+// trên Hồ sơ con; app giữ màn riêng (màn kết quả sau khi xoá cần chỗ) — nội dung canh đáy như bảng.
 // «Xoá hồ sơ X» ⇒ POST con/:id/xoa {xacNhan: true} (PR #253 — xoá HẲN). Máy chủ KHÔNG gỡ máy: máy đã ghép của Con thành máy dùng chung
 // (`mayChuyenDungChung`) ⇒ màn kết quả gợi ý từng máy «Máy của <Con khác>» (POST may/:id/gan-con) hoặc «Gỡ máy này» (⇒ /may/<id>?mo=go).
 // Lỗi 409 `con_may` (bé cuối, nhà còn máy) / `con_thiet_bi_mang` (TV, console lọc mạng) ⇒ câu dễ hiểu + lối đi tiếp (lib/noi-1411 › loiXoaCon).
@@ -9,7 +10,9 @@ import { BackHandler, View } from "react-native";
 import { bm, LoiApi, type GiaDinh } from "@/lib/api";
 import { CAU_TRONG_GIUP, ManKetQua, quyenToi, type ConCt } from "@/lib/hang-ngay";
 import { loiXoaCon } from "@/lib/noi-1411";
-import { Bao, BaoLoi, CanhGiua, ChoTai, Chu, M, Man, Nut, The, TickDong, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BONG, KHOI } from "@/lib/clay";
+import { keDau, TheDs } from "@/lib/may-nhieu-con";
+import { Bao, BaoLoi, ChoTai, Chu, Icon3D, M, Man, Nut, The, useHoanTac, useLam, useTai } from "@/lib/ui";
 
 /** Hồ sơ đã xoá ⇒ bỏ cả ngăn xếp (không «quay lại» về /ho-so/<id> đã mất) rồi về Trang chủ. */
 const veTrangChu = () => { if (router.canDismiss()) router.dismissAll(); router.replace("/hom-nay"); };
@@ -73,17 +76,27 @@ export default function XoaHoSo() {
       <Nut chu="Giữ lại" loai="ma" rong bam={ve} />
     </> : <>
       <BaoLoi loi={loiLam} />
-      <Nut chu={`Xoá hồ sơ ${c.ten}`} loai="huy" rong dangChay={dangChay} bam={xoa} />
-      <Nut chu="Giữ lại" loai="ma" rong bam={ve} />
+      <Nut chu={`Xoá hồ sơ ${c.ten}`} loai="do" rong dangChay={dangChay} bam={xoa} />
+      <Nut chu="Giữ lại" loai="vien" rong bam={ve} />
     </>}>
-      <CanhGiua lv="nghi" tieu={`Xoá hồ sơ ${c.ten}?`} loi="Xoá rồi không lấy lại được." />
-      <View style={{ paddingHorizontal: 8 }}>
-        {/* máy chủ không gỡ máy — máy riêng của bé: còn 1 con ⇒ máy riêng của con đó, ≥ 2 ⇒ dùng chung; Ba Mẹ đổi / gỡ ở bước sau */}
-        {mayRieng.length ? <TickDong trang="x" chu={`Grow thôi trông ${mayRieng.length} máy cho ${c.ten}`} phu={phuMay} /> : null}
-        {mayChung.length ? <TickDong trang="x" chu={`${c.ten} rời ${mayChung.length} máy dùng chung`} phu={`${tenGon(mayChung)} vẫn cho các con khác dùng`} /> : null}
-        <TickDong trang="x" chu={`Mất ${sao} sao`} phu="Cả quà đang chờ trao" />
-        <TickDong trang="x" chu="Mất báo cáo và cài đặt" phu="Nhiệm vụ, sao, luật đã đặt" />
+      <View style={{ flexGrow: 1, minHeight: 120 }} />
+      <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: "#fbe5ce",
+        backgroundImage: "linear-gradient(#f9dcc0, #fdeedd)", ...KHOI.the }}><Icon3D ten="nguoi" co={48} /></View>
+      <View style={{ gap: 4 }}>
+        <Chu kieu="rat" co={23} style={{ textAlign: "center", letterSpacing: -0.4 }}>{`Xoá hồ sơ ${c.ten}?`}</Chu>
+        <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>Xoá rồi không lấy lại được.</Chu>
       </View>
+      <TheDs>
+        {/* máy chủ không gỡ máy — máy riêng của bé: còn 1 con ⇒ máy riêng của con đó, ≥ 2 ⇒ dùng chung; máy chung chỉ bỏ bé khỏi danh sách; Ba Mẹ đổi / gỡ ở bước sau */}
+        {([...(mayRieng.length ? [["laptop", `Grow thôi trông ${mayRieng.length} máy cho ${c.ten}`, phuMay] as const] : []),
+          ...(mayChung.length ? [["laptop", `${c.ten} rời ${mayChung.length} máy dùng chung`, `${tenGon(mayChung)} vẫn cho các con khác dùng`] as const] : []),
+          ["sao", `Mất ${sao} sao`, "Cả quà đang chờ trao"] as const, ["lich", "Mất báo cáo và cài đặt", "Nhiệm vụ, phút chơi đã đặt"] as const]).map(([ic, tieu, phu], k) => (
+          <View key={tieu} style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 58 }, keDau(k)]}>
+            <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={24} /></View>
+            <View style={{ flex: 1, minWidth: 0 }}><Chu kieu="rat" co={14.5}>{tieu}</Chu><Chu kieu="dam" co={12.5} mau="#565c59">{phu}</Chu></View>
+          </View>
+        ))}
+      </TheDs>
     </Man>
   );
 }
