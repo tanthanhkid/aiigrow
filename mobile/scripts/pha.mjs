@@ -641,7 +641,14 @@ if (process.argv.includes("--giao-dien")) {
       await doi("Thêm web cho"); await go("Tên hoặc link trang web", "khanacademy.org"); await doi("Kết quả cho");
       await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"][aria-label="khanacademy.org"]')`)); } }),
     M("bm-ob-ghep", "/thiet-lap/ghep", "quét mã này", { truoc: diTl("/thiet-lap/ghep") }),
+    M("bm-ob-ghep (có tên bé · bm1-ob-ghep)", "/thiet-lap/ghep?con=c1", "Ghép máy của", { truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
     M("bm-ob-cho", "/thiet-lap/cho?ma=482017&con=c1", "482"),
+    // them-q44uxha5 / them-ytmgijqo: mã quá 10 phút ⇒ «Mã đã hết hạn»; chờ quá 5 phút (mã còn hạn) ⇒ «Chưa thấy máy của con»
+    M("bm-ob-ghep (mã hết hạn · them-q44uxha5)", "/thiet-lap/ghep", "Mã đã hết hạn", { kb: { "POST ghep-may": { ...coBan["POST ghep-may"], het: luc(1), conGiay: 0 },
+      "GET ghep-may/482017": { daGhep: false, hetHan: true, conGiay: 0, con: "c1", may: null } }, truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
+    M("bm-ob-ghep (chưa thấy máy · them-ytmgijqo)", "/thiet-lap/ghep", "Chưa thấy máy của con", { kb: { "POST ghep-may": { ...coBan["POST ghep-may"], het: luc(-4), conGiay: 240 },
+      "GET ghep-may/482017": { daGhep: false, hetHan: false, conGiay: 240, con: "c1", may: null } }, truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
+    M("bm-ob-xong (chưa ghép · them-w8q8hcfk)", "/thiet-lap/xong", "Chưa có máy nào", { kb: { "GET con/c1": { ...conCt("c1", KEN), may: [] } }, truoc: diTl("/thiet-lap/xong") }),
     M("bm-ob-da-ghep", "/thiet-lap/da-ghep?con=c1&may=m1", "đã ghép!"),
     M("bm-ob-mau", "/thiet-lap/mau", "Một ngày của", { truoc: diTl("/thiet-lap/mau") }),
     M("bm-ob-mau (bảng Ba Mẹ tự thêm · them-bwlkjyw5)", "/thiet-lap/mau", "Thêm vào mục đã chọn", { truoc: async () => { await diTl("/thiet-lap/mau")(); await doi("+ Ba Mẹ tự thêm"); await bam("+ Ba Mẹ tự thêm"); } }),
