@@ -37,22 +37,22 @@ import kotlin.math.sqrt
  */
 object Clay {
     // Bảng màu gốc (giữ token app): nền, khối, lòng chảo, chữ, ngọc lục bảo, vàng chỉ cho điểm.
-    const val NEN = 0xFFECEBE7.toInt()
-    const val NEN_DINH = 0xFFE3EBE7.toInt()
-    const val THE = 0xFFF7F6F3.toInt()
-    const val LOM = 0xFFE9E8E3.toInt()
-    const val CHU = 0xFF0F1312.toInt()
-    const val CHU2 = 0xFF3A403D.toInt()
-    const val CHU3 = 0xFF565C59.toInt()
-    const val CHINH = 0xFF0F6B5C.toInt()
-    const val CHINH_INK = 0xFF0A5246.toInt()
-    const val CHINH_SOFT = 0xFFDCEBE6.toInt()
-    const val DIEM_SOFT = 0xFFFBECC0.toInt()
-    const val CANH = 0xFF8A3C0C.toInt()
+    const val NEN = 0xFFECE4D9.toInt()
+    const val NEN_DINH = 0xFFECE4D9.toInt()
+    const val THE = 0xFFECE4D9.toInt()
+    const val LOM = 0xFFE5DCCF.toInt()
+    const val CHU = 0xFF0A1629.toInt()
+    const val CHU2 = 0xFF3B352E.toInt()
+    const val CHU3 = 0xFF5F554B.toInt()
+    const val CHINH = 0xFF0A1629.toInt()
+    const val CHINH_INK = 0xFF0A1629.toInt()
+    const val CHINH_SOFT = 0xFFE2D6C4.toInt()
+    const val DIEM_SOFT = 0xFFF2D48C.toInt()
+    const val CANH = 0xFF983E04.toInt()
     const val CANH_SOFT = 0xFFF9E7D2.toInt()
     const val LAM_SOFT = 0xFFE1E9FB.toInt()
     const val TIM_SOFT = 0xFFE7E5F8.toInt()
-    const val LOI = 0xFFB42318.toInt()
+    const val LOI = 0xFFA2412C.toInt()
 
     enum class Kieu { THE, THAN, NGOC, VIEN, LOM, VIEN_TRON }
 

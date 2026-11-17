@@ -301,7 +301,7 @@ object GiaoDien {
                 h.post {
                     dangGui = false; maGo = ""
                     baoMa.text = loi ?: "Đã mở máy cho Ba Mẹ."
-                    baoMa.setTextColor(if (loi == null) Diu.XANH_DAM else Diu.LOI_DAM); veMa(loi != null)
+                    baoMa.setTextColor(if (loi == null) Diu.OK else Diu.LOI_DAM); veMa(loi != null)
                     if (loi == null) theMa.visibility = View.GONE
                 }
             }.start()
@@ -320,8 +320,8 @@ object GiaoDien {
             demToi = toi
             goc.background = ColorDrawable(if (toi) Diu.DEM_NEN else NEN)
             tieuDe.setTextColor(if (toi) Diu.DEM_CHU else CHU); cau.setTextColor(if (toi) Diu.DEM_CHU2 else Diu.CHU2)
-            theDem.background = Diu.khoi(c, if (toi) Diu.DEM_THE else TRANG, 24, if (toi) null else Diu.VIEN)
-            dem.setTextColor(if (toi) Diu.DEM_CHU else CHU); moLai.setTextColor(if (toi) Diu.DEM_CHU2 else Diu.CHU2)
+            theDem.background = if (toi) Diu.khoi(c, Diu.DEM_THE, 24, Diu.KIM_HAIR) else Diu.noi(c, 24f)
+            dem.setTextColor(if (toi) Diu.KIM else CHU); moLai.setTextColor(if (toi) Diu.DEM_CHU2 else Diu.CHU2)
             vien.background = Diu.tron(if (toi) Diu.DEM_THE else XANH_NHAT)
             ghi.setTextColor(if (toi) Diu.DEM_CHU2 else Diu.CHU3)
         }

@@ -137,7 +137,7 @@ class ManTre : Activity() {
         /** App AiiGrow (Expo, mobile/app.json › android.package). */
         const val GOI_APP_AIIGROW = "vn.aiilab.aiigrow"
         private const val CHON_TEP = 41
-        private const val TRANG_LOI = "<html><body style='font-family:sans-serif;padding:32px;color:#1d2a26;background:#f4f3ee'>" +
+        private const val TRANG_LOI = "<html><body style='font-family:sans-serif;padding:32px;color:#0a1629;background:#ece4d9'>" +
             "<h2>Chưa mở được</h2><p>Cần mạng để xem nhiệm vụ, nộp bài và đổi quà. Con kiểm tra Wi‑Fi rồi thử lại nhé.</p></body></html>"
 
         fun mo(ctx: android.content.Context, duong: String) =

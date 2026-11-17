@@ -262,7 +262,7 @@ object CapNhat {
         val pi = PendingIntent.getActivity(ctx, b?.versionCode?.toInt() ?: 0, mo.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         try {
-            nm.notify(MA_TB, NotificationCompat.Builder(ctx, KENH).setSmallIcon(R.drawable.ic_aiigrow).setColor(0xFF1F8A70.toInt())
+            nm.notify(MA_TB, NotificationCompat.Builder(ctx, KENH).setSmallIcon(R.drawable.ic_aiigrow).setColor(Diu.KIM_DAM)
                 .setContentTitle(tieuDe).setContentText(noi).setStyle(NotificationCompat.BigTextStyle().bigText(noi))
                 .setContentIntent(pi).setAutoCancel(true).setOnlyAlertOnce(true).build())
         } catch (e: SecurityException) { NhatKy.tin(TAG, "chưa có quyền thông báo") }

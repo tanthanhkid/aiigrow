@@ -130,7 +130,7 @@ class ManChinh : Activity() {
             goc.addView(Diu.chipBe(this, tenBe, PinMay.hoSo(k)?.con?.indexOfFirst { it.id == nd.conId }?.coerceAtLeast(0) ?: 0) { hoiDoiBe(tenBe) }.apply {
                 (layoutParams as LinearLayout.LayoutParams).topMargin = G.dp(this@ManChinh, 6) })
         }
-        if (k.cheDoThu) goc.addView(G.chu(this, "Chế độ thử cục bộ (bản debug) — không gọi máy chủ", 13f, 0xFFB45309.toInt()))
+        if (k.cheDoThu) goc.addView(G.chu(this, "Chế độ thử cục bộ (bản debug) — không gọi máy chủ", 13f, Diu.NO_CHU))
     }
 
     /** «Đổi người / Đăng xuất» (con-dt-khac/13): thẻ dưới đáy — Đổi người, Đăng xuất, Ở lại. */
@@ -138,7 +138,7 @@ class ManChinh : Activity() {
         val k = Kho(this)
         val d = android.app.Dialog(this)
         val t = Diu.the(this, dem = 20).apply { gravity = Gravity.CENTER_HORIZONTAL }
-        t.addView(Diu.vongTen(this, ten.trim().firstOrNull()?.uppercase() ?: "?", PinMay.hoSo(k)?.con?.indexOfFirst { it.id == PinMay.nguoiDung(k)?.conId }?.coerceAtLeast(0) ?: 0, 64))
+        t.addView(Diu.vongTen(this, ten.trim().firstOrNull()?.uppercase() ?: "?", PinMay.hoSo(k)?.con?.indexOfFirst { it.id == PinMay.nguoiDung(k)?.conId }?.coerceAtLeast(0) ?: 0, 64, dangChon = true))
         t.addView(Diu.chu(this, ten, 22f, Diu.CHU, true).apply { gravity = Gravity.CENTER; setPadding(0, G.dp(this@ManChinh, 8), 0, 0) })
         t.addView(Diu.chu(this, "Đang dùng máy này", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER })
         t.addView(Diu.nut(this, "Đổi người", Diu.KieuNut.PHU) { d.dismiss(); PinMay.roiMay(this, baMe = false) })
@@ -386,7 +386,7 @@ class ManChinh : Activity() {
                 for (x in ds) ls.addView(LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; minimumHeight = G.dp(this@ManChinh, 40)
                     addView(Diu.chu(this@ManChinh, x.chu, 15f, Diu.CHU).apply { layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f) })
-                    addView(Diu.chu(this@ManChinh, (if (x.sao > 0) "+" else "") + soSao(x.sao), 15f, if (x.sao < 0) Diu.NO_CHU else Diu.XANH_DAM, true))
+                    addView(Diu.chu(this@ManChinh, (if (x.sao > 0) "+" else "") + soSao(x.sao), 15f, if (x.sao < 0) Diu.NO_CHU else Diu.OK, true))
                 })
                 ls.visibility = View.VISIBLE
             }
@@ -464,7 +464,7 @@ class ManChinh : Activity() {
             if (canBoSung) trai.addView(Diu.chu(this, "Ba Mẹ nhờ làm lại", 13f, Diu.LOI_DAM))
             hang.addView(trai, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             if (choDuyet) hang.addView(Diu.chu(this, "⏳ Chờ duyệt", 13f, Diu.CHU2, true).apply {
-                background = Diu.khoi(this@ManChinh, 0xFFF1EFE9.toInt(), 14, null); setPadding(G.dp(this@ManChinh, 10), G.dp(this@ManChinh, 5), G.dp(this@ManChinh, 10), G.dp(this@ManChinh, 5)) })
+                background = Diu.khoi(this@ManChinh, Diu.TRANG, 14, null); setPadding(G.dp(this@ManChinh, 10), G.dp(this@ManChinh, 5), G.dp(this@ManChinh, 10), G.dp(this@ManChinh, 5)) })
             else {
                 hang.addView(Diu.chipSao(this, x.optInt("sao", x.optInt("diem"))).apply { text = "+${x.optInt("sao", x.optInt("diem"))} sao" })
                 val nop = when (x.optString("bangChung")) { "ghi_am" -> "Ghi âm"; "viet" -> "Viết"; "anh", "anh_video" -> "Nộp ảnh"; else -> "Nộp bài" }
@@ -522,7 +522,7 @@ class ManChinh : Activity() {
             Triple("Trợ năng AiiGrow (màn tạm dừng)", TroNang.dangBat(this)) { moCaiDat(Settings.ACTION_ACCESSIBILITY_SETTINGS) },
         )
         for ((ten, co, mo) in q) {
-            if (co) t.addView(G.chu(this, "✓  $ten", 16f, Diu.XANH_DAM).apply { minHeight = G.dp(this@ManChinh, 48); gravity = Gravity.CENTER_VERTICAL })
+            if (co) t.addView(G.chu(this, "✓  $ten", 16f, Diu.OK).apply { minHeight = G.dp(this@ManChinh, 48); gravity = Gravity.CENTER_VERTICAL })
             else t.addView(G.nut(this, "Bật: $ten", phu = true) { mo() })
         }
         goc.addView(t)
