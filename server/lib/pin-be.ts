@@ -7,7 +7,7 @@
 //   • «Đổi bé / Đăng xuất» ⇒ máy về màn chọn tên. Giờ, sao, nhiệm vụ, phiên tính theo bé đang đăng nhập (devices.con_dang_dung — api-may.ts).
 // Agent cũ (chọn tên không PIN — POST chon-con) vẫn chạy như trước.
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { one, q } from "./db.ts";
+import { one, q, tx } from "./db.ts";
 import { sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
@@ -147,13 +147,20 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
     await q(`delete from pin_sai where khoa = $1`, [khoa]);
   }
   // #267 «Đổi người»: máy chỉ một bé một lúc — bé trước (khác bé này) hết phiên Con trên máy + phiên chơi trên máy dừng (phút bé trước dừng tính)
-  const truoc = (await q<{ child_id: string }>(`select distinct child_id from kid_sessions where device_id = $1 and child_id <> $2`, [may.id, c.id])).map((r) => r.child_id);
-  if (may.con_dang_dung && may.con_dang_dung !== c.id && !truoc.includes(may.con_dang_dung)) truoc.push(may.con_dang_dung);
-  if (truoc.length) await q(`delete from kid_sessions where device_id = $1 and child_id <> $2`, [may.id, c.id]);
-  for (const x of truoc) await ketThucPhienTrenMay(may.id, x, now);
+  // #340: một giao dịch, khoá dòng máy (for update) ⇒ hai bé đăng nhập cùng lúc trên một máy nối đuôi nhau: lượt sau thấy phiên Con của lượt
+  // trước và xoá nó ⇒ máy chỉ còn MỘT phiên Con, con_dang_dung khớp phiên đó. Đọc con_dang_dung SAU khi khoá (không dùng bản `may` đã cũ).
   const t = taoToken();
-  await q(`insert into kid_sessions(id, child_id, device_id, expires_at) values ($1,$2,$3, $4::timestamptz + interval '12 hours')`, [sha(t), c.id, may.id, now.toISOString()]);
-  await q(`update devices set con_dang_dung = $2, dang_nhap_luc = $3, ba_me_den = null, ba_me_tu = null where id = $1`, [may.id, c.id, now]);
+  const truoc = await tx(async (tq) => {
+    const m = (await tq<{ con_dang_dung: string | null }>(`select con_dang_dung from devices where id = $1 for update`, [may.id]))[0];
+    const ds = (await tq<{ child_id: string }>(`select distinct child_id from kid_sessions where device_id = $1 and child_id <> $2`, [may.id, c.id])).map((r) => r.child_id);
+    const cdd = m?.con_dang_dung ?? null;
+    if (cdd && cdd !== c.id && !ds.includes(cdd)) ds.push(cdd);
+    await tq(`delete from kid_sessions where device_id = $1 and child_id <> $2`, [may.id, c.id]);
+    await tq(`insert into kid_sessions(id, child_id, device_id, expires_at) values ($1,$2,$3, $4::timestamptz + interval '12 hours')`, [sha(t), c.id, may.id, now.toISOString()]);
+    await tq(`update devices set con_dang_dung = $2, dang_nhap_luc = $3, ba_me_den = null, ba_me_tu = null where id = $1`, [may.id, c.id, now]);
+    return ds;
+  });
+  for (const x of truoc) await ketThucPhienTrenMay(may.id, x, now);
   await ghiSuKien(may.family_id, "doi_nguoi_may", { pin: !!c.pin_ma && !mayRieng }, { con: c.id, may: may.id });
   return { phienCon: t, con: { id: c.id, ten: c.ten, avatar: c.avatar }, coPin: !!c.pin_ma, ...(c.pin_ma ? {} : { canDatPin: true }) };
 }
@@ -205,8 +212,15 @@ export async function baMeMoMay(may: MayS3, ma: unknown, now = new Date()) {
   if (!daDung.length) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới", 409);   // không xoá bộ đếm sai
   await q(`delete from pin_sai where khoa = $1`, [khoa]);
   const het = new Date(now.getTime() + phut * 60_000);
-  await q(`update devices set ba_me_den = $2, ba_me_tu = $3, con_dang_dung = null, dang_nhap_luc = null where id = $1`, [may.id, het, now]);
-  await q(`delete from kid_sessions where device_id = $1`, [may.id]);
+  // bé đang dùng (máy riêng: Con của máy) — đọc SAU khi khoá dòng máy (bé vừa đăng nhập song song không bị bỏ sót), như dangNhapBe
+  const ai = await tx(async (tq) => {
+    const m = (await tq<{ con_dang_dung: string | null; child_id: string | null }>(`select con_dang_dung, child_id from devices where id = $1 for update`, [may.id]))[0];
+    await tq(`update devices set ba_me_den = $2, ba_me_tu = $3, con_dang_dung = null, dang_nhap_luc = null where id = $1`, [may.id, het, now]);
+    await tq(`delete from kid_sessions where device_id = $1`, [may.id]);
+    return m?.con_dang_dung ?? m?.child_id ?? null;
+  });
+  // #340: Ba Mẹ mở máy bằng mã ⇒ phiên chơi của bé đang dùng dừng (như «Đăng xuất») — không treo «máy đang chơi» khiến bé không mở được ở máy khác
+  await ketThucPhienTrenMay(may.id, ai, now);
   await ghiSuKien(may.family_id, "ba_me_mo_may", { phut }, { con: may.child_id, may: may.id });
   return { baMeDung: { den: het.toISOString(), tu: now.toISOString() }, phut };
 }

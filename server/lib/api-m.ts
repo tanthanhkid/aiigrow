@@ -262,7 +262,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       // Thiết kế 05/11: máy luôn chặn thật — chỉ còn nhận «chan» (giam-sat ⇒ 409 che_do_bo); mức chặn đổi ở con/:id/che-do-chan
       if (sau === "che-do" && post) return json(await datCheDo(fam, p[1], b, bm.id));
       // Danh sách app ĐÃ CÀI THẬT trên máy (agent gửi) — Ba Mẹ xếp / chặn đúng app của máy (lib/app-may.ts)
-      if (sau === "ung-dung" && get) return json(await am.dsAppMay(fam, p[1]));
+      if (sau === "ung-dung" && get) return json(await am.dsAppMay(fam, p[1], new URL(req.url).searchParams.get("con")));   // #338: máy chung ⇒ ?con=<bé>
       if (sau === "ung-dung/lam-moi" && post) return json(await am.yeuCauLamMoi(fam, p[1]));
       if (sau === "ung-dung/dat" && post) {
         const kq = await am.datTrangThaiApp(fam, p[1], b);

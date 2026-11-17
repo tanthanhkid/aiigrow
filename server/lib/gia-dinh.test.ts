@@ -188,12 +188,13 @@ test("đổi tên Con và máy: chuẩn hoá, chặn rỗng/quá dài/trùng tê
   assert.equal((await q<{ name: string }>(`select name from devices where id = $1`, [r.deviceId]))[0].name, "Máy học bài");
 });
 
-test("tên Con/máy: taoCon gộp khoảng trắng + NFC và CHO PHÉP trùng tên (chỉ đổi tên mới chặn); đổi tên máy tới 80 ký tự; không đổi gì thì doi=false", async () => {
-  const { fam } = await taoNha();
-  const ken = await g.taoCon(fam, { ten: "  Kenny   Vũ " });
+test("tên Con/máy: taoCon gộp khoảng trắng + NFC, #340 chặn trùng tên (cùng Ba Mẹ gửi lại trong 2 phút ⇒ cùng bé); đổi tên máy tới 80 ký tự; không đổi gì thì doi=false", async () => {
+  const { fam, bm } = await taoNha();
+  const ken = await g.taoCon(fam, { ten: "  Kenny   Vũ " }, bm);
   assert.equal((await g.conCua(fam, ken)).ten, "Kenny Vũ");
-  const trung = await g.taoCon(fam, { ten: "kenny   vũ" });                       // tạo mới: trùng tên vẫn được (bước thiết lập thử lại không kẹt)
-  assert.equal((await g.conCua(fam, trung)).ten, "kenny vũ");
+  // #340: tạo mới trùng tên ⇒ cùng Ba Mẹ gửi lại (cùng dữ liệu, trong 2 phút) trả lại bé vừa tạo; khác dữ liệu ⇒ ten_trung
+  assert.equal(await g.taoCon(fam, { ten: "kenny   vũ" }, bm), ken);
+  await loi(g.taoCon(fam, { ten: "kenny   vũ", namSinh: 2016 }, bm), "ten_trung");
   await loi(g.taoCon(fam, { ten: "x".repeat(31) }), "ten_qua_dai");
   // NFC: «ũ» dạng tổ hợp (u + dấu ngã) = «ũ» dựng sẵn; độ dài tính sau NFC
   const nfd = await g.taoCon(fam, { ten: "Vi\u0323\u0302t".repeat(5) });             // 15 ký tự tổ hợp, 5×(V,i,ệ,t)
@@ -203,9 +204,9 @@ test("tên Con/máy: taoCon gộp khoảng trắng + NFC và CHO PHÉP trùng t�
   // dữ liệu cũ chưa chuẩn hoá (nhiều khoảng trắng) vẫn bị bắt trùng
   await q(`insert into children(id, family_id, ten) values ('cu1', $1, ' Bé   Na ')`, [fam]);
   await loi(g.suaCon(fam, ken, { ten: "BÉ  NA" }), "ten_trung");
-  // song song cùng tên: cả hai được tạo
+  // #340 song song cùng tên (khoá tên theo nhà): chỉ một bé được tạo
   const kq = await Promise.allSettled([g.taoCon(fam, { ten: "Song Song" }), g.taoCon(fam, { ten: "song song" })]);
-  assert.equal(kq.filter((x) => x.status === "fulfilled").length, 2);
+  assert.equal(kq.filter((x) => x.status === "fulfilled").length, 1);
   // máy: 80 ký tự được (ghepMayGd lưu tới 80), 81 thì không
   const r = await g.ghepMay(await g.taoMaGhep(fam, ken, "windows"), "windows", "m".repeat(80));
   const t80 = "n".repeat(80);

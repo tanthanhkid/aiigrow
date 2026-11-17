@@ -9,6 +9,7 @@ import * as qb from "./qua-bang-gia.ts";
 import * as pt from "./phan-thuong.ts";
 import { canDeY, mayMatMang } from "./can-de-y.ts";
 import { chonCon, type May } from "./gia-dinh.ts";
+import { goiOfflineMay } from "./goi-offline.ts";
 
 const tham = (req: Request, k: string) => new URL(req.url).searchParams.get(k);
 
@@ -65,7 +66,15 @@ export async function xuLyConS3(con: string, req: Request, p: string[]): Promise
 /** /api/device/* — máy đã xác thực bằng token. Đường của máy dùng chung (chọn tên + PIN, quên PIN, Ba Mẹ nhập mã, đổi bé / đăng xuất). */
 export async function xuLyMayS3(may: May, req: Request, p: string[], b: Record<string, unknown>): Promise<Response | null> {
   const post = req.method === "POST", d = p.join("/");
-  if (d === "ho-so" || d === "nguoi-dung") return json(await pin.hoSoMay(may));
+  if (d === "ho-so" || d === "nguoi-dung") {
+    const h = await pin.hoSoMay(may);
+    // #337: agent mới xin kèm luật của TỪNG bé (`?offline=1`) ⇒ lưu riêng theo bé, mất mạng đổi bé thì dùng đúng luật bé đó (lib/goi-offline.ts)
+    if (d === "ho-so" && tham(req, "offline") === "1" && h.mayChung) {
+      const goi = await goiOfflineMay(may);
+      if (goi) return json({ ...h, con: h.con.map((c) => ({ ...c, ...(goi[c.id] ? { offline: goi[c.id] } : {}) })), offlineLuc: new Date().toISOString() });
+    }
+    return json(h);
+  }
   if (d === "dang-nhap-be" && post) return json(await pin.dangNhapBe(may, String(b.con ?? ""), b.pin));
   if (d === "quen-pin" && post) return json(await pin.quenPin(may, String(b.con ?? "")));
   if (d === "ba-me-mo" && post) return json(await pin.baMeMoMay(may, b.ma));

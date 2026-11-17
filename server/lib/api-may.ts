@@ -32,6 +32,7 @@ import { viQuaMay } from "./vi-qua-may.ts";
 import { coNoi } from "./may-nhieu-con.ts";
 import { chinhSachWebCho } from "./web.ts";
 import { choThayDoi, phienBanDoi } from "./cho-thay-doi.ts";
+import { dsConMay, dungWindows } from "./goi-offline.ts";
 
 export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
   try {
@@ -82,43 +83,18 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
         await nhipPhienWindows(may, con, b.status as TrangThaiNhip | undefined);
       } catch (e) { console.error("dong-bo: nhịp phiên Windows lỗi", e); }
       const pol = await dongBo(may, { ...b, conDangDung: con });
-      // `windows`: cùng Policy, dịch sẵn sang hình dạng agent-win đọc (lib/agent-windows.ts) — agent chỉ thực thi.
-      // Kèm bí mật mã mở offline cho máy Windows (agent cache khi còn mạng để tự kiểm mã lúc mất mạng).
-      const biMatOffline = coTacTu(may.platform) ? await biMatOfflineMay(may.id) : null;
+      // `windows`: cùng Policy, dịch sẵn sang hình dạng agent-win đọc (lib/goi-offline.ts › dungWindows — dùng chung với gói mất mạng theo bé #337)
       const lenh = await lenhCho(may);
-      // Đang có lệnh gỡ chờ ⇒ ép giám sát: lỡ gỡ hỏng giữa chừng thì máy Con cũng không còn bị chặn (không «dính» lại).
-      // Ba Mẹ chưa chọn chế độ ⇒ không gửi (agent giữ chế độ đang chạy và báo lên trong status.cheDo).
-      const cheDo = cheDoGuiMay(may, lenh.some((l) => l.loai === "go"), !!(con ?? (bmDen ? may.child_id : null)));   // máy riêng lúc Ba Mẹ dùng giữ «chan»
-      // «Mở» có hạn (mở khẩn cấp / thêm giờ duyệt cho máy Windows) + thưởng còn lại ⇒ agent thả chặn ngay ở lần đồng bộ này, không đợi phiên điểm.
-      const moDen = coTacTu(may.platform) ? await hanMoCuaMay(may, con) : null;
-      const conThuong = coTacTu(may.platform) && con ? pol.quy?.conPhut ?? 0 : 0;   // 05/11: = quỹ còn (Policy đã tính, không tính lại)
-      // play* chỉ cho máy sở hữu phiên. Máy dùng chung + agent 0.2.4: phiên mở trên máy ⇒ ghép phần phiên vào Policy chung (chỉ cho «windows»).
-      const ghep = coTacTu(may.platform) && !con && laAgentMoi(b.status as TrangThaiNhip | undefined) ? await ghepPhienMayChung(may, pol) : null;
-      const moPhienMay = coTacTu(may.platform) && con ? await moRongPhienMay(may, con) : null;
-      // Danh sách app thật (lib/app-may.ts): mục app của cả nhà (gói Store không đuôi .exe vẫn là app) · app bị Chặn kèm định danh thật của máy này
-      // appThat: cả nhà (để loại khỏi luật web); appNen: chỉ máy cùng nền (để vào allowedApps / playChoices)
-      const [appThat, appNen, blockedApps, danhSachApp] = coTacTu(may.platform)
-        ? await Promise.all([mucAppThat(may.family_id), mucAppThat(may.family_id, may.platform), appChanCuaMay(may, con), tinHieuDanhSachApp(may.id)]) : [undefined, undefined, [], null];
-      const windows = chinhSachWindows(ghep?.pol ?? pol, biMatOffline ?? undefined, cheDo,
-        { nen: may.platform === "mac" ? "mac" : "windows", moDen, conThuong, appThat, appNen, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
-      if (ghep) windows.canExchangePoints = false;               // máy dùng chung: đổi điểm phải chọn hồ sơ + PIN trên khay
-      // «Mở hết» (Nghi 11/11): không đóng app Ba Mẹ từng «Chặn» — luật vẫn lưu, về «Chặn app & web» thì chặn lại
-      if (coTacTu(may.platform)) windows.blockedApps = laMoHet(pol) ? [] : blockedApps;
-      // L13: «Ba Mẹ đang dùng máy» ⇒ máy mở hết tới hạn (thắng giờ ngủ / khoá — Ba Mẹ mở bằng mã), không đếm quỹ của con
-      if (bmDen) {
-        Object.assign(windows, { mode: "tu_do", locked: false, lockReason: null, grantEndsAt: bmDen.toISOString(), appTinhGio: [],
-          web: chinhSachWebCho(pol, { moGiaiTri: true, moCoHan: true, appThat }),
-          nextCheckSec: Math.max(10, Math.min(windows.nextCheckSec, Math.ceil((bmDen.getTime() - Date.now()) / 1000) + 2)) });
-        delete windows.quyConPhut; delete windows.khoaKhiHetNgoaiLe;
-      }
+      const { windows, danhSachApp } = await dungWindows(may, pol, con, { lenh, bmDen, status: b.status as TrangThaiNhip | undefined });
       const nguoiDung = await nguoiDungMay(may, con);
-      return json({ ...pol, phienBanThayDoi, nextCheckSec: windows.nextCheckSec, lenh, windows, nguoiDung, ...(bmDen ? { baMeDung: { den: bmDen.toISOString() } } : {}),
+      // #339: `dsCon` = bé được gán máy — Ba Mẹ đổi gán ⇒ «chờ thay đổi» đánh thức ⇒ lượt này agent thấy ngay, tải lại ho-so / đẩy bé bị bỏ gán ra
+      return json({ ...pol, phienBanThayDoi, nextCheckSec: windows.nextCheckSec, lenh, windows, nguoiDung, dsCon: await dsConMay(may.id), ...(bmDen ? { baMeDung: { den: bmDen.toISOString() } } : {}),
         ...(danhSachApp ? { danhSachApp } : {}) });
     }
     if (d === "nhip") {
       // L13: nhịp trả chính sách của bé đang đăng nhập (`con`) + ai đang dùng máy; Ba Mẹ dùng ⇒ `baMeDung` + grantEndsAt tới hạn (máy mở hết)
       const phienBanThayDoi = await phienBanDoi(may.family_id);   // trước chính sách (như dong-bo)
-      const r: Record<string, unknown> = { ...(await nhipMay(may, con, b)), phienBanThayDoi, nguoiDung: await nguoiDungMay(may, con) };
+      const r: Record<string, unknown> = { ...(await nhipMay(may, con, b)), phienBanThayDoi, nguoiDung: await nguoiDungMay(may, con), dsCon: await dsConMay(may.id) };
       if (bmDen) {
         const den = [r.grantEndsAt, bmDen.toISOString()].filter((x): x is string => typeof x === "string").sort().pop()!;
         Object.assign(r, { baMeDung: { den: bmDen.toISOString() }, grantEndsAt: den, moDen: den });
@@ -143,9 +119,10 @@ export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
       return json(kq);
     }
     if (d === "go") return json(await goCoMatKhau(may, b.dinhDanh, b.matKhau));
-    // Bù phút chơi khi mất mạng (agent 0.2.4 gửi TRƯỚC dong-bo khi có mạng lại). Máy dùng chung: Con lấy từ phiên `id` mở trên máy này.
+    // Bù phút chơi khi mất mạng (agent 0.2.4 gửi TRƯỚC dong-bo khi có mạng lại). #337: ghi cho CHỦ PHIÊN `id` (phiên mở trên máy này), không
+    // phải bé máy chủ đang coi là đang dùng (đổi bé lúc mất mạng); phiên mở lúc mất mạng (máy chủ chưa biết) ⇒ bé agent gửi kèm `con`.
     if (d === "phien/bu") {
-      const cb = await conChoBu(may, con, b.id);
+      const cb = await conChoBu(may, con, b.id, bmDen ? null : b.con);   // Ba Mẹ đang dùng máy ⇒ không nhận `con` agent gửi (không tính cho bé)
       if (!cb) throw new LoiNghiepVu(b.id && !con ? "khong_thay" : "chua_chon_con", b.id && !con ? "Không thấy phiên trên máy này" : "Chọn tên con trước", b.id && !con ? 404 : 409);
       return json(await buPhien(may, cb, b));
     }
