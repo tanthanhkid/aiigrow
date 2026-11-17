@@ -16,6 +16,7 @@ import { KHOA_NV_TAB, napNvTab, viecCuaCon } from "@/lib/nv-tab";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { BangTraoQua } from "@/lib/trao-qua";
 import { icQua } from "@/lib/s3";
+import { kieuSao, saoTu, soChinh, soVN, VienSao, traNoLanLuot } from "@/lib/so-sao";
 
 /** «hôm nay 18:40» / «hôm qua» / «3/11». */
 const khiNao = (iso: string) => {
