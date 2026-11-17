@@ -304,7 +304,7 @@ export function KhoiTrangThaiGhep({ lv, ic, tieu, phu, children }: { lv: LinhVat
         <View pointerEvents="none" style={{ position: "absolute", top: 20, left: "50%", marginLeft: 30 }}><Icon3D ten={ic} co={64} /></View>
         <View style={{ position: "absolute", left: 12, right: 12, bottom: 18, alignItems: "center", gap: 6 }}>
           <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 23, letterSpacing: -0.4, color: M.chu, textAlign: "center" }}>{tieu}</Text>
-          <Chu kieu="rat" co={14} mau="#8f3a03" style={{ textAlign: "center" }}>{phu}</Chu>{/* cam sẫm hơn canh: nền đào #f1d9bd đáy cảnh cần ≥ 4,5 */}
+          <Chu kieu="rat" co={14} mau="#7a2f00" style={{ textAlign: "center" }}>{phu}</Chu>{/* cam sẫm hơn canh: nền đào đáy cảnh (pixel xấu nhất ~rgb(200,179,161) khi bóng Grow lan xuống) cần ≥ 4,5 — #7a2f00 4,7:1 */}
         </View>
       </View>
       {children}

@@ -228,9 +228,9 @@ export default function AnToanMay() {
         <>
           <View style={{ height: 210, borderRadius: 28, backgroundColor: "#fbe5ce", backgroundImage: "linear-gradient(#f9dcc0, #fdeedd)", overflow: "hidden", ...KHOI.the }}
             accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            <View style={{ position: "absolute", left: 22, top: 54 }}><Icon3D ten={hinhMay(m.nen, chung)} co={80} /></View>
+            <View style={{ position: "absolute", left: 22, top: 60 }}><Icon3D ten={hinhMay(m.nen, chung)} co={80} /></View>
             {/* máy 80 (HTML 104): chip «… · vẫn trừ sao» xuống 2–3 dòng khi giãn chữ (WCAG 1.4.12) không chạm máy — cổng DE-ANH */}
-            <View style={{ position: "absolute", left: 88, top: 48, width: 40, height: 40, borderRadius: 20, backgroundColor: "#e2660f", alignItems: "center", justifyContent: "center",
+            <View style={{ position: "absolute", left: 88, top: 54, width: 40, height: 40, borderRadius: 20, backgroundColor: "#e2660f", alignItems: "center", justifyContent: "center",
               boxShadow: "0px 6px 10px -4px rgba(161,75,0,0.6), inset 0px 1.5px 0px rgba(255,255,255,0.4)" }}>
               <Chu kieu="rat" co={24} mau="#fff">!</Chu>
             </View>

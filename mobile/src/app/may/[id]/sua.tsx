@@ -24,7 +24,7 @@ export default function SuaMay() {
       </Chu>
       <View style={{ gap: 12 }}>
         {buoc.map((x, k) => (
-          <View key={x.ma} style={[{ flexDirection: "row", gap: 14, alignItems: "center", padding: 12, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>
+          <View key={x.ma} style={[{ flexDirection: "row", gap: 14, alignItems: "center", padding: 12, paddingRight: 16, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>
             <View style={{ width: 92, height: 92, borderRadius: 22, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
               <Icon3D ten={HINH[k % 3]} co={56} />
               <View style={{ position: "absolute", left: -6, top: -6, width: 30, height: 30, borderRadius: 15, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}>
