@@ -1,4 +1,4 @@
-// Bảng trượt «Trao quà cho con» (them-5otw85h4, Nghi chốt 06/11 — L14): quà chờ trao đang GIỮ sao (chưa trừ). «Đã trao, trừ N sao» = POST phieu/:id/trao
+// Bảng trượt «Trao quà cho con» (bàn 17/11 them-5otw85h4@v6; chốt 06/11 — L14): quà chờ trao đang GIỮ sao (chưa trừ). «Đã trao, trừ N sao» = POST phieu/:id/trao
 // (trừ hẳn; voucher AiiCafe ⇒ máy chủ phát mã: hiện QR + hạn dùng để Ba Mẹ đưa con / chụp lại), «Chưa, để tối mai» = đóng, «Huỷ & hoàn sao» =
 // POST phieu/:id/huy (hoàn sao cho con). Dùng ở tab Nhiệm vụ và Chờ duyệt.
 // 15/11 (#263, them-5otw85h4): sao giữ cho quà có thể là sao Ba Mẹ cho vay ⇒ «trong đó N sao Ba Mẹ cho vay», «<Con> sẽ còn −20 sao, trả dần bằng nhiệm vụ».
@@ -10,7 +10,7 @@ import { type PhieuCho } from "./hang-ngay";
 import { MaQr } from "./qr";
 import { saoTu, soVN, type SaoCon } from "./so-sao";
 import { cauHanVoucher, icQua, type KqTrao, type VoucherPhat } from "./s3";
-import { BangTruot, BaoLoi, Chu, M, Nut, tien, useLam } from "./ui";
+import { BangTruot, BaoLoi, Chu, M, Nut, Rob, tien, useLam } from "./ui";
 import { GiaSao, OHinhQuaTo } from "./ui-s3";
 
 const khiNao = (iso: string) => {
@@ -72,13 +72,15 @@ export function BangTraoQua({ p, dong, xong }: {
           <GiaSao n={p.diem} />
         </View>
         {vay > 0 ? <Chu kieu="rat" co={14} mau="#8a3c0c" style={{ textAlign: "center", marginTop: -4 }}>{`trong đó ${soVN(vay)} sao Ba Mẹ cho vay`}</Chu> : null}
-        <View style={{ padding: 12, borderRadius: 18, backgroundColor: M.chinhSoft }}>
-          <Chu kieu="dam" co={13.5} mau={M.chinhInk}>{sao && sao.no > 0
+        {/* thiết kế 5otw85h4: dải ngọc nhạt có Grow bên trái */}
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 18, backgroundColor: M.chinhSoft }}>
+          <Rob ten="xong" co={44} />
+          <Chu kieu="dam" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>{sao && sao.no > 0
             ? `Bấm «Đã trao» thì mới trừ ${p.diem} sao. ${p.ten_con} sẽ còn ${soVN(sao.sao)} sao, trả dần bằng nhiệm vụ.`
             : `Bấm «Đã trao» thì mới trừ ${p.diem} sao. Grow báo con và chúc mừng con.`}</Chu>
         </View>
         <BaoLoi loi={loi} />
-        <Nut chu={`Đã trao, trừ ${p.diem} sao`} ic="qua" rong dangChay={dangChay} bam={() => trao(p)} />
+        <Nut chu={`Đã trao, trừ ${p.diem} sao`} rong dangChay={dangChay} bam={() => trao(p)} />
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Nut chu="Chưa, để tối mai" loai="vien" bam={dongHet} />
           <Nut chu="Huỷ & hoàn sao" loai="huy" dangChay={dangChay} bam={() => huy(p)} nhanDoc={`Huỷ quà, hoàn ${p.diem} sao cho ${p.ten_con}`} />

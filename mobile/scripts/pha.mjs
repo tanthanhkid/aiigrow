@@ -760,6 +760,15 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-qua (chưa có quà)", "/vi/qua", "quà", { kb: { "GET qua": { ds: [] } } }),
     M("bm-qua-sua", "/vi/qua-sua?id=q2", "Đi xem phim cuối tuần"),
     M("bm-quy", "/quy", "AiiCafe 20k"),
+    // #325 bm-sao-qua (bàn 17/11): đúng CA của từng màn bàn
+    M("bm-qua (xin vay đổi quà · 473f52w6)", "/vi/qua?con=c1", "Cho vay", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"], yeuCau: [{ ...YC_VAY, phut: 50, muc_dich: "qua", gia_tri: "q1" }] } } }),
+    M("bm-qua (Ba Mẹ tự điền · f0fnp733)", "/vi/qua?con=c1&tab=nha", "Quà Ba Mẹ đã điền"),
+    M("bm-qua-thu-vien (dlul0jlr)", "/vi/qua-thu-vien?con=c1", "Tự đặt quà nhà"),
+    M("bm-qua-mua (đã mua · sp8ijd1b)", "/vi/qua-mua?ma=aiicafe_20k&con=c1", "Cách dùng", { kb: { ...QUA_KHO, "GET con/c1/vi": { ...coBan["GET con/c1/vi"], sao: 30, soDu: 30 } } }),
+    M("bm-qua-sua (bảng xoá · t49meex8)", "/vi/qua-sua?id=q2", "Giữ lại quà", { truoc: async () => { await di("/vi/qua-sua?id=q2"); await doi("Xoá quà này"); await bam("Xoá quà này"); } }),
+    M("bm-trao-qua (5otw85h4)", "/diem-qua", "Huỷ & hoàn sao", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"],
+      phieu: [{ id: "ph2", child_id: "c1", ten: "Chọn món bữa tối", loai: "dac_quyen", diem: 50, ten_con: KEN, created_at: luc(30) }] } },
+      truoc: async () => { await di("/diem-qua"); await doi("Trao quà"); await bam("Trao quà"); } }),
     M("bm-bao-cao", "/bao-cao", "Dùng nhiều nhất"),
     // App & web (bm-ung-dung — thiết kế chốt 15/11, #262 / #258)
     M("bm-app-web", "/chan", "Danh sách của"),

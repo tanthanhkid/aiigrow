@@ -1,4 +1,4 @@
-// «Quà của <Con>» (thiết kế 14/11 bm-sao-qua/02 them-473f52w6 «Quà đổi bằng sao» = bm-cai-dat/12 bm2-quy; MỚI bm-sao-qua/08 them-f0fnp733 «Ba Mẹ tạo quà»;
+// «Quà của <Con>» (bàn 17/11 them-473f52w6@v11 · them-f0fnp733@v4; trước: thiết kế 14/11 bm-sao-qua/02 them-473f52w6 «Quà đổi bằng sao» = bm-cai-dat/12 bm2-quy; MỚI bm-sao-qua/08 them-f0fnp733 «Ba Mẹ tạo quà»;
 // N12): hai tab —
 //   • «Voucher AiiGrow»: quà AiiGrow bán (AiiCafe 20k/50k/100k, sách / workshop AiiLab — mẫu `loai: voucher` nhóm «Ba Mẹ mua» của GET qua/thu-vien),
 //     «Đã mua» (con đã có trong kho) / «Mua» ⇒ màn chi tiết /vi/qua-mua.
@@ -9,20 +9,23 @@
 // «<Con> xin vay 50 sao · Để đổi <quà> · con có 150/200 sao» + «Cho vay» ⇒ bảng Cho vay sao (lib/so-sao) ⇒ toast + Hoàn tác.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { View } from "react-native";
+import { TextInput, View } from "react-native";
 import { bm, laXinVay, type GiaDinh } from "@/lib/api";
 import { CAU_TRONG_GIUP, ChipCon, quyenToi, type ChoDuyetMoi, type YeuCauMoi } from "@/lib/hang-ngay";
 import { BangChoVay, hoanTacVay, saoTu, soVN } from "@/lib/so-sao";
 import { icQua, tenVoucher, type NhomThuVien, type QuaS3 } from "@/lib/s3";
 import { veHoac } from "@/lib/ui-bm3";
-import { BaoLoi, baoKhiVe, ChoTai, Chips, ChonMot, Chu, Dong, Icon3D, M, Man, NhanMen, Nhom, Nut, ONhap, The, tien, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, ChoTai, Chips, ChonMot, Chu, Dong, F, Icon3D, M, Man, NhanMen, Nhom, Nut, The, tien, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 import { GiaSao, OHinhQua } from "@/lib/ui-s3";
-import { KHOI } from "@/lib/clay";
+import { BONG, KHOI } from "@/lib/clay";
+import { ChonO } from "@/lib/ui-viec";
 
 const TIEU = "Quà con đổi bằng sao";
 const GOI_Y = ["Đi ăn kem", "Xem phim", "Chọn món tối", "Đi công viên", "Đồ chơi nhỏ"];
 const SO_SAO = [50, 100, 200, 300];
 const ve = () => veHoac("/cai-dat");
+/** Hình voucher ở tab «Voucher AiiGrow» (thiết kế 473f52w6): AiiCafe ⇒ cốc, Workshop ⇒ máy tính, còn lại theo icQua (sách…). */
+const icVoucher = (m: { hinh?: string | null; loai: string; ten: string }) => (/aiicafe/i.test(m.ten) ? "coc" : /workshop/i.test(m.ten) ? "may_tinh" : icQua(m));
 
 export default function QuaCuaCon() {
   const { con: conSan, tab } = useLocalSearchParams<{ con?: string; tab?: string }>();
@@ -70,19 +73,20 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={tieu} tai={q.tai} noi={noi} day={<Nut chu="Xong" rong bam={ve} />}>
       {dsCon.length > 1 && c ? <ChipCon ds={dsCon} chon={c.id} doi={(x) => doiCon(x.id)} /> : null}
-      <ChonMot ds={[{ gia: "voucher" as const, chu: "Voucher AiiGrow" }, { gia: "nha" as const, chu: "Ba Mẹ tự điền" }]} gia={tab} doi={setTab} />
+      <ChonMot ds={[{ gia: "voucher" as const, chu: "Voucher AiiGrow", ic: "the_qua" }, { gia: "nha" as const, chu: "Ba Mẹ tự điền", ic: "but" }]} gia={tab} doi={setTab} />
       {c ? q.d.xinVay.map((y) => {
         const qq = q.d!.qua.find((x) => x.id === y.gia_tri);
         const co = saoTu(c).sao;
         return (
           <The key={y.id} style={{ backgroundColor: "#f9e7d2" }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              <Icon3D ten="sao" co={36} />
+              {/* thiết kế 473f52w6: ô vàng nhạt 44 + sao 3D */}
+              <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: "#fdf0c9", alignItems: "center", justifyContent: "center" }}><Icon3D ten="sao" co={28} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={15} mau="#8a3c0c">{`${c.ten} xin vay ${soVN(y.phut ?? 15)} sao`}</Chu>
                 <Chu kieu="dam" co={12.5} mau="#8a3c0c">{`Để đổi ${qq ? tenVoucher(qq.ten) : "quà"}${qq ? ` · con có ${soVN(co)}/${soVN(qq.sao)} sao` : ""}`}</Chu>
               </View>
-              {baMe ? <Nut chu="Cho vay" nho bam={() => setVay(y)} /> : null}
+              {baMe ? <View><Nut chu="Cho vay" nho bam={() => setVay(y)} /></View> : null}
             </View>
           </The>
         );
@@ -95,7 +99,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
             {q.d.voucher.map((m) => (
               <NhanMen key={m.ma} onPress={() => moMua(m.ma)} accessibilityRole="button" accessibilityLabel={`${m.ten}, ${tien(m.menhGia ?? 0)}, ${m.sao} sao${m.daCo ? ", đã mua" : ""}`}
                 muc="khoi" sang style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 76, padding: 10, paddingRight: 14, borderRadius: 24, backgroundColor: M.the }, KHOI.the]}>
-                <OHinhQua ic={icQua(m)} co={52} />
+                <OHinhQua ic={icVoucher(m)} co={52} />
                 <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                   <Chu kieu="rat" co={15}>{tenVoucher(m.ten)}</Chu>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
@@ -116,17 +120,23 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
           {baMe ? (
             <The>
               <View style={{ gap: 10 }}>
-                <ONhap nhan="Quà con muốn" value={ten} onChangeText={setTen} placeholder="Ví dụ: Đi ăn kem" maxLength={60} />
+                {/* thiết kế f0fnp733@v4: «Quà con muốn» + hàng ô hộp quà 52 · ô tên lõm; gợi ý; «Con đổi bằng» ô sao 3D */}
+                <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Quà con muốn</Chu>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <View style={[{ width: 52, height: 52, borderRadius: 18, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}><Icon3D ten="qua" co={30} /></View>
+                  <TextInput value={ten} onChangeText={setTen} placeholder="Ví dụ: Đi ăn kem" placeholderTextColor={M.chu3} maxLength={60} accessibilityLabel="Quà con muốn"
+                    style={{ flex: 1, minHeight: 50, borderRadius: 25, paddingHorizontal: 18, backgroundColor: "#ecebe7", boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 16, color: M.chu }} />
+                </View>
                 <Chips ds={GOI_Y.map((x) => ({ gia: x, chu: x }))} chon={GOI_Y.includes(ten.trim()) ? [ten.trim()] : []} doi={setTen} />
                 <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4, marginTop: 4 }}>Con đổi bằng</Chu>
-                <Chips ds={SO_SAO.map((n) => ({ gia: n, chu: `${n} sao` }))} chon={[sao]} doi={setSao} />
+                <ChonO ds={SO_SAO.map((n) => ({ gia: n, chu: `${n}` }))} chon={sao} doi={setSao} sao />
                 <BaoLoi loi={loiLam} />
-                <Nut chu="Thêm quà" ic="cong" rong dangChay={dangChay} tat={!ten.trim() || !conId} bam={themQua} />
+                <Nut chu="Thêm quà" ic="cong" ic3d loai="vien" rong dangChay={dangChay} tat={!ten.trim() || !conId} bam={themQua} />
               </View>
             </The>
           ) : <Chu co={13} mau={M.chu3}>{CAU_TRONG_GIUP}</Chu>}
-          <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, paddingHorizontal: 4, marginTop: 4 }}>
-            <Chu kieu="rat" co={16}>Quà Ba Mẹ đã điền</Chu>
+          <View style={{ flexDirection: "row", alignItems: "baseline", justifyContent: "space-between", gap: 8, paddingHorizontal: 4, marginTop: 4 }}>
+            <Chu kieu="rat" co={15} mau={M.chu2}>Quà Ba Mẹ đã điền</Chu>
             <Chu kieu="dam" co={13} mau={M.chu3}>{`${nha.length} quà`}</Chu>
           </View>
           <Nhom>

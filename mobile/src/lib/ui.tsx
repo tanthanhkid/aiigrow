@@ -289,12 +289,13 @@ export function OChon({ chon, bam, trai, tieu, phu }: { chon: boolean; bam: () =
 }
 
 /** Thanh chọn một (kit.chon_mot): ô rộng theo chữ, nhãn một dòng, thiếu chỗ thì ô xuống hàng. */
-export function ChonMot<T extends string | number>({ ds, gia, doi }: { ds: { gia: T; chu: string }[]; gia: T; doi: (v: T) => void }) {
+export function ChonMot<T extends string | number>({ ds, gia, doi }: { ds: { gia: T; chu: string; /** icon 3D 20 trước chữ (vd «Quà của <Con>» them-473f52w6) */ ic?: TenIcon }[]; gia: T; doi: (v: T) => void }) {
   return (
     <View style={s.chonMot} accessibilityRole="radiogroup">
       {ds.map((x) => (
         <NhanMen key={String(x.gia)} onPress={() => doi(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: x.gia === gia }} muc="chip" sang men={x.gia === gia ? MEN.sang : undefined}
-          style={[s.chonO, x.gia === gia && s.chonOChon]}>
+          style={[s.chonO, x.gia === gia && s.chonOChon, x.ic && { flexDirection: "row", gap: 6 }]}>
+          {x.ic ? <Icon3D ten={x.ic} co={20} /> : null}
           <Text numberOfLines={1} ellipsizeMode="tail" style={{ maxWidth: "100%", fontFamily: F.rat, fontSize: 14, color: x.gia === gia ? M.chinhInk : M.chu2, lineHeight: 20 }}>{x.chu}</Text>
         </NhanMen>
       ))}
