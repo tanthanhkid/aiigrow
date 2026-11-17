@@ -806,6 +806,17 @@ if (process.argv.includes("--giao-dien")) {
       phieu: [{ id: "ph2", child_id: "c1", ten: "Chọn món bữa tối", loai: "dac_quyen", diem: 50, ten_con: KEN, created_at: luc(30) }] } },
       truoc: async () => { await di("/diem-qua"); await doi("Trao quà"); await bam("Trao quà"); } }),
     M("bm-bao-cao", "/bao-cao", "Dùng nhiều nhất"),
+    // #325 bm-bao-cao-ngay (bàn 17/11): đúng CA của từng màn bàn
+    M("bm-bao-cao (con thứ hai · w04gcohs)", "/bao-cao?con=c2", "Dùng nhiều nhất", { kb: { "GET con/c2/bao-cao": { ...coBan["GET con/c1/bao-cao"], ten: BILL,
+      tuanNay: { ...coBan["GET con/c1/bao-cao"].tuanNay, saoKiem: 250, saoVay: 0, lanVay: 0, saoTieu: 230, saoTieuChoi: 230, saoTraNo: 0, xinVay: { so: 0, cho: 0 } } } } }),
+    M("bm-da-dung (c95l1cwc)", "/da-dung/c1", "Con xin hôm nay", { kb: { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-03", choi: { daDung: 42, tongPhut: 60, conPhut: 18 },
+      hoc: { phut: 50, khung: null }, khongTinhPhut: { phut: 50 },
+      dung: [{ luc: luc(25), ten: "Roblox", muc: "roblox", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 39, tinhGio: true, dangMo: true, matMang: false },
+        { luc: luc(47), ten: "Máy ảnh", muc: "camera", kieu: "app", may: "iPad của Bảo Anh", nen: "ios", mayId: "m2", phut: 3, tinhGio: true, dangMo: false, matMang: false },
+        { luc: luc(99), ten: "Từ điển", muc: "tu-dien", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 10, tinhGio: false, dangMo: false, matMang: false },
+        { luc: luc(142), ten: "Học với AiiRob", muc: "aiirob", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 40, tinhGio: false, dangMo: false, matMang: false }],
+      biChan: [{ luc: luc(7), ten: "YouTube", may: null, ly: "dang_xin", yeuCau: "y5", phut: 30 }, { luc: luc(107), ten: "game.vn", may: "Laptop", ly: "chua_cho", yeuCau: null, phut: null }] } } }),
+    M("bm-nhat-ky (r3dsl3py)", "/nhat-ky", "7 ngày qua", { kb: SO_SAO }),
     // App & web (bm-ung-dung — thiết kế chốt 15/11, #262 / #258)
     M("bm-app-web", "/chan", "Danh sách của"),
     M("bm-app-web (mở hết)", "/chan", "Đang tạm nghỉ", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { cheDo: "mo_het", cheDoChan: "mo_het", tenCheDo: "Mở hết", tamNghi: true }) } }),

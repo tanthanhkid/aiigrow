@@ -1,4 +1,4 @@
-// «<Con> đã dùng gì» hôm nay (thiết kế chốt 15/11 — bm-bao-cao-ngay/03 them-c95l1cwc, #264 sao = phút): mở từ Báo cáo «Dùng nhiều nhất · Xem hết ›».
+// «<Con> đã dùng gì» hôm nay (bàn 17/11 them-c95l1cwc@v13; thiết kế chốt 15/11 — bm-bao-cao-ngay/03, #264 sao = phút): mở từ Báo cáo «Dùng nhiều nhất · Xem hết ›».
 //  · 2 ô: «Tính phút 42′ = 42 sao · Còn −20 sao (nợ 20)» (→ Ví sao) · «Không tính phút 50′ · Không trừ sao» (→ App & web)
 //  · «Đã dùng N»: từng app / trang hôm nay — giờ bắt đầu, máy, «● Đang mở» / «● Mất mạng», mục Tính phút «−39 sao» / Không tính «Không tính 10′»
 //  · «Con xin hôm nay N»: con đang xin (Trả lời ›) · Chưa cho (ngoài danh sách)
@@ -7,8 +7,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
 import { TieuMuc } from "@/lib/hang-ngay";
+import { OLomIcon } from "@/lib/ui-viec";
 import { kieuSao, saoTu, soVN, type SaoCon } from "@/lib/so-sao";
-import { BieuTron, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nhan, The, useTai, type TenIcon } from "@/lib/ui";
+import { ChoTai, Chu, gioPhut, Icon3D, M, Man, Nhan, The, useTai, type TenIcon } from "@/lib/ui";
 import { icDung, nhanDung, tenNgan, type HomNayDung } from "@/lib/da-dung";
 
 export type { HomNayDung };
@@ -52,7 +53,7 @@ export default function DaDung() {
           <Pressable key={`${x.kieu}:${x.muc}`} onPress={() => x.mayId && router.push(`/may/${x.mayId}` as never)} disabled={!x.mayId} accessibilityRole="button"
             style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: "#efefec" }}>
             <Chu kieu="dam" co={12.5} mau={M.chu3} so style={{ width: 40 }}>{x.luc ? gioPhut(x.luc) : ""}</Chu>
-            <BieuTron ic={icDung(x)} mau={x.tinhGio ? "tim" : "xanh"} />
+            <OLomIcon ic={icDung(x)} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15} dong={1}>{x.ten}</Chu>
               <Chu co={13} mau={x.dangMo || x.matMang ? (x.matMang ? M.canh : M.chinhInk) : M.chu3} dong={1}>
@@ -70,19 +71,20 @@ export default function DaDung() {
           <TieuMuc chu="Con xin hôm nay" so={d.biChan.length} />
           <The style={{ paddingVertical: 4 }}>
             {d.biChan.map((x, k) => {
-              const phu = x.ly === "dang_xin" ? "Chưa có trong danh sách" : x.ly === "grow_chan" ? "Trang này chưa mở được" : `${tenNgan(x.may) || "Máy của con"} · ngoài danh sách`;
+              const phu = x.ly === "dang_xin" ? (x.phut ? `Con đang xin ${x.phut} phút` : "Con đang xin") : x.ly === "grow_chan" ? "Trang này chưa mở được"
+                : `${tenNgan(x.may) || "Máy của con"} · chưa có trong app được mở`;
               const ic: TenIcon = x.ly === "chua_cho" || x.ly === "grow_chan" ? "khoa" : "web";
               return (
                 <Pressable key={`${x.ly}:${x.ten}:${k}`} disabled={x.ly !== "dang_xin" || !x.yeuCau} accessibilityRole="button"
                   onPress={() => router.push(`/yeu-cau?con=${con}` as never)}
                   style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: "#efefec" }}>
                   <Chu kieu="dam" co={12.5} mau={M.chu3} so style={{ width: 40 }}>{x.ly === "grow_chan" ? "" : gioPhut(x.luc)}</Chu>
-                  <BieuTron ic={ic} mau={x.ly === "dang_xin" ? "cam" : "xam"} />
+                  <OLomIcon ic={ic} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Chu kieu="rat" co={15} dong={1}>{x.ten}</Chu>
                     <Chu co={13} mau={M.chu3} dong={1}>{phu}</Chu>
                   </View>
-                  {x.ly === "dang_xin" ? <Chu kieu="rat" co={14} mau={M.chinhInk}>Trả lời ›</Chu>
+                  {x.ly === "dang_xin" ? <Nhan chu="Trả lời ›" loai="canh" />
                     : <Nhan chu={"Chưa cho"} loai="xam" />}
                 </Pressable>
               );
@@ -90,7 +92,7 @@ export default function DaDung() {
           </The>
                   </>
       ) : null}
-      <Chu co={13} mau={M.chu3} style={{ marginHorizontal: 6 }}>Mục chưa có trong danh sách thì con chưa vào được và không trừ sao. Mục «Tính phút»: 1 phút = 1 sao.</Chu>
+      <Chu co={13} mau={M.chu3} style={{ marginHorizontal: 6 }}>Mục chưa được mở thì con chưa vào được và không tính vào giờ chơi.</Chu>
     </Man>
   );
 }
