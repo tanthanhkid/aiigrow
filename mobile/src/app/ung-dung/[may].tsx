@@ -55,7 +55,13 @@ export default function UngDungMay() {
   const { may } = useLocalSearchParams<{ may: string }>();
   // bé đang xem (máy chung) — ref vì useTai giữ hàm tải của lần dựng đầu
   const beRef = useRef<string | null>(null);
-  const { d, loi, matMang, tai } = useTai(() => bm.goi<DsMay>(`may/${may}/ung-dung${beRef.current ? `?con=${encodeURIComponent(beRef.current)}` : ""}`));
+  const lay = () => bm.goi<DsMay>(`may/${may}/ung-dung${beRef.current ? `?con=${encodeURIComponent(beRef.current)}` : ""}`);
+  // máy chung chưa chọn bé ⇒ máy chủ trả cả nhà (tương thích app cũ) ⇒ chọn bé gán đầu rồi tải lại theo bé đó
+  const { d, loi, matMang, tai } = useTai(async () => {
+    const r = await lay();
+    if (!beRef.current && r.may.dungChung && r.conDs?.length) { beRef.current = r.conDs[0].id; return lay(); }
+    return r;
+  });
   const [tim, setTim] = useState("");
   const [loc, setLoc] = useState<Loc>("tat_ca");
   const [chon, setChon] = useState<AppMay | null>(null);

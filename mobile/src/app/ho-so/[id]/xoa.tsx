@@ -42,9 +42,12 @@ export default function XoaHoSo() {
   const conLai = d.conLai;
   // iPhone / iPad chỉ một bé: còn nhiều con ⇒ chưa gán ai, chờ Ba Mẹ chọn
   const ios = mayRieng.filter((m) => m.nen === "ios"), khac = mayRieng.filter((m) => m.nen !== "ios");
-  const phuMay = conLai?.length === 1 ? `${tenGon(mayRieng)} thành máy riêng của ${conLai[0].ten}`
-    : conLai && conLai.length > 1 ? [khac.length ? `${tenGon(khac)} thành máy dùng chung` : "", ios.length ? `${tenGon(ios)} chờ Ba Mẹ chọn con dùng` : ""].filter(Boolean).join(" · ")
+  const phuMay = conLai == null ? `${tenGon(mayRieng)} chuyển cho các con còn lại hoặc chờ Ba Mẹ chọn` // không đọc được gia đình ⇒ câu trung tính
+    : conLai.length === 1 ? `${tenGon(mayRieng)} thành máy riêng của ${conLai[0].ten}`
+    : conLai.length > 1 ? [khac.length ? `${tenGon(khac)} thành máy dùng chung` : "", ios.length ? `${tenGon(ios)} chờ Ba Mẹ chọn con dùng` : ""].filter(Boolean).join(" · ")
     : `${tenGon(mayRieng)} chờ Ba Mẹ chọn con dùng`;
+  // máy chung có bé này: chỉ bỏ bé khỏi danh sách, các con khác vẫn dùng
+  const mayChung = c.may.filter((m) => m.dungChung);
   const xoa = () => lam(async () => {
     setLoiXoa(null);
     try {
@@ -77,6 +80,7 @@ export default function XoaHoSo() {
       <View style={{ paddingHorizontal: 8 }}>
         {/* máy chủ không gỡ máy — máy riêng của bé: còn 1 con ⇒ máy riêng của con đó, ≥ 2 ⇒ dùng chung; Ba Mẹ đổi / gỡ ở bước sau */}
         {mayRieng.length ? <TickDong trang="x" chu={`Grow thôi trông ${mayRieng.length} máy cho ${c.ten}`} phu={phuMay} /> : null}
+        {mayChung.length ? <TickDong trang="x" chu={`${c.ten} rời ${mayChung.length} máy dùng chung`} phu={`${tenGon(mayChung)} vẫn cho các con khác dùng`} /> : null}
         <TickDong trang="x" chu={`Mất ${sao} sao`} phu="Cả quà đang chờ trao" />
         <TickDong trang="x" chu="Mất báo cáo và cài đặt" phu="Nhiệm vụ, sao, luật đã đặt" />
       </View>
