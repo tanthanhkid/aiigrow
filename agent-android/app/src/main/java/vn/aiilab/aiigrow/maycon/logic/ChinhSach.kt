@@ -71,6 +71,8 @@ data class ChinhSach(
     val gioiHan: GioiHan? = null,
     /** #262 `ungDung.cheDo`: `theo_danh_sach` | `mo_het`; null = máy chủ trước App & web 15/11 (khi đó «mo_het» cũ vẫn tính phút). */
     val cheDo: String? = null,
+    /** #337: id bé của chính sách (`chinhSach.con.id`) — máy chung đổi bé lúc mất mạng thì biết nhịp cuối là của bé nào; null = chưa ai vào. */
+    val conId: String? = null,
 ) {
     /** «Mở hết» kiểu 15/11: không chặn gì, không tính phút. Chỉ khi máy chủ gửi `cheDo` (máy chủ cũ: Mở hết vẫn đếm phút giải trí). */
     val moHet: Boolean get() = cheDo == "mo_het"
@@ -154,6 +156,7 @@ fun docChinhSach(o: JSONObject): ChinhSach {
         sao = docSao(o.optJSONObject("sao")),
         gioiHan = docGioiHan(o.optJSONObject("gioiHan")),
         cheDo = u.chuoi("cheDo")?.takeIf { it == "mo_het" || it == "theo_danh_sach" },
+        conId = o.optJSONObject("con")?.chuoi("id")?.takeIf { it.isNotBlank() },
     )
 }
 

@@ -47,6 +47,10 @@ import vn.aiilab.aiigrow.maycon.logic.truGoi
 import vn.aiilab.aiigrow.maycon.logic.SoPhutBe
 import vn.aiilab.aiigrow.maycon.logic.beGhiPhut
 import vn.aiilab.aiigrow.maycon.logic.boViecCho
+import vn.aiilab.aiigrow.maycon.logic.CAU_CHO_MANG_LUAT
+import vn.aiilab.aiigrow.maycon.logic.LuatBe
+import vn.aiilab.aiigrow.maycon.logic.chonLuatBe
+import vn.aiilab.aiigrow.maycon.logic.docGoiOffline
 import java.time.Instant
 
 /**
@@ -156,7 +160,7 @@ class DichVuNhip : Service() {
     private fun vong(epGoi: Boolean) {
         val k = Kho(this)
         val nowMay = System.currentTimeMillis()
-        val ph: PhanHoiNhip? = if (k.cheDoThu) {
+        val ph0: PhanHoiNhip? = if (k.cheDoThu) {
             try { docPhanHoiNhip(k.tepThu.readText()) } catch (e: Exception) { NhatKy.canh(TAG, "tệp thử hỏng", e); null }
         } else {
             if (k.token == null && k.tokenGoiCai != null) ghepBangGoi(k)
@@ -164,8 +168,14 @@ class DichVuNhip : Service() {
             dsApp.kich(k)   // gửi app đã cài thật (Ba Mẹ chọn chặn) — chạy luồng riêng, không chặn thực thi
             k.phanHoi?.let { try { docPhanHoiNhip(it) } catch (_: Exception) { null } }
         }
-        if (ph == null) { capNhatThongBao(null); return }
-        if (k.cheDoThu) ph.maOfflineBiMat?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }   // thử mã offline không cần máy chủ
+        if (ph0 == null) { capNhatThongBao(null); return }
+        if (k.cheDoThu) ph0.maOfflineBiMat?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }   // thử mã offline không cần máy chủ
+        val anhCong = PinMay.anh(k, nowMay)
+        // #337: máy chung đổi bé lúc mất mạng ⇒ nhịp cuối là của bé trước: dùng gói luật của ĐÚNG bé đang dùng; chưa có gói ⇒ khoá tới khi có mạng
+        val luat = luatTheoBe(k, ph0, anhCong)
+        val tuGoi = luat is LuatBe.TuGoi
+        val choMang = luat == LuatBe.ChoMang
+        val ph = (luat as? LuatBe.TuGoi)?.ph ?: ph0
         // phiên điểm máy này đã biết là hết mà luật nhớ (nhịp máy lỗi) vẫn ghi ⇒ không mở giải trí theo phiên đó nữa
         val cs = ph.chinhSach.let { c -> if (c.phien != null && c.phien.id == k.phienHet) c.copy(phien = null) else c }
         val now = Instant.ofEpochMilli(nowMay + if (k.cheDoThu) 0 else k.lechGioMs)
@@ -174,7 +184,6 @@ class DichVuNhip : Service() {
         // mở tạm bằng mã offline (đồng hồ máy) ⇒ quy về đồng hồ máy chủ như `now`
         // L13: «Ba Mẹ đang dùng máy» (máy chủ hoặc mã gõ lúc mất mạng) ⇒ mở hết tới hạn như mã offline (thắng giờ ngủ / khoá); hết hạn ⇒ chọn tên
         //     mọi hạn trong PinMay đã ở GIỜ MÁY (hạn máy chủ trừ lechGioMs khi nhận) ⇒ cộng `lech` đúng MỘT lần như mã offline. Đọc Kho một lần / vòng.
-        val anhCong = PinMay.anh(k, nowMay)
         val cong = anhCong.cong
         val baMe = if (cong == Cong.BA_ME) anhCong.baMeDen else 0L
         val moOff = listOfNotNull(MoTamOffline.doc(k.moTamOffline).takeIf { it.dangMo(nowMay) }?.moDen, baMe.takeIf { it > 0 }).maxOrNull()
@@ -192,21 +201,28 @@ class DichVuNhip : Service() {
         if (moc != mocCu) k.mocBe = moc?.json()
         val phutGT = truMoc(phutCaMay, moc)
         // 15/11: sổ phút theo bé (gửi dong-bo ⇒ máy chủ trừ sao đúng bé; phút lúc mở bằng mã offline ⇒ phutBoiMa)
-        if (!k.cheDoThu && cs.sao != null) ghiSo(k, cs, dung, cong, anhCong.nd?.conId, now, MoTamOffline.doc(k.moTamOffline).dangMo(nowMay))
+        //     #337 khoá chờ luật của bé ⇒ chỉ dời mốc chốt, không ghi phút cho ai
+        if (!k.cheDoThu && cs.sao != null) ghiSo(k, cs, dung, if (choMang) Cong.CHON_TEN else cong, anhCong.nd?.conId, now, MoTamOffline.doc(k.moTamOffline).dangMo(nowMay))
         //     phút bởi mã chưa báo của bé này: máy chủ không trừ sao ⇒ đếm lùi tại chỗ cũng không trừ (không khoá oan «Hết sao»)
         val boiMaPhut = if (cs.sao != null) SoPhutBe.doc(k.soPhutBe).phutBoiMa(beGhiPhut(cong, anhCong.nd?.conId)) else 0
-        val phutLucNhip = k.phutLucNhip.takeIf { it >= 0 }?.let { truMoc(it, moc) }
+        // gói của bé (#337): bé vào SAU lúc dựng gói ⇒ phút của bé lúc gói = 0 (phutGT tính từ mốc lúc bé vào); ngày theo giờ máy chủ của gói;
+        //     không mượn mốc chạm lượt của bé trước
+        val phutLucNhip = if (tuGoi) 0 else k.phutLucNhip.takeIf { it >= 0 }?.let { truMoc(it, moc) }
+        val ngayNhip = if (tuGoi) ph.serverTime?.let { gioDiaPhuong(it, cs.tz).zdt.toLocalDate().toString() } else k.ngayNhip
+        val mocCham = if (tuGoi) null else k.mocChamLuot()
         val qd0 = quyetDinh(cs, now, phutGT, daCai, ph.grantEndsAt, moOff,
-            if (laDo) trinhDuyet else emptySet(), phutLucNhip, k.ngayNhip, boiMaPhut, k.mocChamLuot())
+            if (laDo) trinhDuyet else emptySet(), phutLucNhip, ngayNhip, boiMaPhut, mocCham)
         // 16/11 #302: ghim lúc chạm trần lượt (suy tại chỗ) MỘT lần cho mỗi nhịp
-        qd0.chamLuotLuc?.let { k.ghimChamLuot(it) }
+        if (!tuGoi) qd0.chamLuotLuc?.let { k.ghimChamLuot(it) }
         // L13: máy chưa ai vào (dùng chung) / máy riêng chưa nhập PIN ⇒ khoá cả máy ở màn chọn tên (không đếm ngược 60 giây)
         val chonTen = cong == Cong.CHON_TEN
-        val qd = if (chonTen) qd0.copy(trangThai = TrangThai.KHOA_NGAY, khoaCaMay = true, goiChan = qd0.goiChan + goiAndroid(cs.giaiTri),
-            moLaiLuc = null, cauCon = "Ai đang dùng máy? Chạm vào tên của con nhé.") else qd0
+        // #337: bé đang dùng chưa có luật trên máy (mất mạng, chưa nhận gói) ⇒ khoá cả máy như màn chọn tên, Ba Mẹ mở bằng mã vẫn được
+        val khoaCong = chonTen || (choMang && moOff == null)
+        val qd = if (khoaCong) qd0.copy(trangThai = TrangThai.KHOA_NGAY, khoaCaMay = true, goiChan = qd0.goiChan + goiAndroid(cs.giaiTri),
+            moLaiLuc = null, cauCon = if (chonTen) "Ai đang dùng máy? Chạm vào tên của con nhé." else CAU_CHO_MANG_LUAT) else qd0
 
         // đếm ngược 60 giây trước khi khoá thật (Con kịp lưu bài / chào bạn)
-        if (chonTen) {
+        if (khoaCong) {
             if (k.trangThaiKhoa != TRANG_THAI_CONG) { k.khoaTu = now.toEpochMilli() - 120_000; k.trangThaiKhoa = TRANG_THAI_CONG; k.daLockNow = k.khoaTu }   // không tắt màn khi bé vừa «Đăng xuất»
         } else if (laKhoa(qd.trangThai)) {
             // từ cổng PIN sang khoá thường (bé vào lúc giờ ngủ / hết giờ / Ba Mẹ khoá) ⇒ khoá NGAY: không tặng thêm 60 giây mỗi lần vào lại
@@ -221,7 +237,7 @@ class DichVuNhip : Service() {
         val moHoanToan = moOff != null || cong == Cong.BA_ME || qd.trangThai == TrangThai.DUOC_THEM_GIO || qd.moHet
         ThucThi.apDung(this, qd, goiChan, khoaThat, vn.aiilab.aiigrow.maycon.logic.luatWeb(cs, listOfNotNull(vn.aiilab.aiigrow.maycon.logic.tenMienMayChu(k.mayChu)),
             moHoanToan, tinhPhutMo = qd.trangThai == TrangThai.BINH_THUONG))
-        if (ph.privateDns != null && QuanTri.laDeviceOwner(this)) Log.i(TAG, "DNS: " + ThucThi.datPrivateDns(this, ph.privateDns))   // mỗi vòng ⇒ chỉ logcat
+        if (ph0.privateDns != null && QuanTri.laDeviceOwner(this)) Log.i(TAG, "DNS: " + ThucThi.datPrivateDns(this, ph0.privateDns))   // mỗi vòng ⇒ chỉ logcat
 
         val top = dung.entries.sortedByDescending { it.value }.map { it.key to (it.value / 60_000).toInt() }.filter { it.second > 0 }.take(5)
         val ht = HienThi.tu(qd, demNguoc, top, nowMay, QuanTri.laDeviceOwner(this), anhCong.tenDangDung ?: cs.tenCon ?: k.tenCon)
@@ -235,16 +251,16 @@ class DichVuNhip : Service() {
             val toiHanPhut = java.time.Duration.between(now, mo).toMinutes().toInt().coerceAtLeast(0)
             // mở bằng mã: phút tới hạn cũng là phút bởi mã (không trừ sao)
             quyetDinh(cs, mo.plusSeconds(1), phutGT + toiHanPhut, daCai, ph.grantEndsAt, moOff, if (laDo) trinhDuyet else emptySet(),
-                phutLucNhip, k.ngayNhip, boiMaPhut + if (moOff != null) toiHanPhut else 0)
+                phutLucNhip, ngayNhip, boiMaPhut + if (moOff != null) toiHanPhut else 0)
         } else null
         val nguToi = if (moOff == null && cs.sao == null) giayToiNgu(cs, now) else null   // mã offline gỡ cả giờ ngủ; 15/11 không còn giờ ngủ
-        nhacTruocKhoa(k, if (cong == Cong.BA_ME || chonTen) null else giayConTruocKhoa(qd, sauHan, now.toEpochMilli(), nguToi), demNguoc, khoaThat, nowMay,
+        nhacTruocKhoa(k, if (cong == Cong.BA_ME || khoaCong) null else giayConTruocKhoa(qd, sauHan, now.toEpochMilli(), nguToi), demNguoc, khoaThat, nowMay,
             cs.sao != null)
         if (laKhoa(qd.trangThai) && ManKhoa.dangMo == null && QuanTri.laDeviceOwner(this) && (qd.khoaCaMay || k.daBoQua != k.khoaTu)) {
             // Device Owner được mở activity từ nền (miễn trừ BAL cho DPC). Đường không reset: TroNang phủ màn khoá.
             startActivity(Intent(this, ManKhoa::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
-        for (l in ph.lenh) if (l.loai == "go" && !k.cheDoThu) xuLyGo(k, l.id)
+        for (l in ph0.lenh) if (l.loai == "go" && !k.cheDoThu) xuLyGo(k, l.id)
     }
 
     private fun ghepBangGoi(k: Kho) {
@@ -288,6 +304,7 @@ class DichVuNhip : Service() {
             r.optString("serverTime").takeIf { it.isNotBlank() }?.let { k.lechGioMs = Instant.parse(it).toEpochMilli() - System.currentTimeMillis() }
             r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }
             try { PinMay.sauNhip(k, r, batDau) } catch (e: Exception) { NhatKy.canh(TAG, "đọc người dùng máy lỗi", e) }
+            try { PinMay.sauDsCon(this, k, r) } catch (e: Exception) { NhatKy.canh(TAG, "đọc danh sách bé của máy lỗi", e) }   // #339
             MoMaOffline.ketThucKhiCoMang(this)   // có mạng lại ⇒ hết lượt mở bằng mã (Ba Mẹ lại quyết bằng luật online)
             // nhiệm vụ / lời nhắn mới ⇒ thông báo (tạm thay FCM); lời xin thêm giờ đang chờ ⇒ Ba Mẹ trả lời thì báo — luồng riêng, không chặn vòng thực thi
             HocVien.chayNen(this)
@@ -448,6 +465,13 @@ class DichVuNhip : Service() {
             } catch (e: MayChu.Loi) { if (e.http == 404) vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp(vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin.HET_HAN, null) else null } catch (_: Exception) { null }
         }
 
+        /** #337: luật theo bé đang dùng — nhịp cuối của bé khác (máy chung đổi bé lúc mất mạng) ⇒ gói mất mạng của bé này / khoá chờ mạng. */
+        private fun luatTheoBe(k: Kho, ph: PhanHoiNhip, a: PinMay.AnhCong): LuatBe =
+            if (k.cheDoThu) LuatBe.NhipCuoi
+            else a.nd?.conId?.takeIf { a.cong == Cong.CON }.let { con ->
+                chonLuatBe(con, a.hs?.mayRieng == false, ph.chinhSach.conId, con?.let { docGoiOffline(k.goiOffline)[it] })
+            }
+
         /** Khoá ghi sổ phút theo bé (vòng nhịp và «Đổi người» trên luồng giao diện). */
         private val KHOA_SO = Any()
         /** Khoá gửi dong-bo (một lượt một lúc). */
@@ -491,10 +515,12 @@ class DichVuNhip : Service() {
         fun chotPhut(ctx: Context) {
             val k = Kho(ctx)
             if (k.cheDoThu) return
-            val cs = k.phanHoi?.let { try { docPhanHoiNhip(it).chinhSach } catch (_: Exception) { null } } ?: return
-            if (cs.sao == null) return
+            val ph = k.phanHoi?.let { try { docPhanHoiNhip(it) } catch (_: Exception) { null } } ?: return
             val nowMay = System.currentTimeMillis()
             val a = PinMay.anh(k, nowMay)
+            // #337: luật của đúng bé đang dùng (gói mất mạng khi nhịp cuối là của bé khác); chưa có luật ⇒ máy đang khoá, không có phút để chốt
+            val cs = when (val l = luatTheoBe(k, ph, a)) { is LuatBe.TuGoi -> l.ph.chinhSach; LuatBe.ChoMang -> return; LuatBe.NhipCuoi -> ph.chinhSach }
+            if (cs.sao == null) return
             ghiSo(k, cs, DoPhut.homNay(ctx, cs.tz, nowMay), a.cong, a.nd?.conId, Instant.ofEpochMilli(nowMay + k.lechGioMs),
                 MoTamOffline.doc(k.moTamOffline).dangMo(nowMay))
             guiDongBo(ctx, k)

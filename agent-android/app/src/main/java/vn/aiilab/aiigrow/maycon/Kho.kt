@@ -73,6 +73,8 @@ class Kho(ctx: Context) {
      *  người dùng nhớ gần nhất (nhịp / hành động tại máy, NguoiDung.json), hạn «Ba Mẹ dùng» mở bằng mã lúc mất mạng (epoch ms),
      *  bộ đếm sai PIN tại máy (DemPin.json), việc tại máy chưa báo máy chủ (ViecCho.json), lúc đổi người dùng tại máy gần nhất. */
     var hoSo: String? get() = p.getString("hoSo", null); set(v) = p.edit().putString("hoSo", v).apply()
+    /** #337: gói luật mất mạng theo bé (máy chung) — `{ <id bé>: <gói như phản hồi nhịp> }` từ ho-so?offline=1 (logic/GoiOffline.kt). */
+    var goiOffline: String? get() = p.getString("goiOffline", null); set(v) = p.edit().putString("goiOffline", v).apply()
     var lanHoSo: Long get() = p.getLong("lanHoSo", 0); set(v) = p.edit().putLong("lanHoSo", v).apply()
     var nguoiDung: String? get() = p.getString("nguoiDung", null); set(v) = p.edit().putString("nguoiDung", v).apply()
     var baMeDen: Long get() = p.getLong("baMeDen", 0); set(v) = p.edit().putLong("baMeDen", v).apply()

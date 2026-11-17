@@ -374,7 +374,8 @@ object GiaoDien {
                     else -> ht.cauCon
                 }
             } else {
-                tieuDe.text = vi ?: tieuDeKhoa(ht.trangThai, ht.coSao)
+                // #337: bé chưa có luật trên máy (mất mạng) — không nói «Ba Mẹ đang khoá máy»
+                tieuDe.text = vi ?: if (ht.cauCon == vn.aiilab.aiigrow.maycon.logic.CAU_CHO_MANG_LUAT) "Máy đang chờ mạng" else tieuDeKhoa(ht.trangThai, ht.coSao)
                 cau.text = if (hetSao) "Còn 0 sao = 0 phút chơi · app học vẫn mở" else ht.cauCon
                 val now = System.currentTimeMillis()
                 dem.text = dongDemNguoc(ht, now); dem.textSize = if (ht.demNguoc > 0 || ht.moLaiLuc > now || hetSao || vi != null) 44f else 24f
