@@ -99,6 +99,12 @@ public static class ManKhoaView
     public static ManKhoa For(string? lyDo, string tenCon, bool offline, string? khoaLuc = null, bool hetSao = false)
     {
         var nut = new List<NutKhoa>();
+        if (lyDo == LockReasons.CanMang)
+        {
+            // #337: máy chung, bé vào lúc mất mạng mà máy chưa có luật của bé ⇒ khoá tới khi có mạng; bé khác còn «Đổi người»
+            nut.Add(new NutKhoa(DoiBe, "Đổi người", "nguoi"));
+            return new ManKhoa("ngu", CanMangTieu(tenCon), CanMangPhu, null, false, null, nut, offline);
+        }
         if (offline)
         {
             if (hetSao)
@@ -113,6 +119,10 @@ public static class ManKhoaView
         nut.Add(new NutKhoa(BaMeDungMay, "Ba Mẹ dùng máy", "khoa"));
         return new ManKhoa("cho", "Ba Mẹ đang khoá máy", khoaLuc ?? "Mở lại là máy báo con ngay", khoaLuc != null ? "Mở lại là máy báo con ngay" : null, false, null, nut, false);
     }
+
+    /// <summary>#337: «Cần có mạng để mở máy cho Bảo Minh».</summary>
+    public static string CanMangTieu(string? tenCon) => string.IsNullOrWhiteSpace(tenCon) ? "Cần có mạng để mở máy" : "Cần có mạng để mở máy cho " + tenCon.Trim();
+    public const string CanMangPhu = "Máy chưa có luật của con — nhờ Ba Mẹ nhập mã, hoặc nối mạng lại nhé.";
 
     // Mất mạng (cmt-khoa-mat-mang, them-dsrf5ift)
     public const string MatMangDau = "Mất mạng, luật vẫn vậy nhé!";

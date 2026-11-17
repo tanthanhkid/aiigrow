@@ -50,6 +50,9 @@ public static class LockReasons
     public const string ChuaPhanLoai = "chua_phan_loai";
     /// <summary>06/11 (L13): máy chưa có ai đăng nhập ⇒ màn «Ai đang dùng máy?» (chọn tên + PIN). Không đếm ngược, không ngắt phiên Windows.</summary>
     public const string ChonTen = "chon_ten";
+    /// <summary>#337: máy chung, bé vào lúc mất mạng mà máy chưa có luật của bé đó (<see cref="LuatTheoBe"/>) ⇒ khoá tới khi có mạng / Ba Mẹ nhập mã.
+    /// Không đếm ngược, không ngắt phiên Windows (bé khác còn «Đổi người» được).</summary>
+    public const string CanMang = "can_mang";
 }
 
 /// <summary>Policy do máy chủ tính sẵn (PLAN.md mục 3). Tác tử chỉ áp và nhớ bản cuối.</summary>
@@ -336,6 +339,8 @@ public sealed class AgentConfig
     /// <summary>AiiGrow 0.2.4: phút chơi khi mất mạng chưa gửi bù (<see cref="PhienOffline"/>) — lưu để dịch vụ khởi động lại vẫn giữ (vẫn chặn app
     /// chơi đã vượt ngưỡng, vẫn gửi bù khi có mạng lại). null = không có gì.</summary>
     public PhienOffline? PhienOffline { get; set; }
+    /// <summary>#337: đoạn chơi offline của bé KHÁC (máy chung đổi bé lúc mất mạng) chờ gửi bù (<see cref="PhienOffline.DoiBe"/>).</summary>
+    public List<PhienOffline> PhienOfflineCho { get; set; } = new();
     /// <summary>AiiGrow 0.2.4 (review PR #59, P2-5): số giây đã chơi phiên <see cref="Policy.PlaySessionId"/> tại máy kể từ khi nhận Policy đang
     /// giữ — về 0 khi có Policy mới. Ngưỡng đoạn offline mới = PlayOfflineMinutes − chừng này.</summary>
     public DaChoiTheoPolicy? DaChoi { get; set; }
@@ -349,6 +354,8 @@ public sealed class AgentConfig
     public QuyDaDem? QuyDem { get; set; }
     /// <summary>06/11 (L13): ai đang dùng máy — bé (chọn tên + PIN) / Ba Mẹ (mã mở máy) / chưa ai (màn chọn tên). Thiếu (cấu hình cũ) ⇒ chưa ai.</summary>
     public DangNhapMay DangNhap { get; set; } = new();
+    /// <summary>#337: luật của TỪNG bé máy chung (ho-so?offline=1 › con[].offline) — đổi bé lúc mất mạng dùng đúng luật bé đó (<see cref="LuatTheoBe"/>).</summary>
+    public Dictionary<string, GoiLuatBe> GoiLuatBe { get; set; } = new();
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

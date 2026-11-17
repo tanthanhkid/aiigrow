@@ -156,9 +156,12 @@ public sealed class ApiClient : IDisposable
 
     // ---- 06/11 (L13 — docs/API.md mục «S3»): máy dùng chung — chọn tên + PIN, quên PIN, Ba Mẹ nhập mã, đổi bé / khoá lại
 
-    /// <summary>GET ho-so — «Ai đang dùng máy?» (danh sách bé + vân PIN để kiểm lúc mất mạng).</summary>
+    /// <summary>GET ho-so — «Ai đang dùng máy?» (danh sách bé + vân PIN để kiểm lúc mất mạng). #337: luôn xin kèm luật của từng bé
+    /// (`?offline=1` — máy chung có `con[].offline`; máy chủ cũ / máy riêng bỏ qua).</summary>
     public async Task<HoSoMay> HoSoAsync(CancellationToken ct = default)
-        => Deserialize<HoSoMay>(await SendAsync(HttpMethod.Get, "api/device/ho-so", null, ct));
+        => Deserialize<HoSoMay>(await SendAsync(HttpMethod.Get, DuongHoSo, null, ct));
+
+    public const string DuongHoSo = "api/device/ho-so?offline=1";
 
     /// <summary>POST dang-nhap-be {con, pin?} → {phienCon, con, coPin, canDatPin?}. Sai ⇒ ApiException pin_sai (conLan) / pin_tam_khoa (choGiay) / can_pin / khong_thay.</summary>
     public Task<DangNhapBeKq> DangNhapBeAsync(string con, string? pin, CancellationToken ct = default)

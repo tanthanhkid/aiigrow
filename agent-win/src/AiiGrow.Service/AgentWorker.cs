@@ -183,6 +183,14 @@ public sealed class AgentWorker : BackgroundService
             await _nd.TruocDongBoAsync(api, ct);
             var guiLuc = DateTimeOffset.Now;
             // 0.2.4: có phút chơi khi mất mạng chưa gửi ⇒ gửi phien/bu TRƯỚC dong-bo (máy chủ đo thời gian thật từ nhịp cuối).
+            // #337: đoạn chơi offline của bé khác (đổi bé lúc mất mạng) — gửi bù từng đoạn, kèm đúng bé
+            foreach (var cho in _rt.DoanChoBu())
+            {
+                var (kqCho, loiCho) = await GuiBu.GuiAsync(api, cho, ct);
+                if (kqCho == KetQuaBu.DaGui) _log.LogInformation("Đã gửi bù {phut} phút chơi khi mất mạng của bé {con} (phiên {id})", cho.PhutChoi, cho.Con, cho.PhienId);
+                else if (kqCho == KetQuaBu.Bo) _log.LogWarning("Bỏ gửi bù phút offline (phiên {id}): máy chủ từ chối {code} {m}", cho.PhienId, loiCho?.StatusCode, loiCho?.Message);
+                _rt.GhiKetQuaBu(cho, kqCho);
+            }
             var doan = _rt.DoanCanBu();
             var status = _rt.BuildStatus(active);
             var boiMa = _rt.BoiMaTheoBe();   // 15/11: phút «Tính phút» lúc mở bằng mã THEO BÉ — máy chủ không trừ sao đúng bé (boiMaCon)
