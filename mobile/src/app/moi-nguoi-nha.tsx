@@ -156,7 +156,7 @@ export default function MoiNguoiNha() {
         </View>
         {/* bàn .cho: viên đào cao 36, chấm cam có quầng, chữ nâu 14/800 */}
         <View style={[{ alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: M.canhSoft, marginTop: 4 }, KHOI.nho]}>
-          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#e2660f", boxShadow: "0 0 0 4px rgba(226,102,15,.2)" }} />
+          <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: M.badge, boxShadow: "0 0 0 4px rgba(255,117,31,.2)" }} />
           <Chu kieu="rat" co={14} mau={M.canh}>{`Đang chờ ${ai} bấm vào`}</Chu>
         </View>
         <BaoLoi loi={loi} />
