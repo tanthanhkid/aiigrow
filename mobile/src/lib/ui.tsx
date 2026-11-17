@@ -540,10 +540,12 @@ function NutChat() {
 }
 
 /** Bảng trượt từ đáy (kit .phu + .bang-truot): nền phía sau tối mờ, bấm nền để đóng. */
-export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, chan, cuon, gon, nutDong }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
+export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, hinhPhu, hinhDao, chan, cuon, gon, nutDong }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
   /** chữ «Đóng» cùng hàng tiêu đề, bên phải (bàn them-bwlkjyw5 v15 `.dong`) */ nutDong?: boolean;
   /** khối đứng TRÊN tiêu đề (vd ô hình to của bảng «Trao quà») */ dauBang?: ReactNode; /** tiêu đề canh giữa */ giua?: boolean;
   /** thiết kế 14/11 .sheet .hinh: ô ngọc nhạt 76 bo 26 + icon 3D 48 giữa, tiêu đề 23/800 canh giữa */ hinh?: TenIcon;
+  /** (cùng `hinh`) icon 3D nhỏ góc dưới phải ô hình (vd ổ khoá của «Khoá <máy>?») */ hinhPhu?: TenIcon;
+  /** (cùng `hinh`) ô hình nền đào thay ngọc (bảng «Gỡ <máy>?») */ hinhDao?: boolean;
   /** #306: bảng NHIỀU ô — cao tối đa 95% màn hình (co lại khi bàn phím mở), nội dung cuộn trong bảng. Mặc định tắt: bố cục như cũ (không lồng cuộn với bánh xe…). */ cuon?: boolean;
   /** (cùng `cuon`) khối ghim ở ĐÁY bảng, không cuộn theo nội dung (nút chính) */ chan?: ReactNode;
   /** (cùng `cuon`) khoảng cách 8, lề đáy 20 */ gon?: boolean }) {
@@ -552,8 +554,11 @@ export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, chan,
     <>
       {dauBang}
       {hinh ? (
-        <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: "#e2efea",
-          backgroundImage: "linear-gradient(#d6e9e2, #eef4f1)", ...KHOI.the }}><Icon3D ten={hinh} co={48} /></View>
+        <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: hinhDao ? "#fbe5ce" : "#e2efea",
+          backgroundImage: hinhDao ? "linear-gradient(#f9dcc0, #fdeedd)" : "linear-gradient(#d6e9e2, #eef4f1)", ...KHOI.the }}>
+          <Icon3D ten={hinh} co={48} />
+          {hinhPhu ? <View style={{ position: "absolute", right: -6, bottom: -6 }}><Icon3D ten={hinhPhu} co={28} /></View> : null}
+        </View>
       ) : null}
       {nutDong ? (
         <View style={{ flexDirection: "row", alignItems: "center", marginTop: 4 }}>

@@ -1,5 +1,5 @@
 // them-1016dwpz «Máy cả nhà · chi tiết» (thiết kế chốt 15/11, #267): một máy chung nhiều bé — thẻ «<bé> đang dùng» (app · phút hôm nay trên máy
-// này · sao còn = phút chơi, nút «Đổi người» — cách đổi trên máy), «Sao của từng bé · luật đi theo bé» (số dư từng bé, âm = đang nợ), «Khoá»:
+// này · sao còn = phút chơi, nút «Đổi người» — bảng them-jjrfg2hs: 3 bước đổi trên máy), «Sao của từng bé · luật đi theo bé» (số dư từng bé, âm = đang nợ), «Khoá»:
 // theo máy (POST may/:id/khoa — mọi bé, them-tmezw761) · theo bé (POST con/:id/khoa — mọi máy của bé, máy chung chỉ khoá phần của bé, them-sll7clha).
 // Dữ liệu: GET may/:id/con + GET tuan-thu (máy khác) + GET phien-dang (app đang mở). Mở từ thẻ sân của màn máy (bm2-may-m1).
 import { useState } from "react";
@@ -13,7 +13,7 @@ import {
   appTrenMay, AvtCon, BangKhoaTheoMay, conCuaMay, mayCuaCon, nganTen as ngan, DauHaiDong, keDau, laMayChung, MucPhai, SaoNho, TheDs, type ConCuaMay, type ConMay,
 } from "@/lib/may-nhieu-con";
 import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
-import { BangTruot, BaoLoi, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, TickDong, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BangTruot, BaoLoi, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 
 
 export default function MayChiTiet() {
@@ -74,7 +74,7 @@ export default function MayChiTiet() {
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="rat" co={16} dong={2}>{dangDung ? `${tenGoi(dangDung.ten)} đang dùng` : "Chưa bé nào đang dùng"}</Chu>
             <Chu kieu="dam7" co={12.5} mau={M.chinhInk} dong={2}>
-              {dangDung ? `● ${app ? `${app.tenApp} · Tính phút` : cm.dangDung?.tu ? `vào máy lúc ${gioPhut(cm.dangDung.tu)}` : "đang dùng"}` : "Bé chọn tên + nhập PIN để vào máy"}
+              {dangDung ? `● ${app ? `${app.tenApp}${cm.dangDung?.tu ? ` từ ${gioPhut(cm.dangDung.tu)}` : ""} · Tính phút` : cm.dangDung?.tu ? `vào máy lúc ${gioPhut(cm.dangDung.tu)}` : "đang dùng"}` : "Bé chọn tên + nhập PIN để vào máy"}
             </Chu>
           </View>
           {gan.length >= 2 ? (
@@ -99,7 +99,8 @@ export default function MayChiTiet() {
 
       {gan.length ? <>
         <MucPhai chu="Sao của từng bé" phai="luật đi theo bé" />
-        <TheDs>{gan.map(dongBe)}</TheDs>
+        {/* bé đang dùng lên đầu (thiết kế them-1016dwpz) */}
+        <TheDs>{[...gan].sort((a, b) => Number(b.dangDung) - Number(a.dangDung)).map(dongBe)}</TheDs>
       </> : null}
 
       <MucPhai chu="Khoá" />
@@ -139,14 +140,23 @@ export default function MayChiTiet() {
             dungChung: laMayChung(x), conKhac: conCuaMay(x, caNha).filter((c) => c.id !== be.id).map((c) => tenGoi(c.ten)) }))}
           dang={app && dangDung?.id === be.id ? { [id]: { chu: `● ${app.tenApp} · đang mở`, mo: true } } : undefined} xong={xong} />
       ) : null}
+      {/* them-jjrfg2hs «Đổi người trên máy»: 3 bước làm TRÊN máy (bé chọn tên + PIN) — app Ba Mẹ không đổi người từ xa */}
       <BangTruot mo={mo === "doi"} dong={() => setMo(null)} tieu="Đổi người trên máy" hinh="nguoi">
-        <View style={{ paddingHorizontal: 4 }}>
-          <TickDong chu={`Trên ${tenNgan}, bấm tên bé ở góc màn hình › «Đổi người»`} />
-          <TickDong chu="Bé kia chọn tên mình, nhập PIN" />
-          <TickDong chu="Phút của bé trước dừng tính ngay, sao trừ đúng bé đang dùng" />
-        </View>
-        <Chu co={13} mau={M.chu3}>Bé quên PIN thì xin Ba Mẹ đặt lại trong hồ sơ bé.</Chu>
-        <Nut chu="Đã hiểu" loai="vien" rong bam={() => setMo(null)} />
+        <Chu kieu="dam" co={13.5} mau={M.chu2} style={{ textAlign: "center", marginTop: -4, lineHeight: 19 }}>{`Bé khác muốn dùng ${tenNgan} thì làm 3 bước trên máy đó.`}</Chu>
+        <TheDs>
+          {([["may_tinh", "1. Bấm tên bé ở góc màn hình", dangDung ? `${tenGoi(dangDung.ten)} đang dùng · chạm «Đổi người»` : "Chạm «Đổi người»"],
+            ["nguoi", "2. Bé kia chọn tên, nhập PIN", "PIN 4 số do Ba Mẹ đặt"],
+            ["sao", "3. Phút của bé trước dừng ngay", "Sao trừ đúng bé đang chơi"]] as const).map(([ic, tieu, phu], k) => (
+            <View key={ic} style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 58 }, keDau(k)]}>
+              <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={22} /></View>
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Chu kieu="rat" co={14.5}>{tieu}</Chu>
+                <Chu kieu="dam" co={12} mau="#565c59">{phu}</Chu>
+              </View>
+            </View>
+          ))}
+        </TheDs>
+        <Nut chu="Xong" rong bam={() => setMo(null)} />
       </BangTruot>
     </Man>
   );
