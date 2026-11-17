@@ -37,6 +37,9 @@ public sealed class HoSoBe
     public int? ChoGiay { get; set; }
     /// <summary>15/11 (#267, ho-so.con[].sao): số dư sao của bé (âm khi nợ) — màn chọn tên «sao tính riêng từng con». null = máy chủ cũ.</summary>
     public int? Sao { get; set; }
+    /// <summary>#337 (ho-so?offline=1, máy chung): luật của bé này — y như phản hồi dong-bo khi bé đăng nhập. Dịch vụ tách vào
+    /// <see cref="AgentConfig.GoiLuatBe"/> rồi bỏ khỏi đây (<see cref="LuatTheoBe.Gop"/>).</summary>
+    public JsonElement? Offline { get; set; }
 }
 
 public sealed class HoSoDangDung
@@ -63,6 +66,8 @@ public sealed class HoSoMay
     public HoSoBaMe? BaMeDung { get; set; }
     public int PinSaiToiDa { get; set; } = DangNhapView.PinSaiToiDa;
     public int PinChoGiay { get; set; } = DangNhapView.PinChoGiay;
+    /// <summary>#337: lúc máy chủ dựng các gói <see cref="HoSoBe.Offline"/>.</summary>
+    public DateTimeOffset? OfflineLuc { get; set; }
 
     /// <summary>Bản gửi sang khay: bỏ vân PIN (khay là tiến trình của Con).</summary>
     public HoSoMay ChoKhay() => new()
@@ -344,6 +349,32 @@ public static class DangNhapView
     /// <paramref name="hoiLuc"/> = lần hỏi gần nhất trong bộ nhớ dịch vụ (null ⇒ theo lúc danh sách được lưu).</summary>
     public static bool CanHoiHoSo(DangNhapMay d, DateTimeOffset now, DateTimeOffset? hoiLuc = null)
         => d.HoSo == null || (hoiLuc ?? d.HoSoLuc) is not { } l || now - l > TimeSpan.FromMinutes(HienTai(d, now) == LoaiNguoiDung.Chua ? 2 : 30) || l > now.AddMinutes(1);
+
+    // ------------------------------------------------------------------ #339: Ba Mẹ đổi gán máy
+
+    /// <summary>`dsCon` (id bé được gán máy) trong phản hồi dong-bo / nhip. Máy chủ cũ (không có) ⇒ null.</summary>
+    public static List<string>? DocDsCon(string? raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        try
+        {
+            using var doc = JsonDocument.Parse(raw);
+            if (doc.RootElement.ValueKind != JsonValueKind.Object || !doc.RootElement.TryGetProperty("dsCon", out var ds) || ds.ValueKind != JsonValueKind.Array) return null;
+            return ds.EnumerateArray().Select(x => x.ValueKind switch { JsonValueKind.String => x.GetString() ?? "", JsonValueKind.Number => x.GetRawText(), _ => "" })
+                .Where(x => x.Length > 0).ToList();
+        }
+        catch (JsonException) { return null; }
+    }
+
+    /// <summary>So `dsCon` của máy chủ với danh sách bé đang nhớ: lệch ⇒ <c>TaiLai</c> (hỏi lại ho-so ngay, không chờ 30 phút);
+    /// bé đang dùng không còn được gán ⇒ <c>DayRa</c> (về màn chọn tên ngay). <paramref name="ds"/> null (máy chủ cũ) ⇒ không làm gì.</summary>
+    public static (bool TaiLai, bool DayRa) SoDsCon(DangNhapMay d, IReadOnlyCollection<string>? ds, DateTimeOffset now)
+    {
+        if (ds == null) return (false, false);
+        var dayRa = HienTai(d, now) == LoaiNguoiDung.Con && !ds.Contains(d.ConId!);
+        var taiLai = d.HoSo == null || !d.HoSo.Con.Select(c => c.Id).ToHashSet().SetEquals(ds);
+        return (taiLai, dayRa);
+    }
 
     // ------------------------------------------------------------------ chữ trên màn
 

@@ -34,6 +34,8 @@ public sealed class PhienOffline
     /// <summary>Giờ máy lúc bắt đầu / lần cuối đếm (chỉ để máy chủ ghi; máy chủ tự kẹp theo đồng hồ của nó).</summary>
     public DateTimeOffset? BatDau { get; set; }
     public DateTimeOffset? KetThuc { get; set; }
+    /// <summary>#337: bé đã chơi đoạn này (máy chung; null = máy riêng / không rõ) — gửi kèm phien/bu để máy chủ ghi đúng bé khi phiên chưa có trên máy.</summary>
+    public string? Con { get; set; }
 
     [JsonIgnore] public double PhutChoi => Math.Round(GiayChoi / 60.0, 1);
     /// <summary>Có gì để gửi bù: đã chơi, hoặc đã vượt ngưỡng (báo máy chủ đóng phiên).</summary>
@@ -55,16 +57,18 @@ public sealed class PhienOffline
     /// vẫn ghi ngưỡng cũ). → <c>Luu</c> = nên ghi đĩa ngay (đoạn mới / vừa hết hạn / mỗi 30 giây).
     /// </summary>
     /// <param name="boiMa">Máy đang mở bằng mã offline ⇒ giây đếm vào <see cref="GiayBoiMa"/> (không trừ sao, không tiêu ngưỡng).</param>
+    /// <param name="con">#337: bé đang dùng (máy chung). Đoạn chưa gửi của bé KHÁC không bị thay (phút của bé trước không mất khi đổi bé lúc mất mạng).</param>
     public static (PhienOffline? Doan, bool Luu) Dem(PhienOffline? doan, Policy? p, bool offline, bool dangChoi,
-        double giayDonDieu, double daChoiGiay, DateTimeOffset now, bool boiMa = false)
+        double giayDonDieu, double daChoiGiay, DateTimeOffset now, bool boiMa = false, string? con = null)
     {
         if (!offline || p?.PlaySessionId == null || p.PlayApp == null) return (doan, false);
         bool luu = false;
+        if (doan != null && doan.PhienId != p.PlaySessionId && doan.CanGui && doan.Con != null && doan.Con != con) return (doan, false);
         if (doan == null || doan.PhienId != p.PlaySessionId)
         {
             // đoạn cũ của phiên khác chưa gửi được thì giữ phiên mới (Policy cuối là sự thật mới nhất); phút của đoạn cũ bỏ (máy chủ đã chốt phiên đó)
             var gioi = Math.Max(0, (p.PlayOfflineMinutes ?? 0) - Math.Max(0, daChoiGiay) / 60.0);
-            doan = new PhienOffline { PhienId = p.PlaySessionId, Muc = p.PlayApp, Web = p.PlayWeb, GioiHanPhut = gioi, HetHan = gioi <= 0 };
+            doan = new PhienOffline { PhienId = p.PlaySessionId, Muc = p.PlayApp, Web = p.PlayWeb, GioiHanPhut = gioi, HetHan = gioi <= 0, Con = con };
             luu = true;
         }
         if (doan.HetHan || !dangChoi || !(giayDonDieu > 0)) return (doan, luu);
@@ -102,9 +106,10 @@ public sealed class PhienOffline
     /// <summary>Thân <c>POST api/device/phien/bu</c> (server/lib/may-con.ts › BuVao). <c>ketThuc</c> = true ⇒ máy chủ đóng phiên.</summary>
     /// 15/11: đoạn chỉ có phút lúc mở bằng mã ⇒ `boiMa: true` (máy chủ ghi phút, không trừ sao); đoạn lẫn lộn ⇒ chỉ gửi phần thường (phút mở bằng mã
     /// đã ở `usage` + `boiMaCon` của dong-bo).
+    /// #337: kèm `con` (bé đã chơi) — máy chủ ghi cho chủ phiên `id` nếu phiên có trên máy, không thì cho `con`.
     public object TaoBu() => GiayChoi <= 0 && GiayBoiMa > 0
-        ? new { ma = Ma, id = PhienId, muc = Muc, phut = Math.Round(GiayBoiMa / 60.0, 1), batDau = BatDau, ketThuc = HetHan, boiMa = true }
-        : new { ma = Ma, id = PhienId, muc = Muc, phut = PhutChoi, batDau = BatDau, ketThuc = HetHan, boiMa = false };
+        ? new { ma = Ma, id = PhienId, muc = Muc, phut = Math.Round(GiayBoiMa / 60.0, 1), batDau = BatDau, ketThuc = HetHan, boiMa = true, con = Con }
+        : new { ma = Ma, id = PhienId, muc = Muc, phut = PhutChoi, batDau = BatDau, ketThuc = HetHan, boiMa = false, con = Con };
 
     /// <summary>Chọn bản giữ khi nạp lại cấu hình từ đĩa: cùng mã ⇒ bản đếm được nhiều hơn (đĩa ghi 30 giây/lần); khác ⇒ bản trong bộ nhớ (mới hơn).</summary>
     public static PhienOffline? Chon(PhienOffline? boNho, PhienOffline? dia)

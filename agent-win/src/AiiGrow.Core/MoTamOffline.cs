@@ -133,5 +133,5 @@ public sealed class MoTamOffline
     }
 
     /// <summary>Lý do khoá nào mã offline gỡ được (để màn khoá biết có nên hiện ô nhập mã).</summary>
-    public static bool MoDuocKhoa(string? reason) => reason is LockReasons.HetGio or LockReasons.Ngu or LockReasons.Khoa;
+    public static bool MoDuocKhoa(string? reason) => reason is LockReasons.HetGio or LockReasons.Ngu or LockReasons.Khoa or LockReasons.CanMang;
 }
