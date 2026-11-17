@@ -685,6 +685,13 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-may-chi-tiet (Máy cả nhà)", "/may/m4/chi-tiet", "Sao của từng bé", { kb: MAY_CHUNG }),
     M("bm-may-them (2 bé · chon-loai)", "/may/them?con=c1", "Máy dùng chung · 2 bé", { truoc: async () => { await di("/may/them?con=c1"); await doi("Thêm con");
       await nhanChuot(await viTriYen(`() => document.querySelectorAll('[role="checkbox"]')[1]`)); } }),
+    // #325 bm-may-con: đổi tên (them-tw6apkag máy bảo vệ · them-4e4o5c72 máy chưa bảo vệ), gỡ (them-v4ovqk42), sửa (them-slv33bgc), đổi người (them-jjrfg2hs)
+    M("bm-may-doi-ten (Máy cả nhà · tw6apkag)", "/may/m4/doi-ten", "Ba Mẹ sẽ thấy máy thế này", { kb: MAY_CHUNG }),
+    M("bm-may-doi-ten (iPad · 4e4o5c72)", "/may/m2/doi-ten", "Lưu tên máy", { kb: MAY_CHUNG }),
+    M("bm-may-go (Máy cả nhà · v4ovqk42)", "/may/m4", "Ghép lại lúc nào cũng được", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Gỡ máy này"); await bam("Gỡ máy này"); } }),
+    M("bm-may-go (iPad · 18q14mik)", "/may/m2", "Ghép lại lúc nào cũng được", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m2"); await doi("Gỡ máy này"); await bam("Gỡ máy này"); } }),
+    M("bm-may-sua (iPad · slv33bgc)", "/may/m2/sua", "Đã làm xong, kiểm tra lại", { kb: MAY_CHUNG }),
+    M("bm-may-doi-nguoi (jjrfg2hs)", "/may/m4/chi-tiet", "Phút của bé trước dừng ngay", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4/chi-tiet"); await doi("Đổi người"); await bam("Đổi người"); } }),
     M("bm-may-ghep (máy chung 2 bé)", "/thiet-lap/ghep?con=c1&conDs=c1,c2&nguon=them", "Ghép máy chung · 2 bé"),
     M("bm-may-moi (máy chung đã ghép)", "/thiet-lap/da-ghep?con=c1&may=m4&nguon=them", "Luật đi theo bé đang dùng", { kb: MAY_CHUNG }),
     M("bm-trang (bảng khoá máy · bỏ chọn iPad)", "/hom-nay", "Khoá máy tới", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy");
@@ -1600,15 +1607,16 @@ await kichBan("Lần đầu · Giờ chơi (#306): quà khởi đầu −/+ bư�
   xet(j.saoKhoiDau === 200 && j.gioiHan?.ngayThuong === 115 && j.gioiHan?.cuoiTuan === 150 && j.gioiHan?.moiLuot === 0, "nhớ 200 sao · ngày 115 · cuối tuần 150 · Không cần nghỉ = 0");
 });
 
-await kichBan("Đổi tên máy: mở từ màn máy, gửi POST may/m1/doi-ten, báo kết quả; nút tắt khi chưa đổi", async () => {
+await kichBan("Đổi tên máy (them-tw6apkag): mở màn đổi tên từ màn máy, gửi POST may/m1/doi-ten tên đã chuẩn hoá, quay về màn máy", async () => {
   await di("/may/m1");
   xet(await doi("Đổi tên máy"), "màn máy có «Đổi tên máy»");
   await bam("Đổi tên máy");
-  xet(await doi("Lưu tên máy"), "mở bảng Đổi tên máy");
+  xet(await doi("Ba Mẹ sẽ thấy máy thế này"), "mở màn Đổi tên máy");
+  nhatKy.length = 0;
   await go("Tên máy", "  Máy   học bài ");
   await bam("Lưu tên máy");
-  xet(await doi("Đã đổi tên máy thành Máy học bài"), "báo đã đổi tên máy");
-  xet(nhatKy.some((x) => x.d === "may/m1/doi-ten" && x.m === "POST" && x.body?.ten === "Máy học bài"), "gửi tên máy đã chuẩn hoá");
+  xet(await choGoi((x) => x.d === "may/m1/doi-ten" && x.m === "POST" && x.body?.ten === "Máy học bài"), "gửi tên máy đã chuẩn hoá");
+  xet(await doi("Gỡ tại máy"), "lưu xong quay về màn máy");
 });
 
 // ---------------------------------------------------------------- #267 một máy nhiều Con (docs/API.md mục #267)
@@ -1618,7 +1626,7 @@ await kichBan("#267 Máy trong nhà: máy chung «2 bé · đang dùng: Bill», 
   xet(await doi("Máy cả nhà"), "hiện máy chung «Máy cả nhà»");
   xet(await doi("2 bé · đang dùng: Bill"), "máy chung: 2 bé + bé đang dùng");
   xet(await doi("Máy riêng"), "máy riêng có nhãn «Máy riêng»");
-  xet(await doi("Roblox · đang mở"), "app đang mở trên máy chung");
+  xet(await doi("Roblox từ "), "app đang mở trên máy chung (từ giờ bé vào máy)");
   xet(await doi("còn 25 sao = 25 phút chơi"), "sao bé đang dùng = phút chơi");
   await bamChon('[role="tab"][aria-label="Bill"]');
   await sleep(400);

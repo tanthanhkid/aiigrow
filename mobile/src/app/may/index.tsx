@@ -149,7 +149,7 @@ function TheMay({ m, con, app, sao }: { m: TuanThuMay; con: ConNganMay[]; app: s
             </> : <>
               {ok && (app || ai) ? (
                 <Chu kieu="dam7" co={12.5} mau={chuTt} dong={1}>
-                  <Chu kieu="rat" co={12.5} mau={M.chinh}>● </Chu>{ai ? <Chu kieu="rat" co={12.5} mau={chuTt}>{tenGoi(ai.ten)}</Chu> : null}{app ? `${ai ? " · " : ""}${app} · đang mở` : " · đang dùng"}
+                  <Chu kieu="rat" co={12.5} mau={M.chinh}>● </Chu>{ai ? <Chu kieu="rat" co={12.5} mau={chuTt}>{tenGoi(ai.ten)}</Chu> : null}{app ? `${ai ? " · " : ""}${app}${m.dangDung?.tu ? ` từ ${gioPhut(m.dangDung.tu)}` : " · đang mở"}` : " · đang dùng"}
                 </Chu>
               ) : <Chu kieu="dam7" co={12.5} mau={chuTt} dong={2}>{cauTrangThai(m)}</Chu>}
               {ai && s != null ? (

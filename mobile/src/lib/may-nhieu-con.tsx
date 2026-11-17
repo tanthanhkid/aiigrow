@@ -39,6 +39,8 @@ export const mayCuaCon = (m: Pick<TuanThuMay, "con" | "dungChung" | "conDs">, co
 export const laMayChung = (m: Pick<TuanThuMay, "con" | "dungChung" | "conDs" | "soCon">) => (m.soCon ?? m.conDs?.length ?? (m.con ? 1 : m.dungChung ? 2 : 0)) >= 2;
 
 /** Tên máy bỏ hậu tố « · <hệ điều hành>» agent cũ gắn («Laptop của Bảo Anh · Windows 11» ⇒ «Laptop của Bảo Anh»). */
+/** tên gọi của bé (2 chữ cuối) — như hang-ngay › tenGoi (không nhập để tránh vòng nhập hang-ngay ↔ tệp này) */
+const tenGoiCon = (ten: string) => ten.trim().split(/\s+/).slice(-2).join(" ");
 export const nganTen = (t: string) => t.replace(/ · .*$/, "");
 /** Tên gốc để so khớp (bỏ cả « của <bé>»): «Laptop của Bảo Anh · Windows 11» ⇒ «Laptop». */
 export const tenGocMay = (t: string) => nganTen(t).replace(/ của .*$/, "");
@@ -148,18 +150,19 @@ export function BangKhoaTheoMay({ mo, dong, may, con, dangDung, app, khac, xong 
   const chung = con.length >= 2;
   const ngan = may.ten;
   return (
-    <BangTruot mo={mo} dong={dong} hinh={hinhMay(may.nen, chung)} tieu={`Khoá ${ngan}?`}>
+    <BangTruot mo={mo} dong={dong} hinh={hinhMay(may.nen, chung)} hinhPhu="khoa" tieu={`Khoá ${ngan}?`}>
       <Chu kieu="dam" mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>
         {`${chung ? "Khoá cho mọi bé dùng máy này" : "Khoá máy này"}${app ? ` · ${app} sẽ đóng` : ""}`}
       </Chu>
       {con.length ? <>
         <Chu kieu="rat" co={14} mau="#3a403d" style={{ marginHorizontal: 6 }}>{`Trên ${ngan}`}</Chu>
         <TheDs>
-          {con.map((c, k) => (
+          {/* bé đang dùng lên đầu (thiết kế them-tmezw761) */}
+          {[...con].sort((a, b) => Number(b.id === dangDung) - Number(a.id === dangDung)).map((c, k) => (
             <View key={c.id} style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60 }, keDau(k)]}>
               <AvtCon c={c} co={36} />
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Chu kieu="rat" dong={1}>{c.ten}</Chu>
+                <Chu kieu="rat" dong={1}>{tenGoiCon(c.ten)}</Chu>
                 {c.id === dangDung
                   ? <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}><Chu kieu="rat" co={12.5} mau={M.chinh}>● Đang dùng</Chu>{app ? ` · ${app}` : ""}</Chu>
                   : <Chu kieu="dam" co={12.5} mau="#565c59" dong={1}>Không vào được máy này</Chu>}
