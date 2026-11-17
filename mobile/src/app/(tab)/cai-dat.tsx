@@ -18,7 +18,7 @@ import {
 } from "@/lib/ui";
 
 /** Màu avatar người lớn theo thiết kế (.ng: hồng, nâu, xám xanh…). */
-const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#7ED957", "#b5838d"];
+const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#0c7a5c", "#b5838d"];
 const TEN_NEN = { windows: "Laptop", mac: "MacBook", ios: "iPad", android: "Điện thoại" } as const;
 /** «20/10». */
 const ngayThang = (iso: string) => { const t = new Date(iso); return Number.isNaN(t.getTime()) ? "" : `${t.getDate()}/${t.getMonth() + 1}`; };

@@ -214,12 +214,12 @@ export default function AnToanMay() {
               </View>
             ) : <Chu kieu="rat" co={16} mau={HERO.chu}>{d.conDs.length ? "Chưa bé nào đang dùng" : "Chưa có bé dùng máy"}</Chu>}
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8, rowGap: 2, marginTop: 2 }}>
-              <Chu kieu="rat" co={13} mau={M.chinhInk}>✓ Đang bảo vệ</Chu>
-              <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.7)" }}>
-                <Chu kieu="rat" co={11.5} mau={M.chinhInk}>{chung ? `Máy chung · ${d.conDs.length} bé` : "Máy riêng"}</Chu>
+              <Chu kieu="rat" co={13} mau={M.ok}>✓ Đang bảo vệ</Chu>
+              <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: "#ffffff" }}>
+                <Chu kieu="rat" co={11.5} mau={M.chu}>{chung ? `Máy chung · ${d.conDs.length} bé` : "Máy riêng"}</Chu>
               </View>
             </View>
-            <Chu kieu="dam7" co={12} mau={M.chu3} dong={1}>{`${TEN_NEN[m.nen] ?? m.nen}${!chung && d.ct ? ` · ${cheDo}` : ""}${chung ? " · xem từng bé ›" : ""}`}</Chu>
+            <Chu kieu="dam7" co={12} mau="rgba(255,255,255,0.75)" dong={1}>{`${TEN_NEN[m.nen] ?? m.nen}${!chung && d.ct ? ` · ${cheDo}` : ""}${chung ? " · xem từng bé ›" : ""}`}</Chu>
           </View>
         </Pressable>
       ) : (

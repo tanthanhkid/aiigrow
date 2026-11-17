@@ -248,7 +248,7 @@ export const chuTren = (nen: string) => {
   return 1.05 / (l + 0.05) >= (l + 0.05) / (doSang(M.chu) + 0.05) ? "#ffffff" : M.chu;
 };
 // màu avatar con theo bàn Navy (.av.a/.m/.n/.k): cam, lam, tím, lục — rồi hai màu cũ cho con thứ 5–6
-export const MAU_CON = ["#E8600C", "#1F48FF", "#9b2fc0", "#0f8a68", "#b45309", "#be185d"];
+export const MAU_CON = ["#E8600C", "#1F48FF", "#9b2fc0", "#0c7a5c", "#b45309", "#be185d"];
 export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44, con, anh }: { ten: string; mau?: string; co?: number; /** Con có ảnh đại diện (#302) ⇒ hiện ảnh thay chữ cái */ con?: { id?: string | null; avatar?: string | null } | null; /** ảnh vừa chọn, chưa lưu */ anh?: string | null }) {
   const daLuu = useAnhCon(con);
   const uri = anh ?? daLuu;
