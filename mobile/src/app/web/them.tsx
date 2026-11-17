@@ -1,4 +1,4 @@
-// «Thêm web cho <con>» (thiết kế chốt 15/11 bm-ung-dung/10 them-yzl99l3y — #262): TÌM TRƯỚC, làm hết trong 1 màn. Gõ địa chỉ (vd tiktok.com) ⇒ «Kết quả
+// «Thêm web cho <con>» (bàn bm-ung-dung them-yzl99l3y@v9 — #262): TÌM TRƯỚC, làm hết trong 1 màn. Gõ địa chỉ (vd tiktok.com) ⇒ «Kết quả
 // cho «…»»: chính tên miền đó + tên miền con / tương tự đã biết (bảng dưới + trang con đã vào 30 ngày, GET con/:id/web?ngay=30). Chạm ＋ ⇒ ngay dưới hiện
 // «<trang> có tính phút không?» (Tính phút · Trả bằng sao | Không tính phút · Vào thoải mái) + lưu ý (trang 13+ khi con nhỏ hơn). «Thêm tiktok.com ·
 // Tính phút» ⇒ POST con/:id/danh-sach {ds: [{nhom, muc, kieu: web}]} ⇒ về danh sách Web.
@@ -7,7 +7,8 @@ import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, type ConChiTiet, type ThongKeWeb } from "@/lib/api";
 import { TEN_NHOM, themVaoDs, type Nhom } from "@/lib/app-web";
-import { ChonNhomNgang, DongDen, KhoiNhom, NutCong, OIcon, OTim, icCuaApp, veHoac } from "@/lib/ui-bm3";
+import { ChonNhomNgang, DongDen, KhoiNhom, OTim, icCuaApp, veHoac } from "@/lib/ui-bm3";
+import { NutChon, OIconTrang } from "@/lib/ds-con";
 import { BaoLoi, ChoTai, Chu, M, Man, Nut, useLam, useTai } from "@/lib/ui";
 
 /** Tên miền con / tên miền đi kèm đã biết của các trang hay gặp (mở một trang mà quên trang đi kèm thì con vẫn vào được / vẫn hỏng). */
@@ -69,7 +70,7 @@ export default function ThemWeb() {
   });
   const luuY = (m: string) => {
     const ho = HO[goc(m)], tt = luat.get(m);
-    return [ho?.tuoi && d.tuoi !== null && d.tuoi < ho.tuoi ? `${ho.ten} chỉ dành cho từ ${ho.tuoi} tuổi.` : null,
+    return [ho?.tuoi && d.tuoi !== null && d.tuoi < ho.tuoi ? `${ho.ten} dành cho từ ${ho.tuoi} tuổi.` : null,
       tt === "cho_phep" || tt === "hoc" ? "Trang này đang ở nhóm «Không tính phút»." : tt === "giai_tri" ? "Trang này đang ở nhóm «Tính phút»." : null]
       .filter(Boolean).join(" ");
   };
@@ -77,13 +78,14 @@ export default function ThemWeb() {
     const c = chon.get(t.muc), ly = c ? luuY(t.muc) : "";
     return (
       <View key={t.muc} style={{ paddingBottom: c ? 12 : 0 }}>
-        <DongDen dau={i === 0} tieu={t.muc} phu={t.phu} trai={<OIcon ic={icCuaApp(t.muc)} co={40} />}
-          phai={<View accessibilityRole="checkbox" accessibilityState={{ checked: !!c }}><NutCong chon={!!c} /></View>} bam={() => doi(t)} />
+        <DongDen dau={i === 0} tieu={t.muc} phu={t.phu} trai={<OIconTrang ic={icCuaApp(t.muc)} />}
+          phai={<View accessibilityRole="checkbox" accessibilityState={{ checked: !!c }}><NutChon chon={!!c} /></View>} bam={() => doi(t)} />
         {c ? (
           <View style={{ gap: 6 }}>
-            <Chu kieu="rat" co={13} mau={M.chu2} style={{ marginHorizontal: 2 }}>{`${t.muc} có tính phút không?`}</Chu>
+            <Chu kieu="rat" co={13.5} mau={M.chu2} style={{ marginHorizontal: 2, marginTop: 2 }}>{`${t.muc} có tính phút không?`}</Chu>
             <ChonNhomNgang gia={c.nhom} doi={(x) => datNhom(t, x)} />
-            {ly ? <Chu kieu="dam" co={12.5} mau={M.canh}>{ly}</Chu> : null}
+            {/* lưu ý (bàn them-yzl99l3y@v9 .luu): viên cam nhạt dưới hai ô nhóm */}
+            {ly ? <View style={{ marginTop: 4, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#f9e7d2" }}><Chu kieu="dam" co={12.5} mau="#8a3c0c">{ly}</Chu></View> : null}
           </View>
         ) : null}
       </View>
@@ -92,7 +94,7 @@ export default function ThemWeb() {
   const so = chon.size, mot = so === 1 ? [...chon.values()][0] : null;
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={`Thêm web cho ${d.ten}`} dau={<View style={{ paddingHorizontal: 16, paddingBottom: 6 }}>
-      <OTim gia={go} doi={setGo} goiY="Gõ địa chỉ: vuihoc.vn, tiktok.com…" nhan="Địa chỉ trang web" url />
+      <OTim gia={go} doi={setGo} goiY="Gõ địa chỉ: vuihoc.vn, tiktok.com…" nhan="Địa chỉ trang web" url khongKinh />
     </View>} day={<>
       <BaoLoi loi={loiLam} />
       <Nut chu={mot ? `Thêm ${mot.t.muc} · ${TEN_NHOM[mot.nhom]}` : so ? `Thêm ${so} trang` : "Chọn trang để thêm"} rong dangChay={dangChay} tat={!so} bam={luu} />

@@ -1,4 +1,4 @@
-// «Web của <con>» (thiết kế chốt 15/11 bm-ung-dung/07 bm2-web — #262): lời xin đang chờ, hai nhóm Tính phút / Không tính phút, «Đã bỏ qua N lời xin»
+// «Web của <con>» (bàn bm-ung-dung bm2-web@v15 — #262): lời xin đang chờ, hai nhóm Tính phút / Không tính phút, «Đã bỏ qua N lời xin»
 // — lib/ds-con.tsx › DsMucCon.
 import { useLocalSearchParams } from "expo-router";
 import { DsMucCon } from "@/lib/ds-con";

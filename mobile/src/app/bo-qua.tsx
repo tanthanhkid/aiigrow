@@ -1,4 +1,4 @@
-// «Lời xin đã bỏ qua» (thiết kế chốt 15/11 bm-ung-dung/11 them-1g0mpf21 — thay màn «Luôn chặn», luồng #258): Grow «Bỏ qua là chưa thêm, không ghi gì.
+// «Lời xin đã bỏ qua» (bàn bm-ung-dung them-1g0mpf21@v12 — thay màn «Luôn chặn», luồng #258): Grow «Bỏ qua là chưa thêm, không ghi gì.
 // Con xin lại, hoặc Ba Mẹ bấm «Thêm luôn» để cho ngay.», mỗi lời xin đã bỏ qua (30 ngày) một dòng: icon, tên, «Bảo Anh · hôm qua 20:05», nút «Thêm luôn»
 // ⇒ bảng chọn nhóm (Tính phút / Không tính phút) ⇒ POST yeu-cau/:id/them-luon {nhom}. «Xong, về App & web». ?con= lọc một Con.
 // Đọc: GET yeu-cau/bo-qua[?con=]. Người trông giúp cũng «Thêm luôn» được (máy chủ cho phép như đồng ý lời xin).
@@ -38,12 +38,12 @@ export default function LoiXinBoQua() {
   });
   return (
     <Man lui={{ chu: "", bam: ve }} tieu="Lời xin đã bỏ qua" tai={tai} vongTai noi={noi}>
-      <RobNoi lv="xong" co={92}>
+      <RobNoi lv="cho" co={112}>
         <Chu kieu="rat" co={15}>Bỏ qua là chưa thêm, không ghi gì.</Chu>
         <Chu kieu="dam" co={12.5} mau={M.chu3}>Con xin lại, hoặc Ba Mẹ bấm «Thêm luôn» để cho ngay.</Chu>
       </RobNoi>
       {d.ds.length ? (
-        <View style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
+        <View style={{ marginTop: 4, paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
           {d.ds.map((x, i) => (
             <View key={x.id} style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 66 }, i > 0 && { borderTopWidth: 1.5, borderTopColor: "rgba(0,0,0,0.06)" }]}>
               <OIcon ic={x.kieu === "web" ? "web" : icCuaApp(ten(x))} co={42} />
@@ -59,7 +59,7 @@ export default function LoiXinBoQua() {
           ))}
         </View>
       ) : <CanhGiua lv="canh-trong" tieu="Không có lời xin nào bị bỏ qua" loi="Lời xin Ba Mẹ bỏ qua trong 30 ngày hiện ở đây." />}
-      <Nut chu="Xong, về App & web" rong bam={ve} />
+      <View style={{ marginTop: 10 }}><Nut chu="Xong, về App & web" rong bam={ve} /></View>
 
       <BangTruot mo={!!chon} dong={() => setChon(null)} tieu={chon ? `Thêm ${ten(chon)} cho ${chon.tenCon}` : ""}>
         {chon ? <Chu kieu="rat" co={15} mau={M.chu2}>{`${ten(chon)} có tính phút không?`}</Chu> : null}

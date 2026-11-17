@@ -1,4 +1,4 @@
-// «Con xin mở» app / web (thiết kế chốt 15/11 bm-ung-dung/13 bm2-yeu-cau-web — luồng #258): thẻ app/web + «Bảo Anh xin · 19:20 · Laptop» + «Chờ N′»,
+// «Con xin mở» app / web (bàn bm-ung-dung bm2-yeu-cau-web@v15 — luồng #258): thẻ app/web + «Bảo Anh xin · 19:20 · Laptop» + «Chờ N′»,
 // Grow chuyển lời nhắn của con, «Thêm YouTube cho Bảo Anh?» ba lựa chọn:
 //  · «Tính phút» (nút chính) — thêm vào danh sách · trả bằng sao  ⇒ POST yeu-cau/:id/dong-y {nhom: tinh_phut} ⇒ màn «Đã thêm … · Tính phút» (them-1ypcydle)
 //  · «Không tính phút» — thêm vào danh sách · vào thoải mái         ⇒ dong-y {nhom: khong_tinh_phut}
@@ -41,23 +41,23 @@ export default function YeuCauWeb() {
   });
   return (
     <Man lui={{ chu: "", bam: ve }} tieu="Con xin mở">
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 28, backgroundColor: M.the, ...KHOI.the }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 28, backgroundColor: "#f7f6f3", ...KHOI.the }}>
         <OIcon ic={y.loai === "mo_web" ? "web" : icCuaApp(ten)} co={56} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={20} dong={1}>{ten}</Chu>
           <Chu kieu="dam" co={12.5} mau={M.chu3}>{[`${tenCon} xin`, lucNgan(y.created_at), may?.replace(/ của .*$/, "")].filter(Boolean).join(" · ")}</Chu>
         </View>
-        <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: M.diemSoft, alignSelf: "flex-start" }}>
-          <Chu kieu="rat" co={12.5} mau={M.diemInk}>{`Chờ ${cho}′`}</Chu>
+        <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: "#f9e7d2", alignSelf: "flex-start" }}>
+          <Chu kieu="rat" co={12.5} mau="#8a3c0c">{`Chờ ${cho}′`}</Chu>
         </View>
       </View>
-      <RobNoi co={84}>
+      <RobNoi co={88}>
         <Chu kieu="dam" co={12} mau={M.chu3}>{`${tenCon} nhắn`}</Chu>
         <Chu kieu="dam" co={15}>{y.ly_do ? `«${y.ly_do}»` : `${tenCon} không ghi lý do.`}</Chu>
       </RobNoi>
       {d.xem ? null : (
         <>
-          <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6, marginTop: 4 }}>{`Thêm ${ten} cho ${tenCon}?`}</Chu>
+          <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6, marginTop: 8 }}>{`Thêm ${ten} cho ${tenCon}?`}</Chu>
           <View style={{ gap: 10 }}>
             <NutQuyet loai="x" cham="#f2b218" chu="Tính phút" phu="Thêm vào danh sách · trả bằng sao" dangChay={dangChay} bam={() => them("tinh_phut")} />
             <NutQuyet loai="c" cham="#1f9d6a" chu="Không tính phút" phu="Thêm vào danh sách · vào thoải mái" dangChay={dangChay} bam={() => them("khong_tinh_phut")} />

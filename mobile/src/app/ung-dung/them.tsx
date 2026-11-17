@@ -1,4 +1,4 @@
-// «Thêm app cho <con>» (thiết kế chốt 15/11 bm-ung-dung/04 them-vw103x88 — #262): TÌM TRƯỚC, làm hết trong 1 màn. Ô tìm ở đầu; gõ tên mới hiện
+// «Thêm app cho <con>» (bàn bm-ung-dung them-vw103x88@v8 — #262): TÌM TRƯỚC, làm hết trong 1 màn. Ô tìm ở đầu; gõ tên mới hiện
 // «Kết quả cho «…»» — app THẬT trên các máy của con (GET may/:id/ung-dung) + app Grow gợi ý (GET app-goi-y) khớp tên / tương tự. Chạm ＋ ⇒ ngay dưới
 // app đó hiện «<app> có tính phút không?» (Tính phút · Trả bằng sao | Không tính phút · Vào thoải mái); chọn được nhiều app.
 // «Thêm Minecraft · Tính phút» ⇒ POST con/:id/danh-sach {ds: [{nhom, ma} | {nhom, ten}]} (máy chủ ghi mọi định danh cùng tên trên mọi máy) ⇒ về danh sách App.
@@ -7,7 +7,8 @@ import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { TEN_NHOM, themVaoDs, type Nhom } from "@/lib/app-web";
-import { ChonNhomNgang, DongDen, KhoiNhom, NutCong, OIcon, OTim, icCuaApp, laWeb, luatCuaCon, veHoac, type LuatApp } from "@/lib/ui-bm3";
+import { ChonNhomNgang, DongDen, KhoiNhom, OTim, icCuaApp, laWeb, luatCuaCon, veHoac, type LuatApp } from "@/lib/ui-bm3";
+import { NutChon, OIconTrang } from "@/lib/ds-con";
 import { BaoLoi, ChoTai, Chu, M, Man, Nut, useLam, useTai } from "@/lib/ui";
 
 type GoiY = { ma: string; ten: string; tinhGio: boolean; chon: boolean };
@@ -70,11 +71,11 @@ export default function ThemApp() {
     const c = chon.get(u.k);
     return (
       <View key={u.k} style={{ paddingBottom: c ? 12 : 0 }}>
-        <DongDen dau={i === 0} tieu={u.ten} phu={u.phu} trai={<OIcon ic={icCuaApp(`${u.ten} ${u.muc}`)} anh={u.anh} co={40} />}
-          phai={<View accessibilityRole="checkbox" accessibilityState={{ checked: !!c }}><NutCong chon={!!c} /></View>} bam={() => doi(u)} />
+        <DongDen dau={i === 0} tieu={u.ten} phu={u.phu} trai={<OIconTrang ic={icCuaApp(`${u.ten} ${u.muc}`)} anh={u.anh} />}
+          phai={<View accessibilityRole="checkbox" accessibilityState={{ checked: !!c }}><NutChon chon={!!c} /></View>} bam={() => doi(u)} />
         {c ? (
           <View style={{ gap: 6 }}>
-            <Chu kieu="rat" co={13} mau={M.chu2} style={{ marginHorizontal: 2 }}>{`${u.ten} có tính phút không?`}</Chu>
+            <Chu kieu="rat" co={13.5} mau={M.chu2} style={{ marginHorizontal: 2, marginTop: 2 }}>{`${u.ten} có tính phút không?`}</Chu>
             <ChonNhomNgang gia={c.nhom} doi={(x) => datNhom(u, x)} />
           </View>
         ) : null}
@@ -84,7 +85,7 @@ export default function ThemApp() {
   const so = chon.size, mot = so === 1 ? [...chon.values()][0] : null;
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={`Thêm app cho ${d.ten}`} dau={<View style={{ paddingHorizontal: 16, paddingBottom: 6 }}>
-      <OTim gia={tim} doi={setTim} goiY="Gõ tên app: Minecraft, Zalo…" nhan="Tìm app" />
+      <OTim gia={tim} doi={setTim} goiY="Gõ tên app: Minecraft, Zalo…" nhan="Tìm app" khongKinh />
     </View>} day={<>
       <BaoLoi loi={loiLam} />
       <Nut chu={mot ? `Thêm ${mot.u.ten} · ${TEN_NHOM[mot.nhom]}` : so ? `Thêm ${so} app` : "Chọn app để thêm"} rong dangChay={dangChay} tat={!so} bam={luu} />

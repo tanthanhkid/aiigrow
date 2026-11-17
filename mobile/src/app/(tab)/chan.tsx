@@ -1,5 +1,5 @@
-// Tab «App & web» (thiết kế chốt 15/11 bm-ung-dung/01 bm2-ung-dung-may · 02 them-98obxv7x — #262, luồng #258): chọn bé, thẻ lớn «Máy của <con> đang
-// ở chế độ» + công tắc «Mở hết | Theo danh sách» ngay trên thẻ, «Con đang xin» (Trả lời ›), «Danh sách của <con>» (chú thích chấm vàng Tính phút /
+// Tab «App & web» (bàn bm-ung-dung: bm2-ung-dung-may@v17 · them-98obxv7x@v6 — #262, luồng #258): chọn bé, thẻ lớn «Máy của <con> đang
+// ở chế độ» + công tắc «Mở hết | Theo danh sách» ngay trên thẻ, «Con đang xin» (hàng cam .xin, Trả lời › — ẩn khi Mở hết), «Danh sách của <con>» (chú thích chấm vàng Tính phút /
 // xanh Không tính phút) hai hàng App / Web (icon + chấm nhóm, «Sửa ›»), «Đã bỏ qua N lời xin · con xin lại được — Xem ›». Đang «Mở hết» ⇒ danh sách mờ,
 // «Đang tạm nghỉ, vẫn giữ nguyên». Không còn «Chặn» / «Luôn chặn». Đọc: gia-dinh, con/:id/danh-sach. Ghi: POST con/:id/che-do {cheDo}.
 // (Tên tệp route giữ «chan» cho các liên kết cũ /chan?con=.)
@@ -10,7 +10,8 @@ import { router, useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type GiaDinh } from "@/lib/api";
 import { ChipCon } from "@/lib/hang-ngay";
 import { BONG, KHOI, MEN } from "@/lib/clay";
-import { HangBoQua, HangVang, icCuaApp, lucNgan } from "@/lib/ui-bm3";
+import { HangBoQua, icCuaApp, lucNgan } from "@/lib/ui-bm3";
+import { HangXin, icMuc } from "@/lib/ds-con";
 import { cheDoTu, doiCheDo as ghiCheDo, hangCua, IC_CHE_DO, MAU_NHOM, napDanhSach, TEN_CHE_DO, TEN_NHOM, type CheDo, type DanhSach, type DongDs, type Nhom } from "@/lib/app-web";
 import { BaoLoi, CanhGiua, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Rob, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
@@ -103,12 +104,13 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
         </View>
         <BaoLoi loi={loiLam} />
 
-        {d.ds.dangXin.length ? (
+        {/* bàn them-98obxv7x@v6: đang «Mở hết» thì không có mục «Con đang xin» (con mở được mọi thứ, lời xin cũ vẫn ở Trang chủ / Chờ duyệt) */}
+        {!moHet && d.ds.dangXin.length ? (
           <>
             <TieuMuc chu="Con đang xin" so={d.ds.dangXin.length} />
             {d.ds.dangXin.map((y) => (
-              <HangVang key={y.id} ic={y.kieu === "web" ? "web" : icCuaApp(y.ten ?? "")} tieu={y.ten ?? y.muc ?? (y.kieu === "web" ? "Trang web" : "App mới")}
-                phu={`${lucNgan(y.luc)} · ${ten} đang chờ`} nut="Trả lời ›" bam={() => router.push({ pathname: "/yeu-cau-web/[id]", params: { id: y.id } })} />
+              <HangXin key={y.id} ic={y.kieu === "web" ? "web" : icCuaApp(y.ten ?? "")} tieu={y.ten ?? y.muc ?? (y.kieu === "web" ? "Trang web" : "App mới")}
+                phu={`${lucNgan(y.luc)} · ${ten} đang chờ`} bam={() => router.push({ pathname: "/yeu-cau-web/[id]", params: { id: y.id } })} />
             ))}
           </>
         ) : null}
@@ -118,7 +120,7 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
           <View style={{ flexDirection: "row", gap: 14, marginHorizontal: 6, marginTop: -2 }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             {(["tinh_phut", "khong_tinh_phut"] as const).map((n) => (
               <View key={n} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: MAU_NHOM[n] }} />
+                <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: MAU_NHOM[n], boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.45), inset 0px -3px 4px -1px rgba(0,0,0,0.25)" }} />
                 <Chu kieu="dam" co={12.5} mau={M.chu2}>{TEN_NHOM[n]}</Chu>
               </View>
             ))}
@@ -166,7 +168,7 @@ function TieuMuc({ chu, so }: { chu: string; so?: number }) {
 
 /** Một hàng «App» / «Web» (.hang): nhãn, tối đa 4 icon (chấm vàng Tính phút / xanh Không tính phút ở góc), «Sửa ›». */
 function HangIcon({ nhan, ds, web, trong, sua, bam }: { nhan: string; ds: DongDs[]; web?: boolean; trong: string; sua: boolean; bam: () => void }) {
-  const ic = (h: DongDs): TenIcon => { const i = icCuaApp(`${h.ten} ${h.muc.join(" ")}`); return web && i === "web" ? "sach" : i; };
+  const ic = (h: DongDs): TenIcon => icMuc(`${h.ten} ${h.muc.join(" ")}`, web ? "web" : "app");
   const dem = (n: Nhom) => ds.filter((h) => h.nhom === n).length;
   return (
     <Pressable onPress={bam} accessibilityRole="button"

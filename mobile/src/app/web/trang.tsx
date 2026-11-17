@@ -1,4 +1,4 @@
-// Một trang web trong danh sách (thiết kế chốt 15/11 bm-ung-dung/08 them-2nupeqju — #262): «youtube.com có tính phút không?», «Lưu: … tính phút»,
+// Một trang web trong danh sách (bàn bm-ung-dung them-2nupeqju@v6 — #262): «youtube.com có tính phút không?», «Lưu: … tính phút»,
 // «Bỏ … khỏi danh sách» — lib/ds-con.tsx › MotMuc.
 import { useLocalSearchParams } from "expo-router";
 import { MotMuc } from "@/lib/ds-con";
