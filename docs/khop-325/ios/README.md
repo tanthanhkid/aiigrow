@@ -9,7 +9,7 @@ iPhone/iPad chỉ một bé (#267): màn máy chung / PIN nhiều bé (cdt-pin-g
 | cdt-chao@v4, cdt-chua-ghep@v3, cdt-nhap-ma@v4, them-4hu611yo@v2, them-x7v7px1j@v2, them-yp7fnry7@v2, them-z55cy897@v4 | `ManCai.swift` ManChao/ManChuaGhep/ManNhapMa/ManQuetQR | Khớp |
 | them-3s04rjes@v1 (Máy này của bé nào?) | `ManCai.swift` ManChonBeGhep | **Lệch → đã sửa**: chọn một bé (dấu chọn) + «Tiếp tục với <tên>», câu «Mã ghép có N bé…», «Chọn một bé thôi · Muốn đổi thì gỡ máy rồi ghép lại» (trước: chạm tên là ghép ngay) |
 | cdt-quyen@v7 / them-b3prchz2@v4 | `ManCai.swift` ManQuyen | Khớp them-b3prchz2 (iOS một bé, «Cho phép đếm phút chơi»). cdt-quyen@v7 là bản Android máy chung (PIN) — không áp |
-| them-cz5mw9ha | ManQuyen.chuaChoPhep | Không đọc được bản bàn (tệp ảnh chụp lỗi) — chưa đối chiếu |
+| them-cz5mw9ha | ManQuyen.chuaChoPhep | **Lệch → đã sửa**: tiêu đề «Chưa giữ được phút chơi» (trước «Chưa đếm được phút chơi»); còn lại khớp |
 | cdt-chinh-ios@v7 | `ManNgay.swift` ManHomNay | **Lệch → đã sửa**: thêm nút «?» ⇒ Quy tắc nhà mình; còn lại khớp |
 | cdt-quy-tac@v7 | `ManGio.swift` ManQuyTac | **Chưa có → đã làm** (đúng chữ bàn) |
 | cdt-nha-chinh@v8, them-uero9k5x@v1 | ManHomNay | **Lệch → đã sửa**: thêm nút «Chơi bằng sao · 1 sao = 1 phút»; «Mở hết» khớp |
@@ -30,7 +30,7 @@ iPhone/iPad chỉ một bé (#267): màn máy chung / PIN nhiều bé (cdt-pin-g
 | them-xxgu8hk6@v3 (web chưa thêm · Xin lại) | ManConDangXin.ketQuaApp | Lệch nhỏ, chưa sửa: dùng màn «Ba Mẹ chưa thêm <tên>» chung, thiếu ô «Lý do» và câu riêng của web |
 | cdt-webview@v4 | — | Chưa có: iOS không có trình duyệt trong app (chặn web bằng Thời gian sử dụng) |
 | cdt-ma-offline@v4, them-a16j4hh8@v5, them-mvld82p8@v5, cdt-ma-da-mo@v4, them-qpj5mdyr@v4, cdt-ios-ma-offline@v4 | `ManGio.swift` ManMaOffline | Khớp; **sửa** dòng cuối «Điện thoại của <tên> · Ba Mẹ quản lý bằng AiiGrow» + «Dành cho Ba Mẹ: lọc web ›» |
-| them-djha85wh | ManMaOffline.daMo | Không đọc được bản bàn (tệp ảnh chụp lỗi) — chưa đối chiếu |
+| them-djha85wh@v5 | `ManNgay.swift` ManHomNay.theMoMa | **Lệch → đã sửa**: màn Hôm nay khi mở bằng mã: «Mở bằng mã», vòng phút, «Còn N phút chơi», «Mã của Ba Mẹ · chơi tới HH:MM», «Chơi N phút», khi mất mạng «Đang mất mạng · Có mạng lại, AiiGrow báo Ba Mẹ» + «Nộp bài vẫn được» |
 | cdt-ios-xin-them@v3, cdt-yeu-cau@v6, them-0p8dmjan@v4, them-j4g2mtm8@v1, them-w8po32o6@v2, them-5nxwuaxz@v4 | ManXinThem, ManConDangXin | Khớp |
 | cdt-ios-dns@v3 | ManDns | Khớp |
 | cdt-gio-ngu@v5, them-ioje1spu@v5, cdt-ios-choi-diem@v4, them-4atwdaqy@v3, them-bw8y2ta0@v3 | — | Bàn lệch issue (xem dưới) — không làm |
@@ -49,6 +49,7 @@ cdt-huy-hieu (thiếu tiến độ từ API) · dòng Huy hiệu ở cdt-vi-qua 
 Màn «Ba Mẹ chọn app» (FamilyActivityPicker) · màn PIN / chọn tên / «Ba Mẹ đang dùng máy» (ManPin, ManMayKhoa, ManBaMeDung — còn trong code cho máy dùng chung kiểu cũ, #267 chốt iOS một bé) · «Đã gỡ AiiGrow» (ManDaGo) · màn quét QR (bàn có them-z55cy897, có) · khung nghỉ giữa lượt «Nghỉ một chút» / «Hôm nay chơi đủ rồi» (#302).
 
 ## Test và ảnh
-- `xcodebuild build -scheme AiiGrowCon` (generic iOS Simulator, CODE_SIGNING_ALLOWED=NO, giữ build.lock): **BUILD SUCCEEDED**.
-- Không có Package.swift; test ConCore (`Tests/ConCoreTests.swift`) không chạy — thay đổi chỉ ở lớp SwiftUI/chữ, không đụng ConCore.
-- Ảnh app thật: **chưa chụp** (không mở simulator trong đợt này); chưa có ảnh bàn cạnh app. Chữ bàn/iOS đối chiếu ở `chu-chung-ios.md` (phiên chính).
+- Lần 1 (trước bổ sung): `xcodebuild build` AiiGrowCon (generic iOS Simulator, CODE_SIGNING_ALLOWED=NO, giữ build.lock): BUILD SUCCEEDED.
+- Bổ sung (them-cz5mw9ha, them-djha85wh, cờ demo `-demo moMa|quyTac|choiBangSao`): chỉ qua `swiftc -parse` (cú pháp đúng). **CHƯA BUILD / CHƯA TEST — hết hạn khoá**: build.lock bị agent khác giữ từ 15:26, chờ đủ 13 phút không lấy được. Phiên chính build + chạy bù.
+- Ảnh app thật: **chưa chụp** (cùng lý do; không mở simulator khi không giữ khoá). Đã lưu ảnh bàn `ban-<key>.png` (cdt-quy-tac, cdt-choi, them-3s04rjes, cdt-cai, them-cz5mw9ha, them-djha85wh, cdt-nha-chinh, cdt-cho-duyet, cdt-chan-web, cdt-ios-ma-offline); ảnh app đặt cạnh sau khi chụp bằng `-demo quyTac | choiBangSao | chonBeGhep | xinCai | chuaChoPhep | moMa`.
+- Không có Package.swift; ConCore không đổi nên không chạy test ConCore.

@@ -233,7 +233,7 @@ struct ManQuyen: View {
   var chuaChoPhep: some View {
     VStack(spacing: 14) {
       Anh(ten: "rob_trong_loi", co: 120)
-      Text("Chưa đếm được phút chơi").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
+      Text("Chưa giữ được phút chơi").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
       Text(m.loiQuyen ?? "").font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       NhanNho(chu: "Chưa cho phép", icon: "ic_canh_bao")
       VStack(alignment: .leading, spacing: 14) {
