@@ -199,7 +199,7 @@ struct AppConView: View {
   private var ketNoi: (String, Bool) {
     if tray.matKetNoi || tt == nil { return (TrayLogic.dongKhoiDongLai, false) }
     if tt?.daGhep != true { return ("Máy chưa ghép với Ba Mẹ", false) }
-    if tt?.matMang == true { return ("Mất mạng · sao vẫn tính", false) }
+    if tt?.matMang == true { return ("Mất mạng · sao vẫn trừ", false) }
     return ("Đã kết nối", true)
   }
 
@@ -240,7 +240,7 @@ struct AppConView: View {
         Chu(app.muc == .nhiemVu ? "Chưa tải được nhiệm vụ" : "Chưa tải được", co: 18, dam: .bold, mau: ClayMau.loi)
         Chu(tt?.matMang == true ? "Máy đang mất mạng. Con xem Wi-Fi rồi bấm tải lại nhé." : (app.loiTai ?? ""), co: 14, mau: ClayMau.loi)
         NutIcon(chu: app.muc == .nhiemVu ? "Tải lại nhiệm vụ" : "Thử lại", kieu: .thanChi, rong: 220) { Task { await app.lamMoi(dsChoi: dsChoi) } }
-        if let q = tt.flatMap(TrayLogic.dongSao) { Chu("Sao vẫn tính như bình thường · \(q)", co: 13, mau: ClayMau.chu3, dong: 1) }
+        if let q = tt.flatMap(TrayLogic.dongSao) { Chu("Sao vẫn trừ như bình thường · \(q)", co: 13, mau: ClayMau.chu3, dong: 1) }
       }
     case .xong: EmptyView()
     }

@@ -71,7 +71,7 @@ public enum TrayLogic {
   }
 
   public static let dongKhoiDongLai = "AiiGrow đang khởi động lại"
-  public static let dongDangBat = "AiiGrow đang bật — Ba Mẹ quản lý máy này"
+  public static let dongDangBat = "Máy này do Ba Mẹ quản lý bằng AiiGrow"
 
   /// Dòng trạng thái đầu menu.
   public static func dongTrangThai(_ t: TrangThai?, matKetNoi: Bool, nhanLuc: Date, bayGio: Date) -> String {
@@ -85,6 +85,14 @@ public enum TrayLogic {
     }
     if let s = dongSao(t) { return s.prefix(1).uppercased() + s.dropFirst() }
     return "Không giới hạn"
+  }
+
+  /// Dòng đầu menu thanh trên cùng (them-hyj1eryo): «● Đã kết nối · còn 18 sao = 18 phút». Chưa ghép / đang khởi động lại giữ nguyên dòng trạng thái.
+  public static func dongDauMenu(_ t: TrangThai?, matKetNoi: Bool, nhanLuc: Date, bayGio: Date) -> String {
+    let d = dongTrangThai(t, matKetNoi: matKetNoi, nhanLuc: nhanLuc, bayGio: bayGio)
+    guard !matKetNoi, let t, t.daGhep, t.laPhienCon else { return d }
+    if t.matMang { return "● Mất mạng · sao vẫn trừ" }
+    return "● Đã kết nối · " + d.prefix(1).lowercased() + d.dropFirst()
   }
 
   /// Trạng thái cửa sổ ghép: giữ cửa sổ khi đang hiện cảnh báo «Đã ghép máy, NHƯNG…»; đóng bằng nút X hay «Đã hiểu» đều phải reset sạch (không kẹt cờ).

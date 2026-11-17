@@ -229,8 +229,8 @@ struct GhepMayView: View {
   @ViewBuilder private var batQuyen: some View {
     Text("Đã ghép nhà mình").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
     Text("Bật 3 quyền").font(.clay(size: 22, weight: .bold, vai: .tieuDe))
-    dongQuyen("hourglass_not_done", "Thời gian sử dụng", "Để tính phút chơi bằng sao", bat: true, mo: GhepMayView.caiDatThoiGian)
-    dongQuyen("speech_balloon", "Thông báo", "Để nhắc «còn 5 sao»", bat: quyenTB == true, mo: GhepMayView.caiDatThongBao)
+    dongQuyen("hourglass_not_done", "Thời gian sử dụng", "Để giữ giờ chơi", bat: true, mo: GhepMayView.caiDatThoiGian)
+    dongQuyen("speech_balloon", "Thông báo", "Để nhắc «còn 5 phút»", bat: quyenTB == true, mo: GhepMayView.caiDatThongBao)
     dongQuyen("desktop_computer", "Mở cùng máy", "AiiGrow tự chạy khi bật Mac",
               bat: FileManager.default.fileExists(atPath: DuongDan.trayPlist), mo: GhepMayView.caiDatMoCungMay)
     if quyenTB != true {
@@ -267,10 +267,19 @@ struct GhepMayView: View {
     HStack { Spacer(); VienClay(ten: "party_popper", duPhong: "checkmark.seal.fill", nen: ClayMau.ngocSoft, co: 64); Spacer() }
     Text(c.tieuDe).font(.clay(size: 22, weight: .bold, vai: .tieuDe)).frame(maxWidth: .infinity)
     Chu(c.phu, co: 14, mau: ClayMau.chu3, dong: 2)
-    VStack(alignment: .leading, spacing: 8) {
-      ForEach(c.cacDong, id: \.self) { Chu($0, co: 13, dam: .semibold, dong: 1) }
+    VStack(spacing: 8) {
+      ForEach(c.cacDong, id: \.tieu) { d in
+        HStack(spacing: 12) {
+          VienClay(ten: d.icon, duPhong: "checkmark", nen: ClayMau.ngocSoft, co: 36)
+          VStack(alignment: .leading, spacing: 1) {
+            Chu(d.tieu, co: 14, dam: .bold, dong: 1)
+            Chu(d.phu, co: 12, mau: ClayMau.chu3, dong: 1)
+          }
+          Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 12).padding(.vertical, 8).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
+      }
     }
-    .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
     Button(c.nut) { khiGui(false); dongLai(); NhuongMay.khoaManHinh() }.buttonStyle(NutClayStyle(kieu: .ngoc))
     Chu(c.chanTrang, co: 11, mau: ClayMau.chu3, dong: 2)
   }
@@ -467,7 +476,7 @@ struct ManKhoaView: View {
   }
 }
 
-/// Ô «Mất mạng? Nhập mã của Ba Mẹ» trên màn khoá (agent-win OfflineCodePanel): Ba Mẹ xem mã 6 số trong app, đọc cho Con gõ; daemon tự kiểm.
+/// Ô «Ba Mẹ ở cạnh con?» (them-2ndg9bu6) trên màn khoá (agent-win OfflineCodePanel): Ba Mẹ xem mã 6 số trong app, đọc cho Con gõ; daemon tự kiểm.
 struct MaOfflineView: View {
   var gui: (String) async -> TraLoi = { ma in (try? await IPCClient.guiAsync(.maOffline(ma: ma))) ?? .loi(ma: "ipc", chu: "AiiGrow đang khởi động lại, con thử lại sau vài giây nhé.") }
   @State private var ma = ""
@@ -479,18 +488,17 @@ struct MaOfflineView: View {
       HStack(spacing: 12) {
         VienClay(ten: "key", duPhong: "key.fill", nen: ClayMau.diemSoft, co: 44)
         VStack(alignment: .leading, spacing: 2) {
-          Text("Mất mạng? Nhập mã của Ba Mẹ").font(.clay(size: 17, weight: .bold)).lineLimit(1).truncationMode(.tail)
-          Text("Ba Mẹ xem mã 6 số trong app AiiGrow và đọc cho con.").font(.clay(size: 12)).foregroundColor(ClayMau.chu3).lineLimit(2)
+          Text("Ba Mẹ ở cạnh con?").font(.clay(size: 17, weight: .bold)).lineLimit(1).truncationMode(.tail)
+          Text("Nhờ Ba Mẹ đọc mã 6 số trong app AiiGrow.").font(.clay(size: 12)).foregroundColor(ClayMau.chu3).lineLimit(2)
         }
       }
-      HStack(spacing: 12) {
-        TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
-          .textFieldStyle(.plain).font(.clay(size: 22, weight: .medium, design: .monospaced))
-          .padding(.horizontal, 14).frame(minHeight: 48).clayLom(bo: 18)
-          .onSubmit { mo() }
-        Button(dangGui ? "Đang kiểm…" : "Mở máy") { mo() }
-          .buttonStyle(NutClayStyle(kieu: .thanChi)).frame(width: 150).disabled(dangGui || !TrayLogic.maHopLe(ma))
-      }
+      TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
+        .textFieldStyle(.plain).font(.clay(size: 22, weight: .medium, design: .monospaced))
+        .padding(.horizontal, 14).frame(minHeight: 48).clayLom(bo: 18)
+        .onSubmit { mo() }
+      Button(dangGui ? "Đang kiểm…" : "Mở máy bằng mã của Ba Mẹ") { mo() }
+        .buttonStyle(NutClayStyle(kieu: .ngoc)).disabled(dangGui || !TrayLogic.maHopLe(ma))
+      Text("Có mạng lại, sổ sao tự cập nhật.").font(.clay(size: 12)).foregroundColor(ClayMau.chu3)
       if !cau.isEmpty {
         Text(cau).font(.clay(size: 14, weight: .semibold)).foregroundColor(loi ? ClayMau.loi : ClayMau.ngocInk).fixedSize(horizontal: false, vertical: true)
       }

@@ -349,7 +349,7 @@ struct ManChonTenView: View {
       .modifier(Rung(lan: m.cauLoi ? 1 : 0))
       Text("Mã 6 số · đổi sau 10 phút · gõ bằng bàn phím").font(.clay(size: 12)).foregroundColor(ClayMau.chu3)
       if let c = m.cau { Text(c).font(.clay(size: 14, weight: .bold)).foregroundColor(m.cauLoi ? ClayMau.loi : ClayMau.ngocInk) }
-      Text("Ba Mẹ dùng thì không trừ giờ của con").font(.clay(size: 13, weight: .semibold)).foregroundColor(ClayMau.ngocInk)
+      Text("Ba Mẹ dùng thì không trừ sao của con").font(.clay(size: 13, weight: .semibold)).foregroundColor(ClayMau.ngocInk)
         .padding(.horizontal, 18).padding(.vertical, 8).background(Capsule().fill(ClayMau.ngocSoft))
       Button { Task { await m.baMeMo() } } label: {
         HStack(spacing: 8) { HinhFluent(ten: "key", duPhong: "key.fill", co: 20); Text(m.dangGui ? "Đang kiểm…" : "Mở máy cho Ba Mẹ") }
@@ -372,7 +372,7 @@ struct BaMeDangDungView: View {
         VienClay(ten: "key", duPhong: "key.fill", nen: ClayMau.ngocSoft, co: 46)
         VStack(alignment: .leading, spacing: 2) {
           Text("Ba Mẹ đang dùng máy").font(.clay(size: 17, weight: .bold))
-          Text("Không trừ giờ của con" + (den.map { " · tới " + AppConView.gioPhut.string(from: $0) } ?? ""))
+          Text("Không trừ sao của con" + (den.map { " · tới " + AppConView.gioPhut.string(from: $0) } ?? ""))
             .font(.clay(size: 13, weight: .semibold)).foregroundColor(ClayMau.ngocInk)
         }
       }

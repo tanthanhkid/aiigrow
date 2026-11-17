@@ -130,6 +130,7 @@ public enum ManMac {
   /// Thiết kế them-kofpo0dl «Hết sao rồi» / Ba Mẹ khoá. «het_gio» (máy chủ cũ, minutesLeft) = hết sao. Giờ ngủ đã bỏ (#258) ⇒ như Ba Mẹ khoá.
   public static func chuKhoa(_ t: TrangThai, phutDaChoi: Int? = nil) -> ChuKhoa {
     let ten = t.beTen ?? t.tenCon ?? "Con"
+    let appMo = t.dsKhongTinhPhut?.first.map { HocVienView.tenMucChoi($0) + " vẫn mở được · không tính phút." } ?? "App không tính phút vẫn mở được."
     // chữ giới hạn CHỈ khi khoá vì hết phút/nghỉ (het_gio, hết sao, hoặc không rõ lý do mà phút chơi đã về 0); Ba Mẹ khoá, v.v. giữ chữ mặc định
     let phutCon = t.phutSao ?? t.soSao?.phutCon
     let khoaVoiGio = t.lyDoKhoa.map { ["het_gio", SaoPhut.lyDoHetSao].contains($0) } ?? ((phutCon ?? 1) <= 0)
@@ -139,7 +140,7 @@ public enum ManMac {
     switch t.lyDoKhoa {
     case "het_gio", SaoPhut.lyDoHetSao:
       let da = phutDaChoi.map { " đã chơi \($0) phút hôm nay · dùng hết \(ChuSao.so($0)) sao." } ?? " đã dùng hết sao."
-      return ChuKhoa(tieuDe: "Hết sao rồi", phu: ten + da + " App không tính phút vẫn mở được.", hetSao: true)
+      return ChuKhoa(tieuDe: "Hết sao rồi", phu: ten + da + " " + appMo, hetSao: true)
     default:
       return ChuKhoa(tieuDe: "Ba Mẹ đang khoá máy", phu: "Mở lại là máy báo con ngay.", hetSao: false)
     }
@@ -173,27 +174,39 @@ public enum ManMac {
   public struct ChuXong: Equatable {
     public var tieuDe: String
     public var phu: String
-    public var cacDong: [String]
+    /// Ba thẻ trắng của Bàn (tiêu đề đậm + dòng phụ): sao/giờ tính · bé (hoặc PIN) · app, web.
+    public var cacDong: [DongXong]
     public var nut: String
     /// «Máy khoá lại; …» dưới nút.
     public var chanTrang: String
   }
+  public struct DongXong: Equatable {
+    public var tieu: String
+    public var phu: String
+    public var icon: String
+    public init(_ tieu: String, _ phu: String, icon: String) { self.tieu = tieu; self.phu = phu; self.icon = icon }
+  }
   public static func chuXong(_ h: HoSoMay?, taiKhoan: String) -> ChuXong {
-    let chung = "Chỉ mở app, web Ba Mẹ đã thêm · Ba Mẹ có thể để Mở hết"
+    let truChung = "Điện thoại + Mac trừ chung"
+    let appWeb = DongXong("Mở app, web theo danh sách Ba Mẹ", "App mới thì xin Ba Mẹ", icon: "shield")
     guard let h else {
       return ChuXong(tieuDe: "Máy đã sẵn sàng!", phu: "AiiGrow đã ghép với Ba Mẹ.",
-                     cacDong: ["⭐  1 sao = 1 phút chơi", "🛡  " + chung], nut: "Mở màn khoá",
+                     cacDong: [DongXong("1 sao = 1 phút chơi", truChung, icon: "star"), appWeb], nut: "Mở màn khoá",
                      chanTrang: "Máy khoá lại; Con đăng nhập tài khoản «\(taiKhoan)» để vào.")
     }
     if h.mayRieng {
       let ten = h.con.first?.ten
-      return ChuXong(tieuDe: ten.map { "Máy của \($0) đã sẵn sàng!" } ?? "Máy của con đã sẵn sàng!", phu: "Con mở máy là vào thẳng, không cần làm gì thêm.",
-                     cacDong: ["⭐  " + (ten.map { "Sao của \($0)" } ?? "Sao của con") + " · 1 sao = 1 phút chơi", "🛡  " + chung],
+      let ai = ten ?? "con"
+      return ChuXong(tieuDe: ten.map { "Máy của \($0) đã sẵn sàng!" } ?? "Máy của con đã sẵn sàng!", phu: (ten ?? "Con") + " mở máy là vào thẳng.",
+                     cacDong: [DongXong("Sao của \(ai) · 1 sao = 1 phút", truChung, icon: "star"),
+                               DongXong(ten ?? "Con", "Mở máy là vào thẳng", icon: "key"), appWeb],
                      nut: "Mở màn khoá",
                      chanTrang: "Máy khoá lại; con đăng nhập tài khoản «\(taiKhoan)» để vào.")
     }
+    let cacBe = h.con.map(\.ten).joined(separator: " · ")
     return ChuXong(tieuDe: "Máy đã sẵn sàng cho cả nhà!", phu: "Mỗi bé vào máy bằng tên + PIN 4 số.",
-                   cacDong: ["⭐  Sao riêng từng bé · 1 sao = 1 phút chơi", "🔑  PIN do Ba Mẹ đặt trong app", "🛡  " + chung],
+                   cacDong: [DongXong("Giờ tính theo từng bé", truChung, icon: "star"),
+                             DongXong(cacBe.isEmpty ? "Tên từng bé" : cacBe, "PIN do Ba Mẹ đặt trong app", icon: "key"), appWeb],
                    nut: "Mở màn chọn tên",
                    chanTrang: "Máy khoá lại; các bé đăng nhập tài khoản «\(taiKhoan)» rồi chọn tên + PIN.")
   }
