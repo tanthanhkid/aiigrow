@@ -11,7 +11,7 @@ import { KHOI } from "@/lib/clay";
 import {
   ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useTai, type TenIcon,
 } from "@/lib/ui";
-import { cachBao, cauLapLai, HangViec, hinhNv, SaoVien, TieuMuc, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
+import { cachBao, cauLapLai, HangViec, hinhNv, SaoVien, tenGoi, TieuMuc, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
 import { KHOA_NV_TAB, napNvTab, viecCuaCon } from "@/lib/nv-tab";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { BangTraoQua } from "@/lib/trao-qua";
@@ -61,27 +61,30 @@ export default function TabNhiemVu() {
   // sao việc chờ trả nợ lần lượt (theo thứ tự hiện)
   const traNo = traNoLanLuot(ss.no, cua.cho.map((x) => x.sao ?? x.diem)).map((x) => x.tra);
   const tongCho = cua.cho.reduce((n, x) => n + (x.sao ?? x.diem), 0);
-  // them-e44cwmvu: Con chưa có việc nào (và không có gì chờ) ⇒ chỉ dải con + «Ngày của <Con> còn trống», không thẻ ví, không nút «+ Việc / + Quà»
+  // them-e44cwmvu: Con chưa có việc nào (và không có gì chờ) ⇒ chỉ dải con + «Ngày của <Con> còn trống», không thẻ ví, không nút «+ Việc / + Quà».
+  // Đang nợ (#263) thì vẫn hiện thẻ ví (cảnh báo nợ) và «+ Quà» — không giấu nợ chỉ để giống hình.
   const trong = !cua.viec.length && !cua.cho.length && !cua.phieu.length;
+  const anVi = trong && ss.no <= 0;
+  const ten = tenGoi(c.ten);
   return (
     <Man tieuLon="Việc & quà" tai={tai} vongTai noi={noi}
-      phaiTieu={baMe && !trong ? (
+      phaiTieu={baMe && !anVi ? (
         // thiết kế .them (them-e91jg28j@v13): hai viên sáng 44 — «✅ + Việc» (→ Giao việc) · «🎁 + Quà» (→ Thêm quà), icon 3D 22, chữ 14/800 ngọc
         <View style={{ flexDirection: "row", gap: 8 }}>
-          <NutThem ic="tick" chu="+ Việc" nhan="Thêm việc" bam={() => router.push(`/giao-nv?con=${c.id}` as never)} />
+          {trong ? null : <NutThem ic="tick" chu="+ Việc" nhan="Thêm việc" bam={() => router.push(`/giao-nv?con=${c.id}` as never)} />}
           <NutThem ic="qua" chu="+ Quà" nhan="Thêm quà" bam={() => router.push({ pathname: "/vi/qua-thu-vien", params: { con: c.id } })} />
         </View>
       ) : undefined}>
-      {d.g.con.length > 1 ? <DaiCon ds={d.g.con} chon={c.id} doi={(x) => setChon(x.id)} so={soCho}
+      {d.g.con.length > 1 ? <DaiCon ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={c.id} doi={(x) => setChon(x.id)} so={soCho}
         duoi={Object.fromEntries(d.g.con.map((x) => [x.id, <VienSao key={x.id} s={saoTu(x)} nho />]))} /> : null}
 
       {/* thiết kế .vi: thẻ vàng — «<Con> đang có» · ⭐ 30 sao (40/800) · viên trắng «= 30 phút chơi ›»; đang nợ ⇒ thẻ cảnh báo «<Con> đang nợ Ba Mẹ 20 sao» */}
-      {trong ? null : <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}: ${soChinh(ss)}`}
+      {anVi ? null : <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${ten}: ${soChinh(ss)}`}
         style={[{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 28, overflow: "hidden" },
           k === "thuong" ? { backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf0c9, #fbecc0)" } : { backgroundColor: MAU_NO.nen, backgroundImage: "linear-gradient(#fbeedd, #f9e7d2)" }, KHOI.the]}>
         <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -18 }}><Rob ten="xong" co={112} /></View>
         <Chu kieu="dam7" co={13.5} mau={k === "thuong" ? "#5a3700" : MAU_NO.chu} style={{ marginRight: 116 }}>
-          {k === "thuong" ? `${c.ten} đang có` : `${c.ten} đang nợ Ba Mẹ ${soVN(ss.no)} sao`}</Chu>
+          {k === "thuong" ? `${ten} đang có` : `${ten} đang nợ Ba Mẹ ${soVN(ss.no)} sao`}</Chu>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, marginRight: 100 }}>
           <Icon3D ten="sao" co={38} />
           {k === "vay" ? <Chu kieu="rat" co={20} mau={MAU_NO.chu} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
@@ -145,7 +148,7 @@ export default function TabNhiemVu() {
           </The>
         </>
       ) : (
-        <ViecTrong con={c.id} ten={c.ten} baMe={baMe} />
+        <ViecTrong con={c.id} ten={ten} baMe={baMe} />
       )}
 
       <BangTraoQua p={trao} dong={() => setTrao(null)} xong={(chu) => { bao(chu); tai(); }} />

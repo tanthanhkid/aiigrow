@@ -735,6 +735,7 @@ if (process.argv.includes("--giao-dien")) {
     // #325 bm-viec-duyet (bàn 17/11): đúng CA của từng màn bàn
     M("bm-nhiem-vu (nợ · quà chờ trao · e91jg28j)", "/diem-qua", "Quà chờ trao", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"],
       phieu: [{ id: "ph2", child_id: "c1", ten: "Chọn món bữa tối", loai: "dac_quyen", diem: 50, ten_con: KEN, created_at: luc(60 * 26) }] } } }),
+    M("bm-nhiem-vu (trống · đang nợ vẫn hiện ví)", "/diem-qua", "đang nợ Ba Mẹ", { kb: { ...SO_SAO, "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
     M("bm-nhiem-vu (trống · e44cwmvu)", "/diem-qua", "còn trống", { kb: { "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
     M("bm-giao-nv (bảng tự thêm · 6pjz1stu)", "/giao-nv?con=c1&tuThem=1", "Thêm vào mục đã chọn"),
     M("bm-giao-nv-sua (bảng xoá · 4axhvgpl)", "/giao-nv/sua?id=t0", "Giữ lại việc này", { truoc: async () => { await di("/giao-nv/sua?id=t0"); await doi("Xoá việc này"); await bam("Xoá việc này"); } }),

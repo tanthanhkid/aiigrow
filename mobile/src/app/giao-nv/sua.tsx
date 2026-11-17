@@ -11,7 +11,7 @@ import { Pressable, TextInput, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { bm, type GiaDinh } from "@/lib/api";
 import { BangTruot, Bao, BaoLoi, baoKhiVe, Chips, ChoTai, Chu, CongTac, F, Icon3D, M, Man, Nut, ONhap, The, useLam, useTai, type TenIcon } from "@/lib/ui";
-import { CAU_TRONG_GIUP, hinhNv, quyenToi, type NhiemVuMoi } from "@/lib/hang-ngay";
+import { CAU_TRONG_GIUP, hinhNv, quyenToi, tenGoi, type NhiemVuMoi } from "@/lib/hang-ngay";
 import { viecCuaCon } from "@/lib/nv-tab";
 import { tenHopLe } from "@/lib/form-viec";
 import { ChonO } from "@/lib/ui-viec";
@@ -57,7 +57,7 @@ export default function SuaViec() {
   const dsBao = BAO.some((x) => x.gia === bcGoc) ? BAO : [...BAO, { gia: bcGoc, chu: bcGoc === "van_ban" ? "Viết" : bcGoc, ic: "but" as const }];
   const dsSao = [5, 10, 20, 30].includes(goc.sao) ? [5, 10, 20, 30] : [...[5, 10, 20, 30], goc.sao].sort((a, b) => a - b);
   const conCua = v.giao_cho ? d.con.find((c) => c.id === v.giao_cho) : null;
-  const tenCon = conCua?.ten ?? "Các con";
+  const tenCon = conCua ? tenGoi(conCua.ten) : "Các con";
   const conLai = conCua ? viecCuaCon(d.ds, conCua.id).filter((x) => x.id !== v.id).length : null;
   const [ic] = hinhNv({ ...v, hinh: f.hinh || v.hinh });
 
@@ -130,10 +130,10 @@ export default function SuaViec() {
         <View style={[{ gap: 12, padding: 16, borderRadius: 24, backgroundColor: M.the }, KHOI.nho]}>
           <DongXoa ic="tablet" chu={`${tenCon} không thấy việc này nữa`} />
           <DongXoa ic="sao" chu={conCua ? `${conCua.soDu} sao con đang có vẫn giữ nguyên` : "Sao con đang có vẫn giữ nguyên"} />
-          {conCua && conLai !== null ? <DongXoa ic="lich" chu={`Ngày của ${conCua.ten} còn ${conLai} việc`} /> : null}
+          {conCua && conLai !== null ? <DongXoa ic="lich" chu={`Ngày của ${tenCon} còn ${conLai} việc`} /> : null}
         </View>
         <BaoLoi loi={loiLam} />
-        <Nut chu={`Xoá «${v.ten}»`} loai="huy" rong dangChay={dangChay} bam={tat} />
+        <Nut chu={`Xoá «${v.ten}»`} loai="do" rong dangChay={dangChay} bam={tat} />
         <Nut chu="Giữ lại việc này" loai="vien" rong bam={() => setXoa(false)} />
       </BangTruot>
     </Man>
