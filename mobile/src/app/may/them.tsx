@@ -2,6 +2,7 @@
 // «＋ Thêm con»; thẻ kết quả «Máy dùng chung · N bé» (bé chọn tên + PIN, chỉ trừ sao bé đang dùng) / «Máy riêng của <bé>»; hộp «iPhone, iPad: chỉ một bé»
 // (máy hoá ra iPhone/iPad thì Grow hỏi chọn đúng một bé lúc quét); «Không cần cài riêng cho máy: sao và danh sách app đi theo từng bé» (bỏ «Cài giống
 // máy trước» — luật đi theo bé). «Lấy mã ghép máy chung cho N bé» ⇒ màn Ghép máy (POST ghep-may {conDs}).
+// #325 (bm1-may-chon-loai@v12): «＋ Thêm con» ⇒ them-9ozp26pq «Thêm con» của Cả nhà (/ho-so/them), không vào luồng Lần đầu.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -49,7 +50,7 @@ export default function GhepThemMay() {
             </Pressable>
           );
         })}
-        <Pressable onPress={() => router.push("/thiet-lap/ten-con")} accessibilityRole="button" accessibilityLabel="Thêm con" style={{ width: 62, alignItems: "center", gap: 7 }}>
+        <Pressable onPress={() => router.push("/ho-so/them")} accessibilityRole="button" accessibilityLabel="Thêm con" style={{ width: 62, alignItems: "center", gap: 7 }}>
           <View style={{ margin: 5, width: 52, height: 52, borderRadius: 26, backgroundColor: "#f7f6f3", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
             <Icon ten="cong" mau={M.chinhInk} co={22} />
           </View>
