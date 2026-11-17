@@ -64,6 +64,8 @@ internal static class ChupMain
 
         Log($"tỉ lệ giả lập {k:0.##} · Clay.Scale {AiiGrow.ClayUi.Clay.Scale:0.##} · màn thật {Screen.PrimaryScreen!.Bounds.Size} · màn giả định {_man} · DPI hệ thống {DpiHeThong()}");
 
+        Log("phông: " + AiiGrow.ClayUi.PhongChu.MoTa);
+
         var t = new System.Windows.Forms.Timer { Interval = 100 };
         t.Tick += async (_, _) =>
         {

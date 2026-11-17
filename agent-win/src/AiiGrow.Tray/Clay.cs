@@ -1092,6 +1092,11 @@ internal static class PhongChu
     private static bool _daNap;
     private static PrivateFontCollection? _bo;   // giữ sống suốt tiến trình (Font tham chiếu FontFamily của nó)
     private static FontFamily? _than, _tieuDe;
+    private static FontStyle _kieuTieuDe = FontStyle.Regular;
+    private static readonly System.Text.StringBuilder _moTa = new();
+
+    /// <summary>Phông đã nạp (họ · kiểu có) và lỗi nếu có — để công cụ chụp màn ghi log.</summary>
+    public static string MoTa { get { Nap(); return _moTa.Length == 0 ? "không nạp phông nào (dùng Segoe UI)" : _moTa.ToString(); } }
 
     [DllImport("gdi32.dll")]
     private static extern IntPtr AddFontMemResourceEx(IntPtr pbFont, uint cbFont, IntPtr pdv, out uint pcFonts);
@@ -1113,17 +1118,26 @@ internal static class PhongChu
                 // vùng nhớ KHÔNG giải phóng: PrivateFontCollection.AddMemoryFont đọc nó suốt đời phông
                 var p = Marshal.AllocCoTaskMem(data.Length);
                 Marshal.Copy(data, 0, p, data.Length);
-                bo.AddMemoryFont(p, data.Length);
-                AddFontMemResourceEx(p, (uint)data.Length, IntPtr.Zero, out _);
+                try { bo.AddMemoryFont(p, data.Length); }
+                catch (Exception e) { _moTa.Append($"[{tep}: AddMemoryFont lỗi {e.Message}] "); }
+                var h = AddFontMemResourceEx(p, (uint)data.Length, IntPtr.Zero, out var soPhong);
+                if (h == IntPtr.Zero) _moTa.Append($"[{tep}: AddFontMemResourceEx lỗi] ");
             }
             foreach (var f in bo.Families)
             {
-                if (f.Name == "Be Vietnam Pro" && f.IsStyleAvailable(FontStyle.Regular) && f.IsStyleAvailable(FontStyle.Bold)) _than = f;
-                else if (f.Name == "Fraunces SemiBold" && f.IsStyleAvailable(FontStyle.Regular)) _tieuDe = f;
+                var co = string.Join("/", new[] { FontStyle.Regular, FontStyle.Bold }.Where(f.IsStyleAvailable));
+                _moTa.Append($"«{f.Name}» {co}; ");
+                // tên họ GDI+ đặt có thể là «Fraunces SemiBold» (nameID 1) hoặc «Fraunces» (nameID 16) ⇒ so theo tiền tố
+                if (f.Name.StartsWith("Be Vietnam Pro", StringComparison.OrdinalIgnoreCase) && f.IsStyleAvailable(FontStyle.Regular) && f.IsStyleAvailable(FontStyle.Bold)) _than = f;
+                else if (f.Name.StartsWith("Fraunces", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (f.IsStyleAvailable(FontStyle.Regular)) { _tieuDe = f; _kieuTieuDe = FontStyle.Regular; }
+                    else if (f.IsStyleAvailable(FontStyle.Bold)) { _tieuDe = f; _kieuTieuDe = FontStyle.Bold; }
+                }
             }
             _bo = bo;
         }
-        catch (Exception e) { Debug.WriteLine(e); _than = _tieuDe = null; }
+        catch (Exception e) { Debug.WriteLine(e); _moTa.Append("lỗi nạp: " + e.Message); _than = _tieuDe = null; }
     }
 
     /// <summary>Phông theo cỡ (pt) và kiểu như <c>new Font("Segoe UI", pt, st)</c>.</summary>
@@ -1134,7 +1148,7 @@ internal static class PhongChu
         {
             if ((st & FontStyle.Bold) != 0 && pt >= NguongTieuDe && _tieuDe != null)
             {
-                var kieu = st & ~FontStyle.Bold;   // tệp đã là SemiBold 600: xin Bold sẽ ra đậm giả
+                var kieu = (st & ~FontStyle.Bold) | _kieuTieuDe;   // tệp đã là SemiBold 600: chỉ xin đúng kiểu GDI+ ghi cho nó, không đậm giả
                 if (_tieuDe.IsStyleAvailable(kieu)) return new Font(_tieuDe, pt * HeSoTieuDe, kieu);
             }
             if (_than != null && _than.IsStyleAvailable(st)) return new Font(_than, pt * HeSoThan, st);
