@@ -9,7 +9,7 @@ import { bm } from "@/lib/api";
 import { TieuMuc } from "@/lib/hang-ngay";
 import { kieuSao, saoTu, soVN, type SaoCon } from "@/lib/so-sao";
 import { BieuTron, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nhan, The, useTai, type TenIcon } from "@/lib/ui";
-import { icDung, tenNgan, type HomNayDung } from "@/lib/da-dung";
+import { icDung, nhanDung, tenNgan, type HomNayDung } from "@/lib/da-dung";
 
 export type { HomNayDung };
 
@@ -59,8 +59,8 @@ export default function DaDung() {
                 {[x.matMang ? "● Mất mạng" : x.dangMo ? "● Đang mở" : null, tenNgan(x.may) || (x.nen ? x.nen : null)].filter(Boolean).join(" · ")}
               </Chu>
             </View>
-            {/* thiết kế 03 .tag: mục Tính phút «−39 sao» (1 phút = 1 sao) / «Không tính 10′» (xám) */}
-            <Nhan chu={x.tinhGio ? `${soVN(-x.phut)} sao` : `Không tính ${x.phut}′`} loai={x.tinhGio ? "canh" : "xam"} />
+            {/* cùng kiểu với Trang chủ (lib/da-dung › nhanDung): Tính phút «−39 sao» (1 phút = 1 sao) / «Không tính 10′» (xám) */}
+            <Nhan chu={nhanDung(x).chu} loai={x.tinhGio ? "canh" : "xam"} />
           </Pressable>
         ))}
       </The>

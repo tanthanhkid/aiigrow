@@ -75,7 +75,7 @@ export default function DsThongBaoMan() {
     const kk = KIEU[x.nhom] ?? KIEU.canh_bao;
     const no = x.nhom === "canh_bao_no" || x.nhom === "canh_bao" ? chuNoQua(x.tieu) : null;
     return <DongTb key={x.id} k={k} deY={deY} luc={ngayCua(x.luc)} ic={no ? "canh_bao" : icXin(x.tieu, kk.ic)} tieu={no?.tieu ?? x.tieu}
-      phu={[no?.phu ?? x.phu, x.imLang ? "trong giờ yên lặng" : null].filter(Boolean).join(" · ")} lam={deY ? kk.lam ?? "Xem ›" : kk.lam} bam={() => router.push(x.den as never)} />;
+      phu={[no?.phu ?? x.phu, x.imLang ? "trong giờ yên lặng" : null].filter(Boolean).join(" · ")} lam={deY ? kk.lam ?? "Xem ›" : undefined} bam={() => router.push(x.den as never)} />;
   };
   return (
     <Man lui={{ chu: "" }} tieu="Thông báo" phai={phai} tai={tai} vongTai>
@@ -97,7 +97,7 @@ function NhomTb({ deY, children }: { deY?: boolean; children: ReactNode }) {
 
 /** Một dòng thông báo (.lg): giờ (cột 40) · ô icon lõm · tiêu đề + dòng phụ · hành động («Trả lời» viên than chì, còn lại chữ «Xem ›»). */
 function DongTb({ k, deY, luc, ic, tieu, phu, lam, bam }: { k: number; deY?: boolean; luc: string; ic: TenIcon; tieu: string; phu?: string; lam?: string; bam: () => void }) {
-  // «Trả lời» viên than chì chỉ ở «Cần Ba Mẹ để ý»; «Để biết» là chữ «Trả lời ›» (bàn them-0xf9hrgn@v15)
+  // «Trả lời» viên than chì chỉ ở «Cần Ba Mẹ để ý»; «Để biết» chỉ để biết — không chữ hành động (Trả lời / Duyệt), chạm dòng vẫn mở chi tiết
   const traLoi = !!deY && !!lam && /^Trả lời/.test(lam);
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={[tieu, phu, luc].filter(Boolean).join(", ")}

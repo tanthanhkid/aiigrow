@@ -30,7 +30,7 @@ import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
 import { mayCuaCon } from "@/lib/may-nhieu-con";
 import { BangChoVay, kieuSao, saoTu, SoSaoLon, soVN, thamSoXongVay, VienSao } from "@/lib/so-sao";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
-import { icDung, type HomNayDung } from "@/lib/da-dung";
+import { icDung, nhanDung, type HomNayDung } from "@/lib/da-dung";
 import { type MucCanDeY } from "@/lib/s3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nhan, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
@@ -165,7 +165,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const dauTien: { loai: "muc"; m: MucDeY } | { loai: "xin" } | null = muc[0] ? { loai: "muc", m: muc[0] } : xin[0] ? { loai: "xin" } : sau[0] ? { loai: "muc", m: sau[0] } : null;
 
   // ---- 3. đã dùng gì hôm nay: 4 mục mới nhất
-  const daDung = [...(hn.d?.dung ?? [])].sort((a, b) => Date.parse(b.luc ?? "") - Date.parse(a.luc ?? "")).slice(0, 4);
+  const daDung = [...(hn.d?.dung ?? [])].sort((a, b) => (b.luc ? Date.parse(b.luc) : -Infinity) - (a.luc ? Date.parse(a.luc) : -Infinity) || 0).slice(0, 4);
   const veDaDung = () => router.push(`/da-dung/${conId}` as never);
 
   // ---- 4. vừa làm xong (chờ duyệt + tự cộng hôm nay), ≤ 3
@@ -262,7 +262,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           <TieuMuc chu={`${c.ten} đã dùng gì hôm nay`} phai={{ chu: "Xem hết ›", bam: veDaDung }} />
           <The style={{ paddingVertical: 4, paddingHorizontal: 12 }}>
             {daDung.map((x, k) => (
-              <Pressable key={`${x.kieu}:${x.muc}`} accessibilityRole="button" accessibilityLabel={`${x.ten}, ${x.tinhGio ? `${x.phut} sao` : `${x.phut} phút`}`}
+              <Pressable key={`${x.kieu}:${x.muc}`} accessibilityRole="button" accessibilityLabel={`${x.ten}, ${nhanDung(x).doc}`}
                 onPress={() => (x.tinhGio && x.mayId ? router.push(`/may/${x.mayId}` as never) : veDaDung())}
                 style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62, borderTopWidth: k ? 1.5 : 0, borderTopColor: "#ecebe7" }}>
                 <Chu kieu="rat" co={13} mau="#565c59" so style={{ width: 42 }}>{x.luc ? gioPhut(x.luc) : ""}</Chu>
@@ -273,7 +273,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
                     {[x.matMang ? "● Mất mạng" : x.dangMo ? "● Đang mở" : null, (x.may ?? "").replace(/ của .*$/, "") || x.nen].filter(Boolean).join(" · ")}
                   </Chu>
                 </View>
-                <View style={{ alignSelf: "center" }}><Nhan chu={x.tinhGio ? `${soVN(-x.phut)} sao` : `${soVN(x.phut)} phút`} loai="xam" /></View>
+                <View style={{ alignSelf: "center" }}><Nhan chu={nhanDung(x).chu} loai={x.tinhGio ? "canh" : "xam"} /></View>
               </Pressable>
             ))}
           </The>

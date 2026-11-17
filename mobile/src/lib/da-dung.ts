@@ -1,6 +1,7 @@
 // Dữ liệu «<Con> đã dùng gì» hôm nay (GET con/:id/hom-nay — server/lib/hom-nay-dung.ts): dùng ở màn /da-dung/[con] (them-c95l1cwc)
 // và mục «<Con> đã dùng gì hôm nay» của Trang chủ (bm2-trang-chu@v35).
 import type { TenIcon } from "./ui";
+import { soVN } from "./so-sao";
 
 type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
   phut: number; tinhGio: boolean; dangMo: boolean; matMang: boolean };
@@ -20,3 +21,8 @@ export function icDung(x: { ten: string; kieu: "app" | "web"; tinhGio: boolean }
   return x.tinhGio ? "game" : "may_tinh";
 }
 
+
+/** Nhãn thời lượng một dòng «đã dùng» — MỘT kiểu cho Trang chủ (bm2-trang-chu .tag) và màn «<Con> đã dùng gì» (them-c95l1cwc):
+ * mục Tính phút trừ sao, 1 phút = 1 sao ⇒ «−39 sao»; mục Không tính phút ⇒ «Không tính 10′» (không trừ sao). */
+export const nhanDung = (x: { phut: number; tinhGio: boolean }) =>
+  x.tinhGio ? { chu: `${soVN(-x.phut)} sao`, doc: `trừ ${x.phut} sao` } : { chu: `Không tính ${x.phut}′`, doc: `${x.phut} phút, không trừ sao` };
