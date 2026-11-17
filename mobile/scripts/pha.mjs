@@ -1018,7 +1018,8 @@ await kichBan("Duyệt nhiệm vụ: bằng chứng ⇒ «Duyệt · nhận 10 s
   await bam("Ba Mẹ tự hào về con");
   await bam(`Duyệt · ${KEN} nhận 10 sao`);
   xet(await doi(`+10 sao cho ${KEN}!`), "màn đã duyệt");
-  xet(await doi("145 → 155 sao"), "ví trước → sau đúng số sao");
+  // ví trước → sau: hai viên «145» → «155 sao» (mũi tên là icon, không phải chữ) — đo nhanh, không ăn hết 8 giây của toast Hoàn tác
+  xet(/145\s+155 sao/.test(await chu() ?? ""), "ví trước → sau đúng số sao");
   xet(nhatKy.some((x) => x.d === "luot/l1/duyet" && x.body?.diem === 10 && x.body?.loiKhen === "Ba Mẹ tự hào về con"), "gửi kèm lời khen đã chọn");
   xet(await doi("Hoàn tác"), "có nút Hoàn tác");
   await bam("Hoàn tác");
@@ -1321,7 +1322,10 @@ await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm đư
   xet(!!r?.trung, "chip Con không bị lớp nào che (elementFromPoint trúng chip)");
   if (r) await nhanChuot(r);
   xet(await doi("Xin Ba Mẹ cho vay 15 sao"), "bấm chip Bill ⇒ hiện lời xin của Bill");
-  // cuộn: lăn chuột giữa màn ⇒ khung cuộn của Hôm nay phải đổi vị trí
+  // cuộn: về lại Bảo Anh (nhiều mục — Trang chủ của Bill vừa một màn, không có gì để cuộn) rồi lăn chuột giữa màn ⇒ khung cuộn của Hôm nay phải đổi vị trí
+  const chipKen = await viTriYen(chip.replace(JSON.stringify(BILL), JSON.stringify(KEN)));
+  if (chipKen) await nhanChuot(chipKen);
+  await doi("Xin Ba Mẹ cho vay 20 sao");
   const khung = `(() => [...document.querySelectorAll("div")].filter((e) => e.scrollHeight > e.clientHeight + 40 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)
     && e.innerText.includes("Khoá máy") && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().left > -5 && e.getBoundingClientRect().left < 5).pop())()`;
   await js(`${khung}?.scrollTo(0, 0)`); await sleep(200);
@@ -1969,7 +1973,7 @@ await kichBan("Sổ sao · Lời xin vay: «Xin Ba Mẹ cho vay 20 sao» ⇒ Cho
   kb = { ...kb, ...CO_XIN_VAY };
   await di("/yeu-cau?con=c1");
   xet(await doi("Xin Ba Mẹ cho vay 20 sao"), "tiêu đề lời xin vay (them-a4nqjrmp)");
-  xet(await doi("hết sao, muốn chơi tiếp"), "dòng phụ «hết sao, muốn chơi tiếp»");
+  xet(await doi("hết sao"), "dòng phụ «hết sao» (bàn them-a4nqjrmp — máy · hết sao)");
   xet(await doi("Đang nợ Ba Mẹ 20 sao"), "viên sao + đang nợ của con");
   await bam("Cho vay 20 sao");
   xet(await choGoi((x) => x.d === "yeu-cau/y4/dong-y" && x.body?.soSao === 20), "gửi dong-y soSao 20");
