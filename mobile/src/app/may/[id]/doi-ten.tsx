@@ -10,8 +10,8 @@ import { Pressable, View } from "react-native";
 import { bm, chuanHoaTen, type ChiTietTuanThu, type GiaDinh, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { tenGoi } from "@/lib/hang-ngay";
-import { CapAvt, conCuaMay, DauHaiDong, hinhMay, laMayChung, type ConNganMay } from "@/lib/may-nhieu-con";
-import { BaoLoi, ChoTai, Chu, Icon, Icon3D, M, Man, Nut, ONhap, Rob, useLam, useTai } from "@/lib/ui";
+import { CapAvt, conCuaMay, DauHaiDong, hinhMay, laMayChung, nganTen, type ConNganMay } from "@/lib/may-nhieu-con";
+import { BaoLoi, baoKhiVe, ChoTai, Chu, Icon, Icon3D, M, Man, Nut, ONhap, Rob, useLam, useTai } from "@/lib/ui";
 
 /** Tối đa 30 chữ (thiết kế them-tw6apkag) — máy chủ nhận tới 80 (tên lúc ghép), app giữ tên ngắn để vừa thẻ máy. */
 const TOI_DA = 30;
@@ -39,15 +39,20 @@ export default function DoiTenMay() {
   const lui = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/may/[id]", params: { id } }));
   if (!d) return <Man dau={<DauHaiDong tieu="Đổi tên máy" lui={lui} />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const { m, con } = d;
-  const gt = ten ?? m.ten.replace(/ · .*$/, "");
+  const cu = chuanHoaTen(nganTen(m.ten));
+  const gt = ten ?? cu;
   const moi = chuanHoaTen(gt);
-  const dai = [...moi].length > TOI_DA;
-  const trung = !!moi && d.khac.some((x) => chuanHoaTen(x).toLowerCase() === moi.toLowerCase());
+  const doi = moi !== cu;
+  // tên cũ dài hơn 30 (đặt lúc ghép, máy chủ nhận tới 80) ⇒ chỉ nhắc khi Ba Mẹ đã sửa
+  const dai = doi && [...moi].length > TOI_DA;
+  // so theo tên đã bỏ « · <hệ điều hành>» (agent cũ gắn hậu tố)
+  const trung = !!moi && d.khac.some((x) => chuanHoaTen(nganTen(x)).toLowerCase() === moi.toLowerCase());
   const chung = con.length >= 2 || laMayChung(m);
   const tot = m.baoVe ? m.baoVe === "day_du" : m.trangThai === "tuan_thu";
   const goiY = ["Phòng khách", "Phòng học", "Phòng ngủ", ...(con.length ? [`Của ${tenCacBe(con)}`] : [])];
   const luu = () => lam(async () => {
-    if (moi !== chuanHoaTen(m.ten)) await bm.goi(`may/${id}/doi-ten`, { ten: moi });
+    await bm.goi(`may/${id}/doi-ten`, { ten: moi });
+    baoKhiVe(`Đã đổi tên máy thành ${moi}`);
     lui();
   });
   const nhacGrow = (dao: boolean, chu: string) => (
@@ -119,7 +124,7 @@ export default function DoiTenMay() {
       </>}
       {/* thiết kế: nút ngay dưới nội dung (không ghim đáy) */}
       <BaoLoi loi={loiLam} />
-      <Nut chu="Lưu tên máy" rong dangChay={dangChay} tat={!moi || dai} bam={luu} />
+      <Nut chu="Lưu tên máy" rong dangChay={dangChay} tat={!moi || !doi || dai} bam={luu} />
     </Man>
   );
 }

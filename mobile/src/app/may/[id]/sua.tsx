@@ -6,7 +6,7 @@ import { View } from "react-native";
 import { bm, type ChiTietTuanThu } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { DauHaiDong, nganTen } from "@/lib/may-nhieu-con";
-import { ChoTai, Chu, Icon3D, M, Man, Nut, useTai } from "@/lib/ui";
+import { baoKhiVe, ChoTai, Chu, Icon3D, M, Man, Nut, useTai } from "@/lib/ui";
 
 const HINH = ["banhrang", "dong_ho_cat", "khoa"] as const;
 
@@ -35,7 +35,8 @@ export default function SuaMay() {
           </View>
         ))}
       </View>
-      <Nut chu="Đã làm xong, kiểm tra lại" rong bam={() => router.dismissTo("/may")} />
+      {/* «Máy của con» tự tải lại khi hiện lại (useTai) ⇒ thấy trạng thái mới; báo Grow kiểm lại ở lần máy báo về */}
+      <Nut chu="Đã làm xong, kiểm tra lại" rong bam={() => { baoKhiVe("Grow kiểm lại ở lần máy báo về kế tiếp (thường dưới 3 phút)"); router.dismissTo("/may"); }} />
       <Nut chu="Làm không được? Hỏi AiiGrow" loai="ma" rong bam={() => router.push("/hoi-aiigrow")} />
     </Man>
   );

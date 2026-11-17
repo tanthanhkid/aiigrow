@@ -21,7 +21,7 @@ import {
   appTrenMay, AvtCon, BangKhoaTheoMay, conCuaMay, mayCuaCon, nganTen as ngan, ganBoCon, hinhMay, keDau, laMayChung, laMotCon, MucPhai, SaoNho, TEN_NEN, TheDs, type ConMay, type ConNganMay,
 } from "@/lib/may-nhieu-con";
 import {
-  BangTruot, Bao, BaoLoi, BieuTron, Chips, ChoTai, Chu, CongTac, Dong, gioPhut, HaiNut, Icon3D, M, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, truoc, useHoanTac, useLam, useTai,
+  BangTruot, Bao, BaoLoi, baoKhiVe, BieuTron, Chips, ChoTai, Chu, CongTac, Dong, gioPhut, HaiNut, Icon3D, M, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 import { BONG, KHOI } from "@/lib/clay";
 
@@ -100,10 +100,11 @@ export default function AnToanMay() {
       const r = await bm.goi<KqGoMay>(`may/${id}/go`, { matKhau: mk, ...(xoaHan ? { xoaHan: true } : {}) });
       dong();
       if (r.trangThai === "da_xoa") { bao(r.canGoTaiMay ? "Đã xoá khỏi danh sách — nhớ gỡ tại máy nếu AiiGrow còn trên đó" : "Đã xoá máy khỏi danh sách"); await tai(); return; }
-      bao(r.lapLai ? `${d?.m?.ten ?? "Máy"} đã có lệnh gỡ đang chờ` : `Đã gửi lệnh gỡ tới ${d?.m?.ten ?? "máy"}`);
-      // thiết kế them-v4ovqk42 / them-18q14mik: gỡ xong về «Máy của con» (máy hiện «Đang gỡ AiiGrow khỏi máy này» tới khi máy báo đã gỡ)
-      if (!xoaHan) { router.dismissTo("/may"); return; }
-      await tai();
+      const chu = r.lapLai ? `${d?.m?.ten ?? "Máy"} đã có lệnh gỡ đang chờ` : `Đã gửi lệnh gỡ tới ${d?.m?.ten ?? "máy"}`;
+      // thiết kế them-v4ovqk42 / them-18q14mik: gỡ xong về «Máy của con» (máy hiện «Đang gỡ AiiGrow khỏi máy này» tới khi máy báo đã gỡ);
+      // câu báo hiện ở màn đích (baoKhiVe — useHoanTac của «Máy của con» nhận)
+      if (!xoaHan) { baoKhiVe(chu); router.dismissTo("/may"); return; }
+      bao(chu); await tai();
     } catch (e) {
       // Máy chưa đồng bộ lần nào ⇒ không nhận được lệnh gỡ ⇒ hỏi lại: xoá hẳn khỏi danh sách
       if (e instanceof LoiApi && e.ma === "can_xoa_han") { setLoi(null); setMo("xoa"); return; }
@@ -283,7 +284,8 @@ export default function AnToanMay() {
       {/* «Đổi tên máy» luôn có cho Ba Mẹ (cả lúc máy đang gỡ — chỉ ẩn «Gỡ máy này») */}
       {!tot ? <>
         {nutSuaGo}
-        <Nut chu="Để sau" loai="vien" rong bam={() => router.dismissTo("/hom-nay")} />
+        {/* data-toi bm2-trang-chu: về màn trước (Trang chủ hoặc Máy của con); mở thẳng (không có màn trước) ⇒ Trang chủ */}
+        <Nut chu="Để sau" loai="vien" rong bam={() => (router.canGoBack() ? router.back() : router.replace("/hom-nay"))} />
       </> : null}
 
       {/* m1: hai ô nổi — app đang mở (phút trên máy này) · sao còn của bé (= phút chơi) */}

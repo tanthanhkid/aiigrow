@@ -1616,7 +1616,7 @@ await kichBan("Đổi tên máy (them-tw6apkag): mở màn đổi tên từ màn
   await go("Tên máy", "  Máy   học bài ");
   await bam("Lưu tên máy");
   xet(await choGoi((x) => x.d === "may/m1/doi-ten" && x.m === "POST" && x.body?.ten === "Máy học bài"), "gửi tên máy đã chuẩn hoá");
-  xet(await doi("Gỡ tại máy"), "lưu xong quay về màn máy");
+  xet(await doi("Đã đổi tên máy thành Máy học bài"), "lưu xong quay về màn máy, báo đã đổi tên");
 });
 
 // ---------------------------------------------------------------- #267 một máy nhiều Con (docs/API.md mục #267)
