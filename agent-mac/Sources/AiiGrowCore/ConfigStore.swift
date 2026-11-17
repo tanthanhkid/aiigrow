@@ -51,6 +51,8 @@ public struct CauHinhMay: Codable, Equatable {
   public var phienMay: PhienMay?
   /// Đếm sai PIN tại máy (chỉ dùng lúc mất mạng; có mạng máy chủ đếm).
   public var saiPin: BoDemSaiPin?
+  /// #337: luật mất mạng theo từng bé của máy dùng chung (GoiOffline.swift) — đổi bé lúc mất mạng thì nạp đúng gói bé đó.
+  public var goiOffline: [String: GoiOfflineBe]?
 
   public init() {}
   public var daGhep: Bool { !token.isEmpty }
@@ -76,6 +78,7 @@ public struct CauHinhMay: Codable, Equatable {
     hoSoMay = (try? c.decodeIfPresent(HoSoMay.self, forKey: .hoSoMay)) ?? nil
     phienMay = (try? c.decodeIfPresent(PhienMay.self, forKey: .phienMay)) ?? nil
     saiPin = (try? c.decodeIfPresent(BoDemSaiPin.self, forKey: .saiPin)) ?? nil
+    goiOffline = (try? c.decodeIfPresent([String: GoiOfflineBe].self, forKey: .goiOffline)) ?? nil
   }
 }
 
@@ -89,11 +92,15 @@ public struct PhienBu: Codable, Equatable {
   public var ketThuc: Date
   /// Phần của `giay` rơi vào lúc máy mở bằng mã offline (sổ sao 15/11) — gửi thành lượt bù riêng `{boiMa: true}` (máy chủ không trừ sao phần đó).
   public var giayBoiMa: Double?
-  public init(ma: String = UUID().uuidString, id: String, muc: String, giay: Double = 0, batDau: Date, ketThuc: Date, giayBoiMa: Double? = nil) {
-    self.ma = ma; self.id = id; self.muc = muc; self.giay = giay; self.batDau = batDau; self.ketThuc = ketThuc; self.giayBoiMa = giayBoiMa
+  /// #337: bé đã chơi phiên này (máy dùng chung) — gửi `con` để máy chủ ghi đúng bé khi không thấy phiên `id` (mở lúc mất mạng). nil = không biết.
+  public var con: String?
+  public init(ma: String = UUID().uuidString, id: String, muc: String, giay: Double = 0, batDau: Date, ketThuc: Date, giayBoiMa: Double? = nil, con: String? = nil) {
+    self.ma = ma; self.id = id; self.muc = muc; self.giay = giay; self.batDau = batDau; self.ketThuc = ketThuc; self.giayBoiMa = giayBoiMa; self.con = con
   }
   private func mot(_ m: String, _ g: Double) -> [String: Any] {
-    ["ma": m, "id": id, "muc": muc, "phut": (g / 60 * 100).rounded() / 100, "batDau": NgayGio.viet(batDau), "ketThuc": NgayGio.viet(ketThuc)]
+    var t: [String: Any] = ["ma": m, "id": id, "muc": muc, "phut": (g / 60 * 100).rounded() / 100, "batDau": NgayGio.viet(batDau), "ketThuc": NgayGio.viet(ketThuc)]
+    if let con, !con.isEmpty { t["con"] = con }
+    return t
   }
   /// Lượt thường (phần không mở bằng mã).
   public var than: [String: Any] { mot(ma, max(0, giay - (giayBoiMa ?? 0))) }

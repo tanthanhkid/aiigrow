@@ -275,8 +275,9 @@ public actor BoMay {
         heThong.ghiLog("Có mạng lại — kết thúc lượt mở bằng mã offline.")
         themSuKien("het_ma_offline", ["ket_thuc": "co_mang"])
       }
-      policy = kq.policy
       let beSao: String? = { if case let .con(id, _)? = kq.nguoiDung, !id.isEmpty { return id }; return nil }()
+      if beSao != cauHinh.saoCuaBe { catGoiBeDangNap() }        // #337: luật + bộ đếm của bé vừa rời máy ⇒ gói của bé đó (mới hơn gói ho-so)
+      policy = kq.policy
       if beSao != cauHinh.saoCuaBe { cauHinh.saoCuaBe = beSao; _ = try? kho.sua { $0.saoCuaBe = beSao } }
       if kq.nguoiDung != nil {
         var pm = cauHinh.phienMay ?? PhienMay()
@@ -304,6 +305,7 @@ public actor BoMay {
       for l in kq.lenh where l.loai == "go" { await tuGo(lenhId: l.id) }
       // danh sách bé + vân PIN: lấy sớm và làm mới ≥ 30 phút một lần (PIN / bí mật đổi thì kiểm PIN lúc mất mạng vẫn đúng)
       if kq.nguoiDung != nil, cauHinh.daGhep, cauHinh.hoSoMay == nil || donDieu() - hoSoLuc > 1800 { hoSoLuc = donDieu(); _ = await hoSoMay() }   // biết máy riêng / danh sách bé sớm (menu Đổi người, PIN lúc mất mạng)
+      if let ds = kq.dsCon { await nhanDsCon(ds) }   // #339: Ba Mẹ đổi gán máy ⇒ thấy NGAY lượt này (chờ thay đổi đánh thức), không chờ 30 phút
       tinHieuApp = kq.danhSachApp
       kichGuiDanhSachApp()                          // Task riêng — không chặn vòng đồng bộ
       await guiXinVayCho()                          // lời xin vay lưu lúc mất mạng
@@ -476,7 +478,7 @@ public actor BoMay {
     appDangTinh = nil
     let be = beDangDung()
     if !daBietBeDemSao { beDemSao = be; daBietBeDemSao = true }     // daemon vừa chạy: giữ bộ đếm đã lưu (mất mạng qua khởi động lại)
-    else if be != beDemSao { cauHinh.quyGiayTuSync = 0; beDemSao = be }
+    else if be != beDemSao { catGoiBeDangNap(); cauHinh.quyGiayTuSync = 0; beDemSao = be }   // #337: cất bộ đếm của bé rời máy vào gói bé đó TRƯỚC khi xoá
     guard saoCuaBeDangDung() else { return }
     guard let p = policy, !p.moHet, SaoPhut.phutGoc(p) != nil, !SaoPhut.dsTinhPhut(p).isEmpty else { return }
     let tc = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
@@ -730,13 +732,87 @@ public actor BoMay {
     if lenhCho?.id == v.id { lenhCho = nil }         // trong lúc chờ mạng có lệnh mới (Đổi người…) thì giữ lệnh mới
   }
 
+  // MARK: #337 gói luật mất mạng theo bé · #339 đổi gán máy áp ngay
+
+  /// Tăng mỗi lần danh sách bé (id / tên) đổi — tray đang mở màn chọn tên thì tải lại (TrangThai.hoSoSeq).
+  private var hoSoSeq = 0
+  /// `dsCon` đã làm lần tải lại ho-so gần nhất (không tải lặp mỗi lượt đồng bộ khi máy chủ trả danh sách khác ho-so).
+  private var dsConDaTai: Set<String>?
+
+  static func dauDsBe(_ h: HoSoMay) -> [String] { h.con.map { $0.id + "\u{1}" + $0.ten } }
+  /// Máy dùng chung = từ hai bé trở lên (máy riêng không có gói, không màn chọn tên).
+  static func laMayChung(_ h: HoSoMay?) -> Bool { guard let h else { return false }; return h.con.count >= 2 && !h.mayRieng }
+
+  /// #339: dong-bo trả `dsCon`. Bé đang dùng không còn được gán ⇒ đẩy về màn chọn tên ngay; danh sách lệch bản nhớ ⇒ tải lại ho-so ngay.
+  private func nhanDsCon(_ ds: [String]) async {
+    let moi = Set(ds)
+    if let be = beDangDung(), !moi.isEmpty, !moi.contains(be) {
+      heThong.ghiLog("Ba Mẹ vừa bỏ gán bé đang dùng khỏi máy — về màn chọn tên.")
+      catGoiBeDangNap()
+      datMayChu(.chua)
+    }
+    let nho = cauHinh.hoSoMay.map { Set($0.con.map(\.id)) }
+    // tải được mới coi là xong; lỗi ⇒ lượt đồng bộ sau thử lại, tối đa 10 giây / lần (như agent-win)
+    guard nho != moi, dsConDaTai != moi, donDieu() - dsConThuLuc >= 10 else { return }
+    dsConThuLuc = donDieu()
+    hoSoLuc = donDieu()
+    hoSoTaiDuoc = false
+    _ = await hoSoMay()
+    if hoSoTaiDuoc { dsConDaTai = moi }
+  }
+  private var dsConThuLuc: Double = -1_000_000
+  /// Lần gọi hoSoMay() gần nhất lấy được ho-so mới từ máy chủ.
+  private var hoSoTaiDuoc = false
+
+  /// Cất luật + bộ đếm tại chỗ của bé đang nạp (`saoCuaBe`) thành gói của bé đó — gói này mới hơn gói ho-so (đã gồm phút bé vừa chơi).
+  private func catGoiBeDangNap() {
+    guard BoMay.laMayChung(cauHinh.hoSoMay), let cu = cauHinh.saoCuaBe, let p = policy else { return }
+    var pc = p; pc.maOfflineBiMat = nil
+    var goi = cauHinh.goiOffline ?? [:]
+    goi[cu] = GoiOfflineBe(policy: pc, luc: cauHinh.policyLuc ?? dongHo(), quyGiay: cauHinh.quyGiayTuSync, dungGiay: cauHinh.daDungGiayTuSync)
+    cauHinh.goiOffline = goi
+    _ = try? kho.sua { $0.goiOffline = goi }
+  }
+
+  /// #337: bé `con` vào máy dùng chung ⇒ nạp gói của bé đó (luật, khoá, giới hạn, sổ sao + bộ đếm sao / giờ tại chỗ của riêng bé).
+  /// → false = máy chung mà chưa có gói của bé (lúc mất mạng: không cho vào). Máy riêng / bé đang nạp sẵn ⇒ true, không đổi gì.
+  @discardableResult
+  private func napGoiBe(_ con: String) -> Bool {
+    guard BoMay.laMayChung(cauHinh.hoSoMay), cauHinh.saoCuaBe != con else { return true }
+    catGoiBeDangNap()
+    guard var g = cauHinh.goiOffline?[con] else { return false }
+    g.policy.maOfflineBiMat = policy?.maOfflineBiMat          // bí mật mã offline là của MÁY (kiểm PIN / mã Ba Mẹ lúc mất mạng)
+    policy = g.policy
+    cauHinh.policyCuoi = g.policy; cauHinh.policyLuc = g.luc
+    cauHinh.quyGiayTuSync = g.quyGiay; cauHinh.daDungGiayTuSync = g.dungGiay
+    cauHinh.saoCuaBe = con
+    beDemSao = con; daBietBeDemSao = true                     // demSao không xoá bộ đếm vừa nạp
+    choiNho = [:]; nghiGhim = nil
+    let c = cauHinh
+    _ = try? kho.sua {
+      $0.policyCuoi = c.policyCuoi; $0.policyLuc = c.policyLuc; $0.quyGiayTuSync = c.quyGiayTuSync
+      $0.daDungGiayTuSync = c.daDungGiayTuSync; $0.saoCuaBe = c.saoCuaBe
+    }
+    heThong.ghiLog("Đã nạp luật riêng của bé \(con) (gói lúc \(NgayGio.viet(g.luc))).")
+    return true
+  }
+
   private func hoSoMay() async -> TraLoi {
     guard cauHinh.daGhep, !dangGo else { return .loi(ma: "chua_ghep", chu: "Máy chưa ghép với Ba Mẹ.") }
     var h: HoSoMay?
     do {
-      let d = try await api.mayChung("GET", "ho-so", nil)
+      let d = try await api.mayChung("GET", "ho-so", nil)      // ApiClient xin kèm `?offline=1` (#337)
       h = HoSoMay.doc(d)
-      if let h { cauHinh.hoSoMay = h; _ = try? kho.sua { $0.hoSoMay = h } }
+      if let h {
+        hoSoTaiDuoc = true
+        if BoMay.dauDsBe(h) != cauHinh.hoSoMay.map(BoMay.dauDsBe) { hoSoSeq += 1 }   // tray đang mở màn chọn tên ⇒ tải lại danh sách
+        cauHinh.hoSoMay = h
+        // #337: gói luật mất mạng theo bé — máy riêng ⇒ bỏ; máy chung có gói ⇒ thay cả bộ (bé bị bỏ gán mất gói); máy chủ cũ không gửi ⇒ giữ
+        if !BoMay.laMayChung(h) { cauHinh.goiOffline = nil }
+        else if let g = GoiOffline.doc(d, now: dongHo()) { cauHinh.goiOffline = g }
+        let goi = cauHinh.goiOffline
+        _ = try? kho.sua { $0.hoSoMay = h; $0.goiOffline = goi }
+      }
     } catch let e as LoiApi where !e.laMang {
       return .loi(ma: e.ma ?? "ho_so_loi", chu: e.chu)
     } catch {}
@@ -760,7 +836,9 @@ public actor BoMay {
       let o = (try? JSONSerialization.jsonObject(with: d)) as? [String: Any]
       let c = o?["con"] as? [String: Any]
       let ten = c?["ten"] as? String ?? cauHinh.hoSoMay?.con.first { $0.id == con }?.ten ?? ""
-      datMayChu(.con(id: JsonMem.chuoi(c?["id"]) ?? con, ten: ten))
+      let id = JsonMem.chuoi(c?["id"]) ?? con
+      napGoiBe(id)                                     // #337: tới lượt dong-bo kế (≈2 giây) đã chạy bằng luật + sao của bé này, rớt mạng giữa chừng vẫn đúng
+      datMayChu(.con(id: id, ten: ten))
       var sai = cauHinh.saiPin ?? BoDemSaiPin(); sai.xoa(con: con); cauHinh.saiPin = sai; _ = try? kho.sua { $0.saiPin = sai }
       dongBoSom()
       return .pin(ketQua: "ok", conLan: nil, choGiay: nil, chu: ten)
@@ -799,6 +877,11 @@ public actor BoMay {
       }
     }
     sai.xoa(con: con)
+    // #337: nạp luật + sao của ĐÚNG bé này; máy chung mà chưa có gói của bé ⇒ không cho vào (khoá tới khi có mạng), không mượn luật bé trước
+    guard napGoiBe(con) else {
+      heThong.ghiLog("Mất mạng — \(be.ten) chưa có luật trên máy này, chờ có mạng.")
+      return .loi(ma: "chua_co_luat", chu: "Máy đang mất mạng và chưa có luật của \(be.ten). Có mạng lại con vào nhé, hoặc nhờ Ba Mẹ nhập mã.")
+    }
     datCucBo(.con(id: con, ten: be.ten))
     datLenhCho("dang-nhap-be", be.coPin ? ["con": con, "pin": pin] : ["con": con])
     heThong.ghiLog("Mất mạng — \(be.ten) vào máy bằng PIN kiểm tại máy.")
@@ -1152,7 +1235,7 @@ public actor BoMay {
     let tc = cauHinh.uidCon.flatMap { demTienCanh.doc(uid: $0, gio: donDieu()) }
     guard ChoiBangDiem.dangChoi(tienCanh: tc, playApp: p.playApp, playWeb: p.playWeb) else { return }
     if let cu = cauHinh.phienBu, cu.id != id, cu.giay > 0 { return }     // còn phần bù của phiên trước chưa gửi ⇒ không đè
-    var bu = cauHinh.phienBu?.id == id ? cauHinh.phienBu! : PhienBu(id: id, muc: p.playApp ?? "", batDau: now, ketThuc: now)
+    var bu = cauHinh.phienBu?.id == id ? cauHinh.phienBu! : PhienBu(id: id, muc: p.playApp ?? "", batDau: now, ketThuc: now, con: beDangDung())
     bu.giay += troi; bu.ketThuc = now
     if moTamDangMo() { bu.giayBoiMa = (bu.giayBoiMa ?? 0) + troi }      // chỉ đoạn trong khung mở bằng mã
     cauHinh.phienBu = bu
@@ -1537,6 +1620,7 @@ public actor BoMay {
         if case let .con(id, ten) = nd { tt.beId = id; tt.beTen = ten.isEmpty ? cauHinh.hoSoMay?.con.first { $0.id == id }?.ten : ten }
         if case let .baMe(den) = nd { tt.baMeDungDen = den }
         tt.mayRieng = cauHinh.hoSoMay?.mayRieng
+        tt.hoSoSeq = hoSoSeq
       }
       if let c = chanCuoi { tt.chanApp = c.bundle; tt.chanTen = c.ten; tt.chanLyDo = c.lyDo }
     }

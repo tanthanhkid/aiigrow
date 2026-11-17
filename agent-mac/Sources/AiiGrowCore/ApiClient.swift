@@ -181,7 +181,9 @@ public final class ApiClient: MayChuApi {
 
   public func mayChung(_ method: String, _ path: String, _ than: [String: Any]?) async throws -> Data {
     guard DuongMayChung.duoc(method, path) else { throw LoiApi(ma: "duong_sai", chu: "Đường không hỗ trợ.") }
-    return try await gui(method.uppercased(), "api/device/" + path, method.uppercased() == "POST" ? (than ?? [:]) : nil)
+    // #337: hồ sơ máy luôn xin kèm gói luật mất mạng của từng bé (GoiOffline.swift); máy chủ cũ bỏ qua tham số
+    let duong = method.uppercased() == "GET" && path == "ho-so" ? GoiOffline.duongHoSo : path
+    return try await gui(method.uppercased(), "api/device/" + duong, method.uppercased() == "POST" ? (than ?? [:]) : nil)
   }
 
   public func ghep(ma: String, tenMay: String) async throws -> KetQuaGhep {
@@ -241,6 +243,8 @@ public final class ApiClient: MayChuApi {
     }
     var kq = KetQuaDongBo(policy: p, nextCheckSec: min(max(next, 10), 600), lenh: lenh, danhSachApp: dsApp)
     kq.nguoiDung = nguoiDung
+    // #339: bé được gán máy — lệch danh sách đang nhớ ⇒ tải lại ho-so ngay / đẩy bé bị bỏ gán ra (nil = máy chủ cũ)
+    if let o = try? JSONSerialization.jsonObject(with: raw) as? [String: Any], let ds = o["dsCon"] as? [Any] { kq.dsCon = ds.compactMap { chuoi($0) } }
     return kq
   }
 

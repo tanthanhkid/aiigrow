@@ -122,7 +122,7 @@ final class PinBeTests: XCTestCase {
     defer { try? FileManager.default.removeItem(atPath: tm) }
     api.dongBoTraVe = kq
     let van = PinBe.van(biMat: "bimat-may", con: "c1", pin: "4821")
-    api.mayChungTra["GET ho-so"] = .success(Data(#"{"con":[{"id":"c1","ten":"Bảo Anh","coPin":true,"vanPin":"\#(van)"},{"id":"c2","ten":"Bảo Minh","coPin":false}],"mayRieng":false}"#.utf8))
+    api.mayChungTra["GET ho-so"] = .success(Data(#"{"con":[{"id":"c1","ten":"Bảo Anh","coPin":true,"vanPin":"\#(van)"},{"id":"c2","ten":"Bảo Minh","coPin":false,"offline":{"windows":{"mode":"tu_do"}}}],"mayRieng":false,"offlineLuc":"2025-10-09T08:00:00.000Z"}"#.utf8))
     _ = await b.motVong()
     let t0 = await trangThai(b)
     XCTAssertEqual(t0?.nguoiDung, "chua")

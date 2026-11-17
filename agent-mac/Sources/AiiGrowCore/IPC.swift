@@ -124,6 +124,8 @@ public struct TrangThai: Codable, Equatable {
   public var baMeDungDen: Date?
   /// Máy chỉ gán một bé.
   public var mayRieng: Bool?
+  /// #339: tăng mỗi lần daemon thấy danh sách bé của máy đổi (Ba Mẹ thêm / bỏ gán) — màn chọn tên đang mở thì tải lại. nil = daemon cũ.
+  public var hoSoSeq: Int?
   /// Máy chưa ghép nhưng có token gói cài một chạm ⇒ cửa sổ Ghép chỉ hỏi tài khoản của Con, không hỏi mã 6 số. Chỉ cho phiên Ba Mẹ.
   public var coGoiCai: Bool?
   public init(daGhep: Bool, laPhienCon: Bool, tenCon: String?, cheDo: CheDo, lyDoKhoa: String?, conPhut: Int?, moDen: Date?, khoaDen: Date?,
