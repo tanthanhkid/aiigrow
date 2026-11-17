@@ -218,8 +218,9 @@ export const NutCong = ({ chon }: { chon: boolean }) => (
 );
 
 /** Nhãn trắng «Luôn bật» (.luon). */
+/** Nhãn «Luôn bật» (bàn them-2ru3t5iw `.luon`: viên ngọc nhạt #dcebe6, chữ ngọc 12/800, không nổi). */
 export const NhanLuon = ({ chu = "Luôn bật" }: { chu?: string }) => (
-  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10, backgroundColor: "#fff", ...KHOI.nho }}>
+  <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, backgroundColor: "#dcebe6" }}>
     <Chu kieu="rat" co={12} mau={M.chinhInk}>{chu}</Chu>
   </View>
 );

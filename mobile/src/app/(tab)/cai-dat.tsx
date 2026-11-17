@@ -3,7 +3,8 @@
 // «Mời người nhà») · máy của con · cài đặt chung (Thông báo, Quà con đổi bằng sao, Hỏi AiiGrow) · Đăng xuất.
 // 14/11: «Xoá tài khoản» chuyển vào «Tài khoản của bạn» (bm-ca-nha/08, 11); bỏ dòng «Cảnh báo & quy tắc tự động» (không còn trên thiết kế — các màn
 // bm3-duyet-canh-bao* đã xoá; cảnh báo từng cái vẫn mở từ Hôm nay).
-import { useState } from "react";
+// #325 (bàn them-h60stad7@v10 = bm2-gia-dinh@v9 = them-99ji705p@v10): hàng lời mời và «Gửi lại» mở «Đã mời <tên>!» (data-toi them-hfd2drjy — «Huỷ lời mời» ở
+// màn đó); «Gửi lại» tạo link mới + mở hàng chia sẻ rồi sang màn đó. Icon «Quà con đổi bằng sao» = qua.webp như bàn.
 import { Pressable, Share, View } from "react-native";
 import { router } from "expo-router";
 import { bm, mauMay } from "@/lib/api";
@@ -13,7 +14,7 @@ import { MucTieu, OIcon } from "@/lib/ui-bm3";
 import { mauCon, tenGoi } from "@/lib/hang-ngay";
 import { BONG, KHOI } from "@/lib/clay";
 import {
-  Avt, BangTruot, BaoLoi, ChoTai, Chu, Dong, Icon, Icon3D, M, Man, NhanMen, Nhom, Nut, useHoanTac, useLam, useTai,
+  Avt, BaoLoi, ChoTai, Chu, Dong, Icon, Icon3D, M, Man, NhanMen, Nhom, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 /** Màu avatar người lớn theo thiết kế (.ng: hồng, nâu, xám xanh…). */
@@ -24,23 +25,18 @@ const ngayThang = (iso: string) => { const t = new Date(iso); return Number.isNa
 
 export default function CaiDat() {
   const { ra } = usePhien();
-  const [moiMo, setMoiMo] = useState<LoiMoiCho | null>(null);
   const moi = useLam();
-  const { bao, noi } = useHoanTac();
+  const { noi } = useHoanTac();
   const { d, loi, matMang, tai } = useTai(napCaNha, KHOA_CA_NHA);
   if (!d) return <Man tieuLon="Cả nhà"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const laBaMe = (d.toi.baMe.quyen ?? (d.toi.baMe.vai === "xem" ? "trong_giup" : "ba_me")) === "ba_me";
+  const moDaMoi = (m: LoiMoiCho) => router.push({ pathname: "/moi-nguoi-nha", params: { moi: m.id } });
+  // «Gửi lại»: link mới (link cũ hết dùng) + hàng chia sẻ, rồi sang «Đã mời <tên>!»
   const guiLai = (m: LoiMoiCho) => moi.lam(async () => {
     const r = await bm.goi<{ chiaSe: { tieuDe: string; noiDung: string } }>(`thanh-vien/moi/${m.id}/gui-lai`, {});
     await tai();
-    bao(`Đã tạo link mới cho ${tenMoi(m)}`);
     Share.share({ title: r.chiaSe.tieuDe, message: r.chiaSe.noiDung }).catch(() => {});
-  });
-  const huyMoi = (m: LoiMoiCho) => moi.lam(async () => {
-    await bm.goi(`thanh-vien/moi/${m.id}/huy`, {});
-    setMoiMo(null);
-    await tai();
-    bao(`Đã huỷ lời mời ${tenMoi(m)}`);
+    moDaMoi(m);
   });
   const dongNguoi = (x: (typeof d.tv.ds)[number], i: number) => (
     <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? "Bạn · tài khoản của bạn" : x.vaoLuc ? `Vào nhà từ ${ngayThang(x.vaoLuc)}` : TEN_QUYEN[x.quyen]}
@@ -78,7 +74,7 @@ export default function CaiDat() {
         {d.tv.ds.slice(0, 1).map((x, i) => dongNguoi(x, i))}
         {/* lời mời đang chờ nằm ngay trong danh sách (hàng vàng «Đang chờ nhận lời mời · Gửi lại») */}
         {d.tv.loiMoi.map((m) => (
-          <NhanMen key={m.id} onPress={laBaMe ? () => setMoiMo(m) : undefined} disabled={!laBaMe} accessibilityRole="button" accessibilityLabel={`${tenMoi(m)}, đang chờ nhận lời mời`} muc="khoi"
+          <NhanMen key={m.id} onPress={laBaMe ? () => moDaMoi(m) : undefined} disabled={!laBaMe} accessibilityRole="button" accessibilityLabel={`${tenMoi(m)}, đang chờ nhận lời mời`} muc="khoi"
             style={{ flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 6, marginVertical: 4, paddingVertical: 8, paddingLeft: 10, paddingRight: 10, borderRadius: 22, backgroundColor: "#f9e7d2" }}>
             <Avt ten={tenMoi(m)} mau="#9aa6a1" co={40} />
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -120,7 +116,7 @@ export default function CaiDat() {
       <MucTieu chu="Cài đặt chung" />
       <Nhom>
         <Dong dau tieu="Thông báo" phu={d.tatTb === null ? "Báo ngay việc cần Ba Mẹ" : tatTb ? `Đã tắt ${tatTb} loại` : "Đang nhận hết"} trai={<OIcon ic="chuong" />} bam={() => router.push("/thong-bao/cai-dat")} />
-        <Dong tieu="Quà con đổi bằng sao" phu={d.soQua === null ? "Con đủ sao thì tự đổi" : `${d.soQua} món quà`} trai={<OIcon ic="coc" />} bam={() => router.push("/vi/qua")} />
+        <Dong tieu="Quà con đổi bằng sao" phu={d.soQua === null ? "Con đủ sao thì tự đổi" : `${d.soQua} món quà`} trai={<OIcon ic="qua" />} bam={() => router.push("/vi/qua")} />
         <Dong tieu="Hỏi AiiGrow" phu="Nhắn tin, gọi, hướng dẫn" trai={<OIcon ic="tin" />} bam={() => router.push("/hoi-aiigrow")} />
         {d.toi.laAdmin ? <Dong tieu="Hộp thư hỗ trợ" phu="Tin các gia đình gửi AiiGrow — quản trị" trai={<OIcon ic="tin" nen={M.timSoft} />} bam={() => router.push("/admin-ho-tro")} /> : null}
       </Nhom>
@@ -129,13 +125,6 @@ export default function CaiDat() {
         style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6, minHeight: 48, borderRadius: 24, backgroundColor: "#fff", ...KHOI.the }}>
         <Icon3D ten="thoat" co={22} /><Chu kieu="rat" co={15} mau={M.chu2}>Đăng xuất</Chu>
       </NhanMen>
-
-      <BangTruot mo={!!moiMo} dong={() => setMoiMo(null)} tieu={moiMo ? tenMoi(moiMo) : ""}>
-        {moiMo ? <Chu mau={M.chu2}>{`Đang chờ nhận lời mời · ${TEN_QUYEN[moiMo.quyen]}${moiMo.dinhDanh && moiMo.tenGoi ? ` · ${moiMo.dinhDanh}` : ""}. «Gửi lại» tạo link mới, link cũ hết dùng.`}</Chu> : null}
-        <BaoLoi loi={moi.loi} />
-        {moiMo ? <Nut chu="Gửi lại lời mời" rong dangChay={moi.dangChay} bam={() => guiLai(moiMo)} /> : null}
-        {moiMo ? <Nut chu="Huỷ lời mời" loai="huy" rong tat={moi.dangChay} bam={() => huyMoi(moiMo)} /> : null}
-      </BangTruot>
     </Man>
   );
 }

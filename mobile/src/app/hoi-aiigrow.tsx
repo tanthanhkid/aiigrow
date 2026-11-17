@@ -19,15 +19,16 @@ export default function HoiAiiGrow() {
   ];
   return (
     <Man lui={{ chu: "Cả nhà" }} tieu="Hỏi AiiGrow">
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 4 }}>
-        <Rob ten="so-tay" co={140} />
-        <View style={[{ flex: 1, padding: 14, borderRadius: 22, borderBottomLeftRadius: 8, backgroundColor: M.the }, KHOI.nho]}>
-          <Chu kieu="rat" co={20} style={{ lineHeight: 26 }}>Ba Mẹ cần giúp gì ạ?</Chu>
+      {/* bàn them-zxu4yvp3@v4 .canh: Grow sổ tay sát trái, bong bóng vừa chữ (18/24, 2 dòng) đứng cao hơn đáy Grow 46 */}
+      <View style={{ flexDirection: "row", alignItems: "flex-end", gap: 6, height: 150 }}>
+        <View style={{ marginLeft: -6 }}><Rob ten="so-tay" co={150} /></View>
+        <View style={[{ flexShrink: 1, marginBottom: 46, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 24, borderBottomLeftRadius: 8, backgroundColor: "#f7f6f3" }, KHOI.nho]}>
+          <Chu kieu="rat" co={18} style={{ lineHeight: 24, letterSpacing: -0.2 }}>{"Ba Mẹ cần\ngiúp gì ạ?"}</Chu>
         </View>
       </View>
       <NhanMen onPress={() => router.push("/ho-tro")} accessibilityRole="button" accessibilityLabel="Nhắn tin AiiGrow" muc="khoi" sang
         style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 14, borderRadius: 28, backgroundColor: "#f7f6f3" }, KHOI.the]}>
-        <OIcon ic="tin" co={52} />
+        <OIcon ic="tin" co={52} nen="#dcebe6" />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={17}>Nhắn tin AiiGrow</Chu>
           <Chu kieu="dam" co={13} mau="#565c59">Hỏi gì cũng được, có người trả lời</Chu>

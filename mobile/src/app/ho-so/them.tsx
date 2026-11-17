@@ -1,6 +1,7 @@
 // them-9ozp26pq «Thêm con» từ tab Cả nhà (thiết kế chốt 14/11 bm-ca-nha/02): cùng form hồ sơ với bước Lần đầu (lib/form-ho-so.tsx) — thẻ hồ sơ
 // «K · Khang · 🐓 9 tuổi» + Grow, «Tên gọi ở nhà», «Năm sinh» (bảng bánh xe, «2017 · tuổi Dậu»), «Màu của con», thẻ «Mã PIN vào máy · 4 số»,
-// «Lưu hồ sơ <tên>» ⇒ POST con {ten, namSinh, avatar, pin?} ⇒ «Đã tạo hồ sơ · bước tiếp» (bm-ca-nha/03, ho-so/[id]/tiep). PIN bỏ trống = chưa đặt (máy hỏi Ba Mẹ đặt sau).
+// «Lưu hồ sơ <tên>» ⇒ POST con {ten, namSinh, avatar, pin} ⇒ «Đã tạo hồ sơ · bước tiếp» (bm-ca-nha/03, ho-so/[id]/tiep).
+// #306 (PIN bắt buộc khi thêm con) + bàn them-9ozp26pq@v5: phải gõ đủ PIN 4 số mới lưu được.
 // Grow cài sẵn giờ chơi + bộ việc theo tuổi (tuổi tính từ năm sinh; chưa chọn năm ⇒ bộ Tự lập).
 import { useState } from "react";
 import { router } from "expo-router";
@@ -35,7 +36,7 @@ export default function ThemCon() {
   const [conId, setConId] = useState<string | null>(null);   // đã tạo (lời đáp lỗi sau đó) ⇒ bấm lại chỉ sửa Con này, không tạo Con thứ hai
   const tao = () => lam(async () => {
     // POST con tạo Con + PIN trong MỘT lời (PIN sai ⇒ không tạo gì). Đã tạo (lỗi ở bước sau) ⇒ bấm lại không tạo Con thứ hai.
-    const id = conId ?? (await bm.goi<{ id: string }>("con", { ten: tenGon, ...(namSinh ? { namSinh } : {}), avatar: `mau-${mau}`, ...(pin ? { pin } : {}) })).id;
+    const id = conId ?? (await bm.goi<{ id: string }>("con", { ten: tenGon, ...(namSinh ? { namSinh } : {}), avatar: `mau-${mau}`, pin })).id;
     setConId(id);
     // ảnh lỗi KHÔNG chặn: hồ sơ đã tạo, báo «Chưa lưu được ảnh» ở màn kế rồi đi tiếp (Ba Mẹ thêm ảnh ở Sửa hồ sơ)
     const anhKq = await dongBoAnhCon(id, af.anh);
@@ -54,13 +55,13 @@ export default function ThemCon() {
   return (
     <Man lui={{ chu: "", ve: "/cai-dat" }} tieu="Thêm con"
       day={<><BaoLoi loi={loi} />
-        <Nut chu={`Lưu hồ sơ ${tenGon || "con"}`} rong dangChay={dangChay} tat={!tenGon || !!loiPin} bam={tao} /></>}>
+        <Nut chu={`Lưu hồ sơ ${tenGon || "con"}`} rong dangChay={dangChay} tat={!tenGon || pin.length < 4 || !!loiPin} bam={tao} /></>}>
       <TheHoSoCon ten={ten} nam={nam} mau={mau} anh={af.uri} chup={af.chup} />
       <HangAnhCon f={af} />
       <OLom nhan="Tên gọi ở nhà" value={ten} onChangeText={setTen} placeholder="Khang" maxLength={30} autoComplete="off" />
       <ONamSinh nam={nam} doi={setNam} />
       <ChonMauCon mau={mau} doi={setMau} />
-      <ThePinCon pin={pin} doi={setPin} loi={loiPin} cau={<><Chu kieu="rat" co={13} mau={M_CHU_NGOC}>{`${goi || "Con"} dùng PIN này để vào máy.`}</Chu> Không dùng ngày sinh.</>} />
+      <ThePinCon pin={pin} doi={setPin} loi={loiPin} batBuoc cau={<><Chu kieu="rat" co={13} mau={M_CHU_NGOC}>{`${goi || "Con"} dùng PIN này để vào máy.`}</Chu> Không dùng ngày sinh.</>} />
     </Man>
   );
 }

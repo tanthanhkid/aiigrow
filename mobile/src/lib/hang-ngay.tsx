@@ -61,8 +61,9 @@ export const tuoiCua = (namSinh: number | null | undefined) => {
   const t = new Date().getFullYear() - namSinh;
   return t >= 1 && t <= 25 ? t : null;
 };
-/** 5 màu hồ sơ Con «mau-<số>» — trùng bảng của luồng Lần đầu (M1 lib/lan-dau › MAU_HO_SO); avatar cũ (không «mau-») ⇒ màu theo thứ tự. */
-const MAU_HO_SO = ["#f29a4a", "#6aa3ef", "#ec8db2", "#5bbf95", "#a98bea"];
+/** 5 màu hồ sơ Con «mau-<số>» (cùng thứ tự bảng Lần đầu lib/lan-dau › MAU_HO_SO); avatar cũ (không «mau-») ⇒ màu theo thứ tự.
+ *  #325: màn Hằng ngày trên bàn (them-h60stad7, bm2-trang-chu, them-5hzkl6p5, them-9ozp26pq — `.av.a/.m/.n/.k`) dùng tông đậm hơn bảng Lần đầu ⇒ chữ trắng đủ tương phản. */
+const MAU_HO_SO = ["#f08a3c", "#5b7fd6", "#d86a8f", "#3f9a86", "#9a7fd0"];
 /** «Nguyễn Ngọc Bảo Anh» → «Bảo Anh»: tên gọi (2 chữ cuối) — thiết kế 14/11 gọi con bằng tên gọi ở dải avatar, Báo cáo, «bước tiếp». */
 export const tenGoi = (ten: string) => ten.trim().split(/\s+/).slice(-2).join(" ");
 export const mauCon = (avatar: string | null | undefined, thu = 0) => {

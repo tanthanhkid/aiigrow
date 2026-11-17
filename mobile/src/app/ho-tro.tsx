@@ -57,7 +57,8 @@ export default function HoTro() {
       {!d ? <ChoTai loi={loi} matMang={matMang} tai={tai} /> : (
         <>
           <Chu kieu="dam" co={12} mau={M.chu3} style={{ textAlign: "center" }}>{(() => { const t = dauTien ? new Date(dauTien) : new Date(); return `${t.toDateString() === new Date().toDateString() ? "Hôm nay " : ""}${gioPhut(t)}`; })()}</Chu>
-          <TinAiiGrow noiDung={`Chào ${tenToi}! Mình là AiiGrow. ${tenToi} cần giúp gì ạ?`} luc="" />
+          {/* bàn: «Chào Mẹ Lan! Mình là AiiGrow. Mẹ cần giúp gì ạ?» — lần hai gọi bằng chữ đầu tên (Mẹ / Ba / Bà) */}
+          <TinAiiGrow noiDung={`Chào ${tenToi}! Mình là AiiGrow. ${tenToi.split(/\s+/)[0]} cần giúp gì ạ?`} luc={dauTien ? gioPhut(dauTien) : ""} />
           {d.tin.map((t) => t.tu === "aiilab" ? <TinAiiGrow key={t.id} noiDung={t.noi_dung} luc={gioPhut(t.created_at)} />
             : <BongChat key={t.id} toi noiDung={t.noi_dung} luc={gioPhut(t.created_at)} />)}
           {!d.tin.length ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Người thật của AiiGrow trả lời, thường trong 5 phút.</Chu> : null}
