@@ -55,7 +55,7 @@ export default function DaBoQua() {
         <Nut chu="Xong" rong bam={ve} />
         {conGiay > 0 ? (
           <NhanMen onPress={hoan} disabled={dangChay} accessibilityRole="button" accessibilityLabel={`Hoàn tác, còn ${conGiay} giây`} accessibilityState={{ busy: dangChay }}
-            muc="nut" sang men={MEN.sang} style={{ minHeight: 48, alignItems: "center", justifyContent: "center", paddingHorizontal: 16, borderRadius: 24, backgroundColor: "#fff", ...KHOI.the }}>
+            muc="nut" sang men={MEN.sang} style={{ minHeight: 48, alignItems: "center", justifyContent: "center", paddingHorizontal: 16, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
             <Chu kieu="rat" co={15} mau={M.chinhInk} dong={1}>Hoàn tác, xem lại lời xin</Chu>
           </NhanMen>
         ) : null}

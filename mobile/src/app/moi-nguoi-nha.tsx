@@ -92,7 +92,7 @@ export default function MoiNguoiNha() {
         {/* bàn .san: ô ngọc cao 196, bong bóng trắng trái (15/20, chữ ≤ 170), Grow «chỉ» 170 tràn mép phải-dưới */}
         <View style={[{ height: 196, borderRadius: 36, overflow: "hidden", backgroundColor: HERO.nen, backgroundImage: HERO.anh, boxShadow: HERO.bong }]}>
           <View style={{ position: "absolute", right: -4, bottom: -24 }}><Rob ten="chi" co={Math.min(170, Math.round(rongSan * 0.48) - 8)} /></View>
-          <View style={{ position: "absolute", left: 18, top: 30, maxWidth: Math.min(202, Math.round(rongSan * 0.52)), paddingVertical: 11, paddingHorizontal: 16, borderRadius: 22, backgroundColor: "#fff", boxShadow: BONG.nho }}>
+          <View style={{ position: "absolute", left: 18, top: 30, maxWidth: Math.min(202, Math.round(rongSan * 0.52)), paddingVertical: 11, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.the, boxShadow: BONG.nho }}>
             <Chu kieu="dam7" co={15} style={{ lineHeight: 20 }}>{`${ai} chưa có app, gửi link nha!`}</Chu>
           </View>
         </View>
@@ -108,7 +108,7 @@ export default function MoiNguoiNha() {
           </View>
           <View style={{ marginTop: 8, marginLeft: 36, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderTopLeftRadius: 4, backgroundColor: M.chinhSoft, gap: 8 }}>
             <Chu co={14} style={{ lineHeight: 19 }}>{cau}</Chu>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: 14, backgroundColor: "#fff" }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 8, borderRadius: 14, backgroundColor: M.the }}>
               <Icon3D ten="nha" co={36} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={14} dong={1}>{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
@@ -185,7 +185,7 @@ export default function MoiNguoiNha() {
       <View style={{ flexDirection: "row", gap: 4, backgroundColor: M.xamSoft, padding: 5, borderRadius: 22, boxShadow: BONG.lom }} accessibilityRole="tablist">
         {(["sdt", "email"] as const).map((k) => (
           <NhanMen key={k} onPress={() => { setCach(k); setDd(""); }} accessibilityRole="tab" accessibilityState={{ selected: cach === k }} muc="chip" sang
-            style={[{ flex: 1, minHeight: 44, borderRadius: 17, alignItems: "center", justifyContent: "center" }, cach === k && { backgroundColor: "#fff", ...KHOI.nho }]}>
+            style={[{ flex: 1, minHeight: 44, borderRadius: 17, alignItems: "center", justifyContent: "center" }, cach === k && { backgroundColor: M.the, ...KHOI.nho }]}>
             <Chu kieu="rat" co={14.5} mau={cach === k ? M.chinhInk : M.chu2}>{k === "sdt" ? "Số điện thoại" : "Email"}</Chu>
           </NhanMen>
         ))}

@@ -212,6 +212,14 @@ export async function chayCong({ goi, js, sleep, dsMan, vao, hau = "", cheDo = [
       if ((await vao(man)) === false) { loi++; console.log(`${man.ten.padEnd(34)} 1 lỗi`); console.log("    " + JSON.stringify({ luat: "KHONG-TAI", duong: man.duong, cho: man.cho })); continue; }
       if (gian) await js(GIAN);
       await sleep(600);
+      // GD_KHUNG=<tệp .jsonl>: ghi nhãn + khung mọi phần tử bấm được (button/tab/link/radio/checkbox) của từng màn @390 — so bố cục hai bản
+      // (đổi phong cách chỉ đổi màu / chất liệu thì số nút, nhãn, khung phải trùng).
+      if (process.env.GD_KHUNG && rong === 390 && !gian && !hau) {
+        const khung = await js(`[...document.querySelectorAll('[role=button],[role=tab],[role=link],[role=radio],[role=checkbox],[role=switch],a,button')].filter((e) => {
+          const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== "hidden"; }).map((e) => { const r = e.getBoundingClientRect();
+          return { n: (e.getAttribute("aria-label") || e.innerText || "").replace(/\\s+/g, " ").trim().slice(0, 60), k: [r.x, r.y, r.width, r.height].map(Math.round) }; })`);
+        (await import("node:fs")).appendFileSync(process.env.GD_KHUNG, JSON.stringify({ man: man.ten, khung }) + "\n");
+      }
       await js("window.__gdCuoi = false");
       const { L, DO_TAY } = (await js(DO)) ?? { L: [], DO_TAY: [] };
       // Lượt 2: cuộn mọi vùng cuộn tới cuối — nội dung cuối trang phải nằm ngoài ảnh nổi (nút trợ giúp góc màn).

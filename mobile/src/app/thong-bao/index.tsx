@@ -6,7 +6,7 @@
 import { useEffect, type ReactNode } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { BONG, KHOI } from "@/lib/clay";
+import { MEN, BONG, KHOI } from "@/lib/clay";
 import { TieuMuc } from "@/lib/hang-ngay";
 import { OLomIcon } from "@/lib/ui-viec";
 import { bm } from "@/lib/api";
@@ -109,8 +109,8 @@ function DongTb({ k, deY, luc, ic, tieu, phu, lam, bam }: { k: number; deY?: boo
         {phu ? <Chu kieu="dam" co={12.5} mau={deY ? M.canh : M.chu3} dong={1}>{phu}</Chu> : null}
       </View>
       {lam ? traLoi ? (
-        <View style={{ height: 36, paddingHorizontal: 11, borderRadius: 18, backgroundColor: M.nut, justifyContent: "center", boxShadow: BONG.toi }}>
-          <Chu kieu="rat" co={13} mau="#fff">{lam.replace(/ ›$/, "")}</Chu>
+        <View style={{ height: 36, paddingHorizontal: 11, borderRadius: 18, backgroundColor: M.diem, backgroundImage: MEN.vang, justifyContent: "center", boxShadow: BONG.vang }}>
+          <Chu kieu="rat" co={13} mau={M.chu}>{lam.replace(/ ›$/, "")}</Chu>
         </View>
       ) : <Chu kieu="rat" co={13.5} mau={deY ? M.canh : M.chinhInk}>{lam}</Chu> : null}
     </Pressable>

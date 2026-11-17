@@ -30,7 +30,7 @@ function DongPhut({ nhan, quy, chu, doi, nhanO, tru, cong, mo }: { nhan: string;
         <Chu kieu="rat" co={12} mau={XANH} dong={1}>{`= ${quy}`}</Chu>
       </View>
       <NutTron dau="−" nhan={`Bớt 15 phút · ${nhan}`} bam={tru} tat={mo} />
-      <View style={{ width: 92, height: 48, borderRadius: 16, backgroundColor: "#fff", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3,
+      <View style={{ width: 92, height: 48, borderRadius: 16, backgroundColor: M.the, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3,
         boxShadow: dang ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.lom}` : `0px 0px 0px 2px #cfe5de, ${BONG.lom}` }}>
         <TextInput value={chu} onChangeText={doi} editable={!mo} keyboardType="number-pad" inputMode="numeric" maxLength={3} accessibilityLabel={nhanO} placeholder="…" placeholderTextColor={M.chu3}
           onFocus={() => setDang(true)} onBlur={() => setDang(false)} selectTextOnFocus
@@ -55,7 +55,7 @@ function Hoi({ ic, chu }: { ic: "dongho" | "dong_ho_cat"; chu: string }) {
 function BuocMinh({ ic, chu }: { ic: "game" | "khoa"; chu: string }) {
   return (
     <View style={{ flex: 1, alignItems: "center", gap: 4 }}>
-      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={21} /></View>
+      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={21} /></View>
       <Chu kieu="rat" co={12} mau={M.nut} dong={1}>{chu}</Chu>
     </View>
   );

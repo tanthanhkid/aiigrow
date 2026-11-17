@@ -1,5 +1,6 @@
 // Thanh điều hướng Ba Mẹ (thiết kế chốt 14/11 — N1; bàn 17/11 them-e91jg28j@v13 đổi «Nhiệm vụ» ⇒ «Việc & quà»): năm mục — Hôm nay · Việc & quà · App & web (icon khiên, bm-ung-dung — #262; route giữ tên «chan») · Báo cáo · Cả nhà. «Chờ duyệt» vẫn là route trong nhóm
 // tab (/cho-duyet, mở từ Thông báo / Hôm nay) nhưng không có nút trên thanh; số đỏ ở Việc & quà = nhiệm vụ + quà đang chờ, ở Hôm nay = lời xin của mọi Con.
+import { BONG } from "@/lib/clay";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Animated as RNAnimated, Platform, Text, View, useWindowDimensions } from "react-native";
 import { Tabs } from "expo-router";
@@ -66,7 +67,8 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
     <View accessibilityRole="tablist" style={{ flexDirection: "row", backgroundColor: M.the, paddingHorizontal: 4, paddingTop: 6,
       // đáy: thiết kế 24 trên khung có thanh home 34 ⇒ chừa (inset − 10), máy không có thanh home vẫn 10
       paddingBottom: ins.bottom > 0 ? Math.max(ins.bottom - 10, 10) : 10,
-      boxShadow: `0px -1px 0px ${M.vien}, 0px -12px 18px -12px rgba(10,22,41,0.2)` }}>
+      // «Ánh kim» (mẫu E `.tab`): thanh kem cùng màu nền, tách bằng bóng nâu ấm mờ lên trên + chỉ sáng kem
+      boxShadow: "0px -8px 18px -10px rgba(120,98,70,0.28), 0px -1px 0px #FFFBF5" }}>
       {state.routes.map((r, i) => {
         const m = MUC[r.name];
         if (!m) return null;
@@ -78,7 +80,7 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
             style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 54, minWidth: 0 }}>
             {/* viên kem ôm icon khi đang chọn (bàn .tab .on img: nền #F2EBE3, lề 3×16, bo 15, bóng lõm) */}
             <View style={{ paddingVertical: 3, paddingHorizontal: 16, borderRadius: 15, opacity: dang ? 1 : 0.45,
-              backgroundColor: dang ? M.nen : "transparent", boxShadow: dang ? "inset 0px 1px 0px #ffffff, inset 0px -3px 6px -3px rgba(10,22,41,0.15)" : undefined }}>
+              backgroundColor: dang ? M.nen : "transparent", boxShadow: dang ? BONG.lom : undefined }}>
               <Icon3D ten={m.ic} co={24} />
             </View>
             <Text numberOfLines={1} style={{ fontFamily: dang ? F.den : F.dam, fontSize: 11, lineHeight: 15, color: dang ? M.chu : M.chu3 }}>{m.chu}</Text>

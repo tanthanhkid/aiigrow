@@ -8,30 +8,36 @@ import type { ViewStyle } from "react-native";
 /** Bóng kép. Bóng ngoài của nút/chip ngắn (≤ 10px) để hai nút xếp sát (khoảng 8) không chồng bóng lên nhau (TestFlight build 6: «nặng»).
  * `the`: thẻ/khối lớn · `nho`: nút sáng, chip, viên icon · `lom`: lòng chảo ấn lõm (rãnh tiến độ, ô nhập, hàng việc). */
 export const BONG = {
-  the: "0px 16px 24px -14px rgba(10,22,41,0.26), 0px 4px 8px -5px rgba(10,22,41,0.14), inset 0px 1.5px 0px rgba(255,255,255,1), inset 0px -2px 0px rgba(255,255,255,0.7), inset 0px -10px 16px -8px rgba(10,22,41,0.12)",
-  nho: "0px 6px 10px -6px rgba(10,22,41,0.26), 0px 2px 3px -1px rgba(10,22,41,0.14), inset 0px 1.5px 0px rgba(255,255,255,1), inset 0px -6px 10px -5px rgba(10,22,41,0.14)",
-  lom: "inset 0px 4px 8px rgba(10,22,41,0.13), inset 0px -1.5px 0px rgba(255,255,255,0.95)",
-  toi: "0px 6px 10px -5px rgba(10,22,41,0.40), 0px 2px 3px -1px rgba(10,22,41,0.24), inset 0px 1px 0px rgba(255,255,255,0.45), inset 0px -2px 3px rgba(0,0,0,0.4)",
-  ngoc: "0px 6px 10px -5px rgba(10,22,41,0.44), 0px 2px 3px -1px rgba(10,22,41,0.24), inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.4)",
-  vang: "0px 6px 10px -5px rgba(150,100,0,0.38), 0px 2px 3px -1px rgba(150,100,0,0.22), inset 0px 1px 0px rgba(255,255,255,0.7), inset 0px -2px 3px rgba(120,70,0,0.35)",
-  do: "0px 5px 9px -4px rgba(165,31,20,0.6), inset 0px 1px 0px rgba(255,255,255,0.4), inset 0px -2px 3px rgba(0,0,0,0.25)",
-  /** cột / thanh / chấm chú giải của biểu đồ: bóng ngắn (cột xếp sát 3px) + viền men trên, chân tối */
-  cot: "0px 3px 5px -2px rgba(10,22,41,0.32), inset 0px 1px 0px rgba(255,255,255,0.5), inset 0px -2px 3px rgba(0,0,0,0.22)",
-  noi: "0px -6px 24px -12px rgba(10,22,41,0.25), 0px 16px 26px -10px rgba(10,22,41,0.34), inset 0px 1.5px 0px rgba(255,255,255,1), inset 0px -8px 14px -8px rgba(10,22,41,0.12)",
+  /** «Ánh kim»: bóng đôi neumorphism — tối nâu ấm lệch xuống-phải, sáng kem lệch lên-trái (mẫu E: 8/16 thẻ, 5/10 nút nhỏ). */
+  the: "8px 8px 16px rgba(120,98,70,0.28), -8px -8px 16px #FFFBF5",
+  nho: "4px 4px 9px rgba(120,98,70,0.28), -4px -4px 9px #FFFBF5",
+  /** lõm: hai bóng inset (ô nhập, rãnh tiến độ, nút phụ, ô đang chọn) */
+  lom: "inset 4px 4px 8px rgba(120,98,70,0.28), inset -4px -4px 8px #FFFBF5",
+  /** khối navy (nút / chip / toast tối): bóng nâu xuống-phải + sáng kem lên-trái, viền trong vàng mảnh */
+  toi: "4px 4px 10px rgba(120,98,70,0.32), -4px -4px 10px #FFFBF5, inset 0px 0px 0px 1px rgba(244,199,106,0.35)",
+  ngoc: "4px 4px 10px rgba(120,98,70,0.32), -4px -4px 10px #FFFBF5, inset 0px 0px 0px 1px rgba(244,199,106,0.35)",
+  /** vàng kim: nổi đôi + chỉ sáng mép trên (mẫu E `.nut`) */
+  vang: "4px 4px 10px rgba(120,98,70,0.28), -4px -4px 10px #FFFBF5, inset 0px 1px 0px rgba(255,255,255,0.6)",
+  do: "4px 4px 10px rgba(120,98,70,0.30), -4px -4px 10px #FFFBF5, inset 0px 1px 0px rgba(255,255,255,0.35)",
+  /** cột / thanh / chấm chú giải của biểu đồ: bóng ngắn (cột xếp sát 3px) */
+  cot: "2px 2px 4px rgba(120,98,70,0.30), inset 0px 1px 0px rgba(255,255,255,0.45)",
+  /** bảng trượt / lớp nổi: bóng nâu ấm hai phía */
+  noi: "0px -6px 24px -12px rgba(120,98,70,0.35), 0px 16px 26px -10px rgba(120,98,70,0.40), inset 0px 1px 0px #FFFBF5",
 } as const;
 
 /** Lớp men (backgroundImage) phủ trên màu nền của khối. */
 export const MEN = {
-  /** thẻ sáng: dải trắng cong sát mép trên + chân hơi tối (phản chiếu đáy) */
-  the: "radial-gradient(46% 18px at 50% 3px, rgba(255,255,255,1) 0%, rgba(255,255,255,0.95) 62%, rgba(255,255,255,0) 78%), linear-gradient(180deg, rgba(254,254,253,0) 26%, rgba(10,22,41,0.02) 60%, rgba(10,22,41,0.06) 100%)",
-  /** nút sáng / chip / viên xám: nửa trên men trắng, chân hơi tối */
-  sang: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(255,255,255,0.85) 44%, rgba(242,235,227,0) 50%, rgba(10,22,41,0.05) 100%)",
+  /** thẻ sáng: «Ánh kim» là mặt kem phẳng nổi bằng bóng — không phủ men (chuỗi rỗng ⇒ LopMen không vẽ lớp) */
+  the: "",
+  /** nút sáng / chip / viên xám: phẳng như thẻ (Ánh kim) */
+  sang: "",
   /** viên màu (xanh, vàng, cam…): đốm men trên + phản chiếu đáy */
   vien: "radial-gradient(60% 34% at 50% 18%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 100%), radial-gradient(50% 20% at 50% 92%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 100%)",
   /** nút tối than chì — kẹo bọc đường: mảng men cắt sắc ở 1/4 trên */
   toi: "linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 24%, rgba(255,255,255,0) 26%), radial-gradient(60% 40% at 50% 105%, rgba(120,140,190,0.30) 0%, rgba(0,0,0,0) 100%), linear-gradient(180deg, #1b2b47 0%, #0A1629 100%)",
   ngoc: "linear-gradient(180deg, rgba(255,255,255,0.34) 0%, rgba(255,255,255,0.08) 24%, rgba(255,255,255,0) 26%), radial-gradient(60% 40% at 50% 105%, rgba(126,217,87,0.4) 0%, rgba(0,0,0,0) 100%), linear-gradient(180deg, #0A1629 0%, #0A1629 100%)",
-  vang: "linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.12) 24%, rgba(255,255,255,0) 26%), linear-gradient(180deg, #f8d68e 0%, #F4C76A 100%)",
+  /** vàng kim loại (mẫu E `--kim`) */
+  vang: "linear-gradient(135deg, #FBE7B0 0%, #F4C76A 38%, #C9973B 72%, #F2D48C 100%)",
   /** huy hiệu số đỏ / thanh tiến độ: nửa trên men */
   nua: "linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.12) 46%, rgba(255,255,255,0) 50%)",
   /** cột biểu đồ (đứng): ống đất sét tráng men — vệt sáng dọc bên trái, mép phải tối, chỏm trên một đốm men */
@@ -68,7 +74,8 @@ export const BO_CLAY = { the: 30, o: 26, nut: 22, nutNho: 18, vien: 22 } as cons
 export const HERO = {
   nen: "#0A1629",
   anh: "radial-gradient(90% 70% at 85% 10%, #1d3158 0%, #0A1629 100%)",
-  bong: "0px 18px 26px -14px rgba(10,22,41,0.55), inset 0px 1.5px 0px rgba(255,255,255,0.18), inset 0px -10px 16px -8px rgba(0,0,0,0.35)",
+  /** «Ánh kim»: hộp trang sức navy nổi đôi trên kem + viền trong vàng mảnh (mẫu E `.gio`) */
+  bong: "8px 8px 18px rgba(120,98,70,0.28), -6px -6px 14px #FFFBF5, inset 0px 0px 0px 1px rgba(244,199,106,0.35)",
   chu: "#ffffff", phu: "#F4C76A", vien: "rgba(255,255,255,0.1)",
 } as const;
 /** Khối hero dựng sẵn (thẻ, sân minh hoạ có Grow). */

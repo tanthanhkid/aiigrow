@@ -29,7 +29,9 @@
         "./assets/fonts/BeVietnamPro_400Regular.ttf",
         "./assets/fonts/BeVietnamPro_600SemiBold.ttf",
         "./assets/fonts/BeVietnamPro_700Bold.ttf",
-        "./assets/fonts/BeVietnamPro_800ExtraBold.ttf"
+        "./assets/fonts/BeVietnamPro_800ExtraBold.ttf",
+        "./assets/fonts/Fraunces_600SemiBold.ttf",
+        "./assets/fonts/Fraunces_700Bold.ttf"
       ] }],
       [
         "expo-splash-screen",

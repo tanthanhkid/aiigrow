@@ -36,7 +36,7 @@ export default function BuocTiep() {
       <View style={{ height: 170 }} onLayout={(e) => setRong(e.nativeEvent.layout.width)}>
         <View style={{ position: "absolute", left: 130, bottom: 0 }}><Rob ten="xong" co={Math.max(90, Math.min(150, rong - 130 - 64))} /></View>
         <View style={{ position: "absolute", left: 0, top: 40, maxWidth: 134, paddingVertical: 10, paddingHorizontal: 14, borderTopLeftRadius: 20, borderTopRightRadius: 20,
-          borderBottomRightRadius: 20, borderBottomLeftRadius: 6, backgroundColor: "#fff", ...KHOI.the }}>
+          borderBottomRightRadius: 20, borderBottomLeftRadius: 6, backgroundColor: M.the, ...KHOI.the }}>
           <Chu kieu="rat" co={14} style={{ lineHeight: 19 }}>{`Chào ${ten}! Còn 5 bước nữa nhé`}</Chu>
         </View>
         <View style={{ position: "absolute", right: 0, top: 56, width: 60, height: 60, borderRadius: 30, backgroundColor: mauCon(d.avatar, 0), alignItems: "center", justifyContent: "center",

@@ -37,7 +37,7 @@ const CHO_MAY_MS = 5000, CHO_MAY_TOI_DA = 90_000;
  *  Chỉ khi máy không trích được icon mới dùng chữ cái đầu của tên app. */
 function IconApp({ a }: { a: AppMay }) {
   return (
-    <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
+    <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
       boxShadow: "inset 0px 1px 0px rgba(255,255,255,0.9), 0px 2px 4px -1px rgba(0,0,0,0.18)" }}>
       {a.icon ? <Image source={{ uri: `data:image/png;base64,${a.icon}` }} style={{ width: 40, height: 40 }} resizeMode="contain" accessibilityIgnoresInvertColors />
         : <Avt ten={a.ten} mau={MAU_CON[[...a.ten].reduce((n, c) => n + c.charCodeAt(0), 0) % MAU_CON.length]} co={40} />}

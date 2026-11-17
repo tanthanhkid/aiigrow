@@ -40,7 +40,7 @@ export function NgheGhiAm({ mime, base64, nhan }: NgheGhiAmProps) {
       <View style={{ padding: 16, borderRadius: 24, backgroundColor: M.chinhSoft, gap: 12 }}>
         {nhan ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <View style={[{ width: 56, height: 56, borderRadius: 18, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }, KHOI.nho]}><Icon3D ten="sach" co={34} /></View>
+            <View style={[{ width: 56, height: 56, borderRadius: 18, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}><Icon3D ten="sach" co={34} /></View>
             <Chu kieu="rat" co={17} style={{ flex: 1 }}>{nhan}</Chu>
           </View>
         ) : null}

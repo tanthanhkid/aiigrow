@@ -161,8 +161,8 @@ function DongY({ ic, kyTu, nen, chu }: { ic?: TenIcon; kyTu?: string; nen: strin
 function TieuMuc({ chu, so }: { chu: string; so?: number }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 8, marginHorizontal: 6, marginBottom: -4 }}>
-      <DauSach />
-      <Chu kieu="rat" co={15} mau={M.chu}>{chu}</Chu>
+      <DauSach mau={M.dauSach} />
+      <Chu kieu="tieu" co={17} mau={M.chu}>{chu}</Chu>
       {so ? <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: M.badge }}><Chu kieu="rat" co={12} mau={M.chu}>{String(so)}</Chu></View> : null}
     </View>
   );
@@ -179,7 +179,7 @@ function HangIcon({ nhan, ds, web, trong, sua, bam }: { nhan: string; ds: DongDs
       <Chu kieu="rat" co={14} mau={M.chu2} style={{ width: 44 }}>{nhan}</Chu>
       <View style={{ flex: 1, minWidth: 0, flexDirection: "row", gap: 6, alignItems: "center" }}>
         {ds.length ? ds.slice(0, 4).map((h, i) => (
-          <View key={i} style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
+          <View key={i} style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
             boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3), inset 0px -4px 8px -4px rgba(40,44,42,0.12)" }}>
             <Icon3D ten={ic(h)} co={24} />
             <View style={{ position: "absolute", right: -3, bottom: -3, width: 12, height: 12, borderRadius: 6, backgroundColor: MAU_NHOM[h.nhom], borderWidth: 2, borderColor: "#fff" }} />

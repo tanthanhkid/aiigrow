@@ -29,8 +29,8 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
         return (
           <Pressable key={x.id} onPress={doi ? () => doi(x) : undefined} disabled={!doi} accessibilityRole="tab" accessibilityState={{ selected: on }}
             accessibilityLabel={[x.ten, n ? `${n} ${nhanSo}` : "", phu?.[x.id] ?? ""].filter(Boolean).join(", ")} style={{ width: 72, alignItems: "center", gap: 5 }}>
-            <View style={[{ borderRadius: 34, padding: 3 }, on ? { borderWidth: 3, borderColor: M.chinh } : { borderWidth: 3, borderColor: "transparent" }]}>
-              <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={50} con={x} />
+            <View style={[{ borderRadius: 34, padding: 3 }, { borderWidth: 3, borderColor: "transparent" }]}>
+              <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={50} con={x} chon={on} />
               {n ? (
                 <View style={{ position: "absolute", right: -4, top: -4, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, backgroundColor: M.badge,   // bàn Navy: huy hiệu cam #FF751F, chữ navy (≈7:1)
                   alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: M.nen }}>
@@ -38,7 +38,7 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
                 </View>
               ) : null}
               {ic?.[x.id] ? (
-                <View style={{ position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
+                <View style={{ position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
                   boxShadow: "0px 2px 4px rgba(0,0,0,0.18)" }}>
                   <Icon3D ten={ic[x.id]!} co={15} />
                 </View>

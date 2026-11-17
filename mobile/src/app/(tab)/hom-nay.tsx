@@ -214,7 +214,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         {/* khối tiêu đề cao tối thiểu tới đáy Grow (khổ 320 câu dài không đè Grow — cổng DE-ANH). Số sao (viên 26/800, .so .am) không đè Grow:
             chừa CHUA_ROB bên phải; «còn N sao = N phút chơi» dài thì xuống dòng */}
         <View style={{ marginTop: khoa ? 10 : 0, marginRight: CHUA_ROB, minHeight: Math.max(0, ROB_TREN + ROB_CO - 16 - (khoa ? NHAN_CAO + 10 : 0) - 36) }}>
-          {tieuLon ? <Chu kieu="den" co={26} so mau={HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} toi />}
+          {tieuLon ? <Chu kieu="tieu7" co={26} so mau={HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} toi />}
         </View>
         {phuSao ? (
           <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, justifyContent: "center", alignSelf: "flex-start" }}>

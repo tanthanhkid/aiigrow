@@ -10,7 +10,7 @@
 // Sau khi xử lý ⇒ màn kết quả /yeu-cau/xong (params: kieu, ten, phut, muc, may, grant, con, no, sao, phutCon, noTruoc, canh).
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { BONG } from "./clay";
+import { MEN, BONG } from "./clay";
 import { bm, laXinVay, type MayCon } from "./api";
 import { boQuaXin, hoanTacXin, themTuXin } from "./app-web";
 import type { YeuCauMoi } from "./hang-ngay";
@@ -152,9 +152,9 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
       ) : laAppWeb(y) && truc && dangXin ? (
         <View style={{ gap: 8 }}>
           <Pressable onPress={() => xong(() => choAppWeb(y, may, true))} disabled={dang} accessibilityRole="button" accessibilityLabel="Tính phút, trừ sao của con"
-            style={{ minHeight: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: M.nut, boxShadow: BONG.toi, opacity: dang ? 0.6 : 1 }}>
-            <Chu kieu="rat" co={16} mau="#fff">Tính phút</Chu>
-            <Chu kieu="dam" co={11.5} mau={M.chinhSoft}>Trừ sao của con · 1 sao = 1 phút</Chu>
+            style={{ minHeight: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: M.diem, backgroundImage: MEN.vang, boxShadow: BONG.vang, opacity: dang ? 0.6 : 1 }}>
+            <Chu kieu="rat" co={16} mau={M.chu}>Tính phút</Chu>
+            <Chu kieu="dam" co={11.5} mau={M.chu}>Trừ sao của con · 1 sao = 1 phút</Chu>
           </Pressable>
           <HaiNut>
             <Nut chu="Không tính phút" loai="xanh" nho dangChay={dang} bam={() => xong(() => choAppWeb(y, may, false))} />

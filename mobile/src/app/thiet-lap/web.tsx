@@ -44,7 +44,7 @@ export default function ChonWeb() {
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 52, paddingLeft: 16, paddingRight: 16, borderRadius: 26, backgroundColor: M.chinhSoft, boxShadow: BONG.nho }}>
         <Chu kieu="rat" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>Chế độ: Theo danh sách</Chu>
         <Pressable onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Đổi chế độ" hitSlop={6}
-          style={{ minHeight: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
+          style={{ minHeight: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
           <Chu kieu="rat" co={13} mau={M.chinhInk}>Đổi ›</Chu>
         </Pressable>
       </View>

@@ -108,7 +108,7 @@ export function HopChu({ loai = "xam", children }: { loai?: "ngoc" | "xam" | "da
 export function MucPhai({ chu, phai, bam }: { chu: string; phai?: string; bam?: () => void }) {
   const noi = (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6, marginTop: 8, marginHorizontal: 6, minHeight: bam ? 44 : undefined }}>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 }}><DauSach /><Chu kieu="rat" co={15} mau={M.chu} style={{ flexShrink: 1 }}>{chu}</Chu></View>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 7, flexShrink: 1 }}><DauSach mau={M.dauSach} /><Chu kieu="tieu" co={17} mau={M.chu} style={{ flexShrink: 1 }}>{chu}</Chu></View>
       {phai ? <Chu kieu="dam7" co={12.5} mau={M.chu3}>{phai}</Chu> : null}
     </View>
   );

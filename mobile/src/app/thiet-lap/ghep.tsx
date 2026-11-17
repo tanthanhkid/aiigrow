@@ -127,7 +127,7 @@ export default function GhepMay() {
         <LopMen men={MEN.vien} bo={32} />
         <Chu kieu="rat" co={15} mau={M.chinhInk} style={{ textAlign: "center" }}>Mở app AiiGrow trên máy con, quét mã này</Chu>
         <Pressable onPress={() => kq && setQrTo(true)} accessibilityRole="button" accessibilityLabel="Mã QR ghép máy — chạm để phóng to"
-          style={{ padding: 10, borderRadius: 24, backgroundColor: "#fff", ...KHOI.nho }}>
+          style={{ padding: 10, borderRadius: 24, backgroundColor: M.the, ...KHOI.nho }}>
           {qr}
         </Pressable>
         <Chu kieu="rat" co={44} so style={{ letterSpacing: 2, lineHeight: 52 }}>{kq?.maHien ?? "··· ···"}</Chu>

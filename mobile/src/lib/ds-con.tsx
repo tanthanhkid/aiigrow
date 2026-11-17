@@ -141,7 +141,7 @@ export function MotMuc({ con, kieu, ten, muc, caNha }: { con: string; kieu: Kieu
 function NutBo({ chu, tat, bam }: { chu: string; tat?: boolean; bam: () => void }) {
   return (
     <NhanMen onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={chu} accessibilityState={{ disabled: !!tat }} muc="nut" sang men={MEN.sang}
-      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 48, paddingHorizontal: 16, borderRadius: 24, backgroundColor: "#fff", ...KHOI.the }}>
+      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 48, paddingHorizontal: 16, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
       <Icon3D ten="tru" co={22} />
       <Chu kieu="rat" co={15} mau={M.canh} dong={1} style={{ flexShrink: 1 }}>{chu}</Chu>
     </NhanMen>

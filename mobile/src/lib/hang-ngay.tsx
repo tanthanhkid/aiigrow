@@ -182,14 +182,14 @@ export function TieuMuc({ chu, so, xam, phai, ic }: { chu: string; so?: number; 
   /** icon 3D 22 trước chữ (.muc .t img) */ ic?: TenIcon }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginHorizontal: 6, minHeight: ic ? 44 : undefined }}>
-      <DauSach />
+      <DauSach mau={M.dauSach} />
       {ic ? <Icon3D ten={ic} co={22} /> : null}
-      <Chu kieu="rat" co={15} mau={M.chu} style={{ flexShrink: 1 }}>{chu}</Chu>
+      <Chu kieu="tieu" co={17} mau={M.chu} style={{ flexShrink: 1 }}>{chu}</Chu>
       {so ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: xam ? M.xamSoft : M.badge, alignItems: "center", justifyContent: "center" }}>{/* bàn Navy .muc em: cam #FF751F, chữ navy */}
         <Chu kieu="rat" co={12} mau={xam ? M.chu2 : M.chu} so>{String(so)}</Chu></View> : null}
       <View style={{ flex: 1 }} />
       {phai ? <Pressable onPress={phai.bam} hitSlop={10} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>
-        <Chu kieu="rat" co={14} mau={M.chinhInk}>{phai.chu}</Chu></Pressable> : null}
+        <Chu kieu="rat" co={14} mau={M.lienKet}>{phai.chu}</Chu></Pressable> : null}
     </View>
   );
 }

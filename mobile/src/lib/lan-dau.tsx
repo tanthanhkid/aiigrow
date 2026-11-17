@@ -56,7 +56,7 @@ export function DauMan({ ve, phai, khongLui, bamLui, tieu, giua }: { ve?: string
 // bàn bm1-ob-ghep v23: nút tròn trắng chữ «?» ngọc ⇒ «Hỏi AiiGrow» (them-zxu4yvp3)
 export const NutHoi = () => (
   <Pressable onPress={() => router.push("/hoi-aiigrow")} accessibilityRole="button" accessibilityLabel="Cần giúp?" hitSlop={6}
-    style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: "#fff", alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
+    style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
     <Chu kieu="rat" co={18} mau={M.chinhInk}>?</Chu>
   </Pressable>
 );
@@ -85,7 +85,7 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai, bongTo }
   if (bongTo) return (
     <View style={{ height: 128, marginTop: 36, borderRadius: 30, backgroundColor: M.chinhSoft, flexDirection: "row", alignItems: "center", paddingLeft: 14, paddingRight: 96, ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={30} />
-      <View style={{ flex: 1, minWidth: 0, backgroundColor: "#fff", borderRadius: 24, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho }}>
+      <View style={{ flex: 1, minWidth: 0, backgroundColor: M.the, borderRadius: 24, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho }}>
         <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 18, lineHeight: 23, letterSpacing: -0.3, color: M.chu }}>{tieu}</Text>
         {loi ? <Chu co={13} mau={M.chu2} style={{ marginTop: 3, lineHeight: 18 }}>{loi}</Chu> : null}
       </View>
@@ -109,7 +109,7 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai, bongTo }
     <View style={{ borderRadius: BO_CLAY.the, backgroundColor: M.dauBaMe, minHeight: cao, padding: 14, flexDirection: "row", alignItems: "center", justifyContent: robTrai ? "flex-end" : undefined, ...KHOI.the }}>
       <LopMen men={MEN.vien} bo={BO_CLAY.the} />
       {ic ? <View style={{ position: "absolute", left: 14, bottom: 12 }}><Icon3D ten={ic} co={44} /></View> : null}
-      <View style={{ maxWidth: robTrai ? "58%" : "64%", backgroundColor: "#fff", borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
+      <View style={{ maxWidth: robTrai ? "58%" : "64%", backgroundColor: M.the, borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, boxShadow: BONG.nho, marginBottom: ic ? 40 : 0 }}>
         <Chu kieu="rat" co={16}>{tieu}</Chu>
         {loi ? <Chu co={13.5} mau={M.chu2} style={{ marginTop: 2 }}>{loi}</Chu> : null}
       </View>
@@ -132,7 +132,7 @@ export function NutMxh({ loai, bam, to }: { loai: "google" | "facebook"; bam: ()
     <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`Tiếp tục với ${ten}`} muc="nut" sang={!to} men={to ? MEN.toi : MEN.sang}
       style={[{ flexGrow: 1, flexBasis: 0, minHeight: to ? 56 : 52, borderRadius: BO_CLAY.nut, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 14 },
         to ? { backgroundColor: M.nut, boxShadow: BONG.toi, alignSelf: "stretch" } : { backgroundColor: M.the, boxShadow: BONG.nho }]}>
-      <View style={to ? { width: 26, height: 26, borderRadius: 13, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" } : undefined}>
+      <View style={to ? { width: 26, height: 26, borderRadius: 13, backgroundColor: M.the, alignItems: "center", justifyContent: "center" } : undefined}>
         <SvgXml xml={loai === "google" ? G_SVG : FB_SVG} width={to ? 18 : 22} height={to ? 18 : 22} />
       </View>
       <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: to ? 16.5 : 15.5, color: to ? "#fff" : M.chu }}>{to ? `Tiếp tục với ${ten}` : ten}</Text>
@@ -451,7 +451,7 @@ export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhV
       {thoai || tren ? (
         <View onLayout={(e) => setHTren(Math.ceil(e.nativeEvent.layout.height))} style={{ alignSelf: "stretch", paddingHorizontal: 12, paddingTop: 12 }}>
           {thoai ? (
-            <View style={{ alignSelf: "flex-start", marginLeft: 6, marginTop: 8, maxWidth: 220, backgroundColor: "#fff", borderRadius: 22, paddingVertical: 11, paddingHorizontal: 16, boxShadow: BONG.nho }}>
+            <View style={{ alignSelf: "flex-start", marginLeft: 6, marginTop: 8, maxWidth: 220, backgroundColor: M.the, borderRadius: 22, paddingVertical: 11, paddingHorizontal: 16, boxShadow: BONG.nho }}>
               <Chu kieu="dam7" co={15} style={{ lineHeight: 20 }}>{thoai}</Chu>
             </View>
           ) : null}

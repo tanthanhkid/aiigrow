@@ -63,7 +63,7 @@ export default function DaGhep() {
     </View>
   );
   const chip = (chu: string, bam: () => void, phu?: string) => (
-    <Pressable key={chu} onPress={bam} accessibilityRole="button" style={{ minHeight: 40, paddingHorizontal: 13, borderRadius: 20, backgroundColor: "#fff", justifyContent: "center", ...KHOI.nho }}>
+    <Pressable key={chu} onPress={bam} accessibilityRole="button" style={{ minHeight: 40, paddingHorizontal: 13, borderRadius: 20, backgroundColor: M.the, justifyContent: "center", ...KHOI.nho }}>
       <Chu kieu="rat" co={13} mau={M.chu2}>{phu ? <Chu kieu="rat" co={13} mau={M.chu3}>{`${phu} `}</Chu> : null}{chu}</Chu>
     </Pressable>
   );

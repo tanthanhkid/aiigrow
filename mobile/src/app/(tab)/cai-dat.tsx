@@ -83,7 +83,7 @@ export default function CaiDat() {
             </View>
             {laBaMe ? (
               <NhanMen onPress={() => guiLai(m)} disabled={moi.dangChay} accessibilityRole="button" accessibilityLabel={`Gửi lại lời mời cho ${tenMoi(m)}`} muc="chip" sang
-                style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: "#fff", justifyContent: "center", ...KHOI.nho }}>
+                style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: M.the, justifyContent: "center", ...KHOI.nho }}>
                 <Chu kieu="rat" co={13.5} mau={M.chu}>Gửi lại</Chu>
               </NhanMen>
             ) : null}
@@ -122,7 +122,7 @@ export default function CaiDat() {
       </Nhom>
 
       <NhanMen onPress={() => ra()} accessibilityRole="button" muc="khoi" sang
-        style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6, minHeight: 48, borderRadius: 24, backgroundColor: "#fff", ...KHOI.the }}>
+        style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6, minHeight: 48, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
         <Icon3D ten="thoat" co={22} /><Chu kieu="rat" co={15} mau={M.chu2}>Đăng xuất</Chu>
       </NhanMen>
     </Man>

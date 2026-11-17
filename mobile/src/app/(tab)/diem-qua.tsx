@@ -88,7 +88,7 @@ export default function TabNhiemVu() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, marginRight: 100 }}>
           <Icon3D ten="sao" co={38} />
           {k === "vay" ? <Chu kieu="rat" co={20} mau={HERO.phu} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
-            <Chu kieu="rat" co={40} so mau={HERO.phu} style={{ lineHeight: 46, letterSpacing: -1 }}>{soVN(k === "am" ? -ss.no : sao)}</Chu>
+            <Chu kieu="tieu7" co={40} so mau={HERO.phu} style={{ lineHeight: 46, letterSpacing: -1 }}>{soVN(k === "am" ? -ss.no : sao)}</Chu>
             <Chu kieu="rat" co={18} mau={HERO.phu} style={{ marginTop: 8 }}>sao</Chu>
           </>}
         </View>

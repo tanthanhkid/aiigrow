@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type ConChiTiet, type NhiemVu } from "@/lib/api";
-import { BONG, KHOI } from "@/lib/clay";
+import { MEN, BONG, KHOI } from "@/lib/clay";
 import { tomTat } from "@/lib/ghep-may";
 import { LienKet, TieuDe } from "@/lib/lan-dau";
 import { datTl, layTl, xoaTl } from "@/lib/thiet-lap";
@@ -63,11 +63,11 @@ export default function ObXong() {
       {coMay ? (
         <View style={{ borderRadius: 26, backgroundColor: M.diemSoft, padding: 16, gap: 10, ...KHOI.the }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="chuong" co={22} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Con xin gì, điện thoại Ba Mẹ sẽ báo</Chu></View>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: "#fff", borderRadius: 18, padding: 10, ...KHOI.nho }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: M.the, borderRadius: 18, padding: 10, ...KHOI.nho }}>
             <Avt ten={ten} mau={MAU_CON[0]} co={34} />
             <View style={{ flex: 1 }}><Chu kieu="rat" co={13.5}>Xin thêm YouTube</Chu><Chu co={12.5} mau={M.chu3}>vào danh sách</Chu></View>
             <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: M.xamSoft }}><Chu kieu="rat" co={13}>Bỏ qua</Chu></View>
-            <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: M.nut }}><Chu kieu="rat" co={13} mau="#fff">Thêm</Chu></View>
+            <View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14, backgroundColor: M.diem, backgroundImage: MEN.vang }}><Chu kieu="rat" co={13} mau={M.chu}>Thêm</Chu></View>
           </View>
         </View>
       ) : (

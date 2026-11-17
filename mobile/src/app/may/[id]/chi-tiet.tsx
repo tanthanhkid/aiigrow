@@ -70,7 +70,7 @@ export default function MayChiTiet() {
       {/* thẻ «<bé> đang dùng» (.dangd) */}
       <View style={{ padding: 16, borderRadius: 28, backgroundColor: HERO.nen, backgroundImage: HERO.anh, gap: 10, boxShadow: HERO.bong }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          {dangDung ? <AvtCon c={dangDung} co={36} /> : <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: "#fff", alignItems: "center", justifyContent: "center" }}><Icon3D ten="nguoi" co={22} /></View>}
+          {dangDung ? <AvtCon c={dangDung} co={36} /> : <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }}><Icon3D ten="nguoi" co={22} /></View>}
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="rat" co={16} dong={2} mau={HERO.chu}>{dangDung ? `${tenGoi(dangDung.ten)} đang dùng` : "Chưa bé nào đang dùng"}</Chu>
             <Chu kieu="dam7" co={12.5} mau={HERO.phu} dong={2}>
@@ -79,7 +79,7 @@ export default function MayChiTiet() {
           </View>
           {gan.length >= 2 ? (
             <Pressable onPress={() => setMo("doi")} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>
-              <View style={{ paddingVertical: 7, paddingHorizontal: 11, borderRadius: 16, backgroundColor: "#fff", ...KHOI.nho }}><Chu kieu="rat" co={13} mau={M.chinhInk}>Đổi người</Chu></View>
+              <View style={{ paddingVertical: 7, paddingHorizontal: 11, borderRadius: 16, backgroundColor: M.the, ...KHOI.nho }}><Chu kieu="rat" co={13} mau={M.chinhInk}>Đổi người</Chu></View>
             </Pressable>
           ) : null}
         </View>

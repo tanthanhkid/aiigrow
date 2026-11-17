@@ -215,7 +215,7 @@ export default function AnToanMay() {
             ) : <Chu kieu="rat" co={16} mau={HERO.chu}>{d.conDs.length ? "Chưa bé nào đang dùng" : "Chưa có bé dùng máy"}</Chu>}
             <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8, rowGap: 2, marginTop: 2 }}>
               <Chu kieu="rat" co={13} mau={M.ok}>✓ Đang bảo vệ</Chu>
-              <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: "#ffffff" }}>
+              <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: M.the }}>
                 <Chu kieu="rat" co={11.5} mau={M.chu}>{chung ? `Máy chung · ${d.conDs.length} bé` : "Máy riêng"}</Chu>
               </View>
             </View>
@@ -238,12 +238,12 @@ export default function AnToanMay() {
             {m.baoVeThieu?.[0] || m.vanDe[0] ? (
               <View style={{ position: "absolute", left: 16, top: 14, right: 16, alignSelf: "flex-start" }}>
                 <View style={{ alignSelf: "flex-start", paddingVertical: 8, paddingHorizontal: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16, borderBottomRightRadius: 16, borderBottomLeftRadius: 4,
-                  backgroundColor: "#fff", boxShadow: "0px 6px 10px -6px rgba(28,32,30,0.26)" }}>
+                  backgroundColor: M.the, boxShadow: "0px 6px 10px -6px rgba(28,32,30,0.26)" }}>
                   <Chu kieu="rat" co={13.5} dong={2} style={{ lineHeight: 18 }}>{`${(m.baoVeThieu?.[0]?.ten ?? m.vanDe[0]?.cauBaMe ?? "").replace(/[.!]$/, "")}!`}</Chu>
                 </View>
               </View>
             ) : null}
-            <View style={{ position: "absolute", left: 16, bottom: 14, right: 132, alignItems: "flex-start" }}><View style={{ paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: "#fff" }}>
+            <View style={{ position: "absolute", left: 16, bottom: 14, right: 132, alignItems: "flex-start" }}><View style={{ paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: M.the }}>
               <Chu kieu="rat" co={12.5} mau={M.canh} dong={2}>{phutAi != null ? `Hôm nay ${phutAi} phút · vẫn trừ sao` : `Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn trừ sao`}</Chu>
             </View></View>
           </View>

@@ -112,7 +112,7 @@ export default function ChiTietCanhBao() {
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: MAU_NO.nen, ...KHOI.the }}>
         <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}>
           <Icon3D ten={kieu === "web" ? "web" : icMay} co={46} />
-          {kieu === "web" ? null : <View style={{ position: "absolute", right: -8, bottom: -8, width: 32, height: 32, borderRadius: 16, backgroundColor: "#fff", alignItems: "center",
+          {kieu === "web" ? null : <View style={{ position: "absolute", right: -8, bottom: -8, width: 32, height: 32, borderRadius: 16, backgroundColor: M.the, alignItems: "center",
             justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={kieu === "mat_lien_lac" ? "wifi" : "canh_bao"} co={20} /></View>}
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
@@ -197,7 +197,7 @@ function CanhBaoNo({ id, x }: { id: string; x: CanhBao & { child_id: string; ten
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: MAU_NO.nen, ...KHOI.the }}>
         <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}>
           <Icon3D ten="sao" co={48} />
-          <View style={{ position: "absolute", right: -8, bottom: -8, width: 32, height: 32, borderRadius: 16, backgroundColor: "#fff", alignItems: "center", justifyContent: "center",
+          <View style={{ position: "absolute", right: -8, bottom: -8, width: 32, height: 32, borderRadius: 16, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
             boxShadow: BONG.nho }}><Icon3D ten="canh_bao" co={20} /></View>
         </View>
         <View style={{ flex: 1, minWidth: 0 }}>
