@@ -35,7 +35,8 @@ export function ThanhBuoc({ dang, ic }: { dang: number; /** đổi icon bước 
 }
 
 /** Hàng đầu màn: nút lùi (mũi tên) bên trái + phần phải (thanh bước / «Cần giúp?»). `ve` = đường thay khi không lùi được. */
-export function DauMan({ ve, phai, khongLui, bamLui, tieu }: { ve?: string; phai?: ReactNode; khongLui?: boolean; bamLui?: () => void; /** tiêu đề cạnh nút lùi */ tieu?: string }) {
+export function DauMan({ ve, phai, khongLui, bamLui, tieu, giua }: { ve?: string; phai?: ReactNode; khongLui?: boolean; bamLui?: () => void; /** tiêu đề cạnh nút lùi */ tieu?: string;
+  /** khối giữa thanh đầu (vd vạch tiến độ 2 bước — bàn them-2g3zpiie) */ giua?: ReactNode }) {
   const lui = () => (bamLui ? bamLui() : router.canGoBack() ? router.back() : router.replace((ve ?? "/") as never));
   return (
     <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8, paddingRight: 16, minHeight: 52 }}>
@@ -45,6 +46,7 @@ export function DauMan({ ve, phai, khongLui, bamLui, tieu }: { ve?: string; phai
         </Pressable>
       )}
       {tieu ? <Text accessibilityRole="header" numberOfLines={1} style={{ flex: 1, minWidth: 0, fontFamily: F.rat, fontSize: 22, color: M.chu, letterSpacing: -0.4 }}>{tieu}</Text> : null}
+      {giua ? <View style={{ flex: 1, alignItems: "center" }}>{giua}</View> : null}
       {phai}
     </View>
   );
@@ -195,6 +197,8 @@ export const LienKet = ({ chu, bam, gach }: { chu: string; bam: () => void; gach
 // ---------------------------------------------------------------- ghép máy: mã to, chia sẻ, 3 bước
 
 /** «482017» ⇒ «482 017». */
+/** Ô nhập số / email: chữ chỉ gồm số và dấu cách ⇒ bỏ dấu cách (giá trị gửi máy chủ là số liền); email giữ nguyên. */
+export const boCach = (v: string) => (/^[\d\s+]*$/.test(v) ? v.replace(/\s/g, "") : v);
 /** «0912345678» ⇒ «0912 345 678» (số 10 chữ số; dạng khác — email, +84… — giữ nguyên). */
 export const hienSo = (s = "") => (/^\d{10}$/.test(s) ? s.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : s);
 export const hienMa = (ma: string) => (ma.length === 6 ? `${ma.slice(0, 3)} ${ma.slice(3)}` : ma);

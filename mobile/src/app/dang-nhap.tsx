@@ -5,7 +5,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
-import { CanGiup, CanhRob, DauMan, LienKet, OLom } from "@/lib/lan-dau";
+import { boCach, CanGiup, CanhRob, DauMan, hienSo, LienKet, OLom } from "@/lib/lan-dau";
 import { NutDangNhapMxh, useCoMxh, useVaoSau, type KetQuaVao } from "@/lib/dang-nhap-mxh";
 import { BaoLoi, Chu, M, Man, Nut, useHoanTac, useLam } from "@/lib/ui";
 
@@ -39,7 +39,7 @@ export default function DangNhap() {
       </View>
     }>
       <CanhRob lv="chi" tieu="Chào Ba Mẹ!" loi="Đăng nhập để xem con đang làm gì." chuTo />
-      <OLom nhan="Số điện thoại" value={dd} onChangeText={setDd} keyboardType="email-address" autoCapitalize="none" autoComplete="username" textContentType="username" placeholder="0912 345 678" />
+      <OLom nhan="Số điện thoại" value={hienSo(dd)} onChangeText={(v) => setDd(boCach(v))} keyboardType="email-address" autoCapitalize="none" autoComplete="username" textContentType="username" placeholder="0912 345 678" />
       <OLom nhan="Mật khẩu" matKhau value={mk} onChangeText={setMk} autoComplete="current-password" textContentType="password" onSubmitEditing={() => dd && mk && di()} />
       <View style={{ alignItems: "flex-end", marginTop: -6 }}>
         <LienKet chu="Quên mật khẩu?" bam={() => router.push({ pathname: "/quen-mat-khau", params: dd ? { dd } : {} })} />
