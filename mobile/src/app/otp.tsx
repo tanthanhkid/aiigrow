@@ -8,7 +8,7 @@ import { router } from "expo-router";
 import { bm } from "@/lib/api";
 import { layDangKy, nhoDangKy, xoaDangKy } from "@/lib/dang-ky";
 import { usePhien } from "@/lib/phien";
-import { DauMan, demNguoc, TieuDe } from "@/lib/lan-dau";
+import { DauMan, demNguoc, hienSo, TieuDe } from "@/lib/lan-dau";
 import { Bao, BaoLoi, BieuTron, Chu, Icon3D, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
 
 export default function Otp() {
@@ -39,8 +39,8 @@ export default function Otp() {
     <Man dau={<DauMan ve="/dang-ky" />}
       day={<><BaoLoi loi={loi} /><Nut chu={dk.tenNha ? `Xác thực, vào nhà ${dk.tenNha}` : dk.duocMoi ? "Xác thực, xem lời mời" : "Xác thực số điện thoại"} rong dangChay={dangChay} tat={ma.length < 6} bam={xacNhan} /></>}>
       <View style={{ alignItems: "center", gap: 14, paddingTop: 8 }}>
-        <BieuTron ic="khien" lon co={72} />
-        <TieuDe chu="Nhập mã xác thực" phu={`Mã 6 số đã gửi tới ${dk.dinhDanh}`} giua />
+        <BieuTron ic="khien" lon co={96} />
+        <TieuDe chu="Nhập mã xác thực" phu="Mã 6 số đã gửi tới " dam={hienSo(dk.dinhDanh)} giua />
       </View>
       <Ma6 gia={ma} doi={setMa} />
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
