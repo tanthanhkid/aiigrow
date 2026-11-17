@@ -1,4 +1,4 @@
-// them-79kgpij8 «Sửa quà» / «Tự đặt quà riêng» (thiết kế chốt 06/11, L14) + bảng «Xoá quà X?» (them-t49meex8): tên, hình (4–8 ô), giá −/+ 10 sao
+// them-79kgpij8@v4 «Sửa quà» / «Tự đặt quà riêng» (bàn 17/11; thiết kế chốt 06/11, L14) + bảng «Xoá quà X?» (them-t49meex8@v2): tên, hình (4–8 ô), giá −/+ 10 sao
 // («Bảo Anh làm đủ việc được khoảng 60 sao/ngày → 2 ngày đổi được»), điều kiện bật/tắt (chỉ đổi cuối tuần · tối đa mỗi tháng N lần · số lượng có sẵn ·
 // Ba Mẹ xác nhận khi trao), «Áp cho» từng Con, «Lưu quà X», «Xoá quà này». Tạo = POST qua {loai: qua, …}; sửa = POST qua/:id; xoá = POST qua/:id/xoa
 // (phiếu đang giữ sao ⇒ hoàn sao cho con). docs/API.md «S3».
@@ -7,8 +7,9 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
-import { type NhiemVuMoi } from "@/lib/hang-ngay";
+import { tenGoi, type NhiemVuMoi } from "@/lib/hang-ngay";
 import { buocGia, cauNgayDoi, HINH_CHON, icQua, saoMoiNgay, thanSuaQua, type QuaS3 } from "@/lib/s3";
+import { GiaSao } from "@/lib/ui-s3";
 import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chips, Chu, CongTac, Icon3D, M, Man, NhanMen, Nut, ONhap, Rob, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 const SO_LAN = [1, 2, 4, 8];
@@ -95,7 +96,9 @@ export default function SuaQua() {
     <Man lui={{ chu: "" }} tieu={tieu}
       day={<><BaoLoi loi={xoa ? null : loiLam} />
         <Nut chu={`Lưu quà ${t.trim() || ""}`.trim()} rong dangChay={dangChay} tat={!ok} bam={luu} />
-        {q ? <Nut chu="Xoá quà này" loai="huy" rong bam={() => setXoa(true)} /> : null}</>}>
+        {/* thiết kế 79kgpij8: «Xoá quà này» là nút chữ đỏ */}
+        {q ? <Pressable onPress={() => setXoa(true)} accessibilityRole="button" style={({ pressed }) => [{ minHeight: 44, alignItems: "center", justifyContent: "center" }, pressed && { opacity: 0.6 }]}>
+          <Chu kieu="rat" co={15} mau={M.huy}>Xoá quà này</Chu></Pressable> : null}</>}>
       <ONhap nhan="Tên quà" value={t} onChangeText={setTen} placeholder="Đi ăn kem" maxLength={60} />
 
       <View style={{ gap: 8 }}>
@@ -105,9 +108,9 @@ export default function SuaQua() {
             const on = h ? x === h : icQua({ hinh: x, loai: "qua" }) === icHienTai;
             return (
               <NhanMen key={x} onPress={() => setHinh(x)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Hình ${x}`} muc="chip" sang={!on}
-                style={[{ width: 56, height: 56, borderRadius: 18, alignItems: "center", justifyContent: "center", backgroundColor: on ? "#eef5f2" : M.the },
+                style={[{ flexBasis: "21%", flexGrow: 1, height: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? "#eef5f2" : M.the },
                   on ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}` } : KHOI.nho]}>
-                <Icon3D ten={icQua({ hinh: x, loai: "qua" }) as TenIcon} co={34} />
+                <Icon3D ten={icQua({ hinh: x, loai: "qua" }) as TenIcon} co={38} />
               </NhanMen>
             );
           })}
@@ -157,9 +160,20 @@ export default function SuaQua() {
       {/* thiết kế 06: Grow «suy nghĩ» giữa đầu bảng, tiêu đề + câu canh giữa, nút «Giữ lại quà» trắng */}
       <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá quà ${q?.ten ?? ""}?`} giua dauBang={<View style={{ alignItems: "center" }}><Rob ten="chi" co={110} /></View>}>
         <Chu kieu="dam" co={14.5} mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>Con sẽ không thấy quà này trên máy nữa. Sao con đã có không bị mất.</Chu>
+        {/* thiết kế t49meex8: thẻ quà — hình · tên · «Áp cho …» · giá sao */}
+        {q ? (
+          <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: M.the }, KHOI.nho]}>
+            <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua(q) as TenIcon} co={28} /></View>
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Chu kieu="rat" co={15}>{q.ten}</Chu>
+              <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{`Áp cho ${d.con.filter((c) => (q.apCho ?? moiCon).includes(c.id)).map((c) => tenGoi(c.ten)).join(", ") || "cả nhà"}`}</Chu>
+            </View>
+            <GiaSao n={q.sao} />
+          </View>
+        ) : null}
         {q?.dangGiu ? <Chu co={14} mau={M.chu2}>{`${q.dangGiu} phiếu đang chờ trao sẽ được huỷ và hoàn sao cho con.`}</Chu> : null}
         <BaoLoi loi={loiLam} />
-        <Nut chu={`Xoá quà ${q?.ten ?? ""}`} loai="huy" rong dangChay={dangChay} bam={xoaQua} />
+        <Nut chu={`Xoá quà ${q?.ten ?? ""}`} loai="do" rong dangChay={dangChay} bam={xoaQua} />
         <Nut chu="Giữ lại quà" loai="vien" rong bam={() => setXoa(false)} />
       </BangTruot>
     </Man>

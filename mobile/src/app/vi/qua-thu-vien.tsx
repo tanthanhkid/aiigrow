@@ -1,4 +1,4 @@
-// «Thêm quà cho <Con>» (thiết kế 14/11 bm-sao-qua/04 them-dlul0jlr, L14 · N12): lọc Tất cả · Ba Mẹ mua · Quà nhà; hai nhóm «Quà Ba Mẹ mua · trả tiền»
+// «Thêm quà cho <Con>» (bàn 17/11 them-dlul0jlr@v8; thiết kế 14/11 bm-sao-qua/04, L14 · N12): lọc Tất cả · Ba Mẹ mua · Quà nhà; hai nhóm «Quà Ba Mẹ mua · trả tiền»
 // (voucher AiiGrow có giá tiền) và «Quà nhà · không tốn tiền»; mỗi mẫu có giá sao gợi ý, quà đã có đánh «Đã có», bấm + để chọn;
 // «Tự đặt quà nhà» ⇒ tab «Ba Mẹ tự điền» của «Quà của <Con>»; «Thêm N quà» ⇒ POST qua/thu-vien {mau, con}. GET qua/thu-vien?con= (docs/API.md «S3»).
 import { useState } from "react";
@@ -8,12 +8,14 @@ import { bm, type GiaDinh } from "@/lib/api";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 import { Anh3D } from "@/lib/lan-dau";
 import { cauThemQua, doiChonMau, type NhomThuVien } from "@/lib/s3";
-import { BaoLoi, baoKhiVe, ChoTai, Chu, Icon, M, Man, NhanMen, Nut, The, tien, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, NhanMen, Nut, The, tien, useLam, useTai } from "@/lib/ui";
 import { GiaSao, NutCong } from "@/lib/ui-s3";
 import type { Ten3D } from "@/lib/icon-3d";
 
 const IC_NHOM: Record<string, Ten3D> = { ba_me_mua: "the_qua", qua_nha: "qua" };
 const NGAN: Record<string, string> = { ba_me_mua: "Ba Mẹ mua", qua_nha: "Quà nhà" };
+/** Câu phụ dưới tên nhóm (chữ của bàn dlul0jlr). */
+const MO_TA: Record<string, string> = { ba_me_mua: "Ba Mẹ mua trước, con đủ sao thì nhận", qua_nha: "Ba Mẹ tự trao, tự đặt số sao" };
 
 export default function ThuVienQua() {
   const { con } = useLocalSearchParams<{ con?: string }>();
@@ -50,13 +52,17 @@ export default function ThuVienQua() {
       </ScrollView>
       {nhom.map((g) => (
         <View key={g.ma} style={{ gap: 8 }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4, marginTop: 4 }}>
-            {IC_NHOM[g.ma] ? <Anh3D ten={IC_NHOM[g.ma]} co={22} /> : null}
-            <Chu kieu="rat" co={16}>{g.ten}</Chu><Chu co={13} mau={M.chu3}>{g.phu}</Chu>
-          </View>
           <The sat>
-            {g.ds.map((m, i) => (
-              <View key={m.ma} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, paddingHorizontal: 14, borderTopWidth: i ? 1 : 0, borderTopColor: "#efefec" }}>
+            {/* thiết kế dlul0jlr@v8: đầu nhóm là dòng đầu của thẻ — ô icon 40 · «Quà Ba Mẹ mua · trả tiền» + câu phụ */}
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14 }}>
+              {IC_NHOM[g.ma] ? <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", alignItems: "center", justifyContent: "center" }}><Anh3D ten={IC_NHOM[g.ma]} co={24} /></View> : null}
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <Chu kieu="rat" co={15}>{g.phu ? `${g.ten} · ${g.phu}` : g.ten}</Chu>
+                {MO_TA[g.ma] ? <Chu co={12.5} mau={M.chu3}>{MO_TA[g.ma]}</Chu> : null}
+              </View>
+            </View>
+            {g.ds.map((m) => (
+              <View key={m.ma} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: "#efefec" }}>
                 <View style={{ flex: 1, minWidth: 0 }}>
                   <Chu kieu="rat" co={15}>{m.ten}</Chu>
                   {m.menhGia || m.moTa ? <Chu co={12.5} mau={M.chu3}>{[m.menhGia ? tien(m.menhGia) : null, m.moTa].filter(Boolean).join(" · ")}</Chu> : null}
@@ -75,7 +81,7 @@ export default function ThuVienQua() {
       <NhanMen onPress={() => router.push({ pathname: "/vi/qua", params: { tab: "nha", ...(con ? { con } : {}) } })} accessibilityRole="button" muc="khoi" sang men={MEN.sang}
         style={[{ minHeight: 56, borderRadius: 22, backgroundColor: M.the, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8,
           borderWidth: 2, borderStyle: "dashed", borderColor: M.vien2 }, KHOI.nho]}>
-        <Icon ten="cong" co={20} mau={M.chinhInk} /><Chu kieu="rat" co={15.5} mau={M.chinhInk}>Tự đặt quà nhà</Chu>
+        <Anh3D ten="but" co={22} /><Chu kieu="rat" co={15.5} mau={M.chinhInk}>Tự đặt quà nhà</Chu>
       </NhanMen>
     </Man>
   );
