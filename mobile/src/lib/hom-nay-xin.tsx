@@ -126,9 +126,11 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
         </View>
       )}
       {/* Trang chủ (oIcon): bàn bm2-trang-chu / them-0kwhgpq6 không có lời con cho xin app / web, xin mở khoá; xin vay giữ (them-1mnk3mjz) */}
-      {dangXin ? (laAppWeb(y) ? phu : y.ly_do?.trim() ? `«${y.ly_do.trim()}»` : null) ? (
-        <View style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
-          <Chu kieu="dam" co={13.5} mau={M.chu2}>{laAppWeb(y) ? phu : `«${y.ly_do!.trim()}»`}</Chu>
+      {/* dangXin: lời con viết (ly_do) luôn hiện trong ô lõm; xin app / web thêm dòng phụ (máy / nhóm) dưới */}
+      {dangXin ? (y.ly_do?.trim() || (laAppWeb(y) && phu)) ? (
+        <View style={{ gap: 4, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: "#ecebe7", boxShadow: BONG.lom }}>
+          {y.ly_do?.trim() ? <Chu kieu="dam" co={13.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
+          {laAppWeb(y) && phu ? <Chu kieu="dam" co={13} mau={M.chu3}>{phu}</Chu> : null}
         </View>
       ) : null : y.ly_do?.trim() && !(oIcon && (xinMoKhoa || laAppWeb(y))) ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
       {vay && sao && !xinMoKhoa ? (
