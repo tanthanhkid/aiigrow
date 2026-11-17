@@ -88,9 +88,9 @@ export default function XoaHoSo() {
       </View>
       <TheDs>
         {/* máy chủ không gỡ máy — máy riêng của bé: còn 1 con ⇒ máy riêng của con đó, ≥ 2 ⇒ dùng chung; máy chung chỉ bỏ bé khỏi danh sách; Ba Mẹ đổi / gỡ ở bước sau */}
-        {([...(mayRieng.length ? [["laptop", `Grow thôi trông ${mayRieng.length} máy cho ${c.ten}`, phuMay]] : []),
-          ...(mayChung.length ? [["laptop", `${c.ten} rời ${mayChung.length} máy dùng chung`, `${tenGon(mayChung)} vẫn cho các con khác dùng`]] : []),
-          ["sao", `Mất ${sao} sao`, "Cả quà đang chờ trao"], ["lich", "Mất báo cáo và cài đặt", "Nhiệm vụ, phút chơi đã đặt"]] as const).map(([ic, tieu, phu], k) => (
+        {([...(mayRieng.length ? [["laptop", `Grow thôi trông ${mayRieng.length} máy cho ${c.ten}`, phuMay] as const] : []),
+          ...(mayChung.length ? [["laptop", `${c.ten} rời ${mayChung.length} máy dùng chung`, `${tenGon(mayChung)} vẫn cho các con khác dùng`] as const] : []),
+          ["sao", `Mất ${sao} sao`, "Cả quà đang chờ trao"] as const, ["lich", "Mất báo cáo và cài đặt", "Nhiệm vụ, phút chơi đã đặt"] as const]).map(([ic, tieu, phu], k) => (
           <View key={tieu} style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 58 }, keDau(k)]}>
             <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#ecebe7", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={24} /></View>
             <View style={{ flex: 1, minWidth: 0 }}><Chu kieu="rat" co={14.5}>{tieu}</Chu><Chu kieu="dam" co={12.5} mau="#565c59">{phu}</Chu></View>

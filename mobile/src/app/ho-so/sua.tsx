@@ -10,6 +10,7 @@ import { bm, chuanHoaTen } from "@/lib/api";
 import { BONG } from "@/lib/clay";
 import { type ConCt } from "@/lib/hang-ngay";
 import { coAnh, luuAnhCon, xoaAnhCon } from "@/lib/anh-con";
+import { MAU_HO_SO } from "@/lib/lan-dau";
 import { ChonMauCon, conGiap, HangAnhCon, namCua, TheHoSoCon, useAnhForm } from "@/lib/form-ho-so";
 import { BaoLoi, baoKhiVe, ChoTai, Chu, Icon, Icon3D, M, Man, Nut, ONhap, useLam, useTai } from "@/lib/ui";
 
@@ -26,7 +27,8 @@ export default function SuaHoSo() {
   const namG = d.namSinh ? String(d.namSinh) : "";
   const namSo = namCua(namG);
   const mauCu = Number(/^mau-(\d)(?:\||$)/.exec(d.avatar ?? "")?.[1]);
-  const mauG = mau ?? (Number.isInteger(mauCu) ? mauCu : null);
+  // màu ngoài bảng (mau-5..9 từ bản cũ) ⇒ coi như chưa chọn, như mauCon (không để MAU_HO_SO[mau] ra undefined)
+  const mauG = mau ?? (Number.isInteger(mauCu) && mauCu >= 0 && mauCu < MAU_HO_SO.length ? mauCu : null);
   const luu = () => lam(async () => {
     await bm.goi(`con/${id}/sua`, { ten: chuanHoaTen(tenG), ...(mauG !== null ? { avatar: `mau-${mauG}` } : {}) });
     if (af.anh) await luuAnhCon(id, af.anh);
