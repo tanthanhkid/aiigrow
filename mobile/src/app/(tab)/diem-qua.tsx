@@ -87,9 +87,9 @@ export default function TabNhiemVu() {
           {k === "thuong" ? `${ten} đang có` : `${ten} đang nợ Ba Mẹ ${soVN(ss.no)} sao`}</Chu>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, marginRight: 100 }}>
           <Icon3D ten="sao" co={38} />
-          {k === "vay" ? <Chu kieu="rat" co={20} mau={HERO.phu} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
-            <Chu kieu="tieu7" co={40} so mau={HERO.phu} style={{ lineHeight: 46, letterSpacing: -1 }}>{soVN(k === "am" ? -ss.no : sao)}</Chu>
-            <Chu kieu="rat" co={18} mau={HERO.phu} style={{ marginTop: 8 }}>sao</Chu>
+          {k === "vay" ? <Chu kieu="rat" co={20} mau={M.noHero} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
+            <Chu kieu="tieu7" co={40} so mau={k === "am" ? M.noHero : HERO.phu} style={{ lineHeight: 46, letterSpacing: -1 }}>{soVN(k === "am" ? -ss.no : sao)}</Chu>
+            <Chu kieu="rat" co={18} mau={k === "am" ? M.noHero : HERO.phu} style={{ marginTop: 8 }}>sao</Chu>
           </>}
         </View>
         <View style={{ alignSelf: "flex-start", marginTop: 6, minHeight: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.diem, backgroundImage: "linear-gradient(#f8d68e, #F4C76A)", justifyContent: "center", marginRight: 100 }}>

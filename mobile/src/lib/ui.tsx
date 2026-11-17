@@ -156,7 +156,7 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
     <NhanMen onPress={bam} disabled={mo} accessibilityRole="button" muc="nut" sang={m.sang || !!tat} men={tat ? undefined : m.men}
       accessibilityLabel={nhanDoc ?? chu} accessibilityState={{ disabled: !!mo, busy: !!dangChay }}
       style={[s.nut, nho && s.nutNho, sat && { paddingHorizontal: 12 }, rong ? { alignSelf: "stretch" } : { flexGrow: 1, flexShrink: 1 }, { maxWidth: "100%", minWidth: 0 },
-        tat ? { backgroundColor: "#DDD3C6", boxShadow: BONG.lom } : { backgroundColor: m.nen, boxShadow: m.bong }]}>
+        tat ? { backgroundColor: "#DDD3C6", opacity: 0.55 } : { backgroundColor: m.nen, boxShadow: m.bong }]}>
       {dangChay ? <ActivityIndicator color={m.chu} /> : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%" }}>
           {ic ? (ic3d && !tat ? <Icon3D ten={ic} co={nho ? 20 : 22} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
@@ -770,7 +770,7 @@ export function useHoanTac() {
     <Animated.View entering={giam ? FadeIn.duration(180) : vaoLanLuot(0)} exiting={giam ? FadeOut.duration(150) : FadeOutDown.duration(200)} style={s.toast}
       accessibilityRole="alert" accessibilityLiveRegion="polite">
       <LopMen men={MEN.toi} bo={24} />
-      <View style={s.toastTick}><Icon ten="tick" mau="#fff" co={16} /></View>
+      <View style={s.toastTick}><Icon ten="tick" mau={M.chu} co={16} /></View>
       <Chu kieu="dam" co={14.5} mau="#fff" style={{ flex: 1 }}>{tb.chu}</Chu>
       {tb.hoan ? (
         <Pressable onPress={() => { const h = tb.hoan; tat(); h?.(); }} accessibilityRole="button" hitSlop={6} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 6 }}>
@@ -857,7 +857,7 @@ const s = StyleSheet.create({
     boxShadow: "0px -10px 30px -12px rgba(28,32,30,0.3), inset 0px 1.5px 0px rgba(255,255,255,1)" },
   toast: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: M.chu, borderRadius: 24, paddingVertical: 8, paddingLeft: 10, paddingRight: 8, minHeight: 56,
     boxShadow: BONG.toi },
-  toastTick: { width: 30, height: 30, borderRadius: 15, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", backgroundImage: MEN.ngoc, boxShadow: BONG.ngoc },
+  toastTick: { width: 30, height: 30, borderRadius: 15, backgroundColor: M.diem, alignItems: "center", justifyContent: "center", backgroundImage: MEN.vang },
   xuong: { borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom },
   bangMang: { flexDirection: "row", gap: 10, alignItems: "center", backgroundColor: M.chu, borderRadius: 20, paddingVertical: 10, paddingHorizontal: 12, boxShadow: BONG.toi },
 });

@@ -5,7 +5,7 @@
 import { type ReactNode } from "react";
 import { Pressable, Text, View } from "react-native";
 import { bm, type PhienDang, type TuanThuMay } from "@/lib/api";
-import { BONG, KHOI } from "@/lib/clay";
+import { BONG, KHOI, MEN } from "@/lib/clay";
 import { mauHoSo } from "@/lib/lan-dau";
 import { Avt, BangTruot, BaoLoi, Chu, DauSach, F, Icon, Icon3D, M, Nut, useLam, type TenIcon } from "@/lib/ui";
 import { datKhoaMay } from "@/lib/khoa-may";
@@ -125,7 +125,7 @@ export const keDau = (k: number) => (k ? { borderTopWidth: 1.5, borderTopColor: 
 export function ODanhDau({ chon, khoa }: { chon: boolean; khoa?: boolean }) {
   return (
     <View style={{ width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center",
-      ...(chon && !khoa ? { backgroundColor: M.chinh, backgroundImage: "linear-gradient(#138a75, #0A1629)", boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }) }}>
+      ...(chon && !khoa ? { backgroundColor: M.chinh, backgroundImage: MEN.toi, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }) }}>
       {khoa ? <Icon3D ten="khoa" co={18} /> : chon ? <Icon ten="tick" mau="#fff" co={16} /> : null}
     </View>
   );

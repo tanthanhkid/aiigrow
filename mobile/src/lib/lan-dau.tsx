@@ -222,13 +222,13 @@ export const demNguoc = (giay: number) => `${Math.floor(Math.max(0, giay) / 60)}
 
 type ChiaSe = { tieuDe: string; noiDung: string; lienKet: string };
 // glyph đơn sắc ngọc của bàn bm1-ob-ghep v23 (`.gA svg` fill #0A1629, phần khoét nền #F2EBE3)
-const G = (d: string) => `<svg viewBox="0 0 24 24" fill={M.chinhInk}>${d}</svg>`;
+const G = (d: string) => `<svg viewBox="0 0 24 24" fill="${M.chinhInk}">${d}</svg>`;
 const BONG_CHAT = '<path d="M12 3C6.5 3 2 6.8 2 11.5c0 2.6 1.4 4.9 3.6 6.5L5 21.5l4-2.1c.9.2 1.9.3 3 .3 5.5 0 10-3.8 10-8.5S17.5 3 12 3z"/>';
 const GLYPH = {
-  zalo: G(`${BONG_CHAT}<path d="M8 8.5h7.5v1.6l-4.9 5h4.9v1.6H7.8v-1.6l4.9-5H8z" fill={M.chinhSoft}/>`),
-  mes: G(`${BONG_CHAT}<path d="M6.5 13.8l4-4.2 2.4 2.1 4.6-2.4-4 4.2-2.4-2.1z" fill={M.chinhSoft}/>`),
-  tin: G('<path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2H9l-5 4v-4a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M7 9h10v2H7zM7 12.5h6v2H7z" fill={M.chinhSoft}/>'),
-  mail: G('<path d="M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><path d="M3.5 7.2L12 12.6l8.5-5.4v2.2L12 14.8 3.5 9.4z" fill={M.chinhSoft}/>'),
+  zalo: G(`${BONG_CHAT}<path d="M8 8.5h7.5v1.6l-4.9 5h4.9v1.6H7.8v-1.6l4.9-5H8z" fill="${M.the}"/>`),
+  mes: G(`${BONG_CHAT}<path d="M6.5 13.8l4-4.2 2.4 2.1 4.6-2.4-4 4.2-2.4-2.1z" fill="${M.the}"/>`),
+  tin: G(`<path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2H9l-5 4v-4a2 2 0 01-2-2V6a2 2 0 012-2z"/><path d="M7 9h10v2H7zM7 12.5h6v2H7z" fill="${M.the}"/>`),
+  mail: G(`<path d="M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1z"/><path d="M3.5 7.2L12 12.6l8.5-5.4v2.2L12 14.8 3.5 9.4z" fill="${M.the}"/>`),
   tele: G('<path d="M21.5 3.5L2.8 10.7c-1 .4-1 1.1-.2 1.4l4.8 1.5 1.8 5.6c.2.6.4.8.9.8.4 0 .6-.2.9-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.7c.3-1.3-.5-1.9-1.4-1.3z"/>'),
   chep: G('<path d="M3.9 12c0-1.7 1.4-3.1 3.1-3.1h4V7H7a5 5 0 000 10h4v-1.9H7c-1.7 0-3.1-1.4-3.1-3.1zM8 13h8v-2H8v2zm9-6h-4v1.9h4c1.7 0 3.1 1.4 3.1 3.1s-1.4 3.1-3.1 3.1h-4V17h4a5 5 0 000-10z"/>'),
   them: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M12 2l-4.5 4.5 1.4 1.4L11 5.8V15h2V5.8l2.1 2.1 1.4-1.4z"/><path d="M6 9h3v2H6v9h12v-9h-3V9h3a2 2 0 012 2v9a2 2 0 01-2 2H6a2 2 0 01-2-2v-9a2 2 0 012-2z"/></svg>',
@@ -468,7 +468,7 @@ export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhV
 /** 5 màu hồ sơ (thiết kế «Màu của con»): [màu đậm, nền thẻ nhạt]. Lưu ở `children.avatar` dạng «mau-<số>». */
 /** BẢNG MÀU HỒ SƠ CON DUY NHẤT (avatar «mau-<số>»): [màu chọn ở Lần đầu, nền nhạt thẻ hồ sơ, tông đậm cho avatar chữ trắng ở Hằng ngày
  *  (bàn them-h60stad7, bm2-trang-chu `.av.a/.m/.n/.k` — đủ tương phản)]. Lần đầu / Sửa hồ sơ đọc [0][1]; lib/hang-ngay › mauCon đọc [2]. */
-export const MAU_HO_SO: [string, string, string][] = [["#f29a4a", "#fde3c8", "#E8600C"], ["#6aa3ef", "#dce9fb", "#1F48FF"], ["#ec8db2", "#fbe0ea", "#9b2fc0"],
+export const MAU_HO_SO: [string, string, string][] = [["#f29a4a", "#fde3c8", "#E8600C"], ["#6aa3ef", "#dce9fb", "#1F48FF"], ["#ec8db2", "#fbe0ea", "#be185d"],
   ["#5bbf95", "#d9f1e6", "#0f8a68"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];   // [2] theo bàn Navy 17/11 (.av.a/.m/.n/.k)
 export const mauHoSo = (avatar?: string | null) => { const k = Number(/^mau-(\d)(?:\||$)/.exec(avatar ?? "")?.[1]); return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : 0]; };
 /** «9 tuổi · khoảng lớp 4» (lớp = tuổi − 5, chỉ 6–17 tuổi). */

@@ -10,7 +10,7 @@ export const TEN_NHOM: Record<Nhom, string> = { tinh_phut: "Tính phút", khong_
 /** Câu phụ của một nhóm (thiết kế: «Trả bằng sao · 1 sao = 1 phút» / «Vào thoải mái»). */
 export const PHU_NHOM: Record<Nhom, string> = { tinh_phut: "Trả bằng sao · 1 sao = 1 phút", khong_tinh_phut: "Vào thoải mái" };
 /** Chấm màu của nhóm: vàng Tính phút · xanh Không tính phút. */
-// đèn tín hiệu (bàn Navy 17/11): Tính phút cam (M.badge), Không tính phút ô liu (M.ok) — chép giá trị: tệp chạy thẳng bằng node --test, không nạp mau.ts
+// đèn tín hiệu (bàn Navy 17/11, giữ ở Ánh kim): Tính phút cam #FF751F (riêng — M.badge nay là vàng), Không tính phút ô liu (M.ok) — chép giá trị: tệp chạy thẳng bằng node --test, không nạp mau.ts
 export const MAU_NHOM: Record<Nhom, string> = { tinh_phut: "#FF751F", khong_tinh_phut: "#7ED957" };
 
 /** Giá trị cũ của máy chủ (`chi_app_duoc_phep`, null) ⇒ «Theo danh sách». */

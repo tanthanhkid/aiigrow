@@ -80,14 +80,14 @@ export function SoSaoLon({ s, co = 26, bamNo, toi }: { s: SaoCon; co?: number; b
   return (
     <View style={{ gap: 6, alignItems: "flex-start" }}>
       {k === "vay" ? (
-        <Chu kieu="tieu7" co={co} so mau={toi ? HERO.phu : undefined} style={{ letterSpacing: -0.6 }}>{soChinh(s)}</Chu>
+        <Chu kieu="tieu7" co={co} so mau={toi ? M.noHero : undefined} style={{ letterSpacing: -0.6 }}>{soChinh(s)}</Chu>
       ) : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: m.nen,
           boxShadow: toi ? undefined : k === "am" ? "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(138,60,12,.18)" : "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(110,67,0,.16)" }}
           accessible accessibilityLabel={soChinh(s)}>
           <Icon3D ten="sao" co={co} />
           {/* «Ánh kim»: số sao đúc Fraunces; trên hero navy là vàng (mẫu E `.am`) */}
-          <Chu kieu="tieu7" co={co} mau={toi ? HERO.phu : m.chu} so style={{ letterSpacing: -1 }}>{soChinh(s)}</Chu>
+          <Chu kieu="tieu7" co={co} mau={toi ? (k === "am" ? M.noHero : HERO.phu) : m.chu} so style={{ letterSpacing: -1 }}>{soChinh(s)}</Chu>
         </View>
       )}
       {no ? (

@@ -6,16 +6,19 @@ import { Platform } from "react-native";
 export const M = {
   // 17/11 bàn thiết kế chốt «mẫu 1 Navy» cho TOÀN BỘ màn Ba Mẹ (màn mẫu bm2-trang-chu v36, issue #363): nền kem, chữ + nút + điểm nhấn navy,
   // vàng mật CHỈ cho sao, cam cho huy hiệu số, ô liu cho «xong / đã kết nối». Phía Con KHÔNG dùng bảng này (diu.ts).
-  // Tương phản (WCAG): chu #0A1629 / nen 15,9:1 · chu3 #5a5a5a / nen 6,0:1 · trắng / chinh 17,9:1 · canh #983e04 / canhSoft 5,8:1, trên chinhSoft #E3D9CB 5,0:1 (Ánh kim — #a84505 chỉ 4,3 trên kem lõm) · loi #b81f1f / loiSoft 5,6:1.
+  // Tương phản (WCAG): chu #0A1629 / nen 15,9:1 · chu3 #5a5a5a / nen 6,0:1 · trắng / chinh 17,9:1 · canh #983e04 / canhSoft 5,8:1, trên xamSoft #E3D9CB 5,0:1, trên chinhSoft #F1E2BF 5,4:1 (Ánh kim — #a84505 chỉ 4,3 trên kem lõm) · loi #b81f1f / loiSoft 5,6:1.
   // «Ánh kim» (phong cách E): neumorphism mỏng — mặt thẻ CÙNG màu nền kem #ECE4D9, nổi / lõm bằng bóng đôi (clay.ts); chữ phụ nâu ấm.
   // Tương phản trên #ECE4D9: chu 14,4 · chu2 9,0 · chu3 #5f554b 5,8 (mẫu E dùng #7c7166 chỉ 3,8 ⇒ sẫm hơn) · lienKet #7a5a1f 5,0 · canh 4,7.
+  // chinhSoft #F1E2BF (kem ánh vàng: đang chọn / ổn) PHẢI khác xamSoft #E3D9CB (trung tính / lõm) — nhiều chỗ phân biệt trạng thái bằng hai token này.
   nen: "#ECE4D9", the: "#ECE4D9", vien: "#ddd2c4", vien2: "#e2d8cb", oNhap: "#8a8478",
   chu: "#0A1629", chu2: "#3a3a3a", chu3: "#5f554b",
-  chinh: "#0A1629", chinhDam: "#0A1629", chinhInk: "#0A1629", chinhSoft: "#E3D9CB", chinhSang: "#7ED957",
+  chinh: "#0A1629", chinhDam: "#0A1629", chinhInk: "#0A1629", chinhSoft: "#F1E2BF", chinhSang: "#7ED957",
   // chữ liên kết / «Tất cả ›» vàng đồng sẫm (mẫu E #8a6a2b chỉ 4,0:1)
   lienKet: "#7a5a1f",
   // dấu sách trước tiêu đề mục: đồng kim (giữa dải vàng kim `MEN.vang`)
   dauSach: "#C9973B",
+  // số âm / nợ trên thẻ hero navy: cam san hô (8,8:1 trên #0A1629) — nợ vẫn phải trông như cảnh báo
+  noHero: "#FF9B6B",
   // nút chính: viên navy (gradient #1b2b47 → #0A1629 ở MEN.toi)
   nut: "#0A1629", nutDam: "#1b2b47",
   diem: "#F4C76A", diemInk: "#0A1629", diemSoft: "#fbf0d6",
