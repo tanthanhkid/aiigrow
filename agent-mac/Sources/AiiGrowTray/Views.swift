@@ -132,7 +132,7 @@ struct GhepMayView: View {
 
   // 03 / 04
   @ViewBuilder private var nhap: some View {
-    Text("Ghép Mac của con").font(.clay(size: 22, weight: .bold))
+    Text("Ghép Mac của con").font(.clay(size: 22, weight: .bold, vai: .tieuDe))
     Chu(motCham ? "Gói cài đã có mã của nhà mình. Chỉ cần một chạm." : "Gõ mã 6 số trong app AiiGrow của Ba Mẹ.", co: 14, mau: ClayMau.chu3)
     if motCham {
       HStack(spacing: 12) {
@@ -189,7 +189,7 @@ struct GhepMayView: View {
     HStack(spacing: 12) {
       VienClay(ten: "stop_sign", duPhong: "exclamationmark.triangle.fill", nen: ClayMau.canhSoft, co: 48)
       VStack(alignment: .leading, spacing: 2) {
-        Text(tieu).font(.clay(size: 21, weight: .bold))
+        Text(tieu).font(.clay(size: 21, weight: .bold, vai: .tieuDe))
         Chu(phu, co: 13, mau: ClayMau.chu3, dong: 2)
       }
     }
@@ -206,7 +206,7 @@ struct GhepMayView: View {
     HStack(spacing: 12) {
       VienClay(ten: "globe_with_meridians", duPhong: "wifi.slash", nen: ClayMau.canhSoft, co: 48)
       VStack(alignment: .leading, spacing: 2) {
-        Text("Máy chưa vào được mạng").font(.clay(size: 21, weight: .bold))
+        Text("Máy chưa vào được mạng").font(.clay(size: 21, weight: .bold, vai: .tieuDe))
         Chu("Bật lại Wi-Fi rồi bấm «Thử lại».", co: 13, mau: ClayMau.chu3, dong: 1)
       }
     }
@@ -228,7 +228,7 @@ struct GhepMayView: View {
   // 08
   @ViewBuilder private var batQuyen: some View {
     Text("Đã ghép nhà mình").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
-    Text("Bật 3 quyền").font(.clay(size: 22, weight: .bold))
+    Text("Bật 3 quyền").font(.clay(size: 22, weight: .bold, vai: .tieuDe))
     dongQuyen("hourglass_not_done", "Thời gian sử dụng", "Để tính phút chơi bằng sao", bat: true, mo: GhepMayView.caiDatThoiGian)
     dongQuyen("speech_balloon", "Thông báo", "Để nhắc «còn 5 sao»", bat: quyenTB == true, mo: GhepMayView.caiDatThongBao)
     dongQuyen("desktop_computer", "Mở cùng máy", "AiiGrow tự chạy khi bật Mac",
@@ -265,7 +265,7 @@ struct GhepMayView: View {
   @ViewBuilder private var xong: some View {
     let c = ManMac.chuXong(hoSo, taiKhoan: chon)
     HStack { Spacer(); VienClay(ten: "party_popper", duPhong: "checkmark.seal.fill", nen: ClayMau.ngocSoft, co: 64); Spacer() }
-    Text(c.tieuDe).font(.clay(size: 22, weight: .bold)).frame(maxWidth: .infinity)
+    Text(c.tieuDe).font(.clay(size: 22, weight: .bold, vai: .tieuDe)).frame(maxWidth: .infinity)
     Chu(c.phu, co: 14, mau: ClayMau.chu3, dong: 2)
     VStack(alignment: .leading, spacing: 8) {
       ForEach(c.cacDong, id: \.self) { Chu($0, co: 13, dam: .semibold, dong: 1) }
@@ -347,17 +347,17 @@ struct ManKhoaView: View {
       case .demNguoc(let giay, let lyDo):
         let con = max(0, Double(giay) - bayGio.timeIntervalSince(tray.nhanLuc))
         let het = lyDo == "het_gio"
-        Text(het ? "Sắp hết sao rồi" : "Ba Mẹ sắp khoá máy").font(.clay(size: 38, weight: .bold))
+        Text(het ? "Sắp hết sao rồi" : "Ba Mẹ sắp khoá máy").font(.clay(size: 38, weight: .bold, vai: .tieuDe))
         HStack(alignment: .firstTextBaseline, spacing: 10) {
           Text("Lưu bài đang làm nhé. Máy khoá sau").font(.clay(size: 17)).foregroundColor(ClayMau.chu2)
-          Text(TrayLogic.dongHo(con)).font(.clay(size: 40, weight: .bold, design: .rounded)).monospacedDigit().foregroundColor(ClayMau.ngocInk)
+          Text(TrayLogic.dongHo(con)).font(.clay(size: 40, weight: .bold, vai: .so)).monospacedDigit().foregroundColor(ClayMau.ngocInk)
         }
         nutHanhDong(hetSao: het)
       case .khoa:
         if let t = tray.tt {
           let c = ManMac.chuKhoa(t, phutDaChoi: app.tq?.quy?.daDung)
           if t.matMang { VienNho(chu: "Mất mạng · " + AppConView.gioPhut.string(from: bayGio), mau: ClayMau.canh) }
-          Text(t.matMang ? "Mất mạng, luật vẫn vậy nhé!" : c.tieuDe).font(.clay(size: 38, weight: .bold)).fixedSize(horizontal: false, vertical: true)
+          Text(t.matMang ? "Mất mạng, luật vẫn vậy nhé!" : c.tieuDe).font(.clay(size: 38, weight: .bold, vai: .tieuDe)).fixedSize(horizontal: false, vertical: true)
           Text(t.matMang && c.hetSao ? "Hết sao rồi · con còn 0 sao = 0 phút chơi." : t.matMang && !c.theoGioiHan ? c.tieuDe + " · " + c.phu : c.phu)
             .font(.clay(size: 17)).foregroundColor(ClayMau.chu2).fixedSize(horizontal: false, vertical: true)
           nutHanhDong(hetSao: c.hetSao, theoGioiHan: c.theoGioiHan)
@@ -392,7 +392,7 @@ struct ManKhoaView: View {
       HStack(spacing: 14) {
         VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.the, co: 54)
         VStack(alignment: .leading, spacing: 2) {
-          Text(sao.map { "Con có \(ChuSao.vien($0))" } ?? "Sao của con vẫn còn").font(.clay(size: 21, weight: .bold)).foregroundColor(ClayMau.diemInk)
+          Text(sao.map { "Con có \(ChuSao.vien($0))" } ?? "Sao của con vẫn còn").font(.clay(size: 21, weight: .bold, vai: .tieuDe)).foregroundColor(ClayMau.diemInk)
           Text("Sao không mất khi nghỉ · 1 sao = 1 phút chơi").font(.clay(size: 13)).foregroundColor(ClayMau.diemInk)
         }
         Spacer()
@@ -412,7 +412,7 @@ struct ManKhoaView: View {
       HStack(spacing: 14) {
         VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.the, co: 54)
         VStack(alignment: .leading, spacing: 2) {
-          Text("Con còn 0 sao").font(.clay(size: 21, weight: .bold)).foregroundColor(ClayMau.diemInk)
+          Text("Con còn 0 sao").font(.clay(size: 21, weight: .bold, vai: .tieuDe)).foregroundColor(ClayMau.diemInk)
           Text(t?.matMang == true ? "Có mạng lại, sổ sao tự cập nhật." : "1 sao = 1 phút chơi").font(.clay(size: 13)).foregroundColor(ClayMau.diemInk)
         }
         Spacer()
@@ -544,16 +544,19 @@ struct NhacView: View {
   }
 }
 
-/// Khối tối (khung đồng hồ đếm ngược): navy, viền + quầng vàng mảnh.
+/// Kính mờ trên nền tối (khung đồng hồ đếm ngược): nền trắng trong + men nửa trên + viền sáng.
 struct KinhMo: View {
   var bo: CGFloat = 28
   var body: some View {
     let hinh = RoundedRectangle(cornerRadius: bo, style: .continuous)
     ZStack {
-      hinh.fill(ClayMau.chu)
-      hinh.strokeBorder(ClayMau.kimVien.opacity(0.8), lineWidth: 1)
+      hinh.fill(Color.white.opacity(0.09))
+      hinh.fill(LinearGradient(stops: [
+        .init(color: .white.opacity(0.18), location: 0), .init(color: .white.opacity(0.03), location: 0.45), .init(color: .clear, location: 0.5),
+      ], startPoint: .top, endPoint: .bottom))
+      hinh.strokeBorder(LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
     }
-    .shadow(color: ClayMau.kim.opacity(0.30), radius: 14, x: 0, y: 4)
+    .shadow(color: .black.opacity(0.35), radius: 16, x: 0, y: 14)
   }
 }
 

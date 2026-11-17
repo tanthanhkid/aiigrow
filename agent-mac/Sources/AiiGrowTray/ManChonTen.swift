@@ -147,7 +147,7 @@ struct NenManSang<N: View>: View {
   }
 }
 
-/// Viên nhỏ nền trắng (pill) «Máy đang khoá» / «Ba Mẹ dùng máy».
+/// Viên nhỏ nền kem lõm (pill) «Máy đang khoá» / «Ba Mẹ dùng máy».
 struct VienNho: View {
   let chu: String
   var icon: String? = nil
@@ -197,7 +197,7 @@ struct ManChonTenView: View {
       VienNho(chu: "Máy đang khoá", icon: "locked")
       VStack(spacing: 16) {
         RobView(ten: "rob-goc", cao: 108)
-        Text("Ai đang dùng máy?").font(.clay(size: 30, weight: .bold))
+        Text("Ai đang dùng máy?").font(.clay(size: 30, weight: .bold, vai: .tieuDe))
         Text("Bấm vào tên của con nhé.").font(.clay(size: 16)).foregroundColor(ClayMau.chu3)
         HStack(spacing: 20) {
           ForEach(Array(m.dsBe.enumerated()), id: \.element.id) { i, b in
@@ -240,15 +240,15 @@ struct ManChonTenView: View {
     let thu = m.dsBe.firstIndex(of: b) ?? 0
     return VStack(spacing: 14) {
       AvatarBe(chu: ManMac.chuCai(m.dsBe)[b.id] ?? "?", thu: thu, chon: true)
-      Text(b.ten).font(.clay(size: 21, weight: .bold))
+      Text(b.ten).font(.clay(size: 21, weight: .bold, vai: .tieuDe))
       TimelineView(.periodic(from: .now, by: 0.5)) { ctx in
         let con = Int(ceil((m.choDen ?? .distantPast).timeIntervalSince(ctx.date)))
         if con > 0 {
           VStack(spacing: 10) {
-            Text("Sai 5 lần rồi").font(.clay(size: 22, weight: .bold))
+            Text("Sai 5 lần rồi").font(.clay(size: 22, weight: .bold, vai: .tieuDe))
             Text("Hít thở chậm nào. Chờ một chút rồi thử lại nhé.").font(.clay(size: 14)).foregroundColor(ClayMau.chu3)
             VStack(spacing: 0) {
-              Text(ManMac.dongHoCho(con)).font(.clay(size: 44, weight: .bold, design: .rounded)).monospacedDigit().foregroundColor(ClayMau.ngocInk)
+              Text(ManMac.dongHoCho(con)).font(.clay(size: 44, weight: .bold, vai: .so)).monospacedDigit().foregroundColor(ClayMau.ngocInk)
               Text("giây").font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
             }
             .frame(width: 150, height: 110).clayLom(bo: 24)
@@ -288,7 +288,7 @@ struct ManChonTenView: View {
           ForEach(0..<3, id: \.self) { c in
             if let k = hang[r][c] {
               Button { if k == "\u{8}" { m.pin.xoa() } else { m.bam(k) } } label: {
-                if k == "\u{8}" { Image(systemName: "delete.left.fill").font(.system(size: 18)) } else { Text(String(k)).font(.system(size: 20, weight: .bold)) }
+                if k == "\u{8}" { Image(systemName: "delete.left.fill").font(.system(size: 18)) } else { Text(String(k)).font(.clay(size: 20, weight: .bold)) }
               }
               .buttonStyle(NutClayStyle(kieu: .sang, bo: 14, cao: 46)).frame(width: 76)
               .accessibilityLabel(k == "\u{8}" ? "Xoá" : String(k))
@@ -310,7 +310,7 @@ struct ManChonTenView: View {
   private func quenPin(_ b: HoSoBe) -> some View {
     VStack(alignment: .leading, spacing: 14) {
       HStack { Spacer(); RobView(ten: "trong-loi", cao: 96); Spacer() }
-      Text("Quên PIN rồi à?").font(.clay(size: 26, weight: .bold)).frame(maxWidth: .infinity)
+      Text("Quên PIN rồi à?").font(.clay(size: 26, weight: .bold, vai: .tieuDe)).frame(maxWidth: .infinity)
       Text("Không sao! Nhờ Ba Mẹ đặt PIN mới nhé.").font(.clay(size: 15)).foregroundColor(ClayMau.chu3).frame(maxWidth: .infinity)
       VStack(alignment: .leading, spacing: 10) {
         buocSo(1, "Ba Mẹ mở AiiGrow trên điện thoại")
@@ -340,7 +340,7 @@ struct ManChonTenView: View {
   private var baMeMa: some View {
     VStack(spacing: 14) {
       RobView(ten: "chi", cao: 80)
-      Text("Ba Mẹ nhập mã").font(.clay(size: 30, weight: .bold))
+      Text("Ba Mẹ nhập mã").font(.clay(size: 30, weight: .bold, vai: .tieuDe))
       Text("Mở app AiiGrow của Ba Mẹ → Mã mở máy").font(.clay(size: 16)).foregroundColor(ClayMau.chu3)
       HStack(spacing: 9) {
         ForEach(0..<6, id: \.self) { i in

@@ -13,7 +13,7 @@ struct VienSao: View {
   var body: some View {
     HStack(spacing: 6) {
       HinhFluent(ten: "star", duPhong: "star.fill", co: co + 4)
-      Text(ChuSao.vien(sao)).font(.clay(size: co, weight: .bold)).monospacedDigit().lineLimit(1)
+      Text(ChuSao.vien(sao)).font(.clay(size: co, weight: .bold, vai: .so)).monospacedDigit().lineLimit(1)
     }
     .foregroundColor(sao < 0 ? ClayMau.canh : ClayMau.diemInk)
     .padding(.horizontal, co * 0.8).padding(.vertical, co * 0.35)
@@ -160,7 +160,7 @@ private struct DauTraLoi: View {
     HStack(spacing: 12) {
       VienClay(ten: icon, duPhong: tot ? "checkmark.seal.fill" : "hand.raised.fill", nen: tot ? ClayMau.ngocSoft : ClayMau.canhSoft, co: 52)
       VStack(alignment: .leading, spacing: 2) {
-        Chu(tieu, co: 20, dam: .bold, dong: 2)
+        Chu(tieu, co: 20, dam: .bold, dong: 2, vai: .tieuDe)
         Chu(phu, co: 14, mau: ClayMau.chu3, dong: 2)
       }
     }
@@ -253,7 +253,7 @@ struct SaoLaPhutView: View {
         VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.diemSoft, co: 52)
         VStack(alignment: .leading, spacing: 0) {
           Text("Con đang có").font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
-          Text(moHet ? ChuSao.vien(phutSao) : "\(ChuSao.vien(phutSao)) = \(ChuSao.so(phutSao)) phút chơi").font(.clay(size: 22, weight: .bold)).foregroundColor(ClayMau.diemInk)
+          Text(moHet ? ChuSao.vien(phutSao) : "\(ChuSao.vien(phutSao)) = \(ChuSao.so(phutSao)) phút chơi").font(.clay(size: 22, weight: .bold, vai: .tieuDe)).foregroundColor(ClayMau.diemInk)
         }
       }
       if moHet {
@@ -292,7 +292,7 @@ struct HetSaoView: View {
       HStack(spacing: 12) {
         VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.canhSoft, co: 52)
         VStack(alignment: .leading, spacing: 2) {
-          Chu(gioiHan?.tieuDe ?? "Hết sao rồi", co: 20, dam: .bold, dong: 1)
+          Chu(gioiHan?.tieuDe ?? "Hết sao rồi", co: 20, dam: .bold, dong: 1, vai: .tieuDe)
           Chu((tenApp.map { "\($0) dừng · " } ?? "") + (gioiHan?.phu ?? "con còn 0 sao"), co: 14, mau: ClayMau.chu3, dong: 2)
         }
       }

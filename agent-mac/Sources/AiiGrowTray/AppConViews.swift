@@ -28,11 +28,12 @@ struct Chu: View {
   var dam: Font.Weight = .regular
   var mau: Color = ClayMau.chu
   var dong: Int = 3
-  init(_ s: String, co: CGFloat = 14, dam: Font.Weight = .regular, mau: Color = ClayMau.chu, dong: Int = 3) {
-    self.s = s; self.co = co; self.dam = dam; self.mau = mau; self.dong = dong
+  var vai: VaiTro = .chu
+  init(_ s: String, co: CGFloat = 14, dam: Font.Weight = .regular, mau: Color = ClayMau.chu, dong: Int = 3, vai: VaiTro = .chu) {
+    self.s = s; self.co = co; self.dam = dam; self.mau = mau; self.dong = dong; self.vai = vai
   }
   var body: some View {
-    Text(s).font(.clay(size: co, weight: dam)).foregroundColor(mau)
+    Text(s).font(.clay(size: co, weight: dam, vai: vai)).foregroundColor(mau)
       .lineLimit(dong).truncationMode(.tail).fixedSize(horizontal: false, vertical: true)
       .frame(maxWidth: .infinity, alignment: .leading)
   }
@@ -110,7 +111,7 @@ struct AppConView: View {
       VStack(alignment: .leading, spacing: 6) {
         if let b = bannerKetNoi { banner(b) }
         if app.muc != .homNay {      // Hôm nay: tiêu đề là lời chào «Chào Bảo Anh!» (thiết kế 19)
-          Text(tieuDe).font(.clay(size: 26, weight: .bold)).lineLimit(1).truncationMode(.tail).padding(.top, 6)
+          Text(tieuDe).font(.clay(size: 26, weight: .bold, vai: .tieuDe)).lineLimit(1).truncationMode(.tail).padding(.top, 6)
         }
         if !app.thongBao.isEmpty {
           Chu(app.thongBao, co: 14, dam: .semibold, mau: app.thongBaoLoi ? ClayMau.loi : ClayMau.ngocInk, dong: 2)
@@ -249,7 +250,7 @@ struct AppConView: View {
 
   @ViewBuilder private var homNay: some View {
     VStack(alignment: .leading, spacing: 2) {
-      Chu(tenCon.isEmpty ? "Xin chào!" : "Chào \(tenCon)!", co: 28, dam: .bold, dong: 1)
+      Chu(tenCon.isEmpty ? "Xin chào!" : "Chào \(tenCon)!", co: 28, dam: .bold, dong: 1, vai: .tieuDe)
       Chu(ManMac.thuGio(Date()), co: 13, mau: ClayMau.chu3, dong: 1)
     }
     .vaoLanLuot(0)
@@ -265,7 +266,7 @@ struct AppConView: View {
             VienClay(ten: "memo", duPhong: "doc.text", nen: ClayMau.the, co: 48)
             VStack(alignment: .leading, spacing: 0) {
               Chu("Nhiệm vụ hôm nay", co: 14, mau: ClayMau.chu3, dong: 1)
-              Text("\(tq?.nhiemVu.count ?? 0) việc").font(.clay(size: 30, weight: .bold, design: .rounded)).lineLimit(1)
+              Text("\(tq?.nhiemVu.count ?? 0) việc").font(.clay(size: 30, weight: .bold, vai: .tieuDe)).lineLimit(1)
             }
           }
           Chu("\(nhom.choDuyet.count) chờ Ba Mẹ duyệt · \(nhom.chuaLam.count) chưa làm", co: 13, dam: .bold, mau: ClayMau.canh, dong: 1)
@@ -315,7 +316,7 @@ struct AppConView: View {
         HStack(spacing: 14) {
           VienClay(ten: "party_popper", duPhong: "sparkles", nen: ClayMau.ngocSoft, co: 52)
           VStack(alignment: .leading, spacing: 2) {
-            Text("Mở hết · không tính phút").font(.clay(size: 30, weight: .bold, design: .rounded)).foregroundColor(ClayMau.ngocInk).lineLimit(1)
+            Text("Mở hết · không tính phút").font(.clay(size: 30, weight: .bold, vai: .tieuDe)).foregroundColor(ClayMau.ngocInk).lineLimit(1)
             Chu("App, web mở tự do · chơi không trừ sao", co: 15, dam: .semibold, dong: 1)
           }
         }
@@ -331,7 +332,7 @@ struct AppConView: View {
             Chu(het ? "Hết sao rồi" : gh?.tieuDe ?? "Sao của con · cũng là phút chơi", co: 15, mau: het ? ClayMau.canh : ClayMau.chu3, dong: 1)
             if sao < 0 { VienSao(sao: sao, co: 30) }
             else {
-              Text(ChuSao.vien(sao)).font(.clay(size: 50, weight: .bold, design: .rounded)).monospacedDigit().foregroundColor(ClayMau.diemInk).lineLimit(1)
+              Text(ChuSao.vien(sao)).font(.clay(size: 50, weight: .bold, vai: .so)).monospacedDigit().foregroundColor(ClayMau.diemInk).lineLimit(1)
             }
           }
           Spacer(minLength: 8)
@@ -371,7 +372,7 @@ struct AppConView: View {
           VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.the, co: 48)
           VStack(alignment: .leading, spacing: 0) {
             Chu("Sao kiếm hôm nay", co: 14, mau: ClayMau.diemInk, dong: 1)
-            Text("+\(ChuSao.vien(ManMac.saoKiemHomNay(tq?.gan ?? [])))").font(.clay(size: 30, weight: .bold, design: .rounded)).foregroundColor(ClayMau.diemInk).lineLimit(1)
+            Text("+\(ChuSao.vien(ManMac.saoKiemHomNay(tq?.gan ?? [])))").font(.clay(size: 30, weight: .bold, vai: .so)).foregroundColor(ClayMau.diemInk).lineLimit(1)
           }
         }
         Chu("Không nợ Ba Mẹ" + (cho > 0 ? " · +\(ChuSao.so(cho)) sao chờ duyệt" : ""), co: 13, mau: ClayMau.diemInk, dong: 1)
@@ -539,7 +540,7 @@ struct AppConView: View {
         VStack(alignment: .leading, spacing: 2) {
           Chu(sao < 0 ? "Sao của con" : "Con đang có", co: 14, mau: sao < 0 ? ClayMau.canh : ClayMau.diemInk, dong: 1)
           if sao < 0 { VienSao(sao: sao, co: 24) }
-          else { Text(ChuSao.vien(sao)).font(.clay(size: 38, weight: .bold, design: .rounded)).foregroundColor(ClayMau.diemInk).lineLimit(1) }
+          else { Text(ChuSao.vien(sao)).font(.clay(size: 38, weight: .bold, vai: .so)).foregroundColor(ClayMau.diemInk).lineLimit(1) }
           if let n = s?.no, n > 0 {
             Chu("Đang nợ Ba Mẹ \(ChuSao.so(n)) sao", co: 14, dam: .bold, mau: ClayMau.canh, dong: 1)
             Chu("Sao nhiệm vụ trả nợ trước", co: 13, mau: ClayMau.canh, dong: 1)
@@ -715,7 +716,7 @@ struct DoiQuaView: View {
         HStack(spacing: 12) {
           VienClay(ten: "speech_balloon", duPhong: "paperplane.fill", nen: ClayMau.ngocSoft, co: 52)
           VStack(alignment: .leading, spacing: 2) {
-            Text(xin.choMang ? "Đã lưu lời xin" : "Đã gửi Ba Mẹ!").font(.clay(size: 21, weight: .bold))
+            Text(xin.choMang ? "Đã lưu lời xin" : "Đã gửi Ba Mẹ!").font(.clay(size: 21, weight: .bold, vai: .tieuDe))
             Text("Con xin vay \(ChuSao.so(n)) sao để đổi quà").font(.clay(size: 14)).foregroundColor(ClayMau.chu3)
           }
         }
@@ -727,7 +728,7 @@ struct DoiQuaView: View {
         HStack(spacing: 12) {
           VienClay(ten: "party_popper", duPhong: "checkmark.seal.fill", nen: ClayMau.ngocSoft, co: 52)
           VStack(alignment: .leading, spacing: 2) {
-            Text("Đã gửi Ba Mẹ!").font(.clay(size: 21, weight: .bold))
+            Text("Đã gửi Ba Mẹ!").font(.clay(size: 21, weight: .bold, vai: .tieuDe))
             Text("Chờ Ba Mẹ trao quà…").font(.clay(size: 14)).foregroundColor(ClayMau.chu3)
           }
         }

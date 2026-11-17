@@ -52,10 +52,9 @@ struct ThoatMacView: View {
     let chip = ThoatMac.chipBao(ok: m.baoOk, status: m.baoStatus)
     ZStack(alignment: .top) {
       ClayMau.nen
-      Color.clear.frame(height: 130)
       VStack(spacing: 0) {
         HinhFluent(ten: "shield", duPhong: "lock.shield.fill", co: 72).padding(.top, 14)
-        Text(ThoatMac.tieu).font(.clay(size: 21, weight: .bold)).padding(.top, 8)
+        Text(ThoatMac.tieu).font(.clay(size: 21, weight: .bold, vai: .tieuDe)).padding(.top, 8)
         Text(ThoatMac.phu).font(.clay(size: 13)).foregroundColor(ClayMau.chu3).padding(.top, 3)
         HStack(spacing: 8) {
           ForEach(0..<6, id: \.self) { i in
@@ -102,7 +101,7 @@ struct GioiLamView: View {
     VStack(spacing: 0) {
       RobView(ten: "sao", cao: 96)
       HStack(alignment: .firstTextBaseline, spacing: 6) {
-        Text("\(chuoi.soNgay)").font(.clay(size: 34, weight: .heavy)).foregroundColor(ClayMau.canh)
+        Text("\(chuoi.soNgay)").font(.clay(size: 34, weight: .heavy, vai: .so)).foregroundColor(ClayMau.canh)
         Text("ngày liền!").font(.clay(size: 19, weight: .bold))
       }
       Text(ChuoiView.phu(chuoi.soNgay)).font(.clay(size: 12.5)).foregroundColor(ClayMau.chu3).padding(.top, 2)

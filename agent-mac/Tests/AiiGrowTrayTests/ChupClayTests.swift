@@ -13,6 +13,7 @@ final class ChupClayTests: XCTestCase {
   }
 
   func chup<V: View>(_ v: V, _ ten: String, _ co: CGSize? = nil, dir: URL) {
+    ClayFont.dangKy()
     let host = NSHostingView(rootView: v)
     let kt = co ?? host.fittingSize
     let w = NSWindow(contentRect: NSRect(origin: NSPoint(x: -4000, y: -4000), size: kt), styleMask: [.borderless], backing: .buffered, defer: false)

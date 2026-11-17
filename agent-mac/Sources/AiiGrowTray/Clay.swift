@@ -55,36 +55,36 @@ enum ClayMau {
 
 // MARK: - Phông (Fraunces tiêu đề + Be Vietnam Pro chữ thường, OFL; thiếu thì về phông hệ thống)
 
+/// Vai của chữ: chu = Be Vietnam Pro, tieuDe = Fraunces SemiBold, so = số đếm/đồng hồ (phông hệ thống tròn — có tnum nên .monospacedDigit() giữ bề ngang cố định).
+enum VaiTro { case chu, tieuDe, so }
+
 enum ClayFont {
-  private static func thuMuc() -> [URL] {
-    var r: [URL] = []
-    if let u = Bundle.main.resourceURL { r.append(u.appendingPathComponent("Fonts")) }
-    for g in [Bundle.main.resourceURL, Bundle.main.bundleURL, Bundle.main.executableURL?.deletingLastPathComponent(),
-              Bundle(for: MocBundle.self).bundleURL.deletingLastPathComponent()].compactMap({ $0 }) {
-      let b = g.appendingPathComponent("AiiGrowMac_AiiGrowTray.bundle")
-      r.append(b.appendingPathComponent("Fonts")); r.append(b.appendingPathComponent("Contents/Resources/Fonts"))
-    }
-    return r
-  }
-  /// Đăng ký các tệp .ttf lúc khởi động (process scope). Gọi nhiều lần vô hại.
-  static func dangKy() {
-    for d in thuMuc() {
+  private static let moiLanDau: Void = {
+    for d in thuMucTaiNguyen("Fonts") {
+      var duoc = false
       for ten in ["Fraunces-SemiBold", "BeVietnamPro-Regular", "BeVietnamPro-Bold"] {
         let u = d.appendingPathComponent(ten + ".ttf")
-        if FileManager.default.fileExists(atPath: u.path) { CTFontManagerRegisterFontsForURL(u as CFURL, .process, nil) }
+        if FileManager.default.fileExists(atPath: u.path) { CTFontManagerRegisterFontsForURL(u as CFURL, .process, nil); duoc = true }
       }
+      if duoc { break }      // dừng ở thư mục đầu có phông
     }
-  }
-  static func co(_ size: CGFloat, _ weight: Font.Weight = .regular, _ design: Font.Design = .default) -> Font {
-    if design == .monospaced { return .system(size: size, weight: weight, design: design) }
-    if design == .rounded { return .custom("Fraunces-SemiBold", size: size) }     // số to / tiêu đề
-    if size >= 21 && weight != .regular && weight != .medium && weight != .light { return .custom("Fraunces-SemiBold", size: size) }   // tiêu đề
-    return .custom(weight == .regular || weight == .medium || weight == .light ? "BeVietnamPro-Regular" : "BeVietnamPro-Bold", size: size)
+  }()
+  /// Đăng ký các tệp .ttf (process scope) đúng một lần; gọi lại vô hại.
+  static func dangKy() { _ = moiLanDau }
+  static func co(_ size: CGFloat, _ weight: Font.Weight = .regular, _ design: Font.Design = .default, _ vai: VaiTro = .chu) -> Font {
+    if design == .monospaced { return .system(size: size, weight: weight, design: .monospaced) }
+    switch vai {
+    case .so: return .system(size: size, weight: weight, design: .rounded)
+    case .tieuDe: return .custom("Fraunces-SemiBold", size: size)
+    case .chu:
+      let dam: [Font.Weight] = [.semibold, .bold, .heavy, .black]    // ultraLight/thin/light/regular/medium ⇒ Regular
+      return .custom(dam.contains(weight) ? "BeVietnamPro-Bold" : "BeVietnamPro-Regular", size: size)
+    }
   }
 }
 
 extension Font {
-  static func clay(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default) -> Font { ClayFont.co(size, weight, design) }
+  static func clay(size: CGFloat, weight: Font.Weight = .regular, design: Font.Design = .default, vai: VaiTro = .chu) -> Font { ClayFont.co(size, weight, design, vai) }
 }
 
 // MARK: - Chuyển động (docs/clay/M-vui.js, M-anh-men.css)
@@ -108,6 +108,21 @@ enum ClayMotion {
 
 final class MocBundle {}
 
+/// Các thư mục có thể chứa tài nguyên `goc` (Fluent/Mascot/Fonts): gói phát hành `Contents/Resources/<goc>`,
+/// bundle SwiftPM cạnh tệp chạy (dev), cạnh .xctest (test). KHÔNG dùng `Bundle.module` (thiếu bundle là fatalError).
+func thuMucTaiNguyen(_ goc: String) -> [URL] {
+  var thuMuc: [URL] = []
+  if let r = Bundle.main.resourceURL { thuMuc.append(r.appendingPathComponent(goc)) }
+  let canh = [Bundle.main.resourceURL, Bundle.main.bundleURL, Bundle.main.executableURL?.deletingLastPathComponent(),
+              Bundle(for: MocBundle.self).bundleURL.deletingLastPathComponent()].compactMap { $0 }   // dòng cuối: lúc chạy test
+  for g in canh {
+    let b = g.appendingPathComponent("AiiGrowMac_AiiGrowTray.bundle")
+    thuMuc.append(b.appendingPathComponent(goc))
+    thuMuc.append(b.appendingPathComponent("Contents/Resources/" + goc))
+  }
+  return thuMuc
+}
+
 @MainActor
 enum FluentIcon {
   private static var cache: [String: NSImage?] = [:]     // nhớ cả lần không thấy (màn khoá vẽ lại mỗi giây)
@@ -118,15 +133,7 @@ enum FluentIcon {
   static func anh(_ ten: String, thuMuc goc: String = "Fluent") -> NSImage? {
     let khoa = goc + "/" + ten
     if let c = cache[khoa] { return c }    // c: NSImage? — nil đã nhớ thì không dò đĩa lại
-    var thuMuc: [URL] = []
-    if let r = Bundle.main.resourceURL { thuMuc.append(r.appendingPathComponent(goc)) }
-    let canh = [Bundle.main.resourceURL, Bundle.main.bundleURL, Bundle.main.executableURL?.deletingLastPathComponent(),
-                Bundle(for: MocBundle.self).bundleURL.deletingLastPathComponent()].compactMap { $0 }   // dòng cuối: lúc chạy test (.xctest nằm cạnh bundle tài nguyên)
-    for g in canh {
-      let b = g.appendingPathComponent("AiiGrowMac_AiiGrowTray.bundle")
-      thuMuc.append(b.appendingPathComponent(goc))
-      thuMuc.append(b.appendingPathComponent("Contents/Resources/" + goc))
-    }
+    let thuMuc = thuMucTaiNguyen(goc)
     for d in thuMuc {
       let u = d.appendingPathComponent(ten + ".png")
       if let img = NSImage(contentsOf: u) { cache[khoa] = .some(img); return img }
@@ -263,7 +270,6 @@ private struct NutClayThan<Nhan: View>: View {
   @State private var hienVet = false
   @State private var luot = 0                 // thế hệ vệt men: lần thả sau huỷ lượt dọn của lần trước
 
-  private var toi: Bool { kieu == .ngoc || kieu == .thanChi }
   private var mauChu: Color {
     switch kieu {
     case .ngoc: return ClayMau.chu                // vàng kim ⇒ chữ navy
