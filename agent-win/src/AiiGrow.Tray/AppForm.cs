@@ -222,7 +222,7 @@ internal sealed class AppForm : Form
             var dem = new Label
             {
                 AutoSize = false, Size = new Size(Px(28), Px(24)), TextAlign = ContentAlignment.MiddleCenter, Font = UI.F(9.5f, FontStyle.Bold),
-                ForeColor = Color.White, BackColor = Color.FromArgb(0xe2, 0x66, 0x0f), Visible = false, UseMnemonic = false,
+                ForeColor = Clay.Chu, BackColor = Clay.Kim, Visible = false, UseMnemonic = false,
             };
             dem.Location = new Point(b.Width - dem.Width - Px(18), (b.Height - VeNut.LeBong.Vertical - dem.Height) / 2);
             b.Controls.Add(dem);
@@ -282,7 +282,7 @@ internal sealed class AppForm : Form
             _ => "● " + _kn.Dong,
         };
         _pill.BackColor = _kn.DungIconKetNoi ? UI.GreenSoft : _kn.Loai == KetNoi.MatKetNoi ? Clay.CanhSoft : UI.ErrorSoft;
-        _pill.ForeColor = _kn.DungIconKetNoi ? UI.GreenDark : _kn.Loai == KetNoi.MatKetNoi ? Clay.Canh : UI.Error;
+        _pill.ForeColor = _kn.DungIconKetNoi ? UI.Success : _kn.Loai == KetNoi.MatKetNoi ? Clay.Canh : UI.Error;
         var ten = TenCon();
         _name.Text = string.IsNullOrWhiteSpace(ten) ? "AiiGrow" : ten;
         var chuDau = DangNhapView.ChuDau(string.IsNullOrWhiteSpace(ten) ? "?" : ten);
@@ -350,7 +350,7 @@ internal sealed class AppForm : Form
 
     private void Say(string s, bool error)
     {
-        _msg.ForeColor = error ? UI.Error : UI.Green;
+        _msg.ForeColor = error ? UI.Error : UI.Success;
         _msg.Text = s;
         _msg.Visible = s.Length > 0;
     }
@@ -616,9 +616,9 @@ internal sealed class AppForm : Form
         return dau;
     }
 
-    private static ChipClay Chip(string chu, Color nen, Color mau, float pt = 11f)
+    private static ChipClay Chip(string chu, Color nen, Color mau, float pt = 11f, bool kim = false)
     {
-        var c = new ChipClay(chu, nen, mau) { Font = UI.F(pt, FontStyle.Bold) };
+        var c = new ChipClay(chu, nen, mau, kim: kim) { Font = UI.F(pt, FontStyle.Bold) };
         c.Size = new Size(TextRenderer.MeasureText(chu, c.Font).Width + UI.Px(30), UI.Px(34));
         c.Margin = new Padding(0, 0, 0, UI.Px(8));
         return c;
@@ -641,7 +641,7 @@ internal sealed class AppForm : Form
         if (phut.HasValue || sao.HasValue)
         {
             if (SaoView.No(no) is { } dongNo) the.Controls.Add(T(dongNo, 12f, true, Clay.Canh, r));
-            if (!am) the.Controls.Add(Chip(SaoView.ConPhut(phut), Clay.DiemSoft, Clay.DiemInk));
+            if (!am) the.Controls.Add(Chip(SaoView.ConPhut(phut), Clay.DiemSoft, Clay.DiemInk, kim: true));
         }
         var matMang = _kn.Loai == KetNoi.MatKetNoi;
         if (phut is <= 0)

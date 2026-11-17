@@ -15,8 +15,8 @@ namespace AiiGrow.Tray;
 /// </summary>
 internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: nền đã nhớ của con phụ thuộc vị trí
 {
-    private readonly Label _gio = new() { AutoSize = true, ForeColor = Color.FromArgb(0xe6, 0xf2, 0xee), BackColor = Color.Transparent, Font = UI.F(21f, FontStyle.Bold) };
-    private readonly Label _chan = new() { AutoSize = true, ForeColor = Color.FromArgb(0xc6, 0xdc, 0xd6), BackColor = Color.Transparent, Font = UI.F(12f) };
+    private readonly Label _gio = new() { AutoSize = true, ForeColor = Clay.NenSang, BackColor = Color.Transparent, Font = UI.F(21f, FontStyle.Bold) };
+    private readonly Label _chan = new() { AutoSize = true, ForeColor = Clay.Tron(Clay.NenSang, Clay.Ngoc, 0.15f), BackColor = Color.Transparent, Font = UI.F(12f) };
     private readonly Label _count = new() { AutoSize = true, ForeColor = UI.Green, BackColor = Color.Transparent, Font = UI.F(78f, FontStyle.Bold) };   // 104px — đọc được từ xa
     private readonly Panel _center = new KhungGiua { Dock = DockStyle.Fill, BackColor = Color.Transparent, AutoScroll = true };
 
@@ -121,13 +121,13 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
             _nenBmp?.Dispose();
             _nenBmp = new Bitmap(r.Width, r.Height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
             using var bg = Graphics.FromImage(_nenBmp);
-            using (var lg = new LinearGradientBrush(r, Color.FromArgb(0x13, 0x4a, 0x41), Color.FromArgb(0x07, 0x24, 0x20), 90f))
+            using (var lg = new LinearGradientBrush(r, Clay.ThanChi, Color.FromArgb(0x07, 0x10, 0x1f), 90f))
                 bg.FillRectangle(lg, r);
             bg.SmoothingMode = SmoothingMode.AntiAlias;
             var q = new RectangleF(r.Width * 0.2f, r.Height * 0.05f, r.Width * 0.6f, r.Height * 0.75f);
             using var qp = new GraphicsPath();
             qp.AddEllipse(q);
-            using var pg = new PathGradientBrush(qp) { CenterColor = Color.FromArgb(70, 0x5f, 0xc9, 0xb2), SurroundColors = new[] { Color.FromArgb(0, 0x13, 0x4a, 0x41) } };
+            using var pg = new PathGradientBrush(qp) { CenterColor = Clay.A(34, Clay.Kim), SurroundColors = new[] { Clay.A(0, Clay.ThanChi) } };
             bg.FillEllipse(pg, q);
         }
         g.DrawImage(_nenBmp, new Rectangle(0, 0, r.Width, r.Height));   // theo ô pixel, không theo dpi của bitmap (màn 125–200%)
@@ -264,7 +264,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         }
         if (m.SaoDong != null)
         {
-            var sao = new ChipClay(m.SaoDong, Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao")) { Font = UI.F(13.5f, FontStyle.Bold) };
+            var sao = new ChipClay(m.SaoDong, Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao"), kim: true) { Font = UI.F(13.5f, FontStyle.Bold) };
             sao.Height = UI.Px(40);
             sao.Width = TextRenderer.MeasureText(m.SaoDong, sao.Font).Width + UI.Px(56);
             sao.Margin = new Padding((w - sao.Width) / 2, UI.Px(_gon ? 6 : 14), 0, 0);
@@ -295,7 +295,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         var hang = KhoiCon.Hang();
         foreach (var n in ds)
         {
-            var mau = n.Ma is ManKhoaView.BaMeDungMay or ManKhoaView.DoiBe ? Clay.Chu2 : Color.FromArgb(0x19, 0x65, 0x59);
+            var mau = n.Ma is ManKhoaView.BaMeDungMay or ManKhoaView.DoiBe ? Clay.Chu2 : Clay.KimInk;
             var lk = KhoiCon.LienKet(n.Chu, n.Icon, () => BamNut(n.Ma), _gon ? 11.5f : 15f, mau);
             lk.Margin = new Padding(UI.Px(20), 0, UI.Px(20), 0);
             hang.Controls.Add(lk);
@@ -349,7 +349,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
             the.Controls.Add(b);
         }
         if (m.Phu2 != null) the.Controls.Add(UI.Text(m.Phu2, 12.75f, false, UI.Muted, w));
-        the.Controls.Add(new Panel { Height = 1, Width = w, BackColor = Color.FromArgb(0xdc, 0xdb, 0xd6), Margin = new Padding(0, UI.Px(10), 0, UI.Px(16)) });
+        the.Controls.Add(new Panel { Height = 1, Width = w, BackColor = UI.Border, Margin = new Padding(0, UI.Px(10), 0, UI.Px(16)) });
         _code = new OfflineCodePanel(w, UI.Ink, UI.Muted, ManKhoaView.BaMeOCanh, ManKhoaView.DocMa, ManKhoaView.MoBangMa, 15f);
         the.Controls.Add(_code);
         var winL = UI.Text(ManKhoaView.WinL, 12f, false, UI.Muted, w); winL.Margin = new Padding(0, UI.Px(12), 0, 0);

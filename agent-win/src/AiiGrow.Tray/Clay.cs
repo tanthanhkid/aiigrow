@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Drawing.Drawing2D;
+using System.Drawing.Text;
 using System.Runtime.InteropServices;
 
 namespace AiiGrow.ClayUi;
@@ -17,29 +18,45 @@ internal static class Clay
 {
     private static Color H(int rgb) => Color.FromArgb(255, (rgb >> 16) & 0xff, (rgb >> 8) & 0xff, rgb & 0xff);
 
-    public static readonly Color Nen = H(0xecebe7);        // nền trang
-    public static readonly Color NenSang = H(0xf4f4f2);    // nền app (mau.ts)
-    public static readonly Color The = H(0xf7f6f3);        // khối/thẻ
-    public static readonly Color Lom = H(0xe9e8e3);        // lòng chảo ấn lõm
-    public static readonly Color Chu = H(0x0f1312);
-    public static readonly Color Chu2 = H(0x3a403d);
-    public static readonly Color Chu3 = H(0x565c59);       // chữ phụ: 5,7:1 trên Nen
-    public static readonly Color Ngoc = H(0x0f6b5c);       // chữ trắng trên Ngoc 6,4:1
-    public static readonly Color NgocDam = H(0x08463d);
-    public static readonly Color NgocInk = H(0x0a5246);
-    public static readonly Color NgocSoft = H(0xdcebe6);
-    public static readonly Color ThanChi = H(0x2e3533);
-    public static readonly Color ThanChiDam = H(0x121615);
-    public static readonly Color Diem = H(0xf5b70a);
-    public static readonly Color DiemInk = H(0x6e4300);     // trên DiemSoft 7,6:1
-    public static readonly Color DiemSoft = H(0xfbecc0);
+    // Phong cách E «Ánh kim» (17/11): neumorphism mỏng trên nền kem — mặt thẻ CÙNG màu nền, nổi bằng bóng đôi (tối lệch xuống-phải, sáng lệch lên-trái);
+    // ô lõm / đang chọn dùng bóng trong; nút chính + số sao đúc vàng kim loại (gradient 135°) chữ navy; khối nổi bật nền navy.
+    // Tên token giữ như cũ (Ngoc = màu «chính», nay là navy) để chỗ gọi không đổi. Tương phản WCAG (đo bằng script, chữ thường ≥ 4,5:1):
+    //   Chu/Nen 14,4 · Chu3/Nen 5,8 · Chu3/Lom 5,4 · Chu3/NgocSoft 5,1 · NgocInk/NgocSoft 12,6 · KimInk/Nen 5,0 · DiemInk/Nen 6,4 · DiemInk/DiemSoft 5,6
+    //   Chu trên KimDam (điểm tối nhất của gradient nút) 6,9 · Kim/navy 11,4 · NenSang/navy 15,3 · Canh/Nen 6,1 · Loi/Nen 5,2 · Xanh/Nen 5,2 · Xanh/NgocSoft 4,6.
+    public static readonly Color Nen = H(0xece4d9);        // nền kem
+    public static readonly Color NenSang = H(0xf2ebe3);    // kem sáng (chữ trên navy)
+    public static readonly Color The = H(0xece4d9);        // mặt thẻ = nền, nổi bằng bóng đôi
+    public static readonly Color Lom = H(0xe5dccf);        // ô lõm (bóng trong)
+    public static readonly Color Chu = H(0x0a1629);        // navy
+    public static readonly Color Chu2 = H(0x3b352e);
+    public static readonly Color Chu3 = H(0x5f554b);       // chữ phụ: 5,8:1 trên Nen (mẫu #7c7166 chỉ 3,8:1)
+    // Token TRÙNG GIÁ TRỊ là alias tường minh (đổi một chỗ, không so màu để nhận kiểu — dùng cờ/kiểu: ClayButton.LaChinh, ChipClay.Kim):
+    public static Color Ngoc => Chu;                       // «chính» = navy (chữ/viền/chấm); nút «chính» vàng kim do cờ ClayButton.LaChinh, không do màu này
+    public static readonly Color NgocDam = H(0x050c18);
+    public static Color NgocInk => Chu;                    // chữ nhấn trên nền sáng = navy
+    public static readonly Color NgocSoft = H(0xe2d6c4);   // ô chọn / chip nhấn: kem sẫm
+    public static readonly Color ThanChi = H(0x1d2f52);
+    public static Color ThanChiDam => Chu;                 // điểm tối của gradient navy
+    public static Color Diem => Kim;                       // vàng «điểm» = vàng kim
+    public static readonly Color DiemInk = H(0x6b4a12);     // vàng sẫm: 6,4:1 trên Nen, 5,6:1 trên DiemSoft
+    public static Color DiemSoft => KimNhat;               // nền chip sao = vàng kim nhạt (vẽ gradient nhạt, ChipClay.Kim)
     public static readonly Color Canh = H(0x8a3c0c);
     public static readonly Color CanhSoft = H(0xf9e7d2);
     public static readonly Color Loi = H(0xb42318);
     public static readonly Color LoiSoft = H(0xfef0ee);
     public static readonly Color LamSoft = H(0xe1e9fb);
     public static readonly Color TimSoft = H(0xe7e5f8);
-    public static readonly Color Bong = H(0x1c201e);        // màu bóng đổ
+    public static readonly Color Bong = H(0x786246);        // bóng tối rgba(120,98,70,.28)
+    public static readonly Color BongSang = H(0xfffbf5);    // bóng sáng lệch lên-trái
+    // vàng kim loại: linear-gradient(135deg, KimSang 0, Kim 38%, KimDam 72%, KimNhat 100%)
+    public static readonly Color KimSang = H(0xfbe7b0);
+    public static readonly Color Kim = H(0xf4c76a);
+    public static readonly Color KimDam = H(0xc9973b);
+    public static readonly Color KimNhat = H(0xf2d48c);
+    public static readonly Color KimVien = H(0xd9ae57);
+    public static readonly Color KimInk = H(0x7a5a1f);      // liên kết vàng sẫm: 5,0:1 trên Nen
+    public static readonly Color Xanh = H(0x2d6a14);        // xanh lục «thành công / đã kết nối» tông E: 5,2:1 trên Nen, 4,6:1 trên NgocSoft (≥4,5 chữ thường)
+    public static readonly Color Cam = H(0xe8890c);         // chấm «đang chờ», vành đếm giây
 
     // ---------------------------------------------------------------- DPI, chuyển động
 
@@ -125,8 +142,8 @@ internal static class Clay
         return p;
     }
 
-    /// <summary>Bóng mềm: nhiều lớp alpha nở dần (giả blur) lệch xuống <paramref name="lechY"/>.</summary>
-    public static void BongMem(Graphics g, RectangleF r, float k, float lechY, float mo, float co, int alpha, Color? mau = null)
+    /// <summary>Bóng mềm: nhiều lớp alpha nở dần (giả blur) lệch xuống <paramref name="lechY"/> (và sang phải <paramref name="lechX"/>).</summary>
+    public static void BongMem(Graphics g, RectangleF r, float k, float lechY, float mo, float co, int alpha, Color? mau = null, float lechX = 0)
     {
         const int n = 7;
         var c = mau ?? Bong;
@@ -135,7 +152,7 @@ internal static class Clay
         {
             var no = co + mo * (i + 1) / n;
             var rr = RectangleF.Inflate(r, no, no);
-            rr.Offset(0, lechY);
+            rr.Offset(lechX, lechY);
             if (rr.Width <= 1 || rr.Height <= 1) continue;
             using var p = Bo(rr, k + no);
             using var b = new SolidBrush(A(lop, c));
@@ -143,96 +160,110 @@ internal static class Clay
         }
     }
 
-    /// <summary>Bóng kép cỡ nút (lề bóng nhỏ ~6px).</summary>
-    public static void BongNut(Graphics g, RectangleF r, float k, Color? mau = null)
+    /// <summary>Bóng đôi cỡ nút (lề bóng VeNut.LeBong: trái/phải 3, trên 1, dưới 6 — mọi lớp bóng nằm TRỌN trong lề, không bị cắt cạnh thẳng):
+    /// tối lệch xuống-phải, sáng lệch lên-trái (bóng sáng thu nhỏ vì lề trên chỉ 1).
+    /// <paramref name="mau"/> ≠ null (nút tối) hoặc <paramref name="nenToi"/> (nút nằm trên nền navy) ⇒ chỉ bóng tối, không bóng sáng.</summary>
+    public static void BongNut(Graphics g, RectangleF r, float k, Color? mau = null, bool nenToi = false)
     {
-        BongMem(g, r, k, S(3.5f), S(4f), S(-1.5f), 90, mau);
-        BongMem(g, r, k, S(1.2f), S(1.5f), S(-0.5f), 45, mau);
+        if (mau == null && !nenToi) BongMem(g, r, k, S(-0.2f), S(1.5f), S(-0.7f), 230, BongSang, S(-1.8f));   // ra trên 1,0 · trái 2,6
+        var toi = nenToi ? Color.Black : mau ?? Bong;
+        BongMem(g, r, k, S(3f), S(4f), S(-1.5f), nenToi ? 120 : 110, toi, S(0.4f));   // ra phải 2,9 · dưới 5,5
+        BongMem(g, r, k, S(1.2f), S(1.5f), S(-0.5f), nenToi ? 50 : 40, toi, S(0.6f));
     }
 
-    /// <summary>Bóng kép cỡ thẻ (lề bóng ~12px dưới).</summary>
-    public static void BongThe(Graphics g, RectangleF r, float k)
+    /// <summary>Bóng đôi cỡ thẻ (lề bóng VeThe.LeBong: trái/phải 6, trên 3, dưới 12; mọi lớp nằm TRỌN trong lề) — thu nhỏ «8px 8px 16px tối · −8px −8px 16px sáng» cho vừa lề.
+    /// <paramref name="nenToi"/> = thẻ nằm trên nền navy ⇒ bỏ bóng sáng, bóng tối đen hơn.</summary>
+    public static void BongThe(Graphics g, RectangleF r, float k, bool nenToi = false)
     {
-        BongMem(g, r, k, S(7f), S(9f), S(-5f), 80);
-        BongMem(g, r, k, S(2.5f), S(3f), S(-2f), 50);
+        if (!nenToi) BongMem(g, r, k, S(-1f), S(3f), S(-1f), 255, BongSang, S(-2f));   // ra trên 3,0 · trái 4,0
+        var toi = nenToi ? Color.Black : Bong;
+        BongMem(g, r, k, S(5.5f), S(8f), S(-4f), nenToi ? 130 : 120, toi, S(1.8f));   // ra phải 5,8 · dưới 9,5
+        BongMem(g, r, k, S(2f), S(3f), S(-1.5f), nenToi ? 60 : 45, toi, S(1f));
     }
 
-    /// <summary>Khối sáng (đất sét sứ trắng): nền + men trắng phía trên, tối nhẹ phía dưới, dải sáng cong sát mép trên, viền sáng trong.</summary>
-    public static void KhoiSang(Graphics g, RectangleF r, float k, Color nen, bool daiCong = true)
+    /// <summary>Mặt nổi (neumorphism mỏng): nền phẳng, ánh sáng rất nhẹ ở góc trên-trái, tối nhẹ góc dưới-phải, viền sáng mảnh mép trên.
+    /// </summary>
+    public static void KhoiSang(Graphics g, RectangleF r, float k, Color nen)
     {
         using var p = Bo(r, k);
         using (var b = new SolidBrush(nen)) g.FillPath(b, p);
         var st = g.Save();
         g.SetClip(p, CombineMode.Intersect);
-        using (var lg = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, r.Height + 2), Color.White, Color.White, 90f))
+        using (var lg = new LinearGradientBrush(RectangleF.Inflate(r, 1, 1), Color.White, Color.White, 45f, true))
         {
             lg.InterpolationColors = new ColorBlend
             {
-                Colors = new[] { A(235, Color.White), A(0, Color.White), A(0, Bong), A(16, Bong), A(30, Bong) },
-                Positions = new[] { 0f, 0.3f, 0.55f, 0.85f, 1f },
+                Colors = new[] { A(90, BongSang), A(0, BongSang), A(0, Bong), A(18, Bong) },
+                Positions = new[] { 0f, 0.4f, 0.65f, 1f },
             };
-            g.FillRectangle(lg, r.X, r.Y - 1, r.Width, r.Height + 2);
+            g.FillRectangle(lg, RectangleF.Inflate(r, 1, 1));
         }
-        if (daiCong && r.Width > S(40))
-        {
-            // dải men trắng cong sát mép trên (radial-gradient 46% 18px at 50% 3px)
-            var cao = Math.Min(S(20), r.Height * 0.35f);
-            var e = new RectangleF(r.X + r.Width * 0.08f, r.Y - cao * 0.55f, r.Width * 0.84f, cao * 1.5f);
-            using var ep = new GraphicsPath();
-            ep.AddEllipse(e);
-            using var pg = new PathGradientBrush(ep)
-            {
-                CenterColor = A(230, Color.White),
-                SurroundColors = new[] { A(0, Color.White) },
-                FocusScales = new PointF(0.55f, 0.3f),
-            };
-            g.FillEllipse(pg, e);
-        }
-        VienTrong(g, r, k, A(255, Color.White), A(26, Bong));
+        VienTrong(g, r, k, A(200, BongSang), A(22, Bong));
         g.Restore(st);
     }
 
-    /// <summary>Khối tối/màu (kẹo bọc đường): gradient đậm dần + mảng men trắng nửa trên cắt sắc + ánh dưới + viền sáng trong.</summary>
+    /// <summary>Khối tối (navy «hộp trang sức»): gradient sáng nhẹ trên-trái → nền, viền trong vàng mảnh.</summary>
     public static void KhoiBong(Graphics g, RectangleF r, float k, Color nen)
     {
         using var p = Bo(r, k);
-        var tren = Tron(nen, Color.White, 0.07f);
-        var duoi = Tron(nen, Color.Black, 0.42f);
-        using (var lg = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, r.Height + 2), tren, duoi, 90f))
+        var tren = Tron(nen, H(0x1d2f52), 0.85f);
+        if (DoSang(tren) < DoSang(nen)) tren = Tron(nen, Color.White, 0.1f);
+        using (var lg = new LinearGradientBrush(RectangleF.Inflate(r, 1, 1), tren, nen, 45f, true))
             g.FillPath(lg, p);
         var st = g.Save();
         g.SetClip(p, CombineMode.Intersect);
-        // ánh phản chiếu đáy (radial 60% 40% at 50% 105%)
-        var e = new RectangleF(r.X + r.Width * 0.1f, r.Bottom - r.Height * 0.45f, r.Width * 0.8f, r.Height * 0.9f);
-        using (var ep = new GraphicsPath())
-        {
-            ep.AddEllipse(e);
-            using var pg = new PathGradientBrush(ep) { CenterColor = A(85, Tron(nen, Color.White, 0.55f)), SurroundColors = new[] { A(0, nen) } };
-            g.FillEllipse(pg, e);
-        }
-        // mảng men trắng nửa trên, cắt sắc ở 26%
-        var cao = r.Height * 0.26f;
-        using (var mg = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, cao + 2), A(84, Color.White), A(22, Color.White), 90f))
-            g.FillRectangle(mg, r.X, r.Y, r.Width, cao);
-        VienTrong(g, r, k, A(120, Color.White), A(95, Color.Black));
+        using (var pen = new Pen(A(90, Kim), S(1.2f)))
+        using (var pp = Bo(RectangleF.Inflate(r, -S(1f), -S(1f)), Math.Max(1, k - S(1f))))
+            g.DrawPath(pen, pp);
         g.Restore(st);
     }
 
-    /// <summary>Lòng chảo ấn lõm (lomIn): nền lõm, bóng trong ở mép trên, viền sáng ở đáy.</summary>
+    /// <summary>Vàng kim loại (nút chính, số sao): gradient 135° KimSang → Kim → KimDam → KimNhat, gờ sáng trắng mảnh mép trên.</summary>
+    public static void KhoiKim(Graphics g, RectangleF r, float k, bool tat = false)
+    {
+        using var p = Bo(r, k);
+        ToKim(g, p, r, tat: tat);
+        if (tat) return;   // nút tắt: thân vàng nhạt khử bão hoà, không gờ sáng
+        var st = g.Save();
+        g.SetClip(p, CombineMode.Intersect);
+        VienTrong(g, r, k, A(155, Color.White), A(40, KimDam));
+        g.Restore(st);
+    }
+
+    /// <summary>Tô <paramref name="p"/> bằng gradient vàng kim 135° theo khung <paramref name="r"/>. <paramref name="nhat"/> = bản nhạt (chip có chữ vàng sẫm: bỏ điểm KimDam).</summary>
+    public static void ToKim(Graphics g, GraphicsPath p, RectangleF r, bool nhat = false, bool tat = false)
+    {
+        Color M(Color c) => tat ? Tron(c, Nen, 0.55f) : c;   // tắt: trộn 55% với nền kem ⇒ vàng nhạt, nhìn ra ngay là không bấm được
+        var rr = RectangleF.Inflate(r, 1, 1);
+        using var lg = new LinearGradientBrush(rr, M(KimSang), M(KimNhat), 45f, true)
+        {
+            InterpolationColors = new ColorBlend
+            {
+                Colors = nhat ? new[] { M(KimSang), M(Kim), M(KimNhat) } : new[] { M(KimSang), M(Kim), M(KimDam), M(KimNhat) },
+                Positions = nhat ? new[] { 0f, 0.55f, 1f } : new[] { 0f, 0.38f, 0.72f, 1f },
+            },
+        };
+        g.FillPath(lg, p);
+    }
+
+    /// <summary>Ô lõm (bóng trong): tối ở mép trên + mép trái, sáng ở mép dưới.</summary>
     public static void KhoiLom(Graphics g, RectangleF r, float k, Color nen)
     {
         using var p = Bo(r, k);
         using (var b = new SolidBrush(nen)) g.FillPath(b, p);
         var st = g.Save();
         g.SetClip(p, CombineMode.Intersect);
-        var cao = Math.Min(S(10), r.Height / 2);
-        using (var lg = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, cao + 2), A(40, Bong), A(0, Bong), 90f))
+        var cao = Math.Min(S(9), r.Height / 2);
+        using (var lg = new LinearGradientBrush(new RectangleF(r.X, r.Y - 1, r.Width, cao + 2), A(70, Bong), A(0, Bong), 90f))
             g.FillRectangle(lg, r.X, r.Y, r.Width, cao);
-        using (var pen = new Pen(A(240, Color.White), S(1.5f)))
+        var rong = Math.Min(S(7), r.Width / 2);
+        using (var lg = new LinearGradientBrush(new RectangleF(r.X - 1, r.Y, rong + 2, r.Height), A(45, Bong), A(0, Bong), 0f))
+            g.FillRectangle(lg, r.X, r.Y, rong, r.Height);
+        using (var pen = new Pen(A(240, BongSang), S(1.6f)))
         {
             var rr = r; rr.Offset(0, -S(1.2f));
             using var pp = Bo(rr, k);
-            g.SetClip(new RectangleF(r.X, r.Y + r.Height * 0.6f, r.Width, r.Height), CombineMode.Intersect);
+            g.SetClip(new RectangleF(r.X, r.Y + r.Height * 0.55f, r.Width, r.Height), CombineMode.Intersect);
             g.DrawPath(pen, pp);
         }
         g.Restore(st);
@@ -242,18 +273,18 @@ internal static class Clay
     private static void VienTrong(Graphics g, RectangleF r, float k, Color sang, Color toi)
     {
         var st = g.Save();
-        using (var pen = new Pen(sang, S(1.6f)))
+        using (var pen = new Pen(sang, S(1.4f)))
         {
-            var rr = r; rr.Offset(0, S(1.1f));
+            var rr = r; rr.Offset(0, S(1f));
             using var pp = Bo(rr, k);
             g.SetClip(new RectangleF(r.X, r.Y, r.Width, r.Height * 0.45f), CombineMode.Intersect);
             g.DrawPath(pen, pp);
         }
         g.Restore(st);
         st = g.Save();
-        using (var pen = new Pen(toi, S(2.2f)))
+        using (var pen = new Pen(toi, S(1.6f)))
         {
-            var rr = r; rr.Offset(0, -S(1.4f));
+            var rr = r; rr.Offset(0, -S(1.2f));
             using var pp = Bo(rr, k);
             g.SetClip(new RectangleF(r.X, r.Y + r.Height * 0.6f, r.Width, r.Height), CombineMode.Intersect);
             g.DrawPath(pen, pp);
@@ -288,20 +319,20 @@ internal static class Clay
         g.Restore(st);
     }
 
-    /// <summary>Viên clay tròn chứa icon (bt): nền soft, men trắng trên, bóng nhỏ.</summary>
+    /// <summary>Viên tròn chứa icon: mặt kem nổi bằng bóng đôi, ánh sáng nhẹ trên-trái.</summary>
     public static void VienTron(Graphics g, RectangleF r, Color nen, Image? hinh, float tiLeHinh = 0.62f, bool bong = true)
     {
         if (bong) BongNut(g, r, r.Width / 2);
         using (var b = new SolidBrush(nen)) g.FillEllipse(b, r);
-        using (var ep = new GraphicsPath())
+        using (var lg = new LinearGradientBrush(RectangleF.Inflate(r, 1, 1), Color.White, Color.White, 45f, true)
         {
-            var e = new RectangleF(r.X + r.Width * 0.18f, r.Y + r.Height * 0.02f, r.Width * 0.64f, r.Height * 0.5f);
-            ep.AddEllipse(e);
-            using var pg = new PathGradientBrush(ep) { CenterColor = A(235, Color.White), SurroundColors = new[] { A(0, Color.White) } };
-            g.FillEllipse(pg, e);
-        }
-        using (var pen = new Pen(A(28, Bong), S(1.5f)))
-            g.DrawArc(pen, RectangleF.Inflate(r, -S(1f), -S(1f)), 20, 140);
+            InterpolationColors = new ColorBlend
+            {
+                Colors = new[] { A(110, BongSang), A(0, BongSang), A(0, Bong), A(22, Bong) },
+                Positions = new[] { 0f, 0.45f, 0.6f, 1f },
+            },
+        })
+            g.FillEllipse(lg, r);
         if (hinh != null) VeHinh(g, r, hinh, tiLeHinh);
     }
 
@@ -363,6 +394,14 @@ internal static class Clay
             else if (p.BackColor.A == 255) { using var b = new SolidBrush(p.BackColor); g.FillRectangle(b, p.ClientRectangle); }
             g.Restore(st);
         }
+    }
+
+    /// <summary>Nền đặc gần nhất phía sau <paramref name="c"/> là màu tối (màn khoá navy) ⇒ bóng đôi bỏ lớp sáng, bóng tối đen hơn.</summary>
+    public static bool NenSauToi(Control c)
+    {
+        for (var p = c.Parent; p != null; p = p.Parent)
+            if (p is Form || p.BackColor.A == 255) return LaToi(p.BackColor);
+        return false;
     }
 }
 
@@ -564,7 +603,7 @@ internal static class VeNut
 {
     public static Padding LeBong => new(Clay.Si(3), Clay.Si(1), Clay.Si(3), Clay.Si(6));
 
-    public static void Ve(ButtonBase b, PaintEventArgs e, NhanNay nn, bool hover, KieuClay kieu, float bo, bool focusCue)
+    public static void Ve(ButtonBase b, PaintEventArgs e, NhanNay nn, bool hover, KieuClay kieu, float bo, bool focusCue, bool laChinh = false)
     {
         var g = e.Graphics;
         Clay.ChatLuong(g);
@@ -573,7 +612,11 @@ internal static class VeNut
         if (than.Width < 4 || than.Height < 4) return;
         var k = bo > 0 ? bo : Math.Min(Clay.S(20), than.Height / 2);
         var nen = b.BackColor.A == 0 ? Clay.The : b.BackColor;
-        var toi = Clay.LaToi(nen);
+        // E «Ánh kim»: nút «chính» (cờ ClayButton.LaChinh, UI.Btn kiểu chính đặt) đúc vàng kim, chữ navy — CHỈ khi thật sự vẽ thân vàng (kiểu TuDong);
+        // nút navy tối bình thường (không cờ) vẫn là khối navy, Phang/Lom giữ ForeColor của chỗ gọi.
+        var kim = laChinh && kieu == KieuClay.TuDong;
+        var toi = !kim && Clay.LaToi(nen);
+        var nenToi = Clay.NenSauToi(b);
 
         var st = g.Save();
         var cx = than.X + than.Width / 2; var cy = than.Y + than.Height / 2;
@@ -585,18 +628,20 @@ internal static class VeNut
         {
             if (hover || nn.DangNhan)
                 using (var p = Clay.Bo(than, k))
-                using (var br = new SolidBrush(Clay.A(nn.DangNhan ? 120 : 80, Color.White)))
+                using (var br = new SolidBrush(Clay.A(nn.DangNhan ? 140 : 100, Clay.BongSang)))
                     g.FillPath(br, p);
         }
         else if (kieu == KieuClay.Lom)
             Clay.KhoiLom(g, than, k, nen);
         else
         {
-            Clay.BongNut(g, than, k, toi ? Clay.Tron(nen, Color.Black, 0.5f) : null);
-            if (toi) Clay.KhoiBong(g, than, k, nen); else Clay.KhoiSang(g, than, k, nen, than.Width > Clay.S(80));
+            Clay.BongNut(g, than, k, toi ? Clay.Tron(nen, Color.Black, 0.5f) : null, nenToi);
+            if (kim) Clay.KhoiKim(g, than, k, !b.Enabled);
+            else if (toi) Clay.KhoiBong(g, than, k, nen);
+            else Clay.KhoiSang(g, than, k, nen);
             if (hover && b.Enabled)
                 using (var p = Clay.Bo(than, k))
-                using (var br = new SolidBrush(Clay.A(toi ? 22 : 60, Color.White)))
+                using (var br = new SolidBrush(Clay.A(toi ? 22 : kim ? 45 : 60, Color.White)))
                     g.FillPath(br, p);
             if (nn.DangNhan && Clay.GiamChuyenDong())
                 using (var p = Clay.Bo(than, k))
@@ -606,8 +651,10 @@ internal static class VeNut
         }
 
         // chữ + icon
-        var mauChu = b.ForeColor;
-        if (!b.Enabled) mauChu = Clay.Tron(mauChu, nen, 0.45f);
+        var mauChu = kim ? Clay.Chu : b.ForeColor;
+        if (!b.Enabled)
+            mauChu = kim ? Clay.Tron(Clay.Chu, Clay.Tron(Clay.Kim, Clay.Nen, 0.55f), 0.5f)   // chữ navy mờ trên thân vàng nhạt
+                         : Clay.Tron(mauChu, nen, 0.45f);
         var noi = new RectangleF(than.X + b.Padding.Left + Clay.S(8), than.Y, than.Width - b.Padding.Horizontal - Clay.S(16), than.Height);
         var hinh = b.Image;
         var coHinh = Math.Min(Clay.S(24), than.Height * 0.56f);
@@ -664,6 +711,11 @@ internal class ClayButton : Button
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public KieuClay Kieu { get => _kieu; set { _kieu = value; Invalidate(); } }
 
+    /// <summary>Nút «chính» (UI.Btn kiểu chính): thân vàng kim, chữ navy. Cờ tường minh — không suy từ BackColor (navy trùng nhiều token).</summary>
+    [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public bool LaChinh { get => _laChinh; set { _laChinh = value; Invalidate(); } }
+    private bool _laChinh;
+
     /// <summary>Bán kính bo (px); 0 = tự (≈20, tối đa nửa chiều cao).</summary>
     [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public float BoGoc { get; set; }
@@ -696,7 +748,7 @@ internal class ClayButton : Button
         // ButtonBase đặt ControlStyles.Opaque ⇒ WinForms KHÔNG gọi OnPaintBackground; bộ đệm đôi dùng chung còn ảnh của control vẽ trước
         // (100%: chữ ma của nút khác quanh góc bo; 150%: đen). Gốc lỗi 25/10 ⇒ tự vẽ nền ngay đầu OnPaint.
         _nen.Ve(e);
-        VeNut.Ve(this, e, _nn, _hover, _kieu, BoGoc, ShowFocusCues);
+        VeNut.Ve(this, e, _nn, _hover, _kieu, BoGoc, ShowFocusCues, _laChinh);
     }
 
     protected override void Dispose(bool disposing)
@@ -771,8 +823,8 @@ internal static class VeThe
         var k = Math.Min(bo > 0 ? bo : Clay.S(28), Math.Min(than.Width, than.Height) / 2);
         var nen = c.BackColor.A == 0 ? Clay.The : c.BackColor;
         if (lom) { Clay.KhoiLom(g, than, k, nen); return; }
-        Clay.BongThe(g, than, k);
-        Clay.KhoiSang(g, than, k, nen);
+        Clay.BongThe(g, than, k, Clay.NenSauToi(c));
+        if (Clay.LaToi(nen)) Clay.KhoiBong(g, than, k, nen); else Clay.KhoiSang(g, than, k, nen);
     }
 }
 
@@ -989,7 +1041,7 @@ internal sealed class ClayMenuRenderer : ToolStripProfessionalRenderer
         public override Color ImageMarginGradientEnd => Clay.The;
         public override Color MenuBorder => Clay.Tron(Clay.Lom, Clay.Bong, 0.12f);
         public override Color SeparatorDark => Clay.Lom;
-        public override Color SeparatorLight => Color.White;
+        public override Color SeparatorLight => Clay.BongSang;
         public override Color MenuItemSelected => Clay.NgocSoft;
         public override Color MenuItemBorder => Clay.NgocSoft;
     }
@@ -1035,5 +1087,96 @@ internal static class ONhapClay
         o.Leave += (_, _) => Ve();
         o.EnabledChanged += (_, _) => Ve();
         return vo;
+    }
+}
+
+/// <summary>
+/// Phông chữ phong cách E «Ánh kim»: Be Vietnam Pro (chữ thường + đậm) và Fraunces SemiBold (tiêu đề, số to) — OFL, nhúng trong exe
+/// (Assets/fonts, LogicalName «font.&lt;tệp&gt;»). Nạp MỘT lần cho cả GDI+ (PrivateFontCollection: DrawString của nút Clay) lẫn GDI
+/// (AddFontMemResourceEx: Label / TextRenderer tìm phông theo tên). Thiếu tài nguyên (bộ cài không nhúng) hoặc lỗi ⇒ Segoe UI như trước.
+/// Cỡ chữ nhân hệ số để bề ngang dòng chữ xấp xỉ Segoe UI cùng cỡ (đo bằng fontTools trên câu tiếng Việt mẫu) — bố cục, chỗ rớt dòng giữ như cũ.
+/// </summary>
+internal static class PhongChu
+{
+    /// <summary>Chữ đậm từ cỡ này trở lên (tiêu đề, số to, chữ cái avatar) dùng Fraunces SemiBold.</summary>
+    public const float NguongTieuDe = 15f;
+    private const float HeSoThan = 0.92f, HeSoTieuDe = 0.95f;
+
+    private static readonly object _khoa = new();
+    private static bool _daNap;
+    private static PrivateFontCollection? _bo;   // giữ sống suốt tiến trình (Font tham chiếu FontFamily của nó)
+    private static FontFamily? _than, _tieuDe;
+    private static FontStyle _kieuTieuDe = FontStyle.Regular;
+    private static readonly System.Text.StringBuilder _moTa = new();
+
+    /// <summary>Phông đã nạp (họ · kiểu có) và lỗi nếu có — để công cụ chụp màn ghi log.</summary>
+    public static string MoTa { get { Nap(); return _moTa.Length == 0 ? "không nạp phông nào (dùng Segoe UI)" : _moTa.ToString(); } }
+
+    [DllImport("gdi32.dll")]
+    private static extern IntPtr AddFontMemResourceEx(IntPtr pbFont, uint cbFont, IntPtr pdv, out uint pcFonts);
+
+    private static void Nap()
+    {
+        if (Volatile.Read(ref _daNap)) return;
+        lock (_khoa)
+        {
+            if (_daNap) return;
+            NapKhoa();
+            Volatile.Write(ref _daNap, true);   // chỉ báo «đã nạp» SAU khi _than/_tieuDe/_moTa đã đủ: luồng khác không thấy trạng thái nửa vời
+        }
+    }
+
+    private static void NapKhoa()
+    {
+        try
+        {
+            var bo = new PrivateFontCollection();
+            var asm = typeof(PhongChu).Assembly;
+            foreach (var tep in new[] { "BeVietnamPro-Regular.ttf", "BeVietnamPro-Bold.ttf", "Fraunces-SemiBold.ttf" })
+            {
+                using var st = asm.GetManifestResourceStream("font." + tep);
+                if (st == null) continue;
+                var data = new byte[st.Length];
+                st.ReadExactly(data);
+                // vùng nhớ KHÔNG giải phóng: PrivateFontCollection.AddMemoryFont đọc nó suốt đời phông
+                var p = Marshal.AllocCoTaskMem(data.Length);
+                Marshal.Copy(data, 0, p, data.Length);
+                try { bo.AddMemoryFont(p, data.Length); }
+                catch (Exception e) { _moTa.Append($"[{tep}: AddMemoryFont lỗi {e.Message}] "); }
+                var h = AddFontMemResourceEx(p, (uint)data.Length, IntPtr.Zero, out var soPhong);
+                if (h == IntPtr.Zero) _moTa.Append($"[{tep}: AddFontMemResourceEx lỗi] ");
+            }
+            foreach (var f in bo.Families)
+            {
+                var co = string.Join("/", new[] { FontStyle.Regular, FontStyle.Bold }.Where(f.IsStyleAvailable));
+                _moTa.Append($"«{f.Name}» {co}; ");
+                // tên họ GDI+ đặt có thể là «Fraunces SemiBold» (nameID 1) hoặc «Fraunces» (nameID 16) ⇒ so theo tiền tố
+                if (f.Name.StartsWith("Be Vietnam Pro", StringComparison.OrdinalIgnoreCase) && f.IsStyleAvailable(FontStyle.Regular) && f.IsStyleAvailable(FontStyle.Bold)) _than = f;
+                else if (f.Name.StartsWith("Fraunces", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (f.IsStyleAvailable(FontStyle.Regular)) { _tieuDe = f; _kieuTieuDe = FontStyle.Regular; }
+                    else if (f.IsStyleAvailable(FontStyle.Bold)) { _tieuDe = f; _kieuTieuDe = FontStyle.Bold; }
+                }
+            }
+            _bo = bo;
+        }
+        catch (Exception e) { Debug.WriteLine(e); _moTa.Append("lỗi nạp: " + e.Message); _than = _tieuDe = null; }
+    }
+
+    /// <summary>Phông theo cỡ (pt) và kiểu như <c>new Font("Segoe UI", pt, st)</c>.</summary>
+    public static Font Tao(float pt, FontStyle st = FontStyle.Regular)
+    {
+        Nap();
+        try
+        {
+            if ((st & FontStyle.Bold) != 0 && pt >= NguongTieuDe && _tieuDe != null)
+            {
+                var kieu = (st & ~FontStyle.Bold) | _kieuTieuDe;   // tệp đã là SemiBold 600: chỉ xin đúng kiểu GDI+ ghi cho nó, không đậm giả
+                if (_tieuDe.IsStyleAvailable(kieu)) return new Font(_tieuDe, pt * HeSoTieuDe, kieu);
+            }
+            if (_than != null && _than.IsStyleAvailable(st)) return new Font(_than, pt * HeSoThan, st);
+        }
+        catch (Exception e) { Debug.WriteLine(e); }
+        return new Font("Segoe UI", pt, st);
     }
 }

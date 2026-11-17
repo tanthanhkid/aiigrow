@@ -12,6 +12,8 @@ internal static class ChupDpi
     public static System.Drawing.Font Tao(string family, float emSize) => new(family, emSize * K);
     public static System.Drawing.Font Tao(string family, float emSize, FontStyle style) => new(family, emSize * K, style);
     public static System.Drawing.Font Tao(string family, float emSize, FontStyle style, GraphicsUnit unit) => new(family, emSize * K, style, unit);
+    /// <summary>Phông nhúng (PhongChu: Be Vietnam Pro / Fraunces trong PrivateFontCollection).</summary>
+    public static System.Drawing.Font Tao(FontFamily family, float emSize, FontStyle style) => new(family, emSize * K, style);
     /// <summary>Phông dựng từ phông khác (đổi kiểu): phông gốc đã nhân hệ số ⇒ giữ nguyên cỡ.</summary>
     public static System.Drawing.Font Tao(System.Drawing.Font prototype, FontStyle style) => new(prototype, style);
 

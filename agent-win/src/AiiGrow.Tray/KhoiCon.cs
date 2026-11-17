@@ -144,13 +144,14 @@ internal sealed class ChipClay : Control
     public Image? Hinh { get; set; }
     public bool ChamCho { get; set; }
 
-    public ChipClay(string chu, Color nen, Color mauChu, Image? hinh = null, bool chamCho = false)
+    /// <param name="kim">Chip sao: nền vẽ vàng kim bản nhạt (gradient) thay vì màu phẳng <paramref name="nen"/>; cờ tường minh, không so màu.</param>
+    public ChipClay(string chu, Color nen, Color mauChu, Image? hinh = null, bool chamCho = false, bool kim = false)
     {
         SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer
                  | ControlStyles.ResizeRedraw | ControlStyles.SupportsTransparentBackColor, true);
         BackColor = Color.Transparent;
         Text = chu; Hinh = hinh; ChamCho = chamCho;
-        MauNen = nen; ForeColor = mauChu;
+        MauNen = nen; ForeColor = mauChu; Kim = kim;
         Font = UI.F(9.75f, FontStyle.Bold);
         _nen = new NenCache(this, InvokePaintBackground, InvokePaint);
         Margin = new Padding(0, 0, UI.Px(6), UI.Px(6));
@@ -158,6 +159,7 @@ internal sealed class ChipClay : Control
     }
 
     public Color MauNen { get; set; }
+    public bool Kim { get; set; }
 
     private int TruocChu => ChamCho ? UI.Px(14) : Hinh != null ? UI.Px(24) : 0;
 
@@ -176,11 +178,15 @@ internal sealed class ChipClay : Control
         Clay.ChatLuong(g);
         var r = new RectangleF(0, 0, Width - 1, Height - 1);
         using (var p = Clay.Bo(r, r.Height / 2))
-        using (var b = new SolidBrush(MauNen)) g.FillPath(b, p);
+        {
+            // chip sao (cờ Kim): viên vàng kim bản nhạt — chữ vàng sẫm vẫn ≥ 4,5:1
+            if (Kim) Clay.ToKim(g, p, r, nhat: true);
+            else using (var b = new SolidBrush(MauNen)) g.FillPath(b, p);
+        }
         var x = (float)UI.Px(12);
         if (ChamCho)
         {
-            using var b = new SolidBrush(Color.FromArgb(0xe8, 0x89, 0x0c));
+            using var b = new SolidBrush(Clay.Cam);
             g.FillEllipse(b, x, (Height - UI.Px(8)) / 2f, UI.Px(8), UI.Px(8));
         }
         else if (Hinh != null) Clay.VeHinh(g, new RectangleF(x, (Height - UI.Px(18)) / 2f, UI.Px(18), UI.Px(18)), Hinh, 1f);
@@ -203,7 +209,7 @@ internal sealed class ManPhu : Form
         FormBorderStyle = FormBorderStyle.None;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
-        BackColor = Color.FromArgb(8, 14, 12);
+        BackColor = Clay.NgocDam;
         Opacity = 0.55;
         TopMost = true;
         Bounds = Screen.PrimaryScreen!.Bounds;

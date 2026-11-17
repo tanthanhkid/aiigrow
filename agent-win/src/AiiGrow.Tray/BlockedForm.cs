@@ -160,7 +160,7 @@ internal sealed class BlockedForm : Form
                     var dd = UI.Text(ManChanView.ChuThichDs, 9.75f, true, Clay.Chu2, _w);
                     _flow.Controls.Add(dd);
                     _flow.Controls.Add(KhoiCon.Chips(_w, _appDuocPhep.Take(6).Select(a => (Control)new ChipClay(TenChip(_appDuocPhep, _tenDuocPhep, a), Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon("sach")))
-                        .Concat(_appTinhPhut.Where(a => !_appDuocPhep.Contains(a)).Take(6).Select(a => (Control)new ChipClay(TenChip(_appTinhPhut, _tenTinhPhut, a), Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon(LaTrangWeb(a) ? "web" : "game"))))
+                        .Concat(_appTinhPhut.Where(a => !_appDuocPhep.Contains(a)).Take(6).Select(a => (Control)new ChipClay(TenChip(_appTinhPhut, _tenTinhPhut, a), Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon(LaTrangWeb(a) ? "web" : "game"), kim: true)))
                         .ToArray()));
                 }
                 if (ManChanView.CoNutXin(_appId))
@@ -210,7 +210,7 @@ internal sealed class BlockedForm : Form
                 _flow.Controls.Add(KhoiCon.RobNoi("cho", ManChanView.DangXem, ManChanView.TraLoiLaBiet, _w));
                 _flow.Controls.Add(KhoiCon.Chips(_w,
                     new ChipClay(ManChanView.DangCho, Clay.CanhSoft, Clay.Canh, chamCho: true),
-                    new ChipClay(ManChanView.ChuaMoDuoc(_ten), Color.FromArgb(0xe3, 0xe2, 0xde), Clay.Chu2)));
+                    new ChipClay(ManChanView.ChuaMoDuoc(_ten), Clay.Lom, Clay.Chu2)));
                 ThemNutVeHomNay(chinh: false);
                 break;
             }
@@ -225,7 +225,7 @@ internal sealed class BlockedForm : Form
                 if (!string.IsNullOrWhiteSpace(_kq?.LoiNhan)) _flow.Controls.Add(KhoiCon.DongIcon("tin", $"«{_kq!.LoiNhan!.Trim()}»", _w, false));
                 // Bàn them-jj6fglkl / them-q9a3vr5r / them-0uw5wpyr: chip nhóm (ngọc, đồng hồ / sách) trên, chip sao dưới
                 var c1 = new ChipClay(KetQuaXinView.Nhom(khong, _web), Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon(khong ? "sach" : "dongho"));
-                var c2 = new ChipClay(KetQuaXinView.NhomPhu(khong, _phutCon), khong ? Clay.NgocSoft : Clay.DiemSoft, khong ? Clay.NgocInk : Clay.DiemInk, Anh3D.Icon("sao"));
+                var c2 = new ChipClay(KetQuaXinView.NhomPhu(khong, _phutCon), khong ? Clay.NgocSoft : Clay.DiemSoft, khong ? Clay.NgocInk : Clay.DiemInk, Anh3D.Icon("sao"), kim: !khong);
                 _flow.Controls.Add(KhoiCon.Chips(_w, c1));
                 _flow.Controls.Add(KhoiCon.Chips(_w, c2));
                 var mo = KhoiCon.Nut(KetQuaXinView.Mo(_ten), true, _w);

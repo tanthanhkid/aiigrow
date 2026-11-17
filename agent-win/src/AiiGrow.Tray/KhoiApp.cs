@@ -48,7 +48,7 @@ internal static class KhoiApp
     }
 
     /// <summary>Chip sao vàng «+10 sao» / «50 sao» (thiết kế «.sao»).</summary>
-    public static ChipClay ChipSao(string chu) => new(chu, Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao"));
+    public static ChipClay ChipSao(string chu) => new(chu, Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon("sao"), kim: true);
 
     /// <summary>Chip «Chờ duyệt» (cam, chấm chờ) / «Đã nhận» (ngọc).</summary>
     public static ChipClay ChipCho(string chu) => new(chu, Clay.CanhSoft, Clay.Canh, null, chamCho: true);
@@ -140,7 +140,6 @@ internal sealed class ThanhTienDo : Control
         if (_tiLe <= 0) return;
         var w = Math.Max(r.Height, (float)(r.Width * _tiLe));
         using var p2 = Clay.Bo(new RectangleF(0, 0, w, r.Height), r.Height / 2);
-        using var b2 = new SolidBrush(Clay.Ngoc);
-        g.FillPath(b2, p2);
+        Clay.ToKim(g, p2, new RectangleF(0, 0, w, r.Height));
     }
 }

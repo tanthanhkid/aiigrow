@@ -113,7 +113,7 @@ internal static class HopDaLuu
         var the = new ClayFlow
         {
             AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.TopDown, WrapContents = false, BoGoc = UI.Px(18),
-            BackColor = Color.White, Padding = VeThe.Pad(UI.Px(14), UI.Px(10), UI.Px(14), UI.Px(8)),
+            BackColor = Clay.NenSang, Padding = VeThe.Pad(UI.Px(14), UI.Px(10), UI.Px(14), UI.Px(8)),
             MinimumSize = new Size(w, 0), MaximumSize = new Size(w, 0), Margin = new Padding(0, 0, 0, UI.Px(10)),
         };
         var r = w - the.Padding.Horizontal - UI.Px(2);

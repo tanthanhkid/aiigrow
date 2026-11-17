@@ -76,7 +76,7 @@ internal sealed class XinThemForm : HopKhayCoBan
         var nhan = UI.Text(XinThemView.BaMeChonNhom, 10.5f, true, Clay.Chu2, W); nhan.Margin = new Padding(0, 0, 0, UI.Px(6));
         Flow.Controls.Add(nhan);
         Flow.Controls.Add(KhoiCon.Chips(W,
-            KhoiXin.Chip(XinThemView.NhomTinh, Clay.DiemSoft, Clay.DiemInk, "sao"),
+            KhoiXin.Chip(XinThemView.NhomTinh, Clay.DiemSoft, Clay.DiemInk, "sao", kim: true),
             KhoiXin.Chip(XinThemView.NhomKhong, Clay.NgocSoft, Clay.NgocInk, "sach")));
         Flow.Controls.Add(ONhapClay.Boc(_note, W));
         var gui = KhoiCon.Nut(XinThemView.Nut(_ten), true, W, "tin");
@@ -127,7 +127,7 @@ internal sealed class XinThemForm : HopKhayCoBan
         Flow.Controls.Add(KhoiXin.DauRob("so-tay", W, () => { VeXin(); if (_id != null) _poll.Start(); },
             KhoiXin.Chu(XinThemView.DaGui, 15f, true, UI.Ink),
             KhoiXin.Chu(XinThemView.ConXin(_ten), 10.5f, true, UI.Ink),
-            KhoiXin.Chip(XinThemView.DangCho, Clay.DiemSoft, Clay.Canh, "dongho")));
+            KhoiXin.Chip(XinThemView.DangCho, Clay.DiemSoft, Clay.Canh, "dongho", kim: true)));
         Flow.Controls.Add(UI.Text(XinThemView.TraLoiBaoNgay, 10.5f, false, UI.Muted, W));
         var tiep = KhoiCon.Nut(XinThemView.ChoiTiep(_phutCon), false, W, "dongho");
         tiep.Click += (_, _) => { if (SaoView.Phut(_phutCon) <= 0) Sau = SauHomNay; Close(); };
@@ -179,7 +179,7 @@ internal sealed class XinThemForm : HopKhayCoBan
             KhoiXin.Chu(_ten, 22f, true, UI.GreenDark),
         };
         if (moTam) cot.Add(KhoiXin.Chu(KetQuaXinView.MoTamPhu(_ten, s?.MoTam?.Den), 10f, true, Clay.Chu2));
-        else if (biet) cot.Add(KhoiXin.Chip(XinThemView.NhomDaThem(khong, _phutCon), khong ? Clay.NgocSoft : Clay.DiemSoft, khong ? Clay.NgocInk : Clay.DiemInk, khong ? "sach" : "sao"));
+        else if (biet) cot.Add(KhoiXin.Chip(XinThemView.NhomDaThem(khong, _phutCon), khong ? Clay.NgocSoft : Clay.DiemSoft, khong ? Clay.NgocInk : Clay.DiemInk, khong ? "sach" : "sao", kim: !khong));
         Flow.Controls.Add(KhoiXin.DauRob("qua", W, null, cot.ToArray()));
         if (!string.IsNullOrWhiteSpace(s?.LoiNhan)) Flow.Controls.Add(KhoiXin.BongLoi(XinVayView.TenBaMe(s?.TenNguoiDuyet), s!.LoiNhan!, W));
         var mo = KhoiCon.Nut(XinThemView.Mo(_ten), true, W, "dongho");

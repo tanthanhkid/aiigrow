@@ -152,7 +152,7 @@ internal sealed class XinVayForm : HopKhayCoBan
         Flow.Controls.Add(KhoiXin.DauRob("so-tay", W, () => { VeXin(); if (_pendingId != null) _poll.Start(); },
             KhoiXin.Chu(XinVayView.DaGui, 15f, true, UI.Ink),
             KhoiXin.Chu(XinVayView.ConXin(_soDaXin > 0 ? _soDaXin : _soSao), 10.5f, true, UI.Ink),
-            KhoiXin.Chip(XinVayView.DangCho, Clay.DiemSoft, Clay.Canh, "dongho")));
+            KhoiXin.Chip(XinVayView.DangCho, Clay.DiemSoft, Clay.Canh, "dongho", kim: true)));
         Flow.Controls.Add(UI.Text(XinVayView.TraLoiBaoNgay, 10.5f, false, UI.Muted, W));
         var lam = KhoiCon.Nut(XinVayView.LamNhiemVuTrongLucCho, false, W, "tick");
         lam.Click += (_, _) => { Sau = SauNhiemVu; Close(); };
@@ -214,7 +214,7 @@ internal sealed class XinVayForm : HopKhayCoBan
             KhoiXin.Chip(XinVayView.ChoVayTieu(nguoi), Clay.NgocSoft, Clay.NgocInk, "tick"),
             KhoiXin.Chu(XinVayView.ChoVayChip(soSao), 24f, true, Clay.DiemInk),
         };
-        if (sao != null) cot.Add(KhoiXin.Chip(SaoView.ConPhut(sao.PhutCon), Clay.DiemSoft, Clay.DiemInk, "sao"));
+        if (sao != null) cot.Add(KhoiXin.Chip(SaoView.ConPhut(sao.PhutCon), Clay.DiemSoft, Clay.DiemInk, "sao", kim: true));
         Flow.Controls.Add(KhoiXin.DauRob("qua", W, null, cot.ToArray()));
         Flow.Controls.Add(UI.Text(XinVayView.ChoVayDong(soSao, sao?.No ?? soSao), 10.5f, true, Clay.Canh, W));
         if (!string.IsNullOrWhiteSpace(loiNhan)) Flow.Controls.Add(KhoiXin.BongLoi(XinVayView.TenBaMe(nguoi), loiNhan!, W));
