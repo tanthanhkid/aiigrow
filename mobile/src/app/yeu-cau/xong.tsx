@@ -89,7 +89,7 @@ export default function XongYeuCau() {
       {hoan ?? hoanMo ? <Nut chu={dangChay ? "Đang hoàn tác…" : "Hoàn tác"} rong loai="vien" tat={dangChay} bam={(hoan ?? hoanMo)!} /> : null}
     </>}>
       <View style={{ alignItems: "center", gap: 6, marginTop: 24 }}>
-        <View style={{ width: 88, height: 88, borderRadius: 30, alignItems: "center", justifyContent: "center", backgroundColor: M.chinhSoft, boxShadow: BONG.the, backgroundImage: MEN.the }}>
+        <View style={{ width: 88, height: 88, borderRadius: 30, alignItems: "center", justifyContent: "center", backgroundColor: M.chinhSoft, boxShadow: BONG.the, ...(MEN.the ? { backgroundImage: MEN.the } : null) }}>
           <Icon ten={p.kieu === "khong" ? "x" : "tick"} co={40} mau={p.kieu === "khong" ? M.chu2 : M.chinhInk} />
         </View>
         <Chu kieu="rat" co={24} style={{ textAlign: "center", marginTop: 8 }}>{`${tieu}\n${dong2}`}</Chu>

@@ -15,7 +15,7 @@ import { useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
 import { type DsThanhVien, type Quyen, type ToiCaNha } from "@/lib/ca-nha";
 import { veHoac } from "@/lib/ui-bm3";
-import { BONG, KHOI, HERO } from "@/lib/clay";
+import { BONG, KHOI, KHOI_HERO } from "@/lib/clay";
 import { Avt, BaoLoi, Chu, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, useLam, useTai } from "@/lib/ui";
 import { mauCon } from "@/lib/hang-ngay";
 
@@ -90,7 +90,7 @@ export default function MoiNguoiNha() {
         </Pressable>
       </>}>
         {/* bàn .san: ô ngọc cao 196, bong bóng trắng trái (15/20, chữ ≤ 170), Grow «chỉ» 170 tràn mép phải-dưới */}
-        <View style={[{ height: 196, borderRadius: 36, overflow: "hidden", backgroundColor: HERO.nen, backgroundImage: HERO.anh, boxShadow: HERO.bong }]}>
+        <View style={[{ height: 196, borderRadius: 36, overflow: "hidden", ...KHOI_HERO }]}>
           <View style={{ position: "absolute", right: -4, bottom: -24 }}><Rob ten="chi" co={Math.min(170, Math.round(rongSan * 0.48) - 8)} /></View>
           <View style={{ position: "absolute", left: 18, top: 30, maxWidth: Math.min(202, Math.round(rongSan * 0.52)), paddingVertical: 11, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.the, boxShadow: BONG.nho }}>
             <Chu kieu="dam7" co={15} style={{ lineHeight: 20 }}>{`${ai} chưa có app, gửi link nha!`}</Chu>
@@ -132,7 +132,7 @@ export default function MoiNguoiNha() {
         </Pressable>
       </>}>
         {/* bàn .san: ô ngọc bo 36 cao 270, Grow «xong» 214 tràn đáy, dấu tick tròn ngọc viền trắng góc phải */}
-        <View style={[{ height: 270, borderRadius: 36, overflow: "hidden", backgroundColor: HERO.nen, backgroundImage: HERO.anh, boxShadow: HERO.bong }]}>
+        <View style={[{ height: 270, borderRadius: 36, overflow: "hidden", ...KHOI_HERO }]}>
           <View style={{ position: "absolute", left: "50%", bottom: -20, marginLeft: -107 }}><Rob ten="xong" co={214} /></View>
           <View style={{ position: "absolute", right: 64, top: 40, width: 56, height: 56, borderRadius: 28, backgroundColor: M.ok, borderWidth: 5, borderColor: "#fff",
             alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}>

@@ -15,7 +15,7 @@ import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, 
 import { saoChep } from "@/lib/luu-tep";
 import { DaiCon } from "@/lib/ui-viec";
 import { tomTatGioiHan } from "@/lib/gioi-han";
-import { KHOI, MEN, HERO } from "@/lib/clay";
+import { KHOI, MEN, HERO, KHOI_HERO } from "@/lib/clay";
 
 type Luat = { ds: LuatDem[] };
 
@@ -55,9 +55,9 @@ export default function HoSoCon() {
       {d.g.con.length > 1 ? <DaiCon ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
 
       {/* thẻ đầu .hs: hero navy (bàn Navy 17/11), ảnh 56 + tên + «9 tuổi · 2 máy» + viên sao; ô «Hôm nay chơi …» nổi trắng */}
-      <View style={{ gap: 12, padding: 16, borderRadius: 28, backgroundColor: HERO.nen, backgroundImage: HERO.anh, overflow: "hidden", boxShadow: HERO.bong }}>
+      <View style={{ gap: 12, padding: 16, borderRadius: 28, overflow: "hidden", ...KHOI_HERO }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <Avt ten={c.ten} mau={mau} co={56} con={c} />
+          <Avt ten={c.ten} mau={mau} co={56} con={c} toi />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <Chu kieu="rat" co={22} dong={1} mau={HERO.chu}>{c.ten}</Chu>
             <Chu kieu="dam" co={13.5} mau="rgba(255,255,255,0.75)">{[tuoi ? `${tuoi} tuổi` : null, `${c.may.length} máy`].filter(Boolean).join(" · ")}</Chu>

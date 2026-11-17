@@ -15,7 +15,7 @@ import Svg, { parse, Path, SvgAst } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ICON from "./icon.json";
 import { BO, F, M, MAU_HO_SO } from "./mau";
-import { BONG, BO_CLAY, KHOI, KHOI_HERO, MEN, HERO } from "./clay";
+import { BONG, BO_CLAY, KHOI, KHOI_HERO, MEN } from "./clay";
 import { ICON_3D, co3D } from "./icon-3d";
 import { LopMen, NhanMen, vaoLanLuot } from "./chuyen-dong";
 import { ThanhClay } from "./bieu-do";
@@ -145,9 +145,10 @@ const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: 
  *  Chữ dài (tên con 30, tên máy 40, tên miền 60 ký tự, cỡ chữ hệ thống lớn): nút không vượt khung cha (maxWidth 100%), chữ quá dài
  *  thì «…» ở cuối — không co chữ (người chọn cỡ chữ lớn phải được chữ lớn, WCAG 1.4.4), không cắt nửa chữ, không đẩy nút bên cạnh.
  *  Nút `rong` (một mình cả hàng) được xuống 2 dòng căn giữa — nhãn dài kiểu «Mở khoá sau khi nói chuyện với <tên>» không mất tên. */
-export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc, sat }: {
+export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc, sat, toi }: {
   chu: string; bam: (e?: GestureResponderEvent) => void; loai?: LoaiNut; nho?: boolean; rong?: boolean; ic?: TenIcon; ic3d?: boolean; dangChay?: boolean; tat?: boolean; nhanDoc?: string;
   /** đệm ngang hẹp (12) — hai nút chia đôi một thẻ (Trang chủ «Khoá máy» / «Cho thêm giờ») giữ chữ một dòng như thiết kế */ sat?: boolean;
+  /** nút nằm trên hero navy: bóng chỉ tối (không quầng sáng kem) */ toi?: boolean;
 }) {
   const m = MAU_NUT[loai];
   const mo = tat || dangChay;
@@ -156,7 +157,7 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
     <NhanMen onPress={bam} disabled={mo} accessibilityRole="button" muc="nut" sang={m.sang || !!tat} men={tat ? undefined : m.men}
       accessibilityLabel={nhanDoc ?? chu} accessibilityState={{ disabled: !!mo, busy: !!dangChay }}
       style={[s.nut, nho && s.nutNho, sat && { paddingHorizontal: 12 }, rong ? { alignSelf: "stretch" } : { flexGrow: 1, flexShrink: 1 }, { maxWidth: "100%", minWidth: 0 },
-        tat ? { backgroundColor: M.tatNen } : { backgroundColor: m.nen, boxShadow: m.bong }]}>
+        tat ? { backgroundColor: M.tatNen } : { backgroundColor: m.nen, boxShadow: toi && loai === "vang" ? BONG.heroVang : m.bong }]}>
       {dangChay ? <ActivityIndicator color={m.chu} /> : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%" }}>
           {ic ? (ic3d && !tat ? <Icon3D ten={ic} co={nho ? 20 : 22} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
@@ -232,7 +233,7 @@ export const BieuTron = memo(function BieuTron({ ic, mau = "xanh", lon, co }: { 
   );
   const d = co ?? 56;
   return (
-    <View style={[s.bieuTron, { width: d, height: d, borderRadius: d / 2, backgroundColor: MAU_BT[mau][0], backgroundImage: mau === "xam" ? MEN.sang : MEN.vien }, KHOI.nho]}>
+    <View style={[s.bieuTron, { width: d, height: d, borderRadius: d / 2, backgroundColor: MAU_BT[mau][0], ...((mau === "xam" ? MEN.sang : MEN.vien) ? { backgroundImage: mau === "xam" ? MEN.sang : MEN.vien } : null) }, KHOI.nho]}>
       <Icon3D ten={ic} co={Math.round(d * 0.6)} mau={MAU_BT[mau][1]} />
     </View>
   );
@@ -250,13 +251,13 @@ export const chuTren = (nen: string) => {
 };
 // màu avatar con: sinh từ MAU_HO_SO[i][2] (tông đậm của bảng màu hồ sơ) ⇒ avatar không lệch màu đã chọn ở hồ sơ
 export const MAU_CON = MAU_HO_SO.map((x) => x[2]);
-export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44, con, anh, chon }: { ten: string; mau?: string; co?: number;
-  /** đang chọn (dải con): vòng vàng ngoài (vẽ bằng bóng ⇒ không đổi kích thước) */ chon?: boolean; /** Con có ảnh đại diện (#302) ⇒ hiện ảnh thay chữ cái */ con?: { id?: string | null; avatar?: string | null } | null; /** ảnh vừa chọn, chưa lưu */ anh?: string | null }) {
+export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44, con, anh, chon, toi }: { ten: string; mau?: string; co?: number;
+  /** đang chọn (dải con): vòng vàng ngoài (vẽ bằng bóng ⇒ không đổi kích thước) */ chon?: boolean; /** nằm trên hero navy: bóng chỉ tối + viền vàng mảnh, không quầng sáng */ toi?: boolean; /** Con có ảnh đại diện (#302) ⇒ hiện ảnh thay chữ cái */ con?: { id?: string | null; avatar?: string | null } | null; /** ảnh vừa chọn, chưa lưu */ anh?: string | null }) {
   const daLuu = useAnhCon(con);
   const uri = anh ?? daLuu;
   // «Ánh kim»: giữ MÀU CỦA CON (Ba Mẹ chọn ở hồ sơ — màu là nhận diện từng bé), chữ cái Fraunces, nổi bằng bóng đôi;
   // đang chọn: vòng vàng ngoài (mẫu E `.be.on .av`).
-  const vien = chon ? `0px 0px 0px 3px ${M.nen}, 0px 0px 0px 5px #D9AE57, 4px 5px 10px rgba(120,98,70,0.28)` : BONG.nho;
+  const vien = chon ? `0px 0px 0px 3px ${M.nen}, 0px 0px 0px 5px ${M.dauSach}, 4px 5px 10px rgba(120,98,70,0.28)` : toi ? BONG.heroNho : BONG.nho;
   if (uri) return <Image source={{ uri }} accessibilityLabel={`Ảnh của ${ten}`} style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, boxShadow: vien }} contentFit="cover" />;
   return (
     <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mau, alignItems: "center", justifyContent: "center", boxShadow: vien }}>
@@ -579,8 +580,7 @@ export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, hinhP
     <>
       {dauBang}
       {hinh ? (
-        <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: hinhDao ? "#fbe5ce" : HERO.nen,
-          backgroundImage: hinhDao ? "linear-gradient(#ffe6d6, #fff1e6)" : HERO.anh, ...(hinhDao ? KHOI.the : { boxShadow: HERO.bong }) }}>
+        <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", ...(hinhDao ? { backgroundColor: "#fbe5ce", backgroundImage: "linear-gradient(#ffe6d6, #fff1e6)", ...KHOI.the } : KHOI_HERO) }}>
           <Icon3D ten={hinh} co={48} />
           {hinhPhu ? <View style={{ position: "absolute", right: -6, bottom: -6 }}><Icon3D ten={hinhPhu} co={28} /></View> : null}
         </View>
@@ -598,7 +598,7 @@ export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, hinhP
   return (
     <Modal visible={mo} transparent animationType="slide" onRequestClose={dong}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Pressable style={{ flex: 1, backgroundColor: "rgba(16,35,31,.38)" }} onPress={dong} accessibilityLabel="Đóng" />
+      <Pressable style={{ flex: 1, backgroundColor: "rgba(10,22,41,.38)" }} onPress={dong} accessibilityLabel="Đóng" />
       <View style={[s.bangTruot, cuon && { maxHeight: Math.round(cao * 0.95), flexShrink: 1 }, cuon && gon && { gap: 8, paddingBottom: 20 }]}>
         <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: M.vien2, alignSelf: "center" }} />
         {cuon ? (
@@ -854,7 +854,7 @@ const s = StyleSheet.create({
   chatMat: { width: 46, height: 46, borderRadius: 23, overflow: "hidden", alignItems: "center", borderWidth: 2, borderColor: M.chinhSoft },
   chatCham: { position: "absolute", right: -1, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: M.chinh, borderWidth: 2, borderColor: "#fff" },
   bangTruot: { backgroundColor: M.nen, borderTopLeftRadius: 34, borderTopRightRadius: 34, paddingTop: 10, paddingHorizontal: 18, paddingBottom: 34, gap: 12,
-    boxShadow: "0px -10px 30px -12px rgba(28,32,30,0.3), inset 0px 1.5px 0px rgba(255,255,255,1)" },
+    boxShadow: "0px -10px 30px -12px rgba(10,22,41,0.3), inset 0px 1.5px 0px #FFFBF5" },
   toast: { flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: M.chu, borderRadius: 24, paddingVertical: 8, paddingLeft: 10, paddingRight: 8, minHeight: 56,
     boxShadow: BONG.toi },
   toastTick: { width: 30, height: 30, borderRadius: 15, backgroundColor: M.diem, alignItems: "center", justifyContent: "center", backgroundImage: MEN.vang },

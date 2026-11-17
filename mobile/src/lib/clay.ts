@@ -22,6 +22,11 @@ export const BONG = {
   do: "4px 4px 10px rgba(120,98,70,0.30), -4px -4px 10px #FFFBF5, inset 0px 1px 0px rgba(255,255,255,0.35)",
   /** cột / thanh / chấm chú giải của biểu đồ: bóng ngắn (cột xếp sát 3px) */
   cot: "2px 2px 4px rgba(120,98,70,0.30), inset 0px 1px 0px rgba(255,255,255,0.45)",
+  /** TRÊN NỀN TỐI (hero navy): chỉ bóng tối + viền vàng mảnh, KHÔNG quầng sáng kem (quầng #FFFBF5 thành vệt trắng trên navy) */
+  heroThe: "5px 6px 14px rgba(0,0,0,0.45), inset 0px 0px 0px 1px rgba(244,199,106,0.35)",
+  heroNho: "3px 4px 9px rgba(0,0,0,0.45), inset 0px 0px 0px 1px rgba(244,199,106,0.35)",
+  /** nút vàng kim trên nền tối: bóng tối + sáng mép trên */
+  heroVang: "3px 4px 9px rgba(0,0,0,0.45), inset 0px 1px 0px rgba(255,255,255,0.6)",
   /** bảng trượt / lớp nổi: bóng nâu ấm hai phía */
   noi: "0px -6px 24px -12px rgba(120,98,70,0.35), 0px 16px 26px -10px rgba(120,98,70,0.40), inset 0px 1px 0px #FFFBF5",
 } as const;
@@ -64,6 +69,9 @@ export const KHOI = {
   nho: { boxShadow: BONG.nho } as ViewStyle,
   vien: { boxShadow: BONG.nho } as ViewStyle,
   lom: { boxShadow: BONG.lom } as ViewStyle,
+  /** trên hero navy: khối / viên nhỏ chỉ bóng tối (không quầng sáng) */
+  heroThe: { boxShadow: BONG.heroThe } as ViewStyle,
+  heroNho: { boxShadow: BONG.heroNho } as ViewStyle,
 } as const;
 // Lớp men của khối CÓ CHỮ nằm trong một lớp con riêng (LopMen, chuyen-dong.tsx) chứ không đặt `backgroundImage` lên khối: màu nền của khối
 // vẫn là token đặc ⇒ tương phản chữ tính đúng theo token (men chỉ là ánh trắng rất nhẹ), khối không chữ (viên icon, rãnh) dùng thẳng MEN.

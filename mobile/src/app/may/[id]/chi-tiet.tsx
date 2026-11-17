@@ -6,7 +6,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type PhienDang, type TuanThuMay } from "@/lib/api";
-import { KHOI, HERO } from "@/lib/clay";
+import { KHOI, HERO, KHOI_HERO } from "@/lib/clay";
 import { BangKhoaMay, quyenToi, tenGoi } from "@/lib/hang-ngay";
 import { datKhoaMay } from "@/lib/khoa-may";
 import {
@@ -68,9 +68,9 @@ export default function MayChiTiet() {
   return (
     <Man noi={noi} tai={tai} dau={<DauHaiDong tieu={ten} phu={`${gan.length >= 2 ? "Máy chung" : gan.length === 1 ? "Máy riêng" : "Chưa bé nào"}${gan.length ? ` · ${gan.map((c) => tenGoi(c.ten)).join(", ")}` : ""}`} lui={lui} />}>
       {/* thẻ «<bé> đang dùng» (.dangd) */}
-      <View style={{ padding: 16, borderRadius: 28, backgroundColor: HERO.nen, backgroundImage: HERO.anh, gap: 10, boxShadow: HERO.bong }}>
+      <View style={{ padding: 16, borderRadius: 28, gap: 10, ...KHOI_HERO }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-          {dangDung ? <AvtCon c={dangDung} co={36} /> : <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }}><Icon3D ten="nguoi" co={22} /></View>}
+          {dangDung ? <AvtCon c={dangDung} co={36} toi /> : <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }}><Icon3D ten="nguoi" co={22} /></View>}
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="rat" co={16} dong={2} mau={HERO.chu}>{dangDung ? `${tenGoi(dangDung.ten)} đang dùng` : "Chưa bé nào đang dùng"}</Chu>
             <Chu kieu="dam7" co={12.5} mau={HERO.phu} dong={2}>
@@ -79,7 +79,7 @@ export default function MayChiTiet() {
           </View>
           {gan.length >= 2 ? (
             <Pressable onPress={() => setMo("doi")} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}>
-              <View style={{ paddingVertical: 7, paddingHorizontal: 11, borderRadius: 16, backgroundColor: M.the, ...KHOI.nho }}><Chu kieu="rat" co={13} mau={M.chinhInk}>Đổi người</Chu></View>
+              <View style={{ paddingVertical: 7, paddingHorizontal: 11, borderRadius: 16, backgroundColor: M.the, ...KHOI.heroNho }}><Chu kieu="rat" co={13} mau={M.chinhInk}>Đổi người</Chu></View>
             </Pressable>
           ) : null}
         </View>
@@ -124,7 +124,7 @@ export default function MayChiTiet() {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginHorizontal: 4 }}>
           {gan.map((c) => (
             <Pressable key={c.id} onPress={() => setBeKhoa(c.id)} accessibilityRole="radio" accessibilityState={{ checked: be?.id === c.id }} accessibilityLabel={`Khoá theo bé: ${tenGoi(c.ten)}`}
-              style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 10, borderRadius: 18, backgroundColor: be?.id === c.id ? M.chinhSoft : M.xamSoft }}>
+              style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 36, paddingHorizontal: 10, borderRadius: 18, backgroundColor: be?.id === c.id ? M.chonSoft : M.xamSoft }}>
               <AvtCon c={c} co={22} /><Chu kieu="rat" co={12.5} mau={be?.id === c.id ? M.chinhInk : M.chu2}>{tenGoi(c.ten)}</Chu>
             </Pressable>
           ))}

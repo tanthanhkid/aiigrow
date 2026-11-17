@@ -7,7 +7,7 @@
 import { useMemo, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { KHOI, HERO, KHOI_HERO } from "@/lib/clay";
+import { KHOI, HERO, KHOI_HERO, MEN } from "@/lib/clay";
 import {
   ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useTai, type TenIcon,
 } from "@/lib/ui";
@@ -92,7 +92,7 @@ export default function TabNhiemVu() {
             <Chu kieu="rat" co={18} mau={k === "am" ? M.noHero : HERO.phu} style={{ marginTop: 8 }}>sao</Chu>
           </>}
         </View>
-        <View style={{ alignSelf: "flex-start", marginTop: 6, minHeight: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.diem, backgroundImage: "linear-gradient(#f8d68e, #F4C76A)", justifyContent: "center", marginRight: 100 }}>
+        <View style={{ alignSelf: "flex-start", marginTop: 6, minHeight: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.diem, backgroundImage: MEN.vang, justifyContent: "center", marginRight: 100 }}>
           <Chu kieu="rat" co={13} mau={M.chu}>
             {k === "thuong" ? `= ${soVN(sao)} phút chơi ›`
               : cua.cho.length ? (tongCho >= ss.no ? `Duyệt ${cua.cho.length} việc chờ là hết nợ ›` : `Duyệt ${cua.cho.length} việc chờ để trả nợ ›`)

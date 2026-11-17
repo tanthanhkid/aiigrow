@@ -226,7 +226,7 @@ export function ChonCheDo({ gia, doi }: { gia: CheDoTl; doi: (v: CheDoTl) => voi
         return (
           <Pressable key={o.v} onPress={() => doi(o.v)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${o.tieu}: ${o.phu.replace("\n", ", ")}`}
             style={{ flex: 1, minWidth: 0, borderRadius: 24, overflow: "hidden", ...KHOI.the, ...(on ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.the}` } : {}) }}>
-            {on ? <LinearGradient colors={["#1d7a66", M.chinh]} style={{ flexGrow: 1, padding: 12, gap: 6, minHeight: 84 }}>{noi}</LinearGradient>
+            {on ? <LinearGradient colors={["#1b2b47", M.chinh]} style={{ flexGrow: 1, padding: 12, gap: 6, minHeight: 84 }}>{noi}</LinearGradient>
               : <View style={{ flexGrow: 1, padding: 12, gap: 6, minHeight: 84, backgroundColor: M.the }}>{noi}</View>}
           </Pressable>
         );

@@ -23,7 +23,7 @@ import {
 import {
   BangTruot, Bao, BaoLoi, baoKhiVe, BieuTron, Chips, ChoTai, Chu, CongTac, Dong, gioPhut, HaiNut, Icon3D, M, Man, Nhom, NhomTieu, Nut, ONhap, Rob, TickDong, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
-import { BONG, KHOI, HERO } from "@/lib/clay";
+import { BONG, KHOI, HERO, KHOI_HERO } from "@/lib/clay";
 
 const PHUT = [15, 30, 60, 120];
 const SU_KIEN: Record<string, string> = {
@@ -201,15 +201,15 @@ export default function AnToanMay() {
         // thiết kế m1 .san: thẻ hero navy (bàn Navy 17/11) — hình máy 88 (khiên) · bé đang dùng · «✓ Đang bảo vệ» + chip «Máy chung · 2 bé» · nền máy
         <Pressable onPress={chung ? () => router.push({ pathname: "/may/[id]/chi-tiet", params: { id } }) : undefined} disabled={!chung} accessibilityRole={chung ? "button" : undefined}
           accessibilityLabel={chung ? `${ten}, xem chi tiết từng bé` : undefined}
-          style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 28, backgroundColor: HERO.nen, backgroundImage: HERO.anh, overflow: "hidden", boxShadow: HERO.bong }}>
-          <View style={{ width: 88, height: 88, borderRadius: 24, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.the }}>
+          style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 14, borderRadius: 28, overflow: "hidden", ...KHOI_HERO }}>
+          <View style={{ width: 88, height: 88, borderRadius: 24, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.heroThe }}>
             <Icon3D ten={hinhMay(m.nen, chung)} co={64} />
             <View style={{ position: "absolute", right: -6, bottom: -6 }}><Icon3D ten="khien" co={36} /></View>
           </View>
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             {ai ? (
               <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <AvtCon c={ai} co={28} />
+                <AvtCon c={ai} co={28} toi />
                 <Chu kieu="rat" co={16} dong={2} mau={HERO.chu} style={{ flexShrink: 1 }}>{chung ? `${tenAi} đang dùng` : tenAi!}</Chu>
               </View>
             ) : <Chu kieu="rat" co={16} mau={HERO.chu}>{d.conDs.length ? "Chưa bé nào đang dùng" : "Chưa có bé dùng máy"}</Chu>}

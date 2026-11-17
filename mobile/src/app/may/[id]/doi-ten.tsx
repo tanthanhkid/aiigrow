@@ -8,7 +8,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, chuanHoaTen, type ChiTietTuanThu, type GiaDinh, type TuanThuMay } from "@/lib/api";
-import { BONG, KHOI, HERO } from "@/lib/clay";
+import { BONG, KHOI, HERO, KHOI_HERO } from "@/lib/clay";
 import { tenGoi } from "@/lib/hang-ngay";
 import { CapAvt, conCuaMay, DauHaiDong, hinhMay, laMayChung, nganTen, type ConNganMay } from "@/lib/may-nhieu-con";
 import { BaoLoi, baoKhiVe, ChoTai, Chu, Icon, Icon3D, M, Man, Nut, ONhap, Rob, useLam, useTai } from "@/lib/ui";
@@ -57,7 +57,7 @@ export default function DoiTenMay() {
   });
   const nhacGrow = (dao: boolean, chu: string) => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, paddingHorizontal: 16, borderRadius: 22,
-      backgroundColor: dao ? M.canhSoft : HERO.nen, backgroundImage: dao ? "linear-gradient(#ffe6d6, #fff1e6)" : HERO.anh, ...(dao ? KHOI.the : { boxShadow: HERO.bong }) }}>
+      ...(dao ? { backgroundColor: M.canhSoft, backgroundImage: "linear-gradient(#ffe6d6, #fff1e6)", ...KHOI.the } : KHOI_HERO) }}>
       <Rob ten="chi" co={48} />
       <Chu kieu="rat" co={13} mau={dao ? M.canh : HERO.chu} style={{ flex: 1, lineHeight: 18 }}>{chu}</Chu>
     </View>
@@ -107,7 +107,7 @@ export default function DoiTenMay() {
             return (
               <Pressable key={g} onPress={() => setTen(g)} accessibilityRole="button" accessibilityLabel={`Đặt tên ${g}`}
                 style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22,
-                  backgroundColor: chon ? M.chinhSoft : M.the, ...KHOI.nho }}>
+                  backgroundColor: chon ? M.chonSoft : M.the, ...KHOI.nho }}>
                 {k === 3 ? <CapAvt ds={con} co={20} /> : null}
                 <Chu kieu="rat" co={14} mau={chon ? M.chinhInk : M.chu2}>{g}</Chu>
               </Pressable>

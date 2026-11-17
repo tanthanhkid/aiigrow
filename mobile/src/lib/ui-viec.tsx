@@ -32,7 +32,7 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
             <View style={[{ borderRadius: 34, padding: 3 }, { borderWidth: 3, borderColor: "transparent" }]}>
               <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={50} con={x} chon={on} />
               {n ? (
-                <View style={{ position: "absolute", right: -4, top: -4, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, backgroundColor: M.badge,   // bàn Navy: huy hiệu cam #FF751F, chữ navy (≈7:1)
+                <View style={{ position: "absolute", right: -4, top: -4, minWidth: 22, height: 22, paddingHorizontal: 5, borderRadius: 11, backgroundColor: M.badge,   // bàn Navy: huy hiệu vàng M.badge #F4C76A, chữ navy (11,4:1)
                   alignItems: "center", justifyContent: "center", borderWidth: 2, borderColor: M.nen }}>
                   <Chu kieu="rat" co={12} mau={M.chu} so>{n}</Chu>
                 </View>

@@ -225,8 +225,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
           {/* bàn .hd: grid 1.2fr 1fr — nút chính rộng hơn («Mở khoá ngay» một dòng); khổ hẹp không đủ 168 + 140 ⇒ xuống hàng */}
           <View style={{ flexGrow: 1.2, flexBasis: 168 }}>
-            {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d sat rong loai="vang" dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
-              : <Nut chu="Khoá máy" ic="khoa" ic3d sat rong loai="vang" nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
+            {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d sat rong loai="vang" toi dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
+              : <Nut chu="Khoá máy" ic="khoa" ic3d sat rong loai="vang" toi nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
           </View>
           <View style={{ flexGrow: 1, flexBasis: 140 }}>
             {khoa ? <Nut chu="Đổi giờ" ic="dongho" ic3d sat rong loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />

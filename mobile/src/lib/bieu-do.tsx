@@ -238,7 +238,7 @@ export function VongClay({ ti, co = 200, day, mau = M.chinhSang, children, nhanD
       </Svg>
       {children ? (
         <View style={{ width: dia, height: dia, borderRadius: dia / 2, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
-          <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: dia / 2, backgroundImage: MEN.the }]} />
+          {MEN.the ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: dia / 2, backgroundImage: MEN.the }]} /> : null}
           {children}
         </View>
       ) : null}

@@ -124,8 +124,9 @@ export function HangBoQua({ so, bam }: { so: number; bam: () => void }) {
 
 // ---------------------------------------------------------------- hai nhóm của danh sách (15/11 — #262): Tính phút (vàng) · Không tính phút (xanh)
 
-const NEN_NHOM: Record<Nhom, string> = { tinh_phut: "#fdf6e2", khong_tinh_phut: "#eef6f2" };
-const VIEN_NHOM: Record<Nhom, string> = { tinh_phut: "#e0a20c", khong_tinh_phut: "#7ED957" };
+// nền nhạt tông E của từng nhóm (kem pha cam / kem pha lục; chữ navy ≥14:1) · viền chọn = chính MAU_NHOM (M.chamTinh / M.chamKhong)
+const NEN_NHOM: Record<Nhom, string> = { tinh_phut: "#F2E0CB", khong_tinh_phut: "#E2E6CF" };
+const VIEN_NHOM: Record<Nhom, string> = MAU_NHOM;
 
 /** Tiêu đề nhóm (.muc + chấm màu): «● Tính phút ……… trả bằng sao». */
 export function MucNhom({ nhom, phai }: { nhom: Nhom; phai?: string }) {

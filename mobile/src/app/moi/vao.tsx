@@ -50,7 +50,7 @@ export default function VaoNha() {
       <View style={{ height: 300, borderRadius: 34, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
         <View style={{ position: "absolute", top: 24, flexDirection: "row", alignItems: "center" }}>
           {[ai, ...con.slice(0, 4)].map((t, i) => (
-            <View key={t + i} style={{ marginLeft: i ? -6 : 0, borderRadius: 31, borderWidth: 4, borderColor: "#eef4f1" }}>
+            <View key={t + i} style={{ marginLeft: i ? -6 : 0, borderRadius: 31, borderWidth: 4, borderColor: M.chinhSoft }}>
               <Avt ten={t} mau={MAU_CON[i % MAU_CON.length]} co={con.length > 3 ? 44 : 50} />
             </View>
           ))}

@@ -8,7 +8,7 @@ import { ICON_3D, type Ten3D } from "./icon-3d";
 import { Linking, Platform, Pressable, ScrollView, Share, Text, TextInput, View, type TextInputProps } from "react-native";
 import { router } from "expo-router";
 import { SvgXml } from "react-native-svg";
-import { BONG, BO_CLAY, KHOI, MEN, HERO } from "./clay";
+import { BONG, BO_CLAY, KHOI, KHOI_HERO, MEN, HERO } from "./clay";
 import { saoChep } from "./luu-tep";
 import { MAU_HO_SO } from "./mau";
 import { Chu, F, Icon, Icon3D, LopMen, M, NhanMen, Rob, type LinhVat, type TenIcon } from "./ui";
@@ -98,7 +98,7 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai, bongTo }
   );
   if (chuTo) return (
     // bàn Navy 17/11 (.n-the.g): sân hero navy, tiêu đề trắng
-    <View style={{ borderRadius: 34, backgroundImage: HERO.anh, backgroundColor: HERO.nen, height: 176, overflow: "hidden", boxShadow: HERO.bong }}>
+    <View style={{ borderRadius: 34, height: 176, overflow: "hidden", ...KHOI_HERO }}>
       <View style={{ position: "absolute", left: 22, top: 40, right: 150 }}>
         <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 26, lineHeight: 31, letterSpacing: -0.5, color: HERO.chu }}>{tieu}</Text>
         {loi ? <Chu kieu="dam" co={14.5} mau="rgba(255,255,255,0.8)" style={{ marginTop: 6, lineHeight: 20 }}>{loi}</Chu> : null}
@@ -366,7 +366,7 @@ export function OApp({ ma, ten, chon, bam, nhanDoc, rong = "25%" }: { ma?: strin
         </View>
         {chon !== undefined ? (
           <View style={{ position: "absolute", right: -5, bottom: -5, width: 22, height: 22, borderRadius: 11, backgroundColor: chon ? M.chinh : "#1b2b47",
-            boxShadow: "0px 0px 0px 2.5px #ffffff", alignItems: "center", justifyContent: "center" }}>
+            boxShadow: `0px 0px 0px 2.5px ${M.nen}`, alignItems: "center", justifyContent: "center" }}>
             <Icon ten={chon ? "tick" : "tru"} mau="#fff" co={13} />
           </View>
         ) : null}
@@ -383,7 +383,7 @@ export function OApp({ ma, ten, chon, bam, nhanDoc, rong = "25%" }: { ma?: strin
 export function OThemApp({ bam }: { bam: () => void }) {
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel="Thêm app khác" style={{ width: "25%", paddingHorizontal: 2, alignItems: "center", gap: 6 }}>
-      <View style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: M.xamSoft, boxShadow: BONG.lom, borderWidth: 2, borderStyle: "dashed", borderColor: "#9fb8b0", alignItems: "center", justifyContent: "center" }}>
+      <View style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: M.xamSoft, boxShadow: BONG.lom, borderWidth: 2, borderStyle: "dashed", borderColor: M.oNhap, alignItems: "center", justifyContent: "center" }}>
         <Chu kieu="rat" co={28} mau={M.chinhInk}>+</Chu>
       </View>
       <Chu kieu="rat" co={12} mau={M.chinhInk} style={{ textAlign: "center", lineHeight: 15 }}>Thêm app khác</Chu>

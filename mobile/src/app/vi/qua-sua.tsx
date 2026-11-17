@@ -108,7 +108,7 @@ export default function SuaQua() {
             const on = h ? x === h : icQua({ hinh: x, loai: "qua" }) === icHienTai;
             return (
               <NhanMen key={x} onPress={() => setHinh(x)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Hình ${x}`} muc="chip" sang={!on}
-                style={[{ flexBasis: "21%", flexGrow: 1, height: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? M.chinhSoft : M.the },
+                style={[{ flexBasis: "21%", flexGrow: 1, height: 64, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: on ? M.chonSoft : M.the },
                   on ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}` } : KHOI.nho]}>
                 <Icon3D ten={icQua({ hinh: x, loai: "qua" }) as TenIcon} co={38} />
               </NhanMen>
