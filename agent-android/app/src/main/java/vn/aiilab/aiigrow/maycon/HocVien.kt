@@ -98,7 +98,7 @@ object HocVien {
 
     private fun thongBao(ctx: Context, tieu: String, noi: String, duong: String?, maYeuCau: Int) =
         NotificationCompat.Builder(ctx, KENH_TIN)
-            .setSmallIcon(R.drawable.ic_aiigrow).setColor(0xFF1F8A70.toInt())
+            .setSmallIcon(R.drawable.ic_aiigrow).setColor(Diu.KIM_DAM)
             .setContentTitle(tieu).setContentText(noi.lineSequence().first()).setStyle(NotificationCompat.BigTextStyle().bigText(noi))
             .setPriority(NotificationCompat.PRIORITY_HIGH).setCategory(NotificationCompat.CATEGORY_MESSAGE).setAutoCancel(true)
             .setContentIntent(PendingIntent.getActivity(ctx, maYeuCau,

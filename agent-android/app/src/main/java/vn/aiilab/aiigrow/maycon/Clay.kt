@@ -36,23 +36,23 @@ import kotlin.math.sqrt
  * Thông số lấy từ docs/clay/clay-a-goc-guong.css, M-vui.js, M-anh-men.css. Tắt hoạt ảnh (Trợ năng) ⇒ không nảy, không vệt lướt.
  */
 object Clay {
-    // Bảng màu gốc (giữ token app): nền, khối, lòng chảo, chữ, ngọc lục bảo, vàng chỉ cho điểm.
-    const val NEN = 0xFFECEBE7.toInt()
-    const val NEN_DINH = 0xFFE3EBE7.toInt()
-    const val THE = 0xFFF7F6F3.toInt()
-    const val LOM = 0xFFE9E8E3.toInt()
-    const val CHU = 0xFF0F1312.toInt()
-    const val CHU2 = 0xFF3A403D.toInt()
-    const val CHU3 = 0xFF565C59.toInt()
-    const val CHINH = 0xFF0F6B5C.toInt()
-    const val CHINH_INK = 0xFF0A5246.toInt()
-    const val CHINH_SOFT = 0xFFDCEBE6.toInt()
-    const val DIEM_SOFT = 0xFFFBECC0.toInt()
-    const val CANH = 0xFF8A3C0C.toInt()
+    // Bảng màu: trỏ về Diu (phong cách E «Ánh kim») — không chép cứng.
+    const val NEN = Diu.NEN
+    const val NEN_DINH = Diu.NEN
+    const val THE = Diu.NEN
+    const val LOM = Diu.LOM
+    const val CHU = Diu.CHU
+    const val CHU2 = Diu.CHU2
+    const val CHU3 = Diu.CHU3
+    const val CHINH = Diu.XANH
+    const val CHINH_INK = Diu.XANH_DAM
+    const val CHINH_SOFT = Diu.XANH_NHAT
+    const val DIEM_SOFT = Diu.KIM_NHAT
+    const val CANH = Diu.NO_CHU
     const val CANH_SOFT = 0xFFF9E7D2.toInt()
     const val LAM_SOFT = 0xFFE1E9FB.toInt()
     const val TIM_SOFT = 0xFFE7E5F8.toInt()
-    const val LOI = 0xFFB42318.toInt()
+    const val LOI = Diu.LOI
 
     enum class Kieu { THE, THAN, NGOC, VIEN, LOM, VIEN_TRON }
 

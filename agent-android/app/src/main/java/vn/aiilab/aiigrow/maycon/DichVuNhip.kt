@@ -396,7 +396,7 @@ class DichVuNhip : Service() {
         fun thongBaoNhac(ctx: Context, tieu: String, noi: String, khoaLuc: Long?): Notification {
             val mo = PendingIntent.getActivity(ctx, 1, Intent(ctx, ManChinh::class.java), PendingIntent.FLAG_IMMUTABLE)
             return NotificationCompat.Builder(ctx, KENH_NHAC)
-                .setSmallIcon(R.drawable.ic_aiigrow).setColor(Diu.XANH)
+                .setSmallIcon(R.drawable.ic_aiigrow).setColor(Diu.KIM_DAM)
                 .setContentTitle(tieu).setContentText(noi).setStyle(NotificationCompat.BigTextStyle().bigText(noi))
                 .setPriority(NotificationCompat.PRIORITY_HIGH).setCategory(NotificationCompat.CATEGORY_REMINDER)
                 .setContentIntent(mo).setAutoCancel(true)
@@ -425,7 +425,7 @@ class DichVuNhip : Service() {
             return NotificationCompat.Builder(ctx, KENH)
                 .setSmallIcon(R.drawable.ic_aiigrow)
                 .setContentTitle(TIEU_DE).setContentText(noi)
-                .setColor(Diu.XANH).setOngoing(true).setOnlyAlertOnce(true).setShowWhen(false)
+                .setColor(Diu.KIM_DAM).setOngoing(true).setOnlyAlertOnce(true).setShowWhen(false)
                 .setCategory(NotificationCompat.CATEGORY_STATUS).setContentIntent(mo)
                 .setForegroundServiceBehavior(NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE)
                 .build()
