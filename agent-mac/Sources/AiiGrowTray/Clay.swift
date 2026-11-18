@@ -33,8 +33,8 @@ enum ClayMau {
   static let canh = hex(0xa2412c)         // nợ / cảnh báo: cam sẫm
   static let canhSoft = hex(0xf9e7d2)
   static let loi = hex(0xa2412c)
-  static let lamSoft = hex(0xe1e9fb)
-  static let timSoft = hex(0xe7e5f8)
+  static let lamSoft = hex(0xe5dccf)      // viên nền icon (trước: xanh dương) = kem lõm E
+  static let timSoft = hex(0xe2d6c4)      // viên nền icon (trước: tím) = kem sẫm E
   static let bong = hex(0x786246)         // bóng tối rgba(120,98,70,.28)
   static let bongSang = hex(0xfffbf5)     // bóng sáng lệch lên-trái
   static let kimSang = hex(0xfbe7b0)

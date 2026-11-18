@@ -113,20 +113,17 @@ final class ChonTenModel: ObservableObject {
   }
 }
 
-/// Avatar chữ cái (cam / xanh như thiết kế).
+/// Avatar chữ cái: nền navy, chữ vàng kim, vòng vàng (phong cách E); bé đang chọn = vòng vàng dày.
 struct AvatarBe: View {
   let chu: String
   var thu = 0
   var co: CGFloat = 84
-  var chon = false                       // bé đang chọn = vòng vàng kim
-  static let mau: [[Color]] = [[ClayMau.hex(0xf6b46c), ClayMau.hex(0xee8f35)], [ClayMau.hex(0x8db8f2), ClayMau.hex(0x4c8be0)],
-                               [ClayMau.hex(0x9ad3a8), ClayMau.hex(0x3fa266)], [ClayMau.hex(0xd1a6ef), ClayMau.hex(0x9a5fd0)]]
+  var chon = false                       // bé đang chọn = vòng vàng kim dày
   var body: some View {
-    let m = AvatarBe.mau[thu % AvatarBe.mau.count]
-    Text(chu).font(.clay(size: co * 0.45, weight: .bold)).foregroundColor(.white)
+    Text(chu).font(.clay(size: co * 0.45, weight: .bold)).foregroundColor(ClayMau.kimNhat)
       .frame(width: co, height: co)
-      .background(Circle().fill(LinearGradient(colors: m, startPoint: .top, endPoint: .bottom)))
-      .overlay(Circle().strokeBorder(chon ? ClayMau.kimVien : ClayMau.nenSang, lineWidth: chon ? 4 : 3))
+      .background(Circle().fill(ClayMau.chu))
+      .overlay(Circle().strokeBorder(ClayMau.kimVien, lineWidth: chon ? 4 : 2))
       .shadow(color: ClayMau.bong.opacity(0.25), radius: 6, x: 0, y: 4)
       .accessibilityHidden(true)
   }
