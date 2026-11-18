@@ -69,7 +69,7 @@ export default function XinPhep() {
           </View>
         </TheD>
       ) : (
-        <TheD mong>
+        <TheD mong lom>
           <ChuD kieu="rat" co={13} mau={D.chu2}>{loai === "mo_web" ? "Trang web nào?" : loai === "cai_app" ? "App nào?" : "Con muốn xin gì?"}</ChuD>
           <TextInput value={gia} onChangeText={setGia} autoCapitalize="none" accessibilityLabel="Tên app hoặc trang web"
             placeholder={loai === "mo_web" ? "vd scratch.mit.edu" : loai === "cai_app" ? "vd Minecraft" : ""} placeholderTextColor={D.chu3}
@@ -88,7 +88,7 @@ export default function XinPhep() {
           <NutD key={x} chu={x === TU_VIET ? "Tự viết…" : x} loai={lyDo === x ? "chinh" : "phu"} nho bam={() => setLyDo(lyDo === x ? null : x)} />
         ))}
         {lyDo === TU_VIET ? (
-          <TheD mong>
+          <TheD mong lom>
             <TextInput value={tuViet} onChangeText={setTuViet} maxLength={100} autoFocus accessibilityLabel="Lời nhắn của con" placeholder="Con gõ ở đây…"
               placeholderTextColor={D.chu3} style={{ fontFamily: FD.dam, fontSize: 16, color: D.chu, minHeight: 28, padding: 0 }} />
           </TheD>

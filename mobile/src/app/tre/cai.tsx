@@ -41,7 +41,7 @@ export default function XinCai() {
       <View style={{ flexDirection: "row", gap: 8 }}>
         {LY_DO.map((x) => <NutD key={x} chu={x} nho loai={lyDo === x ? "chinh" : "phu"} style={{ flex: 1 }} bam={() => setLyDo(lyDo === x ? null : x)} />)}
       </View>
-      <TheD mong>
+      <TheD mong lom>
         <TextInput value={tuViet} onChangeText={setTuViet} maxLength={120} multiline accessibilityLabel="Con viết thêm" placeholder="vd Con xây mô hình trường mình, cô giáo giao."
           placeholderTextColor={D.chu3} style={{ fontFamily: FD.dam, fontSize: 16, color: D.chu, minHeight: 48, padding: 0, textAlignVertical: "top" }} />
       </TheD>

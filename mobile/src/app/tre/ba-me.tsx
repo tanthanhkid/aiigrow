@@ -6,7 +6,7 @@ import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { LoiApi } from "@/lib/api";
 import { may } from "@/lib/api-tre";
-import { D } from "@/lib/diu";
+import { BONG_D, D } from "@/lib/diu";
 import { Icon3D } from "@/lib/ui";
 import { BanPhim, ChuD, LoiD, ManD, NutD, O6, PillD, TheD, TieuD, VongD, mmss, useDemNguoc } from "@/lib/ui-diu";
 
@@ -61,7 +61,7 @@ export default function BaMe() {
         <TheD style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 14 }}>
           {APP_MO.map(([ic, t]) => (
             <View key={t} style={{ width: "25%", alignItems: "center", gap: 4 }}>
-              <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: D.ic, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={34} /></View>
+              <View style={{ width: 52, height: 52, borderRadius: 16, backgroundColor: D.ic, alignItems: "center", justifyContent: "center", boxShadow: BONG_D.lom }}><Icon3D ten={ic} co={34} /></View>
               <ChuD kieu="rat" co={12} mau={D.chu2} dong={1}>{t}</ChuD>
             </View>
           ))}

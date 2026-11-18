@@ -1,39 +1,67 @@
-// Token bản «Dịu» — CHỈ cho phía Con trên điện thoại (thiết kế chốt 06/11, `docs/thiet-ke-chot/con-dt-*`, kit condt-tre/kit-diu.css).
-// Không đụng token Clay của Ba Mẹ (mau.ts / clay.ts). Luật: nền kem phẳng, MỘT màu nhấn xanh lá (nút chính, tab đang chọn, vòng giờ,
-// thanh tiến độ); vàng CHỈ cho sao; thẻ trắng viền mảnh + bóng xám mềm, ≤ 1 thẻ màu nhạt mỗi màn; nút chính cao 52 màu đặc; chữ Nunito.
-// Tương phản (WCAG 2.2): chu #1f2a37 / nen 14,3:1 · chu2 #5f6b7a / nen 5,2:1 · trắng / xanh #2f9e5f 3,3:1 (chữ ≥ 16 đậm — mức chữ lớn)
-// · xanhD #1f6e42 / xanhN 6,0:1 · saoInk #8a5a00 / vang 5,4:1.
+import { Platform } from "react-native";
+
+// Token phía Con trên điện thoại. Tên token giữ như bản «Dịu» (06/11, `docs/thiet-ke-chot/con-dt-*`) nhưng GIÁ TRỊ đã sang phong cách E «Ánh kim»
+// (18/11, #396 #397 — khớp agent-android `maycon/Diu.kt` bản E): nền kem neumorphism #ECE4D9, thẻ CÙNG màu nền nổi bằng bóng đôi, ô nhập / ô chọn lõm,
+// nút chính vàng kim chữ navy, giờ ngủ nền navy; tiêu đề + số Fraunces 600, chữ thường Be Vietnam Pro. `xanh` (màu «chính») nay là navy.
+// Không đụng token Ba Mẹ (mau.ts / clay.ts) — bóng / gradient chép lại ở đây để hai phía sửa độc lập.
+// Tương phản (WCAG 2.2) trên nền #ECE4D9: chu #0A1629 14,4:1 · chu2 #3B352E 9,6:1 · chu3 #5F554B 5,8:1 (trên kem lõm #E2D6C4 5,1:1) · loi #A2412C 5,0:1
+// · navy / vàng kim (điểm sẫm nhất #C9973B) 6,9:1 · vàng #F4C76A / navy 11,4:1 · demChu2 #D4C9BA / dem 11,1:1 · chu3 / tat #DDD3C6 4,9:1 · navy / màu avt ≥ 6,7:1.
 
 export const D = {
-  nen: "#fbf8f2", the: "#ffffff", vien: "#ece7dc", vien2: "#c9c2b4", xamNhat: "#f1efe9", ic: "#f6f3ec",
-  chu: "#1f2a37", chu2: "#5f6b7a", chu3: "#9aa3ae",
-  xanh: "#2f9e5f", xanhN: "#e8f5ed", xanhD: "#1f6e42",
-  // vàng chỉ cho sao / thưởng
-  vang: "#fff5d9", vangVien: "#f5e6b8", sao: "#f5b70a", saoInk: "#8a5a00",
-  // chờ (⏳ chờ duyệt / chờ trao) — xám trung tính, không thêm màu nhấn thứ hai
-  cho: "#9aa3ae",
-  loi: "#b42318", loiN: "#fef0ee",
-  // giờ ngủ: nền tối dịu
-  dem: "#1f2a44", demThe: "#2a3657", demChu: "#e8ecf7", demChu2: "#aab4cc",
-  // vòng giờ: rãnh
-  ranh: "#e9e5dc",
+  nen: "#ECE4D9", the: "#ECE4D9", vien: "#D9CDBC", vien2: "#C2B5A3", xamNhat: "#E3D9CB", ic: "#E3D9CB",
+  chu: "#0A1629", chu2: "#3B352E", chu3: "#5F554B",
+  // «chính» = navy (chấm PIN đã gõ, ô đang gõ…); xanhN = ô chọn / thẻ nhấn kem sẫm (lõm); xanhD = chữ nhấn navy
+  xanh: "#0A1629", xanhN: "#E2D6C4", xanhD: "#0A1629",
+  // sao / thưởng: thẻ kem ánh vàng, viền vàng mảnh; chữ sao navy (≥ 6,6:1 cả trên vàng kim)
+  vang: "#F1E2BF", vangVien: "#D9AE57", sao: "#F4C76A", saoInk: "#0A1629",
+  // chờ (⏳ chờ duyệt / chờ trao) — chữ trung tính trên kem lõm, không thêm màu nhấn
+  cho: "#5F554B",
+  loi: "#A2412C", loiN: "#FDECEA",
+  // giờ ngủ / khoá: nền navy, thẻ navy sáng hơn, chữ kem
+  dem: "#0A1629", demThe: "#14233D", demChu: "#F2EBE3", demChu2: "#D4C9BA",
+  // vòng giờ / thanh tiến độ: rãnh kem sẫm, cung đồng kim
+  ranh: "#E2D6C4", kimDam: "#C9973B",
+  // ô nhập lõm, nút tắt (nền đặc — không giảm opacity)
+  lom: "#E5DCCF", tat: "#DDD3C6",
+  // sáng kem (bóng sáng lệch lên-trái)
+  sang: "#FFFBF5",
   // chạy thử (chỉ hiện ở bản dev): viền cam đứt
-  thu: "#b8611a",
-  avt: ["#f5a957", "#6aa5e8", "#a98be0", "#e8829b", "#5fbf8f", "#e8b54f"],
+  thu: "#983E04",
+  // vòng tên bé: giữ màu riêng từng bé (chữ cái navy ≥ 6:1 trên mọi màu)
+  avt: ["#F5A957", "#6AA9E9", "#B48CDE", "#E98AA9", "#5CB88A", "#E8B54F"],
 } as const;
 
-/** Nunito — web nạp @font-face lúc chạy (phong-chu*.ts), native nạp bằng useFonts (không chờ: chưa xong thì chữ hệ thống). */
-export const FD = { dam: "Nunito_700Bold", rat: "Nunito_800ExtraBold", den: "Nunito_900Black" } as const;
+/** Chữ: `dam` = Be Vietnam Pro 400 (thân), `rat` = Be Vietnam Pro 700 (dòng tiêu, nút), `den` = Fraunces 600 (tiêu đề màn, số to).
+ *  Tệp phông nhúng sẵn lúc build (plugin expo-font trong app.json); web nạp @font-face ở phong-chu.web.ts. iOS gọi theo tên PostScript. */
+export const FD = Platform.OS === "ios"
+  ? ({ dam: "BeVietnamPro-Regular", rat: "BeVietnamPro-Bold", den: "Fraunces-SemiBold" } as const)
+  : ({ dam: "BeVietnamPro_400Regular", rat: "BeVietnamPro_700Bold", den: "Fraunces_600SemiBold" } as const);
 
 /** Kích thước chuẩn: nút chính cao 52, thẻ bo 24, lề màn 16, khoảng giữa khối 12. */
 export const KT = { nut: 52, nutNho: 46, bo: 24, boNut: 26, le: 16, khoang: 12, tab: 64 } as const;
 
-/** Bóng xám mềm của thẻ (boxShadow — RN 0.76+ có ở cả native lẫn web). */
+/** Bóng «Ánh kim» (boxShadow — RN 0.76+ có ở cả native lẫn web): bóng đôi nâu ấm lệch xuống-phải + sáng kem lệch lên-trái. */
 export const BONG_D = {
-  the: "0px 2px 8px rgba(30,30,20,0.06), 0px 1px 2px rgba(30,30,20,0.05)",
-  nut: "0px 3px 8px rgba(47,158,95,0.28)",
-  phim: "0px 2px 6px rgba(30,30,20,0.08)",
-  noi: "0px -2px 12px rgba(30,30,20,0.06)",
+  /** thẻ / khối lớn nổi */
+  the: "8px 8px 16px rgba(120,98,70,0.28), -8px -8px 16px #FFFBF5",
+  /** nút vàng kim: nổi đôi + chỉ sáng mép trên */
+  nut: "4px 4px 10px rgba(120,98,70,0.28), -4px -4px 10px #FFFBF5, inset 0px 1px 0px rgba(255,255,255,0.6)",
+  /** nút nhỏ / phím / chip nổi */
+  phim: "4px 4px 9px rgba(120,98,70,0.28), -4px -4px 9px #FFFBF5",
+  /** thanh tab / lớp nổi */
+  noi: "0px -6px 24px -12px rgba(120,98,70,0.35), 0px 16px 26px -10px rgba(120,98,70,0.40), inset 0px 1px 0px #FFFBF5",
+  /** lõm: ô nhập, nút phụ, ô đang chọn, rãnh */
+  lom: "inset 4px 4px 8px rgba(120,98,70,0.28), inset -4px -4px 8px #FFFBF5",
+  /** khối navy trên kem (giờ ngủ, nút chụp): nổi đôi + viền trong vàng mảnh */
+  dem: "5px 6px 14px rgba(120,98,70,0.30), -4px -4px 10px #FFFBF5, inset 0px 0px 0px 1px rgba(244,199,106,0.35)",
+} as const;
+
+/** Lớp gradient (backgroundImage) — luôn đặt kèm `backgroundColor` đặc gần màu giữa để tương phản tính đúng khi gradient không vẽ. */
+export const MEN_D = {
+  /** vàng kim loại 135° (mẫu E `--kim`) */
+  kim: "linear-gradient(135deg, #FBE7B0 0%, #F4C76A 38%, #C9973B 72%, #F2D48C 100%)",
+  /** navy loang (khối tối) */
+  dem: "radial-gradient(90% 70% at 85% 10%, #1d3158 0%, #0A1629 100%)",
 } as const;
 
 /** Màu avatar theo thứ tự bé (Bảo Anh cam, Bảo Minh lam…). */

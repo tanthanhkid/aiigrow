@@ -10,7 +10,7 @@ import { usePhien } from "@/lib/phien";
 import { Rob, useLam, useTai } from "@/lib/ui";
 import { useTre } from "@/lib/ui-tre";
 import { may, type HoSoBe, type HoSoMay } from "@/lib/api-tre";
-import { D } from "@/lib/diu";
+import { BONG_D, D } from "@/lib/diu";
 import { chuAvt } from "@/lib/con-diu";
 import { VienSao } from "@/lib/man-con";
 import { AvtD, ChoD, ChuD, LoiD, ManD, NutD, PillD } from "@/lib/ui-diu";
@@ -43,7 +43,7 @@ function DanhSach() {
       <View style={{ alignSelf: "flex-start" }}><PillD chu={d.tenMay ? `${d.tenMay} · đang khoá` : "Máy đang khoá"} ic="khoa" /></View>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
         <Rob ten="rob-goc" co={110} />
-        <View style={{ flex: 1, backgroundColor: D.the, borderRadius: 20, borderWidth: 1, borderColor: D.vien, padding: 14 }}>
+        <View style={{ flex: 1, backgroundColor: D.the, borderRadius: 20, padding: 15, boxShadow: BONG_D.the }}>
           <ChuD kieu="den" co={18}>Ai đang dùng máy?</ChuD>
           <ChuD co={14} mau={D.chu2}>Chạm vào tên của con nhé.</ChuD>
         </View>
@@ -56,8 +56,8 @@ function DanhSach() {
             <Pressable key={c.id} onPress={() => cham(c, i)} disabled={dangChay} accessibilityRole="button" accessibilityLabel={`Mình là ${c.ten}`}
               accessibilityState={{ busy: dang }}
               style={({ pressed }) => ({ flexBasis: "46%", flexGrow: 1, alignItems: "center", gap: 10, paddingVertical: 18, borderRadius: 24, backgroundColor: D.the,
-                borderWidth: dang ? 2 : 1, borderColor: dang ? D.xanh : D.vien, boxShadow: "0px 2px 8px rgba(30,30,20,0.06)", opacity: pressed ? 0.9 : 1 })}>
-              <AvtD ten={c.ten} i={i} co={80} chu={chuAvt(c.ten, ds.map((x) => x.ten))} />
+                borderWidth: dang ? 2 : 0, borderColor: dang ? D.vangVien : "transparent", boxShadow: pressed || dang ? BONG_D.lom : BONG_D.the })}>
+              <AvtD ten={c.ten} i={i} co={80} chu={chuAvt(c.ten, ds.map((x) => x.ten))} chon={dang} />
               <ChuD kieu="den" co={18} dong={1}>{c.ten}</ChuD>
               {typeof c.sao === "number" ? <VienSao sao={c.sao} /> : null}
             </Pressable>

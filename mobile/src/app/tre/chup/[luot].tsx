@@ -11,7 +11,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { cauLoi, useLam } from "@/lib/ui";
 import { useTaiTre, gioCua } from "@/lib/ui-tre";
-import { D, FD } from "@/lib/diu";
+import { BONG_D, D, FD, MEN_D } from "@/lib/diu";
 import { ChuD, LoiD, ManD, NutD, SaoD, TheD } from "@/lib/ui-diu";
 import { kid, nopBai, type AnhNop, type NvTreSao } from "@/lib/api-tre";
 
@@ -64,18 +64,19 @@ export default function Chup() {
 }
 
 type Cach = "ghi" | "anh" | "viet";
-/** Ba nút cách nộp ở đáy (Ghi âm · Ảnh · Viết): đang chọn = nền xanh. `toi` = đặt trên nền camera tối. */
+/** Ba nút cách nộp ở đáy (Ghi âm · Ảnh · Viết): rãnh kem lõm, đang chọn = vàng kim chữ navy. `toi` = đặt trên nền camera navy. */
 function ChonCach({ cach, doi, toi }: { cach: Cach; doi: (c: Cach) => void; toi?: boolean }) {
   const ds: [Cach, string][] = [["ghi", "Ghi âm"], ["anh", "Ảnh"], ["viet", "Viết"]];
   return (
-    <View accessibilityRole="tablist" style={{ flexDirection: "row", gap: 6, padding: 5, borderRadius: 26, backgroundColor: toi ? "rgba(255,255,255,0.12)" : D.the,
-      borderWidth: toi ? 0 : 1, borderColor: D.vien }}>
+    <View accessibilityRole="tablist" style={{ flexDirection: "row", gap: 6, padding: 5, borderRadius: 26, backgroundColor: toi ? D.demThe : D.lom,
+      boxShadow: toi ? undefined : BONG_D.lom }}>
       {ds.map(([c, chu]) => {
         const d = c === cach;
         return (
           <Pressable key={c} onPress={() => doi(c)} accessibilityRole="tab" accessibilityState={{ selected: d }} accessibilityLabel={`Nộp bằng ${chu.toLowerCase()}`}
-            style={{ flex: 1, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: d ? D.xanh : "transparent" }}>
-            <Text style={{ fontFamily: FD.rat, fontSize: 15, color: d ? "#fff" : toi ? "#e8ecf7" : D.chu2 }}>{chu}</Text>
+            style={{ flex: 1, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", backgroundColor: d ? D.sao : "transparent",
+              backgroundImage: d ? MEN_D.kim : undefined, boxShadow: d && !toi ? BONG_D.nut : undefined }}>
+            <Text style={{ fontFamily: FD.rat, fontSize: 15, color: d ? D.chu : toi ? D.demChu : D.chu2 }}>{chu}</Text>
           </Pressable>
         );
       })}
@@ -148,8 +149,8 @@ function GhiAm({ ten, gui, dangChay, loi, viet, doi }: { ten: string; gui: (a: A
   return (
     <ManD lui={true} tieu={ten} day={<><LoiD loi={nhac ?? loi} />{day}{doi}</>}>
       <View style={{ alignItems: "center", gap: 10, paddingTop: 16 }}>
-        <View style={{ width: 150, height: 150, borderRadius: 75, backgroundColor: trang === "ghi" ? D.xanhN : D.the, borderWidth: trang === "ghi" ? 3 : 1,
-          borderColor: trang === "ghi" ? D.xanh : D.vien, alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 150, height: 150, borderRadius: 75, backgroundColor: trang === "ghi" ? D.xanhN : D.lom, borderWidth: trang === "ghi" ? 3 : 0,
+          borderColor: trang === "ghi" ? D.kimDam : "transparent", alignItems: "center", justifyContent: "center", boxShadow: BONG_D.lom }}>
           <Text style={{ fontFamily: FD.den, fontSize: 38, color: D.chu, fontVariant: ["tabular-nums"] }}>{mmss(giay)}</Text>
         </View>
         <ChuD kieu="rat" co={15} mau={D.chu2} giua>{trang === "ghi" ? "Grow đang nghe… nói xong bấm Dừng nhé!" : trang === "xong" ? "Nghe lại rồi gửi Ba Mẹ nhé!" : "Kể lại hoặc đọc to cho Ba Mẹ nghe"}</ChuD>
@@ -164,10 +165,10 @@ function GhiAm({ ten, gui, dangChay, loi, viet, doi }: { ten: string; gui: (a: A
   );
 }
 
-/** Ô chữ Dịu (thẻ trắng viền mảnh, chữ Nunito). */
+/** Ô chữ (kem lõm, chữ Be Vietnam Pro). */
 function OChu({ nhan, gia, doi, dong = 4 }: { nhan: string; gia: string; doi: (t: string) => void; dong?: number }) {
   return (
-    <TheD mong>
+    <TheD mong lom>
       <ChuD kieu="rat" co={13} mau={D.chu2}>{nhan}</ChuD>
       <TextInput value={gia} onChangeText={doi} multiline maxLength={400} accessibilityLabel={nhan} placeholder="Con gõ ở đây…" placeholderTextColor={D.chu3}
         style={{ minHeight: dong * 24, fontFamily: FD.dam, fontSize: 16, color: D.chu, textAlignVertical: "top", padding: 0 }} />
@@ -238,12 +239,12 @@ function Camera({ tieu, phu, ma, gui, dangChay, loi, xoaLoi, doi }: { tieu: stri
   };
   const loiHien = loiAnh ?? loi;
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: "#141a22" }}>
-      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: "#7aa6af", overflow: "hidden" }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: D.dem }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: D.demThe, overflow: "hidden" }}>
         {!web && quyen?.granted ? <CameraView ref={cam} facing="back" style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} /> : null}
-        <View pointerEvents="none" style={{ width: "78%", maxWidth: 420, aspectRatio: 1, borderWidth: 3, borderColor: "rgba(255,255,255,.9)", borderRadius: 28 }} />
-        <View style={{ position: "absolute", left: 16, bottom: 16, backgroundColor: "rgba(0,0,0,.62)", paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
-          <Text style={{ fontFamily: FD.rat, fontSize: 13, color: "#fff" }}>{`${gio} · ${ma.slice(0, 8).toUpperCase()}`}</Text>
+        <View pointerEvents="none" style={{ width: "78%", maxWidth: 420, aspectRatio: 1, borderWidth: 3, borderColor: D.sao, borderRadius: 28 }} />
+        <View style={{ position: "absolute", left: 16, bottom: 16, backgroundColor: D.dem, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 }}>
+          <Text style={{ fontFamily: FD.rat, fontSize: 13, color: D.demChu }}>{`${gio} · ${ma.slice(0, 8).toUpperCase()}`}</Text>
         </View>
         <View style={{ position: "absolute", left: 12, right: 12, top: 16, backgroundColor: D.the, borderRadius: 22, paddingVertical: 12, paddingHorizontal: 14, gap: 2 }}>
           <ChuD kieu="den" co={16}>{`📷 ${tieu}`}</ChuD>
@@ -254,11 +255,11 @@ function Camera({ tieu, phu, ma, gui, dangChay, loi, xoaLoi, doi }: { tieu: stri
       <View style={{ height: 130, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 56 }}>
         <Pressable onPress={() => (router.canGoBack() ? router.back() : router.replace("/tre/nhiem-vu"))} accessibilityRole="button" hitSlop={8}
           style={{ minWidth: 48, minHeight: 48, alignItems: "center", justifyContent: "center" }}>
-          <Text style={{ fontFamily: FD.rat, fontSize: 16, color: "#fff" }}>Huỷ</Text>
+          <Text style={{ fontFamily: FD.rat, fontSize: 16, color: D.demChu }}>Huỷ</Text>
         </Pressable>
         <Pressable onPress={chup} disabled={dangChay} accessibilityRole="button" accessibilityLabel={web || quyen?.granted ? "Chụp và gửi cho Ba Mẹ" : "Cho phép dùng camera"}
-          style={{ width: 84, height: 84, borderRadius: 42, borderWidth: 5, borderColor: "#fff", alignItems: "center", justifyContent: "center" }}>
-          {dangChay ? <ActivityIndicator color="#fff" /> : <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#fff" }} />}
+          style={{ width: 84, height: 84, borderRadius: 42, borderWidth: 5, borderColor: D.sao, alignItems: "center", justifyContent: "center" }}>
+          {dangChay ? <ActivityIndicator color={D.sao} /> : <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: D.sao, backgroundImage: MEN_D.kim }} />}
         </Pressable>
         <View style={{ width: 48 }} />
       </View>
