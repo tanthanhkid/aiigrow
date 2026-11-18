@@ -9,7 +9,7 @@ import { router, useFocusEffect } from "expo-router";
 import { View } from "react-native";
 import { daXem, ghiDaXem, guiHangCho, kid, taiSao, type LuotTre, type NhaTreSao, type NvTreSao, type ToiTre } from "@/lib/api-tre";
 import { saoTuMayChu, soSao, thuGio } from "@/lib/con-diu";
-import { D } from "@/lib/diu";
+import { BONG_D, D } from "@/lib/diu";
 import { Icon3D } from "@/lib/ui";
 import { ChaoDau, ThePhut, TheSao, diGio } from "@/lib/man-con";
 import { ChuD, ChoD, DongD, ManD, MatMangD, PillD, TheD } from "@/lib/ui-diu";
@@ -52,7 +52,7 @@ export default function Nha() {
       ) : moHet ? (
         <TheD nhanDoc="Hôm nay Mở hết. Không tính phút">
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: D.xanhN, alignItems: "center", justifyContent: "center" }}><Icon3D ten="tick" co={40} /></View>
+            <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: D.xanhN, alignItems: "center", justifyContent: "center", boxShadow: BONG_D.lom }}><Icon3D ten="tick" co={40} /></View>
             <View style={{ flex: 1, gap: 2 }}>
               <ChuD kieu="rat" co={13.5} mau={D.chu2}>Hôm nay Mở hết</ChuD>
               <ChuD kieu="den" co={20}>Mở hết · không tính phút</ChuD>

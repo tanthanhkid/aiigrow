@@ -11,7 +11,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { LoiApi } from "@/lib/api";
 import { may, nenMay } from "@/lib/api-tre";
 import { GHEP_THU_TOI_DA, loaiLoiGhep, maTuQr, type LoiGhep } from "@/lib/con-diu";
-import { D } from "@/lib/diu";
+import { BONG_D, D } from "@/lib/diu";
 import { Icon3D } from "@/lib/ui";
 import { BanPhim, BuocD, CamXuc, ChuD, IcO, LoiD, ManD, MatMangD, NutD, O6, PillD, TheD, TieuD, useDemNguoc } from "@/lib/ui-diu";
 import { RobChao } from "@/lib/man-con";
@@ -222,7 +222,7 @@ function QuetQr({ lui, go, ghep, dangChay, loi }: { lui: () => void; go: () => v
   useEffect(() => { if (!web && quyen && !quyen.granted && quyen.canAskAgain) xinQuyen(); }, [web, quyen, xinQuyen]);
   return (
     <ManD lui={lui} tieu="Quét mã trên máy Ba Mẹ" day={<NutD chu="Gõ mã 6 số thay" loai="phu" bam={go} />}>
-      <View style={{ alignSelf: "center", width: 280, height: 280, borderRadius: 28, overflow: "hidden", backgroundColor: "#22303f", alignItems: "center", justifyContent: "center" }}>
+      <View style={{ alignSelf: "center", width: 280, height: 280, borderRadius: 28, overflow: "hidden", backgroundColor: D.dem, alignItems: "center", justifyContent: "center", boxShadow: BONG_D.dem }}>
         {!web && quyen?.granted ? (
           <CameraView style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0 }} facing="back" barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
             onBarcodeScanned={dangChay ? undefined : ({ data }) => {
@@ -234,7 +234,7 @@ function QuetQr({ lui, go, ghep, dangChay, loi }: { lui: () => void; go: () => v
               setTimeout(() => { daQuet.current = false; }, 3000);
             }} />
         ) : <Icon3D ten="tim_kiem" co={72} />}
-        <View pointerEvents="none" style={{ width: 200, height: 200, borderRadius: 22, borderWidth: 3, borderColor: "rgba(255,255,255,0.9)" }} />
+        <View pointerEvents="none" style={{ width: 200, height: 200, borderRadius: 22, borderWidth: 3, borderColor: D.sao }} />
       </View>
       <ChuD kieu="rat" co={14} mau={D.chu2} giua>{web ? "Máy này không quét được — gõ mã 6 số thay nhé." : la ? "Mã này không phải của AiiGrow — quét mã trong «Thêm máy» nhé." : `Mã đổi sau ${MA_PHUT} phút`}</ChuD>
       {dangChay ? <ChuD kieu="rat" co={14} mau={D.xanhD} giua>Quét được · đang ghép máy này…</ChuD> : null}

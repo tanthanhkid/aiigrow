@@ -5,7 +5,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { LoiApi } from "@/lib/api";
 import { kid, nopBai, type NvTreSao } from "@/lib/api-tre";
-import { D } from "@/lib/diu";
+import { BONG_D, D } from "@/lib/diu";
 import { useLam } from "@/lib/ui";
 import { ChoD, ChuD, LoiD, ManD, MatMangD, NutD, PillD, TheD, TieuD, VongD } from "@/lib/ui-diu";
 import { batDauLuc, docTo, useTaiTre, useTre } from "@/lib/ui-tre";
@@ -57,7 +57,7 @@ export default function DangLam() {
       {d.bang_chung !== "xong" ? (
         <TheD mong>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-            <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: D.xanhN, alignItems: "center", justifyContent: "center" }}>
+            <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: D.xanhN, alignItems: "center", justifyContent: "center", boxShadow: BONG_D.lom }}>
               <ChuD kieu="den" co={14} mau={D.xanhD}>1</ChuD>
             </View>
             <ChuD kieu="rat" co={16} style={{ flex: 1 }}>{d.mo_ta || d.ten}</ChuD>

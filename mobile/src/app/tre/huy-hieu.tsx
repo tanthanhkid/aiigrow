@@ -3,7 +3,7 @@
 import { router } from "expo-router";
 import { View } from "react-native";
 import { kid, type ThanhTich } from "@/lib/api-tre";
-import { D } from "@/lib/diu";
+import { BONG_D, D } from "@/lib/diu";
 import { Icon3D, type TenIcon } from "@/lib/ui";
 import { ChoD, ChuD, ManD, NutD, PillD, TheD, ThanhD } from "@/lib/ui-diu";
 import { ngayCua, useTaiTre } from "@/lib/ui-tre";
@@ -30,12 +30,12 @@ export default function HuyHieu() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
         {ds.map((h) => (
           <View key={h.ma} accessibilityLabel={`${h.ten}: ${h.dat ? "đã đạt" : "chưa đạt"}. ${h.mo_ta}`}
-            style={{ flexBasis: "46%", flexGrow: 1, alignItems: "center", gap: 6, padding: 14, borderRadius: 22, backgroundColor: h.dat ? D.the : D.xamNhat,
-              borderWidth: 1, borderColor: D.vien, opacity: h.dat ? 1 : 0.7 }}>
-            <View>
+            style={{ flexBasis: "46%", flexGrow: 1, alignItems: "center", gap: 6, padding: 15, borderRadius: 22, backgroundColor: h.dat ? D.the : D.xamNhat,
+              boxShadow: h.dat ? BONG_D.the : BONG_D.lom }}>
+            <View style={{ opacity: h.dat ? 1 : 0.6 }}>
               <Icon3D ten={HINH[h.ma] ?? "sao"} co={54} />
-              {h.dat ? <View style={{ position: "absolute", right: -6, bottom: -4, width: 22, height: 22, borderRadius: 11, backgroundColor: D.xanh, alignItems: "center",
-                justifyContent: "center", borderWidth: 2, borderColor: "#fff" }}><ChuD kieu="den" co={12} mau="#fff">✓</ChuD></View> : null}
+              {h.dat ? <View style={{ position: "absolute", right: -6, bottom: -4, width: 22, height: 22, borderRadius: 11, backgroundColor: D.dem, alignItems: "center",
+                justifyContent: "center", borderWidth: 2, borderColor: D.sao }}><ChuD kieu="rat" co={12} mau={D.sao}>✓</ChuD></View> : null}
             </View>
             <ChuD kieu="den" co={15} giua dong={1}>{h.ten}</ChuD>
             <ChuD kieu="rat" co={12.5} mau={D.chu2} giua dong={2}>{h.dat && h.datLuc ? `Đạt ${ngayCua(h.datLuc).slice(0, 5)}` : h.mo_ta}</ChuD>

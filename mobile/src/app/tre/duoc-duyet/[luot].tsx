@@ -7,7 +7,7 @@ import { Pressable, Text, View } from "react-native";
 import { ghiDaXem, kid, taiSao, type LuotTre, type NhaTreSao, type ToiTre } from "@/lib/api-tre";
 import { soSao, soVN, traNoKhiDuyet } from "@/lib/con-diu";
 import { NO } from "@/lib/man-con";
-import { D, FD } from "@/lib/diu";
+import { BONG_D, D, FD } from "@/lib/diu";
 import { Rob } from "@/lib/ui";
 import { ChoD, ChuD, ManD, NutD, TheD, TieuD } from "@/lib/ui-diu";
 import { gioCua, useTaiTre } from "@/lib/ui-tre";
@@ -57,8 +57,8 @@ export default function DuocDuyet() {
             <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup" accessibilityLabel="Gửi biểu cảm cho Ba Mẹ">
               {BIEU_CAM.map((e) => (
                 <Pressable key={e} onPress={() => setChon(e === chon ? null : e)} accessibilityRole="radio" accessibilityState={{ checked: e === chon }}
-                  style={{ minHeight: 44, minWidth: 56, paddingHorizontal: 14, borderRadius: 22, borderWidth: e === chon ? 2 : 1, alignItems: "center", justifyContent: "center",
-                    borderColor: e === chon ? D.xanh : D.vien, backgroundColor: e === chon ? D.xanhN : D.the }}>
+                  style={{ minHeight: 44, minWidth: 56, paddingHorizontal: 14, borderRadius: 22, borderWidth: e === chon ? 2 : 0, alignItems: "center", justifyContent: "center",
+                    borderColor: e === chon ? D.vangVien : "transparent", backgroundColor: e === chon ? D.xanhN : D.the, boxShadow: e === chon ? BONG_D.lom : BONG_D.phim }}>
                   <Text style={{ fontSize: 22 }}>{e}</Text>
                 </Pressable>
               ))}

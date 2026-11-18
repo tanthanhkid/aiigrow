@@ -51,8 +51,8 @@ export function ChaoDau({ ten, phu }: { ten: string; phu: string }) {
   );
 }
 
-/** Màu viên sao âm (đang nợ) — mẫu thống nhất 15/11: nền #f9e7d2, chữ #8a3c0c. */
-export const NO = { nen: "#f9e7d2", chu: "#8a3c0c", vien: "#f0d3b4" };
+/** Màu viên sao âm (đang nợ) — mẫu thống nhất 15/11, chữ khớp Android E (NO_CHU #983e04 — 5,9:1 trên nền #f9e7d2). */
+export const NO = { nen: "#f9e7d2", chu: "#983e04", vien: "#efcfae" };
 
 /** Viên sao nhỏ: dương ⇒ vàng «⭐ 30 sao», âm ⇒ viên cảnh báo «⭐ −20 sao». */
 export function VienSao({ sao, chu }: { sao: number; chu?: string }) {
