@@ -146,8 +146,8 @@ internal sealed class TrayContext : ApplicationContext
     {
         _toastMuc = muc;
         _toastAt = DateTimeOffset.Now;
-        // E: bong bóng khay dùng icon AiiGrow (ToolTipIcon.User = icon của NotifyIcon, nền E) thay «i» xanh / tam giác vàng của hệ thống
-        _ni.ShowBalloonTip(ms, title, text, ToolTipIcon.User);
+        // E: bong bóng khay dùng icon AiiGrow (ToolTipIcon.None = icon của NotifyIcon, nền E) thay «i» xanh / tam giác vàng của hệ thống
+        _ni.ShowBalloonTip(ms, title, text, ToolTipIcon.None);
     }
 
     /// <summary>Mở app to (một bản duy nhất; đã mở thì đưa lên trước). <paramref name="tuToast"/> = bấm từ bóng báo ⇒ coi như đã xem tin mới.
