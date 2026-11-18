@@ -19,7 +19,9 @@ export EXPO_PUBLIC_API="${EXPO_PUBLIC_API:-https://aiigrow.aiilab.vn}"
 
 # Cổng: gói expo-* lệch bản SDK thì dừng — TF build 21 crash lúc mở vì prebuild ExpoImageManipulator
 # cần ký hiệu của ExpoModulesCore mới hơn (dyld «Symbol missing»). Sửa: npx expo install --fix
-npx expo install --check || { echo "DỪNG: phụ thuộc expo lệch SDK — chạy 'npx expo install --fix' rồi build lại" >&2; exit 1; }
+npm run -s check:expo || dung "phụ thuộc expo lệch SDK — chạy 'npx expo install --fix', commit rồi build lại"
+# expo prebuild --clean sửa package.json (scripts ios/android) — khôi phục file đã theo dõi khi thoát nếu cây sạch lúc đầu
+if [ -z "$(git status --porcelain --untracked-files=no)" ]; then trap 'git checkout -q -- :/' EXIT; fi
 buoc "prebuild $TEN ($BUNDLE)"
 CI=1 npx expo prebuild --platform ios --clean >/dev/null
 (cd ios && pod install >/dev/null)

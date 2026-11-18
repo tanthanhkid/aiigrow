@@ -40,8 +40,9 @@
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo run:android",
-    "ios": "expo run:ios",
+    "check:expo": "CI=1 EXPO_OFFLINE=1 expo install --check",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
