@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { Icon, Icon3D, Rob, type LinhVat, type TenIcon } from "./ui";
-import { BONG_D, D, FD, KT, MEN_D, mauAvt } from "./diu";
+import { BONG_D, D, FD, KT, MEN_D } from "./diu";
 import { useTre } from "./ui-tre";
 import { chuAvt } from "./con-diu";
 
@@ -150,11 +150,12 @@ export const ChipD = ({ chu, ic, bam }: { chu: string; ic?: TenIcon; bam?: () =>
 
 // ---------------------------------------------------------------- avatar, chip tên «Bảo Anh ▾»
 
-/** Avatar chữ cái đầu (.av): tròn, màu riêng từng bé, chữ cái Fraunces navy, viền kem (`chon` = vòng vàng kim), nổi bóng đôi. */
-export const AvtD = ({ ten, i = 0, co = 96, chu, chon }: { ten: string; i?: number; co?: number; chu?: string; chon?: boolean }) => (
-  <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mauAvt(i), alignItems: "center", justifyContent: "center",
-    borderWidth: co >= 60 ? 4 : 2, borderColor: chon ? D.vangVien : D.nen, boxShadow: co >= 60 ? BONG_D.phim : undefined }}>
-    <Text style={{ fontFamily: FD.den, fontSize: co * 0.46, color: D.chu, lineHeight: co * 0.6 }}>{chu ?? chuAvt(ten)}</Text>
+/** Avatar chữ cái đầu (.av) «Ánh kim» — như `Avt` Ba Mẹ (#400) / Mac / Android: MỌI bé nền navy, chữ cái Fraunces vàng (11,4:1), vòng vàng mảnh #D9AE57
+ *  (`chon` = vòng dày hơn), nổi bóng đôi. `i` giữ trong chữ ký cho chỗ gọi cũ (không còn đổi màu theo bé). */
+export const AvtD = ({ ten, co = 96, chu, chon }: { ten: string; i?: number; co?: number; chu?: string; chon?: boolean }) => (
+  <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: D.dem, alignItems: "center", justifyContent: "center",
+    borderWidth: chon ? (co >= 60 ? 4 : 2.5) : (co >= 60 ? 2 : 1.5), borderColor: D.vangVien, boxShadow: co >= 60 ? BONG_D.dem : BONG_D.phim }}>
+    <Text style={{ fontFamily: FD.den, fontSize: co * 0.46, color: D.sao, lineHeight: co * 0.6 }}>{chu ?? chuAvt(ten)}</Text>
   </View>
 );
 

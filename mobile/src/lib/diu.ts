@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 // nút chính vàng kim chữ navy, giờ ngủ nền navy; tiêu đề + số Fraunces 600, chữ thường Be Vietnam Pro. `xanh` (màu «chính») nay là navy.
 // Không đụng token Ba Mẹ (mau.ts / clay.ts) — bóng / gradient chép lại ở đây để hai phía sửa độc lập.
 // Tương phản (WCAG 2.2) trên nền #ECE4D9: chu #0A1629 14,4:1 · chu2 #3B352E 9,6:1 · chu3 #5F554B 5,8:1 (trên kem lõm #E2D6C4 5,1:1) · loi #A2412C 5,0:1
-// · navy / vàng kim (điểm sẫm nhất #C9973B) 6,9:1 · vàng #F4C76A / navy 11,4:1 · demChu2 #D4C9BA / dem 11,1:1 · chu3 / tat #DDD3C6 4,9:1 · navy / màu avt ≥ 6,7:1.
+// · navy / vàng kim (điểm sẫm nhất #C9973B) 6,9:1 · vàng #F4C76A / navy 11,4:1 · demChu2 #D4C9BA / dem 11,1:1 · chu3 / tat #DDD3C6 4,9:1 · avatar: vàng #F4C76A / navy 11,4:1.
 
 export const D = {
   nen: "#ECE4D9", the: "#ECE4D9", vien: "#D9CDBC", vien2: "#C2B5A3", xamNhat: "#E3D9CB", ic: "#E3D9CB",
@@ -27,7 +27,7 @@ export const D = {
   sang: "#FFFBF5",
   // chạy thử (chỉ hiện ở bản dev): viền cam đứt
   thu: "#983E04",
-  // vòng tên bé: giữ màu riêng từng bé (chữ cái navy ≥ 6:1 trên mọi màu)
+  // (cũ) màu riêng từng bé — avatar «Ánh kim» nay mọi bé navy chữ vàng (AvtD); giữ để không vỡ chỗ gọi mauAvt
   avt: ["#F5A957", "#6AA9E9", "#B48CDE", "#E98AA9", "#5CB88A", "#E8B54F"],
 } as const;
 
