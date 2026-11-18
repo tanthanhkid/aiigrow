@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Icon app = logo chuẩn AiiGrow «Grow tưới mầm» (mobile/assets/icon.png, scripts/xuat-logo.py); nền = màu teal mép logo -->
+<!-- Icon app = Rob «Grow tưới mầm» (giữ hình) trên nền navy #0A1629, quầng vàng kim — phong cách E -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@mipmap/ic_launcher_background" />
     <foreground android:drawable="@mipmap/ic_launcher_foreground" />

@@ -37,7 +37,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/ten_app"
         android:supportsRtl="false"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        android:theme="@style/Theme.AiiGrow">
 
         <activity android:name=".ManChinh" android:exported="true" android:launchMode="singleTask">
             <intent-filter>
@@ -49,12 +49,12 @@
         <activity android:name=".ManKhoa" android:exported="false" android:launchMode="singleTask"
             android:excludeFromRecents="true" android:taskAffinity="vn.aiilab.aiigrow.con.khoa"
             android:lockTaskMode="if_whitelisted"
-            android:theme="@android:style/Theme.Material.NoActionBar.Fullscreen" />
+            android:theme="@style/Theme.AiiGrow.Khoa" />
 
         <!-- Màn Con (Nhiệm vụ / Nộp bài / Quà…): mở app AiiGrow qua aiigrow://tre/… hoặc web /tre trong WebView riêng (ManTre.kt) -->
         <activity android:name=".ManTre" android:exported="false" android:launchMode="singleTask"
             android:taskAffinity="vn.aiilab.aiigrow.con.tre" android:configChanges="orientation|screenSize|keyboardHidden"
-            android:theme="@android:style/Theme.Material.Light.NoActionBar" />
+            android:theme="@style/Theme.AiiGrow" />
 
         <!-- Ảnh chụp nộp bài từ WebView: camera ghi vào cache/anh của AiiGrow -->
         <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.tep"

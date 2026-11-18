@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phong cách E «Ánh kim»: nền kem, navy, vàng kim (khớp Diu.kt) -->
+<resources>
+    <color name="e_nen">#ECE4D9</color>
+    <color name="e_navy">#0A1629</color>
+    <color name="e_kim">#F4C76A</color>
+    <color name="e_kim_dam">#C9973B</color>
+</resources>

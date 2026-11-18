@@ -50,8 +50,8 @@ object Clay {
     const val DIEM_SOFT = Diu.KIM_NHAT
     const val CANH = Diu.NO_CHU
     const val CANH_SOFT = 0xFFF9E7D2.toInt()
-    const val LAM_SOFT = 0xFFE1E9FB.toInt()
-    const val TIM_SOFT = 0xFFE7E5F8.toInt()
+    const val LAM_SOFT = Diu.XANH_NHAT
+    const val TIM_SOFT = Diu.XANH_NHAT
     const val LOI = Diu.LOI
 
     enum class Kieu { THE, THAN, NGOC, VIEN, LOM, VIEN_TRON }
