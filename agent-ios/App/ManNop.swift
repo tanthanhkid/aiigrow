@@ -46,7 +46,7 @@ struct ManNvChiTiet: View {
   var chiTiet: some View {
     VStack(spacing: 14) {
       DauMan(tieuDe: nv.ten, lui: { dong() })
-      OIcon(ten: HangNv.icon(nv), co: 96, nen: .white)
+      OIcon(ten: HangNv.icon(nv), co: 96)
       HStack(spacing: 10) {
         ChipSao(so: nv.soSao)
         if let g = nv.gioNhac { NhanNho(chu: "Trước \(g)", icon: "ic_dongho") }
@@ -104,11 +104,13 @@ struct ManNvChiTiet: View {
       switch nv.cachNop == "xong" ? "xong" : cach {
       case "ghi_am":
         VStack(spacing: 12) {
-          Text(String(format: "%02d:%02d", ghi.giay / 60, ghi.giay % 60)).font(Diu.chu(44, .black)).monospacedDigit().foregroundColor(Diu.chu)
+          Text(String(format: "%02d:%02d", ghi.giay / 60, ghi.giay % 60)).font(Diu.fraunces(44)).monospacedDigit().foregroundColor(Diu.chu)
           Text(nv.moTa ?? "Đọc to cho Ba Mẹ nghe").font(Diu.t2).foregroundColor(Diu.chu2)
           Button { ghi.dangGhi ? ghi.dung() : ghi.batDau() } label: {
-            Image(systemName: ghi.dangGhi ? "stop.fill" : "mic.fill").font(.system(size: 30, weight: .bold)).foregroundColor(.white)
+            Image(systemName: ghi.dangGhi ? "stop.fill" : "mic.fill").font(.system(size: 30, weight: .bold)).foregroundColor(ghi.dangGhi ? Diu.nenSang : Diu.kim)
               .frame(width: 84, height: 84).background(Circle().fill(ghi.dangGhi ? Diu.do_ : Diu.xanh))
+              .overlay(Circle().strokeBorder(Diu.kimVien.opacity(ghi.dangGhi ? 0 : 0.85), lineWidth: 1.5))
+              .shadow(color: Diu.bong.opacity(0.4), radius: 8, x: 4, y: 5).shadow(color: Diu.bongSang.opacity(0.9), radius: 6, x: -3, y: -3)
           }
           .accessibilityLabel(ghi.dangGhi ? "Dừng ghi âm" : "Ghi âm")
           if ghi.coBan && !ghi.dangGhi {
@@ -124,7 +126,7 @@ struct ManNvChiTiet: View {
         VStack(alignment: .leading, spacing: 8) {
           Text(nv.moTa ?? "Viết cho Ba Mẹ").font(Diu.t1).foregroundColor(Diu.chu)
           TextEditor(text: $viet).font(Diu.chu(17, .semibold)).frame(minHeight: 140).scrollContentBackground(.hidden)
-            .padding(8).background(RoundedRectangle(cornerRadius: 16).fill(Diu.nen))
+            .padding(8).lomE(RoundedRectangle(cornerRadius: 16))
           NhanNho(chu: Self.soCau(viet) >= 2 ? "\(Self.soCau(viet)) câu · đủ rồi" : "Viết 2 câu nhé", icon: "ic_but")
         }
         .theDiu()
@@ -149,7 +151,7 @@ struct ManNvChiTiet: View {
       HStack(spacing: 6) { Anh(ten: "ic_sao", co: 20); Text("+\(nv.soSao) sao khi Ba Mẹ duyệt").font(Diu.t2).foregroundColor(Diu.saoChu) }
       if let l = m.loi { Text(l).font(Diu.t2).foregroundColor(Diu.doChu).multilineTextAlignment(.center) }
       Button { Task { await gui() } } label: {
-        if m.dangBan { ProgressView().tint(.white) } else { Label { Text("Gửi Ba Mẹ") } icon: { Anh(ten: "ic_gui", co: 26) } }
+        if m.dangBan { ProgressView().tint(Diu.chu) } else { Label { Text("Gửi Ba Mẹ") } icon: { Anh(ten: "ic_gui", co: 26) } }
       }
       .buttonStyle(NutDiu()).disabled(!duBangChung || m.dangBan)
       Button("Làm tiếp sau") { dong() }.buttonStyle(NutDiu(kieu: .lk))
@@ -167,8 +169,8 @@ struct ManNvChiTiet: View {
   func chonCach(_ c: String, _ ten: String, _ ic: String) -> some View {
     Button { cach = c } label: {
       HStack(spacing: 6) { Anh(ten: ic, co: 22); Text(ten).font(Diu.chu(15, .heavy)) }
-        .foregroundColor(cach == c ? .white : Diu.chu2).frame(maxWidth: .infinity, minHeight: 44)
-        .background(Capsule().fill(cach == c ? Diu.xanh : .white)).overlay(Capsule().stroke(cach == c ? .clear : Diu.vien, lineWidth: 1))
+        .foregroundColor(cach == c ? Diu.chu : Diu.chu2).frame(maxWidth: .infinity, minHeight: 44)
+        .oChonE(Capsule(), cach == c)
     }
     .buttonStyle(.plain).accessibilityAddTraits(cach == c ? .isSelected : [])
   }

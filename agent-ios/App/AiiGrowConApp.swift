@@ -5,7 +5,7 @@ import BackgroundTasks
 import UserNotifications
 import ConCore
 
-/// Xanh lá — MỘT màu nhấn của bản «Dịu» (App/Diu.swift).
+/// Màu «chính» của bản «Dịu» — nay là navy phong cách E «Ánh kim» (App/Diu.swift).
 let mauChinh = Diu.xanh
 
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {

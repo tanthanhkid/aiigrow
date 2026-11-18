@@ -75,7 +75,7 @@ struct ManNhapMa: View {
       OSo(so: ma, dai: 6)
       NhanNho(chu: "Mã đổi sau 10 phút", icon: "ic_dongho")
       Button { Task { await m.ghep(.ma(ma)) } } label: {
-        if m.dangBan { ProgressView().tint(.white) } else { Label { Text("Ghép máy này") } icon: { Anh(ten: "ic_tick", co: 26) } }
+        if m.dangBan { ProgressView().tint(Diu.chu) } else { Label { Text("Ghép máy này") } icon: { Anh(ten: "ic_tick", co: 26) } }
       }
       .buttonStyle(NutDiu()).disabled(ma.count != 6 || m.dangBan)
       BanPhimSo(so: $ma, toiDa: 6)
@@ -119,7 +119,7 @@ struct ManNhapMa: View {
       NhanNho(chu: "Mất mạng", icon: "ic_wifi")
       Spacer(minLength: 12)
       Button { Task { await m.ghep(.ma(ma)) } } label: {
-        if m.dangBan { ProgressView().tint(.white) } else { Label { Text("Thử ghép lại") } icon: { Anh(ten: "ic_lap", co: 26) } }
+        if m.dangBan { ProgressView().tint(Diu.chu) } else { Label { Text("Thử ghép lại") } icon: { Anh(ten: "ic_lap", co: 26) } }
       }
       .buttonStyle(NutDiu()).disabled(ma.count != 6)
       Button("Mã hết hạn? Nhờ Ba Mẹ lấy mã mới") { ma = ""; m.loiGhep = nil }.buttonStyle(NutDiu(kieu: .lk))

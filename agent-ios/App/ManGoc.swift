@@ -63,7 +63,7 @@ struct ManPhuView: View {
   }
 }
 
-/// Bốn tab hằng ngày: Hôm nay · Nhiệm vụ · Sao & quà · Tin nhắn (thanh tab nổi trắng bo 28, tab chọn nền xanh).
+/// Bốn tab hằng ngày: Hôm nay · Nhiệm vụ · Sao & quà · Tin nhắn (thanh tab kem nổi bo 28, tab chọn vàng kim).
 struct ManHangNgay: View {
   @EnvironmentObject var m: MoHinhApp
   var body: some View {
@@ -95,9 +95,7 @@ struct ThanhTab: View {
       o(.tin, "ic_tin", "Tin nhắn", soTin)
     }
     .padding(7).frame(height: 76)
-    .background(RoundedRectangle(cornerRadius: 28, style: .continuous).fill(.white))
-    .overlay(RoundedRectangle(cornerRadius: 28, style: .continuous).stroke(Diu.vien, lineWidth: 1))
-    .shadow(color: Diu.bong.opacity(0.08), radius: 5, y: 2)
+    .noiE(RoundedRectangle(cornerRadius: 28, style: .continuous))
     .padding(.horizontal, 12).padding(.bottom, 6)
   }
   func o(_ t: TabCon, _ ic: String, _ ten: String, _ so: Int) -> some View {
@@ -107,12 +105,12 @@ struct ThanhTab: View {
         Anh(ten: ic, co: 30)
         Text(ten).font(Diu.chu(12.5, .heavy)).lineLimit(1).minimumScaleFactor(0.8)
       }
-      .foregroundColor(dang ? .white : Diu.chu2).frame(maxWidth: .infinity, maxHeight: .infinity)
-      .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(dang ? Diu.xanh : .clear))
+      .foregroundColor(dang ? Diu.chu : Diu.chu2).frame(maxWidth: .infinity, maxHeight: .infinity)
+      .background { if dang { Color.clear.kimE(RoundedRectangle(cornerRadius: 20, style: .continuous)) } }
       .overlay(alignment: .topTrailing) {
         if so > 0 {
           Text("\(so)").font(Diu.chu(11, .black)).foregroundColor(.white).frame(minWidth: 20, minHeight: 20)
-            .background(Capsule().fill(Diu.do_)).overlay(Capsule().stroke(.white, lineWidth: 2)).padding(.trailing, 8).padding(.top, 2)
+            .background(Capsule().fill(Diu.do_)).overlay(Capsule().stroke(Diu.nen, lineWidth: 2)).padding(.trailing, 8).padding(.top, 2)
         }
       }
     }
