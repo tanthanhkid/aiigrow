@@ -33,6 +33,8 @@ jobs:
           cache: npm
           cache-dependency-path: mobile/package-lock.json
       - run: npm ci --no-audit --no-fund
+      - name: Phụ thuộc expo khớp SDK (chặn crash dyld do prebuild lệch)
+        run: npx expo install --check
       - run: npm run typecheck
       - run: npm run lint
       - run: npm test

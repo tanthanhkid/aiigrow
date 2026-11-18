@@ -17,6 +17,9 @@ set -a; . "$HOME/.goblinrun-asc.env"; set +a
 export EXPO_PUBLIC_API="${EXPO_PUBLIC_API:-https://aiigrow.aiilab.vn}"
 : "${ASC_KEY_ID:?}"; : "${ASC_ISSUER_ID:?}"
 
+# Cổng: gói expo-* lệch bản SDK thì dừng — TF build 21 crash lúc mở vì prebuild ExpoImageManipulator
+# cần ký hiệu của ExpoModulesCore mới hơn (dyld «Symbol missing»). Sửa: npx expo install --fix
+npx expo install --check || { echo "DỪNG: phụ thuộc expo lệch SDK — chạy 'npx expo install --fix' rồi build lại" >&2; exit 1; }
 buoc "prebuild $TEN ($BUNDLE)"
 CI=1 npx expo prebuild --platform ios --clean >/dev/null
 (cd ios && pod install >/dev/null)
