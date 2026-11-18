@@ -256,13 +256,13 @@ export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44, con, anh,
   const daLuu = useAnhCon(con);
   const uri = anh ?? daLuu;
   // «Ánh kim» (#386 G1): MỌI avatar chữ cái là viên navy, chữ Fraunces vàng kim (11,4:1), vòng vàng mảnh trong (mẫu E `.be.on .av` / `.rob i`);
-  // đang chọn: thêm khe kem + vòng vàng ngoài. `mau` giữ trong API (các màn đang truyền) nhưng không còn đổi màu viên — avatar đa sắc là kiểu cũ.
+  // đang chọn: thêm khe kem + vòng vàng ngoài. Nền navy ĐẶC (không loang) ⇒ tương phản chữ tính theo token, avatar nhỏ chồng nhau không bị đo pixel sai. `mau` giữ trong API (các màn đang truyền) nhưng không còn đổi màu viên — avatar đa sắc là kiểu cũ.
   void mau;
   const trong = `inset 0px 0px 0px ${co >= 40 ? 2 : 1.5}px rgba(217,174,87,0.85)`;
   const vien = chon ? `0px 0px 0px 3px ${M.nen}, 0px 0px 0px 5px ${M.dauSach}, 4px 5px 10px rgba(120,98,70,0.28)` : toi ? BONG.heroNho : BONG.nho;
   if (uri) return <Image source={{ uri }} accessibilityLabel={`Ảnh của ${ten}`} style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: HERO.nen, boxShadow: vien }} contentFit="cover" />;
   return (
-    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: HERO.nen, backgroundImage: "radial-gradient(circle at 35% 30%, #1d2f52 0%, #0A1629 70%)",
+    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: HERO.nen,
       alignItems: "center", justifyContent: "center", boxShadow: `${vien}, ${trong}` }}>
       <Chu kieu="tieu" mau={M.diem} co={co * 0.45}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
     </View>
