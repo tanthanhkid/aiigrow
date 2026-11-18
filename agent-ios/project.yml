@@ -54,6 +54,8 @@ targets:
           - CFBundleURLName: vn.aiilab.aiigrow.con
             CFBundleURLSchemes: [aiigrowcon]
         ITSAppUsesNonExemptEncryption: false
+        # phong cách E «Ánh kim» (#383): Fraunces SemiBold (tiêu đề, số) + Be Vietnam Pro (OFL — TaiNguyen/Fonts/OFL-*.txt)
+        UIAppFonts: [Fraunces-SemiBold.ttf, BeVietnamPro-Regular.ttf, BeVietnamPro-SemiBold.ttf, BeVietnamPro-Bold.ttf, BeVietnamPro-ExtraBold.ttf]
         NSCameraUsageDescription: Chụp ảnh nộp nhiệm vụ cho Ba Mẹ và quét mã QR ghép máy.
         NSMicrophoneUsageDescription: Ghi âm nộp nhiệm vụ (ví dụ đọc sách cho Ba Mẹ nghe).
         NSPhotoLibraryUsageDescription: Chọn ảnh có sẵn để nộp nhiệm vụ.

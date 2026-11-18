@@ -45,6 +45,14 @@
 	<string>Ghi âm nộp nhiệm vụ (ví dụ đọc sách cho Ba Mẹ nghe).</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Chọn ảnh có sẵn để nộp nhiệm vụ.</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Fraunces-SemiBold.ttf</string>
+		<string>BeVietnamPro-Regular.ttf</string>
+		<string>BeVietnamPro-SemiBold.ttf</string>
+		<string>BeVietnamPro-Bold.ttf</string>
+		<string>BeVietnamPro-ExtraBold.ttf</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>fetch</string>

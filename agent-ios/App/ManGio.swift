@@ -19,10 +19,10 @@ struct ManXinThem: View {
       VStack(spacing: 4) {
         ChipSao(so: m.soSao)
         if let g = m.khoaGioiHan {
-          Text(g.tieuDe() ?? "").font(Diu.chu(26, .black)).foregroundColor(Diu.chu)
+          Text(g.tieuDe() ?? "").font(Diu.fraunces(26)).foregroundColor(Diu.chu)
           Text(g.cauPhu(tz: m.keHoach?.tz) ?? "").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
         } else {
-          Text(m.hetSao ? "Hết sao rồi" : "Còn \(m.saoHienThi) sao").font(Diu.chu(26, .black)).foregroundColor(Diu.chu)
+          Text(m.hetSao ? "Hết sao rồi" : "Còn \(m.saoHienThi) sao").font(Diu.fraunces(26)).foregroundColor(Diu.chu)
           Text("\(m.saoHienThi) sao = \(m.saoHienThi) phút").font(Diu.t2).foregroundColor(Diu.chu2)
           if let c = m.conHomNay { Text("Còn \(c) phút hôm nay").font(Diu.t2).foregroundColor(Diu.chu2) }
           if let l = m.conLuotNay { Text("Lượt này còn \(l) phút").font(Diu.t2).foregroundColor(Diu.chu2) }
@@ -35,9 +35,9 @@ struct ManXinThem: View {
       HStack(spacing: 8) {
         ForEach(m.mucVay, id: \.self) { n in
           Button { soSao = n } label: {
-            Text("\(n) sao").font(Diu.chu(16, .heavy)).foregroundColor(soSao == n ? .white : Diu.chu)
+            Text("\(n) sao").font(Diu.chu(16, .heavy)).foregroundColor(Diu.chu)
               .frame(maxWidth: .infinity, minHeight: 48)
-              .background(Capsule().fill(soSao == n ? Diu.xanh : .white)).overlay(Capsule().stroke(soSao == n ? .clear : Diu.vien, lineWidth: 1))
+              .oChonE(Capsule(), soSao == n)
           }
           .buttonStyle(.plain).accessibilityAddTraits(soSao == n ? .isSelected : [])
         }
@@ -47,18 +47,18 @@ struct ManXinThem: View {
       VStack(alignment: .leading, spacing: 8) {
         Text("Nhắn Ba Mẹ").font(Diu.t1).foregroundColor(Diu.chu2)
         TextField("Tự viết… (không bắt buộc)", text: $loiNhan).font(Diu.chu(16, .semibold)).padding(.horizontal, 14).frame(minHeight: 48)
-          .background(RoundedRectangle(cornerRadius: 16).fill(.white)).overlay(RoundedRectangle(cornerRadius: 16).stroke(Diu.vien, lineWidth: 1))
+          .lomE(RoundedRectangle(cornerRadius: 16))
         ScrollView(.horizontal, showsIndicators: false) {
           HStack(spacing: 8) { ForEach(goiY, id: \.self) { g in
             Button(g) { loiNhan = g }.font(Diu.chu(14, .heavy)).foregroundColor(Diu.chu2).padding(.horizontal, 12).frame(minHeight: 40)
-              .background(Capsule().fill(.white)).overlay(Capsule().stroke(Diu.vien, lineWidth: 1))
+              .noiE(Capsule(), lech: 3)
           } }
         }
       }
       HangDs(icon: "ic_canh_bao", t1: "Sao vay là nợ", t2: "Sao nhiệm vụ trả nợ trước").theDiu(dem: 12)
       if let l = m.loi { Text(l).font(Diu.t2).foregroundColor(Diu.doChu) }
       Button { Task { if await m.xinVay(soSao: soSao, loiNhan: loiNhan) != nil { m.manPhu = .conDangXin } } } label: {
-        if m.dangBan { ProgressView().tint(.white) }
+        if m.dangBan { ProgressView().tint(Diu.chu) }
         else { Label { Text("Xin Ba Mẹ cho vay \(soSao) sao" + (m.matMang ? " · gửi khi có mạng" : "")) } icon: { Anh(ten: "ic_gui", co: 26) } }
       }
       .buttonStyle(NutDiu()).disabled(m.dangBan)
@@ -92,7 +92,7 @@ struct ManConDangXin: View {
     VStack(spacing: 14) {
       DauMan(tieuDe: "Con đang xin", lui: { dong() })
       Anh(ten: "rob_cho", co: 110)
-      Text("Đã gửi Ba Mẹ!").font(Diu.chu(22, .black)).foregroundColor(Diu.chu)
+      Text("Đã gửi Ba Mẹ!").font(Diu.fraunces(22)).foregroundColor(Diu.chu)
       Text("Ba Mẹ trả lời là máy báo con ngay.").font(Diu.t2).foregroundColor(Diu.chu2)
       VStack(spacing: 0) {
         ForEach(m.yeuCauCho) { y in
@@ -129,7 +129,7 @@ struct ManConDangXin: View {
         .multilineTextAlignment(.center)
       if !yc.duoc { Text("Con làm nhiệm vụ kiếm sao nhé!").font(Diu.phu).foregroundColor(Diu.chu2) }
       HangDs(icon: "ic_sao", t1: "Vay \(yc.soSao) sao", t2: yc.duoc ? "= \(yc.soSao) phút chơi hoặc đổi quà" : "Trả lời lúc \(yc.guiLuc.gioPhut)",
-             phai: AnyView(NhanNho(chu: yc.duoc ? "✓ Đã nhận" : "Chưa cho", mau: yc.duoc ? Diu.xanhDam : Diu.chu2, nen: yc.duoc ? Diu.xanhNhat : .white))).theDiu(dem: 12)
+             phai: AnyView(NhanNho(chu: yc.duoc ? "✓ Đã nhận" : "Chưa cho", mau: yc.duoc ? Diu.xanhDam : Diu.chu2, nen: yc.duoc ? Diu.xanhNhat : Diu.lom))).theDiu(dem: 12)
       if yc.duoc && m.soNo > 0 {
         HStack { DongNo(no: m.soNo); Spacer(minLength: 0); ChipSao(so: m.soSao) }
       }
@@ -207,23 +207,23 @@ struct ManXinCai: View {
         VStack(alignment: .leading, spacing: 8) {
           Text("App con muốn dùng").font(Diu.t1).foregroundColor(Diu.chu2)
           TextField("Ví dụ: Minecraft", text: $ten).font(Diu.chu(18, .heavy)).padding(.horizontal, 14).frame(minHeight: 52)
-            .background(RoundedRectangle(cornerRadius: 16).fill(.white)).overlay(RoundedRectangle(cornerRadius: 16).stroke(Diu.vien, lineWidth: 1))
+            .lomE(RoundedRectangle(cornerRadius: 16))
           Text("Con muốn cài để làm gì?").font(Diu.t1).foregroundColor(Diu.chu2).padding(.top, 6)
           HStack(spacing: 8) {
             ForEach(["Học", "Chơi với bạn", "Xem video"], id: \.self) { x in
               Button { muc = x } label: {
-                Text(x).font(Diu.chu(15, .heavy)).foregroundColor(muc == x ? .white : Diu.chu).frame(maxWidth: .infinity, minHeight: 44)
-                  .background(Capsule().fill(muc == x ? Diu.xanh : .white)).overlay(Capsule().stroke(muc == x ? .clear : Diu.vien, lineWidth: 1))
+                Text(x).font(Diu.chu(15, .heavy)).foregroundColor(Diu.chu).frame(maxWidth: .infinity, minHeight: 44)
+                  .oChonE(Capsule(), muc == x)
               }.buttonStyle(.plain)
             }
           }
           TextField("Kể Ba Mẹ nghe (không bắt buộc)", text: $lyDo).font(Diu.chu(16, .semibold)).padding(.horizontal, 14).frame(minHeight: 48)
-            .background(RoundedRectangle(cornerRadius: 16).fill(.white)).overlay(RoundedRectangle(cornerRadius: 16).stroke(Diu.vien, lineWidth: 1))
+            .lomE(RoundedRectangle(cornerRadius: 16))
         }
         HangDs(icon: "ic_dongho", t1: "Nếu Ba Mẹ thêm vào danh sách", t2: "«Tính phút»: trừ sao · còn \(m.conPhut) sao = \(m.conPhut) phút").theDiu(dem: 12)
         if let l = m.loi { Text(l).font(Diu.t2).foregroundColor(Diu.doChu) }
         Button { Task { daGui = await m.xinCaiApp(ten: ten, lyDo: [muc, lyDo].filter { !$0.isEmpty }.joined(separator: " — ")) } } label: {
-          if m.dangBan { ProgressView().tint(.white) } else { Label { Text("Gửi Ba Mẹ xin cài \(ten.isEmpty ? "app" : ten)") } icon: { Anh(ten: "ic_gui", co: 26) } }
+          if m.dangBan { ProgressView().tint(Diu.chu) } else { Label { Text("Gửi Ba Mẹ xin cài \(ten.isEmpty ? "app" : ten)") } icon: { Anh(ten: "ic_gui", co: 26) } }
         }
         .buttonStyle(NutDiu()).disabled(ten.trimmingCharacters(in: .whitespaces).isEmpty || m.dangBan)
         Button("Thôi, để sau") { dong() }.buttonStyle(NutDiu(kieu: .lk))
@@ -257,7 +257,7 @@ struct ManMaOffline: View {
       }
       if kq == .sai || kq == .choThuLai || kq == .daDung {
         Anh(ten: "rob_trong_loi", co: 90)
-        Text(kq == .sai ? "Mã chưa đúng" : cau).font(Diu.chu(22, .black)).foregroundColor(Diu.chu).multilineTextAlignment(.center)
+        Text(kq == .sai ? "Mã chưa đúng" : cau).font(Diu.fraunces(22)).foregroundColor(Diu.chu).multilineTextAlignment(.center)
         Text(kq == .sai ? "Con nhờ Ba Mẹ đọc lại 6 số nhé." : "Nhờ Ba Mẹ đọc mã mới trong AiiGrow.").font(Diu.t2).foregroundColor(Diu.chu2)
         if kq == .sai { NhanNho(chu: "Còn \(max(0, MoTamOffline.saiToiDa - m.saiMaOffline)) lần thử") }
       } else {
@@ -296,7 +296,7 @@ struct ManDns: View {
   var body: some View {
     KhungMan {
       DauMan(tieuDe: "Lọc web cho iPhone", lui: { dong() })
-      OIcon(ten: "ic_khien", co: 88, nen: .white)
+      OIcon(ten: "ic_khien", co: 88)
       HStack { NhanNho(chu: "Dành cho Ba Mẹ", icon: "ic_nguoi"); Spacer() }
       Text("Làm một lần, khoảng 1 phút").font(Diu.phu).foregroundColor(Diu.chu2).frame(maxWidth: .infinity, alignment: .leading)
       VStack(alignment: .leading, spacing: 14) {
@@ -308,7 +308,7 @@ struct ManDns: View {
       Text("Gỡ: Cài đặt › Cài đặt chung › VPN & Quản lý thiết bị").font(Diu.t2).foregroundColor(Diu.chu3)
       if let l = m.loi { Text(l).font(Diu.t2).foregroundColor(Diu.doChu) }
       Button { Task { await m.caiHoSoDns() } } label: {
-        if m.dangBan { ProgressView().tint(.white) } else { Label { Text("Tải bộ lọc web gia đình") } icon: { Anh(ten: "ic_tai", co: 26) } }
+        if m.dangBan { ProgressView().tint(Diu.chu) } else { Label { Text("Tải bộ lọc web gia đình") } icon: { Anh(ten: "ic_tai", co: 26) } }
       }
       .buttonStyle(NutDiu()).disabled(m.dangBan)
     }

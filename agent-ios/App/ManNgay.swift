@@ -257,7 +257,7 @@ struct ManSaoQua: View {
       DauMan(tieuDe: "Sao & quà")
       VStack(spacing: 10) {
         Anh(ten: "ic_sao", co: 56)
-        Text("Con đang có \(Diu.soSao(m.soSao))").font(Diu.chu(22, .black)).foregroundColor(m.soSao < 0 ? Diu.noChu : Diu.chu)
+        Text("Con đang có \(Diu.soSao(m.soSao))").font(Diu.fraunces(22)).foregroundColor(m.soSao < 0 ? Diu.noChu : Diu.chu)
         if m.soNo > 0 { DongNo(no: m.soNo) } else if !m.moHet { Text("\(m.saoHienThi) sao = \(m.saoHienThi) phút chơi").font(Diu.t2).foregroundColor(Diu.chu2) }
         if giu > 0 { Text("Đang giữ \(giu) sao cho quà chờ trao").font(Diu.t2).foregroundColor(Diu.chu2) }
         // cdt-vi-qua (15/11): bỏ «Đổi sao lấy phút» — sao chính là phút
@@ -298,7 +298,7 @@ struct ManQR: View {
       Capsule().fill(Diu.vien).frame(width: 40, height: 5).padding(.top, 8)
       Text("Đưa mã ở quầy AiiCafe").font(Diu.tieuDe).foregroundColor(Diu.chu)
       if let a = Self.anh(ma) { Image(uiImage: a).interpolation(.none).resizable().scaledToFit().frame(width: 240, height: 240).theDiu() }
-      Text(ma).font(Diu.chu(24, .black)).foregroundColor(Diu.chu).textSelection(.enabled)
+      Text(ma).font(Diu.fraunces(24)).foregroundColor(Diu.chu).textSelection(.enabled)
       Spacer()
     }
     .padding(16).presentationDetents([.medium, .large])
@@ -345,7 +345,7 @@ struct ManCuaHang: View {
       ForEach(ch?.qua ?? []) { q in
         Button { chon = q } label: {
           HStack(spacing: 12) {
-            OIcon(ten: Self.icon(q.hinh, ten: q.ten), nen: q.id == ganNhat ? .white : Diu.nenIcon)
+            OIcon(ten: Self.icon(q.hinh, ten: q.ten), nen: q.id == ganNhat ? Diu.kimSang : Diu.nenIcon)
             VStack(alignment: .leading, spacing: 1) {
               Text(q.ten).font(Diu.t1).foregroundColor(Diu.chu).lineLimit(1)
               Text(Self.phu(q)).font(Diu.t2).foregroundColor(q.du == true ? Diu.xanhDam : Diu.chu2).lineLimit(1)
@@ -375,7 +375,7 @@ struct ManCuaHang: View {
     let co = m.cuaHang?.soSao ?? m.soSao
     return VStack(spacing: 14) {
       DauMan(tieuDe: "Đổi quà", lui: { chon = nil })
-      OIcon(ten: Self.icon(q.hinh, ten: q.ten), co: 96, nen: .white)
+      OIcon(ten: Self.icon(q.hinh, ten: q.ten), co: 96)
       Text(q.ten).font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
       ChipSao(so: q.gia)
       HStack(spacing: 12) {
@@ -386,7 +386,7 @@ struct ManCuaHang: View {
       if let mt = q.moTa { HangDs(icon: "ic_tim", t1: mt).theDiu(dem: 12) }
       if let l = m.loi { Text(l).font(Diu.t2).foregroundColor(Diu.doChu).multilineTextAlignment(.center) }
       Button { Task { if await m.doiQua(q) { daGui = q } } } label: {
-        if m.dangBan { ProgressView().tint(.white) } else { Label { Text("Gửi Ba Mẹ đổi quà") } icon: { Anh(ten: "ic_gui", co: 26) } }
+        if m.dangBan { ProgressView().tint(Diu.chu) } else { Label { Text("Gửi Ba Mẹ đổi quà") } icon: { Anh(ten: "ic_gui", co: 26) } }
       }
       .buttonStyle(NutDiu()).disabled(q.du == false || m.dangBan)
       // cdt-doi-qua (15/11, #263): thiếu sao ⇒ xin Ba Mẹ cho vay đúng phần thiếu để đổi quà này
