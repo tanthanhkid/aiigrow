@@ -146,7 +146,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         _toastMuc = muc;
         _toastAt = DateTimeOffset.Now;
-        // E: bong bóng khay dùng icon AiiGrow (ToolTipIcon.None = icon của NotifyIcon, nền E) thay «i» xanh / tam giác vàng của hệ thống
+        // E: bong bóng khay dùng icon AiiGrow (ToolTipIcon.None, không «i» xanh) thay «i» xanh / tam giác vàng của hệ thống
         _ni.ShowBalloonTip(ms, title, text, ToolTipIcon.None);
     }
 

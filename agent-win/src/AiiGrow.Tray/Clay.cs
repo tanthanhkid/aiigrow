@@ -1100,6 +1100,8 @@ internal static class PhongChu
 {
     /// <summary>Chữ từ cỡ này trở lên (tiêu đề, số to, chữ cái avatar — mọi kiểu Regular/Bold) dùng Fraunces SemiBold.</summary>
     public const float NguongTieuDe = 15f;
+    /// <summary>Kiểu Regular chỉ thành Fraunces từ cỡ này (tiêu đề to xin Regular); chữ phụ 15–19pt vẫn là Be Vietnam Pro.</summary>
+    public const float NguongTieuDeThuong = 20f;
     private const float HeSoThan = 0.92f, HeSoTieuDe = 0.95f;
 
     private static readonly object _khoa = new();
@@ -1171,7 +1173,7 @@ internal static class PhongChu
         try
         {
             // G1: tiêu đề/số to là Fraunces 600 DÙ xin kiểu Regular hay Bold (trước chỉ Bold ⇒ tiêu đề Regular rơi về chữ thân/Arial)
-            if (pt >= NguongTieuDe && _tieuDe != null)
+            if (_tieuDe != null && ((st & FontStyle.Bold) != 0 ? pt >= NguongTieuDe : pt >= NguongTieuDeThuong))
             {
                 var kieu = (st & ~(FontStyle.Bold | FontStyle.Italic)) | _kieuTieuDe;   // tệp đã là SemiBold 600: xin đúng kiểu GDI+ ghi cho nó, không đậm giả
                 if (_tieuDe.IsStyleAvailable(kieu)) return new Font(_tieuDe, pt * HeSoTieuDe, kieu);
