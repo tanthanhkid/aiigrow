@@ -14,10 +14,9 @@ import { KHOI } from "@/lib/clay";
 import { ChuCaiCon } from "@/lib/ui-viec";
 import { soVN } from "@/lib/so-sao";
 import { DsBang } from "@/lib/ca-nha-ui";
-import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, OChon, useLam, useTai } from "@/lib/ui";
+import { Avt, BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, OChon, useLam, useTai } from "@/lib/ui";
 
 /** Màu avatar người lớn (thiết kế .ng — cùng bảng tab Cả nhà). */
-const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#0c7a5c", "#b5838d"];
 
 export default function ThanhVien() {
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -57,9 +56,7 @@ export default function ThanhVien() {
     <Man lui={{ chu: "", bam: ve }} tieu={x.ten}>
       {/* bàn them-7vmoufz3@v8 / bm2-thanh-vien@v7: thẻ ngang — avatar 64 · tên · «Vào nhà từ 20/10» · nhãn quyền ngọc */}
       <View style={[{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
-        <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: MAU_NGUOI[i % MAU_NGUOI.length], alignItems: "center", justifyContent: "center" }}>
-          <Chu kieu="rat" co={28} mau="#fff">{chuDau(x.ten)}</Chu>
-        </View>
+        <Avt ten={chuDau(x.ten)} co={64} />
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Chu kieu="rat" co={17} dong={1}>{x.ten}</Chu>
           <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{x.laChuNha ? "Người tạo nhà" : vao && !Number.isNaN(vao.getTime()) ? `Vào nhà từ ${vao.getDate()}/${vao.getMonth() + 1}` : "Đã vào nhà"}</Chu>

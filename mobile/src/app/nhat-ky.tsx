@@ -48,7 +48,7 @@ export default function NhatKyCaNha() {
                 style={[{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, paddingLeft: c.id ? 4 : 14, paddingRight: 14, borderRadius: 20 },
                   on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
                 {c.id ? <Avt ten={c.ten} mau={mauCon(c.avatar, thuCon(c.id))} co={28} con={c} /> : null}
-                <Chu kieu="rat" co={14} mau={on ? "#fff" : M.chu}>{c.id ? tenGoi(c.ten) : c.ten}</Chu>
+                <Chu kieu="rat" co={14} mau={on ? "#FFFBF5" : M.chu}>{c.id ? tenGoi(c.ten) : c.ten}</Chu>
               </NhanMen>
             );
           })}
@@ -77,7 +77,7 @@ function DanhSach({ loc, cacCon }: { loc: string | null; cacCon: GiaDinh["con"] 
           {vay.so ? (
             // thiết kế 04: dải đào nổi — ô icon sao · «7 ngày qua cho vay 4 lần · 75 sao» · «Bà Hoa 3 · Mẹ Lan 1»
             <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: M.canhSoft }, KHOI.the]}>
-              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}><Icon3D ten="sao" co={24} /></View>
+              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten="sao" co={24} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={14.5}>{`${d.soNgay} ngày qua cho vay ${vay.so} lần${vay.sao !== null ? ` · ${soVN(vay.sao)} sao` : ""}`}</Chu>
                 <Chu kieu="dam" co={12.5} mau={M.canh}>{vay.theoNguoi.map((x) => `${x.ten} ${x.so}`).join(" · ")}</Chu>

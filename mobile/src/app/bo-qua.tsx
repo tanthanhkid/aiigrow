@@ -53,7 +53,7 @@ export default function LoiXinBoQua() {
               </View>
               <NhanMen onPress={() => { setNhom("tinh_phut"); setChon(x); }} accessibilityRole="button" accessibilityLabel={`Thêm luôn ${ten(x)}`} muc="chip" men={MEN.ngoc}
                 style={{ minHeight: 44, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.chinh, justifyContent: "center" }}>
-                <Chu kieu="rat" co={14} mau="#fff">Thêm luôn</Chu>
+                <Chu kieu="rat" co={14} mau="#FFFBF5">Thêm luôn</Chu>
               </NhanMen>
             </View>
           ))}

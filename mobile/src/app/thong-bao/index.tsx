@@ -22,7 +22,7 @@ type DsThongBao = { ds: ThongBao[]; chuaDoc: number; /** S3 06/11: mục «Cần
 
 /** icon + nền ô icon (.ic · .ic.cam · .ic.vang) + chữ hành động của thẻ cần để ý */
 const KIEU: Record<Nhom, { ic: TenIcon; nen?: string; lam?: string }> = {
-  canh_bao: { ic: "canh_bao", nen: "#fdeedd", lam: "Xem ›" }, canh_bao_no: { ic: "canh_bao", nen: "#fdeedd", lam: "Xem ›" }, yeu_cau: { ic: "web", lam: "Trả lời ›" }, nhiem_vu: { ic: "lau", nen: M.diemSoft, lam: "Duyệt ›" },
+  canh_bao: { ic: "canh_bao", nen: M.chonSoft, lam: "Xem ›" }, canh_bao_no: { ic: "canh_bao", nen: M.chonSoft, lam: "Xem ›" }, yeu_cau: { ic: "web", lam: "Trả lời ›" }, nhiem_vu: { ic: "lau", nen: M.diemSoft, lam: "Duyệt ›" },
   qua: { ic: "qua", nen: M.diemSoft }, thanh_tich: { ic: "sao", nen: M.diemSoft }, ba_me_khac: { ic: "nguoi" }, gia_dinh: { ic: "nguoi" },
 };
 /** icon của mục «Cần Ba Mẹ để ý» theo loại (can-de-y.ts) */
@@ -92,7 +92,7 @@ export default function DsThongBaoMan() {
 
 /** Thẻ nhóm (thiết kế .de-y đào / .ds sáng): các dòng cách nhau bằng vạch mảnh. */
 function NhomTb({ deY, children }: { deY?: boolean; children: ReactNode }) {
-  return <View style={[{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: deY ? M.canhSoft : M.the }, KHOI.the]}>{children}</View>;
+  return <View style={[{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: deY ? M.chonSoft : M.the }, KHOI.the]}>{children}</View>;
 }
 
 /** Một dòng thông báo (.lg): giờ (cột 40) · ô icon lõm · tiêu đề + dòng phụ · hành động («Trả lời» viên than chì, còn lại chữ «Xem ›»). */
@@ -101,11 +101,11 @@ function DongTb({ k, deY, luc, ic, tieu, phu, lam, bam }: { k: number; deY?: boo
   const traLoi = !!deY && !!lam && /^Trả lời/.test(lam);
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={[tieu, phu, luc].filter(Boolean).join(", ")}
-      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: deY ? "#f3d6b8" : M.xamSoft }}>
+      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: deY ? M.chonSoft : M.xamSoft }}>
       <Chu kieu="rat" co={13} mau={M.chu3} style={{ width: 44 }} dong={2}>{luc}</Chu>
-      <OLomIcon ic={ic} nen={deY ? "#f3d6b8" : M.xamSoft} />
+      <OLomIcon ic={ic} nen={deY ? M.chonSoft : M.xamSoft} />
       <View style={{ flex: 1, minWidth: 0 }}>
-        <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
+        <Chu kieu="rat" co={15} dong={2}>{tieu}</Chu>
         {phu ? <Chu kieu="dam" co={12.5} mau={deY ? M.canh : M.chu3} dong={1}>{phu}</Chu> : null}
       </View>
       {lam ? traLoi ? (

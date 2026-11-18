@@ -54,7 +54,7 @@ function HopThuLoc({ loc, setLoc, chon }: { loc: LocHoTro; setLoc: (v: LocHoTro)
         <View style={{ alignItems: "flex-end", gap: 4 }}>
           {p !== null ? (
             <View style={{ paddingHorizontal: 9, paddingVertical: 4, borderRadius: 11, backgroundColor: g ? M.loi : M.canhSoft }}>
-              <Chu kieu="rat" co={12.5} mau={g ? "#fff" : M.canh}>{cauCho(p)!}</Chu>
+              <Chu kieu="rat" co={12.5} mau={g ? "#FFFBF5" : M.canh}>{cauCho(p)!}</Chu>
             </View>
           ) : <Chu kieu="dam" co={12} mau={M.chu3}>{gioPhut(x.created_at)}</Chu>}
           <View style={{ minHeight: 30, justifyContent: "center" }}><Chu kieu="rat" co={13.5} mau={M.chinhInk}>Mở chat ›</Chu></View>
@@ -88,7 +88,7 @@ function MucHop({ chu, so, gap }: { chu: string; so: number; gap?: boolean }) {
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginTop: 6, marginHorizontal: 6 }}>
       <Chu kieu="rat" co={15} mau={M.chu2}>{chu}</Chu>
       <View style={{ paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, backgroundColor: gap ? M.loi : M.xamSoft }}>
-        <Chu kieu="rat" co={12} mau={gap ? "#fff" : M.chu2} so>{String(so)}</Chu>
+        <Chu kieu="rat" co={12} mau={gap ? "#FFFBF5" : M.chu2} so>{String(so)}</Chu>
       </View>
     </View>
   );

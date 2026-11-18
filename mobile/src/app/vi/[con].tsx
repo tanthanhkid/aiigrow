@@ -100,12 +100,12 @@ export default function ViSao() {
       phai={d.baMe ? <Pressable onPress={() => setMo(true)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Nhan chu="± Điều chỉnh" /></Pressable> : undefined}>
       {/* thiết kế .vi: thẻ cao ~164 — «⭐ 30 sao» 50/800 trái; nợ ⇒ nền cảnh báo #ffe6d6 chữ #b34a06; Grow «xong» tràn góc phải dưới */}
       <View style={[{ minHeight: 164, padding: 20, borderRadius: 28, overflow: "hidden" },
-        k === "thuong" ? { backgroundColor: "#fcefc9", backgroundImage: "linear-gradient(#fdf1d3, #fbf0d6)" } : { backgroundColor: MAU_NO.nen, backgroundImage: "linear-gradient(#fbeedd, #ffe6d6)" }, KHOI.the]}
+        k === "thuong" ? { backgroundColor: M.the } : { backgroundColor: M.chonSoft }, KHOI.the]}
         accessible accessibilityLabel={`${soChinh(s)}${no ? `. ${no}` : ""}`}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingRight: 100 }}>
           <Icon3D ten="sao" co={48} />
           {k === "vay" ? <Chu kieu="rat" co={24} mau={mauThe} so style={{ flexShrink: 1 }}>{soChinh(s)}</Chu> : <>
-            <Chu kieu="rat" co={50} mau={k === "am" ? mauThe : M.chu} so style={{ lineHeight: 56, letterSpacing: -1 }}>{soVN(k === "am" ? -s.no : sao)}</Chu>
+            <Chu kieu="tieu7" co={50} mau={k === "am" ? mauThe : M.chu} so style={{ lineHeight: 56, letterSpacing: -1 }}>{soVN(k === "am" ? -s.no : sao)}</Chu>
             <Chu kieu="rat" co={22} mau={k === "am" ? mauThe : M.chu} style={{ marginTop: 10 }}>sao</Chu>
           </>}
         </View>
