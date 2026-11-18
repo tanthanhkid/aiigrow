@@ -43,7 +43,7 @@ internal sealed class SetupForm : Form
         _goi = goi is { Valid: true } ? goi : null;
         Text = "Cài AiiGrow";
         using (var ic = typeof(SetupForm).Assembly.GetManifestResourceStream("aiigrow.ico")) if (ic != null) Icon = new Icon(ic);
-        Font = new Font("Segoe UI", 11f);
+        Font = PhongChu.Tao(11f);
         ClientSize = new Size(S(721), S(640));
         var wa = Screen.PrimaryScreen!.WorkingArea;   // màn nhỏ / 150%+: không cao hơn vùng làm việc (thân cuộn được)
         if (Height > wa.Height) Height = wa.Height;
@@ -107,7 +107,7 @@ internal sealed class SetupForm : Form
             // #324: TextRenderer (GDI) mặc định BỎ phép dời gốc của Graphics. Nền này còn được vẽ lại vào ảnh nền đã nhớ của thẻ / chữ trong suốt
             // (Clay.VeNenCha dời gốc theo vị trí con) ⇒ không giữ phép dời thì chữ «Bước n/5 · …» rơi vào toạ độ của CON: mẩu chữ «B», «ư» lòi ra
             // ở lề bóng góc phải trên các thẻ (bước 2 «AiiGrow có / không», bước 4 thẻ điện thoại + «Mở bộ cài từ link…»).
-            using var fontBuoc = new Font("Segoe UI", 10f, FontStyle.Bold);
+            using var fontBuoc = PhongChu.Tao(10f, FontStyle.Bold);
             TextRenderer.DrawText(g, ChuBuoc, fontBuoc, new Point((int)x + S(2), (int)y - S(5)), Clay.NgocInk,
                 TextFormatFlags.PreserveGraphicsTranslateTransform | TextFormatFlags.PreserveGraphicsClipping);
         }
@@ -143,12 +143,12 @@ internal sealed class SetupForm : Form
             using (var b = new SolidBrush(Nen2)) g.FillPath(b, p);
             int x = S(14);
             if (Hinh != null) { g.DrawImage(Hinh, x, (Height - S(20)) / 2, S(20), S(20)); x += S(26); }
-            TextRenderer.DrawText(g, Chu, new Font("Segoe UI", 10f, FontStyle.Bold), new Rectangle(x, 0, Width - x, Height), Mau,
+            TextRenderer.DrawText(g, Chu, PhongChu.Tao(10f, FontStyle.Bold), new Rectangle(x, 0, Width - x, Height), Mau,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
         }
         public void CoTheoChu()
         {
-            using var f = new Font("Segoe UI", 10f, FontStyle.Bold);
+            using var f = PhongChu.Tao(10f, FontStyle.Bold);
             Width = S(14) + (Hinh != null ? S(26) : 0) + TextRenderer.MeasureText(Chu, f, Size.Empty, TextFormatFlags.NoPadding).Width + S(16);
         }
     }
@@ -159,11 +159,11 @@ internal sealed class SetupForm : Form
         protected override void Ve(Graphics g)
         {
             var vo = new RectangleF(0, 0, S(140), S(236));
-            using (var p = Clay.Bo(vo, Clay.S(26))) using (var b = new SolidBrush(Color.FromArgb(0x1b, 0x1f, 0x1e))) g.FillPath(b, p);
+            using (var p = Clay.Bo(vo, Clay.S(26))) using (var b = new SolidBrush(Clay.Chu)) g.FillPath(b, p);
             var man = new RectangleF(S(6), S(6), S(128), S(224));
             using (var p = Clay.Bo(man, Clay.S(21)))
-            using (var b = new LinearGradientBrush(man, Color.FromArgb(0xe3, 0xef, 0xeb), Color.FromArgb(0xf4, 0xf4, 0xf2), 90f)) g.FillPath(b, p);
-            using (var p = Clay.Bo(new RectangleF(S(52), S(13), S(36), S(8)), Clay.S(4))) using (var b = new SolidBrush(Color.FromArgb(0x1b, 0x1f, 0x1e))) g.FillPath(b, p);
+            using (var b = new LinearGradientBrush(man, Clay.NenSang, Clay.Nen, 90f)) g.FillPath(b, p);
+            using (var p = Clay.Bo(new RectangleF(S(52), S(13), S(36), S(8)), Clay.S(4))) using (var b = new SolidBrush(Clay.Chu)) g.FillPath(b, p);
             if (Anh3D.Rob("cho") is { } rob)
             {
                 var k = S(60) / (float)Math.Max(rob.Width, rob.Height);
@@ -171,12 +171,12 @@ internal sealed class SetupForm : Form
             }
             var o = new Rectangle(S(6), 0, S(128), 0);
             void Giua(string t, int y, int h, float pt, FontStyle st, Color c) =>
-                TextRenderer.DrawText(g, t, new Font("Segoe UI", pt, st), new Rectangle(o.X, y, o.Width, h), c, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
+                TextRenderer.DrawText(g, t, PhongChu.Tao(pt, st), new Rectangle(o.X, y, o.Width, h), c, TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
             Giua("Mã ghép máy", S(104), S(16), 8.25f, FontStyle.Bold, Clay.Chu2);
             Giua("• • •  • • •", S(122), S(28), 15f, FontStyle.Bold, Clay.Chu);   // minh hoạ — mã thật nằm trên điện thoại của Ba Mẹ
             var chip = new RectangleF(S(20), S(162), S(100), S(24));
             using (var p = Clay.Bo(chip, Clay.S(12))) using (var b = new SolidBrush(Clay.NgocSoft)) g.FillPath(b, p);
-            TextRenderer.DrawText(g, "Dùng được 10 phút", new Font("Segoe UI", 7.75f, FontStyle.Bold), Rectangle.Round(chip), Clay.NgocInk,
+            TextRenderer.DrawText(g, "Dùng được 10 phút", PhongChu.Tao(7.75f, FontStyle.Bold), Rectangle.Round(chip), Clay.NgocInk,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }
@@ -246,7 +246,7 @@ internal sealed class SetupForm : Form
         var l = new Label
         {
             Text = text, AutoSize = true, UseMnemonic = false, BackColor = Color.Transparent, ForeColor = mau ?? c,
-            Font = new Font("Segoe UI", pt, dam ? FontStyle.Bold : st), Location = ToaDo(cha, x, y),
+            Font = PhongChu.Tao(pt, dam ? FontStyle.Bold : st), Location = ToaDo(cha, x, y),
             MaximumSize = new Size(rong > 0 ? S(rong) : S(700 - x), 0),
         };
         cha.Controls.Add(l);
@@ -330,7 +330,7 @@ internal sealed class SetupForm : Form
         var lb = VeNut.LeBong;
         return new ClayButton
         {
-            Text = text, Size = new Size(S(w) + lb.Horizontal, S(48) + lb.Vertical), Font = new Font("Segoe UI", 12f, FontStyle.Bold),
+            Text = text, Size = new Size(S(w) + lb.Horizontal, S(48) + lb.Vertical), Font = PhongChu.Tao(12f, FontStyle.Bold),
             BackColor = chinh ? Chinh : Clay.The, ForeColor = Chu, LaChinh = chinh,   // chính: thân vàng kim, chữ navy
         };
     }
@@ -405,7 +405,7 @@ internal sealed class SetupForm : Form
         var cb = new CheckBox
         {
             Text = "Tôi là người lớn trong nhà và đồng ý cài AiiGrow", AutoSize = true, UseMnemonic = false, Checked = _dongY,
-            Font = new Font("Segoe UI", 12f, FontStyle.Bold), ForeColor = Chu, BackColor = Color.Transparent, Location = ToaDo(_body, 36, 460),
+            Font = PhongChu.Tao(12f, FontStyle.Bold), ForeColor = Chu, BackColor = Color.Transparent, Location = ToaDo(_body, 36, 460),
         };
         _body.Controls.Add(cb);
         NutLui(BuocChao);
@@ -546,8 +546,8 @@ internal sealed class SetupForm : Form
         X(the, 128, 260, "Tài khoản của Ba Mẹ giữ nguyên · các bé vào bằng tên + PIN", Kieu.S);
         X(the, 58, 304, "Tên đăng nhập", Kieu.S, 0, Chu2, dam: true);
         X(the, 372, 304, "Đăng nhập Windows", Kieu.S, 0, Chu2, dam: true);
-        var ten = new TextBox { Font = new Font("Segoe UI", 12.75f), MaxLength = 20, Text = TenTaiKhoanChung() };
-        var tu = new TextBox { Font = new Font("Segoe UI", 12.75f), Text = "Tự vào, không mật khẩu", ReadOnly = true, TabStop = false };
+        var ten = new TextBox { Font = PhongChu.Tao(12.75f), MaxLength = 20, Text = TenTaiKhoanChung() };
+        var tu = new TextBox { Font = PhongChu.Tao(12.75f), Text = "Tự vào, không mật khẩu", ReadOnly = true, TabStop = false };
         foreach (var (o, x, w) in new[] { (ten, 56, 296), (tu, 370, 297) })
         {
             var vo = ONhapClay.Boc(o, S(w));
@@ -567,7 +567,7 @@ internal sealed class SetupForm : Form
         tiep = NutChinh("Tạo tài khoản", 250, async () =>
         {
             var n = ten.Text.Trim();
-            void Loi_(string c) { goiY.Text = c; goiY.ForeColor = Loi; goiY.Font = new Font("Segoe UI", 10f, FontStyle.Bold); }
+            void Loi_(string c) { goiY.Text = c; goiY.ForeColor = Loi; goiY.Font = PhongChu.Tao(10f, FontStyle.Bold); }
             if (!Accounts.IsValidName(n)) { Loi_("Tên chỉ gồm chữ không dấu, số, dấu . _ - (tối đa 20 ký tự). Ví dụ: con"); return; }
             if (_accounts.Any(a => a.Name.Equals(n, StringComparison.OrdinalIgnoreCase))) { Loi_($"Máy đã có tài khoản «{n}». Đặt tên khác, hoặc chọn «Các con đã có tài khoản chung»."); return; }
             tiep!.Enabled = false;
@@ -592,8 +592,8 @@ internal sealed class SetupForm : Form
         var khac = _accounts.Count(a => a.IsAdmin && a.Sid != con.Sid);
         if (khac > 0)
         {
-            if (MessageBox.Show($"Đổi «{con.Name}» thành tài khoản giới hạn? Con vẫn mở máy, học, chơi như cũ — chỉ không tự gỡ AiiGrow được. Gỡ AiiGrow thì trả lại như cũ.",
-                    "Cài AiiGrow", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
+            if (HopThoai.Hien($"Đổi «{con.Name}» thành tài khoản giới hạn? Con vẫn mở máy, học, chơi như cũ — chỉ không tự gỡ AiiGrow được. Gỡ AiiGrow thì trả lại như cũ.",
+                    "Cài AiiGrow", hoi: true) == DialogResult.Yes)
                 BuocGhep();
             return;
         }
@@ -633,7 +633,7 @@ internal sealed class SetupForm : Form
             var lb = VeThe.LeBong;
             for (int i = 0; i < 6; i++)
             {
-                var o = new TextBox { Font = new Font("Segoe UI", 21f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, MaxLength = 7 };
+                var o = new TextBox { Font = PhongChu.Tao(21f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, MaxLength = 7 };
                 var vo = ONhapClay.Boc(o, S(52));
                 vo.Location = new Point(S(i * 60), 0);
                 Controls.Add(vo);
@@ -778,15 +778,15 @@ internal sealed class SetupForm : Form
             _body.Controls.Add(dau[i]);
             dong[i] = X(_body, 308, y + 2, chu[i], Kieu.P, 380, i == 0 ? Clay.NgocInk : Clay.Chu3, dam: i == 0);
         }
-        var chan = new Label { AutoSize = true, Text = "Cài xong, AiiGrow tự sang bước cuối.", Font = new Font("Segoe UI", 11.25f), ForeColor = Chu2, Location = new Point(S(36), S(27)), BackColor = Color.Transparent };
+        var chan = new Label { AutoSize = true, Text = "Cài xong, AiiGrow tự sang bước cuối.", Font = PhongChu.Tao(11.25f), ForeColor = Chu2, Location = new Point(S(36), S(27)), BackColor = Color.Transparent };
         _chan.Controls.Add(chan);
         void Buoc(int i)
         {
             dau[i].TrangThai = 2;
-            dong[i].ForeColor = Chu; dong[i].Font = new Font("Segoe UI", 11.25f);
+            dong[i].ForeColor = Chu; dong[i].Font = PhongChu.Tao(11.25f);
             if (i == 0) dong[0].Text = "Đã ghép vào nhà" + (string.IsNullOrWhiteSpace(o.Pair?.ChildName) ? "" : " · hồ sơ " + o.Pair!.ChildName);
             if (i == 2) dong[2].Text = "Đã cài AiiGrow";
-            if (i + 1 < 4) { dau[i + 1].TrangThai = 1; dong[i + 1].ForeColor = Clay.NgocInk; dong[i + 1].Font = new Font("Segoe UI", 11.25f, FontStyle.Bold); }
+            if (i + 1 < 4) { dau[i + 1].TrangThai = 1; dong[i + 1].ForeColor = Clay.NgocInk; dong[i + 1].Font = PhongChu.Tao(11.25f, FontStyle.Bold); }
             thanh.PhanTram = (i + 1) / 4f;
         }
         _dangCai = true;
@@ -920,7 +920,7 @@ internal sealed class SetupForm : Form
     {
         if (_dangCai && e.CloseReason == CloseReason.UserClosing)
         {
-            MessageBox.Show("AiiGrow đang cài, đợi chút nhé — xong sẽ báo.", "Cài AiiGrow", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            HopThoai.Hien("AiiGrow đang cài, đợi chút nhé — xong sẽ báo.", "Cài AiiGrow");
             e.Cancel = true;
             return;
         }

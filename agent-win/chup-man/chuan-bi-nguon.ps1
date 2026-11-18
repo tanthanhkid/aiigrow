@@ -30,4 +30,4 @@ foreach ($p in 'AiiGrow.Tray', 'AiiGrow.Setup') {
   }
 }
 Write-Host ("chuan-bi-nguon: new Font {0} chỗ, UI.F {1}, Clay.Scale {2} → {3}" -f $dem.font, $dem.uiF, $dem.scale, $Ra)
-if ($dem.uiF -gt 1 -or $dem.phong -ne 1 -or $dem.fontClay -ne 4 -or $dem.scale -ne 1 -or $dem.font -lt 5) { throw "chuan-bi-nguon: mẫu giả lập DPI không khớp mã nguồn (UI.F cũ=$($dem.uiF), UI.F→PhongChu=$($dem.phong), new Font trong Clay.cs=$($dem.fontClay), Clay.Scale=$($dem.scale), new Font=$($dem.font)) — sửa chup-man/chuan-bi-nguon.ps1" }
+if ($dem.uiF -gt 1 -or $dem.phong -ne 1 -or $dem.fontClay -ne 4 -or $dem.scale -ne 1 -or $dem.font -lt 4) { throw "chuan-bi-nguon: mẫu giả lập DPI không khớp mã nguồn (UI.F cũ=$($dem.uiF), UI.F→PhongChu=$($dem.phong), new Font trong Clay.cs=$($dem.fontClay), Clay.Scale=$($dem.scale), new Font=$($dem.font)) — sửa chup-man/chuan-bi-nguon.ps1" }
