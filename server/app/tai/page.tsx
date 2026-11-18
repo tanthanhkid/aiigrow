@@ -82,18 +82,18 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
             <div className="tb-lo" style={{ ["--lo" as string]: "170px" }}>
               <div className="tb-hop" style={{ width: "min(260px,100%)", borderRadius: 20, padding: 16 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}><img src="/logo.png" alt="" width={34} height={34} style={{ borderRadius: 9 }} /><div style={{ fontSize: 14, fontWeight: 800 }}>AiiGrow Con</div></div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#3a403d", margin: "10px 0 14px", lineHeight: 1.35 }}>Cho phép cài ứng dụng từ nguồn này?</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "#2E3A50", margin: "10px 0 14px", lineHeight: 1.35 }}>Cho phép cài ứng dụng từ nguồn này?</div>
                 <div style={{ display: "flex", gap: 8 }}><span className="tb-mn" style={{ flex: 1 }}>Huỷ</span><span className="tb-mn ok" style={{ flex: 1 }}>Cho phép</span></div>
                 <Tay />
               </div>
             </div>} ten="Bấm «Cho phép»" phu="Android hỏi một lần" />
-          <Buoc so={3} lo={<div className="tb-lo"><span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 800, color: "#3a403d" }}><Anh ten="dt" co={28} />Trên điện thoại Ba Mẹ</span><OMa ma={t.ma} /></div>} ten="Nhập mã 6 số" phu="Mã dùng được 10 phút" />
+          <Buoc so={3} lo={<div className="tb-lo"><span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 800, color: "#2E3A50" }}><Anh ten="dt" co={28} />Trên điện thoại Ba Mẹ</span><OMa ma={t.ma} /></div>} ten="Nhập mã 6 số" phu="Mã dùng được 10 phút" />
         </ol>
         <MayTinh />
         <a className="tb-the" href={LINK_APK} style={{ display: "flex", alignItems: "center", gap: 12, borderRadius: 26, padding: "12px 14px", minHeight: 72 }}>
           <Bt ten="nguoi" c={48} />
           <span style={{ flex: 1 }}><b style={{ display: "block", fontSize: 16, fontWeight: 800 }}>Đây là máy của Ba Mẹ?</b><span className="tb-t2" style={{ marginTop: 0 }}>Cài app Ba Mẹ thay vì app Con</span></span>
-          <span style={{ fill: "#0a5246", display: "flex" }}><MuiTiep /></span>
+          <span style={{ fill: "#7A5A1C", display: "flex" }}><MuiTiep /></span>
         </a>
         <Khac nen="android" hrefHe={hrefHe} />
       </div></div>

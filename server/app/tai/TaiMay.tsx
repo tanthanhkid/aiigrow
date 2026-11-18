@@ -29,7 +29,7 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
       <ThongDiep />
       <div className="tb-the">
         <div className="tb-vach" role="img" aria-label="Đã dừng"><i /></div>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}><span className="tb-ghi" style={{ color: "#8a3c0c" }}>Đã dừng</span></div>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 8 }}><span className="tb-ghi" style={{ color: "#A2412C" }}>Đã dừng</span></div>
         <div className="tb-ds" style={{ marginTop: 16 }}>
           <div className="tb-dong"><Bt ten="wifi" mau="lam" c={48} /><div><div className="tb-t1">Kiểm tra wifi</div><div className="tb-t2">Thử mở một trang web khác</div></div></div>
           <div className="tb-dong"><Bt ten="tai" c={48} /><div><div className="tb-t1">Bấm «Tải lại»</div><div className="tb-t2">Tải tiếp từ chỗ dừng nếu trình duyệt cho phép</div></div></div>
@@ -50,11 +50,11 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
       <Dau ve={hre(nen)} onVe={veCho} may={nen} />
       <div className="tb-the" style={{ padding: "16px 18px 18px" }} aria-live="polite">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <img src="/assets/rob/cho.webp" alt="" width={78} height={78} style={{ flex: "none", filter: "drop-shadow(0 8px 8px rgba(28,32,30,.2))" }} />
+          <img src="/assets/rob/cho.webp" alt="" width={78} height={78} style={{ flex: "none", filter: "drop-shadow(0 8px 8px rgba(120,98,70,.28))" }} />
           <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.3px" }}>Đang tải…</div><div className="tb-t2" style={{ fontSize: 14 }}>{tenTep} · tiến độ xem ở góc trên trình duyệt</div></div>
         </div>
         <div className="tb-vach chay" style={{ marginTop: 14 }} role="progressbar" aria-label="Đang tải"><i /></div>
-        <div className="tb-dung"><span className="tb-ghi" style={{ fontSize: 13.5, color: "#3a403d" }}>Tải bị dừng?</span><a className="tb-lk" href={link} onClick={(e) => { e.preventDefault(); setPha("dung"); }}>Tải lại</a></div>
+        <div className="tb-dung"><span className="tb-ghi" style={{ fontSize: 13.5, color: "#2E3A50" }}>Tải bị dừng?</span><a className="tb-lk" href={link} onClick={(e) => { e.preventDefault(); setPha("dung"); }}>Tải lại</a></div>
       </div>
       <ThongDiep />
       <p className="tb-tieu">Tải xong, làm theo hình:</p>
@@ -83,7 +83,7 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
             <NutTai lon href={link} onClick={() => setPha("tai")}>{nut}</NutTai>
             <p className="tb-nho">{tep}</p>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, marginTop: 14, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 16, fontWeight: 700, color: "#3a403d" }}>Máy {TEN[kia]}?</span>
+              <span style={{ fontSize: 16, fontWeight: 700, color: "#2E3A50" }}>Máy {TEN[kia]}?</span>
               <a className="tb-chip" href={hre(kia)}><Anh ten={ kia === "windows" ? "laptop" : "may_tinh"} />Tải bản cho {TEN[kia]}</a>
             </div>
           </div>
