@@ -113,11 +113,11 @@ export function HinhBuoc({ nen, b, xong, ma }: { nen: "windows" | "mac"; b: 1 | 
 
 export const CHU: Record<"windows" | "mac", { truoc: [string, string][]; sau: [string, string][] }> = {
   windows: {
-    truoc: [["Tải bộ cài", "Bấm nút xanh ở trên"], ["Mở file, bấm «Có»", "Windows hỏi một lần"], ["Nhập mã 6 số", "Mã dùng được 10 phút"]],
+    truoc: [["Tải bộ cài", "Bấm nút vàng ở trên"], ["Mở file, bấm «Có»", "Windows hỏi một lần"], ["Nhập mã 6 số", "Mã dùng được 10 phút"]],
     sau: [["Bấm «Mở tệp»", "Ở góc trên trình duyệt"], ["Bấm «Có»", "Windows hỏi một lần"], ["Làm theo bộ cài", "Có bước nhập mã 6 số trên điện thoại Ba Mẹ"]],
   },
   mac: {
-    truoc: [["Tải bộ cài", "Bấm nút xanh ở trên"], ["Mở file, bấm «Mở»", "Mac hỏi một lần"], ["Nhập mã 6 số", "Mã dùng được 10 phút"]],
+    truoc: [["Tải bộ cài", "Bấm nút vàng ở trên"], ["Mở file, bấm «Mở»", "Mac hỏi một lần"], ["Nhập mã 6 số", "Mã dùng được 10 phút"]],
     sau: [["Bấm đúp file AiiGrow.pkg", "Trong mục Tải về"], ["Bấm «Mở»", "Mac hỏi một lần"], ["Làm theo bộ cài", "Có bước nhập mã 6 số trên điện thoại Ba Mẹ"]],
   },
 };

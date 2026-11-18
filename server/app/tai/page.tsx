@@ -77,7 +77,7 @@ export default async function TrangTai({ searchParams }: { searchParams: Promise
           <p className="tb-nho" style={{ marginTop: 8 }}>AiiGrow-Con-{BAN_CON_ANDROID.version}.apk · cài trên điện thoại của con</p>
         </div>
         <ol className="tb-cac">
-          <Buoc so={1} lo={<div className="tb-lo hinh"><Bt ten="tai" mau="lam" c={120} /></div>} ten="Tải" phu="Bấm nút xanh ở trên" />
+          <Buoc so={1} lo={<div className="tb-lo hinh"><Bt ten="tai" mau="lam" c={120} /></div>} ten="Tải" phu="Bấm nút vàng ở trên" />
           <Buoc so={2} lo={
             <div className="tb-lo" style={{ ["--lo" as string]: "170px" }}>
               <div className="tb-hop" style={{ width: "min(260px,100%)", borderRadius: 20, padding: 16 }}>

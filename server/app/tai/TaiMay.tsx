@@ -88,7 +88,7 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
             </div>
           </div>
         </div>
-        <Canh rob="rob-goc" co={260} nho="Bấm nút xanh là tải đúng bản.">Máy {TEN[nen]} đây rồi!</Canh>
+        <Canh rob="rob-goc" co={260} nho="Bấm nút vàng là tải đúng bản.">Máy {TEN[nen]} đây rồi!</Canh>
       </div>
       <ol className="tb-cac3 tb-cac" style={{ padding: 0 }}>
         {CHU[nen].truoc.map(([ten, phu], i) => (
