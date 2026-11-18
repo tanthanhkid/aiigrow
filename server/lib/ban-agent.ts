@@ -38,6 +38,7 @@ export const BAN_AGENT_WINDOWS = {
  *  `gh release create mac-<bản>` ở repo public tanthanhkid/aiigrow-tai → điền sha256 của đúng tệp → next.config chuyển /tai/AiiGrow-<bản>.pkg sang Release.
  *  agent Mac TỰ cập nhật từ bản 0.1.1 (hỏi lúc khởi động + theo chuKyKiemPhut từ 0.1.6, bản cũ hơn mỗi 6 giờ; 0.1.0 phải cài tay một lần). Agent chỉ theo 302 tới github.com/tanthanhkid/aiigrow-tai/releases/download/ + máy chủ tệp Release,
  *  kiểm sha256 + chữ ký «Developer ID Installer: TAN THANH TRAN (ADUL7HT969)» trước khi cài — phát bản mới phải ký đúng chứng chỉ đó và điền sha256 của đúng tệp. */
+// 0.1.15 (18/11, rà FULL phong cách E phía Con: bộ cài .pkg, icon app, avatar bé — PR #398, bản #399): build-pkg.sh từ fdf5636e, notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.15.
 // 0.1.14 (17/11 tối, phong cách E «Ánh kim» phía Con — PR #375/#376): build-pkg.sh từ d9473d6e, notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.14.
 // 0.1.13 (17/11, máy chung nhiều bé: luật + sao theo từng bé khi mất mạng, đổi gán áp ngay — #337 #339, PR #347): build-pkg.sh từ 3ae06b65, notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.13.
 // 0.1.12 (15/11, sao = phút, vay sao, Mở hết / Theo danh sách, máy chung theo bé — PR #275 #280): build-pkg.sh từ 3a0e311b, notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.12.
@@ -47,9 +48,9 @@ export const BAN_AGENT_WINDOWS = {
 // notarize Accepted; sha256 đo trên tệp tải về từ Release mac-0.1.8. (0.1.7: commit 562fabc, PR #174 + #176.)
 export const BAN_AGENT_MAC = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
-  version: "0.1.14",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.14.pkg",
-  sha256: "de6d13435dd46e1c880ed48616b60bd018f3807ec91b73018d6221cab9916e1a",
+  version: "0.1.15",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-0.1.15.pkg",
+  sha256: "53ec3399088d86ffa664760b0f8d48d6a1d3b156dc05b4b17e6afac74d92f1c7",
 } as const;
 
 /** Bản app Con Android (agent-android, vn.aiilab.aiigrow.con, APK ký khoá phát hành aiigrow-con — chứng chỉ SHA-256 ED:65:…:C5:93).
@@ -59,6 +60,7 @@ export const BAN_AGENT_MAC = {
  *  Phát bản: tăng versionCode/versionName trong agent-android/app/build.gradle.kts → assembleRelease (ky.env) → `gh release create
  *  con-android-<bản>` ở tanthanhkid/aiigrow-tai, tệp AiiGrow-Con-android.apk → điền ba giá trị dưới (sha256 của đúng tệp tải về từ Release)
  *  → sửa redirect /tai/aiigrow-con.apk trong next.config. versionCode PHẢI khớp APK (app kiểm, lệch ⇒ không cài). */
+// 0.3.3 (18/11, rà FULL phong cách E phía Con: icon, thông báo, theme/splash, avatar bé — PR #385, bản #399): assembleRelease khoá aiigrow-con từ fdf5636e; sha256 đo trên tệp tải về từ Release con-android-0.3.3.
 // 0.3.2 (17/11 tối, phong cách E «Ánh kim» phía Con — PR #375/#376): assembleRelease khoá aiigrow-con từ d9473d6e; sha256 đo trên tệp tải về từ Release con-android-0.3.2.
 // 0.3.1 (17/11, máy chung đổi bé lúc mất mạng dùng đúng luật của bé — #337 #339, PR #345): assembleRelease khoá aiigrow-con từ 3ae06b65; sha256 đo trên tệp tải về từ Release con-android-0.3.1.
 // 0.3.0 (15/11, sao = phút, vay sao, Mở hết / Theo danh sách, máy chung theo bé — PR #273): assembleRelease khoá aiigrow-con từ 3a0e311b; sha256 đo trên tệp tải về từ Release con-android-0.3.0.
@@ -67,10 +69,10 @@ export const BAN_AGENT_MAC = {
 // 0.2.4 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN, sao — PR #185): assembleRelease khoá aiigrow-con từ commit 3a43ca0 (tag phathanh-0511-src, PR #190);
 // sha256 đo trên tệp tải về từ Release con-android-0.2.4. (0.2.3: commit 68d44f6, PR #128.)
 export const BAN_CON_ANDROID = {
-  version: "0.3.2",
-  versionCode: 11,
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.3.2.apk",
-  sha256: "83f02640ced9cc11c201b1b95d442a7ecd1a6156cd835e806554c1f6ecc5efbb",
+  version: "0.3.3",
+  versionCode: 12,
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.3.3.apk",
+  sha256: "f9b7c45d643e550ca59b8d5d6ff107b49c62e536d578ff8e0b9f88d11e3e400b",
 } as const;
 
 /** Đổi host của URL gói sang CHÍNH máy chủ được hỏi (`origin` https — vd staging): agent Mac/Android chỉ nhận gói cùng host với máy chủ
