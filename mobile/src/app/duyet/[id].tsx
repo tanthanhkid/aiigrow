@@ -73,7 +73,7 @@ export default function BangChungLuot() {
               onMomentumScrollEnd={(e) => setTrang(Math.round(e.nativeEvent.contentOffset.x / rong))}
               onScroll={(e) => setTrang(Math.round(e.nativeEvent.contentOffset.x / rong))} scrollEventThrottle={64}>
               {anh.map((a, k) => (
-                <Image key={a.id} source={{ uri: `data:${a.mime};base64,${a.base64}` }} style={{ width: rong, aspectRatio: 4 / 5, backgroundColor: "#f6e7cf" }} contentFit="cover"
+                <Image key={a.id} source={{ uri: `data:${a.mime};base64,${a.base64}` }} style={{ width: rong, aspectRatio: 4 / 5, backgroundColor: M.xamSoft }} contentFit="cover"
                   accessibilityLabel={`${nhanAnh(k)} · ${l.ten_con} chụp lúc ${gioPhut(a.chupLuc)}`} />
               ))}
             </ScrollView>
@@ -94,7 +94,7 @@ export default function BangChungLuot() {
                     <Pressable key={a.id} onPress={() => { setTrang(k); cuon.current?.scrollTo({ x: k * rong, animated: true }); }} accessibilityRole="button"
                       accessibilityLabel={`Xem ảnh ${nhanAnh(k)}`} style={{ flex: 1, gap: 4 }}>
                       <Image source={{ uri: `data:${a.mime};base64,${a.base64}` }} contentFit="cover"
-                        style={{ height: 56, borderRadius: 14, borderWidth: 2, borderColor: k === trang ? M.chinh : "transparent", backgroundColor: "#f6e7cf" }} />
+                        style={{ height: 56, borderRadius: 14, borderWidth: 2, borderColor: k === trang ? M.chinh : "transparent", backgroundColor: M.xamSoft }} />
                       <Chu kieu="dam7" co={12} mau={M.chu2}>{`${nhanAnh(k)} · ${gioPhut(a.chupLuc)}`}</Chu>
                     </Pressable>
                   ))}

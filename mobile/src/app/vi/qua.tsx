@@ -81,7 +81,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
           <The key={y.id} style={{ backgroundColor: M.canhSoft }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
               {/* thiết kế 473f52w6: ô vàng nhạt 44 + sao 3D */}
-              <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: "#fdf0c9", alignItems: "center", justifyContent: "center" }}><Icon3D ten="sao" co={28} /></View>
+              <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten="sao" co={28} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={15} mau={M.canh}>{`${c.ten} xin vay ${soVN(y.phut ?? 15)} sao`}</Chu>
                 <Chu kieu="dam" co={12.5} mau={M.canh}>{`Để đổi ${qq ? tenVoucher(qq.ten) : "quà"}${qq ? ` · con có ${soVN(co)}/${soVN(qq.sao)} sao` : ""}`}</Chu>

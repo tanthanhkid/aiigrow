@@ -159,7 +159,7 @@ function ThuNho({ x }: { x: LuotChoMoi }) {
         <SongAm cot={12} cao={60} mau={M.chinhInk} ti={1} />
         {/* thiết kế nl1nwszs: nút phát tròn đen giữa khối sóng */}
         <View style={{ position: "absolute", left: 32, top: 32, width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(15,19,18,0.82)", alignItems: "center", justifyContent: "center" }}>
-          <View style={{ marginLeft: 4, width: 0, height: 0, borderTopWidth: 8, borderBottomWidth: 8, borderLeftWidth: 13, borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: "#fff" }} />
+          <View style={{ marginLeft: 4, width: 0, height: 0, borderTopWidth: 8, borderBottomWidth: 8, borderLeftWidth: 13, borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: "#FFFBF5" }} />
         </View>
         <View style={{ position: "absolute", left: 6, bottom: 6, paddingHorizontal: 7, borderRadius: 9, backgroundColor: "rgba(255,255,255,0.92)" }}>
           <Chu kieu="rat" co={11} mau={M.chu2}>Ghi âm</Chu>
@@ -168,12 +168,12 @@ function ThuNho({ x }: { x: LuotChoMoi }) {
     );
   }
   return (
-    <View style={[o, { backgroundColor: "#f6e7cf", alignItems: "center", justifyContent: "center" }]}>
+    <View style={[o, { backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }]}>
       {anh[0] ? <Image source={{ uri: `data:${anh[0].mime};base64,${anh[0].base64}` }} style={{ width: 104, height: 104 }} contentFit="cover"
         accessibilityLabel={`Ảnh ${x.ten_con} nộp`} /> : <Icon ten={x.so_anh ? "camera" : "tick"} mau={M.chu3} co={30} />}
       {x.so_anh > 1 ? (
         <View style={{ position: "absolute", right: 6, top: 6, paddingHorizontal: 7, borderRadius: 9, backgroundColor: "rgba(15,19,18,0.62)" }}>
-          <Chu kieu="rat" co={11} mau="#fff">{`${x.so_anh} ảnh`}</Chu>
+          <Chu kieu="rat" co={11} mau="#FFFBF5">{`${x.so_anh} ảnh`}</Chu>
         </View>
       ) : null}
     </View>

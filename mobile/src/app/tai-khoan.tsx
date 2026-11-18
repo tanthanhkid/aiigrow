@@ -13,7 +13,7 @@ import { MucTieu, OIcon, veHoac } from "@/lib/ui-bm3";
 import { BONG, KHOI } from "@/lib/clay";
 import { ChuCaiCon } from "@/lib/ui-viec";
 import { DsBang } from "@/lib/ca-nha-ui";
-import { BangTruot, BaoLoi, baoKhiVe, cauLoi, ChoTai, Chu, Dong, F, M, Man, Nhom, Nut, ONhap, TickDong, tien, useLam, useTai } from "@/lib/ui";
+import { Avt, BangTruot, BaoLoi, baoKhiVe, cauLoi, ChoTai, Chu, Dong, F, M, Man, Nhom, Nut, ONhap, TickDong, tien, useLam, useTai } from "@/lib/ui";
 
 export default function TaiKhoan() {
   const { ra } = usePhien();
@@ -83,9 +83,7 @@ export default function TaiKhoan() {
       {/* thiết kế .the: một thẻ — avatar 64 + «Bạn cùng trông N con» + chữ cái các con chồng nhẹ; «Tên hiển thị» ô lõm + nút «Lưu tên» cùng hàng */}
       <View style={[{ gap: 12, padding: 16, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
-          <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: "#d0668a", alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
-            <Chu kieu="rat" co={26} mau="#fff">{chuDau(toi.ten)}</Chu>
-          </View>
+          <Avt ten={chuDau(toi.ten)} co={64} />
           <View style={{ flex: 1, minWidth: 0, gap: 6 }}>
             <Chu kieu="dam" co={14} mau={M.chu2}>{soCon ? `Bạn cùng trông ${soCon} con` : "Nhà chưa có con nào"}</Chu>
             {soCon ? <ChuCaiCon ds={d.g.con.slice(0, 6)} co={26} /> : null}

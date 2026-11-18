@@ -124,7 +124,7 @@ export default function QuaBaMeMua() {
 function OSo({ ic, nhan, so, vang }: { ic: TenIcon; nhan: string; so: string; vang?: boolean }) {
   return (
     <View style={[{ flex: 1, flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 24, backgroundColor: vang ? M.diemSoft : M.the }, KHOI.nho]}>
-      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: vang ? "#fff3cf" : M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={26} /></View>
+      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: vang ? M.chonSoft : M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={26} /></View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="dam7" co={12.5} mau={vang ? M.diemInk : M.chu2}>{nhan}</Chu>
         <Chu kieu="rat" co={17} mau={vang ? M.diemInk : M.chu} so>{so}</Chu>

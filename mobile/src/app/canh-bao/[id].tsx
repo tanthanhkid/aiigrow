@@ -110,7 +110,7 @@ export default function ChiTietCanhBao() {
     </>}>
       {/* đầu màn (bàn them-c4ldnqj8@v4 / them-y5iwt1fv@v8 / them-lsf4eews@v8): thẻ đào ngang — ô icon lớn (máy / web + biểu tượng góc) · tiêu đề · giờ · máy */}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: MAU_NO.nen, ...KHOI.the }}>
-        <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center" }}>
           <Icon3D ten={kieu === "web" ? "web" : icMay} co={46} />
           {kieu === "web" ? null : <View style={{ position: "absolute", right: -8, bottom: -8, width: 32, height: 32, borderRadius: 16, backgroundColor: M.the, alignItems: "center",
             justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={kieu === "mat_lien_lac" ? "wifi" : "canh_bao"} co={20} /></View>}
@@ -195,7 +195,7 @@ function CanhBaoNo({ id, x }: { id: string; x: CanhBao & { child_id: string; ten
       <Nut chu="Đã biết" loai="ma" rong dangChay={dangChay} bam={daBiet} />
     </>}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 28, backgroundColor: MAU_NO.nen, ...KHOI.the }}>
-        <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: "#f3d6b8", alignItems: "center", justifyContent: "center" }}>
+        <View style={{ width: 72, height: 72, borderRadius: 22, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center" }}>
           <Icon3D ten="sao" co={48} />
           <View style={{ position: "absolute", right: -8, bottom: -8, width: 32, height: 32, borderRadius: 16, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
             boxShadow: BONG.nho }}><Icon3D ten="canh_bao" co={20} /></View>

@@ -45,7 +45,7 @@ export default function ThuVienQua() {
               style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22,
                 backgroundColor: on ? M.chinh : M.the, boxShadow: on ? BONG.ngoc : BONG.nho }}>
               {x.ma && IC_NHOM[x.ma] ? <Anh3D ten={IC_NHOM[x.ma]} co={20} /> : null}
-              <Chu kieu="rat" co={14.5} mau={on ? "#fff" : M.chu}>{x.ten}</Chu>
+              <Chu kieu="rat" co={14.5} mau={on ? "#FFFBF5" : M.chu}>{x.ten}</Chu>
             </Pressable>
           );
         })}
