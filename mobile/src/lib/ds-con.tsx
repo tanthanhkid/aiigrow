@@ -24,7 +24,7 @@ export function HangXin({ ic, tieu, phu, bam }: { ic: TenIcon; tieu: string; phu
   return (
     <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}, ${phu}. Trả lời`} muc="khoi"
       style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.canhSoft, ...KHOI.the }}>
-      <OIcon ic={ic} co={40} nen="#f3d6b8" />
+      <OIcon ic={ic} co={40} nen={M.chonSoft} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
         <Chu kieu="dam" co={12.5} mau={M.canh} dong={1}>{phu}</Chu>

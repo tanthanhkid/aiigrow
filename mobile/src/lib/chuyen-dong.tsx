@@ -157,7 +157,8 @@ export function useBat() {
 type Diem = { x: number; y: number };
 type Phat = { id: number; tu: Diem; den: Diem | null; n: number };
 export type AnMungRef = { ban: (tu: Diem, n: number) => void };
-const MAU_HAT = [M.chinh, M.chinhSang, M.diem, "#ffd75e", M.chinhDam, M.diem];
+// «Ánh kim» (#386): hạt navy + dải vàng kim (bỏ xanh lá / vàng chanh cũ)
+const MAU_HAT = [M.chinh, "#C9973B", M.diem, "#FBE7B0", M.chinhDam, "#F2D48C"];
 
 /** Lớp ăn mừng phủ cả màn (pointerEvents none). `dich()` trả toạ độ (trong cửa sổ) của ví/hộp quà để «+N» bay vào; `toi()` khi tới nơi. */
 export const LopAnMung = forwardRef<AnMungRef, { dich?: () => Promise<Diem | null>; toi?: () => void }>(function LopAnMung({ dich, toi }, ref) {

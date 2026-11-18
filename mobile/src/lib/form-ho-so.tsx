@@ -27,11 +27,10 @@ export function TheHoSoCon({ ten, nam, mau, anh, chup, con }: { ten: string; nam
   const tenGon = ten.trim();
   return (
     <View style={{ minHeight: 170, borderRadius: 30, backgroundColor: nhat, padding: 18, flexDirection: "row", alignItems: "center", ...KHOI.the }}>
-      <LopMen men={MEN.vien} bo={30} />
       {/* cột trái ≤ 44%: tên dài xuống dòng trước khi chạm Grow bên phải (cổng DE-ANH) */}
       <View style={{ gap: 10, alignItems: "flex-start", maxWidth: "44%" }}>
         <Pressable onPress={chup} disabled={!chup} accessibilityRole={chup ? "button" : undefined} accessibilityLabel={chup ? "Chụp ảnh đại diện" : undefined}
-          style={{ width: 84, height: 84, borderRadius: 42, borderWidth: 4, borderColor: "#fff", boxShadow: BONG.nho }}>
+          style={{ width: 84, height: 84, borderRadius: 42, borderWidth: 4, borderColor: M.nen, boxShadow: BONG.nho }}>
           <Avt ten={tenGon || "?"} mau={dam} co={76} anh={anh} con={con} />
           {chup ? (
             // bàn bm1-ob-ten-con v20: huy hiệu tròn trắng có máy ảnh ở góc dưới phải ảnh đại diện
@@ -40,7 +39,7 @@ export function TheHoSoCon({ ten, nam, mau, anh, chup, con }: { ten: string; nam
             </View>
           ) : null}
         </Pressable>
-        <Chu kieu="rat" co={24} mau="#3d2200">{tenGon || "Con nhà mình"}</Chu>
+        <Chu kieu="tieu" co={24} mau={M.chu}>{tenGon || "Con nhà mình"}</Chu>
         {tuoi && namSo ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: M.the, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3, boxShadow: BONG.nho }}
             accessibilityLabel={`${tuoi}, tuổi ${conGiap(namSo)[0]}, theo năm sinh ${namSo}`}>
@@ -85,7 +84,7 @@ export function ChonMauCon({ mau, doi }: { mau: number; doi: (i: number) => void
       <View style={{ flexDirection: "row", gap: 12, paddingHorizontal: 4 }} accessibilityRole="radiogroup">
         {MAU_HO_SO.map(([m], i) => (
           <Pressable key={m} onPress={() => doi(i)} accessibilityRole="radio" accessibilityState={{ checked: i === mau }} accessibilityLabel={`Màu ${i + 1}`}
-            style={{ width: 50, height: 50, borderRadius: 25, alignItems: "center", justifyContent: "center", ...(i === mau ? { borderWidth: 3, borderColor: M.chinh } : {}) }}>
+            style={{ width: 50, height: 50, borderRadius: 25, alignItems: "center", justifyContent: "center", ...(i === mau ? { borderWidth: 3, borderColor: M.dauSach } : {}) }}>
             <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: m, boxShadow: BONG.nho }} />
           </Pressable>
         ))}
