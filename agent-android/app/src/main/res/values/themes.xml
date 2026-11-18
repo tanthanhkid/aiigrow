@@ -12,7 +12,7 @@
         <item name="android:textColorPrimary">@color/e_navy</item>
     </style>
     <!-- Màn khoá toàn màn hình: nền kem, thanh hệ thống kem -->
-    <style name="Theme.AiiGrow.Khoa" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+    <style name="Theme.AiiGrow.Khoa" parent="@android:style/Theme.Material.Light.NoActionBar.Fullscreen">
         <item name="android:windowBackground">@color/e_nen</item>
         <item name="android:statusBarColor">@color/e_nen</item>
         <item name="android:navigationBarColor">@color/e_nen</item>
