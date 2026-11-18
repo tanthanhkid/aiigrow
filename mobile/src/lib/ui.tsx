@@ -487,8 +487,8 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
           <Icon ten="trai" mau={M.chinhInk} co={24} />
         </Pressable>
       ) : null}
-      {tieuDau ? <Text numberOfLines={2} accessibilityRole="header" style={{ flex: 1, minWidth: 0, fontFamily: F.tieu, fontSize: 22, lineHeight: 28, paddingVertical: 4, letterSpacing: -0.4, color: M.chu,
-        paddingLeft: lui ? 2 : 8 }}>{tieuDau}</Text> : <View style={{ flex: 1 }} />}
+      {tieuDau ? <View style={{ flex: 1, minWidth: 0, overflow: "hidden" }}><Text numberOfLines={2} accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 22, lineHeight: 28, paddingVertical: 4, letterSpacing: -0.4, color: M.chu,
+        paddingLeft: lui ? 2 : 8 }}>{tieuDau}</Text></View> : <View style={{ flex: 1 }} />}
       {phai || chatTrenDau2 || phaiDau2 ? <View style={{ marginLeft: "auto", flexShrink: 0, flexDirection: "row", gap: 8, alignItems: "center", paddingRight: 4 }}>{phai}{phaiDau2}{chatTrenDau2 ? nutChat : null}</View> : null}
     </View>
   ) : null;
