@@ -44,6 +44,9 @@ fi
 LOAD="$(uptime | sed 's/.*load averages*: //')"; echo "load: $LOAD"
 [ "$(echo "${LOAD%% *}" | tr -d , | cut -d. -f1)" -le 8 ] || { echo "TỪ CHỐI: máy đang quá tải (load > 8), chạy lại sau"; exit 1; }
 
+# Cổng: gói expo-* lệch bản SDK thì dừng — TF build 21 crash lúc mở vì prebuild ExpoImageManipulator
+# cần ký hiệu của ExpoModulesCore mới hơn (dyld «Symbol missing»). Sửa: npx expo install --fix
+npm run -s check:expo || { echo "DỪNG: phụ thuộc expo lệch SDK — chạy 'npx expo install --fix', commit rồi phát hành lại" >&2; exit 1; }
 # 1. prebuild sạch + chỉnh phiên bản
 EXPO_PUBLIC_API="$API" npx expo prebuild --platform android --clean --no-install
 G=android/app/build.gradle
