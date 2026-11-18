@@ -95,7 +95,7 @@ export default function MaMoMay() {
       </View>
 
       <Chu kieu="rat" co={15} mau={M.chu2} style={{ paddingHorizontal: 6, marginTop: 4 }}>Mở máy trong</Chu>
-      <View style={{ flexDirection: "row", gap: 10 }} accessibilityRole="radiogroup">
+      <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 6 }} accessibilityRole="radiogroup">
         {(ma?.chonPhut ?? [...PHUT_MO]).map((p) => {
           const on = p === phut;
           return (

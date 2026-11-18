@@ -39,12 +39,12 @@ export default function GhepThemMay() {
           return (
             <Pressable key={x.id} onPress={() => doi(x.id)} accessibilityRole="checkbox" accessibilityState={{ checked: on }} accessibilityLabel={x.ten}
               style={{ width: 62, alignItems: "center", gap: 7 }}>
-              <View style={{ width: 62, height: 62, borderRadius: 31, alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: on ? M.chinh : "transparent" }}>
+              <View style={{ width: 62, height: 62, borderRadius: 31, alignItems: "center", justifyContent: "center", borderWidth: 2.5, borderColor: on ? M.dauSach : "transparent" }}>
                 <AvtCon c={x} co={52} />
               </View>
               {on ? (
                 <View style={{ position: "absolute", top: 40, right: 0, width: 22, height: 22, borderRadius: 11, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center",
-                  borderWidth: 2.5, borderColor: M.nen }}><Icon ten="tick" mau="#fff" co={12} /></View>
+                  borderWidth: 2.5, borderColor: M.nen }}><Icon ten="tick" mau={M.diem} co={12} /></View>
               ) : null}
               <Chu kieu="rat" co={12.5} mau={on ? M.chinhInk : M.chu2} dong={1}>{tenGoi(x.ten)}</Chu>
             </Pressable>
@@ -58,7 +58,7 @@ export default function GhepThemMay() {
         </Pressable>
       </View>
       {so ? (
-        <View style={{ padding: 16, borderRadius: 24, backgroundColor: M.chinhSoft, boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.nho}`, gap: 4 }}>
+        <View style={{ padding: 16, borderRadius: 24, backgroundColor: M.chonSoft, boxShadow: BONG.lom, gap: 4 }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <Icon3D ten="nguoi" co={24} />
             <Chu kieu="rat" co={15} mau={M.chinhInk} style={{ flexShrink: 1 }}>{so > 1 ? `Máy dùng chung · ${so} bé` : `Máy riêng của ${tenGoi(ds[0].ten)}`}</Chu>

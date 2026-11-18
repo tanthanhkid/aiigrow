@@ -57,7 +57,7 @@ export default function DoiTenMay() {
   });
   const nhacGrow = (dao: boolean, chu: string) => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, paddingHorizontal: 16, borderRadius: 22,
-      ...(dao ? { backgroundColor: M.canhSoft, backgroundImage: "linear-gradient(#ffe6d6, #fff1e6)", ...KHOI.the } : KHOI_HERO) }}>
+      ...(dao ? { backgroundColor: M.chonSoft, ...KHOI.the } : KHOI_HERO) }}>
       <Rob ten="chi" co={48} />
       <Chu kieu="rat" co={13} mau={dao ? M.canh : HERO.chu} style={{ flex: 1, lineHeight: 18 }}>{chu}</Chu>
     </View>

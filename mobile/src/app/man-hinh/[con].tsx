@@ -6,17 +6,19 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ManHinhTuan, type MucMH } from "@/lib/api";
 import { BieuTron, CanhGiua, ChoTai, ChonMot, Chu, Dong, Icon, M, Man, Nhom, NhomTieu, Nut, The, type TenIcon, useTai } from "@/lib/ui";
+import { BONG } from "@/lib/clay";
 import { CotClay, ThanhClay } from "@/lib/bieu-do";
 import { HangViec, IC_MAY, type ConCt, type QuyCon } from "@/lib/hang-ngay";
 
 const MUC: Record<MucMH, { chu: string; mau: string; ic: TenIcon }> = {
+  // «Ánh kim»: bảng E (navy · đồng · vàng đồng sẫm · mận · ô liu · nâu), không còn tím / cam / hồng
   hoc: { chu: "Học tập", mau: M.chinh, ic: "mu" },
-  game: { chu: "Trò chơi", mau: M.tim, ic: "game" },
-  video: { chu: "Video & phim", mau: M.camDam, ic: "camera" },
-  video_ngan: { chu: "Video ngắn", mau: M.hong, ic: "tia" },
-  mxh: { chu: "Mạng xã hội & chat", mau: M.lam, ic: "tin" },
+  game: { chu: "Trò chơi", mau: "#9C5B2E", ic: "game" },
+  video: { chu: "Video & phim", mau: "#A67C1F", ic: "camera" },
+  video_ngan: { chu: "Video ngắn", mau: "#6E3B4E", ic: "tia" },
+  mxh: { chu: "Mạng xã hội & chat", mau: "#4F6B2A", ic: "tin" },
   tien_ich: { chu: "Công cụ & trình duyệt", mau: M.chu3, ic: "banhrang" },
-  khac: { chu: "Giải trí khác", mau: M.reu, ic: "luoi" },
+  khac: { chu: "Giải trí khác", mau: "#4a4034", ic: "luoi" },
   chua_xep: { chu: "Chưa phân loại", mau: M.oNhap, ic: "dau_hoi" },
 };
 const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
@@ -100,7 +102,7 @@ function HomNay({ con, ct }: { con: string; ct: ConCt | null }) {
 }
 
 const ODau = ({ muc }: { muc: MucMH }) => (
-  <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: `${MUC[muc].mau}1f` }}>
+  <View style={{ width: 40, height: 40, borderRadius: 12, alignItems: "center", justifyContent: "center", backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
     <Icon ten={MUC[muc].ic} mau={MUC[muc].mau} co={20} />
   </View>
 );
@@ -181,7 +183,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
 
       <Nhom>
         <Dong dau tieu="Web của con" phu="Thêm trang vào danh sách: Tính phút hoặc Không tính phút" trai={<BieuTron ic="web" mau="lam" />} bam={() => router.push(`/web/${con}`)} />
-        <Dong tieu="App & web" phu="Mở hết hoặc Theo danh sách" trai={<BieuTron ic="luoi" mau="tim" />} bam={() => router.push(`/app-web?con=${con}`)} />
+        <Dong tieu="App & web" phu="Mở hết hoặc Theo danh sách" trai={<BieuTron ic="luoi" mau="vang" />} bam={() => router.push(`/app-web?con=${con}`)} />
         <Dong tieu="Báo cáo tuần" phu="Học và giải trí theo ngày, xuất CSV cho Excel" trai={<BieuTron ic="cot" />} bam={() => router.push({ pathname: "/bao-cao", params: { con } })} />
       </Nhom>
       <Chu co={13} mau={M.chu3}>

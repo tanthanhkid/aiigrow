@@ -85,11 +85,11 @@ export default function MayChiTiet() {
         </View>
         {dangDung ? (
           <View style={{ flexDirection: "row", gap: 8 }}>
-            <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.75)" }}>
+            <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: M.the, ...KHOI.heroNho }}>
               <Chu kieu="rat" co={20} so style={{ lineHeight: 24 }}>{`${cm.dangDung?.phutHomNay ?? dangDung.phutHomNay} phút`}</Chu>
               <Chu kieu="dam7" co={12} mau={M.chu2}>hôm nay trên máy này</Chu>
             </View>
-            <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.75)" }}>
+            <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: M.the, ...KHOI.heroNho }}>
               <Chu kieu="rat" co={20} so mau={dangDung.sao < 0 ? M.canh : M.diemInk} style={{ lineHeight: 24 }}>{`${dangDung.sao < 0 ? "−" : ""}${Math.abs(dangDung.sao)} sao`}</Chu>
               <Chu kieu="dam7" co={12} mau={M.chu2}>{dangDung.sao < 0 ? "đang nợ Ba Mẹ" : `còn = ${dangDung.sao} phút chơi`}</Chu>
             </View>

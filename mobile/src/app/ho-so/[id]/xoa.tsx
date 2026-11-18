@@ -80,8 +80,7 @@ export default function XoaHoSo() {
       <Nut chu="Giữ lại" loai="vien" rong bam={ve} />
     </>}>
       <View style={{ flexGrow: 1, minHeight: 120 }} />
-      <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: "#fbe5ce",
-        backgroundImage: "linear-gradient(#f9dcc0, #fdeedd)", ...KHOI.the }}><Icon3D ten="nguoi" co={48} /></View>
+      <View style={{ alignSelf: "center", width: 76, height: 76, borderRadius: 26, alignItems: "center", justifyContent: "center", backgroundColor: M.the, ...KHOI.the }}><Icon3D ten="nguoi" co={48} /></View>
       <View style={{ gap: 4 }}>
         <Chu kieu="rat" co={23} style={{ textAlign: "center", letterSpacing: -0.4 }}>{`Xoá hồ sơ ${c.ten}?`}</Chu>
         <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>Xoá rồi không lấy lại được.</Chu>
