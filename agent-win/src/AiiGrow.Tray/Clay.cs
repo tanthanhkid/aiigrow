@@ -1106,6 +1106,7 @@ internal static class PhongChu
 
     private static readonly object _khoa = new();
     private static bool _daNap;
+    private static readonly List<PrivateFontCollection> _boPhu = new();   // bộ nạp lại Fraunces — giữ sống cùng _bo
     private static PrivateFontCollection? _bo;   // giữ sống suốt tiến trình (Font tham chiếu FontFamily của nó)
     private static FontFamily? _than, _tieuDe;
     private static FontStyle _kieuTieuDe = FontStyle.Regular;
@@ -1162,6 +1163,35 @@ internal static class PhongChu
                 }
             }
             _bo = bo;
+            // Nạp Fraunces chập chờn (chup-man: ~1 trong 2 lần chạy GDI+ không liệt kê họ Fraunces dù AddMemoryFont không lỗi) ⇒ thử lại
+            // bằng bộ sưu tập mới + nạp từ tệp tạm; vẫn không được thì ghi log rồi dùng Be Vietnam Pro đậm như trước
+            for (int lan = 1; _tieuDe == null && lan <= 3; lan++)
+            {
+                try
+                {
+                    var tep = Path.Combine(Path.GetTempPath(), $"AiiGrow-Fraunces-{lan}.ttf");
+                    using (var st = asm.GetManifestResourceStream("font.Fraunces-SemiBold.ttf"))
+                    {
+                        if (st == null) break;
+                        if (!File.Exists(tep) || new FileInfo(tep).Length != st.Length)
+                        {
+                            using var o = File.Create(tep);
+                            st.CopyTo(o);
+                        }
+                    }
+                    var b2 = new PrivateFontCollection();
+                    b2.AddFontFile(tep);
+                    _boPhu.Add(b2);
+                    foreach (var f in b2.Families)
+                    {
+                        if (!f.Name.StartsWith("Fraunces", StringComparison.OrdinalIgnoreCase)) continue;
+                        foreach (var k in new[] { FontStyle.Regular, FontStyle.Bold })
+                            if (f.IsStyleAvailable(k)) { _tieuDe = f; _kieuTieuDe = k; break; }
+                    }
+                    _moTa.Append($"[Fraunces: nạp lại lần {lan} {(_tieuDe != null ? "được" : "chưa được")}] ");
+                }
+                catch (Exception e) { _moTa.Append($"[Fraunces: nạp lại lần {lan} lỗi {e.Message}] "); }
+            }
         }
         catch (Exception e) { Debug.WriteLine(e); _moTa.Append("lỗi nạp: " + e.Message); _than = _tieuDe = null; }
     }
