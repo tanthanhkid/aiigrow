@@ -32,7 +32,9 @@ export const M = {
   badge: "#F4C76A",
   // «xong / đã kết nối / Không tính phút»: ô liu, nền nhạt chữ navy
   ok: "#7ED957", okSoft: "#e4f5da",
-  lam: "#1d4ed8", lamSoft: "#e1e9fb", xamSoft: "#E3D9CB", tim: "#5b4fd6", timSoft: "#ecebfb",
+  // «Ánh kim» (#386 G4): bỏ lam/tím lạnh — giữ TÊN token (nhiều màn dùng), đổi giá trị sang bảng E: «lam» = navy nhạt #1b2b47 trên kem lõm (10,2:1),
+  // «tim» = đồng sẫm #7a5a1f trên kem ánh vàng #F1E2BF (5,0:1); chữ đậm trên timSoft dùng timInk #6b4e17 (6,0:1).
+  lam: "#1b2b47", lamSoft: "#E3D9CB", xamSoft: "#E3D9CB", tim: "#7a5a1f", timSoft: "#F1E2BF", timInk: "#6b4e17",
   // màu mục của biểu đồ Thời gian màn hình: cam video, hồng video ngắn, rêu giải trí khác
   camDam: "#c2410c", hong: "#be185d", reu: "#4d7c0f",
   // rãnh lõm của biểu đồ / thanh tiến độ
@@ -43,8 +45,10 @@ export const M = {
 
 /** BẢNG MÀU HỒ SƠ CON DUY NHẤT (avatar «mau-<số>»): [màu chọn ở Lần đầu, nền nhạt thẻ hồ sơ, tông đậm cho avatar chữ trắng ở Hằng ngày
  *  (bàn them-h60stad7, bm2-trang-chu `.av.a/.m/.n/.k` — đủ tương phản)]. Lần đầu / Sửa hồ sơ đọc [0][1]; lib/hang-ngay › mauCon đọc [2]. */
-export const MAU_HO_SO: [string, string, string][] = [["#f29a4a", "#fde3c8", "#E8600C"], ["#6aa3ef", "#dce9fb", "#1F48FF"], ["#ec8db2", "#fbe0ea", "#be185d"],
-  ["#5bbf95", "#d9f1e6", "#0c7f5f"], ["#a98bea", "#e9e1fb", "#9a7fd0"]];   // [2] theo bàn Navy 17/11 (.av.a/.m/.n/.k)
+// «Ánh kim» (#386 G1): avatar MỌI người là viên navy chữ cái vàng kim, vòng vàng (mẫu E `.be.on .av`) — `Avt` tự vẽ, không đọc màu truyền vào.
+// Bảng còn 5 chấm màu E (navy · vàng kim · đồng · ô liu · mận) cho ô «Màu của con»; [1] thẻ hồ sơ = kem phẳng (G5); [2] tông avatar = navy.
+export const MAU_HO_SO: [string, string, string][] = [["#0A1629", "#ECE4D9", "#0A1629"], ["#C9973B", "#ECE4D9", "#0A1629"], ["#9C5B2E", "#ECE4D9", "#0A1629"],
+  ["#4F6B2A", "#ECE4D9", "#0A1629"], ["#6E3B4E", "#ECE4D9", "#0A1629"]];
 
 export const BO = { nho: 12, vua: 18, the: 24 } as const;
 

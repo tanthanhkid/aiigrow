@@ -10,7 +10,7 @@ import { Chu, F, Icon3D, M } from "@/lib/ui";
 const XANH = M.chinhInk;
 
 /** Nút tròn −/+ dùng chung (Giờ chơi + thẻ «Quà khởi đầu»): `nen` màu nền, `co` cỡ dấu; `tat` ⇒ mờ + không bấm. */
-export function NutTron({ dau, nhan, bam, tat, nen = "#fff", co = 20 }: { dau: "−" | "+"; nhan: string; bam: () => void; tat?: boolean; nen?: string; co?: number }) {
+export function NutTron({ dau, nhan, bam, tat, nen = M.nen, co = 20 }: { dau: "−" | "+"; nhan: string; bam: () => void; tat?: boolean; nen?: string; co?: number }) {
   return (
     <Pressable onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={nhan} hitSlop={4}
       style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: nen, alignItems: "center", justifyContent: "center", opacity: tat ? 0.45 : 1, boxShadow: BONG.nho }}>
@@ -31,7 +31,7 @@ function DongPhut({ nhan, quy, chu, doi, nhanO, tru, cong, mo }: { nhan: string;
       </View>
       <NutTron dau="−" nhan={`Bớt 15 phút · ${nhan}`} bam={tru} tat={mo} />
       <View style={{ width: 92, height: 48, borderRadius: 16, backgroundColor: M.the, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 3,
-        boxShadow: dang ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.lom}` : `0px 0px 0px 2px #cfe5de, ${BONG.lom}` }}>
+        boxShadow: dang ? `0px 0px 0px 2.5px ${M.chinh}, ${BONG.lom}` : `0px 0px 0px 2px ${M.vien}, ${BONG.lom}` }}>
         <TextInput value={chu} onChangeText={doi} editable={!mo} keyboardType="number-pad" inputMode="numeric" maxLength={3} accessibilityLabel={nhanO} placeholder="…" placeholderTextColor={M.chu3}
           onFocus={() => setDang(true)} onBlur={() => setDang(false)} selectTextOnFocus
           style={{ width: 40, textAlign: "center", fontFamily: F.rat, fontSize: 22, color: XANH, padding: 0, outlineStyle: "none" } as never} />
@@ -120,8 +120,8 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
         </View>
         <Pressable onPress={tick} accessibilityRole="checkbox" accessibilityState={{ checked: khongNghi }} accessibilityLabel="Không cần nghỉ"
           style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingLeft: 2, alignSelf: "flex-start" }}>
-          <View style={{ width: 20, height: 20, borderRadius: 6, alignItems: "center", justifyContent: "center", backgroundColor: khongNghi ? M.chinh : "#fff",
-            boxShadow: khongNghi ? BONG.ngoc : `0px 0px 0px 2px #c9ccc9, ${BONG.lom}` }}>
+          <View style={{ width: 20, height: 20, borderRadius: 6, alignItems: "center", justifyContent: "center", backgroundColor: khongNghi ? M.chinh : M.ranh,
+            boxShadow: khongNghi ? BONG.ngoc : `0px 0px 0px 2px ${M.vien}, ${BONG.lom}` }}>
             {khongNghi ? <Chu kieu="rat" co={13} mau="#fff">✓</Chu> : null}
           </View>
           <Chu kieu="rat" co={12.5} mau={M.chu3}>Không cần nghỉ</Chu>

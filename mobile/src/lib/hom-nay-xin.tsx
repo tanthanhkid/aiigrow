@@ -113,7 +113,7 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
         </View>
       ) : oIcon ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <OLomIcon ic={ic} co={44} nen="#f3d6b8" />
+          <OLomIcon ic={ic} co={44} nen={M.chonSoft} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="rat" co={16} dong={1}>{tieu}</Chu>
             <Chu kieu="dam" co={13} mau={M.canh} dong={1}>{dong2}</Chu>

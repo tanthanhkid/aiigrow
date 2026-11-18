@@ -70,7 +70,7 @@ export function DongDen({ dau, trai, tieu, phu, bam, phai }: {
         <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
         {phu ? <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{phu}</Chu> : null}
       </View>
-      {phai ?? (bam ? <Icon ten="phai" mau="#8a908d" co={18} /> : null)}
+      {phai ?? (bam ? <Icon ten="phai" mau={M.oNhap} co={18} /> : null)}
     </>
   );
   const st = [{ flexDirection: "row" as const, alignItems: "center" as const, gap: 10, minHeight: 62 }, !dau && { borderTopWidth: 1.5, borderTopColor: "rgba(0,0,0,0.06)" }];

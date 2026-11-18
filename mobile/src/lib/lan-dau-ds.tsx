@@ -12,7 +12,7 @@ import { Chu, F, Icon, M, Rob, type LinhVat, type TenIcon } from "./ui";
 import { ChonNhomNgang, NutChon, OIconTrang } from "./ui-bm3";
 
 /** Màu nền ô emoji + màu nút «Chọn tất cả» theo mục (thiết kế: Học ngọc, Vận động lam, Giúp Ba Mẹ cam). */
-export const MAU_MUC = { ngoc: { nen: M.chinhSoft, chu: M.chinhInk }, lam: { nen: "#e1e8f4", chu: "#24427a" }, cam: { nen: M.canhSoft, chu: M.canh } } as const;
+export const MAU_MUC = { ngoc: { nen: M.chinhSoft, chu: M.chinhInk }, lam: { nen: M.lamSoft, chu: M.lam }, cam: { nen: M.canhSoft, chu: M.canh } } as const;
 export type MauMuc = keyof typeof MAU_MUC;
 
 /** Tab mục (Học · Vận động · Giúp Ba Mẹ): viên trắng, viên đang chọn ngọc đậm. */
