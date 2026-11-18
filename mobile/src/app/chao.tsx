@@ -22,7 +22,7 @@ export default function Chao() {
           </NhanMen>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <LkChao chu="Tôi đã có tài khoản" bam={() => router.push("/dang-nhap")} canh="flex-end" />
-            <View style={{ width: 20, alignItems: "center" }}><View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#a3a8a5" }} /></View>
+            <View style={{ width: 20, alignItems: "center" }}><View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: "#b3a590" }} /></View>
             <LkChao chu="Tôi được mời vào nhà" bam={() => router.push("/moi")} canh="flex-start" />
           </View>
           {Platform.OS === "web" ? (

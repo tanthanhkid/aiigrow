@@ -18,7 +18,7 @@ import {
 } from "@/lib/ui";
 
 /** Màu avatar người lớn theo thiết kế (.ng: hồng, nâu, xám xanh…). */
-const MAU_NGUOI = ["#d0668a", "#b07a4c", "#7c8fd6", "#0c7a5c", "#b5838d"];
+const MAU_NGUOI = ["#0A1629", "#0A1629", "#0A1629", "#0A1629", "#0A1629"];
 const TEN_NEN = { windows: "Laptop", mac: "MacBook", ios: "iPad", android: "Điện thoại" } as const;
 /** «20/10». */
 const ngayThang = (iso: string) => { const t = new Date(iso); return Number.isNaN(t.getTime()) ? "" : `${t.getDate()}/${t.getMonth() + 1}`; };
@@ -76,7 +76,7 @@ export default function CaiDat() {
         {d.tv.loiMoi.map((m) => (
           <NhanMen key={m.id} onPress={laBaMe ? () => moDaMoi(m) : undefined} disabled={!laBaMe} accessibilityRole="button" accessibilityLabel={`${tenMoi(m)}, đang chờ nhận lời mời`} muc="khoi"
             style={{ flexDirection: "row", alignItems: "center", gap: 12, marginHorizontal: 6, marginVertical: 4, paddingVertical: 8, paddingLeft: 10, paddingRight: 10, borderRadius: 22, backgroundColor: M.canhSoft }}>
-            <Avt ten={tenMoi(m)} mau="#9aa6a1" co={40} />
+            <Avt ten={tenMoi(m)} mau="#0A1629" co={40} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15.5} dong={1}>{tenMoi(m)}</Chu>
               <Chu kieu="dam" co={12.5} mau={M.canh} dong={1}>Chưa nhận lời mời</Chu>

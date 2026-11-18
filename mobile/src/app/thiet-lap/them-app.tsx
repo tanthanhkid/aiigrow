@@ -46,7 +46,7 @@ export default function ThemApp() {
   return (
     <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} />} />}
       day={<Nut chu={chot ? `Thêm ${chot} · ${TEN_NHOM[nhomCua(tinhCua(chot))]}` : "Xong"} rong bam={ve} />}>
-      <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 22, lineHeight: 28, letterSpacing: -0.4, color: M.chu, marginLeft: 4 }}>{`Thêm app cho ${ten}`}</Text>
+      <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.tieu, fontSize: 22, lineHeight: 28, letterSpacing: -0.4, color: M.chu, marginLeft: 4 }}>{`Thêm app cho ${ten}`}</Text>
       <OTim gia={go} doi={setGo} khongKinh nhan="Tên app" goiY="Duolingo, Zoom, Khan Academy…" />
       {k ? (
         <>
