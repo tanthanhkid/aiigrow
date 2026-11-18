@@ -59,8 +59,8 @@ object Diu {
     const val DEM_THE = 0xFF14233D.toInt()
     const val DEM_CHU = 0xFFF2EBE3.toInt()
     const val DEM_CHU2 = 0xFFD4C9BA.toInt()
-    /** Màu vòng tên bé (avatar chữ cái) — giữ màu riêng từng bé. */
-    private val MAU_BE = intArrayOf(0xFFF5A957.toInt(), 0xFF6AA9E9.toInt(), 0xFFB48CDE.toInt(), 0xFFE98AA9.toInt(), 0xFF5CB88A.toInt())
+    /** Avatar bé (E): nền navy, chữ vàng kim, vòng vàng — mọi bé cùng một kiểu (không còn pastel riêng từng bé). */
+    private const val AVATAR_NEN = 0xFF0A1629.toInt()
 
     fun dp(c: Context, v: Int) = (v * c.resources.displayMetrics.density).toInt()
     private fun dpf(c: Context, v: Float) = v * c.resources.displayMetrics.density
@@ -159,10 +159,10 @@ object Diu {
         b.setTextColor(CHU)
     }
 
-    /** Vòng tên bé (chữ cái đầu navy, màu riêng từng bé, viền kem; `dangChon` = vòng vàng #D9AE57). `thuTu` = vị trí bé trong hồ sơ. */
+    /** Vòng tên bé (chữ cái đầu vàng trên nền navy, vòng vàng #D9AE57; `dangChon` = vòng vàng sáng). `thuTu` = vị trí bé trong hồ sơ. */
     fun vongTen(c: Context, chuDau: String, thuTu: Int, coDp: Int = 72, dangChon: Boolean = false) = TextView(c).apply {
-        text = chuDau; gravity = Gravity.CENTER; setTextColor(CHU); typeface = font(c, true); textSize = coDp * 0.42f
-        background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(MAU_BE[Math.floorMod(thuTu, MAU_BE.size)]); setStroke(dp(c, if (coDp >= 60) 4 else 2), if (dangChon) KIM_VIEN else NEN) }
+        text = chuDau; gravity = Gravity.CENTER; setTextColor(KIM); typeface = font(c, true); textSize = coDp * 0.42f
+        background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(AVATAR_NEN); setStroke(dp(c, if (coDp >= 60) 4 else 2), if (dangChon) KIM_SANG else KIM_VIEN) }
         bong(this, c, if (coDp >= 60) 4f else 1f)
         layoutParams = LinearLayout.LayoutParams(dp(c, coDp), dp(c, coDp))
         importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO

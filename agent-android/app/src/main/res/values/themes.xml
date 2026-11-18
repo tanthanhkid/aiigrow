@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Nền cửa sổ kem E (thay Material hệ thống: không còn chớp trắng/xám trước khi vẽ), status/nav bar kem, nhấn vàng kim -->
+    <style name="Theme.AiiGrow" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/e_nen</item>
+        <item name="android:statusBarColor">@color/e_nen</item>
+        <item name="android:navigationBarColor">@color/e_nen</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorPrimary">@color/e_navy</item>
+        <item name="android:colorPrimaryDark">@color/e_nen</item>
+        <item name="android:colorAccent">@color/e_kim_dam</item>
+        <item name="android:textColorPrimary">@color/e_navy</item>
+    </style>
+    <!-- Màn khoá toàn màn hình: nền kem, thanh hệ thống kem -->
+    <style name="Theme.AiiGrow.Khoa" parent="@android:style/Theme.Material.Light.NoActionBar.Fullscreen">
+        <item name="android:windowBackground">@color/e_nen</item>
+        <item name="android:statusBarColor">@color/e_nen</item>
+        <item name="android:navigationBarColor">@color/e_nen</item>
+        <item name="android:colorAccent">@color/e_kim_dam</item>
+    </style>
+</resources>

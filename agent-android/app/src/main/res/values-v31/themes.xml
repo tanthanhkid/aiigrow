@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Splash Android 12+: nền navy, icon = foreground adaptive -->
+    <style name="Theme.AiiGrow" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/e_nen</item>
+        <item name="android:statusBarColor">@color/e_nen</item>
+        <item name="android:navigationBarColor">@color/e_nen</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:colorPrimary">@color/e_navy</item>
+        <item name="android:colorPrimaryDark">@color/e_nen</item>
+        <item name="android:colorAccent">@color/e_kim_dam</item>
+        <item name="android:textColorPrimary">@color/e_navy</item>
+        <item name="android:windowSplashScreenBackground">@color/e_navy</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@color/e_navy</item>
+    </style>
+</resources>
