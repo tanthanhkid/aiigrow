@@ -62,14 +62,14 @@ export function OPin({ gia, doi, an, nhan, tuDong }: { gia: string; doi?: (v: st
 
 /** Ô hình quà (thiết kế .h: vuông bo 14, nền lõm nhạt, icon 3D). */
 export const OHinhQua = ({ ic, co = 46 }: { ic: string; co?: number }) => (
-  <View style={{ width: co, height: co, borderRadius: 14, backgroundColor: "#f6f1e6", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+  <View style={{ width: co, height: co, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
     <Icon3D ten={ic as TenIcon} co={Math.round(co * 0.66)} />
   </View>
 );
 
 /** Ô hình quà TO giữa bảng «Trao quà cho con» (them-5otw85h4 .hinh: 110×110, bo 34, nền vàng nhạt, khối clay, icon 72). */
 export const OHinhQuaTo = ({ ic }: { ic: string }) => (
-  <View style={{ alignSelf: "center", width: 110, height: 110, borderRadius: 34, backgroundColor: "#fdeab0", alignItems: "center", justifyContent: "center", ...KHOI.the }}>
+  <View style={{ alignSelf: "center", width: 110, height: 110, borderRadius: 34, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center", ...KHOI.the }}>
     <Icon3D ten={ic as TenIcon} co={72} />
   </View>
 );
@@ -106,7 +106,7 @@ export function NutCong({ chon, bam, nhan }: { chon: boolean; bam: () => void; n
     <NhanMen onPress={bam} accessibilityRole="checkbox" accessibilityState={{ checked: chon }} accessibilityLabel={nhan} muc="chip" sang={!chon}
       style={[{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center" },
         chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-      <Icon ten={chon ? "tick" : "cong"} co={18} mau={chon ? "#fff" : M.chinhInk} />
+      <Icon ten={chon ? "tick" : "cong"} co={18} mau={chon ? "#FFFBF5" : M.chinhInk} />
     </NhanMen>
   );
 }

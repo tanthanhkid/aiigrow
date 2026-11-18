@@ -35,7 +35,7 @@ export default function ObXong() {
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 }}>
       <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten={ic} co={26} /></View>
       <Chu kieu="rat" co={15} style={{ flex: 1 }}>{chu}</Chu>
-      {coMay ? <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}><Icon ten="tick" mau="#fff" co={14} /></View> : null}
+      {coMay ? <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}><Icon ten="tick" mau="#FFFBF5" co={14} /></View> : null}
     </View>
   );
   if (!d && con) return <Man><XuongTai /></Man>;
@@ -48,7 +48,7 @@ export default function ObXong() {
         <View>
           <Rob ten="xong" co={170} />
           <View style={{ position: "absolute", right: -14, bottom: 4, width: 52, height: 52, borderRadius: 26, backgroundColor: M.chinh, borderWidth: 4, borderColor: "#FFFBF5",
-            alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}><Icon ten="tick" mau="#fff" co={24} /></View>
+            alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}><Icon ten="tick" mau="#FFFBF5" co={24} /></View>
         </View>
         <TieuDe chu="Xong rồi!" phu={coMay ? `Grow bắt đầu trông ${d!.may[0].ten.includes(ten) ? d!.may[0].ten : `${d!.may[0].ten} của ${ten}`}.` : `${ten} đã có việc và luật chơi bằng sao.`} giua />
       </View>

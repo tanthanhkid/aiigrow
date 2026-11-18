@@ -103,7 +103,7 @@ export default function MaMoMay() {
               // thiết kế 07: ô lõm cao 64 — «30 phút» 16/800 + «tới 20:10»; ô chọn ngọc
               style={[{ flex: 1, minHeight: 64, borderRadius: 22, alignItems: "center", justifyContent: "center" },
                 on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-              <Chu kieu="rat" co={16} so mau={on ? "#fff" : M.chu}>{`${p} phút`}</Chu>
+              <Chu kieu="rat" co={16} so mau={on ? "#FFFBF5" : M.chu}>{`${p} phút`}</Chu>
               <Chu kieu="dam7" co={12.5} mau={on ? M.chinhSoft : M.chu3}>{`tới ${gioPhut(new Date(bayGio + p * 60_000).toISOString())}`}</Chu>
             </Pressable>
           );

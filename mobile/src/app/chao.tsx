@@ -18,7 +18,7 @@ export default function Chao() {
           <NhanMen onPress={() => router.push("/tao-tai-khoan")} accessibilityRole="button" muc="nut" men={MEN.ngoc}
             style={{ minHeight: 58, borderRadius: BO_CLAY.nut, backgroundColor: M.chinh, boxShadow: BONG.ngoc, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 }}>
             <LopMen men={MEN.ngoc} bo={BO_CLAY.nut} />
-            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 17, color: "#fff" }}>Bắt đầu cho con nhà mình</Text>
+            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 17, color: "#FFFBF5" }}>Bắt đầu cho con nhà mình</Text>
           </NhanMen>
           <View style={{ flexDirection: "row", alignItems: "center" }}>
             <LkChao chu="Tôi đã có tài khoản" bam={() => router.push("/dang-nhap")} canh="flex-end" />

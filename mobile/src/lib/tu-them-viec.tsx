@@ -94,7 +94,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]
               <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={x.ic} co={24} /></View>
               <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{x.tieu}</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>{x.phu}</Chu></View>
               <View style={{ width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: on ? M.chinh : M.ranh, boxShadow: on ? BONG.ngoc : BONG.lom }}>
-                {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#fff" }} /> : null}
+                {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFFBF5" }} /> : null}
               </View>
             </Pressable>
           );

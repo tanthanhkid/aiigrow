@@ -98,7 +98,7 @@ export default function ViSao() {
   return (
     <Man lui={{ chu: "Việc & quà" }} tieu={`Ví sao của ${d.ten}`} noi={noi} tai={tai}
       phai={d.baMe ? <Pressable onPress={() => setMo(true)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Nhan chu="± Điều chỉnh" /></Pressable> : undefined}>
-      {/* thiết kế .vi: thẻ cao ~164 — «⭐ 30 sao» 50/800 trái; nợ ⇒ nền cảnh báo #ffe6d6 chữ #b34a06; Grow «xong» tràn góc phải dưới */}
+      {/* thiết kế .vi: thẻ cao ~164 — «⭐ 30 sao» 50/800 trái; nợ ⇒ nền cảnh báo canhSoft #F0DCC8 chữ canh #983e04; Grow «xong» tràn góc phải dưới */}
       <View style={[{ minHeight: 164, padding: 20, borderRadius: 28, overflow: "hidden" },
         k === "thuong" ? { backgroundColor: M.the } : { backgroundColor: M.chonSoft }, KHOI.the]}
         accessible accessibilityLabel={`${soChinh(s)}${no ? `. ${no}` : ""}`}>

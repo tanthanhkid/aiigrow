@@ -135,7 +135,7 @@ export function NutMxh({ loai, bam, to }: { loai: "google" | "facebook"; bam: ()
       <View style={to ? { width: 26, height: 26, borderRadius: 13, backgroundColor: M.the, alignItems: "center", justifyContent: "center" } : undefined}>
         <SvgXml xml={loai === "google" ? G_SVG : FB_SVG} width={to ? 18 : 22} height={to ? 18 : 22} />
       </View>
-      <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: to ? 16.5 : 15.5, color: to ? "#fff" : M.chu }}>{to ? `Tiếp tục với ${ten}` : ten}</Text>
+      <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: to ? 16.5 : 15.5, color: to ? "#FFFBF5" : M.chu }}>{to ? `Tiếp tục với ${ten}` : ten}</Text>
     </NhanMen>
   );
 }
@@ -327,7 +327,7 @@ export function BuocMayCon({ n, ic, tieu, phu, gach }: { n: number; ic: TenIcon;
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
       <LopMen men={MEN.the} bo={24} />
       <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}>
-        <Chu kieu="rat" co={14} mau="#fff">{n}</Chu>
+        <Chu kieu="rat" co={14} mau="#FFFBF5">{n}</Chu>
       </View>
       <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten={ic} co={30} /></View>
       <View style={{ flex: 1, minWidth: 0 }}>
@@ -347,8 +347,8 @@ const TT = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M16.6 5.8A4.3 4.3 0 0 
 type HinhApp = { nen: string; svg?: string; ic?: TenIcon; rob?: boolean; chu?: string };
 const HINH_APP: Record<string, HinhApp> = {
   youtube_kids: { nen: "#ff2a2a", svg: YT }, youtube: { nen: "#ff0000", svg: YT }, roblox: { nen: "#1f2321", svg: RB }, minecraft: { nen: "#e9efe4", svg: MC },
-  aiirob: { nen: M.chinhSoft, rob: true }, tu_dien: { nen: M.chinhSoft, ic: "sach" }, google: { nen: "#ffffff", svg: G_SVG }, ve: { nen: M.canhSoft, ic: "but" },
-  lich: { nen: "#ffffff", ic: "lich" }, tiktok: { nen: M.nut, svg: TT }, zalo: { nen: "#0068ff", chu: "Zalo" }, scratch: { nen: M.diemSoft, ic: "game" },
+  aiirob: { nen: M.chinhSoft, rob: true }, tu_dien: { nen: M.chinhSoft, ic: "sach" }, google: { nen: "#FFFBF5", svg: G_SVG }, ve: { nen: M.canhSoft, ic: "but" },
+  lich: { nen: M.chinhSoft, ic: "lich" }, tiktok: { nen: M.nut, svg: TT }, zalo: { nen: "#0068ff", chu: "Zalo" }, scratch: { nen: M.diemSoft, ic: "game" },
   duolingo: { nen: "#58cc02", chu: "D" }, khan: { nen: "#14bf96", chu: "K" }, zoom: { nen: "#2d8cff", chu: "Z" }, capcut: { nen: M.nut, chu: "C" },
 };
 
@@ -361,12 +361,12 @@ export function OApp({ ma, ten, chon, bam, nhanDoc, rong = "25%" }: { ma?: strin
       <View style={{ width: 60, height: 60 }}>
         <View style={[{ width: 60, height: 60, borderRadius: 20, backgroundColor: h.nen, alignItems: "center", justifyContent: "center", overflow: "hidden", ...KHOI.nho }, tat && { opacity: 0.45 }]}>
           {h.svg ? <SvgXml xml={h.svg} width={28} height={28} /> : h.rob ? <Rob ten="hoc" co={46} /> : h.ic ? <Icon3D ten={h.ic} co={38} />
-            : <Chu kieu="rat" co={h.chu && h.chu.length > 2 ? 15 : 24} mau={h.nen === M.chinhSoft ? M.chu : "#fff"}>{h.chu}</Chu>}
+            : <Chu kieu="rat" co={h.chu && h.chu.length > 2 ? 15 : 24} mau={h.nen === M.chinhSoft ? M.chu : "#FFFBF5"}>{h.chu}</Chu>}
         </View>
         {chon !== undefined ? (
           <View style={{ position: "absolute", right: -5, bottom: -5, width: 22, height: 22, borderRadius: 11, backgroundColor: chon ? M.chinh : "#1b2b47",
             boxShadow: `0px 0px 0px 2.5px ${M.nen}`, alignItems: "center", justifyContent: "center" }}>
-            <Icon ten={chon ? "tick" : "tru"} mau="#fff" co={13} />
+            <Icon ten={chon ? "tick" : "tru"} mau="#FFFBF5" co={13} />
           </View>
         ) : null}
       </View>

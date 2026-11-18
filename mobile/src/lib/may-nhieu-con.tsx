@@ -60,7 +60,7 @@ export const cauSao = (n: number) => (n < 0 ? `đang nợ ${-n} sao` : `còn ${n
 /** «25 sao» / «−20 sao» (dấu trừ thật U+2212). */
 export const soSao = (n: number) => `${n < 0 ? "−" : ""}${Math.abs(n)} sao`;
 
-/** Viên sao nhỏ (thiết kế .diem): vàng «⭐ 25 sao»; âm ⇒ viên cảnh báo «⭐ −20 sao» (nền #ffe6d6, chữ #b34a06). */
+/** Viên sao nhỏ (thiết kế .diem): vàng «⭐ 25 sao»; âm ⇒ viên cảnh báo «⭐ −20 sao» (nền canhSoft #F0DCC8, chữ canh #983e04). */
 export function SaoNho({ n, co = 12 }: { n: number; co?: number }) {
   const no = n < 0;
   return (
@@ -126,7 +126,7 @@ export function ODanhDau({ chon, khoa }: { chon: boolean; khoa?: boolean }) {
   return (
     <View style={{ width: 28, height: 28, borderRadius: 9, alignItems: "center", justifyContent: "center",
       ...(chon && !khoa ? { backgroundColor: M.chinh, backgroundImage: MEN.toi, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }) }}>
-      {khoa ? <Icon3D ten="khoa" co={18} /> : chon ? <Icon ten="tick" mau="#fff" co={16} /> : null}
+      {khoa ? <Icon3D ten="khoa" co={18} /> : chon ? <Icon ten="tick" mau="#FFFBF5" co={16} /> : null}
     </View>
   );
 }
@@ -134,7 +134,7 @@ export function ODanhDau({ chon, khoa }: { chon: boolean; khoa?: boolean }) {
 /** Nhãn viên «Sẽ khoá» (than chì) / «Vẫn dùng» (ngọc nhạt) của bảng khoá máy. */
 export const NhanKhoa = ({ seKhoa }: { seKhoa: boolean }) => (
   <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 11, backgroundColor: seKhoa ? M.nut : M.chinhSoft }}>
-    <Chu kieu="rat" co={12.5} mau={seKhoa ? "#fff" : M.chinhInk}>{seKhoa ? "Sẽ khoá" : "Vẫn dùng"}</Chu>
+    <Chu kieu="rat" co={12.5} mau={seKhoa ? "#FFFBF5" : M.chinhInk}>{seKhoa ? "Sẽ khoá" : "Vẫn dùng"}</Chu>
   </View>
 );
 

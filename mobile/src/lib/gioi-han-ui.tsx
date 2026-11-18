@@ -122,7 +122,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
           style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingLeft: 2, alignSelf: "flex-start" }}>
           <View style={{ width: 20, height: 20, borderRadius: 6, alignItems: "center", justifyContent: "center", backgroundColor: khongNghi ? M.chinh : M.ranh,
             boxShadow: khongNghi ? BONG.ngoc : `0px 0px 0px 2px ${M.vien}, ${BONG.lom}` }}>
-            {khongNghi ? <Chu kieu="rat" co={13} mau="#fff">✓</Chu> : null}
+            {khongNghi ? <Chu kieu="rat" co={13} mau="#FFFBF5">✓</Chu> : null}
           </View>
           <Chu kieu="rat" co={12.5} mau={M.chu3}>Không cần nghỉ</Chu>
         </Pressable>

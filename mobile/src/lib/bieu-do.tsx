@@ -118,7 +118,7 @@ export type CotChoi = { khoa: string; nhan: string; doc: string; phut: number; q
  * hôm nay sọc chéo ngọc; vạch ĐỨT ngang ở mức quỹ ngày. Cao 120, đỉnh ứng với `max`. Mọc từ chân như CotClay.
  */
 export function CotGioChoi({ ds, max, cao = 120, nhanDoc, quyVach }: { ds: CotChoi[]; max: number; cao?: number; nhanDoc?: string;
-  /** mức vạch đứt (Báo cáo: quỹ NGÀY THƯỜNG — khớp chú giải «Quỹ 60′/ngày»); cột vẫn tô cam theo quỹ của chính ngày đó */ quyVach?: number | null }) {
+  /** mức vạch đứt (Báo cáo: quỹ NGÀY THƯỜNG — khớp chú giải «Quỹ 60′/ngày»); cột vượt quỹ tô vàng kim (Ánh kim — khớp chú giải «sao vay» M.badge; trước là cam) của chính ngày đó */ quyVach?: number | null }) {
   const giam = useReducedMotion();
   const dinh = Math.max(1, max);
   const quy = quyVach ?? ds.find((x) => x.quy !== null)?.quy ?? null;
@@ -151,7 +151,7 @@ function CotDac({ thu, h, qua, nay, giam }: { thu: number; h: number; qua: boole
   return (
     <Animated.View style={[{ flex: 1, height: cao, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 6, borderBottomRightRadius: 6, overflow: "hidden",
       transformOrigin: "bottom", boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.35)",
-      backgroundImage: qua ? `linear-gradient(${M.camDam}, ${M.canh})` : "linear-gradient(#1b2b47, #0A1629)" }, st]}>
+      backgroundImage: qua ? `linear-gradient(${M.badge}, ${M.dauSach})` : "linear-gradient(#1b2b47, #0A1629)" }, st]}>
       {nay && !qua ? (
         <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
           <Defs><Pattern id="soc" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(45)">

@@ -6,7 +6,7 @@ import { Platform } from "react-native";
 export const M = {
   // 17/11 bàn thiết kế chốt «mẫu 1 Navy» cho TOÀN BỘ màn Ba Mẹ (màn mẫu bm2-trang-chu v36, issue #363): nền kem, chữ + nút + điểm nhấn navy,
   // vàng mật CHỈ cho sao, cam cho huy hiệu số, ô liu cho «xong / đã kết nối». Phía Con KHÔNG dùng bảng này (diu.ts).
-  // Tương phản (WCAG): chu #0A1629 / nen 15,9:1 · chu3 #5a5a5a / nen 6,0:1 · trắng / chinh 17,9:1 · canh #983e04 / canhSoft 5,8:1, trên chinhSoft/xamSoft #E3D9CB 5,0:1, trên chonSoft #F1E2BF 5,4:1 (Ánh kim — #a84505 chỉ 4,3 trên kem lõm) · loi #b81f1f / loiSoft 5,6:1.
+  // Tương phản (WCAG): chu #0A1629 / nen 15,9:1 · chu3 #5a5a5a / nen 6,0:1 · trắng / chinh 17,9:1 · canh #983e04 / canhSoft #F0DCC8 5,2:1 (Ánh kim — kem pha đất nung, thay đào #ffe6d6), trên chinhSoft/xamSoft #E3D9CB 5,0:1, trên chonSoft #F1E2BF 5,4:1 (Ánh kim — #a84505 chỉ 4,3 trên kem lõm) · loi #b81f1f / loiSoft 5,6:1.
   // «Ánh kim» (phong cách E): neumorphism mỏng — mặt thẻ CÙNG màu nền kem #ECE4D9, nổi / lõm bằng bóng đôi (clay.ts); chữ phụ nâu ấm.
   // Tương phản trên #ECE4D9: chu 14,4 · chu2 9,0 · chu3 #5f554b 5,8 (mẫu E dùng #7c7166 chỉ 3,8 ⇒ sẫm hơn) · lienKet #7a5a1f 5,0 · canh 4,7.
   // chinhSoft = mặt trung tính kem lõm #E3D9CB (như trước Ánh kim). Trạng thái ĐANG CHỌN (cặp bật/tắt) dùng riêng chonSoft #F1E2BF (kem ánh vàng), không dùng chinhSoft.
@@ -27,7 +27,7 @@ export const M = {
   // nút chính: viên navy (gradient #1b2b47 → #0A1629 ở MEN.toi)
   nut: "#0A1629", nutDam: "#1b2b47",
   diem: "#F4C76A", diemInk: "#0A1629", diemSoft: "#fbf0d6",
-  canh: "#983e04", canhSoft: "#ffe6d6", loi: "#b81f1f", loiSoft: "#ffe1e1", huy: "#b81f1f",
+  canh: "#983e04", canhSoft: "#F0DCC8", loi: "#b81f1f", loiSoft: "#ffe1e1", huy: "#b81f1f",
   // huy hiệu số (chuông, tab, tiêu đề mục): «Ánh kim» vàng chữ navy (11,4:1) — trước là cam #FF751F
   badge: "#F4C76A",
   // «xong / đã kết nối / Không tính phút»: ô liu, nền nhạt chữ navy

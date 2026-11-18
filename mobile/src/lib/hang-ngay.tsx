@@ -134,7 +134,7 @@ export function ChipCon<T extends { id: string; ten: string; avatar?: string | n
             style={[{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingLeft: 6, paddingRight: 16, borderRadius: 22, maxWidth: "100%", flexShrink: 1 },
               on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
             <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={32} con={x} />
-            <Chu kieu="rat" co={15} mau={on ? "#fff" : M.chu} dong={1} style={{ flexShrink: 1 }}>{x.ten}</Chu>
+            <Chu kieu="rat" co={15} mau={on ? "#FFFBF5" : M.chu} dong={1} style={{ flexShrink: 1 }}>{x.ten}</Chu>
           </NhanMen>
         );
       })}
@@ -307,7 +307,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
                   <Chu kieu="dam" co={12.5} mau={x?.mo && !m.dungChung ? M.chinhInk : M.chu3}>{phuMay(m)}</Chu>
                 </View>
                 {/* ô tick ngọc 30 (thiết kế .chk); bỏ chọn ⇒ ô lõm trống */}
-                {on ? <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}><Icon ten="tick" co={16} mau="#fff" /></View>
+                {on ? <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}><Icon ten="tick" co={16} mau="#FFFBF5" /></View>
                   : <View style={{ width: 30, height: 30, borderRadius: 10, backgroundColor: M.xamSoft, boxShadow: BONG.lom }} />}
               </Pressable>
             );
@@ -323,7 +323,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
             <Pressable key={x.gia} onPress={() => setHan(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }}
               style={[{ flex: 1, minHeight: 64, borderRadius: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
                 on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-              <Chu kieu="rat" co={16} mau={on ? "#fff" : M.chu}>{x.chu}</Chu>
+              <Chu kieu="rat" co={16} mau={on ? "#FFFBF5" : M.chu}>{x.chu}</Chu>
               <Chu kieu="dam7" co={12.5} mau={on ? M.chinhSoft : M.chu3}>{cauDen(x.gia)}</Chu>
             </Pressable>
           );
