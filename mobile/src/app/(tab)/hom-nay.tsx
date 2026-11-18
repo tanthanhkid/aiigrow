@@ -40,7 +40,7 @@ const ROB_CO = 100, ROB_PHAI = -6, ROB_TREN = 6, CHUA_ROB = ROB_CO + ROB_PHAI - 
 // máy khoá: nhãn «Laptop, iPad đã khoá» (cao 32) + khoảng 10 trên khối tiêu đề; không khoá: khối tiêu đề ở ngay lề trên thẻ (16)
 const NHAN_CAO = 32;
 /** nền thẻ lời xin (bàn .de-y) */
-const NEN_XIN = M.canhSoft;
+const NEN_XIN = M.chonSoft;
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 const ngayHomNay = () => { const t = new Date(); return `${THU[t.getDay()]}, ${t.getDate()}/${t.getMonth() + 1}`; };
 /** «21:30» → phút trong ngày. */

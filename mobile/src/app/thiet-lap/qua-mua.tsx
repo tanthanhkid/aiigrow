@@ -5,7 +5,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { DauMan } from "@/lib/lan-dau";
-import { MAU_MUC } from "@/lib/lan-dau-ds";
 import { BangTruot, Chu, F, Icon3D, M, Man, Nut } from "@/lib/ui";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { dong, soCham, VOUCHER } from "@/lib/voucher-lan-dau";
@@ -25,8 +24,8 @@ export default function QuaMua() {
     <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={2} />} />}
       day={<Nut chu={`Mua · ${dong(v.gia * sl)}`} rong bam={() => setHoi(true)} />}>
       {/* bàn them-hn2754ce v4: tiêu đề 24 · ô hình lam 154 · tên 22 + mô tả canh trái · 2 ô giá · thẻ 3 điều kiện · «Số lượng» trơn */}
-      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, marginLeft: 4 }}>Quà Ba Mẹ mua</Text>
-      <View style={{ height: 154, borderRadius: 30, backgroundColor: MAU_MUC.lam.nen, backgroundImage: "linear-gradient(#e1e8f4, #cfd9ee)", alignItems: "center", justifyContent: "center", ...KHOI.the }}>
+      <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, marginLeft: 4 }}>Quà Ba Mẹ mua</Text>
+      <View style={{ height: 154, borderRadius: 30, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.the }}>
         <Text style={{ fontSize: 92, lineHeight: 110 }}>{v.e}</Text>
       </View>
       <View style={{ paddingHorizontal: 4, gap: 4 }}>

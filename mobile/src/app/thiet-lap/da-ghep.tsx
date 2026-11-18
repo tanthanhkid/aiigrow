@@ -73,13 +73,13 @@ export default function DaGhep() {
         <LienKet chu="+ Ghép thêm máy khác" bam={() => router.push({ pathname: "/may/them", params: con ? { con } : {} })} /></>}>
       {/* máy (khung than chì) + Grow «xong» + dấu tick 3D */}
       <View style={{ alignItems: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <View style={{ width: 120, height: 128, borderRadius: 24, borderWidth: 8, borderColor: "#1d2321", backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+        <View style={{ width: 120, height: 128, borderRadius: 24, borderWidth: 8, borderColor: M.chu, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
           <Rob ten="xong" co={104} />
         </View>
         <View style={{ position: "absolute", top: -10, left: "50%", marginLeft: 36 }}><Icon3D ten="tick" co={52} /></View>
       </View>
       <View style={{ alignItems: "center", gap: 2 }}>
-        <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, textAlign: "center" }}>
+        <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, textAlign: "center" }}>
           {chung ? `${ten || "Máy chung"} đã ghép!` : `Máy ${tenBe} đã ghép!`}
         </Text>
         <Chu kieu="rat" co={13.5} mau={M.chinhInk} style={{ textAlign: "center" }}>{chung ? `Dùng chung ${d?.conDs.length} bé · mỗi bé chọn tên + PIN để vào` : "Máy con đã nhận luật · giờ đặt tên cho dễ nhận"}</Chu>

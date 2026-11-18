@@ -122,8 +122,8 @@ export default function TabNhiemVu() {
           {/* thiết kế .qua: mỗi quà một thẻ vàng — ô icon 48 nền #fff8e4 · tên 15.5/800 · «Đổi 50 sao · hôm qua» · nút đen «Trao quà» */}
           {cua.phieu.map((p) => (
             <View key={p.id} style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingLeft: 12, paddingRight: 16, borderRadius: 28,
-              backgroundColor: "#fcefc6", backgroundImage: "linear-gradient(#fdf3d6, #fbf0d6)" }, KHOI.the]}>
-              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: "#fff8e4", alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten }) as TenIcon} co={30} /></View>
+              backgroundColor: M.the }, KHOI.the]}>
+              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten }) as TenIcon} co={30} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={15.5} dong={1}>{p.ten}</Chu>
                 <Chu kieu="dam" co={13} mau={M.diemInk}>{`Đổi ${soVN(p.diem)} sao · ${khiNao(p.created_at)}`}</Chu>

@@ -9,10 +9,10 @@ import { KHOI } from "./clay";
 export function MaQr({ noiDung, co = 200 }: { noiDung: string; co?: number }) {
   const [xml, setXml] = useState<string | null>(null);
   useEffect(() => {
-    QRCode.toString(noiDung, { type: "svg", margin: 0, color: { dark: M.chu, light: "#ffffff" } }).then(setXml).catch(() => setXml(null));
+    QRCode.toString(noiDung, { type: "svg", margin: 0, color: { dark: M.chu, light: "#FFFBF5" } }).then(setXml).catch(() => setXml(null));
   }, [noiDung]);
   return (
-    <View style={{ width: co, height: co, padding: 12, backgroundColor: "#fff", borderRadius: 24, ...KHOI.the }}
+    <View style={{ width: co, height: co, padding: 12, backgroundColor: "#FFFBF5", borderRadius: 24, ...KHOI.the }}
       accessibilityLabel={`Mã QR ${noiDung}`} accessibilityRole="image">
       {xml ? <SvgXml xml={xml} width={co - 26} height={co - 26} /> : null}
     </View>

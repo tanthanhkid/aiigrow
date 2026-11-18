@@ -94,7 +94,7 @@ export default function ChoMayCon() {
       <TieuDe chu={hetHan ? "Mã đã hết hạn" : nguon === "them" ? `Chờ máy mới của ${ten}` : `Đang chờ máy của ${ten}`} />
       <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 4 }}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: hetHan ? M.huy : "#f59e0b" }} />
+          <View style={{ width: 9, height: 9, borderRadius: 5, backgroundColor: hetHan ? M.huy : M.diem }} />
           <Chu kieu="rat" co={13.5} mau={M.chinhInk}>{hetHan ? "Mã ghép đã hết hạn" : `${may[0].toUpperCase()}${may.slice(1)} chưa nhập mã`}</Chu>
         </View>
         <Chu kieu="dam" co={13} mau={M.chu2} so>{hetHan ? "0:00" : `Mã còn ${demNguoc(con0)}`}</Chu>

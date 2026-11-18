@@ -103,7 +103,7 @@ export default function MoiNguoiNha() {
         {/* bàn .zalo: thẻ «Tin sẽ gửi cho <tên>» — bong bóng ngọc nhạt + thẻ link trắng (icon nhà, «<Ba Mẹ> mời bạn vào nhà», địa chỉ link) */}
         <View style={[{ padding: 12, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-            <Avt ten={d?.toi ?? "Ba Mẹ"} mau="#e98aa6" co={28} />
+            <Avt ten={d?.toi ?? "Ba Mẹ"} mau={M.chinh} co={28} />
             <Chu kieu="rat" co={13} mau={M.chu2}>{`Tin sẽ gửi cho ${ai}`}</Chu>
           </View>
           <View style={{ marginTop: 8, marginLeft: 36, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, borderTopLeftRadius: 4, backgroundColor: M.chinhSoft, gap: 8 }}>
@@ -134,7 +134,7 @@ export default function MoiNguoiNha() {
         {/* bàn .san: ô ngọc bo 36 cao 270, Grow «xong» 214 tràn đáy, dấu tick tròn ngọc viền trắng góc phải */}
         <View style={[{ height: 270, borderRadius: 36, overflow: "hidden", ...KHOI_HERO }]}>
           <View style={{ position: "absolute", left: "50%", bottom: -20, marginLeft: -107 }}><Rob ten="xong" co={214} /></View>
-          <View style={{ position: "absolute", right: 64, top: 40, width: 56, height: 56, borderRadius: 28, backgroundColor: M.ok, borderWidth: 5, borderColor: "#fff",
+          <View style={{ position: "absolute", right: 64, top: 40, width: 56, height: 56, borderRadius: 28, backgroundColor: M.ok, borderWidth: 5, borderColor: "#FFFBF5",
             alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}>
             <Icon ten="tick" mau={M.chu} co={28} />
           </View>
@@ -151,8 +151,8 @@ export default function MoiNguoiNha() {
             <Chu kieu="dam" co={12.5} mau={M.vien2} style={{ flex: 1 }}>AiiGrow</Chu>
             <Chu co={12} mau={M.vien2}>bây giờ</Chu>
           </View>
-          <Chu kieu="rat" co={15} mau="#fff">{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
-          <Chu co={13.5} mau="#eef1f0">{`Cùng trông ${soCon} nhà mình. Bấm để vào.`}</Chu>
+          <Chu kieu="rat" co={15} mau="#FFFBF5">{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
+          <Chu co={13.5} mau="#E3D9CB">{`Cùng trông ${soCon} nhà mình. Bấm để vào.`}</Chu>
         </View>
         {/* bàn .cho: viên đào cao 36, chấm cam có quầng, chữ nâu 14/800 */}
         <View style={[{ alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: M.canhSoft, marginTop: 4 }, KHOI.nho]}>
@@ -167,13 +167,12 @@ export default function MoiNguoiNha() {
   return (
     // thiết kế: tiêu đề «Mời người nhà» ở hàng đầu (cạnh nút lùi); nút «Gửi lời mời cho <tên>» + «… chưa có app? Xem cách gửi link» ngay dưới thẻ quyền
     <Man lui={{ chu: "", bam: ve }} tieu="Mời người nhà">
-      <View style={{ alignItems: "center", gap: 10, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 30, backgroundColor: M.chinhSoft,
-        backgroundImage: "linear-gradient(#ffffff, #F2EBE3)", ...KHOI.the }}>
+      <View style={{ alignItems: "center", gap: 10, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 30, backgroundColor: M.the, ...KHOI.the }}>
         <View style={{ flexDirection: "row" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {[d?.toi ?? "Ba Mẹ", ...(d?.con ?? [])].slice(0, 5).map((t, i) => (
             // Avt tự chọn màu chữ đủ tương phản trên nền (cổng TUONG-PHAN)
-            <View key={i} style={{ marginLeft: i ? -6 : 0, borderRadius: 25, borderWidth: 3, borderColor: "#fff" }}>
-              <Avt ten={t} mau={i ? d?.mauCon[i - 1] ?? mauCon(null, i - 1) : "#e98aa6"} co={44} />
+            <View key={i} style={{ marginLeft: i ? -6 : 0, borderRadius: 25, borderWidth: 3, borderColor: "#FFFBF5" }}>
+              <Avt ten={t} mau={i ? d?.mauCon[i - 1] ?? mauCon(null, i - 1) : M.chinh} co={44} />
             </View>
           ))}
           <View style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 4, borderWidth: 2.5, borderStyle: "dashed", borderColor: M.chinhInk, alignItems: "center", justifyContent: "center" }}>

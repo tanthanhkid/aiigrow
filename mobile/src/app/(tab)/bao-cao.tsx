@@ -98,7 +98,7 @@ function BaoCaoCon({ id }: { id: string }) {
               : bc.tuanTruoc.tongGiaiTri ? (lech === 0 ? "Bằng 7 ngày trước" : `${lech > 0 ? "Nhiều" : "Ít"} hơn 7 ngày trước ${gio(Math.abs(lech))}`) : null;
             const xau = lech > 0 && saoVay > 0;
             return cau ? (
-              <View style={{ alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 13, backgroundColor: xau ? "#fbe3d3" : M.chinhSoft }}>
+              <View style={{ alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 13, backgroundColor: xau ? M.chonSoft : M.chinhSoft }}>
                 <Chu kieu="rat" co={13} mau={xau ? M.canh : M.chinhInk}>{cau}</Chu>
               </View>
             ) : null;
@@ -136,7 +136,7 @@ function BaoCaoCon({ id }: { id: string }) {
       {/* thiết kế .hai: ô vàng «120 sao» kiếm (→ Ví sao) · ô «45 sao vay» Ba Mẹ cho vay mấy trong mấy lần xin (→ Con đang xin) */}
       <View style={{ flexDirection: "row", gap: 10 }}>
         <NhanMen onPress={() => router.push(`/vi/${id}` as never)} accessibilityRole="button" muc="khoi" sang
-          style={{ flex: 1, minHeight: 124, padding: 16, borderRadius: 26, backgroundColor: "#fdeab0", backgroundImage: "linear-gradient(#ffe39a, #fbf0d6)", ...KHOI.the }}>
+          style={{ flex: 1, minHeight: 124, padding: 16, borderRadius: 26, backgroundColor: M.the, ...KHOI.the }}>
           <Icon3D ten="sao" co={32} />
           <Chu kieu="rat" co={26} so style={{ marginTop: 6, letterSpacing: -0.5 }}>{`${soVN(saoKiem)} sao`}</Chu>
           <Chu kieu="dam7" co={12.5} mau={M.diemInk} style={{ lineHeight: 17 }}>

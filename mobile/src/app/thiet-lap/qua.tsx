@@ -30,7 +30,7 @@ export default function ObQua() {
   return (
     <Man dau={<DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc5 dang={2} />} />} noi={noi}
       day={<><Nut chu="Xong, sang chơi bằng sao" rong bam={sang} /><LienKet chu="Để sau, chọn quà sau" bam={sang} /></>}>
-      <Text accessibilityRole="header" style={{ fontFamily: F.rat, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, marginLeft: 4 }}>Quà của {ten}</Text>
+      <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, marginLeft: 4 }}>Quà của {ten}</Text>
       <TabLom ds={[{ ma: "voucher" as Tab, chu: "🎟️ Voucher AiiGrow" }, { ma: "tu_dien" as Tab, chu: "✏️ Ba Mẹ tự điền" }]} dang={tab} doi={setTab} />
       {tab === "voucher" ? <TabVoucher /> : <TabTuDien con={tl.conId} guiCham={guiCham} />}
     </Man>
@@ -46,7 +46,7 @@ function TabVoucher() {
         {VOUCHER.map((v) => (
           <Pressable key={v.ma} onPress={() => router.push({ pathname: "/thiet-lap/qua-mua", params: { ma: v.ma } })} accessibilityRole="button" accessibilityLabel={`${v.ten}, ${dong(v.gia)}, ${v.sao} sao. Mua`}
             style={{ flexDirection: "row", alignItems: "stretch", minHeight: 76, borderRadius: 20, backgroundColor: M.the, overflow: "hidden", ...KHOI.the }}>
-            <View style={{ width: 72, alignItems: "center", justifyContent: "center", backgroundColor: MAU_MUC.lam.nen, borderRightWidth: 2, borderRightColor: "#c9d3e4", borderStyle: "dashed" }}>
+            <View style={{ width: 72, alignItems: "center", justifyContent: "center", backgroundColor: M.chinhSoft, borderRightWidth: 2, borderRightColor: M.vien, borderStyle: "dashed" }}>
               <Text style={{ fontSize: 30, lineHeight: 38 }}>{v.e}</Text>
             </View>
             <View style={{ flex: 1, minWidth: 0, paddingVertical: 10, paddingHorizontal: 12, justifyContent: "center", gap: 4 }}>
