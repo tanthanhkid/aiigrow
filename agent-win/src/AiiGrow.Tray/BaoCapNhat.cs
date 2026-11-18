@@ -15,7 +15,7 @@ internal static class BaoCapNhat
             using var u = Registry.CurrentUser.CreateSubKey(@"Software\AiiGrow");
             if (u.GetValue("DaBaoCapNhat") as string == ban) return;
             u.SetValue("DaBaoCapNhat", ban);
-            ni.ShowBalloonTip(5000, "AiiGrow đã cập nhật lên bản " + ban, "Mọi cài đặt của Ba Mẹ giữ nguyên.", ToolTipIcon.Info);
+            ni.ShowBalloonTip(5000, "AiiGrow đã cập nhật lên bản " + ban, "Mọi cài đặt của Ba Mẹ giữ nguyên.", ToolTipIcon.User);
         }
         catch { }
     }

@@ -1098,7 +1098,7 @@ internal static class ONhapClay
 /// </summary>
 internal static class PhongChu
 {
-    /// <summary>Chữ đậm từ cỡ này trở lên (tiêu đề, số to, chữ cái avatar) dùng Fraunces SemiBold.</summary>
+    /// <summary>Chữ từ cỡ này trở lên (tiêu đề, số to, chữ cái avatar — mọi kiểu Regular/Bold) dùng Fraunces SemiBold.</summary>
     public const float NguongTieuDe = 15f;
     private const float HeSoThan = 0.92f, HeSoTieuDe = 0.95f;
 
@@ -1154,8 +1154,9 @@ internal static class PhongChu
                 if (f.Name.StartsWith("Be Vietnam Pro", StringComparison.OrdinalIgnoreCase) && f.IsStyleAvailable(FontStyle.Regular) && f.IsStyleAvailable(FontStyle.Bold)) _than = f;
                 else if (f.Name.StartsWith("Fraunces", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (f.IsStyleAvailable(FontStyle.Regular)) { _tieuDe = f; _kieuTieuDe = FontStyle.Regular; }
-                    else if (f.IsStyleAvailable(FontStyle.Bold)) { _tieuDe = f; _kieuTieuDe = FontStyle.Bold; }
+                    // tệp SemiBold 600 nằm dưới họ «Fraunces SemiBold…» với kiểu Regular (hoặc Bold): lấy kiểu nào họ có, không bỏ sót họ chỉ có kiểu lạ
+                    foreach (var k in new[] { FontStyle.Regular, FontStyle.Bold, FontStyle.Italic, FontStyle.Bold | FontStyle.Italic })
+                        if (f.IsStyleAvailable(k)) { _tieuDe = f; _kieuTieuDe = k; break; }
                 }
             }
             _bo = bo;
@@ -1169,14 +1170,73 @@ internal static class PhongChu
         Nap();
         try
         {
-            if ((st & FontStyle.Bold) != 0 && pt >= NguongTieuDe && _tieuDe != null)
+            // G1: tiêu đề/số to là Fraunces 600 DÙ xin kiểu Regular hay Bold (trước chỉ Bold ⇒ tiêu đề Regular rơi về chữ thân/Arial)
+            if (pt >= NguongTieuDe && _tieuDe != null)
             {
-                var kieu = (st & ~FontStyle.Bold) | _kieuTieuDe;   // tệp đã là SemiBold 600: chỉ xin đúng kiểu GDI+ ghi cho nó, không đậm giả
+                var kieu = (st & ~(FontStyle.Bold | FontStyle.Italic)) | _kieuTieuDe;   // tệp đã là SemiBold 600: xin đúng kiểu GDI+ ghi cho nó, không đậm giả
                 if (_tieuDe.IsStyleAvailable(kieu)) return new Font(_tieuDe, pt * HeSoTieuDe, kieu);
             }
             if (_than != null && _than.IsStyleAvailable(st)) return new Font(_than, pt * HeSoThan, st);
         }
         catch (Exception e) { Debug.WriteLine(e); }
         return new Font("Segoe UI", pt, st);
+    }
+}
+
+/// <summary>
+/// Hộp thoại phong cách E thay <c>MessageBox</c> hệ thống (nền trắng, nút xám, icon Windows): nền kem, tiêu đề Fraunces, chữ navy,
+/// nút vàng kim (chính) / nút nổi kem. Một dòng gọi như MessageBox: <c>HopThoai.Hien(nội dung, tiêu đề, hoi: true)</c> ⇒ Yes/No; không ⇒ OK.
+/// </summary>
+internal static class HopThoai
+{
+    public static DialogResult Hien(string noiDung, string tieuDe, bool hoi = false, bool loi = false)
+    {
+        using var f = new Form
+        {
+            Text = tieuDe, FormBorderStyle = FormBorderStyle.FixedDialog, MaximizeBox = false, MinimizeBox = false,
+            ShowInTaskbar = true, StartPosition = FormStartPosition.CenterScreen, BackColor = Clay.Nen, ForeColor = Clay.Chu,
+            Font = PhongChu.Tao(11f),
+        };
+        try { f.Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { /* không có icon ⇒ icon mặc định */ }
+        var le = VeNut.LeBong;
+        int lề = Clay.Si(28), rong = Clay.Si(420);
+        var tieu = new Label
+        {
+            Text = tieuDe, AutoSize = false, UseMnemonic = false, BackColor = Color.Transparent, ForeColor = loi ? Clay.Loi : Clay.Chu,
+            Font = PhongChu.Tao(16f, FontStyle.Bold), Location = new Point(lề, Clay.Si(24)), Size = new Size(rong, Clay.Si(34)),
+            AutoEllipsis = true, TextAlign = ContentAlignment.MiddleLeft,
+        };
+        var fn = PhongChu.Tao(11f);
+        var cao = TextRenderer.MeasureText(noiDung, fn, new Size(rong, 0), TextFormatFlags.WordBreak | TextFormatFlags.NoPadding).Height + Clay.Si(6);
+        var nd = new Label
+        {
+            Text = noiDung, AutoSize = false, UseMnemonic = false, BackColor = Color.Transparent, ForeColor = Clay.Chu2, Font = fn,
+            Location = new Point(lề, tieu.Bottom + Clay.Si(8)), Size = new Size(rong, cao),
+        };
+        int yNut = nd.Bottom + Clay.Si(20) - le.Top;
+        ClayButton Nut(string t, bool chinh, int x, DialogResult kq)
+        {
+            var b = new ClayButton
+            {
+                Text = t, Size = new Size(Clay.Si(120) + le.Horizontal, Clay.Si(44) + le.Vertical), Font = PhongChu.Tao(11f, FontStyle.Bold),
+                BackColor = chinh ? Clay.Ngoc : Clay.The, ForeColor = Clay.Chu, LaChinh = chinh, DialogResult = kq,
+                Location = new Point(x - le.Left, yNut),
+            };
+            return b;
+        }
+        int xPhai = lề + rong;
+        var chinhBtn = Nut(hoi ? "Có" : "Đã hiểu", true, xPhai - Clay.Si(120), hoi ? DialogResult.Yes : DialogResult.OK);
+        f.Controls.AddRange(new Control[] { tieu, nd, chinhBtn });
+        f.AcceptButton = chinhBtn;
+        if (hoi)
+        {
+            var khong = Nut("Không", false, xPhai - Clay.Si(120) * 2 - Clay.Si(12), DialogResult.No);
+            f.Controls.Add(khong);
+            f.CancelButton = khong;
+        }
+        else f.CancelButton = chinhBtn;
+        f.ClientSize = new Size(lề * 2 + rong, chinhBtn.Bottom + Clay.Si(24));
+        Clay.KhongMnemonic(f);
+        return f.ShowDialog();
     }
 }

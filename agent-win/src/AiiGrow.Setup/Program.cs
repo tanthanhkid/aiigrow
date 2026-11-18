@@ -1,3 +1,4 @@
+using AiiGrow.ClayUi;
 using AiiGrow.Core;
 
 namespace AiiGrow.Setup;
@@ -76,13 +77,13 @@ internal static class Program
         {
             void Log(string m) => WriteLog(m);
             Task.Run(() => Installer.RunOneTouchAsync(pkg, new EnrollClient(), Log)).GetAwaiter().GetResult();
-            if (!silent) MessageBox.Show("Đã cài AiiGrow lên máy này.", "AiiGrow", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            if (!silent) HopThoai.Hien("Đã cài AiiGrow lên máy này.", "AiiGrow");
             return 0;
         }
         catch (Exception e)
         {
             WriteLog("Cài lỗi: " + e.Message);
-            if (!silent) MessageBox.Show("Chưa cài được: " + e.Message, "AiiGrow", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            if (!silent) HopThoai.Hien("Chưa cài được: " + e.Message, "AiiGrow", loi: true);
             return 3;
         }
     }
@@ -92,29 +93,29 @@ internal static class Program
         var (ok, cau) = CheDoSwitch.Doi(new ConfigStore(), moi);
         WriteLog(cau);
         if (ok) Shell.Run("sc.exe", new[] { "stop", Paths.ServiceName }, 30000);   // SCM tự bật lại (recovery) ⇒ dịch vụ đọc chế độ mới
-        if (!silent) MessageBox.Show(cau, "AiiGrow", MessageBoxButtons.OK, ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
+        if (!silent) HopThoai.Hien(cau, "AiiGrow", loi: !ok);
         return ok ? 0 : 4;
     }
 
     private static int Uninstall(bool silent)
     {
-        if (!silent && MessageBox.Show("Gỡ AiiGrow khỏi máy này?", "AiiGrow", MessageBoxButtons.YesNo) != DialogResult.Yes)
+        if (!silent && HopThoai.Hien("Gỡ AiiGrow khỏi máy này?", "AiiGrow", hoi: true) != DialogResult.Yes)
             return 0;
         var kq = Task.Run(Installer.UninstallAsync).GetAwaiter().GetResult();
         WriteLog(kq.Log);
         // Chưa gỡ được luật chặn (AppLocker) ⇒ BÁO LỖI RÕ RÀNG, KHÔNG coi là thành công: máy Con vẫn còn luật chặn nếu bỏ qua.
         if (!kq.AppLockerGo)
         {
-            if (!silent) MessageBox.Show(kq.Log, "AiiGrow — CHƯA gỡ xong", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            if (!silent) HopThoai.Hien(kq.Log, "AiiGrow — CHƯA gỡ xong", loi: true);
             return 5;
         }
         if (!kq.QuyenAdminTra)
         {
-            if (!silent) MessageBox.Show(kq.Log + "\n\nLƯU Ý: chưa trả lại được quyền quản trị cho tài khoản của Con — hãy thêm tay vào nhóm Administrators.",
-                "AiiGrow — đã gỡ, còn một việc", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            if (!silent) HopThoai.Hien(kq.Log + "\n\nLƯU Ý: chưa trả lại được quyền quản trị cho tài khoản của Con — hãy thêm tay vào nhóm Administrators.",
+                "AiiGrow — đã gỡ, còn một việc", loi: true);
             return 6;
         }
-        if (!silent) MessageBox.Show(kq.Log, "AiiGrow", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        if (!silent) HopThoai.Hien(kq.Log, "AiiGrow");
         return 0;
     }
 

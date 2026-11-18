@@ -175,7 +175,7 @@ internal sealed class HoiAiiGrowForm : HopKhayCoBan
             var the = new ClayFlow
             {
                 FlowDirection = FlowDirection.TopDown, WrapContents = false, BoGoc = UI.Px(20), Cursor = Cursors.Hand,
-                Size = new Size(rongThe, UI.Px(118)), Padding = VeThe.Pad(UI.Px(12), UI.Px(10), UI.Px(12), UI.Px(8)), Margin = new Padding(0, 0, UI.Px(8), UI.Px(8)),
+                Size = new Size(rongThe, UI.Px(138)), Padding = VeThe.Pad(UI.Px(12), UI.Px(10), UI.Px(12), UI.Px(8)), Margin = new Padding(0, 0, UI.Px(8), UI.Px(8)),
             };
             var v = new ClayIcon { Size = new Size(UI.Px(40), UI.Px(40)), MauVien = Color.Transparent, Hinh = Anh3D.Icon(icon), Margin = new Padding(0, 0, 0, UI.Px(4)) };   // Bàn: icon 3D trơn, không viên
             var rc = rongThe - the.Padding.Horizontal;

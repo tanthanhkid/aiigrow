@@ -606,15 +606,8 @@ internal sealed partial class LockForm
 /// <see cref="Mau"/> = -1 ⇒ viên số bước (navy đặc, không viền, chữ kem).</summary>
 internal sealed class VienTen : Control
 {
-    // (điểm sáng 35%/30%, mép) — gradient tâm như «.av», tông đậm để chữ KimSang đọc rõ: rượu vang · lam · lục thông · tím · đồng
-    private static readonly (Color Tren, Color Duoi)[] Bang =
-    {
-        (Color.FromArgb(0x7a, 0x2f, 0x3f), Color.FromArgb(0x4a, 0x16, 0x23)),
-        (Color.FromArgb(0x2f, 0x4f, 0x8a), Color.FromArgb(0x14, 0x28, 0x4f)),
-        (Color.FromArgb(0x2d, 0x6a, 0x5a), Color.FromArgb(0x12, 0x3d, 0x33)),
-        (Color.FromArgb(0x5e, 0x3f, 0x8a), Color.FromArgb(0x33, 0x20, 0x4f)),
-        (Color.FromArgb(0x8a, 0x5a, 0x2a), Color.FromArgb(0x4f, 0x2f, 0x12)),
-    };
+    // E: avatar bé mọi bé đều navy (gradient tâm ThanChi → Chu) chữ vàng kim, vòng vàng kim — không còn màu riêng từng bé (lỗi G5)
+    private static readonly (Color Tren, Color Duoi)[] Bang = { (Clay.ThanChi, Clay.Chu) };
 
     public string Chu { get; set; } = "";
     public int Mau { get; set; }

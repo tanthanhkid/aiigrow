@@ -156,8 +156,8 @@ internal sealed class CapNhatForm : Form
     private readonly PhatHienCai _ph;
     // Xếp dọc tự co theo nội dung (không toạ độ cố định): chữ dài / 150% đẩy nút xuống chứ không đẩy nút ra khỏi khung.
     private static int S(int v) => AiiGrow.ClayUi.Clay.Si(v);
-    private readonly Label _tieuDe = new() { AutoSize = true, MaximumSize = new Size(S(520), 0), Font = new Font("Segoe UI", 16f, FontStyle.Bold), ForeColor = SetupForm.Chu, Margin = new Padding(0, 0, 0, S(12)) };
-    private readonly Label _loi = new() { AutoSize = true, MaximumSize = new Size(S(520), 0), Font = new Font("Segoe UI", 11f), ForeColor = SetupForm.Chu2, Margin = new Padding(0, 0, 0, S(16)) };
+    private readonly Label _tieuDe = new() { AutoSize = true, MaximumSize = new Size(S(520), 0), Font = AiiGrow.ClayUi.PhongChu.Tao(16f, FontStyle.Bold), ForeColor = SetupForm.Chu, Margin = new Padding(0, 0, 0, S(12)) };
+    private readonly Label _loi = new() { AutoSize = true, MaximumSize = new Size(S(520), 0), Font = AiiGrow.ClayUi.PhongChu.Tao(11f), ForeColor = SetupForm.Chu2, Margin = new Padding(0, 0, 0, S(16)) };
     private readonly ProgressBar _thanh = new() { Size = new Size(S(520), S(6)), Style = ProgressBarStyle.Marquee, Visible = false, Margin = new Padding(0, 0, 0, S(16)) };
     private readonly FlowLayoutPanel _nut = new() { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.LeftToRight, WrapContents = true, MaximumSize = new Size(S(540), 0), Margin = Padding.Empty };
     private bool _dangChay;
@@ -171,7 +171,8 @@ internal sealed class CapNhatForm : Form
         AiiGrow.ClayUi.Clay.KhongMnemonic(this);   // «&» trong chữ (Phần quà & điểm) hiện đúng, không thành phím tắt
         _ph = ph;
         Text = "AiiGrow";
-        Font = new Font("Segoe UI", 11f);
+        using (var ic = typeof(CapNhatForm).Assembly.GetManifestResourceStream("aiigrow.ico")) if (ic != null) Icon = new Icon(ic);   // icon E ở thanh tiêu đề
+        Font = AiiGrow.ClayUi.PhongChu.Tao(11f);
         AutoSize = true; AutoSizeMode = AutoSizeMode.GrowAndShrink;
         MinimumSize = new Size(S(600), 0);
         FormBorderStyle = FormBorderStyle.FixedDialog;
@@ -245,12 +246,12 @@ internal sealed class CapNhatForm : Form
     private static Button Nut(string chu, bool chinh, Action bam)
     {
         // Nút Clay như trình cài (thân 44 theo DPI + lề bóng); rộng theo chữ, tối thiểu 150/180 theo DPI
-        var font = new Font("Segoe UI", 11f, FontStyle.Bold);
+        var font = AiiGrow.ClayUi.PhongChu.Tao(11f, FontStyle.Bold);
         var rong = Math.Max(S(chinh ? 180 : 150), TextRenderer.MeasureText(chu, font).Width + S(48));
         var b = new AiiGrow.ClayUi.ClayButton
         {
             Text = chu, AutoSize = false, Size = new Size(rong, AiiGrow.ClayUi.Clay.Si(44) + AiiGrow.ClayUi.VeNut.LeBong.Vertical),
-            BackColor = chinh ? SetupForm.Chinh : AiiGrow.ClayUi.Clay.The, ForeColor = chinh ? Color.White : SetupForm.Chu,
+            BackColor = chinh ? SetupForm.Chinh : AiiGrow.ClayUi.Clay.The, ForeColor = SetupForm.Chu, LaChinh = chinh,
             Font = font, Margin = new Padding(0, 0, S(12), 0), UseMnemonic = false,
         };
         b.Click += (_, _) => bam();
