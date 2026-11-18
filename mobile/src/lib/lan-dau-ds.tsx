@@ -25,7 +25,7 @@ export function TabMuc<T extends string>({ ds, dang, doi }: { ds: { ma: T; chu: 
           <Pressable key={x.ma} onPress={() => doi(x.ma)} accessibilityRole="tab" accessibilityState={{ selected: on }}
             style={{ flex: 1, minHeight: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 6,
               backgroundColor: on ? M.chinh : M.the, boxShadow: on ? BONG.ngoc : BONG.nho }}>
-            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 13, color: on ? "#fff" : M.chu2 }}>{x.chu}</Text>
+            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 13, color: on ? "#FFFBF5" : M.chu2 }}>{x.chu}</Text>
           </Pressable>
         );
       })}
@@ -96,7 +96,7 @@ export function DongChon({ e, mau = "ngoc", ten, phu, sao, lon, chon, bam, dau, 
       {chon && nhom ? <VienNhom nhom={nhom} /> : (
         <View style={{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center",
           backgroundColor: chon ? M.chinh : M.xamSoft, boxShadow: chon ? BONG.ngoc : BONG.lom }}>
-          {chon ? <Icon ten="tick" mau="#fff" co={18} /> : <Chu kieu="rat" co={20} mau={M.chinhInk}>＋</Chu>}
+          {chon ? <Icon ten="tick" mau="#FFFBF5" co={18} /> : <Chu kieu="rat" co={20} mau={M.chinhInk}>＋</Chu>}
         </View>
       )}
     </Pressable>
@@ -153,7 +153,7 @@ export function ThanhTimGia({ chu, bam, nhan }: { chu: string; bam: () => void; 
       style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, borderRadius: 24, backgroundColor: M.xamSoft, boxShadow: BONG.lom, paddingLeft: 16, paddingRight: 5 }}>
       <Chu kieu="dam" co={14.5} mau={M.chu3} style={{ flex: 1 }} dong={1}>{chu}</Chu>
       <View style={{ minHeight: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontFamily: F.rat, fontSize: 13.5, color: "#fff" }}>+ Thêm</Text>
+        <Text style={{ fontFamily: F.rat, fontSize: 13.5, color: "#FFFBF5" }}>+ Thêm</Text>
       </View>
     </Pressable>
   );
@@ -215,10 +215,10 @@ export function ChonCheDo({ gia, doi }: { gia: CheDoTl; doi: (v: CheDoTl) => voi
         const noi = (
           <>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center", ...(on ? { backgroundColor: "#fff" } : { backgroundColor: M.ranh, boxShadow: BONG.lom }) }}>
+              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center", ...(on ? { backgroundColor: "#FFFBF5" } : { backgroundColor: M.ranh, boxShadow: BONG.lom }) }}>
                 {on ? <Text style={{ fontSize: 12, lineHeight: 14, color: M.chinh, fontFamily: F.rat }}>✓</Text> : null}
               </View>
-              <Chu kieu="rat" co={15.5} mau={on ? "#fff" : M.chu} style={{ flexShrink: 1 }}>{o.tieu}</Chu>
+              <Chu kieu="rat" co={15.5} mau={on ? "#FFFBF5" : M.chu} style={{ flexShrink: 1 }}>{o.tieu}</Chu>
             </View>
             <Chu kieu="dam" co={12} mau={on ? "rgba(255,255,255,0.9)" : M.chu3}>{o.phu}</Chu>
           </>

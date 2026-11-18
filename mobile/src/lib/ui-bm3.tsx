@@ -40,7 +40,7 @@ export function OIcon({ ic, anh, co = 42, nen = M.xamSoft }: { ic: TenIcon; anh?
 export function HangVang({ ic = "chuong", tieu, phu, nut = "Xem ›", bam, bamNut }: { ic?: TenIcon; tieu: string; phu?: string; nut?: string; bam?: () => void; bamNut?: () => void }) {
   const noi = (
     <>
-      <OIcon ic={ic} nen="#f6dc95" />
+      <OIcon ic={ic} nen={M.chonSoft} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15} mau={M.diemInk}>{tieu}</Chu>
         {phu ? <Chu kieu="dam" co={12.5} mau={M.diemInk}>{phu}</Chu> : null}
@@ -153,7 +153,7 @@ export function ChonNhom({ gia, doi, tat }: { gia: Nhom | null; doi: (n: Nhom) =
         return (
           <NhanMen key={k} onPress={() => doi(k)} disabled={tat} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: tat }} aria-checked={on}
             accessibilityLabel={`${TEN_NHOM[k]}, ${PHU_NHOM[k]}`} muc="khoi" sang men={MEN.the}
-            style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 26, backgroundColor: on && k === "tinh_phut" ? "#fdf3d8" : M.the, ...KHOI.the },
+            style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 26, backgroundColor: on && k === "tinh_phut" ? M.chonSoft : M.the, ...KHOI.the },
               on && { boxShadow: `0px 0px 0px 3px ${VIEN_NHOM[k]}, ${BONG.the}` }]}>
             <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: MAU_NHOM[k], opacity: on ? 1 : 0.35,
               boxShadow: "inset 0px 3px 0px rgba(255,255,255,0.45), inset 0px -8px 12px -4px rgba(0,0,0,0.25), 0px 8px 14px -8px rgba(0,0,0,0.4)" }} />
@@ -162,7 +162,7 @@ export function ChonNhom({ gia, doi, tat }: { gia: Nhom | null; doi: (n: Nhom) =
               <Chu kieu="dam" co={13} mau={M.chu3}>{PHU_NHOM[k]}</Chu>
             </View>
             <View style={[{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" }, on ? { backgroundColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-              {on ? <Icon ten="tick" mau="#fff" co={15} /> : null}
+              {on ? <Icon ten="tick" mau="#FFFBF5" co={15} /> : null}
             </View>
           </NhanMen>
         );
@@ -184,7 +184,7 @@ export const NutChon = ({ chon }: { chon: boolean }) => (
   <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
     <View style={[{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
       chon ? { backgroundColor: M.chinh, boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.3), inset 0px -4px 6px -2px rgba(0,0,0,0.3)" } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-      <Chu kieu="rat" co={chon ? 15 : 18} mau={chon ? "#fff" : M.chinhInk}>{chon ? "✓" : "+"}</Chu>
+      <Chu kieu="rat" co={chon ? 15 : 18} mau={chon ? "#FFFBF5" : M.chinhInk}>{chon ? "✓" : "+"}</Chu>
     </View>
   </View>
 );
@@ -199,7 +199,7 @@ export function ChonNhomNgang({ gia, doi }: { gia: Nhom; doi: (n: Nhom) => void 
           <NhanMen key={k} onPress={() => doi(k)} accessibilityRole="radio" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={`${TEN_NHOM[k]}, ${PHU_NHOM[k]}`}
             muc="chip" sang men={MEN.the}
             style={[{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, minHeight: 60, paddingVertical: 8, paddingHorizontal: 8, borderRadius: 20,
-              backgroundColor: on && k === "tinh_phut" ? "#fdf3d8" : "#fff", ...KHOI.the },
+              backgroundColor: on && k === "tinh_phut" ? M.chonSoft : M.the, ...KHOI.the },
               on && { boxShadow: `0px 0px 0px 3px ${VIEN_NHOM[k]}, ${BONG.the}` }]}>
             <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: MAU_NHOM[k], opacity: on ? 1 : 0.4,
               boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.45), inset 0px -5px 7px -2px rgba(0,0,0,0.25)" }} />
@@ -217,7 +217,7 @@ export function ChonNhomNgang({ gia, doi }: { gia: Nhom; doi: (n: Nhom) => void 
 /** Nút tròn ＋ / ✓ (.c) của một dòng kết quả. */
 export const NutCong = ({ chon }: { chon: boolean }) => (
   <View style={[{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.the }]}>
-    <Icon ten={chon ? "tick" : "cong"} mau={chon ? "#fff" : M.chinhInk} co={chon ? 18 : 20} />
+    <Icon ten={chon ? "tick" : "cong"} mau={chon ? "#FFFBF5" : M.chinhInk} co={chon ? 18 : 20} />
   </View>
 );
 
@@ -334,7 +334,7 @@ export const luatCuaCon = (ds: LuatApp[], con: string) => {
 export function TheDong({ trai, tieu, phu, phai, vach, bam, nhanDoc }: {
   trai: ReactNode; tieu: string; phu?: string; phai?: ReactNode; vach?: string; bam?: () => void; nhanDoc?: string;
 }) {
-  const st = [{ flexDirection: "row" as const, alignItems: "center" as const, gap: 12, padding: 12, borderRadius: 24, backgroundColor: vach ? "#fff" : M.the, overflow: "hidden" as const, ...KHOI.the }];
+  const st = [{ flexDirection: "row" as const, alignItems: "center" as const, gap: 12, padding: 12, borderRadius: 24, backgroundColor: M.the, overflow: "hidden" as const, ...KHOI.the }];
   const noi = (
     <>
       {vach ? <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, backgroundColor: vach }} /> : null}

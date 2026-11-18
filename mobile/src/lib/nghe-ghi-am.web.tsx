@@ -48,10 +48,10 @@ export function NgheGhiAm({ mime, base64, nhan }: NgheGhiAmProps) {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <Pressable onPress={luc > 0 || chay ? dungTiep : tuDau} accessibilityRole="button" accessibilityLabel={chay ? "Tạm dừng" : "Phát ghi âm"}
             style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: M.nut, alignItems: "center", justifyContent: "center" }}>
-            {chay ? <View style={{ flexDirection: "row", gap: 4 }}><View style={{ width: 5, height: 16, backgroundColor: "#fff" }} /><View style={{ width: 5, height: 16, backgroundColor: "#fff" }} /></View>
-              : <View style={{ marginLeft: 4, width: 0, height: 0, borderTopWidth: 9, borderBottomWidth: 9, borderLeftWidth: 15, borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: "#fff" }} />}
+            {chay ? <View style={{ flexDirection: "row", gap: 4 }}><View style={{ width: 5, height: 16, backgroundColor: "#FFFBF5" }} /><View style={{ width: 5, height: 16, backgroundColor: "#FFFBF5" }} /></View>
+              : <View style={{ marginLeft: 4, width: 0, height: 0, borderTopWidth: 9, borderBottomWidth: 9, borderLeftWidth: 15, borderTopColor: "transparent", borderBottomColor: "transparent", borderLeftColor: "#FFFBF5" }} />}
           </Pressable>
-          <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: "#cfd6d3", overflow: "hidden" }}>
+          <View style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: M.ranh, overflow: "hidden" }}>
             <View style={{ width: `${Math.round(ti * 100)}%`, height: 8, borderRadius: 4, backgroundColor: M.chinhInk }} />
           </View>
           <Chu kieu="rat" co={14} so mau={M.chu2}>{`${phutGiay(luc)} / ${dai ? phutGiay(dai) : "--:--"}`}</Chu>

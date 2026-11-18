@@ -2,7 +2,7 @@
 // MỘT chỗ cho cách hiện sao của app Ba Mẹ (chốt 15/11):
 //  • chưa nợ ⇒ «⭐ N sao» (viên vàng);
 //  • đang nợ mà còn sao vay chưa tiêu ⇒ số chính «còn N sao = N phút chơi» (phutCon) + dòng «Đang nợ Ba Mẹ M sao»;
-//  • tiêu hết ⇒ số âm «⭐ −M sao» viên cảnh báo (nền #ffe6d6, chữ #b34a06) + dòng «Đang nợ Ba Mẹ M sao · sao nhiệm vụ trả nợ trước».
+//  • tiêu hết ⇒ số âm «⭐ −M sao» viên cảnh báo (nền canhSoft #F0DCC8, chữ canh #983e04 5,2:1) + dòng «Đang nợ Ba Mẹ M sao · sao nhiệm vụ trả nợ trước».
 // Bảng «Cho <Con> vay sao» (thiết kế them-6wjhze1d · them-y1r1eidm khi đang nợ > 1.000): 10 / 15 / 30 sao (mặc định 15), «Đang có … · vay xong sẽ nợ N sao»,
 // dải nhắc nợ (không chặn) ⇒ POST con/:id/cho-vay hoặc yeu-cau/:id/dong-y {soSao}. Hoàn tác 60 giây: POST vay/:id/hoan-tac.
 import { useEffect, useState } from "react";
@@ -101,12 +101,12 @@ export function SoSaoLon({ s, co = 26, bamNo, toi }: { s: SaoCon; co?: number; b
   );
 }
 
-/** Dải nhắc / cảnh báo nợ (nền #ffe6d6, chữ #b34a06, icon cảnh báo): «Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.020)». */
+/** Dải nhắc / cảnh báo nợ (nền canhSoft #F0DCC8, chữ canh #983e04, icon cảnh báo): «Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.020)». */
 export function DaiNhacNo({ chu, phu }: { chu: string; phu?: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 22, backgroundColor: CANH.nen,
-      boxShadow: "inset 0px 1.5px 0px #fff, 0px 8px 16px -12px rgba(138,60,12,.4)" }} accessibilityRole="alert">
-      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#fdf3e8", alignItems: "center", justifyContent: "center" }}><Icon3D ten="canh_bao" co={26} /></View>
+      boxShadow: "inset 0px 1.5px 0px #FFFBF5, 0px 8px 16px -12px rgba(120,98,70,.4)" }} accessibilityRole="alert">
+      <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.nen, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten="canh_bao" co={26} /></View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={14} mau={CANH.chu}>{chu}</Chu>
         {phu ? <Chu kieu="dam" co={12.5} mau={CANH.chu}>{phu}</Chu> : null}

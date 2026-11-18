@@ -131,7 +131,7 @@ export function TheViecCho({ ds, ten, xem, tai, bao, toiDa = 3, anMung }: {
       <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 16, paddingTop: 14, paddingBottom: 10 }}>
         {con.length ? (
           <View style={{ minWidth: 28, height: 28, paddingHorizontal: 6, borderRadius: 14, backgroundColor: M.loi, alignItems: "center", justifyContent: "center", boxShadow: BONG.do }}>
-            <Chu kieu="rat" co={14} mau="#fff" so>{String(con.length)}</Chu>
+            <Chu kieu="rat" co={14} mau="#FFFBF5" so>{String(con.length)}</Chu>
           </View>
         ) : <Icon ten="tick" mau={M.chinh} />}
         <Chu kieu="rat" co={16} style={{ flex: 1 }}>{con.length ? "việc chờ Ba Mẹ" : "Không có việc nào chờ"}</Chu>

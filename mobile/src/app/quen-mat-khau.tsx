@@ -57,7 +57,7 @@ export default function QuenMatKhau() {
         <View style={{ flex: 1 }}><OLomTran {...oSo} /></View>
         {gui ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: M.chinh, borderRadius: 20, paddingHorizontal: 12, height: 40, boxShadow: BONG.ngoc }}>
-            <Icon ten="tick" mau="#fff" co={14} /><Chu kieu="rat" co={13} mau="#fff">Đã gửi mã</Chu>
+            <Icon ten="tick" mau="#FFFBF5" co={14} /><Chu kieu="rat" co={13} mau="#FFFBF5">Đã gửi mã</Chu>
           </View>
         ) : <Nut chu="Gửi mã" nho dangChay={dangChay} tat={!dd.trim()} bam={guiMa} />}
       </View>
@@ -76,7 +76,7 @@ export default function QuenMatKhau() {
 
 const SoBuoc = ({ n, chu }: { n: number; chu: string }) => (
   <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}><Chu kieu="rat" co={12} mau="#fff">{n}</Chu></View>
+    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}><Chu kieu="rat" co={12} mau="#FFFBF5">{n}</Chu></View>
     <Chu kieu="rat" co={14}>{chu}</Chu>
   </View>
 );

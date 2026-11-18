@@ -67,7 +67,7 @@ export function ChuCaiCon({ ds, co = 30 }: { ds: { ten: string; avatar?: string 
   return (
     <View style={{ flexDirection: "row" }} accessibilityLabel={ds.map((c) => c.ten).join(", ")}>
       {ds.map((c, k) => (
-        <View key={`${c.ten}-${k}`} style={{ marginLeft: k ? -6 : 0, borderRadius: co, borderWidth: 2, borderColor: "#fff" }}>
+        <View key={`${c.ten}-${k}`} style={{ marginLeft: k ? -6 : 0, borderRadius: co, borderWidth: 2, borderColor: "#FFFBF5" }}>
           <Avt ten={chuCai(c.ten)} mau={mauCon(c.avatar, k)} co={co} con={c} />
         </View>
       ))}
@@ -89,7 +89,7 @@ export function ThanhMuc<T extends string>({ ds, chon, doi }: { ds: { gia: T; ch
             style={[{ flexGrow: 1, flexShrink: 1, minHeight: 44, paddingHorizontal: 10, borderRadius: 22, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
               on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
             {x.ic ? <Icon3D ten={x.ic} co={18} /> : null}
-            <Chu kieu="rat" co={13.5} mau={on ? "#fff" : M.chu2} dong={1}>{x.chu}</Chu>
+            <Chu kieu="rat" co={13.5} mau={on ? "#FFFBF5" : M.chu2} dong={1}>{x.chu}</Chu>
           </NhanMen>
         );
       })}
@@ -104,7 +104,7 @@ export function NutCongTick({ chon, bam, nhan }: { chon: boolean; bam: () => voi
       style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
       <View style={[{ width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
         chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-        {chon ? <Icon ten="tick" mau="#fff" co={16} /> : <Chu kieu="rat" co={22} mau={M.chinhInk} style={{ lineHeight: 24 }}>+</Chu>}
+        {chon ? <Icon ten="tick" mau="#FFFBF5" co={16} /> : <Chu kieu="rat" co={22} mau={M.chinhInk} style={{ lineHeight: 24 }}>+</Chu>}
       </View>
     </Pressable>
   );

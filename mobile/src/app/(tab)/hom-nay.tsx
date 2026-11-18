@@ -238,7 +238,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
 
       {/* 2. cần Ba Mẹ để ý — 1 mục + Tất cả */}
       <TieuMuc chu="Cần Ba Mẹ để ý" so={soDeY} phai={{ chu: "Tất cả ›", bam: () => router.push("/thong-bao" as never) }} />
-      {/* mục cần để ý: thẻ đào (bàn .de-y #ffe6d6); lời xin — ô icon + tiêu đề một dòng + «Bỏ qua | Thêm · Tính phút» */}
+      {/* mục cần để ý: thẻ cảnh (Ánh kim: canhSoft #F0DCC8, thay đào #ffe6d6); lời xin — ô icon + tiêu đề một dòng + «Bỏ qua | Thêm · Tính phút» */}
       <The style={dauTien ? { backgroundColor: NEN_XIN, paddingVertical: 4 } : undefined}>
         {!dauTien ? <HangViec dau ic="tick" mau="xanh" tieu="Không có gì cần Ba Mẹ trả lời" /> : dauTien.loai === "xin" ? (
           <TheXin y={xin[0]} may={tenMayXin(xin[0], may)} lam={(fn) => lam(fn)} dang={dangChay} sao={s} oIcon

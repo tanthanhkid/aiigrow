@@ -86,7 +86,7 @@ export const HERO = {
   anh: "radial-gradient(90% 70% at 85% 10%, #1d3158 0%, #0A1629 100%)",
   /** «Ánh kim»: hộp trang sức navy nổi đôi trên kem + viền trong vàng mảnh (mẫu E `.gio`) */
   bong: "8px 8px 18px rgba(120,98,70,0.28), -6px -6px 14px #FFFBF5, inset 0px 0px 0px 1px rgba(244,199,106,0.35)",
-  chu: "#ffffff", phu: "#F4C76A", vien: "rgba(255,255,255,0.1)",
+  chu: "#FFFBF5", phu: "#F4C76A", vien: "rgba(255,255,255,0.1)",
 } as const;
 /** Khối hero dựng sẵn (thẻ, sân minh hoạ có Grow). */
 export const KHOI_HERO = { backgroundColor: HERO.nen, backgroundImage: HERO.anh, boxShadow: HERO.bong } as ViewStyle;
