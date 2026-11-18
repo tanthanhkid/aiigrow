@@ -5,7 +5,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
-import { mauCon, tenGoi } from "@/lib/hang-ngay";
+import { tenGoi } from "@/lib/hang-ngay";
 import { OLomIcon } from "@/lib/ui-viec";
 import { BONG, KHOI } from "@/lib/clay";
 import { ChoTai, Chu, Icon, M, Man, Nut, Rob, useHoanTac, useTai, type TenIcon } from "@/lib/ui";
@@ -39,9 +39,9 @@ export default function BuocTiep() {
           borderBottomRightRadius: 20, borderBottomLeftRadius: 6, backgroundColor: M.the, ...KHOI.the }}>
           <Chu kieu="rat" co={14} style={{ lineHeight: 19 }}>{`Chào ${ten}! Còn 5 bước nữa nhé`}</Chu>
         </View>
-        <View style={{ position: "absolute", right: 0, top: 56, width: 60, height: 60, borderRadius: 30, backgroundColor: mauCon(d.avatar, 0), alignItems: "center", justifyContent: "center",
-          boxShadow: BONG.nho }}>
-          <Chu kieu="rat" co={26} mau="#fff">{ten.split(/\s+/).pop()?.charAt(0).toUpperCase() ?? "?"}</Chu>
+        <View style={{ position: "absolute", right: 0, top: 56, width: 60, height: 60, borderRadius: 30, backgroundColor: "#0A1629", alignItems: "center", justifyContent: "center",
+          boxShadow: `${BONG.nho}, inset 0px 0px 0px 2px rgba(217,174,87,0.85)` }}>
+          <Chu kieu="tieu" co={26} mau={M.diem}>{ten.split(/\s+/).pop()?.charAt(0).toUpperCase() ?? "?"}</Chu>
         </View>
       </View>
       <View style={{ alignItems: "center", gap: 2 }}>

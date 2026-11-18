@@ -60,7 +60,7 @@ export default function HoSoCon() {
           <Avt ten={c.ten} mau={mau} co={56} con={c} toi />
           <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
             <Chu kieu="rat" co={22} dong={2} mau={HERO.chu}>{c.ten}</Chu>
-            <Chu kieu="dam" co={13.5} mau="rgba(255,255,255,0.75)">{[tuoi ? `${tuoi} tuổi` : null, `${c.may.length} máy`].filter(Boolean).join(" · ")}</Chu>
+            <Chu kieu="dam" co={13.5} mau="#E3D9CB">{[tuoi ? `${tuoi} tuổi` : null, `${c.may.length} máy`].filter(Boolean).join(" · ")}</Chu>
           </View>
           <NhanMen onPress={() => router.push(`/vi/${id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}: ${chuVien(s)}`} muc="chip" sang>
             <VienSao s={s} />
@@ -68,7 +68,7 @@ export default function HoSoCon() {
         </View>
         {/* ô «Hôm nay chơi 42 phút = 42 sao» + dòng nợ (cam); «Xem ›» = con dùng gì hôm nay */}
         <NhanMen onPress={() => router.push(`/da-dung/${id}` as never)} accessibilityRole="button" accessibilityLabel={`Xem ${c.ten} dùng gì hôm nay`} muc="khoi" sang men={MEN.sang}
-          style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 20, backgroundColor: M.the }, KHOI.the]}>
+          style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 20, backgroundColor: M.the }, KHOI.heroThe]}>
           <View style={{ flex: 1, gap: 2 }}>
             <Chu kieu="dam" co={13.5} mau={M.chu2} so>{phutHomNay !== null
               ? <>Hôm nay chơi <Chu kieu="rat" co={20} so>{`${soVN(phutHomNay)} phút`}</Chu>{` = ${soVN(phutHomNay)} sao`}</>

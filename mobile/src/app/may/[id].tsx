@@ -219,26 +219,26 @@ export default function AnToanMay() {
                 <Chu kieu="rat" co={11.5} mau={M.chu}>{chung ? `Máy chung · ${d.conDs.length} bé` : "Máy riêng"}</Chu>
               </View>
             </View>
-            <Chu kieu="dam7" co={12} mau="rgba(255,255,255,0.75)" dong={1}>{`${TEN_NEN[m.nen] ?? m.nen}${!chung && d.ct ? ` · ${cheDo}` : ""}${chung ? " · xem từng bé ›" : ""}`}</Chu>
+            <Chu kieu="dam7" co={12} mau="#E3D9CB" dong={1}>{`${TEN_NEN[m.nen] ?? m.nen}${!chung && d.ct ? ` · ${cheDo}` : ""}${chung ? " · xem từng bé ›" : ""}`}</Chu>
           </View>
         </Pressable>
       ) : (
         // bm2-may-m2 «lệch chuẩn»: cảnh đào cao 210 — bong bóng việc thiếu đầu tiên, máy 3D + dấu «!» cam, Grow «so-tay» góc phải, chip «… · vẫn trừ sao»;
         // dưới là tiêu đề «<máy> chưa được bảo vệ» 20/800 + một câu
         <>
-          <View style={{ height: 210, borderRadius: 28, backgroundColor: "#fbe5ce", backgroundImage: "linear-gradient(#f9dcc0, #fdeedd)", overflow: "hidden", ...KHOI.the }}
+          <View style={{ height: 210, borderRadius: 28, backgroundColor: M.the, overflow: "hidden", ...KHOI.the }}
             accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <View style={{ position: "absolute", left: 22, top: 60 }}><Icon3D ten={hinhMay(m.nen, chung)} co={80} /></View>
             {/* máy 80 (HTML 104): chip «… · vẫn trừ sao» xuống 2–3 dòng khi giãn chữ (WCAG 1.4.12) không chạm máy — cổng DE-ANH */}
-            <View style={{ position: "absolute", left: 88, top: 54, width: 40, height: 40, borderRadius: 20, backgroundColor: "#e2660f", alignItems: "center", justifyContent: "center",
-              boxShadow: "0px 6px 10px -4px rgba(161,75,0,0.6), inset 0px 1.5px 0px rgba(255,255,255,0.4)" }}>
-              <Chu kieu="rat" co={24} mau="#fff">!</Chu>
+            <View style={{ position: "absolute", left: 88, top: 54, width: 40, height: 40, borderRadius: 20, backgroundColor: "#0A1629", alignItems: "center", justifyContent: "center",
+              boxShadow: `${BONG.nho}, inset 0px 0px 0px 2px rgba(217,174,87,0.85)` }}>
+              <Chu kieu="tieu" co={24} mau={M.diem}>!</Chu>
             </View>
             <View style={{ position: "absolute", right: -10, bottom: -34 }}><Rob ten="so-tay" co={136} /></View>
             {m.baoVeThieu?.[0] || m.vanDe[0] ? (
               <View style={{ position: "absolute", left: 16, top: 14, right: 16, alignSelf: "flex-start" }}>
                 <View style={{ alignSelf: "flex-start", paddingVertical: 8, paddingHorizontal: 12, borderTopLeftRadius: 16, borderTopRightRadius: 16, borderBottomRightRadius: 16, borderBottomLeftRadius: 4,
-                  backgroundColor: M.the, boxShadow: "0px 6px 10px -6px rgba(28,32,30,0.26)" }}>
+                  backgroundColor: M.the, boxShadow: BONG.nho }}>
                   <Chu kieu="rat" co={13.5} dong={2} style={{ lineHeight: 18 }}>{`${(m.baoVeThieu?.[0]?.ten ?? m.vanDe[0]?.cauBaMe ?? "").replace(/[.!]$/, "")}!`}</Chu>
                 </View>
               </View>
@@ -310,8 +310,8 @@ export default function AnToanMay() {
       {/* lời xin đang chờ của bé dùng máy (thẻ đào .xin) */}
       {tot && xin0 ? (
         <Pressable onPress={() => router.push(`/yeu-cau/${xin0.id}` as never)} accessibilityRole="button"
-          style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 66, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 28, backgroundColor: M.canhSoft, ...KHOI.the }}>
-          <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: "#f3d6b8", boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten={xin0.loai === "them_gio" ? "dongho" : "web"} co={24} /></View>
+          style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 66, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 28, backgroundColor: M.chonSoft, ...KHOI.the }}>
+          <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten={xin0.loai === "them_gio" ? "dongho" : "web"} co={24} /></View>
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="rat" co={15} dong={1}>{`${tenXin} xin ${/^xin\s/i.test(tieuXin(xin0)) ? tieuXin(xin0).replace(/^xin\s+/i, "") : tieuXin(xin0).replace(/^./, (x) => x.toLowerCase())}`}</Chu>
             <Chu kieu="dam7" co={12.5} mau={M.canh} dong={1}>{`${gioPhut(xin0.created_at)} · ${(xin0 as { device_id?: string | null }).device_id === id ? "đang chờ trên máy này" : "đang chờ"}${d.xin.length > 1 ? ` · +${d.xin.length - 1} lời xin` : ""}`}</Chu>

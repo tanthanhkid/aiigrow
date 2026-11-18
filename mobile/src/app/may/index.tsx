@@ -115,13 +115,13 @@ function TheMay({ m, con, app, sao }: { m: TuanThuMay; con: ConNganMay[]; app: s
   const chung = con.length >= 2;
   const ai = m.dangDung ? con.find((x) => x.id === m.dangDung!.id) ?? m.dangDung : con.length === 1 ? con[0] : null;
   const s = ai ? sao(ai.id) : null;
-  const [nenTt, chuTt] = loi ? [M.canhSoft, M.canh] : ok ? [M.chinhSoft, M.chinhInk] : [M.xamSoft, M.chu2];
+  const [nenTt, chuTt] = loi ? [M.chonSoft, M.canh] : ok ? [M.chinhSoft, M.chinhInk] : [M.xamSoft, M.chu2];
   const buoc = m.baoVeThieu?.length ?? 0;
   return (
     <Pressable onPress={() => router.push(`/may/${m.id}`)} accessibilityRole="button" accessibilityLabel={`${ten}, ${ok ? "đang bảo vệ" : tt ? "đang tắt" : "chưa bảo vệ"}`}>
       <View style={{ flexDirection: "row", gap: 12, padding: 12, borderRadius: 28, backgroundColor: M.the, ...KHOI.the }}>
         <LopMen men={MEN.the} bo={28} />
-        <View style={{ width: 76, height: 88, borderRadius: 22, backgroundColor: loi ? "#f3d6b8" : M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+        <View style={{ width: 76, height: 88, borderRadius: 22, backgroundColor: loi ? M.chonSoft : M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
           <Icon3D ten={hinhMay(m.nen, chung)} co={56} />
           {ok ? <View style={{ position: "absolute", right: -4, bottom: -4 }}><Icon3D ten="khien" co={30} /></View> : null}
         </View>
