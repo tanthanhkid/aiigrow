@@ -111,7 +111,7 @@ struct ManConDangXin: View {
   @ViewBuilder func loiNhanBaMe(_ yc: YeuCauDangCho) -> some View {
     if let l = yc.loiNhanBaMe, !l.isEmpty {
       HStack(alignment: .top, spacing: 10) {
-        AvatarBe(ten: yc.nguoi, co: 36, mau: Diu.xanh)
+        AvatarBe(ten: yc.nguoi, co: 36)
         VStack(alignment: .leading, spacing: 2) {
           Text(yc.nguoi).font(Diu.t1).foregroundColor(Diu.chu)
           Text("«\(l)»").font(Diu.chu(16, .bold)).foregroundColor(Diu.chu)

@@ -212,17 +212,16 @@ extension Diu {
   }
 }
 
-/// Avatar tròn chữ cái đầu (Fraunces). Mặc định navy chữ vàng kim vòng vàng (E); màu riêng của bé ⇒ chữ navy.
+/// Avatar tròn chữ cái đầu (Fraunces) — MỌI avatar bé: nền navy, chữ vàng kim, vòng vàng #D9AE57 (E); `dangChon` ⇒ vòng dày hơn.
 struct AvatarBe: View {
   let ten: String
   var co: CGFloat = 30
-  var mau: Color = Diu.xanh
+  var dangChon = false
   var body: some View {
-    let navy = mau == Diu.xanh
     Text(String(ten.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased())
-      .font(Diu.fraunces(co * 0.48)).foregroundColor(navy ? Diu.kim : Diu.chu)
-      .frame(width: co, height: co).background(Circle().fill(mau))
-      .overlay(Circle().strokeBorder(navy ? Diu.kimVien : Diu.nen, lineWidth: co >= 60 ? 3 : 1.5))
+      .font(Diu.fraunces(co * 0.48)).foregroundColor(Diu.kimNhat)
+      .frame(width: co, height: co).background(Circle().fill(Diu.xanh))
+      .overlay(Circle().strokeBorder(Diu.kimVien, lineWidth: (co >= 60 ? 2 : 1.25) * (dangChon ? 2 : 1)))
   }
 }
 
@@ -233,7 +232,7 @@ struct ChipBe: View {
   var body: some View {
     Button(action: lam) {
       HStack(spacing: 7) {
-        AvatarBe(ten: ten, co: 30)
+        AvatarBe(ten: ten, co: 30, dangChon: true)
         Text(ten).font(Diu.chu(15, .black)).foregroundColor(Diu.chu).lineLimit(1)
         Image(systemName: "chevron.down").font(.system(size: 11, weight: .heavy)).foregroundColor(Diu.chu2)
       }

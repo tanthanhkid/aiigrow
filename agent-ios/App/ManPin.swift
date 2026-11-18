@@ -3,7 +3,6 @@
 import SwiftUI
 import ConCore
 
-let mauAvatar: [Color] = [Diu.cam, Color(hex: 0x6f9be0), Color(hex: 0xb58be0), Color(hex: 0x4fb3a3)]
 
 struct ManMayKhoa: View {
   @EnvironmentObject var m: MoHinhApp
@@ -52,7 +51,7 @@ struct ManMayKhoa: View {
       ForEach(Array((m.hoSo?.con ?? []).enumerated()), id: \.element.id) { i, be in
         Button { chon(be) } label: {
           HStack(spacing: 14) {
-            AvatarBe(ten: be.ten, co: 52, mau: mauAvatar[i % mauAvatar.count])
+            AvatarBe(ten: be.ten, co: 52)
             Text(be.ten).font(Diu.fraunces(20)).foregroundColor(Diu.chu)
             Spacer()
             Image(systemName: "chevron.right").font(.system(size: 16, weight: .heavy)).foregroundColor(Diu.chu3)
@@ -87,7 +86,7 @@ struct ManMayKhoa: View {
   func nhapPin(_ be: BeTrenMay) -> some View {
     VStack(spacing: 16) {
       DauMan(tieuDe: "", lui: { buoc = .chonTen })
-      AvatarBe(ten: be.ten, co: 72)   // bé đang chọn: navy chữ vàng kim vòng vàng (E)
+      AvatarBe(ten: be.ten, co: 72, dangChon: true)   // bé đang chọn: vòng vàng dày hơn (E)
       Text(be.ten).font(Diu.tieuDe).foregroundColor(Diu.chu)
       Text(conLan.map { "Chưa đúng · còn \($0) lần thử" } ?? "Nhập PIN 4 số")
         .font(Diu.chu(17, .heavy)).foregroundColor(conLan == nil ? Diu.chu2 : Diu.doChu)
@@ -236,7 +235,7 @@ struct ManDoiBe: View {
     VStack(spacing: 14) {
       Capsule().fill(Diu.vien).frame(width: 40, height: 5).padding(.top, 8)
       HStack(spacing: 12) {
-        AvatarBe(ten: m.tenCon ?? "Con", co: 52)
+        AvatarBe(ten: m.tenCon ?? "Con", co: 52, dangChon: true)
         VStack(alignment: .leading, spacing: 1) {
           Text(m.tenCon ?? "Con").font(Diu.t1).foregroundColor(Diu.chu)
           Text("Đang dùng máy này").font(Diu.t2).foregroundColor(Diu.chu2)

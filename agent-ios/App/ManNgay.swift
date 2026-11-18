@@ -427,7 +427,7 @@ struct ManTin: View {
       ForEach(m.tq?.loiKhen ?? []) { lk in
         VStack(alignment: .leading, spacing: 10) {
           HStack(spacing: 10) {
-            AvatarBe(ten: "Ba Mẹ", co: 36, mau: Diu.xanh)
+            AvatarBe(ten: "Ba Mẹ", co: 36)
             VStack(alignment: .leading, spacing: 0) {
               Text("Ba Mẹ").font(Diu.t1).foregroundColor(Diu.chu)
               if let l = lk.luc.flatMap(NgayISO.doc) { Text(l.gioPhut).font(Diu.t2).foregroundColor(Diu.chu3) }
