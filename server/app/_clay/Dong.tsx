@@ -66,7 +66,7 @@ export function phaoGiay(goc: HTMLElement | null) {
   lop.className = "phao-giay"; lop.setAttribute("aria-hidden", "true");
   goc.appendChild(lop);
   const cx = goc.offsetWidth / 2, cy = Math.min(goc.offsetHeight * 0.32, 180); // offset* bỏ qua transform của hiệu ứng bật vào
-  const MAU = ["#0f6b5c", "#14826f", "#f5b70a", "#ffd447", "#8fe3cf"];
+  const MAU = ["#0A1629", "#C9973B", "#F4C76A", "#FBE7B0", "#F2D48C"];
   for (let i = 0; i < 20; i++) {
     const h = document.createElement("i");
     h.className = i % 3 ? "hat" : "hat tron";

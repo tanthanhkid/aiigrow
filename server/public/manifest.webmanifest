@@ -1,0 +1,14 @@
+{
+  "name": "AiiGrow",
+  "short_name": "AiiGrow",
+  "description": "Grow with Love. Earn with Effort — Lớn lên bằng yêu thương, nhận bằng nỗ lực.",
+  "lang": "vi",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ECE4D9",
+  "theme_color": "#ECE4D9",
+  "icons": [
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

@@ -14,7 +14,7 @@ export const Rob = ({ ten, co }: { ten: string; co: number }) => <img src={`/ass
 
 export const MuiTai = () => <svg viewBox="0 0 256 256" width="26" height="26" aria-hidden="true"><path d="M128 188a12 12 0 0 1-8.5-3.5l-56-56a12 12 0 0 1 17-17L116 143V32a12 12 0 0 1 24 0v111l31.5-31.5a12 12 0 0 1 17 17l-56 56A12 12 0 0 1 128 188ZM216 160a12 12 0 0 1 12 12v32a20 20 0 0 1-20 20H48a20 20 0 0 1-20-20v-32a12 12 0 0 1 24 0v28h152v-28a12 12 0 0 1 12-12Z" /></svg>;
 export const MuiTiep = () => <svg viewBox="0 0 256 256" width="26" height="26" aria-hidden="true"><path d="M184.5 136.5l-80 80a12 12 0 0 1-17-17L159 128 87.5 56.5a12 12 0 0 1 17-17l80 80a12 12 0 0 1 0 17Z" /></svg>;
-export const MuiVe = () => <svg viewBox="0 0 256 256" width="24" height="24" fill="#0a5246" aria-hidden="true"><path d="M168.5 199.5a12 12 0 0 1-17 17l-80-80a12 12 0 0 1 0-17l80-80a12 12 0 0 1 17 17L97 128Z" /></svg>;
+export const MuiVe = () => <svg viewBox="0 0 256 256" width="24" height="24" fill="#7A5A1C" aria-hidden="true"><path d="M168.5 199.5a12 12 0 0 1-17 17l-80-80a12 12 0 0 1 0-17l80-80a12 12 0 0 1 17 17L97 128Z" /></svg>;
 export const Tay = () => <svg className="tb-tay" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path fill="#0f1312" stroke="#fff" strokeWidth="1.4" d="M9 3.5a1.6 1.6 0 0 1 3.2 0V10l.4-.1a1.6 1.6 0 0 1 3 .6l.3-.1a1.6 1.6 0 0 1 2.9.8l.3-.1a1.5 1.5 0 0 1 2.4 1.2v4.3c0 3.4-2.6 5.9-5.9 5.9h-1.4c-2 0-3.5-.8-4.7-2.4l-3.7-5a1.6 1.6 0 0 1 2.4-2.1L9 14.5Z" /></svg>;
 
 export function Bt({ ten, mau, c }: { ten: string; mau?: "lam" | "vang"; c?: number }) {
@@ -94,7 +94,7 @@ export function HinhBuoc({ nen, b, xong, ma }: { nen: "windows" | "mac"; b: 1 | 
   }
   if (b === 2) return win ? (
     <Dem><div className="tb-hop"><div style={{ fontSize: 13.5, fontWeight: 800, lineHeight: 1.3 }}>Cho phép ứng dụng này thay đổi thiết bị?</div>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 12px" }}><img src="/logo.png" alt="" width={28} height={28} style={{ borderRadius: 8 }} /><span style={{ fontSize: 12, fontWeight: 700, color: "#3a403d" }}>AiiGrow · AiiLab</span></div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, margin: "10px 0 12px" }}><img src="/logo.png" alt="" width={28} height={28} style={{ borderRadius: 8 }} /><span style={{ fontSize: 12, fontWeight: 700, color: "#2E3A50" }}>AiiGrow · AiiLab</span></div>
       <div style={{ display: "flex", gap: 8 }}><span className="tb-mn ok" style={{ flex: 1 }}>Có</span><span className="tb-mn" style={{ flex: 1 }}>Không</span></div><Tay /></div></Dem>
   ) : (
     <Dem><div className="tb-hop" style={{ textAlign: "center" }}><img src="/logo.png" alt="" width={40} height={40} style={{ borderRadius: 10, display: "block", margin: "0 auto 6px" }} />
@@ -102,10 +102,10 @@ export function HinhBuoc({ nen, b, xong, ma }: { nen: "windows" | "mac"; b: 1 | 
       <div style={{ display: "flex", gap: 8, marginTop: 12 }}><span className="tb-mn" style={{ flex: 1 }}>Huỷ</span><span className="tb-mn ok" style={{ flex: 1 }}>Mở</span></div><Tay /></div></Dem>
   );
   // bước 3: trước khi tải xong = nhập mã 6 số; sau = cửa sổ «Chào Ba Mẹ!» của bộ cài
-  if (!xong) return <Dem><span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 800, color: "#3a403d" }}><Anh ten="dt" co={32} />Trên điện thoại Ba Mẹ</span><OMa ma={ma} /></Dem>;
+  if (!xong) return <Dem><span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 800, color: "#2E3A50" }}><Anh ten="dt" co={32} />Trên điện thoại Ba Mẹ</span><OMa ma={ma} /></Dem>;
   return (
     <Dem><div className="tb-hop" style={{ height: 118, display: "flex", flexDirection: "column", padding: "10px 14px", borderRadius: 16 }}>
-      {win ? <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, fontSize: 11, fontWeight: 800, color: "#8c918e" }}><span>—</span><span>✕</span></div> : <span className="tb-tl"><i /><i /><i /></span>}
+      {win ? <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, fontSize: 11, fontWeight: 800, color: "#675D53" }}><span>—</span><span>✕</span></div> : <span className="tb-tl"><i /><i /><i /></span>}
       <div style={{ display: "flex", alignItems: "center", gap: 10, flex: 1 }}><Rob ten="rob-goc" co={58} /><div style={{ flex: 1 }}><div style={{ fontSize: 14, fontWeight: 800 }}>Chào Ba Mẹ!</div><div className="tb-ghi" style={{ fontWeight: 600, fontSize: 11.5 }}>Cài AiiGrow cho máy của con</div></div></div>
       <div style={{ textAlign: "right" }}><span className="tb-mn ok" style={{ height: 28, fontSize: 12.5 }}>{win ? "Bắt đầu" : "Tiếp tục"}</span></div></div></Dem>
   );
@@ -113,11 +113,11 @@ export function HinhBuoc({ nen, b, xong, ma }: { nen: "windows" | "mac"; b: 1 | 
 
 export const CHU: Record<"windows" | "mac", { truoc: [string, string][]; sau: [string, string][] }> = {
   windows: {
-    truoc: [["Tải bộ cài", "Bấm nút xanh ở trên"], ["Mở file, bấm «Có»", "Windows hỏi một lần"], ["Nhập mã 6 số", "Mã dùng được 10 phút"]],
+    truoc: [["Tải bộ cài", "Bấm nút vàng ở trên"], ["Mở file, bấm «Có»", "Windows hỏi một lần"], ["Nhập mã 6 số", "Mã dùng được 10 phút"]],
     sau: [["Bấm «Mở tệp»", "Ở góc trên trình duyệt"], ["Bấm «Có»", "Windows hỏi một lần"], ["Làm theo bộ cài", "Có bước nhập mã 6 số trên điện thoại Ba Mẹ"]],
   },
   mac: {
-    truoc: [["Tải bộ cài", "Bấm nút xanh ở trên"], ["Mở file, bấm «Mở»", "Mac hỏi một lần"], ["Nhập mã 6 số", "Mã dùng được 10 phút"]],
+    truoc: [["Tải bộ cài", "Bấm nút vàng ở trên"], ["Mở file, bấm «Mở»", "Mac hỏi một lần"], ["Nhập mã 6 số", "Mã dùng được 10 phút"]],
     sau: [["Bấm đúp file AiiGrow.pkg", "Trong mục Tải về"], ["Bấm «Mở»", "Mac hỏi một lần"], ["Làm theo bộ cài", "Có bước nhập mã 6 số trên điện thoại Ba Mẹ"]],
   },
 };
