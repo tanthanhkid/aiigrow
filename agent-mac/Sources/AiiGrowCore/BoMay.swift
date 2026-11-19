@@ -654,10 +654,12 @@ public actor BoMay {
       return await xinVay(soSao: phut, mucDich: nil, quaId: nil, loiNhan: loiNhan)
     case let .xinVay(soSao, mucDich, quaId, loiNhan):
       return await xinVay(soSao: soSao, mucDich: mucDich, quaId: quaId, loiNhan: loiNhan)
-    case let .xinMo(muc, loai, loiNhan):
-      // #258: «Xin Ba Mẹ mở» = xin thêm vào danh sách — máy chủ tự xếp app / web, lời xin trùng trả lại lời xin cũ; lý do không bắt buộc
-      let tra = await guiYeuCau { try await self.api.xinDuyet(muc: muc, ten: nil, lyDo: loiNhan) }
-      if case let .ok(id?) = tra { theoDoiYeuCau(YeuCauDangCho(id: id, loai: loai == "web" ? "mo_web" : "cai_app", phut: nil, trangThai: "cho", muc: muc, luc: dongHo())) }
+    case let .xinMo(muc, loai, loiNhan, ten):
+      // #258: «Xin Ba Mẹ mở» = xin thêm vào danh sách — lời xin trùng trả lại lời xin cũ; lý do không bắt buộc.
+      // #422: gửi `kieu` (app / web) + tên hiển thị; web sai ⇒ 400 web_sai, message máy chủ về tray nguyên văn.
+      let kieu = XinThem.kieuHopLe(loai), ten = XinThem.tenGon(ten)        // ten từ tray (tiến trình của Con) ⇒ cắt gọn, bỏ ký tự điều khiển
+      let tra = await guiYeuCau { try await self.api.xinDuyet(muc: muc, ten: ten, lyDo: loiNhan, kieu: kieu) }
+      if case let .ok(id?) = tra { theoDoiYeuCau(YeuCauDangCho(id: id, loai: kieu == "web" ? "mo_web" : "cai_app", phut: nil, trangThai: "cho", muc: muc, ten: ten, luc: dongHo())) }
       return tra
     case .capNhat:
       return await capNhatNgay()

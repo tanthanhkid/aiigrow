@@ -30,8 +30,9 @@ public enum YeuCauTray: Codable, Equatable {
   case xinThem(phut: Int, loiNhan: String?)
   /// #263 «Xin Ba Mẹ cho vay sao» (10 / 15 / 30): `mucDich` «choi» | «qua» (+ `quaId`). Mất mạng ⇒ daemon lưu, có mạng tự gửi. Trả `.ok(id)` | `.thongBao("cho_mang")` | `.loi`.
   case xinVay(soSao: Int, mucDich: String?, quaId: String?, loiNhan: String?)
-  /// Con xin mở một trang web / app đang bị chặn («Xin Ba Mẹ duyệt» — daemon gọi api/device/xin-duyet)
-  case xinMo(muc: String, loai: String, loiNhan: String?)
+  /// Con xin mở một trang web / app đang bị chặn («Xin Ba Mẹ duyệt» — daemon gọi api/device/xin-duyet).
+  /// `loai` «app» | «web» = `kieu` gửi máy chủ (#422); `ten` = tên hiển thị khi `muc` là bundle id (chọn từ lưới app đã cài). Tray cũ không gửi `ten`.
+  case xinMo(muc: String, loai: String, loiNhan: String?, ten: String? = nil)
   /// Ba Mẹ (admin) ghép máy lần đầu: mã 6 số trong app + tên tài khoản macOS của Con (short name)
   case ghep(ma: String, taiKhoanCon: String)
   /// Ba Mẹ (admin) bấm «Kiểm tra cập nhật»: daemon hỏi manifest ngay; có bản mới thì tải + cài nền. Trả `.thongBao`.
@@ -144,6 +145,8 @@ public struct YeuCauDangCho: Codable, Equatable {
   public var trangThai: String             // cho | duyet | tu_choi | het_han
   /// App / trang xin mở (tên hiện), mục đích vay («choi» | «qua»), quà (tên) — để tray soạn câu.
   public var muc: String?
+  /// #422: tên hiển thị khi `muc` là bundle id (chọn từ lưới app) — `muc` giữ nguyên để «Mở» app sau khi Ba Mẹ thêm.
+  public var ten: String?
   public var mucDich: String?
   /// Kết quả máy chủ (#258): da_them | mo_tam | chua_them …, nhóm khi đã thêm, người duyệt («Mẹ Lan»), lời nhắn.
   public var ketQua: String?
@@ -155,7 +158,8 @@ public struct YeuCauDangCho: Codable, Equatable {
   public var luc: Date?
   /// Mất mạng: đã lưu, có mạng daemon tự gửi (id tạm).
   public var choMang: Bool?
-  public init(id: String, loai: String, phut: Int?, trangThai: String, muc: String? = nil, mucDich: String? = nil, luc: Date? = nil, choMang: Bool? = nil) {
+  public init(id: String, loai: String, phut: Int?, trangThai: String, muc: String? = nil, ten: String? = nil, mucDich: String? = nil, luc: Date? = nil, choMang: Bool? = nil) {
+    self.ten = ten
     self.id = id; self.loai = loai; self.phut = phut; self.trangThai = trangThai; self.muc = muc; self.mucDich = mucDich; self.luc = luc; self.choMang = choMang
   }
 }

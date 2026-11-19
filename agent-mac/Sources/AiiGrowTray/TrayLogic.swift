@@ -10,6 +10,10 @@ public enum ManToanMan: Equatable {
 }
 
 public enum TrayLogic {
+  /// #422 «Xin thêm app / web»: nút ở Hôm nay (con-cai-mac 41), mục menu khay (42), tiêu đề hộp xin (43/44).
+  public static let nutXinThem = "Xin thêm app / web"
+  public static let mucXinThem = "Xin thêm app / web…"
+  public static let tieuDeXinThem = "AiiGrow · Xin thêm app / web"
   /// Chọn màn: chỉ phiên của Con mới bị che; phiên admin của Ba Mẹ không bao giờ bị khoá màn.
   public static func chonMan(_ t: TrangThai?) -> ManToanMan {
     guard let t, t.laPhienCon else { return .khong }
@@ -147,7 +151,7 @@ public enum TrayLogic {
   /// Dòng nhắc về lời xin gần nhất đang chờ / vừa được trả lời (nil = không có gì).
   public static func dongYeuCau(_ ds: [YeuCauDangCho]) -> String? {
     guard let y = ds.last else { return nil }
-    let ten = y.muc.map { HocVienView.tenMucChoi($0) } ?? (y.loai == "mo_web" ? "trang" : "app")
+    let ten = y.ten ?? y.muc.map { HocVienView.tenMucChoi($0) } ?? (y.loai == "mo_web" ? "trang" : "app")
     let vay = y.loai == "vay_sao" || y.loai == "them_gio"
     switch y.trangThai {
     case "cho":

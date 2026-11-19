@@ -62,8 +62,10 @@ public protocol MayChuApi: AnyObject {
   func guiNhatKy(_ duong: String, _ than: [String: Any]) async throws
   /// GET api/device/ho-so-dns — JSON nguyên văn.
   func hoSoDns() async throws -> Data
-  /// POST api/device/xin-duyet {muc, ten?, lyDo?} — Con «Xin Ba Mẹ duyệt» app / web lạ (05/11, lý do không bắt buộc).
-  func xinDuyet(muc: String, ten: String?, lyDo: String?) async throws -> KetQuaYeuCau
+  /// POST api/device/xin-duyet {muc, ten?, lyDo?, kieu?} — Con «Xin Ba Mẹ duyệt» app / web lạ (05/11, lý do không bắt buộc).
+  /// #422: `kieu` «app» | «web» (thẻ «App trên Mac» / «Trang web»); nil ⇒ máy chủ tự xếp. Máy chủ cũ bỏ qua trường lạ.
+  /// kieu «web» mà không phải tên miền ⇒ 400 `web_sai` (message máy chủ hiện cho Con).
+  func xinDuyet(muc: String, ten: String?, lyDo: String?, kieu: String?) async throws -> KetQuaYeuCau
   /// Máy dùng chung — PIN theo bé (L13, docs/API.md «S3»): `GET ho-so` · `POST dang-nhap-be {con, pin}` · `POST quen-pin {con}` ·
   /// `POST ba-me-mo {ma}` · `POST dang-xuat` · `POST khoa-lai`. Chỉ các đường trong `DuongMayChung`.
   func mayChung(_ method: String, _ path: String, _ than: [String: Any]?) async throws -> Data
@@ -108,8 +110,8 @@ public extension MayChuApi {
   func ghepGoi(token: String, tenMay: String) async throws -> KetQuaGhep { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa hỗ trợ ghép một chạm") }
   func guiNhatKy(_ duong: String, _ than: [String: Any]) async throws {}
   func hoSoDns() async throws -> Data { throw LoiApi(maHttp: 404, ma: "khong_co_duong", chu: "Máy chủ chưa có hồ sơ DNS") }
-  func xinDuyet(muc: String, ten: String?, lyDo: String?) async throws -> KetQuaYeuCau {
-    try await taoYeuCau(loai: "cai_app", phut: nil, giaTri: muc, lyDo: lyDo ?? "")
+  func xinDuyet(muc: String, ten: String?, lyDo: String?, kieu: String?) async throws -> KetQuaYeuCau {
+    try await taoYeuCau(loai: kieu == "web" ? "mo_web" : "cai_app", phut: nil, giaTri: muc, lyDo: lyDo ?? "")
   }
   func dongBo(trangThai: TrangThaiAgent, dung: [MucDung], luc: Date, phutBoiMa: Int) async throws -> KetQuaDongBo {
     try await dongBo(trangThai: trangThai, dung: dung, luc: luc)
@@ -260,9 +262,10 @@ public final class ApiClient: MayChuApi {
     return KetQuaYeuCau(id: id, trangThai: st)
   }
 
-  public func xinDuyet(muc: String, ten: String?, lyDo: String?) async throws -> KetQuaYeuCau {
+  public func xinDuyet(muc: String, ten: String?, lyDo: String?, kieu: String?) async throws -> KetQuaYeuCau {
     var body: [String: Any] = ["muc": muc]
     if let ten, !ten.isEmpty { body["ten"] = ten }
+    if let kieu = XinThem.kieuHopLe(kieu) { body["kieu"] = kieu }
     if let lyDo, !lyDo.isEmpty { body["lyDo"] = lyDo }
     return try ApiClient.tachYeuCau(try await gui("POST", "api/device/xin-duyet", body))
   }

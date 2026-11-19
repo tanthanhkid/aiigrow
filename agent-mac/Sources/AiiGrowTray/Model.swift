@@ -39,9 +39,11 @@ final class XinModel: ObservableObject {
     gui(.xinVay(soSao: soSao, mucDich: mucDich, quaId: quaId, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
   }
   /// «Xin Ba Mẹ mở» app / trang chưa có trong danh sách (#258: xin thêm vào danh sách).
-  func xinMo(muc: String, loai: String, loiNhan: String) {
-    saoDaXin = nil; mucDaXin = muc
-    gui(.xinMo(muc: muc, loai: loai, loiNhan: loiNhan.isEmpty ? nil : loiNhan))
+  /// #422: `loai` = kieu «app» | «web»; `ten` = tên app khi `muc` là bundle id (chọn từ lưới).
+  func xinMo(muc: String, loai: String, loiNhan: String, ten: String? = nil) {
+    saoDaXin = nil; mucDaXin = XinThem.tenHien(muc: muc, ten: ten)
+    let nhan = loiNhan.trimmingCharacters(in: .whitespacesAndNewlines)
+    gui(.xinMo(muc: muc, loai: loai, loiNhan: nhan.isEmpty ? nil : nhan, ten: ten))
   }
 
   private func gui(_ yc: YeuCauTray) {
