@@ -251,7 +251,8 @@ const NEN_IC: Record<MauBt, string> = { xanh: M.xamSoft, xam: M.xamSoft, lam: M.
 export const BieuTron = memo(function BieuTron({ ic, mau = "xanh", lon, co }: { ic: TenIcon; mau?: MauBt; lon?: boolean; co?: number }) {
   if (!lon && !co) return (
     <View style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: NEN_IC[mau], boxShadow: BONG.lom }}>
-      <IconNet ten={ic} co={22} />
+      {/* icon nét navy; đỏ / cam giữ màu nghĩa (xoá, gỡ, cảnh báo) */}
+      <IconNet ten={ic} co={22} mau={mau === "do" || mau === "cam" ? MAU_BT[mau][1] : M.chu} />
     </View>
   );
   const d = co ?? 56;

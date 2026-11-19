@@ -1197,8 +1197,9 @@ internal static class PhongChu
                     _boPhu.Add(b2);
                     foreach (var f in b2.Families)
                     {
-                        if (f.Name.IndexOf("ExtraBold", StringComparison.OrdinalIgnoreCase) < 0) continue;
-                        foreach (var k in new[] { FontStyle.Regular, FontStyle.Bold })
+                        // b2 chỉ chứa tệp ExtraBold ⇒ họ nào cũng là phông tiêu đề, dù GDI+ báo tên «Be Vietnam Pro ExtraBold» (nameID 1) hay «Be Vietnam Pro» (nameID 16)
+                        if (_tieuDe != null) break;
+                        foreach (var k in new[] { FontStyle.Regular, FontStyle.Bold, FontStyle.Italic, FontStyle.Bold | FontStyle.Italic })
                             if (f.IsStyleAvailable(k)) { _tieuDe = f; _kieuTieuDe = k; break; }
                     }
                     _moTa.Append($"[ExtraBold: nạp lại lần {lan} {(_tieuDe != null ? "được" : "chưa được")}] ");
