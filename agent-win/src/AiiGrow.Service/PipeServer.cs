@@ -215,10 +215,17 @@ public sealed class PipeServer : BackgroundService
                 if (cfg is not { Paired: true }) return new PipeResponse { Ok = false, Error = "Máy chưa ghép với Ba Mẹ" };
                 var muc = XinMoView.ChuanMuc(req.AppId);
                 if (muc == null) return new PipeResponse { Ok = false, Error = "Con ghi địa chỉ trang hoặc tên app nhé." };
+                // #422: thẻ «Trang web» ⇒ kiểm tên miền tại máy (máy chủ cũng kiểm, trả web_sai) — lưu chờ mạng chỉ lời xin đúng dạng
+                var kieu = XinThemChonView.ChuanKieu(req.Kieu);
+                if (kieu == XinThemChonView.KieuWeb)
+                {
+                    muc = XinThemChonView.ChuanWeb(muc);
+                    if (muc == null) return new PipeResponse { Ok = false, Status = "web_sai", Error = XinThemChonView.WebSai };
+                }
                 try
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
-                    var res = await api.XinDuyetAsync(muc, req.AppName, req.Note, ct);
+                    var res = await api.XinDuyetAsync(muc, req.AppName, req.Note, kieu, ct);
                     var st = string.IsNullOrEmpty(res.KetQua) ? "cho" : res.KetQua;
                     RequestStatus? kq = null;
                     if (st != "cho")
@@ -237,9 +244,16 @@ public sealed class PipeServer : BackgroundService
                 }
                 catch (ApiException e) when (e.LaLoiDuongTruyen)
                 {
-                    return LuuChoMang(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = muc, Ten = req.AppName, LyDo = req.Note, Luc = now });
+                    return LuuChoMang(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = muc, Ten = req.AppName, LyDo = req.Note, Kieu = kieu, Luc = now });
                 }
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
+            }
+
+            case PipeCmd.AppMay:
+            {
+                // #422: chỉ đọc (mục + tên app đã cài, không đường dẫn / icon) — lưới «App trên máy»; chưa quét xong ⇒ mảng rỗng
+                var ds = _rt.AppMay ?? Array.Empty<AppTrenMay>();
+                return new PipeResponse { Ok = true, Data = JsonSerializer.Serialize(ds, Json.Options), Status = _rt.AppMay == null ? "chua_quet" : "ok" };
             }
 
             case PipeCmd.KiemCapNhat:

@@ -124,7 +124,7 @@ public static class XinVayView
     public const string GoiYNhan = "Nhắn Ba Mẹ: con làm nốt bài với bạn ạ";
     public static string Nut(int soSao) => $"Xin Ba Mẹ cho vay {soSao} sao";
     public const string VayTraTheNao = "Vay rồi trả thế nào? ›";
-    public const string XinThemApp = "Xin thêm app ›";
+    public const string XinThemApp = "Xin thêm app / web ›";   // #422: mở cùng hộp «Xin thêm app / web» với Hôm nay / menu khay
     /// <summary>Lý do gửi kèm (không bắt buộc).</summary>
     public static string? LyDo(string? nhan) { var t = nhan?.Trim(); return string.IsNullOrEmpty(t) ? null : t.Length > 100 ? t[..100] : t; }
 

@@ -30,6 +30,9 @@ public static class PipeCmd
     /// <summary>Thiết kế 05/11: «Xin Ba Mẹ mở …» app / web lạ (<see cref="PipeRequest.AppId"/> = mục, <see cref="PipeRequest.AppName"/> = tên, Note = lời nhắn).
     /// Trả <see cref="PipeResponse.Status"/>: cho | duoc | tu_choi | cho_mang (mất mạng — đã lưu, có mạng tự gửi).</summary>
     public const string XinDuyet = "xin-duyet";
+    /// <summary>#422: danh sách app đã cài trên máy (lần quét gần nhất của DanhSachAppWorker) cho lưới «App trên máy» của hộp «Xin thêm app / web» —
+    /// <see cref="PipeResponse.Data"/> = JSON mảng <see cref="AppTrenMay"/> (mục + tên, không icon). Chưa quét xong ⇒ Ok, Data = "[]".</summary>
+    public const string AppMay = "app-may";
     /// <summary>«Kiểm tra cập nhật» từ khay: dịch vụ hỏi manifest máy chủ ⇒ <see cref="PipeResponse.Message"/> = bản mới (null = đã mới nhất),
     /// <see cref="PipeResponse.Status"/> = bản đang chạy.</summary>
     public const string KiemCapNhat = "kiem-cap-nhat";
@@ -153,6 +156,8 @@ public sealed class PipeRequest
     /// <summary>Lệnh <see cref="PipeCmd.Request"/>: <see cref="LoaiXin"/> — vay_sao (số sao ở <see cref="Minutes"/>, lời nhắn ở <see cref="Note"/>) | mo_web | cai_app.
     /// Hai loại «mở»: giá trị (địa chỉ trang / tên app) ở <see cref="AppId"/>, tên hiển thị ở <see cref="AppName"/>.</summary>
     public string? Kind { get; set; }
+    /// <summary>#422 lệnh <see cref="PipeCmd.XinDuyet"/>: «app» | «web» — thẻ Con chọn ở hộp «Xin thêm app / web» (null = máy chủ tự đoán, như màn chặn).</summary>
+    public string? Kieu { get; set; }
     public int Minutes { get; set; }
     public string? Note { get; set; }
     /// <summary>Lệnh <see cref="PipeCmd.Status"/>: id lời xin. Lệnh Request vay_sao: id quà muốn đổi (vay để đổi quà), trống = vay để chơi.</summary>

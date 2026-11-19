@@ -73,7 +73,7 @@ internal sealed class AppForm : Form
 
     /// <summary>15/11: «Xin Ba Mẹ cho vay sao» (false) / «Sao dùng thế nào?» (true) — khay mở hộp XinVayForm.</summary>
     public event Action<bool>? XinVayClicked;
-    /// <summary>Con bấm «Xin mở app» (khay mở cửa sổ dùng chung).</summary>
+    /// <summary>Con bấm «Xin thêm app / web» / «App khác? ›» (khay mở hộp hai thẻ dùng chung — #422).</summary>
     public event Action? XinMoClicked;
     /// <summary>Con bấm «Thử kết nối lại» / «Bật lại AiiGrow» (khay gọi dịch vụ đồng bộ ngay).</summary>
     public event Action? RetryClicked;
@@ -602,7 +602,9 @@ internal sealed class AppForm : Form
     /// <summary>Đầu thẻ lớn: viên icon · (nhãn nhỏ + số lớn) bên trái, nút bên phải.</summary>
     private TableLayoutPanel DauTheLon(int r, string icon, string nhan, Control so, Control nut)
     {
-        var dau = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Width = r, Height = Px(96), BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, Px(6)) };
+        // #422: cột hai nút (vay sao + xin thêm app / web) cao hơn một nút ⇒ đầu thẻ cao theo cột, không cắt nút dưới
+        var cao = Math.Max(Px(96), Math.Max(nut.Height, nut.PreferredSize.Height) + Px(4));
+        var dau = new TableLayoutPanel { ColumnCount = 2, RowCount = 1, Width = r, Height = cao, BackColor = Color.Transparent, Margin = new Padding(0, 0, 0, Px(6)) };
         dau.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         dau.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         var trai = HangNgang();
@@ -666,11 +668,25 @@ internal sealed class AppForm : Form
     {
         var vay = KhoiApp.NutGon(SaoView.NutXinVay, false, "gui", 46, 12f);
         vay.Click += (_, _) => XinVayClicked?.Invoke(false);
-        if (_kn.Loai != KetNoi.MatKetNoi) return vay;
-        var cot = KhoiCon.Cot();
-        cot.Controls.Add(vay);
+        var cot = CotNutXinThem(vay);
+        if (_kn.Loai != KetNoi.MatKetNoi) return cot;
         var ghi = T(XinVayView.CoMangLaGui, 10f, false, UI.Muted, vay.Width); ghi.Margin = new Padding(UI.Px(14), UI.Px(2), 0, 0);
         cot.Controls.Add(ghi);
+        return cot;
+    }
+
+    /// <summary>#422 (them-vkqmcblk): cột [nút trên] + «Xin thêm app / web» ngay dưới, cùng bề rộng — cả «Theo danh sách» (dưới «Xin Ba Mẹ cho vay sao»)
+    /// lẫn «Mở hết» (dưới «Đổi quà», cùng chỗ). Mở hộp hai thẻ App trên máy / Trang web (khay: XinMoClicked).</summary>
+    private FlowLayoutPanel CotNutXinThem(Button tren)
+    {
+        var xin = KhoiApp.NutGon(XinThemChonView.NutHomNay, false, "cong", 46, 12f);
+        xin.Click += (_, _) => XinMoClicked?.Invoke();
+        var rong = Math.Max(tren.Width, xin.Width);
+        tren.Width = rong; xin.Width = rong;
+        xin.Margin = new Padding(tren.Margin.Left, UI.Px(4), 0, 0);
+        var cot = KhoiCon.Cot();
+        cot.Controls.Add(tren);
+        cot.Controls.Add(xin);
         return cot;
     }
 
@@ -698,7 +714,7 @@ internal sealed class AppForm : Form
         var so = T(SaoView.MoHetTieu, 40f, true, UI.GreenDark, r); so.Margin = Padding.Empty;
         var qua = KhoiApp.NutGon(SaoView.NutDoiQua, false, "qua", 46, 12f);
         qua.Click += (_, _) => Select(MucApp.PhanQua);
-        the.Controls.Add(DauTheLon(r, "mo_khoa", SaoView.MoHetNhan, so, qua));
+        the.Controls.Add(DauTheLon(r, "mo_khoa", SaoView.MoHetNhan, so, CotNutXinThem(qua)));
         the.Controls.Add(Chip(SaoView.MoHetChip, Clay.NgocSoft, Clay.NgocInk));
         the.Controls.Add(T(SaoView.MoHetPhu, 12f, true, Clay.Chu2, r));
         if (SaoHienTai() is int s) the.Controls.Add(T(SaoView.MoHetSao(s), 11f, false, UI.Muted, r));

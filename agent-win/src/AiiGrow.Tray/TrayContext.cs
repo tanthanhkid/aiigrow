@@ -69,6 +69,7 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(_retryItem);
         menu.Items.Add(new ToolStripMenuItem("Mở AiiGrow", Anh3D.Icon("nha"), (_, _) => OpenApp(MucApp.HomNay)));
         menu.Items.Add("Xin Ba Mẹ cho vay sao…", Anh3D.Icon("gui"), (_, _) => OpenXinVay());
+        menu.Items.Add(XinThemChonView.MenuKhay, Anh3D.Icon("cong"), (_, _) => OpenXinMo());   // #422 them-1bpjmixa
         menu.Items.Add("Kiểm tra cập nhật", Anh3D.Icon("tai"), (_, _) => OpenCapNhat());
         _thoatItem = new ToolStripMenuItem(ThoatView.Menu, Anh3D.Icon("khien"), (_, _) => OpenThoat()) { Visible = false };   // ThoatView.HienMenu
         menu.Items.Add(_thoatItem);
@@ -597,23 +598,19 @@ internal sealed class TrayContext : ApplicationContext
         if (_app is { IsDisposed: false } && !_state.Locked) _app.TopMost = false;
     }
 
-    private XinMoForm? _xinMo;
-
-    /// <summary>«Xin mở trang hoặc app» (một cửa sổ tại một thời điểm cho menu khay, app to, màn chặn; bấm lại chỉ đưa lên trước — đang chờ Ba Mẹ thì
-    /// không mất lời xin, không gửi trùng). <paramref name="loai"/> / <paramref name="muc"/>: màn chặn điền sẵn app vừa bị đóng (chỉ khi chưa có cửa sổ).</summary>
-    private void OpenXinMo(string loai = LoaiXin.MoWeb, string? muc = null)
+    /// <summary>#422 «Xin thêm app / web» (them-c0sycsos / them-u94tbp3x): MỘT hộp cho nút ở Hôm nay, «App khác? ›», menu khay, link trong hộp xin vay
+    /// và «Xin lại» — dùng chung XinThemForm (chế độ chọn) với hộp «Xin thêm YouTube» của màn chặn, nên kết quả là cùng các màn Đã gửi / Đã thêm / Chưa thêm.
+    /// Hộp đang mở ⇒ đưa lên (lời xin đang chờ không mất). <paramref name="loai"/> / <paramref name="muc"/>: «Xin lại» điền sẵn trang / app vừa xin.</summary>
+    private void OpenXinMo(string loai = LoaiXin.CaiApp, string? muc = null)
     {
-        if (_xinMo is { IsDisposed: false }) { if (muc != null) _xinMo.DienSan(loai, muc); _xinMo.Activate(); return; }
-        _xinMo = new XinMoForm(loai, muc);
-        _xinMo.DaGui += (m, web, r) =>
+        if (_xinThem is { IsDisposed: false } cu)
         {
-            var b = BlockedForm.SauKhiGui(m, m, web, r);
-            b.VeHomNay += () => OpenApp(MucApp.HomNay);
-            b.NhanBaMe += () => OpenApp(MucApp.TinNhan);
-            b.Show();
-        };
-        _xinMo.FormClosed += (_, _) => { _xinMo?.Dispose(); _xinMo = null; };
-        _xinMo.Show();
+            if (cu.LaHopChon || muc == null) { cu.Activate(); return; }
+            cu.Close();
+        }
+        var f = new XinThemForm(_state.QuyConPhut, loai == LoaiXin.MoWeb, muc);
+        GanXinThem(f);
+        f.Show();
     }
 
     /// <summary>Mỗi nhịp (3 giây): exe đã được thay bằng bản mới và chép xong ⇒ tự chạy lại ngay, không chờ khởi động lại máy.
@@ -904,6 +901,12 @@ internal sealed class TrayContext : ApplicationContext
             cu.Close();
         }
         var f = new XinThemForm(muc, ten, _state.QuyConPhut);
+        GanXinThem(f);
+        f.Show();
+    }
+
+    private void GanXinThem(XinThemForm f)
+    {
         _xinThem = f;
         f.DaXin += x => _daXin.Add(x);
         f.FormClosed += (_, _) =>
@@ -914,7 +917,6 @@ internal sealed class TrayContext : ApplicationContext
             if (sau == XinThemForm.SauNhan) OpenApp(MucApp.TinNhan);
             else if (sau == XinThemForm.SauHomNay) OpenApp(MucApp.HomNay);
         };
-        f.Show();
     }
 
     private void HandleWarnings()
