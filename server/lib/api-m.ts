@@ -369,7 +369,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       // tên THẬT agent gửi trong danh sách app của máy (lib/app-may.ts) thắng tên đoán từ tệp
       const tenThat = await am.tenAppThat(fam);
       const ten = (muc: string) => tenThat.get(muc) ?? tenApp(muc);
-      const daThay = thay.filter((x) => !la.khoaSo(x.muc).some((k) => he.includes(k)))
+      const daThay = thay.filter((x) => !la.laAppAiiGrow(x.muc) && !la.khoaSo(x.muc).some((k) => he.includes(k)))
         .map((x) => ({ muc: x.muc, ten: ten(x.muc), phut: x.phut, loai: loaiCaNha(x.muc) }));
       return json({ ds: ds.filter((r) => r.loai !== la.LOAI_TRU), heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: ten(x.muc) })), ...(canThay ? { daThay } : {}) });
     }

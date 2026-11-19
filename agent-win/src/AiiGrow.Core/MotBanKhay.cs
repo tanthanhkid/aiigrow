@@ -123,14 +123,17 @@ public sealed class MotBanKhay : IDisposable
         return ra;
     }
 
-    /// <summary>Kết thúc các khay khác cùng phiên (khay cũ không nhận lời gọi). Cùng tài khoản nên có quyền.</summary>
-    public static void KetThucKhayKhac()
+    /// <summary>Kết thúc các khay khác cùng phiên (khay cũ không nhận lời gọi; <paramref name="chiKhayCu"/>: chỉ khay «.cu-»). Cùng tài khoản nên có quyền.
+    /// → số khay đã thấy.</summary>
+    public static int KetThucKhayKhac(bool chiKhayCu = false)
     {
-        foreach (var id in KhayKhacCungPhien())
+        var ds = KhayKhacCungPhien(chiKhayCu);
+        foreach (var id in ds)
         {
             try { using var p = Process.GetProcessById(id); p.Kill(); p.WaitForExit(3000); }
             catch { }
         }
+        return ds.Count;
     }
 
     public void Dispose()

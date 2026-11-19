@@ -27,20 +27,16 @@ const goi = (xuLy: (r: Request, p: string[]) => Promise<Response>, goc: string) 
 const m = goi(xuLyM, "m"), dv = goi(xuLyMay, "device");
 const KHAY_CU = "aiigrow.tray.exe.cu-623a59b6.exe";
 
-test("laAppAiiGrow: đúng tên exe của AiiGrow (kể cả khay cũ «.cu-») + bundle / gói vn.aiilab.aiigrow*; game đổi tên «aiigrow.*» không lọt", () => {
-  for (const x of [KHAY_CU, "AiiGrow.Tray.exe.cu-623A59B6", "aiigrow.tray.exe", "aiigrow.kid.exe", "aiigrow.service.exe", "aiigrow.setup.exe.cu-0a1b2c3d.exe",
+test("laAppAiiGrow: đúng tên khay / app Con của AiiGrow (kể cả khay cũ «.cu-») + bundle / gói AiiGrow; game đổi tên «aiigrow.*» không lọt", () => {
+  for (const x of [KHAY_CU, "AiiGrow.Tray.exe.cu-623A59B6.exe", "aiigrow.tray.exe", "aiigrow.kid.exe",
     "vn.aiilab.aiigrow", "vn.aiilab.aiigrow.tray", "vn.aiilab.aiigrow.con", " Vn.Aiilab.AiiGrow.Tray "])
     assert.equal(la.laAppAiiGrow(x), true, x);
-  for (const x of ["aiigrow.game.exe", "aiigrow.tray.exe.cu-roblox.exe", "roblox.exe", "aiigrow.aiilab.vn", "vn.aiilab.aiigrowx", "com.vn.aiilab.aiigrow", "", null])
+  for (const x of ["aiigrow.game.exe", "aiigrow.setup.exe", "aiigrow.tray.exe.cu-roblox.exe", "aiigrow.tray.exe.exe", "aiigrow.tray", "roblox.exe",
+    "aiigrow.aiilab.vn", "vn.aiilab.aiigrow.game", "com.vn.aiilab.aiigrow", "", null])
     assert.equal(la.laAppAiiGrow(x), false, String(x));
   assert.equal(la.phanLoaiTu([], "c", KHAY_CU), "he_thong");
   assert.equal(la.phanLoaiTu([], "c", "vn.aiilab.aiigrow.tray"), "he_thong");
   assert.equal(la.phanLoaiTu([], "c", "roblox.exe"), "chua_phan_loai");
-  // dòng sổ trừ sao gắn với app AiiGrow: theo ref (mục) hoặc lý do «Chơi Aiigrow tray exe cu …»
-  assert.equal(don.laTruNham(`choi:2026-11-19:${KHAY_CU}`, "Chơi X 1 phút"), true);
-  assert.equal(don.laTruNham(null, "Chơi Aiigrow tray exe cu 623a59b6 1 phút"), true);
-  assert.equal(don.laTruNham("choi:2026-11-19:roblox.exe", "Chơi Roblox 5 phút"), false);
-  assert.equal(don.laTruNham("choi:2026-11-19:", "Chơi Tính phút 3 phút"), false);
 });
 
 test("đồng bộ agent: khay cũ «aiigrow.tray.exe.cu-…» (máy chưa cập nhật) không ghi đã dùng, không «app mới», không trừ sao; app thật vẫn trừ", async () => {
@@ -59,38 +55,44 @@ test("đồng bộ agent: khay cũ «aiigrow.tray.exe.cu-…» (máy chưa cập
   assert.equal((await homNayDung(fam, con)).dung.some((x) => /aiigrow/.test(x.muc)), false);
 });
 
-test("script hoàn sao #418: xem trước không ghi; chạy hoàn đúng dòng trừ nhầm + xoá «app mới»; chạy lại không hoàn đôi", async () => {
+test("script hoàn sao #418: xem trước không ghi; hoàn theo (Con, ngày) = min(phút AiiGrow «Tính phút», sao đã trừ); xoá «app mới»; chạy lại không hoàn đôi", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Tú Linh" });
-  await v.dieuChinhTay(fam, con, 20, "Thưởng", bm);
+  const be2 = await g.taoCon(fam, { ten: "Bi" });
+  await v.dieuChinhTay(fam, con, 30, "Thưởng", bm);
+  await v.dieuChinhTay(fam, be2, 30, "Thưởng", bm);
   const may = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "TULINH");
-  // dữ liệu như bản máy chủ cũ đã ghi: «app mới» chưa xếp + một dòng trừ sao gắn mục khay cũ + một dòng trừ đúng (Roblox)
-  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,'2026-11-19',$3,'chua_phan_loai',1),
-           ($1,$2,'2026-11-19','roblox.exe','giai_tri',5)`, [may.deviceId, con, KHAY_CU]);
+  // dữ liệu như bản máy chủ cũ đã ghi. Ngày 18: Ba Mẹ lỡ xếp khay cũ vào «Tính phút» ⇒ 3 phút khay + 2 phút Roblox cùng một dòng trừ −5
+  // (ghi tên app nhiều phút nhất = khay), nhịp sau Roblox 4 + khay 1 gộp dòng Roblox −5 ⇒ hoàn đúng 4, không 5 hay 10.
+  // Ngày 19 (Tú Linh): khay «chưa xếp» 1 phút — chỉ hiện «−1 sao», không trừ ⇒ không hoàn. Bé Bi: dùng 2 phút khay giai_tri, chưa bị trừ ⇒ 0.
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values
+           ($1,$2,'2026-11-18',$3,'giai_tri',4), ($1,$2,'2026-11-18','roblox.exe','giai_tri',6),
+           ($1,$2,'2026-11-19',$3,'chua_phan_loai',1), ($1,$4,'2026-11-18',$3,'giai_tri',2)`, [may.deviceId, con, KHAY_CU, be2]);
   await q(`insert into app_rules(family_id, child_id, muc, ten, loai, nhom) values ($1,'',$2,'Aiigrow tray exe cu 623a59b6','giai_tri','khac')`, [fam, KHAY_CU]);
-  const truNham = newId(), truDung = newId(), truLyDo = newId();
-  await q(`insert into points(id, child_id, delta, loai, ly_do, ref) values ($1,$2,-1,'choi','Chơi Aiigrow tray exe cu 623a59b6 1 phút',$3),
-           ($4,$2,-5,'choi','Chơi Roblox 5 phút','choi:2026-11-19:roblox.exe'),
-           ($5,$2,-2,'choi','Chơi Aiigrow tray exe cu 623a59b6 2 phút',null)`,
-    [truNham, con, `choi:2026-11-19:${KHAY_CU}`, truDung, truLyDo]);
-  assert.equal(await v.soDu(con), 12);
+  await q(`insert into points(id, child_id, delta, loai, ly_do, ref) values
+           ($1,$3,-5,'choi','Chơi Aiigrow tray exe cu 623a59b6 5 phút',$4), ($2,$3,-5,'choi','Chơi Roblox 5 phút','choi:2026-11-18:roblox.exe'),
+           ($5,$3,-1,'choi','Chơi Roblox 1 phút','choi:2026-11-19:roblox.exe')`,
+    [newId(), newId(), con, `choi:2026-11-18:${KHAY_CU}`, newId()]);
+  assert.equal(await v.soDu(con), 19);
 
   const xem = await don.donAppAiiGrow();
-  assert.deepEqual([xem.chay, xem.hoan.map((h) => h.points_id).sort(), xem.tongSao, xem.usage.map((u) => u.muc), xem.luat.map((x) => x.muc)],
-    [false, [truNham, truLyDo].sort(), 3, [KHAY_CU], [KHAY_CU]]);
-  assert.equal(await v.soDu(con), 12, "xem trước không ghi");
+  assert.deepEqual([xem.chay, xem.hoan, xem.tongSao, xem.usage.length, xem.luat.map((x) => x.muc)],
+    [false, [{ child_id: con, ngay: "2026-11-18", sao: 4, phutAiiGrow: 4, saoDaTru: 10 }], 4, 3, [KHAY_CU]]);
+  assert.equal(await v.soDu(con), 19, "xem trước không ghi");
   assert.ok(await one(`select 1 from usage where muc = $1`, [KHAY_CU]));
 
   const kq = await don.donAppAiiGrow({ chay: true });
-  assert.deepEqual([kq.chay, kq.tongSao, kq.usage.length, kq.luat.length], [true, 3, 1, 1]);
-  assert.equal(await v.soDu(con), 15, "hoàn 1 + 2 sao, giữ phần trừ đúng của Roblox");
+  assert.deepEqual([kq.chay, kq.tongSao, kq.usage.length, kq.luat.length], [true, 4, 3, 1]);
+  assert.deepEqual([await v.soDu(con), await v.soDu(be2)], [23, 30], "hoàn 4 sao phút khay; giữ phần Roblox; bé chưa bị trừ không được cộng");
   assert.equal(await one(`select 1 from usage where muc = $1`, [KHAY_CU]), undefined);
   assert.ok(await one(`select 1 from usage where muc = 'roblox.exe' and child_id = $1`, [con]));
   assert.equal(await one(`select 1 from app_rules where muc = $1`, [KHAY_CU]), undefined);
-  assert.deepEqual((await q<{ ref: string; delta: number }>(`select ref, delta from points where child_id = $1 and loai = 'hoan' order by delta`, [con]))
-    .map((r) => [r.ref, r.delta]), [[`hoan-418:${truNham}`, 1], [`hoan-418:${truLyDo}`, 2]]);
+  assert.deepEqual((await q<{ ref: string; delta: number }>(`select ref, delta from points where child_id = $1 and loai = 'hoan'`, [con]))
+    .map((r) => [r.ref, r.delta]), [[`hoan-418:${con}:2026-11-18`, 4]]);
 
+  // chạy lại (kể cả khi usage còn — vd máy chưa cập nhật gửi lại trước lúc chạy) không hoàn đôi
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,'2026-11-18',$3,'giai_tri',4)`, [may.deviceId, con, KHAY_CU]);
   const lai = await don.donAppAiiGrow({ chay: true });
-  assert.deepEqual([lai.hoan.length, lai.tongSao, lai.usage.length, lai.luat.length], [0, 0, 0, 0]);
-  assert.equal(await v.soDu(con), 15, "chạy lại không hoàn đôi");
+  assert.deepEqual([lai.hoan.length, lai.tongSao, lai.usage.length, lai.luat.length], [0, 0, 1, 0]);
+  assert.equal(await v.soDu(con), 23, "chạy lại không hoàn đôi");
 });

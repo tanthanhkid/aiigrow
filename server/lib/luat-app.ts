@@ -32,19 +32,21 @@ export const ALLOWLIST_HE_THONG: string[] = [
   "com.android.settings", "com.google.android.calculator", "com.google.android.deskclock", "com.google.android.apps.docs",
   "com.google.android.apps.docs.editors.docs", "com.google.android.apps.docs.editors.sheets", "com.google.android.apps.docs.editors.slides",
   "com.microsoft.office.word", "com.microsoft.office.excel", "vn.aiilab.aiigrow",
+  // #418: chính AiiGrow — khay Mac, app Con Android (khay cũ Windows «aiigrow.tray.exe.cu-…» xét theo mẫu: laAppAiiGrow)
+  "vn.aiilab.aiigrow.tray", "vn.aiilab.aiigrow.con",
   // web học tập + AiiRob
   "aiirob.aiilab.vn", "aiilab.vn", "classroom.google.com", "docs.google.com", "office.com", "teams.microsoft.com", "zoom.us",
 ];
 
 /** #418: mục là CHÍNH AiiGrow — không phải app Con dùng: không ghi «đã dùng», không thành «app mới chờ Ba Mẹ xếp», không trừ sao.
- *  Windows: đúng tên exe của AiiGrow, kể cả khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx» (agent báo «…cu-623a59b6.exe») mà vẫn chạy tới
- *  lần đăng nhập sau — CHỈ các tên này (không mọi «aiigrow*»: đổi tên game thành «aiigrow.game.exe» không thoát đếm phút); cùng luật agent-win
- *  AppAiiGrow (UsageTracker.cs). Mac / Android: bundle / gói «vn.aiilab.aiigrow» và con của nó (tray Mac «vn.aiilab.aiigrow.tray», app Con Android). */
-const APP_AIIGROW_WIN = /^aiigrow\.(tray|kid|service|setup)\.exe(\.cu-[0-9a-f]+)?(\.exe)?$/;
-const APP_AIIGROW_GOI = /^vn\.aiilab\.aiigrow(\.[a-z0-9_-]+)*$/;
+ *  Windows: khay / app Con, kể cả khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx» (agent báo «aiigrow.tray.exe.cu-623a59b6.exe») mà vẫn
+ *  chạy tới lần đăng nhập sau. ĐÚNG các tên này — cùng luật agent-win AppAiiGrow (UsageTracker.cs; agent mới còn kiểm tệp nằm trong thư mục cài).
+ *  Máy chủ không thấy đường dẫn: đổi tên game thành «aiigrow.tray.exe.cu-…» trên agent cũ thoát đếm phút như đổi thành «aiigrow.tray.exe» (đã có
+ *  trong ALLOWLIST_HE_THONG) — không rộng hơn. Mac / Android: bundle / gói đúng tên ở ALLOWLIST_HE_THONG (vn.aiilab.aiigrow, .tray, .con). */
+const APP_AIIGROW_WIN = /^aiigrow\.(tray|kid)\.exe(\.cu-[0-9a-f]+\.exe)?$/;
 export function laAppAiiGrow(mucTho: unknown) {
   const m = String(mucTho ?? "").trim().toLowerCase();
-  return APP_AIIGROW_WIN.test(m) || APP_AIIGROW_GOI.test(m);
+  return APP_AIIGROW_WIN.test(m) || m === "vn.aiilab.aiigrow" || m === "vn.aiilab.aiigrow.tray" || m === "vn.aiilab.aiigrow.con";
 }
 
 /** Chuẩn hoá: chữ thường; URL ⇒ tên miền không «www.». */

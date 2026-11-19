@@ -90,32 +90,56 @@ public sealed class UsageTracker
     }
 }
 
-/// <summary>#418: tiến trình của CHÍNH AiiGrow (khay, dịch vụ, bộ cài, app Con) — kể cả khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx»
+/// <summary>#418: tiến trình của CHÍNH AiiGrow — khay, app Con, kể cả khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx»
 /// (CapNhatSetup.ChepDe) mà vẫn chạy tới lần đăng nhập sau — không phải «app Con dùng»: gộp về <see cref="Khay"/> (máy chủ xếp hệ thống —
-/// ALLOWLIST_HE_THONG), không thành «app mới chờ Ba Mẹ xếp», không trừ sao. Chỉ nhận ĐÚNG các tên này (không phải mọi «AiiGrow*»): đổi tên
-/// game thành «AiiGrow.Game.exe» không thoát đếm phút. Máy chủ lọc cùng luật (server/lib/luat-app.ts › laAppAiiGrow).</summary>
+/// ALLOWLIST_HE_THONG), không thành «app mới chờ Ba Mẹ xếp», không trừ sao. Hai lớp: TÊN đúng mẫu (<see cref="La"/>, cùng mẫu máy chủ
+/// server/lib/luat-app.ts › laAppAiiGrow) VÀ tệp chạy nằm TRONG thư mục cài (<see cref="ChayTuThuMucCai"/> — chỉ quản trị ghi được):
+/// game chép ra Desktop đổi tên «AiiGrow.Tray.exe.cu-1a2b3c4d» không thoát đếm phút.</summary>
 public static class AppAiiGrow
 {
     public const string Khay = "aiigrow.tray.exe";
     public const string Ten = "AiiGrow";
-    private static readonly string[] Goc = { "aiigrow.tray", "aiigrow.kid", "aiigrow.service", "aiigrow.setup" };
+    private static readonly string[] Goc = { "aiigrow.tray.exe", "aiigrow.kid.exe" };
 
-    /// <param name="appId">Định danh khay báo: tên tiến trình chữ thường + «.exe» («aiigrow.tray.exe.cu-623a59b6.exe») hoặc tên tệp.</param>
+    /// <summary>Định danh khay báo (tên tiến trình chữ thường + «.exe»): «aiigrow.tray.exe», «aiigrow.kid.exe»,
+    /// «aiigrow.tray.exe.cu-623a59b6.exe» (ProcessName của tệp «AiiGrow.Tray.exe.cu-623a59b6» giữ nguyên đuôi lạ, khay ghép thêm «.exe»).</summary>
     public static bool La(string? appId)
     {
         if (string.IsNullOrWhiteSpace(appId)) return false;
         var id = appId.Trim().ToLowerInvariant();
-        if (id.EndsWith(".exe", StringComparison.Ordinal)) id = id[..^4];
         var i = id.IndexOf(".exe.cu-", StringComparison.Ordinal);
         if (i >= 0)
         {
-            var duoi = id[(i + 8)..];
-            if (duoi.Length == 0 || !duoi.All(char.IsAsciiHexDigit)) return false;
-            id = id[..i];
+            if (!id.EndsWith(".exe", StringComparison.Ordinal) || id.Length <= i + 12) return false;
+            var duoi = id[(i + 8)..^4];
+            if (!duoi.All(char.IsAsciiHexDigit)) return false;
+            id = id[..(i + 4)];
         }
         return Array.IndexOf(Goc, id) >= 0;
     }
 
-    /// <summary>App của AiiGrow ⇒ (<see cref="Khay"/>, «AiiGrow»); app khác giữ nguyên.</summary>
-    public static (string? Id, string? Name) ChuanHoa(string? appId, string? appName) => La(appId) ? (Khay, Ten) : (appId, appName);
+    /// <summary>Định danh như khay báo cho một tệp chạy: «…\AiiGrow.Tray.exe» ⇒ «aiigrow.tray.exe»; «…\AiiGrow.Tray.exe.cu-623a59b6» ⇒
+    /// «aiigrow.tray.exe.cu-623a59b6.exe» (ProcessName chỉ bỏ đuôi «.exe»).</summary>
+    public static string DinhDanh(string duongTep)
+    {
+        var ten = duongTep.Replace('/', '\\').Split('\\')[^1];
+        if (ten.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) ten = ten[..^4];
+        return ten.ToLowerInvariant() + ".exe";
+    }
+
+    /// <summary>Có tiến trình <paramref name="appId"/> chạy từ ĐÚNG thư mục cài (không thư mục con) trong danh sách tiến trình phiên Con.</summary>
+    public static bool ChayTuThuMucCai(string appId, IEnumerable<RunningProc> ds, string thuMucCai)
+    {
+        if (string.IsNullOrWhiteSpace(thuMucCai)) return false;
+        var cai = thuMucCai.Replace('/', '\\').TrimEnd('\\');
+        var id = appId.Trim().ToLowerInvariant();
+        foreach (var r in ds)
+        {
+            var p = r.Path.Replace('/', '\\');
+            var j = p.LastIndexOf('\\');
+            if (j <= 0) continue;
+            if (string.Equals(p[..j], cai, StringComparison.OrdinalIgnoreCase) && DinhDanh(p) == id) return true;
+        }
+        return false;
+    }
 }

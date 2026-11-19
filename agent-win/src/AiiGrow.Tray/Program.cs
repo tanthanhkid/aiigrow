@@ -33,15 +33,17 @@ internal static class Program
             }
             // #308: Con bấm AiiGrow (menu Start / biểu tượng) khi khay đang chạy ngầm ⇒ bản đang chạy mở app to. Bản này do Con bấm nên được quyền
             // đưa cửa sổ lên trước — nhường quyền đó cho đúng khay đang chạy (không thì Windows chỉ nháy nút trên thanh tác vụ), rồi thoát.
-            // #418: còn khay CŨ «AiiGrow.Tray.exe.cu-…» (cập nhật đổi tên; khay trước #251 không tự chạy lại) ⇒ KHÔNG giao cho nó mở cửa sổ
-            // (nó chạy bản cũ mãi tới lần đăng nhập sau): kết thúc các khay khác, bản này (exe mới) làm bản chính.
-            var khayCu = MotBanKhay.KhayKhacCungPhien(chiKhayCu: true).Count > 0;
-            if (!khayCu)
+            // #418: còn khay CŨ «AiiGrow.Tray.exe.cu-…» (cập nhật đổi tên; khay trước #251 không tự chạy lại) ⇒ kết thúc RIÊNG nó (khay bản mới
+            // đang chạy thì giữ). Khay cũ giữ khoá ⇒ khoá về bản này: làm bản chính, mở app. Khoá ở khay bản mới ⇒ gọi nó mở như thường.
+            if (MotBanKhay.KetThucKhayKhac(chiKhayCu: true) > 0 && motBan.GianhLai(1000))
             {
-                foreach (var pid in MotBanKhay.KhayKhacCungPhien())
-                    try { AllowSetForegroundWindow(pid); } catch { }
-                if (MotBanKhay.GoiBanDangChay()) return;
+                ApplicationConfiguration.Initialize();
+                ChayKhay(motBan, moNgay: true, null);
+                return;
             }
+            foreach (var pid in MotBanKhay.KhayKhacCungPhien())
+                try { AllowSetForegroundWindow(pid); } catch { }
+            if (MotBanKhay.GoiBanDangChay()) return;
             // Không ai nhận: khay CŨ (trước #308, hoặc «AiiGrow.Tray.exe.cu-…» bộ cập nhật đổi tên) giữ mutex mà không nghe lời gọi ⇒ kết thúc nó,
             // bản này làm bản chính (Con bấm mở là có cửa sổ, và chạy luôn bản mới).
             MotBanKhay.KetThucKhayKhac();
