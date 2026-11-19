@@ -137,7 +137,10 @@ test("ví điểm: sao tiêu được không âm, trừ song song không vượt
   const kq = await Promise.allSettled([tru(), tru()]);
   assert.equal(kq.filter((x) => x.status === "fulfilled").length, 1, "chỉ một lần trừ 20 thành công khi còn 30");
   assert.equal(await v.soDu(con), 10);
-  await loi(v.dieuChinhTay(fam, con, -50, "Phạt", bm), "khong_du_diem");
+  // #433 A6: phạt quá số sao đang có ⇒ phần thiếu thành nợ (không còn lỗi khong_du_diem)
+  assert.equal(await v.dieuChinhTay(fam, con, -50, "Phạt", bm), 0);
+  assert.equal(await v.soDu(con), 0);
+  assert.equal(await v.noCua(con), 40);
   // #265: bỏ ngoại lệ — điều chỉnh tay không ghi bảng exceptions nữa
   assert.equal((await q(`select 1 from exceptions where child_id = $1`, [con])).length, 0);
   const nha2 = await taoNha("Hoa");

@@ -80,6 +80,14 @@ export const cauPhut = (phutCon: number) => `còn ${soVN(Math.max(0, phutCon))} 
 /** «Đang nợ Ba Mẹ 20 sao» (không nợ ⇒ null). */
 export const cauNo = (no: number) => (no > 0 ? `Đang nợ Ba Mẹ ${soVN(no)} sao` : null);
 
+/** #433 A12: dải «Mất mạng» trên Nhà của Con. Đang nợ (số dư âm) ⇒ nói nợ, không «vẫn có −15 sao»; còn sao vay chưa tiêu thì nói thêm. */
+export function cauMatMangTre(ten: string, s: { sao: number; no: number; phutCon: number }) {
+  const sau = "Bài nộp tự gửi khi có mạng.";
+  if (s.no > 0 && s.sao < 0)
+    return `Mất mạng rồi — ${ten} đang nợ Ba Mẹ ${soSao(s.no)}${s.phutCon > 0 ? `, còn ${soSao(s.phutCon)} để chơi` : ""}. ${sau}`;
+  return `Mất mạng rồi — ${ten} vẫn có ${soSao(Math.max(0, s.sao))}. ${sau}`;
+}
+
 export function saoTuMayChu(s: SaoMayChu | null, q: QuySao): SaoCon {
   const sao = Math.round(Number(s?.sao ?? q?.sao ?? 0)) || 0;
   const no = Math.max(0, Math.round(Number(s?.no ?? 0)) || 0);

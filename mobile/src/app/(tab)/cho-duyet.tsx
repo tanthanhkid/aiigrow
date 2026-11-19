@@ -17,6 +17,7 @@ import { BangTraoQua } from "@/lib/trao-qua";
 import { mayCuaCon } from "@/lib/may-nhieu-con";
 import { tenMayXin, TheXin, type KetQua } from "@/lib/hom-nay-xin";
 import { KHOA_TAB } from "@/lib/tab-ba-me";
+import { cauLoiHoanTac } from "@/lib/hoan-tac";
 import {
   BaoLoi, BieuTron, CanhGiua, ChoTai, ChonMot, Chu, gioPhut, M, Man, Nut, The, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
@@ -54,7 +55,7 @@ export default function ChoDuyet() {
     const chu = k.kieu === "vay" ? `Đã cho ${k.ten} vay ${soVN(k.phut ?? 0)} sao${k.canh ? ` · ${k.canh}` : ""}` : k.kieu === "mo_khoa" ? `Đã mở khoá máy cho ${k.ten}`
       : k.kieu === "mo" ? `Đã thêm ${k.muc} cho ${k.ten}${k.phut ? " · Tính phút" : " · Không tính phút"}` : k.kieu === "bo_qua" ? `Đã bỏ qua ${k.muc} · ${k.ten} xin lại được`
       : `Đã trả lời ${k.ten}: Ba Mẹ chưa cho lúc này`;
-    const loiHoan = () => { bao("Đã quá 60 giây — không hoàn tác được"); tai(); };
+    const loiHoan = (e: unknown) => { bao(cauLoiHoanTac(e, k.ten, "Đã quá 60 giây — không hoàn tác được")); tai(); };
     bao(chu, k.hoan ? () => { k.hoan!().then(tai, loiHoan); } : k.kieu === "vay" && k.grant ? () => { hoanTacThemGio(k.grant!).then(tai, loiHoan); } : undefined);
     tai();
   };

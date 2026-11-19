@@ -10,6 +10,7 @@ import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { HangViec, SaoVien, hinhNv, type ChoDuyetMoi } from "@/lib/hang-ngay";
+import { cauLoiHoanTac } from "@/lib/hoan-tac";
 import { Anh3D } from "@/lib/lan-dau";
 import { MAU_NO, soVN, traNoLanLuot } from "@/lib/so-sao";
 import { Chu, gioPhut, Icon, Icon3D, M, Man, Nut, Rob, The, useHoanTac, useTai } from "@/lib/ui";
@@ -32,7 +33,7 @@ export default function DuyetXong() {
   useEffect(() => {
     if (loat || !p.luot) return;
     bao(`Đã cộng ${p.diem} sao cho ${p.ten}`, async () => {
-      try { await bm.goi(`luot/${p.luot}/hoan-tac`, {}); router.replace(`/duyet/${p.luot}` as never); } catch { bao("Đã quá thời gian hoàn tác"); }
+      try { await bm.goi(`luot/${p.luot}/hoan-tac`, {}); router.replace(`/duyet/${p.luot}` as never); } catch (e) { bao(cauLoiHoanTac(e, p.ten)); }
     });
   }, [bao, loat, p.diem, p.ten, p.luot]);
   const sau = d?.sao ?? null;

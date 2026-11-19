@@ -39,6 +39,8 @@ export type DongBoVao = {
 };
 
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
+/** #433 A11: lượt đồng bộ trong chừng này phút đầu ngày mới vẫn trừ sao phút HÔM QUA vừa báo thêm (phút cuối ngày chưa kịp gửi trước 0h). */
+export const TRE_SAU_NUA_DEM_PHUT = 30;
 
 export function ngayGhi(day: string | undefined, nay: string, tz: string, gioMay: Date | null): string | null {
   if (!day || !NGAY.test(day)) return nay;
@@ -72,7 +74,13 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
   const cuMap = new Map<string, number>();
   const khoa = (c: string, n: string, mu: string) => `${c}|${n}|${mu}`;
   for (const r of cuDs) cuMap.set(khoa(r.child_id, r.ngay, r.muc), Number(r.phut));
-  const truTheoBe = new Map<string, { phut: number; muc: string | null; max: number; cu: boolean }>();
+  // #433 A11: phút của HÔM QUA báo trễ ngay sau 0h (lượt đồng bộ đầu ngày mới chốt phút cuối ngày cũ) vẫn trừ sao, ghi vào cuối hôm qua.
+  // Ngoài cửa sổ này dòng ngày cũ = máy gửi bù sau mất mạng ⇒ chỉ ghi báo cáo như trước (phút chơi offline đã đi đường phien/bu).
+  const homQua = congNgay(nay, -1);
+  const dauNay = dauNgayUtc(nay, f.tz);
+  const nhanTre = now.getTime() - dauNay.getTime() <= TRE_SAU_NUA_DEM_PHUT * 60_000;
+  // #433 A4: phút trừ theo TỪNG app (theoMuc) — một lượt nhiều app không còn gán hết cho app tăng nhiều nhất («đã dùng gì», sổ sao)
+  const truTheoBe = new Map<string, { be: string; ngay: string; phut: number; muc: string | null; max: number; cu: boolean; theoMuc: Map<string, number> }>();
   for (const u of usage) {
     const ngay = ngayGhi(u?.day, nay, f.tz, gm);
     if (!ngay || !u?.muc || !Number.isFinite(u.phut)) continue;
@@ -94,13 +102,15 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     // (dòng ngày cũ gửi bù khi máy offline ⇒ null, không đoán). Gửi lại nhiều lần ⇒ giữ giờ SỚM nhất.
     const dl = u?.dauLuc ? new Date(String(u.dauLuc)) : null;
     const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 300_000 ? dl : ngay === nay ? now : null;
-    if (pl.loai === "giai_tri" && ngay === nay && phan > cu) {
-      const x = truTheoBe.get(be) ?? { phut: 0, muc: null, max: 0, cu: false };
+    if (pl.loai === "giai_tri" && (ngay === nay || (ngay === homQua && nhanTre)) && phan > cu) {
+      const kx = `${be}|${ngay}`;
+      const x = truTheoBe.get(kx) ?? { be, ngay, phut: 0, muc: null, max: 0, cu: false, theoMuc: new Map<string, number>() };
       const them = phan - cu;
       x.phut += them;
+      x.theoMuc.set(muc, (x.theoMuc.get(muc) ?? 0) + them);
       if (them > x.max) { x.max = them; x.muc = muc; }
       if (!u.con) x.cu = true;
-      truTheoBe.set(be, x);
+      truTheoBe.set(kx, x);
     }
     await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,$4,$5,$6,$7)
              on conflict (device_id, child_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai,
@@ -108,23 +118,29 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
       [may.id, be, ngay, muc, pl.loai, phan, dauLuc]);
     cuMap.set(khoa(be, ngay, muc), Math.max(cu, phan));
   }
-  const boiMa = Math.max(0, Number(b.phutBoiMa) || 0);
+  let boiMa = Math.max(0, Number(b.phutBoiMa) || 0);
   const boiMaBe = new Map<string, number>();
   if (Array.isArray(b.boiMaCon)) for (const x of b.boiMaCon.slice(0, 50)) {
     const be = x?.con ? String(x.con) : con;
     const n = Math.max(0, Math.min(1440, Number(x?.phut) || 0));
     if (be && n > 0) boiMaBe.set(be, (boiMaBe.get(be) ?? 0) + n);
   }
-  for (const [be, x] of truTheoBe) {
+  // phút mở bằng mã trừ vào ngày hôm nay trước, còn dư mới trừ vào phần hôm qua báo trễ
+  for (const x of [...truTheoBe.values()].sort((a, b2) => (a.ngay === nay ? 0 : 1) - (b2.ngay === nay ? 0 : 1))) {
+    const be = x.be;
     let phut = x.phut;
-    if (Array.isArray(b.boiMaCon)) phut = Math.max(0, phut - (boiMaBe.get(be) ?? 0));
-    else if (be === con) phut = Math.max(0, phut - boiMa);
+    const boi = Array.isArray(b.boiMaCon) ? (boiMaBe.get(be) ?? 0) : be === con ? boiMa : 0;
+    const dungBoi = Math.min(phut, boi);
+    phut -= dungBoi;
+    if (Array.isArray(b.boiMaCon)) boiMaBe.set(be, boi - dungBoi);
+    else if (be === con) boiMa = boi - dungBoi;
     // máy chung + dòng agent cũ: không quá thời gian bé này đã đăng nhập máy
     if (x.cu && !may.child_id && may.dang_nhap_luc && may.con_dang_dung === be)
       phut = Math.min(phut, Math.max(0, (now.getTime() - new Date(may.dang_nhap_luc).getTime()) / 60000));
     if (phut <= 0) continue;
     // lỗi trừ sao không làm hỏng cả lượt đồng bộ (agent vẫn cần Policy) — phút đã ghi usage, lần sau không tính lại
-    try { await truPhutChoi(be, phut, now, { muc: x.muc, tz: f.tz }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
+    const luc = x.ngay === nay ? now : new Date(dauNay.getTime() - 1);   // phần hôm qua: ghi ở giây cuối hôm qua (sổ + «đã dùng gì» đúng ngày)
+    try { await truPhutChoi(be, phut, luc, { muc: x.muc, tz: f.tz, theoMuc: x.theoMuc }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
   }
   const status = { ...(may.status ?? {}), ...(b.status ?? {}), lechGiay: gioMaySai ? lechGiay : null };
   await q(`update devices set last_seen = $2, status = $3::text::jsonb where id = $1`, [may.id, now, JSON.stringify(status)]);

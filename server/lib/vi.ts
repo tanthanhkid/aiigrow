@@ -57,7 +57,10 @@ export async function ghiDiem(t: Q, con: string, delta: number, loai: LoaiDiem, 
   return du;
 }
 
-/** Ba Mẹ cộng/trừ tay kèm lý do (thưởng sinh nhật, phạt nói dối…) — ghi nhật ký (FR-03.05). Cộng khi Con đang nợ ⇒ trả nợ trước. */
+/** Ba Mẹ cộng/trừ tay kèm lý do (thưởng sinh nhật, phạt nói dối…) — ghi nhật ký (FR-03.05). Cộng khi Con đang nợ ⇒ trả nợ trước.
+ *  #433 A6 (quyết định 19/11): TRỪ quá số sao Con đang có (kể cả 0 sao) ⇒ phần thiếu thành NỢ Ba Mẹ, như sổ đang mô hình số dư âm bằng nợ:
+ *  ghi dòng `tra_no` +thiếu («Ghi nợ N sao · <lý do>» — nợ tăng) rồi dòng `tay` −toàn bộ ⇒ sao tiêu được về 0, số dư Con thấy âm, sao kiếm
+ *  sau trả nợ trước. (Trước đây: lỗi `khong_du_diem` ⇒ Ba Mẹ không phạt được Con đã tiêu hết sao.) */
 export async function dieuChinhTay(fam: string, con: string, delta: number, lyDo: string, nguoi: string) {
   const d = Math.trunc(Number(delta));
   if (!d || Math.abs(d) > 10_000) throw new LoiNghiepVu("diem_sai", "Số điểm cộng/trừ chưa hợp lệ");
@@ -65,9 +68,12 @@ export async function dieuChinhTay(fam: string, con: string, delta: number, lyDo
   if (!ly) throw new LoiNghiepVu("thieu_ly_do", "Ghi lý do để Con hiểu vì sao điểm thay đổi");
   return tx(async (t) => {
     if ((await khoaCon(t, con)) !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+    const thieu = d < 0 ? Math.max(0, -d - Math.max(0, await soDu(con, t))) : 0;
+    if (thieu > 0) await t(`insert into points(id, child_id, delta, loai, ly_do, nguoi) values ($1,$2,$3,'tra_no',$4,$5)`,
+      [newId(), con, thieu, `Ghi nợ ${thieu} sao · ${ly}`.slice(0, 120), nguoi]);
     const du = await ghiDiem(t, con, d, "tay", ly, { nguoi });
     await t(`insert into events(id, family_id, child_id, loai, chi_tiet, nguoi) values ($1,$2,$3,'dieu_chinh_diem',$4::text::jsonb,$5)`,
-      [newId(), fam, con, JSON.stringify({ delta: d, ly_do: ly }), nguoi]);
+      [newId(), fam, con, JSON.stringify({ delta: d, ly_do: ly, ...(thieu > 0 ? { ghi_no: thieu } : {}) }), nguoi]);
     return du;
   });
 }
