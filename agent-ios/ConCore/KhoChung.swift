@@ -99,8 +99,8 @@ public struct YeuCauDangCho: Codable, Equatable {
   public var loiNhanBaMe: String? = nil
   /// #422: lời xin thêm app / web — "app" | "web" (nil = lời xin cũ).
   public var kieu: String? = nil
-  public init(id: String, phut: Int, loiNhan: String, guiLuc: Date, trangThai: String, loai: String? = nil, ten: String? = nil) {
-    self.id = id; self.phut = phut; self.loiNhan = loiNhan; self.guiLuc = guiLuc; self.trangThai = trangThai; self.loai = loai; self.ten = ten
+  public init(id: String, phut: Int, loiNhan: String, guiLuc: Date, trangThai: String, loai: String? = nil, ten: String? = nil, kieu: String? = nil) {
+    self.id = id; self.phut = phut; self.loiNhan = loiNhan; self.guiLuc = guiLuc; self.trangThai = trangThai; self.loai = loai; self.ten = ten; self.kieu = kieu
   }
   public var laApp: Bool { loai == "mo_app" }
   public var soSao: Int { phut }

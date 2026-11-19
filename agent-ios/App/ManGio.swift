@@ -74,7 +74,7 @@ struct ManConDangXin: View {
   @Environment(\.dismiss) var dong
   var body: some View {
     KhungMan {
-      if let x = m.xinCho { luuCho(x) }
+      if let x = m.xinCho, !(m.yeuCau.map { !$0.xong && $0.guiLuc > x.guiLuc } ?? false) { luuCho(x) }
       else if let yc = m.yeuCau, yc.xong { if yc.laApp { ketQuaApp(yc) } else { ketQuaVay(yc) } }
       else { dangCho }
     }
@@ -241,6 +241,15 @@ struct ManXinCai: View {
 // ⇒ thẻ App: lưới app phổ biến + ô gõ tên app (muc = tên, kieu=app). Gửi xong ⇒ màn kết quả có sẵn (ManConDangXin).
 enum TheXin: String, Equatable { case app, web }
 
+/// Nút «Xin thêm app / web» (Hôm nay: Theo danh sách, Mở hết, mở bằng mã, màn khoá hết sao / giới hạn giờ).
+struct NutXinAppWeb: View {
+  @EnvironmentObject var m: MoHinhApp
+  var body: some View {
+    Button { m.manPhu = .xinAppWeb(.app) } label: { Label { Text("Xin thêm app / web") } icon: { Anh(ten: "ic_web", co: 26) } }
+      .buttonStyle(NutDiu(kieu: .phu))
+  }
+}
+
 struct ManXinAppWeb: View {
   @EnvironmentObject var m: MoHinhApp
   @Environment(\.dismiss) var dong
@@ -293,7 +302,11 @@ struct ManXinAppWeb: View {
     }
     .onAppear {
       m.loi = nil
-      if m.demo != nil {
+      // «Xin lại» sau khi Ba Mẹ chưa thêm ⇒ điền sẵn tên app / địa chỉ cũ
+      if let yc = m.yeuCau, yc.xong, !yc.duoc, yc.kieu == the.rawValue, let t = yc.ten {
+        if the == .app { tenApp = t } else { diaChi = t }
+        loiNhan = yc.loiNhan
+      } else if m.demo != nil {
         if the == .app { tenApp = "YouTube"; loiNhan = "Con xem video vẽ tranh ạ" } else { diaChi = "scratch.mit.edu"; loiNhan = "Con học làm game trên Scratch ạ" }
       }
     }
@@ -316,6 +329,7 @@ struct ManXinAppWeb: View {
       }
       TextField("Không có trong lưới? Gõ tên app", text: $tenApp).font(Diu.chu(16, .semibold)).padding(.horizontal, 14).frame(minHeight: 48)
         .lomE(RoundedRectangle(cornerRadius: 16)).textInputAutocapitalization(.words)
+        .onChange(of: tenApp) { _ in m.loi = nil }
       TextField("Nhắn Ba Mẹ… (không bắt buộc)", text: $loiNhan).font(Diu.chu(16, .semibold)).padding(.horizontal, 14).frame(minHeight: 48)
         .lomE(RoundedRectangle(cornerRadius: 16))
     }

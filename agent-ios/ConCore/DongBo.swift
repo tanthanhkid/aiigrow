@@ -145,7 +145,7 @@ public final class DongBo {
       do {
         _ = try await xinMoApp(ten: ten, lyDo: x.loiNhan.isEmpty ? nil : x.loiNhan, kieu: x.kieu, now: now)
         kho.ghi(nil, Khoa.xinChoMang)
-      } catch let e as LoiApi where e.tamThoi {
+      } catch let e as LoiApi where e.tamThoi || e.ma == "chua_chon_con" {
       } catch { kho.ghi(nil, Khoa.xinChoMang) }
       return
     }
@@ -227,8 +227,7 @@ public final class DongBo {
   /// #422: `kieu` "app" | "web" (hộp «Xin thêm app / web»); nil = lời xin cũ ở màn chặn.
   public func xinMoApp(ten: String, lyDo: String?, kieu: String? = nil, now: Date = Date()) async throws -> YeuCauDangCho {
     let r = try await api.xinDuyet(ten: ten, lyDo: lyDo, kieu: kieu)
-    var yc = YeuCauDangCho(id: r.id, phut: 0, loiNhan: lyDo ?? "", guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho", loai: "mo_app", ten: ten)
-    yc.kieu = kieu
+    let yc = YeuCauDangCho(id: r.id, phut: 0, loiNhan: lyDo ?? "", guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho", loai: "mo_app", ten: ten, kieu: kieu)
     kho.luu(yc, Khoa.yeuCauDangCho)
     return yc
   }

@@ -464,7 +464,7 @@ final class ApiVaDongBoTests: XCTestCase {
     than = try JSONSerialization.jsonObject(with: vc.da.last { $0.url!.path == "/api/device/xin-duyet" }!.httpBody!) as! [String: Any]
     XCTAssertNil(than["kieu"])
     // mất mạng lúc xin ⇒ lưu; có mạng ⇒ gửi lại kèm kieu=app
-    var x = YeuCauDangCho(id: "cho-mang", phut: 0, loiNhan: "", guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: "Minecraft"); x.kieu = "app"
+    let x = YeuCauDangCho(id: "cho-mang", phut: 0, loiNhan: "", guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: "Minecraft", kieu: "app")
     kho.luu(x, Khoa.xinChoMang)
     await dongBo().guiXinChoMang()
     than = try JSONSerialization.jsonObject(with: vc.da.last { $0.url!.path == "/api/device/xin-duyet" }!.httpBody!) as! [String: Any]
