@@ -217,8 +217,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           {tieuLon ? <Chu kieu="tieu7" co={26} so mau={HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} toi />}
         </View>
         {phuSao ? (
-          // #417: dòng phụ («Hết sao · con xin Ba Mẹ cho vay khi cần ›») nằm dưới đáy logo nên không chừa chỗ bên phải — một dòng ở 390
-          <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, paddingVertical: 6, paddingRight: 0, marginRight: 8, justifyContent: "center", alignSelf: "stretch", minWidth: 0 }}>
+          // #417: dòng phụ («Hết sao · con xin Ba Mẹ cho vay khi cần ›») chừa chỗ logo bên phải (không đè ảnh, đủ tương phản); cỡ 13 để 390 gọn hơn
+          <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, paddingVertical: 6, paddingRight: 8, marginRight: CHUA_ROB - 8, justifyContent: "center", alignSelf: "stretch", minWidth: 0 }}>
             <Chu kieu="dam" co={13} mau={khoa ? HERO.chu : HERO.phu} style={{ flexShrink: 1, minWidth: 0 }}>{phuSao}</Chu>
           </Pressable>
         ) : null}
