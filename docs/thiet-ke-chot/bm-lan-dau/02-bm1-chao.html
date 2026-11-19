@@ -2,25 +2,25 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--the:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--nho:4px 4px 9px var(--lo),-4px -4px 9px var(--hi)}
-html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629}
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--the:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--nho:4px 4px 9px var(--lo),-4px -4px 9px var(--hi)}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
 .app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--n)}
 .top{position:absolute;left:8px;top:44px;height:48px;display:flex;align-items:center;z-index:3}
-.lui{width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0A1629}
+.lui{width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:var(--ink)}
 .san{position:absolute;left:16px;right:16px;top:96px;height:360px;border-radius:36px;background:radial-gradient(70% 55% at 50% 45%,#F4EEE5,#ECE4D9);box-shadow:var(--the);overflow:hidden}
 .san .rob{position:absolute;left:50%;bottom:0;transform:translateX(-46%);width:200px;height:auto}
 .bong{position:absolute;left:18px;top:20px;max-width:210px;padding:12px 16px;border-radius:22px;background:var(--n);font-size:15px;line-height:21px;font-weight:800;box-shadow:var(--nho)}
 .chu{position:absolute;left:16px;right:16px;top:476px;text-align:center}
 .chu h1{font-size:28px;line-height:34px;font-weight:800;letter-spacing:-.6px}
-.chu p{margin-top:6px;font-size:15px;line-height:21px;color:#3a3a3a}
+.chu p{margin-top:6px;font-size:15px;line-height:21px;color:#5b5248}
 .day{position:absolute;left:16px;right:16px;bottom:18px;display:flex;flex-direction:column;gap:10px}
-.nut{display:flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:28px;font:800 15.5px 'Be Vietnam Pro',sans-serif;white-space:nowrap}
-.nut.chinh{min-height:56px;color:#FFFBF5;font-size:16.5px;background:#0A1629;box-shadow:4px 4px 10px rgba(10,22,41,.35),-4px -4px 10px var(--hi)}
-.nut .g{width:26px;height:26px;border-radius:13px;background:var(--n);display:grid;place-items:center}
+.nut{display:flex;align-items:center;justify-content:center;gap:10px;border:0;border-radius:28px;font:800 15.5px 'Be Vietnam Pro',sans-serif;white-space:nowrap;color:var(--ink)}
+.nut.chinh{min-height:56px;font-size:16.5px;background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nut .g{width:26px;height:26px;border-radius:13px;background:var(--n);display:grid;place-items:center;box-shadow:inset 2px 2px 4px var(--lo),inset -2px -2px 4px var(--hi)}
 .hai{display:flex;gap:10px}
-.nut.phu{flex:1;min-width:0;min-height:52px;color:#0A1629;background:var(--n);box-shadow:var(--nho)}
-.ghi{min-height:32px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:400;color:#5f554b;white-space:nowrap}
-.ghi b{margin:0 3px;color:#0A1629;font-weight:800}
+.nut.phu{flex:1;min-width:0;min-height:52px;background:var(--n);box-shadow:var(--nho)}
+.ghi{min-height:32px;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:400;color:#7c7166;white-space:nowrap}
+.ghi b{margin:0 3px;color:var(--ink);font-weight:800}
 </style></head>
 <body><div class="app">
 <div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm1-welcome"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div></div>

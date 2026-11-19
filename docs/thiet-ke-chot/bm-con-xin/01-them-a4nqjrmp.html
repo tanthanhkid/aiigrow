@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+
 *{box-sizing:border-box;margin:0;padding:0}
 :root{--sh:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 5px 10px rgba(10,22,41,.12),inset 0 -1.5px 0 rgba(255,255,255,.95)}
 html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629;font-variant-numeric:tabular-nums}
@@ -14,13 +14,14 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 .the{padding:14px;border-radius:28px;background:#fff;box-shadow:var(--sh)}
 .the+.the{margin-top:14px}
 .dau{display:flex;align-items:center;gap:12px}
-.ic{flex:none;width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:#F2EBE3}.ic img{width:28px;height:28px}
+.ic{flex:none;width:44px;height:44px;border-radius:15px;display:grid;place-items:center;background:#F2EBE3}.ic img{width:28px;height:28px}.ic svg.i{width:28px;height:28px}
 .dau p{flex:1;min-width:0;font-size:16px;font-weight:800}.dau p small{display:block;font-size:12.5px;font-weight:600;color:#5a5a5a}
 .dau time{flex:none;font-size:13px;font-weight:800;color:#5a5a5a}
 .loi{margin-top:10px;padding:10px 12px;border-radius:16px;background:#F2EBE3;box-shadow:var(--lom);font-size:13.5px;font-weight:600;color:#0A1629}
 .sao{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:12.5px;font-weight:600;color:#5a5a5a;white-space:nowrap}
 .diem{flex:none;display:flex;align-items:center;gap:3px;padding:4px 9px 4px 5px;border-radius:12px;background:#F4C76A;color:#0A1629;font-size:13px;font-weight:800;white-space:nowrap}
 .diem img{width:16px;height:16px}
+.diem svg.i{width:16px;height:16px}
 .chon{display:grid;grid-template-columns:1fr 1.4fr;gap:8px;margin-top:12px}
 .nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;height:48px;border-radius:24px;font-size:15px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
 .nut.phu{color:#0A1629;background:#fff;box-shadow:var(--sh)}
@@ -35,7 +36,7 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 .lg{display:flex;align-items:center;gap:10px;min-height:62px}
 .lg+.lg{border-top:1px solid #efe7dd}
 .lg time{flex:none;width:42px;font-size:13px;font-weight:800;color:#5a5a5a}
-.lg .ic{width:40px;height:40px;border-radius:14px}.lg .ic img{width:24px;height:24px}
+.lg .ic{width:40px;height:40px;border-radius:14px}.lg .ic img{width:24px;height:24px}.lg .ic svg.i{width:24px;height:24px}
 .lg p{flex:1;min-width:0;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lg p small{display:block;font-size:12.5px;font-weight:600;color:#5a5a5a;overflow:hidden;text-overflow:ellipsis}
 .ly{flex:none;font-size:12.5px;font-weight:800;white-space:nowrap;color:#5a5a5a}
@@ -48,12 +49,61 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 .duoc{display:flex;align-items:center;gap:6px;min-height:44px;padding:6px 10px;border-radius:18px;background:#F2EBE3;box-shadow:var(--lom)}
 .duoc span{flex:1;font-size:13px;font-weight:800;color:#0A1629}
 .duoc img{width:26px;height:26px}
-</style></head>
-<body><div class="app">
+.duoc svg.i{width:26px;height:26px}
+
+/* ===== E Ánh kim: lớp phủ chung ===== */
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);--clay:var(--sh);--lom:var(--sunk);--kn:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+html,body,.app{background:var(--n)!important;color:var(--ink);font-family:'Be Vietnam Pro',system-ui,sans-serif!important}
+.app::before{display:none!important}
+svg.i{width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+svg.i.n-sao,svg.i.st{fill:#E2B354;stroke:#C9973B}
+.top{background:linear-gradient(var(--n) 75%,rgba(236,228,217,0))!important}
+.top h1{color:var(--ink)!important}.ngay{color:var(--ink2)!important}
+.chuong{background:var(--n)!important;box-shadow:var(--sh)!important;color:var(--ink)}
+.chuong svg.i{width:24px;height:24px}
+.chuong em{background:var(--ink)!important;color:#F4C76A!important;box-shadow:0 0 0 2px var(--n)!important}
+.nut{background:var(--kim)!important;color:#0A1629!important;box-shadow:var(--kn)!important;border-radius:16px!important;font-weight:700!important}
+.nut::before{display:none!important}
+.nut svg.i{width:22px;height:22px}
+.nut.phu{background:var(--n)!important;box-shadow:var(--sh)!important}
+.muc{color:var(--ink)!important}
+.muc span,.muc a{color:#8a6a2b!important;font-weight:600}
+.ic{background:var(--n)!important;box-shadow:var(--sunk)!important;color:var(--ink);border-radius:50%!important}
+.ic svg.i{width:24px;height:24px}
+.the,.hang,.minh,.ls,.xong,.chan,.de-y{background:var(--n)!important;box-shadow:var(--shL)!important;border-radius:28px!important}
+.hang,.minh{border-radius:26px!important}
+.hang p small,.minh p small,.minh b small{color:var(--ink2)!important}
+.hang b,.minh b{color:var(--ink)!important}
+.tab{background:var(--n)!important;box-shadow:0 -6px 12px -6px var(--lo)!important}
+.tab div{color:var(--ink3)!important;font-weight:600!important}
+.tab svg.i{box-sizing:content-box;width:24px;height:24px;padding:3px 16px;border-radius:15px}
+.tab .on{color:var(--ink)!important;font-weight:700!important}
+.tab .on svg.i{background:var(--n);box-shadow:var(--sunk)}
+.tab svg.i.n-sao{fill:none!important;stroke:currentColor!important}
+
+.lui{color:var(--ink)}.lui svg{fill:var(--ink)!important}
+.nut.xanh{background:var(--n)!important;box-shadow:var(--sunk)!important}
+.nut.lon small{color:#5b4719!important;font-weight:600!important}
+.nut.phu,.nut.xanh{color:var(--ink)!important}
+.loi{background:var(--n)!important;box-shadow:var(--sunk)!important;color:var(--ink)!important}
+.sao{color:var(--ink2)!important}
+.diem{background:var(--kim)!important;color:#0A1629!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.6)!important}
+.diem svg.i{width:16px;height:16px;fill:#0A1629;stroke:#0A1629}
+.dau p small,.lg p small,.che p small,.dau time,.lg time,.ly{color:var(--ink2)!important}
+.che b{color:#8a6a2b!important}
+.muc::before{background:#D9AE57!important}
+.lg+.lg{border-top-color:rgba(120,98,70,.2)!important}
+.duoc{background:var(--n)!important;box-shadow:var(--sunk)!important}
+.duoc svg.i{width:24px;height:24px;color:var(--ink)}
+.ic svg.i{width:24px;height:24px}.lg .ic svg.i{width:22px;height:22px}
+.the+.the{margin-top:16px}
+.ds{background:var(--n)!important;box-shadow:var(--shL)!important}
+
+</style></head><body><div class="app">
 <div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-trang-chu"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Bảo Anh đang xin phép</h1></div>
 <div class="cuon">
 <div class="the">
-<div class="dau"><span class="ic"><img src="/assets/icon3d/web.webp" alt=""></span><p>Xin thêm YouTube<small>Laptop · con đang chờ</small></p><time>19:20</time></div>
+<div class="dau"><span class="ic"><svg class="i n-web" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"></path></svg></span><p>Xin thêm YouTube<small>Laptop · con đang chờ</small></p><time>19:20</time></div>
 <p class="loi">YouTube chưa có trong danh sách được mở</p>
 <div class="ba">
 <span class="nut lon" role="button" tabindex="0" data-toi="them-1ypcydle">Tính phút<small>Trừ vào giờ chơi của con</small></span>
@@ -61,18 +111,18 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 </div>
 </div>
 <div class="the">
-<div class="dau"><span class="ic"><img src="/assets/icon3d/dongho.webp" alt=""></span><p>Cho vay sao<small>Laptop · con xin vay 20 sao</small></p><time>19:05</time></div>
+<div class="dau"><span class="ic"><svg class="i n-dongho" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2M9 2h6"></path></svg></span><p>Cho vay sao<small>Laptop · con xin vay 20 sao</small></p><time>19:05</time></div>
 <p class="loi">«Con làm xong bài rồi ạ»</p>
-<div class="sao"><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">30 sao</span>Con đang có 30 sao</div>
+<div class="sao"><span class="diem"><svg class="i n-sao" viewBox="0 0 24 24"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>30 sao</span>Con đang có 30 sao</div>
 <div class="chon"><span class="nut phu" role="button" tabindex="0" data-toi="them-s093fsk4">Không cho</span><span class="nut" role="button" tabindex="0" data-toi="them-3wp5ty1o">Cho vay 20 sao</span></div>
 </div>
 <p class="muc">Đã trả lời hôm nay</p>
 <div class="ds">
-<div class="lg"><time>17:40</time><span class="ic"><img src="/assets/icon3d/khoa.webp" alt=""></span><p>game.vn<small>Laptop · xin lại được</small></p><span class="ly">Đã bỏ qua</span></div>
+<div class="lg"><time>17:40</time><span class="ic"><svg class="i n-khoa" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span><p>game.vn<small>Laptop · xin lại được</small></p><span class="ly">Đã bỏ qua</span></div>
 </div>
 <div class="chan">
-<div class="che" role="button" tabindex="0" data-toi="them-8h2msmht"><span class="ic"><img src="/assets/icon3d/khien.webp" alt=""></span><p>App &amp; web<small>Theo danh sách · app, web mới con phải xin Ba Mẹ</small></p><b>Đổi ›</b></div>
-<div class="duoc"><span>Được mở 4 app</span><img src="/assets/icon3d/game.webp" alt=""><img src="/assets/icon3d/may_tinh.webp" alt=""><img src="/assets/icon3d/sach.webp" alt=""><img src="/assets/icon3d/camera.webp" alt=""></div>
+<div class="che" role="button" tabindex="0" data-toi="them-8h2msmht"><span class="ic"><svg class="i n-khien" viewBox="0 0 24 24"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"></path><path d="m9 12 2 2 4-4"></path></svg></span><p>App &amp; web<small>Theo danh sách · app, web mới con phải xin Ba Mẹ</small></p><b>Đổi ›</b></div>
+<div class="duoc"><span>Được mở 4 app</span><svg class="i n-game" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="4"></rect><path d="M6 12h4M8 10v4"></path><circle cx="15.5" cy="11" r=".6"></circle><circle cx="18" cy="13" r=".6"></circle></svg><svg class="i n-may_tinh" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg><svg class="i n-sach" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"></path><path d="M20 17v4H6.5A2.5 2.5 0 0 1 4 18.5"></path></svg><svg class="i n-camera" viewBox="0 0 24 24"><path d="M4 8h3l1.6-2.5h6.8L17 8h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"></path><circle cx="12" cy="13" r="3.6"></circle></svg></div>
 </div>
 </div>
 </div>
