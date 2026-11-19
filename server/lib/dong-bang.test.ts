@@ -74,7 +74,7 @@ test("API: Ba Mẹ đóng băng qua /api/m; Chỉ xem không đóng băng đư�
   assert.equal(csv.status, 200);
   assert.match(csv.body.tenTep, /^aiigrow-bao-cao-Bao-Anh-\d{4}-\d{2}-\d{2}\.csv$/);
   assert.ok(csv.body.noiDung.startsWith("﻿Báo cáo tuần AiiGrow,Bảo Anh\r\n"));
-  assert.ok(csv.body.noiDung.includes("Ngày,Phút giải trí,Phút học\r\n"));
+  assert.ok(csv.body.noiDung.includes("Ngày,Phút giải trí,Không tính phút\r\n"));
   const nha2 = await taoNha("Hoa");
   assert.equal((await goi(`con/${con}/bao-cao/csv`, undefined, await taoPhien(nha2.bm))).status, 404);
   assert.ok((await xuatCsvBaoCao(fam, con)).noiDung.includes("Tổng tuần này"));

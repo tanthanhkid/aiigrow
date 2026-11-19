@@ -13,6 +13,11 @@ export type LoaiDiem = "nhiem_vu" | "phien" | "doi_qua" | "hoan" | "tay" | "chao
 /** Khoản cộng KHÔNG dùng để trả nợ: tiền vay, hoàn lại (huỷ quà / hoàn tác), quà phút Ba Mẹ trao, sao khởi đầu. */
 const KHONG_TRA_NO = new Set<string>(["vay", "tra_no", "hoan", "qua_phut", "khoi_dau"]);
 
+/** Điều kiện dòng sổ cái tính vào SAO KIẾM ĐƯỢC (cấp độ, «sao kiếm 7 ngày», báo cáo): khoản kiếm dương, TRỪ dòng `hoan` âm của «Hoàn tác duyệt»
+ *  (ref = lượt làm) — #433 B1: trước đây chỉ cộng dòng dương nên sao đã hoàn tác vẫn đẩy cấp độ / huy hiệu cap_5. Dùng trong `sum(delta) … where`. */
+export const KIEM_SQL = `((delta > 0 and loai not in ('hoan', 'vay', 'tra_no', 'khoi_dau', 'qua_phut'))
+  or (loai = 'hoan' and delta < 0 and ref in (select id from submissions where child_id = points.child_id)))`;
+
 /** Sao tiêu được (tổng sổ cái, ≥ 0). Tên cũ giữ cho mọi chỗ gọi. */
 export const soDu = async (con: string, t: Q = q) =>
   ((await t<{ d: number }>(`select coalesce(sum(delta), 0)::int as d from points where child_id = $1`, [con]))[0].d);
@@ -73,7 +78,7 @@ export async function tomTatVi(con: string) {
             coalesce((select sum(delta) from points where child_id = $1 and loai in ('vay', 'tra_no')), 0)::int as no,
             coalesce((select sum(delta) from points where child_id = $1 and loai = 'vay'), 0)::int as vay,
             coalesce((select -sum(delta) from points where child_id = $1 and loai = 'tra_no'), 0)::int as tra,
-            coalesce((select sum(delta) from points where child_id = $1 and delta > 0 and loai not in ('hoan', 'vay', 'tra_no', 'khoi_dau', 'qua_phut')), 0)::int as kiem,
+            coalesce((select sum(delta) from points where child_id = $1 and ${KIEM_SQL}), 0)::int as kiem,
             coalesce((select sum(t.diem) from submissions s join tasks t on t.id = s.task_id
                       where s.child_id = $1 and s.trang_thai = 'cho_duyet'), 0)::int as cho,
             coalesce((select sum(diem) from redemptions where child_id = $1 and trang_thai = 'giu'), 0)::int as giu`, [con]))!;
@@ -81,7 +86,7 @@ export async function tomTatVi(con: string) {
   // `soDu` (cũ) = sao TIÊU ĐƯỢC (≥ 0 — app/agent cũ dùng để biết đủ sao đổi quà) · `sao` (15/11) = số dư Con thấy, ÂM khi nợ.
   // saoGiu (06/11, L14): sao đang GIỮ cho quà chờ Ba Mẹ trao (đã ghi trừ tạm; Ba Mẹ huỷ ⇒ hoàn) — «Đang giữ 50 sao cho quà chờ trao»
   return { soDu: tieu, sao: r.du - no, no, saoVayChuaTieu: Math.min(tieu, no), phutCon: tieu, hetSao: tieu <= 0, tongVay: r.vay, daTraNo: r.tra,
-    canhBaoNo: no > NGUONG_NO, diemChoDuyet: r.cho, saoChoDuyet: r.cho, saoGiu: r.giu, tongKiem: r.kiem, capDo: capDo(r.kiem) };
+    canhBaoNo: no > NGUONG_NO, diemChoDuyet: r.cho, saoChoDuyet: r.cho, saoGiu: r.giu, tongKiem: Math.max(0, r.kiem), capDo: capDo(Math.max(0, r.kiem)) };
 }
 
 /** #266: nợ quá mốc này ⇒ cảnh báo Ba Mẹ (không chặn cho vay). */

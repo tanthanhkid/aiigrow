@@ -7,7 +7,7 @@ import { kid, type NhaTre, type NvTre, type NvTreSao } from "@/lib/api-tre";
 import { D } from "@/lib/diu";
 import { Icon3D } from "@/lib/ui";
 import { CamXuc, ChoD, ChuD, DongD, ManD, MatMangD, NutD, PillD, SaoD, TheD } from "@/lib/ui-diu";
-import { phuNv, useTaiTre, useTre } from "@/lib/ui-tre";
+import { cauTuChoi, phuNv, useTaiTre, useTre } from "@/lib/ui-tre";
 
 const CACH: Record<string, string> = { anh: "Chụp ảnh", video: "Chụp ảnh", ghi_am: "Ghi âm", van_ban: "Viết kể lại", xong: "Bấm «Xong»", tu_dong: "Tự chấm trong app" };
 
@@ -45,11 +45,13 @@ export default function NhiemVu() {
   const dong = (x: NvTreSao, kieu: "lai" | "cho" | "lam" | "xong") => {
     const ic = NHOM_NV[x.nhom]?.ic ?? NHOM_NV.khac.ic;
     const tuCham = x.tu_cham || x.bang_chung === "tu_dong";
-    const phu = kieu === "cho" ? `Chờ duyệt · ${CACH[x.bang_chung] ?? "Ảnh"}` : kieu === "lai" || kieu === "xong" ? phuNv(x as NvTre)
+    const tuChoi = kieu === "cho" ? null : cauTuChoi(x);          // #433 B12: Con thấy vì sao Ba Mẹ chưa nhận lượt trước
+    const phu = kieu === "cho" ? `Chờ duyệt · ${CACH[x.bang_chung] ?? "Ảnh"}` : kieu === "lai" ? phuNv(x as NvTre)
+      : tuChoi ? (kieu === "lam" ? `${tuChoi} — làm lại nhé` : tuChoi) : kieu === "xong" ? phuNv(x as NvTre)
       : x.trang_thai_con === "dang_lam" ? "Đang làm — chạm để làm tiếp" : CACH[tuCham ? "tu_dong" : x.bang_chung] ?? "Chụp ảnh";
     return (
       <DongD key={x.id} ic={ic} tieu={x.ten} phu={phu} mo={kieu === "xong"} bam={kieu === "xong" || kieu === "cho" ? undefined : () => mo(x)}
-        nhan={kieu === "lai" ? <PillD chu="↺ Làm lại" loai="loi" /> : kieu === "cho" ? <PillD chu="⏳ Chờ duyệt" loai="cho" /> : undefined}
+        nhan={kieu === "lai" || (tuChoi && kieu === "lam") ? <PillD chu="↺ Làm lại" loai="loi" /> : kieu === "cho" ? <PillD chu="⏳ Chờ duyệt" loai="cho" /> : undefined}
         phai={<SaoD chu={`+${x.sao ?? x.diem}`} mo={kieu === "xong"} />} />
     );
   };

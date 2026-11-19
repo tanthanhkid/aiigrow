@@ -793,6 +793,8 @@ export const SCHEMA_SAO = [
   // #265: bỏ «ngoại lệ». Ngoại lệ còn hiệu lực lúc nâng cấp (tối đa 240 phút) KẾT THÚC ngay — không quy thành khoản vay (không tạo nợ Ba Mẹ
   // chưa đồng ý), Policy không còn gửi ngoại lệ nên máy Con về luật sao thường. Bảng exceptions giữ cho lịch sử, không ghi thêm.
   `update grants set den = now(), cua_so_den = case when cua_so_den > now() then now() else cua_so_den end where nguon = 'ngoai_le' and den > now()`,
+  // #433 B9: số sao của việc LÚC CON NỘP — duyệt cộng đúng số này dù Ba Mẹ sửa điểm việc sau đó (null = lượt cũ ⇒ dùng tasks.diem)
+  `alter table submissions add column if not exists diem_nop int`,
 ];
 
 // ---- App & web: «Mở hết» / «Theo danh sách» (#262 / #258, 15/11/2026 — lib/chan-co-ban.ts, che-do-chan.ts). Chạy lại được (mọi câu tự kiểm điều kiện).

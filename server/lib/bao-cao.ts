@@ -53,9 +53,13 @@ async function tuan(con: string, tz: string, dau: string) {
       `select t.nhom, sum(s.diem)::int as diem, count(*)::int as n from submissions s join tasks t on t.id = s.task_id
        where s.child_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2 and s.duyet_luc < $3 group by t.nhom order by diem desc`, [con, tu, den]),
     q<{ loai: string; diem: number }>(
-      `select loai, -sum(delta)::int as diem from points where child_id = $1 and delta < 0 and created_at >= $2 and created_at < $3 group by loai`, [con, tu, den]),
-    one<{ duoc: number; tu_choi: number }>(
-      `select count(*) filter (where trang_thai = 'duoc_duyet')::int as duoc, count(*) filter (where trang_thai = 'tu_choi')::int as tu_choi
+      // #433 B10: «tiêu» chỉ là Con dùng sao (chơi, đổi quà, Ba Mẹ trừ tay) — không gom trả nợ, rút lại sao vay, hoàn tác duyệt
+      `select loai, -sum(delta)::int as diem from points where child_id = $1 and delta < 0 and loai not in ('tra_no', 'vay', 'hoan')
+         and created_at >= $2 and created_at < $3 group by loai`, [con, tu, den]),
+    // #433 B10: tỷ lệ duyệt đếm đủ kết cục — được duyệt / từ chối / nhờ làm lại (cần bổ sung) / hết hạn chưa duyệt
+    one<{ duoc: number; tu_choi: number; lam_lai: number; het_han: number }>(
+      `select count(*) filter (where trang_thai = 'duoc_duyet')::int as duoc, count(*) filter (where trang_thai = 'tu_choi')::int as tu_choi,
+              count(*) filter (where trang_thai in ('can_bo_sung', 'lam_lai'))::int as lam_lai, count(*) filter (where trang_thai = 'het_han')::int as het_han
        from submissions where child_id = $1 and duyet_luc >= $2 and duyet_luc < $3`, [con, tu, den]),
     thongKeSao(con, tu, den),
     q<{ muc: string; phut: number }>(
@@ -72,7 +76,8 @@ async function tuan(con: string, tz: string, dau: string) {
          (select coalesce(sum(delta), 0)::int from points where child_id = $1 and delta > 0 and loai <> 'hoan' and created_at >= $2 and created_at < $3) as sao
        from requests where child_id = $1 and loai in ('vay_sao', 'them_gio', 'ngoai_le', 'ngoai_gio') and created_at >= $2 and created_at < $3`, [con, tu, den]),
   ]);
-  const duyet = duyet0!;
+  const d0 = duyet0!, tong = d0.duoc + d0.tu_choi + d0.lam_lai + d0.het_han;
+  const duyet = { ...d0, tong, tyLe: tong ? Math.round((d0.duoc / tong) * 100) : null };
   const giaiTriNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
   for (const p of choi) giaiTriNgay[gioDiaPhuong(new Date(p.bat_dau), tz).ngay] = (giaiTriNgay[gioDiaPhuong(new Date(p.bat_dau), tz).ngay] ?? 0) + Math.round(p.phut);
   const hoc = dung.filter((x) => x.loai === "hoc" || x.loai === "he_thong").reduce((a, x) => a + x.phut, 0);

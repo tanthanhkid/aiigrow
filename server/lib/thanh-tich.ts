@@ -22,11 +22,13 @@ async function tzCon(con: string) {
   return (await one<{ tz: string }>(`select f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]))?.tz ?? "Asia/Ho_Chi_Minh";
 }
 
-/** Ngày (giờ gia đình) có ≥ 1 nhiệm vụ được duyệt, trong `lui` ngày gần nhất. */
+/** Ngày (giờ gia đình) Con LÀM (nộp) ≥ 1 nhiệm vụ được duyệt, trong `lui` ngày gần nhất. #433 B4: theo ngày nộp, không theo ngày Ba Mẹ duyệt
+ *  (tối thứ Hai làm, sáng thứ Ba Ba Mẹ mới duyệt ⇒ vẫn là thứ Hai). Lượt không có nop_luc (AiiRob cũ, dữ liệu tay) ⇒ ngày duyệt. */
 async function ngayDuyet(con: string, tz: string, lui: number) {
-  return new Set((await q<{ duyet_luc: Date }>(
-    `select duyet_luc from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc > now() - make_interval(days => $2::int)`, [con, lui]))
-    .map((r) => gioDiaPhuong(new Date(r.duyet_luc), tz).ngay));
+  return new Set((await q<{ luc: Date }>(
+    `select coalesce(nop_luc, duyet_luc) as luc from submissions where child_id = $1 and trang_thai = 'duoc_duyet'
+        and coalesce(nop_luc, duyet_luc) > now() - make_interval(days => $2::int)`, [con, lui]))
+    .map((r) => gioDiaPhuong(new Date(r.luc), tz).ngay));
 }
 
 /** Chuỗi ngày + 7 ô ngày gần nhất (cũ → hôm nay) — MỘT nguồn cho `chuoiNgay` (huy hiệu, app Con ĐT) và `hoc-vien/tong-quan.chuoi`
@@ -50,18 +52,23 @@ export async function chuoiNgay(con: string, now = new Date()) {
   return (await tuanChuoi(con, now)).soNgay;
 }
 
-/** Sau mỗi lần duyệt: trao huy hiệu mới đạt. → mã huy hiệu mới. */
-export async function sauKhiDuyet(fam: string, con: string) {
+/** Mã các huy hiệu Con đang đủ điều kiện (theo dữ liệu hiện tại). */
+async function huyHieuDat(con: string) {
   const dem = Object.fromEntries((await q<{ nhom: string; n: number }>(
     `select t.nhom, count(*)::int as n from submissions s join tasks t on t.id = s.task_id where s.child_id = $1 and s.trang_thai = 'duoc_duyet' group by t.nhom`,
     [con])).map((r) => [r.nhom, r.n]));
   const tong = Object.values(dem).reduce((a, b) => a + b, 0);
   const chuoi = await chuoiNgay(con);
   const { capDo } = await tomTatVi(con);
-  const dat = Object.entries({
+  return Object.entries({
     khoi_dau: tong >= 1, mot_sach: (dem.doc_sach ?? 0) >= 5, tay_dam_dang: (dem.viec_nha ?? 0) >= 10, khoe_manh: (dem.van_dong ?? 0) >= 5,
     ham_hoc: (dem.hoc_tap ?? 0) >= 5, chuoi_7: chuoi >= 7, chuoi_30: chuoi >= 30, cap_5: capDo.cap >= 5,
   }).filter(([, v]) => v).map(([k]) => k);
+}
+
+/** Sau mỗi lần duyệt: trao huy hiệu mới đạt. → mã huy hiệu mới. */
+export async function sauKhiDuyet(fam: string, con: string) {
+  const dat = await huyHieuDat(con);
   const moi: string[] = [];
   for (const ma of dat) {
     if ((await q(`insert into badges(child_id, ma) values ($1, $2) on conflict do nothing returning ma`, [con, ma])).length) {
@@ -70,6 +77,15 @@ export async function sauKhiDuyet(fam: string, con: string) {
     }
   }
   return moi;
+}
+
+/** #433 B4: sau «Hoàn tác duyệt» — thu hồi huy hiệu trao TỪ lúc duyệt lượt đó (`tu`) mà nay không còn đủ điều kiện. Huy hiệu đạt trước đó giữ
+ *  nguyên (chuỗi ngày đứt về sau không lấy lại huy hiệu cũ). → mã đã thu hồi. */
+export async function sauKhiHoanTac(fam: string, con: string, tu: Date) {
+  const dat = await huyHieuDat(con);
+  const bo = (await q<{ ma: string }>(`delete from badges where child_id = $1 and dat_luc >= $2 and not (ma = any($3::text[])) returning ma`, [con, tu, dat])).map((r) => r.ma);
+  for (const ma of bo) await ghiSuKien(fam, "thu_hoi_huy_hieu", { ma, ten: HUY_HIEU[ma]?.ten ?? ma }, { con });
+  return bo;
 }
 
 export async function thanhTich(con: string) {
