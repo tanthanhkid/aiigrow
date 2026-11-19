@@ -100,7 +100,7 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
       : `${gioPhut(y.created_at)} · ${vay && sao?.hetSao ? "hết sao, muốn chơi tiếp" : "con đang chờ"}${mayNgan ? ` · ${mayNgan}` : ""}`;
   const no = vay && sao && !xinMoKhoa ? cauNo(sao) : null;
   // icon theo bàn: xin mở khoá máy «sach», app / web «web», xin vay «dongho» (them-1mnk3mjz)
-  const ic: TenIcon = xinMoKhoa ? "sach" : y.loai === "mo_web" ? "web" : y.loai === "cai_app" ? icCuaApp(tenYc(y) ?? "") : vay ? "dongho" : "chuong";
+  const ic: TenIcon = xinMoKhoa ? "sach" : y.loai === "mo_web" ? "web" : y.loai === "cai_app" ? icCuaApp(`${tenYc(y) ?? ""} ${y.gia_tri ?? ""}`) : vay ? "dongho" : "chuong";
   return (
     <View style={{ gap: 8, paddingVertical: 12, borderTopWidth: bo ? 1 : 0, borderTopColor: M.vien }}>
       {dangXin ? (
