@@ -12,11 +12,14 @@ import { saoTuMayChu, soSao, thuGio } from "@/lib/con-diu";
 import { BONG_D, D } from "@/lib/diu";
 import { Icon3D } from "@/lib/ui";
 import { ChaoDau, ThePhut, TheSao, diGio } from "@/lib/man-con";
-import { ChuD, ChoD, DongD, ManD, MatMangD, PillD, TheD } from "@/lib/ui-diu";
+import { ChuD, ChoD, DongD, ManD, MatMangD, NutD, PillD, TheD } from "@/lib/ui-diu";
 import { useTaiTre, useTre } from "@/lib/ui-tre";
 import { dongGioiHanTre } from "@/lib/gioi-han";
 
 const MOT_NGAY = 86_400_000;
+
+// #422: «Xin thêm app / web» ngay dưới «Xin Ba Mẹ cho vay sao» (con-dt-xin 08-them-us1kc173) — cả Theo danh sách lẫn Mở hết
+const XIN_THEM = { chu: "Xin thêm app / web", bam: () => router.push("/tre/xin-phep?them=app") };
 
 export default function Nha() {
   const { ten } = useTre();
@@ -59,9 +62,10 @@ export default function Nha() {
             </View>
           </View>
           <ChuD co={14} mau={D.chu2}>Ba Mẹ để mở hết: app, web dùng tự do, chơi không trừ sao.</ChuD>
+          <NutD chu={XIN_THEM.chu} ic="cong" loai="phu" bam={XIN_THEM.bam} nho />
         </TheD>
       ) : (
-        <ThePhut s={s} bam={() => diGio(s.hetSao)} nut={{ chu: "Xin Ba Mẹ cho vay sao", bam: () => router.push("/tre/them-gio") }} />
+        <ThePhut s={s} bam={() => diGio(s.hetSao)} nut={{ chu: "Xin Ba Mẹ cho vay sao", bam: () => router.push("/tre/them-gio") }} nut2={XIN_THEM} />
       )}
       {!s.khoa && !moHet && gh ? <DongD ic={nha.gioiHan?.lyDoKhoa ? "dong_ho_cat" : "dongho"} tieu={gh.tieu} phu={gh.phu} /> : null}
       <TheSao sao={s.sao} no={s.no} choThem={nha.diemChoDuyet || undefined} nhan={moHet ? "Sao để đổi quà" : "Sao của con"}

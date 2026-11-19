@@ -17,6 +17,7 @@ import type { YeuCauMoi } from "./hang-ngay";
 import { cauNo, saoTu, soVN, VienSao, type KqVay, type SaoCon } from "./so-sao";
 import { Chu, gioPhut, HaiNut, M, Nut, type TenIcon } from "./ui";
 import { OLomIcon } from "./ui-viec";
+import { icCuaApp } from "./ui-bm3";
 
 export const LY_DO_KHONG = "Ba Mẹ chưa cho lúc này";
 export const LY_DO_MO_KHOA = "Ba Mẹ đã mở khoá máy · chơi vẫn trừ sao";
@@ -33,7 +34,7 @@ export const mucXin = (y: Pick<YeuCauMoi, "loai" | "gia_tri" | "pham_vi">) => (l
 export function tieuXin(y: Pick<YeuCauMoi, "loai" | "phut" | "gia_tri" | "pham_vi"> & { muc_dich?: string | null }) {
   if (laVay(y)) return `Xin Ba Mẹ cho vay ${soVN(y.phut ?? 15)} sao${y.muc_dich === "qua" ? " để đổi quà" : ""}`;
   if (y.loai === "cai_app") return `Xin thêm ${y.gia_tri ?? "app mới"}`;
-  if (y.loai === "mo_web") return `Xin thêm ${y.gia_tri ?? "trang web"}`;
+  if (y.loai === "mo_web") return y.gia_tri ? `Xin mở trang ${y.gia_tri}` : "Xin mở trang web";   // #422: lời xin web ghi rõ là trang
   return y.gia_tri ?? "Xin Ba Mẹ";
 }
 
@@ -93,13 +94,13 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
   const vay = laVay(y), mayNgan = may ? may.replace(/ của .*$/, "") : null;
   const xinMoKhoa = vay && !!moKhoa && (y as YeuCauMoi & { muc_dich?: string | null }).muc_dich !== "qua";
   // Trang chủ (bàn bm2-trang-chu@v35): lời xin app / web «Xin mở YouTube»
-  const tieu = xinMoKhoa ? "Xin mở khoá máy" : oIcon && laAppWeb(y) && y.gia_tri ? `Xin mở ${y.gia_tri}` : tieuXin(y as YeuCauMoi & { muc_dich?: string | null });
+  const tieu = xinMoKhoa ? "Xin mở khoá máy" : oIcon && y.loai === "cai_app" && y.gia_tri ? `Xin mở ${y.gia_tri}` : tieuXin(y as YeuCauMoi & { muc_dich?: string | null });
   const dong2 = xinMoKhoa ? `${gioPhut(y.created_at)} · chơi vẫn trừ sao`
     : laAppWeb(y) ? `${gioPhut(y.created_at)} · chưa có trong danh sách${mayNgan ? ` · ${mayNgan}` : ""}`
       : `${gioPhut(y.created_at)} · ${vay && sao?.hetSao ? "hết sao, muốn chơi tiếp" : "con đang chờ"}${mayNgan ? ` · ${mayNgan}` : ""}`;
   const no = vay && sao && !xinMoKhoa ? cauNo(sao) : null;
   // icon theo bàn: xin mở khoá máy «sach», app / web «web», xin vay «dongho» (them-1mnk3mjz)
-  const ic: TenIcon = xinMoKhoa ? "sach" : laAppWeb(y) ? "web" : vay ? "dongho" : "chuong";
+  const ic: TenIcon = xinMoKhoa ? "sach" : y.loai === "mo_web" ? "web" : y.loai === "cai_app" ? icCuaApp(y.gia_tri ?? "") : vay ? "dongho" : "chuong";
   return (
     <View style={{ gap: 8, paddingVertical: 12, borderTopWidth: bo ? 1 : 0, borderTopColor: M.vien }}>
       {dangXin ? (

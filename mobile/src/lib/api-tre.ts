@@ -103,15 +103,27 @@ export const taiKhoa = () => kid.goi<QuyCon>("quy").then((r) => !!r.quy?.khoa);
 /** Chế độ app & web của Con (kid/toi › cheDo — #262). Lỗi / máy chủ cũ ⇒ null (= Theo danh sách). */
 export const taiCheDo = () => kid.goi<ToiTre>("toi").then((r) => r.cheDo ?? null).catch(() => null);
 
-/** «Xin Ba Mẹ mở» app / web ngoài danh sách (= xin thêm vào danh sách): mã app thật / web ⇒ POST kid/xin-duyet; tên app gõ tay
- *  («Minecraft») ⇒ yeu-cau cai_app (xin-duyet hiểu tên trần là tên miền). Lỗi `qua_nhieu_cho` (≥ 3 lời chờ) ném ra
- *  cho màn gọi xử lý. Máy chủ cũ còn trả 409 `web_cam` ⇒ ném lại LoiApi cùng mã với câu thân thiện «Ba Mẹ chưa thêm X lúc này…»
- *  (màn hiện qua cauLoi, không cần tự bắt). */
-export async function guiXinMo(b: { loai: "mo_web" | "cai_app" | "khac"; muc: string; ten?: string; lyDo?: string }): Promise<{ id: string }> {
+/** «Xin Ba Mẹ mở» app / web ngoài danh sách (= xin thêm vào danh sách) ⇒ POST kid/xin-duyet. `kieu` (#422 «Xin thêm app / web»: thẻ «App trên
+ *  máy» / «Trang web») ⇒ máy chủ xếp đúng loại — tên app trần («Minecraft») vẫn là app, thẻ web phải là tên miền (sai ⇒ 400 `web_sai` kèm câu
+ *  hướng dẫn, màn hiện qua cauLoi). Không có `kieu` (màn chặn, lời xin cũ): mã app thật / web ⇒ xin-duyet; tên app gõ tay ⇒ yeu-cau cai_app
+ *  (máy chủ cũ hiểu tên trần là tên miền) — cũng là đường dự phòng khi máy chủ cũ trả lỗi cho lời xin có `kieu`. Lỗi `qua_nhieu_cho` (≥ 3 lời chờ)
+ *  ném ra cho màn gọi xử lý. Máy chủ cũ còn trả 409 `web_cam` ⇒ ném lại LoiApi cùng mã với câu thân thiện «Ba Mẹ chưa thêm X lúc này…». */
+export async function guiXinMo(b: { loai: "mo_web" | "cai_app" | "khac"; muc: string; ten?: string; lyDo?: string; kieu?: "app" | "web" }): Promise<{ id: string }> {
   const muc = b.muc.trim();
+  const theoYeuCau = () => kid.goi<{ id: string }>("yeu-cau", { loai: b.loai, giaTri: b.ten ?? muc, lyDo: b.lyDo ?? "" });
   try {
+    if (b.kieu) {
+      try {
+        return await kid.goi<{ id: string }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "", kieu: b.kieu });
+      } catch (e) {
+        const duPhong = b.kieu === "app" && !laMaApp(muc) && e instanceof LoiApi && [400, 404, 409, 422].includes(e.status)
+          && !["qua_nhieu_cho", "web_sai", "web_cam"].includes(e.ma);
+        if (duPhong) return await theoYeuCau();
+        throw e;
+      }
+    }
     if (b.loai === "mo_web" || (b.loai === "cai_app" && laMaApp(muc))) return await kid.goi<{ id: string }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "" });
-    return await kid.goi<{ id: string }>("yeu-cau", { loai: b.loai, giaTri: b.ten ?? muc, lyDo: b.lyDo ?? "" });
+    return await theoYeuCau();
   } catch (e) {
     if (e instanceof LoiApi && e.ma === "web_cam") throw new LoiApi(e.ma, `Ba Mẹ chưa thêm ${b.ten ?? muc} lúc này. Con xin lại sau được nhé`, e.status, e.them);
     throw e;
