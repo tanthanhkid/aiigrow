@@ -22,6 +22,8 @@ export const M = {
   lienKet: "#7a5a1f",
   // dấu sách trước tiêu đề mục: đồng kim (giữa dải vàng kim `MEN.vang`)
   dauSach: "#C9973B",
+  // icon tab đang chọn: vàng kim đồng (mẫu E `.tab div.on svg` #9C7428 — 3,4:1 trên kem lõm, đạt ngưỡng 3:1 cho hình đồ hoạ) — #417
+  kimIcon: "#9C7428",
   // số âm / nợ trên thẻ hero navy: cam san hô (8,8:1 trên #0A1629) — nợ vẫn phải trông như cảnh báo
   noHero: "#FF9B6B",
   // nút chính: viên navy (gradient #1b2b47 → #0A1629 ở MEN.toi)
@@ -55,7 +57,8 @@ export const BO = { nho: 12, vua: 18, the: 24 } as const;
 /** Be Vietnam Pro (17/11, thay Inter — bàn Navy #363). iOS gọi theo tên PostScript trong tệp font nhúng (BeVietnamPro-Regular…); Android theo tên tệp
  * trong assets/fonts (plugin expo-font); web theo tên @font-face mà useFonts đặt (phong-chu.web.ts). Cả ba trỏ cùng bốn tệp assets/fonts/BeVietnamPro_*.ttf. */
 export const F = Platform.OS === "ios"
-  ? ({ thuong: "BeVietnamPro-Regular", dam: "BeVietnamPro-SemiBold", rat: "BeVietnamPro-ExtraBold", den: "BeVietnamPro-ExtraBold", dam7: "BeVietnamPro-Bold", tieu: "Fraunces-SemiBold", tieu7: "Fraunces-Bold" } as const)
-  : ({ thuong: "BeVietnamPro_400Regular", dam: "BeVietnamPro_600SemiBold", rat: "BeVietnamPro_800ExtraBold", den: "BeVietnamPro_800ExtraBold", dam7: "BeVietnamPro_700Bold", tieu: "Fraunces_600SemiBold", tieu7: "Fraunces_700Bold" } as const);
-// `tieu` / `tieu7`: Fraunces 600 / 700 — CHỈ cho tiêu đề màn / mục, chữ cái avatar, số lớn ở thẻ hero («Ánh kim»); nút và tên dòng giữ Be Vietnam Pro.
+  ? ({ thuong: "BeVietnamPro-Regular", dam: "BeVietnamPro-SemiBold", rat: "BeVietnamPro-ExtraBold", den: "BeVietnamPro-ExtraBold", dam7: "BeVietnamPro-Bold", tieu: "BeVietnamPro-ExtraBold", tieu7: "BeVietnamPro-ExtraBold", logo: "Fraunces-SemiBold" } as const)
+  : ({ thuong: "BeVietnamPro_400Regular", dam: "BeVietnamPro_600SemiBold", rat: "BeVietnamPro_800ExtraBold", den: "BeVietnamPro_800ExtraBold", dam7: "BeVietnamPro_700Bold", tieu: "BeVietnamPro_800ExtraBold", tieu7: "BeVietnamPro_800ExtraBold", logo: "Fraunces_600SemiBold" } as const);
+// `tieu` / `tieu7`: tiêu đề màn / mục, chữ cái avatar, số lớn ở thẻ hero — Be Vietnam Pro ExtraBold theo bộ thương hiệu đã chốt (#417, thay Fraunces).
+// `logo`: Fraunces 600 — CHỈ cho chữ logo.
 // 14/11: chữ đậm 800 ở phần lớn chỗ (tiêu đề, tên dòng, nút, số) ⇒ `rat` = ExtraBold 800; `den` giữ tên riêng cho chỗ cố ý 800; `dam7` = Bold 700.

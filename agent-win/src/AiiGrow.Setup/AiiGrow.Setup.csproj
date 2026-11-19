@@ -22,7 +22,7 @@
     <!-- icon 3D + Rob của thiết kế chốt 05/11 (cùng tệp với khay) -->
     <EmbeddedResource Include="..\AiiGrow.Tray\Assets\icon3d\*.png" LogicalName="icon3d.%(Filename)%(Extension)" />
     <EmbeddedResource Include="..\AiiGrow.Tray\Assets\mascot\*.png" LogicalName="mascot.%(Filename)%(Extension)" />
-    <!-- phông E (Be Vietnam Pro + Fraunces SemiBold): PhongChu nạp từ tài nguyên «font.<tệp>» — thiếu thì rơi về Segoe UI (lỗi G1) -->
+    <!-- phông E (Be Vietnam Pro Regular/Bold/ExtraBold — #417): PhongChu nạp từ tài nguyên «font.<tệp>» — thiếu thì rơi về Segoe UI (lỗi G1) -->
     <EmbeddedResource Include="..\AiiGrow.Tray\Assets\fonts\*.ttf" LogicalName="font.%(Filename)%(Extension)" />
     <!-- icon cửa sổ bộ cài nạp đủ cỡ (16 nét ở thanh tiêu đề, 32 ở taskbar) -->
     <EmbeddedResource Include="..\AiiGrow.Tray\Assets\aiigrow-khay.ico" LogicalName="aiigrow.ico" />

@@ -53,16 +53,16 @@ enum ClayMau {
   static let bongNoi: Double = 0.28
 }
 
-// MARK: - Phông (Fraunces tiêu đề + Be Vietnam Pro chữ thường, OFL; thiếu thì về phông hệ thống)
+// MARK: - Phông (Be Vietnam Pro: ExtraBold tiêu đề — #417, Fraunces chỉ cho chữ logo — + Regular/Bold chữ thường, OFL; thiếu thì về phông hệ thống)
 
-/// Vai của chữ: chu = Be Vietnam Pro, tieuDe = Fraunces SemiBold, so = số đếm/đồng hồ (phông hệ thống tròn — có tnum nên .monospacedDigit() giữ bề ngang cố định).
+/// Vai của chữ: chu = Be Vietnam Pro, tieuDe = Be Vietnam Pro ExtraBold (#417), so = số đếm/đồng hồ (phông hệ thống tròn — có tnum nên .monospacedDigit() giữ bề ngang cố định).
 enum VaiTro { case chu, tieuDe, so }
 
 enum ClayFont {
   private static let moiLanDau: Void = {
     for d in thuMucTaiNguyen("Fonts") {
       var duoc = false
-      for ten in ["Fraunces-SemiBold", "BeVietnamPro-Regular", "BeVietnamPro-Bold"] {
+      for ten in ["BeVietnamPro-ExtraBold", "BeVietnamPro-Regular", "BeVietnamPro-Bold"] {
         let u = d.appendingPathComponent(ten + ".ttf")
         if FileManager.default.fileExists(atPath: u.path) { CTFontManagerRegisterFontsForURL(u as CFURL, .process, nil); duoc = true }
       }
@@ -75,7 +75,7 @@ enum ClayFont {
     if design == .monospaced { return .system(size: size, weight: weight, design: .monospaced) }
     switch vai {
     case .so: return .system(size: size, weight: weight, design: .rounded)
-    case .tieuDe: return .custom("Fraunces-SemiBold", size: size)
+    case .tieuDe: return .custom("BeVietnamPro-ExtraBold", size: size * 0.95)   // ExtraBold rộng hơn Fraunces ~5% ⇒ ×0,95 giữ bề ngang tiêu đề như cũ
     case .chu:
       let dam: [Font.Weight] = [.semibold, .bold, .heavy, .black]    // ultraLight/thin/light/regular/medium ⇒ Regular
       return .custom(dam.contains(weight) ? "BeVietnamPro-Bold" : "BeVietnamPro-Regular", size: size)

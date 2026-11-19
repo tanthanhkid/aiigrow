@@ -1102,22 +1102,24 @@ internal static class ONhapClay
 }
 
 /// <summary>
-/// Phông chữ phong cách E «Ánh kim»: Be Vietnam Pro (chữ thường + đậm) và Fraunces SemiBold (tiêu đề, số to) — OFL, nhúng trong exe
+/// Phông chữ phong cách E «Ánh kim»: Be Vietnam Pro (chữ thường + đậm) và Be Vietnam Pro ExtraBold (tiêu đề, số to — #417: bộ thương hiệu chốt,
+/// Fraunces chỉ cho chữ logo) — OFL, nhúng trong exe
 /// (Assets/fonts, LogicalName «font.&lt;tệp&gt;»). Nạp MỘT lần cho cả GDI+ (PrivateFontCollection: DrawString của nút Clay) lẫn GDI
 /// (AddFontMemResourceEx: Label / TextRenderer tìm phông theo tên). Thiếu tài nguyên (bộ cài không nhúng) hoặc lỗi ⇒ Segoe UI như trước.
 /// Cỡ chữ nhân hệ số để bề ngang dòng chữ xấp xỉ Segoe UI cùng cỡ (đo bằng fontTools trên câu tiếng Việt mẫu) — bố cục, chỗ rớt dòng giữ như cũ.
 /// </summary>
 internal static class PhongChu
 {
-    /// <summary>Chữ từ cỡ này trở lên (tiêu đề, số to, chữ cái avatar — mọi kiểu Regular/Bold) dùng Fraunces SemiBold.</summary>
+    /// <summary>Chữ từ cỡ này trở lên (tiêu đề, số to, chữ cái avatar — mọi kiểu Regular/Bold) dùng Be Vietnam Pro ExtraBold.</summary>
     public const float NguongTieuDe = 15f;
-    /// <summary>Kiểu Regular chỉ thành Fraunces từ cỡ này (tiêu đề to xin Regular); chữ phụ 15–19pt vẫn là Be Vietnam Pro.</summary>
+    /// <summary>Kiểu Regular chỉ thành chữ tiêu đề từ cỡ này (tiêu đề to xin Regular); chữ phụ 15–19pt vẫn là Be Vietnam Pro.</summary>
     public const float NguongTieuDeThuong = 20f;
-    private const float HeSoThan = 0.92f, HeSoTieuDe = 0.95f;
+    // HeSoTieuDe: ExtraBold rộng hơn Fraunces ~5% (đo hmtx câu tiếng Việt mẫu) ⇒ 0,90 để bề ngang tiêu đề như bản Fraunces 0,95 — chỗ rớt dòng giữ như cũ
+    private const float HeSoThan = 0.92f, HeSoTieuDe = 0.90f;
 
     private static readonly object _khoa = new();
     private static bool _daNap;
-    private static readonly List<PrivateFontCollection> _boPhu = new();   // bộ nạp lại Fraunces — giữ sống cùng _bo
+    private static readonly List<PrivateFontCollection> _boPhu = new();   // bộ nạp lại phông tiêu đề — giữ sống cùng _bo
     private static PrivateFontCollection? _bo;   // giữ sống suốt tiến trình (Font tham chiếu FontFamily của nó)
     private static FontFamily? _than, _tieuDe;
     private static FontStyle _kieuTieuDe = FontStyle.Regular;
@@ -1146,7 +1148,7 @@ internal static class PhongChu
         {
             var bo = new PrivateFontCollection();
             var asm = typeof(PhongChu).Assembly;
-            foreach (var tep in new[] { "BeVietnamPro-Regular.ttf", "BeVietnamPro-Bold.ttf", "Fraunces-SemiBold.ttf" })
+            foreach (var tep in new[] { "BeVietnamPro-Regular.ttf", "BeVietnamPro-Bold.ttf", "BeVietnamPro-ExtraBold.ttf" })
             {
                 using var st = asm.GetManifestResourceStream("font." + tep);
                 if (st == null) continue;
@@ -1164,24 +1166,24 @@ internal static class PhongChu
             {
                 var co = string.Join("/", new[] { FontStyle.Regular, FontStyle.Bold }.Where(f.IsStyleAvailable));
                 _moTa.Append($"«{f.Name}» {co}; ");
-                // tên họ GDI+ đặt có thể là «Fraunces SemiBold» (nameID 1) hoặc «Fraunces» (nameID 16) ⇒ so theo tiền tố
-                if (f.Name.StartsWith("Be Vietnam Pro", StringComparison.OrdinalIgnoreCase) && f.IsStyleAvailable(FontStyle.Regular) && f.IsStyleAvailable(FontStyle.Bold)) _than = f;
-                else if (f.Name.StartsWith("Fraunces", StringComparison.OrdinalIgnoreCase))
+                // tệp ExtraBold mang họ «Be Vietnam Pro ExtraBold» (nameID 1) kiểu Regular ⇒ nhận theo chữ «ExtraBold» TRƯỚC khi xét họ chữ thân
+                if (f.Name.IndexOf("ExtraBold", StringComparison.OrdinalIgnoreCase) >= 0)
                 {
-                    // tệp SemiBold 600 nằm dưới họ «Fraunces SemiBold…» với kiểu Regular (hoặc Bold): lấy kiểu nào họ có, không bỏ sót họ chỉ có kiểu lạ
+                    // lấy kiểu nào họ có (thường là Regular), không bỏ sót họ chỉ có kiểu lạ
                     foreach (var k in new[] { FontStyle.Regular, FontStyle.Bold, FontStyle.Italic, FontStyle.Bold | FontStyle.Italic })
                         if (f.IsStyleAvailable(k)) { _tieuDe = f; _kieuTieuDe = k; break; }
                 }
+                else if (f.Name.StartsWith("Be Vietnam Pro", StringComparison.OrdinalIgnoreCase) && f.IsStyleAvailable(FontStyle.Regular) && f.IsStyleAvailable(FontStyle.Bold)) _than = f;
             }
             _bo = bo;
-            // Nạp Fraunces chập chờn (chup-man: ~1 trong 2 lần chạy GDI+ không liệt kê họ Fraunces dù AddMemoryFont không lỗi) ⇒ thử lại
+            // Nạp phông tiêu đề chập chờn (chup-man: ~1 trong 2 lần chạy GDI+ không liệt kê họ dù AddMemoryFont không lỗi) ⇒ thử lại
             // bằng bộ sưu tập mới + nạp từ tệp tạm; vẫn không được thì ghi log rồi dùng Be Vietnam Pro đậm như trước
             for (int lan = 1; _tieuDe == null && lan <= 3; lan++)
             {
                 try
                 {
-                    var tep = Path.Combine(Path.GetTempPath(), $"AiiGrow-Fraunces-{lan}.ttf");
-                    using (var st = asm.GetManifestResourceStream("font.Fraunces-SemiBold.ttf"))
+                    var tep = Path.Combine(Path.GetTempPath(), $"AiiGrow-BeVietnamPro-ExtraBold-{lan}.ttf");
+                    using (var st = asm.GetManifestResourceStream("font.BeVietnamPro-ExtraBold.ttf"))
                     {
                         if (st == null) break;
                         if (!File.Exists(tep) || new FileInfo(tep).Length != st.Length)
@@ -1195,13 +1197,13 @@ internal static class PhongChu
                     _boPhu.Add(b2);
                     foreach (var f in b2.Families)
                     {
-                        if (!f.Name.StartsWith("Fraunces", StringComparison.OrdinalIgnoreCase)) continue;
+                        if (f.Name.IndexOf("ExtraBold", StringComparison.OrdinalIgnoreCase) < 0) continue;
                         foreach (var k in new[] { FontStyle.Regular, FontStyle.Bold })
                             if (f.IsStyleAvailable(k)) { _tieuDe = f; _kieuTieuDe = k; break; }
                     }
-                    _moTa.Append($"[Fraunces: nạp lại lần {lan} {(_tieuDe != null ? "được" : "chưa được")}] ");
+                    _moTa.Append($"[ExtraBold: nạp lại lần {lan} {(_tieuDe != null ? "được" : "chưa được")}] ");
                 }
-                catch (Exception e) { _moTa.Append($"[Fraunces: nạp lại lần {lan} lỗi {e.Message}] "); }
+                catch (Exception e) { _moTa.Append($"[ExtraBold: nạp lại lần {lan} lỗi {e.Message}] "); }
             }
         }
         catch (Exception e) { Debug.WriteLine(e); _moTa.Append("lỗi nạp: " + e.Message); _than = _tieuDe = null; }
@@ -1213,10 +1215,10 @@ internal static class PhongChu
         Nap();
         try
         {
-            // G1: tiêu đề/số to là Fraunces 600 DÙ xin kiểu Regular hay Bold (trước chỉ Bold ⇒ tiêu đề Regular rơi về chữ thân/Arial)
+            // G1: tiêu đề/số to là Be Vietnam Pro ExtraBold DÙ xin kiểu Regular hay Bold (trước chỉ Bold ⇒ tiêu đề Regular rơi về chữ thân/Arial)
             if (_tieuDe != null && ((st & FontStyle.Bold) != 0 ? pt >= NguongTieuDe : pt >= NguongTieuDeThuong))
             {
-                var kieu = (st & ~(FontStyle.Bold | FontStyle.Italic)) | _kieuTieuDe;   // tệp đã là SemiBold 600: xin đúng kiểu GDI+ ghi cho nó, không đậm giả
+                var kieu = (st & ~(FontStyle.Bold | FontStyle.Italic)) | _kieuTieuDe;   // tệp đã là ExtraBold 800: xin đúng kiểu GDI+ ghi cho nó, không đậm giả
                 if (_tieuDe.IsStyleAvailable(kieu)) return new Font(_tieuDe, pt * HeSoTieuDe, kieu);
             }
             if (_than != null && _than.IsStyleAvailable(st)) return new Font(_than, pt * HeSoThan, st);
@@ -1227,7 +1229,7 @@ internal static class PhongChu
 }
 
 /// <summary>
-/// Hộp thoại phong cách E thay <c>MessageBox</c> hệ thống (nền trắng, nút xám, icon Windows): nền kem, tiêu đề Fraunces, chữ navy,
+/// Hộp thoại phong cách E thay <c>MessageBox</c> hệ thống (nền trắng, nút xám, icon Windows): nền kem, tiêu đề Be Vietnam Pro ExtraBold, chữ navy,
 /// nút vàng kim (chính) / nút nổi kem. Một dòng gọi như MessageBox: <c>HopThoai.Hien(nội dung, tiêu đề, hoi: true)</c> ⇒ Yes/No; không ⇒ OK.
 /// </summary>
 internal static class HopThoai

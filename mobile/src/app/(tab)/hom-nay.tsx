@@ -1,8 +1,8 @@
 // «Hôm nay» — Trang chủ Ba Mẹ (thiết kế chốt 14/11: bm-hang-ngay/14 «Trang chủ gọn: để ý + App & web», 02 «máy đang khoá», 04 «máy con mất mạng»,
 // 13/03 nhà nhiều con — luật N8 docs/KE-HOACH-KHOP-THIET-KE-1411.md: Trang chủ KHÔNG lặp tab):
 //  1. Thẻ con: đang làm gì (chip → máy) · SỐ SAO (15/11 #263–#266, lib/so-sao: «⭐ 30 sao» · «còn 10 sao = 10 phút chơi» + «Đang nợ Ba Mẹ 20 sao» ·
-//     «⭐ −20 sao» + «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước ›» → Ví sao) · «Khoá máy» / «Cho vay sao» (bảng them-6wjhze1d / them-y1r1eidm).
-//     Máy đang khoá (them-0kwhgpq6): «Laptop, iPad đã khoá» · «Mở lại lúc HH:MM» · «Đang khoá · còn N sao = N phút ›» · «Mở khoá ngay» / «Đổi giờ».
+//     «⭐ −20 sao» + «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước ›» → Ví sao) · «Khoá máy» rộng hết thẻ (#421 — cho vay chỉ ở thẻ «Con xin vay … sao»).
+//     Máy đang khoá (them-0kwhgpq6): «Laptop, iPad đã khoá» · «Mở lại lúc HH:MM» · «Đang khoá · còn N sao = N phút ›» · «Mở khoá ngay» rộng hết thẻ (#421).
 //     Dải avatar: viên sao dưới tên mỗi con (âm = viên cảnh báo). Bỏ vạch quỹ phút, «Giờ dùng máy» (bm2-gio đã bỏ).
 //  2. «Cần Ba Mẹ để ý N» — CHỈ 1 mục gấp nhất + «Tất cả ›» (→ Thông báo): máy mất mạng (+ «Lấy mã mở máy») › lời xin của con (Không cho / Cho vay N sao;
 //     máy đang khoá ⇒ «Xin mở khoá máy · chơi vẫn trừ sao» Không cho / Mở khoá)
@@ -28,15 +28,15 @@ import {
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
 import { mayCuaCon } from "@/lib/may-nhieu-con";
-import { BangChoVay, kieuSao, saoTu, SoSaoLon, soVN, thamSoXongVay, VienSao } from "@/lib/so-sao";
+import { kieuSao, saoTu, SoSaoLon, soVN, VienSao } from "@/lib/so-sao";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { icDung, nhanDung, type HomNayDung } from "@/lib/da-dung";
 import { type MucCanDeY } from "@/lib/s3";
-import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, gioPhut, Icon3D, M, Man, Nhan, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, gioPhut, IconNet, LogoTron, M, Man, Nhan, Nut, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 import { HERO } from "@/lib/clay";
 
-// Grow ở thẻ đầu (bàn .rob: phải 2, trên 6, cao 112): cỡ + lệch phải. Chữ chừa = phần Grow nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
-const ROB_CO = 100, ROB_PHAI = -6, ROB_TREN = 6, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
+// Logo tròn vàng kim ở thẻ đầu (mẫu E `.rob`: phải 14, trên 14 — #417 thay Grow 3D): cỡ + lệch phải. Chữ chừa = phần logo nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
+const ROB_CO = 84, ROB_PHAI = 12, ROB_TREN = 12, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
 // máy khoá: nhãn «Laptop, iPad đã khoá» (cao 32) + khoảng 10 trên khối tiêu đề; không khoá: khối tiêu đề ở ngay lề trên thẻ (16)
 const NHAN_CAO = 32;
 /** nền thẻ lời xin (bàn .de-y) */
@@ -132,7 +132,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const qy = useTai(() => bm.goi<QuyCon>(`con/${conId}/quy`));
   // «<Con> đã dùng gì hôm nay» — máy chủ cũ chưa có con/:id/hom-nay ⇒ bỏ mục
   const hn = useTai(() => bm.goi<HomNayDung>(`con/${conId}/hom-nay`).catch(() => null));
-  const [bang, setBang] = useState<"khoa" | "vay" | null>(null);
+  const [bang, setBang] = useState<"khoa" | null>(null);
   const { lam, loi, dangChay } = useLam();
   const tai = () => { ct.tai(); qy.tai(); hn.tai(); taiLai(); };
 
@@ -202,12 +202,12 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
       {/* bàn Navy 17/11 (bm2-trang-chu v36 / them-0kwhgpq6 .gio): thẻ hero navy cả khi máy khoá, chữ trắng, dòng nhấn vàng mật, dấu sách vàng mép trên */}
       <The hero style={{ overflow: "visible" }}>
         <View style={{ position: "absolute", left: 24, top: 0 }} pointerEvents="none"><DauSach mau={HERO.phu} rong={16} cao={22} /></View>
-        <View style={{ position: "absolute", right: ROB_PHAI, top: ROB_TREN }} pointerEvents="none"><Rob ten={khoa ? "ngu" : "chi"} co={ROB_CO} /></View>
+        <View style={{ position: "absolute", right: ROB_PHAI, top: ROB_TREN }} pointerEvents="none"><LogoTron co={ROB_CO} /></View>
         {/* máy khoá: nhãn trắng «Laptop, iPad đã khoá» (bàn .nhan — không bấm) */}
         {khoa ? (
           <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, minHeight: NHAN_CAO, paddingLeft: 8, paddingRight: 12, borderRadius: 16,
             backgroundColor: "rgba(255,255,255,0.12)", maxWidth: "70%", marginRight: CHUA_ROB - 40 }}>
-            <Icon3D ten="khoa" co={18} mau={HERO.chu} />
+            <IconNet ten="khoa" co={17} mau={HERO.chu} />
             <Chu kieu="rat" co={13.5} dong={1} mau={HERO.chu} style={{ flexShrink: 1 }}>{nhanKhoa}</Chu>
           </View>
         ) : null}
@@ -217,21 +217,16 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           {tieuLon ? <Chu kieu="tieu7" co={26} so mau={HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} toi />}
         </View>
         {phuSao ? (
-          <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, paddingVertical: 6, paddingRight: 8, justifyContent: "center", alignSelf: "stretch", minWidth: 0 }}>
+          // #417: dòng phụ («Hết sao · con xin Ba Mẹ cho vay khi cần ›») chừa chỗ logo bên phải — không chạy dưới logo
+          <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, paddingVertical: 6, paddingRight: 8, marginRight: CHUA_ROB - 8, justifyContent: "center", alignSelf: "stretch", minWidth: 0 }}>
             <Chu kieu="dam" co={14} mau={khoa ? HERO.chu : HERO.phu} style={{ flexShrink: 1, minWidth: 0 }}>{phuSao}</Chu>
           </Pressable>
         ) : null}
-        {/* 2 nút chia đều bề ngang; máy hẹp (320) không đủ 2 × 140 ⇒ xuống hàng, mỗi nút một dòng chữ (cổng NUT-2-DONG). Nhãn + icon 3D theo thiết kế 14/11 */}
-        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
-          {/* bàn .hd: grid 1.2fr 1fr — nút chính rộng hơn («Mở khoá ngay» một dòng); khổ hẹp không đủ 168 + 140 ⇒ xuống hàng */}
-          <View style={{ flexGrow: 1.2, flexBasis: 168 }}>
-            {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d sat rong loai="vang" toi dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
-              : <Nut chu="Khoá máy" ic="khoa" ic3d sat rong loai="vang" toi nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
-          </View>
-          <View style={{ flexGrow: 1, flexBasis: 140 }}>
-            {khoa ? <Nut chu="Đổi giờ" ic="dongho" ic3d sat rong loai="vien" tat={!ct.d} bam={() => setBang("khoa")} />
-              : <Nut chu="Cho vay sao" ic="sao" ic3d sat rong loai="vien" nhanDoc={`Cho ${c.ten} vay sao`} bam={() => setBang("vay")} />}
-          </View>
+        {/* #421 (bàn bm2-trang-chu v36): một nút rộng hết thẻ — «Khoá máy», máy đang khoá thì «Mở khoá ngay».
+            Cho vay sao chỉ còn ở thẻ «Con xin vay … sao»; đổi giờ khoá qua dòng «Đang khoá · còn N sao ›» → Máy của con. */}
+        <View style={{ marginTop: 8 }}>
+          {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d sat rong motDong loai="vang" toi dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
+            : <Nut chu="Khoá máy" ic="khoa" ic3d sat rong motDong loai="vang" toi nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
         </View>
         <BaoLoi loi={loi ?? ct.loi ?? qy.loi} />
       </The>
@@ -301,9 +296,6 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
 
       <BangKhoaMay mo={bang === "khoa"} dong={() => setBang(null)} con={conId} ten={c.ten} may={may} dang={dangTheoMay}
         xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
-      {/* «Cho vay sao» (them-6wjhze1d) ⇒ màn «Đã cho <Con> vay N sao» (them-3wp5ty1o) có Hoàn tác */}
-      <BangChoVay mo={bang === "vay"} dong={() => setBang(null)} con={conId} ten={c.ten}
-        xong={(k) => { tai(); router.push({ pathname: "/yeu-cau/xong", params: thamSoXongVay({ ...k, ten: c.ten, con: conId }) } as never); }} />
     </>
   );
 });

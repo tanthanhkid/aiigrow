@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { bm } from "./api";
 import { BONG, HERO } from "./clay";
-import { BangTruot, BaoLoi, Chu, Icon3D, M, Nut, useLam } from "./ui";
+import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Nut, useLam } from "./ui";
 
 /** Trạng thái sao của một Con (máy chủ so-sao.ts › TrangThaiSao + tổng vay / đã trả). */
 export type SaoCon = {
@@ -85,8 +85,9 @@ export function SoSaoLon({ s, co = 26, bamNo, toi }: { s: SaoCon; co?: number; b
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: m.nen,
           boxShadow: toi ? undefined : k === "am" ? "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(138,60,12,.18)" : "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(110,67,0,.16)" }}
           accessible accessibilityLabel={soChinh(s)}>
-          <Icon3D ten="sao" co={co} />
-          {/* «Ánh kim»: số sao đúc Fraunces; trên hero navy là vàng (mẫu E `.am`) */}
+          {/* #417: trên hero navy là ★ phẳng vàng kim cùng màu số (mẫu E `.am svg.st`), không còn sao 3D */}
+          {toi ? <Icon ten="sao" co={Math.round(co * 0.9)} mau={k === "am" ? M.noHero : HERO.phu} /> : <Icon3D ten="sao" co={co} />}
+          {/* «Ánh kim»: số sao đúc Be Vietnam Pro ExtraBold; trên hero navy là vàng (mẫu E `.am`) */}
           <Chu kieu="tieu7" co={co} mau={toi ? (k === "am" ? M.noHero : HERO.phu) : m.chu} so style={{ letterSpacing: -1 }}>{soChinh(s)}</Chu>
         </View>
       )}

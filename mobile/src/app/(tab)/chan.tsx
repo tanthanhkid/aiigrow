@@ -12,10 +12,10 @@ import { BONG, KHOI, MEN, HERO, KHOI_HERO } from "@/lib/clay";
 import { HangBoQua, icCuaApp, lucNgan } from "@/lib/ui-bm3";
 import { HangXin, icMuc } from "@/lib/ds-con";
 import { cheDoTu, doiCheDo as ghiCheDo, hangCua, IC_CHE_DO, MAU_NHOM, napDanhSach, TEN_CHE_DO, TEN_NHOM, type CheDo, type DanhSach, type DongDs, type Nhom } from "@/lib/app-web";
-import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, Icon, Icon3D, M, Man, NhanMen, Rob, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, Icon, IconNet, LogoTron, M, Man, NhanMen, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
-// Grow ở thẻ chế độ: cỡ + lệch phải; tên chế độ (25px) chừa phần Grow nằm trong thẻ − lề 16 (khổ 320 đè — cổng DE-ANH)
-const ROB_CO = 104, ROB_PHAI = -4, CHUA_ROB = ROB_CO + ROB_PHAI - 16;
+// Logo tròn vàng kim ở thẻ chế độ (#417): cỡ + lệch phải; tên chế độ (25px) chừa phần logo nằm trong thẻ − lề 16 (khổ 320 đè — cổng DE-ANH)
+const ROB_CO = 84, ROB_PHAI = 14, CHUA_ROB = ROB_CO + ROB_PHAI - 16;
 const TIEU = "App & web";
 
 export default function TabChan() {
@@ -71,10 +71,11 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
         <View style={{ borderRadius: 34, overflow: "hidden", ...KHOI_HERO }}>
           <View style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
             <View pointerEvents="none" style={{ position: "absolute", left: 24, top: 0 }}><DauSach mau={HERO.phu} rong={16} cao={22} /></View>
-            <View pointerEvents="none" style={{ position: "absolute", right: ROB_PHAI, top: 56 }}><Rob ten={moHet ? "nghi" : "chi"} co={ROB_CO} /></View>
+            {/* #417: logo tròn vàng kim (mẫu E `.rob`) thay Grow 3D */}
+            <View pointerEvents="none" style={{ position: "absolute", right: ROB_PHAI, top: 40 }}><LogoTron co={ROB_CO} /></View>
             <Chu kieu="dam7" co={13} mau={HERO.phu} style={{ marginTop: 10 }}>{`Máy của ${ten} đang ở chế độ`}</Chu>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginRight: CHUA_ROB }} accessibilityRole="header">
-              <Icon3D ten={IC_CHE_DO[cheDo]} co={32} />
+              <IconNet ten={IC_CHE_DO[cheDo]} co={30} mau={HERO.phu} />
               <Chu kieu="rat" co={25} mau={HERO.chu} style={{ letterSpacing: -0.5, flexShrink: 1 }}>{TEN_CHE_DO[cheDo]}</Chu>
             </View>
             <View style={{ marginTop: 12, marginRight: 96, gap: 8 }}>
@@ -95,7 +96,7 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
                     accessibilityLabel={TEN_CHE_DO[k]} muc="chip" sang={on} men={on ? MEN.vang : undefined}
                     style={[{ flex: k === "mo_het" ? 1 : 1.25, minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 48, borderRadius: 20 },
                       on && { backgroundColor: M.diem, boxShadow: BONG.vang }]}>
-                    <View style={{ opacity: on ? 1 : 0.7 }}><Icon3D ten={IC_CHE_DO[k]} co={22} /></View>
+                    <IconNet ten={IC_CHE_DO[k]} co={21} mau={on ? M.chu : HERO.chu} />
                     <Chu kieu="rat" co={14.5} mau={on ? M.chu : HERO.chu} dong={1}>{TEN_CHE_DO[k]}</Chu>
                   </NhanMen>
                 );
@@ -135,7 +136,7 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
           </View>
           {moHet ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 6, marginBottom: 6, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 18, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
-              <Icon3D ten="dong_ho_cat" co={22} />
+              <IconNet ten="dong_ho_cat" co={21} />
               <Chu kieu="dam" co={13.5} mau={M.chu2} style={{ flex: 1 }}>Đang tạm nghỉ, vẫn giữ nguyên. Bật «Theo danh sách» là dùng tiếp.</Chu>
             </View>
           ) : null}
@@ -181,7 +182,7 @@ function HangIcon({ nhan, ds, web, trong, sua, bam }: { nhan: string; ds: DongDs
         {ds.length ? ds.slice(0, 4).map((h, i) => (
           <View key={i} style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
             boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3), inset 0px -4px 8px -4px rgba(40,44,42,0.12)" }}>
-            <Icon3D ten={ic(h)} co={24} />
+            <IconNet ten={ic(h)} co={22} />
             <View style={{ position: "absolute", right: -3, bottom: -3, width: 12, height: 12, borderRadius: 6, backgroundColor: MAU_NHOM[h.nhom], borderWidth: 2, borderColor: "#FFFBF5" }} />
           </View>
         )) : <Chu kieu="dam" co={13} mau={M.chu3}>{trong}</Chu>}

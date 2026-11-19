@@ -7,7 +7,7 @@ import { router } from "expo-router";
 import { bm } from "./api";
 import { MAU_NHOM, PHU_NHOM, TEN_NHOM, type Nhom } from "./app-web";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
-import { Bao, Chu, DauSach, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, type LinhVat, type TenIcon } from "./ui";
+import { Bao, Chu, DauSach, F, Icon, Icon3D, IconNet, M, Man, NhanMen, Nut, Rob, type LinhVat, type TenIcon } from "./ui";
 
 /** Tiêu đề một mục (.muc): chữ thường đậm 15, phải là liên kết nhỏ (vd «Xem từng app ›»). */
 export function MucTieu({ chu, phai }: { chu: string; phai?: { chu: string; bam: () => void } }) {
@@ -31,7 +31,7 @@ export function OIcon({ ic, anh, co = 42, nen = M.xamSoft }: { ic: TenIcon; anh?
   return (
     <View style={{ width: co, height: co, borderRadius: Math.round(co / 3), backgroundColor: nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
       {anh ? <Image source={{ uri: `data:image/png;base64,${anh}` }} style={{ width: co * 0.68, height: co * 0.68 }} resizeMode="contain" accessibilityIgnoresInvertColors />
-        : <Icon3D ten={ic} co={Math.round(co * 0.66)} />}
+        : <IconNet ten={ic} co={Math.round(co * 0.55)} />}
     </View>
   );
 }
@@ -115,7 +115,7 @@ export function HangBoQua({ so, bam }: { so: number; bam: () => void }) {
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`Đã bỏ qua ${so} lời xin, con xin lại được. Xem`}
       style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, paddingVertical: 4, paddingLeft: 14, paddingRight: 12, borderRadius: 22, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
-      <Icon3D ten="tro_lai" co={24} />
+      <IconNet ten="tro_lai" co={22} />
       <Chu kieu="dam" co={13} mau={M.chu2} style={{ flex: 1 }}><Chu kieu="rat" co={13}>{`Đã bỏ qua ${so} lời xin`}</Chu> · con xin lại được</Chu>
       <Chu kieu="rat" co={13} mau={M.chinhInk}>Xem ›</Chu>
     </Pressable>

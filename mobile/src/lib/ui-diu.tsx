@@ -1,5 +1,5 @@
 // Bộ thành phần phía Con trên điện thoại (bố cục bản «Dịu» L16, 06/11 `docs/thiet-ke-chot/con-dt-*`, kit-diu.css; chất liệu phong cách E «Ánh kim»
-// 18/11 #396 #397 — kem neumorphism, thẻ nổi bóng đôi, ô lõm, nút vàng kim chữ navy, tiêu đề Fraunces). Token ở diu.ts — không dùng token Clay của Ba Mẹ. Mỗi thành phần chép đúng một lớp của kit: .tl/.phu (chữ), .b (nút 52), .the (thẻ),
+// 18/11 #396 #397 — kem neumorphism, thẻ nổi bóng đôi, ô lõm, nút vàng kim chữ navy, tiêu đề Be Vietnam Pro ExtraBold). Token ở diu.ts — không dùng token Clay của Ba Mẹ. Mỗi thành phần chép đúng một lớp của kit: .tl/.phu (chữ), .b (nút 52), .the (thẻ),
 // .ic3 (ô icon 56), .vong (vòng giờ), .phim/.cham4 (bàn phím PIN), .pill/.hh2 (nhãn), thanh tab 4 mục, tấm trượt «Đổi bé / Đăng xuất».
 import React, { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
@@ -14,7 +14,7 @@ import { chuAvt } from "./con-diu";
 // ---------------------------------------------------------------- chữ
 
 type KieuD = "dam" | "rat" | "den";
-/** Chữ: `dam` Be Vietnam Pro 400 (thân), `rat` Be Vietnam Pro 700 (dòng tiêu, nút), `den` Fraunces 600 (tiêu đề màn, số to). */
+/** Chữ: `dam` Be Vietnam Pro 400 (thân), `rat` Be Vietnam Pro 700 (dòng tiêu, nút), `den` Be Vietnam Pro ExtraBold (tiêu đề màn, số to — #417). */
 export function ChuD({ children, kieu = "dam", co = 15, mau = D.chu, dong, giua, style, so }: {
   children: ReactNode; kieu?: KieuD; co?: number; mau?: string; dong?: number; giua?: boolean; style?: StyleProp<TextStyle>; so?: boolean;
 }) {
@@ -23,7 +23,7 @@ export function ChuD({ children, kieu = "dam", co = 15, mau = D.chu, dong, giua,
       giua && { textAlign: "center" }, so && { fontVariant: ["tabular-nums"] }, style]}>{children}</Text>
   );
 }
-/** Tiêu đề màn (.tl 26, `nho` 22 — Fraunces 600). */
+/** Tiêu đề màn (.tl 26, `nho` 22 — Be Vietnam Pro ExtraBold). */
 export const TieuD = ({ chu, nho, giua, mau }: { chu: string; nho?: boolean; giua?: boolean; mau?: string }) => (
   <ChuD kieu="den" co={nho ? 22 : 26} giua={giua} mau={mau} style={{ letterSpacing: -0.3 }}>{chu}</ChuD>
 );
@@ -150,7 +150,7 @@ export const ChipD = ({ chu, ic, bam }: { chu: string; ic?: TenIcon; bam?: () =>
 
 // ---------------------------------------------------------------- avatar, chip tên «Bảo Anh ▾»
 
-/** Avatar chữ cái đầu (.av) «Ánh kim» — như `Avt` Ba Mẹ (#400) / Mac / Android: MỌI bé nền navy, chữ cái Fraunces vàng (11,4:1), vòng vàng mảnh #D9AE57
+/** Avatar chữ cái đầu (.av) «Ánh kim» — như `Avt` Ba Mẹ (#400) / Mac / Android: MỌI bé nền navy, chữ cái Be Vietnam Pro ExtraBold vàng (11,4:1), vòng vàng mảnh #D9AE57
  *  (`chon` = vòng dày hơn), nổi bóng đôi. `i` giữ trong chữ ký cho chỗ gọi cũ (không còn đổi màu theo bé). */
 export const AvtD = ({ ten, co = 96, chu, chon }: { ten: string; i?: number; co?: number; chu?: string; chon?: boolean }) => (
   <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: D.dem, alignItems: "center", justifyContent: "center",
@@ -205,7 +205,7 @@ export function TamTruot({ mo, dong, nhan, children }: { mo: boolean; dong: () =
 
 // ---------------------------------------------------------------- vòng giờ, thanh tiến độ
 
-/** Vòng giờ (.vong): rãnh kem sẫm + cung đồng kim, số Fraunces to ở giữa («18» / «phút»). `toi` = nền navy. */
+/** Vòng giờ (.vong): rãnh kem sẫm + cung đồng kim, số Be Vietnam Pro ExtraBold to ở giữa («18» / «phút»). `toi` = nền navy. */
 export function VongD({ ti, so, don, co = 112, day = 12, toi }: { ti: number; so: string; don?: string; co?: number; day?: number; toi?: boolean }) {
   const r = co / 2 - day / 2, c = co / 2, cv = 2 * Math.PI * r, t = Math.min(1, Math.max(0, ti || 0));
   return (
@@ -271,7 +271,7 @@ export function BanPhim({ go, xoa, tat, nho }: { go: (k: string) => void; xoa: (
   );
 }
 
-/** Bước đánh số (1 · 2 · 3) của màn hướng dẫn: số Fraunces trong viên kem lõm + tiêu + phụ. */
+/** Bước đánh số (1 · 2 · 3) của màn hướng dẫn: số Be Vietnam Pro ExtraBold trong viên kem lõm + tiêu + phụ. */
 export const BuocD = ({ n, tieu, phu, cuoi }: { n: number; tieu: string; phu?: string; cuoi?: boolean }) => (
   <View style={{ flexDirection: "row", gap: 12, alignItems: "flex-start", paddingBottom: cuoi ? 0 : 4 }}>
     <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: D.xanhN, alignItems: "center", justifyContent: "center", boxShadow: BONG_D.lom }}>

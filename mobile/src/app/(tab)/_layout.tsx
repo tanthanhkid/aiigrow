@@ -7,7 +7,7 @@ import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { BottomTabBarProps } from "expo-router/tabs";
 import { bm } from "@/lib/api";
-import { F, Icon3D, M, NhanMen, napTruoc, type TenIcon } from "@/lib/ui";
+import { F, IconNet, M, NhanMen, napTruoc, type TenIcon } from "@/lib/ui";
 import { KHOA_CA_NHA, napCaNha } from "@/lib/ca-nha";
 import { KHOA_NV_TAB, napNvTab } from "@/lib/nv-tab";
 import { useBat, useKhiTang } from "@/lib/chuyen-dong";
@@ -42,7 +42,7 @@ function useChuyenTab(ds: string[], dang: number, giam: boolean) {
 }
 
 // Bàn Navy 17/11 (bm2-trang-chu v36 .tab): thanh PHẲNG sát đáy cao 84 (6 trên · 24 dưới), nền trắng, viền trên 1px #efe7dd + bóng mờ navy lên trên;
-// icon 3D 24 (Fluent — nha · sao · khien · lich · nguoi), chưa chọn mờ 45%; chữ 11 đậm 600 #5a5a5a. Tab đang chọn: VIÊN KEM ôm icon (lề 3×16, bo 15,
+// icon NÉT 24 (Phosphor Regular — nha · sao · khien · lich · nguoi; #417 thay icon 3D), chưa chọn navy, đang chọn vàng kim; chữ 11 đậm 600 #5a5a5a. Tab đang chọn: VIÊN KEM ôm icon (lề 3×16, bo 15,
 // bóng lõm nhẹ) + chữ navy ExtraBold — KHÔNG có dấu sách vàng. Số đỏ chờ duyệt / lời xin giữ hành vi cũ, màu theo huy hiệu cam chữ navy.
 const MUC: Record<string, { ic: TenIcon; chu: string }> = {
   "hom-nay": { ic: "nha", chu: "Hôm nay" }, "diem-qua": { ic: "sao", chu: "Việc & quà" }, chan: { ic: "khien", chu: "App & web" }, "bao-cao": { ic: "lich", chu: "Báo cáo" },     // thiết kế 05/11: Chờ duyệt không còn là tab (route ẩn /cho-duyet)
@@ -79,9 +79,10 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
             accessibilityLabel={r.name === "diem-qua" && so ? `${m.chu}, ${so} việc chờ duyệt` : r.name === "hom-nay" && soXin ? `${m.chu}, ${soXin} lời xin` : m.chu}
             style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 54, minWidth: 0 }}>
             {/* viên kem ôm icon khi đang chọn (bàn .tab .on img: nền #F2EBE3, lề 3×16, bo 15, bóng lõm) */}
-            <View style={{ paddingVertical: 3, paddingHorizontal: 16, borderRadius: 15, opacity: dang ? 1 : 0.45,
+            {/* #417 (mẫu E `.tab`): icon NÉT — chưa chọn navy, đang chọn vàng kim trong viên lõm */}
+            <View style={{ paddingVertical: 3, paddingHorizontal: 16, borderRadius: 15,
               backgroundColor: dang ? M.nen : "transparent", boxShadow: dang ? BONG.lom : undefined }}>
-              <Icon3D ten={m.ic} co={24} />
+              <IconNet ten={m.ic} co={24} mau={dang ? M.kimIcon : M.chu} />
             </View>
             <Text numberOfLines={1} style={{ fontFamily: dang ? F.den : F.dam, fontSize: 11, lineHeight: 15, color: dang ? M.chu : M.chu3 }}>{m.chu}</Text>
             {soDo ? (
