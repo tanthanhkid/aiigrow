@@ -39,7 +39,9 @@ const viec = async (con: string) => (await q<{ ten: string; bat: boolean }>(`sel
 const khoiDau = async (con: string) => (await one<{ s: number }>(`select coalesce(sum(delta), 0)::int as s from points where child_id = $1 and loai = 'khoi_dau'`, [con]))!.s;
 
 test("GET chep-tu: liệt kê Con khác trong nhà + tóm tắt (chế độ, số app/web, Tính phút, số việc, nhóm việc)", async () => {
-  const { tok, a, b } = await nha();
+  const { fam, tok, a, b } = await nha();
+  assert.equal((await m(tok, "nhiem-vu", { ten: "Việc chung cả nhà", diem: 5 })).status, 200);       // việc chung không tính vào «Sẽ chép»
+  await q(`insert into app_rules(family_id, child_id, muc, ten, loai) values ($1, $2, 'roblox2.exe', 'Roblox', 'giai_tri')`, [fam, a]);   // trùng tên app
   const r = await m(tok, `con/${b}/chep-tu`);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(r.body.ds.length, 1);
@@ -53,6 +55,7 @@ test("GET chep-tu: liệt kê Con khác trong nhà + tóm tắt (chế độ, s�
   assert.equal(x.soViec, 2);
   assert.deepEqual(x.nhomViec, ["hoc_tap", "van_dong"]);
   assert.ok(x.tinhPhut.includes("Roblox") && x.tinhPhut.includes("youtube.com"), JSON.stringify(x.tinhPhut));
+  assert.equal(new Set(x.tinhPhut).size, x.tinhPhut.length, "không trùng tên");
   assert.equal(x.saoKhoiDau, 40);
 });
 
@@ -71,6 +74,8 @@ test("POST chep-tu: chép chế độ, app/web (giữ nhóm Tính phút), app th
   assert.ok(!(await luat(fam, b)).includes("minecraft.exe:giai_tri"), "luật cũ của Con đích bị thay");
   assert.deepEqual((await q<{ ten: string; tinh_gio: boolean }>(`select ten, tinh_gio from app_theo_ten where child_id = $1`, [b])).map((x) => [x.ten, x.tinh_gio]), [["Vẽ Tranh", false]]);
   assert.deepEqual((await viec(b)).map((x) => x.ten), ["Nhảy dây", "Đọc sách 15 phút"].sort());
+  const thuTu = async (con: string) => (await q<{ ten: string }>(`select ten from tasks where giao_cho = $1 and bat order by created_at, id`, [con])).map((x) => x.ten);
+  assert.deepEqual(await thuTu(b), await thuTu(a), "việc chép giữ đúng thứ tự như Con nguồn");
   assert.equal(await khoiDau(b), 40);
   const cfg = (await one<{ cau_hinh: Record<string, unknown>; che_do_chan: string }>(`select cau_hinh, che_do_chan from children where id = $1`, [b]))!;
   assert.equal(cfg.cau_hinh.khoa_ngay, "2026-11-19", "khoá máy của Con đích không bị chép đè");
