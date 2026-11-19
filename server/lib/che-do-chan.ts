@@ -141,22 +141,34 @@ export async function khopAppTheoTen(may: Pick<May, "id" | "family_id" | "child_
  *  (lib/yeu-cau.ts). Lý do không bắt buộc. Đã có lời xin chờ cho đúng mục ⇒ trả lời xin đó (bấm lại không gửi trùng). Bị bỏ qua thì xin lại được.
  *  → { id, trang_thai: "cho", daCo, loai, muc }. */
 export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unknown; ten?: unknown; lyDo?: unknown; kieu?: unknown }) {
-  const muc = chuanMuc(b.muc);
-  if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên app hoặc trang web");
-  // #422 «Xin thêm app / web» (Hôm nay, menu khay): Con chọn thẻ «App trên máy» / «Trang web» ⇒ `kieu` quyết loại lời xin — tên app trần
-  // («Minecraft», app iPhone theo tên) vẫn là app; thẻ Trang web phải là địa chỉ có tên miền. Không gửi `kieu` (màn chặn, agent cũ) ⇒ tự đoán như cũ.
-  const kieu = b.kieu === "web" || b.kieu === "app" ? b.kieu : kieuMuc(muc);
-  if (b.kieu === "web" && !laTenMien(muc)) throw new LoiNghiepVu("web_sai", "Gõ địa chỉ trang web, ví dụ scratch.mit.edu");
-  const loai = kieu === "web" ? "mo_web" : "cai_app";
-  const co = await one<{ id: string }>(`select id from requests where child_id = $1 and gia_tri = $2 and loai = $3 and trang_thai = 'cho' and het_han > now()
-                                        order by created_at desc limit 1`, [con, muc, loai]);
-  if (co) return { id: co.id, trang_thai: "cho", daCo: true, loai, muc };
+  // #422 «Xin thêm app / web» (Hôm nay, menu khay): Con chọn thẻ «App trên máy» / «Trang web» ⇒ `kieu` quyết loại lời xin. Không gửi `kieu`
+  // (màn chặn, agent cũ) ⇒ tự đoán như cũ.
+  if (b.kieu !== undefined && b.kieu !== null && b.kieu !== "app" && b.kieu !== "web") throw new LoiNghiepVu("kieu_sai", "Chọn App trên máy hoặc Trang web");
+  let muc: string, loai: "mo_web" | "cai_app";
+  if (b.kieu === "web") {
+    // thẻ Trang web: địa chỉ có / không có https://, đuôi ?… #… :cổng ⇒ tên miền; tên gói app (com.roblox.client) không phải trang web
+    const tho = String(b.muc ?? "").trim();
+    const mien = tenMienSach(/^[a-z]+:\/\//i.test(tho) ? tho : tho.split(/[/?#]/)[0].replace(/:\d+$/, ""));
+    if (!mien || kieuMuc(mien) !== "web") throw new LoiNghiepVu("web_sai", "Gõ địa chỉ trang web, ví dụ scratch.mit.edu");
+    [muc, loai] = [mien, "mo_web"];
+  } else {
+    muc = chuanMuc(b.muc);
+    if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên app hoặc trang web");
+    loai = b.kieu === "app" || kieuMuc(muc) === "app" ? "cai_app" : "mo_web";
+    // thẻ App, tên trần («Minecraft», app iPhone theo tên): chưa có định danh thật ⇒ giữ TÊN (hoa thường như Con thấy) — Ba Mẹ đồng ý thì
+    // thêm app theo tên (datAppChoPhep: khớp app thật máy đã báo / chờ khớp), không ghi luật lên một «tên miền» giả
+    if (loai === "cai_app" && kieuMuc(muc) !== "app") muc = String(b.ten ?? b.muc).trim().slice(0, 60) || muc;
+  }
+  // một mục chỉ một lời xin chờ (dù Con xin ở thẻ App hay thẻ Web)
+  const co = await one<{ id: string; loai: string }>(`select id, loai from requests where child_id = $1 and lower(gia_tri) = lower($2) and loai in ('mo_web', 'cai_app')
+                                        and trang_thai = 'cho' and het_han > now() order by created_at desc limit 1`, [con, muc]);
+  if (co) return { id: co.id, trang_thai: "cho", daCo: true, loai: co.loai, muc };
   const r = await guiYeuCau(con, mayId, { loai, giaTri: muc, lyDo: b.lyDo ?? "" });
   return { ...r, daCo: false, loai, muc };
 }
 
-/** Tên miền hợp lệ cho lời xin web (#422): có ít nhất một dấu chấm, đuôi ≥ 2 chữ cái, không phải tệp app (.exe / .app). */
-export const laTenMien = (muc: string) => /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(muc) && !/\.(exe|app)$/.test(muc);
+/** Lời xin app theo TÊN (#422 — không phải .exe / .app / tên gói): Ba Mẹ đồng ý ⇒ thêm app theo tên thay vì luật trên mục giả. */
+export const laAppTheoTen = (r: { loai: string; gia_tri: string | null }) => r.loai === "cai_app" && !!r.gia_tri && kieuMuc(chuanMuc(r.gia_tri)) !== "app";
 
 // ---------------------------------------------------------------- Danh sách của Con (#262 — màn «App & web», «App của <Con>», «Web của <Con>»)
 

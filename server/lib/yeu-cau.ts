@@ -14,6 +14,7 @@ import { khoaCon } from "./vi.ts";
 import { allowlistHieuLuc, chuanMuc, datLuat, dsLuat, phanLoaiTu } from "./luat-app.ts";
 import { loaiTuNhom, nhanNhom, nhomTuLoai, type NhomDs } from "./chan-co-ban.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
+import { kieuMuc } from "./chinh-sach.ts";
 import { choVay, trangThaiSao, VAY_TOI_DA, xemTruocVay, type MucDichVay } from "./so-sao.ts";
 
 export const LOAI_YC = ["vay_sao", "them_gio", "mo_web", "cai_app", "ngoai_le", "ngoai_gio", "khac"] as const;
@@ -41,7 +42,9 @@ export async function guiYeuCau(con: string, mayId: string | null,
   if (soSao !== null && !(soSao >= 1 && soSao <= VAY_TOI_DA)) throw new LoiNghiepVu("so_sao_sai", `Số sao xin vay từ 1 đến ${VAY_TOI_DA} (thường 10, 15, 30 sao)`);
   const mucDich: MucDichVay | null = laVay ? (b.mucDich === "qua" || (loai === "vay_sao" && b.quaId) ? "qua" : "choi") : null;
   // giá trị: web / app ⇒ tên miền / app chuẩn hoá · xin vay đổi quà ⇒ id quà · còn lại (lời xin cũ) ⇒ chữ tự do để hiển thị
-  const giaTri = loai === "mo_web" || loai === "cai_app" ? chuanMuc(b.giaTri)
+  // app theo TÊN (#422, «Minecraft» — không .exe / .app / tên gói) giữ hoa thường như Con gõ / chọn để Ba Mẹ đọc đúng tên
+  const giaTri = loai === "mo_web" ? chuanMuc(b.giaTri)
+    : loai === "cai_app" ? (kieuMuc(chuanMuc(b.giaTri)) === "app" ? chuanMuc(b.giaTri) : String(b.giaTri ?? "").trim().slice(0, 60))
     : mucDich === "qua" ? String(b.quaId ?? b.giaTri ?? "").trim().slice(0, 40) || null
     : String(b.giaTri ?? "").trim().slice(0, 200) || null;
   if ((loai === "mo_web" || loai === "cai_app") && !giaTri) throw new LoiNghiepVu("thieu_gia_tri", loai === "mo_web" ? "Dán đường link website" : "Ghi tên ứng dụng");
@@ -160,6 +163,12 @@ const tenNguoi = async (t: Q, id: string | null) => (id ? (await t<{ ten: string
 /** Lời xin app / web ⇒ luật LÂU DÀI của Con, nhóm `nhom`. Tên hiển thị: trang web = tên miền; app = tên thật máy báo (app_may) nếu có. */
 async function themMucDanhSach(t: Q, fam: string, r: { child_id: string; loai: string; gia_tri: string | null }, nhom: NhomDs) {
   if (!r.gia_tri) throw new LoiNghiepVu("thieu_gia_tri", "Lời xin không có tên app / trang web", 409);
+  const cd = await import("./che-do-chan.ts");      // nạp lúc chạy — che-do-chan.ts đã import file này
+  if (cd.laAppTheoTen(r)) {
+    // #422: app theo tên ⇒ khớp app thật máy của Con đã báo, chưa thấy thì chờ khớp (app_theo_ten) — như Ba Mẹ «Thêm app khác»
+    await cd.datAppChoPhep(fam, r.child_id, [{ ten: r.gia_tri, nhom }], undefined, t, false);
+    return;
+  }
   const ten = r.loai === "cai_app"
     ? (await t<{ ten: string }>(`select a.ten from app_may a join devices d on d.id = a.device_id where d.family_id = $1 and lower(a.muc) = $2
          order by a.thay_luc desc limit 1`, [fam, r.gia_tri.toLowerCase()]))[0]?.ten ?? r.gia_tri
