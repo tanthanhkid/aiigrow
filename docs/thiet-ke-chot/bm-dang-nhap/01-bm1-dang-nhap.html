@@ -33,6 +33,35 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 .mxh{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .mxh span{height:54px;border-radius:28px;background:#F2EBE3;box-shadow:var(--clay);display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:800;white-space:nowrap}
 .mxh svg{width:22px;height:22px}
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);--kimsh:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+
+html,body,.app{background:var(--n)!important}
+.app::before{display:none!important}
+body{color:#0A1629}
+.hero{background:var(--n)!important;box-shadow:var(--shL)!important}
+.hero::before{display:none!important}
+.bong{background:var(--n)!important;box-shadow:var(--sh)!important}
+.bong::after{background:var(--n)!important}
+.bong p{color:#5b5248!important}
+.nhan em{color:#7c7166!important}
+.lom{background:var(--n)!important;box-shadow:var(--sunk)!important}
+.lom input{color:#0A1629}
+.mat svg{fill:#7c7166!important}
+.nut{background:var(--kim)!important;color:#0A1629!important;font-weight:700!important;border-radius:16px!important;box-shadow:var(--kimsh)!important}
+.nut::before{display:none!important}
+.nut.phu{background:var(--n)!important;box-shadow:var(--sh)!important}
+.ghi{color:#7c7166!important}
+.lk{color:#8a6a2b!important;font-weight:600!important}
+
+.san{background:var(--n)!important;box-shadow:var(--shL)!important}
+.san::before{display:none!important}
+.san p{color:#5b5248!important}
+.lk{color:#8a6a2b!important;font-weight:600!important}
+.hoi{color:#0A1629}
+.hoac{color:#7c7166!important}
+.hoac::before,.hoac::after{background:rgba(120,98,70,.25)!important;height:2px;box-shadow:1px 1px 0 var(--hi)}
+.mxh span{background:var(--n)!important;box-shadow:var(--sh)!important;font-weight:700!important}
+.mat svg{fill:#7c7166!important}
 </style></head>
 <body data-lk-sua=""><div class="app">
 <div class="top">

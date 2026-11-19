@@ -28,17 +28,40 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 .nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;font:800 17px 'Be Vietnam Pro',sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 14px 20px -10px rgba(10,22,41,.55),0 4px 8px -4px rgba(10,22,41,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
 .nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
 .nut span{position:relative}
-.gh{margin-top:10px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;background:#0A1629;color:#fff;font-size:15px;font-weight:800;box-shadow:0 8px 14px -8px rgba(10,82,70,.6),inset 0 1.5px 0 rgba(255,255,255,.35),inset 0 -4px 8px -3px rgba(0,0,0,.25)}</style></head>
+.gh{margin-top:10px;height:48px;border-radius:24px;display:flex;align-items:center;justify-content:center;background:#0A1629;color:#fff;font-size:15px;font-weight:800;box-shadow:0 8px 14px -8px rgba(10,82,70,.6),inset 0 1.5px 0 rgba(255,255,255,.35),inset 0 -4px 8px -3px rgba(0,0,0,.25)}:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);--kimsh:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+
+html,body,.app{background:var(--n)!important}
+.app::before{display:none!important}
+.dau{background:#0A1629!important;box-shadow:0 0 0 5px var(--n),var(--sh)!important}
+.dau svg{fill:#F4C76A!important}
+.chu p{color:#5b5248!important}
+.ds{background:var(--n)!important;box-shadow:var(--shL)!important}
+.r+.r{border-top:2px solid rgba(120,98,70,.18)!important}
+.r .ic{border-radius:50%!important;background:var(--n)!important;box-shadow:var(--sunk)!important;color:#0A1629}
+.r .ic svg{width:22px;height:22px}
+.r .v{background:#0A1629!important}.r .v svg{fill:#F4C76A!important}
+.tu{background:var(--n)!important;box-shadow:var(--shL)!important}
+.tu .t svg{width:24px;height:24px;color:#0A1629}
+.bao{background:var(--n)!important;box-shadow:var(--sunk)!important}
+.bao .av{background:#0A1629!important;color:#F4C76A!important}
+.bao .k{background:var(--n)!important;color:#0A1629!important;box-shadow:var(--sh)}
+.bao .c{background:#0A1629!important;color:#F4C76A!important}
+.gh{background:var(--n)!important;color:#0A1629!important;box-shadow:var(--sh)!important;border-radius:16px!important;font-weight:700!important}
+.day .nut{background:var(--kim)!important;color:#0A1629!important;font-weight:700!important;border-radius:16px!important;box-shadow:var(--kimsh)!important}
+.nut::before{display:none!important}
+.lk{color:#8a6a2b!important;font-weight:600!important}
+.lk svg{fill:#8a6a2b!important}
+</style></head>
 <body><div class="app">
 <div class="hero"><img class="rob" src="/assets/rob/xong.webp" alt=""><span class="dau"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
 <div class="chu"><h1>Xong rồi!</h1><p>Bảo Anh đã có việc và luật chơi bằng sao.</p></div>
 <div class="ds" aria-label="Những gì đã cài cho Bảo Anh">
-<div class="r"><span class="ic"><img src="/assets/icon3d/khien.webp" alt=""></span><p>Theo danh sách · 6 app</p><span class="v"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
-<div class="r"><span class="ic"><img src="/assets/icon3d/dongho.webp" alt=""></span><p>Chơi bằng sao · 1 sao = 1 phút</p><span class="v"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
-<div class="r"><span class="ic"><img src="/assets/icon3d/sao.webp" alt=""></span><p>5 việc mỗi ngày</p><span class="v"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
+<div class="r"><span class="ic"><svg class="sv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"></path><path d="M9 12l2 2 4-4"></path></svg></span><p>Theo danh sách · 6 app</p><span class="v"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
+<div class="r"><span class="ic"><svg class="sv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l3 2M5 4L3 6M19 4l2 2"></path></svg></span><p>Chơi bằng sao · 1 sao = 1 phút</p><span class="v"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
+<div class="r"><span class="ic"><svg class="sv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9 6.8 19.7l1-5.9L3.5 9.7l5.9-.8z"></path></svg></span><p>5 việc mỗi ngày</p><span class="v"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span></div>
 </div>
 <div class="tu" aria-label="Chưa có máy nào">
-<p class="t"><img src="/assets/icon3d/may_tinh.webp" alt="">Chưa có máy nào</p>
+<p class="t"><svg class="sv" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="2"></rect><path d="M2 20h20"></path></svg>Chưa có máy nào</p>
 <div class="bao"><p style="white-space:normal">Grow chỉ trông được khi máy của Bảo Anh đã ghép</p></div>
 <div class="gh" role="button" tabindex="0" data-toi="bm1-ob-ghep">Ghép máy cho Bảo Anh</div>
 </div>
