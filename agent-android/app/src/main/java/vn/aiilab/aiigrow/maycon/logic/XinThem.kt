@@ -21,7 +21,8 @@ fun chuanDiaChiWeb(s: String): String? {
     t = t.replaceFirst(Regex("^[a-z][a-z0-9+.-]*://"), "")
     t = t.substringBefore('/').substringBefore('?').substringBefore('#')
     t = t.substringAfterLast('@').substringBefore(':').trimEnd('.')
-    if (t.startsWith("www.")) t = t.removePrefix("www.")
+    t = try { java.net.IDN.toASCII(t, java.net.IDN.ALLOW_UNASSIGNED).lowercase() } catch (_: Exception) { return null }   // «thư-viện.vn» ⇒ punycode
+    if (t.startsWith("www.") && t.count { it == '.' } >= 2) t = t.removePrefix("www.")
     if (t.length > 253) return null
     val nhan = t.split('.')
     if (nhan.size < 2 || nhan.any { !NHAN_MIEN.matches(it) } || !DUOI_MIEN.matches(nhan.last())) return null

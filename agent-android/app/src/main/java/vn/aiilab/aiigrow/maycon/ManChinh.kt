@@ -86,7 +86,7 @@ class ManChinh : Activity() {
         val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai"
         // 15/11: có sổ sao / Ba Mẹ khoá ⇒ thẻ xin khác (cho vay sao / xin mở máy) — dựng lại khi đổi
         val htV = if (k.daGhep) HienThi.doc(k.hienThi) else null
-        val appDiem = if (htV != null) "${chiNgoaiLe(htV.trangThai)}${htV.coSao}${htV.coSao && htV.trangThai == TrangThai.KHOA_NGAY.name}" else ""
+        val appDiem = if (htV != null) "${chiNgoaiLe(htV.trangThai)}${htV.coSao}${htV.trangThai == TrangThai.KHOA_NGAY.name}" else ""
         // 06/11 L13: cổng PIN (bé đang dùng / Ba Mẹ dùng) đổi ⇒ dựng lại (chip tên, màn Ba Mẹ)
         val anhCong = PinMay.anh(k)   // đọc Kho một lần mỗi lần vẽ
         val cong = if (k.daGhep) anhCong.cong else Cong.MO
@@ -232,8 +232,8 @@ class ManChinh : Activity() {
         theXin = x
         if (coSao) { dungTheVay(x, ht0!!); goc.addView(x) }
         // #422 (con-dt-xin 08-them-us1kc173): «Xin thêm app / web» ngay dưới «Xin Ba Mẹ cho vay sao» — cả Mở hết lẫn Theo danh sách; Ba Mẹ khoá máy thì không
-        if (!(coSao && ht0?.trangThai == TrangThai.KHOA_NGAY.name)) {   // cùng khoá dựng lại `appDiem`
-            val nutThem = G.nut(this, "Xin thêm app / web", phu = true) { HopXinThem(this).hien() }
+        if (ht0?.trangThai != TrangThai.KHOA_NGAY.name) {   // `appDiem` có cờ KHOA_NGAY ⇒ dựng lại khi Ba Mẹ khoá / mở
+            val nutThem = G.nut(this, "Xin thêm app / web", phu = true) { if (hopXin?.dangHien != true) hopXin = HopXinThem(this).also { it.hien() } }
             if (coSao) x.addView(nutThem) else goc.addView(G.the(this).apply { addView(nutThem.apply { (layoutParams as LinearLayout.LayoutParams).topMargin = 0 }) })
         }
 
@@ -244,6 +244,9 @@ class ManChinh : Activity() {
         goc.addView(d)
     }
     private var theXin: View? = null
+    private var hopXin: HopXinThem? = null
+
+    override fun onDestroy() { hopXin?.huy(); hopXin = null; super.onDestroy() }
 
     /** 15/11 «Xin Ba Mẹ cho vay sao» (#263, cdt-ios-xin-them cùng mẫu): 10 / 15 / 30 sao, «= 15 phút chơi hoặc đổi quà · con sẽ nợ 15 sao». */
     private fun dungTheVay(x: LinearLayout, ht: HienThi) {

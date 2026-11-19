@@ -126,12 +126,17 @@ class HopXinThem(private val c: Context) {
         d.window?.setGravity(Gravity.BOTTOM)
         d.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         @Suppress("DEPRECATION") d.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
-        d.setOnDismissListener { gen++; luong?.interrupt(); luong = null }
+        d.setOnDismissListener { if (kq?.loai == LoaiKetQuaXin.DA_THEM) DichVuNhip.lamMoi(c); dungHoi() }
         doiThe(KieuXin.APP)
         napApp()
     }
 
     fun hien() = d.show()
+    val dangHien: Boolean get() = d.isShowing
+
+    /** Activity bị huỷ: dừng vòng hỏi kết quả, đóng hộp (không giữ Activity). */
+    fun huy() { dungHoi(); try { d.dismiss() } catch (_: Exception) {} }
+    private fun dungHoi() { gen++; luong?.interrupt(); luong = null }
 
     private fun doiThe(k: KieuXin) {
         kieu = k
@@ -168,7 +173,6 @@ class HopXinThem(private val c: Context) {
         choApp.visibility = if (ds.isEmpty()) View.VISIBLE else View.GONE
         if (ds.isEmpty()) choApp.text = "Chưa đọc được app trên máy. Con thử thẻ «Trang web» nhé."
         luoi.removeAllViews(); o1.clear()
-        val rong = (c.resources.displayMetrics.widthPixels - Diu.dp(c, 40 + 32)) / 3
         for ((a, icon) in ds) {
             val o = LinearLayout(c).apply {
                 orientation = LinearLayout.VERTICAL; gravity = Gravity.CENTER_HORIZONTAL
@@ -178,7 +182,7 @@ class HopXinThem(private val c: Context) {
                     LinearLayout.LayoutParams(Diu.dp(c, 44), Diu.dp(c, 44)))
                 addView(Diu.chu(c, a.ten, 13f, Diu.CHU).apply { gravity = Gravity.CENTER; maxLines = 2; ellipsize = android.text.TextUtils.TruncateAt.END; setPadding(0, Diu.dp(c, 4), 0, 0) })
                 setOnClickListener { appChon = a; veChon(); veNut() }
-                layoutParams = GridLayout.LayoutParams().apply { width = rong; setMargins(0, Diu.dp(c, 4), 0, Diu.dp(c, 4)) }
+                layoutParams = GridLayout.LayoutParams(GridLayout.spec(GridLayout.UNDEFINED), GridLayout.spec(GridLayout.UNDEFINED, 1f)).apply { width = 0; setMargins(0, Diu.dp(c, 4), 0, Diu.dp(c, 4)) }
             }
             o1.add(a to o); luoi.addView(o)
         }
@@ -211,8 +215,8 @@ class HopXinThem(private val c: Context) {
         luong = Thread {
             val r = DichVuNhip.xinDuyet(ctx, muc, ten, nhan, k)
             if (r.id == null) {
-                // chế độ thử: không có id nhưng vẫn coi như đã gửi
-                h.post { if (g == gen) { if (Kho(ctx).cheDoThu) hienKq(ten, KetQuaXinApp(LoaiKetQuaXin.CHO, null)) else { bao.text = r.cau; bao.visibility = View.VISIBLE; veNut() } } }
+                // đã gửi mà không có id (chế độ thử / máy chủ không trả id) ⇒ màn «Đã gửi Ba Mẹ», không hỏi tiếp; chưa gửi ⇒ câu lỗi (web_sai, qua_nhieu_cho, mất mạng)
+                h.post { if (g == gen) { if (r.daGui) hienKq(ten, KetQuaXinApp(LoaiKetQuaXin.CHO, null), khongHoi = true) else { bao.text = r.cau; bao.visibility = View.VISIBLE; veNut() } } }
                 return@Thread
             }
             h.post { if (g == gen) hienKq(ten, KetQuaXinApp(LoaiKetQuaXin.CHO, null)) }
@@ -227,21 +231,23 @@ class HopXinThem(private val c: Context) {
         }.also { it.start() }
     }
 
-    private fun hienKq(ten: String, k: KetQuaXinApp) {
-        kq = k
+    private var khongHoiKq = false
+    private fun hienKq(ten: String, k: KetQuaXinApp, khongHoi: Boolean = false) {
+        kq = k; khongHoiKq = khongHoi
         val (tieu, phu, cau) = chuKetQuaXinApp(k, ten)
         kqTieu.text = tieu; kqTen.text = ten; kqPhu.text = phu; kqCau.text = cau
         kqTen.visibility = if (tieu.contains(ten)) View.GONE else View.VISIBLE
         val cho = k.loai == LoaiKetQuaXin.CHO
-        nutKq.text = if (cho) "Đang chờ Ba Mẹ…" else if (k.loai == LoaiKetQuaXin.DA_THEM) "Xong" else "Xin lại"
-        nutKq.isEnabled = !cho
+        nutKq.text = if (cho && !khongHoi) "Đang chờ Ba Mẹ…" else if (cho || k.loai == LoaiKetQuaXin.DA_THEM) "Xong" else "Xin lại"
+        nutKq.isEnabled = !cho || khongHoi
         bieuMau.visibility = View.GONE; ketQua.visibility = View.VISIBLE
     }
 
     private fun bamKetQua() {
         when (kq?.loai) {
-            LoaiKetQuaXin.DA_THEM -> { DichVuNhip.lamMoi(c); d.dismiss() }
-            LoaiKetQuaXin.CHO, null -> {}
+            LoaiKetQuaXin.DA_THEM -> d.dismiss()   // lamMoi trong OnDismiss
+            LoaiKetQuaXin.CHO -> if (khongHoiKq) d.dismiss()
+            null -> {}
             else -> { kq = null; gen++; ketQua.visibility = View.GONE; bieuMau.visibility = View.VISIBLE; veNut() }   // «Xin lại»
         }
     }

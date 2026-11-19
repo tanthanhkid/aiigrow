@@ -14,6 +14,8 @@ class XinThemTest {
         assertEquals("vnexpress.net", chuanDiaChiWeb("http://vnexpress.net:443/"))
         assertEquals("olm.vn", chuanDiaChiWeb("olm.vn."))
         assertEquals("xn--bcher-kva.example", chuanDiaChiWeb("xn--bcher-kva.example"))
+        assertEquals("xn--bcher-kva.example", chuanDiaChiWeb("Bücher.example"))
+        assertEquals("www.com", chuanDiaChiWeb("www.com"))
     }
 
     @Test fun diaChiWebSai() {
