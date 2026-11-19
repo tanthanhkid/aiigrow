@@ -1,0 +1,154 @@
+name: mobile-ios
+
+# Chạy app Ba Mẹ (Expo, mobile/) trên iOS Simulator trong GitHub Actions rồi Maestro rà lỗi (docs/CI-RA-LOI.md › mobile-ios).
+#   build  : expo prebuild ios + xcodebuild -sdk iphonesimulator (Release, không ký, không cần tài khoản Apple), API trỏ http://localhost:3310
+#   server : next dev + PGlite (macOS runner không có service container) + seed CI (server/lib/seed-ci.ts) — không dùng secret/khoá nào
+#   maestro: mobile/.maestro/ios/ (đăng nhập CI → các tab → màn con → thao tác chính, mỗi màn takeScreenshot). Crash / màn trắng / thiếu chữ chính ⇒ đỏ
+# iPad: app.json supportsTablet=false ⇒ iPad chỉ chạy chế độ phóng iPhone, không có giao diện riêng ⇒ chỉ chạy iPhone.
+on:
+  pull_request:
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/mobile-ios.yml'
+  workflow_dispatch:
+  workflow_call:   # dem.yml (chạy đêm trên main) gọi lại
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-ios-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  TZ: Asia/Ho_Chi_Minh
+  NEXT_TELEMETRY_DISABLED: '1'
+  EXPO_NO_TELEMETRY: '1'
+  MAESTRO_VERSION: '1.41.0'
+
+jobs:
+  ios:
+    name: ios (iPhone)
+    runs-on: macos-15
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
+
+      # ------------------------------------------------------------ máy chủ CI (PGlite + seed)
+      - name: server — cài
+        working-directory: server
+        run: |
+          rc=0; o="$(pnpm install --frozen-lockfile 2>&1)" || rc=$?
+          echo "$o" | tail -15
+          if [ $rc != 0 ] && grep -oE 'ERR_PNPM_[A-Z_]+' <<<"$o" | grep -vq '^ERR_PNPM_IGNORED_BUILDS$'; then exit 1; fi
+          rm -f pnpm-workspace.yaml
+          [ -d node_modules/next ] || { echo "pnpm install lỗi (thiếu node_modules/next)"; exit 1; }
+      - name: server — seed CI + chạy nền (cổng 3310)
+        working-directory: server
+        env:
+          PGLITE_DIR: ${{ runner.temp }}/pg-ci
+        run: |
+          set -o pipefail
+          AIIGROW_CI_LOGIN=1 SEED_CI_RA="$RUNNER_TEMP/seed-ci.json" node --import ./lib/test-fixtures/next-esm.mjs scripts/seed-ci.ts
+          mkdir -p "$GITHUB_WORKSPACE/bao-cao"
+          nohup pnpm exec next dev -p 3310 > "$GITHUB_WORKSPACE/bao-cao/server.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/server.pid"
+          for i in $(seq 60); do
+            c=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'content-type: application/json' \
+              -d '{"dinhDanh":"0900000001","matKhau":"aiigrow-ci-123"}' http://localhost:3310/api/m/dang-nhap || true)
+            [ "$c" = 200 ] && { echo "máy chủ CI sẵn sàng: đăng nhập seed 200"; break; }
+            echo "chờ máy chủ ($i) http=$c"; sleep 5
+          done
+          [ "$c" = 200 ] || { tail -40 "$GITHUB_WORKSPACE/bao-cao/server.log"; exit 1; }
+
+      # ------------------------------------------------------------ build app cho giả lập
+      - name: mobile — cài
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+      - name: mobile — expo prebuild ios
+        working-directory: mobile
+        env:
+          EXPO_PUBLIC_API: http://localhost:3310
+        run: npx expo prebuild --platform ios --no-install --clean 2>&1 | tail -30
+      - name: Pod install
+        working-directory: mobile/ios
+        run: pod install 2>&1 | tail -15
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: mobile/ios/build
+          key: ios-sim-${{ runner.os }}-${{ hashFiles('mobile/package-lock.json', 'mobile/app.json', 'mobile/app.config.ts') }}
+      - name: xcodebuild (Release, giả lập, không ký)
+        working-directory: mobile/ios
+        env:
+          EXPO_PUBLIC_API: http://localhost:3310
+        run: |
+          set -o pipefail
+          WS=$(ls -d *.xcworkspace | head -1); SCH="${WS%.xcworkspace}"
+          xcodebuild -workspace "$WS" -scheme "$SCH" -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            build 2>&1 | tee "$GITHUB_WORKSPACE/bao-cao/xcodebuild.log" | tail -n 25
+          APP=$(ls -d build/Build/Products/Release-iphonesimulator/*.app | head -1)
+          echo "APP=$PWD/$APP" >> "$GITHUB_ENV"
+
+      # ------------------------------------------------------------ giả lập + Maestro
+      - name: Chọn + mở giả lập iPhone
+        run: |
+          UDID=$(scripts/ci/chon-gia-lap.sh iPhone)
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl list devices | grep "$UDID"
+      - name: Cài Maestro
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          "$HOME/.maestro/bin/maestro" --version
+      - name: Maestro
+        run: |
+          R="$GITHUB_WORKSPACE/bao-cao"; mkdir -p "$R/anh"
+          xcrun simctl spawn "$UDID" log stream --style compact --predicate 'process == "AiiGrow"' > "$R/app-log.txt" 2>&1 &
+          LOGPID=$!
+          set +e
+          maestro --device "$UDID" test mobile/.maestro/ios \
+            --format junit --output "$R/maestro-junit.xml" --test-output-dir "$R/anh" --debug-output "$R/maestro-debug" 2>&1 | tee "$R/maestro.txt"
+          rc=${PIPESTATUS[0]}
+          kill $LOGPID 2>/dev/null
+          n=$(find "$R" -name '*.png' | wc -l)
+          {
+            echo "### Maestro iOS iPhone — mã thoát $rc · $n ảnh"
+            echo '```'; tail -40 "$R/maestro.txt"; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+      - name: Crash log của app (nếu có)
+        if: always()
+        run: |
+          mkdir -p bao-cao/crash
+          cp ~/Library/Logs/DiagnosticReports/*AiiGrow* bao-cao/crash/ 2>/dev/null || true
+          xcrun simctl io "$UDID" screenshot bao-cao/cuoi.png 2>/dev/null || true
+      - if: always()
+        run: kill "$(cat "$RUNNER_TEMP/server.pid")" 2>/dev/null || true
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-iphone
+          path: bao-cao
+          if-no-files-found: warn
+          retention-days: 14

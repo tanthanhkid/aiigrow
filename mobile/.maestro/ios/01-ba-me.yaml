@@ -1,0 +1,10 @@
+# Luồng Ba Mẹ trên iOS Simulator (máy chủ CI + seed-ci: Mẹ Lan 0900000001 / aiigrow-ci-123; docs/CI-RA-LOI.md).
+appId: vn.aiilab.aiigrow
+name: Ba Mẹ — đăng nhập, các tab, màn con
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+- assertVisible: "Tôi đã có tài khoản"
+- takeScreenshot: 01-chao
+- runFlow: buoc/dang-nhap.yaml

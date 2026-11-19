@@ -1,0 +1,16 @@
+appId: vn.aiilab.aiigrow
+---
+- tapOn: "Tôi đã có tài khoản"
+- assertVisible: "Chào Ba Mẹ!"
+- takeScreenshot: 02-dang-nhap
+- tapOn: "0912 345 678"
+- inputText: "0900000001"
+- tapOn: "Mật khẩu"
+- inputText: "aiigrow-ci-123"
+- takeScreenshot: 03-da-dien
+- hideKeyboard
+- tapOn: "Đăng nhập vào nhà mình"
+- extendedWaitUntil:
+    visible: "Hôm nay"
+    timeout: 60000
+- takeScreenshot: 04-hom-nay
