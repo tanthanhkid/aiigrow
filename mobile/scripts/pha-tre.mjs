@@ -404,6 +404,16 @@ await kichBan("#422 Hôm nay ⇒ «Xin thêm app / web»: thẻ App (tên trần
   await xet((await js("location.pathname")).startsWith("/tre/yeu-cau"), "gửi xong về màn kết quả (yeu-cau)");
   await xet(coGoi("xin-duyet", (b) => b.muc === "Minecraft" && b.kieu === "app"), "xin-duyet kieu=app, tên trần");
   await xet(!coGoi("yeu-cau", (b) => b.loai === "cai_app"), "không rẽ sang yeu-cau cai_app");
+  // máy chủ cũ bỏ qua kieu ⇒ tên trần thành lời xin web ⇒ huỷ lời xin nhầm, gửi yeu-cau cai_app
+  nhatKy.length = 0;
+  kb["POST xin-duyet"] = { id: "y7", trang_thai: "cho", daCo: false, loai: "mo_web", muc: "roblox" };
+  kb["POST yeu-cau/y7/huy"] = { ok: true };
+  await di("/tre/xin-phep?them=app");
+  await doi("App trên điện thoại");
+  await bam("Roblox");
+  await bam("Xin Ba Mẹ thêm Roblox");
+  for (let t = 0; t < 9000 && !coGoi("yeu-cau"); t += 250) await sleep(250);
+  await xet(coGoi("yeu-cau/y7/huy") && coGoi("yeu-cau", (b) => b.loai === "cai_app" && b.giaTri === "Roblox"), "máy chủ cũ ⇒ huỷ lời xin web nhầm + yeu-cau cai_app");
   nhatKy.length = 0;
   kb["POST xin-duyet"] = { status: 400, body: { error: "web_sai", message: "Gõ địa chỉ trang web, ví dụ scratch.mit.edu" } };
   await di("/tre/xin-phep?them=web");

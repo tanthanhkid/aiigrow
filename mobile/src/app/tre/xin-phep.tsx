@@ -5,7 +5,7 @@
 // `?them=app|web` (#422 «Xin thêm app / web» từ Hôm nay — con-dt-xin 09 them-pj2ra3jh / 10 them-euz1k35r): hộp 2 thẻ «App trên máy» (lưới app phổ
 // biến — điện thoại không đọc được app đã cài, máy chủ chưa có danh sách app của máy Con — + ô gõ tên app khác) / «Trang web» (ô «Địa chỉ trang web»),
 // ô lời nhắn, «Ba Mẹ sẽ chọn nhóm» + 2 chip (chỉ thông tin), «Xin Ba Mẹ thêm <app>» / «Xin Ba Mẹ mở trang này» ⇒ xin-duyet kèm `kieu` ⇒ màn kết quả yeu-cau.
-import { useState } from "react";
+import { useState, type ComponentProps } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { Pressable, TextInput, View } from "react-native";
 import { LoiApi } from "@/lib/api";
@@ -29,7 +29,7 @@ export default function XinPhep() {
   const [tuViet, setTuViet] = useState("");
   const [day, setDay] = useState(false);
   const yc = useTai(() => kid.goi<{ ds: YcTre[]; lyDoNhanh: string[] }>("yeu-cau"));
-  const sao = useTai(() => taiSao().catch(() => null));
+  const sao = useTai(() => (p.them ? Promise.resolve(null) : taiSao().catch(() => null)));   // hộp «Xin thêm» không dùng sao
   const { dangChay, loi, lam, setLoi } = useLam();
   if (p.loai === "them_gio") return <Redirect href="/tre/them-gio" />;
   const cho = yc.d?.ds.filter((x) => x.trang_thai === "cho").length ?? 0;
@@ -107,7 +107,17 @@ export default function XinPhep() {
 type The = "app" | "web";
 /** App phổ biến của trẻ (bàn 09-them-pj2ra3jh) — điện thoại không liệt kê được app đã cài (iOS cấm, máy chủ chưa có danh sách app máy Con). */
 const APP_PHO_BIEN = ["YouTube", "Roblox", "Minecraft", "Scratch", "Zalo", "CapCut"];
-const O_NHAP = { fontFamily: FD.dam, fontSize: 16, color: D.chu, minHeight: 28, padding: 0, flex: 1 } as const;
+/** Ô gõ lõm có icon đầu dòng (lời nhắn, tên app khác, địa chỉ web). */
+function OGo({ ic, ...o }: { ic: TenIcon } & ComponentProps<typeof TextInput>) {
+  return (
+    <TheD mong lom>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+        <Icon ten={ic} co={20} mau={D.chu2} />
+        <TextInput placeholderTextColor={D.chu3} {...o} style={{ fontFamily: FD.dam, fontSize: 16, color: D.chu, minHeight: 28, padding: 0, flex: 1 }} />
+      </View>
+    </TheD>
+  );
+}
 
 function TheChon({ gia, doi }: { gia: The; doi: (v: The) => void }) {
   const ds: { gia: The; chu: string; ic: TenIcon }[] = [{ gia: "app", chu: "App trên máy", ic: "may_tinh" }, { gia: "web", chu: "Trang web", ic: "web" }];
@@ -153,7 +163,7 @@ function XinThem({ the0, gia0, day }: { the0: The; gia0: string; day: () => void
   const [loiNhan, setLoiNhan] = useState("");
   const { dangChay, loi, lam, setLoi } = useLam();
   const tenApp = tenGo.trim() || chon || "";
-  const ds = chon && !APP_PHO_BIEN.includes(chon) ? [chon, ...APP_PHO_BIEN] : APP_PHO_BIEN;
+  const ds = the0 === "app" && gia0 && !APP_PHO_BIEN.includes(gia0) ? [gia0, ...APP_PHO_BIEN] : APP_PHO_BIEN;
   const gui = () => {
     const muc = the === "app" ? tenApp : web.trim();
     if (!muc) return setLoi(the === "app" ? "Chọn app hoặc gõ tên app nhé" : "Gõ địa chỉ trang web, ví dụ scratch.mit.edu");
@@ -167,15 +177,8 @@ function XinThem({ the0, gia0, day }: { the0: The; gia0: string; day: () => void
       }
     }, { hangDoi: true });
   };
-  const oLoiNhan = (
-    <TheD mong lom>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-        <Icon ten="tin" co={20} mau={D.chu2} />
-        <TextInput value={loiNhan} onChangeText={setLoiNhan} maxLength={100} accessibilityLabel="Lời nhắn cho Ba Mẹ"
-          placeholder={the === "app" ? "Nhắn Ba Mẹ: con xem video vẽ tranh ạ" : "Con học làm game trên Scratch ạ"} placeholderTextColor={D.chu3} style={O_NHAP} />
-      </View>
-    </TheD>
-  );
+  const oLoiNhan = <OGo ic="tin" value={loiNhan} onChangeText={setLoiNhan} maxLength={100} accessibilityLabel="Lời nhắn cho Ba Mẹ"
+    placeholder={the === "app" ? "Nhắn Ba Mẹ: con xem video vẽ tranh ạ" : "Con học làm game trên Scratch ạ"} />;
   return (
     <ManD lui={true} tieu="Xin thêm app / web"
       day={<><LoiD loi={loi} /><NutD chu={the === "app" ? `Xin Ba Mẹ thêm ${tenApp || "app này"}` : "Xin Ba Mẹ mở trang này"} ic="gui" bam={gui} dangChay={dangChay} /></>}>
@@ -187,25 +190,15 @@ function XinThem({ the0, gia0, day }: { the0: The; gia0: string; day: () => void
           <View accessibilityRole="radiogroup" accessibilityLabel="App trên điện thoại" style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
             {ds.map((x) => <OApp key={x} ten={x} chon={!tenGo.trim() && chon === x} bam={() => { setChon(x); setTenGo(""); setLoi(null); }} />)}
           </View>
-          <TheD mong lom>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Icon ten="tim_kiem" co={20} mau={D.chu2} />
-              <TextInput value={tenGo} onChangeText={(v) => { setTenGo(v); setLoi(null); }} maxLength={60} accessibilityLabel="Tên app khác"
-                placeholder="App khác? Gõ tên app" placeholderTextColor={D.chu3} style={O_NHAP} />
-            </View>
-          </TheD>
+          <OGo ic="tim_kiem" value={tenGo} onChangeText={(v) => { setTenGo(v); setLoi(null); }} maxLength={60} accessibilityLabel="Tên app khác"
+            placeholder="App khác? Gõ tên app" />
           {oLoiNhan}
         </>
       ) : (
         <>
           <Nhan chu="Địa chỉ trang web" />
-          <TheD mong lom>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <Icon ten="web" co={20} mau={D.chu2} />
-              <TextInput value={web} onChangeText={(v) => { setWeb(v); setLoi(null); }} maxLength={200} autoCapitalize="none" autoCorrect={false}
-                keyboardType="url" accessibilityLabel="Địa chỉ trang web" placeholder="scratch.mit.edu" placeholderTextColor={D.chu3} style={O_NHAP} />
-            </View>
-          </TheD>
+          <OGo ic="web" value={web} onChangeText={(v) => { setWeb(v); setLoi(null); }} maxLength={200} autoCapitalize="none" autoCorrect={false}
+            keyboardType="url" accessibilityLabel="Địa chỉ trang web" placeholder="scratch.mit.edu" />
           <ChuD co={13} mau={D.chu2}>Gõ địa chỉ trang con muốn vào, ví dụ scratch.mit.edu</ChuD>
           <Nhan chu="Lời nhắn cho Ba Mẹ" />
           {oLoiNhan}

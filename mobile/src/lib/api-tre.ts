@@ -104,23 +104,21 @@ export const taiKhoa = () => kid.goi<QuyCon>("quy").then((r) => !!r.quy?.khoa);
 export const taiCheDo = () => kid.goi<ToiTre>("toi").then((r) => r.cheDo ?? null).catch(() => null);
 
 /** «Xin Ba Mẹ mở» app / web ngoài danh sách (= xin thêm vào danh sách) ⇒ POST kid/xin-duyet. `kieu` (#422 «Xin thêm app / web»: thẻ «App trên
- *  máy» / «Trang web») ⇒ máy chủ xếp đúng loại — tên app trần («Minecraft») vẫn là app, thẻ web phải là tên miền (sai ⇒ 400 `web_sai` kèm câu
- *  hướng dẫn, màn hiện qua cauLoi). Không có `kieu` (màn chặn, lời xin cũ): mã app thật / web ⇒ xin-duyet; tên app gõ tay ⇒ yeu-cau cai_app
- *  (máy chủ cũ hiểu tên trần là tên miền) — cũng là đường dự phòng khi máy chủ cũ trả lỗi cho lời xin có `kieu`. Lỗi `qua_nhieu_cho` (≥ 3 lời chờ)
- *  ném ra cho màn gọi xử lý. Máy chủ cũ còn trả 409 `web_cam` ⇒ ném lại LoiApi cùng mã với câu thân thiện «Ba Mẹ chưa thêm X lúc này…». */
+ *  máy» / «Trang web», máy chủ PR #429) ⇒ máy chủ xếp đúng loại — tên app trần («Minecraft») vẫn là app, thẻ web phải là tên miền (sai ⇒ 400
+ *  `web_sai` kèm câu hướng dẫn, màn hiện qua cauLoi). Máy chủ cũ bỏ qua `kieu` và xếp tên trần thành web (trả `loai: "mo_web"`) ⇒ huỷ lời xin
+ *  nhầm đó rồi gửi yeu-cau cai_app như trước. Không có `kieu` (màn chặn, lời xin cũ): mã app thật / web ⇒ xin-duyet; tên app gõ tay ⇒ yeu-cau
+ *  cai_app. Lỗi `qua_nhieu_cho` (≥ 3 lời chờ) ném ra cho màn gọi xử lý. Máy chủ cũ còn trả 409 `web_cam` ⇒ ném lại LoiApi cùng mã với câu thân
+ *  thiện «Ba Mẹ chưa thêm X lúc này…». */
 export async function guiXinMo(b: { loai: "mo_web" | "cai_app" | "khac"; muc: string; ten?: string; lyDo?: string; kieu?: "app" | "web" }): Promise<{ id: string }> {
   const muc = b.muc.trim();
   const theoYeuCau = () => kid.goi<{ id: string }>("yeu-cau", { loai: b.loai, giaTri: b.ten ?? muc, lyDo: b.lyDo ?? "" });
   try {
     if (b.kieu) {
-      try {
-        return await kid.goi<{ id: string }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "", kieu: b.kieu });
-      } catch (e) {
-        const duPhong = b.kieu === "app" && !laMaApp(muc) && e instanceof LoiApi && [400, 404, 409, 422].includes(e.status)
-          && !["qua_nhieu_cho", "web_sai", "web_cam"].includes(e.ma);
-        if (duPhong) return await theoYeuCau();
-        throw e;
-      }
+      const r = await kid.goi<{ id: string; loai?: string; daCo?: boolean }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "", kieu: b.kieu });
+      if (b.kieu !== "app" || r.loai !== "mo_web") return r;
+      // máy chủ cũ (chưa hiểu `kieu`): tên app trần thành lời xin web ⇒ huỷ (trừ lời xin web có từ trước) rồi xin app kiểu cũ
+      if (!r.daCo) await kid.goi(`yeu-cau/${r.id}/huy`, {}).catch(() => {});
+      return await theoYeuCau();
     }
     if (b.loai === "mo_web" || (b.loai === "cai_app" && laMaApp(muc))) return await kid.goi<{ id: string }>("xin-duyet", { muc, ten: b.ten ?? muc, lyDo: b.lyDo ?? "" });
     return await theoYeuCau();
