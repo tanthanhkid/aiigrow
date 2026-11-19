@@ -7,10 +7,11 @@ import { useEffect } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { bm } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { DauMan, KhoiRob, LienKet } from "@/lib/lan-dau";
+import { Text, View } from "react-native";
+import { DauMan, INK2 } from "@/lib/lan-dau";
 import { ChonCachTaoTk } from "@/lib/dang-nhap-mxh";
-import { ma0, TheLoiMoi, type XemMoi } from "@/lib/moi";
-import { Chu, M, Man, The, useHoanTac, useTai } from "@/lib/ui";
+import { cauTrong, ma0, SanMoi, type XemMoi } from "@/lib/moi";
+import { F, M, Man, useHoanTac, useTai } from "@/lib/ui";
 
 export default function DuocMoi() {
   const { ma } = useLocalSearchParams<{ ma?: string }>();
@@ -22,17 +23,18 @@ export default function DuocMoi() {
   if (co) return <Redirect href={m ? `/moi/vao?ma=${m}` : "/moi/vao"} />;
   const ai = d ? d.nguoiMoi ?? d.tenGiaDinh : null;
   const sdt = () => router.push({ pathname: "/dang-ky", params: m && d ? { moi: m, tenNha: ai ?? "", tenGoi: d.tenGoi ?? "" } : { duocMoi: "1" } });
+  const tre = d?.tenCon ?? [];
+  const tenAi = ai ?? "Người nhà";
   return (
-    <Man noi={noi} dau={<DauMan ve="/chao" tieu="Tạo tài khoản" />}
-      day={<><ChonCachTaoTk tieu={ai ? `Vào nhà cùng ${ai}` : "Vào nhà cùng người nhà"} loi="Chọn một cách để tạo tài khoản, chưa tới 1 phút." sdt={sdt} bao={bao} nc={m ? { moi: m } : { duocMoi: true }} />
-        <LienKet chu="Tôi đã có tài khoản" bam={() => router.push({ pathname: "/dang-nhap", params: { moi: m || "1" } })} /></>}>
-      {d ? <KhoiRob lv="chi" cao={350} tren={<TheLoiMoi x={d} />} /> : (
-        <>
-          {/* thẻ chữ ĐỨNG TRÊN khối Grow (không đè lên hình): câu 2–3 dòng ở 320px sẽ chồng lên đầu Grow (cổng DE-ANH) */}
-          <The><Chu kieu="rat" co={15}>Được người nhà mời?</Chu><Chu co={13} mau={M.chu3}>Tạo tài khoản bằng đúng số điện thoại người nhà đã mời — lời mời sẽ tự hiện.</Chu></The>
-          <KhoiRob lv="chi" cao={260} />
-        </>
-      )}
+    <Man noi={noi} dau={<DauMan ve="/chao" tieu="Tạo tài khoản" />} dayStyle={{ paddingTop: 0, paddingBottom: 18 }}
+      day={<ChonCachTaoTk bien="moi" sdt={sdt} bao={bao} nc={m ? { moi: m } : { duocMoi: true }} />}>
+      {/* bàn them-ux0c23p4 (sửa 19/11): sân tối 372 + thẻ lời mời + tiêu đề «Vào nhà cùng …» dưới sân; đáy chỉ có 3 nút MXH / SĐT + điều khoản (bàn không còn «Tôi đã có tài khoản» — quay lại màn Chào để đăng nhập) */}
+      {d ? <SanMoi ai={tenAi} dong1={`${tenAi} mời bạn vào nhà`} dong2={tre.length ? (tre.length > 2 ? `Cùng trông ${tre.length} bé` : cauTrong(tre)) : d.tenGiaDinh} tre={tre} />
+        : <SanMoi ai={tenAi} dong1="Được người nhà mời?" dong2="Lời mời sẽ tự hiện" tre={[]} />}
+      <View style={{ marginTop: 6, alignItems: "center", paddingHorizontal: 4 }}>
+        <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 28, lineHeight: 34, letterSpacing: -0.6, color: M.chu, textAlign: "center" }}>{ai ? `Vào nhà cùng ${ai}` : "Vào nhà cùng người nhà"}</Text>
+        <Text style={{ marginTop: 6, fontFamily: F.thuong, fontSize: 15, lineHeight: 21, color: INK2, textAlign: "center" }}>Chọn một cách để tạo tài khoản, chưa tới 1 phút.</Text>
+      </View>
     </Man>
   );
 }

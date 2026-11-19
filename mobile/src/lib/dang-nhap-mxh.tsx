@@ -69,7 +69,7 @@ const LOI_HUY = "Chưa xác minh được — thử lại, hoặc dùng số đi
 
 /** Nút Google / Facebook đã nối OAuth: lấy token xong gọi `khiCo`. Chỉ dựng khi `useCoMxh()` báo bật (hook thư viện ném lỗi khi thiếu client id).
  *  Đọc kết quả từ `response` của hook (không từ promise của promptAsync): Google trên iOS / Android chỉ có id_token SAU bước đổi mã. */
-export function NutMxhThat(p: { loai: LoaiMxh; to?: boolean; bao: (chu: string) => void; khiCo: (t: TokenMxh) => Promise<void> }) {
+export function NutMxhThat(p: { loai: LoaiMxh; to?: boolean; bien?: "moi" | "dn"; bao: (chu: string) => void; khiCo: (t: TokenMxh) => Promise<void> }) {
   return p.loai === "google" ? <NutGoogle {...p} /> : <NutFacebook {...p} />;
 }
 
@@ -98,8 +98,8 @@ function useXuLy(loai: LoaiMxh, res: AuthSessionResult | null, bao: (chu: string
   return { dang };
 }
 
-type PNut = { to?: boolean; bao: (chu: string) => void; khiCo: (t: TokenMxh) => Promise<void> };
-function NutGoogle({ to, bao, khiCo }: PNut) {
+type PNut = { to?: boolean; bien?: "moi" | "dn"; bao: (chu: string) => void; khiCo: (t: TokenMxh) => Promise<void> };
+function NutGoogle({ to, bien, bao, khiCo }: PNut) {
   // shouldAutoExchangeCode: false — thư viện tự đổi mã thì lỗi bị nuốt (nút đứng im); app tự đổi để báo lỗi rõ (doi-ma-google.ts)
   const [req, res, moCua] = Google.useIdTokenAuthRequest({
     webClientId: GOOGLE.web, iosClientId: GOOGLE.ios, androidClientId: GOOGLE.android, selectAccount: true, redirectUri: veWeb(),
@@ -108,35 +108,35 @@ function NutGoogle({ to, bao, khiCo }: PNut) {
   const { dang } = useXuLy("google", res, bao, khiCo, (r) => layIdTokenGoogle(r, (code) => exchangeCodeAsync({
     clientId: googleMayNay ?? "", redirectUri: req?.redirectUri ?? "", code, extraParams: { code_verifier: req?.codeVerifier ?? "" },
   }, Google.discovery)));
-  return <NutMxh loai="google" to={to} bam={() => { if (req && !dang.current) moCua().catch(() => bao(LOI_HUY)); }} />;
+  return <NutMxh loai="google" to={to} bien={bien} bam={() => { if (req && !dang.current) moCua().catch(() => bao(LOI_HUY)); }} />;
 }
 
-function NutFacebook({ to, bao, khiCo }: PNut) {
+function NutFacebook({ to, bien, bao, khiCo }: PNut) {
   const [req, res, moCua] = Facebook.useAuthRequest({ clientId: FB_APP_ID, scopes: ["public_profile", "email"], redirectUri: veWeb() });
   const { dang } = useXuLy("facebook", res, bao, khiCo, async (r) => r.params.access_token || r.authentication?.accessToken);
-  return <NutMxh loai="facebook" to={to} bam={() => { if (req && !dang.current) moCua().catch(() => bao(LOI_HUY)); }} />;
+  return <NutMxh loai="facebook" to={to} bien={bien} bam={() => { if (req && !dang.current) moCua().catch(() => bao(LOI_HUY)); }} />;
 }
 
 /** Nút «Tiếp tục với Google / Facebook» ở màn Chào / Đăng ký / Đăng nhập: token ⇒ POST dang-nhap/<loai> ⇒ vào. */
-export function NutDangNhapMxh({ loai, to, bao, nc = {} }: { loai: LoaiMxh; to?: boolean; bao: (chu: string) => void; nc?: NgaCanh }) {
+export function NutDangNhapMxh({ loai, to, bien, bao, nc = {} }: { loai: LoaiMxh; to?: boolean; bien?: "moi" | "dn"; bao: (chu: string) => void; nc?: NgaCanh }) {
   const vaoSau = useVaoSau(nc);
-  return <NutMxhThat loai={loai} to={to} bao={bao} khiCo={async (t) => vaoSau(await bm.goi<KetQuaVao>(`dang-nhap/${loai}`, t))} />;
+  return <NutMxhThat loai={loai} to={to} bien={bien} bao={bao} khiCo={async (t) => vaoSau(await bm.goi<KetQuaVao>(`dang-nhap/${loai}`, t))} />;
 }
 
 /** Phần dưới màn «Tạo tài khoản» / «Vào nhà cùng …» (bm1-chao + nhánh được mời): Google (to, vàng kim), Facebook + Số điện thoại, điều khoản
  *  (bàn bm1-chao `.day`: các hàng cách 6, hai nút nhỏ cách 10). Nút MXH nào chưa bật thì ẩn — Số điện thoại giãn ra chiếm chỗ.
  *  `tieu` + `loi` (chỉ nhánh được mời, màn moi/index): tiêu đề + một câu đứng NGAY TRÊN nút; màn Tạo tài khoản đặt tiêu đề dưới sân Grow (TieuSan). */
-export function ChonCachTaoTk({ tieu, loi, sdt, bao, nc }: { tieu?: string; loi?: string; sdt: () => void; bao: (chu: string) => void; nc?: NgaCanh }) {
+export function ChonCachTaoTk({ tieu, loi, sdt, bao, nc, bien }: { /** `moi` = bàn them-ux0c23p4 (nút cao 56, điều khoản vàng nâu) */ bien?: "moi"; tieu?: string; loi?: string; sdt: () => void; bao: (chu: string) => void; nc?: NgaCanh }) {
   const co = useCoMxh();
   return (
     <View style={{ gap: tieu ? 14 : 10 }}>
       {tieu ? <TieuDe chu={tieu} phu={loi} giua /> : null}
-      {co.google ? <NutDangNhapMxh loai="google" to bao={bao} nc={nc} /> : null}
+      {co.google ? <NutDangNhapMxh loai="google" to bien={bien} bao={bao} nc={nc} /> : null}
       <View style={{ flexDirection: "row", gap: 10 }}>
-        {co.facebook ? <NutDangNhapMxh loai="facebook" bao={bao} nc={nc} /> : null}
-        <NutSdt bam={sdt} />
+        {co.facebook ? <NutDangNhapMxh loai="facebook" bien={bien} bao={bao} nc={nc} /> : null}
+        <NutSdt bien={bien} bam={sdt} />
       </View>
-      <DieuKhoan />
+      <DieuKhoan vang={bien === "moi"} />
     </View>
   );
 }

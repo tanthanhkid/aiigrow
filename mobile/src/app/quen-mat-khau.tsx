@@ -3,12 +3,11 @@
 // POST quen-mat-khau {dinhDanh, ma, matKhauMoi} rồi đăng nhập luôn («Lưu mật khẩu và vào app»).
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { CanGiup, CanhRob, DauMan, demNguoc, OLom, OLomTran, TieuDe, useOSo } from "@/lib/lan-dau";
-import { Bao, BaoLoi, Chu, Icon, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
-import { BONG } from "@/lib/clay";
+import { CanGiup, CanhRob, DauMan, demNguoc, INK2, NhanBuoc, OLom, OSoGui, SanQuenMk, TieuDe, useOSo } from "@/lib/lan-dau";
+import { Bao, BaoLoi, Chu, F, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
 
 export default function QuenMatKhau() {
   const { dd: ddVao, moi } = useLocalSearchParams<{ dd?: string; moi?: string }>();
@@ -48,42 +47,31 @@ export default function QuenMatKhau() {
     );
   }
   return (
-    <Man dau={<DauMan ve="/dang-nhap" giua={<VachBuoc dang={1} />} phai={<CanGiup />} />}
-      day={<><BaoLoi loi={loi} /><Nut chu="Xác nhận mã" rong tat={!gui || ma.length < 6} bam={() => setBuoc2(true)} /></>}>
-      <CanhRob lv="so-tay" ic="khoa" tieu="Đừng lo, Grow giúp lấy lại nè!" cao={200} />
-      <TieuDe chu="Quên mật khẩu" giua />
-      <SoBuoc n={1} chu="Nhập số đã đăng ký, bấm Gửi mã" />
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 54, borderRadius: 27, backgroundColor: M.ranh, boxShadow: BONG.lom, paddingLeft: 18, paddingRight: 6 }}>
-        <View style={{ flex: 1 }}><OLomTran {...oSo} /></View>
+    <Man dau={<DauMan ve="/dang-nhap" giua={<VachBuoc dang={1} />} phai={<CanGiup />} />} dayStyle={{ paddingTop: 0, paddingBottom: 22 }}
+      day={<><BaoLoi loi={loi} /><Nut chu="Xác nhận mã" rong lon tat={!gui || ma.length < 6} bam={() => setBuoc2(true)} /></>}>
+      {/* bàn them-2g3zpiie (sửa 19/11): thẻ 200 + tiêu đề 28 + hai bước (nhãn viên tròn navy số vàng), ô số 60 kèm nút navy chữ vàng, 6 ô mã đều cột */}
+      <SanQuenMk thoai="Đừng lo, Grow giúp lấy lại nè!" />
+      <Text accessibilityRole="header" style={{ marginTop: 8, textAlign: "center", fontFamily: F.tieu, fontSize: 28, lineHeight: 34, letterSpacing: -0.6, color: M.chu }}>Quên mật khẩu</Text>
+      <View style={{ marginTop: 10 }}>
+        <NhanBuoc n={1} chu="Nhập số đã đăng ký, bấm Gửi mã" />
+        <OSoGui {...oSo} da={!!gui} dangChay={dangChay} tat={!dd.trim()} bam={guiMa} />
+        <NhanBuoc n={2} cach={20} chu="Nhập mã 6 số vừa nhận" />
+        <Ma6 quen gia={ma} doi={setMa} />
         {gui ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: M.chinh, borderRadius: 20, paddingHorizontal: 12, height: 40, boxShadow: BONG.ngoc }}>
-            <Icon ten="tick" mau="#FFFBF5" co={14} /><Chu kieu="rat" co={13} mau="#FFFBF5">Đã gửi mã</Chu>
+          <View style={{ alignItems: "center", marginTop: 6 }}>
+            {con > 0 ? <Text style={{ minHeight: 44, textAlignVertical: "center", lineHeight: 44, fontFamily: F.dam, fontSize: 14, color: INK2 }}>Chưa nhận được? <Text style={{ fontFamily: F.rat, color: M.chu }}>{`Gửi lại sau ${demNguoc(con)}`}</Text></Text>
+              : <Pressable onPress={guiMa} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Chu kieu="rat" co={14} mau={M.chinhInk}>Chưa nhận được? Gửi lại mã</Chu></Pressable>}
           </View>
-        ) : <Nut chu="Gửi mã" nho dangChay={dangChay} tat={!dd.trim()} bam={guiMa} />}
+        ) : null}
       </View>
-      <SoBuoc n={2} chu="Nhập mã 6 số vừa nhận" />
-      <Ma6 gia={ma} doi={setMa} />
-      {gui ? (
-        <View style={{ alignItems: "center" }}>
-          {con > 0 ? <Chu co={13.5} mau={M.chu3}>Chưa nhận được? <Chu kieu="rat" co={13.5} mau={M.chinhInk}>{`Gửi lại sau ${demNguoc(con)}`}</Chu></Chu>
-            : <Pressable onPress={guiMa} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Chu kieu="rat" co={14} mau={M.chinhInk}>Chưa nhận được? Gửi lại mã</Chu></Pressable>}
-        </View>
-      ) : null}
       {gui?.ma ? <Bao loai="canh" tieu={`Bản thử: mã là ${gui.ma}`} loi="Chưa có kênh gửi tin nhắn thật — mã hiện ở đây để dùng thử." /> : null}
     </Man>
   );
 }
 
-const SoBuoc = ({ n, chu }: { n: number; chu: string }) => (
-  <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}><Chu kieu="rat" co={12} mau="#FFFBF5">{n}</Chu></View>
-    <Chu kieu="rat" co={14}>{chu}</Chu>
-  </View>
-);
-
 /** Vạch tiến độ 2 bước ở giữa thanh đầu (bàn them-2g3zpiie v4 / them-6aomy24b v8): bước đã tới vạch ngọc, bước sau vạch xám. */
 const VachBuoc = ({ dang }: { dang: 1 | 2 }) => (
   <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang} trên 2`}>
-    {[1, 2].map((i) => <View key={i} style={{ width: 22, height: 5, borderRadius: 3, backgroundColor: i <= dang ? M.chinh : M.vien2 }} />)}
+    {[1, 2].map((i) => <View key={i} style={{ width: 28, height: 6, borderRadius: 3, backgroundColor: i <= dang ? M.chu : "#E3D9CB" }} />)}
   </View>
 );

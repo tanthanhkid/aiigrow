@@ -5,7 +5,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
-import { CanGiup, CanhRob, DauMan, LienKet, OLom, useOSo } from "@/lib/lan-dau";
+import { CanGiup, DauMan, LienKet, OLom, SanDangNhap, useOSo, VANG_NAU } from "@/lib/lan-dau";
 import { NutDangNhapMxh, useCoMxh, useVaoSau, type KetQuaVao } from "@/lib/dang-nhap-mxh";
 import { BaoLoi, Chu, M, Man, Nut, useHoanTac, useLam } from "@/lib/ui";
 
@@ -24,26 +24,28 @@ export default function DangNhap() {
     await vaoSau(await bm.goi<KetQuaVao>("dang-nhap", { dinhDanh: dd, matKhau: mk }));
   });
   return (
-    <Man noi={noi} dau={<DauMan ve="/chao" phai={<CanGiup />} />} day={
-      // thiết kế: nút «Đăng nhập vào nhà mình» + «hoặc» Google / Facebook ghim đáy màn
+    <Man noi={noi} dau={<DauMan ve="/chao" phai={<CanGiup />} />} dayStyle={{ paddingTop: 0, paddingBottom: 18 }} day={
+      // bàn bm1-dang-nhap (sửa 19/11): nút «Đăng nhập vào nhà mình» vàng 58 + «hoặc» + Google / Facebook cao 54 ghim đáy (đáy cách 18, các hàng cách 12)
       <View style={{ gap: 12 }}>
-        <Nut chu="Đăng nhập vào nhà mình" rong dangChay={dangChay} tat={!dd || !mk} bam={di} />
+        <Nut chu="Đăng nhập vào nhà mình" rong lon dangChay={dangChay} tat={!dd || !mk} bam={di} />
         {co.google || co.facebook ? <>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} /><Chu co={13} mau={M.chu3}>hoặc</Chu><View style={{ flex: 1, height: 1, backgroundColor: M.vien2 }} />
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 10, height: 14 }}>
+            <View style={{ flex: 1, height: 2, backgroundColor: "rgba(120,98,70,0.25)" }} /><Chu kieu="dam" co={13} mau={M.chu3}>hoặc</Chu><View style={{ flex: 1, height: 2, backgroundColor: "rgba(120,98,70,0.25)" }} />
           </View>
           <View style={{ flexDirection: "row", gap: 10 }}>
-            {co.google ? <NutDangNhapMxh loai="google" bao={bao} nc={nc} /> : null}
-            {co.facebook ? <NutDangNhapMxh loai="facebook" bao={bao} nc={nc} /> : null}
+            {co.google ? <NutDangNhapMxh loai="google" bien="dn" bao={bao} nc={nc} /> : null}
+            {co.facebook ? <NutDangNhapMxh loai="facebook" bien="dn" bao={bao} nc={nc} /> : null}
           </View>
         </> : null}
       </View>
     }>
-      <CanhRob lv="chi" tieu="Chào Ba Mẹ!" loi="Đăng nhập để xem con đang làm gì." chuTo />
-      <OLom nhan="Số điện thoại" {...oSo} keyboardType="email-address" autoCapitalize="none" autoComplete="username" textContentType="username" placeholder="0912 345 678" />
-      <OLom nhan="Mật khẩu" matKhau value={mk} onChangeText={setMk} autoComplete="current-password" textContentType="password" onSubmitEditing={() => dd && mk && di()} />
-      <View style={{ alignItems: "flex-end", marginTop: -6 }}>
-        <LienKet chu="Quên mật khẩu?" bam={() => router.push({ pathname: "/quen-mat-khau", params: dd ? { dd } : {} })} />
+      <SanDangNhap tieu="Chào Ba Mẹ!" loi={"Đăng nhập để xem\ncon đang làm gì."} />
+      <View style={{ marginTop: 12 }}>
+        <OLom lon nenO={M.nen} cach={0} nhan="Số điện thoại" {...oSo} keyboardType="email-address" autoCapitalize="none" autoComplete="username" textContentType="username" placeholder="0912 345 678" />
+        <OLom lon nenO={M.nen} cach={18} nhan="Mật khẩu" matKhau value={mk} onChangeText={setMk} autoComplete="current-password" textContentType="password" onSubmitEditing={() => dd && mk && di()} />
+        <View style={{ marginTop: 2 }}>
+          <LienKet phai kieu="dam" mau={VANG_NAU} co={14} chu="Quên mật khẩu?" bam={() => router.push({ pathname: "/quen-mat-khau", params: dd ? { dd } : {} })} />
+        </View>
       </View>
       <BaoLoi loi={loi} />
     </Man>

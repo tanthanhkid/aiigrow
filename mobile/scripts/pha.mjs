@@ -627,13 +627,13 @@ const bam = async (txt) => {
   return true;
 };
 /** Gõ vào ô có aria-label `nhan` (setter gốc + sự kiện input — React nhận như người gõ). */
-const go = (nhan, gt) => js(`(() => { const i = [...document.querySelectorAll("input,textarea")].find((e) => e.getAttribute("aria-label") === ${JSON.stringify(nhan)});
-  if (!i) return false; const s = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(i), "value").set; s.call(i, ${JSON.stringify(gt)});
-  i.dispatchEvent(new Event("input", { bubbles: true })); return true; })()`);
+const go = (nhan, gt, roi = false) => js(`(() => { const i = [...document.querySelectorAll("input,textarea")].find((e) => e.getAttribute("aria-label") === ${JSON.stringify(nhan)});
+  if (!i) return false; ${roi ? "i.focus();" : ""} const s = Object.getOwnPropertyDescriptor(Object.getPrototypeOf(i), "value").set; s.call(i, ${JSON.stringify(gt)});
+  i.dispatchEvent(new Event("input", { bubbles: true })); ${roi ? "i.blur();" : ""} return true; })()`);   // roi = gõ xong rời ô (ô số tách «0912 345 678» như người dùng bấm ra ngoài)
 /** Mở Đăng ký và điền đủ số + mật khẩu (dùng chung: ca «đã điền» của cổng giao diện và dangKyToiOtp). */
 const dienDangKy = async () => {
   await di("/dang-ky", null); await doi("Tạo tài khoản Ba Mẹ");
-  await go("Số điện thoại", "0912345678"); await go("Mật khẩu", "matkhau123"); await go("Nhập lại mật khẩu", "matkhau123");
+  await go("Số điện thoại", "0912345678", true); await go("Mật khẩu", "aiigrow26", true); await go("Nhập lại mật khẩu", "aiigrow26", true);
 };
 const dangKyToiOtp = async () => { await dienDangKy(); await sleep(200); await bam("Nhận mã xác thực"); };
 
@@ -666,12 +666,12 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-quen-mat-khau", "/quen-mat-khau", "Quên mật khẩu", { token: null }),
     // đúng ca bàn: them-2g3zpiie v4 đã gửi mã + gõ «482»; them-6aomy24b v8 hai ô mật khẩu đã khớp
     M("bm-quen-mat-khau (đã gửi mã · them-2g3zpiie)", "/quen-mat-khau", "Đã gửi mã", { token: null, truoc: async () => { await di("/quen-mat-khau", null); await doi("Quên mật khẩu");
-      await go("Số điện thoại", "0912345678"); await sleep(200); await bam("Gửi mã"); await doi("Đã gửi mã"); await go("Mã xác thực 6 số", "482"); } }),
+      await go("Số điện thoại đã đăng ký", "0912345678", true); await sleep(200); await bam("Gửi mã"); await doi("Đã gửi mã"); await go("Mã xác thực 6 số", "482"); } }),
     M("bm-dat-mat-khau (đã khớp · them-6aomy24b)", "/quen-mat-khau", "Đã khớp", { token: null, truoc: async () => { await di("/quen-mat-khau", null); await doi("Quên mật khẩu");
-      await go("Số điện thoại", "0912345678"); await sleep(200); await bam("Gửi mã"); await doi("Đã gửi mã"); await go("Mã xác thực 6 số", "482017"); await sleep(200);
+      await go("Số điện thoại đã đăng ký", "0912345678", true); await sleep(200); await bam("Gửi mã"); await doi("Đã gửi mã"); await go("Mã xác thực 6 số", "482017"); await sleep(200);
       await bam("Xác nhận mã"); await doi("Đặt mật khẩu mới"); await go("Mật khẩu mới", "matkhau456"); await go("Nhập lại mật khẩu mới", "matkhau456"); } }),
     M("dang-nhap (đã điền · bm1-dang-nhap)", "/dang-nhap", "Đăng nhập vào nhà mình", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } }, truoc: async () => { await di("/dang-nhap", null); await doi("Chào Ba Mẹ!");
-      await go("Số điện thoại", "0912345678"); await go("Mật khẩu", "matkhau123"); } }),
+      await go("Số điện thoại", "0912345678", true); await go("Mật khẩu", "aiigrow26", true); } }),
     // máy chủ báo bật Google / Facebook (nút chỉ hiện khi bản dựng có EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID / EXPO_PUBLIC_FACEBOOK_APP_ID — bm1-chao)
     M("bm-tao-tai-khoan", "/tao-tai-khoan", "Tạo tài khoản", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } } }),
     M("bm-ob-con", "/thiet-lap/ten-con", "Tên gọi ở nhà"),
@@ -930,7 +930,8 @@ if (process.argv.includes("--giao-dien")) {
     // bm1-moi v14: người được mời CHƯA có nhà riêng, quyền Trông giúp (ô thứ 3 «Khoá máy khi cần»)
     M("moi-vao (chưa có nhà · bm1-moi)", "/moi/vao?ma=ABCD2345", "Không phải tôi", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] },
       "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], quyen: "trong_giup", tenQuyen: "Trông giúp" } } }),
-    M("moi (được mời · them-ux0c23p4)", "/moi?ma=ABCD2345", "Vào nhà cùng Mẹ Lan", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } } }),
+    M("moi (được mời · them-ux0c23p4)", "/moi?ma=ABCD2345", "Vào nhà cùng Mẹ Lan", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true },
+      "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], tenCon: ["An", "Minh", "Nam", "Khoa"] } } }),
     M("moi-dang-ky (đã điền · them-0zrwe8yz)", "/dang-ky?moi=ABCD2345&tenNha=M%E1%BA%B9%20Lan", "Đã khớp", { token: null, truoc: async () => {
       await di("/dang-ky?moi=ABCD2345&tenNha=M%E1%BA%B9%20Lan", null); await doi("Vào nhà cùng Mẹ Lan");
       await go("Số điện thoại", "0987654321"); await go("Mật khẩu", "matkhau123"); await go("Nhập lại mật khẩu", "matkhau123"); } }),

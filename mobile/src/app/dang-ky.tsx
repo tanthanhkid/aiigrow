@@ -41,7 +41,7 @@ export default function DangKy() {
         <View style={{ minHeight: 36, alignItems: "center", justifyContent: "center" }}><Text style={{ fontFamily: F.thuong, fontSize: 13, color: M.chu3 }}>Mã 6 số gửi tới số điện thoại trên</Text></View></>}>
       <HeroBan tieu={tieu} loi="Số điện thoại và mật khẩu là xong." />
       <View>
-        <OLom lon dau nhan="Số điện thoại" {...oSo} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" placeholder="0912 345 678" />
+        <OLom lon dau nhan="Số điện thoại" {...oSo} value={daCo ? an : oSo.value} keyboardType="phone-pad" autoComplete="tel" textContentType="telephoneNumber" placeholder="0912 345 678" />
         <OLom lon nhan="Mật khẩu" ghi="Ít nhất 8 ký tự" matKhau value={mk} onChangeText={setMk} autoComplete="new-password" textContentType="newPassword" />
         <OLom lon nhan="Nhập lại mật khẩu" ghi={mk2 ? (khop ? "Đã khớp" : "Chưa khớp") : undefined} ghiOk={khop} matKhau value={mk2} onChangeText={setMk2} autoComplete="new-password" onSubmitEditing={() => khop && sdt && gui()} />
       </View>
