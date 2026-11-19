@@ -1,29 +1,47 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--sh:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 5px 10px rgba(10,22,41,.14),inset 0 -1.5px 0 rgba(255,255,255,.95)}
-html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629;font-variant-numeric:tabular-nums}
-.app{position:relative;width:375px;height:812px;overflow:hidden;background:#F2EBE3}
-.app::before{content:"";position:absolute;left:0;right:0;top:0;height:380px;background:linear-gradient(#e8ddcf,#F2EBE3)}
-.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;z-index:4}
-.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0A1629}
+svg{width:1em;height:1em;flex:none}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--n)}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 4px 24px;display:flex;background:var(--n);box-shadow:0 -6px 12px -6px var(--lo);z-index:4}
+.tab div{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600;color:var(--ink3);white-space:nowrap}
+.tab svg{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:15px}
+.tab .on{color:var(--ink);font-weight:700}.tab .on svg{background:var(--n);box-shadow:var(--sunk)}
+
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center;color:var(--ink)}.lui svg{width:24px;height:24px}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:0 16px 40px;scrollbar-width:none}
+.muc{display:flex;align-items:center;gap:8px;margin:18px 6px 8px;font-size:15px;font-weight:800;color:var(--ink)}
+.muc:first-child{margin-top:4px}
+.muc i{width:18px;height:18px;border-radius:9px}
+.muc small{margin-left:auto;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.muc .v{background:#D9AE57}.muc .x{background:#0A1629}
+.ds{padding:4px 12px;border-radius:28px;background:var(--n);box-shadow:var(--shL)}
+.lg{display:flex;align-items:center;gap:10px;min-height:62px}
+.lg+.lg,.chon+.lg{border-top:1px solid rgba(120,98,70,.18)}
+.ic{flex:none;width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--sunk);color:var(--ink)}.ic svg{width:22px;height:22px}
+.lg p{flex:1;min-width:0;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lg p small{display:block;margin-top:1px;font-size:12.5px;font-weight:400;color:var(--ink2)}
+.mui{flex:none;font-size:20px;font-weight:700;color:var(--ink3);padding:0 2px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:16px;color:#0A1629;font-size:16px;font-weight:700;white-space:nowrap;background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+
 .mid{position:absolute;left:16px;right:16px;top:110px;display:flex;flex-direction:column;align-items:center;text-align:center}
 .mid img.r{width:190px;height:190px;object-fit:contain}
 .mid h1{margin-top:4px;font-size:24px;font-weight:800;letter-spacing:-.4px;line-height:30px;white-space:nowrap}
-.ds{margin-top:18px;width:100%;padding:4px 12px;border-radius:28px;background:#fff;box-shadow:var(--sh);text-align:left}
-.lg{display:flex;align-items:center;gap:10px;min-height:62px}
-.lg+.lg{border-top:1.5px solid #efe7dd}
-.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#F2EBE3;box-shadow:var(--lom)}.ic img{width:24px;height:24px}
-.lg p{flex:1;min-width:0;font-size:15px;font-weight:800}.lg p small{display:block;font-size:12.5px;font-weight:600;color:#5a5a5a}
-.nut{width:100%;display:flex;align-items:center;justify-content:center;height:52px;margin-top:22px;border-radius:26px;color:#fff;font-size:16px;font-weight:800;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
-.nut.phu{height:48px;margin-top:10px;color:#0A1629;background:#fff;box-shadow:var(--sh);font-size:15px}
+.ds{margin-top:18px;width:100%;text-align:left}
+.lg p{font-weight:800}
+.mid .nut{width:100%;margin-top:22px}
+.nut.phu{height:48px;margin-top:10px;color:#0A1629;background:var(--n);box-shadow:var(--sh);font-size:15px}
+.top{height:100px}
 </style></head>
 <body><div class="app">
-<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-ung-dung-may"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div></div>
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-ung-dung-may"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m15 5-7 7 7 7"></path></svg></div></div>
 <div class="mid"><img class="r" src="/assets/rob/cho.webp" alt="Grow"><h1>Đã bỏ qua YouTube</h1>
 <div class="ds">
-<div class="lg"><span class="ic"><img src="/assets/icon3d/gui.webp" alt=""></span><p>Đã báo Bảo Anh trên Laptop<small>«Ba Mẹ chưa cho lúc này» · 19:41</small></p></div>
-<div class="lg"><span class="ic"><img src="/assets/icon3d/tro_lai.webp" alt=""></span><p>Không ghi gì vào danh sách<small>Con xin lại được bất cứ lúc nào</small></p></div>
+<div class="lg"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 3 11 14M22 3l-7 18-4-7-7-4z"></path></svg></span><p>Đã báo Bảo Anh trên Laptop<small>«Ba Mẹ chưa cho lúc này» · 19:41</small></p></div>
+<div class="lg"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10a6 6 0 0 1 0 12h-3"></path></svg></span><p>Không ghi gì vào danh sách<small>Con xin lại được bất cứ lúc nào</small></p></div>
 </div>
 <div class="nut" role="button" tabindex="0" data-toi="bm2-ung-dung-may">Xong</div>
 <div class="nut phu" role="button" tabindex="0" data-toi="bm2-yeu-cau-web">Hoàn tác, xem lại lời xin</div>

@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>:root{--bg:#F2EBE3;--hero:linear-gradient(#e8ddcf,#F2EBE3);--topBg:linear-gradient(#e8ddcf 70%,rgba(232,221,207,0));--card:#fff;--ink:#0A1629;--ink2:#5a5a5a;--sh:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 4px 8px rgba(10,22,41,.1),inset 0 -1.5px 0 rgba(255,255,255,.95);--badge:#FF751F;--ring:#0A1629;--hiBg:radial-gradient(90% 70% at 85% 10%,#1d3158,#0A1629);--hiSh:0 18px 26px -14px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.18),inset 0 -10px 16px -8px rgba(0,0,0,.35);--btn:linear-gradient(#1b2b47,#0A1629);--btnSh:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45);--line:#efe7dd}
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);
+--bg:#ECE4D9;--hero:#ECE4D9;--topBg:linear-gradient(#ECE4D9 75%,rgba(236,228,217,0));--card:#ECE4D9;--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--lom:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);--badge:#0A1629;--ring:#0A1629;--hiBg:#0A1629;--hiSh:var(--shL),inset 0 0 0 1px rgba(244,199,106,.35);--btn:var(--kim);--btnSh:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6);--line:rgba(120,98,70,.18);--nho:var(--sh)}
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{width:375px;height:812px;overflow:hidden;background:var(--bg);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
 .app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--bg)}
@@ -7,7 +8,7 @@ html,body{width:375px;height:812px;overflow:hidden;background:var(--bg);font-fam
 .top{position:absolute;left:0;right:0;top:0;height:92px;padding:46px 12px 0 18px;display:flex;align-items:center;gap:8px;z-index:4;background:var(--topBg)}
 .top h1{flex:1;font-size:26px;font-weight:800;letter-spacing:-.6px;white-space:nowrap}
 .them{display:flex;align-items:center;gap:4px;height:44px;padding:0 14px 0 10px;border-radius:22px;background:var(--card);box-shadow:var(--sh);font-size:14px;font-weight:800;color:var(--ink);white-space:nowrap}
-.them img{width:22px;height:22px}
+.them svg{width:22px;height:22px}
 .cuon{position:absolute;left:0;right:0;top:92px;bottom:84px;overflow-y:auto;padding:0 0 28px;scrollbar-width:none}
 .cuon::-webkit-scrollbar{display:none}
 .pad{padding:0 16px}
@@ -18,38 +19,68 @@ html,body{width:375px;height:812px;overflow:hidden;background:var(--bg);font-fam
 .be.on .av{box-shadow:0 0 0 3px var(--bg),0 0 0 6px var(--ring),0 10px 16px -8px rgba(10,22,41,.5)}
 .av em{position:absolute;right:-4px;top:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:var(--badge);color:#0A1629;font-style:normal;font-size:12px;font-weight:800;display:grid;place-items:center;box-shadow:0 0 0 2px var(--bg)}
 .be b{font-size:13px;font-weight:700;color:var(--ink2)}.be.on b{color:var(--ink);font-weight:800}
-.be small.s{margin-top:-3px;padding:1px 7px;border-radius:9px;background:#F4C76A;color:#0A1629;font-size:11.5px;font-weight:800;white-space:nowrap}.be small.s.no{background:#ffe1e1;color:#b81f1f}
-.vi{position:relative;margin-top:12px;padding:16px 18px;border-radius:28px;background:var(--hiBg);box-shadow:var(--hiSh);overflow:hidden;color:#fff}
+.be small.s{margin-top:-3px;padding:1px 7px;border-radius:9px;background:#F4C76A;color:#0A1629;font-size:11.5px;font-weight:800;white-space:nowrap}.be small.s.no{background:#ECE4D9;color:#b81f1f}
+.vi{position:relative;margin-top:12px;padding:16px 18px;border-radius:28px;background:#0A1629;box-shadow:var(--hiSh);overflow:hidden;color:#F4C76A}
 .vi>*{position:relative}
 .vi small{display:block;font-size:13.5px;font-weight:700;color:#fff}
 .vi strong{display:flex;align-items:center;gap:8px;margin-top:2px;font-size:40px;line-height:46px;font-weight:800;letter-spacing:-1px;color:#F4C76A}
-.vi strong img{width:38px;height:38px}.vi strong em{font-style:normal;font-size:18px;letter-spacing:0}
+.vi strong svg{width:38px;height:38px}.vi strong em{font-style:normal;font-size:18px;letter-spacing:0}
 .vi p{margin-top:6px;display:inline-flex;align-items:center;min-height:32px;padding:0 12px;border-radius:16px;background:linear-gradient(#f8d68e,#F4C76A);font-size:13px;font-weight:800;color:#0A1629}
 .vi .rob{position:absolute;right:0;bottom:-14px;width:112px;height:auto}
 .muc{display:flex;align-items:center;justify-content:space-between;margin:18px 22px 4px;font-size:15px;font-weight:800;color:var(--ink)}
-.muc .t{display:flex;align-items:center;gap:7px;min-height:44px}.muc .t::before{content:"";width:9px;height:13px;background:#0A1629;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}.muc .t img{width:22px;height:22px}
+.muc .t{display:flex;align-items:center;gap:7px;min-height:44px}.muc .t::before{content:"";width:9px;height:13px;background:#0A1629;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}.muc .t svg{width:22px;height:22px}
 .muc a{min-height:44px;display:flex;align-items:center;font-size:14px;font-weight:700;color:var(--ink);text-decoration:none;white-space:nowrap}
 .muc em{font-style:normal;padding:2px 8px;border-radius:10px;background:var(--badge);color:#0A1629;font-size:12px;font-weight:800}
 .xong{padding:6px 10px 10px;border-radius:28px;background:var(--card);box-shadow:var(--sh)}
 .viec{display:flex;align-items:center;gap:12px;height:60px;padding:0 4px}
 .viec+.viec{border-top:1.5px solid var(--line)}
-.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--bg);box-shadow:var(--lom)}.ic img{width:26px;height:26px}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--bg);box-shadow:var(--lom)}.ic svg{width:26px;height:26px}
 .viec p{flex:1;min-width:0;font-size:15.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .viec p small{display:block;font-size:13px;font-weight:600;color:var(--ink2);overflow:hidden;text-overflow:ellipsis}
-.diem{flex:none;display:flex;align-items:center;gap:3px;padding:4px 9px 4px 5px;border-radius:12px;background:#F4C76A;color:#0A1629;font-size:13px;font-weight:800;white-space:nowrap}.diem img{width:16px;height:16px}
-.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:25px;font-size:15px;font-weight:800;color:#fff;white-space:nowrap;background:var(--btn);box-shadow:var(--btnSh)}
-.nut img{width:20px;height:20px}.xong .nut{margin-top:6px}
+.diem{flex:none;display:flex;align-items:center;gap:3px;padding:4px 9px 4px 5px;border-radius:12px;background:#F4C76A;color:#0A1629;font-size:13px;font-weight:800;white-space:nowrap}.diem svg{width:16px;height:16px}
+.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:8px;height:50px;border-radius:25px;font-size:15px;font-weight:800;color:#0A1629;white-space:nowrap;background:var(--btn);box-shadow:var(--btnSh)}
+.nut svg{width:20px;height:20px}.xong .nut{margin-top:6px}
 .qua{display:flex;align-items:center;gap:12px;padding:10px 10px 10px 12px;border-radius:28px;background:linear-gradient(#fdf5e0,#fbf0d6);box-shadow:var(--sh)}
-.qua .ic{width:48px;height:48px;border-radius:16px;background:#fff}.qua .ic img{width:30px;height:30px}
+.qua .ic{width:48px;height:48px;border-radius:16px;background:#ECE4D9}.qua .ic svg{width:30px;height:30px}
 .qua p{flex:1;min-width:0;font-size:15.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.qua p small{display:block;font-size:13px;font-weight:600;color:var(--ink2)}
 .qua .nut{flex:none;height:46px;padding:0 16px;font-size:14px}
 .tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 4px 24px;display:flex;background:var(--card);box-shadow:0 -1px 0 var(--line),0 -12px 18px -12px rgba(10,22,41,.2);z-index:4}
 .tab div{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600;color:var(--ink2);white-space:nowrap}
-.tab img{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:15px;opacity:.45;filter:grayscale(.6)}
-.tab .on{color:var(--ink);font-weight:800}.tab .on img{opacity:1;filter:none;background:#F2EBE3;box-shadow:inset 0 1px 0 #fff,inset 0 -3px 6px -3px rgba(10,22,41,.15)}
+.tab svg{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:15px;opacity:.45;filter:grayscale(.6)}
+.tab .on{color:var(--ink);font-weight:800}.tab .on svg{opacity:1;filter:none;background:#ECE4D9;box-shadow:inset 0 1px 0 #fff,inset 0 -3px 6px -3px rgba(10,22,41,.15)}
+
+svg{width:1em;height:1em;flex:none}
+.app::before{display:none!important}
+html,body,.app{background:#ECE4D9}
+.av{color:#0A1629!important;background:#ECE4D9!important;box-shadow:var(--sunk)!important}
+.be.on .av{background:#0A1629!important;color:#F4C76A!important;box-shadow:0 0 0 2px #D9AE57!important}
+.av em{background:#0A1629!important;color:#F4C76A!important;box-shadow:0 0 0 2px #ECE4D9!important}
+.be small.s{background:var(--kim)!important;color:#0A1629!important}
+.be small.s.no{background:#ECE4D9!important;color:#A2412C!important;box-shadow:var(--sunk)}
+.muc .t::before{background:#D9AE57!important}
+.muc a{color:#8a6a2b!important;font-weight:600!important}
+.muc em{background:#0A1629!important;color:#F4C76A!important}
+.nut{background:var(--kim)!important;color:#0A1629!important;font-weight:700!important;border-radius:16px!important;box-shadow:var(--btnSh)!important}
+.diem{background:var(--kim)!important;color:#0A1629!important}
+.day{background:linear-gradient(rgba(236,228,217,0),#ECE4D9 20px)!important}
+.ghi{background:#ECE4D9!important;box-shadow:var(--sunk)}
+.keo{background:#b9ad9e!important}
+.bang,.sheet{box-shadow:0 -8px 24px rgba(10,22,41,.2)!important}
+.mo{background:rgba(10,22,41,.35)!important}
+.ei{width:1.15em;height:1.15em;vertical-align:-3px;margin-right:2px}
+.ic.x{background:#ECE4D9!important}
+.diem svg{fill:#0A1629;stroke:#0A1629}
+.vi strong svg{color:#F4C76A;fill:#F4C76A}
+.qua .ic{background:#ECE4D9!important}
+.qua{background:#ECE4D9!important}
+.tab{background:#ECE4D9!important;box-shadow:0 -6px 12px -6px var(--lo)!important}
+.tab div{color:#7c7166!important;font-weight:600!important}
+.tab svg{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:15px}
+.tab .on{color:#0A1629!important;font-weight:700!important}.tab .on svg{background:#ECE4D9;box-shadow:var(--sunk)}
+.vi{color:#F2EBE3}.vi small{color:#F2EBE3!important}.vi p{background:var(--kim)!important;color:#0A1629!important}
 </style></head>
 <body><div class="app">
-<div class="top"><h1>Việc &amp; quà</h1><span class="them" role="button" tabindex="0" data-toi="them-1jii7k19"><img src="/assets/icon3d/tick.webp" alt="">+ Việc</span><span class="them" role="button" tabindex="0" data-toi="them-dlul0jlr"><img src="/assets/icon3d/qua.webp" alt="">+ Quà</span></div>
+<div class="top"><h1>Việc &amp; quà</h1><span class="them" role="button" tabindex="0" data-toi="them-1jii7k19"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"></rect><path d="m8 12.5 3 3 5-6"></path></svg>+ Việc</span><span class="them" role="button" tabindex="0" data-toi="them-dlul0jlr"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"></rect><path d="M12 8v13M5 12v8h14v-8M7.5 8a2.5 2.5 0 1 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 1 1 0 5"></path></svg>+ Quà</span></div>
 <div class="cuon">
 <div class="cac-con">
 <div class="be on" role="button" tabindex="0"><span class="av a">B<em>3</em></span><b>Bảo Anh</b><small class="s no">−20 sao</small></div>
@@ -57,29 +88,29 @@ html,body{width:375px;height:812px;overflow:hidden;background:var(--bg);font-fam
 <div class="be" role="button" tabindex="0"><span class="av n">N</span><b>Bảo Ngọc</b><small class="s">0 sao</small></div>
 <div class="be" role="button" tabindex="0"><span class="av k">K</span><b>Khang</b><small class="s">12 sao</small></div>
 </div>
-<div class="pad"><div class="vi" role="button" tabindex="0" data-toi="them-1akngbxb"><small>Bảo Anh đang nợ Ba Mẹ 20 sao</small><strong><img src="/assets/icon3d/sao.webp" alt="">−20 <em>sao</em></strong><p>Duyệt 2 việc chờ là hết nợ ›</p><img class="rob" src="/assets/rob/xong.webp" alt=""></div></div>
-<p class="muc"><span class="t"><img src="/assets/icon3d/tick.webp" alt="">Việc chờ Ba Mẹ duyệt<em>2</em></span></p>
+<div class="pad"><div class="vi" role="button" tabindex="0" data-toi="them-1akngbxb"><small>Bảo Anh đang nợ Ba Mẹ 20 sao</small><strong><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>−20 <em>sao</em></strong><p>Duyệt 2 việc chờ là hết nợ ›</p><img class="rob" src="/assets/rob/xong.webp" alt=""></div></div>
+<p class="muc"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"></rect><path d="m8 12.5 3 3 5-6"></path></svg>Việc chờ Ba Mẹ duyệt<em>2</em></span></p>
 <div class="pad"><div class="xong">
-<div class="viec" role="button" tabindex="0" data-toi="them-qwuifjry"><span class="ic"><img src="/assets/icon3d/lau.webp" alt=""></span><p>Dọn phòng<small>2 ảnh · trả nợ 10 sao</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
-<div class="viec" role="button" tabindex="0" data-toi="them-d40e3495"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Đọc sách 20 phút<small>Ghi âm · trả nợ 10 sao</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
-<span class="nut" role="button" tabindex="0" data-toi="them-nl1nwszs"><img src="/assets/icon3d/sao.webp" alt="">Xem và duyệt 2 việc</span>
+<div class="viec" role="button" tabindex="0" data-toi="them-qwuifjry"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path></svg></span><p>Dọn phòng<small>2 ảnh · trả nợ 10 sao</small></p><span class="diem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-d40e3495"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"></path><path d="M20 17v4H6.5A2.5 2.5 0 0 1 4 18.5"></path></svg></span><p>Đọc sách 20 phút<small>Ghi âm · trả nợ 10 sao</small></p><span class="diem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>10 sao</span></div>
+<span class="nut" role="button" tabindex="0" data-toi="them-nl1nwszs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>Xem và duyệt 2 việc</span>
 </div></div>
-<p class="muc"><span class="t"><img src="/assets/icon3d/qua.webp" alt="">Quà chờ trao<em>1</em></span><a role="button" tabindex="0" data-toi="them-473f52w6">Danh sách quà ›</a></p>
-<div class="pad"><div class="qua"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><p>Chọn món bữa tối<small>Đổi 50 sao · hôm qua</small></p><span class="nut" role="button" tabindex="0" data-toi="them-5otw85h4">Trao quà</span></div></div>
-<p class="muc"><span class="t"><img src="/assets/icon3d/lich.webp" alt="">Việc mỗi ngày · 5 việc</span></p>
+<p class="muc"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="4" rx="1"></rect><path d="M12 8v13M5 12v8h14v-8M7.5 8a2.5 2.5 0 1 1 0-5C10 3 12 8 12 8s2-5 4.5-5a2.5 2.5 0 1 1 0 5"></path></svg>Quà chờ trao<em>1</em></span><a role="button" tabindex="0" data-toi="them-473f52w6">Danh sách quà ›</a></p>
+<div class="pad"><div class="qua"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13v6a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5zM17 10h1.5a2.5 2.5 0 0 1 0 5H17M7 3v2M11 3v2M15 3v2"></path></svg></span><p>Chọn món bữa tối<small>Đổi 50 sao · hôm qua</small></p><span class="nut" role="button" tabindex="0" data-toi="them-5otw85h4">Trao quà</span></div></div>
+<p class="muc"><span class="t"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg>Việc mỗi ngày · 5 việc</span></p>
 <div class="pad"><div class="xong">
-<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/lau.webp" alt=""></span><p>Dọn phòng<small>Mỗi ngày · chụp ảnh</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
-<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/tick.webp" alt=""></span><p>Tự đánh răng<small>Sáng và tối</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
-<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Đọc sách 20 phút<small>Mỗi ngày · ghi âm</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
-<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/mu.webp" alt=""></span><p>Tự xếp cặp<small>Thứ 2 – Thứ 6 · chụp ảnh</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">10 sao</span></div>
-<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><img src="/assets/icon3d/may_tinh.webp" alt=""></span><p>Học 1 bài với AiiRob<small>Tự chấm · không cần duyệt</small></p><span class="diem"><img src="/assets/icon3d/sao.webp" alt="">20 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path></svg></span><p>Dọn phòng<small>Mỗi ngày · chụp ảnh</small></p><span class="diem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"></rect><path d="m8 12.5 3 3 5-6"></path></svg></span><p>Tự đánh răng<small>Sáng và tối</small></p><span class="diem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"></path><path d="M20 17v4H6.5A2.5 2.5 0 0 1 4 18.5"></path></svg></span><p>Đọc sách 20 phút<small>Mỗi ngày · ghi âm</small></p><span class="diem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m2 9 10-5 10 5-10 5z"></path><path d="M6 11.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.5"></path></svg></span><p>Tự xếp cặp<small>Thứ 2 – Thứ 6 · chụp ảnh</small></p><span class="diem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>10 sao</span></div>
+<div class="viec" role="button" tabindex="0" data-toi="them-ncq0jtzo"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="11" rx="2"></rect><path d="M2 20h20"></path></svg></span><p>Học 1 bài với AiiRob<small>Tự chấm · không cần duyệt</small></p><span class="diem"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>20 sao</span></div>
 </div></div>
 </div>
 <nav class="tab">
-<div role="button" tabindex="0" data-toi="bm2-trang-chu"><img src="/assets/icon3d/nha.webp" alt="">Hôm nay</div>
-<div class="on" role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/sao.webp" alt="">Việc &amp; quà</div>
-<div role="button" tabindex="0" data-toi="bm2-ung-dung-may"><img src="/assets/icon3d/khien.webp" alt="">App &amp; web</div>
-<div role="button" tabindex="0" data-toi="them-gftgyspn"><img src="/assets/icon3d/lich.webp" alt="">Báo cáo</div>
-<div role="button" tabindex="0" data-toi="them-h60stad7"><img src="/assets/icon3d/nguoi.webp" alt="">Cả nhà</div>
+<div role="button" tabindex="0" data-toi="bm2-trang-chu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"></path><path d="M5 10v10h14V10M10 20v-6h4v6"></path></svg>Hôm nay</div>
+<div class="on" role="button" tabindex="0" data-toi="them-e91jg28j"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>Việc &amp; quà</div>
+<div role="button" tabindex="0" data-toi="bm2-ung-dung-may"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"></path><path d="m9 12 2 2 4-4"></path></svg>App &amp; web</div>
+<div role="button" tabindex="0" data-toi="them-gftgyspn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg>Báo cáo</div>
+<div role="button" tabindex="0" data-toi="them-h60stad7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6M16 4.7a3.5 3.5 0 0 1 0 6.6M18 14.3c2 .7 3.5 2.6 3.5 5.7"></path></svg>Cả nhà</div>
 </nav>
 </div></body></html>

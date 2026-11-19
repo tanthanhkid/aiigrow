@@ -2,26 +2,39 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--clay:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 5px 10px rgba(10,22,41,.14),inset 0 -1.5px 0 rgba(255,255,255,.95)}
-html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629}
-.app{position:relative;width:375px;height:812px;overflow:hidden;background:#F2EBE3}
-.sau{position:absolute;inset:0;filter:blur(5px);background:linear-gradient(#e8ddcf,#F2EBE3 300px)}
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--clay:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--nho:4px 4px 8px var(--lo),-4px -4px 8px var(--hi);--lom:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);--btnSh:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ECE4D9;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#ECE4D9}
+.sau{position:absolute;inset:0;filter:blur(5px);background:linear-gradient(#ECE4D9,#ECE4D9 300px)}
 .sau .t{position:absolute;left:56px;top:58px;font-size:22px;font-weight:800}
-.sau .o{position:absolute;left:16px;right:16px;border-radius:28px;background:#e8ddcf}
-.sau .k{position:absolute;left:16px;right:16px;border-radius:28px;background:#fff;box-shadow:var(--clay)}
+.sau .o{position:absolute;left:16px;right:16px;border-radius:28px;background:#ECE4D9}
+.sau .k{position:absolute;left:16px;right:16px;border-radius:28px;background:#ECE4D9;box-shadow:var(--clay)}
 .sau .v{position:absolute;left:84px;right:84px;top:340px;height:56px;border-radius:28px;background:#F4C76A}
 .mo{position:absolute;inset:0;background:rgba(10,22,41,.45);z-index:2}
-.bang{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 16px 26px;border-radius:32px 32px 0 0;background:#F2EBE3;box-shadow:0 -10px 30px rgba(10,22,41,.25);text-align:center}
+.bang{position:absolute;left:0;right:0;bottom:0;z-index:3;padding:10px 16px 26px;border-radius:32px 32px 0 0;background:#ECE4D9;box-shadow:0 -10px 30px rgba(10,22,41,.25);text-align:center}
 .keo{width:40px;height:5px;border-radius:3px;background:#d9cfc2;margin:0 auto 10px}
 .rob{width:120px;height:auto;display:block;margin:0 auto}
 h2{margin-top:8px;font-size:22px;line-height:28px;font-weight:800;letter-spacing:-.4px;white-space:nowrap}
-.phu{margin:6px 12px 0;font-size:14.5px;line-height:21px;font-weight:600;color:#5a5a5a}
-.qua{display:flex;align-items:center;gap:12px;margin-top:16px;padding:10px 14px 10px 10px;border-radius:24px;background:#fff;box-shadow:var(--clay);text-align:left}
-.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#F2EBE3;box-shadow:var(--lom)}.ic img{width:26px;height:26px}
-.qua p{flex:1;font-size:15px;font-weight:800}.qua p small{display:block;font-size:12.5px;font-weight:600;color:#5a5a5a}
+.phu{margin:6px 12px 0;font-size:14.5px;line-height:21px;font-weight:600;color:#5b5248}
+.qua{display:flex;align-items:center;gap:12px;margin-top:16px;padding:10px 14px 10px 10px;border-radius:24px;background:#ECE4D9;box-shadow:var(--clay);text-align:left}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ECE4D9;box-shadow:var(--lom)}.ic img,.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ECE4D9;box-shadow:var(--lom)}.ic svg.i{width:26px;height:26px}
+.qua p{flex:1;font-size:15px;font-weight:800}.qua p small{display:block;font-size:12.5px;font-weight:600;color:#5b5248}
 .sao{flex:none;padding:4px 10px;border-radius:12px;background:#F4C76A;color:#0A1629;font-size:12.5px;font-weight:800}
 .nut{display:flex;align-items:center;justify-content:center;height:52px;margin-top:18px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#c8372d,#a01d16);box-shadow:0 12px 18px -10px rgba(160,29,22,.55),inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 -6px 10px -4px rgba(0,0,0,.35)}
-.phu2{display:flex;align-items:center;justify-content:center;height:48px;margin-top:10px;border-radius:24px;background:#fff;box-shadow:var(--clay);font-size:15px;font-weight:800;color:#0A1629}
+.phu2{display:flex;align-items:center;justify-content:center;height:48px;margin-top:10px;border-radius:24px;background:#ECE4D9;box-shadow:var(--clay);font-size:15px;font-weight:800;color:#0A1629}
+svg.i{flex:none}svg.st{fill:#E2B354;stroke:#C9973B}
+.phat.ngoc{background:#0A1629;color:#F4C76A;box-shadow:var(--nho)}
+.tag{box-shadow:var(--lom)}
+.vi{box-shadow:var(--clay),inset 0 0 0 1px rgba(244,199,106,.35)}
+.vi strong svg.i{width:46px;height:46px}
+.tab span[aria-selected="true"]{background:#0A1629;color:#F4C76A;box-shadow:none}
+.tab span[aria-selected="false"]{color:#7c7166}
+.tag.da{background:#0A1629;color:#F4C76A;box-shadow:none}
+.vach i{background:var(--kim)}
+.sao{box-shadow:none}
+.mo{background:rgba(10,22,41,.35)}
+.nut{background:#ECE4D9;color:#b42318;box-shadow:var(--clay)}
+.bang{box-shadow:8px 8px 16px var(--lo),-8px -8px 16px var(--hi)}
 </style></head>
 <body><div class="app">
 <div class="sau" aria-hidden="true"><p class="t">Sửa quà</p><div class="o" style="top:130px;height:56px"></div><div class="k" style="top:234px;height:64px"></div><div class="v"></div><div class="k" style="top:470px;height:260px"></div></div>
@@ -31,7 +44,7 @@ h2{margin-top:8px;font-size:22px;line-height:28px;font-weight:800;letter-spacing
 <img class="rob" src="/assets/rob/chi.webp" alt="">
 <h2>Xoá quà Đi ăn kem?</h2>
 <p class="phu">Con sẽ không thấy quà này trên máy nữa. Sao con đã có không bị mất.</p>
-<div class="qua"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><p>Đi ăn kem<small>Áp cho Bảo Anh, Bảo Minh</small></p><span class="sao">100 sao</span></div>
+<div class="qua"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h12v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"></path><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H16.5M8 3v2M12 3v2"></path></svg></span><p>Đi ăn kem<small>Áp cho Bảo Anh, Bảo Minh</small></p><span class="sao">100 sao</span></div>
 <span class="nut" role="button" tabindex="0" data-toi="them-473f52w6">Xoá quà Đi ăn kem</span>
 <span class="phu2" role="button" tabindex="0" data-toi="them-473f52w6">Giữ lại quà</span>
 </div>

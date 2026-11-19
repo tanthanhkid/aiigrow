@@ -1,34 +1,45 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--clay:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08)}
-html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',Inter,system-ui,sans-serif;color:#0A1629}
-.app{position:relative;width:375px;height:812px;overflow:hidden;background:#F2EBE3}
-.app::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;background:linear-gradient(#e8ddcf,#F2EBE3)}
+svg{width:1em;height:1em;flex:none}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--n)}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center;color:var(--ink);font-size:24px}
+.muc{display:flex;align-items:center;margin:18px 6px 8px;font-size:15px;font-weight:800;color:var(--ink)}
+.muc::before{content:"";width:9px;height:13px;margin-right:7px;background:#D9AE57;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}
+.ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--sunk);color:var(--ink);font-size:22px}
+.kim{background:var(--kim);color:#0A1629;font-weight:700;box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nutk{display:flex;align-items:center;justify-content:center;height:54px;border-radius:16px;font-size:16px;font-weight:700;color:#0A1629;white-space:nowrap;background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nutp{display:flex;align-items:center;justify-content:center;height:46px;border-radius:16px;font-size:15px;font-weight:700;color:#0A1629;white-space:nowrap;background:var(--n);box-shadow:var(--sh)}
+.nutd{display:flex;align-items:center;justify-content:center;height:46px;border-radius:16px;font-size:15px;font-weight:700;color:#b42318;white-space:nowrap;background:var(--n);box-shadow:var(--sh)}
+.chev{flex:none;width:18px;height:18px;fill:var(--ink)}
+.card{background:var(--n);box-shadow:var(--shL);border-radius:28px}
+.sv{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4}
-.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0A1629}
+.lui svg{width:24px;height:24px;fill:#0A1629}
 .top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
-.san{position:absolute;left:16px;right:16px;top:104px;height:196px;border-radius:36px;background:radial-gradient(90% 70% at 85% 10%,#1d3158,#0A1629);box-shadow:0 18px 26px -14px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.18),inset 0 -10px 16px -8px rgba(0,0,0,.35);overflow:hidden}
-.san::before{content:"";position:absolute;left:14px;right:14px;top:3px;height:60px;border-radius:34px 34px 80px 80px;background:linear-gradient(rgba(255,255,255,.12),rgba(255,255,255,0))}
+.san{position:absolute;left:16px;right:16px;top:104px;height:196px;border-radius:36px;background:var(--ink);box-shadow:var(--shL),inset 0 0 0 1px rgba(244,199,106,.35);overflow:hidden}
 .rob{position:absolute;right:-4px;bottom:-24px;width:170px;height:auto}
-.bong{position:absolute;left:18px;top:30px;max-width:170px;padding:11px 16px;border-radius:22px;background:#fff;font-size:15px;line-height:20px;font-weight:700;box-shadow:0 6px 10px -6px rgba(0,0,0,.4)}
-.bong::after{content:"";position:absolute;right:-6px;top:50%;margin-top:-7px;width:14px;height:14px;background:#fff;border-radius:3px;transform:rotate(45deg)}
+.bong{position:absolute;left:18px;top:30px;max-width:170px;padding:11px 16px;border-radius:22px;background:var(--n);font-size:15px;line-height:20px;font-weight:700}
+.bong::after{content:"";position:absolute;right:-6px;top:50%;margin-top:-7px;width:14px;height:14px;background:var(--n);border-radius:3px;transform:rotate(45deg)}
 .chu{position:absolute;left:16px;right:16px;top:320px;text-align:center}
 .chu h2{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.5px}
-.chu p{margin-top:6px;font-size:15px;line-height:21px;color:#5a5a5a}
-.zalo{position:absolute;left:16px;right:16px;top:432px;padding:12px;border-radius:28px;background:#fff;box-shadow:var(--clay)}
+.chu p{margin-top:6px;font-size:15px;line-height:21px;color:var(--ink2)}
+.zalo{position:absolute;left:16px;right:16px;top:432px;padding:12px;border-radius:28px;background:var(--n);box-shadow:var(--shL)}
 .zalo .ai{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:800;color:#0A1629}
-.zalo .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#e98aa6;color:#fff;font-size:13px;font-weight:800}
-.bubble{margin:8px 0 0 36px;padding:10px 12px;border-radius:4px 18px 18px 18px;background:#F2EBE3;font-size:14px;line-height:19px}
-.link{margin-top:8px;display:flex;align-items:center;gap:10px;padding:8px;border-radius:14px;background:#fff}
-.link img{width:36px;height:36px}
+.zalo .av{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--sunk);color:var(--ink);font-size:13px;font-weight:800}
+.bubble{margin:8px 0 0 36px;padding:10px 12px;border-radius:4px 18px 18px 18px;background:var(--n);box-shadow:var(--sunk);font-size:14px;line-height:19px}
+.link{margin-top:8px;display:flex;align-items:center;gap:10px;padding:8px;border-radius:14px;background:var(--n);box-shadow:var(--sh)}
+.link .ik{flex:none;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:#F4C76A}
+.link .ik svg{width:20px;height:20px}
 .link b{display:block;font-size:14px}
-.link small{font-size:12.5px;color:#0A1629;font-weight:800}
+.link small{font-size:12.5px;color:#8a6a2b;font-weight:600}
 .day{position:absolute;left:16px;right:16px;bottom:22px;display:flex;flex-direction:column;gap:6px}
-.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;height:56px;border-radius:30px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
-.nut svg{width:22px;height:22px;fill:#fff}
-.lk{display:flex;align-items:center;justify-content:center;min-height:46px;font-size:15px;font-weight:800;color:#0A1629}
+.nut{gap:10px;height:56px;font-size:17px}
+.nut svg{width:22px;height:22px;fill:#0A1629}
+.lk{display:flex;align-items:center;justify-content:center;min-height:46px;font-size:15px;font-weight:700;color:#8a6a2b}
 </style></head>
 <body><div class="app">
 <div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-0uobhmvh"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Mời Ba Tuấn</h1></div>
@@ -37,10 +48,11 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 <div class="zalo" role="button" tabindex="0" data-toi="them-6pl067n2">
 <div class="ai"><span class="av">L</span>Tin sẽ gửi cho Ba Tuấn</div>
 <div class="bubble">Anh tải AiiGrow để cùng trông con với em nha. Cài xong chưa thấy lời mời thì bấm lại link này.
-<div class="link"><img src="/assets/icon3d/nha.webp" alt=""><div><b>Mẹ Lan mời bạn vào nhà</b><small>aiigrow.vn/moi</small></div></div></div>
+<div class="link"><span class="ik"><svg viewBox="0 0 24 24" class="sv"><path d="m3 11 9-8 9 8M5 10v10h14V10"></path></svg></span><div><b>Mẹ Lan mời bạn vào nhà</b><small>aiigrow.vn/moi</small></div></div></div>
 </div>
 <div class="day">
-<span class="nut" role="button" tabindex="0" data-toi="them-6pl067n2"><svg viewBox="0 0 256 256"><path d="M176,160a39.89,39.89,0,0,0-28.62,12.09l-46.1-29.63a39.8,39.8,0,0,0,0-28.920l46.1-29.63a40,40,0,1,0-8.66-13.45l-46.1,29.630a40,40,0,1,0,0,55.82l46.1,29.63A40,40,0,1,0,176,160Z"></path></svg>Gửi link cho Ba Tuấn qua Zalo</span>
+<span class="nutk nut" role="button" tabindex="0" data-toi="them-6pl067n2"><svg viewBox="0 0 256 256"><path d="M176,160a39.89,39.89,0,0,0-28.62,12.09l-46.1-29.63a39.8,39.8,0,0,0,0-28.920l46.1-29.63a40,40,0,1,0-8.66-13.45l-46.1,29.630a40,40,0,1,0,0,55.82l46.1,29.63A40,40,0,1,0,176,160Z"></path></svg>Gửi link cho Ba Tuấn qua Zalo</span>
 <span class="lk" role="button" tabindex="0" data-toi="them-6pl067n2">Gửi bằng SMS hoặc email</span>
 </div>
-</div></body></html>
+</div>
+</body></html>

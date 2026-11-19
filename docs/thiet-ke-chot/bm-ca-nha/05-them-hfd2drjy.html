@@ -1,42 +1,53 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--clay:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 5px 10px rgba(10,22,41,.12),inset 0 -1.5px 0 rgba(255,255,255,.95)}
-html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',Inter,system-ui,sans-serif;color:#0A1629}
-.app{position:relative;width:375px;height:812px;overflow:hidden;background:#F2EBE3}
-.app::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;background:linear-gradient(#e8ddcf,#F2EBE3)}
-.san{position:absolute;left:16px;right:16px;top:62px;height:270px;border-radius:36px;background:radial-gradient(90% 70% at 85% 10%,#1d3158,#0A1629);box-shadow:0 18px 26px -14px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.18),inset 0 -10px 16px -8px rgba(0,0,0,.35);overflow:hidden}
-.san::before{content:"";position:absolute;left:14px;right:14px;top:3px;height:60px;border-radius:34px 34px 80px 80px;background:linear-gradient(rgba(255,255,255,.12),rgba(255,255,255,0))}
+svg{width:1em;height:1em;flex:none}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--n)}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center;color:var(--ink);font-size:24px}
+.muc{display:flex;align-items:center;margin:18px 6px 8px;font-size:15px;font-weight:800;color:var(--ink)}
+.muc::before{content:"";width:9px;height:13px;margin-right:7px;background:#D9AE57;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}
+.ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--sunk);color:var(--ink);font-size:22px}
+.kim{background:var(--kim);color:#0A1629;font-weight:700;box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nutk{display:flex;align-items:center;justify-content:center;height:54px;border-radius:16px;font-size:16px;font-weight:700;color:#0A1629;white-space:nowrap;background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nutp{display:flex;align-items:center;justify-content:center;height:46px;border-radius:16px;font-size:15px;font-weight:700;color:#0A1629;white-space:nowrap;background:var(--n);box-shadow:var(--sh)}
+.nutd{display:flex;align-items:center;justify-content:center;height:46px;border-radius:16px;font-size:15px;font-weight:700;color:#b42318;white-space:nowrap;background:var(--n);box-shadow:var(--sh)}
+.chev{flex:none;width:18px;height:18px;fill:var(--ink)}
+.card{background:var(--n);box-shadow:var(--shL);border-radius:28px}
+.sv{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.san{position:absolute;left:16px;right:16px;top:62px;height:270px;border-radius:36px;background:var(--ink);box-shadow:var(--shL),inset 0 0 0 1px rgba(244,199,106,.35);overflow:hidden}
 .rob{position:absolute;left:50%;bottom:-20px;width:214px;margin-left:-107px;height:auto}
-.tick{position:absolute;right:80px;top:40px;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:#7ED957;box-shadow:0 0 0 5px #fff,0 8px 14px -6px rgba(0,0,0,.5)}
+.tick{position:absolute;right:80px;top:40px;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--kim);box-shadow:0 0 0 3px var(--ink),0 0 0 5px #D9AE57}
 .tick svg{width:30px;height:30px;fill:#0A1629}
 .chu{position:absolute;left:16px;right:16px;top:352px;text-align:center}
 .chu h1{font-size:26px;line-height:32px;font-weight:800;letter-spacing:-.5px}
-.chu p{margin-top:6px;font-size:15px;line-height:21px;color:#5a5a5a}
-.nhan{position:absolute;left:22px;right:14px;top:442px;height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap;font-size:13px;font-weight:800;color:#5a5a5a}
-.nhan span{display:flex;align-items:center;height:44px;padding:0 8px;color:#0A1629}
-.tb{position:absolute;left:16px;right:16px;top:488px;padding:14px;border-radius:24px;background:#0A1629;color:#fff;box-shadow:0 14px 24px -12px rgba(10,22,41,.55)}
-.tb .dau{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:700;color:#c9d1e0}
-.tb .lg{width:22px;height:22px;border-radius:6px;background:#F4C76A;display:grid;place-items:center}
-.tb .lg img{width:16px;height:16px}
+.chu p{margin-top:6px;font-size:15px;line-height:21px;color:var(--ink2)}
+.nhan{position:absolute;left:22px;right:14px;top:442px;height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;white-space:nowrap;font-size:13px;font-weight:600;color:var(--ink2)}
+.nhan span{display:flex;align-items:center;height:44px;padding:0 8px;color:#8a6a2b;font-weight:600}
+.tb{position:absolute;left:16px;right:16px;top:488px;padding:14px;border-radius:24px;background:var(--ink);color:#F2EBE3;box-shadow:var(--shL),inset 0 0 0 1px rgba(244,199,106,.35)}
+.tb .dau{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600;color:#d6cbbd}
+.tb .lg{width:22px;height:22px;border-radius:6px;background:var(--kim);display:grid;place-items:center;color:#0A1629}
+.tb .lg svg{width:15px;height:15px}
 .tb .dau span:last-child{margin-left:auto}
 .tb b{display:block;margin-top:8px;font-size:15.5px}
-.tb p{margin-top:2px;font-size:14px;color:#e3e8f2}
-.cho{position:absolute;left:50%;top:612px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:18px;background:#ffe6d6;font-size:14px;font-weight:800;color:#b34a06;white-space:nowrap;box-shadow:var(--clay)}
-.cho i{width:8px;height:8px;border-radius:4px;background:#FF751F;box-shadow:0 0 0 4px rgba(255,117,31,.2)}
+.tb p{margin-top:2px;font-size:14px;color:#F2EBE3}
+.cho{position:absolute;left:50%;top:612px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:18px;background:var(--n);font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap;box-shadow:var(--sunk)}
+.cho i{width:8px;height:8px;border-radius:4px;background:#D9AE57;box-shadow:0 0 0 4px rgba(217,174,87,.3)}
 .day{position:absolute;left:16px;right:16px;bottom:22px;display:flex;flex-direction:column;gap:6px}
-.nut{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;height:56px;border-radius:30px;font-size:17px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
-.lk{display:flex;align-items:center;justify-content:center;min-height:46px;font-size:15px;font-weight:800;color:#5a5a5a}
+.nut{height:56px;font-size:17px}
+.lk{display:flex;align-items:center;justify-content:center;min-height:46px;font-size:15px;font-weight:700;color:#b42318}
 </style></head>
 <body data-lk-sua=""><div class="app">
 <div class="san"><span class="tick"><svg viewBox="0 0 256 256"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"></path></svg></span><img class="rob" src="/assets/rob/xong.webp" alt=""></div>
 <div class="chu"><h1>Đã mời Ba Tuấn!</h1><p>Ba Tuấn bấm vào thông báo là vào nhà,<br>không cần nhập mã gì cả.</p></div>
 <p class="nhan">Điện thoại Ba Tuấn sẽ hiện:<span role="button" tabindex="0" data-toi="them-dclemm2i">Xem bên máy Ba Tuấn ›</span></p>
-<div class="tb" role="button" tabindex="0" aria-label="Xem thông báo trên máy Ba Tuấn"><div class="dau"><span class="lg"><img src="/assets/icon3d/nha.webp" alt=""></span><span>AiiGrow</span><span>bây giờ</span></div><b>Mẹ Lan mời bạn vào nhà</b><p>Cùng trông 4 bé nhà mình. Bấm để vào.</p></div>
+<div class="tb" role="button" tabindex="0" aria-label="Xem thông báo trên máy Ba Tuấn"><div class="dau"><span class="lg"><svg viewBox="0 0 24 24" class="sv"><path d="m3 11 9-8 9 8M5 10v10h14V10"></path></svg></span><span>AiiGrow</span><span>bây giờ</span></div><b>Mẹ Lan mời bạn vào nhà</b><p>Cùng trông 4 bé nhà mình. Bấm để vào.</p></div>
 <p class="cho"><i></i>Đang chờ Ba Tuấn bấm vào</p>
 <div class="day">
-<span class="nut" role="button" tabindex="0" data-toi="them-h60stad7">Xong, về Cả nhà</span>
+<span class="nutk nut" role="button" tabindex="0" data-toi="them-h60stad7">Xong, về Cả nhà</span>
 <span class="lk" role="button" tabindex="0" data-toi="them-h60stad7">Huỷ lời mời</span>
 </div>
-</div></body></html>
+</div>
+</body></html>

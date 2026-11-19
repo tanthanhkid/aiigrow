@@ -1,30 +1,33 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>*{box-sizing:border-box;margin:0;padding:0}html,body{background:transparent;overflow:hidden}body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#0f1312;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
-.w{position:relative;overflow:hidden;width:1920px;height:1080px;background:radial-gradient(ellipse 576px 405px at 960px 459px,rgba(95,201,178,.275) 0,rgba(95,201,178,0) 100%),linear-gradient(180deg,#134a41 0,#072420 100%)}
-.gio{position:absolute;right:40px;top:32px;font:600 28px/36px 'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#e6f2ee;white-space:nowrap}
-.ft{position:absolute;left:24px;top:1040px;font:400 16px/21px 'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#c6dcd6;white-space:nowrap}
-.pillk{position:absolute;left:0;right:0;display:flex;justify-content:center}.pillk span{display:flex;align-items:center;gap:10px;height:48px;padding:0 22px;border-radius:24px;background:rgba(255,255,255,.9);font:700 19px/1 'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#0a5246;box-shadow:0 4px 10px rgba(0,0,0,.15);white-space:nowrap}.pillk img{width:26px;height:26px}.pillk i{font-style:normal;color:#565c59;font-weight:600}
-.bmn{position:absolute;left:0;right:0;display:flex;justify-content:center}.bmn span{display:flex;align-items:center;gap:10px;height:52px;padding:0 24px;border-radius:26px;cursor:pointer;font:700 19px/1 'Segoe UI','Helvetica Neue',Arial,sans-serif;white-space:nowrap}.bmn img{width:26px;height:26px}
-.kk{position:absolute;border-radius:36px;padding:32px 48px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;background:linear-gradient(180deg,#fefefe 0,#f9f9f7 18%,#f7f6f3 40%,#f1f0ed 76%,#eae9e7 100%);box-shadow:inset 0 -1px 0 #e0dfdc,inset 0 -2px 0 #e6e5e2,0 2px 6px rgba(0,0,0,.12),0 18px 40px rgba(0,0,0,.25)}
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--noi:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--noi2:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--lom:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
+*{box-sizing:border-box;margin:0;padding:0}html,body{background:transparent;overflow:hidden}body{font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.si{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.w{position:relative;overflow:hidden;width:1920px;height:1080px;background:radial-gradient(ellipse 700px 460px at 960px 459px,rgba(244,199,106,.14) 0,rgba(244,199,106,0) 100%),#0A1629}
+.gio{position:absolute;right:40px;top:32px;font:700 28px/36px 'Be Vietnam Pro',system-ui,sans-serif;color:#F4C76A;white-space:nowrap}
+.ft{position:absolute;left:24px;top:1040px;font:400 16px/21px 'Be Vietnam Pro',system-ui,sans-serif;color:rgba(242,235,227,.7);white-space:nowrap}
+.pillk{position:absolute;left:0;right:0;display:flex;justify-content:center}.pillk span{display:flex;align-items:center;gap:10px;height:48px;padding:0 22px;border-radius:24px;background:var(--n);font:700 19px/1 'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);box-shadow:var(--noi);white-space:nowrap}.pillk .si{width:26px;height:26px}.pillk i{font-style:normal;color:var(--ink3);font-weight:600}
+.bmn{position:absolute;left:0;right:0;display:flex;justify-content:center}.bmn span{display:flex;align-items:center;gap:10px;height:52px;padding:0 24px;border-radius:26px;cursor:pointer;font:700 19px/1 'Be Vietnam Pro',system-ui,sans-serif;white-space:nowrap}.bmn .si{width:26px;height:26px}
+.kk{position:absolute;border-radius:36px;padding:32px 48px 28px;display:flex;flex-direction:column;align-items:center;text-align:center;background:var(--n);box-shadow:8px 8px 24px rgba(0,0,0,.45),-4px -4px 14px rgba(255,251,245,.08)}
 .kk .rb{width:150px;height:150px;object-fit:contain}
-.kk .tde{font:700 42px/54px 'Segoe UI','Helvetica Neue',Arial,sans-serif;margin-top:10px;white-space:nowrap;color:#0f1312}
-.kk .phe{font:400 22px/30px 'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#565c59;margin-top:6px;white-space:nowrap}
-.kk .phe b{font-weight:700;color:#0a5246}
-.av{width:120px;height:120px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font:800 54px/1 'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#fff;border:5px solid #fff;box-shadow:0 6px 14px rgba(30,30,20,.2)}
-.av.ba{background:linear-gradient(180deg,#f8bd78,#f5a957 55%,#e8913a)}.av.bm{background:linear-gradient(180deg,#8fbdf0,#6fa8e8 55%,#4f8fd6)}
-.tenbe{font:700 28px/36px 'Segoe UI','Helvetica Neue',Arial,sans-serif;margin-top:10px;color:#0f1312;white-space:nowrap}
+.kk .tde{font:800 42px/54px 'Be Vietnam Pro',system-ui,sans-serif;margin-top:10px;white-space:nowrap;color:var(--ink)}
+.kk .phe{font:400 21px/30px 'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink2);margin-top:6px;white-space:nowrap}
+.kk .phe b{font-weight:700;color:var(--ink)}
+.av{width:120px;height:120px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center;font:800 54px/1 'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);background:var(--n);box-shadow:var(--lom)}
+.tenbe{font:700 28px/36px 'Be Vietnam Pro',system-ui,sans-serif;margin-top:10px;color:var(--ink);white-space:nowrap}
 .luoi{display:flex;gap:28px;margin-top:26px}
-.be{width:240px;height:236px;border-radius:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:linear-gradient(180deg,#fff 0,#fbfbf9 30%,#f4f3f0 80%,#ecebe8 100%);box-shadow:0 2px 0 0 #c3c5c1,0 4px 0 0 #d0d2ce,0 10px 18px rgba(60,60,50,.18),inset 0 1.5px 0 #fff}
-.chu{font:400 17px/24px 'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#565c59;white-space:nowrap}
-.khong{display:flex;align-items:center;gap:14px;margin-top:24px;padding:12px 22px 12px 14px;border-radius:24px;background:#efeeea;box-shadow:inset 0 3px 6px rgba(40,44,42,.12),inset 0 -1.5px 0 #fff;text-align:left}
-.khong img{width:40px;height:40px;flex:none}
-.khong b{display:block;font:700 19px/26px 'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#0f1312;white-space:nowrap}
+.be{width:240px;height:236px;border-radius:32px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:var(--n);box-shadow:var(--noi2)}
+.chu{font:400 16.5px/24px 'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink2);white-space:nowrap}
+.sao{display:inline-flex;align-items:center;gap:6px;margin-top:8px;height:32px;padding:0 14px;border-radius:16px;font:700 17px/32px 'Be Vietnam Pro',system-ui,sans-serif;white-space:nowrap;background:var(--n);box-shadow:var(--lom);color:var(--ink)}.sao .si{width:20px;height:20px;stroke:#C9973B;fill:#F4C76A}
+.khong{display:flex;align-items:center;gap:14px;margin-top:24px;padding:12px 22px 12px 14px;border-radius:24px;background:var(--n);box-shadow:var(--lom);text-align:left}
+.khong .ic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:4px 4px 8px var(--lo),-4px -4px 8px var(--hi);flex:none;color:var(--ink)}.khong .ic .si{width:22px;height:22px}
+.khong b{display:block;font:700 19px/26px 'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);white-space:nowrap}
 .khong .chu{display:block}
 </style></head><body><div class="w"><div class="gio">19:30</div>
-<div class="pillk" style="top:70px"><span><img src="/assets/icon3d/laptop.webp" alt="">Máy cả nhà<i>· máy đang khoá</i></span></div>
-<div class="bmn" style="top:930px"><span data-toi="them-kn2t9e31" style="background:rgba(255,255,255,.14);color:#e6f2ee"><img src="/assets/icon3d/nguoi.webp" alt="">Ba Mẹ dùng máy</span></div>
+<div class="pillk" style="top:70px"><span><svg class="si" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="2"></rect><path d="M2 20h20"></path></svg>Máy cả nhà<i>· máy đang khoá</i></span></div>
+<div class="bmn" style="top:930px"><span data-toi="them-kn2t9e31" style="background:var(--kim);color:var(--ink);box-shadow:4px 4px 10px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.6)"><svg class="si" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"></circle><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"></path><path d="M16 5.2a3.2 3.2 0 010 5.6M18 14.4c1.8.9 3 2.8 3 5.6"></path></svg>Ba Mẹ dùng máy</span></div>
 <div class="kk" style="left:560px;top:140px;width:800px"><img class="rb" src="/assets/rob/rob-goc.webp" alt=""><div class="tde">Ai đang dùng máy?</div><div class="phe">Máy này dành cho <b>Bảo Anh</b> và <b>Bảo Minh</b> · sao tính riêng từng con.</div>
-<div class="luoi"><div class="be" data-toi="them-avcvmgti"><div class="av ba">B</div><div class="tenbe">Bảo Anh</div><div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;height:32px;padding:0 14px;border-radius:16px;font:700 17px/32px 'Segoe UI',Arial,sans-serif;white-space:nowrap;background:#fbecc0;color:#6e4300"><img src="/assets/icon3d/sao.webp" alt="" style="width:20px;height:20px">18 sao</div></div><div class="be" data-toi="them-avcvmgti"><div class="av bm">M</div><div class="tenbe">Bảo Minh</div><div style="display:inline-flex;align-items:center;gap:6px;margin-top:8px;height:32px;padding:0 14px;border-radius:16px;font:700 17px/32px 'Segoe UI',Arial,sans-serif;white-space:nowrap;background:#f9e7d2;color:#8a3c0c"><img src="/assets/icon3d/sao.webp" alt="" style="width:20px;height:20px">−20 sao</div></div></div>
-<div class="khong"><img src="/assets/icon3d/dau_hoi.webp" alt=""><span><b>Không thấy tên con?</b><span class="chu">Nhờ Ba Mẹ thêm con vào máy này trên điện thoại.</span></span></div>
+<div class="luoi"><div class="be" data-toi="them-avcvmgti"><div class="av">B</div><div class="tenbe">Bảo Anh</div><div class="sao"><svg class="si" viewBox="0 0 24 24"><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.3l1.1-6.2L3 9.7l6.2-.9z"></path></svg>18 sao</div></div><div class="be" data-toi="them-avcvmgti"><div class="av">M</div><div class="tenbe">Bảo Minh</div><div class="sao" style="color:#A2412C"><svg class="si" viewBox="0 0 24 24"><path d="M12 3l2.8 5.8 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.3l1.1-6.2L3 9.7l6.2-.9z"></path></svg>−20 sao</div></div></div>
+<div class="khong"><span class="ic"><svg class="si" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.5 2.5 0 114 2c-.9.6-1.5 1.1-1.5 2.2M12 17h.01"></path></svg></span><span><b>Không thấy tên con?</b><span class="chu">Nhờ Ba Mẹ thêm con vào máy này trên điện thoại.</span></span></div>
 </div>
-<div class="ft">AiiGrow · Máy cả nhà · máy do Ba Mẹ quản lý</div></div></body></html>
+<div class="ft">AiiGrow · Máy cả nhà · máy do Ba Mẹ quản lý</div></div>
+</body></html>

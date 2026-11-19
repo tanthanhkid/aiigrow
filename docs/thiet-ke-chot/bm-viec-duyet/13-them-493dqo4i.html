@@ -1,43 +1,80 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#F2EBE3;--ink:#0A1629;--ink2:#5a5a5a;--sh:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 4px 8px rgba(10,22,41,.1),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);
+--bg:#ECE4D9;--hero:#ECE4D9;--topBg:linear-gradient(#ECE4D9 75%,rgba(236,228,217,0));--card:#ECE4D9;--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--lom:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);--badge:#0A1629;--ring:#0A1629;--hiBg:#0A1629;--hiSh:var(--shL),inset 0 0 0 1px rgba(244,199,106,.35);--btn:var(--kim);--btnSh:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6);--line:rgba(120,98,70,.18);--nho:var(--sh)}
 html,body{width:375px;height:812px;overflow:hidden;background:var(--bg);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
 .app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--bg)}
-.app::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;background:linear-gradient(#e8ddcf,#F2EBE3)}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;background:linear-gradient(#ECE4D9,#F2EBE3)}
 .phao{position:absolute;width:52px;height:52px}
 .giua{position:absolute;left:16px;right:16px;top:56px;display:flex;flex-direction:column;align-items:center}
 .rob{width:190px;height:auto}
 h1{margin-top:8px;text-align:center;font-size:28px;line-height:34px;font-weight:800;letter-spacing:-.6px}
 .vi{margin-top:16px;display:flex;align-items:center;justify-content:center;gap:10px}
 .o{display:flex;align-items:center;gap:6px;height:52px;padding:0 16px 0 10px;border-radius:26px;background:#F4C76A;box-shadow:var(--sh);font-size:20px;font-weight:800;color:#0A1629;white-space:nowrap}
-.o.cu{background:#fff;box-shadow:var(--lom);color:var(--ink2);font-size:17px;height:44px}
-.o img{width:28px;height:28px}
-.o.no{background:#ffe1e1;color:#b81f1f}
+.o.cu{background:#ECE4D9;box-shadow:var(--lom);color:var(--ink2);font-size:17px;height:44px}
+.o svg{width:28px;height:28px}
+.o.no{background:#ECE4D9;color:#b81f1f}
 .doi b{color:#b81f1f}
 .mui{font-size:22px;font-weight:800;color:var(--ink)}
 .doi{margin-top:8px;text-align:center;font-size:13px;font-weight:700;color:var(--ink2)}
-.khen{align-self:stretch;margin-top:18px;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:24px;background:#fbf0d6;font-size:14px;line-height:20px;font-weight:700;color:var(--ink)}
-.khen img{flex:none;width:30px;height:30px}
-.con{align-self:stretch;margin-top:12px;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:28px;background:#fff;box-shadow:var(--sh)}
-.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--bg);box-shadow:var(--lom)}.ic img{width:26px;height:26px}
+.khen{align-self:stretch;margin-top:18px;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:24px;background:#ECE4D9;font-size:14px;line-height:20px;font-weight:700;color:var(--ink)}
+.khen svg{flex:none;width:30px;height:30px}
+.con{align-self:stretch;margin-top:12px;display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:28px;background:#ECE4D9;box-shadow:var(--sh)}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--bg);box-shadow:var(--lom)}.ic svg{width:26px;height:26px}
 .con p{flex:1;min-width:0;font-size:15px;font-weight:800;line-height:20px}.con p small{display:block;font-size:12.5px;font-weight:600;color:var(--ink2)}
 .con b{flex:none;padding:4px 10px;border-radius:12px;background:#F4C76A;color:#0A1629;font-size:12.5px;font-weight:800}
 .day{position:absolute;left:0;right:0;bottom:0;padding:20px 16px 22px;background:linear-gradient(rgba(242,235,227,0),#F2EBE3 20px);display:flex;flex-direction:column;gap:4px}
-.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
-.nut img{width:22px;height:22px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#F4C76A;white-space:nowrap;background:#0A1629;box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
+.nut svg{width:22px;height:22px}
 .lk{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:15px;font-weight:800;color:var(--ink)}
+
+svg{width:1em;height:1em;flex:none}
+.app::before{display:none!important}
+html,body,.app{background:#ECE4D9}
+.av{color:#0A1629!important;background:#ECE4D9!important;box-shadow:var(--sunk)!important}
+.be.on .av{background:#0A1629!important;color:#F4C76A!important;box-shadow:0 0 0 2px #D9AE57!important}
+.av em{background:#0A1629!important;color:#F4C76A!important;box-shadow:0 0 0 2px #ECE4D9!important}
+.be small.s{background:var(--kim)!important;color:#0A1629!important}
+.be small.s.no{background:#ECE4D9!important;color:#A2412C!important;box-shadow:var(--sunk)}
+.muc .t::before{background:#D9AE57!important}
+.muc a{color:#8a6a2b!important;font-weight:600!important}
+.muc em{background:#0A1629!important;color:#F4C76A!important}
+.nut{background:var(--kim)!important;color:#0A1629!important;font-weight:700!important;border-radius:16px!important;box-shadow:var(--btnSh)!important}
+.diem{background:var(--kim)!important;color:#0A1629!important}
+.day{background:linear-gradient(rgba(236,228,217,0),#ECE4D9 20px)!important}
+.ghi{background:#ECE4D9!important;box-shadow:var(--sunk)}
+.keo{background:#b9ad9e!important}
+.bang,.sheet{box-shadow:0 -8px 24px rgba(10,22,41,.2)!important}
+.mo{background:rgba(10,22,41,.35)!important}
+.ei{width:1.15em;height:1.15em;vertical-align:-3px;margin-right:2px}
+.ic.x{background:#ECE4D9!important}
+.diem svg{fill:#0A1629;stroke:#0A1629}
+.vi strong svg{color:#F4C76A;fill:#F4C76A}
+.qua .ic{background:#ECE4D9!important}
+.qua{background:#ECE4D9!important}
+.tab{background:#ECE4D9!important;box-shadow:0 -6px 12px -6px var(--lo)!important}
+.tab div{color:#7c7166!important;font-weight:600!important}
+.tab svg{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:15px}
+.tab .on{color:#0A1629!important;font-weight:700!important}.tab .on svg{background:#ECE4D9;box-shadow:var(--sunk)}
+.phao{width:44px;height:44px;color:#C9973B}
+.o.no{background:#ECE4D9;box-shadow:var(--sunk);color:#A2412C}
+.o.no svg{fill:#A2412C;stroke:#A2412C}
+.doi b{color:#A2412C}
+.o svg{width:26px;height:26px;fill:#0A1629;stroke:#0A1629}
+.o.cu svg{fill:none}
+.con b{background:var(--kim)}
 </style></head>
 <body><div class="app">
-<img class="phao" style="left:30px;top:86px" src="/assets/icon3d/phao_hoa.webp" alt="">
-<img class="phao" style="right:30px;top:140px" src="/assets/icon3d/lap_lanh.webp" alt="">
+<svg class="phao" style="left:30px;top:86px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m4 20 4-12 8 8z"></path><path d="M14 4v2M19 8h2M17 11l2-1M12 9l1-2"></path></svg>
+<svg class="phao" style="right:30px;top:140px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"></path></svg>
 <div class="giua">
 <img class="rob" src="/assets/rob/xong.webp" alt="">
 <h1>+10 sao của Bảo Anh<br>đã trả nợ trước</h1>
-<div class="vi"><span class="o cu"><img src="/assets/icon3d/sao.webp" alt="">−15</span><span class="mui">→</span><span class="o no"><img src="/assets/icon3d/sao.webp" alt="">−5 sao</span></div>
+<div class="vi"><span class="o cu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>−15</span><span class="mui">→</span><span class="o no"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>−5 sao</span></div>
 <p class="doi">Trả nợ 10 sao · <b>còn nợ Ba Mẹ 5 sao</b></p>
-<div class="khen"><img src="/assets/icon3d/tim.webp" alt="">Đã duyệt «Dọn phòng» và gửi con «Giỏi lắm con!»</div>
-<div class="con" role="button" tabindex="0" data-toi="them-d40e3495"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Còn 1 việc chờ duyệt<small>Đọc sách 20 phút · ghi âm 17:15</small></p><b>10 sao</b></div>
+<div class="khen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-8-5-8-11a4.5 4.5 0 0 1 8-2.7A4.5 4.5 0 0 1 20 10c0 6-8 11-8 11z"></path></svg>Đã duyệt «Dọn phòng» và gửi con «Giỏi lắm con!»</div>
+<div class="con" role="button" tabindex="0" data-toi="them-d40e3495"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z"></path><path d="M20 17v4H6.5A2.5 2.5 0 0 1 4 18.5"></path></svg></span><p>Còn 1 việc chờ duyệt<small>Đọc sách 20 phút · ghi âm 17:15</small></p><b>10 sao</b></div>
 </div>
 <div class="day">
 <span class="nut" role="button" tabindex="0" data-toi="them-d40e3495">Duyệt tiếp: Đọc sách 20 phút</span>

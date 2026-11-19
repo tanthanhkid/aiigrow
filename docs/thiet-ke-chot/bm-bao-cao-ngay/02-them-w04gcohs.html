@@ -2,68 +2,91 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--clay:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 5px 10px rgba(10,22,41,.12),inset 0 -1.5px 0 rgba(255,255,255,.95);--line:#efe7dd}
-html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',Inter,system-ui,sans-serif;color:#0A1629;font-variant-numeric:tabular-nums}
-.app{position:relative;width:375px;height:812px;overflow:hidden;background:#F2EBE3}
-.app::before{content:"";position:absolute;left:0;right:0;top:0;height:320px;background:linear-gradient(#e8ddcf,#F2EBE3)}
-.top{position:absolute;left:0;right:0;top:0;height:92px;padding:46px 16px 0 20px;display:flex;align-items:center;gap:10px;z-index:4;background:linear-gradient(#e8ddcf 70%,rgba(232,221,207,0))}
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--clay:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--nho:4px 4px 8px var(--lo),-4px -4px 8px var(--hi);--lom:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);--btnSh:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ECE4D9;font-family:'Be Vietnam Pro',Inter,system-ui,sans-serif;color:#0A1629;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#ECE4D9}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:320px;background:linear-gradient(#ECE4D9,#ECE4D9)}
+.top{position:absolute;left:0;right:0;top:0;height:92px;padding:46px 16px 0 20px;display:flex;align-items:center;gap:10px;z-index:4;background:linear-gradient(#ECE4D9 70%,rgba(236,228,217,0))}
 .top h1{flex:1;font-size:28px;font-weight:800;letter-spacing:-.6px}
-.tuan{display:flex;align-items:center;height:36px;padding:0 12px;border-radius:18px;background:#fff;box-shadow:var(--clay);font-size:13px;font-weight:800;color:#0A1629}
+.tuan{display:flex;align-items:center;height:36px;padding:0 12px;border-radius:18px;background:#ECE4D9;box-shadow:var(--clay);font-size:13px;font-weight:800;color:#0A1629}
 .cuon{position:absolute;left:0;right:0;top:92px;bottom:84px;overflow-y:auto;padding:0 0 28px;scrollbar-width:none}
 .cuon::-webkit-scrollbar{display:none}
 .pad{padding:0 16px}
 .cac-con{display:flex;gap:6px;padding:12px 16px 4px;overflow:hidden;white-space:nowrap}
 .be{flex:none;width:70px;display:flex;flex-direction:column;align-items:center;gap:5px}
 .av{position:relative;width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:800;color:#fff;box-shadow:0 8px 14px -8px rgba(10,22,41,.45),inset 0 2px 0 rgba(255,255,255,.35),inset 0 -6px 10px -4px rgba(0,0,0,.2)}
-.av.a{background:#E8600C}.av.m{background:#1F48FF}.av.n{background:#9b2fc0}.av.k{background:#0f8a68}
-.be.on .av{box-shadow:0 0 0 3px #F2EBE3,0 0 0 6px #0A1629,0 10px 16px -8px rgba(10,22,41,.5)}
-.be b{font-size:13px;font-weight:700;color:#5a5a5a}
+
+.be.on .av{box-shadow:0 0 0 3px #ECE4D9,0 0 0 6px #0A1629,0 10px 16px -8px rgba(10,22,41,.5)}
+.be b{font-size:13px;font-weight:700;color:#5b5248}
 .be.on b{color:#0A1629;font-weight:800}
-.the{margin-top:12px;padding:18px;border-radius:28px;background:#fff;box-shadow:var(--clay)}
-.the>small{display:block;font-size:14px;font-weight:700;color:#5a5a5a}
+.the{margin-top:12px;padding:18px;border-radius:28px;background:#ECE4D9;box-shadow:var(--clay)}
+.the>small{display:block;font-size:14px;font-weight:700;color:#5b5248}
 .so{display:flex;align-items:baseline;gap:8px;margin-top:2px;font-size:38px;font-weight:800;letter-spacing:-1px}
-.so em{font-style:normal;font-size:15px;font-weight:700;letter-spacing:0;color:#5a5a5a;white-space:nowrap}
-.tot{display:inline-flex;margin-top:6px;padding:5px 11px;border-radius:13px;background:#e4f6d9;color:#0A1629;font-size:13px;font-weight:800}
+.so em{font-style:normal;font-size:15px;font-weight:700;letter-spacing:0;color:#5b5248;white-space:nowrap}
+.tot{display:inline-flex;margin-top:6px;padding:5px 11px;border-radius:13px;background:#ECE4D9;box-shadow:var(--lom);color:#0A1629;font-size:13px;font-weight:800}
 .bieu{position:relative;display:flex;align-items:flex-end;gap:10px;height:120px;margin-top:16px;padding:0 2px}
 .cot{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
 .cot b{width:100%;border-radius:10px 10px 6px 6px;background:linear-gradient(#2a3f6a,#0A1629);box-shadow:inset 0 1.5px 0 rgba(255,255,255,.3)}
 .cot b.nay{background:repeating-linear-gradient(135deg,#2a3f6a 0 6px,#0A1629 6px 12px)}
-.cot span{font-size:12px;font-weight:700;color:#5a5a5a;height:14px}
+.cot span{font-size:12px;font-weight:700;color:#5b5248;height:14px}
 .cot.nay span{color:#0A1629;font-weight:800}
-.chu{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:12px;font-weight:700;color:#5a5a5a}
+.chu{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:12px;font-weight:700;color:#5b5248}
 .chu i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:#0A1629;vertical-align:-1px}
-.chu i.c{background:#FF751F}
+.chu i.c{background:#D9AE57}
 .muc{display:flex;align-items:center;justify-content:space-between;margin:18px 22px 4px;font-size:15px;font-weight:800;color:#0A1629}
 .muc .t{display:flex;align-items:center;gap:7px}
 .muc .t::before{content:"";width:9px;height:13px;background:#0A1629;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}
 .muc a{min-height:44px;display:flex;align-items:center;font-size:14px;font-weight:700;color:#0A1629;text-decoration:none}
-.ds{padding:4px 12px;border-radius:28px;background:#fff;box-shadow:var(--clay)}
+.ds{padding:4px 12px;border-radius:28px;background:#ECE4D9;box-shadow:var(--clay)}
 .lg{display:flex;align-items:center;gap:10px;min-height:64px}
 .lg+.lg{border-top:1.5px solid var(--line)}
-.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#F2EBE3;box-shadow:var(--lom)}.ic img{width:24px;height:24px}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ECE4D9;box-shadow:var(--lom)}.ic img,.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ECE4D9;box-shadow:var(--lom)}.ic svg.i{width:24px;height:24px}
 .lg p{flex:1;min-width:0;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lg p small{display:block;font-size:12.5px;font-weight:500;color:#5a5a5a;overflow:hidden;text-overflow:ellipsis}
+.lg p small{display:block;font-size:12.5px;font-weight:500;color:#5b5248;overflow:hidden;text-overflow:ellipsis}
 .tag{flex:none;padding:4px 9px;border-radius:11px;font-size:12.5px;font-weight:800;white-space:nowrap}
-.tag.choi{background:#ffe6d6;color:#b34a06}
-.tag.hoc{background:#e4f6d9;color:#0A1629}
+.tag.choi{background:#ECE4D9;color:#A2412C}
+.tag.hoc{background:#ECE4D9;box-shadow:var(--lom);color:#0A1629}
 .hai{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.o{position:relative;min-height:124px;padding:14px;border-radius:26px;background:#fff;box-shadow:var(--clay);overflow:hidden}
-.o.vang{background:linear-gradient(#f8d68e,#F4C76A)}
-.o img{width:32px;height:32px}
+.o{position:relative;min-height:124px;padding:14px;border-radius:26px;background:#ECE4D9;box-shadow:var(--clay);overflow:hidden}
+.o.vang{background:linear-gradient(#FBE7B0,#F4C76A)}
+.o img,.o svg.i{width:32px;height:32px}
 .o strong{display:block;margin-top:6px;font-size:26px;font-weight:800;letter-spacing:-.5px}
-.o p{font-size:12.5px;font-weight:700;color:#5a5a5a;line-height:17px}
+.o p{font-size:12.5px;font-weight:700;color:#5b5248;line-height:17px}
 .o.vang p{color:#0A1629}
 .rob{display:flex;align-items:center;gap:12px;margin-top:14px;padding:12px 14px;border-radius:28px;background:radial-gradient(90% 70% at 85% 10%,#1d3158,#0A1629);box-shadow:0 18px 26px -14px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.18),inset 0 -10px 16px -8px rgba(0,0,0,.35)}
-.rob img{flex:none;width:58px;height:auto}
+.rob img,.rob svg.i{flex:none;width:58px;height:auto}
 .rob p{font-size:14px;font-weight:700;line-height:20px;color:#fff}
 .rob p b{display:flex;align-items:center;min-height:32px;font-weight:800;color:#F4C76A}
-.nk{display:flex;align-items:center;gap:12px;margin-top:14px;min-height:68px;padding:0 16px 0 12px;border-radius:28px;background:#fff;box-shadow:var(--clay)}
-.nk p{flex:1;font-size:15px;font-weight:800}.nk p small{display:block;font-size:12.5px;font-weight:500;color:#5a5a5a}
+.nk{display:flex;align-items:center;gap:12px;margin-top:14px;min-height:68px;padding:0 16px 0 12px;border-radius:28px;background:#ECE4D9;box-shadow:var(--clay)}
+.nk p{flex:1;font-size:15px;font-weight:800}.nk p small{display:block;font-size:12.5px;font-weight:500;color:#5b5248}
 .nk b{font-size:18px;color:#0A1629}
-.tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 4px 24px;display:flex;background:#fff;box-shadow:0 -1px 0 var(--line),0 -12px 18px -12px rgba(10,22,41,.2);z-index:5}
-.tab div{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600;color:#5a5a5a;white-space:nowrap}
-.tab img{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:15px;opacity:.45;filter:grayscale(.6)}
-.tab .on{color:#0A1629;font-weight:800}.tab .on img{opacity:1;filter:none;background:#F2EBE3;box-shadow:inset 0 1px 0 #fff,inset 0 -3px 6px -3px rgba(10,22,41,.15)}
+.tab{position:absolute;left:0;right:0;bottom:0;height:84px;padding:6px 4px 24px;display:flex;background:#ECE4D9;box-shadow:0 -1px 0 var(--line),0 -12px 18px -12px rgba(10,22,41,.2);z-index:5}
+.tab div{position:relative;flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font-size:11px;font-weight:600;color:#5b5248;white-space:nowrap}
+.tab img,.tab svg.i{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:15px;opacity:.45;filter:grayscale(.6)}
+.tab .on{color:#0A1629;font-weight:800}.tab .on img,.on svg.i{opacity:1;filter:none;background:#ECE4D9;box-shadow:inset 0 1px 0 #fff,inset 0 -3px 6px -3px rgba(10,22,41,.15)}
+svg.i{flex:none}svg.st{fill:#E2B354;stroke:#C9973B}
+.phat.ngoc{background:#0A1629;color:#F4C76A;box-shadow:var(--nho)}
+.tag{box-shadow:var(--lom)}
+.vi{box-shadow:var(--clay),inset 0 0 0 1px rgba(244,199,106,.35)}
+.vi strong svg.i{width:46px;height:46px}
+.tab span[aria-selected="true"]{background:#0A1629;color:#F4C76A;box-shadow:none}
+.tab span[aria-selected="false"]{color:#7c7166}
+.tag.da{background:#0A1629;color:#F4C76A;box-shadow:none}
+.vach i{background:var(--kim)}
+.sao{box-shadow:none}
+.tab svg.i{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:15px;opacity:1;filter:none;color:#7c7166}
+.tab svg.st{fill:none;stroke:currentColor}
+.tab .on svg.i{color:#0A1629;background:#ECE4D9;box-shadow:var(--lom)}
+.tab div{color:#7c7166}.tab .on{color:#0A1629}
+.tab{box-shadow:0 -6px 12px -6px var(--lo)}
+.av{background:#ECE4D9;color:#0A1629;box-shadow:var(--clay)}
+.be.on .av,.av.on{background:#0A1629;color:#F4C76A;box-shadow:0 0 0 2px #D9AE57}
+.cot b{background:#0A1629}.cot b.qua{background:#b9ad9e}
+.cot b.nay{background:repeating-linear-gradient(135deg,#2a3f6a 0 6px,#0A1629 6px 12px)}
+.bieu::before{border-top-color:#b9ad9e}
+.o.vang{background:var(--kim)}
+.rob{box-shadow:var(--clay),inset 0 0 0 1px rgba(244,199,106,.35)}
+.o svg.i,.nk svg.i{width:28px;height:28px}
 </style></head>
 <body><div class="app">
 <div class="top"><h1>Báo cáo</h1><span class="tuan">7 ngày qua</span></div>
@@ -93,25 +116,25 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 </div>
 <p class="muc"><span class="t">Dùng nhiều nhất</span><a role="button" tabindex="0" data-toi="them-c95l1cwc">Xem hết ›</a></p>
 <div class="pad"><div class="ds">
-<div class="lg" role="button" tabindex="0" data-toi="them-c95l1cwc"><span class="ic"><img src="/assets/icon3d/game.webp" alt=""></span><p>Roblox<small>iPad</small></p><span class="tag choi">Chơi 2g 10</span></div>
-<div class="lg" role="button" tabindex="0" data-toi="them-c95l1cwc"><span class="ic"><img src="/assets/icon3d/may_tinh.webp" alt=""></span><p>Học với AiiRob<small>iPad</small></p><span class="tag hoc">Học 1g 30</span></div>
-<div class="lg" role="button" tabindex="0" data-toi="them-c95l1cwc"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Từ điển<small>iPad</small></p><span class="tag hoc">Học 40′</span></div>
+<div class="lg" role="button" tabindex="0" data-toi="them-c95l1cwc"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="7" width="19" height="11" rx="5.5"></rect><path d="M7.5 10.5v4M5.5 12.5h4M16 11.5h.01M18 13.5h.01"></path></svg></span><p>Roblox<small>iPad</small></p><span class="tag choi">Chơi 2g 10</span></div>
+<div class="lg" role="button" tabindex="0" data-toi="them-c95l1cwc"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></span><p>Học với AiiRob<small>iPad</small></p><span class="tag hoc">Học 1g 30</span></div>
+<div class="lg" role="button" tabindex="0" data-toi="them-c95l1cwc"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"></path><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"></path></svg></span><p>Từ điển<small>iPad</small></p><span class="tag hoc">Học 40′</span></div>
 </div></div>
 <p class="muc"><span class="t">Sao kiếm, sao vay</span></p>
 <div class="pad">
 <div class="hai">
-<div class="o vang" role="button" tabindex="0" data-toi="them-1akngbxb"><img src="/assets/icon3d/sao.webp" alt=""><strong>250 sao</strong><p>Kiếm từ 14 việc · đã tiêu 230 ›</p></div>
-<div class="o" role="button" tabindex="0" data-toi="them-a4nqjrmp"><img src="/assets/icon3d/sao.webp" alt=""><strong>0 sao vay</strong><p>Không xin vay tuần này · không nợ ›</p></div>
+<div class="o vang" role="button" tabindex="0" data-toi="them-1akngbxb"><svg class="i st" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg><strong>250 sao</strong><p>Kiếm từ 14 việc · đã tiêu 230 ›</p></div>
+<div class="o" role="button" tabindex="0" data-toi="them-a4nqjrmp"><svg class="i st" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg><strong>0 sao vay</strong><p>Không xin vay tuần này · không nợ ›</p></div>
 </div>
 <div class="rob" role="button" tabindex="0" data-toi="them-e44cwmvu"><img src="/assets/rob/chi.webp" alt=""><p>Ngày của Bảo Minh còn trống.<b>Thêm vào ngày của con ›</b></p></div>
-<div class="nk" role="button" tabindex="0" data-toi="them-r3dsl3py"><span class="ic"><img src="/assets/icon3d/lich.webp" alt=""></span><p>Nhật ký cả nhà<small>Ai cho vay sao, ai duyệt, ai đổi cài đặt</small></p><b>›</b></div>
+<div class="nk" role="button" tabindex="0" data-toi="them-r3dsl3py"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path></svg></span><p>Nhật ký cả nhà<small>Ai cho vay sao, ai duyệt, ai đổi cài đặt</small></p><b>›</b></div>
 </div>
 </div>
 <nav class="tab">
-<div role="button" tabindex="0" data-toi="bm2-trang-chu"><img src="/assets/icon3d/nha.webp" alt="">Hôm nay</div>
-<div role="button" tabindex="0" data-toi="them-e91jg28j"><img src="/assets/icon3d/sao.webp" alt="">Việc &amp; quà</div>
-<div role="button" tabindex="0" data-toi="bm2-ung-dung-may"><img src="/assets/icon3d/khien.webp" alt="">App &amp; web</div>
-<div class="on" role="button" tabindex="0" data-toi="them-gftgyspn"><img src="/assets/icon3d/lich.webp" alt="">Báo cáo</div>
-<div role="button" tabindex="0" data-toi="them-h60stad7"><img src="/assets/icon3d/nguoi.webp" alt="">Cả nhà</div>
+<div role="button" tabindex="0" data-toi="bm2-trang-chu"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8M5.5 9.5V20h13V9.5M10 20v-6h4v6"></path></svg>Hôm nay</div>
+<div role="button" tabindex="0" data-toi="them-e91jg28j"><svg class="i st" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>Việc &amp; quà</div>
+<div role="button" tabindex="0" data-toi="bm2-ung-dung-may"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"></path><path d="M8.5 12l2.5 2.5 4.5-5"></path></svg>App &amp; web</div>
+<div class="on" role="button" tabindex="0" data-toi="them-gftgyspn"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path></svg>Báo cáo</div>
+<div role="button" tabindex="0" data-toi="them-h60stad7"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></svg>Cả nhà</div>
 </nav>
 </div></body></html>

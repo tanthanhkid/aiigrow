@@ -1,41 +1,51 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--clay:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 5px 10px rgba(10,22,41,.12),inset 0 -1.5px 0 rgba(255,255,255,.95)}
-html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',Inter,system-ui,sans-serif;color:#0A1629;font-variant-numeric:tabular-nums}
-.app{position:relative;width:375px;height:812px;overflow:hidden;background:linear-gradient(#e8ddcf 0,#F2EBE3 320px,#F2EBE3 100%)}
+svg{width:1em;height:1em;flex:none}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--n)}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center;color:var(--ink);font-size:24px}
+.muc{display:flex;align-items:center;margin:18px 6px 8px;font-size:15px;font-weight:800;color:var(--ink)}
+.muc::before{content:"";width:9px;height:13px;margin-right:7px;background:#D9AE57;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}
+.ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--sunk);color:var(--ink);font-size:22px}
+.kim{background:var(--kim);color:#0A1629;font-weight:700;box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nutk{display:flex;align-items:center;justify-content:center;height:54px;border-radius:16px;font-size:16px;font-weight:700;color:#0A1629;white-space:nowrap;background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nutp{display:flex;align-items:center;justify-content:center;height:46px;border-radius:16px;font-size:15px;font-weight:700;color:#0A1629;white-space:nowrap;background:var(--n);box-shadow:var(--sh)}
+.nutd{display:flex;align-items:center;justify-content:center;height:46px;border-radius:16px;font-size:15px;font-weight:700;color:#b42318;white-space:nowrap;background:var(--n);box-shadow:var(--sh)}
+.chev{flex:none;width:18px;height:18px;fill:var(--ink)}
+.card{background:var(--n);box-shadow:var(--shL);border-radius:28px}
+.sv{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
 .canh{position:relative;height:206px;padding-top:50px;text-align:center}
 .canh img{height:150px;width:auto}
-.bong{position:absolute;left:16px;top:62px;max-width:132px;padding:10px 14px;border-radius:20px 20px 20px 6px;background:#fff;box-shadow:var(--clay);font-size:14px;font-weight:800;text-align:left;line-height:19px}
-.av{position:absolute;right:28px;top:88px;width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:#0f8a68;color:#fff;font-size:26px;font-weight:800;box-shadow:0 10px 18px -10px rgba(10,22,41,.4),inset 0 2px 0 rgba(255,255,255,.4)}
+.bong{position:absolute;left:16px;top:62px;max-width:132px;padding:10px 14px;border-radius:20px 20px 20px 6px;background:var(--n);box-shadow:var(--sh);font-size:14px;font-weight:700;text-align:left;line-height:19px}
+.av{position:absolute;right:28px;top:88px;width:60px;height:60px;border-radius:50%;display:grid;place-items:center;background:var(--ink);color:#F4C76A;box-shadow:0 0 0 2px #D9AE57;font-size:26px;font-weight:800}
 h1{margin-top:4px;text-align:center;font-size:24px;font-weight:800;letter-spacing:-.4px}
-.phu{margin-top:2px;text-align:center;font-size:14px;font-weight:600;color:#5a5a5a}
-.ds{margin:14px 16px 0;padding:4px 12px;border-radius:28px;background:#fff;box-shadow:var(--clay)}
+.phu{margin-top:2px;text-align:center;font-size:14px;font-weight:600;color:var(--ink2)}
+.ds{margin:14px 16px 0;padding:4px 12px;border-radius:28px;background:var(--n);box-shadow:var(--shL)}
 .buoc{display:flex;align-items:center;gap:10px;min-height:62px}
-.buoc+.buoc{border-top:1.5px solid #efe7dd}
-.so{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:#0A1629;font-size:12.5px;font-weight:800;color:#fff}
-.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#F2EBE3;box-shadow:var(--lom)}.ic img{width:24px;height:24px}
+.buoc+.buoc{border-top:1px solid rgba(120,98,70,.18)}
+.so{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--ink);font-size:12.5px;font-weight:800;color:#F4C76A}
 .buoc p{flex:1;min-width:0;font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.buoc p small{display:block;font-size:12.5px;font-weight:500;color:#5a5a5a;overflow:hidden;text-overflow:ellipsis}
-.buoc svg{flex:none;width:18px;height:18px;fill:#0A1629}
+.buoc p small{display:block;font-size:12.5px;font-weight:400;color:var(--ink2);overflow:hidden;text-overflow:ellipsis}
 .day{position:absolute;left:16px;right:16px;bottom:22px;display:flex;flex-direction:column;gap:2px}
-.nut{display:flex;align-items:center;justify-content:center;height:54px;border-radius:28px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
-.thoi{display:flex;align-items:center;justify-content:center;min-height:46px;font-size:15px;font-weight:800;color:#0A1629}
+.thoi{display:flex;align-items:center;justify-content:center;min-height:46px;font-size:15px;font-weight:700;color:#8a6a2b}
 </style></head>
 <body><div class="app">
 <div class="canh"><span class="bong">Chào Khang! Còn 5 bước nữa nhé</span><img src="/assets/rob/xong.webp" alt=""><span class="av">K</span></div>
 <h1>Đã tạo hồ sơ Khang</h1>
 <p class="phu">PIN vào máy đã đặt</p>
 <div class="ds">
-<div class="buoc" role="button" tabindex="0" data-toi="bm1-ob-mau"><span class="so">1</span><span class="ic"><img src="/assets/icon3d/lich.webp" alt=""></span><p>Một ngày của Khang<small>Học · Vận động · Giúp Ba Mẹ</small></p><svg viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
-<div class="buoc" role="button" tabindex="0" data-toi="them-s416tfdj"><span class="so">2</span><span class="ic"><img src="/assets/icon3d/qua.webp" alt=""></span><p>Quà của Khang<small>Voucher hoặc Ba Mẹ tự điền</small></p><svg viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
-<div class="buoc" role="button" tabindex="0" data-toi="bm1-ob-gio"><span class="so">3</span><span class="ic"><img src="/assets/icon3d/sao.webp" alt=""></span><p>Chơi bằng sao<small>1 sao = 1 phút chơi · sao khởi đầu</small></p><svg viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
-<div class="buoc" role="button" tabindex="0" data-toi="them-mdujxlg2"><span class="so">4</span><span class="ic"><img src="/assets/icon3d/khien.webp" alt=""></span><p>App &amp; web cho Khang<small>Mở hết hoặc Theo danh sách</small></p><svg viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
-<div class="buoc" role="button" tabindex="0" data-toi="bm1-ob-ghep"><span class="so">5</span><span class="ic"><img src="/assets/icon3d/laptop.webp" alt=""></span><p>Ghép máy cho Khang<small>Máy riêng hoặc máy dùng chung</small></p><svg viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="buoc" role="button" tabindex="0" data-toi="bm1-ob-mau"><span class="so">1</span><span class="ic"><svg viewBox="0 0 24 24" class="sv"><rect x="3" y="5" width="18" height="16" rx="3"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg></span><p>Một ngày của Khang<small>Học · Vận động · Giúp Ba Mẹ</small></p><svg class="chev" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="buoc" role="button" tabindex="0" data-toi="them-s416tfdj"><span class="so">2</span><span class="ic"><svg viewBox="0 0 24 24" class="sv"><rect x="3" y="8" width="18" height="4" rx="1"></rect><path d="M12 8v13M5 12v8h14v-8M12 8c-2-4-6-3-5 0M12 8c2-4 6-3 5 0"></path></svg></span><p>Quà của Khang<small>Voucher hoặc Ba Mẹ tự điền</small></p><svg class="chev" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="buoc" role="button" tabindex="0" data-toi="bm1-ob-gio"><span class="so">3</span><span class="ic"><svg viewBox="0 0 24 24" class="sv"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg></span><p>Chơi bằng sao<small>1 sao = 1 phút chơi · sao khởi đầu</small></p><svg class="chev" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="buoc" role="button" tabindex="0" data-toi="them-mdujxlg2"><span class="so">4</span><span class="ic"><svg viewBox="0 0 24 24" class="sv"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"></path></svg></span><p>App &amp; web cho Khang<small>Mở hết hoặc Theo danh sách</small></p><svg class="chev" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<div class="buoc" role="button" tabindex="0" data-toi="bm1-ob-ghep"><span class="so">5</span><span class="ic"><svg viewBox="0 0 24 24" class="sv"><rect x="4" y="5" width="16" height="11" rx="2"></rect><path d="M2 20h20"></path></svg></span><p>Ghép máy cho Khang<small>Máy riêng hoặc máy dùng chung</small></p><svg class="chev" viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
 </div>
 <div class="day">
-<span class="nut" role="button" tabindex="0" data-toi="bm1-ob-mau">Bắt đầu: Một ngày của Khang</span>
+<span class="nutk" role="button" tabindex="0" data-toi="bm1-ob-mau">Bắt đầu: Một ngày của Khang</span>
 <span class="thoi" role="button" tabindex="0" data-toi="them-h60stad7">Để sau</span>
 </div>
-</div></body></html>
+</div>
+</body></html>

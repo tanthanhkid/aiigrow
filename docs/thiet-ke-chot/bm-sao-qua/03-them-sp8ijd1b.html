@@ -2,50 +2,60 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--clay:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 5px 10px rgba(10,22,41,.14),inset 0 -1.5px 0 rgba(255,255,255,.95)}
-html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629;font-variant-numeric:tabular-nums}
-.app{position:relative;width:375px;height:812px;overflow:hidden;background:#F2EBE3}
-.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e8ddcf,#F2EBE3)}
-.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#e8ddcf 75%,rgba(232,221,207,0))}
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--clay:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--nho:4px 4px 8px var(--lo),-4px -4px 8px var(--hi);--lom:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);--btnSh:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+html,body{width:375px;height:812px;overflow:hidden;background:#ECE4D9;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#ECE4D9}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#ECE4D9,#ECE4D9)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 16px 0 8px;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#ECE4D9 75%,rgba(236,228,217,0))}
 .lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0A1629}
 .top h1{flex:1;font-size:22px;font-weight:800;letter-spacing:-.4px}
 .cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:0 16px 170px;scrollbar-width:none}
 .cuon::-webkit-scrollbar{display:none}
 .dau{display:flex;flex-direction:column;align-items:center;text-align:center;padding:4px 0 2px}
-.hinh{width:104px;height:104px;border-radius:32px;display:grid;place-items:center;background:#fff;box-shadow:var(--clay)}
-.hinh img{width:70px;height:70px}
+.hinh{width:104px;height:104px;border-radius:32px;display:grid;place-items:center;background:#ECE4D9;box-shadow:var(--clay)}
+.hinh img,.hinh svg.i{width:70px;height:70px}
 .dau b{margin-top:12px;font-size:22px;font-weight:800;letter-spacing:-.4px}
-.dau small{margin-top:4px;font-size:13px;font-weight:600;color:#5a5a5a}
+.dau small{margin-top:4px;font-size:13px;font-weight:600;color:#5b5248}
 .hai{display:flex;gap:10px;margin-top:16px}
-.o{flex:1;display:flex;align-items:center;gap:10px;padding:12px;border-radius:24px;background:#fff;box-shadow:var(--clay)}
-.o .ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#F2EBE3;box-shadow:var(--lom)}.o .ic img{width:26px;height:26px}
-.o span{display:block;font-size:12.5px;font-weight:700;color:#5a5a5a}
+.o{flex:1;display:flex;align-items:center;gap:10px;padding:12px;border-radius:24px;background:#ECE4D9;box-shadow:var(--clay)}
+.o .ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ECE4D9;box-shadow:var(--lom)}.o .ic img,.ic svg.i{width:26px;height:26px}
+.o span{display:block;font-size:12.5px;font-weight:700;color:#5b5248}
 .o b{display:block;font-size:18px;font-weight:800}
-.o.sao{background:#fbf0d6}.o.sao span,.o.sao b{color:#0A1629}.o.sao .ic{background:#fdf6e4}
+.o.sao{background:#ECE4D9}.o.sao span,.o.sao b{color:#0A1629}.o.sao .ic{background:#ECE4D9}
 .muc{display:flex;align-items:center;gap:7px;margin:18px 6px 8px;font-size:15px;font-weight:800;color:#0A1629}
 .muc::before{content:"";width:9px;height:13px;background:#0A1629;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}
-.the{padding:14px 16px;border-radius:28px;background:#fff;box-shadow:var(--clay)}
-.vach{height:14px;border-radius:7px;background:#F2EBE3;box-shadow:var(--lom);overflow:hidden}
+.the{padding:14px 16px;border-radius:28px;background:#ECE4D9;box-shadow:var(--clay)}
+.vach{height:14px;border-radius:7px;background:#ECE4D9;box-shadow:var(--lom);overflow:hidden}
 .vach i{display:block;width:15%;height:100%;border-radius:7px;background:linear-gradient(#f8d68e,#F4C76A)}
-.chu{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;font-weight:700;color:#5a5a5a}
+.chu{display:flex;justify-content:space-between;margin-top:8px;font-size:13px;font-weight:700;color:#5b5248}
 .chu b{color:#0A1629}
 .ds{padding:6px 14px}
 .dong{display:flex;align-items:center;gap:12px;min-height:56px}
-.dong+.dong{border-top:1.5px solid #efe7dd}
-.dong .ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#F2EBE3;box-shadow:var(--lom)}.dong .ic img{width:26px;height:26px}
-.dong p{flex:1;font-size:14px;font-weight:700;color:#5a5a5a;line-height:19px}
+.dong+.dong{border-top: 1px solid rgba(120,98,70,.2)}
+.dong .ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#ECE4D9;box-shadow:var(--lom)}.dong .ic img,.ic svg.i{width:26px;height:26px}
+.dong p{flex:1;font-size:14px;font-weight:700;color:#5b5248;line-height:19px}
 .dong p b{color:#0A1629;font-weight:800}
-.day{position:absolute;left:0;right:0;bottom:0;padding:20px 16px 22px;background:linear-gradient(rgba(242,235,227,0),#F2EBE3 20px);z-index:4;display:flex;flex-direction:column;gap:4px}
-.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
+.day{position:absolute;left:0;right:0;bottom:0;padding:20px 16px 22px;background:linear-gradient(rgba(236,228,217,0),#ECE4D9 20px);z-index:4;display:flex;flex-direction:column;gap:4px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#0A1629;white-space:nowrap;background:var(--kim);box-shadow:var(--btnSh)}
 .lk{min-height:44px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;color:#0A1629}
+svg.i{flex:none}svg.st{fill:#E2B354;stroke:#C9973B}
+.phat.ngoc{background:#0A1629;color:#F4C76A;box-shadow:var(--nho)}
+.tag{box-shadow:var(--lom)}
+.vi{box-shadow:var(--clay),inset 0 0 0 1px rgba(244,199,106,.35)}
+.vi strong svg.i{width:46px;height:46px}
+.tab span[aria-selected="true"]{background:#0A1629;color:#F4C76A;box-shadow:none}
+.tab span[aria-selected="false"]{color:#7c7166}
+.tag.da{background:#0A1629;color:#F4C76A;box-shadow:none}
+.vach i{background:var(--kim)}
+.sao{box-shadow:none}
 </style></head>
 <body><div class="app">
 <div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-473f52w6"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Quà Ba Mẹ mua</h1></div>
 <div class="cuon">
-<div class="dau"><div class="hinh"><img src="/assets/icon3d/the_qua.webp" alt=""></div><b>Voucher AiiCafe 20k</b><small>Của Bảo Anh · mua ngày 06/11</small></div>
+<div class="dau"><div class="hinh"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="3"></rect><path d="M2.5 10h19M6.5 15h4"></path></svg></div><b>Voucher AiiCafe 20k</b><small>Của Bảo Anh · mua ngày 06/11</small></div>
 <div class="hai">
-<div class="o"><span class="ic"><img src="/assets/icon3d/xu.webp" alt=""></span><div><span>Ba Mẹ đã trả</span><b>20.000đ</b></div></div>
-<div class="o sao"><span class="ic"><img src="/assets/icon3d/sao.webp" alt=""></span><div><span>Con đổi bằng</span><b>200 sao</b></div></div>
+<div class="o"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v10M9.5 9.5h4a1.7 1.7 0 0 1 0 3.5h-3a1.7 1.7 0 0 0 0 3.5h4"></path></svg></span><div><span>Ba Mẹ đã trả</span><b>20.000đ</b></div></div>
+<div class="o sao"><span class="ic"><svg class="i st" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg></span><div><span>Con đổi bằng</span><b>200 sao</b></div></div>
 </div>
 <p class="muc">Bảo Anh đang tích sao</p>
 <div class="the">
@@ -54,10 +64,10 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 </div>
 <p class="muc">Cách dùng</p>
 <div class="the ds">
-<div class="dong"><span class="ic"><img src="/assets/icon3d/khoa.webp" alt=""></span><p>Mã QR hiện khi <b>con đổi xong</b></p></div>
-<div class="dong"><span class="ic"><img src="/assets/icon3d/lich.webp" alt=""></span><p>Dùng được <b>60 ngày</b> từ lúc đổi</p></div>
-<div class="dong"><span class="ic"><img src="/assets/icon3d/coc.webp" alt=""></span><p>Đưa mã ở quầy <b>AiiCafe</b></p></div>
-<div class="dong"><span class="ic"><img src="/assets/icon3d/tin.webp" alt=""></span><p>Hoá đơn <b>#AG-1106-0231</b></p></div>
+<div class="dong"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"></rect><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"></path></svg></span><p>Mã QR hiện khi <b>con đổi xong</b></p></div>
+<div class="dong"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="3"></rect><path d="M8 3v4M16 3v4M3.5 10h17"></path></svg></span><p>Dùng được <b>60 ngày</b> từ lúc đổi</p></div>
+<div class="dong"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h12v6a5 5 0 0 1-5 5h-2a5 5 0 0 1-5-5z"></path><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H16.5M8 3v2M12 3v2"></path></svg></span><p>Đưa mã ở quầy <b>AiiCafe</b></p></div>
+<div class="dong"><span class="ic"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"></path><path d="M14 3v5h5M9 13h7M9 17h5"></path></svg></span><p>Hoá đơn <b>#AG-1106-0231</b></p></div>
 </div>
 </div>
 <div class="day">
