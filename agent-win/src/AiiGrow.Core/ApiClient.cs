@@ -79,16 +79,17 @@ public sealed class ApiClient : IDisposable
 
     /// <param name="boiMa">15/11: phút «Tính phút» dùng lúc máy mở bằng mã offline của Ba Mẹ kể từ lần đồng bộ trước, THEO BÉ — máy chủ không trừ sao
     /// phần này (`boiMaCon`; `phutBoiMa` = tổng, cho máy chủ cũ). Rỗng ⇒ không gửi.</param>
-    public async Task<(Policy Policy, string Raw)> SyncAsync(AgentStatus status, IReadOnlyList<UsageEntry> usage,
+    /// <param name="tongNgay">TỔNG phút trong ngày theo (app, bé) — không phải phần tăng (#433 A1: <see cref="UsageTotals.CanGui"/>).</param>
+    public async Task<(Policy Policy, string Raw)> SyncAsync(AgentStatus status, IReadOnlyList<UsageEntry> tongNgay,
         CancellationToken ct = default, IReadOnlyList<(string? Con, int Phut)>? boiMa = null)
     {
         // Máy chủ AiiGrow: POST /api/device/dong-bo. Policy cho agent nằm ở trường `windows` (máy chủ dịch sẵn — server/lib/agent-windows.ts) + khối gốc `sao`, `cheDo`.
-        // Máy chủ ghi phút dùng bằng greatest(…) ⇒ gửi TỔNG trong ngày theo (app, bé) (UsageTotals), không gửi phần tăng. 15/11 (#267): `con` = bé của dòng.
-        var tong = UsageTotals.Shared.Add(usage);
+        // Máy chủ ghi phút dùng bằng greatest(…) ⇒ gửi TỔNG trong ngày theo (app, bé), không gửi phần tăng. 15/11 (#267): `con` = bé của dòng.
+        // #433 A1: người gọi cộng phần tăng vào UsageTotals TRƯỚC khi gửi; gửi lỗi thì lần sau gửi lại đúng tổng đó.
         var raw = await SendAsync(HttpMethod.Post, "api/device/dong-bo", new DongBoBody
         {
             Status = status, ClientTime = DateTimeOffset.Now.ToString("O"),
-            Usage = tong.Select(u => new DongBoUsage { Muc = u.AppId, Phut = u.Minutes, Day = u.Day, Con = u.Con }).ToList(),
+            Usage = tongNgay.Select(u => new DongBoUsage { Muc = u.AppId, Phut = u.Minutes, Day = u.Day, Con = u.Con }).ToList(),
             PhutBoiMa = boiMa is { Count: > 0 } ? boiMa.Sum(x => x.Phut) : null,
             BoiMaCon = boiMa is { Count: > 0 } ? boiMa.Select(x => new DongBoBoiMa { Con = x.Con, Phut = x.Phut }).ToList() : null,
         }, ct);

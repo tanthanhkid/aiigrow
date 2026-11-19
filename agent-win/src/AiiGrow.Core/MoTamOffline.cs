@@ -37,6 +37,14 @@ public sealed class MoTamOffline
     public string? LastCode { get; set; }
     public DateTimeOffset? LastCodeAt { get; set; }
     public List<DateTimeOffset> WrongAt { get; set; } = new();
+    /// <summary>#433 A7: các mã đã mở máy gần đây (không chỉ mã cuối) — lùi giờ về lúc một mã CŨ còn hợp lệ cũng không dùng lại được.</summary>
+    public List<MaDaDung> DaDung { get; set; } = new();
+
+    public sealed class MaDaDung
+    {
+        public string Ma { get; set; } = "";
+        public DateTimeOffset Luc { get; set; }
+    }
 
     /// <summary>Đang mở? Đồng hồ bị lùi về trước lúc mở ⇒ coi như không mở (không cho kéo dài bằng cách chỉnh giờ).</summary>
     public bool IsUnlocked(DateTimeOffset now)
@@ -60,8 +68,10 @@ public sealed class MoTamOffline
         if (WaitSeconds(now) > 0) return KetQuaMoOffline.ChoThuLai;
 
         var sach = new string((code ?? "").Where(char.IsDigit).ToArray());
-        bool trungMaCu = LastCode != null && LastCodeAt.HasValue && sach == LastCode
-                         && now - LastCodeAt.Value < NhoMaDaDung && now >= LastCodeAt.Value.AddMinutes(-1);
+        // #433 A7: đồng hồ lùi về TRƯỚC lúc dùng mã (mã TOTP còn hợp lệ ở bước cũ) vẫn là mã đã dùng — trước đây chỉ nhận «trùng» khi giờ đi tới
+        // ⇒ lùi giờ vài phút là mở lại thêm một lượt bằng đúng mã cũ.
+        bool trungMaCu = (LastCode != null && LastCodeAt.HasValue && sach == LastCode && (now - LastCodeAt.Value).Duration() < NhoMaDaDung)
+                         || DaDung.Any(x => x.Ma == sach && (now - x.Luc).Duration() < NhoMaDaDung);
         if (trungMaCu)
             return IsUnlocked(now) ? KetQuaMoOffline.DangMo : KetQuaMoOffline.DaDung;
 
@@ -76,6 +86,8 @@ public sealed class MoTamOffline
         UnlockUntil = now.AddMinutes(p);
         LastCode = sach;
         LastCodeAt = now;
+        DaDung.Add(new MaDaDung { Ma = sach, Luc = now });
+        if (DaDung.Count > 20) DaDung.RemoveRange(0, DaDung.Count - 20);
         WrongAt.Clear();
         return KetQuaMoOffline.DaMo;
     }
