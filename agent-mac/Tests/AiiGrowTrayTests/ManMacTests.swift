@@ -220,4 +220,19 @@ final class GioiHanManMacTests: XCTestCase {
     let cu = tt(lyDo: nil, sao: SoSao(sao: 18, phutCon: 18), gh: nil, phutSao: 18)
     XCTAssertEqual(TrayLogic.dongSao(cu), "còn 18 sao = 18 phút chơi", "máy chủ cũ: như trước")
   }
+
+  /// Sáu ô số ghép máy: dán, xoá lùi, nhảy ô.
+  func testOMa6() {
+    XCTAssertEqual(OMa6.cacO(""), ["", "", "", "", "", ""])
+    XCTAssertEqual(OMa6.cacO("48"), ["4", "8", "", "", "", ""])
+    XCTAssertEqual(OMa6.oHienTai(""), 0)
+    XCTAssertEqual(OMa6.oHienTai("48"), 2)            // gõ số kế ⇒ sang ô thứ 3
+    XCTAssertEqual(OMa6.oHienTai("482017"), 5)
+    XCTAssertEqual(OMa6.nhan("482 017"), "482017")      // dán có khoảng trắng
+    XCTAssertEqual(OMa6.nhan("482-017x99"), "482017")   // chỉ 6 chữ số đầu
+    XCTAssertEqual(OMa6.cacO(OMa6.nhan("482 017")), ["4", "8", "2", "0", "1", "7"])
+    var m = OMa6.nhan("482017"); m.removeLast()         // xoá lùi
+    XCTAssertEqual(OMa6.cacO(m), ["4", "8", "2", "0", "1", ""]); XCTAssertEqual(OMa6.oHienTai(m), 5)
+    XCTAssertFalse(TrayLogic.maHopLe(m))
+  }
 }
