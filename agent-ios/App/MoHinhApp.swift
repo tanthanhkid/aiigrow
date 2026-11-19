@@ -558,8 +558,7 @@ final class MoHinhApp: ObservableObject {
     case "moMa":
       var mt = MoTamOffline(); mt.moTu = now; mt.moDen = now.addingTimeInterval(30 * 60); mt.phutMo = 30
       kho.luu(mt, Khoa.moTamOffline); matMang = true
-      var k = KhienMuonCo(muc: .khong, lyDo: .khong, webChan: [], chanCaiApp: true, dangThemGio: false); k.dangMoOffline = true
-      khien = k
+      khien = TinhKhien.lucNay(kh, now: now, dung: nil, moOfflineDen: mt.moDen)   // khiên «đang mở bằng mã» (memberwise init của ConCore không public)
     case "xinThem": manPhu = .xinThem
     case "conDangXin": manPhu = .conDangXin
     case "doiBe": manPhu = .doiBe

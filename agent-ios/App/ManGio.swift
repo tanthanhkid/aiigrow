@@ -351,7 +351,7 @@ struct ManQuyTac: View {
       HStack(spacing: 10) {
         Button { dong() } label: {
           Image(systemName: "chevron.left").font(.system(size: 18, weight: .heavy)).foregroundColor(Diu.chu)
-            .frame(width: 46, height: 46).background(Circle().fill(.white)).overlay(Circle().stroke(Diu.vien, lineWidth: 1))
+            .frame(width: 46, height: 46).noiE(Circle(), lech: 3)
         }
         .buttonStyle(.plain).accessibilityLabel("Quay lại")
         Spacer(minLength: 0)
