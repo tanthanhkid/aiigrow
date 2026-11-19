@@ -717,6 +717,8 @@ public sealed class AgentRuntime
 
     public void SetForeground(string? appId, string? appName)
     {
+        // #418: khay cũ «AiiGrow.Tray.exe.cu-…» (còn chạy sau cập nhật) / cửa sổ của chính AiiGrow ⇒ gộp về khay — không thành app Con dùng
+        (appId, appName) = AppAiiGrow.ChuanHoa(appId, appName);
         lock (_gate) { _fgId = appId ?? ""; _fgName = appName; _fgAt = DateTimeOffset.UtcNow; }
     }
 

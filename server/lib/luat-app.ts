@@ -36,6 +36,17 @@ export const ALLOWLIST_HE_THONG: string[] = [
   "aiirob.aiilab.vn", "aiilab.vn", "classroom.google.com", "docs.google.com", "office.com", "teams.microsoft.com", "zoom.us",
 ];
 
+/** #418: mục là CHÍNH AiiGrow — không phải app Con dùng: không ghi «đã dùng», không thành «app mới chờ Ba Mẹ xếp», không trừ sao.
+ *  Windows: đúng tên exe của AiiGrow, kể cả khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx» (agent báo «…cu-623a59b6.exe») mà vẫn chạy tới
+ *  lần đăng nhập sau — CHỈ các tên này (không mọi «aiigrow*»: đổi tên game thành «aiigrow.game.exe» không thoát đếm phút); cùng luật agent-win
+ *  AppAiiGrow (UsageTracker.cs). Mac / Android: bundle / gói «vn.aiilab.aiigrow» và con của nó (tray Mac «vn.aiilab.aiigrow.tray», app Con Android). */
+const APP_AIIGROW_WIN = /^aiigrow\.(tray|kid|service|setup)\.exe(\.cu-[0-9a-f]+)?(\.exe)?$/;
+const APP_AIIGROW_GOI = /^vn\.aiilab\.aiigrow(\.[a-z0-9_-]+)*$/;
+export function laAppAiiGrow(mucTho: unknown) {
+  const m = String(mucTho ?? "").trim().toLowerCase();
+  return APP_AIIGROW_WIN.test(m) || APP_AIIGROW_GOI.test(m);
+}
+
 /** Chuẩn hoá: chữ thường; URL ⇒ tên miền không «www.». */
 export function chuanMuc(s: unknown): string {
   let t = String(s ?? "").trim().toLowerCase();
@@ -61,7 +72,7 @@ export type KetQuaLuat = { loai: LoaiMuc | "he_thong" | "chua_phan_loai"; nhom: 
 export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q = q): Promise<KetQuaLuat> {
   const muc = chuanMuc(mucTho);
   const khoa = khoaSo(muc);
-  if (khoa.some((k) => allowlistHieuLuc().includes(k))) return { loai: "he_thong", nhom: null, nguon: "he_thong" };
+  if (laAppAiiGrow(muc) || khoa.some((k) => allowlistHieuLuc().includes(k))) return { loai: "he_thong", nhom: null, nguon: "he_thong" };
   const ds = await t<{ child_id: string; muc: string; loai: LoaiMuc; nhom: NhomGiaiTri }>(
     `select child_id, muc, loai, nhom from app_rules where family_id = $1 and child_id in ('', $2) and muc = any($3::text[]) and (het is null or het > now())
        and loai <> 'chan'`,
@@ -75,7 +86,7 @@ export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q =
 /** phanLoai trong bộ nhớ trên `luat` đã đọc (dsLuat) — cùng thứ tự: hệ thống → khớp cụ thể hơn → luật riêng Con → cả nhà; loai_tru ⇒ chưa xếp. */
 export function phanLoaiTu(luat: { child_id: string; muc: string; loai: string }[], con: string, mucTho: unknown, allow = allowlistHieuLuc()): LoaiMuc | "he_thong" | "chua_phan_loai" {
   const khoa = khoaSo(chuanMuc(mucTho));
-  if (khoa.some((k) => allow.includes(k))) return "he_thong";
+  if (laAppAiiGrow(khoa[0]) || khoa.some((k) => allow.includes(k))) return "he_thong";
   const r = luat.filter((l) => l.loai !== "chan" && khoa.includes(l.muc) && (l.child_id === "" || l.child_id === con))
     .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
   return r && r.loai !== LOAI_TRU ? (r.loai as LoaiMuc) : "chua_phan_loai";

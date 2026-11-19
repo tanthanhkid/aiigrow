@@ -99,8 +99,12 @@ public sealed class MotBanKhay : IDisposable
     public static bool LaKhayKhac(string tenTienTrinh, int phien, int pid, int phienMinh, int pidMinh)
         => pid != pidMinh && phien == phienMinh && tenTienTrinh.StartsWith(TienToTienTrinh, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>PID các khay khác trong phiên này.</summary>
-    public static List<int> KhayKhacCungPhien()
+    /// <summary>#418: khay CŨ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx» — tệp exe của nó đã bị thay, nó chạy bản cũ tới khi thoát.</summary>
+    public static bool LaKhayCu(string tenTienTrinh)
+        => tenTienTrinh.StartsWith(TienToTienTrinh + ".exe.cu-", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>PID các khay khác trong phiên này (<paramref name="chiKhayCu"/>: chỉ khay cũ «.cu-»).</summary>
+    public static List<int> KhayKhacCungPhien(bool chiKhayCu = false)
     {
         var ra = new List<int>();
         using var minh = Process.GetCurrentProcess();
@@ -108,7 +112,11 @@ public sealed class MotBanKhay : IDisposable
         {
             using (p)
             {
-                try { if (LaKhayKhac(p.ProcessName, p.SessionId, p.Id, minh.SessionId, minh.Id)) ra.Add(p.Id); }
+                try
+                {
+                    var ten = p.ProcessName;
+                    if (LaKhayKhac(ten, p.SessionId, p.Id, minh.SessionId, minh.Id) && (!chiKhayCu || LaKhayCu(ten))) ra.Add(p.Id);
+                }
                 catch { }   // tiến trình vừa thoát / không đọc được
             }
         }
