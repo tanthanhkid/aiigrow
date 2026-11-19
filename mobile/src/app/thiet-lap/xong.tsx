@@ -22,7 +22,8 @@ export default function ObXong() {
   useEffect(() => { xoaTl(); }, []);                // Lần đầu đã xong: lần «Thêm Con» sau bắt đầu form trống
   const tiepCon = (x: (typeof conLai)[number]) => {
     datTl({ conId: x.id, tenCon: x.ten, mau: x.mau, namSinh: x.namSinh, daLuu: conLai });
-    router.push("/thiet-lap/mau");
+    // #420: con thứ 2+ ⇒ hỏi «Giống <con vừa xong>» (chép luật, thẳng Ghép máy) hay «Thiết lập riêng» (⇒ Một ngày của …)
+    router.push({ pathname: "/thiet-lap/giong", params: { con: x.id, tu: con, nguon: "lan-dau" } });
   };
   const { d } = useTai(async () => {
     if (!con) return null;

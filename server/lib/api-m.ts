@@ -48,6 +48,7 @@ import { doiTenToi, loiMoiChoToi } from "./thanh-vien.ts";
 import { boKhoiDanhSach, danhSachCon, datAppChoPhep, datCheDoChan, doiNhomDanhSach, luoiApp, TEN_CHE_DO, themVaoDanhSach } from "./che-do-chan.ts";
 import { cheDoChanCua, cheDoCua } from "./chan-co-ban.ts";
 import { thietLapLanDau, tomTatThietLap, webLanDau } from "./thiet-lap.ts";
+import { chepThietLap, nguonChep } from "./chep-thiet-lap.ts";
 import { taoPhienGhep, trangThaiGhep } from "./ghep-may.ts";
 // Thiết kế chốt 05/11 (S1): sao, quỹ giờ chơi, nhiệm vụ theo bộ, làm lại, quà trao tay — lib/api-sao.ts
 import { xuLyMSao } from "./api-sao.ts";
@@ -181,6 +182,9 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (sau === "danh-sach/bo" && post) return json(await boKhoiDanhSach(fam, id, b, bm.id));
       if (sau === "app-cho-phep" && post) return json(await tx((t) => datAppChoPhep(fam, id, b.apps, bm.id, t)));
       if (sau === "thiet-lap" && get) return json(await tomTatThietLap(fam, id));
+      // #420 «Giống <con trước>»: nguồn chép (các Con khác + tóm tắt) · chép luật App & web + việc mỗi ngày + chơi bằng sao từ Con {tu} (lib/chep-thiet-lap.ts)
+      if (sau === "chep-tu" && get) return json(await nguonChep(fam, id));
+      if (sau === "chep-tu" && post) return json(await chepThietLap(fam, id, b, bm.id));
       if (sau === "lich" && post) {
         // #258: giờ ngủ / giờ học bỏ — chỉ lưu khung giờ chơi cũ (không ghi lại ngu / hoc vào CSDL)
         const { ngu: _ngu, hoc: _hoc, ...l } = lichCua(b as never);

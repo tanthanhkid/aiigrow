@@ -248,6 +248,13 @@ for (const [id, ten] of [["c1", KEN], ["c2", BILL]]) {
 }
 coBan["GET con/c2/man-hinh"] = { ...coBan["GET con/c1/man-hinh"], ten: BILL };
 coBan["GET con/c2/vi"] = { ...coBan["GET con/c1/vi"], sao: 155 };
+// #420 «Giống <con trước>» (thiet-lap/giong): nguồn chép của Bill (con thứ 2) = Bảo Anh; NGUON_3 = nhà ≥3 con (them-5t1kazz5)
+const nguonChep = (id, ten, o = {}) => ({ id, ten, avatar: "mau-0", cheDo: "theo_danh_sach", soApp: 6, soWeb: 4, tinhPhut: ["YouTube", "Roblox"], soViec: 5,
+  nhomViec: ["hoc_tap", "van_dong", "viec_nha"], saoKhoiDau: 30, ...o });
+coBan["GET con/c2/chep-tu"] = { thu: 2, ds: [nguonChep("c1", KEN)] };
+coBan["POST con/c2/chep-tu"] = (b) => ({ conId: "c2", ten: BILL, tu: b?.tu, cheDo: "theo_danh_sach", soApp: 6, soWeb: 4, soViec: 5, soViecChep: 5, daTangSao: 30 });
+const NGUON_3 = { "GET con/c2/chep-tu": { thu: 4, ds: [nguonChep("c1", KEN), nguonChep("c3", "Bảo Minh", { cheDo: "mo_het", soViec: 4 }),
+  nguonChep("c4", "Bảo Ngọc", { soApp: 8, soViec: 6 })] } };
 Object.assign(coBan["GET con/c1/vi"], { sao: 155, saoChoDuyet: 30 });
 Object.assign(coBan, {
   "GET toi": { baMe: { id: "p1", ten: "Mẹ Lan", dinhDanh: "0912345678", quyen: "ba_me", laChuNha: true, vai: "chu" } },
@@ -693,6 +700,9 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ob-mau", "/thiet-lap/mau", "Một ngày của", { truoc: diTl("/thiet-lap/mau") }),
     M("bm-ob-mau (bảng Ba Mẹ tự thêm · them-bwlkjyw5)", "/thiet-lap/mau", "Thêm vào mục đã chọn", { truoc: async () => { await diTl("/thiet-lap/mau")(); await doi("+ Ba Mẹ tự thêm"); await bam("+ Ba Mẹ tự thêm"); } }),
     M("bm-ob-xong", "/thiet-lap/xong", "Xong rồi!", { truoc: diTl("/thiet-lap/xong") }),
+    // #420 con thứ 2+: «Giống <con trước>» (them-s84hkh82) · nhà ≥3 con chọn bé để chép (them-5t1kazz5)
+    M("bm-ob-giong (con thứ 2 · them-s84hkh82)", "/thiet-lap/giong?con=c2&tu=c1&nguon=lan-dau", "Xong đi thẳng tới Ghép máy"),
+    M("cn giong (nhà ≥3 con · them-5t1kazz5)", "/thiet-lap/giong?con=c2&nguon=them", "dùng luật giống ai?", { kb: NGUON_3 }),
     M("bm-may-them", "/may/them?con=c1", "Máy mới"),
     // Hằng ngày (bm-hang-ngay — L2, L3, L12)
     M("bm-trang", "/hom-nay", "Cho vay sao"),
@@ -1605,6 +1615,32 @@ await kichBan("Lần đầu: «<Con> dùng app thế nào?» chọn «Mở hết
   await bam("Tiếp: ghép máy của con");
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST" && x.body?.cheDo === "mo_het" && !("cheDoChan" in (x.body ?? {}))), "POST thiet-lap {cheDo: mo_het}");
   xet(nhatKy.find((x) => x.d === "thiet-lap")?.body?.apps?.some((a) => a.ten === "Roblox" && a.nhom === "tinh_phut"), "app gửi kèm nhom (Roblox ⇒ tinh_phut)");
+});
+
+await kichBan("#420 Con thứ 2+: «Giống <con trước>» ⇒ POST con/:id/chep-tu {tu} ⇒ Ghép máy; nhà ≥3 con chọn bé khác; «Thiết lập riêng» ⇒ luồng cũ", async () => {
+  await di("/thiet-lap/giong?con=c2&tu=c1&nguon=lan-dau");
+  xet(await doi("dùng luật giống"), "màn «Bill dùng luật giống Bảo Anh?»");
+  const c = await chu();
+  xet(c.includes("Con thứ 2") && /sẽ chép từ/i.test(c) && c.includes("6 app · 4 trang web") && c.includes("YouTube, Roblox tính") && c.includes("5 việc · Học · Vận động · Giúp Ba Mẹ"), "thẻ «Sẽ chép từ …» đủ 4 dòng");
+  nhatKy.length = 0;
+  await bam("Giống Bảo Anh");
+  xet(await choGoi((x) => x.d === "con/c2/chep-tu" && x.m === "POST" && x.body?.tu === "c1"), "POST con/c2/chep-tu {tu: c1}");
+  xet(await doi("Ghép máy của"), "chép xong ⇒ thẳng Ghép máy");
+  kb = { ...coBan, ...NGUON_3 };
+  await di("/thiet-lap/giong?con=c2&nguon=them");
+  xet(await doi("dùng luật giống ai?"), "nhà ≥3 con ⇒ «… dùng luật giống ai?»");
+  await bamDau("Bảo Ngọc");
+  xet(await doi("Giống Bảo Ngọc"), "chọn Bảo Ngọc ⇒ nút «Giống Bảo Ngọc»");
+  nhatKy.length = 0;
+  await bam("Giống Bảo Ngọc");
+  xet(await choGoi((x) => x.d === "con/c2/chep-tu" && x.body?.tu === "c4"), "POST chep-tu {tu: c4}");
+  xet(await doi("Ghép máy của"), "Thêm con: chép xong ⇒ Ghép máy");
+  await di("/thiet-lap/giong?con=c2&nguon=them");
+  await doi("dùng luật giống ai?");
+  nhatKy.length = 0;
+  await bam("Thiết lập riêng");
+  xet(await doi("Đã tạo hồ sơ"), "«Thiết lập riêng» (Thêm con) ⇒ «Đã tạo hồ sơ · bước tiếp»");
+  xet(!nhatKy.some((x) => x.d === "con/c2/chep-tu" && x.m === "POST"), "Thiết lập riêng không chép gì");
 });
 
 await kichBan("Ứng dụng trên máy: Roblox Player ⇒ «Tính phút» ⇒ ung-dung/dat {tinh_phut} ⇒ Hoàn tác; «Bỏ … khỏi danh sách» ⇒ bo; không còn «Chặn»; Làm mới", async () => {

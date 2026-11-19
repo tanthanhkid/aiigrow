@@ -356,6 +356,15 @@ Chính sách chung (`chinh-sach.ts`, Android / iOS / DNS): `ungDung.cheDoChan`, 
 **Quỹ giờ chơi** lưu ở `children.cau_hinh`: `quy_ngay_thuong`, `quy_cuoi_tuan` (phút / ngày, 0–480 ở thiết lập; tham số mục 10 — S1 tính quỹ, xem mục «Thiết kế chốt 05/11 — sao, quỹ giờ chơi»). `ghep-may.ts` chép nguyên `cau_hinh`. Giờ ngủ ghi `children.lich.ngu`.
 Lỗi: `phut_sai`, `gio_sai`, `che_do_chan_sai`, `app_sai`, `ten_mien_sai`. Nhánh «Tôi được mời vào nhà» không gọi đường này (xem `moi/cho-toi`, `moi/nhan`).
 
+### Con thứ 2+: «Giống <con trước>» (#420)
+
+| Đường | Ý |
+|---|---|
+| `GET con/:id/chep-tu` | nguồn chép cho Con `:id` → `{thu, ds: [{id, ten, avatar, cheDo, soApp, soWeb, tinhPhut: [tên…≤3, không trùng], soViec (việc riêng sẽ chép), nhomViec: [hoc_tap…], saoKhoiDau, gioiHanNgayThuong, gioiHanCuoiTuan, phutMoiLuot}]}` — mọi Con khác trong nhà (tạo trước đứng trước); `thu` = Con `:id` là con thứ mấy |
+| `POST con/:id/chep-tu {tu}` | chép luật của Con `tu` (cùng nhà, khác `:id`) sang Con `:id` trong MỘT giao dịch, THAY luật cũ của Con đích: chế độ App & web, luật app / web lâu dài (giữ nhóm Tính phút / Không tính phút), app theo tên chờ khớp, cấu hình (giới hạn chơi, tham số — trừ khoá máy), khung giờ, việc riêng đang bật (chép thành việc mới; việc riêng cũ của Con đích: chưa nộp ⇒ xoá, đã nộp ⇒ tắt), sao khởi đầu (chỉ khi Con đích chưa được tặng). → tóm tắt như `GET con/:id/thiet-lap` + `{tu, soViec, soViecChep, daTangSao}`. Lỗi: `thieu_con`, `cung_con` (400), Con khác nhà 404, người trông giúp 403 |
+
+App: màn `thiet-lap/giong` (bàn them-s84hkh82 / them-5t1kazz5) mở từ «Thiết lập tiếp cho …» (màn Xong rồi) và sau «Thêm con»; «Giống X» ⇒ chép rồi thẳng Ghép máy, «Thiết lập riêng» ⇒ luồng cũ. Xử lý: `server/lib/chep-thiet-lap.ts`, test `chep-thiet-lap.test.ts`.
+
 ### Ghép máy (L8)
 
 | Đường | Ý |
