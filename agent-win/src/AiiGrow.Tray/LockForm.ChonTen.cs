@@ -457,7 +457,7 @@ internal sealed partial class LockForm
         if (_ct.Loi != null) the.Controls.Add(ChuGiua(_ct.Loi, 12f, true, Clay.Canh, w, 12));
         if (ds.Count > 0 && !(_hs?.MayRieng ?? false))
         {
-            // them-x8kmmyl5: ô ấn lõm nền #efeeea, icon «?» + hai dòng (đậm / thường)
+            // them-x8kmmyl5: ô ấn lõm nền Clay.Lom, icon «?» + hai dòng (đậm / thường)
             the.Controls.Add(Giua(new OKhongThayTen(ManChonTenView.KhongThayTen, ManChonTenView.NhoBaMeThem, Qf(m.PtChan1 + 1f), Qf(m.PtChan2 + 0.5f), Anh3D.Icon("dau_hoi"), _kPin), w, m.TrenChan));
         }
         else the.Controls.Add(ChuGiua(ManChonTenView.GhiChon, m.PtChan2, false, UI.Muted, w, m.TrenChan));
@@ -745,7 +745,7 @@ internal sealed class VongDem : Control
 }
 
 
-/// <summary>Ô «Không thấy tên con?» (them-x8kmmyl5 .khong): nền #efeeea bo 24 ấn lõm, icon «?» 40, dòng đậm + dòng phụ.</summary>
+/// <summary>Ô «Không thấy tên con?» (them-x8kmmyl5 .khong): nền lõm (Clay.Lom) bo 24 ấn lõm, icon «?» 40, dòng đậm + dòng phụ.</summary>
 internal sealed class OKhongThayTen : Control
 {
     private readonly string _t1, _t2;
@@ -774,13 +774,13 @@ internal sealed class OKhongThayTen : Control
         var r = new RectangleF(0.5f, 0.5f, Width - 2, Height - 2);
         using (var path = Clay.Bo(r, Height / 2f > P(24) ? P(24) : Height / 2f))
         {
-            using (var b = new SolidBrush(Color.FromArgb(0xef, 0xee, 0xea))) g.FillPath(b, path);
-            using var pen = new Pen(Color.FromArgb(40, 40, 44, 42), Math.Max(1f, UI.Px(2) / 1f));
+            using (var b = new SolidBrush(Clay.Lom)) g.FillPath(b, path);
+            using var pen = new Pen(Clay.A(70, Clay.Bong), Math.Max(1f, UI.Px(2) / 1f));
             var old = g.Clip;
             g.SetClip(new RectangleF(0, 0, Width, Math.Max(2, Height / 4)), CombineMode.Intersect);
             g.DrawPath(pen, path);   // viền tối mỏng ở mép trên = bóng ấn lõm
             g.Clip = old;
-            using var sang = new Pen(Color.White, Math.Max(1f, UI.Px(1)));
+            using var sang = new Pen(Clay.BongSang, Math.Max(1f, UI.Px(1)));
             g.SetClip(new RectangleF(0, Height * 3 / 4f, Width, Height / 4f), CombineMode.Intersect);
             g.DrawPath(sang, path);
             g.ResetClip();
@@ -791,7 +791,7 @@ internal sealed class OKhongThayTen : Control
         var h = _f1.Height + _f2.Height;
         var y = (Height - h) / 2;
         const TextFormatFlags f = TextFormatFlags.NoPadding | TextFormatFlags.Left | TextFormatFlags.NoPrefix;
-        TextRenderer.DrawText(g, _t1, _f1, new Point(x, y), Color.FromArgb(0x0f, 0x13, 0x12), f);
+        TextRenderer.DrawText(g, _t1, _f1, new Point(x, y), Clay.Chu, f);
         TextRenderer.DrawText(g, _t2, _f2, new Point(x, y + _f1.Height), Clay.Chu3, f);
     }
 
