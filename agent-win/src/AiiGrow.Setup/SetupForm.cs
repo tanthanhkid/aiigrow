@@ -99,9 +99,25 @@ internal sealed class SetupForm : Form
             float x = S(36), y = oy + S(14);
             for (int i = 1; i <= TongBuoc; i++)
             {
-                using var path = Clay.Bo(new RectangleF(x, y, S(36), S(8)), Clay.S(4));
-                using var b = new SolidBrush(i <= Buoc ? Clay.Ngoc : Clay.Tron(Clay.Lom, Clay.Bong, 0.18f));
-                g.FillPath(b, path);
+                // Bàn E (#426): đã xong = navy; đang ở = vàng kim viền navy 1,5; chưa tới = rãnh lõm kem
+                var vien = new RectangleF(x, y, S(36), S(8));
+                using var path = Clay.Bo(vien, Clay.S(4));
+                if (i < Buoc) { using var b = new SolidBrush(Clay.Chu); g.FillPath(b, path); }
+                else if (i == Buoc)
+                {
+                    Clay.ToKim(g, path, vien);
+                    using var pen = new Pen(Clay.Chu, Clay.S(1.5f));
+                    using var pv = Clay.Bo(RectangleF.Inflate(vien, -Clay.S(0.75f), -Clay.S(0.75f)), Clay.S(3.25f));
+                    g.DrawPath(pen, pv);
+                }
+                else
+                {
+                    using var b = new SolidBrush(Clay.Lom); g.FillPath(b, path);
+                    using var pen = new Pen(Clay.A(70, Clay.Bong), Clay.S(1f));
+                    var st = g.Save(); g.SetClip(path, CombineMode.Intersect);
+                    { using var pb = Clay.Bo(new RectangleF(x + Clay.S(0.5f), y + Clay.S(0.5f), S(36), S(8)), Clay.S(4)); g.DrawPath(pen, pb); }
+                    g.Restore(st);
+                }
                 x += S(42);
             }
             // #324: TextRenderer (GDI) mặc định BỎ phép dời gốc của Graphics. Nền này còn được vẽ lại vào ảnh nền đã nhớ của thẻ / chữ trong suốt
@@ -131,25 +147,42 @@ internal sealed class SetupForm : Form
         protected override void Dispose(bool disposing) { if (disposing) _nen.Dispose(); base.Dispose(disposing); }
     }
 
-    /// <summary>Viên chữ bo tròn (chip «Mã dùng được 10 phút», «AiiGrow có / không»).</summary>
+    internal enum KieuChip { Lom, Navy, Khong }
+
+    /// <summary>Viên chữ bo tròn của Bàn E: «Lom» = rãnh lõm kem (mã dùng được 10 phút), «Navy» = navy chữ vàng kim (AiiGrow có), «Khong» = lõm, chữ nâu đỏ, dấu ✕ đỏ (AiiGrow không).</summary>
     private sealed class Chip : VeTay
     {
-        public Color Nen2 = Clay.NgocSoft, Mau = Clay.NgocInk;
+        public KieuChip Kieu = KieuChip.Lom;
         public Image? Hinh;
         public string Chu = "";
+        private static readonly Color DoCanh = Color.FromArgb(0xA2, 0x41, 0x2C);
         protected override void Ve(Graphics g)
         {
-            using (var p = Clay.Bo(new RectangleF(0, 0, Width - 1, Height - 1), Height / 2f))
-            using (var b = new SolidBrush(Nen2)) g.FillPath(b, p);
+            var r = new RectangleF(0, 0, Width - 1, Height - 1);
+            using (var p = Clay.Bo(r, Height / 2f))
+            {
+                if (Kieu == KieuChip.Navy) { using var b = new SolidBrush(Clay.Chu); g.FillPath(b, p); }
+                else Clay.KhoiLom(g, r, Height / 2f, Clay.Lom);
+            }
             int x = S(14);
-            if (Hinh != null) { g.DrawImage(Hinh, x, (Height - S(20)) / 2, S(20), S(20)); x += S(26); }
-            TextRenderer.DrawText(g, Chu, PhongChu.Tao(10f, FontStyle.Bold), new Rectangle(x, 0, Width - x, Height), Mau,
+            if (Kieu == KieuChip.Khong)
+            {
+                var o = new RectangleF(x - Clay.S(1), (Height - S(20)) / 2f, S(20), S(20));
+                using (var b = new SolidBrush(DoCanh)) g.FillEllipse(b, o);
+                using var pen = new Pen(Color.White, Clay.S(1.8f)) { StartCap = LineCap.Round, EndCap = LineCap.Round };
+                var c = o.X + o.Width / 2; var d = o.Width * 0.2f; var cy = o.Y + o.Height / 2;
+                g.DrawLine(pen, c - d, cy - d, c + d, cy + d); g.DrawLine(pen, c + d, cy - d, c - d, cy + d);
+                x += S(26);
+            }
+            else if (Hinh != null) { var k = S(26); g.DrawImage(Hinh, x - S(4), (Height - k) / 2f, k, k); x += S(24); }
+            TextRenderer.DrawText(g, Chu, PhongChu.Tao(10f, FontStyle.Bold), new Rectangle(x, 0, Width - x, Height),
+                Kieu == KieuChip.Navy ? Clay.Kim : Kieu == KieuChip.Khong ? DoCanh : Clay.Chu,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
         }
         public void CoTheoChu()
         {
             using var f = PhongChu.Tao(10f, FontStyle.Bold);
-            Width = S(14) + (Hinh != null ? S(26) : 0) + TextRenderer.MeasureText(Chu, f, Size.Empty, TextFormatFlags.NoPadding).Width + S(16);
+            Width = S(14) + (Hinh != null || Kieu == KieuChip.Khong ? S(Kieu == KieuChip.Khong ? 26 : 24) : 0) + TextRenderer.MeasureText(Chu, f, Size.Empty, TextFormatFlags.NoPadding).Width + S(16);
         }
     }
 
@@ -200,19 +233,15 @@ internal sealed class SetupForm : Form
         }
     }
 
-    /// <summary>Chip «Tự vào, không mật khẩu» (màn Tạo tài khoản): nền trắng bo, tick xanh 26, chữ ngọc đậm.</summary>
+    /// <summary>Ô «Tự vào, không mật khẩu» (màn Tạo tài khoản) theo Bàn E: khối navy bo 16, dấu tick vàng kim, chữ vàng kim đậm.</summary>
     private sealed class ChipTuVao : VeTay
     {
         protected override void Ve(Graphics g)
         {
-            var r = new RectangleF(S(1), S(1), Width - S(3), Height - S(3));
-            using (var p = Clay.Bo(r, S(16)))
-            {
-                using (var b = new SolidBrush(Clay.NenSang)) g.FillPath(b, p);
-                using var pen = new Pen(Clay.A(60, Clay.Chu), Math.Max(1f, S(1))); g.DrawPath(pen, p);
-            }
-            if (Anh3D.Icon("tick") is { } ic) g.DrawImage(ic, S(16), (Height - S(26)) / 2, S(26), S(26));
-            TextRenderer.DrawText(g, "Tự vào, không mật khẩu", PhongChu.Tao(12f, FontStyle.Bold), new Rectangle(S(52), 0, Width - S(52), Height), Clay.NgocInk,
+            var r = new RectangleF(0, 0, Width - 1, Height - 1);
+            using (var p = Clay.Bo(r, S(16))) using (var b = new SolidBrush(Clay.Chu)) g.FillPath(b, p);
+            if (Net("tick_kim") is { } ic) g.DrawImage(ic, S(14), (Height - S(36)) / 2f, S(36), S(36));
+            TextRenderer.DrawText(g, "Tự vào, không mật khẩu", PhongChu.Tao(12f, FontStyle.Bold), new Rectangle(S(52), 0, Width - S(52), Height), Clay.Kim,
                 TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
         }
     }
@@ -239,8 +268,8 @@ internal sealed class SetupForm : Form
             Giua("Mã ghép máy", S(104), S(16), 8.25f, FontStyle.Bold, Clay.Chu2);
             Giua("• • •  • • •", S(122), S(28), 15f, FontStyle.Bold, Clay.Chu);   // minh hoạ — mã thật nằm trên điện thoại của Ba Mẹ
             var chip = new RectangleF(S(20), S(162), S(100), S(24));
-            using (var p = Clay.Bo(chip, Clay.S(12))) using (var b = new SolidBrush(Clay.NgocSoft)) g.FillPath(b, p);
-            TextRenderer.DrawText(g, "Dùng được 10 phút", PhongChu.Tao(7.75f, FontStyle.Bold), Rectangle.Round(chip), Clay.NgocInk,
+            using (var p = Clay.Bo(chip, Clay.S(12))) using (var b = new SolidBrush(Clay.Chu)) g.FillPath(b, p);   // Bàn E: navy, chữ vàng kim
+            TextRenderer.DrawText(g, "Dùng được 10 phút", PhongChu.Tao(7.75f, FontStyle.Bold), Rectangle.Round(chip), Clay.Kim,
                 TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter);
         }
     }
@@ -255,17 +284,16 @@ internal sealed class SetupForm : Form
             var r = new RectangleF(Clay.S(1), Clay.S(1), Width - Clay.S(2), Height - Clay.S(2));
             if (_tt == 2)
             {
-                using (var b = new SolidBrush(Clay.Ngoc)) g.FillEllipse(b, r);
-                using var pen = new Pen(Clay.NenSang, Clay.S(2.5f)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
+                using (var b = new SolidBrush(Clay.Chu)) g.FillEllipse(b, r);   // Bàn E: navy + dấu tick vàng kim
+                using var pen = new Pen(Clay.Kim, Clay.S(2.5f)) { StartCap = LineCap.Round, EndCap = LineCap.Round, LineJoin = LineJoin.Round };
                 g.DrawLines(pen, new[] { new PointF(r.X + r.Width * .27f, r.Y + r.Height * .52f), new PointF(r.X + r.Width * .44f, r.Y + r.Height * .68f), new PointF(r.X + r.Width * .74f, r.Y + r.Height * .35f) });
             }
             else if (_tt == 1)
             {
-                using (var b = new SolidBrush(Clay.NgocSoft)) g.FillEllipse(b, r);
-                using var pen = new Pen(Clay.Ngoc, Clay.S(2.5f));
-                g.DrawArc(pen, RectangleF.Inflate(r, -Clay.S(3), -Clay.S(3)), -90, 250);
+                using var pen = new Pen(Clay.KimVien, Clay.S(2.5f));   // đang làm: vành vàng kim
+                g.DrawEllipse(pen, RectangleF.Inflate(r, -Clay.S(1.25f), -Clay.S(1.25f)));
             }
-            else using (var b = new SolidBrush(Clay.Tron(Clay.Lom, Clay.Bong, 0.18f))) g.FillEllipse(b, r);
+            else Clay.KhoiLom(g, r, r.Width / 2f, Clay.Lom);   // chưa tới: viên lõm kem
         }
     }
 
@@ -337,16 +365,16 @@ internal sealed class SetupForm : Form
         var p = ToaDo(cha, x, y);
         var c = new ClayCard
         {
-            BoGoc = Clay.S(28), BackColor = nen ?? (chon ? Clay.NgocSoft : Clay.The), Tag = new Point(x, y),
+            BoGoc = Clay.S(28), BackColor = nen ?? Clay.The, Tag = new Point(x, y),
             Location = new Point(p.X - lb.Left, p.Y - lb.Top), Size = new Size(S(w) + lb.Horizontal, S(h) + lb.Vertical),
         };
         if (chon)
             c.Paint += (_, e) =>
             {
                 Clay.ChatLuong(e.Graphics);
-                var r = new RectangleF(lb.Left + Clay.S(1.25f), lb.Top + Clay.S(1.25f), S(w) - Clay.S(2.5f), S(h) - Clay.S(2.5f));
+                var r = new RectangleF(lb.Left + Clay.S(1f), lb.Top + Clay.S(1f), S(w) - Clay.S(2f), S(h) - Clay.S(2f));
                 using var path = Clay.Bo(r, Clay.S(27));
-                using var pen = new Pen(Chinh, Clay.S(2.5f));
+                using var pen = new Pen(Clay.KimVien, Clay.S(2f));   // Bàn E: viền vàng kim 2px
                 e.Graphics.DrawPath(pen, path);
             };
         if (bam != null) BamDuoc(c, bam);
@@ -364,13 +392,31 @@ internal sealed class SetupForm : Form
     }
 
     /// <summary>Viên icon 3D (bt 56 / nho 44) tại toạ độ thiết kế; <paramref name="mau"/>: «ngoc» | «cam» | null (sứ).</summary>
+    private static readonly Dictionary<string, Image?> _net = new();
+    /// <summary>Icon nét navy (Bàn E #426, bộ Phosphor tay vẽ theo HTML thiết kế), nhúng «iconnet.&lt;tên&gt;.png». Thiếu ⇒ null.</summary>
+    internal static Image? Net(string ten)
+    {
+        lock (_net)
+        {
+            if (_net.TryGetValue(ten, out var c)) return c;
+            Image? img = null;
+            try
+            {
+                using var st = typeof(SetupForm).Assembly.GetManifestResourceStream("iconnet." + ten + ".png");
+                if (st != null) { using var raw = Image.FromStream(st); img = new Bitmap(raw); }
+            }
+            catch { }
+            return _net[ten] = img;
+        }
+    }
+
     private static ClayIcon Vien(Control cha, int x, int y, string icon, int co = 56, string? mau = null)
     {
         // ClayIcon vẽ viên tròn đường kính (cạnh − 12px) ⇒ control rộng hơn viên 12px, lệch −6/−4 cho khớp vị trí thiết kế.
         var v = new ClayIcon
         {
-            Size = new Size(S(co + 12), S(co + 12)), Hinh = Anh3D.Icon(icon),
-            MauVien = mau == "ngoc" ? Clay.NgocSoft : mau == "cam" ? Clay.CanhSoft : Clay.The,
+            Size = new Size(S(co + 12), S(co + 12)), Hinh = Net(icon) ?? Anh3D.Icon(icon),
+            MauVien = Clay.The,   // Bàn E: mọi viên icon là kem nổi, icon nét navy (không còn viên ngọc / cam)
         };
         var p = ToaDo(cha, x, y);
         v.Location = new Point(p.X - S(6), p.Y - S(4));
@@ -479,11 +525,11 @@ internal sealed class SetupForm : Form
         Man(2, "Đồng ý");
         X(_body, 36, 72, "AiiGrow làm gì trên máy này?", Kieu.H);
         var co = The(36, 128, 315, 262);
-        ChipTai(co, 56, 146, "AiiGrow có", Clay.NgocSoft, Clay.NgocInk, "tick");
+        ChipTai(co, 56, 146, "AiiGrow có", KieuChip.Navy, "tick_kim");
         foreach (var (y, icon, chu) in new[] { (196, "dong_ho_cat", "Đếm phút con dùng app, web"), (260, "khoa", "Chỉ mở app, web Ba Mẹ cho phép"), (324, "chuong", "Báo khi con xin app mới") })
         { Vien(co, 56, y, icon, 44, "ngoc"); XGiua(co, 112, y, 44, chu, Kieu.B, 226); }
         var khong = The(372, 128, 315, 262);
-        ChipTai(khong, 392, 146, "AiiGrow không", Clay.CanhSoft, Clay.Canh, "x");
+        ChipTai(khong, 392, 146, "AiiGrow không", KieuChip.Khong);
         foreach (var (y, icon, chu) in new[] { (196, "camera", "Không chụp màn hình"), (260, "tin", "Không đọc tin nhắn"), (324, "x", "Không ghi phím con gõ") })
         { Vien(khong, 392, y, icon, 44, "cam"); XGiua(khong, 448, y, 44, chu, Kieu.B, 226); }
         X(_body, 38, 410, "Gỡ AiiGrow lúc nào cũng được, cần mật khẩu máy của Ba Mẹ.", Kieu.P);
@@ -496,9 +542,9 @@ internal sealed class SetupForm : Form
         cb.CheckedChanged += (_, _) => { _dongY = cb.Checked; tiep.Enabled = cb.Checked; };
     }
 
-    private Chip ChipTai(Control cha, int x, int y, string chu, Color nen, Color mau, string? icon = null)
+    private Chip ChipTai(Control cha, int x, int y, string chu, KieuChip kieu, string? icon = null)
     {
-        var c = new Chip { Chu = chu, Nen2 = nen, Mau = mau, Hinh = icon == null ? null : Anh3D.Icon(icon), Height = S(32), Location = ToaDo(cha, x, y) };
+        var c = new Chip { Chu = chu, Kieu = kieu, Hinh = icon == null ? null : Net(icon), Height = S(32), Location = ToaDo(cha, x, y) };
         c.CoTheoChu();
         cha.Controls.Add(c);
         return c;
@@ -553,14 +599,17 @@ internal sealed class SetupForm : Form
         X(the, 128, 200, "Không cần mỗi bé một tài khoản Windows", Kieu.S);
         if (_child != null && (_child.Sid == toi || ds.All(a => a.Sid != _child.Sid))) _child = null;
         ClayButton? tiep = null;
-        var hang = new List<(ClayCard The, LocalAccount Tk)>();
+        var hang = new List<(ClayCard The, LocalAccount Tk, Label Ten, Label Phu)>();
         void VeChon()
         {
-            foreach (var (h, a) in hang)
+            foreach (var (h, a, ten, phu) in hang)
             {
+                // Bàn E (#426): hàng đang chọn = viên navy, tên vàng kim, mô tả kem; chưa chọn = rãnh lõm kem
                 var chon = _child?.Sid == a.Sid;
                 h.Lom = !chon;
-                h.BackColor = chon ? Clay.NenSang : Clay.Lom;
+                h.BackColor = chon ? Clay.Chu : Clay.Lom;
+                ten.ForeColor = chon ? Clay.Kim : Chu;
+                phu.ForeColor = chon ? Clay.NenSang : Clay.Chu3;
                 h.VeLaiNen();
             }
             if (tiep != null)
@@ -589,19 +638,24 @@ internal sealed class SetupForm : Form
                 Clay.ChatLuong(e.Graphics);
                 var r = new RectangleF(Clay.S(1), Clay.S(1), cham.Width - Clay.S(2), cham.Height - Clay.S(2));
                 var chon = _child?.Sid == a.Sid;
-                using (var b = new SolidBrush(Clay.NenSang)) e.Graphics.FillEllipse(b, r);
-                using var pen = new Pen(chon ? Chinh : Clay.Chu3, chon ? Clay.S(5) : Clay.S(2));
-                e.Graphics.DrawEllipse(pen, RectangleF.Inflate(r, -pen.Width / 2, -pen.Width / 2));
+                if (chon)
+                {
+                    using var pen = new Pen(Clay.Kim, Clay.S(2));
+                    e.Graphics.DrawEllipse(pen, RectangleF.Inflate(r, -Clay.S(1), -Clay.S(1)));
+                    using var b = new SolidBrush(Clay.Kim);
+                    e.Graphics.FillEllipse(b, RectangleF.Inflate(r, -Clay.S(5), -Clay.S(5)));
+                }
+                else Clay.KhoiLom(e.Graphics, r, r.Width / 2f, Clay.Lom);
             };
             h.Controls.Add(cham);
             var ten = X(h, 102, y + 10, a.Name, Kieu.B, 0, la ? Clay.Chu3 : Chu);
             var phu = la ? "bạn đang dùng · toàn quyền, không chọn cho con"
                 : a.IsAdmin ? "toàn quyền · sẽ đổi sang loại giới hạn" : "sẽ là loại giới hạn";
-            X(h, 102 + (int)Math.Ceiling(ten.PreferredWidth / Clay.Scale) + 14, y + 11, phu, Kieu.S, 0, la ? Clay.Chu3 : Clay.NgocInk);
+            var lbPhu = X(h, 102 + (int)Math.Ceiling(ten.PreferredWidth / Clay.Scale) + 14, y + 11, phu, Kieu.S, 0, Clay.Chu3);
             if (!la)
             {
-                BamDuoc(h, () => { _child = a; VeChon(); foreach (var (hh, _) in hang) hh.Invalidate(true); });
-                hang.Add((h, a));
+                BamDuoc(h, () => { _child = a; VeChon(); foreach (var (hh, _, _, _) in hang) hh.Invalidate(true); });
+                hang.Add((h, a, ten, lbPhu));
             }
         }
         var yTao = 152 + cao + 20;
@@ -639,10 +693,11 @@ internal sealed class SetupForm : Form
         }
         var goiY = X(the, 58, 388, "Mở máy là vào thẳng tài khoản Con · không hỏi mật khẩu Windows.", Kieu.S, 600);
         // Dải cam: máy chỉ có một tài khoản (toàn quyền) và đang là của các con ⇒ màn giải thích.
-        var dai = The(56, 426, 611, 64, nen: Clay.CanhSoft, bam: () => ManChiMotAdmin(), cha: the);
+        var dai = The(56, 426, 611, 64, nen: Clay.Lom, bam: () => ManChiMotAdmin(), cha: the);
         dai.BoGoc = Clay.S(20);
+        dai.Lom = true;   // Bàn E: dải lõm kem, chữ nâu đỏ
         Vien(dai, 66, 436, "canh_bao", 44, "cam");
-        X(dai, 124, 447, "Máy chỉ có 1 tài khoản, đang là của các con? ›", Kieu.B, 0, Clay.Canh);
+        X(dai, 124, 447, "Máy chỉ có 1 tài khoản, đang là của các con? ›", Kieu.B, 0, Color.FromArgb(0xA2, 0x41, 0x2C));
         NutLui(() => ChonCoSan());
         ClayButton? tiep = null;
         void DoiNhan() { if (tiep != null) tiep.Text = Accounts.IsValidName(ten.Text.Trim()) ? "Tạo tài khoản " + TenHien(ten.Text.Trim()) : "Tạo tài khoản"; }
@@ -707,6 +762,8 @@ internal sealed class SetupForm : Form
     private sealed class OMa6 : Panel
     {
         private readonly TextBox[] _o = new TextBox[6];
+        private readonly ClayCard[] _vo = new ClayCard[6];
+        private bool _sai;
         private bool _dang;
         public event Action? Doi;
         public OMa6()
@@ -719,7 +776,15 @@ internal sealed class SetupForm : Form
                 var vo = ONhapClay.Boc(o, S(52));
                 vo.Location = new Point(S(i * 60), 0);
                 Controls.Add(vo);
-                _o[i] = o;
+                _o[i] = o; _vo[i] = vo;
+                vo.Paint += (_, e) =>
+                {
+                    if (!_sai) return;
+                    Clay.ChatLuong(e.Graphics);   // Bàn E: mã sai ⇒ viền đỏ 2px quanh từng ô
+                    using var path = Clay.Bo(new RectangleF(lb.Left + Clay.S(1f), lb.Top + Clay.S(1f), vo.Width - lb.Horizontal - Clay.S(2f), vo.Height - lb.Vertical - Clay.S(2f)), Clay.S(15));
+                    using var pen = new Pen(Clay.Loi, Clay.S(2f));
+                    e.Graphics.DrawPath(pen, path);
+                };
                 var k = i;
                 o.KeyPress += (_, e) => { if (!char.IsDigit(e.KeyChar) && !char.IsControl(e.KeyChar)) e.Handled = true; };
                 o.KeyDown += (_, e) => { if (e.KeyCode == Keys.Back && o.TextLength == 0 && k > 0) { _o[k - 1].Text = ""; _o[k - 1].Focus(); e.SuppressKeyPress = true; } };
@@ -751,7 +816,7 @@ internal sealed class SetupForm : Form
                 Doi?.Invoke();
             }
         }
-        public bool Sai { set { foreach (var o in _o) o.ForeColor = value ? Clay.Loi : Clay.Chu; } }
+        public bool Sai { set { _sai = value; foreach (var o in _o) o.ForeColor = Clay.Chu; foreach (var v in _vo) v.Invalidate(true); } }
         public void VaoO() => _o[Math.Min(Ma.Length, 5)].Focus();
     }
 
@@ -778,7 +843,7 @@ internal sealed class SetupForm : Form
             Vien(_body, 318, 146, "lap", mau: "ngoc");
             X(_body, 390, 152, "Bộ cài này mở từ link Ba Mẹ gửi", Kieu.B, 300);
             X(_body, 390, 176, "Không cần gõ mã. Bấm «Ghép và cài» là xong.", Kieu.S, 300);
-            ChipTai(_body, 316, 236, "Ghép vào nhà trong app Ba Mẹ", Clay.NgocSoft, Clay.NgocInk, "tick");
+            ChipTai(_body, 316, 236, "Ghép vào nhà trong app Ba Mẹ", KieuChip.Lom, "tick");
             X(_body, 318, 290, $"Tài khoản {child.Name} sẽ là loại giới hạn.", Kieu.P, 370);
             var theLink = The(316, 372, 371, 94);
             Vien(theLink, 334, 397, "dong_ho_cat", 44, "ngoc");
@@ -793,7 +858,7 @@ internal sealed class SetupForm : Form
         var o = new OMa6 { Location = ToaDo(_body, 316, 176) };
         o.Location = new Point(o.Left - VeThe.LeBong.Left, o.Top - VeThe.LeBong.Top);
         _body.Controls.Add(o);
-        var chip = ChipTai(_body, 316, 262, "Mã dùng được 10 phút", Clay.NgocSoft, Clay.NgocInk, "dong_ho_cat");
+        var chip = ChipTai(_body, 316, 262, "Mã dùng được 10 phút", KieuChip.Lom, "dong_ho_cat");
         var loi = X(_body, 346, 264, "", Kieu.B, 340, Loi);
         loi.Visible = false;
         X(_body, 318, 310, "Ghép xong, máy vào nhà mình trong app Ba Mẹ.", Kieu.P, 370);
@@ -829,7 +894,7 @@ internal sealed class SetupForm : Form
         oma.Ma = o.Code;
         oma.Sai = true;
         oma.Enabled = false;
-        Vien(_body, 312, 256, "canh_bao", 24);
+        Vien(_body, 312, 256, "canh_bao_do", 24).MauVien = Color.Transparent;
         X(_body, 346, 264, "Mã chưa đúng. Xem lại 6 số nhé.", Kieu.B, 340, Loi);
         X(_body, 318, 310, "So từng số với mã trên điện thoại Ba Mẹ.", Kieu.P, 370);
         var the = The(316, 372, 371, 94);
@@ -961,7 +1026,7 @@ internal sealed class SetupForm : Form
         Man(6, "Xong", daiNgoc: true);
         var ten = string.IsNullOrWhiteSpace(tenHoSo) ? "con" : tenHoSo!;   // mayRieng chỉ khi có tên (nơi gọi đã chặn), «con» là dự phòng không để null lọt vào chuỗi
         Rob("xong", 24, 84, 250, 330);
-        var ph = new ClayIcon { Size = new Size(S(56), S(56)), MauVien = Color.Transparent, Hinh = Anh3D.Icon("phao_hoa"), Location = ToaDo(_body, 206, 84) };
+        var ph = new ClayIcon { Size = new Size(S(56), S(56)), MauVien = Color.Transparent, Hinh = Net("phao_hoa") ?? Anh3D.Icon("phao_hoa"), Location = ToaDo(_body, 206, 84) };
         _body.Controls.Add(ph);
         // #267: máy riêng một bé không nói «cả nhà» / «mỗi bé chọn tên + PIN»; máy cả nhà giữ nguyên
         X(_body, 290, 80, mayRieng ? "Máy của " + ten + "\nđã sẵn sàng!" : "Máy đã sẵn sàng\ncho cả nhà!", Kieu.H30, 400);
