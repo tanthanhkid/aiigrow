@@ -82,7 +82,7 @@ set -a; . ~/.aiigrow-android/ky.env; set +a     # AIIGROW_CON_KEYSTORE, _KEYSTOR
 ./gradlew assembleRelease --max-workers=2 && ./gradlew --stop
 # APK: app/build/outputs/apk/release/app-release.apk — thiếu tệp khoá hoặc mật khẩu thì assembleRelease/bundleRelease DỪNG (không ra gói chưa ký) ⇒ máy không có khoá chạy `assembleDebug`/`testDebugUnitTest`, đừng chạy `./gradlew build`
 ```
-Phát hành: tăng `versionCode`/`versionName` trong `app/build.gradle.kts` → `gh release create con-android-<bản> -R tanthanhkid/aiigrow-tai` kèm tệp `AiiGrow-Con-android.apk`
+Phát hành: tăng `versionCode`/`versionName` trong `app/build.gradle.kts` → `scripts/ci/kiem-ci.sh agent-android` (CI đỏ ⇒ dừng; `--bo-kiem-ci` khi sửa gấp) → `gh release create con-android-<bản> -R tanthanhkid/aiigrow-tai` kèm tệp `AiiGrow-Con-android.apk`
 → tải lại tệp từ Release, `shasum -a 256` → điền `BAN_CON_ANDROID` (version, versionCode, url `/tai/AiiGrow-Con-<bản>.apk`, sha256) trong `server/lib/ban-agent.ts`
 → sửa chuyển hướng `/tai/aiigrow-con.apk` trong `server/next.config.ts` sang release đó (test `ban-agent.test.ts` bắt hai chỗ phải cùng bản).
 Gradle 8.10.2 · AGP 8.7.3 · Kotlin 2.0.21 · minSdk 26 · targetSdk 35. Phụ thuộc: core-ktx, work-runtime-ktx.

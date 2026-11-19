@@ -17,6 +17,11 @@ fi
 if [ "${NOTARY:-}" = 1 ] || [ -n "${KY_PKG:-}" ]; then
   [ -n "${KY_APP:-}" ] && [ -n "${KY_PKG:-}" ] || { echo "NOTARY/KY_PKG cần đủ KY_APP + KY_PKG" >&2; exit 1; }
 fi
+# Cổng CI (chỉ khi phát hành NOTARY=1): commit này có run workflow «agent-mac» ĐỎ thì dừng; đang chạy / chưa có ⇒ cảnh báo.
+# Sửa gấp: BO_KIEM_CI=1. Lượt THU=1 (cả trong CI) không kiểm.
+if [ "${NOTARY:-}" = 1 ]; then
+  "$GOI/../../scripts/ci/kiem-ci.sh" agent-mac || { echo "CI agent-mac đỏ ở commit này — sửa trước, hoặc BO_KIEM_CI=1 nếu sửa gấp" >&2; exit 1; }
+fi
 TMP="${GOI}/.dung"; RA="$MAC/ra"
 rm -rf "$TMP"; mkdir -p "$TMP" "$RA"
 

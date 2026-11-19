@@ -1,0 +1,80 @@
+name: Báo lỗi
+description: App hoặc máy con chạy sai, treo, hiện sai so với thiết kế
+title: "[Lỗi] "
+labels: [loi]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Điền càng đủ càng sửa nhanh. Một lỗi một issue. Ảnh/video kéo thả thẳng vào ô bên dưới.
+  - type: dropdown
+    id: nen-tang
+    attributes:
+      label: Nền tảng
+      multiple: true
+      options:
+        - App Ba Mẹ — iPhone
+        - App Ba Mẹ — Android
+        - App Ba Mẹ — web
+        - Máy con — Windows
+        - Máy con — Mac
+        - Máy con — Android
+        - Máy con — iPhone
+        - Bàn thiết kế
+        - Máy chủ / khác
+    validations:
+      required: true
+  - type: input
+    id: ban
+    attributes:
+      label: Số bản / build
+      description: |
+        iPhone: TestFlight › AiiGrow › số build. Android Ba Mẹ: Cài đặt › Ứng dụng › AiiGrow › phiên bản.
+        Windows: chuột phải icon khay › Giới thiệu (hoặc Cài đặt › Ứng dụng). Mac: menu khay › Giới thiệu.
+        Android Con: Cài đặt › Ứng dụng › AiiGrow Con. Web / Bàn thiết kế: ghi đường dẫn + giờ thử.
+      placeholder: "vd: TestFlight build 25 · Win 0.2.27"
+    validations:
+      required: true
+  - type: input
+    id: tai-khoan
+    attributes:
+      label: Tài khoản / máy test
+      description: Email hoặc số điện thoại tài khoản Ba Mẹ, tên con, tên máy. KHÔNG ghi mật khẩu.
+  - type: textarea
+    id: buoc
+    attributes:
+      label: Bước tái hiện
+      placeholder: |
+        1. Mở …
+        2. Bấm …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: mong-doi
+    attributes:
+      label: Kết quả mong đợi
+    validations:
+      required: true
+  - type: textarea
+    id: thuc-te
+    attributes:
+      label: Kết quả thực tế
+    validations:
+      required: true
+  - type: textarea
+    id: anh
+    attributes:
+      label: Ảnh / video
+      description: Kéo thả ảnh chụp màn hình hoặc video quay màn hình vào đây.
+  - type: dropdown
+    id: muc-do
+    attributes:
+      label: Mức độ
+      options:
+        - Chặn — không dùng được, mất dữ liệu, con thoát được kiểm soát
+        - Nặng — tính năng chính sai, có cách né
+        - Vừa — sai nhưng ít gặp hoặc dễ né
+        - Nhẹ — chữ, màu, căn lề
+    validations:
+      required: true

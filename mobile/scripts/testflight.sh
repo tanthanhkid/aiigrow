@@ -5,7 +5,10 @@
 # Mỗi lần upload phải tăng ios.buildNumber trong app.json. Máy 16 GB: chỉ build một app một lúc.
 #   ./scripts/testflight.sh              prebuild + archive + export + validate + upload
 #   ./scripts/testflight.sh --khong-up   dừng sau validate
+#   ./scripts/testflight.sh --bo-kiem-ci bỏ cổng CI (sửa gấp)
 set -euo pipefail
+KHONG_UP=0; BO_CI=""
+for a in "$@"; do case "$a" in --khong-up) KHONG_UP=1 ;; --bo-kiem-ci) BO_CI=--bo-kiem-ci ;; *) echo "tham số lạ: $a" >&2; exit 2 ;; esac; done
 GOC="$(cd "$(dirname "$0")/.." && pwd)"; cd "$GOC"
 TEAM=ADUL7HT969
 read -r TEN BUNDLE <<<"$(python3 -c "import json;e=json.load(open('app.json'))['expo'];print(e['name'],e['ios']['bundleIdentifier'])")"
@@ -17,6 +20,8 @@ set -a; . "$HOME/.goblinrun-asc.env"; set +a
 export EXPO_PUBLIC_API="${EXPO_PUBLIC_API:-https://aiigrow.aiilab.vn}"
 : "${ASC_KEY_ID:?}"; : "${ASC_ISSUER_ID:?}"
 
+# Cổng CI: commit này có run workflow «mobile» ĐỎ thì dừng; đang chạy / chưa có run thì cảnh báo, cho qua (không chờ CI)
+"$GOC/../scripts/ci/kiem-ci.sh" $BO_CI mobile || dung "CI mobile đỏ ở commit này — sửa trước, hoặc --bo-kiem-ci nếu sửa gấp"
 # Cổng: gói expo-* lệch bản SDK thì dừng — TF build 21 crash lúc mở vì prebuild ExpoImageManipulator
 # cần ký hiệu của ExpoModulesCore mới hơn (dyld «Symbol missing»). Sửa: npx expo install --fix
 npm run -s check:expo || dung "phụ thuộc expo lệch SDK — chạy 'npx expo install --fix', commit rồi build lại"
@@ -55,7 +60,7 @@ IPA=$(ls "$RA"/export/*.ipa | head -1)
 
 buoc "validate $IPA"
 xcrun altool --validate-app -f "$IPA" -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" 2>&1 | tail -8
-[ "${1:-}" = "--khong-up" ] && exit 0
+[ "$KHONG_UP" = 1 ] && exit 0
 buoc "upload TestFlight"
 xcrun altool --upload-app -f "$IPA" -t ios --apiKey "$ASC_KEY_ID" --apiIssuer "$ASC_ISSUER_ID" 2>&1 | tail -8
 echo "Xong. Theo dõi: python3 ~/.claude/skills/app-store-connect/scripts/asc.py GET /v1/builds --params 'sort=-uploadedDate' 'limit=3'"
