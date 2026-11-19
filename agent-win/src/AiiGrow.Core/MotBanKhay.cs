@@ -99,30 +99,45 @@ public sealed class MotBanKhay : IDisposable
     public static bool LaKhayKhac(string tenTienTrinh, int phien, int pid, int phienMinh, int pidMinh)
         => pid != pidMinh && phien == phienMinh && tenTienTrinh.StartsWith(TienToTienTrinh, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>PID các khay khác trong phiên này.</summary>
-    public static List<int> KhayKhacCungPhien()
+    /// <summary>#418: khay CŨ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx» — tệp exe của nó đã bị thay, nó chạy bản cũ tới khi thoát.</summary>
+    public static bool LaKhayCu(string tenTienTrinh)
+        => tenTienTrinh.StartsWith(TienToTienTrinh + ".exe.cu-", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>PID các khay khác trong phiên này (<paramref name="chiKhayCu"/>: chỉ khay cũ «.cu-»).</summary>
+    public static List<int> KhayKhacCungPhien(bool chiKhayCu = false)
     {
         var ra = new List<int>();
         using var minh = Process.GetCurrentProcess();
+        string? duongMinh = null;
+        if (chiKhayCu) { try { duongMinh = minh.MainModule?.FileName; } catch { } }
         foreach (var p in Process.GetProcesses())
         {
             using (p)
             {
-                try { if (LaKhayKhac(p.ProcessName, p.SessionId, p.Id, minh.SessionId, minh.Id)) ra.Add(p.Id); }
+                try
+                {
+                    var ten = p.ProcessName;
+                    if (!LaKhayKhac(ten, p.SessionId, p.Id, minh.SessionId, minh.Id)) continue;
+                    // chiKhayCu: chỉ khay «.cu-» chạy từ CÙNG thư mục cài với khay này (tệp trùng tên ở chỗ khác không bị kết thúc)
+                    if (!chiKhayCu || (LaKhayCu(ten) && KhayThat.La(p.MainModule?.FileName, duongMinh ?? ""))) ra.Add(p.Id);
+                }
                 catch { }   // tiến trình vừa thoát / không đọc được
             }
         }
         return ra;
     }
 
-    /// <summary>Kết thúc các khay khác cùng phiên (khay cũ không nhận lời gọi). Cùng tài khoản nên có quyền.</summary>
-    public static void KetThucKhayKhac()
+    /// <summary>Kết thúc các khay khác cùng phiên (khay cũ không nhận lời gọi; <paramref name="chiKhayCu"/>: chỉ khay «.cu-»). Cùng tài khoản nên có quyền.
+    /// → số khay đã thấy.</summary>
+    public static int KetThucKhayKhac(bool chiKhayCu = false)
     {
-        foreach (var id in KhayKhacCungPhien())
+        var ds = KhayKhacCungPhien(chiKhayCu);
+        foreach (var id in ds)
         {
             try { using var p = Process.GetProcessById(id); p.Kill(); p.WaitForExit(3000); }
             catch { }
         }
+        return ds.Count;
     }
 
     public void Dispose()

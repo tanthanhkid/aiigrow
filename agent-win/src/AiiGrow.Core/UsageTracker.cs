@@ -89,3 +89,54 @@ public sealed class UsageTracker
         }
     }
 }
+
+/// <summary>#418: tiến trình của CHÍNH AiiGrow — khay, app Con, kể cả khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx»
+/// (CapNhatSetup.ChepDe) mà vẫn chạy tới lần đăng nhập sau — không phải «app Con dùng»: gộp về <see cref="Khay"/> (máy chủ xếp hệ thống —
+/// ALLOWLIST_HE_THONG), không thành «app mới chờ Ba Mẹ xếp», không trừ sao. Hai lớp: TÊN đúng mẫu (<see cref="La"/>, cùng mẫu máy chủ
+/// server/lib/luat-app.ts › laAppAiiGrow) VÀ tệp chạy nằm TRONG thư mục cài (<see cref="ChayTuThuMucCai"/> — chỉ quản trị ghi được):
+/// game chép ra Desktop đổi tên «AiiGrow.Tray.exe.cu-1a2b3c4d» không thoát đếm phút.</summary>
+public static class AppAiiGrow
+{
+    public const string Khay = "aiigrow.tray.exe";
+    public const string Ten = "AiiGrow";
+    private static readonly string[] Goc = { "aiigrow.tray.exe", "aiigrow.kid.exe" };
+
+    /// <summary>Định danh khay báo (tên tiến trình chữ thường + «.exe»): «aiigrow.tray.exe», «aiigrow.kid.exe»,
+    /// «aiigrow.tray.exe.cu-623a59b6.exe» (ProcessName của tệp «AiiGrow.Tray.exe.cu-623a59b6» giữ nguyên đuôi lạ, khay ghép thêm «.exe»).</summary>
+    public static bool La(string? appId)
+    {
+        if (string.IsNullOrWhiteSpace(appId)) return false;
+        var id = appId.Trim().ToLowerInvariant();
+        var i = id.IndexOf(".exe.cu-", StringComparison.Ordinal);
+        if (i >= 0)
+        {
+            if (!id.EndsWith(".exe", StringComparison.Ordinal) || id.Length <= i + 12) return false;
+            var duoi = id[(i + 8)..^4];
+            if (!duoi.All(char.IsAsciiHexDigit)) return false;
+            id = id[..(i + 4)];
+        }
+        return Array.IndexOf(Goc, id) >= 0;
+    }
+
+    /// <summary>Định danh khay CŨ «aiigrow.tray.exe.cu-xxxxxxxx.exe» (khay / app Con tên thường đã ở allowlist hệ thống — không cần gộp).</summary>
+    public static bool LaKhayCu(string? appId) => La(appId) && appId!.Contains(".exe.cu-", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Định danh như khay báo cho một tệp chạy: «…\AiiGrow.Tray.exe» ⇒ «aiigrow.tray.exe»; «…\AiiGrow.Tray.exe.cu-623a59b6» ⇒
+    /// «aiigrow.tray.exe.cu-623a59b6.exe» (ProcessName chỉ bỏ đuôi «.exe»).</summary>
+    public static string DinhDanh(string duongTep)
+    {
+        var ten = duongTep.Replace('/', '\\').Split('\\')[^1];
+        if (ten.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) ten = ten[..^4];
+        return ten.ToLowerInvariant() + ".exe";
+    }
+
+    /// <summary>Có tiến trình <paramref name="appId"/> là khay AiiGrow (kể cả khay cũ «.cu-») chạy từ ĐÚNG thư mục cài — cùng phép kiểm khách pipe
+    /// (<see cref="KhayThat.La"/>) — trong danh sách tiến trình phiên Con.</summary>
+    public static bool ChayTuThuMucCai(string appId, IEnumerable<RunningProc> ds, string thuMucCai)
+    {
+        if (string.IsNullOrWhiteSpace(thuMucCai)) return false;
+        var khay = Path.Combine(thuMucCai, Paths.TrayExeName);
+        var id = appId.Trim().ToLowerInvariant();
+        return ds.Any(r => DinhDanh(r.Path) == id && KhayThat.La(r.Path, khay));
+    }
+}

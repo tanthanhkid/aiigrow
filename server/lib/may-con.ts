@@ -7,7 +7,7 @@ import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, khoaDen, khoaGoc, khoaMayHieuLuc, lichCua, moTamDen, NGU_TAT, nhipToiKhoaLai, thamSo } from "./cau-hinh.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
-import { allowlistHieuLuc, dsLuat, phanLoai } from "./luat-app.ts";
+import { allowlistHieuLuc, dsLuat, laKhayCuAiiGrow, phanLoai } from "./luat-app.ts";
 import { giaPhut, phienDang } from "./phien.ts";
 import { soDu } from "./vi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
@@ -76,6 +76,9 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
   for (const u of usage) {
     const ngay = ngayGhi(u?.day, nay, f.tz, gm);
     if (!ngay || !u?.muc || !Number.isFinite(u.phut)) continue;
+    // #418: khay cũ «aiigrow.tray.exe.cu-…» (máy chưa cập nhật còn báo) — bỏ: không «đã dùng», không «app mới», không trừ sao.
+    // Tên thường của AiiGrow (aiigrow.tray.exe, vn.aiilab.aiigrow…) vẫn ghi như cũ — phanLoai xếp hệ thống.
+    if (laKhayCuAiiGrow(u.muc)) continue;
     const be = u.con && noi.has(String(u.con)) ? String(u.con) : con;
     if (!be) continue;
     // Mac báo bundle id giữ chữ hoa (com.roblox.RobloxPlayer) mà luật luôn chữ thường (luat-app.ts › chuanMuc) ⇒ hạ chữ thường để «Chưa xếp» khớp luật

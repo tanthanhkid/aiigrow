@@ -32,9 +32,24 @@ export const ALLOWLIST_HE_THONG: string[] = [
   "com.android.settings", "com.google.android.calculator", "com.google.android.deskclock", "com.google.android.apps.docs",
   "com.google.android.apps.docs.editors.docs", "com.google.android.apps.docs.editors.sheets", "com.google.android.apps.docs.editors.slides",
   "com.microsoft.office.word", "com.microsoft.office.excel", "vn.aiilab.aiigrow",
+  // #418: app Con Android (khay Mac báo bundle vn.aiilab.aiigrow ở trên; khay cũ Windows «aiigrow.tray.exe.cu-…» xét theo mẫu: laAppAiiGrow)
+  "vn.aiilab.aiigrow.con",
   // web học tập + AiiRob
   "aiirob.aiilab.vn", "aiilab.vn", "classroom.google.com", "docs.google.com", "office.com", "teams.microsoft.com", "zoom.us",
 ];
+
+/** #418: mục là CHÍNH AiiGrow — không phải app Con dùng: không ghi «đã dùng», không thành «app mới chờ Ba Mẹ xếp», không trừ sao.
+ *  Windows: khay / app Con, kể cả khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx» (agent báo «aiigrow.tray.exe.cu-623a59b6.exe») mà vẫn
+ *  chạy tới lần đăng nhập sau. ĐÚNG các tên này — cùng luật agent-win AppAiiGrow (UsageTracker.cs; agent mới còn kiểm tệp nằm trong thư mục cài).
+ *  Máy chủ không thấy đường dẫn: game đổi tên «AiiGrow.Tray.exe.cu-…» không bị máy chủ trừ sao — CÙNG lỗ với «AiiGrow.Tray.exe» vốn đã ở
+ *  ALLOWLIST_HE_THONG (agent mới vẫn không gộp tệp ngoài thư mục cài khi đếm quỹ phút tại máy); không rộng hơn lỗ cũ. Mac / Android: bundle / gói đúng tên ở ALLOWLIST_HE_THONG (vn.aiilab.aiigrow, vn.aiilab.aiigrow.con). */
+const APP_AIIGROW_WIN = /^aiigrow\.(tray|kid)\.exe(\.cu-[0-9a-f]+\.exe)?$/;
+export function laAppAiiGrow(mucTho: unknown) {
+  const m = String(mucTho ?? "").trim().toLowerCase();
+  return APP_AIIGROW_WIN.test(m) || m === "vn.aiilab.aiigrow" || m === "vn.aiilab.aiigrow.con";
+}
+/** #418: khay CŨ Windows «aiigrow.tray.exe.cu-<hex>.exe» — tên lạ, máy chưa cập nhật còn báo; tên thường của AiiGrow vẫn ghi «đã dùng» dạng hệ thống. */
+export const laKhayCuAiiGrow = (mucTho: unknown) => laAppAiiGrow(mucTho) && String(mucTho).toLowerCase().includes(".exe.cu-");
 
 /** Chuẩn hoá: chữ thường; URL ⇒ tên miền không «www.». */
 export function chuanMuc(s: unknown): string {
@@ -61,7 +76,7 @@ export type KetQuaLuat = { loai: LoaiMuc | "he_thong" | "chua_phan_loai"; nhom: 
 export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q = q): Promise<KetQuaLuat> {
   const muc = chuanMuc(mucTho);
   const khoa = khoaSo(muc);
-  if (khoa.some((k) => allowlistHieuLuc().includes(k))) return { loai: "he_thong", nhom: null, nguon: "he_thong" };
+  if (laAppAiiGrow(muc) || khoa.some((k) => allowlistHieuLuc().includes(k))) return { loai: "he_thong", nhom: null, nguon: "he_thong" };
   const ds = await t<{ child_id: string; muc: string; loai: LoaiMuc; nhom: NhomGiaiTri }>(
     `select child_id, muc, loai, nhom from app_rules where family_id = $1 and child_id in ('', $2) and muc = any($3::text[]) and (het is null or het > now())
        and loai <> 'chan'`,
@@ -75,7 +90,7 @@ export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q =
 /** phanLoai trong bộ nhớ trên `luat` đã đọc (dsLuat) — cùng thứ tự: hệ thống → khớp cụ thể hơn → luật riêng Con → cả nhà; loai_tru ⇒ chưa xếp. */
 export function phanLoaiTu(luat: { child_id: string; muc: string; loai: string }[], con: string, mucTho: unknown, allow = allowlistHieuLuc()): LoaiMuc | "he_thong" | "chua_phan_loai" {
   const khoa = khoaSo(chuanMuc(mucTho));
-  if (khoa.some((k) => allow.includes(k))) return "he_thong";
+  if (laAppAiiGrow(khoa[0]) || khoa.some((k) => allow.includes(k))) return "he_thong";
   const r = luat.filter((l) => l.loai !== "chan" && khoa.includes(l.muc) && (l.child_id === "" || l.child_id === con))
     .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
   return r && r.loai !== LOAI_TRU ? (r.loai as LoaiMuc) : "chua_phan_loai";

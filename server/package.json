@@ -10,6 +10,7 @@
     "test": "node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts",
     "typecheck": "tsc --noEmit",
     "tao-tai-khoan": "node scripts/tao-tai-khoan.ts",
+    "hoan-sao-418": "node scripts/hoan-sao-418.ts",
     "pha-web": "node scripts/pha-web.mjs",
     "build:app": "node scripts/build-app.mjs"
   },

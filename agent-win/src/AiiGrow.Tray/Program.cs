@@ -21,13 +21,26 @@ internal static class Program
             if (chayLai)
             {
                 // Khay cũ vừa bật bản này rồi đang thoát ⇒ KHÔNG gọi nó hiện cửa sổ (nó sẽ nhận rồi thoát luôn); chờ nó nhả khoá, tối đa 30 giây.
-                if (!motBan.GianhLai(30_000)) return;
+                if (!motBan.GianhLai(30_000))
+                {
+                    // #418: khay cũ không thoát sau 30 giây (treo lúc đóng) ⇒ kết thúc nó rồi làm bản chính — không để khay cũ chạy tiếp
+                    MotBanKhay.KetThucKhayKhac(chiKhayCu: true);   // chỉ khay cũ «.cu-»: khay bản mới (Con vừa bấm mở) đang giữ khoá thì để yên
+                    if (!motBan.GianhLai()) return;
+                }
                 ApplicationConfiguration.Initialize();
                 ChayKhay(motBan, moNgay: false, moLai);
                 return;
             }
             // #308: Con bấm AiiGrow (menu Start / biểu tượng) khi khay đang chạy ngầm ⇒ bản đang chạy mở app to. Bản này do Con bấm nên được quyền
             // đưa cửa sổ lên trước — nhường quyền đó cho đúng khay đang chạy (không thì Windows chỉ nháy nút trên thanh tác vụ), rồi thoát.
+            // #418: còn khay CŨ «AiiGrow.Tray.exe.cu-…» (cập nhật đổi tên; khay trước #251 không tự chạy lại) ⇒ kết thúc RIÊNG nó (khay bản mới
+            // đang chạy thì giữ). Khay cũ giữ khoá ⇒ khoá về bản này: làm bản chính, mở app. Khoá ở khay bản mới ⇒ gọi nó mở như thường.
+            if (MotBanKhay.KetThucKhayKhac(chiKhayCu: true) > 0 && motBan.GianhLai(1000))
+            {
+                ApplicationConfiguration.Initialize();
+                ChayKhay(motBan, moNgay: true, null);
+                return;
+            }
             foreach (var pid in MotBanKhay.KhayKhacCungPhien())
                 try { AllowSetForegroundWindow(pid); } catch { }
             if (MotBanKhay.GoiBanDangChay()) return;

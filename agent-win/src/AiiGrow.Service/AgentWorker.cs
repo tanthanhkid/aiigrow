@@ -61,7 +61,7 @@ public sealed class AgentWorker : BackgroundService
                     _rt.ChildSessionId = sess?.SessionId ?? -1;
                     bool active = sess is { Active: true };
 
-                    CountUsage(now, elapsed, active);
+                    CountUsage(now, elapsed, active, sess?.SessionId ?? -1);
                     // 0.2.4: «đang chơi thật» — WTS báo phiên Con khoá? + tiến trình thật trong phiên Con (chỉ đọc khi Policy có phiên chơi).
                     bool? manHinhKhoa = sess != null ? SessionHelper.IsLocked(sess.SessionId) : null;
                     IReadOnlyCollection<string>? tienTrinh = null;
@@ -159,7 +159,7 @@ public sealed class AgentWorker : BackgroundService
         }
     }
 
-    private void CountUsage(DateTimeOffset now, double elapsed, bool sessionActive)
+    private void CountUsage(DateTimeOffset now, double elapsed, bool sessionActive, int phienCon)
     {
         var eff = _rt.Evaluate(now);
         if (!sessionActive || eff == null || eff.Locked || elapsed <= 0) return;
@@ -169,6 +169,15 @@ public sealed class AgentWorker : BackgroundService
         // Tray báo không có cửa sổ tiền cảnh (màn hình đã khoá): không tính giờ.
         if (fresh && string.IsNullOrEmpty(id)) return;
         // Tray chết: vẫn tính giờ phiên con dưới tên "không rõ" (con không thể ngưng đồng hồ bằng cách tắt tray).
+        // #418: cửa sổ của chính AiiGrow — kể cả khay cũ «AiiGrow.Tray.exe.cu-…» còn chạy sau cập nhật — gộp về khay (hệ thống): không thành
+        // «app mới», không trừ sao. Chỉ khi tệp chạy nằm trong thư mục cài (game đổi tên giống AiiGrow ở chỗ khác vẫn bị đếm).
+        if (fresh && AppAiiGrow.LaKhayCu(id) && phienCon >= 0)   // tên thường của AiiGrow máy chủ đã xếp hệ thống: khỏi quét tiến trình
+        {
+            bool cuaAiiGrow;
+            try { cuaAiiGrow = AppAiiGrow.ChayTuThuMucCai(id!, new WindowsProcessControl().ListChildProcesses(phienCon), AppContext.BaseDirectory); }
+            catch { cuaAiiGrow = false; }
+            if (cuaAiiGrow) (id, name) = (AppAiiGrow.Khay, AppAiiGrow.Ten);
+        }
         var be = _rt.DangNhap() is { Loai: LoaiNguoiDung.Con, ConId: { Length: > 0 } c } ? c : null;   // 15/11 (#267): phút ghi theo bé
         _rt.CountUsage(now, fresh ? id! : UsageTracker.KhongRo, fresh ? (name ?? id!) : "Không rõ", elapsed, be);
     }

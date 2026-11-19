@@ -355,7 +355,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
          group by u.muc, u.child_id order by phut desc limit 500`, [fam]);
       const gop = new Map<string, number>();
       const he = la.allowlistHieuLuc();                                       // mục Admin thêm vào hệ thống sau khi đã ghi usage: không còn «chờ xếp»
-      for (const x of chuaTheoCon) if (!coLuat(x.muc, x.child_id) && !la.khoaSo(x.muc).some((k) => he.includes(k))) gop.set(x.muc, (gop.get(x.muc) ?? 0) + x.phut);
+      for (const x of chuaTheoCon) if (!coLuat(x.muc, x.child_id) && !la.laAppAiiGrow(x.muc) && !la.khoaSo(x.muc).some((k) => he.includes(k))) gop.set(x.muc, (gop.get(x.muc) ?? 0) + x.phut);
       const chuaXep = [...gop].map(([muc, phut]) => ({ muc, phut })).sort((a, b) => b.phut - a.phut).slice(0, 50);
       // «Đã thấy trên máy Con» (30 ngày) để Ba Mẹ CHỌN thay vì gõ tên tệp (DX-028): tên dễ hiểu + loại hiện tại; mục hệ thống không liệt kê
       // Chỉ màn Ứng dụng cần (`?thay=1`): Trang chủ / Chờ duyệt chỉ đọc chuaXep + ds, khỏi gộp 30 ngày usage mỗi lần tải.
@@ -369,7 +369,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       // tên THẬT agent gửi trong danh sách app của máy (lib/app-may.ts) thắng tên đoán từ tệp
       const tenThat = await am.tenAppThat(fam);
       const ten = (muc: string) => tenThat.get(muc) ?? tenApp(muc);
-      const daThay = thay.filter((x) => !la.khoaSo(x.muc).some((k) => he.includes(k)))
+      const daThay = thay.filter((x) => !la.laAppAiiGrow(x.muc) && !la.khoaSo(x.muc).some((k) => he.includes(k)))
         .map((x) => ({ muc: x.muc, ten: ten(x.muc), phut: x.phut, loai: loaiCaNha(x.muc) }));
       return json({ ds: ds.filter((r) => r.loai !== la.LOAI_TRU), heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: ten(x.muc) })), ...(canThay ? { daThay } : {}) });
     }
