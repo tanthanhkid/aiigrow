@@ -63,6 +63,7 @@ export const BAN_AGENT_MAC = {
  *  Phát bản: tăng versionCode/versionName trong agent-android/app/build.gradle.kts → assembleRelease (ky.env) → `gh release create
  *  con-android-<bản>` ở tanthanhkid/aiigrow-tai, tệp AiiGrow-Con-android.apk → điền ba giá trị dưới (sha256 của đúng tệp tải về từ Release)
  *  → sửa redirect /tai/aiigrow-con.apk trong next.config. versionCode PHẢI khớp APK (app kiểm, lệch ⇒ không cài). */
+// 0.3.5 (19/11, #459 sửa dòng «Đang dùng…» — bản #463): assembleRelease khoá aiigrow-con từ 21681eb3; sha256 đo trên tệp tải về từ Release con-android-0.3.5.
 // 0.3.4 (19/11, Xin thêm app / web #422 + sửa #433 — bản #445): assembleRelease khoá aiigrow-con từ 7f9e9868; sha256 đo trên tệp tải về từ Release con-android-0.3.4.
 // 0.3.3 (18/11, rà FULL phong cách E phía Con: icon, thông báo, theme/splash, avatar bé — PR #385, bản #399): assembleRelease khoá aiigrow-con từ fdf5636e; sha256 đo trên tệp tải về từ Release con-android-0.3.3.
 // 0.3.2 (17/11 tối, phong cách E «Ánh kim» phía Con — PR #375/#376): assembleRelease khoá aiigrow-con từ d9473d6e; sha256 đo trên tệp tải về từ Release con-android-0.3.2.
@@ -73,10 +74,10 @@ export const BAN_AGENT_MAC = {
 // 0.2.4 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN, sao — PR #185): assembleRelease khoá aiigrow-con từ commit 3a43ca0 (tag phathanh-0511-src, PR #190);
 // sha256 đo trên tệp tải về từ Release con-android-0.2.4. (0.2.3: commit 68d44f6, PR #128.)
 export const BAN_CON_ANDROID = {
-  version: "0.3.4",
-  versionCode: 13,
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.3.4.apk",
-  sha256: "90d2d5028a6db4fb7468641e2f6e985f805f268b60ea372a5b987169f050d8ca",
+  version: "0.3.5",
+  versionCode: 14,
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.3.5.apk",
+  sha256: "09c4c5a4da3ee55cf484c33e412ad91e2a1e28a2cb152efd90353b2e36608e03",
 } as const;
 
 /** Đổi host của URL gói sang CHÍNH máy chủ được hỏi (`origin` https — vd staging): agent Mac/Android chỉ nhận gói cùng host với máy chủ
