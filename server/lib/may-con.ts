@@ -21,7 +21,7 @@ import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
 import { cheDoChanCua, cheDoCua, type CheDo, type CheDoChan } from "./chan-co-ban.ts";
 import { gioiHanMay, quyHomNay, saoKepGioiHan } from "./quy-gio.ts";
-import { laMoHetCon, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
+import { phutTheoDanhSach, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
 
 /** (cũ, #265 đã bỏ) ngoại lệ đang mở — Policy luôn gửi mảng rỗng cho agent cũ. */
 export type NgoaiLeMo = { id: string; den: string; muc: string | null; nhom: string };
@@ -425,7 +425,8 @@ export async function buPhien(may: May, con: string, b: BuVao, now = new Date())
     const tru = Math.max(0, Math.min(can, await soDu(con, t)));
     if (tru > 0) await ghiDiem(t, con, -tru, "phien", `Chơi ${p.muc} (khi mất mạng)`, { ref: p.id });
     // 15/11: phút chơi khi mất mạng cũng trừ sao 1:1 (cùng đồng hồ với dong-bo — phần đã tính qua usage không trừ lại)
-    const truSao = them > 0 && b.boiMa !== true && !(await laMoHetCon(con, t)) ? (await tinhPhutChoi(t, con, them, now, { muc: p.muc, tz: r.tz })).tru : 0;
+    const phutTinh = them > 0 && b.boiMa !== true ? await phutTheoDanhSach(t, con, them, now) : 0;      // #433 A10: theo từng đoạn chế độ
+    const truSao = phutTinh > 0 ? (await tinhPhutChoi(t, con, phutTinh, now, { muc: p.muc, tz: r.tz })).tru : 0;
     await t(`update play_sessions set phut_dung = phut_dung + $2, phan_nghin_tru = $3, diem_tru = diem_tru + $4, phut_thuong = phut_thuong + $5,
              nhip_cuoi = $6::timestamptz,
              -- có phút chơi bù ⇒ phiên đang chơi (hết tạm dừng); không có ⇒ giữ mốc tạm dừng cũ (không kéo dài «tạm» thêm 3 phút)

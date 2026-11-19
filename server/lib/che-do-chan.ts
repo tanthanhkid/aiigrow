@@ -23,10 +23,15 @@ export { CHE_DO, CHE_DO_CHAN, cheDoChanCua, cheDoCua, TEN_CHE_DO, TEN_CHE_DO_CHA
 export async function datCheDoChan(fam: string, con: string, v: unknown, nguoi?: string) {
   const moi = nhanCheDo(v);
   if (!moi) throw new LoiNghiepVu("che_do_sai", "Chọn «Mở hết» hoặc «Theo danh sách»");
-  const c = await conCua(fam, con);
-  const cu = cheDoCua((c as { che_do_chan?: unknown }).che_do_chan);
-  await q(`update children set che_do_chan = $2 where id = $1`, [con, moi]);
-  if (cu !== moi) await ghiSuKien(fam, "doi_che_do_chan", { tu: cu, sang: moi }, { con, nguoi });
+  await conCua(fam, con);
+  // #433 A10: đổi chế độ + sự kiện doi_che_do_chan trong MỘT giao dịch khoá dòng Con — phút chơi tính theo mốc sự kiện (so-sao.ts ›
+  // phutTheoDanhSach), hai lần đổi song song không ghi lệch «tu».
+  await tx(async (t) => {
+    const r = (await t<{ che_do_chan: unknown }>(`select che_do_chan from children where id = $1 for update`, [con]))[0];
+    const cu = cheDoCua(r?.che_do_chan);
+    await t(`update children set che_do_chan = $2 where id = $1`, [con, moi]);
+    if (cu !== moi) await ghiSuKien(fam, "doi_che_do_chan", { tu: cu, sang: moi }, { con, nguoi }, t);
+  });
   return { cheDo: moi, cheDoChan: cheDoChanCua(moi), ten: TEN_CHE_DO[moi] };
 }
 

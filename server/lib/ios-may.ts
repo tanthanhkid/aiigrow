@@ -5,7 +5,7 @@ import type { May } from "./gia-dinh.ts";
 import { q, tx, type Q } from "./db.ts";
 import { canhBao } from "./nhat-ky.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
-import { laMoHetCon, tinhPhutChoi } from "./so-sao.ts";
+import { phutTheoDanhSach, tinhPhutChoi } from "./so-sao.ts";
 import { khoaCon } from "./vi.ts";
 
 export type IosNhip = { soAppHoc: number; soAppGiaiTri: number; soAppChan: number; soDanhMucGiaiTri: number; phutDaDung: number; uyQuyen: string; luc: string;
@@ -105,8 +105,9 @@ export async function truSaoIos(t: Q, may: Pick<May, "id" | "name"> & { ba_me_de
   const them = Math.min(moi.phutDaDung - truoc, Math.max(0, (now.getTime() - Math.max(mocLuc.getTime(), nuaDem)) / 60_000) + 1);
   if (!(them > 0)) return khong;
   await khoaCon(t, con);
-  if (await laMoHetCon(con, t)) return khong;
-  return tinhPhutChoi(t, con, them, now, { muc: `ios:${may.id}`, ten: may.name, tz });
+  const phutTinh = await phutTheoDanhSach(t, con, them, now);          // #433 A10: đổi chế độ giữa chừng tính theo từng đoạn
+  if (!(phutTinh > 0)) return khong;
+  return tinhPhutChoi(t, con, phutTinh, now, { muc: `ios:${may.id}`, ten: may.name, tz });
 }
 
 // ---------------------------------------------------------------- tác tử Android (agent-android/CAN-SERVER.md mục 3)

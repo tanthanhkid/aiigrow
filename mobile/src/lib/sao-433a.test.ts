@@ -18,5 +18,6 @@ test("A12: mất mạng khi đang nợ ⇒ không hiện «vẫn có −15 sao»
   assert.equal(cauMatMangTre("Bin", { sao: -15, no: 15, phutCon: 0 }), "Mất mạng rồi — Bin đang nợ Ba Mẹ 15 sao. Bài nộp tự gửi khi có mạng.");
   assert.equal(cauMatMangTre("Bin", { sao: -5, no: 20, phutCon: 15 }), "Mất mạng rồi — Bin đang nợ Ba Mẹ 20 sao, còn 15 sao để chơi. Bài nộp tự gửi khi có mạng.");
   assert.equal(cauMatMangTre("Bin", { sao: 30, no: 0, phutCon: 30 }), "Mất mạng rồi — Bin vẫn có 30 sao. Bài nộp tự gửi khi có mạng.");
+  assert.equal(cauMatMangTre("Bin", { sao: 10, no: 20, phutCon: 30 }), "Mất mạng rồi — Bin đang nợ Ba Mẹ 20 sao, còn 30 sao để chơi. Bài nộp tự gửi khi có mạng.");
   assert.ok(!cauMatMangTre("Bin", { sao: -15, no: 15, phutCon: 0 }).includes("−"));
 });

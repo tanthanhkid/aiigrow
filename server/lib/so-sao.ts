@@ -119,7 +119,7 @@ async function ghiChoi(t: Q, con: string, tru: number, muc: string | null, now: 
   const ten = ten0 ? ten0 : muc ? (await import("./man-hinh.ts")).tenDoc(muc, LA_APP.test(muc) ? "app" : "web") : "Tính phút";
   // dòng «choi» cùng mục gần nhất trong chuỗi dòng «choi» liền nhau ở cuối sổ (#433 A4: nhiều app xen kẽ trong một lượt vẫn gom được)
   const cuoiDs = await t<{ id: string; loai: string; ref: string | null; delta: number; cap_nhat: Date | null; created_at: Date }>(
-    `select id, loai, ref, delta, cap_nhat, created_at from points where child_id = $1 order by seq desc limit 8`, [con]);
+    `select id, loai, ref, delta, cap_nhat, created_at from points where child_id = $1 order by seq desc limit 30`, [con]);
   let cuoi: (typeof cuoiDs)[number] | undefined;
   for (const r of cuoiDs) { if (r.loai !== "choi") break; if (r.ref === ref) { cuoi = r; break; } }
   if (cuoi && cuoi.loai === "choi" && cuoi.ref === ref

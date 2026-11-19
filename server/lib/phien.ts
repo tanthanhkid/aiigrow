@@ -16,7 +16,7 @@ import { ghiDiem, khoaCon, soDu } from "./vi.ts";
 import { phanLoai, type NhomGiaiTri } from "./luat-app.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { quyHomNay, trongGioHoc } from "./quy-gio.ts";
-import { laMoHetCon, tinhPhutChoi } from "./so-sao.ts";
+import { phutTheoDanhSach, tinhPhutChoi } from "./so-sao.ts";
 
 export type LyDoTuChoi = "khong_phai_giai_tri" | "bi_chan" | "chua_phan_loai" | "gio_ngu" | "ngoai_khung" | "dang_nghi" | "dat_tran_ngay"
   | "dat_tran_tuan" | "het_diem" | "phien_khac" | "ba_me_khoa" | "gio_may_sai" | "khong_tuan_thu"
@@ -149,7 +149,8 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
       phutThuong += dungThuong;
       phutDung = Math.round((phutDung + them) * 100) / 100;
       // 15/11: 1 sao = 1 phút «Tính phút» (Mở hết ⇒ không trừ)
-      if (!(await laMoHetCon(con, t))) await tinhPhutChoi(t, con, them, now, { muc: p.muc, tz: b.tz });
+      const phutTinh = await phutTheoDanhSach(t, con, them, now);        // #433 A10: đổi chế độ giữa chừng tính theo từng đoạn
+      if (phutTinh > 0) await tinhPhutChoi(t, con, phutTinh, now, { muc: p.muc, tz: b.tz });
       phanNghin += Math.round(tinhTien * p.gia_phan_nghin);
       const nguyen = Math.floor(phanNghin / 1000) - diemTru;
       if (nguyen > 0) {

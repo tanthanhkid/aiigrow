@@ -228,10 +228,15 @@ test("Mở hết: phút app «Tính phút» không trừ sao; về Theo danh sá
   await la.datLuat(fam, { con, muc: "roblox.exe", ten: "Roblox", loai: "tinh_phut" });
   await la.datLuat(fam, { con, muc: "tudien.exe", ten: "Từ điển", loai: "khong_tinh_phut" });
   const may = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop");
+  // #433 A10: phút tính theo mốc đổi chế độ ⇒ lùi mốc sự kiện để phút báo nằm trọn trong từng chế độ
+  const lui = (phut: number) => q(`update events set created_at = now() - make_interval(mins => $2) where child_id = $1 and loai = 'doi_che_do_chan'
+    and created_at > now() - interval '1 minute'`, [con, phut]);
   await cd.datCheDoChan(fam, con, "mo_het", bm);
+  await lui(120);
   await dv(may.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 10 }, { muc: "tudien.exe", phut: 20 }] });
   assert.equal(await v.soDu(con), truoc, "Mở hết: không trừ sao");
   await cd.datCheDoChan(fam, con, "theo_danh_sach", bm);
+  await lui(60);
   await dv(may.token, "dong-bo", { usage: [{ muc: "roblox.exe", phut: 15 }, { muc: "tudien.exe", phut: 30 }] });
   assert.equal(await v.soDu(con), truoc - 5, "Theo danh sách: 5 phút Roblox thêm = 5 sao; Từ điển không tính");
   const bc = await baoCaoTuan(fam, con, new Date(), true);

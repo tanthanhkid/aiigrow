@@ -1,4 +1,4 @@
-// #433 phần A (sao & phút chơi) — A4 nhiều app một lượt, A6 phạt khi 0 sao, A10 đổi chế độ giữa chừng, A11 phút trước 0h báo sau 0h.
+// #433 phần A (sao & phút chơi) — A4 nhiều app một lượt, A6 trừ tay quá số sao, A10 đổi chế độ giữa chừng, A11 phút trước 0h báo sau 0h.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
@@ -8,13 +8,12 @@ const ss = await import("./so-sao.ts");
 const v = await import("./vi.ts");
 const g = await import("./gia-dinh.ts");
 const la = await import("./luat-app.ts");
-const nv = await import("./nhiem-vu.ts");
 const cd = await import("./che-do-chan.ts");
 const { dongBo } = await import("./may-con.ts");
 const { appHomNayCon } = await import("./hom-nay-dung.ts");
 const { q, one } = await import("./db.ts");
 const { gioDiaPhuong } = await import("./gio.ts");
-const { taoNha, anhGia } = await import("./test-fixtures/nha.ts");
+const { taoNha } = await import("./test-fixtures/nha.ts");
 
 const VN = (s: string) => new Date(`${s}+07:00`);
 type MayRow = Parameters<typeof dongBo>[0];
@@ -60,28 +59,14 @@ test("A4: chiaTheoMuc chia đủ tổng theo tỉ lệ phút", () => {
   assert.deepEqual(ss.chiaTheoMuc(0, new Map([["a", 1], ["b", 1]]), null), []);
 });
 
-test("A6: Ba Mẹ trừ tay / phạt khi Con 0 sao ⇒ phần thiếu thành nợ; sao kiếm sau trả nợ trước", async () => {
+test("A6: Ba Mẹ trừ tay quá số sao ⇒ chặn với câu rõ (tên Con, trừ tối đa bao nhiêu), không ghi gì", async () => {
   const { fam, bm, con } = await nha(0);
-  assert.equal(await v.dieuChinhTay(fam, con, -5, "Phạt nói dối", bm), 0);
-  let st = await ss.trangThaiSao(con);
-  assert.deepEqual([st.sao, st.no, st.phutCon, st.hetSao], [-5, 5, 0, true]);
-  const ls = await v.lichSu(con);
-  assert.ok(ls.some((x) => x.loai === "tra_no" && x.delta === 5 && x.ly_do === "Ghi nợ 5 sao · Phạt nói dối"));
-  assert.ok(ls.some((x) => x.loai === "tay" && x.delta === -5 && x.ten_nguoi === "Lan"));
-  assert.ok(await one(`select 1 from events where child_id = $1 and loai = 'dieu_chinh_diem' and (chi_tiet->>'ghi_no')::int = 5`, [con]));
-  // còn 3 sao, phạt 10 ⇒ trừ hết 3 + nợ thêm 7
-  await v.dieuChinhTay(fam, con, 8, "Thưởng", bm);           // trả nợ 5, còn 3
-  st = await ss.trangThaiSao(con);
-  assert.deepEqual([st.sao, st.no], [3, 0]);
-  await v.dieuChinhTay(fam, con, -10, "Phạt", bm);
-  st = await ss.trangThaiSao(con);
-  assert.deepEqual([st.sao, st.no, st.phutCon], [-7, 7, 0]);
-  const id = await nv.taoNv(fam, { ten: `Dọn phòng ${Math.random()}`, diem: 10, bang_chung: "anh" });
-  const luot = await nv.batDau(con, id);
-  await nv.nop(con, luot, { anh: [anhGia(`${id}`)] });
-  await nv.duyet(fam, luot, bm, {});
-  st = await ss.trangThaiSao(con);
-  assert.deepEqual([st.sao, st.no, st.phutCon], [3, 0, 3], "nhiệm vụ +10 trả nợ 7 trước");
+  await assert.rejects(v.dieuChinhTay(fam, con, -5, "Phạt nói dối", bm), (e: any) => e.ma === "khong_du_diem" && e.message === "Bảo Anh đang hết sao — chưa trừ thêm được");
+  await v.dieuChinhTay(fam, con, 3, "Thưởng", bm);
+  await assert.rejects(v.dieuChinhTay(fam, con, -10, "Phạt", bm), (e: any) => e.ma === "khong_du_diem" && e.message === "Bảo Anh chỉ còn 3 sao — trừ tối đa 3 sao");
+  const st = await ss.trangThaiSao(con);
+  assert.deepEqual([st.sao, st.no], [3, 0], "chặn thì không ghi nợ, không trừ");
+  assert.equal(await v.dieuChinhTay(fam, con, -3, "Phạt", bm), 0, "trừ đúng số đang có thì được");
 });
 
 test("A10: đổi chế độ giữa chừng ⇒ phút chưa báo tính theo chế độ của từng đoạn", async () => {
