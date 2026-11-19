@@ -9,7 +9,7 @@
 // (bàn chỉ có nút lui). Chữ / logic theo issue: lời xin vay sao (#263/#265) và «Theo danh sách» (#262) — bàn còn «Thêm 20 phút chơi», «Chặn app & web».
 import { cheDoTu } from "@/lib/app-web";
 import { router, useLocalSearchParams } from "expo-router";
-import { bm } from "@/lib/api";
+import { bm, tenYc } from "@/lib/api";
 import { soAppDuocMo, TieuMuc, type ChoDuyetMoi, type ConCt, type LuatDem, type QuyCon } from "@/lib/hang-ngay";
 import { laAppWeb, tenMayXin, TheXin } from "@/lib/hom-nay-xin";
 import { saoTu } from "@/lib/so-sao";
@@ -42,7 +42,7 @@ export default function DangXin() {
       {d.ds.map((y) => (
         <The key={y.id} style={{ paddingVertical: 2 }}>
           <TheXin y={y} may={tenMayXin(y, d.ct?.may)} lam={(fn) => lam(fn)} dang={dangChay} sao={sao} dangXin
-            truc={laAppWeb(y)} phu={laAppWeb(y) ? `${y.gia_tri} chưa có trong danh sách được mở` : undefined} />
+            truc={laAppWeb(y)} phu={laAppWeb(y) ? `${tenYc(y)} chưa có trong danh sách được mở` : undefined} />
         </The>
       ))}
 

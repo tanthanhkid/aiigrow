@@ -421,4 +421,8 @@ test("#425 thẻ App chọn trong lưới: định danh thật (exe, id Store, b
   const t = (await dv(win.token, "xin-duyet", { kieu: "app", muc: "Minecraft", ten: "Minecraft" })).body;
   assert.equal((await one<{ theo_ten: boolean }>(`select theo_ten from requests where id = $1`, [t.id]))!.theo_ten, true);
   assert.equal((await dv(win.token, "xin-duyet", { kieu: "app", muc: "Visual Studio Code", ten: "Code" })).body.muc, "Code");
+  // «Lời xin đã bỏ qua» cũng đọc tên app (không mã thô)
+  await yc.boQuaYc(fam, sp.id, bm);
+  await q(`update requests set xu_ly_luc = now() - interval '2 minutes' where id = $1`, [sp.id]);
+  assert.deepEqual((await yc.dsBoQua(fam, con)).ds.map((x: any) => [x.muc, x.ten]), [["spotify", "Spotify"]]);
 });
