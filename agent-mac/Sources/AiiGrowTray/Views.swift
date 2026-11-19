@@ -5,68 +5,163 @@ import SwiftUI
 import UserNotifications
 import AiiGrowCore
 
-/// «Xin mở app» (them-shh2qdpw, #258): xin Ba Mẹ thêm app / trang vào danh sách · «Đã gửi» (them-5ici9ysd).
+/// «Xin thêm app / web» (#422, con-cai-mac 43 «App trên Mac» / 44 «Trang web») — MỘT hộp xin cho mọi lối vào: Hôm nay, menu khay,
+/// link «Xin mở app ›» ở hộp vay sao, màn «… chưa có trong danh sách» (điền sẵn app vừa bị đóng). Gửi xong: «Đã gửi Ba Mẹ!» (them-5ici9ysd).
 struct XinMoView: View {
-  static let loaiMo = [("app", "App"), ("web", "Trang web")]
   @ObservedObject var tray: TrayModel
   @ObservedObject var xin: XinModel
-  /// Mở từ màn «… chưa có trong danh sách»: điền sẵn app vừa bị đóng.
+  /// Mở từ màn «… chưa có trong danh sách»: chọn sẵn app vừa bị đóng (tên hoặc bundle id).
   var appBanDau: String = ""
+  var theBanDau: XinThem.The = .app
+  /// «‹ Quay lại» (về Hôm nay); nil = không hiện.
+  var quayLai: (() -> Void)? = nil
   var veHomNay: () -> Void = {}
-  @State private var loai = "app"
-  @State private var muc = ""
+  /// Lưới app bơm sẵn (chụp duyệt / test); nil ⇒ tray tự quét /Applications + ~/Applications (không cần daemon).
+  var dsAppSan: [AppMay]? = nil
+  @State private var the: XinThem.The = .app
+  @State private var dsApp: [AppMay] = []
+  @State private var daQuet = false
+  @State private var chon: String?
+  @State private var web = ""
   @State private var loiNhan = ""
-  private var ten: String { appBanDau.isEmpty ? "app hoặc trang" : appBanDau }
+  @State private var daMo = false
   private var phut: Int? { tray.tt?.moHet == true ? nil : (tray.tt?.phutSao ?? tray.tt?.soSao?.phutCon) }
+  private var appChon: AppMay? { chon.flatMap { c in dsApp.first { $0.muc == c } } }
+  /// App vừa bị đóng mà không thấy trong lưới ⇒ xin bằng tên trần (máy chủ nhận).
+  private var tenTran: String { appChon == nil && chon == nil ? appBanDau : "" }
+  private var loi: XinThem.LoiXin? { XinThem.loiXin(the: the, app: appChon, tenTran: tenTran, web: web) }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      if xin.daGui, let m = xin.mucDaXin {
-        HStack(spacing: 12) {
-          VienClay(ten: "speech_balloon", duPhong: "paperplane.fill", nen: ClayMau.ngocSoft, co: 48)
-          VStack(alignment: .leading, spacing: 2) {
-            Text("Đã gửi Ba Mẹ!").font(.clay(size: 20, weight: .bold))
-            Chu("Con xin thêm \(HocVienView.tenMucChoi(m)) vào danh sách", co: 14, mau: ClayMau.chu3, dong: 2)
-          }
-        }
-        VStack(alignment: .leading, spacing: 2) {
-          Text("Đang chờ Ba Mẹ").font(.clay(size: 15, weight: .bold)).foregroundColor(ClayMau.ngocInk)
-          Text("Có trả lời là máy báo ngay.").font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
-        }
-        Button("Về Hôm nay" + (phut.map { " · còn \(ChuSao.so($0)) sao" } ?? ""), action: veHomNay).buttonStyle(NutClayStyle(kieu: .ngoc))
-        LinkNho(chu: "‹ Sửa lời xin") { xin.moi() }
-      } else {
-        HStack(spacing: 12) {
-          VienClay(ten: loai == "web" ? "globe_with_meridians" : "puzzle_piece", duPhong: loai == "web" ? "globe" : "app.fill",
-                   nen: loai == "web" ? ClayMau.lamSoft : ClayMau.timSoft, co: 44)
-            .id(loai).transition(.scale(scale: 0.85).combined(with: .opacity))
-          VStack(alignment: .leading, spacing: 2) {
-            Chu("Xin mở \(ten)", co: 18, dam: .bold, dong: 1)
-            Chu(loai == "web" ? "Trang này chưa có trong danh sách" : "App này chưa có trong danh sách", co: 13, mau: ClayMau.chu3, dong: 1)
-          }
-        }
-        ChipClay(ds: XinMoView.loaiMo, chon: $loai)
-        if appBanDau.isEmpty {
-          TextField(loai == "web" ? "Địa chỉ trang, ví dụ youtube.com" : "Tên app", text: $muc)
-            .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
-        }
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Ba Mẹ thêm vào danh sách là con mở được").font(.clay(size: 14, weight: .bold)).foregroundColor(ClayMau.diemInk)
-          Text("Nếu Tính phút: 1 phút = 1 sao" + (phut.map { " · con còn \(ChuSao.so($0)) sao" } ?? "")).font(.clay(size: 13)).foregroundColor(ClayMau.diemInk)
-        }
-        .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayThe(bo: 20, nen: ClayMau.diemSoft)
-        TextField("Nhắn Ba Mẹ: con xem video vẽ tranh ạ", text: $loiNhan)
-          .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
-        let m = (appBanDau.isEmpty ? muc : appBanDau).trimmingCharacters(in: .whitespaces)
-        Button("Xin Ba Mẹ mở " + (m.isEmpty ? (loai == "web" ? "trang" : "app") : HocVienView.tenMucChoi(m))) { xin.xinMo(muc: m, loai: loai, loiNhan: loiNhan) }
-          .buttonStyle(NutClayStyle(kieu: .ngoc)).disabled(xin.dangGui || m.isEmpty)
-        if !xin.thongBao.isEmpty, !xin.dangGui { Chu(xin.thongBao, co: 14, dam: .medium, mau: ClayMau.loi, dong: 3) }
-      }
+      if xin.daGui, let m = xin.mucDaXin { daGui(m) } else { form }
     }
     .padding(18).clayThe().vaoLanLuot(0)
     .padding(22).padding(.bottom, 12).frame(width: 440).nenClay()   // đáy dư cho bóng thẻ (lệch 16 + mờ 15)
     .foregroundColor(ClayMau.chu)
     .animation(ClayMotion.bat, value: xin.daGui)
+    .onAppear { guard !daMo else { return }; daMo = true; the = theBanDau }
+    .task { await napApp() }
+  }
+
+  @ViewBuilder private func daGui(_ m: String) -> some View {
+    HStack(spacing: 12) {
+      VienClay(ten: "speech_balloon", duPhong: "paperplane.fill", nen: ClayMau.ngocSoft, co: 48)
+      VStack(alignment: .leading, spacing: 2) {
+        Text("Đã gửi Ba Mẹ!").font(.clay(size: 20, weight: .bold))
+        Chu("Con xin thêm \(HocVienView.tenMucChoi(m)) vào danh sách", co: 14, mau: ClayMau.chu3, dong: 2)
+      }
+    }
+    VStack(alignment: .leading, spacing: 2) {
+      Text("Đang chờ Ba Mẹ").font(.clay(size: 15, weight: .bold)).foregroundColor(ClayMau.ngocInk)
+      Text("Có trả lời là máy báo ngay.").font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
+    }
+    Button("Về Hôm nay" + (phut.map { " · còn \(ChuSao.so($0)) sao" } ?? ""), action: veHomNay).buttonStyle(NutClayStyle(kieu: .ngoc))
+    LinkNho(chu: "‹ Sửa lời xin") { xin.moi() }
+  }
+
+  @ViewBuilder private var form: some View {
+    if let quayLai { LinkNho(chu: "‹ Quay lại", lam: quayLai) }
+    HStack(spacing: 12) {
+      VienClay(ten: the == .web ? "globe_with_meridians" : "puzzle_piece", duPhong: the == .web ? "globe" : "app.fill",
+               nen: the == .web ? ClayMau.lamSoft : ClayMau.timSoft, co: 44)
+        .id(the).transition(.scale(scale: 0.85).combined(with: .opacity))
+      VStack(alignment: .leading, spacing: 2) {
+        Chu("Xin thêm app / web", co: 18, dam: .bold, dong: 1)
+        Chu("Chọn app trên Mac hoặc gõ địa chỉ trang web", co: 13, mau: ClayMau.chu3, dong: 1)
+      }
+    }
+    ChipClay(ds: [(XinThem.The.app, "App trên Mac"), (XinThem.The.web, "Trang web")], chon: $the)
+    if the == .app { theApp } else { theWeb }
+    VStack(alignment: .leading, spacing: 6) {
+      Text("Ba Mẹ sẽ chọn nhóm").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
+      HStack(spacing: 8) {                                            // chỉ thông tin: Ba Mẹ chọn nhóm khi duyệt
+        chipTin("hourglass_not_done", "Tính phút · 1 sao = 1 phút")
+        chipTin("party_popper", "Không tính phút")
+      }
+    }
+    Button(XinThem.nut(the: the, tenApp: loi?.ten)) {
+      guard let l = loi else { return }
+      xin.xinMo(muc: l.muc, loai: l.kieu, loiNhan: loiNhan, ten: l.ten)
+    }
+    .buttonStyle(NutClayStyle(kieu: .ngoc)).disabled(xin.dangGui || loi == nil)
+    if !xin.thongBao.isEmpty, !xin.dangGui { Chu(xin.thongBao, co: 14, dam: .medium, mau: ClayMau.loi, dong: 3) }
+  }
+
+  @ViewBuilder private var theApp: some View {
+    Text("App đã cài trên Mac").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
+    if !tenTran.isEmpty {
+      Chu("Con xin: \(tenTran)", co: 14, dam: .semibold, dong: 1)
+    }
+    if dsApp.isEmpty {
+      Chu(daQuet ? "Chưa thấy app nào trên máy. Con chọn «Trang web» hoặc nhờ Ba Mẹ nhé." : "Đang tìm app trên máy…", co: 13, mau: ClayMau.chu3, dong: 2)
+        .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
+    } else {
+      ScrollView {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+          ForEach(dsApp, id: \.muc) { a in oApp(a) }
+        }
+        .padding(4)
+      }
+      .frame(height: min(CGFloat((dsApp.count + 2) / 3) * 92 + 8, 196))
+    }
+    TextField("Nhắn Ba Mẹ: con xem video vẽ tranh ạ", text: $loiNhan)
+      .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
+  }
+
+  @ViewBuilder private var theWeb: some View {
+    Text("Địa chỉ trang web").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
+    TextField("scratch.mit.edu", text: $web)
+      .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
+    Text("Gõ địa chỉ trang con muốn vào, ví dụ scratch.mit.edu").font(.clay(size: 12)).foregroundColor(ClayMau.chu3)
+    Text("Lời nhắn cho Ba Mẹ").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
+    TextField("Con học làm game trên Scratch ạ", text: $loiNhan)
+      .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
+  }
+
+  private func oApp(_ a: AppMay) -> some View {
+    let dang = chon == a.muc
+    return Button { withAnimation(ClayMotion.bat) { chon = dang ? nil : a.muc } } label: {
+      VStack(spacing: 6) {
+        Image(nsImage: XinMoView.iconApp(a)).resizable().interpolation(.high).frame(width: 40, height: 40)
+        Text(a.ten).font(.clay(size: 12, weight: .semibold)).lineLimit(1).truncationMode(.tail)
+      }
+      .frame(maxWidth: .infinity, minHeight: 80).padding(.horizontal, 4)
+      .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(dang ? ClayMau.ngocSoft : ClayMau.lom))
+      .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(dang ? ClayMau.ngoc : .clear, lineWidth: 2))
+      .overlay(alignment: .topTrailing) {
+        if dang { Image(systemName: "checkmark.circle.fill").foregroundColor(ClayMau.ngoc).padding(5) }
+      }
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(a.ten).accessibilityAddTraits(dang ? .isSelected : [])
+  }
+
+  private func chipTin(_ icon: String, _ chu: String) -> some View {
+    HStack(spacing: 5) {
+      HinhFluent(ten: icon, duPhong: "circle.fill", co: 16)
+      Text(chu).font(.clay(size: 12, weight: .semibold)).lineLimit(1)
+    }
+    .padding(.horizontal, 10).padding(.vertical, 6)
+    .background(Capsule().fill(ClayMau.diemSoft)).foregroundColor(ClayMau.diemInk)
+  }
+
+  /// Icon app: PNG bơm sẵn (chụp) › icon thật của gói › icon chung.
+  static func iconApp(_ a: AppMay) -> NSImage {
+    if let b = a.icon, let d = Data(base64Encoded: b), let i = NSImage(data: d) { return i }
+    if let p = a.duongDan { return NSWorkspace.shared.icon(forFile: p) }
+    return NSImage(systemSymbolName: "app.fill", accessibilityDescription: nil) ?? NSImage()
+  }
+
+  private func napApp() async {
+    let ds: [AppMay]
+    if let dsAppSan { ds = XinThem.dsApp(dsAppSan) }
+    else {
+      let tk = NSUserName()
+      ds = await Task.detached(priority: .userInitiated) { XinThem.dsApp(QuetAppMac(layChuKy: false, layIcon: false).quet(taiKhoanCon: tk)) }.value
+    }
+    dsApp = ds; daQuet = true
+    if chon == nil, let a = XinThem.appBanDau(ds, appBanDau) { chon = a.muc }
   }
 }
 

@@ -224,6 +224,22 @@ final class SaoPhutTests: XCTestCase {
     XCTAssertEqual(s.yeuCauCho.first?.trangThai, "duyet"); XCTAssertEqual(s.yeuCauCho.first?.nhom, "khong_tinh_phut")
   }
 
+  /// #422: thẻ «Trang web» ⇒ yêu cầu mo_web; thẻ app chọn từ lưới ⇒ tray hiện tên app (không phải bundle id).
+  func testXinThemWebVaAppTheoKieu() async throws {
+    let tm = try tamThuMuc()
+    let fake = HeThongGia(), dongHo = DongHoGia(), api = MayChuGia()
+    api.dongBoTraVe = .tu(policyMau(mode: CheDo.hoc.rawValue, now: dongHo.thuc), next: 600)
+    let (b, _) = try boMay(tm, api: api, fake: fake, dongHo: dongHo)
+    _ = await b.motVong()
+    _ = await b.xuLyIPC(.xinMo(muc: "scratch.mit.edu", loai: "web", loiNhan: "con học Scratch"), uidGoi: 501)
+    XCTAssertEqual(api.lanYeuCau.last?.loai, "mo_web"); XCTAssertEqual(api.lanYeuCau.last?.giaTri, "scratch.mit.edu")
+    api.yeuCauTraVe = KetQuaYeuCau(id: "yc2", trangThai: "cho")
+    _ = await b.xuLyIPC(.xinMo(muc: "com.google.YouTube", loai: "app", loiNhan: nil, ten: "YouTube"), uidGoi: 501)
+    XCTAssertEqual(api.lanYeuCau.last?.loai, "cai_app")
+    guard case let .trangThai(s) = await b.xuLyIPC(.trangThai, uidGoi: 501) else { return XCTFail() }
+    XCTAssertEqual(s.yeuCauCho.first { $0.id == "yc2" }?.muc, "YouTube")
+  }
+
   // MARK: review lượt 1
 
   func testMayChuCuKhongTruCheoHaiNguon() {

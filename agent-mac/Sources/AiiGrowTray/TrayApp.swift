@@ -173,7 +173,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       }
       if t?.nguoiDung == "con", t?.mayRieng != true { muc("Đổi người / Đăng xuất", #selector(doiBe)) }
       if t?.moHet != true { muc("Xin Ba Mẹ cho vay sao…", #selector(moXin)) }
-      muc("Xin mở trang hoặc app…", #selector(moXinMo))
+      muc(TrayLogic.mucXinThem, #selector(moXinMo))   // #422 (con-cai-mac 42): ngay dưới «Xin Ba Mẹ cho vay sao…», cả chế độ Mở hết
       m.addItem(.separator())
     }
     if t?.laPhienCon == true && t?.daGhep == true {
@@ -271,7 +271,11 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
     return true
   }
 
-  @objc func moXinMo() { hien(&cuaSoMo, "AiiGrow · Xin mở app", XinMoView(tray: model, xin: xin, veHomNay: { [weak self] in self?.cuaSoMo?.close(); self?.moApp(.homNay) })) }
+  /// «Xin thêm app / web» (#422, con-cai-mac 43/44): hộp xin hai thẻ, «‹ Quay lại» về Hôm nay.
+  @objc func moXinMo() {
+    let ve: () -> Void = { [weak self] in self?.cuaSoMo?.close(); self?.moApp(.homNay) }
+    hien(&cuaSoMo, TrayLogic.tieuDeXinThem, XinMoView(tray: model, xin: xin, quayLai: ve, veHomNay: ve))
+  }
   @objc func moAppCon() { moApp(nil) }
   /// «Đồng bộ ngay» (them-hyj1eryo): hỏi lại daemon và tải lại nhiệm vụ, sao, tin của Con.
   @objc func dongBoNgay() {
@@ -350,6 +354,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
       var v = AppConView(app: appCon, tray: model, moXin: { [weak self] in self?.moXin() }, moChoi: { [weak self] in self?.moChoi() },
                          moNop: { [weak self] nv in self?.moNop(nv) })
       v.doiBe = { [weak self] in self?.doiBe() }
+      v.moXinThem = { [weak self] in self?.moXinMo() }
       v.hoiAiiGrow = { [weak self] in self?.moHoiAiiGrow() }
       if let id = model.tt?.beId, let h = chonTen.hoSo { v.chuCai = ManMac.chuCai(h.con)[id] }
       if model.tt?.nguoiDung != nil { v.nhuongMay = { [weak self] in self?.moBaMeMa() } }
@@ -475,7 +480,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
   func moXinMoApp(_ app: String) {
     cuaSoMo?.close(); cuaSoMo = nil
-    hien(&cuaSoMo, "AiiGrow · Xin mở app", XinMoView(tray: model, xin: xin, appBanDau: app, veHomNay: { [weak self] in self?.cuaSoMo?.close(); self?.moApp(.homNay) }))
+    hien(&cuaSoMo, TrayLogic.tieuDeXinThem, XinMoView(tray: model, xin: xin, appBanDau: app, veHomNay: { [weak self] in self?.cuaSoMo?.close(); self?.moApp(.homNay) }))
   }
 
   /// Cửa sổ nhỏ dùng chung (chơi bằng sao, nộp bài): một bản, đóng ⇒ quên tham chiếu.

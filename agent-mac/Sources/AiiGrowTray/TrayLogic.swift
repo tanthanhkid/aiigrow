@@ -10,6 +10,10 @@ public enum ManToanMan: Equatable {
 }
 
 public enum TrayLogic {
+  /// #422 «Xin thêm app / web»: nút ở Hôm nay (con-cai-mac 41), mục menu khay (42), tiêu đề hộp xin (43/44).
+  public static let nutXinThem = "Xin thêm app / web"
+  public static let mucXinThem = "Xin thêm app / web…"
+  public static let tieuDeXinThem = "AiiGrow · Xin thêm app / web"
   /// Chọn màn: chỉ phiên của Con mới bị che; phiên admin của Ba Mẹ không bao giờ bị khoá màn.
   public static func chonMan(_ t: TrangThai?) -> ManToanMan {
     guard let t, t.laPhienCon else { return .khong }

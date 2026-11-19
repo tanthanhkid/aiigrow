@@ -76,6 +76,8 @@ struct AppConView: View {
   @ObservedObject var tray: TrayModel
   /// «Xin Ba Mẹ cho vay sao» (cửa sổ them-zsf6b45n).
   var moXin: () -> Void = {}
+  /// «Xin thêm app / web» (#422, con-cai-mac 41) — ngay dưới «Xin Ba Mẹ cho vay sao», cả chế độ Mở hết.
+  var moXinThem: () -> Void = {}
   /// «1 sao = 1 phút chơi ›» (cửa sổ them-0k1r3wsl «Sao là phút chơi»).
   var moChoi: () -> Void = {}
   var moNop: (HvNhiemVu) -> Void = { _ in }
@@ -321,6 +323,7 @@ struct AppConView: View {
           }
         }
         Chu("Sao chỉ để đổi quà · con đang có \(ChuSao.vien(sao))", co: 14, mau: ClayMau.chu3, dong: 1)
+        NutIcon(chu: TrayLogic.nutXinThem, icon: "puzzle_piece", kieu: .sang, rong: 230, lam: moXinThem)   // #422: Mở hết vẫn xin thêm được
       }
     } else {
       let phut = t.phutSao ?? s?.phutCon ?? 0
@@ -336,7 +339,10 @@ struct AppConView: View {
             }
           }
           Spacer(minLength: 8)
-          NutIcon(chu: "Xin Ba Mẹ cho vay sao", icon: "star", kieu: het ? .ngoc : .sang, rong: 230, lam: moXin)
+          VStack(spacing: 10) {
+            NutIcon(chu: "Xin Ba Mẹ cho vay sao", icon: "star", kieu: het ? .ngoc : .sang, rong: 230, lam: moXin)
+            NutIcon(chu: TrayLogic.nutXinThem, icon: "puzzle_piece", kieu: .sang, rong: 230, lam: moXinThem)
+          }
         }
         if let n = ChuSao.no(s?.no ?? 0) { Chu(n, co: 14, dam: .bold, mau: ClayMau.canh, dong: 2) }
         Chu(t.cheDo == .khoa ? "Đang khoá" : gh?.phu ?? (ManMac.saoThat(t).map { $0 == phut ? ChuSao.phut(phut) : "còn \(ChuSao.so($0)) sao · chơi được \(ChuSao.so(phut)) phút" } ?? ChuSao.phut(phut)) + (het ? dongKhongTinh(t).map { " · \($0) vẫn mở (không tính phút)" } ?? "" : ""),

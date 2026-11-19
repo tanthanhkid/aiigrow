@@ -40,7 +40,12 @@ final class ChupClayTests: XCTestCase {
     let tray = TrayModel(); let xin = XinModel()
     tray.capNhat(tt(cheDo: .tuDo, lyDo: nil, dem: nil))
     chup(XinVayCuaSo(tray: tray, xin: xin), "mac-xin-vay", dir: dir)
-    chup(XinMoView(tray: tray, xin: xin), "mac-xin-mo", dir: dir)
+    // #422 «Xin thêm app / web» (con-cai-mac 43 / 44)
+    let ds = [("com.google.YouTube", "YouTube"), ("com.roblox.roblox", "Roblox"), ("com.mojang.minecraftlauncher", "Minecraft"),
+              ("edu.mit.scratch.scratch-desktop", "Scratch"), ("com.vng.zalo", "Zalo"), ("com.apple.garageband10", "GarageBand")]
+      .map { AppMay(khoa: $0.0, muc: $0.0, ten: $0.1, nguon: "applications", duongDan: "/Applications/\($0.1).app") }
+    chup(XinMoView(tray: tray, xin: xin, appBanDau: "YouTube", quayLai: {}, dsAppSan: ds), "mac-xin-them-app", dir: dir)
+    chup(XinMoView(tray: tray, xin: xin, theBanDau: .web, quayLai: {}, dsAppSan: ds), "mac-xin-them-web", dir: dir)
     chup(GhepMayView(taiKhoan: ["bi", "na"], dongLai: {}), "mac-ghep-may", dir: dir)
     chup(NhacView(phut: 5), "mac-nhac-5-phut", dir: dir)
     let khoa = TrayModel(); khoa.capNhat(tt(cheDo: .khoa, lyDo: "het_gio", dem: nil))

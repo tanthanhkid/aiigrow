@@ -30,8 +30,9 @@ public enum YeuCauTray: Codable, Equatable {
   case xinThem(phut: Int, loiNhan: String?)
   /// #263 «Xin Ba Mẹ cho vay sao» (10 / 15 / 30): `mucDich` «choi» | «qua» (+ `quaId`). Mất mạng ⇒ daemon lưu, có mạng tự gửi. Trả `.ok(id)` | `.thongBao("cho_mang")` | `.loi`.
   case xinVay(soSao: Int, mucDich: String?, quaId: String?, loiNhan: String?)
-  /// Con xin mở một trang web / app đang bị chặn («Xin Ba Mẹ duyệt» — daemon gọi api/device/xin-duyet)
-  case xinMo(muc: String, loai: String, loiNhan: String?)
+  /// Con xin mở một trang web / app đang bị chặn («Xin Ba Mẹ duyệt» — daemon gọi api/device/xin-duyet).
+  /// `loai` «app» | «web» = `kieu` gửi máy chủ (#422); `ten` = tên hiển thị khi `muc` là bundle id (chọn từ lưới app đã cài). Tray cũ không gửi `ten`.
+  case xinMo(muc: String, loai: String, loiNhan: String?, ten: String? = nil)
   /// Ba Mẹ (admin) ghép máy lần đầu: mã 6 số trong app + tên tài khoản macOS của Con (short name)
   case ghep(ma: String, taiKhoanCon: String)
   /// Ba Mẹ (admin) bấm «Kiểm tra cập nhật»: daemon hỏi manifest ngay; có bản mới thì tải + cài nền. Trả `.thongBao`.
