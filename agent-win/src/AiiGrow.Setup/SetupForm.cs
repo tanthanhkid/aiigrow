@@ -774,6 +774,9 @@ internal sealed class SetupForm : Form
             {
                 var o = new TextBox { Font = PhongChu.Tao(21f, FontStyle.Bold), TextAlign = HorizontalAlignment.Center, MaxLength = 7 };
                 var vo = ONhapClay.Boc(o, S(52));
+                // Boc ép TextBox rộng ≥ Si(40) trong khi thân ô chỉ S(52) − 2×14 ⇒ ô chữ (nền lòng chảo) thò qua mép phải thân (#426): thu lại cho nằm trọn, căn giữa
+                o.Width = S(52) - 2 * S(8);
+                o.Left = lb.Left + (S(52) - o.Width) / 2;
                 vo.Location = new Point(S(i * 60), 0);
                 Controls.Add(vo);
                 _o[i] = o; _vo[i] = vo;
