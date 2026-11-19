@@ -17,6 +17,9 @@ struct ManHomNay: View {
         theMoHet
         theSaoQua
         theNhiemVu
+      } else if m.khien?.dangMoOffline == true, let den = m.moOfflineDen {
+        theMoMa(den)
+        theNhiemVu
       } else {
         theSao
         theNhiemVu
@@ -44,6 +47,9 @@ struct ManHomNay: View {
       Spacer()
       // iPhone / iPad chỉ một bé (#267): bỏ chip «Đổi người» — chỉ hiện tên bé
       if let t = m.tenCon { HStack(spacing: 7) { AvatarBe(ten: t, co: 30); Text(t).font(Diu.chu(15, .black)).foregroundColor(Diu.chu).lineLimit(1) } }
+      // cdt-chinh-ios (v7): nút «?» ở đầu màn ⇒ Quy tắc nhà mình (cdt-quy-tac)
+      Button { m.manPhu = .quyTac } label: { Anh(ten: "ic_dau_hoi", co: 28).frame(width: 44, height: 44) }
+        .accessibilityLabel("Quy tắc nhà mình")
     }
     .frame(minHeight: 52)
   }
@@ -88,9 +94,29 @@ struct ManHomNay: View {
         .buttonStyle(NutDiu())
       Button { m.manPhu = .xinThem } label: { Label { Text("Xin Ba Mẹ cho vay sao") } icon: { Anh(ten: "ic_gui", co: 26) } }
         .buttonStyle(NutDiu(kieu: .phu))
+      // cdt-nha-chinh (v8): «Chơi bằng sao · 1 sao = 1 phút» ⇒ cdt-choi
+      Button { m.manPhu = .choiBangSao } label: { Label { Text("Chơi bằng sao · 1 sao = 1 phút") } icon: { Anh(ten: "ic_game", co: 26) } }
+        .buttonStyle(NutDiu(kieu: .phu))
     }
     .frame(maxWidth: .infinity)
     .theDiu(chinh: true)
+  }
+
+  /// them-djha85wh@v5: đang mở tạm bằng mã — «Còn 30 phút chơi · Mã của Ba Mẹ · chơi tới 20:19», không trừ sao.
+  func theMoMa(_ den: Date) -> some View {
+    VStack(spacing: 10) {
+      NhanNho(chu: "Mở bằng mã", icon: "ic_mo_khoa", mau: Diu.xanhDam)
+      let con = max(0, Int(den.timeIntervalSinceNow / 60))
+      VongGio(con: con, tong: max(1, m.phutMoOffline), nhan: "phút")
+      Text("Còn \(con) phút chơi").font(Diu.t1).foregroundColor(Diu.chu)
+      Text("Mã của Ba Mẹ · chơi tới \(den.gioPhut)").font(Diu.t2).foregroundColor(Diu.chu2)
+      Button { m.tab = .nhiemVu } label: { Label { Text("Chơi \(m.phutMoOffline) phút") } icon: { Anh(ten: "ic_game", co: 26) } }.buttonStyle(NutDiu())
+      if m.matMang {
+        HangDs(icon: "ic_wifi", t1: "Đang mất mạng", t2: "Có mạng lại, AiiGrow báo Ba Mẹ").theDiu(dem: 12)
+        HangDs(icon: "ic_gui", t1: "Nộp bài vẫn được", t2: "Lưu ở máy, gửi khi có mạng").theDiu(dem: 12)
+      }
+    }
+    .frame(maxWidth: .infinity).theDiu(chinh: true)
   }
 
   /// them-uero9k5x: Ba Mẹ để «Mở hết» — app, web tự do, không trừ sao.

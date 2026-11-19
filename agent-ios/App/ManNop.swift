@@ -11,6 +11,7 @@ struct ManNvChiTiet: View {
   enum Buoc { case chiTiet, dangLam, nop, choDuyet, luu, lamLai }
   @State var buoc: Buoc = .chiTiet
   @State var luot: String?
+  @State var nopLuc: Date?
   @State var batDauLuc = Date()
   @State var cach = "anh"
   @State var anh: [UIImage] = []
@@ -185,7 +186,7 @@ struct ManNvChiTiet: View {
     let chu = cach == "viet" && nv.cachNop != "xong" ? viet : nil
     switch await m.nop(luot: luot, ten: nv.ten, anh: anhData, ghiAm: am, viet: chu) {
     case "luu": buoc = .luu
-    case .some: buoc = .choDuyet
+    case .some: nopLuc = Date(); buoc = .choDuyet
     case nil: break
     }
   }
@@ -196,7 +197,8 @@ struct ManNvChiTiet: View {
       Text("Đã gửi Ba Mẹ").font(Diu.tieuDe).foregroundColor(Diu.chu)
       Anh(ten: "rob_cho", co: 120)
       Text("Ba Mẹ đang xem nha!").font(Diu.phu).foregroundColor(Diu.chu2)
-      HangDs(icon: HangNv.icon(nv), t1: "⏳ Chờ duyệt", t2: nv.ten).theDiu(dem: 12)
+      HStack { NhanNho(chu: "⏳ Chờ duyệt"); Spacer() }
+      HangDs(icon: HangNv.icon(nv), t1: nv.ten, t2: (nopLuc.map { "Nộp \($0.gioPhut) · " } ?? "") + "Ba Mẹ đã nhận").theDiu(dem: 12)
       HStack(spacing: 6) { Anh(ten: "ic_sao", co: 20); Text("+\(nv.soSao) sao khi Ba Mẹ duyệt").font(Diu.t2).foregroundColor(Diu.saoChu) }
       Button { m.tab = .nhiemVu; dong() } label: { Label { Text("Làm nhiệm vụ khác") } icon: { Anh(ten: "ic_tick", co: 26) } }.buttonStyle(NutDiu())
     }
@@ -206,7 +208,7 @@ struct ManNvChiTiet: View {
     VStack(spacing: 14) {
       Text("Chưa gửi được").font(Diu.tieuDe).foregroundColor(Diu.chu)
       Anh(ten: "rob_nghi", co: 120)
-      Text("Mất mạng rồi. Bài vẫn còn nhé!").font(Diu.phu).foregroundColor(Diu.chu2)
+      Text(cach == "anh" ? "Mất mạng rồi. Ảnh vẫn còn nhé!" : "Mất mạng rồi. Bài vẫn còn nhé!").font(Diu.phu).foregroundColor(Diu.chu2)
       HangDs(icon: "ic_wifi", t1: nv.ten, t2: "Lưu ở máy, gửi khi có mạng").theDiu(dem: 12)
       Button { Task { await m.guiBaiCho(); if !m.baiCho.contains(where: { $0.luot == luot }) { buoc = .choDuyet } } } label: {
         Label { Text("Thử gửi lại") } icon: { Anh(ten: "ic_lap", co: 26) }

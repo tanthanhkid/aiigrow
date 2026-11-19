@@ -553,6 +553,12 @@ final class MoHinhApp: ObservableObject {
       man = .nhapMa
       chonBeGhep = ChonBeGhep(cach: .ma("123456"), ds: [BeChon(id: "c1", ten: "Bảo Anh"), BeChon(id: "c2", ten: "Bảo Minh")],
                               cau: "iPhone, iPad chỉ dùng cho một bé. Chọn bé dùng máy này nhé.")
+    case "quyTac": manPhu = .quyTac
+    case "choiBangSao": manPhu = .choiBangSao
+    case "moMa":
+      var mt = MoTamOffline(); mt.moTu = now; mt.moDen = now.addingTimeInterval(30 * 60); mt.phutMo = 30
+      kho.luu(mt, Khoa.moTamOffline); matMang = true
+      khien = TinhKhien.lucNay(kh, now: now, dung: nil, moOfflineDen: mt.moDen)   // khiên «đang mở bằng mã» (memberwise init của ConCore không public)
     case "xinThem": manPhu = .xinThem
     case "conDangXin": manPhu = .conDangXin
     case "doiBe": manPhu = .doiBe

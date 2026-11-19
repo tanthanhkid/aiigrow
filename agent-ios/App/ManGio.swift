@@ -203,7 +203,7 @@ struct ManXinCai: View {
         Button("Về trang chính") { dong() }.buttonStyle(NutDiu(kieu: .lk))
       } else {
         // cdt-cai (15/11, #262): app ngoài danh sách của Ba Mẹ
-        HStack { NhanNho(chu: "Theo danh sách của Ba Mẹ", icon: "ic_khien"); Spacer() }
+        HStack { NhanNho(chu: "Theo danh sách App & web", icon: "ic_khien"); Spacer() }
         VStack(alignment: .leading, spacing: 8) {
           Text("App con muốn dùng").font(Diu.t1).foregroundColor(Diu.chu2)
           TextField("Ví dụ: Minecraft", text: $ten).font(Diu.chu(18, .heavy)).padding(.horizontal, 14).frame(minHeight: 52)
@@ -272,7 +272,10 @@ struct ManMaOffline: View {
       if m.khien?.lyDo == .hetGio {
         Button(m.matMang ? "Xin Ba Mẹ cho vay sao · gửi khi có mạng" : "Xin Ba Mẹ cho vay sao") { m.manPhu = .xinThem }.buttonStyle(NutDiu(kieu: .lk))
       }
-      DongQuanLy(ten: m.tenCon)
+      // cdt-ios-ma-offline: «Điện thoại của <tên> · Ba Mẹ quản lý bằng AiiGrow» + «Dành cho Ba Mẹ: lọc web ›»
+      Text("\(UIDevice.current.userInterfaceIdiom == .pad ? "iPad" : "Điện thoại") của \(m.tenCon ?? "con") · Ba Mẹ quản lý bằng AiiGrow")
+        .font(Diu.chu(13, .semibold)).foregroundColor(Diu.chu3).frame(maxWidth: .infinity).multilineTextAlignment(.center)
+      Button("Dành cho Ba Mẹ: lọc web ›") { m.manPhu = .dns }.buttonStyle(NutDiu(kieu: .lk))
     }
   }
 
@@ -336,5 +339,64 @@ struct ManChonApp: View {
     .padding(16)
     .onAppear { chon = m.luaChon.doc(nhan) }
     .onChange(of: nhan) { chon = m.luaChon.doc($0) }
+  }
+}
+
+// MARK: Quy tắc nhà mình (cdt-quy-tac@v7) — mở từ nút «?» ở màn Hôm nay
+struct ManQuyTac: View {
+  @EnvironmentObject var m: MoHinhApp
+  @Environment(\.dismiss) var dong
+  var body: some View {
+    KhungMan {
+      HStack(spacing: 10) {
+        Button { dong() } label: {
+          Image(systemName: "chevron.left").font(.system(size: 18, weight: .heavy)).foregroundColor(Diu.chu)
+            .frame(width: 46, height: 46).noiE(Circle(), lech: 3)
+        }
+        .buttonStyle(.plain).accessibilityLabel("Quay lại")
+        Spacer(minLength: 0)
+        if let t = m.tenCon { HStack(spacing: 7) { AvatarBe(ten: t, co: 30); Text(t).font(Diu.chu(15, .black)).foregroundColor(Diu.chu).lineLimit(1) } }
+      }
+      HStack(spacing: 12) {
+        OIcon(ten: "ic_khien", co: 56)
+        Text("Quy tắc\nnhà mình").font(Diu.tieuDe).foregroundColor(Diu.chu)
+        Spacer(minLength: 0)
+      }
+      VStack(spacing: 0) {
+        HangDs(icon: "ic_dong_ho_cat", t1: "1 sao = 1 phút chơi", t2: "App Tính phút trả bằng sao").padding(.vertical, 8)
+        Divider().padding(.leading, 56)
+        HangDs(icon: "ic_sao", t1: "Làm nhiệm vụ để có sao", t2: "Hết sao: xin Ba Mẹ cho vay").padding(.vertical, 8)
+        Divider().padding(.leading, 56)
+        HangDs(icon: "ic_khoa", t1: "Theo danh sách Ba Mẹ", t2: "Ngoài danh sách: xin Ba Mẹ mở").padding(.vertical, 8)
+        Divider().padding(.leading, 56)
+        HangDs(icon: "ic_canh_bao", t1: "Sao vay là nợ", t2: "Sao nhiệm vụ trả nợ trước").padding(.vertical, 8)
+      }
+      .theDiu(dem: 12)
+      Button { dong() } label: { Label { Text("Con hiểu rồi") } icon: { Anh(ten: "ic_tick", co: 26) } }.buttonStyle(NutDiu())
+    }
+  }
+}
+
+// MARK: Chơi bằng sao (cdt-choi@v5) — thông tin: sao = phút, nhóm Tính phút / Không tính phút
+// iPhone/iPad: Apple không cho đọc tên app trong danh sách Ba Mẹ chọn ⇒ hiện SỐ app mỗi nhóm; không có nút «Chơi ngay» (Thời gian sử dụng tự đếm khi con mở app).
+struct ManChoiBangSao: View {
+  @EnvironmentObject var m: MoHinhApp
+  @Environment(\.dismiss) var dong
+  var body: some View {
+    KhungMan {
+      DauMan(tieuDe: "Chơi bằng sao", lui: { dong() })
+      VStack(spacing: 4) {
+        HStack(spacing: 8) { Anh(ten: "ic_sao", co: 26); Text("Con đang có").font(Diu.phu).foregroundColor(Diu.chu2); Spacer(minLength: 0) }
+        HStack { Text(Diu.soSao(m.soSao)).font(Diu.chu(34, .black)).foregroundColor(Diu.saoChu); Spacer(minLength: 0) }
+        HStack { Text("= \(m.saoHienThi) phút chơi · 1 sao = 1 phút").font(Diu.t2).foregroundColor(Diu.chu2); Spacer(minLength: 0) }
+      }
+      .theDiu()
+      HStack { Text("Tính phút · trừ sao").font(Diu.t1).foregroundColor(Diu.chu2); Spacer() }.padding(.top, 4)
+      HangDs(icon: "ic_game", t1: "\(m.soLuong.giaiTri) app").theDiu(dem: 12)
+      HStack { Text("Không tính phút").font(Diu.t1).foregroundColor(Diu.chu2); Spacer() }.padding(.top, 4)
+      HangDs(icon: "ic_sach", t1: "\(m.soLuong.hoc) app").theDiu(dem: 12)
+      Text("Hết sao thì dừng · không cần đổi").font(Diu.t2).foregroundColor(Diu.chu2)
+      Text("Hết sao? Làm nhiệm vụ hoặc xin Ba Mẹ cho vay sao").font(Diu.t2).foregroundColor(Diu.chu3).multilineTextAlignment(.center)
+    }
   }
 }
