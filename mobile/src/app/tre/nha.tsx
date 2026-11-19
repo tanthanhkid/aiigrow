@@ -8,7 +8,7 @@ import { useCallback } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { View } from "react-native";
 import { daXem, ghiDaXem, guiHangCho, kid, taiSao, type LuotTre, type NhaTreSao, type NvTreSao, type ToiTre } from "@/lib/api-tre";
-import { saoTuMayChu, soSao, thuGio } from "@/lib/con-diu";
+import { cauMatMangTre, saoTuMayChu, thuGio } from "@/lib/con-diu";
 import { BONG_D, D } from "@/lib/diu";
 import { Icon3D } from "@/lib/ui";
 import { ChaoDau, ThePhut, TheSao, diGio } from "@/lib/man-con";
@@ -49,7 +49,7 @@ export default function Nha() {
   return (
     <ManD tab="nha">
       <ChaoDau ten={ten} phu={thuGio()} />
-      {matMang || cu ? <MatMangD chu={`Mất mạng rồi — ${ten} vẫn có ${soSao(s.sao)}. Bài nộp tự gửi khi có mạng.`} /> : null}
+      {matMang || cu ? <MatMangD chu={cauMatMangTre(ten, s)} /> : null}
       {s.khoa ? (
         <DongD ic="khoa" tieu="Ba Mẹ đang khoá máy" phu="Cần gấp thì nhắn Ba Mẹ" bam={() => router.push("/tre/gio-ngu?ly=ba_me_khoa")} />
       ) : moHet ? (

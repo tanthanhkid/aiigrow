@@ -76,7 +76,8 @@ export const LA_APP = /\.(exe|app)$|^(com|vn|org|net|io|me|tv|uk|de|jp|us|co|app
  *  phut − phút đã tính (mọi kênh) trong chính cửa sổ đó ⇒ hai máy chơi SONG SONG không trừ đôi, còn chơi NỐI TIẾP (Roblox 5′ rồi YouTube 5′,
  *  kênh báo thưa / dày khác nhau) không mất phút. Mỗi lần tính ghi một dòng choi_tru (lúc, phút). Phần lẻ cộng dồn (phut_le) — đủ 1 phút
  *  trừ 1 sao. Hết sao thì dừng trừ (không tự ghi nợ — máy khoá ở lần đồng bộ này). → { tru: sao vừa trừ, tinh: phút được tính } */
-export async function tinhPhutChoi(t: Q, con: string, phut: number, now = new Date(), o: { muc?: string | null; tz?: string; ten?: string | null } = {}) {
+export async function tinhPhutChoi(t: Q, con: string, phut: number, now = new Date(),
+  o: { muc?: string | null; tz?: string; ten?: string | null; /** #433 A4: phút theo từng mục trong lượt báo này ⇒ chia sao trừ theo mục */ theoMuc?: Map<string, number> } = {}) {
   if (!(Number.isFinite(phut) && phut > 0)) return { tru: 0, tinh: 0 };
   const tu = new Date(now.getTime() - phut * 60_000);
   const da = Number((await t<{ p: number }>(`select coalesce(sum(phut), 0)::real as p from choi_tru where child_id = $1 and luc > $2 and luc <= $3`,
@@ -94,21 +95,35 @@ export async function tinhPhutChoi(t: Q, con: string, phut: number, now = new Da
   if (nguyen > 0 && du > 0) {
     tru = Math.min(nguyen, du);
     const tz = o.tz ?? (await t<{ tz: string }>(`select f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]))[0]?.tz ?? "Asia/Ho_Chi_Minh";
-    await ghiChoi(t, con, tru, o.muc ?? null, now, tz, o.ten ?? null);
+    for (const [muc, n] of chiaTheoMuc(tru, o.theoMuc, o.muc ?? null)) await ghiChoi(t, con, n, muc, now, tz, o.theoMuc && o.theoMuc.size > 1 ? null : o.ten ?? null);
   }
   if (du - tru <= 0) le = 0;                        // hết sao: phần lẻ bỏ (không nợ phút)
   await t(`insert into choi_dong_ho(child_id, phut_le) values ($1, $2) on conflict (child_id) do update set phut_le = excluded.phut_le`, [con, le]);
   return { tru, tinh };
 }
 
+/** #433 A4: chia `tru` sao cho các mục theo tỉ lệ phút (phần dư lớn nhất nhận thêm) — tổng đúng bằng `tru`. Không có chi tiết ⇒ một mục. */
+export function chiaTheoMuc(tru: number, theoMuc: Map<string, number> | undefined, muc: string | null): [string | null, number][] {
+  const ds = theoMuc ? [...theoMuc].filter(([, n]) => n > 0) : [];
+  if (ds.length <= 1) return tru > 0 ? [[ds[0]?.[0] ?? muc, tru]] : [];
+  const tong = ds.reduce((a, [, n]) => a + n, 0);
+  const phan = ds.map(([m, n]) => ({ m, n: Math.floor((tru * n) / tong), du: (tru * n) / tong - Math.floor((tru * n) / tong), goc: n }));
+  let con = tru - phan.reduce((a, x) => a + x.n, 0);
+  for (const x of [...phan].sort((a, b) => b.du - a.du || b.goc - a.goc)) { if (con <= 0) break; x.n++; con--; }
+  return phan.filter((x) => x.n > 0).map((x) => [x.m, x.n]);
+}
+
 async function ghiChoi(t: Q, con: string, tru: number, muc: string | null, now: Date, tz: string, ten0: string | null) {
   const ref = `choi:${gioDiaPhuong(now, tz).ngay}:${muc ?? ""}`;
   // nạp lười: man-hinh → chinh-sach → may-con → so-sao là vòng import
   const ten = ten0 ? ten0 : muc ? (await import("./man-hinh.ts")).tenDoc(muc, LA_APP.test(muc) ? "app" : "web") : "Tính phút";
-  const cuoi = (await t<{ id: string; loai: string; ref: string | null; delta: number; cap_nhat: Date | null; created_at: Date }>(
-    `select id, loai, ref, delta, cap_nhat, created_at from points where child_id = $1 order by seq desc limit 1`, [con]))[0];
+  // dòng «choi» cùng mục gần nhất trong chuỗi dòng «choi» liền nhau ở cuối sổ (#433 A4: nhiều app xen kẽ trong một lượt vẫn gom được)
+  const cuoiDs = await t<{ id: string; loai: string; ref: string | null; delta: number; cap_nhat: Date | null; created_at: Date }>(
+    `select id, loai, ref, delta, cap_nhat, created_at from points where child_id = $1 order by seq desc limit 30`, [con]);
+  let cuoi: (typeof cuoiDs)[number] | undefined;
+  for (const r of cuoiDs) { if (r.loai !== "choi") break; if (r.ref === ref) { cuoi = r; break; } }
   if (cuoi && cuoi.loai === "choi" && cuoi.ref === ref
-      && now.getTime() - new Date(cuoi.cap_nhat ?? cuoi.created_at).getTime() <= GOP_DONG_PHUT * 60_000) {
+      && Math.abs(now.getTime() - new Date(cuoi.cap_nhat ?? cuoi.created_at).getTime()) <= GOP_DONG_PHUT * 60_000) {
     const phut = -cuoi.delta + tru;
     await t(`update points set delta = $2, ly_do = $3, cap_nhat = $4 where id = $1`, [cuoi.id, -phut, `Chơi ${ten} ${phut} phút`.slice(0, 120), now]);
     return;
@@ -122,13 +137,36 @@ export async function laMoHetCon(con: string, t: Q = q) {
   return (await t<{ m: string | null }>(`select che_do_chan as m from children where id = $1`, [con]))[0]?.m === "mo_het";
 }
 
-/** Gói một lần trừ phút trong giao dịch riêng (khoá Con) — dùng ở đồng bộ máy / lịch sử web. Mở hết ⇒ không trừ. */
-export async function truPhutChoi(con: string, phut: number, now = new Date(), o: { muc?: string | null; ten?: string | null; tz?: string } = {}) {
+/** #433 A10: phần của `phut` phút (cửa sổ (now − phut, now] như tinhPhutChoi) rơi vào lúc Con ở «Theo danh sách» — Ba Mẹ đổi chế độ giữa
+ *  chừng (sự kiện doi_che_do_chan) ⇒ phút chưa báo trước lúc đổi tính theo chế độ CŨ, sau lúc đổi theo chế độ mới. Không đổi trong cửa sổ ⇒
+ *  cả `phut` (Theo danh sách) hoặc 0 (Mở hết) như trước. */
+export async function phutTheoDanhSach(t: Q, con: string, phut: number, now = new Date(), fam?: string) {
+  const tu = new Date(now.getTime() - phut * 60_000);
+  const moHet = await laMoHetCon(con, t);
+  const f = fam ?? (await t<{ family_id: string }>(`select family_id from children where id = $1`, [con]))[0]?.family_id;
+  // lọc theo (family_id, created_at) — chỉ mục events_gd, cửa sổ vài phút
+  const doi = f ? await t<{ luc: Date; tu: string | null }>(
+    `select created_at as luc, chi_tiet->>'tu' as tu from events where family_id = $4 and created_at > $2 and created_at <= $3
+       and child_id = $1 and loai = 'doi_che_do_chan' order by created_at, seq`, [con, tu, now, f]) : [];
+  if (!doi.length) return moHet ? 0 : phut;
+  let moc = tu.getTime(), ms = 0;
+  for (const d of doi) {
+    if (d.tu !== "mo_het") ms += new Date(d.luc).getTime() - moc;
+    moc = new Date(d.luc).getTime();
+  }
+  if (!moHet) ms += now.getTime() - moc;
+  return Math.max(0, Math.min(phut, ms / 60_000));
+}
+
+/** Gói một lần trừ phút trong giao dịch riêng (khoá Con) — dùng ở đồng bộ máy / lịch sử web. Mở hết ⇒ không trừ (đổi chế độ giữa chừng: A10). */
+export async function truPhutChoi(con: string, phut: number, now = new Date(),
+  o: { muc?: string | null; ten?: string | null; tz?: string; theoMuc?: Map<string, number> } = {}) {
   if (!(phut > 0)) return { tru: 0, tinh: 0 };
   return tx(async (t) => {
-    await khoaCon(t, con);
-    if (await laMoHetCon(con, t)) return { tru: 0, tinh: 0 };
-    return tinhPhutChoi(t, con, phut, now, o);
+    const fam = await khoaCon(t, con);
+    const p = await phutTheoDanhSach(t, con, phut, now, fam);
+    if (!(p > 0)) return { tru: 0, tinh: 0 };
+    return tinhPhutChoi(t, con, p, now, o);
   });
 }
 

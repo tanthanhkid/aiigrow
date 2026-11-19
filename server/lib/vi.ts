@@ -57,7 +57,9 @@ export async function ghiDiem(t: Q, con: string, delta: number, loai: LoaiDiem, 
   return du;
 }
 
-/** Ba Mẹ cộng/trừ tay kèm lý do (thưởng sinh nhật, phạt nói dối…) — ghi nhật ký (FR-03.05). Cộng khi Con đang nợ ⇒ trả nợ trước. */
+/** Ba Mẹ cộng/trừ tay kèm lý do (thưởng sinh nhật, phạt nói dối…) — ghi nhật ký (FR-03.05). Cộng khi Con đang nợ ⇒ trả nợ trước.
+ *  #433 A6 (quyết định 19/11): trừ quá số sao Con đang có ⇒ CHẶN với câu rõ «<Con> chỉ còn N sao — trừ tối đa N sao» (thay câu chung
+ *  «Con còn N sao, cần M sao»). Không đẩy phần thiếu thành nợ: nợ chỉ đến từ khoản vay Ba Mẹ chủ động cho (sổ trả nợ, báo cáo đều dựa vào đó). */
 export async function dieuChinhTay(fam: string, con: string, delta: number, lyDo: string, nguoi: string) {
   const d = Math.trunc(Number(delta));
   if (!d || Math.abs(d) > 10_000) throw new LoiNghiepVu("diem_sai", "Số điểm cộng/trừ chưa hợp lệ");
@@ -65,6 +67,13 @@ export async function dieuChinhTay(fam: string, con: string, delta: number, lyDo
   if (!ly) throw new LoiNghiepVu("thieu_ly_do", "Ghi lý do để Con hiểu vì sao điểm thay đổi");
   return tx(async (t) => {
     if ((await khoaCon(t, con)) !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+    if (d < 0) {
+      const co = Math.max(0, await soDu(con, t));
+      if (-d > co) {
+        const ten = (await t<{ ten: string }>(`select ten from children where id = $1`, [con]))[0]?.ten ?? "Con";
+        throw new LoiNghiepVu("khong_du_diem", co > 0 ? `${ten} chỉ còn ${co} sao — trừ tối đa ${co} sao` : `${ten} đang hết sao — chưa trừ thêm được`, 409);
+      }
+    }
     const du = await ghiDiem(t, con, d, "tay", ly, { nguoi });
     await t(`insert into events(id, family_id, child_id, loai, chi_tiet, nguoi) values ($1,$2,$3,'dieu_chinh_diem',$4::text::jsonb,$5)`,
       [newId(), fam, con, JSON.stringify({ delta: d, ly_do: ly }), nguoi]);
