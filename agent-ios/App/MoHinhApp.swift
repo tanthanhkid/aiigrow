@@ -365,6 +365,7 @@ final class MoHinhApp: ObservableObject {
       if let q = try? await api.quyCon() { yeuCauCho = q.yeuCauCho ?? [] }
       return "gui"
     } catch LoiApi.mang {
+      if let c = xinCho, c.laApp { loi = "Con còn một lời xin chờ có mạng. Có mạng gửi xong rồi xin tiếp nhé."; matMang = true; return nil }
       let x = YeuCauDangCho(id: "cho-mang", phut: soSao, loiNhan: loiNhan, guiLuc: Date(), trangThai: "vay_sao", loai: "vay_sao")
       kho.luu(x, Khoa.xinChoMang); xinCho = x; matMang = true
       return "luu"
@@ -372,11 +373,35 @@ final class MoHinhApp: ObservableObject {
   }
 
   /// «Xin Ba Mẹ mở <app>» — app ngoài danh sách (Ba Mẹ thêm vào Tính phút / Không tính phút, hoặc chưa thêm).
-  func xinCaiApp(ten: String, lyDo: String) async -> Bool {
-    if demo != nil { yeuCau = YeuCauDangCho(id: "demo", phut: 0, loiNhan: lyDo, guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: ten); return true }
+  /// #422 «Xin thêm app / web»: `kieu` "app" | "web". Mất mạng ⇒ lưu lời xin (mang `kieu`), gửi khi có mạng (→ "luu"); lỗi (web_sai, qua_nhieu_cho…) ⇒ nil, đọc `loi`.
+  func xinCaiApp(ten: String, lyDo: String, kieu: String? = nil) async -> String? {
+    let ten = ten.trimmingCharacters(in: .whitespacesAndNewlines)
+    // máy chủ cũ (trước #429) bỏ qua `kieu` ⇒ tự chặn chữ không phải địa chỉ web ở thẻ «Trang web»
+    if kieu == "web", !Self.giongDiaChiWeb(ten) { loi = "Gõ địa chỉ trang web, ví dụ scratch.mit.edu"; return nil }
+    if demo != nil {
+      yeuCau = YeuCauDangCho(id: "demo", phut: 0, loiNhan: lyDo, guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: ten, kieu: kieu); return "gui"
+    }
     dangBan = true; defer { dangBan = false }
-    do { yeuCau = try await dongBo().xinMoApp(ten: ten, lyDo: lyDo); loi = nil; return true }
-    catch { loi = (error as? LoiApi)?.errorDescription ?? error.localizedDescription; return false }
+    do {
+      yeuCau = try await dongBo().xinMoApp(ten: ten, lyDo: lyDo, kieu: kieu); loi = nil
+      if let q = try? await api.quyCon() { yeuCauCho = q.yeuCauCho ?? [] }
+      return "gui"
+    } catch LoiApi.mang {
+      // chỉ một lời xin chờ mạng (Khoa.xinChoMang) — không đè lời xin khác đang chờ
+      if xinCho != nil { loi = "Con còn một lời xin chờ có mạng. Có mạng gửi xong rồi xin tiếp nhé."; matMang = true; return nil }
+      let x = YeuCauDangCho(id: "cho-mang", phut: 0, loiNhan: lyDo, guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: ten, kieu: kieu)
+      kho.luu(x, Khoa.xinChoMang); xinCho = x; matMang = true
+      return "luu"
+    } catch { loi = (error as? LoiApi)?.errorDescription ?? error.localizedDescription; return nil }
+  }
+
+  /// Có dấu chấm, không khoảng trắng, phần tên miền chỉ chữ/số/-/. (cho phép đường dẫn / ?query phía sau).
+  static func giongDiaChiWeb(_ s: String) -> Bool {
+    var t = s.lowercased()
+    for p in ["https://", "http://"] where t.hasPrefix(p) { t.removeFirst(p.count) }
+    let mien = t.split(whereSeparator: { "/?#".contains($0) }).first.map(String.init) ?? ""
+    guard !t.contains(" "), mien.contains("."), !mien.hasPrefix("."), !mien.hasSuffix(".") else { return false }
+    return mien.allSatisfy { $0.isLetter || $0.isNumber || $0 == "-" || $0 == "." || $0 == ":" }
   }
 
   // MARK: nhiệm vụ
@@ -563,6 +588,8 @@ final class MoHinhApp: ObservableObject {
     case "conDangXin": manPhu = .conDangXin
     case "doiBe": manPhu = .doiBe
     case "xinCai": manPhu = .xinCai
+    case "xinAppWeb": manPhu = .xinAppWeb(.app)
+    case "xinWeb": manPhu = .xinAppWeb(.web)
     case "dns": manPhu = .dns
     case "nvChiTiet": tab = .nhiemVu; manPhu = .nhiemVu(tq!.nhiemVu[1])
     case "maOffline", "maSai", "maHetHan", "luuXin", "matMang": matMang = true

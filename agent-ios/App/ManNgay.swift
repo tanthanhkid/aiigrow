@@ -28,7 +28,6 @@ struct ManHomNay: View {
       if !m.baiCho.isEmpty {
         HangDs(icon: "ic_gui", t1: "\(m.baiCho.count) bài chưa gửi", t2: "Lưu ở máy, gửi khi có mạng").theDiu(dem: 12)
       }
-      Button("App mới? Xin Ba Mẹ cài ›") { m.manPhu = .xinCai }.buttonStyle(NutDiu(kieu: .lk))
       Menu {
         Button("Chọn app học / giải trí") { m.manPhu = .chonApp }
         Button("Lọc web gia đình (DNS)") { m.manPhu = .dns }
@@ -94,6 +93,8 @@ struct ManHomNay: View {
         .buttonStyle(NutDiu())
       Button { m.manPhu = .xinThem } label: { Label { Text("Xin Ba Mẹ cho vay sao") } icon: { Anh(ten: "ic_gui", co: 26) } }
         .buttonStyle(NutDiu(kieu: .phu))
+      // #422 (con-dt-xin/08-them-us1kc173): ngay dưới «Xin Ba Mẹ cho vay sao»
+      NutXinAppWeb()
       // cdt-nha-chinh (v8): «Chơi bằng sao · 1 sao = 1 phút» ⇒ cdt-choi
       Button { m.manPhu = .choiBangSao } label: { Label { Text("Chơi bằng sao · 1 sao = 1 phút") } icon: { Anh(ten: "ic_game", co: 26) } }
         .buttonStyle(NutDiu(kieu: .phu))
@@ -111,6 +112,7 @@ struct ManHomNay: View {
       Text("Còn \(con) phút chơi").font(Diu.t1).foregroundColor(Diu.chu)
       Text("Mã của Ba Mẹ · chơi tới \(den.gioPhut)").font(Diu.t2).foregroundColor(Diu.chu2)
       Button { m.tab = .nhiemVu } label: { Label { Text("Chơi \(m.phutMoOffline) phút") } icon: { Anh(ten: "ic_game", co: 26) } }.buttonStyle(NutDiu())
+      NutXinAppWeb()
       if m.matMang {
         HangDs(icon: "ic_wifi", t1: "Đang mất mạng", t2: "Có mạng lại, AiiGrow báo Ba Mẹ").theDiu(dem: 12)
         HangDs(icon: "ic_gui", t1: "Nộp bài vẫn được", t2: "Lưu ở máy, gửi khi có mạng").theDiu(dem: 12)
@@ -125,6 +127,8 @@ struct ManHomNay: View {
       HStack { NhanNho(chu: "Hôm nay Mở hết", icon: "ic_mo_khoa", mau: Diu.xanhDam, nen: Diu.xanhNhat); Spacer() }
       Text("Mở hết · không tính phút").font(Diu.t1).foregroundColor(Diu.chu)
       Text("Ba Mẹ để mở hết: app, web dùng tự do, chơi không trừ sao.").font(Diu.t2).foregroundColor(Diu.chu2)
+      // #422: chế độ Mở hết vẫn xin thêm được (để Ba Mẹ thêm sẵn vào danh sách)
+      NutXinAppWeb()
     }
     .frame(maxWidth: .infinity, alignment: .leading)
     .theDiu(chinh: true)
@@ -183,6 +187,7 @@ struct TheKhoa: View {
         HangDs(icon: "ic_sach", t1: "App «Không tính phút» vẫn mở", t2: "Sao của con vẫn giữ nguyên").theDiu(dem: 12)
         Button { m.manPhu = .xinThem } label: { Label { Text(m.matMang ? "Xin Ba Mẹ · gửi khi có mạng" : "Xin Ba Mẹ") } icon: { Anh(ten: "ic_gui", co: 26) } }
           .buttonStyle(NutDiu(kieu: .phu))
+        NutXinAppWeb()
       case .hetGio:
         // cdt-het-phien (15/11): hết sao = hết phút «Tính phút»
         Anh(ten: "rob_nghi", co: 120)
@@ -194,6 +199,7 @@ struct TheKhoa: View {
         Button { m.tab = .nhiemVu } label: { Label { Text("Làm nhiệm vụ") } icon: { Anh(ten: "ic_tick", co: 26) } }.buttonStyle(NutDiu())
         Button { m.manPhu = .xinThem } label: { Label { Text(m.matMang ? "Xin Ba Mẹ cho vay sao · gửi khi có mạng" : "Xin Ba Mẹ cho vay sao") } icon: { Anh(ten: "ic_gui", co: 26) } }
           .buttonStyle(NutDiu(kieu: .phu))
+        NutXinAppWeb()
       case .ngu:
         Anh(ten: "rob_ngu", co: 120)
         Text("Đến giờ ngủ rồi").font(Diu.tieuDe).foregroundColor(Diu.chu)

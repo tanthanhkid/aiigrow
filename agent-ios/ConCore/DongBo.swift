@@ -137,9 +137,18 @@ public final class DongBo {
     VaoMay.luuPhien(moi, kho: kho)       // bé khác ⇒ phút đo tại máy + phút máy chủ của bé trước không tính
   }
 
-  /// Lời xin vay sao lưu lúc mất mạng ⇒ gửi khi có mạng. Lời xin cũ «thêm giờ» / «ngoại lệ» (bản trước 15/11) ⇒ BỎ, không tự thành khoản vay.
+  /// Lời xin vay sao / xin thêm app-web (#422, mang `kieu`) lưu lúc mất mạng ⇒ gửi khi có mạng.
+  /// Lời xin cũ «thêm giờ» / «ngoại lệ» (bản trước 15/11) ⇒ BỎ, không tự thành khoản vay.
   public func guiXinChoMang(now: Date = Date()) async {
     guard let x = kho.doc(YeuCauDangCho.self, Khoa.xinChoMang) else { return }
+    if x.laApp, let ten = x.ten {
+      do {
+        _ = try await xinMoApp(ten: ten, lyDo: x.loiNhan.isEmpty ? nil : x.loiNhan, kieu: x.kieu, now: now)
+        kho.ghi(nil, Khoa.xinChoMang)
+      } catch let e as LoiApi where e.tamThoi || e.ma == "chua_chon_con" {
+      } catch { kho.ghi(nil, Khoa.xinChoMang) }
+      return
+    }
     guard x.loai == "vay_sao" else { kho.ghi(nil, Khoa.xinChoMang); return }
     do {
       let r = try await api.xinVay(soSao: x.phut, loiNhan: x.loiNhan)
@@ -215,9 +224,10 @@ public final class DongBo {
   }
 
   /// «Xin Ba Mẹ mở <app>» (ngoài danh sách) — kết quả: đã thêm (Tính phút / Không tính phút) / mở tạm / chưa thêm.
-  public func xinMoApp(ten: String, lyDo: String?, now: Date = Date()) async throws -> YeuCauDangCho {
-    let r = try await api.xinDuyet(ten: ten, lyDo: lyDo)
-    let yc = YeuCauDangCho(id: r.id, phut: 0, loiNhan: lyDo ?? "", guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho", loai: "mo_app", ten: ten)
+  /// #422: `kieu` "app" | "web" (hộp «Xin thêm app / web»); nil = lời xin cũ ở màn chặn.
+  public func xinMoApp(ten: String, lyDo: String?, kieu: String? = nil, now: Date = Date()) async throws -> YeuCauDangCho {
+    let r = try await api.xinDuyet(ten: ten, lyDo: lyDo, kieu: kieu)
+    let yc = YeuCauDangCho(id: r.id, phut: 0, loiNhan: lyDo ?? "", guiLuc: now, trangThai: r.tuDuyet ? "tu_duyet" : "cho", loai: "mo_app", ten: ten, kieu: kieu)
     kho.luu(yc, Khoa.yeuCauDangCho)
     return yc
   }

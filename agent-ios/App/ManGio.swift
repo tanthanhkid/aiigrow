@@ -74,7 +74,7 @@ struct ManConDangXin: View {
   @Environment(\.dismiss) var dong
   var body: some View {
     KhungMan {
-      if let x = m.xinCho { luuCho(x) }
+      if let x = m.xinCho, !(m.yeuCau.map { !$0.xong && $0.guiLuc > x.guiLuc } ?? false) { luuCho(x) }
       else if let yc = m.yeuCau, yc.xong { if yc.laApp { ketQuaApp(yc) } else { ketQuaVay(yc) } }
       else { dangCho }
     }
@@ -167,7 +167,7 @@ struct ManConDangXin: View {
         Text("Ba Mẹ chưa thêm \(ten)").font(Diu.tieuDe).foregroundColor(Diu.chu).multilineTextAlignment(.center)
         Text("Ba Mẹ chưa thêm \(ten) lúc này. Con xin lại sau được nhé").font(Diu.phu).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
         loiNhanBaMe(yc)
-        Button { m.manPhu = .xinCai } label: { Label { Text("Xin lại") } icon: { Anh(ten: "ic_gui", co: 26) } }.buttonStyle(NutDiu())
+        Button { m.manPhu = yc.kieu == nil ? .xinCai : .xinAppWeb(yc.kieu == "web" ? .web : .app) } label: { Label { Text("Xin lại") } icon: { Anh(ten: "ic_gui", co: 26) } }.buttonStyle(NutDiu())
         Button("Về trang chính") { m.tab = .homNay; dong() }.buttonStyle(NutDiu(kieu: .lk))
       }
     }
@@ -178,7 +178,7 @@ struct ManConDangXin: View {
       Text("Đã lưu lời xin").font(Diu.tieuDe).foregroundColor(Diu.chu)
       Anh(ten: "rob_nghi", co: 110)
       Text("Có mạng là gửi Ba Mẹ ngay!").font(Diu.phu).foregroundColor(Diu.chu2)
-      HangDs(icon: "ic_sao", t1: "Vay \(x.phut) sao", t2: "Lưu lúc \(x.guiLuc.gioPhut) · ⏳ Chờ có mạng").theDiu(dem: 12)
+      HangDs(icon: x.laApp ? "ic_web" : "ic_sao", t1: x.tieuDe, t2: "Lưu lúc \(x.guiLuc.gioPhut) · ⏳ Chờ có mạng").theDiu(dem: 12)
       if m.coBiMatOffline { Button { m.manPhu = .maOffline } label: { Label { Text("Ba Mẹ ở cạnh? Nhập mã") } icon: { Anh(ten: "ic_khoa", co: 26) } }.buttonStyle(NutDiu()) }
       Button { Task { await m.dongBoNgay() } } label: { Label { Text("Thử kết nối lại") } icon: { Anh(ten: "ic_wifi", co: 26) } }.buttonStyle(NutDiu(kieu: .phu))
     }
@@ -222,7 +222,10 @@ struct ManXinCai: View {
         }
         HangDs(icon: "ic_dongho", t1: "Nếu Ba Mẹ thêm vào danh sách", t2: "«Tính phút»: trừ sao · còn \(m.conPhut) sao = \(m.conPhut) phút").theDiu(dem: 12)
         if let l = m.loi { Text(l).font(Diu.t2).foregroundColor(Diu.doChu) }
-        Button { Task { daGui = await m.xinCaiApp(ten: ten, lyDo: [muc, lyDo].filter { !$0.isEmpty }.joined(separator: " — ")) } } label: {
+        Button { Task {
+          let r = await m.xinCaiApp(ten: ten, lyDo: [muc, lyDo].filter { !$0.isEmpty }.joined(separator: " — "))
+          if r == "luu" { m.manPhu = .conDangXin } else { daGui = r != nil }
+        } } label: {
           if m.dangBan { ProgressView().tint(Diu.chu) } else { Label { Text("Gửi Ba Mẹ xin cài \(ten.isEmpty ? "app" : ten)") } icon: { Anh(ten: "ic_gui", co: 26) } }
         }
         .buttonStyle(NutDiu()).disabled(ten.trimmingCharacters(in: .whitespaces).isEmpty || m.dangBan)
@@ -230,6 +233,122 @@ struct ManXinCai: View {
       }
     }
     .onAppear { m.loi = nil; if m.demo != nil { ten = "Minecraft"; muc = "Học" } }
+  }
+}
+
+// MARK: Xin thêm app / web (#422 · con-dt-xin/09-them-pj2ra3jh · 10-them-euz1k35r) — 2 thẻ «App trên máy» / «Trang web».
+// iPhone/iPad không cho app đọc danh sách app đã cài (FamilyActivityPicker chỉ trả token mờ, không có tên để gửi máy chủ)
+// ⇒ thẻ App: lưới app phổ biến + ô gõ tên app (muc = tên, kieu=app). Gửi xong ⇒ màn kết quả có sẵn (ManConDangXin).
+enum TheXin: String, Equatable { case app, web }
+
+/// Nút «Xin thêm app / web» (Hôm nay: Theo danh sách, Mở hết, mở bằng mã, màn khoá hết sao / giới hạn giờ).
+struct NutXinAppWeb: View {
+  @EnvironmentObject var m: MoHinhApp
+  var body: some View {
+    Button { m.manPhu = .xinAppWeb(.app) } label: { Label { Text("Xin thêm app / web") } icon: { Anh(ten: "ic_web", co: 26) } }
+      .buttonStyle(NutDiu(kieu: .phu))
+  }
+}
+
+struct ManXinAppWeb: View {
+  @EnvironmentObject var m: MoHinhApp
+  @Environment(\.dismiss) var dong
+  @State var the: TheXin
+  @State var tenApp = ""
+  @State var diaChi = ""
+  @State var loiNhan = ""
+  static let appPhoBien: [(ten: String, chu: String)] = [("YouTube", "▶"), ("Roblox", "◆"), ("Minecraft", "M"), ("Scratch", "S"), ("Zalo", "Z"), ("CapCut", "C")]
+
+  init(the: TheXin) { _the = State(initialValue: the) }
+
+  var muc: String { (the == .app ? tenApp : diaChi).trimmingCharacters(in: .whitespacesAndNewlines) }
+
+  var body: some View {
+    KhungMan {
+      DauMan(tieuDe: "Xin thêm app / web", lui: { dong() })
+      Text("Chọn app trên điện thoại hoặc gõ địa chỉ trang web").font(Diu.t2).foregroundColor(Diu.chu2)
+        .frame(maxWidth: .infinity, alignment: .leading)
+      HStack(spacing: 8) {
+        ForEach([TheXin.app, .web], id: \.self) { t in
+          Button { the = t; m.loi = nil } label: {
+            Text(t == .app ? "App trên máy" : "Trang web").font(Diu.chu(16, .heavy)).foregroundColor(Diu.chu)
+              .frame(maxWidth: .infinity, minHeight: 48).oChonE(Capsule(), the == t)
+          }
+          .buttonStyle(.plain).accessibilityAddTraits(the == t ? .isSelected : [])
+        }
+      }
+      if the == .app { theApp } else { theWeb }
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Ba Mẹ sẽ chọn nhóm").font(Diu.t1).foregroundColor(Diu.chu2)
+        HStack(spacing: 8) {
+          NhanNho(chu: "Tính phút · 1 sao = 1 phút", icon: "ic_dongho")
+          NhanNho(chu: "Không tính phút", icon: "ic_sach")
+          Spacer(minLength: 0)
+        }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      if let l = m.loi { Text(l).font(Diu.t2).foregroundColor(Diu.doChu).frame(maxWidth: .infinity, alignment: .leading) }
+      Button { Task {
+        if await m.xinCaiApp(ten: muc, lyDo: loiNhan.trimmingCharacters(in: .whitespacesAndNewlines), kieu: the.rawValue) != nil { m.manPhu = .conDangXin }
+      } } label: {
+        if m.dangBan { ProgressView().tint(Diu.chu) }
+        else {
+          Label { Text((the == .app ? "Xin Ba Mẹ thêm \(muc.isEmpty ? "app" : muc)" : "Xin Ba Mẹ mở trang này") + (m.matMang ? " · gửi khi có mạng" : "")) }
+            icon: { Anh(ten: "ic_gui", co: 26) }
+        }
+      }
+      .buttonStyle(NutDiu()).disabled(muc.isEmpty || m.dangBan)
+      Button("Thôi, để sau") { dong() }.buttonStyle(NutDiu(kieu: .lk))
+    }
+    .onAppear {
+      m.loi = nil
+      // «Xin lại» sau khi Ba Mẹ chưa thêm ⇒ điền sẵn tên app / địa chỉ cũ
+      if let yc = m.yeuCau, yc.xong, !yc.duoc, yc.kieu == the.rawValue, let t = yc.ten {
+        if the == .app { tenApp = t } else { diaChi = t }
+        loiNhan = yc.loiNhan
+      } else if m.demo != nil {
+        if the == .app { tenApp = "YouTube"; loiNhan = "Con xem video vẽ tranh ạ" } else { diaChi = "scratch.mit.edu"; loiNhan = "Con học làm game trên Scratch ạ" }
+      }
+    }
+  }
+
+  var theApp: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("App trên điện thoại").font(Diu.t1).foregroundColor(Diu.chu2)
+      LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+        ForEach(Self.appPhoBien, id: \.ten) { a in
+          Button { tenApp = a.ten; m.loi = nil } label: {
+            VStack(spacing: 6) {
+              Text(a.chu).font(Diu.chu(20, .black)).foregroundColor(Diu.chu).frame(width: 44, height: 44).noiE(RoundedRectangle(cornerRadius: 12), lech: 3)
+              Text(a.ten).font(Diu.chu(14, .heavy)).foregroundColor(Diu.chu).lineLimit(1).minimumScaleFactor(0.8)
+            }
+            .frame(maxWidth: .infinity, minHeight: 92).oChonE(RoundedRectangle(cornerRadius: 18), tenApp == a.ten)
+          }
+          .buttonStyle(.plain).accessibilityAddTraits(tenApp == a.ten ? .isSelected : [])
+        }
+      }
+      TextField("Không có trong lưới? Gõ tên app", text: $tenApp).font(Diu.chu(16, .semibold)).padding(.horizontal, 14).frame(minHeight: 48)
+        .lomE(RoundedRectangle(cornerRadius: 16)).textInputAutocapitalization(.words)
+        .onChange(of: tenApp) { _ in m.loi = nil }
+      TextField("Nhắn Ba Mẹ… (không bắt buộc)", text: $loiNhan).font(Diu.chu(16, .semibold)).padding(.horizontal, 14).frame(minHeight: 48)
+        .lomE(RoundedRectangle(cornerRadius: 16))
+    }
+    .theDiu(dem: 14)
+  }
+
+  var theWeb: some View {
+    VStack(alignment: .leading, spacing: 8) {
+      Text("Địa chỉ trang web").font(Diu.t1).foregroundColor(Diu.chu2)
+      TextField("scratch.mit.edu", text: $diaChi).font(Diu.chu(18, .heavy)).padding(.horizontal, 14).frame(minHeight: 52)
+        .lomE(RoundedRectangle(cornerRadius: 16))
+        .keyboardType(.URL).textInputAutocapitalization(.never).autocorrectionDisabled()
+        .onChange(of: diaChi) { _ in m.loi = nil }
+      Text("Gõ địa chỉ trang con muốn vào, ví dụ scratch.mit.edu").font(Diu.t2).foregroundColor(Diu.chu3)
+      Text("Lời nhắn cho Ba Mẹ").font(Diu.t1).foregroundColor(Diu.chu2).padding(.top, 6)
+      TextField("Kể Ba Mẹ nghe (không bắt buộc)", text: $loiNhan).font(Diu.chu(16, .semibold)).padding(.horizontal, 14).frame(minHeight: 48)
+        .lomE(RoundedRectangle(cornerRadius: 16))
+    }
+    .theDiu(dem: 14)
   }
 }
 
