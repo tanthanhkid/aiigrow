@@ -548,11 +548,11 @@ export function HeroBan({ tieu, loi, lv = "so-tay" }: { tieu: string; loi: strin
   const { width } = useWindowDimensions();
   const mot = width >= 360;       // bàn: chữ một dòng, tràn nhẹ ra lề phải bong bóng; màn hẹp (320) cho xuống dòng để khỏi đè Grow
   return (
-    <View style={{ height: 128, borderRadius: 30, backgroundColor: M.nen, boxShadow: BONG.the }}>
-      <View style={{ position: "absolute", right: 0, bottom: -10, width: 104, height: 159, zIndex: 2 }} pointerEvents="none">
-        <Image cachePolicy="memory-disk" source={LV[lv]} style={{ width: 104, height: 159 }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+    <View style={{ height: mot ? 128 : 150, borderRadius: 30, backgroundColor: M.nen, boxShadow: BONG.the }}>
+      <View style={{ position: "absolute", right: 0, bottom: -10, width: mot ? 104 : 84, height: mot ? 159 : 128, zIndex: 2 }} pointerEvents="none">
+        <Image cachePolicy="memory-disk" source={LV[lv]} style={{ width: mot ? 104 : 84, height: mot ? 159 : 128 }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
       </View>
-      <View style={{ position: "absolute", left: 14, top: 24, width: mot ? 240 : 226, maxWidth: "88%", zIndex: 3, paddingVertical: 12, paddingLeft: 16, paddingRight: mot ? 4 : 16, borderRadius: 24, backgroundColor: M.the, boxShadow: BONG.nho }}>
+      <View style={{ position: "absolute", left: 14, top: 24, width: mot ? 240 : 226, maxWidth: mot ? "88%" : "62%", zIndex: 3, paddingVertical: 12, paddingLeft: 16, paddingRight: mot ? 4 : 16, borderRadius: 24, backgroundColor: M.the, boxShadow: BONG.nho }}>
         <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 18, lineHeight: 23, letterSpacing: -0.3, color: M.chu }}>{tieu}</Text>
         <Text style={[{ marginTop: 3, fontFamily: F.thuong, fontSize: 13, lineHeight: 18, color: INK2 }, undefined]}>{loi}</Text>
       </View>
