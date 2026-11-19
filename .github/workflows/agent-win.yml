@@ -58,13 +58,13 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         id: dotnet
         with:
           dotnet-version: '8.0.x'
       - name: Cache NuGet
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           key: nuget-win-unit-${{ steps.dotnet.outputs.dotnet-version }}-${{ hashFiles('agent-win/**/*.csproj') }}
@@ -72,7 +72,7 @@ jobs:
       - name: dotnet test
         run: dotnet test agent-win/tests/AiiGrow.Tests -c Release --logger "trx;LogFileName=unit.trx" --logger "console;verbosity=normal" --results-directory test-results
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-results
           path: test-results
@@ -85,13 +85,13 @@ jobs:
       matrix:
         ban: [goc, '9.9.8', '9.9.9']
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         id: dotnet
         with:
           dotnet-version: '8.0.x'
       - name: Cache NuGet
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.nuget/packages
           # khoá riêng job build (gói runtime win-x64 của publish một tệp không có trong cache job unit) + bản SDK (runtime pack theo bản vá .NET)
@@ -110,7 +110,7 @@ jobs:
           chmod +x "$HOME/shim/shasum"
           PATH="$HOME/shim:$PATH" agent-win/build-mot-file.sh
       # Exe có ngay khi job này xong — phát hành lấy `setup-goc` bằng gh run download (chú thích đầu tệp), không chờ e2e.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: setup-${{ matrix.ban }}
           path: agent-win/ra/AiiGrow-Setup.exe
@@ -122,15 +122,15 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 60
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: setup-*
           path: e2e-bin
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm
@@ -161,7 +161,7 @@ jobs:
           Get-ScheduledTask -TaskName 'AiiGrow*' -ErrorAction SilentlyContinue | Format-List * | Out-File -Encoding utf8 e2e-logs\con-lai\tac-vu.txt
           exit 0
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-logs
           path: e2e-logs
@@ -175,8 +175,8 @@ jobs:
     # Kiểm ảnh chỉ để báo, không chặn phát hành: lỗi ở đây hiện chú thích ::error:: + ảnh ở artifact «man-win», run vẫn xanh.
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
       - name: Build công cụ chụp
@@ -213,7 +213,7 @@ jobs:
           }
           exit $loi
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: man-win
           path: man-win
