@@ -1028,7 +1028,7 @@ await kichBan("Đăng ký bằng số điện thoại → mã 6 số → vào b�
   await go("Mã xác thực 6 số", "482017");
   await bam("Xác thực số điện thoại");
   xet(await doi("Tên gọi ở nhà"), "đăng ký xong vào bước tên con");
-  xet(nhatKy.some((x) => x.d === "dang-ky" && x.body?.ma === "482017" && x.body?.dinhDanh === "0912345678" && x.body?.matKhau === "matkhau123"), "gửi mã + số + mật khẩu");
+  xet(nhatKy.some((x) => x.d === "dang-ky" && x.body?.ma === "482017" && x.body?.dinhDanh === "0912345678" && x.body?.matKhau === "aiigrow26"), "gửi mã + số + mật khẩu");
 });
 
 await kichBan("Duyệt nhiệm vụ: bằng chứng ⇒ «Duyệt · nhận 10 sao» kèm lời khen ⇒ màn +10 sao ⇒ Hoàn tác trừ lại", async () => {
