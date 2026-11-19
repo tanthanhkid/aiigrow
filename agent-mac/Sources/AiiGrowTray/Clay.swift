@@ -143,25 +143,39 @@ enum FluentIcon {
   }
 }
 
-/// Icon Fluent 3D; thiếu tệp thì rơi về SF Symbol (không bao giờ trống).
+/// Icon NÉT đơn sắc (Ánh kim #426: Bàn con-cai-mac dùng icon nét navy, không còn Fluent 3D nhiều màu). Tên giữ như bộ Fluent cũ
+/// ⇒ các chỗ gọi không đổi; ánh xạ sang SF Symbols dạng nét (regular). Màu = màu chữ của chỗ chứa (navy; trên nút navy = kem/vàng).
+enum IconNet {
+  static let bang: [String: String] = [
+    "alarm_clock": "clock", "bell": "bell", "desktop_computer": "desktopcomputer", "fire": "flame",
+    "globe_with_meridians": "globe", "globe": "globe", "hourglass_not_done": "hourglass", "house": "house", "key": "key",
+    "link": "link", "locked": "lock", "memo": "checkmark.circle", "party_popper": "sparkles", "puzzle_piece": "puzzlepiece",
+    "seedling": "leaf", "nguoi": "person.2", "send": "paperplane", "shield": "shield", "speech_balloon": "bubble.left",
+    "star": "star", "sao": "star", "stop_sign": "nosign", "video_game": "gamecontroller", "warning": "exclamationmark.triangle",
+    "wifi": "wifi", "wrapped_gift": "gift", "sparkles": "sparkles", "checkmark": "checkmark",
+  ]
+  /// Tên SF Symbol dạng nét cho `ten`; không có trong bảng ⇒ lấy `duPhong` bỏ đuôi «.fill».
+  static func symbol(_ ten: String, duPhong: String) -> String {
+    if let s = bang[ten] { return s }
+    return duPhong.hasSuffix(".fill") ? String(duPhong.dropLast(5)) : duPhong
+  }
+}
+
+/// Icon nét đơn sắc theo màu chữ của chỗ chứa (không đặt màu riêng ⇒ nút navy tự đổi màu icon theo chữ).
 struct HinhFluent: View {
   let ten: String
   var duPhong: String = "circle.fill"
   var co: CGFloat = 24
   var body: some View {
-    if let img = FluentIcon.anh(ten) {
-      Image(nsImage: img).resizable().interpolation(.high).aspectRatio(contentMode: .fit)
-        .frame(width: co, height: co)
-        .shadow(color: ClayMau.bong.opacity(0.22), radius: 1.5, x: 0, y: 1.5)
-        .accessibilityHidden(true)
-    } else {
-      Image(systemName: duPhong).font(.system(size: co * 0.8)).foregroundColor(ClayMau.ngoc)
-        .frame(width: co, height: co).accessibilityHidden(true)
-    }
+    Image(systemName: IconNet.symbol(ten, duPhong: duPhong))
+      .symbolRenderingMode(.monochrome)
+      .font(.system(size: co * 0.82, weight: .regular))
+      .frame(width: co, height: co)
+      .accessibilityHidden(true)
   }
 }
 
-/// Viên tròn chứa icon 3D: neumorphism (cùng màu nền, bóng đôi tối/sáng).
+/// Viên tròn chứa icon nét: neumorphism (cùng màu nền, bóng đôi tối/sáng).
 struct VienClay: View {
   let ten: String
   var duPhong = "circle.fill"
@@ -170,7 +184,7 @@ struct VienClay: View {
   var body: some View {
     ZStack {
       Circle().fill(nen)
-      HinhFluent(ten: ten, duPhong: duPhong, co: co * 0.56)
+      HinhFluent(ten: ten, duPhong: duPhong, co: co * 0.56).foregroundColor(ClayMau.chu)
     }
     .frame(width: co, height: co)
     .shadow(color: ClayMau.bong.opacity(ClayMau.bongNoi), radius: co * 0.12, x: co * 0.07, y: co * 0.07)
@@ -195,6 +209,24 @@ struct ClayThe: ViewModifier {
   }
 }
 
+/// Khối nổi bật phong cách E: navy viền vàng mảnh + quầng vàng nhẹ (Bàn: thẻ hero Hôm nay / Sao & quà / Hết sao). Chữ trên đó: kem sáng + vàng kim.
+struct ClayNavy: ViewModifier {
+  var bo: CGFloat = 28
+  func body(content: Content) -> some View {
+    let hinh = RoundedRectangle(cornerRadius: bo, style: .continuous)
+    content
+      .background(
+        ZStack {
+          hinh.fill(LinearGradient(colors: [ClayMau.thanChi, ClayMau.chu], startPoint: .topLeading, endPoint: .bottomTrailing))
+          hinh.strokeBorder(ClayMau.kimVien.opacity(0.85), lineWidth: 1)
+        }
+        .compositingGroup()
+        .shadow(color: ClayMau.bong.opacity(0.45), radius: 12, x: 6, y: 8)
+        .shadow(color: ClayMau.bongSang.opacity(0.95), radius: 12, x: -6, y: -6)
+      )
+  }
+}
+
 /// Lòng chảo lõm (ô nhập, dải tiến độ): bóng trong tối phía trên-trái + viền sáng dưới-phải.
 struct ClayLom: ViewModifier {
   var bo: CGFloat = 16
@@ -214,6 +246,7 @@ struct ClayLom: ViewModifier {
 
 extension View {
   func clayThe(bo: CGFloat = 28, nen: Color = ClayMau.the) -> some View { modifier(ClayThe(bo: bo, nen: nen)) }
+  func clayNavy(bo: CGFloat = 28) -> some View { modifier(ClayNavy(bo: bo)) }
   func clayLom(bo: CGFloat = 16) -> some View { modifier(ClayLom(bo: bo)) }
   /// Tải trang: các khối vào lần lượt (stagger 55ms, translateY 26→0 + scale .92→1, spring NẢY VÀO). Reduce Motion ⇒ chỉ fade.
   func vaoLanLuot(_ i: Int) -> some View { modifier(VaoLanLuot(thuTu: i)) }
@@ -245,7 +278,8 @@ struct VaoLanLuot: ViewModifier {
 
 // MARK: - Nút kẹo bọc đường
 
-enum KieuNut { case ngoc, thanChi, sang }
+enum KieuNut { case ngoc, thanChi, sang, chon }
+// .chon = mục / chip ĐANG CHỌN theo Bàn E: navy, chữ + icon vàng kim, viền vàng mảnh (nút chính vẫn là vàng kim .ngoc).
 
 /// Nút clay: bẹp khi nhấn (scale .95×.90, 110ms) rồi thả nảy (spring 420/14) + vệt men lướt chéo 105°.
 /// Reduce Motion ⇒ không bẹp/nảy/lướt, chỉ tối nhẹ. Cao ≥ 44pt.
@@ -275,6 +309,7 @@ private struct NutClayThan<Nhan: View>: View {
     case .ngoc: return ClayMau.chu                // vàng kim ⇒ chữ navy
     case .thanChi: return ClayMau.nenSang         // khối navy ⇒ chữ kem sáng
     case .sang: return ClayMau.chu
+    case .chon: return ClayMau.kim                // đang chọn ⇒ navy chữ vàng kim
     }
   }
 
@@ -313,7 +348,7 @@ private struct NutClayThan<Nhan: View>: View {
       .compositingGroup()
       .shadow(color: ClayMau.bong.opacity(bat ? 0.40 : 0.15), radius: 8, x: 4, y: 5)
       .shadow(color: ClayMau.bongSang.opacity(0.9), radius: 6, x: -3, y: -3)
-    case .thanChi:
+    case .thanChi, .chon:
       // khối navy viền vàng mảnh + quầng vàng nhẹ
       ZStack {
         hinh.fill(LinearGradient(colors: [ClayMau.thanChi, ClayMau.chu], startPoint: .topLeading, endPoint: .bottomTrailing))
