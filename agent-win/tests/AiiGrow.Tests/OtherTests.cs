@@ -13,7 +13,7 @@ public class UsageTrackerTests
         var u = new UsageTracker();
         u.Add(T, "word.exe", "Word", 90);
         var first = u.Drain();
-        Assert.Equal(new UsageEntry("2026-10-20", "word.exe", "Word", 1), Assert.Single(first));
+        Assert.Equal(new UsageEntry("2026-10-20", "word.exe", "Word", 1, null, T), Assert.Single(first));
         u.Add(T, "word.exe", "Word", 30);
         Assert.Equal(1, Assert.Single(u.Drain()).Minutes);
         Assert.Empty(u.Drain());

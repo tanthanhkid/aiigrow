@@ -173,7 +173,9 @@ public sealed class QuyDaDem
 }
 
 /// <param name="Con">15/11 (#267): id bé của dòng (máy chung) — máy chủ ghi phút cho đúng bé; null = không biết (máy chủ coi là bé đang dùng).</param>
-public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes, string? Con = null);
+/// <param name="CuoiLuc">#433 A3: mốc CUỐI khung giờ chơi của phần phút tăng (giờ máy, lần cuối app được tính dùng) — máy chủ dùng để phân biệt báo TRỄ với báo TRÙNG
+/// (cửa sổ chống trừ đôi là (CuoiLuc − phút, CuoiLuc]). Null = không biết (máy chủ cũ / dòng cũ: cửa sổ tính từ lúc nhận).</param>
+public sealed record UsageEntry(string Day, string AppId, string AppName, int Minutes, string? Con = null, DateTimeOffset? CuoiLuc = null);
 
 /// <summary>Trạng thái bảo vệ do tác tử gửi kèm mỗi lần sync (máy chủ lưu JSON này).</summary>
 public sealed class AgentStatus

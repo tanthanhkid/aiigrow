@@ -22,6 +22,8 @@ public sealed class UsageTotals
         public int Minutes { get; set; }
         /// <summary>Tổng máy chủ đã nhận (lần gửi thành công gần nhất).</summary>
         public int DaGui { get; set; }
+        /// <summary>#433 A3: lần cuối app được tính dùng (giờ máy).</summary>
+        public DateTimeOffset? CuoiLuc { get; set; }
     }
 
     private sealed class TepTong
@@ -38,6 +40,7 @@ public sealed class UsageTotals
         public string Name { get; set; } = "";
         public int Minutes { get; set; }
         public int DaGui { get; set; }
+        public DateTimeOffset? CuoiLuc { get; set; }
     }
 
     /// <summary>Lưu tổng ở <paramref name="tep"/> (dịch vụ: %ProgramData%\AiiGrow\phut-da-dem.json) và nạp số đã lưu. Tệp hỏng / không đọc được ⇒ bắt đầu từ
@@ -59,7 +62,7 @@ public sealed class UsageTotals
                     var k = (x.Day, x.App.ToLowerInvariant(), x.Con ?? "");
                     var cu = _tong.TryGetValue(k, out var v) ? v : null;
                     // bộ nhớ đã đếm thêm trước khi nạp (hiếm) ⇒ cộng phần trong bộ nhớ lên số đã lưu
-                    _tong[k] = new Dong { Name = x.Name, Minutes = Math.Max(0, x.Minutes) + (cu?.Minutes ?? 0), DaGui = Math.Max(0, Math.Max(x.DaGui, cu?.DaGui ?? 0)) };
+                    _tong[k] = new Dong { Name = x.Name, Minutes = Math.Max(0, x.Minutes) + (cu?.Minutes ?? 0), DaGui = Math.Max(0, Math.Max(x.DaGui, cu?.DaGui ?? 0)), CuoiLuc = Muon(x.CuoiLuc, cu?.CuoiLuc) };
                 }
                 Tia();
             }
@@ -79,6 +82,7 @@ public sealed class UsageTotals
                 if (!_tong.TryGetValue(k, out var v)) _tong[k] = v = new Dong();
                 v.Name = u.AppName;
                 v.Minutes += u.Minutes;
+                v.CuoiLuc = Muon(v.CuoiLuc, u.CuoiLuc);
             }
             // đồng hồ từng chạy nhanh rồi được chỉnh lại: dòng «tương lai» trong tệp sẽ đẩy ngày hôm nay ra khỏi 3 ngày giữ lại ⇒ bỏ
             var moiNhat = tang.Select(u => u.Day).DefaultIfEmpty("").Max(StringComparer.Ordinal) ?? "";
@@ -124,7 +128,9 @@ public sealed class UsageTotals
     }
 
     private static UsageEntry Ra((string Day, string App, string Con) k, Dong v)
-        => new(k.Day, k.App, v.Name, v.Minutes, k.Con.Length > 0 ? k.Con : null);
+        => new(k.Day, k.App, v.Name, v.Minutes, k.Con.Length > 0 ? k.Con : null, v.CuoiLuc);
+
+    private static DateTimeOffset? Muon(DateTimeOffset? a, DateTimeOffset? b) => a == null ? b : b == null ? a : (a > b ? a : b);
 
     /// <summary>Chỉ giữ 3 ngày gần nhất. Gọi trong khoá.</summary>
     private void Tia()
@@ -142,7 +148,7 @@ public sealed class UsageTotals
             var d = new TepTong
             {
                 May = _may,
-                Dong = _tong.Select(x => new DongTep { Day = x.Key.Day, App = x.Key.App, Con = x.Key.Con.Length > 0 ? x.Key.Con : null, Name = x.Value.Name, Minutes = x.Value.Minutes, DaGui = x.Value.DaGui }).ToList(),
+                Dong = _tong.Select(x => new DongTep { Day = x.Key.Day, App = x.Key.App, Con = x.Key.Con.Length > 0 ? x.Key.Con : null, Name = x.Value.Name, Minutes = x.Value.Minutes, DaGui = x.Value.DaGui, CuoiLuc = x.Value.CuoiLuc }).ToList(),
             };
             var dir = Path.GetDirectoryName(_tep);
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);

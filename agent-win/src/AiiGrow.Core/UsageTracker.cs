@@ -7,6 +7,8 @@ public sealed class UsageTracker
     /// <summary>Tổng giây đã dùng TRONG NGÀY theo app (không bị Drain trừ) — cho thẻ «Đã dùng hôm nay» của khay. Chỉ giữ ngày mới nhất.
     /// Dịch vụ khởi động lại ⇒ đếm lại từ 0 (máy chủ vẫn giữ số lớn hơn bằng greatest).</summary>
     private readonly Dictionary<(string Con, string App), (string Name, double Sec)> _homNay = new();
+    /// <summary>#433 A3: lần cuối (giờ máy) mỗi dòng được cộng giây — `UsageEntry.CuoiLuc`.</summary>
+    private readonly Dictionary<(string Day, string App, string Con), DateTimeOffset> _cuoi = new();
     private string _ngayHomNay = "";
     private readonly object _gate = new();
 
@@ -22,6 +24,7 @@ public sealed class UsageTracker
         {
             _d.TryGetValue(key, out var cur);
             _d[key] = (string.IsNullOrWhiteSpace(appName) ? (cur.Name ?? appId) : appName, cur.Sec + seconds);
+            if (!_cuoi.TryGetValue(key, out var cu) || localNow > cu) _cuoi[key] = localNow;
             if (key.Item1 != _ngayHomNay)
             {
                 if (string.CompareOrdinal(key.Item1, _ngayHomNay) < 0) return;   // giờ máy lùi qua nửa đêm: không trộn vào ngày mới
@@ -68,7 +71,7 @@ public sealed class UsageTracker
                 var v = _d[k];
                 int m = (int)(v.Sec / 60.0);
                 if (m <= 0) continue;
-                res.Add(new UsageEntry(k.Day, k.App, v.Name, m, k.Con.Length > 0 ? k.Con : null));
+                res.Add(new UsageEntry(k.Day, k.App, v.Name, m, k.Con.Length > 0 ? k.Con : null, _cuoi.TryGetValue(k, out var cl) ? cl : null));
                 _d[k] = (v.Name, v.Sec - m * 60.0);
             }
         }

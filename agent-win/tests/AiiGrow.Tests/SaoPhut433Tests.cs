@@ -172,4 +172,38 @@ public class SaoPhut433Tests
         Assert.Equal(KetQuaMoOffline.DaMo, st.TryUnlock(biMat, MaOffline.Ma(biMat, mocB), mocB));
         Assert.Equal(KetQuaMoOffline.DaDung, st.TryUnlock(biMat, maA, mocA.AddMinutes(1)));
     }
+    /// <summary>A3: dòng usage mang mốc cuối khung giờ chơi (lần cuối app được tính dùng) để máy chủ phân biệt báo trễ với báo trùng; tổng cộng dồn giữ mốc MUỘN nhất.</summary>
+    [Fact]
+    public void A3_UsageMangMocCuoiKhungChoi_TongGiuMocMuonNhat()
+    {
+        var dem = new UsageTracker();
+        var tong = new UsageTotals();
+        dem.Add(Luc.AddMinutes(3), "roblox.exe", "Roblox", 3 * 60, "be-a");
+        var tang1 = dem.Drain();
+        Assert.Equal(Luc.AddMinutes(3), tang1.Single().CuoiLuc);
+        tong.Add(tang1);
+        dem.Add(Luc.AddMinutes(8), "roblox.exe", "Roblox", 5 * 60, "be-a");
+        tong.Add(dem.Drain());
+        var gui = tong.CanGui("may-1").Single();
+        Assert.Equal(8, gui.Minutes);
+        Assert.Equal(Luc.AddMinutes(8), gui.CuoiLuc);
+    }
+
+    /// <summary>A3: mốc cuối khung lưu qua khởi động lại (gửi lại tổng cũ vẫn kèm đúng mốc).</summary>
+    [Fact]
+    public void A3_MocCuoiKhungLuuQuaKhoiDongLai()
+    {
+        var tep = TepTam();
+        try
+        {
+            var t1 = new UsageTotals();
+            t1.DungTep(tep);
+            t1.CanGui("may-1");
+            t1.Add(new[] { new UsageEntry("2026-11-19", "roblox.exe", "Roblox", 4, "be-a", Luc) });
+            var t2 = new UsageTotals();
+            t2.DungTep(tep);
+            Assert.Equal(Luc, t2.CanGui("may-1").Single().CuoiLuc);
+        }
+        finally { try { File.Delete(tep); } catch (IOException) { } }
+    }
 }

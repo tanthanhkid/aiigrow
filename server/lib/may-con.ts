@@ -21,7 +21,7 @@ import { ghiDiem, khoaCon } from "./vi.ts";
 import { dauNgayUtc } from "./gio.ts";
 import { cheDoChanCua, cheDoCua, type CheDo, type CheDoChan } from "./chan-co-ban.ts";
 import { gioiHanMay, quyHomNay, saoKepGioiHan } from "./quy-gio.ts";
-import { phutTheoDanhSach, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
+import { kepCuoiLuc, phutTheoDanhSach, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
 
 /** (cũ, #265 đã bỏ) ngoại lệ đang mở — Policy luôn gửi mảng rỗng cho agent cũ. */
 export type NgoaiLeMo = { id: string; den: string; muc: string | null; nhom: string };
@@ -30,7 +30,7 @@ export type DongBoVao = {
   status?: Record<string, unknown>;
   clientTime?: string | number;
   /** `con` (15/11, agent mới, máy chung): bé của dòng này — phút là TỔNG CỦA BÉ đó (không phải tổng máy); gửi cả lúc «Đổi người» để chốt phút bé trước. */
-  usage?: { muc: string; phut: number; day?: string; /** giờ bắt đầu dùng app trong ngày (ISO, tuỳ chọn) */ dauLuc?: string; con?: string }[];
+  usage?: { muc: string; phut: number; day?: string; /** giờ bắt đầu dùng app trong ngày (ISO, tuỳ chọn) */ dauLuc?: string; /** #433 A3: mốc CUỐI khung giờ chơi của phần phút tăng (ISO, tuỳ chọn) — báo trễ không bị coi là trùng */ cuoiLuc?: string; con?: string }[];
   /** 15/11: phút «Tính phút» dùng lúc máy đang mở bằng mã offline / mã mở máy kể từ lần đồng bộ trước ⇒ không trừ sao (agent mới gửi). */
   phutBoiMa?: number;
   /** 15/11 (agent Windows ≥ 0.2.19, máy chung): phút mở bằng mã THEO BÉ — có thì thay `phutBoiMa` (không trừ sao đúng bé dù đã «Đổi người»). */
@@ -80,7 +80,7 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
   const dauNay = dauNgayUtc(nay, f.tz);
   const nhanTre = now.getTime() - dauNay.getTime() <= TRE_SAU_NUA_DEM_PHUT * 60_000;
   // #433 A4: phút trừ theo TỪNG app (theoMuc) — một lượt nhiều app không còn gán hết cho app tăng nhiều nhất («đã dùng gì», sổ sao)
-  const truTheoBe = new Map<string, { be: string; ngay: string; phut: number; muc: string | null; max: number; cu: boolean; theoMuc: Map<string, number> }>();
+  const truTheoBe = new Map<string, { be: string; ngay: string; phut: number; muc: string | null; max: number; cu: boolean; theoMuc: Map<string, number>; den: Date | null | undefined }>();
   for (const u of usage) {
     const ngay = ngayGhi(u?.day, nay, f.tz, gm);
     if (!ngay || !u?.muc || !Number.isFinite(u.phut)) continue;
@@ -104,8 +104,11 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 300_000 ? dl : ngay === nay ? now : null;
     if (pl.loai === "giai_tri" && (ngay === nay || (ngay === homQua && nhanTre)) && phan > cu) {
       const kx = `${be}|${ngay}`;
-      const x = truTheoBe.get(kx) ?? { be, ngay, phut: 0, muc: null, max: 0, cu: false, theoMuc: new Map<string, number>() };
+      const x = truTheoBe.get(kx) ?? { be, ngay, phut: 0, muc: null, max: 0, cu: false, theoMuc: new Map<string, number>(), den: null };
       const them = phan - cu;
+      // #433 A3: mốc cuối khung = muộn nhất trong các dòng; chỉ cần MỘT dòng thiếu mốc (agent cũ) ⇒ cả lượt của bé theo hành vi cũ
+      const den = kepCuoiLuc(u.cuoiLuc, now);
+      x.den = x.den === undefined || !den ? undefined : x.den === null || den > x.den ? den : x.den;
       x.phut += them;
       x.theoMuc.set(muc, (x.theoMuc.get(muc) ?? 0) + them);
       if (them > x.max) { x.max = them; x.muc = muc; }
@@ -140,7 +143,7 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     if (phut <= 0) continue;
     // lỗi trừ sao không làm hỏng cả lượt đồng bộ (agent vẫn cần Policy) — phút đã ghi usage, lần sau không tính lại
     const luc = x.ngay === nay ? now : new Date(dauNay.getTime() - 1);   // phần hôm qua: ghi ở giây cuối hôm qua (sổ + «đã dùng gì» đúng ngày)
-    try { await truPhutChoi(be, phut, luc, { muc: x.muc, tz: f.tz, theoMuc: x.theoMuc }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
+    try { await truPhutChoi(be, phut, luc, { muc: x.muc, tz: f.tz, theoMuc: x.theoMuc, den: x.ngay === nay ? x.den ?? undefined : undefined }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
   }
   const status = { ...(may.status ?? {}), ...(b.status ?? {}), lechGiay: gioMaySai ? lechGiay : null };
   await q(`update devices set last_seen = $2, status = $3::text::jsonb where id = $1`, [may.id, now, JSON.stringify(status)]);

@@ -48,7 +48,13 @@ async function tuan(con: string, tz: string, dau: string) {
   const [dung, choi, kiem, tieu, duyet0, sao, top, dungNhieu, xin0] = await Promise.all([
     q<{ ngay: string; loai: string; phut: number }>(
       `select ngay, loai, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 group by ngay, loai`, [con, dau, het]),
-    q<{ phut: number; bat_dau: Date }>(`select phut_dung as phut, bat_dau from play_sessions where child_id = $1 and bat_dau >= $2 and bat_dau < $3`, [con, tu, den]),
+    // #433 B10: MỘT nguồn phút chơi = sổ sao (1 sao = 1 phút, cách đếm cửa sổ chống trừ đôi của phần A) — không đọc play_sessions song song nữa
+    // (cùng lượt chơi nằm cả ở phiên lẫn sổ ⇒ hai số lệch nhau). Cùng bộ lọc với thongKeSao ⇒ tổng giải trí = saoTieuChoi.
+    q<{ ngay: string; phut: number }>(
+      `select to_char(created_at at time zone $4, 'YYYY-MM-DD') as ngay, coalesce(-sum(delta), 0)::int as phut from points
+        where child_id = $1 and created_at >= $2 and created_at < $3 and (loai in ('choi', 'phien', 'doi_gio')
+          or (loai = 'hoan' and delta > 0 and coalesce(ref, '') not in (select id from redemptions where child_id = $1)
+              and coalesce(ref, '') not in (select id from submissions where child_id = $1))) group by 1`, [con, tu, den, tz]),
     q<{ nhom: string; diem: number; n: number }>(
       `select t.nhom, sum(s.diem)::int as diem, count(*)::int as n from submissions s join tasks t on t.id = s.task_id
        where s.child_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2 and s.duyet_luc < $3 group by t.nhom order by diem desc`, [con, tu, den]),
@@ -79,7 +85,7 @@ async function tuan(con: string, tz: string, dau: string) {
   const d0 = duyet0!, tong = d0.duoc + d0.tu_choi + d0.lam_lai + d0.het_han;
   const duyet = { ...d0, tong, tyLe: tong ? Math.round((d0.duoc / tong) * 100) : null };
   const giaiTriNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
-  for (const p of choi) giaiTriNgay[gioDiaPhuong(new Date(p.bat_dau), tz).ngay] = (giaiTriNgay[gioDiaPhuong(new Date(p.bat_dau), tz).ngay] ?? 0) + Math.round(p.phut);
+  for (const p of choi) if (p.ngay in giaiTriNgay) giaiTriNgay[p.ngay] = Math.max(0, p.phut);
   const hoc = dung.filter((x) => x.loai === "hoc" || x.loai === "he_thong").reduce((a, x) => a + x.phut, 0);
   const hocNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
   for (const x of dung) if (x.loai === "hoc" || x.loai === "he_thong") hocNgay[x.ngay] = (hocNgay[x.ngay] ?? 0) + x.phut;

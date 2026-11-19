@@ -89,7 +89,7 @@ public sealed class ApiClient : IDisposable
         var raw = await SendAsync(HttpMethod.Post, "api/device/dong-bo", new DongBoBody
         {
             Status = status, ClientTime = DateTimeOffset.Now.ToString("O"),
-            Usage = tongNgay.Select(u => new DongBoUsage { Muc = u.AppId, Phut = u.Minutes, Day = u.Day, Con = u.Con }).ToList(),
+            Usage = tongNgay.Select(u => new DongBoUsage { Muc = u.AppId, Phut = u.Minutes, Day = u.Day, Con = u.Con, CuoiLuc = u.CuoiLuc?.ToString("O") }).ToList(),
             PhutBoiMa = boiMa is { Count: > 0 } ? boiMa.Sum(x => x.Phut) : null,
             BoiMaCon = boiMa is { Count: > 0 } ? boiMa.Select(x => new DongBoBoiMa { Con = x.Con, Phut = x.Phut }).ToList() : null,
         }, ct);
@@ -118,6 +118,8 @@ public sealed class ApiClient : IDisposable
         public int Phut { get; set; }
         public string Day { get; set; } = "";
         public string? Con { get; set; }
+        /// <summary>#433 A3: mốc cuối khung giờ chơi (ISO) — null bị bỏ khỏi JSON (máy chủ cũ không thấy trường lạ).</summary>
+        public string? CuoiLuc { get; set; }
     }
 
     /// <summary>15/11 (#263/#265): «Xin Ba Mẹ cho vay sao» — POST yeu-cau {loai: vay_sao, soSao, mucDich, quaId?, lyDo?} → {id, trang_thai}. Lời nhắn không bắt buộc.</summary>
