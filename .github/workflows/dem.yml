@@ -7,7 +7,7 @@ name: dem
 # Các workflow con nhận `on: workflow_call`; nhóm concurrency của chúng có github.workflow (= «dem» khi được gọi) ⇒ push main
 # hay chạy tay một workflow không huỷ lượt đêm.
 # KHÔNG gọi chup-man-win.yml: job chup-man của agent-win.yml đã chụp đủ (100/150% + 1366) và cùng tải artifact «man-win» —
-# hai tên trùng trong một run ⇒ upload-artifact@v4 lỗi 409. Artifact các workflow con phải khác tên nhau.
+# hai tên trùng trong một run ⇒ upload-artifact@v4 lỗi 409 (chup-man-win.yml vì thế không có workflow_call). Artifact các workflow con phải khác tên nhau.
 on:
   schedule:
     - cron: '15 19 * * *'   # 19:15 UTC = 02:15 giờ VN

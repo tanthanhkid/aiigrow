@@ -5,7 +5,7 @@ name: bao-do
 # Chạy tay để thử: gh workflow run bao-do -f run_id=<id run đỏ trên main>
 on:
   workflow_run:
-    workflows: [agent-win, agent-mac, agent-ios, agent-android, chup-man-win, mobile, server]
+    workflows: [agent-win, agent-mac, agent-ios, agent-android, mobile, server]   # chup-man-win chỉ push nhánh chup-man-win, không chạy trên main
     types: [completed]
     branches: [main]
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
             exit 0
           fi
           JOB_DO=$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID/jobs?per_page=100" \
-            --jq '.jobs[] | select(.conclusion == "failure") | "- [\(.name)](\(.html_url))"' || true)
+            --jq '.jobs[] | select(.conclusion != null and .conclusion != "success" and .conclusion != "skipped" and .conclusion != "neutral") | "- [\(.name)](\(.html_url))"' || true)
           {
             echo "$DAU"
             echo "🔴 **CI trên main đỏ sau merge** — workflow \`$TEN\` ($KL) ở commit \`${SHA:0:8}\`."
