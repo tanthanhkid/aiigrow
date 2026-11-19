@@ -1054,7 +1054,7 @@ internal sealed class ClayMenuRenderer : ToolStripProfessionalRenderer
 internal static class ONhapClay
 {
     /// <summary>Chiều cao thân lòng chảo cho một TextBox (đã bỏ viền).</summary>
-    public static int Than(TextBox o) => Math.Max(Clay.Si(44), o.PreferredHeight + Clay.Si(20));
+    public static int Than(TextBox o) => Math.Max(Clay.Si(44), o.PreferredHeight + Clay.Si(22));   // PreferredHeight theo phông (không theo Height) — gọi trước / sau Boc như nhau
 
     public static ClayCard Boc(TextBox o, int rong, Padding? le = null)
     {
@@ -1064,6 +1064,13 @@ internal static class ONhapClay
         o.Margin = Padding.Empty;
         var ngang = Clay.Si(14);
         o.Width = Math.Max(Clay.Si(40), rong - 2 * ngang);
+        // #425: ô một dòng cao đúng chiều cao phông ⇒ Be Vietnam Pro bị cắt phần dưới (dấu nặng «ạ», «ọ», chân «g», «y»). Bỏ tự co, chừa thêm
+        // khoảng dưới cho phần chân chữ — TextBox một dòng vẽ chữ sát mép trên nên phần thêm nằm dưới.
+        if (!o.Multiline)
+        {
+            o.AutoSize = false;
+            o.Height = o.PreferredHeight + Clay.Si(6);
+        }
         var than = Than(o);
         var m = le ?? Padding.Empty;
         var vo = new ClayCard

@@ -144,7 +144,7 @@ export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unk
   // #422 «Xin thêm app / web» (Hôm nay, menu khay): Con chọn thẻ «App trên máy» / «Trang web» ⇒ `kieu` quyết loại lời xin. Không gửi `kieu`
   // (màn chặn, agent cũ) ⇒ tự đoán như cũ.
   if (b.kieu !== undefined && b.kieu !== null && b.kieu !== "app" && b.kieu !== "web") throw new LoiNghiepVu("kieu_sai", "Chọn App trên máy hoặc Trang web");
-  let muc: string, loai: "mo_web" | "cai_app";
+  let muc: string, loai: "mo_web" | "cai_app", theoTen: boolean | undefined;
   if (b.kieu === "web") {
     // thẻ Trang web: địa chỉ có / không có https://, đuôi ?… #… :cổng ⇒ tên miền (Con đã chọn «Trang web» ⇒ tin là trang, kể cả app.slack.com)
     const tho = String(b.muc ?? "").trim();
@@ -157,17 +157,21 @@ export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unk
     muc = chuanMuc(b.muc);
     if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên app hoặc trang web");
     loai = b.kieu === "app" || kieuMuc(muc) === "app" ? "cai_app" : "mo_web";
-    // thẻ App, tên trần («Minecraft», app iPhone theo tên): chưa có định danh thật ⇒ giữ TÊN (hoa thường như Con thấy) — Ba Mẹ đồng ý thì
-    // thêm app theo tên (datAppChoPhep: khớp app thật máy đã báo / chờ khớp), không ghi luật lên một «tên miền» giả
+    // thẻ App: Con chọn app trong lưới máy báo ⇒ `muc` = định danh thật (exe, id Store «microsoft.mspaint», bundle, package), `ten` = tên hiển thị
+    // ⇒ khoá luật là `muc`. Con gõ tên trần («Minecraft», app iPhone) — không có `ten` khác `muc`, `muc` không phải dạng app ⇒ lời xin THEO TÊN:
+    // giữ tên như Con thấy, Ba Mẹ đồng ý thì thêm app theo tên (datAppChoPhep: khớp app thật máy đã báo / chờ khớp).
     if (loai === "cai_app" && kieuMuc(muc) !== "app") {
-      const ten = typeof b.ten === "string" && b.ten.trim() ? b.ten : String(b.muc);
-      if (!/[/:]/.test(ten)) muc = ten.trim().slice(0, 60);
-    }
+      const ten = typeof b.ten === "string" ? b.ten.trim() : "";
+      const coId = b.kieu === "app" && !!ten && ten.toLowerCase() !== muc && !/\s/.test(muc);
+      if (coId) theoTen = false;
+      else { const tho = String(b.muc).trim(); if (!/[/:]/.test(tho)) { muc = tho.slice(0, 60); theoTen = true; } }
+    } else if (loai === "cai_app") theoTen = false;
   }
   const co = await one<{ id: string; loai: string }>(`select id, loai from requests where child_id = $1 and gia_tri = $2 and loai = $3 and trang_thai = 'cho' and het_han > now()
                                         order by created_at desc limit 1`, [con, muc, loai]);
   if (co) return { id: co.id, trang_thai: "cho", daCo: true, loai: co.loai, muc };
-  const r = await guiYeuCau(con, mayId, { loai, giaTri: muc, lyDo: b.lyDo ?? "" });
+  const r = await guiYeuCau(con, mayId, { loai, giaTri: muc, lyDo: b.lyDo ?? "", theoTen,
+    tenApp: theoTen === false && typeof b.ten === "string" ? b.ten : undefined });
   return { ...r, daCo: false, loai, muc };
 }
 
@@ -196,8 +200,8 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
     q<{ muc: string; phut: number }>(`select lower(muc) as muc, sum(phut)::int as phut from usage where child_id = $1 and ngay = $2 group by lower(muc)`, [con, ngay]),
     q<{ ten_mien: string; giay: number }>(`select w.ten_mien, sum(w.giay)::int as giay from web_nhat_ky w left join devices d on d.id = w.device_id
        where (w.child_id = $1 or (w.child_id is null and d.child_id = $1)) and w.ngay = $2 group by w.ten_mien`, [con, ngay]),
-    q<{ id: string; loai: string; gia_tri: string | null; ly_do: string; created_at: Date; may: string | null }>(
-      `select r.id, r.loai, r.gia_tri, r.ly_do, r.created_at, d.name as may from requests r left join devices d on d.id = r.device_id
+    q<{ id: string; loai: string; gia_tri: string | null; ten_app: string | null; ly_do: string; created_at: Date; may: string | null }>(
+      `select r.id, r.loai, r.gia_tri, r.ten_app, r.ly_do, r.created_at, d.name as may from requests r left join devices d on d.id = r.device_id
         where r.child_id = $1 and r.loai in ('mo_web', 'cai_app') and r.trang_thai = 'cho' and r.het_han > $2 order by r.created_at`, [con, now]),
     dsBoQua(fam, con, now),                     // cùng điều kiện với màn «Lời xin đã bỏ qua» (yeu-cau.ts)
   ]);
@@ -236,7 +240,7 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
     /** «Mở hết»: danh sách vẫn giữ, «tạm nghỉ» */ tamNghi: cheDo === "mo_het",
     app: chia("app"), web: chia("web"),
     soMuc: { app: tat.filter((x) => x.kieu === "app").length, web: tat.filter((x) => x.kieu === "web").length, tinhPhut: tat.filter((x) => x.nhom === "tinh_phut").length },
-    dangXin: xin.map((r) => ({ id: r.id, loai: r.loai, kieu: r.loai === "mo_web" ? "web" : "app", muc: r.gia_tri, ten: r.gia_tri, lyDo: r.ly_do || null,
+    dangXin: xin.map((r) => ({ id: r.id, loai: r.loai, kieu: r.loai === "mo_web" ? "web" : "app", muc: r.gia_tri, ten: r.ten_app ?? r.gia_tri, lyDo: r.ly_do || null,
       luc: new Date(r.created_at).toISOString(), may: r.may })),
     boQua: { so: boQua.ds.length },
     nhom: Object.entries(TEN_NHOM_DS).map(([ma, ten]) => ({ ma, ten })),
