@@ -13,6 +13,19 @@ public struct PinNhap: Equatable {
   public mutating func lamLai() { so = "" }
 }
 
+/// Sáu ô số của màn ghép máy (Bàn 03/05/06): MỘT ô nhập thật (dán, xoá lùi, bàn phím số) vẽ thành sáu ô riêng; ô đang gõ = ô đầu còn trống.
+public enum OMa6 {
+  /// Nội dung sáu ô: «4», «8», … và «» cho ô trống.
+  public static func cacO(_ ma: String) -> [String] {
+    let so = Array(TrayLogic.locMa(ma)).map(String.init)
+    return (0..<6).map { $0 < so.count ? so[$0] : "" }
+  }
+  /// Ô đang chờ số kế (0…5); đủ 6 số ⇒ ô cuối.
+  public static func oHienTai(_ ma: String) -> Int { min(TrayLogic.locMa(ma).count, 5) }
+  /// Dán / gõ chuỗi bất kỳ («482 017», «482-017 », có chữ) ⇒ chỉ giữ 6 chữ số đầu.
+  public static func nhan(_ s: String) -> String { TrayLogic.locMa(s) }
+}
+
 /// Bước của màn chọn tên (máy khoá).
 public enum BuocChonTen: Equatable {
   case chonTen

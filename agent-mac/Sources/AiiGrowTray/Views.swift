@@ -190,6 +190,8 @@ struct GhepMayView: View {
   var dongLai: () -> Void
   /// Bắt đầu ở màn nào (chụp duyệt).
   var manDau: ManGhep = .nhap
+  /// Mã điền sẵn (chụp duyệt các màn mã sai / hết hạn / mất mạng).
+  var maDau = ""
   @State private var man: ManGhep = .nhap
   @State private var chon = ""
   @State private var ma = ""
@@ -198,73 +200,168 @@ struct GhepMayView: View {
   @State private var canhBao = ""
   @State private var dangChonFocus = false
   @State private var dungMa = false
+  @State private var hoiMa = false
   @State private var quyenTB: Bool?
   /// Hồ sơ máy sau khi ghép (số bé / máy riêng) — màn «Máy đã sẵn sàng» rẽ theo đó. nil = chưa biết ⇒ bản máy chung.
   @State var hoSo: HoSoMay?
   private var motCham: Bool { (coGoiCai || tray.tt?.coGoiCai == true) && !dungMa }
   private var khoaNhap: Bool { dangGui }
 
+  /// Ghép máy theo Bàn 03–09: thanh tiêu đề (cửa sổ hệ thống) · bước · nội dung · chân nút «Quay lại» + nút chính.
   var body: some View {
-    VStack(alignment: .leading, spacing: 14) {
-      buoc
-      switch man {
-      case .nhap: nhap
-      case .maSai: loiMa(tieu: "Mã chưa đúng", phu: "So từng số với mã trên điện thoại Ba Mẹ nhé.",
-                         ghi: "Mã quá 10 phút? Ba Mẹ bấm «Lấy mã mới» trong AiiGrow › Ghép máy.", nut: "Gõ lại mã")
-      case .hetHan: loiMa(tieu: "Mã ghép đã hết hạn", phu: "Mã chỉ dùng được 10 phút. Ba Mẹ lấy mã mới nhé.",
-                          ghi: "✓ Chưa ghép gì · tài khoản macOS \(chon) vẫn giữ", nut: "Gõ mã mới")
-      case .matMang: matMang
-      case .batQuyen: batQuyen
-      case .xong: xong
+    VStack(spacing: 0) {
+      VStack(alignment: .leading, spacing: 12) {
+        buoc
+        switch man {
+        case .nhap: nhap
+        case .maSai: maSai(het: false)
+        case .hetHan: maSai(het: true)
+        case .matMang: matMang
+        case .batQuyen: batQuyen
+        case .xong: xong
+        }
       }
+      .padding(.horizontal, 24).padding(.top, 16).padding(.bottom, 14).frame(maxWidth: .infinity, alignment: .topLeading)
+      chanNut
     }
-    .padding(22).clayThe().vaoLanLuot(0)
-    .padding(18).padding(.bottom, 10).frame(width: 470).nenClay()
+    .frame(width: 470).nenClay()
     .foregroundColor(ClayMau.chu)
     .animation(ClayMotion.bat, value: man)
-    .onAppear { if chon.isEmpty { chon = taiKhoan.first ?? "" }; man = manDau }
+    .onAppear { if chon.isEmpty { chon = taiKhoan.first ?? "" }; man = manDau; if !maDau.isEmpty { ma = TrayLogic.locMa(maDau) } }
     .task(id: man) { if man == .batQuyen || man == .xong { await layHoSo() } }
   }
 
   private var buoc: some View {
-    let so = man == .batQuyen ? 4 : 3
+    let hien = (man == .batQuyen || man == .xong) ? 3 : 2          // chỉ số ô đang ở (0-based): 3/4 ⇒ ô thứ 3, 4/4 ⇒ ô thứ 4
     return HStack(spacing: 5) {
-      ForEach(1...4, id: \.self) { i in
-        Capsule().fill(i <= so ? ClayMau.ngoc : ClayMau.lom).frame(width: 28, height: 7)
+      ForEach(0..<4, id: \.self) { i in
+        Capsule().fill(i < hien ? AnyShapeStyle(ClayMau.chu) : i == hien ? AnyShapeStyle(ClayMau.vang) : AnyShapeStyle(ClayMau.lom))
+          .frame(width: 28, height: 7)
       }
       Text(man == .xong ? "Xong" : man == .batQuyen ? "Bước 4/4 · Cho phép" : "Bước 3/4 · Ghép máy")
-        .font(.clay(size: 12, weight: .bold)).foregroundColor(ClayMau.ngocInk).padding(.leading, 6)
+        .font(.clay(size: 12, weight: .bold)).foregroundColor(ClayMau.chu).padding(.leading, 6)
     }
+  }
+
+  private func tieuDe(_ s: String, phu: String) -> some View {
+    VStack(alignment: .leading, spacing: 4) {
+      Text(s).font(.clay(size: 24, weight: .heavy, vai: .tieuDe)).fixedSize(horizontal: false, vertical: true)
+      Chu(phu, co: 13, mau: ClayMau.chu3, dong: 2)
+    }
+  }
+
+  /// Chân nút của Bàn: «Quay lại» (kem) + nút chính vàng kim, ngăn với nội dung bằng một vệt sáng-tối.
+  private var chanNut: some View {
+    HStack(spacing: 14) {
+      Button(action: quayLai) { HStack(spacing: 8) { HinhFluent(ten: "chevron.left", duPhong: "chevron.left", co: 14); Text("Quay lại") } }
+        .buttonStyle(NutClayStyle(kieu: .sang, bo: 18, cao: 48)).frame(width: 128)
+        .disabled(dangGui || man == .batQuyen)
+      nutChinh.frame(maxWidth: .infinity)
+    }
+    .padding(.horizontal, 24).padding(.vertical, 14).frame(maxWidth: .infinity)
+    .background(Rectangle().fill(ClayMau.nen).shadow(color: ClayMau.bong.opacity(0.22), radius: 8, x: 0, y: -3))
+  }
+
+  /// «Quay lại»: màn nhập ⇒ đóng cửa sổ (hai bước đầu nằm ở gói cài); màn lỗi ⇒ về màn nhập, giữ mã; «Máy đã sẵn sàng» ⇒ về bật quyền.
+  /// Đã ghép xong (bật quyền) thì không quay lại màn nhập mã (nút mờ).
+  private func quayLai() {
+    switch man {
+    case .nhap: dongLai()
+    case .maSai, .hetHan, .matMang: loi = ""; man = .nhap
+    case .batQuyen: break
+    case .xong: man = .batQuyen
+    }
+  }
+
+  @ViewBuilder private var nutChinh: some View {
+    switch man {
+    case .nhap:
+      Button(dangGui ? "Đang ghép…" : (motCham ? "Ghép vào nhà mình" : "Ghép Mac của con")) { gui() }
+        .buttonStyle(NutClayStyle(kieu: .ngoc, bo: 18, cao: 48))
+        .disabled(khoaNhap || (!motCham && !TrayLogic.maHopLe(ma)) || chon.isEmpty)
+    case .maSai: Button("Gõ lại mã") { ma = ""; loi = ""; man = .nhap }.buttonStyle(NutClayStyle(kieu: .ngoc, bo: 18, cao: 48))
+    case .hetHan: Button("Gõ mã mới") { ma = ""; loi = ""; man = .nhap }.buttonStyle(NutClayStyle(kieu: .ngoc, bo: 18, cao: 48))
+    case .matMang:
+      Button { gui() } label: {
+        HStack(spacing: 8) { HinhFluent(ten: "laptopcomputer", duPhong: "laptopcomputer", co: 16); Text(dangGui ? "Đang thử…" : "Thử lại") }
+      }.buttonStyle(NutClayStyle(kieu: .ngoc, bo: 18, cao: 48)).disabled(dangGui)
+    case .batQuyen:
+      Button("Bật xong, xem máy") { man = .xong }.buttonStyle(NutClayStyle(kieu: .ngoc, bo: 18, cao: 48))
+        .task { await kiemThongBao() }
+    case .xong:
+      let c = ManMac.chuXong(hoSo, taiKhoan: chon)
+      Button(c.nut) { khiGui(false); dongLai(); NhuongMay.khoaManHinh() }.buttonStyle(NutClayStyle(kieu: .ngoc, bo: 18, cao: 48))
+    }
+  }
+
+  /// Điện thoại minh hoạ chỗ lấy mã (Bàn 03/05/06): màn kem, «Mã ghép máy», mã mẫu, viên «Dùng được 10 phút» / «Đã hết hạn».
+  private func dienThoai(het: Bool) -> some View {
+    VStack(spacing: 6) {
+      ZStack(alignment: .top) {
+        RoundedRectangle(cornerRadius: 20, style: .continuous).fill(ClayMau.chu)
+        RoundedRectangle(cornerRadius: 15, style: .continuous).fill(ClayMau.nenSang).padding(5)
+        Capsule().fill(ClayMau.chu).frame(width: 30, height: 7).padding(.top, 9)
+        VStack(spacing: 5) {
+          Text("Mã ghép máy").font(.clay(size: 9, weight: .bold)).foregroundColor(ClayMau.chu3)
+          Text("482 017").font(.clay(size: 16, weight: .heavy)).monospacedDigit()
+          Text(het ? "Đã hết hạn" : "Dùng được 10 phút").font(.clay(size: 8, weight: .bold))
+            .foregroundColor(het ? ClayMau.canh : ClayMau.diemInk).lineLimit(1).minimumScaleFactor(0.8)
+            .padding(.horizontal, 6).padding(.vertical, 3).background(Capsule().fill(het ? ClayMau.canhSoft : ClayMau.diemSoft))
+        }.padding(.top, 34)
+      }
+      .frame(width: 96, height: 150)
+      .shadow(color: ClayMau.bong.opacity(0.4), radius: 8, x: 4, y: 6)
+      Text("Điện thoại Ba Mẹ").font(.clay(size: 11)).foregroundColor(ClayMau.chu3)
+    }
+    .accessibilityHidden(true)
+  }
+
+  private func vien(_ icon: String, _ chu: String, canh: Bool = false) -> some View {
+    HStack(spacing: 6) {
+      HinhFluent(ten: icon, duPhong: icon, co: 14)
+      Text(chu).font(.clay(size: 12, weight: .bold)).lineLimit(1).minimumScaleFactor(0.85)
+    }
+    .foregroundColor(canh ? ClayMau.canh : ClayMau.chu)
+    .padding(.horizontal, 11).padding(.vertical, 6)
+    .background(Capsule().fill(canh ? ClayMau.canhSoft : ClayMau.the)
+      .shadow(color: ClayMau.bong.opacity(0.25), radius: 4, x: 2, y: 2).shadow(color: ClayMau.bongSang.opacity(0.9), radius: 4, x: -2, y: -2))
+  }
+
+  private func theGhi(_ icon: String, _ tieu: String, _ phu: String, vien co: CGFloat = 40) -> some View {
+    HStack(alignment: .center, spacing: 12) {
+      VienClay(ten: icon, duPhong: "circle", nen: ClayMau.the, co: co)
+      VStack(alignment: .leading, spacing: 2) {
+        Chu(tieu, co: 14, dam: .bold, dong: 2)
+        Chu(phu, co: 12, mau: ClayMau.chu3, dong: 3)
+      }
+      Spacer(minLength: 0)
+    }
+    .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayThe(bo: 22)
   }
 
   // 03 / 04
   @ViewBuilder private var nhap: some View {
-    Text("Ghép Mac của con").font(.clay(size: 22, weight: .bold, vai: .tieuDe))
-    Chu(motCham ? "Gói cài đã có mã của nhà mình. Chỉ cần một chạm." : "Gõ mã 6 số trong app AiiGrow của Ba Mẹ.", co: 14, mau: ClayMau.chu3)
     if motCham {
-      HStack(spacing: 12) {
-        VienClay(ten: "link", duPhong: "link", nen: ClayMau.ngocSoft, co: 44)
-        VStack(alignment: .leading, spacing: 2) {
-          Text("Nhà của con").font(.clay(size: 16, weight: .bold))
-          Text("Mã gắn sẵn trong gói cài").font(.clay(size: 12)).foregroundColor(ClayMau.chu3)
+      tieuDe("Ghép Mac của con", phu: "Gói cài đã có mã của nhà mình. Chỉ cần một chạm.")
+      theGhi("house", "Nhà của con", "Mã gắn sẵn trong gói cài", vien: 48)
+      chonTaiKhoan
+    } else {
+      tieuDe("Ghép Mac của con", phu: "Gõ mã 6 số trong app AiiGrow của Ba Mẹ.")
+      HStack(alignment: .top, spacing: 14) {
+        dienThoai(het: false)
+        VStack(alignment: .leading, spacing: 10) {
+          chonTaiKhoan
+          OMa6View(ma: $ma, khiXong: gui).disabled(khoaNhap)
+          vien("hourglass_not_done", "Mã dùng được 10 phút")
+          Button { hoiMa.toggle() } label: { Text("Mã không nhận? ›").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.canh) }.buttonStyle(.plain)
+          if hoiMa { Chu("Ba Mẹ mở AiiGrow › Ghép máy › «Lấy mã mới», rồi gõ 6 số mới.", co: 12, mau: ClayMau.chu3, dong: 3) }
         }
       }
-      .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
-    }
-    chonTaiKhoan
-    if !motCham {
-      TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = TrayLogic.locMa($0) }))
-        .textFieldStyle(.plain).font(.clay(size: 24, weight: .bold, design: .monospaced))
-        .frame(height: 32).padding(.horizontal, 14).frame(minHeight: 50).clayLom(bo: 18)
-        .onSubmit { gui() }
-      Text("Mã dùng được 10 phút").font(.clay(size: 12)).foregroundColor(ClayMau.chu3)
     }
     if !loi.isEmpty { Chu(loi, co: 13, dam: .medium, mau: ClayMau.loi) }
-    Button(dangGui ? "Đang ghép…" : (motCham ? "Ghép vào nhà mình" : "Ghép Mac của con")) { gui() }
-      .buttonStyle(NutClayStyle(kieu: .ngoc)).disabled(khoaNhap || (!motCham && !TrayLogic.maHopLe(ma)) || chon.isEmpty)
     if coGoiCai || tray.tt?.coGoiCai == true {
       Button(dungMa ? "Có link Ba Mẹ gửi? Ghép một chạm ›" : "Dùng mã 6 số thay vì gói cài ›") { dungMa.toggle(); loi = "" }
-        .buttonStyle(.plain).font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk).disabled(khoaNhap)
+        .buttonStyle(.plain).font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.kimInk).disabled(khoaNhap)
     }
     Text("Bấm ghép là Ba Mẹ đồng ý Điều khoản AiiGrow. Tài khoản của con về quyền người dùng thường (cần còn một tài khoản quản trị khác).")
       .font(.clay(size: 11)).foregroundColor(ClayMau.chu3).fixedSize(horizontal: false, vertical: true)
@@ -276,15 +373,15 @@ struct GhepMayView: View {
     } else {
       // Ô chọn Clay cao 48 thay pop-up hệ thống: nhãn Clay bên dưới, NSPopUpButton thật trong suốt phủ kín ô.
       HStack(spacing: 8) {
-        Text("Tài khoản macOS của con").font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
+        Text("Tài khoản macOS của con").font(.clay(size: 13)).foregroundColor(ClayMau.chu3).lineLimit(1).minimumScaleFactor(0.8)
         Spacer(minLength: 8)
         Text(chon).font(.clay(size: 15, weight: .semibold)).foregroundColor(ClayMau.chu).lineLimit(1).truncationMode(.middle)
         Image(systemName: "chevron.up.chevron.down").font(.system(size: 11, weight: .bold)).foregroundColor(ClayMau.chu3)
       }
-      .padding(.horizontal, 16).frame(maxWidth: .infinity, minHeight: 48)
+      .padding(.horizontal, 14).frame(maxWidth: .infinity, minHeight: 48)
       .accessibilityHidden(true)
       .clayLom(bo: 18)
-      .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(ClayMau.ngoc, lineWidth: 2.5).opacity(dangChonFocus && !khoaNhap ? 1 : 0))
+      .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(ClayMau.kimVien, lineWidth: 2.5).opacity(dangChonFocus && !khoaNhap ? 1 : 0))
       .overlay(ChonPopUp(ds: taiKhoan, chon: $chon, tieuDe: "Tài khoản macOS của con", focus: $dangChonFocus))
       .disabled(khoaNhap)
       .opacity(khoaNhap ? 0.5 : 1)
@@ -292,102 +389,104 @@ struct GhepMayView: View {
   }
 
   // 05 / 06
-  @ViewBuilder private func loiMa(tieu: String, phu: String, ghi: String, nut: String) -> some View {
-    HStack(spacing: 12) {
-      VienClay(ten: "stop_sign", duPhong: "exclamationmark.triangle.fill", nen: ClayMau.canhSoft, co: 48)
-      VStack(alignment: .leading, spacing: 2) {
-        Text(tieu).font(.clay(size: 21, weight: .bold, vai: .tieuDe))
-        Chu(phu, co: 13, mau: ClayMau.chu3, dong: 2)
+  @ViewBuilder private func maSai(het: Bool) -> some View {
+    tieuDe(het ? "Mã ghép đã hết hạn" : "Mã chưa đúng", phu: het ? "Mã chỉ dùng được 10 phút. Ba Mẹ lấy mã mới nhé." : "So từng số với mã trên điện thoại Ba Mẹ nhé.")
+    HStack(alignment: .top, spacing: 14) {
+      dienThoai(het: het)
+      VStack(alignment: .leading, spacing: 10) {
+        OMa6View(ma: .constant(ma), loi: true, khiXong: {}).allowsHitTesting(false)
+        vien(het ? "hourglass_not_done" : "warning", het ? "Mã \(ManMac.maHien(ma)) đã quá 10 phút" : "Số cuối khác mã của Ba Mẹ", canh: true)
+        if het {
+          theGhi("iphone", "Ba Mẹ bấm «Lấy mã mới»", "Trên điện thoại: AiiGrow › Ghép máy, rồi gõ 6 số mới.")
+        } else {
+          theGhi("hourglass_not_done", "Mã quá 10 phút? ›", "Ba Mẹ bấm «Lấy mã mới» trong AiiGrow › Ghép máy.")
+        }
       }
     }
-    if !ma.isEmpty {
-      Text(ManMac.maHien(ma)).font(.clay(size: 26, weight: .bold, design: .monospaced)).foregroundColor(ClayMau.canh)
-        .padding(.horizontal, 16).frame(maxWidth: .infinity, minHeight: 52, alignment: .leading).clayLom(bo: 18)
-    }
-    Chu(ghi, co: 13, dam: .semibold, mau: ClayMau.chu2, dong: 2)
-    Button(nut) { ma = ""; loi = ""; man = .nhap }.buttonStyle(NutClayStyle(kieu: .ngoc))
+    if het { Chu("✓ Chưa ghép gì · tài khoản macOS \(chon) vẫn giữ", co: 12, mau: ClayMau.chu3, dong: 2) }
   }
 
   // 07
   @ViewBuilder private var matMang: some View {
-    HStack(spacing: 12) {
-      VienClay(ten: "globe_with_meridians", duPhong: "wifi.slash", nen: ClayMau.canhSoft, co: 48)
-      VStack(alignment: .leading, spacing: 2) {
-        Text("Máy chưa vào được mạng").font(.clay(size: 21, weight: .bold, vai: .tieuDe))
-        Chu("Bật lại Wi-Fi rồi bấm «Thử lại».", co: 13, mau: ClayMau.chu3, dong: 1)
-      }
-    }
-    VStack(alignment: .leading, spacing: 6) {
-      Text("Kiểm Wi-Fi").font(.clay(size: 14, weight: .bold))
-      Chu("Bấm Wi-Fi trên thanh menu › chọn mạng nhà", co: 13, mau: ClayMau.chu3, dong: 1)
-      if !ma.isEmpty {
-        Text("Mã \(ManMac.maHien(ma)) vẫn giữ").font(.clay(size: 14, weight: .bold)).padding(.top, 4)
-        Chu("Trong 10 phút không cần gõ lại.", co: 13, mau: ClayMau.chu3, dong: 1)
-      }
-    }
-    .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
-    HStack(spacing: 12) {
-      Button("Quay lại") { man = .nhap }.buttonStyle(NutClayStyle(kieu: .sang))
-      Button(dangGui ? "Đang thử…" : "Thử lại") { gui() }.buttonStyle(NutClayStyle(kieu: .ngoc)).disabled(dangGui)
-    }
+    tieuDe("Máy chưa vào được mạng", phu: "Bật lại Wi-Fi rồi bấm «Thử lại».")
+    theGhi("wifi", "Kiểm Wi-Fi", "Bấm Wi-Fi trên thanh menu › chọn mạng nhà")
+    if !ma.isEmpty { theGhi("hourglass_not_done", "Mã \(ManMac.maHien(ma)) vẫn giữ", "Trong 10 phút không cần gõ lại.") }
   }
 
   // 08
   @ViewBuilder private var batQuyen: some View {
-    Text("Đã ghép nhà mình").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
-    Text("Bật 3 quyền").font(.clay(size: 22, weight: .bold, vai: .tieuDe))
-    dongQuyen("hourglass_not_done", "Thời gian sử dụng", "Để giữ giờ chơi", bat: true, mo: GhepMayView.caiDatThoiGian)
-    dongQuyen("speech_balloon", "Thông báo", "Để nhắc «còn 5 phút»", bat: quyenTB == true, mo: GhepMayView.caiDatThongBao)
-    dongQuyen("desktop_computer", "Mở cùng máy", "AiiGrow tự chạy khi bật Mac",
-              bat: FileManager.default.fileExists(atPath: DuongDan.trayPlist), mo: GhepMayView.caiDatMoCungMay)
+    HStack(alignment: .center) {
+      Text("Bật 3 quyền").font(.clay(size: 24, weight: .heavy, vai: .tieuDe))
+      Spacer(minLength: 8)
+      vien("checkmark.circle", "Đã ghép nhà mình")
+    }
+    VStack(spacing: 0) {
+      dongQuyen("hourglass_not_done", "Thời gian sử dụng", "Để giữ giờ chơi", bat: true, mo: GhepMayView.caiDatThoiGian)
+      Rectangle().fill(ClayMau.bong.opacity(0.18)).frame(height: 1).padding(.horizontal, 12)
+      dongQuyen("speech_balloon", "Thông báo", "Để nhắc «còn 5 phút»", bat: quyenTB == true, mo: GhepMayView.caiDatThongBao)
+      Rectangle().fill(ClayMau.bong.opacity(0.18)).frame(height: 1).padding(.horizontal, 12)
+      dongQuyen("desktop_computer", "Mở cùng máy", "AiiGrow tự chạy khi bật Mac",
+                bat: FileManager.default.fileExists(atPath: DuongDan.trayPlist), mo: GhepMayView.caiDatMoCungMay)
+    }
+    .padding(.vertical, 4).clayThe(bo: 22)
     if quyenTB != true {
-      Chu("Cách bật «Thông báo»: 1. Cài đặt hệ thống · 2. Thông báo › AiiGrow · 3. Cho phép", co: 12, mau: ClayMau.chu3, dong: 2)
+      VStack(alignment: .leading, spacing: 8) {
+        Text("Cách bật «Thông báo»:").font(.clay(size: 12, weight: .semibold)).foregroundColor(ClayMau.chu2)
+        HStack(spacing: 8) {
+          buocBat { HStack(spacing: 5) { Text("1."); HinhFluent(ten: "sun.max", duPhong: "sun.max", co: 13); Text("Cài đặt hệ thống") } }
+          buocBat { Text("2. Thông báo > AiiGrow") }
+          buocBat { HStack(spacing: 5) { Text("3. Cho phép"); congTat } }
+        }
+      }
     }
     if !canhBao.isEmpty {
       Text("Đã ghép máy, NHƯNG: " + canhBao).font(.clay(size: 13, weight: .semibold)).foregroundColor(ClayMau.canh).fixedSize(horizontal: false, vertical: true)
     }
-    Button("Bật xong, xem máy") { man = .xong }.buttonStyle(NutClayStyle(kieu: .ngoc))
-      .task { await kiemThongBao() }
+  }
+
+  private func buocBat<C: View>(@ViewBuilder _ c: () -> C) -> some View {
+    c().font(.clay(size: 11, weight: .bold)).lineLimit(1).minimumScaleFactor(0.8)
+      .padding(.horizontal, 9).frame(maxWidth: .infinity, minHeight: 40).clayThe(bo: 14)
+  }
+
+  private var congTat: some View {
+    ZStack(alignment: .trailing) {
+      Capsule().fill(ClayMau.chu).frame(width: 34, height: 20)
+      Circle().fill(ClayMau.vang).frame(width: 14, height: 14).padding(.trailing, 3)
+    }.accessibilityHidden(true)
   }
 
   private func dongQuyen(_ icon: String, _ ten: String, _ phu: String, bat: Bool, mo: URL?) -> some View {
     HStack(spacing: 12) {
-      VienClay(ten: icon, duPhong: "checkmark", nen: bat ? ClayMau.ngocSoft : ClayMau.the, co: 40)
+      VienClay(ten: icon, duPhong: "checkmark", nen: ClayMau.the, co: 40)
       VStack(alignment: .leading, spacing: 1) {
         Text(ten).font(.clay(size: 15, weight: .bold))
-        Text(phu).font(.clay(size: 12)).foregroundColor(ClayMau.chu3)
+        Text(phu).font(.clay(size: 12)).foregroundColor(ClayMau.chu3).lineLimit(1).minimumScaleFactor(0.85)
       }
-      Spacer()
+      Spacer(minLength: 4)
       if bat {
-        Text("✓ Đã bật").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
+        HStack(spacing: 5) { Image(systemName: "checkmark").font(.system(size: 11, weight: .bold)); Text("Đã bật").font(.clay(size: 13, weight: .bold)) }
+          .padding(.horizontal, 12).frame(minHeight: 36)
+          .background(Capsule().fill(ClayMau.the).shadow(color: ClayMau.bong.opacity(0.25), radius: 4, x: 2, y: 2).shadow(color: ClayMau.bongSang.opacity(0.9), radius: 4, x: -2, y: -2))
       } else {
-        Text("Chưa bật").font(.clay(size: 12)).foregroundColor(ClayMau.canh)
-        Button("Mở") { if let mo { NSWorkspace.shared.open(mo) } }.buttonStyle(NutClayStyle(kieu: .sang, bo: 14, cao: 44)).frame(width: 80)
+        Button { if let mo { NSWorkspace.shared.open(mo) } } label: { Text("Chưa bật · Mở").font(.clay(size: 13, weight: .bold)) }
+          .buttonStyle(NutClayStyle(kieu: .sang, bo: 16, cao: 44)).frame(width: 128)
       }
     }
-    .padding(.horizontal, 12).padding(.vertical, 6).clayLom(bo: 18)
+    .padding(.horizontal, 12).padding(.vertical, 8)
   }
 
   // 09
   @ViewBuilder private var xong: some View {
     let c = ManMac.chuXong(hoSo, taiKhoan: chon)
-    HStack { Spacer(); VienClay(ten: "party_popper", duPhong: "checkmark.seal.fill", nen: ClayMau.ngocSoft, co: 64); Spacer() }
-    Text(c.tieuDe).font(.clay(size: 22, weight: .bold, vai: .tieuDe)).frame(maxWidth: .infinity)
-    Chu(c.phu, co: 14, mau: ClayMau.chu3, dong: 2)
-    VStack(spacing: 8) {
-      ForEach(c.cacDong, id: \.tieu) { d in
-        HStack(spacing: 12) {
-          VienClay(ten: d.icon, duPhong: "checkmark", nen: ClayMau.ngocSoft, co: 36)
-          VStack(alignment: .leading, spacing: 1) {
-            Chu(d.tieu, co: 14, dam: .bold, dong: 1)
-            Chu(d.phu, co: 12, mau: ClayMau.chu3, dong: 1)
-          }
-          Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 12).padding(.vertical, 8).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
-      }
+    HStack(alignment: .top, spacing: 12) {
+      tieuDe(c.tieuDe, phu: c.phu)
+      Spacer(minLength: 0)
+      VienClay(ten: "party_popper", duPhong: "sparkles", nen: ClayMau.diemSoft, co: 52)
     }
-    Button(c.nut) { khiGui(false); dongLai(); NhuongMay.khoaManHinh() }.buttonStyle(NutClayStyle(kieu: .ngoc))
+    VStack(spacing: 10) {
+      ForEach(c.cacDong, id: \.tieu) { d in theGhi(d.icon, d.tieu, d.phu, vien: 38) }
+    }
     Chu(c.chanTrang, co: 11, mau: ClayMau.chu3, dong: 2)
   }
 
@@ -583,6 +682,33 @@ struct ManKhoaView: View {
   }
 }
 
+/// Sáu ô số riêng (Bàn 03/05/06) trên MỘT ô nhập thật trong suốt: dán «482 017» điền cả sáu ô, xoá lùi xoá ô cuối, gõ số tự sang ô kế.
+struct OMa6View: View {
+  @Binding var ma: String
+  var loi = false
+  var khiXong: () -> Void = {}
+  @FocusState private var focus: Bool
+  var body: some View {
+    let o = OMa6.cacO(ma), hien = OMa6.oHienTai(ma)
+    ZStack {
+      HStack(spacing: 6) {
+        ForEach(0..<6, id: \.self) { i in
+          Text(o[i]).font(.clay(size: 28, weight: .heavy, design: .monospaced))
+            .foregroundColor(loi ? ClayMau.canh : ClayMau.chu)
+            .frame(maxWidth: .infinity, minHeight: 56).clayThe(bo: 14)
+            .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(ClayMau.kimVien, lineWidth: 2.5).opacity(focus && i == hien ? 1 : 0))
+        }
+      }
+      TextField("Mã 6 số", text: Binding(get: { ma }, set: { ma = OMa6.nhan($0) }))
+        .textFieldStyle(.plain).focused($focus).foregroundColor(.clear).accentColor(.clear).opacity(0.02)
+        .frame(maxWidth: .infinity, minHeight: 56)
+        .onSubmit(khiXong)
+        .accessibilityLabel("Mã 6 số")
+    }
+    .onAppear { if !loi { focus = true } }
+  }
+}
+
 /// Ô «Ba Mẹ ở cạnh con?» (them-2ndg9bu6) trên màn khoá (agent-win OfflineCodePanel): Ba Mẹ xem mã 6 số trong app, đọc cho Con gõ; daemon tự kiểm.
 struct MaOfflineView: View {
   var gui: (String) async -> TraLoi = { ma in (try? await IPCClient.guiAsync(.maOffline(ma: ma))) ?? .loi(ma: "ipc", chu: "AiiGrow đang khởi động lại, con thử lại sau vài giây nhé.") }
@@ -635,28 +761,39 @@ struct NhacView: View {
   var tenApp: String? = nil
   var lamNhiemVu: (() -> Void)? = nil
   var xinVay: (() -> Void)? = nil
+  var gio = Date()
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
-      HStack(spacing: 14) {
-        VienClay(ten: "alarm_clock", duPhong: "clock.fill", nen: ClayMau.canhSoft, co: 48).rungChuong()
+      HStack(alignment: .top, spacing: 12) {
+        Image(nsImage: NSApp?.applicationIconImage ?? NSImage()).resizable().frame(width: 44, height: 44)
+          .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(ClayMau.chu))
+          .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous)).accessibilityHidden(true)
         VStack(alignment: .leading, spacing: 2) {
-          Text(phut <= 1 ? "Sắp hết sao rồi" : "Còn \(phut) sao = \(phut) phút chơi").font(.clay(size: 16, weight: .bold))
+          Text("AIIGROW · " + Self.gioPhut(gio)).font(.clay(size: 11, weight: .bold)).foregroundColor(ClayMau.chu3)
+          Text(phut <= 1 ? "Sắp hết sao rồi" : "Còn \(phut) sao = \(phut) phút chơi").font(.clay(size: 16, weight: .heavy))
           Text(phut <= 1 ? "Còn 1 sao · " + (tenApp.map { "\($0) dừng sau 1 phút" } ?? "còn 1 sao = 1 phút chơi")
                : "Hết sao thì \(tenApp ?? "app") dừng · lưu bài nhé").font(.clay(size: 13)).foregroundColor(ClayMau.chu3)
         }
       }
       if lamNhiemVu != nil || xinVay != nil {
         HStack(spacing: 10) {
-          if let lamNhiemVu { Button("Làm nhiệm vụ", action: lamNhiemVu).buttonStyle(NutClayStyle(kieu: .ngoc, bo: 16, cao: 44)) }
-          if let xinVay { Button("Xin vay sao", action: xinVay).buttonStyle(NutClayStyle(kieu: .sang, bo: 16, cao: 44)) }
+          if let lamNhiemVu {
+            Button(action: lamNhiemVu) { HStack(spacing: 7) { HinhFluent(ten: "memo", duPhong: "checkmark.circle", co: 16); Text("Làm nhiệm vụ").lineLimit(1).minimumScaleFactor(0.8) } }
+              .buttonStyle(NutClayStyle(kieu: .sang, bo: 16, cao: 44))
+          }
+          if let xinVay {
+            Button(action: xinVay) { HStack(spacing: 7) { HinhFluent(ten: "send", duPhong: "paperplane", co: 16); Text("Xin vay sao").lineLimit(1).minimumScaleFactor(0.8) } }
+              .buttonStyle(NutClayStyle(kieu: .sang, bo: 16, cao: 44))
+          }
         }
       }
     }
     .padding(16).frame(maxWidth: .infinity, alignment: .leading)
     .clayThe(bo: 26).vaoLanLuot(0)
-    .padding(14).padding(.bottom, 18).frame(width: 360).nenClay()
+    .padding(14).padding(.bottom, 18).frame(width: 380).nenClay()
     .foregroundColor(ClayMau.chu)
   }
+  static func gioPhut(_ d: Date) -> String { let c = Calendar.current.dateComponents([.hour, .minute], from: d); return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0) }
 }
 
 /// Kính mờ trên nền tối (khung đồng hồ đếm ngược): nền trắng trong + men nửa trên + viền sáng.

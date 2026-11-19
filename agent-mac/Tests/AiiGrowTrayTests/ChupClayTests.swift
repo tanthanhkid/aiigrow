@@ -47,7 +47,7 @@ final class ChupClayTests: XCTestCase {
     chup(XinMoView(tray: tray, xin: xin, appBanDau: "YouTube", quayLai: {}, dsAppSan: ds), "mac-xin-them-app", dir: dir)
     chup(XinMoView(tray: tray, xin: xin, theBanDau: .web, quayLai: {}, dsAppSan: ds), "mac-xin-them-web", dir: dir)
     chup(GhepMayView(taiKhoan: ["bi", "na"], dongLai: {}), "mac-ghep-may", dir: dir)
-    chup(NhacView(phut: 5), "mac-nhac-5-phut", dir: dir)
+    chup(NhacView(phut: 5, tenApp: "Roblox", lamNhiemVu: {}, xinVay: {}), "mac-nhac-5-phut", dir: dir)
     let khoa = TrayModel(); khoa.capNhat(tt(cheDo: .khoa, lyDo: "het_gio", dem: nil))
     chup(ManKhoaView(tray: khoa, xin: xin), "mac-man-khoa", CGSize(width: 1280, height: 860), dir: dir)
     let dem = TrayModel(); dem.capNhat(tt(cheDo: .tuDo, lyDo: "het_gio", dem: 54))
@@ -188,7 +188,7 @@ final class ChupClayTests: XCTestCase {
     tray.capNhat(tmh); app.muc = .homNay
     chup(AppConView(app: app, tray: tray), "02wt8s99-mo-het", co, dir: dir)
     for (mg, ten) in [(ManGhep.nhap, "03-ghep-may"), (.maSai, "05-ma-sai"), (.hetHan, "06-het-han"), (.matMang, "07-mat-mang"), (.batQuyen, "08-bat-quyen"), (.xong, "09-xong")] {
-      chup(GhepMayView(taiKhoan: ["baoanh"], dongLai: {}, manDau: mg), ten, dir: dir)
+      chup(GhepMayView(taiKhoan: ["baoanh"], dongLai: {}, manDau: mg, maDau: [.maSai, .hetHan, .matMang].contains(mg) ? "482016" : ""), ten, dir: dir)
     }
   }
 
