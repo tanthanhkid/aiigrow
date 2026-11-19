@@ -24,6 +24,8 @@ public sealed class AgentWorker : BackgroundService
     {
         _log.LogInformation("AiiGrow service bắt đầu");
         _rt.LoadConfig();
+        // #433 A2: tổng phút đã đếm trong ngày giữ qua khởi động lại / cập nhật (thư mục dữ liệu chỉ SYSTEM/Administrators ghi được)
+        UsageTotals.Shared.DungTep(Path.Combine(Paths.DataDir, "phut-da-dem.json"));
         var last = DateTimeOffset.Now;
         var nextSync = DateTimeOffset.MinValue;
         var lastDisconnect = DateTimeOffset.MinValue;
@@ -184,7 +186,9 @@ public sealed class AgentWorker : BackgroundService
 
     private async Task<DateTimeOffset> SyncAsync(AgentConfig cfg, bool active, DateTimeOffset now, CancellationToken ct)
     {
-        var usage = _rt.Usage.Drain();
+        // #433 A1: phút rút ra vào thẳng TỔNG đã lưu (UsageTotals) — gửi lỗi KHÔNG trả lại bộ đếm (trả lại thì lần thử sau cộng đôi vào tổng).
+        UsageTotals.Shared.Add(_rt.Usage.Drain());
+        var usage = UsageTotals.Shared.CanGui(cfg.DeviceId);
         try
         {
             using var api = new ApiClient(cfg.Server, cfg.Token);
@@ -210,6 +214,7 @@ public sealed class AgentWorker : BackgroundService
                 else if (kq == KetQuaBu.GiuLai) _log.LogDebug("Gửi bù phút chơi offline lỗi, giữ lại: {m}", loi?.Message);
                 _rt.GhiKetQuaBu(doan, kq);
             }, status, usage, ct, boiMa);
+            UsageTotals.Shared.DaGui(usage);
             _rt.SetPolicy(policy, raw);
             _rt.DaGuiBoiMa(boiMa);
             _rt.DaGuiGiayChoi(status);
@@ -222,7 +227,6 @@ public sealed class AgentWorker : BackgroundService
         }
         catch (Exception e) when (e is not OperationCanceledException)
         {
-            _rt.Usage.Restore(usage);
             _rt.SetOffline(true);
             if (e is ApiException { LaTokenSai: true })
             {

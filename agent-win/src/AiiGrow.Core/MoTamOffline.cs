@@ -60,8 +60,10 @@ public sealed class MoTamOffline
         if (WaitSeconds(now) > 0) return KetQuaMoOffline.ChoThuLai;
 
         var sach = new string((code ?? "").Where(char.IsDigit).ToArray());
+        // #433 A7: đồng hồ lùi về TRƯỚC lúc dùng mã (mã TOTP còn hợp lệ ở bước cũ) vẫn là mã đã dùng — trước đây chỉ nhận «trùng» khi giờ đi tới
+        // ⇒ lùi giờ vài phút là mở lại thêm một lượt bằng đúng mã cũ.
         bool trungMaCu = LastCode != null && LastCodeAt.HasValue && sach == LastCode
-                         && now - LastCodeAt.Value < NhoMaDaDung && now >= LastCodeAt.Value.AddMinutes(-1);
+                         && (now - LastCodeAt.Value).Duration() < NhoMaDaDung;
         if (trungMaCu)
             return IsUnlocked(now) ? KetQuaMoOffline.DangMo : KetQuaMoOffline.DaDung;
 

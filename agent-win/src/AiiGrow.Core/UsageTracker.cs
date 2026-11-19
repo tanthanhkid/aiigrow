@@ -75,6 +75,14 @@ public sealed class UsageTracker
         return res;
     }
 
+    /// <summary>#433 A8: số giây lẻ (dưới 1 phút mỗi dòng) còn nằm trong bộ đếm — chưa gửi máy chủ nên số sao máy chủ vừa trả CHƯA trừ phần này.
+    /// <paramref name="tinh"/> lọc app (vd chỉ app «Tính phút»); <paramref name="con"/> = bé (null = mọi dòng; dòng không bé luôn tính).</summary>
+    public double GiayChuaGui(Func<string, bool> tinh, string? con = null)
+    {
+        lock (_gate)
+            return _d.Where(x => (con == null || x.Key.Con.Length == 0 || x.Key.Con == con.Trim()) && tinh(x.Key.App)).Sum(x => x.Value.Sec);
+    }
+
     /// <summary>Trả lại khi sync thất bại để không mất số phút đã đếm.</summary>
     public void Restore(IEnumerable<UsageEntry> entries)
     {

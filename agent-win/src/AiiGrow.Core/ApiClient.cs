@@ -83,8 +83,9 @@ public sealed class ApiClient : IDisposable
         CancellationToken ct = default, IReadOnlyList<(string? Con, int Phut)>? boiMa = null)
     {
         // Máy chủ AiiGrow: POST /api/device/dong-bo. Policy cho agent nằm ở trường `windows` (máy chủ dịch sẵn — server/lib/agent-windows.ts) + khối gốc `sao`, `cheDo`.
-        // Máy chủ ghi phút dùng bằng greatest(…) ⇒ gửi TỔNG trong ngày theo (app, bé) (UsageTotals), không gửi phần tăng. 15/11 (#267): `con` = bé của dòng.
-        var tong = UsageTotals.Shared.Add(usage);
+        // Máy chủ ghi phút dùng bằng greatest(…) ⇒ gửi TỔNG trong ngày theo (app, bé), không gửi phần tăng. 15/11 (#267): `con` = bé của dòng.
+        // #433 A1: `usage` đã là TỔNG (UsageTotals.CanGui — người gọi cộng phần tăng TRƯỚC khi gửi, gửi lỗi thì lần sau gửi lại đúng tổng đó).
+        var tong = usage;
         var raw = await SendAsync(HttpMethod.Post, "api/device/dong-bo", new DongBoBody
         {
             Status = status, ClientTime = DateTimeOffset.Now.ToString("O"),
