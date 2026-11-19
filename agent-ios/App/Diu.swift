@@ -1,7 +1,7 @@
 // Ngôn ngữ «Dịu» (thiết kế chốt 06/11, L16 — docs/thiet-ke-chot/con-dt-*) đã áp phong cách E «Ánh kim» (18/11, #383 — ngang agent-android
 // Diu.kt, agent-mac Clay.swift): nền kem neumorphism #ECE4D9, thẻ CÙNG màu nền nổi bằng bóng đôi (tối rgba(120,98,70,.28) lệch xuống-phải,
 // sáng #FFFBF5 lệch lên-trái), ô nhập / ô chọn chưa chọn LÕM, nút chính + mục đang chọn vàng kim gradient 135° chữ navy #0A1629; chữ
-// Fraunces SemiBold (tiêu đề, số lớn) + Be Vietnam Pro (OFL — TaiNguyen/Fonts, khai UIAppFonts trong project.yml). Tên token giữ như bản Dịu
+// Be Vietnam Pro ExtraBold (tiêu đề, số lớn — #417) + Be Vietnam Pro (OFL — TaiNguyen/Fonts, khai UIAppFonts trong project.yml). Tên token giữ như bản Dịu
 // (xanh = màu «chính», nay là navy). Tương phản (chữ thường ≥ 4,5:1): chu/nen 14,4 · chu2/nen 9,6 · chu3/nen 5,8 · chu3/lom 5,4 ·
 // chu/kimDam 6,9 · kim/navy 11,4 · nenSang/navy 15,3 · noChu/noNen 5,9 · doChu/nen 5,2.
 // Icon 3D: Fluent Emoji (MIT — TaiNguyen/FLUENT-EMOJI-LICENSE.txt) + Grow của AiiLab, chép từ mobile/assets ⇒ TaiNguyen/Diu.xcassets.
@@ -63,8 +63,8 @@ enum Diu {
     }
     return .custom(ten, fixedSize: co)   // cỡ cố định như .system(size:) cũ — không đổi bố cục
   }
-  /// Fraunces SemiBold — tiêu đề, số lớn.
-  static func fraunces(_ co: CGFloat) -> Font { .custom("Fraunces-SemiBold", fixedSize: co) }
+  /// Tiêu đề, số lớn — Be Vietnam Pro ExtraBold (#417: bộ thương hiệu chốt, Fraunces chỉ cho chữ logo). Tên hàm giữ để không đổi chỗ gọi.
+  static func fraunces(_ co: CGFloat) -> Font { .custom("BeVietnamPro-ExtraBold", fixedSize: co * 0.95) }   // ×0,95: ExtraBold rộng hơn Fraunces ~5%, giữ bề ngang
   static let tieuDe = fraunces(26)
   static let phu = chu(15, .semibold)
   static let t1 = chu(17, .heavy)

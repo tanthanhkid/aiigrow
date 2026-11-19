@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 
 // Token phía Con trên điện thoại. Tên token giữ như bản «Dịu» (06/11, `docs/thiet-ke-chot/con-dt-*`) nhưng GIÁ TRỊ đã sang phong cách E «Ánh kim»
 // (18/11, #396 #397 — khớp agent-android `maycon/Diu.kt` bản E): nền kem neumorphism #ECE4D9, thẻ CÙNG màu nền nổi bằng bóng đôi, ô nhập / ô chọn lõm,
-// nút chính vàng kim chữ navy, giờ ngủ nền navy; tiêu đề + số Fraunces 600, chữ thường Be Vietnam Pro. `xanh` (màu «chính») nay là navy.
+// nút chính vàng kim chữ navy, giờ ngủ nền navy; tiêu đề + số Be Vietnam Pro ExtraBold (#417 — Fraunces chỉ cho chữ logo), chữ thường Be Vietnam Pro. `xanh` (màu «chính») nay là navy.
 // Không đụng token Ba Mẹ (mau.ts / clay.ts) — bóng / gradient chép lại ở đây để hai phía sửa độc lập.
 // Tương phản (WCAG 2.2) trên nền #ECE4D9: chu #0A1629 14,4:1 · chu2 #3B352E 9,6:1 · chu3 #5F554B 5,8:1 (trên kem lõm #E2D6C4 5,1:1) · loi #A2412C 5,0:1
 // · navy / vàng kim (điểm sẫm nhất #C9973B) 6,9:1 · vàng #F4C76A / navy 11,4:1 · demChu2 #D4C9BA / dem 11,1:1 · chu3 / tat #DDD3C6 4,9:1 · avatar: vàng #F4C76A / navy 11,4:1.
@@ -31,11 +31,11 @@ export const D = {
   avt: ["#F5A957", "#6AA9E9", "#B48CDE", "#E98AA9", "#5CB88A", "#E8B54F"],
 } as const;
 
-/** Chữ: `dam` = Be Vietnam Pro 400 (thân), `rat` = Be Vietnam Pro 700 (dòng tiêu, nút), `den` = Fraunces 600 (tiêu đề màn, số to).
+/** Chữ: `dam` = Be Vietnam Pro 400 (thân), `rat` = Be Vietnam Pro 700 (dòng tiêu, nút), `den` = Be Vietnam Pro ExtraBold 800 (tiêu đề màn, số to — #417).
  *  Tệp phông nhúng sẵn lúc build (plugin expo-font trong app.json); web nạp @font-face ở phong-chu.web.ts. iOS gọi theo tên PostScript. */
 export const FD = Platform.OS === "ios"
-  ? ({ dam: "BeVietnamPro-Regular", rat: "BeVietnamPro-Bold", den: "Fraunces-SemiBold" } as const)
-  : ({ dam: "BeVietnamPro_400Regular", rat: "BeVietnamPro_700Bold", den: "Fraunces_600SemiBold" } as const);
+  ? ({ dam: "BeVietnamPro-Regular", rat: "BeVietnamPro-Bold", den: "BeVietnamPro-ExtraBold" } as const)
+  : ({ dam: "BeVietnamPro_400Regular", rat: "BeVietnamPro_700Bold", den: "BeVietnamPro_800ExtraBold" } as const);
 
 /** Kích thước chuẩn: nút chính cao 52, thẻ bo 24, lề màn 16, khoảng giữa khối 12. */
 export const KT = { nut: 52, nutNho: 46, bo: 24, boNut: 26, le: 16, khoang: 12, tab: 64 } as const;

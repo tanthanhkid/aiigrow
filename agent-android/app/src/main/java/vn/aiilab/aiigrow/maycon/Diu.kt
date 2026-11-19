@@ -16,7 +16,7 @@ import android.widget.TextView
 
 /**
  * Phía Con trên điện thoại. Bản «Dịu» (L16, 06/11) đã áp phong cách E «Ánh kim» (17/11): nền kem neumorphism, thẻ cùng màu nền nổi bằng bóng đôi,
- * ô nhập/ô chọn lõm, nút chính vàng kim chữ navy, giờ ngủ nền navy; chữ Fraunces SemiBold (tiêu đề, số) + Be Vietnam Pro (OFL, res/font —
+ * ô nhập/ô chọn lõm, nút chính vàng kim chữ navy, giờ ngủ nền navy; chữ Be Vietnam Pro ExtraBold (tiêu đề, số — #417) + Be Vietnam Pro (OFL, res/font —
  * giấy phép assets/OFL-Fraunces.txt, assets/OFL-BeVietnamPro.txt). Mọi token nằm ở tệp này; Clay.kt (cũ) trỏ về đây.
  */
 object Diu {
@@ -68,11 +68,11 @@ object Diu {
     private var tieuDe: Typeface? = null
     private var thuong: Typeface? = null
     private var dam: Typeface? = null
-    /** Be Vietnam Pro Regular (chữ thường) / Fraunces SemiBold (tiêu đề, số, dacBiet = true). Không nạp được font ⇒ sans-serif / serif. */
+    /** Be Vietnam Pro Regular (chữ thường) / Be Vietnam Pro ExtraBold (tiêu đề, số, dacBiet = true — #417, Fraunces chỉ cho chữ logo). Không nạp được font ⇒ sans-serif. */
     fun font(c: Context, dacBiet: Boolean = false): Typeface = try {
-        if (dacBiet) tieuDe ?: c.resources.getFont(R.font.fraunces_semibold).also { tieuDe = it }
+        if (dacBiet) tieuDe ?: c.resources.getFont(R.font.bevietnampro_extrabold).also { tieuDe = it }
         else thuong ?: c.resources.getFont(R.font.bevietnampro_regular).also { thuong = it }
-    } catch (_: Exception) { if (dacBiet) Typeface.create("serif", Typeface.BOLD) else Typeface.create("sans-serif", Typeface.NORMAL) }
+    } catch (_: Exception) { if (dacBiet) Typeface.create("sans-serif", Typeface.BOLD) else Typeface.create("sans-serif", Typeface.NORMAL) }
 
     /** Be Vietnam Pro Bold cho nhãn nút. */
     fun fontDam(c: Context): Typeface = try {
@@ -80,7 +80,8 @@ object Diu {
     } catch (_: Exception) { Typeface.create("sans-serif", Typeface.BOLD) }
 
     fun chu(c: Context, s: String, co: Float = 16f, mau: Int = CHU, dacBiet: Boolean = false) = TextView(c).apply {
-        text = s; textSize = co; setTextColor(mau); typeface = font(c, dacBiet)
+        // ExtraBold rộng hơn Fraunces ~5% ⇒ tiêu đề ×0,95 giữ bề ngang / chỗ rớt dòng như cũ (#417)
+        text = s; textSize = if (dacBiet) co * 0.95f else co; setTextColor(mau); typeface = font(c, dacBiet)
         setLineSpacing(0f, 1.12f)
         if (co >= 24f) letterSpacing = -0.01f
     }

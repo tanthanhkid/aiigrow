@@ -14,6 +14,7 @@ import Animated, { FadeIn, FadeOut, FadeOutDown, useReducedMotion } from "react-
 import Svg, { parse, Path, SvgAst } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ICON from "./icon.json";
+import ICON_NET from "./icon-net.json";
 import { BO, F, M, MAU_HO_SO } from "./mau";
 import { BONG, BO_CLAY, HERO, KHOI, KHOI_HERO, MEN } from "./clay";
 import { ICON_3D, co3D } from "./icon-3d";
@@ -62,6 +63,26 @@ const cayIcon = (xml: string) => {
 /** Icon ĐẶC đơn giản (Phosphor Fill / Bold 2.1.1, MIT — icon.json) cho thanh tab, mũi tên, dấu cộng, chữ đi kèm. */
 export const Icon = memo(function Icon({ ten, mau = M.chu2, co = 20 }: { ten: TenIcon; mau?: string; co?: number }) {
   return <SvgAst ast={cayIcon(`<svg viewBox="0 0 256 256" fill="${mau}">${ICON[ten]}</svg>`)} override={{ width: co, height: co }} />;
+});
+
+/** Icon NÉT (Phosphor Regular 2.1.1, MIT — icon-net.json, cùng tên với icon.json) — «Ánh kim» (#417): thanh tab, ô icon hàng danh sách,
+ *  tiêu mục phía Ba Mẹ là icon nét navy (mẫu E `svg.i`), thay icon 3D Fluent nhiều màu. Phía Con giữ Icon3D. */
+export const IconNet = memo(function IconNet({ ten, mau = M.chu, co = 22 }: { ten: TenIcon; mau?: string; co?: number }) {
+  // khung cố định, không co: trong hàng flex chật (nút chọn chế độ) icon không bị bóp về 0
+  return <View style={{ width: co, height: co, flexShrink: 0 }}><SvgAst ast={cayIcon(`<svg viewBox="0 0 256 256" fill="${mau}">${ICON_NET[ten]}</svg>`)} override={{ width: co, height: co }} /></View>;
+});
+
+/** Logo giọt AiiHouse vàng kim (bộ thương hiệu, assets/logo/giot-vang.webp) trong viên tròn navy viền vàng mảnh — mẫu E `.rob` trên thẻ hero
+ *  (thay Grow 3D, #417). `co` = đường kính viên. */
+const GIOT_VANG = require("../../assets/logo/giot-vang.webp");
+export const LogoTron = memo(function LogoTron({ co = 88 }: { co?: number }) {
+  return (
+    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: co, height: co, borderRadius: co / 2, alignItems: "center", justifyContent: "center",
+      backgroundColor: HERO.nen, backgroundImage: "radial-gradient(circle at 35% 30%, #1d2f52 0%, #0A1629 70%)",
+      boxShadow: "inset 0px 0px 0px 1.5px rgba(244,199,106,0.55), 0px 0px 0px 6px rgba(244,199,106,0.08)" } as ViewStyle}>
+      <Image cachePolicy="memory-disk" source={GIOT_VANG} style={{ width: co * 0.57, height: co * 0.57 * (192 / 168) }} contentFit="contain" />
+    </View>
+  );
 });
 
 // Ảnh gói trong app (icon 3D, Grow): cachePolicy «memory-disk» ⇒ màn mới dựng (tab trượt vào, màn con) lấy ảnh đã giải mã trong bộ nhớ,
@@ -145,10 +166,11 @@ const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: 
  *  Chữ dài (tên con 30, tên máy 40, tên miền 60 ký tự, cỡ chữ hệ thống lớn): nút không vượt khung cha (maxWidth 100%), chữ quá dài
  *  thì «…» ở cuối — không co chữ (người chọn cỡ chữ lớn phải được chữ lớn, WCAG 1.4.4), không cắt nửa chữ, không đẩy nút bên cạnh.
  *  Nút `rong` (một mình cả hàng) được xuống 2 dòng căn giữa — nhãn dài kiểu «Mở khoá sau khi nói chuyện với <tên>» không mất tên. */
-export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc, sat, toi }: {
+export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc, sat, toi, motDong }: {
   chu: string; bam: (e?: GestureResponderEvent) => void; loai?: LoaiNut; nho?: boolean; rong?: boolean; ic?: TenIcon; ic3d?: boolean; dangChay?: boolean; tat?: boolean; nhanDoc?: string;
   /** đệm ngang hẹp (12) — hai nút chia đôi một thẻ (Trang chủ «Khoá máy» / «Cho thêm giờ») giữ chữ một dòng như thiết kế */ sat?: boolean;
   /** nút nằm trên hero navy: bóng chỉ tối (không quầng sáng kem) */ toi?: boolean;
+  /** nút `rong` nhưng nhãn giữ MỘT dòng (nút trên hero Hôm nay, #417 / #421) */ motDong?: boolean;
 }) {
   const m = MAU_NUT[loai];
   const mo = tat || dangChay;
@@ -160,8 +182,9 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
         tat ? { backgroundColor: M.tatNen } : { backgroundColor: m.nen, boxShadow: toi && loai === "vang" ? BONG.heroVang : m.bong }]}>
       {dangChay ? <ActivityIndicator color={m.chu} /> : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%" }}>
-          {ic ? (ic3d && !tat ? <Icon3D ten={ic} co={nho ? 20 : 22} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
-          <Text numberOfLines={rong ? 2 : 1} ellipsizeMode="tail"
+          {/* «Ánh kim» (#417): icon nút là icon nét cùng màu chữ (mẫu E `.nut svg.i`), không còn icon 3D nhiều màu; sao giữ dạng đặc ★ */}
+          {ic ? (ic3d && !tat && ic !== "sao" ? <IconNet ten={ic} co={nho ? 19 : 21} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
+          <Text numberOfLines={rong && !motDong ? 2 : 1} ellipsizeMode="tail"
             style={{ flexShrink: 1, minWidth: 0, textAlign: "center", fontFamily: F.den, fontSize: nho ? 14.5 : 16, color: chuMau, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
         </View>
       )}
@@ -228,7 +251,8 @@ const NEN_IC: Record<MauBt, string> = { xanh: M.xamSoft, xam: M.xamSoft, lam: M.
 export const BieuTron = memo(function BieuTron({ ic, mau = "xanh", lon, co }: { ic: TenIcon; mau?: MauBt; lon?: boolean; co?: number }) {
   if (!lon && !co) return (
     <View style={{ width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", backgroundColor: NEN_IC[mau], boxShadow: BONG.lom }}>
-      <Icon3D ten={ic} co={24} mau={MAU_BT[mau][1]} />
+      {/* icon nét navy; đỏ / cam giữ màu nghĩa (xoá, gỡ, cảnh báo) */}
+      <IconNet ten={ic} co={22} mau={mau === "do" || mau === "cam" ? MAU_BT[mau][1] : M.chu} />
     </View>
   );
   const d = co ?? 56;
@@ -255,11 +279,17 @@ export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44, con, anh,
   /** đang chọn (dải con): vòng vàng ngoài (vẽ bằng bóng ⇒ không đổi kích thước) */ chon?: boolean; /** nằm trên hero navy: bóng chỉ tối + viền vàng mảnh, không quầng sáng */ toi?: boolean; /** Con có ảnh đại diện (#302) ⇒ hiện ảnh thay chữ cái */ con?: { id?: string | null; avatar?: string | null } | null; /** ảnh vừa chọn, chưa lưu */ anh?: string | null }) {
   const daLuu = useAnhCon(con);
   const uri = anh ?? daLuu;
-  // «Ánh kim» (#386 G1): MỌI avatar chữ cái là viên navy, chữ Fraunces vàng kim (11,4:1), vòng vàng mảnh trong (mẫu E `.be.on .av` / `.rob i`);
+  // «Ánh kim» (#386 G1): MỌI avatar chữ cái là viên navy, chữ Be Vietnam Pro ExtraBold vàng kim (11,4:1), vòng vàng mảnh trong (mẫu E `.be.on .av` / `.rob i`);
   // đang chọn: thêm khe kem + vòng vàng ngoài. Nền navy ĐẶC (không loang) ⇒ tương phản chữ tính theo token, avatar nhỏ chồng nhau không bị đo pixel sai. `mau` giữ trong API (các màn đang truyền) nhưng không còn đổi màu viên — avatar đa sắc là kiểu cũ.
   void mau;
   const trong = `inset 0px 0px 0px ${co >= 40 ? 2 : 1.5}px rgba(217,174,87,0.85)`;
   const vien = chon ? `0px 0px 0px 3px ${M.nen}, 0px 0px 0px 5px ${M.dauSach}, 4px 5px 10px rgba(120,98,70,0.28)` : toi ? BONG.heroNho : BONG.nho;
+  // #417: trong dải chọn bé (chon === false) bé CHƯA chọn là viên kem lõm chữ navy — chỉ bé đang chọn mới navy chữ vàng vòng vàng
+  if (chon === false && !uri) return (
+    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: M.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+      <Chu kieu="tieu" mau={M.chu} co={co * 0.45}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
+    </View>
+  );
   if (uri) return <Image source={{ uri }} accessibilityLabel={`Ảnh của ${ten}`} style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: HERO.nen, boxShadow: vien }} contentFit="cover" />;
   return (
     <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: HERO.nen,
@@ -815,8 +845,9 @@ const s = StyleSheet.create({
   than: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24, gap: 12 },
   dau: { flexDirection: "row", alignItems: "center", gap: 2, paddingHorizontal: 8, minHeight: 56 },
   lui: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  // tiêu đề tab (thiết kế .top h1): «Ánh kim» Fraunces 600, giãn −0,5 (cỡ / dòng giữ như cũ)
-  tieuLon: { marginTop: 4, marginBottom: 6, marginHorizontal: 4, fontSize: 28, lineHeight: 34, fontFamily: F.tieu, color: M.chu, letterSpacing: -0.5 },
+  // tiêu đề tab (thiết kế .top h1): Be Vietnam Pro ExtraBold (#417 — Fraunces chỉ cho chữ logo); rộng hơn Fraunces ⇒ cỡ 26 (giãn −0,6)
+  // để «Việc & quà» vẫn một dòng cạnh «+ Việc» «+ Quà» ở 390; dòng 34 giữ như cũ
+  tieuLon: { marginTop: 4, marginBottom: 6, marginHorizontal: 4, fontSize: 26, lineHeight: 34, fontFamily: F.tieu, color: M.chu, letterSpacing: -0.6 },
   bongChat: { paddingVertical: 10, paddingLeft: 14, paddingRight: 16, borderRadius: 20, maxWidth: "78%" },   // phải 18: web bẻ dòng giữ dấu cách cuối dòng (~4 px) trong khung chữ ⇒ chữ vẫn cách mép ≥ 12
   hangTieu: { flexDirection: "row", alignItems: "center", gap: 10, paddingRight: 2 },
   day: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 24, gap: 8, backgroundColor: M.nen },

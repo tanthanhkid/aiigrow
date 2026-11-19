@@ -7,7 +7,7 @@ import { useBat, useKhiTang, useRung } from "./chuyen-dong";
 import { router, useFocusEffect } from "expo-router";
 import { bm } from "./api";
 import { soTrenChuong } from "./s3";
-import { F, Icon3D, M, NhanMen } from "./ui";
+import { F, IconNet, M, NhanMen } from "./ui";
 
 /** memo: màn chứa nó vẽ lại (toast, vòng tải) không kéo chuông vẽ lại theo. */
 export const ChuongTb = memo(function ChuongTb() {
@@ -22,7 +22,7 @@ export const ChuongTb = memo(function ChuongTb() {
   return (
     <NhanMen onPress={() => router.push("/thong-bao")} accessibilityRole="button" accessibilityLabel={so ? `Thông báo, ${so} mới` : "Thông báo"} muc="chip" sang men={MEN.sang}
       style={[{ width: 46, height: 46, borderRadius: 23, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
-      <Animated.View style={st}><Icon3D ten="chuong" co={26} /></Animated.View>
+      <Animated.View style={st}><IconNet ten="chuong" co={24} /></Animated.View>
       {so ? (
         <Animated.View style={[{ position: "absolute", top: -4, right: -4, backgroundColor: M.badge, minWidth: 20, height: 20, borderRadius: 10, paddingHorizontal: 5,
           alignItems: "center", justifyContent: "center", boxShadow: `0px 0px 0px 2px ${M.nen}` }, stSo]}>

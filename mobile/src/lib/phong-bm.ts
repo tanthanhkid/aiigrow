@@ -1,4 +1,4 @@
-// Fraunces 600 / 700 (OFL 1.1 — The Fraunces Project Authors, @expo-google-fonts/fraunces 0.4.1) cho tiêu đề màn / mục, chữ cái avatar, số lớn ở thẻ hero (phong cách «Ánh kim»).
+// Fraunces 600 / 700 (OFL 1.1 — The Fraunces Project Authors, @expo-google-fonts/fraunces 0.4.1): CHỈ cho chữ logo (F.logo) — tiêu đề dùng Be Vietnam Pro ExtraBold (#417).
 // Be Vietnam Pro (OFL 1.1 — The Be Vietnam Pro Project Authors, bản @expo-google-fonts/be-vietnam-pro 0.4.1) cho phía Ba Mẹ: 400 / 600 / 700 / 800.
 // Khoá = tên họ F ở mau.ts (Android + web). Native đã nhúng sẵn qua plugin expo-font (app.json) — web nạp lúc chạy (phong-chu.web.ts).
 export const PHONG_BM = {

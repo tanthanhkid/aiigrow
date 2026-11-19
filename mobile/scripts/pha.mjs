@@ -502,6 +502,15 @@ const CO_XIN_VAY = { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"], ye
 const SAO_NO_LON = saoGia(0, 1020);
 const CANH_NO = { id: "a9", child_id: "c1", loai: "no_qua_1000", muc: "chu_y", noi_dung: `${KEN} đã nợ quá 1.000 sao (đang nợ 1.020)`, chi_tiet: { no: 1020, no_truoc: 990, vuot_moc: true },
   da_doc: false, created_at: luc(5) };
+/** #417: Bảo Anh hết sao, không nợ ⇒ thẻ hero Hôm nay có dòng «Hết sao · con xin Ba Mẹ cho vay khi cần ›» (không được chạy dưới logo). */
+const SAO_HET = saoGia(0, 0);
+const HET_SAO = { ...SO_SAO,
+  "GET gia-dinh": { ...coBan["GET gia-dinh"], con: coBan["GET gia-dinh"].con.map((x) => (x.id === "c1" ? { ...x, ...SAO_HET, soDu: 0 } : { ...x, ...SAO_C2, soDu: 35 })) },
+  "GET con/c1/quy": { quy: quyGia(0, 0, { tongPhut: 0, daDung: 42 }), sao: 0, soSao: SAO_HET, ngoaiLe: [] },
+  "GET con/c1/vi": { ...coBan["GET con/c1/vi"], ...SAO_HET, soDu: 0 },
+};
+/** #421: ví −20 (SO_SAO) + cảnh báo a9 ⇒ «Cho vay thêm» mở bảng cho vay (Hôm nay không còn nút «Cho vay sao»). */
+const CO_CANH_NO = { ...SO_SAO, "GET canh-bao": { ds: [CANH_NO, ...coBan["GET canh-bao"].ds] }, "POST canh-bao/a9/doc": { ok: true } };
 const NO_LON = { ...SO_SAO,
   "GET con/c1/cho-vay/xem-truoc": xemTruocGia(SAO_NO_LON, KEN),
   "GET con/c1/vi-sao": { ...coBan["GET con/c1/vi-sao"], ...SAO_NO_LON, bayNgay: { ...coBan["GET con/c1/vi-sao"].bayNgay, saoVay: 180, saoTraNo: 40 } },
@@ -705,13 +714,15 @@ if (process.argv.includes("--giao-dien")) {
     M("cn giong (nhà ≥3 con · them-5t1kazz5)", "/thiet-lap/giong?con=c2&nguon=them", "dùng luật giống ai?", { kb: NGUON_3 }),
     M("bm-may-them", "/may/them?con=c1", "Máy mới"),
     // Hằng ngày (bm-hang-ngay — L2, L3, L12)
-    M("bm-trang", "/hom-nay", "Cho vay sao"),
+    M("bm-trang", "/hom-nay", "Khoá máy"),
     M("bm-trang (trống)", "/hom-nay", "Chưa có con nào", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] } } }),
     M("bm-trang (mất mạng)", "/hom-nay", "Đang chờ mạng", { matMang: true }),
     M("bm-trang (bảng khoá máy)", "/hom-nay", "Thôi, để con chơi tiếp", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy"); } }),
-    M("bm-trang (bảng cho vay sao)", "/hom-nay", "Sao nhiệm vụ của con sẽ trả nợ trước", { kb: SO_SAO, truoc: async () => { await di("/hom-nay"); await doi("Cho vay sao"); await bam("Cho vay sao"); } }),
-    M("bm-trang (bảng cho vay · nợ > 1.000)", "/hom-nay", "Chỉ nhắc thôi", { kb: NO_LON, truoc: async () => { await di("/hom-nay"); await doi("Cho vay sao"); await bam("Cho vay sao"); } }),
+    // #421: Hôm nay bỏ nút «Cho vay sao» thường trực — bảng cho vay mở từ «Cho vay thêm» ở màn Cảnh báo nợ sao
+    M("bm-trang (bảng cho vay sao)", "/canh-bao/a9", "Sao nhiệm vụ của con sẽ trả nợ trước", { kb: CO_CANH_NO, truoc: async () => { await di("/canh-bao/a9"); await doi("Cho vay thêm"); await bam("Cho vay thêm"); } }),
+    M("bm-trang (bảng cho vay · nợ > 1.000)", "/canh-bao/a9", "Chỉ nhắc thôi", { kb: NO_LON, truoc: async () => { await di("/canh-bao/a9"); await doi("Cho vay thêm"); await bam("Cho vay thêm"); } }),
     M("bm-trang (ví âm)", "/hom-nay", "Đang nợ Ba Mẹ 20 sao", { kb: SO_SAO }),
+    M("bm-trang (hết sao · #417)", "/hom-nay", "Hết sao", { kb: HET_SAO }),
     M("bm-canh-bao-no", "/canh-bao/a9", "Không chặn việc cho vay", { kb: NO_LON }),
     M("bm-vi (âm)", "/vi/c1", "Đang nợ Ba Mẹ 20 sao", { kb: SO_SAO }),
     M("bm-xin-vay", "/yeu-cau?con=c1", "Xin Ba Mẹ cho vay 20 sao", { kb: CO_XIN_VAY }),
@@ -1005,7 +1016,7 @@ const choGoi = async (dk, ms = 6000) => { for (let t = 0; t < ms; t += 100) { if
 const coChon = async (chon, ms = 6000) => { for (let t = 0; t < ms; t += 250) { if (await js(`!!document.querySelector(${JSON.stringify(chon)})`)) return true; await sleep(250); } return false; };
 
 // ---- khối A (fork A): kịch bản luồng nhóm A theo thiết kế chốt 05/11 (cần bamChon / choGoi / coChon định nghĩa TRƯỚC khối này)
-const HOM_NAY_TAI = "Cho vay sao";     // thẻ đầu Trang chủ «Hôm nay» (15/11: số sao + «Cho vay sao»)
+const HOM_NAY_TAI = "Khoá máy";     // thẻ đầu Trang chủ «Hôm nay» (#421: số sao + một nút «Khoá máy» rộng hết thẻ)
 
 await kichBan("Đăng ký bằng số điện thoại → mã 6 số → vào bước 1 thiết lập (tên con)", async () => {
   await dangKyToiOtp();
@@ -1378,16 +1389,14 @@ await kichBan("Hồ sơ Con: mục «Liên kết AiiRob» hiện mã <family_id>
   xet(!(await chu())?.includes("Liên kết AiiRob"), "lỗi tải mã: ẩn mục liên kết");
 });
 
-await kichBan("Hôm nay: thẻ số sao (145 sao, không nợ) + «Cho vay sao» bảng trượt; đang chơi; app mới chờ xếp; không chữ cũ", async () => {
+await kichBan("Hôm nay: thẻ số sao (145 sao, không nợ) + một nút «Khoá máy» (#421 — không còn «Cho vay sao»); đang chơi; app mới chờ xếp; không chữ cũ", async () => {
   await di("/hom-nay");
   xet(await doi("145 sao"), "thẻ đầu: «⭐ 145 sao» (chưa nợ)");
   xet((await chu()).includes("= 145 phút chơi"), "dòng «= N phút chơi» (1 sao = 1 phút)");
   xet((await chu()).includes("đã dùng gì hôm nay"), "mục «<Con> đã dùng gì hôm nay» (bàn bm2-trang-chu@v35 — thay chip «Roblox · Laptop»)");
   { const cu = await chuCu(); xet(!cu.length, `không còn chữ cũ (${cu.join(", ")})`); }
-  await bam("Cho vay sao");
-  xet(await doi(`Cho ${KEN} vay sao`), "mở bảng «Cho <Con> vay sao»");
-  xet(await doi(`Cho ${KEN} vay 15 sao`), "mặc định 15 sao");
-  await bam("Thôi");
+  xet(await doi("Khoá máy"), "thẻ hero có nút «Khoá máy»");
+  xet(!(await chu()).includes("Cho vay sao"), "#421: thẻ hero không còn nút «Cho vay sao»");
   // app mới chưa xếp: chỉ hiện khi là mục gấp nhất (N8 — «Cần Ba Mẹ để ý» chỉ 1 mục)
   kb["GET tuan-thu"] = { ds: coBan["GET tuan-thu"].ds.map((m) => ({ ...m, baoVe: "day_du", baoVeThieu: [] })) };
   kb["GET canh-bao"] = { ds: [] };
@@ -1968,21 +1977,21 @@ await kichBan("Sổ sao · Trang chủ ví âm: viên «−20 sao» + dòng nợ
   xet(await doi("−20 sao"), "số âm «−20 sao» (dấu trừ thật)");
   xet(await doi("Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước"), "dòng nợ dưới số");
   xet(await doi("35 sao"), "dải avatar có viên sao của Bill");
-  xet(await doi("Cho vay sao"), "nút «Cho vay sao» thay «Cho thêm giờ»");
+  xet(!(await chu()).includes("Cho vay sao"), "#421: không còn nút «Cho vay sao» ở thẻ hero (cho vay qua lời xin của con)");
   const bo = await chuBoSao();
   xet(!bo.length, `không còn chữ đã bỏ ${bo.join(" ")}`);
   await bam("Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước ›");
   xet(await doi(`Ví sao của ${KEN}`), "dòng nợ ⇒ Ví sao");
 });
 
-await kichBan("Sổ sao · Cho vay: bảng 10/15/30 (mặc định 15) ⇒ chọn 30 ⇒ con/c1/cho-vay ⇒ «Đã cho … vay 30 sao» ⇒ Hoàn tác", async () => {
-  kb = { ...kb, ...SO_SAO };
-  await di("/hom-nay");
-  await doi("Cho vay sao"); await bam("Cho vay sao");
+await kichBan("Sổ sao · Cho vay (từ «Cho vay thêm» ở Cảnh báo nợ): bảng 10/15/30 (mặc định 15) ⇒ chọn 30 ⇒ con/c1/cho-vay ⇒ «Đã cho … vay 30 sao» ⇒ Hoàn tác", async () => {
+  kb = { ...kb, ...CO_CANH_NO };
+  await di("/canh-bao/a9");
+  await doi("Cho vay thêm"); await bam("Cho vay thêm");
   xet(await doi(`Cho ${KEN} vay sao`), "mở bảng «Cho <Con> vay sao»");
   xet(await doi(`Cho ${KEN} vay 15 sao`), "mặc định 15 sao");
   xet(await doi("sẽ nợ 35 sao"), "«vay xong sẽ nợ 35 sao»");
-  xet(!(await chu()).includes("đã nợ quá"), "nợ nhỏ ⇒ không có dải nhắc");
+  xet(!(await chu()).includes("Chỉ nhắc thôi"), "nợ nhỏ ⇒ không có dải nhắc");   // #421: mở từ Cảnh báo nợ ⇒ nền sau bảng có chữ «đã nợ quá», đo bằng dòng riêng của dải nhắc
   await bam("30");
   xet(await doi(`Cho ${KEN} vay 30 sao`), "chọn 30 ⇒ nút đổi theo");
   await bam(`Cho ${KEN} vay 30 sao`);
@@ -1996,8 +2005,8 @@ await kichBan("Sổ sao · Cho vay: bảng 10/15/30 (mặc định 15) ⇒ chọ
 
 await kichBan("Sổ sao · Cho vay khi đang nợ > 1.000: dải nhắc, vẫn cho vay được", async () => {
   kb = { ...kb, ...NO_LON };
-  await di("/hom-nay");
-  await doi("Cho vay sao"); await bam("Cho vay sao");
+  await di("/canh-bao/a9");
+  await doi("Cho vay thêm"); await bam("Cho vay thêm");
   xet(await doi("đã nợ quá 1.000 sao (đang nợ 1.020)"), "dải nhắc nợ > 1.000 (them-y1r1eidm)");
   xet(await doi("Chỉ nhắc thôi · Ba Mẹ vẫn cho vay được"), "nói rõ không chặn");
   xet(await doi("sẽ nợ 1.035 sao"), "số nợ sau vay có dấu chấm nghìn");

@@ -14,7 +14,7 @@ import { MucTieu, OIcon } from "@/lib/ui-bm3";
 import { mauCon, tenGoi } from "@/lib/hang-ngay";
 import { BONG, KHOI } from "@/lib/clay";
 import {
-  Avt, BaoLoi, ChoTai, Chu, Dong, Icon, Icon3D, M, Man, NhanMen, Nhom, useHoanTac, useLam, useTai,
+  Avt, BaoLoi, ChoTai, Chu, Dong, Icon, IconNet, M, Man, NhanMen, Nhom, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 /** Màu avatar người lớn theo thiết kế (.ng: hồng, nâu, xám xanh…). */
@@ -56,7 +56,8 @@ export default function CaiDat() {
         {d.g.con.map((c, i) => (
           <Pressable key={c.id} onPress={() => router.push(`/ho-so/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Hồ sơ ${c.ten}`}
             style={{ width: "20%", alignItems: "center", gap: 6, minHeight: 84 }}>
-            <Avt ten={c.ten} mau={mauCon(c.avatar, i)} co={54} con={c} />
+            {/* #417: dải «Các con» không có bé đang chọn ⇒ mọi bé là avatar kem lõm chữ navy (chuẩn E «chưa chọn») */}
+            <Avt ten={c.ten} mau={mauCon(c.avatar, i)} co={54} con={c} chon={false} />
             <Chu kieu="rat" co={13} mau={M.chu2} dong={1}>{tenGoi(c.ten)}</Chu>
           </Pressable>
         ))}
@@ -123,7 +124,7 @@ export default function CaiDat() {
 
       <NhanMen onPress={() => ra()} accessibilityRole="button" muc="khoi" sang
         style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, marginTop: 6, minHeight: 48, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
-        <Icon3D ten="thoat" co={22} /><Chu kieu="rat" co={15} mau={M.chu2}>Đăng xuất</Chu>
+        <IconNet ten="thoat" co={21} mau={M.chu2} /><Chu kieu="rat" co={15} mau={M.chu2}>Đăng xuất</Chu>
       </NhanMen>
     </Man>
   );

@@ -23,7 +23,7 @@ internal static class UI
     public static readonly Color Error = Clay.Loi;           // loi
     public static readonly Color ErrorSoft = Clay.LoiSoft;
 
-    /// <summary>Phông giao diện: Be Vietnam Pro / Fraunces SemiBold (tiêu đề) nhúng trong exe, thiếu thì Segoe UI — <see cref="PhongChu"/>.</summary>
+    /// <summary>Phông giao diện: Be Vietnam Pro / Be Vietnam Pro ExtraBold (tiêu đề) nhúng trong exe, thiếu thì Segoe UI — <see cref="PhongChu"/>.</summary>
     public static Font F(float pt, FontStyle st = FontStyle.Regular) => PhongChu.Tao(pt, st);
 
     /// <summary>Nút Clay (kẹo bọc đường khi <paramref name="primary"/>, đất sét sứ khi không). Cao = thân 44 (theo DPI) + lề bóng.</summary>

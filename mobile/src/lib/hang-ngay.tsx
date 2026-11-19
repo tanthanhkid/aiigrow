@@ -12,7 +12,7 @@ import { nganTen, tenGocMay } from "./may-nhieu-con";
 import { khoaTen, laWeb } from "./ui-bm3";
 import { MAU_HO_SO } from "./lan-dau";
 import {
-  Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, DauSach, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
+  Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, DauSach, gioPhut, Icon, Icon3D, IconNet, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
 } from "./ui";
 
 // ---------------------------------------------------------------- kiểu dữ liệu (docs/API.md «Thiết kế chốt 05/11»)
@@ -133,7 +133,8 @@ export function ChipCon<T extends { id: string; ten: string; avatar?: string | n
           <NhanMen key={x.id} onPress={() => doi(x)} accessibilityRole="tab" accessibilityState={{ selected: on }} muc="chip" sang={!on} men={on ? MEN.ngoc : MEN.sang}
             style={[{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingLeft: 6, paddingRight: 16, borderRadius: 22, maxWidth: "100%", flexShrink: 1 },
               on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-            <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={32} con={x} />
+            {/* #417: bé chưa chọn = avatar kem lõm chữ navy; bé đang chọn giữ viên navy chữ vàng (chip navy đã là vòng chọn) */}
+            <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={32} con={x} chon={on ? undefined : false} />
             <Chu kieu="rat" co={15} mau={on ? "#FFFBF5" : M.chu} dong={1} style={{ flexShrink: 1 }}>{x.ten}</Chu>
           </NhanMen>
         );
@@ -183,7 +184,7 @@ export function TieuMuc({ chu, so, xam, phai, ic }: { chu: string; so?: number; 
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 6, marginHorizontal: 6, minHeight: ic ? 44 : undefined }}>
       <DauSach mau={M.dauSach} />
-      {ic ? <Icon3D ten={ic} co={22} /> : null}
+      {ic ? <IconNet ten={ic} co={21} /> : null}
       <Chu kieu="tieu" co={17} mau={M.chu} style={{ flexShrink: 1 }}>{chu}</Chu>
       {so ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: xam ? M.xamSoft : M.badge, alignItems: "center", justifyContent: "center" }}>{/* huy hiệu số vàng M.badge, chữ navy */}
         <Chu kieu="rat" co={12} mau={xam ? M.chu2 : M.chu} so>{String(so)}</Chu></View> : null}

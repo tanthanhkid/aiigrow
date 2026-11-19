@@ -4,7 +4,7 @@
 import type { ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { BONG, KHOI, MEN } from "./clay";
-import { Avt, Chu, Icon, Icon3D, M, NhanMen, type TenIcon } from "./ui";
+import { Avt, Chu, Icon, Icon3D, IconNet, M, NhanMen, type TenIcon } from "./ui";
 import { mauCon } from "./hang-ngay";
 
 /** «Bảo Anh · Bảo Minh · Bảo Ngọc · Khang» → «B / M / N / K»: chữ cái tên gọi (chữ cuối). */
@@ -40,7 +40,7 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
               {ic?.[x.id] ? (
                 <View style={{ position: "absolute", right: -2, bottom: -2, width: 22, height: 22, borderRadius: 11, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
                   boxShadow: "0px 2px 4px rgba(0,0,0,0.18)" }}>
-                  <Icon3D ten={ic[x.id]!} co={15} />
+                  <IconNet ten={ic[x.id]!} co={14} />
                 </View>
               ) : null}
             </View>
@@ -114,7 +114,7 @@ export function NutCongTick({ chon, bam, nhan }: { chon: boolean; bam: () => voi
 export function OLomIcon({ ic, co = 40, nen = M.xamSoft }: { ic: TenIcon; co?: number; nen?: string }) {
   return (
     <View style={{ width: co, height: co, borderRadius: Math.round(co * 0.35), backgroundColor: nen, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
-      <Icon3D ten={ic} co={Math.round(co * 0.6)} />
+      <IconNet ten={ic} co={Math.round(co * 0.55)} />
     </View>
   );
 }

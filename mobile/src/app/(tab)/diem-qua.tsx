@@ -9,7 +9,7 @@ import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { KHOI, HERO, KHOI_HERO, MEN } from "@/lib/clay";
 import {
-  ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useTai, type TenIcon,
+  ChoTai, Chu, gioPhut, Icon, IconNet, LogoTron, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useTai, type TenIcon,
 } from "@/lib/ui";
 import { cachBao, cauLapLai, HangViec, hinhNv, SaoVien, tenGoi, TieuMuc, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
 import { KHOA_NV_TAB, napNvTab, viecCuaCon } from "@/lib/nv-tab";
@@ -78,15 +78,16 @@ export default function TabNhiemVu() {
       {d.g.con.length > 1 ? <DaiCon ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={c.id} doi={(x) => setChon(x.id)} so={soCho}
         duoi={Object.fromEntries(d.g.con.map((x) => [x.id, <VienSao key={x.id} s={saoTu(x)} nho />]))} /> : null}
 
-      {/* Thẻ hero navy (bàn Navy 17/11 .vi, Ánh kim): «<Con> đang có» · ⭐ 30 sao (Fraunces 40) vàng mật khi chưa nợ / còn sao vay (`vay`); đang nợ hết sao (`am`) ⇒ tiêu đề «<Con> đang nợ Ba Mẹ 20 sao» và số + chữ «sao» cam san hô M.noHero. Viên bấm luôn vàng M.diem chữ navy: «= 30 phút chơi ›» khi chưa nợ, còn lại «Duyệt … việc chờ …» / «Xem ví sao ›». */}
+      {/* Thẻ hero navy (bàn Navy 17/11 .vi, Ánh kim): «<Con> đang có» · ⭐ 30 sao (Be Vietnam Pro ExtraBold 40) vàng mật khi chưa nợ / còn sao vay (`vay`); đang nợ hết sao (`am`) ⇒ tiêu đề «<Con> đang nợ Ba Mẹ 20 sao» và số + chữ «sao» cam san hô M.noHero. Viên bấm luôn vàng M.diem chữ navy: «= 30 phút chơi ›» khi chưa nợ, còn lại «Duyệt … việc chờ …» / «Xem ví sao ›». */}
       {anVi ? null : <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${ten}: ${soChinh(ss)}`}
         style={[{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 28, overflow: "hidden" },
           KHOI_HERO]}>
-        <View pointerEvents="none" style={{ position: "absolute", right: -4, bottom: -18 }}><Rob ten="xong" co={112} /></View>
+        {/* #417: logo tròn vàng kim (mẫu E `.vi .rob`) thay Grow 3D */}
+        <View pointerEvents="none" style={{ position: "absolute", right: 14, top: 0, bottom: 0, justifyContent: "center" }}><LogoTron co={84} /></View>
         <Chu kieu="dam7" co={13.5} mau={HERO.chu} style={{ marginRight: 116 }}>
           {k === "thuong" ? `${ten} đang có` : `${ten} đang nợ Ba Mẹ ${soVN(ss.no)} sao`}</Chu>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, marginRight: 100 }}>
-          <Icon3D ten="sao" co={38} />
+          <Icon ten="sao" co={34} mau={k === "am" ? M.noHero : HERO.phu} />
           {k === "vay" ? <Chu kieu="rat" co={20} mau={HERO.phu} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
             <Chu kieu="tieu7" co={40} so mau={k === "am" ? M.noHero : HERO.phu} style={{ lineHeight: 46, letterSpacing: -1 }}>{soVN(k === "am" ? -ss.no : sao)}</Chu>
             <Chu kieu="rat" co={18} mau={k === "am" ? M.noHero : HERO.phu} style={{ marginTop: 8 }}>sao</Chu>
@@ -123,7 +124,7 @@ export default function TabNhiemVu() {
           {cua.phieu.map((p) => (
             <View key={p.id} style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingLeft: 12, paddingRight: 16, borderRadius: 28,
               backgroundColor: M.the }, KHOI.the]}>
-              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten }) as TenIcon} co={30} /></View>
+              <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center" }}><IconNet ten={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten }) as TenIcon} co={24} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={15.5} dong={1}>{p.ten}</Chu>
                 <Chu kieu="dam" co={13} mau={M.diemInk}>{`Đổi ${soVN(p.diem)} sao · ${khiNao(p.created_at)}`}</Chu>
@@ -156,12 +157,12 @@ export default function TabNhiemVu() {
   );
 }
 
-/** Viên «+ Việc» / «+ Quà» cạnh tiêu đề (.them: cao 44, đệm 10 · 14, icon 3D 22, chữ 14/800 #0A1629). */
+/** Viên «+ Việc» / «+ Quà» cạnh tiêu đề (.them: cao 44, đệm 10 · 14, icon nét 20 — #417, chữ 14/800 #0A1629). */
 function NutThem({ ic, chu, nhan, bam }: { ic: "tick" | "qua"; chu: string; nhan: string; bam: () => void }) {
   return (
     <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={nhan} muc="chip" sang
       style={{ flexDirection: "row", alignItems: "center", gap: 4, height: 44, paddingLeft: 10, paddingRight: 14, borderRadius: 22, backgroundColor: M.the, ...KHOI.nho }}>
-      <Icon3D ten={ic} co={22} /><Chu kieu="rat" co={14} mau={M.chinhInk}>{chu}</Chu>
+      <IconNet ten={ic} co={20} /><Chu kieu="rat" co={14} mau={M.chinhInk}>{chu}</Chu>
     </NhanMen>
   );
 }

@@ -37,7 +37,7 @@ chmod 755 "$APP/Contents/Resources/go-cai.sh"   # daemon tự chạy khi nhận 
 cp -R "$MAC/Sources/AiiGrowTray/Fluent" "$APP/Contents/Resources/Fluent"
 # Mascot Rob của app Con (cùng ảnh agent-win Assets/mascot) — FluentIcon.anh(…, thuMuc: "Mascot") tìm ở Contents/Resources/Mascot.
 cp -R "$MAC/Sources/AiiGrowTray/Mascot" "$APP/Contents/Resources/Mascot"
-# Phông Fraunces + Be Vietnam Pro (OFL, kèm giấy phép) — ClayFont.dangKy() tìm ở Contents/Resources/Fonts; thiếu thì về phông hệ thống.
+# Phông Be Vietnam Pro Regular/Bold/ExtraBold (OFL, kèm giấy phép) — ClayFont.dangKy() tìm ở Contents/Resources/Fonts; thiếu thì về phông hệ thống.
 cp -R "$MAC/Sources/AiiGrowTray/Fonts" "$APP/Contents/Resources/Fonts"
 # Icon app (Finder, Launchpad, hộp thoại quyền) = logo chuẩn «Rob tưới mầm» — xuất từ mobile/assets/icon.png.
 cp AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
