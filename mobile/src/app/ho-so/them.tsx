@@ -1,6 +1,6 @@
 // them-9ozp26pq «Thêm con» từ tab Cả nhà (thiết kế chốt 14/11 bm-ca-nha/02): cùng form hồ sơ với bước Lần đầu (lib/form-ho-so.tsx) — thẻ hồ sơ
 // «K · Khang · 🐓 9 tuổi» + Grow, «Tên gọi ở nhà», «Năm sinh» (bảng bánh xe, «2017 · tuổi Dậu»), «Màu của con», thẻ «Mã PIN vào máy · 4 số»,
-// «Lưu hồ sơ <tên>» ⇒ POST con {ten, namSinh, avatar, pin} ⇒ «Đã tạo hồ sơ · bước tiếp» (bm-ca-nha/03, ho-so/[id]/tiep).
+// «Lưu hồ sơ <tên>» ⇒ POST con {ten, namSinh, avatar, pin} ⇒ (#420, nhà đã có con khác) «Giống <con trước>?» (thiet-lap/giong) ⇒ «Đã tạo hồ sơ · bước tiếp» (bm-ca-nha/03, ho-so/[id]/tiep).
 // #306 (PIN bắt buộc khi thêm con) + bàn them-9ozp26pq@v5: phải gõ đủ PIN 4 số mới lưu được.
 // Grow cài sẵn giờ chơi + bộ việc theo tuổi (tuổi tính từ năm sinh; chưa chọn năm ⇒ bộ Tự lập).
 import { useState } from "react";
@@ -50,7 +50,8 @@ export default function ThemCon() {
       bm.goi("thiet-lap", thanThietLap({ conId: id, ...(apps ? { apps } : {}) })),
       bm.goi("nhiem-vu/bo", { bo: boTheoTuoi(tuoi), con: id }),
     ]);
-    router.replace(`/ho-so/${id}/tiep` as never);
+    // #420: nhà đã có con khác ⇒ «Giống <con trước>» / «Thiết lập riêng» (màn giong tự đi thẳng «bước tiếp» khi nhà chưa có con nào khác)
+    router.replace({ pathname: "/thiet-lap/giong", params: { con: id, nguon: "them" } });
   });
   return (
     <Man lui={{ chu: "", ve: "/cai-dat" }} tieu="Thêm con"

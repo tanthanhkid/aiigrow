@@ -14,7 +14,7 @@ import { bangM4b } from "./tuan-thu.ts";
 import { dsConVao, kiemConNha, laMotCon, loiMotCon } from "./may-nhieu-con.ts";
 
 /** Khoá cấu hình Con KHÔNG chép (trạng thái tức thời của chính Con đó, không phải «cài đặt»). */
-const KHONG_CHEP = ["khoa_ngay", "khoa_den", "khoa_mo_tam_den"];
+export const KHONG_CHEP = ["khoa_ngay", "khoa_den", "khoa_mo_tam_den"];
 
 /** «Cài giống máy trước»: chép cài đặt của Con đang dùng máy `tuMay` sang Con `denCon` (máy mới `mayMoi`). Cùng Con / máy dùng chung /
  *  máy nguồn không còn ⇒ không chép gì (luật app, giờ… theo Con nên máy mới của cùng Con đã nhận sẵn). Chép: chế độ chặn, giờ ngủ + khung giờ,
