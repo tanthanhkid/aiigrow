@@ -231,6 +231,11 @@ class ManChinh : Activity() {
         val x = G.the(this)
         theXin = x
         if (coSao) { dungTheVay(x, ht0!!); goc.addView(x) }
+        // #422 (con-dt-xin 08-them-us1kc173): «Xin thêm app / web» ngay dưới «Xin Ba Mẹ cho vay sao» — cả Mở hết lẫn Theo danh sách; Ba Mẹ khoá máy thì không
+        if (!(coSao && ht0?.trangThai == TrangThai.KHOA_NGAY.name)) {   // cùng khoá dựng lại `appDiem`
+            val nutThem = G.nut(this, "Xin thêm app / web", phu = true) { HopXinThem(this).hien() }
+            if (coSao) x.addView(nutThem) else goc.addView(G.the(this).apply { addView(nutThem.apply { (layoutParams as LinearLayout.LayoutParams).topMargin = 0 }) })
+        }
 
         val d = G.the(this)
         d.addView(G.dauKhoi(this, R.drawable.fl_bieu_do, "Hôm nay con đã dùng"))
