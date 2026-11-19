@@ -93,7 +93,7 @@ export const Icon3D = memo(function Icon3D({ ten, co = 26, mau = M.chu2 }: { ten
   return <Image cachePolicy="memory-disk" source={ICON_3D[ten]} style={{ width: co, height: co }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />;
 });
 
-const LV = {
+export const LV = {
   "canh-cac-con": require("../../assets/linh-vat/canh-cac-con.webp"), "canh-diem": require("../../assets/linh-vat/canh-diem.webp"),
   "canh-hoc": require("../../assets/linh-vat/canh-hoc.webp"), "canh-tien-do": require("../../assets/linh-vat/canh-tien-do.webp"),
   "canh-trong": require("../../assets/linh-vat/canh-trong.webp"), chi: require("../../assets/linh-vat/chi.webp"), cho: require("../../assets/linh-vat/cho.webp"),
@@ -148,7 +148,7 @@ export function CanhGiua({ lv, tieu, loi, children }: { lv: LinhVat; tieu: strin
 
 // ---------------------------------------------------------------- nút, nhãn, thẻ
 
-type LoaiNut = "chinh" | "ngoc" | "vien" | "ma" | "huy" | "vang" | "do" | "xanh";
+type LoaiNut = "chinh" | "ngoc" | "vien" | "ma" | "huy" | "vang" | "do" | "xanh" | "nho";
 /** Kẹo dẻo tráng men: `chinh` than chì · `ngoc` xanh ngọc (Duyệt) · `vang` vàng điểm — nửa trên một mảng men trắng cắt sắc; `vien`/`huy` viên sáng. */
 const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: string; sang?: boolean }> = {
   // «Ánh kim»: nút chính đúc vàng kim chữ navy (mẫu E `.nut`); nút phụ `vien` là ô kem LÕM (`.nut.phu`); `ngoc` giữ navy («ô nhấn navy»).
@@ -160,13 +160,16 @@ const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: 
     men: "linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.08) 24%, rgba(255,255,255,0) 26%), linear-gradient(180deg, #cf4630 0%, #a3271a 100%)" },
   /** ngọc nhạt (bàn `.nut.xanh` #F2EBE3 / chữ #0A1629): lựa chọn phụ nhưng tích cực — «Không tính phút», «Đổi sang Không tính phút» */
   xanh: { nen: M.chinhSoft, chu: M.chinhInk, bong: BONG.nho, sang: true },
+  /** nút phụ nổi kem (bàn `.nut.phu`: nền kem, bóng đôi ngoài — khác `vien` là ô lõm) */
+  nho: { nen: M.the, chu: M.chu, bong: BONG.nho, sang: true },
 };
 
 /** Nút (kit.nut). Nhãn một dòng (Material 3): nút rộng theo chữ, thiếu chỗ thì `HaiNut` cho nút xuống hàng — không bẻ chữ.
  *  Chữ dài (tên con 30, tên máy 40, tên miền 60 ký tự, cỡ chữ hệ thống lớn): nút không vượt khung cha (maxWidth 100%), chữ quá dài
  *  thì «…» ở cuối — không co chữ (người chọn cỡ chữ lớn phải được chữ lớn, WCAG 1.4.4), không cắt nửa chữ, không đẩy nút bên cạnh.
  *  Nút `rong` (một mình cả hàng) được xuống 2 dòng căn giữa — nhãn dài kiểu «Mở khoá sau khi nói chuyện với <tên>» không mất tên. */
-export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc, sat, toi, motDong }: {
+export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc, sat, toi, motDong, lon }: {
+  /** cỡ nút lần đầu theo bàn (`.nut`: cao 58, bo 30, chữ 17) */ lon?: boolean;
   chu: string; bam: (e?: GestureResponderEvent) => void; loai?: LoaiNut; nho?: boolean; rong?: boolean; ic?: TenIcon; ic3d?: boolean; dangChay?: boolean; tat?: boolean; nhanDoc?: string;
   /** đệm ngang hẹp (12) — hai nút chia đôi một thẻ (Trang chủ «Khoá máy» / «Cho thêm giờ») giữ chữ một dòng như thiết kế */ sat?: boolean;
   /** nút nằm trên hero navy: bóng chỉ tối (không quầng sáng kem) */ toi?: boolean;
@@ -178,14 +181,14 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
   return (
     <NhanMen onPress={bam} disabled={mo} accessibilityRole="button" muc="nut" sang={m.sang || !!tat} men={tat ? undefined : m.men}
       accessibilityLabel={nhanDoc ?? chu} accessibilityState={{ disabled: !!mo, busy: !!dangChay }}
-      style={[s.nut, nho && s.nutNho, sat && { paddingHorizontal: 12 }, rong ? { alignSelf: "stretch" } : { flexGrow: 1, flexShrink: 1 }, { maxWidth: "100%", minWidth: 0 },
+      style={[s.nut, lon && { minHeight: 58, borderRadius: 30 }, nho && s.nutNho, sat && { paddingHorizontal: 12 }, rong ? { alignSelf: "stretch" } : { flexGrow: 1, flexShrink: 1 }, { maxWidth: "100%", minWidth: 0 },
         tat ? { backgroundColor: M.tatNen } : { backgroundColor: m.nen, boxShadow: toi && loai === "vang" ? BONG.heroVang : m.bong }]}>
       {dangChay ? <ActivityIndicator color={m.chu} /> : (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%" }}>
           {/* «Ánh kim» (#417): icon nút là icon nét cùng màu chữ (mẫu E `.nut svg.i`), không còn icon 3D nhiều màu; sao giữ dạng đặc ★ */}
           {ic ? (ic3d && !tat && ic !== "sao" ? <IconNet ten={ic} co={nho ? 19 : 21} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
           <Text numberOfLines={rong && !motDong ? 2 : 1} ellipsizeMode="tail"
-            style={{ flexShrink: 1, minWidth: 0, textAlign: "center", fontFamily: F.den, fontSize: nho ? 14.5 : 16, color: chuMau, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
+            style={{ flexShrink: 1, minWidth: 0, textAlign: "center", fontFamily: F.den, fontSize: nho ? 14.5 : lon ? 17 : 16, color: chuMau, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
         </View>
       )}
     </NhanMen>
@@ -459,12 +462,12 @@ export function ONhap({ nhan, loi, ...p }: TextInputProps & { nhan: string; loi?
 }
 
 /** Ô mã 6 số (kit .ma6): một ô nhập ẩn phía dưới, 6 ô hiển thị — bàn phím số, tự điền mã từ tin nhắn (oneTimeCode). */
-export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số" }: { gia: string; doi: (v: string) => void; nhan?: string }) {
+export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số", ban }: { gia: string; doi: (v: string) => void; nhan?: string; /** ô theo bàn bm1-otp `.ma i`: 48×60, ô đang gõ nổi kem viền vàng mật 3 */ ban?: boolean }) {
   const ref = useRef<React.ComponentRef<typeof TextInput>>(null);
   return (
     <Pressable onPress={() => ref.current?.focus()} accessibilityLabel={nhan} style={{ flexDirection: "row", gap: 8, justifyContent: "center" }}>
       {Array.from({ length: 6 }, (_, k) => (
-        <View key={k} style={[s.ma6, k === Math.min(gia.length, 5) && s.ma6Dang]}><Chu kieu="rat" co={26} so>{gia[k] ?? ""}</Chu></View>
+        <View key={k} style={[s.ma6, ban && s.ma6Ban, k === Math.min(gia.length, 5) && (ban ? s.ma6DangBan : s.ma6Dang)]}><Chu kieu="rat" co={26} so>{gia[k] ?? ""}</Chu></View>
       ))}
       <TextInput ref={ref} value={gia} onChangeText={(t) => doi(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" autoComplete="one-time-code"
         textContentType="oneTimeCode" maxLength={6} accessibilityLabel={nhan} autoFocus
@@ -478,7 +481,8 @@ export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số" }: { gia: string
 const NEN = { bm: [M.dauBaMe, M.nen], nhi: [M.dauNhi, M.nen], teen: [M.dauTeen, "#fbfbfd"] } as const;
 
 /** Khung một màn (kit.man): nền gradient đầu màn, đầu (lùi / tiêu đề / bên phải) hoặc tiêu đề lớn, thân cuộn, nút dính đáy, nút chat nổi. */
-export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, dau, day, tai, vongTai, chat, noi, khongCuon, cuonCuoi }: {
+export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, dau, day, tai, vongTai, chat, noi, khongCuon, cuonCuoi, dayStyle }: {
+  /** đè đệm / khoảng cách của khối nút dính đáy (bàn lần đầu: nút cách đáy 18 / 22) */ dayStyle?: ViewStyle;
   children: ReactNode; nen?: keyof typeof NEN; lui?: { chu: string; ve?: string; bam?: () => void }; tieu?: string; tieuLon?: string; phai?: ReactNode;
   /** nút nhỏ (≤ 2, vd chuông) đứng cùng hàng tiêu đề lớn, bên phải (không có tiêu đề lớn ⇒ góc phải thanh đầu) */ phaiTieu?: ReactNode;
   dau?: ReactNode; day?: ReactNode; tai?: () => unknown; /** kéo xuống để tải lại có vòng quay tới khi tải xong */ vongTai?: boolean; chat?: boolean; noi?: ReactNode; khongCuon?: boolean; /** màn chat: luôn cuộn tới cuối khi nội dung / bàn phím đổi */ cuonCuoi?: boolean;
@@ -549,7 +553,7 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
           {than}
         </ScrollView>
       )}
-      {day ? <View style={s.day}>{day}</View> : null}
+      {day ? <View style={[s.day, dayStyle]}>{day}</View> : null}
       </KeyboardAvoidingView>
       {noi ? <View pointerEvents="box-none" style={{ position: "absolute", left: 16, right: 16, bottom: day ? 120 : 100, zIndex: Z.toast }}>{noi}</View> : null}
     </SafeAreaView>
@@ -599,7 +603,7 @@ function NutChat() {
 }
 
 /** Bảng trượt từ đáy (kit .phu + .bang-truot): nền phía sau tối mờ, bấm nền để đóng. */
-export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, hinhPhu, hinhDao, chan, cuon, gon, nutDong }: { mo: boolean; dong: () => void; tieu: string; children: ReactNode;
+export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, hinhPhu, hinhDao, chan, cuon, gon, nutDong, ban }: { /** bảng theo bàn them-ahk69dtl: nền tối .5, bo 36, tay kéo 44×5 tuyệt đối, đệm 26 / 18, các khối tự đặt khoảng cách */ ban?: boolean; mo: boolean; dong: () => void; tieu: string; children: ReactNode;
   /** chữ «Đóng» cùng hàng tiêu đề, bên phải (bàn them-bwlkjyw5 v15 `.dong`) */ nutDong?: boolean;
   /** khối đứng TRÊN tiêu đề (vd ô hình to của bảng «Trao quà») */ dauBang?: ReactNode; /** tiêu đề canh giữa */ giua?: boolean;
   /** thiết kế 14/11 .sheet .hinh: ô ngọc nhạt 76 bo 26 + icon 3D 48 giữa, tiêu đề 23/800 canh giữa */ hinh?: TenIcon;
@@ -625,15 +629,15 @@ export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, hinhP
             <Chu kieu="rat" co={15} mau={M.chinhInk}>Đóng</Chu>
           </Pressable>
         </View>
-      ) : <Chu kieu="rat" co={hinh ? 23 : 21} style={[{ marginTop: 4, letterSpacing: -0.4 }, (giua || hinh) && { textAlign: "center" }]}>{tieu}</Chu>}
+      ) : tieu || !ban ? <Chu kieu="rat" co={hinh ? 23 : 21} style={[{ marginTop: 4, letterSpacing: -0.4 }, (giua || hinh) && { textAlign: "center" }]}>{tieu}</Chu> : null}
     </>
   );
   return (
     <Modal visible={mo} transparent animationType="slide" onRequestClose={dong}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Pressable style={{ flex: 1, backgroundColor: "rgba(10,22,41,.38)" }} onPress={dong} accessibilityLabel="Đóng" />
-      <View style={[s.bangTruot, cuon && { maxHeight: Math.round(cao * 0.95), flexShrink: 1 }, cuon && gon && { gap: 8, paddingBottom: 20 }]}>
-        <View style={{ width: 40, height: 5, borderRadius: 3, backgroundColor: M.vien2, alignSelf: "center" }} />
+      <Pressable style={{ flex: 1, backgroundColor: ban ? "rgba(10,22,41,.5)" : "rgba(10,22,41,.38)" }} onPress={dong} accessibilityLabel="Đóng" />
+      <View style={[s.bangTruot, ban && { borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingTop: 26, paddingHorizontal: 16, paddingBottom: 18, gap: 0 }, cuon && { maxHeight: Math.round(cao * 0.95), flexShrink: 1 }, cuon && gon && { gap: 8, paddingBottom: 20 }]}>
+        <View style={ban ? { position: "absolute", top: 10, left: "50%", marginLeft: -22, width: 44, height: 5, borderRadius: 5, backgroundColor: "#cfc3b3" } : { width: 40, height: 5, borderRadius: 3, backgroundColor: M.vien2, alignSelf: "center" }} />
         {cuon ? (
           <ScrollView style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ gap: gon ? 8 : 12, paddingBottom: 6 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {dau}
@@ -885,6 +889,8 @@ const s = StyleSheet.create({
   oSai: { borderColor: M.loi },
   ma6: { flex: 1, maxWidth: 50, height: 60, borderRadius: 18, backgroundColor: M.ranh, borderWidth: 2, borderColor: "transparent", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
   ma6Dang: { backgroundColor: M.the, borderColor: M.chinh },
+  ma6Ban: { flexGrow: 0, flexShrink: 1, flexBasis: 48, maxWidth: 48, borderWidth: 0 },
+  ma6DangBan: { backgroundColor: M.the, boxShadow: `0px 0px 0px 3px #D9AE57, ${BONG.the}` },
   chat: { width: 46, height: 46, borderRadius: 23, backgroundColor: M.the, ...KHOI.nho },
   chatMat: { width: 46, height: 46, borderRadius: 23, overflow: "hidden", alignItems: "center", borderWidth: 2, borderColor: M.chinhSoft },
   chatCham: { position: "absolute", right: -1, bottom: -1, width: 14, height: 14, borderRadius: 7, backgroundColor: M.chinh, borderWidth: 2, borderColor: M.nen },

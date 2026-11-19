@@ -11,7 +11,10 @@ import { SvgXml } from "react-native-svg";
 import { BONG, BO_CLAY, KHOI, KHOI_HERO, MEN, HERO } from "./clay";
 import { saoChep } from "./luu-tep";
 import { MAU_HO_SO } from "./mau";
-import { Chu, F, Icon, Icon3D, LopMen, M, NhanMen, Rob, type LinhVat, type TenIcon } from "./ui";
+import { Chu, F, Icon, Icon3D, LopMen, LV, M, NhanMen, Rob, type LinhVat, type TenIcon } from "./ui";
+
+/** Màu chữ phụ của bàn «Ánh kim» (`--ink2` / `--ink3`) — chữ phụ lần đầu theo đúng bàn. */
+export const INK2 = "#5b5248";
 
 /** Ảnh icon 3D theo tên tệp (kể cả icon chỉ có bản 3D như «lap_lanh», không có trong bộ icon đặc). */
 export const Anh3D = ({ ten, co = 22 }: { ten: Ten3D; co?: number }) => (
@@ -40,7 +43,7 @@ export function DauMan({ ve, phai, khongLui, bamLui, tieu, giua }: { ve?: string
   /** khối giữa thanh đầu (vd vạch tiến độ 2 bước — bàn them-2g3zpiie) */ giua?: ReactNode }) {
   const lui = () => (bamLui ? bamLui() : router.canGoBack() ? router.back() : router.replace((ve ?? "/") as never));
   return (
-    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8, paddingRight: 16, minHeight: 52 }}>
+    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 8, paddingRight: 16, minHeight: 48 }}>
       {khongLui ? <View style={{ width: 44 }} /> : (
         <Pressable onPress={lui} accessibilityRole="button" accessibilityLabel="Quay lại" hitSlop={6} style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
           <Icon ten="trai" mau={M.chinhInk} co={24} />
@@ -125,42 +128,79 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai, bongTo }
 const G_SVG = `<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`;
 const FB_SVG = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1877F2"/><path fill="#fff" d="M13.4 19.5v-6.2h2.1l.3-2.5h-2.4V9.3c0-.7.2-1.2 1.2-1.2h1.3V5.9c-.2 0-1-.1-1.9-.1-1.9 0-3.2 1.2-3.2 3.3v1.8H8.7v2.5h2.1v6.2z"/></svg>`;
 
-/** Nút Google / Facebook (chỉ phần hình) — nối OAuth ở lib/dang-nhap-mxh.tsx › NutMxhThat. */
+const FB_BAN = `<svg viewBox="0 0 24 24" fill="#1877f2"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.09 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.54-4.69 1.31 0 2.69.24 2.69.24v2.97h-1.52c-1.49 0-1.96.93-1.96 1.88v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.09 24 18.1 24 12.07z"/></svg>`;
+const DT_BAN = `<svg viewBox="0 0 256 256" fill="#0A1629"><path d="M176,16H80A24,24,0,0,0,56,40V216a24,24,0,0,0,24,24h96a24,24,0,0,0,24-24V40A24,24,0,0,0,176,16ZM80,32h96a8,8,0,0,1,8,8v8H72V40A8,8,0,0,1,80,32Zm96,192H80a8,8,0,0,1-8-8v-8H184v8A8,8,0,0,1,176,224Z"/></svg>`;
+
+/** Nút Google / Facebook (chỉ phần hình) — nối OAuth ở lib/dang-nhap-mxh.tsx › NutMxhThat.
+ *  `to` = nút Google to của màn «Tạo tài khoản» (bàn bm1-chao `.nut.chinh`): vàng kim chữ navy, chữ G trong viên kem lõm 26. */
 export function NutMxh({ loai, bam, to }: { loai: "google" | "facebook"; bam: () => void; to?: boolean }) {
   const ten = loai === "google" ? "Google" : "Facebook";
   return (
-    <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`Tiếp tục với ${ten}`} muc="nut" sang={!to} men={to ? MEN.toi : MEN.sang}
+    <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`Tiếp tục với ${ten}`} muc="nut" sang men={to ? MEN.vang : MEN.sang}
       style={[{ flexGrow: 1, flexBasis: 0, minHeight: to ? 56 : 52, borderRadius: BO_CLAY.nut, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 14 },
-        to ? { backgroundColor: M.nut, boxShadow: BONG.toi, alignSelf: "stretch" } : { backgroundColor: M.the, boxShadow: BONG.nho }]}>
-      <View style={to ? { width: 26, height: 26, borderRadius: 13, backgroundColor: M.the, alignItems: "center", justifyContent: "center" } : undefined}>
-        <SvgXml xml={loai === "google" ? G_SVG : FB_SVG} width={to ? 18 : 22} height={to ? 18 : 22} />
-      </View>
-      <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: to ? 16.5 : 15.5, color: to ? "#FFFBF5" : M.chu }}>{to ? `Tiếp tục với ${ten}` : ten}</Text>
+        to ? { backgroundColor: M.diem, boxShadow: BONG.vang, alignSelf: "stretch" } : { backgroundColor: M.the, boxShadow: BONG.nho }]}>
+      {to ? (
+        <View style={{ width: 26, height: 26, borderRadius: 13, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: "inset 2px 2px 4px rgba(120,98,70,0.28), inset -2px -2px 4px #FFFBF5" }}>
+          <SvgXml xml={G_SVG} width={18} height={18} />
+        </View>
+      ) : <SvgXml xml={loai === "google" ? G_SVG : FB_BAN} width={22} height={22} />}
+      <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: to ? 16.5 : 15.5, color: M.chu }}>{to ? `Tiếp tục với ${ten}` : ten}</Text>
     </NhanMen>
   );
 }
 
-/** Nút «Số điện thoại» cạnh nút Facebook. */
+/** Nút «Số điện thoại» cạnh nút Facebook (bàn bm1-chao: icon điện thoại đặc 22, chữ 15.5). */
 export function NutSdt({ bam }: { bam: () => void }) {
   return (
     <NhanMen onPress={bam} accessibilityRole="button" muc="nut" sang men={MEN.sang}
-      style={{ flexGrow: 1, flexBasis: 0, minHeight: 52, borderRadius: BO_CLAY.nut, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 14, backgroundColor: M.the, boxShadow: BONG.nho }}>
-      <Icon ten="dt" mau={M.chu} co={20} />
+      style={{ flexGrow: 1, flexBasis: 0, minHeight: 52, borderRadius: BO_CLAY.nut, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10, paddingHorizontal: 14, backgroundColor: M.the, boxShadow: BONG.nho }}>
+      <SvgXml xml={DT_BAN} width={22} height={22} />
       <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 15.5, color: M.chu }}>Số điện thoại</Text>
     </NhanMen>
   );
 }
 
+/** «Tiếp tục là đồng ý Điều khoản và Quyền riêng tư» (bàn `.ghi`: cao 32, chữ 12,5 thường + hai cụm đậm 800 navy). */
 export const DieuKhoan = () => (
-  <Chu co={12.5} mau={M.chu3} style={{ textAlign: "center" }}>
-    Tiếp tục là đồng ý <Chu kieu="rat" co={12.5} mau={M.chinhInk}>Điều khoản</Chu> và <Chu kieu="rat" co={12.5} mau={M.chinhInk}>Quyền riêng tư</Chu>
-  </Chu>
+  <View style={{ minHeight: 32, alignItems: "center", justifyContent: "center" }}>
+    <Chu co={12.5} mau={M.chu3} style={{ textAlign: "center" }}>
+      Tiếp tục là đồng ý <Chu kieu="rat" co={12.5} mau={M.chinhInk}>Điều khoản</Chu> và <Chu kieu="rat" co={12.5} mau={M.chinhInk}>Quyền riêng tư</Chu>
+    </Chu>
+  </View>
 );
 
 /** Ô nhập kiểu lòng chảo (thiết kế: nền xám lõm, không viền) + nhãn trái / ghi chú phải + nút mắt cho mật khẩu. */
-export function OLom({ nhan, ghi, ghiOk, matKhau, ...p }: TextInputProps & { nhan: string; ghi?: string; ghiOk?: boolean; matKhau?: boolean }) {
+const TICK_BAN = `<svg viewBox="0 0 256 256" fill="#0A1629"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"/></svg>`;
+const MAT_BAN = `<svg viewBox="0 0 256 256" fill="#5b5248"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/></svg>`;
+/** `lon` = ô theo bàn «Ánh kim» (bm1-dang-ky `.lom`): cao 58, bo 29, nền kem lõm #E3D9CB, chữ 20 đậm, nhãn 14 đậm cách ô 8, `dau` cách phía trên 26 (ô đầu) / 20. */
+export function OLom({ nhan, ghi, ghiOk, matKhau, lon, dau, ...p }: TextInputProps & { nhan: string; ghi?: string; ghiOk?: boolean; matKhau?: boolean; lon?: boolean; dau?: boolean }) {
   const [an, setAn] = useState(true);
   const [dang, setDang] = useState(false);
+  if (lon) return (
+    <View style={{ marginTop: dau ? 26 : 20 }}>
+      <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginLeft: 6, marginBottom: 8 }}>
+        <Text style={{ fontFamily: F.dam7, fontSize: 14, color: M.chu, lineHeight: 20 }}>{nhan}</Text>
+        {ghi ? (ghiOk ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginRight: 6 }}>
+            <SvgXml xml={TICK_BAN} width={14} height={14} />
+            <Text style={{ fontFamily: F.rat, fontSize: 12, color: M.chu, lineHeight: 16 }}>{ghi}</Text>
+          </View>
+        ) : <Text style={{ fontFamily: F.dam, fontSize: 12, color: M.chu3, marginRight: 6, lineHeight: 16 }}>{ghi}</Text>) : null}
+      </View>
+      <View style={[{ flexDirection: "row", alignItems: "center", height: 58, borderRadius: 29, backgroundColor: "#E3D9CB", boxShadow: "inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5", paddingLeft: 20, paddingRight: 6 },
+        dang && { boxShadow: `inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5, 0px 0px 0px 2px ${M.chinh}` }]}>
+        <TextInput placeholderTextColor={M.chu3} accessibilityLabel={nhan} secureTextEntry={matKhau && an} {...p}
+          onFocus={(e) => { setDang(true); p.onFocus?.(e); }} onBlur={(e) => { setDang(false); p.onBlur?.(e); }}
+          style={{ flex: 1, minWidth: 0, height: 52, fontFamily: F.dam7, fontSize: 20, letterSpacing: matKhau && an ? 4 : 0.4, color: M.chu, outlineStyle: "none" } as never} />
+        {matKhau ? (
+          <Pressable onPress={() => setAn((x) => !x)} accessibilityRole="button" accessibilityLabel={an ? "Hiện mật khẩu" : "Ẩn mật khẩu"} hitSlop={6}
+            style={{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", opacity: an ? 1 : 0.7 }}>
+            <SvgXml xml={MAT_BAN} width={22} height={22} />
+          </Pressable>
+        ) : null}
+      </View>
+    </View>
+  );
   return (
     <View style={{ gap: 6 }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingHorizontal: 4 }}>
@@ -190,9 +230,9 @@ export const OLomTran = (p: TextInputProps) => (
 );
 
 /** Liên kết chữ ngọc đứng giữa (thiết kế .lk). */
-export const LienKet = ({ chu, bam, gach }: { chu: string; bam: () => void; gach?: boolean }) => (
+export const LienKet = ({ chu, bam, gach, co = 14.5 }: { chu: string; bam: () => void; gach?: boolean; co?: number }) => (
   <Pressable onPress={bam} accessibilityRole="link" hitSlop={4} style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
-    <Chu kieu="rat" co={14.5} mau={M.chinhInk} style={gach ? { textDecorationLine: "underline" } : undefined}>{chu}</Chu>
+    <Chu kieu="rat" co={co} mau={M.chinhInk} style={gach ? { textDecorationLine: "underline" } : undefined}>{chu}</Chu>
   </Pressable>
 );
 
@@ -459,6 +499,43 @@ export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhV
         </View>
       ) : null}
       <View style={{ flex: 1, justifyContent: "flex-end" }}><Rob ten={lv} co={coRob} /></View>
+    </View>
+  );
+}
+
+/** Sân Grow của màn «Tạo tài khoản» (bàn bm1-chao `.san`): thẻ cao 360 bo 36 nền kem sáng ở giữa, bong bóng thoại trên trái, Grow 200 rộng đứng đáy lệch trái 4 %. */
+export function SanRob({ thoai, lv = "rob-goc" }: { thoai: string; lv?: LinhVat }) {
+  return (
+    <View style={{ height: 360, borderRadius: 36, overflow: "hidden", backgroundColor: M.nen, backgroundImage: "radial-gradient(70% 55% at 50% 45%, #F4EEE5, #ECE4D9)", boxShadow: BONG.the }}>
+      <View style={{ position: "absolute", left: 0, right: 0, bottom: 0, alignItems: "center" }} pointerEvents="none">
+        <Image cachePolicy="memory-disk" source={LV[lv]} style={{ width: 200, height: 285, transform: [{ translateX: 0.04 * 200 }] }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      </View>
+      <View style={{ position: "absolute", left: 18, top: 20, maxWidth: 210, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.the, boxShadow: BONG.nho }}>
+        <Text style={{ fontFamily: F.rat, fontSize: 15, lineHeight: 21, color: M.chu }}>{thoai}</Text>
+      </View>
+    </View>
+  );
+}
+
+/** Tiêu đề dưới sân Grow (bàn bm1-chao `.chu`: h1 28/34 đậm giãn −0,6, câu 15/21 xám nâu). */
+export const TieuSan = ({ chu, phu }: { chu: string; phu: string }) => (
+  <View style={{ marginTop: 8, alignItems: "center", paddingHorizontal: 4 }}>
+    <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 28, lineHeight: 34, letterSpacing: -0.6, color: M.chu, textAlign: "center" }}>{chu}</Text>
+    <Text style={{ marginTop: 6, fontFamily: F.thuong, fontSize: 15, lineHeight: 21, color: INK2, textAlign: "center" }}>{phu}</Text>
+  </View>
+);
+
+/** Thẻ đầu màn «Tạo tài khoản Ba Mẹ» (bàn bm1-dang-ky `.hero`): cao 128 bo 30, bong bóng 226 rộng (tiêu đề 18 + câu 13, một dòng), Grow sổ tay 104 rộng tràn lên khỏi đỉnh thẻ. */
+export function HeroBan({ tieu, loi, lv = "so-tay" }: { tieu: string; loi: string; lv?: LinhVat }) {
+  return (
+    <View style={{ height: 128, borderRadius: 30, backgroundColor: M.nen, boxShadow: BONG.the }}>
+      <View style={{ position: "absolute", right: 0, bottom: -10, width: 104, height: 159, zIndex: 2 }} pointerEvents="none">
+        <Image cachePolicy="memory-disk" source={LV[lv]} style={{ width: 104, height: 159 }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      </View>
+      <View style={{ position: "absolute", left: 14, top: 24, width: 226, maxWidth: "88%", zIndex: 3, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 24, backgroundColor: M.the, boxShadow: BONG.nho }}>
+        <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 18, lineHeight: 23, letterSpacing: -0.3, color: M.chu }}>{tieu}</Text>
+        <Text style={{ marginTop: 3, fontFamily: F.thuong, fontSize: 13, lineHeight: 18, color: INK2 }}>{loi}</Text>
+      </View>
     </View>
   );
 }

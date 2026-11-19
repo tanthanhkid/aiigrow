@@ -204,7 +204,9 @@ export async function doTay(goi, js, ds) {
 export async function chayCong({ goi, js, sleep, dsMan, vao, hau = "", cheDo = [[320, false], [390, false], [390, true]] }) {
   let tong = 0, soDoTay = 0;
   for (const [rong, gian] of cheDo) {
-    await goi("Emulation.setDeviceMetricsOverride", { width: rong, height: 844, deviceScaleFactor: 1, mobile: true });
+    await goi("Emulation.setDeviceMetricsOverride", { width: rong, height: Number(process.env.PHA_CAO ?? 844), deviceScaleFactor: 1, mobile: true });
+    // PHA_VUNG_AN_TOAN="44": giả vùng an toàn phía trên (thanh trạng thái iPhone) khi đặt cạnh ảnh Bàn — Bàn vẽ thanh trạng thái 44px trong khung
+    if (process.env.PHA_VUNG_AN_TOAN) await goi("Emulation.setSafeAreaInsetsOverride", { insets: { top: Number(process.env.PHA_VUNG_AN_TOAN), bottom: 0, left: 0, right: 0 } });
     let loi = 0;
     console.log(`\n## ${rong}px${gian ? " + giãn chữ (WCAG 1.4.12)" : ""}`);
     for (const man of dsMan) {
