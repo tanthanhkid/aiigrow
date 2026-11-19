@@ -30,12 +30,13 @@ on:
     branches: [main]
     paths: *duong_agent
   workflow_dispatch:
+  workflow_call:   # dem.yml (chạy đêm trên main) gọi lại
 
 permissions:
   contents: read
 
 concurrency:
-  group: agent-mac-${{ github.ref }}
+  group: agent-mac-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

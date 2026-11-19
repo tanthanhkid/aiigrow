@@ -15,12 +15,13 @@ on:
     branches: [main]
     paths: *duong
   workflow_dispatch:
+  workflow_call:   # dem.yml (chạy đêm trên main) gọi lại
 
 permissions:
   contents: read
 
 concurrency:
-  group: agent-ios-${{ github.ref }}
+  group: agent-ios-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
