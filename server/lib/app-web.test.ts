@@ -334,3 +334,52 @@ test("review #270: đồng ý kiểu cũ «Lần này» = mở tạm (không bá
   assert.deepEqual([tl.status, tl.body.nhom], [200, "khong_tinh_phut"]);
   assert.equal((await la.phanLoai(fam, con, "code.org")).loai, "hoc");
 });
+
+test("#422 «Xin thêm app / web»: `kieu` quyết loại lời xin — thẻ App nhận tên trần (Ba Mẹ đồng ý ⇒ thêm app theo tên), thẻ Trang web đòi tên miền", async () => {
+  const { fam, bm } = await taoNha("Lan");
+  const con = await g.taoCon(fam, { ten: "Bảo Anh" });
+  const tok = await taoPhien(bm);
+  const may = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop");
+  // thẻ «Trang web»: địa chỉ đầy đủ / có ?… / có cổng ⇒ tên miền, mo_web
+  const w = (await dv(may.token, "xin-duyet", { kieu: "web", muc: "https://scratch.mit.edu/projects", lyDo: "Con học làm game trên Scratch ạ" })).body;
+  assert.deepEqual([w.trang_thai, w.loai, w.muc], ["cho", "mo_web", "scratch.mit.edu"]);
+  assert.deepEqual([(await dv(may.token, "xin-duyet", { kieu: "web", muc: "scratch.mit.edu?lang=vi" })).body.daCo], [true], "cùng trang ⇒ lời xin cũ");
+  // gõ không ra tên miền / tên gói app ⇒ lỗi rõ, không tạo lời xin
+  for (const sai of ["scratch", "roblox.exe", "127.0.0.1", ""]) {
+    const r = await dv(may.token, "xin-duyet", { kieu: "web", muc: sai });
+    assert.deepEqual([r.status, r.body.error], [400, "web_sai"], sai);
+  }
+  assert.equal((await dv(may.token, "xin-duyet", { kieu: "App", muc: "x" })).body.error, "kieu_sai");
+  // thẻ «App trên máy»: tên trần vẫn là app, giữ tên như Con thấy; xin lại cùng app ở thẻ Web ⇒ không tạo lời xin thứ hai
+  const a = (await dv(may.token, "xin-duyet", { kieu: "app", muc: "Minecraft", ten: "Minecraft" })).body;
+  assert.deepEqual([a.loai, a.muc], ["cai_app", "Minecraft"]);
+  // không gửi kieu (màn chặn, agent cũ) ⇒ đoán như trước
+  const p3 = (await dv(may.token, "xin-duyet", { muc: "Paint3D.exe" })).body;
+  assert.deepEqual([p3.loai, p3.muc], ["cai_app", "paint3d.exe"]);
+  // Ba Mẹ: «Chờ duyệt» + danh sách của Con hiện đúng loại
+  const cho = (await m(tok, "cho-duyet")).body.yeuCau as { id: string; loai: string; gia_tri: string; ly_do: string }[];
+  assert.deepEqual(cho.filter((x) => x.id === w.id).map((x) => [x.loai, x.gia_tri, x.ly_do]), [["mo_web", "scratch.mit.edu", "Con học làm game trên Scratch ạ"]]);
+  const ds = (await m(tok, `con/${con}/danh-sach`)).body;
+  assert.deepEqual(ds.dangXin.map((x: any) => [x.muc, x.kieu]).sort(), [["Minecraft", "app"], ["paint3d.exe", "app"], ["scratch.mit.edu", "web"]]);
+  // Ba Mẹ thêm trang web ⇒ Con nhận «đã thêm»
+  assert.equal((await m(tok, `yeu-cau/${w.id}/dong-y`, { nhom: "khong_tinh_phut" })).status, 200);
+  const kq = (await dv(may.token, `yeu-cau/${w.id}`)).body;
+  assert.deepEqual([kq.ketQua, kq.nhom, kq.muc], ["da_them", "khong_tinh_phut", "scratch.mit.edu"]);
+  // Ba Mẹ thêm app theo tên ⇒ luật trên exe thật máy đã báo (không phải «tên miền» minecraft), app không bị xếp vào hàng Web
+  await q(`insert into app_may(device_id, khoa, muc, ten) values ($1, 'minecraft', 'minecraftlauncher.exe', 'Minecraft')`, [may.deviceId]);
+  assert.equal((await m(tok, `yeu-cau/${a.id}/dong-y`, { nhom: "tinh_phut" })).status, 200);
+  assert.equal((await la.luatHienCo(fam, con, "minecraftlauncher.exe"))?.loai, "giai_tri");
+  assert.equal(await la.luatHienCo(fam, con, "minecraft"), null, "không ghi luật lên mục giả");
+  assert.equal((await dv(may.token, `yeu-cau/${a.id}`)).body.ketQua, "da_them");
+  const sau = (await m(tok, `con/${con}/danh-sach`)).body;
+  const dong: any[] = [];
+  JSON.stringify(sau, (_k, v) => { if (v && typeof v === "object" && typeof v.kieu === "string" && typeof v.ten === "string") dong.push(v); return v; });
+  assert.ok(dong.some((x) => x.kieu === "app" && x.ten === "Minecraft"), "Minecraft ở hàng App");
+  assert.ok(!dong.some((x) => x.kieu === "web" && /minecraft/i.test(x.ten)), "không có hàng Web «minecraft»");
+  // thẻ Web nhận trang có dạng giống tên gói (app.diagrams.net) — Con đã chọn Trang web
+  assert.equal((await dv(may.token, "xin-duyet", { kieu: "web", muc: "//app.diagrams.net/x" })).body.muc, "app.diagrams.net");
+  // app theo tên máy chưa báo ⇒ chờ khớp (app_theo_ten), không lỗi
+  const b2 = (await dv(may.token, "xin-duyet", { kieu: "app", muc: "Scratch Desktop" })).body;
+  assert.equal((await m(tok, `yeu-cau/${b2.id}/dong-y`, { nhom: "khong_tinh_phut" })).status, 200);
+  assert.equal((await one<{ n: number }>(`select count(*)::int as n from app_theo_ten where child_id = $1 and khop_luc is null`, [con]))!.n, 1);
+});

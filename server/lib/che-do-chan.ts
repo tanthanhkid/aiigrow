@@ -140,13 +140,33 @@ export async function khopAppTheoTen(may: Pick<May, "id" | "family_id" | "child_
 /** App / web ngoài danh sách ⇒ lời xin chờ Ba Mẹ (cai_app cho app, mo_web cho trang web) — Ba Mẹ trả lời Tính phút / Không tính phút / Bỏ qua
  *  (lib/yeu-cau.ts). Lý do không bắt buộc. Đã có lời xin chờ cho đúng mục ⇒ trả lời xin đó (bấm lại không gửi trùng). Bị bỏ qua thì xin lại được.
  *  → { id, trang_thai: "cho", daCo, loai, muc }. */
-export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unknown; ten?: unknown; lyDo?: unknown }) {
-  const muc = chuanMuc(b.muc);
-  if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên app hoặc trang web");
-  const loai = kieuMuc(muc) === "web" ? "mo_web" : "cai_app";
-  const co = await one<{ id: string }>(`select id from requests where child_id = $1 and gia_tri = $2 and loai = $3 and trang_thai = 'cho' and het_han > now()
+export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unknown; ten?: unknown; lyDo?: unknown; kieu?: unknown }) {
+  // #422 «Xin thêm app / web» (Hôm nay, menu khay): Con chọn thẻ «App trên máy» / «Trang web» ⇒ `kieu` quyết loại lời xin. Không gửi `kieu`
+  // (màn chặn, agent cũ) ⇒ tự đoán như cũ.
+  if (b.kieu !== undefined && b.kieu !== null && b.kieu !== "app" && b.kieu !== "web") throw new LoiNghiepVu("kieu_sai", "Chọn App trên máy hoặc Trang web");
+  let muc: string, loai: "mo_web" | "cai_app";
+  if (b.kieu === "web") {
+    // thẻ Trang web: địa chỉ có / không có https://, đuôi ?… #… :cổng ⇒ tên miền (Con đã chọn «Trang web» ⇒ tin là trang, kể cả app.slack.com)
+    const tho = String(b.muc ?? "").trim();
+    let host = "";
+    try { host = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(tho) ? tho : `https://${tho.replace(/^\/\//, "")}`).hostname; } catch { /* để trống ⇒ web_sai */ }
+    const mien = tenMienSach(host);
+    if (!mien || mien.endsWith(".exe")) throw new LoiNghiepVu("web_sai", "Gõ địa chỉ trang web, ví dụ scratch.mit.edu");
+    [muc, loai] = [mien, "mo_web"];
+  } else {
+    muc = chuanMuc(b.muc);
+    if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên app hoặc trang web");
+    loai = b.kieu === "app" || kieuMuc(muc) === "app" ? "cai_app" : "mo_web";
+    // thẻ App, tên trần («Minecraft», app iPhone theo tên): chưa có định danh thật ⇒ giữ TÊN (hoa thường như Con thấy) — Ba Mẹ đồng ý thì
+    // thêm app theo tên (datAppChoPhep: khớp app thật máy đã báo / chờ khớp), không ghi luật lên một «tên miền» giả
+    if (loai === "cai_app" && kieuMuc(muc) !== "app") {
+      const ten = typeof b.ten === "string" && b.ten.trim() ? b.ten : String(b.muc);
+      if (!/[/:]/.test(ten)) muc = ten.trim().slice(0, 60);
+    }
+  }
+  const co = await one<{ id: string; loai: string }>(`select id, loai from requests where child_id = $1 and gia_tri = $2 and loai = $3 and trang_thai = 'cho' and het_han > now()
                                         order by created_at desc limit 1`, [con, muc, loai]);
-  if (co) return { id: co.id, trang_thai: "cho", daCo: true, loai, muc };
+  if (co) return { id: co.id, trang_thai: "cho", daCo: true, loai: co.loai, muc };
   const r = await guiYeuCau(con, mayId, { loai, giaTri: muc, lyDo: b.lyDo ?? "" });
   return { ...r, daCo: false, loai, muc };
 }
