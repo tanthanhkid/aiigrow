@@ -20,8 +20,11 @@ set -a; . "$HOME/.goblinrun-asc.env"; set +a
 export EXPO_PUBLIC_API="${EXPO_PUBLIC_API:-https://aiigrow.aiilab.vn}"
 : "${ASC_KEY_ID:?}"; : "${ASC_ISSUER_ID:?}"
 
-# Cổng CI: commit này có run workflow «mobile» ĐỎ thì dừng; đang chạy / chưa có run thì cảnh báo, cho qua (không chờ CI)
-"$GOC/../scripts/ci/kiem-ci.sh" $BO_CI mobile || dung "CI mobile đỏ ở commit này — sửa trước, hoặc --bo-kiem-ci nếu sửa gấp"
+# Cổng CI: commit này có run workflow «mobile» ĐỎ thì dừng (--khong-up: chỉ cảnh báo); đang chạy / chưa có run ⇒ cảnh báo, cho qua
+if ! "$GOC/../scripts/ci/kiem-ci.sh" $BO_CI mobile; then
+  [ "$KHONG_UP" = 1 ] && echo "!! cảnh báo (--khong-up): CI mobile đỏ ở commit này" \
+    || dung "CI mobile đỏ ở commit này — sửa trước, hoặc --bo-kiem-ci nếu sửa gấp"
+fi
 # Cổng: gói expo-* lệch bản SDK thì dừng — TF build 21 crash lúc mở vì prebuild ExpoImageManipulator
 # cần ký hiệu của ExpoModulesCore mới hơn (dyld «Symbol missing»). Sửa: npx expo install --fix
 npm run -s check:expo || dung "phụ thuộc expo lệch SDK — chạy 'npx expo install --fix', commit rồi build lại"
