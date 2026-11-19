@@ -41,8 +41,8 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     q<{ muc: string; device_id: string | null }>(`select muc, device_id from play_sessions where child_id = $1 and trang_thai = 'chay'`, [con]),
     q<{ id: string; name: string; platform: string }>(`select id, name, platform from devices where family_id = $1`, [fam]),
     mayMatMang(fam, now),
-    q<{ id: string; loai: string; gia_tri: string | null; phut: number | null; trang_thai: string; device_id: string | null; created_at: Date }>(
-      `select id, loai, gia_tri, phut, trang_thai, device_id, created_at from requests where child_id = $1 and created_at >= $2
+    q<{ id: string; loai: string; gia_tri: string | null; ten_app: string | null; phut: number | null; trang_thai: string; device_id: string | null; created_at: Date }>(
+      `select id, loai, gia_tri, ten_app, phut, trang_thai, device_id, created_at from requests where child_id = $1 and created_at >= $2
         and loai in ('mo_web', 'cai_app') and (trang_thai in ('tu_choi', 'bo_qua') or (trang_thai = 'cho' and het_han > $3))
         order by created_at desc limit 20`, [con, tu, now]),   // lời xin «cho» đã quá hạn (con thôi chờ) không còn là «đang xin»
     quyHomNay(con, now),
@@ -79,7 +79,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     .sort((a, b) => (b.luc ? new Date(b.luc).getTime() : 0) - (a.luc ? new Date(a.luc).getTime() : 0) || b.phut - a.phut).slice(0, o.gioiHan ?? 50);
 
   const biChan: DongChan[] = [
-    ...yc.map((r) => ({ luc: new Date(r.created_at).toISOString(), ten: r.gia_tri || (r.loai === "cai_app" ? "App mới" : r.loai === "mo_web" ? "Trang web" : "Mở máy"),
+    ...yc.map((r) => ({ luc: new Date(r.created_at).toISOString(), ten: r.ten_app || r.gia_tri || (r.loai === "cai_app" ? "App mới" : r.loai === "mo_web" ? "Trang web" : "Mở máy"),
       may: r.device_id ? tenMay.get(r.device_id)?.name ?? null : null, ly: (r.trang_thai === "cho" ? "dang_xin" : "chua_cho") as DongChan["ly"], yeuCau: r.id, phut: r.phut })),
   ];
   const phutHoc = dung.filter((x) => !x.tinhGio).reduce((s, x) => s + x.phut, 0);

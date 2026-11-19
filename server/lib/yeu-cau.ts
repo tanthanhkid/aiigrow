@@ -232,8 +232,8 @@ export async function themLuonYc(fam: string, id: string, nguoi: string, b: { nh
 /** «Lời xin đã bỏ qua» (thay màn «Luôn chặn») — 30 ngày, mỗi (Con, mục) một dòng mới nhất; bỏ dòng đã có trong danh sách hoặc Con đã xin lại
  *  (đang chờ / đã thêm). `con` bỏ trống = cả nhà. */
 export async function dsBoQua(fam: string, con: string | null, now = new Date()) {
-  const r = await q<{ id: string; child_id: string; ten_con: string; loai: string; gia_tri: string; ly_do: string; luc: Date; ten_nguoi: string | null; device: string | null }>(
-    `select distinct on (r.child_id, r.gia_tri) r.id, r.child_id, c.ten as ten_con, r.loai, r.gia_tri, r.ly_do, coalesce(r.xu_ly_luc, r.created_at) as luc,
+  const r = await q<{ id: string; child_id: string; ten_con: string; loai: string; gia_tri: string; ten_app: string | null; ly_do: string; luc: Date; ten_nguoi: string | null; device: string | null }>(
+    `select distinct on (r.child_id, r.gia_tri) r.id, r.child_id, c.ten as ten_con, r.loai, r.gia_tri, r.ten_app, r.ly_do, coalesce(r.xu_ly_luc, r.created_at) as luc,
             p.ten as ten_nguoi, d.name as device
        from requests r join children c on c.id = r.child_id left join parents p on p.id = r.nguoi_duyet left join devices d on d.id = r.device_id
       where c.family_id = $1 and ($2::text is null or r.child_id = $2) and r.loai in ('mo_web', 'cai_app') and r.gia_tri is not null
@@ -247,7 +247,7 @@ export async function dsBoQua(fam: string, con: string | null, now = new Date())
   for (const x of r) {
     const pl = phanLoaiTu(luat, x.child_id, x.gia_tri, allow);
     if (pl === "hoc" || pl === "giai_tri" || pl === "he_thong") continue;     // đã vào danh sách bằng đường khác
-    ds.push({ id: x.id, con: x.child_id, tenCon: x.ten_con, loai: x.loai, kieu: x.loai === "mo_web" ? "web" : "app", muc: x.gia_tri, ten: x.gia_tri,
+    ds.push({ id: x.id, con: x.child_id, tenCon: x.ten_con, loai: x.loai, kieu: x.loai === "mo_web" ? "web" : "app", muc: x.gia_tri, ten: x.ten_app ?? x.gia_tri,
       lyDo: x.ly_do || null, luc: new Date(x.luc).toISOString(), nguoiBoQua: x.ten_nguoi, may: x.device });
   }
   return { ds: ds.sort((a, b) => b.luc.localeCompare(a.luc)) };

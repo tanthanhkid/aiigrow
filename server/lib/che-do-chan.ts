@@ -149,7 +149,7 @@ export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unk
   // #422 «Xin thêm app / web» (Hôm nay, menu khay): Con chọn thẻ «App trên máy» / «Trang web» ⇒ `kieu` quyết loại lời xin. Không gửi `kieu`
   // (màn chặn, agent cũ) ⇒ tự đoán như cũ.
   if (b.kieu !== undefined && b.kieu !== null && b.kieu !== "app" && b.kieu !== "web") throw new LoiNghiepVu("kieu_sai", "Chọn App trên máy hoặc Trang web");
-  let muc: string, loai: "mo_web" | "cai_app", theoTen: boolean | undefined;
+  let muc: string, loai: "mo_web" | "cai_app", theoTen: boolean | undefined, tenApp: string | undefined;
   if (b.kieu === "web") {
     // thẻ Trang web: địa chỉ có / không có https://, đuôi ?… #… :cổng ⇒ tên miền (Con đã chọn «Trang web» ⇒ tin là trang, kể cả app.slack.com)
     const tho = String(b.muc ?? "").trim();
@@ -166,11 +166,15 @@ export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unk
     // ⇒ khoá luật là `muc`. Con gõ tên trần («Minecraft», app iPhone) — không có `ten` khác `muc`, `muc` không phải dạng app ⇒ lời xin THEO TÊN:
     // giữ tên như Con thấy, Ba Mẹ đồng ý thì thêm app theo tên (datAppChoPhep: khớp app thật máy đã báo / chờ khớp).
     if (loai === "cai_app" && kieuMuc(muc) !== "app") {
-      const ten = typeof b.ten === "string" ? b.ten.trim() : "";
+      let ten = typeof b.ten === "string" ? b.ten.trim() : "";
+      // «Xin lại» (màn Con xin) chỉ gửi `muc` ⇒ lấy lại tên + đường định danh của lời xin trước cùng mục (không rơi về đường theo tên / mã thô)
+      const cu = ten ? null : await one<{ ten_app: string }>(`select ten_app from requests where child_id = $1 and loai = 'cai_app' and gia_tri = $2
+                                     and theo_ten = false and ten_app is not null order by created_at desc limit 1`, [con, muc]);
+      if (cu) ten = cu.ten_app;
       // định danh thật: máy của nhà đã báo mục này trong danh sách app (app_may); máy chưa báo kịp ⇒ có tên khác định danh, định danh không khoảng trắng
       const daBao = !!(await one(`select 1 from app_may a join devices d on d.id = a.device_id where lower(a.muc) = $1
                                    and d.family_id = (select family_id from children where id = $2) limit 1`, [muc, con]));
-      if (daBao || (!!ten && ten.toLowerCase() !== muc && !/\s/.test(muc))) theoTen = false;
+      if (cu || daBao || (!!ten && ten.toLowerCase() !== muc && !/\s/.test(muc))) { theoTen = false; tenApp = ten || undefined; }
       else { const tho = ten || String(b.muc).trim(); if (!/[/:]/.test(tho)) { muc = tho.slice(0, 60); theoTen = true; } }
     } else if (loai === "cai_app") theoTen = false;
   }
@@ -178,7 +182,7 @@ export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unk
                                         order by created_at desc limit 1`, [con, muc, loai]);
   if (co) return { id: co.id, trang_thai: "cho", daCo: true, loai: co.loai, muc };
   const r = await guiYeuCau(con, mayId, { loai, giaTri: muc, lyDo: b.lyDo ?? "", theoTen,
-    tenApp: theoTen === false && typeof b.ten === "string" ? b.ten : undefined });
+    tenApp: theoTen === false ? tenApp ?? (typeof b.ten === "string" ? b.ten : undefined) : undefined });
   return { ...r, daCo: false, loai, muc };
 }
 

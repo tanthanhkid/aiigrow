@@ -6,7 +6,7 @@
 // Người trông giúp cũng trả lời được (quyen.ts › trongGiupDuoc).
 import { View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import { bm, laChiXem, type ConChiTiet, type YeuCau } from "@/lib/api";
+import { bm, laChiXem, tenYc, type ConChiTiet, type YeuCau } from "@/lib/api";
 import { boQuaXin, themTuXin, type Nhom } from "@/lib/app-web";
 import { NutQuyet, OIcon, RobNoi, icCuaApp, lucNgan, veHoac } from "@/lib/ui-bm3";
 import { KHOI } from "@/lib/clay";
@@ -26,7 +26,7 @@ export default function YeuCauWeb() {
   const ve = () => veHoac("/chan");
   if (!d) return <Man lui={{ chu: "", bam: ve }} tieu="Con xin mở"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   if (!d.y) return <Man lui={{ chu: "", bam: ve }} tieu="Con xin mở"><ChoTai loi="Lời xin này đã được trả lời (hoặc đã hết hạn)." tai={ve} /></Man>;
-  const y = d.y, ten = y.gia_tri ?? (y.loai === "mo_web" ? "Trang web" : "App mới"), tenCon = d.ct?.ten ?? y.ten_con;
+  const y = d.y, ten = tenYc(y) ?? (y.loai === "mo_web" ? "Trang web" : "App mới"), tenCon = d.ct?.ten ?? y.ten_con;
   const may = y.device_id ? d.ct?.may.find((m) => m.id === y.device_id)?.ten ?? null : null;
   const cho = Math.max(0, Math.round((d.luc - new Date(y.created_at).getTime()) / 60000));
   const them = (nhom: Nhom) => lam(async () => {
