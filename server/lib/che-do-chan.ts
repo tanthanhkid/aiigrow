@@ -140,16 +140,23 @@ export async function khopAppTheoTen(may: Pick<May, "id" | "family_id" | "child_
 /** App / web ngoài danh sách ⇒ lời xin chờ Ba Mẹ (cai_app cho app, mo_web cho trang web) — Ba Mẹ trả lời Tính phút / Không tính phút / Bỏ qua
  *  (lib/yeu-cau.ts). Lý do không bắt buộc. Đã có lời xin chờ cho đúng mục ⇒ trả lời xin đó (bấm lại không gửi trùng). Bị bỏ qua thì xin lại được.
  *  → { id, trang_thai: "cho", daCo, loai, muc }. */
-export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unknown; ten?: unknown; lyDo?: unknown }) {
+export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unknown; ten?: unknown; lyDo?: unknown; kieu?: unknown }) {
   const muc = chuanMuc(b.muc);
   if (!muc) throw new LoiNghiepVu("thieu_muc", "Thiếu tên app hoặc trang web");
-  const loai = kieuMuc(muc) === "web" ? "mo_web" : "cai_app";
+  // #422 «Xin thêm app / web» (Hôm nay, menu khay): Con chọn thẻ «App trên máy» / «Trang web» ⇒ `kieu` quyết loại lời xin — tên app trần
+  // («Minecraft», app iPhone theo tên) vẫn là app; thẻ Trang web phải là địa chỉ có tên miền. Không gửi `kieu` (màn chặn, agent cũ) ⇒ tự đoán như cũ.
+  const kieu = b.kieu === "web" || b.kieu === "app" ? b.kieu : kieuMuc(muc);
+  if (b.kieu === "web" && !laTenMien(muc)) throw new LoiNghiepVu("web_sai", "Gõ địa chỉ trang web, ví dụ scratch.mit.edu");
+  const loai = kieu === "web" ? "mo_web" : "cai_app";
   const co = await one<{ id: string }>(`select id from requests where child_id = $1 and gia_tri = $2 and loai = $3 and trang_thai = 'cho' and het_han > now()
                                         order by created_at desc limit 1`, [con, muc, loai]);
   if (co) return { id: co.id, trang_thai: "cho", daCo: true, loai, muc };
   const r = await guiYeuCau(con, mayId, { loai, giaTri: muc, lyDo: b.lyDo ?? "" });
   return { ...r, daCo: false, loai, muc };
 }
+
+/** Tên miền hợp lệ cho lời xin web (#422): có ít nhất một dấu chấm, đuôi ≥ 2 chữ cái, không phải tệp app (.exe / .app). */
+export const laTenMien = (muc: string) => /^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,}$/.test(muc) && !/\.(exe|app)$/.test(muc);
 
 // ---------------------------------------------------------------- Danh sách của Con (#262 — màn «App & web», «App của <Con>», «Web của <Con>»)
 

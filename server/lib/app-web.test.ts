@@ -334,3 +334,33 @@ test("review #270: đồng ý kiểu cũ «Lần này» = mở tạm (không bá
   assert.deepEqual([tl.status, tl.body.nhom], [200, "khong_tinh_phut"]);
   assert.equal((await la.phanLoai(fam, con, "code.org")).loai, "hoc");
 });
+
+test("#422 «Xin thêm app / web»: `kieu` quyết loại lời xin — thẻ App nhận tên trần, thẻ Trang web đòi tên miền; Ba Mẹ thấy đúng app / web", async () => {
+  const { fam, bm } = await taoNha("Lan");
+  const con = await g.taoCon(fam, { ten: "Bảo Anh" });
+  const tok = await taoPhien(bm);
+  const may = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop");
+  // thẻ «Trang web»: địa chỉ đầy đủ ⇒ tên miền, mo_web
+  const w = (await dv(may.token, "xin-duyet", { kieu: "web", muc: "https://scratch.mit.edu/projects", lyDo: "Con học làm game trên Scratch ạ" })).body;
+  assert.deepEqual([w.trang_thai, w.loai, w.muc], ["cho", "mo_web", "scratch.mit.edu"]);
+  // thẻ «Trang web» gõ không ra tên miền ⇒ lỗi rõ, không tạo lời xin
+  for (const sai of ["scratch", "roblox.exe"]) {
+    const r = await dv(may.token, "xin-duyet", { kieu: "web", muc: sai });
+    assert.deepEqual([r.status, r.body.error], [400, "web_sai"], sai);
+  }
+  // thẻ «App trên máy»: tên trần (không có .exe / bundle) vẫn là app — không bị hiểu nhầm thành tên miền
+  const a = (await dv(may.token, "xin-duyet", { kieu: "app", muc: "Minecraft", ten: "Minecraft" })).body;
+  assert.deepEqual([a.loai, a.muc], ["cai_app", "minecraft"]);
+  // không gửi kieu (màn chặn, agent cũ) ⇒ đoán như trước
+  assert.equal((await dv(may.token, "xin-duyet", { muc: "Paint3D.exe" })).body.loai, "cai_app");
+  // Ba Mẹ: «Chờ duyệt» + danh sách của Con hiện đúng loại
+  const cho = (await m(tok, "cho-duyet")).body.yeuCau as { id: string; loai: string; gia_tri: string; ly_do: string }[];
+  assert.deepEqual(cho.filter((x) => x.id === w.id).map((x) => [x.loai, x.gia_tri, x.ly_do]), [["mo_web", "scratch.mit.edu", "Con học làm game trên Scratch ạ"]]);
+  const ds = (await m(tok, `con/${con}/danh-sach`)).body;
+  assert.deepEqual(ds.dangXin.map((x: any) => [x.muc, x.kieu]).sort(), [["minecraft", "app"], ["paint3d.exe", "app"], ["scratch.mit.edu", "web"]]);
+  // Ba Mẹ thêm trang web ⇒ Con nhận «đã thêm»
+  assert.equal((await m(tok, `yeu-cau/${w.id}/dong-y`, { nhom: "khong_tinh_phut" })).status, 200);
+  const kq = (await dv(may.token, `yeu-cau/${w.id}`)).body;
+  assert.deepEqual([kq.ketQua, kq.nhom, kq.muc], ["da_them", "khong_tinh_phut", "scratch.mit.edu"]);
+  assert.ok(cd.laTenMien("vi.wikipedia.org") && !cd.laTenMien("minecraft"));
+});
