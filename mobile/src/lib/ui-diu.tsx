@@ -159,19 +159,19 @@ export const AvtD = ({ ten, co = 96, chu, chon }: { ten: string; i?: number; co?
   </View>
 );
 
-/** Chip «Bảo Anh ▾» dưới lời chào: chạm mở tấm «Đổi bé / Đăng xuất» (PIN 06/11 — them-j424uyis). */
+/** Chip «Bảo Anh ▾» dưới lời chào: chạm mở tấm «Đổi người / Đăng xuất» (PIN 06/11 — them-j424uyis; #267 «Đổi người»). */
 export function ChipTen({ ten, i = 0, doiBe, dangXuat }: { ten: string; i?: number; doiBe: () => void | Promise<void>; dangXuat: () => void | Promise<void> }) {
   const [mo, setMo] = useState(false);
   return (
     <>
-      <Pressable onPress={() => setMo(true)} accessibilityRole="button" accessibilityLabel={`${ten} — đổi bé hoặc đăng xuất`}
+      <Pressable onPress={() => setMo(true)} accessibilityRole="button" accessibilityLabel={`${ten} — đổi người hoặc đăng xuất`}
         style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, height: 40, paddingLeft: 4, paddingRight: 12, borderRadius: 20,
           backgroundColor: D.the, boxShadow: BONG_D.phim }}>
         <AvtD ten={ten} i={i} co={32} chon />
         <ChuD kieu="rat" co={15}>{ten}</ChuD>
         <Text style={{ fontFamily: FD.rat, fontSize: 13, color: D.chu2 }}>▾</Text>
       </Pressable>
-      <TamTruot mo={mo} dong={() => setMo(false)} nhan="Đổi bé hoặc đăng xuất">
+      <TamTruot mo={mo} dong={() => setMo(false)} nhan="Đổi người hoặc đăng xuất">
         <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
           <AvtD ten={ten} i={i} co={52} chon />
           <View style={{ flex: 1 }}>
@@ -179,9 +179,9 @@ export function ChipTen({ ten, i = 0, doiBe, dangXuat }: { ten: string; i?: numb
             <ChuD co={14} mau={D.chu2}>Đang dùng máy này</ChuD>
           </View>
         </View>
-        <NutD chu="Đổi bé" loai="phu" ic="nguoi" bam={() => { setMo(false); doiBe(); }} />
+        <NutD chu="Đổi người" loai="phu" ic="nguoi" bam={() => { setMo(false); doiBe(); }} />
         <NutD chu="Đăng xuất" ic="thoat" bam={() => { setMo(false); dangXuat(); }} />
-        <ChuD co={13.5} mau={D.chu2} giua>{`Đổi bé hay đăng xuất đều dừng tính phút của ${ten}.\nVào lại bằng tên + PIN.`}</ChuD>
+        <ChuD co={13.5} mau={D.chu2} giua>{`Đổi người hay đăng xuất đều dừng tính phút của ${ten}.\nVào lại bằng tên + PIN.`}</ChuD>
         <NutD chu="Ở lại" loai="chu" bam={() => setMo(false)} />
       </TamTruot>
     </>
