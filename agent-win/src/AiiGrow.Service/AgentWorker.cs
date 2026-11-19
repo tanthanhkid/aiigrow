@@ -187,6 +187,7 @@ public sealed class AgentWorker : BackgroundService
     private async Task<DateTimeOffset> SyncAsync(AgentConfig cfg, bool active, DateTimeOffset now, CancellationToken ct)
     {
         // #433 A1: phút rút ra vào thẳng TỔNG đã lưu (UsageTotals) — gửi lỗi KHÔNG trả lại bộ đếm (trả lại thì lần thử sau cộng đôi vào tổng).
+        UsageTotals.Shared.ChoMay(cfg.DeviceId);
         UsageTotals.Shared.Add(_rt.Usage.Drain());
         var usage = UsageTotals.Shared.CanGui(cfg.DeviceId);
         try

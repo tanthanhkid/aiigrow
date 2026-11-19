@@ -85,7 +85,8 @@ public class SaoPhut433Tests
             t1.Add(new[] { new UsageEntry("2026-11-19", "roblox.exe", "Roblox", 40) });
             var t2 = new UsageTotals();
             t2.DungTep(tep);
-            Assert.Empty(t2.CanGui("may-2"));
+            // như AgentWorker: gắn máy TRƯỚC khi cộng phút mới ⇒ bỏ 40 cũ, giữ 2 phút vừa đếm
+            t2.ChoMay("may-2");
             t2.Add(new[] { new UsageEntry("2026-11-19", "roblox.exe", "Roblox", 2) });
             Assert.Equal(2, t2.CanGui("may-2").Single().Minutes);
         }
@@ -104,6 +105,7 @@ public class SaoPhut433Tests
             File.WriteAllText(tep, noiDung);
             var t = new UsageTotals();
             t.DungTep(tep);
+            t.ChoMay("may-1");
             t.Add(new[] { new UsageEntry("2026-11-19", "roblox.exe", "Roblox", 3) });
             Assert.Equal(3, t.CanGui("may-1").Single().Minutes);
         }

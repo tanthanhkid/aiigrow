@@ -91,17 +91,25 @@ public sealed class UsageTotals
         }
     }
 
+    /// <summary>Gắn tổng với id máy hiện tại. Khác máy đã lưu ⇒ bỏ số cũ. Gọi TRƯỚC <see cref="Add"/> phút mới rút ra — gọi sau thì lần
+    /// đồng bộ đầu sau khi ghép lại mất luôn phút vừa đếm.</summary>
+    public void ChoMay(string? may)
+    {
+        if (string.IsNullOrEmpty(may)) return;
+        lock (_khoa)
+        {
+            if (_may != null && _may != may) _tong.Clear();
+            if (_may != may) { _may = may; Luu(); }
+        }
+    }
+
     /// <summary>Các dòng có tổng mới hơn số máy chủ đã nhận — gửi kèm lần đồng bộ này. <paramref name="may"/> = id máy hiện tại: khác máy đã lưu
     /// (ghép lại máy với gia đình khác / bản ghi máy mới) ⇒ bỏ số cũ (máy chủ của bản ghi mới chưa có gì, gửi số cũ là trừ sao oan).</summary>
     public List<UsageEntry> CanGui(string? may = null)
     {
         lock (_khoa)
         {
-            if (!string.IsNullOrEmpty(may))
-            {
-                if (_may != null && _may != may) _tong.Clear();
-                if (_may != may) { _may = may; Luu(); }
-            }
+            ChoMay(may);
             return _tong.Where(x => x.Value.Minutes > x.Value.DaGui).Select(x => Ra(x.Key, x.Value)).ToList();
         }
     }
