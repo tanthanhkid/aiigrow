@@ -115,13 +115,6 @@ internal sealed class BlockedForm : Form
     public static BlockedForm GioiHan(string appId, string? appName, (string Tieu, string Phu, string Dong) chu)
         => new(appId, appName, boiBaMe: true, offline: false, hetSao: true, gioiHan: chu);
 
-    /// <summary>Hộp kết quả cho lời xin đã gửi từ chỗ khác («Xin mở trang hoặc app»): đang chờ / web cấm / đã lưu chờ mạng.</summary>
-    public static BlockedForm SauKhiGui(string muc, string? ten, bool web, PipeResponse r)
-    {
-        var f = new BlockedForm(muc, ten, boiBaMe: true, offline: false, web: web);
-        f.NhanKetQua(r);
-        return f;
-    }
 
     private void GiuaManHinh()
     {

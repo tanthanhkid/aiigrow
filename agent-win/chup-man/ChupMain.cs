@@ -177,6 +177,25 @@ internal static class ChupMain
             f.VeKetQua(KetQuaXinView.Loai.ChuaThem, new RequestStatus { KetQua = "chua_them", TenNguoiDuyet = "Mẹ Lan", LoiNhan = "Con xem YouTube Kids trước nha." });
             return f;
         }));
+        // #422 con-xin: «Xin thêm app / web» — thẻ App trên máy (them-c0sycsos) / Trang web (them-u94tbp3x)
+        var appMau = new[]
+        {
+            new AppTrenMay { Muc = "youtube.exe", Ten = "YouTube" }, new AppTrenMay { Muc = "robloxplayerbeta.exe", Ten = "Roblox" },
+            new AppTrenMay { Muc = "minecraft.exe", Ten = "Minecraft" }, new AppTrenMay { Muc = "scratch.exe", Ten = "Scratch" },
+            new AppTrenMay { Muc = "zalo.exe", Ten = "Zalo" }, new AppTrenMay { Muc = "microsoft.mspaint", Ten = "Paint 3D" },
+        };
+        await Mot("xin-them-chon-app", () => ManHop("xin-them-chon-app", () =>
+        {
+            var f = new XinThemForm(18);
+            f.DatMau(appMau, "youtube.exe", "Con xem video vẽ tranh ạ");
+            return f;
+        }));
+        await Mot("xin-them-chon-web", () => ManHop("xin-them-chon-web", () =>
+        {
+            var f = new XinThemForm(18, web: true);
+            f.DatMau(appMau, null, "Con học làm game trên Scratch ạ", "scratch.mit.edu");
+            return f;
+        }));
         // Nộp bài (con-ngay-thuong 05 / 07 / 14)
         await Mot("nop-anh", () => ManHop("nop-anh", () => new NopBaiForm(NhiemVuMoi()[3])));
         await Mot("nop-ghi-am", () => ManHop("nop-ghi-am", () => new NopBaiForm(NhiemVuMoi()[1])));

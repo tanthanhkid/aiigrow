@@ -36,4 +36,80 @@ public class XinThemTests
         Assert.Equal("Ba Mẹ chưa thêm YouTube lúc này. Con xin lại sau được nhé! Con xem YouTube Kids trước nha.",
             XinThemView.LoiChuaThem("YouTube", "  Con xem YouTube Kids trước nha. "));
     }
+
+    // ---- #422 «Xin thêm app / web» (them-vkqmcblk, them-1bpjmixa, them-c0sycsos, them-u94tbp3x)
+
+    [Fact]
+    public void Chon_ChuTheoBan()
+    {
+        Assert.Equal("Xin thêm app / web", XinThemChonView.NutHomNay);
+        Assert.Equal("Xin thêm app / web…", XinThemChonView.MenuKhay);
+        Assert.Equal("AiiGrow · Xin thêm app / web", XinThemChonView.TieuDeCuaSo);
+        Assert.Equal("Chọn app trên máy hoặc gõ địa chỉ trang web", XinThemChonView.Phu);
+        Assert.Equal("App trên máy", XinThemChonView.TheApp);
+        Assert.Equal("Trang web", XinThemChonView.TheWeb);
+        Assert.Equal("Gõ địa chỉ trang con muốn vào, ví dụ scratch.mit.edu", XinThemChonView.GoiYWeb);
+        Assert.Equal("Xin Ba Mẹ mở trang này", XinThemChonView.NutWeb);
+        Assert.Equal("Xin Ba Mẹ thêm Minecraft", XinThemChonView.NutApp(" Minecraft "));
+        Assert.Equal("Chọn một app để xin", XinThemChonView.NutApp(null));
+        Assert.Equal("Xin thêm app / web ›", XinVayView.XinThemApp);
+    }
+
+    [Theory]
+    [InlineData("app", "app")]
+    [InlineData("web", "web")]
+    [InlineData("WEB", null)]
+    [InlineData("mo_web", null)]
+    [InlineData(null, null)]
+    public void Chon_ChuanKieu(string? vao, string? ra) => Assert.Equal(ra, XinThemChonView.ChuanKieu(vao));
+
+    [Theory]
+    [InlineData("scratch.mit.edu", "scratch.mit.edu")]
+    [InlineData("  Scratch.MIT.edu  ", "scratch.mit.edu")]
+    [InlineData("https://www.youtube.com/watch?v=1", "www.youtube.com")]
+    [InlineData("www.edu.vn", "www.edu.vn")]
+    [InlineData("scratch.mit.edu?lang=vi", "scratch.mit.edu")]
+    [InlineData("khanacademy.org:443/math", "khanacademy.org")]
+    [InlineData("vnexpress.net.", "vnexpress.net")]
+    [InlineData("www.com", "www.com")]
+    [InlineData("minecraft", null)]
+    [InlineData("paint.exe", null)]
+    [InlineData("https://roblox.exe", null)]
+    [InlineData("bánh.vn", null)]
+    [InlineData("scratch mit edu", null)]
+    [InlineData("scratch .mit.edu", null)]
+    [InlineData("192.168.1.1", null)]
+    [InlineData("-abc.com", null)]
+    [InlineData("abc..com", null)]
+    [InlineData("abc.c", null)]
+    [InlineData("", null)]
+    [InlineData(null, null)]
+    public void Chon_ChuanWeb_KiemCoBan(string? vao, string? ra) => Assert.Equal(ra, XinThemChonView.ChuanWeb(vao));
+
+    [Fact]
+    public void Chon_LocApp_BoTrungBoAiiGrowXepTheoTen()
+    {
+        var ds = XinThemChonView.Loc(new[]
+        {
+            new AppTrenMay { Muc = "zalo.exe", Ten = "Zalo" },
+            new AppTrenMay { Muc = "minecraft.exe", Ten = "Minecraft" },
+            new AppTrenMay { Muc = "MINECRAFT.EXE", Ten = "Minecraft (bản 2)" },
+            new AppTrenMay { Muc = "aiigrow.tray.exe", Ten = "AiiGrow" },
+            new AppTrenMay { Muc = " ", Ten = "Rỗng" },
+            new AppTrenMay { Muc = "paint.exe", Ten = "" },
+        });
+        Assert.Equal(new[] { "Minecraft", "paint.exe", "Zalo" }, ds.Select(a => a.Ten));
+        Assert.Equal("minecraft.exe", ds[0].Muc);
+        Assert.Empty(XinThemChonView.Loc(null));
+    }
+
+    [Fact]
+    public void LoiXinCho_GiuKieuQuaJson()
+    {
+        var x = new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "scratch.mit.edu", Kieu = XinThemChonView.KieuWeb };
+        var lai = System.Text.Json.JsonSerializer.Deserialize<LoiXinCho>(System.Text.Json.JsonSerializer.Serialize(x, Json.Options), Json.Options)!;
+        Assert.Equal("web", lai.Kieu);
+        var req = System.Text.Json.JsonSerializer.Serialize(new PipeRequest { Cmd = PipeCmd.XinDuyet, AppId = "minecraft.exe", Kieu = "app" }, Json.Options);
+        Assert.Contains("\"kieu\":\"app\"", req);
+    }
 }

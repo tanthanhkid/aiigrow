@@ -247,7 +247,7 @@ public sealed class AgentWorker : BackgroundService
             {
                 try
                 {
-                    if (x.Loai == LoaiXin.XinDuyet) await api.XinDuyetAsync(x.Muc ?? "", x.Ten, x.LyDo, ct);
+                    if (x.Loai == LoaiXin.XinDuyet) await api.XinDuyetAsync(x.Muc ?? "", x.Ten, x.LyDo, x.Kieu, ct);
                     else if (x.Loai == LoaiXin.VaySao) await api.XinVayAsync(x.Phut, x.LyDo, x.Muc, ct);   // Muc = quà muốn đổi (vay để đổi quà) hoặc trống
                     else { _log.LogInformation("Bỏ lời xin chờ mạng loại cũ {loai} (đã bỏ từ 15/11)", x.Loai); return KetQuaGuiXin.Bo; }
                     _log.LogInformation("Có mạng: đã gửi lời xin {loai} {muc} lưu lúc {luc}", x.Loai, x.Muc, x.Luc);

@@ -71,6 +71,8 @@ public sealed class AgentRuntime
     public int ChildSessionId { get; set; } = -1;
     /// <summary>16/11 (#307): mục → tên hiển thị theo lần quét danh sách app gần nhất (DanhSachAppWorker) — khay hiện «Từ điển», không «Tudien».</summary>
     public volatile IReadOnlyDictionary<string, string>? TenAppMay;
+    /// <summary>#422: app đã cài theo lần quét gần nhất (mục + tên) — lưới «App trên máy» của hộp «Xin thêm app / web» (PipeCmd.AppMay). null = chưa quét.</summary>
+    public volatile IReadOnlyList<AppTrenMay>? AppMay;
     /// <summary>05/11 (L11): bài nộp lúc mất mạng đang chờ gửi (BaiChoMang, mỗi bài một tệp). PipeServer / AgentWorker cập nhật số đếm.</summary>
     public BaiChoMang BaiCho { get; } = new(BaiChoMang.ThuMucMacDinh);
     public volatile int SoBaiCho = -1;

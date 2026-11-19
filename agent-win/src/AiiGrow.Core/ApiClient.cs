@@ -132,9 +132,10 @@ public sealed class ApiClient : IDisposable
         => PostAsync<RequestResult>("api/device/yeu-cau", new { loai = loai == LoaiXin.MoWeb ? LoaiXin.MoWeb : LoaiXin.CaiApp, giaTri = muc, lyDo = XinMoView.LyDo(note, muc) }, ct);
 
     /// <summary>Thiết kế 05/11 (L4): «Xin Ba Mẹ duyệt» app / web lạ — POST /api/device/xin-duyet {muc, ten?, lyDo?} → {id, trang_thai, daCo, loai, muc}.
-    /// Máy chủ tự nhận app / web. Lý do không bắt buộc.</summary>
-    public Task<RequestResult> XinDuyetAsync(string muc, string? ten, string? lyDo, CancellationToken ct = default)
-        => PostAsync<RequestResult>("api/device/xin-duyet", new { muc, ten, lyDo = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo!.Trim() }, ct);
+    /// Máy chủ tự nhận app / web. Lý do không bắt buộc. #422: <paramref name="kieu"/> «app» | «web» (Con chọn thẻ ở hộp «Xin thêm app / web»; null = không gửi —
+    /// máy chủ tự đoán như trước, máy chủ cũ bỏ qua trường lạ). kieu=web mà không phải tên miền ⇒ 400 web_sai (câu máy chủ ở ApiException.Message).</summary>
+    public Task<RequestResult> XinDuyetAsync(string muc, string? ten, string? lyDo, string? kieu, CancellationToken ct = default)
+        => PostAsync<RequestResult>("api/device/xin-duyet", new { muc, ten, lyDo = string.IsNullOrWhiteSpace(lyDo) ? null : lyDo!.Trim(), kieu = XinThemChonView.ChuanKieu(kieu) }, ct);
 
     /// <summary>Xét trước «Dùng sao để chơi?» cho một mục (POST phien/xet). Máy chủ quyết định cho hay không.</summary>
     public Task<PlayCheck> CheckPlayAsync(string muc, CancellationToken ct = default)

@@ -12,6 +12,8 @@ public sealed class LoiXinCho
     public string? Ten { get; set; }
     public int Phut { get; set; }
     public string? LyDo { get; set; }
+    /// <summary>#422: lời xin duyệt từ hộp «Xin thêm app / web» — «app» | «web» (null = lời xin cũ / màn chặn tự gửi ⇒ máy chủ tự đoán).</summary>
+    public string? Kieu { get; set; }
     public DateTimeOffset Luc { get; set; }
     /// <summary>Số lần gửi lỗi đường truyền khi đã có mạng (hết giờ chờ — máy chủ có thể đã nhận) ⇒ quá <see cref="HangXinCho.ThuToiDa"/> thì bỏ, không tạo lời xin trùng mãi.</summary>
     public int LanLoi { get; set; }
