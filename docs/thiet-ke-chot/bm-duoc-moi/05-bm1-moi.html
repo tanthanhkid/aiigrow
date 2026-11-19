@@ -9,7 +9,7 @@ html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-fami
 .lui{flex:none;width:44px;height:44px;display:grid;place-items:center;color:var(--ink);font-size:24px}
 .muc{display:flex;align-items:center;margin:18px 6px 8px;font-size:15px;font-weight:800;color:var(--ink)}
 .muc::before{content:"";width:9px;height:13px;margin-right:7px;background:#D9AE57;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}
-.ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--sunk);color:var(--ink);font-size:22px}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:#E3D9CB;box-shadow:inset 4px 4px 8px rgba(120,98,70,.28),inset -4px -4px 8px #FFFBF5;color:var(--ink);font-size:22px}
 .kim{background:var(--kim);color:#0A1629;font-weight:700;box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
 .nutk{display:flex;align-items:center;justify-content:center;height:54px;border-radius:16px;font-size:16px;font-weight:700;color:#0A1629;white-space:nowrap;background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
 .nutp{display:flex;align-items:center;justify-content:center;height:46px;border-radius:16px;font-size:15px;font-weight:700;color:#0A1629;white-space:nowrap;background:var(--n);box-shadow:var(--sh)}
@@ -33,7 +33,7 @@ html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-fami
 .nut{height:56px;font-size:17px}
 .lk{display:flex;align-items:center;justify-content:center;min-height:46px;font-size:15px;font-weight:700;color:#8a6a2b}
 </style></head>
-<body><div class="app">
+<body data-lk-sua=""><div class="app">
 <div class="san"><div class="nha"><span class="l">L</span><span class="a">A</span><span class="m">M</span><span class="n">N</span><span class="k">K</span><span class="ban">T</span></div><img class="rob" src="/assets/rob/chi.webp" alt=""></div>
 <div class="chu"><h1>Mẹ Lan mời bạn vào nhà</h1><p>Cùng trông 4 bé nhà mình</p></div>
 <div class="lam">
@@ -42,8 +42,8 @@ html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-fami
 <div><span class="ic"><svg viewBox="0 0 24 24" class="sv"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>Khoá máy<br>khi cần</div>
 </div>
 <div class="day">
-<span class="nutk nut" role="button" tabindex="0">Vào nhà cùng Mẹ Lan</span>
-<span class="lk" role="button" tabindex="0">Không phải tôi</span>
+<span class="nutk nut" role="button" tabindex="0" data-toi="bm2-trang-chu">Vào nhà cùng Mẹ Lan</span>
+<span class="lk" role="button" tabindex="0" data-toi="bm1-welcome">Không phải tôi</span>
 </div>
 </div>
 </body></html>

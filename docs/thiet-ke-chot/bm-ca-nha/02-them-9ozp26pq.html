@@ -1,71 +1,63 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
 <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
-:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--c2:#3a3a3a;--c3:#5f554b;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--the:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--nho:4px 4px 9px var(--lo),-4px -4px 9px var(--hi);--lom:inset 4px 4px 8px var(--lo),inset -4px -4px 8px var(--hi);--vang:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6);--ranh:#E4DACD;--xam:#E3D9CB;--dau:#C9973B}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
 .app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--n)}
-.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(var(--n) 75%,rgba(236,228,217,0))}
-.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0A1629}
-.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
-.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;overflow-x:hidden;padding:4px 16px 120px;scrollbar-width:none;z-index:1}
-.cuon::-webkit-scrollbar{display:none}
-.the{position:relative;height:180px;border-radius:30px;background:var(--ink);box-shadow:var(--shL),inset 0 0 0 1px rgba(244,199,106,.35);overflow:hidden}
-.the .rob{position:absolute;right:-6px;bottom:-14px;width:140px;height:auto}
-.avt{position:absolute;left:20px;top:18px;width:74px;height:74px;border-radius:50%;display:grid;place-items:center;background:var(--ink);box-shadow:0 0 0 3px #D9AE57;font-size:32px;font-weight:800;color:#F4C76A}
-.cam{position:absolute;left:68px;top:62px;width:44px;height:44px;display:grid;place-items:center}
-.cam i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--sh)}
-.cam svg{width:17px;height:17px;color:var(--ink)}
-.ten{position:absolute;left:22px;bottom:18px}
-.ten b{display:block;font-size:26px;line-height:30px;font-weight:800;letter-spacing:-.5px;color:#F2EBE3}
-.ten span{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:3px 12px 3px 6px;border-radius:16px;background:var(--kim);font-size:13.5px;font-weight:800;color:#0A1629}
-.ten span i{display:grid;place-items:center}.ten span svg{width:16px;height:16px}
-.muc{display:flex;align-items:center;margin:18px 6px 8px;font-size:15px;font-weight:800;color:var(--ink)}
-.muc::before{content:"";width:9px;height:13px;margin-right:7px;background:#D9AE57;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}
-.lom{display:flex;align-items:center;height:52px;padding:0 20px;border-radius:26px;background:var(--n);box-shadow:var(--sunk)}
-.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 18px 'Be Vietnam Pro',sans-serif;color:#0A1629}
-.lom.chon{justify-content:space-between;font-size:17px;font-weight:700;cursor:pointer}
-.lom.chon small{font-size:13px;font-weight:600;color:var(--ink2)}
-.lom.chon svg{width:20px;height:20px;fill:#0A1629}
-.mau{display:flex;gap:12px;align-items:center;padding-left:4px}
-.mau i{width:44px;height:44px;border-radius:50%;background:var(--n);box-shadow:var(--sunk);display:grid;place-items:center}
-.mau i::after{content:"";width:16px;height:16px;border-radius:50%;background:var(--d)}
-.mau i.chon{background:var(--ink);box-shadow:0 0 0 2px #D9AE57}
-.pin{position:relative;margin-top:18px;padding:14px 12px;border-radius:28px;background:var(--n);box-shadow:var(--shL)}
-.pin .dau{display:flex;align-items:center;gap:10px;margin:0 0 10px 2px;font-size:15px;font-weight:800}
-.pin .dau .ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--sunk);color:var(--ink)}.pin .dau .ic svg{width:22px;height:22px}
-.pin .dau em{margin-left:auto;margin-right:4px;font-style:normal;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4;background:var(--n)}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:var(--ink)}
+.top h1{flex:1;min-width:0;padding:4px 0 4px 2px;font-size:22px;line-height:28px;font-weight:800;letter-spacing:-.4px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:88px;overflow:hidden;padding:4px 16px 24px;display:flex;flex-direction:column;gap:12px;z-index:1}
+.the{position:relative;flex:none;min-height:170px;border-radius:30px;background:var(--n);padding:18px;display:flex;align-items:center;box-shadow:var(--the)}
+.the .tr{display:flex;flex-direction:column;align-items:flex-start;gap:10px;max-width:44%}
+.avb{position:relative;width:84px;height:84px;border-radius:42px;border:4px solid var(--n);box-shadow:var(--nho)}
+.avb .a{width:76px;height:76px;border-radius:38px;background:var(--ink);display:grid;place-items:center;font-size:34.2px;line-height:39px;font-weight:800;color:#F4C76A;box-shadow:var(--nho),inset 0 0 0 2px rgba(217,174,87,.85)}
+.avb .cam{position:absolute;right:-8px;bottom:-6px;width:34px;height:34px;border-radius:17px;background:var(--n);display:grid;place-items:center;box-shadow:var(--nho)}
+.avb .cam img{width:20px;height:20px}
+.the .ten{font-size:24px;line-height:28px;font-weight:800;color:var(--ink)}
+.chip{display:flex;align-items:center;gap:4px;background:var(--n);border-radius:99px;padding:3px 10px;box-shadow:var(--nho)}
+.chip i{font-style:normal;font-size:13px;line-height:19px}.chip b{font-size:12.5px;line-height:18px;font-weight:800}
+.the .rob{position:absolute;right:6px;bottom:0;top:6px;width:48%;display:flex;align-items:flex-end;justify-content:flex-end}
+.the .rob img{width:150px;height:150px;object-fit:contain}
+.anh{display:flex;gap:8px}
+.anh div{flex:1;min-height:56px;border-radius:22px;background:var(--n);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;box-shadow:var(--nho);font-size:12.5px;line-height:18px;font-weight:800;color:var(--c2)}
+.anh img{width:24px;height:24px}
+.f{display:flex;flex-direction:column;gap:6px}
+.f label,.f .l{padding:0 4px;font-size:14px;line-height:21px;font-weight:800;display:block}
+.o{display:flex;align-items:center;min-height:54px;border-radius:27px;background:var(--ranh);box-shadow:var(--lom);padding:0 18px}
+.o input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:600 17px 'Be Vietnam Pro',sans-serif;color:var(--ink);padding:12px 0}
+.o.nam{font-variant-numeric:tabular-nums}
+.o.nam b{flex:1;font-size:18px;line-height:23px;font-weight:800}
+.o.nam svg{width:18px;height:18px;fill:var(--ink)}
+.f .gc{margin:0 6px;font-size:13px;line-height:19px;color:var(--c3)}
+.mau{display:flex;gap:12px;padding:0 4px}
+.mau i{width:50px;height:50px;border-radius:25px;display:grid;place-items:center}
+.mau i::after{content:"";width:38px;height:38px;border-radius:19px;background:var(--d);box-shadow:var(--nho)}
+.mau i.c{box-shadow:inset 0 0 0 3px var(--dau)}
+.pin{flex:none;display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:30px;background:var(--n);box-shadow:var(--the)}
+.pin .dau{display:flex;align-items:center;gap:10px}
+.pin .ic{flex:none;width:40px;height:40px;border-radius:14px;background:var(--xam);box-shadow:var(--lom);display:grid;place-items:center}.pin .ic img{width:24px;height:24px}
+.pin .dau b{flex:1;font-size:15px;line-height:22px;font-weight:800}.pin .dau em{font-style:normal;font-size:12.5px;line-height:18px;font-weight:600;color:var(--c2)}
 .o4{display:flex;gap:10px}
-.o4 i{flex:1;height:52px;border-radius:20px;background:var(--n);box-shadow:var(--sunk);display:grid;place-items:center;font-style:normal;font-size:22px;font-weight:800;color:#0A1629}
-.o4 i.dang{box-shadow:0 0 0 2px #D9AE57,var(--sunk)}
-.goi{margin:10px 2px 0;font-size:12.5px;line-height:17px;font-weight:400;color:var(--ink2)}
-.goi b{color:#0A1629;font-weight:800}
-.day{position:absolute;left:0;right:0;bottom:0;padding:14px 16px 26px;z-index:3;background:linear-gradient(rgba(236,228,217,0),var(--n) 18px)}
-.nut{display:flex;align-items:center;justify-content:center;width:100%;height:54px;border-radius:16px;border:0;font:700 16px 'Be Vietnam Pro',sans-serif;color:#0A1629;white-space:nowrap;background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.o4 i{flex:1;max-width:84px;height:58px;border-radius:20px;background:var(--xam);box-shadow:var(--lom);display:grid;place-items:center;font-style:normal;font-size:26px;line-height:30px;font-weight:800;font-variant-numeric:tabular-nums}
+.o4 i.d{box-shadow:0 0 0 2.5px var(--ink),var(--lom)}
+.pin .g{font-size:13px;line-height:19px;color:var(--c2)}.pin .g b{font-weight:800;color:var(--ink)}
+.prow{flex:none;display:flex;align-items:center;gap:8px;min-height:44px;padding:0 6px}
+.prow img{width:22px;height:22px}.prow span{flex:1;font-size:14px;line-height:21px;font-weight:800;color:var(--c2)}
+.prow b{font-size:14px;line-height:21px;font-weight:800;color:var(--ink)}.prow svg{width:16px;height:16px;fill:var(--ink)}
+.day{position:absolute;left:0;right:0;bottom:0;padding:10px 16px 24px;background:var(--n);z-index:3}
+.nut{display:flex;align-items:center;justify-content:center;width:100%;min-height:54px;padding:0 20px;border-radius:28px;border:0;font:800 16px/22px 'Be Vietnam Pro',sans-serif;color:var(--ink);white-space:nowrap;background:var(--kim);box-shadow:var(--vang)}
 </style></head>
 <body data-lk-sua=""><div class="app">
 <div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-h60stad7"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Thêm con</h1></div>
 <div class="cuon">
-<div class="the" aria-label="Xem trước hồ sơ của con">
-<div class="avt">K</div>
-<div class="cam" role="button" tabindex="0" aria-label="Thêm ảnh của con"><i><svg viewBox="0 0 256 256" fill="currentColor"><path d="M208,52H182.42L170,33.34A12,12,0,0,0,160,28H96a12,12,0,0,0-10,5.34L73.57,52H48A28,28,0,0,0,20,80V192a28,28,0,0,0,28,28H208a28,28,0,0,0,28-28V80A28,28,0,0,0,208,52ZM128,180a44,44,0,1,1,44-44A44.05,44.05,0,0,1,128,180Z"></path></svg></i></div>
-<div class="ten"><b>Khang</b><span aria-label="9 tuổi, theo năm sinh 2017"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg></i>9 tuổi</span></div>
-<img class="rob" src="/assets/rob/chi.webp" alt="">
+<div class="the" aria-label="Xem trước hồ sơ của con"><div class="tr"><div class="avb"><div class="a">K</div><div class="cam" role="button" tabindex="0" aria-label="Chụp ảnh đại diện"><img src="/assets/icon3d/camera.webp" alt=""></div></div><div class="ten">Khang</div><div class="chip" aria-label="9 tuổi, tuổi Dậu, theo năm sinh 2017"><i>🐓</i><b>9 tuổi</b></div></div><div class="rob"><img src="/assets/rob/chi.webp" alt=""></div></div>
+<div class="anh"><div role="button" tabindex="0" aria-label="Chụp ảnh đại diện"><img src="/assets/icon3d/camera.webp" alt="">Chụp ảnh</div><div role="button" tabindex="0" aria-label="Chọn ảnh đại diện"><img src="/assets/icon3d/tia.webp" alt="">Chọn ảnh</div></div>
+<div class="f"><label>Tên gọi ở nhà</label><div class="o"><input aria-label="Tên gọi ở nhà" value="Khang"></div></div>
+<div class="f"><span class="l">Năm sinh</span><div class="o nam" role="button" tabindex="0" aria-label="Chọn năm sinh của con, đang là 2017" data-toi="them-hjjdppuw"><b>2017</b><svg viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div></div>
+<div class="f"><span class="l">Màu của con</span><div class="mau" role="radiogroup" aria-label="Chọn màu để nhận ra con"><i style="--d:#0A1629"></i><i style="--d:#C9973B" class="c"></i><i style="--d:#9C5B2E"></i><i style="--d:#4F6B2A"></i><i style="--d:#6E3B4E"></i></div></div>
+<div class="pin" aria-label="Mã PIN vào máy"><div class="dau"><span class="ic"><img src="/assets/icon3d/khoa.webp" alt=""></span><b>Mã PIN vào máy</b><em>4 số</em></div><div class="o4" aria-label="Đặt PIN 4 số"><i>3</i><i>8</i><i class="d"></i><i></i></div><div class="g"><b>Khang dùng PIN này để vào máy.</b> Không dùng ngày sinh.</div></div>
 </div>
-<p class="muc">Tên gọi ở nhà</p>
-<div class="lom"><input aria-label="Tên gọi ở nhà của con" value="Khang"></div>
-<p class="muc">Năm sinh</p>
-<div class="lom chon" role="button" tabindex="0" aria-label="Chọn năm sinh của con" data-toi="them-hjjdppuw"><span>2017 <small>· tuổi Dậu</small></span><svg viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
-<p class="muc">Màu của con</p>
-<div class="mau" aria-label="Chọn màu để nhận ra con"><i style="--d:#7c7166"></i><i style="--d:#C9973B"></i><i style="--d:#b9ad9e"></i><i class="chon" style="--d:#F4C76A"></i><i style="--d:#5b5248"></i></div>
-<div class="pin" aria-label="Mã PIN vào máy của Khang">
-<div class="dau"><span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span>Mã PIN vào máy<em>4 số</em></div>
-<div class="o4" aria-label="Đặt PIN 4 số"><i>•</i><i>•</i><i class="dang"></i><i></i></div>
-<div class="goi"><b>Khang dùng PIN này để vào máy.</b> Không dùng ngày sinh.</div>
-</div>
-</div>
-<div class="day">
-<button class="nut" type="button" data-toi="them-5t1kazz5">Lưu hồ sơ Khang</button>
-</div>
-</div>
-</body></html>
+<div class="day"><button class="nut" type="button" data-toi="them-5t1kazz5">Lưu hồ sơ Khang</button></div>
+</div></body></html>
