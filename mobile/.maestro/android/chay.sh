@@ -7,7 +7,7 @@ adb shell pm list packages | grep vn.aiilab.aiigrow
 adb logcat -c
 rc=0
 cd mobile/.maestro/android
-maestro test --format junit --output "$OUT/junit.xml" --test-output-dir "$OUT/anh" --debug-output "$OUT/debug" . 2>&1 | tee "$OUT/maestro.txt"
+maestro test --format junit --output "$OUT/junit.xml" --debug-output "$OUT/debug" . 2>&1 | tee "$OUT/maestro.txt"
 rc=${PIPESTATUS[0]}
 cd - >/dev/null
 adb logcat -d -v time > "$OUT/logcat.txt" 2>&1 || true
