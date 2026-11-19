@@ -422,7 +422,7 @@ internal sealed class XinThemForm : HopKhayCoBan
         if (hoiTiep) _taiLai.Start();
         if (_busy) { if (!_taiLai.Enabled) _taiLai.Start(); return; }   // đang gửi ⇒ không bỏ lưới đang hiện, hỏi lại sau
         var doi = cu == null || cu.Count != _dsApp.Count || !cu.Select(a => a.Muc + "\u001f" + a.Ten).SequenceEqual(_dsApp.Select(a => a.Muc + "\u001f" + a.Ten));
-        if (!doi && daTaiCu == _daTaiApp) return;
+        if (!doi && (daTaiCu == _daTaiApp || _dsApp.Count > 0)) return;   // nhãn «Đang đọc / Chưa đọc được» chỉ hiện khi danh sách rỗng
         BoLuoi();
         if (!_dangChon || _theWeb) return;
         VeChon();

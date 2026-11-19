@@ -252,8 +252,9 @@ public sealed class PipeServer : BackgroundService
             case PipeCmd.AppMay:
             {
                 // #422: chỉ đọc (mục + tên app đã cài, không đường dẫn / icon) — lưới «App trên máy»; chưa quét xong ⇒ mảng rỗng
-                var ds = _rt.AppMay ?? Array.Empty<AppTrenMay>();
-                return new PipeResponse { Ok = true, Data = JsonSerializer.Serialize(ds, Json.Options), Status = _rt.AppMay == null ? "chua_quet" : "ok" };
+                if (!duocXin) return new PipeResponse { Ok = false, Error = "Chỉ tài khoản của con được xem danh sách này" };
+                var ds = _rt.AppMay;   // đọc một lần: Data và Status cùng một lần quét
+                return new PipeResponse { Ok = true, Data = JsonSerializer.Serialize(ds ?? Array.Empty<AppTrenMay>(), Json.Options), Status = ds == null ? "chua_quet" : "ok" };
             }
 
             case PipeCmd.KiemCapNhat:
