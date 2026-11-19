@@ -46,7 +46,7 @@ export default function Chup() {
   const [chon, setChon] = useState<Cach | null>(null);
   const gui = (anh: AnhNop[], ghiChu?: string, ghiAm?: AnhNop) => lam(async () => {
     const r = await nopBai(luot, { anh, ghiChu, ghiAm });
-    const q = new URLSearchParams({ diem: String(d?.sao ?? d?.diem ?? ""), ten: d?.ten ?? "", ...(r.daXepHang ? { xep: "1" } : {}) }).toString();
+    const q = new URLSearchParams({ diem: String(d?.sao ?? d?.diem ?? ""), ten: d?.ten ?? "", ...(r.daXepHang ? { xep: "1" } : {}), ...(anh.length ? { anh: "1" } : {}) }).toString();
     router.replace(r.trang_thai === "duoc_duyet" ? `/tre/duoc-duyet/${luot}` : `/tre/cho-duyet?${q}`);
   });
   const macDinh: Cach = d?.bang_chung === "van_ban" ? "viet" : d?.bang_chung === "ghi_am" ? "ghi" : "anh";

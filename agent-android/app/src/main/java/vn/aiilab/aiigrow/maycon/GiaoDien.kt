@@ -250,12 +250,13 @@ object GiaoDien {
         private val tieuMa = Diu.chu(c, "", 20f, CHU, true).apply { gravity = Gravity.CENTER }
         private val phuMa = Diu.chu(c, "", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 4), 0, 0) }
         private val baoMa = Diu.chu(c, "", 15f, Diu.LOI_DAM, true).apply { gravity = Gravity.CENTER; setPadding(0, dp(c, 8), 0, 0); visibility = View.GONE }
+        private val nutMo = Diu.nut(c, "Mở tạm bằng mã") { guiMa() }
         private val theMa = Diu.the(c).apply {
             gravity = Gravity.CENTER_HORIZONTAL; visibility = View.GONE
             addView(tieuMa); addView(phuMa); addView(oMa.goc)
             addView(baoMa)
             addView(Diu.banPhim(c, { s -> if (maGo.length < 6 && !dangGui) { maGo += s; veMa(false) } }, { if (maGo.isNotEmpty()) { maGo = maGo.dropLast(1); veMa(false) } }))
-            addView(Diu.nut(c, "Mở máy bằng mã") { guiMa() })
+            addView(nutMo)
             addView(Diu.nut(c, "Đóng", Diu.KieuNut.CHU) { visibility = View.GONE; maGo = "" })
         }
 
@@ -276,6 +277,7 @@ object GiaoDien {
             maBaMe = baMe; maGo = ""; daMoBangMa = false; baoMa.visibility = View.GONE
             tieuMa.text = if (baMe) "Ba Mẹ nhập mã" else "Mất mạng"
             phuMa.text = if (baMe) "Mở app AiiGrow của Ba Mẹ → Mã mở máy" else "Ba Mẹ ở cạnh con? Nhờ Ba Mẹ đọc mã 6 số trong AiiGrow."
+            nutMo.text = if (baMe) "Mở máy cho Ba Mẹ" else "Mở tạm bằng mã"
             theMa.visibility = View.VISIBLE; veMa(false)
             goc.post { goc.smoothScrollTo(0, theMa.top + phanKhoa.top) }
         }
