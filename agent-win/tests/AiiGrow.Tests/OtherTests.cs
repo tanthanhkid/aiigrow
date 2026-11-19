@@ -19,15 +19,7 @@ public class UsageTrackerTests
         Assert.Empty(u.Drain());
     }
 
-    [Fact]
-    public void Restore_KhongMatPhutKhiSyncLoi()
-    {
-        var u = new UsageTracker();
-        u.Add(T, "a.exe", "A", 180);
-        var d = u.Drain();
-        u.Restore(d);
-        Assert.Equal(3, Assert.Single(u.Drain()).Minutes);
-    }
+    // (#433 A1) Restore bỏ: phút rút ra vào thẳng UsageTotals, sync lỗi không trả lại bộ đếm — xem SaoPhut433Tests.A1_GuiLoi_ThuLai_KhongCongDoi.
 
     [Fact]
     public void Add_TachTheoAppVaNgay()
