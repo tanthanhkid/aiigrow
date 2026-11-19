@@ -9,27 +9,27 @@ Tổng 368 màn, 32 hành trình.
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`bm2-trang-chu`](bm-hang-ngay/01-bm2-trang-chu.html) | Trang chủ | 375×812 | Anh Thành 17/11: bỏ nút «Cho vay sao» thường trực; chỉ hiện khi con xin vay hoặc xin quà mà thiếu sao (ứng sao). Thẻ con xin nằm trong «Cần Ba Mẹ để ý». Màu Navy + tab viên kem. |
-| 2 | [`them-0kwhgpq6`](bm-hang-ngay/02-them-0kwhgpq6.html) | MỚI · Trang chủ · máy đang khoá | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 3 | [`them-1mnk3mjz`](bm-hang-ngay/03-them-1mnk3mjz.html) | Hôm nay · máy con mất mạng | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 4 | [`them-sll7clha`](bm-hang-ngay/04-them-sll7clha.html) | Xác nhận khoá Bảo Anh | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 5 | [`them-cjrbm5gj`](bm-hang-ngay/05-them-cjrbm5gj.html) | Xác nhận khoá Bảo Minh | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 6 | [`them-6wjhze1d`](bm-hang-ngay/06-them-6wjhze1d.html) | Cho vay sao | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 7 | [`them-y1r1eidm`](bm-hang-ngay/07-them-y1r1eidm.html) | ĐỀ XUẤT #266 · Cho vay khi đang nợ quá 1.000 | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 8 | [`them-rz77kk45`](bm-hang-ngay/08-them-rz77kk45.html) | Mã mở máy cho Bảo Anh | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 9 | [`them-s8nltlaa`](bm-hang-ngay/09-them-s8nltlaa.html) | Đã mở máy bằng mã | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 10 | [`them-0xf9hrgn`](bm-hang-ngay/10-them-0xf9hrgn.html) | Thông báo | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 11 | [`them-5twxl6hf`](bm-hang-ngay/11-them-5twxl6hf.html) | ĐỀ XUẤT #266 · Cảnh báo: Bảo Anh nợ quá 1.000 sao | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 12 | [`them-0g3j910d`](bm-hang-ngay/12-them-0g3j910d.html) | Thông báo đẩy: Bảo Anh nợ quá 1.000 sao | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 13 | [`them-lsf4eews`](bm-hang-ngay/13-them-lsf4eews.html) | Cảnh báo: con xin mở trang | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 14 | [`them-c4ldnqj8`](bm-hang-ngay/14-them-c4ldnqj8.html) | MỚI · Cảnh báo: Grow bị tắt trên Laptop | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
-| 15 | [`them-y5iwt1fv`](bm-hang-ngay/15-them-y5iwt1fv.html) | MỚI · Cảnh báo: iPad mất liên lạc hơn 1 ngày | 375×812 | Màu Navy · đồng bộ 17/11 — chỉ đổi màu/font, giữ bố cục |
+| 1 | [`bm2-trang-chu`](bm-hang-ngay/01-bm2-trang-chu.html) | Trang chủ | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-0kwhgpq6`](bm-hang-ngay/02-them-0kwhgpq6.html) | MỚI · Trang chủ · máy đang khoá | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-1mnk3mjz`](bm-hang-ngay/03-them-1mnk3mjz.html) | Hôm nay · máy con mất mạng | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-sll7clha`](bm-hang-ngay/04-them-sll7clha.html) | Xác nhận khoá Bảo Anh | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-cjrbm5gj`](bm-hang-ngay/05-them-cjrbm5gj.html) | Xác nhận khoá Bảo Minh | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-6wjhze1d`](bm-hang-ngay/06-them-6wjhze1d.html) | Cho vay sao | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-y1r1eidm`](bm-hang-ngay/07-them-y1r1eidm.html) | ĐỀ XUẤT #266 · Cho vay khi đang nợ quá 1.000 | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-rz77kk45`](bm-hang-ngay/08-them-rz77kk45.html) | Mã mở máy cho Bảo Anh | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-s8nltlaa`](bm-hang-ngay/09-them-s8nltlaa.html) | Đã mở máy bằng mã | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-0xf9hrgn`](bm-hang-ngay/10-them-0xf9hrgn.html) | Thông báo | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`them-5twxl6hf`](bm-hang-ngay/11-them-5twxl6hf.html) | ĐỀ XUẤT #266 · Cảnh báo: Bảo Anh nợ quá 1.000 sao | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`them-0g3j910d`](bm-hang-ngay/12-them-0g3j910d.html) | Thông báo đẩy: Bảo Anh nợ quá 1.000 sao | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 13 | [`them-lsf4eews`](bm-hang-ngay/13-them-lsf4eews.html) | Cảnh báo: con xin mở trang | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 14 | [`them-c4ldnqj8`](bm-hang-ngay/14-them-c4ldnqj8.html) | MỚI · Cảnh báo: Grow bị tắt trên Laptop | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 15 | [`them-y5iwt1fv`](bm-hang-ngay/15-them-y5iwt1fv.html) | MỚI · Cảnh báo: iPad mất liên lạc hơn 1 ngày | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## Ba Mẹ · Lần đầu dùng (`bm-lan-dau`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`bm1-welcome`](bm-lan-dau/01-bm1-welcome.html) | Màu Navy · đồng bộ 17/11 | 390×844 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
+| 1 | [`bm1-welcome`](bm-lan-dau/01-bm1-welcome.html) | E Ánh kim · 19/11 #442 | 390×844 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 | 2 | [`bm1-chao`](bm-lan-dau/02-bm1-chao.html) | Màu Navy · đồng bộ 17/11 | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
 | 3 | [`bm1-dang-ky`](bm-lan-dau/03-bm1-dang-ky.html) | Màu Navy · đồng bộ 17/11 | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
 | 4 | [`them-ahk69dtl`](bm-lan-dau/04-them-ahk69dtl.html) | Số đã có tài khoản | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
@@ -39,34 +39,34 @@ Tổng 368 màn, 32 hành trình.
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`bm2-ung-dung-may`](bm-ung-dung/01-bm2-ung-dung-may.html) | Ứng dụng trên máy | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 2 | [`them-98obxv7x`](bm-ung-dung/02-them-98obxv7x.html) | Mở hết · đang bật | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 3 | [`them-g7g1cel5`](bm-ung-dung/03-them-g7g1cel5.html) | App của Bảo Anh (danh sách) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 4 | [`them-vw103x88`](bm-ung-dung/04-them-vw103x88.html) | Thêm app cho Bảo Anh | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 5 | [`bm2-app-web`](bm-ung-dung/05-bm2-app-web.html) | Ứng dụng (chưa xếp) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 6 | [`bm2-web`](bm-ung-dung/06-bm2-web.html) | Trang web | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 7 | [`them-2nupeqju`](bm-ung-dung/07-them-2nupeqju.html) | Chi tiết trang web (đèn) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 8 | [`them-yzl99l3y`](bm-ung-dung/08-them-yzl99l3y.html) | Thêm trang web cho Bảo Anh | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 9 | [`them-1g0mpf21`](bm-ung-dung/09-them-1g0mpf21.html) | Lời xin đã bỏ qua | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 10 | [`them-hppe9qh6`](bm-ung-dung/10-them-hppe9qh6.html) | Đã bỏ qua YouTube | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 11 | [`bm2-yeu-cau-web`](bm-ung-dung/11-bm2-yeu-cau-web.html) | Yêu cầu mở web | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 1 | [`bm2-ung-dung-may`](bm-ung-dung/01-bm2-ung-dung-may.html) | Ứng dụng trên máy | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-98obxv7x`](bm-ung-dung/02-them-98obxv7x.html) | Mở hết · đang bật | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-g7g1cel5`](bm-ung-dung/03-them-g7g1cel5.html) | App của Bảo Anh (danh sách) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-vw103x88`](bm-ung-dung/04-them-vw103x88.html) | Thêm app cho Bảo Anh | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`bm2-app-web`](bm-ung-dung/05-bm2-app-web.html) | Ứng dụng (chưa xếp) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`bm2-web`](bm-ung-dung/06-bm2-web.html) | Trang web | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-2nupeqju`](bm-ung-dung/07-them-2nupeqju.html) | Chi tiết trang web (đèn) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-yzl99l3y`](bm-ung-dung/08-them-yzl99l3y.html) | Thêm trang web cho Bảo Anh | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-1g0mpf21`](bm-ung-dung/09-them-1g0mpf21.html) | Lời xin đã bỏ qua | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-hppe9qh6`](bm-ung-dung/10-them-hppe9qh6.html) | Đã bỏ qua YouTube | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`bm2-yeu-cau-web`](bm-ung-dung/11-bm2-yeu-cau-web.html) | Yêu cầu mở web | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## Con Windows · Bị chặn (`con-bi-chan`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`them-ngxcf4sq`](con-bi-chan/01-them-ngxcf4sq.html) | Desktop Windows của Bảo Anh | 1920×1080 | «Chỉ app Ba Mẹ chọn» ⇒ Theo danh sách; «Còn 18 phút giờ chơi · 30 sao» ⇒ còn 18 sao = 18 phút chơi; chạy thử: hết sao, chưa có trong danh sách |
-| 2 | [`them-vc4dmaei`](con-bi-chan/02-them-vc4dmaei.html) | App chưa được mở | 1920×1080 | #262: app ngoài danh sách trắng; danh sách hiện nhóm tính phút / không tính phút; nút «Xin Ba Mẹ thêm YouTube» |
-| 3 | [`them-cbdu6n78`](con-bi-chan/03-them-cbdu6n78.html) | Đã gửi Ba Mẹ (xin app) | 1920×1080 |  |
-| 4 | [`them-jj6fglkl`](con-bi-chan/04-them-jj6fglkl.html) | Ba Mẹ đã cho phép app | 1920×1080 | #262/#264: CapCut vào nhóm «Tính phút», còn 18 sao = 18 phút |
-| 5 | [`them-fliq9312`](con-bi-chan/05-them-fliq9312.html) | Ba Mẹ chưa cho app | 1920×1080 | Ba Mẹ chưa thêm CapCut lúc này, con xin lại sau được: Xin lại / Về trang chính. |
-| 6 | [`them-zxuekzer`](con-bi-chan/06-them-zxuekzer.html) | Hết giờ (popup) | 1920×1080 | #264: popup hết giờ thành «Hết sao rồi», Roblox sắp đóng; Làm nhiệm vụ / Xin Ba Mẹ cho vay sao |
-| 7 | [`them-rgy15s87`](con-bi-chan/07-them-rgy15s87.html) | Xin vay sao từ màn ngoài danh sách | 1920×1080 | #265: xin thêm giờ từ màn chặn thành xin vay 10/15/30 sao |
-| 8 | [`them-dnm1pzqs`](con-bi-chan/08-them-dnm1pzqs.html) | Trang chưa có trong danh sách (Windows) | 1920×1080 | Trang chưa có trong danh sách: Xin Ba Mẹ mở + Về trang chính, bỏ chữ chặn. |
-| 9 | [`them-bsnppls7`](con-bi-chan/09-them-bsnppls7.html) | Đã gửi Ba Mẹ (xin web) | 1920×1080 |  |
-| 10 | [`them-0uw5wpyr`](con-bi-chan/10-them-0uw5wpyr.html) | Ba Mẹ mở trang web | 1920×1080 | #262/#264: Ba Mẹ thêm vào nhóm «Tính phút» · 1 sao = 1 phút · còn 18 sao |
-| 11 | [`them-q9a3vr5r`](con-bi-chan/11-them-q9a3vr5r.html) | Ba Mẹ thêm vào «Không tính phút» | 1920×1080 |  |
-| 12 | [`them-nle7pkdv`](con-bi-chan/12-them-nle7pkdv.html) | Ba Mẹ chưa mở trang web | 1920×1080 | Ba Mẹ chưa thêm y8.com lúc này, con xin lại sau được: Xin lại / Về trang chính; bỏ chữ chặn/khoá. |
+| 1 | [`them-ngxcf4sq`](con-bi-chan/01-them-ngxcf4sq.html) | Desktop Windows của Bảo Anh | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-vc4dmaei`](con-bi-chan/02-them-vc4dmaei.html) | App chưa được mở | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-cbdu6n78`](con-bi-chan/03-them-cbdu6n78.html) | Đã gửi Ba Mẹ (xin app) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-jj6fglkl`](con-bi-chan/04-them-jj6fglkl.html) | Ba Mẹ đã cho phép app | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-fliq9312`](con-bi-chan/05-them-fliq9312.html) | Ba Mẹ chưa cho app | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-zxuekzer`](con-bi-chan/06-them-zxuekzer.html) | Hết giờ (popup) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-rgy15s87`](con-bi-chan/07-them-rgy15s87.html) | Xin vay sao từ màn ngoài danh sách | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-dnm1pzqs`](con-bi-chan/08-them-dnm1pzqs.html) | Trang chưa có trong danh sách (Windows) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-bsnppls7`](con-bi-chan/09-them-bsnppls7.html) | Đã gửi Ba Mẹ (xin web) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-0uw5wpyr`](con-bi-chan/10-them-0uw5wpyr.html) | Ba Mẹ mở trang web | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`them-q9a3vr5r`](con-bi-chan/11-them-q9a3vr5r.html) | Ba Mẹ thêm vào «Không tính phút» | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`them-nle7pkdv`](con-bi-chan/12-them-nle7pkdv.html) | Ba Mẹ chưa mở trang web | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## Ba Mẹ · Duyệt (`bm-duyet`)
 
@@ -77,33 +77,33 @@ Tổng 368 màn, 32 hành trình.
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`bm2-gia-dinh`](bm-cai-dat/01-bm2-gia-dinh.html) | Gia đình | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 2 | [`them-99ji705p`](bm-cai-dat/02-them-99ji705p.html) | Tab Cả nhà | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 3 | [`them-0uobhmvh`](bm-cai-dat/03-them-0uobhmvh.html) | Mời người nhà | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 4 | [`them-wewdno56`](bm-cai-dat/04-them-wewdno56.html) | Lời mời · A3 Đã mời, Ba Tuấn có app (Mẹ) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 5 | [`them-dclemm2i`](bm-cai-dat/05-them-dclemm2i.html) | Lời mời · A4 Thông báo (máy Ba Tuấn) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 6 | [`them-vpveq9u5`](bm-cai-dat/06-them-vpveq9u5.html) | Lời mời · A5 Ba Tuấn vào nhà (máy Ba Tuấn) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 7 | [`them-mflye65x`](bm-cai-dat/07-them-mflye65x.html) | Lời mời · B3 Đã mời, Ba Tuấn chưa có app (Mẹ) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 8 | [`them-6pl067n2`](bm-cai-dat/08-them-6pl067n2.html) | Lời mời · B4 Ba Tuấn nhận link (máy Ba Tuấn) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 9 | [`them-3ajv6rd1`](bm-cai-dat/09-them-3ajv6rd1.html) | Đăng ký (được mời) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 10 | [`bm2-thanh-vien`](bm-cai-dat/10-bm2-thanh-vien.html) | Thành viên | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 11 | [`bm2-ho-tro`](bm-cai-dat/11-bm2-ho-tro.html) | AiiLab hỗ trợ | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 12 | [`bm2-quy`](bm-cai-dat/12-bm2-quy.html) | Quỹ phiếu quà | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
-| 13 | [`bm2-admin-ho-tro`](bm-cai-dat/13-bm2-admin-ho-tro.html) | Hộp thư hỗ trợ (quản trị) | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 1 | [`bm2-gia-dinh`](bm-cai-dat/01-bm2-gia-dinh.html) | Gia đình | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-99ji705p`](bm-cai-dat/02-them-99ji705p.html) | Tab Cả nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-0uobhmvh`](bm-cai-dat/03-them-0uobhmvh.html) | Mời người nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-wewdno56`](bm-cai-dat/04-them-wewdno56.html) | Lời mời · A3 Đã mời, Ba Tuấn có app (Mẹ) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-dclemm2i`](bm-cai-dat/05-them-dclemm2i.html) | Lời mời · A4 Thông báo (máy Ba Tuấn) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-vpveq9u5`](bm-cai-dat/06-them-vpveq9u5.html) | Lời mời · A5 Ba Tuấn vào nhà (máy Ba Tuấn) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-mflye65x`](bm-cai-dat/07-them-mflye65x.html) | Lời mời · B3 Đã mời, Ba Tuấn chưa có app (Mẹ) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-6pl067n2`](bm-cai-dat/08-them-6pl067n2.html) | Lời mời · B4 Ba Tuấn nhận link (máy Ba Tuấn) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-3ajv6rd1`](bm-cai-dat/09-them-3ajv6rd1.html) | Đăng ký (được mời) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`bm2-thanh-vien`](bm-cai-dat/10-bm2-thanh-vien.html) | Thành viên | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`bm2-ho-tro`](bm-cai-dat/11-bm2-ho-tro.html) | AiiLab hỗ trợ | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`bm2-quy`](bm-cai-dat/12-bm2-quy.html) | Quỹ phiếu quà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 13 | [`bm2-admin-ho-tro`](bm-cai-dat/13-bm2-admin-ho-tro.html) | Hộp thư hỗ trợ (quản trị) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## Con Windows · Xin thêm giờ / xin mở (`con-xin`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`them-xsmcu9jj`](con-xin/01-them-xsmcu9jj.html) | Xin vay sao | 1920×1080 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
-| 2 | [`them-luui7gvq`](con-xin/02-them-luui7gvq.html) | Đã gửi Ba Mẹ (xin vay sao) | 1920×1080 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
-| 3 | [`them-fsif1cbl`](con-xin/03-them-fsif1cbl.html) | Ba Mẹ cho vay sao | 1920×1080 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
-| 4 | [`them-zo8kohea`](con-xin/04-them-zo8kohea.html) | Ba Mẹ chưa cho vay sao | 1920×1080 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
-| 5 | [`them-bxw40sw9`](con-xin/05-them-bxw40sw9.html) | Xin mở app (YouTube) | 1920×1080 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
-| 6 | [`them-6tn8aozf`](con-xin/06-them-6tn8aozf.html) | Đã gửi Ba Mẹ (xin mở app) | 1920×1080 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
-| 7 | [`them-359v1pre`](con-xin/07-them-359v1pre.html) | Ba Mẹ cho mở app | 1920×1080 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
-| 8 | [`them-vkdikuo0`](con-xin/08-them-vkdikuo0.html) | Ba Mẹ chưa cho mở app | 1920×1080 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
-| 9 | [`them-a7sh10qs`](con-xin/09-them-a7sh10qs.html) | Sao dùng thế nào? | 1920×1080 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
+| 1 | [`them-xsmcu9jj`](con-xin/01-them-xsmcu9jj.html) | Xin vay sao | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-luui7gvq`](con-xin/02-them-luui7gvq.html) | Đã gửi Ba Mẹ (xin vay sao) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-fsif1cbl`](con-xin/03-them-fsif1cbl.html) | Ba Mẹ cho vay sao | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-zo8kohea`](con-xin/04-them-zo8kohea.html) | Ba Mẹ chưa cho vay sao | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-bxw40sw9`](con-xin/05-them-bxw40sw9.html) | Xin mở app (YouTube) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-6tn8aozf`](con-xin/06-them-6tn8aozf.html) | Đã gửi Ba Mẹ (xin mở app) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-359v1pre`](con-xin/07-them-359v1pre.html) | Ba Mẹ cho mở app | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-vkdikuo0`](con-xin/08-them-vkdikuo0.html) | Ba Mẹ chưa cho mở app | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-a7sh10qs`](con-xin/09-them-a7sh10qs.html) | Sao dùng thế nào? | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 | 10 | [`them-vkqmcblk`](con-xin/10-them-vkqmcblk.html) | MỚI · Hôm nay · nút Xin thêm app / web (Windows) | 1002×712 | #422 xin thêm app / web (Windows) |
 | 11 | [`them-1bpjmixa`](con-xin/11-them-1bpjmixa.html) | MỚI · Menu khay · Xin thêm app / web… (Windows) | 1920×1080 | #422 menu khay thêm Xin thêm app / web… |
 | 12 | [`them-c0sycsos`](con-xin/12-them-c0sycsos.html) | MỚI · Xin thêm app / web · chọn app (Windows) | 1920×1080 | #422 xin thêm app / web (Windows) |
@@ -113,60 +113,60 @@ Tổng 368 màn, 32 hành trình.
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`them-x8kmmyl5`](con-ngay-thuong/01-them-x8kmmyl5.html) | Chọn tên (máy khoá) | 1920×1080 | #267/#263/#266: máy dùng chung hiện sao từng bé (Bảo Anh 18 sao, Bảo Minh −20 sao nợ), sao tính riêng từng con |
-| 2 | [`them-avcvmgti`](con-ngay-thuong/02-them-avcvmgti.html) | Nhập PIN | 1920×1080 | Đăng nhập theo bé: chọn tên + PIN; Ba Mẹ mở máy bằng mã |
-| 3 | [`them-4trpyz1a`](con-ngay-thuong/03-them-4trpyz1a.html) | PIN chưa đúng | 1920×1080 | Đăng nhập theo bé: chọn tên + PIN; Ba Mẹ mở máy bằng mã |
-| 4 | [`them-xfdsj5f9`](con-ngay-thuong/04-them-xfdsj5f9.html) | Sai 5 lần, chờ 15 giây | 1920×1080 | Đăng nhập theo bé: chọn tên + PIN; Ba Mẹ mở máy bằng mã |
-| 5 | [`them-ggoenl0j`](con-ngay-thuong/05-them-ggoenl0j.html) | Quên PIN | 1920×1080 | Đăng nhập theo bé: chọn tên + PIN; Ba Mẹ mở máy bằng mã |
-| 6 | [`them-kn2t9e31`](con-ngay-thuong/06-them-kn2t9e31.html) | Ba Mẹ nhập mã | 1920×1080 | «không trừ giờ của con» ⇒ «không trừ sao của con» |
-| 7 | [`them-81u7lml4`](con-ngay-thuong/07-them-81u7lml4.html) | Ba Mẹ đang dùng máy | 1920×1080 | «không trừ giờ của con» ⇒ «không trừ sao của con» |
-| 8 | [`them-7puhbc72`](con-ngay-thuong/08-them-7puhbc72.html) | Đổi người / Đăng xuất | 1002×712 | «Duyệt xong là thêm 20 phút chơi» ⇒ «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» |
-| 9 | [`cmt-hom-nay`](con-ngay-thuong/09-cmt-hom-nay.html) | Khớp #291 | 1002×712 | Liên kết thử → Hôm nay · Mở hết |
-| 10 | [`them-upgropiw`](con-ngay-thuong/10-them-upgropiw.html) | Hôm nay · chế độ Mở hết | 1002×712 |  |
-| 11 | [`them-er4nxw6z`](con-ngay-thuong/11-them-er4nxw6z.html) | Hôm nay · đang nợ Ba Mẹ | 1002×712 |  |
-| 12 | [`cmt-nhiem-vu-loi-tai`](con-ngay-thuong/12-cmt-nhiem-vu-loi-tai.html) | #264 · còn 18 sao = 18 phút | 1002×712 | «Giờ chơi vẫn chạy · còn 18 phút» ⇒ «Sao vẫn trừ · còn 18 sao = 18 phút» |
-| 13 | [`cmt-nhiem-vu`](con-ngay-thuong/13-cmt-nhiem-vu.html) | Liên kết «Ba Mẹ dùng máy» → MỚI PIN · Win · Ba Mẹ nhập mã (MCP) | 1002×712 | 3 việc «Chưa làm» có nút: Tự đánh răng/Tự xếp cặp «Nộp ảnh» → nộp ảnh; Học với AiiRob tự chấm → «Mở Học với AiiRob». |
-| 14 | [`them-1a8jjxnr`](con-ngay-thuong/14-them-1a8jjxnr.html) | Nộp bài: viết kể lại | 1920×1080 |  |
-| 15 | [`them-5vkmq82e`](con-ngay-thuong/15-them-5vkmq82e.html) | Đã nộp bài · chờ Ba Mẹ | 1920×1080 |  |
-| 16 | [`them-bv15j9q4`](con-ngay-thuong/16-them-bv15j9q4.html) | Ba Mẹ duyệt · +10 sao | 1920×1080 |  |
-| 17 | [`them-52srshg0`](con-ngay-thuong/17-them-52srshg0.html) | Ba Mẹ nhờ bổ sung bài | 1920×1080 |  |
-| 18 | [`them-zog8xsfj`](con-ngay-thuong/18-them-zog8xsfj.html) | Ba Mẹ nhờ chụp lại ảnh | 1920×1080 |  |
-| 19 | [`them-zeess8mf`](con-ngay-thuong/19-them-zeess8mf.html) | Nộp lại: chọn ảnh bổ sung | 1920×1080 |  |
-| 20 | [`cmt-phan-qua`](con-ngay-thuong/20-cmt-phan-qua.html) | #264 · Sao & quà: sao = phút | 1002×712 | #264: bỏ «Đổi 10 sao lấy 10 phút», thẻ sao ghi «còn 30 sao = 30 phút chơi» + «Sao dùng thế nào?» |
-| 21 | [`cmt-vi-qua`](con-ngay-thuong/21-cmt-vi-qua.html) | Chốt quà 06/11 · Ví quà | 1002×712 | Giữ nguyên màn Windows. Đi ăn kem: đang giữ 100 sao, Ba Mẹ trao mới trừ. «Đã nhận» thay Xem phim 40 sao bằng Voucher AiiCafe 50k (500 sao) có mã QR bấm mở, hạn 25/12, còn 49 ngày. |
-| 22 | [`cmt-tin-nhan`](con-ngay-thuong/22-cmt-tin-nhan.html) | Liên kết «Ba Mẹ dùng máy» → MỚI PIN · Win · Ba Mẹ nhập mã (MCP) | 1002×712 | App của con 9 tuổi trên Windows, ít chữ nhiều hình, chỉ dùng «sao» (10 sao = 10 phút). Hôm nay: còn 18 phút (42/60), 30 sao, 5 nhiệm vụ bộ Tự lập. Nộp ảnh Dọn phòng, ghi âm Đọc sách (viết nếu cần) → chờ duyệt → +10 sao (30→40) hoặc nhờ làm lại. Sao & quà: đổi 10 sao lấy 10 phút, đổi quà gửi Ba Mẹ → Ba Mẹ trao quà. Tin nhắn của Mẹ Lan, Bà Hoa. Màn Mac giữ nguyên. |
-| 23 | [`them-dm6hkqqy`](con-ngay-thuong/23-them-dm6hkqqy.html) | Ba Mẹ đã trao quà | 1920×1080 | Bỏ «Đổi 10 sao lấy 10 phút» và quà «Thêm 30 phút chơi»: 1 sao = 1 phút, quà là quà thật |
-| 24 | [`them-jd003lxp`](con-ngay-thuong/24-them-jd003lxp.html) | Đã gửi Ba Mẹ (đổi quà) | 1920×1080 | #264: quà «Thêm 30 phút chơi» không còn nghĩa (sao là phút) → đổi thành quà thật «Đọc truyện cùng Ba»; thẻ sao theo phút |
-| 25 | [`them-1zxa6ip0`](con-ngay-thuong/25-them-1zxa6ip0.html) | Đổi quà bằng sao | 1920×1080 | #263: đổi quà thiếu 20 sao ⇒ «Xin Ba Mẹ cho vay 20 sao», nói rõ sẽ nợ 20 sao, sao nhiệm vụ trả nợ trước |
-| 26 | [`them-8ae0e45r`](con-ngay-thuong/26-them-8ae0e45r.html) | MỚI · Con định tắt/gỡ AiiGrow (Windows) | 1920×1080 | FR-01.05: con cố thoát/gỡ AiiGrow trên Windows → phải có mã của Ba Mẹ, Ba Mẹ được báo |
-| 27 | [`them-jonn19rd`](con-ngay-thuong/27-them-jonn19rd.html) | MỚI · Chuỗi 5 ngày · lên Cấp 3 (Windows) | 428×400 | FR-03.06; 5 ngày liền T6→T3 (hôm nay Thứ Ba như màn Hôm nay) |
+| 1 | [`them-x8kmmyl5`](con-ngay-thuong/01-them-x8kmmyl5.html) | Chọn tên (máy khoá) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-avcvmgti`](con-ngay-thuong/02-them-avcvmgti.html) | Nhập PIN | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-4trpyz1a`](con-ngay-thuong/03-them-4trpyz1a.html) | PIN chưa đúng | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-xfdsj5f9`](con-ngay-thuong/04-them-xfdsj5f9.html) | Sai 5 lần, chờ 15 giây | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-ggoenl0j`](con-ngay-thuong/05-them-ggoenl0j.html) | Quên PIN | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-kn2t9e31`](con-ngay-thuong/06-them-kn2t9e31.html) | Ba Mẹ nhập mã | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-81u7lml4`](con-ngay-thuong/07-them-81u7lml4.html) | Ba Mẹ đang dùng máy | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-7puhbc72`](con-ngay-thuong/08-them-7puhbc72.html) | Đổi người / Đăng xuất | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`cmt-hom-nay`](con-ngay-thuong/09-cmt-hom-nay.html) | E Ánh kim · 19/11 #442 | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-upgropiw`](con-ngay-thuong/10-them-upgropiw.html) | Hôm nay · chế độ Mở hết | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`them-er4nxw6z`](con-ngay-thuong/11-them-er4nxw6z.html) | Hôm nay · đang nợ Ba Mẹ | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`cmt-nhiem-vu-loi-tai`](con-ngay-thuong/12-cmt-nhiem-vu-loi-tai.html) | E Ánh kim · 19/11 #442 | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 13 | [`cmt-nhiem-vu`](con-ngay-thuong/13-cmt-nhiem-vu.html) | E Ánh kim · 19/11 #442 | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 14 | [`them-1a8jjxnr`](con-ngay-thuong/14-them-1a8jjxnr.html) | Nộp bài: viết kể lại | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 15 | [`them-5vkmq82e`](con-ngay-thuong/15-them-5vkmq82e.html) | Đã nộp bài · chờ Ba Mẹ | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 16 | [`them-bv15j9q4`](con-ngay-thuong/16-them-bv15j9q4.html) | Ba Mẹ duyệt · +10 sao | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 17 | [`them-52srshg0`](con-ngay-thuong/17-them-52srshg0.html) | Ba Mẹ nhờ bổ sung bài | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 18 | [`them-zog8xsfj`](con-ngay-thuong/18-them-zog8xsfj.html) | Ba Mẹ nhờ chụp lại ảnh | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 19 | [`them-zeess8mf`](con-ngay-thuong/19-them-zeess8mf.html) | Nộp lại: chọn ảnh bổ sung | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 20 | [`cmt-phan-qua`](con-ngay-thuong/20-cmt-phan-qua.html) | E Ánh kim · 19/11 #442 | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 21 | [`cmt-vi-qua`](con-ngay-thuong/21-cmt-vi-qua.html) | E Ánh kim · 19/11 #442 | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 22 | [`cmt-tin-nhan`](con-ngay-thuong/22-cmt-tin-nhan.html) | E Ánh kim · 19/11 #442 | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 23 | [`them-dm6hkqqy`](con-ngay-thuong/23-them-dm6hkqqy.html) | Ba Mẹ đã trao quà | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 24 | [`them-jd003lxp`](con-ngay-thuong/24-them-jd003lxp.html) | Đã gửi Ba Mẹ (đổi quà) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 25 | [`them-1zxa6ip0`](con-ngay-thuong/25-them-1zxa6ip0.html) | Đổi quà bằng sao | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 26 | [`them-8ae0e45r`](con-ngay-thuong/26-them-8ae0e45r.html) | MỚI · Con định tắt/gỡ AiiGrow (Windows) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 27 | [`them-jonn19rd`](con-ngay-thuong/27-them-jonn19rd.html) | MỚI · Chuỗi 5 ngày · lên Cấp 3 (Windows) | 428×400 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## Con Windows · Mất mạng / sự cố (`con-mat-mang`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`cmt-hom-nay-mat-mang`](con-mat-mang/01-cmt-hom-nay-mat-mang.html) | #264 · Mất mạng: sao = phút | 1002×712 | #264/#265: mất mạng vẫn trừ sao; «còn 18 sao = 18 phút chơi»; «Xin Ba Mẹ cho vay sao» lưu chờ mạng; bỏ đổi sao lấy giờ; «Theo danh sách» (#262) |
-| 2 | [`cmt-khoa-mat-mang`](con-mat-mang/02-cmt-khoa-mat-mang.html) | #264 · Hết sao rồi (mất mạng) | 1920×1080 | #264/#265: «Hết giờ chơi hôm nay» thành «Hết sao rồi», nút «Xin Ba Mẹ cho vay sao» |
-| 3 | [`them-y4zv21p3`](con-mat-mang/03-them-y4zv21p3.html) | Khoá khi mất mạng: mã sai | 1920×1080 | Bỏ «Hết giờ chơi hôm nay · 60/60 phút» ⇒ hết sao, 0 sao = 0 phút; xin Ba Mẹ cho vay sao |
-| 4 | [`them-dsrf5ift`](con-mat-mang/04-them-dsrf5ift.html) | Đã lưu lời xin vay sao (màn khoá) | 1920×1080 | #264/#265: màn khoá mất mạng «Hết sao rồi»; lời xin chờ mạng là xin vay 15 sao |
-| 5 | [`cmt-hom-nay-mo-bang-ma`](con-mat-mang/05-cmt-hom-nay-mo-bang-ma.html) | #264/#265 · Mở bằng mã: không trừ sao | 1002×712 | Mã mở máy giữ: «Đang mở tạm bằng mã · 30 phút, không trừ sao»; bỏ quỹ 60 phút, đổi sao lấy phút; xin vay sao |
-| 6 | [`cmt-hom-nay-dich-vu-tat`](con-mat-mang/06-cmt-hom-nay-dich-vu-tat.html) | #264 · còn 18 sao = 18 phút | 1002×712 | «Còn 18 phút chơi» ⇒ «Còn 18 sao = 18 phút chơi» |
-| 7 | [`them-yzos9w9i`](con-mat-mang/07-them-yzos9w9i.html) | Hỏi AiiGrow (Con) | 1920×1080 | «Còn 18 phút chơi» ⇒ còn 18 sao = 18 phút chơi; thẻ Mất mạng «Máy vẫn giữ giờ chơi» ⇒ Máy vẫn trừ sao |
-| 8 | [`them-wt782i6x`](con-mat-mang/08-them-wt782i6x.html) | App chưa có trong danh sách khi mất mạng | 1920×1080 | Đổi tên 14/11: App chưa có trong danh sách · Xin Ba Mẹ (bỏ «chưa được phép / chặn») |
-| 9 | [`them-rn7iaunn`](con-mat-mang/09-them-rn7iaunn.html) | Đã lưu yêu cầu (chờ có mạng) | 1920×1080 |  |
-| 10 | [`them-a86wn24i`](con-mat-mang/10-them-a86wn24i.html) | Đã lưu lời xin vay sao (mất mạng) | 1920×1080 | #265: lời xin thêm giờ chờ mạng thành «Xin Ba Mẹ cho vay 15 sao» |
-| 11 | [`them-yx0id8do`](con-mat-mang/11-them-yx0id8do.html) | Cập nhật AiiGrow | 1920×1080 | Đổi «giờ chơi» thành phút chơi / chơi bằng sao theo #264 |
-| 12 | [`them-o3lgj4dx`](con-mat-mang/12-them-o3lgj4dx.html) | Đã là bản mới nhất | 1920×1080 | Đổi «giờ chơi» thành phút chơi / chơi bằng sao theo #264 |
-| 13 | [`them-g4d1cfk1`](con-mat-mang/13-them-g4d1cfk1.html) | Menu khay hệ thống | 1920×1080 | #265/#264: mục «Xin Ba Mẹ thêm giờ…» thành «Xin Ba Mẹ cho vay sao…»; dòng trạng thái hiện còn 18 sao = 18 phút |
+| 1 | [`cmt-hom-nay-mat-mang`](con-mat-mang/01-cmt-hom-nay-mat-mang.html) | E Ánh kim · 19/11 #442 | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`cmt-khoa-mat-mang`](con-mat-mang/02-cmt-khoa-mat-mang.html) | E Ánh kim · 19/11 #442 | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-y4zv21p3`](con-mat-mang/03-them-y4zv21p3.html) | Khoá khi mất mạng: mã sai | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-dsrf5ift`](con-mat-mang/04-them-dsrf5ift.html) | Đã lưu lời xin vay sao (màn khoá) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`cmt-hom-nay-mo-bang-ma`](con-mat-mang/05-cmt-hom-nay-mo-bang-ma.html) | E Ánh kim · 19/11 #442 | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`cmt-hom-nay-dich-vu-tat`](con-mat-mang/06-cmt-hom-nay-dich-vu-tat.html) | E Ánh kim · 19/11 #442 | 1002×712 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-yzos9w9i`](con-mat-mang/07-them-yzos9w9i.html) | Hỏi AiiGrow (Con) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-wt782i6x`](con-mat-mang/08-them-wt782i6x.html) | App chưa có trong danh sách khi mất mạng | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-rn7iaunn`](con-mat-mang/09-them-rn7iaunn.html) | Đã lưu yêu cầu (chờ có mạng) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-a86wn24i`](con-mat-mang/10-them-a86wn24i.html) | Đã lưu lời xin vay sao (mất mạng) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`them-yx0id8do`](con-mat-mang/11-them-yx0id8do.html) | Cập nhật AiiGrow | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`them-o3lgj4dx`](con-mat-mang/12-them-o3lgj4dx.html) | Đã là bản mới nhất | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 13 | [`them-g4d1cfk1`](con-mat-mang/13-them-g4d1cfk1.html) | Menu khay hệ thống | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## Con Windows · Hết giờ / khoá (`con-het-gio`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`them-da3zy02w`](con-het-gio/01-them-da3zy02w.html) | Nhắc còn 5 phút (Windows) | 1920×1080 | #264: nhắc «còn 5 sao = 5 phút chơi»; bỏ «Đổi 10 sao lấy 10 phút» → Làm nhiệm vụ kiếm sao; «Xin Ba Mẹ cho vay sao» (#265) |
-| 2 | [`cmt-khoa-het-gio-dem-nguoc`](con-het-gio/02-cmt-khoa-het-gio-dem-nguoc.html) | #264 · Sắp hết sao (đếm ngược) | 1920×1080 | #264: đếm ngược khi sắp hết sao; bỏ đổi sao lấy giờ; xin vay sao (#265) |
-| 3 | [`them-uqukvnas`](con-het-gio/03-them-uqukvnas.html) | Hết giờ chơi hôm nay (Windows) | 1920×1080 | #264: «Hết giờ chơi hôm nay» thành «Hết sao rồi»: Làm nhiệm vụ / Xin Ba Mẹ cho vay sao |
-| 4 | [`cmt-khoa-ba-me-khoa`](con-het-gio/04-cmt-khoa-ba-me-khoa.html) | #265 · Bỏ «Xin Ba Mẹ mở ngoại lệ» | 1920×1080 | #265: màn Ba Mẹ khoá máy bỏ nút «Xin Ba Mẹ mở ngoại lệ», chỉ còn Nhắn Ba Mẹ |
+| 1 | [`them-da3zy02w`](con-het-gio/01-them-da3zy02w.html) | Nhắc còn 5 phút (Windows) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`cmt-khoa-het-gio-dem-nguoc`](con-het-gio/02-cmt-khoa-het-gio-dem-nguoc.html) | E Ánh kim · 19/11 #442 | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-uqukvnas`](con-het-gio/03-them-uqukvnas.html) | Hết giờ chơi hôm nay (Windows) | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`cmt-khoa-ba-me-khoa`](con-het-gio/04-cmt-khoa-ba-me-khoa.html) | E Ánh kim · 19/11 #442 | 1920×1080 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## Con Mac (giữ nguyên) (`con-cai-mac`)
 
@@ -295,74 +295,74 @@ Tổng 368 màn, 32 hành trình.
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`cdt-quy-tac`](con-dt-khac/01-cdt-quy-tac.html) | Quy tắc nhà mình | 375×812 | #262/#263/#264/#267: bỏ giờ chơi 60/90 phút; 1 sao = 1 phút; vay sao; theo danh sách; bỏ tên+PIN (iPhone một bé) |
-| 2 | [`cdt-pin-ghep`](con-dt-khac/02-cdt-pin-ghep.html) | Ghép máy | 375×812 | «Giờ chơi riêng từng bé · trừ giờ» ⇒ «Sao riêng từng bé · ai vào chơi thì trừ sao của người đó» |
-| 3 | [`them-b3prchz2`](con-dt-khac/03-them-b3prchz2.html) | Cho phép đếm phút chơi · iPad | 375×812 | #267: iPhone/iPad không dùng chung — Máy dùng chung → iPad của Bảo Minh |
-| 4 | [`them-28ir0qe4`](con-dt-khac/04-them-28ir0qe4.html) | Chọn tên (máy khoá) | 375×812 | #267: ghi rõ Máy cả nhà · Android, hiện sao từng bé (Bảo Minh −20 sao) |
-| 5 | [`them-b3l7ubu5`](con-dt-khac/05-them-b3l7ubu5.html) | Nhập PIN | 375×812 |  |
-| 6 | [`them-zw8cwyzr`](con-dt-khac/06-them-zw8cwyzr.html) | Nhập PIN (Bảo Minh) | 375×812 |  |
-| 7 | [`them-2ljthd3f`](con-dt-khac/07-them-2ljthd3f.html) | PIN chưa đúng | 375×812 |  |
-| 8 | [`them-8l4fb6yf`](con-dt-khac/08-them-8l4fb6yf.html) | Sai 5 lần · chờ 15 giây | 375×812 |  |
-| 9 | [`them-bwdspoi7`](con-dt-khac/09-them-bwdspoi7.html) | Quên PIN | 375×812 | Nút lùi thành phần tử có data-toi về Nhập PIN. |
-| 10 | [`them-q72t4no4`](con-dt-khac/10-them-q72t4no4.html) | Ba Mẹ nhập mã | 375×812 |  |
-| 11 | [`them-f2mt6vfr`](con-dt-khac/11-them-f2mt6vfr.html) | Ba Mẹ đang dùng máy | 375×812 | «Không trừ giờ của con» ⇒ «Không trừ sao của con» |
-| 12 | [`them-j424uyis`](con-dt-khac/12-them-j424uyis.html) | Đổi người / Đăng xuất | 375×812 | #267/#264: ghi Máy cả nhà · Android, đổi bé dừng tính phút; 18 sao = 18 phút |
+| 1 | [`cdt-quy-tac`](con-dt-khac/01-cdt-quy-tac.html) | Quy tắc nhà mình | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`cdt-pin-ghep`](con-dt-khac/02-cdt-pin-ghep.html) | Ghép máy | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-b3prchz2`](con-dt-khac/03-them-b3prchz2.html) | Cho phép đếm phút chơi · iPad | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-28ir0qe4`](con-dt-khac/04-them-28ir0qe4.html) | Chọn tên (máy khoá) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-b3l7ubu5`](con-dt-khac/05-them-b3l7ubu5.html) | Nhập PIN | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-zw8cwyzr`](con-dt-khac/06-them-zw8cwyzr.html) | Nhập PIN (Bảo Minh) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-2ljthd3f`](con-dt-khac/07-them-2ljthd3f.html) | PIN chưa đúng | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-8l4fb6yf`](con-dt-khac/08-them-8l4fb6yf.html) | Sai 5 lần · chờ 15 giây | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-bwdspoi7`](con-dt-khac/09-them-bwdspoi7.html) | Quên PIN | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-q72t4no4`](con-dt-khac/10-them-q72t4no4.html) | Ba Mẹ nhập mã | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`them-f2mt6vfr`](con-dt-khac/11-them-f2mt6vfr.html) | Ba Mẹ đang dùng máy | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`them-j424uyis`](con-dt-khac/12-them-j424uyis.html) | Đổi người / Đăng xuất | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## con-dt-android (`con-dt-android`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`cdt-android-viec`](con-dt-android/01-cdt-android-viec.html) | Việc của con | 360×800 | #264: vòng phút → sao, bỏ đã chơi 42/60; Đổi sao lấy giờ chơi → Sao của con |
-| 2 | [`cdt-android-doi-diem`](con-dt-android/02-cdt-android-doi-diem.html) | Sao của con · hết sao | 360×800 | #264: Đổi sao lấy giờ thành Sao của con: 30 sao = 30 phút, lịch sử sao, Xin Ba Mẹ cho vay sao |
-| 3 | [`them-n4iivj6d`](con-dt-android/03-them-n4iivj6d.html) | Chưa đủ sao | 360×800 | #264/#263: Chưa đủ sao (đổi) → Hết sao rồi; Làm nhiệm vụ / Xin Ba Mẹ cho vay sao |
+| 1 | [`cdt-android-viec`](con-dt-android/01-cdt-android-viec.html) | Việc của con | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`cdt-android-doi-diem`](con-dt-android/02-cdt-android-doi-diem.html) | Sao của con · hết sao | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-n4iivj6d`](con-dt-android/03-them-n4iivj6d.html) | Chưa đủ sao | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## con-dt-ngay (`con-dt-ngay`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`cdt-nha`](con-dt-ngay/01-cdt-nha.html) | Nhà — nhận sao | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 2 | [`cdt-nha-chinh`](con-dt-ngay/02-cdt-nha-chinh.html) | Nhà | 375×812 | Liên kết thử → Nhà · Mở hết |
-| 3 | [`them-uero9k5x`](con-dt-ngay/03-them-uero9k5x.html) | Nhà · chế độ Mở hết | 375×812 |  |
-| 4 | [`cdt-nhiem-vu`](con-dt-ngay/04-cdt-nhiem-vu.html) | Nhiệm vụ | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 5 | [`cdt-nv-chi-tiet`](con-dt-ngay/05-cdt-nv-chi-tiet.html) | Chi tiết nhiệm vụ | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 6 | [`cdt-dang-lam`](con-dt-ngay/06-cdt-dang-lam.html) | Đang làm | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 7 | [`cdt-chup`](con-dt-ngay/07-cdt-chup.html) | Chụp ảnh | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 8 | [`them-pgpfq8of`](con-dt-ngay/08-them-pgpfq8of.html) | Ảnh 2/2 · Bàn học | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 9 | [`them-6t2vvx7d`](con-dt-ngay/09-them-6t2vvx7d.html) | Chưa gửi được (mất mạng) | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 10 | [`them-qqzb3lnt`](con-dt-ngay/10-them-qqzb3lnt.html) | Ghi âm nộp bài | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 11 | [`them-r6lv8p5v`](con-dt-ngay/11-them-r6lv8p5v.html) | Viết nộp bài | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 12 | [`cdt-cho-duyet`](con-dt-ngay/12-cdt-cho-duyet.html) | Chờ Ba Mẹ duyệt | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 13 | [`cdt-duoc-duyet`](con-dt-ngay/13-cdt-duoc-duyet.html) | Được duyệt | 375×812 | Đang nợ 20: +10 sao trả nợ trước, −20 → −10 sao, còn nợ 10; nút làm thêm việc |
-| 14 | [`cdt-chup-lai`](con-dt-ngay/14-cdt-chup-lai.html) | Chụp lại | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
-| 15 | [`cdt-vi-qua`](con-dt-ngay/15-cdt-vi-qua.html) | Ví quà | 375×812 | #263 vay sao: số dư âm −20 sao, dòng Đang nợ Ba Mẹ 20 sao, lịch sử vay/trả nợ; nút Đổi sao lấy phút → Làm nhiệm vụ trả nợ |
-| 16 | [`cdt-cua-hang`](con-dt-ngay/16-cdt-cua-hang.html) | Cửa hàng | 375×812 | #263/#264: bỏ nút Đổi 10 sao lấy 10 phút, thay Thiếu sao? Xin Ba Mẹ cho vay sao |
-| 17 | [`cdt-doi-qua`](con-dt-ngay/17-cdt-doi-qua.html) | Đổi quà | 375×812 | #263: quà 100 sao, con có 50 → xin Ba Mẹ cho vay 50 sao, sau đổi còn −50 sao |
-| 18 | [`them-l9qeq0np`](con-dt-ngay/18-them-l9qeq0np.html) | Đã gửi đổi quà | 375×812 | Nghi chốt 06/11: sau khi gửi đổi «Chọn món bữa tối» — sao bị giữ (50 sao), chờ Ba Mẹ trao mới trừ; huỷ thì hoàn sao. Khớp màn Đổi quà biến thể. |
-| 19 | [`cdt-huy-hieu`](con-dt-ngay/19-cdt-huy-hieu.html) | Huy hiệu | 375×812 | Con ĐT tuổi nhỏ — bản DỊU: nền kem phẳng, 1 màu chủ xanh lá (nút chính, tab chọn, thanh tiến độ), vàng chỉ cho sao/thưởng; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; font Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở được duyệt và đổi phút; camera/ghi âm nền gần đen. Giữ nội dung, số liệu, data-toi. Kit: condt-tre/kit-diu.css. |
+| 1 | [`cdt-nha`](con-dt-ngay/01-cdt-nha.html) | Nhà — nhận sao | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`cdt-nha-chinh`](con-dt-ngay/02-cdt-nha-chinh.html) | Nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-uero9k5x`](con-dt-ngay/03-them-uero9k5x.html) | Nhà · chế độ Mở hết | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`cdt-nhiem-vu`](con-dt-ngay/04-cdt-nhiem-vu.html) | Nhiệm vụ | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`cdt-nv-chi-tiet`](con-dt-ngay/05-cdt-nv-chi-tiet.html) | Chi tiết nhiệm vụ | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`cdt-dang-lam`](con-dt-ngay/06-cdt-dang-lam.html) | Đang làm | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`cdt-chup`](con-dt-ngay/07-cdt-chup.html) | Chụp ảnh | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-pgpfq8of`](con-dt-ngay/08-them-pgpfq8of.html) | Ảnh 2/2 · Bàn học | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-6t2vvx7d`](con-dt-ngay/09-them-6t2vvx7d.html) | Chưa gửi được (mất mạng) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-qqzb3lnt`](con-dt-ngay/10-them-qqzb3lnt.html) | Ghi âm nộp bài | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`them-r6lv8p5v`](con-dt-ngay/11-them-r6lv8p5v.html) | Viết nộp bài | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`cdt-cho-duyet`](con-dt-ngay/12-cdt-cho-duyet.html) | Chờ Ba Mẹ duyệt | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 13 | [`cdt-duoc-duyet`](con-dt-ngay/13-cdt-duoc-duyet.html) | Được duyệt | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 14 | [`cdt-chup-lai`](con-dt-ngay/14-cdt-chup-lai.html) | Chụp lại | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 15 | [`cdt-vi-qua`](con-dt-ngay/15-cdt-vi-qua.html) | Ví quà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 16 | [`cdt-cua-hang`](con-dt-ngay/16-cdt-cua-hang.html) | Cửa hàng | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 17 | [`cdt-doi-qua`](con-dt-ngay/17-cdt-doi-qua.html) | Đổi quà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 18 | [`them-l9qeq0np`](con-dt-ngay/18-them-l9qeq0np.html) | Đã gửi đổi quà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 19 | [`cdt-huy-hieu`](con-dt-ngay/19-cdt-huy-hieu.html) | Huy hiệu | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## con-dt-gio (`con-dt-gio`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`cdt-gio-may`](con-dt-gio/01-cdt-gio-may.html) | Giờ máy lệch | 375×812 | Con ĐT tuổi nhỏ — bản DỊU (theo con-dt-ngay đã chốt): nền kem phẳng, 1 màu chủ xanh lá, vàng chỉ cho sao; thẻ trắng bóng xám mềm, ≤1 thẻ màu nhạt/màn; nút 52px màu đặc; Nunito; robot chỉ ở màn có cảm xúc; confetti nhẹ chỉ ở đổi phút; giờ ngủ nền tối dịu. Giữ nội dung, số liệu, data-toi, khung. Kit: condt-tre/kit-diu.css. |
-| 2 | [`cdt-choi`](con-dt-gio/02-cdt-choi.html) | Chơi trò chơi? | 375×812 | #264: màn Đổi sao lấy giờ thành thông tin: 40 sao = 40 phút, nhóm Tính phút / Không tính phút |
-| 3 | [`cdt-phien`](con-dt-gio/03-cdt-phien.html) | Đang chơi | 375×812 | #264/#265: phút còn lại tính bằng sao, mỗi app trừ sao, Xin thêm giờ → Xin Ba Mẹ cho vay sao |
-| 4 | [`cdt-nhac-5-phut`](con-dt-gio/04-cdt-nhac-5-phut.html) | Nhắc còn 5 phút | 360×800 | #264/#265: nhắc theo sao; bỏ Đổi 10 sao lấy 10 phút; Làm nhiệm vụ / Xin Ba Mẹ cho vay sao |
-| 5 | [`cdt-het-phien`](con-dt-gio/05-cdt-het-phien.html) | Hết phiên — nghỉ | 375×812 | #264/#263: Hết giờ chơi → Hết sao rồi; lối Làm nhiệm vụ / Xin Ba Mẹ cho vay sao; bỏ Đổi sao |
-| 6 | [`them-4e5fwl16`](con-dt-gio/06-them-4e5fwl16.html) | App chưa có trong danh sách | 375×812 | #262: chữ theo danh sách trắng: Roblox chưa có trong danh sách, Theo danh sách của Ba Mẹ |
-| 7 | [`cdt-android-khoa`](con-dt-gio/07-cdt-android-khoa.html) | Máy đang khoá | 390×844 | Thêm nút nhỏ «Khẩn cấp» → MỚI PIN · Mở khẩn cấp (chỉ thêm, không đổi gì khác) |
+| 1 | [`cdt-gio-may`](con-dt-gio/01-cdt-gio-may.html) | Giờ máy lệch | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`cdt-choi`](con-dt-gio/02-cdt-choi.html) | Chơi trò chơi? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`cdt-phien`](con-dt-gio/03-cdt-phien.html) | Đang chơi | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`cdt-nhac-5-phut`](con-dt-gio/04-cdt-nhac-5-phut.html) | Nhắc còn 5 phút | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`cdt-het-phien`](con-dt-gio/05-cdt-het-phien.html) | Hết phiên — nghỉ | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-4e5fwl16`](con-dt-gio/06-them-4e5fwl16.html) | App chưa có trong danh sách | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`cdt-android-khoa`](con-dt-gio/07-cdt-android-khoa.html) | Máy đang khoá | 390×844 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## con-dt-xin (`con-dt-xin`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`cdt-xin-phep`](con-dt-xin/01-cdt-xin-phep.html) | Xin phép | 375×812 | #262/#264: xin mở app = xin thêm vào danh sách, bỏ chọn 15/30/60 phút; lối Hết sao? Xin Ba Mẹ cho vay sao |
-| 2 | [`cdt-yeu-cau`](con-dt-xin/02-cdt-yeu-cau.html) | Yêu cầu của con | 375×812 | Liên kết thử → Ba Mẹ thêm / chưa thêm Roblox |
-| 3 | [`them-0p8dmjan`](con-dt-xin/03-them-0p8dmjan.html) | Ba Mẹ cho rồi | 375×812 | #263/#265: Ba Mẹ cho rồi → cho vay 20 sao, đang nợ 20 sao, chơi 20 phút |
-| 4 | [`them-j4g2mtm8`](con-dt-xin/04-them-j4g2mtm8.html) | Ba Mẹ đã thêm Roblox vào danh sách | 375×812 |  |
-| 5 | [`them-w8po32o6`](con-dt-xin/05-them-w8po32o6.html) | Ba Mẹ chưa thêm Roblox · Xin lại | 375×812 |  |
-| 6 | [`them-5nxwuaxz`](con-dt-xin/06-them-5nxwuaxz.html) | Ba Mẹ chưa cho | 375×812 | #265: Chưa thêm YouTube → chưa cho vay sao; lời xin Vay 20 sao |
-| 7 | [`cdt-ios-xin-them`](con-dt-xin/07-cdt-ios-xin-them.html) | iPhone: xin vay sao | 390×844 | #265/#263: Xin thêm giờ → Xin Ba Mẹ cho vay sao, chọn 10/15/30 sao, ghi rõ sẽ nợ; bỏ Đổi sao |
+| 1 | [`cdt-xin-phep`](con-dt-xin/01-cdt-xin-phep.html) | Xin phép | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`cdt-yeu-cau`](con-dt-xin/02-cdt-yeu-cau.html) | Yêu cầu của con | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-0p8dmjan`](con-dt-xin/03-them-0p8dmjan.html) | Ba Mẹ cho rồi | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-j4g2mtm8`](con-dt-xin/04-them-j4g2mtm8.html) | Ba Mẹ đã thêm Roblox vào danh sách | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-w8po32o6`](con-dt-xin/05-them-w8po32o6.html) | Ba Mẹ chưa thêm Roblox · Xin lại | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-5nxwuaxz`](con-dt-xin/06-them-5nxwuaxz.html) | Ba Mẹ chưa cho | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`cdt-ios-xin-them`](con-dt-xin/07-cdt-ios-xin-them.html) | iPhone: xin vay sao | 390×844 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 | 8 | [`them-us1kc173`](con-dt-xin/08-them-us1kc173.html) | MỚI · Hôm nay · nút Xin thêm app / web (điện thoại) | 375×812 | #422 xin thêm app / web (điện thoại) |
 | 9 | [`them-pj2ra3jh`](con-dt-xin/09-them-pj2ra3jh.html) | MỚI · Xin thêm app / web · chọn app (điện thoại) | 375×812 | #422 xin thêm app / web (điện thoại) |
 | 10 | [`them-euz1k35r`](con-dt-xin/10-them-euz1k35r.html) | MỚI · Xin thêm app / web · gõ web (điện thoại) | 375×812 | #422 xin thêm app / web (điện thoại) |
@@ -371,17 +371,17 @@ Tổng 368 màn, 32 hành trình.
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`cdt-chan-web`](con-dt-chan/01-cdt-chan-web.html) | Trang chưa có trong danh sách | 375×812 | Trang này chưa có trong danh sách + Xin Ba Mẹ mở; bỏ nút thử trang người lớn. |
-| 2 | [`them-xxgu8hk6`](con-dt-chan/02-them-xxgu8hk6.html) | Ba Mẹ chưa thêm trang · Xin lại | 375×812 | Ba Mẹ chưa thêm trang này (lời xin trước đã bị bỏ qua): Xin lại + lý do tuỳ chọn + Về trang chính, bỏ chữ chặn. |
-| 3 | [`cdt-webview`](con-dt-chan/03-cdt-webview.html) | Không tải được | 360×800 | Còn 8 sao = 8 phút chơi, mất mạng vẫn trừ sao; xin vay sao |
-| 4 | [`cdt-ma-offline`](con-dt-chan/04-cdt-ma-offline.html) | Khoá — nhập mã offline | 360×800 | Hết sao (0 sao = 0 phút) thay hết giờ 60/60; mở tạm 30 phút bằng mã; xin vay sao khi có mạng |
-| 5 | [`them-a16j4hh8`](con-dt-chan/05-them-a16j4hh8.html) | Mã mở máy chưa đúng | 360×800 | Pill hết sao thay 60/60 phút; xin vay sao khi có mạng |
-| 6 | [`them-mvld82p8`](con-dt-chan/06-them-mvld82p8.html) | Mã mở máy hết hạn | 360×800 | Pill hết sao thay 60/60 phút; xin vay sao khi có mạng |
-| 7 | [`cdt-ma-da-mo`](con-dt-chan/07-cdt-ma-da-mo.html) | Đã mở bằng mã | 360×800 | Bỏ dòng Đi ngủ lúc 21:30 khỏi màn đã mở bằng mã |
-| 8 | [`them-qpj5mdyr`](con-dt-chan/08-them-qpj5mdyr.html) | Đã lưu lời xin (mất mạng) | 360×800 | Lời xin lưu khi mất mạng là «Vay 20 sao», không phải thêm phút |
-| 9 | [`them-djha85wh`](con-dt-chan/09-them-djha85wh.html) | Đang mở tạm bằng mã | 360×800 | Bỏ dòng Giờ ngủ 21:30 khỏi màn mở tạm bằng mã |
-| 10 | [`cdt-ios-ma-offline`](con-dt-chan/10-cdt-ios-ma-offline.html) | iPhone: mở bằng mã | 390×844 | Hết sao thay hết giờ 60/60; mở tạm bằng mã; xin vay sao khi có mạng |
-| 11 | [`cdt-ios-dns`](con-dt-chan/11-cdt-ios-dns.html) | iPhone: lọc web DNS | 390×844 | Đổi tên 14/11: bỏ lời hứa chặn trang xấu theo DNS; chỉ nói đúng: iPhone chỉ mở web trong danh sách Ba Mẹ thêm |
+| 1 | [`cdt-chan-web`](con-dt-chan/01-cdt-chan-web.html) | Trang chưa có trong danh sách | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-xxgu8hk6`](con-dt-chan/02-them-xxgu8hk6.html) | Ba Mẹ chưa thêm trang · Xin lại | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`cdt-webview`](con-dt-chan/03-cdt-webview.html) | Không tải được | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`cdt-ma-offline`](con-dt-chan/04-cdt-ma-offline.html) | Khoá — nhập mã offline | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-a16j4hh8`](con-dt-chan/05-them-a16j4hh8.html) | Mã mở máy chưa đúng | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-mvld82p8`](con-dt-chan/06-them-mvld82p8.html) | Mã mở máy hết hạn | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`cdt-ma-da-mo`](con-dt-chan/07-cdt-ma-da-mo.html) | Đã mở bằng mã | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-qpj5mdyr`](con-dt-chan/08-them-qpj5mdyr.html) | Đã lưu lời xin (mất mạng) | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-djha85wh`](con-dt-chan/09-them-djha85wh.html) | Đang mở tạm bằng mã | 360×800 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`cdt-ios-ma-offline`](con-dt-chan/10-cdt-ios-ma-offline.html) | iPhone: mở bằng mã | 390×844 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`cdt-ios-dns`](con-dt-chan/11-cdt-ios-dns.html) | iPhone: lọc web DNS | 390×844 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## bm-thiet-lap-con (`bm-thiet-lap-con`)
 
@@ -392,7 +392,7 @@ Tổng 368 màn, 32 hành trình.
 | 3 | [`them-s84hkh82`](bm-thiet-lap-con/03-them-s84hkh82.html) | MỚI · Con thứ 2 · Giống con trước? | 375×812 |  |
 | 4 | [`them-5t1kazz5`](bm-thiet-lap-con/04-them-5t1kazz5.html) | MỚI · Con thứ 3+ · Chép từ con nào? | 375×812 | #420 chép luật từ con nào (nhà ≥3 con) |
 | 5 | [`bm1-ob-mau`](bm-thiet-lap-con/05-bm1-ob-mau.html) | Màu Navy · đồng bộ 17/11 | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
-| 6 | [`them-bwlkjyw5`](bm-thiet-lap-con/06-them-bwlkjyw5.html) | Thêm việc riêng | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 6 | [`them-bwlkjyw5`](bm-thiet-lap-con/06-them-bwlkjyw5.html) | Thêm việc riêng | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 | 7 | [`them-s416tfdj`](bm-thiet-lap-con/07-them-s416tfdj.html) | Bước · Chọn quà | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
 | 8 | [`bm1-ob-gio`](bm-thiet-lap-con/08-bm1-ob-gio.html) | Màu Navy · đồng bộ 17/11 | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
 | 9 | [`them-mdujxlg2`](bm-thiet-lap-con/09-them-mdujxlg2.html) | Con được dùng app nào? | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
@@ -405,7 +405,7 @@ Tổng 368 màn, 32 hành trình.
 | 16 | [`them-hn2754ce`](bm-thiet-lap-con/16-them-hn2754ce.html) | MỚI · Quà Ba Mẹ mua · chi tiết | 375×812 | Màu Navy · đồng bộ 17/11 |
 | 17 | [`them-bbxb64oc`](bm-thiet-lap-con/17-them-bbxb64oc.html) | MỚI · Thanh toán quà | 375×812 | Màu Navy · đồng bộ 17/11 |
 | 18 | [`them-j1zshjyw`](bm-thiet-lap-con/18-them-j1zshjyw.html) | MỚI · Đã mua quà | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 19 | [`them-u60j9p7w`](bm-thiet-lap-con/19-them-u60j9p7w.html) | MỚI · Ba Mẹ tạo quà nhà | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
+| 19 | [`them-u60j9p7w`](bm-thiet-lap-con/19-them-u60j9p7w.html) | MỚI · Ba Mẹ tạo quà nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 | 20 | [`them-x9x2u07e`](bm-thiet-lap-con/20-them-x9x2u07e.html) | MỚI · Quà · tab Ba Mẹ tự điền | 375×812 | Màu Navy · đồng bộ 17/11 |
 
 ## bm-ghep-lan-dau (`bm-ghep-lan-dau`)
@@ -416,8 +416,8 @@ Tổng 368 màn, 32 hành trình.
 | 2 | [`them-pxgipoxg`](bm-ghep-lan-dau/02-them-pxgipoxg.html) | Máy mới · Theo danh sách | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
 | 3 | [`them-w8q8hcfk`](bm-ghep-lan-dau/03-them-w8q8hcfk.html) | Xong rồi (chưa ghép máy) | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
 | 4 | [`bm1-ob-xong`](bm-ghep-lan-dau/04-bm1-ob-xong.html) | Màu Navy · đồng bộ 17/11 | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
-| 5 | [`them-q44uxha5`](bm-ghep-lan-dau/05-them-q44uxha5.html) | MỚI · Mã ghép hết hạn | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
-| 6 | [`them-ytmgijqo`](bm-ghep-lan-dau/06-them-ytmgijqo.html) | MỚI · Chưa ghép được máy | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
+| 5 | [`them-q44uxha5`](bm-ghep-lan-dau/05-them-q44uxha5.html) | MỚI · Mã ghép hết hạn | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-ytmgijqo`](bm-ghep-lan-dau/06-them-ytmgijqo.html) | MỚI · Chưa ghép được máy | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## bm-dang-nhap (`bm-dang-nhap`)
 
@@ -431,37 +431,37 @@ Tổng 368 màn, 32 hành trình.
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`them-rsbh0ep6`](bm-duoc-moi/01-them-rsbh0ep6.html) | Nhận lời mời (thông báo) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 2 | [`them-ux0c23p4`](bm-duoc-moi/02-them-ux0c23p4.html) | Chào (được mời) | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 1 | [`them-rsbh0ep6`](bm-duoc-moi/01-them-rsbh0ep6.html) | Nhận lời mời (thông báo) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-ux0c23p4`](bm-duoc-moi/02-them-ux0c23p4.html) | Chào (được mời) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 | 3 | [`them-0zrwe8yz`](bm-duoc-moi/03-them-0zrwe8yz.html) | Đăng ký (được mời) | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
 | 4 | [`them-pacl0mle`](bm-duoc-moi/04-them-pacl0mle.html) | Nhập mã xác thực (được mời) | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
-| 5 | [`bm1-moi`](bm-duoc-moi/05-bm1-moi.html) | Dùng chung · theo «Lời mời · A5 Ba Tuấn vào nhà (máy Ba Tuấn)» v6 | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 5 | [`bm1-moi`](bm-duoc-moi/05-bm1-moi.html) | Dùng chung · theo «Lời mời · A5 Ba Tuấn vào nhà (máy Ba Tuấn)» v7 | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## bm-may-con (`bm-may-con`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`bm2-may-ds`](bm-may-con/01-bm2-may-ds.html) | Máy của con | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 2 | [`bm2-may-m1`](bm-may-con/02-bm2-may-m1.html) | Máy cả nhà | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 3 | [`them-1016dwpz`](bm-may-con/03-them-1016dwpz.html) | Máy cả nhà · chi tiết | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 4 | [`them-jjrfg2hs`](bm-may-con/04-them-jjrfg2hs.html) | Đổi người trên máy | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 5 | [`them-okpa735o`](bm-may-con/05-them-okpa735o.html) | Máy này ai dùng? | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 6 | [`them-tmezw761`](bm-may-con/06-them-tmezw761.html) | Xác nhận khoá Máy cả nhà | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 7 | [`them-tw6apkag`](bm-may-con/07-them-tw6apkag.html) | Đổi tên Máy cả nhà | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 8 | [`them-v4ovqk42`](bm-may-con/08-them-v4ovqk42.html) | Gỡ Máy cả nhà? | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 9 | [`bm2-may-m2`](bm-may-con/09-bm2-may-m2.html) | Chi tiết máy (lệch chuẩn) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 10 | [`them-4e4o5c72`](bm-may-con/10-them-4e4o5c72.html) | Đổi tên iPad | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 11 | [`them-18q14mik`](bm-may-con/11-them-18q14mik.html) | Gỡ iPad? | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 12 | [`them-slv33bgc`](bm-may-con/12-them-slv33bgc.html) | Hướng dẫn sửa iPad | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 1 | [`bm2-may-ds`](bm-may-con/01-bm2-may-ds.html) | Máy của con | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`bm2-may-m1`](bm-may-con/02-bm2-may-m1.html) | Máy cả nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-1016dwpz`](bm-may-con/03-them-1016dwpz.html) | Máy cả nhà · chi tiết | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-jjrfg2hs`](bm-may-con/04-them-jjrfg2hs.html) | Đổi người trên máy | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-okpa735o`](bm-may-con/05-them-okpa735o.html) | Máy này ai dùng? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-tmezw761`](bm-may-con/06-them-tmezw761.html) | Xác nhận khoá Máy cả nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-tw6apkag`](bm-may-con/07-them-tw6apkag.html) | Đổi tên Máy cả nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-v4ovqk42`](bm-may-con/08-them-v4ovqk42.html) | Gỡ Máy cả nhà? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`bm2-may-m2`](bm-may-con/09-bm2-may-m2.html) | Chi tiết máy (lệch chuẩn) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-4e4o5c72`](bm-may-con/10-them-4e4o5c72.html) | Đổi tên iPad | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`them-18q14mik`](bm-may-con/11-them-18q14mik.html) | Gỡ iPad? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`them-slv33bgc`](bm-may-con/12-them-slv33bgc.html) | Hướng dẫn sửa iPad | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## bm-gio-ho-so (`bm-gio-ho-so`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`bm2-ho-so`](bm-gio-ho-so/01-bm2-ho-so.html) | Hồ sơ con | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 2 | [`them-z2fyhohj`](bm-gio-ho-so/02-them-z2fyhohj.html) | PIN của Bảo Anh (xem / đặt lại) | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 3 | [`them-vnl5rmnz`](bm-gio-ho-so/03-them-vnl5rmnz.html) | Sửa hồ sơ Bảo Anh | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 4 | [`them-canktzlq`](bm-gio-ho-so/04-them-canktzlq.html) | Xoá hồ sơ Bảo Anh? | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 1 | [`bm2-ho-so`](bm-gio-ho-so/01-bm2-ho-so.html) | Hồ sơ con | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-z2fyhohj`](bm-gio-ho-so/02-them-z2fyhohj.html) | PIN của Bảo Anh (xem / đặt lại) | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-vnl5rmnz`](bm-gio-ho-so/03-them-vnl5rmnz.html) | Sửa hồ sơ Bảo Anh | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-canktzlq`](bm-gio-ho-so/04-them-canktzlq.html) | Xoá hồ sơ Bảo Anh? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## bm-con-xin (`bm-con-xin`)
 
@@ -475,60 +475,60 @@ Tổng 368 màn, 32 hành trình.
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`them-e91jg28j`](bm-viec-duyet/01-them-e91jg28j.html) | Tab Nhiệm vụ | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 2 | [`them-e44cwmvu`](bm-viec-duyet/02-them-e44cwmvu.html) | Nhiệm vụ trống · Bảo Minh | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 3 | [`them-1jii7k19`](bm-viec-duyet/03-them-1jii7k19.html) | Giao việc theo bộ | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 4 | [`them-6pjz1stu`](bm-viec-duyet/04-them-6pjz1stu.html) | Thêm việc riêng | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 5 | [`them-ncq0jtzo`](bm-viec-duyet/05-them-ncq0jtzo.html) | Sửa việc «Dọn phòng» | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 6 | [`them-4axhvgpl`](bm-viec-duyet/06-them-4axhvgpl.html) | Xoá việc «Dọn phòng»? | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 7 | [`them-nl1nwszs`](bm-viec-duyet/07-them-nl1nwszs.html) | Duyệt nhiệm vụ | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 8 | [`them-qwuifjry`](bm-viec-duyet/08-them-qwuifjry.html) | Bằng chứng · Dọn phòng | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 9 | [`them-nxclxlit`](bm-viec-duyet/09-them-nxclxlit.html) | Nhờ làm lại · Dọn phòng | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 10 | [`them-d40e3495`](bm-viec-duyet/10-them-d40e3495.html) | Bằng chứng · Đọc sách | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 11 | [`them-l0saosnz`](bm-viec-duyet/11-them-l0saosnz.html) | Nhờ làm lại · Đọc sách | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 12 | [`them-4u3doee9`](bm-viec-duyet/12-them-4u3doee9.html) | Đã nhờ con làm lại | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 13 | [`them-493dqo4i`](bm-viec-duyet/13-them-493dqo4i.html) | Duyệt xong · con nhận sao | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 14 | [`them-zj9gmh7t`](bm-viec-duyet/14-them-zj9gmh7t.html) | Duyệt xong cả 2 · 30 → 50 sao | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 15 | [`them-oypre8gc`](bm-viec-duyet/15-them-oypre8gc.html) | Không còn việc chờ duyệt | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 16 | [`them-rqioc0fd`](bm-viec-duyet/16-them-rqioc0fd.html) | Mất mạng khi đang duyệt | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 1 | [`them-e91jg28j`](bm-viec-duyet/01-them-e91jg28j.html) | Tab Nhiệm vụ | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-e44cwmvu`](bm-viec-duyet/02-them-e44cwmvu.html) | Nhiệm vụ trống · Bảo Minh | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-1jii7k19`](bm-viec-duyet/03-them-1jii7k19.html) | Giao việc theo bộ | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-6pjz1stu`](bm-viec-duyet/04-them-6pjz1stu.html) | Thêm việc riêng | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-ncq0jtzo`](bm-viec-duyet/05-them-ncq0jtzo.html) | Sửa việc «Dọn phòng» | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-4axhvgpl`](bm-viec-duyet/06-them-4axhvgpl.html) | Xoá việc «Dọn phòng»? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-nl1nwszs`](bm-viec-duyet/07-them-nl1nwszs.html) | Duyệt nhiệm vụ | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-qwuifjry`](bm-viec-duyet/08-them-qwuifjry.html) | Bằng chứng · Dọn phòng | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-nxclxlit`](bm-viec-duyet/09-them-nxclxlit.html) | Nhờ làm lại · Dọn phòng | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-d40e3495`](bm-viec-duyet/10-them-d40e3495.html) | Bằng chứng · Đọc sách | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`them-l0saosnz`](bm-viec-duyet/11-them-l0saosnz.html) | Nhờ làm lại · Đọc sách | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`them-4u3doee9`](bm-viec-duyet/12-them-4u3doee9.html) | Đã nhờ con làm lại | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 13 | [`them-493dqo4i`](bm-viec-duyet/13-them-493dqo4i.html) | Duyệt xong · con nhận sao | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 14 | [`them-zj9gmh7t`](bm-viec-duyet/14-them-zj9gmh7t.html) | Duyệt xong cả 2 · 30 → 50 sao | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 15 | [`them-oypre8gc`](bm-viec-duyet/15-them-oypre8gc.html) | Không còn việc chờ duyệt | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 16 | [`them-rqioc0fd`](bm-viec-duyet/16-them-rqioc0fd.html) | Mất mạng khi đang duyệt | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## bm-sao-qua (`bm-sao-qua`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`them-1akngbxb`](bm-sao-qua/01-them-1akngbxb.html) | Ví sao của con | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
-| 2 | [`them-473f52w6`](bm-sao-qua/02-them-473f52w6.html) | Quà đổi bằng sao | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
-| 3 | [`them-sp8ijd1b`](bm-sao-qua/03-them-sp8ijd1b.html) | Chi tiết quà Ba Mẹ mua | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
-| 4 | [`them-dlul0jlr`](bm-sao-qua/04-them-dlul0jlr.html) | Thêm quà | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
-| 5 | [`them-79kgpij8`](bm-sao-qua/05-them-79kgpij8.html) | Sửa quà | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
-| 6 | [`them-t49meex8`](bm-sao-qua/06-them-t49meex8.html) | Xoá quà Đi ăn kem? | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
-| 7 | [`them-5otw85h4`](bm-sao-qua/07-them-5otw85h4.html) | Trao quà cho con | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
-| 8 | [`them-f0fnp733`](bm-sao-qua/08-them-f0fnp733.html) | MỚI · Ba Mẹ tạo quà | 375×812 | Đổi màu Navy đồng bộ Trang chủ v36, giữ nguyên bố cục/chữ/liên kết |
+| 1 | [`them-1akngbxb`](bm-sao-qua/01-them-1akngbxb.html) | Ví sao của con | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-473f52w6`](bm-sao-qua/02-them-473f52w6.html) | Quà đổi bằng sao | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-sp8ijd1b`](bm-sao-qua/03-them-sp8ijd1b.html) | Chi tiết quà Ba Mẹ mua | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-dlul0jlr`](bm-sao-qua/04-them-dlul0jlr.html) | Thêm quà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-79kgpij8`](bm-sao-qua/05-them-79kgpij8.html) | Sửa quà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-t49meex8`](bm-sao-qua/06-them-t49meex8.html) | Xoá quà Đi ăn kem? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-5otw85h4`](bm-sao-qua/07-them-5otw85h4.html) | Trao quà cho con | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-f0fnp733`](bm-sao-qua/08-them-f0fnp733.html) | MỚI · Ba Mẹ tạo quà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## bm-bao-cao-ngay (`bm-bao-cao-ngay`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`them-gftgyspn`](bm-bao-cao-ngay/01-them-gftgyspn.html) | Tab Báo cáo | 375×812 | Đồng bộ màu Navy mẫu 1 (theo bm2-trang-chu v36): chỉ đổi màu và font, giữ nguyên bố cục, chữ, hình, liên kết. |
-| 2 | [`them-w04gcohs`](bm-bao-cao-ngay/02-them-w04gcohs.html) | MỚI · Báo cáo · Bảo Minh | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 3 | [`them-c95l1cwc`](bm-bao-cao-ngay/03-them-c95l1cwc.html) | Hôm nay con dùng gì | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 4 | [`them-r3dsl3py`](bm-bao-cao-ngay/04-them-r3dsl3py.html) | MỚI · Nhật ký cả nhà | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 1 | [`them-gftgyspn`](bm-bao-cao-ngay/01-them-gftgyspn.html) | Tab Báo cáo | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-w04gcohs`](bm-bao-cao-ngay/02-them-w04gcohs.html) | MỚI · Báo cáo · Bảo Minh | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-c95l1cwc`](bm-bao-cao-ngay/03-them-c95l1cwc.html) | Hôm nay con dùng gì | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-r3dsl3py`](bm-bao-cao-ngay/04-them-r3dsl3py.html) | MỚI · Nhật ký cả nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
 
 ## bm-ca-nha (`bm-ca-nha`)
 
 | # | key | tên | kích thước | ý đồ thiết kế (ghi chú của lần thay cuối) |
 |---|---|---|---|---|
-| 1 | [`them-h60stad7`](bm-ca-nha/01-them-h60stad7.html) | Tab Cả nhà | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 2 | [`them-9ozp26pq`](bm-ca-nha/02-them-9ozp26pq.html) | Thêm con | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 3 | [`them-fi17hb99`](bm-ca-nha/03-them-fi17hb99.html) | MỚI · Đã tạo hồ sơ Khang · bước tiếp | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 4 | [`them-5hzkl6p5`](bm-ca-nha/04-them-5hzkl6p5.html) | Mời người nhà | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 5 | [`them-hfd2drjy`](bm-ca-nha/05-them-hfd2drjy.html) | Đã gửi lời mời | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 6 | [`them-7vmoufz3`](bm-ca-nha/06-them-7vmoufz3.html) | Thành viên | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 7 | [`them-xnbiksmr`](bm-ca-nha/07-them-xnbiksmr.html) | Mời Bà Hoa rời nhà? | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 8 | [`them-ncmuuqav`](bm-ca-nha/08-them-ncmuuqav.html) | Tài khoản của bạn | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 9 | [`them-o4k6oei0`](bm-ca-nha/09-them-o4k6oei0.html) | Đổi mật khẩu | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 10 | [`them-liz6hzww`](bm-ca-nha/10-them-liz6hzww.html) | Rời nhà? | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 11 | [`them-4vj35r7c`](bm-ca-nha/11-them-4vj35r7c.html) | Xoá tài khoản? | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 12 | [`them-2ru3t5iw`](bm-ca-nha/12-them-2ru3t5iw.html) | Cài đặt thông báo | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 13 | [`them-zxu4yvp3`](bm-ca-nha/13-them-zxu4yvp3.html) | Hỏi AiiGrow | 375×812 | Màu Navy · đồng bộ 17/11 |
-| 14 | [`them-dmdjjhh1`](bm-ca-nha/14-them-dmdjjhh1.html) | Nhắn tin AiiGrow | 375×812 | Màu Navy · đồng bộ 17/11 |
+| 1 | [`them-h60stad7`](bm-ca-nha/01-them-h60stad7.html) | Tab Cả nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 2 | [`them-9ozp26pq`](bm-ca-nha/02-them-9ozp26pq.html) | Thêm con | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 3 | [`them-fi17hb99`](bm-ca-nha/03-them-fi17hb99.html) | MỚI · Đã tạo hồ sơ Khang · bước tiếp | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 4 | [`them-5hzkl6p5`](bm-ca-nha/04-them-5hzkl6p5.html) | Mời người nhà | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 5 | [`them-hfd2drjy`](bm-ca-nha/05-them-hfd2drjy.html) | Đã gửi lời mời | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 6 | [`them-7vmoufz3`](bm-ca-nha/06-them-7vmoufz3.html) | Thành viên | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 7 | [`them-xnbiksmr`](bm-ca-nha/07-them-xnbiksmr.html) | Mời Bà Hoa rời nhà? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 8 | [`them-ncmuuqav`](bm-ca-nha/08-them-ncmuuqav.html) | Tài khoản của bạn | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 9 | [`them-o4k6oei0`](bm-ca-nha/09-them-o4k6oei0.html) | Đổi mật khẩu | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 10 | [`them-liz6hzww`](bm-ca-nha/10-them-liz6hzww.html) | Rời nhà? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 11 | [`them-4vj35r7c`](bm-ca-nha/11-them-4vj35r7c.html) | Xoá tài khoản? | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 12 | [`them-2ru3t5iw`](bm-ca-nha/12-them-2ru3t5iw.html) | Cài đặt thông báo | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 13 | [`them-zxu4yvp3`](bm-ca-nha/13-them-zxu4yvp3.html) | Hỏi AiiGrow | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |
+| 14 | [`them-dmdjjhh1`](bm-ca-nha/14-them-dmdjjhh1.html) | Nhắn tin AiiGrow | 375×812 | Chuẩn E «Ánh kim» (#442): nền kem #ECE4D9 nổi bóng đôi, nút chính vàng kim, chữ navy #0A1629, thanh bước navy/vàng, ô chọn lõm, icon nét đơn sắc navy, Be Vietnam Pro. Giữ nguyên bố cục, chữ, luồng. |

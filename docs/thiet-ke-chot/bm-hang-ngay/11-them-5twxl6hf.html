@@ -31,20 +31,105 @@ html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-famil
 .ok.no{background:#ffe1e1;color:#b81f1f;justify-content:space-between}
 .ok .so{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 6px;border-radius:16px;background:#fff;font-size:17px;font-weight:800;white-space:nowrap;box-shadow:inset 0 1.5px 0 #fff,inset 0 -4px 8px -4px rgba(184,31,31,.18)}
 .ok .so img{width:22px;height:22px}
+
+/* ===== E Anh kim #442 ===== */
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--sh:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--shL:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--sunk:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);--lom:var(--sunk);--bg:#ECE4D9;--card:#ECE4D9;--ink2:#5b5248;--btn:var(--kim);--btnInk:#0A1629;--btnSh:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6);--gBtn:var(--kim);--hero:#ECE4D9;--topBg:linear-gradient(#ECE4D9 75%,rgba(236,228,217,0));--hiBg:#0A1629;--hiSh:var(--shL),inset 0 0 0 1px rgba(244,199,106,.35);--badge:#0A1629;--flag:#D9AE57;--link:#8a6a2b;--icBg:#ECE4D9;--ring:#D9AE57;--line:rgba(120,98,70,.18);--tabBg:#ECE4D9;--tabInk:#7c7166}
+svg{flex:none}
+html,body,.app{background:#ECE4D9}
+.app::before{background:#ECE4D9!important}
+.nen{background:#ECE4D9;filter:none}
+.n-top i,.n-the,.n-the.c{background:var(--n);box-shadow:var(--sh)}
+.n-the.g{background:#0A1629}
+.n-be i{background:var(--n)!important;box-shadow:var(--sunk)}
+.mo{background:rgba(10,22,41,.35)}
+.sheet{background:#ECE4D9;box-shadow:0 -8px 16px var(--lo)}
+.keo{background:#bfb2a1}
+.hinh{background:var(--n);box-shadow:var(--shL);color:#0A1629}
+.hinh svg{width:44px;height:44px}.hinh svg[viewBox="0 0 256 256"]{fill:#0A1629}
+.ds,.ls,.xong,.hs,.de-y{background:var(--n);box-shadow:var(--shL)}
+.ic{background:var(--n);box-shadow:var(--sunk);border-radius:50%;color:#0A1629}
+.ic svg{width:22px;height:22px}
+.may+.may,.lg+.lg,.viec+.viec,.de-y .lg+.lg{border-top:1px solid rgba(120,98,70,.18)}
+.chk{background:#0A1629;box-shadow:none;border-radius:50%}.chk svg{fill:#F4C76A}
+.bao span,.chon span{background:var(--n);box-shadow:var(--sunk);color:#0A1629}
+.bao span.chon,.chon .on,.chon span.on{background:#0A1629;color:#F4C76A;box-shadow:0 0 0 2px #D9AE57}
+.bao span.chon small,.chon .on small{color:#F4C76A}
+.bao span small,.chon small{color:#5b5248}
+.nut{background:var(--kim);color:#0A1629;border-radius:16px;font-weight:700;box-shadow:var(--btnSh)}
+.nut::before,.nut::after{display:none}
+.nut.phu,.hai .nut.phu,.de-y .nut.phu{background:var(--n);color:#0A1629;box-shadow:var(--sh)}
+.nut svg{width:20px;height:20px}
+.gio,.san{background:#0A1629;color:#F2EBE3;box-shadow:var(--shL),inset 0 0 0 1px rgba(244,199,106,.35)}
+.gio .nut{box-shadow:inset 0 1px 0 rgba(255,255,255,.6)}
+.diem{background:var(--kim);color:#0A1629}
+.diem svg{width:15px;height:15px;fill:#0A1629}
+.diem.no{background:var(--n);color:#A2412C;box-shadow:var(--sunk)}
+.diem.no svg{fill:#A2412C}
+.nhac{background:var(--n);color:#A2412C;box-shadow:var(--sunk)}
+.nhac .ic{background:var(--n);box-shadow:var(--sh);color:#A2412C}
+.sao b,.ok.no{color:#A2412C}
+.ok{background:var(--n);box-shadow:var(--sunk);color:#0A1629}
+.ok svg{width:26px;height:26px}
+.ok.no{background:var(--n);box-shadow:var(--sunk)}
+.ok .so{background:var(--n);box-shadow:var(--sh);color:#A2412C}
+.tag{background:var(--n);color:#0A1629;box-shadow:var(--sunk)}
+.tag.choi{background:var(--kim);box-shadow:none}
+.muc em{background:#0A1629;color:#F4C76A}
+.muc em.cam{background:#0A1629;color:#F4C76A}
+.muc a,.di{color:#8a6a2b;font-weight:600}
+.muc .t::before,.muc::before{background:#D9AE57}
+.dong p small,.de-y .lg p small,.bao p,.dong b,.lg p small b.cam{color:#8a6a2b}
+.tl{background:var(--kim);color:#0A1629;box-shadow:var(--btnSh)}
+.chot{background:var(--kim);color:#0A1629;box-shadow:var(--btnSh)}
+.ly.xam{color:#7c7166}
+.cai{background:var(--n);box-shadow:var(--sh);color:#0A1629}.cai svg{width:22px;height:22px}
+.chip{background:var(--n);color:#0A1629}.chip svg{width:20px;height:20px}
+.chip i{background:#D9AE57;box-shadow:0 0 0 3px rgba(217,174,87,.35)}
+.ma b{background:var(--n);box-shadow:inset 0 -3px 0 rgba(120,98,70,.2);color:#0A1629}
+.doi svg{width:18px;height:18px}
+.doi,.chu{color:#F4C76A}
+.lui svg{fill:#0A1629}
+.top{background:linear-gradient(#ECE4D9 75%,rgba(236,228,217,0))}
+.day{background:none}
+/* hang tren cung dung chung */
+.chuong{background:var(--n);box-shadow:var(--sh);color:#0A1629}.chuong svg{width:24px;height:24px}
+.chuong em,.av em{background:#0A1629;color:#F4C76A}
+.av,.av.a,.av.m,.av.n,.av.k{background:var(--n);color:#0A1629;box-shadow:var(--sunk)}
+.be.on .av,.be.on .av.a{background:#0A1629;color:#F4C76A;box-shadow:0 0 0 2px #D9AE57}
+.av i{background:#0A1629;color:#F4C76A;box-shadow:0 0 0 2px var(--n)}.av i svg{width:13px;height:13px}
+.be.them .av{background:var(--n);box-shadow:var(--sh)}
+.be small{color:#5b5248}
+.so svg{width:28px;height:28px;color:#F4C76A;fill:#F4C76A}
+.nhan{background:rgba(255,255,255,.12);color:#F2EBE3}.nhan svg{width:16px;height:16px;color:#F4C76A;fill:#F4C76A}
+.quy{color:#F4C76A}
+.gio .so{color:#F4C76A}
+.gio .phut,.gio .quy.w{color:#F2EBE3}
+.hs b,.di{color:#8a6a2b}
+.lg time{color:#5b5248}
+.tab{background:var(--n);box-shadow:0 -6px 12px -6px var(--lo)}
+.tab div{color:#7c7166}
+.tab svg{width:24px;height:24px;padding:3px 16px;box-sizing:content-box;border-radius:15px;opacity:1;filter:none}
+.tab .on{color:#0A1629;font-weight:700}.tab .on svg{background:var(--n);box-shadow:var(--sunk)}
+.app>.bao{background:var(--n);box-shadow:var(--shL)}
+.sheet .bao{background:none;box-shadow:none}
+.hinh .nho{background:#0A1629;color:#F4C76A;box-shadow:0 0 0 2px var(--n)}.hinh .nho svg{width:18px;height:18px}
+.de-y .ic,.de-y .ic.sao{background:var(--n)}
+.gio .nut.phu,.gio .nut.phu:hover{background:var(--n);color:#0A1629;box-shadow:var(--sh)}
+.hinh{background:var(--n)}
 </style></head>
 <body><div class="app">
 <div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="them-0xf9hrgn"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Cảnh báo nợ sao</h1><span role="button" tabindex="0" data-toi="them-0g3j910d" style="margin-left:auto;margin-right:8px;height:28px;padding:0 12px;border-radius:14px;border:1.5px dashed #F4C76A;background:#fbf0d6;color:#0A1629;font-weight:800;font-size:12.5px;line-height:25px;white-space:nowrap;cursor:pointer">▶ Màn khoá</span></div>
-<div class="bao"><span class="hinh"><img src="/assets/icon3d/sao.webp" alt=""><span class="nho"><img src="/assets/icon3d/canh_bao.webp" alt=""></span></span><div><h2>Bảo Anh đã nợ quá 1.000 sao</h2><p>19:41 · đang nợ 1.020 · vượt mốc sau lần Mẹ cho vay 30 sao</p></div></div>
-<div class="ok no"><span>Ví sao của Bảo Anh</span><span class="so"><img src="/assets/icon3d/sao.webp" alt="">−1.020 sao</span></div>
+<div class="bao"><span class="hinh"><svg class="i-sao" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg><span class="nho"><svg class="i-canh_bao" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path><path d="M12 9v4M12 17h.01"></path></svg></span></span><div><h2>Bảo Anh đã nợ quá 1.000 sao</h2><p>19:41 · đang nợ 1.020 · vượt mốc sau lần Mẹ cho vay 30 sao</p></div></div>
+<div class="ok no"><span>Ví sao của Bảo Anh</span><span class="so"><svg class="i-sao" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>−1.020 sao</span></div>
 <p class="muc">Ba Mẹ nên biết</p>
 <div class="ds">
-<div class="lg"><span class="ic"><img src="/assets/icon3d/khoa.webp" alt=""></span><p>Không chặn việc cho vay<small>Còn nợ trên 1.000, mỗi lần cho vay thêm Grow sẽ nhắc lại</small></p></div>
-<div class="lg"><span class="ic"><img src="/assets/icon3d/tick.webp" alt=""></span><p>Sao nhiệm vụ trả nợ trước<small>Duyệt «Dọn phòng» 10 sao ⇒ còn nợ 1.010</small></p></div>
-<div class="lg"><span class="ic"><img src="/assets/icon3d/lich.webp" alt=""></span><p>7 ngày qua: vay 180, trả 40 sao<small>Nợ tăng 140 sao trong tuần</small></p></div>
+<div class="lg"><span class="ic"><svg class="i-khoa" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg></span><p>Không chặn việc cho vay<small>Còn nợ trên 1.000, mỗi lần cho vay thêm Grow sẽ nhắc lại</small></p></div>
+<div class="lg"><span class="ic"><svg class="i-tick" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"></path></svg></span><p>Sao nhiệm vụ trả nợ trước<small>Duyệt «Dọn phòng» 10 sao ⇒ còn nợ 1.010</small></p></div>
+<div class="lg"><span class="ic"><svg class="i-lich" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg></span><p>7 ngày qua: vay 180, trả 40 sao<small>Nợ tăng 140 sao trong tuần</small></p></div>
 </div>
 <div class="day">
-<span class="nut" role="button" tabindex="0" data-toi="them-1jii7k19"><img src="/assets/icon3d/sao.webp" alt="">Giao thêm nhiệm vụ để trả nợ</span>
-<div style="display:flex;gap:10px"><span class="nut phu" style="flex:1" role="button" tabindex="0" data-toi="them-1akngbxb">Xem ví sao</span><span class="nut phu" style="flex:1" role="button" tabindex="0" data-toi="them-y1r1eidm"><img src="/assets/icon3d/sao.webp" alt="">Cho vay thêm</span></div>
+<span class="nut" role="button" tabindex="0" data-toi="them-1jii7k19"><svg class="i-sao" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>Giao thêm nhiệm vụ để trả nợ</span>
+<div style="display:flex;gap:10px"><span class="nut phu" style="flex:1" role="button" tabindex="0" data-toi="them-1akngbxb">Xem ví sao</span><span class="nut phu" style="flex:1" role="button" tabindex="0" data-toi="them-y1r1eidm"><svg class="i-sao" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"></path></svg>Cho vay thêm</span></div>
 <span class="thoi" role="button" tabindex="0" data-toi="them-0xf9hrgn">Đã biết</span>
 </div>
 </div></body></html>

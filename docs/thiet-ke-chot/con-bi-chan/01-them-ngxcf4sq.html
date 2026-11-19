@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><style>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%)}
 *{box-sizing:border-box;margin:0;padding:0}html,body{width:1920px;height:1080px;overflow:hidden;background:#16285a}
 body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#fff;-webkit-font-smoothing:antialiased}
 .w{position:relative;overflow:hidden;width:1920px;height:1080px;background:radial-gradient(ellipse 70% 80% at 70% 60%,#4f7fd0 0,#2a4f9c 45%,#16285a 100%)}
@@ -14,14 +15,14 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#fff;-webkit
 .chrome{border-radius:50%;background:conic-gradient(from -30deg,#db4437 0 120deg,#f4b400 120deg 240deg,#0f9d58 240deg 360deg)}
 .chrome i{display:block;width:22px;height:22px;border-radius:50%;background:#4285f4;border:3px solid #fff}
 .thu{background:#f3c74f;color:#7a5a00}
-.ag{background:#0a5246;color:#fff}
-.goi{position:absolute;right:28px;top:24px;width:430px;padding:16px 20px;border-radius:14px;background:rgba(243,243,243,.95);color:#0f1312;box-shadow:0 6px 18px rgba(0,0,0,.3)}
-.goi b{display:block;font:700 17px/23px 'Segoe UI',Arial,sans-serif}
-.goi span{display:block;margin-top:4px;font:400 15px/20px 'Segoe UI',Arial,sans-serif;color:#3a403d}
-.thu-nghiem{position:absolute;left:28px;top:700px;width:560px;padding:14px 16px 12px;border-radius:14px;background:rgba(255,244,232,.95);border:1.5px dashed #f08c2e;color:#9a4a00}
-.thu-nghiem .tt{font:700 12.5px/16px 'Segoe UI',Arial,sans-serif;letter-spacing:.4px;margin-bottom:8px}
-.thu-nghiem .g{font:400 14px/20px 'Segoe UI',Arial,sans-serif;margin-bottom:10px}
-.demo{display:inline-block;margin:0 8px 8px 0;padding:0 12px;height:32px;border-radius:16px;border:1.5px dashed #e8890c;background:#fff;color:#b45309;font:600 14px/29px 'Segoe UI',Arial,sans-serif;cursor:pointer;white-space:nowrap}
+.ag{background:#0A1629;color:#F4C76A;font-family:'Be Vietnam Pro',system-ui,sans-serif}
+.goi{position:absolute;right:28px;top:24px;width:430px;padding:16px 20px;border-radius:20px;background:var(--n);color:#0A1629;box-shadow:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);font-family:'Be Vietnam Pro',system-ui,sans-serif}
+.goi b{display:block;font:800 17px/23px 'Be Vietnam Pro',system-ui,sans-serif}
+.goi span{display:block;margin-top:4px;font:400 15px/20px 'Be Vietnam Pro',system-ui,sans-serif;color:#5b5248}
+.thu-nghiem{position:absolute;left:28px;top:700px;width:560px;padding:14px 16px 12px;border-radius:20px;background:var(--n);color:#5b5248;box-shadow:8px 8px 16px var(--lo),-8px -8px 16px var(--hi)}
+.thu-nghiem .tt{color:#8a6a2b;font:800 12.5px/16px 'Be Vietnam Pro',system-ui,sans-serif;letter-spacing:.2px;margin-bottom:8px}
+.thu-nghiem b{color:#0A1629;font-weight:700}.thu-nghiem .g{font:400 13.5px/20px 'Be Vietnam Pro',system-ui,sans-serif;margin-bottom:10px}
+.demo{display:inline-block;margin:0 8px 8px 0;padding:0 14px;height:32px;border-radius:16px;background:var(--n);box-shadow:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi);color:#8a6a2b;font:700 13.5px/32px 'Be Vietnam Pro',system-ui,sans-serif;cursor:pointer;white-space:nowrap}
 .tb{position:absolute;left:0;right:0;bottom:0;height:48px;background:rgba(32,36,48,.92);display:flex;align-items:center;justify-content:center;gap:8px}
 .tb .k{width:40px;height:40px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer}
 .tb .k.on{background:rgba(255,255,255,.12)}
@@ -30,7 +31,7 @@ body{font-family:'Segoe UI','Helvetica Neue',Arial,sans-serif;color:#fff;-webkit
 .mini{width:24px;height:24px;border-radius:5px}
 .tray{position:absolute;right:12px;top:0;height:48px;display:flex;align-items:center;gap:12px;font:400 12px/15px 'Segoe UI',Arial,sans-serif;text-align:right}
 .tray .agt{width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;background:rgba(255,255,255,.1)}
-.tray .agt i{width:16px;height:16px;border-radius:50%;background:#13806d;box-shadow:0 0 0 2px #7fd1bf}
+.tray .agt{background:#0A1629}.tray .agt i{width:16px;height:16px;border-radius:50%;background:var(--kim);box-shadow:0 0 0 2px #D9AE57}
 </style></head>
 <body><div class="w">
 <div class="di" style="left:16px;top:16px" data-toi="them-vc4dmaei"><div class="ic mc">▶</div><div class="t">YouTube</div></div>
