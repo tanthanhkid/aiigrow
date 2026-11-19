@@ -66,8 +66,9 @@ export function VienSao({ sao, chu }: { sao: number; chu?: string }) {
   );
 }
 
-/** Thẻ sao = phút (cdt-nha-chinh 15/11): vòng «18 sao» + «Còn 18 sao = 18 phút chơi» + «Hôm nay chơi 42 phút» + nút «Xin Ba Mẹ cho vay sao». */
-export function ThePhut({ s, bam, nut }: { s: SaoCon; bam?: () => void; nut?: { chu: string; bam: () => void } }) {
+/** Thẻ sao = phút (cdt-nha-chinh 15/11): vòng «18 sao» + «Còn 18 sao = 18 phút chơi» + «Hôm nay chơi 42 phút» + nút «Xin Ba Mẹ cho vay sao»
+ *  + nút phụ `nut2` ngay dưới («Xin thêm app / web», #422 con-dt-xin 08-them-us1kc173). */
+export function ThePhut({ s, bam, nut, nut2 }: { s: SaoCon; bam?: () => void; nut?: { chu: string; bam: () => void }; nut2?: { chu: string; bam: () => void } }) {
   return (
     <TheD bam={bam} nhanDoc={`Còn ${s.phutCon} sao bằng ${s.phutCon} phút chơi. Hôm nay chơi ${s.phutHomNay} phút`}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
@@ -81,6 +82,7 @@ export function ThePhut({ s, bam, nut }: { s: SaoCon; bam?: () => void; nut?: { 
         </View>
       </View>
       {nut ? <NutD chu={nut.chu} ic="tin" bam={nut.bam} nho /> : null}
+      {nut2 ? <NutD chu={nut2.chu} ic="cong" loai="phu" bam={nut2.bam} nho /> : null}
     </TheD>
   );
 }

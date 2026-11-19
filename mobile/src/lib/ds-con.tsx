@@ -52,7 +52,7 @@ export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={`${web ? "Web" : "App"} của ${ten}`} tai={tai} vongTai>
       {xin.map((y) => (
-        <HangXin key={y.id} ic={web ? "web" : icCuaApp(y.ten ?? "")} tieu={`Con xin mở ${y.ten ?? y.muc ?? (web ? "trang web" : "app mới")}`}
+        <HangXin key={y.id} ic={web ? "web" : icCuaApp(y.ten ?? "")} tieu={web ? `Con xin mở trang ${y.ten ?? y.muc ?? "web"}` : `Con xin mở ${y.ten ?? y.muc ?? "app mới"}`}
           phu={`${lucNgan(y.luc)} · đang chờ Ba Mẹ`} bam={() => router.push({ pathname: "/yeu-cau-web/[id]", params: { id: y.id } })} />
       ))}
       {!tat.length ? (

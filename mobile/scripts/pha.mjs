@@ -861,7 +861,7 @@ if (process.argv.includes("--giao-dien")) {
       await go("Tìm app", "Minecraft"); await doi("Kết quả cho"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"]')`)); } }),
     M("bm-web", "/web/c1", "Thêm trang web cho"),
     // đúng ca bàn bm2-web: con đang xin mở một trang web (tiktok.com)
-    M("bm-web (con xin web)", "/web/c1", "Con xin mở tiktok", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { dangXin: [{ ...XIN_YT, id: "y6", loai: "mo_web", kieu: "web", muc: "tiktok.com", ten: "tiktok.com" }] }) } }),
+    M("bm-web (con xin web)", "/web/c1", "Con xin mở trang tiktok", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { dangXin: [{ ...XIN_YT, id: "y6", loai: "mo_web", kieu: "web", muc: "tiktok.com", ten: "tiktok.com" }] }) } }),
     M("bm-web-trang", "/web/trang?con=c1&ten=youtube.com", "youtube.com có tính phút không?"),
     M("bm-web-them", "/web/them?con=c1", "Thêm web cho"),
     // đúng ca bàn them-yzl99l3y: đã gõ «tiktok.com», chạm ＋ dòng tiktok.com

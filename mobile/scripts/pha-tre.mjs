@@ -227,6 +227,8 @@ if (process.argv.includes("--giao-dien")) {
     M("con-chan-web (teen)", "/tre/chan-web?url=scratch.mit.edu", "Trang này chưa có trong danh sách", { kb: teen }),
     M("con-xin-phep", "/tre/xin-phep?loai=mo_web&gia=scratch.mit.edu&tu=chan-web", "Xin mở trang web"),
     M("con-xin-phep (đủ 3)", "/tre/xin-phep", "Con đang có 3 yêu cầu chờ", { kb: { "GET yeu-cau": { ds: [yc("a", "cai_app", { gia_tri: "Roblox" }), yc("b", "cai_app", { gia_tri: "Minecraft" }), yc("c", "mo_web", { gia_tri: "abc.vn" })], lyDoNhanh: [] } } }),
+    M("con-xin-them (app)", "/tre/xin-phep?them=app&gia=YouTube", "Xin Ba Mẹ thêm YouTube"),
+    M("con-xin-them (web)", "/tre/xin-phep?them=web&gia=scratch.mit.edu", "Xin Ba Mẹ mở trang này"),
     M("con-yeu-cau", "/tre/yeu-cau", "Ba Mẹ đã thêm"),
     M("con-yeu-cau (trống)", "/tre/yeu-cau", "chưa xin gì cả", { kb: { "GET yeu-cau": { ds: [], lyDoNhanh: [] } } }),
     M("con-gio-may", "/tre/gio-may?lech=61", "Giờ trên máy bị lệch", { kb: teen }),
@@ -389,6 +391,41 @@ await kichBan("Trang web chưa có trong danh sách ⇒ xin Ba Mẹ mở ≤ 2 c
   await bam("Xin Ba Mẹ mở xxx.com");
   await xet(await doi("Ba Mẹ chưa thêm xxx.com lúc này. Con xin lại sau được nhé"), "web_cam cũ ⇒ «Ba Mẹ chưa thêm … lúc này»");
   await xet(!/luôn bị chặn|luôn chặn|Không xin mở được/.test(await chu()), "không còn màn web cấm cứng");
+});
+
+await kichBan("#422 Hôm nay ⇒ «Xin thêm app / web»: thẻ App (tên trần, kieu=app) · thẻ Trang web (kieu=web, web_sai hiện lời máy chủ) — cả Mở hết", async () => {
+  await di("/tre/nha");
+  await doi("Còn 45 sao = 45 phút chơi");
+  await bam("Xin thêm app / web");
+  await xet(await doi("App trên điện thoại"), "mở hộp, thẻ App trên máy");
+  await bam("Minecraft");
+  await bam("Xin Ba Mẹ thêm Minecraft");
+  for (let t = 0; t < 9000 && !(await js("location.pathname")).startsWith("/tre/yeu-cau"); t += 250) await sleep(250);
+  await xet((await js("location.pathname")).startsWith("/tre/yeu-cau"), "gửi xong về màn kết quả (yeu-cau)");
+  await xet(coGoi("xin-duyet", (b) => b.muc === "Minecraft" && b.kieu === "app"), "xin-duyet kieu=app, tên trần");
+  await xet(!coGoi("yeu-cau", (b) => b.loai === "cai_app"), "không rẽ sang yeu-cau cai_app");
+  // máy chủ cũ bỏ qua kieu ⇒ tên trần thành lời xin web ⇒ huỷ lời xin nhầm, gửi yeu-cau cai_app
+  nhatKy.length = 0;
+  kb["POST xin-duyet"] = { id: "y7", trang_thai: "cho", daCo: false, loai: "mo_web", muc: "roblox" };
+  kb["POST yeu-cau/y7/huy"] = { ok: true };
+  await di("/tre/xin-phep?them=app");
+  await doi("App trên điện thoại");
+  await bam("Roblox");
+  await bam("Xin Ba Mẹ thêm Roblox");
+  for (let t = 0; t < 9000 && !coGoi("yeu-cau"); t += 250) await sleep(250);
+  await xet(coGoi("yeu-cau/y7/huy") && coGoi("yeu-cau", (b) => b.loai === "cai_app" && b.giaTri === "Roblox"), "máy chủ cũ ⇒ huỷ lời xin web nhầm + yeu-cau cai_app");
+  nhatKy.length = 0;
+  kb["POST xin-duyet"] = { status: 400, body: { error: "web_sai", message: "Gõ địa chỉ trang web, ví dụ scratch.mit.edu" } };
+  await di("/tre/xin-phep?them=web");
+  await doi("Địa chỉ trang web");
+  await go("Địa chỉ trang web", "scratch");
+  await bam("Xin Ba Mẹ mở trang này");
+  await xet(await doi("Gõ địa chỉ trang web, ví dụ scratch.mit.edu"), "web_sai ⇒ hiện câu của máy chủ");
+  await xet(coGoi("xin-duyet", (b) => b.kieu === "web" && b.muc === "scratch"), "xin-duyet kieu=web");
+  kb["GET toi"] = toi({}, { cheDo: "mo_het" });
+  await di("/tre/nha");
+  await doi("Mở hết · không tính phút");
+  await xet((await chu()).includes("Xin thêm app / web"), "Mở hết vẫn có nút Xin thêm app / web");
 });
 
 await kichBan("Ba Mẹ bỏ qua lời xin ⇒ «Ba Mẹ chưa thêm … lúc này. Con xin lại sau được nhé!» + Xin lại", async () => {

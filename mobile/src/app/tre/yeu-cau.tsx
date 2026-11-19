@@ -22,7 +22,7 @@ import { useTaiTre } from "@/lib/ui-tre";
 const laVay = (y: YcTre) => y.loai === "vay_sao" || y.loai === "them_gio" || y.loai === "ngoai_le" || y.loai === "ngoai_gio";
 const laAppWeb = (y: YcTre) => y.loai === "mo_web" || y.loai === "cai_app";
 const soVayCua = (y: YcTre) => Number(y.so_sao ?? y.soSao ?? y.phut ?? 0) || 0;
-const tieuYc = (y: YcTre) => laAppWeb(y) ? `Mở ${y.gia_tri ?? "app"}` : laVay(y) ? `Vay ${soVN(soVayCua(y))} sao` : y.gia_tri || y.ly_do;
+const tieuYc = (y: YcTre) => laAppWeb(y) ? `Mở ${y.loai === "mo_web" ? "trang " : ""}${y.gia_tri ?? "app"}` : laVay(y) ? `Vay ${soVN(soVayCua(y))} sao` : y.gia_tri || y.ly_do;
 
 type Kq = "cho" | "duoc" | "mo_tam" | "chua" | "het_han" | "huy";
 const BO_QUA_HOAN_TAC_MS = 60_000;
