@@ -170,7 +170,7 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
   chu: string; bam: (e?: GestureResponderEvent) => void; loai?: LoaiNut; nho?: boolean; rong?: boolean; ic?: TenIcon; ic3d?: boolean; dangChay?: boolean; tat?: boolean; nhanDoc?: string;
   /** đệm ngang hẹp (12) — hai nút chia đôi một thẻ (Trang chủ «Khoá máy» / «Cho thêm giờ») giữ chữ một dòng như thiết kế */ sat?: boolean;
   /** nút nằm trên hero navy: bóng chỉ tối (không quầng sáng kem) */ toi?: boolean;
-  /** nút `rong` nhưng nhãn giữ MỘT dòng (hai nút chia đôi hàng phải cao bằng nhau — hero Hôm nay, #417) */ motDong?: boolean;
+  /** nút `rong` nhưng nhãn giữ MỘT dòng (nút trên hero Hôm nay, #417 / #421) */ motDong?: boolean;
 }) {
   const m = MAU_NUT[loai];
   const mo = tat || dangChay;
@@ -844,8 +844,8 @@ const s = StyleSheet.create({
   than: { paddingHorizontal: 16, paddingTop: 4, paddingBottom: 24, gap: 12 },
   dau: { flexDirection: "row", alignItems: "center", gap: 2, paddingHorizontal: 8, minHeight: 56 },
   lui: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  // tiêu đề tab (thiết kế .top h1): Be Vietnam Pro ExtraBold (#417 — Fraunces chỉ cho chữ logo), giãn −0,5 (cỡ / dòng giữ như cũ)
-  // #417: Be Vietnam Pro ExtraBold rộng hơn Fraunces ⇒ cỡ 26 (giãn −0,6) để «Việc & quà» vẫn một dòng cạnh «+ Việc» «+ Quà» ở 390
+  // tiêu đề tab (thiết kế .top h1): Be Vietnam Pro ExtraBold (#417 — Fraunces chỉ cho chữ logo); rộng hơn Fraunces ⇒ cỡ 26 (giãn −0,6)
+  // để «Việc & quà» vẫn một dòng cạnh «+ Việc» «+ Quà» ở 390; dòng 34 giữ như cũ
   tieuLon: { marginTop: 4, marginBottom: 6, marginHorizontal: 4, fontSize: 26, lineHeight: 34, fontFamily: F.tieu, color: M.chu, letterSpacing: -0.6 },
   bongChat: { paddingVertical: 10, paddingLeft: 14, paddingRight: 16, borderRadius: 20, maxWidth: "78%" },   // phải 18: web bẻ dòng giữ dấu cách cuối dòng (~4 px) trong khung chữ ⇒ chữ vẫn cách mép ≥ 12
   hangTieu: { flexDirection: "row", alignItems: "center", gap: 10, paddingRight: 2 },

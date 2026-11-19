@@ -1991,7 +1991,7 @@ await kichBan("Sổ sao · Cho vay (từ «Cho vay thêm» ở Cảnh báo nợ)
   xet(await doi(`Cho ${KEN} vay sao`), "mở bảng «Cho <Con> vay sao»");
   xet(await doi(`Cho ${KEN} vay 15 sao`), "mặc định 15 sao");
   xet(await doi("sẽ nợ 35 sao"), "«vay xong sẽ nợ 35 sao»");
-  xet(!(await chu()).includes("đã nợ quá"), "nợ nhỏ ⇒ không có dải nhắc");
+  xet(!(await chu()).includes("Chỉ nhắc thôi"), "nợ nhỏ ⇒ không có dải nhắc");   // #421: mở từ Cảnh báo nợ ⇒ nền sau bảng có chữ «đã nợ quá», đo bằng dòng riêng của dải nhắc
   await bam("30");
   xet(await doi(`Cho ${KEN} vay 30 sao`), "chọn 30 ⇒ nút đổi theo");
   await bam(`Cho ${KEN} vay 30 sao`);

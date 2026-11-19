@@ -71,10 +71,11 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
         <View style={{ borderRadius: 34, overflow: "hidden", ...KHOI_HERO }}>
           <View style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
             <View pointerEvents="none" style={{ position: "absolute", left: 24, top: 0 }}><DauSach mau={HERO.phu} rong={16} cao={22} /></View>
-            {/* #417: logo tròn vàng kim (mẫu E `.rob`) thay Grow 3D */}
-            <View pointerEvents="none" style={{ position: "absolute", right: ROB_PHAI, top: 40 }}><LogoTron co={ROB_CO} /></View>
             <Chu kieu="dam7" co={13} mau={HERO.phu} style={{ marginTop: 10 }}>{`Máy của ${ten} đang ở chế độ`}</Chu>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginRight: CHUA_ROB }} accessibilityRole="header">
+              {/* #417: logo tròn vàng kim (mẫu E `.rob`) thay Grow 3D — neo theo hàng tên chế độ (không theo mép thẻ) ⇒ dòng «Máy của … đang ở chế độ»
+                  xuống 2 dòng ở khổ hẹp thì logo xuống theo, không nằm dưới chữ (cổng TUONG-PHAN @320). Mép phải logo cách mép thẻ ROB_PHAI. */}
+              <View pointerEvents="none" style={{ position: "absolute", right: -(CHUA_ROB + 16 - ROB_PHAI), top: -8 }}><LogoTron co={ROB_CO} /></View>
               <IconNet ten={IC_CHE_DO[cheDo]} co={30} mau={HERO.phu} />
               <Chu kieu="rat" co={25} mau={HERO.chu} style={{ letterSpacing: -0.5, flexShrink: 1 }}>{TEN_CHE_DO[cheDo]}</Chu>
             </View>
