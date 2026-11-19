@@ -103,6 +103,11 @@ final class TrayLogicTests: XCTestCase {
     var s = tt(); s.phutSao = 18
     XCTAssertEqual(TrayLogic.dongTrangThai(s, matKetNoi: false, nhanLuc: t0, bayGio: t0), "Còn 18 sao = 18 phút chơi")
     XCTAssertEqual(TrayLogic.tieuDeThanh(s, matKetNoi: false, nhanLuc: t0, bayGio: t0), "18 sao")
+    // menu thanh trên cùng (them-hyj1eryo)
+    XCTAssertEqual(TrayLogic.dongDauMenu(s, matKetNoi: false, nhanLuc: t0, bayGio: t0), "● Đã kết nối · còn 18 sao = 18 phút chơi")
+    var mm = s; mm.matMang = true
+    XCTAssertEqual(TrayLogic.dongDauMenu(mm, matKetNoi: false, nhanLuc: t0, bayGio: t0), "● Mất mạng · sao vẫn trừ")
+    XCTAssertEqual(TrayLogic.dongDauMenu(tt(daGhep: false), matKetNoi: false, nhanLuc: t0, bayGio: t0), "Máy chưa ghép — Ba Mẹ cần ghép máy này")
     s.phutSao = 0
     XCTAssertEqual(TrayLogic.tieuDeThanh(s, matKetNoi: false, nhanLuc: t0, bayGio: t0), "Hết sao")
     XCTAssertTrue(TrayLogic.dongTrangThai(s, matKetNoi: false, nhanLuc: t0, bayGio: t0).hasPrefix("Hết sao rồi"))

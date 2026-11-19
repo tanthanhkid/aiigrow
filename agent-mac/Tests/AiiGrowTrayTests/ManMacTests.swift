@@ -136,7 +136,7 @@ final class ManMacTests: XCTestCase {
     var h = HoSoMay(); h.con = [HoSoBe(id: "1", ten: "Bảo Anh", coPin: false)]; h.mayRieng = true
     let r = ManMac.chuXong(h, taiKhoan: "baoanh")
     XCTAssertEqual(r.tieuDe, "Máy của Bảo Anh đã sẵn sàng!")
-    for c in [r.phu, r.chanTrang] + r.cacDong { XCTAssertFalse(c.contains("PIN") || c.contains("cả nhà") || c.contains("chọn tên"), c) }
+    for c in [r.phu, r.chanTrang] + r.cacDong.flatMap({ [$0.tieu, $0.phu] }) { XCTAssertFalse(c.contains("PIN") || c.contains("cả nhà") || c.contains("chọn tên"), c) }
     h.con.append(HoSoBe(id: "2", ten: "Bảo Minh", coPin: true)); h.mayRieng = false
     let chung = ManMac.chuXong(h, taiKhoan: "con")
     XCTAssertEqual(chung.tieuDe, "Máy đã sẵn sàng cho cả nhà!")
@@ -144,8 +144,15 @@ final class ManMacTests: XCTestCase {
     h.con = [h.con[0]]
     XCTAssertEqual(ManMac.chuXong(h, taiKhoan: "con").tieuDe, "Máy đã sẵn sàng cho cả nhà!", "một bé nhưng mayRieng=false ⇒ máy chung (tên + PIN)")
     let la = ManMac.chuXong(nil, taiKhoan: "con")
-    for c in [la.tieuDe, la.phu, la.chanTrang] + la.cacDong { XCTAssertFalse(c.contains("PIN") || c.contains("cả nhà") || c.contains("tên"), "chưa có hồ sơ ⇒ trung tính: \(c)") }
-    XCTAssertTrue((r.cacDong + chung.cacDong).allSatisfy { !$0.contains("điểm") && !$0.contains("App mới thì xin") })
+    for c in [la.tieuDe, la.phu, la.chanTrang] + la.cacDong.flatMap({ [$0.tieu, $0.phu] }) { XCTAssertFalse(c.contains("PIN") || c.contains("cả nhà") || c.contains("tên"), "chưa có hồ sơ ⇒ trung tính: \(c)") }
+    XCTAssertTrue((r.cacDong + chung.cacDong).allSatisfy { !$0.tieu.contains("điểm") && !$0.phu.contains("điểm") })
+    // Bàn them-0ltdde49 / them-aff60lnt (17/11): ba thẻ trắng
+    XCTAssertEqual(chung.cacDong.map(\.tieu), ["Giờ tính theo từng bé", "Bảo Anh · Bảo Minh", "Mở app, web theo danh sách Ba Mẹ"])
+    XCTAssertEqual(chung.cacDong[1].phu, "PIN do Ba Mẹ đặt trong app")
+    XCTAssertEqual(chung.cacDong[2].phu, "App mới thì xin Ba Mẹ")
+    XCTAssertEqual(r.phu, "Bảo Anh mở máy là vào thẳng.")
+    XCTAssertEqual(r.cacDong.map(\.tieu), ["Sao của Bảo Anh · 1 sao = 1 phút", "Bảo Anh", "Mở app, web theo danh sách Ba Mẹ"])
+    XCTAssertEqual(r.cacDong[1].phu, "Mở máy là vào thẳng")
   }
 
   func testSoSaoMotThuTuDoc() {
