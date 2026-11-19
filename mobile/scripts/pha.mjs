@@ -701,7 +701,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ob-mau (bảng Ba Mẹ tự thêm · them-bwlkjyw5)", "/thiet-lap/mau", "Thêm vào mục đã chọn", { truoc: async () => { await diTl("/thiet-lap/mau")(); await doi("+ Ba Mẹ tự thêm"); await bam("+ Ba Mẹ tự thêm"); } }),
     M("bm-ob-xong", "/thiet-lap/xong", "Xong rồi!", { truoc: diTl("/thiet-lap/xong") }),
     // #420 con thứ 2+: «Giống <con trước>» (them-s84hkh82) · nhà ≥3 con chọn bé để chép (them-5t1kazz5)
-    M("bm-ob-giong (con thứ 2 · them-s84hkh82)", "/thiet-lap/giong?con=c2&tu=c1&nguon=lan-dau", "Sẽ chép từ"),
+    M("bm-ob-giong (con thứ 2 · them-s84hkh82)", "/thiet-lap/giong?con=c2&tu=c1&nguon=lan-dau", "Xong đi thẳng tới Ghép máy"),
     M("cn giong (nhà ≥3 con · them-5t1kazz5)", "/thiet-lap/giong?con=c2&nguon=them", "dùng luật giống ai?", { kb: NGUON_3 }),
     M("bm-may-them", "/may/them?con=c1", "Máy mới"),
     // Hằng ngày (bm-hang-ngay — L2, L3, L12)
@@ -1621,11 +1621,11 @@ await kichBan("#420 Con thứ 2+: «Giống <con trước>» ⇒ POST con/:id/ch
   await di("/thiet-lap/giong?con=c2&tu=c1&nguon=lan-dau");
   xet(await doi("dùng luật giống"), "màn «Bill dùng luật giống Bảo Anh?»");
   const c = await chu();
-  xet(c.includes("Con thứ 2") && c.includes("Sẽ chép từ") && c.includes("6 app · 4 trang web") && c.includes("YouTube, Roblox tính") && c.includes("5 việc · Học · Vận động · Giúp Ba Mẹ"), "thẻ «Sẽ chép từ …» đủ 4 dòng");
+  xet(c.includes("Con thứ 2") && /sẽ chép từ/i.test(c) && c.includes("6 app · 4 trang web") && c.includes("YouTube, Roblox tính") && c.includes("5 việc · Học · Vận động · Giúp Ba Mẹ"), "thẻ «Sẽ chép từ …» đủ 4 dòng");
   nhatKy.length = 0;
-  await bamDau("Giống ");
+  await bam("Giống Bảo Anh");
   xet(await choGoi((x) => x.d === "con/c2/chep-tu" && x.m === "POST" && x.body?.tu === "c1"), "POST con/c2/chep-tu {tu: c1}");
-  xet(await doi("Ghép máy"), "chép xong ⇒ thẳng Ghép máy");
+  xet(await doi("Ghép máy của"), "chép xong ⇒ thẳng Ghép máy");
   kb = { ...coBan, ...NGUON_3 };
   await di("/thiet-lap/giong?con=c2&nguon=them");
   xet(await doi("dùng luật giống ai?"), "nhà ≥3 con ⇒ «… dùng luật giống ai?»");
@@ -1634,6 +1634,7 @@ await kichBan("#420 Con thứ 2+: «Giống <con trước>» ⇒ POST con/:id/ch
   nhatKy.length = 0;
   await bam("Giống Bảo Ngọc");
   xet(await choGoi((x) => x.d === "con/c2/chep-tu" && x.body?.tu === "c4"), "POST chep-tu {tu: c4}");
+  xet(await doi("Ghép máy của"), "Thêm con: chép xong ⇒ Ghép máy");
   await di("/thiet-lap/giong?con=c2&nguon=them");
   await doi("dùng luật giống ai?");
   nhatKy.length = 0;
