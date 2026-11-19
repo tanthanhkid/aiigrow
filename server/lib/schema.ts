@@ -815,4 +815,9 @@ export const SCHEMA_APP_WEB = [
   `alter table points add column if not exists muc_dich text`,
   `update points set muc_dich = case when ly_do like '%· đổi quà%' then 'qua' when ly_do like '%· chơi%' then 'choi' else null end
      where loai = 'vay' and delta > 0 and muc_dich is null and (ly_do like '%· đổi quà%' or ly_do like '%· chơi%')`,
+  // #425 (#422): lời xin app theo TÊN (true — «Minecraft» gõ tay / iPhone) hay theo ĐỊNH DANH thật máy báo (false — exe, id Store, bundle, package);
+  // null = lời xin cũ ⇒ đoán theo dạng gia_tri (yeu-cau.ts › theoTen)
+  `alter table requests add column if not exists theo_ten boolean`,
+  // tên hiển thị app Con chọn trong lưới («Paint» cho microsoft.mspaint) — Ba Mẹ đọc tên, luật vẫn khoá theo gia_tri
+  `alter table requests add column if not exists ten_app text`,
 ];

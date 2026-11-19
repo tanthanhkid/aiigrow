@@ -383,3 +383,37 @@ test("#422 «Xin thêm app / web»: `kieu` quyết loại lời xin — thẻ Ap
   assert.equal((await m(tok, `yeu-cau/${b2.id}/dong-y`, { nhom: "khong_tinh_phut" })).status, 200);
   assert.equal((await one<{ n: number }>(`select count(*)::int as n from app_theo_ten where child_id = $1 and khop_luc is null`, [con]))!.n, 1);
 });
+
+test("#425 thẻ App chọn trong lưới: định danh thật (exe, id Store, bundle Mac, package Android) là khoá luật, `ten` chỉ để hiển thị", async () => {
+  const { fam, bm } = await taoNha("Lan");
+  const con = await g.taoCon(fam, { ten: "Bảo Anh" });
+  const tok = await taoPhien(bm);
+  const win = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop");
+  const mac = await g.ghepMay(await g.taoMaGhep(fam, con, "mac"), "mac", "MacBook");
+  const dt = await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Điện thoại");
+  const ca: [string, string, string][] = [
+    [win.token, "Minecraft.exe", "Minecraft"],
+    [win.token, "Microsoft.MSPaint", "Paint"],          // app Store: id không theo mẫu .exe / com.…
+    [mac.token, "ch.protonvpn.mac", "Proton VPN"],      // bundle Mac ngoài mẫu com. / org. …
+    [dt.token, "ru.keepcoder.telegram", "Telegram"],    // package Android ngoài mẫu
+  ];
+  for (const [token, muc, ten] of ca) {
+    const x = (await dv(token, "xin-duyet", { kieu: "app", muc, ten, lyDo: "Con cần ạ" })).body;
+    assert.deepEqual([x.loai, x.muc], ["cai_app", muc.toLowerCase()], muc);
+    const dong = (await m(tok, `con/${con}/danh-sach`)).body.dangXin.find((d: any) => d.id === x.id);
+    assert.deepEqual([dong.muc, dong.ten, dong.kieu], [muc.toLowerCase(), ten, "app"], "Ba Mẹ đọc tên, khoá là định danh");
+    assert.equal((await m(tok, `yeu-cau/${x.id}/dong-y`, { nhom: "tinh_phut" })).status, 200);
+    const lu = await la.luatHienCo(fam, con, muc);
+    assert.deepEqual([lu?.loai, lu?.ten], ["giai_tri", ten], `luật trên định danh thật ${muc}`);
+    assert.equal(await la.luatHienCo(fam, con, ten), null, `không ghi luật lên tên ${ten}`);
+  }
+  assert.equal((await one<{ n: number }>(`select count(*)::int as n from app_theo_ten where child_id = $1`, [con]))!.n, 0, "không lời xin nào đi đường theo tên");
+  // định danh máy đã báo trùng tên (khác hoa thường) ⇒ vẫn là định danh (app_may), không đi đường theo tên
+  await q(`insert into app_may(device_id, khoa, muc, ten) values ($1, 'spotify', 'spotify', 'Spotify')`, [win.deviceId]);
+  const sp = (await dv(win.token, "xin-duyet", { kieu: "app", muc: "spotify", ten: "Spotify" })).body;
+  assert.equal((await one<{ theo_ten: boolean }>(`select theo_ten from requests where id = $1`, [sp.id]))!.theo_ten, false);
+  // gõ tên trần (ten trùng muc / không có ten) vẫn là lời xin theo tên; có ten ⇒ giữ ten Con thấy
+  const t = (await dv(win.token, "xin-duyet", { kieu: "app", muc: "Minecraft", ten: "Minecraft" })).body;
+  assert.equal((await one<{ theo_ten: boolean }>(`select theo_ten from requests where id = $1`, [t.id]))!.theo_ten, true);
+  assert.equal((await dv(win.token, "xin-duyet", { kieu: "app", muc: "Visual Studio Code", ten: "Code" })).body.muc, "Code");
+});
