@@ -416,11 +416,13 @@ internal sealed class XinThemForm : HopKhayCoBan
         if (r.Ok && (moi.Count > 0 || !dangQuet)) _dsApp = moi;
         else _dsApp ??= moi;
         // dịch vụ đang quét ⇒ «Đang đọc app…» và hỏi lại (tối đa ~5 phút); dịch vụ cũ / lỗi ⇒ thôi hỏi, hiện «Chưa đọc được…»
-        _daTaiApp = !dangQuet || _dsApp.Count > 0;
-        if (dangQuet && _dsApp.Count == 0 && ++_lanHoi < 30) _taiLai.Start();
+        var daTaiCu = _daTaiApp;
+        var hoiTiep = dangQuet && _dsApp.Count == 0 && ++_lanHoi < 30;
+        _daTaiApp = !hoiTiep;
+        if (hoiTiep) _taiLai.Start();
         if (_busy) { if (!_taiLai.Enabled) _taiLai.Start(); return; }   // đang gửi ⇒ không bỏ lưới đang hiện, hỏi lại sau
         var doi = cu == null || cu.Count != _dsApp.Count || !cu.Select(a => a.Muc + "\u001f" + a.Ten).SequenceEqual(_dsApp.Select(a => a.Muc + "\u001f" + a.Ten));
-        if (!doi) return;
+        if (!doi && daTaiCu == _daTaiApp) return;
         BoLuoi();
         if (!_dangChon || _theWeb) return;
         VeChon();
