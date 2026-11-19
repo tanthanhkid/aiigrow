@@ -26,7 +26,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: chup-man-win-${{ github.event_name }}-${{ github.ref }}
+  group: chup-man-win-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:

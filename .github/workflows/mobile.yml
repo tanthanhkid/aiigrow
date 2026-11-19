@@ -16,7 +16,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: mobile-${{ github.event_name }}-${{ github.ref }}
+  group: mobile-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

@@ -46,7 +46,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: agent-win-${{ github.event_name }}-${{ github.ref }}
+  group: agent-win-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:

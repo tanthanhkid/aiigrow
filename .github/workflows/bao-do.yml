@@ -20,7 +20,8 @@ jobs:
   bao:
     if: >-
       github.event_name == 'workflow_dispatch' ||
-      (github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.event == 'push')
+      (contains(fromJSON('["failure","timed_out","startup_failure"]'), github.event.workflow_run.conclusion) &&
+       github.event.workflow_run.event == 'push')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -35,8 +36,9 @@ jobs:
       - name: Comment PR của commit đỏ
         run: |
           set -euo pipefail
-          read -r SHA TEN URL KL NHANH < <(gh api "repos/$GH_REPO/actions/runs/$RUN_ID" \
-            --jq '[.head_sha, .name, .html_url, (.conclusion // "chưa-xong"), .head_branch] | @tsv')
+          INFO=$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID")
+          SHA=$(jq -r .head_sha <<<"$INFO"); TEN=$(jq -r .name <<<"$INFO"); URL=$(jq -r .html_url <<<"$INFO")
+          KL=$(jq -r '.conclusion // "chưa-xong"' <<<"$INFO"); NHANH=$(jq -r .head_branch <<<"$INFO")
           echo "run $RUN_ID: $TEN $KL nhánh $NHANH commit $SHA"
           PR=$(gh api "repos/$GH_REPO/commits/$SHA/pulls" --jq '[.[] | select(.merged_at != null)][0].number // empty')
           if [ -z "$PR" ]; then
@@ -44,7 +46,8 @@ jobs:
             exit 0
           fi
           DAU="<!-- bao-do:$TEN:$SHA -->"
-          if gh api "repos/$GH_REPO/issues/$PR/comments?per_page=100" --jq '.[].body' | grep -qF "$DAU"; then
+          DA_CO=$(gh api --paginate "repos/$GH_REPO/issues/$PR/comments?per_page=100" --jq '.[].body')
+          if grep -qF -- "$DAU" <<<"$DA_CO"; then
             echo "PR #$PR đã có báo đỏ cho $TEN @ $SHA — không comment lặp"
             exit 0
           fi
