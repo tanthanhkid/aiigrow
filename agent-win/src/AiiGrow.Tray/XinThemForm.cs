@@ -276,11 +276,7 @@ internal sealed class XinThemForm : HopKhayCoBan
     private Control VeLuoi()
     {
         if (_khungLuoi is { IsDisposed: false } cu) return cu;
-        var ds = _dsApp;
-        // «Xin lại» một app không có trong lần quét (exe chạy thẳng, tên khác) ⇒ vẫn có ô cho mục đó, chọn sẵn
-        if (_appDienSan is { } dien && ds != null && ds.Count > 0
-            && !ds.Any(a => string.Equals(a.Muc, dien, StringComparison.OrdinalIgnoreCase) || string.Equals(a.Ten, dien, StringComparison.OrdinalIgnoreCase)))
-            ds = new List<AppTrenMay>(ds) { new() { Muc = dien, Ten = dien } };
+        var ds = _dsApp;   // «Xin lại» chỉ chọn sẵn khi khớp một app trong lần quét (tên hiển thị không phải định danh — không tự tạo ô)
         if (ds == null || ds.Count == 0)
         {
             var l = UI.Text(ds == null || !_daTaiApp ? XinThemChonView.DangDocApp : XinThemChonView.ChuaCoApp, 10.5f, false, UI.Muted, W);
@@ -347,19 +343,25 @@ internal sealed class XinThemForm : HopKhayCoBan
         _khungLuoi = null;
     }
 
-    /// <summary>Hộp đang mở mà Con bấm «Xin lại» / mở lại từ chỗ khác: chuyển thẻ + điền sẵn (đang gửi thì thôi).</summary>
+    /// <summary>Hộp đang mở mà Con bấm «Xin thêm app / web» / «Xin lại» lần nữa: về hộp chọn, chuyển thẻ + điền sẵn (đang gửi thì thôi).</summary>
     public void DienSan(bool web, string? muc)
     {
-        if (!_chon || _busy || !_dangChon || string.IsNullOrWhiteSpace(muc)) return;
-        _theWeb = web;
-        if (web) _diaChi.Text = muc.Trim();
-        else
+        if (!_chon || _busy) return;
+        if (!string.IsNullOrWhiteSpace(muc))
         {
-            _appDienSan = muc.Trim();
-            _appChon = null;
-            BoLuoi();
+            _theWeb = web;
+            if (web) _diaChi.Text = muc.Trim();
+            else
+            {
+                _appDienSan = muc.Trim();
+                _appChon = null;
+                BoLuoi();
+            }
         }
+        else if (_dangChon) return;   // đang ở hộp chọn, không có gì điền ⇒ giữ nguyên
+        // đang ở màn kết quả (Đã gửi / Đã thêm / Chưa thêm) ⇒ về hộp chọn như nút ‹; lời xin còn chờ vẫn được theo dõi
         VeChon();
+        if (_id != null) _poll.Start();
     }
 
     /// <summary>Chữ + trạng thái nút gửi theo thẻ / app đang chọn; lời xin vừa gửi còn chờ cho đúng mục này ⇒ «Đang chờ Ba Mẹ», không gửi trùng.</summary>
@@ -383,6 +385,7 @@ internal sealed class XinThemForm : HopKhayCoBan
     }
 
     private bool _mau;
+    private int _lanHoi;
 
     /// <summary>Công cụ chụp màn: lưới app mẫu (không hỏi dịch vụ), chọn sẵn <paramref name="chon"/>, điền lời nhắn / địa chỉ mẫu.</summary>
     internal void DatMau(IEnumerable<AppTrenMay> ds, string? chon, string? loiNhan = null, string? diaChi = null)
@@ -409,14 +412,17 @@ internal sealed class XinThemForm : HopKhayCoBan
             try { ds = JsonSerializer.Deserialize<List<AppTrenMay>>(r.Data, Json.Options); } catch (JsonException) { }
         var moi = XinThemChonView.Loc(ds);
         var cu = _dsApp;
-        if (r.Ok && (moi.Count > 0 || r.Status != "chua_quet")) _dsApp = moi;
+        var dangQuet = r.Ok && r.Status == "chua_quet";
+        if (r.Ok && (moi.Count > 0 || !dangQuet)) _dsApp = moi;
         else _dsApp ??= moi;
-        _daTaiApp = true;
-        if (_dsApp.Count == 0) _taiLai.Start();
+        // dịch vụ đang quét ⇒ «Đang đọc app…» và hỏi lại (tối đa ~5 phút); dịch vụ cũ / lỗi ⇒ thôi hỏi, hiện «Chưa đọc được…»
+        _daTaiApp = !dangQuet || _dsApp.Count > 0;
+        if (dangQuet && _dsApp.Count == 0 && ++_lanHoi < 30) _taiLai.Start();
+        if (_busy) { if (!_taiLai.Enabled) _taiLai.Start(); return; }   // đang gửi ⇒ không bỏ lưới đang hiện, hỏi lại sau
         var doi = cu == null || cu.Count != _dsApp.Count || !cu.Select(a => a.Muc + "\u001f" + a.Ten).SequenceEqual(_dsApp.Select(a => a.Muc + "\u001f" + a.Ten));
         if (!doi) return;
         BoLuoi();
-        if (!_dangChon || _theWeb || _busy) return;
+        if (!_dangChon || _theWeb) return;
         VeChon();
     }
 

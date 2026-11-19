@@ -91,7 +91,7 @@ public static class XinThemChonView
     /// <summary>Chỉ «app» / «web» được gửi máy chủ; giá trị khác ⇒ null (không gửi trường kieu).</summary>
     public static string? ChuanKieu(string? kieu) => kieu is KieuApp or KieuWeb ? kieu : null;
 
-    /// <summary>Kiểm cơ bản địa chỉ trang tại máy: bỏ «https://», «www.», đường dẫn / cổng; phải là tên miền có dấu chấm, đuôi ≥ 2 chữ cái.
+    /// <summary>Kiểm cơ bản địa chỉ trang tại máy: bỏ «https://», đường dẫn / cổng (giữ «www.» — máy chủ tự chuẩn hoá, không tự nới thành «edu.vn»); phải là tên miền có dấu chấm, đuôi ≥ 2 chữ cái.
     /// Trả tên miền chữ thường (gửi máy chủ — máy chủ vẫn chuẩn hoá lại) hoặc null ⇒ hiện <see cref="WebSai"/>.</summary>
     public static string? ChuanWeb(string? diaChi)
     {
@@ -106,7 +106,6 @@ public static class XinThemChonView
         var cong = t.IndexOf(':');
         if (cong >= 0) t = t[..cong];
         t = t.TrimEnd('.');
-        if (t.StartsWith("www.", StringComparison.Ordinal) && t.Count(c => c == '.') >= 2) t = t[4..];
         var nhan = t.Split('.');
         if (nhan.Length < 2) return null;
         foreach (var n in nhan)

@@ -607,7 +607,7 @@ internal sealed class TrayContext : ApplicationContext
         {
             // hộp chọn đang mở ⇒ đưa lên (+ điền sẵn khi «Xin lại»); hộp xin một mục của màn chặn ⇒ đóng (lời xin đã gửi vẫn được khay ghi nhớ,
             // kết quả về bằng popup) rồi mở hộp hai thẻ — nút «Xin thêm app / web» luôn tới đúng hộp này
-            if (cu.LaHopChon) { cu.DienSan(loai == LoaiXin.MoWeb, muc); cu.Activate(); return; }
+            if (cu.LaHopChon) { cu.DienSan(loai == LoaiXin.MoWeb, muc); cu.Activate(); return; }   // màn kết quả ⇒ về hộp chọn
             cu.Close();
         }
         var f = new XinThemForm(_state.QuyConPhut, loai == LoaiXin.MoWeb, muc);

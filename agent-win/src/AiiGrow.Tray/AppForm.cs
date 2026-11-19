@@ -672,6 +672,7 @@ internal sealed class AppForm : Form
         if (_kn.Loai != KetNoi.MatKetNoi) return cot;
         var ghi = T(XinVayView.CoMangLaGui, 10f, false, UI.Muted, vay.Width); ghi.Margin = new Padding(UI.Px(14), UI.Px(2), 0, 0);
         cot.Controls.Add(ghi);
+        cot.Controls.SetChildIndex(ghi, 1);   // «Có mạng là gửi ngay» ngay dưới nút vay (cmt-hom-nay-mat-mang), «Xin thêm app / web» dưới cùng
         return cot;
     }
 
