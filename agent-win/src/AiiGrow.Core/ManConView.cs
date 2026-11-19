@@ -85,11 +85,11 @@ public static class ManKhoaView
     public const string DoiBe = "doi_be";
 
     /// <summary>06/11: «AiiGrow · Bảo Anh · máy do Ba Mẹ quản lý».</summary>
-    public static string ChanTrang(string tenCon) => DangNhapView.ChanTrang(tenCon);
+    public static string ChanTrang(string tenCon, string? tenMay = null) => DangNhapView.ChanTrang(tenCon, tenMay);
 
     /// <summary>Máy dùng chung có bé đang dùng (them-uqukvnas): «AiiGrow · Bảo Anh đang dùng · máy do Ba Mẹ quản lý».</summary>
-    public static string ChanTrang(string tenCon, bool dangDung) => dangDung && !string.IsNullOrWhiteSpace(tenCon)
-        ? "AiiGrow · " + tenCon.Trim() + " đang dùng · máy do Ba Mẹ quản lý" : DangNhapView.ChanTrang(tenCon);
+    public static string ChanTrang(string tenCon, bool dangDung, string? tenMay = null) => dangDung && !string.IsNullOrWhiteSpace(tenCon)
+        ? "AiiGrow · " + tenCon.Trim() + " đang dùng · máy do Ba Mẹ quản lý" : DangNhapView.ChanTrang(tenCon, tenMay);
 
     /// <summary>«Ba Mẹ khoá lúc 19:30.» (cmt-khoa-ba-me-khoa) — null khi không biết lúc khoá.</summary>
     public static string? KhoaLucCau(DateTimeOffset? luc) => luc is { } l ? $"Ba Mẹ khoá lúc {l.ToLocalTime():HH:mm}." : null;

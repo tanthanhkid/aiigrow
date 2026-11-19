@@ -80,6 +80,16 @@ public class KhopBan307Tests
     }
 
     [Fact]
+    public void TenMayThat_ChoChipVaChanTrangManChonTen()
+    {
+        Assert.Equal("PC-CUA-NHA · máy đang khoá", ManChonTenView.ChipKhoaMay("PC-CUA-NHA"));
+        Assert.Equal("Máy tính này · máy đang khoá", ManChonTenView.ChipKhoaMay(" "));
+        Assert.Equal("AiiGrow · PC-CUA-NHA · máy do Ba Mẹ quản lý", DangNhapView.ChanTrang(null, "PC-CUA-NHA"));
+        Assert.Equal("AiiGrow · Bảo Anh · máy do Ba Mẹ quản lý", DangNhapView.ChanTrang("Bảo Anh", "PC-CUA-NHA"));
+        Assert.False(string.IsNullOrWhiteSpace(ManChonTenView.TenMayThat()));
+    }
+
+    [Fact]
     public void DangDungMayChung_ChiKhiCoBeDangNhapThat()
     {
         Assert.True(TrayView.DangDungMayChung(new TrayState { NguoiDung = LoaiNguoiDung.Con, BeId = "c1" }));

@@ -150,7 +150,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         if (khoa != _khoa && !DangNhapMaTuManKhoa)
         {
             _khoa = khoa;
-            _chan.Text = ManKhoaView.ChanTrang(s.ChildName);
+            _chan.Text = ManKhoaView.ChanTrang(s.ChildName, ManChonTenView.TenMayThat());
             Dung(m);
         }
         if (s.LockGraceLeftSec.HasValue) _count.Text = TrayView.FormatClock(s.LockGraceLeftSec.Value);
@@ -171,7 +171,7 @@ internal sealed partial class LockForm : Form, IVeNenRieng   // nền gradient: 
         if (khoa != _khoa && !DangNhapMaTuManKhoa)
         {
             _khoa = khoa;
-            _chan.Text = ManKhoaView.ChanTrang(tenCon, dangDung);
+            _chan.Text = ManKhoaView.ChanTrang(tenCon, dangDung, ManChonTenView.TenMayThat());
             Dung(m);
         }
         if (giayCon is int g) _count.Text = TrayView.FormatClock(g);

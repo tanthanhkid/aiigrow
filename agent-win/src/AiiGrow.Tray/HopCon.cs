@@ -132,6 +132,20 @@ internal sealed class KetQuaHop : HopKhayCoBan
         return this;
     }
 
+    /// <summary>Thẻ ngọc nhạt «Đã nhận» + dòng «Đổi 30 sao · 30 → 0 sao» (con-ngay-thuong them-dm6hkqqy).</summary>
+    public KetQuaHop TheNhan(string lon, string nho)
+    {
+        var the = KhoiApp.The(W + VeThe.LeBong.Horizontal, le: 18);
+        the.BackColor = Clay.NgocSoft;
+        the.Margin = new Padding(0, 0, 0, UI.Px(8));
+        var r = KhoiApp.TrongThe(W + VeThe.LeBong.Horizontal, 18);
+        var a = UI.Text(lon, 17f, true, Clay.NgocInk, r); a.Margin = new Padding(0, 0, 0, UI.Px(2));
+        var b = UI.Text(nho, 11.5f, true, Clay.NgocInk, r);
+        the.Controls.Add(a); the.Controls.Add(b);
+        Flow.Controls.Add(the);
+        return this;
+    }
+
     public KetQuaHop Nut(string chu, bool chinh, string? icon, Action? bam)
     {
         var b = KhoiCon.Nut(chu, chinh, W, icon);
@@ -215,10 +229,8 @@ internal sealed class DoiQuaHop : HopKhayCoBan
             gui.Click += async (_, _) => await GuiAsync(gui);
             Flow.Controls.Add(gui);
         }
-        var khac = KhoiCon.Nut("Chọn quà khác", false, W, "qua");
-        khac.Click += (_, _) => Close();
-        Flow.Controls.Add(khac);
-        Flow.Controls.Add(KhoiCon.LienKet("Làm thêm sao", "tick", () => { Close(); LamThemSao?.Invoke(); }));
+        // them-1zxa6ip0: «Chọn quà khác» và «Làm thêm sao» là hai nút phụ nhỏ cạnh nhau (không icon)
+        Flow.Controls.Add(KhoiXin.HaiNut(W, ("Chọn quà khác", null, Close), ("Làm thêm sao", null, () => { Close(); LamThemSao?.Invoke(); })));
         Flow.Controls.Add(_loi);
         Xong();
     }

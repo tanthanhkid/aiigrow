@@ -346,14 +346,23 @@ internal sealed class TrayContext : ApplicationContext
         if (kq.Loai is "cho_vay" or "chua_vay") { await HienKetQuaVayAsync(kq); return; }
         _dangMoKetQua = true;   // giữ chỗ qua lượt await — hai lượt tin gần nhau không mở hai hộp
         HvTongQuan? tq;
-        try { (tq, _) = await HvApi.GetAsync<HvTongQuan>("hoc-vien/tong-quan"); }
+        int? saoQua = null;   // them-dm6hkqqy: quà đã trao ⇒ «Đổi 30 sao · 30 → 0 sao» (giá quà lấy từ cửa hàng)
+        try
+        {
+            (tq, _) = await HvApi.GetAsync<HvTongQuan>("hoc-vien/tong-quan");
+            if (kq.Loai == "trao_qua" && kq.Phut == null)
+            {
+                var (ch, _) = await HvApi.GetAsync<HvCuaHang>("hoc-vien/cua-hang");
+                if (ch?.Qua.FirstOrDefault(q => string.Equals(q.Ten, kq.Ten, StringComparison.OrdinalIgnoreCase)) is { SoSao: > 0 } q0) saoQua = q0.SoSao;
+            }
+        }
         finally { _dangMoKetQua = false; }
         if (_state.Locked || _ketQua is { IsDisposed: false }) return;
         var h = kq.Loai switch
         {
             "duyet" => HopDuyet(kq, tq),
             "lam_lai" => HopLamLai(kq, tq),
-            "trao_qua" => HopTraoQua(kq, tq),
+            "trao_qua" => HopTraoQua(kq, tq, saoQua),
             "da_them" => HopDaThem(kq, tq),
             _ => HopChuaThem(kq),
         };
@@ -444,7 +453,7 @@ internal sealed class TrayContext : ApplicationContext
             .LienKet("Để sau", null, null);
     }
 
-    private KetQuaHop HopTraoQua(KetQuaTin kq, HvTongQuan? tq)
+    private KetQuaHop HopTraoQua(KetQuaTin kq, HvTongQuan? tq, int? saoQua = null)
     {
         var h = new KetQuaHop("Quà").Dau("qua", KhoiCon.Mau.Vang, "Ba Mẹ đã trao quà!", kq.Ten);
         if (kq.Phut is int p)
@@ -454,9 +463,17 @@ internal sealed class TrayContext : ApplicationContext
             h.Chip($"+{p} sao", true, con is double c ? SaoView.ConPhut(c) : null);
             _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });   // sao tăng ⇒ app «Tính phút» được thả ngay
         }
+        else if (saoQua is int gia && tq != null)
+        {
+            // them-dm6hkqqy: khối «Đã nhận · Đổi 30 sao · 30 → 0 sao» (số sao sau = tổng quan tải SAU khi trao)
+            var sau = tq.SoSao;
+            h.TheNhan("Đã nhận", $"Đổi {gia} sao · {sau + gia} → {sau} sao");
+        }
         if (tq != null) h.Dong(tq.SoSao > 0 ? $"Còn {AppConView.Sao(tq.SoSao)}" : $"Còn {AppConView.Sao(tq.SoSao)} · làm nhiệm vụ để có thêm", false, Clay.DiemInk);
-        return h.Nut(kq.Phut is int ? "Chơi tiếp" : "Tuyệt quá!", true, "game", null)
-            .LienKet("Xem quà của con", "qua", () => OpenApp(MucApp.PhanQua));
+        // Bàn: «Làm nhiệm vụ kiếm sao» (nút chính, icon tick) + «Xem quà của con» (nút phụ); quà phút giữ «Chơi tiếp»
+        if (kq.Phut is int) h.Nut("Chơi tiếp", true, "game", null);
+        else h.Nut("Làm nhiệm vụ kiếm sao", true, "tick", () => OpenApp(MucApp.NhiemVu));
+        return h.Nut("Xem quà của con", false, null, () => OpenApp(MucApp.PhanQua));
     }
 
     /// <summary>#258: «Mẹ Lan đã thêm Roblox · Nhóm «Tính phút» · còn 18 sao = 18 phút» (them-359v1pre / them-jj6fglkl / them-q9a3vr5r).</summary>
