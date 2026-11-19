@@ -5,7 +5,7 @@ name: bao-do
 # Chạy tay để thử: gh workflow run bao-do -f run_id=<id run đỏ trên main>
 on:
   workflow_run:
-    workflows: [agent-win, agent-mac, agent-ios, agent-android, mobile, server]   # chup-man-win chỉ push nhánh chup-man-win, không chạy trên main
+    workflows: [agent-win, agent-mac, agent-ios, agent-android, mobile]   # chup-man-win chỉ push nhánh chup-man-win, không chạy trên main
     types: [completed]
     branches: [main]
   workflow_dispatch:

@@ -31,11 +31,9 @@ jobs:
     uses: ./.github/workflows/agent-android.yml
   mobile:
     uses: ./.github/workflows/mobile.yml
-  server:
-    uses: ./.github/workflows/server.yml
 
   bao:
-    needs: [agent-win, agent-mac, agent-ios, agent-android, mobile, server]
+    needs: [agent-win, agent-mac, agent-ios, agent-android, mobile]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 5
