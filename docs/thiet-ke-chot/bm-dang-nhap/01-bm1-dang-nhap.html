@@ -1,37 +1,37 @@
 <!doctype html>
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&amp;display=swap" rel="stylesheet"><style>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--clay:0 16px 24px -14px rgba(28,32,30,.26),0 4px 8px -5px rgba(28,32,30,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(40,44,42,.12);--lom:inset 0 5px 10px rgba(40,44,42,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
-html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-family:Inter,system-ui,sans-serif;color:#0f1312}
-.app{position:relative;width:375px;height:812px;overflow:hidden;background:#f4f4f2}
-.app::before{content:"";position:absolute;left:0;right:0;top:0;height:360px;background:linear-gradient(#e3efeb,#f4f4f2)}
+:root{--clay:0 16px 24px -14px rgba(10,22,41,.26),0 4px 8px -5px rgba(10,22,41,.14),inset 0 1.5px 0 #fff,inset 0 -10px 16px -8px rgba(10,22,41,.12);--lom:inset 0 5px 10px rgba(10,22,41,.17),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#F2EBE3}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:360px;background:linear-gradient(#e8ddcf,#F2EBE3)}
 .top{position:absolute;left:8px;right:8px;top:44px;height:48px;display:flex;align-items:center;justify-content:space-between;z-index:3}
-.lui{width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0a5246}
-.hoi{min-height:44px;padding:0 10px;display:flex;align-items:center;font-size:14px;font-weight:700;color:#0a5246}
-.san{position:absolute;left:16px;right:16px;top:96px;height:176px;border-radius:34px;background:linear-gradient(#d6e9e2,#eef4f1);box-shadow:var(--clay);overflow:hidden}
+.lui{width:44px;height:44px;display:grid;place-items:center;border-radius:22px}.lui svg{width:24px;height:24px;fill:#0A1629}
+.hoi{min-height:44px;padding:0 10px;display:flex;align-items:center;font-size:14px;font-weight:700;color:#0A1629}
+.san{position:absolute;left:16px;right:16px;top:96px;height:176px;border-radius:34px;background:linear-gradient(#F2EBE3,#F2EBE3);box-shadow:var(--clay);overflow:hidden}
 .san::before{content:"";position:absolute;left:14px;right:14px;top:3px;height:54px;border-radius:32px 32px 80px 80px;background:linear-gradient(rgba(255,255,255,.85),rgba(255,255,255,0))}
 .san .rob{position:absolute;right:-4px;bottom:-26px;width:150px;height:auto}
 .san .chu{position:absolute;left:22px;top:40px}
 .san h1{font-size:26px;line-height:31px;font-weight:800;letter-spacing:-.5px;white-space:nowrap}
-.san p{margin-top:6px;font-size:14.5px;line-height:20px;font-weight:600;color:#3a403d}
+.san p{margin-top:6px;font-size:14.5px;line-height:20px;font-weight:600;color:#3a3a3a}
 .nd{position:absolute;left:16px;right:16px;top:296px}
 .nhan{margin:0 0 8px 6px;font-size:14px;font-weight:700}
 .nhan.sau{margin-top:18px}
-.lom{display:flex;align-items:center;gap:8px;height:58px;padding:0 8px 0 20px;border-radius:29px;background:#e6e5e1;box-shadow:var(--lom)}
-.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 20px Inter,sans-serif;color:#0f1312;letter-spacing:.3px}
+.lom{display:flex;align-items:center;gap:8px;height:58px;padding:0 8px 0 20px;border-radius:29px;background:#ebe2d7;box-shadow:var(--lom)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 20px 'Be Vietnam Pro',sans-serif;color:#0A1629;letter-spacing:.3px}
 .lom input.mk{letter-spacing:4px}
-.mat{flex:none;width:44px;height:44px;display:grid;place-items:center}.mat svg{width:22px;height:22px;fill:#565c59}
+.mat{flex:none;width:44px;height:44px;display:grid;place-items:center}.mat svg{width:22px;height:22px;fill:#5a5a5a}
 .quen{display:flex;justify-content:flex-end;margin-top:2px}
-.lk{min-height:44px;padding:0 8px;display:flex;align-items:center;font-size:14px;font-weight:800;color:#0a5246;white-space:nowrap}
+.lk{min-height:44px;padding:0 8px;display:flex;align-items:center;font-size:14px;font-weight:800;color:#0A1629;white-space:nowrap}
 .day{position:absolute;left:16px;right:16px;bottom:18px;display:flex;flex-direction:column;gap:12px}
-.nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;font:800 17px Inter,sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#2e3533,#121615);box-shadow:0 14px 20px -10px rgba(18,22,21,.55),0 4px 8px -4px rgba(18,22,21,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
+.nut{width:100%;position:relative;overflow:hidden;height:58px;border-radius:30px;border:0;font:800 17px 'Be Vietnam Pro',sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 14px 20px -10px rgba(10,22,41,.55),0 4px 8px -4px rgba(10,22,41,.35),inset 0 1.5px 0 rgba(255,255,255,.28),inset 0 -6px 10px -4px rgba(0,0,0,.5)}
 .nut::before{content:"";position:absolute;left:8px;right:8px;top:3px;height:46%;border-radius:26px 26px 40px 40px;background:linear-gradient(rgba(255,255,255,.28),rgba(255,255,255,.04))}
 .nut span{position:relative}
-.hoac{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#565c59}
-.hoac::before,.hoac::after{content:"";height:1.5px;background:#dddcd8}
+.hoac{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;font-size:13px;font-weight:600;color:#5a5a5a}
+.hoac::before,.hoac::after{content:"";height:1.5px;background:#ebe2d7}
 .mxh{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.mxh span{height:54px;border-radius:28px;background:#f7f6f3;box-shadow:var(--clay);display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:800;white-space:nowrap}
+.mxh span{height:54px;border-radius:28px;background:#F2EBE3;box-shadow:var(--clay);display:flex;align-items:center;justify-content:center;gap:8px;font-size:15px;font-weight:800;white-space:nowrap}
 .mxh svg{width:22px;height:22px}
 </style></head>
 <body data-lk-sua=""><div class="app">
@@ -55,4 +55,5 @@ html,body{width:375px;height:812px;overflow:hidden;background:#ecebe7;font-famil
 <span role="button" tabindex="0" data-toi="bm2-trang-chu"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1877F2"></circle><path fill="#fff" d="M15.1 12.9l.4-2.8h-2.7V8.3c0-.8.4-1.5 1.6-1.5h1.2V4.4s-1.1-.2-2.2-.2c-2.2 0-3.7 1.4-3.7 3.8v2.1H7.3v2.8h2.4V24h3.1V12.9z"></path></svg>Facebook</span>
 </div>
 </div>
-</div></body></html>
+</div>
+</body></html>

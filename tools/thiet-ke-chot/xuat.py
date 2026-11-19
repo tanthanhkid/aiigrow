@@ -32,6 +32,7 @@ for ht, ds in them['thuTu'].items():
         m = json.load(open(mf))
         if m.get('xoa'): continue
         cur = next((x for x in m['ds'] if x['v'] == m['hien']), m['ds'][-1])
+        if cur.get('xoa'): continue  # màn đã xoá khỏi hành trình (cờ nằm ở phiên bản hiện hành)
         tep = os.path.join(pb, k, f"v{cur['tep']}.html")
         if not os.path.exists(tep): continue
         n += 1

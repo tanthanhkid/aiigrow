@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--sh:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 5px 10px rgba(10,22,41,.14),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#F2EBE3}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e8ddcf,#F2EBE3)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0A1629}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;padding:4px 16px 40px;scrollbar-width:none}
+.hd{display:flex;align-items:center;gap:12px;padding:14px;border-radius:28px;background:#fff;box-shadow:var(--sh)}
+.hd .to{flex:none;width:56px;height:56px;border-radius:20px;display:grid;place-items:center;background:#F2EBE3;box-shadow:var(--lom)}.hd .to img{width:36px;height:36px}
+.hd p{flex:1;min-width:0;font-size:20px;font-weight:800;white-space:nowrap}.hd p small{display:block;font-size:12.5px;font-weight:600;color:#5a5a5a}
+.cho{flex:none;align-self:flex-start;padding:4px 9px;border-radius:11px;background:#FF751F;color:#0A1629;font-size:12.5px;font-weight:800;white-space:nowrap}
+.rob{display:flex;align-items:center;gap:6px;margin-top:12px}.rob img{flex:none;width:88px;height:88px;object-fit:contain}
+.bong{flex:1;min-width:0;padding:12px 14px;border-radius:24px;background:#fff;box-shadow:var(--sh);font-size:15px;font-weight:700;line-height:20px}
+.bong small{display:block;font-size:12.5px;font-weight:600;color:#5a5a5a;margin-bottom:2px}
+.muc{display:flex;align-items:center;margin:18px 6px 8px;font-size:15px;font-weight:800;color:#0A1629}
+.muc::before{content:"";width:9px;height:13px;margin-right:7px;background:#0A1629;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}
+.chon{display:flex;align-items:center;gap:12px;min-height:64px;padding:0 16px;border-radius:28px;font-size:16px;font-weight:800;white-space:nowrap}
+.chon+.chon{margin-top:10px}
+.chon small{display:block;font-size:12.5px;font-weight:600}
+.bi{flex:none;width:30px;height:30px;border-radius:15px;box-shadow:inset 0 3px 0 rgba(255,255,255,.45),inset 0 -6px 8px -3px rgba(0,0,0,.25),0 6px 10px -6px rgba(0,0,0,.4)}
+.bi.v{background:#FF751F}.bi.x{background:#7ED957}
+.chon img{flex:none;width:30px;height:30px}
+.chon.chinh{color:#fff;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
+.chon.chinh small{color:#d5dbe6}
+.chon.phu{background:#fff;box-shadow:var(--sh)}
+.chon.phu small{color:#5a5a5a}
+.chon.qua{background:#F2EBE3;box-shadow:var(--lom);color:#0A1629}
+.chon.qua small{color:#5a5a5a}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-ung-dung-may"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Con xin mở</h1></div>
+<div class="cuon">
+<div class="hd"><span class="to"><img src="/assets/icon3d/web.webp" alt=""></span><p>YouTube<small>Bảo Anh xin · 19:20 · Laptop</small></p><span class="cho">Chờ 20′</span></div>
+<div class="rob"><img src="/assets/rob/hoc.webp" alt=""><div class="bong"><small>Bảo Anh nhắn</small>«Con xem video hướng dẫn vẽ ạ»</div></div>
+<p class="muc">Thêm YouTube cho Bảo Anh?</p>
+<div class="chon chinh" role="button" tabindex="0" data-toi="them-1ypcydle"><span class="bi v"></span><span>Tính phút<small>Thêm vào danh sách · trả bằng sao</small></span></div>
+<div class="chon phu" role="button" tabindex="0" data-toi="them-1ypcydle"><span class="bi x"></span><span>Không tính phút<small>Thêm vào danh sách · vào thoải mái</small></span></div>
+<div class="chon qua" role="button" tabindex="0" data-toi="them-hppe9qh6"><img src="/assets/icon3d/tro_lai.webp" alt=""><span>Bỏ qua<small>Không ghi gì · con xin lại được</small></span></div>
+</div>
+</div></body></html>

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--sh:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 5px 10px rgba(10,22,41,.12),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:#F2EBE3;font-family:'Be Vietnam Pro',system-ui,sans-serif;color:#0A1629;font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:#F2EBE3}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:300px;background:linear-gradient(#e8ddcf,#F2EBE3)}
+.top{position:absolute;left:0;right:0;top:0;height:100px;padding:44px 8px 0;display:flex;align-items:center;gap:2px;z-index:4;background:linear-gradient(#e8ddcf 75%,rgba(232,221,207,0))}
+.lui{flex:none;width:44px;height:44px;display:grid;place-items:center}.lui svg{width:24px;height:24px;fill:#0A1629}
+.top h1{font-size:22px;font-weight:800;letter-spacing:-.4px}
+.cuon{position:absolute;left:0;right:0;top:100px;bottom:0;overflow-y:auto;overflow-x:hidden;padding:4px 16px 120px;scrollbar-width:none;z-index:1}
+.cuon::-webkit-scrollbar{display:none}
+.the{position:relative;height:180px;border-radius:30px;background:radial-gradient(90% 70% at 85% 10%,#1d3158,#0A1629);box-shadow:0 18px 26px -14px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.18),inset 0 -10px 16px -8px rgba(0,0,0,.35);overflow:hidden}
+.the .rob{position:absolute;right:-6px;bottom:-14px;width:140px;height:auto}
+.avt{position:absolute;left:20px;top:18px;width:74px;height:74px;border-radius:50%;display:grid;place-items:center;background:#E8600C;box-shadow:0 0 0 4px rgba(255,255,255,.85),0 10px 16px -8px rgba(0,0,0,.45),inset 0 2px 0 rgba(255,255,255,.35);font-size:32px;font-weight:800;color:#fff}
+.cam{position:absolute;left:68px;top:62px;width:44px;height:44px;display:grid;place-items:center}
+.cam i{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#fff;box-shadow:0 6px 10px -6px rgba(0,0,0,.4)}
+.cam svg{width:17px;height:17px;fill:#0A1629}
+.ten{position:absolute;left:22px;bottom:18px}
+.ten b{display:block;font-size:26px;line-height:30px;font-weight:800;letter-spacing:-.5px;color:#fff}
+.ten span{display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:3px 12px 3px 4px;border-radius:16px;background:#F4C76A;font-size:13.5px;font-weight:800;color:#0A1629}
+.ten span i{font-style:normal;font-size:20px;line-height:24px}
+.muc{display:flex;align-items:center;gap:7px;margin:18px 6px 8px;font-size:15px;font-weight:800;color:#0A1629}
+.muc::before{content:"";width:9px;height:13px;background:#0A1629;clip-path:polygon(0 0,100% 0,100% 100%,50% 76%,0 100%)}
+.lom{display:flex;align-items:center;height:52px;padding:0 20px;border-radius:26px;background:#fff;box-shadow:var(--sh)}
+.lom input{flex:1;min-width:0;border:0;outline:0;background:transparent;font:700 18px 'Be Vietnam Pro',sans-serif;color:#0A1629}
+.lom.chon{justify-content:space-between;font-size:17px;font-weight:700}
+.lom.chon small{font-size:13px;font-weight:700;color:#5a5a5a}
+.lom.chon svg{width:20px;height:20px;fill:#0A1629}
+.mau{display:flex;gap:12px;align-items:center;padding-left:4px}
+.mau i{width:44px;height:44px;border-radius:50%;box-shadow:0 6px 10px -6px rgba(10,22,41,.4),inset 0 2px 0 rgba(255,255,255,.4)}
+.mau i.chon{box-shadow:0 0 0 3px #F2EBE3,0 0 0 6px #0A1629}
+.pin{display:flex;align-items:center;gap:8px;min-height:44px;margin:14px 6px 0;font-size:13.5px;font-weight:700;color:#5a5a5a}
+.pin img{width:22px;height:22px}
+.pin b{margin-left:auto;display:inline-flex;align-items:center;gap:2px;font-weight:800;color:#0A1629}
+.pin svg{width:14px;height:14px;fill:#0A1629}
+.day{position:absolute;left:0;right:0;bottom:0;padding:14px 16px 26px;z-index:3;background:linear-gradient(rgba(242,235,227,0),#F2EBE3 18px)}
+.nut{display:flex;align-items:center;justify-content:center;width:100%;height:54px;border-radius:28px;border:0;font:800 16px 'Be Vietnam Pro',sans-serif;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
+</style></head>
+<body><div class="app">
+<div class="top"><div class="lui" role="button" tabindex="0" aria-label="Quay lại" data-toi="bm2-ho-so"><svg viewBox="0 0 256 256"><path d="M168.49,199.51a12,12,0,0,1-17,17l-80-80a12,12,0,0,1,0-17l80-80a12,12,0,0,1,17,17L97,128Z"></path></svg></div><h1>Sửa hồ sơ Bảo Anh</h1></div>
+<div class="cuon">
+<div class="the" aria-label="Xem trước hồ sơ của con">
+<div class="avt">B</div>
+<div class="cam" role="button" tabindex="0" aria-label="Đổi ảnh của con"><i><svg viewBox="0 0 256 256"><path d="M208,52H182.42L170,33.34A12,12,0,0,0,160,28H96a12,12,0,0,0-10,5.34L73.57,52H48A28,28,0,0,0,20,80V192a28,28,0,0,0,28,28H208a28,28,0,0,0,28-28V80A28,28,0,0,0,208,52ZM128,180a44,44,0,1,1,44-44A44.05,44.05,0,0,1,128,180Z"></path></svg></i></div>
+<div class="ten"><b>Bảo Anh</b><span aria-label="9 tuổi, theo năm sinh 2017"><i>🐓</i>9 tuổi</span></div>
+<img class="rob" src="/assets/rob/chi.webp" alt="">
+</div>
+<p class="muc">Tên gọi ở nhà</p>
+<div class="lom"><input aria-label="Tên gọi ở nhà của con" value="Bảo Anh"></div>
+<p class="muc">Năm sinh</p>
+<div class="lom chon" role="button" tabindex="0" aria-label="Chọn năm sinh của con"><span>2017 <small>· tuổi Dậu</small></span><svg viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></div>
+<p class="muc">Màu của con</p>
+<div class="mau" aria-label="Chọn màu để nhận ra con"><i class="chon" style="background:#E8600C"></i><i style="background:#1F48FF"></i><i style="background:#9b2fc0"></i><i style="background:#0f8a68"></i><i style="background:#d4408a"></i></div>
+<div class="pin" role="button" tabindex="0" aria-label="Đặt lại PIN vào máy" data-toi="them-z2fyhohj"><img src="/assets/icon3d/khoa.webp" alt="">PIN vào máy<b>Đặt lại<svg viewBox="0 0 256 256"><path d="M87.51,56.49a12,12,0,0,1,17-17l80,80a12,12,0,0,1,0,17l-80,80a12,12,0,0,1-17-17L159,128Z"></path></svg></b></div>
+</div>
+<div class="day">
+<button class="nut" type="button" data-toi="bm2-ho-so">Lưu hồ sơ Bảo Anh</button>
+</div>
+</div></body></html>

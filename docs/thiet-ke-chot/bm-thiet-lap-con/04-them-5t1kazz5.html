@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--noi:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--noi2:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--lom:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--n)}
+.dau{display:flex;align-items:center;gap:10px;padding:52px 16px 0}
+.lui{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--noi)}
+.lui svg,.ic svg,.mui svg,.tick svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.lui svg{width:22px;height:22px}
+.nhan{font-size:13px;font-weight:700;color:#8a6a2b;padding:6px 12px;border-radius:12px;box-shadow:var(--lom)}
+h1{margin:22px 20px 0;font-size:25px;line-height:32px;font-weight:800;letter-spacing:-.4px}
+.phu{margin:8px 20px 0;font-size:14.5px;line-height:21px;color:var(--ink2)}
+.av{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--n);font-size:21px;font-weight:800;color:var(--ink);box-shadow:var(--noi)}
+.av.on{background:#0A1629;color:#F4C76A;box-shadow:0 0 0 3px var(--n),0 0 0 5px #D9AE57,5px 6px 12px var(--lo)}
+.the{margin:18px 16px 0;padding:6px 14px;border-radius:24px;background:var(--n);box-shadow:var(--noi2)}
+.dong{display:flex;align-items:center;gap:12px;min-height:58px}
+.dong+.dong{border-top:1px solid rgba(120,98,70,.14);box-shadow:inset 0 1px 0 var(--hi)}
+.ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--n);color:var(--ink);box-shadow:var(--lom)}
+.ic svg{width:20px;height:20px}
+.dong p{flex:1;min-width:0;font-size:15px;font-weight:700;line-height:20px}
+.dong p small{display:block;font-size:12.5px;font-weight:400;color:var(--ink3);line-height:17px}
+.day{position:absolute;left:16px;right:16px;bottom:24px;display:flex;flex-direction:column;gap:14px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:54px;border:0;border-radius:16px;font:700 16px/1 'Be Vietnam Pro',sans-serif;color:var(--ink);white-space:nowrap;cursor:pointer}
+.nut.chinh{background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nut.phu2{background:var(--n);box-shadow:var(--noi)}
+.ghi{text-align:center;font-size:12.5px;color:var(--ink3);margin-top:-6px}
+</style>
+<style>
+.ds{margin:18px 16px 0;display:flex;flex-direction:column;gap:12px}
+.chon{display:flex;align-items:center;gap:12px;min-height:72px;padding:0 14px;border-radius:20px;background:var(--n);box-shadow:var(--lom)}
+.chon.on{box-shadow:var(--noi),inset 0 0 0 1.5px #D9AE57}
+.chon .av{width:44px;height:44px;font-size:18px}
+.chon p{flex:1;min-width:0;font-size:15.5px;font-weight:700;line-height:20px}
+.chon p small{display:block;font-size:12.5px;font-weight:400;color:var(--ink3)}
+.tick{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--lom)}
+.chon.on .tick{background:#0A1629;color:#F4C76A;box-shadow:none}.tick svg{width:16px;height:16px;stroke-width:2.2}
+.chip{margin:16px 20px 0;font-size:13px;line-height:19px;color:var(--ink2)}.chip b{color:var(--ink);font-weight:700}
+</style></head><body><div class="app">
+<div class="dau"><a class="lui" role="button" data-toi="them-9ozp26pq"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"></path></svg></a><span class="nhan">Con thứ 4 · Khang</span></div>
+<h1>Khang dùng luật giống ai?</h1>
+<p class="phu">Chọn một con để chép luật sang. Sau này vẫn sửa riêng cho Khang được.</p>
+<div class="ds">
+<div class="chon on" role="button"><span class="av on">B</span><p>Bảo Anh<small>Theo danh sách · 6 app · 5 việc</small></p><span class="tick"><svg viewBox="0 0 24 24"><path d="M6.5 12.5l3.6 3.6 7.4-8"></path></svg></span></div>
+<div class="chon" role="button"><span class="av">M</span><p>Bảo Minh<small>Mở hết · 4 việc</small></p><span class="tick"></span></div>
+<div class="chon" role="button"><span class="av">N</span><p>Bảo Ngọc<small>Theo danh sách · 8 app · 6 việc</small></p><span class="tick"></span></div>
+</div>
+<p class="chip">Sẽ chép: <b>App &amp; web</b> · <b>Tính phút</b> · <b>Việc mỗi ngày</b> · <b>Chơi bằng sao</b></p>
+<div class="day"><button class="nut chinh" data-toi="bm1-ob-ghep">Giống Bảo Anh</button><p class="ghi">Xong đi thẳng tới Ghép máy</p><button class="nut phu2" data-toi="them-fi17hb99">Thiết lập riêng</button></div>
+</div></body></html>
