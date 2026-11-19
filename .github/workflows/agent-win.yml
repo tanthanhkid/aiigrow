@@ -40,12 +40,13 @@ on:
     branches: [main]
     paths: *duong_agent   # YAML anchor (Actions hỗ trợ từ 09/2025) — một danh sách duy nhất
   workflow_dispatch:
+  workflow_call:   # dem.yml (chạy đêm trên main) gọi lại
 
 permissions:
   contents: read
 
 concurrency:
-  group: agent-win-${{ github.ref }}
+  group: agent-win-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 env:

@@ -10,12 +10,13 @@ on:
     branches: [main]
     paths: *duong
   workflow_dispatch:
+  workflow_call:   # dem.yml (chạy đêm trên main) gọi lại
 
 permissions:
   contents: read
 
 concurrency:
-  group: server-${{ github.ref }}
+  group: server-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

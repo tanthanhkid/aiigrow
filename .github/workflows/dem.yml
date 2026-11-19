@@ -1,0 +1,97 @@
+name: dem
+
+# Chạy ĐỦ bộ CI trên main mỗi đêm (~02:15 giờ VN), kể cả nền tảng không có commit trong ngày — bắt lỗi lọt qua do PR merge không chờ CI,
+# runner/SDK đổi, phụ thuộc trôi. Không chặn merge, không chặn deploy (luật: merge + deploy ngay, CI chỉ báo).
+#   Lượt đỏ  ⇒ mở (hoặc comment vào) issue «CI đêm trên main đỏ» nhãn loi + ci-dem, kèm link run + artifact ảnh/log.
+#   Lượt xanh ⇒ issue ci-dem đang mở được comment «xanh lại» rồi đóng.
+# Các workflow con nhận `on: workflow_call`; nhóm concurrency của chúng có github.workflow (= «dem» khi được gọi) ⇒ push main
+# hay chạy tay một workflow không huỷ lượt đêm.
+# KHÔNG gọi chup-man-win.yml: job chup-man của agent-win.yml đã chụp đủ (100/150% + 1366) và cùng tải artifact «man-win» —
+# hai tên trùng trong một run ⇒ upload-artifact@v4 lỗi 409 (chup-man-win.yml vì thế không có workflow_call). Artifact các workflow con phải khác tên nhau.
+on:
+  schedule:
+    - cron: '15 19 * * *'   # 19:15 UTC = 02:15 giờ VN
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dem
+  cancel-in-progress: false
+
+jobs:
+  agent-win:
+    uses: ./.github/workflows/agent-win.yml
+  agent-mac:
+    uses: ./.github/workflows/agent-mac.yml
+  agent-ios:
+    uses: ./.github/workflows/agent-ios.yml
+  agent-android:
+    uses: ./.github/workflows/agent-android.yml
+  mobile:
+    uses: ./.github/workflows/mobile.yml
+  server:
+    uses: ./.github/workflows/server.yml
+
+  bao:
+    needs: [agent-win, agent-mac, agent-ios, agent-android, mobile, server]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      RUN_ID: ${{ github.run_id }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+      SHA: ${{ github.sha }}
+      SU_KIEN: ${{ github.event_name }}
+      KET_QUA: ${{ toJSON(needs) }}
+    steps:
+      - name: Mở / cập nhật / đóng issue ci-dem
+        run: |
+          set -euo pipefail
+          TIEU_DE='CI đêm trên main đỏ'
+          DO=$(jq -r 'to_entries[] | select(.value.result == "failure") | .key' <<<"$KET_QUA" | paste -sd' ' -)
+          KHAC=$(jq -r 'to_entries[] | select(.value.result != "failure" and .value.result != "success") | "\(.key)=\(.value.result)"' <<<"$KET_QUA" | paste -sd' ' -)
+          echo "đỏ: ${DO:-không} · không xanh khác (huỷ/bỏ qua): ${KHAC:-không}"
+          # issue ci-dem đang mở: theo NHÃN, lấy số nhỏ nhất (tiêu đề có thể bị sửa tay)
+          MO=$(gh issue list --state open --label ci-dem --json number --jq 'map(.number) | min // empty')
+
+          if [ -n "$DO" ]; then
+            NGAY=$(TZ=Asia/Ho_Chi_Minh date '+%d/%m/%Y %H:%M')
+            BANG=$(jq -r 'to_entries[] | "| `\(.key)` | \(if .value.result == "failure" then "🔴 failure" elif .value.result == "success" then "🟢 success" else .value.result end) |"' <<<"$KET_QUA")
+            ANH=$(gh api "repos/$GH_REPO/actions/runs/$RUN_ID/artifacts?per_page=100" \
+                  --jq ".artifacts[] | \"- [\(.name)](https://github.com/$GH_REPO/actions/runs/$RUN_ID/artifacts/\(.id))\(if (.name|test(\"^man-\")) then \" — ảnh màn\" else \"\" end)\"" || true)
+            {
+              echo "### Lượt $NGAY (${SU_KIEN}) — commit \`${SHA:0:8}\`"
+              echo
+              echo "Run: $RUN_URL"
+              echo
+              echo "| Workflow | Kết quả |"
+              echo "|---|---|"
+              echo "$BANG"
+              echo
+              echo "**Artifact** (ảnh màn \`man-*\`, log e2e/test):"
+              echo "${ANH:-_(không có artifact)_}"
+              echo
+              echo "Xem job đỏ: mở run ở trên → job có dấu ✗. Tự chạy lại: \`gh workflow run dem --ref main\`."
+            } > than.md
+            if [ -n "$MO" ]; then
+              gh issue comment "$MO" --body-file than.md
+              echo "đã comment issue #$MO"
+            else
+              gh issue create --title "$TIEU_DE" --label loi --label ci-dem --body-file than.md
+            fi
+          elif [ -z "$KHAC" ]; then
+            for N in $(gh issue list --state open --label ci-dem --json number --jq '.[].number'); do
+              gh issue comment "$N" --body "🟢 CI đêm xanh lại ở commit \`${SHA:0:8}\` — $RUN_URL. Đóng issue."
+              gh issue close "$N" --reason completed
+              echo "đã đóng #$N"
+            done
+          else
+            echo "có workflow huỷ/bỏ qua ($KHAC), không đỏ — không mở, không đóng issue"
+          fi
