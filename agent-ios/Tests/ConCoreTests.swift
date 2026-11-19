@@ -451,6 +451,31 @@ final class ApiVaDongBoTests: XCTestCase {
     let sau = kho.doc(YeuCauDangCho.self, Khoa.yeuCauDangCho)!
     XCTAssertEqual(sau.ketQua, "da_them"); XCTAssertEqual(sau.nhom, "tinh_phut"); XCTAssertEqual(sau.cau, "Mẹ Lan đã thêm Roblox vào danh sách!")
   }
+
+  /// #422 «Xin thêm app / web»: thân xin-duyet mang `kieu`; lời xin lưu lúc mất mạng gửi lại vẫn mang `kieu`; web_sai ⇒ message máy chủ.
+  func testXinThemAppWebMangKieu() async throws {
+    vc.tra["POST /api/device/xin-duyet"] = (#"{"id":"Y5","trang_thai":"cho","daCo":false,"loai":"mo_web","muc":"scratch.mit.edu"}"#.data(using: .utf8)!, 200)
+    let yc = try await dongBo().xinMoApp(ten: "scratch.mit.edu", lyDo: "Con học làm game", kieu: "web")
+    XCTAssertEqual(yc.kieu, "web"); XCTAssertEqual(kho.doc(YeuCauDangCho.self, Khoa.yeuCauDangCho)?.kieu, "web")
+    var than = try JSONSerialization.jsonObject(with: vc.da.last { $0.url!.path == "/api/device/xin-duyet" }!.httpBody!) as! [String: Any]
+    XCTAssertEqual(than["kieu"] as? String, "web"); XCTAssertEqual(than["muc"] as? String, "scratch.mit.edu"); XCTAssertEqual(than["lyDo"] as? String, "Con học làm game")
+    // lời xin cũ (màn chặn) không gửi kieu
+    _ = try await dongBo().xinMoApp(ten: "Roblox", lyDo: nil)
+    than = try JSONSerialization.jsonObject(with: vc.da.last { $0.url!.path == "/api/device/xin-duyet" }!.httpBody!) as! [String: Any]
+    XCTAssertNil(than["kieu"])
+    // mất mạng lúc xin ⇒ lưu; có mạng ⇒ gửi lại kèm kieu=app
+    var x = YeuCauDangCho(id: "cho-mang", phut: 0, loiNhan: "", guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: "Minecraft"); x.kieu = "app"
+    kho.luu(x, Khoa.xinChoMang)
+    await dongBo().guiXinChoMang()
+    than = try JSONSerialization.jsonObject(with: vc.da.last { $0.url!.path == "/api/device/xin-duyet" }!.httpBody!) as! [String: Any]
+    XCTAssertEqual(than["kieu"] as? String, "app"); XCTAssertEqual(than["muc"] as? String, "Minecraft"); XCTAssertNil(than["lyDo"])
+    XCTAssertNil(kho.doc(YeuCauDangCho.self, Khoa.xinChoMang))
+    XCTAssertEqual(kho.doc(YeuCauDangCho.self, Khoa.yeuCauDangCho)?.kieu, "app")
+    // web_sai ⇒ lỗi mang message máy chủ
+    vc.tra["POST /api/device/xin-duyet"] = (#"{"error":"web_sai","message":"Gõ địa chỉ trang web, ví dụ scratch.mit.edu"}"#.data(using: .utf8)!, 400)
+    do { _ = try await dongBo().xinMoApp(ten: "abc", lyDo: nil, kieu: "web"); XCTFail("phải lỗi") }
+    catch let e as LoiApi { XCTAssertEqual(e.ma, "web_sai"); XCTAssertEqual(e.errorDescription, "Gõ địa chỉ trang web, ví dụ scratch.mit.edu") }
+  }
 }
 
 

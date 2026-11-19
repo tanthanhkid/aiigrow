@@ -221,10 +221,12 @@ extension ApiClient {
     _ = try await goi("POST", "api/device/hoc-vien/loi-khen/\(id)/phan-hoi", Self.json(["phanHoi": String(noi.prefix(60))]), Ok.self)
   }
   /// «Xin Ba Mẹ cài / mở app» — iOS không biết app nào đang bị khiên (token mờ) ⇒ Con gõ tên app.
+  /// #422 «Xin thêm app / web»: `kieu` "app" | "web" (máy chủ cũ bỏ qua trường lạ); kieu=web mà không phải tên miền ⇒ 400 `web_sai`.
   @discardableResult
-  public func xinDuyet(ten: String, lyDo: String?) async throws -> KetQuaYeuCau {
+  public func xinDuyet(ten: String, lyDo: String?, kieu: String? = nil) async throws -> KetQuaYeuCau {
     var b: [String: Any] = ["muc": ten, "ten": ten]
     if let lyDo, !lyDo.isEmpty { b["lyDo"] = String(lyDo.prefix(100)) }
+    if let kieu { b["kieu"] = kieu }
     return try await goi("POST", "api/device/xin-duyet", Self.json(b), KetQuaYeuCau.self)
   }
 }

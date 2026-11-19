@@ -372,11 +372,23 @@ final class MoHinhApp: ObservableObject {
   }
 
   /// «Xin Ba Mẹ mở <app>» — app ngoài danh sách (Ba Mẹ thêm vào Tính phút / Không tính phút, hoặc chưa thêm).
-  func xinCaiApp(ten: String, lyDo: String) async -> Bool {
-    if demo != nil { yeuCau = YeuCauDangCho(id: "demo", phut: 0, loiNhan: lyDo, guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: ten); return true }
+  /// #422 «Xin thêm app / web»: `kieu` "app" | "web". Mất mạng ⇒ lưu lời xin (mang `kieu`), gửi khi có mạng (→ "luu"); lỗi (web_sai, qua_nhieu_cho…) ⇒ nil, đọc `loi`.
+  func xinCaiApp(ten: String, lyDo: String, kieu: String? = nil) async -> String? {
+    let ten = ten.trimmingCharacters(in: .whitespacesAndNewlines)
+    if demo != nil {
+      var y = YeuCauDangCho(id: "demo", phut: 0, loiNhan: lyDo, guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: ten); y.kieu = kieu
+      yeuCau = y; return "gui"
+    }
     dangBan = true; defer { dangBan = false }
-    do { yeuCau = try await dongBo().xinMoApp(ten: ten, lyDo: lyDo); loi = nil; return true }
-    catch { loi = (error as? LoiApi)?.errorDescription ?? error.localizedDescription; return false }
+    do {
+      yeuCau = try await dongBo().xinMoApp(ten: ten, lyDo: lyDo, kieu: kieu); loi = nil
+      if let q = try? await api.quyCon() { yeuCauCho = q.yeuCauCho ?? [] }
+      return "gui"
+    } catch LoiApi.mang {
+      var x = YeuCauDangCho(id: "cho-mang", phut: 0, loiNhan: lyDo, guiLuc: Date(), trangThai: "cho", loai: "mo_app", ten: ten); x.kieu = kieu
+      kho.luu(x, Khoa.xinChoMang); xinCho = x; matMang = true
+      return "luu"
+    } catch { loi = (error as? LoiApi)?.errorDescription ?? error.localizedDescription; return nil }
   }
 
   // MARK: nhiệm vụ
@@ -563,6 +575,8 @@ final class MoHinhApp: ObservableObject {
     case "conDangXin": manPhu = .conDangXin
     case "doiBe": manPhu = .doiBe
     case "xinCai": manPhu = .xinCai
+    case "xinAppWeb": manPhu = .xinAppWeb(.app)
+    case "xinWeb": manPhu = .xinAppWeb(.web)
     case "dns": manPhu = .dns
     case "nvChiTiet": tab = .nhiemVu; manPhu = .nhiemVu(tq!.nhiemVu[1])
     case "maOffline", "maSai", "maHetHan", "luuXin", "matMang": matMang = true

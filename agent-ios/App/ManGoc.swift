@@ -6,6 +6,8 @@ import ConCore
 enum ManPhu: Identifiable, Equatable {
   case xinThem, conDangXin, doiBe, xinCai, dns, chonApp, cuaHang, maOffline, quyTac, choiBangSao
   case nhiemVu(NhiemVuCon)
+  /// #422 hộp «Xin thêm app / web» mở sẵn ở thẻ App trên máy / Trang web.
+  case xinAppWeb(TheXin)
   var id: String {
     switch self {
     case .nhiemVu(let n): return "nv.\(n.id)"
@@ -59,6 +61,7 @@ struct ManPhuView: View {
       case .quyTac: ManQuyTac()
       case .choiBangSao: ManChoiBangSao()
       case .nhiemVu(let n): ManNvChiTiet(nv: n)
+      case .xinAppWeb(let t): ManXinAppWeb(the: t)
       }
     }
     .background(Diu.nen.ignoresSafeArea())
