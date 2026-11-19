@@ -140,7 +140,7 @@ class ManChinh : Activity() {
         val t = Diu.the(this, dem = 20).apply { gravity = Gravity.CENTER_HORIZONTAL }
         t.addView(Diu.vongTen(this, ten.trim().firstOrNull()?.uppercase() ?: "?", PinMay.hoSo(k)?.con?.indexOfFirst { it.id == PinMay.nguoiDung(k)?.conId }?.coerceAtLeast(0) ?: 0, 64, dangChon = true))
         t.addView(Diu.chu(this, ten, 22f, Diu.CHU, true).apply { gravity = Gravity.CENTER; setPadding(0, G.dp(this@ManChinh, 8), 0, 0) })
-        t.addView(Diu.chu(this, "Đang dùng Máy cả nhà · Android", 15f, Diu.CHU2).apply { gravity = Gravity.CENTER })
+        dongMay(PinMay.hoSo(k))?.let { dong -> t.addView(Diu.chu(this, dong, 15f, Diu.CHU2).apply { gravity = Gravity.CENTER }) }
         t.addView(Diu.nut(this, "Đổi người", Diu.KieuNut.PHU) { d.dismiss(); PinMay.roiMay(this, baMe = false) })
         t.addView(Diu.nut(this, "Đăng xuất") { d.dismiss(); PinMay.roiMay(this, baMe = false) })
         t.addView(Diu.chu(this, "Đổi người hay đăng xuất đều dừng tính phút của $ten. Vào lại bằng tên + PIN.", 14f, Diu.CHU3).apply { gravity = Gravity.CENTER; setPadding(0, G.dp(this@ManChinh, 10), 0, 0) })

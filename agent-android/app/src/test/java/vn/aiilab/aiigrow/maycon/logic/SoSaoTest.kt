@@ -175,6 +175,14 @@ class SoSaoTest {
         assertEquals("Máy cả nhà", hs.tenMay)
     }
 
+    @Test fun dongMayThat() {
+        fun hs(rieng: Boolean, ten: String?) = HoSoMay(emptyList(), rieng, null, null, tenMay = ten)
+        assertEquals("Đang dùng Máy của Bảo Anh · Android · máy riêng", dongMay(hs(true, "Máy của Bảo Anh")))
+        assertEquals("Đang dùng Máy cả nhà · Android · máy chung", dongMay(hs(false, "Máy cả nhà")))
+        assertEquals("Đang dùng Android · máy chung", dongMay(hs(false, " ")))
+        assertEquals(null, dongMay(null))
+    }
+
     @Test fun lichSuSao() {
         val ds = docLichSuSao(JSONObject("""{"lichSu":[{"kieu":"vay","sao":15,"tenNguoi":"Mẹ Lan"},{"kieu":"tra_no","sao":-10,"chuThich":"Dọn phòng"},
             {"kieu":"choi","sao":-20,"chuThich":"Chơi YouTube 20 phút"}]}"""))

@@ -261,3 +261,11 @@ fun denTheoGioMay(denMayChu: Long?, lechMs: Long): Long? = denMayChu?.let { it -
 
 /** Đếm ngược «0:15 giây» / «Ba Mẹ dùng tới 20:10 · còn 12:30». */
 fun demGiay(giay: Int): String = "%d:%02d".format(maxOf(0, giay) / 60, maxOf(0, giay) % 60)
+
+/** Dòng «Đang dùng <tên máy> · Android · máy riêng|máy chung» ở tấm Đổi người. Chỉ ghép phần có dữ liệu thật; không có gì ⇒ null (ẩn dòng). */
+fun dongMay(hs: HoSoMay?): String? {
+    if (hs == null) return null
+    val ten = hs.tenMay?.trim()?.takeIf { it.isNotEmpty() }
+    val loai = if (hs.mayRieng) "máy riêng" else "máy chung"
+    return "Đang dùng " + listOfNotNull(ten, "Android", loai).joinToString(" · ")
+}
