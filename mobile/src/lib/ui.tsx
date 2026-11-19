@@ -504,7 +504,7 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
   // Nút chat Grow nằm TRONG hàng tiêu đề (cạnh tiêu đề lớn, hoặc góc phải thanh đầu) — không nổi đè nội dung / nút khi cuộn (TestFlight build 6).
   const nutChat = chat ? <NutChat /> : null;
   // Thiết kế chốt 14/11 (.top của mọi màn con bm-*): mũi tên lùi 44 (icon 24 ngọc đậm, KHÔNG kèm chữ — chữ cũ chỉ còn là nhãn đọc màn hình),
-  // tiêu đề CANH TRÁI cạnh mũi tên, 22 ExtraBold, giãn chữ −0,4; hàng cao 56 dưới thanh trạng thái. Màn con có `tieuLon` (vd «Nhật ký cả nhà»)
+  // tiêu đề CANH TRÁI cạnh mũi tên, 20 ExtraBold (ExtraBold rộng hơn Fraunces ⇒ 22 rớt 2 dòng), giãn chữ −0,5; hàng cao 56 dưới thanh trạng thái. Màn con có `tieuLon` (vd «Nhật ký cả nhà»)
   // ⇒ tiêu đề lên hàng này (thiết kế không có tiêu đề lớn thứ hai dưới mũi tên). Tiêu đề dài (tên Con đầy đủ) xuống tối đa 2 dòng thay vì cắt «…» (#411).
   const tieuDau = tieu ?? (lui && tieuLon ? tieuLon : undefined);
   const lonRieng = tieuLon && !(lui && !tieu) ? tieuLon : undefined;
@@ -517,7 +517,7 @@ export function Man({ children, nen = "bm", lui, tieu, tieuLon, phai, phaiTieu, 
           <Icon ten="trai" mau={M.chinhInk} co={24} />
         </Pressable>
       ) : null}
-      {tieuDau ? <View style={{ flex: 1, minWidth: 0, overflow: "hidden" }}><Text numberOfLines={2} accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 22, lineHeight: 28, paddingVertical: 4, letterSpacing: -0.4, color: M.chu,
+      {tieuDau ? <View style={{ flex: 1, minWidth: 0, overflow: "hidden" }}><Text numberOfLines={2} accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 20, lineHeight: 28, paddingVertical: 4, letterSpacing: -0.5, color: M.chu,
         paddingLeft: lui ? 2 : 8 }}>{tieuDau}</Text></View> : <View style={{ flex: 1 }} />}
       {phai || chatTrenDau2 || phaiDau2 ? <View style={{ marginLeft: "auto", flexShrink: 0, flexDirection: "row", gap: 8, alignItems: "center", paddingRight: 4 }}>{phai}{phaiDau2}{chatTrenDau2 ? nutChat : null}</View> : null}
     </View>
