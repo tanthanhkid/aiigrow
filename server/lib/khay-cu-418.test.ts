@@ -55,7 +55,7 @@ test("đồng bộ agent: khay cũ «aiigrow.tray.exe.cu-…» (máy chưa cập
   assert.equal((await homNayDung(fam, con)).dung.some((x) => /aiigrow/.test(x.muc)), false);
 });
 
-test("script hoàn sao #418: xem trước không ghi; hoàn theo (Con, ngày) = min(phút AiiGrow «Tính phút», sao đã trừ); xoá «app mới»; chạy lại không hoàn đôi", async () => {
+test("script hoàn sao #418: xem trước không ghi; hoàn theo (Con, ngày) = min(phút AiiGrow «Tính phút», sao đã trừ − phút app Tính phút khác); xoá «app mới»; chạy lại không hoàn đôi", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Tú Linh" });
   const be2 = await g.taoCon(fam, { ten: "Bi" });
@@ -77,7 +77,7 @@ test("script hoàn sao #418: xem trước không ghi; hoàn theo (Con, ngày) = 
 
   const xem = await don.donAppAiiGrow();
   assert.deepEqual([xem.chay, xem.hoan, xem.tongSao, xem.usage.length, xem.luat.map((x) => x.muc)],
-    [false, [{ child_id: con, ngay: "2026-11-18", sao: 4, phutAiiGrow: 4, saoDaTru: 10 }], 4, 3, [KHAY_CU]]);
+    [false, [{ child_id: con, ngay: "2026-11-18", sao: 4, phutAiiGrow: 4, saoDaTru: 10, phutAppKhac: 6 }], 4, 3, [KHAY_CU]]);
   assert.equal(await v.soDu(con), 19, "xem trước không ghi");
   assert.ok(await one(`select 1 from usage where muc = $1`, [KHAY_CU]));
 

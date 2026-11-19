@@ -41,8 +41,8 @@ export const ALLOWLIST_HE_THONG: string[] = [
 /** #418: mục là CHÍNH AiiGrow — không phải app Con dùng: không ghi «đã dùng», không thành «app mới chờ Ba Mẹ xếp», không trừ sao.
  *  Windows: khay / app Con, kể cả khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx» (agent báo «aiigrow.tray.exe.cu-623a59b6.exe») mà vẫn
  *  chạy tới lần đăng nhập sau. ĐÚNG các tên này — cùng luật agent-win AppAiiGrow (UsageTracker.cs; agent mới còn kiểm tệp nằm trong thư mục cài).
- *  Máy chủ không thấy đường dẫn: đổi tên game thành «aiigrow.tray.exe.cu-…» trên agent cũ thoát đếm phút như đổi thành «aiigrow.tray.exe» (đã có
- *  trong ALLOWLIST_HE_THONG) — không rộng hơn. Mac / Android: bundle / gói đúng tên ở ALLOWLIST_HE_THONG (vn.aiilab.aiigrow, .tray, .con). */
+ *  Máy chủ không thấy đường dẫn: game đổi tên «AiiGrow.Tray.exe.cu-…» không bị máy chủ trừ sao — CÙNG lỗ với «AiiGrow.Tray.exe» vốn đã ở
+ *  ALLOWLIST_HE_THONG (agent mới vẫn không gộp tệp ngoài thư mục cài khi đếm quỹ phút tại máy); không rộng hơn lỗ cũ. Mac / Android: bundle / gói đúng tên ở ALLOWLIST_HE_THONG (vn.aiilab.aiigrow, .tray, .con). */
 const APP_AIIGROW_WIN = /^aiigrow\.(tray|kid)\.exe(\.cu-[0-9a-f]+\.exe)?$/;
 export function laAppAiiGrow(mucTho: unknown) {
   const m = String(mucTho ?? "").trim().toLowerCase();

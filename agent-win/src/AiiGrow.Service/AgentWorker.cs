@@ -171,7 +171,7 @@ public sealed class AgentWorker : BackgroundService
         // Tray chết: vẫn tính giờ phiên con dưới tên "không rõ" (con không thể ngưng đồng hồ bằng cách tắt tray).
         // #418: cửa sổ của chính AiiGrow — kể cả khay cũ «AiiGrow.Tray.exe.cu-…» còn chạy sau cập nhật — gộp về khay (hệ thống): không thành
         // «app mới», không trừ sao. Chỉ khi tệp chạy nằm trong thư mục cài (game đổi tên giống AiiGrow ở chỗ khác vẫn bị đếm).
-        if (fresh && id != AppAiiGrow.Khay && AppAiiGrow.La(id) && phienCon >= 0)
+        if (fresh && AppAiiGrow.LaKhayCu(id) && phienCon >= 0)   // tên thường của AiiGrow máy chủ đã xếp hệ thống: khỏi quét tiến trình
         {
             bool cuaAiiGrow;
             try { cuaAiiGrow = AppAiiGrow.ChayTuThuMucCai(id!, new WindowsProcessControl().ListChildProcesses(phienCon), AppContext.BaseDirectory); }

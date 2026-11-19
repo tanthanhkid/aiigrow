@@ -24,7 +24,7 @@ internal static class Program
                 if (!motBan.GianhLai(30_000))
                 {
                     // #418: khay cũ không thoát sau 30 giây (treo lúc đóng) ⇒ kết thúc nó rồi làm bản chính — không để khay cũ chạy tiếp
-                    MotBanKhay.KetThucKhayKhac();
+                    MotBanKhay.KetThucKhayKhac(chiKhayCu: true);   // chỉ khay cũ «.cu-»: khay bản mới (Con vừa bấm mở) đang giữ khoá thì để yên
                     if (!motBan.GianhLai()) return;
                 }
                 ApplicationConfiguration.Initialize();

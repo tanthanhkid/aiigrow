@@ -44,9 +44,16 @@ public class KhayCuTests
         Assert.True(AppAiiGrow.ChayTuThuMucCai("aiigrow.tray.exe.cu-623a59b6.exe", ds, Cai + @"\"));
         Assert.True(AppAiiGrow.ChayTuThuMucCai("AiiGrow.Tray.exe", ds, Cai));
         Assert.False(AppAiiGrow.ChayTuThuMucCai("aiigrow.tray.exe.cu-1a2b3c4d.exe", ds, Cai));
-        Assert.False(AppAiiGrow.ChayTuThuMucCai("aiigrow.kid.exe", ds, Cai));             // thư mục con: không nhận
+        Assert.False(AppAiiGrow.ChayTuThuMucCai("aiigrow.kid.exe", ds, Cai));             // thư mục con, không phải khay: không nhận
         Assert.False(AppAiiGrow.ChayTuThuMucCai("aiigrow.tray.exe", ds, ""));
     }
+
+    [Theory]
+    [InlineData("aiigrow.tray.exe.cu-623a59b6.exe", true)]
+    [InlineData("aiigrow.tray.exe", false)]
+    [InlineData("aiigrow.kid.exe", false)]
+    [InlineData("aiigrow.tray.exe.cu-roblox.exe", false)]
+    public void NhanDienDinhDanhKhayCu(string id, bool la) => Assert.Equal(la, AppAiiGrow.LaKhayCu(id));
 
     [Theory]
     [InlineData("AiiGrow.Tray.exe.cu-623a59b6", true)]

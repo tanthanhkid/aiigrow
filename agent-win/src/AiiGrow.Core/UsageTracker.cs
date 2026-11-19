@@ -118,6 +118,9 @@ public static class AppAiiGrow
         return Array.IndexOf(Goc, id) >= 0;
     }
 
+    /// <summary>Định danh khay CŨ «aiigrow.tray.exe.cu-xxxxxxxx.exe» (khay / app Con tên thường đã ở allowlist hệ thống — không cần gộp).</summary>
+    public static bool LaKhayCu(string? appId) => La(appId) && appId!.Contains(".exe.cu-", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Định danh như khay báo cho một tệp chạy: «…\AiiGrow.Tray.exe» ⇒ «aiigrow.tray.exe»; «…\AiiGrow.Tray.exe.cu-623a59b6» ⇒
     /// «aiigrow.tray.exe.cu-623a59b6.exe» (ProcessName chỉ bỏ đuôi «.exe»).</summary>
     public static string DinhDanh(string duongTep)
@@ -127,19 +130,13 @@ public static class AppAiiGrow
         return ten.ToLowerInvariant() + ".exe";
     }
 
-    /// <summary>Có tiến trình <paramref name="appId"/> chạy từ ĐÚNG thư mục cài (không thư mục con) trong danh sách tiến trình phiên Con.</summary>
+    /// <summary>Có tiến trình <paramref name="appId"/> là khay AiiGrow (kể cả khay cũ «.cu-») chạy từ ĐÚNG thư mục cài — cùng phép kiểm khách pipe
+    /// (<see cref="KhayThat.La"/>) — trong danh sách tiến trình phiên Con.</summary>
     public static bool ChayTuThuMucCai(string appId, IEnumerable<RunningProc> ds, string thuMucCai)
     {
         if (string.IsNullOrWhiteSpace(thuMucCai)) return false;
-        var cai = thuMucCai.Replace('/', '\\').TrimEnd('\\');
+        var khay = Path.Combine(thuMucCai, Paths.TrayExeName);
         var id = appId.Trim().ToLowerInvariant();
-        foreach (var r in ds)
-        {
-            var p = r.Path.Replace('/', '\\');
-            var j = p.LastIndexOf('\\');
-            if (j <= 0) continue;
-            if (string.Equals(p[..j], cai, StringComparison.OrdinalIgnoreCase) && DinhDanh(p) == id) return true;
-        }
-        return false;
+        return ds.Any(r => DinhDanh(r.Path) == id && KhayThat.La(r.Path, khay));
     }
 }
