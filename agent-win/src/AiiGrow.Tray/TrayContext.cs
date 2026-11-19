@@ -495,7 +495,7 @@ internal sealed class TrayContext : ApplicationContext
         => new KetQuaHop("Ba Mẹ trả lời")
             .Dau("khoa", KhoiCon.Mau.Cam, KetQuaXinView.ChuaThemTieu(kq.Ten), _state.QuyConPhut is double c ? "Con " + SaoView.ConPhut(c) : null)
             .Loi(XinVayView.TenBaMe(kq.Nguoi), KetQuaXinView.ChuaThemCau(kq.Ten) + " " + KetQuaXinView.XinLaiSau)
-            .Nut(KetQuaXinView.XinLai, true, "gui", () => OpenXinMo(kq.Ten.Contains('.') ? LoaiXin.MoWeb : LoaiXin.CaiApp, kq.Ten))
+            .Nut(KetQuaXinView.XinLai, true, "gui", () => OpenXinMo(BlockedForm.LaTrangWeb(kq.Ten) ? LoaiXin.MoWeb : LoaiXin.CaiApp, kq.Ten))
             .LienKet(KetQuaXinView.VeTrangChinh, "nha", () => OpenApp(MucApp.HomNay));
 
     private ThoatForm? _thoat;
@@ -605,7 +605,9 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_xinThem is { IsDisposed: false } cu)
         {
-            if (cu.LaHopChon || muc == null) { cu.Activate(); return; }
+            // hộp chọn đang mở ⇒ đưa lên (+ điền sẵn khi «Xin lại»); hộp xin một mục của màn chặn ⇒ đóng (lời xin đã gửi vẫn được khay ghi nhớ,
+            // kết quả về bằng popup) rồi mở hộp hai thẻ — nút «Xin thêm app / web» luôn tới đúng hộp này
+            if (cu.LaHopChon) { cu.DienSan(loai == LoaiXin.MoWeb, muc); cu.Activate(); return; }
             cu.Close();
         }
         var f = new XinThemForm(_state.QuyConPhut, loai == LoaiXin.MoWeb, muc);

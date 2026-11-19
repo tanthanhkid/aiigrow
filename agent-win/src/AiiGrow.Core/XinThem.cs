@@ -112,8 +112,12 @@ public static class XinThemChonView
         foreach (var n in nhan)
             if (n.Length is 0 or > 63 || n[0] == '-' || n[^1] == '-' || !n.All(c => char.IsLetterOrDigit(c) || c == '-')) return null;
         var duoi = nhan[^1];
-        return duoi.Length >= 2 && duoi.All(char.IsLetter) ? t : null;
+        if (duoi.Length < 2 || !duoi.All(char.IsLetter) || DuoiTep.Contains(duoi)) return null;   // «paint.exe» là app, không phải trang
+        return WebPolicy.Sach(t);   // cùng một định nghĩa tên miền với bộ áp luật web (chỉ a-z0-9.-) — duyệt xong là luật có hiệu lực
     }
+
+    /// <summary>Đuôi tệp chạy được — gõ «roblox.exe» ở thẻ web là nhầm app.</summary>
+    private static readonly HashSet<string> DuoiTep = new(StringComparer.Ordinal) { "exe", "msi", "bat", "cmd", "lnk", "appx", "msix" };
 
     /// <summary>Lưới app: bỏ mục trống / trùng (giữ bản đầu), bỏ chính AiiGrow, xếp theo tên (không phân biệt hoa thường).</summary>
     public static List<AppTrenMay> Loc(IEnumerable<AppTrenMay>? ds)

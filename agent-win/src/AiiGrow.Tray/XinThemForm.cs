@@ -34,6 +34,10 @@ internal sealed class XinThemForm : HopKhayCoBan
     /// <summary>Danh sách app lần đọc gần nhất (dùng lại khi mở hộp lần sau, trong lúc hỏi dịch vụ). null = chưa đọc được lần nào.</summary>
     private static List<AppTrenMay>? _dsApp;
     private bool _daTaiApp;
+    /// <summary>Lưới app dựng một lần, giữ qua các lần vẽ lại (đổi thẻ, quay lại từ «Đã gửi») — máy có hàng trăm app; danh sách đổi thì dựng lại.</summary>
+    private Control? _khungLuoi;
+    /// <summary>Dịch vụ chưa quét xong (vừa khởi động / chưa ghép) ⇒ hỏi lại mỗi 10 giây khi hộp còn mở.</summary>
+    private readonly System.Windows.Forms.Timer _taiLai = new() { Interval = 10_000 };
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
     private string? _id;
     /// <summary>Đã gửi lời xin (máy chủ nhận / đang chờ) — chặn gửi trùng kể cả khi máy chủ không trả id.</summary>
@@ -79,12 +83,15 @@ internal sealed class XinThemForm : HopKhayCoBan
         _poll.Tick += async (_, _) => await PollAsync();
         FormClosed += (_, _) => DonDep();
         Shown += async (_, _) => await TaiAppAsync();
+        _taiLai.Tick += async (_, _) => { _taiLai.Stop(); await TaiAppAsync(); };
         VeXin();
     }
 
     private void DonDep()
     {
         _poll.Dispose();
+        _taiLai.Dispose();
+        BoLuoi();
         if (_note.Parent == null) _note.Dispose();
         if (_diaChi.Parent == null) _diaChi.Dispose();
     }
@@ -93,6 +100,7 @@ internal sealed class XinThemForm : HopKhayCoBan
     {
         _note.Parent?.Controls.Remove(_note);
         _diaChi.Parent?.Controls.Remove(_diaChi);
+        _khungLuoi?.Parent?.Controls.Remove(_khungLuoi);
         _gui = null;
         _dangChon = false;
         XoaHet();
@@ -139,6 +147,7 @@ internal sealed class XinThemForm : HopKhayCoBan
     {
         if (_busy) return;
         string? kieu = null;
+        var (mucCu, tenCu, webCu) = (_muc, _ten, _web);
         if (_chon)
         {
             // #422: lấy mục theo thẻ đang chọn; web kiểm cơ bản tại máy (có dấu chấm, không khoảng trắng) trước khi gửi
@@ -165,7 +174,7 @@ internal sealed class XinThemForm : HopKhayCoBan
         {
             // web_sai / quá nhiều lời xin chờ: hiện đúng câu máy chủ (dịch vụ chuyển nguyên văn)
             if (_msg != null) { _msg.ForeColor = UI.Error; _msg.Text = r.Error ?? "Chưa gửi được. Con thử lại nhé."; }
-            if (_chon) CapNhatNut(); else b.Enabled = true;
+            if (_chon) { (_muc, _ten, _web) = (mucCu, tenCu, webCu); CapNhatNut(); } else b.Enabled = true;   // chưa gửi được ⇒ hộp không «đang xin» mục này
             return;
         }
         if (r.Status == "cho_mang")
@@ -263,19 +272,24 @@ internal sealed class XinThemForm : HopKhayCoBan
         return l;
     }
 
-    /// <summary>Lưới app đã cài (3 cột, cuộn khi quá 3 hàng); chọn một app ⇒ nút «Xin Ba Mẹ thêm &lt;Tên&gt;».</summary>
+    /// <summary>Lưới app đã cài (3 cột, cuộn khi quá 3 hàng); chọn một app ⇒ nút «Xin Ba Mẹ thêm &lt;Tên&gt;». Dựng một lần, giữ lại qua các lần vẽ lại.</summary>
     private Control VeLuoi()
     {
+        if (_khungLuoi is { IsDisposed: false } cu) return cu;
         var ds = _dsApp;
+        // «Xin lại» một app không có trong lần quét (exe chạy thẳng, tên khác) ⇒ vẫn có ô cho mục đó, chọn sẵn
+        if (_appDienSan is { } dien && ds != null && ds.Count > 0
+            && !ds.Any(a => string.Equals(a.Muc, dien, StringComparison.OrdinalIgnoreCase) || string.Equals(a.Ten, dien, StringComparison.OrdinalIgnoreCase)))
+            ds = new List<AppTrenMay>(ds) { new() { Muc = dien, Ten = dien } };
         if (ds == null || ds.Count == 0)
         {
             var l = UI.Text(ds == null || !_daTaiApp ? XinThemChonView.DangDocApp : XinThemChonView.ChuaCoApp, 10.5f, false, UI.Muted, W);
             l.Margin = new Padding(0, 0, 0, UI.Px(10));
-            return l;
+            return l;   // không giữ: lần tải sau vẽ lưới thật
         }
         if (_appChon != null && !ds.Any(a => string.Equals(a.Muc, _appChon.Muc, StringComparison.OrdinalIgnoreCase))) _appChon = null;
-        if (_appChon == null && _appDienSan is { } dien)
-            _appChon = ds.FirstOrDefault(a => string.Equals(a.Muc, dien, StringComparison.OrdinalIgnoreCase) || string.Equals(a.Ten, dien, StringComparison.OrdinalIgnoreCase));
+        if (_appChon == null && _appDienSan is { } dien2)
+            _appChon = ds.FirstOrDefault(a => string.Equals(a.Muc, dien2, StringComparison.OrdinalIgnoreCase) || string.Equals(a.Ten, dien2, StringComparison.OrdinalIgnoreCase));
         const int soCot = 3;
         var gap = UI.Px(8);
         var cao = Clay.Si(44) + VeNut.LeBong.Vertical;
@@ -286,19 +300,20 @@ internal sealed class XinThemForm : HopKhayCoBan
         var luoi = new FlowLayoutPanel
         {
             FlowDirection = FlowDirection.LeftToRight, WrapContents = true, BackColor = UI.Paper, Margin = Padding.Empty, Padding = Padding.Empty,
-            Width = soCot * (rongO + gap), Height = soHang * (cao + gap),
+            Width = rongLuoi, Height = soHang * (cao + gap),
         };
-        foreach (var a in ds)
+        luoi.SuspendLayout();
+        for (int i = 0; i < ds.Count; i++)
         {
+            var app = ds[i];
             var o = new ClayRadio
             {
-                Text = a.Ten, TextAlign = ContentAlignment.MiddleCenter, UseMnemonic = false, AutoEllipsis = true,
-                Checked = ReferenceEquals(a, _appChon), Width = rongO, Height = cao, Font = UI.F(10.5f, FontStyle.Bold),
-                Margin = new Padding(0, 0, gap, gap),
+                Text = app.Ten, TextAlign = ContentAlignment.MiddleCenter, UseMnemonic = false, AutoEllipsis = true,
+                Checked = _appChon != null && string.Equals(app.Muc, _appChon.Muc, StringComparison.OrdinalIgnoreCase), Width = rongO, Height = cao, Font = UI.F(10.5f, FontStyle.Bold),
+                Margin = new Padding(0, 0, i % soCot == soCot - 1 ? 0 : gap, gap),   // cột cuối không lề phải ⇒ lưới vừa khít bề rộng
             };
             o.BackColor = o.Checked ? Clay.NgocSoft : UI.Card;
             o.ForeColor = o.Checked ? Clay.NgocInk : UI.Ink;
-            var app = a;
             o.CheckedChanged += (_, _) =>
             {
                 o.BackColor = o.Checked ? Clay.NgocSoft : UI.Card;
@@ -310,14 +325,41 @@ internal sealed class XinThemForm : HopKhayCoBan
             };
             luoi.Controls.Add(o);
         }
-        // cao tối đa ~3,5 hàng (hàng thứ tư lộ một nửa ⇒ Con biết còn cuộn được)
+        luoi.ResumeLayout(false);
+        // cao tối đa ~3,5 hàng (hàng thứ tư lộ một nửa ⇒ Con biết còn cuộn được); chỉ cuộn dọc
         var khung = new Panel
         {
-            Width = W, Height = cuonDoc ? 3 * (cao + gap) + cao / 2 : luoi.Height, AutoScroll = cuonDoc, BackColor = UI.Paper,
+            Width = W, Height = cuonDoc ? 3 * (cao + gap) + cao / 2 : luoi.Height, BackColor = UI.Paper,
             Margin = new Padding(0, 0, 0, UI.Px(4)),
         };
+        khung.AutoScroll = cuonDoc;   // lưới rộng đúng phần trong (trừ thanh cuộn dọc) ⇒ không có thanh cuộn ngang
         khung.Controls.Add(luoi);
+        _khungLuoi = khung;
         return khung;
+    }
+
+    /// <summary>Bỏ lưới đã dựng (danh sách app đổi / hộp đóng).</summary>
+    private void BoLuoi()
+    {
+        if (_khungLuoi == null) return;
+        _khungLuoi.Parent?.Controls.Remove(_khungLuoi);
+        _khungLuoi.Dispose();
+        _khungLuoi = null;
+    }
+
+    /// <summary>Hộp đang mở mà Con bấm «Xin lại» / mở lại từ chỗ khác: chuyển thẻ + điền sẵn (đang gửi thì thôi).</summary>
+    public void DienSan(bool web, string? muc)
+    {
+        if (!_chon || _busy || !_dangChon || string.IsNullOrWhiteSpace(muc)) return;
+        _theWeb = web;
+        if (web) _diaChi.Text = muc.Trim();
+        else
+        {
+            _appDienSan = muc.Trim();
+            _appChon = null;
+            BoLuoi();
+        }
+        VeChon();
     }
 
     /// <summary>Chữ + trạng thái nút gửi theo thẻ / app đang chọn; lời xin vừa gửi còn chờ cho đúng mục này ⇒ «Đang chờ Ba Mẹ», không gửi trùng.</summary>
@@ -346,6 +388,7 @@ internal sealed class XinThemForm : HopKhayCoBan
     internal void DatMau(IEnumerable<AppTrenMay> ds, string? chon, string? loiNhan = null, string? diaChi = null)
     {
         _mau = true;
+        BoLuoi();
         _dsApp = XinThemChonView.Loc(ds);
         _daTaiApp = true;
         _appChon = chon == null ? null : _dsApp.FirstOrDefault(a => a.Muc == chon);
@@ -354,20 +397,26 @@ internal sealed class XinThemForm : HopKhayCoBan
         VeChon();
     }
 
-    /// <summary>Hỏi dịch vụ danh sách app đã cài (lần quét gần nhất). Dịch vụ cũ / lỗi ⇒ danh sách rỗng, thẻ web vẫn dùng được.</summary>
+    /// <summary>Hỏi dịch vụ danh sách app đã cài (lần quét gần nhất). Dịch vụ cũ / lỗi ⇒ giữ danh sách cũ (thẻ web vẫn dùng được);
+    /// chưa quét xong / rỗng ⇒ hỏi lại sau 10 giây khi hộp còn mở.</summary>
     private async Task TaiAppAsync()
     {
+        if (_mau || IsDisposed) return;
         var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.AppMay });
+        if (_mau || IsDisposed) return;   // công cụ chụp màn đã đặt danh sách mẫu / hộp đã đóng
         List<AppTrenMay>? ds = null;
         if (r.Ok && !string.IsNullOrEmpty(r.Data))
             try { ds = JsonSerializer.Deserialize<List<AppTrenMay>>(r.Data, Json.Options); } catch (JsonException) { }
-        if (_mau) return;   // công cụ chụp màn đã đặt danh sách mẫu
         var moi = XinThemChonView.Loc(ds);
-        // dịch vụ lỗi / vừa khởi động chưa quét xong ⇒ giữ danh sách lần trước nếu có
+        var cu = _dsApp;
         if (r.Ok && (moi.Count > 0 || r.Status != "chua_quet")) _dsApp = moi;
         else _dsApp ??= moi;
         _daTaiApp = true;
-        if (IsDisposed || !_dangChon || _theWeb || _busy) return;
+        if (_dsApp.Count == 0) _taiLai.Start();
+        var doi = cu == null || cu.Count != _dsApp.Count || !cu.Select(a => a.Muc + "\u001f" + a.Ten).SequenceEqual(_dsApp.Select(a => a.Muc + "\u001f" + a.Ten));
+        if (!doi) return;
+        BoLuoi();
+        if (!_dangChon || _theWeb || _busy) return;
         VeChon();
     }
 
