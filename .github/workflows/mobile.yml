@@ -1,15 +1,22 @@
 name: mobile
 
-# App Ba Mẹ (Expo, mobile/): typecheck + lint + test. Node/npm theo package-lock.json.
+# CI rà lỗi app Ba Mẹ (mobile/, Expo) + máy chủ (server/, Next) — docs/CI-RA-LOI.md.
+#   kiem       : mobile (expo check, tsc, lint, test) + server (tsc, test PGlite) + seed CI trên Postgres 16 thật (đăng nhập mật khẩu, không OTP)
+#   web        : expo export bản web (EXPO_PUBLIC_API=/, y cổng localhost scripts/deploy-prod.sh --chi-kiem)
+#   giao-dien  : mobile/scripts/pha.mjs trên Chrome headless — kịch bản luồng + cổng giao diện chia 3 lượt (song song), ảnh + log làm artifact
+# Thay server.yml cũ (gộp vào job kiem).
 on:
-  pull_request:
+  push:
     paths: &duong
       - 'mobile/**'
+      - 'server/**'
       - '.github/workflows/mobile.yml'
-  push:
-    branches: [main]
-    paths: *duong
   workflow_dispatch:
+    inputs:
+      chup_tat_ca:
+        description: 'Chụp MỌI màn (không chỉ màn lỗi)'
+        type: boolean
+        default: true
   workflow_call:   # dem.yml (chạy đêm trên main) gọi lại
 
 permissions:
@@ -19,13 +26,90 @@ concurrency:
   group: mobile-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  TZ: Asia/Ho_Chi_Minh
+  NEXT_TELEMETRY_DISABLED: '1'
+  EXPO_NO_TELEMETRY: '1'
+
 jobs:
   kiem:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-    defaults:
-      run:
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aiigrow
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+      - uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('mobile/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
+
+      - name: mobile — cài
         working-directory: mobile
+        run: npm ci --no-audit --no-fund
+      - name: mobile — phụ thuộc expo khớp SDK (chặn crash dyld do prebuild lệch)
+        working-directory: mobile
+        run: npm run check:expo
+      - name: mobile — tsc
+        working-directory: mobile
+        run: npm run typecheck
+      - name: mobile — lint
+        working-directory: mobile
+        run: npm run lint
+      - name: mobile — test
+        working-directory: mobile
+        run: npm test
+
+      - name: server — cài
+        working-directory: server
+        # pnpm 10 trả ERR_PNPM_IGNORED_BUILDS (@sentry/cli) dù đã cài xong ⇒ chỉ bỏ qua đúng lỗi đó (cùng luật scripts/deploy-vps.sh);
+        # server/pnpm-workspace.yaml do pnpm sinh thêm làm lệnh sau thoát rc=1 ⇒ xoá
+        run: |
+          rc=0; o="$(pnpm install --frozen-lockfile 2>&1)" || rc=$?
+          echo "$o" | tail -15
+          if [ $rc != 0 ] && grep -oE 'ERR_PNPM_[A-Z_]+' <<<"$o" | grep -vq '^ERR_PNPM_IGNORED_BUILDS$'; then exit 1; fi
+          rm -f pnpm-workspace.yaml
+          [ -d node_modules/next ] || { echo "pnpm install lỗi (thiếu node_modules/next)"; exit 1; }
+      - name: server — tsc
+        working-directory: server
+        run: pnpm run typecheck
+      - name: server — test
+        working-directory: server
+        run: pnpm test
+      - name: server — seed CI trên Postgres 16 (đăng nhập mật khẩu, không OTP) + chứng minh production bị chặn
+        working-directory: server
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/aiigrow
+        run: |
+          set -o pipefail
+          AIIGROW_CI_LOGIN=1 SEED_CI_RA="$RUNNER_TEMP/seed-ci.json" node --import ./lib/test-fixtures/next-esm.mjs scripts/seed-ci.ts
+          node -e 'const k=require(process.argv[1]); if(k.con.length!==3||!k.token||k.luotChoDuyet.length!==3||k.yeuCauCho.length!==2) process.exit(1); console.log("seed ok:", k.con.map(c=>c.ten).join(", "))' "$RUNNER_TEMP/seed-ci.json"
+          rc=0; AIIGROW_CI_LOGIN=1 NODE_ENV=production node --import ./lib/test-fixtures/next-esm.mjs scripts/seed-ci.ts || rc=$?
+          [ $rc = 2 ] || { echo "seed CI KHÔNG bị chặn khi NODE_ENV=production (rc=$rc)"; exit 1; }
+          rc=0; node --import ./lib/test-fixtures/next-esm.mjs scripts/seed-ci.ts || rc=$?
+          [ $rc = 2 ] || { echo "seed CI KHÔNG bị chặn khi thiếu AIIGROW_CI_LOGIN (rc=$rc)"; exit 1; }
+          echo "production / thiếu cờ: bị chặn đúng"
+
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -33,9 +117,81 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: mobile/package-lock.json
-      - run: npm ci --no-audit --no-fund
-      - name: Phụ thuộc expo khớp SDK (chặn crash dyld do prebuild lệch)
-        run: npm run check:expo
-      - run: npm run typecheck
-      - run: npm run lint
-      - run: npm test
+      - name: cài
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+      - name: expo export web (EXPO_PUBLIC_API=/ như cổng localhost)
+        working-directory: mobile
+        run: EXPO_BASE_URL="" EXPO_PUBLIC_API=/ npx expo export --platform web --output-dir "$GITHUB_WORKSPACE/web-dist"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web-dist
+          retention-days: 3
+
+  giao-dien:
+    needs: web
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # cùng cách chia của scripts/deploy-prod.sh: lượt luồng + giao diện chia 3 theo tên màn; lượt gd-c là PHẦN BÙ ⇒ màn mới không lọt
+          - luot: luong
+            man: ''
+          - luot: gd-a
+            man: '^bm-[a-h]'
+          - luot: gd-b
+            man: '^bm-[i-t]'
+          - luot: gd-c
+            man: '^(?!bm-[a-t])'
+    name: giao-dien (${{ matrix.luot }})
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: mobile/scripts
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web-dist
+      - name: Chrome (có sẵn trên runner) + bọc cờ Linux
+        run: |
+          set -e
+          C="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium)"
+          "$C" --version
+          # Ubuntu 24.04 chặn user namespace không đặc quyền ⇒ sandbox Chrome không mở được trong runner; /dev/shm nhỏ
+          printf '#!/bin/sh\nexec "%s" --no-sandbox --disable-dev-shm-usage "$@"\n' "$C" > "$RUNNER_TEMP/chrome"
+          chmod +x "$RUNNER_TEMP/chrome"
+          sudo apt-get install -y -qq fonts-noto-color-emoji >/dev/null 2>&1 || echo "(không cài được fonts-noto-color-emoji)"
+      - name: pha.mjs ${{ matrix.luot }}
+        env:
+          PHA_MAN: ${{ matrix.man }}
+          GD_CHUP_TAT_CA: ${{ (github.event_name == 'workflow_dispatch' && inputs.chup_tat_ca) && '1' || '' }}
+        run: |
+          R="$GITHUB_WORKSPACE/bao-cao"; mkdir -p "$R/anh"
+          [ -n "$GD_CHUP_TAT_CA" ] || unset GD_CHUP_TAT_CA
+          co=""; [ -n "$PHA_MAN" ] && co="--giao-dien" || unset PHA_MAN
+          set +e
+          GD_CHUP="$R/anh" PHA_CHUP="$R/anh" node mobile/scripts/pha.mjs web-dist "$RUNNER_TEMP/chrome" $co 2>&1 | tee "$R/pha-${{ matrix.luot }}.txt"
+          rc=${PIPESTATUS[0]}
+          set -e
+          n=$(find "$R/anh" -name '*.png' | wc -l)
+          {
+            echo "### pha.mjs ${{ matrix.luot }} — mã thoát $rc · $n ảnh"
+            echo '```'
+            grep -E '^(SAI|    KHÔNG TẢI)|LỖI|lỗi giao diện|^# |Tổng|tổng' "$R/pha-${{ matrix.luot }}.txt" | head -80 || true
+            echo '…'; tail -15 "$R/pha-${{ matrix.luot }}.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit $rc
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: giao-dien-${{ matrix.luot }}
+          path: bao-cao
+          if-no-files-found: warn
+          retention-days: 14
