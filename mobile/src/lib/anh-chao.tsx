@@ -9,9 +9,9 @@ export const ANH_CHAO = require("../../assets/chao/welcome-03.webp");
 
 export function NenChao({ children }: { children?: ReactNode }) {
   return (
-    <View style={[StyleSheet.absoluteFill, { top: -24 }]}>
+    <View style={StyleSheet.absoluteFill}>
       <Image source={ANH_CHAO} style={StyleSheet.absoluteFill} contentFit="cover" accessibilityLabel="AiiGrow · Ươm mầm thói quen số" />
-      <View style={[StyleSheet.absoluteFill, { top: 24 }]}>{children}</View>
+      <View style={StyleSheet.absoluteFill}>{children}</View>
     </View>
   );
 }

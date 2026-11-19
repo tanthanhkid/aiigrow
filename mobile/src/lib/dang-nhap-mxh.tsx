@@ -123,13 +123,14 @@ export function NutDangNhapMxh({ loai, to, bao, nc = {} }: { loai: LoaiMxh; to?:
   return <NutMxhThat loai={loai} to={to} bao={bao} khiCo={async (t) => vaoSau(await bm.goi<KetQuaVao>(`dang-nhap/${loai}`, t))} />;
 }
 
-/** Phần dưới màn «Tạo tài khoản» / «Vào nhà cùng …» (bm1-chao + nhánh được mời): tiêu đề, một câu, Google (to), Facebook + Số điện thoại,
- *  điều khoản. Nút MXH nào chưa bật thì ẩn — Số điện thoại giãn ra chiếm chỗ. */
-export function ChonCachTaoTk({ tieu, loi, sdt, bao, nc }: { tieu: string; loi: string; sdt: () => void; bao: (chu: string) => void; nc?: NgaCanh }) {
+/** Phần dưới màn «Tạo tài khoản» / «Vào nhà cùng …» (bm1-chao + nhánh được mời): Google (to, vàng kim), Facebook + Số điện thoại, điều khoản
+ *  (bàn bm1-chao `.day`: các hàng cách 6, hai nút nhỏ cách 10). Nút MXH nào chưa bật thì ẩn — Số điện thoại giãn ra chiếm chỗ.
+ *  `tieu` + `loi` (chỉ nhánh được mời, màn moi/index): tiêu đề + một câu đứng NGAY TRÊN nút; màn Tạo tài khoản đặt tiêu đề dưới sân Grow (TieuSan). */
+export function ChonCachTaoTk({ tieu, loi, sdt, bao, nc }: { tieu?: string; loi?: string; sdt: () => void; bao: (chu: string) => void; nc?: NgaCanh }) {
   const co = useCoMxh();
   return (
-    <View style={{ gap: 14 }}>
-      <TieuDe chu={tieu} phu={loi} giua />
+    <View style={{ gap: tieu ? 14 : 10 }}>
+      {tieu ? <TieuDe chu={tieu} phu={loi} giua /> : null}
       {co.google ? <NutDangNhapMxh loai="google" to bao={bao} nc={nc} /> : null}
       <View style={{ flexDirection: "row", gap: 10 }}>
         {co.facebook ? <NutDangNhapMxh loai="facebook" bao={bao} nc={nc} /> : null}

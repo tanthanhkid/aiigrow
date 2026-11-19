@@ -13,13 +13,13 @@ const PHU = { position: "absolute", inset: 0, width: "100%", height: "100%", obj
 
 export function NenChao({ children }: { children?: ReactNode }) {
   return (
-    <View style={[StyleSheet.absoluteFill, { top: -24 }]}>
+    <View style={StyleSheet.absoluteFill}>
       {unstable_createElement("img", { src: nguon(ANH), alt: "AiiGrow · Ươm mầm thói quen số", style: PHU })}
       {unstable_createElement("video", {
         src: nguon(VIDEO), poster: nguon(ANH), autoPlay: true, muted: true, playsInline: true, preload: "auto",
         style: { ...PHU, pointerEvents: "none" },
       })}
-      <View style={[StyleSheet.absoluteFill, { top: 24 }]}>{children}</View>
+      <View style={StyleSheet.absoluteFill}>{children}</View>
     </View>
   );
 }

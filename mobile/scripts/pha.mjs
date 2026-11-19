@@ -653,7 +653,8 @@ if (process.argv.includes("--giao-dien")) {
     && e.innerText?.trim().startsWith("Xoá hồ sơ ") && !e.innerText.trim().endsWith("?") && e.getBoundingClientRect().width > 0).pop()`));
   const dsMan = [
     // Lần đầu (bm-lan-dau, bm-ghep-may — L7, L8)
-    M("bm-chao", "/chao", "Bắt đầu cho con nhà mình", { token: null }),
+    // bỏ thẻ <video> intro (Chrome headless không tự phát ⇒ đứng ở khung đầu, chưa có chữ AiiGrow) ⇒ chụp đúng ảnh tĩnh như bàn bm1-welcome / app gốc
+    M("bm-chao", "/chao", "Bắt đầu cho con nhà mình", { token: null, truoc: async () => { await di("/chao", null); await doi("Bắt đầu cho con nhà mình"); await js(`document.querySelectorAll("video").forEach((v) => v.remove())`); } }),
     M("bm-dang-ky", "/dang-ky", "Tạo tài khoản Ba Mẹ", { token: null }),
     M("bm-dang-ky (đã điền · bm1-dang-ky)", "/dang-ky", "Đã khớp", { token: null, truoc: dienDangKy }),
     M("bm-dang-ky (số đã có tài khoản · them-ahk69dtl)", "/dang-ky", "Số này đã có tài khoản", { token: null,

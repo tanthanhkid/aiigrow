@@ -3,13 +3,14 @@
 //   · đăng ký thường ⇒ `dang-ky`; máy chủ trả `loiMoi[]` (có người mời số này) hoặc bấm «Tôi được mời vào nhà» ⇒ màn Lời mời (/moi/vao),
 //     không thì vào Lần đầu (tên Con). Chế độ thử (chưa có SMS): máy chủ trả mã, app hiện để thử.
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { router } from "expo-router";
 import { bm } from "@/lib/api";
 import { layDangKy, nhoDangKy, xoaDangKy } from "@/lib/dang-ky";
 import { usePhien } from "@/lib/phien";
-import { DauMan, demNguoc, hienSo, TieuDe } from "@/lib/lan-dau";
-import { Bao, BaoLoi, BieuTron, Chu, Icon3D, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
+import { Anh3D, DauMan, demNguoc, hienSo, INK2 } from "@/lib/lan-dau";
+import { BONG } from "@/lib/clay";
+import { Bao, BaoLoi, Chu, F, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
 
 export default function Otp() {
   const [dk, setDk] = useState(layDangKy);       // giữ bản chụp: xoaDangKy() lúc vào xong không được kéo màn về /dang-ky
@@ -36,19 +37,21 @@ export default function Otp() {
     setCon(60);
   });
   return (
-    <Man dau={<DauMan ve="/dang-ky" />}
-      day={<><BaoLoi loi={loi} /><Nut chu={dk.tenNha ? `Xác thực, vào nhà ${dk.tenNha}` : dk.duocMoi ? "Xác thực, xem lời mời" : "Xác thực số điện thoại"} rong dangChay={dangChay} tat={ma.length < 6} bam={xacNhan} /></>}>
-      <View style={{ alignItems: "center", gap: 14, paddingTop: 8 }}>
-        <BieuTron ic="khien" lon co={96} />
-        <TieuDe chu="Nhập mã xác thực" phu="Mã 6 số đã gửi tới " dam={hienSo(dk.dinhDanh)} giua />
+    <Man dau={<DauMan ve="/dang-ky" />} dayStyle={{ paddingTop: 0, paddingBottom: 22 }}
+      day={<><BaoLoi loi={loi} /><Nut chu={dk.tenNha ? `Xác thực, vào nhà ${dk.tenNha}` : dk.duocMoi ? "Xác thực, xem lời mời" : "Xác thực số điện thoại"} rong lon dangChay={dangChay} tat={ma.length < 6} bam={xacNhan} /></>}>
+      {/* bàn bm1-otp (sửa 19/11): viên khiên 96 kem nổi + icon 56, tiêu đề 26/32, câu 15/21, ô mã 48×60 (ô đang gõ viền vàng mật 3) */}
+      <View style={{ alignItems: "center", paddingTop: 8 }}>
+        <View style={{ width: 96, height: 96, borderRadius: 48, backgroundColor: M.nen, boxShadow: BONG.the, alignItems: "center", justifyContent: "center" }}><Anh3D ten="khien" co={56} /></View>
+        <Text accessibilityRole="header" style={{ marginTop: 18, fontFamily: F.tieu, fontSize: 26, lineHeight: 32, letterSpacing: -0.5, color: M.chu, textAlign: "center" }}>Nhập mã xác thực</Text>
+        <Text style={{ marginTop: 6, fontFamily: F.thuong, fontSize: 15, lineHeight: 21, color: INK2, textAlign: "center" }}>Mã 6 số đã gửi tới <Text style={{ fontFamily: F.rat, color: M.chu, fontVariant: ["tabular-nums"] }}>{hienSo(dk.dinhDanh)}</Text></Text>
       </View>
-      <Ma6 gia={ma} doi={setMa} />
-      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>
-        <Icon3D ten="dong_ho_cat" co={18} />
+      <View style={{ marginTop: 16 }}><Ma6 ban gia={ma} doi={setMa} /></View>
+      <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 44, marginTop: 10 }}>
+        <Anh3D ten="dong_ho_cat" co={20} />
         {con > 0 ? (dk.duocMoi
           // nhánh được mời (bàn them-pacl0mle v3): «Gửi lại mã sau 0:42»
-          ? <Chu co={13.5} mau={M.chu3}>Gửi lại mã sau <Chu kieu="rat" co={13.5} so>{demNguoc(con)}</Chu></Chu>
-          : <Chu co={13.5} mau={M.chu3}>Chưa nhận được? Gửi lại sau <Chu kieu="rat" co={13.5} so>{demNguoc(con)}</Chu></Chu>) : (
+          ? <Chu kieu="dam" co={14} mau={M.chu3}>Gửi lại mã sau <Chu kieu="rat" co={14} so>{demNguoc(con)}</Chu></Chu>
+          : <Chu kieu="dam" co={14} mau={M.chu3}>Chưa nhận được? Gửi lại sau {demNguoc(con)}</Chu>) : (
           <Pressable onPress={guiLai} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center" }}><Chu kieu="rat" co={14} mau={M.chinhInk}>Chưa nhận được? Gửi lại mã</Chu></Pressable>
         )}
       </View>
