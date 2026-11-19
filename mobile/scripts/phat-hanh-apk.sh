@@ -2,12 +2,14 @@
 # Phát hành APK app Ba Mẹ (Android) từ commit hiện tại — một lệnh.
 #   bash mobile/scripts/phat-hanh-apk.sh          build + đăng
 #   bash mobile/scripts/phat-hanh-apk.sh --thu    chỉ build + kiểm, không đăng
+#   … --bo-kiem-ci                                 bỏ cổng CI (sửa gấp); ghép được với --thu
 # Đăng lên tanthanhkid/aiigrow-tai: release riêng android-<version>-<sha>-<versionCode> (prerelease)
 # và release cuộn android-moi-nhat (asset AiiGrow-android.apk) — link /tai/aiigrow.apk trỏ vào đó.
 # Ký bằng debug.keystore của template Expo (giống bản 0.1.0) để cài đè được; KHÔNG tạo keystore mới.
 set -euo pipefail
 
-THU=0; [ "${1:-}" = "--thu" ] && THU=1
+THU=0; BO_CI=""
+for a in "$@"; do case "$a" in --thu) THU=1 ;; --bo-kiem-ci) BO_CI=--bo-kiem-ci ;; *) echo "tham số lạ: $a" >&2; exit 2 ;; esac; done
 REPO_TAI="tanthanhkid/aiigrow-tai"
 API="https://aiigrow.aiilab.vn"
 export JAVA_HOME="${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home}"
@@ -34,6 +36,11 @@ else
   [ "$FETCH_OK" = 1 ] || { echo "TỪ CHỐI: không fetch được origin/main — không xác minh được HEAD"; exit 1; }
   [ -z "$DIRTY" ] || { echo "TỪ CHỐI: cây git bẩn, hãy commit/stash trước:"; echo "$DIRTY"; exit 1; }
   [ "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" ] || { echo "TỪ CHỐI: HEAD khác origin/main — chỉ đăng bản từ main (dùng --thu để thử)"; exit 1; }
+fi
+
+# Cổng CI: commit này có run workflow «mobile» ĐỎ thì dừng (--thu: chỉ cảnh báo); đang chạy / chưa có run ⇒ cảnh báo, cho qua.
+if ! "$M/../scripts/ci/kiem-ci.sh" $BO_CI mobile; then
+  [ "$THU" = 1 ] && echo "!! cảnh báo (--thu): CI mobile đỏ ở commit này" || { echo "TỪ CHỐI: CI mobile đỏ — sửa trước, hoặc --bo-kiem-ci nếu sửa gấp"; exit 1; }
 fi
 
 # expo prebuild sửa package.json và vài file đã theo dõi — luôn khôi phục khi thoát (chỉ khi cây sạch lúc bắt đầu).

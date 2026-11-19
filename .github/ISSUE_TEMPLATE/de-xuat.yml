@@ -1,0 +1,28 @@
+name: Đề xuất thay đổi thiết kế
+description: Muốn đổi giao diện, luồng hoặc câu chữ (không phải lỗi)
+title: "[Đề xuất] "
+labels: [de-xuat]
+body:
+  - type: input
+    id: man
+    attributes:
+      label: Màn / chỗ cần đổi
+      placeholder: "vd: App Ba Mẹ › Hôm nay › thẻ thời gian"
+    validations:
+      required: true
+  - type: textarea
+    id: hien-tai
+    attributes:
+      label: Hiện tại
+      description: Đang thế nào (kèm ảnh nếu có).
+  - type: textarea
+    id: muon
+    attributes:
+      label: Muốn đổi thành
+      description: Mô tả, phác hoạ, hoặc link Bàn thiết kế.
+    validations:
+      required: true
+  - type: textarea
+    id: ly-do
+    attributes:
+      label: Lý do

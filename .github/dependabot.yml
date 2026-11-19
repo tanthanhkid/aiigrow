@@ -1,0 +1,32 @@
+# Dependabot CHỈ cập nhật bảo mật: open-pull-requests-limit 0 tắt PR nâng bản thường; PR vá lỗ hổng (security updates,
+# bật ở Settings › Code security) vẫn mở theo cấu hình thư mục dưới đây. Riêng github-actions: gom một PR mỗi tháng.
+# Không auto-merge — PR Dependabot đi qua review như PR khác.
+version: 2
+updates:
+  - package-ecosystem: npm          # mobile (Expo, package-lock.json)
+    directory: /mobile
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm          # server (Next, pnpm-lock.yaml)
+    directory: /server
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 0
+  - package-ecosystem: npm          # bàn brainstorm
+    directories: [/tools/brainstorm-ui, /tools/brainstorm-ui/cf]
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 0
+  - package-ecosystem: nuget        # agent-win
+    directory: /agent-win
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 0
+  - package-ecosystem: gradle       # agent-android (App Con)
+    directory: /agent-android
+    schedule: { interval: weekly }
+    open-pull-requests-limit: 0
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: monthly }
+    open-pull-requests-limit: 1
+    groups:
+      actions:
+        patterns: ['*']
