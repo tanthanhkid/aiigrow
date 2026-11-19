@@ -445,17 +445,17 @@ class DichVuNhip : Service() {
         }
 
         /** Kết quả gửi lời xin app / web: `id` (null = chưa gửi được) + câu báo cho Con. */
-        class KetXinApp(val id: String?, val cau: String)
+        class KetXinApp(val id: String?, val cau: String, val daGui: Boolean = id != null)
 
         /** «Xin Ba Mẹ mở <app>» — app ngoài danh sách (luồng nền). `lyDo` = lời Con nhắn Ba Mẹ (không bắt buộc, như /tre/xin-phep). */
-        fun xinDuyet(ctx: Context, goi: String, ten: String?, lyDo: String = ""): KetXinApp {
+        /** #422: `kieu` app | web (hộp «Xin thêm app / web»); máy chủ cũ bỏ qua trường lạ. Lỗi 400 web_sai / 429 qua_nhieu_cho ⇒ câu máy chủ. */
+        fun xinDuyet(ctx: Context, goi: String, ten: String?, lyDo: String = "", kieu: vn.aiilab.aiigrow.maycon.logic.KieuXin? = null): KetXinApp {
             val k = Kho(ctx)
-            if (k.cheDoThu) return KetXinApp(null, "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé.")
+            val than = vn.aiilab.aiigrow.maycon.logic.thanXinDuyet(goi, ten, lyDo, kieu)
+            if (k.cheDoThu) { try { k.tepYeuCauThu.appendText(than.toString() + "\n") } catch (_: Exception) {}; return KetXinApp(null, "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé.", daGui = true) }
             return try {
-                val than = JSONObject().put("muc", goi); ten?.takeIf { it.isNotBlank() && it != goi }?.let { than.put("ten", it) }
-                lyDo.trim().take(100).takeIf { it.isNotEmpty() }?.let { than.put("lyDo", it) }
                 val r = MayChu(k.mayChu, k.token).xinDuyet(than)
-                KetXinApp(r.optString("id").ifBlank { null }, "Đã gửi Ba Mẹ. Chờ Ba Mẹ trả lời nhé.")
+                KetXinApp(r.optString("id").ifBlank { null }, "Đã gửi Ba Mẹ. Chờ Ba Mẹ trả lời nhé.", daGui = true)
             } catch (e: MayChu.Loi) { KetXinApp(null, e.cau) } catch (e: Exception) { KetXinApp(null, "Chưa gửi được — máy đang mất mạng.") }
         }
 
