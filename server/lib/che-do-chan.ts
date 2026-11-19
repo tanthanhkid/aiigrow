@@ -146,10 +146,12 @@ export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unk
   if (b.kieu !== undefined && b.kieu !== null && b.kieu !== "app" && b.kieu !== "web") throw new LoiNghiepVu("kieu_sai", "Chọn App trên máy hoặc Trang web");
   let muc: string, loai: "mo_web" | "cai_app";
   if (b.kieu === "web") {
-    // thẻ Trang web: địa chỉ có / không có https://, đuôi ?… #… :cổng ⇒ tên miền; tên gói app (com.roblox.client) không phải trang web
+    // thẻ Trang web: địa chỉ có / không có https://, đuôi ?… #… :cổng ⇒ tên miền (Con đã chọn «Trang web» ⇒ tin là trang, kể cả app.slack.com)
     const tho = String(b.muc ?? "").trim();
-    const mien = tenMienSach(/^[a-z]+:\/\//i.test(tho) ? tho : tho.split(/[/?#]/)[0].replace(/:\d+$/, ""));
-    if (!mien || kieuMuc(mien) !== "web") throw new LoiNghiepVu("web_sai", "Gõ địa chỉ trang web, ví dụ scratch.mit.edu");
+    let host = "";
+    try { host = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(tho) ? tho : `https://${tho.replace(/^\/\//, "")}`).hostname; } catch { /* để trống ⇒ web_sai */ }
+    const mien = tenMienSach(host);
+    if (!mien || mien.endsWith(".exe")) throw new LoiNghiepVu("web_sai", "Gõ địa chỉ trang web, ví dụ scratch.mit.edu");
     [muc, loai] = [mien, "mo_web"];
   } else {
     muc = chuanMuc(b.muc);
@@ -157,18 +159,17 @@ export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unk
     loai = b.kieu === "app" || kieuMuc(muc) === "app" ? "cai_app" : "mo_web";
     // thẻ App, tên trần («Minecraft», app iPhone theo tên): chưa có định danh thật ⇒ giữ TÊN (hoa thường như Con thấy) — Ba Mẹ đồng ý thì
     // thêm app theo tên (datAppChoPhep: khớp app thật máy đã báo / chờ khớp), không ghi luật lên một «tên miền» giả
-    if (loai === "cai_app" && kieuMuc(muc) !== "app") muc = String(b.ten ?? b.muc).trim().slice(0, 60) || muc;
+    if (loai === "cai_app" && kieuMuc(muc) !== "app") {
+      const ten = typeof b.ten === "string" && b.ten.trim() ? b.ten : String(b.muc);
+      if (!/[/:]/.test(ten)) muc = ten.trim().slice(0, 60);
+    }
   }
-  // một mục chỉ một lời xin chờ (dù Con xin ở thẻ App hay thẻ Web)
-  const co = await one<{ id: string; loai: string }>(`select id, loai from requests where child_id = $1 and lower(gia_tri) = lower($2) and loai in ('mo_web', 'cai_app')
-                                        and trang_thai = 'cho' and het_han > now() order by created_at desc limit 1`, [con, muc]);
+  const co = await one<{ id: string; loai: string }>(`select id, loai from requests where child_id = $1 and gia_tri = $2 and loai = $3 and trang_thai = 'cho' and het_han > now()
+                                        order by created_at desc limit 1`, [con, muc, loai]);
   if (co) return { id: co.id, trang_thai: "cho", daCo: true, loai: co.loai, muc };
   const r = await guiYeuCau(con, mayId, { loai, giaTri: muc, lyDo: b.lyDo ?? "" });
   return { ...r, daCo: false, loai, muc };
 }
-
-/** Lời xin app theo TÊN (#422 — không phải .exe / .app / tên gói): Ba Mẹ đồng ý ⇒ thêm app theo tên thay vì luật trên mục giả. */
-export const laAppTheoTen = (r: { loai: string; gia_tri: string | null }) => r.loai === "cai_app" && !!r.gia_tri && kieuMuc(chuanMuc(r.gia_tri)) !== "app";
 
 // ---------------------------------------------------------------- Danh sách của Con (#262 — màn «App & web», «App của <Con>», «Web của <Con>»)
 

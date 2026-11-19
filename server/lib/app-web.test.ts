@@ -345,7 +345,7 @@ test("#422 «Xin thêm app / web»: `kieu` quyết loại lời xin — thẻ Ap
   assert.deepEqual([w.trang_thai, w.loai, w.muc], ["cho", "mo_web", "scratch.mit.edu"]);
   assert.deepEqual([(await dv(may.token, "xin-duyet", { kieu: "web", muc: "scratch.mit.edu?lang=vi" })).body.daCo], [true], "cùng trang ⇒ lời xin cũ");
   // gõ không ra tên miền / tên gói app ⇒ lỗi rõ, không tạo lời xin
-  for (const sai of ["scratch", "roblox.exe", "com.roblox.client", "127.0.0.1"]) {
+  for (const sai of ["scratch", "roblox.exe", "127.0.0.1", ""]) {
     const r = await dv(may.token, "xin-duyet", { kieu: "web", muc: sai });
     assert.deepEqual([r.status, r.body.error], [400, "web_sai"], sai);
   }
@@ -372,7 +372,12 @@ test("#422 «Xin thêm app / web»: `kieu` quyết loại lời xin — thẻ Ap
   assert.equal(await la.luatHienCo(fam, con, "minecraft"), null, "không ghi luật lên mục giả");
   assert.equal((await dv(may.token, `yeu-cau/${a.id}`)).body.ketQua, "da_them");
   const sau = (await m(tok, `con/${con}/danh-sach`)).body;
-  assert.ok(!JSON.stringify(sau).includes('"kieu":"web","nhom":"tinh_phut","muc":["minecraft"]'));
+  const dong: any[] = [];
+  JSON.stringify(sau, (_k, v) => { if (v && typeof v === "object" && typeof v.kieu === "string" && typeof v.ten === "string") dong.push(v); return v; });
+  assert.ok(dong.some((x) => x.kieu === "app" && x.ten === "Minecraft"), "Minecraft ở hàng App");
+  assert.ok(!dong.some((x) => x.kieu === "web" && /minecraft/i.test(x.ten)), "không có hàng Web «minecraft»");
+  // thẻ Web nhận trang có dạng giống tên gói (app.diagrams.net) — Con đã chọn Trang web
+  assert.equal((await dv(may.token, "xin-duyet", { kieu: "web", muc: "//app.diagrams.net/x" })).body.muc, "app.diagrams.net");
   // app theo tên máy chưa báo ⇒ chờ khớp (app_theo_ten), không lỗi
   const b2 = (await dv(may.token, "xin-duyet", { kieu: "app", muc: "Scratch Desktop" })).body;
   assert.equal((await m(tok, `yeu-cau/${b2.id}/dong-y`, { nhom: "khong_tinh_phut" })).status, 200);

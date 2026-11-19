@@ -44,7 +44,7 @@ export async function guiYeuCau(con: string, mayId: string | null,
   // giá trị: web / app ⇒ tên miền / app chuẩn hoá · xin vay đổi quà ⇒ id quà · còn lại (lời xin cũ) ⇒ chữ tự do để hiển thị
   // app theo TÊN (#422, «Minecraft» — không .exe / .app / tên gói) giữ hoa thường như Con gõ / chọn để Ba Mẹ đọc đúng tên
   const giaTri = loai === "mo_web" ? chuanMuc(b.giaTri)
-    : loai === "cai_app" ? (kieuMuc(chuanMuc(b.giaTri)) === "app" ? chuanMuc(b.giaTri) : String(b.giaTri ?? "").trim().slice(0, 60))
+    : loai === "cai_app" ? (laTenApp(b.giaTri) ? String(b.giaTri).trim().slice(0, 60) : chuanMuc(b.giaTri))
     : mucDich === "qua" ? String(b.quaId ?? b.giaTri ?? "").trim().slice(0, 40) || null
     : String(b.giaTri ?? "").trim().slice(0, 200) || null;
   if ((loai === "mo_web" || loai === "cai_app") && !giaTri) throw new LoiNghiepVu("thieu_gia_tri", loai === "mo_web" ? "Dán đường link website" : "Ghi tên ứng dụng");
@@ -124,7 +124,9 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
       grantId = vay.id;
       await t(`update requests set phut = $2 where id = $1`, [r.id, vay.soSao]);
     } else if (r.loai === "mo_web" || r.loai === "cai_app") {
-      const nhomDs = nhanNhom(o.nhom === "tinh_phut" || o.nhom === "khong_tinh_phut" ? o.nhom : null);
+      // app theo tên (#422) không mở tạm được (chưa có định danh) ⇒ đường cũ «Lần này» / «Hôm nay» cũng thêm vào danh sách theo nhóm tương ứng
+      const nhomDs = nhanNhom(o.nhom === "tinh_phut" || o.nhom === "khong_tinh_phut" ? o.nhom
+        : r.loai === "cai_app" && laTenApp(r.gia_tri) ? (o.phanLoai === "hoc" ? "khong_tinh_phut" : "tinh_phut") : null);
       if (nhomDs) {
         // #262: thêm vào danh sách lâu dài, đúng nhóm Ba Mẹ chọn
         nhomThem = nhomDs;
@@ -157,6 +159,9 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
   });
 }
 
+/** Tên app trần (#422 «Minecraft» — không .exe / .app / tên gói, không phải đường link): lời xin cai_app giữ TÊN, Ba Mẹ đồng ý ⇒ thêm app theo tên. */
+const laTenApp = (v: unknown) => { const t = String(v ?? "").trim(); return !!t && !/[/:]/.test(t) && kieuMuc(chuanMuc(t)) !== "app"; };
+
 const sachLoiNhan = (v: unknown) => String(v ?? "").trim().slice(0, 120) || null;
 const tenNguoi = async (t: Q, id: string | null) => (id ? (await t<{ ten: string }>(`select ten from parents where id = $1`, [id]))[0]?.ten ?? null : null);
 
@@ -164,7 +169,7 @@ const tenNguoi = async (t: Q, id: string | null) => (id ? (await t<{ ten: string
 async function themMucDanhSach(t: Q, fam: string, r: { child_id: string; loai: string; gia_tri: string | null }, nhom: NhomDs) {
   if (!r.gia_tri) throw new LoiNghiepVu("thieu_gia_tri", "Lời xin không có tên app / trang web", 409);
   const cd = await import("./che-do-chan.ts");      // nạp lúc chạy — che-do-chan.ts đã import file này
-  if (cd.laAppTheoTen(r)) {
+  if (r.loai === "cai_app" && laTenApp(r.gia_tri)) {
     // #422: app theo tên ⇒ khớp app thật máy của Con đã báo, chưa thấy thì chờ khớp (app_theo_ten) — như Ba Mẹ «Thêm app khác»
     await cd.datAppChoPhep(fam, r.child_id, [{ ten: r.gia_tri, nhom }], undefined, t, false);
     return;
