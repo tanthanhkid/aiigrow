@@ -72,6 +72,7 @@ test("B2: quét quá hạn toàn hệ thống (không cần Ba Mẹ mở Chờ d
   const t2 = await nv.taoNv(fam, { ten: "Tưới cây", diem: 5, nhom: "viec_nha", bang_chung: "anh" });
   const do_ = await nv.batDau(con, t2);
   await q(`update tasks set bat = false where id = $1`, [t2]);
+  await q(`update submissions set bat_dau_luc = $2 where id = $1`, [do_, gioTruoc(25)]);
   const kq = await nv.quetQuaHan();
   assert.ok(kq.giaDinh >= 1);
   assert.equal(await tt(cu), "het_han");
@@ -144,6 +145,7 @@ test("B8: nộp lượt của việc Ba Mẹ đã tắt ⇒ báo rõ + đóng l�
   await q(`update tasks set bat = false where id = $1`, [t]);
   await loi(nv.nop(con, s, { anh: [anhGia("lau")] }), "viec_da_tat");
   assert.equal(await tt(s), "het_han");
+  assert.equal((await one<{ d: Date | null }>(`select duyet_luc as d from submissions where id = $1`, [s]))!.d, null, "chưa từng chờ duyệt ⇒ báo cáo không đếm");
 });
 
 test("B9: duyệt lấy số sao lúc Con nộp, không lấy số sao Ba Mẹ sửa sau", async () => {
@@ -153,6 +155,8 @@ test("B9: duyệt lấy số sao lúc Con nộp, không lấy số sao Ba Mẹ s
   const s = await nopXong(con, t);
   await nv.suaNv(fam, t, { diem: 50 });
   assert.equal((await nv.choDuyet(fam)).find((x) => x.id === s)?.sao, 10);
+  assert.equal((await nv.chiTietLuot(fam, s)).diem_md, 10, "màn duyệt hiện / gửi số sao lúc nộp");
+  assert.equal((await v.tomTatVi(con)).saoChoDuyet, 10);
   assert.equal((await nv.duyet(fam, s, bm)).diem, 10);
 });
 
@@ -191,4 +195,14 @@ test("B12: Ba Mẹ từ chối «Không đúng nhiệm vụ» ⇒ Con thấy lý
   // nộp lượt mới ⇒ lý do cũ không còn hiện
   await nopXong(con, t);
   assert.equal((await nv.nvCuaCon(con)).find((y) => y.id === t)!.tu_choi, null);
+});
+
+test("B11: mẫu quà (MAU_QUA) khớp tên + số sao quà mặc định, không còn quà phút", async () => {
+  const { QUA_MAC_DINH } = await import("./qua-bang-gia.ts");
+  for (const m of pt.MAU_QUA) {
+    const md = QUA_MAC_DINH.find((x) => x.ten === m.ten);
+    assert.ok(md, m.ten);
+    assert.equal(m.diem, md!.diem, m.ten);
+  }
+  assert.ok(!pt.MAU_QUA.some((m) => m.loai === "phut"));
 });

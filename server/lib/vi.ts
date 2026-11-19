@@ -79,7 +79,7 @@ export async function tomTatVi(con: string) {
             coalesce((select sum(delta) from points where child_id = $1 and loai = 'vay'), 0)::int as vay,
             coalesce((select -sum(delta) from points where child_id = $1 and loai = 'tra_no'), 0)::int as tra,
             coalesce((select sum(delta) from points where child_id = $1 and ${KIEM_SQL}), 0)::int as kiem,
-            coalesce((select sum(t.diem) from submissions s join tasks t on t.id = s.task_id
+            coalesce((select sum(coalesce(s.diem_nop, t.diem)) from submissions s join tasks t on t.id = s.task_id
                       where s.child_id = $1 and s.trang_thai = 'cho_duyet'), 0)::int as cho,
             coalesce((select sum(diem) from redemptions where child_id = $1 and trang_thai = 'giu'), 0)::int as giu`, [con]))!;
   const no = Math.max(0, r.no), tieu = Math.max(0, r.du);

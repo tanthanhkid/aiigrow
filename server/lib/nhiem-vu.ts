@@ -158,7 +158,7 @@ export async function luuNv(fam: string, id: string, b: { sua?: unknown; apCho?:
     if ((await t(`select id from children where family_id = $1 and id = any($2::text[])`, [fam, ap])).length !== ap.length)
       throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
     const giu = !!v.giao_cho && ap.includes(v.giao_cho);
-    const co = await t<{ ten: string; giao_cho: string | null }>(`select ten, giao_cho from tasks where family_id = $1 and bat and id <> $2`, [fam, id]);
+    const co = await t<{ id: string; ten: string; giao_cho: string | null }>(`select id, ten, giao_cho from tasks where family_id = $1 and bat and id <> $2`, [fam, id]);
     const moi = ap.filter((c) => c !== (giu ? v.giao_cho : null) && !co.some((x) => x.ten === v.ten && (x.giao_cho === c || x.giao_cho === null)));
     for (const c of moi) {
       const banSao = await taoNv(fam, { ten: v.ten, mo_ta: v.mo_ta, nhom: v.nhom, diem: v.diem, bang_chung: v.bang_chung, kieu: v.kieu, toi_da_ngay: v.toi_da_ngay,
@@ -168,7 +168,14 @@ export async function luuNv(fam: string, id: string, b: { sua?: unknown; apCho?:
       // tần suất hôm nay / tuần này vẫn đếm đúng (không thì bản sao mới = làm lại từ đầu, nhận sao thêm)
       await t(`update submissions set task_id = $2 where task_id = $1 and child_id = $3`, [id, banSao, c]);
     }
-    if (!giu) await t(`update tasks set bat = false where id = $1`, [id]);
+    if (!giu) {
+      // Con được chọn mà đã có việc RIÊNG cùng tên (nên không tạo bản sao) ⇒ lượt của Con trên việc gốc sắp tắt chuyển sang việc riêng đó (B6)
+      for (const c of ap) {
+        const rieng = co.find((x) => x.ten === v.ten && x.giao_cho === c);
+        if (rieng && !moi.includes(c)) await t(`update submissions set task_id = $2 where task_id = $1 and child_id = $3`, [id, rieng.id, c]);
+      }
+      await t(`update tasks set bat = false where id = $1`, [id]);
+    }
     return { ok: true, taoMoi: moi.length, tat: !giu };
   });
 }
@@ -205,6 +212,11 @@ export async function nvCuaCon(con: string, now = new Date(), o: { kemTuCham?: b
   const ds = (await q<Nv>(`select * from tasks where family_id = $1 and bat and (giao_cho is null or giao_cho = $2)
                           and (han is null or han > now()) and ($3 or bang_chung <> 'tu_dong') order by created_at`, [c.family_id, con, o.kemTuCham === true]))
   const ra: NvCuaCon[] = [];
+  // #433 B12: lượt gần nhất của mỗi việc — MỘT câu cho cả danh sách (không thêm một vòng DB mỗi việc)
+  const cuoiDs = new Map((await q<{ task_id: string; trang_thai: string; ly_do: string | null; duyet_luc: Date | null }>(
+    `select distinct on (task_id) task_id, trang_thai, ly_do, duyet_luc from submissions where child_id = $1 and task_id = any($2::text[])
+      order by task_id, created_at desc`, [con, ds.map((x) => x.id)])).map((r) => [r.task_id, r]));
+  const dauNgay = dauNgayUtc(gioDiaPhuong(now, tzg).ngay, tzg);
   for (const nv of ds) {
     const d = await demLuot(q, con, nv.id, tzg, now);
     // lượt ĐANG LÀM / CẦN BỔ SUNG / LÀM LẠI là việc dở của Con; lượt đã nộp chờ duyệt không chặn làm lượt kế (trong giới hạn tần suất)
@@ -223,9 +235,8 @@ export async function nvCuaCon(con: string, now = new Date(), o: { kemTuCham?: b
     else if (toiDa && d.ngay >= toiDa) tt = "du_hom_nay";
     else if (nv.toi_da_tuan && d.tuan >= nv.toi_da_tuan) tt = "du_tuan";
     // #433 B12: lượt gần nhất hôm nay bị Ba Mẹ TỪ CHỐI (không phải «Nhờ làm lại») ⇒ Con thấy lý do trên việc đó; nộp lượt mới thì thôi hiện
-    const cuoi = dang ? null : await one<{ trang_thai: string; ly_do: string | null; duyet_luc: Date | null }>(
-      `select trang_thai, ly_do, duyet_luc from submissions where child_id = $1 and task_id = $2 order by created_at desc limit 1`, [con, nv.id]);
-    const tuChoi = cuoi?.trang_thai === "tu_choi" && cuoi.duyet_luc && new Date(cuoi.duyet_luc) >= dauNgayUtc(gioDiaPhuong(now, tzg).ngay, tzg)
+    const cuoi = dang ? null : cuoiDs.get(nv.id);
+    const tuChoi = cuoi?.trang_thai === "tu_choi" && cuoi.duyet_luc && new Date(cuoi.duyet_luc) >= dauNgay
       ? { ly_do: cuoi.ly_do, luc: new Date(cuoi.duyet_luc).toISOString() } : null;
     if (tt !== "da_xong") ra.push({ ...nv, trang_thai_con: tt, luot_dang: dang?.id ?? null, hom_nay: d.ngay, dang_cho: cho, sao: nv.diem,
       lam_lai: dang?.trang_thai === "lam_lai", ly_do: dang && dang.trang_thai !== "dang_lam" ? dang.ly_do : null, loi_nhan: dang?.loi_nhan ?? null,
@@ -287,7 +298,8 @@ export async function nop(con: string, subId: string, b: { anh?: AnhNop[]; ghiCh
     // #433 B8: Ba Mẹ đã tắt việc (hoặc việc hết hạn khi Con mới «Đang làm») ⇒ đóng lượt (không kẹt «đang làm» mãi, Ba Mẹ không nhận lượt của việc đã tắt)
     const dong = !nv.bat ? "viec_da_tat" : s.trang_thai === "dang_lam" && nv.han && new Date(nv.han) <= now ? "qua_han" : null;
     if (dong) {
-      await t(`update submissions set trang_thai = 'het_han', duyet_luc = $2 where id = $1`, [s.id, now]);
+      // không đặt duyet_luc: lượt chưa từng chờ Ba Mẹ duyệt ⇒ báo cáo không đếm là «hết hạn chưa duyệt»
+      await t(`update submissions set trang_thai = 'het_han' where id = $1`, [s.id]);
       return { dong, fam, tuDuyet: false, trung: false };
     }
     const daPhut = (now.getTime() - new Date(s.bat_dau_luc).getTime()) / 60000;
@@ -441,13 +453,15 @@ export async function xuLyQuaHan(fam: string, now = new Date()) {
 }
 
 /** #433 B2: quét MỌI gia đình (cron /api/cron/qua-han, không chờ Ba Mẹ mở «Chờ duyệt»): nhắc lượt chờ quá `nv_nhac_gio`, hết hạn / tự duyệt lượt
- *  quá `nv_het_han_gio`; đóng lượt dở (đang làm / cần bổ sung / làm lại) của việc Ba Mẹ đã tắt và lượt «đang làm» của việc đã hết hạn (B8).
+ *  quá `nv_het_han_gio`; đóng lượt «đang làm» (bắt đầu quá 24 giờ) của việc Ba Mẹ đã tắt / đã hết hạn (B8).
  *  Lỗi một gia đình không chặn gia đình khác. → {giaDinh, loi, dong}. */
 export async function quetQuaHan(now = new Date()) {
+  // chỉ lượt «đang làm» bắt đầu quá 24 giờ (Ba Mẹ tắt / bật lại việc trong ngày không mất lượt của Con); lượt Ba Mẹ nhờ làm lại giữ nguyên.
+  // Không đặt duyet_luc (chưa từng chờ duyệt ⇒ báo cáo không đếm)
   const dong = await q(
-    `update submissions s set trang_thai = 'het_han', duyet_luc = $1 from tasks t
-      where t.id = s.task_id and ((not t.bat and s.trang_thai in ('dang_lam', 'can_bo_sung', 'lam_lai')) or (s.trang_thai = 'dang_lam' and t.han <= $1))
-      returning s.id`, [now]);
+    `update submissions s set trang_thai = 'het_han' from tasks t
+      where t.id = s.task_id and s.trang_thai = 'dang_lam' and s.bat_dau_luc < $2 and (not t.bat or t.han <= $1)
+      returning s.id`, [now, new Date(now.getTime() - 24 * 3600_000)]);
   // nv_nhac_gio nhỏ nhất là 1 giờ (cau-hinh.ts) ⇒ chỉ gia đình có lượt chờ quá 1 giờ mới cần xét
   const ds = await q<{ family_id: string }>(
     `select distinct t.family_id from submissions s join tasks t on t.id = s.task_id where s.trang_thai = 'cho_duyet' and s.nop_luc < $1`,
@@ -488,7 +502,7 @@ export async function chiTietLuot(fam: string, subId: string) {
   const s = await one<{ id: string; child_id: string; ten_con: string; ten: string; nhom: string; diem_md: number; diem: number | null; trang_thai: string;
     bat_dau_luc: Date; nop_luc: Date | null; ghi_chu: string | null; nghi_trung: boolean; ly_do: string | null; loi_khen: string | null;
     toi_da_ngay: number | null; task_id: string; tz: string }>(
-    `select s.id, s.child_id, c.ten as ten_con, t.ten, t.nhom, t.diem as diem_md, s.diem, s.trang_thai, s.bat_dau_luc, s.nop_luc, s.ghi_chu,
+    `select s.id, s.child_id, c.ten as ten_con, t.ten, t.nhom, coalesce(s.diem_nop, t.diem) as diem_md, s.diem, s.trang_thai, s.bat_dau_luc, s.nop_luc, s.ghi_chu,
             s.nghi_trung, s.ly_do, s.loi_khen, t.toi_da_ngay, t.id as task_id, f.tz
      from submissions s join tasks t on t.id = s.task_id join children c on c.id = s.child_id join families f on f.id = t.family_id
      where s.id = $1 and t.family_id = $2`, [subId, fam]);

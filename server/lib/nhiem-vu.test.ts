@@ -138,7 +138,7 @@ test("huy hiệu + chuỗi ngày: nhiệm vụ đầu được duyệt ⇒ «Kh�
   const t = await nv.taoNv(fam, { ten: "Dọn phòng", diem: 5 });
   const ids: string[] = [];
   for (let i = 0; i < 7; i++) { const s = await nv.batDau(con, t); await nv.nop(con, s, { anh: [anhGia(`p${i}`)] }); await nv.duyet(fam, s, bm); ids.push(s); }
-  for (let i = 0; i < 7; i++) await q(`update submissions set duyet_luc = now() - make_interval(days => $2) where id = $1`, [ids[i], i]);
+  for (let i = 0; i < 7; i++) await q(`update submissions set duyet_luc = now() - make_interval(days => $2), nop_luc = now() - make_interval(days => $2) where id = $1`, [ids[i], i]);
   assert.equal(await th.chuoiNgay(con), 7);
   assert.deepEqual(await th.sauKhiDuyet(fam, con), ["chuoi_7"]);
   const tt2 = await th.thanhTich(con);

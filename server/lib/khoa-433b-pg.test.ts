@@ -1,6 +1,6 @@
 // #433 B3 — thứ tự khoá: Con nộp (khoá Con → khoá lượt) và Ba Mẹ duyệt / hoàn tác duyệt cùng lúc không được deadlock.
 // Cần Postgres THẬT nhiều kết nối (PGlite một kết nối không tái hiện được): đặt AIIGROW_TEST_PG_URL=postgres://… (CSDL thử riêng) — không đặt thì bỏ qua.
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
 
 const URL_PG = process.env.AIIGROW_TEST_PG_URL;
@@ -42,5 +42,7 @@ test("B3: Con nộp và Ba Mẹ duyệt / hoàn tác cùng lúc ⇒ không deadl
   const b = await chenKhoa(con, s, () => nv.hoanTacDuyet(fam, s, bm));
   assert.equal((b.loiChen as { code?: string } | null)?.code, undefined, String(b.loiChen));
   assert.equal(b.loiChay, null, String(b.loiChay));
-  process.exit(0);                                                // hồ kết nối postgres.js của db.ts giữ tiến trình
 });
+
+// hồ kết nối postgres.js của db.ts giữ tiến trình sống sau khi test xong
+after(() => { if (URL_PG) setImmediate(() => process.exit(0)); });
