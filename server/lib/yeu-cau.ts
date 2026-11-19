@@ -45,8 +45,9 @@ export async function guiYeuCau(con: string, mayId: string | null,
   const mucDich: MucDichVay | null = laVay ? (b.mucDich === "qua" || (loai === "vay_sao" && b.quaId) ? "qua" : "choi") : null;
   // giá trị: web / app ⇒ tên miền / app chuẩn hoá · xin vay đổi quà ⇒ id quà · còn lại (lời xin cũ) ⇒ chữ tự do để hiển thị
   // app theo TÊN (#422, «Minecraft» — không .exe / .app / tên gói) giữ hoa thường như Con gõ / chọn để Ba Mẹ đọc đúng tên
+  const theoTen = loai === "cai_app" ? (b.theoTen ?? laTenApp(b.giaTri)) : null;
   const giaTri = loai === "mo_web" ? chuanMuc(b.giaTri)
-    : loai === "cai_app" ? ((b.theoTen ?? laTenApp(b.giaTri)) ? String(b.giaTri ?? "").trim().slice(0, 60) : chuanMuc(b.giaTri))
+    : loai === "cai_app" ? (theoTen ? String(b.giaTri ?? "").trim().slice(0, 60) : chuanMuc(b.giaTri))
     : mucDich === "qua" ? String(b.quaId ?? b.giaTri ?? "").trim().slice(0, 40) || null
     : String(b.giaTri ?? "").trim().slice(0, 200) || null;
   if ((loai === "mo_web" || loai === "cai_app") && !giaTri) throw new LoiNghiepVu("thieu_gia_tri", loai === "mo_web" ? "Dán đường link website" : "Ghi tên ứng dụng");
@@ -67,7 +68,7 @@ export async function guiYeuCau(con: string, mayId: string | null,
     const id = newId();
     // phut = số sao xin vay (1 sao = 1 phút) — cột cũ giữ để máy cũ đọc «xin thêm 20 phút»
     await t(`insert into requests(id, child_id, device_id, loai, phut, gia_tri, ly_do, het_han, created_at, muc_dich, theo_ten, ten_app) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
-      [id, con, mayId, loai, soSao, giaTri, lyDo, new Date(now.getTime() + gio * 3600_000), now, mucDich, loai === "cai_app" ? (b.theoTen ?? laTenApp(b.giaTri)) : null,
+      [id, con, mayId, loai, soSao, giaTri, lyDo, new Date(now.getTime() + gio * 3600_000), now, mucDich, loai === "cai_app" ? theoTen : null,
         loai === "cai_app" && typeof b.tenApp === "string" && b.tenApp.trim() ? b.tenApp.trim().slice(0, 60) : null]);
     await ghiSuKien(fam, "gui_yeu_cau", { loai, phut: soSao, gia_tri: giaTri, ...(laVay ? { vay: true, so_sao: soSao, muc_dich: mucDich } : {}) }, { con, may: mayId }, t);
     return { id, trang_thai: "cho", ...(laVay ? { soSao, mucDich } : {}) };
@@ -162,10 +163,10 @@ export async function dongY(fam: string, id: string, nguoi: string | null, o: Do
   });
 }
 
-/** Tên app trần (#422 «Minecraft» — không .exe / .app / tên gói, không phải đường link): lời xin cai_app giữ TÊN, Ba Mẹ đồng ý ⇒ thêm app theo tên. */
 /** Lời xin app theo tên? Lời xin mới ghi rõ (theo_ten); lời xin cũ (null) ⇒ đoán theo dạng gia_tri. */
 const laAppTheoTen = (r: { loai: string; gia_tri: string | null; theo_ten?: boolean | null }) =>
   r.loai === "cai_app" && (r.theo_ten ?? laTenApp(r.gia_tri));
+/** Tên app trần (#422 «Minecraft» — không .exe / .app / tên gói, không phải đường link): lời xin cai_app giữ TÊN, Ba Mẹ đồng ý ⇒ thêm app theo tên. */
 const laTenApp = (v: unknown) => { const t = String(v ?? "").trim(); return !!t && !/[/:]/.test(t) && kieuMuc(chuanMuc(t)) !== "app"; };
 
 const sachLoiNhan = (v: unknown) => String(v ?? "").trim().slice(0, 120) || null;

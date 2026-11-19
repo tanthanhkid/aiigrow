@@ -408,7 +408,12 @@ test("#425 thẻ App chọn trong lưới: định danh thật (exe, id Store, b
     assert.equal(await la.luatHienCo(fam, con, ten), null, `không ghi luật lên tên ${ten}`);
   }
   assert.equal((await one<{ n: number }>(`select count(*)::int as n from app_theo_ten where child_id = $1`, [con]))!.n, 0, "không lời xin nào đi đường theo tên");
-  // gõ tên trần (ten trùng muc / không có ten) vẫn là lời xin theo tên
+  // định danh máy đã báo trùng tên (khác hoa thường) ⇒ vẫn là định danh (app_may), không đi đường theo tên
+  await q(`insert into app_may(device_id, khoa, muc, ten) values ($1, 'spotify', 'spotify', 'Spotify')`, [win.deviceId]);
+  const sp = (await dv(win.token, "xin-duyet", { kieu: "app", muc: "spotify", ten: "Spotify" })).body;
+  assert.equal((await one<{ theo_ten: boolean }>(`select theo_ten from requests where id = $1`, [sp.id]))!.theo_ten, false);
+  // gõ tên trần (ten trùng muc / không có ten) vẫn là lời xin theo tên; có ten ⇒ giữ ten Con thấy
   const t = (await dv(win.token, "xin-duyet", { kieu: "app", muc: "Minecraft", ten: "Minecraft" })).body;
   assert.equal((await one<{ theo_ten: boolean }>(`select theo_ten from requests where id = $1`, [t.id]))!.theo_ten, true);
+  assert.equal((await dv(win.token, "xin-duyet", { kieu: "app", muc: "Visual Studio Code", ten: "Code" })).body.muc, "Code");
 });

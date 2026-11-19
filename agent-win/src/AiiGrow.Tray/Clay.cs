@@ -1053,8 +1053,13 @@ internal sealed class ClayMenuRenderer : ToolStripProfessionalRenderer
 /// như mọi thẻ Clay khác ⇒ <paramref name="le"/> là Margin cộng THÊM ngoài lề đó (thường để trống: lề bóng dưới ~12 đã là khoảng cách dòng).</summary>
 internal static class ONhapClay
 {
-    /// <summary>Chiều cao thân lòng chảo cho một TextBox (đã bỏ viền).</summary>
-    public static int Than(TextBox o) => Math.Max(Clay.Si(44), o.PreferredHeight + Clay.Si(22));   // PreferredHeight theo phông (không theo Height) — gọi trước / sau Boc như nhau
+    /// <summary>Chiều cao thân lòng chảo cho một TextBox (đã bỏ viền) — tính theo chiều cao phông (không theo viền / Height hiện tại)
+    /// ⇒ gọi trước hay sau <see cref="Boc"/> đều như nhau.</summary>
+    public static int Than(TextBox o) => Math.Max(Clay.Si(44), o.Font.Height + Clay.Si(22));
+
+    /// <summary>#425: ô một dòng không viền cao đúng chiều cao phông ⇒ Be Vietnam Pro bị cắt phần dưới (dấu nặng «ạ», chân «g»). Chừa thêm
+    /// khoảng dưới (TextBox một dòng vẽ chữ sát mép trên).</summary>
+    private static int CaoO(TextBox o) => o.Font.Height + Clay.Si(6);
 
     public static ClayCard Boc(TextBox o, int rong, Padding? le = null)
     {
@@ -1064,12 +1069,11 @@ internal static class ONhapClay
         o.Margin = Padding.Empty;
         var ngang = Clay.Si(14);
         o.Width = Math.Max(Clay.Si(40), rong - 2 * ngang);
-        // #425: ô một dòng cao đúng chiều cao phông ⇒ Be Vietnam Pro bị cắt phần dưới (dấu nặng «ạ», «ọ», chân «g», «y»). Bỏ tự co, chừa thêm
-        // khoảng dưới cho phần chân chữ — TextBox một dòng vẽ chữ sát mép trên nên phần thêm nằm dưới.
         if (!o.Multiline)
         {
             o.AutoSize = false;
-            o.Height = o.PreferredHeight + Clay.Si(6);
+            o.Height = CaoO(o);
+            o.FontChanged += (_, _) => o.Height = CaoO(o);   // đổi phông sau khi bọc vẫn đủ chỗ chân chữ
         }
         var than = Than(o);
         var m = le ?? Padding.Empty;

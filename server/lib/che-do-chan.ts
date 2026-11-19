@@ -162,9 +162,11 @@ export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unk
     // giữ tên như Con thấy, Ba Mẹ đồng ý thì thêm app theo tên (datAppChoPhep: khớp app thật máy đã báo / chờ khớp).
     if (loai === "cai_app" && kieuMuc(muc) !== "app") {
       const ten = typeof b.ten === "string" ? b.ten.trim() : "";
-      const coId = b.kieu === "app" && !!ten && ten.toLowerCase() !== muc && !/\s/.test(muc);
-      if (coId) theoTen = false;
-      else { const tho = String(b.muc).trim(); if (!/[/:]/.test(tho)) { muc = tho.slice(0, 60); theoTen = true; } }
+      // định danh thật: máy của nhà đã báo mục này trong danh sách app (app_may); máy chưa báo kịp ⇒ có tên khác định danh, định danh không khoảng trắng
+      const daBao = !!(await one(`select 1 from app_may a join devices d on d.id = a.device_id where lower(a.muc) = $1
+                                   and d.family_id = (select family_id from children where id = $2) limit 1`, [muc, con]));
+      if (daBao || (!!ten && ten.toLowerCase() !== muc && !/\s/.test(muc))) theoTen = false;
+      else { const tho = ten || String(b.muc).trim(); if (!/[/:]/.test(tho)) { muc = tho.slice(0, 60); theoTen = true; } }
     } else if (loai === "cai_app") theoTen = false;
   }
   const co = await one<{ id: string; loai: string }>(`select id, loai from requests where child_id = $1 and gia_tri = $2 and loai = $3 and trang_thai = 'cho' and het_han > now()
