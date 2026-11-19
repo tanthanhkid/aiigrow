@@ -1,0 +1,23 @@
+# Năm tab chính của Ba Mẹ: mỗi tab hiện chữ chính (không màn trắng), mỗi màn một ảnh.
+appId: vn.aiilab.aiigrow
+---
+- runFlow: luong/vao.yaml
+- assertVisible: "Hôm nay"
+- assertVisible: "Cần Ba Mẹ để ý"
+- takeScreenshot: ../out/anh/10-hom-nay
+- tapOn: "Việc & quà.*"
+- assertVisible: "\\+ Việc"
+- assertVisible: "Việc chờ Ba Mẹ duyệt"
+- takeScreenshot: ../out/anh/11-viec-qua
+- tapOn: "App & web.*"
+- assertVisible: "Con mở được gì trên máy"
+- takeScreenshot: ../out/anh/12-app-web
+- tapOn: "Báo cáo.*"
+- assertVisible: "Dùng nhiều nhất"
+- takeScreenshot: ../out/anh/13-bao-cao
+- tapOn: "Cả nhà.*"
+- assertVisible: "Các con"
+- assertVisible: "Máy của con"
+- takeScreenshot: ../out/anh/14-ca-nha
+- tapOn: "Hôm nay.*"
+- assertVisible: "Cần Ba Mẹ để ý"

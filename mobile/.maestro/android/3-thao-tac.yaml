@@ -1,0 +1,6 @@
+# Thao tác chính: khoá máy rồi mở khoá, duyệt lời xin (web scratch.mit.edu / app Minecraft), duyệt việc chờ.
+appId: vn.aiilab.aiigrow
+---
+- runFlow: luong/vao.yaml
+- tapOn: "Khoá máy.*"
+- takeScreenshot: ../out/anh/30-bang-khoa-may
