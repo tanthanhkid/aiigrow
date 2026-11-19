@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F2EBE3;--ink:#0A1629;--ink2:#5a5a5a;--sh:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 4px 8px rgba(10,22,41,.1),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--bg);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--bg)}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;background:linear-gradient(#e8ddcf,#F2EBE3)}
+.giua{position:absolute;left:16px;right:16px;top:84px;display:flex;flex-direction:column;align-items:center}
+.rob{width:170px;height:auto}
+h1{margin-top:14px;text-align:center;font-size:28px;line-height:34px;font-weight:800;letter-spacing:-.6px}
+.phu{margin:10px 12px 0;text-align:center;font-size:15px;line-height:21px;font-weight:600;color:var(--ink2)}
+.the{align-self:stretch;margin-top:22px;padding:6px 14px;border-radius:28px;background:#fff;box-shadow:var(--sh)}
+.dong{display:flex;align-items:center;gap:12px;min-height:64px}
+.dong+.dong{border-top:1.5px solid #efe7dd}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--bg);box-shadow:var(--lom)}.ic img{width:26px;height:26px}
+.dong p{flex:1;font-size:15px;font-weight:800;line-height:20px}
+.dong p small{display:block;font-size:12.5px;font-weight:600;color:var(--ink2);line-height:17px}
+.tag{flex:none;padding:4px 10px;border-radius:12px;font-size:12.5px;font-weight:800}
+.tag.ok{background:#7ED957;color:#0A1629}
+.tag.sao{background:#F4C76A;color:#0A1629}
+.day{position:absolute;left:0;right:0;bottom:0;padding:20px 16px 22px;background:linear-gradient(rgba(242,235,227,0),#F2EBE3 20px);display:flex;flex-direction:column;gap:4px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
+.lk{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:15px;font-weight:800;color:var(--ink)}
+</style></head>
+<body><div class="app">
+<div class="giua">
+<img class="rob" src="/assets/rob/chi.webp" alt="">
+<h1>Đã nhắn Bảo Anh<br>đọc lại</h1>
+<p class="phu">Con thấy lời nhắn ngay trên máy. Nộp lại xong, Ba Mẹ nhận thông báo để duyệt.</p>
+<div class="the">
+<div class="dong"><span class="ic"><img src="/assets/icon3d/tin.webp" alt=""></span><p>Lời nhắn đã tới máy con<small>«Con đọc to hơn một chút nhé!» · 19:40</small></p><span class="tag ok">Đã gửi</span></div>
+<div class="dong"><span class="ic"><img src="/assets/icon3d/sao.webp" alt=""></span><p>Chưa cộng sao<small>Ví Bảo Anh vẫn 30 sao</small></p><span class="tag sao">30 sao</span></div>
+</div>
+</div>
+<div class="day">
+<span class="nut" role="button" tabindex="0" data-toi="them-nl1nwszs">Xem việc còn chờ duyệt</span>
+<span class="lk" role="button" tabindex="0" data-toi="bm2-trang-chu">Về Trang chủ</span>
+</div>
+</div></body></html>

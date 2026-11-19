@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--noi:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--noi2:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--lom:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--n);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--n)}
+.dau{display:flex;align-items:center;gap:10px;padding:52px 16px 0}
+.lui{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:var(--noi)}
+.lui svg,.ic svg,.mui svg,.tick svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.lui svg{width:22px;height:22px}
+.nhan{font-size:13px;font-weight:700;color:#8a6a2b;padding:6px 12px;border-radius:12px;box-shadow:var(--lom)}
+h1{margin:22px 20px 0;font-size:25px;line-height:32px;font-weight:800;letter-spacing:-.4px}
+.phu{margin:8px 20px 0;font-size:14.5px;line-height:21px;color:var(--ink2)}
+.av{flex:none;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:var(--n);font-size:21px;font-weight:800;color:var(--ink);box-shadow:var(--noi)}
+.av.on{background:#0A1629;color:#F4C76A;box-shadow:0 0 0 3px var(--n),0 0 0 5px #D9AE57,5px 6px 12px var(--lo)}
+.the{margin:18px 16px 0;padding:6px 14px;border-radius:24px;background:var(--n);box-shadow:var(--noi2)}
+.dong{display:flex;align-items:center;gap:12px;min-height:58px}
+.dong+.dong{border-top:1px solid rgba(120,98,70,.14);box-shadow:inset 0 1px 0 var(--hi)}
+.ic{flex:none;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:var(--n);color:var(--ink);box-shadow:var(--lom)}
+.ic svg{width:20px;height:20px}
+.dong p{flex:1;min-width:0;font-size:15px;font-weight:700;line-height:20px}
+.dong p small{display:block;font-size:12.5px;font-weight:400;color:var(--ink3);line-height:17px}
+.day{position:absolute;left:16px;right:16px;bottom:24px;display:flex;flex-direction:column;gap:14px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:54px;border:0;border-radius:16px;font:700 16px/1 'Be Vietnam Pro',sans-serif;color:var(--ink);white-space:nowrap;cursor:pointer}
+.nut.chinh{background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nut.phu2{background:var(--n);box-shadow:var(--noi)}
+.ghi{text-align:center;font-size:12.5px;color:var(--ink3);margin-top:-6px}
+</style>
+<style>
+.cap{display:flex;align-items:center;justify-content:center;gap:14px;margin-top:26px}
+.mui{width:30px;height:30px;color:#9C7428}.mui svg{width:30px;height:30px}
+.cap span.ten{display:block;margin-top:8px;font-size:13px;font-weight:600;color:var(--ink2);text-align:center}
+.the .tieu{padding:10px 0 2px;font-size:12.5px;font-weight:700;letter-spacing:.3px;color:#8a6a2b;text-transform:uppercase}
+</style></head><body><div class="app">
+<div class="dau"><a class="lui" role="button" data-toi="bm1-ob-ten-con"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"></path></svg></a><span class="nhan">Con thứ 2</span></div>
+<div class="cap"><div><span class="av">B</span><span class="ten">Bảo Anh</span></div><span class="mui"><svg viewBox="0 0 24 24"><path d="M4 12h15M14 7l5 5-5 5"></path></svg></span><div><span class="av on">M</span><span class="ten">Bảo Minh</span></div></div>
+<h1>Bảo Minh dùng luật<br>giống Bảo Anh?</h1>
+<p class="phu">Chép luật của Bảo Anh sang, khỏi điền lại. Sau này vẫn sửa riêng từng con được.</p>
+<div class="the"><div class="tieu">Sẽ chép từ Bảo Anh</div>
+<div class="dong"><span class="ic"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path></svg></span><p>App &amp; web · Theo danh sách<small>6 app · 4 trang web</small></p></div>
+<div class="dong"><span class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 9v4l2.5 2M9 2h6"></path></svg></span><p>Tính phút<small>YouTube, Roblox tính · app học không tính</small></p></div>
+<div class="dong"><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M8.5 12.2l2.4 2.4 4.8-5"></path></svg></span><p>Việc mỗi ngày<small>5 việc · Học · Vận động · Giúp Ba Mẹ</small></p></div>
+<div class="dong"><span class="ic"><svg viewBox="0 0 24 24"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"></path></svg></span><p>Chơi bằng sao<small>1 sao = 1 phút chơi</small></p></div>
+</div>
+<div class="day"><button class="nut chinh" data-toi="bm1-ob-ghep">Giống Bảo Anh</button><p class="ghi">Xong đi thẳng tới Ghép máy</p><button class="nut phu2" data-toi="bm1-ob-mau">Thiết lập riêng</button></div>
+</div></body></html>

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F2EBE3;--ink:#0A1629;--ink2:#5a5a5a;--sh:0 14px 22px -14px rgba(10,22,41,.28),0 3px 8px -5px rgba(10,22,41,.12),inset 0 1.5px 0 #fff,inset 0 -8px 14px -8px rgba(10,22,41,.08);--lom:inset 0 4px 8px rgba(10,22,41,.1),inset 0 -1.5px 0 rgba(255,255,255,.95)}
+html,body{width:375px;height:812px;overflow:hidden;background:var(--bg);font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.app{position:relative;width:375px;height:812px;overflow:hidden;background:var(--bg)}
+.app::before{content:"";position:absolute;left:0;right:0;top:0;height:420px;background:linear-gradient(#e8ddcf,#F2EBE3)}
+.phao{position:absolute;width:52px;height:52px}
+.giua{position:absolute;left:16px;right:16px;top:56px;display:flex;flex-direction:column;align-items:center}
+.rob{width:190px;height:auto}
+h1{margin-top:8px;text-align:center;font-size:28px;line-height:34px;font-weight:800;letter-spacing:-.6px}
+.vi{margin-top:16px;display:flex;align-items:center;justify-content:center;gap:10px}
+.o{display:flex;align-items:center;gap:6px;height:52px;padding:0 16px 0 10px;border-radius:26px;background:#F4C76A;box-shadow:var(--sh);font-size:20px;font-weight:800;color:#0A1629;white-space:nowrap}
+.o.cu{background:#fff;box-shadow:var(--lom);color:var(--ink2);font-size:17px;height:44px}
+.o img{width:28px;height:28px}
+.mui{font-size:22px;font-weight:800;color:var(--ink)}
+.doi{margin-top:8px;text-align:center;font-size:13px;font-weight:700;color:var(--ink2)}
+.the{align-self:stretch;margin-top:18px;padding:6px 14px;border-radius:28px;background:#fff;box-shadow:var(--sh)}
+.dong{display:flex;align-items:center;gap:12px;min-height:64px}
+.dong+.dong{border-top:1.5px solid #efe7dd}
+.ic{flex:none;width:40px;height:40px;border-radius:14px;display:grid;place-items:center;background:var(--bg);box-shadow:var(--lom)}.ic img{width:26px;height:26px}
+.dong p{flex:1;min-width:0;font-size:15px;font-weight:800;line-height:20px}.dong p small{display:block;font-size:12.5px;font-weight:600;color:var(--ink2)}
+.sao{flex:none;padding:4px 10px;border-radius:12px;background:#F4C76A;color:#0A1629;font-size:12.5px;font-weight:800}
+.day{position:absolute;left:0;right:0;bottom:0;padding:20px 16px 22px;background:linear-gradient(rgba(242,235,227,0),#F2EBE3 20px);display:flex;flex-direction:column;gap:4px}
+.nut{display:flex;align-items:center;justify-content:center;gap:8px;height:52px;border-radius:26px;font-size:16px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(#1b2b47,#0A1629);box-shadow:0 12px 18px -10px rgba(10,22,41,.55),inset 0 1.5px 0 rgba(255,255,255,.22),inset 0 -6px 10px -4px rgba(0,0,0,.45)}
+.lk{display:flex;align-items:center;justify-content:center;min-height:44px;font-size:15px;font-weight:800;color:var(--ink)}
+</style></head>
+<body><div class="app">
+<img class="phao" style="left:30px;top:86px" src="/assets/icon3d/phao_hoa.webp" alt="">
+<img class="phao" style="right:30px;top:140px" src="/assets/icon3d/lap_lanh.webp" alt="">
+<div class="giua">
+<img class="rob" src="/assets/rob/xong.webp" alt="">
+<h1>Bảo Anh nhận 20 sao<br>và đã hết nợ!</h1>
+<div class="vi"><span class="o cu"><img src="/assets/icon3d/sao.webp" alt="">−15</span><span class="mui">→</span><span class="o"><img src="/assets/icon3d/sao.webp" alt="">5 sao</span></div>
+<p class="doi">Trả nợ 15 sao trước · còn 5 sao = 5 phút chơi</p>
+<div class="the">
+<div class="dong"><span class="ic"><img src="/assets/icon3d/lau.webp" alt=""></span><p>Dọn phòng<small>Trả nợ 10 · còn nợ 5</small></p><span class="sao">+10 sao</span></div>
+<div class="dong"><span class="ic"><img src="/assets/icon3d/sach.webp" alt=""></span><p>Đọc sách 20 phút<small>Trả nợ 5 · cộng 5 sao cho con</small></p><span class="sao">+10 sao</span></div>
+</div>
+</div>
+<div class="day">
+<span class="nut" role="button" tabindex="0" data-toi="bm2-trang-chu">Xong, về Trang chủ</span>
+<span class="lk" role="button" tabindex="0" data-toi="them-oypre8gc">Xem việc chờ duyệt</span>
+</div>
+</div></body></html>

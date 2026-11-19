@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"><style>:root{--f:'Be Vietnam Pro',system-ui,sans-serif;--n:#ECE4D9;--hi:#FFFBF5;--lo:rgba(120,98,70,.28);--ink:#0A1629;--ink2:#5b5248;--ink3:#7c7166;--kim:linear-gradient(135deg,#FBE7B0 0%,#F4C76A 38%,#C9973B 72%,#F2D48C 100%);--noi:6px 6px 12px var(--lo),-6px -6px 12px var(--hi);--noi8:8px 8px 16px var(--lo),-8px -8px 16px var(--hi);--lom:inset 3px 3px 6px var(--lo),inset -3px -3px 6px var(--hi)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--n);overflow:hidden;width:1000px;height:760px}
+body{font-family:var(--f);color:var(--ink);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+.w{position:relative;overflow:hidden;background:var(--n);width:1000px;height:760px}
+.tb{position:absolute;left:0;right:0;top:0;height:30px;background:linear-gradient(#f7f7f5,#ecebe8);box-shadow:0 1px 0 #d9d8d3;text-align:center;font:600 13px/30px Inter,-apple-system,'SF Pro Text','Helvetica Neue',Arial,sans-serif;color:#3a403d;z-index:5}.tb i{position:absolute;top:9px;width:12px;height:12px;border-radius:50%}
+.bmm{position:absolute;left:40px;top:662px;font:400 12.5px/17px var(--f);color:var(--ink3);white-space:nowrap}
+.bmm b,.phim{display:inline-block;min-width:24px;height:22px;padding:0 6px;margin:0 2px;border-radius:6px;background:var(--n);box-shadow:var(--lom);font:700 12px/22px var(--f);color:var(--ink);text-align:center}
+.x{position:absolute;white-space:nowrap;line-height:1}
+.ben{position:absolute;left:17px;top:44px;width:272px;height:673px;border-radius:32px;background:var(--n);box-shadow:var(--noi8)}
+.rob{position:absolute;object-fit:contain}
+.pill{position:absolute;left:33px;top:318px;width:222px;height:40px;border-radius:20px;background:var(--n);box-shadow:var(--lom)}
+.nav{position:absolute;left:36px;width:234px;height:48px;border-radius:24px;cursor:pointer;color:var(--ink)}
+.nav.dang{background:#0A1629;box-shadow:inset 0 0 0 1px rgba(244,199,106,.35)}
+.nav svg{position:absolute;left:12px;top:10px;width:28px;height:28px}
+.nav span{position:absolute;left:50px;top:14px;font:700 16.5px/1 var(--f);white-space:pre}
+.nav.dang span,.nav.dang svg{color:#F4C76A}
+.nav i{position:absolute;right:18px;top:12px;min-width:24px;height:24px;padding:0 7px;border-radius:12px;background:#0A1629;color:#F4C76A;font:700 13px/24px var(--f);font-style:normal;text-align:center}
+.the{position:absolute;border-radius:28px;background:var(--n);box-shadow:var(--noi8)}
+.the.vang{background:var(--n)}
+.the.hero{background:#0A1629;box-shadow:var(--noi8),inset 0 0 0 1px rgba(244,199,106,.35)}
+.b{position:absolute;height:49px;border-radius:16px;border:0;padding:0 18px;display:flex;align-items:center;justify-content:center;font:700 16px/1 var(--f);white-space:nowrap;cursor:pointer;color:var(--ink)}
+.b svg{width:24px;height:24px;margin-right:8px;flex:none}
+.b.ngoc{color:#0A1629;background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.b.trang{color:var(--ink);background:var(--n);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi)}
+.b.nho{height:44px;font-size:15px}
+.ic3{position:absolute;width:52px;height:52px;border-radius:50%;background:var(--n);box-shadow:4px 4px 8px var(--lo),-4px -4px 8px var(--hi);color:var(--ink)}
+.ic3 svg{position:absolute;left:12px;top:12px;width:28px;height:28px}
+.ic3.lon{width:72px;height:72px}.ic3.lon svg{left:17px;top:17px;width:38px;height:38px}
+.t2{position:absolute;white-space:nowrap;font:400 14.5px/1 var(--f);color:var(--ink2)}
+.lk{position:absolute;white-space:nowrap;font:600 14.5px/44px var(--f);color:#8a6a2b;cursor:pointer;height:44px;padding:0 6px}
+.lk.cam{color:#A2412C}
+.lk svg{color:var(--ink)}
+.thanh{position:absolute;height:14px;border-radius:7px;background:var(--n);box-shadow:var(--lom)}
+.thanh b{display:block;height:14px;border-radius:7px;background:var(--kim)}
+.avt{position:absolute;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;color:#0A1629;font:800 16px/1 var(--f);background:var(--kim);box-shadow:3px 3px 6px var(--lo),-3px -3px 6px var(--hi)}
+.sao{position:absolute;height:30px;border-radius:15px;background:var(--kim);color:#0A1629;font:700 14px/30px var(--f);white-space:nowrap;padding:0 12px 0 32px;box-shadow:3px 3px 6px var(--lo),-3px -3px 6px var(--hi)}
+.sao::before{content:'';position:absolute;left:8px;top:5px;width:20px;height:20px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230A1629' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z'/%3E%3C/svg%3E") center/contain no-repeat}
+.chip{position:absolute;height:28px;border-radius:14px;padding:0 12px;font:700 13px/28px var(--f);white-space:nowrap}
+.chip.cho,.chip.cam{background:var(--n);box-shadow:var(--lom);color:#A2412C}
+.chip.ok{background:#0A1629;color:#F4C76A}
+.chip.xam{background:var(--n);box-shadow:var(--lom);color:var(--ink2)}
+.chip.vang{background:var(--kim);color:#0A1629}
+.chip svg{width:18px;height:18px;vertical-align:-4px;margin-right:4px}
+.t1{position:absolute;white-space:nowrap;font:800 17px/1 var(--f)}
+.vach{position:absolute;height:2px;background:var(--lo);opacity:.5}
+.h{font:800 21px/27px var(--f);letter-spacing:-.2px}
+.h2{font:800 26px/32px var(--f);letter-spacing:-.3px}
+.p{font:400 14px/20px var(--f);color:var(--ink2)}
+.s{font:400 12.5px/17px var(--f);color:var(--ink3)}
+.buoc{position:absolute;display:flex;align-items:center;gap:5px}
+.buoc i{width:28px;height:7px;border-radius:4px;background:var(--n);box-shadow:inset 2px 2px 3px var(--lo),inset -2px -2px 3px var(--hi)}
+.buoc i.on{background:var(--kim);box-shadow:0 0 0 1.5px #0A1629}
+.buoc i.xong{background:#0A1629;box-shadow:none}
+.buoc span{margin-left:6px;font:700 12px/16px var(--f);color:var(--ink);white-space:nowrap}
+.bt{position:absolute;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:var(--n);box-shadow:4px 4px 8px var(--lo),-4px -4px 8px var(--hi);color:var(--ink)}
+.bt svg{width:26px;height:26px}
+.bt.ngoc{background:#0A1629;color:#F4C76A;box-shadow:4px 4px 8px var(--lo),-4px -4px 8px var(--hi),inset 0 0 0 1px rgba(244,199,106,.35)}
+.bt.vang{background:var(--kim);color:#0A1629}
+.bt.nho{width:38px;height:38px}.bt.nho svg{width:21px;height:21px}
+.bt.lon{width:64px;height:64px}.bt.lon svg{width:36px;height:36px}
+.o6{position:absolute;display:flex;gap:6px}
+.o6 i{position:relative;width:42px;height:52px;border-radius:15px;background:var(--n);box-shadow:var(--lom);display:grid;place-items:center;font:800 26px/1 var(--f);font-style:normal;color:var(--ink)}
+.o6.sai i{color:#b42318}
+.lom{position:absolute;border-radius:16px;background:var(--n);box-shadow:var(--lom);display:flex;align-items:center;padding:0 14px;font:400 14px/1 var(--f);color:var(--ink2);white-space:nowrap;overflow:hidden}
+.go{position:absolute;border-radius:23px;background:var(--n);box-shadow:var(--lom);padding:0 20px;font:400 15px/46px var(--f);color:var(--ink3);white-space:nowrap}
+.chan{position:absolute;left:0;right:0;bottom:0;height:66px;background:var(--n);box-shadow:0 -8px 18px -10px var(--lo),0 -1px 0 var(--hi)}
+.nut{position:absolute;height:44px;border:0;border-radius:16px;display:flex;align-items:center;justify-content:center;gap:7px;font:700 15px/1 var(--f);white-space:nowrap;cursor:pointer;overflow:hidden;padding:0 16px}
+.nut span{position:relative}
+.nut svg{position:relative;width:22px;height:22px;flex:none}
+.nut.chinh{color:#0A1629;background:var(--kim);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi),inset 0 1px 0 rgba(255,255,255,.6)}
+.nut.phu{color:var(--ink);background:var(--n);box-shadow:4px 4px 10px var(--lo),-4px -4px 10px var(--hi)}
+.nut.nho{height:38px;font-size:13px;padding:0 12px}
+.demo{position:absolute;padding:6px 11px;border-radius:11px;border:1.5px dashed #D9AE57;background:var(--n);color:#8a6a2b;font:600 12px/16px var(--f);white-space:nowrap;cursor:pointer}
+.chon{position:absolute;display:flex;gap:8px}
+.chon b{height:42px;padding:0 16px;border-radius:16px;display:grid;place-items:center;font:700 14px/1 var(--f);white-space:nowrap;background:var(--n);color:var(--ink);box-shadow:4px 4px 8px var(--lo),-4px -4px 8px var(--hi);cursor:pointer}
+.chon b.on{background:#0A1629;color:#F4C76A;box-shadow:none}
+.bat{display:inline-block;position:relative;width:34px;height:20px;border-radius:10px;background:var(--n);vertical-align:middle;box-shadow:var(--lom)}
+.bat::after{content:'';position:absolute;left:2px;top:2px;width:16px;height:16px;border-radius:50%;background:#7c7166}
+.bat.on{background:#0A1629}.bat.on::after{left:16px;background:#F4C76A}
+.tab{position:absolute;display:flex;gap:6px;padding:4px;border-radius:20px;background:var(--n);box-shadow:var(--lom)}
+.tab b{height:34px;padding:0 14px;border-radius:17px;display:flex;align-items:center;gap:6px;font:700 13px/1 var(--f);color:var(--ink2);white-space:nowrap}
+.tab b svg{width:20px;height:20px}
+.tab b.on{background:#0A1629;color:#F4C76A}
+.anh{position:absolute;width:120px;height:96px;border-radius:18px;overflow:hidden;box-shadow:var(--noi);color:var(--ink)}
+.nb{position:absolute;border-radius:18px;background:var(--n);box-shadow:var(--noi)}
+.nb .ap{position:absolute;left:14px;top:14px;width:34px;height:34px;border-radius:9px;background:#0A1629;display:grid;place-items:center;overflow:hidden}
+.nb .ap img{width:26px;height:26px;object-fit:contain}
+</style></head><body data-lk-sua=""><div class="w"><div class="tb"><i style="left:14px;background:#ff5f57;box-shadow:inset 0 0 0 .5px #e0443e"></i><i style="left:34px;background:#febc2e;box-shadow:inset 0 0 0 .5px #dea123"></i><i style="left:54px;background:#28c840;box-shadow:inset 0 0 0 .5px #1aab29"></i><span>AiiGrow</span></div><div style="position:absolute;left:0;top:24px;width:1000px;height:736px"><div class="ben"></div><img class="rob" src="/assets/rob/rob-goc.webp" style="left:58px;top:56px;height:214px;width:190px" alt=""><div class="avt" style="left:40px;top:272px">B</div><div class="x" style="left:84px;top:281px;font:700 22.67px/1 var(--f)">Bảo Anh</div><div class="pill"></div><div class="x" style="left:50px;top:330px;font:700 14px/1 var(--f);color:#0A1629">● Đã kết nối · 19:30</div><div class="nav dang" style="top:384px" data-toi="them-z86gsj81"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="13" r="7.5"></circle><path d="M12 9v4l2.5 1.5M5 4.5L3 6.5M19 4.5l2 2"></path></svg><span>Hôm nay</span></div><div class="nav" style="top:444px" data-toi="them-o1pi9nla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.3l2.7 2.7L16 9.5"></path></svg><span>Nhiệm vụ</span></div><div class="nav" style="top:504px" data-toi="them-r6eya42m"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"></path></svg><span>Sao &amp; quà</span></div><div class="nav" style="top:564px" data-toi="them-rn20lwi7"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16a1 1 0 011 1V16a1 1 0 01-1 1h-8l-4.5 3.5V17H4a1 1 0 01-1-1V6.5a1 1 0 011-1z"></path><path d="M8 10h8M8 13h5"></path></svg><span>Tin nhắn</span><i>1</i></div><div class="lk" style="left:40px;top:626px" data-toi="them-hoxcav7o"><svg style="width:22px;height:22px;vertical-align:-5px;margin-right:8px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.3"></circle><path d="M3 20c0-3.5 2.7-5.7 6-5.7s6 2.2 6 5.7M16 5a3.2 3.2 0 010 6.2M18 14.8c2 .7 3 2.5 3 5.2"></path></svg>Đổi người / Đăng xuất</div><div class="bmm" style="top:676px;cursor:pointer;font-weight:600" data-toi="them-4ihu4j01"><svg style="width:16px;height:16px;vertical-align:-3px;margin-right:6px" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9.5" rx="2"></rect><path d="M8 11V8a4 4 0 018 0v3"></path></svg>Ba Mẹ dùng máy ›</div><div class="x" style="left:331px;top:76px;font:700 29.33px/1 var(--f)">Chào Bảo Anh!</div><div class="t2" style="left:333px;top:116px">Thứ Ba · 19:30</div><div role="button" tabindex="0" data-toi="them-02wt8s99" style="position:absolute;left:770px;top:96px;font-family:var(--f);height:28px;padding:0 12px;border-radius:14px;border:1.5px dashed #D9AE57;background:var(--n);color:#A2412C;font-weight:800;font-size:12.5px;line-height:25px;white-space:nowrap;cursor:pointer">▶ Thử: chế độ Mở hết</div><div class="the hero" style="left:329px;top:146px;width:620px;height:224px"></div><div class="ic3 " style="left:352px;top:168px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"></path></svg></div><div class="t2" style="color:#cdbfae;left:418px;top:174px;font-size:16.67px">Sao của con · cũng là phút chơi</div><div class="x" style="left:416px;top:198px;font:700 60px/1 var(--f);color:#F4C76A">18 sao</div><button class="b trang" style="left:688px;top:176px;width:240px" data-toi="them-zsf6b45n"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 3L10.5 13.5M21 3l-6.5 18-4-7.5L3 9.5z"></path></svg>Xin Ba Mẹ cho vay sao</button><div style="position:absolute;left:352px;top:270px;height:32px;padding:0 16px;border-radius:16px;background:var(--n);background:rgba(244,199,106,.16);font:700 17px/32px var(--f);color:#F4C76A;white-space:nowrap">còn 18 sao = 18 phút chơi</div><div class="x" style="left:352px;top:316px;font:700 15.5px/1 var(--f);color:#F2EBE3">Hôm nay đã chơi 42 phút · đã trả 42 sao</div><div class="t2" style="color:#cdbfae;left:352px;top:340px">Roblox 30 phút · YouTube Kids 12 phút · Từ điển không tính phút</div><div class="the vang" style="left:329px;top:390px;width:300px;height:170px"></div><div class="ic3 " style="left:350px;top:410px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.2l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.6l-5.2 2.8 1-5.9-4.3-4.1 5.9-.8z"></path></svg></div><div class="x" style="left:416px;top:414px;font:400 15px/1 var(--f);color:#8a6a2b">Sao kiếm hôm nay</div><div class="x" style="left:416px;top:434px;font:700 32px/1 var(--f);color:#8a6a2b">+30 sao</div><div class="x" style="left:352px;top:478px;font:400 14px/1 var(--f);color:#8a6a2b">Không nợ Ba Mẹ · +20 sao chờ duyệt</div><button class="b trang nho" style="left:350px;top:500px;width:258px" data-toi="them-0k1r3wsl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M9.5 9.5a2.6 2.6 0 015 .8c0 1.7-2.5 2.2-2.5 3.900M12 17.2v.1"></path></svg>1 sao = 1 phút chơi ›</button><div class="the" style="left:649px;top:390px;width:300px;height:170px"></div><div class="ic3 " style="left:670px;top:410px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.3l2.7 2.7L16 9.5"></path></svg></div><div class="x" style="left:736px;top:414px;font:400 15px/1 var(--f);color:#7c7166">Nhiệm vụ hôm nay</div><div class="x" style="left:736px;top:434px;font:700 32px/1 var(--f)">5 việc</div><div class="x" style="left:672px;top:478px;font:700 14px/1 var(--f);color:#A2412C">2 chờ Ba Mẹ duyệt · 3 chưa làm</div><button class="b ngoc nho" style="left:670px;top:500px;width:258px" data-toi="them-o1pi9nla"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M8 12.3l2.7 2.7L16 9.5"></path></svg>Xem 5 nhiệm vụ</button><div class="the" style="left:329px;top:580px;width:620px;height:96px"></div><div class="ic3 " style="left:352px;top:602px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5h16a1 1 0 011 1V16a1 1 0 01-1 1h-8l-4.5 3.5V17H4a1 1 0 01-1-1V6.5a1 1 0 011-1z"></path><path d="M8 10h8M8 13h5"></path></svg></div><div class="x" style="left:418px;top:606px;font:700 16px/1 var(--f)">Mẹ Lan · 18:45</div><div class="x" style="left:418px;top:632px;font:400 15px/1 var(--f);color:#5b5248">«Phòng con gọn ghê! Mẹ xem ảnh rồi nhé.»</div><button class="b trang nho" style="left:788px;top:606px;width:140px" data-toi="them-rn20lwi7">Đọc tin</button></div></div></body></html>
