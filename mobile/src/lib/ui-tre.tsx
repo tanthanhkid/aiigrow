@@ -173,6 +173,10 @@ export const CACH_NOP: Record<string, string> = {
   xong: "Làm xong bấm «Xong»", tu_dong: "Học với AiiRob — AiiRob tự chấm",
 };
 
+/** #433 B12: «Ba Mẹ chưa nhận: “Không đúng nhiệm vụ”» — lý do lượt hôm nay bị từ chối; null khi không có. */
+export const cauTuChoi = (x: NvTre) => x.tu_choi
+  ? (x.tu_choi.ly_do?.trim() ? `Ba Mẹ chưa nhận: “${x.tu_choi.ly_do.trim()}”` : "Ba Mẹ chưa nhận lần trước") : null;
+
 export function phuNv(x: NvTre) {
   switch (x.trang_thai_con) {
     case "dang_lam": return "Đang làm — chạm để làm tiếp";
@@ -180,6 +184,7 @@ export function phuNv(x: NvTre) {
     case "du_hom_nay": return "Hôm nay đã đủ, mai làm tiếp";
     case "du_tuan": return "Tuần này đã đủ, tuần sau làm tiếp";
     default:
+      if (x.tu_choi) return `${cauTuChoi(x)} — làm lại nhé`;
       if (x.toi_da_ngay) return `Còn ${Math.max(0, x.toi_da_ngay - x.hom_nay)} lần hôm nay`;
       if (x.phut_toi_thieu) return `Làm ít nhất ${x.phut_toi_thieu} phút`;
       return x.mo_ta || CACH_NOP[x.bang_chung] || "Làm xong chụp ảnh gửi Ba Mẹ";

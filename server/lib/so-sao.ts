@@ -11,7 +11,7 @@ import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
-import { ghiDiem, khoaCon, NGUONG_NO, noCua, soDu, tomTatVi } from "./vi.ts";
+import { ghiDiem, KIEM_SQL, khoaCon, NGUONG_NO, noCua, soDu, tomTatVi } from "./vi.ts";
 
 export { NGUONG_NO };
 /** Bảng «Cho vay sao» (bm them-6wjhze1d): chọn 10 / 15 / 30, mặc định 15. Máy chủ nhận 1–VAY_TOI_DA. */
@@ -250,14 +250,19 @@ export async function tangSaoKhoiDau(con: string, n: number, nguoi: string | nul
 /** Sao kiếm / sao vay / sao tiêu (đổi quà, chơi) / trả nợ trong [tu, den). */
 export async function thongKeSao(con: string, tu: Date, den: Date, t: Q = q) {
   const r = (await t<{ kiem: number; vay: number; tra: number; choi: number; qua: number; lan_vay: number }>(
-    `select coalesce(sum(delta) filter (where delta > 0 and loai not in ('vay', 'tra_no', 'hoan', 'khoi_dau', 'qua_phut')), 0)::int as kiem,
+    // #433 B1: sao kiếm trừ phần «Hoàn tác duyệt» (KIEM_SQL); sao tiêu đổi quà trừ phần hoàn của phiếu quà đã huỷ / quà bị xoá (hoan dương, ref =
+    // phiếu); hoàn sao chơi trừ nhầm (hoan dương khác) trừ vào sao tiêu cho chơi
+    `select coalesce(sum(delta) filter (where ${KIEM_SQL}), 0)::int as kiem,
             coalesce(sum(delta) filter (where loai = 'vay'), 0)::int as vay,
             coalesce(-sum(delta) filter (where loai = 'tra_no'), 0)::int as tra,
-            coalesce(-sum(delta) filter (where loai in ('choi', 'phien', 'doi_gio')), 0)::int as choi,
-            coalesce(-sum(delta) filter (where loai in ('doi_qua', 'voucher')), 0)::int as qua,
+            greatest(0, coalesce(-sum(delta) filter (where loai in ('choi', 'phien', 'doi_gio')
+              or (loai = 'hoan' and delta > 0 and coalesce(ref, '') not in (select id from redemptions where child_id = $1)
+                  and coalesce(ref, '') not in (select id from submissions where child_id = $1))), 0))::int as choi,
+            greatest(0, coalesce(-sum(delta) filter (where loai in ('doi_qua', 'voucher')
+              or (loai = 'hoan' and delta > 0 and ref in (select id from redemptions where child_id = $1))), 0))::int as qua,
             (count(*) filter (where loai = 'vay' and delta > 0) - count(*) filter (where loai = 'vay' and delta < 0 and ref like 'hoan:%'))::int as lan_vay
        from points where child_id = $1 and created_at >= $2 and created_at < $3`, [con, tu, den]))[0];
-  return { saoKiem: r.kiem, saoVay: r.vay, lanVay: r.lan_vay, saoTraNo: r.tra, saoTieu: r.choi + r.qua, saoTieuChoi: r.choi, saoTieuQua: r.qua,
+  return { saoKiem: Math.max(0, r.kiem), saoVay: r.vay, lanVay: r.lan_vay, saoTraNo: r.tra, saoTieu: r.choi + r.qua, saoTieuChoi: r.choi, saoTieuQua: r.qua,
     /** 1 sao = 1 phút */ phutChoi: r.choi };
 }
 

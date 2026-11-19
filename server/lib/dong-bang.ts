@@ -21,10 +21,12 @@ export function demChuoi(lam: Set<string>, bang: Set<string>, homNay: string) {
   return n;
 }
 
+/** Ngày Con làm (nộp) nhiệm vụ được duyệt — cùng cách tính với thanh-tich.ts › ngayDuyet (#433 B4: ngày nộp, không ngày duyệt). */
 async function ngayLam(con: string, tz: string) {
-  return new Set((await q<{ duyet_luc: Date }>(
-    `select duyet_luc from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc > now() - interval '400 days'`, [con]))
-    .map((r) => gioDiaPhuong(new Date(r.duyet_luc), tz).ngay));
+  return new Set((await q<{ luc: Date }>(
+    `select coalesce(nop_luc, duyet_luc) as luc from submissions where child_id = $1 and trang_thai = 'duoc_duyet'
+        and coalesce(nop_luc, duyet_luc) > now() - interval '400 days'`, [con]))
+    .map((r) => gioDiaPhuong(new Date(r.luc), tz).ngay));
 }
 
 /** Trạng thái đóng băng cho màn Ba Mẹ: tuần này còn dùng được không, ngày nào sẽ được giữ nếu bấm. */

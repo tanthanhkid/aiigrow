@@ -24,12 +24,14 @@ export type Qua = { id: string; family_id: string; ten: string; loai: string; di
   /** 06/11 (L14, SCHEMA_S3): dòng phụ, mã hình, áp cho Con nào (null = mọi Con), mã quà mẫu (lib/qua-bang-gia.ts) */
   mo_ta?: string | null; hinh?: string | null; ap_cho?: string[] | null; mau?: string | null };
 
-/** Mẫu quà (bm-hang-ngay «Quà con đổi bằng sao», 05/11). */
+/** Mẫu quà cho «Áp mẫu quà» (POST qua/mau) + thư viện Admin. #433 B11: khớp bảng giá sao hiện tại — cùng tên / số sao với quà mặc định
+ *  (qua-bang-gia.ts › QUA_MAC_DINH; chép tay vì qua-bang-gia.ts import file này). Bỏ «Thêm 30 phút chơi»: phút chơi không còn là quà
+ *  (1 sao = 1 phút, đổi bằng nút đổi sao lấy phút). */
 export const MAU_QUA = [
-  { ten: "Thêm 30 phút chơi", loai: "phut", diem: 30, phut: 30 },
-  { ten: "Đi ăn kem", loai: "dac_quyen", diem: 50 },
-  { ten: "Xem phim cả nhà", loai: "dac_quyen", diem: 40 },
-  { ten: "Đồ chơi nhỏ", loai: "qua", diem: 100 },
+  { ten: "Chọn món bữa tối", loai: "dac_quyen", diem: 50, mo_ta: "Con chọn, Ba Mẹ nấu", hinh: "bua_toi" },
+  { ten: "Đi ăn kem", loai: "dac_quyen", diem: 100, mo_ta: "Ba Mẹ trao", hinh: "kem" },
+  { ten: "Đồ chơi nhỏ", loai: "qua", diem: 200, mo_ta: "Ba Mẹ chọn mua", hinh: "do_choi" },
+  { ten: "Đi xem phim", loai: "dac_quyen", diem: 300, chi_cuoi_tuan: true, mo_ta: "Chỉ cuối tuần", hinh: "phim" },
 ];
 
 function kiemQua(b: Record<string, unknown>) {

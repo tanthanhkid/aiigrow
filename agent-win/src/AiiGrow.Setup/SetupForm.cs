@@ -459,7 +459,7 @@ internal sealed class SetupForm : Form
         X(_body, 282, 100, "Cài AiiGrow lên\n" + (_child != null ? "máy của " + _child.Name : "máy tính của con"), Kieu.H28);
         X(_body, 282, 180, "Khoảng 2 phút · Ba Mẹ chỉ cần bấm theo", Kieu.P);
         Vien(_body, 282, 232, "lich", mau: "ngoc"); X(_body, 354, 238, "Ba Mẹ đặt luật chơi bằng sao", Kieu.B); X(_body, 354, 262, "ngay trên điện thoại", Kieu.S);
-        Vien(_body, 282, 306, "sao", mau: "ngoc"); X(_body, 354, 312, "Làm việc tốt, nhận sao", Kieu.B); X(_body, 354, 336, "10 sao = 10 phút chơi", Kieu.S);
+        Vien(_body, 282, 306, "sao", mau: "ngoc"); X(_body, 354, 312, "Làm việc tốt, nhận sao", Kieu.B); X(_body, 354, 336, "1 sao = 1 phút chơi", Kieu.S);
         Vien(_body, 282, 380, "mat", mau: "ngoc"); X(_body, 354, 386, "Con luôn thấy AiiGrow", Kieu.B); X(_body, 354, 410, "Không có gì giấu con", Kieu.S);
         if (Installer.IsAdmin())
             NutChinh("Bắt đầu cài", 220, BuocDieuKhoan);

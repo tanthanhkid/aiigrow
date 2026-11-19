@@ -68,7 +68,9 @@ export type NhaTre = { soDu: number; diemChoDuyet: number; tongKiem: number; cap
   nghiDen: string | null; phien: { id: string; muc: string; conPhut: number } | null; phienToiDa: number; nghiGiua: number };
 export type NvTre = { id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string; toi_da_ngay: number | null;
   toi_da_tuan: number | null; phut_toi_thieu: number; trang_thai_con: "san_sang" | "dang_lam" | "can_bo_sung" | "du_hom_nay" | "du_tuan" | "da_xong";
-  luot_dang: string | null; hom_nay: number; dang_cho: number };
+  luot_dang: string | null; hom_nay: number; dang_cho: number;
+  /** #433 B12: lượt hôm nay Ba Mẹ từ chối (lý do) — null khi không có / con đã nộp lượt mới. Máy chủ cũ không gửi. */
+  tu_choi?: { ly_do: string | null; luc: string } | null };
 export type LuotTre = { id: string; trang_thai: string; diem: number | null; ly_do: string | null; loi_khen: string | null; nop_luc: string | null; ten: string };
 export type QuaTre = { id: string; ten: string; loai: "voucher" | "qua" | "dac_quyen" | "tiet_kiem" | "phut"; diem: number; menh_gia: number | null; chi_cuoi_tuan: boolean;
   toi_da_thang: number | null; du: boolean; conThieu: number };

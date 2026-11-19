@@ -66,7 +66,7 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
   Bộ cài mang gói ghép (tên tệp `AiiGrow-Setup.enroll-<gói>.exe` / trailer / `--enroll=`) mà không `--silent` ⇒ vẫn chọn tài khoản, bước Ghép tự ghép (`ghep-goi`).
 - Màn chặn (`BlockedForm`): app lạ ⇒ khay TỰ gửi `POST /api/device/xin-duyet` → «Đã gửi Ba Mẹ duyệt» → chờ → được / chưa cho; app Ba Mẹ đặt «Chặn» ⇒ chỉ nút
   «Xin Ba Mẹ mở …» + «Về Hôm nay». Không còn lưới web cấm cứng: máy chủ gửi `webLuonChan: []`, web nào ngoài danh sách đều qua «Ba Mẹ chưa thêm … · Xin lại». Không dùng sao để mở app.
-- Màn khoá (`LockForm`): đếm ngược «Sắp hết giờ chơi» → «Hết giờ chơi hôm nay» (đổi 10 sao lấy 10 phút / xin Ba Mẹ thêm giờ / ngoại lệ / nhắn / Ba Mẹ dùng máy);
+- Màn khoá (`LockForm`): đếm ngược «Sắp hết giờ chơi» → «Hết giờ chơi hôm nay» (đổi sao lấy phút, 1 sao = 1 phút / xin Ba Mẹ thêm giờ / ngoại lệ / nhắn / Ba Mẹ dùng máy);
   giờ ngủ và Ba Mẹ khoá chỉ «Xin Ba Mẹ mở ngoại lệ» (`NgoaiLeForm`: 1 app học hoặc cả máy, 5–120 phút, `yeu-cau loai ngoai_le`). Nút đổi sao / thêm giờ mở hộp
   «Thêm giờ chơi» của W1 (`RequestForm`).
 - Mất mạng: vẫn tính giờ, vẫn chặn; lời xin (thêm giờ / ngoại lệ / xin duyệt) lưu ở `config.XinCho`, lần đồng bộ được kế tiếp dịch vụ tự gửi (4xx ⇒ bỏ).
