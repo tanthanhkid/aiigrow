@@ -53,9 +53,9 @@ public sealed class UsageTotals
                 var d = JsonSerializer.Deserialize<TepTong>(File.ReadAllText(tep), Json.Options);
                 if (d == null) return;
                 _may ??= d.May;
-                foreach (var x in d.Dong)
+                foreach (var x in d.Dong ?? new())
                 {
-                    if (string.IsNullOrEmpty(x.Day) || string.IsNullOrEmpty(x.App)) continue;
+                    if (x == null || string.IsNullOrEmpty(x.Day) || string.IsNullOrEmpty(x.App)) continue;
                     var k = (x.Day, x.App.ToLowerInvariant(), x.Con ?? "");
                     var cu = _tong.TryGetValue(k, out var v) ? v : null;
                     // bộ nhớ đã đếm thêm trước khi nạp (hiếm) ⇒ cộng phần trong bộ nhớ lên số đã lưu
@@ -63,7 +63,7 @@ public sealed class UsageTotals
                 }
                 Tia();
             }
-            catch (Exception e) when (e is IOException or UnauthorizedAccessException or JsonException) { }
+            catch (Exception) { }   // tệp hỏng kiểu nào cũng không được làm dịch vụ chết lúc khởi động
         }
     }
 
@@ -80,6 +80,10 @@ public sealed class UsageTotals
                 v.Name = u.AppName;
                 v.Minutes += u.Minutes;
             }
+            // đồng hồ từng chạy nhanh rồi được chỉnh lại: dòng «tương lai» trong tệp sẽ đẩy ngày hôm nay ra khỏi 3 ngày giữ lại ⇒ bỏ
+            var moiNhat = tang.Select(u => u.Day).DefaultIfEmpty("").Max(StringComparer.Ordinal) ?? "";
+            if (moiNhat.Length > 0)
+                foreach (var k in _tong.Keys.Where(k => string.CompareOrdinal(k.Day, moiNhat) > 0).ToList()) _tong.Remove(k);
             Tia();
             if (tang.Count > 0) Luu();
             var co = tang.Select(u => u.Day).ToHashSet();
@@ -102,16 +106,13 @@ public sealed class UsageTotals
         }
     }
 
-    /// <summary>Máy chủ đã nhận <paramref name="daGui"/> (lần đồng bộ thành công) ⇒ không gửi lại các tổng đó.</summary>
+    /// <summary>Máy chủ đã nhận <paramref name="daGui"/> (lần đồng bộ thành công) ⇒ không gửi lại các tổng đó. Không ghi tệp riêng cho việc này
+    /// (lần <see cref="Add"/> sau ghi kèm): khởi động lại trước đó chỉ gửi lại tổng cũ — máy chủ greatest, không trừ thêm.</summary>
     public void DaGui(IEnumerable<UsageEntry> daGui)
     {
         lock (_khoa)
-        {
-            var doi = false;
             foreach (var u in daGui)
-                if (_tong.TryGetValue((u.Day, u.AppId.ToLowerInvariant(), u.Con ?? ""), out var v) && u.Minutes > v.DaGui) { v.DaGui = u.Minutes; doi = true; }
-            if (doi) Luu();
-        }
+                if (_tong.TryGetValue((u.Day, u.AppId.ToLowerInvariant(), u.Con ?? ""), out var v) && u.Minutes > v.DaGui) v.DaGui = u.Minutes;
     }
 
     private static UsageEntry Ra((string Day, string App, string Con) k, Dong v)

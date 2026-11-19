@@ -262,7 +262,7 @@ public sealed class AgentRuntime
             _policyBe = BeHienTai();
             // #433 A8: giây lẻ app «Tính phút» chưa gửi (dưới 1 phút / dòng — lần đồng bộ sau mới gửi) chưa nằm trong số sao vừa nhận ⇒ đếm sẵn vào quỹ,
             // không thì mỗi lần đồng bộ bé được chơi thêm tới 59 giây và hết sao khoá chậm một nhịp.
-            if (!MoTamDangMo(DateTimeOffset.Now)) _quyGiay = Usage.GiayChuaGui(app => QuyTaiCho.TinhGio(p, app), _policyBe);
+            if (!MoTamDangMo(DateTimeOffset.Now)) _quyGiay = Usage.GiayChuaGui(DateTimeOffset.Now, app => QuyTaiCho.TinhGio(p, app), _policyBe);
             _offline = false;
             _offlineSince = null;
             _lastSyncAt = DateTimeOffset.Now;

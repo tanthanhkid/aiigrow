@@ -49,7 +49,6 @@ public class SaoPhut433Tests
 
             var t2 = new UsageTotals();   // tiến trình mới
             t2.DungTep(tep);
-            Assert.Empty(t2.CanGui("may-1"));
             t2.Add(new[] { new UsageEntry("2026-11-19", "Roblox.exe", "Roblox", 1, "be-a") });
             Assert.Equal(31, t2.CanGui("may-1").Single().Minutes);
         }
@@ -93,19 +92,35 @@ public class SaoPhut433Tests
         finally { try { File.Delete(tep); } catch (IOException) { } }
     }
 
-    [Fact]
-    public void A2_TepHong_KhongNem()
+    [Theory]
+    [InlineData("{hong")]
+    [InlineData("{\"may\":\"x\",\"dong\":null}")]
+    [InlineData("{\"dong\":[null]}")]
+    public void A2_TepHong_KhongNem(string noiDung)
     {
         var tep = TepTam();
         try
         {
-            File.WriteAllText(tep, "{hong");
+            File.WriteAllText(tep, noiDung);
             var t = new UsageTotals();
             t.DungTep(tep);
             t.Add(new[] { new UsageEntry("2026-11-19", "roblox.exe", "Roblox", 3) });
             Assert.Equal(3, t.CanGui("may-1").Single().Minutes);
         }
         finally { try { File.Delete(tep); } catch (IOException) { } }
+    }
+
+    /// <summary>Đồng hồ từng chạy nhanh (tệp có ngày «tương lai») rồi được chỉnh lại ⇒ không đẩy ngày hôm nay ra khỏi tổng.</summary>
+    [Fact]
+    public void A2_NgayTuongLaiTrongTep_KhongDayHomNayRa()
+    {
+        var t = new UsageTotals();
+        foreach (var d in new[] { "2030-01-01", "2030-01-02", "2030-01-03" }) t.Add(new[] { new UsageEntry(d, "roblox.exe", "Roblox", 5) });
+        t.Add(new[] { new UsageEntry("2026-11-19", "roblox.exe", "Roblox", 4) });
+        t.Add(new[] { new UsageEntry("2026-11-19", "roblox.exe", "Roblox", 1) });
+        var gui = t.CanGui("may-1");
+        Assert.Equal(5, gui.Single(x => x.Day == "2026-11-19").Minutes);
+        Assert.DoesNotContain(gui, x => x.Day.StartsWith("2030"));
     }
 
     /// <summary>A8: giây lẻ chưa gửi (dưới 1 phút) — agent đếm sẵn vào quỹ sau mỗi lần đồng bộ (số sao máy chủ trả về chưa trừ phần này).</summary>
@@ -116,11 +131,14 @@ public class SaoPhut433Tests
         dem.Add(Luc, "roblox.exe", "Roblox", 150, "be-a");     // 2 phút 30 giây
         dem.Add(Luc, "scratch.exe", "Scratch", 50, "be-a");    // app học
         dem.Add(Luc, "roblox.exe", "Roblox", 20, "be-b");
+        dem.Add(Luc, "roblox.exe", "Roblox", 70);              // dòng không bé
+        dem.Add(Luc.AddDays(-1), "roblox.exe", "Roblox", 40, "be-a");   // giây lẻ hôm qua: không bao giờ gửi nữa
         dem.Drain();
         bool tinh(string a) => a == "roblox.exe";
-        Assert.Equal(30.0, dem.GiayChuaGui(tinh, "be-a"), 3);
-        Assert.Equal(50.0, dem.GiayChuaGui(tinh), 3);
-        Assert.Equal(0.0, dem.GiayChuaGui(a => false, "be-a"), 3);
+        Assert.Equal(30.0, dem.GiayChuaGui(Luc, tinh, "be-a"), 3);
+        Assert.Equal(10.0, dem.GiayChuaGui(Luc, tinh), 3);
+        Assert.Equal(0.0, dem.GiayChuaGui(Luc, a => false, "be-a"), 3);
+        Assert.Equal(0.0, dem.GiayChuaGui(Luc.AddDays(1), tinh, "be-a"), 3);
     }
 
     /// <summary>A7: lùi đồng hồ về trước lúc dùng mã (mã TOTP vẫn hợp lệ ở bước cũ) ⇒ «mã đã dùng», không mở thêm lượt.</summary>
@@ -137,5 +155,19 @@ public class SaoPhut433Tests
         Assert.NotNull(MaOffline.KiemPhut(biMat, ma, lui));
         Assert.Equal(KetQuaMoOffline.DaDung, st.TryUnlock(biMat, ma, lui));
         Assert.False(st.IsUnlocked(lui));
+    }
+
+    /// <summary>A7: mã cũ hơn mã cuối (A rồi B) — lùi giờ về lúc A còn hợp lệ vẫn không dùng lại được A.</summary>
+    [Fact]
+    public void A7_LuiGio_DungLaiMaTruocMaCuoi_KhongMo()
+    {
+        const string biMat = "bi-mat-may-con-thu";
+        var mocA = DateTimeOffset.FromUnixTimeSeconds(1_700_000_100);
+        var maA = MaOffline.Ma(biMat, mocA);
+        var st = new MoTamOffline();
+        Assert.Equal(KetQuaMoOffline.DaMo, st.TryUnlock(biMat, maA, mocA));
+        var mocB = mocA.AddHours(2);
+        Assert.Equal(KetQuaMoOffline.DaMo, st.TryUnlock(biMat, MaOffline.Ma(biMat, mocB), mocB));
+        Assert.Equal(KetQuaMoOffline.DaDung, st.TryUnlock(biMat, maA, mocA.AddMinutes(1)));
     }
 }

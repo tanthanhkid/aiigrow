@@ -75,26 +75,15 @@ public sealed class UsageTracker
         return res;
     }
 
-    /// <summary>#433 A8: số giây lẻ (dưới 1 phút mỗi dòng) còn nằm trong bộ đếm — chưa gửi máy chủ nên số sao máy chủ vừa trả CHƯA trừ phần này.
-    /// <paramref name="tinh"/> lọc app (vd chỉ app «Tính phút»); <paramref name="con"/> = bé (null = mọi dòng; dòng không bé luôn tính).</summary>
-    public double GiayChuaGui(Func<string, bool> tinh, string? con = null)
+    /// <summary>#433 A8: số giây lẻ (dưới 1 phút mỗi dòng) của NGÀY <paramref name="localNow"/> còn nằm trong bộ đếm — chưa gửi máy chủ nên số sao máy chủ
+    /// vừa trả CHƯA trừ phần này. <paramref name="tinh"/> lọc app (vd chỉ app «Tính phút»); <paramref name="con"/> = bé (null = chỉ dòng không bé).
+    /// Giây lẻ của ngày cũ không bao giờ gửi nữa ⇒ không tính.</summary>
+    public double GiayChuaGui(DateTimeOffset localNow, Func<string, bool> tinh, string? con = null)
     {
+        var ngay = localNow.DateTime.ToString("yyyy-MM-dd");
+        var be = con?.Trim() ?? "";
         lock (_gate)
-            return _d.Where(x => (con == null || x.Key.Con.Length == 0 || x.Key.Con == con.Trim()) && tinh(x.Key.App)).Sum(x => x.Value.Sec);
-    }
-
-    /// <summary>Trả lại khi sync thất bại để không mất số phút đã đếm.</summary>
-    public void Restore(IEnumerable<UsageEntry> entries)
-    {
-        lock (_gate)
-        {
-            foreach (var e in entries)
-            {
-                var key = (e.Day, e.AppId, e.Con ?? "");
-                _d.TryGetValue(key, out var cur);
-                _d[key] = (e.AppName, cur.Sec + e.Minutes * 60.0);
-            }
-        }
+            return _d.Where(x => x.Key.Day == ngay && x.Key.Con == be && tinh(x.Key.App)).Sum(x => x.Value.Sec);
     }
 }
 
