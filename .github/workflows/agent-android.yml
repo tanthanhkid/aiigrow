@@ -26,23 +26,23 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
       - name: Unit test + APK debug
         working-directory: agent-android
         run: chmod +x gradlew && ./gradlew --no-daemon --stacktrace testDebugUnitTest assembleDebug
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: android-test-reports
           path: agent-android/app/build/reports/tests
           if-no-files-found: ignore
           retention-days: 7
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: apk-debug
           path: agent-android/app/build/outputs/apk/debug/*.apk
@@ -64,8 +64,8 @@ jobs:
           - loai: may-tinh-bang
             profile: pixel_tablet
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: apk-debug
           path: apk
@@ -88,7 +88,7 @@ jobs:
             adb exec-out screencap -p > man-android/${{ matrix.loai }}-chinh.png
             adb shell pidof vn.aiilab.aiigrow.con
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: man-android-${{ matrix.loai }}
           path: man-android

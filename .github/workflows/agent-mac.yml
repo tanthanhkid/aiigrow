@@ -44,9 +44,9 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Cache SwiftPM
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: agent-mac/.build
           key: swift-unit-${{ runner.os }}-${{ hashFiles('agent-mac/Package.swift', 'agent-mac/Package.resolved') }}
@@ -58,7 +58,7 @@ jobs:
           swift test --xunit-output ../test-results/unit.xml 2>&1 | tee ../test-results/unit.log
           exit ${PIPESTATUS[0]}
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: unit-test-results-mac
           path: test-results
@@ -70,7 +70,7 @@ jobs:
     outputs:
       ban: ${{ steps.ban.outputs.ban }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Số bản trong mã
         id: ban
         run: echo "ban=$(sed -nE 's#.*hienTai = "([^"]+)".*#\1#p' agent-mac/Sources/AiiGrowCore/MoHinh.swift | head -n 1)" >> "$GITHUB_OUTPUT"
@@ -80,7 +80,7 @@ jobs:
           THU=1 BAN='${{ steps.ban.outputs.ban }}' ./build-pkg.sh
           THU=1 BAN='${{ steps.ban.outputs.ban }}' ./build-dmg.sh
           ls -la ../ra
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: goi-mac
           path: |
@@ -94,15 +94,15 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v8
         with:
           name: goi-mac
           path: e2e-bin
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm
@@ -120,7 +120,7 @@ jobs:
           sudo launchctl list 2>/dev/null | grep -i aiigrow > e2e-logs/con-lai/launchctl.txt || true
           sudo chmod -R a+rX e2e-logs 2>/dev/null || true
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-logs-mac
           path: e2e-logs
@@ -131,7 +131,7 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Chụp
         working-directory: agent-mac
         run: |
@@ -155,7 +155,7 @@ jobs:
           sys.exit(1 if loi else 0)
           PY
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: man-mac
           path: man-mac

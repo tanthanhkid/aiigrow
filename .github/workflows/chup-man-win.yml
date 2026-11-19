@@ -37,8 +37,8 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-dotnet@v6
         with:
           dotnet-version: '8.0.x'
       - name: Build công cụ chụp
@@ -66,7 +66,7 @@ jobs:
           Get-ChildItem $ra -Recurse -Filter *.png | Measure-Object | ForEach-Object { Write-Host "Tổng ảnh: $($_.Count)" }
           exit $loi
       - if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: man-win
           path: man-win
