@@ -108,6 +108,8 @@ public sealed class MotBanKhay : IDisposable
     {
         var ra = new List<int>();
         using var minh = Process.GetCurrentProcess();
+        string? duongMinh = null;
+        if (chiKhayCu) { try { duongMinh = minh.MainModule?.FileName; } catch { } }
         foreach (var p in Process.GetProcesses())
         {
             using (p)
@@ -115,7 +117,9 @@ public sealed class MotBanKhay : IDisposable
                 try
                 {
                     var ten = p.ProcessName;
-                    if (LaKhayKhac(ten, p.SessionId, p.Id, minh.SessionId, minh.Id) && (!chiKhayCu || LaKhayCu(ten))) ra.Add(p.Id);
+                    if (!LaKhayKhac(ten, p.SessionId, p.Id, minh.SessionId, minh.Id)) continue;
+                    // chiKhayCu: chỉ khay «.cu-» chạy từ CÙNG thư mục cài với khay này (tệp trùng tên ở chỗ khác không bị kết thúc)
+                    if (!chiKhayCu || (LaKhayCu(ten) && KhayThat.La(p.MainModule?.FileName, duongMinh ?? ""))) ra.Add(p.Id);
                 }
                 catch { }   // tiến trình vừa thoát / không đọc được
             }
