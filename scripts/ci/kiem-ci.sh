@@ -33,8 +33,9 @@ fi
 
 DO_KL='["failure","timed_out","startup_failure"]'
 # Một run «đã xong có kết luận» (không tính cancelled/skipped/neutral): in "kl<TAB>url<TAB>sha"
-CHON='[.[] | select(.status == "completed" and (.conclusion | IN("success","failure","timed_out","startup_failure")))][0]
-      | select(. != null) | "\(.conclusion)\t\(.url)\t\(.headSha)"'
+# Run «có kết luận» (bỏ cancelled/skipped/neutral) hoặc còn đang chạy; in "kl<TAB>url<TAB>sha" (kl = dang-chay nếu chưa xong)
+LOC='.[] | select(.status != "completed" or (.conclusion | IN("success","failure","timed_out","startup_failure")))
+     | "\(if .status == "completed" then .conclusion else "dang-chay" end)\t\(.url)\t\(.headSha)"'
 
 # Job lượt đêm ở commit này (một lần cho mọi workflow)
 DEM_JOBS="$(gh run list -R "$REPO" --commit "$SHA" -w dem -L 3 --json databaseId --jq '.[].databaseId' 2>/dev/null \
@@ -46,26 +47,24 @@ for w in "${WF[@]}"; do
     || { echo "!! kiểm CI [$w]: không gọi được GitHub — cho qua"; continue; }
   DEM_DO="$(awk -F'\t' -v p="$w / " '$1 == "failure" && index($2, p) == 1 { print $3; exit }' <<<"$DEM_JOBS")"
   [ -n "$DEM_DO" ] && echo "!! kiểm CI [$w]: lượt đêm ở ${SHA:0:8} có job đỏ (có thể là job không chặn): $DEM_DO"
-  CHAY="$(jq -r '[.[] | select(.status != "completed")][0].url // empty' <<<"$RUNS")"
   NGUON="commit ${SHA:0:8}"
-  KQ="$(jq -r "$CHON" <<<"$RUNS")"
+  # run mới nhất ở chính commit này (đang chạy ⇒ cảnh báo, cho qua — không lùi về tổ tiên)
+  KQ="$(jq -r "[$LOC][0] // empty" <<<"$RUNS")"
   if [ -z "$KQ" ]; then
-    # commit này không có run xong ⇒ run xong gần nhất trên main ở một commit TỔ TIÊN của SHA
+    # commit này không có run (path filter) ⇒ run gần nhất trên main ở một commit TỔ TIÊN của SHA (đang chạy ⇒ cảnh báo, cho qua)
     while IFS=$'\t' read -r kl url sha; do
       [ -n "$sha" ] || continue
       if git merge-base --is-ancestor "$sha" "$SHA" 2>/dev/null; then KQ="$kl"$'\t'"$url"$'\t'"$sha"; NGUON="commit tổ tiên ${sha:0:8}"; break; fi
-    done < <(gh run list -R "$REPO" -b main -w "$w" -L 40 --json status,conclusion,url,headSha \
-               --jq '.[] | select(.status == "completed" and (.conclusion | IN("success","failure","timed_out","startup_failure")))
-                     | "\(.conclusion)\t\(.url)\t\(.headSha)"' 2>/dev/null)
+    done < <(gh run list -R "$REPO" -b main -w "$w" -L 40 --json status,conclusion,url,headSha --jq "$LOC" 2>/dev/null)
   fi
   KL="${KQ%%$'\t'*}"; URL="$(cut -f2 <<<"$KQ")"
   if [ -n "$KQ" ] && jq -e --arg k "$KL" 'index($k)' <<<"$DO_KL" >/dev/null; then
     echo "DỪNG — CI [$w] ĐỎ ($KL) ở $NGUON: $URL" >&2
     DO=1
+  elif [ "$KL" = dang-chay ]; then
+    echo "!! kiểm CI [$w]: đang chạy ở $NGUON — không chờ, cho qua: $URL"
   elif [ -n "$KQ" ]; then
-    echo "kiểm CI [$w]: xanh ở $NGUON${CHAY:+ (có run mới đang chạy: $CHAY)}"
-  elif [ -n "$CHAY" ]; then
-    echo "!! kiểm CI [$w]: đang chạy ở ${SHA:0:8} — không chờ, cho qua: $CHAY"
+    echo "kiểm CI [$w]: xanh ở $NGUON"
   else
     echo "!! kiểm CI [$w]: không tìm được run nào cho ${SHA:0:8} hay tổ tiên — cho qua"
   fi
