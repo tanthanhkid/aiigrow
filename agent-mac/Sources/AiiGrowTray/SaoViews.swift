@@ -214,7 +214,7 @@ struct AppKetQuaView: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 14) {
       let nguoi = y.tenNguoiDuyet ?? "Ba Mẹ"
-      let ten = HocVienView.tenMucChoi(y.muc)
+      let ten = y.ten ?? HocVienView.tenMucChoi(y.muc)
       let conSao = phutSao.map { " · " + ChuSao.phut($0) } ?? ""
       if y.trangThai == "duyet" && y.ketQua == "mo_tam" {
         DauTraLoi(icon: "party_popper", tieu: "\(nguoi) cho mở \(ten)" + (y.moTamPhut.map { " \($0) phút" } ?? "") + "!",

@@ -237,7 +237,9 @@ final class SaoPhutTests: XCTestCase {
     _ = await b.xuLyIPC(.xinMo(muc: "com.google.YouTube", loai: "app", loiNhan: nil, ten: "YouTube"), uidGoi: 501)
     XCTAssertEqual(api.lanYeuCau.last?.loai, "cai_app")
     guard case let .trangThai(s) = await b.xuLyIPC(.trangThai, uidGoi: 501) else { return XCTFail() }
-    XCTAssertEqual(s.yeuCauCho.first { $0.id == "yc2" }?.muc, "YouTube")
+    let y = s.yeuCauCho.first { $0.id == "yc2" }
+    XCTAssertEqual(y?.muc, "com.google.YouTube", "muc giữ bundle id để «Mở» app sau khi Ba Mẹ thêm")
+    XCTAssertEqual(y?.ten, "YouTube", "tray hiện tên app")
   }
 
   // MARK: review lượt 1

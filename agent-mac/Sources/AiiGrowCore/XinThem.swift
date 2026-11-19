@@ -20,6 +20,16 @@ public enum XinThem {
     return k
   }
 
+  /// Tên hiển thị đi qua IPC: bỏ ký tự điều khiển, cắt khoảng trắng, tối đa 100 ký tự; rỗng ⇒ nil.
+  public static func tenGon(_ ten: String?) -> String? {
+    guard let ten else { return nil }
+    let t = String(ten.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) }).trimmingCharacters(in: .whitespacesAndNewlines)
+    return t.isEmpty ? nil : String(t.prefix(100))
+  }
+
+  /// Tên Con thấy cho một lời xin: tên app (nếu có) › muc.
+  public static func tenHien(muc: String, ten: String?) -> String { tenGon(ten) ?? muc }
+
   /// Lưới «App đã cài trên Mac»: bỏ trùng bundle id (cùng app ở /Applications và ~/Applications), bỏ tên rỗng, xếp theo tên.
   public static func dsApp(_ ds: [AppMay]) -> [AppMay] {
     var thay = Set<String>()

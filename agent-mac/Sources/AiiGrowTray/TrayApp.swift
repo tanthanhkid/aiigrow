@@ -272,9 +272,12 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   }
 
   /// «Xin thêm app / web» (#422, con-cai-mac 43/44): hộp xin hai thẻ, «‹ Quay lại» về Hôm nay.
-  @objc func moXinMo() {
+  @objc func moXinMo() { moXinThem(app: "") }
+  /// Một hộp xin cho mọi lối vào; `app` = app vừa bị đóng (màn «… chưa có trong danh sách») ⇒ chọn sẵn.
+  func moXinThem(app: String) {
+    if !app.isEmpty { cuaSoMo?.close(); cuaSoMo = nil }
     let ve: () -> Void = { [weak self] in self?.cuaSoMo?.close(); self?.moApp(.homNay) }
-    hien(&cuaSoMo, TrayLogic.tieuDeXinThem, XinMoView(tray: model, xin: xin, quayLai: ve, veHomNay: ve))
+    hien(&cuaSoMo, TrayLogic.tieuDeXinThem, XinMoView(tray: model, xin: xin, appBanDau: app, quayLai: ve, veHomNay: ve))
   }
   @objc func moAppCon() { moApp(nil) }
   /// «Đồng bộ ngay» (them-hyj1eryo): hỏi lại daemon và tải lại nhiệm vụ, sao, tin của Con.
@@ -479,8 +482,7 @@ final class TrayApp: NSObject, NSApplicationDelegate, NSWindowDelegate {
   }
 
   func moXinMoApp(_ app: String) {
-    cuaSoMo?.close(); cuaSoMo = nil
-    hien(&cuaSoMo, TrayLogic.tieuDeXinThem, XinMoView(tray: model, xin: xin, appBanDau: app, veHomNay: { [weak self] in self?.cuaSoMo?.close(); self?.moApp(.homNay) }))
+    moXinThem(app: app)
   }
 
   /// Cửa sổ nhỏ dùng chung (chơi bằng sao, nộp bài): một bản, đóng ⇒ quên tham chiếu.

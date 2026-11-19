@@ -22,14 +22,16 @@ struct XinMoView: View {
   @State private var dsApp: [AppMay] = []
   @State private var daQuet = false
   @State private var chon: String?
+  /// «Không thấy app? Gõ tên app»: app chưa cài / app hệ thống ngoài lưới; điền sẵn app vừa bị đóng khi không thấy trong lưới.
+  @State private var tenGo = ""
+  @State private var icon: [String: NSImage] = [:]
   @State private var web = ""
   @State private var loiNhan = ""
   @State private var daMo = false
   private var phut: Int? { tray.tt?.moHet == true ? nil : (tray.tt?.phutSao ?? tray.tt?.soSao?.phutCon) }
   private var appChon: AppMay? { chon.flatMap { c in dsApp.first { $0.muc == c } } }
-  /// App vừa bị đóng mà không thấy trong lưới ⇒ xin bằng tên trần (máy chủ nhận).
-  private var tenTran: String { appChon == nil && chon == nil ? appBanDau : "" }
-  private var loi: XinThem.LoiXin? { XinThem.loiXin(the: the, app: appChon, tenTran: tenTran, web: web) }
+  /// Chưa quét xong lưới thì chưa gửi (tránh gửi tên trần khi lưới sắp chọn sẵn bundle id).
+  private var loi: XinThem.LoiXin? { daQuet ? XinThem.loiXin(the: the, app: appChon, tenTran: tenGo, web: web) : nil }
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
@@ -72,6 +74,9 @@ struct XinMoView: View {
     }
     ChipClay(ds: [(XinThem.The.app, "App trên Mac"), (XinThem.The.web, "Trang web")], chon: $the)
     if the == .app { theApp } else { theWeb }
+    if the == .web { Text("Lời nhắn cho Ba Mẹ").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3) }
+    TextField(the == .web ? "Con học làm game trên Scratch ạ" : "Nhắn Ba Mẹ: con xem video vẽ tranh ạ", text: $loiNhan)
+      .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
     VStack(alignment: .leading, spacing: 6) {
       Text("Ba Mẹ sẽ chọn nhóm").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
       HStack(spacing: 8) {                                            // chỉ thông tin: Ba Mẹ chọn nhóm khi duyệt
@@ -89,9 +94,6 @@ struct XinMoView: View {
 
   @ViewBuilder private var theApp: some View {
     Text("App đã cài trên Mac").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
-    if !tenTran.isEmpty {
-      Chu("Con xin: \(tenTran)", co: 14, dam: .semibold, dong: 1)
-    }
     if dsApp.isEmpty {
       Chu(daQuet ? "Chưa thấy app nào trên máy. Con chọn «Trang web» hoặc nhờ Ba Mẹ nhé." : "Đang tìm app trên máy…", co: 13, mau: ClayMau.chu3, dong: 2)
         .padding(14).frame(maxWidth: .infinity, alignment: .leading).clayLom(bo: 18)
@@ -104,8 +106,9 @@ struct XinMoView: View {
       }
       .frame(height: min(CGFloat((dsApp.count + 2) / 3) * 92 + 8, 196))
     }
-    TextField("Nhắn Ba Mẹ: con xem video vẽ tranh ạ", text: $loiNhan)
-      .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
+    TextField("Không thấy app? Gõ tên app", text: $tenGo)
+      .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 40).clayLom()
+      .onChange(of: tenGo) { t in if !t.trimmingCharacters(in: .whitespaces).isEmpty { chon = nil } }   // gõ tên ⇒ bỏ ô đang chọn
   }
 
   @ViewBuilder private var theWeb: some View {
@@ -113,16 +116,13 @@ struct XinMoView: View {
     TextField("scratch.mit.edu", text: $web)
       .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
     Text("Gõ địa chỉ trang con muốn vào, ví dụ scratch.mit.edu").font(.clay(size: 12)).foregroundColor(ClayMau.chu3)
-    Text("Lời nhắn cho Ba Mẹ").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
-    TextField("Con học làm game trên Scratch ạ", text: $loiNhan)
-      .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
   }
 
   private func oApp(_ a: AppMay) -> some View {
     let dang = chon == a.muc
-    return Button { withAnimation(ClayMotion.bat) { chon = dang ? nil : a.muc } } label: {
+    return Button { withAnimation(ClayMotion.bat) { chon = dang ? nil : a.muc; if !dang { tenGo = "" } } } label: {
       VStack(spacing: 6) {
-        Image(nsImage: XinMoView.iconApp(a)).resizable().interpolation(.high).frame(width: 40, height: 40)
+        Image(nsImage: icon[a.muc] ?? XinMoView.iconChung).resizable().interpolation(.high).frame(width: 40, height: 40)
         Text(a.ten).font(.clay(size: 12, weight: .semibold)).lineLimit(1).truncationMode(.tail)
       }
       .frame(maxWidth: .infinity, minHeight: 80).padding(.horizontal, 4)
@@ -146,22 +146,34 @@ struct XinMoView: View {
     .background(Capsule().fill(ClayMau.diemSoft)).foregroundColor(ClayMau.diemInk)
   }
 
-  /// Icon app: PNG bơm sẵn (chụp) › icon thật của gói › icon chung.
+  static let iconChung = NSImage(systemSymbolName: "app.fill", accessibilityDescription: nil) ?? NSImage()
+  /// Icon app: PNG bơm sẵn (chụp) › icon thật của gói › icon chung. Nạp MỘT lần lúc quét (không đọc đĩa mỗi lần vẽ lại).
   static func iconApp(_ a: AppMay) -> NSImage {
     if let b = a.icon, let d = Data(base64Encoded: b), let i = NSImage(data: d) { return i }
     if let p = a.duongDan { return NSWorkspace.shared.icon(forFile: p) }
-    return NSImage(systemSymbolName: "app.fill", accessibilityDescription: nil) ?? NSImage()
+    return iconChung
   }
 
+  /// Lưới app quét lần trước (mở lại hộp trong 2 phút không quét lại đĩa).
+  @MainActor private static var dem: (luc: Date, ds: [AppMay], icon: [String: NSImage])?
+
   private func napApp() async {
-    let ds: [AppMay]
-    if let dsAppSan { ds = XinThem.dsApp(dsAppSan) }
-    else {
+    var ds: [AppMay], ic: [String: NSImage]
+    if let dsAppSan {
+      ds = XinThem.dsApp(dsAppSan); ic = Dictionary(ds.map { ($0.muc, XinMoView.iconApp($0)) }, uniquingKeysWith: { a, _ in a })
+    } else if let d = XinMoView.dem, Date().timeIntervalSince(d.luc) < 120 {
+      ds = d.ds; ic = d.icon
+    } else {
       let tk = NSUserName()
       ds = await Task.detached(priority: .userInitiated) { XinThem.dsApp(QuetAppMac(layChuKy: false, layIcon: false).quet(taiKhoanCon: tk)) }.value
+      if Task.isCancelled { return }                                   // cửa sổ đã đóng
+      ic = Dictionary(ds.map { ($0.muc, XinMoView.iconApp($0)) }, uniquingKeysWith: { a, _ in a })
+      XinMoView.dem = (Date(), ds, ic)
     }
-    dsApp = ds; daQuet = true
-    if chon == nil, let a = XinThem.appBanDau(ds, appBanDau) { chon = a.muc }
+    dsApp = ds; icon = ic; daQuet = true
+    if chon == nil, tenGo.isEmpty, !appBanDau.isEmpty {
+      if let a = XinThem.appBanDau(ds, appBanDau) { chon = a.muc } else { tenGo = appBanDau }
+    }
   }
 }
 

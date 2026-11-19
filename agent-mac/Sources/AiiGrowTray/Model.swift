@@ -41,7 +41,7 @@ final class XinModel: ObservableObject {
   /// «Xin Ba Mẹ mở» app / trang chưa có trong danh sách (#258: xin thêm vào danh sách).
   /// #422: `loai` = kieu «app» | «web»; `ten` = tên app khi `muc` là bundle id (chọn từ lưới).
   func xinMo(muc: String, loai: String, loiNhan: String, ten: String? = nil) {
-    saoDaXin = nil; mucDaXin = ten.flatMap { $0.isEmpty ? nil : $0 } ?? muc
+    saoDaXin = nil; mucDaXin = XinThem.tenHien(muc: muc, ten: ten)
     let nhan = loiNhan.trimmingCharacters(in: .whitespacesAndNewlines)
     gui(.xinMo(muc: muc, loai: loai, loiNhan: nhan.isEmpty ? nil : nhan, ten: ten))
   }

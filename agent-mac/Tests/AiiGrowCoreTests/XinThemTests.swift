@@ -37,6 +37,14 @@ final class XinThemTests: XCTestCase {
     XCTAssertNil(XinThem.loiXin(the: .web, app: nil, web: "   "))
   }
 
+  func testTenGonCatVaBoKyTuDieuKhien() {
+    XCTAssertEqual(XinThem.tenGon("  You\u{0007}Tube\n"), "YouTube")
+    XCTAssertNil(XinThem.tenGon("  "))
+    XCTAssertEqual(XinThem.tenGon(String(repeating: "a", count: 500))?.count, 100)
+    XCTAssertEqual(XinThem.tenHien(muc: "com.google.YouTube", ten: "YouTube"), "YouTube")
+    XCTAssertEqual(XinThem.tenHien(muc: "scratch.mit.edu", ten: nil), "scratch.mit.edu")
+  }
+
   func testChuNut() {
     XCTAssertEqual(XinThem.nut(the: .app, tenApp: "YouTube"), "Xin Ba Mẹ thêm YouTube")
     XCTAssertEqual(XinThem.nut(the: .app, tenApp: nil), "Xin Ba Mẹ thêm app")

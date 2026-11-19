@@ -151,7 +151,7 @@ public enum TrayLogic {
   /// Dòng nhắc về lời xin gần nhất đang chờ / vừa được trả lời (nil = không có gì).
   public static func dongYeuCau(_ ds: [YeuCauDangCho]) -> String? {
     guard let y = ds.last else { return nil }
-    let ten = y.muc.map { HocVienView.tenMucChoi($0) } ?? (y.loai == "mo_web" ? "trang" : "app")
+    let ten = y.ten ?? y.muc.map { HocVienView.tenMucChoi($0) } ?? (y.loai == "mo_web" ? "trang" : "app")
     let vay = y.loai == "vay_sao" || y.loai == "them_gio"
     switch y.trangThai {
     case "cho":
