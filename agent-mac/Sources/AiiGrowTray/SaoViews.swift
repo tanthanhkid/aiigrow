@@ -26,8 +26,10 @@ struct VienSao: View {
 struct LinkNho: View {
   let chu: String
   let lam: () -> Void
+  /// Màu riêng khi nằm trên khối navy (vàng kim); nil = vàng sẫm trên nền kem.
+  var mau: Color? = nil
   var body: some View {
-    Button(chu, action: lam).buttonStyle(.plain).font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
+    Button(chu, action: lam).buttonStyle(.plain).font(.clay(size: 13, weight: .bold)).foregroundColor(mau ?? ClayMau.kimInk)
   }
 }
 

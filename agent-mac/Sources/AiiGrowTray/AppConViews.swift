@@ -42,11 +42,13 @@ struct Chu: View {
 /// Thẻ clay của nội dung: lề trong 18 (≥16).
 struct TheCon<N: View>: View {
   var nen: Color = ClayMau.the
+  /// Khối nổi bật Ánh kim: navy viền vàng (Bàn: thẻ hero Hôm nay, Sao & quà).
+  var navy = false
   @ViewBuilder let noiDung: () -> N
   var body: some View {
-    VStack(alignment: .leading, spacing: 8) { noiDung() }
+    let v = VStack(alignment: .leading, spacing: 8) { noiDung() }
       .padding(18).frame(maxWidth: .infinity, alignment: .leading)
-      .clayThe(bo: 26, nen: nen)
+    if navy { v.clayNavy(bo: 26) } else { v.clayThe(bo: 26, nen: nen) }
   }
 }
 
@@ -174,13 +176,13 @@ struct AppConView: View {
             }
           }
         }
-        .buttonStyle(NutClayStyle(kieu: app.muc == m.0 ? .ngoc : .sang, bo: 20, cao: 48))
+        .buttonStyle(NutClayStyle(kieu: app.muc == m.0 ? .chon : .sang, bo: 20, cao: 48))
         .accessibilityAddTraits(app.muc == m.0 ? .isSelected : [])
       }
       Spacer(minLength: 8)
       if coDoiBe {
         Button { hoiDoiBe = true } label: {
-          HStack(spacing: 8) { HinhFluent(ten: "seedling", duPhong: "person.2.fill", co: 20); Text("Đổi người / Đăng xuất") }
+          HStack(spacing: 8) { HinhFluent(ten: "nguoi", duPhong: "person.2.fill", co: 20); Text("Đổi người / Đăng xuất") }
         }
         .buttonStyle(.plain).font(.clay(size: 15, weight: .bold)).foregroundColor(ClayMau.ngocInk).frame(minHeight: 44)
       }
@@ -329,13 +331,13 @@ struct AppConView: View {
       let phut = t.phutSao ?? s?.phutCon ?? 0
       let gh = (phut <= 0 && t.cheDo != .khoa) ? ManMac.chuGioiHan(t) : nil      // khoá vì giới hạn giờ chơi: sao còn nguyên
       let het = t.cheDo != .khoa && gh == nil && (s?.hetSao == true || phut <= 0 || sao < 0)
-      TheCon {
+      TheCon(navy: true) {
         HStack(alignment: .top, spacing: 14) {
           VStack(alignment: .leading, spacing: 4) {
-            Chu(het ? "Hết sao rồi" : gh?.tieuDe ?? "Sao của con · cũng là phút chơi", co: 15, mau: het ? ClayMau.canh : ClayMau.chu3, dong: 1)
+            Chu(het ? "Hết sao rồi" : gh?.tieuDe ?? "Sao của con · cũng là phút chơi", co: 15, mau: ClayMau.nenSang, dong: 1)
             if sao < 0 { VienSao(sao: sao, co: 30) }
             else {
-              Text(ChuSao.vien(sao)).font(.clay(size: 50, weight: .bold, vai: .so)).monospacedDigit().foregroundColor(ClayMau.diemInk).lineLimit(1)
+              Text(ChuSao.vien(sao)).font(.clay(size: 50, weight: .bold, vai: .so)).monospacedDigit().foregroundColor(ClayMau.kim).lineLimit(1)
             }
           }
           Spacer(minLength: 8)
@@ -344,17 +346,17 @@ struct AppConView: View {
             NutIcon(chu: TrayLogic.nutXinThem, icon: "puzzle_piece", kieu: .sang, rong: 230, lam: moXinThem)
           }
         }
-        if let n = ChuSao.no(s?.no ?? 0) { Chu(n, co: 14, dam: .bold, mau: ClayMau.canh, dong: 2) }
+        if let n = ChuSao.no(s?.no ?? 0) { Chu(n, co: 14, dam: .bold, mau: ClayMau.canhSoft, dong: 2) }
         Chu(t.cheDo == .khoa ? "Đang khoá" : gh?.phu ?? (ManMac.saoThat(t).map { $0 == phut ? ChuSao.phut(phut) : "còn \(ChuSao.so($0)) sao · chơi được \(ChuSao.so(phut)) phút" } ?? ChuSao.phut(phut)) + (het ? dongKhongTinh(t).map { " · \($0) vẫn mở (không tính phút)" } ?? "" : ""),
-            co: 15, dam: .bold, mau: ClayMau.ngocInk, dong: 2)
-        if !het, let da = app.sao?.phutChoiHomNay ?? app.tq?.quy?.daDung, da > 0 { Chu("Hôm nay đã chơi \(da) phút · đã trả \(ChuSao.so(da)) sao", co: 14, dam: .semibold, dong: 1) }
+            co: 15, dam: .bold, mau: ClayMau.kim, dong: 2)
+        if !het, let da = app.sao?.phutChoiHomNay ?? app.tq?.quy?.daDung, da > 0 { Chu("Hôm nay đã chơi \(da) phút · đã trả \(ChuSao.so(da)) sao", co: 14, dam: .semibold, mau: ClayMau.nenSang, dong: 1) }
         if let ah = app.sao?.appHomNay, !ah.isEmpty {                // máy chủ: phút gộp mọi máy của Con
-          Chu(ah.prefix(3).map(HvSao.dongApp).joined(separator: " · "), co: 13, mau: ClayMau.chu3, dong: 1)
+          Chu(ah.prefix(3).map(HvSao.dongApp).joined(separator: " · "), co: 13, mau: ClayMau.nenSang.opacity(0.8), dong: 1)
         } else if let ds = t.homNayTheoApp, !ds.isEmpty {
           let tinh = Set(t.dsTinhPhut ?? []), khong = Set(t.dsKhongTinhPhut ?? [])
           let dong = ds.filter { tinh.contains($0.muc) || khong.contains($0.muc) }.prefix(3)
             .map { tinh.contains($0.muc) ? "\(HocVienView.tenMucChoi($0.muc)) \($0.phut) phút" : "\(HocVienView.tenMucChoi($0.muc)) không tính phút" }
-          if !dong.isEmpty { Chu(dong.joined(separator: " · "), co: 13, mau: ClayMau.chu3, dong: 1) }
+          if !dong.isEmpty { Chu(dong.joined(separator: " · "), co: 13, mau: ClayMau.nenSang.opacity(0.8), dong: 1) }
         }
       }
     }
@@ -368,7 +370,7 @@ struct AppConView: View {
     let s = soSao(t), tq = app.tq
     let cho = tq?.diemChoDuyet ?? 0
     let soViecCho = ManMac.nhomNhiemVu(tq?.nhiemVu ?? []).choDuyet.count
-    return TheCon(nen: ClayMau.diemSoft) {
+    return TheCon {
       if let (dau, sau) = ManMac.cauHetNo(no: s?.no ?? 0, choDuyet: cho, soViecCho: soViecCho) {
         lichSuSao(3)
         Chu(dau, co: 18, dam: .bold, mau: ClayMau.diemInk, dong: 1)
@@ -540,27 +542,29 @@ struct AppConView: View {
   private func theSaoQua(_ tq: HvTongQuan) -> some View {
     let s = soSao(tt)
     let sao = s?.sao ?? tq.soDu
-    return TheCon(nen: sao < 0 ? ClayMau.canhSoft : ClayMau.diemSoft) {
+    let nv = sao >= 0     // hero navy khi không nợ; nợ giữ nền cam nhạt cảnh báo
+    let kimC = nv ? ClayMau.kim : ClayMau.diemInk, phuC = nv ? ClayMau.nenSang : ClayMau.diemInk
+    return TheCon(nen: ClayMau.canhSoft, navy: nv) {
       HStack(spacing: 14) {
-        VienClay(ten: "star", duPhong: "star.fill", nen: ClayMau.the, co: 60)
+        VienClay(ten: "star", duPhong: "star.fill", nen: nv ? ClayMau.nenSang : ClayMau.the, co: 60)
         VStack(alignment: .leading, spacing: 2) {
-          Chu(sao < 0 ? "Sao của con" : "Con đang có", co: 14, mau: sao < 0 ? ClayMau.canh : ClayMau.diemInk, dong: 1)
+          Chu(sao < 0 ? "Sao của con" : "Con đang có", co: 14, mau: sao < 0 ? ClayMau.canh : phuC, dong: 1)
           if sao < 0 { VienSao(sao: sao, co: 24) }
-          else { Text(ChuSao.vien(sao)).font(.clay(size: 38, weight: .bold, vai: .so)).foregroundColor(ClayMau.diemInk).lineLimit(1) }
+          else { Text(ChuSao.vien(sao)).font(.clay(size: 38, weight: .bold, vai: .so)).foregroundColor(kimC).lineLimit(1) }
           if let n = s?.no, n > 0 {
             Chu("Đang nợ Ba Mẹ \(ChuSao.so(n)) sao", co: 14, dam: .bold, mau: ClayMau.canh, dong: 1)
             Chu("Sao nhiệm vụ trả nợ trước", co: 13, mau: ClayMau.canh, dong: 1)
             lichSuSao(3)
           }
-          if tq.diemChoDuyet > 0 { Chu(ChuSao.choDuyet(tq.diemChoDuyet, no: soSao(tt)?.no ?? 0), co: 13, mau: ClayMau.diemInk, dong: 1) }
-          if let g = app.ch?.saoGiu, g > 0 { Chu("Đang giữ \(ChuSao.so(g)) sao chờ Ba Mẹ trao", co: 13, mau: ClayMau.diemInk, dong: 1) }
+          if tq.diemChoDuyet > 0 { Chu(ChuSao.choDuyet(tq.diemChoDuyet, no: soSao(tt)?.no ?? 0), co: 13, mau: phuC, dong: 1) }
+          if let g = app.ch?.saoGiu, g > 0 { Chu("Đang giữ \(ChuSao.so(g)) sao chờ Ba Mẹ trao", co: 13, mau: phuC, dong: 1) }
         }
         Spacer(minLength: 8)
         VStack(alignment: .leading, spacing: 8) {
           if sao >= 0, tt?.moHet != true {
-            Chu("\(ChuSao.vien(sao)) = \(ChuSao.so(sao)) phút chơi hoặc đổi quà", co: 13, dam: .bold, mau: ClayMau.diemInk, dong: 2)
+            Chu("\(ChuSao.vien(sao)) = \(ChuSao.so(sao)) phút chơi hoặc đổi quà", co: 13, dam: .bold, mau: kimC, dong: 2)
           }
-          LinkNho(chu: tt?.moHet == true ? "Sao để đổi quà ›" : "1 sao = 1 phút chơi ›", lam: moChoi)
+          LinkNho(chu: tt?.moHet == true ? "Sao để đổi quà ›" : "1 sao = 1 phút chơi ›", lam: moChoi, mau: nv ? ClayMau.kim : nil)
         }
         .frame(width: 240, alignment: .leading)
       }
