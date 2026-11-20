@@ -4,13 +4,13 @@
 // Số liệu: GET nhat-ky?ca-nha=1[&con=] (server/lib/nhat-ky-ca-nha.ts). Mở từ Báo cáo «Nhật ký cả nhà ›» (?con= để lọc sẵn một con).
 import { useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import { ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { mauCon, tenGoi, TieuMuc } from "@/lib/hang-ngay";
+import { mauCon, TieuMuc } from "@/lib/hang-ngay";
 import { soVN } from "@/lib/so-sao";
 import { HangChonBe } from "@/lib/ui-chung";
-import { Avt, BieuTron, ChoTai, Chu, Icon3D, M, Man, Nhan, NhanMen, The, useTai } from "@/lib/ui";
-import { BONG, KHOI, MEN } from "@/lib/clay";
+import { Avt, BieuTron, ChoTai, Chu, Icon3D, M, Man, Nhan, The, useTai } from "@/lib/ui";
+import { KHOI } from "@/lib/clay";
 
 type Dong = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null;
   tieu: string; phu: string; nhan: string | null; kieu: "tot" | "xau" | "cho" | "ngoai" | "thuong" };
@@ -36,7 +36,6 @@ export default function NhatKyCaNha() {
   const [loc, setLoc] = useState<string | null>(conVao ?? null);
   const g = useTai(() => bm.goi<GiaDinh>("gia-dinh"));
   const cacCon = g.d?.con ?? [];
-  const thuCon = (id: string | null) => Math.max(0, cacCon.findIndex((c) => c.id === id));
   return (
     <Man lui={{ chu: "Báo cáo" }} tieuLon="Nhật ký cả nhà" tai={g.tai}>
       {cacCon.length > 1 ? (

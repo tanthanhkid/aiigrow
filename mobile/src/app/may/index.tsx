@@ -69,7 +69,7 @@ export default function MayTrongNha() {
   return (
     <Man noi={noi} tai={tai} dau={<>
       <DauHaiDong tieu="Máy trong nhà" phu={`${ds.length} máy · ${c ? tenGoi(c.ten) : `${d.con.length} bé`}`} canh lui={lui} />
-      {d.con.length > 1 ? <HangChonBe ds={d.con.slice(0, 4)} chon={loc} doi={(x) => setLoc(x?.id ?? null)} tatCa tenNgan /> : null}
+      {d.con.length > 1 ? <HangChonBe ds={d.con} chon={loc} doi={(x) => setLoc(x?.id ?? null)} tatCa tenNgan /> : null}
     </>}
       day={<>
         <Nut chu="+ Ghép thêm máy" rong bam={() => router.push({ pathname: "/may/them", params: c ? { con: c.id } : {} })} />

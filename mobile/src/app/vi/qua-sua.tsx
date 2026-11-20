@@ -11,7 +11,7 @@ import { tenGoi, type NhiemVuMoi } from "@/lib/hang-ngay";
 import { buocGia, cauNgayDoi, HINH_CHON, icQua, saoMoiNgay, thanSuaQua, type QuaS3 } from "@/lib/s3";
 import { GiaSao } from "@/lib/ui-s3";
 import { HoiLai } from "@/lib/ui-chung";
-import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chips, Chu, CongTac, Icon3D, M, Man, NhanMen, Nut, ONhap, Rob, The, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, ChoTai, Chips, Chu, CongTac, Icon3D, M, Man, NhanMen, Nut, ONhap, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 const SO_LAN = [1, 2, 4, 8];
 
