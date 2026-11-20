@@ -49,6 +49,7 @@ export default function YeuCauWeb() {
             <Chu kieu="rat" co={13} mau={M.chu2} so>{[gioPhut(y.created_at), mayNgan].filter(Boolean).join(" · ")}</Chu>
           </View>
         </View>
+        {y.ly_do?.trim() ? <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center", marginTop: 8 }}>{`«${y.ly_do.trim()}»`}</Chu> : null}
         <Chu kieu="tieu" co={18} style={{ textAlign: "center", marginTop: 14 }}>Cho con vào trang này?</Chu>
         <BaoLoi loi={loiLam} />
         <Pressable onPress={() => chon(true)} disabled={dangChay} accessibilityRole="button" accessibilityLabel="Có, trừ sao khi dùng"
@@ -61,9 +62,9 @@ export default function YeuCauWeb() {
           <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten="mo_khoa" co={26} /></View>
           <View style={{ flex: 1 }}><Chu kieu="den" co={17}>Có, không trừ sao</Chu><Chu kieu="rat" co={13} mau={M.chu2}>Con dùng thoải mái</Chu></View>
         </Pressable>
-        <Pressable onPress={() => lam(() => boQuaAppWeb(yc, may))} disabled={dangChay} accessibilityRole="button" accessibilityLabel="Không cho"
+        <Pressable onPress={() => lam(() => boQuaAppWeb(yc, may))} disabled={dangChay} accessibilityRole="button" accessibilityLabel="Bỏ qua"
           style={{ minHeight: 44, alignItems: "center", justifyContent: "center", marginTop: 6 }}>
-          <Chu kieu="den" co={16} mau={M.lienKet}>Không cho</Chu>
+          <Chu kieu="den" co={16} mau={M.lienKet}>Bỏ qua, để con xin lại sau</Chu>
         </Pressable>
       </Man>
     );

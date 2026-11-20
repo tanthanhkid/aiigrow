@@ -10,7 +10,7 @@
 // Sau khi xử lý ⇒ màn kết quả /yeu-cau/xong (params: kieu, ten, phut, muc, may, grant, con, no, sao, phutCon, noTruoc, canh).
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { MEN, BONG } from "./clay";
+import { BONG } from "./clay";
 import { bm, laXinVay, tenYc, type MayCon } from "./api";
 import { boQuaXin, hoanTacXin, themTuXin } from "./app-web";
 import type { YeuCauMoi } from "./hang-ngay";
@@ -140,7 +140,7 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
           {no ? <Chu kieu="dam" co={13} mau={M.canh}>{no.replace(/ · .*$/, "")}</Chu> : null}
         </View>
       ) : null}
-      {phu && !dangXin ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}
+      {phu && !dangXin && !(oIcon && laAppWeb(y)) ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}
       {xinMoKhoa ? (
         <HaiNut>
           <Nut chu="Không cho" loai="vien" nho dangChay={dang} bam={() => xong(() => khongChoXin(y, may))} />

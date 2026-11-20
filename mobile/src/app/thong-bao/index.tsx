@@ -7,7 +7,6 @@ import { useEffect, useState, type ReactNode } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { MEN, BONG, KHOI } from "@/lib/clay";
-import { TieuMuc } from "@/lib/hang-ngay";
 import { OLomIcon } from "@/lib/ui-viec";
 import { bm } from "@/lib/api";
 import { type MucCanDeY } from "@/lib/s3";
@@ -85,7 +84,7 @@ export default function DsThongBaoMan() {
       return { id: x.id, deY, iso: x.luc, luc: ngayCua(x.luc), ic: no ? "canh_bao" : icXin(x.tieu, kk.ic), tieu: no?.tieu ?? x.tieu,
         phu: [no?.phu ?? x.phu, x.imLang ? "trong giờ yên lặng" : null].filter(Boolean).join(" · "), lam: deY ? kk.lam ?? "Xem ›" : undefined, bam: () => router.push(x.den as never) };
     }),
-  ].sort((p, q) => Date.parse(q.iso) - Date.parse(p.iso));
+  ].sort((p, q) => (Date.parse(q.iso) || 0) - (Date.parse(p.iso) || 0));
   const soCan = dsDong.filter((x) => x.deY).length;
   const hien = loc === "can" ? dsDong.filter((x) => x.deY) : dsDong;
   const homNay = hien.filter((x) => new Date(x.iso).toDateString() === new Date().toDateString());
@@ -115,7 +114,7 @@ export default function DsThongBaoMan() {
       </View>
       {nhom("Hôm nay", homNay)}
       {nhom("Trước đó", truocDo)}
-      {!hien.length ? <Chu kieu="dam" co={14} mau={M.chu3} style={{ marginHorizontal: 8 }}>Không có thông báo nào cần trả lời.</Chu> : null}
+      {!hien.length ? <Chu kieu="dam" co={14} mau={M.chu3} style={{ marginHorizontal: 8 }}>{loc === "can" ? "Không có thông báo nào cần trả lời." : "Chưa có thông báo nào."}</Chu> : null}
     </Man>
   );
 }

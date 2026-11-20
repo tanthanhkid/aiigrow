@@ -231,7 +231,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         {!khoa ? (
           <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
             <View style={{ flex: 1, padding: 10, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.08)", boxShadow: BONG.heroNho }}>
-              <Chu kieu="tieu7" co={18} so mau={HERO.chu}>{`${hn.d?.choi.daDung ?? 0} phút`}</Chu>
+              <Chu kieu="tieu7" co={18} so mau={HERO.chu}>{hn.d ? `${hn.d.choi.daDung} phút` : "–"}</Chu>
               <Chu kieu="dam" co={12.5} mau={HERO.chu} style={{ opacity: 0.8 }}>Đã chơi</Chu>
             </View>
             <View style={{ flex: 1, padding: 10, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.08)", boxShadow: BONG.heroNho }}>

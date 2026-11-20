@@ -227,7 +227,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
 }) {
   type Han = "30" | "60" | "sang" | "mo" | "tu";
   const [han, setHan] = useState<Han>("30");
-  const [tuGio, setTuGio] = useState(21 * 60 + 30);   // «Tự chọn…»: phút trong ngày (bước 15 phút)
+  const [tuGio, setTuGio] = useState(() => { const d = new Date(Date.now() + 60 * 60_000); return Math.ceil((d.getHours() * 60 + d.getMinutes()) / 15) * 15 % 1440; });   // «Tự chọn…»: phút trong ngày (bước 15 phút)
   const [hanTruoc, setHanTruoc] = useState<Han>("30");   // lựa chọn trước khi bấm «Khoá tới khi Ba Mẹ mở» — bỏ tick là trả lại
   // máy Ba Mẹ BỎ chọn (mặc định chọn hết — danh sách máy có thể về sau khi bảng đã dựng)
   const [boChon, setBoChon] = useState<ReadonlySet<string>>(new Set());
