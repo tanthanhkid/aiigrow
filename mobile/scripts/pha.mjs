@@ -907,7 +907,7 @@ if (process.argv.includes("--giao-dien")) {
     M("cn hfd2drjy", "/moi-nguoi-nha", "Đã mời Ba Tuấn!", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được gì?");
       await go("Số điện thoại người được mời", "0909876543"); await go("Gọi là gì trong nhà", "Ba Tuấn"); await sleep(200); await bam("Gửi lời mời cho Ba Tuấn"); } }),
     M("cn 7vmoufz3", "/thanh-vien?id=p3", "Bà Hoa trong nhà", { kb: BAN_CA_NHA }),
-    M("cn xnbiksmr", "/thanh-vien?id=p3", "Thôi, giữ Bà Hoa", { kb: BAN_CA_NHA, truoc: async () => { await di("/thanh-vien?id=p3"); await doi("Bà Hoa trong nhà"); await sleep(300); await bam("Mời Bà Hoa rời nhà"); } }),
+    M("cn xnbiksmr", "/thanh-vien?id=p3", "Giữ lại", { kb: BAN_CA_NHA, truoc: async () => { await di("/thanh-vien?id=p3"); await doi("Bà Hoa trong nhà"); await sleep(300); await bam("Mời Bà Hoa rời nhà"); } }),
     M("cn ncmuuqav", "/tai-khoan", "Không trông 4 con nữa", { kb: BAN_CA_NHA_KHACH }),
     M("cn o4k6oei0", "/doi-mat-khau", "Lưu mật khẩu mới", { truoc: async () => { await di("/doi-mat-khau"); await doi("Lưu mật khẩu mới"); await go("Mật khẩu đang dùng", "matkhau1"); await sleep(200); } }),
     M("cn liz6hzww", "/tai-khoan", "Muốn vào lại thì nhờ người trong nhà mời", { kb: BAN_CA_NHA_KHACH, truoc: async () => { await di("/tai-khoan"); await doi("Không trông 4 con nữa"); await sleep(300); await bam("Rời nhà"); } }),
