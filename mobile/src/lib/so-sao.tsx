@@ -10,6 +10,7 @@ import { Pressable, View } from "react-native";
 import { bm } from "./api";
 import { BONG, HERO } from "./clay";
 import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Nut, useLam } from "./ui";
+import { ChipMuc } from "./ui-chung";
 
 /** Trạng thái sao của một Con (máy chủ so-sao.ts › TrangThaiSao + tổng vay / đã trả). */
 export type SaoCon = {
@@ -176,20 +177,8 @@ export function BangChoVay({ mo, dong, con, ten, soSao, yeuCau, mucDich, quaId, 
   return (
     <BangTruot mo={mo} dong={dongBang} tieu={`Cho ${ten} vay sao`} hinh="sao">
       <Chu kieu="dam" co={15} mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>{`= ${soVN(chon)} phút chơi hoặc đổi quà\nSao nhiệm vụ của con sẽ trả nợ trước`}</Chu>
-      {/* thiết kế .chon: ô lõm cao 76 — số 28/800 + «sao»; ô chọn ngọc */}
-      <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }} accessibilityRole="radiogroup">
-        {muc.map((x) => {
-          const on = x === chon;
-          return (
-            <Pressable key={x} onPress={() => setChon(x)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${x} sao`}
-              style={[{ flex: 1, height: 76, borderRadius: 24, alignItems: "center", justifyContent: "center" },
-                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-              <Chu kieu="tieu7" co={28} so mau={on ? M.diem : M.chu} style={{ lineHeight: 30 }}>{String(x)}</Chu>
-              <Chu kieu="dam7" co={12.5} mau={on ? M.chinhSoft : M.chu3}>sao</Chu>
-            </Pressable>
-          );
-        })}
-      </View>
+      {/* Bàn them-6wjhze1d: chip 10 · 15 · 30 · Tự nhập… (ui-chung › ChipMuc) */}
+      <ChipMuc muc={muc} gia={chon} doi={setChon} nhanTuChon="Tự nhập…" toiDa={500} />
       {s && noSau !== null ? (
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
           <Chu kieu="dam" co={13} mau={M.chu3}>Đang có</Chu>

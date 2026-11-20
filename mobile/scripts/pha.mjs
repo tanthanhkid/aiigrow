@@ -761,7 +761,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-may (khoá theo máy · tmezw761)", "/may/m4", "Máy khác · không đổi gì", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Khoá Máy cả nhà ngay"); await bam("Khoá Máy cả nhà ngay"); } }),
     M("bm-may (khoá theo bé · sll7clha)", "/may/m4", "Khoá theo bé", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Chỉ khoá "); // lượt chữ dài đổi tên bé ⇒ bấm theo đầu chữ
       await nhanChuot(await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => !e.children.length && e.innerText?.trim().startsWith("Chỉ khoá ")).pop()`)); } }),
-    M("bm-may-con (Máy này ai dùng?)", "/may/m4/ai-dung", "Chọn bé dùng máy này", { kb: MAY_CHUNG }),
+    M("bm-may-con (Máy này ai dùng?)", "/may/m4/ai-dung", "2 bé = máy dùng chung", { kb: MAY_CHUNG }),
     M("bm-may-con (iPad một bé)", "/may/m2/ai-dung", "Không thêm được", { kb: MAY_CHUNG }),
     M("bm-may-chi-tiet (Máy cả nhà)", "/may/m4/chi-tiet", "Sao của từng bé", { kb: MAY_CHUNG }),
     M("bm-may-them (2 bé · chon-loai)", "/may/them?con=c1", "Máy dùng chung · 2 bé", { truoc: async () => { await di("/may/them?con=c1"); await doi("Thêm con");
@@ -1398,7 +1398,7 @@ await kichBan("Hồ sơ Con: mục «Liên kết AiiRob» hiện mã <family_id>
 await kichBan("Hôm nay: thẻ số sao (145 sao, không nợ) + một nút «Khoá máy» (#421 — không còn «Cho vay sao»); đang chơi; app mới chờ xếp; không chữ cũ", async () => {
   await di("/hom-nay");
   xet(await doi("145 sao"), "thẻ đầu: «⭐ 145 sao» (chưa nợ)");
-  xet((await chu()).includes("= 145 phút chơi"), "dòng «= N phút chơi» (1 sao = 1 phút)");
+  xet((await chu()).includes("145 phút Còn chơi được"), "ô «Còn chơi được» = số sao (1 sao = 1 phút)");
   xet((await chu()).includes("đã dùng gì hôm nay"), "mục «<Con> đã dùng gì hôm nay» (bàn bm2-trang-chu@v35 — thay chip «Roblox · Laptop»)");
   { const cu = await chuCu(); xet(!cu.length, `không còn chữ cũ (${cu.join(", ")})`); }
   xet(await doi("Khoá máy"), "thẻ hero có nút «Khoá máy»");

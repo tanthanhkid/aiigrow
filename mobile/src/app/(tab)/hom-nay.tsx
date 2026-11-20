@@ -28,12 +28,12 @@ import {
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
 import { mayCuaCon } from "@/lib/may-nhieu-con";
-import { kieuSao, saoTu, SoSaoLon, soVN, VienSao } from "@/lib/so-sao";
+import { cauNo, saoTu, soVN, VienSao } from "@/lib/so-sao";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { icDung, nhanDung, type HomNayDung } from "@/lib/da-dung";
 import { type MucCanDeY } from "@/lib/s3";
 import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, gioPhut, IconNet, LogoTron, M, Man, Nhan, Nut, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
-import { HERO } from "@/lib/clay";
+import { BONG, HERO } from "@/lib/clay";
 
 // Logo tròn vàng kim ở thẻ đầu (mẫu E `.rob`: phải 14, trên 14 — #417 thay Grow 3D): cỡ + lệch phải. Chữ chừa = phần logo nằm trong thẻ − lề thẻ (16) + khoảng thở 10.
 const ROB_CO = 84, ROB_PHAI = 12, ROB_TREN = 12, CHUA_ROB = ROB_CO + ROB_PHAI - 16 + 10;
@@ -178,7 +178,6 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
 
   // ---- 1. thẻ con
   const mayKhoa = may.filter((m) => !m.dungChung || m.truc).map((m) => m.ten.replace(/ của .*$/, ""));
-  const nhanKhoa = `${mayKhoa.length ? mayKhoa.join(", ") : "Máy"} đã khoá`;
   const khoaDen = ct.d?.khoaDen ?? null;
   // bảng Khoá máy: máy đang chạy app gì (thiết kế 05 «Laptop ● Roblox · từ 19:02»)
   const dangTheoMay: Record<string, { chu: string; mo?: boolean }> = {};
@@ -186,47 +185,71 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
     const p = d.choi.find((x) => x.con === conId && x.may === m.ten);
     if (p) dangTheoMay[m.id] = { chu: `● ${p.tenApp}`, mo: true };
   }
-  // máy khoá: tiêu đề giờ mở lại; còn lại: SỐ SAO (bm2-trang-chu 15/11)
-  const tieuLon = khoa ? (khoaDen ? `Mở lại lúc ${gioPhut(khoaDen)}` : "Khoá tới khi Ba Mẹ mở") : null;
-  const kieu = kieuSao(s);
+  // tiêu đề thẻ chính: khoá ⇒ giờ mở lại · con đang chơi ⇒ «Đang chơi <app>» · còn lại «Chưa dùng máy»
+  const dangChoi = d.choi.find((x) => x.con === conId) ?? null;
+  const tieuLon = khoa ? (khoaDen ? `Mở lại lúc ${gioPhut(khoaDen)}` : "Khoá tới khi Ba Mẹ mở") : dangChoi ? `Đang chơi ${dangChoi.tenApp}` : "Chưa dùng máy";
+  const cheDo = ct.d?.cheDoChan === "mo_het" ? "Mở hết" : "Theo danh sách";
   const veVi = () => router.push(`/vi/${conId}` as never);
-  // máy khoá: «… còn N sao = N phút ›» → Máy của con (bàn them-0kwhgpq6 data-toi bm2-may-ds); còn lại → Ví sao
+  // máy khoá: «… còn N sao = N phút ›» → Máy của con; còn lại → Ví sao
   const bamPhu = khoa ? () => router.push(`/may?con=${conId}` as never) : veVi;
-  // dòng dưới số: khoá ⇒ «… · còn N sao = N phút ›»; chưa nợ ⇒ «= N phút chơi ›» / hết sao; đang nợ ⇒ SoSaoLon tự vẽ dòng nợ
   const phuSao = khoa ? `Đang khoá · còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút ›`
-    : kieu !== "thuong" ? null : s.phutCon > 0 ? `= ${soVN(s.phutCon)} phút chơi ›` : "Hết sao · con xin Ba Mẹ cho vay khi cần ›";
+    : dangChoi ? (s.phutCon > 0 ? `Tự khoá sau ${soVN(s.phutCon)} phút nữa khi hết sao ›` : "Hết sao · máy tự khoá ›")
+    : s.phutCon > 0 ? `= ${soVN(s.phutCon)} phút chơi ›` : "Hết sao · con xin Ba Mẹ cho vay khi cần ›";
 
   return (
     <>
-      {/* 1. thẻ con */}
-      {/* bàn Navy 17/11 (bm2-trang-chu v36 / them-0kwhgpq6 .gio): thẻ hero navy cả khi máy khoá, chữ trắng, dòng nhấn vàng mật, dấu sách vàng mép trên */}
+      {/* 1. thẻ chính (Bàn #492 bm2-trang-chu v44 · them-0kwhgpq6 · them-1mnk3mjz): trả lời «máy con lúc này ra sao», LUÔN có 2 nút (vàng + sáng) */}
       <The hero style={{ overflow: "visible" }}>
         <View style={{ position: "absolute", left: 24, top: 0 }} pointerEvents="none"><DauSach mau={HERO.phu} rong={16} cao={22} /></View>
         <View style={{ position: "absolute", right: ROB_PHAI, top: ROB_TREN }} pointerEvents="none"><LogoTron co={ROB_CO} /></View>
-        {/* máy khoá: nhãn trắng «Laptop, iPad đã khoá» (bàn .nhan — không bấm) */}
+        {/* chip trạng thái: máy khoá «Laptop, iPad · Đã khoá» (không bấm) — còn lại «Chặn: Theo danh sách ›» → App & web của con */}
         {khoa ? (
           <View style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, minHeight: NHAN_CAO, paddingLeft: 8, paddingRight: 12, borderRadius: 16,
-            backgroundColor: "rgba(255,255,255,0.12)", maxWidth: "70%", marginRight: CHUA_ROB - 40 }}>
+            backgroundColor: "#1F2A44", maxWidth: "70%", marginRight: CHUA_ROB - 40 }}>
             <IconNet ten="khoa" co={17} mau={HERO.chu} />
-            <Chu kieu="rat" co={13.5} dong={1} mau={HERO.chu} style={{ flexShrink: 1 }}>{nhanKhoa}</Chu>
+            <Chu kieu="rat" co={13.5} dong={1} mau={HERO.chu} style={{ flexShrink: 1 }}>{`${mayKhoa.length ? mayKhoa.join(", ") : "Máy"} · `}<Chu kieu="rat" co={13.5} mau={HERO.chu}>Đã khoá</Chu></Chu>
           </View>
-        ) : null}
-        {/* khối tiêu đề cao tối thiểu tới đáy Grow (khổ 320 câu dài không đè Grow — cổng DE-ANH). Số sao (viên 26/800, .so .am) không đè Grow:
-            chừa CHUA_ROB bên phải; «còn N sao = N phút chơi» dài thì xuống dòng */}
-        <View style={{ marginTop: khoa ? 10 : 0, marginRight: CHUA_ROB, minHeight: Math.max(0, ROB_TREN + ROB_CO - 16 - (khoa ? NHAN_CAO + 10 : 0) - 36) }}>
-          {tieuLon ? <Chu kieu="tieu7" co={26} so mau={HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu> : <SoSaoLon s={s} bamNo={veVi} toi />}
+        ) : (
+          <Pressable onPress={() => router.push(`/ung-dung?con=${conId}` as never)} accessibilityRole="button" accessibilityLabel={`Chặn: ${cheDo}`}
+            style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 6, minHeight: NHAN_CAO, paddingLeft: 8, paddingRight: 12, borderRadius: 16,
+              backgroundColor: "rgba(255,255,255,0.12)", maxWidth: "70%", marginRight: CHUA_ROB - 40 }}>
+            <IconNet ten="khien" co={17} mau={HERO.chu} />
+            <Chu kieu="rat" co={13.5} dong={1} mau={HERO.chu} style={{ flexShrink: 1 }}>{"Chặn: "}<Chu kieu="rat" co={13.5} mau={HERO.chu}>{`${cheDo} ›`}</Chu></Chu>
+          </Pressable>
+        )}
+        <View style={{ marginTop: 10, marginRight: CHUA_ROB, minHeight: 34 }}>
+          <Chu kieu="tieu7" co={26} so mau={khoa ? HERO.phu : HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu>
         </View>
-        {phuSao ? (
-          // #417: dòng phụ («Hết sao · con xin Ba Mẹ cho vay khi cần ›») chừa chỗ logo bên phải (không đè ảnh, đủ tương phản); cỡ 13 để 390 gọn hơn
-          <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, paddingVertical: 6, paddingRight: 8, marginRight: CHUA_ROB - 8, justifyContent: "center", alignSelf: "stretch", minWidth: 0 }}>
-            <Chu kieu="dam" co={13} mau={khoa ? HERO.chu : HERO.phu} style={{ flexShrink: 1, minWidth: 0 }}>{phuSao}</Chu>
+        <Pressable onPress={bamPhu} accessibilityRole="button" style={{ minHeight: 36, paddingVertical: 6, paddingRight: 8, marginRight: CHUA_ROB - 8, justifyContent: "center", alignSelf: "stretch", minWidth: 0 }}>
+          <Chu kieu="dam" co={13} mau={HERO.chu} style={{ flexShrink: 1, minWidth: 0 }}>{phuSao}</Chu>
+        </Pressable>
+        {cauNo(s) ? (
+          <Pressable onPress={veVi} accessibilityRole="button" style={{ minHeight: 32, justifyContent: "center", marginRight: CHUA_ROB - 8 }}>
+            <Chu kieu="rat" co={13} mau={HERO.chu}>{`${cauNo(s)} ›`}</Chu>
           </Pressable>
         ) : null}
-        {/* #421 (bàn bm2-trang-chu v36): một nút rộng hết thẻ — «Khoá máy», máy đang khoá thì «Mở khoá ngay».
-            Cho vay sao chỉ còn ở thẻ «Con xin vay … sao»; đổi giờ khoá qua dòng «Đang khoá · còn N sao ›» → Máy của con. */}
-        <View style={{ marginTop: 8 }}>
-          {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d sat rong motDong loai="vang" toi dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
-            : <Nut chu="Khoá máy" ic="khoa" ic3d sat rong motDong loai="vang" toi nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
+        {!khoa ? (
+          <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
+            <View style={{ flex: 1, padding: 10, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.08)", boxShadow: BONG.heroNho }}>
+              <Chu kieu="tieu7" co={18} so mau={HERO.chu}>{`${hn.d?.choi.daDung ?? 0} phút`}</Chu>
+              <Chu kieu="dam" co={12.5} mau={HERO.chu} style={{ opacity: 0.8 }}>Đã chơi</Chu>
+            </View>
+            <View style={{ flex: 1, padding: 10, borderRadius: 18, backgroundColor: "rgba(255,255,255,0.08)", boxShadow: BONG.heroNho }}>
+              <Chu kieu="tieu7" co={18} so mau={HERO.chu}>{`${soVN(s.phutCon)} phút`}</Chu>
+              <Chu kieu="dam" co={12.5} mau={HERO.chu} style={{ opacity: 0.8 }}>Còn chơi được</Chu>
+            </View>
+          </View>
+        ) : null}
+        {/* hai nút: vàng (Khoá máy / Mở khoá ngay) + sáng (Thêm nhiệm vụ / Đổi giờ) */}
+        <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
+          <View style={{ flex: 1 }}>
+            {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d sat rong motDong loai="vang" toi dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
+              : <Nut chu="Khoá máy" ic="khoa" ic3d sat rong motDong loai="vang" toi nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
+          </View>
+          <View style={{ flex: 1 }}>
+            {khoa ? <Nut chu="Đổi giờ" ic="dongho" ic3d sat rong motDong loai="nho" bam={() => setBang("khoa")} />
+              : <Nut chu="Thêm nhiệm vụ" ic="cong" sat rong motDong loai="nho" bam={() => router.push(`/giao-nv?con=${conId}` as never)} />}
+          </View>
         </View>
         <BaoLoi loi={loi ?? ct.loi ?? qy.loi} />
       </The>

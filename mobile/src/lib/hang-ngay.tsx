@@ -225,8 +225,9 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
   xong: (chu: string, hoan: () => Promise<void>) => void;
   /** khoá mọi bé — `khoa`: khoá theo bé đang có (Hoàn tác trả lại đúng khoá cũ) */ caNha?: { id: string; ten: string; khoa?: { khoa: boolean; den: string | null } | null }[];
 }) {
-  type Han = "30" | "60" | "sang" | "mo";
+  type Han = "30" | "60" | "sang" | "mo" | "tu";
   const [han, setHan] = useState<Han>("30");
+  const [tuGio, setTuGio] = useState(21 * 60 + 30);   // «Tự chọn…»: phút trong ngày (bước 15 phút)
   const [hanTruoc, setHanTruoc] = useState<Han>("30");   // lựa chọn trước khi bấm «Khoá tới khi Ba Mẹ mở» — bỏ tick là trả lại
   // máy Ba Mẹ BỎ chọn (mặc định chọn hết — danh sách máy có thể về sau khi bảng đã dựng)
   const [boChon, setBoChon] = useState<ReadonlySet<string>>(new Set());
@@ -239,9 +240,15 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
   const soChon = cach?.kieu === "con" ? may.length : cach ? cach.ids.length : 0;
   const { lam, loi, dangChay } = useLam();
   // giờ hiện trên nút chỉ để xem trước; hạn THẬT tính lúc bấm (bảng có thể mở lâu — review PR #241)
-  const denLuc = (h: Han, tu = new Date()) => (h === "sang" || h === "mo" ? null : new Date(tu.getTime() + Number(h) * 60_000));
+  const denLuc = (h: Han, tu = new Date()) => {
+    if (h === "sang" || h === "mo") return null;
+    if (h === "tu") { const d = new Date(tu); d.setHours(Math.floor(tuGio / 60), tuGio % 60, 0, 0); if (d.getTime() <= tu.getTime() + 60_000) d.setDate(d.getDate() + 1); return d; }
+    return new Date(tu.getTime() + Number(h) * 60_000);
+  };
   const cauDen = (h: Han, tu = new Date()) => (h === "mo" ? "tới khi Ba Mẹ mở" : h === "sang" ? "tới 6:30" : `tới ${gioPhut(denLuc(h, tu)!.toISOString())}`);
-  const lua: { gia: Han; chu: string }[] = [{ gia: "30", chu: "30 phút" }, { gia: "60", chu: "1 giờ" }, { gia: "sang", chu: "Sáng mai" }];
+  const lua: { gia: Han; chu: string }[] = [{ gia: "30", chu: "30 phút" }, { gia: "60", chu: "1 tiếng" }, { gia: "sang", chu: "Đến sáng mai" }, { gia: "tu", chu: "Tự chọn…" }];
+  const buoc = (d: number) => setTuGio((v) => (v + d + 1440) % 1440);
+  const gH = String(Math.floor(tuGio / 60)).padStart(2, "0"), gM = String(tuGio % 60).padStart(2, "0");
   const khoa = () => lam(async () => {
     if (!cach) return;
     const luc = new Date();
@@ -317,19 +324,31 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
       ) : null}
       {chungBo && !caNha ? <Chu co={12.5} mau={M.chu3} style={{ marginHorizontal: 6 }}>Bỏ máy chung thì chỉ khoá riêng các máy riêng đã chọn — khoá máy chung là khoá mọi bé (vào máy đó › «Khoá máy này»).</Chu> : null}
       <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>Khoá bao lâu?</Chu>
-      <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
+      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }} accessibilityRole="radiogroup">
         {lua.map((x) => {
           const on = x.gia === han;
           return (
             <Pressable key={x.gia} onPress={() => setHan(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }}
-              style={[{ flex: 1, minHeight: 64, borderRadius: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 4 },
+              style={[{ flexBasis: "47%", flexGrow: 1, minHeight: 56, borderRadius: 22, flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 14, gap: 6 },
                 on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-              <Chu kieu="rat" co={16} mau={on ? "#FFFBF5" : M.chu}>{x.chu}</Chu>
-              <Chu kieu="dam7" co={12.5} mau={on ? M.chinhSoft : M.chu3}>{cauDen(x.gia)}</Chu>
+              <Chu kieu="rat" co={15} mau={on ? "#FFFBF5" : M.chu} dong={1}>{x.chu}</Chu>
+              {x.gia === "tu" ? <Icon ten="dongho" co={16} mau={on ? "#FFFBF5" : M.chu3} /> : <Chu kieu="dam7" co={12.5} mau={on ? M.chinhSoft : M.chu3}>{cauDen(x.gia).replace("tới ", "")}</Chu>}
             </Pressable>
           );
         })}
       </View>
+      {han === "tu" ? (
+        <View style={[{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", borderRadius: 24, paddingVertical: 10, paddingHorizontal: 16, backgroundColor: M.the }, KHOI.the]}>
+          <Chu kieu="rat" co={15}>Khoá đến</Chu>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+            <Pressable onPress={() => buoc(-15)} accessibilityRole="button" accessibilityLabel="Lùi 15 phút" hitSlop={6}
+              style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Chu kieu="rat" co={20}>−</Chu></Pressable>
+            <Chu kieu="rat" co={26} style={{ minWidth: 86, textAlign: "center" }}>{gH} : {gM}</Chu>
+            <Pressable onPress={() => buoc(15)} accessibilityRole="button" accessibilityLabel="Tới 15 phút" hitSlop={6}
+              style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Chu kieu="rat" co={20}>+</Chu></Pressable>
+          </View>
+        </View>
+      ) : null}
       {/* thiết kế 05 chỉ vẽ 3 lựa chọn; giữ «Tới khi Ba Mẹ mở» (khoá không hạn — có từ trước, Trang chủ hiện «Khoá tới khi Ba Mẹ mở») dạng dòng nhỏ */}
       <Pressable onPress={() => { if (han === "mo") setHan(hanTruoc); else { setHanTruoc(han); setHan("mo"); } }} accessibilityRole="radio" accessibilityState={{ checked: han === "mo" }} hitSlop={4}
         style={{ minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }}>

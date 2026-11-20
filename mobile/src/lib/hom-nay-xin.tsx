@@ -128,12 +128,12 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
       )}
       {/* Trang chủ (oIcon): bàn bm2-trang-chu / them-0kwhgpq6 không có lời con cho xin app / web, xin mở khoá; xin vay giữ (them-1mnk3mjz) */}
       {/* dangXin: lời con viết (ly_do) luôn hiện trong ô lõm; xin app / web thêm dòng phụ (máy / nhóm) dưới */}
-      {dangXin ? (y.ly_do?.trim() || (laAppWeb(y) && phu)) ? (
+      {dangXin || (oIcon && laAppWeb(y)) ? (y.ly_do?.trim() || (laAppWeb(y) && phu)) ? (
         <View style={{ gap: 4, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
           {y.ly_do?.trim() ? <Chu kieu="dam" co={13.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
           {laAppWeb(y) && phu ? <Chu kieu="dam" co={13} mau={M.chu3}>{phu}</Chu> : null}
         </View>
-      ) : null : y.ly_do?.trim() && !(oIcon && (xinMoKhoa || laAppWeb(y))) ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
+      ) : null : y.ly_do?.trim() && !(oIcon && xinMoKhoa) ? <Chu co={14.5} mau={M.chu2}>{`«${y.ly_do.trim()}»`}</Chu> : null}
       {vay && sao && !xinMoKhoa ? (
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <VienSao s={sao} />
@@ -150,7 +150,7 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
             return { kieu: "mo_khoa", ten: y.ten_con, con: y.child_id, may };
           })} />
         </HaiNut>
-      ) : laAppWeb(y) && truc && dangXin ? (
+      ) : laAppWeb(y) && ((truc && dangXin) || oIcon) ? (
         // khuôn them-a4nqjrmp@v17 (#490): hàng 1 «Tính phút» (vàng kim) | «Không tính phút» (kem nổi) rộng ngang nhau; «Bỏ qua» chữ nhỏ bấm được cao ≥ 44
         <View style={{ gap: 2, marginTop: 4 }}>
           <HaiNut>
