@@ -3,12 +3,12 @@
 // «Tự đặt quà nhà» ⇒ tab «Ba Mẹ tự điền» của «Quà của <Con>»; «Thêm N quà» ⇒ POST qua/thu-vien {mau, con}. GET qua/thu-vien?con= (docs/API.md «S3»).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, View } from "react-native";
+import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { BONG, KHOI, MEN } from "@/lib/clay";
+import { KHOI, MEN } from "@/lib/clay";
 import { Anh3D } from "@/lib/lan-dau";
 import { cauThemQua, doiChonMau, type NhomThuVien } from "@/lib/s3";
-import { BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, NhanMen, Nut, The, tien, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, ChoTai, ChonMot, Chu, M, Man, NhanMen, Nut, The, tien, useLam, useTai } from "@/lib/ui";
 import { GiaSao, NutCong } from "@/lib/ui-s3";
 import type { Ten3D } from "@/lib/icon-3d";
 
@@ -37,19 +37,8 @@ export default function ThuVienQua() {
   return (
     <Man lui={{ chu: "" }} tieu={tieu}
       day={<><BaoLoi loi={loiLam} /><Nut chu={cauThemQua(chon.length, d.ten)} rong dangChay={dangChay} tat={!chon.length} bam={them} /></>}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4, paddingRight: 8 }} accessibilityRole="tablist">
-        {[{ ma: null as string | null, ten: "Tất cả" }, ...d.nhom.map((g) => ({ ma: g.ma as string | null, ten: NGAN[g.ma] ?? g.ten }))].map((x) => {
-          const on = x.ma === loc;
-          return (
-            <Pressable key={x.ma ?? "tat_ca"} onPress={() => setLoc(x.ma)} accessibilityRole="tab" accessibilityState={{ selected: on }}
-              style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44, paddingHorizontal: 14, borderRadius: 22,
-                backgroundColor: on ? M.chinh : M.the, boxShadow: on ? BONG.ngoc : BONG.nho }}>
-              {x.ma && IC_NHOM[x.ma] ? <Anh3D ten={IC_NHOM[x.ma]} co={20} /> : null}
-              <Chu kieu="rat" co={14.5} mau={on ? "#FFFBF5" : M.chu}>{x.ten}</Chu>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+      {/* #492 Bàn: ba tab chia đều «Tất cả / Ba Mẹ mua / Quà nhà» */}
+      <ChonMot ds={[{ gia: "", chu: "Tất cả" }, ...d.nhom.map((g) => ({ gia: g.ma as string, chu: NGAN[g.ma] ?? g.ten }))]} gia={loc ?? ""} doi={(v) => setLoc(v || null)} />
       {nhom.map((g) => (
         <View key={g.ma} style={{ gap: 8 }}>
           <The sat>

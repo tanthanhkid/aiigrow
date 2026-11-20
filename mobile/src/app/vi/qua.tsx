@@ -10,16 +10,15 @@
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { TextInput, View } from "react-native";
-import { bm, laXinVay, type GiaDinh } from "@/lib/api";
-import { HangChonBe } from "@/lib/ui-chung";
-import { CAU_TRONG_GIUP, quyenToi, type ChoDuyetMoi, type YeuCauMoi } from "@/lib/hang-ngay";
-import { BangChoVay, hoanTacVay, saoTu, soVN } from "@/lib/so-sao";
+import { bm, type GiaDinh } from "@/lib/api";
+import { CAU_TRONG_GIUP, quyenToi } from "@/lib/hang-ngay";
 import { icQua, tenVoucher, type NhomThuVien, type QuaS3 } from "@/lib/s3";
 import { veHoac } from "@/lib/ui-bm3";
-import { BaoLoi, baoKhiVe, ChoTai, Chips, ChonMot, Chu, Dong, F, Icon3D, M, Man, NhanMen, Nhom, Nut, The, tien, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, ChoTai, Chips, ChonMot, Chu, Dong, F, Icon3D, IconNet, M, Man, NhanMen, Nhom, Nut, The, tien, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 import { GiaSao, OHinhQua } from "@/lib/ui-s3";
 import { BONG, KHOI } from "@/lib/clay";
-import { ChonO } from "@/lib/ui-viec";
+import { ChonSao } from "@/lib/chon-sao";
+import { useSaoTu } from "@/lib/sao-tu-nhap";
 
 const TIEU = "Quà con đổi bằng sao";
 const GOI_Y = ["Đi ăn kem", "Xem phim", "Chọn món tối", "Đi công viên", "Đồ chơi nhỏ"];
@@ -48,52 +47,33 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
   const conId = c?.id ?? null;
   const thamCon = conId ? `?con=${encodeURIComponent(conId)}` : "";
   const q = useTai(async () => {
-    const [qua, tv, cd] = await Promise.all([bm.goi<{ ds: QuaS3[] }>(`qua${thamCon}`), bm.goi<{ nhom: NhomThuVien[] }>(`qua/thu-vien${thamCon}`),
-      bm.goi<ChoDuyetMoi>("cho-duyet").catch(() => null)]);
-    const xinVay = (cd?.yeuCau ?? []).filter((y) => y.child_id === conId && laXinVay(y) && y.muc_dich === "qua");
-    return { qua: qua.ds, voucher: tv.nhom.flatMap((x) => x.ds).filter((m) => m.loai === "voucher"), xinVay };
+    const [qua, tv] = await Promise.all([bm.goi<{ ds: QuaS3[] }>(`qua${thamCon}`), bm.goi<{ nhom: NhomThuVien[] }>(`qua/thu-vien${thamCon}`)]);
+    return { qua: qua.ds, voucher: tv.nhom.flatMap((x) => x.ds).filter((m) => m.loai === "voucher") };
   });
-  const [vay, setVay] = useState<YeuCauMoi | null>(null);
-  const { bao, noi } = useHoanTac();
-  const [tab, setTab] = useState<"voucher" | "nha">(tabDau);
+  const { noi } = useHoanTac();
+  const [tab, setTab] = useState<"tat" | "voucher" | "nha">(tabDau === "nha" ? "nha" : "tat");
   const [ten, setTen] = useState("");
   const [sao, setSao] = useState(100);
+  const st = useSaoTu(1000);
   const { lam, loi: loiLam, dangChay } = useLam();
   const tieu = c ? `Quà của ${c.ten}` : TIEU;
   if (!q.d) return <Man lui={{ chu: "", bam: ve }} tieu={tieu}><ChoTai loi={q.loi} matMang={q.matMang} tai={q.tai} /></Man>;
   const nha = q.d.qua.filter((x) => x.bat && x.loai !== "voucher");
   const themQua = () => lam(async () => {
     const t = ten.trim();
-    await bm.goi("qua", { ten: t, loai: "qua", sao, ...(conId ? { apCho: [conId] } : {}) });
-    setTen("");
-    baoKhiVe(`Đã thêm quà «${t}» · ${sao} sao`);
+    await bm.goi("qua", { ten: t, loai: "qua", sao: st.dung(sao), ...(conId ? { apCho: [conId] } : {}) });
+    setTen(""); st.xoa();
+    baoKhiVe(`Đã thêm quà «${t}» · ${st.dung(sao)} sao`);
     await q.tai();
   });
   const moMua = (ma: string) => router.push({ pathname: "/vi/qua-mua", params: { ma, ...(conId ? { con: conId } : {}) } });
 
   return (
-    <Man lui={{ chu: "", bam: ve }} tieu={tieu} tai={q.tai} noi={noi} day={<Nut chu="Xong" rong bam={ve} />}>
-      {dsCon.length > 1 && c ? <HangChonBe ds={dsCon} chon={c.id} doi={(x) => x && doiCon(x.id)} tenNgan /> : null}
-      <ChonMot ds={[{ gia: "voucher" as const, chu: "Voucher AiiGrow", ic: "the_qua" }, { gia: "nha" as const, chu: "Ba Mẹ tự điền", ic: "but" }]} gia={tab} doi={setTab} />
-      {c ? q.d.xinVay.map((y) => {
-        const qq = q.d!.qua.find((x) => x.id === y.gia_tri);
-        const co = saoTu(c).sao;
-        return (
-          <The key={y.id} style={{ backgroundColor: M.canhSoft }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-              {/* thiết kế 473f52w6: ô vàng nhạt 44 + sao 3D */}
-              <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten="sao" co={28} /></View>
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <Chu kieu="rat" co={15} mau={M.canh}>{`${c.ten} xin vay ${soVN(y.phut ?? 15)} sao`}</Chu>
-                <Chu kieu="dam" co={12.5} mau={M.canh}>{`Để đổi ${qq ? tenVoucher(qq.ten) : "quà"}${qq ? ` · con có ${soVN(co)}/${soVN(qq.sao)} sao` : ""}`}</Chu>
-              </View>
-              {baMe ? <View><Nut chu="Cho vay" nho bam={() => setVay(y)} /></View> : null}
-            </View>
-          </The>
-        );
-      }) : null}
+    <Man lui={{ chu: "", bam: ve }} tieu={tieu} tai={q.tai} noi={noi} day={<Nut chu="Về Việc & quà" rong bam={() => router.replace("/diem-qua" as never)} />}>
+      {/* #492 Bàn them-473f52w6: tab «Tất cả / Ba Mẹ mua / Quà nhà»; bỏ hàng chọn bé và thẻ xin vay (lời xin chỉ hiện ở Trang chủ + Thông báo) */}
+      <ChonMot ds={[{ gia: "tat" as const, chu: "Tất cả" }, { gia: "voucher" as const, chu: "Ba Mẹ mua" }, { gia: "nha" as const, chu: "Quà nhà" }]} gia={tab} doi={setTab} />
 
-      {tab === "voucher" ? (
+      {tab !== "nha" ? (
         <>
           <Chu kieu="dam" co={13} mau={M.chu2} style={{ marginHorizontal: 6 }}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi; thiếu sao thì con xin Ba Mẹ cho vay.</Chu>
           <View style={{ gap: 10 }}>
@@ -114,6 +94,17 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
               </NhanMen>
             ))}
           </View>
+          {tab === "tat" && nha.length ? (
+            <>
+              <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6, marginTop: 4 }}>Quà nhà</Chu>
+              <Nhom>
+                {nha.map((x, i) => (
+                  <Dong key={x.id} dau={i === 0} tieu={x.ten} trai={<IconNet ten={icQua(x) as TenIcon} co={26} />} phai={<GiaSao n={x.sao} />}
+                    bam={baMe ? () => router.push({ pathname: "/vi/qua-sua", params: { id: x.id, ...(conId ? { con: conId } : {}) } }) : undefined} />
+                ))}
+              </Nhom>
+            </>
+          ) : null}
         </>
       ) : (
         <>
@@ -130,9 +121,9 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
                 </View>
                 <Chips ds={GOI_Y.map((x) => ({ gia: x, chu: x }))} chon={GOI_Y.includes(ten.trim()) ? [ten.trim()] : []} doi={setTen} />
                 <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4, marginTop: 4 }}>Con đổi bằng</Chu>
-                <ChonO ds={SO_SAO.map((n) => ({ gia: n, chu: `${n}` }))} chon={sao} doi={setSao} sao />
+                <ChonSao muc={SO_SAO} gia={sao} doi={setSao} st={st} />
                 <BaoLoi loi={loiLam} />
-                <Nut chu="Thêm quà" ic="cong" ic3d loai="vien" rong dangChay={dangChay} tat={!ten.trim() || !conId} bam={themQua} />
+                <Nut chu="Thêm quà" ic="cong" ic3d loai="vien" rong dangChay={dangChay} tat={!ten.trim() || !conId || st.loi} bam={themQua} />
               </View>
             </The>
           ) : <Chu co={13} mau={M.chu3}>{CAU_TRONG_GIUP}</Chu>}
@@ -158,10 +149,6 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
         // quỹ phiếu AiiCafe nạp trước 06/11 vẫn dùng ở quầy (KE-HOACH 0511 câu mở 3) — báo số dư + chỗ hỏi nạp / hoàn
         <Nhom><Dong dau tieu={`Quỹ phiếu quà AiiCafe còn ${tien(quyVoucher)}`} phu="Dùng ở quầy AiiCafe · cần nạp hay hoàn thì nhắn AiiGrow" trai={<Icon3D ten="coc" co={32} />}
           bam={() => router.push("/ho-tro")} /></Nhom>
-      ) : null}
-      {c && vay ? (
-        <BangChoVay mo={!!vay} dong={() => setVay(null)} con={c.id} ten={c.ten} soSao={vay.phut} yeuCau={vay.id} mucDich="qua"
-          xong={(k) => { bao(`Đã cho ${c.ten} vay ${soVN(k.soSao)} sao`, () => { hoanTacVay(k.id).then(q.tai, () => { bao("Đã quá 60 giây — không hoàn tác được"); q.tai(); }); }); q.tai(); }} />
       ) : null}
     </Man>
   );

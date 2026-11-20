@@ -6,10 +6,12 @@ import { useState, type ReactNode } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { BONG, KHOI } from "@/lib/clay";
+import { KHOI } from "@/lib/clay";
 import { tenGoi, type NhiemVuMoi } from "@/lib/hang-ngay";
-import { buocGia, cauNgayDoi, HINH_CHON, icQua, saoMoiNgay, thanSuaQua, type QuaS3 } from "@/lib/s3";
+import { cauNgayDoi, HINH_CHON, icQua, saoMoiNgay, thanSuaQua, type QuaS3 } from "@/lib/s3";
 import { GiaSao } from "@/lib/ui-s3";
+import { ChonSao } from "@/lib/chon-sao";
+import { useSaoTu } from "@/lib/sao-tu-nhap";
 import { HoiLai } from "@/lib/ui-chung";
 import { BaoLoi, baoKhiVe, ChoTai, Chips, Chu, CongTac, Icon3D, M, Man, NhanMen, Nut, ONhap, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 
@@ -28,14 +30,6 @@ function DongDk({ tieu, phu, bat, doi, dau, duoi }: { tieu: string; phu: string;
   );
 }
 
-/** Nút tròn −/+ 10 sao. */
-const NutGia = ({ hg, s, doi }: { hg: 1 | -1; s: number; doi: (n: number) => void }) => (
-  <Pressable onPress={() => doi(buocGia(s, hg))} accessibilityRole="button" accessibilityLabel={hg < 0 ? "Bớt 10 sao" : "Thêm 10 sao"} hitSlop={4}
-    style={{ width: 52, height: 52, borderRadius: 26, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.nho }}>
-    <Chu kieu="rat" co={24} mau={M.chinhInk}>{hg < 0 ? "−" : "+"}</Chu>
-  </Pressable>
-);
-
 export default function SuaQua() {
   const { id, con: conSan } = useLocalSearchParams<{ id?: string; con?: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
@@ -51,6 +45,7 @@ export default function SuaQua() {
   const [xacNhan, setXacNhan] = useState<boolean | null>(null);
   const [apCho, setApCho] = useState<string[] | null>(null);
   const [xoa, setXoa] = useState(false);
+  const st = useSaoTu(1000);
   const { lam, loi: loiLam, dangChay } = useLam();
   const tieu = id ? "Sửa quà" : "Tự đặt quà riêng";
   if (!d) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -67,7 +62,8 @@ export default function SuaQua() {
   const t = ten ?? q?.ten ?? "";
   // quà cũ chưa có hình (cột mới) ⇒ giữ null, icon vẫn đoán theo tên; chỉ gửi hình khi Ba Mẹ chọn. Quà mới mặc định «kem».
   const h = hinh === undefined ? (q ? q.hinh : "kem") : hinh;
-  const s = sao ?? q?.sao ?? 100;
+  const s0 = sao ?? q?.sao ?? 100;
+  const s = st.dung(s0);
   const ct = cuoiTuan ?? q?.chiCuoiTuan ?? false;
   const td = toiDa === undefined ? q?.toiDaThang ?? null : toiDa;
   const tk = tonKho === undefined ? q?.tonKho ?? null : tonKho;
@@ -76,7 +72,7 @@ export default function SuaQua() {
   // «Bảo Anh làm đủ việc được khoảng 60 sao/ngày → 2 ngày đổi được» — theo Con đang xem (hoặc Con đầu tiên được áp)
   const conXem = d.con.find((c) => c.id === conSan) ?? d.con.find((c) => ap.includes(c.id)) ?? d.con[0];
   const ghi = conXem ? cauNgayDoi(conXem.ten, s, saoMoiNgay(d.nv, conXem.id)) : null;
-  const ok = t.trim().length > 0 && ap.length > 0;
+  const ok = t.trim().length > 0 && ap.length > 0 && !st.loi;
   const hinhDs = [...new Set([...(h ? [h] : []), ...HINH_CHON])];
   const icHienTai = icQua({ hinh: h, loai: q?.loai ?? "qua", ten: t });
   const luu = () => lam(async () => {
@@ -120,13 +116,7 @@ export default function SuaQua() {
 
       <View style={{ gap: 8 }}>
         <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Giá</Chu>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <NutGia hg={-1} s={s} doi={setSao} />
-          <View style={{ flex: 1, minHeight: 56, borderRadius: 20, backgroundColor: M.diemSoft, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, boxShadow: BONG.lom }}>
-            <Icon3D ten="sao" co={24} /><Chu kieu="rat" co={20} mau={M.diemInk} so>{`${s.toLocaleString("vi-VN").replace(/,/g, ".")} sao`}</Chu>
-          </View>
-          <NutGia hg={1} s={s} doi={setSao} />
-        </View>
+        <ChonSao muc={[...new Set([50, 100, 200, 300, s0])].sort((x, y) => x - y)} gia={s0} doi={setSao} st={st} />
         {ghi ? <Chu co={13} mau={M.chu3} style={{ paddingHorizontal: 4 }}>{ghi}</Chu> : null}
       </View>
 
@@ -134,9 +124,9 @@ export default function SuaQua() {
         <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Điều kiện</Chu>
         <The sat>
           <DongDk dau tieu="Chỉ đổi cuối tuần" phu="Thứ 7 và Chủ nhật" bat={ct} doi={setCuoiTuan} />
-          <DongDk tieu="Tối đa mỗi tháng" phu={td ? `${td} lần · bấm số để đổi` : "Con đổi bao nhiêu lần cũng được"} bat={!!td} doi={(v) => setToiDa(v ? td ?? 4 : null)}
+          <DongDk tieu="Mỗi tháng đổi được" phu={td ? `${td} lần · bấm để đổi số` : "Con đổi bao nhiêu lần cũng được"} bat={!!td} doi={(v) => setToiDa(v ? td ?? 4 : null)}
             duoi={<Chips ds={[...new Set([...SO_LAN, td ?? 4])].sort((a, b) => a - b).map((n) => ({ gia: n, chu: `${n} lần` }))} chon={[td ?? 4]} doi={(n) => setToiDa(n)} />} />
-          <DongDk tieu="Số lượng có sẵn" phu={tk !== null ? `Còn ${tk} · hết thì con không đổi được` : "Hết thì con không đổi được"} bat={tk !== null} doi={(v) => setTonKho(v ? tk ?? 1 : null)}
+          <DongDk tieu="Có hạn số quà" phu={tk !== null ? `Còn ${tk} · hết thì con không đổi được` : "Hết thì con không đổi được"} bat={tk !== null} doi={(v) => setTonKho(v ? tk ?? 1 : null)}
             duoi={
               <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
                 <Nut chu="−" nho loai="vien" tat={(tk ?? 0) <= 0} bam={() => setTonKho(Math.max(0, (tk ?? 1) - 1))} nhanDoc="Bớt 1" />
