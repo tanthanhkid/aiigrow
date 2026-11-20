@@ -1,153 +1,198 @@
-// them-s416tfdj / them-x9x2u07e «Quà của X» (bước 3/5 Lần đầu, thiết kế chốt 14/11): 2 tab.
-//  · «🎟️ Voucher AiiGrow»: Ba Mẹ mua một lần, quà nằm sẵn trong kho của con (bảng giá thiết kế) — «Mua» ⇒ chi tiết them-hn2754ce (/thiet-lap/qua-mua).
-//  · «✏️ Ba Mẹ tự điền»: tên quà (gợi ý chip) + số sao 50/100/200/300 ⇒ «＋ Thêm quà» = POST qua {ten, sao, apCho:[con]}; danh sách «Quà Ba Mẹ đã điền».
-// 7 quà mặc định (N12) máy chủ đã gieo khi tạo Con (qua-bang-gia › gieoQuaMacDinh) — màn này không bỏ chúng. «Xong / Để sau» ⇒ Chơi bằng sao (thiết kế 15/11 them-s416tfdj).
-import { useSaoTu } from "@/lib/sao-tu-nhap";
+// them-s416tfdj «Quà của X» (bước 3/5 Lần đầu; bàn v13 19/11, kèm them-u60j9p7w / them-x9x2u07e): 3 tab Tất cả · Ba Mẹ mua · Quà nhà.
+//  · «Ba Mẹ mua» (voucher AiiCafe, sách AiiLab, Lego — tốn tiền): mỗi dòng chọn số lượng −/＋ «Đang có: N»; bấm tên ⇒ chi tiết them-hn2754ce (/thiet-lap/qua-mua).
+//  · «Quà nhà» (không tốn tiền): cùng cách chọn số lượng; tab này có thêm khung «Thêm quà nhà» (tên + 50/100/200/300 sao + nút ＋ vàng = POST qua {ten, sao, apCho:[con]}).
+//  · Nút cuối ghi tổng: «Xong, thêm N quà · trả X đ». Quà nhà / quà vật lý chọn ≥1 ⇒ POST qua/thu-vien {mau, con} (vào kho của con); quà TRẢ TIỀN chưa có cổng thanh toán ⇒
+//    bảng «Mua quà qua AiiGrow» (nhắn AiiGrow) rồi đi tiếp. «Để sau, chọn quà sau» ⇒ Chơi bằng sao.
+// 7 quà mặc định (N12) máy chủ đã gieo khi tạo Con (qua-bang-gia › gieoQuaMacDinh) — màn này không bỏ chúng.
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { bm } from "@/lib/api";
-import { BONG, KHOI } from "@/lib/clay";
+import { BONG, KHOI, MEN } from "@/lib/clay";
 import { DauMan, LienKet } from "@/lib/lan-dau";
-import { MAU_MUC, TabLom, TheDs } from "@/lib/lan-dau-ds";
+import { TheDs } from "@/lib/lan-dau-ds";
+import type { NhomThuVien, MauQua } from "@/lib/s3";
 import { layTl } from "@/lib/thiet-lap";
-import { BaoLoi, Chu, F, Icon, Icon3D, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BangTruot, BaoLoi, ChoTai, Chu, F, IconNet, LopMen, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { dong, soCham, VOUCHER } from "@/lib/voucher-lan-dau";
+import { dong, soCham } from "@/lib/voucher-lan-dau";
 
-type Tab = "voucher" | "tu_dien";
+type Tab = "tat_ca" | "ba_me_mua" | "qua_nha";
 type Qua = { id: string; ten: string; sao: number; mau: string | null; loai: string };
-const GOI_Y = ["🍦 Đi ăn kem", "🎬 Xem phim", "🍲 Chọn món tối", "🏞️ Đi công viên", "🧸 Đồ chơi nhỏ"];
+const GOI_Y = ["Xem phim", "Chọn món tối", "Đi công viên", "Đồ chơi nhỏ"];
 const SAO = [50, 100, 200, 300];
-const SAO_TOI_DA = 100000;                       // trần hợp lý máy chủ nhận cho một quà (kiemQua)
+/** Mã mẫu thư viện ⇒ mã voucher của màn chi tiết (them-hn2754ce). */
+const CHI_TIET: Record<string, string> = { aiicafe_20k: "cafe20", aiicafe_50k: "cafe50", aiicafe_100k: "cafe100", sach_aiilab: "sach", workshop_aiilab: "workshop" };
+/** Dòng phụ theo bàn: «20.000đ · 200 sao · QR 60 ngày». */
+const phuMau = (m: MauQua) => [m.menhGia ? dong(m.menhGia) : null, `${soCham(m.sao)} sao`,
+  m.loai === "voucher" && m.ma.startsWith("aiicafe") ? "QR 60 ngày" : m.chiCuoiTuan ? "Thứ 7, Chủ nhật" : m.moTa && !/^Ba Mẹ|^Có tồn/.test(m.moTa) ? m.moTa : m.ma === "lego" ? "còn hàng, hết thì ẩn" : null].filter(Boolean).join(" · ");
 
 export default function ObQua() {
   const tl = layTl();
   const ten = tl.tenCon ?? "con";
-  const [tab, setTab] = useState<Tab>("voucher");
-  const sang = () => router.push("/thiet-lap/gio");
+  const con = tl.conId;
+  const [tab, setTab] = useState<Tab>("tat_ca");
+  const [sl, setSl] = useState<Record<string, number>>({});
+  const [hoi, setHoi] = useState(false);
   const { guiCham, noi } = useHoanTac();            // xoá quà đã điền: hoàn tác 8 giây trước khi gửi máy chủ
+  const { lam, loi, dangChay, setLoi } = useLam();
+  const { d, loi: loiTai, matMang, tai } = useTai(async () => {
+    const [tv, q] = await Promise.all([bm.goi<{ nhom: NhomThuVien[] }>(`qua/thu-vien${con ? `?con=${encodeURIComponent(con)}` : ""}`),
+      bm.goi<{ ds: Qua[] }>(`qua${con ? `?con=${encodeURIComponent(con)}` : ""}`)]);
+    return { nhom: tv.nhom, rieng: q.ds.filter((x) => !x.mau && x.loai !== "voucher") };
+  });
+  const [daXoa, setDaXoa] = useState<string[]>([]);
+  const sang = () => router.push("/thiet-lap/gio");
+  const dsMua = d?.nhom.find((g) => g.ma === "ba_me_mua")?.ds ?? [];
+  const dsNha = d?.nhom.find((g) => g.ma === "qua_nha")?.ds ?? [];
+  const dat = (ma: string, n: number) => setSl((x) => ({ ...x, [ma]: Math.max(0, Math.min(9, n)) }));
+  const chonMua = dsMua.filter((m) => (sl[m.ma] ?? 0) > 0);
+  const chonNha = dsNha.filter((m) => (sl[m.ma] ?? 0) > 0);
+  const tongQua = [...chonMua, ...chonNha].reduce((t, m) => t + (sl[m.ma] ?? 0), 0);
+  const tongTien = chonMua.reduce((t, m) => t + (m.menhGia ?? 0) * (sl[m.ma] ?? 0), 0);
+  const traTien = chonMua.filter((m) => (m.menhGia ?? 0) > 0);
+  const xong = () => lam(async () => {
+    // quà không tốn tiền + quà vật lý (không có giá voucher) vào kho của con; voucher trả tiền chờ cổng thanh toán
+    const vao = [...chonNha, ...chonMua.filter((m) => !m.menhGia)].map((m) => m.ma).filter((ma) => !(dsNha.find((m) => m.ma === ma)?.daCo));
+    if (vao.length) await bm.goi("qua/thu-vien", { mau: vao, ...(con ? { con } : {}) });
+    if (traTien.length) setHoi(true); else sang();
+  });
+  const cauNut = tongQua ? `Xong, thêm ${tongQua} quà${tongTien ? ` · trả ${dong(tongTien)}` : ""}` : "Xong, sang chơi bằng sao";
   return (
     <Man dau={<DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc5 dang={2} />} />} noi={noi}
-      day={<><Nut chu="Xong, sang chơi bằng sao" rong bam={sang} /><LienKet chu="Để sau, chọn quà sau" bam={sang} /></>}>
+      day={<><BaoLoi loi={loi} /><Nut chu={cauNut} rong dangChay={dangChay} bam={tongQua ? xong : sang} /><LienKet chu="Để sau, chọn quà sau" bam={sang} /></>}>
       <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, marginLeft: 4 }}>Quà của {ten}</Text>
-      <TabLom ds={[{ ma: "voucher" as Tab, chu: "🎟️ Voucher AiiGrow" }, { ma: "tu_dien" as Tab, chu: "✏️ Ba Mẹ tự điền" }]} dang={tab} doi={setTab} />
-      {tab === "voucher" ? <TabVoucher /> : <TabTuDien con={tl.conId} guiCham={guiCham} />}
+      <TabQua dang={tab} doi={setTab} />
+      {!d ? <ChoTai loi={loiTai} matMang={matMang} tai={tai} /> : (
+        <>
+          {tab !== "qua_nha" ? (
+            <Nhom ic="the_qua" chu="Ba Mẹ mua" phu="tốn tiền · mua thêm được">
+              <TheDs le>
+                {dsMua.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={sl[m.ma] ?? 0} dat={(n) => dat(m.ma, n)}
+                  xem={CHI_TIET[m.ma] ? () => router.push({ pathname: "/thiet-lap/qua-mua", params: { ma: CHI_TIET[m.ma] } }) : undefined} />)}
+              </TheDs>
+            </Nhom>
+          ) : null}
+          {tab === "qua_nha" ? <ThemQuaNha con={con} lam={lam} setLoi={setLoi} dangChay={dangChay} tai={tai} /> : null}
+          {tab !== "ba_me_mua" ? (
+            <Nhom ic="nha" chu="Quà nhà" phu={tab === "qua_nha" ? `${dsNha.length + d.rieng.filter((q) => !daXoa.includes(q.id)).length} quà` : "không tốn tiền"}>
+              <TheDs le>
+                {dsNha.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={m.daCo ? Math.max(1, sl[m.ma] ?? 1) : sl[m.ma] ?? 0} dat={(n) => dat(m.ma, n)} khoa={m.daCo} />)}
+                {d.rieng.filter((q) => !daXoa.includes(q.id)).map((q, i) => (
+                  <DongQua key={q.id} i={dsNha.length + i} ten={q.ten} phu={`${soCham(q.sao)} sao`} n={1}
+                    dat={(n) => { if (n >= 1) return; setDaXoa((x) => [...x, q.id]); guiCham(`Đã xoá quà «${q.ten}»`, () => {
+                      bm.goi(`qua/${q.id}/xoa`, {}).then(() => tai(), () => { setDaXoa((x) => x.filter((y) => y !== q.id)); setLoi(`Chưa xoá được quà «${q.ten}», thử lại nhé.`); tai(); });
+                    }, () => setDaXoa((x) => x.filter((y) => y !== q.id))); }} tran={1} />
+                ))}
+              </TheDs>
+            </Nhom>
+          ) : null}
+        </>
+      )}
+      <BangTruot mo={hoi} dong={() => setHoi(false)} tieu="Mua quà qua AiiGrow">
+        <Chu co={14.5} mau={M.chu2}>Thanh toán trong app đang được chuẩn bị. Ba Mẹ nhắn AiiGrow để mua {traTien.map((m) => `${sl[m.ma]} × ${m.ten}`).join(", ")} ({dong(tongTien)}) — quà sẽ nằm sẵn trong kho của con.</Chu>
+        <Nut chu="Nhắn AiiGrow" rong bam={() => { setHoi(false); router.push("/ho-tro"); }} />
+        <Nut chu="Để sau, đi tiếp" loai="ma" rong bam={() => { setHoi(false); sang(); }} />
+      </BangTruot>
     </Man>
   );
 }
 
-function TabVoucher() {
-  // bàn them-s416tfdj v9 `.v-ve`: mỗi voucher một «vé» — ô trái 72 nền lam nhạt + vạch đứt, tên 15/800, «💳 giá · ⭐ sao», viên «Mua» lam
+/** Tab 3 mục (bàn: rãnh lõm, mục đang chọn navy chữ vàng kem). */
+function TabQua({ dang, doi }: { dang: Tab; doi: (t: Tab) => void }) {
+  const ds: { ma: Tab; chu: string }[] = [{ ma: "tat_ca", chu: "Tất cả" }, { ma: "ba_me_mua", chu: "Ba Mẹ mua" }, { ma: "qua_nha", chu: "Quà nhà" }];
   return (
-    <>
-      <Chu kieu="dam" co={13} mau={M.chu3} style={{ marginHorizontal: 4 }}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi, thiếu thì xin Ba Mẹ cho vay sao.</Chu>
-      <View style={{ gap: 10 }}>
-        {VOUCHER.map((v) => (
-          <Pressable key={v.ma} onPress={() => router.push({ pathname: "/thiet-lap/qua-mua", params: { ma: v.ma } })} accessibilityRole="button" accessibilityLabel={`${v.ten}, ${dong(v.gia)}, ${v.sao} sao. Mua`}
-            style={{ flexDirection: "row", alignItems: "stretch", minHeight: 76, borderRadius: 20, backgroundColor: M.the, overflow: "hidden", ...KHOI.the }}>
-            <View style={{ width: 72, alignItems: "center", justifyContent: "center", backgroundColor: M.chinhSoft, borderRightWidth: 2, borderRightColor: M.vien, borderStyle: "dashed" }}>
-              <Text style={{ fontSize: 30, lineHeight: 38 }}>{v.e}</Text>
-            </View>
-            <View style={{ flex: 1, minWidth: 0, paddingVertical: 10, paddingHorizontal: 12, justifyContent: "center", gap: 4 }}>
-              <Chu kieu="rat" co={15} dong={1}>{v.ten}</Chu>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                <Chu kieu="rat" co={12} mau={MAU_MUC.lam.chu}>💳 {dong(v.gia)}</Chu><Chu kieu="dam" co={12} mau={M.chu3}>·</Chu>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 2 }}><Icon3D ten="sao" co={14} /><Chu kieu="rat" co={12} mau={M.diemInk} so>{soCham(v.sao)}</Chu></View>
-              </View>
-            </View>
-            <View style={{ justifyContent: "center", paddingRight: 16 }}>
-              <View style={{ minHeight: 34, paddingHorizontal: 12, borderRadius: 17, backgroundColor: MAU_MUC.lam.nen, alignItems: "center", justifyContent: "center" }}>
-                <Text style={{ fontFamily: F.rat, fontSize: 13, color: MAU_MUC.lam.chu }}>Mua</Text>
-              </View>
-            </View>
+    <View style={{ flexDirection: "row", gap: 4, padding: 4, minHeight: 52, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom }} accessibilityRole="tablist">
+      {ds.map((x) => {
+        const on = x.ma === dang;
+        return (
+          <Pressable key={x.ma} onPress={() => doi(x.ma)} accessibilityRole="tab" accessibilityState={{ selected: on }}
+            style={[{ flex: 1, minWidth: 0, alignItems: "center", justifyContent: "center", borderRadius: 22 }, on && { backgroundColor: M.chinh, boxShadow: BONG.ngoc }]}>
+            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 14, color: on ? M.diem : M.chu3 }}>{x.chu}</Text>
           </Pressable>
-        ))}
-      </View>
-    </>
+        );
+      })}
+    </View>
   );
 }
 
-function TabTuDien({ con, guiCham }: { con?: string; guiCham: (chu: string, lam: () => void, huy?: () => void) => void }) {
-  const { d, tai } = useTai(() => bm.goi<{ ds: Qua[] }>(`qua${con ? `?con=${encodeURIComponent(con)}` : ""}`));
+function Nhom({ ic, chu, phu, children }: { ic: "the_qua" | "nha"; chu: string; phu: string; children: React.ReactNode }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4, marginTop: 4 }}>
+        <IconNet ten={ic === "the_qua" ? "the_qua" : "nha"} co={20} mau={M.chinh} />
+        <Chu kieu="rat" co={16} style={{ flex: 1 }}>{chu}</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>{phu}</Chu>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+/** Một dòng quà: tên + dòng phụ + viên «Đang có: N» + nút − / ＋ (＋ vàng kim). `khoa` = quà đã có sẵn (chỉ hiện, không đổi số); `tran` = số tối đa. */
+function DongQua({ i, ten, phu, n, dat, xem, khoa, tran = 9 }: { i: number; ten: string; phu: string; n: number; dat: (n: number) => void; xem?: () => void; khoa?: boolean; tran?: number }) {
+  const nut = (chu: "−" | "＋", bam: () => void, tat: boolean, nhan: string) => (
+    <Pressable onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={`${nhan} ${ten}`} hitSlop={4}
+      style={[{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", opacity: tat ? 0.4 : 1, overflow: "hidden" },
+        chu === "＋" ? { backgroundColor: M.diem, boxShadow: BONG.vang } : { backgroundColor: M.the, boxShadow: BONG.nho }]}>
+      {chu === "＋" ? <LopMen men={MEN.vang} bo={22} /> : null}
+      <IconNet ten={chu === "＋" ? "cong" : "tru"} co={20} mau={M.chinh} />
+    </Pressable>
+  );
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: M.ranh }}>
+      <Pressable onPress={xem} disabled={!xem} accessibilityRole={xem ? "button" : undefined} accessibilityLabel={xem ? `Xem chi tiết ${ten}` : undefined} style={{ flex: 1, minWidth: 0, gap: 3 }}>
+        <Chu kieu="rat" co={15.5} dong={2}>{ten}</Chu>
+        <Chu kieu="dam" co={12.5} mau={M.chu2} dong={2}>{phu}</Chu>
+        <View style={{ alignSelf: "flex-start", minHeight: 22, paddingHorizontal: 10, borderRadius: 11, justifyContent: "center", backgroundColor: n ? M.chinh : M.xamSoft, boxShadow: n ? undefined : BONG.nho }}>
+          <Chu kieu="rat" co={12} mau={n ? M.diem : M.chinh} so>Đang có: {n}</Chu>
+        </View>
+      </Pressable>
+      {nut("−", () => dat(n - 1), n <= 0 || (!!khoa && n <= 1), "Bớt 1")}
+      {nut("＋", () => dat(n + 1), !!khoa || n >= tran, "Thêm 1")}
+    </View>
+  );
+}
+
+/** Khung «Thêm quà nhà» (them-u60j9p7w): ô tên, 4 gợi ý, 4 mốc sao, nút ＋ vàng kim. */
+function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f: () => Promise<unknown>) => void; setLoi: (s: string | null) => void; dangChay: boolean; tai: () => unknown }) {
   const [ten, setTen] = useState("");
   const [sao, setSao] = useState(100);
-  const st = useSaoTu(SAO_TOI_DA);                   // ô «Số sao khác» (rỗng = dùng chip)
-  const [daXoa, setDaXoa] = useState<string[]>([]);      // quà đang chờ xoá (ẩn ngay, gửi sau 8 giây nếu không Hoàn tác)
-  const { lam, loi, dangChay, setLoi } = useLam();
-  const rieng = (d?.ds ?? []).filter((q) => !q.mau && q.loai !== "voucher" && !daXoa.includes(q.id));
-  const saoDung = st.dung(sao);
-  const saoLoi = st.loi;
-  const xoa = (q: Qua) => {
-    setDaXoa((x) => [...x, q.id]);
-    guiCham(`Đã xoá quà «${q.ten}»`, () => {
-      bm.goi(`qua/${q.id}/xoa`, {}).then(() => tai(), () => {
-        setDaXoa((x) => x.filter((y) => y !== q.id));          // máy chủ không xoá được ⇒ quà hiện lại + báo, không giả vờ đã xoá
-        setLoi(`Chưa xoá được quà «${q.ten}», thử lại nhé.`);
-        tai();
-      });
-    }, () => setDaXoa((x) => x.filter((y) => y !== q.id)));
-  };
   const them = () => lam(async () => {
-    const t = ten.replace(/^\p{Extended_Pictographic}️?\s*/u, "").trim();
+    const t = ten.trim();
     if ([...t].length < 2) throw new Error("Điền tên quà con muốn.");
-    await bm.goi("qua", { ten: t, sao: saoDung, loai: t === "Đồ chơi nhỏ" ? "qua" : "dac_quyen", ...(con ? { apCho: [con] } : {}) });
-    setTen(""); st.xoa();
+    setLoi(null);
+    await bm.goi("qua", { ten: t, sao, loai: t === "Đồ chơi nhỏ" ? "qua" : "dac_quyen", ...(con ? { apCho: [con] } : {}) });
+    setTen("");
     await tai();
   });
-  const oChon = (on: boolean) => ({ minHeight: 40, borderRadius: 20, paddingHorizontal: 12, alignItems: "center" as const, justifyContent: "center" as const, flexDirection: "row" as const, gap: 4,
-    backgroundColor: on ? M.chonSoft : M.xamSoft, boxShadow: on ? `0px 0px 0px 2px ${M.chinh}` : BONG.lom });
+  const chip = (on: boolean) => ({ minHeight: 44, borderRadius: 22, paddingHorizontal: 18, alignItems: "center" as const, justifyContent: "center" as const, flexDirection: "row" as const, gap: 4,
+    backgroundColor: on ? M.chinh : M.the, boxShadow: on ? BONG.ngoc : BONG.nho });
   return (
-    <>
-      <Chu co={14} mau={M.chu2}>Quà ở nhà Ba Mẹ tự lo, không tốn tiền trong app. Điền tên quà và số sao con cần để đổi.</Chu>
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 4, marginTop: 4 }}>
+        <IconNet ten="cong" co={20} mau={M.chinh} /><Chu kieu="rat" co={16} style={{ flex: 1 }}>Thêm quà nhà</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>không tốn tiền</Chu>
+      </View>
       <View style={{ borderRadius: 24, backgroundColor: M.the, padding: 16, gap: 10, ...KHOI.the }}>
-        <Chu kieu="rat" co={15}>Quà con muốn</Chu>
-        <View style={{ minHeight: 50, borderRadius: 25, backgroundColor: M.xamSoft, boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 }}>
-          <Text style={{ fontSize: 18 }}>🎁</Text>
-          <TextInput value={ten} onChangeText={setTen} placeholder="Ví dụ: Đi ăn kem" placeholderTextColor={M.chu3} maxLength={60} accessibilityLabel="Quà con muốn"
-            style={{ flex: 1, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 10, outlineStyle: "none" } as never} />
+        <View style={{ minHeight: 52, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom, justifyContent: "center", paddingHorizontal: 18 }}>
+          <TextInput value={ten} onChangeText={setTen} placeholder="Quà con muốn, ví dụ: Đi ăn kem" placeholderTextColor={M.chu3} maxLength={60} accessibilityLabel="Quà con muốn"
+            style={{ fontFamily: F.dam, fontSize: 15.5, color: M.chu, paddingVertical: 10, outlineStyle: "none" } as never} />
         </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
-          {GOI_Y.map((g) => <Pressable key={g} onPress={() => setTen(g.replace(/^\S+\s/, ""))} accessibilityRole="button" style={oChon(ten === g.replace(/^\S+\s/, ""))}>
-            <Chu kieu="rat" co={13}>{g}</Chu></Pressable>)}
+          {GOI_Y.map((g) => <Pressable key={g} onPress={() => setTen(g)} accessibilityRole="button" style={chip(false)}><Chu kieu="rat" co={14}>{g}</Chu></Pressable>)}
         </View>
-        <Chu kieu="rat" co={15}>Con đổi bằng</Chu>
-        <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
-          {SAO.map((s) => <Pressable key={s} onPress={() => { st.xoa(); setSao(s); }} accessibilityRole="radio" accessibilityState={{ checked: st.chu === "" && sao === s }} accessibilityLabel={`${s} sao`}
-            style={[oChon(st.chu === "" && sao === s), { flex: 1, paddingHorizontal: 0 }]}><Icon3D ten="sao" co={16} /><Chu kieu="rat" co={14} so>{s}</Chu></Pressable>)}
-        </View>
-        <View style={{ minHeight: 50, borderRadius: 25, backgroundColor: M.xamSoft, boxShadow: BONG.lom, flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16 }}>
-          <Icon3D ten="sao" co={18} />
-          <TextInput value={st.chu} onChangeText={st.nhap} placeholder="Hoặc tự nhập số sao, ví dụ 150" placeholderTextColor={M.chu3}
-            keyboardType="number-pad" maxLength={st.maxLength} accessibilityLabel="Số sao con cần để đổi"
-            style={{ flex: 1, fontFamily: F.dam, fontSize: 16, color: M.chu, paddingVertical: 10, outlineStyle: "none" } as never} />
-        </View>
-        {st.thongBao ? <Chu kieu="dam" co={13} mau={M.loi}>{st.thongBao}</Chu> : null}
-        <BaoLoi loi={loi} />
-        <Nut chu="＋ Thêm quà" loai="ngoc" rong dangChay={dangChay} tat={!ten.trim() || saoLoi} bam={them} />
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center", paddingHorizontal: 4 }}>
-        <Chu kieu="rat" co={16} style={{ flex: 1 }}>Quà Ba Mẹ đã điền</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>{rieng.length} quà</Chu>
-      </View>
-      {rieng.length ? (
-        <TheDs>
-          {rieng.map((q, i) => (
-            <View key={q.id} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 52, borderTopWidth: i ? 1 : 0, borderTopColor: M.ranh }}>
-              <Text style={{ fontSize: 20 }}>🎁</Text>
-              <Chu kieu="rat" co={14.5} style={{ flex: 1 }} dong={1}>{q.ten}</Chu>
-              <Icon3D ten="sao" co={15} /><Chu kieu="rat" co={13} mau={M.diemInk} so>{soCham(q.sao)}</Chu>
-              <Pressable onPress={() => xoa(q)} accessibilityRole="button" accessibilityLabel={`Xoá quà ${q.ten}`} hitSlop={6}
-                style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}><Icon ten="x" mau={M.chu3} co={18} /></Pressable>
-            </View>
+        <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }} accessibilityRole="radiogroup">
+          {SAO.map((s) => (
+            <Pressable key={s} onPress={() => setSao(s)} accessibilityRole="radio" accessibilityState={{ checked: sao === s }} accessibilityLabel={`${s} sao`}
+              style={[chip(sao === s), { flex: 1, paddingHorizontal: 0 }]}>
+              <IconNet ten="sao" co={12} mau={M.diem} /><Chu kieu="rat" co={13.5} mau={sao === s ? M.diem : M.chu} so>{s}</Chu>
+            </Pressable>
           ))}
-        </TheDs>
-      ) : (
-        <View style={{ alignItems: "center", gap: 2, paddingVertical: 14, borderRadius: 22, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
-          <Text style={{ fontSize: 26 }}>🎁</Text>
-          <Chu kieu="rat" co={14}>Chưa có quà nào.</Chu>
-          <Chu co={12.5} mau={M.chu3}>Ba Mẹ điền ở trên, quà sẽ hiện ở đây.</Chu>
+          <Pressable onPress={them} disabled={dangChay || !ten.trim()} accessibilityRole="button" accessibilityLabel="Thêm quà nhà"
+            style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: M.diem, overflow: "hidden", boxShadow: BONG.vang, opacity: ten.trim() ? 1 : 0.5 }}>
+            <LopMen men={MEN.vang} bo={20} /><IconNet ten="cong" co={20} mau={M.chinh} />
+          </Pressable>
         </View>
-      )}
-    </>
+      </View>
+    </View>
   );
 }

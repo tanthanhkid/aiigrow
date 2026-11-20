@@ -15,7 +15,7 @@ import { tenGoi } from "@/lib/hang-ngay";
 import { DauMan, LienKet } from "@/lib/lan-dau";
 import { AvtCon, conCuaMay, hinhMay, nganTen, SaoNho } from "@/lib/may-nhieu-con";
 import { laWeb } from "@/lib/ui-bm3";
-import { BaoLoi, Chu, F, Icon3D, M, Man, Nut, Rob, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { BaoLoi, Chu, F, Icon3D, IconNet, M, Man, Nut, Rob, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 type Luat = { child_id: string | null; muc: string; ten?: string | null; loai: string };
 const LOAI: Record<string, string> = { windows: "Laptop", mac: "Máy Mac", ios: "iPad", android: "Điện thoại" };
@@ -58,7 +58,7 @@ export default function DaGhep() {
   const goiY = chung ? ["Máy phòng khách", "Máy tính chung"] : [`${loaiMay} phòng khách`];
   const oLuat = (ic: TenIcon, so: string, nhan: string) => (
     <View style={[{ flex: 1, minHeight: 80, borderRadius: 24, backgroundColor: M.the, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 8 }, KHOI.the]}>
-      <Icon3D ten={ic} co={26} />
+      <IconNet ten={ic} co={24} mau={M.chinh} />
       <Chu kieu="rat" co={16} so dong={1}>{so}</Chu><Chu kieu="dam7" co={12} mau={M.chu3} dong={1}>{nhan}</Chu>
     </View>
   );
@@ -92,7 +92,7 @@ export default function DaGhep() {
             <TextInput ref={o} value={tenMay} onChangeText={(t) => setTenMoi(t.slice(0, 80))} accessibilityLabel="Tên máy" placeholder="VD: Laptop của Bảo Anh" autoCapitalize="sentences"
               style={{ flex: 1, minWidth: 0, fontFamily: F.rat, fontSize: 17, color: M.chu, paddingVertical: 8 }} />
             <Pressable onPress={() => o.current?.focus()} accessibilityRole="button" accessibilityLabel="Sửa tên" style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-              <Icon3D ten="but" co={22} />
+              <IconNet ten="but" co={20} mau={M.chinh} />
             </Pressable>
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", columnGap: 8, marginHorizontal: 6 }}>
@@ -129,7 +129,7 @@ export default function DaGhep() {
         </View>
       )}
       <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingLeft: 10, paddingRight: 14, paddingVertical: 8, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>
-        <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: M.chinhSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten="khien" co={24} /></View>
+        <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: M.chinhSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><IconNet ten="khien" co={24} mau={M.chinh} /></View>
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={14} dong={1}>{chung ? "Luật đi theo bé đang dùng" : `${moHet ? "Mở hết" : "Theo danh sách"} · máy riêng ${tenBe}`}</Chu>
           <Chu kieu="dam" co={12.5} mau={M.chu2} dong={2}>{chung ? "Chơi trên máy này chỉ trừ sao của bé đó" : moHet ? "Mọi app, web đều mở" : "Chỉ mở app, web Ba Mẹ đã thêm"}</Chu>

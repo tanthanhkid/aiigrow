@@ -680,9 +680,9 @@ if (process.argv.includes("--giao-dien")) {
       await go("Tên gọi ở nhà", "Bảo Anh"); await go("Đặt PIN 4 số", "25"); } }),
     M("bm-ob-con (bảng năm sinh · them-hjjdppuw)", "/thiet-lap/ten-con", "Chọn 20", { truoc: async () => { await diTl("/thiet-lap/ten-con")(); await doi("Tên gọi ở nhà");
       await nhanChuot(await viTriYen(`() => document.querySelector('[aria-label^="Chọn năm sinh của con"]')`)); } }),
-    M("bm-ob-qua (them-s416tfdj)", "/thiet-lap/qua", "Voucher AiiCafe", { truoc: diTl("/thiet-lap/qua") }),
-    M("bm-ob-qua (Ba Mẹ tự điền · them-x9x2u07e)", "/thiet-lap/qua", "Quà Ba Mẹ đã điền", { truoc: async () => { await diTl("/thiet-lap/qua")(); await doi("Voucher AiiCafe");
-      await bam("✏️ Ba Mẹ tự điền"); } }),
+    M("bm-ob-qua (them-s416tfdj)", "/thiet-lap/qua", "Đang có: 0", { truoc: diTl("/thiet-lap/qua") }),
+    M("bm-ob-qua (Quà nhà · them-u60j9p7w)", "/thiet-lap/qua", "Thêm quà nhà", { truoc: async () => { await diTl("/thiet-lap/qua")(); await doi("Đang có: 0");
+      await nhanChuot(await viTriYen(`() => [...document.querySelectorAll('[role="tab"]')].find((e) => e.innerText.trim() === "Quà nhà")`)); } }),
     M("bm-ob-qua-mua (them-hn2754ce)", "/thiet-lap/qua-mua?ma=cafe50", "Số lượng", { truoc: diTl("/thiet-lap/qua-mua?ma=cafe50") }),
     M("bm-ob-gio", "/thiet-lap/gio", "Quà khởi đầu cho con", { truoc: diTl("/thiet-lap/gio") }),
     M("bm-ob-app", "/thiet-lap/app", "Google Classroom", { truoc: diTl("/thiet-lap/app") }),
@@ -1618,7 +1618,7 @@ await kichBan("Lần đầu: «<Con> dùng app thế nào?» chọn «Mở hết
   xet(await doi("Bảo Anh dùng app thế nào?"), "đường cũ che-do ⇒ màn gộp «<Con> dùng app thế nào?»");
   const c = await chu();
   xet(c.includes("Đã thêm 2 app · 1 tính phút") && c.includes("App khác: con xin Ba Mẹ"), "dòng đếm «Đã thêm 2 app · 1 tính phút»");
-  xet(c.includes("Thêm vào nhóm"), "mỗi nhóm danh mục có «● Thêm vào nhóm …»");
+  xet(c.includes("Không tính phút") && c.includes("＋ Thêm"), "2 nhóm Không tính phút / Tính phút, mỗi dòng có chip đổi nhóm");
   await bamChon('[role="radio"][aria-label^="Mở hết"]');
   xet(await doi("Tiếp: ghép máy của con"), "Mở hết ⇒ nút «Tiếp: ghép máy của con»");
   xet(!(await chu()).includes("Google Classroom"), "Mở hết ⇒ ẩn danh mục app");
@@ -1713,13 +1713,11 @@ await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở 
   await doi("Tên gọi ở nhà");
   await go("Tên gọi ở nhà", "Bảo Anh");
   await sleep(300);
-  const [a, b] = await viTri("+ Thêm con khác", "Lưu hồ sơ Bảo Anh");
-  xet(a > 0 && b > a, "«+ Thêm con khác» nằm trên «Lưu hồ sơ Bảo Anh»");
+  xet(!(await chu()).includes("Thêm con khác"), "không còn link «+ Thêm con khác»");
   nhatKy.length = 0;
   await bam("Lưu hồ sơ Bảo Anh");
-  await bam("+ Thêm con khác");
   await sleep(600);
-  xet(!nhatKy.some((x) => x.d === "thiet-lap") && (await chu()).includes("Đặt mã PIN 4 số cho con trước"), "chưa có PIN: «Lưu hồ sơ» tắt, «+ Thêm con khác» báo cần PIN, không gửi gì");
+  xet(!nhatKy.some((x) => x.d === "thiet-lap"), "chưa có PIN: «Lưu hồ sơ» tắt, không gửi gì");
   await go("Đặt PIN 4 số", "48");
   await bam("Lưu hồ sơ Bảo Anh");
   await sleep(400);
@@ -1737,8 +1735,7 @@ await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở 
   await go("Tên gọi ở nhà", "Bảo Minh");
   await sleep(300);
   const c = await chu();
-  const [a2, b2] = await viTri("+ Thêm con khác", "Xong, giao việc cho Bảo Anh trước");
-  xet(a2 > 0 && b2 > a2 && !c.includes("Lưu hồ sơ"), "con thứ hai: «+ Thêm con khác» trên, «Xong, giao việc cho Bảo Anh trước» dưới, không còn «Lưu hồ sơ»");
+  xet(c.includes("Xong, giao việc cho Bảo Anh trước") && !c.includes("Lưu hồ sơ"), "con thứ hai: «Xong, giao việc cho Bảo Anh trước», không còn «Lưu hồ sơ»");
   nhatKy.length = 0;
   await bam("Xong, giao việc cho Bảo Anh trước");
   await sleep(500);

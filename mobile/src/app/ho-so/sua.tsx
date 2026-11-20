@@ -11,7 +11,7 @@ import { BONG } from "@/lib/clay";
 import { type ConCt } from "@/lib/hang-ngay";
 import { coAnh, luuAnhCon, xoaAnhCon } from "@/lib/anh-con";
 import { MAU_HO_SO } from "@/lib/lan-dau";
-import { ChonMauCon, conGiap, HangAnhCon, namCua, TheHoSoCon, useAnhForm } from "@/lib/form-ho-so";
+import { ChonMauCon, conGiap, namCua, TheHoSoCon, useAnhForm } from "@/lib/form-ho-so";
 import { BaoLoi, baoKhiVe, ChoTai, Chu, Icon, Icon3D, M, Man, Nut, ONhap, useLam, useTai } from "@/lib/ui";
 
 export default function SuaHoSo() {
@@ -41,7 +41,7 @@ export default function SuaHoSo() {
       <BaoLoi loi={loiLam} />
       <Nut chu={`Lưu hồ sơ ${chuanHoaTen(tenG) || d.ten}`} rong dangChay={dangChay} tat={!chuanHoaTen(tenG)} bam={luu} />
     </>}>
-      <TheHoSoCon ten={tenG || d.ten} nam={namG} mau={mauG ?? 0} anh={af.uri} con={boAnh ? null : d} chup={af.chup} />
+      <TheHoSoCon ten={tenG || d.ten} nam={namG} mau={mauG ?? 0} anh={af.uri} con={boAnh ? null : d} f={af} coAnh={coAnh(d.avatar) && !boAnh} boDaLuu={() => setBoAnh(true)} />
       <ONhap nhan="Tên gọi ở nhà" value={tenG} onChangeText={setTen} autoCapitalize="words" maxLength={30} />
       <View style={{ gap: 6 }}>
         <Chu kieu="rat" co={14} style={{ paddingHorizontal: 4 }}>Năm sinh</Chu>
@@ -53,7 +53,6 @@ export default function SuaHoSo() {
         <Chu co={13} mau={M.chu3} style={{ marginHorizontal: 6 }}>Đổi năm sinh: nhắn AiiGrow trong «Hỏi AiiGrow».</Chu>
       </View>
       <ChonMauCon mau={mauG ?? -1} doi={setMau} />
-      <HangAnhCon f={af} coAnh={coAnh(d.avatar) && !boAnh} boDaLuu={() => setBoAnh(true)} />
       {/* dòng «PIN vào máy · Đặt lại ›» ⇒ them-z2fyhohj */}
       <Pressable onPress={() => router.push(`/ho-so/${id}/pin` as never)} accessibilityRole="button" accessibilityLabel={d.coPin ? "PIN vào máy, đặt lại" : "PIN vào máy, đặt PIN"}
         style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingHorizontal: 6 }}>

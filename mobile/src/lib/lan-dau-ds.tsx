@@ -5,10 +5,11 @@ import type { ReactNode } from "react";
 import { Image } from "expo-image";
 import { Pressable, Text, View } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { BONG, KHOI } from "./clay";
+import { BONG, KHOI, MEN } from "./clay";
 import { ICON_3D } from "./icon-3d";
 import { MAU_NHOM, TEN_NHOM, type Nhom } from "./app-web";
-import { Chu, F, Icon, M, Rob, type LinhVat, type TenIcon } from "./ui";
+import { SvgXml } from "react-native-svg";
+import { Chu, F, Icon, IconNet, LopMen, M, Rob, type LinhVat, type TenIcon } from "./ui";
 import { ChonNhomNgang, NutChon, OIconTrang } from "./ui-bm3";
 
 /** Màu nền ô emoji + màu nút «Chọn tất cả» theo mục (thiết kế: Học ngọc, Vận động lam, Giúp Ba Mẹ cam). */
@@ -16,16 +17,18 @@ export const MAU_MUC = { ngoc: { nen: M.chinhSoft, chu: M.chinhInk }, lam: { nen
 export type MauMuc = keyof typeof MAU_MUC;
 
 /** Tab mục (Học · Vận động · Giúp Ba Mẹ): viên trắng, viên đang chọn ngọc đậm. */
-export function TabMuc<T extends string>({ ds, dang, doi }: { ds: { ma: T; chu: string }[]; dang: T; doi: (m: T) => void }) {
+export function TabMuc<T extends string>({ ds, dang, doi }: { ds: { ma: T; chu: string; ic?: TenIcon }[]; dang: T; doi: (m: T) => void }) {
+  // bàn bm1-ob-mau (19/11): 4 tab icon nét + chữ; tab đang chọn là viên trắng nổi, chữ đậm navy
   return (
     <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="tablist">
       {ds.map((x) => {
         const on = x.ma === dang;
         return (
-          <Pressable key={x.ma} onPress={() => doi(x.ma)} accessibilityRole="tab" accessibilityState={{ selected: on }}
-            style={{ flex: 1, minHeight: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", paddingHorizontal: 6,
-              backgroundColor: on ? M.chinh : M.the, boxShadow: on ? BONG.ngoc : BONG.nho }}>
-            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 13, color: on ? "#FFFBF5" : M.chu2 }}>{x.chu}</Text>
+          <Pressable key={x.ma} onPress={() => doi(x.ma)} accessibilityRole="tab" accessibilityState={{ selected: on }} accessibilityLabel={x.chu}
+            style={{ flex: 1, minHeight: 44, borderRadius: 22, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 4, paddingHorizontal: 4,
+              backgroundColor: on ? M.chinh : M.ranh, boxShadow: on ? BONG.ngoc : BONG.nho }}>
+            {x.ic ? <IconNet ten={x.ic} co={14} mau={on ? M.diem : M.chu2} /> : null}
+            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 12.5, color: on ? M.diem : M.chu2 }}>{x.chu}</Text>
           </Pressable>
         );
       })}
@@ -51,10 +54,11 @@ export function TabLom<T extends string>({ ds, dang, doi }: { ds: { ma: T; chu: 
   );
 }
 
-export function DauNhom({ chu, dem, het, bam, mau = "ngoc", con }: { chu: string; dem?: string; het?: boolean; bam?: () => void; mau?: MauMuc; con?: boolean }) {
+export function DauNhom({ chu, dem, het, bam, mau = "ngoc", con, ic }: { chu: string; /** icon nét đứng trước tên nhóm */ ic?: TenIcon; dem?: string; het?: boolean; bam?: () => void; mau?: MauMuc; con?: boolean }) {
   const m = MAU_MUC[mau];
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: con ? 10 : 6, paddingHorizontal: 4 }}>
+      {ic ? <IconNet ten={ic} co={20} mau={M.chinh} /> : null}
       <Chu kieu="rat" co={con ? 14.5 : 17} style={{ flex: 1 }} dong={2}>{chu}</Chu>
       {dem ? <Chu kieu="dam" co={12} mau={M.chu3}>{dem}</Chu> : null}
       {bam ? (
@@ -74,14 +78,14 @@ export const TheDs = ({ children, le }: { children: ReactNode; /** lề trái-ph
 
 /** Một dòng: ô emoji, tên (+ dòng phụ / nhãn 12+), sao (tuỳ), nút tròn ＋ (chưa chọn) / ✓ ngọc (đã chọn). `dau` = không kẻ vạch trên.
  *  `nhom` (app / web — 15/11 #262): đã chọn thì hiện viên «● Tính phút» / «● Không tính phút» thay dấu ✓. */
-export function DongChon({ e, mau = "ngoc", ten, phu, sao, lon, chon, bam, dau, nhom }: {
-  e: string; mau?: MauMuc; ten: string; phu?: string; sao?: number; lon?: boolean; chon: boolean; bam: () => void; dau?: boolean; nhom?: Nhom;
+export function DongChon({ e, ic, mau = "ngoc", ten, phu, sao, lon, chon, bam, dau, nhom }: {
+  e: string; /** icon nét thay emoji (bàn E 19/11) */ ic?: TenIcon; mau?: MauMuc; ten: string; phu?: string; sao?: number; lon?: boolean; chon: boolean; bam: () => void; dau?: boolean; nhom?: Nhom;
 }) {
   return (
     <Pressable onPress={bam} accessibilityRole="checkbox" accessibilityState={{ checked: chon }} accessibilityLabel={`${ten}${sao ? `, ${sao} sao` : ""}`}
       style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingVertical: 6, borderTopWidth: dau ? 0 : 1, borderTopColor: M.ranh }}>
       <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: MAU_MUC[mau].nen, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontSize: 20, lineHeight: 26 }} accessibilityElementsHidden importantForAccessibility="no">{e}</Text>
+        {ic ? <IconNet ten={ic} co={20} mau={M.chinh} /> : <Text style={{ fontSize: 20, lineHeight: 26 }} accessibilityElementsHidden importantForAccessibility="no">{e}</Text>}
       </View>
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={14} style={{ lineHeight: 18 }}>{ten}{lon ? <Chu kieu="rat" co={10.5} mau={MAU_MUC.cam.chu}>{"  12+"}</Chu> : null}</Chu>
@@ -147,13 +151,15 @@ export function DongKetQua({ e, ic, ten, phu, da, bam, dau, children }: { e?: st
 }
 
 /** Thanh tìm giả (lõm) + viên ngọc «+ Thêm» — bấm cả thanh sang màn tìm. */
-export function ThanhTimGia({ chu, bam, nhan }: { chu: string; bam: () => void; nhan: string }) {
+export function ThanhTimGia({ chu, bam, nhan, ic = "tim_kiem" }: { chu: string; bam: () => void; nhan: string; ic?: TenIcon }) {
   return (
     <Pressable onPress={bam} accessibilityRole="search" accessibilityLabel={nhan}
       style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 48, borderRadius: 24, backgroundColor: M.xamSoft, boxShadow: BONG.lom, paddingLeft: 16, paddingRight: 5 }}>
+      <IconNet ten={ic} co={18} mau={M.chu3} />
       <Chu kieu="dam" co={14.5} mau={M.chu3} style={{ flex: 1 }} dong={1}>{chu}</Chu>
-      <View style={{ minHeight: 38, paddingHorizontal: 14, borderRadius: 19, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}>
-        <Text style={{ fontFamily: F.rat, fontSize: 13.5, color: "#FFFBF5" }}>+ Thêm</Text>
+      <View style={{ minHeight: 40, paddingHorizontal: 16, borderRadius: 20, backgroundColor: M.diem, alignItems: "center", justifyContent: "center", overflow: "hidden", boxShadow: BONG.vang }}>
+        <LopMen men={MEN.vang} bo={20} />
+        <Text style={{ fontFamily: F.rat, fontSize: 13.5, color: M.chinh }}>+ Thêm</Text>
       </View>
     </Pressable>
   );
@@ -204,30 +210,21 @@ export const tenNhomDm = (n: string) => n.replace(/ · Ba Mẹ cân nhắc$/, ""
 
 /** Hai thẻ chọn chế độ (dùng chung cho màn Web khi Ba Mẹ bấm «Đổi ›»). */
 export function ChonCheDo({ gia, doi }: { gia: CheDoTl; doi: (v: CheDoTl) => void }) {
-  const O: { v: CheDoTl; tieu: string; phu: string }[] = [
-    { v: "mo_het", tieu: "Mở hết", phu: "Mở mọi app, mọi web\nKhông tính phút" },
-    { v: "chi_app_duoc_phep", tieu: "Theo danh sách", phu: "Chỉ mở app, web\nBa Mẹ đã thêm" },
+  // bàn them-mdujxlg2 / them-3xbscpzm (19/11): một rãnh lõm hai mục «Mở hết» · «Theo danh sách» (icon nét), mục đang chọn là viên vàng kim chữ navy
+  const O: { v: CheDoTl; tieu: string; ic: TenIcon; nhan: string }[] = [
+    { v: "mo_het", tieu: "Mở hết", ic: "mo_khoa", nhan: "Mở mọi app, mọi web, không tính phút" },
+    { v: "chi_app_duoc_phep", tieu: "Theo danh sách", ic: "khien", nhan: "Chỉ mở app, web Ba Mẹ đã thêm" },
   ];
   return (
-    <View style={{ flexDirection: "row", gap: 10 }} accessibilityRole="radiogroup">
+    <View style={{ flexDirection: "row", gap: 4, padding: 4, minHeight: 52, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom }} accessibilityRole="radiogroup">
       {O.map((o) => {
         const on = gia === o.v;
-        const noi = (
-          <>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-              <View style={{ width: 20, height: 20, borderRadius: 10, alignItems: "center", justifyContent: "center", ...(on ? { backgroundColor: "#FFFBF5" } : { backgroundColor: M.ranh, boxShadow: BONG.lom }) }}>
-                {on ? <Text style={{ fontSize: 12, lineHeight: 14, color: M.chinh, fontFamily: F.rat }}>✓</Text> : null}
-              </View>
-              <Chu kieu="rat" co={15.5} mau={on ? "#FFFBF5" : M.chu} style={{ flexShrink: 1 }}>{o.tieu}</Chu>
-            </View>
-            <Chu kieu="dam" co={12} mau={on ? "rgba(255,255,255,0.9)" : M.chu3}>{o.phu}</Chu>
-          </>
-        );
         return (
-          <Pressable key={o.v} onPress={() => doi(o.v)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${o.tieu}: ${o.phu.replace("\n", ", ")}`}
-            style={{ flex: 1, minWidth: 0, borderRadius: 24, overflow: "hidden", ...KHOI.the, ...(on ? { boxShadow: `0px 0px 0px 2.5px ${M.chinh}, ${BONG.the}` } : {}) }}>
-            {on ? <LinearGradient colors={["#1b2b47", M.chinh]} style={{ flexGrow: 1, padding: 12, gap: 6, minHeight: 84 }}>{noi}</LinearGradient>
-              : <View style={{ flexGrow: 1, padding: 12, gap: 6, minHeight: 84, backgroundColor: M.the }}>{noi}</View>}
+          <Pressable key={o.v} onPress={() => doi(o.v)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`${o.tieu}: ${o.nhan}`}
+            style={[{ flex: 1, minWidth: 0, borderRadius: 22, overflow: "hidden", flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 44 }, on && { backgroundColor: M.diem, boxShadow: BONG.vang }]}>
+            {on ? <LopMen men={MEN.vang} bo={22} /> : null}
+            <IconNet ten={o.ic} co={18} mau={on ? M.chinh : M.chu3} />
+            <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 14.5, color: on ? M.chinh : M.chu3 }}>{o.tieu}</Text>
           </Pressable>
         );
       })}
@@ -235,6 +232,57 @@ export function ChonCheDo({ gia, doi }: { gia: CheDoTl; doi: (v: CheDoTl) => voi
   );
 }
 
+const BOOKMARK = (mau: string) => `<svg viewBox="0 0 256 256"><path fill="${mau}" d="M184,32H72A16,16,0,0,0,56,48V224a8,8,0,0,0,12.24,6.78L128,193.43l59.77,37.35A8,8,0,0,0,200,224V48A16,16,0,0,0,184,32Z"/></svg>`;
+export type DongNhomPhut = { ten: string; phu?: string; ic: TenIcon; da: boolean; tinh: boolean };
+/** Hai nhóm «Không tính phút · Vào thoải mái» / «Tính phút · 1 sao = 1 phút chơi» (bàn them-mdujxlg2 / them-3xbscpzm — không chia theo môn).
+ *  Dòng đã thêm: chip «● nhóm» — chạm chip ⇒ đổi sang nhóm kia; dòng chưa thêm: chip «＋ Thêm» (vào nhóm mặc định). Chạm tên dòng ⇒ thêm / bỏ. */
+export function HaiNhomPhut({ ds, them, bo, doiNhom }: { ds: DongNhomPhut[]; them: (ten: string) => void; bo: (ten: string) => void; doiNhom: (ten: string) => void }) {
+  const N: { tinh: boolean; ten: string; phu: string; mau: string }[] = [
+    { tinh: false, ten: "Không tính phút", phu: "Vào thoải mái", mau: M.chinh },
+    { tinh: true, ten: "Tính phút", phu: "1 sao = 1 phút chơi", mau: M.diem },
+  ];
+  return (
+    <View style={{ gap: 12 }}>
+      {N.map((n) => {
+        const dong = ds.filter((x) => x.tinh === n.tinh).sort((a, b) => Number(b.da) - Number(a.da));
+        return (
+          <View key={n.ten} style={{ gap: 8 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 4 }}>
+              <SvgXml xml={BOOKMARK(n.tinh ? "#C9973B" : M.chinh)} width={16} height={16} />
+              <Chu kieu="rat" co={16} style={{ flex: 1 }}>{n.ten}</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>{n.phu}</Chu>
+            </View>
+            <TheDs le>
+              {dong.map((x, i) => (
+                <View key={x.ten} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, borderTopWidth: i ? 1 : 0, borderTopColor: M.ranh }}>
+                  <Pressable onPress={() => (x.da ? bo(x.ten) : them(x.ten))} accessibilityRole="checkbox" accessibilityState={{ checked: x.da }} accessibilityLabel={`${x.ten}${x.da ? ", đã thêm, chạm để bỏ" : ""}`}
+                    style={{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56 }}>
+                    <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: M.xamSoft, boxShadow: BONG.nho, alignItems: "center", justifyContent: "center" }}><IconNet ten={x.ic} co={16} mau={M.chinh} /></View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
+                      <Chu kieu="rat" co={15} dong={1}>{x.ten}</Chu>
+                      {x.phu ? <Chu kieu="dam" co={11.5} mau={M.chu3} dong={1}>{x.phu}</Chu> : null}
+                    </View>
+                  </Pressable>
+                  {x.da ? (
+                    <Pressable onPress={() => doiNhom(x.ten)} accessibilityRole="button" accessibilityLabel={`${x.ten} đang ở nhóm ${n.ten}, chạm để chuyển sang ${n.tinh ? "Không tính phút" : "Tính phút"}`} hitSlop={6}
+                      style={{ minHeight: 34, paddingHorizontal: 10, borderRadius: 17, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: n.tinh ? M.diemSoft : M.xamSoft, boxShadow: BONG.nho }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: n.tinh ? "#C9973B" : M.chinh }} />
+                      <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 12, color: M.chinh }}>{n.ten}</Text>
+                    </Pressable>
+                  ) : (
+                    <Pressable onPress={() => them(x.ten)} accessibilityRole="button" accessibilityLabel={`Thêm ${x.ten}`} hitSlop={6}
+                      style={{ minHeight: 34, paddingHorizontal: 12, borderRadius: 17, alignItems: "center", justifyContent: "center", backgroundColor: M.the, boxShadow: BONG.nho }}>
+                      <Text style={{ fontFamily: F.rat, fontSize: 12, color: M.chinh }}>＋ Thêm</Text>
+                    </Pressable>
+                  )}
+                </View>
+              ))}
+            </TheDs>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
 
 /** «Duolingo ABC có tính phút không?» + hai ô «Không tính phút · Vào thoải mái» | «Tính phút · 1 sao = 1 phút chơi» (them-at57ypdc / them-ubomxl31). */
 export function HoiNhom({ ten, nhom, doi }: { ten: string; nhom: Nhom; doi: (n: Nhom) => void }) {

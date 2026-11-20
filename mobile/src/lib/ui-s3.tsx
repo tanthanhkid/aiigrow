@@ -2,9 +2,9 @@
 // Màu / bóng / men lấy token Clay (mau.ts, clay.ts), không chép CSS thô của HTML thiết kế.
 import { useRef, useState, type ComponentRef, type ReactNode } from "react";
 import { Pressable, TextInput, View } from "react-native";
-import { BONG, KHOI } from "./clay";
+import { BONG, KHOI, MEN } from "./clay";
 import { locPin, icQua, phuQua, type QuaS3 } from "./s3";
-import { Chu, Icon, Icon3D, M, Nhan, NhanMen, type TenIcon } from "./ui";
+import { Chu, Icon, Icon3D, IconNet, LopMen, M, Nhan, NhanMen, type TenIcon } from "./ui";
 
 // ---------------------------------------------------------------- thanh 5 bước Lần đầu (Con → Nhiệm vụ → Quà → Giờ → Máy)
 
@@ -14,12 +14,14 @@ const BUOC5: { ic: TenIcon; ten: string }[] = [
 /** Thanh tiến độ 5 chấm (bàn .buoc — bm1-ob-ten-con v20 … them-mdujxlg2 v12): mỗi bước giữ icon riêng (tick · sao · quà · đồng hồ · máy tính),
  *  bước xong icon rõ, bước chưa tới icon mờ, bước đang làm navy viền vàng mật (bàn Navy 17/11). Ô 30, cách 8, icon 17. */
 export function ThanhBuoc5({ dang }: { dang: number }) {
+  // bàn E (bm-thiet-lap-con, 19/11): icon NÉT; bước xong = viên navy icon kem, bước đang làm = viên vàng kim icon navy, bước chưa tới = viên lõm icon mờ
   return (
     <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang + 1} trên 5: ${BUOC5[dang]?.ten ?? ""}`}>
       {BUOC5.map((b, i) => (
-        <View key={b.ten} style={[{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center" },
-          i === dang ? { backgroundColor: M.chinh, boxShadow: `0px 0px 0px 2.5px ${M.diem}, ${BONG.nho}` } : { backgroundColor: M.ranh, boxShadow: BONG.lom }]}>
-          <View style={{ opacity: i <= dang ? 1 : 0.45 }}><Icon3D ten={b.ic} co={17} /></View>
+        <View key={b.ten} style={[{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", overflow: i === dang ? "hidden" : undefined },
+          i < dang ? { backgroundColor: M.chinh, boxShadow: BONG.nho } : i === dang ? { backgroundColor: M.diem, boxShadow: `0px 0px 0px 2px ${M.diem}, ${BONG.nho}` } : { backgroundColor: M.ranh, boxShadow: BONG.lom }]}>
+          {i === dang ? <LopMen men={MEN.vang} bo={15} /> : null}
+          <IconNet ten={b.ic} co={17} mau={i < dang ? "#F7EBD3" : i === dang ? M.chinh : "#6b6258"} />
         </View>
       ))}
     </View>

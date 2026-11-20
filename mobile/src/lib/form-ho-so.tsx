@@ -7,7 +7,7 @@ import { BO_CLAY, BONG, KHOI, MEN } from "./clay";
 import { Anh3D, BanhXe, MAU_HO_SO } from "./lan-dau";
 import { OPin } from "./ui-s3";
 import { chonAnhCon, uriAnh, type AnhChon } from "./anh-con";
-import { Avt, BangTruot, Chu, Icon, Icon3D, LopMen, M, Nut, Rob } from "./ui";
+import { Avt, BangTruot, Chu, Icon, Icon3D, IconNet, LopMen, M, Nut, Rob, type TenIcon } from "./ui";
 
 /** Con giáp theo năm sinh (âm lịch xấp xỉ theo năm dương — đủ cho thẻ hồ sơ): 2020 ⇒ Tý 🐭, 2017 ⇒ Dậu 🐓. */
 const GIAP = [["Tý", "🐭"], ["Sửu", "🐃"], ["Dần", "🐯"], ["Mão", "🐱"], ["Thìn", "🐲"], ["Tỵ", "🐍"], ["Ngọ", "🐴"], ["Mùi", "🐐"], ["Thân", "🐵"], ["Dậu", "🐓"], ["Tuất", "🐶"], ["Hợi", "🐷"]] as const;
@@ -18,27 +18,43 @@ const namDs = () => { const y = new Date().getFullYear(); return Array.from({ le
 export const namCua = (nam: string) => (/^\d{4}$/.test(nam) ? Number(nam) : null);
 
 /** Thẻ hồ sơ đầu màn: avatar chữ cái viền trắng, tên 22/800, chip «🐓 9 tuổi»; Grow 150 bên phải. */
-export function TheHoSoCon({ ten, nam, mau, anh, chup, con }: { ten: string; nam: string; mau: number; /** ảnh đại diện (data URI) — có ⇒ thay chữ cái */ anh?: string | null; /** chạm ảnh ⇒ chụp */ chup?: () => void;
+export function TheHoSoCon({ ten, nam, mau, anh, f, coAnh, boDaLuu, con }: { ten: string; nam: string; mau: number; /** ảnh đại diện (data URI) — có ⇒ thay chữ cái */ anh?: string | null;
+  /** form ảnh: bấm nút máy ảnh nhỏ trên ảnh đại diện ⇒ hiện lựa chọn «Chụp ảnh / Chọn từ thư viện / Bỏ ảnh» (bàn bm1-ob-ten-con v26: không còn 2 nút to) */ f?: ReturnType<typeof useAnhForm>;
+  /** Con đã có ảnh lưu trên máy chủ (hiện «Bỏ ảnh») */ coAnh?: boolean; boDaLuu?: () => void;
   /** Con đã lưu (Sửa hồ sơ — them-vnl5rmnz): hiện ảnh đại diện đã lưu (#302) */ con?: { id?: string | null; avatar?: string | null } | null }) {
   const [dam, nhat] = MAU_HO_SO[mau];
   const namSo = namCua(nam);
   const tuoiSo = namSo ? new Date().getFullYear() - namSo : null;
   const tuoi = tuoiSo && tuoiSo >= 1 && tuoiSo <= 25 ? `${tuoiSo} tuổi` : null;
   const tenGon = ten.trim();
+  const [mo, setMo] = useState(false);
+  const chup = f ? () => setMo((x) => !x) : undefined;
+  const chon = (viec: () => void) => () => { setMo(false); viec(); };
+  const coBo = !!(f?.anh || coAnh);
   return (
-    <View style={{ minHeight: 170, borderRadius: 30, backgroundColor: nhat, padding: 18, flexDirection: "row", alignItems: "center", ...KHOI.the }}>
+    <View style={{ minHeight: 170, borderRadius: 30, backgroundColor: nhat, padding: 18, flexDirection: "row", alignItems: "center", zIndex: mo ? 10 : 0, ...KHOI.the }}>
       {/* cột trái ≤ 44%: tên dài xuống dòng trước khi chạm Grow bên phải (cổng DE-ANH) */}
       <View style={{ gap: 10, alignItems: "flex-start", maxWidth: "44%" }}>
-        <Pressable onPress={chup} disabled={!chup} accessibilityRole={chup ? "button" : undefined} accessibilityLabel={chup ? "Chụp ảnh đại diện" : undefined}
+        <Pressable onPress={chup} disabled={!chup} accessibilityRole={chup ? "button" : undefined} accessibilityLabel={chup ? "Đổi ảnh đại diện" : undefined} accessibilityState={chup ? { expanded: mo } : undefined}
           style={{ width: 84, height: 84, borderRadius: 42, borderWidth: 4, borderColor: M.nen, boxShadow: BONG.nho }}>
           <Avt ten={tenGon || "?"} mau={dam} co={76} anh={anh} con={con} />
           {chup ? (
             // bàn bm1-ob-ten-con v20: huy hiệu tròn trắng có máy ảnh ở góc dưới phải ảnh đại diện
             <View pointerEvents="none" style={{ position: "absolute", right: -8, bottom: -6, width: 34, height: 34, borderRadius: 17, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
-              <Icon3D ten="camera" co={20} />
+              <IconNet ten="camera" co={18} mau={M.chinh} />
             </View>
           ) : null}
         </Pressable>
+        {mo && f ? (
+          <View style={{ position: "absolute", left: 0, top: 96, minWidth: 190, borderRadius: 20, backgroundColor: M.the, paddingVertical: 6, boxShadow: BONG.the, zIndex: 20 }} accessibilityRole="menu">
+            {([["camera", "Chụp ảnh", f.chup], ["tia", "Chọn từ thư viện", f.chon], ...(coBo ? [["x", "Bỏ ảnh, dùng chữ cái", () => { f.bo(); boDaLuu?.(); }]] : [])] as [TenIcon, string, () => void][]).map(([ic, chu, bam]) => (
+              <Pressable key={chu} onPress={chon(bam)} accessibilityRole="menuitem" style={{ minHeight: 44, flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 14 }}>
+                <IconNet ten={ic} co={20} mau={M.chinh} /><Chu kieu="rat" co={14}>{chu}</Chu>
+              </Pressable>
+            ))}
+          </View>
+        ) : null}
+        {f?.loi ? <Chu kieu="dam" co={12.5} mau={M.loi}>{f.loi}</Chu> : null}
         <Chu kieu="tieu" co={24} mau={M.chu}>{tenGon || "Con nhà mình"}</Chu>
         {tuoi && namSo ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, backgroundColor: M.the, borderRadius: 99, paddingHorizontal: 10, paddingVertical: 3, boxShadow: BONG.nho }}
@@ -118,26 +134,4 @@ export function useAnhForm() {
     try { const a = await chonAnhCon(nguon); if (a) setAnh(a); } catch (e) { setLoi(e instanceof Error ? e.message : "Chưa lấy được ảnh — thử lại nhé"); }
   };
   return { anh, uri: anh ? uriAnh(anh) : null, loi, chup: () => lay("chup"), chon: () => lay("thu-vien"), bo: () => setAnh(null) };
-}
-export function HangAnhCon({ f, coAnh, boDaLuu }: { f: ReturnType<typeof useAnhForm>; /** Con đã có ảnh lưu trên máy chủ */ coAnh?: boolean; boDaLuu?: () => void }) {
-  const nut = ([["camera", "Chụp ảnh", f.chup], ["tia", "Chọn ảnh", f.chon]] as const);
-  return (
-    <View style={{ gap: 6 }}>
-      <View style={{ flexDirection: "row", gap: 8 }}>
-        {nut.map(([ic, chu, bam]) => (
-          <Pressable key={chu} onPress={bam} accessibilityRole="button" accessibilityLabel={`${chu} đại diện`}
-            style={[{ flex: 1, minHeight: 56, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: M.the }, KHOI.nho]}>
-            <Icon3D ten={ic} co={24} /><Chu kieu="rat" co={12.5} mau={M.chu2}>{chu}</Chu>
-          </Pressable>
-        ))}
-        {f.anh || coAnh ? (
-          <Pressable onPress={() => { f.bo(); boDaLuu?.(); }} accessibilityRole="button" accessibilityLabel="Bỏ ảnh đại diện, dùng chữ cái"
-            style={[{ flex: 1, minHeight: 56, borderRadius: 22, alignItems: "center", justifyContent: "center", gap: 2, backgroundColor: M.the }, KHOI.nho]}>
-            <Icon ten="x" mau={M.chu2} co={20} /><Chu kieu="rat" co={12.5} mau={M.chu2}>Bỏ ảnh</Chu>
-          </Pressable>
-        ) : null}
-      </View>
-      {f.loi ? <Chu kieu="dam" co={13} mau={M.loi}>{f.loi}</Chu> : null}
-    </View>
-  );
 }

@@ -11,7 +11,7 @@ import { SvgXml } from "react-native-svg";
 import { BONG, BO_CLAY, KHOI, KHOI_HERO, MEN, HERO } from "./clay";
 import { saoChep } from "./luu-tep";
 import { MAU_HO_SO } from "./mau";
-import { Chu, F, Icon, Icon3D, LopMen, LV, M, NhanMen, Rob, type LinhVat, type TenIcon } from "./ui";
+import { Chu, F, Icon, Icon3D, IconNet, LopMen, LV, M, NhanMen, Rob, type LinhVat, type TenIcon } from "./ui";
 
 /** Màu chữ phụ của bàn «Ánh kim» (`--ink2` / `--ink3`) — chữ phụ lần đầu theo đúng bàn. */
 export const INK2 = "#5b5248";
@@ -358,7 +358,7 @@ export function KhoiTrangThaiGhep({ lv, ic, tieu, phu, children }: { lv: LinhVat
       <View style={{ height: 284, borderRadius: 36, overflow: "hidden", backgroundColor: M.nen,
         alignItems: "center", ...KHOI.the }}>
         <View style={{ marginTop: 10 }}><Rob ten={lv} co={160} /></View>
-        <View pointerEvents="none" style={{ position: "absolute", top: 20, left: "50%", marginLeft: 30 }}><Icon3D ten={ic} co={64} /></View>
+        <View pointerEvents="none" style={{ position: "absolute", top: 22, right: 18, width: 56, height: 56, borderRadius: 18, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><IconNet ten={ic} co={28} mau={M.chinh} /></View>
         <View style={{ position: "absolute", left: 12, right: 12, bottom: 18, alignItems: "center", gap: 6 }}>
           <Text accessibilityRole="header" numberOfLines={1} style={{ fontFamily: F.tieu, fontSize: 23, letterSpacing: -0.4, color: M.chu, textAlign: "center" }}>{tieu}</Text>
           <Chu kieu="rat" co={14} mau="#7a2f00" style={{ textAlign: "center" }}>{phu}</Chu>{/* cam sẫm hơn canh: nền đào đáy cảnh (pixel xấu nhất ~rgb(200,179,161) khi bóng Grow lan xuống) cần ≥ 4,5 — #7a2f00 4,7:1 */}
@@ -373,7 +373,7 @@ export function KhoiTrangThaiGhep({ lv, ic, tieu, phu, children }: { lv: LinhVat
 export function DongTrangThai({ ic, chu, phu }: { ic: TenIcon; chu: string; phu?: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 14, padding: 16, borderRadius: 26, backgroundColor: M.the, ...KHOI.the }}>
-      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={30} /></View>
+      <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><IconNet ten={ic} co={26} mau={M.chinh} /></View>
       <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{chu}</Chu>{phu ? <Chu kieu="dam" co={12.5} mau={M.chu3}>{phu}</Chu> : null}</View>
     </View>
   );
@@ -387,7 +387,7 @@ export function BuocMayCon({ n, ic, tieu, phu, gach }: { n: number; ic: TenIcon;
       <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}>
         <Chu kieu="rat" co={14} mau="#FFFBF5">{n}</Chu>
       </View>
-      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten={ic} co={30} /></View>
+      <View style={{ width: 44, height: 44, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><IconNet ten={ic} co={26} mau={M.chinh} /></View>
       <View style={{ flex: 1, minWidth: 0 }}>
         {typeof tieu === "string" ? <Chu kieu="rat" co={15.5} style={gach ? { textDecorationLine: "line-through" } : undefined}>{tieu}</Chu> : tieu}
         <Chu co={13} mau={M.chu3}>{phu}</Chu>
