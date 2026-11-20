@@ -7,16 +7,17 @@
 import { useMemo, useState } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
-import { KHOI, HERO, KHOI_HERO, MEN } from "@/lib/clay";
+import { KHOI } from "@/lib/clay";
 import {
-  ChoTai, Chu, gioPhut, Icon, IconNet, LogoTron, M, Man, NhanMen, Nut, Rob, The, useHoanTac, useTai, type TenIcon,
+  ChoTai, Chu, gioPhut, Icon, IconNet, M, Man, NhanMen, Nut, The, useHoanTac, useTai, type TenIcon,
 } from "@/lib/ui";
 import { cachBao, cauLapLai, HangViec, hinhNv, SaoVien, tenGoi, TieuMuc, type LuotChoMoi, type PhieuCho } from "@/lib/hang-ngay";
 import { KHOA_NV_TAB, napNvTab, viecCuaCon } from "@/lib/nv-tab";
-import { DaiCon, OLomIcon } from "@/lib/ui-viec";
+import { OLomIcon } from "@/lib/ui-viec";
+import { HangChonBe } from "@/lib/ui-chung";
 import { BangTraoQua } from "@/lib/trao-qua";
 import { icQua } from "@/lib/s3";
-import { kieuSao, saoTu, soChinh, soVN, VienSao, traNoLanLuot } from "@/lib/so-sao";
+import { kieuSao, saoTu, soVN, traNoLanLuot } from "@/lib/so-sao";
 
 /** «hôm nay 18:40» / «hôm qua» / «3/11». */
 const khiNao = (iso: string) => {
@@ -57,7 +58,7 @@ export default function TabNhiemVu() {
   const baMe = d.quyen === "ba_me";
   const soCho: Record<string, number> = {};
   for (const x of d.cd.nhiemVu) soCho[x.child_id] = (soCho[x.child_id] ?? 0) + 1;
-  const ss = saoTu(c), sao = ss.sao, k = kieuSao(ss);
+  const ss = saoTu(c), k = kieuSao(ss);
   // sao việc chờ trả nợ lần lượt (theo thứ tự hiện)
   const traNo = traNoLanLuot(ss.no, cua.cho.map((x) => x.sao ?? x.diem)).map((x) => x.tra);
   const tongCho = cua.cho.reduce((n, x) => n + (x.sao ?? x.diem), 0);
@@ -75,31 +76,12 @@ export default function TabNhiemVu() {
           <NutThem ic="qua" chu="+ Quà" nhan="Thêm quà" bam={() => router.push({ pathname: "/vi/qua-thu-vien", params: { con: c.id } })} />
         </View>
       ) : undefined}>
-      {d.g.con.length > 1 ? <DaiCon ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={c.id} doi={(x) => setChon(x.id)} so={soCho}
-        duoi={Object.fromEntries(d.g.con.map((x) => [x.id, <VienSao key={x.id} s={saoTu(x)} nho />]))} /> : null}
-
-      {/* Thẻ hero navy (bàn Navy 17/11 .vi, Ánh kim): «<Con> đang có» · ⭐ 30 sao (Be Vietnam Pro ExtraBold 40) vàng mật khi chưa nợ / còn sao vay (`vay`); đang nợ hết sao (`am`) ⇒ tiêu đề «<Con> đang nợ Ba Mẹ 20 sao» và số + chữ «sao» cam san hô M.noHero. Viên bấm luôn vàng M.diem chữ navy: «= 30 phút chơi ›» khi chưa nợ, còn lại «Duyệt … việc chờ …» / «Xem ví sao ›». */}
-      {anVi ? null : <Pressable onPress={() => router.push(`/vi/${c.id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${ten}: ${soChinh(ss)}`}
-        style={[{ paddingVertical: 16, paddingHorizontal: 18, borderRadius: 28, overflow: "hidden" },
-          KHOI_HERO]}>
-        {/* #417: logo tròn vàng kim (mẫu E `.vi .rob`) thay Grow 3D */}
-        <View pointerEvents="none" style={{ position: "absolute", right: 14, top: 0, bottom: 0, justifyContent: "center" }}><LogoTron co={84} /></View>
-        <Chu kieu="dam7" co={13.5} mau={HERO.chu} style={{ marginRight: 116 }}>
-          {k === "thuong" ? `${ten} đang có` : `${ten} đang nợ Ba Mẹ ${soVN(ss.no)} sao`}</Chu>
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 2, marginRight: 100 }}>
-          <Icon ten="sao" co={34} mau={k === "am" ? M.noHero : HERO.phu} />
-          {k === "vay" ? <Chu kieu="rat" co={20} mau={HERO.phu} so style={{ flexShrink: 1 }}>{soChinh(ss)}</Chu> : <>
-            <Chu kieu="tieu7" co={40} so mau={k === "am" ? M.noHero : HERO.phu} style={{ lineHeight: 46, letterSpacing: -1 }}>{soVN(k === "am" ? -ss.no : sao)}</Chu>
-            <Chu kieu="rat" co={18} mau={k === "am" ? M.noHero : HERO.phu} style={{ marginTop: 8 }}>sao</Chu>
-          </>}
-        </View>
-        <View style={{ alignSelf: "flex-start", marginTop: 6, minHeight: 32, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.diem, backgroundImage: MEN.vang, justifyContent: "center", marginRight: 100 }}>
-          <Chu kieu="rat" co={13} mau={M.chu}>
-            {k === "thuong" ? `= ${soVN(sao)} phút chơi ›`
-              : cua.cho.length ? (tongCho >= ss.no ? `Duyệt ${cua.cho.length} việc chờ là hết nợ ›` : `Duyệt ${cua.cho.length} việc chờ để trả nợ ›`)
-                : "Xem ví sao ›"}</Chu>
-        </View>
-      </Pressable>}
+      {/* #492: hàng chọn bé dùng chung (ảnh tròn chữ cái + chip sao); bỏ thẻ navy ví sao — nợ chỉ còn một dòng nhỏ trên khối chờ duyệt */}
+      {d.g.con.length > 1 ? <HangChonBe ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={c.id} doi={(x) => x && setChon(x.id)} so={soCho} /> : null}
+      {k === "am" && cua.cho.length ? (
+        <Chu kieu="dam" co={13.5} mau={M.chu2} style={{ marginHorizontal: 4 }}>
+          {tongCho >= ss.no ? `Duyệt xong ${cua.cho.length} việc là ${ten} hết nợ` : `Duyệt ${cua.cho.length} việc chờ để ${ten} trả nợ`}</Chu>
+      ) : null}
 
       {cua.cho.length ? (
         <>
@@ -172,14 +154,13 @@ function ViecTrong({ con, ten, baMe }: { con: string; ten: string; baMe: boolean
   return (
     <View style={{ gap: 12 }}>
       <View style={{ alignItems: "center", gap: 4, marginTop: 8 }}>
-        <Rob ten="chi" co={150} />
         <Chu kieu="rat" co={22} style={{ textAlign: "center", lineHeight: 28 }}>{`Ngày của ${ten} còn trống`}</Chu>
         <Chu kieu="dam" co={15} mau={M.chu2} style={{ textAlign: "center" }}>Con làm xong nhận sao. 1 sao = 1 phút chơi, hoặc để dành đổi quà.</Chu>
       </View>
       {baMe ? (
         <View style={{ gap: 12 }}>
           <ChonLoi ic="qua" tieu="Chọn từ danh sách" phu="Học · Vận động · Giúp Ba Mẹ" bam={() => router.push(`/giao-nv?con=${con}` as never)} />
-          <ChonLoi ic="but" tieu="Tự đặt một việc" phu="Tên việc, số sao, ngày làm" bam={() => router.push(`/giao-nv?con=${con}&tuThem=1` as never)} />
+          <ChonLoi ic="but" tieu="Tự đặt một việc" phu="Tên việc, số sao, ngày làm" bam={() => router.push(`/giao-nv/tu-dat?con=${con}` as never)} />
         </View>
       ) : <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Nhờ Ba Mẹ giao việc cho con.</Chu>}
     </View>

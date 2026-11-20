@@ -8,10 +8,12 @@ import { Pressable, TextInput, View } from "react-native";
 import { bm, type GiaDinh } from "./api";
 import { BONG } from "./clay";
 import { useSaoTu } from "./sao-tu-nhap";
-import { BaoLoi, Chips, Chu, F, Icon3D, M, Nut, ONhap, useLam, type TenIcon } from "./ui";
+import { BaoLoi, Chips, Chu, F, IconNet, Icon3D, M, Nut, ONhap, useLam, type TenIcon } from "./ui";
 import { hinhNv } from "./hang-ngay";
 import { tenHopLe } from "./form-viec";
 import { ChonO } from "./ui-viec";
+import { MucTieu } from "./ui-bm3";
+import { ChonSao } from "./chon-sao";
 import { TheDs } from "./lan-dau-ds";
 
 const GOI_Y = ["Tưới cây", "Tập đàn 15 phút", "Cho cún ăn", "Vẽ 1 bức tranh", "Tự tắm"];
@@ -20,7 +22,7 @@ const HINH = ["choi", "sach", "day", "but", "tim", "camera"];
 type Muc = "hoc" | "van_dong" | "giup_ba_me" | "khac";
 const SAO_TOI_DA = 1000;
 const TEN_MUC_TOI_DA = 30;
-const MUC: { gia: Muc; chu: string; ic: TenIcon }[] = [{ gia: "hoc", chu: "Học", ic: "sach" }, { gia: "van_dong", chu: "Vận động", ic: "chay" }, { gia: "giup_ba_me", chu: "Giúp Ba Mẹ", ic: "nha" }, { gia: "khac", chu: "+ Khác", ic: "tia" }];
+const MUC: { gia: Muc; chu: string; ic: TenIcon }[] = [{ gia: "hoc", chu: "Học", ic: "sach" }, { gia: "van_dong", chu: "Vận động", ic: "chay" }, { gia: "giup_ba_me", chu: "Giúp Ba Mẹ", ic: "nha" }];
 const NHOM: Record<Muc, string> = { hoc: "hoc_tap", van_dong: "van_dong", giup_ba_me: "viec_nha", khac: "khac" };
 const NOP: { gia: string; tieu: string; phu: string; ic: TenIcon }[] = [
   { gia: "anh", tieu: "Chụp ảnh", phu: "Dọn dẹp, vẽ tranh, nấu ăn", ic: "camera" },
@@ -29,10 +31,10 @@ const NOP: { gia: string; tieu: string; phu: string; ic: TenIcon }[] = [
 ];
 
 
-const Nhan = ({ chu }: { chu: string }) => <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 4 }}>{chu}</Chu>;
+const Nhan = ({ chu }: { chu: string }) => <MucTieu chu={chu} />;
 
-export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]; con?: string; mucSan?: string;
-  /** đã tạo việc: tên việc + tên các con được giao */ xong: (ten: string, tenCon: string) => void }) {
+export function FormTuThem({ dsCon, con, mucSan, xong, nhanNut = "Thêm vào mục đã chọn" }: { dsCon: GiaDinh["con"]; con?: string; mucSan?: string;
+  /** đã tạo việc: tên việc + tên các con được giao */ xong: (ten: string, tenCon: string) => void; nhanNut?: string }) {
   const [ten, setTen] = useState("");
   const [hinh, setHinh] = useState("choi");
   const [muc, setMuc] = useState<Muc>(MUC.some((x) => x.gia === mucSan) ? (mucSan as Muc) : "giup_ba_me");
@@ -68,7 +70,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]
             <Pressable key={h} onPress={() => setHinh(h)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={`Hình ${h}`}
               style={[{ flex: 1, height: 50, borderRadius: 17, alignItems: "center", justifyContent: "center" },
                 on ? { backgroundColor: M.chonSoft, borderWidth: 2, borderColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-              <Icon3D ten={hinhNv({ hinh: h })[0]} co={30} />
+              <IconNet ten={hinhNv({ hinh: h })[0]} co={26} />
             </Pressable>
           );
         })}
@@ -79,9 +81,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]
       {mucKhac ? <ONhap nhan="Tên mục mới" value={tenMuc} onChangeText={(t) => setTenMuc(t.slice(0, TEN_MUC_TOI_DA))} placeholder="Ví dụ: Âm nhạc" maxLength={TEN_MUC_TOI_DA} autoFocus /> : null}
 
       <Nhan chu="Con nhận" />
-      <ChonO ds={[5, 10, 15, 20].map((x) => ({ gia: x, chu: `${x}` }))} chon={st.chu === "" ? sao : null} doi={(x) => { st.xoa(); setSao(x); }} sao />
-      <ONhap nhan="Hoặc tự nhập số sao" value={st.chu} onChangeText={st.nhap} placeholder="Ví dụ: 25" keyboardType="number-pad" maxLength={st.maxLength}
-        loi={st.thongBao} />
+      <ChonSao muc={[5, 10, 15, 20]} gia={sao} doi={setSao} st={st} />
 
       <Nhan chu="Con nộp bằng" />
       {/* thiết kế: một thẻ danh sách, mỗi cách một dòng icon 3D · tên + ví dụ · nút tròn chọn */}
@@ -91,7 +91,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]
           return (
             <Pressable key={x.gia} onPress={() => setNop(x.gia)} accessibilityRole="radio" accessibilityState={{ checked: on }} accessibilityLabel={x.tieu}
               style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingLeft: 4, borderTopWidth: i ? 1 : 0, borderTopColor: M.ranh }}>
-              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={x.ic} co={24} /></View>
+              <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><IconNet ten={x.ic} co={22} /></View>
               <View style={{ flex: 1 }}><Chu kieu="rat" co={15}>{x.tieu}</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>{x.phu}</Chu></View>
               <View style={{ width: 22, height: 22, borderRadius: 11, alignItems: "center", justifyContent: "center", backgroundColor: on ? M.chinh : M.ranh, boxShadow: on ? BONG.ngoc : BONG.lom }}>
                 {on ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFFBF5" }} /> : null}
@@ -114,7 +114,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong }: { dsCon: GiaDinh["con"]
         <Chu kieu="dam" co={13} mau={M.chu2} style={{ flex: 1 }}>Con nộp xong, Ba Mẹ nhận thông báo. Ba Mẹ duyệt thì con mới nhận sao.</Chu>
       </View>
       <BaoLoi loi={loiLam} />
-      <Nut chu="Thêm vào mục đã chọn" rong dangChay={dangChay} tat={!duDieuKien} bam={them} />
+      <Nut chu={nhanNut} rong dangChay={dangChay} tat={!duDieuKien} bam={them} />
     </View>
   );
 }

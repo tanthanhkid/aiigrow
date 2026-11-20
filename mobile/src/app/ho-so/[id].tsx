@@ -3,18 +3,16 @@
 // 1 sao = 1 phút» (⇒ Ví sao — màn Giờ chơi bm2-gio đã bỏ), #302 «Giờ chơi» (giới hạn ngày + mỗi lượt ⇒ /ho-so/<id>/gio-choi), App & web (15/11 #262: bỏ Giờ ngủ, Giờ học)
 // («Theo danh sách» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
 // PIN vào máy (Đặt lại) · «Xoá hồ sơ X» chữ đỏ canh giữa (⇒ /ho-so/<id>/xoa, them-canktzlq). #325: theo bm2-ho-so@v22 (thẻ đầu ngọc nhạt). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
-import { cheDoTu } from "@/lib/app-web";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import {
   CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, tenGoi, quyenToi, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
-import { cauNo, chuVien, saoTu, soVN, VienSao, type SaoCon } from "@/lib/so-sao";
+import { soVN } from "@/lib/so-sao";
 import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
 import { saoChep } from "@/lib/luu-tep";
-import { DaiCon } from "@/lib/ui-viec";
-import { tomTatGioiHan } from "@/lib/gioi-han";
+import { HangChonBe } from "@/lib/ui-chung";
 import { KHOI, MEN, HERO, KHOI_HERO } from "@/lib/clay";
 
 type Luat = { ds: LuatDem[] };
@@ -45,14 +43,12 @@ export default function HoSoCon() {
   const mau = mauCon(c.avatar, thu);
   const tuoi = tuoiCua(c.namSinh);
   const cg = d.g.con.find((x) => x.id === id);
-  const s = saoTu({ soDu: c.soDu, ...(cg ?? {}), ...(c as Partial<SaoCon>) });
-  const no = cauNo(s);
   // 1 sao = 1 phút: phút «Tính phút» đã dùng hôm nay (gia-dinh › phutChoi)
   const phutHomNay = cg?.phutChoi ?? null;
   const canSua = c.may.filter((m) => m.baoVe !== "day_du");
   return (
     <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
-      {d.g.con.length > 1 ? <DaiCon ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={id} doi={(x) => router.replace(`/ho-so/${x.id}` as never)} /> : null}
+      {d.g.con.length > 1 ? <HangChonBe ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={id} doi={(x) => x && router.replace(`/ho-so/${x.id}` as never)} /> : null}
 
       {/* thẻ đầu .hs: hero navy (bàn Navy 17/11), ảnh 56 + tên + «9 tuổi · 2 máy» + viên sao; ô «Hôm nay chơi …» nổi trắng */}
       <View style={{ gap: 12, padding: 16, borderRadius: 28, overflow: "hidden", ...KHOI_HERO }}>
@@ -62,18 +58,14 @@ export default function HoSoCon() {
             <Chu kieu="rat" co={22} dong={2} mau={HERO.chu}>{c.ten}</Chu>
             <Chu kieu="dam" co={13.5} mau="#E3D9CB">{[tuoi ? `${tuoi} tuổi` : null, `${c.may.length} máy`].filter(Boolean).join(" · ")}</Chu>
           </View>
-          <NhanMen onPress={() => router.push(`/vi/${id}` as never)} accessibilityRole="button" accessibilityLabel={`Ví sao của ${c.ten}: ${chuVien(s)}`} muc="chip" sang>
-            <VienSao s={s} />
-          </NhanMen>
         </View>
         {/* ô «Hôm nay chơi 42 phút = 42 sao» + dòng nợ (cam); «Xem ›» = con dùng gì hôm nay */}
         <NhanMen onPress={() => router.push(`/da-dung/${id}` as never)} accessibilityRole="button" accessibilityLabel={`Xem ${c.ten} dùng gì hôm nay`} muc="khoi" sang men={MEN.sang}
           style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 20, backgroundColor: M.the }, KHOI.heroThe]}>
           <View style={{ flex: 1, gap: 2 }}>
             <Chu kieu="dam" co={13.5} mau={M.chu2} so>{phutHomNay !== null
-              ? <>Hôm nay chơi <Chu kieu="rat" co={20} so>{`${soVN(phutHomNay)} phút`}</Chu>{` = ${soVN(phutHomNay)} sao`}</>
+              ? <>Hôm nay chơi <Chu kieu="rat" co={20} so>{`${soVN(phutHomNay)} phút`}</Chu></>
               : "1 sao = 1 phút chơi"}</Chu>
-            {no ? <Chu kieu="rat" co={13} mau={M.canh}>{no.replace(/ · .*$/, "")}</Chu> : null}
           </View>
           <View style={{ alignItems: "center", gap: 2, paddingLeft: 10, borderLeftWidth: 1.5, borderLeftColor: M.vien }}>
             <Icon3D ten="laptop" co={26} mau={M.chu2} />
@@ -86,17 +78,11 @@ export default function HoSoCon() {
       <The dem style={{ paddingVertical: 4 }}>
         {/* thiết kế .lg: tên mục bên trái, giá trị (1–2 dòng nhỏ) canh phải + › */}
         <HangViec dau ic="dongho" mau="cam" tieu="Sao & phút chơi" phai={<GiaPhai tren="1 sao = 1 phút" />} bam={() => router.push(`/vi/${id}` as never)} />
-        {d.gioiHan ? <HangViec ic="dong_ho_cat" mau="cam" tieu="Giờ chơi" phai={<GiaPhai {...tomTatGioiHan(d.gioiHan)} />}
+        {d.gioiHan ? <HangViec ic="dong_ho_cat" mau="cam" tieu="Giờ chơi mỗi ngày" phu={tomTat(d.gioiHan)}
           bam={() => router.push(`/ho-so/${id}/gio-choi` as never)} /> : null}
-        <HangViec ic="khien" mau="lam" tieu="App & web"
-          phai={<GiaPhai tren={cheDoTu(c) === "mo_het" ? "Mở hết" : "Theo danh sách"} duoi={cheDoTu(c) === "mo_het" ? "Không tính phút" : d.duocMo !== null ? `Được mở ${d.duocMo} app` : undefined} />}
-          bam={() => router.push(`/app-web?con=${id}` as never)} />
         <HangViec ic="laptop" mau="xam" tieu={`Máy của ${tenGoi(c.ten)}`}
           phai={<GiaPhai tren={c.may.length ? `${c.may.length} máy` : "Chưa ghép"} duoi={canSua.length ? `${canSua.map((m) => m.ten.replace(/ của .*$/, "")).join(", ")} cần sửa` : undefined} canh={!!canSua.length} />}
           bam={() => router.push(`/may?con=${id}` as never)} />
-        <HangViec ic="sao" mau="vang" tieu="Nhiệm vụ & sao"
-          phai={<GiaPhai tren={d.nv ? (d.nv.length ? `${d.nv.length} việc mỗi ngày` : "Chưa giao việc") : chuVien(s)} />}
-          bam={() => router.push("/diem-qua")} />
       </The>
 
       {lk.d ? (
@@ -128,6 +114,9 @@ export default function HoSoCon() {
 }
 
 /** Giá trị bên phải hàng cài đặt (thiết kế: 12.5/700 xám, dòng dưới cam khi «cần sửa») + mũi tên. */
+/** «60 phút · cuối tuần 90 phút» (Bàn: dòng phụ dưới «Giờ chơi mỗi ngày»). */
+const tomTat = (g: { ngayThuong: number; cuoiTuan: number }) => `${g.ngayThuong} phút · cuối tuần ${g.cuoiTuan} phút`;
+
 function GiaPhai({ tren, duoi, canh }: { tren: string; duoi?: string; canh?: boolean }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "58%" }}>

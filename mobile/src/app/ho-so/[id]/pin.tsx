@@ -6,10 +6,10 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { CAU_TRONG_GIUP, quyenToi, type ConCt } from "@/lib/hang-ngay";
-import { Anh3D, mauHoSo } from "@/lib/lan-dau";
+import { mauHoSo } from "@/lib/lan-dau";
 import { cauDatPin, kiemPin, type PinCon } from "@/lib/s3";
 import { BONG } from "@/lib/clay";
-import { Avt, BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
+import { Avt, BaoLoi, baoKhiVe, ChoTai, Chu, Icon3D, M, Man, Nut, Rob, The, useLam, useTai } from "@/lib/ui";
 import { OPin } from "@/lib/ui-s3";
 
 export default function PinCuaCon() {
@@ -34,32 +34,31 @@ export default function PinCuaCon() {
   return (
     <Man lui={{ chu: "Hồ sơ con", ve: `/ho-so/${id}` }} tieu={tieu}
       day={d.xem ? undefined : <><BaoLoi loi={loiLam} /><Nut chu={d.p.coPin ? "Lưu PIN mới" : `Đặt PIN cho ${ten}`} rong dangChay={dangChay} tat={moi.length !== 4 || !!loiPin || (d.p.coPin && moi === cu)} bam={luu} /></>}>
-      {/* thẻ màu của con (như thẻ hồ sơ Lần đầu): ảnh chữ cái to, «PIN của X», nhãn «Đặt lần cuối», ổ khoá nhỏ góc trên phải */}
-      <The dem style={{ gap: 10, minHeight: 190, backgroundColor: mauHoSo(d.con?.avatar)[1] }}>
-        {/* thiết kế them-z2fyhohj @v4: ảnh 84 viền trắng, tên 26, ổ khoá 3D to góc phải */}
+      {/* Bàn them-z2fyhohj: thẻ màu của con — ảnh chữ cái, tên, «Đặt lần cuối», Grow bên phải */}
+      <The dem style={{ gap: 10, minHeight: 190, backgroundColor: mauHoSo(d.con?.avatar)[1], overflow: "hidden" }}>
         <View style={{ alignSelf: "flex-start", borderRadius: 46, borderWidth: 4, borderColor: M.dauSach }}><Avt ten={ten} mau={mauHoSo(d.con?.avatar)[0]} co={84} con={d.con} /></View>
-        <Chu kieu="rat" co={26} style={{ paddingRight: 72, letterSpacing: -0.4 }}>{`PIN của ${ten}`}</Chu>
+        <Chu kieu="rat" co={26} style={{ paddingRight: 72, letterSpacing: -0.4 }}>{ten}</Chu>
         <View style={{ alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12, backgroundColor: M.the, boxShadow: BONG.nho }}>
           <Chu kieu="rat" co={12.5} mau={M.chu2}>{cauDatPin(d.p.pinDatLuc)}</Chu>
         </View>
-        <View style={{ position: "absolute", right: 16, top: 16 }}><Anh3D ten="khoa" co={68} /></View>
+        <View pointerEvents="none" style={{ position: "absolute", right: -6, bottom: -10 }}><Rob ten="chi" co={150} /></View>
       </The>
 
       {/* Người trông giúp không xem / đặt PIN của bé (chỉ Ba Mẹ) */}
       {d.xem ? <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{CAU_TRONG_GIUP}</Chu> : (
-        <View style={{ gap: 8 }}>
-          <Chu kieu="rat" co={15} style={{ paddingHorizontal: 4 }}>{d.p.coPin ? "PIN đang dùng" : "PIN 4 số"}</Chu>
+        <The dem style={{ gap: 8 }}>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <Icon3D ten="khoa" co={20} />
+            <Chu kieu="rat" co={15} style={{ flex: 1 }}>{d.p.coPin ? "Mã PIN vào máy" : "PIN 4 số"}</Chu>
+            <Chu kieu="dam7" co={13} mau={M.chu3}>4 số</Chu>
+          </View>
           {/* máy chủ cũ không trả số PIN ⇒ ô trống, gõ PIN mới */}
           <OPin gia={moi} doi={setMoi} nhan={moi ? `PIN ${moi.split("").join(" ")}` : "Đặt PIN 4 số"} />
+          <Chu kieu="dam" co={13} mau={M.chu2} style={{ marginHorizontal: 2 }}>{`${ten} dùng PIN này để vào máy · không dùng ngày sinh`}</Chu>
           {!d.p.coPin ? <Chu co={13.5} mau={M.chu2} style={{ marginHorizontal: 4 }}>{`${ten} chưa có PIN — trên máy dùng chung, chạm tên là vào thẳng. Đặt PIN để chỉ ${ten} vào được.`}</Chu> : null}
           {loiPin && moi.length === 4 && moi !== cu ? <Chu kieu="dam" co={13} mau={M.loi}>{loiPin}</Chu> : null}
-        </View>
+        </The>
       )}
-
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, backgroundColor: M.chinhSoft }}>
-        <Rob ten="chi" co={40} />
-        <Chu kieu="dam" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>{`Lưu xong, ${ten} dùng PIN mới trên mọi máy.`}</Chu>
-      </View>
     </Man>
   );
 }

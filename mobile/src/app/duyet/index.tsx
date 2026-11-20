@@ -47,13 +47,13 @@ export default function DuyetDs() {
     return (
       <Man lui={{ chu: "Việc & quà" }} tieu="Chờ duyệt" day={<>
         <Nut chu={`Thêm việc cho ${d.ten}`} ic="cong" ic3d rong bam={() => router.push((d.conId ? `/giao-nv?con=${d.conId}` : "/giao-nv") as never)} />
-        <Nut chu="Về Trang chủ" loai="ma" rong bam={() => router.replace("/hom-nay" as never)} />
+        <Nut chu="Về Hôm nay" loai="ma" rong bam={() => router.replace("/hom-nay" as never)} />
       </>}>
         <CanhGiua lv="xong" tieu="Duyệt hết rồi!" loi="Không còn việc nào chờ Ba Mẹ. Con nộp việc mới, Grow sẽ báo ngay.">
           {d.sao !== null ? (
             <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.diemSoft }, KHOI.vien]}>
               <Icon3D ten="sao" co={26} />
-              <Chu kieu="rat" co={15} mau={M.diemInk}>{d.no > 0 ? `${d.ten} có ${soVN(d.sao)} sao · đang nợ Ba Mẹ ${soVN(d.no)} sao` : `${d.ten} có ${d.sao} sao = ${d.sao} phút chơi`}</Chu>
+              <Chu kieu="rat" co={15} mau={M.diemInk}>{d.no > 0 ? `${d.ten} đang nợ Ba Mẹ ${soVN(d.no)} sao` : d.sao < 0 ? `${d.ten} có ${soVN(d.sao)} sao` : `${d.ten} đã hết nợ sao`}</Chu>
             </View>
           ) : null}
         </CanhGiua>
@@ -79,7 +79,9 @@ export default function DuyetDs() {
     <Man lui={{ chu: "Việc & quà" }} tieu={`${ten} nộp việc`} tai={tai}
       phai={<View style={{ paddingHorizontal: 11, paddingVertical: 4, borderRadius: 13, backgroundColor: M.badge }}><Chu kieu="rat" co={13} mau={M.chu} so>{`${d.ds.length} chờ duyệt`}</Chu></View>}
       day={<>
-        <Nut chu={d.ds.length > 1 ? `Duyệt cả ${d.ds.length} · ${ten} nhận ${tong} sao` : `Duyệt · ${ten} nhận ${tong} sao`} ic="sao" ic3d rong dangChay={dangChay} bam={duyetCa} />
+        {choMang ? <Nut chu="Thử gửi lại ngay" ic="wifi" ic3d rong bam={duyetCa} />
+          : <Nut chu={d.ds.length > 1 ? `Duyệt cả ${d.ds.length} · ${ten} nhận ${tong} sao` : `Duyệt · ${ten} nhận ${tong} sao`} ic="sao" ic3d rong dangChay={dangChay} bam={duyetCa} />}
+        {choMang ? <Nut chu="Về Hôm nay" loai="ma" rong bam={() => router.replace("/hom-nay" as never)} /> : null}
       </>}>
       {choMang ? (
         // 32 «Mất mạng khi đang duyệt» (them-rqioc0fd@v3): thẻ đào + ô wifi 3D, «Đã duyệt, chờ gửi · n việc» với nhãn «Chờ mạng», dải ngọc Grow

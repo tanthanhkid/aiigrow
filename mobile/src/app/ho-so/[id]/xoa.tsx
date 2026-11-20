@@ -38,7 +38,6 @@ export default function XoaHoSo() {
   if (kq) return <KetQua kq={kq} />;
   if (!d) return <Man lui={{ chu: "Hồ sơ", ve: `/ho-so/${id}` }} tieu="Xoá hồ sơ"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const c = d.con;
-  const sao = c.sao ?? c.soDu;
   // chỉ máy RIÊNG của bé đổi chủ (máy chung chỉ bỏ bé khỏi danh sách) — câu theo đúng việc máy chủ làm (xoa-con.ts)
   const mayRieng = c.may.filter((m) => !m.dungChung);
   const tenGon = (ds: typeof mayRieng) => ds.map((m) => m.ten.replace(/ của .*$/, "")).join(" và ");
@@ -89,7 +88,7 @@ export default function XoaHoSo() {
         {/* máy chủ không gỡ máy — máy riêng của bé: còn 1 con ⇒ máy riêng của con đó, ≥ 2 ⇒ dùng chung; máy chung chỉ bỏ bé khỏi danh sách; Ba Mẹ đổi / gỡ ở bước sau */}
         {([...(mayRieng.length ? [["laptop", `Grow thôi trông ${mayRieng.length} máy cho ${c.ten}`, phuMay] as const] : []),
           ...(mayChung.length ? [["laptop", `${c.ten} rời ${mayChung.length} máy dùng chung`, `${tenGon(mayChung)} vẫn cho các con khác dùng`] as const] : []),
-          ["sao", `Mất ${sao} sao`, "Cả quà đang chờ trao"] as const, ["lich", "Mất báo cáo và cài đặt", "Nhiệm vụ, phút chơi đã đặt"] as const]).map(([ic, tieu, phu], k) => (
+          ["sao", "Xoá số sao và quà", "Cả quà đang chờ trao"] as const, ["lich", "Mất báo cáo và cài đặt", "Nhiệm vụ, phút chơi đã đặt"] as const]).map(([ic, tieu, phu], k) => (
           <View key={tieu} style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 58 }, keDau(k)]}>
             <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten={ic} co={24} /></View>
             <View style={{ flex: 1, minWidth: 0 }}><Chu kieu="rat" co={14.5}>{tieu}</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>{phu}</Chu></View>

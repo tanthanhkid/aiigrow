@@ -36,7 +36,7 @@ export default function QuaBaMeMua() {
   const m = d.m;
   if (!m) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi="Quà này không còn bán." tai={() => router.back()} /></Man>;
   const ten = d.c ? tenGoi(d.c.ten) : "con";
-  const thieu = d.sao !== null ? Math.max(0, m.sao - Math.max(0, d.sao)) : null;
+  const thieu = d.sao !== null ? Math.max(0, m.sao - d.sao) : null;
   const cafe = /AiiCafe/i.test(m.ten);
   const them = () => lam(async () => {
     await bm.goi("qua/thu-vien", { mau: [m.ma], ...(con ? { con } : {}) });
@@ -102,8 +102,8 @@ export default function QuaBaMeMua() {
             </View>
             {thieu ? (
               <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-                <Chu kieu="dam7" co={13} mau={M.chu2}>Đang có <Chu kieu="rat" co={13} mau={M.diemInk}>{`${soVN(Math.max(0, d.sao))} sao`}</Chu></Chu>
-                <Chu kieu="dam7" co={13} mau={M.chu2}>Còn thiếu <Chu kieu="rat" co={13} mau={M.diemInk}>{`${soVN(thieu)} sao`}</Chu></Chu>
+                <Chu kieu="dam7" co={13} mau={M.chu2}>{d.sao < 0 ? "Đang nợ" : "Đang có"} <Chu kieu="rat" co={13} mau={d.sao < 0 ? "#A2412C" : M.diemInk}>{`${soVN(Math.abs(d.sao))} sao`}</Chu></Chu>
+                <Chu kieu="dam7" co={13} mau={M.chu2}>Cần thêm <Chu kieu="rat" co={13} mau={M.diemInk}>{`${soVN(thieu)} sao`}</Chu></Chu>
               </View>
             ) : <Chu kieu="dam7" co={13} mau={M.chu2}>Con tự đổi trên máy, Ba Mẹ nhận thông báo</Chu>}
           </View>

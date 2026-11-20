@@ -68,12 +68,12 @@ export function FormLamLai({ l, ghiAm, daGui, huy }: { l: LuotLamLai; ghiAm: boo
 }
 
 /** Kết quả «Đã nhắn <Con> đọc lại» (them-4u3doee9): Grow chỉ tay, tiêu đề + câu, thẻ hai dòng (lời nhắn · Đã gửi / Chưa cộng sao · N sao),
- *  «Xem việc còn chờ duyệt» + nút chữ «Về Trang chủ». */
+ *  «Xem việc còn chờ duyệt» + nút chữ «Về Hôm nay». */
 export function KetQuaLamLai({ tenCon, con, ghiAm, nhan, luc, sao }: { tenCon: string; con: string; ghiAm: boolean; nhan: string; luc: Date; sao: number | null }) {
   return (
     <Man day={<>
       <Nut chu="Xem việc còn chờ duyệt" rong bam={() => router.replace(`/duyet?con=${con}` as never)} />
-      <Nut chu="Về Trang chủ" loai="ma" rong bam={() => router.replace("/hom-nay" as never)} />
+      <Nut chu="Về Hôm nay" loai="ma" rong bam={() => router.replace("/hom-nay" as never)} />
     </>}>
       <CanhGiua lv="chi" tieu={`Đã nhắn ${tenCon} ${ghiAm ? "đọc lại" : "làm lại"}`} loi="Con thấy lời nhắn ngay trên máy. Nộp lại xong, Ba Mẹ nhận thông báo để duyệt.">
         <View style={[{ alignSelf: "stretch", paddingHorizontal: 14, paddingVertical: 4, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>

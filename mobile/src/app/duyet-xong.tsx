@@ -55,13 +55,13 @@ export default function DuyetXong() {
   return (
     <Man noi={noi} day={loat ? (
       <>
-        <Nut chu="Xong, về Trang chủ" rong bam={veTrangChu} />
+        <Nut chu="Về Hôm nay" rong bam={veTrangChu} />
         <Nut chu="Xem việc chờ duyệt" loai="ma" rong bam={() => router.replace(`/duyet${p.con ? `?con=${p.con}` : ""}` as never)} />
       </>
     ) : (
       <>
         {tiep ? <Nut chu={`Duyệt tiếp: ${tiep.ten}`} rong bam={() => router.replace(`/duyet/${tiep.id}` as never)} /> : null}
-        <Nut chu="Về Trang chủ" loai={tiep ? "ma" : "chinh"} rong bam={veTrangChu} />
+        <Nut chu="Về Hôm nay" loai={tiep ? "ma" : "chinh"} rong bam={veTrangChu} />
       </>
     )}>
       {/* thiết kế 493dqo4i / zj9gmh7t: Grow tung giấy màu giữa pháo hoa (trái) và lấp lánh (phải), tiêu đề 26/900 hai dòng */}
