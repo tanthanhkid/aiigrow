@@ -9,6 +9,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, LoiApi, type GiaDinh } from "@/lib/api";
 import { loiTraoLuon, quaTrongKho, type DongQua } from "@/lib/noi-1411";
+import { D } from "@/lib/diu";
 import { KHOI } from "@/lib/clay";
 import { quyenToi, tenGoi } from "@/lib/hang-ngay";
 import { icQua, tenVoucher, type NhomThuVien } from "@/lib/s3";
@@ -102,7 +103,7 @@ export default function QuaBaMeMua() {
             </View>
             {thieu ? (
               <View style={{ flexDirection: "row", justifyContent: "space-between", gap: 8 }}>
-                <Chu kieu="dam7" co={13} mau={M.chu2}>{d.sao < 0 ? "Đang nợ" : "Đang có"} <Chu kieu="rat" co={13} mau={d.sao < 0 ? "#A2412C" : M.diemInk}>{`${soVN(Math.abs(d.sao))} sao`}</Chu></Chu>
+                <Chu kieu="dam7" co={13} mau={M.chu2}>{d.sao < 0 ? "Đang nợ" : "Đang có"} <Chu kieu="rat" co={13} mau={d.sao < 0 ? D.loi : M.diemInk}>{`${soVN(Math.abs(d.sao))} sao`}</Chu></Chu>
                 <Chu kieu="dam7" co={13} mau={M.chu2}>Cần thêm <Chu kieu="rat" co={13} mau={M.diemInk}>{`${soVN(thieu)} sao`}</Chu></Chu>
               </View>
             ) : <Chu kieu="dam7" co={13} mau={M.chu2}>Con tự đổi trên máy, Ba Mẹ nhận thông báo</Chu>}

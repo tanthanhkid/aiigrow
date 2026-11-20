@@ -53,7 +53,7 @@ export default function DuyetDs() {
           {d.sao !== null ? (
             <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.diemSoft }, KHOI.vien]}>
               <Icon3D ten="sao" co={26} />
-              <Chu kieu="rat" co={15} mau={M.diemInk}>{d.no > 0 ? `${d.ten} đang nợ Ba Mẹ ${soVN(d.no)} sao` : d.sao < 0 ? `${d.ten} có ${soVN(d.sao)} sao` : `${d.ten} đã hết nợ sao`}</Chu>
+              <Chu kieu="rat" co={15} mau={M.diemInk}>{d.no > 0 || d.sao < 0 ? `${d.ten} đang nợ Ba Mẹ ${soVN(d.no > 0 ? d.no : -d.sao)} sao` : d.sao > 0 ? `${d.ten} có ${soVN(d.sao)} sao` : `${d.ten} không còn nợ sao`}</Chu>
             </View>
           ) : null}
         </CanhGiua>
