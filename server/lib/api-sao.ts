@@ -17,7 +17,7 @@ import { appHomNayCon } from "./hom-nay-dung.ts";
 const s = (v: unknown, n = 200) => String(v ?? "").trim().slice(0, n);
 
 /** /api/m/* — `bm` đã đăng nhập và đã qua chặn «Chỉ xem» cho POST. */
-export async function xuLyMSao(bm: { id: string; family_id: string }, req: Request, p: string[], b: Record<string, unknown>): Promise<Response | null> {
+export async function xuLyMSao(bm: { id: string; family_id: string; vai: string }, req: Request, p: string[], b: Record<string, unknown>): Promise<Response | null> {
   const get = req.method === "GET", post = req.method === "POST", d = p.join("/"), fam = bm.family_id;
   if (p[0] === "con" && p[1]) {
     const sau = p.slice(2).join("/");
