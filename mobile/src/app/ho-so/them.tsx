@@ -8,7 +8,7 @@ import { router } from "expo-router";
 import { bm } from "@/lib/api";
 import { type AppGoiY } from "@/lib/ghep-may";
 import { appsRobChonSan, thanThietLap } from "@/lib/thiet-lap";
-import { ChonMauCon, HangAnhCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
+import { ChonMauCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
 import { CHUA_LUU_ANH, dongBoAnhCon } from "@/lib/anh-con";
 import { OLom } from "@/lib/lan-dau";
 import { boTheoTuoi, kiemPin } from "@/lib/s3";
@@ -57,8 +57,7 @@ export default function ThemCon() {
     <Man lui={{ chu: "", ve: "/cai-dat" }} tieu="Thêm con"
       day={<><BaoLoi loi={loi} />
         <Nut chu={`Lưu hồ sơ ${tenGon || "con"}`} rong dangChay={dangChay} tat={!tenGon || pin.length < 4 || !!loiPin} bam={tao} /></>}>
-      <TheHoSoCon ten={ten} nam={nam} mau={mau} anh={af.uri} chup={af.chup} />
-      <HangAnhCon f={af} />
+      <TheHoSoCon ten={ten} nam={nam} mau={mau} anh={af.uri} f={af} />
       <OLom nhan="Tên gọi ở nhà" value={ten} onChangeText={setTen} placeholder="Khang" maxLength={30} autoComplete="off" />
       <ONamSinh nam={nam} doi={setNam} />
       <ChonMauCon mau={mau} doi={setMau} />

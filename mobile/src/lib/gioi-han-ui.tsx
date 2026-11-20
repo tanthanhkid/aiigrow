@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { buocPhut, docPhut, GIOI_HAN_MD, KHOANG_LUOT, KHOANG_NGAY, LUOT_MD, quyRaTieng, type GioiHan } from "@/lib/gioi-han";
-import { Chu, F, Icon3D, M } from "@/lib/ui";
+import { Chu, F, IconNet, M } from "@/lib/ui";
 
 const XANH = M.chinhInk;
 
@@ -47,7 +47,7 @@ const theKem = { borderRadius: 28, backgroundColor: M.the, paddingHorizontal: 16
 function Hoi({ ic, chu }: { ic: "dongho" | "dong_ho_cat"; chu: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingLeft: 2 }}>
-      <Icon3D ten={ic} co={28} /><Chu kieu="rat" co={16} dong={1} style={{ flex: 1 }}>{chu}</Chu>
+      <IconNet ten={ic} co={24} mau={M.chinh} /><Chu kieu="rat" co={16} dong={1} style={{ flex: 1 }}>{chu}</Chu>
     </View>
   );
 }
@@ -55,7 +55,7 @@ function Hoi({ ic, chu }: { ic: "dongho" | "dong_ho_cat"; chu: string }) {
 function BuocMinh({ ic, chu }: { ic: "game" | "khoa"; chu: string }) {
   return (
     <View style={{ flex: 1, alignItems: "center", gap: 4 }}>
-      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><Icon3D ten={ic} co={21} /></View>
+      <View style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}><IconNet ten={ic} co={18} mau={M.chinh} /></View>
       <Chu kieu="rat" co={12} mau={M.nut} dong={1}>{chu}</Chu>
     </View>
   );

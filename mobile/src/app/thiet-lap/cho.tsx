@@ -9,7 +9,7 @@ import { kqTheoMa, xemGhep } from "@/lib/ghep-may";
 import { BuocMayCon, CanhRob, DauMan, demNguoc, DongTrangThai, hienMa, KhoiTrangThaiGhep, LienKet, linkNgan, TieuDe } from "@/lib/lan-dau";
 import { xoaTl } from "@/lib/thiet-lap";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { BaoLoi, Chu, Icon3D, M, Man, Nut, useHoanTac, useTai } from "@/lib/ui";
+import { BaoLoi, Chu, IconNet, M, Man, Nut, useHoanTac, useTai } from "@/lib/ui";
 
 export default function ChoMayCon() {
   const p = useLocalSearchParams<{ ma?: string; con?: string; nguon?: string; conDs?: string }>();
@@ -83,10 +83,10 @@ export default function ChoMayCon() {
         {hetHan ? <Nut chu={`Lấy mã mới cho ${ten}`} ic="khoa" rong bam={layMoi} /> : <Nut chu={nguon === "them" ? "Máy mới đã nhập mã" : "Máy con đã nhập mã"} ic="tick" rong bam={daNhap} />}
         <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
           <Pressable onPress={guiLai} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
-            <Icon3D ten="gui" co={20} /><Chu kieu="rat" co={14} mau={M.chinhInk}>Gửi lại link</Chu>
+            <IconNet ten="gui" co={20} mau={M.chinhInk} /><Chu kieu="rat" co={14} mau={M.chinhInk}>Gửi lại link</Chu>
           </Pressable>
           <Pressable onPress={() => router.push("/ho-tro")} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 44 }}>
-            <Icon3D ten="dau_hoi" co={20} /><Chu kieu="rat" co={14} mau={M.chinhInk}>Cần giúp?</Chu>
+            <IconNet ten="dau_hoi" co={20} mau={M.chinhInk} /><Chu kieu="rat" co={14} mau={M.chinhInk}>Cần giúp?</Chu>
           </Pressable>
         </View>
         {nguon === "them" && !hetHan ? <LienKet chu="Mã hết hạn rồi? Lấy mã mới" bam={layMoi} /> : null}

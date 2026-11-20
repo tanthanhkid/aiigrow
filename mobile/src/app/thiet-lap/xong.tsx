@@ -12,7 +12,7 @@ import { MEN, BONG, KHOI } from "@/lib/clay";
 import { tomTat } from "@/lib/ghep-may";
 import { LienKet, TieuDe } from "@/lib/lan-dau";
 import { datTl, layTl, xoaTl } from "@/lib/thiet-lap";
-import { Avt, Chu, Icon, Icon3D, M, MAU_CON, Man, Nut, Rob, The, useTai, XuongTai, type TenIcon } from "@/lib/ui";
+import { Avt, Chu, Icon, IconNet, LopMen, M, MAU_CON, Man, Nut, Rob, The, useTai, XuongTai, type TenIcon } from "@/lib/ui";
 
 export default function ObXong() {
   const p = useLocalSearchParams<{ con?: string }>();
@@ -34,9 +34,9 @@ export default function ObXong() {
   const coMay = !!d?.may.length;
   const dong = (ic: TenIcon, chu: string) => (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 }}>
-      <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><Icon3D ten={ic} co={26} /></View>
+      <View style={{ width: 40, height: 40, borderRadius: 13, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}><IconNet ten={ic} co={22} mau={M.chinh} /></View>
       <Chu kieu="rat" co={15} style={{ flex: 1 }}>{chu}</Chu>
-      {coMay ? <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}><Icon ten="tick" mau="#FFFBF5" co={14} /></View> : null}
+      {coMay ? <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: M.diem, alignItems: "center", justifyContent: "center", boxShadow: BONG.vang }}><Icon ten="tick" mau={M.chinh} co={14} /></View> : null}
     </View>
   );
   if (!d && con) return <Man><XuongTai /></Man>;
@@ -48,8 +48,8 @@ export default function ObXong() {
         {/* bàn bm1-ob-xong v15 / them-w8q8hcfk v5: huy hiệu tick ngọc tròn chồng góc dưới phải Grow */}
         <View>
           <Rob ten="xong" co={170} />
-          <View style={{ position: "absolute", right: -14, bottom: 4, width: 52, height: 52, borderRadius: 26, backgroundColor: M.chinh, borderWidth: 4, borderColor: "#FFFBF5",
-            alignItems: "center", justifyContent: "center", boxShadow: BONG.ngoc }}><Icon ten="tick" mau="#FFFBF5" co={24} /></View>
+          <View style={{ position: "absolute", right: -14, bottom: 4, width: 52, height: 52, borderRadius: 26, backgroundColor: M.diem, overflow: "hidden",
+            alignItems: "center", justifyContent: "center", boxShadow: BONG.vang }}><LopMen men={MEN.vang} bo={26} /><Icon ten="tick" mau={M.chinh} co={24} /></View>
         </View>
         <TieuDe chu="Xong rồi!" phu={coMay ? `Grow bắt đầu trông ${d!.may[0].ten.includes(ten) ? d!.may[0].ten : `${d!.may[0].ten} của ${ten}`}.` : `${ten} đã có việc và luật chơi bằng sao.`} giua />
       </View>
@@ -63,7 +63,7 @@ export default function ObXong() {
       {conLai.map((x) => <Nut key={x.id} chu={`Thiết lập tiếp cho ${x.ten}`} loai="vien" rong bam={() => tiepCon(x)} />)}
       {coMay ? (
         <View style={{ borderRadius: 26, backgroundColor: M.chonSoft, padding: 16, gap: 10, ...KHOI.the }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="chuong" co={22} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Con xin gì, điện thoại Ba Mẹ sẽ báo</Chu></View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><IconNet ten="chuong" co={22} mau={M.chinh} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Con xin gì, điện thoại Ba Mẹ sẽ báo</Chu></View>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, backgroundColor: M.the, borderRadius: 18, padding: 10, ...KHOI.nho }}>
             <Avt ten={ten} mau={MAU_CON[0]} co={34} />
             <View style={{ flex: 1 }}><Chu kieu="rat" co={13.5}>Xin thêm YouTube</Chu><Chu co={12.5} mau={M.chu3}>vào danh sách</Chu></View>
@@ -73,9 +73,9 @@ export default function ObXong() {
         </View>
       ) : (
         <View style={{ borderRadius: 26, backgroundColor: M.chonSoft, padding: 16, gap: 10, ...KHOI.the }}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><Icon3D ten="may_tinh" co={22} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Chưa có máy nào</Chu></View>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><IconNet ten="may_tinh" co={22} mau={M.chinh} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Chưa có máy nào</Chu></View>
           <Chu co={13.5} mau={M.chu2}>{`Grow chỉ trông được khi máy của ${ten} đã ghép`}</Chu>
-          <Nut chu={`Ghép máy cho ${ten}`} loai="ngoc" rong bam={() => router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } })} />
+          <Nut chu={`Ghép máy cho ${ten}`} rong bam={() => router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } })} />
         </View>
       )}
     </Man>

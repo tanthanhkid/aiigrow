@@ -12,9 +12,9 @@ import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { datTl, layTl } from "@/lib/thiet-lap";
 import { GIOI_HAN_MD, type GioiHan } from "@/lib/gioi-han";
 import { ChonGioiHan, NutTron } from "@/lib/gioi-han-ui";
-import { Chu, F, Icon3D, M, Man, Nut, Rob } from "@/lib/ui";
+import { Chu, F, IconNet, M, Man, Nut, Rob } from "@/lib/ui";
 
-const NAU = M.diemInk;
+const NAU = "#F7EBD3";
 
 export default function ObGio() {
   const tl = layTl();
@@ -31,21 +31,21 @@ export default function ObGio() {
     <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={3} />} />}
       day={<Nut chu="Tiếp: chọn app cho con" rong tat={!!ghLoi} bam={tiep} />}>
       <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 25, lineHeight: 30, letterSpacing: -0.5, color: M.chu }}>{`${ten} chơi máy thế nào?`}</Text>
-      <View style={{ height: 138, borderRadius: 28, overflow: "hidden", backgroundColor: M.the, ...KHOI.the }}>
-        <View style={{ position: "absolute", left: 16, top: 12 }}><Icon3D ten="sao" co={15} /></View>
-        <View style={{ position: "absolute", left: nho ? 66 : 106, top: 16 }}><Icon3D ten="sao" co={22} /></View>
+      <View style={{ height: 138, borderRadius: 28, overflow: "hidden", backgroundColor: M.chinh, ...KHOI.the }}>
+        <View style={{ position: "absolute", left: 16, top: 12 }}><IconNet ten="sao" co={15} mau={M.diem} /></View>
+        <View style={{ position: "absolute", left: nho ? 66 : 106, top: 16 }}><IconNet ten="sao" co={22} mau={M.diem} /></View>
         <View style={{ position: "absolute", left: -2, bottom: -8 }}><Rob ten="rob-goc" co={nho ? 92 : 124} /></View>
         <View style={{ position: "absolute", right: 14, top: 12, ...(nho ? { left: 92 } : { width: 186 }), alignItems: "center" }}>
           <Chu kieu="rat" co={14} mau={NAU} dong={1}>Quà khởi đầu cho con</Chu>
           <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", alignSelf: "stretch", marginTop: 6, marginBottom: 8 }}>
             <NutTron dau="−" nhan="Bớt 10 sao" bam={() => doi(-1)} tat={sao <= 0} nen={M.the} co={22} />
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4 }} accessibilityLabel={`${sao} sao`}>
-              <Icon3D ten="sao" co={30} /><Chu kieu="rat" co={nho ? 32 : 40} mau={M.chu} so style={{ letterSpacing: -1.5 }}>{String(sao)}</Chu>
+              <IconNet ten="sao" co={30} mau={M.diem} /><Chu kieu="rat" co={nho ? 32 : 40} mau={M.diem} so style={{ letterSpacing: -1.5 }}>{String(sao)}</Chu>
             </View>
             <NutTron dau="+" nhan="Thêm 10 sao" bam={() => doi(1)} tat={sao >= SAO_KHOI_DAU_TOI_DA} nen={M.the} co={22} />
           </View>
-          <View style={{ paddingVertical: 5, paddingHorizontal: 12, borderRadius: 14, backgroundColor: "rgba(255,255,255,0.75)", boxShadow: BONG.lom }}>
-            <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}>1 sao = chơi 1 phút</Chu>
+          <View style={{ paddingVertical: 5, paddingHorizontal: 12, borderRadius: 14, backgroundColor: "rgba(244,199,106,0.16)" }}>
+            <Chu kieu="rat" co={12.5} mau={M.diem} dong={1}>1 sao = chơi 1 phút</Chu>
           </View>
         </View>
       </View>

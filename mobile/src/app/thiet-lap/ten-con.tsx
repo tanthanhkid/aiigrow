@@ -8,9 +8,9 @@
 import { useEffect, useState } from "react";
 import { router } from "expo-router";
 import { bm } from "@/lib/api";
-import { ChonMauCon, HangAnhCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
+import { ChonMauCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
 import { CHUA_LUU_ANH, coAnh, dongBoAnhCon, useAnhCon } from "@/lib/anh-con";
-import { DauMan, LienKet, MAU_HO_SO, OLom } from "@/lib/lan-dau";
+import { DauMan, MAU_HO_SO, OLom } from "@/lib/lan-dau";
 import { kiemPin } from "@/lib/s3";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { datTl, layTl } from "@/lib/thiet-lap";
@@ -70,17 +70,11 @@ export default function ObCon() {
       apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined });
     router.push("/thiet-lap/mau");
   });
-  const themCon = () => lam(async () => {
-    const { ds } = await luu();
-    datTl({ daLuu: ds, conId: undefined, gioiHan: undefined });
-    setTen(""); setNam(""); setConId(undefined); setPin(""); af.bo(); setAvatarLuu(undefined); setBoAnhLuu(false); setMau(ds.length % MAU_HO_SO.length);
-  });
   const conDau = daLuu[0];
   return (
     <Man dau={<DauMan ve="/" phai={<ThanhBuoc5 dang={0} />} />}
       day={<><BaoLoi loi={loi} />
         {/* #306: «+ Thêm con khác» lên trên; nút nổi ngay dưới — «Lưu hồ sơ X» (chưa thêm con nào khác) hoặc «Xong, giao việc cho <Con đầu> trước» (đã thêm) */}
-        <LienKet chu="+ Thêm con khác" bam={() => (!tenGon ? setLoi("Nhập tên con này trước, rồi thêm con khác.") : thieuPin ? setLoi(loiPin ?? CAU_PIN) : loiPin ? setLoi(loiPin) : themCon())} />
         {conDau ? (
           <Nut chu={`Xong, giao việc cho ${conDau.ten} trước`} rong dangChay={dangChay} tat={!!tenGon && (thieuPin || !!loiPin || (nam !== "" && !namSo))} bam={() => lam(async () => {
             if (tenGon) { if (thieuPin) throw new Error(CAU_PIN); if (loiPin) throw new Error(loiPin); const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
@@ -90,8 +84,7 @@ export default function ObCon() {
         ) : (
           <Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo) || thieuPin || !!loiPin} bam={tiep} />
         )}</>}>
-      <TheHoSoCon ten={ten} nam={nam} mau={mau} anh={af.uri ?? anhMay} chup={af.chup} />
-      <HangAnhCon f={af} coAnh={coAnhLuu} boDaLuu={() => setBoAnhLuu(true)} />
+      <TheHoSoCon ten={ten} nam={nam} mau={mau} anh={af.uri ?? anhMay} f={af} coAnh={coAnhLuu} boDaLuu={() => setBoAnhLuu(true)} />
       <OLom nhan="Tên gọi ở nhà" value={ten} onChangeText={setTen} placeholder="Bảo Anh" maxLength={30} autoComplete="off" />
       <ONamSinh nam={nam} doi={setNam} />
       <ChonMauCon mau={mau} doi={setMau} />
