@@ -12,6 +12,7 @@ import { usePhien } from "@/lib/phien";
 import { KHOA_CA_NHA, TEN_QUYEN, napCaNha, tenMoi, type LoiMoiCho } from "@/lib/ca-nha";
 import { MucTieu, OIcon } from "@/lib/ui-bm3";
 import { mauCon, tenGoi } from "@/lib/hang-ngay";
+import { saoTu, VienSao } from "@/lib/so-sao";
 import { BONG, KHOI } from "@/lib/clay";
 import {
   Avt, BaoLoi, ChoTai, Chu, Dong, Icon, IconNet, M, Man, NhanMen, Nhom, useHoanTac, useLam, useTai,
@@ -55,10 +56,12 @@ export default function CaiDat() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 8, paddingTop: 6 }}>
         {d.g.con.map((c, i) => (
           <Pressable key={c.id} onPress={() => router.push(`/ho-so/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Hồ sơ ${c.ten}`}
-            style={{ width: "20%", alignItems: "center", gap: 6, minHeight: 84 }}>
+            style={{ width: "20%", alignItems: "center", gap: 4, minHeight: 100 }}>
             {/* #417: dải «Các con» không có bé đang chọn ⇒ mọi bé là avatar kem lõm chữ navy (chuẩn E «chưa chọn») */}
             <Avt ten={c.ten} mau={mauCon(c.avatar, i)} co={54} con={c} chon={false} />
             <Chu kieu="rat" co={13} mau={M.chu2} dong={1}>{tenGoi(c.ten)}</Chu>
+            {/* #492: chip sao dưới tên bé (nợ ⇒ «−20 sao» đỏ trên chip lõm kem) — cùng VienSao với hàng chọn bé */}
+            <VienSao s={saoTu(c)} nho />
           </Pressable>
         ))}
         {laBaMe ? (
