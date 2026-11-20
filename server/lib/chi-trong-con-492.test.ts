@@ -51,6 +51,8 @@ test("#492 Chỉ trông con: tên vai + việc được phép (xem, khoá máy, 
   // khoá máy
   assert.equal((await m(`con/${con}/khoa`, { tok: hoa, body: { khoa: true } })).status, 200);
   // cho vay sao
+  const vayQua = await m(`con/${con}/cho-vay`, { tok: hoa, body: { soSao: 10, mucDich: "qua" } });
+  assert.equal(vayQua.status, 403, "cho vay để mua quà thì «Chỉ trông con» không được");
   const vay = await m(`con/${con}/cho-vay`, { tok: hoa, body: { soSao: 10, mucDich: "choi" } });
   assert.equal(vay.status, 200, JSON.stringify(vay.body));
   assert.equal(vay.body.soSao, 10);

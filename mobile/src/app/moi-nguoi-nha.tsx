@@ -1,6 +1,6 @@
 // Mời người nhà (thiết kế 14/11 bm-ca-nha/04 them-5hzkl6p5 = bm-cai-dat/03 «Mời người nhà» → 05 «Đã mời» / bm-cai-dat/07 «Chưa có app, gửi link»):
-// SĐT hoặc email, «<tên> làm được như bạn — Cho vay sao, duyệt việc, đổi cài đặt», «Gửi lời mời». 14/11: thiết kế bỏ chọn quyền khi mời (chỉ còn
-// «làm được như bạn») ⇒ luôn mời quyền Ba Mẹ; người «Người trông giúp» cũ vẫn giữ quyền, đổi ở màn Thành viên. «Chọn từ danh bạ» chưa làm. Không mã mời: người được mời đăng nhập bằng đúng SĐT / email là thấy lời mời (moi/cho-toi),
+// SĐT hoặc email, «<tên> làm được như bạn — Cho vay sao, duyệt việc, đổi cài đặt», «Gửi lời mời». #492: chọn vai khi mời («Như Ba Mẹ» mặc định /
+// «Chỉ trông con», gửi `quyen`); đổi vai sau ở màn Thành viên. «Chọn từ danh bạ» chưa làm. Không mã mời: người được mời đăng nhập bằng đúng SĐT / email là thấy lời mời (moi/cho-toi),
 // hoặc bấm link. Máy chủ chưa gửi SMS / email và chưa biết người được mời có app chưa ⇒ «… chưa có app? Xem cách gửi link» gửi lời mời rồi mở hàng
 // chia sẻ (Zalo / Tin nhắn, câu soạn sẵn `chiaSe`).
 // #325 (bàn them-5hzkl6p5@v7 = them-0uobhmvh, them-hfd2drjy@v9 = them-wewdno56): số điện thoại hiện «0909 876 543»; nút gửi icon 3D; «Đã mời» có ô sân

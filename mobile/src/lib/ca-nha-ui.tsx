@@ -8,13 +8,13 @@ import { Chu, Icon, IconNet, M, NhanMen, type TenIcon } from "./ui";
 
 /** Hai thẻ chọn vai «Như Ba Mẹ» | «Chỉ trông con» (bàn bm2-thanh-vien, them-0uobhmvh): thẻ đang chọn viền vàng + dấu ✓ tròn vàng.
  *  `doi` bỏ trống ⇒ chỉ xem (người xem không đổi được vai). */
-export function HaiTheVai({ quyen, doi, tat }: { quyen: Quyen; doi?: (q: Quyen) => void; tat?: boolean }) {
+export function HaiTheVai({ quyen, doi }: { quyen: Quyen; doi?: (q: Quyen) => void }) {
   return (
     <View style={{ flexDirection: "row", gap: 12 }} accessibilityRole="radiogroup">
       {(["ba_me", "trong_giup"] as const).map((q) => {
         const chon = quyen === q;
         return (
-          <NhanMen key={q} onPress={doi && !tat ? () => doi(q) : undefined} disabled={!doi || tat} accessibilityRole="radio" accessibilityState={{ selected: chon, disabled: !doi || tat }}
+          <NhanMen key={q} onPress={doi ? () => doi(q) : undefined} disabled={!doi} accessibilityRole="radio" accessibilityState={{ selected: chon, disabled: !doi }}
             accessibilityLabel={`${TEN_QUYEN[q]}. ${MO_TA_QUYEN[q]}`} muc="khoi" sang
             style={[{ flex: 1, minHeight: 124, padding: 14, borderRadius: 28, backgroundColor: M.the, gap: 4, borderWidth: 2, borderColor: chon ? M.chinh : "transparent" }, KHOI.the]}>
             <OIcon ic={IC_QUYEN[q]} co={40} />
