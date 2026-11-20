@@ -1,21 +1,21 @@
-// Tab «App & web» (bàn bm-ung-dung: bm2-ung-dung-may@v17 · them-98obxv7x@v6 — #262, luồng #258): chọn bé, thẻ lớn «Máy của <con> đang
-// ở chế độ» + công tắc «Mở hết | Theo danh sách» ngay trên thẻ, «Con đang xin» (hàng cam .xin, Trả lời › — ẩn khi Mở hết), «Danh sách của <con>» (chú thích chấm vàng Tính phút /
-// xanh Không tính phút) hai hàng App / Web (icon + chấm nhóm, «Sửa ›»), «Đã bỏ qua N lời xin · con xin lại được — Xem ›». Đang «Mở hết» ⇒ danh sách mờ,
-// «Đang tạm nghỉ, vẫn giữ nguyên». Không còn «Chặn» / «Luôn chặn». Đọc: gia-dinh, con/:id/danh-sach. Ghi: POST con/:id/che-do {cheDo}.
-// (Tên tệp route giữ «chan» cho các liên kết cũ /chan?con=.)
+// Tab «App & web» (bàn bm-ung-dung: bm2-ung-dung-may@v21 · them-a4nqjrmp@v17 — #490): chọn bé (dải tròn kiểu Hôm nay, viên sao), thẻ navy «Máy của <con> đang ở chế độ» +
+// công tắc «Mở hết | Theo danh sách» (lib/ds-chung › TheCheDo), «Con đang xin» (thẻ xin ngay trên tab: Tính phút | Không tính phút | Bỏ qua — ẩn khi Mở hết),
+// «Danh sách của <con>» hai hàng App / Web (icon + chấm nhóm vàng Tính phút / navy Không tính phút, «Sửa ›»), «Đã bỏ qua N lời xin — Xem ›». Đang «Mở hết» ⇒ danh sách mờ,
+// «Đang tạm nghỉ, vẫn giữ nguyên». Đọc: gia-dinh, con/:id/danh-sach. Ghi: POST con/:id/che-do {cheDo}. (Tên tệp route giữ «chan» cho các liên kết cũ /chan?con=.)
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { bm, laChiXem, type GiaDinh } from "@/lib/api";
-import { ChipCon } from "@/lib/hang-ngay";
-import { BONG, KHOI, MEN, HERO, KHOI_HERO } from "@/lib/clay";
-import { HangBoQua, icCuaApp, lucNgan } from "@/lib/ui-bm3";
-import { HangXin, icMuc } from "@/lib/ds-con";
-import { cheDoTu, doiCheDo as ghiCheDo, hangCua, IC_CHE_DO, MAU_NHOM, napDanhSach, TEN_CHE_DO, TEN_NHOM, type CheDo, type DanhSach, type DongDs, type Nhom } from "@/lib/app-web";
-import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, Icon, IconNet, LogoTron, M, Man, NhanMen, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { saoTu, VienSao } from "@/lib/so-sao";
+import { DaiCon } from "@/lib/ui-viec";
+import { TheCheDo } from "@/lib/ds-chung";
+import { laAppWeb, TheXin } from "@/lib/hom-nay-xin";
+import { BONG, KHOI } from "@/lib/clay";
+import { HangBoQua } from "@/lib/ui-bm3";
+import { icMuc, xinThanhYc } from "@/lib/ds-con";
+import { cheDoTu, doiCheDo as ghiCheDo, hangCua, MAU_NHOM, napDanhSach, TEN_CHE_DO, TEN_NHOM, type CheDo, type DanhSach, type DongDs, type Nhom } from "@/lib/app-web";
+import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, IconNet, M, Man, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
-// Logo tròn vàng kim ở thẻ chế độ (#417): cỡ + lệch phải; tên chế độ (25px) chừa phần logo nằm trong thẻ − lề 16 (khổ 320 đè — cổng DE-ANH)
-const ROB_CO = 84, ROB_PHAI = 14, CHUA_ROB = ROB_CO + ROB_PHAI - 16;
 const TIEU = "App & web";
 
 export default function TabChan() {
@@ -43,7 +43,9 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
   useEffect(() => { idRef.current = id; }, [id]);
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
-  const chips = ds.length > 1 ? <ChipCon ds={ds} chon={id} doi={(x) => doi(x.id)} /> : null;
+  const chips = ds.length > 1 ? (
+    <DaiCon ds={ds} chon={id} doi={(x) => doi(x.id)} duoi={Object.fromEntries(ds.map((x) => [x.id, <VienSao key={x.id} s={saoTu(x)} nho />]))} />
+  ) : null;
   if (!d) return <View style={{ flex: 1 }}><Man tieuLon={TIEU}>{dau}{chips}<ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
 
   const ten = d.ds.con.ten;
@@ -66,45 +68,8 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
       <Man tieuLon={TIEU} tai={tai} vongTai noi={noi}>
         {dau}
         {chips}
-        {/* thẻ lớn chế độ (.hero) — chế độ đang bật thấy đầu tiên, công tắc ngay trên thẻ */}
-        {/* bàn Navy 17/11: thẻ hero navy cả hai chế độ (.hero --hiBg), dấu sách vàng mép trên, chữ trắng, dòng nhỏ vàng mật */}
-        <View style={{ borderRadius: 34, overflow: "hidden", ...KHOI_HERO }}>
-          <View style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
-            <View pointerEvents="none" style={{ position: "absolute", left: 24, top: 0 }}><DauSach mau={HERO.phu} rong={16} cao={22} /></View>
-            <Chu kieu="dam7" co={13} mau={HERO.phu} style={{ marginTop: 10 }}>{`Máy của ${ten} đang ở chế độ`}</Chu>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginRight: CHUA_ROB + 6 }} accessibilityRole="header">
-              {/* #417: logo tròn vàng kim (mẫu E `.rob`) thay Grow 3D — neo theo hàng tên chế độ (không theo mép thẻ) ⇒ dòng «Máy của … đang ở chế độ»
-                  xuống 2 dòng ở khổ hẹp thì logo xuống theo, không nằm dưới chữ (cổng TUONG-PHAN @320). Mép phải logo cách mép thẻ ROB_PHAI. */}
-              <View pointerEvents="none" style={{ position: "absolute", right: -(CHUA_ROB + 22 - ROB_PHAI), top: -8 }}><LogoTron co={ROB_CO} /></View>
-              <IconNet ten={IC_CHE_DO[cheDo]} co={30} mau={HERO.phu} />
-              <Chu kieu="rat" co={24} mau={HERO.chu} style={{ letterSpacing: -0.6, flexShrink: 1 }}>{TEN_CHE_DO[cheDo]}</Chu>
-            </View>
-            <View style={{ marginTop: 12, marginRight: 96, gap: 8 }}>
-              {moHet ? <>
-                <DongY ic="tick" nen={M.ok} chu="Con mở mọi app, mọi trang web" />
-                <DongY ic="tick" nen={M.ok} chu="Không tính phút" />
-              </> : <>
-                <DongY ic="tick" nen={M.ok} chu="Chỉ mở app, web Ba Mẹ đã thêm" />
-                <DongY kyTu="?" nen={M.badge} chu="App, web mới: con xin Ba Mẹ" />
-              </>}
-            </View>
-            <View style={{ flexDirection: "row", gap: 4, marginTop: 16, padding: 4, borderRadius: 24, backgroundColor: HERO.vien, boxShadow: "inset 0px 4px 8px rgba(0,0,0,0.3)" }}
-              accessibilityRole="radiogroup" accessibilityLabel="Chế độ app và web">
-              {(["mo_het", "theo_danh_sach"] as const).map((k) => {
-                const on = k === cheDo;
-                return (
-                  <NhanMen key={k} onPress={() => doiCheDo(k)} disabled={d.xem || dangChay} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: d.xem }} aria-checked={on}
-                    accessibilityLabel={TEN_CHE_DO[k]} muc="chip" sang={on} men={on ? MEN.vang : undefined}
-                    style={[{ flex: k === "mo_het" ? 1 : 1.25, minWidth: 0, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 48, borderRadius: 20 },
-                      on && { backgroundColor: M.diem, boxShadow: BONG.vang }]}>
-                    <IconNet ten={IC_CHE_DO[k]} co={21} mau={on ? M.chu : HERO.chu} />
-                    <Chu kieu="rat" co={14.5} mau={on ? M.chu : HERO.chu} dong={1}>{TEN_CHE_DO[k]}</Chu>
-                  </NhanMen>
-                );
-              })}
-            </View>
-          </View>
-        </View>
+        {/* bm2-ung-dung-may@v21: thẻ navy chế độ + công tắc — khối dùng chung với Lần đầu (ds-chung) */}
+        <TheCheDo lon ten={ten} cheDo={cheDo} doi={doiCheDo} tat={d.xem || dangChay} />
         <BaoLoi loi={loiLam} />
 
         {/* bàn them-98obxv7x@v6: đang «Mở hết» thì không có mục «Con đang xin» (con mở được mọi thứ, lời xin cũ vẫn ở Trang chủ / Chờ duyệt) */}
@@ -112,8 +77,10 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
           <>
             <TieuMuc chu="Con đang xin" so={d.ds.dangXin.length} />
             {d.ds.dangXin.map((y) => (
-              <HangXin key={y.id} ic={y.kieu === "web" ? "web" : icCuaApp(y.ten ?? "")} tieu={y.ten ?? y.muc ?? (y.kieu === "web" ? "Trang web" : "App mới")}
-                phu={`${lucNgan(y.luc)} · ${ten} đang chờ`} bam={() => router.push({ pathname: "/yeu-cau-web/[id]", params: { id: y.id } })} />
+              <The key={y.id} style={{ paddingVertical: 2 }}>
+                <TheXin y={xinThanhYc(y, d.ds.con)} may={y.may} lam={(fn) => lam(fn)} dang={dangChay} dangXin truc={laAppWeb({ loai: y.loai })}
+                  phu={`${y.ten ?? y.muc ?? (y.kieu === "web" ? "Trang" : "App")} chưa có trong danh sách được mở`} />
+              </The>
             ))}
           </>
         ) : null}
@@ -145,17 +112,6 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
 
         {!moHet && d.ds.boQua.so ? <HangBoQua so={d.ds.boQua.so} bam={() => router.push({ pathname: "/bo-qua", params: { con: id } })} /> : null}
       </Man>
-    </View>
-  );
-}
-
-function DongY({ ic, kyTu, nen, chu }: { ic?: TenIcon; kyTu?: string; nen: string; chu: string }) {
-  return (
-    <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8 }}>
-      <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: nen, alignItems: "center", justifyContent: "center" }}>
-        {ic ? <Icon ten={ic} mau={M.chu} co={12} /> : <Chu kieu="rat" co={12} mau={M.chu}>{kyTu ?? ""}</Chu>}
-      </View>
-      <Chu kieu="rat" co={13.5} mau={HERO.chu} style={{ flex: 1 }}>{chu}</Chu>
     </View>
   );
 }

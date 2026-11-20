@@ -6,9 +6,10 @@ import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, type ConChiTiet, type ThongKeWeb } from "@/lib/api";
-import { TEN_NHOM, themVaoDs, type Nhom } from "@/lib/app-web";
-import { ChonNhomNgang, DongDen, NutChon, OIconTrang, KhoiNhom, OTim, icCuaApp, veHoac } from "@/lib/ui-bm3";
-import { BaoLoi, ChoTai, Chu, M, Man, Nut, useLam, useTai } from "@/lib/ui";
+import { themVaoDs } from "@/lib/app-web";
+import { bamChonThem, chuNutThem, datNhomThem, KetQuaThem, type ChonThem, type MucThem } from "@/lib/ds-chung";
+import { OTim, icCuaApp, veHoac } from "@/lib/ui-bm3";
+import { BaoLoi, ChoTai, Man, Nut, useLam, useTai } from "@/lib/ui";
 
 /** Tên miền con / tên miền đi kèm đã biết của các trang hay gặp (mở một trang mà quên trang đi kèm thì con vẫn vào được / vẫn hỏng). */
 const HO: Record<string, { ten: string; mien: [string, string][]; tuoi?: number }> = {
@@ -36,7 +37,7 @@ export default function ThemWeb() {
     return { ten: ct.ten, tuoi: ct.namSinh ? new Date().getFullYear() - ct.namSinh : null, w };
   });
   const [go, setGo] = useState("");
-  const [chon, setChon] = useState<Map<string, { t: Trang; nhom: Nhom }>>(new Map());
+  const [chon, setChon] = useState<ChonThem>(new Map());
   const { lam, loi: loiLam, dangChay } = useLam();
   const ve = () => veHoac(`/web/${con}`);
   const luat = useMemo(() => {
@@ -60,60 +61,28 @@ export default function ThemWeb() {
     return [...ra].slice(0, 12).map(([m, phu]) => ({ muc: m, phu }));
   };
   const kq = ketQua();
-  const ngoai = [...chon.values()].filter((x) => !kq.some((t) => t.muc === x.t.muc)).map((x) => x.t);
-  const doi = (t: Trang) => setChon((c) => { const n = new Map(c); if (n.has(t.muc)) n.delete(t.muc); else n.set(t.muc, { t, nhom: ["hoc", "cho_phep"].includes(luat.get(t.muc) ?? "") ? "khong_tinh_phut" : "tinh_phut" }); return n; });
-  const datNhom = (t: Trang, nhom: Nhom) => setChon((c) => new Map(c).set(t.muc, { t, nhom }));
-  const luu = () => lam(async () => {
-    await themVaoDs(con, [...chon.values()].map(({ t, nhom }) => ({ nhom, muc: t.muc, kieu: "web" as const })));
-    ve();
-  });
   const luuY = (m: string) => {
     const ho = HO[goc(m)], tt = luat.get(m);
     return [ho?.tuoi && d.tuoi !== null && d.tuoi < ho.tuoi ? `${ho.ten} dành cho từ ${ho.tuoi} tuổi.` : null,
       tt === "cho_phep" || tt === "hoc" ? "Trang này đang ở nhóm «Không tính phút»." : tt === "giai_tri" ? "Trang này đang ở nhóm «Tính phút»." : null]
       .filter(Boolean).join(" ");
   };
-  const dong = (t: Trang, i: number) => {
-    const c = chon.get(t.muc), ly = c ? luuY(t.muc) : "";
-    return (
-      <View key={t.muc} style={{ paddingBottom: c ? 12 : 0 }}>
-        <DongDen dau={i === 0} tieu={t.muc} phu={t.phu} trai={<OIconTrang ic={icCuaApp(t.muc)} />}
-          phai={<View accessibilityRole="checkbox" accessibilityState={{ checked: !!c }}><NutChon chon={!!c} /></View>} bam={() => doi(t)} />
-        {c ? (
-          <View style={{ gap: 6 }}>
-            <Chu kieu="rat" co={13.5} mau={M.chu2} style={{ marginHorizontal: 2, marginTop: 2 }}>{`${t.muc} có tính phút không?`}</Chu>
-            <ChonNhomNgang gia={c.nhom} doi={(x) => datNhom(t, x)} />
-            {/* lưu ý (bàn them-yzl99l3y@v9 .luu): viên cam nhạt dưới hai ô nhóm */}
-            {ly ? <View style={{ marginTop: 4, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: M.canhSoft }}><Chu kieu="dam" co={12.5} mau={M.canh}>{ly}</Chu></View> : null}
-          </View>
-        ) : null}
-      </View>
-    );
-  };
-  const so = chon.size, mot = so === 1 ? [...chon.values()][0] : null;
+  const mt = (t: Trang): MucThem => ({ k: t.muc, ten: t.muc, phu: t.phu, ic: icCuaApp(t.muc), luuY: luuY(t.muc) || undefined,
+    nhom: ["hoc", "cho_phep"].includes(luat.get(t.muc) ?? "") ? "khong_tinh_phut" : "tinh_phut" });
+  const luu = () => lam(async () => {
+    await themVaoDs(con, [...chon.values()].map(({ m, nhom }) => ({ nhom, muc: m.k, kieu: "web" as const })));
+    ve();
+  });
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={`Thêm web cho ${d.ten}`} dau={<View style={{ paddingHorizontal: 16, paddingBottom: 6 }}>
       <OTim gia={go} doi={setGo} goiY="Gõ địa chỉ: vuihoc.vn, tiktok.com…" nhan="Địa chỉ trang web" url khongKinh />
     </View>} day={<>
       <BaoLoi loi={loiLam} />
-      <Nut chu={mot ? `Thêm ${mot.t.muc} · ${TEN_NHOM[mot.nhom]}` : so ? `Thêm ${so} trang` : "Chọn trang để thêm"} rong dangChay={dangChay} tat={!so} bam={luu} />
+      <Nut thu chu={chuNutThem(chon, "trang")} rong dangChay={dangChay} tat={!chon.size} bam={luu} />
     </>}>
-      {ngoai.length ? (
-        <>
-          <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>Đã chọn</Chu>
-          <KhoiNhom>{ngoai.map(dong)}</KhoiNhom>
-        </>
-      ) : null}
-      {kq.length ? (
-        <>
-          <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6 }}>{`Kết quả cho «${go.trim()}»`}</Chu>
-          <KhoiNhom>{kq.map(dong)}</KhoiNhom>
-        </>
-      ) : !ngoai.length ? (
-        <Chu kieu="dam" co={14} mau={M.chu3} style={{ marginHorizontal: 6 }}>
-          {muc.length >= 2 ? "Gõ đủ địa chỉ trang, vd tiktok.com." : `Gõ địa chỉ trang web ${d.ten} được vào. Dán được cả đường link — mọi trang con theo cùng nhóm.`}
-        </Chu>
-      ) : null}
+      <KetQuaThem go={go} kq={kq.map(mt)} chon={chon} doi={(m) => setChon(bamChonThem(m))} datNhom={(m, n) => setChon(datNhomThem(m, n))}
+        trong="Gõ đủ địa chỉ trang, vd tiktok.com."
+        chuaGo={muc.length >= 2 ? "Gõ đủ địa chỉ trang, vd tiktok.com." : `Gõ địa chỉ trang web ${d.ten} được vào. Dán được cả đường link — mọi trang con theo cùng nhóm.`} />
     </Man>
   );
 }

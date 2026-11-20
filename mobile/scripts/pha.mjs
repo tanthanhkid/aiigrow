@@ -685,18 +685,22 @@ if (process.argv.includes("--giao-dien")) {
       await nhanChuot(await viTriYen(`() => [...document.querySelectorAll('[role="tab"]')].find((e) => e.innerText.trim() === "Quà nhà")`)); } }),
     M("bm-ob-qua-mua (them-hn2754ce)", "/thiet-lap/qua-mua?ma=cafe50", "Số lượng", { truoc: diTl("/thiet-lap/qua-mua?ma=cafe50") }),
     M("bm-ob-gio", "/thiet-lap/gio", "Quà khởi đầu cho con", { truoc: diTl("/thiet-lap/gio") }),
-    M("bm-ob-app", "/thiet-lap/app", "Google Classroom", { truoc: diTl("/thiet-lap/app") }),
+    M("bm-ob-app", "/thiet-lap/app", "Gợi ý cho Bảo Anh", { truoc: diTl("/thiet-lap/app") }),
     M("bm-ob-app (mở hết)", "/thiet-lap/app", "Tiếp: ghép máy của con", { truoc: async () => { await diTl("/thiet-lap/app")(); await doi("Theo danh sách"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="radio"][aria-label^="Mở hết"]')`)); } }),
     M("bm-ob-them-app", "/thiet-lap/them-app", "Thêm app cho", { truoc: diTl("/thiet-lap/them-app") }),
     // them-at57ypdc v5: gõ «Duolingo» ⇒ chạm dòng ⇒ hỏi nhóm ngay dưới dòng, nút đáy «Thêm Duolingo · Không tính phút»
     M("bm-ob-them-app (đã chọn · them-at57ypdc)", "/thiet-lap/them-app", "Duolingo có tính phút không?", { truoc: async () => { await diTl("/thiet-lap/them-app")();
-      await doi("Thêm app cho"); await go("Tên app", "Duolingo"); await doi("Kết quả cho");
-      await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"][aria-label="Duolingo"]')`)); } }),
+      await doi("Thêm app cho"); await go("Tên app", "Duolingo"); await doi("Kết quả cho"); await bam("Duolingo"); } }),
     M("bm-ob-web", "/thiet-lap/web", "vioedu.vn", { truoc: diTl("/thiet-lap/web") }),
     M("bm-ob-them-web", "/thiet-lap/them-web", "Thêm web cho", { truoc: diTl("/thiet-lap/them-web") }),
     M("bm-ob-them-web (đã chọn · them-ubomxl31)", "/thiet-lap/them-web", "có tính phút không?", { truoc: async () => { await diTl("/thiet-lap/them-web")();
       await doi("Thêm web cho"); await go("Tên hoặc link trang web", "khanacademy.org"); await doi("Kết quả cho");
-      await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"][aria-label="khanacademy.org"]')`)); } }),
+      await nhanChuot(await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => !e.children.length && e.innerText?.replace(/\u200b/g, "").trim() === "khanacademy.org")[0]`)); } }),
+    // #490: «Đổi app» (them-qjgsxgos) / «Đổi web» (them-4glrqqlq) — cùng khối chi tiết với Hằng ngày + thanh bước 5
+    M("bm-ob-doi-app (them-qjgsxgos)", "/thiet-lap/doi-app?ten=Minecraft", "Minecraft có tính phút không?", { truoc: diTl("/thiet-lap/doi-app?ten=Minecraft") }),
+    M("bm-ob-doi-web (them-4glrqqlq)", "/thiet-lap/doi-web?muc=vioedu.vn", "vioedu.vn có tính phút không?", { truoc: async () => { await di("/chao");
+      await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify({ ...TL, webs: [{ muc: "vioedu.vn", tinhGio: true }] }))})`);
+      await goi("Page.navigate", { url: `${GOC}/thiet-lap/doi-web?muc=vioedu.vn` }); } }),
     M("bm-ob-ghep", "/thiet-lap/ghep", "quét mã này", { truoc: diTl("/thiet-lap/ghep") }),
     M("bm-ob-ghep (có tên bé · bm1-ob-ghep)", "/thiet-lap/ghep?con=c1", "Ghép máy của", { truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
     M("bm-ob-cho", "/thiet-lap/cho?ma=482017&con=c1", "482"),
@@ -791,7 +795,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-man-hinh (cả tuần)", "/man-hinh/c1", "APP & TRANG WEB", { truoc: async () => { await di("/man-hinh/c1"); await doi("Cả tuần"); await bam("Cả tuần"); } }),
     M("bm-man-hinh (trống)", "/man-hinh/c1", "Hôm nay con chưa dùng app nào", { kb: { "GET con/c1/man-hinh": { ten: KEN, lui: 0, dau: "2026-10-19", cuoi: "2026-10-25", homNay: "2026-10-23", tongGiay: 0, tbNgayGiay: 0, tuanTruocGiay: 0, tatCa: 0, theoNgay: [], theoMuc: [], ds: [] } } }),
     M("bm-yeu-cau (danh sách)", "/yeu-cau?con=c2", "Cho vay 15 sao"),
-    M("bm-yeu-cau-web", "/yeu-cau/y5", "Thêm YouTube cho", { kb: { "GET cho-duyet": CHO_DUYET_Y5() } }),
+    M("bm-yeu-cau-web", "/yeu-cau/y5", "đang xin phép", { kb: { "GET cho-duyet": CHO_DUYET_Y5() } }),
     M("bm-xin-vay (máy cũ them_gio)", "/yeu-cau/y2", "Con xin vay sao"),
     M("bm-yeu-cau-xong", "/yeu-cau/xong?kieu=vay&ten=Bill&con=c2&phut=15&grant=g-moi", "vay 15 sao"),
     M("bm-canh-bao", "/canh-bao", "Grow gợi ý"),
@@ -873,14 +877,14 @@ if (process.argv.includes("--giao-dien")) {
       await go("Tìm app", "Minecraft"); await doi("Kết quả cho"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"]')`)); } }),
     M("bm-web", "/web/c1", "Thêm trang web cho"),
     // đúng ca bàn bm2-web: con đang xin mở một trang web (tiktok.com)
-    M("bm-web (con xin web)", "/web/c1", "Con xin mở trang tiktok", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { dangXin: [{ ...XIN_YT, id: "y6", loai: "mo_web", kieu: "web", muc: "tiktok.com", ten: "tiktok.com" }] }) } }),
+    M("bm-web (con xin web)", "/web/c1", "chưa có trong danh sách được mở", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { dangXin: [{ ...XIN_YT, id: "y6", loai: "mo_web", kieu: "web", muc: "tiktok.com", ten: "tiktok.com" }] }) } }),
     M("bm-web-trang", "/web/trang?con=c1&ten=youtube.com", "youtube.com có tính phút không?"),
     M("bm-web-them", "/web/them?con=c1", "Thêm web cho"),
     // đúng ca bàn them-yzl99l3y: đã gõ «tiktok.com», chạm ＋ dòng tiktok.com
     M("bm-web-them (đã chọn)", "/web/them?con=c1", "tiktok.com có tính phút không?", { truoc: async () => { await di("/web/them?con=c1"); await doi("Thêm web cho");
       await go("Địa chỉ trang web", "tiktok.com"); await doi("Kết quả cho"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"]')`)); } }),
     M("bm-bo-qua", "/bo-qua?con=c1", "Lời xin đã bỏ qua"),
-    M("bm-yeu-cau-web-moi", "/yeu-cau-web/y5", "Thêm YouTube cho", { kb: { "GET cho-duyet": CHO_DUYET_Y5() } }),
+    M("bm-yeu-cau-web-moi", "/yeu-cau-web/y5", "đang xin phép", { kb: { "GET cho-duyet": CHO_DUYET_Y5() } }),
     M("bm-yeu-cau-web-bo-qua", `/yeu-cau-web/bo-qua?id=y5&ten=YouTube&con=${encodeURIComponent(KEN)}&may=Laptop&den=${encodeURIComponent(new Date(Date.now() + 3_600_000).toISOString())}`, "Đã bỏ qua YouTube"),
     M("bm-yeu-cau-xong (đã thêm)", `/yeu-cau/xong?kieu=mo&ten=${encodeURIComponent(KEN)}&con=c1&muc=YouTube&phut=1&may=Laptop`, "Đổi sang Không tính phút"),
     M("bm-ung-dung-may", "/ung-dung/m1", "Mọi app trên máy"),
@@ -1443,7 +1447,7 @@ await kichBan("App & web: Hồ sơ ⇒ tab «App & web» ⇒ «Theo danh sách»
   xet(await coChon('[role="radio"][aria-checked="true"][aria-label="Theo danh sách"]'), "chế độ «Theo danh sách» đang chọn");
   const c = await chu();
   xet(c.includes("Chỉ mở app, web Ba Mẹ đã thêm") && c.includes("App, web mới: con xin Ba Mẹ"), "thẻ chế độ nói đúng 2 ý");
-  xet(c.includes("Con đang xin") && c.includes("YouTube") && c.includes("Trả lời ›"), "«Con đang xin» YouTube + Trả lời ›");
+  xet(c.includes("Con đang xin") && c.includes("Xin thêm YouTube") && c.includes("Không tính phút") && c.includes("Bỏ qua"), "«Con đang xin» YouTube: thẻ xin có Tính phút | Không tính phút | Bỏ qua ngay trên tab");
   xet(c.includes(`Danh sách của ${KEN}`) && c.includes("Tính phút") && c.includes("Không tính phút"), "«Danh sách của <Con>» + chú thích 2 nhóm");
   xet(c.includes("Đã bỏ qua 2 lời xin"), "hàng «Đã bỏ qua 2 lời xin · Xem ›»");
   { const cu = await chuChan(); xet(!cu.length, `không còn chữ luồng Chặn (${cu.join(", ")})`); }
@@ -1465,7 +1469,7 @@ await kichBan("App của <Con>: 2 nhóm + phút / sao hôm nay ⇒ Roblox ⇒ «
   await bamChon('[aria-label^="App:"]');
   xet(await doi(`App của ${KEN}`), "«Sửa ›» App ⇒ danh sách App của Con");
   const c = await chu();
-  xet(c.includes("Hôm nay trừ 39 phút · −39 sao") && c.includes("Hôm nay 40 phút"), "Tính phút ghi phút + sao; Không tính phút chỉ ghi phút");
+  xet(c.includes("Hôm nay 39 phút") && c.includes("Hôm nay 40 phút") && !c.includes("−39 sao") && c.indexOf("Tính phút trả bằng sao") < c.indexOf("Không tính phút vào thoải mái"), "cả hai nhóm chỉ ghi «Hôm nay N phút»; Tính phút đứng trước");
   xet(c.includes(`${KEN} chỉ mở được 4 app này`), "câu «<Con> chỉ mở được 4 app này»");
   await bam("Roblox");
   xet(await doi("Roblox có tính phút không?"), "mở màn một app");
@@ -1507,17 +1511,14 @@ await kichBan("Thêm app / Thêm web: tìm ⇒ chạm ＋ ⇒ «<mục> có tín
     "POST danh-sach {ds: [{muc: tiktok.com, kieu: web, nhom: tinh_phut}]}");
 });
 
-await kichBan("Lời xin app: tab ⇒ «Trả lời ›» ⇒ 3 cách ⇒ «Tính phút» (dong-y {nhom}) ⇒ «Đã thêm YouTube · Tính phút» ⇒ «Đổi sang Không tính phút» ⇒ Hoàn tác (bỏ khỏi danh sách)", async () => {
+await kichBan("Lời xin app: thẻ xin ngay trên tab App & web ⇒ 3 cách ⇒ «Tính phút» (dong-y {nhom}) ⇒ «Đã thêm YouTube · Tính phút» ⇒ «Đổi sang Không tính phút» ⇒ Hoàn tác (bỏ khỏi danh sách)", async () => {
   kb["GET cho-duyet"] = CHO_DUYET_Y5();
   await di("/chan?con=c1");
-  await doi("Trả lời ›");
-  await bam("Trả lời ›");
-  xet(await doi(`Thêm YouTube cho ${KEN}?`), "mở «Con xin mở» YouTube");
+  xet(await doi("YouTube chưa có trong danh sách"), "thẻ xin YouTube ngay trên tab (không còn «Trả lời ›»)");
   const c = await chu();
-  xet(c.includes("«Con xem video hướng dẫn vẽ ạ»") && /Chờ \d+′/.test(c), "lời nhắn của con + «Chờ N′»");     // N tăng theo lúc chạy (dữ liệu giả tính từ đầu kịch bản)
-  xet(c.includes("Thêm vào danh sách · trả bằng sao") && c.includes("Thêm vào danh sách · vào thoải mái") && c.includes("Không ghi gì · con xin lại được"), "đủ 3 cách trả lời");
+  xet(c.includes("«Con xem video hướng dẫn vẽ ạ»") && c.includes("Không tính phút") && c.includes("Bỏ qua"), "lời nhắn của con + Tính phút | Không tính phút | Bỏ qua");
   nhatKy.length = 0;
-  await bam("Tính phút");
+  await bamDau("Tính phút");
   xet(await choGoi((x) => x.d === "yeu-cau/y5/dong-y" && x.body?.nhom === "tinh_phut"), "Tính phút ⇒ dong-y {nhom: tinh_phut}");
   xet(await doi("Đã thêm YouTube · Tính phút"), "màn «Đã thêm YouTube · Tính phút»");
   xet(await doi("Tính phút · 1 sao = 1 phút xem"), "viên «Tính phút · 1 sao = 1 phút xem»");
@@ -1534,9 +1535,9 @@ await kichBan("Lời xin app: tab ⇒ «Trả lời ›» ⇒ 3 cách ⇒ «Tín
 await kichBan("Lời xin app: «Bỏ qua» ⇒ bo-qua ⇒ «Đã bỏ qua YouTube · Không ghi gì vào danh sách» ⇒ «Hoàn tác, xem lại lời xin» ⇒ hoan-tac ⇒ về lời xin", async () => {
   kb["GET cho-duyet"] = CHO_DUYET_Y5();
   await di("/yeu-cau-web/y5");
-  await doi(`Thêm YouTube cho ${KEN}?`);
+  await doi("YouTube chưa có trong danh sách");
   nhatKy.length = 0;
-  await bam("Bỏ qua");
+  await bamDau("Bỏ qua");
   xet(await choGoi((x) => x.d === "yeu-cau/y5/bo-qua" && x.m === "POST"), "Bỏ qua ⇒ POST yeu-cau/:id/bo-qua (không tu-choi)");
   xet(!nhatKy.some((x) => /tu-choi$/.test(x.d)), "không gọi tu-choi kiểu cũ");
   xet(await doi("Đã bỏ qua YouTube"), "màn «Đã bỏ qua YouTube»");
@@ -1546,7 +1547,7 @@ await kichBan("Lời xin app: «Bỏ qua» ⇒ bo-qua ⇒ «Đã bỏ qua YouTub
   nhatKy.length = 0;
   await bam("Hoàn tác, xem lại lời xin");
   xet(await choGoi((x) => x.d === "yeu-cau/y5/hoan-tac" && x.m === "POST"), "Hoàn tác ⇒ POST yeu-cau/:id/hoan-tac");
-  xet(await doi(`Thêm YouTube cho ${KEN}?`), "về lại lời xin để trả lời lại");
+  xet(await doi("YouTube chưa có trong danh sách"), "về lại lời xin để trả lời lại");
 });
 
 await kichBan("Lời xin đã bỏ qua: tab ⇒ «Đã bỏ qua 2 lời xin · Xem ›» ⇒ danh sách ⇒ «Thêm luôn» Minecraft ⇒ chọn Không tính phút ⇒ them-luon {nhom}", async () => {
@@ -1617,8 +1618,9 @@ await kichBan("Lần đầu: «<Con> dùng app thế nào?» chọn «Mở hết
   await goi("Page.navigate", { url: `${GOC}/thiet-lap/che-do` });
   xet(await doi("Bảo Anh dùng app thế nào?"), "đường cũ che-do ⇒ màn gộp «<Con> dùng app thế nào?»");
   const c = await chu();
-  xet(c.includes("Đã thêm 2 app · 1 tính phút") && c.includes("App khác: con xin Ba Mẹ"), "dòng đếm «Đã thêm 2 app · 1 tính phút»");
-  xet(c.includes("Không tính phút") && c.includes("＋ Thêm"), "2 nhóm Không tính phút / Tính phút, mỗi dòng có chip đổi nhóm");
+  xet(c.includes("App và web trên máy Bảo Anh sẽ ở chế độ") && c.includes("Gợi ý cho Bảo Anh"), "thẻ navy «App và web trên máy <con> sẽ ở chế độ» + nhóm «Gợi ý cho <con>»");
+  xet(c.indexOf("Tính phút trả bằng sao") >= 0 && c.indexOf("Tính phút trả bằng sao") < c.indexOf("Không tính phút vào thoải mái"), "hai nhóm: Tính phút ĐỨNG TRƯỚC Không tính phút");
+  xet(!c.includes("＋ Thêm") && !/Hôm nay \d+ phút/.test(c) && !c.includes("Đã thêm 2 app"), "không chip trong dòng, không số liệu dùng, không dòng đếm cũ");
   await bamChon('[role="radio"][aria-label^="Mở hết"]');
   xet(await doi("Tiếp: ghép máy của con"), "Mở hết ⇒ nút «Tiếp: ghép máy của con»");
   xet(!(await chu()).includes("Google Classroom"), "Mở hết ⇒ ẩn danh mục app");
@@ -1626,6 +1628,63 @@ await kichBan("Lần đầu: «<Con> dùng app thế nào?» chọn «Mở hết
   await bam("Tiếp: ghép máy của con");
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST" && x.body?.cheDo === "mo_het" && !("cheDoChan" in (x.body ?? {}))), "POST thiet-lap {cheDo: mo_het}");
   xet(nhatKy.find((x) => x.d === "thiet-lap")?.body?.apps?.some((a) => a.ten === "Roblox" && a.nhom === "tinh_phut"), "app gửi kèm nhom (Roblox ⇒ tinh_phut)");
+});
+
+await kichBan("Lần đầu · bước 5 trọn luồng (#490): Theo danh sách ⇒ chạm app đã thêm ⇒ «Đổi app» ⇒ Không tính phút ⇒ Lưu ⇒ Web ⇒ «Đổi ›» về màn app ⇒ Thêm web ⇒ Tiếp ⇒ POST thiet-lap đúng nhom; Bỏ app", async () => {
+  const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }], cheDoChan: "chi_app_duoc_phep", quy: 60,
+    ngu: { tu: "21:30", den: "06:30" }, apps: [{ ten: "Google Classroom", tinhGio: false }, { ten: "Roblox", tinhGio: true }] };
+  const tlNay = async () => JSON.parse((await js(`sessionStorage.getItem("aiigrow.thiet-lap")`)) ?? "{}");
+  await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`);
+  await goi("Page.navigate", { url: `${GOC}/thiet-lap/app` });
+  xet(await doi("Bảo Anh dùng app thế nào?"), "mở bước 5 · app");
+  // thêm app từ «Gợi ý cho»: ＋ ⇒ Thêm app có sẵn chữ tìm ⇒ chọn ⇒ «Thêm <app> · <nhóm>»
+  await bamChon('[aria-label="Thêm VioEdu"]');
+  xet(await doi("Thêm app cho Bảo Anh"), "＋ ở gợi ý ⇒ màn Thêm app");
+  xet(await coChon('[role="checkbox"][aria-checked="false"]') || await doi("VioEdu"), "gợi ý điền sẵn chữ tìm, hiện kết quả");
+  await bam("VioEdu");
+  xet(await doi("VioEdu có tính phút không?"), "chạm kết quả ⇒ hỏi nhóm ngay dưới dòng");
+  await bamTrong('[role="radio"]', "Tính phút");
+  xet(await doi("Thêm VioEdu · Tính phút"), "nút đáy đúng tên + loại");
+  await bam("Thêm VioEdu · Tính phút");
+  xet(await doi("Bảo Anh dùng app thế nào?"), "Thêm xong ⇒ về màn app");
+  xet((await tlNay()).apps?.some((a) => a.ten === "VioEdu" && a.tinhGio === true), "VioEdu ghi vào thiết lập, tinhGio true");
+  // chạm app đã thêm ⇒ Đổi app (chỉ một cách đổi — không chip trong dòng)
+  await bam("Roblox");
+  xet(await doi("Roblox có tính phút không?"), "chạm app đã thêm ⇒ «Đổi app»");
+  xet(await coChon('[role="radio"][aria-checked="true"][aria-label^="Tính phút"]'), "nhóm hiện tại Tính phút đang chọn");
+  await bamChon('[role="radio"][aria-label^="Không tính phút"]');
+  await bam("Lưu: Roblox không tính phút");
+  xet(await doi("Bảo Anh dùng app thế nào?"), "Lưu ⇒ về màn app");
+  xet((await tlNay()).apps?.some((a) => a.ten === "Roblox" && a.tinhGio === false), "Roblox đổi sang Không tính phút");
+  // Đổi app ⇒ Bỏ
+  await bam("VioEdu");
+  await doi("VioEdu có tính phút không?");
+  await bam("Bỏ VioEdu khỏi danh sách");
+  xet(await doi("Bảo Anh dùng app thế nào?") && !(await tlNay()).apps?.some((a) => a.ten === "VioEdu"), "Bỏ ⇒ về màn app, VioEdu không còn");
+  await bam("Tiếp: chọn web cho con");
+  xet(await doi("Bảo Anh vào web thế nào?") && (await chu()).includes("Chế độ: Theo danh sách"), "sang Web: dòng «Chế độ: Theo danh sách · Đổi ›», không công tắc");
+  await bam("Đổi ›");
+  xet(await doi("Bảo Anh dùng app thế nào?"), "«Đổi ›» ⇒ về màn app");
+  await bam("Tiếp: chọn web cho con");
+  await doi("Bảo Anh vào web thế nào?");
+  // thêm web ⇒ Đổi web
+  await bamChon('[aria-label="Thêm vioedu.vn"]');
+  xet(await doi("Thêm web cho Bảo Anh"), "＋ ở gợi ý web ⇒ màn Thêm web");
+  await bam("vioedu.vn");
+  xet(await doi("vioedu.vn có tính phút không?"), "chạm trang ⇒ hỏi nhóm");
+  await bam("Thêm vioedu.vn · Không tính phút");
+  xet(await doi("Bảo Anh vào web thế nào?"), "Thêm web xong ⇒ về màn web");
+  await bam("vioedu.vn");
+  xet(await doi("vioedu.vn có tính phút không?"), "chạm web đã thêm ⇒ «Đổi web»");
+  await bamChon('[role="radio"][aria-label^="Tính phút"]');
+  await bam("Lưu: vioedu.vn tính phút");
+  xet(await doi("Bảo Anh vào web thế nào?"), "Lưu ⇒ về màn web");
+  nhatKy.length = 0;
+  await bam("Tiếp: ghép máy của con");
+  xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "Tiếp ⇒ POST thiet-lap một lần");
+  const b = nhatKy.find((x) => x.d === "thiet-lap")?.body;  // web gửi ở khoá `web`
+  xet(b?.apps?.some((a) => a.ten === "Roblox" && a.nhom === "khong_tinh_phut") && !b.apps.some((a) => a.ten === "VioEdu"), "apps gửi đúng nhom (Roblox khong_tinh_phut, VioEdu đã bỏ)");
+  xet(b?.web?.some((w) => w.muc === "vioedu.vn" && w.nhom === "tinh_phut"), "web gửi đúng nhom (vioedu.vn đổi sang tinh_phut)");
 });
 
 await kichBan("#420 Con thứ 2+: «Giống <con trước>» ⇒ POST con/:id/chep-tu {tu} ⇒ Ghép máy; nhà ≥3 con chọn bé khác; «Thiết lập riêng» ⇒ luồng cũ", async () => {

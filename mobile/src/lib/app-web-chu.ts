@@ -9,9 +9,9 @@ export const IC_CHE_DO = { mo_het: "mo_khoa", theo_danh_sach: "khien" } as const
 export const TEN_NHOM: Record<Nhom, string> = { tinh_phut: "Tính phút", khong_tinh_phut: "Không tính phút" };
 /** Câu phụ của một nhóm (thiết kế: «Trả bằng sao · 1 sao = 1 phút» / «Vào thoải mái»). */
 export const PHU_NHOM: Record<Nhom, string> = { tinh_phut: "Trả bằng sao · 1 sao = 1 phút", khong_tinh_phut: "Vào thoải mái" };
-/** Chấm màu của nhóm (MỘT bộ với nút «Tính phút» / «Không tính phút» ở yeu-cau-web): Tính phút = M.chamTinh #A94A07 (4,5:1 trên kem #ECE4D9) · Không tính phút = M.chamKhong #3F7D1F (4,0:1). */
-// chép giá trị từ mau.ts (M.chamTinh / M.chamKhong): tệp chạy thẳng bằng node --test, không nạp mau.ts — đổi một bên phải đổi cả bên kia
-export const MAU_NHOM: Record<Nhom, string> = { tinh_phut: "#A94A07", khong_tinh_phut: "#3F7D1F" };
+/** Chấm màu của nhóm (MỘT bộ với nút «Tính phút» / «Không tính phút» ở yeu-cau-web): Tính phút = vàng #D9AE57 · Không tính phút = navy #0A1629 (bàn bm-ung-dung 20/11). */
+// màu nhóm: Tính phút vàng, Không tính phút navy (tệp chạy thẳng bằng node --test, không nạp mau.ts)
+export const MAU_NHOM: Record<Nhom, string> = { tinh_phut: "#D9AE57", khong_tinh_phut: "#0A1629" };
 
 /** Giá trị cũ của máy chủ (`chi_app_duoc_phep`, null) ⇒ «Theo danh sách». */
 export const cheDoTu = (x: { cheDo?: string | null; cheDoChan?: string | null } | null | undefined): CheDo =>
@@ -30,7 +30,7 @@ export type BoQua = { id: string; con: string; tenCon: string; loai: string; kie
 /** Mọi hàng của một kiểu (Tính phút trước). */
 export const hangCua = (d: DanhSach, kieu: Kieu) => [...d[kieu].tinhPhut, ...d[kieu].khongTinhPhut];
 
-/** «Hôm nay trừ 39 phút · −39 sao» (Tính phút) / «Hôm nay 25 phút» (Không tính phút) / «Hôm nay chưa dùng». */
+/** «Hôm nay 39 phút» (cả hai nhóm — bàn them-g7g1cel5@v11 bỏ «−N sao») / «Hôm nay chưa dùng». */
 export const phuHomNay = (h: Pick<DongDs, "nhom" | "phutHomNay" | "choKhop">, web?: boolean) =>
   h.choKhop ? "Chờ máy của con báo app này" : !h.phutHomNay ? `Hôm nay chưa ${web ? "vào" : "dùng"}`
-    : h.nhom === "tinh_phut" ? `Hôm nay trừ ${h.phutHomNay} phút · −${h.phutHomNay} sao` : `Hôm nay ${h.phutHomNay} phút`;
+    : `Hôm nay ${h.phutHomNay} phút`;

@@ -1,6 +1,6 @@
 // «Lời xin đã bỏ qua» (bàn bm-ung-dung them-1g0mpf21@v12 — thay màn «Luôn chặn», luồng #258): Grow «Bỏ qua là chưa thêm, không ghi gì.
 // Con xin lại, hoặc Ba Mẹ bấm «Thêm luôn» để cho ngay.», mỗi lời xin đã bỏ qua (30 ngày) một dòng: icon, tên, «Bảo Anh · hôm qua 20:05», nút «Thêm luôn»
-// ⇒ bảng chọn nhóm (Tính phút / Không tính phút) ⇒ POST yeu-cau/:id/them-luon {nhom}. «Xong, về App & web». ?con= lọc một Con.
+// ⇒ bảng chọn nhóm (Tính phút / Không tính phút) ⇒ POST yeu-cau/:id/them-luon {nhom}. «Về App & web». ?con= lọc một Con.
 // Đọc: GET yeu-cau/bo-qua[?con=]. Người trông giúp cũng «Thêm luôn» được (máy chủ cho phép như đồng ý lời xin).
 import { useState } from "react";
 import { View } from "react-native";
@@ -59,7 +59,7 @@ export default function LoiXinBoQua() {
           ))}
         </View>
       ) : <CanhGiua lv="canh-trong" tieu="Không có lời xin nào bị bỏ qua" loi="Lời xin Ba Mẹ bỏ qua trong 30 ngày hiện ở đây." />}
-      <View style={{ marginTop: 10 }}><Nut chu="Xong, về App & web" rong bam={ve} /></View>
+      <View style={{ marginTop: 10 }}><Nut chu="Về App & web" rong bam={ve} /></View>
 
       <BangTruot mo={!!chon} dong={() => setChon(null)} tieu={chon ? `Thêm ${ten(chon)} cho ${chon.tenCon}` : ""}>
         {chon ? <Chu kieu="rat" co={15} mau={M.chu2}>{`${ten(chon)} có tính phút không?`}</Chu> : null}
