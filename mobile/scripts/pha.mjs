@@ -709,7 +709,7 @@ if (process.argv.includes("--giao-dien")) {
       await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify({ ...TL, webs: [{ muc: "vioedu.vn", tinhGio: true }] }))})`);
       await goi("Page.navigate", { url: `${GOC}/thiet-lap/doi-web?muc=vioedu.vn` }); } }),
     M("bm-ob-ghep", "/thiet-lap/ghep", "quét mã này", { truoc: diTl("/thiet-lap/ghep") }),
-    M("bm-ob-ghep (có tên bé · bm1-ob-ghep)", "/thiet-lap/ghep?con=c1", "Ghép máy của", { truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
+    M("bm-ob-ghep (có tên bé · bm1-ob-ghep)", "/thiet-lap/ghep?con=c1", "Ghép máy cho con", { truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
     M("bm-ob-cho", "/thiet-lap/cho?ma=482017&con=c1", "482"),
     // them-q44uxha5 / them-ytmgijqo: mã quá 10 phút ⇒ «Mã đã hết hạn»; chờ quá 5 phút (mã còn hạn) ⇒ «Chưa thấy máy của con»
     M("bm-ob-ghep (mã hết hạn · them-q44uxha5)", "/thiet-lap/ghep", "Mã đã hết hạn", { kb: { "POST ghep-may": { ...coBan["POST ghep-may"], het: luc(1), conGiay: 0 },
@@ -1714,7 +1714,7 @@ await kichBan("#420 Con thứ 2+: «Giống <con trước>» ⇒ POST con/:id/ch
   nhatKy.length = 0;
   await bam("Giống Bảo Anh");
   xet(await choGoi((x) => x.d === "con/c2/chep-tu" && x.m === "POST" && x.body?.tu === "c1"), "POST con/c2/chep-tu {tu: c1}");
-  xet(await doi("Ghép máy của"), "chép xong ⇒ thẳng Ghép máy");
+  xet(await doi("Ghép máy cho con"), "chép xong ⇒ thẳng Ghép máy");
   kb = { ...coBan, ...NGUON_3 };
   await di("/thiet-lap/giong?con=c2&nguon=them");
   xet(await doi("dùng luật giống ai?"), "nhà ≥3 con ⇒ «… dùng luật giống ai?»");
@@ -1723,7 +1723,7 @@ await kichBan("#420 Con thứ 2+: «Giống <con trước>» ⇒ POST con/:id/ch
   nhatKy.length = 0;
   await bam("Giống Bảo Ngọc");
   xet(await choGoi((x) => x.d === "con/c2/chep-tu" && x.body?.tu === "c4"), "POST chep-tu {tu: c4}");
-  xet(await doi("Ghép máy của"), "Thêm con: chép xong ⇒ Ghép máy");
+  xet(await doi("Ghép máy cho con"), "Thêm con: chép xong ⇒ Ghép máy");
   await di("/thiet-lap/giong?con=c2&nguon=them");
   await doi("dùng luật giống ai?");
   nhatKy.length = 0;

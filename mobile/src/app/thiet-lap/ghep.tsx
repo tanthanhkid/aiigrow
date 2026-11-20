@@ -1,4 +1,4 @@
-// bm1-ob-ghep / bm1-may-ghep «Ghép máy của X» — MỘT nội dung cho Lần đầu và Ghép thêm máy (thiết kế chốt 14/11 «Mã ghép: hạn 19:50 khớp cảnh»):
+// bm1-ob-ghep / bm1-may-ghep «Ghép máy cho con» (#492) — MỘT nội dung cho Lần đầu và Ghép thêm máy (thiết kế chốt 14/11 «Mã ghép: hạn 19:50 khớp cảnh»):
 // thẻ «Mở app AiiGrow trên máy con, quét mã này» (QR — chạm phóng to) + mã 6 số + «Mã dùng được 10 phút · hết hạn lúc HH:MM»;
 // «Hoặc gửi link cho con» — hàng cuộn ngang Zalo · Messenger · Tin nhắn · Email · Telegram · Sao chép + «Thêm…»; gửi xong ⇒ «Đang chờ máy của con»;
 // dòng «Đang chờ máy con… ghép xong tự chuyển» (hỏi máy chủ 4 giây/lần), «Để sau, ghép máy sau».
@@ -100,7 +100,7 @@ export default function GhepMay() {
     </Man>
   );
   return (
-    <Man noi={noi} dau={<DauMan tieu={chung ? `Ghép máy chung · ${conDs.length} bé` : `Ghép máy của ${ten}`} bamLui={lui} phai={<NutHoi />} />}
+    <Man noi={noi} dau={<DauMan tieu={chung ? `Ghép máy chung · ${conDs.length} bé` : "Ghép máy cho con"} bamLui={lui} phai={<NutHoi />} />}
       day={<>
         <BaoLoi loi={loi} />
         {/* thiết kế 01/03: viên lõm «● Đang chờ máy con…» rồi nút trắng «Để sau, ghép máy sau» */}
@@ -117,7 +117,7 @@ export default function GhepMay() {
             {chung ? <CapAvt ds={cacBe} co={24} /> : <AvtCon c={cacBe[0]} co={24} />}
             <Chu kieu="dam7" co={12.5} mau={M.chu2} style={{ flex: 1, lineHeight: 17, textAlign: "center" }}>
               {chung ? `Cho ${cacBe.map((x) => tenGoi(x.ten)).join(", ")} dùng chung.\nMáy con là iPhone/iPad thì chọn 1 bé khi quét.`
-                : `Máy riêng của ${ten}. Windows, Mac, Android thêm bé khác dùng chung sau được.`}
+                : `Máy này cho ${ten}. Windows, Mac, Android thêm bé khác dùng chung sau được.`}
             </Chu>
           </View>
         ) : null}
