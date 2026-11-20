@@ -5,7 +5,7 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm } from "@/lib/api";
-import { CanGiup, DauMan, LienKet, OLom, SanDangNhap, useOSo, VANG_NAU } from "@/lib/lan-dau";
+import { CanGiup, DauMan, LienKet, OLom, SanDangNhap, useOSo } from "@/lib/lan-dau";
 import { NutDangNhapMxh, useCoMxh, useVaoSau, type KetQuaVao } from "@/lib/dang-nhap-mxh";
 import { BaoLoi, Chu, M, Man, Nut, useHoanTac, useLam } from "@/lib/ui";
 
@@ -44,7 +44,7 @@ export default function DangNhap() {
         <OLom lon nenO={M.nen} cach={0} nhan="Số điện thoại" {...oSo} keyboardType="email-address" autoCapitalize="none" autoComplete="username" textContentType="username" placeholder="0912 345 678" />
         <OLom lon nenO={M.nen} cach={18} nhan="Mật khẩu" matKhau value={mk} onChangeText={setMk} autoComplete="current-password" textContentType="password" onSubmitEditing={() => dd && mk && di()} />
         <View style={{ marginTop: 2 }}>
-          <LienKet phai kieu="dam" mau={VANG_NAU} co={14} chu="Quên mật khẩu?" bam={() => router.push({ pathname: "/quen-mat-khau", params: dd ? { dd } : {} })} />
+          <LienKet phai kieu="dam" mau={M.chu} co={14} chu="Quên mật khẩu?" bam={() => router.push({ pathname: "/quen-mat-khau", params: dd ? { dd } : {} })} />
         </View>
       </View>
       <BaoLoi loi={loi} />

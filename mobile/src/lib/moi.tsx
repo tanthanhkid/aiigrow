@@ -35,7 +35,7 @@ export function TheLoiMoi({ x }: { x: XemMoi }) {
 
 
 /** Chữ cái đầu của TÊN gọi (từ cuối): «Mẹ Lan» ⇒ L, «Bảo Anh» ⇒ A. */
-const dauTen = (t: string) => (t.trim().split(/\s+/).pop()?.charAt(0) || "?").toUpperCase();
+export const dauTen = (t: string) => (t.trim().split(/\s+/).pop()?.charAt(0) || "?").toUpperCase();
 const LOM_NHO = "inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5";
 
 /** Sân tối của màn «Vào nhà cùng …» (bàn them-ux0c23p4 `.san`): cao 372 bo 36 navy viền vàng mờ, thẻ kem nổi trên cùng (chữ cái người mời + «… mời bạn vào nhà» +
