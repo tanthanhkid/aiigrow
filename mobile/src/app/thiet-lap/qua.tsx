@@ -15,6 +15,7 @@ import type { NhomThuVien, MauQua } from "@/lib/s3";
 import { layTl } from "@/lib/thiet-lap";
 import { BangTruot, BaoLoi, ChoTai, Chu, F, IconNet, LopMen, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
+import { ChipMuc } from "@/lib/ui-chung";
 import { dong, soCham } from "@/lib/voucher-lan-dau";
 
 type Tab = "tat_ca" | "ba_me_mua" | "qua_nha";
@@ -180,18 +181,9 @@ function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {GOI_Y.map((g) => <Pressable key={g} onPress={() => setTen(g)} accessibilityRole="button" style={chip(false)}><Chu kieu="rat" co={14}>{g}</Chu></Pressable>)}
         </View>
-        <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }} accessibilityRole="radiogroup">
-          {SAO.map((s) => (
-            <Pressable key={s} onPress={() => setSao(s)} accessibilityRole="radio" accessibilityState={{ checked: sao === s }} accessibilityLabel={`${s} sao`}
-              style={[chip(sao === s), { flex: 1, paddingHorizontal: 0 }]}>
-              <IconNet ten="sao" co={12} mau={M.diem} /><Chu kieu="rat" co={13.5} mau={sao === s ? M.diem : M.chu} so>{s}</Chu>
-            </Pressable>
-          ))}
-          <Pressable onPress={them} disabled={dangChay || !ten.trim()} accessibilityRole="button" accessibilityLabel="Thêm quà nhà"
-            style={{ width: 40, height: 40, borderRadius: 20, alignItems: "center", justifyContent: "center", backgroundColor: M.diem, overflow: "hidden", boxShadow: BONG.vang, opacity: ten.trim() ? 1 : 0.5 }}>
-            <LopMen men={MEN.vang} bo={20} /><IconNet ten="cong" co={20} mau={M.chinh} />
-          </Pressable>
-        </View>
+        {/* #492: chip sao + «Tự chọn…» (ChipMuc dùng chung) */}
+        <ChipMuc muc={[...SAO]} gia={sao} doi={setSao} />
+        <Nut chu="Lưu quà nhà" ic="cong" rong dangChay={dangChay} tat={!ten.trim()} bam={them} />
       </View>
     </View>
   );
