@@ -48,9 +48,9 @@ export const M = {
 /** BẢNG MÀU HỒ SƠ CON DUY NHẤT (avatar «mau-<số>»): [màu chọn ở Lần đầu, nền nhạt thẻ hồ sơ, tông đậm cho avatar chữ trắng ở Hằng ngày
  *  (bàn them-h60stad7, bm2-trang-chu `.av.a/.m/.n/.k` — đủ tương phản)]. Lần đầu / Sửa hồ sơ đọc [0][1]; lib/hang-ngay › mauCon đọc [2]. */
 // «Ánh kim» (#386 G1): avatar MỌI người là viên navy chữ cái vàng kim, vòng vàng (mẫu E `.be.on .av`) — `Avt` tự vẽ, không đọc màu truyền vào.
-// Bảng còn 5 chấm màu E (navy · vàng kim · đồng · ô liu · mận) cho ô «Màu của con»; [1] thẻ hồ sơ = kem phẳng (G5); [2] tông avatar = navy.
-export const MAU_HO_SO: [string, string, string][] = [["#0A1629", "#ECE4D9", "#0A1629"], ["#C9973B", "#ECE4D9", "#0A1629"], ["#9C5B2E", "#ECE4D9", "#0A1629"],
-  ["#4F6B2A", "#ECE4D9", "#0A1629"], ["#6E3B4E", "#ECE4D9", "#0A1629"]];
+// 20/11 (#483): bảng 5 màu theo Bàn Lần đầu (cam · xanh dương · hồng · xanh lá · tím); avatar của con đổi theo màu chọn, chữ navy; [1] thẻ hồ sơ = kem phẳng (G5); [2] tông avatar = navy.
+export const MAU_HO_SO: [string, string, string][] = [["#f5a957", "#ECE4D9", "#f5a957"], ["#6fa8e8", "#ECE4D9", "#6fa8e8"], ["#e98bab", "#ECE4D9", "#e98bab"],
+  ["#5cb98f", "#ECE4D9", "#5cb98f"], ["#a58be0", "#ECE4D9", "#a58be0"]];
 
 export const BO = { nho: 12, vua: 18, the: 24 } as const;
 

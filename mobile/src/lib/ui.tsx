@@ -278,26 +278,27 @@ export const chuTren = (nen: string) => {
 };
 // màu avatar con: sinh từ MAU_HO_SO[i][2] (tông đậm của bảng màu hồ sơ) ⇒ avatar không lệch màu đã chọn ở hồ sơ
 export const MAU_CON = MAU_HO_SO.map((x) => x[2]);
-export const Avt = memo(function Avt({ ten, mau = MAU_CON[0], co = 44, con, anh, chon, toi }: { ten: string; mau?: string; co?: number;
+export const Avt = memo(function Avt({ ten, mau, co = 44, con, anh, chon, toi }: { ten: string; mau?: string; co?: number;
   /** đang chọn (dải con): vòng vàng ngoài (vẽ bằng bóng ⇒ không đổi kích thước) */ chon?: boolean; /** nằm trên hero navy: bóng chỉ tối + viền vàng mảnh, không quầng sáng */ toi?: boolean; /** Con có ảnh đại diện (#302) ⇒ hiện ảnh thay chữ cái */ con?: { id?: string | null; avatar?: string | null } | null; /** ảnh vừa chọn, chưa lưu */ anh?: string | null }) {
   const daLuu = useAnhCon(con);
   const uri = anh ?? daLuu;
   // «Ánh kim» (#386 G1): MỌI avatar chữ cái là viên navy, chữ Be Vietnam Pro ExtraBold vàng kim (11,4:1), vòng vàng mảnh trong (mẫu E `.be.on .av` / `.rob i`);
   // đang chọn: thêm khe kem + vòng vàng ngoài. Nền navy ĐẶC (không loang) ⇒ tương phản chữ tính theo token, avatar nhỏ chồng nhau không bị đo pixel sai. `mau` giữ trong API (các màn đang truyền) nhưng không còn đổi màu viên — avatar đa sắc là kiểu cũ.
-  void mau;
+  // 20/11 (#483): avatar CỦA CON lấy đúng màu hồ sơ (mau ∈ MAU_CON, chữ navy #0A1629); mọi avatar khác (Ba Mẹ, người mời, app) giữ viên navy.
+  const mauBe = mau && MAU_CON.includes(mau) ? mau : null;
   const trong = `inset 0px 0px 0px ${co >= 40 ? 2 : 1.5}px rgba(217,174,87,0.85)`;
   const vien = chon ? `0px 0px 0px 3px ${M.nen}, 0px 0px 0px 5px ${M.dauSach}, 4px 5px 10px rgba(120,98,70,0.28)` : toi ? BONG.heroNho : BONG.nho;
   // #417: trong dải chọn bé (chon === false) bé CHƯA chọn là viên kem lõm chữ navy — chỉ bé đang chọn mới navy chữ vàng vòng vàng
   if (chon === false && !uri) return (
-    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: M.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
+    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mauBe ?? M.nen, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
       <Chu kieu="tieu" mau={M.chu} co={co * 0.45}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
     </View>
   );
   if (uri) return <Image source={{ uri }} accessibilityLabel={`Ảnh của ${ten}`} style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: HERO.nen, boxShadow: vien }} contentFit="cover" />;
   return (
-    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: HERO.nen,
-      alignItems: "center", justifyContent: "center", boxShadow: `${vien}, ${trong}` }}>
-      <Chu kieu="tieu" mau={M.diem} co={co * 0.45}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
+    <View style={{ width: co, height: co, borderRadius: co / 2, backgroundColor: mauBe ?? HERO.nen,
+      alignItems: "center", justifyContent: "center", boxShadow: mauBe ? vien : `${vien}, ${trong}` }}>
+      <Chu kieu="tieu" mau={mauBe ? "#0A1629" : M.diem} co={co * 0.45}>{(ten.trim().split(/\s+/).pop() ?? "?").charAt(0).toUpperCase()}</Chu>
     </View>
   );
 });

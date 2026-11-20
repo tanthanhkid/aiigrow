@@ -8,7 +8,7 @@ import { BackHandler, Pressable, View } from "react-native";
 import { bm } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
 import { cauCho, chiaHopThu, LOC_HO_TRO, type DongHoTro, type HopThu, type LocHoTro } from "@/lib/noi-1411";
-import { Avt, BaoLoi, BongChat, CanhGiua, ChoTai, ChonMot, Chu, gioPhut, M, MAU_CON, Man, OChat, useLam, useTai } from "@/lib/ui";
+import { Avt, BaoLoi, BongChat, CanhGiua, ChoTai, ChonMot, Chu, gioPhut, M, Man, OChat, useLam, useTai } from "@/lib/ui";
 
 type Dong1 = DongHoTro;
 type Tin = { id: string; tu: "ba_me" | "aiilab"; noi_dung: string; created_at: string };
@@ -45,7 +45,7 @@ function HopThuLoc({ loc, setLoc, chon }: { loc: LocHoTro; setLoc: (v: LocHoTro)
     return (
       <Pressable key={x.family_id} onPress={() => chon(x)} accessibilityRole="button" accessibilityLabel={`${tieu}, ${x.ten}${p !== null ? `, ${cauCho(p)}` : ""}`}
         style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 76, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
-        <Avt ten={tieu} mau={MAU_CON[i % MAU_CON.length]} co={44} />
+        <Avt ten={tieu} co={44} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
           {x.nguoi_gui ? <Chu kieu="rat" co={12.5} mau={M.chu2} dong={1}>{x.ten.replace(/^Nhà /, "nhà ")}</Chu> : null}

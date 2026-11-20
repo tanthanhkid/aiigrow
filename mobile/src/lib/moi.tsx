@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { Image } from "expo-image";
 import { BONG } from "./clay";
 import { INK2 } from "./lan-dau";
-import { Avt, Chu, F, LV, M, MAU_CON, The } from "./ui";
+import { Avt, Chu, F, LV, M, The } from "./ui";
 
 export type XemMoi = { tenGiaDinh: string; nguoiMoi: string | null; quyen?: "ba_me" | "trong_giup"; tenQuyen?: string; tenGoi: string; tenCon?: string[]; het: string };
 export const ma0 = (m?: string) => String(m ?? "").replace(/[^A-Za-z0-9_-]/g, "");
@@ -20,13 +20,13 @@ export function TheLoiMoi({ x }: { x: XemMoi }) {
   return (
     <The>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avt ten={ai} mau={MAU_CON[2]} co={44} />
+        <Avt ten={ai} co={44} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={15.5}>{`${ai} mời bạn vào nhà`}</Chu>
           {x.tenCon?.length ? <Chu co={13} mau={M.chu3}>{cauTrong(x.tenCon)}</Chu> : null}
         </View>
         <View style={{ flexDirection: "row" }}>
-          {(x.tenCon ?? []).slice(0, 4).map((t, i) => <View key={t + i} style={{ marginLeft: i ? -8 : 0 }}><Avt ten={t} mau={MAU_CON[(i + 3) % MAU_CON.length]} co={28} /></View>)}
+          {(x.tenCon ?? []).slice(0, 4).map((t, i) => <View key={t + i} style={{ marginLeft: i ? -8 : 0 }}><Avt ten={t} co={28} /></View>)}
         </View>
       </View>
     </The>
