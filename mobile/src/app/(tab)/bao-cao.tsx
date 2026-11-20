@@ -4,7 +4,7 @@
 // (app · máy · Chơi/Không tính — «Xem hết ›» → Hôm nay con dùng gì), «Sao kiếm, sao vay» (sao kiếm + việc + sao đã trả nợ → Ví sao; sao vay · Ba Mẹ cho vay
 // mấy trong mấy lần xin · đang nợ → Con đang xin), gợi ý của Grow (→ Ví sao), «Nhật ký cả nhà ›».
 // Số liệu: GET con/:id/bao-cao?bay=1 (tuanNay: saoKiem, saoVay, lanVay, saoTieuChoi, saoTraNo, xinVay {so, cho}), con/:id/vi-sao (nợ, phút còn).
-// Máy chủ chưa tách phút chơi bằng sao vay THEO NGÀY ⇒ cột vẽ một màu (ghi lệch trong PR). «Xuất CSV» giữ.
+// Cột hai màu: giaiTriTheoNgay[].vay = phút trong ngày trả bằng sao vay (máy chủ lib/bao-cao.ts › vayTheoNgay, API đọc, không migration). «Xuất CSV» giữ.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -18,7 +18,7 @@ import { ChuGiaiVuong, CotGioChoi } from "@/lib/bieu-do";
 import { KHOI } from "@/lib/clay";
 import { luuTepChu } from "@/lib/luu-tep";
 
-type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number }[]; tongGiaiTri: number; phutHoc: number; duyet: { duoc: number; tu_choi: number }; ngoaiLe: number;
+type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number; vay?: number }[]; tongGiaiTri: number; phutHoc: number; duyet: { duoc: number; tu_choi: number }; ngoaiLe: number;
   top: { muc: string; phut: number }[]; dungNhieu?: { muc: string; ten?: string; loai: string; phut: number; may?: string | null; lech: number | null }[];
   /** 14/11: số lần con xin thêm giờ / được cho; sao kiếm trong 7 ngày (máy chủ cũ không gửi) */ xinThemGio?: { so: number; cho: number }; saoKiem?: number;
   /** 15/11 sổ sao: lời xin vay / Ba Mẹ cho · sao vay · số lần vay · sao tiêu (chơi / quà) · sao kiếm đã trả nợ */
@@ -108,7 +108,7 @@ function BaoCaoCon({ id }: { id: string }) {
           <CotGioChoi max={max} quyVach={d.tran} nhanDoc="Phút chơi theo ngày (1 phút = 1 sao)"
             ds={ngay.map((x) => {
               const laNay = x.ngay === homNay, nhan = laNay ? "Nay" : THU[thuCua(x.ngay)];
-              return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: null, doc: `${nhan}: ${gio(x.phut)} = ${x.phut} sao` };
+              return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: null, vay: x.vay ?? 0, doc: `${nhan}: ${gio(x.phut)} = ${x.phut} sao${x.vay ? `, trong đó ${x.vay} sao vay` : ""}` };
             })} />
           <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: M.badge },
             ...(d.tran ? [{ chu: `Giới hạn ngày ${d.tran} phút`, dut: true }] : []),
