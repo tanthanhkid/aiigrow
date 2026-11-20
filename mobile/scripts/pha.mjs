@@ -812,7 +812,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-nhiem-vu", "/diem-qua", "Việc mỗi ngày"),
     M("bm-giao-nv", "/giao-nv", "Một ngày của"),
     M("bm-giao-nv (mục Giúp Ba Mẹ)", "/giao-nv?con=c2", "Nấu cơm bằng nồi cơm điện", { truoc: async () => { await di("/giao-nv?con=c2"); await doi("🏠 Giúp Ba Mẹ"); await bam("🏠 Giúp Ba Mẹ"); } }),
-    M("bm-giao-nv-tu-dat", "/giao-nv/tu-dat?con=c1", "Thêm vào mục đã chọn"),
+    M("bm-giao-nv-tu-dat", "/giao-nv/tu-dat?con=c1", "Thêm việc"),
     M("bm-giao-nv-sua", "/giao-nv/sua?id=t0", "Dọn phòng"),
     // #325 bm-viec-duyet (bàn 17/11): đúng CA của từng màn bàn
     M("bm-nhiem-vu (nợ · quà chờ trao · e91jg28j)", "/diem-qua", "Quà chờ trao", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"],
@@ -820,7 +820,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-nhiem-vu (trống · đang nợ vẫn hiện ví)", "/diem-qua", "đang nợ Ba Mẹ", { kb: { ...SO_SAO, "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
     M("bm-nhiem-vu (trống · e44cwmvu)", "/diem-qua", "còn trống", { kb: { "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
     M("bm-giao-nv (bảng tự thêm · 6pjz1stu)", "/giao-nv?con=c1&tuThem=1", "Thêm vào mục đã chọn"),
-    M("bm-giao-nv-sua (bảng xoá · 4axhvgpl)", "/giao-nv/sua?id=t0", "Giữ lại việc này", { truoc: async () => { await di("/giao-nv/sua?id=t0"); await doi("Xoá việc này"); await bam("Xoá việc này"); } }),
+    M("bm-giao-nv-sua (bảng xoá · 4axhvgpl)", "/giao-nv/sua?id=t0", "Giữ lại", { truoc: async () => { await di("/giao-nv/sua?id=t0"); await doi("Xoá việc này"); await bam("Xoá việc này"); } }),
     M("bm-duyet-nv (2 ảnh · qwuifjry)", "/duyet/l1", "Vuốt xem 2 ảnh", { kb: { "GET luot/l1/bang-chung": { ds: [{ id: "e0", mime: "image/png", loai: "anh", base64: PNG, chupLuc: luc(48) },
       { id: "e1", mime: "image/png", loai: "anh", base64: PNG, chupLuc: luc(13) }] } } }),
     M("bm-duyet-nv (ghi âm · d40e3495)", "/duyet/l2", "Nghe nhanh x2", { kb: { "GET luot/l2": { id: "l2", child_id: "c1", ten_con: KEN, ten: "Đọc sách 20 phút", diem_md: 10, trang_thai: "cho_duyet",
@@ -1390,7 +1390,7 @@ await kichBan("Hồ sơ Con: mục «Liên kết AiiRob» hiện mã <family_id>
   xet(await doi("Đã sao chép mã"), "báo đã sao chép");
   kb["GET con/c1/lien-ket-aiirob"] = { status: 500, body: { error: "loi", message: "Lỗi máy chủ" } };
   await di("/ho-so/c1");
-  xet(await doi("App & web"), "lỗi tải mã: màn hồ sơ vẫn hiện");
+  xet(await doi("Sao & phút chơi"), "lỗi tải mã: màn hồ sơ vẫn hiện");
   await sleep(800);
   xet(!(await chu())?.includes("Liên kết AiiRob"), "lỗi tải mã: ẩn mục liên kết");
 });
@@ -1429,7 +1429,7 @@ await kichBan("Giao việc từ danh mục (thiết kế 14/11): đúng Con đan
   await go("Con sẽ làm gì?", "Dọn bàn học");
   await sleep(300);
   nhatKy.length = 0;
-  await bam("Thêm vào mục đã chọn");
+  await bam("Thêm việc");
   xet(await choGoi((x) => x.d === "nhiem-vu" && x.m === "POST" && x.body?.ten === "Dọn bàn học" && Array.isArray(x.body?.giao_cho) && x.body.giao_cho[0] === "c2" && x.body?.diem === 10),
     "gửi việc riêng cho đúng Con, có số sao");
 });
@@ -1440,9 +1440,7 @@ const CHU_CHAN = [/Chặn/, /chặn/, /Luôn chặn/, /người lớn/, /Giờ n
 const chuChan = async () => { const t = (await chu()) ?? ""; return CHU_CHAN.filter((r) => r.test(t)).map(String); };
 
 await kichBan("App & web: Hồ sơ ⇒ tab «App & web» ⇒ «Theo danh sách» + Con đang xin + danh sách 2 nhóm ⇒ đổi «Mở hết» (con/:id/che-do) ⇒ Hoàn tác", async () => {
-  await di("/ho-so/c1");
-  xet(await doi("App & web"), "hồ sơ có dòng «App & web»");
-  await bam("App & web");
+  await di("/app-web?con=c1");   // #492 Bàn: hồ sơ con không còn dòng «App & web»; vào từ tab Màn hình / lời xin
   xet(await doi(`Máy của ${KEN} đang ở chế độ`), "mở tab App & web của đúng Con");
   xet(await coChon('[role="radio"][aria-checked="true"][aria-label="Theo danh sách"]'), "chế độ «Theo danh sách» đang chọn");
   const c = await chu();
