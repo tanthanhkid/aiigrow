@@ -10,7 +10,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, TextInput, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { bm, type GiaDinh } from "@/lib/api";
-import { Bao, BaoLoi, baoKhiVe, Chips, ChoTai, Chu, CongTac, F, Icon3D, IconNet, M, Man, Nut, ONhap, The, useLam, useTai, type TenIcon } from "@/lib/ui";
+import { Bao, BaoLoi, baoKhiVe, Chips, ChoTai, Chu, CongTac, F, Icon3D, IconNet, M, Man, Nut, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 import { CAU_TRONG_GIUP, hinhNv, quyenToi, tenGoi, type NhiemVuMoi } from "@/lib/hang-ngay";
 import { viecCuaCon } from "@/lib/nv-tab";
 import { tenHopLe } from "@/lib/form-viec";

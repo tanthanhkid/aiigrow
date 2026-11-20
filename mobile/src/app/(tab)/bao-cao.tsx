@@ -11,7 +11,8 @@ import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { HangViec, tenGoi, TieuMuc } from "@/lib/hang-ngay";
 import { saoTu, soVN, type SaoCon } from "@/lib/so-sao";
-import { DaiCon, OLomIcon } from "@/lib/ui-viec";
+import { OLomIcon } from "@/lib/ui-viec";
+import { HangChonBe } from "@/lib/ui-chung";
 import { BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, M, Man, NhanMen, Rob, The, useLam, useTai } from "@/lib/ui";
 import { ChuGiaiVuong, CotGioChoi } from "@/lib/bieu-do";
 import { KHOI } from "@/lib/clay";
@@ -54,7 +55,7 @@ export default function TabBaoCao() {
     <View style={{ flex: 1 }}>
       <Man tai={g.tai}>
         {dau}
-        {g.d.con.length > 1 ? <DaiCon ds={g.d.con} chon={con!} doi={(x) => setChon(x.id)} /> : null}
+        {g.d.con.length > 1 ? <HangChonBe ds={g.d.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={con!} doi={(x) => x && setChon(x.id)} /> : null}
         {con ? <BaoCaoCon key={con} id={con} /> : null}
       </Man>
     </View>
@@ -63,8 +64,9 @@ export default function TabBaoCao() {
 
 function BaoCaoCon({ id }: { id: string }) {
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [bc, vs] = await Promise.all([bm.goi<BaoCao>(`con/${id}/bao-cao?bay=1`), bm.goi<Partial<SaoCon>>(`con/${id}/vi-sao?gioiHan=1`).catch(() => null)]);
-    return { bc, sao: vs ? saoTu(vs) : null };
+    const [bc, vs, gc] = await Promise.all([bm.goi<BaoCao>(`con/${id}/bao-cao?bay=1`), bm.goi<Partial<SaoCon>>(`con/${id}/vi-sao?gioiHan=1`).catch(() => null),
+      bm.goi<{ gioiHanNgayThuong?: number }>(`con/${id}/gio-choi`).catch(() => null)]);
+    return { bc, sao: vs ? saoTu(vs) : null, tran: gc?.gioiHanNgayThuong ?? null };
   });
   const xuat = useLam();
   if (!d) return <ChoTai loi={loi} matMang={matMang} tai={tai} />;
@@ -73,7 +75,7 @@ function BaoCaoCon({ id }: { id: string }) {
   const ngay = nay.giaiTriTheoNgay;
   const homNay = ngay[ngay.length - 1]?.ngay;
   const lech = nay.tongGiaiTri - bc.tuanTruoc.tongGiaiTri;
-  const max = Math.max(60, ...ngay.map((x) => x.phut));
+  const max = Math.max(d.tran ?? 60, ...ngay.map((x) => x.phut));
   const nhieuNhat = [...ngay].sort((a, b) => b.phut - a.phut)[0];
   const saoTieu = nay.saoTieuChoi ?? nay.tongGiaiTri;
   const saoVay = nay.saoVay ?? 0;
@@ -88,7 +90,7 @@ function BaoCaoCon({ id }: { id: string }) {
     <>
       <Pressable onPress={xemDung} accessibilityRole="button" accessibilityHint="Mở «Hôm nay con dùng gì»">
         <The dem style={{ gap: 2, padding: 18 }}>
-          <Chu kieu="dam7" co={14} mau={M.chu3}>{`Phút chơi của ${ten}${ngay.length ? ` · ${ngayNgan(ngay[0].ngay)} – ${ngayNgan(ngay[ngay.length - 1].ngay)}` : ""}`}</Chu>
+          <Chu kieu="dam7" co={14} mau={M.chu3}>{`Giờ chơi của ${ten}${ngay.length ? ` · ${ngayNgan(ngay[0].ngay)} – ${ngayNgan(ngay[ngay.length - 1].ngay)}` : ""}`}</Chu>
           <View style={{ flexDirection: "row", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
             <Chu kieu="rat" co={38} so style={{ letterSpacing: -1 }}>{gio(nay.tongGiaiTri)}</Chu>
             <Chu kieu="dam7" co={15} mau={M.chu3}>{`= ${soVN(saoTieu)} sao đã tiêu`}</Chu>
@@ -103,13 +105,19 @@ function BaoCaoCon({ id }: { id: string }) {
               </View>
             ) : null;
           })()}
-          <CotGioChoi max={max} nhanDoc="Phút chơi theo ngày (1 phút = 1 sao)"
+          <CotGioChoi max={max} quyVach={d.tran} nhanDoc="Phút chơi theo ngày (1 phút = 1 sao)"
             ds={ngay.map((x) => {
               const laNay = x.ngay === homNay, nhan = laNay ? "Nay" : THU[thuCua(x.ngay)];
               return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: null, doc: `${nhan}: ${gio(x.phut)} = ${x.phut} sao` };
             })} />
           <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: M.badge },
-            { chu: `Nay: ${phutNay} phút = ${soVN(phutNay)} sao${d.sao && !no ? ` · còn ${soVN(d.sao.phutCon)} sao` : ""}` }]} />
+            ...(d.tran ? [{ chu: `Giới hạn ngày ${d.tran} phút`, dut: true }] : []),
+            { chu: d.tran ? `Nay: ${phutNay}/${d.tran} phút = ${soVN(phutNay)} sao · còn ${Math.max(0, d.tran - phutNay)} phút` : `Nay: ${phutNay} phút = ${soVN(phutNay)} sao` }]} />
+          {d.tran ? (
+            <Pressable onPress={() => router.push(`/ho-so/${id}/gio-choi` as never)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-start" }}>
+              <Chu kieu="rat" co={14} mau={M.lienKet}>Giờ chơi mỗi ngày ›</Chu>
+            </Pressable>
+          ) : null}
         </The>
       </Pressable>
 

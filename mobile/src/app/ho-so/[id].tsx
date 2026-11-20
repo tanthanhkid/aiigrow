@@ -3,18 +3,16 @@
 // 1 sao = 1 phút» (⇒ Ví sao — màn Giờ chơi bm2-gio đã bỏ), #302 «Giờ chơi» (giới hạn ngày + mỗi lượt ⇒ /ho-so/<id>/gio-choi), App & web (15/11 #262: bỏ Giờ ngủ, Giờ học)
 // («Theo danh sách» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
 // PIN vào máy (Đặt lại) · «Xoá hồ sơ X» chữ đỏ canh giữa (⇒ /ho-so/<id>/xoa, them-canktzlq). #325: theo bm2-ho-so@v22 (thẻ đầu ngọc nhạt). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
-import { cheDoTu } from "@/lib/app-web";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import {
   CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, tenGoi, quyenToi, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
-import { cauNo, chuVien, saoTu, soVN, VienSao, type SaoCon } from "@/lib/so-sao";
+import { soVN } from "@/lib/so-sao";
 import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
 import { saoChep } from "@/lib/luu-tep";
 import { HangChonBe } from "@/lib/ui-chung";
-import { tomTatGioiHan } from "@/lib/gioi-han";
 import { KHOI, MEN, HERO, KHOI_HERO } from "@/lib/clay";
 
 type Luat = { ds: LuatDem[] };
@@ -45,8 +43,6 @@ export default function HoSoCon() {
   const mau = mauCon(c.avatar, thu);
   const tuoi = tuoiCua(c.namSinh);
   const cg = d.g.con.find((x) => x.id === id);
-  const s = saoTu({ soDu: c.soDu, ...(cg ?? {}), ...(c as Partial<SaoCon>) });
-  const no = cauNo(s);
   // 1 sao = 1 phút: phút «Tính phút» đã dùng hôm nay (gia-dinh › phutChoi)
   const phutHomNay = cg?.phutChoi ?? null;
   const canSua = c.may.filter((m) => m.baoVe !== "day_du");

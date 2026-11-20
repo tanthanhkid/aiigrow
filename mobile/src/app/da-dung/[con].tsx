@@ -9,7 +9,8 @@ import { bm } from "@/lib/api";
 import { TieuMuc } from "@/lib/hang-ngay";
 import { OLomIcon } from "@/lib/ui-viec";
 import { kieuSao, saoTu, soVN, type SaoCon } from "@/lib/so-sao";
-import { ChoTai, Chu, gioPhut, Icon3D, M, Man, Nhan, The, useTai, type TenIcon } from "@/lib/ui";
+import { BONG } from "@/lib/clay";
+import { ChoTai, Chu, gioPhut, IconNet, M, Man, Nhan, The, useTai, type TenIcon } from "@/lib/ui";
 import { icDung, nhanDung, tenNgan, type HomNayDung } from "@/lib/da-dung";
 
 export type { HomNayDung };
@@ -17,31 +18,37 @@ export type { HomNayDung };
 export default function DaDung() {
   const { con } = useLocalSearchParams<{ con: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [hn, vs] = await Promise.all([bm.goi<HomNayDung>(`con/${con}/hom-nay`), bm.goi<Partial<SaoCon>>(`con/${con}/vi-sao?gioiHan=1`).catch(() => null)]);
-    return { ...hn, sao: vs ? saoTu(vs) : null };
+    const [hn, vs, gc] = await Promise.all([bm.goi<HomNayDung>(`con/${con}/hom-nay`), bm.goi<Partial<SaoCon>>(`con/${con}/vi-sao?gioiHan=1`).catch(() => null),
+      bm.goi<{ gioiHanNgayThuong?: number; gioiHanCuoiTuan?: number }>(`con/${con}/gio-choi`).catch(() => null)]);
+    const thu = new Date().getDay();   // T7, CN dùng giới hạn cuối tuần
+    return { ...hn, sao: vs ? saoTu(vs) : null, tran: (thu === 0 || thu === 6 ? gc?.gioiHanCuoiTuan : gc?.gioiHanNgayThuong) ?? null };
   });
   if (!d) return <Man lui={{ chu: "Báo cáo" }} tieu="Hôm nay con dùng gì"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const sao = d.sao;
   const k = sao ? kieuSao(sao) : null;
   const conCau = sao ? (k === "thuong" ? `Còn ${soVN(sao.sao)} sao = ${soVN(sao.sao)} phút` : `Còn ${soVN(k === "vay" ? sao.phutCon : -sao.no)} sao (nợ ${soVN(sao.no)})`)
     : d.choi.conPhut ? `Còn ${d.choi.conPhut} sao = ${d.choi.conPhut} phút` : "Hết sao";
-  const xau = sao ? k !== "thuong" || sao.phutCon <= 0 : !d.choi.conPhut;
   return (
-    <Man lui={{ chu: "Báo cáo" }} tieuLon={`${d.ten} đã dùng gì`} tai={tai} vongTai>
+    <Man lui={{ chu: "Báo cáo" }} tieu={`${d.ten} đã dùng gì`} tai={tai} vongTai>
+      {/* #492 Bàn them-c95l1cwc: «Giờ chơi 42 / 60 phút · Còn 18 phút hôm nay» (→ Giờ chơi mỗi ngày) · «Không tính phút 50 phút · Không trừ giờ chơi» (→ App & web) */}
       <View style={{ flexDirection: "row", gap: 10 }}>
-        <Pressable onPress={() => router.push(`/vi/${con}` as never)} accessibilityRole="button" style={{ flex: 1 }}>
-          <The dem style={{ gap: 4, padding: 14 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="game" co={18} mau={M.chu2} /><Chu kieu="dam" co={13} mau={M.chu2}>Tính phút</Chu></View>
-            <Chu kieu="rat" co={22} so>{`${d.choi.daDung}′`}<Chu kieu="dam" co={14} mau={M.chu3}>{` = ${soVN(d.choi.daDung)} sao`}</Chu></Chu>
-            <Chu co={13} mau={xau ? M.canh : M.chinhInk}>{conCau}</Chu>
+        <Pressable onPress={() => router.push(`/ho-so/${con}/gio-choi` as never)} accessibilityRole="button" style={{ flex: 1 }}>
+          <The dem style={{ gap: 4, padding: 14, minHeight: 138 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><IconNet ten="game" co={18} /><Chu kieu="rat" co={13.5}>Giờ chơi</Chu></View>
+            <Chu kieu="tieu7" co={32} so style={{ lineHeight: 38 }}>{`${d.choi.daDung}`}{d.tran ? <Chu kieu="dam7" co={14} mau={M.chu3}>{` / ${d.tran} phút`}</Chu> : <Chu kieu="dam7" co={14} mau={M.chu3}>{" phút"}</Chu>}</Chu>
+            {d.tran ? (
+              <View style={{ height: 8, borderRadius: 4, backgroundColor: M.ranh, boxShadow: BONG.lom, overflow: "hidden" }}>
+                <View style={{ width: `${Math.min(100, Math.round((d.choi.daDung / d.tran) * 100))}%`, height: 8, borderRadius: 4, backgroundColor: M.badge }} />
+              </View>
+            ) : null}
+            <Chu kieu="rat" co={13} mau={M.chu}>{d.tran ? `Còn ${Math.max(0, d.tran - d.choi.daDung)} phút hôm nay` : conCau}</Chu>
           </The>
         </Pressable>
-        {/* 15/11 (#262): ô «Giờ học» ⇒ «Không tính phút» (app / web nhóm Không tính phút hôm nay — GET hom-nay › khongTinhPhut) */}
         <Pressable onPress={() => router.push({ pathname: "/chan", params: { con } })} accessibilityRole="button" style={{ flex: 1 }}>
-          <The dem style={{ gap: 4, padding: 14 }}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten="sach" co={18} mau={M.chu2} /><Chu kieu="dam" co={13} mau={M.chu2}>Không tính phút</Chu></View>
-            <Chu kieu="rat" co={22} so>{`${d.khongTinhPhut?.phut ?? d.hoc.phut}′`}</Chu>
-            <Chu co={13} mau={M.chu3}>Vào thoải mái, không trừ sao</Chu>
+          <The dem style={{ gap: 4, padding: 14, minHeight: 138 }}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><IconNet ten="sach" co={18} /><Chu kieu="rat" co={13.5}>Không tính phút</Chu></View>
+            <Chu kieu="tieu7" co={32} so style={{ lineHeight: 38 }}>{`${d.khongTinhPhut?.phut ?? d.hoc.phut}`}<Chu kieu="dam7" co={14} mau={M.chu3}>{" phút"}</Chu></Chu>
+            <Chu kieu="rat" co={13} mau={M.chu2} style={{ marginTop: 6 }}>Không trừ giờ chơi</Chu>
           </The>
         </Pressable>
       </View>
