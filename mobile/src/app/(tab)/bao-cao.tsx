@@ -65,8 +65,8 @@ export default function TabBaoCao() {
 function BaoCaoCon({ id }: { id: string }) {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [bc, vs, gc] = await Promise.all([bm.goi<BaoCao>(`con/${id}/bao-cao?bay=1`), bm.goi<Partial<SaoCon>>(`con/${id}/vi-sao?gioiHan=1`).catch(() => null),
-      bm.goi<{ gioiHanNgayThuong?: number }>(`con/${id}/gio-choi`).catch(() => null)]);
-    return { bc, sao: vs ? saoTu(vs) : null, tran: gc?.gioiHanNgayThuong ?? null };
+      bm.goi<{ gioiHanNgayThuong?: number; gioiHanCuoiTuan?: number }>(`con/${id}/gio-choi`).catch(() => null)]);
+    return { bc, sao: vs ? saoTu(vs) : null, tran: ([0, 6].includes(new Date().getDay()) ? gc?.gioiHanCuoiTuan : gc?.gioiHanNgayThuong) ?? null };
   });
   const xuat = useLam();
   if (!d) return <ChoTai loi={loi} matMang={matMang} tai={tai} />;
