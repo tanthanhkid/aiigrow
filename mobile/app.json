@@ -9,7 +9,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "vn.aiilab.aiigrow",
-      "buildNumber": "28",
+      "buildNumber": "29",
       "config": { "usesNonExemptEncryption": false }
     },
     "android": {
