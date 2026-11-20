@@ -10,6 +10,7 @@ import { BONG, KHOI } from "@/lib/clay";
 import { tenGoi, type NhiemVuMoi } from "@/lib/hang-ngay";
 import { buocGia, cauNgayDoi, HINH_CHON, icQua, saoMoiNgay, thanSuaQua, type QuaS3 } from "@/lib/s3";
 import { GiaSao } from "@/lib/ui-s3";
+import { HoiLai } from "@/lib/ui-chung";
 import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chips, Chu, CongTac, Icon3D, M, Man, NhanMen, Nut, ONhap, Rob, The, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 const SO_LAN = [1, 2, 4, 8];
@@ -157,12 +158,11 @@ export default function SuaQua() {
         </View>
       ) : null}
 
-      {/* thiết kế 06: Grow «suy nghĩ» giữa đầu bảng, tiêu đề + câu canh giữa, nút «Giữ lại quà» trắng */}
-      <BangTruot mo={xoa} dong={() => setXoa(false)} tieu={`Xoá quà ${q?.ten ?? ""}?`} giua dauBang={<View style={{ alignItems: "center" }}><Rob ten="chi" co={110} /></View>}>
-        <Chu kieu="dam" co={14.5} mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>Con sẽ không thấy quà này trên máy nữa. Sao con đã có không bị mất.</Chu>
-        {/* thiết kế t49meex8: thẻ quà — hình · tên · «Áp cho …» · giá sao */}
-        {q ? (
-          <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, padding: 12, borderRadius: 22, backgroundColor: M.the }, KHOI.nho]}>
+      {/* thiết kế t49meex8: HoiLai dùng chung — thẻ quà · hình · tên · «Áp cho …» · giá sao; nút đỏ nêu quà, «Giữ lại» */}
+      <HoiLai mo={xoa} dong={() => setXoa(false)} tieu={`Xoá quà ${q?.ten ?? ""}?`} phu="Con sẽ không thấy quà này trên máy nữa. Sao con đã có không bị mất."
+        nutDo={`Xoá quà ${q?.ten ?? ""}`} lamDo={xoaQua} dangChay={dangChay} loi={loiLam}
+        the={q ? (
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
             <View style={{ width: 44, height: 44, borderRadius: 15, backgroundColor: M.xamSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten={icQua(q) as TenIcon} co={28} /></View>
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15}>{q.ten}</Chu>
@@ -170,12 +170,9 @@ export default function SuaQua() {
             </View>
             <GiaSao n={q.sao} />
           </View>
-        ) : null}
+        ) : undefined}>
         {q?.dangGiu ? <Chu co={14} mau={M.chu2}>{`${q.dangGiu} phiếu đang chờ trao sẽ được huỷ và hoàn sao cho con.`}</Chu> : null}
-        <BaoLoi loi={loiLam} />
-        <Nut chu={`Xoá quà ${q?.ten ?? ""}`} loai="do" rong dangChay={dangChay} bam={xoaQua} />
-        <Nut chu="Giữ lại quà" loai="vien" rong bam={() => setXoa(false)} />
-      </BangTruot>
+      </HoiLai>
     </Man>
   );
 }

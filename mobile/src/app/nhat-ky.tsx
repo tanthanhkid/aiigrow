@@ -8,6 +8,7 @@ import { ScrollView, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { mauCon, tenGoi, TieuMuc } from "@/lib/hang-ngay";
 import { soVN } from "@/lib/so-sao";
+import { HangChonBe } from "@/lib/ui-chung";
 import { Avt, BieuTron, ChoTai, Chu, Icon3D, M, Man, Nhan, NhanMen, The, useTai } from "@/lib/ui";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 
@@ -39,20 +40,7 @@ export default function NhatKyCaNha() {
   return (
     <Man lui={{ chu: "Báo cáo" }} tieuLon="Nhật ký cả nhà" tai={g.tai}>
       {cacCon.length > 1 ? (
-        // thiết kế 04: một hàng chip cuộn ngang (không xuống dòng)
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 4, paddingRight: 8 }} accessibilityRole="tablist">
-          {[{ id: null as string | null, ten: "Tất cả", avatar: null as string | null }, ...cacCon].map((c) => {
-            const on = loc === c.id;
-            return (
-              <NhanMen key={c.id ?? "tat-ca"} onPress={() => setLoc(c.id)} accessibilityRole="tab" accessibilityState={{ selected: on }} muc="chip" sang={!on} men={on ? MEN.ngoc : MEN.sang}
-                style={[{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 40, paddingLeft: c.id ? 4 : 14, paddingRight: 14, borderRadius: 20 },
-                  on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-                {c.id ? <Avt ten={c.ten} mau={mauCon(c.avatar, thuCon(c.id))} co={28} con={c} /> : null}
-                <Chu kieu="rat" co={14} mau={on ? "#FFFBF5" : M.chu}>{c.id ? tenGoi(c.ten) : c.ten}</Chu>
-              </NhanMen>
-            );
-          })}
-        </ScrollView>
+        <HangChonBe ds={cacCon} chon={loc} doi={(x) => setLoc(x?.id ?? null)} tatCa tenNgan />
       ) : null}
       <DanhSach key={loc ?? ""} loc={loc} cacCon={cacCon} />
     </Man>

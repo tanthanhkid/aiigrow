@@ -62,8 +62,16 @@ export const MAU_NO = CANH;
 /** Viên sao nhỏ (thiết kế .be .diem / .diem.no): vàng khi còn sao, cảnh báo khi số âm. `n` (tuỳ chọn) = số thay cho trạng thái — viên «−39 sao». */
 export function VienSao({ s, n, nho, chu }: { s?: SaoCon; n?: number; nho?: boolean; chu?: string }) {
   const am = n !== undefined ? n < 0 : s ? kieuSao(s) === "am" : false;
-  const m = am ? CANH : VANG;
   const nhan = chu ?? (n !== undefined ? `${soVN(n)} sao` : s ? chuVien(s) : "");
+  // #492 Bàn: nợ = «−20 sao» chữ đỏ #A2412C trên chip LÕM nền kem, không sao 3D
+  if (am) {
+    return (
+      <View style={{ alignSelf: "center", paddingVertical: nho ? 2 : 4, paddingHorizontal: nho ? 8 : 10, borderRadius: 12, backgroundColor: M.nen, boxShadow: BONG.lom }} accessible accessibilityLabel={nhan}>
+        <Chu kieu="rat" co={nho ? 11.5 : 13} mau="#A2412C" so dong={1}>{nhan}</Chu>
+      </View>
+    );
+  }
+  const m = VANG;
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 3, alignSelf: "center", paddingVertical: nho ? 2 : 4, paddingLeft: nho ? 4 : 5, paddingRight: nho ? 7 : 9,
       borderRadius: 12, backgroundColor: m.nen }} accessible accessibilityLabel={nhan}>

@@ -11,6 +11,7 @@ import { bm, type GiaDinh, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI, MEN } from "@/lib/clay";
 import { BangKhoaMay, tenGoi, type ConCt } from "@/lib/hang-ngay";
 import { LienKet } from "@/lib/lan-dau";
+import { HangChonBe } from "@/lib/ui-chung";
 import { appTrenMay, AvtCon, CapAvt, cauSao, conCuaMay, nganTen as ngan, DauHaiDong, hinhMay, laMayChung, laMotCon, mayCuaCon, type ConNganMay } from "@/lib/may-nhieu-con";
 import { ChoTai, Chu, gioPhut, Icon3D, LopMen, M, Man, Nut, truoc, useHoanTac, useTai } from "@/lib/ui";
 
@@ -68,7 +69,7 @@ export default function MayTrongNha() {
   return (
     <Man noi={noi} tai={tai} dau={<>
       <DauHaiDong tieu="Máy trong nhà" phu={`${ds.length} máy · ${c ? tenGoi(c.ten) : `${d.con.length} bé`}`} canh lui={lui} />
-      {d.con.length > 1 ? <DaiLoc con={caNha} loc={loc} doi={setLoc} /> : null}
+      {d.con.length > 1 ? <HangChonBe ds={d.con.slice(0, 4)} chon={loc} doi={(x) => setLoc(x?.id ?? null)} tatCa tenNgan /> : null}
     </>}
       day={<>
         <Nut chu="+ Ghép thêm máy" rong bam={() => router.push({ pathname: "/may/them", params: c ? { con: c.id } : {} })} />
@@ -86,26 +87,6 @@ export default function MayTrongNha() {
       <BangKhoaMay mo={khoa} dong={() => setKhoa(false)} con={c?.id ?? null} ten={c ? tenGoi(c.ten) : ""} caNha={c ? undefined : d.con.map((x) => ({ id: x.id, ten: x.ten, khoa: x.khoa }))} may={mayKhoa} dang={dang}
         xong={(chu, hoan) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); }} />
     </Man>
-  );
-}
-
-/** Dải lọc «Tất cả / <bé>» (thiết kế .loc): ô lõm, mục chọn nổi trắng. */
-function DaiLoc({ con, loc, doi }: { con: ConNganMay[]; loc: string | null; doi: (v: string | null) => void }) {
-  const o = (id: string | null, nhan: string, hinh: React.ReactNode) => {
-    const chon = loc === id;
-    return (
-      <Pressable key={id ?? "ca"} onPress={() => doi(id)} accessibilityRole="tab" accessibilityState={{ selected: chon }} accessibilityLabel={nhan}
-        style={{ flex: 1, alignItems: "center", gap: 3, paddingTop: 6, paddingBottom: 5, borderRadius: 20, ...(chon ? { backgroundColor: M.the, ...KHOI.nho } : {}) }}>
-        {hinh}
-        <Chu kieu="rat" co={11.5} mau={chon ? M.chu : M.chu2} dong={1}>{nhan}</Chu>
-      </Pressable>
-    );
-  };
-  return (
-    <View accessibilityRole="tablist" style={{ flexDirection: "row", gap: 6, marginHorizontal: 16, marginBottom: 6, padding: 6, borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom }}>
-      {o(null, "Tất cả", <View style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: M.nut, backgroundImage: "linear-gradient(#1b2b47, #0A1629)", alignItems: "center", justifyContent: "center" }}><Icon3D ten="nha" co={20} /></View>)}
-      {con.slice(0, 4).map((c) => o(c.id, tenGoi(c.ten), <AvtCon c={c} co={32} />))}
-    </View>
   );
 }
 
