@@ -3,11 +3,10 @@
 // 15/11 (#266): nhóm «canh_bao_no» — dòng máy chủ «Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.020)» hiện như thiết kế «Nợ quá 1.000 sao · Bảo Anh · đang nợ 1.020»
 // (ô icon sao, «Xem ›» → /canh-bao/<id> màn them-5twxl6hf). Lời xin vay: «Xin vay 20 sao» (chữ của máy chủ).
 // Mở màn là đánh dấu đã đọc (thẻ «mới» vẫn hiện tới lần mở sau). Bấm một thẻ ⇒ tới đúng chỗ xử lý (`den` của máy chủ). Nút «Cài đặt» ở đầu màn.
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { router } from "expo-router";
 import { Pressable, View } from "react-native";
 import { MEN, BONG, KHOI } from "@/lib/clay";
-import { TieuMuc } from "@/lib/hang-ngay";
 import { OLomIcon } from "@/lib/ui-viec";
 import { bm } from "@/lib/api";
 import { type MucCanDeY } from "@/lib/s3";
@@ -51,6 +50,7 @@ const ngayCua = (s: string) => {
 
 export default function DsThongBaoMan() {
   const { d, loi, matMang, tai } = useTai(() => bm.goi<DsThongBao>("thong-bao"));
+  const [loc, setLoc] = useState<"tat" | "can">("tat");
   const chuaDoc = d?.chuaDoc ?? 0;
   useEffect(() => { if (chuaDoc) bm.goi("thong-bao/doc", {}).catch(() => {}); }, [chuaDoc]);
   // thiết kế .cai: nút tròn sáng 44 với bánh răng 3D
@@ -71,28 +71,57 @@ export default function DsThongBaoMan() {
   // máy chủ mới gom «Cần Ba Mẹ để ý» (mất mạng, quên PIN, cảnh báo, con xin, nộp bài, máy chưa bảo vệ) ⇒ dùng nguyên; «Để biết» = các dòng còn lại
   const mayChu = d.canDeY;
   const can = mayChu ? [] : d.ds.filter(canDeY), biet = d.ds.filter((x) => !(mayChu ? daGom(x, mayChu) : canDeY(x)));
-  const dongTb = (x: ThongBao, deY: boolean, k: number) => {
-    const kk = KIEU[x.nhom] ?? KIEU.canh_bao;
-    const no = x.nhom === "canh_bao_no" || x.nhom === "canh_bao" ? chuNoQua(x.tieu) : null;
-    return <DongTb key={x.id} k={k} deY={deY} luc={ngayCua(x.luc)} ic={no ? "canh_bao" : icXin(x.tieu, kk.ic)} tieu={no?.tieu ?? x.tieu}
-      phu={[no?.phu ?? x.phu, x.imLang ? "trong giờ yên lặng" : null].filter(Boolean).join(" · ")} lam={deY ? kk.lam ?? "Xem ›" : undefined} bam={() => router.push(x.den as never)} />;
-  };
+  type Dong = { id: string; deY: boolean; iso: string; luc: string; ic: TenIcon; tieu: string; phu?: string; lam?: string; bam: () => void };
+  const dsDong: Dong[] = [
+    ...(mayChu ?? []).map((x): Dong => {
+      const no = x.loai === "canh_bao" ? chuNoQua(x.tieu) : null;
+      return { id: x.id, deY: true, iso: x.luc, luc: ngayCua(x.luc), ic: no ? "canh_bao" : icXin(x.tieu, IC_CAN[x.loai] ?? "chuong"), tieu: no?.tieu ?? x.tieu, phu: no?.phu ?? x.phu,
+        lam: `${x.nut} ›`, bam: () => router.push(x.den as never) };
+    }),
+    ...[...can.map((x) => [x, true] as const), ...biet.map((x) => [x, false] as const)].map(([x, deY]): Dong => {
+      const kk = KIEU[x.nhom] ?? KIEU.canh_bao;
+      const no = x.nhom === "canh_bao_no" || x.nhom === "canh_bao" ? chuNoQua(x.tieu) : null;
+      return { id: x.id, deY, iso: x.luc, luc: ngayCua(x.luc), ic: no ? "canh_bao" : icXin(x.tieu, kk.ic), tieu: no?.tieu ?? x.tieu,
+        phu: [no?.phu ?? x.phu, x.imLang ? "trong giờ yên lặng" : null].filter(Boolean).join(" · "), lam: deY ? kk.lam ?? "Xem ›" : undefined, bam: () => router.push(x.den as never) };
+    }),
+  ].sort((p, q) => (Date.parse(q.iso) || 0) - (Date.parse(p.iso) || 0));
+  const soCan = dsDong.filter((x) => x.deY).length;
+  const hien = loc === "can" ? dsDong.filter((x) => x.deY) : dsDong;
+  const homNay = hien.filter((x) => new Date(x.iso).toDateString() === new Date().toDateString());
+  const truocDo = hien.filter((x) => !homNay.includes(x));
+  // Bàn them-0xf9hrgn: hộp thư — lọc «Tất cả · Cần trả lời (N)», nhóm «Hôm nay» / «Trước đó», chấm vàng = chưa đọc / cần trả lời
+  const nhom = (chu: string, ds: Dong[]) => ds.length ? (
+    <View key={chu} style={{ gap: 8 }}>
+      <Chu kieu="rat" co={13.5} mau={M.chu3} style={{ marginHorizontal: 8, marginTop: 6 }}>{chu}</Chu>
+      <NhomTb>{ds.map((x, k) => <DongTb key={x.id} k={k} deY={x.deY} luc={x.luc} ic={x.ic} tieu={x.tieu} phu={x.phu} lam={x.lam} bam={x.bam} />)}</NhomTb>
+    </View>
+  ) : null;
   return (
     <Man lui={{ chu: "" }} tieu="Thông báo" phai={phai} tai={tai} vongTai>
-      {mayChu?.length ? <><TieuMuc chu="Cần Ba Mẹ để ý" so={mayChu.length} /><NhomTb deY>{mayChu.map((x, k) => {
-        const no = x.loai === "canh_bao" ? chuNoQua(x.tieu) : null;
-        return <DongTb key={x.id} k={k} deY luc={ngayCua(x.luc)} ic={no ? "canh_bao" : icXin(x.tieu, IC_CAN[x.loai] ?? "chuong")} tieu={no?.tieu ?? x.tieu} phu={no?.phu ?? x.phu} lam={`${x.nut} ›`}
-          bam={() => router.push(x.den as never)} />;
-      })}</NhomTb></> : null}
-      {can.length ? <><TieuMuc chu="Cần Ba Mẹ để ý" so={can.length} /><NhomTb deY>{can.map((x, k) => dongTb(x, true, k))}</NhomTb></> : null}
-      {biet.length ? <><TieuMuc chu="Để biết" so={biet.length} xam /><NhomTb>{biet.map((x, k) => dongTb(x, false, k))}</NhomTb></> : null}
+      <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="tablist">
+        {([["tat", "Tất cả"], ["can", "Cần trả lời"]] as const).map(([v, chu]) => {
+          const on = loc === v;
+          return (
+            <Pressable key={v} onPress={() => setLoc(v)} accessibilityRole="tab" accessibilityState={{ selected: on }}
+              style={[{ minHeight: 44, paddingHorizontal: 16, borderRadius: 22, flexDirection: "row", alignItems: "center", gap: 8 },
+                on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
+              <Chu kieu="rat" co={14.5} mau={on ? M.diem : M.chu}>{chu}</Chu>
+              {v === "can" && soCan ? <View style={{ minWidth: 22, height: 22, borderRadius: 11, paddingHorizontal: 6, backgroundColor: M.chinh, alignItems: "center", justifyContent: "center" }}>
+                <Chu kieu="rat" co={12} mau={on ? M.diem : "#FFFBF5"} so>{String(soCan)}</Chu></View> : null}
+            </Pressable>
+          );
+        })}
+      </View>
+      {nhom("Hôm nay", homNay)}
+      {nhom("Trước đó", truocDo)}
+      {!hien.length ? <Chu kieu="dam" co={14} mau={M.chu3} style={{ marginHorizontal: 8 }}>{loc === "can" ? "Không có thông báo nào cần trả lời." : "Chưa có thông báo nào."}</Chu> : null}
     </Man>
   );
 }
 
 /** Thẻ nhóm (thiết kế .de-y đào / .ds sáng): các dòng cách nhau bằng vạch mảnh. */
-function NhomTb({ deY, children }: { deY?: boolean; children: ReactNode }) {
-  return <View style={[{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: deY ? M.chonSoft : M.the }, KHOI.the]}>{children}</View>;
+function NhomTb({ children }: { children: ReactNode }) {
+  return <View style={[{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>{children}</View>;
 }
 
 /** Một dòng thông báo (.lg): giờ (cột 40) · ô icon lõm · tiêu đề + dòng phụ · hành động («Trả lời» viên than chì, còn lại chữ «Xem ›»). */
@@ -101,18 +130,23 @@ function DongTb({ k, deY, luc, ic, tieu, phu, lam, bam }: { k: number; deY?: boo
   const traLoi = !!deY && !!lam && /^Trả lời/.test(lam);
   return (
     <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={[tieu, phu, luc].filter(Boolean).join(", ")}
-      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: deY ? M.chonSoft : M.xamSoft }}>
-      <Chu kieu="rat" co={13} mau={M.chu3} style={{ width: 44 }} dong={2}>{luc}</Chu>
+      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 8, borderTopWidth: k ? 1.5 : 0, borderTopColor: M.vien }}>
       <OLomIcon ic={ic} nen={deY ? M.chonSoft : M.xamSoft} />
       <View style={{ flex: 1, minWidth: 0 }}>
         <Chu kieu="rat" co={15} dong={2}>{tieu}</Chu>
-        {phu ? <Chu kieu="dam" co={12.5} mau={deY ? M.canh : M.chu3} dong={1}>{phu}</Chu> : null}
+        {phu ? <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{phu}</Chu> : null}
       </View>
-      {lam ? traLoi ? (
-        <View style={{ height: 36, paddingHorizontal: 11, borderRadius: 18, backgroundColor: M.diem, backgroundImage: MEN.vang, justifyContent: "center", boxShadow: BONG.vang }}>
-          <Chu kieu="rat" co={13} mau={M.chu}>{lam.replace(/ ›$/, "")}</Chu>
+      <View style={{ alignItems: "flex-end", gap: 4 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
+          {deY ? <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: M.dauSach }} accessibilityLabel="Chưa xử lý" /> : null}
+          <Chu kieu="rat" co={13} mau={M.chu3} so dong={1}>{luc}</Chu>
         </View>
-      ) : <Chu kieu="rat" co={13.5} mau={deY ? M.canh : M.chinhInk}>{lam}</Chu> : null}
+        {lam ? traLoi ? (
+          <View style={{ height: 36, paddingHorizontal: 11, borderRadius: 18, backgroundColor: M.diem, backgroundImage: MEN.vang, justifyContent: "center", boxShadow: BONG.vang }}>
+            <Chu kieu="rat" co={13} mau={M.chu}>{lam.replace(/ ›$/, "")}</Chu>
+          </View>
+        ) : <Chu kieu="rat" co={13.5} mau={M.chinhInk}>{lam}</Chu> : null}
+      </View>
     </Pressable>
   );
 }

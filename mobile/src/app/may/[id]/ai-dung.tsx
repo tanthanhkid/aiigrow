@@ -100,7 +100,7 @@ export default function MayNayAiDung() {
       </View>
     );
   };
-  const chuNut = so >= 2 ? `Lưu · ${tenNgan} dùng chung ${so} bé` : so === 1 ? `Lưu · máy riêng của ${tenChon[0]}` : "Chọn ít nhất một bé";
+  const chuNut = so >= 2 ? `Lưu · ${so} bé dùng máy này` : so === 1 ? `Lưu · máy riêng của ${tenChon[0]}` : "Chọn ít nhất một bé";
   return (
     <Man dau={<DauHaiDong tieu="Máy này ai dùng?" phu={`${ten} · ${TEN_NEN[cm.may.nen] ?? cm.may.nen}`} lui={lui} />}
       day={xem ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Người trông giúp chỉ xem — đổi bé dùng máy thì nhờ Ba Mẹ.</Chu> : <>
@@ -115,16 +115,14 @@ export default function MayNayAiDung() {
           {`hệ điều hành của Apple không cho đổi người dùng trên máy.${nguoiKhac && goc.size ? ` Muốn ${tenGoi(nguoiKhac.ten)} dùng ${tenNgan}, gỡ khỏi ${tenGoi(cm.ds.find((c) => c.gan)!.ten)} rồi ghép lại cho ${tenGoi(nguoiKhac.ten)}.` : ""}`}
         </HopChu>
       </> : <>
-        <MucPhai chu="Chọn bé dùng máy này" phai={`${so}/${cm.ds.length} bé`} />
         <TheDs>{ds.map(dong)}</TheDs>
         {so >= 2 ? (
-          <HopChu loai="ngoc"><Chu kieu="rat" co={13} mau={M.chinhInk}>{`${so} bé = máy dùng chung. `}</Chu>Mở máy, bé chọn tên + nhập PIN. Chơi chỉ trừ sao của bé đang dùng; «Đổi người» dừng tính phút của bé trước.</HopChu>
+          <HopChu loai="ngoc"><Chu kieu="rat" co={13} mau={M.chinhInk}>{`${so} bé = máy dùng chung. `}</Chu>Mở máy, bé chọn tên + PIN. Chơi chỉ trừ sao của bé đang dùng.</HopChu>
         ) : so === 1 ? (
           <HopChu loai="ngoc"><Chu kieu="rat" co={13} mau={M.chinhInk}>1 bé = máy riêng. </Chu>{`${tenChon[0]} vào thẳng, không hỏi PIN.`}</HopChu>
         ) : (
           <HopChu loai="dao">Chọn ít nhất một bé. Muốn bỏ hẳn máy này thì gỡ máy (màn máy › «Gỡ máy này»).</HopChu>
         )}
-        <HopChu>Bỏ chọn một bé: tên bé đó không còn ở màn «Ai đang dùng máy?». Còn 1 bé = máy riêng, vào thẳng không hỏi PIN. Sao, nợ, danh sách app của bé không đổi.</HopChu>
         {cm.ds.length > 1 ? d.ios.map(mucIos) : null}
       </>}
     </Man>

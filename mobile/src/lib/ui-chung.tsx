@@ -11,7 +11,7 @@ import { DaiCon } from "./ui-viec";
 import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Nut, ONhap, Rob, type LinhVat, type TenIcon } from "./ui";
 
 /** Chip sao dưới tên bé: «⭐ 35 sao» vàng; nợ ⇒ «−20 sao» chữ đỏ #A2412C trên chip lõm kem (vẽ ở so-sao › VienSao). `n` = số sao (âm = nợ) hoặc `s` = trạng thái đầy đủ. */
-export const ChipNo = VienSao;
+export function ChipNo(p: Parameters<typeof VienSao>[0]) { return <VienSao {...p} />; }
 
 type Be = { id: string; ten: string; avatar?: string | null; sao?: number; soDu?: number | null; no?: number; phutCon?: number; yeuCauCho?: number };
 
