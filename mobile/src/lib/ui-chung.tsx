@@ -3,13 +3,12 @@
 //  · ChipNo — chip sao khi nợ (= so-sao › VienSao).
 //  · HoiLai      — hộp hỏi lại (xoá / gỡ / rời): nút phụ luôn «Giữ lại», nút đỏ nêu rõ đối tượng.
 //  · ChipMuc     — hàng chip chọn mức (sao, giờ khoá) luôn có «Tự chọn…» (nhập số).
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "./clay";
 import { saoTu, VienSao } from "./so-sao";
 import { DaiCon } from "./ui-viec";
-import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Nut, ONhap, Rob, type TenIcon } from "./ui";
-import type { LinhVat } from "./ui";
+import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Nut, ONhap, Rob, type LinhVat, type TenIcon } from "./ui";
 
 /** Chip sao dưới tên bé: «⭐ 35 sao» vàng; nợ ⇒ «−20 sao» chữ đỏ #A2412C trên chip lõm kem (vẽ ở so-sao › VienSao). `n` = số sao (âm = nợ) hoặc `s` = trạng thái đầy đủ. */
 export const ChipNo = VienSao;
@@ -74,7 +73,6 @@ export function ChipMuc({ muc, gia, doi, donVi = "sao", toiDa = 999, nhanTuChon 
   const [nhap, setNhap] = useState(false);
   const [chu, setChu] = useState("");
   const ngoai = gia !== null && !muc.includes(gia);
-  useEffect(() => { setNhap(false); }, [gia]);
   const xong = () => { const n = parseInt(chu, 10); if (n > 0) doi(Math.min(n, toiDa)); setNhap(false); setChu(""); };
   return (
     <View style={{ gap: 8 }}>
