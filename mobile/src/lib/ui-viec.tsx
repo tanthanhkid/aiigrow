@@ -28,7 +28,7 @@ export function DaiCon<T extends { id: string; ten: string; avatar?: string | nu
         const n = so?.[x.id] ?? 0;
         return (
           <Pressable key={x.id} onPress={doi ? () => doi(x) : undefined} disabled={!doi} accessibilityRole="tab" accessibilityState={{ selected: on }}
-            accessibilityLabel={[x.ten, n ? `${n} ${nhanSo}` : "", phu?.[x.id] ?? ""].filter(Boolean).join(", ")} style={{ width: 72, alignItems: "center", gap: 5 }}>
+            accessibilityLabel={[x.ten, n ? `${n} ${nhanSo}` : "", phu?.[x.id] ?? ""].filter(Boolean).join(", ")} style={{ minWidth: 72, alignItems: "center", gap: 5 }}>
             <View style={[{ borderRadius: 34, padding: 3 }, { borderWidth: 3, borderColor: "transparent" }]}>
               <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={50} con={x} chon={on} />
               {n ? (

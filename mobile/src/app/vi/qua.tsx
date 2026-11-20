@@ -11,7 +11,8 @@ import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { TextInput, View } from "react-native";
 import { bm, laXinVay, type GiaDinh } from "@/lib/api";
-import { CAU_TRONG_GIUP, ChipCon, quyenToi, type ChoDuyetMoi, type YeuCauMoi } from "@/lib/hang-ngay";
+import { HangChonBe } from "@/lib/ui-chung";
+import { CAU_TRONG_GIUP, quyenToi, type ChoDuyetMoi, type YeuCauMoi } from "@/lib/hang-ngay";
 import { BangChoVay, hoanTacVay, saoTu, soVN } from "@/lib/so-sao";
 import { icQua, tenVoucher, type NhomThuVien, type QuaS3 } from "@/lib/s3";
 import { veHoac } from "@/lib/ui-bm3";
@@ -72,7 +73,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
 
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={tieu} tai={q.tai} noi={noi} day={<Nut chu="Xong" rong bam={ve} />}>
-      {dsCon.length > 1 && c ? <ChipCon ds={dsCon} chon={c.id} doi={(x) => doiCon(x.id)} /> : null}
+      {dsCon.length > 1 && c ? <HangChonBe ds={dsCon} chon={c.id} doi={(x) => x && doiCon(x.id)} tenNgan /> : null}
       <ChonMot ds={[{ gia: "voucher" as const, chu: "Voucher AiiGrow", ic: "the_qua" }, { gia: "nha" as const, chu: "Ba Mẹ tự điền", ic: "but" }]} gia={tab} doi={setTab} />
       {c ? q.d.xinVay.map((y) => {
         const qq = q.d!.qua.find((x) => x.id === y.gia_tri);
