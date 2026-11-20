@@ -14,8 +14,8 @@ test("chế độ: mo_het giữ; chi_app_duoc_phep / null / thiếu ⇒ Theo dan
 
 const h = (x: Partial<DongDs>): DongDs => ({ ten: "Roblox", kieu: "app", nhom: "tinh_phut", muc: ["roblox.exe"], phutHomNay: 0, theoCaNha: false, ...x });
 
-test("câu phụ: Tính phút ghi cả số sao bị trừ; Không tính phút chỉ ghi phút; chưa dùng; chờ khớp", () => {
-  assert.equal(phuHomNay(h({ phutHomNay: 39 })), "Hôm nay trừ 39 phút · −39 sao");
+test("câu phụ: cả hai nhóm chỉ ghi phút (không «−N sao»); chưa dùng; chờ khớp", () => {
+  assert.equal(phuHomNay(h({ phutHomNay: 39 })), "Hôm nay 39 phút");
   assert.equal(phuHomNay(h({ nhom: "khong_tinh_phut", phutHomNay: 25 })), "Hôm nay 25 phút");
   assert.equal(phuHomNay(h({})), "Hôm nay chưa dùng");
   assert.equal(phuHomNay(h({}), true), "Hôm nay chưa vào");

@@ -27,7 +27,7 @@ export const layTl = () => tl;
 export const xoaTl = () => { tl = {}; try { kho()?.removeItem(KHOA); } catch { /* bỏ qua */ } };
 
 /** `tinhGio` (lưu trong trạng thái Lần đầu) ⇒ nhóm danh sách: Tính phút / Không tính phút. */
-export const nhomCua = (tinhGio: boolean) => (tinhGio ? "tinh_phut" : "khong_tinh_phut");
+export const nhomCua = (tinhGio: boolean): "tinh_phut" | "khong_tinh_phut" => (tinhGio ? "tinh_phut" : "khong_tinh_phut");
 /** App trong lưới (có `ma`) hay app thêm theo tên. */
 export const coMa = (a: AppChon): a is { ma: string; ten: string } => "ma" in a;
 

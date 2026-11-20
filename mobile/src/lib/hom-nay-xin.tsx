@@ -151,16 +151,16 @@ export function TheXin({ y, may, lam, dang, phu, bo, sau = denXong, truc, sao, m
           })} />
         </HaiNut>
       ) : laAppWeb(y) && truc && dangXin ? (
-        <View style={{ gap: 8 }}>
-          <Pressable onPress={() => xong(() => choAppWeb(y, may, true))} disabled={dang} accessibilityRole="button" accessibilityLabel="Tính phút, trừ sao của con"
-            style={{ minHeight: 54, borderRadius: 27, alignItems: "center", justifyContent: "center", backgroundColor: M.diem, backgroundImage: MEN.vang, boxShadow: BONG.vang, opacity: dang ? 0.6 : 1 }}>
-            <Chu kieu="rat" co={16} mau={M.chu}>Tính phút</Chu>
-            <Chu kieu="dam" co={11.5} mau={M.chu}>Trừ sao của con · 1 sao = 1 phút</Chu>
-          </Pressable>
+        // khuôn them-a4nqjrmp@v17 (#490): hàng 1 «Tính phút» (vàng kim) | «Không tính phút» (kem nổi) rộng ngang nhau; «Bỏ qua» chữ nhỏ bấm được cao ≥ 44
+        <View style={{ gap: 2, marginTop: 4 }}>
           <HaiNut>
-            <Nut chu="Không tính phút" loai="xanh" nho dangChay={dang} bam={() => xong(() => choAppWeb(y, may, false))} />
-            <Nut chu="Bỏ qua" loai="vien" nho dangChay={dang} bam={() => lam(() => boQuaAppWeb(y, may, sau === denXong ? undefined : sau))} />
+            <Nut chu="Tính phút" loai="vang" dangChay={dang} bam={() => xong(() => choAppWeb(y, may, true))} nhanDoc="Tính phút, trừ sao của con" />
+            <Nut chu="Không tính phút" loai="nho" dangChay={dang} bam={() => xong(() => choAppWeb(y, may, false))} />
           </HaiNut>
+          <Pressable onPress={() => lam(() => boQuaAppWeb(y, may, sau === denXong ? undefined : sau))} disabled={dang} accessibilityRole="button" accessibilityLabel="Bỏ qua"
+            style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>
+            <Chu kieu="dam7" co={13.5} mau={M.chu2}>Bỏ qua</Chu>
+          </Pressable>
         </View>
       ) : laAppWeb(y) && truc ? (
         // thiết kế 15/11 them-a4nqjrmp: «Tính phút · Trừ sao của con · 1 sao = 1 phút» (nút chính) · «Không tính phút» | «Bỏ qua»

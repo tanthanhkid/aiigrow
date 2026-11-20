@@ -1,33 +1,28 @@
-// them-3xbscpzm «Web cho X» (thiết kế chốt 15/11 — #262, chế độ «Theo danh sách»): dải «Chế độ: Theo danh sách · Đổi ›» (⇒ màn app chọn chế độ),
-// thanh «🔗 Dán địa chỉ web… + Thêm» ⇒ them-ubomxl31, «Đã thêm N trang · M tính phút — Chạm ＋ để thêm», danh mục trang chia nhóm (DM_WEB) mỗi nhóm
-// «Chọn tất cả» + «● Thêm vào nhóm …»; trang đã thêm hiện viên nhóm. Nhóm «Giải trí» = Tính phút, nhóm khác = Không tính phút. Không chọn sẵn.
-// «Tiếp: ghép máy của con» ⇒ lưu MỘT lần cả Lần đầu
+// Lần đầu · bước 5 «<Con> vào web thế nào?» (bàn bm-thiet-lap-con: them-3xbscpzm@v19 — #490): KHÔNG có công tắc chế độ — một dòng navy «Chế độ: Theo danh sách · Đổi ›»
+// (⇒ về màn app, nơi chọn chế độ), cùng danh sách với màn app (lib/ds-chung › DsLanDau): thanh tìm lõm (⇒ Thêm web), Tính phút TRƯỚC / Không tính phút, «Gợi ý cho <con>».
+// Dòng đã thêm bấm ⇒ «Đổi web» (doi-web.tsx). «Tiếp: ghép máy của con» ⇒ lưu MỘT lần cả Lần đầu
 // (POST thiet-lap: hồ sơ đã lưu + giờ chơi + giờ ngủ + chế độ + app + web — docs/API.md › «Thiết lập lần đầu») ⇒ Ghép máy.
 import { useCallback, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { DM_WEB } from "@/lib/danh-muc-lan-dau";
 import { luuThietLap } from "@/lib/ghep-may";
 import { DauMan } from "@/lib/lan-dau";
-import { ChonCheDo, DongDem, HaiNhomPhut, ThanhTimGia, tinhGioDm, type DongNhomPhut } from "@/lib/lan-dau-ds";
+import { DongCheDo, DsLanDau } from "@/lib/ds-chung";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { datTl, layTl, type WebChon } from "@/lib/thiet-lap";
+import { datTl, layTl, nhomCua, type WebChon } from "@/lib/thiet-lap";
 import { BaoLoi, Chu, M, Man, Nut, useLam } from "@/lib/ui";
+
+const GOI_Y_TOI_DA = 5;
 
 export default function ChonWeb() {
   const tl = layTl();
   const ten = tl.tenCon ?? "con";
   const [webs, setWebs] = useState<WebChon[]>(tl.webs ?? []);
-  useFocusEffect(useCallback(() => { setWebs(layTl().webs ?? []); }, []));     // quay về từ «Thêm web» ⇒ đọc lại
+  useFocusEffect(useCallback(() => { setWebs(layTl().webs ?? []); }, []));     // quay về từ «Thêm web» / «Đổi web» ⇒ đọc lại
   const { lam, loi, dangChay } = useLam();
-  const luu = (moi: WebChon[]) => { setWebs(moi); datTl({ webs: moi }); };
-  // hai nhóm không chia theo môn (bàn 19/11): nhóm ĐÃ LƯU của trang; chưa thêm ⇒ nhóm mặc định của danh mục
-  const dong: DongNhomPhut[] = useMemo(() => [
-    ...DM_WEB.map((x) => { const w = webs.find((y) => y.muc === x.ten); return { ten: x.ten, phu: x.phu, ic: "web" as const, da: !!w, tinh: w ? w.tinhGio : tinhGioDm(x) }; }),
-    ...webs.filter((w) => !DM_WEB.some((x) => x.ten === w.muc)).map((w) => ({ ten: w.muc, phu: "Ba Mẹ dán", ic: "web" as const, da: true, tinh: w.tinhGio })),
-  ], [webs]);
-  const them = (t: string) => { const x = DM_WEB.find((y) => y.ten === t); luu([...webs.filter((w) => w.muc !== t), { muc: t, tinhGio: x ? tinhGioDm(x) : false }]); };
-  const bo = (t: string) => luu(webs.filter((w) => w.muc !== t));
-  const doiNhom = (t: string) => luu(webs.map((w) => (w.muc === t ? { ...w, tinhGio: !w.tinhGio } : w)));
+  const da = useMemo(() => webs.map((w) => ({ k: w.muc, ten: w.muc, nhom: nhomCua(w.tinhGio), ic: "web" as const })), [webs]);
+  const goiY = DM_WEB.filter((x) => !webs.some((w) => w.muc === x.ten)).slice(0, GOI_Y_TOI_DA).map((x) => ({ k: x.ten, ten: x.ten, ic: "web" as const }));
+  const veApp = () => (router.canGoBack() ? router.back() : router.replace("/thiet-lap/app"));
   const tiep = () => lam(async () => {
     datTl({ webs });
     const con = await luuThietLap();
@@ -35,13 +30,13 @@ export default function ChonWeb() {
   }, { hangDoi: true });
   return (
     <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} />} />}
-      day={<><BaoLoi loi={loi} /><Nut chu="Tiếp: ghép máy của con" rong dangChay={dangChay} bam={tiep} /></>}>
-      <Chu kieu="rat" co={26} style={{ letterSpacing: -0.5 }}>{`${ten} vào web thế nào?`}</Chu>
-      <ChonCheDo gia="chi_app_duoc_phep" doi={(v) => { if (v === "mo_het") { datTl({ cheDoChan: v }); router.back(); } }} />
+      day={<><BaoLoi loi={loi} /><Nut thu chu="Tiếp: ghép máy của con" rong dangChay={dangChay} bam={tiep} /></>}>
+      <Chu kieu="rat" co={24} style={{ letterSpacing: -0.5 }}>{`${ten} vào web thế nào?`}</Chu>
+      <DongCheDo cheDo="theo_danh_sach" doi={veApp} />
       <Chu co={13.5} mau={M.chu2} style={{ paddingHorizontal: 4 }}>Con chỉ mở app, web trong danh sách. Cái mới thì con xin Ba Mẹ.</Chu>
-      <ThanhTimGia chu="Dán địa chỉ web" ic="web" nhan="Thêm trang web bằng tên hoặc đường link" bam={() => router.push("/thiet-lap/them-web")} />
-      <DongDem trai={`Đã thêm ${webs.length} trang · ${webs.filter((w) => w.tinhGio).length} tính phút`} phai="Chạm ＋ để thêm" />
-      <HaiNhomPhut ds={dong} them={them} bo={bo} doiNhom={doiNhom} />
+      <DsLanDau kieu="web" ten={ten} da={da} goiY={goiY} timChu="Dán địa chỉ web" tim={() => router.push("/thiet-lap/them-web")}
+        mo={(m) => router.push({ pathname: "/thiet-lap/doi-web", params: { muc: m } })}
+        them={(m) => router.push({ pathname: "/thiet-lap/them-web", params: { q: m } })} />
       <Chu co={12.5} mau={M.chu3} style={{ paddingHorizontal: 4 }}>AiiGrow không đề xuất: tiktok.com, facebook.com, youtube.com bản thường — chỉ dành cho từ 13 tuổi.</Chu>
     </Man>
   );

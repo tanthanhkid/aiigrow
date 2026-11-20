@@ -1,20 +1,22 @@
-// them-mdujxlg2 «<Con> dùng app thế nào?» (thiết kế chốt 15/11 — #262, gộp màn chọn chế độ cũ them-35vyl4cx): hai thẻ chọn chế độ «Mở hết · Mở mọi app,
-// mọi web · Không tính phút» | «Theo danh sách · Chỉ mở app, web Ba Mẹ đã thêm». Theo danh sách ⇒ thanh tìm «🔍 Tìm app trên máy con… + Thêm» (⇒ them-at57ypdc),
-// «Đã thêm N app · M tính phút — App khác: con xin Ba Mẹ», danh mục chia nhóm (lib/danh-muc-lan-dau.ts) mỗi nhóm «Chọn tất cả» + «● Thêm vào nhóm …»;
-// dòng đã thêm hiện viên «● Không tính phút» / «● Tính phút» (nhóm «Giải trí» = Tính phút). Không chọn sẵn.
-// «Tiếp: chọn web cho con» ⇒ them-3xbscpzm. Mở hết ⇒ lưu một lần (POST thiet-lap) rồi sang Ghép máy. App gửi theo TÊN + nhom (docs/API.md › thiet-lap).
+// Lần đầu · bước 5 «<Con> dùng app thế nào?» (bàn bm-thiet-lap-con: them-mdujxlg2@v19 — #490): thẻ navy «App và web trên máy <con> sẽ ở chế độ» + công tắc
+// Mở hết | Theo danh sách + hai dòng ✓ / ? (cùng thẻ với tab App & web — lib/ds-chung › TheCheDo); Theo danh sách ⇒ thanh tìm lõm (⇒ Thêm app), hai nhóm
+// Tính phút TRƯỚC / Không tính phút (chấm màu, KHÔNG chip trong dòng, KHÔNG số liệu dùng), «Gợi ý cho <con>» nút ＋ tròn. Dòng đã thêm bấm ⇒ «Đổi app» (doi-app.tsx).
+// Chế độ chọn MỘT lần ở đây. «Tiếp: chọn web cho con» ⇒ Web; Mở hết ⇒ lưu một lần (POST thiet-lap) rồi sang Ghép máy. App gửi theo TÊN + nhom (docs/API.md › thiet-lap).
 import { useCallback, useMemo, useRef, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
 import { DM_APP } from "@/lib/danh-muc-lan-dau";
 import { luuThietLap, napCaiDatCon } from "@/lib/ghep-may";
 import { DauMan } from "@/lib/lan-dau";
 import { icCuaApp } from "@/lib/ui-bm3";
-import { boDau, ChonCheDo, DongDem, HaiNhomPhut, ThanhTimGia, tinhGioDm, type DongNhomPhut } from "@/lib/lan-dau-ds";
+import { boDau } from "@/lib/lan-dau-ds";
+import { DsLanDau, TheCheDo } from "@/lib/ds-chung";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { datTl, layTl, type AppChon } from "@/lib/thiet-lap";
+import { datTl, layTl, nhomCua, type AppChon } from "@/lib/thiet-lap";
+import type { CheDo as CheDoUi } from "@/lib/app-web";
 import { BaoLoi, Chu, M, Man, Nut, useLam } from "@/lib/ui";
 
 type CheDo = "chi_app_duoc_phep" | "mo_het";
+const GOI_Y_TOI_DA = 5;
 
 export default function ChonApp() {
   const tl = layTl();
@@ -24,24 +26,19 @@ export default function ChonApp() {
   const daBam = useRef(!!tl.cheDoChan);        // Ba Mẹ đã chọn (lần này hoặc trước) ⇒ chế độ nạp từ máy chủ không được đè
   const { lam, loi, dangChay } = useLam();
   useFocusEffect(useCallback(() => {
-    setApps(layTl().apps ?? []);                // quay về từ «Thêm app» ⇒ đọc lại
+    setApps(layTl().apps ?? []);                // quay về từ «Thêm app» / «Đổi app» ⇒ đọc lại
     // đi lại Lần đầu cho Con đã có chế độ ⇒ hiện đúng chế độ đang có — chỉ khi Ba Mẹ chưa bấm chọn
     napCaiDatCon().then(() => { const n = layTl().cheDoChan; if (n && !daBam.current) setCheDo(n); }).catch(() => {});
   }, []));
   const moHet = cheDo === "mo_het";
-  const chonCheDo = (v: CheDo) => { daBam.current = true; setCheDo(v); datTl({ cheDoChan: v }); };
-  const k = (t: string) => boDau(t);
-  const luu = (moi: AppChon[]) => { setApps(moi); datTl({ apps: moi }); };
+  const doiCheDo = (v: CheDoUi) => { const n: CheDo = v === "mo_het" ? "mo_het" : "chi_app_duoc_phep"; daBam.current = true; setCheDo(n); datTl({ cheDoChan: n }); };
+  const k = boDau;
   const tinh = (a: AppChon) => "tinhGio" in a && a.tinhGio;
-  const soTinh = apps.filter(tinh).length;
-  // hai nhóm không chia theo môn (bàn 19/11): dòng ở nhóm ĐÃ LƯU của app (Ba Mẹ đổi bằng chip); chưa thêm ⇒ nhóm mặc định của danh mục
-  const dong: DongNhomPhut[] = useMemo(() => [
-    ...DM_APP.map((x) => { const a = apps.find((y) => k(y.ten) === k(x.ten)); return { ten: x.ten, phu: x.phu, ic: icCuaApp(`${x.ten} ${x.phu}`), da: !!a, tinh: a ? tinh(a) : tinhGioDm(x) }; }),
-    ...apps.filter((a) => !DM_APP.some((x) => k(x.ten) === k(a.ten))).map((a) => ({ ten: a.ten, phu: "Ba Mẹ gõ tên", ic: icCuaApp(a.ten), da: true, tinh: tinh(a) })),
-  ], [apps]); // eslint-disable-line react-hooks/exhaustive-deps
-  const them = (t: string) => { const x = DM_APP.find((y) => k(y.ten) === k(t)); luu([...apps.filter((a) => k(a.ten) !== k(t)), { ten: t, tinhGio: x ? tinhGioDm(x) : false }]); };
-  const bo = (t: string) => luu(apps.filter((a) => k(a.ten) !== k(t)));
-  const doiNhom = (t: string) => luu(apps.map((a) => (k(a.ten) === k(t) ? { ten: a.ten, tinhGio: !tinh(a) } : a)));
+  const da = useMemo(() => apps.map((a) => {
+    const x = DM_APP.find((y) => k(y.ten) === k(a.ten));
+    return { k: a.ten, ten: a.ten, nhom: nhomCua(tinh(a)), ic: icCuaApp(`${a.ten} ${x?.phu ?? ""}`) };
+  }), [apps]); // eslint-disable-line react-hooks/exhaustive-deps
+  const goiY = DM_APP.filter((x) => !apps.some((a) => k(a.ten) === k(x.ten))).slice(0, GOI_Y_TOI_DA).map((x) => ({ k: x.ten, ten: x.ten, ic: icCuaApp(`${x.ten} ${x.phu}`) }));
   const tiep = () => {
     datTl({ cheDoChan: cheDo, apps });
     if (!moHet) { router.push("/thiet-lap/web"); return; }
@@ -52,16 +49,15 @@ export default function ChonApp() {
   };
   return (
     <Man dau={<DauMan ve="/thiet-lap/gio" phai={<ThanhBuoc5 dang={4} />} />}
-      day={<><BaoLoi loi={loi} /><Nut chu={moHet ? "Tiếp: ghép máy của con" : "Tiếp: chọn web cho con"} rong dangChay={dangChay} bam={tiep} /></>}>
+      day={<><BaoLoi loi={loi} /><Nut thu chu={moHet ? "Tiếp: ghép máy của con" : "Tiếp: chọn web cho con"} rong dangChay={dangChay} bam={tiep} /></>}>
       <Chu kieu="rat" co={24} style={{ letterSpacing: -0.5 }}>{`${ten} dùng app thế nào?`}</Chu>
-      <ChonCheDo gia={cheDo} doi={chonCheDo} />
+      <TheCheDo ten={ten} cheDo={moHet ? "mo_het" : "theo_danh_sach"} doi={doiCheDo} />
       {moHet ? (
         <Chu co={13.5} mau={M.chu2} style={{ paddingHorizontal: 4 }}>{`${ten} mở được mọi app, mọi trang web, không tính phút. AiiGrow chỉ lo nhiệm vụ, sao và quà. Đổi sang «Theo danh sách» lúc nào cũng được ở tab App & web.`}</Chu>
       ) : <>
-        <Chu co={13.5} mau={M.chu2} style={{ paddingHorizontal: 4 }}>Con chỉ mở app, web trong danh sách. Cái mới thì con xin Ba Mẹ.</Chu>
-        <ThanhTimGia chu="Tìm app trên máy con" ic="tim_kiem" nhan="Tìm hoặc thêm app trên máy con" bam={() => router.push("/thiet-lap/them-app")} />
-        <DongDem trai={`Đã thêm ${apps.length} app · ${soTinh} tính phút`} phai="App khác: con xin Ba Mẹ" />
-        <HaiNhomPhut ds={dong} them={them} bo={bo} doiNhom={doiNhom} />
+        <DsLanDau kieu="app" ten={ten} da={da} goiY={goiY} timChu="Tìm app trên máy con" tim={() => router.push("/thiet-lap/them-app")}
+          mo={(t) => router.push({ pathname: "/thiet-lap/doi-app", params: { ten: t } })}
+          them={(t) => router.push({ pathname: "/thiet-lap/them-app", params: { q: t } })} />
         <Chu co={12.5} mau={M.chu3} style={{ paddingHorizontal: 4 }}>AiiGrow không đề xuất: TikTok, Facebook, Instagram, YouTube bản thường — chỉ dành cho từ 13 tuổi.</Chu>
       </>}
     </Man>

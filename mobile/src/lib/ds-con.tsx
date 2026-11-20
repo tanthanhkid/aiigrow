@@ -1,38 +1,27 @@
-// «App của <con>» / «Web của <con>» và màn một app / một trang (thiết kế chốt 15/11 bm-ung-dung — #262, luồng #258):
-//  · DsMucCon (03 them-g7g1cel5 · 07 bm2-web): «Con xin mở …» (Trả lời ›), hai nhóm «● Tính phút — trả bằng sao» / «● Không tính phút — vào thoải mái»,
-//    dòng phụ «Hôm nay trừ 39 phút · −39 sao» / «Hôm nay 25 phút», «Đã bỏ qua N lời xin · Xem ›», nút «+ Thêm app / trang web cho <con>».
-//  · MotMuc (05 bm2-app-web · 08 them-2nupeqju): «<mục> có tính phút không?» hai ô nhóm, «Lưu: <mục> tính phút», «Bỏ <mục> khỏi danh sách»
-//    (bỏ rồi thì con xin lại được). Đọc: GET con/:id/danh-sach. Ghi: danh-sach/doi · danh-sach/bo · POST danh-sach (mục chưa có — thẻ «app mới»).
+// «App của <con>» / «Web của <con>» và màn một app / một trang (bàn bm-ung-dung, cập nhật 20/11 — #490):
+//  · DsMucCon (them-g7g1cel5@v11 · bm2-web@v19): thẻ con xin theo khuôn them-a4nqjrmp (Tính phút | Không tính phút, «Bỏ qua»), HAI NHÓM — «● Tính phút» ĐỨNG TRƯỚC
+//    rồi «● Không tính phút» (lib/ds-chung › HaiNhomMuc), dòng phụ «Hôm nay N phút», «Đã bỏ qua N lời xin · Xem ›», nút «+ Thêm app / trang web cho <con>» ghim đáy.
+//  · MotMuc (bm2-app-web@v20 · them-2nupeqju): chi tiết dùng chung với Lần đầu «Đổi app / web đã thêm» — lib/ds-chung › ChiTietMuc.
+//    Đọc: GET con/:id/danh-sach. Ghi: danh-sach/doi · danh-sach/bo · POST danh-sach (mục chưa có — thẻ «app mới»).
 import { useState } from "react";
-import { View } from "react-native";
 import { router } from "expo-router";
 import { bm, laChiXem } from "./api";
-import { boKhoiDs, doiNhom, hangCua, napBoQua, napDanhSach, phuHomNay, themVaoDs, type DongDs, type Kieu, type Nhom } from "./app-web";
-import { KHOI, MEN } from "./clay";
-import { ChonNhom, DauMuc, DongDen, HangBoQua, KhoiNhom, MucNhom, OIcon, OIconTrang, icCuaApp, lucNgan, veHoac } from "./ui-bm3";
-import { BaoLoi, ChoTai, Chu, Icon3D, M, Man, NhanMen, Nut, useLam, useTai, type TenIcon } from "./ui";
+import { boKhoiDs, doiNhom, hangCua, napBoQua, napDanhSach, phuHomNay, themVaoDs, type DongDs, type Kieu, type Nhom, type XinDs } from "./app-web";
+import { ChiTietMuc, HaiNhomMuc } from "./ds-chung";
+import type { YeuCauMoi } from "./hang-ngay";
+import { laAppWeb, TheXin } from "./hom-nay-xin";
+import { HangBoQua, icCuaApp, veHoac } from "./ui-bm3";
+import { BaoLoi, ChoTai, Chu, M, Man, Nut, The, useLam, useTai, type TenIcon } from "./ui";
 
-/** Icon một mục trong DANH SÁCH (bàn them-g7g1cel5 / bm2-web / bm2-ung-dung-may): trang / app xem video (YouTube, Netflix, TikTok) = máy quay,
- *  trang web khác không rõ loại = sách. (Thẻ lời xin vẫn dùng quả địa cầu — icCuaApp.) */
+/** Icon một mục trong DANH SÁCH: trang / app xem video (YouTube, Netflix, TikTok) = máy quay, trang web khác không rõ loại = sách. */
 export const icMuc = (ten: string, kieu: Kieu): TenIcon => {
   if (/youtube|netflix|tiktok|video|phim/i.test(ten)) return "camera";
   const i = icCuaApp(ten); return kieu === "web" && i === "web" ? "sach" : i;
 };
 
-/** Hàng lời xin đang chờ (.xin — bàn bm2-ung-dung-may@v17 · bm2-web@v15): nền cam nhạt, ô icon lõm, tiêu đề + «19:20 · …» một dòng, «Trả lời ›». */
-export function HangXin({ ic, tieu, phu, bam }: { ic: TenIcon; tieu: string; phu: string; bam: () => void }) {
-  return (
-    <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}, ${phu}. Trả lời`} muc="khoi"
-      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 64, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 28, backgroundColor: M.canhSoft, ...KHOI.the }}>
-      <OIcon ic={ic} co={40} nen={M.chonSoft} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Chu kieu="rat" co={15} dong={1}>{tieu}</Chu>
-        <Chu kieu="dam" co={12.5} mau={M.canh} dong={1}>{phu}</Chu>
-      </View>
-      <Chu kieu="rat" co={14} mau={M.canh}>Trả lời ›</Chu>
-    </NhanMen>
-  );
-}
+/** Lời xin của danh sách (XinDs) ⇒ dạng lời xin của TheXin (cùng một khuôn thẻ ở Trang chủ, «<Con> đang xin phép», tab App & web, danh sách App / Web). */
+export const xinThanhYc = (y: XinDs, con: { id: string; ten: string }): YeuCauMoi => ({
+  id: y.id, child_id: con.id, ten_con: con.ten, loai: y.loai, phut: null, gia_tri: y.muc ?? y.ten, ten_app: y.ten, ly_do: y.lyDo ?? "", created_at: y.luc, het_han: y.luc });
 
 const khoa = (t: string) => t.trim().toLowerCase();
 
@@ -42,6 +31,7 @@ export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
     const [ds, xem, bq] = await Promise.all([napDanhSach(con), laChiXem(), napBoQua(con).catch(() => null)]);
     return { ds, xem, soBoQua: bq ? bq.ds.filter((x) => x.kieu === kieu).length : 0 };
   });
+  const { lam, loi: loiLam, dangChay } = useLam();
   const web = kieu === "web";
   const ve = () => veHoac(`/chan?con=${con}`);
   if (!d) return <Man lui={{ chu: "", bam: ve }} tieu={web ? "Web của con" : "App của con"}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -50,30 +40,25 @@ export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
   const xin = d.ds.dangXin.filter((y) => y.kieu === kieu);
   const mo = (h: DongDs) => router.push({ pathname: web ? "/web/trang" : "/ung-dung/app", params: { con, ten: h.ten } });
   return (
-    <Man lui={{ chu: "", bam: ve }} tieu={`${web ? "Web" : "App"} của ${ten}`} tai={tai} vongTai>
+    <Man lui={{ chu: "", bam: ve }} tieu={`${web ? "Web" : "App"} của ${ten}`} tai={tai} vongTai
+      day={d.xem ? undefined : (
+        <Nut thu chu={web ? `+ Thêm trang web cho ${ten}` : `+ Thêm app cho ${ten}`} rong
+          bam={() => router.push({ pathname: web ? "/web/them" : "/ung-dung/them", params: { con } })} />
+      )}>
+      <BaoLoi loi={loiLam} />
       {xin.map((y) => (
-        <HangXin key={y.id} ic={web ? "web" : icCuaApp(y.ten ?? "")} tieu={web ? `Con xin mở trang ${y.ten ?? y.muc ?? "web"}` : `Con xin mở ${y.ten ?? y.muc ?? "app mới"}`}
-          phu={`${lucNgan(y.luc)} · đang chờ Ba Mẹ`} bam={() => router.push({ pathname: "/yeu-cau-web/[id]", params: { id: y.id } })} />
+        <The key={y.id} style={{ paddingVertical: 2 }}>
+          <TheXin y={xinThanhYc(y, d.ds.con)} may={y.may} lam={(fn) => lam(fn)} dang={dangChay} dangXin truc={laAppWeb({ loai: y.loai })}
+            phu={`${y.ten ?? y.muc ?? (web ? "Trang" : "App")} chưa có trong danh sách được mở`} />
+        </The>
       ))}
       {!tat.length ? (
         <Chu kieu="dam" co={14} mau={M.chu3} style={{ marginHorizontal: 6 }}>
           {`Chưa có ${web ? "trang" : "app"} nào trong danh sách. ${web ? "Trang" : "App"} chưa thêm thì ${ten} chưa mở được — con muốn dùng sẽ xin Ba Mẹ.`}
         </Chu>
       ) : null}
-      {(["tinh_phut", "khong_tinh_phut"] as const).map((n) => {
-        const ds = tat.filter((h) => h.nhom === n);
-        return ds.length ? (
-          <View key={n} style={{ gap: 8 }}>
-            <MucNhom nhom={n} />
-            <KhoiNhom nhom={n}>
-              {ds.map((h, i) => (
-                <DongDen key={`${h.ten}|${h.muc.join(",")}`} dau={i === 0} tieu={h.ten} phu={phuHomNay(h, web)}
-                  trai={<OIconTrang ic={icMuc(`${h.ten} ${h.muc.join(" ")}`, kieu)} />} bam={d.xem ? undefined : () => mo(h)} />
-              ))}
-            </KhoiNhom>
-          </View>
-        ) : null;
-      })}
+      <HaiNhomMuc ds={tat.map((h) => ({ k: `${h.ten}|${h.muc.join(",")}`, ten: h.ten, phu: phuHomNay(h, web), nhom: h.nhom,
+        ic: icMuc(`${h.ten} ${h.muc.join(" ")}`, kieu), bam: d.xem ? undefined : () => mo(h) }))} />
       {!web && tat.length ? (
         <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginHorizontal: 6 }}>
           {d.ds.tamNghi ? `Đang «Mở hết»: ${ten} mở được mọi app. Danh sách giữ nguyên, bật «Theo danh sách» là dùng tiếp.`
@@ -81,10 +66,6 @@ export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
         </Chu>
       ) : null}
       {d.soBoQua ? <HangBoQua so={d.soBoQua} bam={() => router.push({ pathname: "/bo-qua", params: { con, kieu } })} /> : null}
-      {d.xem ? null : (
-        <Nut chu={web ? `+ Thêm trang web cho ${ten}` : `+ Thêm app cho ${ten}`} rong
-          bam={() => router.push({ pathname: web ? "/web/them" : "/ung-dung/them", params: { con } })} />
-      )}
     </Man>
   );
 }
@@ -116,34 +97,9 @@ export function MotMuc({ con, kieu, ten, muc, caNha }: { con: string; kieu: Kieu
     : "Chưa có trong danh sách";
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={caNha ? `${web ? "Web" : "App"} của cả nhà` : `${web ? "Web" : "App"} của ${tenCon}`}>
-      <DauMuc ic={icMuc(`${ten} ${muc ?? ""}`, kieu)} tieu={ten} phu={phu} />
-      <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginTop: 14, marginHorizontal: 6 }}>{`${ten} có tính phút không?`}</Chu>
-      <ChonNhom gia={nhom} doi={setChon} tat={d.xem} />
-      {h?.theoCaNha ? <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginHorizontal: 6 }}>{`Mục này đang theo danh sách cả nhà — đổi ở đây chỉ áp cho ${tenCon}.`}</Chu> : null}
-      {d.xem ? null : (
-        <View style={{ gap: 10, marginTop: 6 }}>
-          <BaoLoi loi={loiLam} />
-          <Nut chu={nhom ? `Lưu: ${ten} ${nhom === "tinh_phut" ? "tính phút" : "không tính phút"}` : "Chọn Tính phút hoặc Không tính phút"} rong dangChay={dangChay} tat={!nhom} bam={luu} />
-          {h ? (
-            <>
-              <NutBo chu={`Bỏ ${ten} khỏi danh sách`} tat={dangChay} bam={bo} />
-              <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ textAlign: "center" }}>Bỏ rồi thì con xin lại được.</Chu>
-            </>
-          ) : null}
-        </View>
-      )}
+      <ChiTietMuc ten={ten} phu={phu} ic={icMuc(`${ten} ${muc ?? ""}`, kieu)} nhom={nhom} doi={setChon} tat={d.xem} luu={luu} bo={h ? bo : undefined}
+        loi={loiLam} dangChay={dangChay}
+        ghiChu={h?.theoCaNha ? `Mục này đang theo danh sách cả nhà — đổi ở đây chỉ áp cho ${tenCon}.` : null} />
     </Man>
-  );
-}
-
-
-/** «Bỏ <mục> khỏi danh sách» (.bo — bàn bm2-app-web@v15 · them-2nupeqju@v6): viên trắng phồng cao 48, icon dấu trừ, chữ nâu. */
-function NutBo({ chu, tat, bam }: { chu: string; tat?: boolean; bam: () => void }) {
-  return (
-    <NhanMen onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={chu} accessibilityState={{ disabled: !!tat }} muc="nut" sang men={MEN.sang}
-      style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 48, paddingHorizontal: 16, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
-      <Icon3D ten="tru" co={22} />
-      <Chu kieu="rat" co={15} mau={M.canh} dong={1} style={{ flexShrink: 1 }}>{chu}</Chu>
-    </NhanMen>
   );
 }

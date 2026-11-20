@@ -4,6 +4,7 @@
 import type { ReactNode } from "react";
 import { Image, Pressable, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
+import { LinearGradient } from "expo-linear-gradient";
 import { bm } from "./api";
 import { MAU_NHOM, PHU_NHOM, TEN_NHOM, type Nhom } from "./app-web";
 import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
@@ -73,7 +74,7 @@ export function DongDen({ dau, trai, tieu, phu, bam, phai }: {
       {phai ?? (bam ? <Icon ten="phai" mau={M.oNhap} co={18} /> : null)}
     </>
   );
-  const st = [{ flexDirection: "row" as const, alignItems: "center" as const, gap: 10, minHeight: 62 }, !dau && { borderTopWidth: 1.5, borderTopColor: "rgba(0,0,0,0.06)" }];
+  const st = [{ flexDirection: "row" as const, alignItems: "center" as const, gap: 10, minHeight: 62 }, !dau && { borderTopWidth: 1, borderTopColor: "rgba(120,98,70,0.18)" }];
   return bam ? <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}${phu ? `, ${phu}` : ""}`} style={st}>{noi}</Pressable> : <View style={st}>{noi}</View>;
 }
 
@@ -124,27 +125,27 @@ export function HangBoQua({ so, bam }: { so: number; bam: () => void }) {
 
 // ---------------------------------------------------------------- hai nhóm của danh sách (15/11 — #262): Tính phút (vàng) · Không tính phút (xanh)
 
-// nền nhạt tông E của từng nhóm (kem pha cam / kem pha lục; chữ navy ≥14:1) · viền chọn = chính MAU_NHOM (M.chamTinh / M.chamKhong)
-const NEN_NHOM: Record<Nhom, string> = { tinh_phut: "#F2E0CB", khong_tinh_phut: "#E2E6CF" };
-const VIEN_NHOM: Record<Nhom, string> = MAU_NHOM;
+/** Viền vàng ô đang chọn / dấu ✓ trên nền navy (bàn: #D9AE57). */
+export const VANG_VIEN = "#D9AE57";
 
-/** Tiêu đề nhóm (.muc + chấm màu): «● Tính phút ……… trả bằng sao». */
+/** Tiêu đề nhóm (.muc + chấm màu — bàn them-g7g1cel5@v11): «● Tính phút ……… trả bằng sao». Chấm vàng / navy 12. */
 export function MucNhom({ nhom, phai }: { nhom: Nhom; phai?: string }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 10, marginHorizontal: 6, marginBottom: -2 }}>
-      <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: MAU_NHOM[nhom], boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.4), inset 0px -4px 6px -2px rgba(0,0,0,0.25)" }} />
-      <Chu kieu="rat" co={15} mau={M.chu2} style={{ flex: 1 }}>{TEN_NHOM[nhom]}</Chu>
-      <Chu kieu="dam" co={12.5} mau={M.chu3}>{phai ?? (nhom === "tinh_phut" ? "trả bằng sao" : "vào thoải mái")}</Chu>
+      <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: MAU_NHOM[nhom] }} />
+      <Chu kieu="rat" co={15} style={{ flex: 1 }}>{TEN_NHOM[nhom]}</Chu>
+      <Chu kieu="dam" co={12.5} mau={M.chu2}>{phai ?? (nhom === "tinh_phut" ? "trả bằng sao" : "vào thoải mái")}</Chu>
     </View>
   );
 }
 
-/** Khối một nhóm (.ds vàng / xanh nhạt): các dòng cách nhau vạch mảnh. Không nhóm ⇒ nền thẻ. (Bàn vẽ lề 12 — giữ 16 theo chuẩn lề thẻ LE-THE.) */
-export function KhoiNhom({ nhom, children }: { nhom?: Nhom; children: ReactNode }) {
-  return <View style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 26, backgroundColor: nhom ? NEN_NHOM[nhom] : M.the, ...KHOI.the }}>{children}</View>;
+/** Khối một nhóm (.ds): thẻ kem nổi, các dòng cách nhau vạch mảnh. (Bàn vẽ lề 12 — giữ 16 theo chuẩn lề thẻ LE-THE.) */
+export function KhoiNhom({ children }: { nhom?: Nhom; children: ReactNode }) {
+  return <View style={{ paddingVertical: 4, paddingHorizontal: 16, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>{children}</View>;
 }
 
-/** Hai ô nhóm xếp dọc (màn một app / một trang): bóng tròn màu nhóm, tên, câu phụ, dấu chọn. */
+/** Hai ô nhóm xếp dọc (màn một app / một trang, cả Hằng ngày lẫn Lần đầu — bàn bm2-app-web@v20 · them-qjgsxgos@v1 `.o`): bóng tròn màu nhóm, tên, câu phụ, ô tick;
+ *  ô đang chọn đổi navy, viền vàng 2px, chữ kem, tick vàng kim (bóng navy có viền vàng để không chìm vào thẻ navy). */
 export function ChonNhom({ gia, doi, tat }: { gia: Nhom | null; doi: (n: Nhom) => void; tat?: boolean }) {
   return (
     <View style={{ gap: 10 }} accessibilityRole="radiogroup" accessibilityLabel="Nhóm">
@@ -152,17 +153,19 @@ export function ChonNhom({ gia, doi, tat }: { gia: Nhom | null; doi: (n: Nhom) =
         const on = gia === k;
         return (
           <NhanMen key={k} onPress={() => doi(k)} disabled={tat} accessibilityRole="radio" accessibilityState={{ checked: on, disabled: tat }} aria-checked={on}
-            accessibilityLabel={`${TEN_NHOM[k]}, ${PHU_NHOM[k]}`} muc="khoi" sang men={MEN.the}
-            style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 26, backgroundColor: on && k === "tinh_phut" ? M.chonSoft : M.the, ...KHOI.the },
-              on && { boxShadow: `0px 0px 0px 3px ${VIEN_NHOM[k]}, ${BONG.the}` }]}>
-            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: MAU_NHOM[k], opacity: on ? 1 : 0.35,
-              boxShadow: "inset 0px 3px 0px rgba(255,255,255,0.45), inset 0px -8px 12px -4px rgba(0,0,0,0.25), 0px 8px 14px -8px rgba(0,0,0,0.4)" }} />
-            <View style={{ flex: 1, minWidth: 0 }}>
-              <Chu kieu="rat" co={16}>{TEN_NHOM[k]}</Chu>
-              <Chu kieu="dam" co={13} mau={M.chu3}>{PHU_NHOM[k]}</Chu>
+            accessibilityLabel={`${TEN_NHOM[k]}, ${PHU_NHOM[k]}`} muc="khoi" sang={!on} men={MEN.the}
+            style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: M.the, ...KHOI.the },
+              on && { backgroundColor: M.chu, boxShadow: `0px 0px 0px 2px ${VANG_VIEN}, ${BONG.the}` }]}>
+            <View style={{ width: 48, height: 48, borderRadius: 24, opacity: on ? 1 : 0.8, backgroundColor: MAU_NHOM[k], overflow: "hidden",
+              ...(on && k === "khong_tinh_phut" ? { borderWidth: 2, borderColor: VANG_VIEN } : null) }}>
+              {on && k === "tinh_phut" ? <LinearGradient colors={["#FBE7B0", "#F4C76A", "#C9973B", "#F2D48C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }} /> : null}
             </View>
-            <View style={[{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" }, on ? { backgroundColor: M.chinh } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-              {on ? <Icon ten="tick" mau="#FFFBF5" co={15} /> : null}
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <Chu kieu="rat" co={16} mau={on ? "#F2EBE3" : M.chu}>{TEN_NHOM[k]}</Chu>
+              <Chu kieu="dam" co={13} mau={on ? "#E3D9CC" : M.chu2}>{PHU_NHOM[k]}</Chu>
+            </View>
+            <View style={[{ width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center", overflow: "hidden" }, on ? { backgroundColor: M.diem } : { backgroundColor: M.the, boxShadow: BONG.lom }]}>
+              {on ? <Icon ten="tick" mau={M.chu} co={15} /> : null}
             </View>
           </NhanMen>
         );
@@ -171,25 +174,25 @@ export function ChonNhom({ gia, doi, tat }: { gia: Nhom | null; doi: (n: Nhom) =
   );
 }
 
-/** Ô icon trắng nổi của một dòng danh sách / kết quả — dùng chung App & web (ds-con, Thêm app/web) và Lần đầu (lan-dau-ds › DongKetQua) (.ic — bàn them-g7g1cel5@v7 · them-vw103x88@v8): 42, nền trắng, bóng đổ mềm (không lõm). */
+/** Ô icon tròn lõm 42 của một dòng danh sách / kết quả — dùng chung App & web (ds-con, Thêm app/web) và Lần đầu (bàn them-g7g1cel5@v11 · them-mdujxlg2@v19 `.ic`): tròn, nền kem, bóng lõm. */
 export const OIconTrang = ({ ic, anh, e }: { ic?: TenIcon; anh?: string | null; /** emoji thay icon (danh mục Lần đầu) */ e?: string }) => (
-  <View style={{ width: 42, height: 42, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3)" }}>
+  <View style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
     {anh ? <Image source={{ uri: `data:image/png;base64,${anh}` }} style={{ width: 28, height: 28 }} resizeMode="contain" accessibilityIgnoresInvertColors />
-      : ic ? <Icon3D ten={ic} co={26} /> : <Text style={{ fontSize: 22, lineHeight: 28 }}>{e}</Text>}
+      : ic ? <IconNet ten={ic} co={22} /> : <Text style={{ fontSize: 22, lineHeight: 28 }}>{e}</Text>}
   </View>
 );
 
-/** Nút tròn ＋ / ✓ của một dòng kết quả ở màn Thêm app / Thêm web (cả Lần đầu) (.c — bàn them-vw103x88@v8): hình 32 (lõm xám ＋ · xanh ✓), vùng chạm 44. */
+/** Nút tròn ＋ / ✓ của một dòng kết quả ở màn Thêm app / Thêm web (bàn them-at57ypdc@v9 `.c`): hình 32 (＋ kem nổi · ✓ navy viền vàng, dấu vàng), vùng chạm 44. */
 export const NutChon = ({ chon }: { chon: boolean }) => (
   <View style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
     <View style={[{ width: 32, height: 32, borderRadius: 16, alignItems: "center", justifyContent: "center" },
-      chon ? { backgroundColor: M.chinh, boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.3), inset 0px -4px 6px -2px rgba(0,0,0,0.3)" } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-      <Chu kieu="rat" co={chon ? 15 : 18} mau={chon ? "#FFFBF5" : M.chinhInk}>{chon ? "✓" : "+"}</Chu>
+      chon ? { backgroundColor: M.chu, boxShadow: `0px 0px 0px 2px ${VANG_VIEN}` } : { backgroundColor: M.the, boxShadow: BONG.nho }]}>
+      {chon ? <Icon ten="tick" mau={M.diem} co={16} /> : <Icon ten="cong" mau={M.chu} co={16} />}
     </View>
   </View>
 );
-/** Hai ô nhóm ngang — ngay dưới mục vừa chọn ở màn Thêm app / Thêm web và Lần đầu (lan-dau-ds › HoiNhom) (bàn bm-ung-dung them-vw103x88@v8 · them-yzl99l3y@v9 `.den`): hai thẻ
- *  trắng phồng cạnh nhau, bóng tròn màu nhóm (mờ khi chưa chọn), «Tính phút · Trả bằng sao» | «Không tính phút · Vào thoải mái»; ô đang chọn viền 3px màu nhóm. */
+/** Hai ô nhóm ngang — ngay dưới mục vừa chọn ở màn Thêm app / Thêm web, Hằng ngày lẫn Lần đầu (bàn them-at57ypdc@v9 · them-vw103x88@v13 `.den`): hai ô lõm cạnh nhau, bóng tròn màu nhóm
+ *  (mờ khi chưa chọn); ô đang chọn navy, viền vàng 2px, chữ vàng, bóng vàng kim. */
 export function ChonNhomNgang({ gia, doi }: { gia: Nhom; doi: (n: Nhom) => void }) {
   return (
     <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
@@ -197,15 +200,16 @@ export function ChonNhomNgang({ gia, doi }: { gia: Nhom; doi: (n: Nhom) => void 
         const on = gia === k;
         return (
           <NhanMen key={k} onPress={() => doi(k)} accessibilityRole="radio" accessibilityState={{ checked: on }} aria-checked={on} accessibilityLabel={`${TEN_NHOM[k]}, ${PHU_NHOM[k]}`}
-            muc="chip" sang men={MEN.the}
-            style={[{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 6, minHeight: 60, paddingVertical: 8, paddingHorizontal: 8, borderRadius: 20,
-              backgroundColor: on && k === "tinh_phut" ? M.chonSoft : M.the, ...KHOI.the },
-              on && { boxShadow: `0px 0px 0px 3px ${VIEN_NHOM[k]}, ${BONG.the}` }]}>
-            <View style={{ width: 24, height: 24, borderRadius: 12, backgroundColor: MAU_NHOM[k], opacity: on ? 1 : 0.4,
-              boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.45), inset 0px -5px 7px -2px rgba(0,0,0,0.25)" }} />
+            muc="chip" sang={!on} men={MEN.the}
+            style={[{ flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 8, minHeight: 60, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 20,
+              backgroundColor: M.the, boxShadow: BONG.lom },
+              on && { backgroundColor: M.chu, boxShadow: `0px 0px 0px 2px ${VANG_VIEN}` }]}>
+            <View style={{ width: 24, height: 24, borderRadius: 12, overflow: "hidden", backgroundColor: MAU_NHOM[k], opacity: on ? 1 : 0.55 }}>
+              {on && k === "tinh_phut" ? <LinearGradient colors={["#FBE7B0", "#F4C76A", "#C9973B", "#F2D48C"]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={{ flex: 1 }} /> : null}
+            </View>
             <View style={{ flex: 1, minWidth: 0 }}>
-              <Chu kieu="rat" co={13.5}>{TEN_NHOM[k]}</Chu>
-              <Chu kieu="dam" co={11.5} mau={M.chu3}>{k === "tinh_phut" ? "Trả bằng sao" : "Vào thoải mái"}</Chu>
+              <Chu kieu="rat" co={13.5} mau={on ? M.diem : M.chu} dong={1}>{TEN_NHOM[k]}</Chu>
+              <Chu kieu="dam" co={11.5} mau={on ? "#F2EBE3" : M.chu2} dong={1}>{k === "tinh_phut" ? "Trả bằng sao" : "Vào thoải mái"}</Chu>
             </View>
           </NhanMen>
         );

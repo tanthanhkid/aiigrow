@@ -168,8 +168,9 @@ const MAU_NUT: Record<LoaiNut, { nen: string; chu: string; men?: string; bong?: 
  *  Chữ dài (tên con 30, tên máy 40, tên miền 60 ký tự, cỡ chữ hệ thống lớn): nút không vượt khung cha (maxWidth 100%), chữ quá dài
  *  thì «…» ở cuối — không co chữ (người chọn cỡ chữ lớn phải được chữ lớn, WCAG 1.4.4), không cắt nửa chữ, không đẩy nút bên cạnh.
  *  Nút `rong` (một mình cả hàng) được xuống 2 dòng căn giữa — nhãn dài kiểu «Mở khoá sau khi nói chuyện với <tên>» không mất tên. */
-export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc, sat, toi, motDong, lon }: {
+export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, tat, nhanDoc, sat, toi, motDong, lon, thu }: {
   /** cỡ nút lần đầu theo bàn (`.nut`: cao 58, bo 30, chữ 17) */ lon?: boolean;
+  /** nhãn dài (tên app / web trong nút): thu nhỏ chữ cho vừa MỘT dòng, không chạm mép (bàn #490) */ thu?: boolean;
   chu: string; bam: (e?: GestureResponderEvent) => void; loai?: LoaiNut; nho?: boolean; rong?: boolean; ic?: TenIcon; ic3d?: boolean; dangChay?: boolean; tat?: boolean; nhanDoc?: string;
   /** đệm ngang hẹp (12) — hai nút chia đôi một thẻ (Trang chủ «Khoá máy» / «Cho thêm giờ») giữ chữ một dòng như thiết kế */ sat?: boolean;
   /** nút nằm trên hero navy: bóng chỉ tối (không quầng sáng kem) */ toi?: boolean;
@@ -187,7 +188,7 @@ export function Nut({ chu, bam, loai = "chinh", nho, rong, ic, ic3d, dangChay, t
         <View style={{ flexDirection: "row", alignItems: "center", gap: 7, maxWidth: "100%" }}>
           {/* «Ánh kim» (#417): icon nút là icon nét cùng màu chữ (mẫu E `.nut svg.i`), không còn icon 3D nhiều màu; sao giữ dạng đặc ★ */}
           {ic ? (ic3d && !tat && ic !== "sao" ? <IconNet ten={ic} co={nho ? 19 : 21} mau={chuMau} /> : <Icon ten={ic} mau={chuMau} co={nho ? 18 : 20} />) : null}
-          <Text numberOfLines={rong && !motDong ? 2 : 1} ellipsizeMode="tail"
+          <Text numberOfLines={rong && !motDong && !thu ? 2 : 1} ellipsizeMode="tail" adjustsFontSizeToFit={thu} minimumFontScale={thu ? 0.6 : undefined}
             style={{ flexShrink: 1, minWidth: 0, textAlign: "center", fontFamily: F.den, fontSize: nho ? 14.5 : lon ? 17 : 16, color: chuMau, lineHeight: nho ? 20 : 22 }}>{chu}</Text>
         </View>
       )}
