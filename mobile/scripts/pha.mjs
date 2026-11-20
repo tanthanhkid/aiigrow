@@ -1122,8 +1122,8 @@ await kichBan("Hết phiên (401) ⇒ về màn Chào", async () => {
 
 await kichBan("Tài khoản của bạn ⇒ Xoá tài khoản (thiết kế 14/11 bm-ca-nha/08, 11): máy chủ chặn khi còn người lớn / còn máy; người cuối ⇒ nói rõ hậu quả + mật khẩu ⇒ xoá ⇒ về màn Chào", async () => {
   await di("/cai-dat");
-  xet(await doi("Bạn · tài khoản của bạn"), "tab Cả nhà có dòng «tài khoản của bạn»");
-  await bam("Bạn · tài khoản của bạn");
+  xet(await doi("Chủ nhà · tài khoản của bạn"), "tab Cả nhà có dòng «tài khoản của bạn»");
+  await bam("Chủ nhà · tài khoản của bạn");
   xet(await doi("Xoá hẳn, không lấy lại được"), "mở màn Tài khoản của bạn, dòng Xoá tài khoản nói rõ không lấy lại được");
   await bam("Xoá tài khoản");
   xet(await choGoi((x) => x.d === "xoa-tai-khoan" && x.body?.kiemTra === true), "hỏi máy chủ trước (kiemTra)");
