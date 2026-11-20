@@ -286,7 +286,11 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
     });
   });
   // đóng bảng ⇒ lần mở sau chọn lại đủ máy (không giữ máy đã bỏ chọn lần trước)
-  const dongBang = () => { setBoChon(new Set()); dong(); };
+  const dongBang = () => {
+    setBoChon(new Set()); setHan("30");
+    const d = new Date(Date.now() + 60 * 60_000); setTuGio(Math.ceil((d.getHours() * 60 + d.getMinutes()) / 15) * 15 % 1440);
+    dong();
+  };
   const doiChon = (id: string) => setBoChon((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const phuMay = (m: (typeof may)[number]) => {
     const kh = cauKhoaMay(m.khoaMay);
