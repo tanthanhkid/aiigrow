@@ -68,7 +68,7 @@ export default function ObQua() {
           {tab !== "qua_nha" ? (
             <Nhom ic="the_qua" chu="Ba Mẹ mua" phu="tốn tiền · mua thêm được">
               <TheDs le>
-                {dsMua.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={sl[m.ma] ?? 0} dat={(n) => dat(m.ma, n)}
+                {dsMua.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={sl[m.ma] ?? 0} dat={(n) => dat(m.ma, n)} tran={m.menhGia ? undefined : 1}
                   xem={CHI_TIET[m.ma] ? () => router.push({ pathname: "/thiet-lap/qua-mua", params: { ma: CHI_TIET[m.ma] } }) : undefined} />)}
               </TheDs>
             </Nhom>
@@ -77,7 +77,7 @@ export default function ObQua() {
           {tab !== "ba_me_mua" ? (
             <Nhom ic="nha" chu="Quà nhà" phu={tab === "qua_nha" ? `${dsNha.length + d.rieng.filter((q) => !daXoa.includes(q.id)).length} quà` : "không tốn tiền"}>
               <TheDs le>
-                {dsNha.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={m.daCo ? Math.max(1, sl[m.ma] ?? 1) : sl[m.ma] ?? 0} dat={(n) => dat(m.ma, n)} khoa={m.daCo} />)}
+                {dsNha.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={m.daCo ? Math.max(1, sl[m.ma] ?? 1) : sl[m.ma] ?? 0} dat={(n) => dat(m.ma, n)} khoa={m.daCo} tran={1} />)}
                 {d.rieng.filter((q) => !daXoa.includes(q.id)).map((q, i) => (
                   <DongQua key={q.id} i={dsNha.length + i} ten={q.ten} phu={`${soCham(q.sao)} sao`} n={1}
                     dat={(n) => { if (n >= 1) return; setDaXoa((x) => [...x, q.id]); guiCham(`Đã xoá quà «${q.ten}»`, () => {

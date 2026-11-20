@@ -5,7 +5,7 @@
 // (POST thiet-lap: hồ sơ đã lưu + giờ chơi + giờ ngủ + chế độ + app + web — docs/API.md › «Thiết lập lần đầu») ⇒ Ghép máy.
 import { useCallback, useMemo, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
-import { DM_WEB, type MucDm } from "@/lib/danh-muc-lan-dau";
+import { DM_WEB } from "@/lib/danh-muc-lan-dau";
 import { luuThietLap } from "@/lib/ghep-may";
 import { DauMan } from "@/lib/lan-dau";
 import { ChonCheDo, DongDem, HaiNhomPhut, ThanhTimGia, tinhGioDm, type DongNhomPhut } from "@/lib/lan-dau-ds";

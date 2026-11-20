@@ -5,7 +5,7 @@
 // «Tiếp: chọn web cho con» ⇒ them-3xbscpzm. Mở hết ⇒ lưu một lần (POST thiet-lap) rồi sang Ghép máy. App gửi theo TÊN + nhom (docs/API.md › thiet-lap).
 import { useCallback, useMemo, useRef, useState } from "react";
 import { router, useFocusEffect } from "expo-router";
-import { DM_APP, type MucDm } from "@/lib/danh-muc-lan-dau";
+import { DM_APP } from "@/lib/danh-muc-lan-dau";
 import { luuThietLap, napCaiDatCon } from "@/lib/ghep-may";
 import { DauMan } from "@/lib/lan-dau";
 import { icCuaApp } from "@/lib/ui-bm3";
