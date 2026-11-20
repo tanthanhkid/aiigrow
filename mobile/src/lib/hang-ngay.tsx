@@ -52,7 +52,7 @@ export type Quyen = "ba_me" | "trong_giup";
 export const quyenToi = () => bm.goi<{ baMe: { quyen?: Quyen; vai?: string } }>("toi")
   .then((t): Quyen => t.baMe.quyen ?? (t.baMe.vai === "xem" ? "trong_giup" : "ba_me"), (): Quyen => "ba_me");
 /** Câu nhỏ dưới nút bị khoá khi là Người trông giúp. */
-export const CAU_TRONG_GIUP = "Người trông giúp xem, duyệt và khoá máy được — đổi cài đặt thì nhờ Ba Mẹ.";
+export const CAU_TRONG_GIUP = "Vai «Chỉ trông con» xem, duyệt, khoá máy và cho vay sao được — đổi luật, mua quà, mời người, ghép máy thì nhờ Ba Mẹ.";
 
 // ---------------------------------------------------------------- chữ
 

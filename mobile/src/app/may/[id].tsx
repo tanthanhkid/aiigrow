@@ -404,7 +404,7 @@ export default function AnToanMay() {
         ) : null}
         <Dong dau={!d.chu || (!!m.dangGo && m.daDongBo)} tieu="Gỡ tại máy" phu="Cài đặt › Ứng dụng › AiiGrow trên máy của Con — cần mật khẩu quản trị của Ba Mẹ" trai={<BieuTron ic="may_tinh" mau="lam" />} bam={() => setMo("tai_may")} />
       </Nhom>
-      {!d.chu ? <Chu co={13} mau={M.chu3}>Chỉ Ba Mẹ mới gỡ AiiGrow được — Người trông giúp nhờ Ba Mẹ.</Chu> : null}
+      {!d.chu ? <Chu co={13} mau={M.chu3}>Chỉ vai «Như Ba Mẹ» mới gỡ AiiGrow được — vai «Chỉ trông con» nhờ Ba Mẹ.</Chu> : null}
 
       {m.suKien.length ? (
         <>

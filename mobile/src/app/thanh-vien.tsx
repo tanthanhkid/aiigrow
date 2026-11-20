@@ -8,13 +8,13 @@ import { useState } from "react";
 import { View } from "react-native";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
-import { IC_QUYEN, MO_TA_QUYEN, TEN_QUYEN, chuDau, type DsThanhVien, type Quyen } from "@/lib/ca-nha";
+import { chuDau, type DsThanhVien, type Quyen } from "@/lib/ca-nha";
 import { MucTieu, OIcon, veHoac } from "@/lib/ui-bm3";
 import { KHOI } from "@/lib/clay";
 import { ChuCaiCon } from "@/lib/ui-viec";
 import { soVN } from "@/lib/so-sao";
-import { DsBang } from "@/lib/ca-nha-ui";
-import { Avt, BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, Icon3D, M, Man, Nhom, Nut, OChon, useLam, useTai } from "@/lib/ui";
+import { DsBang, HaiTheVai, HangViecVai } from "@/lib/ca-nha-ui";
+import { Avt, BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, Dong, M, Man, Nhom, Nut, useLam, useTai } from "@/lib/ui";
 
 /** Màu avatar người lớn (thiết kế .ng — cùng bảng tab Cả nhà). */
 
@@ -26,7 +26,7 @@ export default function ThanhVien() {
     return { tv, con: g.con, vay: nk?.choVay?.theoNguoi ?? null };
   });
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
-  const [mo, setMo] = useState<null | "quyen" | "roi">(null);
+  const [mo, setMo] = useState<null | "ha" | "nang" | "roi">(null);
   if (!id) return <Redirect href="/cai-dat" />;
   if (!d) return <Man lui={{ chu: "Cả nhà" }}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const i = d.tv.ds.findIndex((x) => x.id === id);
@@ -60,15 +60,15 @@ export default function ThanhVien() {
         <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
           <Chu kieu="rat" co={17} dong={1}>{x.ten}</Chu>
           <Chu kieu="dam" co={12.5} mau={M.chu3} dong={1}>{x.laChuNha ? "Người tạo nhà" : vao && !Number.isNaN(vao.getTime()) ? `Vào nhà từ ${vao.getDate()}/${vao.getMonth() + 1}` : "Đã vào nhà"}</Chu>
-          <View style={{ alignSelf: "flex-start", marginTop: 4, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, backgroundColor: M.chinhSoft }}>
-            <Chu kieu="rat" co={12} mau={M.chinhInk}>{x.quyen === "ba_me" ? "Làm được như Ba Mẹ" : "Xem, duyệt, khoá máy"}</Chu>
-          </View>
         </View>
       </View>
+      {/* #492 bàn bm2-thanh-vien@v12: «<tên> làm được gì?» — 2 thẻ chọn vai + hàng ✓/✕ việc; đổi vai = Ba Mẹ khác (máy chủ chặn thật) */}
+      <MucTieu chu={`${x.ten} làm được gì?`} />
+      <HaiTheVai quyen={x.quyen} doi={doiDuoc ? (q) => setMo(q === x.quyen ? null : q === "trong_giup" ? "ha" : "nang") : undefined} />
+      <HangViecVai quyen={x.quyen} />
       <MucTieu chu={`${x.ten} trong nhà`} />
       <Nhom>
         <Dong dau tieu={fb ? "Đăng nhập bằng" : email ? "Email" : "Số điện thoại"} phu={dd ? hienSo(dd) : "Chưa có"} trai={<OIcon ic={email || fb ? "tin" : "dt"} />} />
-        <Dong tieu="Quyền" phu={TEN_QUYEN[x.quyen]} trai={<OIcon ic={IC_QUYEN[x.quyen]} />} bam={doiDuoc ? () => setMo("quyen") : undefined} />
         <Dong tieu="Cùng trông" phu={soCon ? (soCon > 1 ? `Cả ${soCon} con` : d.con[0].ten) : "Chưa có con nào"} trai={<OIcon ic="nguoi" />}
           phai={soCon ? <ChuCaiCon ds={d.con.slice(0, 4)} co={24} /> : undefined} />
         {d.vay ? (() => { const v = d.vay.find((n) => n.ten === x.ten);
@@ -80,11 +80,14 @@ export default function ThanhVien() {
         <Chu kieu="dam" co={13} mau={M.chu3} style={{ textAlign: "center" }}>{`${x.ten} sẽ không xem, không cho vay sao được nữa.`}</Chu>
       </View> : null}
 
-      <BangTruot mo={mo === "quyen"} dong={dong} tieu={`Quyền của ${x.ten}`}>
-        {(["ba_me", "trong_giup"] as const).map((q) => (
-          <OChon key={q} chon={x.quyen === q} bam={() => doiQuyen(q)} trai={<Icon3D ten={IC_QUYEN[q]} co={32} />} tieu={TEN_QUYEN[q]} phu={MO_TA_QUYEN[q]} />
-        ))}
+      {/* đổi vai: hộp hỏi lại, nút phụ luôn «Giữ lại» */}
+      <BangTruot mo={mo === "ha" || mo === "nang"} dong={dong} tieu={mo === "ha" ? `Cho ${x.ten} chỉ trông con?` : `Cho ${x.ten} làm như Ba Mẹ?`}>
+        <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>{mo === "ha"
+          ? `${x.ten} xem con chơi, duyệt việc, cho vay sao. Không đổi luật, không mua quà, không mời người, không ghép máy.`
+          : `${x.ten} làm được mọi việc như bạn: đổi luật, mua quà, mời người, ghép máy.`}</Chu>
         <BaoLoi loi={loiLam} />
+        <Nut chu={mo === "ha" ? `Cho ${x.ten} chỉ trông con` : `Cho ${x.ten} làm như Ba Mẹ`} rong dangChay={dangChay} bam={() => doiQuyen(mo === "ha" ? "trong_giup" : "ba_me")} />
+        <Nut chu="Giữ lại" loai="vien" rong bam={dong} />
       </BangTruot>
       {/* bàn them-xnbiksmr@v3: ô hình đào, câu giữa, thẻ dòng icon, nút đỏ đặc. «cho giờ» của bàn ⇒ «cho vay sao» (#265). Dòng «<tên> nhận tin đã rời nhà»
           của bàn chưa có — máy chủ chưa gửi tin cho người bị mời ra */}
@@ -93,7 +96,7 @@ export default function ThanhVien() {
         <DsBang ds={[{ ic: "gui", chu: "Muốn mời lại thì gửi lời mời mới" }]} />
         <BaoLoi loi={loiLam} />
         <Nut chu={`Mời ${x.ten} rời nhà`} loai="do" rong dangChay={dangChay} bam={roi} />
-        <Nut chu={`Thôi, giữ ${x.ten}`} loai="vien" rong bam={dong} />
+        <Nut chu="Giữ lại" loai="vien" rong bam={dong} />
       </BangTruot>
     </Man>
   );

@@ -39,7 +39,7 @@ export default function CaiDat() {
     moDaMoi(m);
   });
   const dongNguoi = (x: (typeof d.tv.ds)[number], i: number) => (
-    <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? "Bạn · tài khoản của bạn" : x.vaoLuc ? `Vào nhà từ ${ngayThang(x.vaoLuc)}` : TEN_QUYEN[x.quyen]}
+    <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? (x.laChuNha ? "Chủ nhà · tài khoản của bạn" : `${TEN_QUYEN[x.quyen]} · tài khoản của bạn`) : `${TEN_QUYEN[x.quyen]}${x.vaoLuc ? ` · từ ${ngayThang(x.vaoLuc)}` : ""}`}
       trai={<Avt ten={x.ten} mau={MAU_NGUOI[i % MAU_NGUOI.length]} co={40} />}
       phai={<View accessibilityLabel={TEN_QUYEN[x.quyen]}><Icon ten="phai" mau={M.oNhap} co={18} /></View>}
       bam={() => (x.laToi ? router.push("/tai-khoan") : router.push({ pathname: "/thanh-vien", params: { id: x.id } }))} />
@@ -80,7 +80,7 @@ export default function CaiDat() {
             <Avt ten={tenMoi(m)} mau="#0A1629" co={40} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15.5} dong={1}>{tenMoi(m)}</Chu>
-              <Chu kieu="dam" co={12.5} mau={M.canh} dong={1}>Chưa nhận lời mời</Chu>
+              <Chu kieu="dam" co={12.5} mau={M.canh} dong={1}>Đang chờ nhận lời mời</Chu>
             </View>
             {laBaMe ? (
               <NhanMen onPress={() => guiLai(m)} disabled={moi.dangChay} accessibilityRole="button" accessibilityLabel={`Gửi lại lời mời cho ${tenMoi(m)}`} muc="chip" sang

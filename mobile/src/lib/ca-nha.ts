@@ -3,13 +3,22 @@
 import { bm, type GiaDinh, type TuanThuMay } from "./api";
 
 export type Quyen = "ba_me" | "trong_giup";
-export const TEN_QUYEN: Record<Quyen, string> = { ba_me: "Ba Mẹ", trong_giup: "Người trông giúp" };
+// #492 (bàn bm2-thanh-vien / them-0uobhmvh): hai vai người lớn «Như Ba Mẹ» · «Chỉ trông con». Máy chủ chặn thật việc của vai Chỉ trông con (lib/quyen.ts).
+export const TEN_QUYEN: Record<Quyen, string> = { ba_me: "Như Ba Mẹ", trong_giup: "Chỉ trông con" };
 export const MO_TA_QUYEN: Record<Quyen, string> = {
-  ba_me: "Làm được hết: duyệt, khoá máy, đổi cài đặt",
-  trong_giup: "Xem, duyệt, khoá máy — không đổi cài đặt",
+  ba_me: "Làm được mọi việc",
+  trong_giup: "Xem, duyệt việc, cho vay sao",
 };
+/** Hàng ✓ / ✕ dưới hai thẻ vai (bàn): Chỉ trông con không đổi luật, không mua quà. */
+export const VIEC_QUYEN: { chu: string; baMe: boolean; trongGiup: boolean }[] = [
+  { chu: "Xem con chơi", baMe: true, trongGiup: true },
+  { chu: "Duyệt việc", baMe: true, trongGiup: true },
+  { chu: "Cho vay sao", baMe: true, trongGiup: true },
+  { chu: "Đổi luật", baMe: true, trongGiup: false },
+  { chu: "Mua quà", baMe: true, trongGiup: false },
+];
 /** Icon mỗi quyền (dùng ở danh sách người lớn và màn mời). */
-export const IC_QUYEN = { ba_me: "nha", trong_giup: "mat" } as const;
+export const IC_QUYEN = { ba_me: "khien", trong_giup: "mat" } as const;
 
 export type NguoiLon = { id: string; ten: string; quyen: Quyen; tenQuyen: string; laChuNha: boolean; dinh_danh: string; laFacebook?: boolean; laToi: boolean;
   /** lúc vào nhà (máy chủ 14/11 — «Vào nhà từ 20/10»); máy chủ cũ không có */ vaoLuc?: string };

@@ -103,7 +103,7 @@ export default function MayNayAiDung() {
   const chuNut = so >= 2 ? `Lưu · ${so} bé dùng máy này` : so === 1 ? `Lưu · máy riêng của ${tenChon[0]}` : "Chọn ít nhất một bé";
   return (
     <Man dau={<DauHaiDong tieu="Máy này ai dùng?" phu={`${ten} · ${TEN_NEN[cm.may.nen] ?? cm.may.nen}`} lui={lui} />}
-      day={xem ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Người trông giúp chỉ xem — đổi bé dùng máy thì nhờ Ba Mẹ.</Chu> : <>
+      day={xem ? <Chu co={13} mau={M.chu3} style={{ textAlign: "center" }}>Chỉ trông con: chỉ xem — đổi bé dùng máy thì nhờ Ba Mẹ.</Chu> : <>
         <BaoLoi loi={loiLuu} />
         <Nut chu={chuNut} rong dangChay={dangChay} tat={!so || !doiChua} bam={luu} />
       </>}>
