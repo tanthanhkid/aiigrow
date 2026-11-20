@@ -20,7 +20,7 @@ export function TheLoiMoi({ x }: { x: XemMoi }) {
   return (
     <The>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avt ten={ai} mau={MAU_CON[2]} co={44} />
+        <Avt ten={ai} co={44} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={15.5}>{`${ai} mời bạn vào nhà`}</Chu>
           {x.tenCon?.length ? <Chu co={13} mau={M.chu3}>{cauTrong(x.tenCon)}</Chu> : null}

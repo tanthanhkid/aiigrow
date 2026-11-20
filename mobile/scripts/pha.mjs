@@ -1713,11 +1713,13 @@ await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở 
   await doi("Tên gọi ở nhà");
   await go("Tên gọi ở nhà", "Bảo Anh");
   await sleep(300);
-  xet(!(await chu()).includes("Thêm con khác"), "không còn link «+ Thêm con khác»");
+  const [a, b] = await viTri("+ Thêm con khác", "Lưu hồ sơ Bảo Anh");
+  xet(a > 0 && b > a, "«+ Thêm con khác» nằm trên «Lưu hồ sơ Bảo Anh»");
   nhatKy.length = 0;
   await bam("Lưu hồ sơ Bảo Anh");
+  await bam("+ Thêm con khác");
   await sleep(600);
-  xet(!nhatKy.some((x) => x.d === "thiet-lap"), "chưa có PIN: «Lưu hồ sơ» tắt, không gửi gì");
+  xet(!nhatKy.some((x) => x.d === "thiet-lap") && (await chu()).includes("Đặt mã PIN 4 số cho con trước"), "chưa có PIN: «Lưu hồ sơ» tắt, «+ Thêm con khác» báo cần PIN, không gửi gì");
   await go("Đặt PIN 4 số", "48");
   await bam("Lưu hồ sơ Bảo Anh");
   await sleep(400);
@@ -1735,7 +1737,8 @@ await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở 
   await go("Tên gọi ở nhà", "Bảo Minh");
   await sleep(300);
   const c = await chu();
-  xet(c.includes("Xong, giao việc cho Bảo Anh trước") && !c.includes("Lưu hồ sơ"), "con thứ hai: «Xong, giao việc cho Bảo Anh trước», không còn «Lưu hồ sơ»");
+  const [a2, b2] = await viTri("+ Thêm con khác", "Xong, giao việc cho Bảo Anh trước");
+  xet(a2 > 0 && b2 > a2 && !c.includes("Lưu hồ sơ"), "con thứ hai: «+ Thêm con khác» trên, «Xong, giao việc cho Bảo Anh trước» dưới, không còn «Lưu hồ sơ»");
   nhatKy.length = 0;
   await bam("Xong, giao việc cho Bảo Anh trước");
   await sleep(500);
@@ -1744,6 +1747,50 @@ await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở 
   await sleep(300);
   await bam("Xong, giao việc cho Bảo Anh trước");
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST" && x.body?.con?.ten === "Bảo Minh"), "có PIN ⇒ lưu Bảo Minh rồi sang Giao việc");
+});
+
+await kichBan("Lần đầu · Màu của con (#483): avatar đổi theo màu chọn (bảng cam · xanh dương · hồng · xanh lá · tím), chữ navy", async () => {
+  const chup = async (ten) => { if (process.env.PHA_ANH) { const a = await goi("Page.captureScreenshot", { format: "png" }); if (a?.data) (await import("node:fs")).writeFileSync(`${process.env.PHA_ANH}/${ten}.png`, Buffer.from(a.data, "base64")); } };
+  const avt = () => js(`(() => { const e = [...document.querySelectorAll("div")].find((x) => { const c = getComputedStyle(x); return c.width === "76px" && c.height === "76px" && /^[A-ZĐ?]$/.test(x.innerText.trim()); }); if (!e) return null; return [getComputedStyle(e).backgroundColor, getComputedStyle(e.querySelector("div,span")||e).color]; })()`);
+  await di("/thiet-lap/ten-con");
+  await doi("Tên gọi ở nhà");
+  await go("Tên gọi ở nhà", "Bảo Anh");
+  await sleep(300);
+  const MAU = [[245, 169, 87], [111, 168, 232], [233, 139, 171], [92, 185, 143], [165, 139, 224]];
+  for (let i = 0; i < 5; i++) {
+    await js(`(() => { const e = document.querySelector('[aria-label="Màu ${i + 1}"]'); if (e) e.click(); })()`);
+    await sleep(250);
+    const r = await avt();
+    xet(!!r && r[0] === `rgb(${MAU[i].join(", ")})`, `bấm Màu ${i + 1} ⇒ avatar đổi sang màu đã chọn (${r?.[0]})`);
+    await chup(`mau-${i + 1}`);
+  }
+});
+
+await kichBan("Lần đầu · hai con liền nhau (#483): «+ Thêm con khác» lưu con đang nhập, form trống, màu nhảy sang màu kế, nút chính «Xong, giao việc cho <con đầu> trước»", async () => {
+  const chup = async (ten) => { if (process.env.PHA_ANH) { const a = await goi("Page.captureScreenshot", { format: "png" }); if (a?.data) (await import("node:fs")).writeFileSync(`${process.env.PHA_ANH}/${ten}.png`, Buffer.from(a.data, "base64")); } };
+  kb["POST con/c1/pin"] = { ok: true };
+  await di("/thiet-lap/ten-con");
+  await doi("Tên gọi ở nhà");
+  await go("Tên gọi ở nhà", "Bảo Anh");
+  await go("Đặt PIN 4 số", "4821");
+  await sleep(300);
+  await chup("2con-1-man-con");
+  nhatKy.length = 0;
+  await bam("+ Thêm con khác");
+  xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST" && x.body?.con?.ten === "Bảo Anh"), "bấm «+ Thêm con khác» ⇒ lưu Bảo Anh");
+  await sleep(600);
+  const c = await chu();
+  xet(c.includes("Xong, giao việc cho Bảo Anh trước") && !c.includes("Lưu hồ sơ"), "con thứ hai: nút chính «Xong, giao việc cho Bảo Anh trước»");
+  xet(await js(`(() => { const e = [...document.querySelectorAll("div")].find((x) => { const c = getComputedStyle(x); return c.width === "76px" && c.height === "76px" && /^[A-ZĐ?]$/.test(x.innerText.trim()); }); return !!e && getComputedStyle(e).backgroundColor === "rgb(111, 168, 232)"; })()`), "màu tự nhảy sang màu kế tiếp (Màu 2, xanh dương, avatar đổi theo)");
+  await chup("2con-2-con-thu-hai");
+  await go("Tên gọi ở nhà", "Bảo Minh");
+  await go("Đặt PIN 4 số", "7391");
+  await sleep(300);
+  await chup("2con-3-da-dien-con-thu-hai");
+  await di("/thiet-lap/giong?con=c2&tu=c1&nguon=lan-dau");
+  await doi("dùng luật giống");
+  await sleep(300);
+  await chup("2con-4-giong");
 });
 
 await kichBan("Lần đầu · mở lại hồ sơ Con ĐÃ có PIN (#306): không bắt gõ lại PIN, ô trống không POST PIN; gõ dở thì báo đủ 4 số", async () => {

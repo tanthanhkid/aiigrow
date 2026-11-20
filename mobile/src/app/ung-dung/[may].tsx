@@ -9,7 +9,7 @@ import { bm } from "@/lib/api";
 import { MAU_NHOM } from "@/lib/app-web";
 import { BONG } from "@/lib/clay";
 import {
-  Avt, BangTruot, BaoLoi, CanhGiua, MAU_CON, ChoTai, ChonMot, Chu, Dong, gioPhut, Icon, M, Man, Nhan, Nhom, NhomTieu, Nut, OChon, ONhap, truoc, useHoanTac, useLam, useTai,
+  Avt, BangTruot, BaoLoi, CanhGiua, ChoTai, ChonMot, Chu, Dong, gioPhut, Icon, M, Man, Nhan, Nhom, NhomTieu, Nut, OChon, ONhap, truoc, useHoanTac, useLam, useTai,
 } from "@/lib/ui";
 
 type TrangThai = "he_thong" | "cho_phep" | "hoc" | "giai_tri" | "chan" | "chua_xep";
@@ -41,7 +41,7 @@ function IconApp({ a }: { a: AppMay }) {
     <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
       boxShadow: BONG.nho }}>
       {a.icon ? <Image source={{ uri: `data:image/png;base64,${a.icon}` }} style={{ width: 40, height: 40 }} resizeMode="contain" accessibilityIgnoresInvertColors />
-        : <Avt ten={a.ten} mau={MAU_CON[[...a.ten].reduce((n, c) => n + c.charCodeAt(0), 0) % MAU_CON.length]} co={40} />}
+        : <Avt ten={a.ten} co={40} />}
       {a.trangThai === "giai_tri" || a.trangThai === "hoc" || a.trangThai === "cho_phep" ? (
         <View style={{ position: "absolute", right: -3, bottom: -3, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: M.the,
           backgroundColor: MAU_NHOM[a.trangThai === "giai_tri" ? "tinh_phut" : "khong_tinh_phut"] }} />
