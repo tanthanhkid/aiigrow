@@ -72,8 +72,8 @@ export default function ObCon() {
   });
   const themCon = () => lam(async () => {
     const { ds } = await luu();
-    datTl({ daLuu: ds, conId: undefined, gioiHan: undefined });
-    setTen(""); setNam(""); setConId(undefined); setPin(""); af.bo(); setAvatarLuu(undefined); setBoAnhLuu(false); setMau(ds.length % MAU_HO_SO.length);
+    datTl({ daLuu: ds, conId: undefined, tenCon: undefined, namSinh: undefined, mau: undefined, gioiHan: undefined });
+    setDaCoPin(false); setTen(""); setNam(""); setConId(undefined); setPin(""); af.bo(); setAvatarLuu(undefined); setBoAnhLuu(false); setMau(ds.length % MAU_HO_SO.length);
   });
   const conDau = daLuu[0];
   return (
