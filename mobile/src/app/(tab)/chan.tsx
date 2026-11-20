@@ -1,8 +1,7 @@
-// Tab «App & web» (bàn bm-ung-dung: bm2-ung-dung-may@v17 · them-98obxv7x@v6 — #262, luồng #258): chọn bé, thẻ lớn «Máy của <con> đang
-// ở chế độ» + công tắc «Mở hết | Theo danh sách» ngay trên thẻ, «Con đang xin» (hàng cam .xin, Trả lời › — ẩn khi Mở hết), «Danh sách của <con>» (chú thích chấm vàng Tính phút /
-// xanh Không tính phút) hai hàng App / Web (icon + chấm nhóm, «Sửa ›»), «Đã bỏ qua N lời xin · con xin lại được — Xem ›». Đang «Mở hết» ⇒ danh sách mờ,
-// «Đang tạm nghỉ, vẫn giữ nguyên». Không còn «Chặn» / «Luôn chặn». Đọc: gia-dinh, con/:id/danh-sach. Ghi: POST con/:id/che-do {cheDo}.
-// (Tên tệp route giữ «chan» cho các liên kết cũ /chan?con=.)
+// Tab «App & web» (bàn bm-ung-dung: bm2-ung-dung-may@v21 · them-a4nqjrmp@v17 — #490): chọn bé (dải tròn kiểu Hôm nay, viên sao), thẻ navy «Máy của <con> đang ở chế độ» +
+// công tắc «Mở hết | Theo danh sách» (lib/ds-chung › TheCheDo), «Con đang xin» (thẻ xin ngay trên tab: Tính phút | Không tính phút | Bỏ qua — ẩn khi Mở hết),
+// «Danh sách của <con>» hai hàng App / Web (icon + chấm nhóm vàng Tính phút / navy Không tính phút, «Sửa ›»), «Đã bỏ qua N lời xin — Xem ›». Đang «Mở hết» ⇒ danh sách mờ,
+// «Đang tạm nghỉ, vẫn giữ nguyên». Đọc: gia-dinh, con/:id/danh-sach. Ghi: POST con/:id/che-do {cheDo}. (Tên tệp route giữ «chan» cho các liên kết cũ /chan?con=.)
 import { useEffect, useRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";

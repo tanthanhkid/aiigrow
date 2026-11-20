@@ -16,8 +16,6 @@ export const M = {
   chonSoft: "#F1E2BF",
   // nút tắt (Nut tat): nền đặc không giảm opacity — #DDD3C6 / navy 12,3:1, chữ chu3 #5f554b / #DDD3C6 4,9:1
   tatNen: "#DDD3C6",
-  // chấm nhóm ở nút quyết «Thêm vào danh sách» (≥3:1 trên nền nút): Tính phút vàng #D9AE57 · Không tính phút navy #0A1629 (bàn bm-ung-dung 20/11: chấm nhóm vàng / navy; chấm navy trên thẻ navy có viền vàng)
-  chamTinh: "#D9AE57", chamKhong: "#0A1629",
   // chữ liên kết / «Tất cả ›» vàng đồng sẫm (mẫu E #8a6a2b chỉ 4,0:1)
   lienKet: "#7a5a1f",
   // dấu sách trước tiêu đề mục: đồng kim (giữa dải vàng kim `MEN.vang`)

@@ -10,7 +10,7 @@ export const TEN_NHOM: Record<Nhom, string> = { tinh_phut: "Tính phút", khong_
 /** Câu phụ của một nhóm (thiết kế: «Trả bằng sao · 1 sao = 1 phút» / «Vào thoải mái»). */
 export const PHU_NHOM: Record<Nhom, string> = { tinh_phut: "Trả bằng sao · 1 sao = 1 phút", khong_tinh_phut: "Vào thoải mái" };
 /** Chấm màu của nhóm (MỘT bộ với nút «Tính phút» / «Không tính phút» ở yeu-cau-web): Tính phút = vàng #D9AE57 · Không tính phút = navy #0A1629 (bàn bm-ung-dung 20/11). */
-// chép giá trị từ mau.ts (M.chamTinh / M.chamKhong): tệp chạy thẳng bằng node --test, không nạp mau.ts — đổi một bên phải đổi cả bên kia
+// màu nhóm: Tính phút vàng, Không tính phút navy (tệp chạy thẳng bằng node --test, không nạp mau.ts)
 export const MAU_NHOM: Record<Nhom, string> = { tinh_phut: "#D9AE57", khong_tinh_phut: "#0A1629" };
 
 /** Giá trị cũ của máy chủ (`chi_app_duoc_phep`, null) ⇒ «Theo danh sách». */
