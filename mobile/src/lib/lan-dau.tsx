@@ -191,14 +191,14 @@ export const DieuKhoan = ({ vang }: { /** bàn them-ux0c23p4: hai cụm đậm 6
 const TICK_BAN = `<svg viewBox="0 0 256 256" fill="#0A1629"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"/></svg>`;
 const MAT_BAN = `<svg viewBox="0 0 256 256" fill="#5b5248"><path d="M247.31,124.76c-.35-.79-8.82-19.58-27.65-38.41C194.57,61.26,162.88,48,128,48S61.43,61.26,36.34,86.35C17.51,105.18,9,124,8.69,124.76a8,8,0,0,0,0,6.5c.35.79,8.82,19.57,27.65,38.4C61.43,194.74,93.12,208,128,208s66.57-13.26,91.66-38.34c18.83-18.83,27.3-37.61,27.65-38.4A8,8,0,0,0,247.31,124.76ZM128,168a40,40,0,1,1,40-40A40,40,0,0,1,128,168Z"/></svg>`;
 /** `lon` = ô theo bàn «Ánh kim» (bm1-dang-ky `.lom`): cao 58, bo 29, nền kem lõm #E3D9CB, chữ 20 đậm, nhãn 14 đậm cách ô 8, `dau` cách phía trên 26 (ô đầu) / 20. */
-export function OLom({ nhan, ghi, ghiOk, matKhau, lon, dau, cach, nenO, ...p }: TextInputProps & { nhan: string; ghi?: string; ghiOk?: boolean; matKhau?: boolean; lon?: boolean; dau?: boolean; /** đè khoảng cách phía trên nhãn (bàn bm1-dang-nhap: 24 / 18) */ cach?: number; /** nền ô lõm (bàn bm1-dang-ky #E3D9CB; bm1-dang-nhap = nền kem) */ nenO?: string }) {
+export function OLom({ nhan, ghi, ghiOk, matKhau, lon, ghiDuoi, dau, cach, nenO, ...p }: TextInputProps & { nhan: string; ghi?: string; ghiOk?: boolean; matKhau?: boolean; lon?: boolean; /** gợi ý / «✓ Đã khớp» đứng DƯỚI ô (bàn them-6aomy24b `.goi`) thay vì bên phải nhãn */ ghiDuoi?: boolean; dau?: boolean; /** đè khoảng cách phía trên nhãn (bàn bm1-dang-nhap: 24 / 18) */ cach?: number; /** nền ô lõm (bàn bm1-dang-ky #E3D9CB; bm1-dang-nhap = nền kem) */ nenO?: string }) {
   const [an, setAn] = useState(true);
   const [dang, setDang] = useState(false);
   if (lon) return (
     <View style={{ marginTop: cach ?? (dau ? 14 : 20) }}>
       <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "baseline", marginLeft: 6, marginBottom: 8 }}>
         <Text style={{ fontFamily: F.dam7, fontSize: 14, color: M.chu, lineHeight: 18 }}>{nhan}</Text>
-        {ghi ? (ghiOk ? (
+        {ghi && !ghiDuoi ? (ghiOk ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginRight: 6 }}>
             <SvgXml xml={TICK_BAN} width={14} height={14} />
             <Text style={{ fontFamily: F.rat, fontSize: 12, color: M.chu, lineHeight: 16 }}>{ghi}</Text>
@@ -217,6 +217,7 @@ export function OLom({ nhan, ghi, ghiOk, matKhau, lon, dau, cach, nenO, ...p }: 
           </Pressable>
         ) : null}
       </View>
+      {ghi && ghiDuoi ? <Text style={{ marginTop: 6, marginLeft: 6, fontFamily: F.rat, fontSize: 12.5, lineHeight: 17, color: ghiOk ? M.chu : INK2 }}>{ghiOk ? `✓ ${ghi}` : ghi}</Text> : null}
     </View>
   );
   return (
@@ -579,50 +580,52 @@ export function SanDangNhap({ tieu, loi }: { tieu: string; loi: string }) {
 }
 
 const KHOA_BAN = `<svg viewBox="0 0 24 24" fill="none" stroke="#0A1629" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>`;
-const TICK_VANG = `<svg viewBox="0 0 256 256" fill="#F4C76A"><path d="M104,208a12,12,0,0,1-8.49-3.51l-56-56a12,12,0,0,1,17-17L104,179l89.51-89.52a12,12,0,0,1,17,17l-98,98A12,12,0,0,1,104,208Z"/></svg>`;
 
-/** Thẻ đầu màn «Quên mật khẩu» (bàn them-2g3zpiie `.san`): cao 200 bo 36, bong bóng thoại trái trên, viên khoá tròn 50 dưới trái, Grow sổ tay 160 tràn đáy phải. */
-export function SanQuenMk({ thoai }: { thoai: string }) {
+/** Thẻ đầu màn «Quên mật khẩu» / «Đặt mật khẩu mới» (bàn them-2g3zpiie, them-6aomy24b `.san`): cao 200 bo 36, bong bóng thoại trái trên,
+ *  khoá 3D nghiêng dưới trái (không viên tròn — bàn 20/11), Grow tràn đáy phải. `moKhoa` = bước đặt mật khẩu (Grow ăn mừng + khoá mở). */
+export function SanQuenMk({ thoai, moKhoa }: { thoai: string; moKhoa?: boolean }) {
   const { width } = useWindowDimensions();
   const hep = width < 360;
   const w = hep ? 110 : 160;
+  const lv = moKhoa ? LV.xong : LV["so-tay"];
+  const ti = moKhoa ? 793 / 520 : 793 / 520;
   return (
     <View style={{ height: 200, marginTop: 4, borderRadius: 36, backgroundColor: M.nen, boxShadow: BONG.the, overflow: "hidden" }}>
-      <View pointerEvents="none" style={{ position: "absolute", right: 0, bottom: -20, width: w, height: w * 793 / 520 }}>
-        <Image cachePolicy="memory-disk" source={LV["so-tay"]} style={{ width: w, height: w * 793 / 520 }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      <View pointerEvents="none" style={{ position: "absolute", right: 0, bottom: moKhoa ? -16 : -20, width: w, height: w * ti }}>
+        <Image cachePolicy="memory-disk" source={lv} style={{ width: w, height: w * ti }} contentFit="contain" accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
       </View>
-      <View style={{ position: "absolute", left: 18, top: 28, maxWidth: hep ? 140 : 170, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.nen, boxShadow: BONG.nho }}>
+      <View style={{ position: "absolute", left: 18, top: moKhoa ? 30 : 28, maxWidth: hep ? 140 : 170, paddingVertical: 11, paddingHorizontal: 16, borderRadius: 22, backgroundColor: M.nen, boxShadow: BONG.nho }}>
         <Text style={{ fontFamily: F.dam7, fontSize: 15, lineHeight: 20, color: M.chu }}>{thoai}</Text>
       </View>
-      <View style={{ position: "absolute", left: 28, bottom: 22, width: 50, height: 50, borderRadius: 25, backgroundColor: M.nen, boxShadow: BONG.nho, alignItems: "center", justifyContent: "center" }}>
-        <SvgXml xml={KHOA_BAN} width={26} height={26} />
-      </View>
+      <View style={{ position: "absolute", left: 28, bottom: 22, transform: [{ rotate: moKhoa ? "-8deg" : "-10deg" }] }}><Anh3D ten={moKhoa ? "mo_khoa" : "khoa"} co={moKhoa ? 58 : 56} /></View>
     </View>
   );
 }
 
-/** Nhãn bước «1 Nhập số đã đăng ký…» (bàn them-2g3zpiie `.nhan`): viên tròn 22 navy số vàng + chữ 14 đậm. */
+const KIM = "linear-gradient(135deg, #FBE7B0 0%, #F4C76A 38%, #C9973B 72%, #F2D48C 100%)";
+const BONG_GUI = "3px 3px 8px rgba(120,98,70,0.28), -3px -3px 8px #FFFBF5, inset 0px 1px 0px rgba(255,255,255,0.6)";
+/** Nhãn bước «1 Nhập số đã đăng ký…» (bàn them-2g3zpiie `.nhan`): viên tròn 22 vàng kim số navy + chữ 14 đậm. */
 export const NhanBuoc = ({ n, chu, cach = 0 }: { n: number; chu: string; cach?: number }) => (
   <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginLeft: 6, marginTop: cach, marginBottom: 8 }}>
-    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: M.chu, alignItems: "center", justifyContent: "center" }}><Text style={{ fontFamily: F.rat, fontSize: 12, color: "#F4C76A" }}>{n}</Text></View>
+    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundImage: KIM, alignItems: "center", justifyContent: "center" } as never}><Text style={{ fontFamily: F.rat, fontSize: 12, color: M.chu }}>{n}</Text></View>
     <Text style={{ fontFamily: F.dam7, fontSize: 14, color: M.chu }}>{chu}</Text>
   </View>
 );
 
-/** Ô số điện thoại + nút «Gửi mã / Đã gửi mã» navy chữ vàng (bàn them-2g3zpiie `.lom` cao 60 + `.gui` cao 46). */
+/** Ô số điện thoại + nút «Gửi mã / Đã gửi mã» vàng kim chữ navy (bàn them-2g3zpiie `.lom` cao 60 + `.gui` cao 46). */
 export function OSoGui({ da, dangChay, tat, bam, ...p }: TextInputProps & { da: boolean; dangChay?: boolean; tat?: boolean; bam: () => void }) {
   return (
     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, height: 60, borderRadius: 30, backgroundColor: M.nen, boxShadow: "inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5", paddingLeft: 20, paddingRight: 7 }}>
       <TextInput placeholderTextColor={M.chu3} accessibilityLabel="Số điện thoại đã đăng ký" keyboardType="phone-pad" autoComplete="tel" placeholder="0912 345 678" {...p}
         style={{ flex: 1, minWidth: 0, height: 52, fontFamily: F.rat, fontSize: 20, letterSpacing: 0.3, color: M.chu, outlineStyle: "none" } as never} />
       {da ? (
-        <View style={{ height: 46, paddingHorizontal: 14, borderRadius: 23, flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: M.chu }}>
-          <SvgXml xml={TICK_VANG} width={15} height={15} /><Text style={{ fontFamily: F.rat, fontSize: 14, color: "#F4C76A" }}>Đã gửi mã</Text>
+        <View style={{ height: 46, paddingHorizontal: 14, borderRadius: 23, flexDirection: "row", alignItems: "center", gap: 6, backgroundImage: KIM, boxShadow: BONG_GUI } as never}>
+          <SvgXml xml={TICK_BAN} width={15} height={15} /><Text style={{ fontFamily: F.rat, fontSize: 14, color: M.chu }}>Đã gửi mã</Text>
         </View>
       ) : (
         <Pressable onPress={bam} disabled={tat || dangChay} accessibilityRole="button" accessibilityLabel="Gửi mã" accessibilityState={{ disabled: !!tat || !!dangChay }}
-          style={{ height: 46, paddingHorizontal: 18, borderRadius: 23, alignItems: "center", justifyContent: "center", backgroundColor: M.chu, opacity: tat || dangChay ? 0.45 : 1 }}>
-          <Text style={{ fontFamily: F.rat, fontSize: 14, color: "#F4C76A" }}>Gửi mã</Text>
+          style={{ height: 46, paddingHorizontal: 18, borderRadius: 23, alignItems: "center", justifyContent: "center", backgroundImage: KIM, boxShadow: BONG_GUI, opacity: tat || dangChay ? 0.45 : 1 } as never}>
+          <Text style={{ fontFamily: F.rat, fontSize: 14, color: M.chu }}>Gửi mã</Text>
         </Pressable>
       )}
     </View>

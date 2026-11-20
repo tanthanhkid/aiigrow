@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { CanGiup, CanhRob, DauMan, demNguoc, INK2, NhanBuoc, OLom, OSoGui, SanQuenMk, TieuDe, useOSo } from "@/lib/lan-dau";
+import { CanGiup, DauMan, demNguoc, INK2, NhanBuoc, OLom, OSoGui, SanQuenMk, useOSo } from "@/lib/lan-dau";
 import { Bao, BaoLoi, Chu, F, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
 
 export default function QuenMatKhau() {
@@ -39,10 +39,13 @@ export default function QuenMatKhau() {
     return (
       <Man dau={<DauMan bamLui={() => setBuoc2(false)} giua={<VachBuoc dang={2} />} phai={<CanGiup />} />}
         day={<><BaoLoi loi={loi} /><Nut chu="Lưu mật khẩu và vào app" rong dangChay={dangChay} tat={!khop} bam={luu} /></>}>
-        <CanhRob lv="xong" ic="mo_khoa" tieu="Mã đúng rồi! Chọn mật khẩu mới nhé." cao={200} />
-        <TieuDe chu="Đặt mật khẩu mới" giua />
-        <OLom nhan="Mật khẩu mới" ghi="Ít nhất 8 ký tự" matKhau value={mk} onChangeText={setMk} autoComplete="new-password" textContentType="newPassword" />
-        <OLom nhan="Nhập lại mật khẩu mới" ghi={mk2 ? (khop ? "Đã khớp" : "Chưa khớp") : undefined} ghiOk={khop} matKhau value={mk2} onChangeText={setMk2} autoComplete="new-password" />
+        {/* bàn them-6aomy24b (20/11): thẻ 200 + tiêu đề 28 cách thẻ 20 + ô 58 nhãn trên, gợi ý / «✓ Đã khớp» dưới ô */}
+        <SanQuenMk moKhoa thoai="Mã đúng rồi! Chọn mật khẩu mới nhé." />
+        <Text accessibilityRole="header" style={{ marginTop: 8, textAlign: "center", fontFamily: F.tieu, fontSize: 28, lineHeight: 34, letterSpacing: -0.6, color: M.chu }}>Đặt mật khẩu mới</Text>
+        <View style={{ marginTop: 2 }}>
+          <OLom lon cach={10} nhan="Mật khẩu mới" ghi="Ít nhất 8 ký tự" ghiDuoi matKhau value={mk} onChangeText={setMk} autoComplete="new-password" textContentType="newPassword" />
+          <OLom lon cach={18} nhan="Nhập lại mật khẩu mới" ghi={mk2 ? (khop ? "Đã khớp" : "Chưa khớp") : undefined} ghiOk={khop} ghiDuoi matKhau value={mk2} onChangeText={setMk2} autoComplete="new-password" />
+        </View>
       </Man>
     );
   }
@@ -69,9 +72,9 @@ export default function QuenMatKhau() {
   );
 }
 
-/** Vạch tiến độ 2 bước ở giữa thanh đầu (bàn them-2g3zpiie v4 / them-6aomy24b v8): bước đã tới vạch ngọc, bước sau vạch xám. */
+/** Vạch tiến độ 2 bước ở giữa thanh đầu (bàn them-2g3zpiie v4 / them-6aomy24b v8): bước đã tới vạch vàng kim, bước sau vạch xám. */
 const VachBuoc = ({ dang }: { dang: 1 | 2 }) => (
   <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang} trên 2`}>
-    {[1, 2].map((i) => <View key={i} style={{ width: 28, height: 6, borderRadius: 3, backgroundColor: i <= dang ? M.chu : "#E3D9CB" }} />)}
+    {[1, 2].map((i) => <View key={i} style={{ width: 28, height: 6, borderRadius: 3, backgroundColor: "#E3D9CB", boxShadow: "inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5", ...(i <= dang ? { backgroundImage: "linear-gradient(135deg, #FBE7B0 0%, #F4C76A 38%, #C9973B 72%, #F2D48C 100%)", boxShadow: "none" } : null) } as never} />)}
   </View>
 );

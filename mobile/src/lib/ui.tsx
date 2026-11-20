@@ -462,12 +462,12 @@ export function ONhap({ nhan, loi, ...p }: TextInputProps & { nhan: string; loi?
 }
 
 /** Ô mã 6 số (kit .ma6): một ô nhập ẩn phía dưới, 6 ô hiển thị — bàn phím số, tự điền mã từ tin nhắn (oneTimeCode). */
-export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số", ban, quen }: { gia: string; doi: (v: string) => void; nhan?: string; /** ô theo bàn them-2g3zpiie `.o6`: 6 cột đều, lõm kem, ô đang gõ viền navy 2,5 */ quen?: boolean; /** ô theo bàn bm1-otp `.ma i`: 48×60, ô đang gõ nổi kem viền vàng mật 3 */ ban?: boolean }) {
+export function Ma6({ gia, doi, nhan = "Mã xác thực 6 số", ban, quen, moi }: { gia: string; doi: (v: string) => void; nhan?: string; /** ô theo bàn them-2g3zpiie `.o6`: 6 cột đều, lõm kem, ô đang gõ viền vàng mật 2,5 nổi (bàn 20/11) */ quen?: boolean; /** ô theo bàn them-pacl0mle: 48×60 lõm kem, ô đang gõ viền navy 2,5 */ moi?: boolean; /** ô theo bàn bm1-otp `.ma i`: 48×60, ô đang gõ nổi kem viền vàng mật 3 */ ban?: boolean }) {
   const ref = useRef<React.ComponentRef<typeof TextInput>>(null);
   return (
     <Pressable onPress={() => ref.current?.focus()} accessibilityLabel={nhan} style={{ flexDirection: "row", gap: 8, justifyContent: "center" }}>
       {Array.from({ length: 6 }, (_, k) => (
-        <View key={k} style={[s.ma6, ban && s.ma6Ban, quen && s.ma6Quen, k === Math.min(gia.length, 5) && (ban ? s.ma6DangBan : quen ? s.ma6DangQuen : s.ma6Dang)]}><Chu kieu="rat" co={26} so>{gia[k] ?? ""}</Chu></View>
+        <View key={k} style={[s.ma6, ban && s.ma6Ban, quen && s.ma6Quen, moi && s.ma6Moi, k === Math.min(gia.length, 5) && (moi ? s.ma6DangMoi : ban ? s.ma6DangBan : quen ? s.ma6DangQuen : s.ma6Dang)]}><Chu kieu="rat" co={26} so>{gia[k] ?? ""}</Chu></View>
       ))}
       <TextInput ref={ref} value={gia} onChangeText={(t) => doi(t.replace(/\D/g, "").slice(0, 6))} keyboardType="number-pad" autoComplete="one-time-code"
         textContentType="oneTimeCode" maxLength={6} accessibilityLabel={nhan} autoFocus
@@ -890,8 +890,10 @@ const s = StyleSheet.create({
   ma6: { flex: 1, maxWidth: 50, height: 60, borderRadius: 18, backgroundColor: M.ranh, borderWidth: 2, borderColor: "transparent", alignItems: "center", justifyContent: "center", boxShadow: BONG.lom },
   ma6Dang: { backgroundColor: M.the, borderColor: M.chinh },
   ma6Ban: { flexGrow: 0, flexShrink: 1, flexBasis: 48, maxWidth: 48, borderWidth: 0 },
-  ma6Quen: { maxWidth: 1000, borderWidth: 0, backgroundColor: "#ECE4D9", boxShadow: "inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5" },
-  ma6DangQuen: { boxShadow: "0px 0px 0px 2.5px #0A1629, inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5" },
+  ma6Moi: { flexGrow: 0, flexShrink: 1, flexBasis: 48, maxWidth: 48, borderWidth: 0, backgroundColor: "#ECE4D9", boxShadow: "inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5" },
+  ma6DangMoi: { boxShadow: "0px 0px 0px 2.5px #0A1629, inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5" },
+  ma6Quen: { maxWidth: 1000, borderWidth: 0, backgroundColor: "#E3D9CB", boxShadow: "inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5" },
+  ma6DangQuen: { backgroundColor: "#ECE4D9", boxShadow: `0px 0px 0px 2.5px #D9AE57, ${BONG.the}` },
   ma6DangBan: { backgroundColor: M.the, boxShadow: `0px 0px 0px 3px #D9AE57, ${BONG.the}` },
   chat: { width: 46, height: 46, borderRadius: 23, backgroundColor: M.the, ...KHOI.nho },
   chatMat: { width: 46, height: 46, borderRadius: 23, overflow: "hidden", alignItems: "center", borderWidth: 2, borderColor: M.chinhSoft },
