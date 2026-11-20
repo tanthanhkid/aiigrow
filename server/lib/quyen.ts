@@ -1,6 +1,6 @@
 // Hai quyền người lớn trong nhà (thiết kế chốt 05/11, L6 — docs/KE-HOACH-KHOP-THIET-KE-0511.md): bỏ vai Ba / Mẹ / Chủ gia đình trên giao diện.
-//   • ba_me      — làm được hết (đổi cài đặt, mời người nhà, ghép / gỡ máy…).
-//   • trong_giup — Người trông giúp: xem, duyệt (nhiệm vụ, lời xin, trao quà), khoá máy; KHÔNG đổi cài đặt.
+//   • ba_me      — «Như Ba Mẹ»: làm được hết (đổi cài đặt, mời người nhà, ghép / gỡ máy…).
+//   • trong_giup — «Chỉ trông con» (#492): xem con chơi, duyệt việc / lời xin, khoá máy, cho vay sao; KHÔNG đổi luật, mua quà, mời người, ghép máy.
 // Người TẠO nhà (families.chu_id) vẫn được ghi lại: chỉ người này xoá được cả nhà, và không ai đổi quyền / mời người này ra.
 // Giá trị cũ (chu | duyet | xem) còn hiểu được: dòng do bản cũ ghi trong lúc deploy, test dựng tay.
 import { LoiNghiepVu } from "./loi.ts";
@@ -8,9 +8,9 @@ import { LoiNghiepVu } from "./loi.ts";
 export const QUYEN = ["ba_me", "trong_giup"] as const;
 export type Quyen = (typeof QUYEN)[number];
 export const TEN_QUYEN: Record<string, string> = {
-  ba_me: "Ba Mẹ", trong_giup: "Người trông giúp",
+  ba_me: "Như Ba Mẹ", trong_giup: "Chỉ trông con",
   // giá trị cũ (sự kiện / thông báo ghi trước 05/11)
-  chu: "Ba Mẹ", duyet: "Ba Mẹ", xem: "Người trông giúp",
+  chu: "Ba Mẹ", duyet: "Ba Mẹ", xem: "Chỉ trông con",
 };
 
 /** vai lưu trong DB (mới hoặc cũ) ⇒ quyền. «roi» (đã rời nhà) ⇒ null. */
@@ -30,14 +30,14 @@ export function quyenVao(v: unknown): Quyen {
   const s = String(v ?? "");
   if (s === "ba_me" || s === "duyet") return "ba_me";
   if (s === "trong_giup" || s === "xem") return "trong_giup";
-  throw new LoiNghiepVu("quyen_sai", "Chọn quyền Ba Mẹ hoặc Người trông giúp");
+  throw new LoiNghiepVu("quyen_sai", "Chọn quyền Ba Mẹ hoặc Chỉ trông con");
 }
 
 /** Giá trị `vai` kiểu cũ trả kèm trong API cho app Ba Mẹ bản trước 05/11 (đọc vai === "chu" / "xem"). Bỏ khi mọi máy đã lên bản mới. */
 export const vaiCu = (bm: { vai: string; la_chu?: boolean }) => (laChuNha(bm) ? "chu" : quyenCua(bm) === "trong_giup" ? "xem" : "duyet");
 
 export function chiBaMe(bm: { vai: string }, viec = "đổi cài đặt") {
-  if (quyenCua(bm) !== "ba_me") throw new LoiNghiepVu("chi_ba_me", `Người trông giúp không ${viec} được — nhờ Ba Mẹ làm nhé`, 403);
+  if (quyenCua(bm) !== "ba_me") throw new LoiNghiepVu("chi_ba_me", `Vai «Chỉ trông con» không ${viec} được — nhờ Ba Mẹ làm nhé`, 403);
 }
 
 /** POST mà Người trông giúp được gọi trên /api/m (đường đã tách theo «/»): xem, duyệt, khoá máy — còn lại là đổi cài đặt. */
@@ -49,7 +49,8 @@ export function trongGiupDuoc(p: string[]): boolean {
   if (p[0] === "con" && p[1] && p.length === 3 && ["khoa", "loi-khen"].includes(p[2])) return true;   // khoá / mở lại máy · khen khi duyệt
   if (p[0] === "luot" && p[1] && p.length === 3 && ["duyet", "tu-choi", "hoan-tac", "lam-lai"].includes(p[2])) return true;   // + «Nhờ làm lại» (S1)
   if (p[0] === "con" && p[1] && p.length === 3 && p[2] === "them-gio") return true;                    // «Cho thêm giờ» trên thẻ Hôm nay (S1)
-  if (p[0] === "them-gio" && p[1] && p[2] === "hoan-tac" && p.length === 3) return true;
+  if (p[0] === "con" && p[1] && p.length === 3 && p[2] === "cho-vay") return true;                       // #492: «Chỉ trông con» cho vay sao được (không đổi luật / mua quà / mời người / ghép máy)
+  if ((p[0] === "them-gio" || p[0] === "vay") && p[1] && p[2] === "hoan-tac" && p.length === 3) return true;
   // #258: «Bỏ qua» / «Hoàn tác» như từ chối; «Thêm luôn» (lời xin đã bỏ qua) như đồng ý
   if (p[0] === "yeu-cau" && p[1] && p.length === 3 && ["dong-y", "tu-choi", "mo-lai", "bo-qua", "hoan-tac", "them-luon"].includes(p[2])) return true;
   if (p[0] === "phieu" && p[1] && p.length === 3 && ["xac-nhan", "huy", "trao"].includes(p[2])) return true;   // trao quà

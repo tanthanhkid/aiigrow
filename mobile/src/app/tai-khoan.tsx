@@ -123,8 +123,8 @@ export default function TaiKhoan() {
         <DsBang ds={[...(conLai ? [{ ic: "nguoi" as const, chu: `${conLai} vẫn trông ${soCon ? `${soCon} con` : "các con"}` }] : []),
           { ic: "gui", chu: "Muốn vào lại thì nhờ người trong nhà mời" }]} />
         <BaoLoi loi={loiLam} />
-        <Nut chu="Rời nhà" loai="do" rong dangChay={dangChay} bam={roi} />
-        <Nut chu="Ở lại" loai="vien" rong bam={dong} />
+        <Nut chu={soCon ? `Rời nhà của ${soCon} con` : "Rời nhà"} loai="do" rong dangChay={dangChay} bam={roi} />
+        <Nut chu="Giữ lại" loai="vien" rong bam={dong} />
       </BangTruot>
 
       {/* bàn them-4vj35r7c@v3 (người không tạo nhà): ô hình đào ⚠️, «Xoá hẳn, không lấy lại được.», thẻ dòng icon, nút đỏ đặc. Bàn không có ô mật khẩu —
@@ -160,9 +160,9 @@ export default function TaiKhoan() {
             {khongMk ? <Nut chu="Đặt mật khẩu để xác nhận" loai="vien" rong bam={() => { dong(); router.push("/dat-mat-khau"); }} /> : <>
               <ONhap nhan="Nhập lại mật khẩu để xác nhận" value={mk} onChangeText={setMk} secureTextEntry autoCapitalize="none" placeholder="••••••••" />
               <BaoLoi loi={loiLam} />
-              <Nut chu="Xoá tài khoản của tôi" loai="do" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
+              <Nut chu={`Xoá tài khoản ${toi.ten}`} loai="do" rong dangChay={dangChay} tat={mk.length < 1} bam={xoa} />
             </>}
-            <View style={{ marginTop: 8 }}><Nut chu="Giữ tài khoản" loai="vien" rong bam={dong} /></View>
+            <View style={{ marginTop: 8 }}><Nut chu="Giữ lại" loai="vien" rong bam={dong} /></View>
           </>
         )}
       </BangTruot>

@@ -145,7 +145,7 @@ Object.assign(coBan, {
     tbDong("a1", "canh_bao", "Có dấu hiệu đổi giờ hệ thống trên Laptop-BILL của Bill", "Cảnh báo · Bill", 20, { muc: "nghiem_trong", den: "/canh-bao/a1", moi: true }),
     tbDong("e3", "ba_me_khac", `Ba Huy đã duyệt «Rửa chén sau bữa tối» của ${KEN}`, "+10 sao", 95, { den: "/vi/c1" }),
     tbDong("e4", "qua", "Bill đổi «Đi xem phim cuối tuần»", "300 sao · chờ Ba Mẹ trao quà", 1500, { con: "c2", den: "/diem-qua", imLang: true, day: false }),
-    tbDong("e5", "gia_dinh", "Bà nội Nguyễn Thị Ngọc Hạnh đã vào gia đình", "Quyền Người trông giúp", 3000, { con: null, den: "/thanh-vien" })] },
+    tbDong("e5", "gia_dinh", "Bà nội Nguyễn Thị Ngọc Hạnh đã vào gia đình", "Quyền Chỉ trông con", 3000, { con: null, den: "/thanh-vien" })] },
   "POST thong-bao/doc": { ok: true },
   "GET thong-bao/cai-dat": { yenLang: { bat: false, tu: "22:00", den: "06:30" }, tat: ["thanh_tich"] },
   "POST thong-bao/cai-dat": { yenLang: { bat: true, tu: "22:00", den: "06:30" }, tat: ["thanh_tich"] },
@@ -284,7 +284,7 @@ Object.assign(coBan, {
   // L6: 2 quyền (Ba Mẹ / Người trông giúp), mời bằng SĐT / email
   "GET thanh-vien": { ds: [{ id: "p1", ten: "Mẹ Lan", quyen: "ba_me", tenQuyen: "Ba Mẹ", laChuNha: true, vai: "chu", dinh_danh: "0912345678", laToi: true },
     { id: "p2", ten: "Ba Huy", quyen: "ba_me", tenQuyen: "Ba Mẹ", laChuNha: false, vai: "duyet", dinh_danh: "0987654321", laToi: false },
-    { id: "p3", ten: "Bà nội Nguyễn Thị Ngọc Hạnh", quyen: "trong_giup", tenQuyen: "Người trông giúp", laChuNha: false, vai: "xem", dinh_danh: "0901234567", laToi: false }],
+    { id: "p3", ten: "Bà nội Nguyễn Thị Ngọc Hạnh", quyen: "trong_giup", tenQuyen: "Chỉ trông con", laChuNha: false, vai: "xem", dinh_danh: "0901234567", laToi: false }],
     loiMoi: [{ id: "lm1", quyen: "trong_giup", vai: "xem", tenGoi: "Ông ngoại", dinhDanh: "0933222111", het: luc(-4000), guiLuc: luc(320) }],
     toi: { id: "p1", quyen: "ba_me", vai: "chu", laChuNha: true }, hanGio: 72 },
   "POST thanh-vien/moi": (b) => ({ id: "lm2", ma: "ABCD2345EFGH6789", lienKet: `${GOC}/moi?ma=ABCD2345EFGH6789`, quyen: b?.quyen ?? "ba_me", vai: b?.quyen === "trong_giup" ? "xem" : "duyet",
@@ -620,6 +620,13 @@ const nhanChuot = async (r) => {
   await sleep(400);
 };
 /** Bấm vào chữ `txt` bằng chuột thật (CDP Input) — Pressable của react-native-web nghe pointer, không nghe .click(). */
+/** Bấm phần tử có chữ BẮT ĐẦU bằng `tien` (nút đỏ «Xoá tài khoản <tên>»). */
+const bamBatDau = async (tien) => {
+  const r = await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => e.innerText?.trim().startsWith(${JSON.stringify(tien)}) && e.innerText.trim().length > ${tien.length}).pop()`);
+  if (!r) return false;
+  await nhanChuot(r);
+  return true;
+};
 const bam = async (txt) => {
   const r = await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => e.innerText?.trim() === ${JSON.stringify(txt)}).pop()`);
   if (!r) return false;
@@ -702,7 +709,7 @@ if (process.argv.includes("--giao-dien")) {
       await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify({ ...TL, webs: [{ muc: "vioedu.vn", tinhGio: true }] }))})`);
       await goi("Page.navigate", { url: `${GOC}/thiet-lap/doi-web?muc=vioedu.vn` }); } }),
     M("bm-ob-ghep", "/thiet-lap/ghep", "quét mã này", { truoc: diTl("/thiet-lap/ghep") }),
-    M("bm-ob-ghep (có tên bé · bm1-ob-ghep)", "/thiet-lap/ghep?con=c1", "Ghép máy của", { truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
+    M("bm-ob-ghep (có tên bé · bm1-ob-ghep)", "/thiet-lap/ghep?con=c1", "Ghép máy cho con", { truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
     M("bm-ob-cho", "/thiet-lap/cho?ma=482017&con=c1", "482"),
     // them-q44uxha5 / them-ytmgijqo: mã quá 10 phút ⇒ «Mã đã hết hạn»; chờ quá 5 phút (mã còn hạn) ⇒ «Chưa thấy máy của con»
     M("bm-ob-ghep (mã hết hạn · them-q44uxha5)", "/thiet-lap/ghep", "Mã đã hết hạn", { kb: { "POST ghep-may": { ...coBan["POST ghep-may"], het: luc(1), conGiay: 0 },
@@ -895,34 +902,34 @@ if (process.argv.includes("--giao-dien")) {
     M("cn 9ozp26pq", "/ho-so/them", "Tên gọi ở nhà", { kb: BAN_CA_NHA, truoc: async () => { await di("/ho-so/them"); await doi("Tên gọi ở nhà"); await go("Tên gọi ở nhà", "Khang");
       await nhanChuot(await viTriYen(`() => document.querySelector('[role="radio"][aria-label="Màu 4"]')`)); await go("Đặt PIN 4 số", "38"); await sleep(300); } }),
     M("cn fi17hb99", "/ho-so/c4/tiep", "Còn 5 bước nữa nhé", { kb: { ...BAN_CA_NHA, "GET con/c4": { ...conCt("c4", "Khang"), avatar: "mau-3", coPin: true } } }),
-    M("cn 5hzkl6p5", "/moi-nguoi-nha", "làm được như bạn", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được như bạn");
+    M("cn 5hzkl6p5", "/moi-nguoi-nha", "làm được gì?", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được gì?");
       await go("Số điện thoại người được mời", "0909876543"); await go("Gọi là gì trong nhà", "Ba Tuấn"); await sleep(300); } }),
-    M("cn hfd2drjy", "/moi-nguoi-nha", "Đã mời Ba Tuấn!", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được như bạn");
+    M("cn hfd2drjy", "/moi-nguoi-nha", "Đã mời Ba Tuấn!", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được gì?");
       await go("Số điện thoại người được mời", "0909876543"); await go("Gọi là gì trong nhà", "Ba Tuấn"); await sleep(200); await bam("Gửi lời mời cho Ba Tuấn"); } }),
     M("cn 7vmoufz3", "/thanh-vien?id=p3", "Bà Hoa trong nhà", { kb: BAN_CA_NHA }),
-    M("cn xnbiksmr", "/thanh-vien?id=p3", "Thôi, giữ Bà Hoa", { kb: BAN_CA_NHA, truoc: async () => { await di("/thanh-vien?id=p3"); await doi("Bà Hoa trong nhà"); await sleep(300); await bam("Mời Bà Hoa rời nhà"); } }),
+    M("cn xnbiksmr", "/thanh-vien?id=p3", "Giữ lại", { kb: BAN_CA_NHA, truoc: async () => { await di("/thanh-vien?id=p3"); await doi("Bà Hoa trong nhà"); await sleep(300); await bam("Mời Bà Hoa rời nhà"); } }),
     M("cn ncmuuqav", "/tai-khoan", "Không trông 4 con nữa", { kb: BAN_CA_NHA_KHACH }),
     M("cn o4k6oei0", "/doi-mat-khau", "Lưu mật khẩu mới", { truoc: async () => { await di("/doi-mat-khau"); await doi("Lưu mật khẩu mới"); await go("Mật khẩu đang dùng", "matkhau1"); await sleep(200); } }),
     M("cn liz6hzww", "/tai-khoan", "Muốn vào lại thì nhờ người trong nhà mời", { kb: BAN_CA_NHA_KHACH, truoc: async () => { await di("/tai-khoan"); await doi("Không trông 4 con nữa"); await sleep(300); await bam("Rời nhà"); } }),
-    M("cn 4vj35r7c", "/tai-khoan", "Giữ tài khoản", { kb: BAN_CA_NHA_KHACH, truoc: async () => { await di("/tai-khoan"); await doi("Xoá hẳn, không lấy lại được"); await sleep(300); await bam("Xoá tài khoản"); } }),
+    M("cn 4vj35r7c", "/tai-khoan", "Giữ lại", { kb: BAN_CA_NHA_KHACH, truoc: async () => { await di("/tai-khoan"); await doi("Xoá hẳn, không lấy lại được"); await sleep(300); await bam("Xoá tài khoản"); } }),
     M("cn 2ru3t5iw", "/thong-bao/cai-dat", "Giờ yên lặng", { kb: BAN_CA_NHA }),
     M("cn zxu4yvp3", "/hoi-aiigrow", "Ba Mẹ hay hỏi", { kb: BAN_CA_NHA }),
     M("cn dmdjjhh1", "/ho-tro", "làm sao vậy?", { kb: { ...BAN_CA_NHA, "GET ho-tro": BAN_HO_TRO } }),
-    M("cd 0uobhmvh", "/moi-nguoi-nha", "làm được như bạn", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được như bạn");
+    M("cd 0uobhmvh", "/moi-nguoi-nha", "làm được gì?", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được gì?");
       await go("Số điện thoại người được mời", "0909876543"); await go("Gọi là gì trong nhà", "Ba Tuấn"); await sleep(300); } }),
-    M("cd mflye65x", "/moi-nguoi-nha", "Tin sẽ gửi cho Ba Tuấn", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được như bạn");
+    M("cd mflye65x", "/moi-nguoi-nha", "Tin sẽ gửi cho Ba Tuấn", { kb: BAN_CA_NHA, truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được gì?");
       await go("Số điện thoại người được mời", "0909876543"); await go("Gọi là gì trong nhà", "Ba Tuấn"); await sleep(200); await bam("Ba Tuấn chưa có app? Xem cách gửi link"); } }),
     M("cd admin-ho-tro", "/admin-ho-tro", "Đang chờ"),
     M("bm-cai-dat", "/cai-dat", "Người lớn trông con"),
-    M("bm-cai-dat (xoá tài khoản)", "/tai-khoan", "Xoá tài khoản của tôi", { kb: { "GET thanh-vien": TV_MOT_MINH, "GET tuan-thu": { ds: [] } }, truoc: moXoaTk }),
+    M("bm-cai-dat (xoá tài khoản)", "/tai-khoan", "Xoá hẳn, không lấy lại được", { kb: { "GET thanh-vien": TV_MOT_MINH, "GET tuan-thu": { ds: [] } }, truoc: moXoaTk }),
     M("bm-cai-dat (xoá: còn máy)", "/tai-khoan", "Xem các máy", { kb: { "GET thanh-vien": TV_MOT_MINH }, truoc: moXoaTk }),
     M("bm-cai-dat (xoá: còn thành viên)", "/tai-khoan", "Xem người lớn trong nhà", { truoc: moXoaTk }),
     M("bm-ho-tro", "/ho-tro", "đã cộng 10 phút"),
     M("thanh-vien", "/thanh-vien", "Ông ngoại"),
     M("thanh-vien (trông giúp)", "/thanh-vien?id=p2", "Ba Huy trong nhà", { kb: { "GET toi": { baMe: { ...coBan["GET toi"].baMe, id: "p3", quyen: "trong_giup", laChuNha: false, vai: "xem" } },
       "GET thanh-vien": { ...coBan["GET thanh-vien"], ds: coBan["GET thanh-vien"].ds.map((x) => ({ ...x, laToi: x.id === "p3" })), toi: { id: "p3", quyen: "trong_giup", vai: "xem", laChuNha: false } } } }),
-    M("thanh-vien (mời người nhà)", "/moi-nguoi-nha", "làm được như bạn"),
-    M("thanh-vien (đã mời)", "/moi-nguoi-nha", "Đã mời Bà ngoại!", { truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được như bạn"); await go("Số điện thoại người được mời", "0909876543");
+    M("thanh-vien (mời người nhà)", "/moi-nguoi-nha", "làm được gì?"),
+    M("thanh-vien (đã mời)", "/moi-nguoi-nha", "Đã mời Bà ngoại!", { truoc: async () => { await di("/moi-nguoi-nha"); await doi("làm được gì?"); await go("Số điện thoại người được mời", "0909876543");
       await go("Gọi là gì trong nhà", "Bà ngoại"); await sleep(200); await bam("Gửi lời mời cho Bà ngoại"); } }),
     M("thanh-vien (người lớn)", "/thanh-vien", "Mời Ba Huy rời nhà", { truoc: async () => { await di("/thanh-vien"); await doi("Ba Huy"); await bam("Ba Huy"); } }),
     M("moi (chưa có link)", "/moi", "Được người nhà mời?", { token: null }),
@@ -933,7 +940,7 @@ if (process.argv.includes("--giao-dien")) {
     // bm-duoc-moi đúng ca bàn: them-ux0c23p4 (có Google / Facebook), them-0zrwe8yz đã điền, them-pacl0mle đã gõ 4 số
     // bm1-moi v14: người được mời CHƯA có nhà riêng, quyền Trông giúp (ô thứ 3 «Khoá máy khi cần»)
     M("moi-vao (chưa có nhà · bm1-moi)", "/moi/vao?ma=ABCD2345", "Không phải tôi", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] },
-      "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], quyen: "trong_giup", tenQuyen: "Trông giúp" } } }),
+      "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], quyen: "trong_giup", tenQuyen: "Chỉ trông con" } } }),
     M("moi (được mời · them-ux0c23p4)", "/moi?ma=ABCD2345", "Vào nhà cùng Mẹ Lan", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true },
       "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], tenCon: ["An", "Minh", "Nam", "Khoa"] } } }),
     M("moi-dang-ky (đã điền · them-0zrwe8yz)", "/dang-ky?moi=ABCD2345&tenNha=M%E1%BA%B9%20Lan", "Đã khớp", { token: null, truoc: async () => {
@@ -1115,8 +1122,8 @@ await kichBan("Hết phiên (401) ⇒ về màn Chào", async () => {
 
 await kichBan("Tài khoản của bạn ⇒ Xoá tài khoản (thiết kế 14/11 bm-ca-nha/08, 11): máy chủ chặn khi còn người lớn / còn máy; người cuối ⇒ nói rõ hậu quả + mật khẩu ⇒ xoá ⇒ về màn Chào", async () => {
   await di("/cai-dat");
-  xet(await doi("Bạn · tài khoản của bạn"), "tab Cả nhà có dòng «tài khoản của bạn»");
-  await bam("Bạn · tài khoản của bạn");
+  xet(await doi("Chủ nhà · tài khoản của bạn"), "tab Cả nhà có dòng «tài khoản của bạn»");
+  await bam("Chủ nhà · tài khoản của bạn");
   xet(await doi("Xoá hẳn, không lấy lại được"), "mở màn Tài khoản của bạn, dòng Xoá tài khoản nói rõ không lấy lại được");
   await bam("Xoá tài khoản");
   xet(await choGoi((x) => x.d === "xoa-tai-khoan" && x.body?.kiemTra === true), "hỏi máy chủ trước (kiemTra)");
@@ -1144,14 +1151,14 @@ await kichBan("Tài khoản của bạn ⇒ Xoá tài khoản (thiết kế 14/1
   kb["POST xoa-tai-khoan"] = (b) => (b?.kiemTra ? { duoc: true } : { status: 401, body: { error: "sai_mat_khau", message: "Mật khẩu chưa đúng" } });
   await go("Nhập lại mật khẩu để xác nhận", "sai-roi");
   await sleep(200);
-  await bam("Xoá tài khoản của tôi");
+  await bamBatDau("Xoá tài khoản ");
   xet(await doi("Mật khẩu chưa đúng"), "sai mật khẩu ⇒ báo ngay trong bảng");
   xet((await js(`localStorage.getItem("aiig_bm")`)) === "tok-thu", "sai mật khẩu ⇒ vẫn đăng nhập");
   kb["POST xoa-tai-khoan"] = coBan["POST xoa-tai-khoan"];
   nhatKy.length = 0;
   await go("Nhập lại mật khẩu để xác nhận", "matkhau123");
   await sleep(200);
-  await bam("Xoá tài khoản của tôi");
+  await bamBatDau("Xoá tài khoản ");
   xet(await doi("Bắt đầu cho con nhà mình"), "xoá xong ⇒ về màn Chào");
   xet(await doi("Đã xoá tài khoản và toàn bộ dữ liệu gia đình"), "báo đã xoá");
   xet(nhatKy.some((x) => x.d === "xoa-tai-khoan" && x.m === "POST" && x.body?.matKhau === "matkhau123"), "gửi đúng mật khẩu");
@@ -1162,9 +1169,10 @@ await kichBan("Tài khoản của bạn ⇒ Xoá tài khoản (thiết kế 14/1
 await kichBan("Mời người nhà bằng số điện thoại (thiết kế 14/11 bm-ca-nha/04: không chọn quyền — «làm được như bạn») ⇒ «Đã mời» + gửi link", async () => {
   await di("/cai-dat");
   xet(await doi("Ông ngoại"), "thấy người lớn + lời mời đang chờ");
-  xet(await doi("Chưa nhận lời mời"), "lời mời chờ ghi «Chưa nhận lời mời»");
+  xet(await doi("Đang chờ nhận lời mời"), "lời mời chờ ghi «Đang chờ nhận lời mời»");
   await bam("Mời người nhà");
-  xet(await doi("làm được như bạn"), "mở màn Mời người nhà («… làm được như bạn»)");
+  xet(await doi("làm được gì?"), "mở màn Mời người nhà: chọn vai («… làm được gì?»)");
+  xet(await doi("Như Ba Mẹ") && await doi("Chỉ trông con"), "hai thẻ vai «Như Ba Mẹ» · «Chỉ trông con»");
   await bam("Gửi lời mời");
   await sleep(600);   // lời gọi (nếu nút còn bấm được) tới nhật ký sau vài chục ms — chờ rồi mới kết luận «không gọi»
   xet(!nhatKy.some((x) => x.d === "thanh-vien/moi"), "chưa có SĐT ⇒ nút tắt, không gọi máy chủ");
@@ -1190,15 +1198,28 @@ await kichBan("Lời mời chờ ⇒ «Gửi lại» tạo link mới ⇒ màn �
   xet(await choGoi((x) => x.d === "thanh-vien/moi/lm1/huy" && x.m === "POST"), "«Huỷ lời mời» gọi huy");
 });
 
-await kichBan("Ba Mẹ đổi quyền Ba Huy sang Người trông giúp", async () => {
+await kichBan("Ba Mẹ đổi vai Ba Huy sang «Chỉ trông con» (hộp hỏi lại có «Giữ lại»)", async () => {
   await di("/cai-dat");
   await doi("Ba Huy"); await bam("Ba Huy");
   xet(await doi("Ba Huy trong nhà"), "mở màn người lớn");
+  xet(await doi("Ba Huy làm được gì?"), "hai thẻ vai");
   xet(await doi("Mời Ba Huy rời nhà"), "có Mời rời nhà");
-  await bam("Quyền");
-  xet(await doi("Quyền của Ba Huy"), "mở bảng quyền");
-  await bam("Xem, duyệt, khoá máy — không đổi cài đặt");
-  xet(await choGoi((x) => x.d === "thanh-vien/p2/quyen" && x.body?.quyen === "trong_giup"), "gửi đổi quyền");
+  await bam("Chỉ trông con");
+  xet(await doi("Cho Ba Huy chỉ trông con?"), "hộp hỏi lại đổi vai");
+  xet(await doi("Giữ lại"), "nút phụ «Giữ lại»");
+  await bam("Cho Ba Huy chỉ trông con");
+  xet(await choGoi((x) => x.d === "thanh-vien/p2/quyen" && x.body?.quyen === "trong_giup"), "gửi đổi vai");
+});
+
+await kichBan("Mời người nhà với vai «Chỉ trông con» ⇒ gửi quyen trong_giup", async () => {
+  await di("/moi-nguoi-nha");
+  await doi("làm được gì?");
+  await bam("Chỉ trông con");
+  await go("Số điện thoại người được mời", "0909 876 543");
+  await go("Gọi là gì trong nhà", "Bà nội");
+  await sleep(200);
+  await bam("Gửi lời mời cho Bà nội");
+  xet(await choGoi((x) => x.d === "thanh-vien/moi" && x.body?.quyen === "trong_giup" && x.body?.tenGoi === "Bà nội"), "gửi quyền trong_giup");
 });
 
 await kichBan("Người được mời mở link ⇒ thấy nhà mời ⇒ số điện thoại ⇒ mã 6 số ⇒ vào Hôm nay", async () => {
@@ -1693,7 +1714,7 @@ await kichBan("#420 Con thứ 2+: «Giống <con trước>» ⇒ POST con/:id/ch
   nhatKy.length = 0;
   await bam("Giống Bảo Anh");
   xet(await choGoi((x) => x.d === "con/c2/chep-tu" && x.m === "POST" && x.body?.tu === "c1"), "POST con/c2/chep-tu {tu: c1}");
-  xet(await doi("Ghép máy của"), "chép xong ⇒ thẳng Ghép máy");
+  xet(await doi("Ghép máy cho con"), "chép xong ⇒ thẳng Ghép máy");
   kb = { ...coBan, ...NGUON_3 };
   await di("/thiet-lap/giong?con=c2&nguon=them");
   xet(await doi("dùng luật giống ai?"), "nhà ≥3 con ⇒ «… dùng luật giống ai?»");
@@ -1702,7 +1723,7 @@ await kichBan("#420 Con thứ 2+: «Giống <con trước>» ⇒ POST con/:id/ch
   nhatKy.length = 0;
   await bam("Giống Bảo Ngọc");
   xet(await choGoi((x) => x.d === "con/c2/chep-tu" && x.body?.tu === "c4"), "POST chep-tu {tu: c4}");
-  xet(await doi("Ghép máy của"), "Thêm con: chép xong ⇒ Ghép máy");
+  xet(await doi("Ghép máy cho con"), "Thêm con: chép xong ⇒ Ghép máy");
   await di("/thiet-lap/giong?con=c2&nguon=them");
   await doi("dùng luật giống ai?");
   nhatKy.length = 0;

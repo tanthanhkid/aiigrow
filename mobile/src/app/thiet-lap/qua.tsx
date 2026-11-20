@@ -13,7 +13,7 @@ import { DauMan, LienKet } from "@/lib/lan-dau";
 import { TheDs } from "@/lib/lan-dau-ds";
 import type { NhomThuVien, MauQua } from "@/lib/s3";
 import { layTl } from "@/lib/thiet-lap";
-import { BangTruot, BaoLoi, ChoTai, Chu, F, IconNet, LopMen, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BangTruot, BaoLoi, ChoTai, Chu, F, IconNet, LopMen, M, Man, Nut, ONhap, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { dong, soCham } from "@/lib/voucher-lan-dau";
 
@@ -157,6 +157,10 @@ function DongQua({ i, ten, phu, n, dat, xem, khoa, tran = 9 }: { i: number; ten:
 function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f: () => Promise<unknown>) => void; setLoi: (s: string | null) => void; dangChay: boolean; tai: () => unknown }) {
   const [ten, setTen] = useState("");
   const [sao, setSao] = useState(100);
+  const [nhap, setNhap] = useState(false);
+  const [chuSao, setChuSao] = useState("");
+  const ngoai = !SAO.includes(sao);
+  const xongSao = () => { const n = parseInt(chuSao, 10); if (n > 0) setSao(Math.min(n, 999)); setNhap(false); setChuSao(""); };
   const them = () => lam(async () => {
     const t = ten.trim();
     if ([...t].length < 2) throw new Error("Điền tên quà con muốn.");
@@ -180,11 +184,12 @@ function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
           {GOI_Y.map((g) => <Pressable key={g} onPress={() => setTen(g)} accessibilityRole="button" style={chip(false)}><Chu kieu="rat" co={14}>{g}</Chu></Pressable>)}
         </View>
+        {/* Bàn them-u60j9p7w: 4 chip sao + ＋ vàng cùng hàng; «Tự chọn…» chip rộng ngay dưới (nhập số sao) */}
         <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }} accessibilityRole="radiogroup">
           {SAO.map((s) => (
-            <Pressable key={s} onPress={() => setSao(s)} accessibilityRole="radio" accessibilityState={{ checked: sao === s }} accessibilityLabel={`${s} sao`}
-              style={[chip(sao === s), { flex: 1, paddingHorizontal: 0 }]}>
-              <IconNet ten="sao" co={12} mau={M.diem} /><Chu kieu="rat" co={13.5} mau={sao === s ? M.diem : M.chu} so>{s}</Chu>
+            <Pressable key={s} onPress={() => { setNhap(false); setSao(s); }} accessibilityRole="radio" accessibilityState={{ checked: sao === s }} accessibilityLabel={`${s} sao`}
+              style={[chip(sao === s), { flex: 1, minWidth: 0, paddingHorizontal: 0, gap: 2 }]}>
+              <IconNet ten="sao" co={11} mau={M.diem} /><Chu kieu="rat" co={12.5} mau={sao === s ? M.diem : M.chu} so>{s}</Chu>
             </Pressable>
           ))}
           <Pressable onPress={them} disabled={dangChay || !ten.trim()} accessibilityRole="button" accessibilityLabel="Thêm quà nhà"
@@ -192,6 +197,18 @@ function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f
             <LopMen men={MEN.vang} bo={20} /><IconNet ten="cong" co={20} mau={M.chinh} />
           </Pressable>
         </View>
+        <Pressable onPress={() => setNhap((v) => !v)} accessibilityRole="radio" accessibilityState={{ checked: ngoai || nhap }} accessibilityLabel="Tự chọn…"
+          style={{ minHeight: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", flexDirection: "row", gap: 6, backgroundColor: ngoai || nhap ? M.chinh : M.xamSoft, boxShadow: ngoai || nhap ? BONG.ngoc : BONG.lom }}>
+          <Chu kieu="rat" co={14} mau={ngoai || nhap ? "#FFFBF5" : M.chu} so>{ngoai ? `Tự chọn · ${sao} sao` : "Tự chọn…"}</Chu>
+        </Pressable>
+        {nhap ? (
+          <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
+            <View style={{ flex: 1 }}>
+              <ONhap nhan="Số sao" value={chuSao} onChangeText={(t) => setChuSao(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" placeholder="Số sao" onSubmitEditing={xongSao} autoFocus />
+            </View>
+            <Nut chu="Chọn" nho bam={xongSao} tat={!(parseInt(chuSao, 10) > 0)} />
+          </View>
+        ) : null}
       </View>
     </View>
   );

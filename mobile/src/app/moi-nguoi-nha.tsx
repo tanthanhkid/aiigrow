@@ -1,6 +1,6 @@
 // Mời người nhà (thiết kế 14/11 bm-ca-nha/04 them-5hzkl6p5 = bm-cai-dat/03 «Mời người nhà» → 05 «Đã mời» / bm-cai-dat/07 «Chưa có app, gửi link»):
-// SĐT hoặc email, «<tên> làm được như bạn — Cho vay sao, duyệt việc, đổi cài đặt», «Gửi lời mời». 14/11: thiết kế bỏ chọn quyền khi mời (chỉ còn
-// «làm được như bạn») ⇒ luôn mời quyền Ba Mẹ; người «Người trông giúp» cũ vẫn giữ quyền, đổi ở màn Thành viên. «Chọn từ danh bạ» chưa làm. Không mã mời: người được mời đăng nhập bằng đúng SĐT / email là thấy lời mời (moi/cho-toi),
+// SĐT hoặc email, «<tên> làm được như bạn — Cho vay sao, duyệt việc, đổi cài đặt», «Gửi lời mời». #492: chọn vai khi mời («Như Ba Mẹ» mặc định /
+// «Chỉ trông con», gửi `quyen`); đổi vai sau ở màn Thành viên. «Chọn từ danh bạ» chưa làm. Không mã mời: người được mời đăng nhập bằng đúng SĐT / email là thấy lời mời (moi/cho-toi),
 // hoặc bấm link. Máy chủ chưa gửi SMS / email và chưa biết người được mời có app chưa ⇒ «… chưa có app? Xem cách gửi link» gửi lời mời rồi mở hàng
 // chia sẻ (Zalo / Tin nhắn, câu soạn sẵn `chiaSe`).
 // #325 (bàn them-5hzkl6p5@v7 = them-0uobhmvh, them-hfd2drjy@v9 = them-wewdno56): số điện thoại hiện «0909 876 543»; nút gửi icon 3D; «Đã mời» có ô sân
@@ -14,7 +14,8 @@ import { Pressable, Share, TextInput, View, useWindowDimensions } from "react-na
 import { useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
 import { type DsThanhVien, type Quyen, type ToiCaNha } from "@/lib/ca-nha";
-import { veHoac } from "@/lib/ui-bm3";
+import { HaiTheVai } from "@/lib/ca-nha-ui";
+import { MucTieu, veHoac } from "@/lib/ui-bm3";
 import { BONG, KHOI, KHOI_HERO } from "@/lib/clay";
 import { Avt, BaoLoi, Chu, F, Icon, Icon3D, M, Man, NhanMen, Nut, Rob, useLam, useTai } from "@/lib/ui";
 import { mauCon } from "@/lib/hang-ngay";
@@ -44,7 +45,7 @@ export default function MoiNguoiNha() {
   const [cach, setCach] = useState<"sdt" | "email">("sdt");
   const [dd, setDd] = useState("");
   const [ten, setTen] = useState("");
-  const quyen: Quyen = "ba_me";
+  const [quyen, setQuyen] = useState<Quyen>("ba_me");     // #492: chọn vai lúc mời (bàn them-0uobhmvh) — «Như Ba Mẹ» chọn sẵn
   const [kq, setKq] = useState<KqMoi | null>(null);
   const [guiLinkMo, setGuiLinkMo] = useState(false);     // màn «Mời <tên>» (B3) sau «… chưa có app?»
   // bề ngang ô sân B3 (màn trừ lề 16 hai bên, tối đa như khung 390): bong bóng ≤ 52 %, Grow co lại cho vừa phần còn lại — màn hẹp không đè chữ
@@ -126,7 +127,7 @@ export default function MoiNguoiNha() {
     const ai = daMoi.tenGoi || daMoi.dinhDanh || "người nhà";
     return (
       <Man day={<>
-        <Nut chu="Xong, về Cả nhà" rong bam={ve} />
+        <Nut chu="Về Cả nhà" rong bam={ve} />
         <Pressable onPress={huy} disabled={dangChay} accessibilityRole="button" style={{ minHeight: 46, alignItems: "center", justifyContent: "center" }}>
           <Chu kieu="rat" co={15} mau={M.chu3}>Huỷ lời mời</Chu>
         </Pressable>
@@ -145,14 +146,14 @@ export default function MoiNguoiNha() {
           <Chu co={15} mau={M.chu2} style={{ textAlign: "center" }}>{`${ai} mở AiiGrow bằng ${daMoi.dinhDanh ? soNhom(daMoi.dinhDanh) : "SĐT / email này"} là thấy lời mời, không cần nhập mã gì cả.`}</Chu>
         </View>
         <Chu kieu="rat" co={13.5} mau={M.chu3} style={{ marginTop: 6, marginHorizontal: 6 }}>{`Điện thoại ${ai} sẽ hiện:`}</Chu>
-        <View style={{ padding: 14, borderRadius: 24, backgroundColor: M.nut, gap: 4, boxShadow: BONG.toi }} accessible accessibilityLabel={`Thông báo mẫu: ${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}>
+        <View style={[{ padding: 14, borderRadius: 24, backgroundColor: M.the, gap: 4 }, KHOI.the]} accessible accessibilityLabel={`Thông báo mẫu: ${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
             <View style={{ width: 24, height: 24, borderRadius: 7, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "center" }}><Icon3D ten="nha" co={18} /></View>
-            <Chu kieu="dam" co={12.5} mau={M.vien2} style={{ flex: 1 }}>AiiGrow</Chu>
-            <Chu co={12} mau={M.vien2}>bây giờ</Chu>
+            <Chu kieu="dam" co={12.5} mau={M.chu2} style={{ flex: 1 }}>AiiGrow</Chu>
+            <Chu kieu="dam" co={12} mau={M.chu2}>bây giờ</Chu>
           </View>
-          <Chu kieu="rat" co={15} mau="#FFFBF5">{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
-          <Chu co={13.5} mau="#E3D9CB">{`Cùng trông ${soCon} nhà mình. Bấm để vào.`}</Chu>
+          <Chu kieu="rat" co={15}>{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
+          <Chu co={13.5} mau={M.chu2}>{`Cùng trông ${soCon} nhà mình. Bấm để vào.`}</Chu>
         </View>
         {/* bàn .cho: viên đào cao 36, chấm cam có quầng, chữ nâu 14/800 */}
         <View style={[{ alignSelf: "center", flexDirection: "row", alignItems: "center", gap: 8, minHeight: 36, paddingHorizontal: 14, borderRadius: 18, backgroundColor: M.canhSoft, marginTop: 4 }, KHOI.nho]}>
@@ -167,19 +168,19 @@ export default function MoiNguoiNha() {
   return (
     // thiết kế: tiêu đề «Mời người nhà» ở hàng đầu (cạnh nút lùi); nút «Gửi lời mời cho <tên>» + «… chưa có app? Xem cách gửi link» ngay dưới thẻ quyền
     <Man lui={{ chu: "", bam: ve }} tieu="Mời người nhà">
-      <View style={{ alignItems: "center", gap: 10, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 30, backgroundColor: M.the, ...KHOI.the }}>
+      <View style={{ alignItems: "center", gap: 10, paddingVertical: 16, paddingHorizontal: 16, borderRadius: 30, backgroundColor: M.nut, ...KHOI.heroThe }}>
         <View style={{ flexDirection: "row" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
           {[d?.toi ?? "Ba Mẹ", ...(d?.con ?? [])].slice(0, 5).map((t, i) => (
             // Avt tự chọn màu chữ đủ tương phản trên nền (cổng TUONG-PHAN)
-            <View key={i} style={{ marginLeft: i ? -6 : 0, borderRadius: 25, borderWidth: 3, borderColor: "#FFFBF5" }}>
+            <View key={i} style={{ marginLeft: i ? -6 : 0, borderRadius: 25, borderWidth: 3, borderColor: M.nut }}>
               <Avt ten={t} mau={i ? d?.mauCon[i - 1] ?? mauCon(null, i - 1) : M.chinh} co={44} />
             </View>
           ))}
-          <View style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 4, borderWidth: 2.5, borderStyle: "dashed", borderColor: M.chinhInk, alignItems: "center", justifyContent: "center" }}>
-            <Icon ten="cong" mau={M.chinhInk} co={22} />
+          <View style={{ width: 50, height: 50, borderRadius: 25, marginLeft: 4, borderWidth: 2.5, borderStyle: "dashed", borderColor: M.diem, alignItems: "center", justifyContent: "center" }}>
+            <Icon ten="cong" mau={M.diem} co={22} />
           </View>
         </View>
-        <Chu kieu="rat" co={14} mau={M.chinhInk} style={{ textAlign: "center" }}>{`Cùng trông ${d?.con.length ? `${d.con.length} con` : tenCon} với ${d?.toi ?? "bạn"}`}</Chu>
+        <Chu kieu="rat" co={14} mau={M.diem} style={{ textAlign: "center" }}>{`Cùng trông ${d?.con.length ? `${d.con.length} con` : tenCon} với ${d?.toi ?? "bạn"}`}</Chu>
       </View>
       <View style={{ flexDirection: "row", gap: 4, backgroundColor: M.xamSoft, padding: 5, borderRadius: 22, boxShadow: BONG.lom }} accessibilityRole="tablist">
         {(["sdt", "email"] as const).map((k) => (
@@ -203,15 +204,9 @@ export default function MoiNguoiNha() {
         <TextInput value={ten} onChangeText={setTen} placeholder="Gọi là gì trong nhà? (Ba Tuấn, Bà nội…)" placeholderTextColor={M.chu3} maxLength={30}
           accessibilityLabel="Gọi là gì trong nhà" style={{ fontFamily: F.thuong, fontSize: 15.5, color: M.chu, paddingVertical: 12 }} />
       </View>
-      {/* lề thẻ 16 (cổng LE-THE: ảnh cách mép thẻ ≥ 15.5 — trước 14) */}
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12, paddingHorizontal: 16, borderRadius: 28, backgroundColor: M.the }, KHOI.the]}>
-        <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><Icon3D ten="khien" co={24} /></View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Chu kieu="rat" co={15}>{`${ten.trim() || "Người được mời"} làm được như bạn`}</Chu>
-          {/* bàn «Cho giờ, …» ⇒ «Cho vay sao» (#265: không còn «cho thêm giờ») */}
-          <Chu kieu="dam" co={12.5} mau={M.chu2}>Cho vay sao, duyệt việc, đổi cài đặt</Chu>
-        </View>
-      </View>
+      {/* #492 bàn them-0uobhmvh@v14: «<tên> làm được gì?» — 2 thẻ chọn vai; Chỉ trông con: xem, duyệt việc, cho vay sao (máy chủ chặn đổi luật, mua quà, mời người, ghép máy) */}
+      <MucTieu chu={`${ten.trim() || "Người được mời"} làm được gì?`} />
+      <HaiTheVai quyen={quyen} doi={setQuyen} />
       <BaoLoi loi={loi} />
       <View style={{ marginTop: 6 }}><Nut chu={goi ? `Gửi lời mời cho ${goi}` : "Gửi lời mời"} ic="gui" ic3d rong dangChay={dangChay} tat={!hop} bam={gui} /></View>
       <Pressable onPress={guiLink} disabled={!hop || dangChay} accessibilityRole="button" style={{ minHeight: 44, alignItems: "center", justifyContent: "center" }}>

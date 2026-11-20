@@ -79,7 +79,8 @@ export function ONamSinh({ nam, doi }: { nam: string; doi: (nam: string) => void
         <Chu kieu={nam ? "rat" : "dam"} co={nam ? 18 : 16} mau={nam ? M.chu : M.chu3} so style={{ flex: 1 }}>
           {nam || "Chọn năm sinh"}
         </Chu>
-        <Icon ten="phai" mau={M.chinhInk} co={18} />
+        {/* #492 bàn: «2017 ▾» — mũi tên xuống */}
+        <View style={{ transform: [{ rotate: "90deg" }] }}><Icon ten="phai" mau={M.chinhInk} co={18} /></View>
       </Pressable>
       <BangTruot mo={chon !== null} dong={() => setChon(null)} tieu="Năm sinh">
         <View style={{ alignItems: "center" }}>

@@ -4,6 +4,7 @@
 import { json } from "./api.ts";
 import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { chiBaMe } from "./quyen.ts";
 import * as qg from "./quy-gio.ts";
 import * as nv from "./nhiem-vu.ts";
 import * as pt from "./phan-thuong.ts";
@@ -32,8 +33,10 @@ export async function xuLyMSao(bm: { id: string; family_id: string }, req: Reque
     // 15/11 sổ sao (#263–#266): ví sao + lịch sử vay / trả / chơi · xem trước + cho vay · «Cho thêm giờ» cũ = cho vay N sao
     if (sau === "vi-sao" && get) return json(await ss.viSao(fam, p[1], { gioiHan: Number(new URL(req.url).searchParams.get("gioiHan")) || 50 }));
     if (sau === "cho-vay/xem-truoc" && get) return json(await ss.xemTruocVay(fam, p[1], new URL(req.url).searchParams.get("soSao") ?? undefined));
-    if (sau === "cho-vay" && post)
+    if (sau === "cho-vay" && post) {
+      if (b.mucDich === "qua") chiBaMe(bm, "cho vay để mua quà");   // #492: «Chỉ trông con» cho vay chơi được, mua quà thì nhờ Ba Mẹ
       return json(await ss.choVay(fam, p[1], b.soSao, bm.id, { mucDich: b.mucDich === "qua" ? "qua" : b.mucDich === "choi" ? "choi" : null, quaId: b.quaId ? s(b.quaId, 40) : null }));
+    }
     if (sau === "them-gio" && post) return json(await qg.baMeThemGio(fam, p[1], b.phut, bm.id));
   }
   if ((p[0] === "them-gio" || p[0] === "vay") && p[1] && p[2] === "hoan-tac" && post) return json(await ss.hoanTacVay(fam, p[1], bm.id));

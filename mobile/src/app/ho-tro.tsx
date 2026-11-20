@@ -19,7 +19,7 @@ const HAY_GAP: { hoi: string; dap: string; di?: { chu: string; toi: string } }[]
   { hoi: "Ghép thêm máy cho con", dap: "Vào «Máy của con» › «Ghép thêm máy», gửi link cài cho máy của con — mã 6 số dùng khi link không mở được.", di: { chu: "Mở Máy của con", toi: "/may" } },
   { hoi: "Sao & phút chơi", dap: "1 sao = 1 phút chơi app, web «Tính phút». Con làm nhiệm vụ để kiếm sao; hết sao thì app tự khoá và con xin Ba Mẹ cho vay sao. Sao nhiệm vụ trả nợ trước. App «Không tính phút» không trừ sao.", di: { chu: "Xem ví sao của con", toi: "/diem-qua" } },
   { hoi: "Con xin mở app, web lạ", dap: "Ở chế độ «Theo danh sách», app / web chưa có trong danh sách con phải xin. Lời xin hiện ở Hôm nay và «App & web» — Ba Mẹ thêm vào nhóm «Tính phút» / «Không tính phút» hoặc Bỏ qua.", di: { chu: "Mở App & web", toi: "/app-web" } },
-  { hoi: "Mời người nhà cùng trông con", dap: "Tab Cả nhà › «Mời người nhà», gõ SĐT hoặc email và chọn quyền. Người được mời mở AiiGrow là thấy lời mời.", di: { chu: "Mời người nhà", toi: "/moi-nguoi-nha" } },
+  { hoi: "Mời người nhà cùng trông con", dap: "Tab Cả nhà › «Mời người nhà», gõ SĐT hoặc email, chọn vai «Như Ba Mẹ» hoặc «Chỉ trông con». Người được mời mở AiiGrow là thấy lời mời.", di: { chu: "Mời người nhà", toi: "/moi-nguoi-nha" } },
 ];
 
 function TinAiiGrow({ noiDung, luc }: { noiDung: string; luc: string }) {

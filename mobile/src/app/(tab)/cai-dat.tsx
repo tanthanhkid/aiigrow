@@ -12,6 +12,7 @@ import { usePhien } from "@/lib/phien";
 import { KHOA_CA_NHA, TEN_QUYEN, napCaNha, tenMoi, type LoiMoiCho } from "@/lib/ca-nha";
 import { MucTieu, OIcon } from "@/lib/ui-bm3";
 import { mauCon, tenGoi } from "@/lib/hang-ngay";
+import { saoTu, VienSao } from "@/lib/so-sao";
 import { BONG, KHOI } from "@/lib/clay";
 import {
   Avt, BaoLoi, ChoTai, Chu, Dong, Icon, IconNet, M, Man, NhanMen, Nhom, useHoanTac, useLam, useTai,
@@ -39,7 +40,7 @@ export default function CaiDat() {
     moDaMoi(m);
   });
   const dongNguoi = (x: (typeof d.tv.ds)[number], i: number) => (
-    <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? "Bạn · tài khoản của bạn" : x.vaoLuc ? `Vào nhà từ ${ngayThang(x.vaoLuc)}` : TEN_QUYEN[x.quyen]}
+    <Dong key={x.id} dau={i === 0} tieu={x.ten} phu={x.laToi ? (x.laChuNha ? "Chủ nhà · tài khoản của bạn" : `${TEN_QUYEN[x.quyen]} · tài khoản của bạn`) : `${TEN_QUYEN[x.quyen]}${x.vaoLuc ? ` · từ ${ngayThang(x.vaoLuc)}` : ""}`}
       trai={<Avt ten={x.ten} mau={MAU_NGUOI[i % MAU_NGUOI.length]} co={40} />}
       phai={<View accessibilityLabel={TEN_QUYEN[x.quyen]}><Icon ten="phai" mau={M.oNhap} co={18} /></View>}
       bam={() => (x.laToi ? router.push("/tai-khoan") : router.push({ pathname: "/thanh-vien", params: { id: x.id } }))} />
@@ -55,10 +56,12 @@ export default function CaiDat() {
       <View style={{ flexDirection: "row", flexWrap: "wrap", rowGap: 8, paddingTop: 6 }}>
         {d.g.con.map((c, i) => (
           <Pressable key={c.id} onPress={() => router.push(`/ho-so/${c.id}`)} accessibilityRole="button" accessibilityLabel={`Hồ sơ ${c.ten}`}
-            style={{ width: "20%", alignItems: "center", gap: 6, minHeight: 84 }}>
+            style={{ width: "20%", alignItems: "center", gap: 4, minHeight: 100 }}>
             {/* #417: dải «Các con» không có bé đang chọn ⇒ mọi bé là avatar kem lõm chữ navy (chuẩn E «chưa chọn») */}
             <Avt ten={c.ten} mau={mauCon(c.avatar, i)} co={54} con={c} chon={false} />
             <Chu kieu="rat" co={13} mau={M.chu2} dong={1}>{tenGoi(c.ten)}</Chu>
+            {/* #492: chip sao dưới tên bé (nợ ⇒ «−20 sao» đỏ trên chip lõm kem) — cùng VienSao với hàng chọn bé */}
+            <VienSao s={saoTu(c)} nho />
           </Pressable>
         ))}
         {laBaMe ? (
@@ -80,7 +83,7 @@ export default function CaiDat() {
             <Avt ten={tenMoi(m)} mau="#0A1629" co={40} />
             <View style={{ flex: 1, minWidth: 0 }}>
               <Chu kieu="rat" co={15.5} dong={1}>{tenMoi(m)}</Chu>
-              <Chu kieu="dam" co={12.5} mau={M.canh} dong={1}>Chưa nhận lời mời</Chu>
+              <Chu kieu="dam" co={12.5} mau={M.canh} dong={1}>Đang chờ nhận lời mời</Chu>
             </View>
             {laBaMe ? (
               <NhanMen onPress={() => guiLai(m)} disabled={moi.dangChay} accessibilityRole="button" accessibilityLabel={`Gửi lại lời mời cho ${tenMoi(m)}`} muc="chip" sang

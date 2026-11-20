@@ -138,7 +138,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     if (d === "doi-mat-khau" && post) return json(await doiMatKhau(bm, await docJson(req), (() => { const t = bearer(req); return t ? sha(t) : null; })()));
     // L6: Người trông giúp — POST chỉ các việc xem / duyệt / khoá máy (lib/quyen.ts › trongGiupDuoc); còn lại là đổi cài đặt.
     if (post && quyenCua(bm) === "trong_giup" && !trongGiupDuoc(p))
-      throw new LoiNghiepVu("chi_xem", "Người trông giúp xem, duyệt và khoá máy được — đổi cài đặt thì nhờ Ba Mẹ nhé", 403);
+      throw new LoiNghiepVu("chi_xem", "Vai «Chỉ trông con» xem, duyệt, khoá máy và cho vay sao được — đổi luật, mua quà, mời người, ghép máy thì nhờ Ba Mẹ nhé", 403);
     const fam = bm.family_id, b = post ? await docJson(req) : {};
     if (post && !["thong-bao", "dang-xuat", "dat-mat-khau", "xoa-tai-khoan"].includes(p[0])) ngu.fam = fam;
     { const r = await gt.xuLyThanhVien(req, bm, p, b); if (r) return r; }   // thành viên gia đình (FR-01.04)
