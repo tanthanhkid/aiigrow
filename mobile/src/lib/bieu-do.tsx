@@ -111,7 +111,7 @@ function Cot({ thu, cao, phan, giam }: { thu: number; cao: number; phan: PhanCot
 
 // ---------------------------------------------------------------- cột phút chơi (Báo cáo 14/11 · 15/11 1 phút = 1 sao)
 
-export type CotChoi = { khoa: string; nhan: string; doc: string; phut: number; quy: number | null; nay?: boolean };
+export type CotChoi = { khoa: string; nhan: string; doc: string; phut: number; quy: number | null; nay?: boolean; /** #492: phút trong cột trả bằng sao vay ⇒ đoạn vàng kim phía trên cột */ vay?: number };
 
 /**
  * Biểu đồ «Giờ chơi của <Con>» (thiết kế bm-bao-cao-ngay/01 .bieu): cột đặc rộng (không rãnh), ngọc khi trong quỹ, CAM cả cột khi quá quỹ,
@@ -131,7 +131,7 @@ export function CotGioChoi({ ds, max, cao = 120, nhanDoc, quyVach }: { ds: CotCh
             <Line x1="0" y1="1" x2="100%" y2="1" stroke="#9C7428" strokeWidth={2} strokeDasharray="5 4" />
           </Svg>
         ) : null}
-        {ds.map((x, i) => <CotDac key={x.khoa} thu={i} h={Math.min(1, x.phut / dinh) * cao} qua={x.quy !== null && x.phut > x.quy} nay={!!x.nay} giam={giam} />)}
+        {ds.map((x, i) => <CotDac key={x.khoa} thu={i} h={Math.min(1, x.phut / dinh) * cao} qua={x.quy !== null && x.phut > x.quy} vay={x.phut > 0 ? Math.min(1, (x.vay ?? 0) / x.phut) : 0} nay={!!x.nay} giam={giam} />)}
       </View>
       <View style={{ flexDirection: "row", gap: 10, paddingHorizontal: 2, marginTop: 6 }}>
         {ds.map((x) => (
@@ -143,7 +143,7 @@ export function CotGioChoi({ ds, max, cao = 120, nhanDoc, quyVach }: { ds: CotCh
   );
 }
 
-function CotDac({ thu, h, qua, nay, giam }: { thu: number; h: number; qua: boolean; nay: boolean; giam: boolean }) {
+function CotDac({ thu, h, qua, vay = 0, nay, giam }: { thu: number; h: number; qua: boolean; vay?: number; nay: boolean; giam: boolean }) {
   const cao = h <= 0 ? 0 : Math.max(8, h);
   const { p } = useMoc(giam, thu * SO_LE, 380, 450, cao > 0);
   const st = useAnimatedStyle(() => ({ transform: [{ scaleY: Math.max(0, p.value) }] }));
@@ -152,6 +152,7 @@ function CotDac({ thu, h, qua, nay, giam }: { thu: number; h: number; qua: boole
     <Animated.View style={[{ flex: 1, height: cao, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 6, borderBottomRightRadius: 6, overflow: "hidden",
       transformOrigin: "bottom", boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.35)",
       backgroundImage: qua ? `linear-gradient(${M.badge}, ${M.dauSach})` : "linear-gradient(#1b2b47, #0A1629)" }, st]}>
+      {vay > 0 && !qua ? <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${Math.round(vay * 100)}%`, backgroundImage: `linear-gradient(${M.badge}, ${M.dauSach})` }} /> : null}
       {nay && !qua ? (
         <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
           <Defs><Pattern id="soc" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(45)">

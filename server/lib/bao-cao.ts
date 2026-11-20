@@ -41,11 +41,27 @@ export async function homNay(fam: string, con: string, now = new Date()) {
     phutDoiDuoc: vi.phutCon };
 }
 
+/**
+ * #492: phút chơi mỗi ngày được trả bằng SAO VAY (đọc, không migration). Mô hình như «trong đó N sao Ba Mẹ cho vay» của bảng trao quà:
+ * sao tiêu được S = sao kiếm + sao vay còn lại; nợ D (vay + trả nợ). Sao kiếm được tiêu trước, sao vay chưa tiêu = min(S, D).
+ * Mỗi ngày: áp mọi biến động (trừ chơi) rồi chơi x phút ⇒ phần vay đã tiêu = min(S, D) − min(S − x, D).
+ * `dau` = {s, d} trước ngày đầu; `ngay[i]` = {net: tổng delta cả ngày (gồm chơi), no: delta loại vay/tra_no, choi: phút chơi}.
+ */
+export function vayTheoNgay(dau: { s: number; d: number }, ngay: { net: number; no: number; choi: number }[]): number[] {
+  let s = dau.s, d = dau.d;
+  return ngay.map((x) => {
+    s += x.net + x.choi; d += x.no;           // trước khi chơi: net đã gồm −choi nên cộng lại
+    const chiVay = Math.max(0, Math.min(s, d) - Math.min(s - x.choi, d));
+    s -= x.choi;
+    return Math.min(x.choi, chiVay);
+  });
+}
+
 async function tuan(con: string, tz: string, dau: string) {
   const tu = dauNgayUtc(dau, tz), den = dauNgayUtc(congNgay(dau, 7), tz), het = congNgay(dau, 7);
   const ngayDs = Array.from({ length: 7 }, (_, i) => congNgay(dau, i));
   // 8 câu độc lập ⇒ chạy song song (mỗi câu là một vòng mạng tới DB)
-  const [dung, choi, kiem, tieu, duyet0, sao, top, dungNhieu, xin0] = await Promise.all([
+  const [dung, choi, kiem, tieu, duyet0, sao, top, dungNhieu, xin0, soDau, soNgay] = await Promise.all([
     q<{ ngay: string; loai: string; phut: number }>(
       `select ngay, loai, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 group by ngay, loai`, [con, dau, het]),
     // #433 B10: MỘT nguồn phút chơi = sổ sao (1 sao = 1 phút, cách đếm cửa sổ chống trừ đôi của phần A) — không đọc play_sessions song song nữa
@@ -81,17 +97,26 @@ async function tuan(con: string, tz: string, dau: string) {
     one<{ so: number; cho: number; sao: number }>(`select count(*)::int as so, count(*) filter (where trang_thai in ('dong_y', 'da_thuc_thi'))::int as cho,
          (select coalesce(sum(delta), 0)::int from points where child_id = $1 and delta > 0 and loai <> 'hoan' and created_at >= $2 and created_at < $3) as sao
        from requests where child_id = $1 and loai in ('vay_sao', 'them_gio', 'ngoai_le', 'ngoai_gio') and created_at >= $2 and created_at < $3`, [con, tu, den]),
+    // #492: số dư + nợ trước tuần và biến động từng ngày ⇒ phút chơi bằng sao vay theo ngày (vayTheoNgay)
+    one<{ s: number; d: number }>(`select coalesce(sum(delta), 0)::int as s, coalesce(sum(delta) filter (where loai in ('vay', 'tra_no')), 0)::int as d from points where child_id = $1 and created_at < $2`, [con, tu]),
+    q<{ ngay: string; net: number; no: number }>(
+      `select to_char(created_at at time zone $4, 'YYYY-MM-DD') as ngay, coalesce(sum(delta), 0)::int as net, coalesce(sum(delta) filter (where loai in ('vay', 'tra_no')), 0)::int as no
+         from points where child_id = $1 and created_at >= $2 and created_at < $3 group by 1`, [con, tu, den, tz]),
   ]);
   const d0 = duyet0!, tong = d0.duoc + d0.tu_choi + d0.lam_lai + d0.het_han;
   const duyet = { ...d0, tong, tyLe: tong ? Math.round((d0.duoc / tong) * 100) : null };
   const giaiTriNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
   for (const p of choi) if (p.ngay in giaiTriNgay) giaiTriNgay[p.ngay] = Math.max(0, p.phut);
+  const vayNgay = vayTheoNgay(soDau ?? { s: 0, d: 0 }, ngayDs.map((dd) => {
+    const r = soNgay.find((x) => x.ngay === dd);
+    return { net: r?.net ?? 0, no: r?.no ?? 0, choi: giaiTriNgay[dd] };
+  }));
   const hoc = dung.filter((x) => x.loai === "hoc" || x.loai === "he_thong").reduce((a, x) => a + x.phut, 0);
   const hocNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
   for (const x of dung) if (x.loai === "hoc" || x.loai === "he_thong") hocNgay[x.ngay] = (hocNgay[x.ngay] ?? 0) + x.phut;
   const khongTinhPhutTheoNgay = ngayDs.map((d) => ({ ngay: d, phut: hocNgay[d] }));
   // #262: ô «Giờ học» ⇒ «Không tính phút» (app / web nhóm Không tính phút + app hệ thống). hocTheoNgay / phutHoc (cũ) = cùng số, giữ cho app cũ.
-  return { dau, khongTinhPhutTheoNgay, phutKhongTinhPhut: hoc, hocTheoNgay: khongTinhPhutTheoNgay, dungNhieu, giaiTriTheoNgay: ngayDs.map((d) => ({ ngay: d, phut: giaiTriNgay[d] })), tongGiaiTri: Object.values(giaiTriNgay).reduce((a, b) => a + b, 0),
+  return { dau, khongTinhPhutTheoNgay, phutKhongTinhPhut: hoc, hocTheoNgay: khongTinhPhutTheoNgay, dungNhieu, giaiTriTheoNgay: ngayDs.map((d, i) => ({ ngay: d, phut: giaiTriNgay[d], /** #492: phút trong đó trả bằng sao vay (cột hai màu) */ vay: vayNgay[i] })), tongGiaiTri: Object.values(giaiTriNgay).reduce((a, b) => a + b, 0),
     phutHoc: hoc, diemKiemTheoNhom: kiem, diemTieuTheoLoai: tieu, duyet,
     /** (cũ) ngoại lệ — đã bỏ; giữ trường = số lần Ba Mẹ cho vay để app cũ không vỡ */ ngoaiLe: sao.lanVay, top,
     xinThemGio: { so: xin0?.so ?? 0, cho: xin0?.cho ?? 0 }, xinVay: { so: xin0?.so ?? 0, cho: xin0?.cho ?? 0 },
