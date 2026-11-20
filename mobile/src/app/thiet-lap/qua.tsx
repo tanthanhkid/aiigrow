@@ -188,8 +188,8 @@ function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f
         <View style={{ flexDirection: "row", gap: 4, alignItems: "center" }} accessibilityRole="radiogroup">
           {SAO.map((s) => (
             <Pressable key={s} onPress={() => { setNhap(false); setSao(s); }} accessibilityRole="radio" accessibilityState={{ checked: sao === s }} accessibilityLabel={`${s} sao`}
-              style={[chip(sao === s), { flex: 1, paddingHorizontal: 0 }]}>
-              <IconNet ten="sao" co={12} mau={M.diem} /><Chu kieu="rat" co={13.5} mau={sao === s ? M.diem : M.chu} so>{s}</Chu>
+              style={[chip(sao === s), { flex: 1, minWidth: 0, paddingHorizontal: 0, gap: 2 }]}>
+              <IconNet ten="sao" co={11} mau={M.diem} /><Chu kieu="rat" co={12.5} mau={sao === s ? M.diem : M.chu} so>{s}</Chu>
             </Pressable>
           ))}
           <Pressable onPress={them} disabled={dangChay || !ten.trim()} accessibilityRole="button" accessibilityLabel="Thêm quà nhà"
