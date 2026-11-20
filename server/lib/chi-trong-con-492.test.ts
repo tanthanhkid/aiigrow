@@ -57,7 +57,7 @@ test("#492 Chỉ trông con: tên vai + việc được phép (xem, khoá máy, 
   const nd = (await m(`con/${con}/vi-sao`, { tok: lan })).body;
   assert.ok(JSON.stringify(nd).includes("Chỉ trông") === false);
   const hoanTac = await m(`vay/${vay.body.id}/hoan-tac`, { tok: hoa, body: {} });
-  assert.notEqual(hoanTac.status, 403, JSON.stringify(hoanTac.body));
+  assert.ok([200, 409].includes(hoanTac.status), `hoàn tác vay → ${hoanTac.status} ${JSON.stringify(hoanTac.body)}`);
 });
 
 test("#492 Chỉ trông con: máy chủ chặn đổi luật (403 chi_xem, dữ liệu không đổi)", async () => {
@@ -164,7 +164,7 @@ test("#492 Chỉ trông con: PUT / DELETE / PATCH không lách được cổng; 
   for (const method of ["PUT", "DELETE", "PATCH"]) {
     for (const d of ["thanh-vien/moi", "cau-hinh", "qua", "ma-ghep", `con/${con}/sua`]) {
       const r = await m(d, { tok: hoa, body: { ten: "x" }, method });
-      assert.ok(r.status >= 400, `${method} ${d} → ${r.status}`);
+      assert.ok([403, 404, 405].includes(r.status), `${method} ${d} → ${r.status}`);
     }
   }
   assert.equal((await m(`con/${con}/cho-vay`, { body: { soSao: 10 } })).status, 401);

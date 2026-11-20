@@ -4,7 +4,7 @@
 // Dòng của chính mình ⇒ «Tài khoản của bạn» (/tai-khoan). «7 ngày qua · Cho vay N lần · S sao» (15/11 #265): GET nhat-ky?ca-nha=1 › choVay.theoNguoi (theo tên).
 // Không có `id` (thông báo cũ trỏ /thanh-vien) ⇒ về tab Cả nhà — danh sách người lớn + lời mời nằm ở đó.
 import { hienSo } from "@/lib/lan-dau";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { View } from "react-native";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
@@ -27,6 +27,8 @@ export default function ThanhVien() {
   });
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const [mo, setMo] = useState<null | "ha" | "nang" | "roi">(null);
+  const huongHa = useRef(true);
+  if (mo === "ha" || mo === "nang") huongHa.current = mo === "ha";   // giữ chữ hộp khi đang trượt đóng (không nhảy sang chiều kia)
   if (!id) return <Redirect href="/cai-dat" />;
   if (!d) return <Man lui={{ chu: "Cả nhà" }}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const i = d.tv.ds.findIndex((x) => x.id === id);
@@ -81,12 +83,12 @@ export default function ThanhVien() {
       </View> : null}
 
       {/* đổi vai: hộp hỏi lại, nút phụ luôn «Giữ lại» */}
-      <BangTruot mo={mo === "ha" || mo === "nang"} dong={dong} tieu={mo === "ha" ? `Cho ${x.ten} chỉ trông con?` : `Cho ${x.ten} làm như Ba Mẹ?`}>
-        <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>{mo === "ha"
+      <BangTruot mo={mo === "ha" || mo === "nang"} dong={dong} tieu={huongHa.current ? `Cho ${x.ten} chỉ trông con?` : `Cho ${x.ten} làm như Ba Mẹ?`}>
+        <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>{huongHa.current
           ? `${x.ten} xem con chơi, duyệt việc, cho vay sao. Không đổi luật, không mua quà, không mời người, không ghép máy.`
           : `${x.ten} làm được mọi việc như bạn: đổi luật, mua quà, mời người, ghép máy.`}</Chu>
         <BaoLoi loi={loiLam} />
-        <Nut chu={mo === "ha" ? `Cho ${x.ten} chỉ trông con` : `Cho ${x.ten} làm như Ba Mẹ`} rong dangChay={dangChay} bam={() => doiQuyen(mo === "ha" ? "trong_giup" : "ba_me")} />
+        <Nut chu={huongHa.current ? `Cho ${x.ten} chỉ trông con` : `Cho ${x.ten} làm như Ba Mẹ`} rong dangChay={dangChay} bam={() => doiQuyen(huongHa.current ? "trong_giup" : "ba_me")} />
         <Nut chu="Giữ lại" loai="vien" rong bam={dong} />
       </BangTruot>
       {/* bàn them-xnbiksmr@v3: ô hình đào, câu giữa, thẻ dòng icon, nút đỏ đặc. «cho giờ» của bàn ⇒ «cho vay sao» (#265). Dòng «<tên> nhận tin đã rời nhà»
