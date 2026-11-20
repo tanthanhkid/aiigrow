@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { bm, LoiApi } from "@/lib/api";
 import { usePhien } from "@/lib/phien";
-import { CanGiup, DauMan, demNguoc, INK2, NhanBuoc, OLom, OSoGui, SanQuenMk, useOSo } from "@/lib/lan-dau";
+import { CanGiup, DauMan, demNguoc, KIM, INK2, NhanBuoc, OLom, OSoGui, SanQuenMk, useOSo } from "@/lib/lan-dau";
 import { Bao, BaoLoi, Chu, F, M, Ma6, Man, Nut, useLam } from "@/lib/ui";
 
 export default function QuenMatKhau() {
@@ -75,6 +75,6 @@ export default function QuenMatKhau() {
 /** Vạch tiến độ 2 bước ở giữa thanh đầu (bàn them-2g3zpiie v4 / them-6aomy24b v8): bước đã tới vạch vàng kim, bước sau vạch xám. */
 const VachBuoc = ({ dang }: { dang: 1 | 2 }) => (
   <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang} trên 2`}>
-    {[1, 2].map((i) => <View key={i} style={{ width: 28, height: 6, borderRadius: 3, backgroundColor: "#E3D9CB", boxShadow: "inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5", ...(i <= dang ? { backgroundImage: "linear-gradient(135deg, #FBE7B0 0%, #F4C76A 38%, #C9973B 72%, #F2D48C 100%)", boxShadow: "none" } : null) } as never} />)}
+    {[1, 2].map((i) => <View key={i} style={{ width: 28, height: 6, borderRadius: 3, backgroundColor: "#E3D9CB", boxShadow: "inset 3px 3px 6px rgba(120,98,70,0.28), inset -3px -3px 6px #FFFBF5", ...(i <= dang ? { backgroundColor: "#D9AE57", backgroundImage: KIM, boxShadow: "none" } : null) } as never} />)}
   </View>
 );

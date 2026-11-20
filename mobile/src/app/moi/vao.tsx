@@ -4,7 +4,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Text, View } from "react-native";
 import { Image } from "expo-image";
 import { bm } from "@/lib/api";
-import { DauMan, INK2, LienKet, VANG_NAU } from "@/lib/lan-dau";
+import { DauMan, INK2, KIM, LienKet, VANG_NAU } from "@/lib/lan-dau";
 import { Bao, BaoLoi, CanhGiua, ChoTai, F, IconNet, LV, Man, M, Nut, useLam, useTai, type TenIcon } from "@/lib/ui";
 import { cauTrong, dauTen, ma0, type XemMoi } from "@/lib/moi";
 import { BONG } from "@/lib/clay";
@@ -44,6 +44,7 @@ export default function VaoNha() {
     ? [["dongho", "Xem con\ndùng máy"], ["chuong", "Duyệt khi\ncon xin"], ["banhrang", "Đổi\ncài đặt"]]
     : [["dongho", "Xem con\ndùng máy"], ["chuong", "Duyệt khi\ncon xin"], ["khoa", "Khoá máy\nkhi cần"]];
   const chuCai = [ai, ...con.slice(0, 4)];
+  const nho = chuCai.length > 4;   // 5 viên cho vừa màn 320
   return (
     <Man dau={<View style={{ height: 4 }} />} dayStyle={{ paddingTop: 0, paddingBottom: 22, gap: 6 }}
       day={<><BaoLoi loi={loiLam} /><Nut chu={`Vào nhà cùng ${ai}`} rong lon dangChay={dangChay} bam={vao} />
@@ -56,11 +57,11 @@ export default function VaoNha() {
         </View>
         <View style={{ position: "absolute", left: 0, right: 0, top: 30, flexDirection: "row", justifyContent: "center", alignItems: "center" }}>
           {chuCai.map((t, i) => (
-            <View key={t + i} style={{ width: 54, height: 54, marginHorizontal: -5, borderRadius: 27, borderWidth: 4, borderColor: M.chu, backgroundColor: M.nen, alignItems: "center", justifyContent: "center" }}>
-              <Text style={{ fontFamily: F.rat, fontSize: 21, color: M.chu }}>{dauTen(t)}</Text>
+            <View key={t + i} style={{ width: nho ? 46 : 54, height: nho ? 46 : 54, marginHorizontal: -5, borderRadius: nho ? 23 : 27, borderWidth: 4, borderColor: M.chu, backgroundColor: M.nen, alignItems: "center", justifyContent: "center" }}>
+              <Text style={{ fontFamily: F.rat, fontSize: nho ? 18 : 21, color: M.chu }}>{dauTen(t)}</Text>
             </View>
           ))}
-          <View style={{ width: 62, height: 62, marginLeft: 8, borderRadius: 31, backgroundImage: "linear-gradient(135deg, #FBE7B0 0%, #F4C76A 38%, #C9973B 72%, #F2D48C 100%)", alignItems: "center", justifyContent: "center",
+          <View style={{ width: 62, height: 62, marginLeft: 8, borderRadius: 31, backgroundColor: "#D9AE57", backgroundImage: KIM, alignItems: "center", justifyContent: "center",
             boxShadow: `0px 0px 0px 3px ${M.chu}, 0px 0px 0px 5px #D9AE57` } as never}>
             <Text style={{ fontFamily: F.rat, fontSize: 24, color: M.chu }}>T</Text>
           </View>

@@ -217,7 +217,7 @@ export function OLom({ nhan, ghi, ghiOk, matKhau, lon, ghiDuoi, dau, cach, nenO,
           </Pressable>
         ) : null}
       </View>
-      {ghi && ghiDuoi ? <Text style={{ marginTop: 6, marginLeft: 6, fontFamily: F.rat, fontSize: 12.5, lineHeight: 17, color: ghiOk ? M.chu : INK2 }}>{ghiOk ? `✓ ${ghi}` : ghi}</Text> : null}
+      {ghi && ghiDuoi ? <Text style={{ marginTop: 6, marginLeft: 6, fontFamily: F.rat, fontSize: 12.5, lineHeight: 17, color: ghiOk ? M.chu : ghi === "Chưa khớp" ? M.loi : INK2 }}>{ghiOk ? `✓ ${ghi}` : ghi}</Text> : null}
     </View>
   );
   return (
@@ -579,7 +579,6 @@ export function SanDangNhap({ tieu, loi }: { tieu: string; loi: string }) {
   );
 }
 
-const KHOA_BAN = `<svg viewBox="0 0 24 24" fill="none" stroke="#0A1629" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>`;
 
 /** Thẻ đầu màn «Quên mật khẩu» / «Đặt mật khẩu mới» (bàn them-2g3zpiie, them-6aomy24b `.san`): cao 200 bo 36, bong bóng thoại trái trên,
  *  khoá 3D nghiêng dưới trái (không viên tròn — bàn 20/11), Grow tràn đáy phải. `moKhoa` = bước đặt mật khẩu (Grow ăn mừng + khoá mở). */
@@ -588,7 +587,7 @@ export function SanQuenMk({ thoai, moKhoa }: { thoai: string; moKhoa?: boolean }
   const hep = width < 360;
   const w = hep ? 110 : 160;
   const lv = moKhoa ? LV.xong : LV["so-tay"];
-  const ti = moKhoa ? 793 / 520 : 793 / 520;
+  const ti = 793 / 520;
   return (
     <View style={{ height: 200, marginTop: 4, borderRadius: 36, backgroundColor: M.nen, boxShadow: BONG.the, overflow: "hidden" }}>
       <View pointerEvents="none" style={{ position: "absolute", right: 0, bottom: moKhoa ? -16 : -20, width: w, height: w * ti }}>
@@ -602,7 +601,7 @@ export function SanQuenMk({ thoai, moKhoa }: { thoai: string; moKhoa?: boolean }
   );
 }
 
-const KIM = "linear-gradient(135deg, #FBE7B0 0%, #F4C76A 38%, #C9973B 72%, #F2D48C 100%)";
+export const KIM = "linear-gradient(135deg, #FBE7B0 0%, #F4C76A 38%, #C9973B 72%, #F2D48C 100%)";
 const BONG_GUI = "3px 3px 8px rgba(120,98,70,0.28), -3px -3px 8px #FFFBF5, inset 0px 1px 0px rgba(255,255,255,0.6)";
 /** Nhãn bước «1 Nhập số đã đăng ký…» (bàn them-2g3zpiie `.nhan`): viên tròn 22 vàng kim số navy + chữ 14 đậm. */
 export const NhanBuoc = ({ n, chu, cach = 0 }: { n: number; chu: string; cach?: number }) => (
