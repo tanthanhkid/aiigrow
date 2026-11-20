@@ -152,7 +152,7 @@ function CotDac({ thu, h, qua, vay = 0, nay, giam }: { thu: number; h: number; q
     <Animated.View style={[{ flex: 1, height: cao, borderTopLeftRadius: 10, borderTopRightRadius: 10, borderBottomLeftRadius: 6, borderBottomRightRadius: 6, overflow: "hidden",
       transformOrigin: "bottom", boxShadow: "inset 0px 1.5px 0px rgba(255,255,255,0.35)",
       backgroundImage: qua ? `linear-gradient(${M.badge}, ${M.dauSach})` : "linear-gradient(#1b2b47, #0A1629)" }, st]}>
-      {vay > 0 && !qua ? <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${Math.round(vay * 100)}%`, backgroundImage: `linear-gradient(${M.badge}, ${M.dauSach})` }} /> : null}
+      {vay > 0 ? <View pointerEvents="none" style={{ position: "absolute", top: 0, left: 0, right: 0, height: `${Math.round(vay * 100)}%`, backgroundImage: `linear-gradient(${M.badge}, ${M.dauSach})` }} /> : null}
       {nay && !qua ? (
         <Svg pointerEvents="none" width="100%" height="100%" style={StyleSheet.absoluteFill}>
           <Defs><Pattern id="soc" patternUnits="userSpaceOnUse" width="12" height="12" patternTransform="rotate(45)">

@@ -53,14 +53,14 @@ export function vayTheoNgay(dau: { s: number; d: number }, ngay: { net: number; 
     s += x.net + x.choi; d += x.no;           // trước khi chơi: net đã gồm −choi nên cộng lại
     const chiVay = Math.max(0, Math.min(s, d) - Math.min(s - x.choi, d));
     s -= x.choi;
-    return Math.min(x.choi, chiVay);
+    return Math.max(0, Math.min(x.choi, chiVay));   // choi âm (hoàn nhiều hơn chơi) ⇒ 0
   });
 }
 
 async function tuan(con: string, tz: string, dau: string) {
   const tu = dauNgayUtc(dau, tz), den = dauNgayUtc(congNgay(dau, 7), tz), het = congNgay(dau, 7);
   const ngayDs = Array.from({ length: 7 }, (_, i) => congNgay(dau, i));
-  // 8 câu độc lập ⇒ chạy song song (mỗi câu là một vòng mạng tới DB)
+  // 11 câu độc lập (gồm 2 câu #492 cho phần sao vay theo ngày) ⇒ chạy song song (mỗi câu là một vòng mạng tới DB)
   const [dung, choi, kiem, tieu, duyet0, sao, top, dungNhieu, xin0, soDau, soNgay] = await Promise.all([
     q<{ ngay: string; loai: string; phut: number }>(
       `select ngay, loai, sum(phut)::int as phut from usage where child_id = $1 and ngay >= $2 and ngay < $3 group by ngay, loai`, [con, dau, het]),
@@ -106,10 +106,11 @@ async function tuan(con: string, tz: string, dau: string) {
   const d0 = duyet0!, tong = d0.duoc + d0.tu_choi + d0.lam_lai + d0.het_han;
   const duyet = { ...d0, tong, tyLe: tong ? Math.round((d0.duoc / tong) * 100) : null };
   const giaiTriNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
-  for (const p of choi) if (p.ngay in giaiTriNgay) giaiTriNgay[p.ngay] = Math.max(0, p.phut);
+  const choiTho: Record<string, number> = {};   // chưa chặn âm: khớp với `net` của sổ sao khi tính phần vay
+  for (const p of choi) if (p.ngay in giaiTriNgay) { giaiTriNgay[p.ngay] = Math.max(0, p.phut); choiTho[p.ngay] = p.phut; }
   const vayNgay = vayTheoNgay(soDau ?? { s: 0, d: 0 }, ngayDs.map((dd) => {
     const r = soNgay.find((x) => x.ngay === dd);
-    return { net: r?.net ?? 0, no: r?.no ?? 0, choi: giaiTriNgay[dd] };
+    return { net: r?.net ?? 0, no: r?.no ?? 0, choi: choiTho[dd] ?? 0 };
   }));
   const hoc = dung.filter((x) => x.loai === "hoc" || x.loai === "he_thong").reduce((a, x) => a + x.phut, 0);
   const hocNgay = Object.fromEntries(ngayDs.map((d) => [d, 0]));
