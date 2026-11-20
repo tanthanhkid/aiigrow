@@ -6,8 +6,7 @@ import { useMemo, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
-import { BangTruot, BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, The, useLam, useTai } from "@/lib/ui";
-import { FormTuThem } from "@/lib/tu-them-viec";
+import { BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, The, useLam, useTai } from "@/lib/ui";
 import { DaiCon } from "@/lib/ui-viec";
 import { LienKet } from "@/lib/lan-dau";
 import { BongGrow, DauNhom, DongChon, TabMuc, TheDs, type MauMuc } from "@/lib/lan-dau-ds";
@@ -21,21 +20,19 @@ type Kho = { chuDe: { ten: string; e: string }[]; ds: { ten: string; e: string }
 const MUC_TAB: Record<MucDm["ma"], { e: string; mau: MauMuc }> = { hoc: { e: "📚", mau: "ngoc" }, van_dong: { e: "🏃", mau: "lam" }, giup_ba_me: { e: "🏠", mau: "cam" } };
 
 export default function GiaoViec() {
-  const { con: conSan, tuThem } = useLocalSearchParams<{ con?: string; tuThem?: string }>();
+  const { con: conSan } = useLocalSearchParams<{ con?: string }>();
   const [conChon, setConChon] = useState<string | null>(conSan ?? null);
   const g = useTai(() => bm.goi<GiaDinh>("gia-dinh"));
   if (!g.d) return <Man lui={{ chu: "" }} tieu={TIEU}><ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man>;
   const c = g.d.con.find((x) => x.id === conChon) ?? g.d.con[0];
   if (!c) return <Man lui={{ chu: "" }} tieu={TIEU}><The><Chu mau={M.chu2}>Chưa có hồ sơ con. Thêm con ở «Cả nhà» để giao việc.</Chu></The></Man>;
   // một khối theo Con (key) ⇒ đổi con là tải lại đúng danh mục (đánh dấu «Đã có» theo con) và xoá lựa chọn cũ
-  return <GiaoCho key={c.id} c={c} dsCon={g.d.con.length > 1 && !conSan ? g.d.con : null} tatCaCon={g.d.con} doiCon={setConChon} moTuThem={tuThem === "1"} />;
+  return <GiaoCho key={c.id} c={c} dsCon={g.d.con.length > 1 && !conSan ? g.d.con : null} tatCaCon={g.d.con} doiCon={setConChon} />;
 }
 
 const TIEU = "Giao việc";
 
-function GiaoCho({ c, dsCon, tatCaCon, doiCon, moTuThem }: { c: GiaDinh["con"][number]; dsCon: GiaDinh["con"] | null; tatCaCon: GiaDinh["con"]; doiCon: (id: string) => void;
-  /** mở sẵn bảng «Ba Mẹ tự thêm» (từ tab Việc & quà trống › «Tự đặt một việc», them-e44cwmvu → them-6pjz1stu) */ moTuThem?: boolean }) {
-  const [tuThem, setTuThem] = useState(!!moTuThem);
+function GiaoCho({ c, dsCon, tatCaCon, doiCon }: { c: GiaDinh["con"][number]; dsCon: GiaDinh["con"] | null; tatCaCon: GiaDinh["con"]; doiCon: (id: string) => void; }) {
   // danh mục (mã + «Đã có» theo Con) và kho việc (emoji từng việc / chủ đề — cùng tên, server/lib/kho-viec.ts) tải song song
   const dm = useTai(async () => {
     const [d, kho] = await Promise.all([bm.goi<{ muc: MucDm[] }>(`nhiem-vu/danh-muc?con=${encodeURIComponent(c.id)}`),
@@ -78,7 +75,7 @@ function GiaoCho({ c, dsCon, tatCaCon, doiCon, moTuThem }: { c: GiaDinh["con"][n
       day={<>
         <BaoLoi loi={loiLam} />
         <Nut chu={chon.length ? `Thêm ${chon.length} việc vào ngày của ${c.ten}` : `Thêm vào ngày của ${c.ten}`} ic="sao" ic3d rong dangChay={dangChay} tat={!chon.length} bam={them} />
-        <LienKet chu="+ Ba Mẹ tự thêm việc" bam={() => setTuThem(true)} />
+        <LienKet chu="+ Ba Mẹ tự thêm việc" bam={() => router.push(`/giao-nv/tu-dat?con=${c.id}&muc=${muc}&sau=2` as never)} />
       </>}>
       {dsCon ? <DaiCon ds={dsCon} chon={c.id} doi={(x) => doiCon(x.id)} /> : null}
       {/* thiết kế them-1jii7k19@v10 (cùng khung bm1-ob-mau): bong bóng Grow · tab emoji · nhóm «📚 Học 7 Chọn tất cả» · dòng emoji ＋ */}
@@ -100,10 +97,6 @@ function GiaoCho({ c, dsCon, tatCaCon, doiCon, moTuThem }: { c: GiaDinh["con"][n
           ))}
         </>
       )}
-      {/* them-6pjz1stu: bảng trượt «Ba Mẹ tự thêm · Đóng» trên danh sách */}
-      <BangTruot mo={tuThem} dong={() => setTuThem(false)} tieu="Ba Mẹ tự thêm" nutDong cuon gon>
-        <FormTuThem dsCon={tatCaCon} con={c.id} mucSan={muc} xong={(ten, tenCon) => { setTuThem(false); baoKhiVe(`Đã thêm «${ten}»${tenCon ? ` cho ${tenCon}` : ""}`); router.back(); }} />
-      </BangTruot>
     </Man>
   );
 }

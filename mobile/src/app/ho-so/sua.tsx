@@ -5,14 +5,14 @@
 // Lưu = POST con/:id/sua rồi gửi ảnh.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, View } from "react-native";
+import { View } from "react-native";
 import { bm, chuanHoaTen } from "@/lib/api";
 import { BONG } from "@/lib/clay";
-import { type ConCt } from "@/lib/hang-ngay";
+import { HangViec, type ConCt } from "@/lib/hang-ngay";
 import { coAnh, luuAnhCon, xoaAnhCon } from "@/lib/anh-con";
 import { MAU_HO_SO } from "@/lib/lan-dau";
 import { ChonMauCon, conGiap, namCua, TheHoSoCon, useAnhForm } from "@/lib/form-ho-so";
-import { BaoLoi, baoKhiVe, ChoTai, Chu, Icon, Icon3D, M, Man, Nut, ONhap, useLam, useTai } from "@/lib/ui";
+import { BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, ONhap, The, useLam, useTai } from "@/lib/ui";
 
 export default function SuaHoSo() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -54,13 +54,10 @@ export default function SuaHoSo() {
       </View>
       <ChonMauCon mau={mauG ?? -1} doi={setMau} />
       {/* dòng «PIN vào máy · Đặt lại ›» ⇒ them-z2fyhohj */}
-      <Pressable onPress={() => router.push(`/ho-so/${id}/pin` as never)} accessibilityRole="button" accessibilityLabel={d.coPin ? "PIN vào máy, đặt lại" : "PIN vào máy, đặt PIN"}
-        style={{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingHorizontal: 6 }}>
-        <Icon3D ten="khoa" co={22} />
-        <Chu kieu="rat" co={14} mau={M.chu2} style={{ flex: 1 }}>PIN vào máy</Chu>
-        <Chu kieu="rat" co={14} mau={M.chinhInk}>{d.coPin ? "Đặt lại" : "Đặt PIN"}</Chu>
-        <Icon ten="phai" mau={M.chinhInk} co={16} />
-      </Pressable>
+      <The dem style={{ paddingVertical: 4 }}>
+        <HangViec dau ic="mo_khoa" mau="xanh" tieu="PIN vào máy" phai={<Chu kieu="rat" co={14} mau={M.lienKet}>{d.coPin ? "Đặt lại" : "Đặt PIN"}</Chu>}
+          bam={() => router.push(`/ho-so/${id}/pin` as never)} nhanDoc={d.coPin ? "PIN vào máy, đặt lại" : "PIN vào máy, đặt PIN"} />
+      </The>
     </Man>
   );
 }

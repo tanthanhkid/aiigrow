@@ -21,7 +21,7 @@ export default function GioChoiCon() {
   const [moi, setMoi] = useState<GioiHan | null>(null);
   const [loiO, setLoiO] = useState<string | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
-  const tieu = "Giờ chơi";
+  const tieu = `Giờ chơi của ${d?.ten ?? "con"}`;
   if (!d) return <Man lui={{ chu: "Hồ sơ con" }} tieu={tieu}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const cu: GioiHan = { ngayThuong: d.g.gioiHanNgayThuong ?? 0, cuoiTuan: d.g.gioiHanCuoiTuan ?? 0, moiLuot: d.g.phutMoiLuot ?? 0 };
   const gt = moi ?? cu;
@@ -34,7 +34,7 @@ export default function GioChoiCon() {
   return (
     <Man lui={{ chu: "Hồ sơ con", ve: `/ho-so/${id}` }} tieu={tieu}
       day={d.xem ? undefined : <><BaoLoi loi={loiLam} /><Nut chu="Lưu giờ chơi" rong dangChay={dangChay} tat={!doi || !!loiO} bam={luu} /></>}>
-      <Chu kieu="rat" co={22}>{`${d.ten} chơi máy bao lâu mỗi ngày?`}</Chu>
+      <Chu kieu="dam7" co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>Chơi vẫn trả bằng sao · 1 sao = 1 phút</Chu>
       {d.xem ? <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{CAU_TRONG_GIUP}</Chu> : null}
       <ChonGioiHan gt={gt} doi={(g, l) => { setMoi(g); setLoiO(l); }} />
       {d.g.homNay?.gioiHan?.cau ? <Chu kieu="dam" co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{`Hôm nay: ${d.g.homNay.gioiHan.cau}`}</Chu> : null}
