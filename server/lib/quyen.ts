@@ -10,7 +10,7 @@ export type Quyen = (typeof QUYEN)[number];
 export const TEN_QUYEN: Record<string, string> = {
   ba_me: "Như Ba Mẹ", trong_giup: "Chỉ trông con",
   // giá trị cũ (sự kiện / thông báo ghi trước 05/11)
-  chu: "Ba Mẹ", duyet: "Ba Mẹ", xem: "Người trông giúp",
+  chu: "Ba Mẹ", duyet: "Ba Mẹ", xem: "Chỉ trông con",
 };
 
 /** vai lưu trong DB (mới hoặc cũ) ⇒ quyền. «roi» (đã rời nhà) ⇒ null. */
@@ -30,7 +30,7 @@ export function quyenVao(v: unknown): Quyen {
   const s = String(v ?? "");
   if (s === "ba_me" || s === "duyet") return "ba_me";
   if (s === "trong_giup" || s === "xem") return "trong_giup";
-  throw new LoiNghiepVu("quyen_sai", "Chọn quyền Ba Mẹ hoặc Người trông giúp");
+  throw new LoiNghiepVu("quyen_sai", "Chọn quyền Ba Mẹ hoặc Chỉ trông con");
 }
 
 /** Giá trị `vai` kiểu cũ trả kèm trong API cho app Ba Mẹ bản trước 05/11 (đọc vai === "chu" / "xem"). Bỏ khi mọi máy đã lên bản mới. */

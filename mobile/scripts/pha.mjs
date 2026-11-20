@@ -284,7 +284,7 @@ Object.assign(coBan, {
   // L6: 2 quyền (Ba Mẹ / Người trông giúp), mời bằng SĐT / email
   "GET thanh-vien": { ds: [{ id: "p1", ten: "Mẹ Lan", quyen: "ba_me", tenQuyen: "Ba Mẹ", laChuNha: true, vai: "chu", dinh_danh: "0912345678", laToi: true },
     { id: "p2", ten: "Ba Huy", quyen: "ba_me", tenQuyen: "Ba Mẹ", laChuNha: false, vai: "duyet", dinh_danh: "0987654321", laToi: false },
-    { id: "p3", ten: "Bà nội Nguyễn Thị Ngọc Hạnh", quyen: "trong_giup", tenQuyen: "Người trông giúp", laChuNha: false, vai: "xem", dinh_danh: "0901234567", laToi: false }],
+    { id: "p3", ten: "Bà nội Nguyễn Thị Ngọc Hạnh", quyen: "trong_giup", tenQuyen: "Chỉ trông con", laChuNha: false, vai: "xem", dinh_danh: "0901234567", laToi: false }],
     loiMoi: [{ id: "lm1", quyen: "trong_giup", vai: "xem", tenGoi: "Ông ngoại", dinhDanh: "0933222111", het: luc(-4000), guiLuc: luc(320) }],
     toi: { id: "p1", quyen: "ba_me", vai: "chu", laChuNha: true }, hanGio: 72 },
   "POST thanh-vien/moi": (b) => ({ id: "lm2", ma: "ABCD2345EFGH6789", lienKet: `${GOC}/moi?ma=ABCD2345EFGH6789`, quyen: b?.quyen ?? "ba_me", vai: b?.quyen === "trong_giup" ? "xem" : "duyet",
@@ -940,7 +940,7 @@ if (process.argv.includes("--giao-dien")) {
     // bm-duoc-moi đúng ca bàn: them-ux0c23p4 (có Google / Facebook), them-0zrwe8yz đã điền, them-pacl0mle đã gõ 4 số
     // bm1-moi v14: người được mời CHƯA có nhà riêng, quyền Trông giúp (ô thứ 3 «Khoá máy khi cần»)
     M("moi-vao (chưa có nhà · bm1-moi)", "/moi/vao?ma=ABCD2345", "Không phải tôi", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] },
-      "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], quyen: "trong_giup", tenQuyen: "Trông giúp" } } }),
+      "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], quyen: "trong_giup", tenQuyen: "Chỉ trông con" } } }),
     M("moi (được mời · them-ux0c23p4)", "/moi?ma=ABCD2345", "Vào nhà cùng Mẹ Lan", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true },
       "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], tenCon: ["An", "Minh", "Nam", "Khoa"] } } }),
     M("moi-dang-ky (đã điền · them-0zrwe8yz)", "/dang-ky?moi=ABCD2345&tenNha=M%E1%BA%B9%20Lan", "Đã khớp", { token: null, truoc: async () => {
