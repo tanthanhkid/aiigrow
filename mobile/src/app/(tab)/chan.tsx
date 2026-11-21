@@ -43,9 +43,10 @@ function ChanCon({ id, ds, dau, doi }: { id: string; ds: GiaDinh["con"]; dau: Re
   useEffect(() => { idRef.current = id; }, [id]);
   const { lam, loi: loiLam, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
-  const chips = ds.length > 1 ? (
+  // Bàn bm2-ung-dung-may: dải avatar luôn có (cả nhà một con), bấm bé nào cả màn đổi theo bé đó
+  const chips = (
     <DaiCon ds={ds} chon={id} doi={(x) => doi(x.id)} duoi={Object.fromEntries(ds.map((x) => [x.id, <VienSao key={x.id} s={saoTu(x)} nho />]))} />
-  ) : null;
+  );
   if (!d) return <View style={{ flex: 1 }}><Man tieuLon={TIEU}>{dau}{chips}<ChoTai loi={loi} matMang={matMang} tai={tai} /></Man></View>;
 
   const ten = d.ds.con.ten;
@@ -133,14 +134,18 @@ function HangIcon({ nhan, ds, web, trong, sua, bam }: { nhan: string; ds: DongDs
   return (
     <Pressable onPress={bam} accessibilityRole="button"
       accessibilityLabel={`${nhan}: ${ds.length ? `${dem("tinh_phut")} tính phút, ${dem("khong_tinh_phut")} không tính phút` : trong}${sua ? ", sửa" : ""}`}
-      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60 }}>
+      style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: ds.length ? 4 : 0 }}>
       <Chu kieu="rat" co={14} mau={M.chu2} style={{ width: 44 }}>{nhan}</Chu>
-      <View style={{ flex: 1, minWidth: 0, flexDirection: "row", gap: 6, alignItems: "center" }}>
+      <View style={{ flex: 1, minWidth: 0, flexDirection: "row", gap: 4, alignItems: "flex-start" }}>
         {ds.length ? ds.slice(0, 4).map((h, i) => (
-          <View key={i} style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
-            boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3), inset 0px -4px 8px -4px rgba(40,44,42,0.12)" }}>
-            <IconNet ten={ic(h)} co={22} />
-            <View style={{ position: "absolute", right: -3, bottom: -3, width: 12, height: 12, borderRadius: 6, backgroundColor: MAU_NHOM[h.nhom], borderWidth: 2, borderColor: "#FFFBF5" }} />
+          <View key={i} style={{ width: 48, alignItems: "center", gap: 3 }}>
+            <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
+              boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3), inset 0px -4px 8px -4px rgba(40,44,42,0.12)" }}>
+              <IconNet ten={ic(h)} co={22} />
+              <View style={{ position: "absolute", right: -3, bottom: -3, width: 12, height: 12, borderRadius: 6, backgroundColor: MAU_NHOM[h.nhom], borderWidth: 2, borderColor: "#FFFBF5" }} />
+            </View>
+            {/* tên app / web dưới icon (#509): một dòng, cắt «…» */}
+            <Chu kieu="dam" co={11} mau={M.chu2} dong={1} style={{ width: 48, textAlign: "center" }}>{h.ten}</Chu>
           </View>
         )) : <Chu kieu="dam" co={13} mau={M.chu3}>{trong}</Chu>}
         {ds.length > 4 ? <Chu kieu="rat" co={13} mau={M.chu3}>{`+${ds.length - 4}`}</Chu> : null}
