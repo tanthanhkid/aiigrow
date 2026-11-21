@@ -148,7 +148,11 @@ export async function themTuThuVien(fam: string, b: { mau?: unknown; con?: unkno
     if (mua && n !== undefined) {
       // quà đã có ⇒ đặt lại số lượng cho dòng quà Con này thấy (bật lại / áp thêm xong vẫn đúng số)
       const r = await one<{ id: string }>(`select id from rewards where family_id = $1 and mau = $2 and bat and ($3::text is null or ap_cho is null or ap_cho ? $3) order by created_at limit 1`, [fam, m, con]);
-      if (r) await datSoLuong(fam, r.id, n);
+      if (r) {
+        await datSoLuong(fam, r.id, n);
+        // các dòng cùng mẫu Con này cũng thấy ⇒ không cộng dồn vào «Đang có»: chỉ dòng đã chọn giữ số
+        await q(`update rewards set ton_kho = 0 where family_id = $1 and mau = $2 and bat and id <> $3 and ton_kho is not null and ($4::text is null or ap_cho is null or ap_cho ? $4)`, [fam, m, r.id, con]);
+      }
     } else if (mua && id) await q(`update rewards set ton_kho = $2 where id = $1 and ton_kho is null`, [id, 1]);
   }
   if (ids.length) await ghiSuKien(fam, "them_qua", { so: ids.length, mau: ma }, { con, nguoi });
@@ -183,7 +187,7 @@ export async function muaThem(fam: string, id: string, them: unknown, nguoi: str
   const x = await one<{ ton_kho: number | null; mau: string | null; ten: string }>(`select ton_kho, mau, ten from rewards where id = $1 and family_id = $2`, [id, fam]);
   if (!x) throw new LoiNghiepVu("khong_thay", "Không thấy phần thưởng", 404);
   if (x.ton_kho === null && !(x.mau && LA_BA_ME_MUA.has(x.mau))) throw new LoiNghiepVu("khong_dem", "Quà nhà không đếm số lượng", 409);
-  const r = await one<{ ton_kho: number }>(`update rewards set ton_kho = least(coalesce(ton_kho, 0) + $2, 99) where id = $1 returning ton_kho`, [id, t]);
+  const r = await one<{ ton_kho: number }>(`update rewards set ton_kho = least(coalesce(ton_kho, 1) + $2, 99) where id = $1 returning ton_kho`, [id, t]);
   await ghiSuKien(fam, "mua_them_qua", { ten: x.ten, them: t }, { nguoi });
   return { id, tonKho: r!.ton_kho };
 }

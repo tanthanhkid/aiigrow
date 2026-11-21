@@ -31,7 +31,7 @@ export default function ThuVienQua() {
   const { lam, loi: loiLam, dangChay } = useLam();
   const tieu = d?.ten ? `Thêm quà cho ${d.ten}` : "Thêm quà";
   if (!d) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
-  const goc = (m: MauQua) => m.dangCo ?? 0;
+  const goc = (m: MauQua) => m.dangCo ?? (m.daCo ? 1 : 0);   // quà cũ không đếm (dangCo null) = đang có 1, không phải «Hết»
   const soMua = (m: MauQua) => sl[m.ma] ?? goc(m);
   const doiMua = d.nhom.filter((g) => g.ma === "ba_me_mua").flatMap((g) => g.ds).filter((m) => soMua(m) !== goc(m) && (soMua(m) > 0 || m.daCo));
   const soDoi = chon.length + doiMua.length;
@@ -61,7 +61,7 @@ export default function ThuVienQua() {
             {g.ds.map((m) => g.ma === "ba_me_mua" ? (
               <View key={m.ma} style={{ paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: M.vien }}>
                 <DongQua i={0} ten={m.ten} phu={[m.menhGia ? tien(m.menhGia) : null, `${m.sao} sao`, m.moTa].filter(Boolean).join(" · ")} n={soMua(m)}
-                  dat={(n) => setSl((x) => ({ ...x, [m.ma]: Math.max(0, Math.min(99, n)) }))} het={m.daCo && soMua(m) === 0} muaThem={() => setSl((x) => ({ ...x, [m.ma]: 1 }))} />
+                  dat={(n) => setSl((x) => ({ ...x, [m.ma]: Math.max(0, Math.min(99, n)) }))} het={m.daCo && soMua(m) === 0} muaThem={() => setSl((x) => ({ ...x, [m.ma]: goc(m) + 1 }))} />
               </View>
             ) : (
               <View key={m.ma} style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: 8, paddingHorizontal: 14, borderTopWidth: 1, borderTopColor: M.vien }}>

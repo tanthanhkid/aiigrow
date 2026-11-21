@@ -48,7 +48,7 @@ export default function ObQua() {
   const dsNha = d?.nhom.find((g) => g.ma === "qua_nha")?.ds ?? [];
   const dat = (ma: string, n: number) => setSl((x) => ({ ...x, [ma]: Math.max(0, Math.min(99, n)) }));
   // #502: «Ba Mẹ mua» có số lượng — số ban đầu = «Đang có» máy chủ (quà đã thêm từ trước), +/− đặt lại số; quà nhà không đếm
-  const goc = (m: MauQua) => m.dangCo ?? 0;
+  const goc = (m: MauQua) => m.dangCo ?? (m.daCo ? 1 : 0);   // quà cũ không đếm (dangCo null) = đang có 1, không phải «Hết»
   const soMua = (m: MauQua) => sl[m.ma] ?? goc(m);
   const doiMua = dsMua.filter((m) => soMua(m) !== goc(m));                      // món Ba Mẹ đã đổi số
   const themMua = doiMua.filter((m) => soMua(m) > goc(m));                     // món mua thêm (để tính tiền / số quà)
@@ -76,7 +76,7 @@ export default function ObQua() {
           {tab !== "qua_nha" ? (
             <Nhom ic="the_qua" chu="Ba Mẹ mua" phu="tốn tiền · mua thêm được">
               <TheDs le>
-                {dsMua.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={soMua(m)} dat={(n) => dat(m.ma, n)} het={m.daCo && soMua(m) === 0} muaThem={() => dat(m.ma, 1)}
+                {dsMua.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={soMua(m)} dat={(n) => dat(m.ma, n)} het={m.daCo && soMua(m) === 0} muaThem={() => dat(m.ma, goc(m) + 1)}
                   xem={CHI_TIET[m.ma] ? () => router.push({ pathname: "/thiet-lap/qua-mua", params: { ma: CHI_TIET[m.ma] } }) : undefined} />)}
               </TheDs>
             </Nhom>

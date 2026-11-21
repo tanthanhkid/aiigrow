@@ -51,7 +51,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
     // #502: «Ba Mẹ mua» = mọi mẫu nhóm ba_me_mua (voucher, sách, Lego…) — mỗi món có «Đang có: N» / «Hết» + «Mua thêm»
     return { qua: qua.ds, voucher: tv.nhom.filter((x) => x.ma === "ba_me_mua").flatMap((x) => x.ds) };
   });
-  const { noi } = useHoanTac();
+  const { noi, bao } = useHoanTac();
   const [tab, setTab] = useState<"tat" | "voucher" | "nha">(tabDau === "nha" ? "nha" : "tat");
   const [ten, setTen] = useState("");
   const [sao, setSao] = useState(100);
@@ -70,7 +70,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
   const moMua = (ma: string) => router.push({ pathname: "/vi/qua-mua", params: { ma, ...(conId ? { con: conId } : {}) } });
   // dòng quà (rewards) của một mẫu Ba Mẹ mua mà Con này thấy — để «Mua thêm» và sửa
   const quaCua = (ma: string) => q.d!.qua.find((x) => x.mau === ma && x.bat);
-  const muaThem = (ma: string) => lam(async () => { const r = quaCua(ma); if (!r) return; await bm.goi(`qua/${r.id}/mua-them`, { them: 1 }); baoKhiVe("Đã thêm 1 vào số quà đang có"); await q.tai(); });
+  const muaThem = (ma: string) => lam(async () => { const r = quaCua(ma); if (!r) return; await bm.goi(`qua/${r.id}/mua-them`, { them: 1 }); await q.tai(); bao("Đã thêm 1 vào số quà đang có"); });
   const moMon = (m: { ma: string; loai: string; daCo: boolean }) => {
     if (m.loai === "voucher") return moMua(m.ma);
     const r = quaCua(m.ma);
