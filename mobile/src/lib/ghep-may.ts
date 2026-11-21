@@ -1,6 +1,7 @@
 // Ghép máy (L8, docs/API.md › «Ghép máy»): một nội dung cho cả Lần đầu và Ghép thêm máy. Giữ kết quả `POST ghep-may` trong bộ nhớ
 // (web: sessionStorage) theo Con + «cài giống máy» — quay lại màn Ghép («Gửi lại link») dùng lại đúng mã còn hạn, không đẻ mã mới mỗi lần.
-import { bm } from "./api";
+import { bm, type TuanThuMay } from "./api";
+import { mayCuaCon } from "./may-nhieu-con";
 import { router } from "expo-router";
 import { appsRobChonSan, datTl, layTl, thanThietLap } from "./thiet-lap";
 
@@ -85,5 +86,15 @@ export type SauGhep = "mau" | "xong" | "app";
 export const docSau = (x: unknown): SauGhep => (x === "xong" || x === "app" ? x : "mau");
 export function diTiepSauGhep(sau: SauGhep, con: string) {
   if (sau === "app") { if (router.canGoBack()) router.dismissTo("/thiet-lap/app"); else router.replace("/thiet-lap/app"); return; }
-  router.replace(sau === "xong" ? { pathname: "/thiet-lap/xong", params: { con } } : "/thiet-lap/mau");
+  // #536: sang bước Việc bằng PUSH — «Quay lại» ở bước Việc về «Đã ghép» (hoặc Ghép máy nếu «Để sau»), không rời Lần đầu
+  if (sau === "xong") router.replace({ pathname: "/thiet-lap/xong", params: { con } });
+  else router.push("/thiet-lap/mau");
+}
+
+/** #536: Con đã có máy ghép ⇒ Lần đầu không tạo mã mới, đi thẳng bước Việc. Lỗi mạng ⇒ false (đi Ghép máy như cũ). */
+export async function conDaCoMay(con: string): Promise<boolean> {
+  try {
+    const r = await bm.goi<{ ds: TuanThuMay[] }>("tuan-thu");
+    return r.ds.some((m) => mayCuaCon(m, con));
+  } catch { return false; }
 }

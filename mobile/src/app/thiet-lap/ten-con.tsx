@@ -11,6 +11,7 @@ import { bm } from "@/lib/api";
 import { ChonMauCon, namCua, ONamSinh, TheHoSoCon, ThePinCon, useAnhForm } from "@/lib/form-ho-so";
 import { CHUA_LUU_ANH, coAnh, dongBoAnhCon, useAnhCon } from "@/lib/anh-con";
 import { DauMan, LienKet, MAU_HO_SO, OLom } from "@/lib/lan-dau";
+import { conDaCoMay } from "@/lib/ghep-may";
 import { kiemPin } from "@/lib/s3";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { datTl, layTl } from "@/lib/thiet-lap";
@@ -64,13 +65,18 @@ export default function ObCon() {
     const ds = [...(layTl().daLuu ?? []).filter((c) => c.id !== r.conId), { id: r.conId, ten: r.ten, mau, namSinh: namSo, avatar }];
     return { r, ds, anhLoi: !anhKq.ok };
   };
+  // #536: Con đã có máy (mở lại hồ sơ) ⇒ thẳng bước Việc, không đẻ mã ghép mới; Con chưa có máy ⇒ Ghép máy
+  const sangGhepHoacViec = async (con: string) => {
+    if (await conDaCoMay(con)) router.push("/thiet-lap/mau");
+    else router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau", sau: "mau" } });
+  };
   const tiep = () => lam(async () => {
     const { r, ds } = await luu();
     // #508: sửa hồ sơ Con ĐANG thiết lập (cùng id) ⇒ giữ mọi lựa chọn các bước sau (việc, quà, giờ, app, web); chỉ Con khác mới bắt đầu sạch
     const cungCon = !!conId && conId === layTl().conId;
     datTl({ conId: r.conId, tenCon: r.ten, namSinh: namSo, mau, daLuu: ds, nhom: namSo && new Date().getFullYear() - namSo >= 11 ? "teen" : "nhi",
       ...(cungCon ? {} : { apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined, viec: undefined, viecRieng: undefined }) });
-    router.push({ pathname: "/thiet-lap/ghep", params: { con: r.conId, nguon: "lan-dau", sau: "mau" } });
+    await sangGhepHoacViec(r.conId);
   });
   const themCon = () => lam(async () => {
     const { ds } = await luu();
@@ -88,7 +94,7 @@ export default function ObCon() {
             if (tenGon) { if (thieuPin) throw new Error(CAU_PIN); if (loiPin) throw new Error(loiPin); const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
             datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh,
               ...(conDau.id === layTl().conId ? {} : { apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined, viec: undefined, viecRieng: undefined }) });
-            router.push({ pathname: "/thiet-lap/ghep", params: { con: conDau.id, nguon: "lan-dau", sau: "mau" } });
+            await sangGhepHoacViec(conDau.id);
           })} />
         ) : (
           <Nut chu={`Lưu & ghép máy cho ${tenGon || "con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo) || thieuPin || !!loiPin} bam={tiep} />
