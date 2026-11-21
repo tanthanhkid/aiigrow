@@ -50,11 +50,13 @@ function NutNhom({ nhom, bam, chu, ten }: { nhom: Nhom; bam: () => void; chu: st
 }
 
 /** Khối «App trên <máy>» + «Chưa xếp · N app» (mỗi dòng hai nút nhóm). `chon(app, nhom)` ghi app vào danh sách của bé. `ghep` = đi Ghép máy. */
-export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep }: {
+export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep, loc: locNgoai }: {
   /** dòng đầu khi chưa ghép máy (mặc định «Ghép máy để thấy app của <bé>») */ chuaGhep?: string;
   ten: string; may: MayApp[] | null; daXep: (a: AppMay) => boolean; chon: (a: AppMay, nhom: Nhom) => void; ghep: () => void;
+  /** #525: màn đã có ô tìm riêng (Thêm app) ⇒ lọc theo chữ đó, KHÔNG vẽ ô lọc thứ hai */ loc?: string;
 }) {
-  const [loc, setLoc] = useState("");
+  const [locRieng, setLoc] = useState("");
+  const loc = locNgoai ?? locRieng;
   if (!may) return null;
   if (!may.length) {
     return (
@@ -90,7 +92,7 @@ export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep }: {
         </Chu>
       ) : (
         <>
-          <OTim gia={loc} doi={setLoc} goiY={`Lọc trong ${tong} app trên máy`} nhan="Lọc app trên máy" />
+          {locNgoai === undefined ? <OTim gia={loc} doi={setLoc} goiY={`Lọc trong ${tong} app trên máy`} nhan="Lọc app trên máy" /> : null}
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 6 }}>
             <View style={{ width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: M.chu2 }} />
             <Chu kieu="rat" co={15} style={{ flex: 1 }}>{`Chưa xếp · ${chua.length} app`}</Chu>

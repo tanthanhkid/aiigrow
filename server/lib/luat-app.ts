@@ -51,6 +51,21 @@ export function laAppAiiGrow(mucTho: unknown) {
 /** #418: khay CŨ Windows «aiigrow.tray.exe.cu-<hex>.exe» — tên lạ, máy chưa cập nhật còn báo; tên thường của AiiGrow vẫn ghi «đã dùng» dạng hệ thống. */
 export const laKhayCuAiiGrow = (mucTho: unknown) => laAppAiiGrow(mucTho) && String(mucTho).toLowerCase().includes(".exe.cu-");
 
+/** #525: công cụ hệ thống / trình điều khiển / thành phần Windows — không phải app con mở để chơi, học: không hiện ở «Thêm app», không thành «app mới»,
+ *  không thành lời xin. So theo mục (tên tệp / gói) + tên hiển thị, TỪ trọn vẹn (không so chuỗi con ngẫu nhiên). */
+const MUC_CONG_CU = new Set(["cmd.exe", "powershell.exe", "pwsh.exe", "wt.exe", "conhost.exe", "regedit.exe", "mmc.exe", "msiexec.exe", "charmap.exe", "git-bash.exe", "git-cmd.exe",
+  "storedesktopextension.exe", "gamebar.exe", "gamebarftserver.exe", "rstmwservice.exe", "msconfig.exe", "dxdiag.exe", "control.exe", "winver.exe", "wscript.exe", "cscript.exe"]);
+const TEN_CONG_CU = [/^command prompt$/, /\bgit (bash|cmd|gui)\b/, /^character map$/, /\bcodec tweak/, /\blav (audio|video|filters)\b/, /\bintel\b.*\b(rapid storage|management engine|graphics command|driver)\b/,
+  /\bgame bar\b/, /\bstoredesktopextension\b/, /\bpowershell\b/, /^windows (terminal|powershell|security|defender)/, /\b(registry editor|device manager|task scheduler|event viewer|resource monitor|disk cleanup|system configuration)\b/,
+  /\bredistributable\b/, /^(microsoft )?\.net (desktop )?runtime/, /^(intel|realtek|nvidia|amd)\b.*\b(driver|audio|control panel)\b/, /\bwindows (software development kit|sdk)\b/];
+export function laCongCuHeThong(mucTho: unknown, ten?: unknown): boolean {
+  const m = String(mucTho ?? "").trim().toLowerCase();
+  if (m && MUC_CONG_CU.has(m)) return true;
+  const t = String(ten ?? "").trim().toLowerCase();
+  if (t && TEN_CONG_CU.some((r) => r.test(t))) return true;
+  return !!m && MUC_CONG_CU.has(`${m}.exe`);      // định danh chỉ có tên tệp không đuôi («storedesktopextension»)
+}
+
 /** Chuẩn hoá: chữ thường; URL ⇒ tên miền không «www.». */
 export function chuanMuc(s: unknown): string {
   let t = String(s ?? "").trim().toLowerCase();
