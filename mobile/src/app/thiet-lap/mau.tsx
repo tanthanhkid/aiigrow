@@ -2,7 +2,7 @@
 // chủ đề Chọn tất cả, nút ＋ từng dòng»; them-5e30929l / them-wv4igjxs / them-ws974ond + 10 màn chủ đề «Phụ giúp n/10» gộp vào đây: tab Học ·
 // Vận động · Giúp Ba Mẹ, tab Giúp Ba Mẹ chia 10 chủ đề). Không chọn sẵn. Kho việc ở máy chủ (GET nhiem-vu/kho). «Xong, sang phần quà» ⇒
 // POST nhiem-vu/kho {con, chon} ⇒ Quà (them-s416tfdj). «+ Ba Mẹ tự thêm» ⇒ bảng them-bwlkjyw5 = form chung lib/tu-them-viec (tạo việc riêng ngay — POST nhiem-vu).
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
@@ -32,11 +32,13 @@ export default function ObMau() {
   const [tab, setTab] = useState<Muc>("hoc");
   const [chon, setChon] = useState<Set<string>>(() => new Set(tl.viec ?? []));        // #508: nhớ lựa chọn khi quay lại / tải lại trang
   const [them, setThem] = useState(false);
+  useEffect(() => { datTl({ viec: [...chon] }); }, [chon]);
   const [rieng, setRieng] = useState<string[]>(tl.viecRieng ?? []);         // việc riêng Ba Mẹ vừa tự thêm (tab «Khác»)
   const { lam, loi, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
+  useEffect(() => { datTl({ viecRieng: rieng }); }, [rieng]);
   const ds = useMemo(() => d?.ds ?? [], [d]);
-  const doi = (mas: string[], bat: boolean) => setChon((c) => { const n = new Set(c); for (const m of mas) { if (bat) n.add(m); else n.delete(m); } datTl({ viec: [...n] }); return n; });
+  const doi = (mas: string[], bat: boolean) => setChon((c) => { const n = new Set(c); for (const m of mas) { if (bat) n.add(m); else n.delete(m); } return n; });
   const nhom = (vs: ViecKho[]) => ({ het: vs.length > 0 && vs.every((v) => chon.has(v.ma)), bam: () => doi(vs.map((v) => v.ma), !vs.every((v) => chon.has(v.ma))) });
   const t = TAB.find((x) => x.ma === tab)!;
   const cuaTab = ds.filter((v) => v.muc === tab);
@@ -93,7 +95,7 @@ export default function ObMau() {
       )}
       {/* them-bwlkjyw5 «Ba Mẹ tự thêm» — cùng form với «Giao việc» (lib/tu-them-viec, them-6pjz1stu) */}
       <BangTruot mo={them} dong={() => setThem(false)} tieu="Ba Mẹ tự thêm" nutDong cuon gon>
-        <FormTuThem dsCon={tl.conId ? [{ id: tl.conId, ten } as GiaDinh["con"][number]] : []} con={tl.conId} xong={(tenViec) => { setThem(false); setRieng((x) => { const n = [...x, tenViec]; datTl({ viecRieng: n }); return n; }); setTab("khac"); bao(`Đã thêm «${tenViec}» cho ${ten}`); }} />
+        <FormTuThem dsCon={tl.conId ? [{ id: tl.conId, ten } as GiaDinh["con"][number]] : []} con={tl.conId} xong={(tenViec) => { setThem(false); setRieng((x) => [...x, tenViec]); setTab("khac"); bao(`Đã thêm «${tenViec}» cho ${ten}`); }} />
       </BangTruot>
     </Man>
   );

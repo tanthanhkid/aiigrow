@@ -67,13 +67,13 @@ export default function MoiNguoiNha() {
   });
   // lời mời chỉ được TẠO khi Ba Mẹ bấm «Gửi lời mời» hoặc bấm gửi link thật (#508): xem hướng dẫn không sinh lời mời; đã tạo rồi thì dùng lại, không tạo trùng
   const taoMoi = async () => {
-    if (kq) return kq;
+    if (kq && kq.dinhDanh === sach && kq.quyen === quyen) return kq;        // chỉ dùng lại lời mời ĐÚNG người + vai đang xem (đổi người ⇒ tạo mới)
     const r = await bm.goi<KqMoi>("thanh-vien/moi", { dinhDanh: sach, quyen, tenGoi: ten.trim() || undefined });
     setKq(r);
     return r;
   };
   const chiaSe = (r: KqMoi) => Share.share({ title: r.chiaSe.tieuDe, message: r.chiaSe.noiDung }).catch(() => {});
-  const guiEmail = (r: KqMoi) => Linking.openURL(`mailto:${encodeURIComponent(r.dinhDanh ?? sach)}?subject=${encodeURIComponent(r.chiaSe.tieuDe)}&body=${encodeURIComponent(r.chiaSe.noiDung)}`).catch(() => {});
+  const guiEmail = (r: KqMoi) => Linking.openURL(`mailto:${encodeURIComponent(r.dinhDanh ?? sach)}?subject=${encodeURIComponent(r.chiaSe.tieuDe)}&body=${encodeURIComponent(r.chiaSe.noiDung)}`).catch(() => chiaSe(r));        // máy không có ứng dụng thư ⇒ mở hàng chia sẻ
   // «<tên> chưa có app? Xem cách gửi link»: chỉ mở màn «Mời <tên>» (B3); nút gửi ở đó mới tạo lời mời rồi mở email / hàng chia sẻ (Zalo, Tin nhắn…)
   const guiLink = () => setGuiLinkMo(true);
   const guiQua = (kenh: "email" | "chia_se") => lam(async () => {
@@ -87,11 +87,12 @@ export default function MoiNguoiNha() {
   });
 
   if (guiLinkMo) {
-    const ai = kq?.tenGoi || ten.trim() || kq?.dinhDanh || sach || "người nhà";
-    const lk = kq?.chiaSe.lienKet ?? null;
+    const ai = ten.trim() || sach || "người nhà";
+    const kqDung = kq && kq.dinhDanh === sach && kq.quyen === quyen ? kq : null;
+    const lk = kqDung?.chiaSe.lienKet ?? null;
     const email = cach === "email";
     // câu máy chủ soạn («… Bấm để vào nhà: <link>») — link hiện riêng ở thẻ dưới; chưa tạo lời mời ⇒ câu cùng dạng, link riêng sinh khi bấm gửi
-    const cau = (kq ? kq.chiaSe.noiDung.replace(lk ?? "", "").replace(/[\s:]+$/, "") : `${d?.toi ?? "Ba Mẹ"} mời bạn cùng trông con trên AiiGrow. Bấm để vào nhà`) + ".";
+    const cau = (kqDung ? kqDung.chiaSe.noiDung.replace(lk ?? "", "").replace(/[\s:]+$/, "") : `${d?.toi ?? "Ba Mẹ"} mời bạn cùng trông con trên AiiGrow. Bấm để vào nhà`) + ".";
     return (
       <Man lui={{ chu: "", bam: () => setGuiLinkMo(false) }} tieu={`Mời ${ai}`} day={<>
         {/* kênh chính theo cách mời: mời bằng email ⇒ gửi qua email; mời bằng SĐT ⇒ Zalo (hàng chia sẻ). Kênh còn lại ở nút phụ */}
