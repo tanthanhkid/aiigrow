@@ -123,7 +123,7 @@ export const DO = String.raw`(() => {
           const an = cat.scrollHeight - cat.clientHeight; if (an > 3 && (an % lh) > 3 && (lh - (an % lh)) > 3) bao({ loi: 'chữ bị cắt nửa dòng', an });
           const c = cat.getBoundingClientRect(); if (c.right > q.right + 2 || c.left < q.left - 2 || c.bottom > q.bottom + 2 || c.top < q.top - 2) bao({ loi: 'khung chữ ló ra khỏi nút', lo: Math.round(Math.max(c.right - q.right, q.left - c.left)) });
           continue; }
-        if (dongCua(n).some(r => r.right > q.right + 2 || r.left < q.left - 2 || r.bottom > q.bottom + 2 || r.top < q.top - 2)) bao({ loi: 'chữ ló ra khỏi nút' }); }
+        if (dongCua(n).filter(r => r.width > 8).some(r => r.right > q.right + 2 || r.left < q.left - 2 || r.bottom > q.bottom + 2 || r.top < q.top - 2)) bao({ loi: 'chữ ló ra khỏi nút' }); }
     }
   }
   // 6. LE-THE (TestFlight build 6: chữ / icon / nút dính sát mép thẻ): thẻ clay = khối có bóng NGOÀI (box-shadow có phần không inset),

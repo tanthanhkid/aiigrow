@@ -1073,7 +1073,7 @@ if (process.argv.includes("--giao-dien")) {
   };
   // PHA_CHI_DAI=1: chỉ chạy lượt chữ dài (soát nhanh khi sửa)
   // PHA_RONG=390: chỉ đo một khổ (soát nhanh khi sửa); cổng thật đo đủ 320 / 390 / 390 giãn
-  const cheDo = process.env.PHA_RONG ? [[Number(process.env.PHA_RONG), false]] : undefined;
+  const cheDo = process.env.PHA_RONG ? [[Number(process.env.PHA_RONG), !!process.env.PHA_GIAN]] : undefined;
   let tong = process.env.PHA_CHI_DAI === "1" ? 0 : await chayCong({ goi, js, sleep, dsMan, vao, canh: canhMan, ...(cheDo ? { cheDo } : {}) });
   if (process.env.PHA_CHU_DAI !== "0" || process.env.PHA_CHI_DAI === "1") {
     chuDai = true;
@@ -2273,7 +2273,7 @@ await kichBan("Sổ sao · Trang chủ ví âm: viên «−20 sao» + dòng nợ
   xet(!(await chu()).includes("Cho vay sao"), "#421: không còn nút «Cho vay sao» ở thẻ hero (cho vay qua lời xin của con)");
   const bo = await chuBoSao();
   xet(!bo.length, `không còn chữ đã bỏ ${bo.join(" ")}`);
-  await bam("Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước ›");
+  await bam("Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước\u00A0›");   // Chu giữ «\u00A0›» dính chữ cuối (không rơi một mình xuống dòng)
   xet(await doi(`Ví sao của ${KEN}`), "dòng nợ ⇒ Ví sao");
 });
 

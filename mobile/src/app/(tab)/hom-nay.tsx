@@ -18,7 +18,7 @@
 // Người trông giúp vẫn khoá máy / cho vay sao / trả lời lời xin (máy chủ cho phép — quyen.ts › trongGiupDuoc).
 import { memo, useEffect, useRef, useState } from "react";
 import { router } from "expo-router";
-import { Pressable, View, useWindowDimensions } from "react-native";
+import { Pressable, View } from "react-native";
 import { bm, type AppChuaXep, type CanhBao, type GiaDinh, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { ChuongTb } from "@/lib/chuong-tb";
 import { moLaiMay } from "@/lib/khoa-may";
@@ -192,7 +192,6 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const matMangMay = (c.matMang ?? []).slice(0, 1).map((m) => gonTen(m.ten.replace(/ của .*$/, "")) + ((c.matMang?.length ?? 0) > 1 ? ` +${(c.matMang?.length ?? 1) - 1}` : ""));
   const mayKhoa = may.filter((m) => !m.dungChung || m.truc).map((m) => m.ten.replace(/ của .*$/, ""));
   const khoaDen = ct.d?.khoaDen ?? null;
-  const hep = useWindowDimensions().width < 360;        // 320: «Tự khoá lúc HH:MM ›» gọn để vẫn một dòng cạnh Grow
   // bảng Khoá máy: máy đang chạy app gì (thiết kế 05 «Laptop ● Roblox · từ 19:02»)
   const dangTheoMay: Record<string, { chu: string; mo?: boolean }> = {};
   for (const m of may) {
@@ -207,7 +206,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   // máy khoá: «… còn N sao = N phút ›» → Máy của con; còn lại → Ví sao
   const bamPhu = khoa ? () => router.push(`/may?con=${conId}` as never) : veVi;
   const phuSao = khoa ? `Đang khoá · còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút ›`
-    : dangChoi ? (s.phutCon > 0 ? `Tự khoá lúc ${gioHetSao(s.phutCon)}${hep ? "" : " khi hết sao"} ›` : "Hết sao · máy tự khoá ›")
+    : dangChoi ? (s.phutCon > 0 ? `Tự khoá lúc ${gioHetSao(s.phutCon)} ›` : "Hết sao · máy tự khoá ›")
     : s.phutCon > 0 ? `= ${soVN(s.phutCon)} phút chơi ›` : "Hết sao · con xin Ba Mẹ cho vay khi cần ›";
 
   return (
