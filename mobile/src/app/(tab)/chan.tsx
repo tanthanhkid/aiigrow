@@ -138,14 +138,14 @@ function HangIcon({ nhan, ds, web, trong, sua, bam }: { nhan: string; ds: DongDs
       <Chu kieu="rat" co={14} mau={M.chu2} style={{ width: 44 }}>{nhan}</Chu>
       <View style={{ flex: 1, minWidth: 0, flexDirection: "row", gap: 4, alignItems: ds.length ? "flex-start" : "center" }}>
         {ds.length ? ds.slice(0, 4).map((h, i) => (
-          <View key={i} style={{ width: 48, alignItems: "center", gap: 3 }}>
+          <View key={i} style={{ flex: 1, minWidth: 48, maxWidth: 64, alignItems: "center", gap: 3 }}>
             <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
               boxShadow: "0px 8px 12px -8px rgba(28,32,30,0.3), inset 0px -4px 8px -4px rgba(40,44,42,0.12)" }}>
               <IconNet ten={ic(h)} co={22} />
               <View style={{ position: "absolute", right: -3, bottom: -3, width: 12, height: 12, borderRadius: 6, backgroundColor: MAU_NHOM[h.nhom], borderWidth: 2, borderColor: "#FFFBF5" }} />
             </View>
-            {/* tên app / web dưới icon (#509): một dòng, cắt «…» */}
-            <Chu kieu="dam" co={11} mau={M.chu2} dong={1} style={{ width: 48, textAlign: "center" }}>{h.ten}</Chu>
+            {/* tên app / web dưới icon (#509, #526): tối đa hai dòng, tên ngắn hiện đủ */}
+            <Chu kieu="dam" co={11} mau={M.chu2} dong={2} style={{ alignSelf: "stretch", textAlign: "center", lineHeight: 13 }}>{h.ten}</Chu>
           </View>
         )) : <Chu kieu="dam" co={13} mau={M.chu3}>{trong}</Chu>}
         {ds.length > 4 ? <Chu kieu="rat" co={13} mau={M.chu3}>{`+${ds.length - 4}`}</Chu> : null}
