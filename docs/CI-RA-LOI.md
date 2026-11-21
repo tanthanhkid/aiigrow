@@ -1,15 +1,21 @@
 # CI rà lỗi app Ba Mẹ
 
-Workflow `.github/workflows/mobile.yml` (ubuntu-latest). Chạy khi push đụng `mobile/**`, `server/**` hoặc chính tệp workflow (mọi nhánh), và chạy tay được.
+Workflow `.github/workflows/mobile.yml` (ubuntu-latest). Chạy khi `pull_request` hoặc push `main` đụng `mobile/**`, `server/**` hoặc chính tệp workflow, và chạy tay được (`workflow_dispatch`).
 Lượt cũ cùng nhánh bị huỷ khi có lượt mới (`concurrency`).
 
 | Job | Kiểm gì | Thời gian |
 |---|---|---|
 | `kiem` | mobile: `expo install --check`, `tsc`, `expo lint`, `node --test`; server: `tsc`, toàn bộ test (PGlite trong tiến trình); seed CI trên **Postgres 16 thật** (service) + kiểm seed bị chặn khi `NODE_ENV=production` / thiếu cờ | ~6 phút |
 | `web` | `expo export --platform web` với `EXPO_PUBLIC_API=/` (giống cổng localhost `scripts/deploy-prod.sh --chi-kiem`) → artifact `web-dist` | ~1–2 phút |
-| `giao-dien (luong / gd-a / gd-b / gd-c)` | `mobile/scripts/pha.mjs` trên Chrome headless: kịch bản luồng + cổng giao diện (mọi màn Ba Mẹ × 320/390/390 giãn + lượt chữ dài) chia ba lượt theo tên màn, chạy song song. Có SAI / lỗi giao diện ⇒ job đỏ | luong ~4 phút, gd-a ~7, gd-c ~10, gd-b ~15 phút (chạy song song, tổng ~15 phút) |
+| `giao-dien (1/6 … 6/6)` | `mobile/scripts/pha.mjs` trên Chrome headless, `PHA_SHARD=i/6` (chia xoay vòng danh sách màn và kịch bản): mỗi shard chạy cổng giao diện (màn × 320/390/390 giãn + lượt chữ dài) rồi kịch bản luồng của phần mình, song song 6 job. Có SAI / lỗi giao diện / TREO ⇒ job đỏ | xem bảng đo trong PR #tang-toc-pha |
+| `giao-dien-tong` | đỏ nếu bất kỳ shard nào đỏ / bị huỷ | ~10 giây |
 
 `pha.mjs` chặn mọi `/api` bằng CDP và trả dữ liệu giả — không cần máy chủ. Máy chủ thật + dữ liệu thật dùng seed bên dưới.
+
+## Agent kiểm bằng CI thay vì chạy lượt đủ trên Mac
+
+Đẩy nhánh + mở PR (push nhánh không có PR không chạy; push chỉ chạy trên `main`) ⇒ workflow `mobile` tự chạy (hoặc `gh workflow run mobile -R tanthanhkid/aiigrow --ref <nhánh>`); chờ bằng `gh run watch <id>` (hoặc vòng ≤15 phút);
+đỏ thì `gh run download <id> -n giao-dien-<i>` đọc `pha-*.txt`. Trước đó chạy `bash mobile/scripts/cong-pr.sh` ở máy. Watchdog `PHA_HAN_GIAY` (90 s) bắt màn treo: `TREO <tên>`, mã thoát 3.
 
 ## Chạy tay
 
@@ -21,11 +27,11 @@ gh run list -R tanthanhkid/aiigrow -w mobile -L 5
 
 ## Artifact
 
-- `giao-dien-<lượt>`: `pha-<lượt>.txt` (log đủ) + `anh/*.png` (màn lỗi; chạy tay thì mọi màn). Tóm tắt lỗi nằm ở Summary của lượt chạy.
+- `giao-dien-<i>` (i = 1..6): `pha-giao-dien-<i>.txt` + `pha-luong-<i>.txt` (log đủ) + `anh/*.png` (màn lỗi; chạy tay thì mọi màn). Tóm tắt lỗi nằm ở Summary của lượt chạy.
 - `web-dist`: bản web Expo đã dựng (giữ 3 ngày).
 
 ```sh
-gh run download <run-id> -R tanthanhkid/aiigrow -n giao-dien-gd-a -D /tmp/gd-a
+gh run download <run-id> -R tanthanhkid/aiigrow -n giao-dien-1 -D /tmp/gd-1
 ```
 
 ## Dữ liệu thử + đăng nhập không OTP (cho kiểm e2e trên máy chủ thật)

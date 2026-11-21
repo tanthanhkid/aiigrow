@@ -39,3 +39,15 @@ Docs: https://docs.expo.dev/eas/index.md
 - If `ios/` and `android/` directories do not exist, they are generated (Continuous Native Generation). Never create or edit them by hand — configure native behavior in `app.json` and config plugins.
 - Expo Go only includes its bundled native modules. After adding a library with native code, the app needs a development build: `npx expo run:ios|android` locally, or `eas build --profile development`.
 - Prefer recommended Expo modules over third-party libraries, and check your available skills before adding dependencies. Docs: https://docs.expo.dev/versions/latest/index.md
+
+## Quy trình PR / cổng kiểm (mobile + server)
+
+- **Trước mở PR**: `bash mobile/scripts/cong-pr.sh` (lint mobile đúng lệnh CI + tsc mobile + tsc server + test server liên quan + `pha-theo-diff`: pha chỉ trên màn / kịch bản
+  liên quan tới diff ở 320 + 390px). Đỏ bước nào thoát ≠ 0, tóm tắt ở cuối. Cần `mobile/node_modules` (`cp -cR`, không symlink) và `server/node_modules` (`pnpm install --frozen-lockfile`).
+- **Lượt `--giao-dien` ĐỦ chạy trên CI, không chạy trên Mac**: workflow `mobile` có job `giao-dien` chia 6 shard (`PHA_SHARD=i/6`) chạy song song, chạy trên `pull_request`
+  và `workflow_dispatch`; job `giao-dien-tong` đỏ nếu shard nào đỏ. Agent đẩy nhánh và MỞ PR (nhánh chưa có PR thì không có lượt CI; hoặc `gh workflow run mobile --ref <nhánh>`) rồi chờ (`gh run watch`, ~10–15 phút) thay vì chạy lượt đủ 60–90 phút trên Mac.
+  Kích tay: `gh workflow run mobile --ref <nhánh>`; log/ảnh: `gh run download <id> -n giao-dien-<i>`.
+- **Đổi chữ giao diện (nhãn nút, tiêu đề, câu thông báo) ⇒ sửa kịch bản pha (`mobile/scripts/pha.mjs`) trong CÙNG PR**; kịch bản mới đặt trong hàm / khối riêng cho dễ rebase.
+- **Test không dùng đồng hồ thật** (`Date.now()`, `new Date()` trần): truyền thời điểm vào hàm hoặc dùng `node:test` mock timers, kẻo test đỏ theo giờ / ngày chạy.
+- `pha.mjs` có watchdog: màn / kịch bản quá `PHA_HAN_GIAY` (mặc định 90) ghi `TREO <tên>`, đóng việc dở (khởi động lại Chrome nếu cần), chạy tiếp; cuối lượt thoát mã 3.
+  Mac tự bọc `caffeinate -i`. Biến soát nhanh: `PHA_MAN` (tên màn), `PHA_KB` (tên kịch bản), `PHA_RONG` (một khổ), `PHA_SHARD=i/n`, `PHA_DUONG` (đường dẫn màn).

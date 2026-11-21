@@ -12,12 +12,24 @@ import { readFileSync, existsSync, statSync, mkdtempSync, rmSync } from "node:fs
 import { join, extname } from "node:path";
 import { tmpdir } from "node:os";
 import { spawn } from "node:child_process";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { deflateSync, crc32 } from "node:zlib";
 
 const DIR = process.argv[2] ?? "dist";
 const CHROME = process.argv.slice(3).find((x) => !x.startsWith("--")) ?? "C:/Program Files/Google/Chrome/Application/chrome.exe";
 const CONG = Number(process.env.PHA_CONG ?? 8191), CDP = Number(process.env.PHA_CDP ?? 9499), GOC = `http://localhost:${CONG}`;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// macOS: gập máy / màn hình tắt không được làm treo lượt chạy ⇒ caffeinate bám theo tiến trình này (tự thoát khi pha.mjs thoát)
+if (process.platform === "darwin" && !process.env.PHA_KHONG_CAFFEINATE) { try { spawn("caffeinate", ["-i", "-w", String(process.pid)], { stdio: "ignore", detached: true }).unref(); } catch { /* không có caffeinate */ } }
+/** PHA_SHARD=i/n (i từ 1): chia đều danh sách theo thứ tự xoay vòng, chạy phần i. Không đặt ⇒ giữ nguyên. */
+const shard = (ds) => {
+  const m = /^(\d+)\/(\d+)$/.exec(process.env.PHA_SHARD ?? "");
+  if (!process.env.PHA_SHARD) return ds;
+  if (!m || +m[1] < 1 || +m[1] > +m[2]) { console.log(`PHA_SHARD «${process.env.PHA_SHARD}» sai — dạng i/n, 1 ≤ i ≤ n`); process.exit(2); }
+  return ds.filter((_, k) => k % +m[2] === +m[1] - 1);
+};
+/** Cuối lượt: có TREO thì in danh sách và thoát mã ≠ 0 (không bao giờ im lặng). */
+const thoat = (loi) => { if (dsTreo.length) { console.log(`\nTREO ${dsTreo.length}: ${dsTreo.join(" | ")}`); process.exit(3); } process.exit(loi ? 1 : 0); };
 
 // ---------------------------------------------------------------- web tĩnh (SPA: đường lạ → index.html)
 const LOAI = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json",
@@ -548,46 +560,99 @@ let matMang = false;
 const nhatKy = [];
 
 // ---------------------------------------------------------------- Chrome + CDP
-const hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-"));
-const chrome = spawn(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
-  "--no-default-browser-check", "--window-size=420,900", "--lang=vi-VN",
-  // macOS: Chrome headless có lúc coi cửa sổ là bị che (document.visibilityState «hidden») ⇒ requestAnimationFrame dừng ⇒ hiệu ứng vào của toast
-  // (Reanimated) và bảng trượt (Modal slide) không chạy: toast «Đã …» không hiện, nút trong bảng trượt «bị che» (lỗi cổng 14/11). Tắt hãm nền.
-  "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding", "--disable-background-timer-throttling", "about:blank"], { stdio: "ignore" });
-let trang;
-for (let i = 0; i < 60 && !trang; i++) {
-  try { trang = (await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json()).find((x) => x.type === "page"); } catch { /* chờ Chrome */ }
-  if (!trang) await sleep(500);
-}
-const ws = new WebSocket(trang.webSocketDebuggerUrl);
-await new Promise((r) => (ws.onopen = r));
-let so = 0; const cho = {};
-ws.onmessage = async (e) => {
-  const m = JSON.parse(e.data);
-  if (m.id && cho[m.id]) { cho[m.id](m.result ?? m.error); delete cho[m.id]; return; }
-  if (m.method !== "Fetch.requestPaused") return;
-  const { requestId, request } = m.params;
-  const url = new URL(request.url), d = url.pathname.replace(/^\/api\/(m|kid)\//, ""), qs = url.search;
-  // khoá có chuỗi hỏi («GET admin/ho-tro?loc=cua_toi») thắng khoá chỉ đường dẫn; nhật ký giữ chuỗi hỏi ở `q`
-  const khoa = kb[`${request.method} ${d}${qs}`] !== undefined ? `${request.method} ${d}${qs}` : `${request.method} ${d}`;
-  let body = null; try { body = request.postData ? JSON.parse(request.postData) : null; } catch { /* không JSON */ }
-  nhatKy.push({ m: request.method, d, q: qs, body });
-  if (request.method === "OPTIONS") return goi("Fetch.fulfillRequest", { requestId, responseCode: 204, responseHeaders: [] });
-  const tl0 = matMang ? "mat_mang" : kb[khoa], tl = typeof tl0 === "function" ? tl0(body) : tl0;      // hàm: trả theo body
-  if (tl === "mat_mang") return goi("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
-  const { status, data } = tl === undefined ? { status: 404, data: { error: "khong_co_duong", message: `pha.mjs chưa giả ${khoa}` } }
-    : tl && typeof tl === "object" && "status" in tl ? { status: tl.status, data: tl.body } : { status: 200, data: tl };
-  // server luôn trả `sao` cho dòng quà (GET qua); bản giả cũ chỉ có `diem` ⇒ tab «Tất cả» (#502) cần số
-  if (khoa === "GET qua" && data?.ds) data.ds = data.ds.map((q) => ({ sao: q.diem, ...q }));
-  if (tl === undefined) console.log("   (chưa giả)", khoa);
-  goi("Fetch.fulfillRequest", { requestId, responseCode: status, responseHeaders: [{ name: "content-type", value: "application/json" }],
-    body: Buffer.from(JSON.stringify(data)).toString("base64") });
+let hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-"));
+const hoCu = [];   // hồ sơ của các Chrome đã bị giết (watchdog) — dọn cuối lượt
+let chrome, trang, ws, so = 0, cho = {};
+const luuMetric = {};   // lệnh Emulation.* đã đặt ⇒ phát lại khi khởi động lại Chrome (watchdog)
+// giết CẢ nhóm tiến trình của Chrome (renderer treo vòng lặp vô hạn sống sót khi chỉ giết tiến trình chính ⇒ ăn CPU + giữ cổng CDP)
+const giet = () => { const c = chrome; chrome = null; try { if (!c) return; if (process.platform === "win32") c.kill(); else process.kill(-c.pid, "SIGKILL"); } catch { /* đã chết */ } };
+process.on("exit", () => giet());
+for (const sg of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sg, () => process.exit(130));
+const goiTho = (method, params = {}) => new Promise((r) => { cho[++so] = r; ws.send(JSON.stringify({ id: so, method, params })); });
+const khoiDongChrome = async () => {
+  chrome = spawn(CHROME, ["--headless=new", "--use-mock-keychain", "--password-store=basic", `--remote-debugging-port=${CDP}`, `--user-data-dir=${hoSo}`, "--no-first-run",
+    "--no-default-browser-check", "--window-size=420,900", "--lang=vi-VN",
+    // macOS: Chrome headless có lúc coi cửa sổ là bị che (document.visibilityState «hidden») ⇒ requestAnimationFrame dừng ⇒ hiệu ứng vào của toast
+    // (Reanimated) và bảng trượt (Modal slide) không chạy: toast «Đã …» không hiện, nút trong bảng trượt «bị che» (lỗi cổng 14/11). Tắt hãm nền.
+    "--disable-backgrounding-occluded-windows", "--disable-renderer-backgrounding", "--disable-background-timer-throttling", "about:blank"], { stdio: "ignore", detached: process.platform !== "win32" });
+  trang = undefined;
+  for (let i = 0; i < 60 && !trang; i++) {
+    try { trang = (await (await fetch(`http://127.0.0.1:${CDP}/json/list`)).json()).find((x) => x.type === "page"); } catch { /* chờ Chrome */ }
+    if (!trang) await sleep(500);
+  }
+  if (!trang) throw new Error("Chrome headless không mở được");
+  ws = new WebSocket(trang.webSocketDebuggerUrl);
+  await new Promise((r) => (ws.onopen = r));
+  so = 0; cho = {};
+  ws.onmessage = async (e) => {
+    const m = JSON.parse(e.data);
+    if (m.id && cho[m.id]) { cho[m.id](m.result ?? m.error); delete cho[m.id]; return; }
+    if (m.method !== "Fetch.requestPaused") return;
+    const { requestId, request } = m.params;
+    const url = new URL(request.url), d = url.pathname.replace(/^\/api\/(m|kid)\//, ""), qs = url.search;
+    // khoá có chuỗi hỏi («GET admin/ho-tro?loc=cua_toi») thắng khoá chỉ đường dẫn; nhật ký giữ chuỗi hỏi ở `q`
+    const khoa = kb[`${request.method} ${d}${qs}`] !== undefined ? `${request.method} ${d}${qs}` : `${request.method} ${d}`;
+    let body = null; try { body = request.postData ? JSON.parse(request.postData) : null; } catch { /* không JSON */ }
+    nhatKy.push({ m: request.method, d, q: qs, body });
+    if (request.method === "OPTIONS") return goiTho("Fetch.fulfillRequest", { requestId, responseCode: 204, responseHeaders: [] });
+    const tl0 = matMang ? "mat_mang" : kb[khoa], tl = typeof tl0 === "function" ? tl0(body) : tl0;      // hàm: trả theo body
+    if (tl === "mat_mang") return goiTho("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
+    const { status, data } = tl === undefined ? { status: 404, data: { error: "khong_co_duong", message: `pha.mjs chưa giả ${khoa}` } }
+      : tl && typeof tl === "object" && "status" in tl ? { status: tl.status, data: tl.body } : { status: 200, data: tl };
+    // server luôn trả `sao` cho dòng quà (GET qua); bản giả cũ chỉ có `diem` ⇒ tab «Tất cả» (#502) cần số
+    if (khoa === "GET qua" && data?.ds) data.ds = data.ds.map((q) => ({ sao: q.diem, ...q }));
+    if (tl === undefined) console.log("   (chưa giả)", khoa);
+    goiTho("Fetch.fulfillRequest", { requestId, responseCode: status, responseHeaders: [{ name: "content-type", value: "application/json" }],
+      body: Buffer.from(JSON.stringify(data)).toString("base64") });
+  };
+  await goiTho("Page.enable");
+  await goiTho("Emulation.setFocusEmulationEnabled", { enabled: true });   // trang luôn «đang được xem» (cùng lý do cờ --disable-backgrounding-occluded-windows)
+  await goiTho("Page.setWebLifecycleState", { state: "active" });
+  await goiTho("Fetch.enable", { patterns: [{ urlPattern: `${GOC}/api/*`, requestStage: "Request" }] });
+  for (const [method, params] of Object.entries(luuMetric)) await goiTho(method, params);
 };
-const goi = (method, params = {}) => new Promise((r) => { cho[++so] = r; ws.send(JSON.stringify({ id: so, method, params })); });
-await goi("Page.enable");
-await goi("Emulation.setFocusEmulationEnabled", { enabled: true });   // trang luôn «đang được xem» (cùng lý do cờ --disable-backgrounding-occluded-windows)
-await goi("Page.setWebLifecycleState", { state: "active" });
-await goi("Fetch.enable", { patterns: [{ urlPattern: `${GOC}/api/*`, requestStage: "Request" }] });
+// Watchdog (PHA_HAN_GIAY, mặc định 90): `canh(ten, fn)` chạy một màn / kịch bản có hạn. Quá hạn ⇒ ghi «TREO <tên>», bỏ việc dở (mọi lời gọi CDP
+// của việc dở sau đó ném lỗi — AsyncLocalStorage theo «đời»), thử về about:blank, trang không đáp thì khởi động lại Chrome rồi chạy tiếp.
+const HAN_MS = Number(process.env.PHA_HAN_GIAY ?? 90) * 1000;
+const alsDoi = new AsyncLocalStorage();
+let doiHT = 0;
+const dsTreo = [];
+const goi = (method, params = {}) => {
+  const s = alsDoi.getStore();
+  if (s && s.doi !== doiHT) return Promise.reject(new Error("việc dở đã bị watchdog bỏ"));
+  if (method.startsWith("Emulation.set")) luuMetric[method] = params;
+  return goiTho(method, params);
+};
+const TREO = Symbol("TREO");
+const canh = async (ten, fn) => {
+  let dong;
+  const hen = new Promise((r) => { dong = setTimeout(() => r(TREO), HAN_MS); });
+  const viec = alsDoi.run({ doi: doiHT }, async () => {
+    // PHA_TEST_TREO=<regex>: tên khớp ⇒ làm treo THẬT renderer (vòng lặp vô hạn) để thử watchdog
+    if (process.env.PHA_TEST_TREO && new RegExp(process.env.PHA_TEST_TREO).test(ten)) { await js("(() => { for (;;) {} })()"); }
+    return fn();
+  });
+  viec.catch(() => {});
+  const kq = await Promise.race([viec, hen]).finally(() => clearTimeout(dong));
+  if (kq !== TREO) return kq;
+  doiHT++;
+  dsTreo.push(ten);
+  console.log(`TREO ${ten} (quá ${HAN_MS / 1000}s) — bỏ, chạy tiếp`);
+  // còn sống = về được about:blank VÀ renderer đáp lệnh (vòng lặp vô hạn trong trang chặn Runtime.evaluate ⇒ phải khởi động lại Chrome)
+  const song = await Promise.race([(async () => { await goiTho("Page.navigate", { url: "about:blank" }); const r = await goiTho("Runtime.evaluate", { expression: "1+1", returnByValue: true }); return r?.result?.value === 2; })().catch(() => false),
+    sleep(8000).then(() => false)]);
+  if (!song) {
+    console.log("   Chrome không đáp ⇒ khởi động lại");
+    try { ws.close(); } catch { /* đã đóng */ }
+    giet();
+    // hồ sơ MỚI (Chrome vừa bị SIGKILL còn để SingletonLock) + chờ cổng CDP nhả trước khi mở lại
+    hoCu.push(hoSo); hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-"));
+    for (let i = 0; i < 20; i++) { try { await fetch(`http://127.0.0.1:${CDP}/json/version`, { signal: AbortSignal.timeout(500) }); await sleep(250); } catch { break; } }
+    await khoiDongChrome();
+  }
+  return TREO;
+};
+await khoiDongChrome();
 await goi("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
 await goi("Emulation.setLocaleOverride", { locale: "vi-VN" });
 const js = async (expr) => (await goi("Runtime.evaluate", { expression: expr, returnByValue: true, awaitPromise: true })).result?.value;
@@ -651,6 +716,7 @@ const dangKyToiOtp = async () => { await dienDangKy(); await sleep(200); await b
 // ---------------------------------------------------------------- cổng chuẩn giao diện
 if (process.argv.includes("--giao-dien")) {
   const { chayCong } = await import("./giao-dien.mjs");
+  const canhMan = (ten, fn) => canh(ten, fn);
   const M = (ten, duong, cho, tc = {}) => ({ ten, duong, cho, ...tc });
   // trình hướng dẫn Lần đầu giữ Con vừa tạo + lựa chọn trong sessionStorage (lib/thiet-lap.ts) ⇒ đặt sẵn như đã qua bước tên con / giờ chơi
   const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }], cheDoChan: "chi_app_duoc_phep", quy: 60,
@@ -968,6 +1034,10 @@ if (process.argv.includes("--giao-dien")) {
   ];
   // PHA_MAN=<biểu thức chính quy>: chỉ chạy các màn khớp tên (soát nhanh khi sửa)
   if (process.env.PHA_MAN) dsMan.splice(0, dsMan.length, ...dsMan.filter((m) => new RegExp(process.env.PHA_MAN).test(m.ten)));
+  // PHA_DUONG=<biểu thức>: lọc theo đường dẫn màn (pha-theo-diff.mjs suy từ file route đổi); khi có cả PHA_MAN thì PHA_DUONG thu hẹp thêm
+  if (process.env.PHA_DUONG) dsMan.splice(0, dsMan.length, ...dsMan.filter((m) => new RegExp(process.env.PHA_DUONG).test(m.duong)));
+  dsMan.splice(0, dsMan.length, ...shard(dsMan));
+  console.log(`(${dsMan.length} màn${process.env.PHA_SHARD ? ` · shard ${process.env.PHA_SHARD}` : ""}${process.env.PHA_MAN || process.env.PHA_DUONG ? " · có lọc" : ""})`);
   // Lượt CHỮ DÀI (Thanh 25/10 «chữ dài bị hỏng nút»): cùng các màn, dữ liệu giả đổi sang tên con 30 ký tự, tên máy 40 ký tự,
   // tên miền 60 ký tự — luật NUT-TRAN (giao-dien.mjs) bắt chữ ló khỏi nút / cắt nửa dòng / nút tràn thẻ. PHA_CHU_DAI=0: bỏ lượt này.
   const dung = (x, n) => { if ([...x].length !== n) throw new Error(`chữ dài «${x}» phải đúng ${n} ký tự`); return x; };
@@ -1004,27 +1074,32 @@ if (process.argv.includes("--giao-dien")) {
   // PHA_CHI_DAI=1: chỉ chạy lượt chữ dài (soát nhanh khi sửa)
   // PHA_RONG=390: chỉ đo một khổ (soát nhanh khi sửa); cổng thật đo đủ 320 / 390 / 390 giãn
   const cheDo = process.env.PHA_RONG ? [[Number(process.env.PHA_RONG), false]] : undefined;
-  let tong = process.env.PHA_CHI_DAI === "1" ? 0 : await chayCong({ goi, js, sleep, dsMan, vao, ...(cheDo ? { cheDo } : {}) });
+  let tong = process.env.PHA_CHI_DAI === "1" ? 0 : await chayCong({ goi, js, sleep, dsMan, vao, canh: canhMan, ...(cheDo ? { cheDo } : {}) });
   if (process.env.PHA_CHU_DAI !== "0" || process.env.PHA_CHI_DAI === "1") {
     chuDai = true;
     console.log(`\n# LƯỢT CHỮ DÀI — tên con «${TEN_DAI}» (${[...TEN_DAI].length}), máy «${MAY_DAI["Laptop của Bảo Anh · Windows 11"]}» (40), miền «${mien("youtube.com")}» (${mien("youtube.com").length})`);
     // chỉ đo ở 320px (khổ hẹp nhất — chữ dài vỡ ở đây trước) để cổng không chậm gấp đôi
-    tong += await chayCong({ goi, js, sleep, dsMan, vao, hau: "-dai", cheDo: [[320, false]] });
+    tong += await chayCong({ goi, js, sleep, dsMan, vao, canh: canhMan, hau: "-dai", cheDo: [[320, false]] });
   }
-  ws.close(); chrome.kill(); may.close();
+  ws.close(); giet(); may.close();
   await sleep(500);
-  try { rmSync(hoSo, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ }
-  process.exit(tong ? 1 : 0);
+  for (const h of [hoSo, ...hoCu]) { try { rmSync(h, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ } }
+  thoat(tong);
 }
 
 // ---------------------------------------------------------------- kịch bản luồng chính
 let sai = 0;
 const kq = [];
-const xet = async (dk, ten) => { kq.push([dk, ten]); console.log(`${dk ? "đạt" : "SAI"} ${ten}`); if (!dk) { sai++; console.log("    màn: " + ((await chu()) ?? "").replace(/\s+/g, " ").slice(0, 400));
+const xet = async (dk, ten) => { { const st = alsDoi.getStore(); if (st && st.doi !== doiHT) return; }   // việc dở đã bị watchdog bỏ: không ghi kết quả nữa
+  kq.push([dk, ten]); console.log(`${dk ? "đạt" : "SAI"} ${ten}`); if (!dk) { sai++; console.log("    màn: " + ((await chu()) ?? "").replace(/\s+/g, " ").slice(0, 400));
   if (process.env.PHA_CHUP) { const a = await goi("Page.captureScreenshot", { format: "png" }); if (a?.data) (await import("node:fs")).writeFileSync(`${process.env.PHA_CHUP}/sai-${kq.length}.png`, Buffer.from(a.data, "base64")); } } };
 // PHA_KB=<biểu thức chính quy>: chỉ chạy các kịch bản luồng khớp tên (soát nhanh khi sửa)
 const LOC_KB = process.env.PHA_KB ? new RegExp(process.env.PHA_KB) : null;   // biểu thức sai ⇒ dừng ngay từ đầu, rõ lý do
-const kichBan = async (ten, fn) => { if (LOC_KB && !LOC_KB.test(ten)) return; console.log(`\n# ${ten}`); kb = { ...coBan }; matMang = false; nhatKy.length = 0; try { await fn(); } catch (e) { xet(false, `${ten}: lỗi ${e}`); } };
+// PHA_SHARD=i/n: kịch bản thứ k (sau lọc PHA_KB) chạy ở phần k % n + 1
+const SHARD_KB = (() => { const m = /^(\d+)\/(\d+)$/.exec(process.env.PHA_SHARD ?? ""); shard([]); return m ? { i: +m[1], n: +m[2] } : null; })();
+let dem = 0;
+const kichBan = async (ten, fn) => { if (LOC_KB && !LOC_KB.test(ten)) return; if (SHARD_KB && (dem++ % SHARD_KB.n) !== SHARD_KB.i - 1) return; console.log(`\n# ${ten}`); kb = { ...coBan }; matMang = false; nhatKy.length = 0;
+  try { if ((await canh(ten, fn)) === TREO) sai++; } catch (e) { await xet(false, `${ten}: lỗi ${e}`); } };
 
 /** Bấm phần tử theo bộ chọn CSS (công tắc không có chữ). */
 const bamChon = async (chon) => {
@@ -2359,9 +2434,9 @@ await kichBan("Sổ sao · Máy đang khoá: lời xin chơi = «Xin mở khoá 
 });
 
 ws.close();
-chrome.kill();
+giet();
 may.close();
 await sleep(500);
-try { rmSync(hoSo, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ }
+for (const h of [hoSo, ...hoCu]) { try { rmSync(h, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ } }
 console.log(`\n${kq.filter((x) => x[0]).length}/${kq.length} đạt`);
-process.exit(sai ? 1 : 0);
+thoat(sai);
