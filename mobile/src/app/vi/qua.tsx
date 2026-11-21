@@ -7,6 +7,7 @@
 // `?con=` Con đang xem (nhà nhiều con ⇒ chip đổi Con), `?tab=nha` mở thẳng tab «Ba Mẹ tự điền». Người trông giúp: chỉ xem.
 // 15/11 (#263): thiếu sao thì con xin Ba Mẹ cho vay — thẻ lời xin vay đổi quà (cho-duyet › yeuCau vay_sao, muc_dich «qua», gia_tri = id quà)
 // «<Con> xin vay 50 sao · Để đổi <quà> · con có 150/200 sao» + «Cho vay» ⇒ bảng Cho vay sao (lib/so-sao) ⇒ toast + Hoàn tác.
+import { quaNha } from "../../lib/qua-nhom";
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, TextInput, View } from "react-native";
@@ -59,7 +60,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
   const { lam, loi: loiLam, dangChay } = useLam();
   const tieu = c ? `Quà của ${c.ten}` : TIEU;
   if (!q.d) return <Man lui={{ chu: "", bam: ve }} tieu={tieu}><ChoTai loi={q.loi} matMang={q.matMang} tai={q.tai} /></Man>;
-  const nha = q.d.qua.filter((x) => x.bat && x.loai !== "voucher");
+  const nha = quaNha(q.d.qua, q.d.voucher.map((m) => m.ma));
   const themQua = () => lam(async () => {
     const t = ten.trim();
     await bm.goi("qua", { ten: t, loai: "qua", sao: st.dung(sao), ...(conId ? { apCho: [conId] } : {}) });
