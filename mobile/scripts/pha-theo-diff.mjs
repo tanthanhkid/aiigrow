@@ -12,6 +12,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
 import { join, dirname, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { tmpdir } from "node:os";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const GOC = resolve(AQUI, "../..");
@@ -43,29 +44,30 @@ function suyRa() {
   if (!mobile.length) return { rong: true };
   if (mobile.some((f) => /^mobile\/scripts\/(pha|giao-dien)\.mjs$/.test(f) || /^mobile\/(package(-lock)?\.json|app\.(json|config\.ts)|tsconfig\.json|assets\/)/.test(f))) return tatCa("đổi bộ pha / cấu hình / assets");
   const src = mobile.filter((f) => f.startsWith("mobile/src/") && /\.(tsx?|jsx?)$/.test(f) && !/\.test\./.test(f));
-  const khac = mobile.filter((f) => !f.startsWith("mobile/src/") && !f.startsWith("mobile/scripts/") && !/\.md$/.test(f));
+  const khac = mobile.filter((f) => !/\.md$/.test(f) && !f.startsWith("mobile/scripts/") && !(f.startsWith("mobile/src/") && /\.(tsx?|jsx?)$/.test(f)));   // gồm json / css / svg trong src
   if (khac.length) return tatCa(`không suy ra được: ${khac[0]}`);
   const routes = new Set(src.filter((f) => f.startsWith(APP)));
   const dungChung = src.filter((f) => !f.startsWith(APP));
   if (dungChung.length) {
     // đồ thị import: mỗi file nguồn → các «khoá» @/… nó import. Lan ngược từ file đổi tới điểm cố định qua các lib; route nào import một lib bị ảnh hưởng thì tính.
     const tatCaFile = duyet(join(GOC, "mobile/src")).map((f) => relative(GOC, f));
-    const khoaCua = (f) => f.replace(/^mobile\/src\//, "").replace(/\.(web\.)?tsx?$/, "");
+    const bo = (x) => x.replace(/\.(web\.|native\.|ios\.|android\.)?tsx?$/, "");
+    const khoaCua = (f) => bo(f.replace(/^mobile\/src\//, ""));
     const importCua = new Map(tatCaFile.map((f) => {
       const nd = readFileSync(join(GOC, f), "utf8"), ra = new Set();
       for (const m of nd.matchAll(/from\s+["']([^"']+)["']/g)) {
         let k = m[1];
         if (k.startsWith("@/")) k = k.slice(2); else if (k.startsWith(".")) k = relative(join(GOC, "mobile/src"), resolve(dirname(join(GOC, f)), k)); else continue;
-        ra.add(k.replace(/\.(web\.)?tsx?$/, ""));
+        ra.add(bo(k));
       }
       return [f, ra];
     }));
-    const anhHuong = new Set(dungChung.map(khoaCua));
+    const anhHuong = new Set(dungChung.flatMap((f) => [khoaCua(f), ...(khoaCua(f).endsWith("/index") ? [khoaCua(f).slice(0, -6)] : [])]));
     for (let doiMoi = true; doiMoi;) {
       doiMoi = false;
       for (const f of tatCaFile) {
         if (f.startsWith(APP) || /\.test\./.test(f) || anhHuong.has(khoaCua(f))) continue;
-        if ([...importCua.get(f)].some((k) => anhHuong.has(k))) { anhHuong.add(khoaCua(f)); doiMoi = true; }
+        if ([...importCua.get(f)].some((k) => anhHuong.has(k))) { anhHuong.add(khoaCua(f)); if (khoaCua(f).endsWith("/index")) anhHuong.add(khoaCua(f).slice(0, -6)); doiMoi = true; }
       }
     }
     for (const f of tatCaFile) if (f.startsWith(APP) && [...importCua.get(f)].some((k) => anhHuong.has(k))) routes.add(f);
@@ -94,6 +96,7 @@ else {
       const t = /^await kichBan\("((?:[^"\\]|\\.)*)"/.exec(k)?.[1];
       if (!t) continue;
       const duong = [...k.matchAll(/["'`](\/[a-z0-9][A-Za-z0-9\-/]*)/g)].map((m) => m[1]);
+      if (/\b(dangKyToiOtp|dienDangKy)\(/.test(k)) duong.push("/dang-ky");   // kịch bản đi vào màn qua hàm dùng chung
       if (duong.some((d) => new RegExp(`^(${re.join("|")})`).test(d))) ten.push(t);
     }
     env.PHA_KB = ten.length ? `^(${ten.map(esc).join("|")})$` : "^$KHONG-CO-KICH-BAN$";
@@ -107,7 +110,7 @@ if (chiIn) process.exit(0);
 let web = process.env.PHA_WEB;
 const cong = process.env.PHA_CONG ?? "8191";
 if (!web) {
-  web = join(GOC, "mobile/.pha-web");
+  web = join(tmpdir(), `aiigrow-pha-web-${cong}`);   // ngoài mobile/: eslint / tsc không quét bundle
   console.log(`expo export web → ${web} (EXPO_PUBLIC_API=http://localhost:${cong})`);
   const r = spawnSync("npx", ["expo", "export", "--platform", "web", "--output-dir", web], { cwd: join(GOC, "mobile"), stdio: "inherit",
     env: { ...process.env, EXPO_PUBLIC_API: `http://localhost:${cong}`, CI: "1" } });

@@ -166,6 +166,7 @@ jobs:
       - name: pha.mjs shard ${{ matrix.shard }}/6 (giao diện, rồi kịch bản luồng)
         env:
           PHA_SHARD: ${{ matrix.shard }}/6
+          PHA_HAN_GIAY: '240'   # runner chung chạy 6 Chrome song song: chậm không phải treo
           GD_CHUP_TAT_CA: ${{ (github.event_name == 'workflow_dispatch' && inputs.chup_tat_ca) && '1' || '' }}
         run: |
           R="$GITHUB_WORKSPACE/bao-cao"; mkdir -p "$R/anh"

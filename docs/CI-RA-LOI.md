@@ -14,7 +14,7 @@ Lượt cũ cùng nhánh bị huỷ khi có lượt mới (`concurrency`).
 
 ## Agent kiểm bằng CI thay vì chạy lượt đủ trên Mac
 
-Đẩy nhánh + mở PR ⇒ workflow `mobile` tự chạy (hoặc `gh workflow run mobile -R tanthanhkid/aiigrow --ref <nhánh>`); chờ bằng `gh run watch <id>` (hoặc vòng ≤15 phút);
+Đẩy nhánh + mở PR (push nhánh không có PR không chạy; push chỉ chạy trên `main`) ⇒ workflow `mobile` tự chạy (hoặc `gh workflow run mobile -R tanthanhkid/aiigrow --ref <nhánh>`); chờ bằng `gh run watch <id>` (hoặc vòng ≤15 phút);
 đỏ thì `gh run download <id> -n giao-dien-<i>` đọc `pha-*.txt`. Trước đó chạy `bash mobile/scripts/cong-pr.sh` ở máy. Watchdog `PHA_HAN_GIAY` (90 s) bắt màn treo: `TREO <tên>`, mã thoát 3.
 
 ## Chạy tay

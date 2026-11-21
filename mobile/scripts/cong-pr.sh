@@ -17,7 +17,7 @@ buoc() {   # buoc <nhãn> <lệnh...>
 }
 bo() { echo; echo "=== $1 === (bỏ: $2)"; TOM+=("bỏ   $1 ($2)"); }
 
-DOI="$( { git diff --name-only "$CO"...HEAD; git status --porcelain | cut -c4-; } | sort -u )"
+DOI="$( { git diff --name-only "$CO"...HEAD; git diff --name-only HEAD; git ls-files --others --exclude-standard; } | sort -u )"
 echo "so với $CO: $(echo "$DOI" | grep -c .) file đổi"
 
 [ -d mobile/node_modules ] || { echo "thiếu mobile/node_modules (cp -cR từ repo gốc hoặc npm ci)"; exit 2; }
@@ -37,8 +37,11 @@ if [ -d server/node_modules ]; then
         server/lib/test-fixtures/*|server/package.json|server/pnpm-lock.yaml|server/tsconfig.json) TOAN=1 ;;
         server/lib/*.ts)
           b="$(basename "$f" .ts)"
+          n0=${#TESTS[@]}
           [ -f "server/lib/$b.test.ts" ] && TESTS+=("lib/$b.test.ts")
-          while IFS= read -r t; do TESTS+=("lib/$(basename "$t")"); done < <(grep -lE "from ['\"]\\./$b(\\.ts)?['\"]" server/lib/*.test.ts 2>/dev/null) ;;
+          while IFS= read -r t; do TESTS+=("lib/$(basename "$t")"); done < <(grep -lE "from ['\"]\\./$b(\\.ts)?['\"]" server/lib/*.test.ts 2>/dev/null)
+          [ "${#TESTS[@]}" -eq "$n0" ] && TOAN=1   # file này không khớp test nào ⇒ test đủ (không để lọt)
+          true ;;
         server/*) b="$(basename "$f" | sed 's/\.[a-z]*$//')"; d="$(dirname "$f")"
           # cùng thư mục: test cùng tên nếu có; không có thì test đủ (file route/script không có test riêng)
           if [ -f "$d/$b.test.ts" ]; then TESTS+=("${d#server/}/$b.test.ts"); else TOAN=1; fi ;;

@@ -565,7 +565,7 @@ const hoCu = [];   // hồ sơ của các Chrome đã bị giết (watchdog) —
 let chrome, trang, ws, so = 0, cho = {};
 const luuMetric = {};   // lệnh Emulation.* đã đặt ⇒ phát lại khi khởi động lại Chrome (watchdog)
 // giết CẢ nhóm tiến trình của Chrome (renderer treo vòng lặp vô hạn sống sót khi chỉ giết tiến trình chính ⇒ ăn CPU + giữ cổng CDP)
-const giet = () => { try { if (process.platform === "win32") chrome.kill(); else process.kill(-chrome.pid, "SIGKILL"); } catch { /* đã chết */ } };
+const giet = () => { const c = chrome; chrome = null; try { if (!c) return; if (process.platform === "win32") c.kill(); else process.kill(-c.pid, "SIGKILL"); } catch { /* đã chết */ } };
 process.on("exit", () => giet());
 for (const sg of ["SIGTERM", "SIGINT", "SIGHUP"]) process.on(sg, () => process.exit(130));
 const goiTho = (method, params = {}) => new Promise((r) => { cho[++so] = r; ws.send(JSON.stringify({ id: so, method, params })); });
