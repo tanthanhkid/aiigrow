@@ -638,7 +638,7 @@ export function BangTruot({ mo, dong, tieu, children, dauBang, giua, hinh, hinhP
     <Modal visible={mo} transparent animationType="slide" onRequestClose={dong}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <Pressable style={{ flex: 1, backgroundColor: ban ? "rgba(10,22,41,.5)" : "rgba(10,22,41,.38)" }} onPress={dong} accessibilityLabel="Đóng" />
-      <View style={[s.bangTruot, ban && { borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingTop: 26, paddingHorizontal: 16, paddingBottom: 18, gap: 0 }, cuon && { maxHeight: Math.round(cao * 0.95), flexShrink: 1 }, cuon && gon && { gap: 8, paddingBottom: 20 }]}>
+      <View style={[s.bangTruot, Platform.OS === "web" && { width: "100%", maxWidth: 430, alignSelf: "center" }, ban && { borderTopLeftRadius: 36, borderTopRightRadius: 36, paddingTop: 26, paddingHorizontal: 16, paddingBottom: 18, gap: 0 }, cuon && { maxHeight: Math.round(cao * 0.95), flexShrink: 1 }, cuon && gon && { gap: 8, paddingBottom: 20 }]}>
         <View style={ban ? { position: "absolute", top: 10, left: "50%", marginLeft: -22, width: 44, height: 5, borderRadius: 5, backgroundColor: "#cfc3b3" } : { width: 40, height: 5, borderRadius: 3, backgroundColor: M.vien2, alignSelf: "center" }} />
         {cuon ? (
           <ScrollView style={{ flexGrow: 0, flexShrink: 1 }} contentContainerStyle={{ gap: gon ? 8 : 12, paddingBottom: 6 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
