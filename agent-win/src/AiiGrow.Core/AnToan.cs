@@ -303,6 +303,9 @@ public static partial class SystemCleanup
             "}",
             // thử tới 15 lần (AppIDSvc có thể chưa sẵn ngay sau khởi động), rồi đi tiếp
             "$luatSach=$false; for($i=0;$i -lt 15;$i++){ $luatSach = Remove-AiiAppLocker; if($luatSach){break}; Start-Sleep -Seconds 4 }",
+            // Sau khi luật của mình đã gỡ: chính sách còn RỖNG hoàn toàn mà tệp đệm System32\AppLocker còn ⇒ xoá đệm (Start/Search mới mở lại được). Có luật của quản trị ⇒ không đụng.
+            AppLockerDem.KichBanPs(),
+            "if($luatSach){ Remove-AiiAppLockerDem }",
             $"Remove-Item -LiteralPath {Q("HKLM:\\" + uninstallKey)} -Recurse -Force",
             $"$tepSach=$false; for($i=0;$i -lt 150;$i++){{ Remove-Item -LiteralPath {inst} -Recurse -Force; Remove-Item -LiteralPath {data} -Recurse -Force; " +
             $"$tepSach = -not (Test-Path -LiteralPath {inst}) -and -not (Test-Path -LiteralPath {data}); if($tepSach){{break}}; Start-Sleep -Seconds 2 }}",

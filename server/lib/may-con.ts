@@ -327,6 +327,8 @@ export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_
   sai_ma_offline: { muc: "chu_y", cau: (t) => `Có người gõ sai mã mở offline nhiều lần trên ${t}` },
   // 28/10: agent 0.2.11+ tự chữa máy bản cũ để lại AppLocker Exe bật mà thiếu luật Appx (Start/Search của Windows bị chặn) — chỉ ghi nhật ký.
   da_sua_appx: { muc: null, cau: (t) => `AiiGrow đã tự sửa lỗi Start menu trên ${t}` },
+  // 21/11: máy cài lại bản cũ — chính sách AppLocker rỗng mà tệp đệm System32\AppLocker còn khiến Start bị khoá; agent xoá đệm. Chỉ ghi nhật ký.
+  da_don_dem_applocker: { muc: null, cau: (t) => `AiiGrow đã dọn tệp đệm AppLocker cũ trên ${t} (chữa nút Start bị khoá)` },
   // Có mạng lại ⇒ agent kết thúc lượt mở offline (mã chỉ dành cho lúc mất mạng); chỉ ghi nhật ký, không báo.
   het_ma_offline: { muc: null, cau: (t) => `${t} có mạng lại — kết thúc lượt mở bằng mã offline` },
   // 11/11: Con «Mở hết» ⇒ agent gỡ dòng chặn 0.0.0.0 / :: trong tệp hosts do phần mềm khác đặt (YouTube, TikTok… báo «Không thể truy cập»).

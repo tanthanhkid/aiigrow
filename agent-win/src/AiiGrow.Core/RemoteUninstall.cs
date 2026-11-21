@@ -100,12 +100,29 @@ public sealed class WindowsCleanupOps : ICleanupOps, IWebCleanup, IDnsCleanup
             var cur = Shell.PowerShell("Get-AppLockerPolicy -Local -Xml | Out-File -Encoding utf8 -FilePath " + Shell.PsQuote(tmp));
             if (!cur.Ok || !File.Exists(tmp)) throw new InvalidOperationException("không đọc được AppLocker: " + cur.Error);
             var xml = File.ReadAllText(tmp);
-            if (!AppLockerXml.ContainsOurs(xml)) return;
-            File.WriteAllText(tmp, AppLockerXml.RemoveOurs(xml), new UTF8Encoding(false));
-            var s = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(tmp));
-            if (!s.Ok) throw new InvalidOperationException(s.Error);
+            if (AppLockerXml.ContainsOurs(xml))
+            {
+                var sau = AppLockerXml.RemoveOurs(xml);
+                File.WriteAllText(tmp, sau, new UTF8Encoding(false));
+                var s = Shell.PowerShell("Set-AppLockerPolicy -XmlPolicy " + Shell.PsQuote(tmp));
+                if (!s.Ok) throw new InvalidOperationException(s.Error);
+                xml = sau;
+            }
+            // Chính sách giờ rỗng mà tệp đệm System32\AppLocker còn (bản cũ để lại) ⇒ xoá, không thì nút Start vẫn bị khoá. Có luật của quản trị ⇒ không đụng.
+            DonDemNeuRong(xml);
         }
         finally { try { File.Delete(tmp); } catch { } }
+    }
+
+    private static void DonDemNeuRong(string xml)
+    {
+        try
+        {
+            if (!AppLockerDem.ChinhSachRong(xml)) return;   // còn luật (của quản trị) ⇒ không đụng
+            var hl = AppLockerDem.DocHieuLuc(out var loi);   // hiệu lực = cục bộ + GPO
+            if (AppLockerDem.CanDon(loi, hl)) AppLockerDem.DonTrenMay();
+        }
+        catch { /* dọn đệm là phần thêm, không được làm hỏng cổng gỡ luật; tác vụ dọn tách rời dọn lại */ }
     }
 
     public void TraQuyenQuanTri()

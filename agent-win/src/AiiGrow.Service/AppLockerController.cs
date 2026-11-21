@@ -57,6 +57,7 @@ public sealed class AppLockerController
         if (!_daKiemAppx && Environment.TickCount64 >= _appxThuLaiLuc)
         {
             _daKiemAppx = KiemSuaAppx("khởi động") != null || ++_appxLoi >= 10;
+            if (_daKiemAppx) KiemDonDem("khởi động");
             _appxThuLaiLuc = Environment.TickCount64 + 60_000;
         }
         var list = apps.Select(AppLockerXml.NormalizeExe).Where(a => a != null).Select(a => a!).OrderBy(a => a).ToList();
@@ -108,6 +109,39 @@ public sealed class AppLockerController
         {
             _log.LogError(e, "da-sua-appx LỖI ({luc})", luc);
             return null;
+        }
+    }
+
+    /// <summary>Chính sách AppLocker rỗng hoàn toàn mà tệp đệm <c>System32\AppLocker\*.AppLocker</c> còn (máy cài lại bản cũ ⇒ Start/Search bị khoá dù chính sách rỗng): xoá đệm, nạp lại,
+    /// khởi động lại Start/Search, log «da-don-dem-applocker» + sự kiện da_don_dem_applocker. Chính sách còn luật (của quản trị) ⇒ không đụng; đọc lỗi ⇒ không đụng.</summary>
+    private bool KiemDonDem(string luc)
+    {
+        try
+        {
+            Directory.CreateDirectory(Paths.DataDir);
+            if (AppLockerDem.SoTepDem() == 0) return false;   // máy khoẻ: không có tệp đệm chính sách ⇒ không chạy PowerShell, không đụng gì
+            var cu = AppLockerDem.DocHieuLuc(out var loi);    // hiệu lực (cục bộ + GPO), không riêng chính sách cục bộ
+            if (!AppLockerDem.CanDon(loi, cu)) return false;
+            var n = AppLockerDem.DonTrenMay();
+            if (n <= 0) return false;
+            Thread.Sleep(3000);
+            var shell = KhoiDongLaiShell();
+            _log.LogWarning("da-don-dem-applocker: chính sách rỗng mà tệp đệm AppLocker cũ còn (Start/Search bị khoá) — đã xoá {n} tệp ({luc}), khởi động lại {s} tiến trình Start/Search", n, luc, shell);
+            try
+            {
+                new ConfigStore().Update(c => c.Queue.Add(new SuKien
+                {
+                    Loai = "da_don_dem_applocker",
+                    ChiTiet = new() { ["may"] = Environment.MachineName, ["luc"] = luc, ["tep"] = n.ToString(), ["ban"] = TuCapNhat.BanHienTai().ToString(3) },
+                }));
+            }
+            catch (Exception e) { _log.LogDebug("Ghi sự kiện da_don_dem_applocker lỗi: {e}", e.Message); }
+            return true;
+        }
+        catch (Exception e)
+        {
+            _log.LogError(e, "da-don-dem-applocker LỖI ({luc})", luc);
+            return false;
         }
     }
 
@@ -205,6 +239,7 @@ public sealed class AppLockerController
             if (!set.Ok) { _log.LogError("Gỡ AppLocker lỗi: {e}", set.Error); return false; }
             if (AppLockerXml.ThieuAppx(existing) && !AppLockerXml.ExeChanShell(moi)) BaoDaSuaAppx("gỡ luật");
             _log.LogInformation("Đã gỡ luật AppLocker của AiiGrow");
+            if (AppLockerDem.ChinhSachRong(moi)) KiemDonDem("gỡ luật");
             return true;
         }
         catch (Exception e)
