@@ -30,7 +30,7 @@ export const YEN_LANG_MD = { bat: false, tu: "22:00", den: "06:30" };
 
 const LOAI_SU_KIEN = ["nop_nhiem_vu", "gui_yeu_cau", "doi_qua", "dung_voucher", "nap_quy", "huy_hieu", "tu_duyet_nhiem_vu",
   "duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "dong_y_yeu_cau", "tu_choi_yeu_cau", "xac_nhan_qua", "huy_qua",
-  "bat_dau_nhiem_vu", "phan_hoi_con", "mo_khan_cap", "lenh_go", "thanh_vien_vao", "doi_vai", "moi_ra", "loi_khen", "dong_bang_chuoi", "cho_vay", "bo_qua_yeu_cau"];
+  "bat_dau_nhiem_vu", "phan_hoi_con", "mo_khan_cap", "lenh_go", "thanh_vien_vao", "doi_vai", "moi_ra", "loi_khen", "dong_bang_chuoi", "cho_vay", "bo_qua_yeu_cau", "tang_sao"];
 
 const GIO = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -118,6 +118,7 @@ function tuSuKien(e: SuKien): Omit<ThongBao, "moi" | "day" | "imLang" | "so" | "
       : g("ba_me_khac", `${ai} đã đồng ý yêu cầu của ${con}`, "Theo quy tắc gia đình", veCon);
     case "bo_qua_yeu_cau": return g("ba_me_khac", `${ai} đã bỏ qua lời xin ${c.gia_tri ?? ""} của ${con}`.replace("  ", " "), "Không ghi gì vào danh sách · con xin lại được", veCon);
     case "cho_vay": return g("ba_me_khac", `${ai} đã cho ${con} vay ${so(c.so_sao)} sao`, `${con} đang nợ ${so(c.no_sau)} sao · sao nhiệm vụ trả nợ trước`, veCon);
+    case "tang_sao": return g("ba_me_khac", `${ai} đã tặng ${con} ${so(c.so_sao)} sao`, `Lý do: ${c.ly_do ?? ""}${Number(c.tra_no) > 0 ? ` · ${so(c.tra_no)} sao trả nợ trước` : ""}`, veCon);
     case "tu_choi_yeu_cau": return g("ba_me_khac", `${ai} đã từ chối yêu cầu của ${con}`, c.ly_do ? `Lý do: ${c.ly_do}` : "Đã báo Con lý do", veCon);
     case "xac_nhan_qua": return g("ba_me_khac", `${ai} đã trao «${c.ten ?? "quà"}» cho ${con}`, "Đã trao quà cho con", "/diem-qua");
     case "huy_qua": return g("ba_me_khac", `${ai} đã huỷ một quà của ${con}`, "Sao đã hoàn lại cho Con", "/diem-qua");

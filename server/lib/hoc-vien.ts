@@ -76,7 +76,7 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
     `select e.id, e.loai, e.chi_tiet, e.created_at, p.ten as ten_nguoi from events e left join parents p on p.id = e.nguoi
      where e.child_id = $1 and e.created_at > $2
      and e.loai in ('giao_nhiem_vu', 'duyet_nhiem_vu', 'tu_duyet_nhiem_vu', 'tu_choi_nhiem_vu', 'can_bo_sung', 'loi_khen', 'xac_nhan_qua', 'huy_qua', 'huy_hieu',
-                  'lam_lai_nhiem_vu', 'them_gio', 'dong_y_yeu_cau', 'bo_qua_yeu_cau', 'cho_vay', 'tu_choi_yeu_cau')
+                  'lam_lai_nhiem_vu', 'them_gio', 'dong_y_yeu_cau', 'bo_qua_yeu_cau', 'cho_vay', 'tu_choi_yeu_cau', 'tang_sao')
        -- #258: «Bỏ qua» chỉ báo Con sau 60 giây (Ba Mẹ còn Hoàn tác được — hoàn tác thì sự kiện bị thu hồi)
        and (e.loai <> 'bo_qua_yeu_cau' or e.created_at <= now() - interval '60 seconds')
        -- #263: «Ba Mẹ cho vay N sao» cũng chờ hết 60 giây Hoàn tác; khoản vay đã rút trọn (hoan_tac_vay không «mot_phan») thì không báo
@@ -116,6 +116,7 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
       case "bo_qua_yeu_cau": them(`${s(d.ten_nguoi) || "Ba Mẹ"} chưa thêm ${s(d.gia_tri)} lúc này`, "Con xin lại sau được nhé"); break;
       // #263 / #265: kết quả lời xin vay sao — «Mẹ Lan cho vay 15 sao» / «Mẹ Lan chưa cho vay sao» (khay Windows bật màn them-fsif1cbl / them-zo8kohea)
       case "cho_vay": them(`${s(e.ten_nguoi) || "Ba Mẹ"} cho vay ${s(d.so_sao)} sao`, `+${s(d.so_sao)} sao · con đang nợ ${s(d.no_sau)} sao · sao nhiệm vụ trả nợ trước`); break;
+      case "tang_sao": them(`${s(e.ten_nguoi) || "Ba Mẹ"} tặng con ${s(d.so_sao)} sao`, `+${s(d.so_sao)} sao · ${s(d.ly_do)}`); break;
       case "tu_choi_yeu_cau": them(`${s(e.ten_nguoi) || "Ba Mẹ"} chưa cho vay sao`, d.ly_do ? `«${s(d.ly_do)}»` : "Con làm nhiệm vụ để có sao nhé"); break;
     }
   }

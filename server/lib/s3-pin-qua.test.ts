@@ -319,6 +319,7 @@ test("L14 voucher AiiCafe bật lại: đổi ⇒ giữ sao, chưa có mã; Ba M
   const { fam, bm, tokBm, anh, rieng } = await nha();
   await v.dieuChinhTay(fam, anh, 500, "Sao thử", bm);
   const v20 = (await m(tokBm, "qua")).body.ds.find((x: any) => x.mau === "aiicafe_20k");
+  await q(`update rewards set ton_kho = 2 where id = $1`, [v20.id]);   // #502: voucher Ba Mẹ mua có số lượng — đổi hai lần trong bài thử
   assert.ok((await k(rieng.tok, "cua-hang")).body.qua.some((x: any) => x.id === v20.id), "voucher hiện ở cửa hàng Con");
   const d = (await dv(rieng.tok, `hoc-vien/doi/${v20.id}`, {})).body;
   assert.deepEqual([d.trangThai, d.voucher], ["cho_trao", null]);

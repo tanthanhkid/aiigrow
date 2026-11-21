@@ -18,10 +18,10 @@ export type MauQua = { ma: string; ten: string; loai: "qua" | "dac_quyen" | "vou
 export const QUA_MAC_DINH: MauQua[] = [
   { ma: "bua_toi", ten: "Chọn món bữa tối", loai: "dac_quyen", diem: 50, mo_ta: "Con chọn, Ba Mẹ nấu", hinh: "bua_toi" },
   { ma: "an_kem", ten: "Đi ăn kem", loai: "dac_quyen", diem: 100, mo_ta: "Ba Mẹ trao", hinh: "kem" },
-  { ma: "aiicafe_20k", ten: "AiiCafe 20k", loai: "voucher", diem: 200, menh_gia: 20_000, mo_ta: "Voucher QR · 60 ngày", hinh: "aiicafe" },
+  { ma: "aiicafe_20k", ten: "AiiCafe 20k", loai: "voucher", diem: 200, menh_gia: 20_000, ton_kho: 1, mo_ta: "Voucher QR · 60 ngày", hinh: "aiicafe" },
   { ma: "do_choi_nho", ten: "Đồ chơi nhỏ", loai: "qua", diem: 200, mo_ta: "Ba Mẹ chọn mua", hinh: "do_choi" },
   { ma: "xem_phim", ten: "Đi xem phim", loai: "dac_quyen", diem: 300, chi_cuoi_tuan: true, mo_ta: "Chỉ cuối tuần", hinh: "phim" },
-  { ma: "aiicafe_50k", ten: "AiiCafe 50k", loai: "voucher", diem: 500, menh_gia: 50_000, mo_ta: "Voucher QR · 60 ngày", hinh: "aiicafe" },
+  { ma: "aiicafe_50k", ten: "AiiCafe 50k", loai: "voucher", diem: 500, menh_gia: 50_000, ton_kho: 1, mo_ta: "Voucher QR · 60 ngày", hinh: "aiicafe" },
   { ma: "lego", ten: "Bộ Lego", loai: "qua", diem: 800, ton_kho: 1, mo_ta: "Còn 1 bộ", hinh: "lego" },
 ];
 
@@ -70,7 +70,10 @@ export function thanQua(b: Record<string, unknown>) {
 
 /** Hàng `rewards` ⇒ JSON cho app (giữ cả khoá cũ snake_case cho app bản trước). */
 export function quaRa(x: pt.Qua & { phut?: number | null }, dangGiu = 0) {
-  return { ...x, sao: x.diem, moTa: x.mo_ta ?? null, hinh: x.hinh ?? null, menhGia: x.menh_gia, tonKho: x.ton_kho, toiDaThang: x.toi_da_thang,
+  // #502: quà «Ba Mẹ mua» có số lượng (ton_kho ≠ null). `tonKho` = còn cho Con chọn (đã trừ phần đang giữ chỗ); `dangCo` = tồn thật ở nhà = còn + đang giữ
+  // (trừ hẳn khi Ba Mẹ trao); `het` = không còn món nào cho Con chọn (Con ẩn, Ba Mẹ thấy «Hết» + «Mua thêm»). Quà nhà: ton_kho null ⇒ không đếm.
+  const dem = x.ton_kho !== null && x.ton_kho !== undefined;
+  return { ...x, dem, dangCo: dem ? x.ton_kho! + dangGiu : null, het: dem && x.ton_kho! <= 0, sao: x.diem, moTa: x.mo_ta ?? null, hinh: x.hinh ?? null, menhGia: x.menh_gia, tonKho: x.ton_kho, toiDaThang: x.toi_da_thang,
     chiCuoiTuan: x.chi_cuoi_tuan, canXacNhan: x.can_xac_nhan, apCho: x.ap_cho ?? null, mau: x.mau ?? null, dangGiu,
     laVoucher: x.loai === "voucher" };
 }
@@ -99,12 +102,20 @@ export async function dsQua(fam: string, con?: string | null) {
 
 /** Thư viện mẫu theo nhóm (14/11: Ba Mẹ mua · Quà nhà), đánh dấu «Đã có» (cùng mã mẫu, hoặc cùng tên) trong nhà / với Con. */
 export async function thuVien(fam: string, con?: string | null) {
-  const co = await q<{ mau: string | null; ten: string }>(
-    `select mau, ten from rewards where family_id = $1 and bat and ($2::text is null or ap_cho is null or ap_cho ? $2)`, [fam, con ?? null]);   // quà đã cất ⇒ hiện «+» (thêm = bật lại)
+  const co = await q<{ id: string; mau: string | null; ten: string; ton_kho: number | null }>(
+    `select id, mau, ten, ton_kho from rewards where family_id = $1 and bat and ($2::text is null or ap_cho is null or ap_cho ? $2)`, [fam, con ?? null]);   // quà đã cất ⇒ hiện «+» (thêm = bật lại)
   const coMau = new Set(co.map((x) => x.mau).filter(Boolean)), coTen = new Set(co.map((x) => x.ten.toLowerCase()));
+  // #502: số «Đang có» của quà Ba Mẹ mua = tồn + phiếu đang giữ chỗ (cộng các dòng cùng mã mẫu mà Con này thấy)
+  const giu = await q<{ reward_id: string; n: number }>(`select r.reward_id, count(*)::int as n from redemptions r join children c on c.id = r.child_id
+      where c.family_id = $1 and r.trang_thai = 'giu' and r.reward_id is not null group by r.reward_id`, [fam]);
+  const giuTheo = new Map(giu.map((x) => [x.reward_id, x.n]));
+  const dangCoMau = (ma: string) => { const ds = co.filter((x) => x.mau === ma && x.ton_kho !== null); return ds.length ? ds.reduce((t, x) => t + x.ton_kho! + (giuTheo.get(x.id) ?? 0), 0) : null; };
+  const tonMau = (ma: string) => { const ds = co.filter((x) => x.mau === ma && x.ton_kho !== null); return ds.length ? ds.reduce((t, x) => t + x.ton_kho!, 0) : null; };
   return { nhom: NHOM_THU_VIEN.map((g) => ({ ...g, ds: THU_VIEN.filter((m) => m.nhom === g.ma).map((m) => ({ ma: m.ma, ten: m.ten, moTa: m.mo_ta ?? null,
     hinh: m.hinh ?? null, sao: m.diem, loai: m.loai, menhGia: m.menh_gia ?? null, chiCuoiTuan: !!m.chi_cuoi_tuan, tonKho: m.ton_kho ?? null,
-    canXacNhan: !!m.can_xac_nhan, daCo: coMau.has(m.ma) || coTen.has(m.ten.toLowerCase()) })) })) };
+    canXacNhan: !!m.can_xac_nhan, daCo: coMau.has(m.ma) || coTen.has(m.ten.toLowerCase()),
+    // #502: chỉ nhóm «Ba Mẹ mua» có số lượng — `dangCo` null = quà nhà (không đếm) hoặc chưa thêm
+    dem: g.ma === "ba_me_mua", dangCo: g.ma === "ba_me_mua" ? dangCoMau(m.ma) ?? 0 : null, het: g.ma === "ba_me_mua" && coMau.has(m.ma) && (tonMau(m.ma) ?? 1) <= 0 })) })) };
 }
 
 const apChoVao = async (fam: string, v: unknown): Promise<string[] | null> => {
@@ -120,20 +131,61 @@ const apChoVao = async (fam: string, v: unknown): Promise<string[] | null> => {
  *  Mẫu đã có (cùng mã): đã áp cho Con này / cho mọi Con ⇒ bỏ qua (đang cất thì bật lại); đang áp RIÊNG cho Con khác ⇒ áp thêm Con này vào
  *  quà đó («Áp cho» nhiều Con — một quà, không nhân bản) — trước đây bỏ qua nên Ba Mẹ thấy «+» mà nhận «Đã thêm 0 quà» (lệch #201).
  *  `taoMoi` = số quà Con (hoặc cả nhà) có thêm; `ids` = các quà đó (mới tạo hoặc vừa áp thêm). */
-export async function themTuThuVien(fam: string, b: { mau?: unknown; con?: unknown }, nguoi: string) {
+export async function themTuThuVien(fam: string, b: { mau?: unknown; con?: unknown; soLuong?: unknown }, nguoi: string) {
   const ma = [...new Set((Array.isArray(b.mau) ? b.mau : [b.mau]).map(String))].filter(Boolean);
   if (!ma.length || ma.some((x) => !theoMa.has(x))) throw new LoiNghiepVu("mau_sai", "Chọn quà trong thư viện");
   const con = (await apChoVao(fam, b.con))?.[0] ?? null;     // màn thư viện mở theo MỘT Con (hoặc cả nhà)
   const co = await q<CungMau>(`select id, mau, ap_cho, bat from rewards where family_id = $1 and mau = any($2::text[]) order by created_at`, [fam, ma]);
   const ids: string[] = [];
+  const sl = soLuongTuBody(b.soLuong);
   for (const m of ma) {
+    const mua = LA_BA_ME_MUA.has(m);
+    const n = sl.get(m);                                    // số «Đang có» Ba Mẹ đặt (tuyệt đối); quà nhà không đếm
     const cung = co.filter((x) => x.mau === m);
-    if (!cung.length) { ids.push(await pt.taoQua(fam, { ...theoMa.get(m)!, mau: m, ap_cho: con ? [con] : null })); continue; }
+    if (!cung.length) { ids.push(await pt.taoQua(fam, { ...theoMa.get(m)!, mau: m, ap_cho: con ? [con] : null, ton_kho: mua ? n ?? 1 : null })); continue; }
     const id = await apDungChoCon(fam, cung, con, m);
     if (id) ids.push(id);
+    if (mua && n !== undefined) {
+      // quà đã có ⇒ đặt lại số lượng cho dòng quà Con này thấy (bật lại / áp thêm xong vẫn đúng số)
+      const r = await one<{ id: string }>(`select id from rewards where family_id = $1 and mau = $2 and bat and ($3::text is null or ap_cho is null or ap_cho ? $3) order by created_at limit 1`, [fam, m, con]);
+      if (r) await datSoLuong(fam, r.id, n);
+    } else if (mua && id) await q(`update rewards set ton_kho = $2 where id = $1 and ton_kho is null`, [id, 1]);
   }
   if (ids.length) await ghiSuKien(fam, "them_qua", { so: ids.length, mau: ma }, { con, nguoi });
   return { taoMoi: ids.length, ids: [...new Set(ids)] };
+}
+
+/** Quà «Ba Mẹ mua» (nhóm thư viện ba_me_mua) — chỉ nhóm này đếm số lượng. */
+const LA_BA_ME_MUA = new Set(THU_VIEN.filter((m) => m.nhom === "ba_me_mua").map((m) => m.ma));
+
+/** `soLuong` thân API: { "<mã mẫu>": n } (n nguyên 0…99). */
+function soLuongTuBody(v: unknown): Map<string, number> {
+  const r = new Map<string, number>();
+  if (v && typeof v === "object" && !Array.isArray(v))
+    for (const [k, x] of Object.entries(v as Record<string, unknown>)) { const n = Math.round(Number(x)); if (Number.isFinite(n)) r.set(k, Math.max(0, Math.min(99, n))); }
+  return r;
+}
+
+/** Đặt số «Đang có» (tồn thật ở nhà) của một quà đếm số lượng: tồn cho Con chọn = n − phiếu đang giữ chỗ (≥ 0). Quà nhà không đếm ⇒ 409 `khong_dem`. */
+export async function datSoLuong(fam: string, id: string, n: number) {
+  const x = await one<{ id: string; ton_kho: number | null; mau: string | null }>(`select id, ton_kho, mau from rewards where id = $1 and family_id = $2`, [id, fam]);
+  if (!x) throw new LoiNghiepVu("khong_thay", "Không thấy phần thưởng", 404);
+  if (x.ton_kho === null && !(x.mau && LA_BA_ME_MUA.has(x.mau))) throw new LoiNghiepVu("khong_dem", "Quà nhà không đếm số lượng", 409);
+  const so = Math.max(0, Math.min(99, Math.round(Number(n)) || 0));
+  const giu = (await one<{ n: number }>(`select count(*)::int as n from redemptions where reward_id = $1 and trang_thai = 'giu'`, [id]))!.n;
+  await q(`update rewards set ton_kho = $2 where id = $1`, [id, Math.max(0, so - giu)]);
+  return { id, dangCo: Math.max(so, giu), tonKho: Math.max(0, so - giu) };
+}
+
+/** «Mua thêm» khi hết (hoặc bất kỳ lúc nào): cộng `them` món vào tồn. Chưa có cổng thanh toán trong app ⇒ chỉ ghi số lượng. */
+export async function muaThem(fam: string, id: string, them: unknown, nguoi: string) {
+  const t = Math.max(1, Math.min(99, Math.round(Number(them ?? 1)) || 1));
+  const x = await one<{ ton_kho: number | null; mau: string | null; ten: string }>(`select ton_kho, mau, ten from rewards where id = $1 and family_id = $2`, [id, fam]);
+  if (!x) throw new LoiNghiepVu("khong_thay", "Không thấy phần thưởng", 404);
+  if (x.ton_kho === null && !(x.mau && LA_BA_ME_MUA.has(x.mau))) throw new LoiNghiepVu("khong_dem", "Quà nhà không đếm số lượng", 409);
+  const r = await one<{ ton_kho: number }>(`update rewards set ton_kho = least(coalesce(ton_kho, 0) + $2, 99) where id = $1 returning ton_kho`, [id, t]);
+  await ghiSuKien(fam, "mua_them_qua", { ten: x.ten, them: t }, { nguoi });
+  return { id, tonKho: r!.ton_kho };
 }
 
 type CungMau = { id: string; mau: string; ap_cho: string[] | null; bat: boolean };
