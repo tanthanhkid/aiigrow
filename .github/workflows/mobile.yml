@@ -3,14 +3,19 @@ name: mobile
 # CI rà lỗi app Ba Mẹ (mobile/, Expo) + máy chủ (server/, Next) — docs/CI-RA-LOI.md.
 #   kiem       : mobile (expo check, tsc, lint, test) + server (tsc, test PGlite) + seed CI trên Postgres 16 thật (đăng nhập mật khẩu, không OTP)
 #   web        : expo export bản web (EXPO_PUBLIC_API=/, y cổng localhost scripts/deploy-prod.sh --chi-kiem)
-#   giao-dien  : mobile/scripts/pha.mjs trên Chrome headless — kịch bản luồng + cổng giao diện chia 3 lượt (song song), ảnh + log làm artifact
+#   giao-dien  : mobile/scripts/pha.mjs trên Chrome headless — chia 6 shard song song (PHA_SHARD=i/6): mỗi shard chạy cổng giao diện + kịch bản luồng
+#                của phần mình; ảnh + log làm artifact. Chạy cả trên pull_request (agent đẩy nhánh rồi chờ ~10–15 phút thay vì chạy lượt đủ trên Mac).
+#   giao-dien-tong : đỏ nếu BẤT KỲ shard nào đỏ / bị huỷ (một ô để đặt làm check bắt buộc)
 # Thay server.yml cũ (gộp vào job kiem).
 on:
   push:
+    branches: [main]
     paths: &duong
       - 'mobile/**'
       - 'server/**'
       - '.github/workflows/mobile.yml'
+  pull_request:
+    paths: *duong
   workflow_dispatch:
     inputs:
       chup_tat_ca:
@@ -136,17 +141,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # cùng cách chia của scripts/deploy-prod.sh: lượt luồng + giao diện chia 3 theo tên màn; lượt gd-c là PHẦN BÙ ⇒ màn mới không lọt
-          - luot: luong
-            man: ''
-          - luot: gd-a
-            man: '^bm-[a-h]'
-          - luot: gd-b
-            man: '^bm-[i-t]'
-          - luot: gd-c
-            man: '^(?!bm-[a-t])'
-    name: giao-dien (${{ matrix.luot }})
+        shard: [1, 2, 3, 4, 5, 6]
+    name: giao-dien (${{ matrix.shard }}/6)
     steps:
       - uses: actions/checkout@v7
         with:
@@ -167,31 +163,48 @@ jobs:
           printf '#!/bin/sh\nexec "%s" --no-sandbox --disable-dev-shm-usage "$@"\n' "$C" > "$RUNNER_TEMP/chrome"
           chmod +x "$RUNNER_TEMP/chrome"
           sudo apt-get install -y -qq fonts-noto-color-emoji >/dev/null 2>&1 || echo "(không cài được fonts-noto-color-emoji)"
-      - name: pha.mjs ${{ matrix.luot }}
+      - name: pha.mjs shard ${{ matrix.shard }}/6 (giao diện, rồi kịch bản luồng)
         env:
-          PHA_MAN: ${{ matrix.man }}
+          PHA_SHARD: ${{ matrix.shard }}/6
           GD_CHUP_TAT_CA: ${{ (github.event_name == 'workflow_dispatch' && inputs.chup_tat_ca) && '1' || '' }}
         run: |
           R="$GITHUB_WORKSPACE/bao-cao"; mkdir -p "$R/anh"
           [ -n "$GD_CHUP_TAT_CA" ] || unset GD_CHUP_TAT_CA
-          co=""; [ -n "$PHA_MAN" ] && co="--giao-dien" || unset PHA_MAN
-          set +e
-          GD_CHUP="$R/anh" PHA_CHUP="$R/anh" node mobile/scripts/pha.mjs web-dist "$RUNNER_TEMP/chrome" $co 2>&1 | tee "$R/pha-${{ matrix.luot }}.txt"
-          rc=${PIPESTATUS[0]}
-          set -e
+          rc=0
+          # hai lượt cùng shard, cả hai chạy dù lượt đầu đỏ (watchdog PHA_HAN_GIAY của pha.mjs: màn nào treo quá hạn ⇒ «TREO <tên>», mã thoát 3)
+          for lt in giao-dien luong; do
+            co=""; [ "$lt" = giao-dien ] && co="--giao-dien"
+            set +e
+            GD_CHUP="$R/anh" PHA_CHUP="$R/anh" node mobile/scripts/pha.mjs web-dist "$RUNNER_TEMP/chrome" $co 2>&1 | tee "$R/pha-$lt-${{ matrix.shard }}.txt"
+            r=${PIPESTATUS[0]}
+            set -e
+            echo "lượt $lt: mã thoát $r"
+            [ "$r" = 0 ] || rc=$r
+          done
           n=$(find "$R/anh" -name '*.png' | wc -l)
           {
-            echo "### pha.mjs ${{ matrix.luot }} — mã thoát $rc · $n ảnh"
+            echo "### pha.mjs shard ${{ matrix.shard }}/6 — mã thoát $rc · $n ảnh"
             echo '```'
-            grep -E '^(SAI|    KHÔNG TẢI)|LỖI|lỗi giao diện|^# |Tổng|tổng' "$R/pha-${{ matrix.luot }}.txt" | head -80 || true
-            echo '…'; tail -15 "$R/pha-${{ matrix.luot }}.txt"
+            grep -hE '^(SAI|TREO|    KHÔNG TẢI)|LỖI|lỗi giao diện|^# |Tổng|tổng' "$R"/pha-*-${{ matrix.shard }}.txt | head -80 || true
+            echo '…'; tail -n 8 "$R"/pha-giao-dien-${{ matrix.shard }}.txt "$R"/pha-luong-${{ matrix.shard }}.txt
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           exit $rc
       - if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: giao-dien-${{ matrix.luot }}
+          name: giao-dien-${{ matrix.shard }}
           path: bao-cao
           if-no-files-found: warn
           retention-days: 14
+
+  giao-dien-tong:
+    needs: giao-dien
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: đỏ nếu có shard nào đỏ / bị huỷ
+        run: |
+          echo "kết quả các shard giao-dien: ${{ needs.giao-dien.result }}"
+          [ "${{ needs.giao-dien.result }}" = success ] || { echo "có shard đỏ / bị huỷ / bị bỏ qua — xem artifact giao-dien-<i> của từng shard"; exit 1; }

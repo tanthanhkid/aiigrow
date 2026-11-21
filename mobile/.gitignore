@@ -46,3 +46,4 @@ build-ios/
 # Ảnh Gemini gốc (nặng) chỉ giữ trên máy; app dùng bản tách nền trong ra/
 /assets/gemini/*.png
 /assets/gemini/*.mp4
+.pha-web/

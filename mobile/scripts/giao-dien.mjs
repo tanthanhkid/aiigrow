@@ -201,7 +201,7 @@ export async function doTay(goi, js, ds) {
  * Chạy cổng trên danh sách màn ở mọi chế độ: 320, 390, 390 + giãn chữ. `vao(man)` đưa trình duyệt tới màn (đã đặt dữ liệu giả) và đợi
  * nội dung. → tổng số lỗi (in từng lỗi dạng JSON).
  */
-export async function chayCong({ goi, js, sleep, dsMan, vao, hau = "", cheDo = [[320, false], [390, false], [390, true]] }) {
+export async function chayCong({ goi, js, sleep, dsMan, vao, canh = (_ten, fn) => fn(), hau = "", cheDo = [[320, false], [390, false], [390, true]] }) {
   let tong = 0, soDoTay = 0;
   for (const [rong, gian] of cheDo) {
     await goi("Emulation.setDeviceMetricsOverride", { width: rong, height: Number(process.env.PHA_CAO ?? 844), deviceScaleFactor: 1, mobile: true });
@@ -210,8 +210,10 @@ export async function chayCong({ goi, js, sleep, dsMan, vao, hau = "", cheDo = [
     let loi = 0;
     console.log(`\n## ${rong}px${gian ? " + giãn chữ (WCAG 1.4.12)" : ""}`);
     for (const man of dsMan) {
+      // canh (watchdog của pha.mjs): quá hạn ⇒ «TREO <màn>@<khổ>» đã ghi, tính một lỗi, sang màn sau
+      const kqMan = await canh(`${man.ten}@${rong}${gian ? "-gian" : ""}${hau}`, async () => {
       // vao trả false khi màn đích không tải được (không thấy chữ mốc) ⇒ một lỗi KHONG-TAI, không đo trên màn trắng / màn lỗi.
-      if ((await vao(man)) === false) { loi++; console.log(`${man.ten.padEnd(34)} 1 lỗi`); console.log("    " + JSON.stringify({ luat: "KHONG-TAI", duong: man.duong, cho: man.cho })); continue; }
+      if ((await vao(man)) === false) { loi++; console.log(`${man.ten.padEnd(34)} 1 lỗi`); console.log("    " + JSON.stringify({ luat: "KHONG-TAI", duong: man.duong, cho: man.cho })); return; }
       if (gian) await js(GIAN);
       await sleep(600);
       // GD_KHUNG=<tệp .jsonl>: ghi nhãn + khung mọi phần tử bấm được (button/tab/link/radio/checkbox) của từng màn @390 — so bố cục hai bản
@@ -241,6 +243,8 @@ export async function chayCong({ goi, js, sleep, dsMan, vao, hau = "", cheDo = [
         (await import("node:fs")).writeFileSync(`${process.env.GD_CHUP}/${rong}${gian ? "-gian" : ""}${hau}-${man.ten.replace(/[^\p{L}\d]+/gu, "-")}.png`, Buffer.from(a.data, "base64")); }
       console.log(`${man.ten.padEnd(34)} ${ds.length ? ds.length + " lỗi" : "đạt"}${tay.length ? ` (đo pixel ${tay.length} dòng trên nền gradient/ảnh)` : ""}`);
       for (const x of ds) console.log("    " + JSON.stringify(x));
+      });
+      if (typeof kqMan === "symbol") loi++;   // TREO
     }
     console.log(`→ ${loi} lỗi / ${dsMan.length} màn @${rong}px${gian ? " giãn" : ""}`);
     tong += loi;

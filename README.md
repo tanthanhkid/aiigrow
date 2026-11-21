@@ -46,3 +46,7 @@ trước golive sửa thành **360** rồi chạy `scripts/deploy-prod.sh` — c
 
 Cổng ~2,5 phút khi đã cài (25/10: trước ~10 phút): bỏ cài khi lockfile không đổi, nhánh máy chủ ∥ nhánh app, cache Metro riêng của cổng,
 `pha.mjs` luồng ∥ cổng giao diện chia ba lượt (`PHA_MAN`) — chi tiết đầu `scripts/deploy-prod.sh`.
+
+**Quy trình PR (app Ba Mẹ).** Trước PR chạy `bash mobile/scripts/cong-pr.sh` (lint + tsc mobile, tsc + test liên quan server, `pha-theo-diff`). Lượt `pha.mjs --giao-dien` đủ chạy trên CI
+(workflow `mobile`, 6 shard `PHA_SHARD=i/6`, chạy trên `pull_request` + `workflow_dispatch`), không chạy trên Mac. Đổi chữ giao diện thì sửa kịch bản pha trong cùng PR; test không dùng đồng hồ thật.
+Chi tiết: `docs/CI-RA-LOI.md`, `mobile/AGENTS.md`.
