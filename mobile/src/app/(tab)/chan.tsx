@@ -136,7 +136,7 @@ function HangIcon({ nhan, ds, web, trong, sua, bam }: { nhan: string; ds: DongDs
       accessibilityLabel={`${nhan}: ${ds.length ? `${dem("tinh_phut")} tính phút, ${dem("khong_tinh_phut")} không tính phút` : trong}${sua ? ", sửa" : ""}`}
       style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 60, paddingVertical: ds.length ? 4 : 0 }}>
       <Chu kieu="rat" co={14} mau={M.chu2} style={{ width: 44 }}>{nhan}</Chu>
-      <View style={{ flex: 1, minWidth: 0, flexDirection: "row", gap: 4, alignItems: "flex-start" }}>
+      <View style={{ flex: 1, minWidth: 0, flexDirection: "row", gap: 4, alignItems: ds.length ? "flex-start" : "center" }}>
         {ds.length ? ds.slice(0, 4).map((h, i) => (
           <View key={i} style={{ width: 48, alignItems: "center", gap: 3 }}>
             <View style={{ width: 40, height: 40, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",

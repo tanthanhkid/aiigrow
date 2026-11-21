@@ -186,7 +186,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
 
   // ---- 1. thẻ con
   const xViec = c.nhiemVuXong ?? 0;
-  const yViec = Math.max(xViec + nopCho.length, (nv.d?.ds ?? []).filter((x) => x.bat && (!x.giao_cho || x.giao_cho === conId)).length);
+  const yViec = Math.max(xViec + nopCho.length, (nv.d?.ds ?? []).filter((x) => x.bat && (!x.lap_lai || x.lap_lai === "hang_ngay") && (!x.giao_cho || x.giao_cho === conId)).length);
   // tên máy trong viên trạng thái gọn ≤ 14 ký tự (tên máy dài sẽ lấn sang Grow); nhiều máy mất mạng ⇒ «Laptop +1»
   const gonTen = (t: string) => (t.length > 14 ? `${t.slice(0, 13)}…` : t);
   const matMangMay = (c.matMang ?? []).slice(0, 1).map((m) => gonTen(m.ten.replace(/ của .*$/, "")) + ((c.matMang?.length ?? 0) > 1 ? ` +${(c.matMang?.length ?? 1) - 1}` : ""));
@@ -235,7 +235,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
             <OSo vong={hn.d && hn.d.choi.tongPhut > 0 ? hn.d.choi.daDung / hn.d.choi.tongPhut : 0} mau={HERO.phu} ic="dongho" so={hn.d ? `${hn.d.choi.daDung} phút` : "–"} nhan="Đã chơi"
               bam={() => router.push("/bao-cao" as never)} />
-            <OSo vong={yViec ? xViec / yViec : 0} mau="#5cb98f" ic="tick" so={`${xViec}/${yViec} việc`} nhan="Đã làm" bam={() => router.push("/diem-qua" as never)} />
+            <OSo vong={yViec ? xViec / yViec : 0} mau="#5cb98f" ic="tick" so={yViec ? `${xViec}/${yViec} việc` : `${xViec} việc`} nhan="Đã làm" bam={() => router.push("/diem-qua" as never)} />
           </View>
         ) : null}
         {/* hai nút: vàng (Khoá máy / Mở khoá ngay) + sáng (Thêm nhiệm vụ / Đổi giờ) */}
