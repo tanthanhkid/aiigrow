@@ -25,7 +25,8 @@ buoc "mobile lint" bash -c 'cd mobile && npm run lint'
 buoc "mobile tsc"  bash -c 'cd mobile && npm run typecheck'
 
 if [ -d server/node_modules ]; then
-  buoc "server tsc" bash -c 'cd server && pnpm run typecheck'
+  # gọi thẳng tsc / node --test (cùng lệnh package.json): `pnpm run` có lúc chặn vì kiểm phụ thuộc (ERR_PNPM_IGNORED_BUILDS của @sentry/cli) dù đã cài xong
+  buoc "server tsc" bash -c 'cd server && ./node_modules/.bin/tsc --noEmit'
   # test server liên quan
   if echo "$DOI" | grep -q '^server/'; then
     TESTS=()
@@ -44,7 +45,7 @@ if [ -d server/node_modules ]; then
       esac
     done < <(echo "$DOI" | grep '^server/')
     if [ "$TOAN" = 1 ]; then
-      buoc "server test (đủ)" bash -c 'cd server && pnpm test'
+      buoc "server test (đủ)" bash -c 'cd server && node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts'
     elif [ "${#TESTS[@]}" -gt 0 ]; then
       U="$(printf '%s\n' "${TESTS[@]}" | sort -u | tr '\n' ' ')"
       echo "test liên quan: $U"
