@@ -5,6 +5,7 @@
 //  · ChiTietMuc      — chi tiết một app / web: icon tròn to, «<mục> có tính phút không?», 2 thẻ nhóm, «Lưu: …», «Bỏ … khỏi danh sách»
 //                      (bm2-app-web@v20 · them-2nupeqju · Lần đầu them-qjgsxgos@v1 · them-4glrqqlq@v2)
 //  · KetQuaThem      — «Kết quả cho «…»», dòng kết quả + ✓ navy, câu hỏi nhóm ngay dưới dòng vừa chọn (them-vw103x88@v13 · them-at57ypdc@v9 · them-ubomxl31@v8)
+import { useState } from "react";
 import { Text, View } from "react-native";
 import { TEN_NHOM, type CheDo, type Nhom } from "./app-web";
 import { BONG, HERO, KHOI, KHOI_HERO, MEN } from "./clay";
@@ -106,16 +107,26 @@ export function HaiNhomMuc({ ds }: { ds: MucDs[] }) {
   );
 }
 
-/** Nhóm «Gợi ý cho <con>» (Lần đầu): dòng icon + tên + nút ＋ tròn. */
-export function NhomGoiY({ tieu, ds }: { tieu: string; ds: { k: string; ten: string; ic: TenIcon; bam: () => void }[] }) {
+/** Nhóm «Gợi ý cho <con>» (Lần đầu): dòng icon + tên + nút ＋ tròn. #508: chạm ＋ mở NGAY tại dòng «<app> có tính phút không?» (2 ô nhóm) — chọn nhóm là thêm luôn,
+ *  không qua màn tìm kiếm. */
+export function NhomGoiY({ tieu, ds, them }: { tieu: string; ds: { k: string; ten: string; ic: TenIcon; bam?: () => void }[]; them?: (ten: string, nhom: Nhom) => void }) {
+  const [mo, setMo] = useState<string | null>(null);
   if (!ds.length) return null;
   return (
     <View style={{ gap: 8 }}>
       <Chu kieu="rat" co={15} style={{ marginTop: 10, marginHorizontal: 6 }}>{tieu}</Chu>
       <KhoiNhom>
         {ds.map((h, i) => (
-          <DongDen key={h.k} dau={i === 0} tieu={h.ten} trai={<OIconTrang ic={h.ic} />} bam={h.bam}
-            phai={<View accessibilityRole="button" accessibilityLabel={`Thêm ${h.ten}`}><NutChon chon={false} /></View>} />
+          <View key={h.k} style={{ paddingBottom: mo === h.k ? 12 : 0 }}>
+            <DongDen dau={i === 0} tieu={h.ten} trai={<OIconTrang ic={h.ic} />} bam={them ? () => setMo(mo === h.k ? null : h.k) : h.bam}
+              phai={<View accessibilityRole="button" accessibilityLabel={`Thêm ${h.ten}`} accessibilityState={{ expanded: mo === h.k }}><NutChon chon={mo === h.k} /></View>} />
+            {them && mo === h.k ? (
+              <View style={{ gap: 8, marginTop: 2 }}>
+                <Chu kieu="rat" co={13.5} mau={M.chu} style={{ marginHorizontal: 2 }}>{`${h.ten} có tính phút không?`}</Chu>
+                <ChonNhomNgang gia={null} doi={(n) => { setMo(null); them(h.ten, n); }} />
+              </View>
+            ) : null}
+          </View>
         ))}
       </KhoiNhom>
     </View>
@@ -245,14 +256,14 @@ export function DongCheDo({ cheDo, doi }: { cheDo: CheDo; doi: () => void }) {
 /** Danh sách Lần đầu (app / web), MỘT khối cho cả hai màn: thanh tìm lõm dẫn sang Thêm, hai nhóm (Tính phút trước, KHÔNG số liệu dùng, KHÔNG chip trong dòng),
  *  «Gợi ý cho <con>» với nút ＋ tròn. Dòng đã thêm bấm ⇒ màn Đổi. */
 export function DsLanDau({ kieu, ten, da, goiY, timChu, tim, mo, them }: {
-  kieu: "app" | "web"; ten: string; da: MucDs[]; goiY: { k: string; ten: string; ic: TenIcon }[]; timChu: string; tim: () => void; mo: (k: string) => void; them: (ten: string) => void;
+  kieu: "app" | "web"; ten: string; da: MucDs[]; goiY: { k: string; ten: string; ic: TenIcon }[]; timChu: string; tim: () => void; mo: (k: string) => void; them: (ten: string, nhom: Nhom) => void;
 }) {
   return (
     <>
       <ThanhTimGia chu={timChu} ic={kieu === "web" ? "web" : "tim_kiem"} nhan={kieu === "web" ? "Thêm trang web bằng tên hoặc đường link" : "Tìm hoặc thêm app trên máy con"} bam={tim} />
       <HaiNhomMuc ds={da.map((x) => ({ ...x, bam: () => mo(x.k) }))} />
       {da.length ? null : <Chu kieu="dam" co={13.5} mau={M.chu3} style={{ marginHorizontal: 6 }}>{`Chưa thêm ${kieu === "web" ? "trang" : "app"} nào. ${kieu === "web" ? "Trang" : "App"} chưa thêm thì ${ten} chưa mở được — con xin Ba Mẹ.`}</Chu>}
-      <NhomGoiY tieu={`Gợi ý cho ${ten}`} ds={goiY.map((g) => ({ ...g, bam: () => them(g.ten) }))} />
+      <NhomGoiY tieu={`Gợi ý cho ${ten}`} ds={goiY} them={them} />
     </>
   );
 }

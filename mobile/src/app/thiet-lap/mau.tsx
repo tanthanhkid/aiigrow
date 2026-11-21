@@ -2,14 +2,14 @@
 // chủ đề Chọn tất cả, nút ＋ từng dòng»; them-5e30929l / them-wv4igjxs / them-ws974ond + 10 màn chủ đề «Phụ giúp n/10» gộp vào đây: tab Học ·
 // Vận động · Giúp Ba Mẹ, tab Giúp Ba Mẹ chia 10 chủ đề). Không chọn sẵn. Kho việc ở máy chủ (GET nhiem-vu/kho). «Xong, sang phần quà» ⇒
 // POST nhiem-vu/kho {con, chon} ⇒ Quà (them-s416tfdj). «+ Ba Mẹ tự thêm» ⇒ bảng them-bwlkjyw5 = form chung lib/tu-them-viec (tạo việc riêng ngay — POST nhiem-vu).
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { router } from "expo-router";
 import { View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { DauMan, LienKet } from "@/lib/lan-dau";
 import { BongGrow, DauNhom, DongChon, TabMuc, TheDs, type MauMuc } from "@/lib/lan-dau-ds";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
-import { layTl } from "@/lib/thiet-lap";
+import { datTl, layTl } from "@/lib/thiet-lap";
 import { BONG } from "@/lib/clay";
 import { BangTruot, BaoLoi, ChoTai, Chu, IconNet, M, Man, Nut, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 import { FormTuThem } from "@/lib/tu-them-viec";
@@ -30,11 +30,13 @@ export default function ObMau() {
   const ten = tl.tenCon ?? "con";
   const { d, loi: loiTai, matMang, tai } = useTai(() => bm.goi<Kho>("nhiem-vu/kho"));
   const [tab, setTab] = useState<Muc>("hoc");
-  const [chon, setChon] = useState<Set<string>>(new Set());
+  const [chon, setChon] = useState<Set<string>>(() => new Set(tl.viec ?? []));        // #508: nhớ lựa chọn khi quay lại / tải lại trang
   const [them, setThem] = useState(false);
-  const [rieng, setRieng] = useState<string[]>([]);         // việc riêng Ba Mẹ vừa tự thêm (tab «Khác»)
+  useEffect(() => { datTl({ viec: [...chon] }); }, [chon]);
+  const [rieng, setRieng] = useState<string[]>(tl.viecRieng ?? []);         // việc riêng Ba Mẹ vừa tự thêm (tab «Khác»)
   const { lam, loi, dangChay } = useLam();
   const { bao, noi } = useHoanTac();
+  useEffect(() => { datTl({ viecRieng: rieng }); }, [rieng]);
   const ds = useMemo(() => d?.ds ?? [], [d]);
   const doi = (mas: string[], bat: boolean) => setChon((c) => { const n = new Set(c); for (const m of mas) { if (bat) n.add(m); else n.delete(m); } return n; });
   const nhom = (vs: ViecKho[]) => ({ het: vs.length > 0 && vs.every((v) => chon.has(v.ma)), bam: () => doi(vs.map((v) => v.ma), !vs.every((v) => chon.has(v.ma))) });

@@ -57,7 +57,7 @@ export default function ChonApp() {
       ) : <>
         <DsLanDau kieu="app" ten={ten} da={da} goiY={goiY} timChu="Tìm app trên máy con" tim={() => router.push("/thiet-lap/them-app")}
           mo={(t) => router.push({ pathname: "/thiet-lap/doi-app", params: { ten: t } })}
-          them={(t) => router.push({ pathname: "/thiet-lap/them-app", params: { q: t } })} />
+          them={(t, n) => { const moi: AppChon[] = [...(layTl().apps ?? []).filter((a) => k(a.ten) !== k(t)), { ten: t, tinhGio: n === "tinh_phut" }]; setApps(moi); datTl({ apps: moi }); }} />
         <Chu co={12.5} mau={M.chu3} style={{ paddingHorizontal: 4 }}>AiiGrow không đề xuất: TikTok, Facebook, Instagram, YouTube bản thường — chỉ dành cho từ 13 tuổi.</Chu>
       </>}
     </Man>

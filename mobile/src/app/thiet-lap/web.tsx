@@ -36,7 +36,7 @@ export default function ChonWeb() {
       <Chu co={13.5} mau={M.chu2} style={{ paddingHorizontal: 4 }}>Con chỉ mở app, web trong danh sách. Cái mới thì con xin Ba Mẹ.</Chu>
       <DsLanDau kieu="web" ten={ten} da={da} goiY={goiY} timChu="Dán địa chỉ web" tim={() => router.push("/thiet-lap/them-web")}
         mo={(m) => router.push({ pathname: "/thiet-lap/doi-web", params: { muc: m } })}
-        them={(m) => router.push({ pathname: "/thiet-lap/them-web", params: { q: m } })} />
+        them={(m, n) => { const moi: WebChon[] = [...(layTl().webs ?? []).filter((w) => w.muc.toLowerCase() !== m.toLowerCase()), { muc: m, tinhGio: n === "tinh_phut" }]; setWebs(moi); datTl({ webs: moi }); }} />
       <Chu co={12.5} mau={M.chu3} style={{ paddingHorizontal: 4 }}>AiiGrow không đề xuất: tiktok.com, facebook.com, youtube.com bản thường — chỉ dành cho từ 13 tuổi.</Chu>
     </Man>
   );

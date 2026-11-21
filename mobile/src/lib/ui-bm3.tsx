@@ -193,7 +193,7 @@ export const NutChon = ({ chon }: { chon: boolean }) => (
 );
 /** Hai ô nhóm ngang — ngay dưới mục vừa chọn ở màn Thêm app / Thêm web, Hằng ngày lẫn Lần đầu (bàn them-at57ypdc@v9 · them-vw103x88@v13 `.den`): hai ô lõm cạnh nhau, bóng tròn màu nhóm
  *  (mờ khi chưa chọn); ô đang chọn navy, viền vàng 2px, chữ vàng, bóng vàng kim. */
-export function ChonNhomNgang({ gia, doi }: { gia: Nhom; doi: (n: Nhom) => void }) {
+export function ChonNhomNgang({ gia, doi }: { gia: Nhom | null; doi: (n: Nhom) => void }) {
   return (
     <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
       {(["tinh_phut", "khong_tinh_phut"] as const).map((k) => {
