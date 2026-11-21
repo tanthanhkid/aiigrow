@@ -1,0 +1,24 @@
+# Mở app; chưa đăng nhập thì đăng nhập bằng tài khoản seed CI (mật khẩu thường, không OTP). Có phiên rồi thì bỏ qua.
+appId: vn.aiilab.aiigrow
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Tôi đã có tài khoản|Hôm nay.*"
+    timeout: 90000
+- runFlow:
+    when:
+      visible: "Tôi đã có tài khoản"
+    commands:
+      - takeScreenshot: ../out/anh/00-chao
+      - tapOn: "Tôi đã có tài khoản"
+      - assertVisible: "Chào Ba Mẹ!"
+      - tapOn: "Số điện thoại"
+      - inputText: "0900000001"
+      - tapOn: "Mật khẩu"
+      - inputText: "aiigrow-ci-123"
+      - hideKeyboard
+      - takeScreenshot: ../out/anh/00-dang-nhap-dien
+      - tapOn: "Đăng nhập vào nhà mình"
+- extendedWaitUntil:
+    visible: "Hôm nay.*"
+    timeout: 60000
