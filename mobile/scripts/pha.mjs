@@ -1795,6 +1795,9 @@ await kichBan("#508 Lần đầu thứ tự mới: Ghép máy ngay sau «Con» �
   xet(await js(`!!document.querySelector('[role="progressbar"][aria-label^="Bước 2 trên 6"]')`), "thanh bước: bước 2 trên 6 (Ghép máy)");
   await bam("Để sau · đi tiếp, ghép máy sau");
   xet(await doi("Một ngày của"), "«Để sau, ghép máy sau» ⇒ bước Việc (không còn «Xong rồi»)");
+  // #536: «Quay lại» ở bước Việc về Ghép máy (không rời Lần đầu sang Trang chủ)
+  await js(`document.querySelector('[aria-label="Quay lại"]')?.click()`);
+  xet(await doi("Ghép trước để thấy app trên máy Bảo Anh"), "#536: bước Việc bấm «Quay lại» ⇒ về Ghép máy, không rời Lần đầu");
   await vao("/thiet-lap/da-ghep?con=c1&may=m1&nguon=lan-dau&sau=mau");
   xet(await doi("Đã nhận danh sách app từ máy — 7 app"), "đã ghép: «Đã nhận danh sách app từ máy — N app»");
   xet((await chu()).includes("Luật bật khi Ba Mẹ xong 4 bước nữa"), "đã ghép: «Luật bật khi Ba Mẹ xong 4 bước nữa»");
