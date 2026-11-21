@@ -577,6 +577,8 @@ ws.onmessage = async (e) => {
   if (tl === "mat_mang") return goi("Fetch.failRequest", { requestId, errorReason: "InternetDisconnected" });
   const { status, data } = tl === undefined ? { status: 404, data: { error: "khong_co_duong", message: `pha.mjs chưa giả ${khoa}` } }
     : tl && typeof tl === "object" && "status" in tl ? { status: tl.status, data: tl.body } : { status: 200, data: tl };
+  // server luôn trả `sao` cho dòng quà (GET qua); bản giả cũ chỉ có `diem` ⇒ tab «Tất cả» (#502) cần số
+  if (khoa === "GET qua" && data?.ds) data.ds = data.ds.map((q) => ({ sao: q.diem, ...q }));
   if (tl === undefined) console.log("   (chưa giả)", khoa);
   goi("Fetch.fulfillRequest", { requestId, responseCode: status, responseHeaders: [{ name: "content-type", value: "application/json" }],
     body: Buffer.from(JSON.stringify(data)).toString("base64") });
@@ -855,6 +857,8 @@ if (process.argv.includes("--giao-dien")) {
     // #325 bm-sao-qua (bàn 17/11): đúng CA của từng màn bàn
     M("bm-qua (xin vay đổi quà · 473f52w6)", "/vi/qua?con=c1", "Quà nhà", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"], yeuCau: [{ ...YC_VAY, phut: 50, muc_dich: "qua", gia_tri: "q1" }] } } }),
     M("bm-qua (Ba Mẹ tự điền · f0fnp733)", "/vi/qua?con=c1&tab=nha", "Quà Ba Mẹ đã điền"),
+    M("bm-qua (Lego hết · #502)", "/vi/qua?con=c1", "Mua thêm", { kb: { ...QUA_KHO, "GET qua/thu-vien": { nhom: coBan["GET qua/thu-vien"].nhom.map((n) => ({ ...n, ds: n.ds.map((x) => (x.ma === "lego" ? { ...x, daCo: true, dem: true, dangCo: 0, het: true }
+      : x.ma === "aiicafe_20k" ? { ...x, daCo: true, dem: true, dangCo: 2, het: false } : x)) })) } } }),
     M("bm-qua-thu-vien (dlul0jlr)", "/vi/qua-thu-vien?con=c1", "Tự đặt quà nhà"),
     M("bm-qua-mua (đã mua · sp8ijd1b)", "/vi/qua-mua?ma=aiicafe_20k&con=c1", "Cách dùng", { kb: { ...QUA_KHO, "GET con/c1/vi": { ...coBan["GET con/c1/vi"], sao: 30, soDu: 30 } } }),
     M("bm-qua-sua (bảng xoá · t49meex8)", "/vi/qua-sua?id=q2", "Giữ lại", { truoc: async () => { await di("/vi/qua-sua?id=q2"); await doi("Xoá quà này"); await bam("Xoá quà này"); } }),
@@ -2165,7 +2169,7 @@ await kichBan("#502 Tặng sao: Ví sao ⇒ «Tặng sao» ⇒ tab Tặng (5/10/
   await di("/vi/c1");
   await doi("Tặng sao"); await bam("Tặng sao");
   xet(await doi(`Tặng sao cho ${KEN}`), "mở bảng Tặng sao cho <Con>");
-  xet(await doi("Không cần trả lại"), "«Không cần trả lại · Cộng thẳng vào sao của <Con>»");
+  xet(await doi("Trả nợ trước 10 sao"), "con đang nợ 20, tặng 10 ⇒ «Trả nợ trước 10 sao» (không tạo nợ)");
   xet(await doi(`Tặng ${KEN} 10 sao`), "mặc định 10 sao");
   await bam("20");
   xet(await doi(`Tặng ${KEN} 20 sao`), "chọn 20 ⇒ nút đổi theo");
