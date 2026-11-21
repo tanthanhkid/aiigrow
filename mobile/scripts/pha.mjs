@@ -1429,7 +1429,7 @@ await kichBan("Hồ sơ Con: mục «Liên kết AiiRob» hiện mã <family_id>
 await kichBan("Hôm nay: thẻ số sao (145 sao, không nợ) + một nút «Khoá máy» (#421 — không còn «Cho vay sao»); đang chơi; app mới chờ xếp; không chữ cũ", async () => {
   await di("/hom-nay");
   xet(await doi("145 sao"), "thẻ đầu: «⭐ 145 sao» (chưa nợ)");
-  xet((await chu()).includes("145 phút Còn chơi được"), "ô «Còn chơi được» = số sao (1 sao = 1 phút)");
+  xet(/\d+\/\d+ việc\s*Đã làm/.test(await chu()) && (await chu()).includes("Đã chơi"), "#509: hai ô số «Đã chơi» + «x/y việc · Đã làm» (Bàn bm2-trang-chu v44)");
   xet((await chu()).includes("đã dùng gì hôm nay"), "mục «<Con> đã dùng gì hôm nay» (bàn bm2-trang-chu@v35 — thay chip «Roblox · Laptop»)");
   { const cu = await chuCu(); xet(!cu.length, `không còn chữ cũ (${cu.join(", ")})`); }
   xet(await doi("Khoá máy"), "thẻ hero có nút «Khoá máy»");

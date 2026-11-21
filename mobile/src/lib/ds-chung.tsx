@@ -11,7 +11,7 @@ import { TEN_NHOM, type CheDo, type Nhom } from "./app-web";
 import { BONG, HERO, KHOI, KHOI_HERO, MEN } from "./clay";
 import { ChonNhom, ChonNhomNgang, DongDen, KhoiNhom, MucNhom, NutChon, OIconTrang } from "./ui-bm3";
 import { ThanhTimGia } from "./lan-dau-ds";
-import { BaoLoi, Chu, DauSach, F, Icon, Icon3D, IconNet, LogoTron, M, NhanMen, Nut, type TenIcon } from "./ui";
+import { BaoLoi, Chu, DauSach, F, Icon, Icon3D, IconNet, M, NhanMen, Nut, Rob, type TenIcon } from "./ui";
 
 const TEN_CHE_DO: Record<CheDo, string> = { mo_het: "Mở hết", theo_danh_sach: "Theo danh sách" };
 const IC_CHE_DO = { mo_het: "mo_khoa", theo_danh_sach: "khien" } as const;
@@ -49,7 +49,7 @@ function CongTat({ cheDo, doi, tat, cao }: { cheDo: CheDo; doi: (v: CheDo) => vo
   );
 }
 
-const ROB_CO = 84, ROB_PHAI = 14, CHUA_ROB = ROB_CO + ROB_PHAI - 16;
+const ROB_CO = 100, CHUA_ROB = ROB_CO - 16;
 
 /** Thẻ navy chế độ app & web.
  *  `lon` (tab App & web — bm2-ung-dung-may): dấu sách vàng, «Máy của <con> đang ở chế độ», tên chế độ 24, logo tròn, hai dòng ✓ / ?, công tắc.
@@ -72,9 +72,10 @@ export function TheCheDo({ ten, cheDo, doi, tat, lon }: { ten: string; cheDo: Ch
     <View style={{ borderRadius: 34, overflow: "hidden", ...KHOI_HERO }}>
       <View style={{ paddingTop: 18, paddingHorizontal: 16, paddingBottom: 16 }}>
         <View pointerEvents="none" style={{ position: "absolute", left: 24, top: 0 }}><DauSach mau={HERO.phu} rong={16} cao={22} /></View>
-        <Chu kieu="dam7" co={13} mau={HERO.phu} style={{ marginTop: 10 }}>{`Máy của ${ten} đang ở chế độ`}</Chu>
+        {/* Bàn bm2-ung-dung-may v22 `.rob`: Grow chỉ tay 3D, sát mép phải thẻ (#509) */}
+        <View pointerEvents="none" style={{ position: "absolute", right: 0, top: 8 }}><Rob ten="chi" co={ROB_CO} /></View>
+        <Chu kieu="dam7" co={13} mau={HERO.phu} style={{ marginTop: 10, marginRight: CHUA_ROB - 6 }}>{`Máy của ${ten} đang ở chế độ`}</Chu>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4, marginRight: CHUA_ROB + 6 }} accessibilityRole="header">
-          <View pointerEvents="none" style={{ position: "absolute", right: -(CHUA_ROB + 22 - ROB_PHAI), top: -8 }}><LogoTron co={ROB_CO} /></View>
           <IconNet ten={IC_CHE_DO[cheDo]} co={30} mau={HERO.phu} />
           <Chu kieu="rat" co={24} mau={HERO.chu} style={{ letterSpacing: -0.6, flexShrink: 1 }}>{TEN_CHE_DO[cheDo]}</Chu>
         </View>

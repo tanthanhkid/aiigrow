@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Platform } from "react-native";
+import { Platform, View } from "react-native";
 import { Stack } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -19,11 +19,18 @@ export default function Goc() {
   }, []);
   // Inter: native nhúng sẵn lúc build (app.json › expo-font) nên không chờ tải; web nạp @font-face, không chờ (phong-chu.web.ts).
   useNapPhongChu();
-  return (
+  const app = (
     <SafeAreaProvider>
       <PhienProvider>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: M.nen } }} />
       </PhienProvider>
     </SafeAreaProvider>
+  );
+  // Bản web mở trên máy tính: giữ khung tối đa ~430px căn giữa để nhìn như điện thoại (#509); app native không đổi.
+  if (Platform.OS !== "web") return app;
+  return (
+    <View style={{ flex: 1, alignItems: "center", backgroundColor: "#DDD2C2" }}>
+      <View style={{ flex: 1, width: "100%", maxWidth: 430, overflow: "hidden", backgroundColor: M.nen, boxShadow: "0px 0px 24px rgba(40,30,15,0.18)" }}>{app}</View>
+    </View>
   );
 }
