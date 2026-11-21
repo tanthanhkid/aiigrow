@@ -75,7 +75,7 @@ export default function ObXong() {
         <View style={{ borderRadius: 26, backgroundColor: M.chonSoft, padding: 16, gap: 10, ...KHOI.the }}>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}><IconNet ten="may_tinh" co={22} mau={M.chinh} /><Chu kieu="rat" co={14.5} mau={M.diemInk}>Chưa có máy nào</Chu></View>
           <Chu co={13.5} mau={M.chu2}>{`Grow chỉ trông được khi máy của ${ten} đã ghép`}</Chu>
-          <Nut chu={`Ghép máy cho ${ten}`} rong bam={() => router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } })} />
+          <Nut chu={`Ghép máy cho ${ten}`} rong bam={() => router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau", sau: "xong" } })} />
         </View>
       )}
     </Man>

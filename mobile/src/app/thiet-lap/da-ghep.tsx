@@ -135,7 +135,7 @@ export default function DaGhep() {
         <>
           <TheTin ic="tai" tieu={d?.soApp ? `Đã nhận danh sách app từ máy — ${d.soApp} app` : "Đang nhận danh sách app từ máy"}
             phu={d?.soApp ? `Ba Mẹ xếp Tính phút hoặc Không tính phút ở bước App` : `Máy gửi về trong ít phút. iPhone, iPad không cho AiiGrow xem app đã cài.`} />
-          <TheTin ic="khien" tieu="Luật bật khi Ba Mẹ xong 4 bước nữa" phu="Việc, quà, giờ chơi, app và web — máy chưa bị chặn gì lúc này" />
+          <TheTin ic="khien" tieu={sau === "app" ? "Luật bật khi Ba Mẹ xong bước App và web" : "Luật bật khi Ba Mẹ xong 4 bước nữa"} phu={sau === "app" ? "Máy chưa bị chặn gì lúc này" : "Việc, quà, giờ chơi, app và web — máy chưa bị chặn gì lúc này"} />
         </>
       ) : <TheTin ic="khien" tieu={chung ? "Luật đi theo bé đang dùng" : `${moHet ? "Mở hết" : "Theo danh sách"} · máy riêng ${tenBe}`}
           phu={chung ? "Chơi trên máy này chỉ trừ sao của bé đó" : moHet ? "Mọi app, web đều mở" : "Chỉ mở app, web Ba Mẹ đã thêm"} />}

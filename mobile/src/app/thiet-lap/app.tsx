@@ -29,7 +29,7 @@ export default function ChonApp() {
   const [may, setMay] = useState<MayApp[] | null>(null);      // app trên máy ĐÃ GHÉP của bé (máy gửi về) — null = đang tải
   useFocusEffect(useCallback(() => {
     const con = layTl().conId;
-    if (con) taiAppCuaCon(con).then(setMay, () => setMay([])); else setMay([]);
+    if (con) taiAppCuaCon(con).then(setMay, () => setMay(null)); else setMay([]);
     setApps(layTl().apps ?? []);                // quay về từ «Thêm app» / «Đổi app» ⇒ đọc lại
     // đi lại Lần đầu cho Con đã có chế độ ⇒ hiện đúng chế độ đang có — chỉ khi Ba Mẹ chưa bấm chọn
     napCaiDatCon().then(() => { const n = layTl().cheDoChan; if (n && !daBam.current) setCheDo(n); }).catch(() => {});
@@ -42,7 +42,7 @@ export default function ChonApp() {
     const x = DM_APP.find((y) => k(y.ten) === k(a.ten));
     return { k: a.ten, ten: a.ten, nhom: nhomCua(tinh(a)), ic: icCuaApp(`${a.ten} ${x?.phu ?? ""}`) };
   }), [apps]); // eslint-disable-line react-hooks/exhaustive-deps
-  const coMay = !!may?.length;
+  const coMay = !!may?.some((m) => m.ds.some((x) => x.trangThai !== "he_thong"));
   const themApp = (t: string, n: "tinh_phut" | "khong_tinh_phut") => { const moi: AppChon[] = [...(layTl().apps ?? []).filter((a) => k(a.ten) !== k(t)), { ten: t, tinhGio: n === "tinh_phut" }]; setApps(moi); datTl({ apps: moi }); };
   const goiY = coMay ? [] : DM_APP.filter((x) => !apps.some((a) => k(a.ten) === k(x.ten))).slice(0, GOI_Y_TOI_DA).map((x) => ({ k: x.ten, ten: x.ten, ic: icCuaApp(`${x.ten} ${x.phu}`) }));
   const tiep = () => {

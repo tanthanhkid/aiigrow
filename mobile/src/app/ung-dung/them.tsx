@@ -56,7 +56,7 @@ export default function ThemApp() {
 
   // Lần đầu · bước App và màn này CÙNG bố cục (#508 mục 6): «App trên <máy>» + «Chưa xếp» (hai nút nhóm ngay dòng), chưa ghép máy ⇒ thẻ «Ghép máy» + gợi ý ＋
   const daXep = useMemo(() => new Set((d?.luat ?? []).map((l) => chuan(l.ten || l.muc))), [d]);
-  const goiYHien = useMemo(() => (d?.may.length ? [] : (d?.gy ?? []).filter((g) => !daXep.has(chuan(g.ten))).slice(0, 5)), [d, daXep]);
+  const goiYHien = useMemo(() => (d?.may.some((m) => m.ds.some((x) => x.trangThai !== "he_thong")) ? [] : (d?.gy ?? []).filter((g) => !daXep.has(chuan(g.ten))).slice(0, 5)), [d, daXep]);
   const themNgay = (ten: string, nhom: "tinh_phut" | "khong_tinh_phut", ma?: string) => lam(async () => { await themVaoDs(con, [ma ? { nhom, ma } : { nhom, ten }]); await tai(); });
   if (!d) return <Man lui={{ chu: "", bam: ve }} tieu="Thêm app"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const q = chuan(tim);

@@ -38,10 +38,10 @@ export function appChuaXep(may: MayApp[], daXep: (a: AppMay) => boolean): (AppMa
 
 const gioMay = (iso: string | null) => { if (!iso) return null; const d = new Date(iso); return Number.isNaN(+d) ? null : `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`; };
 
-function NutNhom({ nhom, bam, chu }: { nhom: Nhom; bam: () => void; chu: string }) {
+function NutNhom({ nhom, bam, chu, ten }: { nhom: Nhom; bam: () => void; chu: string; ten: string }) {
   const tinh = nhom === "tinh_phut";
   return (
-    <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`${chu}`}
+    <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`${chu} ${ten}`}
       style={{ minWidth: 58, minHeight: 44, paddingHorizontal: 8, borderRadius: 16, alignItems: "center", justifyContent: "center",
         backgroundColor: tinh ? M.the : M.chu, boxShadow: tinh ? BONG.lom : BONG.nho }}>
       <Chu kieu="rat" co={12.5} mau={tinh ? M.chu : M.diem} style={{ textAlign: "center", lineHeight: 15 }}>{chu}</Chu>
@@ -105,8 +105,8 @@ export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep }: {
                     <Chu kieu="rat" co={15} dong={2}>{a.ten}</Chu>
                     {a.nhaPhatHanh ? <Chu kieu="dam" co={12} mau={M.chu3} dong={1}>{a.nhaPhatHanh}</Chu> : null}
                   </View>
-                  <NutNhom nhom="tinh_phut" chu="Tính phút" bam={() => chon(a, "tinh_phut")} />
-                  <NutNhom nhom="khong_tinh_phut" chu="Không tính" bam={() => chon(a, "khong_tinh_phut")} />
+                  <NutNhom nhom="tinh_phut" ten={a.ten} chu="Tính phút" bam={() => chon(a, "tinh_phut")} />
+                  <NutNhom nhom="khong_tinh_phut" ten={a.ten} chu="Không tính" bam={() => chon(a, "khong_tinh_phut")} />
                 </View>
               ))}
             </View>

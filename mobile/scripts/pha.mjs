@@ -1733,7 +1733,7 @@ await kichBan("#508 Lần đầu · bước App: máy đã ghép ⇒ app từ m�
   xet(await doi("Chưa xếp ·"), "máy đã ghép ⇒ khối «Chưa xếp · N app» từ máy");
   const c = await chu();
   xet(c.includes("App trên Laptop") && c.includes("Blender") && !c.includes("Google Chrome"), "«App trên <máy>», có app thật của máy, bỏ app hệ thống");
-  await bamChon('[aria-label="Tính phút"]');
+  await bamChon('[aria-label^="Tính phút "]');
   await sleep(300);
   const t = await tlNay();
   xet(t.apps?.length === 1 && t.apps[0].tinhGio === true, "một chạm «Tính phút» ⇒ app vào thiết lập, tinhGio true");
@@ -1752,7 +1752,7 @@ await kichBan("#508 Hằng ngày · Thêm app: cùng bố cục bước App (app
   await di("/ung-dung/them?con=c1");
   xet(await doi("Chưa xếp ·"), "mở Thêm app ⇒ khối «Chưa xếp · N app» từ máy (giống Lần đầu)");
   nhatKy.length = 0;
-  await bamChon('[aria-label="Không tính"]');
+  await bamChon('[aria-label^="Không tính "]');
   xet(await choGoi((x) => x.d === "con/c1/danh-sach" && x.m === "POST" && x.body?.ds?.length === 1 && x.body.ds[0].nhom === "khong_tinh_phut" && !!x.body.ds[0].ten), "một chạm ⇒ POST danh-sach {nhom: khong_tinh_phut, ten}");
 });
 

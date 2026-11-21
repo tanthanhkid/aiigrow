@@ -77,7 +77,7 @@ export default function ChoMayCon() {
     </Man>
   );
   return (
-    <Man noi={noi} dau={<DauMan bamLui={guiLai} phai={nguon === "lan-dau" ? <ThanhBuoc5 dang={1} /> : undefined} />}
+    <Man noi={noi} dau={<DauMan bamLui={guiLai} phai={nguon === "lan-dau" && sau === "mau" ? <ThanhBuoc5 dang={1} /> : undefined} />}
       day={<>
         <BaoLoi loi={loi} />
         {hetHan ? <Nut chu={`Lấy mã mới cho ${ten}`} ic="khoa" rong bam={layMoi} /> : <Nut chu={nguon === "them" ? "Máy mới đã nhập mã" : "Máy con đã nhập mã"} ic="tick" rong bam={daNhap} />}
