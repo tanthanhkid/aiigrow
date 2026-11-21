@@ -97,7 +97,7 @@ export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep }: {
             <Chu kieu="dam" co={12.5} mau={M.chu2}>{`${ten} chưa mở được`}</Chu>
           </View>
           {hien.length ? (
-            <View style={[{ borderRadius: 26, backgroundColor: M.the, paddingHorizontal: 12, paddingVertical: 4 }, KHOI.the]}>
+            <View style={[{ borderRadius: 26, backgroundColor: M.the, paddingHorizontal: 16, paddingVertical: 4 }, KHOI.the]}>
               {hien.map((a, i) => (
                 <View key={a.k} style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62 }, i > 0 && { borderTopWidth: 1, borderTopColor: "rgba(120,98,70,0.18)" }]}>
                   <OIconTrang ic={icCuaApp(`${a.ten} ${a.muc}`)} anh={a.icon} />
