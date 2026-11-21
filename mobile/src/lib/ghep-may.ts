@@ -1,7 +1,7 @@
 // Ghép máy (L8, docs/API.md › «Ghép máy»): một nội dung cho cả Lần đầu và Ghép thêm máy. Giữ kết quả `POST ghep-may` trong bộ nhớ
 // (web: sessionStorage) theo Con + «cài giống máy» — quay lại màn Ghép («Gửi lại link») dùng lại đúng mã còn hạn, không đẻ mã mới mỗi lần.
 import { bm, type TuanThuMay } from "./api";
-import { mayCuaCon } from "./may-nhieu-con";
+import { mayDaGhepCuaCon } from "./may-da-ghep";
 import { router } from "expo-router";
 import { appsRobChonSan, datTl, layTl, thanThietLap } from "./thiet-lap";
 
@@ -91,10 +91,9 @@ export function diTiepSauGhep(sau: SauGhep, con: string) {
   else router.push("/thiet-lap/mau");
 }
 
-/** #536: Con đã có máy ghép ⇒ Lần đầu không tạo mã mới, đi thẳng bước Việc. Lỗi mạng ⇒ false (đi Ghép máy như cũ). */
+/** #536: Con đã có máy ghép (đúng Con đó, không tính máy dùng chung chưa gán, máy đang gỡ) ⇒ Lần đầu không tạo mã mới, đi thẳng bước Việc.
+ *  Lỗi mạng ⇒ ném (Ba Mẹ bấm lại), không lặng lẽ tạo mã mới. */
 export async function conDaCoMay(con: string): Promise<boolean> {
-  try {
-    const r = await bm.goi<{ ds: TuanThuMay[] }>("tuan-thu");
-    return r.ds.some((m) => mayCuaCon(m, con));
-  } catch { return false; }
+  const r = await bm.goi<{ ds: TuanThuMay[] }>("tuan-thu");
+  return mayDaGhepCuaCon(r.ds, con);
 }

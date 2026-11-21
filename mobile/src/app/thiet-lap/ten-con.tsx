@@ -66,8 +66,8 @@ export default function ObCon() {
     return { r, ds, anhLoi: !anhKq.ok };
   };
   // #536: Con đã có máy (mở lại hồ sơ) ⇒ thẳng bước Việc, không đẻ mã ghép mới; Con chưa có máy ⇒ Ghép máy
-  const sangGhepHoacViec = async (con: string) => {
-    if (await conDaCoMay(con)) router.push("/thiet-lap/mau");
+  const sangGhepHoacViec = async (con: string, moi = false) => {
+    if (!moi && await conDaCoMay(con)) router.push("/thiet-lap/mau");
     else router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau", sau: "mau" } });
   };
   const tiep = () => lam(async () => {
@@ -76,7 +76,7 @@ export default function ObCon() {
     const cungCon = !!conId && conId === layTl().conId;
     datTl({ conId: r.conId, tenCon: r.ten, namSinh: namSo, mau, daLuu: ds, nhom: namSo && new Date().getFullYear() - namSo >= 11 ? "teen" : "nhi",
       ...(cungCon ? {} : { apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined, viec: undefined, viecRieng: undefined }) });
-    await sangGhepHoacViec(r.conId);
+    await sangGhepHoacViec(r.conId, !conId);        // Con vừa tạo chắc chắn chưa có máy — khỏi hỏi máy chủ
   });
   const themCon = () => lam(async () => {
     const { ds } = await luu();
