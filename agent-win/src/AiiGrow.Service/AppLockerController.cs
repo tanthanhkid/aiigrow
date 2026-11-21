@@ -112,14 +112,15 @@ public sealed class AppLockerController
         }
     }
 
-    /// <summary>Chính sách AppLocker rỗng hoàn toàn mà tệp đệm <c>System32\AppLocker\*</c> còn (máy cài lại bản cũ ⇒ Start/Search bị khoá dù chính sách rỗng): xoá đệm, nạp lại,
+    /// <summary>Chính sách AppLocker rỗng hoàn toàn mà tệp đệm <c>System32\AppLocker\*.AppLocker</c> còn (máy cài lại bản cũ ⇒ Start/Search bị khoá dù chính sách rỗng): xoá đệm, nạp lại,
     /// khởi động lại Start/Search, log «da-don-dem-applocker» + sự kiện da_don_dem_applocker. Chính sách còn luật (của quản trị) ⇒ không đụng; đọc lỗi ⇒ không đụng.</summary>
     private bool KiemDonDem(string luc)
     {
         try
         {
             Directory.CreateDirectory(Paths.DataDir);
-            var cu = ReadExisting(out var loi);
+            if (AppLockerDem.SoTepDem() == 0) return false;   // máy khoẻ: không có tệp đệm chính sách ⇒ không chạy PowerShell, không đụng gì
+            var cu = AppLockerDem.DocHieuLuc(out var loi);    // hiệu lực (cục bộ + GPO), không riêng chính sách cục bộ
             if (!AppLockerDem.CanDon(loi, cu)) return false;
             var n = AppLockerDem.DonTrenMay();
             if (n <= 0) return false;

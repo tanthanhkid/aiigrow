@@ -116,7 +116,12 @@ public sealed class WindowsCleanupOps : ICleanupOps, IWebCleanup, IDnsCleanup
 
     private static void DonDemNeuRong(string xml)
     {
-        try { if (AppLockerDem.CanDon(false, xml)) AppLockerDem.DonTrenMay(); }
+        try
+        {
+            if (!AppLockerDem.ChinhSachRong(xml)) return;   // còn luật (của quản trị) ⇒ không đụng
+            var hl = AppLockerDem.DocHieuLuc(out var loi);   // hiệu lực = cục bộ + GPO
+            if (AppLockerDem.CanDon(loi, hl)) AppLockerDem.DonTrenMay();
+        }
         catch { /* dọn đệm là phần thêm, không được làm hỏng cổng gỡ luật; tác vụ dọn tách rời dọn lại */ }
     }
 

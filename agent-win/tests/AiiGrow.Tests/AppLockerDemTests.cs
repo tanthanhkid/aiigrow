@@ -44,6 +44,8 @@ public class AppLockerDemTests
         {
             Assert.True(AppLockerDem.CanDon(false, Rong, co));
             Assert.False(AppLockerDem.CanDon(false, Rong, khong));                 // đệm sạch
+            File.WriteAllText(Path.Combine(khong, "AppCache.dat"), "x");
+            Assert.False(AppLockerDem.CanDon(false, Rong, khong));                 // chỉ có tệp khác của Windows (máy khoẻ) ⇒ không đụng
             Assert.False(AppLockerDem.CanDon(false, Rong, co + "-khong-co"));      // không có thư mục (Win Home)
             Assert.False(AppLockerDem.CanDon(false, LuatQuanTri, co));             // quản trị có luật ⇒ không đụng
             Assert.False(AppLockerDem.CanDon(true, Rong, co));                     // đọc chính sách lỗi ⇒ không đụng
@@ -53,15 +55,13 @@ public class AppLockerDemTests
     }
 
     [Fact]
-    public void Xoa_XoaHetTepVaThuMucCon_GiuThuMucGoc()
+    public void Xoa_ChiXoaTepDemChinhSach_GiuTepKhac()
     {
-        var d = TmpDir(("Exe.AppLocker", 3220), ("Appx.AppLocker", 10));
-        Directory.CreateDirectory(Path.Combine(d, "sub"));
-        File.WriteAllText(Path.Combine(d, "sub", "x.bin"), "x");
+        var d = TmpDir(("Exe.AppLocker", 3220), ("Appx.AppLocker", 10), ("AppCache.dat", 5));
         try
         {
-            Assert.Equal(3, AppLockerDem.Xoa(d));
-            Assert.True(Directory.Exists(d));
+            Assert.Equal(2, AppLockerDem.Xoa(d));
+            Assert.True(File.Exists(Path.Combine(d, "AppCache.dat")));   // tệp khác của Windows không đụng
             Assert.Equal(0, AppLockerDem.SoTepDem(d));
             Assert.Equal(0, AppLockerDem.Xoa(d));   // chạy lại an toàn
         }
@@ -75,10 +75,12 @@ public class AppLockerDemTests
         var k = SystemCleanup.KichBanDonTachRoi("AiiGrowService", @"C:\P", @"C:\D", AppsEntry.Key);
         Assert.Contains("function Remove-AiiAppLockerDem", k);
         Assert.Contains(@"System32\AppLocker", k);
+        Assert.Contains("Get-AppLockerPolicy -Effective -Xml", k);
+        Assert.Contains("-Filter '*.AppLocker'", k);
         Assert.Contains("EnforcementMode') -in 'Enabled','AuditOnly'", k);
         Assert.True(k.IndexOf("$luatSach=$false") < k.IndexOf("if($luatSach){ Remove-AiiAppLockerDem }"));
         Assert.True(k.IndexOf("if($luatSach){ Remove-AiiAppLockerDem }") < k.IndexOf("Remove-Item -LiteralPath 'HKLM:"));
-        // xoá đệm bằng Remove-Item trên nội dung thư mục, không xoá cả thư mục gốc
-        Assert.Contains("Join-Path $t '*'", k);
+        // không chiếm quyền thư mục hệ thống
+        Assert.DoesNotContain("takeown", k);
     }
 }
