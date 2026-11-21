@@ -12,6 +12,7 @@ import type { May } from "./gia-dinh.ts";
  *  Đồng hồ là giờ thật (máy ngủ vẫn tính). */
 export const CHU_KY_KIEM_PHUT = 15;
 
+// 0.2.29 (21/11, dọn tệp đệm AppLocker cũ để nút Start không bị khoá khi cài lại/gỡ — #537, PR #539, bản #540): exe từ CI agent-win run 44892747398 (job build goc, main 5a795cf1); sha256 đo trên tệp tải về từ Release v0.2.29.
 // 0.2.28 (19/11, khớp Bàn E bộ cài + app Windows/Mac #426, ô mã 6 số không bị cắt, báo trễ #433 — bản #474): exe từ CI agent-win run 44500013898 (job build goc, main 931dbad7); sha256 đo trên tệp tải về từ Release v0.2.28.
 // 0.2.27 (19/11, Ánh kim #417, phút chơi không phình/không về 0 #433, Xin thêm app #422 — bản #445): exe từ CI agent-win run 44477201499 (job build goc, main 7f9e9868); sha256 đo trên tệp tải về từ Release v0.2.27.
 // 0.2.26 (18/11, rà FULL phong cách E phía Con: Fraunces, avatar, icon, hộp thoại, bộ cài — PR #384, bản #407): exe từ CI agent-win run 44246997240 (job build goc, main 26c8e7f9); sha256 đo trên tệp tải về từ Release v0.2.26.
@@ -32,9 +33,9 @@ export const CHU_KY_KIEM_PHUT = 15;
 // (0.2.12: run 40648893556, commit ae9f0c1, PR #171.)
 export const BAN_AGENT_WINDOWS = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
-  version: "0.2.28",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.28.exe",
-  sha256: "eba0e2f3db6e1dfc301cd3e93ffd58a36bc27964802f90468f264c38e6c27570",
+  version: "0.2.29",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.29.exe",
+  sha256: "61512a943143af89b345614862e0ff9334c8a32ab3eec673f0c60b1aac9bf29f",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
