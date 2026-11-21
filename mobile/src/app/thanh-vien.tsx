@@ -4,7 +4,7 @@
 // Dòng của chính mình ⇒ «Tài khoản của bạn» (/tai-khoan). «7 ngày qua · Cho vay N lần · S sao» (15/11 #265): GET nhat-ky?ca-nha=1 › choVay.theoNguoi (theo tên).
 // Không có `id` (thông báo cũ trỏ /thanh-vien) ⇒ về tab Cả nhà — danh sách người lớn + lời mời nằm ở đó.
 import { hienSo } from "@/lib/lan-dau";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { View } from "react-native";
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
@@ -27,8 +27,7 @@ export default function ThanhVien() {
   });
   const { lam, loi: loiLam, dangChay, setLoi } = useLam();
   const [mo, setMo] = useState<null | "ha" | "nang" | "roi">(null);
-  const huongHa = useRef(true);
-  if (mo === "ha" || mo === "nang") huongHa.current = mo === "ha";   // giữ chữ hộp khi đang trượt đóng (không nhảy sang chiều kia)
+  const [huongHa, setHuongHa] = useState(true);   // giữ chữ hộp khi đang trượt đóng (không nhảy sang chiều kia)
   if (!id) return <Redirect href="/cai-dat" />;
   if (!d) return <Man lui={{ chu: "Cả nhà" }}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const i = d.tv.ds.findIndex((x) => x.id === id);
@@ -66,7 +65,7 @@ export default function ThanhVien() {
       </View>
       {/* #492 bàn bm2-thanh-vien@v12: «<tên> làm được gì?» — 2 thẻ chọn vai + hàng ✓/✕ việc; đổi vai = Ba Mẹ khác (máy chủ chặn thật) */}
       <MucTieu chu={`${x.ten} làm được gì?`} />
-      <HaiTheVai quyen={x.quyen} doi={doiDuoc ? (q) => setMo(q === x.quyen ? null : q === "trong_giup" ? "ha" : "nang") : undefined} />
+      <HaiTheVai quyen={x.quyen} doi={doiDuoc ? (q) => { if (q !== x.quyen) setHuongHa(q === "trong_giup"); setMo(q === x.quyen ? null : q === "trong_giup" ? "ha" : "nang"); } : undefined} />
       <HangViecVai quyen={x.quyen} />
       <MucTieu chu={`${x.ten} trong nhà`} />
       <Nhom>
@@ -83,12 +82,12 @@ export default function ThanhVien() {
       </View> : null}
 
       {/* đổi vai: hộp hỏi lại, nút phụ luôn «Giữ lại» */}
-      <BangTruot mo={mo === "ha" || mo === "nang"} dong={dong} tieu={huongHa.current ? `Cho ${x.ten} chỉ trông con?` : `Cho ${x.ten} làm như Ba Mẹ?`}>
-        <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>{huongHa.current
+      <BangTruot mo={mo === "ha" || mo === "nang"} dong={dong} tieu={huongHa ? `Cho ${x.ten} chỉ trông con?` : `Cho ${x.ten} làm như Ba Mẹ?`}>
+        <Chu kieu="dam" co={14} mau={M.chu2} style={{ textAlign: "center" }}>{huongHa
           ? `${x.ten} xem con chơi, duyệt việc, cho vay sao. Không đổi luật, không mua quà, không mời người, không ghép máy.`
           : `${x.ten} làm được mọi việc như bạn: đổi luật, mua quà, mời người, ghép máy.`}</Chu>
         <BaoLoi loi={loiLam} />
-        <Nut chu={huongHa.current ? `Cho ${x.ten} chỉ trông con` : `Cho ${x.ten} làm như Ba Mẹ`} rong dangChay={dangChay} bam={() => doiQuyen(huongHa.current ? "trong_giup" : "ba_me")} />
+        <Nut chu={huongHa ? `Cho ${x.ten} chỉ trông con` : `Cho ${x.ten} làm như Ba Mẹ`} rong dangChay={dangChay} bam={() => doiQuyen(huongHa ? "trong_giup" : "ba_me")} />
         <Nut chu="Giữ lại" loai="vien" rong bam={dong} />
       </BangTruot>
       {/* bàn them-xnbiksmr@v3: ô hình đào, câu giữa, thẻ dòng icon, nút đỏ đặc. «cho giờ» của bàn ⇒ «cho vay sao» (#265). Dòng «<tên> nhận tin đã rời nhà»
