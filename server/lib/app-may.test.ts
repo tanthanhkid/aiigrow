@@ -198,3 +198,28 @@ test("sachApp: chặn định danh có «/» hoặc «..», team id sai bị b�
   const a = am.sachApp({ khoa: "A", muc: "Game.EXE", ten: " Game ", teamId: "bad id!", sha256: "zz" })!;
   assert.deepEqual([a.khoa, a.muc, a.ten, a.team_id, a.sha256], ["a", "game.exe", "Game", null, null]);
 });
+
+test("#508 app Con cài MỚI sau danh sách đầu ⇒ «Cần Ba Mẹ để ý» (app_moi); app có sẵn lúc ghép máy không báo; xếp xong thì hết", async () => {
+  const { fam, tok, mayId, tokBm } = await nha();
+  const { canDeY } = await import("./can-de-y.ts");
+  const { q } = await import("./db.ts");
+  // danh sách đầu (lúc ghép máy): Roblox + Minecraft — Ba Mẹ chưa xếp nhưng KHÔNG phải «app mới cài»
+  await goiMay("ung-dung", tok, { du: true, bam: "a".repeat(64), ds: [ROBLOX, MINECRAFT] });
+  assert.equal((await canDeY(fam)).ds.filter((x) => x.loai === "app_moi").length, 0, "app có sẵn lúc ghép máy không báo");
+  // lùi mốc danh sách đầu (lần gửi sau cách ≥ 2 phút) rồi Con cài thêm Scratch
+  await q(`update devices set app_dau_luc = now() - interval '2 hours' where id = $1`, [mayId]);
+  await q(`update app_may set dau_luc = now() - interval '2 hours' where device_id = $1`, [mayId]);
+  const r = await goiMay("ung-dung", tok, { du: false, bamTruoc: "a".repeat(64), bam: "b".repeat(64), them: [SCRATCH], bo: [] });
+  assert.equal(r.status, 200);
+  const moi = (await canDeY(fam)).ds.filter((x) => x.loai === "app_moi");
+  assert.equal(moi.length, 1);
+  assert.match(moi[0].tieu, /Phi cài 1 app mới/);
+  assert.match(moi[0].phu, /Scratch 3/);
+  assert.equal(moi[0].so, 1);
+  assert.ok(moi[0].den.startsWith("/ung-dung/them?con="));
+  assert.equal((await canDeY(fam)).soChuong, (await canDeY(fam)).ds.length, "số chuông = số mục, gồm app_moi");
+  // Ba Mẹ xếp Scratch vào «Không tính phút» ⇒ hết báo
+  const dat = await goiBm(`may/${mayId}/ung-dung/dat`, tokBm, { khoa: SCRATCH.khoa, trangThai: "khong_tinh_phut" });
+  assert.equal(dat.status, 200);
+  assert.equal((await canDeY(fam)).ds.filter((x) => x.loai === "app_moi").length, 0, "đã xếp ⇒ không còn báo");
+});

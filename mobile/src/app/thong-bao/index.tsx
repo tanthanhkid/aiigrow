@@ -26,7 +26,7 @@ const KIEU: Record<Nhom, { ic: TenIcon; nen?: string; lam?: string }> = {
 };
 /** icon của mục «Cần Ba Mẹ để ý» theo loại (can-de-y.ts) */
 // bàn them-0xf9hrgn@v15: cảnh báo / nợ quá 1.000 «canh_bao», con xin web «web» (xin vay «sao»), nộp bài «lau», máy chưa đặt mật mã «khoa»
-const IC_CAN: Record<string, TenIcon> = { mat_mang: "wifi", quen_pin: "mo_khoa", canh_bao: "canh_bao", con_xin: "web", nop_bai: "lau", chua_bao_ve: "khoa" };
+const IC_CAN: Record<string, TenIcon> = { mat_mang: "wifi", quen_pin: "mo_khoa", canh_bao: "canh_bao", con_xin: "web", nop_bai: "lau", app_moi: "luoi", chua_bao_ve: "khoa" };
 /** lời xin vay («Xin vay 20 sao» của máy chủ) ⇒ ô icon sao */
 const icXin = (tieu: string, ic: TenIcon): TenIcon => (/^Xin vay /.test(tieu) ? "sao" : ic);
 /** Dòng «moi» mà «Cần Ba Mẹ để ý» của máy chủ ĐANG có mục cùng loại cho cùng Con (con xin / nộp bài / cảnh báo) ⇒ không lặp ở «Để biết».

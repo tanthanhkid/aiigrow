@@ -157,6 +157,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   for (const x of quenPin) sau.push({ id: `pin:${x.id}`, ic: "mo_khoa", tieu: x.tieu, phu: "Đặt PIN mới cho con", nut: "Đặt PIN ›", den: x.den });
   for (const x of d.cb.filter((a) => cuaCon({ con: a.child_id }) && a.loai !== "quen_pin").slice(0, 3))
     sau.push({ id: `cb:${x.id}`, ic: "canh_bao", tieu: x.noi_dung, phu: gioPhut(x.created_at), nut: "Xem ›", den: `/canh-bao/${x.id}` });
+  // #508: Con CÀI app mới trên máy (máy chủ gửi qua «Cần Ba Mẹ để ý» — app_moi) ⇒ Ba Mẹ chọn Tính phút / Không tính phút
+  for (const x of d.cdy.filter((y) => y.loai === "app_moi" && y.con === conId)) sau.push({ id: x.id, ic: "luoi", tieu: x.tieu, phu: x.phu, nut: "Chọn ›", den: x.den });
   if (d.appMoi.length) sau.push({ id: "app-moi", ic: "luoi", tieu: `${d.appMoi.length} app mới chờ Ba Mẹ xếp`, phu: d.appMoi.slice(0, 2).map((x) => x.ten ?? x.muc).join(", "),
     nut: "Xếp ›", den: "/app-web" });
   const soDeY = muc.length + xin.length + sau.length;
