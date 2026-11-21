@@ -370,6 +370,8 @@ coBan["GET qua/thu-vien"] = { nhom: [
   { ma: "qua_nha", ten: "Quà nhà", phu: "không tốn tiền", ds: [mauQua("chon_mon", "Chọn món bữa tối", 50, "dac_quyen", null, { daCo: true }), mauQua("an_kem", "Đi ăn kem", 100, "dac_quyen"),
     mauQua("xem_phim", "Đi xem phim cuối tuần", 300, "dac_quyen", null, { chiCuoiTuan: true })] }] };
 coBan["POST qua/thu-vien"] = (b) => ({ taoMoi: b?.mau?.length ?? 0, ids: [] });
+coBan["POST con/c1/tang-sao"] = (b) => ({ soSao: b?.soSao ?? 10, lyDo: b?.lyDo ?? "", traNo: 0, conTangDuoc: 100 - (b?.soSao ?? 10), ...saoGia(30 + (b?.soSao ?? 10), 0) });
+coBan["POST qua/q4/mua-them"] = () => ({ id: "q4", tonKho: 1 });
 coBan["GET may/m2/ung-dung"] = { ...coBan["GET may/m1/ung-dung"], capNhatLuc: null, ds: [] };
 
 // ---------------------------------------------------------------- PR #253 nối app: khoá riêng máy, xoá hồ sơ Con, «Trao luôn», hộp thư hỗ trợ (lib/noi-1411)
@@ -2157,6 +2159,57 @@ await kichBan("Sổ sao · Cho vay (từ «Cho vay thêm» ở Cảnh báo nợ)
   xet(await doi("−50 sao"), "viên nợ sau vay «−50 sao»");
   await bam("Hoàn tác");
   xet(await choGoi((x) => x.d === "vay/v1/hoan-tac" && x.m === "POST"), "Hoàn tác ⇒ vay/v1/hoan-tac");
+});
+
+await kichBan("#502 Tặng sao: Ví sao ⇒ «Tặng sao» ⇒ tab Tặng (5/10/20), lý do bắt buộc ⇒ con/c1/tang-sao {soSao, lyDo}", async () => {
+  await di("/vi/c1");
+  await doi("Tặng sao"); await bam("Tặng sao");
+  xet(await doi(`Tặng sao cho ${KEN}`), "mở bảng Tặng sao cho <Con>");
+  xet(await doi("Không cần trả lại"), "«Không cần trả lại · Cộng thẳng vào sao của <Con>»");
+  xet(await doi(`Tặng ${KEN} 10 sao`), "mặc định 10 sao");
+  await bam("20");
+  xet(await doi(`Tặng ${KEN} 20 sao`), "chọn 20 ⇒ nút đổi theo");
+  await go("Thưởng vì… (bắt buộc)", "Thưởng điểm 10");
+  await sleep(300);
+  await bam(`Tặng ${KEN} 20 sao`);
+  xet(await choGoi((x) => x.d === "con/c1/tang-sao" && x.m === "POST" && x.body?.soSao === 20 && x.body?.lyDo === "Thưởng điểm 10"), "gửi tang-sao {soSao 20, lyDo}");
+  xet(await doi(`Đã tặng ${KEN} 20 sao`), "báo «Đã tặng …»");
+});
+
+await kichBan("#502 Tặng sao: chưa ghi lý do thì chưa tặng được; tab Cho vay vẫn còn", async () => {
+  await di("/vi/c1");
+  await doi("Tặng sao"); await bam("Tặng sao");
+  await doi(`Tặng sao cho ${KEN}`);
+  await bam(`Tặng ${KEN} 10 sao`);
+  await sleep(600);
+  xet(!nhatKy.some((x) => x.d === "con/c1/tang-sao"), "không lý do ⇒ không gửi");
+  await bam("Cho vay");
+  xet(await doi(`Cho ${KEN} vay sao`), "sang tab Cho vay");
+});
+
+await kichBan("#502 Thêm quà (Hằng ngày): Ba Mẹ mua có +/− «Đang có: N», Hết ⇒ Mua thêm; gửi soLuong", async () => {
+  const tv = coBan["GET qua/thu-vien"].nhom.map((n) => ({ ...n, ds: n.ds.map((x) => (x.ma === "aiicafe_20k" ? { ...x, daCo: true, dem: true, dangCo: 1, het: false }
+    : x.ma === "lego" ? { ...x, daCo: true, dem: true, dangCo: 0, het: true } : x)) }));
+  kb = { ...kb, "GET qua/thu-vien": { nhom: tv } };
+  await di("/vi/qua-thu-vien?con=c1");
+  xet(await doi("Đang có: 1"), "AiiCafe 20k «Đang có: 1»");
+  xet(await doi("Mua thêm"), "Lego hết ⇒ «Hết» + «Mua thêm»");
+  await bamChon('[aria-label="Thêm 1 AiiCafe 20k"]');
+  xet(await doi("Đang có: 2"), "＋ ⇒ Đang có: 2");
+  await bam("Mua thêm");
+  xet(await doi("Đang có: 1"), "Mua thêm ⇒ Lego còn 1");
+  await bam("Thêm 2 quà cho " + KEN);
+  xet(await choGoi((x) => x.d === "qua/thu-vien" && x.m === "POST" && x.body?.soLuong?.aiicafe_20k === 2 && x.body?.soLuong?.lego === 1), "gửi soLuong {aiicafe_20k: 2, lego: 1}");
+});
+
+await kichBan("#502 Quà của con (Ba Mẹ): món hết ghi «Hết» + «Mua thêm» ⇒ qua/q4/mua-them", async () => {
+  const tv = coBan["GET qua/thu-vien"].nhom.map((n) => ({ ...n, ds: n.ds.map((x) => (x.ma === "lego" ? { ...x, daCo: true, dem: true, dangCo: 0, het: true } : x)) }));
+  kb = { ...kb, ...QUA_KHO, "GET qua/thu-vien": { nhom: tv } };
+  await di("/vi/qua?con=c1");
+  xet(await doi("Bộ Lego"), "có Bộ Lego ở tab Ba Mẹ mua");
+  xet(await doi("Mua thêm"), "hết ⇒ «Mua thêm»");
+  await bamChon('[aria-label="Mua thêm Bộ Lego"]');
+  xet(await choGoi((x) => x.d === "qua/q4/mua-them" && x.m === "POST"), "Mua thêm ⇒ qua/q4/mua-them");
 });
 
 await kichBan("Sổ sao · Cho vay khi đang nợ > 1.000: dải nhắc, vẫn cho vay được", async () => {

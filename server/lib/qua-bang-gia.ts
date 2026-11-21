@@ -115,7 +115,7 @@ export async function thuVien(fam: string, con?: string | null) {
     hinh: m.hinh ?? null, sao: m.diem, loai: m.loai, menhGia: m.menh_gia ?? null, chiCuoiTuan: !!m.chi_cuoi_tuan, tonKho: m.ton_kho ?? null,
     canXacNhan: !!m.can_xac_nhan, daCo: coMau.has(m.ma) || coTen.has(m.ten.toLowerCase()),
     // #502: chỉ nhóm «Ba Mẹ mua» có số lượng — `dangCo` null = quà nhà (không đếm) hoặc chưa thêm
-    dem: g.ma === "ba_me_mua", dangCo: g.ma === "ba_me_mua" ? dangCoMau(m.ma) ?? 0 : null, het: g.ma === "ba_me_mua" && coMau.has(m.ma) && (tonMau(m.ma) ?? 1) <= 0 })) })) };
+    dem: g.ma === "ba_me_mua", dangCo: g.ma === "ba_me_mua" ? dangCoMau(m.ma) ?? (coMau.has(m.ma) ? null : 0) : null, het: g.ma === "ba_me_mua" && coMau.has(m.ma) && (tonMau(m.ma) ?? 1) <= 0 })) })) };
 }
 
 const apChoVao = async (fam: string, v: unknown): Promise<string[] | null> => {
