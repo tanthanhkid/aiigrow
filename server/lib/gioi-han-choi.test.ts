@@ -231,6 +231,7 @@ test("review: còn < 1 phút = hết (lý do + nghiDen); phút «Mở hết» kh
   const body = (await r!.json()) as any;
   // mốc giờ truyền vào route (thứ Hai, trong ngày đặt giới hạn) ⇒ không phụ thuộc đồng hồ thật / thứ trong tuần
   assert.deepEqual([typeof body.saoTieuDuoc, body.gioiHan?.apDung, body.phutCon <= body.saoTieuDuoc], ["number", true, true]);
+  assert.deepEqual([body.gioiHan.ngayPhut, body.phutCon], [30, 0], "giới hạn ngày 30, đã chơi 29,5 ⇒ còn 0 phút tại mốc truyền vào");
   // nhaTre: đang nghỉ ⇒ nghiDen; cho vay ⇒ hết nghỉ ngay
   let n = await tre.nhaTre({ id: a.con, family_id: a.fam, device_id: null }, sau(t0, 15));
   assert.ok(n.nghiDen);
