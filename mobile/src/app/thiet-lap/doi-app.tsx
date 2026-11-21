@@ -25,7 +25,7 @@ export default function DoiApp() {
   };
   const bo = () => { datTl({ apps: apps.filter((y) => boDau(y.ten) !== boDau(ten ?? "")) }); ve(); };
   return (
-    <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} />} />}>
+    <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={5} />} />}>
       <ChiTietMuc ten={ten ?? "App"} phu={a ? (x?.phu ?? "Ba Mẹ gõ tên") : "Chưa có trong danh sách"} ic={icCuaApp(`${ten ?? ""} ${x?.phu ?? ""}`)}
         nhom={nhom} doi={setNhom} luu={luu} bo={a ? bo : undefined} />
     </Man>

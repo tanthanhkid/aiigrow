@@ -28,7 +28,7 @@ export default function ObGio() {
   const doiGh = (g: GioiHan, loi: string | null) => { setGh(g); setGhLoi(loi); if (!loi) datTl({ gioiHan: g }); };
   const tiep = () => { datTl({ saoKhoiDau: sao, gioiHan: gh }); router.push("/thiet-lap/app"); };
   return (
-    <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={3} />} />}
+    <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={4} />} />}
       day={<Nut chu="Tiếp: chọn app cho con" rong tat={!!ghLoi} bam={tiep} />}>
       <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 25, lineHeight: 30, letterSpacing: -0.5, color: M.chu }}>{`${ten} chơi máy thế nào?`}</Text>
       <View style={{ height: 138, borderRadius: 28, overflow: "hidden", backgroundColor: M.chinh, ...KHOI.the }}>

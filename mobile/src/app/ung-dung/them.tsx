@@ -4,15 +4,15 @@
 // «Thêm Minecraft · Tính phút» ⇒ POST con/:id/danh-sach {ds: [{nhom, ma} | {nhom, ten}]} (máy chủ ghi mọi định danh cùng tên trên mọi máy) ⇒ về danh sách App.
 import { useMemo, useState } from "react";
 import { View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { themVaoDs } from "@/lib/app-web";
-import { bamChonThem, chuNutThem, datNhomThem, KetQuaThem, type ChonThem, type MucThem } from "@/lib/ds-chung";
+import { KhoiAppMay, taiAppCuaCon } from "@/lib/app-may-ui";
+import { bamChonThem, chuNutThem, datNhomThem, KetQuaThem, NhomGoiY, type ChonThem, type MucThem } from "@/lib/ds-chung";
 import { OTim, icCuaApp, laWeb, luatCuaCon, veHoac, type LuatApp } from "@/lib/ui-bm3";
 import { BaoLoi, ChoTai, Man, Nut, useLam, useTai } from "@/lib/ui";
 
 type GoiY = { ma: string; ten: string; tinhGio: boolean; chon: boolean };
-type AppMay = { khoa: string; muc: string; ten: string; icon: string | null; trangThai: string; nhaPhatHanh: string | null };
 type Ung = { k: string; ten: string; muc: string; anh: string | null; phu: string; tinhGio: boolean; ma?: string };
 // đoán «không tính giờ» khi lưới gợi ý không có app này: so TỪ trọn vẹn (không so chuỗi con — «book» khớp nhầm Facebook)
 const KHONG_TINH = new Set(["scratch", "zoom", "teams", "meet", "word", "excel", "powerpoint", "onenote", "office", "sách", "sach", "ebook", "kindle", "dictionary", "từ", "điển", "khanacademy", "khan", "aiirob", "học", "hoc", "edu", "classroom", "duolingo", "geogebra"]);
@@ -25,8 +25,8 @@ export default function ThemApp() {
     const [ct, gy, luat] = await Promise.all([
       bm.goi<ConChiTiet>(`con/${con}`), bm.goi<{ ds: GoiY[] }>(`app-goi-y?con=${con}`).catch(() => ({ ds: [] as GoiY[] })), bm.goi<{ ds: LuatApp[] }>("luat"),
     ]);
-    const may = await Promise.all(ct.may.map((m) => bm.goi<{ ds: AppMay[] }>(`may/${m.id}/ung-dung`).then((r) => ({ ten: m.ten, ds: r.ds }), () => null)));
-    return { ten: ct.ten, gy: gy.ds, luat: luatCuaCon(luat.ds, con).filter((l) => !laWeb(l.muc)), may: may.filter((x) => x !== null) };
+    const may = await taiAppCuaCon(con, ct);
+    return { ten: ct.ten, gy: gy.ds, luat: luatCuaCon(luat.ds, con).filter((l) => !laWeb(l.muc)), may };
   });
   const [tim, setTim] = useState("");
   const [chon, setChon] = useState<ChonThem>(new Map());
@@ -54,6 +54,10 @@ export default function ThemApp() {
     return [...m.values()].filter((u) => { const l = den.get(u.k); return l !== "hoc" && l !== "giai_tri"; });
   }, [d]);
 
+  // Lần đầu · bước App và màn này CÙNG bố cục (#508 mục 6): «App trên <máy>» + «Chưa xếp» (hai nút nhóm ngay dòng), chưa ghép máy ⇒ thẻ «Ghép máy» + gợi ý ＋
+  const daXep = useMemo(() => new Set((d?.luat ?? []).map((l) => chuan(l.ten || l.muc))), [d]);
+  const goiYHien = useMemo(() => (d?.may.length ? [] : (d?.gy ?? []).filter((g) => !daXep.has(chuan(g.ten))).slice(0, 5)), [d, daXep]);
+  const themNgay = (ten: string, nhom: "tinh_phut" | "khong_tinh_phut", ma?: string) => lam(async () => { await themVaoDs(con, [ma ? { nhom, ma } : { nhom, ten }]); await tai(); });
   if (!d) return <Man lui={{ chu: "", bam: ve }} tieu="Thêm app"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const q = chuan(tim);
   // gõ ≥ 2 ký tự mới hiện kết quả: khớp đúng tên trước, rồi tên bắt đầu bằng chữ gõ, rồi tên chứa chữ gõ (app tương tự)
@@ -72,9 +76,17 @@ export default function ThemApp() {
       <BaoLoi loi={loiLam} />
       <Nut thu chu={chuNutThem(chon, "app")} rong dangChay={dangChay} tat={!chon.size} bam={luu} />
     </>}>
-      <KetQuaThem go={tim} kq={kq.map(mt)} chon={chon} doi={(m) => setChon(bamChonThem(m))} datNhom={(m, n) => setChon(datNhomThem(m, n))}
-        trong="Không thấy app này trên máy của con. Con cài app xong, máy gửi danh sách mới là tìm được."
-        chuaGo={`Gõ tên app ${d.ten} muốn dùng. App chưa thêm thì con chưa mở được — con muốn dùng sẽ xin Ba Mẹ.`} />
+      {tim.trim().length < 2 ? <>
+        <KhoiAppMay ten={d.ten} may={d.may} daXep={(a) => daXep.has(chuan(a.ten))} chon={(a, n) => themNgay(a.ten, n)}
+          ghep={() => router.push({ pathname: "/may/them", params: { con } })} />
+        <NhomGoiY tieu={`Gợi ý cho ${d.ten}`} ds={goiYHien.map((g) => ({ k: g.ma, ten: g.ten, ic: icCuaApp(g.ten) }))}
+          them={(t, n) => themNgay(t, n, goiYHien.find((g) => g.ten === t)?.ma)} />
+      </> : null}
+      {tim.trim().length >= 2 ? (
+        <KetQuaThem go={tim} kq={kq.map(mt)} chon={chon} doi={(m) => setChon(bamChonThem(m))} datNhom={(m, n) => setChon(datNhomThem(m, n))}
+          trong="Không thấy app này trên máy của con. Con cài app xong, máy gửi danh sách mới là tìm được."
+          chuaGo={`Gõ tên app ${d.ten} muốn dùng. App chưa thêm thì con chưa mở được — con muốn dùng sẽ xin Ba Mẹ.`} />
+      ) : null}
     </Man>
   );
 }

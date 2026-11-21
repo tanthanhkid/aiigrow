@@ -12,10 +12,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { BONG, KHOI, MEN } from "@/lib/clay";
-import { layMaGhep, xemGhep, type KqGhep } from "@/lib/ghep-may";
+import { diTiepSauGhep, docSau, layMaGhep, xemGhep, type KqGhep } from "@/lib/ghep-may";
 import { DauMan, DongTrangThai, HangChiaSe, KhoiTrangThaiGhep, LienKet, NutHoi } from "@/lib/lan-dau";
 import { MaQr } from "@/lib/qr";
-import { xoaTl } from "@/lib/thiet-lap";
+import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { BangTruot, BaoLoi, Chu, LopMen, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { bm, type GiaDinh } from "@/lib/api";
 import { tenGoi } from "@/lib/hang-ngay";
@@ -25,7 +25,8 @@ const CHO_PHUT = 5;
 const gioPhut = (ms: number) => { const d = new Date(ms); return `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`; };
 
 export default function GhepMay() {
-  const p = useLocalSearchParams<{ con?: string; giong?: string; nguon?: string; moi?: string; conDs?: string }>();
+  const p = useLocalSearchParams<{ con?: string; giong?: string; nguon?: string; moi?: string; conDs?: string; sau?: string }>();
+  const sau = docSau(p.sau);
   const con = p.con ? String(p.con) : null;
   const conDsChu = p.conDs ? String(p.conDs) : "";
   const conDs = useMemo(() => conDsChu.split(",").filter(Boolean), [conDsChu]);
@@ -60,7 +61,7 @@ export default function GhepMay() {
     return () => clearTimeout(t);
   }, [hetLuc, moc, bay]);
   const qr = useMemo(() => (kq ? <MaQr noiDung={kq.qr} co={150} /> : <View style={{ width: 150, height: 150 }} />), [kq]);
-  const sangCho = useCallback(() => kq && router.push({ pathname: "/thiet-lap/cho", params: { ma: kq.ma, con: con ?? "", nguon, ...(chung ? { conDs: conDsChu } : {}) } }), [kq, con, nguon, chung, conDsChu]);
+  const sangCho = useCallback(() => kq && router.push({ pathname: "/thiet-lap/cho", params: { ma: kq.ma, con: con ?? "", nguon, sau, ...(chung ? { conDs: conDsChu } : {}) } }), [kq, con, nguon, sau, chung, conDsChu]);
   // Máy mở link là tự ghép — đang ở màn này cũng chuyển thẳng sang «Đã ghép». CHỈ khi màn đang hiện: đã sang «Đang chờ» thì màn đó lo.
   useFocusEffect(useCallback(() => {
     if (!kq) return;
@@ -68,21 +69,20 @@ export default function GhepMay() {
       try {
         const g = await xemGhep(kq.ma);
         if (!g.daGhep && !g.hetHan) setHetLuc(Date.now() + g.conGiay * 1000);        // đồng bộ lại hạn theo máy chủ
-        if (g.daGhep) { clearInterval(t); router.replace({ pathname: "/thiet-lap/da-ghep", params: { con: g.conDs?.[0]?.id ?? g.con ?? con ?? "", may: g.may?.id ?? "", nguon } }); }
+        if (g.daGhep) { clearInterval(t); router.replace({ pathname: "/thiet-lap/da-ghep", params: { con: g.conDs?.[0]?.id ?? g.con ?? con ?? "", may: g.may?.id ?? "", nguon, sau } }); }
       } catch { /* thử lại nhịp sau */ }
     }, 4000);
     return () => clearInterval(t);
-  }, [kq, con, nguon]));
-  const deSau = () => (nguon === "lan-dau" ? router.replace({ pathname: "/thiet-lap/xong", params: { con: con ?? "" } }) : router.canGoBack() ? router.back() : router.replace("/may"));
-  const veTrangChu = () => { if (nguon === "lan-dau") { xoaTl(); router.replace("/hom-nay"); } else router.replace("/may"); };
-  const lui = () => (router.canGoBack() ? router.back() : router.replace(nguon === "them" ? "/may" : "/thiet-lap/web"));
+  }, [kq, con, nguon, sau]));
+  const deSau = () => (nguon === "lan-dau" ? diTiepSauGhep(sau, con ?? "") : router.canGoBack() ? router.back() : router.replace("/may"));
+  const lui = () => (router.canGoBack() ? router.back() : router.replace(nguon === "them" ? "/may" : sau === "app" ? "/thiet-lap/app" : "/thiet-lap/ten-con"));
   const hetHan = !!kq && hetLuc != null && hetLuc <= bay;
   const linkConHan = !!kq && Date.parse(kq.hetGoi) - Date.parse(kq.het) > 0;        // link cài 48 giờ còn sau khi mã 6 số hết (so hai mốc của máy chủ)
   const chuaThay = !!kq && !hetHan && bay - moc >= CHO_PHUT * 60_000;
 
   if (hetHan) return (
     <Man dau={<DauMan bamLui={lui} />}
-      day={<><BaoLoi loi={loi} /><Nut chu={chung ? "Lấy mã mới" : `Lấy mã mới cho ${ten}`} rong bam={() => lay(true)} /><LienKet chu={nguon === "lan-dau" ? "Để sau, vào trang chủ" : "Để sau"} bam={veTrangChu} /></>}>
+      day={<><BaoLoi loi={loi} /><Nut chu={chung ? "Lấy mã mới" : `Lấy mã mới cho ${ten}`} rong bam={() => lay(true)} /><LienKet chu={nguon === "lan-dau" ? "Để sau, ghép máy sau" : "Để sau"} bam={deSau} /></>}>
       <KhoiTrangThaiGhep lv="cho" ic="dong_ho_cat" tieu="Mã đã hết hạn" phu="Mã chỉ dùng được 10 phút">
         <DongTrangThai ic="khien" chu="Mã cũ đã bị huỷ" phu={`${chung ? "Máy" : `Máy ${ten}`} chưa bị ghép nhầm${linkConHan ? " · link đã gửi vẫn dùng được trong 48 giờ" : ""}`} />
       </KhoiTrangThaiGhep>
@@ -100,7 +100,9 @@ export default function GhepMay() {
     </Man>
   );
   return (
-    <Man noi={noi} dau={<DauMan tieu={chung ? `Ghép máy chung · ${conDs.length} bé` : "Ghép máy cho con"} bamLui={lui} phai={<NutHoi />} />}
+    <Man noi={noi} dau={nguon === "lan-dau" && sau === "mau"
+      ? <DauMan bamLui={lui} phai={<ThanhBuoc5 dang={1} />} />
+      : <DauMan tieu={chung ? `Ghép máy chung · ${conDs.length} bé` : "Ghép máy cho con"} bamLui={lui} phai={<NutHoi />} />}
       day={<>
         <BaoLoi loi={loi} />
         {/* thiết kế 01/03: viên lõm «● Đang chờ máy con…» rồi nút trắng «Để sau, ghép máy sau» */}
@@ -123,6 +125,12 @@ export default function GhepMay() {
         ) : null}
         <Nut chu="Để sau, ghép máy sau" loai="vien" rong bam={deSau} />
       </>}>
+      {nguon === "lan-dau" && sau === "mau" ? (
+        <View style={{ paddingHorizontal: 4, gap: 2 }}>
+          <Chu kieu="rat" co={24} style={{ letterSpacing: -0.5 }}>{chung ? `Ghép máy chung · ${conDs.length} bé` : `Ghép máy cho ${ten}`}</Chu>
+          <Chu co={13.5} mau={M.chu2}>{`Ghép trước để thấy app trên máy ${ten}`}</Chu>
+        </View>
+      ) : null}
       <View style={{ borderRadius: 32, backgroundColor: M.chinhSoft, paddingVertical: 18, paddingHorizontal: 16, alignItems: "center", gap: 6, ...KHOI.the }}>
         <LopMen men={MEN.vien} bo={32} />
         <Chu kieu="rat" co={15} mau={M.chinhInk} style={{ textAlign: "center" }}>Mở app AiiGrow trên máy con, quét mã này</Chu>

@@ -5,14 +5,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
-import { kqTheoMa, xemGhep } from "@/lib/ghep-may";
+import { diTiepSauGhep, docSau, kqTheoMa, xemGhep } from "@/lib/ghep-may";
 import { BuocMayCon, CanhRob, DauMan, demNguoc, DongTrangThai, hienMa, KhoiTrangThaiGhep, LienKet, linkNgan, TieuDe } from "@/lib/lan-dau";
-import { xoaTl } from "@/lib/thiet-lap";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { BaoLoi, Chu, IconNet, M, Man, Nut, useHoanTac, useTai } from "@/lib/ui";
 
 export default function ChoMayCon() {
-  const p = useLocalSearchParams<{ ma?: string; con?: string; nguon?: string; conDs?: string }>();
+  const p = useLocalSearchParams<{ ma?: string; con?: string; nguon?: string; conDs?: string; sau?: string }>();
+  const sau = docSau(p.sau);
   const ma = String(p.ma ?? "");
   // #267 máy chung nhiều bé: giữ danh sách bé khi quay về màn Ghép («Lấy mã mới» / «Gửi lại link»)
   const conDs = p.conDs ? String(p.conDs) : (kqTheoMa(ma)?.conDs ?? []).join(",");
@@ -31,7 +31,7 @@ export default function ChoMayCon() {
   const { d: c } = useTai(() => (con ? bm.goi<ConChiTiet>(`con/${con}`) : Promise.resolve(null)));
   const ten = c?.ten ?? "con";
   const sangXong = useCallback((may?: string | null, conMay?: string | null) =>
-    router.replace({ pathname: "/thiet-lap/da-ghep", params: { con: conMay || con, may: may ?? "", nguon } }), [con, nguon]);
+    router.replace({ pathname: "/thiet-lap/da-ghep", params: { con: conMay || con, may: may ?? "", nguon, sau } }), [con, nguon, sau]);
   const hoi = useCallback(async () => {
     const g = await xemGhep(ma);
     if (g.daGhep) { sangXong(g.may?.id, g.con); return true; }
@@ -52,14 +52,14 @@ export default function ChoMayCon() {
   // Chỉ iPhone/iPad tự ghép bằng link khi mã đã hết hạn (bộ cài .exe/.pkg/.apk chưa mang được token — xem PR M1, Câu mở 1) ⇒ việc chính vẫn là lấy mã mới
   const hetHan = maHet;
   const maHien = kq?.maHien ?? hienMa(ma);
-  const layMoi = () => router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon, moi: "1", ...thamDs, ...(kq?.giongMay ? { giong: kq.giongMay } : {}) } });
-  const guiLai = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon, ...thamDs } }));
+  const layMoi = () => router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon, sau, moi: "1", ...thamDs, ...(kq?.giongMay ? { giong: kq.giongMay } : {}) } });
+  const guiLai = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon, sau, ...thamDs } }));
   const daNhap = () => hoi().then((ok) => { if (!ok) bao(`Máy ${nguon === "them" ? "mới" : "của con"} chưa nhập mã — làm 3 bước trên máy đó nhé`); }, (e) => setLoi(e?.message ?? null));
   const may = nguon === "them" ? "máy mới" : "máy con";
   const chuaThay = !hetHan && het != null && het - con0 * 1000 - moc >= 5 * 60_000;
   if (hetHan && nguon === "lan-dau") return (
     <Man dau={<DauMan bamLui={guiLai} />}
-      day={<><Nut chu={`Lấy mã mới cho ${ten}`} rong bam={layMoi} /><LienKet chu="Để sau, vào trang chủ" bam={() => { xoaTl(); router.replace("/hom-nay"); }} /></>}>
+      day={<><Nut chu={`Lấy mã mới cho ${ten}`} rong bam={layMoi} /><LienKet chu="Để sau, ghép máy sau" bam={() => diTiepSauGhep(sau, con)} /></>}>
       <KhoiTrangThaiGhep lv="cho" ic="dong_ho_cat" tieu="Mã đã hết hạn" phu="Mã chỉ dùng được 10 phút">
         <DongTrangThai ic="khien" chu="Mã 6 số cũ không dùng được nữa" phu={`Chưa máy nào ghép vào nhà bằng mã này${linkCon ? " · link đã gửi vẫn dùng được trong 48 giờ" : ""}`} />
       </KhoiTrangThaiGhep>
@@ -77,7 +77,7 @@ export default function ChoMayCon() {
     </Man>
   );
   return (
-    <Man noi={noi} dau={<DauMan bamLui={guiLai} phai={nguon === "lan-dau" ? <ThanhBuoc5 dang={4} /> : undefined} />}
+    <Man noi={noi} dau={<DauMan bamLui={guiLai} phai={nguon === "lan-dau" ? <ThanhBuoc5 dang={1} /> : undefined} />}
       day={<>
         <BaoLoi loi={loi} />
         {hetHan ? <Nut chu={`Lấy mã mới cho ${ten}`} ic="khoa" rong bam={layMoi} /> : <Nut chu={nguon === "them" ? "Máy mới đã nhập mã" : "Máy con đã nhập mã"} ic="tick" rong bam={daNhap} />}

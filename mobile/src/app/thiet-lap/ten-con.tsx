@@ -70,7 +70,7 @@ export default function ObCon() {
     const cungCon = !!conId && conId === layTl().conId;
     datTl({ conId: r.conId, tenCon: r.ten, namSinh: namSo, mau, daLuu: ds, nhom: namSo && new Date().getFullYear() - namSo >= 11 ? "teen" : "nhi",
       ...(cungCon ? {} : { apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined, viec: undefined, viecRieng: undefined }) });
-    router.push("/thiet-lap/mau");
+    router.push({ pathname: "/thiet-lap/ghep", params: { con: r.conId, nguon: "lan-dau", sau: "mau" } });
   });
   const themCon = () => lam(async () => {
     const { ds } = await luu();
@@ -88,7 +88,7 @@ export default function ObCon() {
             if (tenGon) { if (thieuPin) throw new Error(CAU_PIN); if (loiPin) throw new Error(loiPin); const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
             datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh,
               ...(conDau.id === layTl().conId ? {} : { apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined, viec: undefined, viecRieng: undefined }) });
-            router.push("/thiet-lap/mau");
+            router.push({ pathname: "/thiet-lap/ghep", params: { con: conDau.id, nguon: "lan-dau", sau: "mau" } });
           })} />
         ) : (
           <Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo) || thieuPin || !!loiPin} bam={tiep} />
