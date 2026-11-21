@@ -135,10 +135,11 @@ const nhomDsCua = (tt: TrangThaiApp): NhomDs | null => (tt === "giai_tri" ? "tin
  *  Allowlist hệ thống → luật riêng của Con → luật cả nhà. */
 export function trangThaiApp(mucTho: string, con: string, luat: LuatGon[], allow: string[] = allowlistHieuLuc(), tenHienThi?: string) {
   const khoa = khoaSo(mucTho.toLowerCase());
-  // #525: công cụ hệ thống / trình điều khiển / thành phần Windows ⇒ coi như hệ thống (không hiện ở «Thêm app», không thành app mới)
-  if (khoa.some((k) => allow.includes(k)) || laCongCuHeThong(mucTho, tenHienThi)) return { trangThai: "he_thong" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
+  if (khoa.some((k) => allow.includes(k))) return { trangThai: "he_thong" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
   const r = luat.filter((l) => l.loai !== "chan" && khoa.includes(l.muc) && (l.child_id === "" || (con && l.child_id === con)))
     .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
+  // #525: công cụ hệ thống / trình điều khiển / thành phần Windows chưa có luật của Ba Mẹ ⇒ coi như hệ thống (không hiện ở «Thêm app», không thành app mới)
+  if (!r && laCongCuHeThong(mucTho, tenHienThi)) return { trangThai: "he_thong" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
   if (!r || r.loai === "loai_tru") return { trangThai: "chua_xep" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
   const tt: TrangThaiApp = r.loai === "hoc" ? (r.nhom === "cho_phep" ? "cho_phep" : "hoc") : r.loai;
   // nhomDs (#262): nhóm của danh sách — tinh_phut | khong_tinh_phut; null = ngoài danh sách / hệ thống
