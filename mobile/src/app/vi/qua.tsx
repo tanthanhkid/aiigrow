@@ -7,7 +7,6 @@
 // `?con=` Con đang xem (nhà nhiều con ⇒ chip đổi Con), `?tab=nha` mở thẳng tab «Ba Mẹ tự điền». Người trông giúp: chỉ xem.
 // 15/11 (#263): thiếu sao thì con xin Ba Mẹ cho vay — thẻ lời xin vay đổi quà (cho-duyet › yeuCau vay_sao, muc_dich «qua», gia_tri = id quà)
 // «<Con> xin vay 50 sao · Để đổi <quà> · con có 150/200 sao» + «Cho vay» ⇒ bảng Cho vay sao (lib/so-sao) ⇒ toast + Hoàn tác.
-import { quaNha } from "../../lib/qua-nhom";
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, TextInput, View } from "react-native";
@@ -20,6 +19,7 @@ import { GiaSao, OHinhQua } from "@/lib/ui-s3";
 import { BONG, KHOI } from "@/lib/clay";
 import { ChonSao } from "@/lib/chon-sao";
 import { useSaoTu } from "@/lib/sao-tu-nhap";
+import { quaNha } from "@/lib/qua-nhom";
 
 const TIEU = "Quà con đổi bằng sao";
 const GOI_Y = ["Đi ăn kem", "Xem phim", "Chọn món tối", "Đi công viên", "Đồ chơi nhỏ"];
