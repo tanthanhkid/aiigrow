@@ -77,7 +77,7 @@ export default function ThemApp() {
       <Nut thu chu={chuNutThem(chon, "app")} rong dangChay={dangChay} tat={!chon.size} bam={luu} />
     </>}>
       {tim.trim().length < 2 ? <>
-        <KhoiAppMay ten={d.ten} may={d.may} daXep={(a) => daXep.has(chuan(a.ten))} chon={(a, n) => themNgay(a.ten, n)}
+        <KhoiAppMay ten={d.ten} may={d.may} loc={tim} daXep={(a) => daXep.has(chuan(a.ten))} chon={(a, n) => themNgay(a.ten, n)}
           ghep={() => router.push({ pathname: "/may/them", params: { con } })} />
         <NhomGoiY tieu={`Gợi ý cho ${d.ten}`} ds={goiYHien.map((g) => ({ k: g.ma, ten: g.ten, ic: icCuaApp(g.ten) }))}
           them={(t, n) => themNgay(t, n, goiYHien.find((g) => g.ten === t)?.ma)} />

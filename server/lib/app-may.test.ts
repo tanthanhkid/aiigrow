@@ -232,3 +232,43 @@ test("#508 danh sách đầu RỖNG không đặt mốc «danh sách đầu»", 
   await goiMay("ung-dung", tok, { du: true, bam: "b".repeat(64), ds: [ROBLOX, MINECRAFT] });
   assert.notEqual((await q<{ d: Date | null }>(`select app_dau_luc as d from devices where id = $1`, [mayId]))[0].d, null);
 });
+
+// #525: công cụ hệ thống / trình điều khiển / thành phần Windows không hiện ở «Thêm app», không thành app mới, không thành lời xin
+const HE_THONG = [
+  { khoa: "exe:c:\\windows\\system32\\cmd.exe", muc: "cmd.exe", ten: "Command Prompt", nguon: "start" },
+  { khoa: "exe:c:\\program files\\git\\git-bash.exe", muc: "git-bash.exe", ten: "Git Bash", nguon: "start" },
+  { khoa: "exe:c:\\windows\\system32\\charmap.exe", muc: "charmap.exe", ten: "Character Map", nguon: "start" },
+  { khoa: "exe:c:\\program files\\codec tweak tool\\tweaktool.exe", muc: "tweaktool.exe", ten: "Codec Tweak Tool", nguon: "registry" },
+  { khoa: "exe:c:\\program files\\lav filters\\lavaudio.exe", muc: "lavaudio.exe", ten: "LAV Audio Decoder", nguon: "registry" },
+  { khoa: "exe:c:\\program files\\intel\\irst.exe", muc: "irst.exe", ten: "Intel Rapid Storage Technology", nguon: "registry" },
+  { khoa: "exe:c:\\windows\\gamebar.exe", muc: "gamebar.exe", ten: "Xbox Game Bar", nguon: "start" },
+];
+
+test("#525 app hệ thống trả he_thong; app thật (Minecraft, Roblox, Scratch) vẫn chua_xep; không thành «app mới»", async () => {
+  const { fam, tok, mayId, tokBm } = await nha();
+  const { canDeY } = await import("./can-de-y.ts");
+  const { q } = await import("./db.ts");
+  await goiMay("ung-dung", tok, { du: true, bam: "a".repeat(64), ds: [ROBLOX, MINECRAFT] });
+  await q(`update devices set app_dau_luc = now() - interval '2 hours' where id = $1`, [mayId]);
+  await q(`update app_may set dau_luc = now() - interval '2 hours' where device_id = $1`, [mayId]);
+  const r = await goiMay("ung-dung", tok, { du: false, bamTruoc: "a".repeat(64), bam: "b".repeat(64), them: HE_THONG, bo: [] });
+  assert.equal(r.status, 200);
+  const ds = (await goiBm(`may/${mayId}/ung-dung`, tokBm)).body.ds as { ten: string; trangThai: string }[];
+  for (const a of HE_THONG) assert.equal(ds.find((x) => x.ten === a.ten)?.trangThai, "he_thong", a.ten);
+  assert.equal(ds.find((x) => x.ten === "Minecraft")?.trangThai, "chua_xep");
+  assert.equal(ds.find((x) => x.ten === "Roblox Player")?.trangThai, "chua_xep");
+  assert.equal((await canDeY(fam)).ds.filter((x) => x.loai === "app_moi").length, 0, "công cụ hệ thống không thành «app mới cài»");
+});
+
+test("#525 lời xin «Storedesktopextension» không được tạo; lời xin app thật vẫn tạo", async () => {
+  const { fam, con } = await nha();
+  const yc = await import("./yeu-cau.ts");
+  const bo = await yc.guiYeuCau(con, null, { loai: "cai_app", giaTri: "Storedesktopextension", theoTen: true });
+  assert.equal(bo.id, "");
+  const bo2 = await yc.guiYeuCau(con, null, { loai: "cai_app", giaTri: "storedesktopextension.exe", tenApp: "Windows Store Desktop Extension" });
+  assert.equal(bo2.id, "");
+  const that = await yc.guiYeuCau(con, null, { loai: "cai_app", giaTri: "Minecraft", theoTen: true });
+  assert.ok(that.id);
+  const cho = await yc.dsChoYc(fam);
+  assert.deepEqual(cho.map((x) => x.gia_tri), ["Minecraft"]);
+});

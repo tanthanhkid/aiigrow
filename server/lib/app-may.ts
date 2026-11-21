@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import { one, q, tx, type Q } from "./db.ts";
 import type { May } from "./gia-dinh.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { allowlistHieuLuc, boMucChoCon, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc, type NhomGiaiTri } from "./luat-app.ts";
+import { allowlistHieuLuc, boMucChoCon, laCongCuHeThong, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc, type NhomGiaiTri } from "./luat-app.ts";
 import type { NhomDs } from "./chan-co-ban.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { idConMay } from "./may-nhieu-con.ts";
@@ -133,9 +133,10 @@ const nhomDsCua = (tt: TrangThaiApp): NhomDs | null => (tt === "giai_tri" ? "tin
 
 /** Trạng thái của một app trên máy của Con `con` ('' = máy dùng chung ⇒ chỉ luật cả nhà) — cùng thứ tự với phanLoai:
  *  Allowlist hệ thống → luật riêng của Con → luật cả nhà. */
-export function trangThaiApp(mucTho: string, con: string, luat: LuatGon[], allow: string[] = allowlistHieuLuc()) {
+export function trangThaiApp(mucTho: string, con: string, luat: LuatGon[], allow: string[] = allowlistHieuLuc(), tenHienThi?: string) {
   const khoa = khoaSo(mucTho.toLowerCase());
-  if (khoa.some((k) => allow.includes(k))) return { trangThai: "he_thong" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
+  // #525: công cụ hệ thống / trình điều khiển / thành phần Windows ⇒ coi như hệ thống (không hiện ở «Thêm app», không thành app mới)
+  if (khoa.some((k) => allow.includes(k)) || laCongCuHeThong(mucTho, tenHienThi)) return { trangThai: "he_thong" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
   const r = luat.filter((l) => l.loai !== "chan" && khoa.includes(l.muc) && (l.child_id === "" || (con && l.child_id === con)))
     .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
   if (!r || r.loai === "loai_tru") return { trangThai: "chua_xep" as TrangThaiApp, nhom: null, nhomDs: null, theoCaNha: false };
@@ -186,7 +187,7 @@ export async function dsAppMay(fam: string, mayId: string, chon?: string | null)
     yeuCauLuc: may.app_yeu_cau ? new Date(may.app_yeu_cau).toISOString() : null,
     ds: rows.map((a) => ({
       khoa: a.khoa, muc: a.muc, ten: a.ten, nguon: a.nguon, nhaPhatHanh: a.nha_phat_hanh, teamId: a.team_id, duongDan: a.duong_dan,
-      phienBan: a.phien_ban, icon: a.icon, ...trangThaiApp(a.muc, con, luat, allow),
+      phienBan: a.phien_ban, icon: a.icon, ...trangThaiApp(a.muc, con, luat, allow, a.ten),
     })),
   };
 }

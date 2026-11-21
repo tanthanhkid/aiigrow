@@ -46,7 +46,7 @@ export async function appMoiCaiMay(fam: string, now = new Date()) {
   const allow = allowlistHieuLuc();
   const theoMay = new Map<string, { mayId: string; tenMay: string; conId: string | null; tenCon: string | null; luc: string; ds: string[] }>();
   for (const r of rows) {
-    if (laAppAiiGrow(r.muc) || trangThaiApp(r.muc, r.dung_chung ? "" : r.child_id ?? "", luat, allow).trangThai !== "chua_xep") continue;
+    if (laAppAiiGrow(r.muc) || trangThaiApp(r.muc, r.dung_chung ? "" : r.child_id ?? "", luat, allow, r.ten).trangThai !== "chua_xep") continue;
     const m = theoMay.get(r.device_id) ?? { mayId: r.device_id, tenMay: r.ten_may, conId: r.child_id, tenCon: r.ten_con, luc: new Date(r.dau_luc).toISOString(), ds: [] };
     m.ds.push(r.ten);
     theoMay.set(r.device_id, m);

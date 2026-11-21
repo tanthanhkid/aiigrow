@@ -11,7 +11,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { khoaCon } from "./vi.ts";
-import { allowlistHieuLuc, chuanMuc, datLuat, dsLuat, phanLoaiTu } from "./luat-app.ts";
+import { allowlistHieuLuc, chuanMuc, datLuat, dsLuat, laCongCuHeThong, phanLoaiTu } from "./luat-app.ts";
 import { loaiTuNhom, nhanNhom, nhomTuLoai, type NhomDs } from "./chan-co-ban.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { kieuMuc } from "./chinh-sach.ts";
@@ -51,6 +51,8 @@ export async function guiYeuCau(con: string, mayId: string | null,
     : mucDich === "qua" ? String(b.quaId ?? b.giaTri ?? "").trim().slice(0, 40) || null
     : String(b.giaTri ?? "").trim().slice(0, 200) || null;
   if ((loai === "mo_web" || loai === "cai_app") && !giaTri) throw new LoiNghiepVu("thieu_gia_tri", loai === "mo_web" ? "Dán đường link website" : "Ghi tên ứng dụng");
+  // #525: thành phần Windows / công cụ hệ thống (vd «Storedesktopextension») không phải app con mở — không tạo lời xin, Ba Mẹ không thấy
+  if (loai === "cai_app" && laCongCuHeThong(giaTri, typeof b.tenApp === "string" ? b.tenApp : giaTri)) return { id: "", trang_thai: "bo_qua" };
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
     if (mucDich === "qua" && giaTri && !(await t(`select 1 from rewards where id = $1 and family_id = $2`, [giaTri, fam])).length)
@@ -299,7 +301,8 @@ export async function dsChoYc(fam: string, now = new Date()) {
   await q(`update requests set trang_thai = 'het_han', xu_ly_luc = $2 where trang_thai = 'cho' and het_han <= $2
            and child_id in (select id from children where family_id = $1)`, [fam, now]);
   return q<Yc & { ten_con: string }>(`select r.*, c.ten as ten_con from requests r join children c on c.id = r.child_id
-                                     where c.family_id = $1 and r.trang_thai = 'cho' order by r.created_at`, [fam]);
+                                     where c.family_id = $1 and r.trang_thai = 'cho' order by r.created_at`, [fam])
+    .then((ds) => ds.filter((r) => !(r.loai === "cai_app" && laCongCuHeThong(r.gia_tri, r.ten_app ?? r.gia_tri))));   // #525: lời xin cũ của thành phần Windows
 }
 
 /** Lời xin của Con (màn Con) — kèm KẾT QUẢ cho lời xin app / web (#258): `ketQua` cho | da_them | chua_them | het_han | huy · `nhom`
