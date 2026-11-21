@@ -484,6 +484,10 @@ export const SCHEMA_M4B = [
   )`,
   // app_bam: băm danh sách agent gửi lần cuối (phần đổi chỉ nhận khi khớp) · app_luc: lúc nhận · app_yeu_cau: Ba Mẹ bấm «Làm mới»
   `alter table app_may add column if not exists icon_bam text`,
+  // #508: lúc máy chủ THẤY app lần đầu (dau_luc, null = trước #508) + lúc nhận danh sách đầu tiên của máy (app_dau_luc): app thấy SAU danh sách đầu = «app mới cài» ⇒ «Cần Ba Mẹ để ý»
+  `alter table app_may add column if not exists dau_luc timestamptz`,
+  `alter table app_may alter column dau_luc set default now()`,
+  `alter table devices add column if not exists app_dau_luc timestamptz`,
   `alter table devices add column if not exists app_bam text`,
   `alter table devices add column if not exists app_luc timestamptz`,
   `alter table devices add column if not exists app_yeu_cau timestamptz`,

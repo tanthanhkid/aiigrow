@@ -112,8 +112,9 @@ export async function nhanDanhSachApp(may: May, b: Record<string, unknown>) {
       const n = (await t<{ n: number }>(`select count(*)::int as n from app_may where device_id = $1`, [may.id]))[0].n;
       if (n > TOI_DA_APP) throw new LoiNghiepVu("can_gui_du", "Máy chủ cần danh sách đầy đủ", 409);
     }
-    await t(`update devices set app_bam = $2, app_luc = now() where id = $1`, [may.id, bam]);
     const n = (await t<{ n: number }>(`select count(*)::int as n from app_may where device_id = $1`, [may.id]))[0].n;
+    // mốc «danh sách đầu» chỉ đặt khi máy đã gửi ≥ 1 app (danh sách rỗng / lỗi quét không làm mọi app về sau thành «mới cài»)
+    await t(`update devices set app_bam = $2, app_luc = now(), app_dau_luc = case when $3::int > 0 then coalesce(app_dau_luc, now()) else app_dau_luc end where id = $1`, [may.id, bam, n]);
     // icon có băm mà máy chủ chưa có ảnh ⇒ agent gửi kèm ảnh ở lượt sau (phần đổi)
     const thieuIcon = (await t<{ khoa: string }>(`select khoa from app_may where device_id = $1 and icon_bam is not null and icon is null limit 500`, [may.id])).map((x) => x.khoa);
     return { ok: true, bam, soApp: n, thieuIcon };
