@@ -44,7 +44,7 @@ export default function ThemWeb() {
   });
   return (
     <Man dau={<>
-      <DauMan ve="/thiet-lap/web" phai={<ThanhBuoc5 dang={4} />} />
+      <DauMan ve="/thiet-lap/web" phai={<ThanhBuoc5 dang={5} />} />
       <Chu kieu="rat" co={22} dong={1} style={{ letterSpacing: -0.4, marginHorizontal: 20, marginBottom: 8 }}>{`Thêm web cho ${ten}`}</Chu>
       <OTim gia={go} doi={setGo} khongKinh nhan="Tên hoặc link trang web" goiY="Gõ tên hoặc dán link" url />
     </>} day={<><BaoLoi loi={loi} /><Nut thu chu={chuNutThem(chon, "trang")} rong dangChay={dangChay} tat={!chon.size} bam={luu} /></>}>

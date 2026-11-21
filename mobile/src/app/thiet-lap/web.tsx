@@ -26,11 +26,11 @@ export default function ChonWeb() {
   const tiep = () => lam(async () => {
     datTl({ webs });
     const con = await luuThietLap();
-    router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau" } });
+    router.push({ pathname: "/thiet-lap/xong", params: { con } });
   }, { hangDoi: true });
   return (
-    <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} />} />}
-      day={<><BaoLoi loi={loi} /><Nut thu chu="Tiếp: ghép máy của con" rong dangChay={dangChay} bam={tiep} /></>}>
+    <Man dau={<DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={5} />} />}
+      day={<><BaoLoi loi={loi} /><Nut thu chu="Xong rồi" rong dangChay={dangChay} bam={tiep} /></>}>
       <Chu kieu="rat" co={24} style={{ letterSpacing: -0.5 }}>{`${ten} vào web thế nào?`}</Chu>
       <DongCheDo cheDo="theo_danh_sach" doi={veApp} />
       <Chu co={13.5} mau={M.chu2} style={{ paddingHorizontal: 4 }}>Con chỉ mở app, web trong danh sách. Cái mới thì con xin Ba Mẹ.</Chu>

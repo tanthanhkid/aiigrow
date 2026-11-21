@@ -34,7 +34,7 @@ export default function ThemApp() {
   };
   return (
     <Man dau={<>
-      <DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={4} />} />
+      <DauMan ve="/thiet-lap/app" phai={<ThanhBuoc5 dang={5} />} />
       <Chu kieu="rat" co={22} dong={1} style={{ letterSpacing: -0.4, marginHorizontal: 20, marginBottom: 8 }}>{`Thêm app cho ${ten}`}</Chu>
       <OTim gia={go} doi={setGo} khongKinh nhan="Tên app" goiY="Duolingo, Zoom, Khan Academy…" />
     </>} day={<Nut thu chu={chuNutThem(chon, "app")} rong tat={!chon.size} bam={luu} />}>

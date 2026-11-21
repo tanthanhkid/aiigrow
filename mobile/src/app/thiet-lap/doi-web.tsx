@@ -19,7 +19,7 @@ export default function DoiWeb() {
   const luu = () => { datTl({ webs: webs.map((y) => (y.muc === muc ? { ...y, tinhGio: nhom === "tinh_phut" } : y)) }); ve(); };
   const bo = () => { datTl({ webs: webs.filter((y) => y.muc !== muc) }); ve(); };
   return (
-    <Man dau={<DauMan ve="/thiet-lap/web" phai={<ThanhBuoc5 dang={4} />} />}>
+    <Man dau={<DauMan ve="/thiet-lap/web" phai={<ThanhBuoc5 dang={5} />} />}>
       <ChiTietMuc ten={muc ?? "Trang web"} phu={w ? (x?.phu ?? "Trang Ba Mẹ dán") : "Chưa có trong danh sách"} ic="web" nhom={nhom} doi={setNhom} luu={luu} bo={w ? bo : undefined} />
     </Man>
   );

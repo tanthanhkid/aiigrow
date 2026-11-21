@@ -21,7 +21,7 @@ export default function QuaMua() {
     </Pressable>
   );
   return (
-    <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={2} />} />}
+    <Man dau={<DauMan ve="/thiet-lap/qua" phai={<ThanhBuoc5 dang={3} />} />}
       day={<Nut chu={`Mua · ${dong(v.gia * sl)}`} rong bam={() => setHoi(true)} />}>
       {/* bàn them-hn2754ce v4: tiêu đề 24 · ô hình lam 154 · tên 22 + mô tả canh trái · 2 ô giá · thẻ 3 điều kiện · «Số lượng» trơn */}
       <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, marginLeft: 4 }}>Quà Ba Mẹ mua</Text>

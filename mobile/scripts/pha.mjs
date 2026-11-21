@@ -696,8 +696,9 @@ if (process.argv.includes("--giao-dien")) {
       await nhanChuot(await viTriYen(`() => [...document.querySelectorAll('[role="tab"]')].find((e) => e.innerText.trim() === "Quà nhà")`)); } }),
     M("bm-ob-qua-mua (them-hn2754ce)", "/thiet-lap/qua-mua?ma=cafe50", "Số lượng", { truoc: diTl("/thiet-lap/qua-mua?ma=cafe50") }),
     M("bm-ob-gio", "/thiet-lap/gio", "Quà khởi đầu cho con", { truoc: diTl("/thiet-lap/gio") }),
-    M("bm-ob-app", "/thiet-lap/app", "Gợi ý cho Bảo Anh", { truoc: diTl("/thiet-lap/app") }),
-    M("bm-ob-app (mở hết)", "/thiet-lap/app", "Tiếp: ghép máy của con", { truoc: async () => { await diTl("/thiet-lap/app")(); await doi("Theo danh sách"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="radio"][aria-label^="Mở hết"]')`)); } }),
+    M("bm-ob-app (máy đã ghép · app từ máy · #508)", "/thiet-lap/app", "Chưa xếp ·", { truoc: diTl("/thiet-lap/app") }),
+    M("bm-ob-app (chưa ghép máy · #508)", "/thiet-lap/app", "Ghép máy để thấy app trên máy Bảo Anh", { kb: { "GET con/c1": { ...conCt("c1", KEN), may: [] } }, truoc: diTl("/thiet-lap/app") }),
+    M("bm-ob-app (mở hết)", "/thiet-lap/app", "Xong rồi", { truoc: async () => { await diTl("/thiet-lap/app")(); await doi("Theo danh sách"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="radio"][aria-label^="Mở hết"]')`)); } }),
     M("bm-ob-them-app", "/thiet-lap/them-app", "Thêm app cho", { truoc: diTl("/thiet-lap/them-app") }),
     // them-at57ypdc v5: gõ «Duolingo» ⇒ chạm dòng ⇒ hỏi nhóm ngay dưới dòng, nút đáy «Thêm Duolingo · Không tính phút»
     M("bm-ob-them-app (đã chọn · them-at57ypdc)", "/thiet-lap/them-app", "Duolingo có tính phút không?", { truoc: async () => { await diTl("/thiet-lap/them-app")();
@@ -713,7 +714,7 @@ if (process.argv.includes("--giao-dien")) {
       await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify({ ...TL, webs: [{ muc: "vioedu.vn", tinhGio: true }] }))})`);
       await goi("Page.navigate", { url: `${GOC}/thiet-lap/doi-web?muc=vioedu.vn` }); } }),
     M("bm-ob-ghep", "/thiet-lap/ghep", "quét mã này", { truoc: diTl("/thiet-lap/ghep") }),
-    M("bm-ob-ghep (có tên bé · bm1-ob-ghep)", "/thiet-lap/ghep?con=c1", "Ghép máy cho con", { truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
+    M("bm-ob-ghep (có tên bé · bm1-ob-ghep)", "/thiet-lap/ghep?con=c1", "Ghép trước để thấy app trên máy", { truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
     M("bm-ob-cho", "/thiet-lap/cho?ma=482017&con=c1", "482"),
     // them-q44uxha5 / them-ytmgijqo: mã quá 10 phút ⇒ «Mã đã hết hạn»; chờ quá 5 phút (mã còn hạn) ⇒ «Chưa thấy máy của con»
     M("bm-ob-ghep (mã hết hạn · them-q44uxha5)", "/thiet-lap/ghep", "Mã đã hết hạn", { kb: { "POST ghep-may": { ...coBan["POST ghep-may"], het: luc(1), conGiay: 0 },
@@ -721,7 +722,8 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ob-ghep (chưa thấy máy · them-ytmgijqo)", "/thiet-lap/ghep", "Chưa thấy máy của con", { kb: { "POST ghep-may": { ...coBan["POST ghep-may"], het: luc(-4), conGiay: 240 },
       "GET ghep-may/482017": { daGhep: false, hetHan: false, conGiay: 240, con: "c1", may: null } }, truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
     M("bm-ob-xong (chưa ghép · them-w8q8hcfk)", "/thiet-lap/xong", "Chưa có máy nào", { kb: { "GET con/c1": { ...conCt("c1", KEN), may: [] } }, truoc: diTl("/thiet-lap/xong") }),
-    M("bm-ob-da-ghep", "/thiet-lap/da-ghep?con=c1&may=m1", "đã ghép!"),
+    M("bm-ob-da-ghep", "/thiet-lap/da-ghep?con=c1&may=m1", "Luật bật khi Ba Mẹ xong 4 bước nữa"),
+    M("bm-ob-da-ghep (chép luật · sau=xong)", "/thiet-lap/da-ghep?con=c1&may=m1&sau=xong", "Lưu tên & xong"),
     M("bm-ob-mau", "/thiet-lap/mau", "Một ngày của", { truoc: diTl("/thiet-lap/mau") }),
     M("bm-ob-mau (bảng Ba Mẹ tự thêm · them-bwlkjyw5)", "/thiet-lap/mau", "Thêm vào mục đã chọn", { truoc: async () => { await diTl("/thiet-lap/mau")(); await doi("+ Ba Mẹ tự thêm"); await bam("+ Ba Mẹ tự thêm"); } }),
     M("bm-ob-xong", "/thiet-lap/xong", "Xong rồi!", { truoc: diTl("/thiet-lap/xong") }),
@@ -885,7 +887,8 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ung-dung (như bàn)", "/ung-dung?con=c1", "Thêm app cho", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { dangXin: [] }),
       "GET yeu-cau/bo-qua?con=c1": { ds: coBan["GET yeu-cau/bo-qua"].ds.filter((x) => x.kieu === "web") } } }),
     M("bm-ung-dung-app", "/ung-dung/app?con=c1&ten=Roblox", "Roblox có tính phút không?"),
-    M("bm-ung-dung-them", "/ung-dung/them?con=c1", "Thêm app cho"),
+    M("bm-ung-dung-them", "/ung-dung/them?con=c1", "Chưa xếp ·"),
+    M("bm-ung-dung-them (chưa ghép máy · #508)", "/ung-dung/them?con=c1", "Ghép máy để thấy app của", { kb: { "GET con/c1": { ...conCt("c1", KEN), may: [] } } }),
     // đúng ca bàn them-vw103x88: đã gõ «Minecraft», chạm ＋ dòng Minecraft ⇒ hiện «Minecraft có tính phút không?»
     M("bm-ung-dung-them (đã chọn)", "/ung-dung/them?con=c1", "Minecraft có tính phút không?", { truoc: async () => { await di("/ung-dung/them?con=c1"); await doi("Thêm app cho");
       await go("Tìm app", "Minecraft"); await doi("Kết quả cho"); await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"]')`)); } }),
@@ -1637,9 +1640,10 @@ await kichBan("Lời xin app ở «<Con> đang xin phép» (them-a4nqjrmp): 3 n�
   xet(await doi("Đã thêm YouTube · Không tính phút"), "màn kết quả");
 });
 
-await kichBan("Lần đầu: «<Con> dùng app thế nào?» chọn «Mở hết» ⇒ ẩn danh sách ⇒ «Tiếp: ghép máy» ⇒ POST thiet-lap {cheDo: mo_het}; Theo danh sách ⇒ app có viên nhóm, gửi nhom", async () => {
+await kichBan("Lần đầu: «<Con> dùng app thế nào?» chọn «Mở hết» ⇒ ẩn danh sách ⇒ «Xong rồi» ⇒ POST thiet-lap {cheDo: mo_het}; Theo danh sách ⇒ app có viên nhóm, gửi nhom", async () => {
   const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }], cheDoChan: "chi_app_duoc_phep", quy: 60,
     ngu: { tu: "21:30", den: "06:30" }, apps: [{ ten: "Google Classroom", tinhGio: false }, { ten: "Roblox", tinhGio: true }] };
+  kb["GET con/c1"] = { ...conCt("c1", "Bảo Anh"), may: [] };      // chưa ghép máy ⇒ gợi ý chung
   await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`);
   await goi("Page.navigate", { url: `${GOC}/thiet-lap/che-do` });
   xet(await doi("Bảo Anh dùng app thế nào?"), "đường cũ che-do ⇒ màn gộp «<Con> dùng app thế nào?»");
@@ -1648,10 +1652,10 @@ await kichBan("Lần đầu: «<Con> dùng app thế nào?» chọn «Mở hết
   xet(c.indexOf("Tính phút trả bằng sao") >= 0 && c.indexOf("Tính phút trả bằng sao") < c.indexOf("Không tính phút vào thoải mái"), "hai nhóm: Tính phút ĐỨNG TRƯỚC Không tính phút");
   xet(!c.includes("＋ Thêm") && !/Hôm nay \d+ phút/.test(c) && !c.includes("Đã thêm 2 app"), "không chip trong dòng, không số liệu dùng, không dòng đếm cũ");
   await bamChon('[role="radio"][aria-label^="Mở hết"]');
-  xet(await doi("Tiếp: ghép máy của con"), "Mở hết ⇒ nút «Tiếp: ghép máy của con»");
+  xet(await doi("Xong rồi"), "Mở hết ⇒ nút «Xong rồi» (không còn bước Web, Ghép máy đã làm trước)");
   xet(!(await chu()).includes("Google Classroom"), "Mở hết ⇒ ẩn danh mục app");
   nhatKy.length = 0;
-  await bam("Tiếp: ghép máy của con");
+  await bam("Xong rồi");
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST" && x.body?.cheDo === "mo_het" && !("cheDoChan" in (x.body ?? {}))), "POST thiet-lap {cheDo: mo_het}");
   xet(nhatKy.find((x) => x.d === "thiet-lap")?.body?.apps?.some((a) => a.ten === "Roblox" && a.nhom === "tinh_phut"), "app gửi kèm nhom (Roblox ⇒ tinh_phut)");
 });
@@ -1660,6 +1664,7 @@ await kichBan("Lần đầu · bước 5 trọn luồng (#490): Theo danh sách 
   const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }], cheDoChan: "chi_app_duoc_phep", quy: 60,
     ngu: { tu: "21:30", den: "06:30" }, apps: [{ ten: "Google Classroom", tinhGio: false }, { ten: "Roblox", tinhGio: true }] };
   const tlNay = async () => JSON.parse((await js(`sessionStorage.getItem("aiigrow.thiet-lap")`)) ?? "{}");
+  kb["GET con/c1"] = { ...conCt("c1", "Bảo Anh"), may: [] };      // chưa ghép máy ⇒ gợi ý chung
   await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`);
   await goi("Page.navigate", { url: `${GOC}/thiet-lap/app` });
   xet(await doi("Bảo Anh dùng app thế nào?"), "mở bước 5 · app");
@@ -1700,11 +1705,61 @@ await kichBan("Lần đầu · bước 5 trọn luồng (#490): Theo danh sách 
   await bam("Lưu: vioedu.vn tính phút");
   xet(await doi("Bảo Anh vào web thế nào?"), "Lưu ⇒ về màn web");
   nhatKy.length = 0;
-  await bam("Tiếp: ghép máy của con");
-  xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "Tiếp ⇒ POST thiet-lap một lần");
+  await bam("Xong rồi");
+  xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "Xong rồi ⇒ POST thiet-lap một lần");
   const b = nhatKy.find((x) => x.d === "thiet-lap")?.body;  // web gửi ở khoá `web`
   xet(b?.apps?.some((a) => a.ten === "Roblox" && a.nhom === "khong_tinh_phut") && !b.apps.some((a) => a.ten === "VioEdu"), "apps gửi đúng nhom (Roblox khong_tinh_phut, VioEdu đã bỏ)");
   xet(b?.web?.some((w) => w.muc === "vioedu.vn" && w.nhom === "tinh_phut"), "web gửi đúng nhom (vioedu.vn đổi sang tinh_phut)");
+});
+
+await kichBan("#508 Lần đầu thứ tự mới: Ghép máy ngay sau «Con» ⇒ «Để sau, ghép máy sau» ⇒ «Một ngày của» · đã ghép ⇒ «Lưu tên & tiếp: việc của <bé>» ⇒ «Một ngày của»; chép luật (sau=xong) vẫn về «Xong rồi»", async () => {
+  const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }] };
+  const vao = async (duong) => { await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`); await goi("Page.navigate", { url: `${GOC}${duong}` }); };
+  await vao("/thiet-lap/ghep?con=c1&nguon=lan-dau&sau=mau&moi=1");
+  xet(await doi("Ghép trước để thấy app trên máy Bảo Anh"), "Ghép máy (bước 2): dòng «Ghép trước để thấy app trên máy <bé>»");
+  xet(await js(`!!document.querySelector('[role="progressbar"][aria-label^="Bước 2 trên 6"]')`), "thanh bước: bước 2 trên 6 (Ghép máy)");
+  await bam("Để sau, ghép máy sau");
+  xet(await doi("Một ngày của"), "«Để sau, ghép máy sau» ⇒ bước Việc (không còn «Xong rồi»)");
+  await vao("/thiet-lap/da-ghep?con=c1&may=m1&nguon=lan-dau&sau=mau");
+  xet(await doi("Đã nhận danh sách app từ máy — 7 app"), "đã ghép: «Đã nhận danh sách app từ máy — N app»");
+  xet((await chu()).includes("Luật bật khi Ba Mẹ xong 4 bước nữa"), "đã ghép: «Luật bật khi Ba Mẹ xong 4 bước nữa»");
+  await bam("Lưu tên & tiếp: việc của Bảo Anh");
+  xet(await doi("Một ngày của"), "«Lưu tên & tiếp: việc của <bé>» ⇒ bước Việc");
+  await vao("/thiet-lap/ghep?con=c1&nguon=lan-dau&sau=xong&moi=1");
+  await doi("Ghép máy cho con");
+  await bam("Để sau, ghép máy sau");
+  xet(await doi("Xong rồi!"), "chép luật (sau=xong): «Để sau» vẫn về trang Xong rồi");
+});
+
+await kichBan("#508 Lần đầu · bước App: máy đã ghép ⇒ app từ máy, chọn nhóm một chạm ghi vào thiết lập; chưa ghép ⇒ «Ghép máy» ⇒ Ghép (sau=app) ⇒ «Để sau» quay lại bước App", async () => {
+  const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }], cheDoChan: "chi_app_duoc_phep", apps: [] };
+  const tlNay = async () => JSON.parse((await js(`sessionStorage.getItem("aiigrow.thiet-lap")`)) ?? "{}");
+  await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`);
+  await goi("Page.navigate", { url: `${GOC}/thiet-lap/app` });
+  xet(await doi("Chưa xếp ·"), "máy đã ghép ⇒ khối «Chưa xếp · N app» từ máy");
+  const c = await chu();
+  xet(c.includes("App trên Laptop") && c.includes("Blender") && !c.includes("Google Chrome"), "«App trên <máy>», có app thật của máy, bỏ app hệ thống");
+  await bamChon('[aria-label^="Tính phút "]');
+  await sleep(300);
+  const t = await tlNay();
+  xet(t.apps?.length === 1 && t.apps[0].tinhGio === true, "một chạm «Tính phút» ⇒ app vào thiết lập, tinhGio true");
+  kb["GET con/c1"] = { ...conCt("c1", "Bảo Anh"), may: [] };
+  await goi("Page.navigate", { url: `${GOC}/thiet-lap/app` });
+  xet(await doi("Ghép máy để thấy app trên máy Bảo Anh"), "chưa ghép ⇒ «Ghép máy để thấy app trên máy <bé>»");
+  xet((await chu()).includes("Gợi ý cho Bảo Anh"), "chưa ghép ⇒ vẫn có gợi ý chung");
+  await bam("Ghép máy");
+  xet(await doi("Ghép máy cho con"), "«Ghép máy» ⇒ màn Ghép");
+  await bam("Để sau, ghép máy sau");
+  xet(await doi("dùng app thế nào?"), "«Để sau» (sau=app) ⇒ quay lại bước App");
+});
+
+await kichBan("#508 Hằng ngày · Thêm app: cùng bố cục bước App (app từ máy, hai nút nhóm) — chạm «Không tính» ⇒ POST con/c1/danh-sach {nhom, ten}", async () => {
+  kb["POST con/c1/danh-sach"] = { ok: true };
+  await di("/ung-dung/them?con=c1");
+  xet(await doi("Chưa xếp ·"), "mở Thêm app ⇒ khối «Chưa xếp · N app» từ máy (giống Lần đầu)");
+  nhatKy.length = 0;
+  await bamChon('[aria-label^="Không tính "]');
+  xet(await choGoi((x) => x.d === "con/c1/danh-sach" && x.m === "POST" && x.body?.ds?.length === 1 && x.body.ds[0].nhom === "khong_tinh_phut" && !!x.body.ds[0].ten), "một chạm ⇒ POST danh-sach {nhom: khong_tinh_phut, ten}");
 });
 
 await kichBan("#420 Con thứ 2+: «Giống <con trước>» ⇒ POST con/:id/chep-tu {tu} ⇒ Ghép máy; nhà ≥3 con chọn bé khác; «Thiết lập riêng» ⇒ luồng cũ", async () => {
@@ -1922,6 +1977,7 @@ await kichBan("Lần đầu · mở lại hồ sơ Con ĐÃ có PIN (#306): khô
 });
 
 await kichBan("Lần đầu · Giờ chơi (#306): quà khởi đầu −/+ bước 10 (0…200), ô số phút gõ trực tiếp, −/+ 15 phút, «Không cần nghỉ» ⇒ phutMoiLuot 0, gửi đúng", async () => {
+  kb["GET con/c1"] = { ...conCt("c1", "Bảo Anh"), may: [] };      // chưa ghép máy ⇒ bước App hiện gợi ý chung
   const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }] };
   await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`);
   await goi("Page.navigate", { url: `${GOC}/thiet-lap/gio` });

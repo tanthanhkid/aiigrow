@@ -54,7 +54,7 @@ export default function ObMau() {
     <TheDs>{vs.map((v, i) => <DongChon key={v.ma} dau={!i} e={v.e} ic={icDong(v.muc)} mau={mau} ten={v.ten} sao={v.sao} lon={v.lon} chon={chon.has(v.ma)} bam={() => doi([v.ma], !chon.has(v.ma))} />)}</TheDs>
   );
   return (
-    <Man noi={noi} dau={<DauMan ve="/thiet-lap/ten-con" phai={<ThanhBuoc5 dang={1} />} />}
+    <Man noi={noi} dau={<DauMan ve="/thiet-lap/ten-con" phai={<ThanhBuoc5 dang={2} />} />}
       day={<><BaoLoi loi={loi} />
         <Nut chu={chon.size ? `Xong ${chon.size} việc, sang phần quà` : "Xong, sang phần quà"} rong dangChay={dangChay} bam={xong} />
         <LienKet chu="+ Ba Mẹ tự thêm" bam={() => setThem(true)} /></>}>

@@ -1,6 +1,7 @@
 // Ghép máy (L8, docs/API.md › «Ghép máy»): một nội dung cho cả Lần đầu và Ghép thêm máy. Giữ kết quả `POST ghep-may` trong bộ nhớ
 // (web: sessionStorage) theo Con + «cài giống máy» — quay lại màn Ghép («Gửi lại link») dùng lại đúng mã còn hạn, không đẻ mã mới mỗi lần.
 import { bm } from "./api";
+import { router } from "expo-router";
 import { appsRobChonSan, datTl, layTl, thanThietLap } from "./thiet-lap";
 
 export type KqGhep = {
@@ -76,4 +77,13 @@ export async function luuThietLap() {
   const tl = layTl();
   await bm.goi("thiet-lap", thanThietLap(tl));
   return tl.conId;
+}
+
+/** #508 mục 7: Ghép máy nằm SAU «Con» và TRƯỚC «Một ngày của con». `sau` = đi đâu khi Ghép xong / «Để sau»:
+ *  «mau» (mặc định Lần đầu) ⇒ bước Việc · «xong» (chép luật từ bé trước, #420) ⇒ trang Xong rồi · «app» (bấm «Ghép máy» ở bước App) ⇒ quay lại bước App. */
+export type SauGhep = "mau" | "xong" | "app";
+export const docSau = (x: unknown): SauGhep => (x === "xong" || x === "app" ? x : "mau");
+export function diTiepSauGhep(sau: SauGhep, con: string) {
+  if (sau === "app") { if (router.canGoBack()) router.dismissTo("/thiet-lap/app"); else router.replace("/thiet-lap/app"); return; }
+  router.replace(sau === "xong" ? { pathname: "/thiet-lap/xong", params: { con } } : "/thiet-lap/mau");
 }

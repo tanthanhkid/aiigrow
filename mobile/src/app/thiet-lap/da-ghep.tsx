@@ -10,7 +10,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { bm, chuanHoaTen, type ChiTietTuanThu, type GiaDinh, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
-import { tomTat } from "@/lib/ghep-may";
+import { diTiepSauGhep, docSau, tomTat } from "@/lib/ghep-may";
 import { tenGoi } from "@/lib/hang-ngay";
 import { DauMan, LienKet } from "@/lib/lan-dau";
 import { AvtCon, conCuaMay, hinhMay, nganTen, SaoNho } from "@/lib/may-nhieu-con";
@@ -21,18 +21,21 @@ type Luat = { child_id: string | null; muc: string; ten?: string | null; loai: s
 const LOAI: Record<string, string> = { windows: "Laptop", mac: "Máy Mac", ios: "iPad", android: "Điện thoại" };
 
 export default function DaGhep() {
-  const p = useLocalSearchParams<{ con?: string; may?: string; nguon?: string }>();
+  const p = useLocalSearchParams<{ con?: string; may?: string; nguon?: string; sau?: string }>();
   const con = String(p.con ?? "");
   const mayId = p.may ? String(p.may) : "";
   const nguon = p.nguon === "them" ? "them" : "lan-dau";
+  const sau = docSau(p.sau);
+  const sapXep = nguon === "lan-dau" && sau !== "xong";        // #508: Ghép máy ở GIỮA Lần đầu — luật chưa đặt, còn việc / quà / giờ / app phía sau
   const { d } = useTai(async () => {
-    const [m, g, luat, tt] = await Promise.all([mayId ? bm.goi<ChiTietTuanThu>(`may/${mayId}/tuan-thu`).catch(() => null) : null, bm.goi<GiaDinh>("gia-dinh").catch(() => null),
-      bm.goi<{ ds: Luat[] }>("luat").catch(() => null), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu").catch(() => null)]);
+    const [m, g, luat, tt, ud] = await Promise.all([mayId ? bm.goi<ChiTietTuanThu>(`may/${mayId}/tuan-thu`).catch(() => null) : null, bm.goi<GiaDinh>("gia-dinh").catch(() => null),
+      bm.goi<{ ds: Luat[] }>("luat").catch(() => null), bm.goi<{ ds: TuanThuMay[] }>("tuan-thu").catch(() => null),
+      sapXep && mayId ? bm.goi<{ ds: { trangThai: string }[] }>(`may/${mayId}/ung-dung`).catch(() => null) : null]);
     const caNha = (g?.con ?? []).map((x) => ({ id: x.id, ten: x.ten, avatar: x.avatar }));
     const conDs = m ? conCuaMay(m, caNha) : caNha.filter((x) => x.id === con);
     const ids = conDs.length ? conDs.map((x) => x.id) : con ? [con] : [];
     const tl = await Promise.all(ids.map((id) => tomTat(id).catch(() => null)));
-    return { m, conDs, tl, luat: luat?.ds ?? [], khac: (tt?.ds ?? []).filter((x) => x.id !== mayId), sao: (id: string) => g?.con.find((x) => x.id === id)?.soDu ?? null };
+    return { m, conDs, tl, soApp: ud ? ud.ds.filter((a) => a.trangThai !== "he_thong").length : null, luat: luat?.ds ?? [], khac: (tt?.ds ?? []).filter((x) => x.id !== mayId), sao: (id: string) => g?.con.find((x) => x.id === id)?.soDu ?? null };
   });
   const [tenMoi, setTenMoi] = useState<string | null>(null);
   const [goc, setGoc] = useState<string | null>(null);
@@ -49,7 +52,7 @@ export default function DaGhep() {
   const moHet = cheDoTu(d?.tl[0]) === "mo_het";
   // đếm app theo nhóm của bé (máy riêng): luật riêng bé + luật cả nhà, bỏ trang web; «giai_tri» = Tính phút (trả bằng sao), «hoc» = Không tính phút
   const dem = (loai: string) => new Set((d?.luat ?? []).filter((l) => (!l.child_id || l.child_id === be?.id) && l.loai === loai && !laWeb(l.muc)).map((l) => (l.ten || l.muc).toLowerCase())).size;
-  const xong = () => (nguon === "lan-dau" ? router.replace({ pathname: "/thiet-lap/xong", params: { con } }) : router.replace({ pathname: "/may", params: con ? { con } : {} }));
+  const xong = () => (nguon === "lan-dau" ? diTiepSauGhep(sau, con) : router.replace({ pathname: "/may", params: con ? { con } : {} }));
   const luuXong = () => lam(async () => {
     if (d?.m && ten && ten !== chuanHoaTen(d.m.ten)) await bm.goi(`may/${mayId}/doi-ten`, { ten });
     xong();
@@ -69,7 +72,7 @@ export default function DaGhep() {
   );
   return (
     <Man dau={<DauMan tieu="Ghép máy" ve="/" khongLui={nguon === "lan-dau"} />}
-      day={<><BaoLoi loi={loi} /><Nut chu="Lưu tên & xong" ic="tick" ic3d rong dangChay={dangChay} tat={!!d?.m && !ten} bam={luuXong} />
+      day={<><BaoLoi loi={loi} /><Nut chu={sapXep ? (sau === "app" ? `Lưu tên & tiếp: chọn app` : `Lưu tên & tiếp: việc của ${tenBe}`) : "Lưu tên & xong"} ic="tick" ic3d rong dangChay={dangChay} tat={!!d?.m && !ten} bam={luuXong} />
         <LienKet chu="+ Ghép thêm máy khác" bam={() => router.push({ pathname: "/may/them", params: con ? { con } : {} })} /></>}>
       {/* máy (khung than chì) + Grow «xong» + dấu tick 3D */}
       <View style={{ alignItems: "center" }} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -105,7 +108,7 @@ export default function DaGhep() {
           </View>
         </View>
       ) : null}
-      {chung ? (
+      {sapXep ? null : chung ? (
         <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap" }}>
           {d!.conDs.map((c, k) => {
             const s = d!.sao(c.id);
@@ -128,13 +131,26 @@ export default function DaGhep() {
           {oLuat("sao", "1 sao", "= 1 phút chơi")}
         </View>
       )}
-      <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingLeft: 10, paddingRight: 14, paddingVertical: 8, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>
-        <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: M.chinhSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><IconNet ten="khien" co={24} mau={M.chinh} /></View>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Chu kieu="rat" co={14} dong={1}>{chung ? "Luật đi theo bé đang dùng" : `${moHet ? "Mở hết" : "Theo danh sách"} · máy riêng ${tenBe}`}</Chu>
-          <Chu kieu="dam" co={12.5} mau={M.chu2} dong={2}>{chung ? "Chơi trên máy này chỉ trừ sao của bé đó" : moHet ? "Mọi app, web đều mở" : "Chỉ mở app, web Ba Mẹ đã thêm"}</Chu>
-        </View>
-      </View>
+      {sapXep ? (
+        <>
+          <TheTin ic="tai" tieu={d?.soApp ? `Đã nhận danh sách app từ máy — ${d.soApp} app` : "Đang nhận danh sách app từ máy"}
+            phu={d?.soApp ? `Ba Mẹ xếp Tính phút hoặc Không tính phút ở bước App` : `Máy gửi về trong ít phút. iPhone, iPad không cho AiiGrow xem app đã cài.`} />
+          <TheTin ic="khien" tieu={sau === "app" ? "Luật bật khi Ba Mẹ xong bước App và web" : "Luật bật khi Ba Mẹ xong 4 bước nữa"} phu={sau === "app" ? "Máy chưa bị chặn gì lúc này" : "Việc, quà, giờ chơi, app và web — máy chưa bị chặn gì lúc này"} />
+        </>
+      ) : <TheTin ic="khien" tieu={chung ? "Luật đi theo bé đang dùng" : `${moHet ? "Mở hết" : "Theo danh sách"} · máy riêng ${tenBe}`}
+          phu={chung ? "Chơi trên máy này chỉ trừ sao của bé đó" : moHet ? "Mọi app, web đều mở" : "Chỉ mở app, web Ba Mẹ đã thêm"} />}
     </Man>
+  );
+}
+
+function TheTin({ ic, tieu, phu }: { ic: TenIcon; tieu: string; phu: string }) {
+  return (
+    <View style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 56, paddingLeft: 10, paddingRight: 14, paddingVertical: 8, borderRadius: 26, backgroundColor: M.the }, KHOI.the]}>
+      <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: M.chinhSoft, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}><IconNet ten={ic} co={24} mau={M.chinh} /></View>
+      <View style={{ flex: 1, minWidth: 0 }}>
+        <Chu kieu="rat" co={14} dong={2}>{tieu}</Chu>
+        <Chu kieu="dam" co={12.5} mau={M.chu2} dong={2}>{phu}</Chu>
+      </View>
+    </View>
   );
 }

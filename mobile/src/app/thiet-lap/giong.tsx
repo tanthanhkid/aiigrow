@@ -30,7 +30,7 @@ export default function GiongCon() {
   const [chon, setChon] = useState<string | null>(null);
   const tu = nguon.find((x) => x.id === chon) ?? nguon[0];
   const { lam, loi, dangChay } = useLam();
-  const rieng = () => (them ? router.replace(`/ho-so/${con}/tiep` as never) : router.push("/thiet-lap/mau"));
+  const rieng = () => (them ? router.replace(`/ho-so/${con}/tiep` as never) : router.push({ pathname: "/thiet-lap/ghep", params: { con, nguon: "lan-dau", sau: "mau" } }));
   useEffect(() => { if (d && !d.ds.length) rieng(); }, [d]); // eslint-disable-line react-hooks/exhaustive-deps
   if (!d || !tu) return <Man><ChoTai loi={loiTai} matMang={matMang} tai={tai} /></Man>;
   const ten = tenGoi(d.ten), tenTu = tenGoi(tu.ten);
@@ -38,7 +38,7 @@ export default function GiongCon() {
   const giong = () => lam(async () => {
     await bm.goi(`con/${con}/chep-tu`, { tu: tu.id });
     if (them) xoaTl();
-    router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon: them ? "them" : "lan-dau" } });
+    router.replace({ pathname: "/thiet-lap/ghep", params: { con, nguon: them ? "them" : "lan-dau", ...(them ? {} : { sau: "xong" }) } });
   });
   return (
     <Man dau={<DauMan ve={them ? "/cai-dat" : "/hom-nay"} phai={<View style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, boxShadow: BONG.lom }}>

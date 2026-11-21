@@ -67,7 +67,7 @@ export default function ObQua() {
   });
   const cauNut = tongQua ? `Xong, thêm ${tongQua} quà${tongTien ? ` · trả ${dong(tongTien)}` : ""}` : "Xong, sang chơi bằng sao";
   return (
-    <Man dau={<DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc5 dang={2} />} />} noi={noi}
+    <Man dau={<DauMan ve="/thiet-lap/mau" phai={<ThanhBuoc5 dang={3} />} />} noi={noi}
       day={<><BaoLoi loi={loi} /><Nut chu={cauNut} rong dangChay={dangChay} bam={tongQua ? xong : sang} /><LienKet chu="Để sau, chọn quà sau" bam={sang} /></>}>
       <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 24, lineHeight: 30, letterSpacing: -0.5, color: M.chu, marginLeft: 4 }}>Quà của {ten}</Text>
       <TabQua dang={tab} doi={setTab} />
