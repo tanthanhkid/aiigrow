@@ -19,6 +19,7 @@ import { GiaSao, OHinhQua } from "@/lib/ui-s3";
 import { BONG, KHOI } from "@/lib/clay";
 import { ChonSao } from "@/lib/chon-sao";
 import { useSaoTu } from "@/lib/sao-tu-nhap";
+import { quaNha } from "@/lib/qua-nhom";
 
 const TIEU = "Quà con đổi bằng sao";
 const GOI_Y = ["Đi ăn kem", "Xem phim", "Chọn món tối", "Đi công viên", "Đồ chơi nhỏ"];
@@ -59,7 +60,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
   const { lam, loi: loiLam, dangChay } = useLam();
   const tieu = c ? `Quà của ${c.ten}` : TIEU;
   if (!q.d) return <Man lui={{ chu: "", bam: ve }} tieu={tieu}><ChoTai loi={q.loi} matMang={q.matMang} tai={q.tai} /></Man>;
-  const nha = q.d.qua.filter((x) => x.bat && x.loai !== "voucher");
+  const nha = quaNha(q.d.qua, q.d.voucher.map((m) => m.ma));
   const themQua = () => lam(async () => {
     const t = ten.trim();
     await bm.goi("qua", { ten: t, loai: "qua", sao: st.dung(sao), ...(conId ? { apCho: [conId] } : {}) });
