@@ -2,7 +2,7 @@
 // «Lưu hồ sơ X» ⇒ POST thiet-lap {con} (tạo Con; gửi lại có con.id ⇒ sửa, không tạo trùng) ⇒ Giao việc. «Thêm con khác» (them-4sujddkb):
 // lưu Con này rồi điền Con tiếp theo; màn Con thứ hai có «Xong, giao việc cho <Con đầu> trước». Bỏ chọn nhóm Nhí/Teen (máy chủ tự tính theo tuổi).
 // PIN 06/11 (đảo L5): «Mã PIN vào máy · 4 số» ⇒ POST con/:id/pin sau khi lưu hồ sơ. #306: PIN 4 số BẮT BUỘC khi lưu một Con (cả 3 nút: Lưu hồ sơ · + Thêm con khác · Xong, giao việc…).
-// Nút đáy (#306): «+ Thêm con khác» trên cùng; dưới nó MỘT nút nổi — chưa có con nào khác ⇒ «Lưu hồ sơ <Tên>»; đã thêm con khác ⇒ «Xong, giao việc cho <Con đầu> trước».
+// Nút đáy (#306): «+ Thêm con khác» trên cùng; dưới nó MỘT nút nổi — chưa có con nào khác ⇒ «Lưu & ghép máy cho <Tên>»; đã thêm con khác ⇒ «Xong, giao việc cho <Con đầu> trước».
 // Thiết kế chốt 14/11 (bm1-ob-ten-con «Sửa tay», them-hjjdppuw, them-4sujddkb): thẻ hồ sơ «Bảo Anh · 🐓 9 tuổi» (con giáp theo năm sinh — N11),
 // ô năm sinh là nút mở bảng «Năm sinh» (bánh xe năm, «Chọn 2017»); PIN một ô (thiết kế bỏ «Nhập lại PIN» — PIN hiện số khi gõ nên không cần gõ lại).
 import { useEffect, useState } from "react";
@@ -91,7 +91,7 @@ export default function ObCon() {
             router.push({ pathname: "/thiet-lap/ghep", params: { con: conDau.id, nguon: "lan-dau", sau: "mau" } });
           })} />
         ) : (
-          <Nut chu={`Lưu hồ sơ ${tenGon || "của con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo) || thieuPin || !!loiPin} bam={tiep} />
+          <Nut chu={`Lưu & ghép máy cho ${tenGon || "con"}`} rong dangChay={dangChay} tat={!tenGon || (nam !== "" && !namSo) || thieuPin || !!loiPin} bam={tiep} />
         )}</>}>
       <TheHoSoCon ten={ten} nam={nam} mau={mau} anh={af.uri ?? anhMay} f={af} coAnh={coAnhLuu} boDaLuu={() => setBoAnhLuu(true)} />
       <OLom nhan="Tên gọi ở nhà" value={ten} onChangeText={setTen} placeholder="Bảo Anh" maxLength={30} autoComplete="off" />

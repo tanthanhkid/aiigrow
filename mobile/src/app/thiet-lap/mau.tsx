@@ -42,7 +42,6 @@ export default function ObMau() {
   const nhom = (vs: ViecKho[]) => ({ het: vs.length > 0 && vs.every((v) => chon.has(v.ma)), bam: () => doi(vs.map((v) => v.ma), !vs.every((v) => chon.has(v.ma))) });
   const t = TAB.find((x) => x.ma === tab)!;
   const cuaTab = ds.filter((v) => v.muc === tab);
-  const icDong = (m: Muc) => TAB.find((x) => x.ma === m)!.ic;
   const xong = () => lam(async () => {
     if (chon.size) {
       if (!tl.conId) throw new Error("Chưa biết giao việc cho con nào — quay lại bước hồ sơ con.");
@@ -51,7 +50,7 @@ export default function ObMau() {
     router.push("/thiet-lap/qua");
   });
   const dong = (vs: ViecKho[], mau: MauMuc) => (
-    <TheDs>{vs.map((v, i) => <DongChon key={v.ma} dau={!i} e={v.e} ic={icDong(v.muc)} mau={mau} ten={v.ten} sao={v.sao} lon={v.lon} chon={chon.has(v.ma)} bam={() => doi([v.ma], !chon.has(v.ma))} />)}</TheDs>
+    <TheDs>{vs.map((v, i) => <DongChon key={v.ma} dau={!i} e={v.e} mau={mau} ten={v.ten} sao={v.sao} lon={v.lon} chon={chon.has(v.ma)} bam={() => doi([v.ma], !chon.has(v.ma))} />)}</TheDs>
   );
   return (
     <Man noi={noi} dau={<DauMan ve="/thiet-lap/ten-con" phai={<ThanhBuoc5 dang={2} />} />}
