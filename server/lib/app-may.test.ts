@@ -223,3 +223,13 @@ test("#508 app Con cài MỚI sau danh sách đầu ⇒ «Cần Ba Mẹ để ý
   assert.equal(dat.status, 200);
   assert.equal((await canDeY(fam)).ds.filter((x) => x.loai === "app_moi").length, 0, "đã xếp ⇒ không còn báo");
 });
+
+test("#508 danh sách đầu RỖNG không đặt mốc: danh sách đầy đủ sau đó không thành «app mới cài»", async () => {
+  const { fam, tok, mayId } = await nha();
+  const { canDeY } = await import("./can-de-y.ts");
+  const { q } = await import("./db.ts");
+  await goiMay("ung-dung", tok, { du: true, bam: "a".repeat(64), ds: [] });
+  await goiMay("ung-dung", tok, { du: true, bam: "b".repeat(64), ds: [ROBLOX, MINECRAFT] });
+  await q(`update devices set app_dau_luc = app_dau_luc - interval '1 hour' where id = $1`, [mayId]);
+  assert.equal((await canDeY(fam)).ds.filter((x) => x.loai === "app_moi").length, 0);
+});

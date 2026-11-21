@@ -36,8 +36,8 @@ export async function mayMatMang(fam: string, now = new Date()): Promise<MayMatM
 /** #508: app Con CÀI MỚI trên máy — máy chủ thấy sau danh sách đầu tiên của máy (cách ≥ 2 phút), trong 14 ngày, chưa được Ba Mẹ xếp (không «Tính phút» / «Không tính phút»),
  *  không phải app hệ thống / chính AiiGrow. Gộp theo máy. App đã có trong danh sách đầu (lúc ghép máy) KHÔNG tính — Ba Mẹ xếp ở bước App của Lần đầu. */
 export async function appMoiCaiMay(fam: string, now = new Date()) {
-  const rows = await q<{ device_id: string; ten: string; muc: string; dau_luc: Date; ten_may: string; child_id: string | null; ten_con: string | null }>(
-    `select a.device_id, a.ten, a.muc, a.dau_luc, d.name as ten_may, d.child_id, c.ten as ten_con
+  const rows = await q<{ device_id: string; ten: string; muc: string; dau_luc: Date; ten_may: string; child_id: string | null; dung_chung: boolean; ten_con: string | null }>(
+    `select a.device_id, a.ten, a.muc, a.dau_luc, d.name as ten_may, d.child_id, d.dung_chung, c.ten as ten_con
        from app_may a join devices d on d.id = a.device_id left join children c on c.id = d.child_id
       where d.family_id = $1 and a.dau_luc is not null and d.app_dau_luc is not null and a.dau_luc > d.app_dau_luc + interval '2 minutes'
         and a.dau_luc > $2 order by a.dau_luc desc limit 300`, [fam, new Date(now.getTime() - 14 * 86_400_000)]);
@@ -46,7 +46,7 @@ export async function appMoiCaiMay(fam: string, now = new Date()) {
   const allow = allowlistHieuLuc();
   const theoMay = new Map<string, { mayId: string; tenMay: string; conId: string | null; tenCon: string | null; luc: string; ds: string[] }>();
   for (const r of rows) {
-    if (laAppAiiGrow(r.muc) || trangThaiApp(r.muc, r.child_id ?? "", luat, allow).trangThai !== "chua_xep") continue;
+    if (laAppAiiGrow(r.muc) || trangThaiApp(r.muc, r.dung_chung ? "" : r.child_id ?? "", luat, allow).trangThai !== "chua_xep") continue;
     const m = theoMay.get(r.device_id) ?? { mayId: r.device_id, tenMay: r.ten_may, conId: r.child_id, tenCon: r.ten_con, luc: new Date(r.dau_luc).toISOString(), ds: [] };
     m.ds.push(r.ten);
     theoMay.set(r.device_id, m);
@@ -64,15 +64,15 @@ const hhmm = (d: Date, tz: string) => { const g = gioDiaPhuong(d, tz).phut; retu
 export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<ReturnType<typeof dsChoYc>>; nv?: Awaited<ReturnType<typeof choDuyet>>;
   mm?: MayMatMang[] } = {}) {
   const tz = (await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))?.tz ?? "Asia/Ho_Chi_Minh";
-  const [mm, yc, nv, cb, may] = await Promise.all([san.mm ?? mayMatMang(fam, now), san.yc ?? dsChoYc(fam, now), san.nv ?? choDuyet(fam),
+  const [mm, yc, nv, cb, may, appMoi] = await Promise.all([san.mm ?? mayMatMang(fam, now), san.yc ?? dsChoYc(fam, now), san.nv ?? choDuyet(fam),
     q<{ id: string; child_id: string | null; device_id: string | null; loai: string; muc: string; noi_dung: string; created_at: Date; ten_con: string | null; ten_may: string | null }>(
       `select a.id, a.child_id, a.device_id, a.loai, a.muc, a.noi_dung, a.created_at, c.ten as ten_con, d.name as ten_may from alerts a
          left join children c on c.id = a.child_id left join devices d on d.id = a.device_id
         where a.family_id = $1 and not a.da_doc and (a.loai = 'quen_pin' or a.muc in ('chu_y', 'nghiem_trong')) and a.created_at > $2
         order by a.created_at desc limit 20`, [fam, new Date(now.getTime() - 7 * 86_400_000)]),
-    q<May & { ten_con: string | null }>(`select d.*, c.ten as ten_con from devices d left join children c on c.id = d.child_id where d.family_id = $1`, [fam])]);
+    q<May & { ten_con: string | null }>(`select d.*, c.ten as ten_con from devices d left join children c on c.id = d.child_id where d.family_id = $1`, [fam]),
+    appMoiCaiMay(fam, now)]);
   const ds: MucCanDeY[] = [];
-  const appMoi = await appMoiCaiMay(fam, now);
   for (const m of mm) ds.push({ id: `mat_mang:${m.mayId}`, loai: "mat_mang", tieu: `${m.ten} mất mạng`, phu: `${hhmm(new Date(m.tu), tz)} · Con cần mã để mở máy`,
     luc: m.tu, con: m.conId, may: m.mayId, so: 1, nut: "Lấy mã", den: `/may/${m.mayId}/ma-offline` });
   for (const a of cb) {
@@ -111,7 +111,7 @@ export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<
     ds.push({ id: `chua_bao_ve:${m.id}`, loai: "chua_bao_ve", tieu: `${m.name} chưa được bảo vệ`, phu: ct.thieu[0]?.ten ?? ct.cau,
       luc: new Date(m.last_seen).toISOString(), con: m.child_id, may: m.id, so: 1, nut: "Sửa", den: `/may/${m.id}` });
   }
-  const thu: Record<MucCanDeY["loai"], number> = { mat_mang: 0, quen_pin: 1, canh_bao: 2, con_xin: 3, app_moi: 3.5, nop_bai: 4, chua_bao_ve: 5 };
+  const thu: Record<MucCanDeY["loai"], number> = { mat_mang: 0, quen_pin: 1, canh_bao: 2, con_xin: 3, app_moi: 4, nop_bai: 5, chua_bao_ve: 6 };
   ds.sort((a, b) => thu[a.loai] - thu[b.loai] || Date.parse(b.luc) - Date.parse(a.luc));
   return { ds, soChuong: ds.length };
 }
