@@ -1657,17 +1657,12 @@ await kichBan("Lần đầu · bước 5 trọn luồng (#490): Theo danh sách 
   await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`);
   await goi("Page.navigate", { url: `${GOC}/thiet-lap/app` });
   xet(await doi("Bảo Anh dùng app thế nào?"), "mở bước 5 · app");
-  // thêm app từ «Gợi ý cho»: ＋ ⇒ Thêm app có sẵn chữ tìm ⇒ chọn ⇒ «Thêm <app> · <nhóm>»
+  // #508: ＋ ở «Gợi ý cho» mở NGAY câu hỏi nhóm tại dòng (không qua màn tìm kiếm); chọn nhóm là thêm luôn
   await bamChon('[aria-label="Thêm VioEdu"]');
-  xet(await doi("Thêm app cho Bảo Anh"), "＋ ở gợi ý ⇒ màn Thêm app");
-  xet(await coChon('[role="checkbox"][aria-checked="false"]') || await doi("VioEdu"), "gợi ý điền sẵn chữ tìm, hiện kết quả");
-  await bam("VioEdu");
-  xet(await doi("VioEdu có tính phút không?"), "chạm kết quả ⇒ hỏi nhóm ngay dưới dòng");
+  xet(await doi("VioEdu có tính phút không?") && (await chu()).includes("Bảo Anh dùng app thế nào?"), "＋ ở gợi ý ⇒ hỏi nhóm ngay tại chỗ, không sang màn Thêm app");
   await bamTrong('[role="radio"]', "Tính phút");
-  xet(await doi("Thêm VioEdu · Tính phút"), "nút đáy đúng tên + loại");
-  await bam("Thêm VioEdu · Tính phút");
-  xet(await doi("Bảo Anh dùng app thế nào?"), "Thêm xong ⇒ về màn app");
-  xet((await tlNay()).apps?.some((a) => a.ten === "VioEdu" && a.tinhGio === true), "VioEdu ghi vào thiết lập, tinhGio true");
+  await doi("Bảo Anh dùng app thế nào?");
+  xet((await tlNay()).apps?.some((a) => a.ten === "VioEdu" && a.tinhGio === true), "chọn nhóm ⇒ VioEdu vào thiết lập ngay, tinhGio true (hai chạm)");
   // chạm app đã thêm ⇒ Đổi app (chỉ một cách đổi — không chip trong dòng)
   await bam("Roblox");
   xet(await doi("Roblox có tính phút không?"), "chạm app đã thêm ⇒ «Đổi app»");
@@ -1687,13 +1682,12 @@ await kichBan("Lần đầu · bước 5 trọn luồng (#490): Theo danh sách 
   xet(await doi("Bảo Anh dùng app thế nào?"), "«Đổi ›» ⇒ về màn app");
   await bam("Tiếp: chọn web cho con");
   await doi("Bảo Anh vào web thế nào?");
-  // thêm web ⇒ Đổi web
+  // thêm web từ gợi ý: ＋ ⇒ chọn nhóm ngay tại dòng ⇒ Đổi web
   await bamChon('[aria-label="Thêm vioedu.vn"]');
-  xet(await doi("Thêm web cho Bảo Anh"), "＋ ở gợi ý web ⇒ màn Thêm web");
-  await bam("vioedu.vn");
-  xet(await doi("vioedu.vn có tính phút không?"), "chạm trang ⇒ hỏi nhóm");
-  await bam("Thêm vioedu.vn · Không tính phút");
-  xet(await doi("Bảo Anh vào web thế nào?"), "Thêm web xong ⇒ về màn web");
+  xet(await doi("vioedu.vn có tính phút không?") && (await chu()).includes("Bảo Anh vào web thế nào?"), "＋ ở gợi ý web ⇒ hỏi nhóm ngay tại chỗ");
+  await bamTrong('[role="radio"]', "Không tính phút");
+  await doi("Bảo Anh vào web thế nào?");
+  xet((await tlNay()).webs?.some((w) => w.muc === "vioedu.vn" && w.tinhGio === false), "chọn nhóm ⇒ vioedu.vn vào thiết lập ngay");
   await bam("vioedu.vn");
   xet(await doi("vioedu.vn có tính phút không?"), "chạm web đã thêm ⇒ «Đổi web»");
   await bamChon('[role="radio"][aria-label^="Tính phút"]');
@@ -1826,6 +1820,43 @@ await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở 
   await sleep(300);
   await bam("Xong, giao việc cho Bảo Anh trước");
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST" && x.body?.con?.ten === "Bảo Minh"), "có PIN ⇒ lưu Bảo Minh rồi sang Giao việc");
+});
+
+await kichBan("#508 Lần đầu: quay lại «Con nhà mình» sửa hồ sơ rồi lưu ⇒ việc, giờ, app, web đã chọn ở các bước sau còn nguyên", async () => {
+  const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }], cheDoChan: "chi_app_duoc_phep", saoKhoiDau: 50,
+    apps: [{ ten: "Google Classroom", tinhGio: false }], webs: [{ muc: "vioedu.vn", tinhGio: false }], viec: ["hoc-doc-sach-20"], viecRieng: ["Tưới cây"] };
+  const tlNay = async () => JSON.parse((await js(`sessionStorage.getItem("aiigrow.thiet-lap")`)) ?? "{}");
+  kb["POST con/c1/pin"] = { ok: true };
+  await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`);
+  await goi("Page.navigate", { url: `${GOC}/thiet-lap/ten-con` });
+  await doi("Tên gọi ở nhà");
+  await go("Tên gọi ở nhà", "Bảo Anh Nhí");
+  await go("Đặt PIN 4 số", "4821");
+  await sleep(300);
+  nhatKy.length = 0;
+  await bam("Lưu hồ sơ Bảo Anh Nhí");
+  xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "lưu hồ sơ sửa");
+  await sleep(500);
+  const t = await tlNay();
+  xet(t.tenCon === "Bảo Anh Nhí" && t.apps?.[0]?.ten === "Google Classroom" && t.webs?.[0]?.muc === "vioedu.vn" && t.saoKhoiDau === 50 && t.cheDoChan === "chi_app_duoc_phep",
+    "lưu lại hồ sơ cùng con ⇒ app, web, sao, chế độ còn nguyên");
+  xet(t.viec?.[0] === "hoc-doc-sach-20" && t.viecRieng?.[0] === "Tưới cây", "việc đã chọn + việc riêng còn nguyên");
+});
+
+await kichBan("#508 Mời người nhà bằng email: «Xem cách gửi link» KHÔNG tạo lời mời, nút chính là «qua email»; chỉ tạo khi bấm gửi", async () => {
+  await di("/moi-nguoi-nha");
+  await doi("làm được gì?");
+  await bam("Email");
+  await go("Email người được mời", "abc@example.com");
+  await sleep(300);
+  nhatKy.length = 0;
+  await bam("Người nhà chưa có app? Xem cách gửi link");
+  xet(await doi("Gửi link cho abc@example.com qua email"), "mời bằng email ⇒ nút chính «Gửi link cho abc@example.com qua email»");
+  xet(!(await chu()).includes("qua Zalo"), "không còn «qua Zalo» khi mời bằng email");
+  await sleep(600);
+  xet(!nhatKy.some((x) => x.d === "thanh-vien/moi"), "chỉ xem hướng dẫn ⇒ chưa gọi thanh-vien/moi");
+  await bam("Gửi bằng Zalo hoặc tin nhắn");
+  xet(await choGoi((x) => x.d === "thanh-vien/moi" && x.m === "POST" && x.body?.dinhDanh === "abc@example.com"), "bấm gửi ⇒ mới tạo lời mời");
 });
 
 await kichBan("Lần đầu · Màu của con (#483): avatar đổi theo màu chọn (bảng cam · xanh dương · hồng · xanh lá · tím), chữ navy", async () => {

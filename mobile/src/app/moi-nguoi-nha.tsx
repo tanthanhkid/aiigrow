@@ -10,7 +10,7 @@
 // Grow «<tên> chưa có app, gửi link nha!», «<tên> chưa có AiiGrow», thẻ «Tin sẽ gửi cho <tên>» (câu + link mời thật của máy chủ), «Gửi link cho <tên> qua
 // Zalo» / «Gửi bằng SMS hoặc email» (cùng mở hàng chia sẻ của máy). Lùi ⇒ «Đã mời» (lời mời đã tạo, huỷ ở đó).
 import { useState } from "react";
-import { Pressable, Share, TextInput, View, useWindowDimensions } from "react-native";
+import { Linking, Pressable, Share, TextInput, View, useWindowDimensions } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { bm, type GiaDinh } from "@/lib/api";
 import { type DsThanhVien, type Quyen, type ToiCaNha } from "@/lib/ca-nha";
@@ -65,12 +65,20 @@ export default function MoiNguoiNha() {
     const r = await bm.goi<KqMoi>("thanh-vien/moi", { dinhDanh: sach, quyen, tenGoi: ten.trim() || undefined });
     setKq(r);
   });
-  const chiaSe = (r: KqMoi | null = kq) => r && Share.share({ title: r.chiaSe.tieuDe, message: r.chiaSe.noiDung }).catch(() => {});
-  // «<tên> chưa có app? Xem cách gửi link»: gửi lời mời rồi sang màn «Mời <tên>» (B3) — nút ở đó mở hàng chia sẻ (Zalo, Tin nhắn, email…)
-  const guiLink = () => lam(async () => {
+  // lời mời chỉ được TẠO khi Ba Mẹ bấm «Gửi lời mời» hoặc bấm gửi link thật (#508): xem hướng dẫn không sinh lời mời; đã tạo rồi thì dùng lại, không tạo trùng
+  const taoMoi = async () => {
+    if (kq) return kq;
     const r = await bm.goi<KqMoi>("thanh-vien/moi", { dinhDanh: sach, quyen, tenGoi: ten.trim() || undefined });
     setKq(r);
-    setGuiLinkMo(true);
+    return r;
+  };
+  const chiaSe = (r: KqMoi) => Share.share({ title: r.chiaSe.tieuDe, message: r.chiaSe.noiDung }).catch(() => {});
+  const guiEmail = (r: KqMoi) => Linking.openURL(`mailto:${encodeURIComponent(r.dinhDanh ?? sach)}?subject=${encodeURIComponent(r.chiaSe.tieuDe)}&body=${encodeURIComponent(r.chiaSe.noiDung)}`).catch(() => {});
+  // «<tên> chưa có app? Xem cách gửi link»: chỉ mở màn «Mời <tên>» (B3); nút gửi ở đó mới tạo lời mời rồi mở email / hàng chia sẻ (Zalo, Tin nhắn…)
+  const guiLink = () => setGuiLinkMo(true);
+  const guiQua = (kenh: "email" | "chia_se") => lam(async () => {
+    const r = await taoMoi();
+    if (kenh === "email") await guiEmail(r); else await chiaSe(r);
   });
   const daMoi = kq ?? d?.cho ?? null;
   const huy = () => lam(async () => {
@@ -78,16 +86,18 @@ export default function MoiNguoiNha() {
     ve();
   });
 
-  if (kq && guiLinkMo) {
-    const ai = kq.tenGoi || kq.dinhDanh || "người nhà";
-    const lk = kq.chiaSe.lienKet;
-    // câu máy chủ soạn («… Bấm để vào nhà: <link>») — link hiện riêng ở thẻ dưới
-    const cau = kq.chiaSe.noiDung.replace(lk, "").replace(/[\s:]+$/, "") + ".";
+  if (guiLinkMo) {
+    const ai = kq?.tenGoi || ten.trim() || kq?.dinhDanh || sach || "người nhà";
+    const lk = kq?.chiaSe.lienKet ?? null;
+    const email = cach === "email";
+    // câu máy chủ soạn («… Bấm để vào nhà: <link>») — link hiện riêng ở thẻ dưới; chưa tạo lời mời ⇒ câu cùng dạng, link riêng sinh khi bấm gửi
+    const cau = (kq ? kq.chiaSe.noiDung.replace(lk ?? "", "").replace(/[\s:]+$/, "") : `${d?.toi ?? "Ba Mẹ"} mời bạn cùng trông con trên AiiGrow. Bấm để vào nhà`) + ".";
     return (
       <Man lui={{ chu: "", bam: () => setGuiLinkMo(false) }} tieu={`Mời ${ai}`} day={<>
-        <Nut chu={`Gửi link cho ${ai} qua Zalo`} ic="chia_se" rong bam={() => chiaSe()} />
-        <Pressable onPress={() => chiaSe()} accessibilityRole="button" style={{ minHeight: 46, alignItems: "center", justifyContent: "center" }}>
-          <Chu kieu="rat" co={15} mau={M.chinhInk}>Gửi bằng SMS hoặc email</Chu>
+        {/* kênh chính theo cách mời: mời bằng email ⇒ gửi qua email; mời bằng SĐT ⇒ Zalo (hàng chia sẻ). Kênh còn lại ở nút phụ */}
+        <Nut chu={email ? `Gửi link cho ${ai} qua email` : `Gửi link cho ${ai} qua Zalo`} ic="chia_se" rong dangChay={dangChay} bam={() => guiQua(email ? "email" : "chia_se")} />
+        <Pressable onPress={() => guiQua("chia_se")} disabled={dangChay} accessibilityRole="button" style={{ minHeight: 46, alignItems: "center", justifyContent: "center" }}>
+          <Chu kieu="rat" co={15} mau={M.chinhInk}>{email ? "Gửi bằng Zalo hoặc tin nhắn" : "Gửi bằng SMS hoặc email"}</Chu>
         </Pressable>
       </>}>
         {/* bàn .san: ô ngọc cao 196, bong bóng trắng trái (15/20, chữ ≤ 170), Grow «chỉ» 170 tràn mép phải-dưới */}
@@ -113,7 +123,7 @@ export default function MoiNguoiNha() {
               <Icon3D ten="nha" co={36} />
               <View style={{ flex: 1, minWidth: 0 }}>
                 <Chu kieu="rat" co={14} dong={1}>{`${d?.toi ?? "Ba Mẹ"} mời bạn vào nhà`}</Chu>
-                <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}>{lk.replace(/^https?:\/\//, "").split("?")[0]}</Chu>
+                <Chu kieu="rat" co={12.5} mau={M.chinhInk} dong={1}>{lk ? lk.replace(/^https?:\/\//, "").split("?")[0] : "Link riêng của lời mời"}</Chu>
               </View>
             </View>
           </View>

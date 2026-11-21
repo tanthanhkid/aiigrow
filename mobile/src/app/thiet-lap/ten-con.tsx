@@ -66,8 +66,10 @@ export default function ObCon() {
   };
   const tiep = () => lam(async () => {
     const { r, ds } = await luu();
+    // #508: sửa hồ sơ Con ĐANG thiết lập (cùng id) ⇒ giữ mọi lựa chọn các bước sau (việc, quà, giờ, app, web); chỉ Con khác mới bắt đầu sạch
+    const cungCon = !!conId && conId === layTl().conId;
     datTl({ conId: r.conId, tenCon: r.ten, namSinh: namSo, mau, daLuu: ds, nhom: namSo && new Date().getFullYear() - namSo >= 11 ? "teen" : "nhi",
-      apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined });
+      ...(cungCon ? {} : { apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined, viec: undefined, viecRieng: undefined }) });
     router.push("/thiet-lap/mau");
   });
   const themCon = () => lam(async () => {
@@ -84,7 +86,8 @@ export default function ObCon() {
         {conDau ? (
           <Nut chu={`Xong, giao việc cho ${conDau.ten} trước`} rong dangChay={dangChay} tat={!!tenGon && (thieuPin || !!loiPin || (nam !== "" && !namSo))} bam={() => lam(async () => {
             if (tenGon) { if (thieuPin) throw new Error(CAU_PIN); if (loiPin) throw new Error(loiPin); const { ds } = await luu(); datTl({ daLuu: ds }); }        // Con đang điền dở vẫn được lưu, không mất lặng lẽ
-            datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh, apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined });
+            datTl({ conId: conDau.id, tenCon: conDau.ten, mau: conDau.mau, namSinh: conDau.namSinh,
+              ...(conDau.id === layTl().conId ? {} : { apps: undefined, webs: undefined, cheDoChan: undefined, saoKhoiDau: undefined, gioiHan: undefined, viec: undefined, viecRieng: undefined }) });
             router.push("/thiet-lap/mau");
           })} />
         ) : (

@@ -10,6 +10,8 @@ type TL = { conId?: string; tenCon?: string; nhom?: "nhi" | "teen"; nen?: "windo
   /** #302: giới hạn tối đa mỗi ngày (ngày thường / T7–CN) + mỗi lượt tối đa — phút, 0 = không giới hạn (lib/gioi-han) */
   gioiHan?: GioiHan;
   apps?: AppChon[];
+  /** #508: việc Ba Mẹ đã chọn ở bước «Một ngày của <con>» (mã kho việc) + việc riêng tự thêm — giữ khi quay lại sửa hồ sơ / tải lại trang. */
+  viec?: string[]; viecRieng?: string[];
   /** Thiết kế 14/11 «Web cho <Con>» (them-3xbscpzm): tên miền Ba Mẹ chọn; `tinhGio` = trang giải trí (vàng «Tính giờ»). */
   webs?: WebChon[] };
 export type WebChon = { muc: string; tinhGio: boolean };
