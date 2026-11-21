@@ -179,7 +179,7 @@ jobs:
             r=${PIPESTATUS[0]}
             set -e
             echo "lượt $lt: mã thoát $r"
-            [ "$r" = 0 ] || rc=$r
+            [ "$r" -gt "$rc" ] && rc=$r   # giữ mã LỚN nhất (3 = TREO thắng 1 = SAI)
           done
           n=$(find "$R/anh" -name '*.png' | wc -l)
           {

@@ -6,7 +6,7 @@
 //   _layout.tsx                             ⇒ mọi màn dưới thư mục đó
 //   pha.mjs / giao-dien.mjs / mobile/** còn lại (cấu hình, assets) / không suy ra được ⇒ chạy ĐỦ
 //   chỉ đổi server/** hoặc docs ⇒ không có gì để pha (thoát 0)
-// Cần bản web export (mặc định: chạy `npx expo export` vào mobile/.pha-web nếu chưa có; PHA_WEB=<thư mục> để dùng bản có sẵn),
+// Cần bản web export (mặc định: LUÔN chạy `npx expo export` vào mobile/.pha-web để không dùng bản cũ; PHA_WEB=<thư mục> để dùng bản đã dựng),
 // Chrome (PHA_CHROME, mặc định Chrome macOS / google-chrome). Cổng: PHA_CONG / PHA_CDP như pha.mjs.
 import { execFileSync, spawnSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync, existsSync } from "node:fs";
@@ -19,9 +19,8 @@ const co = (process.argv.find((a) => a.startsWith("--co-so="))?.slice(8)) ?? "or
 const chiIn = process.argv.includes("--in");
 const git = (...a) => execFileSync("git", a, { cwd: GOC, encoding: "utf8" });
 
-const doi = git("diff", "--name-only", `${co}...HEAD`).split("\n").filter(Boolean);
-// thêm cả thay đổi chưa commit: cổng chạy trước khi commit cũng đúng
-for (const f of git("status", "--porcelain").split("\n").filter(Boolean).map((l) => l.slice(3))) if (!doi.includes(f)) doi.push(f);
+const doi = [...new Set([...git("diff", "--name-only", `${co}...HEAD`).split("\n"), ...git("diff", "--name-only", "HEAD").split("\n"),
+  ...git("ls-files", "--others", "--exclude-standard").split("\n")].filter(Boolean))];   // thêm cả thay đổi chưa commit (không dùng status: dòng đổi tên / dấu nháy)
 
 const APP = "mobile/src/app/";
 const duyet = (d) => readdirSync(d, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? (e.name === "node_modules" ? [] : duyet(join(d, e.name))) : /\.(tsx?|mjs)$/.test(e.name) ? [join(d, e.name)] : []);
@@ -49,30 +48,28 @@ function suyRa() {
   const routes = new Set(src.filter((f) => f.startsWith(APP)));
   const dungChung = src.filter((f) => !f.startsWith(APP));
   if (dungChung.length) {
-    const moi = duyet(join(GOC, "mobile/src")).map((f) => relative(GOC, f));
-    for (const f of moi) {
-      const nd = readFileSync(join(GOC, f), "utf8");
-      for (const d of dungChung) {
-        const goc = d.replace(/^mobile\/src\//, "").replace(/\.(web\.)?tsx?$/, "");
-        const ten = goc.split("/").pop();
-        const tuongDoi = relative(dirname(f), join(GOC, d)).replace(/\.(web\.)?tsx?$/, "");
-        const re = new RegExp(`from\\s+["'](@/${esc(goc)}|\\.{1,2}/${esc(ten)}|${esc(tuongDoi.startsWith(".") ? tuongDoi : "./" + tuongDoi)})["']`);
-        if (re.test(nd)) {
-          if (f.startsWith(APP)) routes.add(f);
-          else {   // import một cấp qua lib trung gian: lib khác import d ⇒ route import lib đó cũng tính (hai cấp ở thư viện, một cấp ở route)
-            dungChung.push(f);
-          }
-        }
+    // đồ thị import: mỗi file nguồn → các «khoá» @/… nó import. Lan ngược từ file đổi tới điểm cố định qua các lib; route nào import một lib bị ảnh hưởng thì tính.
+    const tatCaFile = duyet(join(GOC, "mobile/src")).map((f) => relative(GOC, f));
+    const khoaCua = (f) => f.replace(/^mobile\/src\//, "").replace(/\.(web\.)?tsx?$/, "");
+    const importCua = new Map(tatCaFile.map((f) => {
+      const nd = readFileSync(join(GOC, f), "utf8"), ra = new Set();
+      for (const m of nd.matchAll(/from\s+["']([^"']+)["']/g)) {
+        let k = m[1];
+        if (k.startsWith("@/")) k = k.slice(2); else if (k.startsWith(".")) k = relative(join(GOC, "mobile/src"), resolve(dirname(join(GOC, f)), k)); else continue;
+        ra.add(k.replace(/\.(web\.)?tsx?$/, ""));
+      }
+      return [f, ra];
+    }));
+    const anhHuong = new Set(dungChung.map(khoaCua));
+    for (let doiMoi = true; doiMoi;) {
+      doiMoi = false;
+      for (const f of tatCaFile) {
+        if (f.startsWith(APP) || /\.test\./.test(f) || anhHuong.has(khoaCua(f))) continue;
+        if ([...importCua.get(f)].some((k) => anhHuong.has(k))) { anhHuong.add(khoaCua(f)); doiMoi = true; }
       }
     }
-    for (const f of duyet(join(GOC, "mobile/src/app")).map((x) => relative(GOC, x))) {
-      const nd = readFileSync(join(GOC, f), "utf8");
-      for (const d of dungChung) {
-        const goc = d.replace(/^mobile\/src\//, "").replace(/\.(web\.)?tsx?$/, "");
-        if (new RegExp(`from\\s+["']@/${esc(goc)}["']`).test(nd)) routes.add(f);
-      }
-    }
-    if (!routes.size && dungChung.length) return tatCa(`không màn nào import ${dungChung[0]}`);
+    for (const f of tatCaFile) if (f.startsWith(APP) && [...importCua.get(f)].some((k) => anhHuong.has(k))) routes.add(f);
+    if (!routes.size) return tatCa(`không màn nào import ${dungChung[0]}`);
   }
   if (!routes.size) return { rong: true };
   return { routes: [...routes] };

@@ -44,6 +44,8 @@ if [ -d server/node_modules ]; then
           if [ -f "$d/$b.test.ts" ]; then TESTS+=("${d#server/}/$b.test.ts"); else TOAN=1; fi ;;
       esac
     done < <(echo "$DOI" | grep '^server/')
+    # file server/lib đổi mà không khớp test nào (không test cùng tên, không test import trực tiếp) ⇒ test đủ, không để lọt
+    [ "${#TESTS[@]}" -eq 0 ] && TOAN=1
     if [ "$TOAN" = 1 ]; then
       buoc "server test (đủ)" bash -c 'cd server && node --import ./lib/test-fixtures/next-esm.mjs --test lib/*.test.ts'
     elif [ "${#TESTS[@]}" -gt 0 ]; then

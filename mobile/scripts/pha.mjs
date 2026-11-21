@@ -560,7 +560,8 @@ let matMang = false;
 const nhatKy = [];
 
 // ---------------------------------------------------------------- Chrome + CDP
-const hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-"));
+let hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-"));
+const hoCu = [];   // hồ sơ của các Chrome đã bị giết (watchdog) — dọn cuối lượt
 let chrome, trang, ws, so = 0, cho = {};
 const luuMetric = {};   // lệnh Emulation.* đã đặt ⇒ phát lại khi khởi động lại Chrome (watchdog)
 // giết CẢ nhóm tiến trình của Chrome (renderer treo vòng lặp vô hạn sống sót khi chỉ giết tiến trình chính ⇒ ăn CPU + giữ cổng CDP)
@@ -644,7 +645,9 @@ const canh = async (ten, fn) => {
     console.log("   Chrome không đáp ⇒ khởi động lại");
     try { ws.close(); } catch { /* đã đóng */ }
     giet();
-    await sleep(1000);
+    // hồ sơ MỚI (Chrome vừa bị SIGKILL còn để SingletonLock) + chờ cổng CDP nhả trước khi mở lại
+    hoCu.push(hoSo); hoSo = mkdtempSync(join(tmpdir(), "aiig-pha-"));
+    for (let i = 0; i < 20; i++) { try { await fetch(`http://127.0.0.1:${CDP}/json/version`, { signal: AbortSignal.timeout(500) }); await sleep(250); } catch { break; } }
     await khoiDongChrome();
   }
   return TREO;
@@ -1080,14 +1083,15 @@ if (process.argv.includes("--giao-dien")) {
   }
   ws.close(); giet(); may.close();
   await sleep(500);
-  try { rmSync(hoSo, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ }
+  for (const h of [hoSo, ...hoCu]) { try { rmSync(h, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ } }
   thoat(tong);
 }
 
 // ---------------------------------------------------------------- kịch bản luồng chính
 let sai = 0;
 const kq = [];
-const xet = async (dk, ten) => { kq.push([dk, ten]); console.log(`${dk ? "đạt" : "SAI"} ${ten}`); if (!dk) { sai++; console.log("    màn: " + ((await chu()) ?? "").replace(/\s+/g, " ").slice(0, 400));
+const xet = async (dk, ten) => { { const st = alsDoi.getStore(); if (st && st.doi !== doiHT) return; }   // việc dở đã bị watchdog bỏ: không ghi kết quả nữa
+  kq.push([dk, ten]); console.log(`${dk ? "đạt" : "SAI"} ${ten}`); if (!dk) { sai++; console.log("    màn: " + ((await chu()) ?? "").replace(/\s+/g, " ").slice(0, 400));
   if (process.env.PHA_CHUP) { const a = await goi("Page.captureScreenshot", { format: "png" }); if (a?.data) (await import("node:fs")).writeFileSync(`${process.env.PHA_CHUP}/sai-${kq.length}.png`, Buffer.from(a.data, "base64")); } } };
 // PHA_KB=<biểu thức chính quy>: chỉ chạy các kịch bản luồng khớp tên (soát nhanh khi sửa)
 const LOC_KB = process.env.PHA_KB ? new RegExp(process.env.PHA_KB) : null;   // biểu thức sai ⇒ dừng ngay từ đầu, rõ lý do
@@ -2433,6 +2437,6 @@ ws.close();
 giet();
 may.close();
 await sleep(500);
-try { rmSync(hoSo, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ }
+for (const h of [hoSo, ...hoCu]) { try { rmSync(h, { recursive: true, force: true }); } catch { /* Chrome còn giữ tệp */ } }
 console.log(`\n${kq.filter((x) => x[0]).length}/${kq.length} đạt`);
 thoat(sai);
