@@ -2,7 +2,7 @@
 // 18/11 #396 #397 — kem neumorphism, thẻ nổi bóng đôi, ô lõm, nút vàng kim chữ navy, tiêu đề Be Vietnam Pro ExtraBold). Token ở diu.ts — không dùng token Clay của Ba Mẹ. Mỗi thành phần chép đúng một lớp của kit: .tl/.phu (chữ), .b (nút 52), .the (thẻ),
 // .ic3 (ô icon 56), .vong (vòng giờ), .phim/.cham4 (bàn phím PIN), .pill/.hh2 (nhãn), thanh tab 4 mục, tấm trượt «Đổi bé / Đăng xuất».
 import React, { useEffect, useState, type ReactNode } from "react";
-import { ActivityIndicator, Modal, Pressable, ScrollView, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
+import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, View, type StyleProp, type TextStyle, type ViewStyle } from "react-native";
 import { router } from "expo-router";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
@@ -194,7 +194,7 @@ export function TamTruot({ mo, dong, nhan, children }: { mo: boolean; dong: () =
   return (
     <Modal visible={mo} transparent animationType="slide" onRequestClose={dong} accessibilityViewIsModal>
       <Pressable onPress={dong} accessibilityLabel="Đóng" style={{ flex: 1, backgroundColor: "rgba(10,22,41,0.38)" }} />
-      <View accessibilityLabel={nhan} style={{ backgroundColor: D.the, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: KT.le, paddingTop: 10,
+      <View accessibilityLabel={nhan} style={{ ...(Platform.OS === "web" ? { width: "100%", maxWidth: 430, alignSelf: "center" } : null), backgroundColor: D.the, borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: KT.le, paddingTop: 10,
         paddingBottom: Math.max(ins.bottom, 16), gap: 12, boxShadow: BONG_D.noi }}>
         <View style={{ alignSelf: "center", width: 40, height: 5, borderRadius: 3, backgroundColor: D.vien2, marginBottom: 4, boxShadow: BONG_D.lom }} />
         {children}
