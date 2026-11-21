@@ -753,7 +753,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-tao-tai-khoan", "/tao-tai-khoan", "Tạo tài khoản", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true } } }),
     M("bm-ob-con", "/thiet-lap/ten-con", "Tên gọi ở nhà"),
     // đúng ca bàn bm1-ob-ten-con v20: đã gõ tên «Bảo Anh», PIN gõ 2 số
-    M("bm-ob-con (đã điền · bm1-ob-ten-con)", "/thiet-lap/ten-con", "Lưu hồ sơ Bảo Anh", { truoc: async () => { await diTl("/thiet-lap/ten-con")(); await doi("Tên gọi ở nhà");
+    M("bm-ob-con (đã điền · bm1-ob-ten-con)", "/thiet-lap/ten-con", "Lưu & ghép máy cho Bảo Anh", { truoc: async () => { await diTl("/thiet-lap/ten-con")(); await doi("Tên gọi ở nhà");
       await go("Tên gọi ở nhà", "Bảo Anh"); await go("Đặt PIN 4 số", "25"); } }),
     M("bm-ob-con (bảng năm sinh · them-hjjdppuw)", "/thiet-lap/ten-con", "Chọn 20", { truoc: async () => { await diTl("/thiet-lap/ten-con")(); await doi("Tên gọi ở nhà");
       await nhanChuot(await viTriYen(`() => document.querySelector('[aria-label^="Chọn năm sinh của con"]')`)); } }),
@@ -1780,7 +1780,7 @@ await kichBan("Lần đầu · bước 5 trọn luồng (#490): Theo danh sách 
   await bam("Lưu: vioedu.vn tính phút");
   xet(await doi("Bảo Anh vào web thế nào?"), "Lưu ⇒ về màn web");
   nhatKy.length = 0;
-  await bam("Xong rồi");
+  await bam("Xong, bật luật cho máy Bảo Anh");
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "Xong rồi ⇒ POST thiet-lap một lần");
   const b = nhatKy.find((x) => x.d === "thiet-lap")?.body;  // web gửi ở khoá `web`
   xet(b?.apps?.some((a) => a.ten === "Roblox" && a.nhom === "khong_tinh_phut") && !b.apps.some((a) => a.ten === "VioEdu"), "apps gửi đúng nhom (Roblox khong_tinh_phut, VioEdu đã bỏ)");
@@ -1793,7 +1793,7 @@ await kichBan("#508 Lần đầu thứ tự mới: Ghép máy ngay sau «Con» �
   await vao("/thiet-lap/ghep?con=c1&nguon=lan-dau&sau=mau&moi=1");
   xet(await doi("Ghép trước để thấy app trên máy Bảo Anh"), "Ghép máy (bước 2): dòng «Ghép trước để thấy app trên máy <bé>»");
   xet(await js(`!!document.querySelector('[role="progressbar"][aria-label^="Bước 2 trên 6"]')`), "thanh bước: bước 2 trên 6 (Ghép máy)");
-  await bam("Để sau, ghép máy sau");
+  await bam("Để sau · đi tiếp, ghép máy sau");
   xet(await doi("Một ngày của"), "«Để sau, ghép máy sau» ⇒ bước Việc (không còn «Xong rồi»)");
   await vao("/thiet-lap/da-ghep?con=c1&may=m1&nguon=lan-dau&sau=mau");
   xet(await doi("Đã nhận danh sách app từ máy — 7 app"), "đã ghép: «Đã nhận danh sách app từ máy — N app»");
@@ -1802,7 +1802,7 @@ await kichBan("#508 Lần đầu thứ tự mới: Ghép máy ngay sau «Con» �
   xet(await doi("Một ngày của"), "«Lưu tên & tiếp: việc của <bé>» ⇒ bước Việc");
   await vao("/thiet-lap/ghep?con=c1&nguon=lan-dau&sau=xong&moi=1");
   await doi("Ghép máy cho con");
-  await bam("Để sau, ghép máy sau");
+  await bam("Để sau · đi tiếp, ghép máy sau");
   xet(await doi("Xong rồi!"), "chép luật (sau=xong): «Để sau» vẫn về trang Xong rồi");
 });
 
@@ -1824,7 +1824,7 @@ await kichBan("#508 Lần đầu · bước App: máy đã ghép ⇒ app từ m�
   xet((await chu()).includes("Gợi ý cho Bảo Anh"), "chưa ghép ⇒ vẫn có gợi ý chung");
   await bam("Ghép máy");
   xet(await doi("Ghép máy cho con"), "«Ghép máy» ⇒ màn Ghép");
-  await bam("Để sau, ghép máy sau");
+  await bam("Để sau · đi tiếp, ghép máy sau");
   xet(await doi("dùng app thế nào?"), "«Để sau» (sau=app) ⇒ quay lại bước App");
 });
 
@@ -1916,30 +1916,30 @@ await kichBan("Sửa hồ sơ Con: điền sẵn tên cũ, gửi tên đã chu�
   xet(await js(`document.body.innerText.includes("Lưu hồ sơ Bill")`), "lỗi ⇒ vẫn ở màn sửa");
 });
 
-await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở cả 3 nút; «+ Thêm con khác» trên, nút nổi dưới (Lưu hồ sơ / Xong, giao việc cho <Con đầu> trước)", async () => {
+await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở cả 3 nút; «+ Thêm con khác» trên, nút nổi dưới (Lưu & ghép máy cho <Con> / Xong, giao việc cho <Con đầu> trước)", async () => {
   const viTri = (a, b) => js(`(() => { const t = document.body.innerText; return [t.indexOf(${JSON.stringify(a)}), t.indexOf(${JSON.stringify(b)})]; })()`);
   await di("/thiet-lap/ten-con");
   await doi("Tên gọi ở nhà");
   await go("Tên gọi ở nhà", "Bảo Anh");
   await sleep(300);
-  const [a, b] = await viTri("+ Thêm con khác", "Lưu hồ sơ Bảo Anh");
-  xet(a > 0 && b > a, "«+ Thêm con khác» nằm trên «Lưu hồ sơ Bảo Anh»");
+  const [a, b] = await viTri("+ Thêm con khác", "Lưu & ghép máy cho Bảo Anh");
+  xet(a > 0 && b > a, "«+ Thêm con khác» nằm trên «Lưu & ghép máy cho Bảo Anh»");
   nhatKy.length = 0;
-  await bam("Lưu hồ sơ Bảo Anh");
+  await bam("Lưu & ghép máy cho Bảo Anh");
   await bam("+ Thêm con khác");
   await sleep(600);
-  xet(!nhatKy.some((x) => x.d === "thiet-lap") && (await chu()).includes("Đặt mã PIN 4 số cho con trước"), "chưa có PIN: «Lưu hồ sơ» tắt, «+ Thêm con khác» báo cần PIN, không gửi gì");
+  xet(!nhatKy.some((x) => x.d === "thiet-lap") && (await chu()).includes("Đặt mã PIN 4 số cho con trước"), "chưa có PIN: «Lưu & ghép máy» tắt, «+ Thêm con khác» báo cần PIN, không gửi gì");
   await go("Đặt PIN 4 số", "48");
-  await bam("Lưu hồ sơ Bảo Anh");
+  await bam("Lưu & ghép máy cho Bảo Anh");
   await sleep(400);
   xet(!nhatKy.some((x) => x.d === "thiet-lap"), "PIN mới 2 số vẫn không lưu");
   await go("Đặt PIN 4 số", "4821");
   await sleep(300);
   nhatKy.length = 0;
-  await bam("Lưu hồ sơ Bảo Anh");
+  await bam("Lưu & ghép máy cho Bảo Anh");
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "đủ PIN 4 số ⇒ lưu hồ sơ");
   xet(await choGoi((x) => /^con\/[^/]+\/pin$/.test(x.d) && x.m === "POST" && x.body?.pin === "4821"), "đặt PIN cho con vừa lưu");
-  // đã có con khác ⇒ «Xong, giao việc cho <Con đầu> trước» thay «Lưu hồ sơ»
+  // đã có con khác ⇒ «Xong, giao việc cho <Con đầu> trước» thay «Lưu & ghép máy»
   await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify({ daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }] }))})`);
   await goi("Page.navigate", { url: `${GOC}/thiet-lap/ten-con` });
   await doi("Tên gọi ở nhà");
@@ -1947,7 +1947,7 @@ await kichBan("Lần đầu · Hồ sơ con (#306): PIN 4 số bắt buộc ở 
   await sleep(300);
   const c = await chu();
   const [a2, b2] = await viTri("+ Thêm con khác", "Xong, giao việc cho Bảo Anh trước");
-  xet(a2 > 0 && b2 > a2 && !c.includes("Lưu hồ sơ"), "con thứ hai: «+ Thêm con khác» trên, «Xong, giao việc cho Bảo Anh trước» dưới, không còn «Lưu hồ sơ»");
+  xet(a2 > 0 && b2 > a2 && !c.includes("Lưu & ghép máy"), "con thứ hai: «+ Thêm con khác» trên, «Xong, giao việc cho Bảo Anh trước» dưới, không còn «Lưu & ghép máy»");
   nhatKy.length = 0;
   await bam("Xong, giao việc cho Bảo Anh trước");
   await sleep(500);
@@ -1970,7 +1970,7 @@ await kichBan("#508 Lần đầu: quay lại «Con nhà mình» sửa hồ sơ r
   await go("Đặt PIN 4 số", "4821");
   await sleep(300);
   nhatKy.length = 0;
-  await bam("Lưu hồ sơ Bảo Anh Nhí");
+  await bam("Lưu & ghép máy cho Bảo Anh Nhí");
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "lưu hồ sơ sửa");
   await sleep(500);
   const t = await tlNay();
@@ -2026,7 +2026,7 @@ await kichBan("Lần đầu · hai con liền nhau (#483): «+ Thêm con khác»
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST" && x.body?.con?.ten === "Bảo Anh"), "bấm «+ Thêm con khác» ⇒ lưu Bảo Anh");
   await sleep(600);
   const c = await chu();
-  xet(c.includes("Xong, giao việc cho Bảo Anh trước") && !c.includes("Lưu hồ sơ"), "con thứ hai: nút chính «Xong, giao việc cho Bảo Anh trước»");
+  xet(c.includes("Xong, giao việc cho Bảo Anh trước") && !c.includes("Lưu & ghép máy"), "con thứ hai: nút chính «Xong, giao việc cho Bảo Anh trước»");
   xet(await js(`(() => { const e = [...document.querySelectorAll("div")].find((x) => { const c = getComputedStyle(x); return c.width === "76px" && c.height === "76px" && /^[A-ZĐ?]$/.test(x.innerText.trim()); }); return !!e && getComputedStyle(e).backgroundColor === "rgb(111, 168, 232)"; })()`), "màu tự nhảy sang màu kế tiếp (Màu 2, xanh dương, avatar đổi theo)");
   await chup("2con-2-con-thu-hai");
   await go("Tên gọi ở nhà", "Bảo Minh");
@@ -2045,7 +2045,7 @@ await kichBan("Lần đầu · mở lại hồ sơ Con ĐÃ có PIN (#306): khô
   await goi("Page.navigate", { url: `${GOC}/thiet-lap/ten-con` });
   xet(await doi("Con đã có PIN"), "Con đã có PIN ⇒ ghi chú «để trống nếu giữ nguyên»");
   nhatKy.length = 0;
-  await bam("Lưu hồ sơ Bảo Anh");
+  await bam("Lưu & ghép máy cho Bảo Anh");
   xet(await choGoi((x) => x.d === "thiet-lap" && x.m === "POST"), "PIN trống vẫn lưu được");
   await sleep(400);
   xet(!nhatKy.some((x) => /^con\/[^/]+\/pin$/.test(x.d)), "không POST PIN khi ô trống (không đè PIN cũ)");

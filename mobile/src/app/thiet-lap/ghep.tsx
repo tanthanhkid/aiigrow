@@ -101,7 +101,7 @@ export default function GhepMay() {
   );
   return (
     <Man noi={noi} dau={nguon === "lan-dau" && sau === "mau"
-      ? <DauMan bamLui={lui} phai={<ThanhBuoc5 dang={1} />} />
+      ? <DauMan bamLui={lui} phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><ThanhBuoc5 dang={1} gon /><NutHoi /></View>} />
       : <DauMan tieu={chung ? `Ghép máy chung · ${conDs.length} bé` : "Ghép máy cho con"} bamLui={lui} phai={<NutHoi />} />}
       day={<>
         <BaoLoi loi={loi} />
@@ -123,7 +123,7 @@ export default function GhepMay() {
             </Chu>
           </View>
         ) : null}
-        <Nut chu="Để sau, ghép máy sau" loai="vien" rong bam={deSau} />
+        <Nut chu={nguon === "lan-dau" ? "Để sau · đi tiếp, ghép máy sau" : "Để sau, ghép máy sau"} loai="vien" rong bam={deSau} />
       </>}>
       {nguon === "lan-dau" && sau === "mau" ? (
         <View style={{ paddingHorizontal: 4, gap: 2 }}>

@@ -13,15 +13,16 @@ const BUOC5: { ic: TenIcon; ten: string }[] = [
 ];
 /** #508: thứ tự mới Con → Ghép máy → Nhiệm vụ → Quà → Giờ → App & web (6 chấm, bàn bm-thiet-lap-con 21/11). Thanh tiến độ chấm (bàn .buoc — bm1-ob-ten-con v20 … them-mdujxlg2 v12): mỗi bước giữ icon riêng (tick · sao · quà · đồng hồ · máy tính),
  *  bước xong icon rõ, bước chưa tới icon mờ, bước đang làm navy viền vàng mật (bàn Navy 17/11). Ô 30, cách 8, icon 17. */
-export function ThanhBuoc5({ dang }: { dang: number }) {
+export function ThanhBuoc5({ dang, gon }: { dang: number; /** màn hẹp (320) cần thêm nút «?» cạnh thanh: viên 26, cách 4 */ gon?: boolean }) {
+  const o = gon ? 26 : 30;
   // bàn E (bm-thiet-lap-con, 19/11): icon NÉT; bước xong = viên navy icon kem, bước đang làm = viên vàng kim icon navy, bước chưa tới = viên lõm icon mờ
   return (
-    <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang + 1} trên 6: ${BUOC5[dang]?.ten ?? ""}`}>
+    <View style={{ flexDirection: "row", gap: gon ? 4 : 8 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang + 1} trên 6: ${BUOC5[dang]?.ten ?? ""}`}>
       {BUOC5.map((b, i) => (
-        <View key={b.ten} style={[{ width: 30, height: 30, borderRadius: 15, alignItems: "center", justifyContent: "center", overflow: i === dang ? "hidden" : undefined },
+        <View key={b.ten} style={[{ width: o, height: o, borderRadius: o / 2, alignItems: "center", justifyContent: "center", overflow: i === dang ? "hidden" : undefined },
           i < dang ? { backgroundColor: M.chinh, boxShadow: BONG.nho } : i === dang ? { backgroundColor: M.diem, boxShadow: `0px 0px 0px 2px ${M.diem}, ${BONG.nho}` } : { backgroundColor: M.ranh, boxShadow: BONG.lom }]}>
-          {i === dang ? <LopMen men={MEN.vang} bo={15} /> : null}
-          <IconNet ten={b.ic} co={17} mau={i < dang ? "#F7EBD3" : i === dang ? M.chinh : "#6b6258"} />
+          {i === dang ? <LopMen men={MEN.vang} bo={o / 2} /> : null}
+          <IconNet ten={b.ic} co={gon ? 15 : 17} mau={i < dang ? "#F7EBD3" : i === dang ? M.chinh : "#6b6258"} />
         </View>
       ))}
     </View>

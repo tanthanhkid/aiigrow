@@ -13,6 +13,7 @@ import { BONG, KHOI } from "@/lib/clay";
 import { diTiepSauGhep, docSau, tomTat } from "@/lib/ghep-may";
 import { tenGoi } from "@/lib/hang-ngay";
 import { DauMan, LienKet } from "@/lib/lan-dau";
+import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { AvtCon, conCuaMay, hinhMay, nganTen, SaoNho } from "@/lib/may-nhieu-con";
 import { laWeb } from "@/lib/ui-bm3";
 import { BaoLoi, Chu, F, Icon3D, IconNet, M, Man, Nut, Rob, useLam, useTai, type TenIcon } from "@/lib/ui";
@@ -45,7 +46,10 @@ export default function DaGhep() {
   const chung = (d?.conDs.length ?? 0) >= 2;
   const be = d?.conDs[0] ?? null;
   const tenBe = be ? tenGoi(be.ten) : d?.tl[0]?.ten ? tenGoi(d.tl[0].ten) : "con";
-  const tenMay = tenMoi ?? d?.m?.ten ?? "";
+  const loaiMay = d?.m ? (chung ? "Máy tính" : LOAI[d.m.nen] ?? "Máy") : "Máy";
+  // Lần đầu, máy riêng: gợi ý sẵn «Laptop của <bé>» thay tên máy gốc (MAYTINH2…); «Tên gốc» vẫn hiện bên dưới
+  const macDinh = sapXep && !chung && d?.m && be ? `${loaiMay} của ${tenBe}` : null;
+  const tenMay = tenMoi ?? macDinh ?? d?.m?.ten ?? "";
   const ten = chuanHoaTen(tenMay);
   // so trùng sau khi bỏ hậu tố « · <hệ điều hành>» (agent cũ gắn vào tên máy)
   const trung = ten ? d?.khac.find((x) => chuanHoaTen(nganTen(x.ten)) === chuanHoaTen(nganTen(ten))) : undefined;
@@ -57,7 +61,6 @@ export default function DaGhep() {
     if (d?.m && ten && ten !== chuanHoaTen(d.m.ten)) await bm.goi(`may/${mayId}/doi-ten`, { ten });
     xong();
   });
-  const loaiMay = d?.m ? (chung ? "Máy tính" : LOAI[d.m.nen] ?? "Máy") : "Máy";
   const goiY = chung ? ["Máy phòng khách", "Máy tính chung"] : [`${loaiMay} phòng khách`];
   const oLuat = (ic: TenIcon, so: string, nhan: string) => (
     <View style={[{ flex: 1, minHeight: 80, borderRadius: 24, backgroundColor: M.the, alignItems: "center", justifyContent: "center", gap: 2, paddingVertical: 8 }, KHOI.the]}>
@@ -71,7 +74,9 @@ export default function DaGhep() {
     </Pressable>
   );
   return (
-    <Man dau={<DauMan tieu="Ghép máy" ve="/" khongLui={nguon === "lan-dau"} />}
+    <Man dau={sapXep
+      ? <DauMan ve="/thiet-lap/ten-con" bamLui={() => router.replace("/thiet-lap/ten-con")} phai={<ThanhBuoc5 dang={1} />} />
+      : <DauMan tieu="Ghép máy" ve="/" khongLui={nguon === "lan-dau"} />}
       day={<><BaoLoi loi={loi} /><Nut chu={sapXep ? (sau === "app" ? `Lưu tên & tiếp: chọn app` : `Lưu tên & tiếp: việc của ${tenBe}`) : "Lưu tên & xong"} ic="tick" ic3d rong dangChay={dangChay} tat={!!d?.m && !ten} bam={luuXong} />
         <LienKet chu="+ Ghép thêm máy khác" bam={() => router.push({ pathname: "/may/them", params: con ? { con } : {} })} /></>}>
       {/* máy (khung than chì) + Grow «xong» + dấu tick 3D */}
