@@ -29,7 +29,7 @@ const esc = (x) => x.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /** file route → [thân biểu thức đường dẫn] (không có ^/$). `_layout` ⇒ cả thư mục. */
 const routeRe = (f) => {
-  let p = f.slice(APP.length).replace(/\.(web\.)?tsx?$/, "");
+  let p = f.slice(APP.length).replace(/\.(web\.|native\.|ios\.|android\.)?tsx?$/, "");
   const segs = p.split("/").filter((s) => !/^\(.*\)$/.test(s));
   const cuoi = segs[segs.length - 1];
   if (cuoi === "_layout") { const th = segs.slice(0, -1); return th.length ? `/${th.map(seg).join("/")}(/|\\?|$)` : ".*"; }
@@ -122,7 +122,7 @@ let rc = 0;
 const chay = (nhan, args, e) => { console.log(`\n=== pha ${nhan} ===`); const r = spawnSync("node", [join(AQUI, "pha.mjs"), web, chrome, ...args], { stdio: "inherit", env: e }); if (r.status) rc = rc || r.status; };
 if (kq.tatCa || env.PHA_DUONG) {
   // 320 + 390 (không đo thêm «390 giãn» để nhanh; lượt đủ đã có trên CI)
-  for (const rong of [320, 390]) chay(`--giao-dien @${rong}px`, ["--giao-dien"], { ...env, PHA_RONG: String(rong), PHA_CHU_DAI: rong === 320 ? env.PHA_CHU_DAI : "0", ...(kq.tatCa ? {} : {}) });
+  for (const rong of [320, 390]) chay(`--giao-dien @${rong}px`, ["--giao-dien"], { ...env, PHA_RONG: String(rong), PHA_CHU_DAI: rong === 320 ? env.PHA_CHU_DAI : "0" });
 }
 if (kq.tatCa || env.PHA_KB !== "^$KHONG-CO-KICH-BAN$") chay("kịch bản luồng", [], env);
 else console.log("\n(không có kịch bản luồng liên quan)");
