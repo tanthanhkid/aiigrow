@@ -76,7 +76,7 @@ export async function xuLyMSao(bm: { id: string; family_id: string; vai: string 
 }
 
 /** Màn Con — /api/kid/* (c = Con của phiên) và khay /api/device/hoc-vien/* (p đã bỏ «hoc-vien»). `mayId` = máy gửi (null = app web). */
-export async function xuLyConSao(con: string, mayId: string | null, req: Request, p: string[], b: Record<string, unknown>, o: { khay?: boolean } = {}): Promise<Response | null> {
+export async function xuLyConSao(con: string, mayId: string | null, req: Request, p: string[], b: Record<string, unknown>, o: { khay?: boolean; now?: Date } = {}): Promise<Response | null> {
   const get = req.method === "GET", post = req.method === "POST", d = p.join("/");
   if (d === "quy" && get) {
     const [quy, cho] = await Promise.all([qg.quyHomNay(con),
@@ -92,7 +92,7 @@ export async function xuLyConSao(con: string, mayId: string | null, req: Request
   if (d === "sao" && get) {
     const gh = Number(new URL(req.url).searchParams.get("gioiHan")) || 20;
     const c = await one<{ family_id: string; tz: string }>(`select c.family_id, f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]);
-    const now = new Date();
+    const now = o.now ?? new Date();   // `o.now`: chỉ test truyền mốc giờ cố định
     const [qy, lichSu, appHomNay, phutChoiHomNay] = await Promise.all([qg.quyHomNay(con, now), ss.lichSuSaoCon(con, gh), appHomNayCon(con, now, c),
       ss.phutDaTruHomNay(q, con, c?.tz ?? "Asia/Ho_Chi_Minh", now)]);
     // #302: phutCon / hetSao kẹp theo giới hạn ngày / lượt (saoTieuDuoc = sao thật) + gioiHan — màn Con không mâu thuẫn với khoá

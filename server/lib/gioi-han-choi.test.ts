@@ -227,9 +227,9 @@ test("review: còn < 1 phút = hết (lý do + nghiDen); phút «Mở hết» kh
   await ss.choVay(c.fam, c.con, 10, c.bm, { mucDich: "qua" }, undefined, sau(t0, 1));
   assert.equal((await qg.quyHomNay(c.con, sau(t0, 1.1))).gioiHan.ngayPhut, 30, "vay đổi quà không cộng");
   // kid/sao: phutCon kẹp, saoTieuDuoc thật, có gioiHan
-  const r = await xuLyConSao(b.con, null, new Request("http://x/api/kid/sao"), ["sao"], {});
+  const r = await xuLyConSao(b.con, null, new Request("http://x/api/kid/sao"), ["sao"], {}, { now: sau(t0, 29.6) });
   const body = (await r!.json()) as any;
-  // (route dùng đồng hồ thật ⇒ chỉ kiểm hình dạng: có sao thật + khối gioiHan, phutCon ≤ sao thật)
+  // mốc giờ truyền vào route (thứ Hai, trong ngày đặt giới hạn) ⇒ không phụ thuộc đồng hồ thật / thứ trong tuần
   assert.deepEqual([typeof body.saoTieuDuoc, body.gioiHan?.apDung, body.phutCon <= body.saoTieuDuoc], ["number", true, true]);
   // nhaTre: đang nghỉ ⇒ nghiDen; cho vay ⇒ hết nghỉ ngay
   let n = await tre.nhaTre({ id: a.con, family_id: a.fam, device_id: null }, sau(t0, 15));
