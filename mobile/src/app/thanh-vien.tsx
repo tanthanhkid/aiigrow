@@ -42,6 +42,11 @@ export default function ThanhVien() {
   const soCon = d.con.length;
   const vao = x.vaoLuc ? new Date(x.vaoLuc) : null;
   const dong = () => { setMo(null); setLoi(null); };
+  const chonVai = (q: Quyen) => {   // chiều hộp đặt cùng lúc mở hộp ⇒ huongHa luôn khớp mo
+    if (q === x.quyen) { setMo(null); return; }
+    setHuongHa(q === "trong_giup");
+    setMo(q === "trong_giup" ? "ha" : "nang");
+  };
   const doiQuyen = (q: Quyen) => lam(async () => {
     if (q === x.quyen) { dong(); return; }
     await bm.goi(`thanh-vien/${x.id}/quyen`, { quyen: q });
@@ -65,7 +70,7 @@ export default function ThanhVien() {
       </View>
       {/* #492 bàn bm2-thanh-vien@v12: «<tên> làm được gì?» — 2 thẻ chọn vai + hàng ✓/✕ việc; đổi vai = Ba Mẹ khác (máy chủ chặn thật) */}
       <MucTieu chu={`${x.ten} làm được gì?`} />
-      <HaiTheVai quyen={x.quyen} doi={doiDuoc ? (q) => { if (q !== x.quyen) setHuongHa(q === "trong_giup"); setMo(q === x.quyen ? null : q === "trong_giup" ? "ha" : "nang"); } : undefined} />
+      <HaiTheVai quyen={x.quyen} doi={doiDuoc ? chonVai : undefined} />
       <HangViecVai quyen={x.quyen} />
       <MucTieu chu={`${x.ten} trong nhà`} />
       <Nhom>
