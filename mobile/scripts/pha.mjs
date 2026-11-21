@@ -796,7 +796,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ho-so-con", "/ho-so/c1", "Cài đặt của"),
     M("bm-ho-so-gio-choi", "/ho-so/c1/gio-choi", "Chơi liền bao lâu thì nghỉ?"),
     M("bm-ho-so-sua", "/ho-so/sua?id=c1", "Lưu"),
-    M("bm-ho-so-pin (z2fyhohj)", "/ho-so/c1/pin", "Lưu xong,", { kb: { "GET con/c1/pin": { coPin: true, pin: "2581", pinDatLuc: luc(60 * 24 * 11), ten: "Bảo Anh" } } }),
+    M("bm-ho-so-pin (z2fyhohj)", "/ho-so/c1/pin", "Lưu PIN mới", { kb: { "GET con/c1/pin": { coPin: true, pin: "2581", pinDatLuc: luc(60 * 24 * 11), ten: "Bảo Anh" } } }),
     M("bm-ho-so-con (liên kết AiiRob)", "/ho-so/c1", "Liên kết AiiRob"),
     M("bm-man-hinh", "/man-hinh/c1", "Theo app"),
     M("bm-man-hinh (cả tuần)", "/man-hinh/c1", "APP & TRANG WEB", { truoc: async () => { await di("/man-hinh/c1"); await doi("Cả tuần"); await bam("Cả tuần"); } }),
@@ -824,9 +824,10 @@ if (process.argv.includes("--giao-dien")) {
     // #325 bm-viec-duyet (bàn 17/11): đúng CA của từng màn bàn
     M("bm-nhiem-vu (nợ · quà chờ trao · e91jg28j)", "/diem-qua", "Quà chờ trao", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"],
       phieu: [{ id: "ph2", child_id: "c1", ten: "Chọn món bữa tối", loai: "dac_quyen", diem: 50, ten_con: KEN, created_at: luc(60 * 26) }] } } }),
-    M("bm-nhiem-vu (trống · đang nợ vẫn hiện ví)", "/diem-qua", "đang nợ Ba Mẹ", { kb: { ...SO_SAO, "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
+    M("bm-nhiem-vu (trống · đang nợ vẫn hiện ví)", "/diem-qua", "−20 sao", { kb: { ...SO_SAO, "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
     M("bm-nhiem-vu (trống · e44cwmvu)", "/diem-qua", "còn trống", { kb: { "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
-    M("bm-giao-nv (bảng tự thêm · 6pjz1stu)", "/giao-nv?con=c1&tuThem=1", "Thêm vào mục đã chọn"),
+    // #495: «Ba Mẹ tự thêm» không còn là bảng trượt của /giao-nv (bỏ ?tuThem) — thành màn /giao-nv/tu-dat, nút «Thêm việc»
+    M("bm-giao-nv (bảng tự thêm · 6pjz1stu)", "/giao-nv/tu-dat?con=c1", "Thêm việc"),
     M("bm-giao-nv-sua (bảng xoá · 4axhvgpl)", "/giao-nv/sua?id=t0", "Giữ lại", { truoc: async () => { await di("/giao-nv/sua?id=t0"); await doi("Xoá việc này"); await bam("Xoá việc này"); } }),
     M("bm-duyet-nv (2 ảnh · qwuifjry)", "/duyet/l1", "Vuốt xem 2 ảnh", { kb: { "GET luot/l1/bang-chung": { ds: [{ id: "e0", mime: "image/png", loai: "anh", base64: PNG, chupLuc: luc(48) },
       { id: "e1", mime: "image/png", loai: "anh", base64: PNG, chupLuc: luc(13) }] } } }),
@@ -850,7 +851,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-qua-sua", "/vi/qua-sua?id=q2", "Đi xem phim cuối tuần"),
     M("bm-quy", "/quy", "AiiCafe 20k"),
     // #325 bm-sao-qua (bàn 17/11): đúng CA của từng màn bàn
-    M("bm-qua (xin vay đổi quà · 473f52w6)", "/vi/qua?con=c1", "Cho vay", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"], yeuCau: [{ ...YC_VAY, phut: 50, muc_dich: "qua", gia_tri: "q1" }] } } }),
+    M("bm-qua (xin vay đổi quà · 473f52w6)", "/vi/qua?con=c1", "Quà nhà", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"], yeuCau: [{ ...YC_VAY, phut: 50, muc_dich: "qua", gia_tri: "q1" }] } } }),
     M("bm-qua (Ba Mẹ tự điền · f0fnp733)", "/vi/qua?con=c1&tab=nha", "Quà Ba Mẹ đã điền"),
     M("bm-qua-thu-vien (dlul0jlr)", "/vi/qua-thu-vien?con=c1", "Tự đặt quà nhà"),
     M("bm-qua-mua (đã mua · sp8ijd1b)", "/vi/qua-mua?ma=aiicafe_20k&con=c1", "Cách dùng", { kb: { ...QUA_KHO, "GET con/c1/vi": { ...coBan["GET con/c1/vi"], sao: 30, soDu: 30 } } }),
