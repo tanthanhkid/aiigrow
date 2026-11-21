@@ -37,6 +37,7 @@ export async function xuLyMSao(bm: { id: string; family_id: string; vai: string 
       if (b.mucDich === "qua") chiBaMe(bm, "cho vay để mua quà");   // #492: «Chỉ trông con» cho vay chơi được, mua quà thì nhờ Ba Mẹ
       return json(await ss.choVay(fam, p[1], b.soSao, bm.id, { mucDich: b.mucDich === "qua" ? "qua" : b.mucDich === "choi" ? "choi" : null, quaId: b.quaId ? s(b.quaId, 40) : null }));
     }
+    if (sau === "tang-sao" && post) return json(await ss.tangSao(fam, p[1], b.soSao, b.lyDo, bm.id));   // #502: tặng sao (không nợ, bắt buộc lý do, ≤100/ngày/con); «Chỉ trông con» bị chặn chung ở api-m
     if (sau === "them-gio" && post) return json(await qg.baMeThemGio(fam, p[1], b.phut, bm.id));
   }
   if ((p[0] === "them-gio" || p[0] === "vay") && p[1] && p[2] === "hoan-tac" && post) return json(await ss.hoanTacVay(fam, p[1], bm.id));

@@ -9,10 +9,12 @@ export type QuaS3 = {
   id: string; ten: string; loai: LoaiQua; sao: number; diem: number; moTa: string | null; hinh: string | null; menhGia: number | null;
   tonKho: number | null; toiDaThang: number | null; chiCuoiTuan: boolean; canXacNhan: boolean; apCho: string[] | null; mau: string | null;
   dangGiu: number; laVoucher: boolean; bat: boolean;
+  /** #502: có đếm số lượng · tồn thật (còn + đang giữ) · hết */ dem?: boolean; dangCo?: number | null; het?: boolean;
 };
 /** Mẫu quà (GET qua/mac-dinh, GET qua/thu-vien). */
 export type MauQua = { ma: string; ten: string; moTa: string | null; hinh: string | null; sao: number; loai: LoaiQua; menhGia: number | null;
-  chiCuoiTuan: boolean; tonKho: number | null; canXacNhan?: boolean; daCo: boolean };
+  chiCuoiTuan: boolean; tonKho: number | null; canXacNhan?: boolean; daCo: boolean;
+  /** #502: quà «Ba Mẹ mua» đếm số lượng — `dangCo` = tồn thật (kể cả đang giữ chỗ), `het` = không còn món cho Con chọn */ dem?: boolean; dangCo?: number | null; het?: boolean };
 export type NhomThuVien = { ma: string; ten: string; phu: string; ds: MauQua[] };
 export type VoucherPhat = { ma: string; qr: string; hetHan: string; menhGia: number };
 export type KqTrao = { trangThai: string; saoTru?: number; voucher?: VoucherPhat | null };

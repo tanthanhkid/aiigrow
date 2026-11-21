@@ -13,7 +13,7 @@ export type DongNhatKy = { luc: string; ngay: string; con: string | null; tenCon
 const XIN: Record<string, string> = { vay_sao: "vay sao", them_gio: "thêm giờ", mo_web: "mở trang web", cai_app: "dùng app", ngoai_le: "thêm giờ",
   ngoai_gio: "thêm giờ" };
 /** Loại sự kiện có câu trong nhật ký (cauSuKien) — lọc trong SQL TRƯỚC limit để sự kiện kỹ thuật không chiếm chỗ. */
-export const LOAI_NHAT_KY = ["gui_yeu_cau", "dong_y_yeu_cau", "tu_choi_yeu_cau", "cho_vay", "hoan_tac_vay", "them_gio", "hoan_tac_them_gio", "doi_sao_lay_gio", "nop_nhiem_vu",
+export const LOAI_NHAT_KY = ["gui_yeu_cau", "dong_y_yeu_cau", "tu_choi_yeu_cau", "cho_vay", "tang_sao", "hoan_tac_vay", "them_gio", "hoan_tac_them_gio", "doi_sao_lay_gio", "nop_nhiem_vu",
   "duyet_nhiem_vu", "tu_duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "lam_lai_nhiem_vu", "hoan_tac_duyet", "giao_nhiem_vu", "doi_qua", "xac_nhan_qua",
   "huy_qua", "doi_che_do_chan", "cho_phep_app", "doi_luat_web", "dat_luat_app", "doi_gio_choi", "doi_lich", "khoa_ngay", "mo_lai", "dat_pin", "go_may", "doi_ten_may",
   "khoa_may", "mo_khoa_may", "xoa_con", "bo_qua_yeu_cau", "them_vao_danh_sach", "doi_nhom_danh_sach", "bo_khoi_danh_sach"];
@@ -53,6 +53,7 @@ export function cauSuKien(loai: string, ct: Record<string, unknown>, ai: string 
     }
     case "cho_vay": return { tieu: `${nguoi} cho vay ${n(ct.so_sao)} sao`, nhan: "Cho vay", kieu: "ngoai",
       phu: n(ct.no_sau) ? `đang nợ ${soVN(ct.no_sau)} sao` : undefined };
+    case "tang_sao": return { tieu: `${nguoi} tặng ${n(ct.so_sao)} sao`, nhan: "Tặng sao", kieu: "thuong", phu: s(ct.ly_do) || undefined };
     case "hoan_tac_vay": return { tieu: `${nguoi} rút lại ${n(ct.so_sao)} sao đã cho vay`, nhan: null, kieu: "thuong" };
     case "tu_choi_yeu_cau": return { tieu: `${nguoi} chưa cho ${XIN[s(ct.loai)] ?? "lời xin"}`, nhan: "Chưa cho", kieu: "xau" };
     case "them_gio": return { tieu: `${nguoi} cho thêm ${n(ct.phut)} phút`, nhan: null, kieu: "thuong" };     // sự kiện cũ (trước 15/11)

@@ -1,14 +1,15 @@
 // them-s416tfdj «Quà của X» (bước 3/5 Lần đầu; bàn v13 19/11, kèm them-u60j9p7w / them-x9x2u07e): 3 tab Tất cả · Ba Mẹ mua · Quà nhà.
 //  · «Ba Mẹ mua» (voucher AiiCafe, sách AiiLab, Lego — tốn tiền): mỗi dòng chọn số lượng −/＋ «Đang có: N»; bấm tên ⇒ chi tiết them-hn2754ce (/thiet-lap/qua-mua).
 //  · «Quà nhà» (không tốn tiền): cùng cách chọn số lượng; tab này có thêm khung «Thêm quà nhà» (tên + 50/100/200/300 sao + nút ＋ vàng = POST qua {ten, sao, apCho:[con]}).
-//  · Nút cuối ghi tổng: «Xong, thêm N quà · trả X đ». Quà nhà / quà vật lý chọn ≥1 ⇒ POST qua/thu-vien {mau, con} (vào kho của con); quà TRẢ TIỀN chưa có cổng thanh toán ⇒
-//    bảng «Mua quà qua AiiGrow» (nhắn AiiGrow) rồi đi tiếp. «Để sau, chọn quà sau» ⇒ Chơi bằng sao.
+//  · Nút cuối ghi tổng: «Xong, thêm N quà · trả X đ». Quà nhà chọn ≥1 ⇒ POST qua/thu-vien {mau, con} (vào kho của con); quà Ba Mẹ mua có số lượng thật (#502): «Đang có: N» lấy từ máy chủ,
+//    +/− đổi số ⇒ POST qua/thu-vien {mau, soLuong:{mã: N}, con}; quà TRẢ TIỀN mua thêm (chưa có cổng thanh toán) ⇒ bảng «Mua quà qua AiiGrow» rồi đi tiếp. «Để sau, chọn quà sau» ⇒ Chơi bằng sao.
 // 7 quà mặc định (N12) máy chủ đã gieo khi tạo Con (qua-bang-gia › gieoQuaMacDinh) — màn này không bỏ chúng.
 import { useState } from "react";
 import { router } from "expo-router";
 import { Pressable, Text, TextInput, View } from "react-native";
 import { bm } from "@/lib/api";
 import { BONG, KHOI, MEN } from "@/lib/clay";
+import { DongQua } from "@/lib/dong-qua";
 import { DauMan, LienKet } from "@/lib/lan-dau";
 import { TheDs } from "@/lib/lan-dau-ds";
 import type { NhomThuVien, MauQua } from "@/lib/s3";
@@ -45,16 +46,23 @@ export default function ObQua() {
   const sang = () => router.push("/thiet-lap/gio");
   const dsMua = d?.nhom.find((g) => g.ma === "ba_me_mua")?.ds ?? [];
   const dsNha = d?.nhom.find((g) => g.ma === "qua_nha")?.ds ?? [];
-  const dat = (ma: string, n: number) => setSl((x) => ({ ...x, [ma]: Math.max(0, Math.min(9, n)) }));
-  const chonMua = dsMua.filter((m) => (sl[m.ma] ?? 0) > 0);
+  const dat = (ma: string, n: number) => setSl((x) => ({ ...x, [ma]: Math.max(0, Math.min(99, n)) }));
+  // #502: «Ba Mẹ mua» có số lượng — số ban đầu = «Đang có» máy chủ (quà đã thêm từ trước), +/− đặt lại số; quà nhà không đếm
+  const goc = (m: MauQua) => m.dangCo ?? (m.daCo ? 1 : 0);   // quà cũ không đếm (dangCo null) = đang có 1, không phải «Hết»
+  const soMua = (m: MauQua) => sl[m.ma] ?? goc(m);
+  const doiMua = dsMua.filter((m) => soMua(m) !== goc(m));                      // món Ba Mẹ đã đổi số
+  const themMua = doiMua.filter((m) => soMua(m) > goc(m));                     // món mua thêm (để tính tiền / số quà)
   const chonNha = dsNha.filter((m) => (sl[m.ma] ?? 0) > 0);
-  const tongQua = [...chonMua, ...chonNha].reduce((t, m) => t + (sl[m.ma] ?? 0), 0);
-  const tongTien = chonMua.reduce((t, m) => t + (m.menhGia ?? 0) * (sl[m.ma] ?? 0), 0);
-  const traTien = chonMua.filter((m) => (m.menhGia ?? 0) > 0);
+  const tongQua = themMua.reduce((t, m) => t + soMua(m) - goc(m), 0) + chonNha.reduce((t, m) => t + (sl[m.ma] ?? 0), 0);
+  const tongTien = themMua.reduce((t, m) => t + (m.menhGia ?? 0) * (soMua(m) - goc(m)), 0);
+  const traTien = themMua.filter((m) => (m.menhGia ?? 0) > 0);
   const xong = () => lam(async () => {
-    // quà không tốn tiền + quà vật lý (không có giá voucher) vào kho của con; voucher trả tiền chờ cổng thanh toán
-    const vao = [...chonNha, ...chonMua.filter((m) => !m.menhGia)].map((m) => m.ma).filter((ma) => !(dsNha.find((m) => m.ma === ma)?.daCo));
-    if (vao.length) await bm.goi("qua/thu-vien", { mau: vao, ...(con ? { con } : {}) });
+    // quà nhà chọn mới vào kho của con; quà Ba Mẹ mua đổi số ⇒ máy chủ ghi «Đang có: N» (hết = 0 ⇒ ẩn bên Con)
+    const vaoNha = chonNha.map((m) => m.ma).filter((ma) => !(dsNha.find((m) => m.ma === ma)?.daCo));
+    const mua = doiMua.filter((m) => soMua(m) > 0 || m.daCo);
+    const soLuong = Object.fromEntries(mua.map((m) => [m.ma, soMua(m)]));
+    const vao = [...vaoNha, ...mua.map((m) => m.ma)];
+    if (vao.length) await bm.goi("qua/thu-vien", { mau: vao, ...(mua.length ? { soLuong } : {}), ...(con ? { con } : {}) });
     if (traTien.length) setHoi(true); else sang();
   });
   const cauNut = tongQua ? `Xong, thêm ${tongQua} quà${tongTien ? ` · trả ${dong(tongTien)}` : ""}` : "Xong, sang chơi bằng sao";
@@ -68,7 +76,7 @@ export default function ObQua() {
           {tab !== "qua_nha" ? (
             <Nhom ic="the_qua" chu="Ba Mẹ mua" phu="tốn tiền · mua thêm được">
               <TheDs le>
-                {dsMua.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={sl[m.ma] ?? 0} dat={(n) => dat(m.ma, n)} tran={m.menhGia ? undefined : 1}
+                {dsMua.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={soMua(m)} dat={(n) => dat(m.ma, n)} het={m.daCo && soMua(m) === 0} muaThem={() => dat(m.ma, goc(m) + 1)}
                   xem={CHI_TIET[m.ma] ? () => router.push({ pathname: "/thiet-lap/qua-mua", params: { ma: CHI_TIET[m.ma] } }) : undefined} />)}
               </TheDs>
             </Nhom>
@@ -90,7 +98,7 @@ export default function ObQua() {
         </>
       )}
       <BangTruot mo={hoi} dong={() => setHoi(false)} tieu="Mua quà qua AiiGrow">
-        <Chu co={14.5} mau={M.chu2}>Thanh toán trong app đang được chuẩn bị. Ba Mẹ nhắn AiiGrow để mua {traTien.map((m) => `${sl[m.ma]} × ${m.ten}`).join(", ")} ({dong(tongTien)}) — quà sẽ nằm sẵn trong kho của con.</Chu>
+        <Chu co={14.5} mau={M.chu2}>Thanh toán trong app đang được chuẩn bị. Ba Mẹ nhắn AiiGrow để mua {traTien.map((m) => `${soMua(m) - goc(m)} × ${m.ten}`).join(", ")} ({dong(tongTien)}) — quà sẽ nằm sẵn trong kho của con.</Chu>
         <Nut chu="Nhắn AiiGrow" rong bam={() => { setHoi(false); router.push("/ho-tro"); }} />
         <Nut chu="Để sau, đi tiếp" loai="ma" rong bam={() => { setHoi(false); sang(); }} />
       </BangTruot>
@@ -124,31 +132,6 @@ function Nhom({ ic, chu, phu, children }: { ic: "the_qua" | "nha"; chu: string; 
         <Chu kieu="rat" co={16} style={{ flex: 1 }}>{chu}</Chu><Chu kieu="dam" co={12.5} mau={M.chu3}>{phu}</Chu>
       </View>
       {children}
-    </View>
-  );
-}
-
-/** Một dòng quà: tên + dòng phụ + viên «Đang có: N» + nút − / ＋ (＋ vàng kim). `khoa` = quà đã có sẵn (chỉ hiện, không đổi số); `tran` = số tối đa. */
-function DongQua({ i, ten, phu, n, dat, xem, khoa, tran = 9 }: { i: number; ten: string; phu: string; n: number; dat: (n: number) => void; xem?: () => void; khoa?: boolean; tran?: number }) {
-  const nut = (chu: "−" | "＋", bam: () => void, tat: boolean, nhan: string) => (
-    <Pressable onPress={bam} disabled={tat} accessibilityRole="button" accessibilityLabel={`${nhan} ${ten}`} hitSlop={4}
-      style={[{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center", opacity: tat ? 0.4 : 1, overflow: "hidden" },
-        chu === "＋" ? { backgroundColor: M.diem, boxShadow: BONG.vang } : { backgroundColor: M.the, boxShadow: BONG.nho }]}>
-      {chu === "＋" ? <LopMen men={MEN.vang} bo={22} /> : null}
-      <IconNet ten={chu === "＋" ? "cong" : "tru"} co={20} mau={M.chinh} />
-    </Pressable>
-  );
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingVertical: 10, borderTopWidth: i ? 1 : 0, borderTopColor: M.ranh }}>
-      <Pressable onPress={xem} disabled={!xem} accessibilityRole={xem ? "button" : undefined} accessibilityLabel={xem ? `Xem chi tiết ${ten}` : undefined} style={{ flex: 1, minWidth: 0, gap: 3 }}>
-        <Chu kieu="rat" co={15.5} dong={2}>{ten}</Chu>
-        <Chu kieu="dam" co={12.5} mau={M.chu2} dong={2}>{phu}</Chu>
-        <View style={{ alignSelf: "flex-start", minHeight: 22, paddingHorizontal: 10, borderRadius: 11, justifyContent: "center", backgroundColor: n ? M.chinh : M.xamSoft, boxShadow: n ? undefined : BONG.nho }}>
-          <Chu kieu="rat" co={12} mau={n ? M.diem : M.chinh} so>Đang có: {n}</Chu>
-        </View>
-      </Pressable>
-      {nut("−", () => dat(n - 1), n <= 0 || (!!khoa && n <= 1), "Bớt 1")}
-      {nut("＋", () => dat(n + 1), !!khoa || n >= tran, "Thêm 1")}
     </View>
   );
 }

@@ -13,7 +13,7 @@ import { BangTruot, BaoLoi, ChoTai, ChonMot, Chu, gioPhut, Icon3D, M, Man, Nhan,
 import { OLomIcon } from "@/lib/ui-viec";
 import { HangViec, quyenToi, TieuMuc, type ChoDuyetMoi } from "@/lib/hang-ngay";
 import { icQua } from "@/lib/s3";
-import { cauNo, kieuSao, MAU_NO, saoTu, soChinh, soVN, type SaoCon } from "@/lib/so-sao";
+import { BangChoVay, cauNo, kieuSao, MAU_NO, saoTu, soChinh, soVN, thamSoXongVay, type SaoCon } from "@/lib/so-sao";
 import type { TenIcon } from "@/lib/ui";
 
 type Vi = { soDu: number; sao?: number; lichSu: Diem[] };
@@ -78,6 +78,7 @@ export default function ViSao() {
       qua: qua.ds.filter((x) => x.bat), phieu: (cd?.phieu ?? []).filter((p) => p.child_id === con), baMe: quyen === "ba_me" };
   });
   const [mo, setMo] = useState(false);
+  const [vayTang, setVayTang] = useState<"vay" | "tang" | null>(null);   // #502: bảng «Cho vay · Tặng» (them-cblmebw3)
   const [dau, setDau] = useState<1 | -1>(1);
   const [so, setSo] = useState("10");
   const [lyDo, setLyDo] = useState("");
@@ -124,6 +125,12 @@ export default function ViSao() {
         <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ flex: 1, lineHeight: 20 }}>1 sao = 1 phút chơi app «Tính phút». Hết sao thì con xin Ba Mẹ cho vay.</Chu>
       </View>
 
+      {/* #502: Cho vay (cả «Chỉ trông con») · Tặng sao (chỉ «Như Ba Mẹ») */}
+      <View style={{ flexDirection: "row", gap: 10 }}>
+        <View style={{ flex: 1 }}><Nut chu="Cho vay sao" loai="vien" rong bam={() => setVayTang("vay")} /></View>
+        {d.baMe ? <View style={{ flex: 1 }}><Nut chu="Tặng sao" rong bam={() => setVayTang("tang")} /></View> : null}
+      </View>
+
       <TieuMuc chu="Con đổi sao lấy quà" phai={{ chu: d.baMe ? "Sửa quà ›" : "Quà ›", bam: () => router.push({ pathname: "/vi/qua", params: { con, tab: "nha" } }) }} />
       <The>
         {d.phieu.map((p, i) => (
@@ -145,6 +152,9 @@ export default function ViSao() {
         )) : <Chu co={14} mau={M.chu2}>{`Ví của ${d.ten} còn trống — sao đầu tiên đến khi con làm xong việc đầu tiên.`}</Chu>}
       </The>
 
+      <BangChoVay mo={vayTang !== null} dong={() => setVayTang(null)} con={con} ten={d.ten} choTang={d.baMe} tabDau={vayTang ?? "vay"}
+        xong={(k) => { tai(); router.push({ pathname: "/yeu-cau/xong", params: thamSoXongVay({ ...k, ten: d.ten, con }) } as never); }}
+        tangXong={(k) => { bao(`Đã tặng ${d.ten} ${soVN(k.soSao)} sao${k.traNo > 0 ? ` · ${soVN(k.traNo)} sao trả nợ trước` : ""}`); tai(); }} />
       <BangTruot mo={mo} dong={() => setMo(false)} tieu={`Điều chỉnh sao của ${d.ten}`}>
         <ChonMot ds={[{ gia: 1 as const, chu: "Cộng sao" }, { gia: -1 as const, chu: "Trừ sao" }]} gia={dau} doi={setDau} />
         <View style={{ flexDirection: "row", gap: 10 }}>

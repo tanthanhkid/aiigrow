@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { bm } from "./api";
 import { BONG, HERO } from "./clay";
-import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Nut, useLam } from "./ui";
+import { BangTruot, BaoLoi, Chu, Icon, Icon3D, IconNet, M, Nut, ONhap, useLam } from "./ui";
 import { ChipMuc } from "./ui-chung";
 
 /** Trạng thái sao của một Con (máy chủ so-sao.ts › TrangThaiSao + tổng vay / đã trả). */
@@ -137,10 +137,15 @@ export const hoanTacVay = (id: string) => bm.goi<SaoCon & { ok: boolean; soSaoHo
 
 /** Bảng trượt «Cho <Con> vay sao». `yeuCau` (lời xin vay của Con) ⇒ đồng ý lời xin với số sao đã chọn; không có ⇒ Ba Mẹ chủ động cho vay.
  *  `soSao` = số chọn sẵn (lời xin của Con) — không thuộc 10/15/30 thì thêm ô đó. `xong(kq)` sau khi cho vay (bảng đã đóng). */
-export function BangChoVay({ mo, dong, con, ten, soSao, yeuCau, mucDich, quaId, xong }: {
+export function BangChoVay({ mo, dong, con, ten, soSao, yeuCau, mucDich, quaId, xong, choTang, tabDau, tangXong }: {
   mo: boolean; dong: () => void; con: string; ten: string; soSao?: number | null; yeuCau?: string | null; mucDich?: "choi" | "qua"; quaId?: string | null;
   xong: (kq: { id: string; soSao: number; sau: SaoCon; truoc: SaoCon | null; canhBao: string | null }) => void;
+  /** #502: hiện tab «Tặng» (Ba Mẹ «Như Ba Mẹ»; vai «Chỉ trông con» chỉ cho vay — không truyền) */ choTang?: boolean;
+  /** tab mở sẵn khi có `choTang` */ tabDau?: "vay" | "tang";
+  /** sau khi tặng xong (bảng đã đóng) — màn tải lại ví + báo «Đã tặng …» */ tangXong?: (kq: { soSao: number; lyDo: string; traNo: number }) => void;
 }) {
+  const [tabTay, setTab] = useState<"vay" | "tang" | null>(null);    // tab Ba Mẹ bấm tay (null = tab mở sẵn)
+  const tab = tabTay ?? tabDau ?? "vay";
   const muc = [...new Set([...MUC_VAY, ...(soSao && soSao > 0 ? [soSao] : [])])].sort((a, b) => a - b);
   const macDinh = soSao && soSao > 0 ? soSao : VAY_MAC_DINH;
   // số Ba Mẹ đã bấm chọn (null = mặc định); đóng bảng ⇒ về mặc định cho lần mở sau
@@ -148,7 +153,7 @@ export function BangChoVay({ mo, dong, con, ten, soSao, yeuCau, mucDich, quaId, 
   const chon = chonTay ?? macDinh, setChon = setChonTay;
   const [xt, setXt] = useState<XemTruocVay | null>(null);
   const { lam, loi, dangChay } = useLam();
-  const dongBang = () => { setChonTay(null); dong(); };
+  const dongBang = () => { setChonTay(null); setTab(null); dong(); };
   // mở bảng ⇒ đọc «đang có / đang nợ» mới nhất (máy chủ cũ không có đường này ⇒ bỏ dòng «Đang có»)
   useEffect(() => {
     if (!mo) return;
@@ -174,8 +179,9 @@ export function BangChoVay({ mo, dong, con, ten, soSao, yeuCau, mucDich, quaId, 
     dongBang();
     xong({ id, soSao: chon, sau, truoc, canhBao: canh });
   });
+  if (choTang && tab === "tang") return <BangTang mo={mo} dong={dongBang} con={con} ten={ten} seg={<TabVayTang tab={tab} doi={setTab} />} xong={tangXong} />;
   return (
-    <BangTruot mo={mo} dong={dongBang} tieu={`Cho ${ten} vay sao`} hinh="sao">
+    <BangTruot mo={mo} dong={dongBang} tieu={`Cho ${ten} vay sao`} hinh="sao" dauBang={choTang ? <TabVayTang tab={tab} doi={setTab} /> : undefined}>
       <Chu kieu="dam" co={15} mau={M.chu2} style={{ textAlign: "center", marginTop: -4 }}>{`= ${soVN(chon)} phút chơi hoặc đổi quà\nSao nhiệm vụ của con sẽ trả nợ trước`}</Chu>
       {/* Bàn them-6wjhze1d: chip 10 · 15 · 30 · Tự nhập… (ui-chung › ChipMuc) */}
       <ChipMuc muc={muc} gia={chon} doi={setChon} nhanTuChon="Tự nhập…" toiDa={500} />
@@ -210,4 +216,67 @@ export function traNoLanLuot(no: number, ds: number[]) {
     const tra = Math.min(s, con);
     return [...kq, { tra, conNo: con - tra }];
   }, []);
+}
+
+/** Hai tab «Cho vay · Tặng» (bàn them-cblmebw3 v2): rãnh lõm, tab đang chọn navy chữ vàng kem viền vàng. */
+function TabVayTang({ tab, doi }: { tab: "vay" | "tang"; doi: (t: "vay" | "tang") => void }) {
+  const ds: { ma: "vay" | "tang"; chu: string; ic: "sao" | "qua" }[] = [{ ma: "vay", chu: "Cho vay", ic: "sao" }, { ma: "tang", chu: "Tặng", ic: "qua" }];
+  return (
+    <View style={{ flexDirection: "row", gap: 6, padding: 5, borderRadius: 24, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignSelf: "stretch" }} accessibilityRole="tablist">
+      {ds.map((x) => {
+        const on = x.ma === tab;
+        return (
+          <Pressable key={x.ma} onPress={() => doi(x.ma)} accessibilityRole="tab" accessibilityState={{ selected: on }}
+            style={[{ flex: 1, minHeight: 44, borderRadius: 19, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6 }, on && { backgroundColor: M.chinh, boxShadow: BONG.ngoc }]}>
+            <IconNet ten={x.ic} co={18} mau={on ? M.diem : M.chu3} />
+            <Chu kieu="rat" co={15} mau={on ? M.diem : M.chu3} dong={1}>{x.chu}</Chu>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+export const MUC_TANG = [5, 10, 20] as const;
+export const TANG_MAC_DINH = 10;
+/** Máy chủ so-sao.ts › TANG_TOI_DA_NGAY. */
+export const TANG_TOI_DA_NGAY = 100;
+
+/** Tab «Tặng» (them-cblmebw3): 5 · 10 · 20 · Tự nhập…, «Không cần trả lại · Cộng thẳng vào sao của <Con>», lý do BẮT BUỘC (Nghi chốt #502), POST con/:id/tang-sao. */
+function BangTang({ mo, dong, con, ten, seg, xong }: { mo: boolean; dong: () => void; con: string; ten: string; seg: React.ReactNode;
+  xong?: (kq: { soSao: number; lyDo: string; traNo: number }) => void }) {
+  const [chon, setChon] = useState<number>(TANG_MAC_DINH);
+  const [lyDo, setLyDo] = useState("");
+  const [xt, setXt] = useState<SaoCon | null>(null);
+  const { lam, loi, dangChay } = useLam();
+  useEffect(() => {
+    if (!mo) return;
+    let huy = false;
+    bm.goi<SaoCon>(`con/${con}/vi-sao?gioiHan=1`).then((x) => { if (!huy) setXt(x); }, () => { if (!huy) setXt(null); });
+    return () => { huy = true; };
+  }, [mo, con]);
+  const no = xt ? Math.max(0, xt.no) : 0;
+  const traNo = Math.min(no, chon);
+  const dongBang = () => { setChon(TANG_MAC_DINH); setLyDo(""); dong(); };
+  const tang = () => lam(async () => {
+    const r = await bm.goi<{ soSao: number; traNo: number }>(`con/${con}/tang-sao`, { soSao: chon, lyDo: lyDo.trim() });
+    const ly = lyDo.trim();
+    dongBang();
+    xong?.({ soSao: r.soSao, lyDo: ly, traNo: r.traNo });
+  });
+  const ly = lyDo.trim();
+  return (
+    <BangTruot mo={mo} dong={dongBang} tieu={`Tặng sao cho ${ten}`} hinh="sao" dauBang={seg}>
+      <ChipMuc muc={[...MUC_TANG]} gia={chon} doi={(n) => setChon(Math.min(n, TANG_TOI_DA_NGAY))} nhanTuChon="Tự nhập…" toiDa={TANG_TOI_DA_NGAY} />
+      <View style={{ paddingVertical: 10, paddingHorizontal: 14, borderRadius: 16, backgroundColor: M.xamSoft, boxShadow: BONG.lom, alignItems: "center" }}>
+        <Chu kieu="rat" co={14} style={{ textAlign: "center" }}>{traNo > 0 ? `Trả nợ trước ${soVN(traNo)} sao` : "Không cần trả lại"}</Chu>
+        <Chu kieu="dam" co={12.5} mau={M.chu2} style={{ textAlign: "center" }}>{traNo > 0 ? `${ten} đang nợ ${soVN(no)} sao · còn ${soVN(chon - traNo)} sao vào số dư` : `Cộng thẳng vào sao của ${ten}`}</Chu>
+      </View>
+      <ONhap nhan="Thưởng vì… (bắt buộc)" value={lyDo} onChangeText={setLyDo} placeholder="Ví dụ: Thưởng điểm 10" maxLength={100} />
+      <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ textAlign: "center" }}>{`Lý do hiện trong nhật ký sao của ${ten}. Tối đa ${TANG_TOI_DA_NGAY} sao mỗi ngày.`}</Chu>
+      <BaoLoi loi={loi} />
+      <Nut chu={`Tặng ${ten} ${soVN(chon)} sao`} rong dangChay={dangChay} tat={!ly || !(chon >= 1)} bam={tang} />
+      <Nut chu="Thôi" loai="vien" rong bam={dongBang} />
+    </BangTruot>
+  );
 }

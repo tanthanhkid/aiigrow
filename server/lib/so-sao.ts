@@ -348,11 +348,43 @@ export type KieuSao = "vay" | "hoan_vay" | "tra_no" | "choi" | "nhiem_vu" | "qua
 /** Loại dòng sổ sao (ví sao Ba Mẹ + màn Con): vay / rút lại sao vay / trả nợ / chơi / nhiệm vụ / quà (đổi quà, hoàn quà, quà phút) / sao khởi đầu / Ba Mẹ cộng-trừ tay / khác. */
 export const kieuSao = (l: string, d: number): KieuSao => (l === "vay" ? (d > 0 ? "vay" : "hoan_vay") : l === "tra_no" ? "tra_no"
   : l === "choi" || l === "phien" || l === "doi_gio" ? "choi" : l === "nhiem_vu" ? "nhiem_vu"
-  : l === "doi_qua" || l === "voucher" || l === "qua_phut" || l === "hoan" ? "qua" : l === "khoi_dau" ? "khoi_dau" : l === "tay" ? "ba_me" : "khac");
+  : l === "doi_qua" || l === "voucher" || l === "qua_phut" || l === "hoan" ? "qua" : l === "khoi_dau" ? "khoi_dau" : l === "tay" || l === "tang" ? "ba_me" : "khac");
 
 /** Lịch sử sao gần đây cho màn Con (`kid/sao`, khay `hoc-vien/sao`) — cùng sổ với ví sao Ba Mẹ (`con/:id/vi-sao`).
  *  Mỗi dòng: loại thô + kiểu Con, số sao (+/−), lúc, chú thích (ly_do), tên Ba Mẹ (cho vay / cộng tay). */
 export async function lichSuSaoCon(con: string, gioiHan = 20, t: Q = q) {
   return (await dongSoSao(con, Math.min(100, gioiHan), t)).map((x) => ({ id: x.id, loai: x.loai, kieu: kieuSao(x.loai, x.delta), sao: x.delta,
     luc: new Date(x.created_at).toISOString(), chuThich: x.ly_do, tenNguoi: x.ten_nguoi }));
+}
+
+// ---------------------------------------------------------------- Tặng sao (#502): Ba Mẹ thưởng sao, không tạo nợ
+/** Trần tặng: 100 sao / ngày / Con (giờ gia đình) — chỉ tính dòng `tang` dương, không tính phần trả nợ đi kèm. */
+export const TANG_TOI_DA_NGAY = 100;
+
+/** Ba Mẹ tặng `soSao` sao cho Con kèm lý do bắt buộc. Cộng thẳng vào số dư — KHÔNG ghi nợ; Con đang nợ ⇒ trả nợ trước như sao nhiệm vụ (vi.ts › ghiDiem).
+ *  Ghi sổ sao (loai `tang`, lý do hiện ở nhật ký sao của Con), sự kiện `tang_sao` (Ba Mẹ thấy ở Thông báo, Con nhận tin ở khay) + lời nhắn cho Con.
+ *  Vai «Chỉ trông con» bị chặn ở api-m (đường không nằm trong quyen.ts › trongGiupDuoc). */
+export async function tangSao(fam: string, con: string, soSao: unknown, lyDo: unknown, nguoi: string, now = new Date()) {
+  const n = Number(soSao);
+  if (!Number.isInteger(n) || n < 1) throw new LoiNghiepVu("sao_sai", "Số sao tặng là số nguyên từ 1");
+  const ly = String(lyDo ?? "").trim().slice(0, 100);
+  if (!ly) throw new LoiNghiepVu("thieu_ly_do", "Ghi lý do tặng sao để Con hiểu vì sao được thưởng");
+  return tx(async (t) => {
+    if ((await khoaCon(t, con)) !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+    const c = (await t<{ ten: string; tz: string }>(`select c.ten, f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]))[0];
+    const tu = dauNgayUtc(gioDiaPhuong(now, c.tz).ngay, c.tz);
+    const daTang = (await t<{ s: number }>(`select coalesce(sum(delta), 0)::int as s from points where child_id = $1 and loai = 'tang' and delta > 0 and created_at >= $2`, [con, tu]))[0].s;
+    if (daTang + n > TANG_TOI_DA_NGAY) {
+      const conLai = Math.max(0, TANG_TOI_DA_NGAY - daTang);
+      throw new LoiNghiepVu("qua_han_muc_tang", conLai > 0 ? `Mỗi ngày tặng tối đa ${TANG_TOI_DA_NGAY} sao cho một bé — hôm nay còn tặng được ${conLai} sao`
+        : `Hôm nay đã tặng ${c.ten} đủ ${TANG_TOI_DA_NGAY} sao — mai tặng tiếp nhé`, 409);
+    }
+    const noTruoc = await noCua(con, t);
+    await ghiDiem(t, con, n, "tang", `Ba Mẹ tặng · ${ly}`, { nguoi });
+    const traNo = Math.min(n, noTruoc);
+    await t(`insert into messages(id, family_id, child_id, parent_id, noi_dung) values ($1,$2,$3,$4,$5)`,
+      [newId(), fam, con, nguoi, `Ba Mẹ tặng con ${n} sao: ${ly}`]);
+    await ghiSuKien(fam, "tang_sao", { so_sao: n, ly_do: ly, tra_no: traNo }, { con, nguoi }, t);
+    return { soSao: n, lyDo: ly, traNo, conTangDuoc: TANG_TOI_DA_NGAY - daTang - n, ...(await trangThaiSao(con, t)) };
+  });
 }

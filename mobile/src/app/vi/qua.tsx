@@ -9,7 +9,7 @@
 // «<Con> xin vay 50 sao · Để đổi <quà> · con có 150/200 sao» + «Cho vay» ⇒ bảng Cho vay sao (lib/so-sao) ⇒ toast + Hoàn tác.
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
 import { CAU_TRONG_GIUP, quyenToi } from "@/lib/hang-ngay";
 import { icQua, tenVoucher, type NhomThuVien, type QuaS3 } from "@/lib/s3";
@@ -48,9 +48,10 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
   const thamCon = conId ? `?con=${encodeURIComponent(conId)}` : "";
   const q = useTai(async () => {
     const [qua, tv] = await Promise.all([bm.goi<{ ds: QuaS3[] }>(`qua${thamCon}`), bm.goi<{ nhom: NhomThuVien[] }>(`qua/thu-vien${thamCon}`)]);
-    return { qua: qua.ds, voucher: tv.nhom.flatMap((x) => x.ds).filter((m) => m.loai === "voucher") };
+    // #502: «Ba Mẹ mua» = mọi mẫu nhóm ba_me_mua (voucher, sách, Lego…) — mỗi món có «Đang có: N» / «Hết» + «Mua thêm»
+    return { qua: qua.ds, voucher: tv.nhom.filter((x) => x.ma === "ba_me_mua").flatMap((x) => x.ds) };
   });
-  const { noi } = useHoanTac();
+  const { noi, bao } = useHoanTac();
   const [tab, setTab] = useState<"tat" | "voucher" | "nha">(tabDau === "nha" ? "nha" : "tat");
   const [ten, setTen] = useState("");
   const [sao, setSao] = useState(100);
@@ -67,6 +68,15 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
     await q.tai();
   });
   const moMua = (ma: string) => router.push({ pathname: "/vi/qua-mua", params: { ma, ...(conId ? { con: conId } : {}) } });
+  // dòng quà (rewards) của một mẫu Ba Mẹ mua mà Con này thấy — để «Mua thêm» và sửa
+  const quaCua = (ma: string) => q.d!.qua.find((x) => x.mau === ma && x.bat);
+  const muaThem = (ma: string) => lam(async () => { const r = quaCua(ma); if (!r) return; await bm.goi(`qua/${r.id}/mua-them`, { them: 1 }); await q.tai(); bao("Đã thêm 1 vào số quà đang có"); });
+  const moMon = (m: { ma: string; loai: string; daCo: boolean }) => {
+    if (m.loai === "voucher") return moMua(m.ma);
+    const r = quaCua(m.ma);
+    if (r && baMe) router.push({ pathname: "/vi/qua-sua", params: { id: r.id, ...(conId ? { con: conId } : {}) } });
+    else if (baMe) router.push({ pathname: "/vi/qua-thu-vien", params: conId ? { con: conId } : {} });
+  };
 
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={tieu} tai={q.tai} noi={noi} day={<Nut chu="Về Việc & quà" rong bam={() => router.replace("/diem-qua" as never)} />}>
@@ -78,19 +88,29 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
           <Chu kieu="dam" co={13} mau={M.chu2} style={{ marginHorizontal: 6 }}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi; thiếu sao thì con xin Ba Mẹ cho vay.</Chu>
           <View style={{ gap: 10 }}>
             {q.d.voucher.map((m) => (
-              <NhanMen key={m.ma} onPress={() => moMua(m.ma)} accessibilityRole="button" accessibilityLabel={`${m.ten}, ${tien(m.menhGia ?? 0)}, ${m.sao} sao${m.daCo ? ", đã mua" : ""}`}
+              <NhanMen key={m.ma} onPress={() => moMon(m)} accessibilityRole="button" accessibilityLabel={`${m.ten}, ${m.menhGia ? `${tien(m.menhGia)}, ` : ""}${m.sao} sao${m.daCo ? (m.het ? ", hết" : m.dangCo != null ? `, đang có ${m.dangCo}` : ", đã mua") : ""}`}
                 muc="khoi" sang style={[{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 76, padding: 10, paddingRight: 14, borderRadius: 24, backgroundColor: M.the }, KHOI.the]}>
                 <OHinhQua ic={icVoucher(m)} co={52} />
                 <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
                   <Chu kieu="rat" co={15}>{tenVoucher(m.ten)}</Chu>
                   <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                    <Chu kieu="dam" co={12.5} mau={M.chu2}>{`${tien(m.menhGia ?? 0)} ·`}</Chu>
+                    {m.menhGia ? <Chu kieu="dam" co={12.5} mau={M.chu2}>{`${tien(m.menhGia)} ·`}</Chu> : null}
                     <GiaSao n={m.sao} />
                   </View>
                 </View>
-                <View style={[{ height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: "center" }, m.daCo ? { backgroundColor: M.chinhSoft } : { backgroundColor: M.the, ...KHOI.nho }]}>
-                  <Chu kieu="rat" co={13} mau={M.chinhInk}>{m.daCo ? "Đã mua" : "Mua"}</Chu>
-                </View>
+                {m.daCo && m.het && baMe ? (
+                  <View style={{ alignItems: "flex-end", gap: 4 }}>
+                    <View style={{ height: 26, paddingHorizontal: 10, borderRadius: 13, justifyContent: "center", backgroundColor: M.xamSoft }}><Chu kieu="rat" co={12.5} mau={M.chu2}>Hết</Chu></View>
+                    <Pressable onPress={() => muaThem(m.ma)} accessibilityRole="button" accessibilityLabel={`Mua thêm ${m.ten}`} hitSlop={6}
+                      style={[{ height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: "center", backgroundColor: M.diem }, { boxShadow: BONG.vang }]}>
+                      <Chu kieu="rat" co={13} mau={M.chinh}>Mua thêm</Chu>
+                    </Pressable>
+                  </View>
+                ) : (
+                  <View style={[{ height: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: "center" }, m.daCo ? { backgroundColor: m.het ? M.xamSoft : M.chinhSoft } : { backgroundColor: M.the, ...KHOI.nho }]}>
+                    <Chu kieu="rat" co={13} mau={M.chinhInk} so>{m.daCo ? (m.het ? "Hết" : m.dangCo != null ? `Đang có: ${m.dangCo}` : "Đã mua") : "Mua"}</Chu>
+                  </View>
+                )}
               </NhanMen>
             ))}
           </View>

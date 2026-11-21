@@ -47,7 +47,9 @@ export async function xuLyMS3(bm: { id: string; family_id: string }, req: Reques
       return json({ taoMoi: (await q(`select 1 from rewards where family_id = $1`, [fam])).length - truoc, ds: ds.ds });
     }
     if (d === "qua/thu-vien" && get) return json(await qb.thuVien(fam, tham(req, "con")));
-    if (d === "qua/thu-vien" && post) return json(await qb.themTuThuVien(fam, { mau: b.mau, con: b.con }, bm.id));
+    if (d === "qua/thu-vien" && post) return json(await qb.themTuThuVien(fam, { mau: b.mau, con: b.con, soLuong: b.soLuong }, bm.id));
+    if (p[1] && p[2] === "so-luong" && p.length === 3 && post) return json(await qb.datSoLuong(fam, p[1], Number(b.soLuong)));    // #502: +/− «Đang có: N»
+    if (p[1] && p[2] === "mua-them" && p.length === 3 && post) return json(await qb.muaThem(fam, p[1], b.them, bm.id));          // #502: «Hết» ⇒ «Mua thêm»
     if (p[1] && p.length === 2 && post) return json({ ok: true, qua: await qb.suaQuaS3(fam, p[1], b) });
     if (p[1] && p[2] === "xoa" && p.length === 3 && post) return json(await qb.xoaQua(fam, p[1], bm.id));
   }
