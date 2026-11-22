@@ -1,6 +1,7 @@
 // Sentry phía máy chủ (Thanh 22/10: «nối aiigrow vô sentry của tôi» — org minicmo, project aiigrow-server).
 // Không có SENTRY_DSN (máy dev, test, preview chưa đặt) ⇒ không nạp gì. Chỉ lỗi hệ thống (500) — lỗi nghiệp vụ 4xx không đẩy (gây nhiễu).
 export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") (await import("./lib/otp-khoi-dong.ts")).kiemOtpThu();
   if (!process.env.SENTRY_DSN || process.env.NEXT_RUNTIME !== "nodejs") return;
   const Sentry = await import("@sentry/nextjs");
   Sentry.init({
