@@ -239,6 +239,22 @@ public sealed class AgentRuntime
     /// <summary>Đổi khi phần dong-bo ẢNH HƯỞNG số phút đổi điểm đổi (bật/tắt đổi điểm, mục Giải trí, chế độ, cửa sổ mở, phiên chơi) — PipeServer bỏ số
     /// phút PlayInfo đã nhớ. KHÔNG so cả JSON thô: serverTime đổi mỗi lần đồng bộ ⇒ bộ nhớ đệm vô dụng (review #75).</summary>
     public int PolicyRev { get; private set; }
+
+    private DateTimeOffset? _syncCuoi;
+    private int _nhipSyncSec = 300;
+    private SyncResult? _syncCoLenhGo;
+
+    /// <summary>#558: AgentWorker vừa đồng bộ xong trong vòng 1,5 nhịp ⇒ HeartbeatWorker bỏ lượt dong-bo của mình (trước đây hai vòng cùng gọi ⇒ gấp đôi tải máy chủ).</summary>
+    public bool VuaDongBo(DateTimeOffset nowUtc)
+    {
+        lock (_gate) return _syncCuoi is { } t && (nowUtc - t).TotalSeconds < Math.Clamp(_nhipSyncSec, 15, 900) * 1.5;
+    }
+
+    /// <summary>Lấy (và xoá) kết quả đồng bộ có lệnh «go» mà AgentWorker nhận được.</summary>
+    public SyncResult? LayLenhGoCho()
+    {
+        lock (_gate) { var r = _syncCoLenhGo; _syncCoLenhGo = null; return r; }
+    }
     private string? _vtDoiDiem;
 
     private static string VanTayDoiDiem(Policy p) =>
@@ -254,6 +270,11 @@ public sealed class AgentRuntime
             if (!string.Equals(vtDoiDiem, _vtDoiDiem, StringComparison.Ordinal)) { _vtDoiDiem = vtDoiDiem; PolicyRev++; }
             _policy = p;
             _policyAt = DateTimeOffset.UtcNow;
+            _syncCuoi = _policyAt;
+            _nhipSyncSec = p.NextCheckSec;
+            // #558: lệnh «go» trong lượt đồng bộ của AgentWorker để HeartbeatWorker thực thi, khỏi gọi dong-bo lần hai.
+            var sr = SyncResult.Parse(raw);
+            if (sr.LenhGo != null) _syncCoLenhGo = sr;
             _usedSeconds = 0;
             _quyGiay = 0; _quyChoGhi = 0;   // số sao mới của máy chủ đã trừ phần đã chơi (usage gửi cùng lượt đồng bộ)
             _giayBe = new();

@@ -66,9 +66,12 @@ public sealed class HeartbeatWorker : BackgroundService
             var cheDo = _rt?.CheDoHieuLuc ?? CheDoHieuLuc.Chon(null, cfg.CheDo, MoCoi.La(cfg, DateTimeOffset.UtcNow));
             var status = new { agent = "windows", version = Version(), online = true, cheDo };
             SyncResult sync;
+            // #558: AgentWorker đã đồng bộ gần đây ⇒ không gọi dong-bo lần hai; chỉ xử lý lệnh «go» nó nhận được (nếu có), còn lại chờ nhịp ngắn.
+            var cho = _rt?.LayLenhGoCho();
+            if (cho == null && _rt != null && _rt.VuaDongBo(DateTimeOffset.UtcNow)) return 15;
             try
             {
-                sync = await api.SyncAsync(status, DateTimeOffset.UtcNow.ToString("o"), ct);
+                sync = cho ?? await api.SyncAsync(status, DateTimeOffset.UtcNow.ToString("o"), ct);
             }
             catch (ApiException e) when (e.IsNetwork)
             {
