@@ -2,8 +2,8 @@
 
 Tác tử Windows của AiiGrow: tính giờ dùng máy của con, áp chính sách do bố mẹ đặt, và **luôn nói rõ cho con biết**
 máy đang được quản lý. Chỉ dùng cơ chế chính thức của Windows (tài khoản Standard, dịch vụ hệ thống, AppLocker,
-khoá phiên). Không ẩn mình, không né hệ điều hành. Căn cứ và phần chưa xác minh: [`docs/KHA-THI.md`](../docs/KHA-THI.md) mục 4,
-API máy con: [`docs/PLAN.md`](../docs/PLAN.md) mục 3 và 5.
+khoá phiên). Không ẩn mình, không né hệ điều hành. Căn cứ và phần chưa xác minh: tài liệu khả thi (đã bỏ khỏi repo),
+API máy con: xem `docs/API.md`.
 
 ## Kiến trúc
 
@@ -172,15 +172,15 @@ Chạy trên một **máy ảo Windows riêng** (Hyper-V / VirtualBox) hoặc **
    ⇒ dịch vụ gọi `phien/xet` → `phien/mo`; máy chủ cho ⇒ phiên bắt đầu, `game-thu.exe` chạy được.
 5. **Hết phiên ⇒ bị đóng**: để phiên chạy tới hết số phút đã đổi ⇒ mong đợi `game-thu.exe` bị đóng và màn chặn hiện lại.
 6. **Thu bằng chứng**: lưu `Get-AppLockerPolicy -Local -Xml > applocker.xml`, nhật ký dịch vụ trong Event Viewer, nhật ký
-   `%ProgramData%\AiiGrow\install.log`, và **ảnh chụp** màn chặn + lúc mở được + lúc hết phiên. Ghi kết quả vào `docs/DO-BEN.md`.
+   `%ProgramData%\AiiGrow\install.log`, và **ảnh chụp** màn chặn + lúc mở được + lúc hết phiên. Ghi kết quả vào phần Độ bền máy con của `docs/KE-HOACH.md`.
 
 Lưu ý an toàn: toàn bộ bước 2–5 chỉ chạy trong máy ảo/Sandbox; **không** chạy trên máy công ty.
 Khi chưa áp được AppLocker (Windows Home), còn lớp dự phòng đóng tiến trình (`ProcessEnforcer`) — vẫn đóng được `game-thu.exe`.
 
-## Giới hạn và việc cần thử (xem KHA-THI mục 4 và 7)
+## Giới hạn và việc cần thử (tài liệu khả thi đã bỏ)
 
 - **Chưa chạy thử trên Windows thật.** Mã mới chỉ build và test logic (sinh XML AppLocker, phân tích Policy, đếm phút).
-- AppLocker trên **Windows Home**: `Set-AppLockerPolicy` có chạy và có enforce không là việc **chưa xác minh** (KHA-THI 4.2).
+- AppLocker trên **Windows Home**: `Set-AppLockerPolicy` có chạy và có enforce không là việc **chưa xác minh**.
   Cần thử cả việc `AppIDSvc` có bật được bằng `Set-Service`/`Start-Service` hay không; chưa bật được thì chỉ còn lớp dự phòng (đóng tiến trình).
 - Cú pháp ngoại lệ `*\ten.exe` và luật Deny theo SID có ngoại lệ cần xác nhận trên máy thật.
 - **Khác bản yêu cầu một chút**: không cho phép nguyên `%PROGRAMFILES%` (nếu cho thì Chrome, game cài ở đó đều chạy được,
@@ -190,7 +190,7 @@ Khi chưa áp được AppLocker (Windows Home), còn lớp dự phòng đóng t
 - Tray là tiến trình của con nên con tắt được; khi đó dịch vụ vẫn tính giờ và khoá, nhưng không có màn hình báo. Tray tự chạy lại ở lần đăng nhập sau (HKLM Run).
 - Số phút chưa gửi lên máy chủ không được lưu khi dịch vụ khởi động lại giữa chừng.
 - Chạy offline: giờ còn lại tính theo phút đã đếm từ lần sync cuối; không tự đổi ngày/lịch ngủ khi mất mạng.
-- Safe Mode với tài khoản Standard, kiểm `LegalNoticeText` trên Home: thuộc danh sách cần thử trên máy thật (KHA-THI mục 7).
+- Safe Mode với tài khoản Standard, kiểm `LegalNoticeText` trên Home: thuộc danh sách cần thử trên máy thật.
 - Chưa ký số (code signing): Windows SmartScreen sẽ cảnh báo bộ cài; cần chứng chỉ trước khi phát hành.
 
 ## Ví quà (V1, 07/11)

@@ -24,8 +24,6 @@ on:
       - 'server/next.config.ts'
       - 'server/tsconfig.json'
       - 'server/instrumentation.ts'
-      - 'server/middleware.ts'
-      - 'server/proxy.ts'
   push:
     branches: [main]
     paths: *duong_agent

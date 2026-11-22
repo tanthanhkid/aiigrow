@@ -45,7 +45,7 @@ powershell -ExecutionPolicy Bypass -File agent-win\e2e\chay.ps1 -SetupGoc .\goc\
   Con sang «Mở hết» ⇒ agent mode `tu_do`, gỡ luật AppLocker AiiGrow, web không còn `*` nhưng trang chặn + web cấm (4.4c, 6.3) vẫn chặn; KB9 bật lại «Chặn app & web». Harness gỡ
   tạm MỤC «1» của IT nhưng để lại khoá `URLBlocklist` RỖNG ở HKLM — Chrome coi khoá rỗng là chính sách máy «danh sách trống», thắng hive Con
   (gốc lỗi 4.17 ở 0.2.9): agent phải gỡ khoá rỗng (hoặc tính là «HKLM đè», không thả trình duyệt) — 4.12 kiểm khoá đã gỡ. Server 2022
-  có AppLocker; máy gia đình Windows Home có thể không — xem `docs/KHA-THI.md`.
+  có AppLocker; máy gia đình Windows Home có thể không — chưa xác minh (tài liệu khả thi đã bỏ).
 - **Thông báo trước đăng nhập, Safe Mode, khởi động lại máy**: không kiểm (runner không khởi động lại được giữa job).
 - **Tự cập nhật** chờ `UpdateWorker` (2 phút sau khi dịch vụ chạy) — KB7b khởi động lại dịch vụ rồi chờ tối đa 8 phút.
 - Máy chủ chạy `next dev` (biên dịch đường lần đầu chậm) — harness hâm nóng các đường trước khi cài vì agent chỉ chờ 20 giây mỗi request.
