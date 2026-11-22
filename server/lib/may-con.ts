@@ -7,7 +7,7 @@ import { one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, khoaDen, khoaGoc, khoaMayHieuLuc, lichCua, moTamDen, NGU_TAT, nhipToiKhoaLai, thamSo } from "./cau-hinh.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
-import { allowlistHieuLuc, dsLuat, laKhayCuAiiGrow, phanLoai } from "./luat-app.ts";
+import { allowlistHieuLuc, dsLuat, laKhayCuAiiGrow, phanLoai, phanLoaiTu } from "./luat-app.ts";
 import { giaPhut, phienDang } from "./phien.ts";
 import { soDu } from "./vi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
@@ -81,6 +81,9 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
   const nhanTre = now.getTime() - dauNay.getTime() <= TRE_SAU_NUA_DEM_PHUT * 60_000;
   // #433 A4: phút trừ theo TỪNG app (theoMuc) — một lượt nhiều app không còn gán hết cho app tăng nhiều nhất («đã dùng gì», sổ sao)
   const truTheoBe = new Map<string, { be: string; ngay: string; phut: number; muc: string | null; max: number; cu: boolean; theoMuc: Map<string, number>; den: Date | null | undefined }>();
+  // luật đọc MỘT lần (dsLuat — taoPolicy dùng lại từ bộ nhớ đệm yêu cầu) rồi phân loại từng app trong bộ nhớ; usage ghi MỘT câu unnest sau vòng lặp
+  const luatCa = usage.length ? await dsLuat(may.family_id) : [];
+  const ghiUsage = new Map<string, { be: string; ngay: string; muc: string; loai: string; phut: number; dauLuc: Date | null }>();
   for (const u of usage) {
     const ngay = ngayGhi(u?.day, nay, f.tz, gm);
     if (!ngay || !u?.muc || !Number.isFinite(u.phut)) continue;
@@ -91,7 +94,7 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     if (!be) continue;
     // Mac báo bundle id giữ chữ hoa (com.roblox.RobloxPlayer) mà luật luôn chữ thường (luat-app.ts › chuanMuc) ⇒ hạ chữ thường để «Chưa xếp» khớp luật
     const muc = (may.platform === "mac" ? String(u.muc).toLowerCase() : String(u.muc)).slice(0, 200);
-    const pl = await phanLoai(may.family_id, be, muc);
+    const pl = { loai: phanLoaiTu(luatCa, be, muc) };
     const tong = Math.max(0, Math.min(1440, Math.round(u.phut)));
     // agent cũ gửi TỔNG phút của MÁY theo app (không phân bé) ⇒ phần của bé = tổng − phần các bé khác đã ghi trên máy (L13/S4)
     let khac = 0;
@@ -115,11 +118,20 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
       if (!u.con) x.cu = true;
       truTheoBe.set(kx, x);
     }
-    await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,$4,$5,$6,$7)
+    // cùng (bé, ngày, mục) hai dòng trong một lượt ⇒ gộp như hai lần upsert nối tiếp (phút lớn hơn, giờ sớm hơn, loại của dòng sau)
+    const gk = khoa(be, ngay, muc), g0 = ghiUsage.get(gk);
+    ghiUsage.set(gk, { be, ngay, muc, loai: pl.loai, phut: Math.max(g0?.phut ?? 0, phan),
+      dauLuc: g0?.dauLuc && dauLuc ? (g0.dauLuc < dauLuc ? g0.dauLuc : dauLuc) : g0?.dauLuc ?? dauLuc });
+    cuMap.set(khoa(be, ngay, muc), Math.max(cu, phan));
+  }
+  if (ghiUsage.size) {
+    const ds = [...ghiUsage.values()];
+    await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc)
+             select $1, x.child_id, x.ngay, x.muc, x.loai, x.phut, x.dau_luc::timestamptz
+             from unnest($2::text[], $3::text[], $4::text[], $5::text[], $6::int[], $7::text[]) as x(child_id, ngay, muc, loai, phut, dau_luc)
              on conflict (device_id, child_id, ngay, muc) do update set phut = greatest(usage.phut, excluded.phut), loai = excluded.loai,
                dau_luc = least(coalesce(usage.dau_luc, excluded.dau_luc), coalesce(excluded.dau_luc, usage.dau_luc))`,
-      [may.id, be, ngay, muc, pl.loai, phan, dauLuc]);
-    cuMap.set(khoa(be, ngay, muc), Math.max(cu, phan));
+      [may.id, ds.map((x) => x.be), ds.map((x) => x.ngay), ds.map((x) => x.muc), ds.map((x) => x.loai), ds.map((x) => x.phut), ds.map((x) => x.dauLuc ? x.dauLuc.toISOString() : null)]);
   }
   let boiMa = Math.max(0, Number(b.phutBoiMa) || 0);
   const boiMaBe = new Map<string, number>();
@@ -221,7 +233,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     // 14/11 «Khoá riêng máy này»: khoá của MÁY gộp vào cùng trường khoaNgay (agent mọi OS đã đọc) — khoá của Con thắng (giữ mở tạm / hạn của Con)
     lich: lichCua(c?.lich as never), khoaNgay: conKhoa || mayKhoa,
     khoaLaiLuc: mayKhoa ? null : moTamDen(c?.cau_hinh, now), khoaHetLuc,
-    soDu: c ? await soDu(c.id) : 0,          // = sao tiêu được (≥ 0)
+    soDu: qy ? qy.soSao.sao + qy.soSao.no : 0,          // = tổng điểm (sao + nợ) — trùng `soDu(con)`, lấy từ quyHomNay khỏi thêm một câu `points`
     phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)), may: ph.device_id } : null,
     tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da,
     // #262: web theo chế độ — «Theo danh sách» chỉ mở trang trong danh sách; «Mở hết» mở mọi trang

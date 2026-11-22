@@ -19,7 +19,8 @@ import { chinhSachWebCho } from "./web.ts";
 type ChungMay = { biMat: string | null; appThat?: Set<string>; appNen?: Set<string> };
 const chungMay = async (may: May): Promise<ChungMay> => {
   if (!coTacTu(may.platform)) return { biMat: null };
-  const [biMat, appThat, appNen] = await Promise.all([biMatOfflineMay(may.id), mucAppThat(may.family_id), mucAppThat(may.family_id, may.platform)]);
+  const coSan = (may as { offline_secret?: string | null }).offline_secret;   // hàng devices đã nạp từ token (select *) ⇒ khỏi đọc lại
+  const [biMat, appThat, appNen] = await Promise.all([coSan ? Promise.resolve(coSan) : biMatOfflineMay(may.id), mucAppThat(may.family_id), mucAppThat(may.family_id, may.platform)]);
   return { biMat, appThat, appNen };
 };
 
@@ -40,7 +41,7 @@ export async function dungWindows(may: May, pol: Policy, con: string | null,
   const ghep = tac && !con && laAgentMoi(o.status) ? await ghepPhienMayChung(may, pol) : null;
   const moPhienMay = tac && con ? await moRongPhienMay(may, con) : null;
   // Danh sách app thật (lib/app-may.ts): appThat cả nhà (để loại khỏi luật web); appNen chỉ máy cùng nền (allowedApps / playChoices); app bị Chặn của máy này
-  const [blockedApps, danhSachApp] = tac ? await Promise.all([appChanCuaMay(may, con), tinHieuDanhSachApp(may.id)]) : [[], null];
+  const [blockedApps, danhSachApp] = tac ? await Promise.all([appChanCuaMay(may, con), tinHieuDanhSachApp(may.id, may)]) : [[], null];
   const windows = chinhSachWindows(ghep?.pol ?? pol, ch.biMat ?? undefined, cheDo,
     { nen: may.platform === "mac" ? "mac" : "windows", moDen, conThuong, appThat: ch.appThat, appNen: ch.appNen, ...(moPhienMay ?? {}), ...(ghep?.mo ?? {}) });
   if (ghep) windows.canExchangePoints = false;               // máy dùng chung: đổi điểm phải chọn hồ sơ + PIN trên khay

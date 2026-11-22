@@ -88,6 +88,11 @@ type DongTT = {
 };
 
 const thamSoMay = async (may: Pick<May, "family_id" | "child_id">, t: Q = q): Promise<ThamSo> => {
+  if (t === q) {   // đọc theo id: dùng chung bộ nhớ đệm yêu cầu với taoPolicy / dongBo
+    const f = await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [may.family_id]);
+    const c = may.child_id ? await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [may.child_id]) : undefined;
+    return thamSo(f?.cau_hinh, c?.cau_hinh);
+  }
   const r = (await t<{ f: Record<string, unknown>; c: Record<string, unknown> | null }>(
     `select f.cau_hinh as f, c.cau_hinh as c from families f left join children c on c.id = $2 where f.id = $1`, [may.family_id, may.child_id]))[0];
   return thamSo(r?.f, r?.c);

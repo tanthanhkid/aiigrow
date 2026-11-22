@@ -6,7 +6,7 @@ import { docLog, nhanLog } from "./log-may.ts";
 import { chinhSachWindows } from "./agent-windows.ts";
 import { bearer } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { one } from "./db.ts";
+import { one, trongYeuCau } from "./db.ts";
 import { conTuPhien, ghepMay, mayTuToken, nguonGoi } from "./gia-dinh.ts";
 import { khopAppTheoTen, xinDuyet } from "./che-do-chan.ts";
 import { dongBo, laMoHet } from "./may-con.ts";
@@ -34,7 +34,10 @@ import { chinhSachWebCho } from "./web.ts";
 import { choThayDoi, phienBanDoi } from "./cho-thay-doi.ts";
 import { dsConMay, dungWindows } from "./goi-offline.ts";
 
-export async function xuLyMay(req: Request, p: string[]): Promise<Response> {
+export const xuLyMay = (req: Request, p: string[]): Promise<Response> => // chỉ hai đường nóng dùng bộ nhớ đệm trong yêu cầu; long-poll cho-thay-doi PHẢI đọc DB mới mỗi vòng
+  p.join("/") === "dong-bo" || p.join("/") === "nhip" ? trongYeuCau(() => xuLyMay0(req, p)) : xuLyMay0(req, p);
+
+async function xuLyMay0(req: Request, p: string[]): Promise<Response> {
   try {
     const d = p.join("/");
     // M4b: ghép bằng token gói cài — đường chính ghep-goi (agent-win PR #11); ghep {token} là bí danh (giữ cách cũ {ma})
