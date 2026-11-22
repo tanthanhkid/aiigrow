@@ -81,16 +81,17 @@ export async function dieuChinhTay(fam: string, con: string, delta: number, lyDo
   });
 }
 
-export async function tomTatVi(con: string) {
-  const r = (await one<{ du: number; no: number; vay: number; tra: number; kiem: number; cho: number; giu: number }>(
-    `select coalesce((select sum(delta) from points where child_id = $1), 0)::int as du,
+export const SQL_TOM_TAT_VI = `select coalesce((select sum(delta) from points where child_id = $1), 0)::int as du,
             coalesce((select sum(delta) from points where child_id = $1 and loai in ('vay', 'tra_no')), 0)::int as no,
             coalesce((select sum(delta) from points where child_id = $1 and loai = 'vay'), 0)::int as vay,
             coalesce((select -sum(delta) from points where child_id = $1 and loai = 'tra_no'), 0)::int as tra,
             coalesce((select sum(delta) from points where child_id = $1 and ${KIEM_SQL}), 0)::int as kiem,
             coalesce((select sum(coalesce(s.diem_nop, t.diem)) from submissions s join tasks t on t.id = s.task_id
                       where s.child_id = $1 and s.trang_thai = 'cho_duyet'), 0)::int as cho,
-            coalesce((select sum(diem) from redemptions where child_id = $1 and trang_thai = 'giu'), 0)::int as giu`, [con]))!;
+            coalesce((select sum(diem) from redemptions where child_id = $1 and trang_thai = 'giu'), 0)::int as giu`;
+
+export async function tomTatVi(con: string) {
+  const r = (await one<{ du: number; no: number; vay: number; tra: number; kiem: number; cho: number; giu: number }>(SQL_TOM_TAT_VI, [con]))!;
   const no = Math.max(0, r.no), tieu = Math.max(0, r.du);
   // `soDu` (cũ) = sao TIÊU ĐƯỢC (≥ 0 — app/agent cũ dùng để biết đủ sao đổi quà) · `sao` (15/11) = số dư Con thấy, ÂM khi nợ.
   // saoGiu (06/11, L14): sao đang GIỮ cho quà chờ Ba Mẹ trao (đã ghi trừ tạm; Ba Mẹ huỷ ⇒ hoàn) — «Đang giữ 50 sao cho quà chờ trao»

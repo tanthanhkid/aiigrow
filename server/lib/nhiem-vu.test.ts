@@ -107,8 +107,8 @@ test("duyệt hàng loạt, chỉnh điểm ±, quá 72 giờ hết hạn (hoặ
   const s4 = await nv.batDau(con, t);
   await nv.nop(con, s4, { anh: [anhGia("r4")] });
   await q(`update submissions set nop_luc = now() - interval '25 hours' where id = $1`, [s4]);
-  await nv.choDuyet(fam);
-  await nv.choDuyet(fam);
+  await nv.xuLyQuaHan(fam);
+  await nv.xuLyQuaHan(fam);
   assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'nhac_duyet'`, [fam])).length, 1, "nhắc một lần");
   await q(`update families set cau_hinh = '{"nv_tu_duyet_qua_han": 1}'::jsonb where id = $1`, [fam]);
   await q(`update submissions set nop_luc = now() - interval '80 hours' where id = $1`, [s4]);

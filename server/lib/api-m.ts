@@ -3,7 +3,8 @@
 import { batLoi, docJson, json, loi } from "./api.ts";
 import { docLog, nhanLog } from "./log-may.ts";
 import { baMeGoi, bearer, dangKy, dangNhap, datLaiMatKhau, guiOtp, hienDinhDanh, sha, TIEN_TO_FB, taoPhien, xoaPhien, type BaMe } from "./auth.ts";
-import { one, q, tx } from "./db.ts";
+import { one, q, trongYeuCau, tx } from "./db.ts";
+import { napTongHopNha } from "./gia-dinh-tong-hop.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { lichCua, sachCauHinh, thamSo, khoaGoc, khoaDen, moTamDen } from "./cau-hinh.ts";
 import * as gd from "./gia-dinh.ts";
@@ -151,16 +152,21 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
 
     if (d === "gia-dinh" && get) {
       // song song: mỗi câu SQL là một vòng mạng tới DB
+      // #561: chỉ đọc (không xử lý quá hạn / không ghi — việc của cron qua-han) + gộp «Hôm nay» theo cả nhà (lib/gia-dinh-tong-hop.ts) trong bộ nhớ đệm yêu cầu
+      return trongYeuCau(async () => {
+      const now = new Date();
       const [con, f, cho, ycCho, cb, phieuCho, mm] = await Promise.all([gd.dsCon(fam),
-        one<{ ten: string; quy_voucher: number }>(`select ten, quy_voucher from families where id = $1`, [fam]), nv.choDuyet(fam), yc.dsChoYc(fam), dsCanhBao(fam, true), pt.dsPhieuCho(fam),
-        mayMatMang(fam)]);
-      const cdy = await canDeY(fam, new Date(), { yc: ycCho, nv: cho, mm });
+        one<{ ten: string; quy_voucher: number; tz: string }>(`select ten, quy_voucher, tz from families where id = $1`, [fam]), nv.choDuyet(fam), yc.dsChoYc(fam, now, { ghi: false }), dsCanhBao(fam, true), pt.dsPhieuCho(fam),
+        mayMatMang(fam, now)]);
+      await napTongHopNha(fam, con as never, f!.tz, now);
+      const cdy = await canDeY(fam, now, { yc: ycCho, nv: cho, mm });
       // 06/11 (L19): soChuong = số mục «Cần Ba Mẹ để ý» (lib/can-de-y.ts) · con[].matMang = máy của Con mất mạng hôm nay (dòng «Máy mất mạng · Laptop»)
       return json({ ten: f!.ten, quyVoucher: f!.quy_voucher, choDuyet: cho.length + ycCho.length + phieuCho.length,
         canhBao: cb.length, soChuong: cdy.soChuong,
-        con: await Promise.all(con.map(async (c) => ({ id: c.id, ten: c.ten, avatar: c.avatar, nhom: c.nhom, ...(await homNay(fam, c.id)),
+        con: await Promise.all(con.map(async (c) => ({ id: c.id, ten: c.ten, avatar: c.avatar, nhom: c.nhom, ...(await homNay(fam, c.id, now)),
           coPin: !!c.pin_ma,
           matMang: mm.filter((x) => x.conId === c.id).map((x) => ({ mayId: x.mayId, ten: x.ten, nen: x.nen, tu: x.tu, phut: x.phut })) }))) });
+      });
     }
     // 15/11: tặng sao khởi đầu (0…200, bước 10) — không gửi ⇒ 30 (lib/so-sao.ts)
     if (d === "con" && post) return json({ id: await gd.taoCon(fam, { ...b, saoKhoiDau: b.saoKhoiDau ?? SAO_KHOI_DAU_MD }, bm.id) });
@@ -317,6 +323,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     if (d === "nhiem-vu/mau" && post) return json({ taoMoi: await nv.apDungMau(fam, b.nhom === "teen" ? "teen" : "nhi") });
     if (p[0] === "nhiem-vu" && p[1] && p.length === 2 && post) { await nv.suaNv(fam, p[1], b); return json({ ok: true }); }
 
+    if (d === "cho-duyet" && get) { await nv.xuLyQuaHan(fam); }   // màn «Chờ duyệt»: Ba Mẹ chủ động mở ⇒ xử lý quá hạn như trước (GET gia-dinh thì không — #561)
     if (d === "cho-duyet" && get) return json({ nhiemVu: await nv.choDuyet(fam), yeuCau: await yc.dsChoYc(fam), phieu: await pt.dsPhieuCho(fam), tuDong: await nv.tuDongHomNay(fam) });
     if (p[0] === "luot" && p[1]) {
       if (p.length === 2 && get) return json(await nv.chiTietLuot(fam, p[1]));

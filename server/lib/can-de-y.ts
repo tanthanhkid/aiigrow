@@ -64,7 +64,7 @@ const hhmm = (d: Date, tz: string) => { const g = gioDiaPhuong(d, tz).phut; retu
 export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<ReturnType<typeof dsChoYc>>; nv?: Awaited<ReturnType<typeof choDuyet>>;
   mm?: MayMatMang[] } = {}) {
   const tz = (await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))?.tz ?? "Asia/Ho_Chi_Minh";
-  const [mm, yc, nv, cb, may, appMoi] = await Promise.all([san.mm ?? mayMatMang(fam, now), san.yc ?? dsChoYc(fam, now), san.nv ?? choDuyet(fam),
+  const [mm, yc, nv, cb, may, appMoi] = await Promise.all([san.mm ?? mayMatMang(fam, now), san.yc ?? dsChoYc(fam, now, { ghi: false }), san.nv ?? choDuyet(fam),
     q<{ id: string; child_id: string | null; device_id: string | null; loai: string; muc: string; noi_dung: string; created_at: Date; ten_con: string | null; ten_may: string | null }>(
       `select a.id, a.child_id, a.device_id, a.loai, a.muc, a.noi_dung, a.created_at, c.ten as ten_con, d.name as ten_may from alerts a
          left join children c on c.id = a.child_id left join devices d on d.id = a.device_id

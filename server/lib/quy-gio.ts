@@ -46,18 +46,19 @@ export async function boiCanhCon(con: string, t: Q = q): Promise<BoiCanhCon> {
   return { fam: r.family_id, tz: r.tz, ts: thamSo(r.fcfg, r.ccfg), lich: lichCua(r.lich as never), cfg: r.ccfg ?? {}, moHet: r.che_do_chan === "mo_het" };
 }
 
+export const SQL_PHUT_DA_DUNG = `select 'phien' as k, coalesce(device_id, '') as may, coalesce(sum(phut_dung), 0)::real as p, null::text as ten_mien, null::real as giay
+       from play_sessions where child_id = $1 and bat_dau >= $2 group by 1, 2
+     union all
+     select 'app', device_id, coalesce(sum(phut), 0)::real, null, null from usage where child_id = $1 and ngay = $3 and loai = 'giai_tri' group by 1, 2
+     union all
+     select 'web', device_id, 0, ten_mien, giay from web_nhat_ky where child_id = $1 and ngay = $3 and giay > 0`;
+
 /** Phút Giải trí đã dùng hôm nay trên mọi máy. Mỗi máy lấy LỚN HƠN của (phút phiên chơi cũ mở trên máy đó) và (phút app Giải trí agent báo
  *  + phút trang web Giải trí) — cùng một lần chơi có thể vừa nằm trong phiên vừa nằm trong usage, nên không cộng hai nguồn của một máy. */
 export async function phutDaDung(t: Q, con: string, fam: string, ngay: string, tz: string): Promise<number> {
   const tu = dauNgayUtc(ngay, tz);
   // ba nguồn (phiên · app · web) gộp một câu UNION ALL — trước đây 3 vòng tới DB mỗi lượt dong-bo / nhip
-  const gop = await t<{ k: string; may: string; p: number; ten_mien: string | null; giay: number | null }>(
-    `select 'phien' as k, coalesce(device_id, '') as may, coalesce(sum(phut_dung), 0)::real as p, null::text as ten_mien, null::real as giay
-       from play_sessions where child_id = $1 and bat_dau >= $2 group by 1, 2
-     union all
-     select 'app', device_id, coalesce(sum(phut), 0)::real, null, null from usage where child_id = $1 and ngay = $3 and loai = 'giai_tri' group by 1, 2
-     union all
-     select 'web', device_id, 0, ten_mien, giay from web_nhat_ky where child_id = $1 and ngay = $3 and giay > 0`, [con, tu, ngay]);
+  const gop = await t<{ k: string; may: string; p: number; ten_mien: string | null; giay: number | null }>(SQL_PHUT_DA_DUNG, [con, tu, ngay]);
   const phien = gop.filter((x) => x.k === "phien"), app = gop.filter((x) => x.k === "app");
   const web = gop.filter((x) => x.k === "web").map((x) => ({ may: x.may, ten_mien: x.ten_mien ?? "", giay: Number(x.giay) }));
   const theoMay = new Map<string, { phien: number; khac: number }>();
