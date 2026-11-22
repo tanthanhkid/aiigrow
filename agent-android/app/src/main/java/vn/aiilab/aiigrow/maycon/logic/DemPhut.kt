@@ -107,7 +107,7 @@ class BoDemGiaTang {
             }
             daThayGi = true
         }
-        if (moi.isNotEmpty()) mocDoc = moi.last().luc + 1 else if (now > mocDoc) mocDoc = maxOf(mocDoc, now)
+        if (moi.isNotEmpty()) mocDoc = moi.last().luc + 1
         val kq = HashMap(daDong)
         dangMo?.let { g -> val x = maxOf(moLuc, dau); if (now > x) kq[g] = (kq[g] ?: 0L) + (now - x) }
         return kq
