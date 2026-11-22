@@ -254,3 +254,19 @@ test("nhận lời mời bỏ gia đình rỗng cũ ⇒ ghi mốc «xoa_gia_dinh
   assert.equal((await q(`select 1 from families where id = $1`, [b.fam])).length, 0);
   assert.equal((await q(`select 1 from audit where family_id = $1 and hanh_dong = 'xoa_gia_dinh'`, [b.fam])).length, 1);
 });
+
+test("#556: index cho câu nóng có đủ; cron dọn usage cũ hơn 400 ngày, giữ dòng mới", async () => {
+  const { donUsageCu } = await import("./xoa-tai-khoan.ts");
+  const ten = ["usage_con_ngay", "play_con_bat_dau", "evidence_sub", "submissions_con_tt", "submissions_cho", "kid_sessions_may",
+    "devices_gd", "children_gd", "tasks_gd", "rewards_gd", "requests_con_luc"];
+  const co = (await q<{ indexname: string }>(`select indexname from pg_indexes where indexname = any($1::text[])`, [ten])).map((x) => x.indexname);
+  assert.deepEqual(co.sort(), [...ten].sort());
+  const { fam } = await nha("Index");
+  const con = (await q<{ id: string }>(`select id from children where family_id = $1 limit 1`, [fam]))[0]?.id
+    ?? (await q<{ id: string }>(`insert into children(id, family_id, ten) values ('c556', $1, 'Bé') returning id`, [fam]))[0].id;
+  const now = new Date("2026-11-22T00:00:00Z");
+  for (const [ngay, muc] of [["2025-01-01", "a"], ["2025-10-17", "b"], ["2025-10-19", "d"], ["2026-11-20", "c"]])
+    await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ('d556', $1, $2, $3, 'giai_tri', 5)`, [con, ngay, muc]);
+  assert.equal(await donUsageCu(now), 2, "mốc 400 ngày = 2025-10-18: hai dòng ≤ 17/10/2025 bị xoá, 19/10 còn");
+  assert.deepEqual((await q<{ muc: string }>(`select muc from usage where device_id = 'd556' order by muc`)).map((x) => x.muc), ["c", "d"]);
+});

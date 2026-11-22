@@ -826,4 +826,16 @@ export const SCHEMA_APP_WEB = [
   `alter table requests add column if not exists theo_ten boolean`,
   // tên hiển thị app Con chọn trong lưới («Paint» cho microsoft.mspaint) — Ba Mẹ đọc tên, luật vẫn khoá theo gia_tri
   `alter table requests add column if not exists ten_app text`,
+  // #556: index cho các câu nóng (FK Postgres không tự tạo index). Chạy một lần theo BAM_LUOC_DO; bảng usage lớn thì deploy ngoài giờ cao điểm.
+  `create index if not exists usage_con_ngay on usage(child_id, ngay)`,
+  `create index if not exists play_con_bat_dau on play_sessions(child_id, bat_dau)`,
+  `create index if not exists evidence_sub on evidence(submission_id)`,
+  `create index if not exists submissions_con_tt on submissions(child_id, trang_thai)`,
+  `create index if not exists submissions_cho on submissions(nop_luc) where trang_thai = 'cho_duyet'`,
+  `create index if not exists kid_sessions_may on kid_sessions(device_id)`,
+  `create index if not exists devices_gd on devices(family_id)`,
+  `create index if not exists children_gd on children(family_id)`,
+  `create index if not exists tasks_gd on tasks(family_id)`,
+  `create index if not exists rewards_gd on rewards(family_id)`,
+  `create index if not exists requests_con_luc on requests(child_id, created_at)`,
 ];
