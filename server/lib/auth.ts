@@ -58,6 +58,7 @@ export async function guiOtp(dinhDanh: unknown, mucDich: "dang_ky" | "quen_mk", 
   // Trần gửi TRƯỚC mọi nhánh khác (cùng một câu trả lời cho mọi số/email, không lộ tài khoản) — chặn dò mã và SMS pumping.
   // Giữ chỗ bằng một upsert nguyên tử theo khung giờ cố định (cùng kiểu ghepMay).
   const khung = Math.floor(now / OTP_KHUNG_MS);
+  await q(`delete from pin_sai where khoa ~ '^otp(ip|gui|sai):' and substring(khoa from '[0-9]+$')::bigint < $1`, [khung - 1]);   // dọn khung cũ
   for (const [khoa, toiDa] of [[`otpip:${nguon}:${khung}`, OTP_GUI_IP], [`otpgui:${d}:${khung}`, OTP_GUI_DINH_DANH]] as const) {
     const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
       on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
