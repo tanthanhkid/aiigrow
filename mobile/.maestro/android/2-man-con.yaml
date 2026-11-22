@@ -1,0 +1,27 @@
+# Mở các màn con từ tab: thông báo, lời xin của con, cài đặt chung, máy của con.
+appId: vn.aiilab.aiigrow
+---
+- runFlow: luong/vao.yaml
+- tapOn: "Tất cả ›"
+- takeScreenshot: ../out/anh/20-thong-bao
+- back
+- assertVisible: "Cần Ba Mẹ để ý"
+- tapOn: "Cả nhà.*"
+- assertVisible: "Cài đặt chung"
+- tapOn: "Thông báo"
+- takeScreenshot: ../out/anh/21-cai-dat-thong-bao
+- back
+- tapOn: "Quà con đổi bằng sao"
+- takeScreenshot: ../out/anh/22-qua-doi-sao
+- back
+- scrollUntilVisible:
+    element: "Máy của con"
+- tapOn: "Máy của con"
+- takeScreenshot: ../out/anh/23-may-cua-con
+- back
+- tapOn: "Báo cáo.*"
+- tapOn: "Nhật ký cả nhà"
+- takeScreenshot: ../out/anh/24-nhat-ky
+- back
+- tapOn: "App & web.*"
+- takeScreenshot: ../out/anh/25-app-web-con-xin
