@@ -62,6 +62,8 @@ function khach(tienTo: "m" | "kid", khoa: string) {
     /** Đăng ký nghe «dữ liệu cũ hết đúng» (đổi phiên, vừa ghi). */
     khiDoi: (fn: () => void) => { khiDoi.add(fn); },
     co: () => !!token,
+    /** Địa chỉ + header cho tài nguyên nhị phân (ảnh) — không đi qua JSON. */
+    tep: (duong: string) => ({ uri: `${GOC}/api/${tienTo}/${duong}`, headers: (token ? { authorization: `Bearer ${token}` } : {}) as Record<string, string> }),
     onHetPhien: (fn: () => void) => { hetPhien = fn; },
     goi<T = any>(duong: string, body?: unknown): Promise<T> {
       if (body !== undefined) { doi(); return goiThat<T>(duong, body).finally(doi); }

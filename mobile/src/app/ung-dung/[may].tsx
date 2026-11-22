@@ -4,7 +4,7 @@
 // #338 (17/11): máy chung ⇒ chọn bé trước (máy chủ trả `conDs`; GET ?con=, POST kèm `con`) — luật đi theo từng bé, không đặt cho cả nhà.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
-import { Image, View } from "react-native";
+import { Image, Platform, View } from "react-native";
 import { bm } from "@/lib/api";
 import { MAU_NHOM } from "@/lib/app-web";
 import { BONG } from "@/lib/clay";
@@ -15,7 +15,7 @@ import {
 type TrangThai = "he_thong" | "cho_phep" | "hoc" | "giai_tri" | "chan" | "chua_xep";
 type AppMay = {
   khoa: string; muc: string; ten: string; nguon: string | null; nhaPhatHanh: string | null; teamId: string | null; duongDan: string | null;
-  phienBan: string | null; icon: string | null; trangThai: TrangThai; nhom: string | null; theoCaNha: boolean; tamThoi?: boolean;
+  phienBan: string | null; icon: string | null; iconBam?: string | null; trangThai: TrangThai; nhom: string | null; theoCaNha: boolean; tamThoi?: boolean;
 };
 type DsMay = { may: { id: string; ten: string; nen: string; dungChung: boolean; con: string | null }; capNhatLuc: string | null; yeuCauLuc: string | null; ds: AppMay[];
   /** #338: bé được gán máy (máy chủ cũ không gửi) */ conDs?: { id: string; ten: string }[] };
@@ -34,13 +34,33 @@ const LOAI_DAT: Record<Dat, string> = { tinh_phut: "giai_tri", khong_tinh_phut: 
 const TEN_DAT: Record<Dat, string> = { tinh_phut: "Tính phút", khong_tinh_phut: "Không tính phút" };
 const CHO_MAY_MS = 5000, CHO_MAY_TOI_DA = 90_000;
 
+const NHO_ICON = new Map<string, string>(); // web: iconBam → blob URL (đã tải, dùng lại khi mở lại màn)
+/** Ảnh icon theo băm qua `may/:id/icon/:bam` (có Authorization). Native: Image + headers (HTTP cache/ETag của hệ điều hành); web: fetch blob. Lỗi ⇒ `loi`. */
+function AnhIcon({ may, bam, loi }: { may: string; bam: string; loi: () => void }) {
+  const khoa = `${may}/${bam}`;
+  const [url, setUrl] = useState<string | null>(Platform.OS === "web" ? NHO_ICON.get(khoa) ?? null : null);
+  useEffect(() => {
+    if (Platform.OS !== "web" || NHO_ICON.has(khoa)) return;
+    let huy = false;
+    const t = bm.tep(`may/${may}/icon/${bam}`);
+    fetch(t.uri, { headers: t.headers }).then((r) => (r.ok ? r.blob() : Promise.reject(new Error(String(r.status)))))
+      .then((b) => { const u = URL.createObjectURL(b); NHO_ICON.set(khoa, u); if (!huy) setUrl(u); })
+      .catch(() => { if (!huy) loi(); });
+    return () => { huy = true; };
+  }, [khoa]); // eslint-disable-line react-hooks/exhaustive-deps
+  const nguon = Platform.OS === "web" ? (url ? { uri: url } : null) : bm.tep(`may/${may}/icon/${bam}`);
+  return nguon ? <Image source={nguon} onError={loi} style={{ width: 40, height: 40 }} resizeMode="contain" accessibilityIgnoresInvertColors /> : null;
+}
+
 /** Icon THẬT của app (PNG 96 px agent trích từ máy: exe/AppxManifest, .icns, PackageManager) — nhìn logo là nhận ra app.
  *  Chỉ khi máy không trích được icon mới dùng chữ cái đầu của tên app. */
-function IconApp({ a }: { a: AppMay }) {
+function IconApp({ a, may }: { a: AppMay; may: string }) {
+  const [hong, setHong] = useState(false);
   return (
     <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
       boxShadow: BONG.nho }}>
-      {a.icon ? <Image source={{ uri: `data:image/png;base64,${a.icon}` }} style={{ width: 40, height: 40 }} resizeMode="contain" accessibilityIgnoresInvertColors />
+      {a.iconBam && !hong ? <AnhIcon may={may} bam={a.iconBam} loi={() => setHong(true)} />
+        : a.icon ? <Image source={{ uri: `data:image/png;base64,${a.icon}` }} style={{ width: 40, height: 40 }} resizeMode="contain" accessibilityIgnoresInvertColors />
         : <Avt ten={a.ten} co={40} />}
       {a.trangThai === "giai_tri" || a.trangThai === "hoc" || a.trangThai === "cho_phep" ? (
         <View style={{ position: "absolute", right: -3, bottom: -3, width: 14, height: 14, borderRadius: 7, borderWidth: 2, borderColor: M.the,
@@ -56,7 +76,7 @@ export default function UngDungMay() {
   const { may } = useLocalSearchParams<{ may: string }>();
   // bé đang xem (máy chung) — ref vì useTai giữ hàm tải của lần dựng đầu
   const beRef = useRef<string | null>(null);
-  const lay = () => bm.goi<DsMay>(`may/${may}/ung-dung${beRef.current ? `?con=${encodeURIComponent(beRef.current)}` : ""}`);
+  const lay = () => bm.goi<DsMay>(`may/${may}/ung-dung?gon=1${beRef.current ? `&con=${encodeURIComponent(beRef.current)}` : ""}`);
   // máy chung chưa chọn bé ⇒ máy chủ trả cả nhà (tương thích app cũ) ⇒ chọn bé gán đầu rồi tải lại theo bé đó
   const { d, loi, matMang, tai } = useTai(async () => {
     const r = await lay();
@@ -172,7 +192,7 @@ export default function UngDungMay() {
               <NhomTieu chu={`${ds.length} ứng dụng`} />
               <Nhom>
                 {ds.map((a, i) => (
-                  <Dong key={a.khoa} dau={i === 0} tieu={a.ten} phu={phuCua(a)} trai={<IconApp a={a} />}
+                  <Dong key={a.khoa} dau={i === 0} tieu={a.ten} phu={phuCua(a)} trai={<IconApp a={a} may={may} />}
                     phai={<Nhan loai={TT[tt(a)].nhan} chu={TT[tt(a)].chu} />} bam={() => moChon(a)} />
                 ))}
               </Nhom>
