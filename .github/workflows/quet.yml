@@ -88,4 +88,5 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: mobile — knip
         working-directory: mobile
-        run: npx --yes knip@5.88.1
+        # knip qua npx nằm ở cache riêng, không thấy typescript của mobile ⇒ cài vào node_modules của mobile (không ghi lockfile)
+        run: npm install --no-save --no-audit --no-fund knip@5.88.1 && npx knip
