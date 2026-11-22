@@ -1133,7 +1133,11 @@ await kichBan("Duyệt nhiệm vụ: bằng chứng ⇒ «Duyệt · nhận 10 s
   await di("/duyet/l1");
   xet(await doi(`Duyệt · ${KEN} nhận 10 sao`), "nút duyệt nói rõ số sao");
   xet(await doi("Ảnh «Ảnh 1»"), "hiện nhãn ảnh bằng chứng");
-  xet(await js(`[...document.images].some((i) => i.src.startsWith("data:image/png") && i.naturalWidth >= 640)`), "hiện ảnh bằng chứng cỡ thật");
+  // ảnh decode bất đồng bộ — chờ có hạn tới khi naturalWidth đủ lớn (máy CI tải nặng thì đến muộn), không sleep cố định
+  const anhCoThat = `[...document.images].some((i) => i.src.startsWith("data:image/png") && i.naturalWidth >= 640)`;
+  let anhOk = false;
+  for (let t = 0; t < 8000 && !anhOk; t += 250) { anhOk = await js(anhCoThat); if (!anhOk) await sleep(250); }
+  xet(anhOk, "hiện ảnh bằng chứng cỡ thật");
   await bam("Ba Mẹ tự hào về con");
   await bam(`Duyệt · ${KEN} nhận 10 sao`);
   xet(await doi(`+10 sao cho ${KEN}!`), "màn đã duyệt");
