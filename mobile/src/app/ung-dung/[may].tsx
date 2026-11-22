@@ -2,7 +2,7 @@
 // không đoán tên) — GET may/:id/ung-dung; tìm, «Làm mới», thêm từng app vào danh sách «Tính phút» / «Không tính phút» hoặc bỏ khỏi danh sách
 // (15/11 — #262: POST may/:id/ung-dung/dat {trangThai: tinh_phut | khong_tinh_phut | bo}; không còn «Chặn»). Màn tóm tắt theo con ở tab «App & web».
 // #338 (17/11): máy chung ⇒ chọn bé trước (máy chủ trả `conDs`; GET ?con=, POST kèm `con`) — luật đi theo từng bé, không đặt cho cả nhà.
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Image, Platform, View } from "react-native";
 import { bm } from "@/lib/api";
@@ -48,18 +48,18 @@ function AnhIcon({ may, bam, loi }: { may: string; bam: string; loi: () => void 
       .catch(() => { if (!huy) loi(); });
     return () => { huy = true; };
   }, [khoa]); // eslint-disable-line react-hooks/exhaustive-deps
-  const nguon = Platform.OS === "web" ? (url ? { uri: url } : null) : bm.tep(`may/${may}/icon/${bam}`);
+  const nguon = useMemo(() => (Platform.OS === "web" ? (url ? { uri: url } : null) : bm.tep(`may/${may}/icon/${bam}`)), [url, may, bam]);
   return nguon ? <Image source={nguon} onError={loi} style={{ width: 40, height: 40 }} resizeMode="contain" accessibilityIgnoresInvertColors /> : null;
 }
 
 /** Icon THẬT của app (PNG 96 px agent trích từ máy: exe/AppxManifest, .icns, PackageManager) — nhìn logo là nhận ra app.
  *  Chỉ khi máy không trích được icon mới dùng chữ cái đầu của tên app. */
 function IconApp({ a, may }: { a: AppMay; may: string }) {
-  const [hong, setHong] = useState(false);
+  const [hong, setHong] = useState<string | null>(null); // băm icon đã lỗi (băm đổi ⇒ thử lại)
   return (
     <View style={{ width: 48, height: 48, borderRadius: 14, backgroundColor: M.the, alignItems: "center", justifyContent: "center",
       boxShadow: BONG.nho }}>
-      {a.iconBam && !hong ? <AnhIcon may={may} bam={a.iconBam} loi={() => setHong(true)} />
+      {a.iconBam && hong !== a.iconBam ? <AnhIcon key={`${may}/${a.iconBam}`} may={may} bam={a.iconBam} loi={() => setHong(a.iconBam ?? null)} />
         : a.icon ? <Image source={{ uri: `data:image/png;base64,${a.icon}` }} style={{ width: 40, height: 40 }} resizeMode="contain" accessibilityIgnoresInvertColors />
         : <Avt ten={a.ten} co={40} />}
       {a.trangThai === "giai_tri" || a.trangThai === "hoc" || a.trangThai === "cho_phep" ? (
