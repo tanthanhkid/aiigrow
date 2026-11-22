@@ -268,6 +268,8 @@ Thanh: *"danh sách ứng dụng load trực tiếp từ máy thực tế để 
   agent đóng ở mọi mode (kể cả `tu_do`) khi chế độ «chan». Android chặn theo `chinhSach.ungDung.chan` (gói lạ như `ru.*` nay có `kieu: "app"` nhờ danh sách thật).
 
 ### App Ba Mẹ — `/api/m/*`
+- `GET may/:id/icon/:bam` (#560) → PNG icon của app theo `iconBam`; `ETag` = băm, `Cache-Control: private, max-age=31536000, immutable`, `If-None-Match` ⇒ 304; không có / máy nhà khác ⇒ 404.
+- `GET may/:id/ung-dung?gon=1` (#560) bỏ `icon` base64 khỏi từng app (chỉ `iconBam`; ≈ 100 app < 60 KB) — app tải lười icon qua đường trên; không `gon` ⇒ như cũ kèm `icon` (app bản cũ). Mỗi app có `iconBam` (null = máy chưa trích được icon; không gọi đường icon).
 - `GET may/:id/ung-dung` → `{may, capNhatLuc, yeuCauLuc, ds: [{khoa, muc, ten, nguon, nhaPhatHanh, teamId, duongDan, phienBan, icon, trangThai, nhom, theoCaNha, tamThoi?}]}`;
   `trangThai`: he_thong | cho_phep | hoc | giai_tri | chan | chua_xep (Allowlist hệ thống → luật riêng Con dùng máy → luật cả nhà).
 - `POST may/:id/ung-dung/dat {khoa, trangThai: cho_phep|hoc|giai_tri|chan|bo, nhom?}` → `{muc, con, truoc}` — `muc` lấy từ danh sách của máy (app không còn ⇒ 404
