@@ -11,6 +11,7 @@ Mọi thứ dưới đây chỉ **báo** hoặc **chặn phát bản cài**, kh�
 | CodeQL | Settings › Code security, *default setup* | Quét mã mỗi push/PR + hằng tuần. Cảnh báo ở tab Security › Code scanning. |
 | Secret scanning + push protection | Settings › Code security | Đẩy commit chứa khoá lộ bị GitHub chặn ngay lúc push. |
 | Dependabot | Settings › Code security + `.github/dependabot.yml` | Cảnh báo lỗ hổng + tự mở PR vá bảo mật. PR nâng bản thường tắt (`open-pull-requests-limit: 0`), riêng github-actions gom một PR mỗi tháng. |
+| Cổng quét | `.github/workflows/quet.yml` (PR + push main) | **gitleaks** (`.gitleaks.toml`, allowlist báo giả `bm2-trang-chu`), **osv-scanner** (`osv-scanner.toml`: gói chỉ build/tools đã rà, có lý do từng mục; lỗ hổng mới ⇒ đỏ), **knip** server + mobile (`knip.json` mỗi thư mục: file thừa, dependency thừa/thiếu ⇒ đỏ; export thừa chỉ cảnh báo, gác ở #567 #570). Action ghim SHA (#554), quyền `contents: read`. Chạy cục bộ: `gitleaks detect --config .gitleaks.toml`, `osv-scanner scan --config osv-scanner.toml -r .`, `npx knip@5.88.1` trong `server/` hoặc `mobile/`. Như mọi thứ ở đây: không chặn merge. |
 | Mẫu issue | `.github/ISSUE_TEMPLATE/` | «Báo lỗi» (tự gắn `loi`), «Đề xuất thay đổi thiết kế» (`de-xuat`); vẫn viết issue trống được. |
 
 Thêm workflow CI mới cần chạy đêm + báo đỏ: thêm `workflow_call:` vào `on:` của nó, một job `uses:` trong `dem.yml` (tên job = tên workflow,

@@ -1,0 +1,34 @@
+# Gói có lỗ hổng nhưng chỉ ở build / công cụ nội bộ, không ở runtime (rà tay 22/11/2026, tro_ly bao-mat-cong-cu).
+# Mỗi mục phải có lý do; gỡ khi gói được nâng bản. Lỗ hổng MỚI ngoài danh sách này sẽ làm job osv-scanner đỏ.
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+reason = "minimatch 10.2.6 (mobile + server): chỉ qua công cụ build (expo fingerprint, Sentry bundler), không chạy ở runtime; fix mobile là hạ expo"
+
+[[IgnoredVulns]]
+id = "GHSA-mrhx-c7xc-m3w5"
+reason = "zod 3.25.76 (mobile): DoS do dữ liệu lớn, app chỉ parse dữ liệu từ máy chủ của mình"
+
+[[IgnoredVulns]]
+id = "GHSA-3g3m-2fjr-6pw4"
+reason = "glob 13.0.6 (server): chỉ qua Sentry bundler lúc build"
+
+[[IgnoredVulns]]
+id = "GHSA-5pm8-86m8-9m6r"
+reason = "basic-ftp (tools/brainstorm-ui): công cụ chạy local, không lên prod"
+
+[[IgnoredVulns]]
+id = "GHSA-c475-qrg2-pj4r"
+reason = "basic-ftp (tools/brainstorm-ui): công cụ chạy local, không lên prod"
+
+[[IgnoredVulns]]
+id = "GHSA-r4jh-29pc-gfqr"
+reason = "basic-ftp (tools/brainstorm-ui): công cụ chạy local, không lên prod"
+
+[[IgnoredVulns]]
+id = "GHSA-7pqw-9j4j-h8q3"
+reason = "extract-zip (tools/brainstorm-ui): công cụ chạy local, chưa có bản vá"
+
+[[IgnoredVulns]]
+id = "GHSA-jmr9-qjv8-65gv"
+reason = "extract-zip (tools/brainstorm-ui): công cụ chạy local, chưa có bản vá"

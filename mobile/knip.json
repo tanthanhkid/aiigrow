@@ -1,0 +1,35 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/app/**/*.{ts,tsx}",
+    "src/**/*.web.{ts,tsx}",
+    "scripts/*.mjs",
+    "src/lib/*.test.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "scripts/**/*.mjs",
+    "*.ts"
+  ],
+  "ignoreDependencies": [
+    "expo-crypto",
+    "expo-status-bar",
+    "expo-updates",
+    "expo-system-ui",
+    "@expo-google-fonts/inter"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "exports": "warn",
+    "types": "warn",
+    "nsExports": "warn",
+    "nsTypes": "warn",
+    "enumMembers": "warn",
+    "classMembers": "off",
+    "duplicates": "warn"
+  },
+  "ignore": [
+    "src/lib/sua-gio.tsx"
+  ],
+  "ignoreBinaries": []
+}
