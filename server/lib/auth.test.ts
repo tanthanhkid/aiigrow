@@ -81,10 +81,13 @@ test("OTP: gửi mã mới KHÔNG xoá lần sai đã cộng dồn; ≥10 lần 
   await a.dangKy({ dinhDanh: d, ma, ten: "Lan", matKhau: "matkhau123" });
 });
 
-test("khởi động: production + AIIGROW_OTP_THU=1 bị từ chối (trừ bộ pha)", async () => {
+test("khởi động: production + AIIGROW_OTP_THU=1 cảnh báo, không chặn (trừ bộ pha)", async () => {
   const { kiemOtpThu } = await import("./otp-khoi-dong.ts");
-  assert.throws(() => kiemOtpThu({ NODE_ENV: "production", AIIGROW_OTP_THU: "1" }), /OTP_THU/);
-  kiemOtpThu({ NODE_ENV: "production" });
-  kiemOtpThu({ NODE_ENV: "development", AIIGROW_OTP_THU: "1" });
-  kiemOtpThu({ NODE_ENV: "production", AIIGROW_OTP_THU: "1", AIIGROW_PHA: "1" });
+  const goc = console.error; console.error = () => {};
+  try {
+    assert.equal(kiemOtpThu({ NODE_ENV: "production", AIIGROW_OTP_THU: "1" }), true);
+    assert.equal(kiemOtpThu({ NODE_ENV: "production" }), false);
+    assert.equal(kiemOtpThu({ NODE_ENV: "development", AIIGROW_OTP_THU: "1" }), false);
+    assert.equal(kiemOtpThu({ NODE_ENV: "production", AIIGROW_OTP_THU: "1", AIIGROW_PHA: "1" }), false);
+  } finally { console.error = goc; }
 });
