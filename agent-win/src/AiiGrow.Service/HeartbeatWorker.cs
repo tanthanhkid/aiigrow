@@ -59,6 +59,10 @@ public sealed class HeartbeatWorker : BackgroundService
     /// <summary>Một nhịp heartbeat. → số giây tới nhịp sau, hoặc -1 nếu đã gỡ máy (dừng dịch vụ).</summary>
     private async Task<int> TickAsync(AgentConfig cfg, CancellationToken ct)
     {
+        // #558: AgentWorker đã đồng bộ gần đây ⇒ không gọi dong-bo lần hai; chỉ xử lý lệnh «go» nó nhận được (nếu có).
+        // Còn hàng đợi offline / đang offline thì vẫn chạy đủ nhịp như cũ (cần gửi sự kiện tồn, đặt lại _online).
+        var cho = _rt?.LayLenhGoCho();
+        if (cho == null && _rt != null && _online && cfg.Queue.Items.Count == 0 && _rt.VuaDongBo(DateTimeOffset.UtcNow)) return 15;
         var api = _apiFactory(cfg.Server, cfg.Token);
         try
         {
@@ -68,7 +72,7 @@ public sealed class HeartbeatWorker : BackgroundService
             SyncResult sync;
             try
             {
-                sync = await api.SyncAsync(status, DateTimeOffset.UtcNow.ToString("o"), ct);
+                sync = cho ?? await api.SyncAsync(status, DateTimeOffset.UtcNow.ToString("o"), ct);
             }
             catch (ApiException e) when (e.IsNetwork)
             {
