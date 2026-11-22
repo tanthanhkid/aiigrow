@@ -173,10 +173,11 @@ async function beDatLuat(may: May, chon: unknown) {
 }
 
 /** Màn «Ứng dụng trên máy <tên>» của Ba Mẹ. #338: máy chung ⇒ trạng thái theo bé `chon` (không chọn ⇒ cả nhà như cũ) + `conDs` để chọn bé. */
-export async function dsAppMay(fam: string, mayId: string, chon?: string | null) {
+export async function dsAppMay(fam: string, mayId: string, chon?: string | null, gon = false) {
   const may = await mayCua(fam, mayId);
   const [rows, luat, be] = await Promise.all([
-    q<DongApp>(`select * from app_may where device_id = $1 order by lower(ten), khoa`, [may.id]),
+    // #560: chọn cột cụ thể; `gon` ⇒ KHÔNG kéo cột icon (base64 5–25 KB/app) — app tải lười từng icon qua GET may/:id/icon/:bam
+    q<DongApp>(`select khoa, muc, ten, nguon, nha_phat_hanh, team_id, duong_dan, phien_ban, icon_bam${gon ? "" : ", icon"} from app_may where device_id = $1 order by lower(ten), khoa`, [may.id]),
     dsLuat(fam),
     beDatLuat(may, chon),
   ]);
@@ -189,9 +190,17 @@ export async function dsAppMay(fam: string, mayId: string, chon?: string | null)
     yeuCauLuc: may.app_yeu_cau ? new Date(may.app_yeu_cau).toISOString() : null,
     ds: rows.map((a) => ({
       khoa: a.khoa, muc: a.muc, ten: a.ten, nguon: a.nguon, nhaPhatHanh: a.nha_phat_hanh, teamId: a.team_id, duongDan: a.duong_dan,
-      phienBan: a.phien_ban, icon: a.icon, ...trangThaiApp(a.muc, con, luat, allow, a.ten),
+      phienBan: a.phien_ban, iconBam: a.icon_bam, ...(gon ? {} : { icon: a.icon ?? null }), ...trangThaiApp(a.muc, con, luat, allow, a.ten),
     })),
   };
+}
+
+/** #560: icon của MỘT app theo băm (PNG). Băm là SHA-256 byte ảnh ⇒ nội dung không đổi theo URL ⇒ cache bất biến phía app/CDN. null = không có. */
+export async function iconApp(fam: string, mayId: string, bam: string): Promise<Buffer | null> {
+  const may = await mayCua(fam, mayId);
+  if (!BAM.test(bam)) return null;
+  const r = await one<{ icon: string }>(`select icon from app_may where device_id = $1 and icon_bam = $2 and icon is not null limit 1`, [may.id, bam.toLowerCase()]);
+  return r ? Buffer.from(r.icon, "base64") : null;
 }
 
 export const TRANG_THAI_DAT = ["tinh_phut", "khong_tinh_phut", "cho_phep", "hoc", "giai_tri", "chan", "bo"] as const;

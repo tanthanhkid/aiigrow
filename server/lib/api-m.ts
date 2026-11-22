@@ -266,7 +266,15 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       // Thiết kế 05/11: máy luôn chặn thật — chỉ còn nhận «chan» (giam-sat ⇒ 409 che_do_bo); mức chặn đổi ở con/:id/che-do-chan
       if (sau === "che-do" && post) return json(await datCheDo(fam, p[1], b, bm.id));
       // Danh sách app ĐÃ CÀI THẬT trên máy (agent gửi) — Ba Mẹ xếp / chặn đúng app của máy (lib/app-may.ts)
-      if (sau === "ung-dung" && get) return json(await am.dsAppMay(fam, p[1], new URL(req.url).searchParams.get("con")));   // #338: máy chung ⇒ ?con=<bé>
+      // #560: `?gon=1` ⇒ danh sách KHÔNG kèm icon base64 (chỉ iconBam) — icon tải lười ở may/:id/icon/:bam; không gửi ⇒ như cũ (app bản cũ)
+      if (sau === "ung-dung" && get) { const u = new URL(req.url).searchParams; return json(await am.dsAppMay(fam, p[1], u.get("con"), u.get("gon") === "1")); }
+      if (p[2] === "icon" && p[3] && p.length === 4 && get) {
+        const bam = p[3].toLowerCase(), etag = `"${bam}"`, h = { etag, "cache-control": "private, max-age=31536000, immutable" };
+        const png = await am.iconApp(fam, p[1], bam);
+        if (!png) return json({ error: "khong_thay", message: "Không có icon này" }, 404);
+        if (req.headers.get("if-none-match") === etag) return new Response(null, { status: 304, headers: h });
+        return new Response(new Uint8Array(png), { headers: { ...h, "content-type": "image/png" } });
+      }   // #338: máy chung ⇒ ?con=<bé>
       if (sau === "ung-dung/lam-moi" && post) return json(await am.yeuCauLamMoi(fam, p[1]));
       if (sau === "ung-dung/dat" && post) {
         const kq = await am.datTrangThaiApp(fam, p[1], b);

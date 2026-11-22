@@ -272,3 +272,27 @@ test("#525 lời xin «Storedesktopextension» không được tạo; lời xin 
   const cho = await yc.dsChoYc(fam);
   assert.deepEqual(cho.map((x) => x.gia_tri), ["Minecraft"]);
 });
+
+test("#560: ?gon=1 bỏ icon khỏi danh sách (chỉ iconBam); icon tải riêng theo băm, cache bất biến + 304", async () => {
+  const { fam, tok, mayId, tokBm } = await nha();
+  const png = Buffer.alloc(20_000, 7).toString("base64");
+  const ds = Array.from({ length: 120 }, (_, i) => ({ khoa: `exe:c:\\a${i}.exe`, muc: `a${i}.exe`, ten: `App ${i}`, nguon: "start", icon: Buffer.alloc(20_000, i + 1).toString("base64") }));
+  assert.equal((await goiMay("ung-dung", tok, { du: true, bam: "a".repeat(64), ds })).status, 200);
+  const day = (await goiBm(`may/${mayId}/ung-dung`, tokBm)).body;
+  const gon = (await goiBm(`may/${mayId}/ung-dung?gon=1`, tokBm)).body;
+  assert.ok(day.ds.every((x: any) => x.icon && x.iconBam));
+  assert.ok(gon.ds.every((x: any) => !("icon" in x) && /^[0-9a-f]{64}$/.test(x.iconBam)));
+  assert.ok(JSON.stringify(gon).length < 60_000 && JSON.stringify(day).length > 1_000_000);
+  const lay = (bam: string, h: Record<string, string> = {}, may = mayId) => xuLyM(new Request(`http://app.test/api/m/may/${may}/icon/${bam}`,
+    { headers: { authorization: `Bearer ${tokBm}`, ...h } }), ["may", may, "icon", bam]);
+  const r = await lay(gon.ds[0].iconBam);
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get("content-type"), "image/png");
+  assert.match(r.headers.get("cache-control")!, /immutable/);
+  assert.equal(Buffer.from(await r.arrayBuffer()).toString("base64"), day.ds[0].icon);
+  assert.equal((await lay(gon.ds[0].iconBam, { "if-none-match": `"${gon.ds[0].iconBam}"` })).status, 304);
+  assert.equal((await lay("f".repeat(64))).status, 404);
+  const khac = await nha();
+  assert.equal((await lay(gon.ds[0].iconBam, {}, khac.mayId)).status, 404);   // máy nhà khác ⇒ không đọc được
+  void fam;
+});
