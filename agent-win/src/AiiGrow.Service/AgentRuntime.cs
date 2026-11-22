@@ -274,7 +274,7 @@ public sealed class AgentRuntime
             _nhipSyncSec = p.NextCheckSec;
             // #558: lệnh «go» trong lượt đồng bộ của AgentWorker để HeartbeatWorker thực thi, khỏi gọi dong-bo lần hai.
             var sr = SyncResult.Parse(raw);
-            if (sr.LenhGo != null) _syncCoLenhGo = sr;
+            _syncCoLenhGo = sr.LenhGo != null ? sr : null;   // lượt đồng bộ mới không còn «go» ⇒ bỏ bản cũ
             _usedSeconds = 0;
             _quyGiay = 0; _quyChoGhi = 0;   // số sao mới của máy chủ đã trừ phần đã chơi (usage gửi cùng lượt đồng bộ)
             _giayBe = new();
