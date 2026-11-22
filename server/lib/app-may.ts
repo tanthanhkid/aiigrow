@@ -122,8 +122,9 @@ export async function nhanDanhSachApp(may: May, b: Record<string, unknown>) {
 }
 
 /** Tín hiệu cho agent trong phản hồi dong-bo / nhip: bam máy chủ đang giữ + yêu cầu «Làm mới» của Ba Mẹ (chuỗi mờ, đổi mỗi lần bấm). */
-export async function tinHieuDanhSachApp(mayId: string) {
-  const r = await one<{ app_bam: string | null; app_yeu_cau: Date | null }>(`select app_bam, app_yeu_cau from devices where id = $1`, [mayId]);
+export async function tinHieuDanhSachApp(mayId: string, hang?: object) {
+  // `hang` = hàng devices đã nạp từ token (select *) ⇒ khỏi đọc lại một vòng nữa trong dong-bo / nhip
+  const r = hang && "app_bam" in hang ? (hang as { app_bam: string | null; app_yeu_cau: Date | null }) : await one<{ app_bam: string | null; app_yeu_cau: Date | null }>(`select app_bam, app_yeu_cau from devices where id = $1`, [mayId]);
   return { bam: r?.app_bam ?? null, yeuCau: r?.app_yeu_cau ? new Date(r.app_yeu_cau).toISOString() : null };
 }
 
@@ -228,7 +229,9 @@ export async function yeuCauLamMoi(fam: string, mayId: string) {
 /** Mọi `muc` app thật của cả nhà (chữ thường) — để biết «microsoft.minecraftuwp», «ru.keepcoder.telegram»… là APP chứ không phải tên miền. */
 /** `nen`: chỉ app của máy cùng nền tảng (package Android không phải app trên Windows). Bỏ trống = mọi máy (để loại app khỏi danh sách web). */
 export async function mucAppThat(fam: string, nen?: string): Promise<Set<string>> {
-  const r = await q<{ muc: string }>(`select distinct a.muc from app_may a join devices d on d.id = a.device_id where d.family_id = $1 and ($2::text is null or d.platform = $2)`, [fam, nen ?? null]);
+  // một câu cho cả nhà, lọc nền ở bộ nhớ ⇒ mucAppThat(fam) và mucAppThat(fam, nen) trong cùng một lượt chỉ tốn một vòng tới DB
+  const r = (await q<{ muc: string; platform: string }>(`select distinct a.muc, d.platform from app_may a join devices d on d.id = a.device_id where d.family_id = $1`, [fam]))
+    .filter((x) => !nen || x.platform === nen);
   // mục có dạng TÊN MIỀN thật (đuôi .com / .vn / 2 chữ…) không bao giờ được coi là app: agent bị sửa gửi «youtube.com» không gỡ được luật web của Ba Mẹ
   return new Set(r.map((x) => x.muc.toLowerCase()).filter((m) => m.endsWith(".exe") || !DUOI_MIEN.test(m)));
 }

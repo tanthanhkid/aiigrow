@@ -6,13 +6,13 @@
 //   (agent cũ tính «còn» = ngayPhut + themPhut − daDung − phút máy đếm thêm sau lần đồng bộ ⇒ đúng bằng số sao còn lại).
 // #258 (15/11): bỏ giờ ngủ / giờ học — lichCua luôn trả giờ ngủ «tắt» (tu = den) và giờ học null; các trường cũ (dangNgu, dangHoc, gioNgu,
 // gioHoc, phutToiNgu, phutToiHoc) giữ hình dạng cho agent / app cũ: false / null / 1440.
-import { q, type Q } from "./db.ts";
+import { coDemYeuCau, one, q, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, lichCua, thamSo, type GioHoc, type Lich, type ThamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan, phutCua, trongKhung, type Khung } from "./gio.ts";
 import { khoaSo } from "./luat-app.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
-import { cauSao, choVay, hoanTacVay, phutDaTruHomNay, trangThaiSao, type TrangThaiSao } from "./so-sao.ts";
+import { cauSao, choVay, hoanTacVay, trangThaiVaDaTru, type TrangThaiSao } from "./so-sao.ts";
 import { cauHinhCua, gioiHanCua, phanGhi, type GioiHanChoi } from "./gioi-han-choi.ts";
 
 /** 1 sao = 1 phút (giữ tên hàm cũ cho nơi gọi cũ). */
@@ -32,6 +32,14 @@ const toiNgu = (phut: number, k: Khung) => (k.tu === k.den ? 1440 : toiMoc(phut,
 export type BoiCanhCon = { fam: string; tz: string; ts: ThamSo; lich: Lich; cfg: Record<string, unknown>; moHet?: boolean };
 
 export async function boiCanhCon(con: string, t: Q = q): Promise<BoiCanhCon> {
+  // trong dong-bo / nhip (t = q): hai đọc theo id đã có sẵn trong bộ nhớ đệm yêu cầu, khỏi một câu join nữa
+  if (t === q && coDemYeuCau()) {
+    const c = await one<{ family_id: string; cau_hinh: Record<string, unknown>; lich: Record<string, unknown>; che_do_chan: string | null }>(`select * from children where id = $1`, [con]);
+    if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+    const f = await one<{ tz: string; cau_hinh: Record<string, unknown> }>(`select * from families where id = $1`, [c.family_id]);
+    if (!f) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+    return { fam: c.family_id, tz: f.tz, ts: thamSo(f.cau_hinh, c.cau_hinh), lich: lichCua(c.lich as never), cfg: c.cau_hinh ?? {}, moHet: c.che_do_chan === "mo_het" };
+  }
   const r = (await t<{ family_id: string; tz: string; fcfg: Record<string, unknown>; ccfg: Record<string, unknown>; lich: Record<string, unknown>; che_do_chan: string | null }>(
     `select c.family_id, f.tz, f.cau_hinh as fcfg, c.cau_hinh as ccfg, c.lich, c.che_do_chan from children c join families f on f.id = c.family_id where c.id = $1`, [con]))[0];
   if (!r) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
@@ -42,12 +50,16 @@ export async function boiCanhCon(con: string, t: Q = q): Promise<BoiCanhCon> {
  *  + phút trang web Giải trí) — cùng một lần chơi có thể vừa nằm trong phiên vừa nằm trong usage, nên không cộng hai nguồn của một máy. */
 export async function phutDaDung(t: Q, con: string, fam: string, ngay: string, tz: string): Promise<number> {
   const tu = dauNgayUtc(ngay, tz);
-  const phien = await t<{ may: string; p: number }>(
-    `select coalesce(device_id, '') as may, coalesce(sum(phut_dung), 0)::real as p from play_sessions where child_id = $1 and bat_dau >= $2 group by 1`, [con, tu]);
-  const app = await t<{ may: string; p: number }>(
-    `select device_id as may, coalesce(sum(phut), 0)::real as p from usage where child_id = $1 and ngay = $2 and loai = 'giai_tri' group by 1`, [con, ngay]);
-  const web = await t<{ may: string; ten_mien: string; giay: number }>(
-    `select device_id as may, ten_mien, giay from web_nhat_ky where child_id = $1 and ngay = $2 and giay > 0`, [con, ngay]);
+  // ba nguồn (phiên · app · web) gộp một câu UNION ALL — trước đây 3 vòng tới DB mỗi lượt dong-bo / nhip
+  const gop = await t<{ k: string; may: string; p: number; ten_mien: string | null; giay: number | null }>(
+    `select 'phien' as k, coalesce(device_id, '') as may, coalesce(sum(phut_dung), 0)::real as p, null::text as ten_mien, null::real as giay
+       from play_sessions where child_id = $1 and bat_dau >= $2 group by 1, 2
+     union all
+     select 'app', device_id, coalesce(sum(phut), 0)::real, null, null from usage where child_id = $1 and ngay = $3 and loai = 'giai_tri' group by 1, 2
+     union all
+     select 'web', device_id, 0, ten_mien, giay from web_nhat_ky where child_id = $1 and ngay = $3 and giay > 0`, [con, tu, ngay]);
+  const phien = gop.filter((x) => x.k === "phien"), app = gop.filter((x) => x.k === "app");
+  const web = gop.filter((x) => x.k === "web").map((x) => ({ may: x.may, ten_mien: x.ten_mien ?? "", giay: Number(x.giay) }));
   const theoMay = new Map<string, { phien: number; khac: number }>();
   const lay = (m: string) => { let x = theoMay.get(m); if (!x) theoMay.set(m, (x = { phien: 0, khac: 0 })); return x; };
   for (const r of phien) lay(r.may).phien += Number(r.p);
@@ -91,7 +103,7 @@ export type Quy = {
 export async function quyHomNay(con: string, now = new Date(), t: Q = q, b0?: BoiCanhCon): Promise<Quy> {
   const b = b0 ?? (await boiCanhCon(con, t));
   const g = gioDiaPhuong(now, b.tz);
-  const [st, dung, tru, gh0] = await Promise.all([trangThaiSao(con, t), phutDaDung(t, con, b.fam, g.ngay, b.tz), phutDaTruHomNay(t, con, b.tz, now),
+  const [{ st, tru }, dung, gh0] = await Promise.all([trangThaiVaDaTru(t, con, b.tz, now), phutDaDung(t, con, b.fam, g.ngay, b.tz),
     gioiHanCua(t, con, b.cfg, b.tz, { moHet: !!b.moHet }, now)]);
   // daDung ≥ phút đã trừ sao (phút dùng lúc «Mở hết» / trước khi có sao vẫn tính vào «đã dùng» để agent cũ đếm đúng phần còn)
   const daDung = Math.max(dung, tru);

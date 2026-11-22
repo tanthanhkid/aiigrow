@@ -49,6 +49,15 @@ export async function trangThaiSao(con: string, t: Q = q): Promise<TrangThaiSao>
   return tinhTrangThai(r.s, r.n);
 }
 
+/** Một câu cho cả hai: trạng thái sao + phút «Tính phút» đã trừ hôm nay (trước đây 2 câu `points` riêng; dong-bo / nhip tốn nhiều vòng tới DB). */
+export async function trangThaiVaDaTru(t: Q, con: string, tz: string, now = new Date()): Promise<{ st: TrangThaiSao; tru: number }> {
+  const tu = dauNgayUtc(gioDiaPhuong(now, tz).ngay, tz);
+  const r = (await t<{ s: number; n: number; p: number }>(
+    `select coalesce(sum(delta), 0)::int as s, coalesce(sum(delta) filter (where loai in ('vay', 'tra_no')), 0)::int as n,
+            coalesce(-sum(delta) filter (where loai = 'choi' and created_at >= $2), 0)::int as p from points where child_id = $1`, [con, tu]))[0];
+  return { st: tinhTrangThai(r.s, r.n), tru: r.p };
+}
+
 /** Câu cho máy Con / app: «còn 30 sao = 30 phút chơi» · nợ: «Đang nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước». */
 export function cauSao(st: TrangThaiSao) {
   const so = soVN;
