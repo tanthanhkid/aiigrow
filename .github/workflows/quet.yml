@@ -1,0 +1,91 @@
+name: quet
+
+# Cổng quét lỗi (docs/GITHUB-CHONG-LOI.md): lộ bí mật, thư viện có lỗ hổng, code chết TS.
+#   gitleaks : quét commit của PR (hoặc push) — cho phép báo giả ở .gitleaks.toml
+#   osv      : osv-scanner trên mọi lockfile — lỗ hổng đã rà (chỉ build/tools) liệt kê ở osv-scanner.toml, lỗ hổng MỚI ⇒ đỏ
+#   knip     : server + mobile — file thừa / dependency thừa / thiếu khai báo ⇒ đỏ; export thừa chỉ cảnh báo (issue #567 #570 đang gác)
+# Action ghim theo SHA (issue #554).
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quet-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gitleaks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7  # v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_CONFIG: .gitleaks.toml
+          GITLEAKS_ENABLE_COMMENTS: 'false'
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: 'false'
+          GITLEAKS_ENABLE_SUMMARY: 'true'
+
+  osv:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - name: Cài osv-scanner 2.7.1 (kiểm sha256)
+        run: |
+          curl -sSfL -o osv-scanner https://github.com/google/osv-scanner/releases/download/v2.7.1/osv-scanner_linux_amd64
+          echo 'fb7dab19a8bd9bbe5c3189f09d4b7ee1820c9553a23bac202648a56efd2f6ee8  osv-scanner' | sha256sum -c -
+          chmod +x osv-scanner
+      - name: Quét lockfile
+        run: ./osv-scanner scan --config osv-scanner.toml -r .
+
+  knip-server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115  # v6
+        with:
+          version: 10
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: server/pnpm-lock.yaml
+      - name: server — cài
+        working-directory: server
+        # cùng cách xử lý ERR_PNPM_IGNORED_BUILDS như mobile.yml
+        run: |
+          rc=0; o="$(pnpm install --frozen-lockfile 2>&1)" || rc=$?
+          echo "$o" | tail -15
+          if [ $rc != 0 ] && grep -oE 'ERR_PNPM_[A-Z_]+' <<<"$o" | grep -vq '^ERR_PNPM_IGNORED_BUILDS$'; then exit 1; fi
+          rm -f pnpm-workspace.yaml
+          [ -d node_modules/next ] || { echo "pnpm install lỗi (thiếu node_modules/next)"; exit 1; }
+      - name: server — knip
+        working-directory: server
+        run: npx --yes knip@5.88.1
+
+  knip-mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - name: mobile — cài
+        working-directory: mobile
+        run: npm ci --no-audit --no-fund
+      - name: mobile — knip
+        working-directory: mobile
+        run: npx --yes knip@5.88.1

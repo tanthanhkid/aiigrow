@@ -1,0 +1,25 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "app/**/{page,route,layout,error,global-error,not-found,loading,template,default}.{ts,tsx}",
+    "scripts/*.{ts,mjs}",
+    "lib/*.test.ts",
+    "lib/test-fixtures/*.mjs"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "lib/**/*.ts",
+    "scripts/**/*.{ts,mjs}",
+    "*.ts"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "rules": {
+    "exports": "warn",
+    "types": "warn",
+    "nsExports": "warn",
+    "nsTypes": "warn",
+    "enumMembers": "warn",
+    "classMembers": "off",
+    "duplicates": "warn"
+  }
+}

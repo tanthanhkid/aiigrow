@@ -1,0 +1,9 @@
+title = "aiigrow gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Báo động giả đã rà tay (22/11/2026)"
+# tools/brainstorm-ui/web/hanh-trinh/bm-2.js: `key: 'bm2-trang-chu'` là khoá tên trang, không phải bí mật
+regexes = ['''bm2-trang-chu''']
