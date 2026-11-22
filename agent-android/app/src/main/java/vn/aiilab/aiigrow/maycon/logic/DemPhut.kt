@@ -66,3 +66,62 @@ fun thanNhip(
         .put("deviceOwner", deviceOwner).put("troNang", troNang).put("usageStats", usage))
     .put("matKetNoiPhut", matKetNoiPhut).put("nguon", nguon)
     .put("phutDungHomNay", JSONObject(phutTheoGoi.filterValues { it > 0 }))
+
+/**
+ * Bộ đếm tiền cảnh GIA TĂNG trong một ngày: chỉ nhận sự kiện mới (từ mốc lần đọc trước), giữ trạng thái app đang mở + tổng đã đóng.
+ * Kết quả bằng `demTienCanh` chạy trên toàn bộ sự kiện từ đầu ngày. Không dùng đồng hồ thật: mọi mốc giờ do người gọi truyền.
+ */
+class BoDemGiaTang {
+    private var dau = Long.MIN_VALUE
+    private var mocDoc = 0L          // sự kiện kế tiếp cần đọc từ mốc này (ms)
+    private var dangMo: String? = null
+    private var moLuc = 0L
+    private var daThayGi = false
+    private val daDong = HashMap<String, Long>()
+
+    /** Lần truy vấn tới sẽ đọc từ mốc nào (để test / log). */
+    fun mocTiepTheo() = mocDoc
+
+    /**
+     * `truyVan(tu, den)` trả sự kiện trong [tu, den). Sang ngày mới (dau đổi) hoặc đồng hồ lùi ⇒ đếm lại từ đầu ngày.
+     * Trả ms tiền cảnh theo gói từ `dau` tới `now`.
+     */
+    @Synchronized
+    fun capNhat(dau: Long, now: Long, truyVan: (Long, Long) -> List<SuKienDung>): Map<String, Long> {
+        if (dau != this.dau || now < mocDoc) {
+            this.dau = dau; mocDoc = dau; dangMo = null; moLuc = dau; daThayGi = false; daDong.clear()
+        }
+        fun cong(goi: String, a: Long, b: Long) {
+            val x = maxOf(a, dau); val y = minOf(b, now)
+            if (y > x) daDong[goi] = (daDong[goi] ?: 0L) + (y - x)
+        }
+        val moi = truyVan(mocDoc, now).filter { it.luc >= mocDoc && it.luc < now }.sortedBy { it.luc }
+        for (e in moi) {
+            when (e.loai) {
+                LoaiSuKien.MO -> { dangMo?.let { cong(it, moLuc, e.luc) }; dangMo = e.goi; moLuc = e.luc }
+                LoaiSuKien.DONG -> {
+                    if (dangMo == e.goi) { cong(e.goi, moLuc, e.luc); dangMo = null }
+                    else if (dangMo == null && !daThayGi) cong(e.goi, dau, e.luc)
+                }
+                LoaiSuKien.TAT_MAN -> { dangMo?.let { cong(it, moLuc, e.luc) }; dangMo = null }
+            }
+            daThayGi = true
+        }
+        if (moi.isNotEmpty()) mocDoc = moi.last().luc + 1 else if (now > mocDoc) mocDoc = maxOf(mocDoc, now)
+        val kq = HashMap(daDong)
+        dangMo?.let { g -> val x = maxOf(moLuc, dau); if (now > x) kq[g] = (kq[g] ?: 0L) + (now - x) }
+        return kq
+    }
+}
+
+/** Cache danh sách có hạn: đọc lại khi hết hạn (ttlMs) hoặc bị `huy()`. Mốc giờ do người gọi truyền. */
+class CacheCoHan<T>(private val ttlMs: Long) {
+    private var giaTri: T? = null
+    private var luc = 0L
+    @Synchronized fun lay(now: Long, doc: () -> T): T {
+        val g = giaTri
+        if (g != null && now >= luc && now - luc < ttlMs) return g
+        return doc().also { giaTri = it; luc = now }
+    }
+    @Synchronized fun huy() { giaTri = null }
+}
