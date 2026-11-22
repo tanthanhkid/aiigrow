@@ -195,12 +195,13 @@ export async function dsAppMay(fam: string, mayId: string, chon?: string | null,
   };
 }
 
-/** #560: icon của MỘT app theo băm (PNG). Băm là SHA-256 byte ảnh ⇒ nội dung không đổi theo URL ⇒ cache bất biến phía app/CDN. null = không có. */
-export async function iconApp(fam: string, mayId: string, bam: string): Promise<Buffer | null> {
+/** #560: icon của MỘT app theo `icon_bam` (PNG). `daCo` (app gửi If-None-Match khớp) ⇒ chỉ kiểm tồn tại, trả "khop" không giải mã blob.
+ *  Băm do agent gửi (không tính lại ở máy chủ) — app nào đổi ảnh thì agent phải đổi băm. null = không có. */
+export async function iconApp(fam: string, mayId: string, bam: string, daCo = false): Promise<Buffer | "khop" | null> {
   const may = await mayCua(fam, mayId);
   if (!BAM.test(bam)) return null;
-  const r = await one<{ icon: string }>(`select icon from app_may where device_id = $1 and icon_bam = $2 and icon is not null limit 1`, [may.id, bam.toLowerCase()]);
-  return r ? Buffer.from(r.icon, "base64") : null;
+  const r = await one<{ icon: string | null }>(`select ${daCo ? "null::text" : "icon"} as icon from app_may where device_id = $1 and icon_bam = $2 and icon is not null limit 1`, [may.id, bam.toLowerCase()]);
+  return r ? (daCo ? "khop" : Buffer.from(r.icon!, "base64")) : null;
 }
 
 export const TRANG_THAI_DAT = ["tinh_phut", "khong_tinh_phut", "cho_phep", "hoc", "giai_tri", "chan", "bo"] as const;
