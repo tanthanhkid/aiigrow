@@ -74,6 +74,7 @@ class DichVuNhip : Service() {
     private val dsApp by lazy { DanhSachApp(this) }
     private val nhanCaiApp = object : BroadcastReceiver() {
         override fun onReceive(c: Context, i: Intent) {
+            DoPhut.lamMoiDaCai()
             dsApp.coSuKienGoi(i.data?.schemeSpecificPart)   // cài / gỡ / cập nhật ⇒ gửi phần đổi danh sách app sớm
             h.post { lanQuetTrinhDuyet = 0 }                 // trình duyệt mới cài ⇒ quét lại ngay (biến của luồng nhịp)
             if (i.action == Intent.ACTION_PACKAGE_ADDED) h.post { vong(true) }   // app mới cài ⇒ xét «chưa xếp» ngay

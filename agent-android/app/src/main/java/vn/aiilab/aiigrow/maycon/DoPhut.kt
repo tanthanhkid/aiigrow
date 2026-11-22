@@ -12,7 +12,8 @@ import android.os.Process
 import vn.aiilab.aiigrow.maycon.logic.GoiCai
 import vn.aiilab.aiigrow.maycon.logic.LoaiSuKien
 import vn.aiilab.aiigrow.maycon.logic.SuKienDung
-import vn.aiilab.aiigrow.maycon.logic.demTienCanh
+import vn.aiilab.aiigrow.maycon.logic.BoDemGiaTang
+import vn.aiilab.aiigrow.maycon.logic.CacheCoHan
 import java.time.Instant
 import java.time.ZoneId
 
@@ -25,12 +26,18 @@ object DoPhut {
         return m == AppOpsManager.MODE_ALLOWED
     }
 
+    private val dem = BoDemGiaTang()                       // #559: chỉ đọc sự kiện mới từ mốc lần trước
+    private val cacheDaCai = CacheCoHan<List<GoiCai>>(10 * 60_000L)
+
+    /** Cài / gỡ / đổi app ⇒ lần `daCai` kế đọc lại. */
+    fun lamMoiDaCai() = cacheDaCai.huy()
+
     /** ms tiền cảnh theo gói từ 0 giờ hôm nay (theo múi giờ gia đình) tới `now`. */
     fun homNay(ctx: Context, tz: String, now: Long = System.currentTimeMillis()): Map<String, Long> {
         if (!coQuyen(ctx)) return emptyMap()
         val z = try { ZoneId.of(tz) } catch (_: Exception) { ZoneId.of("Asia/Ho_Chi_Minh") }
         val dau = Instant.ofEpochMilli(now).atZone(z).toLocalDate().atStartOfDay(z).toInstant().toEpochMilli()
-        return demTienCanh(suKien(ctx, dau, now), dau, now).filterKeys { it.isNotEmpty() && it != ctx.packageName }
+        return dem.capNhat(dau, now) { tu, den -> suKien(ctx, tu, den) }.filterKeys { it.isNotEmpty() && it != ctx.packageName }
     }
 
     /** Sự kiện tiền cảnh trong [tu, den) đã đổi sang kiểu thuần (logic/DemPhut.kt) — một chỗ ánh xạ loại sự kiện. */
@@ -65,8 +72,8 @@ object DoPhut {
     }
 
     /** App mở được từ trình khởi chạy (để xét «chưa xếp»). */
-    fun daCai(ctx: Context): List<GoiCai> {
-        return appLauncher(ctx).map {
+    fun daCai(ctx: Context, now: Long = System.currentTimeMillis()): List<GoiCai> = cacheDaCai.lay(now) {
+        appLauncher(ctx).map {
             GoiCai(it.packageName, (it.flags and (ApplicationInfo.FLAG_SYSTEM or ApplicationInfo.FLAG_UPDATED_SYSTEM_APP)) != 0)
         }
     }
