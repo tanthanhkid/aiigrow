@@ -13,21 +13,23 @@ import { nhomTuLoai } from "./chan-co-ban.ts";
 
 const NHOM_NV_CHU: Record<string, string> = { doc_sach: "đọc sách", viec_nha: "việc nhà", hoc_tap: "học tập", van_dong: "vận động", ky_nang: "kỹ năng", khac: "việc khác" };
 
+/** Hai câu đọc của `homNay` — tách hằng để GET gia-dinh gộp theo cả nhà rồi nạp đệm đúng khoá (lib/gia-dinh-tong-hop.ts). */
+export const SQL_HOM_NAY_DEM = `select (select count(*)::int from submissions where child_id = $1 and trang_thai = 'cho_duyet') as nv_cho,
+            (select count(*)::int from requests where child_id = $1 and trang_thai = 'cho' and het_han > now()) as yc_cho,
+            (select count(*)::int from redemptions where child_id = $1 and trang_thai = 'giu') as phieu_cho,
+            (select count(*)::int from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc >= $2) as xong`;
+export const SQL_HOM_NAY_XONG = `select t.ten from submissions s join tasks t on t.id = s.task_id where s.child_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2
+     order by s.duyet_luc desc limit 3`;
+
 export async function homNay(fam: string, con: string, now = new Date()) {
   const [f0, c0] = await Promise.all([one<{ tz: string; cau_hinh: Record<string, unknown> }>(`select tz, cau_hinh from families where id = $1`, [fam]),
-    one<{ ten: string; cau_hinh: Record<string, unknown> }>(`select ten, cau_hinh from children where id = $1 and family_id = $2`, [con, fam])]);
-  const f = f0!, c = c0!;
+    one<{ ten: string; cau_hinh: Record<string, unknown>; family_id: string }>(`select ten, cau_hinh, family_id from children where id = $1`, [con])]);
+  const f = f0!, c = c0 && c0.family_id === fam ? c0 : undefined!;
   const ngay = gioDiaPhuong(now, f.tz).ngay;
   const tu = dauNgayUtc(ngay, f.tz);
   const ts = thamSo(f.cau_hinh, c.cau_hinh);
-  const [r0, tc, vi, tran] = await Promise.all([one<{ nv_cho: number; yc_cho: number; phieu_cho: number; xong: number }>(
-    `select (select count(*)::int from submissions where child_id = $1 and trang_thai = 'cho_duyet') as nv_cho,
-            (select count(*)::int from requests where child_id = $1 and trang_thai = 'cho' and het_han > now()) as yc_cho,
-            (select count(*)::int from redemptions where child_id = $1 and trang_thai = 'giu') as phieu_cho,
-            (select count(*)::int from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc >= $2) as xong`, [con, tu]),
-    q<{ ten: string }>(
-    `select t.ten from submissions s join tasks t on t.id = s.task_id where s.child_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2
-     order by s.duyet_luc desc limit 3`, [con, tu]), tomTatVi(con), conTheoTran(q, con, ts, f.tz, now)]);
+  const [r0, tc, vi, tran] = await Promise.all([one<{ nv_cho: number; yc_cho: number; phieu_cho: number; xong: number }>(SQL_HOM_NAY_DEM, [con, tu]),
+    q<{ ten: string }>(SQL_HOM_NAY_XONG, [con, tu]), tomTatVi(con), conTheoTran(q, con, ts, f.tz, now)]);
   const r = r0!, tichCuc = tc.map((x) => x.ten);
   const conPhut = tran.conPhut;
   // 15/11: tranNgay (cũ) = phút còn + đã dùng · `quy` (hình dạng cũ, conPhut = sao tiêu được) · `phutChoi` = phút «Tính phút» đã dùng hôm nay

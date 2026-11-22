@@ -296,12 +296,17 @@ export async function apQuyTacTuDong(_fam: string, _id: string, _now = new Date(
   return false;
 }
 
-/** Hộp thư «Chờ duyệt» (yêu cầu), gom theo Con. */
-export async function dsChoYc(fam: string, now = new Date()) {
-  await q(`update requests set trang_thai = 'het_han', xu_ly_luc = $2 where trang_thai = 'cho' and het_han <= $2
-           and child_id in (select id from children where family_id = $1)`, [fam, now]);
+/** Đánh dấu hết hạn lời xin của MỌI nhà (cron qua-han) hoặc của một nhà (`fam`). */
+export const hetHanLoiXin = async (now = new Date(), fam?: string) =>
+  (await q(`update requests set trang_thai = 'het_han', xu_ly_luc = $1 where trang_thai = 'cho' and het_han <= $1
+            ${fam ? "and child_id in (select id from children where family_id = $2)" : ""} returning id`, fam ? [now, fam] : [now])).length;
+
+/** Hộp thư «Chờ duyệt» (yêu cầu), gom theo Con. `ghi: false` (đường đọc như GET gia-dinh, #561): không ghi DB — lời xin quá hạn chỉ bị lọc khỏi
+ *  danh sách, việc đánh dấu `het_han` để cron qua-han làm. */
+export async function dsChoYc(fam: string, now = new Date(), o: { ghi?: boolean } = {}) {
+  if (o.ghi !== false) await hetHanLoiXin(now, fam);
   return q<Yc & { ten_con: string }>(`select r.*, c.ten as ten_con from requests r join children c on c.id = r.child_id
-                                     where c.family_id = $1 and r.trang_thai = 'cho' order by r.created_at`, [fam])
+                                     where c.family_id = $1 and r.trang_thai = 'cho' and r.het_han > $2 order by r.created_at`, [fam, now])
     .then((ds) => ds.filter((r) => !(r.loai === "cai_app" && laCongCuHeThong(r.gia_tri, r.ten_app ?? r.gia_tri))));   // #525: lời xin cũ của thành phần Windows
 }
 

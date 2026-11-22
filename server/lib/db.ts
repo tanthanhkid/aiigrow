@@ -115,6 +115,15 @@ export const q: Q = async (s, p) => {
   const ra = m ? chonCot(rows, m[1]) : rows;
   return structuredClone(ra ?? rows) as any;
 };
+/** Nạp sẵn kết quả của câu `select` vào bộ nhớ đệm yêu cầu (người gọi đã gộp nhiều câu theo từng Con thành MỘT câu theo cả nhà):
+ *  lần `q(s, p)` sau với đúng SQL + tham số trả bản này, không tốn vòng tới DB. Ngoài `trongYeuCau` không làm gì. */
+export const napDem = (s: string, p: unknown[], rows: Row[]) => {
+  const st = als.getStore();
+  if (!st) return;
+  const m = THEO_ID.exec(s);
+  const sql = m ? `select * from ${m[2].toLowerCase()} where id = $1` : s;
+  st.cache.set(sql + "\u0000" + JSON.stringify(p), { sql, kq: Promise.resolve(rows) });
+};
 export const tx = async <T>(fn: (q: Q) => Promise<T>) => {
   const st = als.getStore();
   st?.cache.clear();

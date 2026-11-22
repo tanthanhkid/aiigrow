@@ -11,6 +11,7 @@ import { thamSo } from "./cau-hinh.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { sauKhiDuyet, sauKhiHoanTac } from "./thanh-tich.ts";
+import { hetHanLoiXin } from "./yeu-cau.ts";
 
 export const NHOM_NV = ["doc_sach", "viec_nha", "hoc_tap", "van_dong", "ky_nang", "khac"] as const;
 // 05/11 (thiết kế chốt L9): thêm «xong» (Con bấm «Xong», không cần bằng chứng). Nhận thêm bí danh khi tạo/sửa: «viet» = van_ban (viết kể lại),
@@ -409,9 +410,8 @@ export async function nhoLamLai(fam: string, subId: string, nguoi: string, b: { 
   });
 }
 
-/** Hộp thư «Chờ duyệt» (nhiệm vụ) gom theo Con. Chạy xử lý quá hạn trước. */
+/** Hộp thư «Chờ duyệt» (nhiệm vụ) gom theo Con. Chỉ ĐỌC (#561): xử lý quá hạn do cron /api/cron/qua-han (`quetQuaHan`) làm, không còn chạy ở đường đọc. */
 export async function choDuyet(fam: string) {
-  await xuLyQuaHan(fam);
   // 05/11: + bang_chung, hinh, sao (= diem), so_ghi_am (bản ghi âm trong bằng chứng — so_anh vẫn đếm mọi tệp như cũ)
   return q<{ id: string; child_id: string; ten_con: string; ten: string; nhom: string; diem: number; sao: number; bang_chung: string; hinh: string | null;
     nop_luc: Date; ghi_chu: string | null; nghi_trung: boolean; so_anh: number; so_ghi_am: number }>(
@@ -462,6 +462,7 @@ export async function quetQuaHan(now = new Date()) {
     `update submissions s set trang_thai = 'het_han' from tasks t
       where t.id = s.task_id and s.trang_thai = 'dang_lam' and s.bat_dau_luc < $2 and (not t.bat or t.han <= $1)
       returning s.id`, [now, new Date(now.getTime() - 24 * 3600_000)]);
+  const hetXin = await hetHanLoiXin(now);   // #561: lời xin quá hạn — trước đây đánh dấu ngay trong GET gia-dinh
   // nv_nhac_gio nhỏ nhất là 1 giờ (cau-hinh.ts) ⇒ chỉ gia đình có lượt chờ quá 1 giờ mới cần xét
   const ds = await q<{ family_id: string }>(
     `select distinct t.family_id from submissions s join tasks t on t.id = s.task_id where s.trang_thai = 'cho_duyet' and s.nop_luc < $1`,
@@ -470,7 +471,7 @@ export async function quetQuaHan(now = new Date()) {
   for (const f of ds) {
     try { await xuLyQuaHan(f.family_id, now); } catch (e) { loi++; console.error("[qua-han]", f.family_id, e); }
   }
-  return { giaDinh: ds.length, loi, dong: dong.length };
+  return { giaDinh: ds.length, loi, dong: dong.length, loiXinHetHan: hetXin };
 }
 
 /** AiiRob báo bài đạt (FR-03.04): tạo lượt đã duyệt + cộng điểm, MỘT lần mỗi bài (`ref`), chỉ khi đạt ngưỡng. → null nếu không cộng. */
