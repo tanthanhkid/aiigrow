@@ -6,7 +6,7 @@
 //   (agent cũ tính «còn» = ngayPhut + themPhut − daDung − phút máy đếm thêm sau lần đồng bộ ⇒ đúng bằng số sao còn lại).
 // #258 (15/11): bỏ giờ ngủ / giờ học — lichCua luôn trả giờ ngủ «tắt» (tu = den) và giờ học null; các trường cũ (dangNgu, dangHoc, gioNgu,
 // gioHoc, phutToiNgu, phutToiHoc) giữ hình dạng cho agent / app cũ: false / null / 1440.
-import { one, q, type Q } from "./db.ts";
+import { coDemYeuCau, one, q, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, lichCua, thamSo, type GioHoc, type Lich, type ThamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan, phutCua, trongKhung, type Khung } from "./gio.ts";
@@ -33,10 +33,11 @@ export type BoiCanhCon = { fam: string; tz: string; ts: ThamSo; lich: Lich; cfg:
 
 export async function boiCanhCon(con: string, t: Q = q): Promise<BoiCanhCon> {
   // trong dong-bo / nhip (t = q): hai đọc theo id đã có sẵn trong bộ nhớ đệm yêu cầu, khỏi một câu join nữa
-  if (t === q) {
+  if (t === q && coDemYeuCau()) {
     const c = await one<{ family_id: string; cau_hinh: Record<string, unknown>; lich: Record<string, unknown>; che_do_chan: string | null }>(`select * from children where id = $1`, [con]);
     if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-    const f = (await one<{ tz: string; cau_hinh: Record<string, unknown> }>(`select * from families where id = $1`, [c.family_id]))!;
+    const f = await one<{ tz: string; cau_hinh: Record<string, unknown> }>(`select * from families where id = $1`, [c.family_id]);
+    if (!f) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
     return { fam: c.family_id, tz: f.tz, ts: thamSo(f.cau_hinh, c.cau_hinh), lich: lichCua(c.lich as never), cfg: c.cau_hinh ?? {}, moHet: c.che_do_chan === "mo_het" };
   }
   const r = (await t<{ family_id: string; tz: string; fcfg: Record<string, unknown>; ccfg: Record<string, unknown>; lich: Record<string, unknown>; che_do_chan: string | null }>(

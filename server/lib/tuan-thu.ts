@@ -5,7 +5,7 @@
 //   · mất nhịp quá ngưỡng (ngung_chay_phut; điện thoại: mat_nhip_di_dong_phut) ⇒ «ngoài vòng kiểm soát» + cảnh báo Ba Mẹ MỘT lần / lần mất;
 //   · Ba Mẹ mở khẩn cấp qua app (có hạn, ghi nhật ký). Không có «chế độ cục bộ»: mọi nới lỏng chỉ do Ba Mẹ duyệt qua máy chủ.
 // Máy chưa từng gửi nhịp (agent M4 cũ chỉ dong-bo) ⇒ «chua_co_nhip»: không khoá (tương thích), Ba Mẹ thấy rõ trạng thái này.
-import { one, q, type Q, sanSang } from "./db.ts";
+import { coDemYeuCau, one, q, type Q, sanSang } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, khoaDen, khoaMayHieuLuc, thamSo, type ThamSo } from "./cau-hinh.ts";
 import { conMay, tomTatNoi } from "./may-nhieu-con.ts";
@@ -88,7 +88,7 @@ type DongTT = {
 };
 
 const thamSoMay = async (may: Pick<May, "family_id" | "child_id">, t: Q = q): Promise<ThamSo> => {
-  if (t === q) {   // đọc theo id: dùng chung bộ nhớ đệm yêu cầu với taoPolicy / dongBo
+  if (t === q && coDemYeuCau()) {   // đọc theo id: dùng chung bộ nhớ đệm yêu cầu với taoPolicy / dongBo
     const f = await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from families where id = $1`, [may.family_id]);
     const c = may.child_id ? await one<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [may.child_id]) : undefined;
     return thamSo(f?.cau_hinh, c?.cau_hinh);

@@ -55,3 +55,21 @@ test("dong-bo có usage: số câu không tăng theo số app; usage ghi đúng,
   const r2 = await dem(() => goi(tok, "dong-bo", { status: {}, usage: nhieu }));
   assert.ok(r2.n <= n + 1, `8 app ${r2.n} câu so với 3 dòng ${n} câu`);
 });
+
+test("bộ nhớ đệm yêu cầu: đọc sau ghi (cùng bảng, delete, giao dịch) luôn thấy dữ liệu mới; đọc lặp thì không tốn thêm câu", async () => {
+  const { trongYeuCau, q, tx, one } = await import("./db.ts");
+  const { fam } = await nhaWin();
+  await trongYeuCau(async () => {
+    const dem0 = async () => (await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))!.tz;
+    const a = await dem0();
+    const { n } = await dem(async () => { await dem0(); await one(`select cau_hinh from families where id = $1`, [fam]); });
+    assert.equal(n, 0, "đọc lặp cùng hàng không xuống DB");
+    await q(`update families set tz = 'Asia/Tokyo' where id = $1`, [fam]);
+    assert.equal(await dem0(), "Asia/Tokyo");
+    await tx(async (t) => { await t(`update families set tz = $2 where id = $1`, [fam, a]); });
+    assert.equal(await dem0(), a);
+    // sửa kết quả trả về không làm bẩn đệm
+    const h = (await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))!; h.tz = "x";
+    assert.equal(await dem0(), a);
+  });
+});

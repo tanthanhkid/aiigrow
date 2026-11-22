@@ -77,10 +77,12 @@ export const sanSang = async () => { await db(); };
 // Khoá `for update` / hàm có tác dụng phụ không bao giờ vào đệm.
 type DemYeuCau = { cache: Map<string, { sql: string; kq: Promise<Row[]> }> };
 const als = new AsyncLocalStorage<DemYeuCau>();
+/** Đang trong `trongYeuCau` (có bộ nhớ đệm) — chỗ tách một câu JOIN thành các đọc theo id chỉ có lợi khi có đệm. */
+export const coDemYeuCau = () => als.getStore() !== undefined;
 export const trongYeuCau = <T>(fn: () => Promise<T>): Promise<T> => als.run({ cache: new Map() }, fn);
 const DOC_DUOC_DEM = /^\s*select\b/i, CAM_DEM = /\bfor\s+(update|share|no\s+key)|nextval|setval|random\(|pg_advisory|clock_timestamp/i;
 const THEO_ID = /^\s*select\s+([\w\s,*]+?)\s+from\s+(families|children|devices)\s+where\s+id\s*=\s*\$1\s*;?\s*$/i;
-const GHI = /^\s*(?:insert\s+into|update|delete\s+from)\s+(\w+)/i;
+const GHI = /^\s*(?:insert\s+into|update)\s+(?:\w+\.)?(\w+)/i;   // delete (kéo theo cascade sang bảng khác) ⇒ xoá hết đệm
 /** Thăm dò đếm câu SQL (chỉ test): đặt `globalThis.__aiigDemCau = []` rồi đọc lại. */
 const dem = (s: string) => { (globalThis as unknown as { __aiigDemCau?: string[] }).__aiigDemCau?.push(s); };
 function chonCot(rows: Row[], cot: string): Row[] | null {
