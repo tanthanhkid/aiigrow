@@ -23,4 +23,4 @@ Thanh 24/10: *"chọn 6 … vui và ánh men"* · *"rồi ghi lại đi áp dụ
 - Mobile: `react-native-reanimated`. Web: CSS/JS như mẫu. Native (SwiftUI/Compose/WPF): spring tương đương.
 
 ## 4. Không đổi
-Tương phản chữ ≥4.5:1, vùng chạm ≥44, các luật `docs/UI-FOUNDATIONS.md`, cổng `pha.mjs --giao-dien` vẫn áp.
+Tương phản chữ ≥4.5:1, vùng chạm ≥44, các luật UI Foundations (tài liệu đã bỏ), cổng `pha.mjs --giao-dien` vẫn áp.
