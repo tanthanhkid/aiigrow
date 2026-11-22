@@ -28,8 +28,6 @@
     "classMembers": "off",
     "duplicates": "warn"
   },
-  "ignore": [
-    "src/lib/sua-gio.tsx"
-  ],
+  "ignore": [],
   "ignoreBinaries": []
 }
