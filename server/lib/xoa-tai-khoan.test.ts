@@ -257,7 +257,7 @@ test("nhận lời mời bỏ gia đình rỗng cũ ⇒ ghi mốc «xoa_gia_dinh
 
 test("#556: index cho câu nóng có đủ; cron dọn usage cũ hơn 400 ngày, giữ dòng mới", async () => {
   const { donUsageCu } = await import("./xoa-tai-khoan.ts");
-  const ten = ["usage_con_ngay", "play_con_bat_dau", "evidence_sub", "submissions_con_tt", "submissions_cho", "kid_sessions_may",
+  const ten = ["usage_con_ngay", "usage_ngay", "play_con_bat_dau", "evidence_sub", "submissions_con_tt", "submissions_cho", "kid_sessions_may",
     "devices_gd", "children_gd", "tasks_gd", "rewards_gd", "requests_con_luc"];
   const co = (await q<{ indexname: string }>(`select indexname from pg_indexes where indexname = any($1::text[])`, [ten])).map((x) => x.indexname);
   assert.deepEqual(co.sort(), [...ten].sort());
