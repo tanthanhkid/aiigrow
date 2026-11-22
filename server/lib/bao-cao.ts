@@ -3,6 +3,7 @@
 // 15/11 (#264–#266): báo cáo theo SAO — sao kiếm / sao vay / sao tiêu (chơi 1 sao = 1 phút + đổi quà) / trả nợ; «ngoại lệ» bỏ (= số lần cho vay).
 // #262: «Giờ học» ⇒ «Không tính phút» (phutKhongTinhPhut / khongTinhPhutTheoNgay; dungNhieu[].nhom tinh_phut | khong_tinh_phut).
 import { one, q } from "./db.ts";
+import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { congNgay, dauNgayUtc, dauTuan, gioDiaPhuong } from "./gio.ts";
 import { tomTatVi } from "./vi.ts";
@@ -24,7 +25,8 @@ export const SQL_HOM_NAY_XONG = `select t.ten from submissions s join tasks t on
 export async function homNay(fam: string, con: string, now = new Date()) {
   const [f0, c0] = await Promise.all([one<{ tz: string; cau_hinh: Record<string, unknown> }>(`select tz, cau_hinh from families where id = $1`, [fam]),
     one<{ ten: string; cau_hinh: Record<string, unknown>; family_id: string }>(`select ten, cau_hinh, family_id from children where id = $1`, [con])]);
-  const f = f0!, c = c0 && c0.family_id === fam ? c0 : undefined!;
+  if (!f0 || !c0 || c0.family_id !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+  const f = f0, c = c0;
   const ngay = gioDiaPhuong(now, f.tz).ngay;
   const tu = dauNgayUtc(ngay, f.tz);
   const ts = thamSo(f.cau_hinh, c.cau_hinh);
