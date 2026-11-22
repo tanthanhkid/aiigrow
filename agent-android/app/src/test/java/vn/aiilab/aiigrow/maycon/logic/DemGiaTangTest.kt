@@ -34,4 +34,20 @@ class DemGiaTangTest {
         assertEquals(2, c.lay(1_000) { ++dem })
         c.huy(); assertEquals(3, c.lay(1_001) { ++dem })
     }
+
+    @Test fun suKienCungMsVaSuKienToiTre() {
+        val e = listOf(SuKienDung("a", LoaiSuKien.MO, 1_000), SuKienDung("a", LoaiSuKien.DONG, 5_000), SuKienDung("b", LoaiSuKien.MO, 5_000))
+        val bo = BoDemGiaTang()
+        var co = listOf(e[0], e[1])                      // MO b cùng ms tới sau
+        bo.capNhat(0, 6_000) { tu, den -> co.filter { it.luc in tu until den } }
+        co = e
+        val kq = bo.capNhat(0, 7_000) { tu, den -> co.filter { it.luc in tu until den } }
+        assertEquals(demTienCanh(e, 0, 7_000), kq)
+        // sự kiện tới trễ (luc < mốc) được bù sau nhịp đếm lại đầy đủ
+        val tre = listOf(SuKienDung("a", LoaiSuKien.MO, 1_000), SuKienDung("a", LoaiSuKien.DONG, 2_000))
+        val b2 = BoDemGiaTang()
+        b2.capNhat(0, 10_000) { _, _ -> listOf(SuKienDung("x", LoaiSuKien.MO, 9_000)) }
+        val k2 = b2.capNhat(0, 10_000 + BoDemGiaTang.HAN_DAY_DU) { tu, den -> (tre + SuKienDung("x", LoaiSuKien.MO, 9_000)).filter { it.luc in tu until den } }
+        assertEquals(demTienCanh(tre + SuKienDung("x", LoaiSuKien.MO, 9_000), 0, 10_000 + BoDemGiaTang.HAN_DAY_DU), k2)
+    }
 }

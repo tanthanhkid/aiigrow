@@ -72,12 +72,17 @@ fun thanNhip(
  * Kết quả bằng `demTienCanh` chạy trên toàn bộ sự kiện từ đầu ngày. Không dùng đồng hồ thật: mọi mốc giờ do người gọi truyền.
  */
 class BoDemGiaTang {
+    companion object { const val HAN_DAY_DU = 5 * 60_000L }
+
     private var dau = Long.MIN_VALUE
     private var mocDoc = 0L          // sự kiện kế tiếp cần đọc từ mốc này (ms)
     private var dangMo: String? = null
     private var moLuc = 0L
     private var daThayGi = false
     private val daDong = HashMap<String, Long>()
+    private var lanDayDu = 0L        // lần đếm lại từ đầu ngày gần nhất
+    private var lanCuoi = 0L
+    private val daXuLyTaiMoc = HashSet<Pair<String, LoaiSuKien>>()   // sự kiện đã xử lý đúng ở ms `mocDoc`
 
     /** Lần truy vấn tới sẽ đọc từ mốc nào (để test / log). */
     fun mocTiepTheo() = mocDoc
@@ -88,14 +93,19 @@ class BoDemGiaTang {
      */
     @Synchronized
     fun capNhat(dau: Long, now: Long, truyVan: (Long, Long) -> List<SuKienDung>): Map<String, Long> {
-        if (dau != this.dau || now < mocDoc) {
+        // sang ngày, đồng hồ lùi, hoặc quá HAN_DAY_DU ⇒ đếm lại từ đầu ngày (bù sự kiện UsageStats tới trễ)
+        if (dau != this.dau || now < lanCuoi || now < mocDoc || now - lanDayDu >= HAN_DAY_DU) {
             this.dau = dau; mocDoc = dau; dangMo = null; moLuc = dau; daThayGi = false; daDong.clear()
+            daXuLyTaiMoc.clear(); lanDayDu = now
         }
+        lanCuoi = now
         fun cong(goi: String, a: Long, b: Long) {
             val x = maxOf(a, dau); val y = minOf(b, now)
             if (y > x) daDong[goi] = (daDong[goi] ?: 0L) + (y - x)
         }
-        val moi = truyVan(mocDoc, now).filter { it.luc >= mocDoc && it.luc < now }.sortedBy { it.luc }
+        val moi = truyVan(mocDoc, now)
+            .filter { it.luc >= mocDoc && it.luc < now && !(it.luc == mocDoc && (it.goi to it.loai) in daXuLyTaiMoc) }
+            .sortedBy { it.luc }
         for (e in moi) {
             when (e.loai) {
                 LoaiSuKien.MO -> { dangMo?.let { cong(it, moLuc, e.luc) }; dangMo = e.goi; moLuc = e.luc }
@@ -107,7 +117,12 @@ class BoDemGiaTang {
             }
             daThayGi = true
         }
-        if (moi.isNotEmpty()) mocDoc = moi.last().luc + 1
+        if (moi.isNotEmpty()) {
+            val cuoi = moi.last().luc
+            if (cuoi != mocDoc) daXuLyTaiMoc.clear()
+            mocDoc = cuoi
+            moi.filter { it.luc == cuoi }.forEach { daXuLyTaiMoc.add(it.goi to it.loai) }
+        }
         val kq = HashMap(daDong)
         dangMo?.let { g -> val x = maxOf(moLuc, dau); if (now > x) kq[g] = (kq[g] ?: 0L) + (now - x) }
         return kq
