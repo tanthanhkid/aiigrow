@@ -119,6 +119,20 @@ export async function donKiemToanGiaDinhDaXoa(now = new Date()): Promise<number>
   return giaDinh.length + quet.length;
 }
 
+/** #556: usage (mỗi app × ngày × máy) không bao giờ hết hạn ⇒ xoá dòng cũ hơn `ngay` ngày (mặc định 400), từng lô 5000 để không giữ khoá lâu.
+ *  → số dòng xoá. (Tổng usage toàn thời gian ở api-m.ts chỉ còn tính trong cửa sổ này — chủ ý theo issue #556.) */
+export async function donUsageCu(now = new Date(), ngay = 400): Promise<number> {
+  const moc = new Date(now.getTime() - ngay * 86_400_000).toISOString().slice(0, 10);
+  let tong = 0;
+  for (let i = 0; i < 200; i++) {
+    const r = await q<{ n: number }>(`with x as (delete from usage where ctid in (select ctid from usage where ngay < $1 limit 5000) returning 1) select count(*)::int as n from x`, [moc]);
+    const n = r[0]?.n ?? 0;
+    tong += n;
+    if (n < 5000) break;
+  }
+  return tong;
+}
+
 /** Cron gọi: giãn tối thiểu 1 giờ giữa hai lần chạy (một upsert nguyên tử vào he_thong) ⇒ route mở không bị gọi dồn; dọn lỗi thì trả lượt
  *  (lần gọi sau chạy lại được ngay). → null = vừa chạy rồi. */
 export async function chayDonKiemToan(now = new Date()): Promise<number | null> {
@@ -131,6 +145,7 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
   try {
     const n = await donKiemToanGiaDinhDaXoa(now);
     await donBoDemMxh(now.getTime());          // bộ đếm lượt đăng nhập Google / Facebook của khung đã qua (dang-nhap-mxh.ts)
+    await donUsageCu(now).catch(() => {});     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
     return n;
   } catch (e) {
     await q(`update he_thong set updated_at = coalesce($2::timestamptz, '-infinity') where khoa = 'don_kiem_toan' and updated_at = $1`,
