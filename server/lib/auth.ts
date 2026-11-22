@@ -13,6 +13,10 @@ const OTP_PHUT = 10;
 const OTP_SAI_TOI_DA = 5;
 const SAI_KHOA = 5;          // khoá đăng nhập sau 5 lần sai liền (BRD mục 9)
 const KHOA_PHUT = 15;
+const OTP_KHUNG_MS = 3_600_000;        // khung đếm OTP: 1 giờ cố định
+const OTP_GUI_DINH_DANH = 3;           // tối đa 3 mã/giờ cho một số/email
+const OTP_GUI_IP = 20;                 // tối đa 20 yêu cầu gửi mã/giờ cho một nguồn gọi (IP)
+const OTP_SAI_KHUNG = 10;              // cộng dồn ≥10 lần nhập sai trong khung 1 giờ ⇒ khoá tới hết khung (≤60 phút), không tính theo từng mã
 
 export const sha = (s: string) => createHash("sha256").update(s).digest("base64url");
 export const taoToken = () => randomBytes(32).toString("base64url");
@@ -48,9 +52,18 @@ export const hienDinhDanh = (d: string) => (d.startsWith(TIEN_TO_FB) ? "Facebook
 const cheDoThu = () => process.env.AIIGROW_OTP_THU === "1" || process.env.NODE_ENV !== "production";
 
 /** Gửi mã 6 số (hạn 10 phút). → {guiDen, ma?} — `ma` chỉ có ở chế độ thử. */
-export async function guiOtp(dinhDanh: unknown, mucDich: "dang_ky" | "quen_mk") {
+export async function guiOtp(dinhDanh: unknown, mucDich: "dang_ky" | "quen_mk", nguon = "?", now = Date.now()) {
   const d = chuanDinhDanh(dinhDanh);
   if (!d) throw new LoiNghiepVu("dinh_danh_sai", "Nhập số điện thoại (10 số) hoặc email");
+  // Trần gửi TRƯỚC mọi nhánh khác (cùng một câu trả lời cho mọi số/email, không lộ tài khoản) — chặn dò mã và SMS pumping.
+  // Giữ chỗ bằng một upsert nguyên tử theo khung giờ cố định (cùng kiểu ghepMay).
+  const khung = Math.floor(now / OTP_KHUNG_MS);
+  await q(`delete from pin_sai where khoa ~ '^otp(ip|gui|sai):' and substring(khoa from '[0-9]+$')::bigint < $1`, [khung - 1]);   // dọn khung cũ
+  for (const [khoa, toiDa] of [[`otpip:${nguon}:${khung}`, OTP_GUI_IP], [`otpgui:${d}:${khung}`, OTP_GUI_DINH_DANH]] as const) {
+    const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
+      on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
+    if (s.so_lan > toiDa) throw new LoiNghiepVu("otp_gui_nhieu", "Đã yêu cầu mã quá nhiều lần — thử lại sau ít phút", 429);
+  }
   const co = await one<{ co_mk: boolean }>(`select pass_hash is not null as co_mk from parents where dinh_danh = $1`, [d]);
   if (mucDich === "dang_ky" && co) throw new LoiNghiepVu("da_co_tai_khoan", "Số/email này đã có tài khoản — chọn Đăng nhập", 409);
   // Mã thử trả thẳng trong phản hồi: với quên mật khẩu, ai biết số/email cũng chiếm được tài khoản ⇒ prod chặn tới khi có kênh SMS/mail thật.
@@ -68,16 +81,24 @@ export async function guiOtp(dinhDanh: unknown, mucDich: "dang_ky" | "quen_mk") 
   return { guiDen: d, ma };
 }
 
-async function dungOtp(t: Q, d: string, ma: unknown, mucDich: string) {
+/** Khoá đếm lần nhập sai OTP của một định danh trong khung giờ — KHÔNG reset khi gửi mã mới. */
+const khoaOtpSai = (d: string, now: number) => `otpsai:${d}:${Math.floor(now / OTP_KHUNG_MS)}`;
+
+async function dungOtp(t: Q, d: string, ma: unknown, mucDich: string, now = Date.now()) {
+  const khoa = khoaOtpSai(d, now);
+  const da = (await t<{ so_lan: number }>(`select so_lan from pin_sai where khoa = $1`, [khoa]))[0];
+  if (da && da.so_lan >= OTP_SAI_KHUNG) throw new LoiNghiepVu("otp_tam_khoa", "Nhập sai mã quá nhiều lần — thử lại sau tối đa 1 giờ", 429);
   const r = (await t<{ ma_hash: string; muc_dich: string; het: Date; so_lan: number }>(
     `select ma_hash, muc_dich, het, so_lan from otp where dinh_danh = $1 for update`, [d]))[0];
   if (!r || r.muc_dich !== mucDich || new Date(r.het) < new Date()) throw new LoiNghiepVu("otp_het_han", "Mã đã hết hạn — gửi lại mã mới");
   if (r.so_lan >= OTP_SAI_TOI_DA) throw new LoiNghiepVu("otp_qua_so_lan", "Nhập sai quá nhiều lần — gửi lại mã mới");
   if (r.ma_hash !== sha(`${d}:${String(ma ?? "").trim()}`)) {
     await t(`update otp set so_lan = so_lan + 1 where dinh_danh = $1`, [d]);
+    await t(`insert into pin_sai(khoa, so_lan) values ($1, 1) on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1`, [khoa]);
     return false;
   }
   await t(`delete from otp where dinh_danh = $1`, [d]);
+  await t(`delete from pin_sai where khoa = $1`, [khoa]);
   return true;
 }
 

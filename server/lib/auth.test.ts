@@ -55,3 +55,36 @@ test("đăng nhập + phiên; sai 5 lần liền ⇒ tạm khoá; quên mật kh
   assert.equal(await a.baMeTuToken(tok), null, "đặt lại mật khẩu ⇒ phiên cũ chết");
   assert.equal(await a.dangNhap("0901000002", "matkhaumoi1"), id, "đặt lại cũng gỡ tạm khoá");
 });
+
+test("OTP: trần gửi 3 mã/giờ theo định danh, 20/giờ theo IP; sang khung giờ mới thì gửi lại được", async () => {
+  const t0 = Date.parse("2030-01-01T10:10:00Z");
+  for (let i = 0; i < 3; i++) await a.guiOtp("0902000001", "dang_ky", "9.9.9.1", t0 + i);
+  await loi(a.guiOtp("0902000001", "dang_ky", "9.9.9.1", t0 + 5), "otp_gui_nhieu");
+  await a.guiOtp("0902000001", "dang_ky", "9.9.9.1", t0 + 3_600_000);
+  for (let i = 0; i < 20; i++) await a.guiOtp(`09020001${String(i).padStart(2, "0")}`, "dang_ky", "9.9.9.2", t0);
+  await loi(a.guiOtp("0902009999", "dang_ky", "9.9.9.2", t0), "otp_gui_nhieu");
+  await a.guiOtp("0902009999", "dang_ky", "9.9.9.3", t0);                  // IP khác vẫn gửi được
+});
+
+test("OTP: gửi mã mới KHÔNG xoá lần sai đã cộng dồn; ≥10 lần sai/giờ ⇒ khoá, kể cả mã đúng; đúng thì xoá bộ đếm", async () => {
+  const d = "0902000002";
+  let ma = (await a.guiOtp(d, "dang_ky", "9.9.9.4")).ma!;
+  const sai = ma === "000000" ? "111111" : "000000";
+  const thu = () => a.dangKy({ dinhDanh: d, ma: sai, ten: "Lan", matKhau: "matkhau123" });
+  for (let i = 0; i < 5; i++) await loi(thu(), "otp_sai");
+  ma = (await a.guiOtp(d, "dang_ky", "9.9.9.4")).ma!;                      // gửi lại: so_lan của mã về 0 nhưng đếm giờ vẫn giữ
+  for (let i = 0; i < 5; i++) await loi(thu(), "otp_sai");
+  ma = (await a.guiOtp(d, "dang_ky", "9.9.9.4")).ma!;
+  await loi(thu(), "otp_tam_khoa");
+  await loi(a.dangKy({ dinhDanh: d, ma, ten: "Lan", matKhau: "matkhau123" }), "otp_tam_khoa");
+  await q(`delete from pin_sai where khoa like $1`, [`otpsai:${d}:%`]);     // hết khung giờ
+  await a.dangKy({ dinhDanh: d, ma, ten: "Lan", matKhau: "matkhau123" });
+});
+
+test("khởi động: production + AIIGROW_OTP_THU=1 bị từ chối (trừ bộ pha)", async () => {
+  const { kiemOtpThu } = await import("./otp-khoi-dong.ts");
+  assert.throws(() => kiemOtpThu({ NODE_ENV: "production", AIIGROW_OTP_THU: "1" }), /OTP_THU/);
+  kiemOtpThu({ NODE_ENV: "production" });
+  kiemOtpThu({ NODE_ENV: "development", AIIGROW_OTP_THU: "1" });
+  kiemOtpThu({ NODE_ENV: "production", AIIGROW_OTP_THU: "1", AIIGROW_PHA: "1" });
+});

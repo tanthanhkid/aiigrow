@@ -105,7 +105,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     const get = req.method === "GET", post = req.method === "POST";
     const d = p.join("/");
     // ---- không cần đăng nhập
-    if (d === "otp" && post) { const b = await docJson(req); return json(await guiOtp(b.dinhDanh, b.mucDich === "quen_mk" ? "quen_mk" : "dang_ky")); }
+    if (d === "otp" && post) { const b = await docJson(req); return json(await guiOtp(b.dinhDanh, b.mucDich === "quen_mk" ? "quen_mk" : "dang_ky", gd.nguonGoi(req.headers))); }
     // L6/L7: đăng ký / đăng nhập trả kèm lời mời đang chờ gửi tới đúng SĐT / email này ⇒ app rẽ nhánh «Vào nhà cùng …» (không tạo Con)
     if ((d === "dang-ky" || d === "dang-nhap") && post) {
       const b = await docJson(req);

@@ -10,10 +10,11 @@ const tb = await import("./thong-bao.ts");
 const { ghiSuKien, canhBao } = await import("./nhat-ky.ts");
 
 type Kq = { status: number; body: any };
+let soIp = 0;   // mỗi lượt một IP riêng: trần gửi OTP theo IP (20/giờ) không chặn bộ test
 const m = async (duong: string, o: { tok?: string; body?: unknown } = {}): Promise<Kq> => {
   const req = new Request(`http://app.vidu/api/m/${duong}`, {
     method: o.body === undefined ? "GET" : "POST",
-    headers: { "content-type": "application/json", ...(o.tok ? { authorization: `Bearer ${o.tok}` } : {}) },
+    headers: { "content-type": "application/json", "x-real-ip": `10.0.0.${++soIp % 250}`, ...(o.tok ? { authorization: `Bearer ${o.tok}` } : {}) },
     body: o.body === undefined ? undefined : JSON.stringify(o.body),
   });
   const r = await xuLyM(req, duong.split("/"));

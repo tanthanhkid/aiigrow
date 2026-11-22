@@ -49,7 +49,7 @@ process.on("exit", () => { for (const t of don.tienTrinh) try { t.kill(); } catc
 process.on("SIGINT", () => process.exit(130)); process.on("SIGTERM", () => process.exit(143));
 const dbDir = mkdtempSync(join(tmpdir(), "aiig-pg-")); don.thuMuc.push(dbDir);
 const MK_AD = randomBytes(12).toString("base64url"), MK_Q = randomBytes(12).toString("base64url");
-const env = { ...process.env, PGLITE_DIR: dbDir, AIIGROW_OTP_THU: "1", NEXT_TELEMETRY_DISABLED: "1", DATABASE_URL: "" };
+const env = { ...process.env, PGLITE_DIR: dbDir, AIIGROW_OTP_THU: "1", AIIGROW_PHA: "1", NEXT_TELEMETRY_DISABLED: "1", DATABASE_URL: "" };
 delete env.DATABASE_URL;
 const seed = spawnSync(process.execPath, ["scripts/tao-tai-khoan.ts"], { cwd: GOC_SV, encoding: "utf8", env: { ...env,
   AIIGROW_ADMIN_TEN: "admin.thu", AIIGROW_ADMIN_MAT_KHAU: MK_AD, AIIGROW_ADMIN_HIEN: "Chị Hạnh AiiLab",
