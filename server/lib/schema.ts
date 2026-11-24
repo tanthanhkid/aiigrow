@@ -831,6 +831,12 @@ export const SCHEMA_APP_WEB = [
   // #556: index cho các câu nóng (FK Postgres không tự tạo index). Chạy một lần theo BAM_LUOC_DO; bảng usage lớn thì deploy ngoài giờ cao điểm.
   `create index if not exists usage_con_ngay on usage(child_id, ngay)`,
   `create index if not exists usage_ngay on usage(ngay)`,       // cho cron xoá usage quá hạn (xoa-tai-khoan.ts › donUsageCu)
+  // #565: index cho cron giữ hạn (don-het-han.ts). Lần đầu dựng trên bảng events lớn giữ khoá ghi ⇒ deploy ngoài giờ cao điểm.
+  `create index if not exists events_luc on events(created_at)`,
+  `create index if not exists alerts_luc on alerts(created_at)`,
+  `create index if not exists events_doi_nguoi on events(device_id, child_id, created_at) where loai = 'doi_nguoi_may'`,
+  `create index if not exists sessions_het on sessions(expires_at)`,
+  `create index if not exists kid_sessions_het on kid_sessions(expires_at)`,
   `create index if not exists play_con_bat_dau on play_sessions(child_id, bat_dau)`,
   `create index if not exists evidence_sub on evidence(submission_id)`,
   `create index if not exists submissions_con_tt on submissions(child_id, trang_thai)`,

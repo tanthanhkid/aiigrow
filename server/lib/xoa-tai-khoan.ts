@@ -22,7 +22,8 @@ import { chuaCoMatKhau, donBoDemMxh } from "./dang-nhap-mxh.ts";
 import { donBoDemDangNhap, goKhoaTaiKhoan } from "./gioi-han-dang-nhap.ts";
 import { donBoDemGhep } from "./gia-dinh.ts";
 import { donBoDemTaiGhep } from "./tai-ghep.ts";
-import { donBoDemPinBe } from "./pin-be.ts";
+import { donBoDemPinBe, donBoDemPinMay } from "./pin-be.ts";
+import { donBoDemGo } from "./may-con.ts";
 import { one, q, tx, xoaTheoLo, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -33,9 +34,16 @@ import { bangTvTb } from "./thanh-vien.ts";
 import { bangMang } from "./dns-gia-dinh.ts";
 import { bangLog, donLogCu } from "./log-may.ts";
 import { donWebCu } from "./web.ts";
+import { donHetHan } from "./don-het-han.ts";
 
 export const XOA_SAI_TOI_DA = 5, XOA_KHOA_PHUT = 15;
 export type KetQuaXoa = { xoa: "tai_khoan" } | { xoa: "gia_dinh"; soCon: number };
+
+/** #565 — cron hằng ngày: bộ đếm «xoa_tk:<người>:<khung>» của khung đã qua quá 1 ngày (đường thành công chỉ xoá bộ đếm của chính người đó). */
+export async function donBoDemXoaTk(now = Date.now()) {
+  return (await q(`delete from pin_sai where substring(khoa from '^xoa_tk:[^:]+:([0-9]{1,15})$')::bigint < $1 returning 1`,
+    [Math.floor((now - 86_400_000) / (XOA_KHOA_PHUT * 60_000))])).length;
+}
 
 /** Nhập lại mật khẩu — bộ đếm riêng theo khung 15 phút cố định (như ghepMay): giữ chỗ lượt thử TRƯỚC khi kiểm (một upsert nguyên tử)
  *  ⇒ gửi song song cũng chỉ ≤ 5 lượt được kiểm mỗi khung; gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Đúng ⇒ xoá bộ đếm. */
@@ -152,7 +160,14 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     await donBoDemGhep(now.getTime());         // bộ đếm lượt thử mã ghép máy theo nguồn + toàn cục (gia-dinh.ts › ghepMay)
     await donBoDemTaiGhep(now.getTime());      // bộ đếm lượt tải bộ cài mang gói ghép (tai-ghep.ts)
     await donBoDemPinBe(now);                  // #555: bộ đếm sai PIN theo bé của khung đã qua (pin-be.ts)
+    // #565: bộ đếm mới tự bắt lỗi — một bước hỏng không chặn usage / don-het-han phía sau
+    await donBoDemPinMay(now).catch((e) => console.error("cron: dọn pin_sai máy lỗi", e));   // sai PIN theo máy + dấu mã Ba Mẹ (pin-be.ts)
+    await donBoDemGo(now).catch((e) => console.error("cron: dọn pin_sai gỡ lỗi", e));        // sai mật khẩu gỡ máy (may-con.ts)
+    await donBoDemXoaTk(now.getTime()).catch((e) => console.error("cron: dọn pin_sai xoá tk lỗi", e)); // nhập lại mật khẩu xoá tài khoản
     await donUsageCu(now).catch((e) => console.error("cron: dọn usage cũ lỗi", e));     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
+    // #565 (don-het-han.ts): phiên / OTP hết hạn, sự kiện / cảnh báo quá 180 ngày — cuối chuỗi, từng bảng tự bắt lỗi, mỗi lượt tối đa 10 lô / bảng
+    const het = await donHetHan(now);
+    if (Object.values(het).some((x) => x < 0)) console.error("cron: dọn quá hạn có bảng lỗi", het);
     return n;
   } catch (e) {
     await q(`update he_thong set updated_at = coalesce($2::timestamptz, '-infinity') where khoa = 'don_kiem_toan' and updated_at = $1`,
