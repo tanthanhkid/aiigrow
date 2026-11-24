@@ -15,7 +15,7 @@ const { taoNha, taoBaMe } = await import("./test-fixtures/nha.ts");
 const VN = (s: string) => new Date(`${s}+07:00`);
 const loi = async (p: Promise<unknown>, ma: string) => assert.rejects(p, (e: { ma?: string }) => e.ma === ma);
 const T = VN("2026-10-21T18:00:00");
-/** Giả máy điện thoại đã chạy tác tử mới (đã gửi nhịp `ios`/`android`) ⇒ lời xin thêm giờ thành cửa sổ (chuyen-doi.ts › lamCuaSo). */
+/** Giả máy điện thoại đã chạy tác tử mới (đã gửi nhịp `ios`/`android`) ⇒ lời xin thêm giờ thành cửa sổ. */
 const tacTuMoi = (id: string, nen: "ios" | "android") => q(`update devices set status = coalesce(status, '{}'::jsonb) || jsonb_build_object($2::text, '{}'::jsonb) where id = $1`, [id, nen]);
 
 test("BRD 6.4: xin mở scratch.mit.edu «Để làm bài tập» ⇒ Ba Mẹ đồng ý Học tập – Vĩnh viễn ⇒ mở được, không tính điểm", async () => {
