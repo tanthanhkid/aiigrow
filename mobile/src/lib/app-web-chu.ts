@@ -5,7 +5,6 @@ export type Nhom = "tinh_phut" | "khong_tinh_phut";
 export type Kieu = "app" | "web";
 
 export const TEN_CHE_DO: Record<CheDo, string> = { mo_het: "Mở hết", theo_danh_sach: "Theo danh sách" };
-export const IC_CHE_DO = { mo_het: "mo_khoa", theo_danh_sach: "khien" } as const;
 export const TEN_NHOM: Record<Nhom, string> = { tinh_phut: "Tính phút", khong_tinh_phut: "Không tính phút" };
 /** Câu phụ của một nhóm (thiết kế: «Trả bằng sao · 1 sao = 1 phút» / «Vào thoải mái»). */
 export const PHU_NHOM: Record<Nhom, string> = { tinh_phut: "Trả bằng sao · 1 sao = 1 phút", khong_tinh_phut: "Vào thoải mái" };

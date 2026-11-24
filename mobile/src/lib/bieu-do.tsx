@@ -4,14 +4,12 @@
 // rồi vệt men lướt chéo; vòng quét tới giá trị. Reduce Motion ⇒ không mọc / không lướt, chỉ fade (docs/clay/M-anh-men.css cuối khối thông số).
 // «Mọc» chỉ dùng transform (Thanh duyệt 25/10): cột / thanh có kích thước cuối ngay từ đầu rồi scale từ chân (transformOrigin), nên mỗi khung
 // không phải tính lại bố cục. Đánh đổi đã chấp nhận: trong ~400ms mọc, đầu bo + lớp men hơi giãn theo; mọc xong (scale 1) y hệt bản tĩnh.
-// Một bộ cho mọi chỗ: Báo cáo tuần (cột đôi học / giải trí), Thời gian màn hình (cột chồng theo mục + thanh theo mục), Tien (thanh tiến độ),
-// vòng đồng hồ của Con. Chỉ dùng react-native-reanimated + react-native-svg có sẵn.
-import React, { useEffect, type ReactNode } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, {
-  FadeIn, ReduceMotion, type SharedValue, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming,
-} from "react-native-reanimated";
-import Svg, { Circle, Defs, Line, Pattern, Rect } from "react-native-svg";
+// Một bộ cho mọi chỗ: Báo cáo tuần (cột đôi học / giải trí), Thời gian màn hình (cột chồng theo mục + thanh theo mục).
+// Chỉ dùng react-native-reanimated + react-native-svg có sẵn.
+import React, { useEffect } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
+import Svg, { Defs, Line, Pattern, Rect } from "react-native-svg";
 import { BONG, MEN, VET } from "./clay";
 import { EASE } from "./chuyen-dong";
 import { F, M } from "./mau";
@@ -204,69 +202,6 @@ export function ThanhClay({ ti, mau = M.chinh, cao = 14, tre = 0, nhanDoc }: { t
           </View>
         </Animated.View>
       ) : null}
-    </View>
-  );
-}
-
-// ---------------------------------------------------------------- vòng
-
-const ACircle = Animated.createAnimatedComponent(Circle);
-
-/** Vòng tiến độ dạng ống đất sét: rãnh lõm (vòng xám + mép sáng ngoài + bóng trong), ống màu có vệt men chạy dọc, đĩa giữa là khối clay. */
-export function VongClay({ ti, co = 200, day, mau = M.chinhSang, children, nhanDoc }: {
-  ti: number; co?: number; day?: number; mau?: string; children?: ReactNode; nhanDoc?: string;
-}) {
-  const giam = useReducedMotion();
-  const sw = day ?? Math.max(5, Math.round(co * 0.08));
-  const r = co / 2 - sw / 2 - 1, t = Math.min(1, Math.max(0, ti || 0)), c = co / 2;
-  const p = useSharedValue(giam ? 1 : 0);
-  const coSo = t > 0;
-  useEffect(() => { if (giam) p.set(1); else { p.set(0); p.set(withTiming(1, { duration: 450, easing: EASE.men })); } }, [giam, coSo, p]);
-  // ống màu + chân tối phía trong + vệt men phía ngoài: mỗi cung bán kính riêng (chu vi riêng) để cùng phủ một góc
-  const cung = [{ r, mau, w: sw }, { r: r - sw * 0.3, mau: "rgba(0,0,0,0.16)", w: sw * 0.26 }, { r: r + sw * 0.16, mau: "rgba(255,255,255,0.55)", w: sw * 0.22 }];
-  const dia = co - sw * 2 - 4;
-  return (
-    <View style={{ width: co, height: co, alignItems: "center", justifyContent: "center" }}
-      {...(nhanDoc ? { accessibilityRole: "progressbar" as const, accessibilityLabel: nhanDoc, accessibilityValue: { min: 0, max: 100, now: Math.round(t * 100) } }
-        : { accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" as const })}>
-      <View style={{ position: "absolute", width: co, height: co, borderRadius: co / 2, boxShadow: co >= 80 ? BONG.nho : undefined }} />
-      <Svg width={co} height={co} style={{ position: "absolute" }}>
-        {/* rãnh lõm: xám + bóng trong (vòng tối mảnh phía trong) + mép sáng ngoài */}
-        <Circle cx={c} cy={c} r={r} stroke={M.ranh} strokeWidth={sw} fill="none" />
-        <Circle cx={c} cy={c} r={r - sw * 0.28} stroke="rgba(40,44,42,0.10)" strokeWidth={sw * 0.38} fill="none" />
-        <Circle cx={c} cy={c} r={r + sw * 0.42} stroke="rgba(255,255,255,0.95)" strokeWidth={Math.max(1, sw * 0.14)} fill="none" />
-        {t > 0 ? cung.map((x, k) => <Cung key={k} c={c} t={t} p={p} {...x} />) : null}
-      </Svg>
-      {children ? (
-        <View style={{ width: dia, height: dia, borderRadius: dia / 2, backgroundColor: M.the, alignItems: "center", justifyContent: "center", boxShadow: BONG.nho }}>
-          {MEN.the ? <View pointerEvents="none" style={[StyleSheet.absoluteFill, { borderRadius: dia / 2, backgroundImage: MEN.the }]} /> : null}
-          {children}
-        </View>
-      ) : null}
-    </View>
-  );
-}
-
-/** Một cung của vòng: dash theo chu vi của chính nó, quét theo `p`; có strokeDashoffset tĩnh cho web. */
-function Cung({ c, r, mau, w, t, p }: { c: number; r: number; mau: string; w: number; t: number; p: SharedValue<number> }) {
-  const cv = 2 * Math.PI * r;
-  const ap = useAnimatedProps(() => ({ strokeDashoffset: cv * (1 - t * p.value) }));
-  return <ACircle cx={c} cy={c} r={r} stroke={mau} strokeWidth={w} fill="none" strokeLinecap="round" strokeDasharray={`${cv} ${cv}`}
-    strokeDashoffset={Platform.OS === "web" ? cv * (1 - t) : undefined} transform={`rotate(-90 ${c} ${c})`} animatedProps={ap} />;
-}
-
-// ---------------------------------------------------------------- chú giải
-
-/** Chú giải gọn: viên clay màu + nhãn, xuống dòng khi chữ lớn. */
-export function ChuGiai({ ds }: { ds: { chu: string; mau: string }[] }) {
-  return (
-    <View style={{ flexDirection: "row", flexWrap: "wrap", columnGap: 14, rowGap: 4 }}>
-      {ds.map((x) => (
-        <View key={x.chu} style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: x.mau, boxShadow: BONG.cot, backgroundImage: MEN.vien }} />
-          <Text style={{ fontFamily: F.dam, fontSize: 13, lineHeight: 19, color: M.chu2 }}>{x.chu}</Text>
-        </View>
-      ))}
     </View>
   );
 }

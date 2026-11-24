@@ -23,21 +23,6 @@ export const Anh3D = ({ ten, co = 22 }: { ten: Ten3D; co?: number }) => (
 
 // ---------------------------------------------------------------- thanh bước + đầu màn
 
-/** 4 bước Lần đầu (thiết kế: icon người · sao · đồng hồ · máy tính): bước xong hiện dấu tick, bước đang làm navy viền vàng mật (bàn Navy 17/11). */
-const BUOC_IC: TenIcon[] = ["nguoi", "sao", "dongho", "may_tinh"];
-export function ThanhBuoc({ dang, ic }: { dang: number; /** đổi icon bước đang làm (vd «khien» ở màn Chọn app) */ ic?: TenIcon }) {
-  return (
-    <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="progressbar" accessibilityLabel={`Bước ${dang + 1} trên 4`}>
-      {BUOC_IC.map((t, i) => (
-        <View key={t} style={[{ width: 36, height: 36, borderRadius: 18, alignItems: "center", justifyContent: "center" },
-          i === dang ? { backgroundColor: M.chinh, boxShadow: `0px 0px 0px 2.5px ${M.diem}, ${BONG.nho}` } : { backgroundColor: M.ranh, boxShadow: BONG.lom }]}>
-          <View style={{ opacity: i <= dang ? 1 : 0.45 }}><Icon3D ten={i < dang ? "tick" : i === dang && ic ? ic : t} co={20} /></View>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 /** Hàng đầu màn: nút lùi (mũi tên) bên trái + phần phải (thanh bước / «Cần giúp?»). `ve` = đường thay khi không lùi được. */
 export function DauMan({ ve, phai, khongLui, bamLui, tieu, giua }: { ve?: string; phai?: ReactNode; khongLui?: boolean; bamLui?: () => void; /** tiêu đề cạnh nút lùi */ tieu?: string;
   /** khối giữa thanh đầu (vd vạch tiến độ 2 bước — bàn them-2g3zpiie) */ giua?: ReactNode }) {
@@ -126,7 +111,6 @@ export function CanhRob({ lv, tieu, loi, ic, cao = 150, chuTo, robTrai, bongTo }
 // ---------------------------------------------------------------- tài khoản: Google / Facebook, ô mật khẩu
 
 const G_SVG = `<svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>`;
-const FB_SVG = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1877F2"/><path fill="#fff" d="M13.4 19.5v-6.2h2.1l.3-2.5h-2.4V9.3c0-.7.2-1.2 1.2-1.2h1.3V5.9c-.2 0-1-.1-1.9-.1-1.9 0-3.2 1.2-3.2 3.3v1.8H8.7v2.5h2.1v6.2z"/></svg>`;
 
 const FB_BAN = `<svg viewBox="0 0 24 24" fill="#1877f2"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.09 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.54-4.69 1.31 0 2.69.24 2.69.24v2.97h-1.52c-1.49 0-1.96.93-1.96 1.88v2.26h3.33l-.53 3.49h-2.8V24C19.61 23.09 24 18.1 24 12.07z"/></svg>`;
 const FB_TRON = `<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="#1877F2"/><path fill="#fff" d="M15.1 12.9l.4-2.8h-2.7V8.3c0-.8.4-1.5 1.6-1.5h1.2V4.4s-1.1-.2-2.2-.2c-2.2 0-3.7 1.4-3.7 3.8v2.1H7.3v2.8h2.4V24h3.1V12.9z"/></svg>`;
@@ -242,12 +226,6 @@ export function OLom({ nhan, ghi, ghiOk, matKhau, lon, ghiDuoi, dau, cach, nenO,
   );
 }
 
-/** Ô nhập trần (không nhãn, không nền) — đặt trong một khối lõm tự dựng (ô số + nút «Gửi mã»). */
-export const OLomTran = (p: TextInputProps) => (
-  <TextInput placeholderTextColor={M.chu3} accessibilityLabel="Số điện thoại" keyboardType="phone-pad" autoComplete="tel" placeholder="0912 345 678" {...p}
-    style={{ fontFamily: F.dam, fontSize: 17, color: M.chu, paddingVertical: 12, outlineStyle: "none" } as never} />
-);
-
 /** Liên kết chữ ngọc đứng giữa (thiết kế .lk). */
 export const LienKet = ({ chu, bam, gach, co = 14.5, mau, kieu = "rat", phai }: { chu: string; bam: () => void; gach?: boolean; co?: number; mau?: string; kieu?: "rat" | "dam"; /** đứng sát phải (padding ngang 8) */ phai?: boolean }) => (
   <Pressable onPress={bam} accessibilityRole="link" hitSlop={4} style={{ minHeight: 44, alignItems: phai ? "flex-end" : "center", justifyContent: "center", paddingHorizontal: phai ? 8 : 0 }}>
@@ -263,7 +241,7 @@ export const boCach = (v: string) => (/^[\d\s+]*$/.test(v) ? v.replace(/\s/g, ""
 /** «0912345678» ⇒ «0912 345 678» (số 10 chữ số; dạng khác — email, +84… — giữ nguyên). */
 export const hienSo = (s = "") => (/^\d{10}$/.test(s) ? s.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : s);
 /** Ô nhập SĐT/email: lúc đang gõ giữ nguyên chữ người dùng (không dựng lại ⇒ xoá dấu cách được, con trỏ không nhảy); rời ô mới tách
- * «0912 345 678». Giá trị lưu luôn là `boCach(chữ)`. Trả props cho TextInput / OLom / OLomTran. */
+ * «0912 345 678». Giá trị lưu luôn là `boCach(chữ)`. Trả props cho TextInput / OLom. */
 export function useOSo(gia: string, doi: (v: string) => void) {
   const [dangGo, setDangGo] = useState<string | null>(null);
   return {
@@ -303,7 +281,6 @@ async function chiaSeHeThong(c: ChiaSe) {
   await Share.share({ title: c.tieuDe, message: c.noiDung }).catch(() => {});
   return false;
 }
-
 
 /** Hàng chia sẻ (thiết kế chốt 14/11 bm1-ob-ghep): cuộn ngang Zalo · Messenger · Tin nhắn · Email · Telegram · Sao chép, ô «Thêm…» đứng yên bên
  *  phải (bảng chia sẻ của máy — gửi qua mọi app). Zalo không có đường chia sẻ chữ ra ngoài ⇒ bảng chia sẻ của máy (chọn Zalo) — web: chép sẵn
@@ -399,56 +376,6 @@ export function BuocMayCon({ n, ic, tieu, phu, gach }: { n: number; ic: TenIcon;
 
 // ---------------------------------------------------------------- ô icon app (lưới Chọn app)
 
-const YT = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M9 7.5v9l7.5-4.5z"/></svg>`;
-const RB = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M6.2 2 22 6.2 17.8 22 2 17.8zM10.4 9.1l-1.3 4.8 4.8 1.3 1.3-4.8z"/></svg>`;
-const MC = `<svg viewBox="0 0 8 8" shape-rendering="crispEdges"><path fill="#6cc04a" d="M0 0h8v3H0z"/><path fill="#8b5a2b" d="M0 3h8v5H0z"/><path fill="#4e9a2f" d="M1 1h2v1H1zM5 0h2v1H5zM3 2h1v2H3zM6 2h1v2H6z"/><path fill="#6b4220" d="M2 5h1v1H2zM5 4h1v1H5zM4 6h1v1H4z"/></svg>`;
-const TT = `<svg viewBox="0 0 24 24"><path fill="#fff" d="M16.6 5.8A4.3 4.3 0 0 1 15.5 3h-3.1v12.4a2.6 2.6 0 1 1-2.6-2.6c.3 0 .5 0 .8.1V9.7a5.7 5.7 0 1 0 4.9 5.7V9.1a7.3 7.3 0 0 0 4.3 1.4V7.4a4.3 4.3 0 0 1-3.2-1.6z"/></svg>`;
-type HinhApp = { nen: string; svg?: string; ic?: TenIcon; rob?: boolean; chu?: string };
-const HINH_APP: Record<string, HinhApp> = {
-  youtube_kids: { nen: "#ff2a2a", svg: YT }, youtube: { nen: "#ff0000", svg: YT }, roblox: { nen: "#1f2321", svg: RB }, minecraft: { nen: "#e9efe4", svg: MC },
-  aiirob: { nen: M.chinhSoft, rob: true }, tu_dien: { nen: M.chinhSoft, ic: "sach" }, google: { nen: "#FFFBF5", svg: G_SVG }, ve: { nen: M.canhSoft, ic: "but" },
-  lich: { nen: M.chinhSoft, ic: "lich" }, tiktok: { nen: M.nut, svg: TT }, zalo: { nen: "#0068ff", chu: "Zalo" }, scratch: { nen: M.diemSoft, ic: "game" },
-  duolingo: { nen: "#58cc02", chu: "D" }, khan: { nen: "#14bf96", chu: "K" }, zoom: { nen: "#2d8cff", chu: "Z" }, capcut: { nen: M.nut, chu: "C" },
-};
-
-/** Ô icon một app: hình theo mã app trong lưới (server/lib/che-do-chan.ts › APP_GOI_Y); app «Thêm app khác» ⇒ chữ cái đầu. */
-export function OApp({ ma, ten, chon, bam, nhanDoc, rong = "25%" }: { ma?: string; ten: string; chon?: boolean; bam?: () => void; nhanDoc?: string; /** bề ngang ô (lưới 4 cột) */ rong?: `${number}%` | number }) {
-  const h: HinhApp = (ma && HINH_APP[ma]) || { nen: M.chinhSoft, chu: (ten || nhanDoc || "").trim().charAt(0).toUpperCase() || "?" };
-  const tat = chon === false;
-  const o = (
-    <View style={{ alignItems: "center", gap: 6, width: "100%" }}>
-      <View style={{ width: 60, height: 60 }}>
-        <View style={[{ width: 60, height: 60, borderRadius: 20, backgroundColor: h.nen, alignItems: "center", justifyContent: "center", overflow: "hidden", ...KHOI.nho }, tat && { opacity: 0.45 }]}>
-          {h.svg ? <SvgXml xml={h.svg} width={28} height={28} /> : h.rob ? <Rob ten="hoc" co={46} /> : h.ic ? <Icon3D ten={h.ic} co={38} />
-            : <Chu kieu="rat" co={h.chu && h.chu.length > 2 ? 15 : 24} mau={h.nen === M.chinhSoft ? M.chu : "#FFFBF5"}>{h.chu}</Chu>}
-        </View>
-        {chon !== undefined ? (
-          <View style={{ position: "absolute", right: -5, bottom: -5, width: 22, height: 22, borderRadius: 11, backgroundColor: chon ? M.chinh : "#1b2b47",
-            boxShadow: `0px 0px 0px 2.5px ${M.nen}`, alignItems: "center", justifyContent: "center" }}>
-            <Icon ten={chon ? "tick" : "tru"} mau="#FFFBF5" co={13} />
-          </View>
-        ) : null}
-      </View>
-      {ten ? <Chu kieu="rat" co={12} mau={tat ? M.chu3 : M.chu} dong={2} style={{ textAlign: "center", lineHeight: 15, minHeight: 30 }}>{ten}</Chu> : null}
-    </View>
-  );
-  return bam ? (
-    <Pressable onPress={bam} accessibilityRole="switch" accessibilityLabel={nhanDoc ?? ten} accessibilityState={{ checked: !!chon }} style={{ width: rong, paddingHorizontal: 2, minHeight: 44 }}>{o}</Pressable>
-  ) : <View style={{ width: rong, paddingHorizontal: 2 }}>{o}</View>;
-}
-
-/** Ô «+ Thêm app khác» trong lưới (viền gạch ngọc, nền lõm). */
-export function OThemApp({ bam }: { bam: () => void }) {
-  return (
-    <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel="Thêm app khác" style={{ width: "25%", paddingHorizontal: 2, alignItems: "center", gap: 6 }}>
-      <View style={{ width: 60, height: 60, borderRadius: 20, backgroundColor: M.xamSoft, boxShadow: BONG.lom, borderWidth: 2, borderStyle: "dashed", borderColor: M.oNhap, alignItems: "center", justifyContent: "center" }}>
-        <Chu kieu="rat" co={28} mau={M.chinhInk}>+</Chu>
-      </View>
-      <Chu kieu="rat" co={12} mau={M.chinhInk} style={{ textAlign: "center", lineHeight: 15 }}>Thêm app khác</Chu>
-    </Pressable>
-  );
-}
-
 // ---------------------------------------------------------------- bánh xe chọn giờ
 
 const CAO_O = 40;
@@ -474,50 +401,6 @@ export function BanhXe({ ds, gia, doi, nhan }: { ds: string[]; gia: string; doi:
           </Pressable>
         ))}
       </ScrollView>
-    </View>
-  );
-}
-
-/** Bánh xe «HH : MM» (phút bước 5). */
-export function BanhXeGio({ gio, doi }: { gio: string; doi: (g: string) => void }) {
-  const [h, m] = gio.split(":");
-  const gioDs = Array.from({ length: 24 }, (_, k) => String(k).padStart(2, "0"));
-  const phutDs = Array.from({ length: 12 }, (_, k) => String(k * 5).padStart(2, "0"));
-  const mm = phutDs.includes(m) ? m : phutDs[Math.floor(Number(m) / 5) % 12];   // làm tròn XUỐNG: 21:58 ⇒ 21:55 (tròn lên 60 không cộng giờ ⇒ nhảy về 21:00)
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 }}>
-      <View pointerEvents="none" style={{ position: "absolute", left: 0, right: 0, top: CAO_O * 2, height: CAO_O, borderRadius: 14, backgroundColor: M.chinhSoft }} />
-      <BanhXe ds={gioDs} gia={h} doi={(x) => doi(`${x}:${mm}`)} nhan="Giờ" />
-      <Chu kieu="rat" co={24}>:</Chu>
-      <BanhXe ds={phutDs} gia={mm} doi={(x) => doi(`${h}:${x}`)} nhan="Phút" />
-    </View>
-  );
-}
-
-/** «06:30» ⇒ «6:30» như thiết kế. */
-export const gioGon = (g: string) => g.replace(/^0(\d):/, "$1:");
-
-/** Khối minh hoạ lớn đầu màn: nền ngọc nhạt bo tròn, Grow to giữa, bong bóng thoại góc trên trái (tuỳ chọn), `tren` = thẻ nổi phía trên. */
-export function KhoiRob({ lv = "rob-goc", thoai, tren, cao = 300 }: { lv?: LinhVat; thoai?: string; tren?: ReactNode; cao?: number }) {
-  // Bong bóng thoại / thẻ phía trên nằm TRONG dòng chảy, Grow lấp phần còn lại bên dưới — không chồng lên hình (cổng DE-ANH): đo chiều cao
-  // khối trên rồi thu Grow cho vừa (thẻ lời mời có tên con dài ở 320px cao tới 4–5 dòng).
-  const [hTren, setHTren] = useState(thoai || tren ? 72 : 0);
-  // ảnh Grow dọc (520×740) vẽ trong ô vuông `co` ⇒ chừa đáy 4 như thiết kế (.rob bottom:4), không trừ thêm 30 (Grow bé hơn HTML — vòng 2)
-  const coRob = Math.max(110, cao - 8 - (thoai || tren ? hTren + 12 : 0));
-  return (
-    <View style={{ minHeight: cao, borderRadius: 34, backgroundColor: M.chinhSoft, alignItems: "center", justifyContent: "flex-end", overflow: "hidden", ...KHOI.the }}>
-      <LopMen men={MEN.vien} bo={34} />
-      {thoai || tren ? (
-        <View onLayout={(e) => setHTren(Math.ceil(e.nativeEvent.layout.height))} style={{ alignSelf: "stretch", paddingHorizontal: 12, paddingTop: 12 }}>
-          {thoai ? (
-            <View style={{ alignSelf: "flex-start", marginLeft: 6, marginTop: 8, maxWidth: 220, backgroundColor: M.the, borderRadius: 22, paddingVertical: 11, paddingHorizontal: 16, boxShadow: BONG.nho }}>
-              <Chu kieu="dam7" co={15} style={{ lineHeight: 20 }}>{thoai}</Chu>
-            </View>
-          ) : null}
-          {tren}
-        </View>
-      ) : null}
-      <View style={{ flex: 1, justifyContent: "flex-end" }}><Rob ten={lv} co={coRob} /></View>
     </View>
   );
 }
@@ -579,7 +462,6 @@ export function SanDangNhap({ tieu, loi }: { tieu: string; loi: string }) {
   );
 }
 
-
 /** Thẻ đầu màn «Quên mật khẩu» / «Đặt mật khẩu mới» (bàn them-2g3zpiie, them-6aomy24b `.san`): cao 200 bo 36, bong bóng thoại trái trên,
  *  khoá 3D nghiêng dưới trái (không viên tròn — bàn 20/11), Grow tràn đáy phải. `moKhoa` = bước đặt mật khẩu (Grow ăn mừng + khoá mở). */
 export function SanQuenMk({ thoai, moKhoa }: { thoai: string; moKhoa?: boolean }) {
@@ -637,10 +519,3 @@ export function OSoGui({ da, dangChay, tat, bam, ...p }: TextInputProps & { da: 
 // MAU_HO_SO (bảng màu hồ sơ con duy nhất) nay ở ./mau — ui.tsx cần sinh MAU_CON từ đó mà lan-dau đã import ui (tránh vòng import); re-export để chỗ cũ không đổi.
 export { MAU_HO_SO };
 export const mauHoSo = (avatar?: string | null) => { const k = Number(/^mau-(\d)(?:\||$)/.exec(avatar ?? "")?.[1]); return MAU_HO_SO[Number.isInteger(k) && k < MAU_HO_SO.length ? k : 0]; };
-/** «9 tuổi · khoảng lớp 4» (lớp = tuổi − 5, chỉ 6–17 tuổi). */
-export const cauTuoi = (namSinh: number | null) => {
-  if (!namSinh) return null;
-  const t = new Date().getFullYear() - namSinh;
-  if (t < 1 || t > 25) return null;
-  return t >= 6 && t <= 17 ? `${t} tuổi · khoảng lớp ${t - 5}` : `${t} tuổi`;
-};

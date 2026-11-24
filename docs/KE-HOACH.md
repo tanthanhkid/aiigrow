@@ -34,7 +34,7 @@ Một nguồn sự thật cho điểm và quy tắc: **máy chủ**. Agent chỉ
 | Đồng bộ máy con | `dong-bo.ts` (lệch giờ, offline, gửi bù), `lenh.ts` (lệnh + ack), `policy.ts` (khung giờ, ngủ, trần) | Policy thêm Allowlist hệ thống / gia đình / Fun list theo nhóm + giá điểm/phút; lệch giờ > 5 phút ⇒ khoá Fun list (FR-01.05) |
 | Lời xin + duyệt | `taoLoiXin`, `duyet`, `tuChoi`, kiểm số dư lúc duyệt | 6 loại yêu cầu, lý do nhanh, giới hạn 3 chờ / 10 ngày, hết hạn 24 giờ / 7 ngày, phạm vi Lần này/Hôm nay/Vĩnh viễn |
 | Điểm | bảng `points` (sổ cái), `soDiem` | ví không âm, điểm chờ duyệt, điều chỉnh tay có lý do, cấp độ trọn đời |
-| App Ba Mẹ | `mobile/src/lib/ui.tsx` (thành phần, Z, hoàn tác, chạm 44, chuTren), `api.ts`, `phien.tsx`, `ho-tro.ts`, `lenh.tsx`, màn ghép/QR/hỗ trợ/xoá tài khoản | toàn bộ màn theo thiết kế `bm-*`; bảng màu/kit theo `tinh/app.css` + `kit.py` của thiết kế |
+| App Ba Mẹ | `mobile/src/lib/ui.tsx` (thành phần, Z, hoàn tác, chạm 44), `api.ts`, `phien.tsx`, `ho-tro.ts`, `lenh.tsx`, màn ghép/QR/hỗ trợ/xoá tài khoản | toàn bộ màn theo thiết kế `bm-*`; bảng màu/kit theo `tinh/app.css` + `kit.py` của thiết kế |
 | Cổng giao diện | `mobile/scripts/pha.mjs` + `giao-dien.mjs` (5 luật, 320 / 390 / 390 giãn chữ) | danh sách màn = 57 màn thiết kế × 5 trạng thái |
 | Agent Windows | `agent-win/` (Service + Tray + Setup, AppLocker, khoá phiên, pipe, DPAPI) | phiên chơi bằng điểm, màn chặn «Dùng điểm để chơi / Xin phép Ba Mẹ», chặn file cài đặt, khung Kid bằng WebView2 |
 

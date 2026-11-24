@@ -5,15 +5,13 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet, type LuotCho, type MayCon, type YeuCau } from "./api";
-import { BONG, KHOI, MEN } from "./clay";
+import { BONG, KHOI } from "./clay";
 import { datKhoa, datKhoaMay } from "./khoa-may";
 import { cachKhoa, cauKhoaMay, mayDangKhoa } from "./noi-1411";
 import { nganTen, tenGocMay } from "./may-nhieu-con";
 import { khoaTen, laWeb } from "./ui-bm3";
 import { MAU_HO_SO } from "./lan-dau";
-import {
-  Avt, BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, DauSach, gioPhut, Icon, Icon3D, IconNet, M, Man, NhanMen, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon,
-} from "./ui";
+import { BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, DauSach, gioPhut, Icon, Icon3D, IconNet, M, Man, Nut, TickDong, useLam, type LinhVat, type MauBt, type TenIcon } from "./ui";
 
 // ---------------------------------------------------------------- kiểu dữ liệu (docs/API.md «Thiết kế chốt 05/11»)
 
@@ -26,9 +24,6 @@ export type Quy = {
 /** GET con/:id/quy */
 /** GET con/:id/quy — 15/11: `sao` = số dư Con thấy (âm được), `soSao` = trạng thái sổ sao (lib/so-sao); `quy.conPhut` = sao tiêu được; `ngoaiLe` luôn []. */
 export type QuyCon = { quy: Quy; sao: number; soSao?: import("./so-sao").SaoCon; ngoaiLe: { id: string; den: string; muc: string | null; nhom: string }[] };
-/** GET nhiem-vu/bo */
-export type ViecBo = { ten: string; moTa: string; sao: number; bangChung: string; tuCham: boolean; lapLai: string; hinh: string; nhan: string | null; toiDaNgay: number | null };
-export type BoNv = { ma: string; ten: string; tuoi: string; soViec: number; saoToiDaNgay: number; viec: ViecBo[] };
 /** Nhiệm vụ (GET nhiem-vu) + cột 05/11. */
 export type NhiemVuMoi = { id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; tu_duyet: boolean; giao_cho: string | null;
   bat: boolean; toi_da_ngay: number | null; hinh?: string | null; lap_lai?: string | null; gio_nhac?: string | null; bo?: string | null };
@@ -122,32 +117,6 @@ export function soAppDuocMo(ds: LuatDem[], con: string) {
 }
 
 // ---------------------------------------------------------------- thành phần
-
-/** Chip đổi Con (thiết kế: chữ cái trong viên màu + tên; đang chọn = khối ngọc đậm chữ trắng). */
-export function ChipCon<T extends { id: string; ten: string; avatar?: string | null }>({ ds, chon, doi, them }: { ds: T[]; chon: string; doi: (c: T) => void; them?: () => void }) {
-  return (
-    <View style={{ flexDirection: "row", gap: 8, flexWrap: "wrap", alignItems: "center" }} accessibilityRole="tablist">
-      {ds.map((x, k) => {
-        const on = x.id === chon;
-        return (
-          <NhanMen key={x.id} onPress={() => doi(x)} accessibilityRole="tab" accessibilityState={{ selected: on }} muc="chip" sang={!on} men={on ? MEN.ngoc : MEN.sang}
-            style={[{ flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44, paddingLeft: 6, paddingRight: 16, borderRadius: 22, maxWidth: "100%", flexShrink: 1 },
-              on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-            {/* #417: bé chưa chọn = avatar kem lõm chữ navy; bé đang chọn giữ viên navy chữ vàng (chip navy đã là vòng chọn) */}
-            <Avt ten={x.ten} mau={mauCon(x.avatar, k)} co={32} con={x} chon={on ? undefined : false} />
-            <Chu kieu="rat" co={15} mau={on ? "#FFFBF5" : M.chu} dong={1} style={{ flexShrink: 1 }}>{x.ten}</Chu>
-          </NhanMen>
-        );
-      })}
-      {them ? (
-        <NhanMen onPress={them} accessibilityRole="button" accessibilityLabel="Thêm con" muc="chip" sang men={MEN.sang}
-          style={[{ minHeight: 44, minWidth: 44, borderRadius: 22, backgroundColor: M.the, alignItems: "center", justifyContent: "center" }, KHOI.nho]}>
-          <Icon ten="cong" mau={M.chu2} co={20} />
-        </NhanMen>
-      ) : null}
-    </View>
-  );
-}
 
 /** Viên «10 sao» (vàng — vàng CHỈ dùng cho sao). `dau` = «+». */
 export function SaoVien({ n, dau, nho }: { n: number; dau?: boolean; nho?: boolean }) {
@@ -369,6 +338,3 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
 
 /** Hoàn tác cho vay sao (60 giây, đúng người cho — 15/11 «Cho thêm giờ» đã thành «Cho vay sao», lib/so-sao › BangChoVay). Lỗi (quá hạn / đã tiêu) ⇒ báo lại. */
 export const hoanTacThemGio = (grantId: string) => bm.goi(`vay/${grantId}/hoan-tac`, {});
-
-/** «19:20 · trên Laptop» */
-export const cauLuc = (iso: string | null | undefined, may?: string | null) => `Lúc ${gioPhut(iso)}${may ? ` · trên ${may}` : ""}`;

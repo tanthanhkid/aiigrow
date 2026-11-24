@@ -3,8 +3,8 @@
 // nút ＋ tròn lõm (chạm = chọn, hiện tick ngọc), ô chọn số sao, ô icon lõm. Token Clay (mau.ts, clay.ts) — không chép CSS thô của HTML.
 import type { ReactNode } from "react";
 import { Pressable, ScrollView, View } from "react-native";
-import { BONG, KHOI, MEN } from "./clay";
-import { Avt, Chu, Icon, Icon3D, IconNet, M, NhanMen, type TenIcon } from "./ui";
+import { BONG, KHOI } from "./clay";
+import { Avt, Chu, Icon, Icon3D, IconNet, M, type TenIcon } from "./ui";
 import { mauCon } from "./hang-ngay";
 
 /** «Bảo Anh · Bảo Minh · Bảo Ngọc · Khang» → «B / M / N / K»: chữ cái tên gọi (chữ cuối). */
@@ -75,56 +75,11 @@ export function ChuCaiCon({ ds, co = 30 }: { ds: { ten: string; avatar?: string 
   );
 }
 
-/** «Cả 4 con» / «Bảo Anh, Bảo Minh» / «Bảo Anh». */
-export const cauCacCon = (ds: { ten: string }[]) => (ds.length > 2 ? `${ds.length} con` : ds.map((c) => c.ten).join(", "));
-
-/** Thanh mục dạng viên (thiết kế .muc-tab): mục đang chọn = khối ngọc chữ trắng. */
-export function ThanhMuc<T extends string>({ ds, chon, doi }: { ds: { gia: T; chu: string; ic?: TenIcon }[]; chon: T; doi: (v: T) => void }) {
-  return (
-    <View style={{ flexDirection: "row", gap: 6 }} accessibilityRole="tablist">
-      {ds.map((x) => {
-        const on = x.gia === chon;
-        return (
-          <NhanMen key={x.gia} onPress={() => doi(x.gia)} accessibilityRole="tab" accessibilityState={{ selected: on }} muc="chip" sang={!on} men={on ? MEN.ngoc : MEN.sang}
-            style={[{ flexGrow: 1, flexShrink: 1, minHeight: 44, paddingHorizontal: 10, borderRadius: 22, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 5 },
-              on ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.nho }]}>
-            {x.ic ? <Icon3D ten={x.ic} co={18} /> : null}
-            <Chu kieu="rat" co={13.5} mau={on ? "#FFFBF5" : M.chu2} dong={1}>{x.chu}</Chu>
-          </NhanMen>
-        );
-      })}
-    </View>
-  );
-}
-
-/** Nút ＋ tròn lõm 34 trong vùng chạm 44 (thiết kế .d i): chọn ⇒ viên ngọc có tick. */
-export function NutCongTick({ chon, bam, nhan }: { chon: boolean; bam: () => void; nhan: string }) {
-  return (
-    <Pressable onPress={bam} accessibilityRole="checkbox" accessibilityState={{ checked: chon }} accessibilityLabel={nhan} hitSlop={4}
-      style={{ width: 44, height: 44, alignItems: "center", justifyContent: "center" }}>
-      <View style={[{ width: 34, height: 34, borderRadius: 17, alignItems: "center", justifyContent: "center" },
-        chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.xamSoft, boxShadow: BONG.lom }]}>
-        {chon ? <Icon ten="tick" mau="#FFFBF5" co={16} /> : <Chu kieu="rat" co={22} mau={M.chinhInk} style={{ lineHeight: 24 }}>+</Chu>}
-      </View>
-    </Pressable>
-  );
-}
-
 /** Ô icon 3D lõm (thiết kế .e / .ic): nền xám lõm, hoặc `nen` riêng (teal nhạt cho Học / AiiRob, cam nhạt cho Giúp Ba Mẹ). */
 export function OLomIcon({ ic, co = 40, nen = M.xamSoft }: { ic: TenIcon; co?: number; nen?: string }) {
   return (
     <View style={{ width: co, height: co, borderRadius: Math.round(co * 0.35), backgroundColor: nen, boxShadow: BONG.lom, alignItems: "center", justifyContent: "center" }}>
       <IconNet ten={ic} co={Math.round(co * 0.55)} />
-    </View>
-  );
-}
-
-/** Viên sao nhỏ chỉ số (thiết kế `.d s` — «⭐ 10»), vàng chỉ cho sao. */
-export function SaoNho({ n, dau }: { n: number; dau?: string }) {
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 3, paddingLeft: 4, paddingRight: 8, borderRadius: 11, backgroundColor: M.diemSoft }}>
-      <Icon3D ten="sao" co={16} />
-      <Chu kieu="rat" co={12.5} mau={M.diemInk} so>{`${dau ?? ""}${n.toLocaleString("vi-VN")}`}</Chu>
     </View>
   );
 }
@@ -145,14 +100,5 @@ export function ChonO<T extends string | number>({ ds, chon, doi, sao }: { ds: {
         );
       })}
     </View>
-  );
-}
-
-/** Chữ nút nhỏ màu ngọc (≥ 44 chạm), vd «Chọn tất cả», «Sửa quà ›». */
-export function ChuNut({ chu, bam }: { chu: string; bam: () => void }) {
-  return (
-    <Pressable onPress={bam} accessibilityRole="button" hitSlop={4} style={{ minHeight: 44, justifyContent: "center", paddingHorizontal: 6 }}>
-      <Chu kieu="rat" co={13.5} mau={M.chinhInk}>{chu}</Chu>
-    </Pressable>
   );
 }

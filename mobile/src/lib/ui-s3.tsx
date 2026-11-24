@@ -1,10 +1,10 @@
 // Mảnh giao diện MỚI của thiết kế chốt 06/11 (thanh bước 5 chấm, ô PIN 4 số, dòng quà, ô mã mở máy) — chỉ THÊM, không đổi thành phần cũ.
 // Màu / bóng / men lấy token Clay (mau.ts, clay.ts), không chép CSS thô của HTML thiết kế.
-import { useRef, useState, type ComponentRef, type ReactNode } from "react";
+import { useRef, useState, type ComponentRef } from "react";
 import { Pressable, TextInput, View } from "react-native";
 import { BONG, KHOI, MEN } from "./clay";
-import { locPin, icQua, phuQua, type QuaS3 } from "./s3";
-import { Chu, Icon, Icon3D, IconNet, LopMen, M, Nhan, NhanMen, type TenIcon } from "./ui";
+import { locPin } from "./s3";
+import { Chu, Icon, Icon3D, IconNet, LopMen, M, NhanMen, type TenIcon } from "./ui";
 
 // ---------------------------------------------------------------- thanh 5 bước Lần đầu (Con → Nhiệm vụ → Quà → Giờ → Máy)
 
@@ -83,25 +83,6 @@ export const GiaSao = ({ n, chu }: { n: number; chu?: string }) => (
     <Icon3D ten="sao" co={16} /><Chu kieu="rat" co={13.5} mau={M.diemInk} so>{chu ?? `${n.toLocaleString("vi-VN").replace(/,/g, ".")} sao`}</Chu>
   </View>
 );
-
-/** Một dòng quà ở «Danh sách quà» (them-473f52w6): hình · tên + dòng phụ (điều kiện = nhãn ngọc «Ba Mẹ trao» / «Chỉ cuối tuần») · giá · ›. */
-export function DongQua({ q, bam, dau, phai }: { q: QuaS3; bam?: () => void; dau?: boolean; phai?: ReactNode }) {
-  const p = phuQua(q);
-  return (
-    <Pressable onPress={bam} disabled={!bam} accessibilityRole={bam ? "button" : undefined} accessibilityLabel={`${q.ten}, ${q.sao} sao${p.chu ? `, ${p.chu}` : ""}`}
-      style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 68, paddingVertical: 10, paddingHorizontal: 14, borderTopWidth: dau ? 0 : 1, borderTopColor: M.vien }}>
-      <OHinhQua ic={icQua(q)} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Chu kieu="rat" co={15.5} dong={1}>{q.ten}</Chu>
-        {p.chu ? (p.nhan ? <View style={{ alignSelf: "flex-start", marginTop: 3 }}><Nhan chu={p.chu} loai="ok" /></View>
-          : <Chu co={13} mau={M.chu3} dong={2}>{p.chu}</Chu>) : null}
-        {q.dangGiu ? <Chu co={12.5} mau={M.chinhInk}>{`${q.dangGiu} phiếu đang chờ trao`}</Chu> : null}
-      </View>
-      {phai ?? <GiaSao n={q.sao} />}
-      {bam ? <Icon ten="phai" co={16} mau={M.chu3} /> : null}
-    </Pressable>
-  );
-}
 
 /** Nút tròn «+» / «✓» chọn mẫu ở thư viện. */
 export function NutCong({ chon, bam, nhan }: { chon: boolean; bam: () => void; nhan: string }) {

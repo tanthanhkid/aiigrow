@@ -144,12 +144,6 @@ export type QuaDaTrao = { id: string; ten: string; loai: string; diem: number; x
 /** Việc của Con, trường mới 05/11 (GET nhiem-vu?tuCham=1). */
 export type NvTreSao = NvTre & { sao?: number; lam_lai?: boolean; loi_nhan?: string | null; ly_do?: string | null; tu_cham?: boolean; hinh?: string | null };
 export type TroChoi = { muc: string; ten: string; nhom: string; giaPhut: number };
-export type XetChoi = { duoc: boolean; lyDo?: string; cau: string | null; phutToiDa?: number; giaPhanNghin?: number; soDu?: number; nghiDen?: string };
-export type NhipChoi = { trangThai: "chay" | "tam" | "ket_thuc"; phutDung: number; conPhut: number; diemTru: number; soDu: number; canhBao: 5 | 1 | null;
-  lyDoKet?: string; nghiDen?: string; muc: string; toiDaPhut: number; giaPhanNghin: number };
-export type QuyTac = { lich: { ngayThuong: { tu: string; den: string }[]; cuoiTuan: { tu: string; den: string }[] };
-  tranNgay: number; tranTuan: number; phienToiDa: number; nghiGiua: number; giaPhut: Record<"game" | "video_ngan" | "mxh" | "phim_gd", number>;
-  nhiemVu: { ten: string; diem: number }[]; qua: { ten: string; diem: number }[] };
 export type ThanhTich = { chuoiNgay: number; soDu: number; tongKiem: number; capDo: { cap: number; diemCapSau: number; conThieu: number };
   huyHieu: { ma: string; ten: string; mo_ta: string; dat: boolean; datLuc: string | null }[] };
 
@@ -172,11 +166,6 @@ const napHang = () => {
   return hang!;
 };
 const luuHang = () => { if (Platform.OS === "web") try { globalThis.localStorage?.setItem(KHOA_HANG, JSON.stringify(hang ?? [])); } catch { /* đầy bộ nhớ: giữ trong RAM */ } };
-
-/** Nộp bằng chứng; mất mạng ⇒ xếp hàng chờ trên máy (trả `daXepHang`), tự gửi khi có mạng. */
-export async function nopBangChung(luot: string, anh: AnhNop[], ghiChu?: string): Promise<{ trang_thai: string; daXepHang?: boolean }> {
-  return nopBai(luot, { anh, ghiChu });
-}
 
 /** Định danh trông như app thật (tệp .exe/.app, gói / bundle a.b.c) ⇒ xin-duyet hiểu là app; tên trần («Minecraft») máy chủ hiểu là tên miền. */
 // khớp server/lib/chinh-sach.ts › kieuMuc (BUNDLE + .exe/.app) — lệch thì máy chủ xếp nhầm lời xin thành web
