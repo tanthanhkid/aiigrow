@@ -18,8 +18,6 @@ import { chiBaMe, laChuNha, quyenTuVai, quyenVao, TEN_QUYEN, vaiCu, type Quyen }
 export const LOI_MOI_GIO = 72;
 export const MOI_CHO_TOI_DA = 5;
 export const THANH_VIEN_TOI_DA = 8;
-/** Quyền mời được (L6). Tên giữ «VAI_MOI» cho mã cũ đọc. */
-export const VAI_MOI = ["ba_me", "trong_giup"] as const;
 /** Tên quyền hiển thị (hiểu cả giá trị cũ chu / duyet / xem trong sự kiện cũ). */
 export const TEN_VAI: Record<string, string> = TEN_QUYEN;
 
