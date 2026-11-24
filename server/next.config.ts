@@ -27,7 +27,8 @@ export const csp = (trangNext: boolean) => [
   "frame-ancestors 'none'",
 ].join("; ");
 const chung = [
-  { key: "Strict-Transport-Security", value: "max-age=86400" },   // bắt đầu 1 ngày; chạy ổn (certbot gia hạn được) thì nâng 31536000
+  // HSTS bắt đầu 1 ngày (chạy ổn, certbot gia hạn được thì nâng 31536000); không gửi ở `next dev` (localhost https sẽ dính HSTS)
+  ...(DEV ? [] : [{ key: "Strict-Transport-Security", value: "max-age=86400" }]),
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -83,11 +84,10 @@ const config: NextConfig = {
   async headers() {
     const khongCache = [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }];
     return [
-      // #552 — header chung cho mọi đường; CSP: mặc định của SPA, quy tắc SAU ghi đè cùng khoá (Next): trang Next, rồi /api
+      // #552 — header chung cho mọi đường; CSP: mặc định của SPA, quy tắc SAU ghi đè cùng khoá (Next): trang Next + /api
       { source: "/:duong*", headers: [...chung, { key: "Content-Security-Policy", value: csp(false) }] },
-      { source: `/:trang(${TRANG_NEXT})/:duong*`, headers: [{ key: "Content-Security-Policy", value: csp(true) }] },
-      // API trả JSON (CSP vô nghĩa) — nhưng /api/<lạ> trả trang 404 HTML của Next ⇒ cần CSP trang Next, không được default-src 'none'
-      { source: "/api/:duong*", headers: [{ key: "Content-Security-Policy", value: csp(true) }] },
+      // /api trả JSON (CSP vô nghĩa) — nhưng /api/<lạ> trả trang 404 HTML của Next ⇒ cùng CSP trang Next
+      { source: `/:trang(${TRANG_NEXT}|api)/:duong*`, headers: [{ key: "Content-Security-Policy", value: csp(true) }] },
       { source: "/((?!api/|_expo/|assets/|_next/static/|linh-vat/|phong/|icon3d/).*)", headers: khongCache },
       { source: "/:tep(sw\\.js|service-worker\\.js)", headers: [...khongCache, { key: "Service-Worker-Allowed", value: "/" }] },
       { source: "/app/:tep(sw\\.js|service-worker\\.js)", headers: khongCache },

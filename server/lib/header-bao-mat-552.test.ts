@@ -43,15 +43,15 @@ test("CSP SPA: không unsafe-inline/unsafe-eval cho script, chặn nhúng khung"
   assert.match(csp(true), /script-src 'self' 'unsafe-inline'/);
   });
 
-test("thứ tự quy tắc: chung → trang Next → API (quy tắc sau ghi đè CSP)", async () => {
+test("thứ tự quy tắc: chung (CSP SPA) → trang Next + /api (ghi đè CSP)", async () => {
   const r = await config.headers!();
   const coCsp = r.filter((x) => x.headers.some((h) => h.key === "Content-Security-Policy"));
-  assert.deepEqual(coCsp.map((x) => x.source), ["/:duong*", `/:trang(${TRANG_NEXT})/:duong*`, "/api/:duong*"]);
-  assert.equal(coCsp[2].headers[0].value, csp(true));
+  assert.deepEqual(coCsp.map((x) => x.source), ["/:duong*", `/:trang(${TRANG_NEXT}|api)/:duong*`]);
+  assert.equal(coCsp[1].headers[0].value, csp(true));
   const chung = coCsp[0].headers.map((h) => h.key);
   for (const k of ["Strict-Transport-Security", "X-Frame-Options", "X-Content-Type-Options", "Referrer-Policy", "Permissions-Policy"])
     assert.ok(chung.includes(k), k);
   const pp = coCsp[0].headers.find((h) => h.key === "Permissions-Policy")!.value;
   assert.match(pp, /camera=\(self\)/);
   assert.match(pp, /microphone=\(self\)/);
-  });
+});
