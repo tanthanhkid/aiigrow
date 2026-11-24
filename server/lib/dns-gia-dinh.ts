@@ -146,7 +146,7 @@ export async function nhanNhatKy(nhan: string, ds: unknown, now = new Date()) {
     n++;
   }
   if (gop.size) {
-    const ds2 = [...gop];
+    const ds2 = [...gop].sort((a, b) => (a[0] < b[0] ? -1 : 1));   // khoá dòng theo thứ tự cố định ⇒ hai lô song song không deadlock
     await q(`insert into dns_nhat_ky(thiet_bi_id, ngay, ten_mien, so_lan, so_lan_chan, ngoai_gio)
              select $1, $2, t.tm, t.a, t.b, t.c from unnest($3::text[], $4::int[], $5::int[], $6::int[]) as t(tm, a, b, c)
              on conflict (thiet_bi_id, ngay, ten_mien) do update set so_lan = dns_nhat_ky.so_lan + excluded.so_lan,

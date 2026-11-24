@@ -31,7 +31,8 @@ import { damBaoBang, ghiKiemToan } from "./admin.ts";
 import { bangM4b } from "./tuan-thu.ts";
 import { bangTvTb } from "./thanh-vien.ts";
 import { bangMang } from "./dns-gia-dinh.ts";
-import { bangLog } from "./log-may.ts";
+import { bangLog, donLogCu } from "./log-may.ts";
+import { donWebCu } from "./web.ts";
 
 export const XOA_SAI_TOI_DA = 5, XOA_KHOA_PHUT = 15;
 export type KetQuaXoa = { xoa: "tai_khoan" } | { xoa: "gia_dinh"; soCon: number };
@@ -157,6 +158,8 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     await donBoDemTaiGhep(now.getTime());      // bộ đếm lượt tải bộ cài mang gói ghép (tai-ghep.ts)
     await donBoDemPinBe(now);                  // #555: bộ đếm sai PIN theo bé của khung đã qua (pin-be.ts)
     await donUsageCu(now).catch(() => {});     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
+    await donLogCu(now).catch(() => {});       // #563: log agent quá 7 ngày (trước dọn trên mỗi lượt máy gửi log)
+    await donWebCu(now).catch(() => {});       // #563: lịch sử web quá 90 ngày
     return n;
   } catch (e) {
     await q(`update he_thong set updated_at = coalesce($2::timestamptz, '-infinity') where khoa = 'don_kiem_toan' and updated_at = $1`,

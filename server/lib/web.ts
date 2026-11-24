@@ -6,9 +6,9 @@
 // (mở khi còn sao, trừ 1 sao = 1 phút). Không còn «Chặn»: ngoài danh sách ⇒ «Theo danh sách» không mở, «Mở hết» mở.
 // Chỉ lưu TÊN MIỀN GỐC (bỏ www) + đếm — không URL, không tiêu đề, không nội dung (đúng cam kết riêng tư của nhật ký DNS).
 import { coTacTu } from "./chuyen-doi.ts";
-import { q, tx } from "./db.ts";
+import { q, tx, xoaTheoLo } from "./db.ts";
 import { congNgay, gioDiaPhuong } from "./gio.ts";
-import { allowlistHieuLuc, boMucChoCon, chuanMuc, datLuat, phanLoai, xoaLuat } from "./luat-app.ts";
+import { allowlistHieuLuc, boMucChoCon, chuanMuc, datLuat, dsLuat, phanLoai, phanLoaiTu, xoaLuat } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { mucAppThat } from "./app-may.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -38,6 +38,8 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
   const hom = gioDiaPhuong(now, f?.tz ?? "Asia/Ho_Chi_Minh").ngay;
   let n = 0, giayChoi = 0, giayMuc = 0, mucChoi: string | null = null;
   let cuWeb: Map<string, number> | undefined;     // giây cũ của hôm nay — đọc một lần cho cả lô
+  let luat: Awaited<ReturnType<typeof dsLuat>> | undefined;   // #563: luật gia đình đọc MỘT lần, phân loại trong bộ nhớ (không một câu / dòng)
+  const toiThieu = now.getTime() - 40 * 86_400_000;           // mốc giờ quá cũ / năm 0000 ⇒ bỏ (timestamptz từ chối ⇒ hỏng cả câu upsert gộp)
   const gop = new Map<string, { ngay: string; mien: string; soLan: number; giay: number; lanCuoi: Date | null; dauLuc: Date | null }>();
   for (const x of (ds as DongWeb[]).slice(0, TOI_DA_MOT_LAN)) {
     const ngay = String(x?.ngay ?? "");
@@ -46,12 +48,12 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
     const soLan = Math.max(0, Math.min(100_000, Math.round(Number(x.soLan) || 0)));
     const giay = Math.max(0, Math.min(86_400, Math.round(Number(x.giay) || 0)));
     const lc = x.lanCuoi ? new Date(String(x.lanCuoi)) : null;
-    const lanCuoi = lc && Number.isFinite(lc.getTime()) && lc.getTime() <= now.getTime() + 3_600_000 ? lc : null;
+    const lanCuoi = lc && Number.isFinite(lc.getTime()) && lc.getTime() <= now.getTime() + 3_600_000 && lc.getTime() >= toiThieu ? lc : null;
     // dau_luc: agent gửi `dauLuc` thì lấy; không thì giờ nhận lần đầu nếu là HÔM NAY (ngày cũ gửi bù ⇒ null). Giữ giờ sớm nhất.
     const dl = x.dauLuc ? new Date(String(x.dauLuc)) : null;
-    const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 3_600_000 ? dl : ngay === hom ? now : null;
+    const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 3_600_000 && dl.getTime() >= toiThieu ? dl : ngay === hom ? now : null;
     // 15/11 (#264): trang «Tính phút» (luật giai_tri) hôm nay — giây tăng thêm so với lần trước ⇒ trừ sao 1:1 (so-sao.ts, theo đồng hồ máy chủ)
-    if (con && ngay === hom && giay > 0 && (await phanLoai(may.family_id, con, mien)).loai === "giai_tri") {
+    if (con && ngay === hom && giay > 0 && phanLoaiTu(luat ??= await dsLuat(may.family_id), con, mien) === "giai_tri") {
       cuWeb ??= new Map((await q<{ ten_mien: string; giay: number }>(`select ten_mien, giay from web_nhat_ky where device_id = $1 and ngay = $2`, [may.id, hom]))
         .map((r) => [r.ten_mien, Number(r.giay)]));
       const cu = cuWeb.get(mien) ?? 0;
@@ -69,7 +71,7 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
   }
   // #563: MỘT câu upsert nhiều dòng (unnest mảng) thay cho tối đa 500 câu tuần tự
   if (gop.size) {
-    const ds2 = [...gop.values()];
+    const ds2 = [...gop.values()].sort((a, b) => (a.ngay + "|" + a.mien < b.ngay + "|" + b.mien ? -1 : 1));   // khoá dòng theo thứ tự cố định ⇒ hai lô song song không deadlock
     await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, lan_cuoi, dau_luc)
              select $1, $2, t.ngay, t.mien, t.so_lan, t.giay, t.lan_cuoi, t.dau_luc
                from unnest($3::text[], $4::text[], $5::int[], $6::int[], $7::timestamptz[], $8::timestamptz[]) as t(ngay, mien, so_lan, giay, lan_cuoi, dau_luc)
@@ -83,9 +85,12 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
   if (con && giayChoi > 0) {
     try { await truPhutChoi(con, giayChoi / 60, now, { muc: mucChoi }); } catch (e) { console.error("web: trừ sao phút chơi lỗi", e); }
   }
-  await q(`delete from web_nhat_ky where device_id = $1 and ngay < $2`, [may.id, congNgay(hom, -GIU_NGAY)]);
   return { nhan: n };
 }
+
+/** #563: dọn lịch sử web quá GIU_NGAY ngày — trong cron hằng ngày (xoa-tai-khoan.ts › chayDonKiemToan), không trên đường agent gửi. */
+export const donWebCu = (now = new Date()) =>
+  xoaTheoLo("web_nhat_ky", "ngay < $1", [congNgay(gioDiaPhuong(now, "Asia/Ho_Chi_Minh").ngay, -GIU_NGAY)]);
 
 export type TrangThaiTrang = "cho_phep" | "chan" | "giai_tri" | "he_thong" | "chua_xep";
 /** `nhom` (#262): tinh_phut | khong_tinh_phut — null = hệ thống / ngoài danh sách. `trangThai` (cũ) giữ cho app cũ. */

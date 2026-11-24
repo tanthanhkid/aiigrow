@@ -1,7 +1,7 @@
 // Nhật ký agent máy con gửi lên (POST /api/device/log) — để Ba Mẹ (GET /api/m/may/:id/log) và Admin AiiLab (GET /api/admin/may/:id/log)
 // đọc từ xa khi thử / hỗ trợ. Chỉ dòng chữ agent tự ghi (không ảnh, không nội dung màn hình); agent đã che token/mật khẩu trước khi gửi.
 // Giữ 7 ngày; mỗi lần gửi tối đa 200 dòng, mỗi dòng tối đa 1000 ký tự.
-import { q } from "./db.ts";
+import { q, xoaTheoLo } from "./db.ts";
 import type { May } from "./gia-dinh.ts";
 import { LoiNghiepVu } from "./loi.ts";
 
@@ -20,34 +20,31 @@ export async function bangLog() {
 
 type DongVao = { luc?: unknown; muc?: unknown; nguon?: unknown; noiDung?: unknown };
 
-/** Lần dọn log quá hạn gần nhất theo máy (trong tiến trình) — #563: DELETE giữ 7 ngày tối đa 1 lần / giờ / máy thay vì mỗi lượt gửi. */
-const donLuc = new Map<string, number>();
-export const DON_LOG_CACH_MS = 3600_000;
-
 export async function nhanLog(may: May, ds: unknown, now = new Date()) {
   await bangLog();
   // #563: MỘT câu INSERT nhiều dòng (unnest mảng) thay cho tối đa 200 câu INSERT tuần tự
   const luc: string[] = [], muc: string[] = [], nguon: string[] = [], nd: string[] = [];
   for (const d of (Array.isArray(ds) ? ds : []).slice(0, LOG_MOI_LAN) as DongVao[]) {
-    const noiDung = String(d?.noiDung ?? "").slice(0, LOG_DAI);
+    // NUL (\u0000) Postgres không nhận trong text ⇒ một dòng như vậy làm hỏng cả câu INSERT gộp (và agent gửi lại mãi) — bỏ đi
+    const noiDung = String(d?.noiDung ?? "").replaceAll("\u0000", "").slice(0, LOG_DAI);
     if (!noiDung) continue;
     const t = new Date(String(d?.luc ?? ""));
     luc.push((Number.isFinite(t.getTime()) && Math.abs(t.getTime() - now.getTime()) < 30 * 86_400_000 ? t : now).toISOString());
     muc.push(MUC.has(String(d?.muc)) ? String(d!.muc) : "tin");
-    nguon.push(String(d?.nguon ?? "").slice(0, 60));
+    nguon.push(String(d?.nguon ?? "").replaceAll("\u0000", "").slice(0, 60));
     nd.push(noiDung);
   }
   if (!nd.length) return { nhan: 0 };
   await q(`insert into may_log(device_id, family_id, luc, muc, nguon, noi_dung)
     select $1, $2, t.luc, t.muc, t.nguon, t.nd from unnest($3::timestamptz[], $4::text[], $5::text[], $6::text[]) with ordinality as t(luc, muc, nguon, nd, i) order by t.i`,
     [may.id, may.family_id, luc, muc, nguon, nd]);
-  const truoc = donLuc.get(may.id);
-  if (truoc === undefined || now.getTime() - truoc >= DON_LOG_CACH_MS || now.getTime() < truoc) {
-    if (donLuc.size > 50_000) donLuc.clear();     // chặn phình bộ nhớ: quên hết thì lần sau mỗi máy dọn lại một lần
-    donLuc.set(may.id, now.getTime());
-    await q(`delete from may_log where device_id = $1 and nhan_luc < $2`, [may.id, new Date(now.getTime() - LOG_GIU_NGAY * 86_400_000)]);
-  }
   return { nhan: nd.length };
+}
+
+/** #563: dọn log quá LOG_GIU_NGAY ngày — trong cron hằng ngày (xoa-tai-khoan.ts › chayDonKiemToan), không trên đường máy gửi log. */
+export async function donLogCu(now = new Date()) {
+  await bangLog();
+  return xoaTheoLo("may_log", "nhan_luc < $1", [new Date(now.getTime() - LOG_GIU_NGAY * 86_400_000)]);
 }
 
 /** Đọc log mới nhất của một máy. `fam` = null chỉ dành cho Admin AiiLab (đã xác thực ở api-admin). */

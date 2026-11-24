@@ -162,7 +162,7 @@ test("#563: lịch sử web 300 tên miền = MỘT câu upsert (không còn m�
   (globalThis as any).__aiigDemCau = cau;
   try { assert.deepEqual(await web.nhanLichSuWeb(may, null, ds), { nhan: 300 }); } finally { delete (globalThis as any).__aiigDemCau; }
   assert.equal(cau.filter((s) => /insert into web_nhat_ky/.test(s)).length, 1, cau.join("\n"));
-  assert.ok(cau.length <= 3, `tối đa 3 câu (tz gia đình, upsert, dọn hạn) — thực tế ${cau.length}`);
+  assert.equal(cau.length, 2, `tz gia đình + upsert — thực tế:\n${cau.join("\n")}`);
   const t1 = "2026-10-21T01:00:00.000Z", t2 = "2026-10-21T03:00:00.000Z";
   await goiMay("web/lich-su", tok, { ds: [
     { ngay: HOM, tenMien: "trung.vn", soLan: 2, giay: 50, lanCuoi: t1, dauLuc: t2 },
@@ -173,3 +173,22 @@ test("#563: lịch sử web 300 tên miền = MỘT câu upsert (không còn m�
     `select so_lan, giay, lan_cuoi, dau_luc from web_nhat_ky where device_id = $1 and ten_mien = 'trung.vn'`, [mayId]))[0];
   assert.deepEqual([r.so_lan, r.giay, new Date(r.lan_cuoi).toISOString(), new Date(r.dau_luc).toISOString()], [7, 90, t2, t1]);
 });
+
+test("#563: lượt có trang «Tính phút» đọc luật MỘT lần cho cả lô; mốc giờ năm 0000 bị bỏ không làm hỏng lô; dọn quá 90 ngày trong cron", async () => {
+  const { fam, con, tok, mayId } = await nha();
+  for (let i = 0; i < 5; i++) await q(`insert into app_rules(family_id, child_id, muc, ten, loai, nhom) values ($1, '', $2, $2, 'giai_tri', 'tinh_phut')`, [fam, `choi${i}.vn`]);
+  const may = (await q<{ id: string; family_id: string }>(`select * from devices where id = $1`, [mayId]))[0] as never;
+  const cau: string[] = [];
+  (globalThis as any).__aiigDemCau = cau;
+  try {
+    await web.nhanLichSuWeb(may, con, Array.from({ length: 5 }, (_, i) => ({ ngay: HOM, tenMien: `choi${i}.vn`, soLan: 1, giay: 30, lanCuoi: "0000-01-01T00:00:00Z" })));
+  } finally { delete (globalThis as any).__aiigDemCau; }
+  assert.equal(cau.filter((s) => /from app_rules/.test(s)).length, 1, cau.join("\n"));
+  assert.equal((await q(`select 1 from web_nhat_ky where device_id = $1 and ten_mien like 'choi%' and lan_cuoi is null`, [mayId])).length, 5);
+  await goiMay("web/lich-su", tok, { ds: [{ ngay: HOM, tenMien: "con-lai.vn", soLan: 1, giay: 1 }] });
+  await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay) values ($1, $2, '2020-01-01', 'xua.vn', 1, 1)`, [mayId, con]);
+  assert.ok((await web.donWebCu()) >= 1);
+  const con_lai = (await q<{ ten_mien: string }>(`select ten_mien from web_nhat_ky where device_id = $1`, [mayId])).map((x) => x.ten_mien);
+  assert.ok(!con_lai.includes("xua.vn") && con_lai.includes("con-lai.vn"));
+});
+
