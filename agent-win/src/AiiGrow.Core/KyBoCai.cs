@@ -10,7 +10,8 @@ public enum KetQuaKyBoCai
     ChuaGhim,
     /// <summary>Không có chữ ký, chữ ký hỏng/không tin cậy/bị thu hồi, hoặc người ký không phải AiiGrow ⇒ KHÔNG chạy, bỏ bản này.</summary>
     SaiChuKy,
-    /// <summary>Không kiểm được thu hồi (mạng/máy chủ CRL-OCSP) ⇒ KHÔNG chạy lượt này, nhưng không coi là bộ cài giả — thử lại sớm.</summary>
+    /// <summary>Người ký đúng chứng chỉ ghim nhưng WinVerifyTrust chưa ra phán quyết (không tới được CRL/OCSP/AIA, kho gốc cũ, tệp đang bị giữ…)
+    /// ⇒ KHÔNG chạy lượt này, nhưng không coi là bộ cài giả — giữ tệp, thử lại sau.</summary>
     ChuaKiemDuoc,
     /// <summary>Danh sách ghim trong agent có mục không phải băm SHA-256 (vd dán nhầm thumbprint SHA-1) ⇒ KHÔNG chạy; lỗi cấu hình của agent, không phải của bộ cài.</summary>
     GhimSaiDang,
@@ -36,24 +37,29 @@ public static class KyBoCai
     /// <summary>Kiểm tệp thật trên Windows (WinVerifyTrust có mạng + kiểm thu hồi, rồi băm chứng chỉ người ký).</summary>
     public static KetQuaKyBoCai Kiem(string tep) => Kiem(tep, ThumbprintGhim, t => Authenticode.MaWinTrust(t, coMang: true), BamNguoiKy);
 
+    /// <summary>Danh sách ghim có mục sai dạng — biết trước khi tải, không cần tải bộ cài 182 MB mới phát hiện.</summary>
+    public static bool GhimSaiDang(IReadOnlyCollection<string> ghim) => ghim.Count > 0 && !ghim.All(TuCapNhat.LaSha256);
+
     /// <summary>Lõi thuần để test: <paramref name="maWinTrust"/> = mã WinVerifyTrust (0 = hợp lệ), <paramref name="bamNguoiKy"/> = băm SHA-256
-    /// chứng chỉ người ký (null nếu không có chữ ký).</summary>
+    /// chứng chỉ người ký (null nếu không có chữ ký).
+    /// <para>Người ký KHÔNG phải chứng chỉ ghim (hoặc không có chữ ký) ⇒ <see cref="KetQuaKyBoCai.SaiChuKy"/> bất kể mã WinVerifyTrust.
+    /// Người ký đúng ghim mà mã ≠ 0: phán quyết rõ (thu hồi, sửa nội dung, cấm tin cậy) ⇒ SaiChuKy; còn lại (lỗi mạng/chuỗi/kho gốc, lỗi gọi)
+    /// ⇒ <see cref="KetQuaKyBoCai.ChuaKiemDuoc"/>.</para></summary>
     public static KetQuaKyBoCai Kiem(string tep, IReadOnlyCollection<string> ghim, Func<string, int> maWinTrust, Func<string, string?> bamNguoiKy)
     {
         if (ghim.Count == 0) return KetQuaKyBoCai.ChuaGhim;
         // một mục sai dạng cũng chặn: lúc đổi chứng chỉ, băm MỚI gõ nhầm mà bị lờ đi thì tới khi ký bằng chứng chỉ mới mọi máy kẹt bản cũ
-        if (!ghim.All(TuCapNhat.LaSha256)) return KetQuaKyBoCai.GhimSaiDang;
-        int ma;
+        if (GhimSaiDang(ghim)) return KetQuaKyBoCai.GhimSaiDang;
         string? bam;
-        try
-        {
-            ma = maWinTrust(tep);
-            if (ma is Authenticode.LoiThuHoi or Authenticode.LoiThuHoiNgoaiMang) return KetQuaKyBoCai.ChuaKiemDuoc;
-            bam = ma == 0 ? bamNguoiKy(tep) : null;
-        }
-        catch { return KetQuaKyBoCai.SaiChuKy; }
-        if (ma != 0 || bam == null) return KetQuaKyBoCai.SaiChuKy;
-        return ghim.Any(g => g.Equals(bam, StringComparison.OrdinalIgnoreCase)) ? KetQuaKyBoCai.HopLe : KetQuaKyBoCai.SaiChuKy;
+        try { bam = bamNguoiKy(tep); }
+        catch { return KetQuaKyBoCai.ChuaKiemDuoc; }   // không đọc được tệp (AV/indexer giữ) — chưa biết người ký
+        if (bam == null || !ghim.Any(g => g.Equals(bam, StringComparison.OrdinalIgnoreCase))) return KetQuaKyBoCai.SaiChuKy;
+        int ma;
+        try { ma = maWinTrust(tep); }
+        catch { return KetQuaKyBoCai.ChuaKiemDuoc; }
+        if (ma == 0) return KetQuaKyBoCai.HopLe;
+        return ma is Authenticode.DaThuHoi or Authenticode.KhongCoChuKy or Authenticode.SaiBam or Authenticode.BiCamTinCay
+            ? KetQuaKyBoCai.SaiChuKy : KetQuaKyBoCai.ChuaKiemDuoc;
     }
 
     /// <summary>Băm SHA-256 (hex hoa) chứng chỉ người ký Authenticode của tệp; không có chữ ký ⇒ null.</summary>

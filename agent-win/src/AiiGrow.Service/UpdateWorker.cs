@@ -112,49 +112,59 @@ public sealed class UpdateWorker : BackgroundService
         if (lyDo != null) { _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo); return _chuKy; }
         if (DaThuGanDay(m.Version)) return _chuKy;
 
+        if (KyBoCai.GhimSaiDang(KyBoCai.ThumbprintGhim))
+        {
+            // lỗi cấu hình của chính agent — biết trước khi tải, không tải 182 MB rồi mới bỏ
+            _log.LogError("Tự cập nhật: danh sách ghim chứng chỉ trong agent (KyBoCai.ThumbprintGhim) có mục không phải băm SHA-256 ⇒ không cập nhật");
+            return _chuKy;
+        }
+
         Directory.CreateDirectory(ThuMuc);
         var tep = Path.Combine(ThuMuc, "AiiGrow-Setup-" + CapNhat.DocBan(m.Version)!.ToString(3) + ".exe");
         DonBoCaiCu(tep);
-        var tam = tep + ".tai";
-        _log.LogInformation("Tự cập nhật: tải bản {Ban} ({Url})", m.Version, m.Url);
-        _dangTai = true;
-        try { await TaiVe(http, m.Url, tam, ct); }
-        catch (Exception e) when (!ct.IsCancellationRequested)
+        // Lượt trước đã tải đúng sha nhưng chưa kiểm xong chữ ký (ChuaKiemDuoc) ⇒ dùng lại tệp, không tải lại 182 MB.
+        // Thư mục dữ liệu chỉ SYSTEM + Administrators ghi được (Paths.SecureDirectory); sha vẫn kiểm lại.
+        if (KiemKyDangChay is { IsCompleted: false }) return ThuLaiManifest;   // lượt kiểm chữ ký cũ còn giữ tệp — chờ nó xong
+        var daCo = File.Exists(tep) && TuCapNhat.KhopSha256(tep, m.Sha256);
+        if (!daCo)
         {
-            try { File.Delete(tam); } catch { }
-            _log.LogWarning("Tự cập nhật: tải bản {Ban} lỗi ({Loi}) ⇒ thử lại sau {Gio}", m.Version, e.Message, ThuLaiTai);
-            return _chuKy > ThuLaiTai ? _chuKy : ThuLaiTai;
-        }
+            var tam = tep + ".tai";
+            _log.LogInformation("Tự cập nhật: tải bản {Ban} ({Url})", m.Version, m.Url);
+            _dangTai = true;
+            try { await TaiVe(http, m.Url, tam, ct); }
+            catch (Exception e) when (!ct.IsCancellationRequested)
+            {
+                try { File.Delete(tam); } catch { }
+                _log.LogWarning("Tự cập nhật: tải bản {Ban} lỗi ({Loi}) ⇒ thử lại sau {Gio}", m.Version, e.Message, ThuLaiTai);
+                return _chuKy > ThuLaiTai ? _chuKy : ThuLaiTai;
+            }
 
-        if (!TuCapNhat.KhopSha256(tam, m.Sha256))
-        {
-            try { File.Delete(tam); } catch { }
-            // có thể chỉ thoáng qua (Wi-Fi khách sạn trả trang đăng nhập) hoặc máy chủ sắp sửa sha: thử lại sau ≥1 giờ, không đốt 182 MB mỗi chu kỳ
-            _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; thử lại sau {Gio}", ThuLaiSaiSha);
-            return _chuKy > ThuLaiSaiSha ? _chuKy : ThuLaiSaiSha;
+            if (!TuCapNhat.KhopSha256(tam, m.Sha256))
+            {
+                try { File.Delete(tam); } catch { }
+                // có thể chỉ thoáng qua (Wi-Fi khách sạn trả trang đăng nhập) hoặc máy chủ sắp sửa sha: thử lại sau ≥1 giờ, không đốt 182 MB mỗi chu kỳ
+                _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; thử lại sau {Gio}", ThuLaiSaiSha);
+                return _chuKy > ThuLaiSaiSha ? _chuKy : ThuLaiSaiSha;
+            }
+            // Kiểm trên tệp đã đổi về đuôi .exe (WinVerifyTrust chọn SIP theo tệp; đuôi .tai lạ thì kiểm PE không chắc).
+            File.Move(tam, tep, true);
         }
+        else _log.LogInformation("Tự cập nhật: dùng lại bộ cài bản {Ban} đã tải (khớp sha256)", m.Version);
+
         // #549: sha256 đến từ chính manifest của máy chủ ⇒ chỉ chống tải hỏng. Chữ ký Authenticode của người ký ghim trong agent mới chặn được
         // máy chủ/Release bị chiếm trỏ sang exe độc (chạy bằng SYSTEM). Sai chữ ký ⇒ xoá, không chạy.
-        // Kiểm trên tệp đã đổi về đuôi .exe (WinVerifyTrust chọn SIP theo tệp; đuôi .tai lạ thì kiểm PE không chắc).
-        File.Move(tam, tep, true);
-        // WinVerifyTrust có mạng (tải chứng chỉ, CRL/OCSP) không nhận CancellationToken: chạy ngoài luồng, trần 3 phút để dừng dịch vụ không bị treo.
-        KetQuaKyBoCai ky;
-        try { ky = await Task.Run(() => KyBoCai.Kiem(tep), CancellationToken.None).WaitAsync(HanKiemKy, ct); }
-        catch (TimeoutException) { ky = KetQuaKyBoCai.ChuaKiemDuoc; }
+        var ky = await KiemKy(tep, ct);
         switch (ky)
         {
             case KetQuaKyBoCai.SaiChuKy:
             case KetQuaKyBoCai.GhimSaiDang:
                 XoaBoCaiChuaKiem(tep);
                 GhiDaThu(m.Version);   // bỏ hẳn bản này 24 giờ (DaThuGanDay): «Cập nhật ngay» trên khay không tải lại 182 MB mỗi lần bấm
-                if (ky == KetQuaKyBoCai.GhimSaiDang)
-                    _log.LogError("Tự cập nhật: danh sách ghim chứng chỉ trong agent (KyBoCai.ThumbprintGhim) có mục không phải băm SHA-256 ⇒ không chạy bộ cài bản {Ban}", m.Version);
-                else
-                    _log.LogError("Tự cập nhật: bộ cài bản {Ban} KHÔNG có chữ ký Authenticode hợp lệ của AiiGrow ⇒ đã xoá, không chạy; bỏ qua bản này 24 giờ", m.Version);
+                _log.LogError("Tự cập nhật: bộ cài bản {Ban} KHÔNG có chữ ký Authenticode hợp lệ của AiiGrow ({Kq}) ⇒ đã xoá, không chạy; bỏ qua bản này 24 giờ", m.Version, ky);
                 return _chuKy;
             case KetQuaKyBoCai.ChuaKiemDuoc:
-                XoaBoCaiChuaKiem(tep);
-                _log.LogWarning("Tự cập nhật: chưa kiểm được thu hồi chứng chỉ của bộ cài bản {Ban} (mạng/máy chủ CRL-OCSP) ⇒ không chạy lượt này, thử lại sau {Gio}", m.Version, ThuLaiTai);
+                // giữ tệp (đúng sha, đúng người ký ghim): lượt sau chỉ kiểm lại chữ ký, không tải lại
+                _log.LogWarning("Tự cập nhật: chưa kiểm xong chữ ký bộ cài bản {Ban} (mạng/CRL-OCSP/chuỗi chứng chỉ) ⇒ không chạy lượt này, thử lại sau {Gio}", m.Version, ThuLaiTai);
                 return _chuKy > ThuLaiTai ? _chuKy : ThuLaiTai;
             case KetQuaKyBoCai.ChuaGhim:
                 _log.LogWarning("Tự cập nhật: agent chưa ghim chứng chỉ ký bộ cài ⇒ chỉ kiểm sha256 (bản {Ban})", m.Version);
@@ -190,6 +200,17 @@ public sealed class UpdateWorker : BackgroundService
     }
 
     private static readonly TimeSpan HanKiemKy = TimeSpan.FromMinutes(3);
+    /// <summary>Lượt WinVerifyTrust đang chạy (quá hạn thì bỏ chờ nhưng luồng vẫn chạy tiếp) — không chồng lượt mới lên cùng tệp.</summary>
+    private static Task<KetQuaKyBoCai>? KiemKyDangChay;
+
+    /// <summary>WinVerifyTrust có mạng (tải chứng chỉ, CRL/OCSP) không nhận CancellationToken: chạy ngoài luồng, trần 3 phút để dừng dịch vụ không bị treo.</summary>
+    private static async Task<KetQuaKyBoCai> KiemKy(string tep, CancellationToken ct)
+    {
+        if (KiemKyDangChay is { IsCompleted: false }) return KetQuaKyBoCai.ChuaKiemDuoc;
+        var t = KiemKyDangChay = Task.Run(() => KyBoCai.Kiem(tep), CancellationToken.None);
+        try { return await t.WaitAsync(HanKiemKy, ct); }
+        catch (TimeoutException) { return KetQuaKyBoCai.ChuaKiemDuoc; }
+    }
 
     /// <summary>Xoá bộ cài không qua kiểm chữ ký; xoá không được (AV/indexer giữ tệp) thì ghi log — DonBoCaiCu dọn ở lượt sau.</summary>
     private void XoaBoCaiChuaKiem(string tep)

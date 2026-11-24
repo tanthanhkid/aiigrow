@@ -10,6 +10,14 @@ public static class Authenticode
     public const int LoiThuHoi = unchecked((int)0x800B010E);
     /// <summary>CRYPT_E_REVOCATION_OFFLINE — máy chủ thu hồi không trả lời.</summary>
     public const int LoiThuHoiNgoaiMang = unchecked((int)0x80092013);
+    /// <summary>CERT_E_REVOKED — chứng chỉ đã bị thu hồi.</summary>
+    public const int DaThuHoi = unchecked((int)0x800B010C);
+    /// <summary>TRUST_E_NOSIGNATURE — tệp không có chữ ký.</summary>
+    public const int KhongCoChuKy = unchecked((int)0x800B0100);
+    /// <summary>TRUST_E_BAD_DIGEST — nội dung tệp không khớp chữ ký (bị sửa sau khi ký).</summary>
+    public const int SaiBam = unchecked((int)0x80096010);
+    /// <summary>TRUST_E_EXPLICIT_DISTRUST — chứng chỉ bị đánh dấu không tin cậy.</summary>
+    public const int BiCamTinCay = unchecked((int)0x800B0111);
     /// <summary>Mã riêng: không gọi được WinVerifyTrust (không phải Windows / ngoại lệ interop).</summary>
     public const int LoiGoi = -1;
 
@@ -23,9 +31,11 @@ public static class Authenticode
         if (!OperatingSystem.IsWindows()) return LoiGoi;
         var fi = new WinTrustFileInfo { cbStruct = (uint)Marshal.SizeOf<WinTrustFileInfo>(), pcwszFilePath = path };
         var pFi = Marshal.AllocHGlobal(Marshal.SizeOf<WinTrustFileInfo>());
+        var daGhi = false;   // chỉ DestroyStructure khi StructureToPtr đã ghi xong (vùng nhớ chưa khởi tạo ⇒ giải phóng con trỏ rác)
         try
         {
             Marshal.StructureToPtr(fi, pFi, false);
+            daGhi = true;
             var d = new WinTrustData
             {
                 cbStruct = (uint)Marshal.SizeOf<WinTrustData>(), dwUIChoice = 2 /* WTD_UI_NONE */,
@@ -36,7 +46,7 @@ public static class Authenticode
             return WinVerifyTrust(new IntPtr(-1) /* INVALID_HANDLE_VALUE: không UI */, GenericVerifyV2, ref d);
         }
         catch { return LoiGoi; }
-        finally { Marshal.DestroyStructure<WinTrustFileInfo>(pFi); Marshal.FreeHGlobal(pFi); }
+        finally { if (daGhi) Marshal.DestroyStructure<WinTrustFileInfo>(pFi); Marshal.FreeHGlobal(pFi); }
     }
 
     /// <summary>Chứng chỉ người ký Authenticode (chữ ký chính) của tệp — KHÔNG kiểm tin cậy; không có chữ ký ⇒ null.</summary>

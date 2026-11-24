@@ -335,7 +335,16 @@ public class KyBoCaiTests
     public void NguoiKyKhac_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, K(DsGhim, 0, new string('B', 64)));
 
     [Fact]
-    public void ChuKyKhongTinCay_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, K(DsGhim, KhongTinCay, Ghim));
+    public void NguoiKyLaMaMaKhongTinCay_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, K(DsGhim, KhongTinCay, new string('B', 64)));
+
+    [Fact]   // đúng người ký ghim nhưng chuỗi/kho gốc chưa xác minh được (mạng chặn AIA, kho gốc cũ) ⇒ không xoá bộ cài thật
+    public void DungGhimNhungChuoiChuaXacMinh_ChuaKiemDuoc() => Assert.Equal(KetQuaKyBoCai.ChuaKiemDuoc, K(DsGhim, KhongTinCay, Ghim));
+
+    [Theory]
+    [InlineData(unchecked((int)0x800B010C))]   // CERT_E_REVOKED
+    [InlineData(unchecked((int)0x80096010))]   // TRUST_E_BAD_DIGEST
+    [InlineData(unchecked((int)0x800B0111))]   // TRUST_E_EXPLICIT_DISTRUST
+    public void DungGhimNhungPhanQuyetXau_Sai(int ma) => Assert.Equal(KetQuaKyBoCai.SaiChuKy, K(DsGhim, ma, Ghim));
 
     [Fact]
     public void KhongCoChuKy_Sai()
@@ -345,10 +354,14 @@ public class KyBoCaiTests
     }
 
     [Fact]
-    public void KhongGoiDuocWinTrust_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, K(DsGhim, Authenticode.LoiGoi, Ghim));
+    public void KhongGoiDuocWinTrust_ChuaKiemDuoc() => Assert.Equal(KetQuaKyBoCai.ChuaKiemDuoc, K(DsGhim, Authenticode.LoiGoi, Ghim));
 
     [Fact]
-    public void KiemNem_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, KyBoCai.Kiem("x.exe", DsGhim, _ => throw new IOException("khoá"), _ => Ghim));
+    public void KiemNem_ChuaKiemDuoc()
+    {
+        Assert.Equal(KetQuaKyBoCai.ChuaKiemDuoc, KyBoCai.Kiem("x.exe", DsGhim, _ => throw new IOException("khoá"), _ => Ghim));
+        Assert.Equal(KetQuaKyBoCai.ChuaKiemDuoc, KyBoCai.Kiem("x.exe", DsGhim, _ => 0, _ => throw new IOException("khoá")));
+    }
 
     [Theory]
     [InlineData(unchecked((int)0x800B010E))]   // CERT_E_REVOCATION_FAILURE
@@ -365,6 +378,9 @@ public class KyBoCaiTests
         Assert.Equal(KetQuaKyBoCai.GhimSaiDang, K(new[] { new string('A', 40) }, 0, new string('A', 40)));
         // một mục sai lẫn mục đúng cũng chặn (đổi chứng chỉ gõ nhầm băm mới)
         Assert.Equal(KetQuaKyBoCai.GhimSaiDang, K(new[] { Ghim, "khong-phai-bam" }, 0, Ghim));
+        Assert.True(KyBoCai.GhimSaiDang(new[] { new string('A', 40) }));
+        Assert.False(KyBoCai.GhimSaiDang(Array.Empty<string>()));
+        Assert.False(KyBoCai.GhimSaiDang(DsGhim));
     }
 
     [Fact]
