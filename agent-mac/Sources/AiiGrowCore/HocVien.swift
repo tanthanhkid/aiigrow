@@ -487,8 +487,6 @@ public enum HocVienView {
 
   public static func capText(_ c: HvCapDo) -> String { c.conThieu > 0 ? "Cấp \(c.cap) · còn \(c.conThieu) sao lên cấp" : "Cấp \(c.cap)" }
 
-  public static func quaTrangThai(_ q: HvQua) -> String { q.du ? "Đủ sao" : "Còn thiếu \(q.conThieu) sao" }
-
   /// Đổi được ngay? Có `doiDuoc` từ máy chủ (vi-qua) thì theo nó; không thì chỉ cần đủ sao.
   public static func doiDuoc(_ q: HvQua) -> Bool { q.choTraoTu == nil && (q.doiDuoc ?? q.du) }
 

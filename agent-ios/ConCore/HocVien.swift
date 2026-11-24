@@ -147,11 +147,6 @@ public struct QuyDayDu: Codable, Equatable {
   public var yeuCauCho: [YeuCauCho]?
 }
 
-public struct KetQuaDoiSao: Codable, Equatable {
-  public var phut: Int; public var sao: Int?; public var soDu: Int?; public var conPhut: Int?
-  public init(phut: Int, sao: Int?, soDu: Int?, conPhut: Int?) { self.phut = phut; self.sao = sao; self.soDu = soDu; self.conPhut = conPhut }
-}
-
 public struct TinCon: Codable, Equatable, Identifiable {
   public var id: String; public var loai: String; public var tieu: String; public var noi: String?; public var luc: String?
 }

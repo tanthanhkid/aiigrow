@@ -235,12 +235,6 @@ public final class ApiClient {
     _ = try await goi("POST", "api/device/su-kien", body, Nhan.self)
   }
 
-  /// Phiên Con 12 giờ cho màn Con (/tre) — app AiiGrow mở bằng `aiigrow://tre/nha?phien=…` (không cần chọn hồ sơ + PIN trên máy riêng).
-  public func phienWeb() async throws -> String {
-    struct P: Decodable { var phienCon: String }
-    return try await goi("POST", "api/device/phien-web", Self.json([:]), P.self).phienCon
-  }
-
   /// Hồ sơ DNS gia đình (.mobileconfig) của chính máy này — server/lib/dns-gia-dinh.ts › hoSoDns.
   public func hoSoDns() async throws -> HoSoDns {
     try await goi("POST", "api/device/ho-so-dns", Self.json([:]), HoSoDns.self)

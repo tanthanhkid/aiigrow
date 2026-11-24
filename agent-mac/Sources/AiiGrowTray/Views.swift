@@ -796,22 +796,6 @@ struct NhacView: View {
   static func gioPhut(_ d: Date) -> String { let c = Calendar.current.dateComponents([.hour, .minute], from: d); return String(format: "%02d:%02d", c.hour ?? 0, c.minute ?? 0) }
 }
 
-/// Kính mờ trên nền tối (khung đồng hồ đếm ngược): nền trắng trong + men nửa trên + viền sáng.
-struct KinhMo: View {
-  var bo: CGFloat = 28
-  var body: some View {
-    let hinh = RoundedRectangle(cornerRadius: bo, style: .continuous)
-    ZStack {
-      hinh.fill(Color.white.opacity(0.09))
-      hinh.fill(LinearGradient(stops: [
-        .init(color: .white.opacity(0.18), location: 0), .init(color: .white.opacity(0.03), location: 0.45), .init(color: .clear, location: 0.5),
-      ], startPoint: .top, endPoint: .bottom))
-      hinh.strokeBorder(LinearGradient(colors: [.white.opacity(0.45), .white.opacity(0.06)], startPoint: .top, endPoint: .bottom), lineWidth: 1)
-    }
-    .shadow(color: .black.opacity(0.35), radius: 16, x: 0, y: 14)
-  }
-}
-
 /// NSPopUpButton thật, trong suốt, phủ kín ô Clay: bấm chỗ nào trong ô cũng mở menu neo theo ô; bàn phím + VoiceOver như pop-up hệ thống.
 struct ChonPopUp: NSViewRepresentable {
   let ds: [String]
