@@ -19,6 +19,7 @@
 //    cron /api/cron/don-kiem-toan (donKiemToanGiaDinhDaXoa bên dưới) xoá hẳn mọi dòng audit của gia đình, kể cả dòng mốc.
 //  • Tất cả trong MỘT giao dịch; mọi phiên của người bị xoá mất theo.
 import { chuaCoMatKhau, donBoDemMxh } from "./dang-nhap-mxh.ts";
+import { donBoDemDangNhap } from "./gioi-han-dang-nhap.ts";
 import { one, q, tx, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -145,6 +146,7 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
   try {
     const n = await donKiemToanGiaDinhDaXoa(now);
     await donBoDemMxh(now.getTime());          // bộ đếm lượt đăng nhập Google / Facebook của khung đã qua (dang-nhap-mxh.ts)
+    await donBoDemDangNhap(now.getTime());     // bộ đếm đăng nhập mật khẩu theo IP / cặp tài khoản–IP (gioi-han-dang-nhap.ts)
     await donUsageCu(now).catch(() => {});     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
     return n;
   } catch (e) {

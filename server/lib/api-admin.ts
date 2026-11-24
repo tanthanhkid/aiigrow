@@ -4,6 +4,7 @@ import { batLoi, docJson, json, loi } from "./api.ts";
 import { docLog, nhanLog } from "./log-may.ts";
 import { newId, one, q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { nguonGoi } from "./gia-dinh.ts";
 import * as ad from "./admin.ts";
 import { doiSoat, napQuy } from "./phan-thuong.ts";
 import { soDu } from "./vi.ts";
@@ -73,7 +74,7 @@ export async function xuLyAdmin(req: Request, p: string[]): Promise<Response> {
     const d = p.join("/"), get = req.method === "GET", post = req.method === "POST";
     if (d === "dang-nhap" && post) {
       const b = await docJson(req);
-      return json({ token: await ad.dangNhapNv(b.tenDangNhap, b.matKhau, "admin") });
+      return json({ token: await ad.dangNhapNv(b.tenDangNhap, b.matKhau, "admin", nguonGoi(req.headers)) });
     }
     const nv = await ad.nvGoi(req);
     if (!nv) return loi("chua_dang_nhap", "Phiên đăng nhập quản trị đã hết — đăng nhập lại", 401);

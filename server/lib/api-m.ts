@@ -110,7 +110,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     // L6/L7: đăng ký / đăng nhập trả kèm lời mời đang chờ gửi tới đúng SĐT / email này ⇒ app rẽ nhánh «Vào nhà cùng …» (không tạo Con)
     if ((d === "dang-ky" || d === "dang-nhap") && post) {
       const b = await docJson(req);
-      const token = await taoPhien(d === "dang-ky" ? await dangKy(b) : await dangNhap(b.dinhDanh, b.matKhau));
+      const token = await taoPhien(d === "dang-ky" ? await dangKy(b) : await dangNhap(b.dinhDanh, b.matKhau, gd.nguonGoi(req.headers)));
       const toi = await baMeTuToken(token);
       return json({ token, ...(d === "dang-ky" ? { moi: true } : {}), loiMoi: toi ? await loiMoiChoToi(toi) : [] });
     }

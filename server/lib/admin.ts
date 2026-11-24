@@ -4,6 +4,7 @@
 import { bamMatKhau, dungMatKhau, sha, taoToken, bearer } from "./auth.ts";
 import { newId, one, q, sanSang, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import * as gh from "./gioi-han-dang-nhap.ts";
 import { heThong } from "./he-thong.ts";
 import { THAM_SO, sachCauHinh, type TenThamSo } from "./cau-hinh.ts";
 import { ALLOWLIST_HE_THONG, chuanMuc } from "./luat-app.ts";
@@ -13,7 +14,6 @@ import { MAU_QUA, LOAI_QUA } from "./phan-thuong.ts";
 export type VaiNv = "quay" | "admin";
 export type NhanVien = { id: string; ten_dang_nhap: string; ten: string; vai: VaiNv; quay: string };
 
-const SAI_KHOA = 5, KHOA_PHUT = 15;
 const PHIEN_GIO: Record<VaiNv, number> = { quay: 14, admin: 8 };     // một ca quầy / một buổi làm việc
 
 // ---------------------------------------------------------------- lược đồ M5 (chạy một lần mỗi tiến trình)
@@ -40,26 +40,28 @@ export async function datTaiKhoan(b: { tenDangNhap: string; matKhau: string; ten
        sai_lien = 0, khoa_den = null, bat = true returning id`,
     [newId(), tdn, String(b.ten ?? "").trim().slice(0, 40) || tdn, b.vai, String(b.quay ?? "").trim().slice(0, 40), bam]);
   await q(`delete from staff_sessions where staff_id = $1`, [r[0].id]);   // đổi mật khẩu ⇒ đăng xuất mọi nơi
+  await gh.goKhoaTaiKhoan("nv", tdn);                                     // … và gỡ khoá đăng nhập ở mọi nguồn
   return r[0].id;
 }
 
-/** Đăng nhập. `vaiCan` = màn đang vào: /quay nhận quay + admin, /admin chỉ nhận admin. Sai 5 lần ⇒ khoá 15 phút. → token */
-export async function dangNhapNv(tenDangNhap: unknown, mk: unknown, vaiCan: VaiNv) {
+/** Đăng nhập. `vaiCan` = màn đang vào: /quay nhận quay + admin, /admin chỉ nhận admin. `ip` = nguồn gọi (gia-dinh.ts › nguonGoi).
+ *  Giới hạn lượt theo IP + khoá theo cặp (tài khoản, IP) luỹ tiến 15 phút → 1 giờ → 24 giờ (lib/gioi-han-dang-nhap.ts, #553) — kẻ lạ không
+ *  khoá được tài khoản Admin ở mạng khác. Mỗi lần cặp bị khoá ghi audit «dang_nhap_tam_khoa». → token */
+export async function dangNhapNv(tenDangNhap: unknown, mk: unknown, vaiCan: VaiNv, ip = "?", now = Date.now()) {
   await damBaoBang();
   const tdn = sachTen(tenDangNhap);
-  const s = await one<{ id: string; vai: VaiNv; pass_hash: string; khoa_den: Date | null; bat: boolean }>(
-    `select id, vai, pass_hash, khoa_den, bat from staff where ten_dang_nhap = $1`, [tdn]);
-  if (s?.khoa_den && new Date(s.khoa_den) > new Date())
-    throw new LoiNghiepVu("tam_khoa", `Sai mật khẩu nhiều lần — thử lại sau ${KHOA_PHUT} phút`, 429);
+  const kIp = await gh.truocDangNhap("nv", tdn, ip, now);
+  const s = await one<{ id: string; vai: VaiNv; pass_hash: string; bat: boolean }>(
+    `select id, vai, pass_hash, bat from staff where ten_dang_nhap = $1`, [tdn]);
   const dung = s ? await dungMatKhau(String(mk ?? ""), s.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
   if (!s || !dung || !s.bat) {
-    if (s) await q(`update staff set sai_lien = sai_lien + 1,
-                      khoa_den = case when sai_lien + 1 >= $2 then now() + make_interval(mins => $3) else null end where id = $1`, [s.id, SAI_KHOA, KHOA_PHUT]);
+    const phut = await gh.dangNhapSai("nv", tdn, ip, now);
     await ghiKiemToan(null, "dang_nhap_sai", { tenDangNhap: tdn.slice(0, 60), man: vaiCan });
+    if (phut) await ghiKiemToan(null, "dang_nhap_tam_khoa", { tenDangNhap: tdn.slice(0, 60), man: vaiCan, ip: ip.slice(0, 60), phut });
     throw new LoiNghiepVu("sai_dang_nhap", "Tên đăng nhập hoặc mật khẩu chưa đúng", 401);
   }
   if (vaiCan === "admin" && s.vai !== "admin") throw new LoiNghiepVu("khong_du_quyen", "Tài khoản này chỉ dùng ở màn quầy AiiCafe", 403);
-  await q(`update staff set sai_lien = 0, khoa_den = null where id = $1`, [s.id]);
+  await gh.dangNhapDung("nv", tdn, ip, kIp);
   const t = taoToken();
   await q(`insert into staff_sessions(id, staff_id, expires_at) values ($1, $2, now() + make_interval(hours => $3))`, [sha(t), s.id, PHIEN_GIO[s.vai]]);
   await ghiKiemToan({ id: s.id, vai: s.vai }, "dang_nhap", { man: vaiCan });
