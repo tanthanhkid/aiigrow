@@ -1,16 +1,19 @@
 using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 
 namespace AiiGrow.Core;
 
 public enum KetQuaKyBoCai
 {
-    /// <summary>Chữ ký Authenticode hợp lệ (chuỗi tới gốc tin cậy) và người ký nằm trong danh sách ghim ⇒ được chạy.</summary>
+    /// <summary>Chữ ký Authenticode hợp lệ (chuỗi tới gốc tin cậy, chưa bị thu hồi) và người ký nằm trong danh sách ghim ⇒ được chạy.</summary>
     HopLe,
     /// <summary>Agent chưa ghim chứng chỉ nào (bộ cài chưa ký số) ⇒ chỉ dựa vào sha256 của manifest như trước. Dịch vụ ghi cảnh báo.</summary>
     ChuaGhim,
-    /// <summary>Không có chữ ký, chữ ký hỏng/không tin cậy, hoặc người ký không phải AiiGrow ⇒ KHÔNG chạy.</summary>
+    /// <summary>Không có chữ ký, chữ ký hỏng/không tin cậy/bị thu hồi, hoặc người ký không phải AiiGrow ⇒ KHÔNG chạy, bỏ bản này.</summary>
     SaiChuKy,
+    /// <summary>Không kiểm được thu hồi (mạng/máy chủ CRL-OCSP) ⇒ KHÔNG chạy lượt này, nhưng không coi là bộ cài giả — thử lại sớm.</summary>
+    ChuaKiemDuoc,
+    /// <summary>Danh sách ghim trong agent có mục không phải băm SHA-256 (vd dán nhầm thumbprint SHA-1) ⇒ KHÔNG chạy; lỗi cấu hình của agent, không phải của bộ cài.</summary>
+    GhimSaiDang,
 }
 
 /// <summary>
@@ -24,42 +27,39 @@ public enum KetQuaKyBoCai
 public static class KyBoCai
 {
     /// <summary>
-    /// Băm SHA-256 (hex, 64 ký tự) chứng chỉ người ký bộ cài AiiGrow. RỖNG = chưa có chứng chỉ (đang chờ mua) ⇒ <see cref="KetQuaKyBoCai.ChuaGhim"/>,
-    /// không chặn cập nhật (bộ cài hiện chưa ký, chặn là mọi máy kẹt bản cũ). Điền băm vào đây là bật kiểm bắt buộc từ bản kế tiếp.
+    /// Băm SHA-256 (hex, 64 ký tự) chứng chỉ người ký bộ cài AiiGrow (nhiều mục khi đang đổi chứng chỉ). RỖNG = chưa có chứng chỉ (đang chờ mua)
+    /// ⇒ <see cref="KetQuaKyBoCai.ChuaGhim"/>, không chặn cập nhật (bộ cài hiện chưa ký, chặn là mọi máy kẹt bản cũ). Điền băm vào đây là bật kiểm
+    /// bắt buộc từ bản kế tiếp.
     /// </summary>
     public static readonly IReadOnlyList<string> ThumbprintGhim = Array.Empty<string>();
 
-    /// <summary>Kiểm tệp thật trên Windows (WinVerifyTrust + băm chứng chỉ người ký).</summary>
-    public static KetQuaKyBoCai Kiem(string tep) => Kiem(tep, ThumbprintGhim, t => KiemKyTrinhDuyet.ChuKyHopLe(t, kiemThuHoi: true), BamNguoiKy);
+    /// <summary>Kiểm tệp thật trên Windows (WinVerifyTrust có mạng + kiểm thu hồi, rồi băm chứng chỉ người ký).</summary>
+    public static KetQuaKyBoCai Kiem(string tep) => Kiem(tep, ThumbprintGhim, t => Authenticode.MaWinTrust(t, coMang: true), BamNguoiKy);
 
-    /// <summary>Lõi thuần để test: <paramref name="chuKyHopLe"/> = WinVerifyTrust, <paramref name="bamNguoiKy"/> = băm SHA-256 chứng chỉ người ký (null nếu không có chữ ký).</summary>
-    public static KetQuaKyBoCai Kiem(string tep, IReadOnlyCollection<string> ghim, Func<string, bool> chuKyHopLe, Func<string, string?> bamNguoiKy)
+    /// <summary>Lõi thuần để test: <paramref name="maWinTrust"/> = mã WinVerifyTrust (0 = hợp lệ), <paramref name="bamNguoiKy"/> = băm SHA-256
+    /// chứng chỉ người ký (null nếu không có chữ ký).</summary>
+    public static KetQuaKyBoCai Kiem(string tep, IReadOnlyCollection<string> ghim, Func<string, int> maWinTrust, Func<string, string?> bamNguoiKy)
     {
         if (ghim.Count == 0) return KetQuaKyBoCai.ChuaGhim;
-        // đã ghim mà không mục nào đúng dạng băm SHA-256 (vd dán nhầm thumbprint SHA-1 40 ký tự) ⇒ chặn, không lặng lẽ tắt kiểm
-        var dsGhim = ghim.Where(TuCapNhat.LaSha256).ToList();
-        if (dsGhim.Count == 0) return KetQuaKyBoCai.SaiChuKy;
-        bool hopLe;
+        // một mục sai dạng cũng chặn: lúc đổi chứng chỉ, băm MỚI gõ nhầm mà bị lờ đi thì tới khi ký bằng chứng chỉ mới mọi máy kẹt bản cũ
+        if (!ghim.All(TuCapNhat.LaSha256)) return KetQuaKyBoCai.GhimSaiDang;
+        int ma;
         string? bam;
-        try { hopLe = chuKyHopLe(tep); bam = hopLe ? bamNguoiKy(tep) : null; }
+        try
+        {
+            ma = maWinTrust(tep);
+            if (ma is Authenticode.LoiThuHoi or Authenticode.LoiThuHoiNgoaiMang) return KetQuaKyBoCai.ChuaKiemDuoc;
+            bam = ma == 0 ? bamNguoiKy(tep) : null;
+        }
         catch { return KetQuaKyBoCai.SaiChuKy; }
-        if (!hopLe || bam == null) return KetQuaKyBoCai.SaiChuKy;
-        return dsGhim.Any(g => g.Equals(bam, StringComparison.OrdinalIgnoreCase)) ? KetQuaKyBoCai.HopLe : KetQuaKyBoCai.SaiChuKy;
+        if (ma != 0 || bam == null) return KetQuaKyBoCai.SaiChuKy;
+        return ghim.Any(g => g.Equals(bam, StringComparison.OrdinalIgnoreCase)) ? KetQuaKyBoCai.HopLe : KetQuaKyBoCai.SaiChuKy;
     }
 
     /// <summary>Băm SHA-256 (hex hoa) chứng chỉ người ký Authenticode của tệp; không có chữ ký ⇒ null.</summary>
     public static string? BamNguoiKy(string tep)
     {
-        using var c = ChungChiNguoiKy(tep);
+        using var c = Authenticode.ChungChiNguoiKy(tep);
         return c?.GetCertHashString(HashAlgorithmName.SHA256);
-    }
-
-    /// <summary>Chứng chỉ người ký Authenticode (chữ ký chính) của tệp — KHÔNG kiểm tin cậy; không có chữ ký ⇒ null.</summary>
-    public static X509Certificate2? ChungChiNguoiKy(string tep)
-    {
-#pragma warning disable SYSLIB0057
-        try { using var c = X509Certificate.CreateFromSignedFile(tep); return new X509Certificate2(c); }
-        catch { return null; }
-#pragma warning restore SYSLIB0057
     }
 }

@@ -137,13 +137,25 @@ public sealed class UpdateWorker : BackgroundService
         // máy chủ/Release bị chiếm trỏ sang exe độc (chạy bằng SYSTEM). Sai chữ ký ⇒ xoá, không chạy.
         // Kiểm trên tệp đã đổi về đuôi .exe (WinVerifyTrust chọn SIP theo tệp; đuôi .tai lạ thì kiểm PE không chắc).
         File.Move(tam, tep, true);
-        switch (KyBoCai.Kiem(tep))
+        // WinVerifyTrust có mạng (tải chứng chỉ, CRL/OCSP) không nhận CancellationToken: chạy ngoài luồng, trần 3 phút để dừng dịch vụ không bị treo.
+        KetQuaKyBoCai ky;
+        try { ky = await Task.Run(() => KyBoCai.Kiem(tep), CancellationToken.None).WaitAsync(HanKiemKy, ct); }
+        catch (TimeoutException) { ky = KetQuaKyBoCai.ChuaKiemDuoc; }
+        switch (ky)
         {
             case KetQuaKyBoCai.SaiChuKy:
-                try { File.Delete(tep); } catch { }
-                GhiDaThu(m.Version);   // bản này đã hỏng chữ ký: «Cập nhật ngay» trên khay không tải lại 182 MB mỗi lần bấm (DaThuGanDay 24 giờ)
-                _log.LogError("Tự cập nhật: bộ cài bản {Ban} KHÔNG có chữ ký Authenticode hợp lệ của AiiGrow ⇒ đã xoá, không chạy; thử lại sau {Gio}", m.Version, ThuLaiSaiSha);
-                return _chuKy > ThuLaiSaiSha ? _chuKy : ThuLaiSaiSha;
+            case KetQuaKyBoCai.GhimSaiDang:
+                XoaBoCaiChuaKiem(tep);
+                GhiDaThu(m.Version);   // bỏ hẳn bản này 24 giờ (DaThuGanDay): «Cập nhật ngay» trên khay không tải lại 182 MB mỗi lần bấm
+                if (ky == KetQuaKyBoCai.GhimSaiDang)
+                    _log.LogError("Tự cập nhật: danh sách ghim chứng chỉ trong agent (KyBoCai.ThumbprintGhim) có mục không phải băm SHA-256 ⇒ không chạy bộ cài bản {Ban}", m.Version);
+                else
+                    _log.LogError("Tự cập nhật: bộ cài bản {Ban} KHÔNG có chữ ký Authenticode hợp lệ của AiiGrow ⇒ đã xoá, không chạy; bỏ qua bản này 24 giờ", m.Version);
+                return _chuKy;
+            case KetQuaKyBoCai.ChuaKiemDuoc:
+                XoaBoCaiChuaKiem(tep);
+                _log.LogWarning("Tự cập nhật: chưa kiểm được thu hồi chứng chỉ của bộ cài bản {Ban} (mạng/máy chủ CRL-OCSP) ⇒ không chạy lượt này, thử lại sau {Gio}", m.Version, ThuLaiTai);
+                return _chuKy > ThuLaiTai ? _chuKy : ThuLaiTai;
             case KetQuaKyBoCai.ChuaGhim:
                 _log.LogWarning("Tự cập nhật: agent chưa ghim chứng chỉ ký bộ cài ⇒ chỉ kiểm sha256 (bản {Ban})", m.Version);
                 break;
@@ -175,6 +187,15 @@ public sealed class UpdateWorker : BackgroundService
             if (n == 0) break;
             await ra.WriteAsync(buf.AsMemory(0, n), ct);
         }
+    }
+
+    private static readonly TimeSpan HanKiemKy = TimeSpan.FromMinutes(3);
+
+    /// <summary>Xoá bộ cài không qua kiểm chữ ký; xoá không được (AV/indexer giữ tệp) thì ghi log — DonBoCaiCu dọn ở lượt sau.</summary>
+    private void XoaBoCaiChuaKiem(string tep)
+    {
+        try { File.Delete(tep); }
+        catch (Exception e) { _log.LogWarning("Tự cập nhật: chưa xoá được bộ cài không qua kiểm chữ ký {Tep}: {Loi}", tep, e.Message); }
     }
 
     /// <summary>Chạy bộ cài bằng tác vụ SYSTEM tách rời: dịch vụ bị bộ cài dừng không kéo bộ cài chết theo.</summary>
