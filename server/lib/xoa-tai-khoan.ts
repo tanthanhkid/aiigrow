@@ -22,7 +22,8 @@ import { chuaCoMatKhau, donBoDemMxh } from "./dang-nhap-mxh.ts";
 import { donBoDemDangNhap, goKhoaTaiKhoan } from "./gioi-han-dang-nhap.ts";
 import { donBoDemGhep } from "./gia-dinh.ts";
 import { donBoDemTaiGhep } from "./tai-ghep.ts";
-import { donBoDemPinBe } from "./pin-be.ts";
+import { donBoDemPinBe, donBoDemPinMay } from "./pin-be.ts";
+import { donBoDemGo } from "./may-con.ts";
 import { one, q, tx, xoaTheoLo, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -40,6 +41,13 @@ export type KetQuaXoa = { xoa: "tai_khoan" } | { xoa: "gia_dinh"; soCon: number 
 
 /** Nhập lại mật khẩu — bộ đếm riêng theo khung 15 phút cố định (như ghepMay): giữ chỗ lượt thử TRƯỚC khi kiểm (một upsert nguyên tử)
  *  ⇒ gửi song song cũng chỉ ≤ 5 lượt được kiểm mỗi khung; gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Đúng ⇒ xoá bộ đếm. */
+/** #565 — cron hằng ngày: bộ đếm «xoa_tk:<người>:<khung>» của khung đã qua quá 1 ngày (đường thành công chỉ xoá bộ đếm của chính người đó). */
+export async function donBoDemXoaTk(now = Date.now()) {
+  return (await q(`delete from pin_sai where khoa ~ '^xoa_tk:[^:]+:[0-9]{1,15}$'
+      and (case when khoa ~ '^xoa_tk:[^:]+:[0-9]{1,15}$' then split_part(khoa, ':', 3)::bigint end) < $1 returning 1`,
+    [Math.floor((now - 86_400_000) / (XOA_KHOA_PHUT * 60_000))])).length;
+}
+
 async function kiemMatKhau(bm: BaMe, mk: unknown, now = Date.now()) {
   const p = await one<{ pass_hash: string | null }>(`select pass_hash from parents where id = $1`, [bm.id]);
   chuaCoMatKhau(p);                  // tài khoản Google / Facebook chưa đặt mật khẩu ⇒ 409, không tính vào lượt sai
@@ -146,7 +154,6 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
   // #563: chạy TRƯỚC chuỗi bắt buộc và không ném lỗi — bước sau hỏng / hết giờ không chặn giữ hạn log 7 ngày, lịch sử web 90 ngày
   await donLogCu(now).catch((e) => console.error("cron: dọn log máy cũ lỗi", e));
   await donWebCu(now).catch((e) => console.error("cron: dọn lịch sử web cũ lỗi", e));
-  await donHetHan(now).catch((e) => console.error("cron: dọn phiên / OTP / sự kiện quá hạn lỗi", e));   // #565 (don-het-han.ts)
   try {
     const n = await donKiemToanGiaDinhDaXoa(now);
     await donBoDemMxh(now.getTime());          // bộ đếm lượt đăng nhập Google / Facebook của khung đã qua (dang-nhap-mxh.ts)
@@ -154,6 +161,12 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     await donBoDemGhep(now.getTime());         // bộ đếm lượt thử mã ghép máy theo nguồn + toàn cục (gia-dinh.ts › ghepMay)
     await donBoDemTaiGhep(now.getTime());      // bộ đếm lượt tải bộ cài mang gói ghép (tai-ghep.ts)
     await donBoDemPinBe(now);                  // #555: bộ đếm sai PIN theo bé của khung đã qua (pin-be.ts)
+    await donBoDemPinMay(now);                 // #565: sai PIN theo máy + dấu mã Ba Mẹ đã dùng, quá hạn 1 ngày (pin-be.ts)
+    await donBoDemGo(now);                     // #565: sai mật khẩu gỡ máy, hết khoá quá 1 ngày / máy không còn (may-con.ts)
+    await donBoDemXoaTk(now.getTime());        // #565: lượt nhập lại mật khẩu xoá tài khoản của khung đã qua quá 1 ngày
+    // #565 (don-het-han.ts): phiên / OTP hết hạn, sự kiện / cảnh báo quá 180 ngày — từng bảng tự bắt lỗi, không chặn bước sau
+    const het = await donHetHan(now);
+    if (Object.values(het).some((x) => x < 0)) console.error("cron: dọn quá hạn có bảng lỗi", het);
     await donUsageCu(now).catch((e) => console.error("cron: dọn usage cũ lỗi", e));     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
     return n;
   } catch (e) {

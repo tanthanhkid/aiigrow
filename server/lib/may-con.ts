@@ -458,6 +458,13 @@ export async function buPhien(may: May, con: string, b: BuVao, now = new Date())
   });
 }
 
+/** #565 — cron hằng ngày: bộ đếm sai mật khẩu gỡ «go:<máy>» đã hết khoá quá 1 ngày, hoặc của máy không còn (gỡ / thu hồi không qua đường
+ *  gỡ có mật khẩu nên không xoá bộ đếm). → số dòng. */
+export async function donBoDemGo(now = new Date()) {
+  return (await q(`delete from pin_sai p where p.khoa like 'go:%' and ((p.khoa_den is not null and p.khoa_den < $1)
+      or not exists (select 1 from devices d where d.id = substr(p.khoa, 4))) returning 1`, [new Date(now.getTime() - 86_400_000)])).length;
+}
+
 // ---------------------------------------------------------------- gỡ agent: cần mật khẩu tài khoản AiiGrow của Ba Mẹ (cùng gia đình)
 // Bộ gỡ còn đòi quyền quản trị Windows (UAC — mật khẩu Ba Mẹ). Sai 5 lần ⇒ khoá 15 phút. Mọi lần thử sai ghi nhật ký + cảnh báo.
 export async function goCoMatKhau(may: May, dinhDanh: unknown, matKhau: unknown) {

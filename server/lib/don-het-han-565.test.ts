@@ -6,7 +6,9 @@ import assert from "node:assert/strict";
 delete process.env.DATABASE_URL;
 const g = await import("./gia-dinh.ts");
 const { donHetHan, GIU_SU_KIEN_NGAY } = await import("./don-het-han.ts");
-const { chayDonKiemToan, XOA_KHOA_PHUT } = await import("./xoa-tai-khoan.ts");
+const { chayDonKiemToan, donBoDemXoaTk, XOA_KHOA_PHUT } = await import("./xoa-tai-khoan.ts");
+const { donBoDemPinMay } = await import("./pin-be.ts");
+const { donBoDemGo } = await import("./may-con.ts");
 const { q, newId } = await import("./db.ts");
 const { taoNha } = await import("./test-fixtures/nha.ts");
 
@@ -17,6 +19,7 @@ const co = async (bang: string, cot: string, gt: string) => (await q(`select 1 f
 async function duLieu() {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Su" });
+  const may = (await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Máy Su")).deviceId;
   const id = () => newId();
   const ss = { cu: id(), moi: id() }, ks = { cu: id(), moi: id() };
   await q(`insert into sessions(id, parent_id, expires_at) values ($1, $3, $4), ($2, $3, $5)`, [ss.cu, ss.moi, bm, truoc(8), truoc(6)]);
@@ -30,13 +33,19 @@ async function duLieu() {
   const k = id(), khung = (d: Date) => Math.floor(d.getTime() / (XOA_KHOA_PHUT * 60_000));
   const ps = {
     xoa: [`pin:${k}:a`, `bmdung:${k}:1`, `go:${k}`, `xoa_tk:${k}:${khung(truoc(2))}`],
-    giu: [`pin:${k}:dang-khoa`, `pin:${k}:vua-thu`, `bmdung:${k}:2`, `go:${k}x`, `xoa_tk:${k}:${khung(truoc(0, 2))}`, `la:${k}`],
+    giu: [`pin:${k}:dang-khoa`, `pin:${k}:vua-thu`, `bmdung:${k}:2`, `go:${may}`, `xoa_tk:${k}:${khung(truoc(0, 2))}`, `la:${k}`],
   };
   await q(`insert into pin_sai(khoa, so_lan, khoa_den, cap_nhat) values
     ($1, 3, null, $11), ($2, 1, $11, null), ($3, 5, $11, null), ($4, 1, null, null),
     ($5, 5, $12, $11), ($6, 2, null, $13), ($7, 1, $12, null), ($8, 2, null, null), ($9, 1, null, null), ($10, 1, null, null)`,
     [...ps.xoa, ...ps.giu, truoc(2), new Date(NOW.getTime() + 600_000), truoc(0, 3)]);
-  return { ss, ks, otp, ev, al, ps };
+  // ngoại lệ events: khoá chống làm lại «ma» (giữ 400 ngày), «doi_nguoi_may» mới nhất của (máy, Con) giữ mãi
+  const evGiu = { ma: id(), doiMoiNhat: id() }, evXoa = { maRatCu: id(), doiCu: id() };
+  await q(`insert into events(id, family_id, device_id, child_id, loai, chi_tiet, created_at) values
+    ($1, $5, $6, $7, 'bu_phien', '{"ma":"m1"}', $8), ($2, $5, $6, $7, 'bu_phien', '{"ma":"m0"}', $9),
+    ($3, $5, $6, $7, 'doi_nguoi_may', '{}', $10), ($4, $5, $6, $7, 'doi_nguoi_may', '{}', $11)`,
+    [evGiu.ma, evXoa.maRatCu, evXoa.doiCu, evGiu.doiMoiNhat, fam, may, con, truoc(300), truoc(401), truoc(250), truoc(200)]);
+  return { ss, ks, otp, ev, al, ps, evGiu, evXoa };
 }
 
 test("#565: donHetHan xoá phiên / kid_sessions quá hạn 7 ngày, OTP quá 1 ngày, sự kiện / cảnh báo quá 180 ngày; giữ dòng còn trong hạn", async () => {
@@ -49,9 +58,18 @@ test("#565: donHetHan xoá phiên / kid_sessions quá hạn 7 ngày, OTP quá 1 
   }
 });
 
-test("#565: pin_sai chỉ xoá bộ đếm đã quá hạn của khoá đã biết (pin, bmdung, go, xoa_tk); khoá đang khoá / vừa thử / khoá lạ giữ nguyên", async () => {
+test("#565: events giữ khoá chống làm lại «ma» 400 ngày và «doi_nguoi_may» mới nhất của mỗi (máy, Con)", async () => {
   const d = await duLieu();
   await donHetHan(NOW);
+  for (const x of Object.values(d.evGiu)) assert.equal(await co("events", "id", x), true, `phải giữ ${x}`);
+  for (const x of Object.values(d.evXoa)) assert.equal(await co("events", "id", x), false, `phải xoá ${x}`);
+});
+
+test("#565: pin_sai chỉ xoá bộ đếm đã quá hạn của khoá đã biết (pin, bmdung, go, xoa_tk); khoá đang khoá / vừa thử / máy còn / khoá lạ giữ nguyên", async () => {
+  const d = await duLieu();
+  await donBoDemPinMay(NOW);
+  await donBoDemGo(NOW);
+  await donBoDemXoaTk(NOW.getTime());
   for (const k of d.ps.xoa) assert.equal(await co("pin_sai", "khoa", k), false, `phải xoá ${k}`);
   for (const k of d.ps.giu) assert.equal(await co("pin_sai", "khoa", k), true, `phải giữ ${k}`);
 });
@@ -62,4 +80,5 @@ test("#565: cron hằng ngày (chayDonKiemToan) gọi donHetHan", async () => {
   await chayDonKiemToan(NOW);
   assert.equal(await co("sessions", "id", d.ss.cu), false);
   assert.equal(await co("events", "id", d.ev.moi), true);
+  assert.equal(await co("pin_sai", "khoa", d.ps.xoa[0]), false);
 });

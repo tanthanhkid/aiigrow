@@ -833,6 +833,8 @@ export const SCHEMA_APP_WEB = [
   `create index if not exists usage_ngay on usage(ngay)`,       // cho cron xoá usage quá hạn (xoa-tai-khoan.ts › donUsageCu)
   `create index if not exists events_luc on events(created_at)`,   // #565: cron giữ hạn 180 ngày (don-het-han.ts) không quét cả bảng
   `create index if not exists alerts_luc on alerts(created_at)`,
+  `create index if not exists sessions_het on sessions(expires_at)`,
+  `create index if not exists kid_sessions_het on kid_sessions(expires_at)`,
   `create index if not exists play_con_bat_dau on play_sessions(child_id, bat_dau)`,
   `create index if not exists evidence_sub on evidence(submission_id)`,
   `create index if not exists submissions_con_tt on submissions(child_id, trang_thai)`,
