@@ -15,6 +15,7 @@ export async function bangLog() {
     id bigserial primary key, device_id text not null, family_id text not null, luc timestamptz not null, muc text not null,
     nguon text not null default '', noi_dung text not null, nhan_luc timestamptz not null default now())`);
   await q(`create index if not exists may_log_may on may_log(device_id, luc desc)`);
+  await q(`create index if not exists may_log_nhan on may_log(nhan_luc)`);     // #563: cron dọn quá hạn (donLogCu) không quét cả bảng
   coBang = true;
 }
 

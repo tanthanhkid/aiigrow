@@ -137,6 +137,7 @@ export const nghe: Nghe = async (k, f, n) => (await db()).nghe(k, f, n);
 /** Xoá theo lô 5000 dòng (ctid) tới khi hết hoặc đủ `toiDaLo` lô — dọn bảng lớn trong cron không giữ khoá / WAL dài. `bang`, `dieuKien` là
  *  hằng trong mã (không bao giờ từ người dùng); tham số qua `p`. → số dòng đã xoá. */
 export async function xoaTheoLo(bang: string, dieuKien: string, p: unknown[] = [], toiDaLo = 200): Promise<number> {
+  if (!/^[a-z_]+$/.test(bang)) throw new Error(`xoaTheoLo: tên bảng lạ «${bang}»`);
   let tong = 0;
   for (let i = 0; i < toiDaLo; i++) {
     const n = (await q<{ n: number }>(`with x as (delete from ${bang} where ctid in (select ctid from ${bang} where ${dieuKien} limit 5000) returning 1)

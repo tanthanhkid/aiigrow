@@ -463,6 +463,7 @@ export const SCHEMA_M4B = [
     primary key (device_id, ngay, ten_mien)
   )`,
   `create index if not exists web_nhat_ky_con on web_nhat_ky(child_id, ngay)`,
+  `create index if not exists web_nhat_ky_ngay on web_nhat_ky(ngay)`,          // #563: cron dọn quá 90 ngày (web.ts › donWebCu)
   // Danh sách APP ĐÃ CÀI THẬT trên từng máy (lib/app-may.ts): agent quét máy rồi gửi lên; Ba Mẹ chọn từ đây để xếp / chặn đúng app.
   // khoa: duy nhất trong máy (Win32 «exe:<đường dẫn>», Store «appx:<PackageFamilyName>», bundle id, package). muc: định danh để xếp/chặn
   // (tên exe chính / tên gói Store / bundle id / package — chữ thường, như app_rules.muc). icon: PNG base64 nhỏ (≤ 48 px).

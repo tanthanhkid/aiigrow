@@ -226,3 +226,14 @@ test("#563: nhật ký DNS 2000 dòng = MỘT câu upsert; tên miền trùng tr
     `select ten_mien, so_lan, so_lan_chan from dns_nhat_ky where thiet_bi_id = $1 and ten_mien in ('m0.vn', 'm1.vn') order by ten_mien`, [id]);
   assert.deepEqual(r.map((x) => [x.ten_mien, x.so_lan, x.so_lan_chan]), [["m0.vn", 6, 1], ["m1.vn", 4, 4]]);
 });
+
+test("#563: bộ đếm DNS chạm trần không vượt int4 (không làm hỏng cả lô)", async () => {
+  const { fam } = await taoNha("Lam");
+  const id = await dns.themThietBiMang(fam, { ten: "TV", loai: "tv" });
+  const t = (await q<{ nhan: string }>(`select nhan from dns_thiet_bi where id = $1`, [id]))[0];
+  const t0 = VN("2026-10-21T10:00:00");
+  await dns.nhanNhatKy(t.nhan, Array.from({ length: 2000 }, () => ({ tenMien: "nhieu.vn", soLan: 1_000_000 })), t0);
+  await dns.nhanNhatKy(t.nhan, Array.from({ length: 2000 }, () => ({ tenMien: "nhieu.vn", soLan: 1_000_000 })), sau(t0, 1));
+  const r = (await q<{ so_lan: number }>(`select so_lan from dns_nhat_ky where thiet_bi_id = $1 and ten_mien = 'nhieu.vn'`, [id]))[0];
+  assert.equal(Number(r.so_lan), 2_000_000_000);
+});

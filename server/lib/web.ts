@@ -74,7 +74,8 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
     const ds2 = [...gop.values()].sort((a, b) => (a.ngay + "|" + a.mien < b.ngay + "|" + b.mien ? -1 : 1));   // khoá dòng theo thứ tự cố định ⇒ hai lô song song không deadlock
     await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, lan_cuoi, dau_luc)
              select $1, $2, t.ngay, t.mien, t.so_lan, t.giay, t.lan_cuoi, t.dau_luc
-               from unnest($3::text[], $4::text[], $5::int[], $6::int[], $7::timestamptz[], $8::timestamptz[]) as t(ngay, mien, so_lan, giay, lan_cuoi, dau_luc)
+               from unnest($3::text[], $4::text[], $5::int[], $6::int[], $7::timestamptz[], $8::timestamptz[]) with ordinality as t(ngay, mien, so_lan, giay, lan_cuoi, dau_luc, i)
+              order by t.i
              on conflict (device_id, ngay, ten_mien) do update set so_lan = greatest(web_nhat_ky.so_lan, excluded.so_lan),
                giay = greatest(web_nhat_ky.giay, excluded.giay), child_id = coalesce(excluded.child_id, web_nhat_ky.child_id),
                lan_cuoi = greatest(web_nhat_ky.lan_cuoi, excluded.lan_cuoi),
@@ -89,8 +90,9 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
 }
 
 /** #563: dọn lịch sử web quá GIU_NGAY ngày — trong cron hằng ngày (xoa-tai-khoan.ts › chayDonKiemToan), không trên đường agent gửi. */
+// mốc theo ngày VN + 1 ngày đệm: gia đình ở múi giờ khác không bao giờ mất ngày thứ 90 sớm
 export const donWebCu = (now = new Date()) =>
-  xoaTheoLo("web_nhat_ky", "ngay < $1", [congNgay(gioDiaPhuong(now, "Asia/Ho_Chi_Minh").ngay, -GIU_NGAY)]);
+  xoaTheoLo("web_nhat_ky", "ngay < $1", [congNgay(gioDiaPhuong(now, "Asia/Ho_Chi_Minh").ngay, -GIU_NGAY - 1)]);
 
 export type TrangThaiTrang = "cho_phep" | "chan" | "giai_tri" | "he_thong" | "chua_xep";
 /** `nhom` (#262): tinh_phut | khong_tinh_phut — null = hệ thống / ngoài danh sách. `trangThai` (cũ) giữ cho app cũ. */

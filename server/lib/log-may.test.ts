@@ -112,8 +112,10 @@ test("#563: 200 dòng log = MỘT câu INSERT (trước 201: 200 INSERT + 1 DELE
 test("#563: log quá 7 ngày dọn trong cron (donLogCu, theo nhan_luc), không trên đường máy gửi", async () => {
   const { mayId } = await mayMoi();
   const may = (await q<{ id: string; family_id: string }>(`select id, family_id from devices where id = $1`, [mayId]))[0] as never;
-  await lg.nhanLog(may, [{ noiDung: "cũ" }, { noiDung: "mới" }], new Date());
-  await q(`update may_log set nhan_luc = now() - interval '8 days' where device_id = $1 and noi_dung = 'cũ'`, [mayId]);
-  assert.ok((await lg.donLogCu(new Date())) >= 1);
+  const t0 = new Date("2026-10-21T10:00:00Z");
+  await lg.nhanLog(may, [{ noiDung: "cũ" }, { noiDung: "mới" }], t0);
+  await q(`update may_log set nhan_luc = case when noi_dung = 'cũ' then $2::timestamptz - interval '8 days' else $2::timestamptz - interval '6 days' end
+    where device_id = $1`, [mayId, t0]);
+  assert.ok((await lg.donLogCu(t0)) >= 1);
   assert.deepEqual((await q<{ noi_dung: string }>(`select noi_dung from may_log where device_id = $1`, [mayId])).map((x) => x.noi_dung), ["mới"]);
 });
