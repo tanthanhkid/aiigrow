@@ -1,4 +1,3 @@
-using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
@@ -136,50 +135,12 @@ public sealed class KiemKyTrinhDuyet
         catch { return false; }
     }
 
+    /// <summary>Chữ ký Authenticode hợp lệ, chuỗi tới gốc tin cậy (không kiểm thu hồi qua mạng — vòng đóng app không chờ mạng).</summary>
+    public static bool ChuKyHopLe(string path) => Authenticode.MaWinTrust(path, coMang: false) == 0;
+
     private static string? NguoiKy(string path)
     {
-#pragma warning disable SYSLIB0057
-        try { using var c = System.Security.Cryptography.X509Certificates.X509Certificate.CreateFromSignedFile(path); return c.Subject; }
-#pragma warning restore SYSLIB0057
-        catch { return null; }
-    }
-
-    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-    private struct WinTrustFileInfo
-    {
-        public uint cbStruct; [MarshalAs(UnmanagedType.LPWStr)] public string pcwszFilePath; public IntPtr hFile; public IntPtr pgKnownSubject;
-    }
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct WinTrustData
-    {
-        public uint cbStruct; public IntPtr pPolicyCallbackData; public IntPtr pSIPClientData; public uint dwUIChoice; public uint fdwRevocationChecks;
-        public uint dwUnionChoice; public IntPtr pFile; public uint dwStateAction; public IntPtr hWVTStateData; public IntPtr pwszURLReference;
-        public uint dwProvFlags; public uint dwUIContext; public IntPtr pSignatureSettings;
-    }
-
-    [DllImport("wintrust.dll", CharSet = CharSet.Unicode)]
-    private static extern int WinVerifyTrust(IntPtr hwnd, [MarshalAs(UnmanagedType.LPStruct)] Guid action, ref WinTrustData data);
-
-    private static readonly Guid GenericVerifyV2 = new("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
-
-    /// <summary>Chữ ký Authenticode hợp lệ, chuỗi tới gốc tin cậy (không kiểm thu hồi qua mạng — vòng đóng app không chờ mạng).</summary>
-    public static bool ChuKyHopLe(string path)
-    {
-        if (!OperatingSystem.IsWindows()) return false;
-        var fi = new WinTrustFileInfo { cbStruct = (uint)Marshal.SizeOf<WinTrustFileInfo>(), pcwszFilePath = path };
-        var pFi = Marshal.AllocHGlobal(Marshal.SizeOf<WinTrustFileInfo>());
-        try
-        {
-            Marshal.StructureToPtr(fi, pFi, false);
-            var d = new WinTrustData
-            {
-                cbStruct = (uint)Marshal.SizeOf<WinTrustData>(), dwUIChoice = 2 /* WTD_UI_NONE */, fdwRevocationChecks = 0 /* WTD_REVOKE_NONE */,
-                dwUnionChoice = 1 /* WTD_CHOICE_FILE */, pFile = pFi, dwStateAction = 0, dwProvFlags = 0x1000 /* WTD_CACHE_ONLY_URL_RETRIEVAL */,
-            };
-            return WinVerifyTrust(new IntPtr(-1) /* INVALID_HANDLE_VALUE: không UI */, GenericVerifyV2, ref d) == 0;
-        }
-        catch { return false; }
-        finally { Marshal.DestroyStructure<WinTrustFileInfo>(pFi); Marshal.FreeHGlobal(pFi); }
+        using var c = Authenticode.ChungChiNguoiKy(path);
+        return c?.Subject;
     }
 }
