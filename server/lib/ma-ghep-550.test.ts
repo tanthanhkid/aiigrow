@@ -34,38 +34,42 @@ test("nguồn gọi: IPv4 ánh xạ IPv6 / kèm cổng ⇒ IPv4 trần; [IPv6]:c
   assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "::ffff:1.2.3.4" })), "1.2.3.4");
   assert.equal(g.nguonGoi(new Headers({ "x-forwarded-for": "1.2.3.4:5678, 10.0.0.1" })), "1.2.3.4");
   assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "[2001:db8:1:2::9]:443" })), "2001:db8:1:2");
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "[::ffff:1.2.3.4]:443" })), "1.2.3.4");
+  assert.equal(g.nguonGoi(new Headers({ "x-real-ip": "::ffff:102:304" })), "1.2.3.4");
   assert.equal(g.khoi48("2001:db8:1:2"), "2001:db8:1");
   assert.equal(g.khoi48("1.2.3.4"), null);
 });
 
-test("IPv6: khối /48 tối đa 30 lượt sai / khung (xoay /64 không được thêm), khối khác không ảnh hưởng", async () => {
+test("IPv6: khối /48 tối đa 60 lượt sai / khung (xoay /64 không được thêm), khối khác không ảnh hưởng", async () => {
   await q(`delete from pin_sai where khoa like 'ghep%'`);
   const { fam } = await taoNha();
   const ma = await g.taoMaGhep(fam, await g.taoCon(fam, { ten: "Bi" }), "windows");
   await chiConMa(ma);
-  for (let i = 0; i < 30; i++) await loi(g.ghepMay(sai(ma, i), "windows", "X", `2001:db8:aa:${i.toString(16)}`, T + i), "ma_sai");
+  for (let i = 0; i < 60; i++) await loi(g.ghepMay(sai(ma, i), "windows", "X", `2001:db8:aa:${i.toString(16)}`, T + i), "ma_sai");
   await loi(g.ghepMay(ma, "windows", "X", "2001:db8:aa:ffff", T + 100), "ghep_tam_khoa");
   assert.ok((await g.ghepMay(ma, "windows", "PC Bi", "2001:db8:bb:1", T + 101)).token, "khối /48 khác vẫn ghép được");
 });
 
-test("bị dò phân tán: tổng lượt sai > 200 ⇒ mỗi nguồn còn 1 lượt; người gõ đúng lần đầu vẫn ghép được; khung mới trở lại bình thường", async () => {
+test("bị dò phân tán: tổng lượt sai > 200 ⇒ mỗi nguồn còn 3 lượt; người gõ đúng vẫn ghép được; khung mới trở lại 10 lượt", async () => {
   await q(`delete from pin_sai where khoa like 'ghep%'`);
   const { fam } = await taoNha();
   const ma = await g.taoMaGhep(fam, await g.taoCon(fam, { ten: "Cu" }), "windows");
   await chiConMa(ma);
   const t = T + 15 * 60_000;
   for (let i = 0; i < g.GHEP_SAI_TONG; i++) await loi(g.ghepMay(sai(ma, i), "windows", "X", `10.${Math.floor(i / 5)}.0.1`, t + i), "ma_sai");
-  // nguồn đã sai trong khung (dưới 10 lượt) giờ bị chặn
+  // nguồn đã sai 5 lần (dưới 10) giờ bị chặn
   await loi(g.ghepMay(sai(ma, 500), "windows", "X", "10.0.0.1", t + 300), "ghep_tam_khoa");
-  // nguồn mới: 1 lượt sai, lượt 2 chặn
-  await loi(g.ghepMay(sai(ma, 501), "windows", "X", "10.251.0.1", t + 301), "ma_sai");
-  await loi(g.ghepMay(sai(ma, 502), "windows", "X", "10.251.0.1", t + 302), "ghep_tam_khoa");
-  // người dùng thật ở nguồn mới gõ đúng ngay: ghép được
-  assert.ok((await g.ghepMay(ma, "windows", "PC Cu", "10.250.0.1", t + 303)).token);
-  // khung mới: nguồn cũ lại có 10 lượt
+  // nguồn mới: 3 lượt sai, lượt 4 chặn
+  for (let i = 0; i < 3; i++) await loi(g.ghepMay(sai(ma, 501 + i), "windows", "X", "10.251.0.1", t + 301 + i), "ma_sai");
+  await loi(g.ghepMay(sai(ma, 510), "windows", "X", "10.251.0.1", t + 310), "ghep_tam_khoa");
+  // người dùng thật gõ nhầm một lần rồi gõ đúng: ghép được
+  await loi(g.ghepMay(sai(ma, 520), "windows", "X", "10.250.0.1", t + 311), "ma_sai");
+  assert.ok((await g.ghepMay(ma, "windows", "PC Cu", "10.250.0.1", t + 312)).token);
+  // khung mới: nguồn cũ lại đủ 10 lượt
   const ma2 = await g.taoMaGhep(fam, await g.taoCon(fam, { ten: "Cu2" }), "windows");
   await chiConMa(ma2);
-  for (let i = 0; i < 3; i++) await loi(g.ghepMay(sai(ma2, i), "windows", "X", "10.251.0.1", t + 15 * 60_000 + i), "ma_sai");
+  for (let i = 0; i < 10; i++) await loi(g.ghepMay(sai(ma2, i), "windows", "X", "10.251.0.1", t + 15 * 60_000 + i), "ma_sai");
+  await loi(g.ghepMay(sai(ma2, 20), "windows", "X", "10.251.0.1", t + 15 * 60_000 + 50), "ghep_tam_khoa");
 });
 
 test("lượt bị chặn không cộng vào tổng; ghép đúng / mã đã dùng không tính", async () => {
@@ -90,11 +94,11 @@ test("dọn bộ đếm ghép của khung đã qua", async () => {
   assert.equal(await g.donBoDemGhep(t + 31 * 60_000), 2);
 });
 
-test("API POST /api/may/ghep: đang bị dò, nguồn đã sai 1 lần ⇒ 429 ghep_tam_khoa", async () => {
+test("API POST /api/may/ghep: đang bị dò, nguồn đã sai 3 lần ⇒ 429 ghep_tam_khoa", async () => {
   await q(`delete from pin_sai where khoa like 'ghep%'`);
   const k = Math.floor(Date.now() / 900_000);
   for (const kk of [k, k + 1])
-    await q(`insert into pin_sai(khoa, so_lan) values ($1, $2), ($3, 1)`, [`ghep_tong:${kk}`, g.GHEP_SAI_TONG, `ghep:203.0.113.9:${kk}`]);
+    await q(`insert into pin_sai(khoa, so_lan) values ($1, $2), ($3, 3)`, [`ghep_tong:${kk}`, g.GHEP_SAI_TONG, `ghep:203.0.113.9:${kk}`]);
   const r = await xuLyMay(new Request("http://x/api/may/ghep", {
     method: "POST", headers: { "content-type": "application/json", "x-real-ip": "203.0.113.9" },
     body: JSON.stringify({ ma: "123456", nen: "windows", tenMay: "X" }),
