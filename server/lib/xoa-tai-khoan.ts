@@ -19,6 +19,7 @@
 //    cron /api/cron/don-kiem-toan (donKiemToanGiaDinhDaXoa bên dưới) xoá hẳn mọi dòng audit của gia đình, kể cả dòng mốc.
 //  • Tất cả trong MỘT giao dịch; mọi phiên của người bị xoá mất theo.
 import { chuaCoMatKhau, donBoDemMxh } from "./dang-nhap-mxh.ts";
+import { donBoDemDangNhap, goKhoaTaiKhoan } from "./gioi-han-dang-nhap.ts";
 import { one, q, tx, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -80,6 +81,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
       await t(`delete from ho_tro where family_id = $1 and tu = 'ba_me' and nguoi = $2`, [bm.family_id, bm.id]);
       await t(`delete from messages where family_id = $1 and parent_id = $2`, [bm.family_id, bm.id]);
       await t(`delete from otp where dinh_danh = $1`, [toi.dinh_danh]);
+      await goKhoaTaiKhoan("bm", toi.dinh_danh, t);                     // bộ đếm / khoá / nguồn quen đăng nhập (#553)
       await t(`delete from pin_sai where khoa like $1 or khoa like $2`, [`xoa_tk:${bm.id}:%`, `dat_mk_tk:${bm.id}:%`]);
       await ghiSuKien(bm.family_id, "thanh_vien_xoa_tai_khoan", { ten: toi.ten }, { nguoi: bm.id }, t);
       return { xoa: "tai_khoan" };
@@ -94,6 +96,8 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
     await t(`delete from may_log where family_id = $1`, [bm.family_id]);
     // người đã «mời ra» có định danh «<gốc>#roi:<id>» ⇒ lấy phần gốc
     await t(`delete from otp where dinh_danh in (select split_part(dinh_danh, '#roi:', 1) from parents where family_id = $1)`, [bm.family_id]);
+    await goKhoaTaiKhoan("bm", (await t<{ d: string }>(`select split_part(dinh_danh, '#roi:', 1) as d from parents where family_id = $1`,
+      [bm.family_id])).map((x) => x.d), t);                                 // bộ đếm / khoá / nguồn quen đăng nhập (#553)
     await t(`delete from pin_sai where split_part(khoa, ':', 1) in ('xoa_tk', 'dat_mk_tk') and split_part(khoa, ':', 2) in (select id from parents where family_id = $1)`, [bm.family_id]);
     await t(`delete from families where id = $1`, [bm.family_id]);
     await ghiKiemToan(null, "xoa_gia_dinh", { soCon: con.length }, bm.family_id, t);
@@ -145,6 +149,7 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
   try {
     const n = await donKiemToanGiaDinhDaXoa(now);
     await donBoDemMxh(now.getTime());          // bộ đếm lượt đăng nhập Google / Facebook của khung đã qua (dang-nhap-mxh.ts)
+    await donBoDemDangNhap(now.getTime());     // bộ đếm đăng nhập mật khẩu theo IP / cặp tài khoản–IP (gioi-han-dang-nhap.ts)
     await donUsageCu(now).catch(() => {});     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
     return n;
   } catch (e) {

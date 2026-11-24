@@ -320,7 +320,7 @@ export function ThamSo() {
 
 // ---------------------------------------------------------------- nhật ký kiểm toán
 const HANH_DONG: Record<string, string> = {
-  dang_nhap: "Đăng nhập", dang_nhap_sai: "Đăng nhập sai", nap_quy: "Ghi nạp quỹ", quet_voucher: "Quét phiếu quà", tra_loi_ho_tro: "Trả lời hỗ trợ",
+  dang_nhap: "Đăng nhập", dang_nhap_sai: "Đăng nhập sai", dang_nhap_tam_khoa: "Tạm khoá đăng nhập", nap_quy: "Ghi nạp quỹ", quet_voucher: "Quét phiếu quà", tra_loi_ho_tro: "Trả lời hỗ trợ",
   doi_tham_so: "Đổi tham số", them_allowlist: "Thêm Allowlist", bo_allowlist: "Bỏ Allowlist", them_mau: "Thêm mẫu", bat_mau: "Bật mẫu", tat_mau: "Tắt mẫu",
 };
 const KQ_QUET: Record<string, string> = { hop_le: "Hợp lệ", da_dung: "Đã dùng", het_han: "Hết hạn", chua_phat_hanh: "Chưa xác nhận", thu_hoi: "Đã huỷ", khong_thay: "Không có mã" };
@@ -332,6 +332,7 @@ function moTa(x: Nk) {
     case "quet_voucher": return `${hienMa(String(c.ma ?? ""))} · ${KQ_QUET[c.ketQua] ?? c.ketQua}${c.menhGia ? ` · ${tien(c.menhGia)}` : ""} · ${c.quay ?? ""}`;
     case "doi_tham_so": return (c.doi ?? []).map((d: { khoa: string; cu: number | null; moi: number | null }) => `${d.khoa}: ${d.cu ?? "mặc định"} → ${d.moi ?? "mặc định"}`).join(" · ");
     case "dang_nhap_sai": return `tên «${c.tenDangNhap ?? ""}»`;
+    case "dang_nhap_tam_khoa": return `tên «${c.tenDangNhap ?? ""}» · nguồn ${c.ip ?? "?"} · ${c.phut >= 60 ? `${c.phut / 60} giờ` : `${c.phut} phút`}`;
     case "dang_nhap": return c.man === "admin" ? "cổng quản trị" : "màn quầy";
     default: return c.muc ?? c.ten ?? "";
   }

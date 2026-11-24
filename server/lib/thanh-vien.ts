@@ -9,6 +9,7 @@ import { randomInt } from "node:crypto";
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { bamMatKhau, chuanDinhDanh, hienDinhDanh, TIEN_TO_FB, kiemOtp, sha, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { goKhoaTaiKhoan } from "./gioi-han-dang-nhap.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { damBaoBang, ghiKiemToan } from "./admin.ts";
 import { SCHEMA_TV_TB } from "./schema.ts";
@@ -278,7 +279,9 @@ export const doiVai = doiQuyen;
 export async function moiRa(bm: BaMe, id: string) {
   const p = await thanhVienKhac(bm, id);
   await tx(async (t) => {
-    await t(`update parents set vai = 'roi', dinh_danh = dinh_danh || '#roi:' || id, pass_hash = null where id = $1`, [id]);
+    const cu = await t<{ d: string }>(`update parents x set vai = 'roi', dinh_danh = x.dinh_danh || '#roi:' || x.id, pass_hash = null
+      from parents y where x.id = $1 and y.id = x.id returning y.dinh_danh as d`, [id]);
+    await goKhoaTaiKhoan("bm", cu.map((r) => r.d), t);                    // định danh được nhả ⇒ bỏ bộ đếm / nguồn quen đăng nhập (#553)
     await t(`delete from sessions where parent_id = $1`, [id]);
     await t(`delete from ba_me_mxh where parent_id = $1`, [id]);     // vào lại bằng Google / Facebook không quay về nhà vừa mời ra
     await ghiSuKien(bm.family_id, "moi_ra", { ten: p.ten }, { nguoi: bm.id }, t);

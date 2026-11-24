@@ -1,6 +1,7 @@
 // API màn quầy AiiCafe: /api/quay/<đường>. Bearer = phiên Nhân viên AiiCafe (hoặc Admin). Nhân viên chỉ làm được ba việc: đăng nhập,
 // quét / gõ mã phiếu quà, đăng xuất — không xem gia đình, quỹ hay bất kỳ dữ liệu nào khác (BRD 8.2: vai «Nhân viên AiiCafe» chỉ có màn này).
 import { batLoi, docJson, json, loi } from "./api.ts";
+import { nguonGoi } from "./gia-dinh.ts";
 import { one } from "./db.ts";
 import { dangNhapNv, dangXuatNv, ghiKiemToan, nvGoi } from "./admin.ts";
 import { quetVoucher } from "./phan-thuong.ts";
@@ -16,7 +17,7 @@ export async function xuLyQuay(req: Request, p: string[]): Promise<Response> {
     const d = p.join("/"), post = req.method === "POST";
     if (d === "dang-nhap" && post) {
       const b = await docJson(req);
-      return json({ token: await dangNhapNv(b.tenDangNhap, b.matKhau, "quay") });
+      return json({ token: await dangNhapNv(b.tenDangNhap, b.matKhau, "quay", nguonGoi(req.headers)) });
     }
     const nv = await nvGoi(req);
     if (!nv) return loi("chua_dang_nhap", "Phiên đăng nhập quầy đã hết — đăng nhập lại", 401);

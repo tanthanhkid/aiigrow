@@ -6,13 +6,12 @@ import { createHash, randomBytes, randomInt, scrypt as _scrypt, timingSafeEqual 
 import { promisify } from "node:util";
 import { one, q, tx, newId, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import * as gh from "./gioi-han-dang-nhap.ts";
 
 const scrypt = promisify(_scrypt) as (p: string, s: Buffer, n: number) => Promise<Buffer>;
 export const PHIEN_NGAY = 90;
 const OTP_PHUT = 10;
 const OTP_SAI_TOI_DA = 5;
-const SAI_KHOA = 5;          // khoá đăng nhập sau 5 lần sai liền (BRD mục 9)
-const KHOA_PHUT = 15;
 const OTP_KHUNG_MS = 3_600_000;        // khung đếm OTP: 1 giờ cố định
 const OTP_GUI_DINH_DANH = 3;           // tối đa 3 mã/giờ cho một số/email
 const OTP_GUI_IP = 20;                 // tối đa 20 yêu cầu gửi mã/giờ cho một nguồn gọi (IP)
@@ -131,21 +130,22 @@ export async function dangKy(b: { dinhDanh?: unknown; ma?: unknown; ten?: unknow
   return kq;
 }
 
-/** Đăng nhập → id Ba Mẹ. Sai 5 lần liền ⇒ khoá 15 phút. Không lộ số/email nào có tài khoản. */
-export async function dangNhap(dinhDanh: unknown, mk: unknown) {
+/** Đăng nhập → id Ba Mẹ. `ip` = nguồn gọi (gia-dinh.ts › nguonGoi). Giới hạn lượt theo IP + khoá theo cặp (tài khoản, IP), luỹ tiến
+ *  (lib/gioi-han-dang-nhap.ts, #553) — không khoá cứng tài khoản. Không lộ số/email nào có tài khoản. */
+export async function dangNhap(dinhDanh: unknown, mk: unknown, ip = "?", now = Date.now()) {
   const d = chuanDinhDanh(dinhDanh);
-  const p = d ? await one<{ id: string; pass_hash: string | null; khoa_den: Date | null }>(
-    `select id, pass_hash, khoa_den from parents where dinh_danh = $1`, [d]) : undefined;
-  if (p?.khoa_den && new Date(p.khoa_den) > new Date())
-    throw new LoiNghiepVu("tam_khoa", `Sai mật khẩu nhiều lần — thử lại sau ${KHOA_PHUT} phút, hoặc bấm «Quên mật khẩu» để đặt lại bằng mã OTP`, 429);
-  const dung = p?.pass_hash ? await dungMatKhau(String(mk ?? ""), p.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
+  const tk = d ?? `?${String(dinhDanh ?? "").trim().toLowerCase().slice(0, 80)}`;
+  const luot = await gh.truocDangNhap("bm", tk, ip, now, ", hoặc bấm «Quên mật khẩu» để đặt lại bằng mã OTP");
+  let p: { id: string; pass_hash: string | null } | undefined, dung: boolean;
+  try {
+    p = d ? await one<{ id: string; pass_hash: string | null }>(`select id, pass_hash from parents where dinh_danh = $1`, [d]) : undefined;
+    dung = p?.pass_hash ? await dungMatKhau(String(mk ?? ""), p.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
+  } catch (e) { await gh.huyLuot(luot); throw e; }                 // lỗi bất ngờ: không để kẹt lượt
   if (!p || !dung) {
-    if (p) await q(`update parents set sai_lien = sai_lien + 1,
-                      khoa_den = case when sai_lien + 1 >= $2 then now() + make_interval(mins => $3) else null end where id = $1`,
-      [p.id, SAI_KHOA, KHOA_PHUT]);
+    await gh.dangNhapSai(luot);
     throw new LoiNghiepVu("sai_dang_nhap", "Số điện thoại/email hoặc mật khẩu chưa đúng", 401);
   }
-  await q(`update parents set sai_lien = 0, khoa_den = null where id = $1`, [p.id]);
+  await gh.dangNhapDung(luot);
   return p.id;
 }
 
@@ -166,6 +166,7 @@ export async function datLaiMatKhau(dinhDanh: unknown, ma: unknown, mkMoi: unkno
     const p = (await t<{ id: string }>(`update parents set pass_hash = $2, sai_lien = 0, khoa_den = null
                                         where dinh_danh = $1 and pass_hash is not null returning id`, [d, bam]))[0];
     if (p) await t(`delete from sessions where parent_id = $1`, [p.id]);
+    if (p) await gh.goKhoaTaiKhoan("bm", d, t);                         // đặt lại bằng OTP ⇒ gỡ khoá đăng nhập ở mọi nguồn
     return true as const;
   });
   if (dung === "chua_co_mk")
