@@ -10,19 +10,19 @@ import { createHash } from "node:crypto";
 import { one, q, tx, type Q } from "./db.ts";
 import type { May } from "./gia-dinh.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { allowlistHieuLuc, boMucChoCon, laCongCuHeThong, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc, type NhomGiaiTri } from "./luat-app.ts";
+import { allowlistHieuLuc, boMucChoCon, laCongCuHeThong, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc } from "./luat-app.ts";
 import type { NhomDs } from "./chan-co-ban.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { idConMay } from "./may-nhieu-con.ts";
 
-export const TOI_DA_APP = 1500;
+const TOI_DA_APP = 1500;
 export const TOI_DA_ICON = 65_536;       // ký tự base64 (~48 KB PNG) — icon THẬT 96 px (nét ở 40–48 pt @2x/@3x) thường 5–25 KB
 const NGUON = new Set(["registry", "start", "store", "applications", "user-applications", "launcher"]);
 const BAM = /^[0-9a-f]{16,128}$/i;
 const HEX64 = /^[0-9a-f]{64}$/i;
 const B64 = /^[A-Za-z0-9+/]+=*$/;
 
-export type AppVao = {
+type AppVao = {
   khoa?: unknown; muc?: unknown; ten?: unknown; nguon?: unknown; nhaPhatHanh?: unknown; teamId?: unknown;
   duongDan?: unknown; thuMuc?: unknown; phienBan?: unknown; sha256?: unknown; icon?: unknown; iconBam?: unknown;
 };
@@ -30,7 +30,7 @@ type AppSach = {
   khoa: string; muc: string; ten: string; nguon: string | null; nha_phat_hanh: string | null; team_id: string | null;
   duong_dan: string | null; thu_muc: string | null; phien_ban: string | null; sha256: string | null; icon: string | null; icon_bam: string | null;
 };
-export type DongApp = AppSach & { device_id: string; thay_luc: Date };
+type DongApp = AppSach & { device_id: string; thay_luc: Date };
 
 const chu = (v: unknown, n = 300) => {
   const t = String(v ?? "").replace(/[\u0000-\u001f]/g, " ").trim();
@@ -38,7 +38,7 @@ const chu = (v: unknown, n = 300) => {
 };
 
 /** Mục để xếp / chặn: chữ thường (như app_rules.muc), không khoảng trắng, không «/» — Android/Mac/Windows đều thoả. */
-export function mucApp(v: unknown, giuHoa = false): string | null {
+function mucApp(v: unknown, giuHoa = false): string | null {
   const g = String(v ?? "").trim().normalize("NFC");
   const t = g.toLowerCase();
   // chữ có dấu / CJK / «'» «&» «[]» «,» «!» hợp lệ trong tên tệp (原神.exe, Tom's Game.exe); vẫn cấm «/», «\\», «:», «..»
@@ -129,7 +129,7 @@ export async function tinHieuDanhSachApp(mayId: string, hang?: object) {
 }
 
 type LuatGon = { child_id: string; muc: string; loai: LoaiMuc; nhom: string; ten?: string; het?: Date | null };
-export type TrangThaiApp = "he_thong" | "cho_phep" | "hoc" | "giai_tri" | "chan" | "chua_xep";
+type TrangThaiApp = "he_thong" | "cho_phep" | "hoc" | "giai_tri" | "chan" | "chua_xep";
 const nhomDsCua = (tt: TrangThaiApp): NhomDs | null => (tt === "giai_tri" ? "tinh_phut" : tt === "hoc" || tt === "cho_phep" ? "khong_tinh_phut" : null);
 
 /** Trạng thái của một app trên máy của Con `con` ('' = máy dùng chung ⇒ chỉ luật cả nhà) — cùng thứ tự với phanLoai:
@@ -204,7 +204,7 @@ export async function iconApp(fam: string, mayId: string, bam: string, daCo = fa
   return r ? (daCo ? "khop" : Buffer.from(r.icon!, "base64")) : null;
 }
 
-export const TRANG_THAI_DAT = ["tinh_phut", "khong_tinh_phut", "cho_phep", "hoc", "giai_tri", "chan", "bo"] as const;
+const TRANG_THAI_DAT = ["tinh_phut", "khong_tinh_phut", "cho_phep", "hoc", "giai_tri", "chan", "bo"] as const;
 
 /** Ba Mẹ đặt một app CỦA MÁY NÀY (theo `khoa` trong danh sách máy gửi) vào danh sách. Máy riêng của Con ⇒ luật riêng của Con đó; máy dùng chung ⇒
  *  luật riêng của bé `b.con` (#338); không gửi `con` (app bản cũ) ⇒ luật cả nhà như trước. `trangThai` (hoặc `nhom`): tinh_phut | khong_tinh_phut (#262) · cũ: cho_phep / hoc (= Không tính phút), giai_tri (= Tính phút),
@@ -253,7 +253,7 @@ export async function goiAndroidThat(fam: string): Promise<Map<string, string>> 
   return new Map(r.map((x) => [x.muc.toLowerCase(), x.muc]));
 }
 
-export type AppChan = { muc: string; duongDan?: string; thuMuc?: string; sha256?: string; nhaPhatHanh?: string; teamId?: string };
+type AppChan = { muc: string; duongDan?: string; thuMuc?: string; sha256?: string; nhaPhatHanh?: string; teamId?: string };
 
 /** `windows.blockedApps` cho agent Win/Mac: app Ba Mẹ đặt Chặn (luật hiệu lực của Con dùng máy / cả nhà), kèm định danh thật lấy từ danh sách
  *  app của CHÍNH MÁY NÀY. #262: không còn luật «Chặn» (danh sách trắng — app ngoài danh sách đã không mở ở «Theo danh sách») ⇒ luôn []; giữ
@@ -289,4 +289,3 @@ export async function tenAppThat(fam: string): Promise<Map<string, string>> {
   return new Map(r.map((x) => [x.muc, x.ten]));
 }
 
-export type { NhomGiaiTri };

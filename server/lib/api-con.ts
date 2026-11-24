@@ -18,7 +18,7 @@ import { cheDoCua } from "./chan-co-ban.ts";
 import { xuLyConSao } from "./api-sao.ts";
 import { xuLyConS3 } from "./api-s3.ts";
 
-export async function conGoi(req: Request): Promise<(Con & { device_id: string | null }) | null> {
+async function conGoi(req: Request): Promise<(Con & { device_id: string | null }) | null> {
   const t = bearer(req);
   if (!t) return null;
   const k = await conTuPhien(t);

@@ -3,12 +3,12 @@
 // ⇒ mỗi mục có `luuY`. Tự cấu hình router CHỈ khi hãng có API chính thức VÀ Ba Mẹ tự nhập mật khẩu router trong app (dùng một lần, không
 // lưu); AiiGrow không dò, không đoán, không thử mật khẩu. Ở mốc này chưa hãng nào được tự cấu hình (`tuCauHinh: false`).
 
-export type HuongDanRouter = {
+type HuongDanRouter = {
   ma: string; hang: string; dong: string; diaChiQuanTri: string[]; buoc: string[];
   apiChinhThuc: boolean; tuCauHinh: false; luuY: string;
 };
 
-export type HuongDanTv = { ma: string; hang: string; nen: string; buoc: string[]; luuY: string };
+type HuongDanTv = { ma: string; hang: string; nen: string; buoc: string[]; luuY: string };
 
 const DNS = "Nhập DNS chính = IP resolver AiiGrow của gia đình (hiện trong app); DNS phụ để trống hoặc nhập IP thứ hai của AiiGrow — KHÔNG để DNS của nhà mạng làm DNS phụ (thiết bị sẽ đi vòng qua)";
 

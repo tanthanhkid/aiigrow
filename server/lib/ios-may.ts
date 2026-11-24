@@ -8,7 +8,7 @@ import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { phutTheoDanhSach, tinhPhutChoi } from "./so-sao.ts";
 import { khoaCon } from "./vi.ts";
 
-export type IosNhip = { soAppHoc: number; soAppGiaiTri: number; soAppChan: number; soDanhMucGiaiTri: number; phutDaDung: number; uyQuyen: string; luc: string;
+type IosNhip = { soAppHoc: number; soAppGiaiTri: number; soAppChan: number; soDanhMucGiaiTri: number; phutDaDung: number; uyQuyen: string; luc: string;
   /** phút lúc máy mở bằng mã hôm nay (cộng dồn từ `phutBoiMa` app gửi phần chênh) — chỉ để hiện, không trừ sao */ boiMaHomNay?: number;
   /** MỐC trừ sao: phutDaDung + lúc của lần đã tính sao gần nhất (chỉ đổi khi trừ xong / quyết định chỉ lấy mốc — lỗi thì giữ mốc cũ) */
   mocPhut?: number; mocLuc?: string };
@@ -16,7 +16,7 @@ export type IosNhip = { soAppHoc: number; soAppGiaiTri: number; soAppChan: numbe
 const so = (v: unknown) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.min(100000, Math.round(Number(v))) : 0);
 
 /** Làm sạch phần ios của nhịp; không phải object ⇒ null (máy không phải iOS / app cũ không gửi). */
-export function chuanIos(v: unknown, now: Date): IosNhip | null {
+function chuanIos(v: unknown, now: Date): IosNhip | null {
   if (!v || typeof v !== "object" || Array.isArray(v)) return null;
   const o = v as Record<string, unknown>;
   return { soAppHoc: so(o.soAppHoc), soAppGiaiTri: so(o.soAppGiaiTri), soAppChan: so(o.soAppChan), soDanhMucGiaiTri: so(o.soDanhMucGiaiTri),
@@ -24,7 +24,7 @@ export function chuanIos(v: unknown, now: Date): IosNhip | null {
 }
 
 /** Gộp một khoá vào devices.status (dùng chung `ios` / `android`). */
-export const luuStatusKhoa = (mayId: string, khoa: string, giaTri: unknown, t: Q = q) =>
+const luuStatusKhoa = (mayId: string, khoa: string, giaTri: unknown, t: Q = q) =>
   t(`update devices set status = coalesce(status, '{}'::jsonb) || jsonb_build_object($2::text, $3::text::jsonb) where id = $1`, [mayId, khoa, JSON.stringify(giaTri)]);
 
 /** Agent iOS ≥ 0.2.0 (#272): `phutDaDung` đã bỏ phút mở bằng mã. Nhận ra qua trường `phutBoiMa` (Swift bỏ trường khi nil ⇒ chỉ có lúc > 0)
@@ -89,7 +89,7 @@ function mocCua(cu: Partial<IosNhip> | null): { phut: number; luc: string } | nu
  *  KHÔNG trừ (chỉ lấy mốc): agent cũ · không có bé đang dùng · Ba Mẹ đang dùng máy (ba_me_den) · Mở hết · lần đầu (chưa mốc) · số giảm
  *  (cài lại app) · qua nửa đêm mà máy còn báo tổng hôm qua (ngày theo đồng hồ máy khác ngày gia đình, hoặc phutDaDung > phút từ nửa đêm + 1).
  *  Phần tăng kẹp ≤ thời gian thật từ mốc (hoặc nửa đêm) + 1 phút. */
-export async function truSaoIos(t: Q, may: Pick<May, "id" | "name"> & { ba_me_den?: Date | string | null }, con: string | null,
+async function truSaoIos(t: Q, may: Pick<May, "id" | "name"> & { ba_me_den?: Date | string | null }, con: string | null,
   moc: { phut: number; luc: string } | null, moi: IosNhip, tz: string, now = new Date(), o: { moi?: boolean; gioMay?: unknown } = {}) {
   const khong = { tru: 0, tinh: 0 };
   if (!o.moi || !con || !moc) return khong;
@@ -111,10 +111,10 @@ export async function truSaoIos(t: Q, may: Pick<May, "id" | "name"> & { ba_me_de
 }
 
 // ---------------------------------------------------------------- tác tử Android (agent-android/CAN-SERVER.md mục 3)
-export type AndroidNhip = { phutDungHomNay: Record<string, number>; thanhPhan: Record<string, boolean>; luc: string };
+type AndroidNhip = { phutDungHomNay: Record<string, number>; thanhPhan: Record<string, boolean>; luc: string };
 
 /** Làm sạch phần Android của nhịp: `phutDungHomNay` {gói: phút} + trạng thái quyền `thanhPhan`. Không có cả hai ⇒ null (app cũ / máy khác). */
-export function chuanAndroid(b: { phutDungHomNay?: unknown; thanhPhan?: unknown }, now: Date): AndroidNhip | null {
+function chuanAndroid(b: { phutDungHomNay?: unknown; thanhPhan?: unknown }, now: Date): AndroidNhip | null {
   const ph = b.phutDungHomNay && typeof b.phutDungHomNay === "object" && !Array.isArray(b.phutDungHomNay) ? (b.phutDungHomNay as Record<string, unknown>) : null;
   const tp = b.thanhPhan && typeof b.thanhPhan === "object" && !Array.isArray(b.thanhPhan) ? (b.thanhPhan as Record<string, unknown>) : null;
   if (!ph && !tp) return null;

@@ -11,11 +11,11 @@ import { allowlistHieuLuc, dsLuat, laAppAiiGrow } from "./luat-app.ts";
 import { trangThaiApp } from "./app-may.ts";
 
 /** Máy im lặng quá chừng này (phút) trong hôm nay ⇒ «mất mạng». Agent nhịp 30–120 giây nên 10 phút là chắc. */
-export const MAT_MANG_PHUT = 10;
+const MAT_MANG_PHUT = 10;
 /** Nền có nhịp nền đều đặn (iPhone/iPad không chạy nền liên tục ⇒ im lặng không có nghĩa là mất mạng). */
 const NEN_NHIP_DEU = ["windows", "mac", "android"];
 
-export type MayMatMang = { mayId: string; ten: string; nen: string; conId: string | null; tenCon: string | null; tu: string; phut: number };
+type MayMatMang = { mayId: string; ten: string; nen: string; conId: string | null; tenCon: string | null; tu: string; phut: number };
 
 /** Máy con mất mạng HÔM NAY: đã liên lạc trong hôm nay (giờ nhà) mà im lặng > MAT_MANG_PHUT, không phải tắt / ngủ sạch (agent báo trước).
  *  Máy dùng chung tính cho bé đang dùng (devices.con_dang_dung). */
@@ -35,7 +35,7 @@ export async function mayMatMang(fam: string, now = new Date()): Promise<MayMatM
 
 /** #508: app Con CÀI MỚI trên máy — máy chủ thấy sau danh sách đầu tiên của máy (cách ≥ 2 phút), trong 14 ngày, chưa được Ba Mẹ xếp (không «Tính phút» / «Không tính phút»),
  *  không phải app hệ thống / chính AiiGrow. Gộp theo máy. App đã có trong danh sách đầu (lúc ghép máy) KHÔNG tính — Ba Mẹ xếp ở bước App của Lần đầu. */
-export async function appMoiCaiMay(fam: string, now = new Date()) {
+async function appMoiCaiMay(fam: string, now = new Date()) {
   const rows = await q<{ device_id: string; ten: string; muc: string; dau_luc: Date; ten_may: string; child_id: string | null; dung_chung: boolean; ten_con: string | null }>(
     `select a.device_id, a.ten, a.muc, a.dau_luc, d.name as ten_may, d.child_id, d.dung_chung, c.ten as ten_con
        from app_may a join devices d on d.id = a.device_id left join children c on c.id = d.child_id
@@ -54,7 +54,7 @@ export async function appMoiCaiMay(fam: string, now = new Date()) {
   return [...theoMay.values()];
 }
 
-export type MucCanDeY = { id: string; loai: "mat_mang" | "quen_pin" | "canh_bao" | "con_xin" | "nop_bai" | "app_moi" | "chua_bao_ve";
+type MucCanDeY = { id: string; loai: "mat_mang" | "quen_pin" | "canh_bao" | "con_xin" | "nop_bai" | "app_moi" | "chua_bao_ve";
   tieu: string; phu: string; luc: string; con: string | null; may?: string; so: number; nut: string; den: string };
 
 const hhmm = (d: Date, tz: string) => { const g = gioDiaPhuong(d, tz).phut; return `${String(Math.floor(g / 60)).padStart(2, "0")}:${String(g % 60).padStart(2, "0")}`; };

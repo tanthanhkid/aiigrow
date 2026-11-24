@@ -9,7 +9,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import * as gh from "./gioi-han-dang-nhap.ts";
 
 const scrypt = promisify(_scrypt) as (p: string, s: Buffer, n: number) => Promise<Buffer>;
-export const PHIEN_NGAY = 90;
+const PHIEN_NGAY = 90;
 const OTP_PHUT = 10;
 const OTP_SAI_TOI_DA = 5;
 const OTP_KHUNG_MS = 3_600_000;        // khung đếm OTP: 1 giờ cố định

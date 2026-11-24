@@ -11,8 +11,8 @@ import { ALLOWLIST_HE_THONG, chuanMuc } from "./luat-app.ts";
 import { MAU, NHOM_NV, BANG_CHUNG } from "./nhiem-vu.ts";
 import { MAU_QUA, LOAI_QUA } from "./phan-thuong.ts";
 
-export type VaiNv = "quay" | "admin";
-export type NhanVien = { id: string; ten_dang_nhap: string; ten: string; vai: VaiNv; quay: string };
+type VaiNv = "quay" | "admin";
+type NhanVien = { id: string; ten_dang_nhap: string; ten: string; vai: VaiNv; quay: string };
 
 const PHIEN_GIO: Record<VaiNv, number> = { quay: 14, admin: 8 };     // một ca quầy / một buổi làm việc
 
@@ -115,7 +115,7 @@ async function ghiHt(khoa: string, v: unknown, nguoi: string) {
 }
 
 /** Tên hiển thị + đơn vị cho bảng tham số mục 10 (BRD). */
-export const TEN_THAM_SO: Record<TenThamSo, [string, string]> = {
+const TEN_THAM_SO: Record<TenThamSo, [string, string]> = {
   diem_chao_mung: ["Điểm chào mừng", "điểm"], nv_het_han_gio: ["Nhiệm vụ chờ duyệt quá hạn sau", "giờ"],
   nv_tu_duyet_qua_han: ["Tự duyệt khi quá hạn (0 tắt · 1 bật)", ""], nv_nhac_gio: ["Nhắc Ba Mẹ duyệt sau", "giờ"],
   aiirob_diem: ["Điểm mỗi bài AiiRob đạt", "điểm"], aiirob_nguong: ["Ngưỡng đạt bài AiiRob", "%"],

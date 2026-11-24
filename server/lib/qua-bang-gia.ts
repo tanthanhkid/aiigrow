@@ -11,7 +11,7 @@ import { ghiSuKien } from "./nhat-ky.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 import * as pt from "./phan-thuong.ts";
 
-export type MauQua = { ma: string; ten: string; loai: "qua" | "dac_quyen" | "voucher" | "tiet_kiem"; diem: number; mo_ta?: string; hinh?: string;
+type MauQua = { ma: string; ten: string; loai: "qua" | "dac_quyen" | "voucher" | "tiet_kiem"; diem: number; mo_ta?: string; hinh?: string;
   menh_gia?: number; chi_cuoi_tuan?: boolean; ton_kho?: number; toi_da_thang?: number; can_xac_nhan?: boolean };
 
 /** 7 quà Grow chọn sẵn (them-s416tfdj + them-473f52w6). Thứ tự = thứ tự trên màn. */
@@ -29,11 +29,11 @@ export const QUA_MAC_DINH: MauQua[] = [
  *  • «Quà Ba Mẹ mua · trả tiền» — voucher AiiGrow (AiiCafe, sách / workshop AiiLab — có `menh_gia` = giá Ba Mẹ trả) + quà vật lý tồn kho (Lego).
  *  • «Quà nhà · không tốn tiền» — Ba Mẹ tự trao.
  *  Mẫu trùng mã với quà mặc định = cùng một quà («Đã có»). Thay 5 nhóm của 06/11 (thoi_gian · voucher · qua_vat_ly · dac_quyen · tiet_kiem). */
-export const NHOM_THU_VIEN = [
+const NHOM_THU_VIEN = [
   { ma: "ba_me_mua", ten: "Quà Ba Mẹ mua · trả tiền", phu: "Ba Mẹ mua trước, con đủ sao thì nhận" },
   { ma: "qua_nha", ten: "Quà nhà · không tốn tiền", phu: "Ba Mẹ tự trao, tự đặt số sao" },
 ] as const;
-export const THU_VIEN: (MauQua & { nhom: (typeof NHOM_THU_VIEN)[number]["ma"] })[] = [
+const THU_VIEN: (MauQua & { nhom: (typeof NHOM_THU_VIEN)[number]["ma"] })[] = [
   { nhom: "ba_me_mua", ...QUA_MAC_DINH[2] },
   { nhom: "ba_me_mua", ...QUA_MAC_DINH[5] },
   { nhom: "ba_me_mua", ...QUA_MAC_DINH[6], mo_ta: "Có tồn kho · hết thì ẩn" },
@@ -58,7 +58,7 @@ const MAU_CU: MauQua[] = [
 const theoMa = new Map([...QUA_MAC_DINH, ...MAU_CU, ...THU_VIEN].map((m) => [m.ma, m]));
 
 /** Đổi thân API (camelCase của app mới hoặc snake_case cũ) ⇒ dạng kiemQua (phan-thuong.ts) hiểu. Chỉ khoá có gửi mới có mặt (sửa từng phần). */
-export function thanQua(b: Record<string, unknown>) {
+function thanQua(b: Record<string, unknown>) {
   const r: Record<string, unknown> = {};
   const lay = (moi: string, cu: string) => (b[moi] !== undefined ? b[moi] : b[cu]);
   const map: [string, string, string][] = [["ten", "ten", "ten"], ["loai", "loai", "loai"], ["diem", "sao", "diem"], ["menh_gia", "menhGia", "menh_gia"],
@@ -69,7 +69,7 @@ export function thanQua(b: Record<string, unknown>) {
 }
 
 /** Hàng `rewards` ⇒ JSON cho app (giữ cả khoá cũ snake_case cho app bản trước). */
-export function quaRa(x: pt.Qua & { phut?: number | null }, dangGiu = 0) {
+function quaRa(x: pt.Qua & { phut?: number | null }, dangGiu = 0) {
   // #502: quà «Ba Mẹ mua» có số lượng (ton_kho ≠ null). `tonKho` = còn cho Con chọn (đã trừ phần đang giữ chỗ); `dangCo` = tồn thật ở nhà = còn + đang giữ
   // (trừ hẳn khi Ba Mẹ trao); `het` = không còn món nào cho Con chọn (Con ẩn, Ba Mẹ thấy «Hết» + «Mua thêm»). Quà nhà: ton_kho null ⇒ không đếm.
   const dem = x.ton_kho !== null && x.ton_kho !== undefined;

@@ -10,7 +10,8 @@
 // Bộ đếm pin_sai: mỗi module tự dọn khoá của mình (donBoDem* trong pin-be.ts, may-con.ts, xoa-tai-khoan.ts…).
 import { xoaTheoLo } from "./db.ts";
 
-export const GIU_PHIEN_NGAY = 7, GIU_OTP_NGAY = 1, GIU_SU_KIEN_NGAY = 180, GIU_MA_MAY_NGAY = 400;
+const GIU_PHIEN_NGAY = 7, GIU_OTP_NGAY = 1, GIU_MA_MAY_NGAY = 400;
+export const GIU_SU_KIEN_NGAY = 180;
 const LO_MOI_LUOT = 10;
 
 /** → số dòng đã xoá theo bảng; -1 = bảng đó lỗi (đã ghi console.error, lần cron sau dọn tiếp). */

@@ -22,10 +22,10 @@ import { dangKhoa, khoaDen } from "./cau-hinh.ts";
 import { gioDiaPhuong } from "./gio.ts";
 
 /** Nền tảng chỉ một Con mỗi máy. NEN_TANG chỉ có "ios"; "ipados" nhận phòng agent sau này báo riêng. */
-export const NEN_MOT_CON = ["ios", "ipados"] as const;
+const NEN_MOT_CON = ["ios", "ipados"] as const;
 export const laMotCon = (nen: unknown) => (NEN_MOT_CON as readonly string[]).includes(String(nen ?? ""));
 
-export const LY_DO_MOT_CON = "iPhone, iPad chỉ dùng cho một bé: hệ điều hành của Apple không cho đổi người dùng trên máy. Muốn bé khác dùng, gỡ máy rồi ghép lại cho bé đó.";
+const LY_DO_MOT_CON = "iPhone, iPad chỉ dùng cho một bé: hệ điều hành của Apple không cho đổi người dùng trên máy. Muốn bé khác dùng, gỡ máy rồi ghép lại cho bé đó.";
 export const loiMotCon = (them?: Record<string, unknown>) => {
   const e = new LoiNghiepVu("ios_mot_con", LY_DO_MOT_CON, 409);
   if (them) e.them = them;
@@ -156,7 +156,7 @@ async function dangDungCua(ds: { id: string; con_dang_dung?: string | null }[], 
     [ids, now])).map((x) => x.d));
 }
 
-export type ConNgan = { id: string; ten: string; avatar: string };
+type ConNgan = { id: string; ten: string; avatar: string };
 
 /** Danh sách máy (dsTuanThu / con/:id): mỗi máy → {conDs, dangDung, motCon}. Một lần đọc cho cả nhà. */
 export async function tomTatNoi(fam: string, ds: { id: string; platform: string; con_dang_dung?: string | null; ba_me_den?: Date | null }[], now = new Date()) {

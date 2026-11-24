@@ -5,7 +5,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 export const BUOC_GIAY = 300;   // một mã sống 5 phút
-export const SO_CHU_SO = 6;
+const SO_CHU_SO = 6;
 export const DUNG_SAI = 1;      // chấp nhận mã của bước liền trước/sau ⇒ hiệu lực thực 5–15 phút
 
 /** Bí mật chung cho một máy (lưu ở devices.offline_secret, gửi cho agent lúc ghép). base64url 20 byte. */

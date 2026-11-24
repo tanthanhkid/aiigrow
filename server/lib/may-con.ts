@@ -24,9 +24,9 @@ import { gioiHanMay, quyHomNay, saoKepGioiHan } from "./quy-gio.ts";
 import { kepCuoiLuc, phutTheoDanhSach, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
 
 /** (cũ, #265 đã bỏ) ngoại lệ đang mở — Policy luôn gửi mảng rỗng cho agent cũ. */
-export type NgoaiLeMo = { id: string; den: string; muc: string | null; nhom: string };
+type NgoaiLeMo = { id: string; den: string; muc: string | null; nhom: string };
 
-export type DongBoVao = {
+type DongBoVao = {
   status?: Record<string, unknown>;
   clientTime?: string | number;
   /** `con` (15/11, agent mới, máy chung): bé của dòng này — phút là TỔNG CỦA BÉ đó (không phải tổng máy); gửi cả lúc «Đổi người» để chốt phút bé trước. */
@@ -40,9 +40,9 @@ export type DongBoVao = {
 
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
 /** #433 A11: lượt đồng bộ trong chừng này phút đầu ngày mới vẫn trừ sao phút HÔM QUA vừa báo thêm (phút cuối ngày chưa kịp gửi trước 0h). */
-export const TRE_SAU_NUA_DEM_PHUT = 30;
+const TRE_SAU_NUA_DEM_PHUT = 30;
 
-export function ngayGhi(day: string | undefined, nay: string, tz: string, gioMay: Date | null): string | null {
+function ngayGhi(day: string | undefined, nay: string, tz: string, gioMay: Date | null): string | null {
   if (!day || !NGAY.test(day)) return nay;
   if (gioMay && day === gioDiaPhuong(gioMay, tz).ngay) return nay;
   if (day > nay) return nay;
@@ -251,7 +251,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
 /** «Mở hết» (#258/#262): máy Con dùng như bình thường — mọi máy (Windows, Mac, Android, iOS) nhận chính sách không giới hạn: không quỹ, không
  *  giờ ngủ / giờ học (đã bỏ hẳn); mục «Tính phút» bỏ khỏi luật ⇒ thành «chưa xếp» = mở (chuaXep cho_phep), không trừ sao (so-sao.ts › laMoHetCon).
  *  Danh sách vẫn nằm trong CSDL («tạm nghỉ») ⇒ về «Theo danh sách» là dùng tiếp. CHỈ còn «Khoá ngay» / khoá máy. Thời gian dùng vẫn ghi để báo cáo. */
-export function apMoHet(p: Policy): Policy {
+function apMoHet(p: Policy): Policy {
   if (!laMoHet(p)) return p;
   return { ...p, luat: p.luat.filter((l) => l.loai === "hoc"), lich: { ...p.lich, ngu: NGU_TAT, hoc: null }, quy: null, webLuonChan: [] };
 }
@@ -320,7 +320,7 @@ export const LENH_GO_TAY_APPLOCKER =
   "$f=\"$env:TEMP\\aiigrow-applocker.xml\"; $p.Save($f); Set-AppLockerPolicy -XmlPolicy $f -ErrorAction Stop";
 
 /** `lapPhut`: cùng máy (+ cùng bé) đã có sự kiện loại này trong N phút ⇒ chỉ ghi nhật ký, không báo lại (Con mở / đóng hộp nhiều lần). */
-export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_trong" | null; cau: (ten: string) => string; lapPhut?: number }> = {
+const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_trong" | null; cau: (ten: string) => string; lapPhut?: number }> = {
   lech_gio: { muc: "chu_y", cau: (t) => `Có dấu hiệu đổi giờ hệ thống trên ${t}` },
   thu_go: { muc: "nghiem_trong", cau: (t) => `Có người thử gỡ AiiGrow trên ${t}` },
   // 14/11 (con-ngay-thuong 24, con-cai-mac 60 — FR-01.05): Con bấm «Thoát AiiGrow…» ⇒ máy hỏi mã 6 số của Ba Mẹ; Ba Mẹ được báo ngay.
@@ -356,7 +356,7 @@ export const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_
   quyen_admin_loi: { muc: "chu_y", cau: (t) => `Chưa trả lại được quyền quản trị cho tài khoản của Con khi gỡ AiiGrow trên ${t}` },
 };
 
-export type SuKienVao = { ma?: unknown; loai?: unknown; luc?: unknown; chiTiet?: unknown };
+type SuKienVao = { ma?: unknown; loai?: unknown; luc?: unknown; chiTiet?: unknown };
 
 /** → số sự kiện ghi mới (bỏ qua loại lạ và `ma` đã nhận). */
 export async function nhanSuKien(may: May, con: string | null, ds: SuKienVao[]) {
@@ -383,7 +383,7 @@ export async function nhanSuKien(may: May, con: string | null, ds: SuKienVao[]) 
 // `phien/bu` TRƯỚC dong-bo (nhip_cuoi còn là nhịp online cuối ⇒ đo được thời gian thật đã trôi). Máy dùng chung: Con lấy từ phiên (api-may). Máy chủ vẫn là sổ sách:
 // phút bù không vượt thời gian thật đã trôi (đồng hồ máy chủ từ nhịp cuối), không vượt phút tối đa của phiên; trừ điểm không âm; `ma` một lần.
 /** `boiMa` (15/11, agent mới): phần bù này dùng lúc máy mở bằng mã offline ⇒ ghi phút, không trừ sao. */
-export type BuVao = { ma?: unknown; id?: unknown; muc?: unknown; phut?: unknown; batDau?: unknown; ketThuc?: unknown; boiMa?: unknown };
+type BuVao = { ma?: unknown; id?: unknown; muc?: unknown; phut?: unknown; batDau?: unknown; ketThuc?: unknown; boiMa?: unknown };
 
 const thuongCon = async (t: Q, con: string, ngay: string, tz: string) => {
   const cho = (await t<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2 and cua_so_den is null
@@ -393,7 +393,7 @@ const thuongCon = async (t: Q, con: string, ngay: string, tz: string) => {
   return Math.max(0, cho - da);
 };
 
-export type KetBu = { ma: string; phien?: string; phut: number; diemTru: number; ketThuc?: boolean; lyDo?: string; lapLai?: boolean; soDu: number };
+type KetBu = { ma: string; phien?: string; phut: number; diemTru: number; ketThuc?: boolean; lyDo?: string; lapLai?: boolean; soDu: number };
 
 export async function buPhien(may: May, con: string, b: BuVao, now = new Date()): Promise<KetBu> {
   const ma = String(b.ma ?? "").slice(0, 64);

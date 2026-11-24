@@ -19,9 +19,9 @@ export function lyDoChanSeedCi(env: NodeJS.ProcessEnv = process.env): string | n
   return null;
 }
 
-export const CI_MAT_KHAU_MD = "aiigrow-ci-123";
+const CI_MAT_KHAU_MD = "aiigrow-ci-123";
 
-export type KetQuaSeed = {
+type KetQuaSeed = {
   dinhDanh: string; matKhau: string; token: string; giaDinh: string;
   con: { id: string; ten: string }[]; may: { con: string; token: string; ten: string }[];
   luotChoDuyet: string[]; yeuCauCho: string[]; conNo: string;

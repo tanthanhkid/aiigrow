@@ -258,7 +258,7 @@ export async function napQuy(fam: string, soTien: number, ghiChu: string, nguoi:
   });
 }
 
-export type KetQuaQuet = { ketQua: "hop_le" | "da_dung" | "het_han" | "chua_phat_hanh" | "thu_hoi" | "khong_thay"; menhGia?: number; dungLuc?: string; tenCon?: string };
+type KetQuaQuet = { ketQua: "hop_le" | "da_dung" | "het_han" | "chua_phat_hanh" | "thu_hoi" | "khong_thay"; menhGia?: number; dungLuc?: string; tenCon?: string };
 
 /** Quầy quét mã: hợp lệ ⇒ đánh dấu «Đã dùng» NGAY (một lần — hai lượt quét cùng lúc chỉ một lượt hợp lệ). */
 export async function quetVoucher(ma: string, quay: string): Promise<KetQuaQuet> {

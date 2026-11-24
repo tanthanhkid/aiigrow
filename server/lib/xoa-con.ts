@@ -16,7 +16,7 @@ import { bangM4b } from "./tuan-thu.ts";
 import { bangMang } from "./dns-gia-dinh.ts";
 import { dongBoCotCu, ghiNoi, idConMay, laMotCon } from "./may-nhieu-con.ts";
 
-export type KetQuaXoaCon = { ok: true; ten: string; mayChuyenDungChung: { id: string; ten: string }[] };
+type KetQuaXoaCon = { ok: true; ten: string; mayChuyenDungChung: { id: string; ten: string }[] };
 
 export async function xoaCon(fam: string, con: string, b: { xacNhan?: unknown }, nguoi: string): Promise<KetQuaXoaCon> {
   if (b.xacNhan !== true) throw new LoiNghiepVu("can_xac_nhan", "Xác nhận xoá hồ sơ (gửi xacNhan: true) — xoá rồi không lấy lại được", 400);

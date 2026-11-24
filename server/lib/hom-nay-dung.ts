@@ -14,10 +14,10 @@ import { mayMatMang } from "./can-de-y.ts";
 import { LA_APP } from "./so-sao.ts";
 
 type Luat = { child_id: string; muc: string; ten: string; loai: string; nhom: string };
-export type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
+type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
   phut: number; tinhGio: boolean; dangMo: boolean; matMang: boolean };
 /** `ly` «grow_chan» (cũ) không còn trả từ #258. */
-export type DongChan = { luc: string; ten: string; may: string | null; ly: "dang_xin" | "chua_cho" | "grow_chan"; yeuCau: string | null; phut: number | null };
+type DongChan = { luc: string; ten: string; may: string | null; ly: "dang_xin" | "chua_cho" | "grow_chan"; yeuCau: string | null; phut: number | null };
 
 /** «Tính giờ» (đèn Vàng, trừ quỹ giờ chơi chung) hay «Dùng thoải mái» (đèn Xanh, luật hoc / cho_phep) — N3 14/11.
  *  Luật Đỏ «chan» không có giờ dùng (đã chặn) nhưng nếu có thì coi như tính giờ. App hệ thống / chưa xếp ⇒ theo `usage.loai` agent ghi. */
@@ -93,7 +93,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
   };
 }
 
-export type AppHomNay = { ten: string; muc: string; kieu: "app" | "web"; phut: number; nhom: "tinh_phut" | "khong_tinh_phut"; sao: number;
+type AppHomNay = { ten: string; muc: string; kieu: "app" | "web"; phut: number; nhom: "tinh_phut" | "khong_tinh_phut"; sao: number;
   dangMo: boolean; may: string | null };
 
 /** Màn Con «Đang chơi» (`kid/sao` › appHomNay): phút từng app / trang hôm nay + số sao đã trừ cho app đó («Roblox 30 phút · −30 sao»).

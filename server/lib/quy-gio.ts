@@ -25,9 +25,9 @@ const toiMoc = (phut: number, hhmm: string) => ((phutCua(hhmm) - phut + 1440) % 
 /** Phút tới giờ ngủ — giờ ngủ «tắt» (tu = den, #258) ⇒ 1440 (không có mốc nào). */
 const toiNgu = (phut: number, k: Khung) => (k.tu === k.den ? 1440 : toiMoc(phut, k.tu));
 
-export type BoiCanhCon = { fam: string; tz: string; ts: ThamSo; lich: Lich; cfg: Record<string, unknown>; moHet?: boolean };
+type BoiCanhCon = { fam: string; tz: string; ts: ThamSo; lich: Lich; cfg: Record<string, unknown>; moHet?: boolean };
 
-export async function boiCanhCon(con: string, t: Q = q): Promise<BoiCanhCon> {
+async function boiCanhCon(con: string, t: Q = q): Promise<BoiCanhCon> {
   // trong dong-bo / nhip (t = q): hai đọc theo id đã có sẵn trong bộ nhớ đệm yêu cầu, khỏi một câu join nữa
   if (t === q && coDemYeuCau()) {
     const c = await one<{ family_id: string; cau_hinh: Record<string, unknown>; lich: Record<string, unknown>; che_do_chan: string | null }>(`select * from children where id = $1`, [con]);
@@ -51,7 +51,7 @@ export const SQL_PHUT_DA_DUNG = `select 'phien' as k, coalesce(device_id, '') as
 
 /** Phút Giải trí đã dùng hôm nay trên mọi máy. Mỗi máy lấy LỚN HƠN của (phút phiên chơi cũ mở trên máy đó) và (phút app Giải trí agent báo
  *  + phút trang web Giải trí) — cùng một lần chơi có thể vừa nằm trong phiên vừa nằm trong usage, nên không cộng hai nguồn của một máy. */
-export async function phutDaDung(t: Q, con: string, fam: string, ngay: string, tz: string): Promise<number> {
+async function phutDaDung(t: Q, con: string, fam: string, ngay: string, tz: string): Promise<number> {
   const tu = dauNgayUtc(ngay, tz);
   // ba nguồn (phiên · app · web) gộp một câu UNION ALL — trước đây 3 vòng tới DB mỗi lượt dong-bo / nhip
   const gop = await t<{ k: string; may: string; p: number; ten_mien: string | null; giay: number | null }>(SQL_PHUT_DA_DUNG, [con, tu, ngay]);
@@ -77,7 +77,7 @@ export async function phutDaDung(t: Q, con: string, fam: string, ngay: string, t
   return Math.round(tong * 10) / 10;
 }
 
-export type Quy = {
+type Quy = {
   ngay: string; cuoiTuan: boolean;
   /** (cũ, giữ tương thích) quỹ ngày = 0 · themPhut = conPhut + daDung · doiSaoPhut = 0 · daDung = phút «Tính phút» đã dùng hôm nay · conPhut = sao tiêu được */
   quyNgayPhut: number; themPhut: number; doiSaoPhut: number; daDung: number; conPhut: number;

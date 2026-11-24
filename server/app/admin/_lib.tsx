@@ -2,11 +2,11 @@
 // Tiện ích chung của cổng admin: gọi /api/admin, tải dữ liệu theo mục, định dạng tiền / giờ, khung trạng thái (đang tải / lỗi / trống).
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 
-export const KHOA = "aiig_admin";
+const KHOA = "aiig_admin";
 export const docToken = () => { try { return localStorage.getItem(KHOA); } catch { return null; } };
 export const ghiToken = (t: string | null) => { try { if (t) localStorage.setItem(KHOA, t); else localStorage.removeItem(KHOA); } catch { /* chế độ riêng tư */ } };
 
-export class LoiApi extends Error { status: number; constructor(m: string, s: number) { super(m); this.status = s; } }
+class LoiApi extends Error { status: number; constructor(m: string, s: number) { super(m); this.status = s; } }
 
 export async function api<T = any>(duong: string, body?: unknown): Promise<T> { // eslint-disable-line @typescript-eslint/no-explicit-any
   let r: Response;

@@ -12,7 +12,7 @@ import { tuanChuoi } from "./thanh-tich.ts";
 import { gioiHanMay, quyHomNay, saoKepGioiHan } from "./quy-gio.ts";
 import { cheDoCua, TEN_NHOM_DS } from "./chan-co-ban.ts";
 
-export type TinHocVien = { id: string; loai: string; tieu: string; noi: string; luc: string };
+type TinHocVien = { id: string; loai: string; tieu: string; noi: string; luc: string };
 
 const iso = (d: Date) => new Date(d).toISOString();
 const KHONG_LAM_DUOC = new Set(["da_xong"]);

@@ -8,14 +8,14 @@ import { CHU_DE_GIUP, KHO_VIEC, type ViecKho } from "./kho-viec.ts";
 
 type Viec = { ten: string; mo_ta?: string; nhom: string; diem: number; bang_chung: string; lap_lai: string; hinh: string; toi_da_ngay?: number;
   phut_toi_thieu?: number; tu_duyet?: boolean; nhan?: string };
-export type Bo = { ma: string; ten: string; tuoi: string; viec: Viec[] };
+type Bo = { ma: string; ten: string; tuoi: string; viec: Viec[] };
 
 const AIIROB: Viec = { ten: "Học 1 bài với AiiRob", mo_ta: "Học xong một bài với AiiRob — đạt là tự cộng sao.", nhom: "hoc_tap", diem: 20,
   bang_chung: "tu_dong", lap_lai: "hang_ngay", hinh: "rob", tu_duyet: true, nhan: "Tự chấm" };
 const DOC_SACH: Viec = { ten: "Đọc sách 20 phút", mo_ta: "Đọc to 20 phút rồi ghi âm một đoạn con đọc.", nhom: "doc_sach", diem: 10, bang_chung: "ghi_am",
   lap_lai: "hang_ngay", hinh: "sach", toi_da_ngay: 1, nhan: "Mỗi ngày · nộp ghi âm" };
 
-export const BO_NHIEM_VU: Bo[] = [
+const BO_NHIEM_VU: Bo[] = [
   { ma: "tu_lap", ten: "Tự lập", tuoi: "9–10 tuổi", viec: [
     { ten: "Dọn phòng", mo_ta: "Cất đồ về đúng chỗ, chụp ảnh phòng gọn.", nhom: "viec_nha", diem: 10, bang_chung: "anh", lap_lai: "hang_ngay", hinh: "choi", toi_da_ngay: 1, nhan: "Mỗi ngày · nộp ảnh" },
     { ten: "Tự đánh răng", mo_ta: "Đánh răng buổi sáng và buổi tối.", nhom: "ky_nang", diem: 10, bang_chung: "xong", lap_lai: "hang_ngay", hinh: "ban_chai", toi_da_ngay: 2, nhan: "Sáng và tối" },
@@ -85,7 +85,7 @@ const NHOM_KHO: Record<ViecKho["muc"], string> = { hoc: "hoc_tap", van_dong: "va
 const HINH_KHO: Record<ViecKho["muc"], string> = { hoc: "sach", van_dong: "the_duc", giup: "ban_an" };
 
 /** Một việc trong kho ⇒ thân taoNv: đọc sách nộp ghi âm, AiiRob tự chấm, vận động bấm «Xong», việc nhà / học nộp ảnh; hằng ngày, 1 lượt/ngày. */
-export function viecTuKho(v: ViecKho) {
+function viecTuKho(v: ViecKho) {
   const aiirob = /AiiRob/.test(v.ten), doc = /^Đọc sách/.test(v.ten);
   return {
     ten: tenNgan(v.ten), mo_ta: tenNgan(v.ten) !== v.ten ? v.ten : "", nhom: doc ? "doc_sach" : NHOM_KHO[v.muc], diem: v.sao,

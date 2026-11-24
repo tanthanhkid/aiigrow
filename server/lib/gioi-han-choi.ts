@@ -13,8 +13,8 @@ import { dauNgayUtc, gioDiaPhuong, laCuoiTuan } from "./gio.ts";
 import type { Q } from "./db.ts";
 
 /** Khoảng «Tự chọn» của ô số phút trên app Ba Mẹ (màn Lần đầu bm1-ob-gio v21 + Giờ chơi trong hồ sơ Con). */
-export const GH_NGAY = { min: 10, max: 720 } as const;
-export const GH_LUOT = { min: 5, max: 240 } as const;
+const GH_NGAY = { min: 10, max: 720 } as const;
+const GH_LUOT = { min: 5, max: 240 } as const;
 
 export type CauHinhGioiHan = { ngayThuong: number; cuoiTuan: number; moiLuot: number };
 
@@ -49,7 +49,7 @@ export function cauHinhCua(cfg: Record<string, unknown> | null | undefined): Cau
 }
 
 /** Kiểm giá trị Ba Mẹ gửi — 0 / null = không giới hạn; ngoài khoảng ⇒ lỗi rõ (không kẹp lặng lẽ). undefined = không đổi. */
-export function kiemGioiHan(v: unknown, k: { min: number; max: number }, ten: string): number | undefined {
+function kiemGioiHan(v: unknown, k: { min: number; max: number }, ten: string): number | undefined {
   if (v === undefined) return undefined;
   if (v === null || v === "" || v === 0 || v === "0") return 0;
   const n = Math.round(Number(v));
@@ -70,7 +70,7 @@ export function phanGhi(b: Record<string, unknown>): Record<string, number> {
 }
 
 /** «Mỗi ngày tối đa 60 phút (T7, CN 90 phút) · mỗi lượt 30 phút rồi nghỉ 30 phút · chơi bằng sao». */
-export function moTaGioiHan(c: CauHinhGioiHan): string {
+function moTaGioiHan(c: CauHinhGioiHan): string {
   const ngay = !c.ngayThuong && !c.cuoiTuan ? "Mỗi ngày không giới hạn"
     : c.ngayThuong === c.cuoiTuan ? `Mỗi ngày tối đa ${c.ngayThuong} phút`
     : !c.cuoiTuan ? `Ngày thường tối đa ${c.ngayThuong} phút · cuối tuần không giới hạn`
@@ -83,7 +83,7 @@ export function moTaGioiHan(c: CauHinhGioiHan): string {
 const hhmm = (d: Date, tz: string) => { const p = gioDiaPhuong(d, tz).phut; return `${String(Math.floor(p / 60)).padStart(2, "0")}:${String(p % 60).padStart(2, "0")}`; };
 const tron1 = (x: number) => Math.round(x * 10) / 10;
 
-export type DoanChoi = { luc: Date; phut: number };
+type DoanChoi = { luc: Date; phut: number };
 
 /** Lượt + nghỉ — hàm thuần. `doan`: phút chơi theo đồng hồ máy chủ (mỗi đoạn = (luc − phut, luc]); `moLai`: mốc Ba Mẹ cho vay (kết thúc nghỉ,
  *  bắt đầu lượt mới). Nghỉ đúng `luot` phút sau khi lượt đủ `luot` phút; khoảng không chơi ≥ `luot` phút cũng coi như đã nghỉ. */

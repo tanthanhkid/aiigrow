@@ -12,7 +12,7 @@
     "scripts/**/*.{ts,mjs}",
     "*.ts"
   ],
-  "ignoreExportsUsedInFile": true,
+  "ignoreExportsUsedInFile": false,
   "rules": {
     "exports": "warn",
     "types": "warn",

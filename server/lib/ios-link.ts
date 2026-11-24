@@ -1,6 +1,6 @@
 // Universal link cho app AiiGrow Con (iPhone/iPad): `huongDanCai("ios")` in QR `<máy chủ>/cai/<token>` (lib/chuyen-doi.ts).
 // iOS chỉ mở thẳng app khi máy chủ phục vụ apple-app-site-association (AASA) khớp appID; chưa cài app thì rơi vào trang /cai/<token>.
-export const BUNDLE_APP_CON = "vn.aiilab.aiigrow.con";
+const BUNDLE_APP_CON = "vn.aiilab.aiigrow.con";
 // Team ID của tài khoản Apple Developer AiiLab (không phải bí mật — nằm trong mọi appID công khai). Đổi bằng env APPLE_TEAM_ID khi đổi tài khoản.
 const TEAM_MAC_DINH = "ADUL7HT969";
 

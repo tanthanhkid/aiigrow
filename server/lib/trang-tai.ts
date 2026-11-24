@@ -4,7 +4,7 @@ import { mayQuaCu, tenMayCu, type HeDieuHanh } from "./he-dieu-hanh.ts";
 import { chuanToken, lienKetApp } from "./ios-link.ts";
 
 export type NenTai = "windows" | "mac" | "android" | "ios";
-export type ThamSoTai = {
+type ThamSoTai = {
   /** token gói cài (48 giờ) — bộ cài / app Con dùng để tự ghép (POST /api/device/ghep-goi); rỗng = mở trang không qua link ghép */
   g: string;
   /** mã 6 số dự phòng (10 phút) — hiện to ở bước 3; rỗng ⇒ hướng dẫn lấy mã trong app Ba Mẹ */
@@ -20,7 +20,7 @@ export type ThamSoTai = {
   /** Ba Mẹ tự chọn hệ khác (?os=) thay vì máy đang mở */
   chon: boolean;
 };
-export type ManTai = "chinh" | "cu" | "dang-tai" | "dung";
+type ManTai = "chinh" | "cu" | "dang-tai" | "dung";
 const NEN_HOP_LE: readonly NenTai[] = ["windows", "mac", "android", "ios"];
 
 const mot = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";

@@ -28,7 +28,7 @@ const ISS_GOOGLE = new Set(["accounts.google.com", "https://accounts.google.com"
 const GRAPH = "https://graph.facebook.com/v21.0";
 const LECH_GIAY = 60;                                  // lệch đồng hồ cho phép khi kiểm exp / iat
 
-export type NguonMxh = "google" | "facebook";
+type NguonMxh = "google" | "facebook";
 type DanhTinh = { nguon: NguonMxh; sub: string; email: string; ten: string };
 
 const dsClientGoogle = () => (process.env.GOOGLE_CLIENT_IDS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
@@ -77,7 +77,7 @@ async function khoaGoogle(kid: string) {
 const b64 = (s: string) => Buffer.from(s, "base64url");
 
 /** id_token Google ⇒ {email, ten}. Sai chữ ký / aud / iss / hạn / email chưa xác minh ⇒ 401 mxh_sai. */
-export async function xacMinhGoogle(idToken: unknown): Promise<DanhTinh> {
+async function xacMinhGoogle(idToken: unknown): Promise<DanhTinh> {
   const ds = dsClientGoogle();
   if (!ds.length) throw chuaBat("Google");
   const phan = String(idToken ?? "").split(".");
@@ -103,7 +103,7 @@ export async function xacMinhGoogle(idToken: unknown): Promise<DanhTinh> {
 // ---------------------------------------------------------------- Facebook
 
 /** access token Facebook ⇒ {sub, email (có thể rỗng — chỉ tham khảo), ten}. Token của app khác / hết hạn ⇒ 401. */
-export async function xacMinhFacebook(accessToken: unknown): Promise<DanhTinh> {
+async function xacMinhFacebook(accessToken: unknown): Promise<DanhTinh> {
   const app = fbApp();
   if (!app) throw chuaBat("Facebook");
   const tk = String(accessToken ?? "").trim();
@@ -129,12 +129,12 @@ const theoMxh = (dt: DanhTinh) => one<{ id: string }>(
   `select p.id from ba_me_mxh m join parents p on p.id = m.parent_id where m.nguon = $1 and m.sub = $2 and p.vai <> 'roi'`, [dt.nguon, dt.sub]);
 
 /** Định danh riêng của tài khoản tạo bằng Facebook. chuanDinhDanh chỉ nhận SĐT / email ⇒ không ai gõ được nó để đăng nhập / đăng ký. */
-export const dinhDanhFb = (sub: string) => `${TIEN_TO_FB}${sub}`;
+const dinhDanhFb = (sub: string) => `${TIEN_TO_FB}${sub}`;
 /** Email để LƯU tham khảo (không dùng khớp / khoá tài khoản). */
 const emailThamKhao = (e: string) => { const d = chuanDinhDanh(e); return d?.includes("@") ? d : null; };
 
 /** Danh tính đã xác minh ⇒ {id, moi}. `moi` = vừa tạo nhà (app đưa vào Lần đầu, hoặc màn Lời mời nếu có lời mời chờ). */
-export async function vaoBangMxh(dt: DanhTinh): Promise<{ id: string; moi: boolean }> {
+async function vaoBangMxh(dt: DanhTinh): Promise<{ id: string; moi: boolean }> {
   const da = await theoMxh(dt);
   if (da) return { id: da.id, moi: false };
   const fb = dt.nguon === "facebook";
@@ -174,7 +174,7 @@ export const TRAN = { dangNhapIp: 30, dangNhapTk: 10, datMkIp: 10, datMkTk: 5, l
 const khung = (now: number) => Math.floor(now / (KHUNG_PHUT * 60_000));
 const TIEN_TO = ["mxh_ip", "mxh_tk", "dat_mk_ip", "dat_mk_tk", "lien_ket_ip", "lien_ket_tk", "doi_mk_tk"];
 /** Dọn tài khoản Facebook bản cũ tạo (trước bản vá, hoặc bản cũ chạy song song lúc deploy sau khi SCHEMA_S2 đã chạy). Lỗi không chặn cron. */
-export async function chuyenFbCu() {
+async function chuyenFbCu() {
   try { for (const c of SQL_CHUYEN_FB) await q(c); } catch (e) { console.error("chuyenFbCu", e); }
 }
 

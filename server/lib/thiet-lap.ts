@@ -21,7 +21,7 @@ import { phanGhi } from "./gioi-han-choi.ts";
 import { gioiHanBm, luuGioiHan } from "./quy-gio.ts";
 
 
-export type ThietLapVao = {
+type ThietLapVao = {
   con?: { id?: unknown; ten?: unknown; namSinh?: unknown; avatar?: unknown };
   /** (cũ) quỹ phút mỗi ngày — bỏ 15/11, gửi lên bị bỏ qua */ gioChoi?: { ngayThuong?: unknown; cuoiTuan?: unknown };
   /** 15/11: sao tặng khởi đầu 0…200 bước 10 (không gửi ⇒ 30). Chỉ tặng khi TẠO Con (gửi lại với con.id không tặng thêm). */

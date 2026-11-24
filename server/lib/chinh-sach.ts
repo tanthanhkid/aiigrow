@@ -11,8 +11,8 @@ import type { NhomGiaiTri } from "./luat-app.ts";
 import { goiAndroidThat, mucAppThat } from "./app-may.ts";
 import { type CheDo, type CheDoChan } from "./chan-co-ban.ts";
 
-export type KieuMuc = "app" | "web";
-export type MucChung = { muc: string; kieu: KieuMuc; nhom?: NhomGiaiTri | null; giaPhanNghin?: number | null };
+type KieuMuc = "app" | "web";
+type MucChung = { muc: string; kieu: KieuMuc; nhom?: NhomGiaiTri | null; giaPhanNghin?: number | null };
 
 export type VanDeTuanThu = {
   loai: "gio_sai" | "app_tat" | "admin_la" | "khong_toi_may_chu" | "ngoai_vong";

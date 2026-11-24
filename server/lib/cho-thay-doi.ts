@@ -12,11 +12,11 @@ import { EventEmitter } from "node:events";
 import { nghe, one } from "./db.ts";
 
 export const KENH = "aiig_doi";
-export const CHO_TOI_DA_MS = Number(process.env.AIIGROW_CHO_TOI_DA_MS) || 25_000;
+const CHO_TOI_DA_MS = Number(process.env.AIIGROW_CHO_TOI_DA_MS) || 25_000;
 /** Chỉ dùng khi CHƯA nghe được DB (cách cũ). */
-export const KIEM_DB_MS = Number(process.env.AIIGROW_CHO_KIEM_DB_MS) || 4_000;
+const KIEM_DB_MS = Number(process.env.AIIGROW_CHO_KIEM_DB_MS) || 4_000;
 /** Số trong bộ nhớ quá hạn này thì đọc lại DB một lần (đề phòng báo rơi khi kết nối nghe vừa rớt). */
-export const BO_NHO_MS = Number(process.env.AIIGROW_CHO_BO_NHO_MS) || 60_000;
+const BO_NHO_MS = Number(process.env.AIIGROW_CHO_BO_NHO_MS) || 60_000;
 /** Số yêu cầu chờ cùng lúc tối đa: quá ⇒ trả ngay `{doi:false, quaTai:true}`, agent lùi lại. Cách A: yêu cầu chờ chỉ tốn bộ nhớ + 1 socket, không tốn DB. */
 export const CHO_TOI_DA_YC = Number(process.env.AIIGROW_CHO_TOI_DA_YC) || 3_000;
 /** Công tắc quay lại: `AIIGROW_CHO_NGHE_DB=0` ⇒ không nghe DB, chạy như cách cũ (đọc DB mỗi KIEM_DB_MS). */
@@ -85,7 +85,7 @@ export async function baoThayDoi(fam: string): Promise<number | null> {
   }
 }
 
-export type KetQuaCho = { phienBanThayDoi: number; doi: boolean; quaTai?: true };
+type KetQuaCho = { phienBanThayDoi: number; doi: boolean; quaTai?: true };
 
 /**
  * Giữ tới khi số phiên bản ≠ `ver` hoặc hết `toiDaMs`. `ver` thiếu / không hợp lệ ⇒ trả ngay số hiện tại (`doi:false`) để agent lấy mốc.
