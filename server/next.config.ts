@@ -7,8 +7,11 @@ import type { NextConfig } from "next";
 // cần 'unsafe-inline'. Trang Next (/tai, /quay, /admin, /cai, /chinh-sach-rieng-tu…) có script nội tuyến của Next ⇒ script-src thêm
 // 'unsafe-inline' riêng cho các trang đó; next dev (HMR của trang Next) cần thêm 'unsafe-eval' + ws: — SPA là tệp tĩnh, không nới.
 const DEV = process.env.NODE_ENV === "development";
-const TRANG_NEXT = "tai|quay|admin|cai|chinh-sach-rieng-tu|_next|\\.well-known";
-const csp = (trangNext: boolean) => [
+// Thư mục trang / route Next ở server/app (trừ api) — lib/header-bao-mat-552.test.ts kiểm danh sách này khớp server/app.
+// Next so khớp `source` KHÔNG phân biệt hoa thường (/Admin vẫn nhận CSP trang Next dù trả SPA) ⇒ index.html của SPA còn mang CSP <meta>
+// script-src 'self' (scripts/build-app.mjs) — trình duyệt áp CẢ HAI chính sách, SPA không bao giờ chạy script nội tuyến.
+export const TRANG_NEXT = "tai|quay|admin|cai|chinh-sach-rieng-tu|_next|\\.well-known";
+export const csp = (trangNext: boolean) => [
   "default-src 'self'",
   `script-src 'self'${trangNext ? " 'unsafe-inline'" : ""}${trangNext && DEV ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
@@ -28,8 +31,8 @@ const chung = [
   { key: "X-Frame-Options", value: "DENY" },
   { key: "X-Content-Type-Options", value: "nosniff" },
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
-  // /quay quét QR bằng camera trình duyệt (getUserMedia) ⇒ camera=(self); app web chụp ảnh qua <input type=file> không cần quyền này
-  { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()" },
+  // /quay quét QR bằng camera (getUserMedia) ⇒ camera=(self); màn Con «kể lại» ghi âm trên web (MediaRecorder) ⇒ microphone=(self)
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()" },
 ];
 
 const config: NextConfig = {
@@ -80,10 +83,10 @@ const config: NextConfig = {
   async headers() {
     const khongCache = [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }];
     return [
-      // #552 — ba nhóm KHÔNG chồng nhau (mỗi đường đúng một CSP): API (JSON — không tải gì), trang Next, còn lại = SPA Expo
-      { source: "/api/:duong*", headers: [...chung, { key: "Content-Security-Policy", value: "default-src 'none'; frame-ancestors 'none'" }] },
-      { source: `/:trang(${TRANG_NEXT})/:duong*`, headers: [...chung, { key: "Content-Security-Policy", value: csp(true) }] },
-      { source: `/((?!api/|api$|(?:${TRANG_NEXT})(?:/|$)).*)`, headers: [...chung, { key: "Content-Security-Policy", value: csp(false) }] },
+      // #552 — header chung cho mọi đường; CSP: mặc định của SPA, quy tắc SAU ghi đè cùng khoá (Next): trang Next, rồi API (JSON — không tải gì)
+      { source: "/:duong*", headers: [...chung, { key: "Content-Security-Policy", value: csp(false) }] },
+      { source: `/:trang(${TRANG_NEXT})/:duong*`, headers: [{ key: "Content-Security-Policy", value: csp(true) }] },
+      { source: "/api/:duong*", headers: [{ key: "Content-Security-Policy", value: "default-src 'none'; frame-ancestors 'none'" }] },
       { source: "/((?!api/|_expo/|assets/|_next/static/|linh-vat/|phong/|icon3d/).*)", headers: khongCache },
       { source: "/:tep(sw\\.js|service-worker\\.js)", headers: [...khongCache, { key: "Service-Worker-Allowed", value: "/" }] },
       { source: "/app/:tep(sw\\.js|service-worker\\.js)", headers: khongCache },
