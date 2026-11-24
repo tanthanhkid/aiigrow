@@ -136,14 +136,22 @@ export async function nhanNhatKy(nhan: string, ds: unknown, now = new Date()) {
   const ngay = gioDiaPhuong(now, f.tz).ngay;
   const so = (v: unknown) => Math.max(0, Math.min(1_000_000, Math.round(Number(v) || 0)));
   let n = 0;
+  // #563: cộng dồn trong lô theo tên miền rồi MỘT câu upsert nhiều dòng (unnest) thay cho tối đa 2000 câu tuần tự
+  const gop = new Map<string, [number, number, number]>();
   for (const x of (Array.isArray(ds) ? ds : []).slice(0, 2000) as Partial<DongNhatKy>[]) {
     const tm = chuanTenMien(x?.tenMien);
     if (!/^[a-z0-9_-]+(\.[a-z0-9_-]+)+$/.test(tm)) continue;
-    await q(`insert into dns_nhat_ky(thiet_bi_id, ngay, ten_mien, so_lan, so_lan_chan, ngoai_gio) values ($1,$2,$3,$4,$5,$6)
+    const c = gop.get(tm) ?? [0, 0, 0];
+    gop.set(tm, [c[0] + so(x.soLan), c[1] + so(x.soLanChan), c[2] + so(x.ngoaiGio)]);
+    n++;
+  }
+  if (gop.size) {
+    const ds2 = [...gop];
+    await q(`insert into dns_nhat_ky(thiet_bi_id, ngay, ten_mien, so_lan, so_lan_chan, ngoai_gio)
+             select $1, $2, t.tm, t.a, t.b, t.c from unnest($3::text[], $4::int[], $5::int[], $6::int[]) as t(tm, a, b, c)
              on conflict (thiet_bi_id, ngay, ten_mien) do update set so_lan = dns_nhat_ky.so_lan + excluded.so_lan,
              so_lan_chan = dns_nhat_ky.so_lan_chan + excluded.so_lan_chan, ngoai_gio = dns_nhat_ky.ngoai_gio + excluded.ngoai_gio`,
-      [t.id, ngay, tm, so(x.soLan), so(x.soLanChan), so(x.ngoaiGio)]);
-    n++;
+      [t.id, ngay, ds2.map((x) => x[0]), ds2.map((x) => x[1][0]), ds2.map((x) => x[1][1]), ds2.map((x) => x[1][2])]);
   }
   const traLai = t.mat_bao_luc && (!t.truy_van_cuoi || new Date(t.mat_bao_luc) >= new Date(t.truy_van_cuoi));
   await q(`update dns_thiet_bi set truy_van_cuoi = $2 where id = $1`, [t.id, now]);

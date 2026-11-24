@@ -153,3 +153,23 @@ test("Chặn app & web + cho youtube.com ⇒ kèm tên miền video/ảnh (googl
   assert.ok(!w.cho.includes("google.com"), "không mở cả google.com");
   assert.deepEqual(web.tenMienDiKem(["scratch.mit.edu"]), []);
 });
+
+test("#563: lịch sử web 300 tên miền = MỘT câu upsert (không còn một câu mỗi dòng); dòng trùng trong lô gộp theo luật lớn nhất / sớm nhất", async () => {
+  const { tok, mayId } = await nha();
+  const may = (await q<{ id: string; family_id: string }>(`select * from devices where id = $1`, [mayId]))[0] as never;
+  const ds = Array.from({ length: 300 }, (_, i) => ({ ngay: HOM, tenMien: `trang${i}.vn`, soLan: 1, giay: 10 }));
+  const cau: string[] = [];
+  (globalThis as any).__aiigDemCau = cau;
+  try { assert.deepEqual(await web.nhanLichSuWeb(may, null, ds), { nhan: 300 }); } finally { delete (globalThis as any).__aiigDemCau; }
+  assert.equal(cau.filter((s) => /insert into web_nhat_ky/.test(s)).length, 1, cau.join("\n"));
+  assert.ok(cau.length <= 3, `tối đa 3 câu (tz gia đình, upsert, dọn hạn) — thực tế ${cau.length}`);
+  const t1 = "2026-10-21T01:00:00.000Z", t2 = "2026-10-21T03:00:00.000Z";
+  await goiMay("web/lich-su", tok, { ds: [
+    { ngay: HOM, tenMien: "trung.vn", soLan: 2, giay: 50, lanCuoi: t1, dauLuc: t2 },
+    { ngay: HOM, tenMien: "www.trung.vn", soLan: 7, giay: 20, lanCuoi: t2, dauLuc: t1 },
+    { ngay: HOM, tenMien: "trung.vn", soLan: 1, giay: 90 },
+  ] });
+  const r = (await q<{ so_lan: number; giay: number; lan_cuoi: Date; dau_luc: Date }>(
+    `select so_lan, giay, lan_cuoi, dau_luc from web_nhat_ky where device_id = $1 and ten_mien = 'trung.vn'`, [mayId]))[0];
+  assert.deepEqual([r.so_lan, r.giay, new Date(r.lan_cuoi).toISOString(), new Date(r.dau_luc).toISOString()], [7, 90, t2, t1]);
+});

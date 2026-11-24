@@ -38,6 +38,7 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
   const hom = gioDiaPhuong(now, f?.tz ?? "Asia/Ho_Chi_Minh").ngay;
   let n = 0, giayChoi = 0, giayMuc = 0, mucChoi: string | null = null;
   let cuWeb: Map<string, number> | undefined;     // giây cũ của hôm nay — đọc một lần cho cả lô
+  const gop = new Map<string, { ngay: string; mien: string; soLan: number; giay: number; lanCuoi: Date | null; dauLuc: Date | null }>();
   for (const x of (ds as DongWeb[]).slice(0, TOI_DA_MOT_LAN)) {
     const ngay = String(x?.ngay ?? "");
     const mien = tenMienSach(x?.tenMien);
@@ -57,13 +58,27 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
       cuWeb.set(mien, Math.max(cu, giay));
       if (giay > cu) { giayChoi += giay - cu; if (giay - cu > giayMuc) { giayMuc = giay - cu; mucChoi = mien; } }
     }
-    await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, lan_cuoi, dau_luc) values ($1,$2,$3,$4,$5,$6,$7,$8)
+    // gộp dòng trùng (ngày, tên miền) trong lô theo đúng luật upsert bên dưới — một câu INSERT không được đụng một dòng hai lần
+    const k = `${ngay}|${mien}`, cu = gop.get(k);
+    gop.set(k, cu ? {
+      ngay, mien, soLan: Math.max(cu.soLan, soLan), giay: Math.max(cu.giay, giay),
+      lanCuoi: !cu.lanCuoi ? lanCuoi : !lanCuoi ? cu.lanCuoi : lanCuoi > cu.lanCuoi ? lanCuoi : cu.lanCuoi,
+      dauLuc: !cu.dauLuc ? dauLuc : !dauLuc ? cu.dauLuc : dauLuc < cu.dauLuc ? dauLuc : cu.dauLuc,
+    } : { ngay, mien, soLan, giay, lanCuoi, dauLuc });
+    n++;
+  }
+  // #563: MỘT câu upsert nhiều dòng (unnest mảng) thay cho tối đa 500 câu tuần tự
+  if (gop.size) {
+    const ds2 = [...gop.values()];
+    await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, lan_cuoi, dau_luc)
+             select $1, $2, t.ngay, t.mien, t.so_lan, t.giay, t.lan_cuoi, t.dau_luc
+               from unnest($3::text[], $4::text[], $5::int[], $6::int[], $7::timestamptz[], $8::timestamptz[]) as t(ngay, mien, so_lan, giay, lan_cuoi, dau_luc)
              on conflict (device_id, ngay, ten_mien) do update set so_lan = greatest(web_nhat_ky.so_lan, excluded.so_lan),
                giay = greatest(web_nhat_ky.giay, excluded.giay), child_id = coalesce(excluded.child_id, web_nhat_ky.child_id),
                lan_cuoi = greatest(web_nhat_ky.lan_cuoi, excluded.lan_cuoi),
                dau_luc = least(coalesce(web_nhat_ky.dau_luc, excluded.dau_luc), coalesce(excluded.dau_luc, web_nhat_ky.dau_luc))`,
-      [may.id, con, ngay, mien, soLan, giay, lanCuoi, dauLuc]);
-    n++;
+      [may.id, con, ds2.map((x) => x.ngay), ds2.map((x) => x.mien), ds2.map((x) => x.soLan), ds2.map((x) => x.giay),
+        ds2.map((x) => x.lanCuoi?.toISOString() ?? null), ds2.map((x) => x.dauLuc?.toISOString() ?? null)]);
   }
   if (con && giayChoi > 0) {
     try { await truPhutChoi(con, giayChoi / 60, now, { muc: mucChoi }); } catch (e) { console.error("web: trừ sao phút chơi lỗi", e); }
