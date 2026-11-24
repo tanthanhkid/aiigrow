@@ -45,7 +45,14 @@ async function duLieu() {
     ($1, $5, $6, $7, 'bu_phien', '{"ma":"m1"}', $8), ($2, $5, $6, $7, 'bu_phien', '{"ma":"m0"}', $9),
     ($3, $5, $6, $7, 'doi_nguoi_may', '{}', $10), ($4, $5, $6, $7, 'doi_nguoi_may', '{}', $11)`,
     [evGiu.ma, evXoa.maRatCu, evXoa.doiCu, evGiu.doiMoiNhat, fam, may, con, truoc(300), truoc(401), truoc(250), truoc(200)]);
-  return { ss, ks, otp, ev, al, ps, evGiu, evXoa };
+  // alerts có khoá chống báo trùng: khoá theo ngày / máy đã gỡ ⇒ xoá; khoá theo đợt của máy còn ⇒ giữ (xoá thì báo lại cùng đợt)
+  const alGiu = { dot: id() }, alXoa = { ngay: id(), mayGo: id() };
+  await q(`insert into alerts(id, family_id, device_id, loai, muc, noi_dung, khoa, created_at) values
+    ($1, $4, $5, 'may_ngoai_vong', 'nghiem_trong', 'x', $6, $9), ($2, $4, $5, 'tuan_thu', 'chu_y', 'x', $7, $9), ($3, $4, 'may-da-go', 'may_ngoai_vong', 'chu_y', 'x', $8, $9)`,
+    [alGiu.dot, alXoa.ngay, alXoa.mayGo, fam, may, `ngoai_vong:${may}:1700000000000`, `tuan_thu:lech:${may}:2026-04-01`, `ngoai_vong:may-da-go:1`, truoc(GIU_SU_KIEN_NGAY + 1)]);
+  await q(`insert into pin_sai(khoa, so_lan, cap_nhat) values ($1, 2, $2), ($3, 2, $4)`, [`bmma:${k}`, truoc(2), `bmma:${k}x`, truoc(0, 3)]);
+  ps.xoa.push(`bmma:${k}`); ps.giu.push(`bmma:${k}x`);
+  return { ss, ks, otp, ev, al, ps, evGiu, evXoa, alGiu, alXoa };
 }
 
 test("#565: donHetHan xoá phiên / kid_sessions quá hạn 7 ngày, OTP quá 1 ngày, sự kiện / cảnh báo quá 180 ngày; giữ dòng còn trong hạn", async () => {
@@ -58,11 +65,13 @@ test("#565: donHetHan xoá phiên / kid_sessions quá hạn 7 ngày, OTP quá 1 
   }
 });
 
-test("#565: events giữ khoá chống làm lại «ma» 400 ngày và «doi_nguoi_may» mới nhất của mỗi (máy, Con)", async () => {
+test("#565: events giữ khoá chống làm lại «ma» 400 ngày và «doi_nguoi_may» mới nhất; alerts giữ khoá chống báo trùng theo đợt của máy còn", async () => {
   const d = await duLieu();
   await donHetHan(NOW);
   for (const x of Object.values(d.evGiu)) assert.equal(await co("events", "id", x), true, `phải giữ ${x}`);
   for (const x of Object.values(d.evXoa)) assert.equal(await co("events", "id", x), false, `phải xoá ${x}`);
+  for (const x of Object.values(d.alGiu)) assert.equal(await co("alerts", "id", x), true, `phải giữ cảnh báo ${x}`);
+  for (const x of Object.values(d.alXoa)) assert.equal(await co("alerts", "id", x), false, `phải xoá cảnh báo ${x}`);
 });
 
 test("#565: pin_sai chỉ xoá bộ đếm đã quá hạn của khoá đã biết (pin, bmdung, go, xoa_tk); khoá đang khoá / vừa thử / máy còn / khoá lạ giữ nguyên", async () => {

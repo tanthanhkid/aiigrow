@@ -156,15 +156,15 @@ const traLuotBeDung = async (con: string) => {
   await q(`delete from pin_sai where khoa = $1 and so_lan <= 0`, [khoaBeCua(con)]).catch(() => undefined);
 };
 
-/** Cron hằng ngày (xoa-tai-khoan.ts › chayDonKiemToan): bộ đếm theo bé của khung đã qua. → số dòng. */
 /** #565 — cron hằng ngày: bộ đếm sai PIN theo máy «pin:<máy>:<con>» đã hết khoá và không thử quá 1 ngày; dấu mã Ba Mẹ đã dùng
- *  «bmdung:<máy>:<mã>» hết hạn quá 1 ngày (đường dọn theo máy ở dongMaBm chỉ chạy khi máy đó dùng mã lần nữa). → số dòng. */
+ *  «bmdung:<máy>:<mã>» hết hạn quá 1 ngày; sai mã Ba Mẹ «bmma:<máy>» như «pin:» (đường dọn theo máy ở dongMaBm chỉ chạy khi máy đó dùng mã lần nữa). → số dòng. */
 export async function donBoDemPinMay(now = new Date()) {
   const moc = new Date(now.getTime() - 86_400_000);
-  return (await q(`delete from pin_sai where (khoa like 'pin:%' and (khoa_den is null or khoa_den < $1) and coalesce(cap_nhat, '-infinity') < $1)
+  return (await q(`delete from pin_sai where ((khoa like 'pin:%' or khoa like 'bmma:%') and (khoa_den is null or khoa_den < $1) and coalesce(cap_nhat, '-infinity') < $1)
       or (khoa like 'bmdung:%' and khoa_den < $1) returning 1`, [moc])).length;
 }
 
+/** Cron hằng ngày (xoa-tai-khoan.ts › chayDonKiemToan): bộ đếm theo bé của khung đã qua. → số dòng. */
 export async function donBoDemPinBe(now = new Date()) {
   return (await q(`delete from pin_sai where khoa like 'pinbe:%' and coalesce(cap_nhat, '-infinity') <= $1 returning 1`,
     [new Date(now.getTime() - BE_KHUNG_MS)])).length;
