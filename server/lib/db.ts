@@ -35,7 +35,8 @@ async function mo(): Promise<Db> {
         insert into _luoc_do(id, bam) values (1, '${BAM_LUOC_DO}') on conflict (id) do update set bam = excluded.bam, luc = now()`);
     }
     napHeThong(await q(`select khoa, gia_tri from he_thong`));
-    await chuyenPinCu(q).catch((e) => console.error("[pin-ma] chuyển PIN cũ lỗi", e));     // #555: PIN rõ cũ ⇒ mã hoá (chạy lại được)
+    // #555: PIN rõ cũ ⇒ mã hoá (chạy lại được). Chạy nền: không bắt yêu cầu đầu tiên chờ — giaiPin đọc được cả giá trị rõ trong lúc chuyển.
+    void chuyenPinCu(q).catch((e) => console.error("[pin-ma] chuyển PIN cũ lỗi", e));
     return {
       q,
       tx: (fn) => sql.begin((t) => fn(async (s, p = []) => (await t.unsafe(s, p as any[])) as any)) as any,

@@ -54,16 +54,24 @@ test("mã hoá: bản mã khác nhau mỗi lần, giải đúng; sai Con (AAD) /
   assert.equal(pm.giaiPin("con1", null), null);
 });
 
-test("vòng khoá: AIIGROW_PIN_KHOA là khoá chính; khoá suy từ CRON_SECRET vẫn giải bản cũ; prod không có khoá dev", () => {
-  const cron = pm.vongKhoa({ NODE_ENV: "production", CRON_SECRET: "c".repeat(40) });
-  const ca2 = pm.vongKhoa({ NODE_ENV: "production", CRON_SECRET: "c".repeat(40), AIIGROW_PIN_KHOA: "k".repeat(40) });
-  assert.equal(cron.length, 1);
+test("vòng khoá: AIIGROW_PIN_KHOA là khoá chính, AIIGROW_PIN_KHOA_CU giải bản cũ; prod không có khoá dev; prod chưa đặt khoá ⇒ lưu rõ như trước", async () => {
+  const cu = pm.vongKhoa({ NODE_ENV: "production", AIIGROW_PIN_KHOA: "c".repeat(40) });
+  const ca2 = pm.vongKhoa({ NODE_ENV: "production", AIIGROW_PIN_KHOA: "k".repeat(40), AIIGROW_PIN_KHOA_CU: ` ${"c".repeat(40)} ,` });
+  assert.equal(cu.length, 1);
   assert.equal(ca2.length, 2);
-  assert.equal(ca2[1].id, cron[0].id);
-  const cu = pm.maHoaPin("x", "9876", cron);
-  assert.equal(pm.giaiPin("x", cu, ca2), "9876");
+  assert.equal(ca2[1].id, cu[0].id);
+  const ban = pm.maHoaPin("x", "9876", cu);
+  assert.equal(pm.giaiPin("x", ban, ca2), "9876");
   assert.ok(pm.maHoaPin("x", "9876", ca2).startsWith(`p1.${ca2[0].id}.`));
-  assert.ok(!pm.vongKhoa({ NODE_ENV: "production", CRON_SECRET: "c".repeat(40) }).some((k) => pm.vongKhoa({ NODE_ENV: "test" }).some((d) => d.id === k.id)));
+  const dev = pm.vongKhoa({ NODE_ENV: "test" });
+  assert.ok(!cu.some((k) => dev.some((d) => d.id === k.id)), "prod không giải được bằng khoá dev");
+  // production thiếu AIIGROW_PIN_KHOA (CRON_SECRET không được dùng làm khoá) ⇒ vòng rỗng: lưu rõ, chuyển dữ liệu không chạy
+  const rong = pm.vongKhoa({ NODE_ENV: "production", CRON_SECRET: "x".repeat(40) });
+  assert.equal(rong.length, 0);
+  assert.equal(pm.maHoaPin("x", "1234", rong), "1234");
+  assert.equal(pm.giaiPin("x", "1234", rong), "1234");
+  const loiCu = console.error; console.error = () => {};
+  try { assert.equal(await pm.chuyenPinCu(async () => { throw new Error("không được truy vấn"); }, rong), null); } finally { console.error = loiCu; }
 });
 
 test("Ba Mẹ đặt PIN ⇒ DB chỉ có bản mã; «Hiện» trả PIN; agent: vân PIN đúng; bé nhập đúng vào được, sai bị từ chối", async () => {
@@ -89,7 +97,7 @@ test("chuyển dữ liệu: PIN rõ cũ ⇒ mã hoá tại chỗ (chạy lại k
   // trước khi chuyển: vẫn chạy (đọc được giá trị rõ)
   assert.equal((await m(tokBm, `con/${anh}/pin`)).body.pin, "4821");
   const n = await pm.chuyenPinCu(q);
-  assert.ok(n >= 1);
+  assert.ok(n! >= 1);
   const raw = (await pinMa(anh))!;
   assert.ok(pm.daMaHoa(raw));
   assert.equal(await pinMa(minh), null, "Con chưa có PIN giữ null");
@@ -109,7 +117,7 @@ test("chuyển dữ liệu: đặt khoá chính mới ⇒ bản mã khoá cũ m�
   try {
     const moi = pm.vongKhoa();
     assert.notEqual(moi[0].id, cu[0].id);
-    assert.ok((await pm.chuyenPinCu(q)) >= 1);
+    assert.ok((await pm.chuyenPinCu(q))! >= 1);
     assert.ok((await pinMa(anh))!.startsWith(`p1.${moi[0].id}.`));
     assert.equal((await m(tokBm, `con/${anh}/pin`)).body.pin, "4821");
     // bản mã bằng khoá không còn trong vòng ⇒ không giải được: không chuyển, Hiện null (Ba Mẹ đặt lại)
@@ -146,6 +154,15 @@ test("trần sai PIN theo bé trên mọi máy: 20 lượt sai/giờ ⇒ máy kh
   assert.equal(e?.ma, "pin_tam_khoa");
   assert.ok(e.them.choGiay > 3000 && e.them.choGiay <= 3600, `chờ tới hết khung giờ (${e.them.choGiay})`);
   assert.equal(await loiMa(thu(1, "4821", s + 20)), "pin_tam_khoa", "máy kia cũng bị chặn");
+  // máy hiện hạn chờ theo bé ở «Ai đang dùng máy?»; gửi không PIN cũng báo chờ
+  const hs = await pin.hoSoMay(await mayRow(ds[1].id), luc(s + 21));
+  assert.ok(hs.con.find((c: any) => c.id === anh)!.choGiay! > 3000);
+  assert.equal(await loiMa(thu(1, "", s + 22)), "pin_tam_khoa");
+  // Ba Mẹ được báo một lần (khoá theo khung giờ)
+  assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'pin_bi_do' and child_id = $2`, [fam, anh])).length, 1);
+  // lượt bị trần theo bé chặn KHÔNG chiếm lượt của máy: thử dồn trên máy 0 trong lúc bị chặn, hết khung (chưa qua 15 phút) vẫn vào được ngay
+  for (let i = 0; i < 8; i++) await loiMa(thu(0, "0000", 3590 - 8 + i));
+  assert.equal(await loiMa(thu(0, "4821", 3605)), "ok", "máy không bị khoá vì các lượt bị chặn");
   // hết khung 1 giờ ⇒ vào được
   assert.equal(await loiMa(thu(1, "4821", 3700)), "ok");
   // dồn lại rồi Ba Mẹ đặt PIN mới ⇒ bộ đếm theo bé xoá
@@ -154,4 +171,15 @@ test("trần sai PIN theo bé trên mọi máy: 20 lượt sai/giờ ⇒ máy kh
   assert.equal(await one(`select 1 from pin_sai where khoa = $1`, [`pinbe:${anh}`]), undefined);
   assert.equal(await loiMa(thu(0, "2468", 3802)), "ok");
   void tokBm;
+});
+
+test("PIN không giải được (khoá cũ đã mất) ⇒ pin_can_dat_lai, không tính lượt sai, không ghi sai_pin", async () => {
+  const { fam, anh, may } = await nha();
+  const chung = await may("PC chung");
+  const la = pm.maHoaPin(anh, "4821", pm.vongKhoa({ NODE_ENV: "production", AIIGROW_PIN_KHOA: "khoa-da-mat-".repeat(4) }));
+  await q(`update children set pin_ma = $2 where id = $1`, [anh, la]);
+  const r = await dv(chung.tok, "dang-nhap-be", { con: anh, pin: "4821" });
+  assert.deepEqual([r.status, r.body.error], [409, "pin_can_dat_lai"]);
+  assert.equal(await one(`select 1 from pin_sai where khoa = $1 or khoa = $2`, [`pin:${chung.id}:${anh}`, `pinbe:${anh}`]), undefined);
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'sai_pin'`, [fam])).length, 0);
 });
