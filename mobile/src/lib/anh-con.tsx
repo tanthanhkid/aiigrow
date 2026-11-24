@@ -1,8 +1,6 @@
 // Ảnh đại diện Con (#302): chụp / chọn ảnh ở hồ sơ con. Máy chủ lưu ảnh ở cột riêng (server/lib/gia-dinh.ts › datAnhDaiDien); `avatar` của Con ghi
 // «mau-N|anh:<giây>» để mọi danh sách biết Con có ảnh. Ảnh tải riêng (GET con/:id/anh) và nhớ trong bộ nhớ theo dấu «anh:<giây>» — ảnh mới ⇒ dấu mới ⇒ tải lại.
 import { useEffect, useState } from "react";
-import * as ImageManipulator from "expo-image-manipulator";
-import * as ImagePicker from "expo-image-picker";
 import { bm } from "./api";
 
 export type AnhChon = { mime: string; base64: string };
@@ -42,6 +40,8 @@ const byteCua = (b64: string) => Math.floor((b64.length * 3) / 4);
 
 /** Chụp (camera sau) hoặc chọn ảnh vuông; ảnh được thu nhỏ ≤ 512 px, JPEG ~0.7 (thử lại nhỏ hơn nếu vẫn > 560 KB). null = Ba Mẹ huỷ hoặc không cho quyền. */
 export async function chonAnhCon(nguon: "chup" | "thu-vien"): Promise<AnhChon | null> {
+  // nạp lúc bấm (#564): hai thư viện ảnh không nằm trong gói JS chung của web
+  const [ImagePicker, ImageManipulator] = await Promise.all([import("expo-image-picker"), import("expo-image-manipulator")]);
   const lenh = nguon === "chup" ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
   if (nguon === "chup") {
     const q = await ImagePicker.requestCameraPermissionsAsync();

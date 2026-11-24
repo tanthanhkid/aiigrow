@@ -33,7 +33,7 @@ const thoat = (loi) => { if (dsTreo.length) { console.log(`\nTREO ${dsTreo.lengt
 
 // ---------------------------------------------------------------- web tĩnh (SPA: đường lạ → index.html)
 const LOAI = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".ico": "image/x-icon", ".json": "application/json",
-  ".ttf": "font/ttf", ".webp": "image/webp", ".svg": "image/svg+xml" };
+  ".ttf": "font/ttf", ".woff2": "font/woff2", ".webp": "image/webp", ".svg": "image/svg+xml" };
 const may = http.createServer((req, res) => {
   const p = decodeURIComponent((req.url ?? "/").split("?")[0]);
   let f = join(DIR, p);
