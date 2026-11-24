@@ -222,7 +222,7 @@ const GHEP_KHUNG_MS = 15 * 60_000;           // khung đếm lượt SAI (chốn
 // Mỗi bộ đếm một câu lệnh tự commit (khoá một dòng rồi nhả ngay) ⇒ không giữ khoá nhiều dòng, không thể deadlock giữa các yêu cầu song song.
 const tra1 = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]);
 /** Trả lượt — lỗi DB khi trả không được che lỗi gốc / biến ghép thành công thành lỗi. */
-const traLuot = async (khoa: string[]) => { for (const k of khoa) await tra1(k).catch(() => undefined); };
+const traLuot = async (khoa: string[]) => { await Promise.all(khoa.map((k) => tra1(k).catch(() => undefined))); };
 const giuCho = async (khoa: string) => (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
     on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0].so_lan;
 const tamKhoaGhep = () => new LoiNghiepVu("ghep_tam_khoa", "Nhập sai mã nhiều lần — đợi 15 phút rồi thử lại", 429);
@@ -238,15 +238,18 @@ export const khoi48 = (nguon: string) => (nguon.includes(":") ? nguon.split(":")
 export async function ghepMay(code: string, platform: string, tenMay: string, nguon = "?", now = Date.now(), maMay?: unknown, chon?: unknown) {
   const k = Math.floor(now / GHEP_KHUNG_MS), k48 = khoi48(nguon);
   const khoa = `ghep:${nguon}:${k}`, khoa48 = k48 ? `ghep48:${k48}:${k}` : null, khoaTong = `ghep_tong:${k}`;
-  const rieng = await giuCho(khoa);
-  if (rieng > GHEP_SAI_TOI_DA) throw tamKhoaGhep();
-  if (khoa48 && (await giuCho(khoa48)) > GHEP_SAI_48) { await traLuot([khoa]); throw tamKhoaGhep(); }
-  const daGiu = khoa48 ? [khoa, khoa48] : [khoa];
-  if ((await giuCho(khoaTong)) > GHEP_SAI_TONG && rieng > GHEP_SAI_BI_DO) {
-    await traLuot([khoaTong]);                 // lượt không được thử ⇒ không tính vào tổng; lượt riêng giữ (nguồn đã quá trần lúc bị dò)
-    throw tamKhoaGhep();
+  const daGiu: string[] = [];
+  const giu = async (k: string) => { const n = await giuCho(k); daGiu.push(k); return n; };
+  try {
+    const rieng = await giu(khoa);
+    if (rieng > GHEP_SAI_TOI_DA) { daGiu.length = 0; throw tamKhoaGhep(); }          // lượt riêng quá trần: giữ nguyên bộ đếm
+    if (khoa48 && (await giu(khoa48)) > GHEP_SAI_48) throw tamKhoaGhep();
+    // đang bị dò: lượt không được thử ⇒ trả tổng + /48 (không khoá oan cả khối); lượt riêng giữ (nguồn đã quá trần lúc bị dò)
+    if ((await giu(khoaTong)) > GHEP_SAI_TONG && rieng > GHEP_SAI_BI_DO) { daGiu.splice(daGiu.indexOf(khoa), 1); throw tamKhoaGhep(); }
+  } catch (e) {
+    await traLuot(daGiu);                      // lỗi DB giữa chừng / bị chặn: trả các lượt đã giữ mà chưa thử
+    throw e;
   }
-  daGiu.push(khoaTong);
   let kq: Awaited<ReturnType<typeof ghepMayGd>>;
   try {
     kq = await ghepMayGd(code, platform, tenMay, maMay, chon);
@@ -262,7 +265,7 @@ export async function ghepMay(code: string, platform: string, tenMay: string, ng
 export async function donBoDemGhep(now = Date.now()) {
   const k = Math.floor(now / GHEP_KHUNG_MS);
   return (await q(`delete from pin_sai where (khoa like 'ghep:%' or khoa like 'ghep48:%' or khoa like 'ghep\\_tong:%')
-    and split_part(khoa, ':', -1) ~ '^[0-9]+$' and split_part(khoa, ':', -1)::bigint < $1 returning 1`, [k - 1])).length;
+    and substring(khoa from '[0-9]+$')::bigint < $1 returning 1`, [k - 1])).length;
 }
 
 /** IP gọi để đếm lượt ghép: `x-real-ip` (Vercel đặt, không giả được) trước, rồi `x-forwarded-for`; IPv6 gộp theo /64 (một máy xoay được cả dải). */
