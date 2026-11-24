@@ -39,9 +39,18 @@ const TOI_DA_BYTE = 560 * 1024;                  // máy chủ nhận ≤ 600 KB
 const byteCua = (b64: string) => Math.floor((b64.length * 3) / 4);
 
 /** Chụp (camera sau) hoặc chọn ảnh vuông; ảnh được thu nhỏ ≤ 512 px, JPEG ~0.7 (thử lại nhỏ hơn nếu vẫn > 560 KB). null = Ba Mẹ huỷ hoặc không cho quyền. */
+// #564: hai thư viện ảnh không nằm trong gói JS chung của web — form hồ sơ gọi napThuVienAnh() lúc mở ⇒ tới lúc bấm thì đã nạp xong
+// (trình duyệt chỉ mở hộp chọn tệp khi còn trong khoảnh khắc người bấm). Nạp lỗi ⇒ xoá nhớ để lần sau thử lại.
+let thuVien: Promise<[typeof import("expo-image-picker"), typeof import("expo-image-manipulator")]> | null = null;
+export const napThuVienAnh = () => {
+  thuVien ??= Promise.all([import("expo-image-picker"), import("expo-image-manipulator")]);
+  thuVien.catch(() => { thuVien = null; });
+  return thuVien;
+};
+
 export async function chonAnhCon(nguon: "chup" | "thu-vien"): Promise<AnhChon | null> {
-  // nạp lúc bấm (#564): hai thư viện ảnh không nằm trong gói JS chung của web
-  const [ImagePicker, ImageManipulator] = await Promise.all([import("expo-image-picker"), import("expo-image-manipulator")]);
+  let ImagePicker: typeof import("expo-image-picker"), ImageManipulator: typeof import("expo-image-manipulator");
+  try { [ImagePicker, ImageManipulator] = await napThuVienAnh(); } catch { throw new Error("Chưa lấy được ảnh — thử lại nhé"); }
   const lenh = nguon === "chup" ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
   if (nguon === "chup") {
     const q = await ImagePicker.requestCameraPermissionsAsync();

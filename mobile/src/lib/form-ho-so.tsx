@@ -1,12 +1,12 @@
 // Phần form hồ sơ con dùng chung cho «Lần đầu · bước 1» (bm-thiet-lap-con/01 bm1-ob-ten-con, them-hjjdppuw) và «Thêm con» từ Cả nhà
 // (bm-ca-nha/02 them-9ozp26pq): thẻ hồ sơ (chữ cái + màu + «🐓 9 tuổi» theo con giáp — N11, Grow bên phải), «Tên gọi ở nhà», ô «Năm sinh» mở bảng
 // bánh xe năm, «Màu của con», thẻ «Mã PIN vào máy · 4 số». Logic lưu nằm ở từng màn.
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { BO_CLAY, BONG, KHOI, MEN } from "./clay";
 import { Anh3D, BanhXe, MAU_HO_SO } from "./lan-dau";
 import { OPin } from "./ui-s3";
-import { chonAnhCon, uriAnh, type AnhChon } from "./anh-con";
+import { chonAnhCon, napThuVienAnh, uriAnh, type AnhChon } from "./anh-con";
 import { Avt, BangTruot, Chu, Icon, Icon3D, IconNet, LopMen, M, Nut, Rob, type TenIcon } from "./ui";
 
 /** Con giáp theo năm sinh (âm lịch xấp xỉ theo năm dương — đủ cho thẻ hồ sơ): 2020 ⇒ Tý 🐭, 2017 ⇒ Dậu 🐓. */
@@ -130,6 +130,7 @@ export function ThePinCon({ pin, doi, cau, loi, batBuoc }: { pin: string; doi: (
 export function useAnhForm() {
   const [anh, setAnh] = useState<AnhChon | null>(null);
   const [loi, setLoi] = useState<string | null>(null);
+  useEffect(() => { napThuVienAnh().catch(() => {}); }, []);   // nạp sẵn thư viện ảnh (#564) để lúc bấm mở hộp chọn ngay
   const lay = async (nguon: "chup" | "thu-vien") => {
     setLoi(null);
     try { const a = await chonAnhCon(nguon); if (a) setAnh(a); } catch (e) { setLoi(e instanceof Error ? e.message : "Chưa lấy được ảnh — thử lại nhé"); }

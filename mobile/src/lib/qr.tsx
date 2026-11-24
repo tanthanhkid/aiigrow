@@ -10,9 +10,11 @@ export function MaQr({ noiDung, co = 200 }: { noiDung: string; co?: number }) {
   useEffect(() => {
     // nạp thư viện lúc cần (#564): không nằm trong gói JS chung của mọi trang web
     let song = true;
-    import("qrcode").then((m) => (m.default ?? m).toString(noiDung, { type: "svg", margin: 0, color: { dark: M.chu, light: "#FFFBF5" } }))
-      .then((x) => { if (song) setXml(x); }).catch(() => { if (song) setXml(null); });
-    return () => { song = false; };
+    let hen: ReturnType<typeof setTimeout> | undefined;
+    const ve = (lan: number) => import("qrcode").then((m) => (m.default ?? m).toString(noiDung, { type: "svg", margin: 0, color: { dark: M.chu, light: "#FFFBF5" } }))
+      .then((x) => { if (song) setXml(x); }).catch(() => { if (song) { setXml(null); if (lan < 3) hen = setTimeout(() => ve(lan + 1), 1500 * lan); } });
+    ve(1);
+    return () => { song = false; if (hen) clearTimeout(hen); };
   }, [noiDung]);
   return (
     <View style={{ width: co, height: co, padding: 12, backgroundColor: "#FFFBF5", borderRadius: 24, ...KHOI.the }}

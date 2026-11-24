@@ -22,7 +22,7 @@ function useSauTai() {
     const bat = () => {
       const lam = () => setXong(true);
       if (w.requestIdleCallback && w.cancelIdleCallback) { const id = w.requestIdleCallback(lam, { timeout: 1500 }); huy = () => w.cancelIdleCallback?.(id); }
-      else { const id = window.setTimeout(lam, 200); huy = () => window.clearTimeout(id); }
+      else { const id = window.setTimeout(lam, 1000); huy = () => window.clearTimeout(id); }
     };
     if (document.readyState === "complete") bat(); else window.addEventListener("load", bat, { once: true });
     return () => { window.removeEventListener("load", bat); huy?.(); };
