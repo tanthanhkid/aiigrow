@@ -289,7 +289,4 @@ export async function tenAppThat(fam: string): Promise<Map<string, string>> {
   return new Map(r.map((x) => [x.muc, x.ten]));
 }
 
-/** Băm tham khảo (agent tự định nghĩa bam của mình; máy chủ chỉ so chuỗi) — dùng trong test. */
-export const bamThamKhao = (ds: { khoa: string }[]) => createHash("sha256").update(ds.map((x) => JSON.stringify(x)).sort().join("\n")).digest("hex");
-
 export type { NhomGiaiTri };

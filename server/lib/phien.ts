@@ -10,7 +10,7 @@
 // Phút «thêm giờ» Ba Mẹ đã cho hôm nay (grants) được dùng TRƯỚC và không trừ điểm.
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { NHOM_GIA, dangKhoa, lichCua, thamSo, type ThamSo, khoaMayHieuLuc } from "./cau-hinh.ts";
+import { dangKhoa, lichCua, thamSo, type ThamSo, khoaMayHieuLuc } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong, trongKhung } from "./gio.ts";
 import { ghiDiem, khoaCon, soDu } from "./vi.ts";
 import { phanLoai, type NhomGiaiTri } from "./luat-app.ts";
@@ -40,8 +40,6 @@ async function boiCanh(t: Q, con: string, now = new Date()): Promise<BoiCanh> {
 
 /** Giá điểm/phút của phiên — từ 05/11 luôn 0 (bỏ trừ điểm theo app; quỹ phút dùng chung thay). Giữ hàm + cột cho agent cũ đọc `giaPhanNghin`. */
 export const giaPhut = (_ts: ThamSo, _nhom: NhomGiaiTri | null) => 0;
-/** Giá cũ theo nhóm (trước 05/11) — chỉ còn cho bảng tham số / lịch sử. */
-export const giaPhutCu = (ts: ThamSo, nhom: NhomGiaiTri | null) => ts[NHOM_GIA[nhom ?? "khac"] ?? "gia_khac"];
 
 const thuongHomNay = async (t: Q, con: string, ngay: string) =>
   (await t<{ p: number }>(`select coalesce(sum(phut), 0)::int as p from grants where child_id = $1 and ngay = $2 and cua_so_den is null

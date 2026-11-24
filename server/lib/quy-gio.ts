@@ -15,10 +15,6 @@ import { ghiSuKien } from "./nhat-ky.ts";
 import { cauSao, choVay, hoanTacVay, trangThaiVaDaTru, type TrangThaiSao } from "./so-sao.ts";
 import { cauHinhCua, gioiHanCua, phanGhi, type GioiHanChoi } from "./gioi-han-choi.ts";
 
-/** 1 sao = 1 phút (giữ tên hàm cũ cho nơi gọi cũ). */
-export const saoChoPhut = (_ts: unknown, phut: number) => Math.ceil(phut);
-export const phutChoSao = (_ts: unknown, sao: number) => Math.max(0, Math.floor(sao));
-
 /** Đang trong giờ học lúc (thu, phut)? Khung qua nửa đêm tính theo ngày bắt đầu (hiếm — giờ học thường trong ngày). */
 export function trongGioHoc(hoc: GioHoc | null | undefined, thu: number, phut: number) {
   return !!hoc && hoc.thu.includes(thu) && trongKhung(phut, hoc);

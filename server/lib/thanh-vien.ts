@@ -18,9 +18,6 @@ import { chiBaMe, laChuNha, quyenTuVai, quyenVao, TEN_QUYEN, vaiCu, type Quyen }
 export const LOI_MOI_GIO = 72;
 export const MOI_CHO_TOI_DA = 5;
 export const THANH_VIEN_TOI_DA = 8;
-/** Quyền mời được (L6). Tên giữ «VAI_MOI» cho mã cũ đọc. */
-export const VAI_MOI = ["ba_me", "trong_giup"] as const;
-export type VaiMoi = Quyen;
 /** Tên quyền hiển thị (hiểu cả giá trị cũ chu / duyet / xem trong sự kiện cũ). */
 export const TEN_VAI: Record<string, string> = TEN_QUYEN;
 
@@ -41,7 +38,6 @@ export const chuanMa = (v: unknown) => {
   const tuLink = /[?&]ma=([^&#\s]+)/.exec(s)?.[1];
   return decodeURIComponent(tuLink ?? s).toUpperCase().replace(/[^A-Z0-9]/g, "");
 };
-export const hienMa = (ma: string) => `${ma.slice(0, 4)}-${ma.slice(4)}`;
 const lienKetMoi = (goc: string, ma: string) => `${goc.replace(/\/$/, "")}/moi?ma=${ma}`;
 
 type DongTv = { id: string; ten: string; vai: string; dinh_danh: string; created_at: Date; la_chu: boolean };
@@ -273,8 +269,6 @@ export async function doiQuyen(bm: BaMe, id: string, quyenVaoV: unknown) {
   await ghiSuKien(bm.family_id, "doi_vai", { ten: p.ten, tu: quyenTuVai(p.vai), thanh: quyen }, { nguoi: bm.id });
   return { quyen, vai: quyen === "trong_giup" ? "xem" : "duyet" };
 }
-/** Tên cũ (POST thanh-vien/:id/vai). */
-export const doiVai = doiQuyen;
 
 export async function moiRa(bm: BaMe, id: string) {
   const p = await thanhVienKhac(bm, id);

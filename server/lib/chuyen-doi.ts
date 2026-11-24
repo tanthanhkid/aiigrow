@@ -311,10 +311,6 @@ export const coCuaSoThemGio = (nen: string | null | undefined): boolean => coTac
 export const nhomCuaSo = (nen: string | null | undefined): string => (nen === "ios" || nen === "android" ? nen : "may_tinh");
 /** SQL: nhóm cửa sổ của grant (lưu lúc duyệt; grant cũ trước cột này đều từ máy Windows ⇒ máy tính). */
 export const SQL_NHOM_CUA_SO = `coalesce(g.nhom_cua_so, 'may_tinh')`;
-/** Lời xin «thêm giờ» thành CỬA SỔ (thay vì phút thưởng) khi: máy tính có tác tử, hoặc iPhone/Android đã chạy tác tử mới (đã gửi nhịp `ios`/`android`
- *  vào status). App Con cũ trên điện thoại vẫn nhận phút thưởng như trước — tác tử điện thoại chưa phát hành thì không mất thưởng. */
-export const lamCuaSo = (may: { platform: string | null | undefined; status?: Record<string, unknown> | null } | null | undefined): boolean =>
-  !!may && (coTacTu(may.platform) || ((may.platform === "ios" || may.platform === "android") && may.status?.[may.platform] != null));
 
 const VIEC_CHO: Record<NenChuyenDoi, string[]> = {
   windows: ["Gọi API thật (AppLocker, chính sách trình duyệt, net user /times, dịch vụ) trong agent-win — việc chờ máy Windows thử tài khoản Standard"],

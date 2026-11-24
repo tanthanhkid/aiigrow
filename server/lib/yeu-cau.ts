@@ -285,11 +285,6 @@ export async function moLaiYc(fam: string, id: string, nguoi: string, now = new 
   });
 }
 
-/** Thiết bị Con báo đã áp phê duyệt (A.2: Đồng ý → Đã thực thi). */
-export async function daThucThi(con: string, id: string) {
-  await q(`update requests set trang_thai = 'da_thuc_thi' where id = $1 and child_id = $2 and trang_thai = 'dong_y'`, [id, con]);
-}
-
 /** Quy tắc tự động (FR-05.03 «tự đồng ý thêm 15 phút nếu đủ điểm») — BỎ từ 15/11: sao chính là phút (Con đủ sao thì đã chơi được), lời xin nay là
  *  xin VAY và chỉ Ba Mẹ quyết. Giữ hàm (chỗ gọi cũ) — luôn false. */
 export async function apQuyTacTuDong(_fam: string, _id: string, _now = new Date()) {

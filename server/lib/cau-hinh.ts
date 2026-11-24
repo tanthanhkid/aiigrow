@@ -104,10 +104,6 @@ export function lichCua(l: Partial<Lich> | null | undefined): Lich {
 }
 
 
-export const NHOM_GIA: Record<string, TenThamSo> = {
-  game: "gia_game", video_ngan: "gia_video_ngan", mxh: "gia_mxh", phim_gd: "gia_phim_gd", khac: "gia_khac",
-};
-
 /** Ba Mẹ đang «Khoá ngay» và khoá chưa hết hạn — KHÔNG tính phần mở tạm. Có hạn (`khoa_den`) thì tự hết khi qua giờ đó, không cần tiến trình nền gỡ cờ. */
 export function khoaGoc(cfg: Record<string, unknown> | null | undefined, now = new Date()): boolean {
   if (cfg?.khoa_ngay !== true) return false;
