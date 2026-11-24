@@ -160,9 +160,10 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     await donBoDemGhep(now.getTime());         // bộ đếm lượt thử mã ghép máy theo nguồn + toàn cục (gia-dinh.ts › ghepMay)
     await donBoDemTaiGhep(now.getTime());      // bộ đếm lượt tải bộ cài mang gói ghép (tai-ghep.ts)
     await donBoDemPinBe(now);                  // #555: bộ đếm sai PIN theo bé của khung đã qua (pin-be.ts)
-    await donBoDemPinMay(now);                 // #565: sai PIN theo máy + dấu mã Ba Mẹ đã dùng, quá hạn 1 ngày (pin-be.ts)
-    await donBoDemGo(now);                     // #565: sai mật khẩu gỡ máy, hết khoá quá 1 ngày / máy không còn (may-con.ts)
-    await donBoDemXoaTk(now.getTime());        // #565: lượt nhập lại mật khẩu xoá tài khoản của khung đã qua quá 1 ngày
+    // #565: bộ đếm mới tự bắt lỗi — một bước hỏng không chặn usage / don-het-han phía sau
+    await donBoDemPinMay(now).catch((e) => console.error("cron: dọn pin_sai máy lỗi", e));   // sai PIN theo máy + dấu mã Ba Mẹ (pin-be.ts)
+    await donBoDemGo(now).catch((e) => console.error("cron: dọn pin_sai gỡ lỗi", e));        // sai mật khẩu gỡ máy (may-con.ts)
+    await donBoDemXoaTk(now.getTime()).catch((e) => console.error("cron: dọn pin_sai xoá tk lỗi", e)); // nhập lại mật khẩu xoá tài khoản
     await donUsageCu(now).catch((e) => console.error("cron: dọn usage cũ lỗi", e));     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
     // #565 (don-het-han.ts): phiên / OTP hết hạn, sự kiện / cảnh báo quá 180 ngày — cuối chuỗi, từng bảng tự bắt lỗi, mỗi lượt tối đa 10 lô / bảng
     const het = await donHetHan(now);

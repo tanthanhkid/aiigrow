@@ -4,11 +4,9 @@
 //  • otp: hết hạn quá 1 ngày (mã sống 10 phút)
 //  • events / alerts: 180 ngày. App đọc tối đa 30 ngày (nhật ký cả nhà ≤ 30, thông báo 14, cần để ý 7–14, tin học viên 7) hoặc «N mục mới
 //    nhất» (tuân thủ máy 50, sự kiện / cảnh báo 100); báo cáo thời gian dùng đọc bảng usage (giữ 400 ngày — donUsageCu), không đọc events.
-//    Ngoại lệ của events: dòng có chi_tiet.ma (khoá chống làm lại của sự kiện / bù phiên máy gửi — may-con.ts) giữ 400 ngày;
-//    «doi_nguoi_may» mới nhất của mỗi (máy, Con) giữ mãi («lần cuối dùng máy» — may-nhieu-con.ts).
-//    Ngoại lệ của alerts: alerts.khoa là khoá chống báo trùng (canhBao). Chỉ xoá khoá theo NGÀY / GIỜ (đã qua thì không báo lại được), khoá
-//    theo một lượt (pin_bi_do, mo_khan_cap, doi_che_do) hoặc của máy đã không còn; khoá theo «đợt» (ngoai_vong, dns_mat, chuyen_nha,
-//    go_tai_may, xoa_han, het_han, nhac, no_1000, may_<loại>:<mã>…) của máy còn thì giữ — xoá sẽ báo lại cùng một đợt.
+//    Ngoại lệ của events: dòng MÁY gửi có chi_tiet.ma (khoá chống làm lại của sự kiện / bù phiên — may-con.ts) giữ 400 ngày;
+//    «doi_nguoi_may» mới nhất của mỗi (máy còn, Con) giữ mãi («lần cuối dùng máy» — may-nhieu-con.ts).
+//    Ngoại lệ của alerts: alerts.khoa là khoá chống báo trùng (canhBao) — cảnh báo mới nhất của mỗi (nhà, máy, loại) ở máy còn thì giữ.
 // Bộ đếm pin_sai: mỗi module tự dọn khoá của mình (donBoDem* trong pin-be.ts, may-con.ts, xoa-tai-khoan.ts…).
 import { xoaTheoLo } from "./db.ts";
 
@@ -26,13 +24,21 @@ export async function donHetHan(now = new Date()) {
     staff_sessions: await xoa("staff_sessions", "expires_at < $1", [truoc(GIU_PHIEN_NGAY)]),
     otp: await xoa("otp", "het < $1", [truoc(GIU_OTP_NGAY)]),
     // ba lượt tách điều kiện để mỗi lô không lọc lại hàng loạt dòng giữ có chủ đích
-    events: await xoa("events", `created_at < $1 and loai <> 'doi_nguoi_may' and not (chi_tiet ? 'ma')`, [truoc(GIU_SU_KIEN_NGAY)]),
-    events_ma: await xoa("events", `created_at < $1 and chi_tiet ? 'ma'`, [truoc(GIU_MA_MAY_NGAY)]),
-    events_doi_nguoi: await xoa("events", `created_at < $1 and loai = 'doi_nguoi_may' and not (chi_tiet ? 'ma') and exists (select 1 from events m
-        where m.family_id = events.family_id and m.loai = 'doi_nguoi_may' and m.device_id is not distinct from events.device_id
-          and m.child_id is not distinct from events.child_id and m.created_at > events.created_at)`, [truoc(GIU_SU_KIEN_NGAY)]),
+    // «ma» chỉ là khoá chống làm lại khi dòng do MÁY gửi (device_id có) — huy_hieu / dung_voucher cũng mang «ma» nhưng theo mốc 180 ngày
+    events: await xoa("events", `created_at < $1 and loai <> 'doi_nguoi_may' and not (device_id is not null and chi_tiet ? 'ma')`, [truoc(GIU_SU_KIEN_NGAY)]),
+    events_ma: await xoa("events", `created_at < $1 and device_id is not null and chi_tiet ? 'ma'`, [truoc(GIU_MA_MAY_NGAY)]),
+    // doi_nguoi_may: xoá khi đã có dòng mới hơn cùng (máy, Con) hoặc máy không còn (không ai đọc nữa) — index events_doi_nguoi
+    events_doi_nguoi: await xoa("events", `created_at < $1 and loai = 'doi_nguoi_may' and not (device_id is not null and chi_tiet ? 'ma') and (
+        device_id is null or not exists (select 1 from devices d where d.id = events.device_id)
+        or exists (select 1 from events m where m.loai = 'doi_nguoi_may' and m.device_id = events.device_id
+          and m.child_id is not distinct from events.child_id and m.created_at > events.created_at))`, [truoc(GIU_SU_KIEN_NGAY)]),
+    // alerts: khoá chống báo trùng mang mã đợt (thời điểm / mã sự kiện / submission / khoản vay) — đợt cũ không lặp lại được, chỉ cảnh báo MỚI
+    // NHẤT của mỗi (nhà, máy, loại) còn chặn báo lại ⇒ giữ nó; dòng cũ hơn đã có dòng mới cùng loại, khoá theo ngày, theo một lượt, máy đã
+    // không còn ⇒ xoá
     alerts: await xoa("alerts", `created_at < $1 and (khoa is null or khoa ~ '[0-9]{4}-[0-9]{2}-[0-9]{2}'
         or split_part(khoa, ':', 1) in ('pin_bi_do', 'mo_khan_cap', 'doi_che_do')
-        or (device_id is not null and not exists (select 1 from devices d where d.id = alerts.device_id)))`, [truoc(GIU_SU_KIEN_NGAY)]),
+        or (device_id is not null and not exists (select 1 from devices d where d.id = alerts.device_id))
+        or exists (select 1 from alerts m where m.family_id = alerts.family_id and m.loai = alerts.loai
+          and m.device_id is not distinct from alerts.device_id and m.created_at > alerts.created_at))`, [truoc(GIU_SU_KIEN_NGAY)]),
   };
 }

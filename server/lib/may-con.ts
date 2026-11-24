@@ -458,10 +458,10 @@ export async function buPhien(may: May, con: string, b: BuVao, now = new Date())
   });
 }
 
-/** #565 — cron hằng ngày: bộ đếm sai mật khẩu gỡ «go:<máy>» đã hết khoá quá 1 ngày, hoặc của máy không còn (gỡ / thu hồi không qua đường
+/** #565 — cron hằng ngày: bộ đếm sai mật khẩu gỡ «go:<máy>» không khoá / hết khoá và lần thử cuối quá 1 ngày, hoặc của máy không còn (gỡ / thu hồi không qua đường
  *  gỡ có mật khẩu nên không xoá bộ đếm). → số dòng. */
 export async function donBoDemGo(now = new Date()) {
-  return (await q(`delete from pin_sai p where p.khoa like 'go:%' and ((p.khoa_den is not null and p.khoa_den < $1)
+  return (await q(`delete from pin_sai p where p.khoa like 'go:%' and ((coalesce(p.khoa_den, '-infinity') < $1 and coalesce(p.cap_nhat, '-infinity') < $1)
       or not exists (select 1 from devices d where d.id = substr(p.khoa, 4))) returning 1`, [new Date(now.getTime() - 86_400_000)])).length;
 }
 
@@ -489,8 +489,8 @@ export async function goCoMatKhau(may: May, dinhDanh: unknown, matKhau: unknown)
   if (!dung) {
     // mỗi mật khẩu đã thử là một lượt (gõ «facebook» khớp nhiều người không nhân số lần dò lên)
     const n = Math.max(thu, 1);
-    await q(`insert into pin_sai(khoa, so_lan) values ($1, $2) on conflict (khoa) do update set so_lan = pin_sai.so_lan + $2,
-             khoa_den = case when pin_sai.so_lan + $2 >= 5 then now() + interval '15 minutes' else null end`, [khoa, n]);
+    await q(`insert into pin_sai(khoa, so_lan, cap_nhat) values ($1, $2, now()) on conflict (khoa) do update set so_lan = pin_sai.so_lan + $2,
+             khoa_den = case when pin_sai.so_lan + $2 >= 5 then now() + interval '15 minutes' else null end, cap_nhat = now()`, [khoa, n]);
     await ghiSuKien(may.family_id, "may_thu_go", { ketQua: "sai_mat_khau" }, { con: may.child_id, may: may.id });
     await canhBao(may.family_id, "may_thu_go", "nghiem_trong", `Có người thử gỡ AiiGrow trên ${may.name} (sai mật khẩu Ba Mẹ)`,
       { con: may.child_id, may: may.id, khoa: `may_thu_go:${may.id}:${new Date().toISOString().slice(0, 13)}` });

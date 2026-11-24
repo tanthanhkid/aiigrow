@@ -37,7 +37,7 @@ async function duLieu() {
   };
   await q(`insert into pin_sai(khoa, so_lan, khoa_den, cap_nhat) values
     ($1, 3, null, $11), ($2, 1, $11, null), ($3, 5, $11, null), ($4, 1, null, null),
-    ($5, 5, $12, $11), ($6, 2, null, $13), ($7, 1, $12, null), ($8, 2, null, null), ($9, 1, null, null), ($10, 1, null, null)`,
+    ($5, 5, $12, $11), ($6, 2, null, $13), ($7, 1, $12, null), ($8, 2, null, $13), ($9, 1, null, null), ($10, 1, null, null)`,
     [...ps.xoa, ...ps.giu, truoc(2), new Date(NOW.getTime() + 600_000), truoc(0, 3)]);
   // ngoại lệ events: khoá chống làm lại «ma» (giữ 400 ngày), «doi_nguoi_may» mới nhất của (máy, Con) giữ mãi
   const evGiu = { ma: id(), doiMoiNhat: id() }, evXoa = { maRatCu: id(), doiCu: id() };
@@ -45,11 +45,24 @@ async function duLieu() {
     ($1, $5, $6, $7, 'bu_phien', '{"ma":"m1"}', $8), ($2, $5, $6, $7, 'bu_phien', '{"ma":"m0"}', $9),
     ($3, $5, $6, $7, 'doi_nguoi_may', '{}', $10), ($4, $5, $6, $7, 'doi_nguoi_may', '{}', $11)`,
     [evGiu.ma, evXoa.maRatCu, evXoa.doiCu, evGiu.doiMoiNhat, fam, may, con, truoc(300), truoc(401), truoc(250), truoc(200)]);
+  // «ma» không do máy gửi (huy_hieu) theo mốc 180 ngày; doi_nguoi_may của máy đã không còn xoá
+  const evXoa2 = { huyHieu: id(), doiMayGo: id() };
+  await q(`insert into events(id, family_id, device_id, child_id, loai, chi_tiet, created_at) values
+    ($1, $3, null, $4, 'huy_hieu', '{"ma":"sao_1"}', $5), ($2, $3, 'may-da-go', $4, 'doi_nguoi_may', '{}', $5)`,
+    [evXoa2.huyHieu, evXoa2.doiMayGo, fam, con, truoc(GIU_SU_KIEN_NGAY + 1)]);
+  Object.assign(evXoa, evXoa2);
   // alerts có khoá chống báo trùng: khoá theo ngày / máy đã gỡ ⇒ xoá; khoá theo đợt của máy còn ⇒ giữ (xoá thì báo lại cùng đợt)
   const alGiu = { dot: id() }, alXoa = { ngay: id(), mayGo: id() };
   await q(`insert into alerts(id, family_id, device_id, loai, muc, noi_dung, khoa, created_at) values
     ($1, $4, $5, 'may_ngoai_vong', 'nghiem_trong', 'x', $6, $9), ($2, $4, $5, 'tuan_thu', 'chu_y', 'x', $7, $9), ($3, $4, 'may-da-go', 'may_ngoai_vong', 'chu_y', 'x', $8, $9)`,
     [alGiu.dot, alXoa.ngay, alXoa.mayGo, fam, may, `ngoai_vong:${may}:1700000000000`, `tuan_thu:lech:${may}:2026-04-01`, `ngoai_vong:may-da-go:1`, truoc(GIU_SU_KIEN_NGAY + 1)]);
+  // khoá theo đợt: chỉ cảnh báo mới nhất của (nhà, máy, loại) chặn báo lại ⇒ đợt cũ hơn (kể cả không gắn máy: nhac:<bài nộp>) xoá
+  const alGiu2 = { nhacMoi: id() }, alXoa2 = { dotCu: id(), nhacCu: id() };
+  await q(`insert into alerts(id, family_id, device_id, loai, muc, noi_dung, khoa, created_at) values
+    ($1, $4, $5, 'may_ngoai_vong', 'nghiem_trong', 'x', $6, $9), ($2, $4, null, 'nhac_duyet', 'thong_tin', 'x', 'nhac:s1', $10),
+    ($3, $4, null, 'nhac_duyet', 'thong_tin', 'x', $7, $8)`,
+    [alXoa2.dotCu, alXoa2.nhacCu, alGiu2.nhacMoi, fam, may, `ngoai_vong:${may}:1600000000000`, "nhac:s2", truoc(GIU_SU_KIEN_NGAY + 2), truoc(GIU_SU_KIEN_NGAY + 20), truoc(GIU_SU_KIEN_NGAY + 30)]);
+  Object.assign(alGiu, alGiu2); Object.assign(alXoa, alXoa2);
   await q(`insert into pin_sai(khoa, so_lan, cap_nhat) values ($1, 2, $2), ($3, 2, $4)`, [`bmma:${k}`, truoc(2), `bmma:${k}x`, truoc(0, 3)]);
   ps.xoa.push(`bmma:${k}`); ps.giu.push(`bmma:${k}x`);
   return { ss, ks, otp, ev, al, ps, evGiu, evXoa, alGiu, alXoa };
