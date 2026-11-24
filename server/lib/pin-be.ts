@@ -16,9 +16,12 @@ import { biMatOfflineMay } from "./tuan-thu.ts";
 import { kiemMaOfflinePhut } from "./ma-offline.ts";
 import { coNoi, conNoiMay, idConMay, ketThucPhienTrenMay, laMotCon } from "./may-nhieu-con.ts";
 import { trangThaiSao } from "./so-sao.ts";
+import { giaiPin, maHoaPin } from "./pin-ma.ts";
 
 export const PIN_SAI_TOI_DA = 5;
 export const PIN_CHO_GIAY = 15;
+/** #555: trần lượt sai PIN của MỘT bé trên MỌI máy trong một giờ (bộ đếm theo máy + bé ở trên chỉ chặn dò trên một máy). */
+export const PIN_SAI_BE_GIO = 20;
 export const MA_BA_ME_SAI_TOI_DA = 5;
 export const MA_BA_ME_CHO_PHUT = 10;
 
@@ -40,8 +43,8 @@ export function pinHopLe(v: unknown): string {
 export async function datPin(fam: string, con: string, pin: unknown, nguoi?: string | null, now = new Date()) {
   const c = await conCua(fam, con);
   const ma = pin === null ? null : pinHopLe(pin);
-  await q(`update children set pin_ma = $2, pin_dat_luc = $3 where id = $1`, [con, ma, ma ? now : null]);
-  await q(`delete from pin_sai where khoa like $1`, [`pin:%:${con}`]);          // PIN mới ⇒ bộ đếm sai cũ hết ý nghĩa
+  await q(`update children set pin_ma = $2, pin_dat_luc = $3 where id = $1`, [con, ma ? maHoaPin(con, ma) : null, ma ? now : null]);     // #555: lưu bản mã
+  await q(`delete from pin_sai where khoa like $1 or khoa = $2`, [`pin:%:${con}`, `pinbe:${con}`]);          // PIN mới ⇒ bộ đếm sai cũ hết ý nghĩa
   await q(`update alerts set da_doc = true where family_id = $1 and child_id = $2 and loai = 'quen_pin' and not da_doc`, [fam, con]);
   await ghiSuKien(fam, ma ? "dat_pin" : "bo_pin", {}, { con, nguoi });
   return { coPin: !!ma, pinDatLuc: ma ? now.toISOString() : null, ten: c.ten };
@@ -50,7 +53,8 @@ export async function datPin(fam: string, con: string, pin: unknown, nguoi?: str
 /** Màn «PIN của <Con>» (xem / đặt lại). */
 export async function xemPin(fam: string, con: string) {
   const c = await conCua(fam, con);
-  return { coPin: !!c.pin_ma, pin: c.pin_ma ?? null, pinDatLuc: c.pin_dat_luc ? new Date(c.pin_dat_luc).toISOString() : null, ten: c.ten };
+  // #555: pin_ma là bản mã — giải bằng khoá máy chủ để Ba Mẹ «Hiện». Không giải được (khoá cũ đã mất) ⇒ pin null, Ba Mẹ đặt PIN mới.
+  return { coPin: !!c.pin_ma, pin: giaiPin(con, c.pin_ma), pinDatLuc: c.pin_dat_luc ? new Date(c.pin_dat_luc).toISOString() : null, ten: c.ten };
 }
 
 // ---------------------------------------------------------------- phía máy
@@ -78,7 +82,7 @@ export async function hoSoMay(may: MayS3, now = new Date()) {
   const den = baMeDen(may, now);
   const con = await Promise.all(ds.map(async (c) => {
     const k = khoaTheo.get(c.id);
-    return { id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, ...(await (async () => { const st = await trangThaiSao(c.id); return { sao: st.sao, no: st.no, soDu: st.phutCon }; })()), ...(c.pin_ma && bm ? { vanPin: vanPin(bm, c.id, c.pin_ma) } : {}),
+    return { id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, ...(await (async () => { const st = await trangThaiSao(c.id); return { sao: st.sao, no: st.no, soDu: st.phutCon }; })()), ...(await (async () => { const p = bm ? giaiPin(c.id, c.pin_ma) : null; return p && bm ? { vanPin: vanPin(bm, c.id, p) } : {}; })()),
       ...(k ? { khoaDen: k.toISOString(), choGiay: Math.ceil((k.getTime() - now.getTime()) / 1000) } : {}) };
   }));
   const tenDung = dangDung ? ds.find((c) => c.id === dangDung) : undefined;
@@ -118,6 +122,20 @@ async function dangKhoa(khoa: string, now: Date) {
   return r?.khoa_den && new Date(r.khoa_den).getTime() > now.getTime() ? new Date(r.khoa_den) : null;
 }
 
+/** #555: bộ đếm lượt thử PIN theo bé (`pinbe:<con>`, mọi máy) trong khung 1 giờ tính từ lượt đầu (cap_nhat = đầu khung).
+ *  Giữ chỗ nguyên tử trước khi so; > PIN_SAI_BE_GIO ⇒ trả hạn chờ (hết khung). Lượt đúng trả lại chỗ (traLuotBe) ⇒ chỉ lượt SAI tính trần. */
+async function giuLuotBe(con: string, now: Date): Promise<Date | null> {
+  const r = (await q<{ so_lan: number; cap_nhat: Date }>(`insert into pin_sai(khoa, so_lan, cap_nhat) values ($1, 1, $2)
+    on conflict (khoa) do update set
+      so_lan = case when pin_sai.cap_nhat is null or pin_sai.cap_nhat <= $3 then 1 else pin_sai.so_lan + 1 end,
+      cap_nhat = case when pin_sai.cap_nhat is null or pin_sai.cap_nhat <= $3 then $2 else pin_sai.cap_nhat end
+    returning so_lan, cap_nhat`, [`pinbe:${con}`, now, new Date(now.getTime() - 3600_000)]))[0];
+  if (r.so_lan <= PIN_SAI_BE_GIO) return null;
+  await traLuotBe(con);                                   // lượt bị chặn không chiếm chỗ (đếm giữ đúng trần)
+  return new Date(new Date(r.cap_nhat).getTime() + 3600_000);
+}
+const traLuotBe = (con: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [`pinbe:${con}`]);
+
 const choThu = (den: Date, now: Date) => Math.max(1, Math.ceil((den.getTime() - now.getTime()) / 1000));
 
 const bang = (a: string, b: string) => a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -138,13 +156,18 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
     if (!vao) { const den = await dangKhoa(khoa, now); if (den) throw tamKhoa(den); throw new LoiPin("can_pin", "Nhập PIN 4 số nhé", 400, { coPin: true }); }
     const g = await giuLuot(khoa, PIN_SAI_TOI_DA, now);
     if ("den" in g) throw tamKhoa(g.den);
-    if (!bang(vao, c.pin_ma)) {
+    // #555: trần theo BÉ trên mọi máy — giữ chỗ một lượt trước khi so (đúng thì trả lại), quá trần ⇒ chờ tới hết khung giờ
+    const be = await giuLuotBe(c.id, now);
+    if (be) throw tamKhoa(be);
+    const that = giaiPin(c.id, c.pin_ma);
+    if (!that || !bang(vao, that)) {
       const conLan = await ghiSai(khoa, g.lan, PIN_SAI_TOI_DA, PIN_CHO_GIAY, now);
       await ghiSuKien(may.family_id, "sai_pin", { conLan }, { con: c.id, may: may.id });
       if (!conLan) throw tamKhoa(new Date(now.getTime() + PIN_CHO_GIAY * 1000));
       throw new LoiPin("pin_sai", `Chưa đúng · còn ${conLan} lần thử`, 401, { conLan });
     }
     await q(`delete from pin_sai where khoa = $1`, [khoa]);
+    await traLuotBe(c.id);
   }
   // #267 «Đổi người»: máy chỉ một bé một lúc — bé trước (khác bé này) hết phiên Con trên máy + phiên chơi trên máy dừng (phút bé trước dừng tính)
   // #340: một giao dịch, khoá dòng máy (for update) ⇒ hai bé đăng nhập cùng lúc trên một máy nối đuôi nhau: lượt sau thấy phiên Con của lượt

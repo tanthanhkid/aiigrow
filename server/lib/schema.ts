@@ -664,8 +664,9 @@ export const SCHEMA_S2 = [
 
 // ================================================================ S3 «PIN theo bé + quà bảng giá + mã mở máy» — thiết kế chốt 06/11
 // (docs/KE-HOACH-KHOP-THIET-KE-0611.md L13 L14 L19). Chỉ thêm; lib/db.ts chạy khối này sau SCHEMA_S2. Mọi câu chạy lại được.
-// children.pin_ma (L13, đảo L5): PIN 4 số Ba Mẹ đặt để bé vào máy dùng chung. Lưu thẳng vì Ba Mẹ cần «Hiện» lại PIN (màn them-z2fyhohj) —
-//   băm 4 số cũng dò lại được tức thì nên không thêm an toàn; chặn dò bằng bộ đếm phía máy chủ (pin_sai: 5 lần sai ⇒ chờ 15 giây).
+// children.pin_ma (L13, đảo L5): PIN 4 số Ba Mẹ đặt để bé vào máy dùng chung. Ba Mẹ cần «Hiện» lại PIN (màn them-z2fyhohj) nên không băm —
+//   #555: lưu BẢN MÃ AES-256-GCM bằng khoá máy chủ ngoài DB (lib/pin-ma.ts; PIN rõ cũ chuyển lúc mở DB — db.ts › chuyenPinCu); chặn dò bằng
+//   bộ đếm phía máy chủ (pin_sai: 5 lần sai / máy + bé ⇒ chờ 15 giây; 20 lần sai / bé / giờ trên mọi máy).
 //   null = bé chưa có PIN ⇒ chọn tên vào thẳng. pin_dat_luc: «Đặt lần cuối 06/11». children.pin_hash (cũ) không dùng.
 // devices.con_dang_dung: bé đang đăng nhập trên máy (máy dùng chung) — nhịp / đồng bộ không kèm X-Phien-Con vẫn tính giờ, sao, chính sách theo bé này.
 //   dang_nhap_luc: lúc bé vào. ba_me_den: «Ba Mẹ đang dùng máy» (mở bằng mã mở máy) tới lúc này — không tính giờ con; null = không.

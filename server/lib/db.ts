@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { SCHEMA, SCHEMA_APP_WEB, SCHEMA_M4B, SCHEMA_M5, SCHEMA_S2, SCHEMA_S3, SCHEMA_SAO, SCHEMA_TV_TB } from "./schema.ts";
 import { napHeThong } from "./he-thong.ts";
+import { chuyenPinCu } from "./pin-ma.ts";
 
 export type Row = Record<string, any>;
 export type Q = <T = Row>(sql: string, params?: unknown[]) => Promise<T[]>;
@@ -34,6 +35,7 @@ async function mo(): Promise<Db> {
         insert into _luoc_do(id, bam) values (1, '${BAM_LUOC_DO}') on conflict (id) do update set bam = excluded.bam, luc = now()`);
     }
     napHeThong(await q(`select khoa, gia_tri from he_thong`));
+    await chuyenPinCu(q).catch((e) => console.error("[pin-ma] chuyển PIN cũ lỗi", e));     // #555: PIN rõ cũ ⇒ mã hoá (chạy lại được)
     return {
       q,
       tx: (fn) => sql.begin((t) => fn(async (s, p = []) => (await t.unsafe(s, p as any[])) as any)) as any,
@@ -53,6 +55,7 @@ async function mo(): Promise<Db> {
   for (const c of [...SCHEMA_TV_TB, ...SCHEMA_S2, ...SCHEMA_S3, ...SCHEMA_SAO, ...SCHEMA_APP_WEB]) await pg.exec(c);
   const q: Q = async (s, p = []) => (await pg.query(s, p as any[])).rows as any;
   napHeThong(await q(`select khoa, gia_tri from he_thong`));
+  await chuyenPinCu(q).catch((e) => console.error("[pin-ma] chuyển PIN cũ lỗi", e));
   return {
     q,
     tx: (fn) => pg.transaction((t) => fn(async (s, p = []) => (await t.query(s, p as any[])).rows as any)),
