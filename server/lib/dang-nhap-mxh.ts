@@ -19,6 +19,7 @@
 import { createHmac, createPublicKey, verify, type JsonWebKey } from "node:crypto";
 import { one, q, tx } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { goKhoaTaiKhoan } from "./gioi-han-dang-nhap.ts";
 import { SQL_CHUYEN_FB } from "./schema.ts";
 import { bamMatKhau, chuanDinhDanh, dungMatKhau, taoNha, TIEN_TO_FB, type BaMe } from "./auth.ts";
 
@@ -237,6 +238,7 @@ export async function datMatKhauMxh(bm: BaMe, b: Record<string, unknown>, ip = "
   const r = await q(`update parents set pass_hash = $2 where id = $1 and pass_hash is null returning id`, [bm.id, bam]);
   if (!r.length) throw new LoiNghiepVu("da_co_mat_khau", "Tài khoản đã có mật khẩu — đổi bằng «Quên mật khẩu»", 409);
   await q(`delete from pin_sai where khoa like $1`, [`dat_mk_tk:${bm.id}:%`]);
+  await goKhoaTaiKhoan("bm", p!.dinh_danh);                    // đã xác minh lại chủ tài khoản ⇒ gỡ khoá đăng nhập mật khẩu ở mọi nguồn (#553)
 }
 
 /** POST doi-mat-khau {matKhau, matKhauMoi} — màn «Đổi mật khẩu» (thiết kế 14/11 bm-ca-nha/09 them-o4k6oei0): đúng mật khẩu đang dùng ⇒
@@ -255,6 +257,7 @@ export async function doiMatKhau(bm: BaMe, b: Record<string, unknown>, giuPhien:
     await t(`update parents set pass_hash = $2, sai_lien = 0, khoa_den = null where id = $1`, [bm.id, bam]);
     // chỉ đăng xuất máy khác khi biết phiên đang gọi (id = sha(bearer) đã xác thực ở api-m) — không bao giờ xoá luôn phiên của chính người gọi
     if (giuPhien) await t(`delete from sessions where parent_id = $1 and id <> $2`, [bm.id, giuPhien]);
+    await goKhoaTaiKhoan("bm", bm.dinh_danh, t);              // đổi mật khẩu ⇒ gỡ khoá đăng nhập ở mọi nguồn (#553)
   });
   return { ok: true };
 }

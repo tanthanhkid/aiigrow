@@ -135,14 +135,14 @@ export async function dangKy(b: { dinhDanh?: unknown; ma?: unknown; ten?: unknow
 export async function dangNhap(dinhDanh: unknown, mk: unknown, ip = "?", now = Date.now()) {
   const d = chuanDinhDanh(dinhDanh);
   const tk = d ?? `?${String(dinhDanh ?? "").trim().toLowerCase().slice(0, 80)}`;
-  const kIp = await gh.truocDangNhap("bm", tk, ip, now, ", hoặc bấm «Quên mật khẩu» để đặt lại bằng mã OTP");
+  const luot = await gh.truocDangNhap("bm", tk, ip, now, ", hoặc bấm «Quên mật khẩu» để đặt lại bằng mã OTP");
   const p = d ? await one<{ id: string; pass_hash: string | null }>(`select id, pass_hash from parents where dinh_danh = $1`, [d]) : undefined;
   const dung = p?.pass_hash ? await dungMatKhau(String(mk ?? ""), p.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
   if (!p || !dung) {
-    await gh.dangNhapSai("bm", tk, ip, now);
+    await gh.dangNhapSai(luot);
     throw new LoiNghiepVu("sai_dang_nhap", "Số điện thoại/email hoặc mật khẩu chưa đúng", 401);
   }
-  await gh.dangNhapDung("bm", tk, ip, kIp);
+  await gh.dangNhapDung(luot);
   return p.id;
 }
 

@@ -50,18 +50,18 @@ export async function datTaiKhoan(b: { tenDangNhap: string; matKhau: string; ten
 export async function dangNhapNv(tenDangNhap: unknown, mk: unknown, vaiCan: VaiNv, ip = "?", now = Date.now()) {
   await damBaoBang();
   const tdn = sachTen(tenDangNhap);
-  const kIp = await gh.truocDangNhap("nv", tdn, ip, now);
+  const luot = await gh.truocDangNhap("nv", tdn, ip, now);
   const s = await one<{ id: string; vai: VaiNv; pass_hash: string; bat: boolean }>(
     `select id, vai, pass_hash, bat from staff where ten_dang_nhap = $1`, [tdn]);
   const dung = s ? await dungMatKhau(String(mk ?? ""), s.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
   if (!s || !dung || !s.bat) {
-    const phut = await gh.dangNhapSai("nv", tdn, ip, now);
+    const phut = await gh.dangNhapSai(luot);
     await ghiKiemToan(null, "dang_nhap_sai", { tenDangNhap: tdn.slice(0, 60), man: vaiCan });
     if (phut) await ghiKiemToan(null, "dang_nhap_tam_khoa", { tenDangNhap: tdn.slice(0, 60), man: vaiCan, ip: ip.slice(0, 60), phut });
     throw new LoiNghiepVu("sai_dang_nhap", "Tên đăng nhập hoặc mật khẩu chưa đúng", 401);
   }
+  await gh.dangNhapDung(luot);                                            // mật khẩu đúng ⇒ trả lượt kể cả khi sai màn (403 dưới)
   if (vaiCan === "admin" && s.vai !== "admin") throw new LoiNghiepVu("khong_du_quyen", "Tài khoản này chỉ dùng ở màn quầy AiiCafe", 403);
-  await gh.dangNhapDung("nv", tdn, ip, kIp);
   const t = taoToken();
   await q(`insert into staff_sessions(id, staff_id, expires_at) values ($1, $2, now() + make_interval(hours => $3))`, [sha(t), s.id, PHIEN_GIO[s.vai]]);
   await ghiKiemToan({ id: s.id, vai: s.vai }, "dang_nhap", { man: vaiCan });

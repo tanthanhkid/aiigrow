@@ -118,10 +118,55 @@ test("dọn bộ đếm: khung IP cũ, cặp hết khoá, bậc quá 24 giờ", 
   await loi(a.dangNhap("0902553888", "x-x-x-x-x", "1.2.3.4", T), "sai_dang_nhap");
   for (let i = 0; i < 5; i++) await loi(a.dangNhap("0902553889", "x-x-x-x-x", "1.2.3.5", T + i), "sai_dang_nhap");
   const dem = async () => (await one<{ n: number }>(`select count(*)::int as n from pin_sai where khoa like 'dn\\_%'`))!.n;
-  assert.equal(await dem(), 7);                  // 2×2 khung IP (hỏng + tổng) + 2 cặp + 1 bậc
+  assert.equal(await dem(), 9);                  // 2×2 khung IP (hỏng + tổng) + 2 khung tài khoản + 2 cặp + 1 bậc
   assert.equal(await gh.donBoDemDangNhap(T + 5 * PHUT), 0, "khung hiện tại, khoá còn hạn: giữ");
   assert.equal(await gh.donBoDemDangNhap(T + 40 * PHUT), 6, "4 khung IP cũ + 2 cặp hết khoá");
-  assert.equal(await gh.donBoDemDangNhap(T + 25 * 60 * PHUT), 1, "bậc quá 24 giờ");
+  assert.equal(await gh.donBoDemDangNhap(T + 25 * 60 * PHUT), 2, "khung tài khoản cũ");
+  assert.equal(await gh.donBoDemDangNhap(T + 73 * 60 * PHUT), 1, "bậc quá hạn nhớ");
+});
+
+test("gửi song song: cặp (tài khoản, IP) chỉ cho ≤ 5 lượt thử mật khẩu, còn lại 429 trước khi băm", async () => {
+  await taoBaMe("0902553020");
+  const kq = await Promise.allSettled(Array.from({ length: 20 }, (_, i) => a.dangNhap("0902553020", `doan-${i}-xx`, "6.6.7.7", T + 1)));
+  const ma = kq.map((x) => (x.status === "rejected" ? (x.reason as { ma: string }).ma : "ok"));
+  assert.equal(ma.filter((m) => m === "sai_dang_nhap").length, gh.SAI_KHOA);
+  assert.equal(ma.filter((m) => m === "tam_khoa").length, 20 - gh.SAI_KHOA);
+  await loi(a.dangNhap("0902553020", "matkhau123", "6.6.7.7", T + 2), "tam_khoa");
+});
+
+test("khoá 24 giờ xong bậc vẫn nhớ: lần khoá kế tiếp vẫn 24 giờ, không tụt về 15 phút", async () => {
+  await taoBaMe("0902553021");
+  const ip = "7.7.8.8";
+  let t = T;
+  const sai5 = async () => { for (let i = 0; i < 5; i++) await loi(a.dangNhap("0902553021", "sai-sai-sai", ip, t + i), "sai_dang_nhap"); };
+  await sai5(); t += 16 * PHUT; await sai5(); t += 61 * PHUT; await sai5();
+  t += 24 * 60 * PHUT + PHUT; await sai5();
+  await loi(a.dangNhap("0902553021", "matkhau123", ip, t + 23 * 60 * PHUT), "tam_khoa");
+});
+
+test("dò phân tán qua nhiều IP: quá 30 lượt sai / giờ trên một tài khoản ⇒ nguồn lạ bị chặn, nguồn quen (đã đăng nhập đúng) vẫn vào", async () => {
+  const id = await taoBaMe("0902553022");
+  assert.equal(await a.dangNhap("0902553022", "matkhau123", "10.1.1.1", T - 86_400_000), id);      // hôm qua đăng nhập ở nhà
+  for (let i = 0; i < gh.TRAN_TK; i++) await loi(a.dangNhap("0902553022", "doan-thu-3", `172.16.${i}.1`, T + i), "sai_dang_nhap");
+  await loi(a.dangNhap("0902553022", "matkhau123", "172.16.200.1", T + 100), "tam_khoa");          // nguồn lạ, kể cả mật khẩu đúng
+  assert.equal(await a.dangNhap("0902553022", "matkhau123", "10.1.1.1", T + 100), id);             // nhà: vào được
+  assert.equal(await a.dangNhap("0902553022", "matkhau123", "172.16.200.1", T + 61 * PHUT), id);   // giờ sau mở lại
+});
+
+test("đổi mật khẩu (đang đăng nhập) gỡ khoá đăng nhập ở mọi nguồn", async () => {
+  const id = await taoBaMe("0902553023");
+  const mxh = await import("./dang-nhap-mxh.ts");
+  for (let i = 0; i < 5; i++) await loi(a.dangNhap("0902553023", "sai-sai-sai", "4.4.5.1", T + i), "sai_dang_nhap");
+  await loi(a.dangNhap("0902553023", "matkhau123", "4.4.5.1", T + 10), "tam_khoa");
+  const tok = await a.taoPhien(id);
+  await mxh.doiMatKhau((await a.baMeTuToken(tok))!, { matKhau: "matkhau123", matKhauMoi: "matkhaumoi8" }, null, T + 20);
+  assert.equal(await a.dangNhap("0902553023", "matkhaumoi8", "4.4.5.1", T + 30), id);
+});
+
+test("quầy đúng mật khẩu mà vào nhầm /admin (403) không tốn lượt IP", async () => {
+  await ad.datTaiKhoan({ tenDangNhap: "quay553", matKhau: "matkhau-quay-1", ten: "Quầy", vai: "quay" });
+  for (let i = 0; i < gh.TRAN_IP + 5; i++) await loi(ad.dangNhapNv("quay553", "matkhau-quay-1", "admin", "3.3.4.4", T + i), "khong_du_quyen");
+  assert.ok(await ad.dangNhapNv("quay553", "matkhau-quay-1", "quay", "3.3.4.4", T + 100));
 });
 
 // ------------------------------------------------------------------ API: header x-real-ip, IPv6 gộp /64
