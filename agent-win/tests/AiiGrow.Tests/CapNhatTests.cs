@@ -339,11 +339,11 @@ public class KyBoCaiTests
     public void KiemNem_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, KyBoCai.Kiem("x.exe", DsGhim, _ => throw new IOException("khoá"), _ => Ghim));
 
     [Fact]
-    public void ChuaGhim_KhongChan()
-    {
-        Assert.Equal(KetQuaKyBoCai.ChuaGhim, K(Array.Empty<string>(), false, null));
-        Assert.Equal(KetQuaKyBoCai.ChuaGhim, K(new[] { "", "khong-phai-bam" }, false, null));   // ghim hỏng không được coi là đã ghim
-    }
+    public void ChuaGhim_KhongChan() => Assert.Equal(KetQuaKyBoCai.ChuaGhim, K(Array.Empty<string>(), false, null));
+
+    [Fact]
+    public void GhimSaiDang_Chan()   // dán nhầm thumbprint SHA-1 (40 ký tự) ⇒ chặn, không lặng lẽ tắt kiểm
+        => Assert.Equal(KetQuaKyBoCai.SaiChuKy, K(new[] { new string('A', 40) }, true, new string('A', 40)));
 
     [Fact]
     public void DanhSachGhimTrongMa_LaBamSha256() => Assert.All(KyBoCai.ThumbprintGhim, g => Assert.True(TuCapNhat.LaSha256(g)));

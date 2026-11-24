@@ -141,6 +141,7 @@ public sealed class UpdateWorker : BackgroundService
         {
             case KetQuaKyBoCai.SaiChuKy:
                 try { File.Delete(tep); } catch { }
+                GhiDaThu(m.Version);   // bản này đã hỏng chữ ký: «Cập nhật ngay» trên khay không tải lại 182 MB mỗi lần bấm (DaThuGanDay 24 giờ)
                 _log.LogError("Tự cập nhật: bộ cài bản {Ban} KHÔNG có chữ ký Authenticode hợp lệ của AiiGrow ⇒ đã xoá, không chạy; thử lại sau {Gio}", m.Version, ThuLaiSaiSha);
                 return _chuKy > ThuLaiSaiSha ? _chuKy : ThuLaiSaiSha;
             case KetQuaKyBoCai.ChuaGhim:

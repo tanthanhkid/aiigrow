@@ -30,13 +30,15 @@ public static class KyBoCai
     public static readonly IReadOnlyList<string> ThumbprintGhim = Array.Empty<string>();
 
     /// <summary>Kiểm tệp thật trên Windows (WinVerifyTrust + băm chứng chỉ người ký).</summary>
-    public static KetQuaKyBoCai Kiem(string tep) => Kiem(tep, ThumbprintGhim, KiemKyTrinhDuyet.ChuKyHopLe, BamNguoiKy);
+    public static KetQuaKyBoCai Kiem(string tep) => Kiem(tep, ThumbprintGhim, t => KiemKyTrinhDuyet.ChuKyHopLe(t, kiemThuHoi: true), BamNguoiKy);
 
     /// <summary>Lõi thuần để test: <paramref name="chuKyHopLe"/> = WinVerifyTrust, <paramref name="bamNguoiKy"/> = băm SHA-256 chứng chỉ người ký (null nếu không có chữ ký).</summary>
     public static KetQuaKyBoCai Kiem(string tep, IReadOnlyCollection<string> ghim, Func<string, bool> chuKyHopLe, Func<string, string?> bamNguoiKy)
     {
+        if (ghim.Count == 0) return KetQuaKyBoCai.ChuaGhim;
+        // đã ghim mà không mục nào đúng dạng băm SHA-256 (vd dán nhầm thumbprint SHA-1 40 ký tự) ⇒ chặn, không lặng lẽ tắt kiểm
         var dsGhim = ghim.Where(TuCapNhat.LaSha256).ToList();
-        if (dsGhim.Count == 0) return KetQuaKyBoCai.ChuaGhim;
+        if (dsGhim.Count == 0) return KetQuaKyBoCai.SaiChuKy;
         bool hopLe;
         string? bam;
         try { hopLe = chuKyHopLe(tep); bam = hopLe ? bamNguoiKy(tep) : null; }
@@ -48,12 +50,15 @@ public static class KyBoCai
     /// <summary>Băm SHA-256 (hex hoa) chứng chỉ người ký Authenticode của tệp; không có chữ ký ⇒ null.</summary>
     public static string? BamNguoiKy(string tep)
     {
+        using var c = ChungChiNguoiKy(tep);
+        return c?.GetCertHashString(HashAlgorithmName.SHA256);
+    }
+
+    /// <summary>Chứng chỉ người ký Authenticode (chữ ký chính) của tệp — KHÔNG kiểm tin cậy; không có chữ ký ⇒ null.</summary>
+    public static X509Certificate2? ChungChiNguoiKy(string tep)
+    {
 #pragma warning disable SYSLIB0057
-        try
-        {
-            using var c = new X509Certificate2(X509Certificate.CreateFromSignedFile(tep));
-            return c.GetCertHashString(HashAlgorithmName.SHA256);
-        }
+        try { using var c = X509Certificate.CreateFromSignedFile(tep); return new X509Certificate2(c); }
         catch { return null; }
 #pragma warning restore SYSLIB0057
     }
