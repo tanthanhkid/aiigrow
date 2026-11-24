@@ -4,8 +4,8 @@
 // rồi vệt men lướt chéo; vòng quét tới giá trị. Reduce Motion ⇒ không mọc / không lướt, chỉ fade (docs/clay/M-anh-men.css cuối khối thông số).
 // «Mọc» chỉ dùng transform (Thanh duyệt 25/10): cột / thanh có kích thước cuối ngay từ đầu rồi scale từ chân (transformOrigin), nên mỗi khung
 // không phải tính lại bố cục. Đánh đổi đã chấp nhận: trong ~400ms mọc, đầu bo + lớp men hơi giãn theo; mọc xong (scale 1) y hệt bản tĩnh.
-// Một bộ cho mọi chỗ: Báo cáo tuần (cột đôi học / giải trí), Thời gian màn hình (cột chồng theo mục + thanh theo mục), Tien (thanh tiến độ),
-// vòng đồng hồ của Con. Chỉ dùng react-native-reanimated + react-native-svg có sẵn.
+// Một bộ cho mọi chỗ: Báo cáo tuần (cột đôi học / giải trí), Thời gian màn hình (cột chồng theo mục + thanh theo mục).
+// Chỉ dùng react-native-reanimated + react-native-svg có sẵn.
 import React, { useEffect } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, ReduceMotion, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withSpring, withTiming } from "react-native-reanimated";
@@ -205,10 +205,6 @@ export function ThanhClay({ ti, mau = M.chinh, cao = 14, tre = 0, nhanDoc }: { t
     </View>
   );
 }
-
-// ---------------------------------------------------------------- vòng
-
-// ---------------------------------------------------------------- chú giải
 
 const s = StyleSheet.create({
   ranh: { alignSelf: "stretch", flexDirection: "row", alignItems: "flex-end", justifyContent: "center", gap: 3, padding: 4, borderRadius: 999, backgroundColor: M.ranh, boxShadow: BONG.lom },

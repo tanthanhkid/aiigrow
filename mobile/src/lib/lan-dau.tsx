@@ -241,7 +241,7 @@ export const boCach = (v: string) => (/^[\d\s+]*$/.test(v) ? v.replace(/\s/g, ""
 /** «0912345678» ⇒ «0912 345 678» (số 10 chữ số; dạng khác — email, +84… — giữ nguyên). */
 export const hienSo = (s = "") => (/^\d{10}$/.test(s) ? s.replace(/^(\d{4})(\d{3})(\d{3})$/, "$1 $2 $3") : s);
 /** Ô nhập SĐT/email: lúc đang gõ giữ nguyên chữ người dùng (không dựng lại ⇒ xoá dấu cách được, con trỏ không nhảy); rời ô mới tách
- * «0912 345 678». Giá trị lưu luôn là `boCach(chữ)`. Trả props cho TextInput / OLom / OLomTran. */
+ * «0912 345 678». Giá trị lưu luôn là `boCach(chữ)`. Trả props cho TextInput / OLom. */
 export function useOSo(gia: string, doi: (v: string) => void) {
   const [dangGo, setDangGo] = useState<string | null>(null);
   return {

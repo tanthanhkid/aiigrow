@@ -16,7 +16,6 @@ import { hinhNv, hoanTacThemGio, SaoVien, TieuMuc, HangViec, type ChoDuyetMoi, t
 import { BangTraoQua } from "@/lib/trao-qua";
 import { mayCuaCon } from "@/lib/may-nhieu-con";
 import { tenMayXin, TheXin, type KetQua } from "@/lib/hom-nay-xin";
-import { KHOA_TAB } from "@/lib/tab-ba-me";
 import { cauLoiHoanTac } from "@/lib/hoan-tac";
 import {
   BaoLoi, BieuTron, CanhGiua, ChoTai, ChonMot, Chu, gioPhut, M, Man, Nut, The, truoc, useHoanTac, useLam, useTai,
@@ -29,7 +28,7 @@ const napCho = async () => {
 };
 
 export default function ChoDuyet() {
-  const { d, loi, matMang, tai } = useTai(napCho, `${KHOA_TAB.choDuyet}:05-11`);
+  const { d, loi, matMang, tai } = useTai(napCho, "tab:cho-duyet:05-11");
   const [chon, setChon] = useState("ca");
   const [trao, setTrao] = useState<PhieuCho | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();

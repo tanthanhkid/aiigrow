@@ -11,11 +11,9 @@ export const SP = {
   vao: { stiffness: 260, damping: 17, mass: 1 },
   bat: { stiffness: 500, damping: 16, mass: 1 },
 } as const;
-/** Đường cong (M-anh-men.css): MEN ease-out men · VAO chuẩn · BAY điểm bay. */
+/** Đường cong (M-anh-men.css): VAO chuẩn · EP bẹp khi nhấn · QUET vệt men lướt. */
 export const EASE = {
-  men: Easing.bezier(0.2, 0.7, 0.2, 1),
   vao: Easing.bezier(0.4, 0, 0.2, 1),
-  bay: Easing.bezier(0.45, 0, 0.25, 1),
   ep: Easing.bezier(0.3, 0, 0.5, 1),
   quet: Easing.bezier(0.3, 0.6, 0.2, 1),
 } as const;

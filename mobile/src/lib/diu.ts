@@ -27,8 +27,6 @@ export const D = {
   sang: "#FFFBF5",
   // chạy thử (chỉ hiện ở bản dev): viền cam đứt
   thu: "#983E04",
-  // (cũ) màu riêng từng bé — avatar «Ánh kim» nay mọi bé navy chữ vàng (AvtD); giữ để không vỡ chỗ gọi mauAvt
-  avt: ["#F5A957", "#6AA9E9", "#B48CDE", "#E98AA9", "#5CB88A", "#E8B54F"],
 } as const;
 
 /** Chữ: `dam` = Be Vietnam Pro 400 (thân), `rat` = Be Vietnam Pro 700 (dòng tiêu, nút), `den` = Be Vietnam Pro ExtraBold 800 (tiêu đề màn, số to — #417).

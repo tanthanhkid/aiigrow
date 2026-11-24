@@ -1,5 +1,5 @@
 // Dữ liệu tab «Cả nhà» (thiết kế chốt bm-cai-dat/01 «Gia đình» = 03 «Tab Cả nhà»): người lớn + lời mời đang chờ (2 quyền S2), các con,
-// máy đã ghép, cài đặt chung. Một hàm tải cho cả màn tab lẫn màn Thành viên. Chỉ THÊM — napGiaDinh (tab-ba-me.ts) giữ nguyên cho chỗ gọi cũ.
+// máy đã ghép, cài đặt chung. Một hàm tải cho cả màn tab lẫn màn Thành viên.
 import { bm, type GiaDinh, type TuanThuMay } from "./api";
 
 export type Quyen = "ba_me" | "trong_giup";
