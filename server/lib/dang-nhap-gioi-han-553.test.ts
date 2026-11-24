@@ -72,6 +72,20 @@ test("trần theo IP: 30 lượt hỏng / 15 phút cho mọi tài khoản (cả 
   assert.equal(await a.dangNhap("0902553004", "matkhau123", ip, T + 15 * PHUT), id);       // khung mới
 });
 
+test("trần tổng theo IP: xen đăng nhập đúng không «trả» được lượt hỏng; gửi dồn đăng nhập đúng cũng dừng ở 120 / khung", async () => {
+  const id = await taoBaMe("0902553006");
+  const ip = "9.9.8.8", t = T + 30 * PHUT;
+  let chan = 0;
+  for (let i = 0; i < 40; i++)
+    for (const [dd, mk] of [["0902553006", "matkhau123"], [`09025542${String(i).padStart(2, "0")}`, "doan-thu-2"]]) {
+      try { assert.equal(await a.dangNhap(dd, mk, ip, t + i), id); } catch (e) { if ((e as { ma?: string }).ma === "qua_nhieu_lan") chan++; }
+    }
+  assert.equal(chan, 20, "lượt hỏng thứ 31 trở đi bị chặn (cả lượt đúng xen giữa)");
+  const ip2 = "9.9.8.9";
+  for (let i = 0; i < gh.TRAN_IP_TONG; i++) assert.equal(await a.dangNhap("0902553006", "matkhau123", ip2, t + i), id);
+  await loi(a.dangNhap("0902553006", "matkhau123", ip2, t + 500), "qua_nhieu_lan");
+});
+
 test("không lộ tài khoản: số không tồn tại cũng bị khoá cặp như số có thật", async () => {
   for (let i = 0; i < 5; i++) await loi(a.dangNhap("0902553777", "x-x-x-x-x", "5.5.5.5", T + i), "sai_dang_nhap");
   await loi(a.dangNhap("0902553777", "x-x-x-x-x", "5.5.5.5", T + 10), "tam_khoa");
@@ -104,9 +118,9 @@ test("dọn bộ đếm: khung IP cũ, cặp hết khoá, bậc quá 24 giờ", 
   await loi(a.dangNhap("0902553888", "x-x-x-x-x", "1.2.3.4", T), "sai_dang_nhap");
   for (let i = 0; i < 5; i++) await loi(a.dangNhap("0902553889", "x-x-x-x-x", "1.2.3.5", T + i), "sai_dang_nhap");
   const dem = async () => (await one<{ n: number }>(`select count(*)::int as n from pin_sai where khoa like 'dn\\_%'`))!.n;
-  assert.equal(await dem(), 5);                  // 2 khung IP + 2 cặp + 1 bậc
+  assert.equal(await dem(), 7);                  // 2×2 khung IP (hỏng + tổng) + 2 cặp + 1 bậc
   assert.equal(await gh.donBoDemDangNhap(T + 5 * PHUT), 0, "khung hiện tại, khoá còn hạn: giữ");
-  assert.equal(await gh.donBoDemDangNhap(T + 40 * PHUT), 4, "2 khung IP cũ + 2 cặp hết khoá");
+  assert.equal(await gh.donBoDemDangNhap(T + 40 * PHUT), 6, "4 khung IP cũ + 2 cặp hết khoá");
   assert.equal(await gh.donBoDemDangNhap(T + 25 * 60 * PHUT), 1, "bậc quá 24 giờ");
 });
 

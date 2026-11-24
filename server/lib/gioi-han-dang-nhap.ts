@@ -13,6 +13,7 @@ import { LoiNghiepVu } from "./loi.ts";
 export type LoaiDn = "bm" | "nv";                    // Ba Mẹ | Nhân viên / Admin — bộ đếm tách nhau
 export const KHUNG_PHUT = 15;
 export const TRAN_IP = 30;                           // lượt hỏng / IP / khung 15 phút
+export const TRAN_IP_TONG = 120;                     // MỌI lượt (cả đúng) / IP / khung — chặn gửi dồn đăng nhập đúng để đốt scrypt
 export const SAI_KHOA = 5;                           // sai liền từ một nguồn ⇒ khoá cặp (tài khoản, nguồn)
 export const BAC_PHUT = [15, 60, 24 * 60] as const;  // khoá luỹ tiến
 const GIU_BAC_MS = 24 * 3_600_000;
@@ -20,6 +21,7 @@ const SAI_CU_MS = KHUNG_PHUT * 60_000;               // lần sai cũ hơn 15 ph
 
 const khung = (now: number) => Math.floor(now / SAI_CU_MS);
 const khoaIp = (loai: LoaiDn, ip: string, now: number) => `dn_ip:${loai}:${ip}:${khung(now)}`;
+const khoaIpTong = (loai: LoaiDn, ip: string, now: number) => `dn_ipt:${loai}:${ip}:${khung(now)}`;
 const khoaCap = (loai: LoaiDn, tk: string, ip: string) => `dn_cap:${loai}:${tk}|${ip}`;
 const khoaBac = (loai: LoaiDn, tk: string, ip: string) => `dn_bac:${loai}:${tk}|${ip}`;
 const tienToTk = (loai: LoaiDn, tk: string) => [`dn_cap:${loai}:${tk}|`, `dn_bac:${loai}:${tk}|`];
@@ -31,9 +33,9 @@ const chuCho = (phut: number) => (phut >= 120 ? `${Math.ceil(phut / 60)} giờ` 
  *  → khoá bộ đếm IP (đưa lại cho dangNhapDung / dangNhapSai). */
 export async function truocDangNhap(loai: LoaiDn, tk: string, ip: string, now: number, goiY = "") {
   const k = khoaIp(loai, ip, now);
-  const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
-    on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [k]))[0];
-  if (s.so_lan > TRAN_IP)
+  const [hong, tong] = await Promise.all([k, khoaIpTong(loai, ip, now)].map(async (khoa) => (await q<{ so_lan: number }>(
+    `insert into pin_sai(khoa, so_lan) values ($1, 1) on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0].so_lan));
+  if (hong > TRAN_IP || tong > TRAN_IP_TONG)
     throw new LoiNghiepVu("qua_nhieu_lan", `Thử đăng nhập nhiều lần quá — đợi ${KHUNG_PHUT} phút rồi thử lại nhé`, 429);
   const c = (await q<{ khoa_den: Date | null }>(`select khoa_den from pin_sai where khoa = $1`, [khoaCap(loai, tk, ip)]))[0];
   if (c?.khoa_den && new Date(c.khoa_den).getTime() > now)
@@ -76,7 +78,7 @@ export async function goKhoaTaiKhoan(loai: LoaiDn, tk: string, t: Q = q) {
 export async function donBoDemDangNhap(now = Date.now()) {
   const k = khung(now), luc = new Date(now);
   return (await q(`delete from pin_sai where
-      (khoa like 'dn\\_ip:%' and split_part(khoa, ':', -1) not in ($1, $2))
+      ((khoa like 'dn\\_ip:%' or khoa like 'dn\\_ipt:%') and split_part(khoa, ':', -1) not in ($1, $2))
    or (khoa like 'dn\\_cap:%' and (khoa_den is null or khoa_den <= $3) and coalesce(cap_nhat, '-infinity') < $4)
    or (khoa like 'dn\\_bac:%' and coalesce(cap_nhat, '-infinity') < $5)
    returning 1`, [String(k), String(k - 1), luc, new Date(now - SAI_CU_MS), new Date(now - GIU_BAC_MS)])).length;
