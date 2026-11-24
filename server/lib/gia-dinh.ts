@@ -209,51 +209,64 @@ export async function taoMaGhep(fam: string, con: string | null, platform: strin
   throw new Error("Không tạo được mã ghép");
 }
 
-const GHEP_SAI_TOI_DA = 10;
-/** Trần TOÀN CỤC lượt thử mã ghép (mọi nguồn cộng lại) trong một khung — chặn dò phân tán qua nhiều IP / khối IPv6 (#550). Mã 6 số, N mã đang
- *  sống ⇒ mỗi khung kẻ dò trúng tối đa ~GHEP_SAI_TONG·N/10⁶. Đổi lại: khi bị dò ồ ạt, ghép máy tạm ngưng tới hết khung (≤15 phút). */
+const GHEP_SAI_TOI_DA = 10;                  // lượt sai / nguồn (IPv4 hoặc IPv6 /64) / khung
+const GHEP_SAI_48 = 30;                      // lượt sai / khối IPv6 /48 / khung (một người thuê được cả /48 = 65k khối /64)
+/** Ngưỡng «bị dò» TOÀN CỤC (#550): tổng lượt sai mọi nguồn trong khung vượt ngưỡng ⇒ mỗi nguồn / khối /48 chỉ còn 1 lượt tới hết khung.
+ *  Mỗi khung kẻ dò thử được ~GHEP_SAI_TONG + (số IPv4 + số khối /48 nắm trong tay) lượt; người gõ đúng ngay lần đầu vẫn ghép được
+ *  (không khoá cứng cả hệ thống — vài chục IP không chặn được việc ghép của mọi gia đình). */
 export const GHEP_SAI_TONG = 200;
 
 const GHEP_KHUNG_MS = 15 * 60_000;           // khung đếm lượt SAI (chống dò mã) — khác hạn mã (MA_GHEP_PHUT)
-const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]);
-const giuCho = async (khoa: string) => (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
-    on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0].so_lan;
+const traLuot = (khoa: string[]) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = any($1::text[])`, [khoa]);
+/** Giữ chỗ (+1) nhiều bộ đếm trong một câu. → số lượt mới theo đúng thứ tự `khoa`. */
+async function giuCho(khoa: string[]) {
+  const r = await q<{ khoa: string; so_lan: number }>(`insert into pin_sai(khoa, so_lan) select k, 1 from unnest($1::text[]) k
+    on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning khoa, so_lan`, [khoa]);
+  const m = new Map(r.map((x) => [x.khoa, x.so_lan]));
+  return khoa.map((k) => m.get(k) ?? 0);
+}
 
-/** Nguồn đếm lượt ghép: IPv4 giữ nguyên; IPv6 (đã gộp /64 ở nguonGoi) gộp tiếp về /48 — một người thuê được cả khối /48 (65k khối /64). */
-export const nguonGhep = (nguon: string) => (nguon.includes(":") ? nguon.split(":").slice(0, 3).join(":") : nguon);
+/** Khối IPv6 /48 của nguồn (đã gộp /64 ở nguonGoi); IPv4 ⇒ null. */
+export const khoi48 = (nguon: string) => (nguon.includes(":") ? nguon.split(":").slice(0, 3).join(":") : null);
 
-/** Ghép máy bằng mã 6 số. Mỗi nguồn (IPv4, hoặc khối IPv6 /48) được tối đa 10 lần sai trong một khung 15 phút, quá ⇒ khoá tới hết khung —
- *  chặn dò mã (chốt BRD #56 câu 3); cộng thêm trần toàn cục GHEP_SAI_TONG lượt sai / khung trên mọi nguồn (#550). Khung cố định theo giờ ⇒
- *  gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Giữ chỗ lượt thử TRƯỚC khi thử (upsert nguyên tử) ⇒ gửi song song cũng chỉ ≤ trần lượt lọt;
- *  ghép đúng hoặc lỗi không phải sai mã thì trả lại lượt. Nguồn đã quá trần riêng KHÔNG ăn vào trần toàn cục (một IP không tự khoá được cả hệ thống). */
+/** Ghép máy bằng mã 6 số. Mỗi nguồn (IPv4 / IPv6 /64) được tối đa 10 lần sai, mỗi khối IPv6 /48 tối đa 30 lần trong một khung 15 phút, quá ⇒
+ *  khoá tới hết khung — chặn dò mã (chốt BRD #56 câu 3). Tổng lượt sai mọi nguồn vượt GHEP_SAI_TONG ⇒ mỗi nguồn còn 1 lượt (#550). Khung cố
+ *  định theo giờ ⇒ gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Giữ chỗ lượt thử TRƯỚC khi thử (upsert nguyên tử) ⇒ gửi song song cũng chỉ ≤ trần
+ *  lượt lọt; ghép đúng hoặc lỗi không phải sai mã thì trả lại lượt. */
 export async function ghepMay(code: string, platform: string, tenMay: string, nguon = "?", now = Date.now(), maMay?: unknown, chon?: unknown) {
-  const k = Math.floor(now / GHEP_KHUNG_MS);
-  const khoa = `ghep:${nguonGhep(nguon)}:${k}`, khoaTong = `ghep_tong:${k}`;
-  if ((await giuCho(khoa)) > GHEP_SAI_TOI_DA) throw new LoiNghiepVu("ghep_tam_khoa", "Nhập sai mã nhiều lần — đợi 15 phút rồi thử lại", 429);
-  if ((await giuCho(khoaTong)) > GHEP_SAI_TONG) {
-    await traLuot(khoa);
-    throw new LoiNghiepVu("ghep_tam_khoa", "Ghép máy đang tạm ngưng vì có nhiều lượt nhập sai — thử lại sau 15 phút", 429);
+  const k = Math.floor(now / GHEP_KHUNG_MS), k48 = khoi48(nguon);
+  const khoaTong = `ghep_tong:${k}`, khoa = [`ghep:${nguon}:${k}`, ...(k48 ? [`ghep48:${k48}:${k}`] : [])];
+  const [tong, rieng, rieng48 = 0] = await giuCho([khoaTong, ...khoa]);
+  const biDo = tong > GHEP_SAI_TONG;
+  if (rieng > (biDo ? 1 : GHEP_SAI_TOI_DA) || rieng48 > (biDo ? 1 : GHEP_SAI_48)) {
+    await traLuot([khoaTong]);                 // lượt không được thử ⇒ không tính vào tổng (một nguồn không tự đẩy cả hệ thống vào chế độ bị dò)
+    throw new LoiNghiepVu("ghep_tam_khoa", "Nhập sai mã nhiều lần — đợi 15 phút rồi thử lại", 429);
   }
+  const tatCa = [khoaTong, ...khoa];
+  let kq: Awaited<ReturnType<typeof ghepMayGd>>;
   try {
-    const kq = await ghepMayGd(code, platform, tenMay, maMay, chon);
-    await traLuot(khoa); await traLuot(khoaTong);
-    return kq;
+    kq = await ghepMayGd(code, platform, tenMay, maMay, chon);
   } catch (e) {
-    if (!(e instanceof LoiNghiepVu && e.ma === "ma_sai")) { await traLuot(khoa); await traLuot(khoaTong); }
+    if (!(e instanceof LoiNghiepVu && e.ma === "ma_sai")) await traLuot(tatCa);
     throw e;
   }
+  await traLuot(tatCa).catch(() => undefined);  // máy đã ghép xong — lỗi trả lượt không được biến thành lỗi cho máy
+  return kq;
 }
 
 /** Cron hằng ngày: xoá bộ đếm lượt ghép của các khung đã qua. → số dòng. */
 export async function donBoDemGhep(now = Date.now()) {
   const k = Math.floor(now / GHEP_KHUNG_MS);
-  return (await q(`delete from pin_sai where (khoa like 'ghep:%' or khoa like 'ghep\\_tong:%')
+  return (await q(`delete from pin_sai where (khoa like 'ghep:%' or khoa like 'ghep48:%' or khoa like 'ghep\\_tong:%')
     and split_part(khoa, ':', -1) ~ '^[0-9]+$' and split_part(khoa, ':', -1)::bigint < $1 returning 1`, [k - 1])).length;
 }
 
 /** IP gọi để đếm lượt ghép: `x-real-ip` (Vercel đặt, không giả được) trước, rồi `x-forwarded-for`; IPv6 gộp theo /64 (một máy xoay được cả dải). */
 export function nguonGoi(h: Headers) {
-  const ip = (h.get("x-real-ip") ?? h.get("x-forwarded-for") ?? "?").split(",")[0].trim().toLowerCase();
+  let ip = (h.get("x-real-ip") ?? h.get("x-forwarded-for") ?? "?").split(",")[0].trim().toLowerCase();
+  const v4 = /^(?:::ffff:)?(\d{1,3}(?:\.\d{1,3}){3})(?::\d+)?$/.exec(ip);    // IPv4 ánh xạ IPv6 / kèm cổng ⇒ IPv4 trần
+  if (v4) return v4[1];
+  ip = ip.replace(/^\[([^\]]+)\](?::\d+)?$/, "$1");                       // [IPv6]:cổng
   if (!ip.includes(":")) return ip;
   const [dau, cuoi = ""] = ip.split("::");                            // mở «::» thành đủ 8 nhóm rồi mới lấy /64
   const a = dau ? dau.split(":") : [], b = ip.includes("::") && cuoi ? cuoi.split(":") : [];
