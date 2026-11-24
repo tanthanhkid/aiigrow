@@ -64,5 +64,4 @@ class MayChu(private val goc: String, private val token: String?, private val do
     fun quenPin(con: String) = goi("quen-pin", JSONObject().put("con", con))
     fun baMeMo(ma: String) = goi("ba-me-mo", JSONObject().put("ma", ma))
     fun dangXuat() = goi("dang-xuat", JSONObject())
-    fun khoaLai() = goi("khoa-lai", JSONObject())
 }
