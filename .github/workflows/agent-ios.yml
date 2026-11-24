@@ -34,11 +34,11 @@ jobs:
       matrix:
         loai: [iPhone, iPad]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
       - name: Cài xcodegen
         run: brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
       - name: Cache DerivedData
-        uses: actions/cache@v6
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9  # v6
         with:
           path: agent-ios/DerivedData
           key: ios-dd-${{ matrix.loai }}-${{ hashFiles('agent-ios/project.yml', 'agent-ios/ConCore/**', 'agent-ios/Tests/**') }}
@@ -59,7 +59,7 @@ jobs:
             -derivedDataPath DerivedData -resultBundlePath ../test-results/${{ matrix.loai }}.xcresult \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO 2>&1 | tee ../test-results.log | tail -n 80
       - if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
           name: ios-test-${{ matrix.loai }}
           path: |
@@ -78,7 +78,7 @@ jobs:
       matrix:
         loai: [iPhone, iPad]
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7
       - name: Cài xcodegen
         run: brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
       - name: Chọn giả lập
@@ -94,7 +94,7 @@ jobs:
       - name: Chụp màn
         run: scripts/ci/chup-ios.sh "${{ steps.gl.outputs.udid }}" man-ios "$(ls -d agent-ios/DerivedData/Build/Products/Debug-iphonesimulator/AiiGrowCon.app)" "${{ matrix.loai }}"
       - if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9  # v7
         with:
           name: man-ios-${{ matrix.loai }}
           path: man-ios
