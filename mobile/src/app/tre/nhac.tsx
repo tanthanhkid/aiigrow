@@ -1,6 +1,7 @@
 // «Còn 5 sao = 5 phút chơi» bản «Dịu» (con-dt-gio 04 cdt-nhac-5-phut, sổ sao 15/11 #264): «Lưu bài đang chơi nhé.», đồng hồ đếm «4:59»,
 // «Còn 5 sao · hết sao là dừng», «Làm nhiệm vụ kiếm sao» · «Xin Ba Mẹ cho vay sao» · «Đã hiểu, chơi tiếp» (bỏ nút đổi sao). Hết ⇒ «Hết sao
-// rồi». Agent mở `/tre/nhac?phut=5`.
+// rồi». Link sâu: `/tre/nhac?phut=5`.
+// 24/11 (#572): hiện chưa agent nào mở màn này (agent-android chỉ cho DUONG_TRE trong HocVien.kt; win/mac/iOS vẽ màn riêng) — giữ làm màn theo Bàn, mở bằng link sâu; có kịch bản trong pha-tre.mjs.
 import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";

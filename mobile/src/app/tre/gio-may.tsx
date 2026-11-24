@@ -1,6 +1,7 @@
 // «Giờ trên máy bị lệch» bản «Dịu» (con-dt-gio 01 cdt-gio-may, FR-01.05): «Giờ chơi tạm dừng đếm đến khi chỉnh lại», «Máy đang để 15:10 ·
 // Sai 4 tiếng 20 phút» / «Giờ đúng 19:30 · Theo máy chủ AiiGrow», hướng dẫn «Cài đặt › Giờ · Bật «Đặt tự động»», «Đã chỉnh xong, thử lại» /
-// «Nhờ Ba Mẹ giúp» (gửi yêu cầu kèm số phút lệch). Agent mở `/tre/gio-may?lech=<phút>`.
+// «Nhờ Ba Mẹ giúp» (gửi yêu cầu kèm số phút lệch). Link sâu: `/tre/gio-may?lech=<phút>`.
+// 24/11 (#572): hiện chưa agent nào mở màn này (agent-android chỉ cho DUONG_TRE trong HocVien.kt; win/mac/iOS vẽ màn riêng) — giữ làm màn theo Bàn, mở bằng link sâu; có kịch bản trong pha-tre.mjs.
 import { useState } from "react";
 import { Linking, Platform, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";

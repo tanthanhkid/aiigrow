@@ -1,7 +1,8 @@
 // «<App> chưa có trong danh sách» bản «Dịu» (con-dt-gio 08 them-4e5fwl16, App & web 15/11 #262): «Máy chỉ mở app Ba Mẹ đã thêm vào danh sách.»,
 // nhãn «Theo danh sách của Ba Mẹ», «Xin Ba Mẹ mở <App>» một chạm (POST /api/kid/xin-duyet {muc, ten?, lyDo?} = xin thêm vào danh sách), «Về trang
 // chính». Máy chủ cũ còn trả `web_cam` ⇒ guiXinMo đổi thành «Ba Mẹ chưa thêm … lúc này» (không còn màn cấm cứng).
-// Agent / link sâu mở: /tre/chan-app?muc=<định danh>&ten=<tên đẹp>.
+// Link sâu: /tre/chan-app?muc=<định danh>&ten=<tên đẹp>.
+// 24/11 (#572): hiện chưa agent nào mở màn này (agent-android chỉ cho DUONG_TRE trong HocVien.kt; win/mac/iOS vẽ màn riêng) — giữ làm màn theo Bàn, mở bằng link sâu; có kịch bản trong pha-tre.mjs.
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { guiXinMo, tenMuc } from "@/lib/api-tre";

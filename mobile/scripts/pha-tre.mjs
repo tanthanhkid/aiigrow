@@ -241,6 +241,10 @@ if (process.argv.includes("--giao-dien")) {
     M("con-quy-tac (teen)", "/tre/quy-tac", "Quy tắc nhà mình", { kb: teen }),
     M("con-huy-hieu", "/tre/huy-hieu", "Cấp 4 · Mầm xanh"),
     M("con-win-cai", "/tre/cai?tep=MinecraftInstaller.exe", "Minecraft chưa có trong danh sách", { kb: teen }),
+    M("con-nhac", "/tre/nhac?phut=5", "Còn 5 sao = 5 phút chơi"),
+    // đường cũ chỉ còn redirect (giữ cho link cũ) — #572
+    M("con-ngoai-le (đường cũ)", "/tre/ngoai-le", "Xin Ba Mẹ cho vay sao"),
+    M("con-phien (đường cũ)", "/tre/phien/p1", "Đang chơi"),
   ];
   const vao = async (m) => {
     kb = { ...coBan, ...(m.kb ?? {}) };
