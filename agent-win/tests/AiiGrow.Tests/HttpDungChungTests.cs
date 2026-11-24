@@ -63,6 +63,26 @@ public class HttpDungChungTests
         Assert.Equal(0, h.SoLanDispose);
     }
 
+    private sealed class HandlerHeadNem : HttpMessageHandler
+    {
+        public readonly List<HttpMethod> DaGoi = new();
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            DaGoi.Add(request.Method);
+            if (request.Method == HttpMethod.Head) throw new HttpRequestException("proxy cắt HEAD");
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+        }
+    }
+
+    [Fact]
+    public async Task Ping_HeadBiCat_ThuGet()
+    {
+        var h = new HandlerHeadNem();
+        using var api = new ApiClient("https://may.test", "tok", h);
+        Assert.True(await api.PingAsync());
+        Assert.Equal(new[] { HttpMethod.Head, HttpMethod.Get }, h.DaGoi);
+    }
+
     [Fact]
     public async Task Ping_DungHead_KhongTaiTrang()
     {

@@ -211,21 +211,27 @@ public sealed class ApiClient : IDisposable
     /// lỗi mạng / hết hạn / máy chủ 5xx tính là không. Không gửi dữ liệu.</summary>
     public async Task<bool> PingAsync(CancellationToken ct = default)
     {
+        // HEAD: kết nối dùng chung (#562) phải đọc hết thân mới trả về pool — GET trang gốc là tải cả trang HTML mỗi 15 giây.
+        // Proxy/cổng từ chối HEAD (5xx hoặc cắt kết nối) ⇒ thử GET như trước, với hạn riêng — không báo mất mạng nhầm.
+        var head = await ThamDo(HttpMethod.Head, ct);
+        if (head == true) return true;
+        if (head == null && ct.IsCancellationRequested) throw new OperationCanceledException(ct);
+        return await ThamDo(HttpMethod.Get, ct) == true;
+    }
+
+    /// <returns>true = tới được; false = hết hạn 8 giây; null = máy chủ/proxy trả 5xx hoặc lỗi kết nối (đáng thử cách khác).</returns>
+    private async Task<bool?> ThamDo(HttpMethod phuongThuc, CancellationToken ct)
+    {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(8));
         try
         {
-            // HEAD: kết nối dùng chung (#562) phải đọc hết thân mới trả về pool — GET trang gốc là tải cả trang HTML mỗi 15 giây.
-            // Proxy/cổng từ chối HEAD (5xx) ⇒ thử GET một lần như trước, không báo mất mạng nhầm.
-            using (var head = new HttpRequestMessage(HttpMethod.Head, ""))
-            using (var r = await _http.SendAsync(head, HttpCompletionOption.ResponseHeadersRead, cts.Token))
-                if ((int)r.StatusCode < 500) return true;
-            using var req = new HttpRequestMessage(HttpMethod.Get, "");
+            using var req = new HttpRequestMessage(phuongThuc, "");
             using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-            return (int)resp.StatusCode < 500;
+            return (int)resp.StatusCode < 500 ? true : null;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
-        catch (HttpRequestException) { return false; }
+        catch (HttpRequestException) { return null; }
     }
 
     private async Task<T> PostAsync<T>(string path, object body, CancellationToken ct)
