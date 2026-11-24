@@ -31,7 +31,8 @@ const khoaTk = (loai: LoaiDn, tk: string, now: number) => `dn_tk:${loai}:${tk}|:
 const khoaCap = (loai: LoaiDn, tk: string, ip: string) => `dn_cap:${loai}:${tk}|${ip}`;
 const khoaBac = (loai: LoaiDn, tk: string, ip: string) => `dn_bac:${loai}:${tk}|${ip}`;
 const khoaTin = (loai: LoaiDn, tk: string, ip: string) => `dn_tin:${loai}:${tk}|${ip}`;
-const tienToKhoa = (loai: LoaiDn, tk: string) => [`dn_cap:${loai}:${tk}|`, `dn_bac:${loai}:${tk}|`, `dn_tk:${loai}:${tk}|`];
+const khoaQuenTong = (loai: LoaiDn, tk: string, ip: string, now: number) => `dn_qt:${loai}:${tk}|${ip}:${khung(now)}`;
+const tienToKhoa = (loai: LoaiDn, tk: string) => [`dn_cap:${loai}:${tk}|`, `dn_bac:${loai}:${tk}|`, `dn_tk:${loai}:${tk}|`, `dn_tin:${loai}:${tk}|`, `dn_qt:${loai}:${tk}|`];
 
 const chuCho = (ms: number) => { const p = Math.max(1, Math.ceil(ms / 60_000)); return p >= 120 ? `${Math.ceil(p / 60)} giờ` : `${p} phút`; };
 const tamKhoa = (ms: number, goiY: string) =>
@@ -41,25 +42,24 @@ const tang = async (khoa: string) => (await q<{ so_lan: number }>(`insert into p
 
 export type Luot = { kIp: string; loai: LoaiDn; tk: string; ip: string; now: number };
 
-/** Gọi TRƯỚC khi kiểm mật khẩu: giữ chỗ lượt IP + lượt của cặp. Quá trần IP ⇒ 429 qua_nhieu_lan; cặp đang khoá / hết lượt, hoặc tài khoản
- *  đang bị dò từ nhiều nguồn mà nguồn này lạ ⇒ 429 tam_khoa (`goiY` nối sau câu báo). → lượt (đưa cho dangNhapDung / dangNhapSai / traLuot). */
+/** Gọi TRƯỚC khi kiểm mật khẩu: giữ chỗ lượt IP + lượt của cặp. Quá trần IP ⇒ 429 qua_nhieu_lan (trừ nguồn quen của tài khoản này — kẻ lạ
+ *  chung wifi quán / CGNAT không chặn được quầy, Ba Mẹ đã quen mạng); cặp đang khoá / hết lượt ⇒ 429 tam_khoa (`goiY` nối sau câu báo).
+ *  Tài khoản đang bị dò từ nhiều nguồn (≥ TRAN_TK lượt sai trong giờ) ⇒ nguồn LẠ chỉ còn 1 lượt / 15 phút thay vì SAI_KHOA (chậm dò phân tán,
+ *  chủ tài khoản ở mạng mới vẫn gõ đúng là vào). → lượt (đưa cho dangNhapDung / dangNhapSai / huyLuot). */
 export async function truocDangNhap(loai: LoaiDn, tk: string, ip: string, now: number, goiY = ""): Promise<Luot> {
-  const kIp = khoaIp(loai, ip, now);
+  const kIp = khoaIp(loai, ip, now), kTk = khoaTk(loai, tk, now), kTin = khoaTin(loai, tk, ip);
+  const doc = new Map((await q<{ khoa: string; so_lan: number; cap_nhat: Date | null }>(
+    `select khoa, so_lan, cap_nhat from pin_sai where khoa = any($1::text[])`, [[kTk, kTin]])).map((r) => [r.khoa, r]));
+  const tin = doc.get(kTin)?.cap_nhat;
+  const quen = !!tin && new Date(tin).getTime() >= now - TIN_MS;
   const [hong, tong] = await Promise.all([tang(kIp), tang(khoaIpTong(loai, ip, now))]);
-  if (hong > TRAN_IP || tong > TRAN_IP_TONG) {
+  // nguồn quen không vướng trần chung của IP, nhưng có trần riêng của cặp (không gửi dồn đăng nhập đúng để đốt scrypt)
+  if (quen ? (await tang(khoaQuenTong(loai, tk, ip, now))) > TRAN_IP : hong > TRAN_IP || tong > TRAN_IP_TONG) {
     const het = (khung(now) + 1) * SAI_CU_MS - now;
     throw new LoiNghiepVu("qua_nhieu_lan", `Thử đăng nhập nhiều lần quá — đợi ${chuCho(het)} rồi thử lại nhé`, 429);
   }
   const luot: Luot = { kIp, loai, tk, ip, now };
-  // trần theo tài khoản (mọi nguồn) — chỉ chặn nguồn lạ
-  const tkSai = (await q<{ so_lan: number }>(`select so_lan from pin_sai where khoa = $1`, [khoaTk(loai, tk, now)]))[0]?.so_lan ?? 0;
-  if (tkSai >= TRAN_TK) {
-    const quen = (await q<{ cap_nhat: Date | null }>(`select cap_nhat from pin_sai where khoa = $1`, [khoaTin(loai, tk, ip)]))[0];
-    if (!quen?.cap_nhat || new Date(quen.cap_nhat).getTime() < now - TIN_MS) {
-      await traLuot(luot);
-      throw tamKhoa((Math.floor(now / TK_KHUNG_MS) + 1) * TK_KHUNG_MS - now, goiY);
-    }
-  }
+  const duoc = !quen && (doc.get(kTk)?.so_lan ?? 0) >= TRAN_TK ? 1 : SAI_KHOA;
   // giữ chỗ lượt của cặp (nguyên tử): khoá đã hết hạn hoặc lần thử cuối cũ hơn 15 phút ⇒ đếm lại từ 1
   const luc = new Date(now);
   const c = (await q<{ so_lan: number; khoa_den: Date | null }>(`insert into pin_sai(khoa, so_lan, cap_nhat) values ($1, 1, $2)
@@ -71,12 +71,21 @@ export async function truocDangNhap(loai: LoaiDn, tk: string, ip: string, now: n
       cap_nhat = case when pin_sai.khoa_den > $2 then pin_sai.cap_nhat else $2 end
     returning so_lan, khoa_den`, [khoaCap(loai, tk, ip), luc, new Date(now - SAI_CU_MS)]))[0];
   if (c.khoa_den && new Date(c.khoa_den).getTime() > now) throw tamKhoa(new Date(c.khoa_den).getTime() - now, goiY);
-  if (c.so_lan > SAI_KHOA) throw tamKhoa(SAI_CU_MS, goiY);          // các lượt song song đang chờ băm đã đủ — lượt này không được thử
+  if (c.so_lan > duoc) {                    // các lượt đang chờ băm / đã sai đủ — lượt này không được thử; trả lại chỗ vừa giữ
+    await q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoaCap(loai, tk, ip)]);
+    throw tamKhoa(SAI_CU_MS, goiY);
+  }
   return luot;
 }
 
-/** Lỗi không phải sai mật khẩu (sai vai, lỗi DB…) — trả lượt IP (lượt cặp giữ nguyên: sẽ được xoá khi đăng nhập đúng / đếm lại sau 15 phút). */
-export async function traLuot(l: Luot) {
+/** Lỗi bất ngờ giữa truocDangNhap và dangNhapDung / dangNhapSai (DB, scrypt…) — trả cả lượt IP lẫn lượt cặp (không để kẹt khoá). */
+export async function huyLuot(l: Luot) {
+  await traLuot(l);
+  await q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoaCap(l.loai, l.tk, l.ip)]).catch(() => undefined);
+}
+
+/** Trả lượt IP đã giữ (đăng nhập đúng / lỗi bất ngờ). */
+async function traLuot(l: Luot) {
   await q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [l.kIp]).catch(() => undefined);
 }
 
@@ -106,10 +115,11 @@ export async function dangNhapSai(l: Luot): Promise<number> {
   return phut;
 }
 
-/** Đặt lại / đổi / đặt mật khẩu (chủ tài khoản đã chứng minh được) ⇒ gỡ mọi khoá của tài khoản ở mọi nguồn. */
-export async function goKhoaTaiKhoan(loai: LoaiDn, tk: string, t: Q = q) {
-  const [a, b, c] = tienToKhoa(loai, tk);
-  await t(`delete from pin_sai where left(khoa, length($1)) = $1 or left(khoa, length($2)) = $2 or left(khoa, length($3)) = $3`, [a, b, c]);
+/** Đặt lại / đổi / đặt mật khẩu (chủ tài khoản đã chứng minh được), xoá tài khoản ⇒ xoá mọi bộ đếm, khoá và «nguồn quen» của tài khoản
+ *  (nguồn từng vào bằng mật khẩu cũ — có thể là kẻ đã lộ mật khẩu — không còn được miễn trần). */
+export async function goKhoaTaiKhoan(loai: LoaiDn, tk: string | string[], t: Q = q) {
+  const ds = (Array.isArray(tk) ? tk : [tk]).flatMap((x) => tienToKhoa(loai, x));
+  if (ds.length) await t(`delete from pin_sai p using unnest($1::text[]) d(t) where left(p.khoa, length(d.t)) = d.t`, [ds]);
 }
 
 /** Cron hằng ngày (xoa-tai-khoan.ts › chayDonKiemToan): xoá bộ đếm IP / tài khoản của khung đã qua, cặp hết khoá + hết sai, bậc quá hạn
@@ -117,7 +127,7 @@ export async function goKhoaTaiKhoan(loai: LoaiDn, tk: string, t: Q = q) {
 export async function donBoDemDangNhap(now = Date.now()) {
   const k = khung(now), luc = new Date(now), gio = Math.floor(now / TK_KHUNG_MS);
   return (await q(`delete from pin_sai where
-      ((khoa like 'dn\\_ip:%' or khoa like 'dn\\_ipt:%') and split_part(khoa, ':', -1) not in ($1, $2))
+      ((khoa like 'dn\\_ip:%' or khoa like 'dn\\_ipt:%' or khoa like 'dn\\_qt:%') and split_part(khoa, ':', -1) not in ($1, $2))
    or (khoa like 'dn\\_tk:%' and split_part(khoa, ':', -1) not in ($6, $7))
    or (khoa like 'dn\\_cap:%' and (khoa_den is null or khoa_den <= $3) and coalesce(cap_nhat, '-infinity') < $4)
    or (khoa like 'dn\\_bac:%' and coalesce(cap_nhat, '-infinity') < $5)

@@ -51,9 +51,12 @@ export async function dangNhapNv(tenDangNhap: unknown, mk: unknown, vaiCan: VaiN
   await damBaoBang();
   const tdn = sachTen(tenDangNhap);
   const luot = await gh.truocDangNhap("nv", tdn, ip, now);
-  const s = await one<{ id: string; vai: VaiNv; pass_hash: string; bat: boolean }>(
-    `select id, vai, pass_hash, bat from staff where ten_dang_nhap = $1`, [tdn]);
-  const dung = s ? await dungMatKhau(String(mk ?? ""), s.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
+  let s: { id: string; vai: VaiNv; pass_hash: string; bat: boolean } | undefined, dung: boolean;
+  try {
+    s = await one<{ id: string; vai: VaiNv; pass_hash: string; bat: boolean }>(
+      `select id, vai, pass_hash, bat from staff where ten_dang_nhap = $1`, [tdn]);
+    dung = s ? await dungMatKhau(String(mk ?? ""), s.pass_hash) : (await bamMatKhau(String(mk ?? "")), false);
+  } catch (e) { await gh.huyLuot(luot); throw e; }                 // lỗi bất ngờ: không để kẹt lượt
   if (!s || !dung || !s.bat) {
     const phut = await gh.dangNhapSai(luot);
     await ghiKiemToan(null, "dang_nhap_sai", { tenDangNhap: tdn.slice(0, 60), man: vaiCan });

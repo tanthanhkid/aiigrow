@@ -63,27 +63,29 @@ test("trần theo IP: 30 lượt hỏng / 15 phút cho mọi tài khoản (cả 
   const id = await taoBaMe("0902553004");
   const ip = "9.9.9.9";
   // đăng nhập đúng nhiều lần (nhiều người chung NAT) không tính vào trần
-  for (let i = 0; i < 40; i++) assert.equal(await a.dangNhap("0902553004", "matkhau123", ip, T + i), id);
+  for (let i = 0; i < 25; i++) assert.equal(await a.dangNhap("0902553004", "matkhau123", ip, T + i), id);
   // dò 30 số khác nhau (mỗi số ≤ 4 lần — chưa khoá cặp nào) ⇒ lượt 31 bị chặn trước khi băm mật khẩu
   for (let i = 0; i < gh.TRAN_IP; i++) await loi(a.dangNhap(`09025541${String(i).padStart(2, "0")}`, "doan-thu-1", ip, T + 100 + i), "sai_dang_nhap");
   await loi(a.dangNhap("0902553099", "doan-thu-1", ip, T + 200), "qua_nhieu_lan");
-  await loi(a.dangNhap("0902553004", "matkhau123", ip, T + 201), "qua_nhieu_lan");          // cả tài khoản thật từ IP đó (tới hết khung)
-  assert.equal(await a.dangNhap("0902553004", "matkhau123", "9.9.9.10", T + 202), id);      // IP khác không ảnh hưởng
+  assert.equal(await a.dangNhap("0902553004", "matkhau123", ip, T + 201), id);              // tài khoản đã quen mạng này: vẫn vào
+  const id2 = await taoBaMe("0902553044");
+  await loi(a.dangNhap("0902553044", "matkhau123", ip, T + 202), "qua_nhieu_lan");          // tài khoản chưa từng vào ở IP đó: chặn tới hết khung
+  assert.equal(await a.dangNhap("0902553044", "matkhau123", "9.9.9.10", T + 203), id2);     // IP khác không ảnh hưởng
   assert.equal(await a.dangNhap("0902553004", "matkhau123", ip, T + 15 * PHUT), id);       // khung mới
 });
 
-test("trần tổng theo IP: xen đăng nhập đúng không «trả» được lượt hỏng; gửi dồn đăng nhập đúng cũng dừng ở 120 / khung", async () => {
+test("trần tổng theo IP 120 lượt / khung; nguồn quen có trần riêng 30 lượt / khung (không gửi dồn đăng nhập đúng để đốt scrypt)", async () => {
   const id = await taoBaMe("0902553006");
-  const ip = "9.9.8.8", t = T + 30 * PHUT;
-  let chan = 0;
-  for (let i = 0; i < 40; i++)
-    for (const [dd, mk] of [["0902553006", "matkhau123"], [`09025542${String(i).padStart(2, "0")}`, "doan-thu-2"]]) {
-      try { assert.equal(await a.dangNhap(dd, mk, ip, t + i), id); } catch (e) { if ((e as { ma?: string }).ma === "qua_nhieu_lan") chan++; }
-    }
-  assert.equal(chan, 20, "lượt hỏng thứ 31 trở đi bị chặn (cả lượt đúng xen giữa)");
-  const ip2 = "9.9.8.9";
-  for (let i = 0; i < gh.TRAN_IP_TONG; i++) assert.equal(await a.dangNhap("0902553006", "matkhau123", ip2, t + i), id);
-  await loi(a.dangNhap("0902553006", "matkhau123", ip2, t + 500), "qua_nhieu_lan");
+  const t = T + 30 * PHUT, ip = "9.9.8.9";
+  const bam = await a.bamMatKhau("matkhau123");
+  for (let i = 0; i < 100; i++) await a.taoNha(q, `09025543${String(i).padStart(2, "0")}`, "X", bam);
+  for (let i = 0; i < 25; i++) await loi(a.dangNhap(`09025545${String(i).padStart(2, "0")}`, "x-x-x-x-x", ip, t + i), "sai_dang_nhap");
+  for (let i = 0; i < gh.TRAN_IP_TONG - 25; i++) assert.ok(await a.dangNhap(`09025543${String(i).padStart(2, "0")}`, "matkhau123", ip, t + 100 + i));
+  await loi(a.dangNhap("0902554399", "matkhau123", ip, t + 500), "qua_nhieu_lan");          // tài khoản lạ ở IP này: hết 120 lượt
+  // nguồn quen (lượt đầu làm quen, rồi 30 lượt / khung)
+  assert.equal(await a.dangNhap("0902553006", "matkhau123", "9.9.8.8", t - PHUT), id);
+  for (let i = 0; i < gh.TRAN_IP; i++) assert.equal(await a.dangNhap("0902553006", "matkhau123", "9.9.8.8", t + i), id);
+  await loi(a.dangNhap("0902553006", "matkhau123", "9.9.8.8", t + 600), "qua_nhieu_lan");
 });
 
 test("không lộ tài khoản: số không tồn tại cũng bị khoá cặp như số có thật", async () => {
@@ -144,13 +146,45 @@ test("khoá 24 giờ xong bậc vẫn nhớ: lần khoá kế tiếp vẫn 24 gi
   await loi(a.dangNhap("0902553021", "matkhau123", ip, t + 23 * 60 * PHUT), "tam_khoa");
 });
 
-test("dò phân tán qua nhiều IP: quá 30 lượt sai / giờ trên một tài khoản ⇒ nguồn lạ bị chặn, nguồn quen (đã đăng nhập đúng) vẫn vào", async () => {
+test("dò phân tán qua nhiều IP: quá 30 lượt sai / giờ trên một tài khoản ⇒ nguồn lạ chỉ còn 1 lượt / 15 phút; chủ vẫn vào", async () => {
   const id = await taoBaMe("0902553022");
   assert.equal(await a.dangNhap("0902553022", "matkhau123", "10.1.1.1", T - 86_400_000), id);      // hôm qua đăng nhập ở nhà
   for (let i = 0; i < gh.TRAN_TK; i++) await loi(a.dangNhap("0902553022", "doan-thu-3", `172.16.${i}.1`, T + i), "sai_dang_nhap");
-  await loi(a.dangNhap("0902553022", "matkhau123", "172.16.200.1", T + 100), "tam_khoa");          // nguồn lạ, kể cả mật khẩu đúng
-  assert.equal(await a.dangNhap("0902553022", "matkhau123", "10.1.1.1", T + 100), id);             // nhà: vào được
-  assert.equal(await a.dangNhap("0902553022", "matkhau123", "172.16.200.1", T + 61 * PHUT), id);   // giờ sau mở lại
+  // nguồn lạ: 1 lượt rồi chặn (thay vì 5)
+  await loi(a.dangNhap("0902553022", "doan-thu-4", "172.16.200.1", T + 100), "sai_dang_nhap");
+  await loi(a.dangNhap("0902553022", "doan-thu-5", "172.16.200.1", T + 101), "tam_khoa");
+  // chủ ở mạng mới (4G) gõ đúng ngay lần đầu: vào được
+  assert.equal(await a.dangNhap("0902553022", "matkhau123", "100.64.9.9", T + 102), id);
+  // nhà (nguồn quen): đủ 5 lượt như thường
+  for (let i = 0; i < 4; i++) await loi(a.dangNhap("0902553022", "go-nham-1", "10.1.1.1", T + 110 + i), "sai_dang_nhap");
+  assert.equal(await a.dangNhap("0902553022", "matkhau123", "10.1.1.1", T + 120), id);
+});
+
+test("trần IP không chặn nguồn quen: kẻ lạ chung wifi quán dội rác không khoá được quầy", async () => {
+  await ad.datTaiKhoan({ tenDangNhap: "quay553b", matKhau: "matkhau-quay-1", ten: "Quầy", vai: "quay" });
+  const ip = "3.3.5.5";
+  assert.ok(await ad.dangNhapNv("quay553b", "matkhau-quay-1", "quay", ip, T));                    // quầy từng vào ở mạng này
+  for (let i = 0; i < gh.TRAN_IP + 5; i++)
+    await assert.rejects(ad.dangNhapNv(`rac-${i}`, "x-x-x-x-x", "quay", ip, T + 1 + i));
+  await loi(ad.dangNhapNv("khach-la", "x-x-x-x-x", "quay", ip, T + 100), "qua_nhieu_lan");
+  assert.ok(await ad.dangNhapNv("quay553b", "matkhau-quay-1", "quay", ip, T + 101));
+});
+
+test("đặt lại mật khẩu xoá «nguồn quen» cũ; xoá tài khoản xoá mọi bộ đếm của định danh", async () => {
+  const id = await taoBaMe("0902553024");
+  assert.equal(await a.dangNhap("0902553024", "matkhau123", "11.0.0.1", T), id);
+  const dem = async () => (await one<{ n: number }>(`select count(*)::int as n from pin_sai where khoa like $1`, ["dn\\_%:bm:0902553024|%"]))!.n;
+  assert.ok(await dem() >= 1);
+  const r = await a.guiOtp("0902553024", "quen_mk", "otp-553-24");
+  await a.datLaiMatKhau("0902553024", r.ma, "matkhaumoi7");
+  assert.equal(await dem(), 0);
+  await loi(a.dangNhap("0902553024", "sai-sai-sai", "11.0.0.2", T + 5), "sai_dang_nhap");
+  assert.equal(await a.dangNhap("0902553024", "matkhaumoi7", "11.0.0.1", T + 6), id);
+  assert.ok(await dem() >= 1);
+  const { xoaTaiKhoan } = await import("./xoa-tai-khoan.ts");
+  const tok = await a.taoPhien(id);
+  await xoaTaiKhoan((await a.baMeTuToken(tok))!, { matKhau: "matkhaumoi7" });
+  assert.equal(await dem(), 0);
 });
 
 test("đổi mật khẩu (đang đăng nhập) gỡ khoá đăng nhập ở mọi nguồn", async () => {
@@ -163,11 +197,13 @@ test("đổi mật khẩu (đang đăng nhập) gỡ khoá đăng nhập ở m�
   assert.equal(await a.dangNhap("0902553023", "matkhaumoi8", "4.4.5.1", T + 30), id);
 });
 
-test("quầy đúng mật khẩu mà vào nhầm /admin (403) không tốn lượt IP", async () => {
+test("quầy đúng mật khẩu mà vào nhầm /admin (403) không tốn lượt hỏng của IP", async () => {
   await ad.datTaiKhoan({ tenDangNhap: "quay553", matKhau: "matkhau-quay-1", ten: "Quầy", vai: "quay" });
-  for (let i = 0; i < gh.TRAN_IP + 5; i++) await loi(ad.dangNhapNv("quay553", "matkhau-quay-1", "admin", "3.3.4.4", T + i), "khong_du_quyen");
-  assert.ok(await ad.dangNhapNv("quay553", "matkhau-quay-1", "quay", "3.3.4.4", T + 100));
+  for (let i = 0; i < 25; i++) await loi(ad.dangNhapNv("quay553", "matkhau-quay-1", "admin", "3.3.4.4", T + i), "khong_du_quyen");
+  for (let i = 0; i < gh.TRAN_IP; i++) await loi(ad.dangNhapNv(`la-${i}`, "x-x-x-x-x", "quay", "3.3.4.4", T + 50 + i), "sai_dang_nhap");
+  await loi(ad.dangNhapNv("la-cuoi", "x-x-x-x-x", "quay", "3.3.4.4", T + 100), "qua_nhieu_lan");
 });
+
 
 // ------------------------------------------------------------------ API: header x-real-ip, IPv6 gộp /64
 const goi = async (f: (req: Request, p: string[]) => Promise<Response>, duong: string, body: unknown, ip: string) => {
