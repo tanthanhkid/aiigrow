@@ -15,16 +15,18 @@ export const GIU_PHIEN_NGAY = 7, GIU_OTP_NGAY = 1, GIU_BO_DEM_NGAY = 1, GIU_SU_K
 export async function donHetHan(now = new Date()) {
   const truoc = (ngay: number) => new Date(now.getTime() - ngay * 86_400_000);
   const moc = truoc(GIU_BO_DEM_NGAY);
+  // mỗi bảng độc lập: một bảng lỗi / khoá lâu không chặn bảng sau (lần cron sau dọn tiếp) → -1 = lỗi
+  const xoa = (bang: string, dk: string, p: unknown[]) => xoaTheoLo(bang, dk, p).catch((e) => { console.error(`cron: dọn ${bang} quá hạn lỗi`, e); return -1; });
   return {
-    sessions: await xoaTheoLo("sessions", "expires_at < $1", [truoc(GIU_PHIEN_NGAY)]),
-    kid_sessions: await xoaTheoLo("kid_sessions", "expires_at < $1", [truoc(GIU_PHIEN_NGAY)]),
-    otp: await xoaTheoLo("otp", "het < $1", [truoc(GIU_OTP_NGAY)]),
-    pin_sai: await xoaTheoLo("pin_sai", `(khoa like 'pin:%' and (khoa_den is null or khoa_den < $1) and coalesce(cap_nhat, '-infinity') < $1)
+    sessions: await xoa("sessions", "expires_at < $1", [truoc(GIU_PHIEN_NGAY)]),
+    kid_sessions: await xoa("kid_sessions", "expires_at < $1", [truoc(GIU_PHIEN_NGAY)]),
+    otp: await xoa("otp", "het < $1", [truoc(GIU_OTP_NGAY)]),
+    pin_sai: await xoa("pin_sai", `(khoa like 'pin:%' and (khoa_den is null or khoa_den < $1) and coalesce(cap_nhat, '-infinity') < $1)
       or (khoa like 'bmdung:%' and khoa_den < $1)
       or (khoa like 'go:%' and khoa_den < $1)
       or (khoa ~ '^xoa_tk:[^:]+:[0-9]+$' and split_part(khoa, ':', 3)::bigint < $2)`,
       [moc, Math.floor(moc.getTime() / (XOA_KHOA_PHUT * 60_000))]),
-    events: await xoaTheoLo("events", "created_at < $1", [truoc(GIU_SU_KIEN_NGAY)]),
-    alerts: await xoaTheoLo("alerts", "created_at < $1", [truoc(GIU_SU_KIEN_NGAY)]),
+    events: await xoa("events", "created_at < $1", [truoc(GIU_SU_KIEN_NGAY)]),
+    alerts: await xoa("alerts", "created_at < $1", [truoc(GIU_SU_KIEN_NGAY)]),
   };
 }
