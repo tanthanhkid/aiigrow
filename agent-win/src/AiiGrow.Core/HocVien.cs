@@ -262,18 +262,6 @@ public static class HocVienView
         return $"Còn {(int)Math.Floor(left.TotalDays)} ngày";
     }
 
-    public static string TrangThaiText(string? trangThai) => trangThai switch
-    {
-        "dang_lam" => "Đang làm",
-        "can_bo_sung" => "Ba Mẹ nhờ bổ sung",
-        "du_hom_nay" => "Hôm nay đã đủ",
-        "du_tuan" => "Tuần này đã đủ",
-        "cho_duyet" => "Chờ Ba Mẹ duyệt",
-        "duoc_duyet" => "Đã được duyệt",
-        "tu_choi" => "Chưa được duyệt",
-        _ => "Sẵn sàng",
-    };
-
     /// <summary>Nhãn nút hành động của một nhiệm vụ; null ⇒ không có nút (hết lượt hôm nay/tuần này).</summary>
     public static string? NutText(HvNhiemVu v) => v.TrangThai switch
     {
@@ -282,10 +270,6 @@ public static class HocVienView
         "san_sang" => v.BangChung == "tu_dong" ? null : "Nhận việc",
         _ => null,
     };
-
-    /// <summary>Có cần Con viết vài câu / chụp ảnh khi nộp không (khớp luật máy chủ: lib/nhiem-vu.ts nop()).</summary>
-    public static bool CanAnh(HvNhiemVu v) => v.BangChung == "anh";
-    public static bool CanChu(HvNhiemVu v) => v.BangChung == "van_ban";
 
     /// <summary>Việc cần Con làm ngay xếp trước: cần bổ sung → đang làm → sẵn sàng (hạn gần trước) → đã đủ lượt.</summary>
     public static List<HvNhiemVu> SapXep(IEnumerable<HvNhiemVu> ds)

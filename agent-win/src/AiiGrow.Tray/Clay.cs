@@ -36,7 +36,6 @@ internal static class Clay
     public static Color NgocInk => Chu;                    // chữ nhấn trên nền sáng = navy
     public static readonly Color NgocSoft = H(0xe2d6c4);   // ô chọn / chip nhấn: kem sẫm
     public static readonly Color ThanChi = H(0x1d2f52);
-    public static Color ThanChiDam => Chu;                 // điểm tối của gradient navy
     public static Color Diem => Kim;                       // vàng «điểm» = vàng kim
     public static readonly Color DiemInk = H(0x6b4a12);     // vàng sẫm: 6,4:1 trên Nen, 5,6:1 trên DiemSoft
     public static Color DiemSoft => KimNhat;               // nền chip sao = vàng kim nhạt (vẽ gradient nhạt, ChipClay.Kim)
@@ -44,8 +43,6 @@ internal static class Clay
     public static readonly Color CanhSoft = H(0xf9e7d2);
     public static readonly Color Loi = H(0xb42318);
     public static readonly Color LoiSoft = H(0xfef0ee);
-    public static readonly Color LamSoft = H(0xe1e9fb);
-    public static readonly Color TimSoft = H(0xe7e5f8);
     public static readonly Color Bong = H(0x786246);        // bóng tối rgba(120,98,70,.28)
     public static readonly Color BongSang = H(0xfffbf5);    // bóng sáng lệch lên-trái
     // vàng kim loại: linear-gradient(135deg, KimSang 0, Kim 38%, KimDam 72%, KimNhat 100%)

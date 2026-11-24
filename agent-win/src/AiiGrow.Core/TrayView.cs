@@ -14,27 +14,6 @@ public static class TrayView
         _ => KetQuaXin.Cho,
     };
 
-    public static string ModeLabel(string? mode) => mode switch
-    {
-        Modes.Hoc => "Chỉ app học",
-        Modes.Khoa => "Đang khoá",
-        _ => "Tự do",
-    };
-
-    public static string LockTitle(string? reason) => reason switch
-    {
-        LockReasons.HetGio => "Hết giờ dùng máy hôm nay",
-        LockReasons.Ngu => "Đến giờ nghỉ rồi",
-        _ => "Máy đang được bố mẹ khoá",
-    };
-
-    public static string LockHint(string? reason) => reason switch
-    {
-        LockReasons.HetGio => "Lưu bài đang làm nhé. Con có thể xin bố mẹ thêm thời gian.",
-        LockReasons.Ngu => "Máy sẽ mở lại khi hết giờ nghỉ. Cần gấp thì xin bố mẹ.",
-        _ => "Con có thể nhắn xin bố mẹ mở máy.",
-    };
-
     public static string FormatClock(double seconds)
     {
         var s = (int)Math.Max(0, Math.Ceiling(seconds));

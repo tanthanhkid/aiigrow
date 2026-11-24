@@ -26,7 +26,6 @@ public enum KetQuaMoOffline
 /// </summary>
 public sealed class MoTamOffline
 {
-    public const int PhutMoMacDinh = 60;
     public const int SaiToiDa = 5;
     public const int CuaSoSaiPhut = 10;
     /// <summary>Một mã còn được chấp nhận tối đa (2·dung sai + 1) bước ⇒ nhớ mã đã dùng lâu hơn thế một bước cho chắc.</summary>

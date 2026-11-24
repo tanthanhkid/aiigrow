@@ -167,8 +167,6 @@ public sealed class AgentRuntime
         }
     }
 
-    public bool LaMoCoi(DateTimeOffset now) { lock (_gate) return MoCoi.La(Config, now); }
-
     /// <summary>Máy chủ từ chối token (401/403). Lưu mốc lần đầu; quá ngưỡng ⇒ fail-open (bỏ Policy cuối, về giám sát).</summary>
     public void GhiTuChoi(DateTimeOffset now)
     {
@@ -506,7 +504,6 @@ public sealed class AgentRuntime
         lock (_gate) canDongBo = _offline && !TokenInvalid;   // token bị từ chối thì đồng bộ lại cũng vô ích: để nhịp thường quyết
         if (canDongBo) RequestSyncSoon();
     }
-    public bool IsOffline { get { lock (_gate) return _offline; } }
 
     public EffectivePolicy? Evaluate(DateTimeOffset now)
     {
