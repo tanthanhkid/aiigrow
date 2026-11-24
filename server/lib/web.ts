@@ -39,6 +39,7 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
   let n = 0, giayChoi = 0, giayMuc = 0, mucChoi: string | null = null;
   let cuWeb: Map<string, number> | undefined;     // giây cũ của hôm nay — đọc một lần cho cả lô
   let luat: Awaited<ReturnType<typeof dsLuat>> | undefined;   // #563: luật gia đình đọc MỘT lần, phân loại trong bộ nhớ (không một câu / dòng)
+  const allow = allowlistHieuLuc();
   const toiThieu = now.getTime() - 40 * 86_400_000;           // mốc giờ quá cũ / năm 0000 ⇒ bỏ (timestamptz từ chối ⇒ hỏng cả câu upsert gộp)
   const gop = new Map<string, { ngay: string; mien: string; soLan: number; giay: number; lanCuoi: Date | null; dauLuc: Date | null }>();
   for (const x of (ds as DongWeb[]).slice(0, TOI_DA_MOT_LAN)) {
@@ -53,7 +54,7 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
     const dl = x.dauLuc ? new Date(String(x.dauLuc)) : null;
     const dauLuc = dl && Number.isFinite(dl.getTime()) && dl.getTime() <= now.getTime() + 3_600_000 && dl.getTime() >= toiThieu ? dl : ngay === hom ? now : null;
     // 15/11 (#264): trang «Tính phút» (luật giai_tri) hôm nay — giây tăng thêm so với lần trước ⇒ trừ sao 1:1 (so-sao.ts, theo đồng hồ máy chủ)
-    if (con && ngay === hom && giay > 0 && phanLoaiTu(luat ??= await dsLuat(may.family_id), con, mien) === "giai_tri") {
+    if (con && ngay === hom && giay > 0 && phanLoaiTu(luat ??= await dsLuat(may.family_id), con, mien, allow) === "giai_tri") {
       cuWeb ??= new Map((await q<{ ten_mien: string; giay: number }>(`select ten_mien, giay from web_nhat_ky where device_id = $1 and ngay = $2`, [may.id, hom]))
         .map((r) => [r.ten_mien, Number(r.giay)]));
       const cu = cuWeb.get(mien) ?? 0;
@@ -71,7 +72,7 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
   }
   // #563: MỘT câu upsert nhiều dòng (unnest mảng) thay cho tối đa 500 câu tuần tự
   if (gop.size) {
-    const ds2 = [...gop.values()].sort((a, b) => (a.ngay + "|" + a.mien < b.ngay + "|" + b.mien ? -1 : 1));   // khoá dòng theo thứ tự cố định ⇒ hai lô song song không deadlock
+    const ds2 = [...gop].sort(([a], [b]) => (a < b ? -1 : 1)).map(([, v]) => v);   // khoá dòng theo thứ tự cố định ⇒ hai lô song song không deadlock
     await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, lan_cuoi, dau_luc)
              select $1, $2, t.ngay, t.mien, t.so_lan, t.giay, t.lan_cuoi, t.dau_luc
                from unnest($3::text[], $4::text[], $5::int[], $6::int[], $7::timestamptz[], $8::timestamptz[]) with ordinality as t(ngay, mien, so_lan, giay, lan_cuoi, dau_luc, i)

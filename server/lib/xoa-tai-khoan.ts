@@ -142,6 +142,9 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     on conflict (khoa) do update set updated_at = $1 where he_thong.updated_at < $1::timestamptz - interval '1 hour'
     returning (select updated_at from cu) as cu`, [now]);
   if (!duoc.length) return null;
+  // #563: chạy TRƯỚC chuỗi bắt buộc và không ném lỗi — bước sau hỏng / hết giờ không chặn giữ hạn log 7 ngày, lịch sử web 90 ngày
+  await donLogCu(now).catch((e) => console.error("cron: dọn log máy cũ lỗi", e));
+  await donWebCu(now).catch((e) => console.error("cron: dọn lịch sử web cũ lỗi", e));
   try {
     const n = await donKiemToanGiaDinhDaXoa(now);
     await donBoDemMxh(now.getTime());          // bộ đếm lượt đăng nhập Google / Facebook của khung đã qua (dang-nhap-mxh.ts)
@@ -150,8 +153,6 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     await donBoDemTaiGhep(now.getTime());      // bộ đếm lượt tải bộ cài mang gói ghép (tai-ghep.ts)
     await donBoDemPinBe(now);                  // #555: bộ đếm sai PIN theo bé của khung đã qua (pin-be.ts)
     await donUsageCu(now).catch((e) => console.error("cron: dọn usage cũ lỗi", e));     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
-    await donLogCu(now).catch((e) => console.error("cron: dọn log máy cũ lỗi", e));       // #563: log agent quá 7 ngày (trước dọn trên mỗi lượt máy gửi log)
-    await donWebCu(now).catch((e) => console.error("cron: dọn lịch sử web cũ lỗi", e));       // #563: lịch sử web quá 90 ngày
     return n;
   } catch (e) {
     await q(`update he_thong set updated_at = coalesce($2::timestamptz, '-infinity') where khoa = 'don_kiem_toan' and updated_at = $1`,
