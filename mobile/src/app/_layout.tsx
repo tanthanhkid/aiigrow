@@ -17,7 +17,7 @@ export default function Goc() {
     globalThis.navigator?.serviceWorker?.getRegistrations?.().then((rs) => rs.forEach((r) => r.unregister())).catch(() => {});
     globalThis.caches?.keys?.().then((ks) => ks.forEach((k) => globalThis.caches.delete(k))).catch(() => {});
   }, []);
-  // Inter: native nhúng sẵn lúc build (app.json › expo-font) nên không chờ tải; web nạp @font-face, không chờ (phong-chu.web.ts).
+  // Be Vietnam Pro + Fraunces: native nhúng sẵn lúc build (app.json › expo-font) nên không chờ tải; web nạp @font-face, không chờ (phong-chu.web.ts).
   useNapPhongChu();
   const app = (
     <SafeAreaProvider>

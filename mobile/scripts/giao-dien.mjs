@@ -147,7 +147,7 @@ export const DO = String.raw`(() => {
       theGan.set(e, kq); return kq; };
     const daLe = new Set(), khung = new Map();
     const hop = (t) => { if (!khung.has(t)) khung.set(t, t.getBoundingClientRect()); return khung.get(t); };
-    // nút / ảnh: ≥ 15.5; dòng chữ: ≥ 12 (react-native-web đo dòng theo font dự phòng trước khi Inter tải xong ⇒ dòng dài lố khung 1–4px trên web;
+    // nút / ảnh: ≥ 15.5; dòng chữ: ≥ 12 (react-native-web đo dòng theo font dự phòng trước khi Be Vietnam Pro tải xong ⇒ dòng dài lố khung 1–4px trên web;
     // app thật không bị). Lỗi gốc build 6 là lề 0 nên ngưỡng 12 vẫn bắt được.
     const xet = (el, rs, chu, nguong = 15.5) => { const t = theCua(el); if (!t) return; const q = hop(t);
       for (const r of rs) { const le = Math.min(r.left - q.left, q.right - r.right); if (le < nguong) { const k = ten(t) + '|' + chu; if (daLe.has(k)) return; daLe.add(k);
