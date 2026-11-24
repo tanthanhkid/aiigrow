@@ -21,7 +21,6 @@ export type KqTrao = { trangThai: string; saoTru?: number; voucher?: VoucherPhat
 export type MaOfflineS3 = { ma: string; maHien?: string; phutMo: number; chonPhut?: number[]; doiSauGiay?: number; conGiay: number; hieuLucPhut: number;
   may?: { id: string; ten: string; nen: string } };
 export type PinCon = { coPin: boolean; pin?: string | null; pinDatLuc?: string | null; ten: string };
-export type MayMatMang = { mayId: string; ten: string; nen: string; tu: string; phut: number };
 export type MucCanDeY = { id: string; loai: "mat_mang" | "quen_pin" | "canh_bao" | "con_xin" | "nop_bai" | "chua_bao_ve" | string; tieu: string; phu: string;
   luc: string; con: string | null; may?: string; so: number; nut: string; den: string };
 

@@ -5,10 +5,9 @@ import type { ReactNode } from "react";
 import { Image, Pressable, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import { LinearGradient } from "expo-linear-gradient";
-import { bm } from "./api";
 import { MAU_NHOM, PHU_NHOM, TEN_NHOM, type Nhom } from "./app-web";
-import { BONG, BO_CLAY, KHOI, MEN } from "./clay";
-import { Bao, Chu, DauSach, F, Icon, Icon3D, IconNet, M, Man, NhanMen, Nut, Rob, type LinhVat, type TenIcon } from "./ui";
+import { BONG, KHOI, MEN } from "./clay";
+import { Chu, DauSach, F, Icon, IconNet, M, NhanMen, Rob, type LinhVat, type TenIcon } from "./ui";
 
 /** Tiêu đề một mục (.muc): chữ thường đậm 15, phải là liên kết nhỏ (vd «Xem từng app ›»). */
 export function MucTieu({ chu, phai }: { chu: string; phai?: { chu: string; bam: () => void } }) {
@@ -37,29 +36,6 @@ export function OIcon({ ic, anh, co = 42, nen = M.xamSoft }: { ic: TenIcon; anh?
   );
 }
 
-/** Hàng vàng «Con đang xin mở YouTube · 30 phút · lúc 19:20 — Xem ›» (.xin) — cũng dùng cho «Đang chờ nhận lời · Gửi lại». */
-export function HangVang({ ic = "chuong", tieu, phu, nut = "Xem ›", bam, bamNut }: { ic?: TenIcon; tieu: string; phu?: string; nut?: string; bam?: () => void; bamNut?: () => void }) {
-  const noi = (
-    <>
-      <OIcon ic={ic} nen={M.chonSoft} />
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Chu kieu="rat" co={15} mau={M.diemInk}>{tieu}</Chu>
-        {phu ? <Chu kieu="dam" co={12.5} mau={M.diemInk}>{phu}</Chu> : null}
-      </View>
-      {bamNut ? (
-        <NhanMen onPress={bamNut} accessibilityRole="button" accessibilityLabel={`${nut.replace(" ›", "")}: ${tieu}`} muc="chip" sang men={MEN.sang}
-          style={{ minHeight: 44, paddingHorizontal: 14, borderRadius: 22, backgroundColor: M.the, justifyContent: "center", ...KHOI.nho }}>
-          <Chu kieu="rat" co={13.5} mau={M.diemInk}>{nut}</Chu>
-        </NhanMen>
-      ) : <Chu kieu="rat" co={14} mau={M.diemInk}>{nut}</Chu>}
-    </>
-  );
-  const st = { flexDirection: "row" as const, alignItems: "center" as const, gap: 12, paddingVertical: 12, paddingLeft: 12, paddingRight: 14, borderRadius: 24,
-    backgroundColor: M.diemSoft, ...KHOI.the };
-  return bam ? <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}${phu ? `, ${phu}` : ""}`} muc="khoi" style={st}>{noi}</NhanMen>
-    : <View style={st}>{noi}</View>;
-}
-
 /** Một dòng trong một nhóm (.lg): icon, tên, phụ; bên phải «›» (khi bấm được) hoặc phần tuỳ ý (`phai`). */
 export function DongDen({ dau, trai, tieu, phu, bam, phai }: {
   dau?: boolean; trai: ReactNode; tieu: string; phu?: string; bam?: () => void; phai?: ReactNode;
@@ -76,21 +52,6 @@ export function DongDen({ dau, trai, tieu, phu, bam, phai }: {
   );
   const st = [{ flexDirection: "row" as const, alignItems: "center" as const, gap: 10, minHeight: 62 }, !dau && { borderTopWidth: 1, borderTopColor: "rgba(120,98,70,0.18)" }];
   return bam ? <Pressable onPress={bam} accessibilityRole="button" accessibilityLabel={`${tieu}${phu ? `, ${phu}` : ""}`} style={st}>{noi}</Pressable> : <View style={st}>{noi}</View>;
-}
-
-/** Đầu màn chi tiết (.hd): icon to trong ô clay, tên, một dòng phụ. */
-export function DauMuc({ ic, anh, tieu, phu }: { ic: TenIcon; anh?: string | null; tieu: string; phu?: string }) {
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 14, paddingHorizontal: 4, paddingTop: 4 }}>
-      <View style={{ width: 72, height: 72, borderRadius: 26, backgroundColor: M.the, alignItems: "center", justifyContent: "center", ...KHOI.the }}>
-        {anh ? <Image source={{ uri: `data:image/png;base64,${anh}` }} style={{ width: 46, height: 46 }} resizeMode="contain" accessibilityIgnoresInvertColors /> : <Icon3D ten={ic} co={46} />}
-      </View>
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Chu kieu="rat" co={24} dong={2}>{tieu}</Chu>
-        {phu ? <Chu kieu="dam" co={13.5} mau={M.chu3}>{phu}</Chu> : null}
-      </View>
-    </View>
-  );
 }
 
 /** Ô tìm lõm (.tim) — gõ trước, kết quả hiện bên dưới; nút ✕ xoá chữ. */
@@ -218,13 +179,6 @@ export function ChonNhomNgang({ gia, doi }: { gia: Nhom | null; doi: (n: Nhom) =
   );
 }
 
-/** Nút tròn ＋ / ✓ (.c) của một dòng kết quả. */
-export const NutCong = ({ chon }: { chon: boolean }) => (
-  <View style={[{ width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" }, chon ? { backgroundColor: M.chinh, boxShadow: BONG.ngoc } : { backgroundColor: M.the, ...KHOI.the }]}>
-    <Icon ten={chon ? "tick" : "cong"} mau={chon ? "#FFFBF5" : M.chinhInk} co={chon ? 18 : 20} />
-  </View>
-);
-
 /** Nhãn trắng «Luôn bật» (.luon). */
 /** Nhãn «Luôn bật» (bàn them-2ru3t5iw `.luon`: viên ngọc nhạt #F2EBE3, chữ ngọc 12/800, không nổi). */
 export const NhanLuon = ({ chu = "Luôn bật" }: { chu?: string }) => (
@@ -245,62 +199,8 @@ export function RobNoi({ lv = "hoc", co = 76, children }: { lv?: LinhVat; co?: n
   );
 }
 
-/** Màn kết quả (Đã bỏ qua YouTube / Đã mời…): Grow lớn, tiêu đề, thẻ tin, nút về + Hoàn tác. */
-export function ManKetQua({ lv = "xong", tieu, ic, tin, phu, nut, hoan, lui, loi }: {
-  loi?: string | null; lv?: LinhVat; tieu: string; ic: TenIcon; tin: string; phu?: string; nut: { chu: string; bam: () => void }; hoan?: { chu: string; bam: () => void; dangChay?: boolean }; lui?: () => void;
-}) {
-  return (
-    <Man lui={{ chu: "", bam: lui ?? nut.bam }} day={<>
-      {loi ? <Bao loai="loi" tieu={loi} ic="canh_bao" /> : null}
-      <Nut chu={nut.chu} rong bam={nut.bam} />
-      {hoan ? <Nut chu={hoan.chu} loai="vien" rong dangChay={hoan.dangChay} bam={hoan.bam} /> : null}
-    </>}>
-      <View style={{ alignItems: "center", paddingTop: 24, gap: 6 }}>
-        <Rob ten={lv} co={200} />
-        <Chu kieu="rat" co={24} style={{ textAlign: "center", letterSpacing: -0.4 }}>{tieu}</Chu>
-      </View>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12, marginTop: 12, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 24, backgroundColor: M.the, ...KHOI.the }}>
-        <OIcon ic={ic} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Chu kieu="rat" co={15}>{tin}</Chu>
-          {phu ? <Chu kieu="dam" co={12.5} mau={M.chu3}>{phu}</Chu> : null}
-        </View>
-      </View>
-    </Man>
-  );
-}
-
-/** Ba nút quyết lớn (.ba — thiết kế 15/11 bm-ung-dung/13): `x` than chì chữ trắng (nút chính «Tính phút»), `c` trắng chữ đậm («Không tính phút»),
- *  `b` xám lõm («Bỏ qua»), `d` trắng chữ đỏ. `cham` = bóng tròn màu nhóm thay icon. */
-export function NutQuyet({ loai, ic, cham, chu, phu, bam, dangChay }: { loai: "x" | "c" | "b" | "d"; ic?: TenIcon; cham?: string; chu: string; phu?: string; bam: () => void; dangChay?: boolean }) {
-  // «Ánh kim»: `x` đúc vàng kim chữ navy, `b` ô kem lõm, `c` / `d` ô kem nổi
-  const nen = loai === "x" ? M.diem : loai === "b" ? M.xamSoft : M.the;
-  const mau = loai === "d" ? M.loi : M.chu;
-  return (
-    <NhanMen onPress={bam} disabled={dangChay} accessibilityRole="button" accessibilityLabel={phu ? `${chu}, ${phu}` : chu} muc="khoi" sang={loai !== "x"}
-      men={loai === "x" ? MEN.vang : undefined}
-      style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 10, paddingHorizontal: 16, borderRadius: BO_CLAY.o, backgroundColor: nen,
-        boxShadow: loai === "x" ? BONG.vang : loai === "b" ? BONG.lom : BONG.the, opacity: dangChay ? 0.6 : 1 }}>
-      {cham ? <View style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: cham,
-        boxShadow: "inset 0px 2px 0px rgba(255,255,255,0.45), inset 0px -5px 8px -3px rgba(0,0,0,0.25)" }} /> : ic ? <Icon3D ten={ic} co={32} mau={mau} /> : null}
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Chu kieu="rat" co={16} mau={mau}>{chu}</Chu>
-        {phu ? <Chu kieu="dam" co={12} mau={mau} style={{ opacity: 0.85 }}>{phu}</Chu> : null}
-      </View>
-    </NhanMen>
-  );
-}
-
 /** Ghép tên con vào đường dẫn: quay về màn trước nếu có, không thì về `ve`. */
 export const veHoac = (ve: string) => (router.canGoBack() ? router.back() : router.replace(ve as never));
-
-/** 19:20 hôm nay / «21/10» ngày khác. */
-export const lucNgan = (s: string | null | undefined) => {
-  if (!s) return "";
-  const t = new Date(s), h = new Date();
-  const hh = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
-  return t.toDateString() === h.toDateString() ? hh : `${String(t.getDate()).padStart(2, "0")}/${String(t.getMonth() + 1).padStart(2, "0")}`;
-};
 
 /** Đoán icon 3D cho tên app / tên miền khi máy không gửi icon thật. */
 export function icCuaApp(ten: string): TenIcon {
@@ -334,26 +234,6 @@ export const luatCuaCon = (ds: LuatApp[], con: string) => {
 };
 // ---------------------------------------------------------------- thẻ dòng rời (.tb thông báo · .cc hộp thư hỗ trợ), nút viên đầu màn (.cai · .faq)
 
-/** Thẻ một dòng rời (mỗi việc một thẻ): `vach` = vạch màu bên trái (cam: việc mới cần để ý · đỏ: gấp). `phai` = chữ hành động «Xem ›» hoặc nút tuỳ ý. */
-export function TheDong({ trai, tieu, phu, phai, vach, bam, nhanDoc }: {
-  trai: ReactNode; tieu: string; phu?: string; phai?: ReactNode; vach?: string; bam?: () => void; nhanDoc?: string;
-}) {
-  const st = [{ flexDirection: "row" as const, alignItems: "center" as const, gap: 12, padding: 12, borderRadius: 24, backgroundColor: M.the, overflow: "hidden" as const, ...KHOI.the }];
-  const noi = (
-    <>
-      {vach ? <View style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: 4, backgroundColor: vach }} /> : null}
-      {trai}
-      <View style={{ flex: 1, minWidth: 0 }}>
-        <Chu kieu="rat" co={15}>{tieu}</Chu>
-        {phu ? <Chu kieu="dam" co={12.5} mau={M.chu3} dong={2}>{phu}</Chu> : null}
-      </View>
-      {typeof phai === "string" ? <Chu kieu="rat" co={13} mau={M.chinhInk}>{phai}</Chu> : phai}
-    </>
-  );
-  return bam ? <NhanMen onPress={bam} accessibilityRole="button" accessibilityLabel={nhanDoc ?? `${tieu}${phu ? `, ${phu}` : ""}`} muc="khoi" sang style={st}>{noi}</NhanMen>
-    : <View style={st}>{noi}</View>;
-}
-
 /** Nút viên nhỏ ở góc phải đầu màn («Cài đặt», «Hay gặp ›»). */
 export function NutVien({ chu, bam }: { chu: string; bam: () => void }) {
   return (
@@ -363,11 +243,3 @@ export function NutVien({ chu, bam }: { chu: string; bam: () => void }) {
     </NhanMen>
   );
 }
-
-// ---------------------------------------------------------------- quỹ giờ chơi hôm nay (S1: GET con/:id/quy — L2)
-
-export type QuyCon = { daDung: number; tongPhut: number; conPhut: number; tyLe?: { sao: number; phut: number } };
-/** Quỹ giờ chơi hôm nay của một con; máy chủ cũ (chưa có S1) ⇒ null, dùng phút chơi / trần ngày của `gia-dinh`. */
-export const napQuyCon = (id: string) => bm.goi<{ quy: QuyCon }>(`con/${id}/quy`).then((r) => r.quy, () => null);
-export const gioChoi = (c: { phutChoi: number; tranNgay: number }, q: QuyCon | null | undefined) =>
-  q ? { da: q.daDung, tong: q.tongPhut, con: q.conPhut } : { da: c.phutChoi, tong: c.tranNgay, con: Math.max(0, c.tranNgay - c.phutChoi) };

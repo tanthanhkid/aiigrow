@@ -7,7 +7,6 @@ export const GOC = (process.env.EXPO_PUBLIC_API ?? "http://localhost:3310").repl
 /** Trang tải bộ cài cho máy của Con (server/app/tai) — link công khai cố định, Ba Mẹ gõ tay được trên laptop của Con. */
 /** Chuẩn hoá tên giống máy chủ (NFC, bỏ khoảng trắng đầu/cuối, gộp khoảng trắng) — so «có đổi không» trước khi gửi. */
 export const chuanHoaTen = (v: string) => v.normalize("NFC").trim().replace(/\s+/g, " ");
-export const LINK_TAI = "https://aiigrow.aiilab.vn/tai";
 
 const kho = (khoa: string) => ({
   // đọc khoá máy lỗi (mục hỏng, thiếu quyền keychain) ⇒ coi như chưa có token, xoá mục hỏng — không để lời nạp phiên treo màn trắng
@@ -81,7 +80,6 @@ function khach(tienTo: "m" | "kid", khoa: string) {
 export const bm = khach("m", "aiig_bm");
 /** Màn Con (phiên PIN / token máy riêng). */
 export const kid = khach("kid", "aiig_con");
-export const goi = bm.goi;
 
 // ------------------------------------------------------------------ kiểu dữ liệu (khớp server/lib/api-*.ts)
 export type NhomCon = "nhi" | "teen";
@@ -125,13 +123,8 @@ export type CanhBao = { id: string; child_id: string | null; loai: string; muc: 
   chi_tiet: Record<string, unknown>; da_doc: boolean; created_at: string };
 export type Diem = { delta: number; loai: string; ly_do: string; nguoi: string | null; /** tên Ba Mẹ (máy chủ cũ không gửi) */ ten_nguoi?: string | null; created_at: string };
 
-export const LOAI_YC: Record<YeuCau["loai"], string> = {
-  vay_sao: "Xin vay sao", them_gio: "Xin vay sao", mo_web: "Mở web", cai_app: "Cài app", ngoai_le: "Xin vay sao", ngoai_gio: "Xin vay sao", khac: "Khác",
-};
 /** Lời xin vay sao (mới + loại cũ máy chưa cập nhật). */
 export const laXinVay = (y: Pick<YeuCau, "loai">) => y.loai === "vay_sao" || y.loai === "them_gio" || y.loai === "ngoai_le" || y.loai === "ngoai_gio";
-export const tieuYc = (y: Pick<YeuCau, "loai" | "phut" | "gia_tri" | "ten_app">) =>
-  laXinVay(y) ? `Xin vay ${y.phut ?? 15} sao` : y.loai === "mo_web" ? `Xin mở ${y.gia_tri}` : y.loai === "cai_app" ? `Xin cài ${tenYc(y)}` : y.gia_tri ?? "Yêu cầu khác";
 
 export const NHOM_NV: Record<string, { chu: string; ic: "sach" | "chen" | "mu" | "chay" | "sao" | "tia"; mau: "xanh" | "lam" | "tim" | "cam" | "vang" }> = {
   doc_sach: { chu: "Đọc sách", ic: "sach", mau: "xanh" }, viec_nha: { chu: "Việc nhà", ic: "chen", mau: "lam" }, hoc_tap: { chu: "Học tập", ic: "mu", mau: "tim" },
@@ -184,15 +177,6 @@ export type ChiTietTuanThu = TuanThuMay & { suKien: SuKienTuanThu[]; tungCon?: i
 /** Máy có «Mã mở khi mất mạng»: theo cờ máy chủ (tuan-thu.ts › coMaOffline); máy chủ cũ không gửi ⇒ chỉ Windows. */
 export const coMaOff = (m: Pick<TuanThuMay, "coMaOffline" | "nen">) => m.coMaOffline ?? m.nen === "windows";
 
-export const TT_TRANG: Record<TrangThaiTuanThu, { chu: string; loai: LoaiNhan }> = {
-  tuan_thu: { chu: "Tuân thủ", loai: "ok" }, lech_chuan: { chu: "Lệch chuẩn", loai: "canh" },
-  ngoai_vong: { chu: "Ngoài vòng kiểm soát", loai: "loi" }, tat_may: { chu: "Đang tắt", loai: "xam" }, chua_co_nhip: { chu: "Chưa có báo cáo từ máy", loai: "xam" },
-};
-type LoaiNhan = "ok" | "canh" | "loi" | "xam" | "lam" | "diem" | "tim";
-
-/** Mã mở offline của một máy (GET may/:id/ma-offline) — Ba Mẹ đọc cho Con gõ khi máy mất mạng. */
-export type MaOffline = { ma: string; conGiay: number; hieuLucPhut: number; phutMo: number };
-
 // ---- Web của Con (GET /api/m/con/:id/web) — server/lib/web.ts
 export type TrangThaiWeb = "cho_phep" | "chan" | "giai_tri" | "he_thong" | "chua_xep";
 export type TrangWeb = { tenMien: string; giay: number; soLan: number; lanCuoi: string | null; trangThai: TrangThaiWeb; nguon: string };
@@ -220,7 +204,6 @@ export type ManHinhTuan = {
 };
 
 // ---- Việc nhanh ở Trang chủ (QA 24/10, issue #70): app đã thấy trên máy Con + phiên đang chơi — server/lib/api-m.ts
-export type AppThay = { muc: string; ten: string; phut: number; loai: "hoc" | "giai_tri" | "chan" | "chua_xep" };
 export type AppChuaXep = { muc: string; ten?: string; phut: number };
 export type PhienDang = { id: string; con: string; tenCon: string; may: string | null; muc: string; tenApp: string; tam: boolean; conPhut: number };
 

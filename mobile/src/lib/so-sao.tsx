@@ -8,8 +8,8 @@
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { bm } from "./api";
-import { BONG, HERO } from "./clay";
-import { BangTruot, BaoLoi, Chu, Icon, Icon3D, IconNet, M, Nut, ONhap, useLam } from "./ui";
+import { BONG } from "./clay";
+import { BangTruot, BaoLoi, Chu, Icon3D, IconNet, M, Nut, ONhap, useLam } from "./ui";
 import { ChipMuc } from "./ui-chung";
 
 /** Trạng thái sao của một Con (máy chủ so-sao.ts › TrangThaiSao + tổng vay / đã trả). */
@@ -78,35 +78,6 @@ export function VienSao({ s, n, nho, chu }: { s?: SaoCon; n?: number; nho?: bool
       borderRadius: 12, backgroundColor: m.nen }} accessible accessibilityLabel={nhan}>
       <Icon3D ten="sao" co={nho ? 13 : 16} />
       <Chu kieu="rat" co={nho ? 11.5 : 13} mau={m.chu} so dong={1}>{nhan}</Chu>
-    </View>
-  );
-}
-
-/** Số sao lớn ở thẻ con (Trang chủ bm2-trang-chu, Hồ sơ con): viên «⭐ 30 sao» / «⭐ −20 sao» (26/800) hoặc «còn N sao = N phút chơi» + dòng nợ. */
-export function SoSaoLon({ s, co = 26, bamNo, toi }: { s: SaoCon; co?: number; bamNo?: () => void;
-  /** nằm trên thẻ hero navy: số sao vàng mật HERO.phu (kể cả `vay`, còn sao tiêu được), CHỈ `am` (nợ, số âm) và dòng «Đang nợ …» cam san hô M.noHero; viên `am` nền trắng mờ 10% */ toi?: boolean }) {
-  const k = kieuSao(s), m = toi ? { nen: HERO.vien, chu: HERO.chu } : k === "am" ? CANH : VANG, no = cauNo(s), mauNo = toi ? M.noHero : CANH.chu;
-  return (
-    <View style={{ gap: 6, alignItems: "flex-start" }}>
-      {k === "vay" ? (
-        <Chu kieu="tieu7" co={co} so mau={toi ? HERO.phu : undefined} style={{ letterSpacing: -0.6 }}>{soChinh(s)}</Chu>
-      ) : (
-        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4, paddingLeft: 8, paddingRight: 14, borderRadius: 20, backgroundColor: m.nen,
-          boxShadow: toi ? undefined : k === "am" ? "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(138,60,12,.18)" : "inset 0px 1.5px 0px #fff, inset 0px -4px 8px -4px rgba(110,67,0,.16)" }}
-          accessible accessibilityLabel={soChinh(s)}>
-          {/* #417: trên hero navy là ★ phẳng vàng kim cùng màu số (mẫu E `.am svg.st`), không còn sao 3D */}
-          {toi ? <Icon ten="sao" co={Math.round(co * 0.9)} mau={k === "am" ? M.noHero : HERO.phu} /> : <Icon3D ten="sao" co={co} />}
-          {/* «Ánh kim»: số sao đúc Be Vietnam Pro ExtraBold; trên hero navy là vàng (mẫu E `.am`) */}
-          <Chu kieu="tieu7" co={co} mau={toi ? (k === "am" ? M.noHero : HERO.phu) : m.chu} so style={{ letterSpacing: -1 }}>{soChinh(s)}</Chu>
-        </View>
-      )}
-      {no ? (
-        bamNo ? (
-          <Pressable onPress={bamNo} accessibilityRole="button" hitSlop={6} style={{ minHeight: 32, paddingVertical: 6, paddingRight: 8, justifyContent: "center", alignSelf: "stretch", minWidth: 0 }}>
-            <Chu kieu="rat" co={13} mau={mauNo} style={{ flexShrink: 1, minWidth: 0 }}>{`${no} ›`}</Chu>
-          </Pressable>
-        ) : <Chu kieu="rat" co={13} mau={mauNo}>{no}</Chu>
-      ) : null}
     </View>
   );
 }

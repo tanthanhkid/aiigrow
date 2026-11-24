@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import { Image } from "expo-image";
 import { BONG } from "./clay";
 import { INK2 } from "./lan-dau";
-import { Avt, Chu, F, LV, M, MAU_CON, The } from "./ui";
+import { F, LV, M } from "./ui";
 
 export type XemMoi = { tenGiaDinh: string; nguoiMoi: string | null; quyen?: "ba_me" | "trong_giup"; tenQuyen?: string; tenGoi: string; tenCon?: string[]; het: string };
 export const ma0 = (m?: string) => String(m ?? "").replace(/[^A-Za-z0-9_-]/g, "");
@@ -13,26 +13,6 @@ export const noiTen = (ds: string[] = [], va = false) => (ds.length < 2 ? ds.joi
 
 /** «Cùng trông Bảo Anh và Bảo Minh» (≤ 2 bé) / «Cùng trông 4 bé nhà mình» (thiết kế 14/11 them-ux0c23p4, bm1-moi — nhà nhiều con không kể hết tên). */
 export const cauTrong = (ds: string[] = [], va = false) => (ds.length > 2 ? `Cùng trông ${ds.length} bé nhà mình` : `Cùng trông ${noiTen(ds, va)}`);
-
-/** Thẻ lời mời (dùng cả ở /moi và màn thông báo): chữ cái người mời + 2 dòng + chấm tên các Con. */
-export function TheLoiMoi({ x }: { x: XemMoi }) {
-  const ai = x.nguoiMoi ?? x.tenGiaDinh;
-  return (
-    <The>
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Avt ten={ai} co={44} />
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <Chu kieu="rat" co={15.5}>{`${ai} mời bạn vào nhà`}</Chu>
-          {x.tenCon?.length ? <Chu co={13} mau={M.chu3}>{cauTrong(x.tenCon)}</Chu> : null}
-        </View>
-        <View style={{ flexDirection: "row" }}>
-          {(x.tenCon ?? []).slice(0, 4).map((t, i) => <View key={t + i} style={{ marginLeft: i ? -8 : 0 }}><Avt ten={t} mau={MAU_CON[(i + 3) % MAU_CON.length]} co={28} /></View>)}
-        </View>
-      </View>
-    </The>
-  );
-}
-
 
 /** Chữ cái đầu của TÊN gọi (từ cuối): «Mẹ Lan» ⇒ L, «Bảo Anh» ⇒ A. */
 export const dauTen = (t: string) => (t.trim().split(/\s+/).pop()?.charAt(0) || "?").toUpperCase();

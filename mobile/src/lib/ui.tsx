@@ -19,12 +19,11 @@ import { BO, F, M, MAU_HO_SO } from "./mau";
 import { BONG, BO_CLAY, HERO, KHOI, KHOI_HERO, MEN } from "./clay";
 import { ICON_3D, co3D } from "./icon-3d";
 import { LopMen, NhanMen, vaoLanLuot } from "./chuyen-dong";
-import { ThanhClay } from "./bieu-do";
 import { bm, LoiApi } from "./api";
 import { useAnhCon } from "./anh-con";
 
 export { M, F, BO };
-export { LopMen, NhanMen, Vao } from "./chuyen-dong";
+export { LopMen, NhanMen } from "./chuyen-dong";
 export type TenIcon = keyof typeof ICON;
 
 // ---------------------------------------------------------------- chữ, icon, mascot
@@ -70,19 +69,6 @@ export const Icon = memo(function Icon({ ten, mau = M.chu2, co = 20 }: { ten: Te
 export const IconNet = memo(function IconNet({ ten, mau = M.chu, co = 22 }: { ten: TenIcon; mau?: string; co?: number }) {
   // khung cố định, không co: trong hàng flex chật (nút chọn chế độ) icon không bị bóp về 0
   return <View style={{ width: co, height: co, flexShrink: 0 }}><SvgAst ast={cayIcon(`<svg viewBox="0 0 256 256" fill="${mau}">${ICON_NET[ten]}</svg>`)} override={{ width: co, height: co }} /></View>;
-});
-
-/** Logo giọt AiiHouse vàng kim (bộ thương hiệu, assets/logo/giot-vang.webp) trong viên tròn navy viền vàng mảnh — mẫu E `.rob` trên thẻ hero
- *  (thay Grow 3D, #417). `co` = đường kính viên. */
-const GIOT_VANG = require("../../assets/logo/giot-vang.webp");
-export const LogoTron = memo(function LogoTron({ co = 88 }: { co?: number }) {
-  return (
-    <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ width: co, height: co, borderRadius: co / 2, alignItems: "center", justifyContent: "center",
-      backgroundColor: HERO.nen, backgroundImage: "radial-gradient(circle at 35% 30%, #1d2f52 0%, #0A1629 70%)",
-      boxShadow: "inset 0px 0px 0px 1.5px rgba(244,199,106,0.55), 0px 0px 0px 6px rgba(244,199,106,0.08)" } as ViewStyle}>
-      <Image cachePolicy="memory-disk" source={GIOT_VANG} style={{ width: co * 0.57, height: co * 0.57 * (192 / 168) }} contentFit="contain" />
-    </View>
-  );
 });
 
 // Ảnh gói trong app (icon 3D, Grow): cachePolicy «memory-disk» ⇒ màn mới dựng (tab trượt vào, màn con) lấy ảnh đã giải mã trong bộ nhớ,
@@ -238,14 +224,6 @@ export const Nhan = memo(function Nhan({ chu, loai = "ok", cham, ic }: { chu: st
   );
 });
 
-export const DiemPill = ({ n }: { n: number }) => (
-  <View style={s.diemPill}>
-    <LopMen men={MEN.vien} bo={99} />
-    <Icon3D ten="xu" co={24} />
-    <Chu kieu="rat" co={15} mau={M.diemInk} so>{n} sao</Chu>
-  </View>
-);
-
 const MAU_BT = { xanh: [M.chinhSoft, M.chinhInk], vang: [M.diemSoft, M.diemInk], do: [M.loiSoft, M.loi], cam: [M.canhSoft, M.canh], lam: [M.lamSoft, M.lam], tim: [M.timSoft, M.timInk], xam: [M.xamSoft, M.chu2] } as const;
 export type MauBt = keyof typeof MAU_BT;
 /** Nền ô icon lõm (`.ic`): kem lõm #E3D9CB; vàng / cam (Ánh kim #386: bỏ đào #f3d6b8) = kem ánh vàng chonSoft, đỏ = loiSoft. */
@@ -267,16 +245,6 @@ export const BieuTron = memo(function BieuTron({ ic, mau = "xanh", lon, co }: { 
   );
 });
 
-/** Chữ trên nền màu: trắng hay chữ đậm — chọn bên tương phản cao hơn (WCAG 1.4.3). */
-const doSang = (hex: string) => {
-  const k = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((c) => (c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4));
-  return 0.2126 * k[0] + 0.7152 * k[1] + 0.0722 * k[2];
-};
-export const chuTren = (nen: string) => {
-  if (!/^#[0-9a-f]{6}$/i.test(nen)) return "#ffffff";
-  const l = doSang(nen);
-  return 1.05 / (l + 0.05) >= (l + 0.05) / (doSang(M.chu) + 0.05) ? "#ffffff" : M.chu;
-};
 // màu avatar con: sinh từ MAU_HO_SO[i][2] (tông đậm của bảng màu hồ sơ) ⇒ avatar không lệch màu đã chọn ở hồ sơ
 export const MAU_CON = MAU_HO_SO.map((x) => x[2]);
 export const Avt = memo(function Avt({ ten, mau, co = 44, con, anh, chon, toi }: { ten: string; mau?: string; co?: number;
@@ -417,37 +385,6 @@ export function TickDong({ chu, trang = "xong", phu }: { chu: string; trang?: "x
     </View>
   );
 }
-
-export function Buoc({ n, tong, nhan }: { n: number; tong: number; nhan?: string }) {
-  return (
-    <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 20, paddingTop: 4 }}>
-      <View style={{ flex: 1, flexDirection: "row", gap: 5 }}>
-        {Array.from({ length: tong }, (_, k) => <View key={k} style={{ flex: 1, height: 8, borderRadius: 4, backgroundColor: k < n ? M.chinh : M.ranh, boxShadow: k < n ? undefined : BONG.lom, backgroundImage: k < n ? MEN.nua : undefined }} />)}
-      </View>
-      <Text numberOfLines={1} style={{ fontFamily: F.rat, fontSize: 13, color: M.chu3 }}>{nhan ?? `Bước ${n}/${tong}`}</Text>
-    </View>
-  );
-}
-
-/** Thanh tiến độ = thanh clay của bộ biểu đồ (lib/bieu-do.tsx): rãnh lõm + thanh men, dài ra bằng lò xo khi vào màn. */
-export const Tien = ({ ti, mau = M.chinh }: { ti: number; mau?: string }) => <ThanhClay ti={ti} mau={mau} />;
-
-export function OSo({ nho, so, don, phu, noi, bam, children }: { nho: string; so: string | number; don?: string; phu?: string; noi?: boolean; bam?: () => void; children?: ReactNode }) {
-  const nd = (
-    <View style={[s.oSo, noi && { backgroundColor: "#FFFBF5", borderWidth: 1.5, borderColor: "#f3c8bf" }]}>
-      <LopMen men={MEN.the} bo={BO_CLAY.o} />
-      <Chu kieu="dam" co={13} mau={M.chu3}>{nho}</Chu>
-      <Text style={{ fontFamily: F.rat, fontSize: 24, color: M.chu, letterSpacing: -0.5, fontVariant: ["tabular-nums"], lineHeight: 30 }}>
-        {so}{don ? <Text style={{ fontFamily: F.dam, fontSize: 14, color: M.chu3, letterSpacing: 0 }}>{don}</Text> : null}
-      </Text>
-      {phu ? <Chu co={13} mau={M.chu3}>{phu}</Chu> : null}
-      {children}
-    </View>
-  );
-  return bam ? <NhanMen onPress={bam} accessibilityRole="button" muc="khoi" sang style={{ flex: 1, borderRadius: BO_CLAY.o }}>{nd}</NhanMen> : <View style={{ flex: 1 }}>{nd}</View>;
-}
-
-export const Luoi2 = ({ children }: { children: ReactNode }) => <View style={{ flexDirection: "row", gap: 10, flexWrap: "wrap" }}>{children}</View>;
 
 // ---------------------------------------------------------------- ô nhập
 
@@ -670,14 +607,6 @@ export function XuongTai() {
   );
 }
 
-export const BangMang = ({ chu }: { chu: string }) => (
-  <View style={s.bangMang} accessibilityRole="alert" accessibilityLiveRegion="polite">
-    <LopMen men={MEN.toi} bo={20} />
-    <Icon ten="wifi" mau={M.diem} />
-    <Chu kieu="dam" co={13.5} mau="#FFFBF5" style={{ flex: 1 }}>{chu}</Chu>
-  </View>
-);
-
 /** Chưa có dữ liệu: đang tải ⇒ khung xương; tải hỏng ⇒ cảnh lỗi + Thử lại (không quay mãi); mất mạng ⇒ Grow chờ + câu nói rõ. */
 export function ChoTai({ loi, matMang, tai }: { loi?: string | null; matMang?: boolean; tai: () => void }) {
   if (!loi) return <XuongTai />;
@@ -867,7 +796,6 @@ const s = StyleSheet.create({
   the: { backgroundColor: M.the, borderRadius: BO_CLAY.the, ...KHOI.the },
   theLe: { padding: 16 },
   nhan: { flexDirection: "row", alignItems: "center", gap: 6, maxWidth: "100%", flexShrink: 1, paddingHorizontal: 9, paddingVertical: 3, borderRadius: 11, alignSelf: "flex-start" },
-  diemPill: { flexDirection: "row", alignItems: "center", gap: 6, backgroundColor: M.diemSoft, borderRadius: 99, paddingLeft: 5, paddingRight: 13, paddingVertical: 4, alignSelf: "flex-start", ...KHOI.vien },
   bieuTron: { width: 44, height: 44, borderRadius: 22, alignItems: "center", justifyContent: "center" },
   nhom: { backgroundColor: M.the, borderRadius: BO_CLAY.the, overflow: "hidden", ...KHOI.the },
   dong: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 16, minHeight: 60 },
@@ -884,7 +812,6 @@ const s = StyleSheet.create({
   congTacNut: { position: "absolute", top: 4, width: 24, height: 24, borderRadius: 12, backgroundColor: M.the, ...KHOI.nho },
   bao: { flexDirection: "row", gap: 10, alignItems: "flex-start", paddingVertical: 12, paddingHorizontal: 16, borderRadius: BO_CLAY.vien },
   dauTd: { width: 26, height: 26, borderRadius: 13, alignItems: "center", justifyContent: "center" },
-  oSo: { padding: 16, borderRadius: BO_CLAY.o, backgroundColor: M.the, gap: 4, flexGrow: 1, minWidth: 140, ...KHOI.the },
   // ô nhập LÕM (thiết kế chốt 14/11 `.lom`: nền xám ấn lõm, bo tròn hết, không viền; đang gõ ⇒ viền ngọc 2) — cùng kiểu OLom (lib/lan-dau)
   o: { backgroundColor: M.ranh, borderWidth: 2, borderColor: "transparent", borderRadius: 27, paddingHorizontal: 18, minHeight: 54, fontSize: 17, fontFamily: F.dam, color: M.chu, boxShadow: BONG.lom },
   oDang: { borderColor: M.chinh },
@@ -906,5 +833,4 @@ const s = StyleSheet.create({
     boxShadow: BONG.toi },
   toastTick: { width: 30, height: 30, borderRadius: 15, backgroundColor: M.diem, alignItems: "center", justifyContent: "center", backgroundImage: MEN.vang },
   xuong: { borderRadius: 26, backgroundColor: M.xamSoft, boxShadow: BONG.lom },
-  bangMang: { flexDirection: "row", gap: 10, alignItems: "center", backgroundColor: M.chu, borderRadius: 20, paddingVertical: 10, paddingHorizontal: 12, boxShadow: BONG.toi },
 });

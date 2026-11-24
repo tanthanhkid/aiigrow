@@ -23,12 +23,7 @@ export const LY_DO_KHONG = "Ba Mẹ chưa cho lúc này";
 export const LY_DO_MO_KHOA = "Ba Mẹ đã mở khoá máy · chơi vẫn trừ sao";
 /** Lời xin vay sao (vay_sao + loại cũ them_gio / ngoai_le / ngoai_gio). */
 export const laVay = (y: Pick<YeuCauMoi, "loai">) => laXinVay(y);
-/** @deprecated 15/11 — mọi lời «thêm giờ» là lời xin vay; giữ tên cho màn cũ. */
-export const laThemGio = laVay;
 export const laAppWeb = (y: Pick<YeuCauMoi, "loai">) => y.loai === "mo_web" || y.loai === "cai_app";
-
-/** Tên thứ con xin mở: app / tên miền. */
-export const mucXin = (y: Pick<YeuCauMoi, "loai" | "gia_tri" | "pham_vi" | "ten_app">) => (laVay(y) ? "" : tenYc(y) ?? "");
 
 /** Tiêu đề lời xin như thiết kế: «Xin Ba Mẹ cho vay 20 sao», «Xin thêm YouTube», «Xin thêm app CapCut». */
 export function tieuXin(y: Pick<YeuCauMoi, "loai" | "phut" | "gia_tri" | "pham_vi" | "ten_app"> & { muc_dich?: string | null }) {

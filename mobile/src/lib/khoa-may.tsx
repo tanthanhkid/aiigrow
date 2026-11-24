@@ -11,8 +11,6 @@ type Han = "15" | "60" | "sang" | "mo";
 export function denCua(han: Han, now = new Date()): Date | null {
   return han === "15" ? new Date(now.getTime() + 15 * 60_000) : han === "60" ? new Date(now.getTime() + 3600_000) : null;   // «sang» do máy chủ tính theo múi giờ gia đình
 }
-/** «Khoá tới 10:41» / «Khoá tới khi Ba Mẹ mở». */
-export const cauKhoa = (den: string | null | undefined) => (den ? `Khoá tới ${gioPhut(den)}` : "Khoá tới khi Ba Mẹ mở");
 
 /** Khoá còn hiệu lực theo hạn: không hạn = tới khi mở; hạn đã qua = hết khoá. */
 export const conHan = (den: string | null | undefined, now = new Date()) => !den || Date.parse(den) > now.getTime();

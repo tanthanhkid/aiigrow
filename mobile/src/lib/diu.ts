@@ -63,6 +63,3 @@ export const MEN_D = {
   /** navy loang (khối tối) */
   dem: "radial-gradient(90% 70% at 85% 10%, #1d3158 0%, #0A1629 100%)",
 } as const;
-
-/** Màu avatar theo thứ tự bé (Bảo Anh cam, Bảo Minh lam…). */
-export const mauAvt = (i: number) => D.avt[((i % D.avt.length) + D.avt.length) % D.avt.length];
