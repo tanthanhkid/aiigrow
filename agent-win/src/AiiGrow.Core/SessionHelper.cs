@@ -30,9 +30,6 @@ public static class SessionHelper
     [DllImport("wtsapi32.dll", SetLastError = true)]
     private static extern bool WTSDisconnectSession(IntPtr hServer, int sessionId, bool wait);
 
-    [DllImport("wtsapi32.dll", SetLastError = true)]
-    private static extern bool WTSLogoffSession(IntPtr hServer, int sessionId, bool wait);
-
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool GetNamedPipeClientSessionId(IntPtr pipe, out uint clientSessionId);
 
@@ -160,8 +157,6 @@ public static class SessionHelper
 
     /// <summary>Ngắt phiên (không đóng app đang mở; con quay lại màn đăng nhập).</summary>
     public static bool Disconnect(int sessionId) => WTSDisconnectSession(IntPtr.Zero, sessionId, false);
-
-    public static bool Logoff(int sessionId) => WTSLogoffSession(IntPtr.Zero, sessionId, false);
 
     public static int PipeClientSession(IntPtr pipeHandle)
         => GetNamedPipeClientSessionId(pipeHandle, out var id) ? (int)id : -1;

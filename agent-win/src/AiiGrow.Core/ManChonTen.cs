@@ -36,7 +36,6 @@ public sealed class ManChonTenState
 /// <summary>Chữ + chuyển bước của màn chọn tên / PIN / Ba Mẹ nhập mã (con-ngay-thuong 01–07).</summary>
 public static class ManChonTenView
 {
-    public const string ChipKhoa = "Máy đang khoá";
     /// <summary>Tên máy thật (Windows) cho chip / chân trang — Bàn ghi «Máy cả nhà · máy đang khoá» (tên mẫu); khay chưa nhận tên Ba Mẹ đặt nên dùng tên máy.</summary>
     public static string TenMayThat()
     {

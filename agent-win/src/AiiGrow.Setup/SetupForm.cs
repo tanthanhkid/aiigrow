@@ -14,7 +14,6 @@ internal sealed class SetupForm : Form
 {
     // Token màu «Clay gương» (CapNhatSetup.cs dùng chung — giữ tên).
     internal static readonly Color Chinh = Clay.Ngoc;
-    internal static readonly Color ChinhSoft = Clay.NgocSoft;
     internal static readonly Color Chu = Clay.Chu;
     internal static readonly Color Chu2 = Clay.Chu2;
     internal static readonly Color Loi = Clay.Loi;

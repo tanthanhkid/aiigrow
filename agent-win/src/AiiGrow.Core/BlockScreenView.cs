@@ -44,8 +44,6 @@ public static class BlockScreenView
         return ProcessGuard.UngDungTrongWindows.Contains(t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? t : t + ".exe");
     }
 
-    public const string AskOpenLabel = "Xin mở hẳn app này";
-
     /// <summary>Nút «Xin mở hẳn app này» trên màn chặn: chỉ khi app bị chặn vì LUẬT (chưa phân loại / Ba Mẹ chặn) — Ba Mẹ đồng ý thì máy chủ đổi luật cho app đó.
     /// Ngoài giờ, giờ ngủ, hết sao, máy đang khoá: đổi luật không mở được ⇒ không mời (Con xin thêm giờ / dùng sao). Không mời với công cụ của Windows.</summary>
     public static bool CanAskOpen(string? appId, string? reason = null)
