@@ -82,6 +82,7 @@ public sealed class AgentWorker : BackgroundService
                     else if (now >= nextProbe)
                     {
                         // Thăm dò nhẹ máy chủ để khay báo «mất kết nối» trong ≤30 giây (nhịp đồng bộ có thể thưa tới vài phút).
+                        // ApiClient bọc handler chung (HttpDungChung, #562) ⇒ tái dùng kết nối TLS, không bắt tay mới mỗi 15 giây.
                         nextProbe = now.AddSeconds(15);
                         try { using var api = new ApiClient(cfg.Server, cfg.Token); _rt.GhiThamDo(await api.PingAsync(ct)); }
                         catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug(e, "Thăm dò máy chủ lỗi"); }

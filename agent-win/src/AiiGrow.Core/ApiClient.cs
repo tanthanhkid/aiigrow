@@ -48,7 +48,7 @@ public sealed class ApiClient : IDisposable
 
     public ApiClient(string server, string? token = null, HttpMessageHandler? handler = null, int timeoutGiay = 20)
     {
-        _http = handler == null ? new HttpClient() : new HttpClient(handler);
+        _http = HttpDungChung.TaoClient(handler);   // #562: kết nối tái dùng giữa các lượt
         _http.BaseAddress = new Uri(NormalizeServer(server) + "/");
         _http.Timeout = TimeSpan.FromSeconds(timeoutGiay);
         _http.DefaultRequestHeaders.TryAddWithoutValidation("X-AiiGrow-Ban", TuCapNhat.BanHienTai().ToString(3));   // máy chủ ghi bản đang chạy
@@ -207,20 +207,31 @@ public sealed class ApiClient : IDisposable
         return ChoThayDoi.Doc(raw) ?? throw new ApiException("Máy chủ trả «chờ thay đổi» không đúng định dạng");
     }
 
-    /// <summary>Thăm dò nhẹ: có tới được máy chủ không (TCP/TLS + một yêu cầu GET gốc, hạn 8 giây; client mang sẵn token như mọi lời gọi khác). Mọi phản hồi HTTP (kể cả 404/401) tính là «tới được»;
+    /// <summary>Thăm dò nhẹ: có tới được máy chủ không (TCP/TLS + một yêu cầu HEAD gốc, hạn 8 giây; client mang sẵn token như mọi lời gọi khác). Mọi phản hồi HTTP (kể cả 404/401) tính là «tới được»;
     /// lỗi mạng / hết hạn / máy chủ 5xx tính là không. Không gửi dữ liệu.</summary>
     public async Task<bool> PingAsync(CancellationToken ct = default)
+    {
+        // HEAD: kết nối dùng chung (#562) phải đọc hết thân mới trả về pool — GET trang gốc là tải cả trang HTML mỗi 15 giây.
+        // Proxy/cổng từ chối HEAD (5xx hoặc cắt kết nối) ⇒ thử GET như trước, với hạn riêng — không báo mất mạng nhầm.
+        var head = await ThamDo(HttpMethod.Head, ct);
+        if (head == true) return true;
+        if (head == null && ct.IsCancellationRequested) throw new OperationCanceledException(ct);
+        return await ThamDo(HttpMethod.Get, ct) == true;
+    }
+
+    /// <returns>true = tới được; false = hết hạn 8 giây; null = máy chủ/proxy trả 5xx hoặc lỗi kết nối (đáng thử cách khác).</returns>
+    private async Task<bool?> ThamDo(HttpMethod phuongThuc, CancellationToken ct)
     {
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(8));
         try
         {
-            using var req = new HttpRequestMessage(HttpMethod.Get, "");
+            using var req = new HttpRequestMessage(phuongThuc, "");
             using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
-            return (int)resp.StatusCode < 500;
+            return (int)resp.StatusCode < 500 ? true : null;
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { return false; }
-        catch (HttpRequestException) { return false; }
+        catch (HttpRequestException) { return null; }
     }
 
     private async Task<T> PostAsync<T>(string path, object body, CancellationToken ct)

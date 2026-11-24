@@ -68,7 +68,7 @@ public sealed class UpdateWorker : BackgroundService
     /// <summary>Hỏi manifest máy chủ: có bản mới hơn bản đang chạy (và hợp lệ để tự cập nhật) ⇒ trả số bản «0.2.10»; không ⇒ null.</summary>
     public static async Task<string?> KiemBanMoiAsync(string serverCfg, CancellationToken ct)
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        using var http = HttpDungChung.TaoClient(han: TimeSpan.FromSeconds(20));
         var server = ApiClient.NormalizeServer(serverCfg);
         var json = await http.GetStringAsync(server + TuCapNhat.DuongManifest, ct);
         var m = JsonSerializer.Deserialize<BanMoi>(json);
@@ -97,7 +97,7 @@ public sealed class UpdateWorker : BackgroundService
         var hienTai = TuCapNhat.BanHienTai();
 
         // KHÔNG gắn token máy: manifest công khai, còn tệp cài tải từ Vercel Blob (ngoài máy chủ AiiGrow) — gửi Bearer theo là lộ token máy cho bên thứ ba.
-        using var http = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
+        using var http = HttpDungChung.TaoClient(han: Timeout.InfiniteTimeSpan);
         var server = ApiClient.NormalizeServer(cfg.Server);
         BanMoi? m;
         using (var cts = CancellationTokenSource.CreateLinkedTokenSource(ct))
