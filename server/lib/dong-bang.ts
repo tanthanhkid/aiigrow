@@ -1,10 +1,9 @@
 // «Đóng băng chuỗi ngày» (FR-03.06): Ba Mẹ giữ chuỗi ngày của Con cho MỘT ngày Con không làm được nhiệm vụ nào (ốm, đi chơi xa…),
 // tối đa 1 lần mỗi tuần (thứ Hai → Chủ nhật, theo giờ gia đình). Ngày đóng băng không làm đứt chuỗi nhưng cũng không cộng thêm ngày.
 // Không quy ra điểm (huy hiệu / chuỗi không phá cân bằng điểm).
-import { one, q } from "./db.ts";
+// Ghi ngày đóng băng: đường POST con/:id/dong-bang-chuoi đã bỏ (#568 — app Ba Mẹ không còn nút từ thiết kế 05/11); vẫn đọc ngày đã lưu.
+import { q } from "./db.ts";
 import { congNgay, dauTuan, gioDiaPhuong } from "./gio.ts";
-import { LoiNghiepVu } from "./loi.ts";
-import { ghiSuKien } from "./nhat-ky.ts";
 import { bangTvTb } from "./thanh-vien.ts";
 
 export async function ngayDongBang(con: string) {
@@ -29,7 +28,7 @@ async function ngayLam(con: string, tz: string) {
     .map((r) => gioDiaPhuong(new Date(r.luc), tz).ngay));
 }
 
-/** Trạng thái đóng băng cho màn Ba Mẹ: tuần này còn dùng được không, ngày nào sẽ được giữ nếu bấm. */
+/** Trạng thái đóng băng (chỉ đọc — đường ghi đã bỏ ở #568): ngày đã đóng băng; `ngay`/`duocDung` tính theo luật 1 lần/tuần cũ. */
 export async function trangThaiDongBang(con: string, tz: string, now = new Date()) {
   const bang = await ngayDongBang(con), lam = await ngayLam(con, tz);
   const homNay = gioDiaPhuong(now, tz).ngay, homQua = congNgay(homNay, -1);
@@ -38,15 +37,4 @@ export async function trangThaiDongBang(con: string, tz: string, now = new Date(
   const truocHomQua = demChuoi(lam, bang, congNgay(homQua, -1));
   const ngay = !lam.has(homQua) && !bang.has(homQua) && truocHomQua > 0 ? homQua : !lam.has(homNay) && !bang.has(homNay) ? homNay : null;
   return { ngay, duocDung: !!ngay && !tuanCua(ngay), daDung: [...bang].sort().slice(-5) };
-}
-
-export async function dongBangChuoi(fam: string, con: string, nguoi: string, now = new Date()) {
-  const c = await one<{ tz: string }>(`select f.tz from children c join families f on f.id = c.family_id where c.id = $1 and c.family_id = $2`, [con, fam]);
-  if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  const tt = await trangThaiDongBang(con, c.tz, now);
-  if (!tt.ngay) throw new LoiNghiepVu("khong_can_dong_bang", "Hôm nay Con đã có nhiệm vụ được duyệt — chuỗi ngày vẫn giữ", 409);
-  if (!tt.duocDung) throw new LoiNghiepVu("da_dong_bang_tuan", "Tuần này đã đóng băng chuỗi một lần rồi", 409);
-  await q(`insert into dong_bang_chuoi(child_id, ngay, nguoi) values ($1, $2, $3) on conflict do nothing`, [con, tt.ngay, nguoi]);
-  await ghiSuKien(fam, "dong_bang_chuoi", { ngay: tt.ngay }, { con, nguoi });
-  return { ngay: tt.ngay };
 }

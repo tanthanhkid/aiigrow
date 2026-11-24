@@ -115,7 +115,7 @@ test("chủ là người lớn cuối: còn máy ⇒ 409 con_may; gỡ máy xong
   assert.equal((await dv("dong-bo", { tok: may.token, body: {} })).status, 200);
   assert.equal((await dv("log", { tok: may.token, body: { ds: [{ luc: new Date().toISOString(), muc: "tin", noiDung: "chạy" }] } })).status, 200);
   assert.ok((await q(`select 1 from may_log where family_id = $1`, [fam])).length);
-  const lenh = await m(`may/${may.deviceId}/go-tu-xa`, { tok, body: { matKhau: "matkhau123" } });
+  const lenh = await m(`may/${may.deviceId}/go`, { tok, body: { matKhau: "matkhau123" } });
   assert.equal(lenh.status, 200);
   assert.ok((await q(`select 1 from lenh_may where family_id = $1`, [fam])).length);
   // còn máy ⇒ chưa xoá (lệnh gỡ không tới được agent sau khi xoá gia đình) — nêu tên máy

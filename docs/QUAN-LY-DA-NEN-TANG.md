@@ -102,7 +102,7 @@ có hạn (`goi_cai_gio` = 48 giờ), chỉ lưu băm ⇒ token nhúng sẵn tro
 | Apple TV | hồ sơ MDM (giám sát) hoặc chỉ tầng mạng | — | — | MDM `RemoveProfile` / xoá luật mạng |
 | TV không MDM | hướng dẫn một bước tầng mạng: chọn TV trong danh sách thiết bị router (MAC) | — | quyền quản trị router | xoá luật MAC + nhóm DNS |
 
-Gỡ từ xa (máy chủ xong): chủ gia đình xác thực lại bằng mật khẩu (`POST /api/m/may/:id/go-tu-xa`) ⇒ máy chủ ghi lệnh `go` ⇒ agent lấy lệnh
+Gỡ từ xa (máy chủ xong): chủ gia đình xác thực lại bằng mật khẩu (`POST /api/m/may/:id/go`) ⇒ máy chủ ghi lệnh `go` ⇒ agent lấy lệnh
 qua `dong-bo` / `nhip` (`lenh: [{id, loai: "go"}]`) ⇒ `POST /api/device/lenh/:id/xong` ⇒ máy «đã gỡ» (xoá khỏi gia đình, token hết hiệu lực,
 ngừng cảnh báo mất nhịp); báo xong lần hai trả `lapLai: true`, không ghi đôi. Vai không phải chủ ⇒ 403; sai mật khẩu ⇒ 401 + nhật ký; máy
 nhà khác ⇒ 404.

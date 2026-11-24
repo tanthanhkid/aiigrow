@@ -76,21 +76,21 @@ test("gỡ từ xa: sai mật khẩu / Người trông giúp / khác gia đình 
   const { fam, con, bmTok } = await nha();
   const ghep = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop của Ken");
   await dv("nhip", { tok: ghep.token, body: { phienBan: "1.4.0", appQuanLyBat: true } });
-  const sai = await m(`may/${ghep.deviceId}/go-tu-xa`, { tok: bmTok, body: { matKhau: "doan-bua" } });
+  const sai = await m(`may/${ghep.deviceId}/go`, { tok: bmTok, body: { matKhau: "doan-bua" } });
   assert.deepEqual([sai.status, sai.body.error], [401, "sai_mat_khau"]);
   // L6: Người trông giúp không gỡ được (cổng quyền chặn mọi POST đổi cài đặt)
   const tg = await taoBaMe(fam, "Bà", "trong_giup");
   await q(`update parents set pass_hash = $2 where id = $1`, [tg, await bamMatKhau("matkhau123")]);
-  const r403 = await m(`may/${ghep.deviceId}/go-tu-xa`, { tok: await taoPhien(tg), body: { matKhau: "matkhau123" } });
+  const r403 = await m(`may/${ghep.deviceId}/go`, { tok: await taoPhien(tg), body: { matKhau: "matkhau123" } });
   assert.deepEqual([r403.status, r403.body.error], [403, "chi_xem"]);
   const khac = await nha("Mai");
-  assert.equal((await m(`may/${ghep.deviceId}/go-tu-xa`, { tok: khac.bmTok, body: { matKhau: "matkhau123" } })).status, 404);
+  assert.equal((await m(`may/${ghep.deviceId}/go`, { tok: khac.bmTok, body: { matKhau: "matkhau123" } })).status, 404);
   assert.equal((await q(`select 1 from lenh_may where device_id = $1`, [ghep.deviceId])).length, 0);
 
-  const l = (await m(`may/${ghep.deviceId}/go-tu-xa`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body;
+  const l = (await m(`may/${ghep.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body;
   assert.equal(l.lapLai, false);
   assert.match(l.cach, /msiexec/);
-  assert.equal((await m(`may/${ghep.deviceId}/go-tu-xa`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body.id, l.id, "bấm lại: cùng lệnh");
+  assert.equal((await m(`may/${ghep.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body.id, l.id, "bấm lại: cùng lệnh");
   assert.deepEqual((await dv("dong-bo", { tok: ghep.token, body: {} })).body.lenh, [{ id: l.id, loai: "go" }]);
   assert.deepEqual((await dv("nhip", { tok: ghep.token, body: { appQuanLyBat: true } })).body.lenh, [{ id: l.id, loai: "go" }]);
   assert.equal((await m("tuan-thu", { tok: bmTok })).body.ds[0].lenhCho[0].loai, "go");

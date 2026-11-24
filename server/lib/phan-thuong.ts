@@ -24,7 +24,7 @@ export type Qua = { id: string; family_id: string; ten: string; loai: string; di
   /** 06/11 (L14, SCHEMA_S3): dòng phụ, mã hình, áp cho Con nào (null = mọi Con), mã quà mẫu (lib/qua-bang-gia.ts) */
   mo_ta?: string | null; hinh?: string | null; ap_cho?: string[] | null; mau?: string | null };
 
-/** Mẫu quà cho «Áp mẫu quà» (POST qua/mau) + thư viện Admin. #433 B11: khớp bảng giá sao hiện tại — cùng tên / số sao với quà mặc định
+/** Mẫu quà cho thư viện Admin (POST qua/mau của Ba Mẹ dùng QUA_MAC_DINH). #433 B11: khớp bảng giá sao hiện tại — cùng tên / số sao với quà mặc định
  *  (qua-bang-gia.ts › QUA_MAC_DINH; chép tay vì qua-bang-gia.ts import file này). Bỏ «Thêm 30 phút chơi»: phút chơi không còn là quà
  *  (1 sao = 1 phút, đổi bằng nút đổi sao lấy phút). */
 export const MAU_QUA = [
@@ -62,13 +62,6 @@ export async function taoQua(fam: string, b: Record<string, unknown>, o: { ngung
     [id, fam, v.ten, v.loai, v.diem, v.menh_gia, v.ton_kho, v.toi_da_thang, v.chi_cuoi_tuan, v.can_xac_nhan, v.phut, v.mo_ta, v.hinh,
       v.ap_cho ? JSON.stringify(v.ap_cho) : null, v.mau]);
   return id;
-}
-
-export async function apDungMauQua(fam: string) {
-  const co = new Set((await q<{ ten: string }>(`select ten from rewards where family_id = $1`, [fam])).map((x) => x.ten));
-  let n = 0;
-  for (const m of MAU_QUA) if (!co.has(m.ten)) { await taoQua(fam, m); n++; }
-  return n;
 }
 
 export async function suaQua(fam: string, id: string, b: Record<string, unknown>) {

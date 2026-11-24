@@ -145,7 +145,6 @@ test("#492 Chỉ trông con: không ghép máy / gỡ máy / đổi máy", async
     ["ma-ghep", { con, nen: "windows" }],
     ["ghep-may", { con, nen: "windows" }],
     ["may/khong-co/go", { matKhau: "matkhau123" }],
-    ["may/khong-co/go-tu-xa", { matKhau: "matkhau123" }],
     ["may/khong-co/ten", { ten: "Máy lậu" }],
     ["may/khong-co/con", { ds: [con] }],
     [`con/${con}/gan`, { may: "x" }],

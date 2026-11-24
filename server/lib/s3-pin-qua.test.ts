@@ -164,7 +164,6 @@ test("L13 Ba Mẹ nhập mã mở máy ⇒ «Ba Mẹ đang dùng máy» theo s�
   assert.equal((await q(`select 1 from usage where device_id = $1`, [chung.id])).length, 0);
   assert.equal((await dv(chung.tok, "nhip", {})).body.baMeDung.den, r.baMeDung.den);
   assert.equal((await dv(chung.tok, "ho-so")).body.baMeDung.den, r.baMeDung.den);
-  assert.equal((await m(tokBm, `may/${chung.id}/nguoi-dung`)).body.baMeDung.den, r.baMeDung.den);
   // máy riêng, đang giờ ngủ / khoá: Ba Mẹ mở bằng mã vẫn mở hết
   await m(tokBm, `con/${anh}/khoa`, { khoa: true });
   const ma15 = (await m(tokBm, `may/${rieng.id}/ma-offline?phut=15`)).body.ma;
@@ -226,7 +225,6 @@ test("L19 máy con mất mạng hôm nay + chuông = số mục «Cần Ba Mẹ 
     assert.ok(cd.ds.some((x: any) => x.loai === "canh_bao" && /trang bị chặn/.test(x.tieu)));
     assert.equal(cd.ds[0].loai, "mat_mang", "mất mạng đứng đầu");
     assert.equal((await m(tokBm, `con/${anh}`)).body.may.find((x: any) => x.id === rieng.id).matMang, true);
-    assert.equal((await m(tokBm, "may-mat-mang")).body.ds.length, 1);
   }
 });
 

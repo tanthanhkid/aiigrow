@@ -13,7 +13,6 @@ const { csvBaoCao, xuatCsvBaoCao } = await import("./xuat-csv.ts");
 const { xuLyM } = await import("./api-m.ts");
 const { taoPhien } = await import("./auth.ts");
 
-const loi = async (p: Promise<unknown>, ma: string) => assert.rejects(p, (e: { ma?: string }) => e.ma === ma);
 /** Một lượt được duyệt lúc 12:00 giờ VN của ngày `ngay`. */
 async function duyetNgay(fam: string, con: string, ngay: string) {
   let t = await db.one<{ id: string }>(`select id from tasks where family_id = $1 limit 1`, [fam]);
@@ -30,7 +29,7 @@ test("demChuoi: ngày đóng băng giữ chuỗi, không cộng thêm ngày; hô
   assert.equal(dbg.demChuoi(new Set(), new Set(), "2026-10-22"), 0);
 });
 
-test("đóng băng: giữ hôm qua bị bỏ lỡ; tối đa 1 lần/tuần; hôm nay đã làm thì không cần; cách ly gia đình", async () => {
+test("đóng băng: ngày đã đóng băng giữ chuỗi; trangThaiDongBang báo hết lượt tuần / không cần khi hôm nay đã làm", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
   // Thứ Năm 22/10/2026 19:00 giờ VN; Con làm T2–T3, bỏ T4
@@ -39,25 +38,24 @@ test("đóng băng: giữ hôm qua bị bỏ lỡ; tối đa 1 lần/tuần; hô
   assert.equal(await chuoiNgay(con, bay), 0, "bỏ hôm qua ⇒ đứt");
   const tt = await dbg.trangThaiDongBang(con, "Asia/Ho_Chi_Minh", bay);
   assert.deepEqual([tt.ngay, tt.duocDung], ["2026-10-21", true]);
-  assert.deepEqual(await dbg.dongBangChuoi(fam, con, bm, bay), { ngay: "2026-10-21" });
+  await dbg.ngayDongBang(con);                                 // tạo bảng nếu chưa có
+  await db.q(`insert into dong_bang_chuoi(child_id, ngay, nguoi) values ($1, $2, $3)`, [con, "2026-10-21", bm]);
   assert.equal(await chuoiNgay(con, bay), 2, "đóng băng hôm qua ⇒ giữ chuỗi 2 ngày");
-  // lần thứ hai cùng tuần (giữ hôm nay) ⇒ từ chối
-  await loi(dbg.dongBangChuoi(fam, con, bm, bay), "da_dong_bang_tuan");
-  // hôm nay đã làm ⇒ không cần
+  // lần thứ hai cùng tuần (giữ hôm nay) ⇒ không được dùng
+  assert.equal((await dbg.trangThaiDongBang(con, "Asia/Ho_Chi_Minh", bay)).duocDung, false);
+  // hôm nay đã làm ⇒ không còn ngày cần giữ
   await duyetNgay(fam, con, "2026-10-22");
-  await loi(dbg.dongBangChuoi(fam, con, bm, bay), "khong_can_dong_bang");
+  assert.equal((await dbg.trangThaiDongBang(con, "Asia/Ho_Chi_Minh", bay)).ngay, null);
   assert.equal(await chuoiNgay(con, bay), 3);
   // tuần sau dùng lại được
   const tuanSau = new Date("2026-10-27T12:00:00Z");          // T3 tuần sau; bỏ T6 23 → CN 25, T2 26
   const tt2 = await dbg.trangThaiDongBang(con, "Asia/Ho_Chi_Minh", tuanSau);
   assert.equal(tt2.ngay, "2026-10-27", "hôm qua bỏ lỡ nhưng chuỗi trước đó đã đứt ⇒ chỉ giữ hôm nay");
   assert.equal(tt2.duocDung, true);
-  const nha2 = await taoNha("Hoa");
-  await loi(dbg.dongBangChuoi(nha2.fam, con, nha2.bm, bay), "khong_thay");
   assert.ok("dongBang" in (await thanhTich(con)));
 });
 
-test("API: Ba Mẹ đóng băng qua /api/m; Chỉ xem không đóng băng được; CSV báo cáo tuần có BOM + đúng cột", async () => {
+test("API: CSV báo cáo tuần có BOM + đúng cột; khác gia đình ⇒ 404", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Bảo Anh" });
   const tok = await taoPhien(bm);
@@ -66,10 +64,6 @@ test("API: Ba Mẹ đóng băng qua /api/m; Chỉ xem không đóng băng đư�
       body: body === undefined ? undefined : JSON.stringify(body) }), d.split("/"));
     return { status: r.status, body: await r.json() };
   };
-  const r = await goi(`con/${con}/dong-bang-chuoi`, {});
-  assert.equal(r.status, 200, JSON.stringify(r.body));
-  const xem = await db.one<{ id: string }>(`insert into parents(id, family_id, dinh_danh, ten, vai) values ($1,$2,$3,'Bà','xem') returning id`, [db.newId(), fam, `${db.newId()}@vd.vn`]);
-  assert.equal((await goi(`con/${con}/dong-bang-chuoi`, {}, await taoPhien(xem!.id))).status, 403);
   const csv = await goi(`con/${con}/bao-cao/csv`);
   assert.equal(csv.status, 200);
   assert.match(csv.body.tenTep, /^aiigrow-bao-cao-Bao-Anh-\d{4}-\d{2}-\d{2}\.csv$/);

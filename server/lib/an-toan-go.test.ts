@@ -101,8 +101,8 @@ test("gỡ máy này: chỉ Ba Mẹ + mật khẩu; máy đã đồng bộ ⇒ l
   assert.equal(tt.dangGo.lenhId, r.id);
   assert.equal(tt.daDongBo, true);
   assert.equal(tt.coTheXoaHan, false);
-  // bấm lại (kể cả qua go-tu-xa) ⇒ cùng một lệnh
-  assert.equal((await m(`may/${may.deviceId}/go-tu-xa`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body.id, r.id);
+  // bấm lại ⇒ cùng một lệnh
+  assert.equal((await m(`may/${may.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body.id, r.id);
   // máy còn liên lạc ⇒ không xoá hẳn được
   assert.equal((await m(`may/${may.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123", xoaHan: true } })).body.error, "chua_duoc_xoa_han");
 

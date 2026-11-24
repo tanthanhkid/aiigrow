@@ -134,7 +134,6 @@ Cổng mỏng cho ứng dụng khay của agent-win (`AppForm` — cửa sổ ap
 | `POST may/:id/mo-khan-cap {phut, lyDo?}` | mở khẩn cấp (5–`mo_khan_cap_toi_da_phut` = 120 phút) ⇒ `{den, phut}`; chỉ gỡ khoá do không tuân thủ (khoá ngay / giờ ngủ / điểm vẫn giữ); ghi nhật ký + báo. `POST may/:id/mo-khan-cap/huy` |
 | `GET may/:id/ma-offline` | mã mở khi máy MẤT MẠNG ⇒ `{ma (6 số), conGiay, hieuLucPhut, phutMo}`. Ba Mẹ đọc cho Con gõ vào màn khoá; máy tự kiểm bằng bí mật TOTP chung (`lib/ma-offline.ts`, cấp lúc ghép + qua `dong-bo.windows.maOfflineBiMat`). Mỗi mã sống ~5–15 phút; ghi nhật ký `xem_ma_offline`. Chỉ máy Windows. Máy nhận mã (`agent-win` `MoTamOffline`): mở 60 phút, gỡ MỌI khoá (hết giờ, giờ ngủ, khoá ngay) — mã do Ba Mẹ đọc và khi mất mạng đây là đường duy nhất mở máy, không để máy kẹt (khác mở khẩn cấp online vốn giữ giờ ngủ/khoá ngay); sai 5 lần / 10 phút thì chờ; mỗi mã một lượt; mã chỉ dành cho lúc mất mạng: lần đồng bộ thành công đầu tiên kết thúc lượt mở (sự kiện `het_ma_offline`, `ket_thuc: co_mang`, chỉ ghi nhật ký); có mạng lại gửi sự kiện `mo_ma_offline` / `sai_ma_offline` / `het_ma_offline` (`su-kien`) |
 | `POST may/:id/tai-khoan-tin-cay {ten, tinCay?}` | xác nhận (hoặc bỏ, `tinCay: false`) tài khoản quản trị trên máy là của Ba Mẹ ⇒ `{adminTinCay}` |
-| `POST may/:id/go-tu-xa {matKhau}` | chỉ **chủ gia đình**, xác thực lại bằng mật khẩu ⇒ `{id, lapLai, cach}`; ghi lệnh `go` cho máy. Lỗi: `sai_mat_khau` 401 · `chi_chu` 403 · `khong_thay` 404 |
 | `POST may/:id/che-do {cheDo: "giam-sat"\|"chan"}` | chế độ agent do Ba Mẹ chọn từ xa ⇒ `{cheDo, doi}` (`doi: false` khi không đổi). Vai Chỉ xem 403 `chi_xem` · `che_do_sai` 400 · `khong_thay` 404. Ghi nhật ký `doi_che_do {tu, sang}` (+ người) và cảnh báo cho Ba Mẹ trong gia đình |
 | `POST may/:id/doi-ten {ten}` | Ba Mẹ đổi tên hiển thị của máy (1–80 ký tự, NFC + gộp khoảng trắng) ⇒ `{ok, ten, doi}` (`doi: false` = tên không đổi, không ghi nhật ký). Rỗng `thieu_ten` · dài `ten_qua_dai` 400 · máy nhà khác `khong_thay` 404 · Chỉ xem 403. Ghi nhật ký `doi_ten_may {tu, den}`. Đổi tên Con: `POST con/:id/sua {ten}` và tạo Con (1–30 ký tự sau NFC + gộp khoảng trắng; tạo Con cho phép trùng tên, chỉ đổi tên (`con/:id/sua`) mới `ten_trung` nếu trùng Con khác trong nhà; ghi `doi_ten_con`) |
 | `POST may/:id/go {matKhau, xoaHan?}` | **gỡ an toàn** — xem mục «An toàn & gỡ cài đặt» bên dưới |
@@ -158,8 +157,8 @@ Xử lý: `server/lib/lenh-may.ts` (`datCheDo`, `goMayAnToan`, `trangThaiGo`). T
 - **Gỡ từ xa (agent-win)**: nhận `go` ⇒ `POST lenh/:id/xong` TRƯỚC (không theo token huỷ của dịch vụ; mất mạng ⇒ chưa gỡ, lần sau nhận lại) ⇒ tắt khôi phục SCM +
   `start= disabled` ⇒ hẹn tác vụ `AiiGrow-Dontay` (SYSTEM, tách rời) chờ dịch vụ thoát rồi `sc delete` + xoá tệp ⇒ gỡ AppLocker, khay, thông báo,
   mục Ứng dụng, cấu hình ⇒ dịch vụ tự dừng. Không `Stop-Service` chính mình.
-- **`POST may/:id/go {matKhau, xoaHan?}`** — chỉ **chủ gia đình**, nhập lại mật khẩu (như `go-tu-xa`, vì gỡ = bỏ bảo vệ):
-  - máy đã từng đồng bộ (đã gọi `dong-bo` hoặc gửi `nhip`) ⇒ ghi lệnh `go` (cùng lệnh với `go-tu-xa`, bấm lại không tạo lệnh mới) ⇒
+- **`POST may/:id/go {matKhau, xoaHan?}`** — chỉ **chủ gia đình**, nhập lại mật khẩu (vì gỡ = bỏ bảo vệ):
+  - máy đã từng đồng bộ (đã gọi `dong-bo` hoặc gửi `nhip`) ⇒ ghi lệnh `go` (bấm lại không tạo lệnh mới) ⇒
     `{trangThai: "dang_go", id, lapLai, cach}`. Máy **không** bị xoá ngay: chỉ rời gia đình khi agent `POST lenh/:id/xong`.
   - máy chưa đồng bộ lần nào ⇒ 409 `can_xoa_han` (app hỏi lại) · gửi `xoaHan: true` ⇒ xoá ngay ⇒ `{trangThai: "da_xoa", canGoTaiMay: false}`.
   - `xoaHan: true` khi đang gỡ: chỉ được nếu lệnh gỡ đã chờ > 7 ngày **và** máy không liên lạc (dong-bo / nhịp) > 7 ngày ⇒ lệnh chờ chuyển `huy`,
@@ -235,8 +234,7 @@ Xử lý: `server/lib/dong-bang.ts`, `xuat-csv.ts`. Test: `dong-bang.test.ts`.
 
 | Đường | Ý |
 |---|---|
-| `GET con/:id/thanh-tich` | thêm `dongBang: {ngay, duocDung, daDung[]}` — `ngay` = ngày sẽ được giữ nếu bấm (hôm qua bỏ lỡ mà trước đó còn chuỗi, không thì hôm nay), null = không cần |
-| `POST con/:id/dong-bang-chuoi` | Ba Mẹ (Phê duyệt / Chủ) giữ chuỗi ngày cho ngày đó → `{ngay}`; tối đa 1 lần mỗi tuần (T2–CN giờ gia đình). Ngày đóng băng không đứt chuỗi, không cộng thêm ngày, không ra điểm. Lỗi `da_dong_bang_tuan` 409 · `khong_can_dong_bang` 409 |
+| `GET con/:id/thanh-tich` | thêm `dongBang: {ngay, duocDung, daDung[]}` — chỉ đọc (đường ghi `dong-bang-chuoi` đã bỏ ở #568): `daDung[]` = ngày đã đóng băng; `ngay`/`duocDung` tính theo luật cũ, không còn nút nào dùng |
 | `GET con/:id/bao-cao/csv` | `{tenTep, noiDung}` — CSV (BOM UTF-8, CRLF) của báo cáo tuần: theo ngày (giải trí / học), tổng so tuần trước, dùng nhiều nhất, điểm theo nhóm nhiệm vụ, duyệt / từ chối, ngoại lệ. Không có nội dung, ảnh, tin nhắn |
 
 ## Giám sát và lọc web theo tên miền (22/10) — chỉ thêm
@@ -287,7 +285,7 @@ Lược đồ: `SCHEMA_S2` (cuối `schema.ts`). Hợp đồng cũ giữ chạy 
 - `parents.vai`: **`ba_me`** (hiện «Như Ba Mẹ» — làm được mọi việc) · **`trong_giup`** (hiện «Chỉ trông con», #492) · `roi`. Dữ liệu cũ đã đổi: `chu`, `duyet` ⇒ `ba_me`; `xem` ⇒ `trong_giup`. Người tạo nhà: `families.chu_id` (chỉ người này xoá được cả nhà; không ai đổi quyền / mời ra người này).
 - `GET toi` → `baMe {id, ten, dinhDanh, quyen, laChuNha, vai}` — `vai` là giá trị **kiểu cũ** cho app bản trước (`chu` = người tạo nhà, `duyet` = Ba Mẹ khác, `xem` = Người trông giúp).
 - «Chỉ trông con» (`trong_giup`): mọi `GET`; `POST` chỉ: `con/:id/khoa`, `con/:id/cho-vay` + `vay/:id/hoan-tac` (#492: cho vay sao), `con/:id/loi-khen`, `luot/:id/duyet|tu-choi|hoan-tac`, `duyet-hang-loat`, `yeu-cau/:id/dong-y|tu-choi|mo-lai`, `phieu/:id/xac-nhan|huy|trao` (trao quà con đã đổi), `phien/:id/dung`, `thong-bao/*`, `moi/nhan`, `thanh-vien/roi-nha`, `dang-xuat`, `xoa-tai-khoan` (danh sách: `quyen.ts` › `trongGiupDuoc` — đường POST mới thuộc loại «xem / duyệt / khoá máy» phải thêm vào đây). Còn lại ⇒ 403 `chi_xem` — tức KHÔNG đổi luật (cấu hình, chế độ chặn, giờ, hồ sơ con, nhiệm vụ), KHÔNG mua / sửa quà, KHÔNG mời người / đổi quyền / mời ra, KHÔNG ghép / gỡ máy. Test gọi API trực tiếp: `server/lib/chi-trong-con-492.test.ts`. `GET may/:id/ma-offline` mở cho cả Người trông giúp.
-- Gỡ máy (`may/:id/go`, `go-tu-xa`) và gỡ tại máy bằng mật khẩu: mọi **Ba Mẹ** (trước: chỉ Chủ).
+- Gỡ máy (`may/:id/go`) và gỡ tại máy bằng mật khẩu: mọi **Ba Mẹ** (trước: chỉ Chủ).
 
 ### Mời người nhà (L6) — bỏ mã gõ tay
 
@@ -490,7 +488,6 @@ Bé **chưa có PIN** ⇒ chạm tên vào thẳng (`canDatPin: true` — máy n
 | `GET con/:id/pin` | màn «PIN của Bảo Anh» → `{coPin: true, pin: "4821", pinDatLuc: "2026-11-06T12:30:00.000Z", ten: "Bảo Anh"}` (mọi quyền xem được) |
 | `POST con/:id/pin {pin: "4821" \| null}` | «Lưu PIN mới» (chỉ Ba Mẹ; Người trông giúp 403) → `{coPin, pinDatLuc, ten}`. `null` = bỏ PIN. Xoá bộ đếm sai + mục «quên PIN» đang chờ |
 | `GET con/:id` | `coPin` thật (trước luôn false) + `pinDatLuc`; `may[]` thêm `dangDung` (id bé đang đăng nhập máy dùng chung), `baMeDungDen` (ISO \| null), `matMang` (bool) |
-| `GET may/:id/nguoi-dung` | ai đang dùng máy → `{dangDung: {id, ten, avatar, tu} \| null, baMeDung: {den, tu} \| null, mayRieng, con: [{id, ten, avatar, coPin, khoaDen?, choGiay?}]}` |
 
 **Agent `/api/device/*`** (Bearer = token máy; máy dùng chung Windows / Mac / điện thoại)
 
@@ -551,7 +548,6 @@ chỉ sự kiện máy chủ nhận SAU `sau` (thiếu/sai ⇒ 10 phút trước
 | Đường | Ý |
 |---|---|
 | `GET gia-dinh` | thêm `soChuong` (số trên chuông) và mỗi `con[]`: `coPin`, `matMang: [{mayId, ten, nen, tu, phut}]` (dòng «Máy mất mạng · Laptop ›» + nút «Lấy mã mở máy») |
-| `GET may-mat-mang` | `{ds: [{mayId, ten, nen, conId, tenCon, tu, phut}]}` |
 | `GET can-de-y` | «Cần Ba Mẹ để ý» → `{ds: [...], soChuong}` — `soChuong` = `ds.length` (đúng số mục, không đếm «Để biết») |
 | `GET thong-bao` | như cũ + `canDeY` (= `can-de-y.ds`) + `soChuong`. Các dòng cũ (`ds`) là phần «Để biết» |
 
@@ -914,3 +910,9 @@ Quyền «Người trông giúp»: được `yeu-cau/:id/bo-qua`, `hoan-tac`, `t
 sách). `chuaXep`, `webChiChoPhep`, `luat[].loai` giữ ý nghĩa cũ ⇒ agent cũ thực thi đúng danh sách trắng. Giờ ngủ «tắt» là khung `tu = den` (mọi agent đã
 coi là không trúng). Đường cũ `che-do-chan`, `luat {loai: chan}`, `web/trang {trangThai: chan}`, `ung-dung/dat {trangThai: chan}`, `tu-choi`, `mo-lai`,
 `gio-choi` vẫn trả lời. Lời xin bị bỏ qua: agent cũ đọc `status: tu_choi`.
+
+## Đường Ba Mẹ đã bỏ (#568, 24/11)
+
+Không client nào (app Ba Mẹ, agent, admin) còn gọi: `POST con/:id/dong-bang-chuoi` (app bỏ nút từ thiết kế 05/11; ngày đã đóng băng vẫn được đọc),
+`POST may/:id/go-tu-xa` (dùng `POST may/:id/go`), `GET may-mat-mang` (đã nằm trong `can-de-y`), `GET may/:id/nguoi-dung` (Ba Mẹ). Nhánh `qua/mau`
+cũ trong api-m.ts không bao giờ chạy tới (api-s3.ts trả lời trước) nên cũng xoá. `qua/mau` của S3 vẫn giữ.
