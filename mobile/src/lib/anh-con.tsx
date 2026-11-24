@@ -1,8 +1,6 @@
 // Ảnh đại diện Con (#302): chụp / chọn ảnh ở hồ sơ con. Máy chủ lưu ảnh ở cột riêng (server/lib/gia-dinh.ts › datAnhDaiDien); `avatar` của Con ghi
 // «mau-N|anh:<giây>» để mọi danh sách biết Con có ảnh. Ảnh tải riêng (GET con/:id/anh) và nhớ trong bộ nhớ theo dấu «anh:<giây>» — ảnh mới ⇒ dấu mới ⇒ tải lại.
 import { useEffect, useState } from "react";
-import * as ImageManipulator from "expo-image-manipulator";
-import * as ImagePicker from "expo-image-picker";
 import { bm } from "./api";
 
 export type AnhChon = { mime: string; base64: string };
@@ -41,7 +39,18 @@ const TOI_DA_BYTE = 560 * 1024;                  // máy chủ nhận ≤ 600 KB
 const byteCua = (b64: string) => Math.floor((b64.length * 3) / 4);
 
 /** Chụp (camera sau) hoặc chọn ảnh vuông; ảnh được thu nhỏ ≤ 512 px, JPEG ~0.7 (thử lại nhỏ hơn nếu vẫn > 560 KB). null = Ba Mẹ huỷ hoặc không cho quyền. */
+// #564: hai thư viện ảnh không nằm trong gói JS chung của web — form hồ sơ gọi napThuVienAnh() lúc mở ⇒ tới lúc bấm thì đã nạp xong
+// (trình duyệt chỉ mở hộp chọn tệp khi còn trong khoảnh khắc người bấm). Nạp lỗi ⇒ xoá nhớ để lần sau thử lại.
+let thuVien: Promise<[typeof import("expo-image-picker"), typeof import("expo-image-manipulator")]> | null = null;
+export const napThuVienAnh = () => {
+  thuVien ??= Promise.all([import("expo-image-picker"), import("expo-image-manipulator")]);
+  thuVien.catch(() => { thuVien = null; });
+  return thuVien;
+};
+
 export async function chonAnhCon(nguon: "chup" | "thu-vien"): Promise<AnhChon | null> {
+  let ImagePicker: typeof import("expo-image-picker"), ImageManipulator: typeof import("expo-image-manipulator");
+  try { [ImagePicker, ImageManipulator] = await napThuVienAnh(); } catch { throw new Error("Chưa lấy được ảnh — thử lại nhé"); }
   const lenh = nguon === "chup" ? ImagePicker.launchCameraAsync : ImagePicker.launchImageLibraryAsync;
   if (nguon === "chup") {
     const q = await ImagePicker.requestCameraPermissionsAsync();
