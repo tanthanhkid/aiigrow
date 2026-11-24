@@ -5,7 +5,7 @@
 //   · token là gói cài CÒN HIỆU LỰC (goi_cai: có, chưa dùng, chưa hết hạn, gói Windows hoặc gói «phiên ghép» chưa gắn loại máy);
 //   · ≤ TAI_TOKEN_GIO lượt / token / giờ và ≤ TAI_IP_GIO lượt / IP / giờ (IPv6 gộp /64 — gia-dinh.ts › nguonGoi);
 //   · ≤ TAI_KHOI48_GIO lượt / khối IPv6 /48 / giờ, ≤ TAI_NHA_GIO lượt / gia đình / giờ (tạo nhiều gói không thêm lượt), ≤ TAI_TONG_GIO toàn cục / giờ;
-//   · ≤ TAI_DONG_THOI luồng chuyển tiếp đồng thời trong tiến trình, mỗi luồng tối đa TAI_TOI_DA_MS; tắt đệm nginx (X-Accel-Buffering: no)
+//   · ≤ TAI_DONG_THOI luồng chuyển tiếp đồng thời trong tiến trình, mỗi luồng cắt khi ngừng đọc TAI_NGUNG_MS hoặc quá TAI_TOI_DA_MS; tắt đệm nginx (X-Accel-Buffering: no)
 //     để trần luồng đúng là trần kết nối tải ra ngoài.
 // Lượt đã giữ được trả lại khi rốt cuộc không chuyển tiếp (đầy luồng, GitHub lỗi, vướng trần sau).
 // Không đạt ⇒ 302 về bộ cài thường (gõ mã 6 số) — người dùng thật vẫn tải được, máy chủ không tốn băng thông. Lỗi lấy tệp ⇒ như vậy.
@@ -21,9 +21,10 @@ export const TAI_TOKEN_GIO = 5;
 export const TAI_IP_GIO = 10;
 export const TAI_KHOI48_GIO = 30;
 export const TAI_NHA_GIO = 10;
-export const TAI_TONG_GIO = 60;
-export const TAI_DONG_THOI = 4;
-export const TAI_TOI_DA_MS = 15 * 60_000;
+export const TAI_TONG_GIO = 150;
+export const TAI_DONG_THOI = 16;
+export const TAI_NGUNG_MS = 2 * 60_000;       // người tải không đọc thêm byte nào trong ngần này ⇒ cắt (đọc rề rà giữ chỗ)
+export const TAI_TOI_DA_MS = 60 * 60_000;     // trần cứng một lượt tải (~186 MB ở ≥ 0,05 MB/s)
 const GIO_MS = 3_600_000;
 
 export const nguonBoCai = () =>
@@ -56,29 +57,42 @@ function giuLuong() {
   return () => { if (!xong) { xong = true; g0.__aiigTaiGhep = Math.max(0, dangTai() - 1); } };
 }
 
-/** Bọc luồng: nhả chỗ khi đọc xong / lỗi / người tải huỷ (đóng kết nối) / quá TAI_TOI_DA_MS (người tải đọc rề rà giữ chỗ). */
-function demLuong(nguon: ReadableStream<Uint8Array>, nhaCho: () => void, toiDa = TAI_TOI_DA_MS) {
+/** Hẹn giờ thay được trong test (không dùng đồng hồ thật). → hàm huỷ hẹn. */
+export type DatHen = (fn: () => void, ms: number) => () => void;
+const henThat: DatHen = (fn, ms) => {
+  const h = setTimeout(fn, ms);
+  (h as { unref?: () => void }).unref?.();
+  return () => clearTimeout(h);
+};
+
+/** Bọc luồng: nhả chỗ khi đọc xong / lỗi / người tải huỷ (đóng kết nối) / ngừng đọc quá TAI_NGUNG_MS / quá TAI_TOI_DA_MS. */
+function demLuong(nguon: ReadableStream<Uint8Array>, nhaCho: () => void, datHen: DatHen) {
   const doc = nguon.getReader();
-  let hen: ReturnType<typeof setTimeout> | undefined;
-  const nha = () => { clearTimeout(hen); nhaCho(); };
+  let huyNgung = () => {}, huyToiDa = () => {};
+  const nha = () => { huyNgung(); huyToiDa(); nhaCho(); };
+  let cat = (_ly: string) => {};
   return new ReadableStream<Uint8Array>({
     start(c) {
-      hen = setTimeout(() => { nha(); try { c.error(new Error("quá giờ tải")); } catch { /* đã đóng */ } doc.cancel().catch(() => undefined); }, toiDa);
-      (hen as { unref?: () => void }).unref?.();
+      cat = (ly) => { nha(); try { c.error(new Error(ly)); } catch { /* đã đóng */ } doc.cancel().catch(() => undefined); };
+      huyToiDa = datHen(() => cat("quá giờ tải"), TAI_TOI_DA_MS);
+      huyNgung = datHen(() => cat("ngừng đọc"), TAI_NGUNG_MS);
     },
     async pull(c) {
+      huyNgung();
       try {
         const { done, value } = await doc.read();
-        if (done) { nha(); c.close(); } else c.enqueue(value);
+        if (done) { nha(); c.close(); return; }
+        c.enqueue(value);
+        huyNgung = datHen(() => cat("ngừng đọc"), TAI_NGUNG_MS);
       } catch (e) { nha(); c.error(e); }
     },
     async cancel(ly) { nha(); await doc.cancel(ly).catch(() => undefined); },
   });
 }
 
-/** GET /tai/ghep/<g>. `server` = gốc link ghép (AIIGROW_APP_URL hoặc origin), `ip` = nguonGoi(req.headers). `layTep`, `toiDa` thay được trong test. */
+/** GET /tai/ghep/<g>. `server` = gốc link ghép (AIIGROW_APP_URL hoặc origin), `ip` = nguonGoi(req.headers). `layTep`, `datHen` thay được trong test. */
 export async function taiGhep(gVao: unknown, server: string, ip: string, now = new Date(), layTep: typeof fetch = globalThis.fetch,
-  toiDa = TAI_TOI_DA_MS) {
+  datHen: DatHen = henThat) {
   const thuong = Response.redirect(BAN_AGENT_WINDOWS.url, 302);
   const g = chuanToken(gVao);
   if (!g || g.length < 20) return thuong;
@@ -98,15 +112,15 @@ export async function taiGhep(gVao: unknown, server: string, ip: string, now = n
   const daGiu: string[] = [];
   const traHet = () => Promise.all(daGiu.map(traLuot));
   for (const [khoa, n] of tran) {
-    daGiu.push(khoa);
-    if (!(await giuLuot(khoa, n).catch(() => false))) { await traHet(); return thuong; }
+    const ok = await giuLuot(khoa, n).then((x) => { daGiu.push(khoa); return x; }, () => false);   // lỗi DB ⇒ chưa tăng, không trả
+    if (!ok) { await traHet(); return thuong; }
   }
   const nha = giuLuong();                                 // kiểm lại sau các lượt chờ DB, giữ chỗ trước khi gọi GitHub
   if (!nha) { await traHet(); return thuong; }
   const r = await layTep(nguonBoCai(), { redirect: "follow" }).catch(() => null);
   if (!r?.ok || !r.body) { nha(); await traHet(); return thuong; }
   const dai = r.headers.get("content-length");
-  return new Response(demLuong(r.body, nha, toiDa), {
+  return new Response(demLuong(r.body, nha, datHen), {
     headers: {
       "content-type": "application/octet-stream",
       "content-disposition": `attachment; filename="${tenTepWindows(goiGhep(server, g))}"`,

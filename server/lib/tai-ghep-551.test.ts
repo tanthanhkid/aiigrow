@@ -106,12 +106,28 @@ test("trần toàn cục / giờ", async () => {
   assert.equal(r.status, 200); await r.arrayBuffer();
 });
 
-test("luồng giữ quá giờ ⇒ tự nhả chỗ", async () => {
-  const r = await t.taiGhep(await taoGoi(), SV, "1.1.1.9", T, goiTep, 20);
+test("người tải ngừng đọc / quá trần cứng ⇒ cắt luồng, nhả chỗ (hẹn giờ giả)", async () => {
+  const hen: { fn: () => void; ms: number; huy: boolean }[] = [];
+  const datHen = (fn: () => void, ms: number) => { const h = { fn, ms, huy: false }; hen.push(h); return () => { h.huy = true; }; };
+  const conSong = (ms: number) => hen.filter((h) => !h.huy && h.ms === ms);
+  const tick = () => new Promise((x) => setImmediate(x));          // để luồng kịp kéo trước một khúc (highWaterMark)
+  const r = await t.taiGhep(await taoGoi(), SV, "1.1.1.9", T, goiTep, datHen);
+  await tick();
   assert.equal(t.dangTai(), 1);
-  await new Promise((x) => setTimeout(x, 60));
+  assert.equal(conSong(t.TAI_NGUNG_MS).length, 1);
+  assert.equal(conSong(t.TAI_TOI_DA_MS).length, 1);
+  conSong(t.TAI_NGUNG_MS)[0].fn();
   assert.equal(t.dangTai(), 0);
   await assert.rejects(r.arrayBuffer());
+  const r2 = await t.taiGhep(await taoGoi(), SV, "1.1.1.8", T, goiTep, datHen);
+  await tick();
+  conSong(t.TAI_TOI_DA_MS).at(-1)!.fn();
+  assert.equal(t.dangTai(), 0);
+  await assert.rejects(r2.arrayBuffer());
+  const r3 = await t.taiGhep(await taoGoi(), SV, "1.1.1.7", T, goiTep, datHen);
+  await r3.arrayBuffer();                                         // đọc xong ⇒ mọi hẹn của luồng bị huỷ
+  assert.equal(t.dangTai(), 0);
+  assert.equal(hen.filter((h) => !h.huy).length, 0);
 });
 
 test("cron xoá bộ đếm các giờ đã qua, giữ giờ hiện tại", async () => {
