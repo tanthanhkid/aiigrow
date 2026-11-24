@@ -126,6 +126,8 @@ export async function dayChinhSach(fam: string, id: string) {
 
 // ---------------------------------------------------------------- nhật ký tóm tắt + báo Ba Mẹ
 /** Resolver gửi nhật ký tóm tắt (webhook / adapter NextDNS). Chỉ tên miền + số lần; gửi lại cùng lô cộng dồn theo lần gửi (resolver gửi phần mới). */
+/** Trần bộ đếm một (thiết bị, ngày, tên miền) — dưới int4; vượt int4 thì cả câu upsert gộp hỏng (và resolver gửi lại mãi). */
+const TRAN_DEM = 2_000_000_000;
 export async function nhanNhatKy(nhan: string, ds: unknown, now = new Date()) {
   await bangMang();
   const t = await one<ThietBiDns>(`select * from dns_thiet_bi where nhan = $1`, [String(nhan ?? "")]);
@@ -136,14 +138,22 @@ export async function nhanNhatKy(nhan: string, ds: unknown, now = new Date()) {
   const ngay = gioDiaPhuong(now, f.tz).ngay;
   const so = (v: unknown) => Math.max(0, Math.min(1_000_000, Math.round(Number(v) || 0)));
   let n = 0;
+  // #563: cộng dồn trong lô theo tên miền rồi MỘT câu upsert nhiều dòng (unnest) thay cho tối đa 2000 câu tuần tự
+  const gop = new Map<string, [number, number, number]>();
   for (const x of (Array.isArray(ds) ? ds : []).slice(0, 2000) as Partial<DongNhatKy>[]) {
     const tm = chuanTenMien(x?.tenMien);
     if (!/^[a-z0-9_-]+(\.[a-z0-9_-]+)+$/.test(tm)) continue;
-    await q(`insert into dns_nhat_ky(thiet_bi_id, ngay, ten_mien, so_lan, so_lan_chan, ngoai_gio) values ($1,$2,$3,$4,$5,$6)
-             on conflict (thiet_bi_id, ngay, ten_mien) do update set so_lan = dns_nhat_ky.so_lan + excluded.so_lan,
-             so_lan_chan = dns_nhat_ky.so_lan_chan + excluded.so_lan_chan, ngoai_gio = dns_nhat_ky.ngoai_gio + excluded.ngoai_gio`,
-      [t.id, ngay, tm, so(x.soLan), so(x.soLanChan), so(x.ngoaiGio)]);
+    const c = gop.get(tm) ?? [0, 0, 0];
+    gop.set(tm, [Math.min(TRAN_DEM, c[0] + so(x.soLan)), Math.min(TRAN_DEM, c[1] + so(x.soLanChan)), Math.min(TRAN_DEM, c[2] + so(x.ngoaiGio))]);
     n++;
+  }
+  if (gop.size) {
+    const ds2 = [...gop].sort((a, b) => (a[0] < b[0] ? -1 : 1));   // khoá dòng theo thứ tự cố định ⇒ hai lô song song không deadlock
+    await q(`insert into dns_nhat_ky(thiet_bi_id, ngay, ten_mien, so_lan, so_lan_chan, ngoai_gio)
+             select $1, $2, t.tm, t.a, t.b, t.c from unnest($3::text[], $4::int[], $5::int[], $6::int[]) with ordinality as t(tm, a, b, c, i) order by t.i
+             on conflict (thiet_bi_id, ngay, ten_mien) do update set so_lan = least(dns_nhat_ky.so_lan::bigint + excluded.so_lan, $7)::int,
+             so_lan_chan = least(dns_nhat_ky.so_lan_chan::bigint + excluded.so_lan_chan, $7)::int, ngoai_gio = least(dns_nhat_ky.ngoai_gio::bigint + excluded.ngoai_gio, $7)::int`,
+      [t.id, ngay, ds2.map((x) => x[0]), ds2.map((x) => x[1][0]), ds2.map((x) => x[1][1]), ds2.map((x) => x[1][2]), TRAN_DEM]);
   }
   const traLai = t.mat_bao_luc && (!t.truy_van_cuoi || new Date(t.mat_bao_luc) >= new Date(t.truy_van_cuoi));
   await q(`update dns_thiet_bi set truy_van_cuoi = $2 where id = $1`, [t.id, now]);

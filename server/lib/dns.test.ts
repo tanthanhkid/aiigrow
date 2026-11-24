@@ -211,3 +211,29 @@ test("máy có agent: trình cài lấy hồ sơ DNS của chính máy qua /api/
   assert.equal((await m("dns/thiet-bi", { tok: tokKhac, body: { con, ten: "TV lạ" } })).status, 404, "không gắn được Con nhà khác");
   assert.deepEqual((await m("dns", { tok: tokKhac })).body.thietBi, []);
 });
+
+test("#563: nhật ký DNS 2000 dòng = MỘT câu upsert; tên miền trùng trong lô cộng dồn như gửi từng dòng", async () => {
+  const { fam } = await taoNha("Mai");
+  const id = await dns.themThietBiMang(fam, { ten: "TV", loai: "tv" });
+  const t = (await q<{ nhan: string }>(`select nhan from dns_thiet_bi where id = $1`, [id]))[0];
+  const ds = Array.from({ length: 2000 }, (_, i) => ({ tenMien: `m${i % 500}.vn`, soLan: 1, soLanChan: i % 2, ngoaiGio: 0 }));
+  const cau: string[] = [];
+  (globalThis as any).__aiigDemCau = cau;
+  try { assert.equal(await dns.nhanNhatKy(t.nhan, ds, VN("2026-10-21T10:00:00")), 2000); } finally { delete (globalThis as any).__aiigDemCau; }
+  assert.equal(cau.filter((s) => /insert into dns_nhat_ky/.test(s)).length, 1, cau.join("\n"));
+  await dns.nhanNhatKy(t.nhan, [{ tenMien: "m0.vn", soLan: 2, soLanChan: 1 }], VN("2026-10-21T10:05:00"));
+  const r = await q<{ ten_mien: string; so_lan: number; so_lan_chan: number }>(
+    `select ten_mien, so_lan, so_lan_chan from dns_nhat_ky where thiet_bi_id = $1 and ten_mien in ('m0.vn', 'm1.vn') order by ten_mien`, [id]);
+  assert.deepEqual(r.map((x) => [x.ten_mien, x.so_lan, x.so_lan_chan]), [["m0.vn", 6, 1], ["m1.vn", 4, 4]]);
+});
+
+test("#563: bộ đếm DNS chạm trần không vượt int4 (không làm hỏng cả lô)", async () => {
+  const { fam } = await taoNha("Lam");
+  const id = await dns.themThietBiMang(fam, { ten: "TV", loai: "tv" });
+  const t = (await q<{ nhan: string }>(`select nhan from dns_thiet_bi where id = $1`, [id]))[0];
+  const t0 = VN("2026-10-21T10:00:00");
+  await dns.nhanNhatKy(t.nhan, Array.from({ length: 2000 }, () => ({ tenMien: "nhieu.vn", soLan: 1_000_000 })), t0);
+  await dns.nhanNhatKy(t.nhan, Array.from({ length: 2000 }, () => ({ tenMien: "nhieu.vn", soLan: 1_000_000 })), sau(t0, 1));
+  const r = (await q<{ so_lan: number }>(`select so_lan from dns_nhat_ky where thiet_bi_id = $1 and ten_mien = 'nhieu.vn'`, [id]))[0];
+  assert.equal(Number(r.so_lan), 2_000_000_000);
+});

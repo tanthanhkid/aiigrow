@@ -9,6 +9,7 @@ const g = await import("./gia-dinh.ts");
 const lg = await import("./log-may.ts");
 const { xuLyMay } = await import("./api-may.ts");
 const { taoNha } = await import("./test-fixtures/nha.ts");
+const { q } = await import("./db.ts");
 
 async function goi(duong: string, o: { tok?: string; body?: unknown } = {}) {
   const req = new Request(`http://may.test/api/device/${duong}`, {
@@ -88,4 +89,33 @@ test("lời xin từ máy được Ba Mẹ đồng ý ⇒ khay nhận «duoc» (
   assert.equal(may.child_id, con);
   assert.equal(may.dung_chung, false);
   assert.equal((await goi("hoc-vien/tong-quan", { tok: ghep.token })).status, 200);
+});
+
+test("#563: 200 dòng log = MỘT câu INSERT (trước 201: 200 INSERT + 1 DELETE); giữ thứ tự, mức; bỏ NUL", async () => {
+  const { fam, mayId } = await mayMoi();
+  const may = (await q<{ id: string; family_id: string }>(`select id, family_id from devices where id = $1`, [mayId]))[0] as never;
+  const t0 = new Date("2026-10-21T10:00:00Z");
+  await lg.bangLog();
+  const ds = Array.from({ length: 250 }, (_, i) => ({ luc: new Date(t0.getTime() + i * 1000).toISOString(), muc: i % 2 ? "loi" : "tin", nguon: "W", noiDung: `dòng ${i}` }));
+  ds[5].noiDung = "có\u0000NUL";
+  const cau: string[] = [];
+  (globalThis as any).__aiigDemCau = cau;
+  try { assert.deepEqual(await lg.nhanLog(may, ds, t0), { nhan: lg.LOG_MOI_LAN }); } finally { delete (globalThis as any).__aiigDemCau; }
+  assert.equal(cau.length, 1, cau.join("\n"));
+  const doc = await lg.docLog(fam, mayId, { gioiHan: 1000 });
+  assert.equal(doc.ds.length, lg.LOG_MOI_LAN);
+  const dong = await q<{ noi_dung: string; muc: string }>(`select noi_dung, muc from may_log where device_id = $1 order by id`, [mayId]);
+  assert.deepEqual(dong.slice(0, 3).map((x) => [x.noi_dung, x.muc]), [["dòng 0", "tin"], ["dòng 1", "loi"], ["dòng 2", "tin"]]);
+  assert.equal(dong[5].noi_dung, "cóNUL");
+});
+
+test("#563: log quá 7 ngày dọn trong cron (donLogCu, theo nhan_luc), không trên đường máy gửi", async () => {
+  const { mayId } = await mayMoi();
+  const may = (await q<{ id: string; family_id: string }>(`select id, family_id from devices where id = $1`, [mayId]))[0] as never;
+  const t0 = new Date("2026-10-21T10:00:00Z");
+  await lg.nhanLog(may, [{ noiDung: "cũ" }, { noiDung: "mới" }], t0);
+  await q(`update may_log set nhan_luc = case when noi_dung = 'cũ' then $2::timestamptz - interval '8 days' else $2::timestamptz - interval '6 days' end
+    where device_id = $1`, [mayId, t0]);
+  assert.ok((await lg.donLogCu(t0)) >= 1);
+  assert.deepEqual((await q<{ noi_dung: string }>(`select noi_dung from may_log where device_id = $1`, [mayId])).map((x) => x.noi_dung), ["mới"]);
 });

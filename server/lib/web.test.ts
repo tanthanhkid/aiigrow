@@ -153,3 +153,44 @@ test("Chặn app & web + cho youtube.com ⇒ kèm tên miền video/ảnh (googl
   assert.ok(!w.cho.includes("google.com"), "không mở cả google.com");
   assert.deepEqual(web.tenMienDiKem(["scratch.mit.edu"]), []);
 });
+
+// #563: đồng hồ cố định (không dùng giờ thật)
+const T563 = new Date("2026-10-21T03:00:00Z"), HOM563 = "2026-10-21";
+
+test("#563: lịch sử web 300 tên miền = MỘT câu upsert (không còn một câu mỗi dòng); dòng trùng trong lô gộp theo luật lớn nhất / sớm nhất", async () => {
+  const { mayId } = await nha();
+  const may = (await q<{ id: string; family_id: string }>(`select * from devices where id = $1`, [mayId]))[0] as never;
+  const ds = Array.from({ length: 300 }, (_, i) => ({ ngay: HOM563, tenMien: `trang${i}.vn`, soLan: 1, giay: 10 }));
+  const cau: string[] = [];
+  (globalThis as any).__aiigDemCau = cau;
+  try { assert.deepEqual(await web.nhanLichSuWeb(may, null, ds, T563), { nhan: 300 }); } finally { delete (globalThis as any).__aiigDemCau; }
+  assert.equal(cau.filter((s) => /insert into web_nhat_ky/.test(s)).length, 1, cau.join("\n"));
+  assert.equal(cau.length, 2, `tz gia đình + upsert — thực tế:\n${cau.join("\n")}`);
+  const t1 = "2026-10-21T01:00:00.000Z", t2 = "2026-10-21T02:00:00.000Z";
+  await web.nhanLichSuWeb(may, null, [
+    { ngay: HOM563, tenMien: "trung.vn", soLan: 2, giay: 50, lanCuoi: t1, dauLuc: t2 },
+    { ngay: HOM563, tenMien: "www.trung.vn", soLan: 7, giay: 20, lanCuoi: t2, dauLuc: t1 },
+    { ngay: HOM563, tenMien: "trung.vn", soLan: 1, giay: 90 },
+  ], T563);
+  const r = (await q<{ so_lan: number; giay: number; lan_cuoi: Date; dau_luc: Date }>(
+    `select so_lan, giay, lan_cuoi, dau_luc from web_nhat_ky where device_id = $1 and ten_mien = 'trung.vn'`, [mayId]))[0];
+  assert.deepEqual([r.so_lan, r.giay, new Date(r.lan_cuoi).toISOString(), new Date(r.dau_luc).toISOString()], [7, 90, t2, t1]);
+});
+
+test("#563: lượt có trang «Tính phút» đọc luật MỘT lần cho cả lô; mốc giờ năm 0000 bị bỏ không làm hỏng lô; dọn quá 90 ngày trong cron", async () => {
+  const { fam, con, mayId } = await nha();
+  for (let i = 0; i < 5; i++) await q(`insert into app_rules(family_id, child_id, muc, ten, loai, nhom) values ($1, '', $2, $2, 'giai_tri', 'tinh_phut')`, [fam, `choi${i}.vn`]);
+  const may = (await q<{ id: string; family_id: string }>(`select * from devices where id = $1`, [mayId]))[0] as never;
+  const cau: string[] = [];
+  (globalThis as any).__aiigDemCau = cau;
+  try {
+    await web.nhanLichSuWeb(may, con, Array.from({ length: 5 }, (_, i) => ({ ngay: HOM563, tenMien: `choi${i}.vn`, soLan: 1, giay: 30, lanCuoi: "0000-01-01T00:00:00Z" })), T563);
+  } finally { delete (globalThis as any).__aiigDemCau; }
+  assert.equal(cau.filter((s) => /from app_rules/.test(s)).length, 1, cau.join("\n"));
+  assert.equal((await q(`select 1 from web_nhat_ky where device_id = $1 and ten_mien like 'choi%' and lan_cuoi is null`, [mayId])).length, 5);
+  await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay) values ($1, $2, '2026-07-22', 'ngay-91.vn', 1, 1),
+    ($1, $2, '2026-07-21', 'ngay-92.vn', 1, 1)`, [mayId, con]);
+  assert.ok((await web.donWebCu(T563)) >= 1);
+  const conLai = (await q<{ ten_mien: string }>(`select ten_mien from web_nhat_ky where device_id = $1`, [mayId])).map((x) => x.ten_mien);
+  assert.ok(!conLai.includes("ngay-92.vn") && conLai.includes("ngay-91.vn") && conLai.includes("choi0.vn"), conLai.join(","));
+});

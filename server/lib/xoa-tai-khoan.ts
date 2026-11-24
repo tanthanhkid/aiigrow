@@ -23,7 +23,7 @@ import { donBoDemDangNhap, goKhoaTaiKhoan } from "./gioi-han-dang-nhap.ts";
 import { donBoDemGhep } from "./gia-dinh.ts";
 import { donBoDemTaiGhep } from "./tai-ghep.ts";
 import { donBoDemPinBe } from "./pin-be.ts";
-import { one, q, tx, type Q } from "./db.ts";
+import { one, q, tx, xoaTheoLo, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
@@ -31,7 +31,8 @@ import { damBaoBang, ghiKiemToan } from "./admin.ts";
 import { bangM4b } from "./tuan-thu.ts";
 import { bangTvTb } from "./thanh-vien.ts";
 import { bangMang } from "./dns-gia-dinh.ts";
-import { bangLog } from "./log-may.ts";
+import { bangLog, donLogCu } from "./log-may.ts";
+import { donWebCu } from "./web.ts";
 
 export const XOA_SAI_TOI_DA = 5, XOA_KHOA_PHUT = 15;
 export type KetQuaXoa = { xoa: "tai_khoan" } | { xoa: "gia_dinh"; soCon: number };
@@ -129,15 +130,7 @@ export async function donKiemToanGiaDinhDaXoa(now = new Date()): Promise<number>
 /** #556: usage (mỗi app × ngày × máy) không bao giờ hết hạn ⇒ xoá dòng cũ hơn `ngay` ngày (mặc định 400), từng lô 5000 để không giữ khoá lâu.
  *  → số dòng xoá. (Tổng usage toàn thời gian ở api-m.ts chỉ còn tính trong cửa sổ này — chủ ý theo issue #556.) */
 export async function donUsageCu(now = new Date(), ngay = 400): Promise<number> {
-  const moc = new Date(now.getTime() - ngay * 86_400_000).toISOString().slice(0, 10);
-  let tong = 0;
-  for (let i = 0; i < 200; i++) {
-    const r = await q<{ n: number }>(`with x as (delete from usage where ctid in (select ctid from usage where ngay < $1 limit 5000) returning 1) select count(*)::int as n from x`, [moc]);
-    const n = r[0]?.n ?? 0;
-    tong += n;
-    if (n < 5000) break;
-  }
-  return tong;
+  return xoaTheoLo("usage", "ngay < $1", [new Date(now.getTime() - ngay * 86_400_000).toISOString().slice(0, 10)]);
 }
 
 /** Cron gọi: giãn tối thiểu 1 giờ giữa hai lần chạy (một upsert nguyên tử vào he_thong) ⇒ route mở không bị gọi dồn; dọn lỗi thì trả lượt
@@ -149,6 +142,9 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     on conflict (khoa) do update set updated_at = $1 where he_thong.updated_at < $1::timestamptz - interval '1 hour'
     returning (select updated_at from cu) as cu`, [now]);
   if (!duoc.length) return null;
+  // #563: chạy TRƯỚC chuỗi bắt buộc và không ném lỗi — bước sau hỏng / hết giờ không chặn giữ hạn log 7 ngày, lịch sử web 90 ngày
+  await donLogCu(now).catch((e) => console.error("cron: dọn log máy cũ lỗi", e));
+  await donWebCu(now).catch((e) => console.error("cron: dọn lịch sử web cũ lỗi", e));
   try {
     const n = await donKiemToanGiaDinhDaXoa(now);
     await donBoDemMxh(now.getTime());          // bộ đếm lượt đăng nhập Google / Facebook của khung đã qua (dang-nhap-mxh.ts)
@@ -156,7 +152,7 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     await donBoDemGhep(now.getTime());         // bộ đếm lượt thử mã ghép máy theo nguồn + toàn cục (gia-dinh.ts › ghepMay)
     await donBoDemTaiGhep(now.getTime());      // bộ đếm lượt tải bộ cài mang gói ghép (tai-ghep.ts)
     await donBoDemPinBe(now);                  // #555: bộ đếm sai PIN theo bé của khung đã qua (pin-be.ts)
-    await donUsageCu(now).catch(() => {});     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
+    await donUsageCu(now).catch((e) => console.error("cron: dọn usage cũ lỗi", e));     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
     return n;
   } catch (e) {
     await q(`update he_thong set updated_at = coalesce($2::timestamptz, '-infinity') where khoa = 'don_kiem_toan' and updated_at = $1`,
