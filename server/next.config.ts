@@ -1,5 +1,41 @@
 import type { NextConfig } from "next";
 
+// #552 header bảo mật. Bản web Expo (SPA ở gốc) giữ token Bearer trong localStorage ⇒ CSP chặn script lạ / gửi dữ liệu ra ngoài,
+// frame-ancestors + X-Frame-Options chặn nhúng iframe (clickjacking), HSTS, nosniff, Referrer-Policy, Permissions-Policy.
+// Nguồn đã soát (24/11): SPA chỉ tải /_expo, /assets, ảnh data:/blob: (ảnh Con, icon app lấy qua fetch rồi blob:), gọi /api cùng nguồn;
+// đăng nhập Google / Facebook trên web mở cửa sổ popup (điều hướng, không chịu connect-src). React Native Web chèn <style> ⇒ style-src
+// cần 'unsafe-inline'. Trang Next (/tai, /quay, /admin, /cai, /chinh-sach-rieng-tu…) có script nội tuyến của Next ⇒ script-src thêm
+// 'unsafe-inline' riêng cho các trang đó; next dev (HMR của trang Next) cần thêm 'unsafe-eval' + ws: — SPA là tệp tĩnh, không nới.
+const DEV = process.env.NODE_ENV === "development";
+// Thư mục trang / route Next ở server/app (trừ api) — lib/header-bao-mat-552.test.ts kiểm danh sách này khớp server/app.
+// Next so khớp `source` KHÔNG phân biệt hoa thường (/Admin vẫn nhận CSP trang Next dù trả SPA) ⇒ index.html của SPA còn mang CSP <meta>
+// script-src 'self' (scripts/build-app.mjs) — trình duyệt áp CẢ HAI chính sách, SPA không bao giờ chạy script nội tuyến.
+export const TRANG_NEXT = "tai|quay|admin|cai|chinh-sach-rieng-tu|_next|\\.well-known";
+export const csp = (trangNext: boolean) => [
+  "default-src 'self'",
+  `script-src 'self'${trangNext ? " 'unsafe-inline'" : ""}${trangNext && DEV ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  `connect-src 'self'${trangNext && DEV ? " ws: wss:" : ""}`,
+  "media-src 'self' data: blob:",
+  "worker-src 'self' blob:",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+].join("; ");
+const chung = [
+  // HSTS bắt đầu 1 ngày (chạy ổn, certbot gia hạn được thì nâng 31536000); không gửi ở `next dev` (localhost https sẽ dính HSTS)
+  ...(DEV ? [] : [{ key: "Strict-Transport-Security", value: "max-age=86400" }]),
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // /quay quét QR bằng camera (getUserMedia) ⇒ camera=(self); màn Con «kể lại» ghi âm trên web (MediaRecorder) ⇒ microphone=(self)
+  { key: "Permissions-Policy", value: "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()" },
+];
+
 const config: NextConfig = {
   // Bản chạy trên VPS (scripts/deploy-vps.sh) dựng `output: "standalone"`; Vercel không đặt biến này ⇒ dựng như cũ.
   ...(process.env.AIIGROW_STANDALONE === "1" ? { output: "standalone" as const } : {}),
@@ -48,6 +84,10 @@ const config: NextConfig = {
   async headers() {
     const khongCache = [{ key: "Cache-Control", value: "no-cache, no-store, must-revalidate" }];
     return [
+      // #552 — header chung cho mọi đường; CSP: mặc định của SPA, quy tắc SAU ghi đè cùng khoá (Next): trang Next + /api
+      { source: "/:duong*", headers: [...chung, { key: "Content-Security-Policy", value: csp(false) }] },
+      // /api trả JSON (CSP vô nghĩa) — nhưng /api/<lạ> trả trang 404 HTML của Next ⇒ cùng CSP trang Next
+      { source: `/:trang(${TRANG_NEXT}|api)/:duong*`, headers: [{ key: "Content-Security-Policy", value: csp(true) }] },
       { source: "/((?!api/|_expo/|assets/|_next/static/|linh-vat/|phong/|icon3d/).*)", headers: khongCache },
       { source: "/:tep(sw\\.js|service-worker\\.js)", headers: [...khongCache, { key: "Service-Worker-Allowed", value: "/" }] },
       { source: "/app/:tep(sw\\.js|service-worker\\.js)", headers: khongCache },
