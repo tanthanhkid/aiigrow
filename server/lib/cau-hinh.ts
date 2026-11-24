@@ -57,7 +57,7 @@ export type GioHoc = Khung & { thu: number[] };
 export const NGU_TAT: Khung = { tu: "00:00", den: "00:00" };
 /** ngayThuong / cuoiTuan: khung giờ chơi CŨ — từ 05/11 không còn chặn (quỹ phút thay), giữ để app/agent cũ đọc được.
  *  #258 (15/11): bỏ hẳn GIỜ NGỦ và GIỜ HỌC — `ngu` luôn NGU_TAT, `hoc` luôn null (agent cũ đọc ra «không có giờ ngủ / giờ học»). */
-export const LICH_MAC_DINH: { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung; hoc?: GioHoc | null } = {
+const LICH_MAC_DINH: { ngayThuong: Khung[]; cuoiTuan: Khung[]; ngu: Khung; hoc?: GioHoc | null } = {
   ngayThuong: [{ tu: "17:00", den: "20:00" }],
   cuoiTuan: [{ tu: "09:00", den: "21:00" }],
   ngu: NGU_TAT,

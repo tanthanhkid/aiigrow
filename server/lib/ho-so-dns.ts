@@ -69,7 +69,7 @@ export function xetTruyVan(c: ChinhSachDns, tenMienTho: unknown, now: Date): Ket
 // ---------------------------------------------------------------- nhà cung cấp DNS (adapter)
 export type DiemCuoiDns = { dohUrl: string; dotHost: string; ipv4: string[]; ghiChu: string | null };
 type YeuCauHttp = { method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE"; url: string; body?: unknown };
-export type KetDay = { cheDo: "that" | "gia" | "khong_can"; yeuCau: YeuCauHttp[]; loi?: string };
+type KetDay = { cheDo: "that" | "gia" | "khong_can"; yeuCau: YeuCauHttp[]; loi?: string };
 
 export interface NhaCungCapDns {
   loai: "tu_host" | "nextdns";

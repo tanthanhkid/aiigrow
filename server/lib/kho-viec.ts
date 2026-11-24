@@ -1,6 +1,6 @@
 // Kho việc màn «Một ngày của <Con>» (thiết kế chốt 14/11 bm1-ob-mau + them-wv4igjxs/them-ws974ond…): Học 7 · Vận động 10 · Giúp Ba Mẹ 100 (10 chủ đề).
 // TỰ SINH từ docs/thiet-ke-chot/bm-thiet-lap-con/04-bm1-ob-mau.html — sửa chữ ở thiết kế rồi sinh lại, đừng sửa tay. `lon` = việc cho bé 12+ (thiết kế ghi «12+»).
-export type MucKho = "hoc" | "van_dong" | "giup";
+type MucKho = "hoc" | "van_dong" | "giup";
 export type ViecKho = { ma: string; muc: MucKho; chuDe: string | null; e: string; ten: string; sao: number; lon?: boolean };
 export const CHU_DE_GIUP: { ten: string; e: string }[] = [{"ten": "Bếp núc", "e": "🍳"}, {"ten": "Dọn bếp", "e": "🍽️"}, {"ten": "Phòng khách", "e": "🛋️"}, {"ten": "Giặt giũ", "e": "👕"}, {"ten": "Phòng ngủ", "e": "🛏️"}, {"ten": "Nhà tắm", "e": "🛁"}, {"ten": "Cây & thú cưng", "e": "🪴"}, {"ten": "Mua sắm", "e": "🛒"}, {"ten": "Chăm Ba Mẹ", "e": "💛"}, {"ten": "Lặt vặt", "e": "🔧"}];
 export const KHO_VIEC: ViecKho[] = [

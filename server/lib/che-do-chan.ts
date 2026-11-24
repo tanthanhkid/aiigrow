@@ -15,8 +15,6 @@ import {
   cheDoChanCua, cheDoCua, loaiTuNhom, nhanCheDo, nhanNhom, nhomTuLoai, TEN_CHE_DO, TEN_NHOM_DS, type NhomDs,
 } from "./chan-co-ban.ts";
 
-export { TEN_CHE_DO };
-
 /** POST /api/m/con/:id/che-do {cheDo: mo_het | theo_danh_sach} (đường cũ con/:id/che-do-chan, giá trị cũ chi_app_duoc_phep vẫn nhận).
  *  Máy nhận ở lần đồng bộ kế. → { cheDo, cheDoChan (giá trị cũ), ten }. */
 export async function datCheDoChan(fam: string, con: string, v: unknown, nguoi?: string) {

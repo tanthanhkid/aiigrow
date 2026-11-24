@@ -8,7 +8,7 @@
 // Giá trị cũ `chi_app_duoc_phep` (trước 15/11) = theo_danh_sach: máy chủ vẫn NHẬN khi app cũ gửi và vẫn TRẢ ở trường cũ `cheDoChan`
 // (agent / app chưa phát hành bản mới đọc trường đó) — trường mới là `cheDo`.
 
-export const CHE_DO = ["theo_danh_sach", "mo_het"] as const;
+const CHE_DO = ["theo_danh_sach", "mo_het"] as const;
 export type CheDo = (typeof CHE_DO)[number];
 export const TEN_CHE_DO: Record<CheDo, string> = { theo_danh_sach: "Theo danh sách", mo_het: "Mở hết" };
 
@@ -20,7 +20,7 @@ export const nhanCheDo = (v: unknown): CheDo | null =>
   v === "mo_het" ? "mo_het" : v === "theo_danh_sach" || v === "chi_app_duoc_phep" ? "theo_danh_sach" : null;
 
 /** (cũ) Tên giá trị trước 15/11 — chỉ để TRẢ ở trường `cheDoChan` cho agent / app cũ. */
-export const CHE_DO_CHAN = ["chi_app_duoc_phep", "mo_het"] as const;
+const CHE_DO_CHAN = ["chi_app_duoc_phep", "mo_het"] as const;
 export type CheDoChan = (typeof CHE_DO_CHAN)[number];
 /** children.che_do_chan ⇒ giá trị CŨ (chi_app_duoc_phep | mo_het) cho trường `cheDoChan`. */
 export const cheDoChanCua = (v: unknown): CheDoChan => (cheDoCua(v) === "mo_het" ? "mo_het" : "chi_app_duoc_phep");
@@ -28,7 +28,7 @@ export const cheDoChanCua = (v: unknown): CheDoChan => (cheDoCua(v) === "mo_het"
 export const tenCheDo = (v: unknown) => TEN_CHE_DO[cheDoCua(v)];
 
 /** Hai nhóm của danh sách. Lưu trong app_rules.loai: tinh_phut = «giai_tri», khong_tinh_phut = «hoc». */
-export const NHOM_DS = ["tinh_phut", "khong_tinh_phut"] as const;
+const NHOM_DS = ["tinh_phut", "khong_tinh_phut"] as const;
 export type NhomDs = (typeof NHOM_DS)[number];
 export const TEN_NHOM_DS: Record<NhomDs, string> = { tinh_phut: "Tính phút", khong_tinh_phut: "Không tính phút" };
 export const nhomTuLoai = (loai: unknown): NhomDs => (loai === "giai_tri" ? "tinh_phut" : "khong_tinh_phut");

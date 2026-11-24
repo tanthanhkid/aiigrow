@@ -46,8 +46,8 @@ import { cauHinhMxh, dangNhapMxh, datMatKhauMxh, doiMatKhau, lienKetMxh } from "
 import { baMeTuToken } from "./auth.ts";
 import { laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
 import { doiTenToi, loiMoiChoToi } from "./thanh-vien.ts";
-import { boKhoiDanhSach, danhSachCon, datAppChoPhep, datCheDoChan, doiNhomDanhSach, luoiApp, TEN_CHE_DO, themVaoDanhSach } from "./che-do-chan.ts";
-import { cheDoChanCua, cheDoCua } from "./chan-co-ban.ts";
+import { boKhoiDanhSach, danhSachCon, datAppChoPhep, datCheDoChan, doiNhomDanhSach, luoiApp, themVaoDanhSach } from "./che-do-chan.ts";
+import { cheDoChanCua, cheDoCua, TEN_CHE_DO } from "./chan-co-ban.ts";
 import { thietLapLanDau, tomTatThietLap, webLanDau } from "./thiet-lap.ts";
 import { chepThietLap, nguonChep } from "./chep-thiet-lap.ts";
 import { taoPhienGhep, trangThaiGhep } from "./ghep-may.ts";

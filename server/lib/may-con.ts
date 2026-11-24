@@ -24,7 +24,7 @@ import { gioiHanMay, quyHomNay, saoKepGioiHan } from "./quy-gio.ts";
 import { kepCuoiLuc, phutTheoDanhSach, tinhPhutChoi, truPhutChoi, type TrangThaiSao } from "./so-sao.ts";
 
 /** (cũ, #265 đã bỏ) ngoại lệ đang mở — Policy luôn gửi mảng rỗng cho agent cũ. */
-export type NgoaiLeMo = { id: string; den: string; muc: string | null; nhom: string };
+type NgoaiLeMo = { id: string; den: string; muc: string | null; nhom: string };
 
 type DongBoVao = {
   status?: Record<string, unknown>;

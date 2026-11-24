@@ -5,7 +5,7 @@
 // Giá trị cũ (chu | duyet | xem) còn hiểu được: dòng do bản cũ ghi trong lúc deploy, test dựng tay.
 import { LoiNghiepVu } from "./loi.ts";
 
-export const QUYEN = ["ba_me", "trong_giup"] as const;
+const QUYEN = ["ba_me", "trong_giup"] as const;
 export type Quyen = (typeof QUYEN)[number];
 export const TEN_QUYEN: Record<string, string> = {
   ba_me: "Như Ba Mẹ", trong_giup: "Chỉ trông con",
