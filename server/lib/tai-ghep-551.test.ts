@@ -130,6 +130,25 @@ test("người tải ngừng đọc / quá trần cứng ⇒ cắt luồng, nh�
   assert.equal(hen.filter((h) => !h.huy).length, 0);
 });
 
+test("HEAD: gói còn hạn ⇒ 200 cùng tên tệp, không đốt lượt; gói sai ⇒ 302", async () => {
+  const tok = await taoGoi();
+  goi = 0;
+  const h = await t.dauTaiGhep(tok, SV, T);
+  assert.equal(h.status, 200);
+  assert.equal(h.headers.get("content-disposition"), `attachment; filename="${tenTepWindows(goiGhep(SV, tok))}"`);
+  laThuong(await t.dauTaiGhep("y".repeat(40), SV, T));
+  assert.equal(goi, 0);
+  assert.equal((await q(`select 1 from pin_sai where khoa like $1`, [`tai_ghep_tk:${sha(tok)}:%`])).length, 0);
+});
+
+test("GitHub trả lỗi ⇒ huỷ thân đáp, nhả chỗ, trả lượt", async () => {
+  let huy = false;
+  const loi404: typeof fetch = async () => new Response(new ReadableStream({ cancel() { huy = true; } }), { status: 404 });
+  laThuong(await t.taiGhep(await taoGoi(), SV, "1.3.1.3", T, loi404));
+  assert.ok(huy);
+  assert.equal(t.dangTai(), 0);
+});
+
 test("cron xoá bộ đếm các giờ đã qua, giữ giờ hiện tại", async () => {
   const tok = await taoGoi();
   await (await t.taiGhep(tok, SV, "5.5.5.5", new Date(T.getTime() - 5 * 3_600_000), goiTep)).arrayBuffer();

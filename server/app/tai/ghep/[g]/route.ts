@@ -1,8 +1,7 @@
 // /tai/ghep/<g>: bộ cài Windows MANG SẴN gói ghép trong tên tệp — máy chủ chuyển tiếp tệp từ GitHub Release CHỈ khi gói cài còn hiệu lực và
 // còn lượt (lib/tai-ghep.ts, #551); không đạt ⇒ chuyển về bộ cài thường (gõ mã 6 số).
 import { nguonGoi } from "@/lib/gia-dinh.ts";
-import { BAN_AGENT_WINDOWS } from "@/lib/ban-agent.ts";
-import { taiGhep } from "@/lib/tai-ghep.ts";
+import { dauTaiGhep, taiGhep } from "@/lib/tai-ghep.ts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,7 +12,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ g: strin
   return taiGhep((await params).g, server, nguonGoi(req.headers));
 }
 
-// HEAD (trình tải / quét virus dò trước) không được đốt lượt hay kéo tệp từ GitHub ⇒ trả thẳng về bộ cài thường.
-export function HEAD() {
-  return Response.redirect(BAN_AGENT_WINDOWS.url, 302);
+// HEAD (trình tải dò tên tệp trước): không đốt lượt, không kéo tệp từ GitHub (lib/tai-ghep.ts › dauTaiGhep).
+export async function HEAD(req: Request, { params }: { params: Promise<{ g: string }> }) {
+  return dauTaiGhep((await params).g, process.env.AIIGROW_APP_URL || new URL(req.url).origin);
 }

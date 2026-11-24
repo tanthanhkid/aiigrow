@@ -78,11 +78,12 @@ function demLuong(nguon: ReadableStream<Uint8Array>, nhaCho: () => void, datHen:
       huyNgung = datHen(() => cat("ngừng đọc"), TAI_NGUNG_MS);
     },
     async pull(c) {
-      huyNgung();
+      // hẹn «ngừng» KHÔNG huỷ khi đang chờ GitHub ⇒ bắt cả hai phía đứng: người tải không đọc, hoặc GitHub không gửi tiếp
       try {
         const { done, value } = await doc.read();
         if (done) { nha(); c.close(); return; }
         c.enqueue(value);
+        huyNgung();
         huyNgung = datHen(() => cat("ngừng đọc"), TAI_NGUNG_MS);
       } catch (e) { nha(); c.error(e); }
     },
@@ -117,19 +118,33 @@ export async function taiGhep(gVao: unknown, server: string, ip: string, now = n
   }
   const nha = giuLuong();                                 // kiểm lại sau các lượt chờ DB, giữ chỗ trước khi gọi GitHub
   if (!nha) { await traHet(); return thuong; }
-  const r = await layTep(nguonBoCai(), { redirect: "follow" }).catch(() => null);
-  if (!r?.ok || !r.body) { nha(); await traHet(); return thuong; }
+  const huy = new AbortController();
+  const huyHen = datHen(() => huy.abort(), TAI_NGUNG_MS);     // GitHub không trả đầu đáp ⇒ bỏ, khỏi giữ chỗ
+  const r = await layTep(nguonBoCai(), { redirect: "follow", signal: huy.signal }).catch(() => null);
+  huyHen();
+  if (!r?.ok || !r.body) { await r?.body?.cancel().catch(() => undefined); nha(); await traHet(); return thuong; }
   const dai = r.headers.get("content-length");
   return new Response(demLuong(r.body, nha, datHen), {
     headers: {
       "content-type": "application/octet-stream",
-      "content-disposition": `attachment; filename="${tenTepWindows(goiGhep(server, g))}"`,
+      ...dauDap(server, g),
       ...(dai ? { "content-length": dai } : {}),
-      "cache-control": "no-store",
       "x-accel-buffering": "no",
-      "x-robots-tag": "noindex",
     },
   });
+}
+
+const dauDap = (server: string, g: string) => ({
+  "content-disposition": `attachment; filename="${tenTepWindows(goiGhep(server, g))}"`,
+  "cache-control": "no-store",
+  "x-robots-tag": "noindex",
+});
+
+/** HEAD /tai/ghep/<g> (trình tải như IDM dò tên tệp trước): gói còn hạn ⇒ 200 cùng tên tệp như GET, không đốt lượt, không gọi GitHub. */
+export async function dauTaiGhep(gVao: unknown, server: string, now = new Date()) {
+  const g = chuanToken(gVao);
+  if (!g || g.length < 20 || !(await goiConHan(g, now))) return Response.redirect(BAN_AGENT_WINDOWS.url, 302);
+  return new Response(null, { headers: { "content-type": "application/octet-stream", ...dauDap(server, g) } });
 }
 
 /** Cron hằng ngày: xoá bộ đếm tải của các giờ đã qua. → số dòng. */
