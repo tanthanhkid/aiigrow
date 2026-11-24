@@ -33,6 +33,7 @@ import { bangTvTb } from "./thanh-vien.ts";
 import { bangMang } from "./dns-gia-dinh.ts";
 import { bangLog, donLogCu } from "./log-may.ts";
 import { donWebCu } from "./web.ts";
+import { donHetHan } from "./don-het-han.ts";
 
 export const XOA_SAI_TOI_DA = 5, XOA_KHOA_PHUT = 15;
 export type KetQuaXoa = { xoa: "tai_khoan" } | { xoa: "gia_dinh"; soCon: number };
@@ -145,6 +146,7 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
   // #563: chạy TRƯỚC chuỗi bắt buộc và không ném lỗi — bước sau hỏng / hết giờ không chặn giữ hạn log 7 ngày, lịch sử web 90 ngày
   await donLogCu(now).catch((e) => console.error("cron: dọn log máy cũ lỗi", e));
   await donWebCu(now).catch((e) => console.error("cron: dọn lịch sử web cũ lỗi", e));
+  await donHetHan(now).catch((e) => console.error("cron: dọn phiên / OTP / sự kiện quá hạn lỗi", e));   // #565 (don-het-han.ts)
   try {
     const n = await donKiemToanGiaDinhDaXoa(now);
     await donBoDemMxh(now.getTime());          // bộ đếm lượt đăng nhập Google / Facebook của khung đã qua (dang-nhap-mxh.ts)
