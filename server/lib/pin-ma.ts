@@ -3,14 +3,16 @@
 //     băm 4 số cũng dò lại ngoại tuyến tức thì. Mã hoá AES-256-GCM với khoá KHÔNG nằm trong DB ⇒ lộ bản sao / backup DB không lộ PIN.
 //   • Khoá: AIIGROW_PIN_KHOA (≥ 32 ký tự ngẫu nhiên, chỉ dùng cho việc này — đặt trong /etc/aiigrow/aiigrow.env). Đổi khoá: đặt khoá mới vào
 //     AIIGROW_PIN_KHOA, khoá cũ vào AIIGROW_PIN_KHOA_CU (nhiều khoá cách bằng dấu phẩy) ⇒ lần mở DB sau `chuyenPinCu` mã lại theo khoá mới.
-//     Dev/test (NODE_ENV ≠ production) không đặt ⇒ khoá dev cố định. PRODUCTION CHƯA ĐẶT ⇒ KHÔNG mã hoá (giữ như trước, cảnh báo to lúc mở DB):
+//     Khoá ngắn hơn 32 ký tự bị bỏ (cảnh báo). Dev/test dùng PGlite (không DATABASE_URL, NODE_ENV ≠ production) ⇒ khoá dev cố định — KHÔNG BAO GIỜ
+//     dùng khoá dev khi nối Postgres thật (script chạy tay với DATABASE_URL prod mà quên env sẽ mã lại PIN bằng khoá công khai).
+//     CHƯA CÓ KHOÁ CHÍNH ⇒ KHÔNG mã hoá (giữ như trước, cảnh báo to lúc mở DB), khoá trong _CU chỉ để giải:
 //     không đoán khoá từ bí mật khác (CRON_SECRET… có thể đổi bất cứ lúc nào ⇒ mất mọi PIN).
 //   • Dạng lưu: `p1.<mã khoá 8 hex>.<iv base64url>.<bản mã+tag base64url>`; AAD = id Con (chép pin_ma sang Con khác không giải được).
 //     Giá trị 4 chữ số = dữ liệu cũ / chưa có khoá — vẫn đọc được. Khoá của bản mã không còn trong vòng ⇒ giaiPin null: Ba Mẹ đặt PIN mới.
 // Tệp này KHÔNG nhập db.ts (db.ts gọi chuyenPinCu lúc mở) — chỉ nhận hàm truy vấn.
 import { createCipheriv, createDecipheriv, createHash, hkdfSync, randomBytes } from "node:crypto";
 
-type Khoa = { id: string; k: Buffer };
+type Khoa = { id: string; k: Buffer; chinh?: boolean };
 type Truy = <T = Record<string, unknown>>(sql: string, params?: unknown[]) => Promise<T[]>;
 type Env = Record<string, string | undefined>;
 
@@ -19,23 +21,35 @@ const khoa = (bi: string): Khoa => { const k = tuChuoi(bi); return { id: createH
 const KHOA_DEV = "aiigrow-dev-khong-dung-o-prod";
 
 let nho: { sig: string; ds: Khoa[] } | null = null;
-/** Vòng khoá: phần tử đầu = khoá chính (mã hoá), các phần tử sau chỉ để giải bản cũ. Rỗng = production chưa đặt khoá (lưu rõ như trước).
- *  Nhớ theo giá trị env (test đổi env được, không suy lại HKDF mỗi lần gọi). */
+const canhBaoDaIn = new Set<string>();
+const canhBao1 = (m: string) => { if (!canhBaoDaIn.has(m)) { canhBaoDaIn.add(m); console.error(m); } };
+/** Vòng khoá: phần tử có `chinh` (nếu có, luôn đứng đầu) = khoá mã hoá; các phần tử còn lại chỉ để giải bản cũ.
+ *  Không có khoá chính = chưa đặt AIIGROW_PIN_KHOA (lưu rõ như trước). Nhớ theo giá trị env (test đổi env được, không suy lại HKDF mỗi lần gọi). */
 export function vongKhoa(env: Env = process.env): Khoa[] {
-  const sig = [env.AIIGROW_PIN_KHOA, env.AIIGROW_PIN_KHOA_CU, env.NODE_ENV].join("\u0000");
+  const sig = [env.AIIGROW_PIN_KHOA, env.AIIGROW_PIN_KHOA_CU, env.NODE_ENV, env.DATABASE_URL ? "pg" : ""].join("\u0000");
   if (nho?.sig === sig) return nho.ds;
-  const bi = [env.AIIGROW_PIN_KHOA, ...String(env.AIIGROW_PIN_KHOA_CU ?? "").split(",")].map((x) => x?.trim()).filter((x): x is string => !!x);
-  if (env.NODE_ENV !== "production") bi.push(KHOA_DEV);
-  const ds = [...new Map(bi.map((b) => khoa(b)).map((k) => [k.id, k])).values()];
-  nho = { sig, ds };
-  return ds;
+  const hopLe = (x: string | undefined) => {
+    const v = x?.trim();
+    if (v && v.length < 32) canhBao1("[AN NINH] Bỏ khoá PIN ngắn hơn 32 ký tự (AIIGROW_PIN_KHOA / AIIGROW_PIN_KHOA_CU) — dùng chuỗi ngẫu nhiên dài.");
+    return v && v.length >= 32 ? v : null;
+  };
+  const chinh = hopLe(env.AIIGROW_PIN_KHOA);
+  const ds: Khoa[] = [];
+  if (chinh) ds.push({ ...khoa(chinh), chinh: true });
+  for (const x of String(env.AIIGROW_PIN_KHOA_CU ?? "").split(",")) { const v = hopLe(x); if (v) ds.push(khoa(v)); }
+  if (env.NODE_ENV !== "production" && !env.DATABASE_URL) {             // PGlite dev/test: khoá dev (khoá chính khi chưa đặt khoá riêng)
+    if (chinh) ds.push(khoa(KHOA_DEV)); else ds.unshift({ ...khoa(KHOA_DEV), chinh: true });
+  }
+  const uniq = [...new Map(ds.map((k) => [k.id, k])).values()];
+  nho = { sig, ds: uniq };
+  return uniq;
 }
 
 const b64 = (b: Buffer) => b.toString("base64url");
 
 /** Giá trị lưu vào children.pin_ma cho PIN `pin` của Con `con` (chưa có khoá ở production ⇒ PIN rõ như trước #555). */
 export function maHoaPin(con: string, pin: string, ds = vongKhoa()): string {
-  if (!ds.length) return pin;
+  if (!ds[0]?.chinh) return pin;
   const { id, k } = ds[0];
   const iv = randomBytes(12);
   const c = createCipheriv("aes-256-gcm", k, iv);
@@ -68,8 +82,8 @@ export function giaiPin(con: string, v: string | null | undefined, ds = vongKhoa
 /** Chuyển dữ liệu (chạy lại được, gọi mỗi lần mở DB): PIN rõ cũ ⇒ mã hoá; PIN mã bằng khoá cũ còn giữ ⇒ mã lại bằng khoá chính.
  *  Ghi có điều kiện `pin_ma = <giá trị vừa đọc>` ⇒ Ba Mẹ đặt PIN mới chen giữa không bị đè. → số dòng đã chuyển (null = production chưa có khoá). */
 export async function chuyenPinCu(q: Truy, ds = vongKhoa()): Promise<number | null> {
-  if (!ds.length) {
-    console.error("[AN NINH] Thiếu AIIGROW_PIN_KHOA — PIN của bé (children.pin_ma) vẫn lưu RÕ. Đặt khoá ngẫu nhiên ≥ 32 ký tự trong env rồi khởi động lại (#555).");
+  if (!ds[0]?.chinh) {
+    canhBao1("[AN NINH] Thiếu AIIGROW_PIN_KHOA — PIN của bé (children.pin_ma) vẫn lưu RÕ. Đặt khoá ngẫu nhiên ≥ 32 ký tự trong env rồi khởi động lại (#555).");
     return null;
   }
   const chinh = ds[0].id;

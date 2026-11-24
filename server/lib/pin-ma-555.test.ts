@@ -66,6 +66,15 @@ test("vòng khoá: AIIGROW_PIN_KHOA là khoá chính, AIIGROW_PIN_KHOA_CU giải
   const dev = pm.vongKhoa({ NODE_ENV: "test" });
   assert.ok(!cu.some((k) => dev.some((d) => d.id === k.id)), "prod không giải được bằng khoá dev");
   // production thiếu AIIGROW_PIN_KHOA (CRON_SECRET không được dùng làm khoá) ⇒ vòng rỗng: lưu rõ, chuyển dữ liệu không chạy
+  // khoá ngắn bị bỏ; chỉ có khoá cũ (_CU) ⇒ giải được nhưng không mã hoá bằng khoá cũ; nối Postgres thật (DATABASE_URL) ⇒ không dùng khoá dev
+  const loi0 = console.error; console.error = () => {};
+  try {
+    assert.equal(pm.vongKhoa({ NODE_ENV: "production", AIIGROW_PIN_KHOA: "changeme" }).length, 0);
+    const chiCu = pm.vongKhoa({ NODE_ENV: "production", AIIGROW_PIN_KHOA_CU: "c".repeat(40) });
+    assert.equal(pm.giaiPin("x", ban, chiCu), "9876");
+    assert.equal(pm.maHoaPin("x", "1111", chiCu), "1111");
+    assert.equal(pm.vongKhoa({ NODE_ENV: "development", DATABASE_URL: "postgres://prod" }).length, 0);
+  } finally { console.error = loi0; }
   const rong = pm.vongKhoa({ NODE_ENV: "production", CRON_SECRET: "x".repeat(40) });
   assert.equal(rong.length, 0);
   assert.equal(pm.maHoaPin("x", "1234", rong), "1234");
@@ -170,6 +179,14 @@ test("trần sai PIN theo bé trên mọi máy: 20 lượt sai/giờ ⇒ máy kh
   await pin.datPin(fam, anh, "2468", null, luc(3801));
   assert.equal(await one(`select 1 from pin_sai where khoa = $1`, [`pinbe:${anh}`]), undefined);
   assert.equal(await loiMa(thu(0, "2468", 3802)), "ok");
+  // lượt đúng khi chưa có lượt sai nào ⇒ không để lại dòng bộ đếm (khung sau neo ở lượt SAI đầu tiên); cron dọn khung đã qua
+  assert.equal(await one(`select 1 from pin_sai where khoa = $1`, [`pinbe:${anh}`]), undefined);
+  await loiMa(thu(0, "0000", 3900));
+  assert.equal((await one<{ so_lan: number }>(`select so_lan from pin_sai where khoa = $1`, [`pinbe:${anh}`]))!.so_lan, 1);
+  await pin.donBoDemPinBe(luc(3900 + 3500));
+  assert.ok(await one(`select 1 from pin_sai where khoa = $1`, [`pinbe:${anh}`]), "khung còn hiệu lực ⇒ giữ");
+  await pin.donBoDemPinBe(luc(3900 + 3601));
+  assert.equal(await one(`select 1 from pin_sai where khoa = $1`, [`pinbe:${anh}`]), undefined, "khung đã qua ⇒ dọn");
   void tokBm;
 });
 

@@ -135,13 +135,13 @@ const vanPinCon = (bm: string | null, con: string, pinMa: string | null) => {
 /** #555: bộ đếm lượt thử PIN theo bé (`pinbe:<con>`, mọi máy) trong khung 1 giờ tính từ lượt đầu (cap_nhat = đầu khung).
  *  Giữ chỗ nguyên tử trước khi so → `{den}` (đã đủ PIN_SAI_BE_GIO lượt sai — chờ tới hết khung, lượt này không chiếm chỗ) hoặc `{lan}`.
  *  Lượt đúng / không so được trả lại chỗ (traLuot) ⇒ chỉ lượt SAI tính trần. */
-async function giuLuotBe(con: string, now: Date): Promise<{ den: Date } | { lan: number }> {
+async function giuLuotBe(con: string, now: Date): Promise<{ den: Date } | { lan: number; dau: Date }> {
   const r = (await q<{ so_lan: number; cap_nhat: Date }>(`insert into pin_sai(khoa, so_lan, cap_nhat) values ($1, 1, $2)
     on conflict (khoa) do update set
       so_lan = case when pin_sai.cap_nhat is null or pin_sai.cap_nhat <= $3 then 1 else pin_sai.so_lan + 1 end,
       cap_nhat = case when pin_sai.cap_nhat is null or pin_sai.cap_nhat <= $3 then $2 else pin_sai.cap_nhat end
     returning so_lan, cap_nhat`, [khoaBeCua(con), now, new Date(now.getTime() - BE_KHUNG_MS)]))[0];
-  if (r.so_lan <= PIN_SAI_BE_GIO) return { lan: r.so_lan };
+  if (r.so_lan <= PIN_SAI_BE_GIO) return { lan: r.so_lan, dau: new Date(r.cap_nhat) };
   await traLuot(khoaBeCua(con));
   return { den: new Date(new Date(r.cap_nhat).getTime() + BE_KHUNG_MS) };
 }
@@ -149,6 +149,18 @@ const BE_KHUNG_MS = 3600_000;
 const khoaBeCua = (con: string) => `pinbe:${con}`;
 /** Trả MỘT lượt đã giữ — lỗi DB khi trả không biến lượt đúng thành lỗi. */
 const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]).then(() => undefined, () => undefined);
+
+/** Lượt đúng trả chỗ; không còn lượt sai nào trong khung ⇒ xoá dòng (khung sau tính từ lượt SAI đầu tiên, không từ lượt đúng). */
+const traLuotBeDung = async (con: string) => {
+  await traLuot(khoaBeCua(con));
+  await q(`delete from pin_sai where khoa = $1 and so_lan <= 0`, [khoaBeCua(con)]).catch(() => undefined);
+};
+
+/** Cron hằng ngày (xoa-tai-khoan.ts › chayDonKiemToan): bộ đếm theo bé của khung đã qua. → số dòng. */
+export async function donBoDemPinBe(now = new Date()) {
+  return (await q(`delete from pin_sai where khoa like 'pinbe:%' and coalesce(cap_nhat, '-infinity') <= $1 returning 1`,
+    [new Date(now.getTime() - BE_KHUNG_MS)])).length;
+}
 
 /** Bé đang bị trần theo bé (đủ PIN_SAI_BE_GIO lượt sai trong khung còn hiệu lực) ⇒ hạn chờ, theo id Con. */
 async function khoaBe(con: string[], now: Date): Promise<Map<string, Date>> {
@@ -189,7 +201,8 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
     // trần theo BÉ trên mọi máy giữ chỗ TRƯỚC (bị chặn thì không chiếm lượt của máy), rồi tới bộ đếm máy + bé
     const be = await giuLuotBe(c.id, now);
     if ("den" in be) throw tamKhoaBe(be.den);
-    const g = await giuLuot(khoa, PIN_SAI_TOI_DA, now);
+    let g: Awaited<ReturnType<typeof giuLuot>>;
+    try { g = await giuLuot(khoa, PIN_SAI_TOI_DA, now); } catch (e) { await traLuot(khoaBeCua(c.id)); throw e; }   // lỗi DB ⇒ không tính lượt sai
     if ("den" in g) { await traLuot(khoaBeCua(c.id)); throw tamKhoa(g.den); }
     if (!bang(vao, that)) {
       const conLan = await ghiSai(khoa, g.lan, PIN_SAI_TOI_DA, PIN_CHO_GIAY, now);
@@ -197,14 +210,14 @@ export async function dangNhapBe(may: MayS3, conId: string, pin: unknown, now = 
       if (be.lan === PIN_SAI_BE_GIO) {
         // lượt sai thứ PIN_SAI_BE_GIO trong khung ⇒ báo Ba Mẹ (có thể là người khác dò PIN); đặt PIN mới thì mở ngay (datPin xoá bộ đếm)
         await canhBao(may.family_id, "pin_bi_do", "chu_y", `PIN của ${c.ten} bị nhập sai ${PIN_SAI_BE_GIO} lần trong một giờ — máy tạm khoá PIN, đặt PIN mới để mở ngay`,
-          { con: c.id, may: may.id, khoa: `pin_bi_do:${c.id}:${Math.floor(now.getTime() / BE_KHUNG_MS)}`, chiTiet: { may: may.name } });
+          { con: c.id, may: may.id, khoa: `pin_bi_do:${c.id}:${be.dau.getTime()}`, chiTiet: { may: may.name } });
         throw tamKhoaBe((await khoaBe([c.id], now)).get(c.id) ?? new Date(now.getTime() + BE_KHUNG_MS));
       }
       if (!conLan) throw tamKhoa(new Date(now.getTime() + PIN_CHO_GIAY * 1000));
       throw new LoiPin("pin_sai", `Chưa đúng · còn ${conLan} lần thử`, 401, { conLan });
     }
     await q(`delete from pin_sai where khoa = $1`, [khoa]);
-    await traLuot(khoaBeCua(c.id));
+    await traLuotBeDung(c.id);
   }
   // #267 «Đổi người»: máy chỉ một bé một lúc — bé trước (khác bé này) hết phiên Con trên máy + phiên chơi trên máy dừng (phút bé trước dừng tính)
   // #340: một giao dịch, khoá dòng máy (for update) ⇒ hai bé đăng nhập cùng lúc trên một máy nối đuôi nhau: lượt sau thấy phiên Con của lượt

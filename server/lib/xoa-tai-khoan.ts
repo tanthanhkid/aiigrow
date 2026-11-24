@@ -22,6 +22,7 @@ import { chuaCoMatKhau, donBoDemMxh } from "./dang-nhap-mxh.ts";
 import { donBoDemDangNhap, goKhoaTaiKhoan } from "./gioi-han-dang-nhap.ts";
 import { donBoDemGhep } from "./gia-dinh.ts";
 import { donBoDemTaiGhep } from "./tai-ghep.ts";
+import { donBoDemPinBe } from "./pin-be.ts";
 import { one, q, tx, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -154,6 +155,7 @@ export async function chayDonKiemToan(now = new Date()): Promise<number | null> 
     await donBoDemDangNhap(now.getTime());     // bộ đếm đăng nhập mật khẩu theo IP / cặp tài khoản–IP (gioi-han-dang-nhap.ts)
     await donBoDemGhep(now.getTime());         // bộ đếm lượt thử mã ghép máy theo nguồn + toàn cục (gia-dinh.ts › ghepMay)
     await donBoDemTaiGhep(now.getTime());      // bộ đếm lượt tải bộ cài mang gói ghép (tai-ghep.ts)
+    await donBoDemPinBe(now);                  // #555: bộ đếm sai PIN theo bé của khung đã qua (pin-be.ts)
     await donUsageCu(now).catch(() => {});     // sau việc bắt buộc: usage lỗi/quá giờ không chặn, lần sau dọn tiếp
     return n;
   } catch (e) {
