@@ -70,7 +70,7 @@ export async function xoaCon(fam: string, con: string, b: { xacNhan?: unknown },
     await t(`delete from alerts where family_id = $1 and child_id = $2`, [fam, con]);
     await t(`delete from events where family_id = $1 and child_id = $2`, [fam, con]);
     await t(`delete from web_nhat_ky where child_id = $1`, [con]);
-    await t(`delete from pin_sai where khoa like 'pin:%:' || $1`, [con]);   // khoá PIN «pin:<máy>:<con>» (pin-be.ts)
+    await t(`delete from pin_sai where khoa like 'pin:%:' || $1 or khoa = 'pinbe:' || $1`, [con]);   // khoá PIN «pin:<máy>:<con>» + trần theo bé «pinbe:<con>» (pin-be.ts)
     // quà chỉ áp cho riêng Con này ⇒ xoá; áp cho nhiều Con ⇒ bỏ id này khỏi danh sách
     await t(`delete from rewards where family_id = $1 and ap_cho is not null and ap_cho ? $2 and jsonb_array_length(ap_cho) = 1`, [fam, con]);
     await t(`update rewards set ap_cho = ap_cho - $2 where family_id = $1 and ap_cho is not null and ap_cho ? $2`, [fam, con]);

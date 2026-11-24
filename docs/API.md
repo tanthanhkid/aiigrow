@@ -479,7 +479,7 @@ Lược đồ: `SCHEMA_S3` (cuối `schema.ts`): `children.pin_ma, pin_dat_luc` 
 
 ### PIN theo bé (L13 — đảo L5)
 
-PIN = đúng 4 chữ số (`pin_sai_dang` 400). Lưu thẳng (Ba Mẹ «Hiện» lại được); chống dò bằng bộ đếm máy chủ: sai 5 lần ⇒ chờ 15 giây (theo máy + bé).
+PIN = đúng 4 chữ số (`pin_sai_dang` 400). Lưu bản mã AES-256-GCM bằng khoá máy chủ (#555, `server/lib/pin-ma.ts`, env `AIIGROW_PIN_KHOA`, đổi khoá thì khoá cũ vào `AIIGROW_PIN_KHOA_CU`; production chưa đặt khoá ⇒ vẫn lưu rõ + cảnh báo lúc khởi động); Ba Mẹ vẫn «Hiện» lại được (không giải được ⇒ `pin: null`; bé đăng nhập ⇒ 409 `pin_can_dat_lai`, không tính lượt sai). Chống dò bằng bộ đếm máy chủ: sai 5 lần ⇒ chờ 15 giây (theo máy + bé); 20 lần sai / bé / giờ trên mọi máy ⇒ `pin_tam_khoa` (`theoBe: true`) tới hết khung giờ + báo Ba Mẹ (`pin_bi_do`); đặt PIN mới mở ngay.
 Bé **chưa có PIN** ⇒ chạm tên vào thẳng (`canDatPin: true` — máy nhắc Ba Mẹ đặt). Máy chỉ gán 1 bé vẫn hỏi PIN khi mở khoá.
 
 **App Ba Mẹ `/api/m/*`**

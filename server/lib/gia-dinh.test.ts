@@ -22,11 +22,13 @@ test("tạo hồ sơ Con: đề xuất Nhí/Teen theo tuổi, nhiều Con mỗi 
   // 06/11 L13 (đảo L5): PIN 4 số lưu (pin_ma); sai dạng ⇒ pin_sai_dang; không gửi ⇒ chưa có PIN
   await loi(g.taoCon(fam, { ten: "X", pin: "12" }), "pin_sai_dang");
   const x = await g.taoCon(fam, { ten: "X" });
-  assert.equal((await q<{ pin_ma: string | null }>(`select pin_ma from children where id = $1`, [ken]))[0].pin_ma, "1234");
+  const pinKen = (await q<{ pin_ma: string }>(`select pin_ma from children where id = $1`, [ken]))[0].pin_ma;
+  assert.ok(pinKen.startsWith("p1.") && !pinKen.includes("1234"), "#555: PIN lưu bản mã, không lưu rõ");
+  assert.equal((await import("./pin-ma.ts")).giaiPin(ken, pinKen), "1234");
   assert.equal((await q<{ pin_ma: string | null; che_do_chan: string }>(`select pin_ma, che_do_chan from children where id = $1`, [x]))[0].che_do_chan, "theo_danh_sach", "#262: Con mới ở Theo danh sách");
   await loi(g.suaCon(fam, x, { pin: "9" }), "pin_sai_dang");
   await g.suaCon(fam, x, { pin: "0912" });
-  assert.equal((await q<{ pin_ma: string | null }>(`select pin_ma from children where id = $1`, [x]))[0].pin_ma, "0912");
+  assert.equal((await import("./pin-ma.ts")).giaiPin(x, (await q<{ pin_ma: string }>(`select pin_ma from children where id = $1`, [x]))[0].pin_ma), "0912");
   await loi(g.taoCon(fam, { ten: "" }), "thieu_ten");
   await g.suaCon(fam, bill, { nhom: "nhi", avatar: "rob-sao" });
   assert.equal((await g.conCua(fam, bill)).nhom, "nhi");

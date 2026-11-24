@@ -76,7 +76,11 @@ export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<
   for (const m of mm) ds.push({ id: `mat_mang:${m.mayId}`, loai: "mat_mang", tieu: `${m.ten} mất mạng`, phu: `${hhmm(new Date(m.tu), tz)} · Con cần mã để mở máy`,
     luc: m.tu, con: m.conId, may: m.mayId, so: 1, nut: "Lấy mã", den: `/may/${m.mayId}/ma-offline` });
   for (const a of cb) {
-    if (a.loai === "quen_pin") ds.push({ id: `a:${a.id}`, loai: "quen_pin", tieu: `${a.ten_con ?? "Con"} quên PIN vào máy`,
+    // #555: PIN bị nhập sai quá trần ⇒ cùng lối «Đặt PIN» như quên PIN (đặt PIN mới mở khoá ngay)
+    if (a.loai === "pin_bi_do") ds.push({ id: `a:${a.id}`, loai: "quen_pin", tieu: `PIN của ${a.ten_con ?? "Con"} bị nhập sai nhiều lần`,
+      phu: `${hhmm(new Date(a.created_at), tz)}${a.ten_may ? ` · ${a.ten_may}` : ""} · đặt PIN mới`, luc: new Date(a.created_at).toISOString(), con: a.child_id,
+      ...(a.device_id ? { may: a.device_id } : {}), so: 1, nut: "Đặt PIN", den: a.child_id ? `/ho-so/${a.child_id}/pin` : "/thong-bao" });
+    else if (a.loai === "quen_pin") ds.push({ id: `a:${a.id}`, loai: "quen_pin", tieu: `${a.ten_con ?? "Con"} quên PIN vào máy`,
       phu: `${hhmm(new Date(a.created_at), tz)}${a.ten_may ? ` · ${a.ten_may}` : ""} · đặt PIN mới`, luc: new Date(a.created_at).toISOString(), con: a.child_id,
       ...(a.device_id ? { may: a.device_id } : {}), so: 1, nut: "Đặt PIN", den: a.child_id ? `/ho-so/${a.child_id}/pin` : "/thong-bao" });
     else ds.push({ id: `a:${a.id}`, loai: "canh_bao", tieu: `Cảnh báo: ${a.noi_dung}`, phu: `${hhmm(new Date(a.created_at), tz)}${a.ten_may ? ` · ${a.ten_may}` : ""}`,

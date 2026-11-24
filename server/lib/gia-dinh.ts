@@ -6,6 +6,7 @@ import { coTacTu } from "./chuyen-doi.ts";
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
+import { maHoaPin } from "./pin-ma.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { saoChepCaiDat } from "./ghep-may.ts";
 import { coNoi, conChoMayMoi, datConMay, ghiNoi, kiemConNha, laMotCon, loiMotCon, noiConMoiVaoMayChung } from "./may-nhieu-con.ts";
@@ -90,7 +91,7 @@ export async function taoCon(fam: string, b: { ten?: unknown; namSinh?: unknown;
     await trungTenCon(t, fam, ten, null);
     const id = newId();
     await t(`insert into children(id, family_id, ten, nam_sinh, avatar, nhom, che_do_chan, pin_ma, pin_dat_luc)
-              values ($1,$2,$3,$4,$5,$6,'theo_danh_sach',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").split("|")[0].slice(0, 12), nhom, pin, pin ? new Date() : null]);
+              values ($1,$2,$3,$4,$5,$6,'theo_danh_sach',$7,$8)`, [id, fam, ten, nam, String(b.avatar ?? "rob").split("|")[0].slice(0, 12), nhom, pin ? maHoaPin(id, pin) : null, pin ? new Date() : null]);
     await ghiSuKien(fam, "tao_con", chiTiet, { con: id, nguoi }, t);
     return { id, lai: false };
   });
