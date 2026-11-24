@@ -175,7 +175,6 @@ public enum ChuSao {
 /// Chế độ app & web của Con (#262): «Mở hết» (không chặn, không trừ sao) | «Theo danh sách» (danh sách trắng).
 public enum CheDoApp {
   public static let moHet = "mo_het"
-  public static let theoDanhSach = "theo_danh_sach"
 }
 
 /// `GET api/device/yeu-cau/:id` (#258 / #263): `status` duoc | cho | tu_choi (cũ) + `trangThai` nguyên văn + kết quả lời xin app / web.

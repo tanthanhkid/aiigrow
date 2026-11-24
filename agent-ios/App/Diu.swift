@@ -16,7 +16,6 @@ extension Color {
 enum Diu {
   static let xanh = Color(hex: 0x0a1629)        // «chính» = navy (chấm PIN, bước số, nút ghi âm…)
   static let xanhNhat = Color(hex: 0xe2d6c4)    // thẻ nhấn / nhãn trạng thái: kem sẫm
-  static let xanhVien = Color(hex: 0xd9cdbc)
   static let xanhDam = Color(hex: 0x0a1629)     // chữ nhấn / liên kết = navy
   static let ok = Color(hex: 0x2d6a14)          // thành công 5,2:1 trên nền
   static let chu = Color(hex: 0x0a1629)
@@ -31,13 +30,11 @@ enum Diu {
   static let ranh = Color(hex: 0xe2d6c4)        // rãnh vòng giờ / chấm PIN chưa gõ
   static let saoChu = Color(hex: 0x0a1629)      // chữ navy trên vàng ≥ 6,9:1
   static let saoNen = Color(hex: 0xf2d48c)
-  static let saoVien = Color(hex: 0xd9ae57)
   // 15/11: số sao ÂM (đang nợ Ba Mẹ) — viên cảnh báo
   static let noNen = Color(hex: 0xf9e7d2)
   static let noChu = Color(hex: 0x983e04)
   static let do_ = Color(hex: 0xa2412c)
   static let doChu = Color(hex: 0xa2412c)
-  static let cam = Color(hex: 0xf5a957)
   static let bong = Color(hex: 0x786246)        // bóng tối rgba(120,98,70,.28)
   static let bongSang = Color(hex: 0xfffbf5)    // bóng sáng lệch lên-trái
   // vàng kim loại: linear-gradient(135deg, kimSang 0, kim 38%, kimDam 72%, kimNhat 100%)
@@ -222,25 +219,6 @@ struct AvatarBe: View {
       .font(Diu.fraunces(co * 0.48)).foregroundColor(Diu.kimNhat)
       .frame(width: co, height: co).background(Circle().fill(Diu.xanh))
       .overlay(Circle().strokeBorder(Diu.kimVien, lineWidth: (co >= 60 ? 2 : 1.25) * (dangChon ? 2 : 1)))
-  }
-}
-
-/// «B Bảo Anh ▾» — chạm mở Đổi người / Đăng xuất.
-struct ChipBe: View {
-  let ten: String
-  let lam: () -> Void
-  var body: some View {
-    Button(action: lam) {
-      HStack(spacing: 7) {
-        AvatarBe(ten: ten, co: 30, dangChon: true)
-        Text(ten).font(Diu.chu(15, .black)).foregroundColor(Diu.chu).lineLimit(1)
-        Image(systemName: "chevron.down").font(.system(size: 11, weight: .heavy)).foregroundColor(Diu.chu2)
-      }
-      .padding(.leading, 4).padding(.trailing, 12).frame(height: 38)
-      .noiE(Capsule(), lech: 3)
-    }
-    .buttonStyle(.plain)
-    .accessibilityLabel("\(ten), đổi bé hoặc đăng xuất")
   }
 }
 

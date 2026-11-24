@@ -60,7 +60,6 @@ public enum KetQuaMoOffline: Equatable { case daMo, dangMo, sai, daDung, choThuL
 
 /// Trạng thái «mở tạm bằng mã offline» — lưu trong cấu hình (daemon khởi động lại vẫn giữ). Đồng hồ bị lùi về trước lúc mở ⇒ coi như không mở.
 public struct MoTamOffline: Codable, Equatable {
-  public static let phutMoMacDinh = 60
   public static let saiToiDa = 5
   public static let cuaSoSaiGiay: TimeInterval = 10 * 60
   /// Một mã còn được nhận tối đa (2·dung sai + 1) bước ⇒ nhớ mã đã dùng lâu hơn một bước cho chắc.

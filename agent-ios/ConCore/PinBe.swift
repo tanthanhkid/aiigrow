@@ -22,8 +22,6 @@ public struct BeTrenMay: Codable, Equatable, Identifiable {
   public init(id: String, ten: String, avatar: String? = nil, coPin: Bool, vanPin: String? = nil) {
     self.id = id; self.ten = ten; self.avatar = avatar; self.coPin = coPin; self.vanPin = vanPin
   }
-  /// Chữ cái đầu cho avatar tròn (thiết kế: «Bảo Anh» ⇒ «B»).
-  public var chuDau: String { String(ten.trimmingCharacters(in: .whitespaces).prefix(1)).uppercased() }
 }
 
 public struct HoSoMay: Codable, Equatable {

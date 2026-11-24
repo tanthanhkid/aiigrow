@@ -23,11 +23,9 @@ enum ClayMau {
   static let chu2 = hex(0x3b352e)
   static let chu3 = hex(0x5f554b)         // chữ phụ
   static let ngoc = chu                   // «chính» = navy
-  static let ngocDam = hex(0x050c18)
   static let ngocInk = chu                // chữ nhấn trên nền sáng
   static let ngocSoft = hex(0xe2d6c4)     // ô chọn / chip nhấn: kem sẫm
   static let thanChi = hex(0x1d2f52)
-  static let thanChiDam = chu
   static let diemInk = hex(0x6b4a12)      // vàng sẫm
   static let diemSoft = hex(0xf2d48c)     // chip sao = vàng kim nhạt
   static let canh = hex(0xa2412c)         // nợ / cảnh báo: cam sẫm
@@ -384,35 +382,7 @@ private struct NutClayThan<Nhan: View>: View {
   }
 }
 
-// MARK: - Ổ khoá «đóng sập» / chuông rung
-
-/// Ổ khoá đóng sập 380ms khi xuất hiện: nhấc -9px scale 1.3 → đập 2px .85/1.1 → 1.08/.94 → 1. Reduce Motion ⇒ chỉ fade.
-struct KhoaDongSap: ViewModifier {
-  @Environment(\.accessibilityReduceMotion) private var giamDong
-  @State private var buoc = 0
-  @State private var hien = false
-  func body(content: Content) -> some View {
-    let (dy, sx, sy): (CGFloat, CGFloat, CGFloat) = {
-      if giamDong { return (0, 1, 1) }
-      switch buoc {
-      case 0: return (-9, 1.3, 1.3)
-      case 1: return (2, 1.1, 0.85)
-      case 2: return (0, 0.94, 1.08)
-      default: return (0, 1, 1)
-      }
-    }()
-    content
-      .offset(y: dy).scaleEffect(x: sx, y: sy, anchor: .bottom)
-      .opacity(hien ? 1 : 0)
-      .onAppear {
-        if giamDong { withAnimation(ClayMotion.fade) { hien = true }; return }
-        withAnimation(.easeOut(duration: 0.12)) { hien = true }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { withAnimation(.easeIn(duration: 0.08)) { buoc = 1 } }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.20) { withAnimation(.easeOut(duration: 0.09)) { buoc = 2 } }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.29) { withAnimation(ClayMotion.tha) { buoc = 3 } }
-      }
-  }
-}
+// MARK: - Chuông rung
 
 /// Rung (chuông/đồng hồ báo): rotate 0,-18,14,-9,5,0 quanh đỉnh trong 450ms. Reduce Motion ⇒ không rung.
 struct RungChuong: ViewModifier {
@@ -432,6 +402,5 @@ struct RungChuong: ViewModifier {
 }
 
 extension View {
-  func khoaDongSap() -> some View { modifier(KhoaDongSap()) }
   func rungChuong() -> some View { modifier(RungChuong()) }
 }
