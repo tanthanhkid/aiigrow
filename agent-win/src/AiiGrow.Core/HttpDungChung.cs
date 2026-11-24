@@ -1,4 +1,4 @@
-using System.Net.NetworkInformation;
+using System.Net.Sockets;
 
 namespace AiiGrow.Core;
 
@@ -9,30 +9,47 @@ namespace AiiGrow.Core;
 /// </summary>
 public static class HttpDungChung
 {
-    private static SocketsHttpHandler _handler = Tao();
-
-    static HttpDungChung()
-    {
-        // Đổi mạng (Wi-Fi khác, cắm/rút cáp, VPN): kết nối cũ trong pool có thể đã chết im (không FIN) ⇒ lượt kế treo tới hết hạn.
-        // Thay handler mới cho các client tạo sau; handler cũ KHÔNG dispose (client đang chạy còn dùng) — kết nối của nó tự đóng sau IdleTimeout.
-        try { NetworkChange.NetworkAddressChanged += (_, _) => _handler = Tao(); } catch { }
-    }
-
     /// <summary>
     /// PooledConnectionLifetime 5 phút: kết nối không sống mãi ⇒ đổi IP máy chủ (DNS) vẫn nhận trong ≤5 phút.
-    /// PooledConnectionIdleTimeout 60 giây: đủ giữ kết nối giữa hai lượt thăm dò 15 giây; máy ngủ dậy (đồng hồ tick tính cả lúc ngủ) thì kết nối cũ
-    /// đã quá hạn rảnh ⇒ mở kết nối mới, không gửi vào socket chết.
+    /// PooledConnectionIdleTimeout 60 giây: đủ giữ kết nối giữa hai lượt thăm dò 15 giây; máy ngủ dậy thì kết nối cũ đã quá hạn rảnh.
+    /// TCP keepalive (ConnectCallback): router khởi động lại / NAT hết hạn / Wi-Fi nối lại làm kết nối chết im (không FIN) ⇒ hệ điều hành phát hiện
+    /// trong ~20 giây và pool bỏ kết nối đó, lượt kế không treo tới hết hạn rồi báo mất mạng nhầm.
+    /// UseCookies = false: một hũ cookie chung cả tiến trình sẽ mang cookie qua mọi token/lần ghép lại; API máy con chỉ dùng Bearer, máy chủ không đặt cookie.
     /// </summary>
-    private static SocketsHttpHandler Tao() => new()
+    public static readonly SocketsHttpHandler Handler = new()
     {
         PooledConnectionLifetime = TimeSpan.FromMinutes(5),
         PooledConnectionIdleTimeout = TimeSpan.FromSeconds(60),
+        ConnectTimeout = TimeSpan.FromSeconds(15),
+        UseCookies = false,
+        ConnectCallback = KetNoiCoKeepAlive,
     };
-
-    /// <summary>Handler đang dùng (đổi khi mạng đổi).</summary>
-    public static SocketsHttpHandler Handler => _handler;
 
     /// <summary>HttpClient bọc handler chung. Dispose client KHÔNG đóng handler — kể cả handler riêng truyền vào (test, EnrollClient giữ handler
     /// trong trường và tạo client mỗi lượt: dispose theo client thì lượt thứ hai ObjectDisposedException).</summary>
-    public static HttpClient TaoClient(HttpMessageHandler? handler = null) => new(handler ?? _handler, disposeHandler: false);
+    public static HttpClient TaoClient(HttpMessageHandler? handler = null, TimeSpan? han = null)
+    {
+        var c = new HttpClient(handler ?? Handler, disposeHandler: false);
+        if (han is { } h) c.Timeout = h;
+        return c;
+    }
+
+    private static async ValueTask<Stream> KetNoiCoKeepAlive(SocketsHttpConnectionContext ctx, CancellationToken ct)
+    {
+        var s = new Socket(SocketType.Stream, ProtocolType.Tcp) { NoDelay = true };   // dual-mode: IPv4 lẫn IPv6
+        try
+        {
+            s.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            s.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveTime, 10);
+            s.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveInterval, 3);
+            s.SetSocketOption(SocketOptionLevel.Tcp, SocketOptionName.TcpKeepAliveRetryCount, 3);
+        }
+        catch (SocketException) { }   // Windows cũ không hỗ trợ tuỳ chọn ⇒ vẫn kết nối, chỉ thiếu phát hiện sớm
+        try
+        {
+            await s.ConnectAsync(ctx.DnsEndPoint, ct);
+            return new NetworkStream(s, ownsSocket: true);
+        }
+        catch { s.Dispose(); throw; }
+    }
 }

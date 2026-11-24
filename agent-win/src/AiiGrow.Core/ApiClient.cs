@@ -215,8 +215,12 @@ public sealed class ApiClient : IDisposable
         cts.CancelAfter(TimeSpan.FromSeconds(8));
         try
         {
-            // HEAD: kết nối dùng chung (#562) phải đọc hết thân mới trả về pool — GET trang gốc là tải cả trang HTML mỗi 15 giây
-            using var req = new HttpRequestMessage(HttpMethod.Head, "");
+            // HEAD: kết nối dùng chung (#562) phải đọc hết thân mới trả về pool — GET trang gốc là tải cả trang HTML mỗi 15 giây.
+            // Proxy/cổng từ chối HEAD (5xx) ⇒ thử GET một lần như trước, không báo mất mạng nhầm.
+            using (var head = new HttpRequestMessage(HttpMethod.Head, ""))
+            using (var r = await _http.SendAsync(head, HttpCompletionOption.ResponseHeadersRead, cts.Token))
+                if ((int)r.StatusCode < 500) return true;
+            using var req = new HttpRequestMessage(HttpMethod.Get, "");
             using var resp = await _http.SendAsync(req, HttpCompletionOption.ResponseHeadersRead, cts.Token);
             return (int)resp.StatusCode < 500;
         }
