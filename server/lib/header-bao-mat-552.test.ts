@@ -1,5 +1,5 @@
-// #552 — header bảo mật: danh sách trang Next khớp server/app, CSP SPA không nới, API không tải gì, header chung trên mọi đường.
-import { readdirSync, statSync } from "node:fs";
+// #552 — header bảo mật: danh sách trang Next khớp server/app, CSP SPA không nới, header chung trên mọi đường.
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -7,13 +7,32 @@ import config, { TRANG_NEXT, csp } from "../next.config.ts";
 
 const thuMucApp = fileURLToPath(new URL("../app/", import.meta.url));
 
-test("TRANG_NEXT phủ mọi thư mục route ở server/app (trừ api, thư mục riêng _x, nhóm (x))", () => {
+// Đường gốc của mọi route Next: thư mục thường ở app/ (bỏ api, thư mục riêng _x), đi xuyên nhóm (x); tệp route ở gốc app/ không được có
+// (gốc "/" là SPA — next.config rewrites) vì nó sẽ nhận CSP chặt của SPA và chết khi hydrate.
+function duongGoc(thu: string): string[] {
+  const ra: string[] = [];
+  for (const t of readdirSync(thu)) {
+    if (!statSync(thu + t).isDirectory() || t === "api" || t.startsWith("_")) continue;
+    if (t.startsWith("(")) ra.push(...duongGoc(thu + t + "/"));
+    else ra.push(t);
+  }
+  return ra;
+}
+
+test("TRANG_NEXT phủ mọi route Next ở server/app (kể cả trong nhóm (x)); gốc app/ không có tệp route", () => {
   const ds = new Set(TRANG_NEXT.replaceAll("\\", "").split("|"));
-  const thieu = readdirSync(thuMucApp)
-    .filter((t) => statSync(thuMucApp + t).isDirectory() && t !== "api" && !t.startsWith("_") && !t.startsWith("("))
-    .filter((t) => !ds.has(t));
-  assert.deepEqual(thieu, []);
-  });
+  assert.deepEqual(duongGoc(thuMucApp).filter((t) => !ds.has(t)), []);
+  const tepRoute = /^(page|route|sitemap|robots|manifest|opengraph-image|twitter-image|icon|apple-icon)\.[a-z]+$/;
+  assert.deepEqual(readdirSync(thuMucApp).filter((t) => tepRoute.test(t)), []);
+});
+
+test("CSP <meta> chèn vào index.html SPA (build-app.mjs) không chặt hơn header SPA — đổi csp(false) thì đổi cả meta", () => {
+  const src = readFileSync(fileURLToPath(new URL("../scripts/build-app.mjs", import.meta.url)), "utf8");
+  const meta = /http-equiv="Content-Security-Policy" content="([^"]+)"/.exec(src)?.[1];
+  assert.ok(meta, "build-app.mjs phải chèn CSP meta");
+  const header = new Map(csp(false).split("; ").map((d) => [d.split(" ")[0], d]));
+  for (const d of meta.split("; ")) assert.equal(d, header.get(d.split(" ")[0]), `meta «${d}» phải trùng chỉ thị cùng tên của csp(false)`);
+});
 
 test("CSP SPA: không unsafe-inline/unsafe-eval cho script, chặn nhúng khung", () => {
   const spa = csp(false);
@@ -28,7 +47,7 @@ test("thứ tự quy tắc: chung → trang Next → API (quy tắc sau ghi đè
   const r = await config.headers!();
   const coCsp = r.filter((x) => x.headers.some((h) => h.key === "Content-Security-Policy"));
   assert.deepEqual(coCsp.map((x) => x.source), ["/:duong*", `/:trang(${TRANG_NEXT})/:duong*`, "/api/:duong*"]);
-  assert.equal(coCsp[2].headers[0].value, "default-src 'none'; frame-ancestors 'none'");
+  assert.equal(coCsp[2].headers[0].value, csp(true));
   const chung = coCsp[0].headers.map((h) => h.key);
   for (const k of ["Strict-Transport-Security", "X-Frame-Options", "X-Content-Type-Options", "Referrer-Policy", "Permissions-Policy"])
     assert.ok(chung.includes(k), k);
