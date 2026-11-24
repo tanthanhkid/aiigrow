@@ -13,10 +13,8 @@
   ],
   "ignoreDependencies": [
     "expo-crypto",
-    "expo-status-bar",
     "expo-updates",
-    "expo-system-ui",
-    "@expo-google-fonts/inter"
+    "expo-system-ui"
   ],
   "ignoreExportsUsedInFile": true,
   "rules": {
