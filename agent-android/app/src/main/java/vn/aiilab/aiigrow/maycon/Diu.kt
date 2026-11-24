@@ -22,7 +22,6 @@ import android.widget.TextView
 object Diu {
     // ---- màu: phong cách E «Ánh kim» (17/11) — kem neumorphism + vàng kim + navy. Tên token giữ như bản Dịu (XANH = màu «chính», nay là navy).
     const val NEN = 0xFFECE4D9.toInt()
-    const val NEN_SANG = 0xFFF2EBE3.toInt()    // chữ trên navy
     const val XANH = 0xFF0A1629.toInt()        // «chính» = navy (chấm PIN đã gõ…)
     const val XANH_NHAT = 0xFFE2D6C4.toInt()   // ô chọn / thẻ nhấn: kem sẫm (lõm)
     const val XANH_DAM = 0xFF0A1629.toInt()    // chữ nhấn / liên kết = navy
@@ -41,8 +40,6 @@ object Diu {
     const val KIM_NHAT = 0xFFF2D48C.toInt()
     const val KIM_VIEN = 0xFFD9AE57.toInt()    // vòng bé đang chọn
     const val KIM_HAIR = 0x59F4C76A            // viền vàng mảnh trên navy rgba(244,199,106,.35)
-    const val VANG = KIM_NHAT                  // CHỈ cho sao (chip sao vẽ gradient vàng kim)
-    const val VANG_VIEN = KIM_VIEN
     const val VANG_CHU = 0xFF0A1629.toInt()    // chữ navy trên vàng ≥ 6,9:1
     const val BONG = 0x47786246                // rgba(120,98,70,.28)
     const val BONG_SANG = 0xE6FFFBF5.toInt()   // bóng sáng lệch lên-trái

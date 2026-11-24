@@ -1,8 +1,5 @@
 package vn.aiilab.aiigrow.maycon
 
-import android.animation.Keyframe
-import android.animation.ObjectAnimator
-import android.animation.PropertyValuesHolder
 import android.animation.TimeInterpolator
 import android.animation.ValueAnimator
 import android.annotation.SuppressLint
@@ -38,20 +35,14 @@ import kotlin.math.sqrt
 object Clay {
     // Bảng màu: trỏ về Diu (phong cách E «Ánh kim») — không chép cứng.
     const val NEN = Diu.NEN
-    const val NEN_DINH = Diu.NEN
     const val THE = Diu.NEN
     const val LOM = Diu.LOM
     const val CHU = Diu.CHU
     const val CHU2 = Diu.CHU2
     const val CHU3 = Diu.CHU3
     const val CHINH = Diu.XANH
-    const val CHINH_INK = Diu.XANH_DAM
     const val CHINH_SOFT = Diu.XANH_NHAT
-    const val DIEM_SOFT = Diu.KIM_NHAT
-    const val CANH = Diu.NO_CHU
-    const val CANH_SOFT = 0xFFF9E7D2.toInt()
     const val LAM_SOFT = Diu.XANH_NHAT
-    const val TIM_SOFT = Diu.XANH_NHAT
     const val LOI = Diu.LOI
 
     enum class Kieu { THE, THAN, NGOC, VIEN, LOM, VIEN_TRON }
@@ -75,9 +66,6 @@ object Clay {
     }
 
     fun tha() = LoXo(420f, 14f).apply { giay = 0.42f }    // thả ra: nảy vượt ~8%
-    fun vao() = LoXo(260f, 17f).apply { giay = 0.45f }    // nảy vào
-    fun bat() = LoXo(500f, 16f).apply { giay = 0.40f }    // bật (pop)
-    val MEN = PathInterpolator(.2f, .7f, .2f, 1f)
     private val EP = PathInterpolator(.3f, 0f, .5f, 1f)
 
     /** Bẹp-nảy khi nhấn + vệt men lướt chéo. Trả false để click vẫn chạy như cũ. */
@@ -94,43 +82,6 @@ object Clay {
                     v.animate().scaleX(1f).scaleY(1f).setDuration(420).setInterpolator(tha()).start()
             }
             false
-        }
-    }
-
-    /** Tải trang: các khối vào lần lượt (stagger 55ms, nảy từ dưới lên). Tắt hoạt ảnh ⇒ hiện ngay. */
-    fun vaoLanLuot(g: ViewGroup) {
-        if (!dongTac()) return
-        val d = dp(g.context, 26f)
-        for (i in 0 until g.childCount) {
-            val v = g.getChildAt(i)
-            v.alpha = 0f; v.translationY = d; v.scaleX = .96f; v.scaleY = .96f
-            v.animate().alpha(1f).translationY(0f).scaleX(1f).scaleY(1f).setStartDelay(i * 55L).setDuration(450).setInterpolator(vao()).start()
-        }
-    }
-
-    /** Số đổi ⇒ bật nhẹ (SP.bat). */
-    fun batNhe(v: View) {
-        if (!dongTac()) return
-        v.scaleX = .88f; v.scaleY = .88f
-        v.animate().scaleX(1f).scaleY(1f).setStartDelay(0).setDuration(400).setInterpolator(bat()).start()
-    }
-
-    /** Ổ khoá «đóng sập» 380ms (M-vui KHOÁ MÁY); khối chứa giật xuống 3dp lúc đập rồi nảy về. */
-    fun dongSap(icon: View, khoi: View?) {
-        if (!dongTac()) { icon.alpha = 0f; icon.animate().alpha(1f).setDuration(180).start(); return }
-        val c = icon.context
-        fun ty(vararg p: Pair<Float, Float>) = PropertyValuesHolder.ofKeyframe(View.TRANSLATION_Y, *p.map { Keyframe.ofFloat(it.first, dp(c, it.second)) }.toTypedArray())
-        fun sc(prop: android.util.Property<View, Float>, vararg p: Pair<Float, Float>) =
-            PropertyValuesHolder.ofKeyframe(prop, *p.map { Keyframe.ofFloat(it.first, it.second) }.toTypedArray())
-        ObjectAnimator.ofPropertyValuesHolder(icon,
-            ty(0f to 0f, .3f to -9f, .53f to 2f, .75f to 0f, 1f to 0f),
-            sc(View.SCALE_X, 0f to 1f, .3f to 1.3f, .53f to .85f, .75f to 1.08f, 1f to 1f),
-            sc(View.SCALE_Y, 0f to 1f, .3f to 1.3f, .53f to 1.1f, .75f to .94f, 1f to 1f),
-        ).setDuration(380).start()
-        khoi?.let { k ->
-            k.animate().translationY(dp(c, 3f)).setStartDelay(200).setDuration(60).withEndAction {
-                k.animate().translationY(0f).setStartDelay(0).setDuration(420).setInterpolator(tha()).start()
-            }.start()
         }
     }
 
