@@ -52,6 +52,8 @@ test("mã hoá: bản mã khác nhau mỗi lần, giải đúng; sai Con (AAD) /
   assert.equal(pm.giaiPin("con1", a, pm.vongKhoa({ NODE_ENV: "production", AIIGROW_PIN_KHOA: "k".repeat(40) })), null);
   assert.equal(pm.giaiPin("con1", "1234"), "1234", "giá trị rõ cũ (chưa chuyển) vẫn đọc được");
   assert.equal(pm.giaiPin("con1", null), null);
+  const [p1, id, iv] = a.split(".");
+  assert.equal(pm.giaiPin("con1", [p1, id, iv, Buffer.alloc(8).toString("base64url")].join(".")), null, "tag cắt ngắn bị từ chối");
 });
 
 test("vòng khoá: AIIGROW_PIN_KHOA là khoá chính, AIIGROW_PIN_KHOA_CU giải bản cũ; prod không có khoá dev; prod chưa đặt khoá ⇒ lưu rõ như trước", async () => {
@@ -167,8 +169,10 @@ test("trần sai PIN theo bé trên mọi máy: 20 lượt sai/giờ ⇒ máy kh
   const hs = await pin.hoSoMay(await mayRow(ds[1].id), luc(s + 21));
   assert.ok(hs.con.find((c: any) => c.id === anh)!.choGiay! > 3000);
   assert.equal(await loiMa(thu(1, "", s + 22)), "pin_tam_khoa");
-  // Ba Mẹ được báo một lần (khoá theo khung giờ)
+  // Ba Mẹ được báo một lần (khoá theo khung), mục «Cần Ba Mẹ để ý» dẫn tới màn đặt PIN
   assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'pin_bi_do' and child_id = $2`, [fam, anh])).length, 1);
+  const cdy = (await m(tokBm, "can-de-y")).body.ds.find((x: any) => x.con === anh && /nhập sai/.test(x.tieu));
+  assert.equal(cdy?.den, `/ho-so/${anh}/pin`);
   // lượt bị trần theo bé chặn KHÔNG chiếm lượt của máy: thử dồn trên máy 0 trong lúc bị chặn, hết khung (chưa qua 15 phút) vẫn vào được ngay
   for (let i = 0; i < 8; i++) await loiMa(thu(0, "0000", 3590 - 8 + i));
   assert.equal(await loiMa(thu(0, "4821", 3605)), "ok", "máy không bị khoá vì các lượt bị chặn");
@@ -187,7 +191,6 @@ test("trần sai PIN theo bé trên mọi máy: 20 lượt sai/giờ ⇒ máy kh
   assert.ok(await one(`select 1 from pin_sai where khoa = $1`, [`pinbe:${anh}`]), "khung còn hiệu lực ⇒ giữ");
   await pin.donBoDemPinBe(luc(3900 + 3601));
   assert.equal(await one(`select 1 from pin_sai where khoa = $1`, [`pinbe:${anh}`]), undefined, "khung đã qua ⇒ dọn");
-  void tokBm;
 });
 
 test("PIN không giải được (khoá cũ đã mất) ⇒ pin_can_dat_lai, không tính lượt sai, không ghi sai_pin", async () => {

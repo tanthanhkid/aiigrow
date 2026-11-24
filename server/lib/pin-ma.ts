@@ -3,7 +3,7 @@
 //     băm 4 số cũng dò lại ngoại tuyến tức thì. Mã hoá AES-256-GCM với khoá KHÔNG nằm trong DB ⇒ lộ bản sao / backup DB không lộ PIN.
 //   • Khoá: AIIGROW_PIN_KHOA (≥ 32 ký tự ngẫu nhiên, chỉ dùng cho việc này — đặt trong /etc/aiigrow/aiigrow.env). Đổi khoá: đặt khoá mới vào
 //     AIIGROW_PIN_KHOA, khoá cũ vào AIIGROW_PIN_KHOA_CU (nhiều khoá cách bằng dấu phẩy) ⇒ lần mở DB sau `chuyenPinCu` mã lại theo khoá mới.
-//     Khoá ngắn hơn 32 ký tự bị bỏ (cảnh báo). Dev/test dùng PGlite (không DATABASE_URL, NODE_ENV ≠ production) ⇒ khoá dev cố định — KHÔNG BAO GIỜ
+//     Khoá ngắn hơn 32 ký tự bị bỏ (cảnh báo). Test / next dev trên PGlite (NODE_ENV test|development, không DATABASE_URL) ⇒ khoá dev cố định — KHÔNG BAO GIỜ
 //     dùng khoá dev khi nối Postgres thật (script chạy tay với DATABASE_URL prod mà quên env sẽ mã lại PIN bằng khoá công khai).
 //     CHƯA CÓ KHOÁ CHÍNH ⇒ KHÔNG mã hoá (giữ như trước, cảnh báo to lúc mở DB), khoá trong _CU chỉ để giải:
 //     không đoán khoá từ bí mật khác (CRON_SECRET… có thể đổi bất cứ lúc nào ⇒ mất mọi PIN).
@@ -37,7 +37,7 @@ export function vongKhoa(env: Env = process.env): Khoa[] {
   const ds: Khoa[] = [];
   if (chinh) ds.push({ ...khoa(chinh), chinh: true });
   for (const x of String(env.AIIGROW_PIN_KHOA_CU ?? "").split(",")) { const v = hopLe(x); if (v) ds.push(khoa(v)); }
-  if (env.NODE_ENV !== "production" && !env.DATABASE_URL) {             // PGlite dev/test: khoá dev (khoá chính khi chưa đặt khoá riêng)
+  if ((env.NODE_ENV === "test" || env.NODE_ENV === "development") && !env.DATABASE_URL) {   // PGlite test / next dev: khoá dev (khoá chính khi chưa đặt khoá riêng)
     if (chinh) ds.push(khoa(KHOA_DEV)); else ds.unshift({ ...khoa(KHOA_DEV), chinh: true });
   }
   const uniq = [...new Map(ds.map((k) => [k.id, k])).values()];
@@ -70,7 +70,8 @@ export function giaiPin(con: string, v: string | null | undefined, ds = vongKhoa
   if (!kh || !iv || !ma) return null;
   try {
     const b = Buffer.from(ma, "base64url");
-    const d = createDecipheriv("aes-256-gcm", kh.k, Buffer.from(iv, "base64url"));
+    if (b.length < 17) return null;                       // tag GCM đủ 16 byte + ít nhất 1 byte bản mã
+    const d = createDecipheriv("aes-256-gcm", kh.k, Buffer.from(iv, "base64url"), { authTagLength: 16 });
     d.setAAD(Buffer.from(con));
     d.setAuthTag(b.subarray(b.length - 16));
     return Buffer.concat([d.update(b.subarray(0, b.length - 16)), d.final()]).toString("utf8");
