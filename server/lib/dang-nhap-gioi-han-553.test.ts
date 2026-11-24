@@ -205,6 +205,18 @@ test("quầy đúng mật khẩu mà vào nhầm /admin (403) không tốn lư�
 });
 
 
+test("lượt bị từ chối không kéo dài thời gian chờ; trần cứng 300 lượt sai / giờ ⇒ chỉ nguồn quen", async () => {
+  const id = await taoBaMe("0902553030");
+  assert.equal(await a.dangNhap("0902553030", "matkhau123", "12.0.0.1", T - 86_400_000), id);      // nguồn quen
+  for (let i = 0; i < gh.TRAN_TK; i++) await loi(a.dangNhap("0902553030", "doan-6", `172.17.${i}.1`, T + i), "sai_dang_nhap");
+  await loi(a.dangNhap("0902553030", "go-nham", "100.70.0.1", T + 100), "sai_dang_nhap");          // nguồn lạ: 1 lượt
+  for (let p = 1; p <= 14; p++) await loi(a.dangNhap("0902553030", "matkhau123", "100.70.0.1", T + 100 + p * PHUT), "tam_khoa");
+  assert.equal(await a.dangNhap("0902553030", "matkhau123", "100.70.0.1", T + 101 + 15 * PHUT), id, "thử lại liên tục vẫn mở đúng hẹn");
+  await q(`update pin_sai set so_lan = $2 where khoa = $1`, [`dn_tk:bm:0902553030|:${Math.floor(T / 3_600_000)}`, gh.TRAN_TK_CUNG]);
+  await loi(a.dangNhap("0902553030", "matkhau123", "100.71.0.1", T + 20 * PHUT), "tam_khoa");       // nguồn lạ: chặn hẳn
+  assert.equal(await a.dangNhap("0902553030", "matkhau123", "12.0.0.1", T + 20 * PHUT), id);         // nguồn quen: vào
+});
+
 // ------------------------------------------------------------------ API: header x-real-ip, IPv6 gộp /64
 const goi = async (f: (req: Request, p: string[]) => Promise<Response>, duong: string, body: unknown, ip: string) => {
   const r = await f(new Request(`http://x/api/${duong}`, {

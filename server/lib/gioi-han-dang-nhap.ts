@@ -18,7 +18,8 @@ export const TRAN_IP = 30;                           // lượt hỏng / IP / kh
 export const TRAN_IP_TONG = 120;                     // MỌI lượt (cả đúng) / IP / khung — chặn gửi dồn đăng nhập đúng để đốt scrypt
 export const SAI_KHOA = 5;                           // sai liền từ một nguồn ⇒ khoá cặp (tài khoản, nguồn)
 export const BAC_PHUT = [15, 60, 24 * 60] as const;  // khoá luỹ tiến
-export const TRAN_TK = 30;                           // lượt sai / tài khoản / giờ trên mọi nguồn ⇒ chặn nguồn lạ
+export const TRAN_TK = 30;                           // lượt sai / tài khoản / giờ trên mọi nguồn ⇒ nguồn lạ còn 1 lượt / 15 phút
+export const TRAN_TK_CUNG = 300;                     // lượt sai / tài khoản / giờ ⇒ chỉ nguồn quen (trần tuyệt đối chống dò phân tán)
 const GIU_BAC_MS = 72 * 3_600_000;                   // dài hơn khoá 24 giờ — hết khoá 24 giờ không tụt về 15 phút
 const SAI_CU_MS = KHUNG_PHUT * 60_000;               // lần sai cũ hơn 15 phút không cộng dồn
 const TK_KHUNG_MS = 3_600_000;
@@ -40,26 +41,40 @@ const tamKhoa = (ms: number, goiY: string) =>
 const tang = async (khoa: string) => (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
   on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0].so_lan;
 
-export type Luot = { kIp: string; loai: LoaiDn; tk: string; ip: string; now: number };
+const quaNhieu = (now: number) => new LoiNghiepVu("qua_nhieu_lan",
+  `Thử đăng nhập nhiều lần quá — đợi ${chuCho((khung(now) + 1) * SAI_CU_MS - now)} rồi thử lại nhé`, 429);
 
-/** Gọi TRƯỚC khi kiểm mật khẩu: giữ chỗ lượt IP + lượt của cặp. Quá trần IP ⇒ 429 qua_nhieu_lan (trừ nguồn quen của tài khoản này — kẻ lạ
- *  chung wifi quán / CGNAT không chặn được quầy, Ba Mẹ đã quen mạng); cặp đang khoá / hết lượt ⇒ 429 tam_khoa (`goiY` nối sau câu báo).
- *  Tài khoản đang bị dò từ nhiều nguồn (≥ TRAN_TK lượt sai trong giờ) ⇒ nguồn LẠ chỉ còn 1 lượt / 15 phút thay vì SAI_KHOA (chậm dò phân tán,
- *  chủ tài khoản ở mạng mới vẫn gõ đúng là vào). → lượt (đưa cho dangNhapDung / dangNhapSai / huyLuot). */
+export type Luot = { kIp: string | null; loai: LoaiDn; tk: string; ip: string; now: number };
+
+/** Gọi TRƯỚC khi kiểm mật khẩu: giữ chỗ lượt IP + lượt của cặp. Quá trần IP ⇒ 429 qua_nhieu_lan (nguồn quen của tài khoản này dùng trần
+ *  riêng, không đụng bộ đếm chung của IP — kẻ lạ chung wifi quán / CGNAT không chặn được quầy, Ba Mẹ đã quen mạng, và ngược lại); cặp đang
+ *  khoá / hết lượt ⇒ 429 tam_khoa (`goiY` nối sau câu báo; lượt bị từ chối không ghi gì — không kéo dài thời gian chờ).
+ *  Tài khoản đang bị dò từ nhiều nguồn: ≥ TRAN_TK lượt sai / giờ ⇒ nguồn LẠ chỉ còn 1 lượt / 15 phút (chủ ở mạng mới gõ đúng vẫn vào);
+ *  ≥ TRAN_TK_CUNG ⇒ chỉ nguồn quen tới hết giờ (trần tuyệt đối số lượt đoán trên một tài khoản). → lượt (cho dangNhapDung / dangNhapSai / huyLuot). */
 export async function truocDangNhap(loai: LoaiDn, tk: string, ip: string, now: number, goiY = ""): Promise<Luot> {
-  const kIp = khoaIp(loai, ip, now), kTk = khoaTk(loai, tk, now), kTin = khoaTin(loai, tk, ip);
-  const doc = new Map((await q<{ khoa: string; so_lan: number; cap_nhat: Date | null }>(
-    `select khoa, so_lan, cap_nhat from pin_sai where khoa = any($1::text[])`, [[kTk, kTin]])).map((r) => [r.khoa, r]));
+  const kTk = khoaTk(loai, tk, now), kTin = khoaTin(loai, tk, ip), kCap = khoaCap(loai, tk, ip);
+  const doc = new Map((await q<{ khoa: string; so_lan: number; cap_nhat: Date | null; khoa_den: Date | null }>(
+    `select khoa, so_lan, cap_nhat, khoa_den from pin_sai where khoa = any($1::text[])`, [[kTk, kTin, kCap]])).map((r) => [r.khoa, r]));
   const tin = doc.get(kTin)?.cap_nhat;
   const quen = !!tin && new Date(tin).getTime() >= now - TIN_MS;
-  const [hong, tong] = await Promise.all([tang(kIp), tang(khoaIpTong(loai, ip, now))]);
-  // nguồn quen không vướng trần chung của IP, nhưng có trần riêng của cặp (không gửi dồn đăng nhập đúng để đốt scrypt)
-  if (quen ? (await tang(khoaQuenTong(loai, tk, ip, now))) > TRAN_IP : hong > TRAN_IP || tong > TRAN_IP_TONG) {
-    const het = (khung(now) + 1) * SAI_CU_MS - now;
-    throw new LoiNghiepVu("qua_nhieu_lan", `Thử đăng nhập nhiều lần quá — đợi ${chuCho(het)} rồi thử lại nhé`, 429);
+  const tkSai = doc.get(kTk)?.so_lan ?? 0;
+  if (!quen && tkSai >= TRAN_TK_CUNG) throw tamKhoa((Math.floor(now / TK_KHUNG_MS) + 1) * TK_KHUNG_MS - now, goiY);
+  const duoc = !quen && tkSai >= TRAN_TK ? 1 : SAI_KHOA;
+  // xét cặp TRƯỚC khi đếm gì: đang khoá, hoặc đã dùng hết lượt trong 15 phút ⇒ từ chối, không ghi
+  const cu = doc.get(kCap);
+  if (cu?.khoa_den && new Date(cu.khoa_den).getTime() > now) throw tamKhoa(new Date(cu.khoa_den).getTime() - now, goiY);
+  const capNhat = cu?.cap_nhat ? new Date(cu.cap_nhat).getTime() : 0;
+  if (cu && !cu.khoa_den && capNhat >= now - SAI_CU_MS && cu.so_lan >= duoc) throw tamKhoa(capNhat + SAI_CU_MS - now, goiY);
+  let kIp: string | null = null;
+  if (quen) {
+    // nguồn quen: trần riêng của cặp (không gửi dồn đăng nhập đúng để đốt scrypt)
+    if ((await tang(khoaQuenTong(loai, tk, ip, now))) > TRAN_IP) throw quaNhieu(now);
+  } else {
+    kIp = khoaIp(loai, ip, now);
+    const [hong, tong] = await Promise.all([tang(kIp), tang(khoaIpTong(loai, ip, now))]);
+    if (hong > TRAN_IP || tong > TRAN_IP_TONG) throw quaNhieu(now);
   }
   const luot: Luot = { kIp, loai, tk, ip, now };
-  const duoc = !quen && (doc.get(kTk)?.so_lan ?? 0) >= TRAN_TK ? 1 : SAI_KHOA;
   // giữ chỗ lượt của cặp (nguyên tử): khoá đã hết hạn hoặc lần thử cuối cũ hơn 15 phút ⇒ đếm lại từ 1
   const luc = new Date(now);
   const c = (await q<{ so_lan: number; khoa_den: Date | null }>(`insert into pin_sai(khoa, so_lan, cap_nhat) values ($1, 1, $2)
@@ -71,8 +86,8 @@ export async function truocDangNhap(loai: LoaiDn, tk: string, ip: string, now: n
       cap_nhat = case when pin_sai.khoa_den > $2 then pin_sai.cap_nhat else $2 end
     returning so_lan, khoa_den`, [khoaCap(loai, tk, ip), luc, new Date(now - SAI_CU_MS)]))[0];
   if (c.khoa_den && new Date(c.khoa_den).getTime() > now) throw tamKhoa(new Date(c.khoa_den).getTime() - now, goiY);
-  if (c.so_lan > duoc) {                    // các lượt đang chờ băm / đã sai đủ — lượt này không được thử; trả lại chỗ vừa giữ
-    await q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoaCap(loai, tk, ip)]);
+  if (c.so_lan > duoc) {                    // gửi song song: các lượt đang chờ băm đã đủ — lượt này không được thử; trả lại chỗ vừa giữ
+    await huyLuot(luot);
     throw tamKhoa(SAI_CU_MS, goiY);
   }
   return luot;
@@ -86,7 +101,7 @@ export async function huyLuot(l: Luot) {
 
 /** Trả lượt IP đã giữ (đăng nhập đúng / lỗi bất ngờ). */
 async function traLuot(l: Luot) {
-  await q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [l.kIp]).catch(() => undefined);
+  if (l.kIp) await q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [l.kIp]).catch(() => undefined);
 }
 
 /** Đăng nhập đúng: trả lượt IP, xoá bộ đếm + bậc khoá của cặp, ghi nhận nguồn quen. */
