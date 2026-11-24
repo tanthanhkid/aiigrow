@@ -1,6 +1,7 @@
 // Gia đình, hồ sơ Con, thiết bị (FR-01.02, FR-01.03). Ghép máy chép cách làm của AiiControl (mã 6 số, dùng một lần, khoá dòng
 // mã trong giao dịch, token máy chỉ lưu băm). Thiết kế chốt 05/11: mã hạn 10 phút (L8), không gắn loại máy; BỎ PIN hồ sơ Con (L5) —
 // máy riêng dùng token máy, máy dùng chung đổi người bằng chọn tên (phiên Con kid_sessions). Mức bảo vệ.
+import { randomInt } from "node:crypto";
 import { coTacTu } from "./chuyen-doi.ts";
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { sha, taoToken } from "./auth.ts";
@@ -198,7 +199,7 @@ export async function taoMaGhep(fam: string, con: string | null, platform: strin
   await q(`delete from pair_codes p where p.expires_at < now() - interval '1 day'
              and not exists (select 1 from goi_cai g where g.token_hash = p.goi_cai and g.expires_at > now())`);
   for (let i = 0; i < 20; i++) {
-    const code = String(Math.floor(Math.random() * 1e6)).padStart(6, "0");
+    const code = String(randomInt(0, 1_000_000)).padStart(6, "0");        // CSPRNG (#550): bộ sinh số giả ngẫu nhiên của V8 đoán được từ chuỗi mã đã thấy
     const r = await q(`insert into pair_codes(code, family_id, child_id, platform, expires_at, giong_may, nguoi, goi_cai, con_ds)
                        values ($1,$2,$3,$4, now() + make_interval(mins => $5), $6, $7, $8, $9::text::jsonb)
                        on conflict (code) do nothing returning code`,
@@ -209,26 +210,45 @@ export async function taoMaGhep(fam: string, con: string | null, platform: strin
 }
 
 const GHEP_SAI_TOI_DA = 10;
+/** Trần TOÀN CỤC lượt thử mã ghép (mọi nguồn cộng lại) trong một khung — chặn dò phân tán qua nhiều IP / khối IPv6 (#550). Mã 6 số, N mã đang
+ *  sống ⇒ mỗi khung kẻ dò trúng tối đa ~GHEP_SAI_TONG·N/10⁶. Đổi lại: khi bị dò ồ ạt, ghép máy tạm ngưng tới hết khung (≤15 phút). */
+export const GHEP_SAI_TONG = 200;
 
 const GHEP_KHUNG_MS = 15 * 60_000;           // khung đếm lượt SAI (chống dò mã) — khác hạn mã (MA_GHEP_PHUT)
 const traLuot = (khoa: string) => q(`update pin_sai set so_lan = greatest(so_lan - 1, 0) where khoa = $1`, [khoa]);
+const giuCho = async (khoa: string) => (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
+    on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0].so_lan;
 
-/** Ghép máy bằng mã 6 số. Mỗi `nguon` (IP gọi) được tối đa 10 lần sai trong một khung 15 phút, quá ⇒ khoá tới hết khung — chặn dò mã
- *  (chốt BRD #56 câu 3). Khung cố định theo giờ ⇒ gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Giữ chỗ lượt thử TRƯỚC khi thử (một upsert
- *  nguyên tử) ⇒ gửi song song cũng chỉ ≤ 10 lượt lọt; ghép đúng hoặc lỗi không phải sai mã thì trả lại lượt. */
+/** Nguồn đếm lượt ghép: IPv4 giữ nguyên; IPv6 (đã gộp /64 ở nguonGoi) gộp tiếp về /48 — một người thuê được cả khối /48 (65k khối /64). */
+export const nguonGhep = (nguon: string) => (nguon.includes(":") ? nguon.split(":").slice(0, 3).join(":") : nguon);
+
+/** Ghép máy bằng mã 6 số. Mỗi nguồn (IPv4, hoặc khối IPv6 /48) được tối đa 10 lần sai trong một khung 15 phút, quá ⇒ khoá tới hết khung —
+ *  chặn dò mã (chốt BRD #56 câu 3); cộng thêm trần toàn cục GHEP_SAI_TONG lượt sai / khung trên mọi nguồn (#550). Khung cố định theo giờ ⇒
+ *  gõ nhầm lẻ tẻ nhiều ngày không cộng dồn. Giữ chỗ lượt thử TRƯỚC khi thử (upsert nguyên tử) ⇒ gửi song song cũng chỉ ≤ trần lượt lọt;
+ *  ghép đúng hoặc lỗi không phải sai mã thì trả lại lượt. Nguồn đã quá trần riêng KHÔNG ăn vào trần toàn cục (một IP không tự khoá được cả hệ thống). */
 export async function ghepMay(code: string, platform: string, tenMay: string, nguon = "?", now = Date.now(), maMay?: unknown, chon?: unknown) {
-  const khoa = `ghep:${nguon}:${Math.floor(now / GHEP_KHUNG_MS)}`;
-  const s = (await q<{ so_lan: number }>(`insert into pin_sai(khoa, so_lan) values ($1, 1)
-    on conflict (khoa) do update set so_lan = pin_sai.so_lan + 1 returning so_lan`, [khoa]))[0];
-  if (s.so_lan > GHEP_SAI_TOI_DA) throw new LoiNghiepVu("ghep_tam_khoa", "Nhập sai mã nhiều lần — đợi 15 phút rồi thử lại", 429);
+  const k = Math.floor(now / GHEP_KHUNG_MS);
+  const khoa = `ghep:${nguonGhep(nguon)}:${k}`, khoaTong = `ghep_tong:${k}`;
+  if ((await giuCho(khoa)) > GHEP_SAI_TOI_DA) throw new LoiNghiepVu("ghep_tam_khoa", "Nhập sai mã nhiều lần — đợi 15 phút rồi thử lại", 429);
+  if ((await giuCho(khoaTong)) > GHEP_SAI_TONG) {
+    await traLuot(khoa);
+    throw new LoiNghiepVu("ghep_tam_khoa", "Ghép máy đang tạm ngưng vì có nhiều lượt nhập sai — thử lại sau 15 phút", 429);
+  }
   try {
     const kq = await ghepMayGd(code, platform, tenMay, maMay, chon);
-    await traLuot(khoa);
+    await traLuot(khoa); await traLuot(khoaTong);
     return kq;
   } catch (e) {
-    if (!(e instanceof LoiNghiepVu && e.ma === "ma_sai")) await traLuot(khoa);
+    if (!(e instanceof LoiNghiepVu && e.ma === "ma_sai")) { await traLuot(khoa); await traLuot(khoaTong); }
     throw e;
   }
+}
+
+/** Cron hằng ngày: xoá bộ đếm lượt ghép của các khung đã qua. → số dòng. */
+export async function donBoDemGhep(now = Date.now()) {
+  const k = Math.floor(now / GHEP_KHUNG_MS);
+  return (await q(`delete from pin_sai where (khoa like 'ghep:%' or khoa like 'ghep\\_tong:%')
+    and split_part(khoa, ':', -1) ~ '^[0-9]+$' and split_part(khoa, ':', -1)::bigint < $1 returning 1`, [k - 1])).length;
 }
 
 /** IP gọi để đếm lượt ghép: `x-real-ip` (Vercel đặt, không giả được) trước, rồi `x-forwarded-for`; IPv6 gộp theo /64 (một máy xoay được cả dải). */
