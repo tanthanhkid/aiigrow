@@ -242,9 +242,6 @@ if (process.argv.includes("--giao-dien")) {
     M("con-huy-hieu", "/tre/huy-hieu", "Cấp 4 · Mầm xanh"),
     M("con-win-cai", "/tre/cai?tep=MinecraftInstaller.exe", "Minecraft chưa có trong danh sách", { kb: teen }),
     M("con-nhac", "/tre/nhac?phut=5", "Còn 5 sao = 5 phút chơi"),
-    // đường cũ chỉ còn redirect (giữ cho link cũ) — #572
-    M("con-ngoai-le (đường cũ)", "/tre/ngoai-le", "Xin Ba Mẹ cho vay sao"),
-    M("con-phien (đường cũ)", "/tre/phien/p1", "Đang chơi"),
   ];
   const vao = async (m) => {
     kb = { ...coBan, ...(m.kb ?? {}) };
@@ -487,6 +484,16 @@ await kichBan("Hết phiên Con (401) ⇒ về chọn tên", async () => {
   kb["GET nha"] = { status: 401, body: { error: "chua_dang_nhap", message: "Chọn tên để vào nhé" } };
   await di("/tre/nha");
   await xet(await doi("Ai đang dùng máy?", 9000), "về màn chọn tên");
+});
+
+await kichBan("Đường cũ chỉ còn redirect (giữ cho link cũ — #572) ⇒ về đúng màn mới", async () => {
+  const toi = async (dich) => { for (let t = 0; t < 9000; t += 250) { if ((await js("location.pathname + location.search")).startsWith(dich)) return true; await sleep(250); } return false; };
+  await di("/tre/ngoai-le");
+  await xet(await toi("/tre/them-gio"), "/tre/ngoai-le ⇒ /tre/them-gio");
+  await di("/tre/ngoai-le?app=Roblox");
+  await xet(await toi("/tre/xin-phep?loai=cai_app&gia=Roblox"), "/tre/ngoai-le?app=Roblox ⇒ /tre/xin-phep?loai=cai_app&gia=Roblox");
+  await di("/tre/phien/p1");
+  await xet(await toi("/tre/gio"), "/tre/phien/:id ⇒ /tre/gio");
 });
 
 ws.close();
