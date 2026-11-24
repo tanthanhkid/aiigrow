@@ -5,23 +5,44 @@ namespace AiiGrow.Tests;
 // #562: mọi client API máy con dùng chung một SocketsHttpHandler (kết nối TLS tái dùng giữa các lượt thăm dò/đồng bộ).
 public class HttpDungChungTests
 {
-    [Fact]
-    public void Handler_CoHanSongKetNoi_KhongCookie()
+    private sealed class HandlerDem : HttpMessageHandler
     {
-        Assert.Equal(TimeSpan.FromMinutes(5), HttpDungChung.Handler.PooledConnectionLifetime);
-        Assert.False(HttpDungChung.Handler.UseCookies);
+        public int SoLanGoi, SoLanDispose;
+        public HttpMethod? PhuongThuc;
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
+        {
+            SoLanGoi++; PhuongThuc = request.Method;
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK));
+        }
+        protected override void Dispose(bool disposing) { SoLanDispose++; base.Dispose(disposing); }
     }
 
     [Fact]
-    public void DisposeClient_KhongDongHandlerChung()
+    public void Handler_CoHanSongVaHanRanh()
     {
-        HttpDungChung.TaoClient().Dispose();
-        using var api = new ApiClient("https://may.test", "tok");
-        api.Dispose();
-        // handler chung bị dispose thì mọi lời gọi sau đều ObjectDisposedException; đọc thuộc tính vẫn được nhưng gửi qua invoker thì không
-        using var invoker = new HttpMessageInvoker(HttpDungChung.Handler, disposeHandler: false);
-        using var req = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:9/");
-        var ex = Record.Exception(() => invoker.SendAsync(req, new CancellationToken(true)).GetAwaiter().GetResult());
-        Assert.IsNotType<ObjectDisposedException>(ex);
+        Assert.Equal(TimeSpan.FromMinutes(5), HttpDungChung.Handler.PooledConnectionLifetime);
+        Assert.Equal(TimeSpan.FromSeconds(60), HttpDungChung.Handler.PooledConnectionIdleTimeout);
+    }
+
+    [Fact]
+    public async Task DisposeClient_KhongDongHandler_DungDuocNhieuLuot()
+    {
+        var h = new HandlerDem();
+        for (var i = 0; i < 2; i++)
+        {
+            using var api = new ApiClient("https://may.test", "tok", h);
+            Assert.True(await api.PingAsync());
+        }
+        Assert.Equal(2, h.SoLanGoi);
+        Assert.Equal(0, h.SoLanDispose);
+    }
+
+    [Fact]
+    public async Task Ping_DungHead_KhongTaiTrang()
+    {
+        var h = new HandlerDem();
+        using var api = new ApiClient("https://may.test", "tok", h);
+        await api.PingAsync();
+        Assert.Equal(HttpMethod.Head, h.PhuongThuc);
     }
 }
