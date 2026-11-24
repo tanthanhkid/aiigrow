@@ -25,7 +25,7 @@ internal static class DeviceHttp
 {
     public static HttpClient New(string server, string? token = null, HttpMessageHandler? handler = null)
     {
-        var http = handler == null ? new HttpClient() : new HttpClient(handler);
+        var http = HttpDungChung.TaoClient(handler);   // #562: kết nối tái dùng giữa các lượt
         http.BaseAddress = new Uri(ApiClient.NormalizeServer(server) + "/");
         http.Timeout = TimeSpan.FromSeconds(20);
         // Bản AiiGrow đang chạy ⇒ máy chủ ghi lại khi đồng bộ, app Ba Mẹ thấy máy chạy bản nào.

@@ -48,7 +48,7 @@ public sealed class ApiClient : IDisposable
 
     public ApiClient(string server, string? token = null, HttpMessageHandler? handler = null, int timeoutGiay = 20)
     {
-        _http = handler == null ? new HttpClient() : new HttpClient(handler);
+        _http = HttpDungChung.TaoClient(handler);   // #562: kết nối tái dùng giữa các lượt
         _http.BaseAddress = new Uri(NormalizeServer(server) + "/");
         _http.Timeout = TimeSpan.FromSeconds(timeoutGiay);
         _http.DefaultRequestHeaders.TryAddWithoutValidation("X-AiiGrow-Ban", TuCapNhat.BanHienTai().ToString(3));   // máy chủ ghi bản đang chạy
