@@ -2,12 +2,11 @@
 // Như api-sao.ts: mỗi router (api-m / api-con / api-may) gọi hàm ở đây TRƯỚC đường cũ; trả null = không phải đường của S3 ⇒ đi tiếp.
 // Hợp đồng: docs/API.md mục «S3 thiết kế chốt 06/11».
 import { json } from "./api.ts";
-import { one, q } from "./db.ts";
-import { LoiNghiepVu } from "./loi.ts";
+import { q } from "./db.ts";
 import * as pin from "./pin-be.ts";
 import * as qb from "./qua-bang-gia.ts";
 import * as pt from "./phan-thuong.ts";
-import { canDeY, mayMatMang } from "./can-de-y.ts";
+import { canDeY } from "./can-de-y.ts";
 import { chonCon, type May } from "./gia-dinh.ts";
 import { goiOfflineMay } from "./goi-offline.ts";
 
@@ -21,15 +20,8 @@ export async function xuLyMS3(bm: { id: string; family_id: string }, req: Reques
     if (get) return json(await pin.xemPin(fam, p[1]));
     if (post) return json(await pin.datPin(fam, p[1], b.pin === null ? null : b.pin, bm.id));
   }
-  // L19: «Cần Ba Mẹ để ý» + số chuông · máy mất mạng hôm nay
+  // L19: «Cần Ba Mẹ để ý» + số chuông (máy mất mạng hôm nay nằm trong đó — lib/can-de-y.ts)
   if (d === "can-de-y" && get) return json(await canDeY(fam));
-  if (d === "may-mat-mang" && get) return json({ ds: await mayMatMang(fam) });
-  if (p[0] === "may" && p[1] && p[2] === "nguoi-dung" && p.length === 3 && get) {
-    const m = await one<May>(`select * from devices where id = $1 and family_id = $2`, [p[1], fam]);
-    if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
-    const h = await pin.hoSoMay(m);
-    return json({ dangDung: h.dangDung, baMeDung: h.baMeDung, mayRieng: h.mayRieng, con: h.con.map(({ vanPin: _v, ...c }) => c) });
-  }
   // L14: quà bảng giá
   if (p[0] === "qua") {
     if (d === "qua" && get) return json(await qb.dsQua(fam, tham(req, "con")));

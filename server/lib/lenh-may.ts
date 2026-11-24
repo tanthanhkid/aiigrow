@@ -78,7 +78,7 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
 // ---------------------------------------------------------------- lệnh gỡ từ xa
 type MayDb = May & { token_hash: string };
 
-/** Ba Mẹ (quyền ba_me) + nhập lại đúng mật khẩu (gỡ = bỏ bảo vệ ⇒ cùng mức bảo vệ cho go-tu-xa và «Gỡ máy này»). */
+/** Ba Mẹ (quyền ba_me) + nhập lại đúng mật khẩu (gỡ = bỏ bảo vệ — «Gỡ máy này»). */
 async function xacThucChu(bm: BaMe, mayId: string, matKhau: unknown, viec = "gỡ được AiiGrow từ xa") {
   await bangM4b();
   chiBaMe(bm, viec.replace(/ được/, ""));      // L6: mọi «Ba Mẹ» (không còn «Chủ gia đình»); Người trông giúp không gỡ máy
@@ -102,10 +102,6 @@ async function ghiLenhGo(bm: BaMe, m: MayDb) {
   return { id, lapLai: false, cach: CACH_GO_TU_XA[m.platform] };
 }
 
-export async function lenhGoTuXa(bm: BaMe, mayId: string, matKhau: unknown) {
-  return ghiLenhGo(bm, await xacThucChu(bm, mayId, matKhau));
-}
-
 /** Sau bao lâu «đang gỡ» mà máy không liên lạc thì Ba Mẹ được xoá hẳn khỏi danh sách. */
 const NGAY_XOA_HAN = 7;
 
@@ -125,7 +121,7 @@ export async function trangThaiGo(m: Pick<May, "id" | "status" | "last_seen">, n
 
 /**
  * «Gỡ máy này» an toàn (POST may/:id/go {matKhau, xoaHan?}) — KHÔNG bao giờ bỏ agent mồ côi trên máy Con:
- *  • máy đã từng đồng bộ ⇒ ghi lệnh «go» (như go-tu-xa), máy ở trạng thái «đang gỡ»; dòng máy chỉ xoá khi agent báo xong (xongLenh).
+ *  • máy đã từng đồng bộ ⇒ ghi lệnh «go», máy ở trạng thái «đang gỡ»; dòng máy chỉ xoá khi agent báo xong (xongLenh).
  *  • xoaHan: true ⇒ xoá ngay khỏi danh sách, CHỈ khi máy chưa từng đồng bộ, hoặc đã «đang gỡ» > 7 ngày mà không liên lạc.
  *    Agent (nếu còn) mất token ⇒ Ba Mẹ phải gỡ tại máy (UI hướng dẫn).
  *  • máy chưa đồng bộ mà không gửi xoaHan ⇒ 409 can_xoa_han (app hỏi lại Ba Mẹ).

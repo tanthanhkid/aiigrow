@@ -2,7 +2,7 @@
 //   không cần đăng nhập: GET moi/:ma · POST moi/dang-ky
 //   cần đăng nhập:       GET thanh-vien · POST thanh-vien/moi · POST thanh-vien/moi/:id/gui-lai · POST thanh-vien/moi/:id/huy
 //                        POST thanh-vien/:id/quyen (bí danh /vai) · POST thanh-vien/:id/moi-ra · POST thanh-vien/roi-nha
-//                        GET moi/cho-toi · POST moi/nhan {id | ma} · POST con/:id/dong-bang-chuoi · GET con/:id/bao-cao/csv
+//                        GET moi/cho-toi · POST moi/nhan {id | ma} · GET con/:id/bao-cao/csv
 //                        GET thong-bao · POST thong-bao/doc · GET/POST thong-bao/cai-dat
 // Thông báo là của RIÊNG từng người ⇒ Người trông giúp vẫn đánh dấu đã đọc / đặt giờ yên lặng được (đi trước chặn quyền của api-m).
 import { docJson, json } from "./api.ts";
@@ -13,7 +13,6 @@ import * as tv from "./thanh-vien.ts";
 import * as tb from "./thong-bao.ts";
 import { conCua } from "./gia-dinh.ts";
 import { canDeY } from "./can-de-y.ts";
-import { dongBangChuoi } from "./dong-bang.ts";
 import { xuatCsvBaoCao } from "./xuat-csv.ts";
 
 const goc = (req: Request) => process.env.AIIGROW_APP_URL || new URL(req.url).origin;
@@ -52,7 +51,6 @@ export async function xuLyThanhVien(req: Request, bm: BaMe, p: string[], b: Reco
   // FR-03.06 đóng băng chuỗi ngày · FR-06.02 xuất CSV báo cáo tuần
   if (p[0] === "con" && p[1] && p.length >= 3) {
     const sau = p.slice(2).join("/");
-    if (sau === "dong-bang-chuoi" && post) { await conCua(bm.family_id, p[1]); return json(await dongBangChuoi(bm.family_id, p[1], bm.id)); }
     if (sau === "bao-cao/csv" && get) { await conCua(bm.family_id, p[1]); return json(await xuatCsvBaoCao(bm.family_id, p[1])); }
   }
   if (p[0] !== "thanh-vien") return null;

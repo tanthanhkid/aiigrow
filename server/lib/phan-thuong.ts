@@ -64,13 +64,6 @@ export async function taoQua(fam: string, b: Record<string, unknown>, o: { ngung
   return id;
 }
 
-export async function apDungMauQua(fam: string) {
-  const co = new Set((await q<{ ten: string }>(`select ten from rewards where family_id = $1`, [fam])).map((x) => x.ten));
-  let n = 0;
-  for (const m of MAU_QUA) if (!co.has(m.ten)) { await taoQua(fam, m); n++; }
-  return n;
-}
-
 export async function suaQua(fam: string, id: string, b: Record<string, unknown>) {
   const cu = await one<Qua>(`select * from rewards where id = $1 and family_id = $2`, [id, fam]);
   if (!cu) throw new LoiNghiepVu("khong_thay", "Không thấy phần thưởng", 404);

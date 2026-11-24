@@ -26,7 +26,7 @@ import { dsCanhBao, dsSuKien, ghiSuKien } from "./nhat-ky.ts";
 import { newId } from "./db.ts";
 // M4b độ bền máy con (chỉ thêm): tuân thủ, mở khẩn cấp, gói cài một chạm, gỡ từ xa, cấu hình nền tảng, luật tầng mạng (TV)
 import * as tt from "./tuan-thu.ts";
-import { datCheDo, goMayAnToan, lenhGoTuXa, taoGoiCai } from "./lenh-may.ts";
+import { datCheDo, goMayAnToan, taoGoiCai } from "./lenh-may.ts";
 import { cauHinhNenTangMay, luatMangCon } from "./nhip-may.ts";
 // M4b kiểm soát mạng (chỉ thêm): hồ sơ DNS gia đình, máy con loại mạng (TV, console), nhật ký tóm tắt, hướng dẫn router / TV
 import * as dns from "./dns-gia-dinh.ts";
@@ -268,7 +268,6 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       // màn mã dò «đã mở bằng mã» — đường nhẹ, chỉ sự kiện mới sau `sau` (docs/API.md «S3» › Mã mở máy)
       if (sau === "mo-bang-ma" && get) return json(await tt.moBangMaSau(fam, p[1], new URL(req.url).searchParams.get("sau")));
       if (sau === "tai-khoan-tin-cay" && post) return json(await tt.tinCayAdmin(fam, p[1], b, bm.id));
-      if (sau === "go-tu-xa" && post) return json(await lenhGoTuXa(bm, p[1], b.matKhau));
       // Thiết kế 05/11: máy luôn chặn thật — chỉ còn nhận «chan» (giam-sat ⇒ 409 che_do_bo); mức chặn đổi ở con/:id/che-do-chan
       if (sau === "che-do" && post) return json(await datCheDo(fam, p[1], b, bm.id));
       // Danh sách app ĐÃ CÀI THẬT trên máy (agent gửi) — Ba Mẹ xếp / chặn đúng app của máy (lib/app-may.ts)
@@ -351,7 +350,6 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
 
     if (d === "qua" && get) return json({ ds: await q(`select * from rewards where family_id = $1 order by diem`, [fam]) });
     if (d === "qua" && post) return json({ id: await pt.taoQua(fam, b) });
-    if (d === "qua/mau" && post) return json({ taoMoi: await pt.apDungMauQua(fam) });
     if (p[0] === "qua" && p[1] && p.length === 2 && post) { await pt.suaQua(fam, p[1], b); return json({ ok: true }); }
     // 14/11 «Trao luôn cho <Con>» (quà Ba Mẹ mua): trao ngay, không trừ sao — {con} ⇒ {phieu, trangThai, voucher?, phut?, saoTru: 0} (phan-thuong.ts › traoLuon)
     if (p[0] === "qua" && p[1] && p[2] === "trao-luon" && p.length === 3 && post) return json({ ok: true, ...(await traoLuon(fam, p[1], s(b.con, 40), bm.id)) });
