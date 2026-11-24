@@ -1,6 +1,6 @@
 // #551: /tai/ghep/<g> chỉ chuyển tiếp bộ cài khi gói cài còn hiệu lực + còn lượt; không đạt ⇒ 302 về bộ cài thường. Mốc giờ truyền vào,
 // tệp GitHub giả (layTep) — không ra mạng.
-import { test } from "node:test";
+import { test, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
 (process.env as Record<string, string>).NODE_ENV = "test";
@@ -16,9 +16,11 @@ const T = new Date(Date.UTC(2031, 0, 5, 3, 0));
 const SV = "https://aiigrow.aiilab.vn";
 let goi = 0;
 const goiTep: typeof fetch = async () => { goi++; return new Response(new Uint8Array([1, 2, 3]), { headers: { "content-length": "3" } }); };
-const { fam } = await taoNha();
+// trần toàn cục / giờ dùng chung cả tệp ⇒ mỗi test bắt đầu từ 0
+beforeEach(() => q(`delete from pin_sai where khoa like 'tai_ghep_tong:%'`));
 
 async function taoGoi(o: { platform?: string; het?: Date; dung?: boolean } = {}) {
+  const { fam } = await taoNha();                            // mỗi gói một nhà — trần nhà / giờ thử riêng
   const tok = newId() + newId();
   await q(`insert into goi_cai(token_hash, family_id, platform, expires_at, used_at) values ($1,$2,$3,$4,$5)`,
     [sha(tok), fam, o.platform ?? "windows", o.het ?? new Date(T.getTime() + 86_400_000), o.dung ? T : null]);
@@ -42,6 +44,7 @@ test("gói còn hiệu lực ⇒ 200, tên tệp mang gói ghép, đọc xong nh
   assert.equal(r.status, 200);
   assert.equal(r.headers.get("content-disposition"), `attachment; filename="${tenTepWindows(goiGhep(SV, tok))}"`);
   assert.equal(r.headers.get("content-length"), "3");
+  assert.equal(r.headers.get("x-accel-buffering"), "no");
   assert.equal(t.dangTai(), 1);
   assert.deepEqual([...new Uint8Array(await r.arrayBuffer())], [1, 2, 3]);
   assert.equal(t.dangTai(), 0);
@@ -73,6 +76,42 @@ test("trần luồng đồng thời; người tải huỷ ⇒ nhả chỗ", asyn
   assert.equal(t.dangTai(), t.TAI_DONG_THOI - 1);
   for (const r of ds.slice(1)) await r.arrayBuffer();
   assert.equal(t.dangTai(), 0);
+});
+
+test("không chuyển tiếp được (GitHub lỗi) ⇒ trả lại lượt đã giữ", async () => {
+  const tok = await taoGoi();
+  const loi: typeof fetch = async () => { throw new Error("mạng"); };
+  for (let i = 0; i < t.TAI_TOKEN_GIO + 3; i++) laThuong(await t.taiGhep(tok, SV, "4.4.4.4", T, loi));
+  const r = await t.taiGhep(tok, SV, "4.4.4.4", T, goiTep);
+  assert.equal(r.status, 200); await r.arrayBuffer();
+});
+
+test("nhiều gói của cùng một nhà chung trần nhà / giờ; khối /48 có trần riêng", async () => {
+  const { fam: f2 } = await taoNha("Mai");
+  const goiNha = async () => { const tok = newId() + newId();
+    await q(`insert into goi_cai(token_hash, family_id, platform, expires_at) values ($1,$2,'',$3)`, [sha(tok), f2, new Date(T.getTime() + 86_400_000)]);
+    return tok; };
+  for (let i = 0; i < t.TAI_NHA_GIO; i++) await (await t.taiGhep(await goiNha(), SV, `3.3.${i}.1`, T, goiTep)).arrayBuffer();
+  laThuong(await t.taiGhep(await goiNha(), SV, "3.3.99.1", T, goiTep));
+  for (let i = 0; i < t.TAI_KHOI48_GIO; i++) await (await t.taiGhep(await taoGoi(), SV, `2001:db8:7:${i}`, T, goiTep)).arrayBuffer();
+  laThuong(await t.taiGhep(await taoGoi(), SV, "2001:db8:7:ffff", T, goiTep));
+});
+
+test("trần toàn cục / giờ", async () => {
+  const k = Math.floor(T.getTime() / 3_600_000);
+  await q(`insert into pin_sai(khoa, so_lan) values ($1, $2)`, [`tai_ghep_tong:${k}`, t.TAI_TONG_GIO]);
+  const tok = await taoGoi();
+  laThuong(await t.taiGhep(tok, SV, "1.2.1.2", T, goiTep));
+  const r = await t.taiGhep(tok, SV, "1.2.1.2", new Date(T.getTime() + 3_600_000), goiTep);  // vướng trần tổng ⇒ lượt token đã trả
+  assert.equal(r.status, 200); await r.arrayBuffer();
+});
+
+test("luồng giữ quá giờ ⇒ tự nhả chỗ", async () => {
+  const r = await t.taiGhep(await taoGoi(), SV, "1.1.1.9", T, goiTep, 20);
+  assert.equal(t.dangTai(), 1);
+  await new Promise((x) => setTimeout(x, 60));
+  assert.equal(t.dangTai(), 0);
+  await assert.rejects(r.arrayBuffer());
 });
 
 test("cron xoá bộ đếm các giờ đã qua, giữ giờ hiện tại", async () => {
