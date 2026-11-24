@@ -107,7 +107,7 @@ export async function lenhGoTuXa(bm: BaMe, mayId: string, matKhau: unknown) {
 }
 
 /** Sau bao lâu «đang gỡ» mà máy không liên lạc thì Ba Mẹ được xoá hẳn khỏi danh sách. */
-export const NGAY_XOA_HAN = 7;
+const NGAY_XOA_HAN = 7;
 
 /** Trạng thái gỡ của một máy — dùng cho «Gỡ máy này» và màn An toàn (tuan-thu). */
 export async function trangThaiGo(m: Pick<May, "id" | "status" | "last_seen">, now = new Date()) {
@@ -150,9 +150,9 @@ export async function goMayAnToan(bm: BaMe, mayId: string, b: { matKhau?: unknow
 }
 
 // ---------------------------------------------------------------- chế độ agent (giám sát / chặn thật) do Ba Mẹ chọn từ xa
-export const CHE_DO = ["giam-sat", "chan"] as const;
-export type CheDo = (typeof CHE_DO)[number];
-export const TEN_CHE_DO: Record<CheDo, string> = { "giam-sat": "Giám sát (chỉ ghi lại, không chặn)", chan: "Chặn thật" };
+const CHE_DO = ["giam-sat", "chan"] as const;
+type CheDo = (typeof CHE_DO)[number];
+const TEN_CHE_DO: Record<CheDo, string> = { "giam-sat": "Giám sát (chỉ ghi lại, không chặn)", chan: "Chặn thật" };
 const laCheDo = (v: unknown): v is CheDo => (CHE_DO as readonly string[]).includes(String(v));
 type MayCheDo = Pick<May, "che_do" | "che_do_ba_me" | "status">;
 /** Chế độ Ba Mẹ đã chọn trên app (null = chưa ai chọn ⇒ máy chủ KHÔNG ép, agent giữ chế độ đang chạy). */

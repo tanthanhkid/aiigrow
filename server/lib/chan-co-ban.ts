@@ -22,7 +22,6 @@ export const nhanCheDo = (v: unknown): CheDo | null =>
 /** (cũ) Tên giá trị trước 15/11 — chỉ để TRẢ ở trường `cheDoChan` cho agent / app cũ. */
 export const CHE_DO_CHAN = ["chi_app_duoc_phep", "mo_het"] as const;
 export type CheDoChan = (typeof CHE_DO_CHAN)[number];
-export const TEN_CHE_DO_CHAN: Record<CheDoChan, string> = { chi_app_duoc_phep: "Theo danh sách", mo_het: "Mở hết" };
 /** children.che_do_chan ⇒ giá trị CŨ (chi_app_duoc_phep | mo_het) cho trường `cheDoChan`. */
 export const cheDoChanCua = (v: unknown): CheDoChan => (cheDoCua(v) === "mo_het" ? "mo_het" : "chi_app_duoc_phep");
 /** Tên hiển thị của mọi giá trị đã từng ghi (nhật ký cũ có «chi_app_duoc_phep»). */

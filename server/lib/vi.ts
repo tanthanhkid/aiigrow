@@ -7,7 +7,7 @@
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 
-export type LoaiDiem = "nhiem_vu" | "phien" | "doi_qua" | "hoan" | "tay" | "chao_mung" | "voucher" | "ngoai_le" | "doi_gio"
+type LoaiDiem = "nhiem_vu" | "phien" | "doi_qua" | "hoan" | "tay" | "chao_mung" | "voucher" | "ngoai_le" | "doi_gio"
   | "vay" | "tra_no" | "choi" | "khoi_dau" | "qua_phut" | "tang";
 
 /** Khoản cộng KHÔNG dùng để trả nợ: tiền vay, hoàn lại (huỷ quà / hoàn tác), quà phút Ba Mẹ trao, sao khởi đầu. */

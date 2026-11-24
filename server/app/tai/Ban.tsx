@@ -7,12 +7,12 @@ import { oMa } from "@/lib/trang-tai.ts";
 export type NenTai = "windows" | "mac" | "android" | "ios";
 export const TEN: Record<NenTai, string> = { windows: "Windows", mac: "Mac", android: "Android", ios: "iPhone / iPad" };
 /** Icon 3D của bàn theo từng nền (chip, pill đầu trang). */
-export const ICON_NEN: Record<NenTai, string> = { windows: "laptop", mac: "may_tinh", android: "dt", ios: "tablet" };
+const ICON_NEN: Record<NenTai, string> = { windows: "laptop", mac: "may_tinh", android: "dt", ios: "tablet" };
 
 export const Anh = ({ ten, co, ...r }: { ten: string; co?: number; alt?: string }) => <img src={`/assets/icon3d/${ten}.webp`} alt="" width={co} height={co} {...r} />;
-export const Rob = ({ ten, co }: { ten: string; co: number }) => <img src={`/assets/rob/${ten}.webp`} alt="" width={co} height={co} />;
+const Rob = ({ ten, co }: { ten: string; co: number }) => <img src={`/assets/rob/${ten}.webp`} alt="" width={co} height={co} />;
 
-export const MuiTai = () => <svg viewBox="0 0 256 256" width="26" height="26" aria-hidden="true"><path d="M128 188a12 12 0 0 1-8.5-3.5l-56-56a12 12 0 0 1 17-17L116 143V32a12 12 0 0 1 24 0v111l31.5-31.5a12 12 0 0 1 17 17l-56 56A12 12 0 0 1 128 188ZM216 160a12 12 0 0 1 12 12v32a20 20 0 0 1-20 20H48a20 20 0 0 1-20-20v-32a12 12 0 0 1 24 0v28h152v-28a12 12 0 0 1 12-12Z" /></svg>;
+const MuiTai = () => <svg viewBox="0 0 256 256" width="26" height="26" aria-hidden="true"><path d="M128 188a12 12 0 0 1-8.5-3.5l-56-56a12 12 0 0 1 17-17L116 143V32a12 12 0 0 1 24 0v111l31.5-31.5a12 12 0 0 1 17 17l-56 56A12 12 0 0 1 128 188ZM216 160a12 12 0 0 1 12 12v32a20 20 0 0 1-20 20H48a20 20 0 0 1-20-20v-32a12 12 0 0 1 24 0v28h152v-28a12 12 0 0 1 12-12Z" /></svg>;
 export const MuiTiep = () => <svg viewBox="0 0 256 256" width="26" height="26" aria-hidden="true"><path d="M184.5 136.5l-80 80a12 12 0 0 1-17-17L159 128 87.5 56.5a12 12 0 0 1 17-17l80 80a12 12 0 0 1 0 17Z" /></svg>;
 export const MuiVe = () => <svg viewBox="0 0 256 256" width="24" height="24" fill="#7A5A1C" aria-hidden="true"><path d="M168.5 199.5a12 12 0 0 1-17 17l-80-80a12 12 0 0 1 0-17l80-80a12 12 0 0 1 17 17L97 128Z" /></svg>;
 export const Tay = () => <svg className="tb-tay" viewBox="0 0 24 24" width="34" height="34" aria-hidden="true"><path fill="#0f1312" stroke="#fff" strokeWidth="1.4" d="M9 3.5a1.6 1.6 0 0 1 3.2 0V10l.4-.1a1.6 1.6 0 0 1 3 .6l.3-.1a1.6 1.6 0 0 1 2.9.8l.3-.1a1.5 1.5 0 0 1 2.4 1.2v4.3c0 3.4-2.6 5.9-5.9 5.9h-1.4c-2 0-3.5-.8-4.7-2.4l-3.7-5a1.6 1.6 0 0 1 2.4-2.1L9 14.5Z" /></svg>;

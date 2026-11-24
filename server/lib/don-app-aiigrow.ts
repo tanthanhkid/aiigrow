@@ -13,7 +13,7 @@ import { q, tx, type Q } from "./db.ts";
 import { laAppAiiGrow, laKhayCuAiiGrow } from "./luat-app.ts";
 import { ghiDiem, khoaCon } from "./vi.ts";
 
-export type KetQuaDon418 = {
+type KetQuaDon418 = {
   chay: boolean;
   hoan: { child_id: string; ngay: string; sao: number; phutAiiGrow: number; saoDaTru: number; phutAppKhac: number }[];
   tongSao: number;

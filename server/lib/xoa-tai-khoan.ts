@@ -36,8 +36,9 @@ import { bangLog, donLogCu } from "./log-may.ts";
 import { donWebCu } from "./web.ts";
 import { donHetHan } from "./don-het-han.ts";
 
-export const XOA_SAI_TOI_DA = 5, XOA_KHOA_PHUT = 15;
-export type KetQuaXoa = { xoa: "tai_khoan" } | { xoa: "gia_dinh"; soCon: number };
+const XOA_SAI_TOI_DA = 5;
+export const XOA_KHOA_PHUT = 15;
+type KetQuaXoa = { xoa: "tai_khoan" } | { xoa: "gia_dinh"; soCon: number };
 
 /** #565 — cron hằng ngày: bộ đếm «xoa_tk:<người>:<khung>» của khung đã qua quá 1 ngày (đường thành công chỉ xoá bộ đếm của chính người đó). */
 export async function donBoDemXoaTk(now = Date.now()) {
@@ -118,7 +119,7 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
 }
 
 // ---------------------------------------------------------------- dọn audit của gia đình đã xoá quá 90 ngày (chính sách quyền riêng tư mục 4)
-export const GIU_KIEM_TOAN_NGAY = 90;
+const GIU_KIEM_TOAN_NGAY = 90;
 
 /** Xoá hẳn audit của gia đình KHÔNG còn trong families khi dòng MỚI NHẤT của gia đình đó đã quá GIU_KIEM_TOAN_NGAY ngày — không phụ thuộc
  *  đường xoá nào; có mốc «xoa_gia_dinh» thì tính từ mốc (dòng ghi sau khi xoá — vd trả lời chat cũ — không kéo dài hạn). Đường xoá trong mã (xoá tài khoản; nhận lời mời bỏ gia đình rỗng cũ — thanh-vien.ts › nhanLoiMoi) ghi mốc «xoa_gia_dinh»

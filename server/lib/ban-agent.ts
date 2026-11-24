@@ -10,7 +10,7 @@ import type { May } from "./gia-dinh.ts";
 /** Chu kỳ agent hỏi bản mới, phút — DÙNG CHUNG Windows (0.2.12+) và Mac (0.1.6+); agent kẹp [5, 1440], không có trường ⇒ 6 giờ.
  *  Giai đoạn dev: 15 (Thanh 28/10). TRƯỚC GOLIVE đổi về 360 (6 giờ) — chỉ sửa số này rồi deploy máy chủ, không phát lại agent.
  *  Đồng hồ là giờ thật (máy ngủ vẫn tính). */
-export const CHU_KY_KIEM_PHUT = 15;
+const CHU_KY_KIEM_PHUT = 15;
 
 // 0.2.31 (24/11, kiểm chữ ký Authenticode trước khi tự cập nhật #549, dùng chung SocketsHttpHandler #562, xoá code chết #574 — PR #595 #599 #602, bản #604): exe từ CI agent-win run 45331674296 (job build goc, PR head 0db0e322 trên main 1f2424c5); sha256 đo trên tệp tải về từ Release v0.2.31.
 // 0.2.30 (22/11, một vòng dong-bo thay vì hai #558 — PR #580, bản #589): exe từ CI agent-win run 45002520552 (job build goc, PR head 64eb35a3 trên main 1d9e52d9); sha256 đo trên tệp tải về từ Release v0.2.30.

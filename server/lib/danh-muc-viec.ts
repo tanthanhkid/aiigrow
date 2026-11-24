@@ -168,7 +168,7 @@ const HINH_MUC: Record<Muc["ma"], string> = { hoc: "sach", van_dong: "day", giup
 const NHOM_MUC: Record<Muc["ma"], string> = { hoc: "hoc_tap", van_dong: "van_dong", giup_ba_me: "viec_nha" };
 export const TEN_AIIROB = "Học 1 bài với AiiRob";
 
-export type ViecDm = { ma: string; ten: string; sao: number; tu12: boolean; bangChung: string; hinh: string; nhom: string; muc: Muc["ma"] };
+type ViecDm = { ma: string; ten: string; sao: number; tu12: boolean; bangChung: string; hinh: string; nhom: string; muc: Muc["ma"] };
 
 /** Mọi việc trong danh mục, mã ổn định `<chủ đề>:<thứ tự>` (thứ tự = thứ tự trên màn). */
 export const VIEC_DM: ViecDm[] = DANH_MUC_VIEC.flatMap((m) => m.chuDe.flatMap((c) => c.viec.map(([ten, sao, tuoi], i) => ({

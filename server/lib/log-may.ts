@@ -5,7 +5,8 @@ import { q, xoaTheoLo } from "./db.ts";
 import type { May } from "./gia-dinh.ts";
 import { LoiNghiepVu } from "./loi.ts";
 
-export const LOG_GIU_NGAY = 7, LOG_MOI_LAN = 200, LOG_DAI = 1000;
+const LOG_GIU_NGAY = 7, LOG_DAI = 1000;
+export const LOG_MOI_LAN = 200;
 const MUC = new Set(["tin", "canh", "loi"]);
 
 let coBang = false;

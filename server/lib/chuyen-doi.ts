@@ -9,7 +9,7 @@ import { gioDiaPhuong, laCuoiTuan, phutCua, type Khung } from "./gio.ts";
 
 export const NEN_CHUYEN_DOI = ["windows", "mac", "ios", "android", "tvos", "android_tv", "tizen", "webos", "mang"] as const;
 export type NenChuyenDoi = (typeof NEN_CHUYEN_DOI)[number];
-export const TEN_NEN: Record<NenChuyenDoi, string> = {
+const TEN_NEN: Record<NenChuyenDoi, string> = {
   windows: "Windows", mac: "macOS", ios: "iPhone/iPad", android: "Android", tvos: "Apple TV", android_tv: "Android TV / Google TV",
   tizen: "Samsung TV (Tizen)", webos: "LG TV (webOS)", mang: "Tầng mạng (router / DNS)",
 };
@@ -19,14 +19,14 @@ export const KHA_NANG = [
   "khung_gio", "gio_ngu", "tran_thoi_gian", "phien_diem", "cho_phep_app", "chan_app", "chan_web", "chua_xep", "khoa_ngay",
   "khoa_khong_tuan_thu", "chong_doi_gio", "chan_cai_dat", "tai_khoan_khac", "che_do_an_toan", "nhip", "go_cai_dat", "khoi_phuc_goc",
 ] as const;
-export type KhaNang = (typeof KHA_NANG)[number];
+type KhaNang = (typeof KHA_NANG)[number];
 
-export type MucDo = "du" | "mot_phan" | "khong" | "khong_ap_dung";
-export type MucChuyenDoi = {
+type MucDo = "du" | "mot_phan" | "khong" | "khong_ap_dung";
+type MucChuyenDoi = {
   khaNang: KhaNang; mucDo: MucDo; coChe: string; cauHinh?: Record<string, unknown>;
   khongLamDuoc?: string; thayBang?: string; chiBaoBaMe?: boolean;
 };
-export type CauHinhNenTang = {
+type CauHinhNenTang = {
   nen: NenChuyenDoi; ten: string; coChe: string[]; nhipGiay: number; muc: MucChuyenDoi[];
   khongLamDuoc: { khaNang: KhaNang; khongLamDuoc: string; thayBang: string; chiBaoBaMe: boolean }[];
   mang?: LuatMang; viecCho: string[];
@@ -99,7 +99,7 @@ export function giaiTriLucNay(cs: ChinhSachChung): { mo: boolean; lyDo: string |
 const web = (ds: { muc: string; kieu: string }[]) => ds.filter((x) => x.kieu === "web").map((x) => x.muc);
 
 // ---------------------------------------------------------------- tầng mạng (router / DNS) — mẫu số chung cho TV và mọi máy
-export type LuatMang = {
+type LuatMang = {
   thietBi: { mac: string | null; ten: string };
   lichMo: { ngayThuong: Khung[]; cuoiTuan: Khung[] };
   lichChan: { ngayThuong: Khung[]; cuoiTuan: Khung[] };
@@ -337,7 +337,7 @@ export function chuyenDoi(cs: ChinhSachChung, nen: NenChuyenDoi, tb: { mac?: unk
 }
 
 // ---------------------------------------------------------------- cài MỘT CHẠM + gỡ từ xa (mô tả cho app Ba Mẹ / trình cài)
-export type HuongDanCai = { nen: NenChuyenDoi; cach: string; buoc: string[]; quyenAdmin: string; chiTiet: Record<string, unknown> };
+type HuongDanCai = { nen: NenChuyenDoi; cach: string; buoc: string[]; quyenAdmin: string; chiTiet: Record<string, unknown> };
 
 /** Gói cài có token ghép nhúng sẵn: không nhập URL / mã tay; xin quyền quản trị MỘT lần. */
 export function huongDanCai(nen: NenChuyenDoi, token: string, goc: string): HuongDanCai {

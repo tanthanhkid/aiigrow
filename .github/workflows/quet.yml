@@ -3,7 +3,7 @@ name: quet
 # Cổng quét lỗi (docs/GITHUB-CHONG-LOI.md): lộ bí mật, thư viện có lỗ hổng, code chết TS.
 #   gitleaks : quét commit của PR (hoặc push) — cho phép báo giả ở .gitleaks.toml
 #   osv      : osv-scanner trên mọi lockfile — lỗ hổng đã rà (chỉ build/tools) liệt kê ở osv-scanner.toml, lỗ hổng MỚI ⇒ đỏ
-#   knip     : server + mobile — file thừa / dependency thừa / thiếu khai báo ⇒ đỏ; export thừa chỉ cảnh báo (mobile: 0 sau #570; server: issue #567)
+#   knip     : server + mobile — file thừa / dependency thừa / thiếu khai báo ⇒ đỏ; export thừa chỉ cảnh báo (mobile: 0 sau #570; server: 0 sau #567)
 # Action ghim theo SHA (issue #554).
 on:
   pull_request:

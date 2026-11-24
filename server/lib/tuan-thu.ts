@@ -36,12 +36,12 @@ export type NhipVao = {
   nguon?: unknown;                                          // "bat" | "sap_tat" | "sap_ngu"
 };
 
-export const TRU: Record<VanDeTuanThu["loai"], number> = { gio_sai: 40, app_tat: 50, admin_la: 40, khong_toi_may_chu: 30, ngoai_vong: 100 };
+const TRU: Record<VanDeTuanThu["loai"], number> = { gio_sai: 40, app_tat: 50, admin_la: 40, khong_toi_may_chu: 30, ngoai_vong: 100 };
 
 const chuanTen = (s: unknown) => String(s ?? "").trim().toLowerCase().slice(0, 80);
 
 /** Chấm vấn đề từ một nhịp — hàm thuần. */
-export function danhGiaNhip(b: NhipVao, o: { now: Date; lechGioPhut: number; matKetNoiToiDaPhut: number; adminTinCay: string[] }): VanDeTuanThu[] {
+function danhGiaNhip(b: NhipVao, o: { now: Date; lechGioPhut: number; matKetNoiToiDaPhut: number; adminTinCay: string[] }): VanDeTuanThu[] {
   const ra: VanDeTuanThu[] = [];
   const gm = b.clientTime !== undefined && b.clientTime !== null ? new Date(b.clientTime as string) : null;
   if (gm && Number.isFinite(gm.getTime())) {
@@ -99,10 +99,10 @@ const thamSoMay = async (may: Pick<May, "family_id" | "child_id">, t: Q = q): Pr
 };
 
 /** Ngưỡng mất nhịp (phút) theo nền tảng: máy tính ngung_chay_phut, điện thoại mat_nhip_di_dong_phut (nhịp thưa vì OS giới hạn chạy nền). */
-export const nguongMatNhip = (nen: string, ts: ThamSo) => (laDiDong(nen) ? ts.mat_nhip_di_dong_phut : ts.ngung_chay_phut);
+const nguongMatNhip = (nen: string, ts: ThamSo) => (laDiDong(nen) ? ts.mat_nhip_di_dong_phut : ts.ngung_chay_phut);
 
 /** Trạng thái hiện tại của một máy (đọc, không ghi). */
-export function trangThaiMay(may: Pick<May, "platform" | "last_seen">, r: DongTT | undefined, ts: ThamSo, now: Date): TuanThu {
+function trangThaiMay(may: Pick<May, "platform" | "last_seen">, r: DongTT | undefined, ts: ThamSo, now: Date): TuanThu {
   if (!r) return { trangThai: "chua_co_nhip", diem: 100, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null };
   const ls = may.last_seen ? new Date(may.last_seen) : r.nhip_cuoi ? new Date(r.nhip_cuoi) : null;
   const moKC = r.mo_khan_cap_den ? new Date(r.mo_khan_cap_den) : null;
@@ -143,7 +143,7 @@ export async function khoaTuanThu(may: May, now = new Date()) {
 }
 
 // ---------------------------------------------------------------- nhận nhịp
-export type KetNhip = { tuanThu: TuanThu; trangThaiTruoc: TrangThaiTuanThu; troLai: boolean };
+type KetNhip = { tuanThu: TuanThu; trangThaiTruoc: TrangThaiTuanThu; troLai: boolean };
 
 export async function nhanNhip(may: May, b: NhipVao, now = new Date()): Promise<KetNhip> {
   await bangM4b();

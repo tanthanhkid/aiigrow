@@ -16,7 +16,7 @@ import { json, loi, batLoi } from "./api.ts";
 import { one } from "./db.ts";
 import { ketQuaAiiRob } from "./nhiem-vu.ts";
 
-export const LECH_TOI_DA_GIAY = 300;
+const LECH_TOI_DA_GIAY = 300;
 
 export const kyAiiRob = (bimat: string, ts: string, than: string) =>
   "sha256=" + createHmac("sha256", bimat).update(`${ts}.${than}`).digest("hex");

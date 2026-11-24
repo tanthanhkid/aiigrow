@@ -19,7 +19,7 @@ export const NHOM_NV = ["doc_sach", "viec_nha", "hoc_tap", "van_dong", "ky_nang"
 export const BANG_CHUNG = ["anh", "video", "ghi_am", "van_ban", "tu_dong", "xong"] as const;
 const BI_DANH_BC: Record<string, string> = { viet: "van_ban", tu_cham: "tu_dong" };
 export const ANH_TOI_DA = 400 * 1024;          // byte sau khi giải base64 — app nén ảnh ≤ 300 KB trước khi gửi (KE-HOACH 5.2)
-export const GHI_AM_TOI_DA = 2 * 1024 * 1024;  // ghi âm ≤ 2 MB (≈ 2 phút AAC 64 kbps)
+const GHI_AM_TOI_DA = 2 * 1024 * 1024;  // ghi âm ≤ 2 MB (≈ 2 phút AAC 64 kbps)
 /** lap_lai: mot_lan | hang_ngay | ngay_thuong (T2–T6) | cuoi_tuan | thu:1,3,5 (0 = CN). null = như cũ (mỗi ngày, theo tần suất). */
 const LAP_LAI = /^(mot_lan|hang_ngay|ngay_thuong|cuoi_tuan|thu:[0-6](,[0-6]){0,6})$/;
 /** Hôm nay (thứ `thu`, 0 = CN) có phải ngày làm việc này không. */
@@ -58,7 +58,7 @@ export const MAU: Record<"nhi" | "teen", MauNv[]> = {
   ],
 };
 
-export type Nv = { id: string; family_id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string;
+type Nv = { id: string; family_id: string; ten: string; mo_ta: string; nhom: string; diem: number; bang_chung: string; kieu: string;
   toi_da_ngay: number | null; toi_da_tuan: number | null; phut_toi_thieu: number; tu_duyet: boolean; giao_cho: string | null; han: Date | null; bat: boolean;
   hinh?: string | null; lap_lai?: string | null; gio_nhac?: string | null; bo?: string | null };
 
@@ -66,13 +66,13 @@ export type Nv = { id: string; family_id: string; ten: string; mo_ta: string; nh
  *  không thì Con bấm Bắt đầu → Xong liên tục để lấy sao vô hạn. Việc AiiRob tự chấm (`tu_dong`) không áp: một lần mỗi bài (ref) đã chặn. */
 export const TU_DUYET_TOI_DA_NGAY = 3;
 /** Số lượt tối đa mỗi ngày thực tế của một việc (null = không giới hạn). */
-export const toiDaNgay = (nv: Pick<Nv, "toi_da_ngay" | "tu_duyet" | "bang_chung">) =>
+const toiDaNgay = (nv: Pick<Nv, "toi_da_ngay" | "tu_duyet" | "bang_chung">) =>
   nv.toi_da_ngay ?? (nv.tu_duyet && nv.bang_chung !== "tu_dong" ? TU_DUYET_TOI_DA_NGAY : null);
 
 /** Tên nhiệm vụ tối thiểu (sau trim) — QA 24/10: có 4 nhiệm vụ tên chỉ là «1». App Ba Mẹ chép hằng số này ở mobile/src/lib/api.ts › TEN_NV_TOI_THIEU (đổi thì đổi cả hai). */
-export const TEN_NV_TOI_THIEU = 3;
+const TEN_NV_TOI_THIEU = 3;
 /** Tên dài nhất — 90 để việc dài nhất của danh mục «Giúp Ba Mẹ» (danh-muc-viec.ts, ~70 ký tự) không bị cắt (cắt thì trùng tên không nhận ra). */
-export const TEN_NV_TOI_DA = 90;
+const TEN_NV_TOI_DA = 90;
 
 function kiemNv(b: Record<string, unknown>, kiemDoDai = true) {
   const ten = String(b.ten ?? "").trim().slice(0, TEN_NV_TOI_DA);
@@ -196,7 +196,7 @@ async function demLuot(t: Q, con: string, task: string, tzg: string, now = new D
   return r;
 }
 
-export type NvCuaCon = Nv & { trang_thai_con: "san_sang" | "dang_lam" | "can_bo_sung" | "du_hom_nay" | "du_tuan" | "da_xong";
+type NvCuaCon = Nv & { trang_thai_con: "san_sang" | "dang_lam" | "can_bo_sung" | "du_hom_nay" | "du_tuan" | "da_xong";
   luot_dang: string | null; hom_nay: number; dang_cho: number;
   /** 05/11: sao = diem · lam_lai = Ba Mẹ «Nhờ làm lại» (trang_thai_con giữ «can_bo_sung» cho khay cũ) · tu_cham = Học với AiiRob tự chấm */
   sao: number; lam_lai: boolean; ly_do: string | null; loi_nhan: string | null; tu_cham: boolean;

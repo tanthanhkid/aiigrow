@@ -7,13 +7,13 @@ import { gioDiaPhuong } from "./gio.ts";
 import { TEN_NHOM_DS, tenCheDo } from "./chan-co-ban.ts";
 import { soVN } from "./so-sao.ts";
 
-export type DongNhatKy = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null;
+type DongNhatKy = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null;
   tieu: string; phu: string; nhan: string | null; kieu: "tot" | "xau" | "cho" | "ngoai" | "thuong" };
 
 const XIN: Record<string, string> = { vay_sao: "vay sao", them_gio: "thêm giờ", mo_web: "mở trang web", cai_app: "dùng app", ngoai_le: "thêm giờ",
   ngoai_gio: "thêm giờ" };
 /** Loại sự kiện có câu trong nhật ký (cauSuKien) — lọc trong SQL TRƯỚC limit để sự kiện kỹ thuật không chiếm chỗ. */
-export const LOAI_NHAT_KY = ["gui_yeu_cau", "dong_y_yeu_cau", "tu_choi_yeu_cau", "cho_vay", "tang_sao", "hoan_tac_vay", "them_gio", "hoan_tac_them_gio", "doi_sao_lay_gio", "nop_nhiem_vu",
+const LOAI_NHAT_KY = ["gui_yeu_cau", "dong_y_yeu_cau", "tu_choi_yeu_cau", "cho_vay", "tang_sao", "hoan_tac_vay", "them_gio", "hoan_tac_them_gio", "doi_sao_lay_gio", "nop_nhiem_vu",
   "duyet_nhiem_vu", "tu_duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "lam_lai_nhiem_vu", "hoan_tac_duyet", "giao_nhiem_vu", "doi_qua", "xac_nhan_qua",
   "huy_qua", "doi_che_do_chan", "cho_phep_app", "doi_luat_web", "dat_luat_app", "doi_gio_choi", "doi_lich", "khoa_ngay", "mo_lai", "dat_pin", "go_may", "doi_ten_may",
   "khoa_may", "mo_khoa_may", "xoa_con", "bo_qua_yeu_cau", "them_vao_danh_sach", "doi_nhom_danh_sach", "bo_khoi_danh_sach"];

@@ -7,12 +7,12 @@ import { congNgay, dauTuan, gioDiaPhuong } from "./gio.ts";
 import { allowlistHieuLuc, chuanMuc, khoaSo, type NhomGiaiTri } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 
-export type MucMH = "hoc" | "game" | "video" | "video_ngan" | "mxh" | "tien_ich" | "khac" | "chua_xep";
-export const MUC_MH: MucMH[] = ["hoc", "game", "video", "video_ngan", "mxh", "tien_ich", "khac", "chua_xep"];
+type MucMH = "hoc" | "game" | "video" | "video_ngan" | "mxh" | "tien_ich" | "khac" | "chua_xep";
+const MUC_MH: MucMH[] = ["hoc", "game", "video", "video_ngan", "mxh", "tien_ich", "khac", "chua_xep"];
 
 const G = (muc: MucMH, ds: string[]) => ds.map((x) => [x, muc] as const);
 /** Bản chất app/trang phổ biến với trẻ (tên tệp Windows, gói Android, tên miền gốc — tên miền con khớp theo khoaSo). */
-export const GOI_Y: ReadonlyMap<string, MucMH> = new Map([
+const GOI_Y: ReadonlyMap<string, MucMH> = new Map([
   ...G("game", ["robloxplayerbeta.exe", "roblox.exe", "minecraft.exe", "minecraftlauncher.exe", "minecraft.windows.exe", "steam.exe", "epicgameslauncher.exe",
     "valorant.exe", "leagueclient.exe", "garena.exe", "fortniteclient-win64-shipping.exe", "genshinimpact.exe", "riotclientservices.exe",
     "com.roblox.client", "com.mojang.minecraftpe", "com.supercell.clashofclans", "com.supercell.brawlstars", "com.vng.pubgmobile",
@@ -81,7 +81,7 @@ export function xepMuc(mucTho: string, luat: Luat[], allow: string[] = allowlist
 }
 
 /** Mọi thời lượng trả về bằng GIÂY (làm tròn một lần khi hiển thị) ⇒ tổng, mục, danh sách và bộ lọc ngày luôn khớp nhau. */
-export type MucDung = { id: string; ten: string; kieu: "app" | "web"; muc: MucMH; giay: number; soLan: number; theoNgay: number[] };
+type MucDung = { id: string; ten: string; kieu: "app" | "web"; muc: MucMH; giay: number; soLan: number; theoNgay: number[] };
 
 const NGAY_GIAY = 86_400;
 

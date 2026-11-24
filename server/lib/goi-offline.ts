@@ -58,10 +58,10 @@ export async function dungWindows(may: May, pol: Policy, con: string | null,
 }
 
 /** Nền có gói mất mạng theo bé (máy chung chỉ Windows / Mac / Android — iPhone / iPad một bé). */
-export const coGoiOffline = (nen: string) => coTacTu(nen) || nen === "android";
+const coGoiOffline = (nen: string) => coTacTu(nen) || nen === "android";
 
 /** Luật của bé `con` trên máy `may` như thể bé đang đăng nhập (không ghi gì). Windows / Mac kèm bí mật mã offline như dong-bo (agent không bị đè rỗng). */
-export async function goiOfflineBe(may: May, con: string, now = new Date(),
+async function goiOfflineBe(may: May, con: string, now = new Date(),
   chung?: { lenh: { loai: string }[]; may?: ChungMay; tuanThu?: Awaited<ReturnType<typeof tuanThuMay>> }): Promise<Record<string, unknown> | null> {
   if (may.platform === "android") {
     const cs = await chinhSachChung(may, con, chung?.tuanThu ?? await tuanThuMay(may, now), now);

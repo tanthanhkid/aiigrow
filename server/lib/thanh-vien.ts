@@ -16,8 +16,8 @@ import { SCHEMA_TV_TB } from "./schema.ts";
 import { chiBaMe, laChuNha, quyenTuVai, quyenVao, TEN_QUYEN, vaiCu, type Quyen } from "./quyen.ts";
 
 export const LOI_MOI_GIO = 72;
-export const MOI_CHO_TOI_DA = 5;
-export const THANH_VIEN_TOI_DA = 8;
+const MOI_CHO_TOI_DA = 5;
+const THANH_VIEN_TOI_DA = 8;
 /** Tên quyền hiển thị (hiểu cả giá trị cũ chu / duyet / xem trong sự kiện cũ). */
 export const TEN_VAI: Record<string, string> = TEN_QUYEN;
 
@@ -33,7 +33,7 @@ const CHU_MA = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";          // bỏ I, L, O, 0, 1
 /** Token lời mời trong link: 16 ký tự (~79 bit) — không ai phải gõ nữa (L6), nên dài để không dò được. */
 const taoMa = (n = 16) => Array.from({ length: n }, () => CHU_MA[randomInt(0, CHU_MA.length)]).join("");
 /** «abcd-2345», «ABCD 2345», link …?ma=ABCD2345 ⇒ «ABCD2345». */
-export const chuanMa = (v: unknown) => {
+const chuanMa = (v: unknown) => {
   const s = String(v ?? "").trim();
   const tuLink = /[?&]ma=([^&#\s]+)/.exec(s)?.[1];
   return decodeURIComponent(tuLink ?? s).toUpperCase().replace(/[^A-Z0-9]/g, "");

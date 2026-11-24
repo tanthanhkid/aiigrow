@@ -13,15 +13,14 @@ import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { ghiDiem, KIEM_SQL, khoaCon, NGUONG_NO, noCua, soDu, tomTatVi } from "./vi.ts";
 
-export { NGUONG_NO };
 /** Bảng «Cho vay sao» (bm them-6wjhze1d): chọn 10 / 15 / 30, mặc định 15. Máy chủ nhận 1–VAY_TOI_DA. */
 export const MUC_VAY = [10, 15, 30] as const;
 export const VAY_MAC_DINH = 15;
 export const VAY_TOI_DA = 1000;
 /** Sao tặng khởi đầu khi tạo hồ sơ Con (bm1-ob-gio): số nguyên 0…200 (bước 10), mặc định 30. */
 /** #306: số nguyên 0…200, bước 10, mặc định 30. */
-export const SAO_KHOI_DAU_TOI_DA = 200;
-export const SAO_KHOI_DAU_BUOC = 10;
+const SAO_KHOI_DAU_TOI_DA = 200;
+const SAO_KHOI_DAU_BUOC = 10;
 export const SAO_KHOI_DAU_MD = 30;
 
 export type MucDichVay = "choi" | "qua";
@@ -38,7 +37,7 @@ export type TrangThaiSao = {
   /** nợ > 1.000 */ canhBaoNo: boolean;
 };
 
-export function tinhTrangThai(tong: number, no0: number): TrangThaiSao {
+function tinhTrangThai(tong: number, no0: number): TrangThaiSao {
   const no = Math.max(0, no0), tieu = Math.max(0, tong);
   return { sao: tong - no, no, phutCon: tieu, saoVayChuaTieu: Math.min(tieu, no), hetSao: tieu <= 0, canhBaoNo: no > NGUONG_NO };
 }
@@ -154,7 +153,7 @@ async function ghiChoi(t: Q, con: string, tru: number, muc: string | null, now: 
 }
 
 /** Con đang ở «Mở hết» (không chặn, không trừ sao). */
-export async function laMoHetCon(con: string, t: Q = q) {
+async function laMoHetCon(con: string, t: Q = q) {
   return (await t<{ m: string | null }>(`select che_do_chan as m from children where id = $1`, [con]))[0]?.m === "mo_het";
 }
 
@@ -353,9 +352,9 @@ const dongSoSao = (con: string, gioiHan: number, t: Q = q) => t<DongSoSao>(
   `select p.id, p.delta, p.loai, p.ly_do, p.nguoi, pa.ten as ten_nguoi, p.created_at from points p left join parents pa on pa.id = p.nguoi
     where p.child_id = $1 order by p.created_at desc, p.seq desc limit $2`, [con, Math.max(1, Math.min(200, Math.round(gioiHan) || 1))]);
 
-export type KieuSao = "vay" | "hoan_vay" | "tra_no" | "choi" | "nhiem_vu" | "qua" | "khoi_dau" | "ba_me" | "khac";
+type KieuSao = "vay" | "hoan_vay" | "tra_no" | "choi" | "nhiem_vu" | "qua" | "khoi_dau" | "ba_me" | "khac";
 /** Loại dòng sổ sao (ví sao Ba Mẹ + màn Con): vay / rút lại sao vay / trả nợ / chơi / nhiệm vụ / quà (đổi quà, hoàn quà, quà phút) / sao khởi đầu / Ba Mẹ cộng-trừ tay / khác. */
-export const kieuSao = (l: string, d: number): KieuSao => (l === "vay" ? (d > 0 ? "vay" : "hoan_vay") : l === "tra_no" ? "tra_no"
+const kieuSao = (l: string, d: number): KieuSao => (l === "vay" ? (d > 0 ? "vay" : "hoan_vay") : l === "tra_no" ? "tra_no"
   : l === "choi" || l === "phien" || l === "doi_gio" ? "choi" : l === "nhiem_vu" ? "nhiem_vu"
   : l === "doi_qua" || l === "voucher" || l === "qua_phut" || l === "hoan" ? "qua" : l === "khoi_dau" ? "khoi_dau" : l === "tay" || l === "tang" ? "ba_me" : "khac");
 
@@ -368,7 +367,7 @@ export async function lichSuSaoCon(con: string, gioiHan = 20, t: Q = q) {
 
 // ---------------------------------------------------------------- Tặng sao (#502): Ba Mẹ thưởng sao, không tạo nợ
 /** Trần tặng: 100 sao / ngày / Con (giờ gia đình) — chỉ tính dòng `tang` dương, không tính phần trả nợ đi kèm. */
-export const TANG_TOI_DA_NGAY = 100;
+const TANG_TOI_DA_NGAY = 100;
 
 /** Ba Mẹ tặng `soSao` sao cho Con kèm lý do bắt buộc. Cộng thẳng vào số dư — KHÔNG ghi nợ; Con đang nợ ⇒ trả nợ trước như sao nhiệm vụ (vi.ts › ghiDiem).
  *  Ghi sổ sao (loai `tang`, lý do hiện ở nhật ký sao của Con), sự kiện `tang_sao` (Ba Mẹ thấy ở Thông báo, Con nhận tin ở khay) + lời nhắn cho Con.

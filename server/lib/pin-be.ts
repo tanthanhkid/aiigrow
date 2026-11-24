@@ -18,20 +18,20 @@ import { coNoi, conNoiMay, idConMay, ketThucPhienTrenMay, laMotCon } from "./may
 import { trangThaiSao } from "./so-sao.ts";
 import { giaiPin, maHoaPin } from "./pin-ma.ts";
 
-export const PIN_SAI_TOI_DA = 5;
-export const PIN_CHO_GIAY = 15;
+const PIN_SAI_TOI_DA = 5;
+const PIN_CHO_GIAY = 15;
 /** #555: trần lượt sai PIN của MỘT bé trên MỌI máy trong một giờ (bộ đếm theo máy + bé ở trên chỉ chặn dò trên một máy). */
 export const PIN_SAI_BE_GIO = 20;
-export const MA_BA_ME_SAI_TOI_DA = 5;
-export const MA_BA_ME_CHO_PHUT = 10;
+const MA_BA_ME_SAI_TOI_DA = 5;
+const MA_BA_ME_CHO_PHUT = 10;
 
 /** Lỗi kèm trường phụ (conLan, choGiay…) — router trả `{error, message, ...them}`. */
-export class LoiPin extends LoiNghiepVu {
+class LoiPin extends LoiNghiepVu {
   constructor(ma: string, msg: string, status: number, them: Record<string, unknown>) { super(ma, msg, status); this.them = them; }
 }
 
 /** PIN hợp lệ: đúng 4 chữ số. */
-export function pinHopLe(v: unknown): string {
+function pinHopLe(v: unknown): string {
   const s = String(v ?? "").trim();
   if (!/^\d{4}$/.test(s)) throw new LoiNghiepVu("pin_sai_dang", "PIN gồm đúng 4 chữ số");
   return s;
@@ -66,7 +66,7 @@ export const baMeDen = (may: MayS3, now = new Date()) =>
   may.ba_me_den && new Date(may.ba_me_den).getTime() > now.getTime() ? new Date(may.ba_me_den) : null;
 
 /** Vân PIN để agent tự kiểm khi MẤT MẠNG: HMAC-SHA256(khoá = bí mật mã offline của máy, «<id Con>:<PIN>») hex. Máy khác bí mật ⇒ vân khác. */
-export const vanPin = (biMat: string, con: string, pin: string) => createHmac("sha256", biMat).update(`${con}:${pin}`).digest("hex");
+const vanPin = (biMat: string, con: string, pin: string) => createHmac("sha256", biMat).update(`${con}:${pin}`).digest("hex");
 
 /** «Ai đang dùng máy?» — danh sách bé của máy + ai đang dùng. #267: chỉ Con trong danh sách nối của máy (device_children); máy riêng ⇒ chỉ Con
  *  đó (vào thẳng, không hỏi PIN — PIN chỉ cho máy chung). Mỗi bé kèm `sao` (15/11: số dư Con thấy, ÂM khi nợ — so-sao.ts; `soDu` = sao tiêu được, `no` = nợ) để màn chọn tên hiện sao từng bé. */

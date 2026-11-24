@@ -12,12 +12,12 @@
 import { q, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 
-export type LoaiDn = "bm" | "nv";                    // Ba Mẹ | Nhân viên / Admin — bộ đếm tách nhau
-export const KHUNG_PHUT = 15;
+type LoaiDn = "bm" | "nv";                    // Ba Mẹ | Nhân viên / Admin — bộ đếm tách nhau
+const KHUNG_PHUT = 15;
 export const TRAN_IP = 30;                           // lượt hỏng / IP / khung 15 phút
 export const TRAN_IP_TONG = 120;                     // MỌI lượt (cả đúng) / IP / khung — chặn gửi dồn đăng nhập đúng để đốt scrypt
 export const SAI_KHOA = 5;                           // sai liền từ một nguồn ⇒ khoá cặp (tài khoản, nguồn)
-export const BAC_PHUT = [15, 60, 24 * 60] as const;  // khoá luỹ tiến
+const BAC_PHUT = [15, 60, 24 * 60] as const;  // khoá luỹ tiến
 export const TRAN_TK = 30;                           // lượt sai / tài khoản / giờ trên mọi nguồn ⇒ nguồn lạ còn 1 lượt / 15 phút
 export const TRAN_TK_CUNG = 300;                     // lượt sai / tài khoản / giờ ⇒ chỉ nguồn quen (trần tuyệt đối chống dò phân tán)
 const GIU_BAC_MS = 72 * 3_600_000;                   // dài hơn khoá 24 giờ — hết khoá 24 giờ không tụt về 15 phút
@@ -44,7 +44,7 @@ const tang = async (khoa: string) => (await q<{ so_lan: number }>(`insert into p
 const quaNhieu = (now: number) => new LoiNghiepVu("qua_nhieu_lan",
   `Thử đăng nhập nhiều lần quá — đợi ${chuCho((khung(now) + 1) * SAI_CU_MS - now)} rồi thử lại nhé`, 429);
 
-export type Luot = { kIp: string | null; loai: LoaiDn; tk: string; ip: string; now: number };
+type Luot = { kIp: string | null; loai: LoaiDn; tk: string; ip: string; now: number };
 
 /** Gọi TRƯỚC khi kiểm mật khẩu: giữ chỗ lượt IP + lượt của cặp. Quá trần IP ⇒ 429 qua_nhieu_lan (nguồn quen của tài khoản này dùng trần
  *  riêng, không đụng bộ đếm chung của IP — kẻ lạ chung wifi quán / CGNAT không chặn được quầy, Ba Mẹ đã quen mạng, và ngược lại); cặp đang

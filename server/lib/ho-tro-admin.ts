@@ -10,9 +10,9 @@ export function laQuanTri(parentId: string, env: string | undefined = process.en
 }
 
 /** «Gấp» trên hộp thư (thiết kế 14/11 bm-cai-dat/13 bm2-admin-ho-tro): tin Ba Mẹ chờ trả lời từ ≥ 30 phút. */
-export const GAP_PHUT = 30;
-export const LOC_HO_TRO = ["cho", "da_tra_loi", "cua_toi"] as const;
-export type DongHoTro = { family_id: string; ten: string; tu: string; noi_dung: string; created_at: Date; chua_tra_loi: boolean;
+const GAP_PHUT = 30;
+const LOC_HO_TRO = ["cho", "da_tra_loi", "cua_toi"] as const;
+type DongHoTro = { family_id: string; ten: string; tu: string; noi_dung: string; created_at: Date; chua_tra_loi: boolean;
   /** 14/11: người lớn gửi tin Ba Mẹ mới nhất («Bà Hoa») */ nguoi_gui: string | null;
   /** tin Ba Mẹ CŨ nhất chưa có trả lời (sau câu trả lời AiiLab cuối) — «Chờ 42′»; null = đã trả lời hết */ cho_tu: Date | null; cho_phut: number | null; gap: boolean;
   /** người AiiLab trả lời gần nhất: «admin:<id nhân viên>» (cổng web) | «admin-app:<id Ba Mẹ admin>» (app) */ nguoi_tra_loi: string | null; cua_toi: boolean };

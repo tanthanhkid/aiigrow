@@ -11,7 +11,7 @@ export type Row = Record<string, any>;
 export type Q = <T = Row>(sql: string, params?: unknown[]) => Promise<T[]>;
 
 /** LISTEN một kênh Postgres. `khiNghe` gọi mỗi lần (re)LISTEN xong — postgres.js tự nối lại kết nối nghe; báo rơi trong lúc rớt mạng thì mất ⇒ bên dùng tự đọc lại DB. */
-export type Nghe = (kenh: string, khiBao: (payload: string) => void, khiNghe?: () => void) => Promise<void>;
+type Nghe = (kenh: string, khiBao: (payload: string) => void, khiNghe?: () => void) => Promise<void>;
 type Db = { q: Q; tx: <T>(fn: (q: Q) => Promise<T>) => Promise<T>; nghe: Nghe };
 
 const BAM_LUOC_DO = createHash("sha256").update([SCHEMA, SCHEMA_M5, ...SCHEMA_M4B, ...SCHEMA_TV_TB, ...SCHEMA_S2, ...SCHEMA_S3, ...SCHEMA_SAO, ...SCHEMA_APP_WEB].join("\n;\n")).digest("hex").slice(0, 16);

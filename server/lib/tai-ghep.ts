@@ -27,7 +27,7 @@ export const TAI_NGUNG_MS = 2 * 60_000;       // người tải không đọc th
 export const TAI_TOI_DA_MS = 60 * 60_000;     // trần cứng một lượt tải (~186 MB ở ≥ 0,05 MB/s)
 const GIO_MS = 3_600_000;
 
-export const nguonBoCai = () =>
+const nguonBoCai = () =>
   `https://github.com/tanthanhkid/aiigrow-tai/releases/download/v${BAN_AGENT_WINDOWS.version}/AiiGrow-Setup-${BAN_AGENT_WINDOWS.version}.exe`;
 
 const g0 = globalThis as unknown as { __aiigTaiGhep?: number };
@@ -58,7 +58,7 @@ function giuLuong() {
 }
 
 /** Hẹn giờ thay được trong test (không dùng đồng hồ thật). → hàm huỷ hẹn. */
-export type DatHen = (fn: () => void, ms: number) => () => void;
+type DatHen = (fn: () => void, ms: number) => () => void;
 const henThat: DatHen = (fn, ms) => {
   const h = setTimeout(fn, ms);
   (h as { unref?: () => void }).unref?.();

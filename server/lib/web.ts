@@ -20,10 +20,10 @@ import { truPhutChoi } from "./so-sao.ts";
 
 const NGAY = /^\d{4}-\d{2}-\d{2}$/;
 const TEN_MIEN = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/;
-export const GIU_NGAY = 90;
+const GIU_NGAY = 90;
 const TOI_DA_MOT_LAN = 500;
 
-export type DongWeb = { ngay?: unknown; tenMien?: unknown; soLan?: unknown; giay?: unknown; lanCuoi?: unknown; /** giờ bắt đầu dùng trong ngày (ISO, tuỳ chọn) */ dauLuc?: unknown };
+type DongWeb = { ngay?: unknown; tenMien?: unknown; soLan?: unknown; giay?: unknown; lanCuoi?: unknown; /** giờ bắt đầu dùng trong ngày (ISO, tuỳ chọn) */ dauLuc?: unknown };
 
 /** Tên miền hợp lệ (không IP, không localhost) hoặc null. */
 export function tenMienSach(v: unknown): string | null {
@@ -95,9 +95,9 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
 export const donWebCu = (now = new Date()) =>
   xoaTheoLo("web_nhat_ky", "ngay < $1", [congNgay(gioDiaPhuong(now, "Asia/Ho_Chi_Minh").ngay, -GIU_NGAY - 1)]);
 
-export type TrangThaiTrang = "cho_phep" | "chan" | "giai_tri" | "he_thong" | "chua_xep";
+type TrangThaiTrang = "cho_phep" | "chan" | "giai_tri" | "he_thong" | "chua_xep";
 /** `nhom` (#262): tinh_phut | khong_tinh_phut — null = hệ thống / ngoài danh sách. `trangThai` (cũ) giữ cho app cũ. */
-export type TrangWeb = { tenMien: string; giay: number; soLan: number; lanCuoi: string | null; trangThai: TrangThaiTrang; nhom: NhomDs | null; nguon: "he_thong" | "con" | "gia_dinh" | null };
+type TrangWeb = { tenMien: string; giay: number; soLan: number; lanCuoi: string | null; trangThai: TrangThaiTrang; nhom: NhomDs | null; nguon: "he_thong" | "con" | "gia_dinh" | null };
 
 const doiLoai = (l: string): TrangThaiTrang => (l === "hoc" ? "cho_phep" : l === "chan" ? "chan" : l === "giai_tri" ? "giai_tri" : l === "he_thong" ? "he_thong" : "chua_xep");
 
@@ -176,7 +176,7 @@ export async function datTrangWeb(fam: string, con: string, b: { muc?: unknown; 
 /** Tên miền ĐI KÈM: trang chính tải video/ảnh/đăng nhập từ tên miền KHÁC (không phải tên miền con) ⇒ ở «Chặn app & web»
  *  (URLBlocklist «*») cho mỗi youtube.com thì video/ảnh bị chặn, YouTube báo «kiểm tra kết nối Internet» (Nghi 11/11).
  *  Khoá khớp chính nó + tên miền con (classroom.google.com ⇒ khoá google.com). Chỉ thêm vào `cho`, không mở cả google.com. */
-export const TEN_MIEN_DI_KEM: Record<string, string[]> = {
+const TEN_MIEN_DI_KEM: Record<string, string[]> = {
   "youtube.com": ["googlevideo.com", "ytimg.com", "ggpht.com", "youtubei.googleapis.com", "youtube-nocookie.com", "youtu.be", "accounts.google.com", "gstatic.com"],
   "google.com": ["accounts.google.com", "gstatic.com", "googleapis.com", "googleusercontent.com"],
   "office.com": ["login.microsoftonline.com", "login.live.com", "office.net", "officeapps.live.com", "sharepoint.com"],

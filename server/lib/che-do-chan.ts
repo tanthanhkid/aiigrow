@@ -12,11 +12,10 @@ import { dsBoQua, guiYeuCau } from "./yeu-cau.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { tenMienSach } from "./web.ts";
 import {
-  CHE_DO, CHE_DO_CHAN, cheDoChanCua, cheDoCua, loaiTuNhom, nhanCheDo, nhanNhom, nhomTuLoai, TEN_CHE_DO, TEN_CHE_DO_CHAN, TEN_NHOM_DS,
-  type CheDo, type CheDoChan, type NhomDs,
+  cheDoChanCua, cheDoCua, loaiTuNhom, nhanCheDo, nhanNhom, nhomTuLoai, TEN_CHE_DO, TEN_NHOM_DS, type NhomDs,
 } from "./chan-co-ban.ts";
 
-export { CHE_DO, CHE_DO_CHAN, cheDoChanCua, cheDoCua, TEN_CHE_DO, TEN_CHE_DO_CHAN, type CheDo, type CheDoChan };
+export { TEN_CHE_DO };
 
 /** POST /api/m/con/:id/che-do {cheDo: mo_het | theo_danh_sach} (đường cũ con/:id/che-do-chan, giá trị cũ chi_app_duoc_phep vẫn nhận).
  *  Máy nhận ở lần đồng bộ kế. → { cheDo, cheDoChan (giá trị cũ), ten }. */
@@ -38,7 +37,7 @@ export async function datCheDoChan(fam: string, con: string, v: unknown, nguoi?:
 // ---------------------------------------------------------------- lưới app gợi ý (màn «Con được dùng app nào?» / «Thêm app»)
 // Mỗi app một mã + mọi định danh đã biết trên các nền (tệp .exe Windows, bundle macOS / iOS, gói Android, tên miền). Chọn app ⇒ ghi luật cho
 // MỌI định danh (một lựa chọn chạy đúng trên mọi máy của Con). tinhGio: true = tính vào giờ chơi (giai_tri), false = app học, không tính giờ (hoc).
-export type AppGoiY = { ma: string; ten: string; tinhGio: boolean; nhom: NhomGiaiTri | null; muc: string[]; goiY?: ("nhi" | "teen")[] };
+type AppGoiY = { ma: string; ten: string; tinhGio: boolean; nhom: NhomGiaiTri | null; muc: string[]; goiY?: ("nhi" | "teen")[] };
 export const APP_GOI_Y: AppGoiY[] = [
   { ma: "youtube_kids", ten: "YouTube Kids", tinhGio: true, nhom: "video_ngan", goiY: ["nhi"],
     muc: ["youtubekids.com", "com.google.android.apps.youtube.kids", "com.google.ios.youtubekids"] },
@@ -63,7 +62,7 @@ export const APP_GOI_Y: AppGoiY[] = [
 ];
 
 /** Bỏ dấu, chữ thường, chỉ chữ + số — so tên app người gõ với tên app máy báo. */
-export const khoaTen = (s: unknown) => {
+const khoaTen = (s: unknown) => {
   const t = String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase();
   // tên không có chữ Latin / số (抖音, emoji) ⇒ giữ nguyên ký tự, chỉ bỏ khoảng trắng — không để thành "" rồi khớp mọi app
   return t.replace(/[^a-z0-9]/g, "") || t.normalize("NFC").replace(/\s+/g, "");
@@ -77,7 +76,7 @@ export async function luoiApp(fam: string, con?: string | null) {
 }
 
 /** `nhom` (#262): tinh_phut | khong_tinh_phut — đè `tinhGio` (cũ). Không gửi cả hai ⇒ theo lưới (app ngoài lưới ⇒ Tính phút). */
-export type AppVao = { ma?: unknown; ten?: unknown; tinhGio?: unknown; nhom?: unknown };
+type AppVao = { ma?: unknown; ten?: unknown; tinhGio?: unknown; nhom?: unknown };
 
 /** Cho Con dùng các app (thêm, không bỏ app đã cho): app trong lưới (theo `ma`, hoặc tên trùng tên lưới) ⇒ luật cho mọi định danh của app;
  *  app khác theo TÊN ⇒ khớp ngay với app thật máy của Con đã báo (app_may), chưa thấy thì chờ (app_theo_ten) tới khi máy báo danh sách app.
@@ -190,9 +189,9 @@ export async function xinDuyet(con: string, mayId: string | null, b: { muc?: unk
 
 /** Luật hiển thị là TRANG WEB (hàng «Web») hay APP (hàng «App»): trang = tên miền mà tên hiển thị chính là tên miền (trang Ba Mẹ thêm / duyệt);
  *  tên miền đi cùng app trong lưới (roblox.com ⇒ «Roblox») thuộc app đó. Cùng luật với thiet-lap.ts › tomTatThietLap. */
-export const laMucWeb = (l: { muc: string; ten: string }) => l.ten === l.muc && kieuMuc(l.muc) === "web";
+const laMucWeb = (l: { muc: string; ten: string }) => l.ten === l.muc && kieuMuc(l.muc) === "web";
 
-export type DongDanhSach = {
+type DongDanhSach = {
   ten: string; kieu: "app" | "web"; nhom: NhomDs; muc: string[];
   /** phút dùng hôm nay (mọi máy) — nhóm Tính phút: = số sao đã trừ («Hôm nay trừ 39 phút · −39 sao») */ phutHomNay: number;
   /** có mục là luật CẢ NHÀ (đổi / bỏ ở đây chỉ áp cho Con này) */ theoCaNha: boolean;
@@ -259,7 +258,7 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
 }
 
 /** Một mục Ba Mẹ thêm: app trong lưới (`ma`) / app theo tên (`ten`, không `muc`) / tên miền hoặc định danh app (`muc`). */
-export type MucThem = { nhom?: unknown; ma?: unknown; ten?: unknown; muc?: unknown; kieu?: unknown };
+type MucThem = { nhom?: unknown; ma?: unknown; ten?: unknown; muc?: unknown; kieu?: unknown };
 
 /** POST /api/m/con/:id/danh-sach {nhom, ma? | ten? | muc?} hoặc {ds: [...]} — thêm vào danh sách của Con (đã có thì đổi sang nhóm mới).
  *  → { daDat: [{ten, muc[], nhom}], choKhop: [ten] }. */

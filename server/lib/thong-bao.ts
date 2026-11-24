@@ -12,21 +12,21 @@ import { soVN } from "./so-sao.ts";
 
 // canh_bao_no (15/11, #266): «<Tên> đã nợ quá 1.000 sao» — công tắc «Cảnh báo nợ» trong cài đặt thông báo (tắt ⇒ vẫn có dòng, không đẩy)
 export const NHOM_TB = ["nhiem_vu", "yeu_cau", "qua", "thanh_tich", "ba_me_khac", "canh_bao", "canh_bao_no", "gia_dinh"] as const;
-export type NhomTb = (typeof NHOM_TB)[number];
+type NhomTb = (typeof NHOM_TB)[number];
 export const TEN_NHOM_TB: Record<NhomTb, string> = {
   nhiem_vu: "Con nộp nhiệm vụ", yeu_cau: "Con xin phép", qua: "Đổi quà, phiếu quà", thanh_tich: "Huy hiệu, AiiRob",
   ba_me_khac: "Việc Ba Mẹ khác làm", canh_bao: "Cảnh báo", canh_bao_no: "Cảnh báo nợ", gia_dinh: "Thành viên gia đình",
 };
-export const GOP_PHUT = 60;          // nộp nhiệm vụ cách nhau ≤ 60 phút ⇒ gộp một dòng
-export const NGAY_GIU = 14;          // dòng thời gian lấy 14 ngày gần nhất
+const GOP_PHUT = 60;          // nộp nhiệm vụ cách nhau ≤ 60 phút ⇒ gộp một dòng
+const NGAY_GIU = 14;          // dòng thời gian lấy 14 ngày gần nhất
 
-export type MucTb = "thong_tin" | "chu_y" | "nghiem_trong";
-export type ThongBao = {
+type MucTb = "thong_tin" | "chu_y" | "nghiem_trong";
+type ThongBao = {
   id: string; nhom: NhomTb; muc: MucTb; tieu: string; phu: string; luc: string; con: string | null; den: string; so: number;
   moi: boolean; day: boolean; imLang: boolean;
 };
-export type CaiDatTb = { yenLang: { bat: boolean; tu: string; den: string }; tat: NhomTb[] };
-export const YEN_LANG_MD = { bat: false, tu: "22:00", den: "06:30" };
+type CaiDatTb = { yenLang: { bat: boolean; tu: string; den: string }; tat: NhomTb[] };
+const YEN_LANG_MD = { bat: false, tu: "22:00", den: "06:30" };
 
 const LOAI_SU_KIEN = ["nop_nhiem_vu", "gui_yeu_cau", "doi_qua", "dung_voucher", "nap_quy", "huy_hieu", "tu_duyet_nhiem_vu",
   "duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "dong_y_yeu_cau", "tu_choi_yeu_cau", "xac_nhan_qua", "huy_qua",

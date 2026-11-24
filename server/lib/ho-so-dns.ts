@@ -45,12 +45,12 @@ export function chinhSachDns(cs: ChinhSachChung, tb: { nhan: string; ten: string
 export const chuanTenMien = (s: unknown) => String(s ?? "").trim().toLowerCase().replace(/\.+$/, "").slice(0, 253);
 const khop = (ten: string, ds: string[]) => ds.some((d) => ten === d || ten.endsWith(`.${d}`));
 
-export function trongLichMo(c: ChinhSachDns, now: Date) {
+function trongLichMo(c: ChinhSachDns, now: Date) {
   const g = gioDiaPhuong(now, c.tz);
   return (laCuoiTuan(g.thu) ? c.lichMo.cuoiTuan : c.lichMo.ngayThuong).some((k) => trongKhung(g.phut, k));
 }
 
-export type KetXet = { chan: boolean; lyDo: "cho_phep" | "bi_chan" | "ngoai_gio" | "khoa" | "mo"; ngoaiGio: boolean };
+type KetXet = { chan: boolean; lyDo: "cho_phep" | "bi_chan" | "ngoai_gio" | "khoa" | "mo"; ngoaiGio: boolean };
 
 /** Resolver xét một truy vấn: cho phép (hệ thống / học) → chặn → ngoài giờ / khoá → mở. */
 export function xetTruyVan(c: ChinhSachDns, tenMienTho: unknown, now: Date): KetXet {
@@ -68,7 +68,7 @@ export function xetTruyVan(c: ChinhSachDns, tenMienTho: unknown, now: Date): Ket
 
 // ---------------------------------------------------------------- nhà cung cấp DNS (adapter)
 export type DiemCuoiDns = { dohUrl: string; dotHost: string; ipv4: string[]; ghiChu: string | null };
-export type YeuCauHttp = { method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE"; url: string; body?: unknown };
+type YeuCauHttp = { method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE"; url: string; body?: unknown };
 export type KetDay = { cheDo: "that" | "gia" | "khong_can"; yeuCau: YeuCauHttp[]; loi?: string };
 
 export interface NhaCungCapDns {

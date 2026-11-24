@@ -8,7 +8,7 @@ export async function ghiSuKien(fam: string, loai: string, chiTiet: Record<strin
     [newId(), fam, o.con ?? null, o.may ?? null, loai, JSON.stringify(chiTiet), o.nguoi ?? null]);
 }
 
-export type MucCanhBao = "thong_tin" | "chu_y" | "nghiem_trong";
+type MucCanhBao = "thong_tin" | "chu_y" | "nghiem_trong";
 
 /** Ghi cảnh báo. → true nếu ghi mới (khoá trùng ⇒ false, không ghi lại). */
 export async function canhBao(fam: string, loai: string, muc: MucCanhBao, noiDung: string,

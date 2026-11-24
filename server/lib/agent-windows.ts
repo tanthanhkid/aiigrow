@@ -20,7 +20,7 @@ import { laMoHet, type Policy } from "./may-con.ts";
 import { nhipToiKhoaLai } from "./cau-hinh.ts";
 import { chinhSachWebCho, type ChinhSachWeb } from "./web.ts";
 
-export type PolicyWindows = {
+type PolicyWindows = {
   serverTime: string; childName: string; mode: "hoc" | "khoa" | "tu_do"; locked: boolean; lockReason: string | null;
   allowedApps: string[]; learningApps: string[]; minutesLeft: null; nextCheckSec: number; canExchangePoints: boolean;
   /** Bí mật mã mở offline (lib/ma-offline.ts) — agent lưu khi còn mạng để tự kiểm mã Ba Mẹ đọc lúc mất mạng. */
@@ -82,11 +82,11 @@ const exe = (s: string) => s.toLowerCase().endsWith(".exe");
  *  (chính sách Chrome/Edge/Brave — lib/web.ts, agent-win WebGuard): mở Firefox/Opera sẽ lọt mọi trang bị chặn trong lúc chơi. */
 export const TRINH_DUYET = ["chrome.exe", "msedge.exe", "brave.exe"];
 /** Như TRINH_DUYET nhưng cho macOS (bundle id — đúng chữ hoa/thường của hệ điều hành): agent-mac lọc web bằng chính sách Chrome/Edge/Brave/Cốc Cốc + khối hosts cho Safari. */
-export const TRINH_DUYET_MAC = ["com.google.Chrome", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari", "com.coccoc.Coccoc"];
+const TRINH_DUYET_MAC = ["com.google.Chrome", "com.microsoft.edgemac", "com.brave.Browser", "com.apple.Safari", "com.coccoc.Coccoc"];
 
 /** Chu kỳ đồng bộ (giây): nhàn rỗi 120; có phiên / đang mở / còn «thưởng» chưa dùng 30; đang mở thì không quá hạn mở (để trả chặn đúng giờ). Agent kẹp 10–600. */
-export const NHIP_NHAN_ROI = 120;
-export const NHIP_BAN = 30;
+const NHIP_NHAN_ROI = 120;
+const NHIP_BAN = 30;
 export function nhipDongBo(o: { coPhien: boolean; moDen?: Date | null; now: Date; conThuong?: number }): number {
   let s = o.coPhien || o.conThuong ? NHIP_BAN : NHIP_NHAN_ROI;
   if (o.moDen && o.moDen.getTime() > o.now.getTime()) {

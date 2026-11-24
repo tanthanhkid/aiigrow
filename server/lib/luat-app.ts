@@ -86,7 +86,7 @@ export function khoaSo(muc: string) {
   return ds;
 }
 
-export type KetQuaLuat = { loai: LoaiMuc | "he_thong" | "chua_phan_loai"; nhom: NhomGiaiTri | null; nguon: "he_thong" | "con" | "gia_dinh" | null };
+type KetQuaLuat = { loai: LoaiMuc | "he_thong" | "chua_phan_loai"; nhom: NhomGiaiTri | null; nguon: "he_thong" | "con" | "gia_dinh" | null };
 
 export async function phanLoai(fam: string, con: string, mucTho: unknown, t: Q = q): Promise<KetQuaLuat> {
   const muc = chuanMuc(mucTho);
@@ -154,7 +154,7 @@ export async function datLuat(fam: string, b: { con?: string; muc: unknown; ten?
 /** Khoá giao dịch theo (nhà, Con, mục) — `mục` đã chuanMuc: `for update` không khoá được dòng CHƯA tồn tại — hai lượt xếp / hoàn tác một app chưa có luật
  *  sẽ cùng đọc «chưa có» rồi đè nhau. Khoá tư vấn giữ tới hết giao dịch; mọi đường ghi (datLuat, xoaLuat) và đọc-để-hoàn-tác (luatHienCo khoa)
  *  đều lấy nó (như khoá tên Con ở gia-dinh.ts). Gọi ngoài giao dịch thì khoá nhả ngay — vô hại vì khi đó chỉ có một câu ghi. */
-export const khoaLuat = (t: Q, fam: string, con: string, muc: string) =>
+const khoaLuat = (t: Q, fam: string, con: string, muc: string) =>
   t(`select pg_advisory_xact_lock(hashtext($1))`, [`luat-app:${fam}:${con}:${muc}`]);
 
 /** Luật CÒN HIỆU LỰC của đúng (Con, mục) — để «Hoàn tác» khôi phục như trước. Luật đã hết hạn coi như chưa có (Hoàn tác ⇒ luat/xoa).

@@ -17,10 +17,10 @@ import { ghiSuKien } from "./nhat-ky.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { choVay, trangThaiSao, VAY_TOI_DA, xemTruocVay, type MucDichVay } from "./so-sao.ts";
 
-export const LOAI_YC = ["vay_sao", "them_gio", "mo_web", "cai_app", "ngoai_le", "ngoai_gio", "khac"] as const;
+const LOAI_YC = ["vay_sao", "them_gio", "mo_web", "cai_app", "ngoai_le", "ngoai_gio", "khac"] as const;
 /** Lời xin vay sao (mới) + các loại cũ nay nhận như xin vay để chơi. */
-export const LOAI_VAY = new Set<string>(["vay_sao", "them_gio", "ngoai_le", "ngoai_gio"]);
-export type LoaiYc = (typeof LOAI_YC)[number];
+const LOAI_VAY = new Set<string>(["vay_sao", "them_gio", "ngoai_le", "ngoai_gio"]);
+type LoaiYc = (typeof LOAI_YC)[number];
 export const LY_DO_NHANH = ["Để làm bài tập", "Bạn rủ chơi", "Hôm nay con ngoan", "Con làm xong việc rồi"];
 
 type Yc = { id: string; child_id: string; device_id: string | null; loai: LoaiYc; phut: number | null; gia_tri: string | null; ly_do: string;
@@ -193,7 +193,7 @@ async function themMucDanhSach(t: Q, fam: string, r: { child_id: string; loai: s
 
 /** «Bỏ qua» (#258, thiết kế bm2-yeu-cau-web / them-hppe9qh6): chỉ lời xin app / web — không ghi gì vào danh sách, không chặn thêm, Con được báo
  *  «Ba Mẹ chưa thêm … lúc này» và xin lại được. Hoàn tác trong BO_QUA_HOAN_TAC_GIAY (POST yeu-cau/:id/hoan-tac). → { ok, hoanTacDen }. */
-export const BO_QUA_HOAN_TAC_GIAY = 60;
+const BO_QUA_HOAN_TAC_GIAY = 60;
 export async function boQuaYc(fam: string, id: string, nguoi: string, b: { loiNhan?: unknown } = {}, now = new Date()) {
   return tx(async (t) => {
     const r = await layYc(t, fam, id, now);
@@ -267,7 +267,7 @@ export async function tuChoiYc(fam: string, id: string, nguoi: string, lyDo: str
 
 /** «Hoàn tác, xem lại lời xin» (them-hppe9qh6): Ba Mẹ vừa «Bỏ qua» (#258 — trong 60 giây) hoặc «Không cho» kiểu cũ (trong 10 phút) ⇒ đưa lời
  *  xin về «chờ» để trả lời lại. Lời xin đã hết hạn / người khác đã trả lời lại / quá hạn hoàn tác ⇒ 409. POST yeu-cau/:id/hoan-tac (= mo-lai). */
-export const MO_LAI_PHUT = 10;
+const MO_LAI_PHUT = 10;
 export async function moLaiYc(fam: string, id: string, nguoi: string, now = new Date()) {
   return tx(async (t) => {
     const r = (await t<Yc & { xu_ly_luc: Date | null }>(

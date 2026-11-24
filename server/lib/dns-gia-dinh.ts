@@ -25,7 +25,7 @@ export async function bangMang() {
   coBang = true;
 }
 
-export type ThietBiDns = {
+type ThietBiDns = {
   id: string; family_id: string; child_id: string | null; device_id: string | null; ten: string; loai: LoaiThietBiDns; mac: string | null;
   nhan: string; truy_van_cuoi: Date | null; mat_bao_luc: Date | null; created_at: Date;
 };
@@ -88,7 +88,7 @@ export async function xoaThietBiMang(fam: string, id: string, nguoi: string) {
 }
 
 /** Chính sách DNS cho thiết bị (resolver kéo theo nhãn). */
-export async function chinhSachDnsThietBi(t: ThietBiDns, now = new Date()): Promise<ChinhSachDns> {
+async function chinhSachDnsThietBi(t: ThietBiDns, now = new Date()): Promise<ChinhSachDns> {
   const may = t.device_id ? await one<May>(`select * from devices where id = $1`, [t.device_id]) : undefined;
   const gia: May = may ?? { id: `dns:${t.id}`, child_id: t.child_id, family_id: t.family_id, platform: "android", name: t.ten, dung_chung: false,
     status: {}, last_seen: null, created_at: t.created_at };
