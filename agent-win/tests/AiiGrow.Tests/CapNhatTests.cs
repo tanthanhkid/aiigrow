@@ -316,3 +316,43 @@ public class TuCapNhatTests
         Assert.Equal(bayGio + chuKy, TuCapNhat.KeTiep(henXa, bayGio, chuKy));
     }
 }
+
+public class KyBoCaiTests
+{
+    private static readonly string Ghim = new('A', 64);
+    private static readonly string[] DsGhim = { Ghim };
+    private static KetQuaKyBoCai K(string[] ghim, bool hopLe, string? bam) => KyBoCai.Kiem("x.exe", ghim, _ => hopLe, _ => bam);
+
+    [Fact]
+    public void DungNguoiKyGhim_HopLe() => Assert.Equal(KetQuaKyBoCai.HopLe, K(DsGhim, true, Ghim.ToLowerInvariant()));
+
+    [Fact]
+    public void NguoiKyKhac_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, K(DsGhim, true, new string('B', 64)));
+
+    [Fact]
+    public void ChuKyKhongTinCay_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, K(DsGhim, false, Ghim));
+
+    [Fact]
+    public void KhongCoChuKy_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, K(DsGhim, true, null));
+
+    [Fact]
+    public void KiemNem_Sai() => Assert.Equal(KetQuaKyBoCai.SaiChuKy, KyBoCai.Kiem("x.exe", DsGhim, _ => throw new IOException("khoá"), _ => Ghim));
+
+    [Fact]
+    public void ChuaGhim_KhongChan()
+    {
+        Assert.Equal(KetQuaKyBoCai.ChuaGhim, K(Array.Empty<string>(), false, null));
+        Assert.Equal(KetQuaKyBoCai.ChuaGhim, K(new[] { "", "khong-phai-bam" }, false, null));   // ghim hỏng không được coi là đã ghim
+    }
+
+    [Fact]
+    public void DanhSachGhimTrongMa_LaBamSha256() => Assert.All(KyBoCai.ThumbprintGhim, g => Assert.True(TuCapNhat.LaSha256(g)));
+
+    [Fact]
+    public void TepKhongKy_KhongCoBamNguoiKy()
+    {
+        var tep = Path.GetTempFileName();
+        try { File.WriteAllText(tep, "khong phai PE"); Assert.Null(KyBoCai.BamNguoiKy(tep)); }
+        finally { File.Delete(tep); }
+    }
+}

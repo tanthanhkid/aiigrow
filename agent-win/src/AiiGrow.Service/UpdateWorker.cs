@@ -6,7 +6,7 @@ namespace AiiGrow.Service;
 
 /// <summary>
 /// TỰ CẬP NHẬT (Thanh 22/10: «từ phiên bản này trở đi, nó sẽ tự động download phiên bản mới»). Lúc khởi động (+2 phút) rồi theo chu kỳ máy chủ đặt (chuKyKiemPhut, mặc định 6 giờ, tính theo giờ thật):
-/// GET /api/agent/ban-moi → bản mới hơn ⇒ tải AiiGrow-Setup.exe về ProgramData\AiiGrow\cap-nhat, KIỂM sha256 (sai ⇒ xoá, bỏ qua) rồi chạy
+/// GET /api/agent/ban-moi → bản mới hơn ⇒ tải AiiGrow-Setup.exe về ProgramData\AiiGrow\cap-nhat, KIỂM sha256 + chữ ký Authenticode người ký ghim trong agent (KyBoCai, sai ⇒ xoá, bỏ qua) rồi chạy
 /// «AiiGrow-Setup.exe --capnhat --im-lang» qua một tác vụ Task Scheduler (SYSTEM) tách rời — bộ cài sẽ dừng chính dịch vụ này.
 /// Bộ cài giữ nguyên config/token/AppLocker, lỗi thì tự khôi phục bản cũ. Một bản thử tối đa một lần mỗi 24 giờ.
 /// </summary>
@@ -133,7 +133,20 @@ public sealed class UpdateWorker : BackgroundService
             _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; thử lại sau {Gio}", ThuLaiSaiSha);
             return _chuKy > ThuLaiSaiSha ? _chuKy : ThuLaiSaiSha;
         }
+        // #549: sha256 đến từ chính manifest của máy chủ ⇒ chỉ chống tải hỏng. Chữ ký Authenticode của người ký ghim trong agent mới chặn được
+        // máy chủ/Release bị chiếm trỏ sang exe độc (chạy bằng SYSTEM). Sai chữ ký ⇒ xoá, không chạy.
+        // Kiểm trên tệp đã đổi về đuôi .exe (WinVerifyTrust chọn SIP theo tệp; đuôi .tai lạ thì kiểm PE không chắc).
         File.Move(tam, tep, true);
+        switch (KyBoCai.Kiem(tep))
+        {
+            case KetQuaKyBoCai.SaiChuKy:
+                try { File.Delete(tep); } catch { }
+                _log.LogError("Tự cập nhật: bộ cài bản {Ban} KHÔNG có chữ ký Authenticode hợp lệ của AiiGrow ⇒ đã xoá, không chạy; thử lại sau {Gio}", m.Version, ThuLaiSaiSha);
+                return _chuKy > ThuLaiSaiSha ? _chuKy : ThuLaiSaiSha;
+            case KetQuaKyBoCai.ChuaGhim:
+                _log.LogWarning("Tự cập nhật: agent chưa ghim chứng chỉ ký bộ cài ⇒ chỉ kiểm sha256 (bản {Ban})", m.Version);
+                break;
+        }
         // ghi «đã thử» SAU khi tải đúng: tải đứt giữa chừng thì sau ThuLaiTai tải lại, không phải chờ 24 giờ
         GhiDaThu(m.Version);
         ChayBoCai(tep);
