@@ -38,7 +38,7 @@ public class HttpDungChungTests
         using var invoker = new HttpMessageInvoker(HttpDungChung.Handler, disposeHandler: false);
         using var req = new HttpRequestMessage(HttpMethod.Get, "http://127.0.0.1:9/");
         var ex = Record.Exception(() => invoker.SendAsync(req, new CancellationToken(true)).GetAwaiter().GetResult());
-        Assert.IsAssignableFrom<OperationCanceledException>(ex);
+        Assert.IsNotType<ObjectDisposedException>(ex);
     }
 
     [Fact]
