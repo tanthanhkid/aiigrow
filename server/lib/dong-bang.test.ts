@@ -29,7 +29,7 @@ test("demChuoi: ngày đóng băng giữ chuỗi, không cộng thêm ngày; hô
   assert.equal(dbg.demChuoi(new Set(), new Set(), "2026-10-22"), 0);
 });
 
-test("đóng băng: ngày đã đóng băng giữ chuỗi; tối đa 1 lần/tuần; hôm nay đã làm thì không cần", async () => {
+test("đóng băng: ngày đã đóng băng giữ chuỗi; trangThaiDongBang báo hết lượt tuần / không cần khi hôm nay đã làm", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
   // Thứ Năm 22/10/2026 19:00 giờ VN; Con làm T2–T3, bỏ T4

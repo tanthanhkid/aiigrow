@@ -163,7 +163,6 @@ Object.assign(coBan, {
   "POST thong-bao/cai-dat": { yenLang: { bat: true, tu: "22:00", den: "06:30" }, tat: ["thanh_tich"] },
   // FR-03.06 giữ (đóng băng) chuỗi ngày · FR-06.02 xuất CSV
   "GET con/c1/thanh-tich": { chuoiNgay: 6, dongBang: { ngay: "2026-10-21", duocDung: true, daDung: [] } },
-  "POST con/c1/dong-bang-chuoi": { ngay: "2026-10-21" },
   "GET phieu": { ds: [{ id: "ph1", ten: "Voucher AiiCafe 50.000đ", loai: "voucher", diem: 500, ten_con: KEN, created_at: luc(90) }] },
   "GET con/c1/man-hinh": (() => {
     const N = ["2026-10-19", "2026-10-20", "2026-10-21", "2026-10-22", "2026-10-23", "2026-10-24", "2026-10-25"];
@@ -289,7 +288,7 @@ Object.assign(coBan, {
     { id: "q2", ten: "Đi xem phim cuối tuần", loai: "dac_quyen", sao: 300, diem: 300, moTa: null, hinh: null, menhGia: null, tonKho: null, toiDaThang: null, chiCuoiTuan: true, canXacNhan: true, apCho: null, mau: null, dangGiu: 0, laVoucher: false, bat: true },
     { id: "q3", ten: "Chọn thực đơn bữa tối", loai: "dac_quyen", sao: 50, diem: 50, moTa: null, hinh: null, menhGia: null, tonKho: null, toiDaThang: 2, chiCuoiTuan: false, canXacNhan: true, apCho: null, mau: null, dangGiu: 0, laVoucher: false, bat: true }] },
   // S3: «Cần Ba Mẹ để ý» + máy mất mạng — mặc định không có mục nào
-  "GET can-de-y": { ds: [], soChuong: 0 }, "GET may-mat-mang": { ds: [] },
+  "GET can-de-y": { ds: [], soChuong: 0 },
   "GET quy": { status: 410, body: { error: "da_bo", message: "Quỹ phiếu quà AiiCafe đã ngừng" } },
   "GET phieu": { ds: [{ id: "ph1", child_id: "c2", ten: "Đi xem phim cuối tuần", loai: "dac_quyen", diem: 300, ten_con: BILL, created_at: luc(90) }] },
   "POST phieu/ph1/trao": { ok: true, trangThai: "da_trao" },

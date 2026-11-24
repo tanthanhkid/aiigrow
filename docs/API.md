@@ -234,7 +234,7 @@ Xử lý: `server/lib/dong-bang.ts`, `xuat-csv.ts`. Test: `dong-bang.test.ts`.
 
 | Đường | Ý |
 |---|---|
-| `GET con/:id/thanh-tich` | thêm `dongBang: {ngay, duocDung, daDung[]}` — `ngay` = ngày sẽ được giữ nếu bấm (hôm qua bỏ lỡ mà trước đó còn chuỗi, không thì hôm nay), null = không cần |
+| `GET con/:id/thanh-tich` | thêm `dongBang: {ngay, duocDung, daDung[]}` — chỉ đọc (đường ghi `dong-bang-chuoi` đã bỏ ở #568): `daDung[]` = ngày đã đóng băng; `ngay`/`duocDung` tính theo luật cũ, không còn nút nào dùng |
 | `GET con/:id/bao-cao/csv` | `{tenTep, noiDung}` — CSV (BOM UTF-8, CRLF) của báo cáo tuần: theo ngày (giải trí / học), tổng so tuần trước, dùng nhiều nhất, điểm theo nhóm nhiệm vụ, duyệt / từ chối, ngoại lệ. Không có nội dung, ảnh, tin nhắn |
 
 ## Giám sát và lọc web theo tên miền (22/10) — chỉ thêm

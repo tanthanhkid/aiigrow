@@ -79,7 +79,7 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
 type MayDb = May & { token_hash: string };
 
 /** Ba Mẹ (quyền ba_me) + nhập lại đúng mật khẩu (gỡ = bỏ bảo vệ — «Gỡ máy này»). */
-async function xacThucChu(bm: BaMe, mayId: string, matKhau: unknown, viec = "gỡ được AiiGrow từ xa") {
+async function xacThucChu(bm: BaMe, mayId: string, matKhau: unknown, viec: string) {
   await bangM4b();
   chiBaMe(bm, viec.replace(/ được/, ""));      // L6: mọi «Ba Mẹ» (không còn «Chủ gia đình»); Người trông giúp không gỡ máy
   const m = await one<MayDb>(`select * from devices where id = $1 and family_id = $2`, [mayId, bm.family_id]);

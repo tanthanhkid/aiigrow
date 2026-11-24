@@ -28,7 +28,7 @@ async function ngayLam(con: string, tz: string) {
     .map((r) => gioDiaPhuong(new Date(r.luc), tz).ngay));
 }
 
-/** Trạng thái đóng băng cho màn Ba Mẹ: tuần này còn dùng được không, ngày nào sẽ được giữ nếu bấm. */
+/** Trạng thái đóng băng (chỉ đọc — đường ghi đã bỏ ở #568): ngày đã đóng băng; `ngay`/`duocDung` tính theo luật 1 lần/tuần cũ. */
 export async function trangThaiDongBang(con: string, tz: string, now = new Date()) {
   const bang = await ngayDongBang(con), lam = await ngayLam(con, tz);
   const homNay = gioDiaPhuong(now, tz).ngay, homQua = congNgay(homNay, -1);
