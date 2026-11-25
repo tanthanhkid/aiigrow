@@ -34,6 +34,12 @@ public static class ProcessGuard
         "searchprotocolhost.exe", "searchfilterhost.exe", "audiodg.exe", "wudfhost.exe", "dashost.exe", "sppsvc.exe",
     };
 
+    /// <summary>#622: tiến trình nền của phiên (tìm kiếm, Start, bàn phím ảo, màn khoá) — là tiền cảnh thoáng qua, không phải app Con chơi ⇒ không tính giờ / «đã dùng gì».</summary>
+    public static readonly HashSet<string> TienTrinhNenKhongTinhGio = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "searchapp.exe", "searchhost.exe", "shellexperiencehost.exe", "startmenuexperiencehost.exe", "textinputhost.exe", "lockapp.exe",
+    };
+
     /// <summary>App NGƯỜI DÙNG mở được nằm ngay trong Windows / System32 / SysWOW64 — phải qua phân loại (BUG-008). Mọi exe KHÁC nằm TRỰC TIẾP trong
     /// ba thư mục đó là thành phần Windows chạy nền (splwow64 in 32-bit, rundll32, CredentialUIBroker, PickerHost, rdpclip, osk/Narrator/Magnify,
     /// MusNotifyIcon…) ⇒ miễn: đóng chúng làm hỏng in ấn, hộp chọn tệp, trợ năng và bắn popup «app bị chặn» liên tục (review #75).
