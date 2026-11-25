@@ -160,7 +160,7 @@ export async function gioChoiCua(fam: string, con: string, now = new Date()) {
   const b = await boiCanhCon(con);
   if (b.fam !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   return {
-    quyNgayThuong: 0, quyCuoiTuan: 0, phut10Sao: 10, doiSaoBat: false, doiSaoToiDaNgay: 0, choXinThemGio: true, ngoaiLeToiDaPhut: 0,
+    phut10Sao: 10, doiSaoBat: false, doiSaoToiDaNgay: 0, choXinThemGio: true, ngoaiLeToiDaPhut: 0,
     gioNgu: b.lich.ngu, gioHoc: b.lich.hoc, homNay: await quyHomNay(con, now, q, b),
     // #302: giới hạn ngày (ngày thường / T7–CN) + mỗi lượt tối đa — 0 = không giới hạn
     ...gioiHanBm(b.cfg),
@@ -180,6 +180,7 @@ export async function datGioChoi(fam: string, con: string, b: Record<string, unk
   const cu = await boiCanhCon(con);
   if (cu.fam !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   await luuGioiHan(fam, con, b, nguoi);
+  // #619: trả giá trị ĐỌC LẠI từ DB sau khi ghi (không dựa bản đọc trước đó)
   return gioChoiCua(fam, con);
 }
 
