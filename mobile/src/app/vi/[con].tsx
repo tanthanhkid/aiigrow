@@ -9,7 +9,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type Diem, type Qua } from "@/lib/api";
 import { KHOI } from "@/lib/clay";
-import { BangTruot, BaoLoi, ChoTai, ChonMot, Chu, gioPhut, Icon3D, M, Man, Nhan, Nut, ONhap, Rob, The, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { BangTruot, BaoLoi, ChoTai, ChonMot, Chu, Icon3D, M, Man, Nhan, Nut, ONhap, Rob, The, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { OLomIcon } from "@/lib/ui-viec";
 import { HangViec, quyenToi, TieuMuc, type ChoDuyetMoi } from "@/lib/hang-ngay";
 import { icQua, tenVoucher } from "@/lib/s3";
@@ -30,7 +30,7 @@ function hangVi(ds: DongVi[]): Hang[] {
   const daGop = new Set<string>();
   const out: Hang[] = [];
   for (const x of ds) {
-    const khi = `${ngay(x.luc)} · ${gioPhut(x.luc)}`;
+    const khi = `${ngay(x.luc)} · ${gioNgayTrong(x.luc)}`;   // #658: ngày chỉ hiện một lần
     if (x.kieu === "tra_no") {
       if (daGop.has(x.id)) continue;
       // trả nợ không có dòng kiếm đi kèm (hoàn tác duyệt ⇒ +N) — giữ dòng riêng
@@ -57,6 +57,8 @@ function hangVi(ds: DongVi[]): Hang[] {
 const tuViCu = (l: Diem[]): DongVi[] => l.map((x, i) => ({ id: `cu${i}`, delta: x.delta, loai: x.loai, lyDo: x.ly_do, nguoi: x.nguoi, tenNguoi: x.ten_nguoi ?? null, luc: x.created_at,
   kieu: x.loai === "vay" ? (x.delta > 0 ? "vay" : "hoan_vay") : x.loai === "tra_no" ? "tra_no" : x.loai === "doi_qua" || x.loai === "voucher" ? "doi_qua"
     : x.loai === "choi" || x.loai === "phien" || x.loai === "doi_gio" ? "choi" : x.delta > 0 ? "kiem" : "tru" }));
+/** «13:43» (gioPhut thêm «21/11» cho ngày khác — ví đã ghi ngày ở trước). */
+const gioNgayTrong = (iso: string) => { const t = new Date(iso); return `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`; };
 /** «Hôm nay» / «Hôm qua» / «3/11». */
 const ngay = (iso: string) => {
   const t = new Date(iso), h = new Date();
@@ -86,7 +88,7 @@ export default function ViSao() {
   const { bao, noi } = useHoanTac();
   if (!d) return <Man lui={{ chu: "Việc & quà" }} tieu="Ví sao"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const s = d.s, sao = s.sao, k = kieuSao(s), no = cauNo(s);
-  const kiem = d.bayNgay?.saoKiem ?? d.lich.filter((x) => x.kieu === "kiem" && d.bay - new Date(x.luc).getTime() < 7 * 86_400_000).reduce((a, x) => a + x.delta, 0);
+  const kiem = d.bayNgay?.saoKiem ?? d.lich.filter((x) => x.kieu === "kiem" && x.loai !== "tay" && x.loai !== "tang" && d.bay - new Date(x.luc).getTime() < 7 * 86_400_000).reduce((a, x) => a + x.delta, 0);
   const mauThe = k === "thuong" ? M.diemInk : MAU_NO.chu;
   const hang = hangVi(d.lich).slice(0, 40);
   const luu = () => lam(async () => {

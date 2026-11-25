@@ -57,6 +57,8 @@ function HomNay({ con, ct }: { con: string; ct: ConCt | null }) {
   });
   if (!d) return <ChoTai loi={loi} matMang={matMang} tai={tai} />;
   const qy = d.q?.quy;
+  // #658: «đã chơi» = sao đã trừ trong ví (cùng số với Báo cáo / Ví sao), không phải phút máy đo (có thể chưa trừ sao)
+  const choi = qy ? (qy.phutTruHomNay ?? qy.daDung) : 0;
   const i = d.mh.theoNgay.findIndex((x) => x.ngay === d.mh.homNay);
   const app = i < 0 ? [] : d.mh.ds.map((x) => ({ ...x, p: x.theoNgay[i] ?? 0 })).filter((x) => x.p >= 30).sort((a, b) => b.p - a.p).slice(0, 8);
   const may = ct?.may ?? [];
@@ -67,8 +69,8 @@ function HomNay({ con, ct }: { con: string; ct: ConCt | null }) {
           <Chu kieu="dam" co={13.5} mau={M.chu3}>Đã chơi hôm nay</Chu>
           {qy ? (
             <>
-              <Chu kieu="rat" co={28} so>{`${qy.daDung} phút `}<Chu kieu="dam" co={16} mau={M.chu3}>{`= ${qy.daDung} sao`}</Chu></Chu>
-              <ThanhClay ti={qy.tongPhut ? Math.min(1, qy.daDung / qy.tongPhut) : 0} mau={qy.conPhut ? M.chinh : M.huy} />
+              <Chu kieu="rat" co={28} so>{`${choi} phút `}<Chu kieu="dam" co={16} mau={M.chu3}>{`= ${choi} sao`}</Chu></Chu>
+              <ThanhClay ti={choi + qy.conPhut ? Math.min(1, choi / (choi + qy.conPhut)) : 0} mau={qy.conPhut ? M.chinh : M.huy} />
               <Chu co={13.5} mau={M.chu2}>{qy.conPhut ? `Còn ${qy.conPhut} sao = ${qy.conPhut} phút chơi · app học không trừ sao` : "Hết sao · app học không trừ sao"}</Chu>
             </>
           ) : <Chu co={14} mau={M.chu2}>Chưa đọc được số sao của con.</Chu>}

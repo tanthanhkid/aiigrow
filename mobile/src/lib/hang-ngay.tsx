@@ -18,7 +18,7 @@ import { BangTruot, BaoLoi, BieuTron, CanhGiua, Chu, DauSach, gioPhut, Icon, Ico
 /** Đối tượng `quy` — quỹ giờ chơi hôm nay (server/lib/quy-gio.ts › quyHomNay). */
 export type Quy = {
   ngay: string; cuoiTuan: boolean; quyNgayPhut: number; themPhut: number; doiSaoPhut: number; daDung: number; conPhut: number; tongPhut: number;
-  khoa: boolean;
+  khoa: boolean; /** #658: phút đã trừ sao hôm nay (= số sao tiêu trong ví; máy chủ cũ không có) */ phutTruHomNay?: number;
   tyLe: { sao: number; phut: number }; doiSao: { bat: boolean; toiDaNgay: number; conDoiDuoc: number }; choXinThem: boolean;
 };
 /** GET con/:id/quy */

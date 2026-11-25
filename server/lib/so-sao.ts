@@ -311,7 +311,8 @@ export async function thongKeSao(con: string, tu: Date, den: Date, t: Q = q) {
   const r = (await t<{ kiem: number; vay: number; tra: number; choi: number; qua: number; lan_vay: number }>(
     // #433 B1: sao kiếm trừ phần «Hoàn tác duyệt» (KIEM_SQL); sao tiêu đổi quà trừ phần hoàn của phiếu quà đã huỷ / quà bị xoá (hoan dương, ref =
     // phiếu); hoàn sao chơi trừ nhầm (hoan dương khác) trừ vào sao tiêu cho chơi
-    `select coalesce(sum(delta) filter (where ${KIEM_SQL}), 0)::int as kiem,
+    // #658: «kiếm» chỉ là sao Con làm ra — Ba Mẹ cộng tay / tặng không tính (trả lại sao ≠ con kiếm)
+    `select coalesce(sum(delta) filter (where ${KIEM_SQL} and loai not in ('tay', 'tang')), 0)::int as kiem,
             coalesce(sum(delta) filter (where loai = 'vay'), 0)::int as vay,
             coalesce(-sum(delta) filter (where loai = 'tra_no'), 0)::int as tra,
             greatest(0, coalesce(-sum(delta) filter (where loai in ('choi', 'phien', 'doi_gio')
