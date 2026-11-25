@@ -4,7 +4,7 @@
 // Tính phút» ⇒ POST con/:id/danh-sach {ds: [{nhom, muc, kieu: web}]} ⇒ về danh sách Web.
 import { useMemo, useState } from "react";
 import { View } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { Redirect, useLocalSearchParams } from "expo-router";
 import { bm, type ConChiTiet, type ThongKeWeb } from "@/lib/api";
 import { themVaoDs } from "@/lib/app-web";
 import { bamChonThem, chuNutThem, datNhomThem, KetQuaThem, type ChonThem, type MucThem } from "@/lib/ds-chung";
@@ -32,6 +32,11 @@ type Trang = { muc: string; phu: string };
 
 export default function ThemWeb() {
   const { con } = useLocalSearchParams<{ con: string }>();
+  // #661: không có ?con (mở thẳng/tải lại) ⇒ về màn chọn bé
+  if (!con) return <Redirect href="/chan" />;
+  return <ThemWebCon con={con} />;
+}
+function ThemWebCon({ con }: { con: string }) {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [ct, w] = await Promise.all([bm.goi<ConChiTiet>(`con/${con}`), bm.goi<ThongKeWeb>(`con/${con}/web?ngay=30`).catch(() => null)]);
     return { ten: ct.ten, tuoi: ct.namSinh ? new Date().getFullYear() - ct.namSinh : null, w };

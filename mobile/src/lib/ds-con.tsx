@@ -4,7 +4,7 @@
 //  · MotMuc (bm2-app-web@v20 · them-2nupeqju): chi tiết dùng chung với Lần đầu «Đổi app / web đã thêm» — lib/ds-chung › ChiTietMuc.
 //    Đọc: GET con/:id/danh-sach. Ghi: danh-sach/doi · danh-sach/bo · POST danh-sach (mục chưa có — thẻ «app mới»).
 import { useState } from "react";
-import { router } from "expo-router";
+import { Redirect, router } from "expo-router";
 import { bm, laChiXem } from "./api";
 import { boKhoiDs, doiNhom, hangCua, napBoQua, napDanhSach, phuHomNay, themVaoDs, type DongDs, type Kieu, type Nhom, type XinDs } from "./app-web";
 import { ChiTietMuc, HaiNhomMuc } from "./ds-chung";
@@ -25,7 +25,12 @@ export const xinThanhYc = (y: XinDs, con: { id: string; ten: string }): YeuCauMo
 
 const khoa = (t: string) => t.trim().toLowerCase();
 
-export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
+export function DsMucCon(p: Parameters<typeof DsMucConTrong>[0]) {
+  // #661: mở thẳng/tải lại không có ?con ⇒ về màn chọn bé thay vì «Không thấy hồ sơ Con»
+  if (!p.con) return <Redirect href="/chan" />;
+  return <DsMucConTrong {...p} />;
+}
+function DsMucConTrong({ con, kieu }: { con: string; kieu: Kieu }) {
   const { d, loi, matMang, tai } = useTai(async () => {
     // «Đã bỏ qua N lời xin» đếm ĐÚNG loại của màn (app / web) — danh-sach chỉ trả tổng ⇒ đọc danh sách bỏ qua của Con
     const [ds, xem, bq] = await Promise.all([napDanhSach(con), laChiXem(), napBoQua(con).catch(() => null)]);
@@ -72,7 +77,12 @@ export function DsMucCon({ con, kieu }: { con: string; kieu: Kieu }) {
 
 /** Một app / một trang trong danh sách. `muc` (không bắt buộc) = định danh khi mục CHƯA có trong danh sách (thẻ «app mới» Trang chủ ⇒ thêm mới).
  *  `caNha`: thẻ «app mới» của cả nhà (không kèm con) ⇒ ghi luật cả nhà (POST luat không `con`, loai tinh_phut | khong_tinh_phut) — mọi bé + máy chung. */
-export function MotMuc({ con, kieu, ten, muc, caNha }: { con: string; kieu: Kieu; ten: string; muc?: string; caNha?: boolean }) {
+export function MotMuc(p: Parameters<typeof MotMucTrong>[0]) {
+  // #661: mở thẳng/tải lại không có ?con ⇒ về màn chọn bé thay vì «Không thấy hồ sơ Con»
+  if (!p.con) return <Redirect href="/chan" />;
+  return <MotMucTrong {...p} />;
+}
+function MotMucTrong({ con, kieu, ten, muc, caNha }: { con: string; kieu: Kieu; ten: string; muc?: string; caNha?: boolean }) {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [ds, xem] = await Promise.all([napDanhSach(con), laChiXem()]);
     return { ds, xem };

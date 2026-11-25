@@ -4,7 +4,7 @@
 // «Thêm Minecraft · Tính phút» ⇒ POST con/:id/danh-sach {ds: [{nhom, ma} | {nhom, ten}]} (máy chủ ghi mọi định danh cùng tên trên mọi máy) ⇒ về danh sách App.
 import { useMemo, useState } from "react";
 import { View } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { bm, type ConChiTiet } from "@/lib/api";
 import { themVaoDs } from "@/lib/app-web";
 import { KhoiAppMay, taiAppCuaCon } from "@/lib/app-may-ui";
@@ -21,6 +21,11 @@ const chuan = (t: string) => t.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g
 
 export default function ThemApp() {
   const { con } = useLocalSearchParams<{ con: string }>();
+  // #661: không có ?con (mở thẳng/tải lại) ⇒ về màn chọn bé
+  if (!con) return <Redirect href="/chan" />;
+  return <ThemAppCon con={con} />;
+}
+function ThemAppCon({ con }: { con: string }) {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [ct, gy, luat] = await Promise.all([
       bm.goi<ConChiTiet>(`con/${con}`), bm.goi<{ ds: GoiY[] }>(`app-goi-y?con=${con}`).catch(() => ({ ds: [] as GoiY[] })), bm.goi<{ ds: LuatApp[] }>("luat"),

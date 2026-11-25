@@ -4,7 +4,7 @@
 // Năm sinh chỉ đọc: máy chủ (gia-dinh.ts › suaCon) chưa lưu năm sinh khi sửa ⇒ không mở bánh xe năm, nhắc đổi qua «Hỏi AiiGrow».
 // Lưu = POST con/:id/sua rồi gửi ảnh.
 import { useState } from "react";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { bm, chuanHoaTen } from "@/lib/api";
 import { BONG } from "@/lib/clay";
@@ -16,6 +16,11 @@ import { BaoLoi, baoKhiVe, ChoTai, Chu, M, Man, Nut, ONhap, The, useLam, useTai 
 
 export default function SuaHoSo() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  // #661: không có ?id (mở thẳng/tải lại) ⇒ về Cài đặt (danh sách con)
+  if (!id) return <Redirect href="/cai-dat" />;
+  return <SuaHoSoCon id={id} />;
+}
+function SuaHoSoCon({ id }: { id: string }) {
   const { d, loi, matMang, tai } = useTai(() => bm.goi<ConCt>(`con/${id}`));
   const [ten, setTen] = useState<string | null>(null);
   const [mau, setMau] = useState<number | null>(null);
