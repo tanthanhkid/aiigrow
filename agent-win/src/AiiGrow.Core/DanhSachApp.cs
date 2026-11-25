@@ -388,7 +388,7 @@ public static class DanhSachApp
             var muc = (a.Muc ?? "").Trim().ToLowerInvariant();
             var ten = (a.Ten ?? "").Trim();
             if (khoa.Length == 0 || muc.Length == 0 || ten.Length == 0 || !seen.Add(khoa)) continue;
-            if (seenTen.TryGetValue(TenChuan(ten), out var daCo))
+            if (seenTen.TryGetValue(TenLoi(ten), out var daCo))
             {
                 // cùng tên (khác khoa: Copilot/Edge bản Store + bản đã cài) ⇒ một dòng, nhưng mang theo muc của bản bị gộp
                 if (!daCo.CacMuc!.Contains(muc)) daCo.CacMuc.Add(muc);
@@ -396,13 +396,13 @@ public static class DanhSachApp
             }
             kq.Add(new AppThat
             {
-                Khoa = khoa, Muc = C(muc)!, Ten = C(ten)!, Nguon = a.Nguon, NhaPhatHanh = C(Rong(a.NhaPhatHanh)), DuongDan = a.DuongDan, ThuMuc = a.ThuMuc,
+                Khoa = khoa, Muc = C(muc)!, Ten = C(BoDuoiNguoiDung(ten))!, Nguon = a.Nguon, NhaPhatHanh = C(Rong(a.NhaPhatHanh)), DuongDan = a.DuongDan, ThuMuc = a.ThuMuc,
                 PhienBan = C(Rong(a.PhienBan)), Sha256 = Rong(a.Sha256)?.ToLowerInvariant(),
                 Icon = a.Icon is { Length: > 0 and <= ToiDaIconBase64 } ? a.Icon : null,
             });
             var moi = kq[^1];
             moi.CacMuc = new List<string> { moi.Muc };
-            seenTen[TenChuan(ten)] = moi;
+            seenTen[TenLoi(ten)] = moi;
             moi.IconBam = moi.Icon == null ? null : BamIcon(moi.Icon);
             if (moi.IconBam == null) moi.Icon = null;
         }
@@ -417,6 +417,30 @@ public static class DanhSachApp
             if (a.CacMuc is { Count: > 1 } c)
                 foreach (var m in c) d[m] = d.TryGetValue(m, out var cu) ? cu.Union(c).ToArray() : c.ToArray();
         return d;
+    }
+
+    private static readonly string[] HauToChung = { "playerbeta", "player", "launcher" };
+
+    /// <summary>«Roblox Player for aiicon» ⇒ «Roblox Player»: chỉ bỏ «for &lt;một từ&gt;» khi phần trước kết thúc bằng Player/Launcher
+    /// (tên người dùng Windows không hiện ra, không làm đổi dấu vân tay khi đổi tên tài khoản).</summary>
+    public static string BoDuoiNguoiDung(string ten)
+    {
+        var i = ten.LastIndexOf(" for ", StringComparison.OrdinalIgnoreCase);
+        if (i <= 0) return ten;
+        var sau = ten[(i + 5)..].Trim();
+        var truoc = ten[..i].TrimEnd();
+        if (sau.Length == 0 || sau.Contains(' ')) return ten;
+        return truoc.EndsWith("player", StringComparison.OrdinalIgnoreCase) || truoc.EndsWith("launcher", StringComparison.OrdinalIgnoreCase) ? truoc : ten;
+    }
+
+    /// <summary>Tên lõi để gộp launcher/game cùng hãng: sau <see cref="BoDuoiNguoiDung"/>, bỏ MỘT hậu tố Player/PlayerBeta/Launcher
+    /// ⇒ «Roblox Player for x» = «Roblox» = «RobloxPlayerBeta»; «Minecraft» = «Minecraftlauncher». «Chrome Beta», «Roblox Studio» giữ riêng.</summary>
+    public static string TenLoi(string ten)
+    {
+        var c = TenChuan(BoDuoiNguoiDung(ten));
+        foreach (var h in HauToChung)
+            if (c.Length >= h.Length + 4 && c.EndsWith(h, StringComparison.Ordinal)) return c[..^h.Length];
+        return c;
     }
 
     /// <summary>Tên so trùng: chữ thường, bỏ dấu, giữ chữ, số, «+», «#» (C++ khác C#).</summary>
