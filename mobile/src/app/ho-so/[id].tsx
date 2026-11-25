@@ -4,6 +4,7 @@
 // («Theo danh sách» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
 // PIN vào máy (Đặt lại) · «Xoá hồ sơ X» chữ đỏ canh giữa (⇒ /ho-so/<id>/xoa, them-canktzlq). #325: theo bm2-ho-so@v22 (thẻ đầu ngọc nhạt). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
 import { canSuaMay } from "@/lib/trang-thai-may";
+import { tomTatGioiHan, type GioiHan } from "@/lib/gioi-han";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
@@ -116,7 +117,8 @@ export default function HoSoCon() {
 
 /** Giá trị bên phải hàng cài đặt (thiết kế: 12.5/700 xám, dòng dưới cam khi «cần sửa») + mũi tên. */
 /** «60 phút · cuối tuần 90 phút» (Bàn: dòng phụ dưới «Giờ chơi mỗi ngày»). */
-const tomTat = (g: { ngayThuong: number; cuoiTuan: number }) => `${g.ngayThuong} phút · cuối tuần ${g.cuoiTuan} phút`;
+/** #658: cùng lời với form «Giờ chơi» (0 = không giới hạn, không ghi «0 phút»). */
+const tomTat = (g: GioiHan) => { const t = tomTatGioiHan(g); return t.duoi ? `${t.tren} · ${t.duoi}` : t.tren; };
 
 function GiaPhai({ tren, duoi, canh }: { tren: string; duoi?: string; canh?: boolean }) {
   return (

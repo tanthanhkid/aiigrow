@@ -343,3 +343,14 @@ test("PR #277: tin khay «Ba Mẹ cho vay N sao» (sau 60 giây Hoàn tác) và 
   assert.match(tc[0].tieu, /chưa cho vay sao$/);
   assert.equal(tc[0].noi, "«Mai chơi tiếp nhé»");
 });
+
+test("#658: «sao kiếm» tuần chỉ tính sao Con làm ra — Ba Mẹ cộng tay / tặng không tính", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Bảo Anh" });
+  await v.dieuChinhTay(fam, con, 20, "Trả lại sao", bm);
+  await v.dieuChinhTay(fam, con, 20, "Trả lại sao", bm);
+  const tu = new Date(Date.now() - 86_400_000), den = new Date(Date.now() + 60_000);
+  assert.equal((await ss.thongKeSao(con, tu, den)).saoKiem, 0, "chỉ có điều chỉnh tay ⇒ chưa kiếm gì");
+  await lamNv(fam, con, bm, 10);
+  assert.equal((await ss.thongKeSao(con, tu, den)).saoKiem, 10, "nhiệm vụ Con làm vẫn tính");
+});

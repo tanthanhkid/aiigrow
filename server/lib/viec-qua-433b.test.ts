@@ -59,7 +59,7 @@ test("B1: huỷ phiếu quà ⇒ «sao tiêu đổi quà» không còn tính qu�
   const tk = await ss.thongKeSao(con, tu, den);
   assert.equal(tk.saoTieuQua, 0);
   assert.equal(tk.saoTieu, 0);
-  assert.equal(tk.saoKiem, 200, "hoàn quà không phải sao kiếm");
+  assert.equal(tk.saoKiem, 0, "hoàn quà không phải sao kiếm; thưởng tay của Ba Mẹ cũng không (#658)");
 });
 
 test("B2: quét quá hạn toàn hệ thống (không cần Ba Mẹ mở Chờ duyệt) — nhắc 24h, hết hạn ghi sự kiện + báo Ba Mẹ; lượt dở của việc đã tắt được đóng", async () => {
