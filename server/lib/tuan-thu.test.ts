@@ -177,7 +177,7 @@ test("mở khẩn cấp do Ba Mẹ: gỡ khoá tuân thủ trong thời hạn (k
 
 test("máy chưa từng gửi nhịp (agent M4 cũ chỉ dong-bo) ⇒ «chua_co_nhip», không khoá; dong-bo trả thêm lenh", async () => {
   const { token, may } = await nha();
-  assert.equal((await tt.tuanThuMay(await may())).trangThai, "chua_co_nhip");
+  assert.equal((await tt.tuanThuMay({ ...(await may()), last_seen: null } as any)).trangThai, "chua_co_nhip");
   const p = (await dv("dong-bo", { tok: token, body: { clientTime: new Date().toISOString() } })).body;
   assert.deepEqual(p.lenh, []);
   assert.ok("soDu" in p && "luat" in p, "trường Policy cũ giữ nguyên");
@@ -217,4 +217,16 @@ test("tuan-thu ?nhe=1 (Trang chủ): đọc đúng trạng thái nhưng KHÔNG q
   assert.equal((await alerts(fam, "may_ngoai_vong")).length, 0);
   await tt.dsTuanThu(fam, sau(t0, 40));
   assert.equal((await alerts(fam, "may_ngoai_vong")).length, 1);
+});
+
+test("#620: máy Windows chưa có nhịp tuân thủ nhưng last_seen còn mới ⇒ tính như đang chạy; quá ngưỡng ⇒ ngoài vòng; chưa từng thấy ⇒ chua_co_nhip", async () => {
+  const { may } = await nha();
+  const m0 = await may();
+  const t0 = VN("2026-11-25T09:00:00");
+  assert.equal((await tt.tuanThuMay({ ...m0, last_seen: null } as any, t0)).trangThai, "chua_co_nhip");
+  const ls = { ...m0, last_seen: t0 } as any;
+  assert.equal((await tt.tuanThuMay(ls, sau(t0, 1))).trangThai, "tuan_thu");
+  const xa = await tt.tuanThuMay(ls, sau(t0, 60));
+  assert.equal(xa.trangThai, "ngoai_vong");
+  assert.equal(xa.khoaGiaiTri, true);
 });

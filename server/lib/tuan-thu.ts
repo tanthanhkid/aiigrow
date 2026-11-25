@@ -103,11 +103,23 @@ const nguongMatNhip = (nen: string, ts: ThamSo) => (laDiDong(nen) ? ts.mat_nhip_
 
 /** Trạng thái hiện tại của một máy (đọc, không ghi). */
 function trangThaiMay(may: Pick<May, "platform" | "last_seen">, r: DongTT | undefined, ts: ThamSo, now: Date): TuanThu {
+  // máy Windows/Mac chưa có nhịp tuân thủ (agent chỉ đồng bộ dong-bo, cập nhật devices.last_seen) ⇒ dùng last_seen:
+  // còn trong ngưỡng ⇒ tính như đang chạy; quá ngưỡng ⇒ ngoài vòng; chưa từng thấy ⇒ chua_co_nhip
+  if (coTacTu(may.platform) && !r?.nhip_cuoi) {
+    const moKC0 = r?.mo_khan_cap_den ? new Date(r.mo_khan_cap_den) : null;
+    const l = may.last_seen ? new Date(may.last_seen) : null;
+    if (!l) return tongHop([], ts.tuan_thu_nguong, moKC0, now, "chua_co_nhip");
+    const phut = Math.round((now.getTime() - l.getTime()) / 60_000);
+    if (phut * 60_000 > nguongMatNhip(may.platform, ts) * 60_000 && !moKC0)
+      return tongHop([{ loai: "ngoai_vong", tru: TRU.ngoai_vong, chiTiet: { matNhipPhut: phut },
+        cauBaMe: `Máy không đồng bộ ${phut} phút — có thể AiiGrow đã bị tắt hoặc máy rời mạng`,
+        cauCon: "Máy mất liên lạc với AiiGrow — giải trí tạm khoá" }], ts.tuan_thu_nguong, moKC0, now, "ngoai_vong");
+    if (phut * 60_000 > nguongMatNhip(may.platform, ts) * 60_000) return tongHop([], ts.tuan_thu_nguong, moKC0, now, "chua_co_nhip");
+    return tongHop([], ts.tuan_thu_nguong, moKC0, now);
+  }
   if (!r) return { trangThai: "chua_co_nhip", diem: 100, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null };
   const ls = may.last_seen ? new Date(may.last_seen) : r.nhip_cuoi ? new Date(r.nhip_cuoi) : null;
   const moKC = r.mo_khan_cap_den ? new Date(r.mo_khan_cap_den) : null;
-  // máy Windows chỉ có dòng vì Ba Mẹ từng «Mở khẩn cấp» (agent Windows không gửi nhịp tuân thủ) ⇒ không tính mất nhịp
-  if (coTacTu(may.platform) && !r.nhip_cuoi) return tongHop([], ts.tuan_thu_nguong, moKC, now, "chua_co_nhip");
   if (r.tat_luc && ls && ls.getTime() <= new Date(r.tat_luc).getTime() + 60_000) return tongHop([], ts.tuan_thu_nguong, moKC, now, "tat_may");
   if (!ls || now.getTime() - ls.getTime() > nguongMatNhip(may.platform, ts) * 60_000) {
     const phut = ls ? Math.round((now.getTime() - ls.getTime()) / 60_000) : null;
