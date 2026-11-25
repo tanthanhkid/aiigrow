@@ -7,7 +7,8 @@
 // màn đó); «Gửi lại» tạo link mới + mở hàng chia sẻ rồi sang màn đó. Icon «Quà con đổi bằng sao» = qua.webp như bàn.
 import { Pressable, Share, View } from "react-native";
 import { router } from "expo-router";
-import { bm, mauMay } from "@/lib/api";
+import { bm } from "@/lib/api";
+import { canSuaMay } from "@/lib/trang-thai-may";
 import { usePhien } from "@/lib/phien";
 import { KHOA_CA_NHA, TEN_QUYEN, napCaNha, tenMoi, type LoiMoiCho } from "@/lib/ca-nha";
 import { MucTieu, OIcon } from "@/lib/ui-bm3";
@@ -46,7 +47,7 @@ export default function CaiDat() {
       bam={() => (x.laToi ? router.push("/tai-khoan") : router.push({ pathname: "/thanh-vien", params: { id: x.id } }))} />
   );
   const may = d.may ?? [];
-  const canSua = may.filter((m) => mauMay(m) !== "xanh").length;
+  const canSua = may.filter(canSuaMay).length;
   const tenMay = [...new Set(may.map((m) => (m.ten && m.ten.length <= 14 ? m.ten : TEN_NEN[m.nen])))].join(", ");
   const tatTb = (d.tatTb ?? []).filter((x) => x !== "canh_bao").length;
   return (

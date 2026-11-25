@@ -1,6 +1,7 @@
 // «<Con> dùng máy» (thiết kế chốt 05/11, bm-hang-ngay/35): chọn «Hôm nay» / «Cả tuần». Hôm nay = phút «Tính phút» đã dùng = sao đã tiêu, còn N sao
 // (GET con/:id/quy — 15/11 1 sao = 1 phút, không còn quỹ ngày), theo app (cột hôm nay của GET con/:id/man-hinh — app Học «Không tính»), theo máy, nút «Xem ví sao» (→ /vi).
 // Cả tuần = thời gian màn hình theo tuần (kiểu Screen Time) giữ như cũ: biểu đồ chồng theo mục, chạm ngày / mục để lọc; chỉ tên app/tên miền + thời lượng.
+import { canSuaMay, maMay, TEN_HIEN_THI } from "@/lib/trang-thai-may";
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -90,8 +91,8 @@ function HomNay({ con, ct }: { con: string; ct: ConCt | null }) {
           <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>Theo máy</Chu>
           <The dem style={{ paddingVertical: 4 }}>
             {may.map((m, k) => (
-              <HangViec key={m.id} dau={k === 0} ic={IC_MAY[m.nen]} mau={m.baoVe === "day_du" ? "xam" : "cam"} tieu={m.ten}
-                phu={m.baoVe !== "day_du" ? "Cần sửa · chưa được bảo vệ đủ" : m.truc ? "Đang mở" : "Đang tắt"} bam={() => router.push(`/may/${m.id}` as never)} />
+              <HangViec key={m.id} dau={k === 0} ic={IC_MAY[m.nen]} mau={canSuaMay(m) ? "cam" : "xam"} tieu={m.ten}
+                phu={canSuaMay(m) ? "Cần sửa · chưa được bảo vệ đủ" : maMay(m) === "bao_ve" ? (m.truc ? "Đang bảo vệ · đang mở" : "Đang bảo vệ") : TEN_HIEN_THI[maMay(m)]} bam={() => router.push(`/may/${m.id}` as never)} />
             ))}
           </The>
         </>

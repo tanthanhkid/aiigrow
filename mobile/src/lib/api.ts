@@ -97,7 +97,7 @@ export type MayCon = { id: string; ten: string; nen: "windows" | "mac" | "ios" |
   lanCuoi: string | null; truc: boolean; lechGiay: number | null;
   /** Quyền bảo vệ còn thiếu + cách khắc phục (server/lib/gia-dinh.ts › chiTietBaoVe); baoVeCau = một câu giải thích. */
   baoVeThieu?: { ma: string; ten: string; cach: string }[]; baoVeCau?: string;
-  /** S3 06/11: máy im lặng > 10 phút hôm nay (không phải tắt / ngủ) */ matMang?: boolean;
+  /** S3 06/11: máy im lặng > 10 phút hôm nay (không phải tắt / ngủ) */ matMang?: boolean; /** #657 */ hienThi?: import("./trang-thai-may").HienThiMay;
   /** 14/11 (PR #253): khoá RIÊNG máy này do Ba Mẹ đặt (POST may/:id/khoa) — den null = tới khi Ba Mẹ mở; máy chủ cũ không gửi */ khoaMay?: { khoa: boolean; den: string | null };
   /** #267: Con nối với máy (≥ 2 = máy chung) · số Con · iPhone/iPad chỉ một Con — máy chủ cũ không gửi */
   conDs?: { id: string; ten: string; avatar: string }[]; soCon?: number; motCon?: boolean };
@@ -120,7 +120,8 @@ export const tenYc = (y: { gia_tri: string | null; ten_app?: string | null }) =>
 export type Qua = { id: string; ten: string; loai: "voucher" | "qua" | "dac_quyen" | "tiet_kiem"; diem: number; menh_gia: number | null; ton_kho: number | null;
   toi_da_thang: number | null; chi_cuoi_tuan: boolean; bat: boolean };
 export type CanhBao = { id: string; child_id: string | null; loai: string; muc: "thong_tin" | "chu_y" | "nghiem_trong"; noi_dung: string;
-  chi_tiet: Record<string, unknown>; da_doc: boolean; created_at: string };
+  chi_tiet: Record<string, unknown>; da_doc: boolean; created_at: string;
+  /** #657: máy chủ tính — chưa đọc, ≤ 7 ngày, không thuộc loại chỉ để biết (MỘT nguồn số «cần sửa») · loại chỉ để biết (không nút «Sửa») */ canSua?: boolean; chiBiet?: boolean };
 export type Diem = { delta: number; loai: string; ly_do: string; nguoi: string | null; /** tên Ba Mẹ (máy chủ cũ không gửi) */ ten_nguoi?: string | null; created_at: string };
 
 /** Lời xin vay sao (mới + loại cũ máy chưa cập nhật). */
@@ -140,6 +141,7 @@ export type TuanThuMay = {
   phienBan: string | null; adminTinCay: string[];
   /** MỘT nguồn mức bảo vệ với Hồ sơ Con (server/lib/gia-dinh.ts › chiTietBaoVe): trang nào cũng đọc từ đây, không tự tính lại.
    *  Máy chủ cũ không gửi ⇒ undefined: coi là «chưa biết», không báo «chưa đủ» và không đọc baoVeThieu. */
+  /** #657: trạng thái hiển thị DUY NHẤT của máy (máy chủ tính) + cờ «cần sửa» + máy mất mạng hôm nay */ hienThi?: import("./trang-thai-may").HienThiMay; canSua?: boolean; matMang?: boolean;
   baoVe?: MayCon["baoVe"]; baoVeCau?: string; baoVeThieu?: { ma: string; ten: string; cach: string }[];
   trangThai: TrangThaiTuanThu; diem: number; vanDe: VanDeTuanThu[]; khoaGiaiTri: boolean; moKhanCapDen: string | null;
   /** Windows: hạn «đang mở» thật (mở khẩn cấp hoặc thêm giờ đã duyệt) — null = không mở. Máy chủ cũ không gửi. */

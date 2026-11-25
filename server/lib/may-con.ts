@@ -499,6 +499,6 @@ export async function goCoMatKhau(may: May, dinhDanh: unknown, matKhau: unknown)
   await q(`delete from pin_sai where khoa = $1`, [khoa]);
   await q(`delete from devices where id = $1`, [may.id]);
   await ghiSuKien(may.family_id, "go_may", { ten: may.name, cach: "go_tren_may" }, { con: may.child_id, nguoi: bm!.id });
-  await canhBao(may.family_id, "go_may", "thong_tin", `Đã gỡ AiiGrow khỏi ${may.name}`, { con: may.child_id, may: may.id });
+  await canhBao(may.family_id, "go_may", "thong_tin", `Đã gỡ AiiGrow khỏi ${may.name}`, { con: may.child_id, may: may.id, khoa: `go_tren_may:${may.id}` });
   return { ok: true };
 }

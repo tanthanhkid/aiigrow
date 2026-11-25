@@ -152,8 +152,12 @@ export async function dsThongBao(bm: BaMe, now = new Date()) {
     const d = tuSuKien(e);
     if (d) tho.push({ ...d, id: `e:${e.id}`, so: 1, luc: new Date(e.created_at).toISOString(), t: new Date(e.created_at).getTime(), loai: e.loai });
   }
+  const daCo = new Set<string>();
   for (const a of cb) {
-    tho.push({ id: `a:${a.id}`, nhom: a.loai === "no_qua_1000" ? "canh_bao_no" : "canh_bao", muc: a.muc, tieu: a.noi_dung, phu: a.ten_con ? `Cảnh báo · ${a.ten_con}` : "Cảnh báo",
+    const k = `${a.loai}|${a.noi_dung}|${a.child_id ?? ""}`;     // #657: cùng nội dung chỉ một thông báo
+    if (daCo.has(k)) continue;
+    daCo.add(k);
+    tho.push({ id: `a:${a.id}`, nhom: a.loai === "no_qua_1000" ? "canh_bao_no" : "canh_bao", muc: a.muc, tieu: a.noi_dung, phu: a.ten_con ? `Cảnh báo · ${a.ten_con}` : "Cảnh báo",   // phụ luôn khác tiêu (tiêu = nội dung cảnh báo)
       luc: new Date(a.created_at).toISOString(), t: new Date(a.created_at).getTime(), con: a.child_id, den: `/canh-bao/${a.id}`, so: 1, loai: "canh_bao" });
   }
   tho.sort((a, b) => b.t - a.t);

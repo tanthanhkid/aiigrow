@@ -3,6 +3,7 @@
 // 1 sao = 1 phút» (⇒ Ví sao — màn Giờ chơi bm2-gio đã bỏ), #302 «Giờ chơi» (giới hạn ngày + mỗi lượt ⇒ /ho-so/<id>/gio-choi), App & web (15/11 #262: bỏ Giờ ngủ, Giờ học)
 // («Theo danh sách» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
 // PIN vào máy (Đặt lại) · «Xoá hồ sơ X» chữ đỏ canh giữa (⇒ /ho-so/<id>/xoa, them-canktzlq). #325: theo bm2-ho-so@v22 (thẻ đầu ngọc nhạt). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
+import { canSuaMay } from "@/lib/trang-thai-may";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type GiaDinh } from "@/lib/api";
@@ -45,7 +46,7 @@ export default function HoSoCon() {
   const cg = d.g.con.find((x) => x.id === id);
   // 1 sao = 1 phút: phút «Tính phút» đã dùng hôm nay (gia-dinh › phutChoi)
   const phutHomNay = cg?.phutChoi ?? null;
-  const canSua = c.may.filter((m) => m.baoVe !== "day_du");
+  const canSua = c.may.filter(canSuaMay);
   return (
     <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
       {d.g.con.length > 1 ? <HangChonBe ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={id} doi={(x) => x && router.replace(`/ho-so/${x.id}` as never)} /> : null}
