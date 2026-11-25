@@ -180,6 +180,31 @@ internal static class UI
         catch { return false; }
     }
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+    private delegate bool EnumChildProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr hWnd, EnumChildProc cb, IntPtr lParam);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder sb, int max);
+
+    /// <summary>#622: app UWP chạy trong ApplicationFrameHost.exe — cửa sổ tiền cảnh thuộc host. Tìm cửa sổ con «Windows.UI.Core.CoreWindow»
+    /// có pid khác host ⇒ pid của app thật (0 nếu không thấy, vd app đang treo/ngủ).</summary>
+    private static uint PidUwpThat(IntPtr h, uint hostPid)
+    {
+        uint kq = 0;
+        try
+        {
+            EnumChildWindows(h, (c, _) =>
+            {
+                var sb = new System.Text.StringBuilder(64);
+                GetClassName(c, sb, sb.Capacity);
+                if (sb.ToString() != "Windows.UI.Core.CoreWindow") return true;
+                GetWindowThreadProcessId(c, out var cp);
+                if (cp == 0 || cp == hostPid) return true;
+                kq = cp;
+                return false;
+            }, IntPtr.Zero);
+        }
+        catch { }
+        return kq;
+    }
 
     private sealed record FgNho(int Pid, DateTime Bat, string Id, string Name);
     private static volatile FgNho? _fgNho;   // bất biến, thay nguyên khối ⇒ luồng nào đọc cũng không thấy nửa này nửa kia
@@ -195,6 +220,14 @@ internal static class UI
             if (h == IntPtr.Zero) return ("", "");
             GetWindowThreadProcessId(h, out var pid);
             if (pid == 0) return ("", "");
+            {
+                using var host = Process.GetProcessById((int)pid);
+                if (host.ProcessName.Equals("ApplicationFrameHost", StringComparison.OrdinalIgnoreCase))
+                {
+                    var that = PidUwpThat(h, pid);
+                    if (that != 0) pid = that;
+                }
+            }
             using var p = Process.GetProcessById((int)pid);
             DateTime? bat = null;
             try { bat = p.StartTime; } catch { }   // app chạy quyền cao: không đọc được ⇒ khỏi nhớ, vẫn trả tên tiến trình như trước
@@ -202,6 +235,13 @@ internal static class UI
             if (bat != null && nho != null && nho.Pid == (int)pid && nho.Bat == bat) return (nho.Id, nho.Name);
             var id = p.ProcessName.ToLowerInvariant() + ".exe";
             var name = p.ProcessName;
+            try
+            {
+                // app Store: Id = tên gói (khớp DanhSachApp.Muc / luật chặn theo gói)
+                var goi = p.MainModule?.FileName is { } duong ? AiiGrow.Core.ProcessGuard.TenGoiStore(duong) : null;
+                if (goi != null) id = goi;
+            }
+            catch { }
             try
             {
                 var d = p.MainModule?.FileVersionInfo.FileDescription;

@@ -130,6 +130,16 @@ public class ProcessGuardTests
     }
 
     [Fact]
+    public void TienTrinhNenKhongTinhGio_ChiLaTienTrinhNenCuaPhien()
+    {
+        foreach (var n in new[] { "searchapp.exe", "SearchHost.exe", "shellexperiencehost.exe", "startmenuexperiencehost.exe", "textinputhost.exe", "lockapp.exe" })
+            Assert.Contains(n, ProcessGuard.TienTrinhNenKhongTinhGio);
+        Assert.DoesNotContain("microsoft.microsoftsolitairecollection", ProcessGuard.TienTrinhNenKhongTinhGio);
+        Assert.Equal("microsoft.microsoftsolitairecollection",
+            ProcessGuard.TenGoiStore(@"C:\Program Files\WindowsApps\Microsoft.MicrosoftSolitaireCollection_4.0.0.0_x64__8wekyb3d8bbwe\Solitaire.exe"));
+    }
+
+    [Fact]
     public void ShouldClose_AppStoreDuocPhepTheoTenGoiHoacTenExe()
     {
         const string calc = @"C:\Program Files\WindowsApps\Microsoft.WindowsCalculator_11.2.0.0_x64__8wekyb3d8bbwe\CalculatorApp.exe";
