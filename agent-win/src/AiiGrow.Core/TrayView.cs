@@ -88,8 +88,11 @@ public static class TrayView
     public static bool DangDungMayChung(TrayState s) => s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng && !string.IsNullOrEmpty(s.BeId);
 
     /// <summary>Tên «Không tính phút» / «Tính phút» để hiện: tên dịch vụ đã giải nếu đủ, không thì mục.</summary>
-    public static IReadOnlyList<string> TenKhongTinh(TrayState s) => s.TenAppDuocPhep.Count == s.AppDuocPhep.Count && s.TenAppDuocPhep.Count > 0 ? s.TenAppDuocPhep : s.AppDuocPhep;
-    public static IReadOnlyList<string> TenTinh(TrayState s) => s.TenAppTinhPhut.Count == s.AppTinhPhut.Count && s.TenAppTinhPhut.Count > 0 ? s.TenAppTinhPhut : s.AppTinhPhut;
+    public static IReadOnlyList<string> TenKhongTinh(TrayState s) => TenGon(s.TenAppDuocPhep.Count == s.AppDuocPhep.Count && s.TenAppDuocPhep.Count > 0 ? s.TenAppDuocPhep : s.AppDuocPhep);
+    public static IReadOnlyList<string> TenTinh(TrayState s) => TenGon(s.TenAppTinhPhut.Count == s.AppTinhPhut.Count && s.TenAppTinhPhut.Count > 0 ? s.TenAppTinhPhut : s.AppTinhPhut);
+
+    /// <summary>#645: nhiều mục (robloxplayerbeta.exe, roblox.roblox…) cùng một tên hiển thị ⇒ hiện MỘT lần (giữ thứ tự đầu).</summary>
+    public static IReadOnlyList<string> TenGon(IEnumerable<string> ten) => ten.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
     public static bool LaTenTienTrinh(string? appId, string? appName)
     {

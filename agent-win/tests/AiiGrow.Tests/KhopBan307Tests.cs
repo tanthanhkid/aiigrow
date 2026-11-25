@@ -109,4 +109,16 @@ public class KhopBan307Tests
         Assert.False(m.Nut.Single(n => n.Ma == ManKhoaView.BaMeDungMay).Chinh);
         Assert.DoesNotContain(HetSaoView.For(null, null, null, true).Nut, n => n.Chinh);
     }
+
+    [Fact]
+    public void TenKhongTinh_NhieuMucCungMotTen_HienMotLan_645()
+    {
+        var s = new TrayState
+        {
+            AppDuocPhep = new() { "robloxplayerbeta.exe", "roblox.roblox", "minecraftlauncher.exe", "minecraft.exe", "tudien.exe" },
+            TenAppDuocPhep = new() { "Roblox", "Roblox", "Minecraft", "Minecraft", "Từ điển" },
+        };
+        Assert.Equal(new[] { "Roblox", "Minecraft", "Từ điển" }, TrayView.TenKhongTinh(s));
+        Assert.Equal(new[] { "Roblox" }, TrayView.TenGon(new[] { "Roblox", "roblox" }));
+    }
 }
