@@ -422,16 +422,23 @@ public static class DanhSachApp
     /// <summary>Tên so trùng: chữ thường, bỏ dấu, giữ chữ, số, «+», «#» (C++ khác C#).</summary>
     public static string TenChuan(string ten)
     {
-        var d = ten.Normalize(NormalizationForm.FormD);
+        // Không dựa vào string.Normalize: bản chạy invariant-globalization không tách dấu (CI #627, #630) ⇒ tự bỏ dấu bằng bảng chữ Việt
+        // + bỏ dấu kết hợp U+0300–U+036F (chuỗi NFD gõ sẵn).
         var sb = new StringBuilder();
-        foreach (var c in d)
+        foreach (var c in ten)
         {
-            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.NonSpacingMark) continue;
-            var x = c == '\u0111' || c == '\u0110' ? 'd' : char.ToLowerInvariant(c);
+            if (c >= '\u0300' && c <= '\u036f') continue;
+            var x = char.ToLowerInvariant(c);
+            var i = DauViet.IndexOf(x);
+            if (i >= 0) x = GocViet[i];
+            else if (x == '\u0111') x = 'd';
             if (char.IsLetterOrDigit(x) || x == '+' || x == '#') sb.Append(x);
         }
         return sb.Length > 0 ? sb.ToString() : ten.ToLowerInvariant();
     }
+
+    private const string DauViet = "àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ";
+    private const string GocViet = "aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyy";
 
     /// <summary>SHA-256 hex chữ thường của byte PNG (base64 hỏng / không phải PNG ⇒ null).</summary>
     public static string? BamIcon(string base64)
