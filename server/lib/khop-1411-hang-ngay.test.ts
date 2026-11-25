@@ -58,9 +58,9 @@ test("con/:id/hom-nay: gộp app + web hôm nay, giờ bắt đầu, máy, Chơi
   assert.equal(rb.may, "Laptop");
   assert.equal(rb.tinhGio, true);
   assert.equal(rb.dangMo, true);
-  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,'applicationframehost.exe','chua_phan_loai',6, now() - interval '5 hours')`, [may, con, n]);
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,'appla-chuaxep.exe','chua_phan_loai',6, now() - interval '5 hours')`, [may, con, n]);
   const r2 = await homNayDung(fam, con);
-  const af = r2.dung.find((x) => x.muc === "applicationframehost.exe")!;
+  const af = r2.dung.find((x) => x.muc === "appla-chuaxep.exe")!;
   assert.equal(af.tinhGio, false, "#623: chưa xếp không trừ sao");
   assert.equal(af.chuaXep, true);
   assert.equal(r2.khongTinhPhut.phut, r.khongTinhPhut.phut, "chưa xếp không tính vào «Không tính phút»");

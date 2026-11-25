@@ -54,7 +54,7 @@ public sealed class UsageTracker
             if (ngay != _ngayHomNay) return new List<DungApp>();
             return _homNay.Where(x => con == null || x.Key.Con == con.Trim())
                 .GroupBy(x => x.Key.App).Select(g => (App: g.Key, Name: g.First().Value.Name, Sec: g.Sum(x => x.Value.Sec)))
-                .Where(x => x.App != KhongRo && x.Sec >= 60)
+                .Where(x => x.App != KhongRo && x.Sec >= 60 && !ProcessGuard.KhongGhiDaDung(x.App))
                 .OrderByDescending(x => x.Sec).ThenBy(x => x.App, StringComparer.Ordinal).Take(Math.Max(0, toiDa))
                 .Select(x => new DungApp { AppId = x.App, Ten = TenDep(x.App, x.Name), Phut = (int)(x.Sec / 60) })
                 .ToList();
