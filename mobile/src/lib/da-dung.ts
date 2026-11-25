@@ -4,7 +4,7 @@ import type { TenIcon } from "./ui";
 import { soVN } from "./so-sao";
 
 type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
-  phut: number; tinhGio: boolean; dangMo: boolean; matMang: boolean };
+  phut: number; tinhGio: boolean; chuaXep?: boolean; dangMo: boolean; matMang: boolean };
 type DongChan = { luc: string; ten: string; may: string | null; ly: "dang_xin" | "chua_cho" | "grow_chan"; yeuCau: string | null; phut: number | null };
 export type HomNayDung = { ten: string; ngay: string; choi: { daDung: number; tongPhut: number; conPhut: number };
   hoc: { phut: number; khung: { tu: string; den: string } | null }; /** 15/11 (#262): phút nhóm «Không tính phút» hôm nay */ khongTinhPhut?: { phut: number };
@@ -24,5 +24,5 @@ export function icDung(x: { ten: string; kieu: "app" | "web"; tinhGio: boolean }
 
 /** Nhãn thời lượng một dòng «đã dùng» — MỘT kiểu cho Trang chủ (bm2-trang-chu .tag) và màn «<Con> đã dùng gì» (them-c95l1cwc):
  * mục Tính phút trừ sao, 1 phút = 1 sao ⇒ «−39 sao»; mục Không tính phút ⇒ «Không tính 10′» (không trừ sao). */
-export const nhanDung = (x: { phut: number; tinhGio: boolean }) =>
-  x.tinhGio ? { chu: `${soVN(-x.phut)} sao`, doc: `trừ ${x.phut} sao` } : { chu: `Không tính ${x.phut}′`, doc: `${x.phut} phút, không trừ sao` };
+export const nhanDung = (x: { phut: number; tinhGio: boolean; chuaXep?: boolean }) =>
+  x.chuaXep ? { chu: `Chưa xếp ${x.phut}′`, doc: `${x.phut} phút, chưa xếp nhóm, chưa trừ sao` } : x.tinhGio ? { chu: `${soVN(-x.phut)} sao`, doc: `trừ ${x.phut} sao` } : { chu: `Không tính ${x.phut}′`, doc: `${x.phut} phút, không trừ sao` };

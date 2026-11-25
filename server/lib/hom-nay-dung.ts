@@ -15,15 +15,21 @@ import { LA_APP } from "./so-sao.ts";
 
 type Luat = { child_id: string; muc: string; ten: string; loai: string; nhom: string };
 type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
-  phut: number; tinhGio: boolean; dangMo: boolean; matMang: boolean };
+  phut: number; tinhGio: boolean; chuaXep: boolean; dangMo: boolean; matMang: boolean };
 /** `ly` «grow_chan» (cũ) không còn trả từ #258. */
 type DongChan = { luc: string; ten: string; may: string | null; ly: "dang_xin" | "chua_cho" | "grow_chan"; yeuCau: string | null; phut: number | null };
 
 /** «Tính giờ» (đèn Vàng, trừ quỹ giờ chơi chung) hay «Dùng thoải mái» (đèn Xanh, luật hoc / cho_phep) — N3 14/11.
- *  Luật Đỏ «chan» không có giờ dùng (đã chặn) nhưng nếu có thì coi như tính giờ. App hệ thống / chưa xếp ⇒ theo `usage.loai` agent ghi. */
+ *  #623: chỉ TRỪ SAO khi đúng như ví (may-con.ts): luật giai_tri / chan, hoặc không luật mà `usage.loai` = giai_tri. Không luật + loại chưa phân loại
+ *  (vd applicationframehost, searchapp) ⇒ «Chưa xếp» (`chuaXepCua`), không ước tính «−N sao» vì ví không trừ. */
 export function tinhGioCua(loaiUsage: string | null, luat: { loai: string } | undefined) {
   if (luat && luat.loai !== "loai_tru") return luat.loai !== "hoc";
-  return loaiUsage !== "hoc" && loaiUsage !== "he_thong";
+  return loaiUsage === "giai_tri";
+}
+/** Không luật, không phải giai_tri / hoc / he_thong ⇒ chưa ai xếp (không tính giờ, không trừ sao). */
+export function chuaXepCua(loaiUsage: string | null, luat: { loai: string } | undefined) {
+  if (luat && luat.loai !== "loai_tru") return false;
+  return loaiUsage !== "giai_tri" && loaiUsage !== "hoc" && loaiUsage !== "he_thong";
 }
 
 export async function homNayDung(fam: string, con: string, now = new Date(), o: { gioiHan?: number } = {}) {
@@ -64,11 +70,13 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     const x = gop.get(k);
     if (!x) {
       gop.set(k, { luc: dau ? new Date(dau).toISOString() : null, ten: tenDoc(muc, kieu, l?.ten), muc, kieu,
-        may: m?.name ?? null, nen: m?.platform ?? null, mayId: m?.id ?? null, phut, tinhGio: tinhGioCua(loaiUsage, l), dangMo: kieu === "app" && dangMo.has(muc),
+        may: m?.name ?? null, nen: m?.platform ?? null, mayId: m?.id ?? null, phut, tinhGio: tinhGioCua(loaiUsage, l), chuaXep: chuaXepCua(loaiUsage, l), dangMo: kieu === "app" && dangMo.has(muc),
         matMang: matMang.has(mayId), _phutMay: phut });
       return;
     }
     x.phut += phut;
+    // cùng mục ở máy khác có loại khác ⇒ gộp theo nhóm «mạnh» nhất (tính giờ > không tính > chưa xếp), không theo thứ tự dòng
+    if (tinhGioCua(loaiUsage, l)) { x.tinhGio = true; x.chuaXep = false; } else if (!chuaXepCua(loaiUsage, l)) x.chuaXep = false;
     if (dau && (!x.luc || new Date(dau).getTime() < new Date(x.luc).getTime())) x.luc = new Date(dau).toISOString();
     if (phut > x._phutMay) { x._phutMay = phut; x.may = m?.name ?? x.may; x.nen = m?.platform ?? x.nen; x.mayId = m?.id ?? x.mayId; x.matMang = matMang.has(mayId); }
   };
@@ -82,7 +90,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     ...yc.map((r) => ({ luc: new Date(r.created_at).toISOString(), ten: r.ten_app || r.gia_tri || (r.loai === "cai_app" ? "App mới" : r.loai === "mo_web" ? "Trang web" : "Mở máy"),
       may: r.device_id ? tenMay.get(r.device_id)?.name ?? null : null, ly: (r.trang_thai === "cho" ? "dang_xin" : "chua_cho") as DongChan["ly"], yeuCau: r.id, phut: r.phut })),
   ];
-  const phutHoc = dung.filter((x) => !x.tinhGio).reduce((s, x) => s + x.phut, 0);
+  const phutHoc = dung.filter((x) => !x.tinhGio && !x.chuaXep).reduce((s, x) => s + x.phut, 0);
   return {
     ten: c?.ten ?? "", ngay,
     // 15/11: conPhut = sao tiêu được (1 sao = 1 phút) · sao = sổ sao (số dư âm được, nợ)
