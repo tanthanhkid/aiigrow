@@ -304,6 +304,7 @@ public class DanhSachAppTests
         var r = DanhSachApp.ChuanHoa(new[] { store, khac, reg });
         Assert.Equal(2, r.Count);
         Assert.Equal("registry", r.Single(x => x.Ten.Contains("dge", StringComparison.OrdinalIgnoreCase)).Nguon);
+        Assert.NotEqual(DanhSachApp.TenChuan("C++"), DanhSachApp.TenChuan("C#"));
         Assert.Equal(DanhSachApp.TenChuan("Microsoft Edge"), DanhSachApp.TenChuan("MICROSOFT  édge"));
     }
 

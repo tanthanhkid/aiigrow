@@ -398,7 +398,7 @@ public static class DanhSachApp
         return kq.OrderBy(a => a.Khoa, StringComparer.Ordinal).Take(ToiDaApp).ToList();
     }
 
-    /// <summary>Tên so trùng: chữ thường, bỏ dấu, chỉ giữ chữ + số.</summary>
+    /// <summary>Tên so trùng: chữ thường, bỏ dấu, giữ chữ, số, «+», «#» (C++ khác C#).</summary>
     public static string TenChuan(string ten)
     {
         var d = ten.Normalize(NormalizationForm.FormD);
@@ -407,7 +407,7 @@ public static class DanhSachApp
         {
             if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.NonSpacingMark) continue;
             var x = c == '\u0111' || c == '\u0110' ? 'd' : char.ToLowerInvariant(c);
-            if (char.IsLetterOrDigit(x)) sb.Append(x);
+            if (char.IsLetterOrDigit(x) || x == '+' || x == '#') sb.Append(x);
         }
         return sb.Length > 0 ? sb.ToString() : ten.ToLowerInvariant();
     }
