@@ -38,7 +38,7 @@ const CHU_KY_KIEM_PHUT = 15;
 export const BAN_AGENT_WINDOWS = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
   version: "0.2.33",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.32.exe",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.33.exe",
   sha256: "455a2479b9838ec1fd0317888e00ab262c3d10b0c200a087bf485d4c445737a9",
 } as const;
 
