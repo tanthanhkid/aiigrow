@@ -175,17 +175,17 @@ internal sealed class AppForm : Form
         var inner = Px(272) - Px(32);
 
         // 06/11 (con-ngay-thuong 09): chân thanh bên «Đổi người / Đăng xuất» + «Ba Mẹ dùng máy» thu nhỏ (→ Ba Mẹ nhập mã)
-        var chan = new FlowLayoutPanel { Dock = DockStyle.Bottom, Height = Px(100), BackColor = Color.Transparent, Padding = new Padding(Px(12), 0, 0, 0),
+        var chan = new FlowLayoutPanel { Dock = DockStyle.Bottom, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, BackColor = Color.Transparent, Padding = new Padding(Px(12), 0, 0, 0),
             FlowDirection = FlowDirection.TopDown, WrapContents = false };
+        // #639/#670: số bản đang chạy ở ĐẦU chân thanh bên (không bị cắt khi hết chỗ), chữ đậm vừa, Ba Mẹ / Con đối chiếu với bản máy chủ phát
+        chan.Controls.Add(new Label { AutoSize = true, Text = "AiiGrow bản " + TuCapNhat.BanHienTai().ToString(3), Font = UI.F(10.5f, FontStyle.Bold), ForeColor = Clay.NgocInk,
+            BackColor = Color.Transparent, Margin = new Padding(Px(2), 0, 0, Px(6)), UseMnemonic = false });
         var doi = KhoiCon.LienKet("Đổi người / Đăng xuất", "nguoi", () => DoiBeClicked?.Invoke(), 12f, Clay.NgocInk);
         doi.Margin = Padding.Empty;
         chan.Controls.Add(doi);
         var bm = KhoiCon.LienKet("Ba Mẹ dùng máy", "khoa", () => BaMeDungClicked?.Invoke(), 10.5f, Clay.Chu2);
         bm.Margin = Padding.Empty;
         chan.Controls.Add(bm);
-        // #639: số bản đang chạy — Ba Mẹ / Con đối chiếu với bản máy chủ phát
-        chan.Controls.Add(new Label { AutoSize = true, Text = "AiiGrow bản " + TuCapNhat.BanHienTai().ToString(3), Font = UI.F(9.5f), ForeColor = Clay.Chu2,
-            BackColor = Color.Transparent, Margin = new Padding(Px(2), Px(4), 0, 0), UseMnemonic = false });
 
         var flow = new FlowLayoutPanel
         {
