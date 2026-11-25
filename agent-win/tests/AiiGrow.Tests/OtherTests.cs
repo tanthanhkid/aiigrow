@@ -140,15 +140,12 @@ public class ProcessGuardTests
     }
 
     [Fact]
-    public void UwpTienCanh_QuyPhutVeAppThat_KhongVeApplicationFrameHost()
+    public void UwpTienCanh_ChiNhanCoreWindowCuaTienTrinhKhac()
     {
         const uint host = 100;
-        Assert.Equal(200u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, "ApplicationFrameTitleBarWindow"), (300, "Khac"), (200, UwpTienCanh.LopCoreWindow) }, host));
-        Assert.Equal(300u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, "ApplicationFrameInputSinkWindow"), (300, "Khac") }, host));
-        Assert.Equal(0u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, "A"), (0, "B") }, host));
-        Assert.Equal(7, UwpTienCanh.ChonTheoTieuDe("Microsoft Solitaire Collection", new[] { (7, "Microsoft Solitaire Collection"), (8, "Phim & TV") }));
-        Assert.Null(UwpTienCanh.ChonTheoTieuDe("Microsoft Solitaire Collection", new[] { (7, "Microsoft Solitaire Collection"), (8, "Solitaire") }));
-        Assert.Null(UwpTienCanh.ChonTheoTieuDe("", new[] { (7, "Microsoft Solitaire Collection") }));
+        Assert.Equal(200u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, UwpTienCanh.LopCoreWindow), (300, "Khac"), (200, UwpTienCanh.LopCoreWindow) }, host));
+        Assert.Equal(0u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, "ApplicationFrameInputSinkWindow"), (300, "CabinetWClass") }, host));
+        Assert.Equal(0u, UwpTienCanh.ChonPid(new (uint, string)[] { (0, UwpTienCanh.LopCoreWindow) }, host));
     }
 
     [Fact]

@@ -483,14 +483,15 @@ internal sealed class AppForm : Form
         var nua = (_cw - Px(10)) / 2;
         var hai = HangNgang();
         hai.Margin = new Padding(0, 0, 0, Px(8));
+        var choDuyet = _tq?.SoSaoChoDuyet;
+        // #641: không có sao nào chờ duyệt (+0) ⇒ không dựng thẻ, «Nhiệm vụ hôm nay» chiếm cả hàng (vẫn có nút «Sao dùng thế nào?»)
+        var coTheCho = moMa != null || SaoView.CoTheChoDuyet(choDuyet);
+        if (!coTheCho) nua = _cw;
         var cho = KhoiApp.The(nua, vang: true);
         cho.Margin = new Padding(0, 0, Px(10), 0);
         var rn = KhoiApp.TrongThe(nua);
-        var choDuyet = _tq?.SoSaoChoDuyet;
-        // #641: không có sao nào chờ duyệt (+0) ⇒ bỏ thẻ, «Nhiệm vụ hôm nay» chiếm cả hàng
-        var coTheCho = moMa != null || SaoView.CoTheChoDuyet(choDuyet);
-        if (!coTheCho) { nua = _cw; rn = KhoiApp.TrongThe(nua); }
-        if (moMa != null)
+        if (!coTheCho) { }
+        else if (moMa != null)
         {
             // cmt-hom-nay-mo-bang-ma: «Sao của con · 30 sao» + nút «30 sao = 30 phút chơi» (→ Sao dùng thế nào?)
             var saoMa = SaoHienTai() ?? SaoView.Phut(PhutConHienTai());
@@ -536,6 +537,12 @@ internal sealed class AppForm : Form
             var xem = KhoiCon.Nut(ds.Count > 0 ? $"Xem {ds.Count} nhiệm vụ" : "Xem nhiệm vụ", true, rn, "tick", 44, 11f);
             xem.Click += (_, _) => Select(MucApp.NhiemVu);
             nv.Controls.Add(xem);
+        }
+        if (!coTheCho)
+        {
+            var dungKhac = KhoiCon.Nut(SaoView.SaoDungTheNao, false, rn, "dau_hoi", 44, 11f);
+            dungKhac.Click += (_, _) => XinVayClicked?.Invoke(true);
+            nv.Controls.Add(dungKhac);
         }
         hai.Controls.Add(nv);
         // hai thẻ cao bằng nhau
