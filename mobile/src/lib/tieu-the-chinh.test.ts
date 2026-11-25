@@ -1,7 +1,7 @@
 // node --test src/lib/tieu-the-chinh.test.ts — #672: «Hôm nay» không mâu thuẫn «Đã dùng».
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { tieuTheChinh } from "./da-dung.ts";
+import { tieuTheChinh } from "./tieu-the-chinh.ts";
 
 test("đã chơi 21 phút, không đang chơi ⇒ «Đã dùng 21 phút», không «Chưa dùng máy»", () => {
   assert.equal(tieuTheChinh({ khoa: false, daChoiPhut: 21 }), "Đã dùng 21 phút");
