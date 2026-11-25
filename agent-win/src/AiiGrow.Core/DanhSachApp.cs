@@ -29,6 +29,10 @@ public sealed class AppThat
     public string? Icon { get; set; }
     /// <summary>SHA-256 hex (chữ thường) của byte PNG — luôn gửi khi có icon; máy chủ giữ ảnh cũ nếu trùng.</summary>
     public string? IconBam { get; set; }
+    /// <summary>Mọi <see cref="Muc"/> của các bản cùng tên đã gộp (kể cả chính nó) — CHỈ trong máy, không gửi lên máy chủ (hợp đồng chỉ một muc/app).
+    /// Agent dùng để luật chặn «Edge» áp lên cả msedge.exe lẫn gói Store.</summary>
+    [JsonIgnore]
+    public List<string>? CacMuc { get; set; }
 }
 
 /// <summary>Một khoá con của Uninstall (HKLM 64/32 hoặc HKU\&lt;SID Con&gt;).</summary>
@@ -374,7 +378,7 @@ public static class DanhSachApp
     {
         static string? C(string? s) => s == null ? null : (s.Length > ToiDaChu ? s[..ToiDaChu] : s);
         var seen = new HashSet<string>(StringComparer.Ordinal);
-        var seenTen = new HashSet<string>(StringComparer.Ordinal);
+        var seenTen = new Dictionary<string, AppThat>(StringComparer.Ordinal);
         var kq = new List<AppThat>();
         // Ưu tiên registry > start > store (OrderBy ổn định) để cùng tên thì giữ nguồn đầy đủ nhất.
         static int UuTien(AppThat a) => a.Nguon switch { "registry" => 0, "start" => 1, "store" => 2, _ => 3 };
@@ -384,7 +388,12 @@ public static class DanhSachApp
             var muc = (a.Muc ?? "").Trim().ToLowerInvariant();
             var ten = (a.Ten ?? "").Trim();
             if (khoa.Length == 0 || muc.Length == 0 || ten.Length == 0 || !seen.Add(khoa)) continue;
-            if (!seenTen.Add(TenChuan(ten))) continue; // cùng tên (khác khoa: Copilot/Edge bản Store + bản đã cài) ⇒ một dòng
+            if (seenTen.TryGetValue(TenChuan(ten), out var daCo))
+            {
+                // cùng tên (khác khoa: Copilot/Edge bản Store + bản đã cài) ⇒ một dòng, nhưng mang theo muc của bản bị gộp
+                if (!daCo.CacMuc!.Contains(muc)) daCo.CacMuc.Add(muc);
+                continue;
+            }
             kq.Add(new AppThat
             {
                 Khoa = khoa, Muc = C(muc)!, Ten = C(ten)!, Nguon = a.Nguon, NhaPhatHanh = C(Rong(a.NhaPhatHanh)), DuongDan = a.DuongDan, ThuMuc = a.ThuMuc,
@@ -392,25 +401,44 @@ public static class DanhSachApp
                 Icon = a.Icon is { Length: > 0 and <= ToiDaIconBase64 } ? a.Icon : null,
             });
             var moi = kq[^1];
+            moi.CacMuc = new List<string> { moi.Muc };
+            seenTen[TenChuan(ten)] = moi;
             moi.IconBam = moi.Icon == null ? null : BamIcon(moi.Icon);
             if (moi.IconBam == null) moi.Icon = null;
         }
         return kq.OrderBy(a => a.Khoa, StringComparer.Ordinal).Take(ToiDaApp).ToList();
     }
 
+    /// <summary>Muc → mọi muc cùng app (cùng tên đã gộp): chỉ các app có từ hai muc trở lên.</summary>
+    public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds)
+    {
+        var d = new Dictionary<string, string[]>(StringComparer.Ordinal);
+        foreach (var a in ds)
+            if (a.CacMuc is { Count: > 1 } c)
+                foreach (var m in c) d[m] = d.TryGetValue(m, out var cu) ? cu.Union(c).ToArray() : c.ToArray();
+        return d;
+    }
+
     /// <summary>Tên so trùng: chữ thường, bỏ dấu, giữ chữ, số, «+», «#» (C++ khác C#).</summary>
     public static string TenChuan(string ten)
     {
-        var d = ten.Normalize(NormalizationForm.FormD);
+        // Không dựa vào string.Normalize: bản chạy invariant-globalization không tách dấu (CI #627, #630) ⇒ tự bỏ dấu bằng bảng chữ Việt
+        // + bỏ dấu kết hợp U+0300–U+036F (chuỗi NFD gõ sẵn).
         var sb = new StringBuilder();
-        foreach (var c in d)
+        foreach (var c in ten)
         {
-            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.NonSpacingMark) continue;
-            var x = c == '\u0111' || c == '\u0110' ? 'd' : char.ToLowerInvariant(c);
+            if (c >= '\u0300' && c <= '\u036f') continue;
+            var x = char.ToLowerInvariant(c);
+            var i = DauViet.IndexOf(x);
+            if (i >= 0) x = GocViet[i];
+            else if (x == '\u0111') x = 'd';
             if (char.IsLetterOrDigit(x) || x == '+' || x == '#') sb.Append(x);
         }
         return sb.Length > 0 ? sb.ToString() : ten.ToLowerInvariant();
     }
+
+    private const string DauViet = "àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵ";
+    private const string GocViet = "aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiooooooooooooooooouuuuuuuuuuuyyyyy";
 
     /// <summary>SHA-256 hex chữ thường của byte PNG (base64 hỏng / không phải PNG ⇒ null).</summary>
     public static string? BamIcon(string base64)

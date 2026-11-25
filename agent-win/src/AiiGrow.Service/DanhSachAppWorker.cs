@@ -62,6 +62,7 @@ public sealed class DanhSachAppWorker : BackgroundService
             foreach (var a in ds)
                 if (!string.IsNullOrWhiteSpace(a.Muc) && !string.IsNullOrWhiteSpace(a.Ten)) ten.TryAdd(a.Muc.Trim(), a.Ten.Trim());
             _rt.TenAppMay = ten;
+            _rt.BiDanhMuc = DanhSachApp.BangBiDanh(ds);
             _rt.AppMay = XinThemChonView.Loc(ds.Select(x => new AppTrenMay { Muc = x.Muc, Ten = x.Ten }));
             _sidDaQuet = string.Join(",", sids);
             _quetLuc = now;
