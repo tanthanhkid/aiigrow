@@ -32,6 +32,7 @@ import { cauNo, saoTu, soVN, VienSao } from "@/lib/so-sao";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { icDung, nhanDung, type HomNayDung } from "@/lib/da-dung";
 import { type MucCanDeY } from "@/lib/s3";
+import { tieuTheChinh } from "@/lib/tieu-the-chinh";
 import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, gioPhut, IconNet, M, Man, Nhan, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 import Svg, { Circle } from "react-native-svg";
 import { HERO } from "@/lib/clay";
@@ -198,9 +199,10 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
     const p = d.choi.find((x) => x.con === conId && x.may === m.ten);
     if (p) dangTheoMay[m.id] = { chu: `● ${p.tenApp}`, mo: true };
   }
-  // tiêu đề thẻ chính: khoá ⇒ giờ mở lại · con đang chơi ⇒ «Đang chơi <app>» · còn lại «Chưa dùng máy»
+  // tiêu đề thẻ chính: khoá ⇒ giờ mở lại · con đang chơi ⇒ «Đang chơi <app>» · đã chơi phút nào hôm nay (cùng nguồn «Đã chơi»/«Đã dùng») ⇒ «Đã dùng N phút» · chưa chơi ⇒ «Chưa dùng máy»
   const dangChoi = d.choi.find((x) => x.con === conId) ?? null;
-  const tieuLon = khoa ? (khoaDen ? `Mở lại lúc ${gioPhut(khoaDen)}` : "Khoá tới khi Ba Mẹ mở") : dangChoi ? `Đang chơi ${dangChoi.tenApp}` : "Chưa dùng máy";
+  const daChoiPhut = Math.max(Number(hn.d?.choi?.daDung) || 0, Number(q?.daDung) || 0); // hom-nay chưa về ⇒ dùng số từ quỹ/trạng thái
+  const tieuLon = tieuTheChinh({ khoa, mo: khoaDen, dangChoi: dangChoi?.tenApp, daChoiPhut, gio: gioPhut });
   const cheDo = ct.d?.cheDoChan === "mo_het" ? "Mở hết" : "Theo danh sách";
   const veVi = () => router.push(`/vi/${conId}` as never);
   // máy khoá: «… còn N sao = N phút ›» → Máy của con; còn lại → Ví sao
