@@ -467,7 +467,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     // #657: đánh dấu đã đọc cả các dòng trùng (cùng loại + nội dung + Con) — danh sách chỉ hiện một dòng nên dòng cũ không được hiện lại
     if (p[0] === "canh-bao" && p[2] === "doc" && post) {
       await q(`update alerts set da_doc = true where family_id = $2 and (id = $1 or exists (select 1 from alerts g where g.id = $1 and g.family_id = $2 and g.loai = alerts.loai
-        and g.noi_dung = alerts.noi_dung and g.child_id is not distinct from alerts.child_id))`, [p[1], fam]);
+        and g.noi_dung = alerts.noi_dung and g.child_id is not distinct from alerts.child_id and alerts.created_at <= g.created_at))`, [p[1], fam]);
       return json({ ok: true });
     }
     // 14/11 «Nhật ký cả nhà»: ?ca-nha=1 [&con=&ngay=7] ⇒ câu đời thường + «cho ngoài quy tắc» (lib/nhat-ky-ca-nha.ts); không có ⇒ sự kiện thô như cũ
