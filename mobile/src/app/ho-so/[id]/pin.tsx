@@ -53,7 +53,7 @@ export default function PinCuaCon() {
             <Chu kieu="dam7" co={13} mau={M.chu3}>4 số</Chu>
           </View>
           {/* máy chủ cũ không trả số PIN ⇒ ô trống, gõ PIN mới */}
-          <OPin gia={moi} doi={setMoi} nhan={moi ? `PIN ${moi.split("").join(" ")}` : "Đặt PIN 4 số"} />
+          <OPin gia={moi} doi={setMoi} nhan={d.p.coPin ? "Mã PIN vào máy" : "Đặt PIN 4 số"} />
           <Chu kieu="dam" co={13} mau={M.chu2} style={{ marginHorizontal: 2 }}>{`${ten} dùng PIN này để vào máy · không dùng ngày sinh`}</Chu>
           {!d.p.coPin ? <Chu co={13.5} mau={M.chu2} style={{ marginHorizontal: 4 }}>{`${ten} chưa có PIN — trên máy dùng chung, chạm tên là vào thẳng. Đặt PIN để chỉ ${ten} vào được.`}</Chu> : null}
           {loiPin && moi.length === 4 && moi !== cu ? <Chu kieu="dam" co={13} mau={M.loi}>{loiPin}</Chu> : null}
