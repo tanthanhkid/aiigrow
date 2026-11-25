@@ -4,7 +4,6 @@ node_modules
 next-env.d.ts
 *.tsbuildinfo
 .env*.local
-.vercel
 .env*
 public/tai/*.zip
 public/tai/*.pkg

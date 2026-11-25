@@ -9,7 +9,7 @@ const { xuLyM } = await import("./api-m.ts");
 
 const env = (o: Record<string, string | undefined>) => ({ AIIGROW_CI_LOGIN: "1", NODE_ENV: "test", ...o }) as NodeJS.ProcessEnv;
 
-test("seed CI bị chặn: thiếu cờ, production, Vercel, máy chủ thật, CSDL ngoài máy", async () => {
+test("seed CI bị chặn: thiếu cờ, production, máy chủ thật, CSDL ngoài máy", async () => {
   assert.equal(lyDoChanSeedCi(env({})), null);
   assert.equal(lyDoChanSeedCi(env({ DATABASE_URL: "postgres://u:p@localhost:5432/aiigrow" })), null);
   assert.equal(lyDoChanSeedCi(env({ DATABASE_URL: "postgres://u:p@127.0.0.1/aiigrow" })), null);
@@ -17,7 +17,6 @@ test("seed CI bị chặn: thiếu cờ, production, Vercel, máy chủ thật, 
   assert.match(lyDoChanSeedCi(env({ AIIGROW_CI_LOGIN: undefined }))!, /AIIGROW_CI_LOGIN/);
   assert.match(lyDoChanSeedCi(env({ AIIGROW_CI_LOGIN: "true" }))!, /AIIGROW_CI_LOGIN/);
   assert.match(lyDoChanSeedCi(env({ NODE_ENV: "production" }))!, /production/);
-  assert.match(lyDoChanSeedCi(env({ VERCEL: "1" }))!, /Vercel/);
   assert.match(lyDoChanSeedCi(env({ AIIGROW_BAT_BUOC_DB: "1" }))!, /máy chủ thật/);
   assert.match(lyDoChanSeedCi(env({ DATABASE_URL: "postgres://u:p@ep-xyz.neon.tech/db" }))!, /máy ngoài/);
   assert.match(lyDoChanSeedCi(env({ DATABASE_URL: "postgres://u:p@localhost.evil.com/db" }))!, /máy ngoài/);

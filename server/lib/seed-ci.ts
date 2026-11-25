@@ -3,13 +3,12 @@
 // Đi qua đúng các API app Ba Mẹ / agent gọi (xuLyM / xuLyCon / xuLyMay) như lib/api.test.ts ⇒ dữ liệu luôn khớp lược đồ hiện hành.
 //
 // Đăng nhập KHÔNG OTP cho CI = mật khẩu thường (POST /api/m/dang-nhap) + token phiên in ra — KHÔNG có đường cửa sau nào trên máy chủ.
-// Chỉ chạy khi choPhepSeedCi() đúng: AIIGROW_CI_LOGIN=1 VÀ không phải production (NODE_ENV, VERCEL, AIIGROW_BAT_BUOC_DB)
+// Chỉ chạy khi choPhepSeedCi() đúng: AIIGROW_CI_LOGIN=1 VÀ không phải production (NODE_ENV, AIIGROW_BAT_BUOC_DB)
 // VÀ CSDL là PGlite hoặc Postgres ở máy cục bộ (localhost / 127.0.0.1 / ::1) ⇒ chạy nhầm với DATABASE_URL prod là bị chặn trước khi mở DB.
 /** Lý do KHÔNG được seed (null = được). Đọc env truyền vào để test được. */
 export function lyDoChanSeedCi(env: NodeJS.ProcessEnv = process.env): string | null {
   if (env.AIIGROW_CI_LOGIN !== "1") return "thiếu AIIGROW_CI_LOGIN=1";
   if (env.NODE_ENV === "production") return "NODE_ENV=production";
-  if (env.VERCEL) return "đang chạy trên Vercel";
   if (env.AIIGROW_BAT_BUOC_DB === "1") return "AIIGROW_BAT_BUOC_DB=1 (máy chủ thật)";
   if (env.DATABASE_URL) {
     let host = "";

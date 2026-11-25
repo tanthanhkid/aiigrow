@@ -220,12 +220,9 @@ public static class TuCapNhat
 
     /// <summary>Lần kiểm kế tiếp theo GIỜ THẬT. Đồng hồ máy bị lùi (Con chỉnh giờ) ⇒ không để hẹn xa quá một chu kỳ tính từ bây giờ.</summary>
     public static DateTimeOffset KeTiep(DateTimeOffset hen, DateTimeOffset bayGio, TimeSpan chuKy) => hen > bayGio + chuKy ? bayGio + chuKy : hen;
-    /// <summary>Bộ cài nằm trên Vercel Blob của AiiGrow (ngoài tên miền máy chủ).</summary>
-    public const string DuoiBlob = ".public.blob.vercel-storage.com";
-
     /// <summary>
     /// Có nên tải bản này không. Chỉ nhận: bản MỚI HƠN bản đang chạy, URL https thuộc máy chủ AiiGrow (cùng host với <paramref name="server"/>)
-    /// hoặc Vercel Blob, sha256 đủ 64 ký tự hex. → null nếu nên tải, còn lại là lý do bỏ qua.
+    /// sha256 đủ 64 ký tự hex. → null nếu nên tải, còn lại là lý do bỏ qua.
     /// </summary>
     public static string? KiemManifest(BanMoi? m, string server, Version hienTai)
     {
@@ -235,8 +232,7 @@ public static class TuCapNhat
         if (moi <= hienTai) return "đã là bản mới nhất";
         if (!Uri.TryCreate(m.Url, UriKind.Absolute, out var u) || u.Scheme != Uri.UriSchemeHttps) return "URL không phải https";
         var host = Uri.TryCreate(server, UriKind.Absolute, out var s) ? s.Host : "";
-        var hopLe = (host.Length > 0 && u.Host.Equals(host, StringComparison.OrdinalIgnoreCase)) ||
-                    u.Host.EndsWith(DuoiBlob, StringComparison.OrdinalIgnoreCase);
+        var hopLe = host.Length > 0 && u.Host.Equals(host, StringComparison.OrdinalIgnoreCase);
         if (!hopLe) return "URL không thuộc máy chủ AiiGrow";
         if (!LaSha256(m.Sha256)) return "sha256 không hợp lệ";
         return null;

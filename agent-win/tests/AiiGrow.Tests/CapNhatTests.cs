@@ -213,7 +213,6 @@ public class TuCapNhatTests
     public void HopLe()
     {
         Assert.Null(TuCapNhat.KiemManifest(M("0.3.0", May + "/tai/AiiGrow-Setup.exe"), May, Dang));
-        Assert.Null(TuCapNhat.KiemManifest(M("0.3.0", "https://abc123.public.blob.vercel-storage.com/tai/AiiGrow-Setup.exe"), May, Dang));
     }
 
     [Theory]
@@ -223,7 +222,7 @@ public class TuCapNhatTests
     [InlineData("0.3.0", "http://aiigrow.aiilab.vn/a.exe")]                  // không https
     [InlineData("0.3.0", "https://ke-xau.example.com/a.exe")]                // host lạ
     [InlineData("0.3.0", "https://aiigrow.aiilab.vn.ke-xau.com/a.exe")]      // giả đuôi tên miền
-    [InlineData("0.3.0", "https://public.blob.vercel-storage.com.ke-xau.com/a.exe")]
+    [InlineData("0.3.0", "https://abc123.public.blob.vercel-storage.com/tai/AiiGrow-Setup.exe")]   // Blob không còn được nhận
     [InlineData("0.3.0", "file:///C:/a.exe")]
     public void TuChoi(string ver, string url) => Assert.NotNull(TuCapNhat.KiemManifest(M(ver, url), May, Dang));
 

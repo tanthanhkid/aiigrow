@@ -3,8 +3,8 @@
 // không chờ e2e: run của đúng commit (`gh run list -w agent-win -c <sha>`) → `gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc` — xem đầu
 // .github/workflows/agent-win.yml; e2e của run đó đỏ ⇒ đừng merge manifest này) → `gh release create v<bản>` ở repo
 // public tanthanhkid/aiigrow-tai, tệp AiiGrow-Setup-<bản>.exe → sửa ba giá trị dưới đây → merge. sha256 PHẢI là của đúng tệp đã tải lên,
-// sai thì agent xoá tệp, không cài. URL nằm trên tên miền máy chủ (agent 0.2.0+ chỉ nhận host máy chủ hoặc Vercel Blob) — next.config
-// chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Vercel Blob gói free bị khoá 23/10 (vượt hạn mức) nên bỏ Blob.
+// sai thì agent xoá tệp, không cài. URL nằm trên tên miền máy chủ (agent 0.2.0+ chỉ nhận host máy chủ) — next.config
+// chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Không dùng Blob.
 import type { May } from "./gia-dinh.ts";
 
 /** Chu kỳ agent hỏi bản mới, phút — DÙNG CHUNG Windows (0.2.12+) và Mac (0.1.6+); agent kẹp [5, 1440], không có trường ⇒ 6 giờ.

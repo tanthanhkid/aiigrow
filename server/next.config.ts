@@ -37,7 +37,7 @@ const chung = [
 ];
 
 const config: NextConfig = {
-  // Bản chạy trên VPS (scripts/deploy-vps.sh) dựng `output: "standalone"`; Vercel không đặt biến này ⇒ dựng như cũ.
+  // Bản chạy trên VPS (scripts/deploy-vps.sh) dựng `output: "standalone"`.
   ...(process.env.AIIGROW_STANDALONE === "1" ? { output: "standalone" as const } : {}),
   serverExternalPackages: ["@electric-sql/pglite"],
   poweredByHeader: false,

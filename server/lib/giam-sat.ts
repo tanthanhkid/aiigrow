@@ -8,6 +8,6 @@ export function baoLoiHeThong(e: unknown) {
     Sentry.captureException(e);
     await Sentry.flush(2000);
   };
-  // serverless (Vercel): after() giữ hàm sống tới khi gửi xong; ngoài request (script) thì gửi thẳng
+  // after() giữ tiến trình sống tới khi gửi xong; ngoài request (script) thì gửi thẳng
   try { after(gui); } catch { void gui().catch(() => {}); }
 }
