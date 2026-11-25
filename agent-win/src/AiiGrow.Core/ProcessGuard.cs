@@ -44,6 +44,17 @@ public static class ProcessGuard
         "searchapp.exe", "searchhost.exe", "shellexperiencehost.exe", "startmenuexperiencehost.exe", "textinputhost.exe", "lockapp.exe",
     };
 
+    /// <summary>#644: có tính giờ / ghi «đã dùng» cho app tiền cảnh này không — KHÔNG với mọi tiến trình hệ thống của phiên (Runtimebroker, Applicationframehost…),
+    /// trừ explorer.exe (File Explorer là app Con mở được).</summary>
+    public static bool KhongGhiDaDung(string? exe)
+    {
+        if (string.IsNullOrWhiteSpace(exe)) return false;
+        var t = exe.Trim();
+        if (!t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) t += ".exe";
+        if (t.Equals("explorer.exe", StringComparison.OrdinalIgnoreCase)) return false;
+        return TienTrinhNenKhongTinhGio.Contains(t) || TienTrinhHeThongPhien.Contains(t);
+    }
+
     /// <summary>App NGƯỜI DÙNG mở được nằm ngay trong Windows / System32 / SysWOW64 — phải qua phân loại (BUG-008). Mọi exe KHÁC nằm TRỰC TIẾP trong
     /// ba thư mục đó là thành phần Windows chạy nền (splwow64 in 32-bit, rundll32, CredentialUIBroker, PickerHost, rdpclip, osk/Narrator/Magnify,
     /// MusNotifyIcon…) ⇒ miễn: đóng chúng làm hỏng in ấn, hộp chọn tệp, trợ năng và bắn popup «app bị chặn» liên tục (review #75).

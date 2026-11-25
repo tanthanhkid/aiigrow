@@ -130,6 +130,20 @@ public class ProcessGuardTests
     }
 
     [Fact]
+    public void KhongGhiDaDung_MoiTienTrinhHeThongCuaPhien_TruExplorerVaAppThat()   // #644
+    {
+        foreach (var n in new[] { "Shellexperiencehost.exe", "lockapp.exe", "startmenuexperiencehost.exe", "searchhost", "textinputhost.exe", "runtimebroker.exe", "ApplicationFrameHost.exe" })
+            Assert.True(ProcessGuard.KhongGhiDaDung(n), n);
+        foreach (var n in new[] { "explorer.exe", "roblox.exe", "notepad.exe", "", null })
+            Assert.False(ProcessGuard.KhongGhiDaDung(n), n ?? "null");
+        var u = new UsageTracker();
+        var now = new DateTimeOffset(2026, 11, 25, 10, 0, 0, TimeSpan.FromHours(7));
+        u.Add(now, "runtimebroker.exe", "Runtime Broker", 300, "c1");
+        u.Add(now, "roblox.exe", "Roblox", 300, "c1");
+        Assert.Equal(new[] { "roblox.exe" }, u.DungHomNay(now, con: "c1").Select(x => x.AppId).ToArray());
+    }
+
+    [Fact]
     public void TienTrinhNenKhongTinhGio_ChiLaTienTrinhNenCuaPhien()
     {
         foreach (var n in new[] { "searchapp.exe", "SearchHost.exe", "shellexperiencehost.exe", "startmenuexperiencehost.exe", "textinputhost.exe", "lockapp.exe" })
