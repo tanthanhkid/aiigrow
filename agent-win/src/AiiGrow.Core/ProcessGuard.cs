@@ -32,6 +32,8 @@ public static class ProcessGuard
         "conhost.exe", "dllhost.exe", "backgroundtaskhost.exe", "applicationframehost.exe", "securityhealthsystray.exe",
         "logonui.exe", "consent.exe", "userinit.exe", "werfault.exe", "smartscreen.exe", "shellhost.exe", "useroobebroker.exe",
         "searchprotocolhost.exe", "searchfilterhost.exe", "audiodg.exe", "wudfhost.exe", "dashost.exe", "sppsvc.exe",
+        // #621: đồng bộ nền của Mail/Lịch (Microsoft.WindowsCommunicationsApps) — không cửa sổ, Con không mở
+        "hxtsr.exe",
     };
 
     /// <summary>#622: tiến trình nền của phiên (tìm kiếm, Start, bàn phím ảo, màn khoá) — là tiền cảnh thoáng qua, không phải app Con chơi ⇒ không tính giờ / «đã dùng gì».</summary>
@@ -71,6 +73,8 @@ public static class ProcessGuard
         "microsoft.windows.startmenuexperiencehost", "microsoft.windows.search", "microsoft.lockapp",
         "microsoft.windows.cloudexperiencehost", "microsoft.windows.contentdeliverymanager", "microsoft.aad.brokerplugin",
         "microsoft.accountscontrol", "microsoft.ecapp", "microsoft.windows.apprep.chxapp",
+        // #621: Mail/Lịch (hxtsr.exe đồng bộ nền) và app Ảnh (microsoft.photos.exe chạy ngầm) — Con không bấm mà vẫn bắn «Xin thêm …»
+        "microsoft.windowscommunicationsapps", "microsoft.windows.photos",
     };
 
     /// <summary>Gói Store hệ thống theo TIỀN TỐ (Windows App SDK: Microsoft.WindowsAppRuntime.1.5, …Singleton — PushNotificationsLongRunningTask). «MicrosoftWindows.» (KHÔNG phải «Microsoft.Windows…» như Máy tính / Terminal): tiền tố dành riêng cho thành phần của Windows — Client.CBS (Search,
