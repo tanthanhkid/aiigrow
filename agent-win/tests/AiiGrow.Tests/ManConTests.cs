@@ -9,15 +9,25 @@ public class ManConTests
     private static readonly DateTimeOffset Luc = new(2026, 11, 3, 19, 30, 0, TimeSpan.FromHours(7));
 
     [Fact]
-    public void ManChan_AppLa_TuGui_AppBaMeChan_ChiCoNut()
+    public void ManChan_KhongBaoGioTuGui_ChiCoNut()
     {
-        Assert.True(ManChanView.TuGui("capcut.exe", boiBaMe: false, offline: false));
+        Assert.False(ManChanView.TuGui("capcut.exe", boiBaMe: false, offline: false));       // #621: app lạ cũng không tự gửi — chỉ khi Con bấm nút
         Assert.False(ManChanView.TuGui("youtube.exe", boiBaMe: true, offline: false));     // Ba Mẹ đã đặt Chặn ⇒ Con tự bấm xin
         Assert.True(ManChanView.CoNutXin("youtube.exe"));
         Assert.False(ManChanView.TuGui("capcut.exe", false, offline: true));               // mất mạng ⇒ không tự gửi
         Assert.False(ManChanView.TuGui("capcut.exe", false, false, daXin: true));          // đã xin trong phiên khay ⇒ không gửi lặp
         Assert.False(ManChanView.TuGui("cmd.exe", false, false));                          // công cụ Windows
         Assert.False(ManChanView.CoNutXin("taskmgr"));
+    }
+
+    [Fact]
+    public void GoiVaExeNenCuaWindows_KhongBiDong_Issue621()
+    {
+        var safe = new[] { @"C:\Program Files\AiiGrow" };
+        var none = new HashSet<string>();
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Program Files\WindowsApps\microsoft.windowscommunicationsapps_16005.14326.21594.0_x64__8wekyb3d8bbwe\HxTsr.exe", none, new HashSet<string>(), safe, @"C:\Windows"));
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Program Files\WindowsApps\Microsoft.Windows.Photos_2024.11.0.0_x64__8wekyb3d8bbwe\Microsoft.Photos.exe", none, new HashSet<string>(), safe, @"C:\Windows"));
+        Assert.True(ProcessGuard.TienTrinhHeThongPhien.Contains("hxtsr.exe"));
     }
 
     [Fact]

@@ -8,7 +8,7 @@ const BIET: Record<string, string> = {
   "notepad.exe": "Notepad", "mspaint.exe": "Paint", "calc.exe": "Máy tính", "calculatorapp.exe": "Máy tính", "cmd.exe": "Command Prompt", "powershell.exe": "PowerShell",
   "winword.exe": "Word", "excel.exe": "Excel", "powerpnt.exe": "PowerPoint", "onenote.exe": "OneNote", "outlook.exe": "Outlook", "teams.exe": "Microsoft Teams", "ms-teams.exe": "Microsoft Teams",
   "msedgewebview2.exe": "Trình duyệt nhúng của Windows (WebView2)", "explorer.exe": "File Explorer", "taskmgr.exe": "Task Manager", "snippingtool.exe": "Snipping Tool",
-  "photos.exe": "Ảnh", "windowscamera.exe": "Camera", "systemsettings.exe": "Cài đặt Windows",
+  "photos.exe": "Ảnh", "microsoft.photos.exe": "Ảnh", "windowscamera.exe": "Camera", "systemsettings.exe": "Cài đặt Windows",
   "com.google.chrome": "Google Chrome", "com.apple.safari": "Safari", "com.apple.finder": "Finder", "org.mozilla.firefox": "Firefox", "com.microsoft.edgemac": "Microsoft Edge",
   "com.spotify.client": "Spotify", "com.hnc.discord": "Discord", "com.valvesoftware.steam": "Steam", "com.roblox.robloxplayer": "Roblox",
   "com.google.android.youtube": "YouTube", "com.zhiliaoapp.musically": "TikTok", "com.roblox.client": "Roblox", "com.mojang.minecraftpe": "Minecraft",

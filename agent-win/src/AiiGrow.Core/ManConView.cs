@@ -22,11 +22,9 @@ public static class ManChanView
     /// <summary>Tối đa số app lạ khay tự gửi lời xin trong một phiên khay — quá thì chỉ hiện nút (không tiêu hết hạn mức lời xin của Con).</summary>
     public const int TuGuiToiDa = 5;
 
-    /// <summary>App lạ (không phải app Ba Mẹ đã đặt «Chặn») ⇒ AiiGrow TỰ gửi lời xin Ba Mẹ duyệt (L4: «app mới tự gửi xin → chờ → kết quả»).
-    /// App Ba Mẹ đã chặn ⇒ chỉ hiện nút «Xin Ba Mẹ mở …» (Con tự quyết có xin không). Công cụ Windows, app không rõ tên, mất mạng ⇒ không tự gửi.
-    /// <paramref name="daXin"/> = lời xin cho app này đã gửi trong phiên khay (không gửi lặp khi Con mở lại liên tục).</summary>
-    public static bool TuGui(string? appId, bool boiBaMe, bool offline, bool daXin = false)
-        => !boiBaMe && !offline && !daXin && BlockScreenView.CanAskOpen(appId);
+    /// <summary>#621: KHÔNG tự gửi lời xin nữa — tiến trình nền của Windows (Mail sync hxtsr, Ảnh…) bị đóng cũng bắn «Con đang xin» khi bé không bấm gì.
+    /// Mọi app bị đóng chỉ hiện nút «Xin Ba Mẹ mở …»; lời xin chỉ đi khi Con bấm nút. Giữ chữ ký để các chỗ gọi không đổi.</summary>
+    public static bool TuGui(string? appId, bool boiBaMe, bool offline, bool daXin = false) => false;
 
     /// <summary>Có nút «Xin Ba Mẹ mở …» không (công cụ Windows như cmd, taskmgr… thì không).</summary>
     public static bool CoNutXin(string? appId) => BlockScreenView.CanAskOpen(appId);

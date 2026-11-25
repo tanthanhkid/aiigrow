@@ -18,7 +18,7 @@ export const NHOM_GT: NhomGiaiTri[] = ["game", "video_ngan", "mxh", "phim_gd", "
 /** Allowlist hệ thống mặc định (Phụ lục B, trích) — định danh thấp: tên tệp chạy Windows/macOS, gói Android, tên miền. */
 export const ALLOWLIST_HE_THONG: string[] = [
   // Windows
-  "explorer.exe", "systemsettings.exe", "calculatorapp.exe", "calc.exe", "notepad.exe", "mspaint.exe", "photos.exe", "windowscamera.exe",
+  "explorer.exe", "systemsettings.exe", "calculatorapp.exe", "calc.exe", "notepad.exe", "mspaint.exe", "photos.exe", "microsoft.photos.exe", "windowscamera.exe",
   "snippingtool.exe", "taskmgr.exe", "winword.exe", "excel.exe", "powerpnt.exe", "onenote.exe", "ms-teams.exe", "teams.exe",
   "aiigrow.kid.exe", "aiigrow.tray.exe",
   // gõ tiếng Việt + hỗ trợ từ xa của AiiLab (Thanh 22/10): không bị đóng khi Chặn thật
