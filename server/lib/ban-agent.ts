@@ -12,6 +12,7 @@ import type { May } from "./gia-dinh.ts";
  *  Đồng hồ là giờ thật (máy ngủ vẫn tính). */
 const CHU_KY_KIEM_PHUT = 15;
 
+// 0.2.34 (25/11, sửa #645 #668 #669 #670 — PR #675 #673 #676 #677, bản #678): exe từ CI agent-win run 45588892211 (job build goc, main b5108c5e); sha256 đo trên tệp tải về từ Release v0.2.34.
 // 0.2.33 (25/11, sửa #639 #641 #642 #643 #645 — PR #646 #647 #648 #649 #650, bản #651): exe từ CI agent-win run 45571956690 (job build goc, main e43ce7c8); sha256 đo trên tệp tải về từ Release v0.2.33.
 // 0.2.32 (25/11, sửa #621 #622 #624 #630 — PR #625 #627 #631 #633, bản #634): exe từ CI agent-win run 45535114033 (job build goc, main 19146a46); sha256 đo trên tệp tải về từ Release v0.2.32.
 // 0.2.31 (24/11, kiểm chữ ký Authenticode trước khi tự cập nhật #549, dùng chung SocketsHttpHandler #562, xoá code chết #574 — PR #595 #599 #602, bản #604): exe từ CI agent-win run 45331674296 (job build goc, PR head 0db0e322 trên main 1f2424c5); sha256 đo trên tệp tải về từ Release v0.2.31.
@@ -37,9 +38,9 @@ const CHU_KY_KIEM_PHUT = 15;
 // (0.2.12: run 40648893556, commit ae9f0c1, PR #171.)
 export const BAN_AGENT_WINDOWS = {
   chuKyKiemPhut: CHU_KY_KIEM_PHUT,
-  version: "0.2.33",
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.33.exe",
-  sha256: "455a2479b9838ec1fd0317888e00ab262c3d10b0c200a087bf485d4c445737a9",
+  version: "0.2.34",
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Setup-0.2.34.exe",
+  sha256: "f0a487d02ff38b0c7652d64ddc825ecd59d61995c984c2e59cd33e16098595fb",
 } as const;
 
 /** Bản agent macOS (agent-mac, tệp .pkg ký Developer ID + notarize). Phát bản: `KY_APP=… KY_PKG=… NOTARY=1 agent-mac/goi/build-pkg.sh` →
