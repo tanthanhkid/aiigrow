@@ -449,7 +449,7 @@ class DichVuNhip : Service() {
         class KetXinApp(val id: String?, val cau: String, val daGui: Boolean = id != null)
 
         /** «Xin Ba Mẹ mở <app>» — app ngoài danh sách (luồng nền). `lyDo` = lời Con nhắn Ba Mẹ (không bắt buộc, như /tre/xin-phep). */
-        /** #422: `kieu` app | web (hộp «Xin thêm app / web»); máy chủ cũ bỏ qua trường lạ. Lỗi 400 web_sai / 429 qua_nhieu_cho ⇒ câu máy chủ. */
+        /** #422: `kieu` app | web (hộp «Xin thêm app / web»); máy chủ cũ bỏ qua trường lạ. Lỗi 400 web_sai / 429 bam_don ⇒ câu máy chủ. */
         fun xinDuyet(ctx: Context, goi: String, ten: String?, lyDo: String = "", kieu: vn.aiilab.aiigrow.maycon.logic.KieuXin? = null): KetXinApp {
             val k = Kho(ctx)
             val than = vn.aiilab.aiigrow.maycon.logic.thanXinDuyet(goi, ten, lyDo, kieu)

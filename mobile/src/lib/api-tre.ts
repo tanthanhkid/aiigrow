@@ -109,7 +109,7 @@ export const taiCheDo = () => kid.goi<ToiTre>("toi").then((r) => r.cheDo ?? null
  *  máy» / «Trang web», máy chủ PR #429) ⇒ máy chủ xếp đúng loại — tên app trần («Minecraft») vẫn là app, thẻ web phải là tên miền (sai ⇒ 400
  *  `web_sai` kèm câu hướng dẫn, màn hiện qua cauLoi). Máy chủ cũ bỏ qua `kieu` và xếp tên trần thành web (trả `loai: "mo_web"`) ⇒ huỷ lời xin
  *  nhầm đó rồi gửi yeu-cau cai_app như trước. Không có `kieu` (màn chặn, lời xin cũ): mã app thật / web ⇒ xin-duyet; tên app gõ tay ⇒ yeu-cau
- *  cai_app. Lỗi `qua_nhieu_cho` (≥ 3 lời chờ) ném ra cho màn gọi xử lý. Máy chủ cũ còn trả 409 `web_cam` ⇒ ném lại LoiApi cùng mã với câu thân
+ *  cai_app. Lỗi `bam_don` (bấm dồn vài giây) ném ra cho màn gọi xử lý. Máy chủ cũ còn trả 409 `web_cam` ⇒ ném lại LoiApi cùng mã với câu thân
  *  thiện «Ba Mẹ chưa thêm X lúc này…». */
 export async function guiXinMo(b: { loai: "mo_web" | "cai_app" | "khac"; muc: string; ten?: string; lyDo?: string; kieu?: "app" | "web" }): Promise<{ id: string }> {
   const muc = b.muc.trim();

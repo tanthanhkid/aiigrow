@@ -226,7 +226,6 @@ if (process.argv.includes("--giao-dien")) {
     M("con-chan-web", "/tre/chan-web?url=scratch.mit.edu", "Trang này chưa có trong danh sách"),
     M("con-chan-web (teen)", "/tre/chan-web?url=scratch.mit.edu", "Trang này chưa có trong danh sách", { kb: teen }),
     M("con-xin-phep", "/tre/xin-phep?loai=mo_web&gia=scratch.mit.edu&tu=chan-web", "Xin mở trang web"),
-    M("con-xin-phep (đủ 3)", "/tre/xin-phep", "Con đang có 3 yêu cầu chờ", { kb: { "GET yeu-cau": { ds: [yc("a", "cai_app", { gia_tri: "Roblox" }), yc("b", "cai_app", { gia_tri: "Minecraft" }), yc("c", "mo_web", { gia_tri: "abc.vn" })], lyDoNhanh: [] } } }),
     M("con-xin-them (app)", "/tre/xin-phep?them=app&gia=YouTube", "Xin Ba Mẹ thêm YouTube"),
     M("con-xin-them (web)", "/tre/xin-phep?them=web&gia=scratch.mit.edu", "Xin Ba Mẹ mở trang này"),
     M("con-yeu-cau", "/tre/yeu-cau", "Ba Mẹ đã thêm"),
