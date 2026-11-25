@@ -8,7 +8,7 @@
 # Trên VPS (ssh host VPS_HOST, mặc định trinity-crm):
 #   /opt/aiigrow/releases/<sha>-<giờ>/   bản đã đẩy (giữ 3 bản gần nhất), /opt/aiigrow/current → bản đang chạy
 #   /etc/aiigrow/aiigrow.env       biến môi trường (root, chmod 600; KHÔNG nằm trong git) — node --env-file đọc lúc khởi động
-#   pm2 «aiigrow» (cổng 3320, 127.0.0.1) · nginx /etc/nginx/sites-enabled/aiigrow.conf · cron /etc/cron.d/aiigrow (thay crons của vercel.json)
+#   pm2 «aiigrow» (cổng 3320, 127.0.0.1) · nginx /etc/nginx/sites-enabled/aiigrow.conf · cron /etc/cron.d/aiigrow
 #   CSDL: Postgres 16 cục bộ (127.0.0.1:5432, db/role aiigrow; thay Neon us-east-1 từ 06/11 — mỗi câu SQL ~250 ms từ VN làm API 5–12 s)
 #   sao lưu 02:30 /var/backups/aiigrow (scripts/vps/aiigrow-sao-luu) · logrotate scripts/vps/aiigrow.logrotate · tệp mẫu: scripts/vps/
 # Quay lại bản cũ trên VPS (pm2 reload KHÔNG đổi bản — pm2 giữ đường thật của server.js):

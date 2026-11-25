@@ -136,7 +136,7 @@ hẹp nên commit chỉ đụng web không có run) → `gh run download <run-id
   luật AppLocker (ProgramData / chính sách Windows) không đụng ⇒ không ghép lại. Lỗi giữa chừng ⇒ chép bản sao lưu trở lại.
   Cùng bản hoặc bản cũ hơn ⇒ «Đã là bản mới nhất» (Mở lại · Sửa cài đặt). `--sua` ép chạy wizard cài như cũ.
 - **Tự cập nhật**: dịch vụ (`UpdateWorker`) hỏi `GET /api/agent/ban-moi` sau 2 phút rồi theo `chuKyKiemPhut` của manifest (kẹp 5–1440 phút, thiếu ⇒ 6 giờ, tính theo giờ thật) → `{version, url, sha256}`. Chỉ nhận bản
-  mới hơn, URL https cùng host máy chủ hoặc `*.public.blob.vercel-storage.com`; tải về `ProgramData\AiiGrow\cap-nhat`, sha256 sai ⇒ xoá.
+  mới hơn, URL https cùng host máy chủ; tải về `ProgramData\AiiGrow\cap-nhat`, sha256 sai ⇒ xoá.
   Đúng ⇒ chạy `AiiGrow-Setup.exe --capnhat --im-lang` bằng tác vụ SYSTEM `AiiGrowCapNhat` (mã thoát 0 ok · 7 lỗi đã khôi phục · 8 lỗi chưa khôi phục).
   Khay báo «AiiGrow đã cập nhật lên bản X» một lần. Mỗi request gửi header `X-AiiGrow-Ban`.
 - **Phát bản mới**: tăng `<Version>` ở `Directory.Build.props` → `../scripts/ci/kiem-ci.sh agent-win` (từ agent-win/) ở commit phát (CI đỏ ⇒ dừng; `--bo-kiem-ci` khi sửa gấp) → exe từ CI (`gh run download <run-id> -n setup-goc`, như trên) hoặc

@@ -51,5 +51,5 @@ In/ghi JSON: `dinhDanh`, `matKhau`, `token` (phiên Ba Mẹ — dùng thẳng `A
 
 Đăng nhập không OTP = **mật khẩu thường** (`POST /api/m/dang-nhap`) — máy chủ không có đường cửa sau nào. OTP chỉ dùng lúc đăng ký,
 và seed lấy mã ở chế độ thử (không phải production). Seed **từ chối chạy** (mã thoát 2) khi: thiếu `AIIGROW_CI_LOGIN=1`, `NODE_ENV=production`,
-có `VERCEL`, `AIIGROW_BAT_BUOC_DB=1`, hoặc `DATABASE_URL` không trỏ `localhost` / `127.0.0.1` / `::1`. Test: `server/lib/seed-ci.test.ts`;
+có `AIIGROW_BAT_BUOC_DB=1`, hoặc `DATABASE_URL` không trỏ `localhost` / `127.0.0.1` / `::1`. Test: `server/lib/seed-ci.test.ts`;
 job `kiem` chạy lại hai trường hợp bị chặn trên runner.

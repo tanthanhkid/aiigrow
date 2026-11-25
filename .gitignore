@@ -5,7 +5,6 @@ node_modules
 dist
 *.tsbuildinfo
 .env*
-.vercel
 next-env.d.ts
 bin
 obj

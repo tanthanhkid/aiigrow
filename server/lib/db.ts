@@ -44,8 +44,8 @@ async function mo(): Promise<Db> {
       nghe: async (kenh, khiBao, khiNghe) => { await sql.listen(kenh, khiBao, khiNghe); },
     };
   }
-  // Vercel/serverless không có đĩa bền: thiếu DATABASE_URL thì báo rõ, đừng lặng lẽ ghi vào thư mục tạm rồi mất dữ liệu.
-  if (process.env.VERCEL || process.env.AIIGROW_BAT_BUOC_DB === "1") throw new Error("Thiếu DATABASE_URL — prod (Vercel/VPS) phải dùng Postgres thật (Neon/Supabase…)");
+  // Prod không dùng đĩa PGlite: thiếu DATABASE_URL thì báo rõ, đừng lặng lẽ ghi vào thư mục tạm rồi mất dữ liệu.
+  if (process.env.AIIGROW_BAT_BUOC_DB === "1") throw new Error("Thiếu DATABASE_URL — prod (VPS) phải dùng Postgres thật");
   const { PGlite } = await import("@electric-sql/pglite");
   const dir = process.env.PGLITE_DIR || (process.env.NODE_ENV === "test" ? undefined : ".data/pg");
   if (dir) (await import("node:fs")).mkdirSync(dir, { recursive: true });

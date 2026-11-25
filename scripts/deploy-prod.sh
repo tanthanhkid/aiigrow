@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Đưa một LÔ tính năng lên prod (Thanh 24/10: «làm một lô tính năng thì dựng trên localhost coi ok chưa rồi mới đưa lên hosting»).
-# Push/merge vào main KHÔNG tự deploy nữa (server/vercel.json git.deploymentEnabled=false) — prod chỉ đổi khi chạy script này.
-#   scripts/deploy-prod.sh            # cổng kiểm trên localhost rồi deploy prod
-#   scripts/deploy-prod.sh --chi-kiem # chỉ chạy cổng kiểm, không deploy
+# Push/merge vào main KHÔNG tự deploy — prod (VPS) chỉ đổi khi chạy scripts/deploy-vps.sh sau cổng kiểm này.
+#   scripts/deploy-prod.sh            # cổng kiểm trên localhost; đạt thì nhắc chạy deploy-vps.sh (không tự deploy)
+#   scripts/deploy-prod.sh --chi-kiem # như trên
 # Cổng: test máy chủ + tsc (server, mobile) + bản web Expo chạy trên máy chủ localhost (pha.mjs: kịch bản luồng + cổng giao diện).
 # Tăng tốc (25/10) — không bỏ kiểm nào:
 #   · bỏ pnpm install / npm ci khi lockfile + package.json + bản node không đổi so với lần cài trước (băm ở node_modules/.lock-hash);
@@ -14,7 +14,6 @@
 #     tải máy cao / RAM ít (đo đầu cổng) ⇒ chế độ nhẹ: hai nhánh nối tiếp, ba lượt giao diện nối tiếp.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-CHI_KIEM=0; [ "${1:-}" = "--chi-kiem" ] && CHI_KIEM=1
 
 git fetch -q origin
 [ -z "$(git status --porcelain)" ] || { echo "Cây git bẩn — commit/stash trước"; exit 1; }
@@ -83,7 +82,7 @@ nhanh_app() (
   cai mobile package-lock.json .package-lock.json npm_ci
   cd mobile
   npx tsc --noEmit -p .
-  # Cache Metro ngoài repo (không lọt vào gói vercel deploy); khoá = băm lần cài node_modules + cấu hình dựng; thư mục cũ >7 ngày tự dọn.
+  # Cache Metro ngoài repo (không nằm trong repo); khoá = băm lần cài node_modules + cấu hình dựng; thư mục cũ >7 ngày tự dọn.
   local goc_cache="${HOME}/Library/Caches/aiigrow-cong" tm
   tm="$goc_cache/metro-$( { env | grep '^EXPO_PUBLIC_' | grep -v '^EXPO_PUBLIC_API=' | sort || true; bam node_modules/.lock-hash babel.config.* metro.config.* app.json app.config.* .env*; } | shasum -a 256 | cut -c1-16)"
   mkdir -p "$tm"; touch "$tm"   # touch: thư mục đang dùng không bị dọn dưới đây
@@ -130,8 +129,4 @@ if [ -n "$RC_S" ]; then [ "$RC_S" = 0 ] || LOI=1; else wait $PS 2>/dev/null || L
 [ $LOI = 0 ] || { echo "Cổng kiểm LỖI (log nhánh lỗi ở trên) — $((SECONDS - BAT_DAU))s"; exit 1; }
 echo "Cổng kiểm đạt — $((SECONDS - BAT_DAU))s"
 
-[ $CHI_KIEM = 1 ] && { echo "(không deploy)"; exit 0; }
-echo "== Deploy prod $(git rev-parse --short HEAD)"
-[ -f .vercel/project.json ] || vercel link --yes --project aiigrow >/dev/null
-rm -rf mobile/ios mobile/android mobile/build-ios   # thư mục native do expo prebuild/testflight sinh, không cần lên Vercel
-vercel deploy --prod --yes --archive=tgz   # >15000 file (node_modules mobile) ⇒ Vercel đòi gói tgz
+echo "Cổng kiểm đạt — prod chạy trên VPS: tiếp theo chạy scripts/deploy-vps.sh (script này không deploy)."

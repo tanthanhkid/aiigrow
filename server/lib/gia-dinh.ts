@@ -269,7 +269,7 @@ export async function donBoDemGhep(now = Date.now()) {
     and substring(khoa from '[0-9]+$')::bigint < $1 returning 1`, [k - 1])).length;
 }
 
-/** IP gọi để đếm lượt ghép: `x-real-ip` (Vercel đặt, không giả được) trước, rồi `x-forwarded-for`; IPv6 gộp theo /64 (một máy xoay được cả dải). */
+/** IP gọi để đếm lượt ghép: `x-real-ip` (nginx VPS đặt, không giả được) trước, rồi `x-forwarded-for`; IPv6 gộp theo /64 (một máy xoay được cả dải). */
 export function nguonGoi(h: Headers) {
   let ip = (h.get("x-real-ip") ?? h.get("x-forwarded-for") ?? "?").split(",")[0].trim().toLowerCase();
   ip = ip.replace(/^\[([^\]]+)\](?::\d+)?$/, "$1");                       // [IPv6]:cổng

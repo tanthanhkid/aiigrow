@@ -6,8 +6,8 @@ export async function register() {
   const Sentry = await import("@sentry/nextjs");
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
-    environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV,
-    release: process.env.VERCEL_GIT_COMMIT_SHA ?? process.env.AIIGROW_BAN,   // VPS: deploy-vps.sh đặt AIIGROW_BAN = sha
+    environment: process.env.NODE_ENV,
+    release: process.env.AIIGROW_BAN,   // deploy-vps.sh đặt AIIGROW_BAN = sha
     tracesSampleRate: 0,
     sendDefaultPii: false,
     // KHÔNG chép nội dung request: body có mật khẩu Ba Mẹ (gỡ từ xa), PIN, lịch sử web/DNS, tên app Con mở (review #52 P1)

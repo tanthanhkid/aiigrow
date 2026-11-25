@@ -96,7 +96,7 @@ public sealed class UpdateWorker : BackgroundService
         if (cfg is not { Paired: true }) return ThuLaiManifest;   // vừa ghép máy thì lượt đầu tới sớm
         var hienTai = TuCapNhat.BanHienTai();
 
-        // KHÔNG gắn token máy: manifest công khai, còn tệp cài tải từ Vercel Blob (ngoài máy chủ AiiGrow) — gửi Bearer theo là lộ token máy cho bên thứ ba.
+        // KHÔNG gắn token máy: manifest công khai, còn tệp cài tải từ máy chủ AiiGrow — gửi Bearer theo là lộ token máy cho bên thứ ba.
         using var http = HttpDungChung.TaoClient(han: Timeout.InfiniteTimeSpan);
         var server = ApiClient.NormalizeServer(cfg.Server);
         BanMoi? m;

@@ -1,6 +1,6 @@
-// GET /api/cron/don-kiem-toan — Vercel Cron mỗi ngày 19:00 UTC = 02:00 giờ VN (server/vercel.json): xoá hẳn nhật ký audit của gia đình đã
+// GET /api/cron/don-kiem-toan — cron VPS mỗi ngày 19:00 UTC = 02:00 giờ VN (scripts/vps/aiigrow.cron): xoá hẳn nhật ký audit của gia đình đã
 // xoá quá 90 ngày (lib/xoa-tai-khoan.ts › donKiemToanGiaDinhDaXoa). Có biến CRON_SECRET thì bắt buộc «Authorization: Bearer <CRON_SECRET>»
-// (Vercel tự gửi); chưa đặt biến thì mở — việc này chỉ xoá dữ liệu đã quá hạn chính sách, gọi lặp vô hại, giãn tối thiểu 1 giờ giữa hai lần.
+// (cron VPS gửi); chưa đặt biến thì mở — việc này chỉ xoá dữ liệu đã quá hạn chính sách, gọi lặp vô hại, giãn tối thiểu 1 giờ giữa hai lần.
 import { timingSafeEqual } from "node:crypto";
 import { json, loi, batLoi } from "@/lib/api.ts";
 import { bearer } from "@/lib/auth.ts";
