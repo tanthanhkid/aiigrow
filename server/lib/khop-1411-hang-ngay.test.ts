@@ -10,7 +10,7 @@ const { datLuat } = await import("./luat-app.ts");
 const { q, newId } = await import("./db.ts");
 const { gioDiaPhuong, congNgay } = await import("./gio.ts");
 const { taoNha, taoBaMe } = await import("./test-fixtures/nha.ts");
-const { homNayDung, tinhGioCua } = await import("./hom-nay-dung.ts");
+const { homNayDung, tinhGioCua, chuaXepCua } = await import("./hom-nay-dung.ts");
 const { baoCaoTuan } = await import("./bao-cao.ts");
 const { nhatKyCaNha, cauSuKien } = await import("./nhat-ky-ca-nha.ts");
 const { ghiSuKien } = await import("./nhat-ky.ts");
@@ -28,7 +28,14 @@ test("tinhGioCua: luật hoc ⇒ dùng thoải mái; giai_tri / chan ⇒ tính g
   assert.equal(tinhGioCua("giai_tri", { loai: "hoc" }), false);
   assert.equal(tinhGioCua("hoc", { loai: "giai_tri" }), true);
   assert.equal(tinhGioCua("hoc", undefined), false);
-  assert.equal(tinhGioCua("chua_phan_loai", undefined), true);
+  assert.equal(tinhGioCua("giai_tri", undefined), true);
+  // #623: chưa phân loại (UWP applicationframehost…) ví không trừ ⇒ không tính giờ, hiện «Chưa xếp»
+  assert.equal(tinhGioCua("chua_phan_loai", undefined), false);
+  assert.equal(chuaXepCua("chua_phan_loai", undefined), true);
+  assert.equal(chuaXepCua(null, undefined), true);
+  assert.equal(chuaXepCua("hoc", undefined), false);
+  assert.equal(chuaXepCua("chua_phan_loai", { loai: "hoc" }), false);
+  assert.equal(chuaXepCua("chua_phan_loai", { loai: "giai_tri" }), false);
 });
 
 test("con/:id/hom-nay: gộp app + web hôm nay, giờ bắt đầu, máy, Chơi/Học theo luật, đang mở, bị chặn hôm nay", async () => {
@@ -51,6 +58,12 @@ test("con/:id/hom-nay: gộp app + web hôm nay, giờ bắt đầu, máy, Chơi
   assert.equal(rb.may, "Laptop");
   assert.equal(rb.tinhGio, true);
   assert.equal(rb.dangMo, true);
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,'applicationframehost.exe','chua_phan_loai',6, now() - interval '5 hours')`, [may, con, n]);
+  const r2 = await homNayDung(fam, con);
+  const af = r2.dung.find((x) => x.muc === "applicationframehost.exe")!;
+  assert.equal(af.tinhGio, false, "#623: chưa xếp không trừ sao");
+  assert.equal(af.chuaXep, true);
+  assert.equal(r2.khongTinhPhut.phut, r.khongTinhPhut.phut, "chưa xếp không tính vào «Không tính phút»");
   const td = r.dung.find((x) => x.muc === "tudien.exe")!;
   assert.equal(td.tinhGio, false, "luật hoc ⇒ Học");
   assert.equal(td.ten, "Từ điển");

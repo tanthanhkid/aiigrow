@@ -946,6 +946,11 @@ if (process.argv.includes("--giao-dien")) {
         { luc: luc(99), ten: "Từ điển", muc: "tu-dien", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 10, tinhGio: false, dangMo: false, matMang: false },
         { luc: luc(142), ten: "Học với AiiRob", muc: "aiirob", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 40, tinhGio: false, dangMo: false, matMang: false }],
       biChan: [{ luc: luc(7), ten: "YouTube", may: null, ly: "dang_xin", yeuCau: "y5", phut: 30 }, { luc: luc(107), ten: "game.vn", may: "Laptop", ly: "chua_cho", yeuCau: null, phut: null }] } } }),
+    // #623: app chưa xếp nhóm (vd UWP applicationframehost) — ví không trừ ⇒ «Chưa xếp 6′», không «−N sao»
+    M("bm-da-dung (chưa xếp · #623)", "/da-dung/c1", "Chưa xếp 6′", { kb: { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-03", choi: { daDung: 0, tongPhut: 60, conPhut: 10 },
+      hoc: { phut: 0, khung: null }, khongTinhPhut: { phut: 0 },
+      dung: [{ luc: luc(25), ten: "Chưa rõ tên", muc: "applicationframehost.exe", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 6, tinhGio: false, chuaXep: true, dangMo: false, matMang: false }],
+      biChan: [] } } }),
     M("bm-nhat-ky (r3dsl3py)", "/nhat-ky", "7 ngày qua", { kb: SO_SAO }),
     // App & web (bm-ung-dung — thiết kế chốt 15/11, #262 / #258)
     M("bm-app-web", "/chan", "Danh sách của"),
