@@ -161,6 +161,13 @@ test("review PR #241: dau_luc — agent gửi dauLuc thì lấy, gửi lại gi�
   assert.equal(r.tuanNay.dungNhieu.find((x: { muc: string }) => x.muc === "roblox.exe")?.may, "PC phòng khách");
 });
 
-test("#660 nhật ký: gỡ máy tại máy (không ghi người) vẫn là việc Ba Mẹ; con nộp việc thì không", () => {
-  assert.equal(cauSuKien("go_may", { ten: "maytinh6" }, null)?.tieu, "Ba Mẹ gỡ maytinh6");
+test("#660 nhật ký: gỡ máy tại máy (không ghi người) có baMe; con nộp việc thì không", async () => {
+  const { fam, con } = await nha();
+  await ghiSuKien(fam, "go_may", { ten: "maytinh6", cach: "tai_may" }, { con });
+  await ghiSuKien(fam, "nop_nhiem_vu", { ten: "Xếp cặp" }, { con });
+  const r = await nhatKyCaNha(fam);
+  const baMe = (tieu: string) => r.ds.find((x: { tieu: string }) => x.tieu.includes(tieu))?.baMe;
+  assert.equal(baMe("gỡ maytinh6"), true);
+  assert.equal(r.ds.find((x: { tieu: string }) => x.tieu.includes("gỡ maytinh6"))?.tieu, "Ba Mẹ gỡ maytinh6");
+  assert.equal(baMe("Nộp «Xếp cặp»"), false);
 });

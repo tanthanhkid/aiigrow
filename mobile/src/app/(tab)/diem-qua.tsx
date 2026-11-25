@@ -111,7 +111,7 @@ export default function TabNhiemVu() {
                 <Chu kieu="rat" co={15.5} dong={1}>{tenVoucher(p.ten)}</Chu>
                 <Chu kieu="dam" co={13} mau={M.diemInk}>{`Đổi ${soVN(p.diem)} sao · ${khiNao(p.created_at)}`}</Chu>
               </View>
-              <View><Nut chu="Trao quà" nho bam={() => setTrao(p)} nhanDoc={`Trao ${p.ten} cho ${p.ten_con}`} /></View>
+              <View><Nut chu="Trao quà" nho bam={() => setTrao(p)} nhanDoc={`Trao ${tenVoucher(p.ten)} cho ${p.ten_con}`} /></View>
             </View>
           ))}
         </>

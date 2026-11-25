@@ -38,7 +38,7 @@ export default function QuaCuaCon() {
   if (!g.d) return <Man lui={{ chu: "", bam: ve }} tieu={TIEU}><ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man>;
   const c = g.d.con.find((x) => x.id === chon) ?? g.d.con[0];
   // một khối theo Con (key) ⇒ đổi chip Con là tải lại đúng quà của Con đó
-  return <QuaCon key={c?.id ?? "-"} c={c} coCon={!!conSan} dsCon={g.d.con} baMe={g.d.baMe} quyVoucher={g.d.quyVoucher} doiCon={setChon} tabDau={tab === "nha" ? "nha" : "voucher"} />;
+  return <QuaCon key={c?.id ?? "-"} c={c} coCon={!!conSan || chon != null} dsCon={g.d.con} baMe={g.d.baMe} quyVoucher={g.d.quyVoucher} doiCon={setChon} tabDau={tab === "nha" ? "nha" : "voucher"} />;
 }
 
 type Con = GiaDinh["con"][number];

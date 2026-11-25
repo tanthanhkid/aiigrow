@@ -88,8 +88,8 @@ export default function ObQua() {
                 {dsNha.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={m.daCo ? Math.max(1, sl[m.ma] ?? 1) : sl[m.ma] ?? 0} dat={(n) => dat(m.ma, n)} khoa={m.daCo} tran={1} />)}
                 {d.rieng.filter((q) => !daXoa.includes(q.id)).map((q, i) => (
                   <DongQua key={q.id} i={dsNha.length + i} ten={tenVoucher(q.ten)} phu={`${soCham(q.sao)} sao`} n={1}
-                    dat={(n) => { if (n >= 1) return; setDaXoa((x) => [...x, q.id]); guiCham(`Đã xoá quà «${q.ten}»`, () => {
-                      bm.goi(`qua/${q.id}/xoa`, {}).then(() => tai(), () => { setDaXoa((x) => x.filter((y) => y !== q.id)); setLoi(`Chưa xoá được quà «${q.ten}», thử lại nhé.`); tai(); });
+                    dat={(n) => { if (n >= 1) return; setDaXoa((x) => [...x, q.id]); guiCham(`Đã xoá quà «${tenVoucher(q.ten)}»`, () => {
+                      bm.goi(`qua/${q.id}/xoa`, {}).then(() => tai(), () => { setDaXoa((x) => x.filter((y) => y !== q.id)); setLoi(`Chưa xoá được quà «${tenVoucher(q.ten)}», thử lại nhé.`); tai(); });
                     }, () => setDaXoa((x) => x.filter((y) => y !== q.id))); }} tran={1} />
                 ))}
               </TheDs>
