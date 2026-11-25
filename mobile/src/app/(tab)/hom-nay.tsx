@@ -200,7 +200,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   }
   // tiêu đề thẻ chính: khoá ⇒ giờ mở lại · con đang chơi ⇒ «Đang chơi <app>» · đã chơi phút nào hôm nay (cùng nguồn «Đã chơi»/«Đã dùng») ⇒ «Đã dùng N phút» · chưa chơi ⇒ «Chưa dùng máy»
   const dangChoi = d.choi.find((x) => x.con === conId) ?? null;
-  const daChoiPhut = hn.d?.choi.daDung ?? 0;
+  const daChoiPhut = Math.max(Number(hn.d?.choi?.daDung) || 0, s.phutHomNay || 0); // hom-nay chưa về ⇒ dùng số từ quỹ/trạng thái
   const tieuLon = tieuTheChinh({ khoa, mo: khoaDen, dangChoi: dangChoi?.tenApp, daChoiPhut, gio: gioPhut });
   const cheDo = ct.d?.cheDoChan === "mo_het" ? "Mở hết" : "Theo danh sách";
   const veVi = () => router.push(`/vi/${conId}` as never);
