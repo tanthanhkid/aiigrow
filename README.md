@@ -29,7 +29,7 @@ versionCode = số commit (luôn tăng), versionName = `<version package.json>+<
 **Từ 06/11/2026 prod `aiigrow.aiilab.vn` chạy trên VPS của Thanh** (project Vercel đã xoá 25/11/2026).
 VPS: `ssh trinity-crm` (1 vCPU, 2 GB) — nginx `/etc/nginx/sites-enabled/aiigrow.conf` (TLS certbot) → pm2 `aiigrow` ở `127.0.0.1:3320`;
 mã ở `/opt/aiigrow/releases/<sha>` (`current` trỏ bản đang chạy, giữ 3 bản); biến môi trường ở `/etc/aiigrow/aiigrow.env` (root, chmod 600, có `AIIGROW_APP_URL=https://aiigrow.aiilab.vn` + `AIIGROW_BAT_BUOC_DB=1` ⇒ thiếu `DATABASE_URL` thì báo lỗi chứ không lặng lẽ dùng PGlite;
-không nằm trong git); cron dọn kiểm toán ở `/etc/cron.d/aiigrow` . **CSDL là Postgres 16 cục bộ trên VPS** (db/role `aiigrow`, 127.0.0.1)
+không nằm trong git); cron dọn kiểm toán ở `/etc/cron.d/aiigrow`. **CSDL là Postgres 16 cục bộ trên VPS** (db/role `aiigrow`, 127.0.0.1)
 từ 06/11 — Neon (us-east-1) cách VN ~250 ms mỗi câu SQL làm API chậm 5–12 s; Neon giữ nguyên dữ liệu tới 06/11 08:39 làm bản quay lui
 (`NEON_DATABASE_URL_CU` trong env). Sao lưu 02:30 hằng ngày ở `/var/backups/aiigrow` (14 bản); nginx đọc thẳng tệp tĩnh có hash. Tệp cấu hình mẫu: `scripts/vps/`.
 

@@ -3,7 +3,7 @@
 // không chờ e2e: run của đúng commit (`gh run list -w agent-win -c <sha>`) → `gh run download <run-id> -R tanthanhkid/aiigrow -n setup-goc` — xem đầu
 // .github/workflows/agent-win.yml; e2e của run đó đỏ ⇒ đừng merge manifest này) → `gh release create v<bản>` ở repo
 // public tanthanhkid/aiigrow-tai, tệp AiiGrow-Setup-<bản>.exe → sửa ba giá trị dưới đây → merge. sha256 PHẢI là của đúng tệp đã tải lên,
-// sai thì agent xoá tệp, không cài. URL nằm trên tên miền máy chủ (agent 0.2.0+ chỉ nhận host máy chủ) — next.config
+// sai thì agent xoá tệp, không cài. URL nằm trên tên miền máy chủ (agent mới chỉ nhận host máy chủ; bản cũ còn nhận host Blob nhưng vẫn kiểm sha256) — next.config
 // chuyển /tai/AiiGrow-Setup-<bản>.exe sang GitHub Release. Không dùng Blob.
 import type { May } from "./gia-dinh.ts";
 

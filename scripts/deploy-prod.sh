@@ -14,7 +14,6 @@
 #     tải máy cao / RAM ít (đo đầu cổng) ⇒ chế độ nhẹ: hai nhánh nối tiếp, ba lượt giao diện nối tiếp.
 set -euo pipefail
 cd "$(dirname "$0")/.."
-CHI_KIEM=0; [ "${1:-}" = "--chi-kiem" ] && CHI_KIEM=1
 
 git fetch -q origin
 [ -z "$(git status --porcelain)" ] || { echo "Cây git bẩn — commit/stash trước"; exit 1; }
