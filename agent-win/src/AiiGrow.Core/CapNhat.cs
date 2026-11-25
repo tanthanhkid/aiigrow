@@ -249,6 +249,18 @@ public static class TuCapNhat
         return h.Equals(sha256, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>Khay có nên báo «đã cập nhật lên bản X» không (#639): khay đang chạy bản mới hơn bản đã báo ở HKCU, hoặc bộ cài vừa ghi bản này mà chưa báo. Trả số bản cần báo.</summary>
+    public static string? CanBaoDaCapNhat(string? dangChay, string? daThay, string? vuaCapNhat, string? daBao)
+    {
+        var cur = CapNhat.DocBan(dangChay);
+        if (cur == null) return null;
+        var truoc = CapNhat.DocBan(daThay);
+        if (truoc != null && cur > truoc) return cur.ToString(3);
+        var vua = CapNhat.DocBan(vuaCapNhat);
+        if (vua != null && vua == cur && CapNhat.DocBan(daBao) != vua) return vua.ToString(3);
+        return null;
+    }
+
     /// <summary>Bản đang chạy của tiến trình (AssemblyVersion ba phần).</summary>
     public static Version BanHienTai() =>
         CapNhat.DocBan(typeof(TuCapNhat).Assembly.GetName().Version?.ToString(3)) ?? new Version(0, 0, 0);
