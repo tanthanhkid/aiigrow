@@ -186,11 +186,14 @@ public static class ProcessGuard
     /// <summary>Mã nhà phát hành dùng chung cho cả trăm gói (Microsoft) — cùng mã KHÔNG đủ để coi là «cùng app»: Solitaire chạy không được kéo theo Mail, Camera…</summary>
     public static readonly HashSet<string> NhaXuatBanChung = new(StringComparer.OrdinalIgnoreCase) { "8wekyb3d8bbwe", "cw5n1h2txyewy" };
 
-    /// <summary>Tiền tố tên gói đi kèm trò chơi / app của Microsoft (Xbox Identity Provider «Xboxidp», Game Bar, Gaming Services, Xbox TCUI) — chạy theo app cha.</summary>
-    public static readonly string[] TienToGoiPhuCuaMicrosoft = { "microsoft.xbox", "microsoft.gaming" };
+    /// <summary>Gói đi kèm trò chơi / app của Microsoft (Xbox Identity Provider «Xboxidp», Game Bar, Gaming Services, Xbox TCUI) — chạy theo app cha.</summary>
+    public static readonly HashSet<string> GoiPhuCuaMicrosoft = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "microsoft.xboxidentityprovider", "microsoft.xboxgamingoverlay", "microsoft.xbox.tcui", "microsoft.xboxgamecallableui", "microsoft.gamingservices",
+    };
 
-    /// <summary>#643: tiến trình phụ của app đã cho phép — cùng gói (cùng tên gói, khác thư mục bản / exe khác), cùng nhà phát hành (không phải mã dùng chung của
-    /// Microsoft), hoặc (nhà phát hành Microsoft) gói đi kèm Xbox / Gaming. <paramref name="goiCha"/> = các «tênGói|nhàXB» của app cha đang chạy và được phép
+    /// <summary>#643: tiến trình phụ của app đã cho phép — cùng gói (cùng tên gói + nhà phát hành: exe khác / thư mục bản khác), hoặc gói đi kèm Xbox / Gaming của Microsoft
+    /// (<see cref="GoiPhuCuaMicrosoft"/>). KHÔNG tin «cùng nhà phát hành» trần: nhà phát hành có thể ship cả game / launcher khác. <paramref name="goiCha"/> = các «tênGói|nhàXB» của app cha đang chạy và được phép
     /// (<see cref="KhoaGoiCha"/>). Tiến trình đứng một mình (không có app cha chạy) ⇒ false, theo luật thường.</summary>
     public static bool LaTienTrinhPhuCuaCha(string exePath, IReadOnlyCollection<string>? goiCha)
     {
@@ -205,8 +208,7 @@ public static class ProcessGuard
             var tenCha = k[..i]; var nhaCha = k[(i + 1)..];
             if (!nhaCha.Equals(nha, StringComparison.OrdinalIgnoreCase)) continue;
             if (tenCha.Equals(ten, StringComparison.OrdinalIgnoreCase)) return true;
-            if (!NhaXuatBanChung.Contains(nha)) return true;
-            if (TienToGoiPhuCuaMicrosoft.Any(t => ten.StartsWith(t, StringComparison.OrdinalIgnoreCase))) return true;
+            if (NhaXuatBanChung.Contains(nha) && GoiPhuCuaMicrosoft.Contains(ten)) return true;
         }
         return false;
     }

@@ -93,6 +93,8 @@ public class ProcessEnforcerTests
     private const string Xboxidp = @"C:\Program Files\WindowsApps\Microsoft.XboxIdentityProvider_12.0.0_x64__8wekyb3d8bbwe\XboxIdp.exe";
     private const string Mail = @"C:\Program Files\WindowsApps\microsoft.windowscommunicationsapps_16005_x64__8wekyb3d8bbwe\HxOutlook.exe";
     private const string FooApp = @"C:\Program Files\WindowsApps\Foo.Game_1.0.0_x64__abc123xyz\Foo.exe";
+    private const string FooApp2 = @"C:\Program Files\WindowsApps\Foo.Game_1.1.0_x64__abc123xyz\FooUpdater.exe";
+    private const string GamingApp = @"C:\Program Files\WindowsApps\Microsoft.GamingApp_2.0_x64__8wekyb3d8bbwe\XboxPcApp.exe";
     private const string FooHelper = @"C:\Program Files\WindowsApps\Foo.Helper_2.0.0_x64__abc123xyz\Helper.exe";
     private const string FooKhac = @"C:\Program Files\WindowsApps\Foo.Helper_2.0.0_x64__zzz999\Helper.exe";
 
@@ -112,7 +114,9 @@ public class ProcessEnforcerTests
         var chaFoo = new[] { ProcessGuard.KhoaGoiCha(FooApp)! };
         Assert.True(ProcessGuard.LaTienTrinhPhuCuaCha(Xboxidp, chaSol));      // gói Xbox đi kèm app Microsoft
         Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(Mail, chaSol));        // cùng mã Microsoft nhưng không phải gói đi kèm
-        Assert.True(ProcessGuard.LaTienTrinhPhuCuaCha(FooHelper, chaFoo));    // cùng nhà phát hành riêng
+        Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(FooHelper, chaFoo));   // cùng nhà phát hành nhưng gói khác: không tin trần
+        Assert.True(ProcessGuard.LaTienTrinhPhuCuaCha(FooApp2, chaFoo));      // cùng gói, exe khác / bản khác
+        Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(GamingApp, chaSol));   // Xbox app (launcher) không phải tiến trình phụ
         Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(FooKhac, chaFoo));     // nhà phát hành khác
         Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(Xboxidp, Array.Empty<string>()));   // không có app cha chạy
         Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(Xboxidp, null));
@@ -122,11 +126,15 @@ public class ProcessEnforcerTests
     public void Enforce_TienTrinhPhuDiTheoAppCha_DungMotMinhThiTheoLuatThuong()
     {
         var al = new[] { "foo.game" };
-        // app cha được phép đang chạy ⇒ helper cùng nhà phát hành không bị đóng
-        var a = new FakeProcessControl(new RunningProc(1, FooApp), new RunningProc(2, FooHelper), new RunningProc(3, FooKhac));
+        // app cha được phép đang chạy ⇒ exe khác cùng gói không bị đóng; gói khác (dù cùng nhà phát hành) bị đóng
+        var a = new FakeProcessControl(new RunningProc(1, FooApp), new RunningProc(2, FooApp2), new RunningProc(3, FooKhac), new RunningProc(4, FooHelper));
         ProcessEnforcer.Enforce(a, 2, al, Safe, winDir: Win);
-        Assert.Equal(new[] { 3 }, a.Closed);
-        // app cha không chạy ⇒ helper đứng một mình bị đóng như luật thường
+        Assert.Equal(new[] { 3, 4 }, a.Closed);
+        // Solitaire chạy ⇒ Xboxidp theo cha, Xbox app thì không
+        var x = new FakeProcessControl(new RunningProc(5, Sol), new RunningProc(6, Xboxidp), new RunningProc(7, GamingApp));
+        ProcessEnforcer.Enforce(x, 2, new[] { "microsoft.microsoftsolitairecollection" }, Safe, winDir: Win);
+        Assert.Equal(new[] { 7 }, x.Closed);
+        // app cha không chạy ⇒ tiến trình đứng một mình bị đóng như luật thường
         var b = new FakeProcessControl(new RunningProc(2, FooHelper));
         ProcessEnforcer.Enforce(b, 2, al, Safe, winDir: Win);
         Assert.Equal(new[] { 2 }, b.Closed);
