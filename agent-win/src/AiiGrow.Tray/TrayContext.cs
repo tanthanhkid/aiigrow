@@ -853,6 +853,7 @@ internal sealed class TrayContext : ApplicationContext
         // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
         if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         var id = _state.BlockedAppId;
+        if (!ManChanView.CoHienBang(id)) return;   // #642: tiến trình nền của Windows / Xbox Game Bar — không bật bảng
         var homNay = DateOnly.FromDateTime(DateTime.Now);
         if (homNay != _ngayTuGui) { _ngayTuGui = homNay; _soTuGui = 0; }
         var daXin = id != null && (_daXin.Contains(id) || _soTuGui >= ManChanView.TuGuiToiDa);

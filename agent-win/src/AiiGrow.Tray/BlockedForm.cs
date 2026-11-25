@@ -98,7 +98,8 @@ internal sealed class BlockedForm : Form
         SizeChanged += (_, _) => { if (IsHandleCreated) GiuaManHinh(); };
 
         // Nền phủ tối sau hộp (thiết kế #phu) — hiện trước hộp, đóng cùng hộp.
-        Load += (_, _) => { try { _phu = new ManPhu(); _phu.Show(); BringToFront(); Activate(); } catch { _phu = null; } };
+        Load += (_, _) => { try { _phu = new ManPhu(); _phu.DongHop = DongHan; _phu.Show(); BringToFront(); Activate(); } catch { _phu = null; } };
+        Shown += (_, _) => { BringToFront(); Activate(); };   // #642: hộp luôn nằm TRÊN lớp mờ (nút ✕ / Esc bấm được)
         FormClosed += (_, _) => { _dong = true; _poll.Stop(); _poll.Dispose(); try { _phu?.Close(); _phu?.Dispose(); } catch { } };
         _poll.Tick += async (_, _) => await PollAsync();
 
@@ -314,11 +315,12 @@ internal sealed class BlockedForm : Form
         var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.XinDuyet, AppId = _appId, AppName = _ten });
         _busy = false;
         if (_dong || IsDisposed) return;
-        if (!r.Ok)
+        var (daGui, loi) = ManChanView.KetQuaGui(r.Ok, r.Error);
+        if (!daGui)
         {
-            // không gửi được (dịch vụ không trả lời, máy chủ từ chối…) ⇒ về màn chặn có nút xin + câu lỗi
+            // không gửi được (dịch vụ không trả lời, máy chủ từ chối…) ⇒ về màn chặn có nút xin + câu lỗi (#642: đóng được bằng nút / Esc / bấm nền)
             Ve(Buoc.ChuaMo);
-            _msg.Text = r.Error ?? "Chưa gửi được. Con thử lại nhé.";
+            _msg.Text = loi!;
             return;
         }
         NhanKetQua(r);

@@ -214,7 +214,14 @@ internal sealed class ManPhu : Form
         TopMost = true;
         Bounds = Screen.PrimaryScreen!.Bounds;
         Text = "AiiGrow";
+        KeyPreview = true;
+        // #642: lớp mờ không bao giờ giam người dùng — bấm vào nền / Esc ⇒ đóng hộp phía trước
+        MouseDown += (_, _) => DongHop?.Invoke();
+        KeyDown += (_, e) => { if (e.KeyCode == Keys.Escape) DongHop?.Invoke(); };
     }
+
+    /// <summary>Đóng hộp đang đứng trước lớp mờ (bấm nền / Esc).</summary>
+    public Action? DongHop { get; set; }
 
     protected override bool ShowWithoutActivation => true;
 }

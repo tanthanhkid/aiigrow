@@ -30,6 +30,31 @@ public class ManConTests
         Assert.True(ProcessGuard.TienTrinhHeThongPhien.Contains("hxtsr.exe"));
     }
 
+    [Theory]
+    [InlineData("gamebarftserver.exe", false)]
+    [InlineData("GameBarFTServer", false)]
+    [InlineData("hxtsr.exe", false)]
+    [InlineData("capcut.exe", true)]
+    [InlineData("taskmgr.exe", true)]
+    [InlineData(null, true)]
+    public void CoHienBang_TienTrinhNenKhongBatBang_Issue642(string? id, bool mong) => Assert.Equal(mong, ManChanView.CoHienBang(id));
+
+    [Fact]
+    public void KetQuaGui_LoiThiKhongNoiDaGui_Issue642()
+    {
+        Assert.Equal((true, (string?)null), ManChanView.KetQuaGui(true, null));
+        Assert.Equal((false, (string?)ManChanView.ChuaGuiDuoc), ManChanView.KetQuaGui(false, null));
+        Assert.Equal((false, (string?)ManChanView.ChuaGuiDuoc), ManChanView.KetQuaGui(false, "  "));
+        Assert.Equal((false, (string?)"Máy chủ từ chối"), ManChanView.KetQuaGui(false, "Máy chủ từ chối"));
+    }
+
+    [Fact]
+    public void GameBar_KhongBiDong_Issue642()
+    {
+        var safe = new[] { @"C:\Program Files\AiiGrow" };
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Program Files\WindowsApps\Microsoft.XboxGamingOverlay_7.0.0.0_x64__8wekyb3d8bbwe\GameBarFTServer.exe", new HashSet<string>(), new HashSet<string>(), safe, @"C:\Windows"));
+    }
+
     [Fact]
     public void ManChan_Chu_DungThietKe()
     {
