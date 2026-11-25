@@ -53,7 +53,7 @@ public static class TrayView
         ["msedge"] = "Microsoft Edge", ["chrome"] = "Google Chrome", ["firefox"] = "Firefox", ["brave"] = "Brave",
         ["coccoc"] = "Cốc Cốc", ["opera"] = "Opera", ["roblox"] = "Roblox",
         ["robloxplayerbeta"] = "Roblox", ["minecraft"] = "Minecraft", ["steam"] = "Steam",
-        ["discord"] = "Discord", ["spotify"] = "Spotify", ["notepad"] = "Notepad", ["calculatorapp"] = "Máy tính",
+        ["discord"] = "Discord", ["spotify"] = "Spotify", ["notepad"] = "Notepad", ["onedrive"] = "OneDrive", ["calculatorapp"] = "Máy tính",
     };
 
     /// <summary>Bảng mục → tên (không phân biệt hoa thường, bỏ mục / tên trống).</summary>

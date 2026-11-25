@@ -148,7 +148,7 @@ internal sealed class BlockedForm : Form
 
             case Buoc.ChuaMo:
                 // them-vc4dmaei: «YouTube chưa được thêm» · «Chưa có trong danh sách của con» · danh sách xanh / vàng · «Xin Ba Mẹ thêm YouTube»
-                _flow.Controls.Add(KhoiCon.Dau("khoa", KhoiCon.Mau.Cam, ManChanView.TieuDe(_ten), ManChanView.Phu, _w));
+                _flow.Controls.Add(KhoiCon.Dau("khoa", KhoiCon.Mau.Cam, ManChanView.TieuDe(_ten), ManChanView.LoiChan(_ten, ManChanView.MoTaApp(_appId)), _w));   // #668: lời bé hiểu + mô tả ngắn tên app
                 if (_appDuocPhep.Count + _appTinhPhut.Count > 0)
                 {
                     var dd = UI.Text(ManChanView.ChuThichDs, 9.75f, true, Clay.Chu2, _w);

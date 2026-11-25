@@ -26,15 +26,46 @@ public static class ManChanView
     /// Mọi app bị đóng chỉ hiện nút «Xin Ba Mẹ mở …»; lời xin chỉ đi khi Con bấm nút. Giữ chữ ký để các chỗ gọi không đổi.</summary>
     public static bool TuGui(string? appId, bool boiBaMe, bool offline, bool daXin = false) => false;
 
-    /// <summary>#642: có hiện bảng «chưa được thêm» cho tiến trình này không. Tiến trình nền của Windows / Xbox Game Bar (gamebarftserver…) không phải việc Con làm
-    /// ⇒ không bật bảng (không phủ màn hình, không có gì để xin). appId trống ⇒ vẫn hiện (không rõ là gì thì không nuốt).</summary>
+    /// <summary>#668: tiến trình Windows / dịch vụ đi kèm tự chạy ngầm trong phiên Con (OneDrive đồng bộ, Xbox Identity Provider…) — Con không mở, không có gì để xin.
+    /// KHÔNG miễn chặn (chỗ nằm của chúng tài khoản chuẩn ghi được, như OneDrive ở %LocalAppData%): luật chặn / ghi nhận giữ nguyên, chỉ không bật bảng.</summary>
+    public static readonly HashSet<string> TienTrinhChayNgam = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "onedrive.exe", "onedrivestandaloneupdater.exe", "onedriveupdater.exe", "filecoauth.exe", "filesyncconfig.exe", "filesyncshell64.exe",
+        "xboxidp.exe", "xboxpcapp.exe", "xboxappservices.exe", "gamebarpresencewriter.exe",
+    };
+
+    /// <summary>#642 / #668: có hiện bảng «chưa được thêm» cho tiến trình này không. Tiến trình nền của Windows / Xbox Game Bar (gamebarftserver…) và tiến trình
+    /// chạy ngầm đi kèm (OneDrive, Xboxidp…) không phải việc Con làm ⇒ không bật bảng (không phủ màn hình, không có gì để xin). appId trống ⇒ vẫn hiện (không rõ là gì thì không nuốt).</summary>
     public static bool CoHienBang(string? appId)
     {
         if (string.IsNullOrWhiteSpace(appId)) return true;
         var t = appId.Trim();
         var exe = t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? t : t + ".exe";
-        return !ProcessGuard.TienTrinhHeThongPhien.Contains(exe);
+        return !ProcessGuard.TienTrinhHeThongPhien.Contains(exe) && !TienTrinhChayNgam.Contains(exe);
     }
+
+    /// <summary>#668: mô tả ngắn app bằng chữ bé hiểu (tên không .exe, không phân biệt hoa thường). null = không có mô tả.</summary>
+    public static string? MoTaApp(string? appId)
+    {
+        var n = (appId ?? "").Trim();
+        if (n.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) n = n[..^4];
+        return MoTa.TryGetValue(n, out var m) ? m : null;
+    }
+
+    private static readonly Dictionary<string, string> MoTa = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["onedrive"] = "chỗ lưu file của Windows",
+        ["msedge"] = "trình duyệt web của Windows",
+        ["notepad"] = "chỗ gõ chữ đơn giản",
+        ["calculatorapp"] = "máy tính bấm số",
+        ["mspaint"] = "chỗ vẽ tranh của Windows",
+        ["teams"] = "chỗ gọi và nhắn tin họp nhóm",
+        ["outlook"] = "chỗ đọc và gửi thư",
+    };
+
+    /// <summary>#668: lời bảng chặn cho bé — «Con vừa mở OneDrive (chỗ lưu file của Windows). Ba Mẹ chưa cho mở app này. Con cần dùng thì bấm Xin Ba Mẹ nhé.»</summary>
+    public static string LoiChan(string ten, string? moTa) =>
+        $"Con vừa mở {ten}" + (string.IsNullOrWhiteSpace(moTa) ? "" : $" ({moTa.Trim()})") + ". Ba Mẹ chưa cho mở app này. Con cần dùng thì bấm Xin Ba Mẹ nhé.";
 
     /// <summary>#642: kết quả gọi gửi lời xin → bước kế. Chỉ khi dịch vụ NHẬN (ok) mới sang «Đã gửi»; lỗi ⇒ về màn có nút xin + câu lỗi (đóng được: nút, Esc, bấm nền).</summary>
     public static (bool DaGui, string? Loi) KetQuaGui(bool ok, string? loi) =>

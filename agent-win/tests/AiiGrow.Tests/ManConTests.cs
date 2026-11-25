@@ -34,10 +34,33 @@ public class ManConTests
     [InlineData("gamebarftserver.exe", false)]
     [InlineData("GameBarFTServer", false)]
     [InlineData("hxtsr.exe", false)]
+    [InlineData("OneDrive.exe", false)]     // #668
+    [InlineData("onedrive", false)]
+    [InlineData("XboxIdp.exe", false)]
     [InlineData("capcut.exe", true)]
     [InlineData("taskmgr.exe", true)]
     [InlineData(null, true)]
     public void CoHienBang_TienTrinhNenKhongBatBang_Issue642(string? id, bool mong) => Assert.Equal(mong, ManChanView.CoHienBang(id));
+
+    [Fact]
+    public void OneDriveChayNgam_VanBiDongNhungKhongBatBang_Issue668()
+    {
+        var safe = new[] { @"C:\Program Files\AiiGrow" };
+        // luật chặn giữ nguyên: OneDrive ở thư mục người dùng vẫn bị đóng khi chưa được thêm
+        Assert.True(ProcessGuard.ShouldClose(@"C:\Users\be\AppData\Local\Microsoft\OneDrive\OneDrive.exe", new HashSet<string>(), new HashSet<string>(), safe, @"C:\Windows"));
+        Assert.False(ManChanView.CoHienBang("OneDrive.exe"));
+    }
+
+    [Fact]
+    public void LoiChan_ChuBeHieuKemMoTa_Issue668()
+    {
+        Assert.Equal("chỗ lưu file của Windows", ManChanView.MoTaApp("OneDrive.exe"));
+        Assert.Null(ManChanView.MoTaApp("capcut.exe"));
+        Assert.Equal("OneDrive", TrayView.FriendlyAppName("onedrive.exe", null));
+        Assert.Equal("Con vừa mở OneDrive (chỗ lưu file của Windows). Ba Mẹ chưa cho mở app này. Con cần dùng thì bấm Xin Ba Mẹ nhé.",
+            ManChanView.LoiChan("OneDrive", ManChanView.MoTaApp("onedrive")));
+        Assert.Equal("Con vừa mở CapCut. Ba Mẹ chưa cho mở app này. Con cần dùng thì bấm Xin Ba Mẹ nhé.", ManChanView.LoiChan("CapCut", null));
+    }
 
     [Fact]
     public void KetQuaGui_LoiThiKhongNoiDaGui_Issue642()
