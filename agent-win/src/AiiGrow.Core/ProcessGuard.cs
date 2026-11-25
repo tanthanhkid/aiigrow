@@ -173,7 +173,7 @@ public static class ProcessGuard
     public static string? NhaXuatBanGoi(string exePath)
     {
         if (TenGoiStore(exePath) == null) return null;
-        var p = exePath.Replace('/', '\');
+        var p = exePath.Replace('/', '\\');
         const string mk = ":\\Program Files\\WindowsApps\\";
         var i = p.IndexOf(mk, StringComparison.OrdinalIgnoreCase);
         var rest = p[(i + mk.Length)..];
