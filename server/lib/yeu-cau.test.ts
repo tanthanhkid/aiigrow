@@ -37,7 +37,7 @@ test("không trần số lời xin (chỉ chặn bấm dồn 5 giây); huỷ đ�
   for (let i = 0; i < 5; i++) ids.push((await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15, lyDo: "Bạn rủ chơi" }, Tn(i))).id);
   assert.equal(new Set(ids).size, 5);
   // bấm dồn: cùng loại + số sao trong 5 giây ⇒ gộp vào lời xin đang chờ, không tạo thêm
-  const don = await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15 }, new Date(Tn(4).getTime() + 2000));
+  const don = await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15, lyDo: "Bạn rủ chơi" }, new Date(Tn(4).getTime() + 2000));
   assert.equal(don.id, ids[4]); assert.equal((don as { daCo?: boolean }).daCo, true);
   assert.equal(Number((await q(`select count(*) from requests where child_id = $1`, [con]))[0].count), 5);
   // dồn nhiều lời xin khác nhau trong vài giây ⇒ 429 bam_don

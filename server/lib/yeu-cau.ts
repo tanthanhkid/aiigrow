@@ -68,13 +68,13 @@ export async function guiYeuCau(con: string, mayId: string | null,
     // 25/11 (#671): không còn trần số lời xin (đang chờ / mỗi ngày). Chỉ chặn bấm dồn:
     //  • cùng loại + cùng mục (+ cùng số sao) trong vòng 5 giây, hoặc đang chờ mà là app / web ⇒ gộp vào lời xin đó (không tạo thêm);
     //  • quá BAM_DON_TOI_DA lời xin trong BAM_DON_GIAY giây ⇒ 429 bam_don.
-    const gan = await t<{ id: string; loai: string; gia_tri: string | null; phut: number | null; trang_thai: string; created_at: Date }>(
-      `select id, loai, gia_tri, phut, trang_thai, created_at from requests where child_id = $1 and created_at > $2 and created_at <= $3 order by created_at desc limit 50`,
+    const gan = await t<{ id: string; loai: string; gia_tri: string | null; phut: number | null; ly_do: string; trang_thai: string; created_at: Date }>(
+      `select id, loai, gia_tri, phut, ly_do, trang_thai, created_at from requests where child_id = $1 and created_at > $2 and created_at <= $3 order by created_at desc limit 50`,
       [con, new Date(now.getTime() - BAM_DON_GIAY * 1000), now]);
-    const trung = gan.find((x) => x.loai === loai && (x.gia_tri ?? null) === (giaTri ?? null) && (x.phut ?? null) === (soSao ?? null) && x.trang_thai === "cho");
+    const trung = gan.find((x) => x.loai === loai && (x.gia_tri ?? null) === (giaTri ?? null) && (x.phut ?? null) === (soSao ?? null) && (giaTri || x.ly_do === lyDo) && x.trang_thai === "cho");
     if (trung) return { id: trung.id, trang_thai: "cho", daCo: true, ...(laVay ? { soSao, mucDich } : {}) };
     if (loai === "cai_app" || loai === "mo_web") {
-      const cho = (await t<{ id: string }>(`select id from requests where child_id = $1 and loai = $2 and trang_thai = 'cho' and gia_tri is not distinct from $3 limit 1`, [con, loai, giaTri]))[0];
+      const cho = (await t<{ id: string }>(`select id from requests where child_id = $1 and loai = $2 and trang_thai = 'cho' and het_han > $4 and gia_tri is not distinct from $3 limit 1`, [con, loai, giaTri, now]))[0];
       if (cho) return { id: cho.id, trang_thai: "cho", daCo: true };
     }
     if (gan.length >= BAM_DON_TOI_DA) throw new LoiNghiepVu("bam_don", "Con bấm nhanh quá, đợi vài giây rồi gửi lại nhé", 429);
