@@ -81,7 +81,7 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(_khoaLaiItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Máy này do Ba Mẹ quản lý bằng AiiGrow") { Enabled = false });
-        menu.Items.Add(new ToolStripMenuItem("AiiGrow bản " + TuCapNhat.BanHienTai().ToString(3), null, (_, _) => OpenCapNhat()) { ForeColor = AiiGrow.ClayUi.Clay.NgocInk, Font = UI.F(10.5f, FontStyle.Bold) });   // #639/#670: bật (không xám) để đọc rõ; bấm ⇒ kiểm tra cập nhật
+        menu.Items.Add(new ToolStripMenuItem("AiiGrow bản " + TuCapNhat.BanHienTai().ToString(3), null, (_, _) => { }) { Font = UI.F(10.5f, FontStyle.Bold) });   // #639/#670: mục bật (không xám) để đọc rõ, chỉ để xem
 
         _ni = new NotifyIcon
         {
