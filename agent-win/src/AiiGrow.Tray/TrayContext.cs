@@ -850,10 +850,10 @@ internal sealed class TrayContext : ApplicationContext
         if (_seenBlocked < 0) { _seenBlocked = _state.BlockedSeq; return; }
         if (_state.BlockedSeq == _seenBlocked || _state.Locked) return;
         _seenBlocked = _state.BlockedSeq;
+        if (!ManChanView.CoHienBang(_state.BlockedAppId)) return;   // #642: tiến trình nền Windows / Xbox Game Bar — không bật bảng, không đóng bảng đang mở
         // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
         if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         var id = _state.BlockedAppId;
-        if (!ManChanView.CoHienBang(id)) return;   // #642: tiến trình nền của Windows / Xbox Game Bar — không bật bảng
         var homNay = DateOnly.FromDateTime(DateTime.Now);
         if (homNay != _ngayTuGui) { _ngayTuGui = homNay; _soTuGui = 0; }
         var daXin = id != null && (_daXin.Contains(id) || _soTuGui >= ManChanView.TuGuiToiDa);
