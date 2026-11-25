@@ -25,7 +25,9 @@ export default function DsCanhBao() {
   const ten = (id: string | null) => d.g.con.find((c) => c.id === id)?.ten ?? "";
   const ngoaiLe = d.ds.filter((x) => x.loai.startsWith("ngoai_le") || x.loai === "lech_nguoi_duyet");
   const tuXuLy = d.ds.filter((x) => TU_XU_LY.includes(x.loai));
-  const canSua = d.ds.filter((x) => !ngoaiLe.includes(x) && !tuXuLy.includes(x));
+  // #657: «cần sửa» = cờ máy chủ (chưa đọc, ≤ 7 ngày, không thuộc loại chỉ để biết) — cùng số với chuông và Cả nhà; còn lại chỉ để biết, KHÔNG nút «Sửa»
+  const canSua = d.ds.filter((x) => !ngoaiLe.includes(x) && !tuXuLy.includes(x) && (x.canSua ?? !x.da_doc));
+  const deBiet = d.ds.filter((x) => !ngoaiLe.includes(x) && !tuXuLy.includes(x) && !canSua.includes(x));
   if (!d.ds.length) {
     return (
       <Man lui={{ chu: "Quay lại" }} tieu="Cảnh báo">
@@ -36,10 +38,10 @@ export default function DsCanhBao() {
     );
   }
   const conNl = ngoaiLe.find((x) => x.child_id)?.child_id ?? null;
-  const dong = (x: CanhBao, k: number, xong?: boolean) => (
-    <HangViec key={x.id} dau={k === 0} ic={IC[x.loai] ?? "canh_bao"} mau={xong ? "xanh" : x.muc === "nghiem_trong" ? "do" : "cam"} tieu={x.noi_dung}
+  const dong = (x: CanhBao, k: number, xong?: boolean, biet?: boolean) => (
+    <HangViec key={x.id} dau={k === 0} ic={IC[x.loai] ?? "canh_bao"} mau={xong ? "xanh" : biet ? "xam" : x.muc === "nghiem_trong" ? "do" : "cam"} tieu={x.noi_dung}
       phu={`${ten(x.child_id) ? `${ten(x.child_id)} · ` : ""}${gioPhut(x.created_at)}`}
-      phai={xong ? <Nhan chu={x.loai === "lech_gio" ? "Đã khoá trò chơi" : "Đã xử lý"} loai="ok" /> : <Nhan chu="Sửa" loai="canh" />}
+      phai={xong ? <Nhan chu={x.loai === "lech_gio" ? "Đã khoá trò chơi" : "Đã xử lý"} loai="ok" /> : biet ? undefined : <Nhan chu="Sửa" loai="canh" />}
       bam={() => router.push(`/canh-bao/${x.id}` as never)} />
   );
   return (
@@ -54,6 +56,12 @@ export default function DsCanhBao() {
         <>
           <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>{`AiiGrow đã tự xử lý · ${tuXuLy.length}`}</Chu>
           <The dem style={{ paddingVertical: 4 }}>{tuXuLy.map((x, k) => dong(x, k, true))}</The>
+        </>
+      ) : null}
+      {deBiet.length ? (
+        <>
+          <Chu kieu="rat" co={17} style={{ marginTop: 6, marginHorizontal: 4 }}>{`Để biết · ${deBiet.length}`}</Chu>
+          <The dem style={{ paddingVertical: 4 }}>{deBiet.map((x, k) => dong(x, k, false, true))}</The>
         </>
       ) : null}
       {ngoaiLe.length && conNl ? (

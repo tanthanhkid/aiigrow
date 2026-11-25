@@ -12,23 +12,30 @@ import { BONG, KHOI, MEN } from "@/lib/clay";
 import { BangKhoaMay, tenGoi, type ConCt } from "@/lib/hang-ngay";
 import { LienKet } from "@/lib/lan-dau";
 import { HangChonBe } from "@/lib/ui-chung";
+import { maMay, type HienThiMay } from "@/lib/trang-thai-may";
 import { appTrenMay, AvtCon, CapAvt, cauSao, conCuaMay, nganTen as ngan, DauHaiDong, hinhMay, laMayChung, laMotCon, mayCuaCon, type ConNganMay } from "@/lib/may-nhieu-con";
 import { ChoTai, Chu, gioPhut, Icon3D, LopMen, M, Man, Nut, truoc, useHoanTac, useTai } from "@/lib/ui";
 
 const dangMo = (m: TuanThuMay) => { const den = m.moKhanCapDen ?? m.moDen ?? null; return !!den && Date.parse(den) > Date.now(); };
 const trungTinh = (m: TuanThuMay) => (m.trangThai === "tat_may" || m.trangThai === "chua_co_nhip") && !m.dangGo && !dangMo(m);
-/** Máy đang được bảo vệ đủ (mức bảo vệ máy chủ tính + còn liên lạc, không lệch chuẩn). «chua» = máy không báo quyền ⇒ không báo đỏ. */
-const dangBaoVe = (m: TuanThuMay) => m.trangThai === "tuan_thu" && m.baoVe !== "mot_phan" && !dangMo(m) && !m.dangGo;
+/** #657: nhóm theo MỘT trạng thái hiển thị (lib/trang-thai-may.ts) — máy mất mạng không còn lọt «Cần sửa» / «Đang bảo vệ». */
+const ma = (m: TuanThuMay): HienThiMay => maMay(m);
 function cauTrangThai(m: TuanThuMay) {
   if (m.dangGo) return "Đang gỡ AiiGrow khỏi máy này";
   if (m.moKhanCapDen && Date.parse(m.moKhanCapDen) > Date.now()) return `Đang mở khẩn cấp tới ${gioPhut(m.moKhanCapDen)}`;
   if (m.moDen && Date.parse(m.moDen) > Date.now()) return `Đang mở tới ${gioPhut(m.moDen)}`;
-  if (m.trangThai === "ngoai_vong" || m.trangThai === "tat_may" || m.trangThai === "chua_co_nhip")
-    return m.lanCuoi ? `Không trừ sao từ ${truoc(m.lanCuoi)}` : "Chưa nhận được tin từ máy";
+  if (ma(m) === "mat_mang") return m.lanCuoi ? `Mất mạng · báo về lần cuối ${truoc(m.lanCuoi)}` : "Chưa nhận được tin từ máy";
+  if (ma(m) === "tat") return m.lanCuoi ? `Đang tắt · báo về lần cuối ${truoc(m.lanCuoi)}` : "Chưa nhận được tin từ máy";
   if (m.trangThai === "lech_chuan") return m.vanDe[0]?.cauBaMe ?? "Máy đang lệch chuẩn";
   if (m.baoVe === "mot_phan") return m.baoVeThieu?.[0]?.ten ?? m.baoVeCau ?? "Còn thiếu quyền bảo vệ";
   if (m.khoaGiaiTri) return "Giải trí đang khoá";
   return `Đồng bộ ${truoc(m.lanCuoi) || "vừa xong"}`;
+}
+
+/** Việc cần sửa của máy «Cần sửa»: lệch chuẩn ⇒ vấn đề tuân thủ, thiếu quyền ⇒ quyền thiếu đầu tiên. */
+function cauSua(m: TuanThuMay) {
+  if (m.baoVe === "mot_phan") return m.baoVeThieu?.[0]?.ten ?? m.baoVeCau ?? "Còn thiếu quyền bảo vệ";
+  return m.vanDe[0]?.cauBaMe ?? "Máy đang lệch chuẩn";
 }
 
 export default function MayTrongNha() {
@@ -50,9 +57,10 @@ export default function MayTrongNha() {
   const sao = (id: string) => d.con.find((x) => x.id === id)?.soDu ?? null;
   // app đang mở trên từng máy (phiên chơi đang chạy — khớp theo tên máy, và theo bé đang dùng khi biết)
   const appMo = (m: TuanThuMay) => appTrenMay(d.phien, m, conCuaMay(m, caNha).length === 1 ? conCuaMay(m, caNha)[0].id : null);
-  const canSua = ds.filter((m) => !dangBaoVe(m) && !trungTinh(m));
-  const baoVe = ds.filter(dangBaoVe);
-  const tat = ds.filter((m) => trungTinh(m) && !dangBaoVe(m));
+  const canSua = ds.filter((m) => ma(m) === "can_sua");
+  const baoVe = ds.filter((m) => ma(m) === "bao_ve");
+  const matMangDs = ds.filter((m) => ma(m) === "mat_mang");
+  const tat = ds.filter((m) => ma(m) === "tat" || ma(m) === "dang_go");
   // bảng «Khoá máy <bé>?» / «Khoá tất cả máy?»: máy chung = khoá theo bé (bé khác vẫn vào)
   const mayKhoa = ds.map((m) => ({ id: m.id, ten: ngan(m.ten), nen: m.nen, truc: !trungTinh(m), khoaMay: m.khoaMay, dungChung: laMayChung(m),
     conKhac: conCuaMay(m, caNha).filter((x) => x.id !== c?.id).map((x) => tenGoi(x.ten)) }));
@@ -78,6 +86,7 @@ export default function MayTrongNha() {
       {ds.length ? null : <Chu kieu="dam" co={14} mau={M.chu2} style={{ marginHorizontal: 6 }}>Chưa có máy nào — ghép bằng mã 6 số, chưa tới 2 phút.</Chu>}
       {nhom("Cần sửa", canSua)}
       {nhom("Đang bảo vệ", baoVe)}
+      {nhom("Mất mạng", matMangDs)}
       {nhom("Đang tắt", tat)}
       {ds.length ? (
         <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ textAlign: "center", lineHeight: 18, marginHorizontal: 8 }}>
@@ -91,7 +100,7 @@ export default function MayTrongNha() {
 }
 
 function TheMay({ m, con, app, sao }: { m: TuanThuMay; con: ConNganMay[]; app: string | null; sao: (id: string) => number | null }) {
-  const ok = dangBaoVe(m), tt = trungTinh(m), loi = !ok && !tt;
+  const ok = ma(m) === "bao_ve", loi = ma(m) === "can_sua", tt = !ok && !loi;
   const ten = ngan(m.ten), tenNgan = ten.replace(/ của .*$/, "");
   const chung = con.length >= 2;
   const ai = m.dangDung ? con.find((x) => x.id === m.dangDung!.id) ?? m.dangDung : con.length === 1 ? con[0] : null;
@@ -99,7 +108,7 @@ function TheMay({ m, con, app, sao }: { m: TuanThuMay; con: ConNganMay[]; app: s
   const [nenTt, chuTt] = loi ? [M.chonSoft, M.canh] : ok ? [M.chinhSoft, M.chinhInk] : [M.xamSoft, M.chu2];
   const buoc = m.baoVeThieu?.length ?? 0;
   return (
-    <Pressable onPress={() => router.push(`/may/${m.id}`)} accessibilityRole="button" accessibilityLabel={`${ten}, ${ok ? "đang bảo vệ" : tt ? "đang tắt" : "chưa bảo vệ"}`}>
+    <Pressable onPress={() => router.push(`/may/${m.id}`)} accessibilityRole="button" accessibilityLabel={`${ten}, ${ok ? "đang bảo vệ" : ma(m) === "mat_mang" ? "mất mạng" : tt ? "đang tắt" : "chưa bảo vệ"}`}>
       <View style={{ flexDirection: "row", gap: 12, padding: 12, borderRadius: 28, backgroundColor: M.the, ...KHOI.the }}>
         <LopMen men={MEN.the} bo={28} />
         <View style={{ width: 76, height: 88, borderRadius: 22, backgroundColor: loi ? M.chonSoft : M.xamSoft, alignItems: "center", justifyContent: "center", boxShadow: BONG.lom }}>
@@ -125,7 +134,7 @@ function TheMay({ m, con, app, sao }: { m: TuanThuMay; con: ConNganMay[]; app: s
           </View>
           <View style={{ marginTop: 8, paddingVertical: 7, paddingHorizontal: 10, borderRadius: 14, backgroundColor: nenTt, gap: 1 }}>
             {loi ? <>
-              <Chu kieu="rat" co={12.5} mau={chuTt} dong={2}>{`! ${m.dangGo || dangMo(m) || m.trangThai === "ngoai_vong" ? cauTrangThai(m) : `Chưa bảo vệ · ${cauTrangThai(m)}`}`}</Chu>
+              <Chu kieu="rat" co={12.5} mau={chuTt} dong={2}>{`! Chưa bảo vệ · ${cauSua(m)}`}</Chu>
               <Chu kieu="rat" co={12.5} mau={chuTt} dong={1}>{laMotCon(m) || buoc ? `Sửa ${tenNgan}${buoc ? ` trong ${buoc} bước` : ""} ›` : "Xem máy ›"}</Chu>
             </> : <>
               {ok && (app || ai) ? (

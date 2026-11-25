@@ -1,0 +1,16 @@
+// #657: MỘT trạng thái hiển thị cho mỗi máy ở mọi màn Ba Mẹ (Máy trong nhà, chi tiết máy, Hồ sơ Con, Màn hình, Cả nhà). Máy chủ tính (server/lib/hien-thi-may.ts)
+// và gửi `hienThi`; máy chủ cũ không gửi ⇒ tính lại cùng luật từ các trường có sẵn. «Cần sửa» chỉ là máy có việc để sửa (thiếu quyền / lệch chuẩn) —
+// máy mất mạng / đang tắt KHÔNG phải «cần sửa».
+export type HienThiMay = "dang_go" | "tat" | "mat_mang" | "can_sua" | "bao_ve";
+type Nguon = { hienThi?: HienThiMay; trangThai?: string; baoVe?: string | null; dangGo?: unknown; matMang?: boolean; truc?: boolean };
+
+export function maMay(m: Nguon): HienThiMay {
+  if (m.hienThi) return m.hienThi;
+  if (m.dangGo) return "dang_go";
+  if (m.trangThai === "tat_may" || m.trangThai === "chua_co_nhip") return "tat";
+  if (m.trangThai === "ngoai_vong" || m.matMang) return "mat_mang";
+  if (m.baoVe === "mot_phan" || m.trangThai === "lech_chuan") return "can_sua";
+  return "bao_ve";
+}
+export const canSuaMay = (m: Nguon) => maMay(m) === "can_sua";
+export const TEN_HIEN_THI: Record<HienThiMay, string> = { dang_go: "Đang gỡ AiiGrow", tat: "Đang tắt", mat_mang: "Mất mạng", can_sua: "Cần sửa", bao_ve: "Đang bảo vệ" };

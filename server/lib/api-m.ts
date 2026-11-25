@@ -74,6 +74,7 @@ async function chiTietCon(bm: BaMe, id: string) {
   const conPhien = new Set((await q<{ d: string }>(`select distinct k.device_id || ':' || k.child_id as d from kid_sessions k
       where k.device_id = any($1::text[]) and k.expires_at > now()`, [may.map((m) => m.id)])).map((x) => x.d));
   const noi = await mnc.tomTatNoi(bm.family_id, may);
+  const hienThi = new Map(await Promise.all(may.map(async (m) => [m.id, await tt.hienThiCuaMay(m, matMang)] as const)));   // #657: cùng trạng thái với màn Máy
   return {
     // coPin + pinDatLuc: 06/11 L13 (PIN theo bé — đảo L5); xem PIN ở GET con/:id/pin. cheDo (#262): mo_het | theo_danh_sach · cheDoChan: giá trị cũ.
     id: c.id, ten: c.ten, namSinh: c.nam_sinh, avatar: c.avatar, nhom: c.nhom, coPin: !!c.pin_ma,
@@ -85,7 +86,7 @@ async function chiTietCon(bm: BaMe, id: string) {
       truc: !!m.last_seen && Date.now() - new Date(m.last_seen).getTime() < 3 * 60_000, lechGiay: m.status?.lechGiay ?? null,
       // 06/11 (L13, L19): ai đang dùng máy dùng chung · Ba Mẹ đang dùng tới · máy mất mạng hôm nay
       dangDung: m.con_dang_dung && conPhien.has(`${m.id}:${m.con_dang_dung}`) ? m.con_dang_dung : null, baMeDungDen: baMeDen(m)?.toISOString() ?? null,
-      matMang: matMang.has(m.id),
+      matMang: matMang.has(m.id), hienThi: hienThi.get(m.id),
       // 14/11: khoá riêng máy này (lib/khoa-may.ts) — {khoa, den}
       khoaMay: trangThaiKhoaMay(m.khoa_may),
       // #267: Con nối với máy · số Con · iPhone/iPad (một Con)
@@ -162,7 +163,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       const cdy = await canDeY(fam, now, { yc: ycCho, nv: cho, mm });
       // 06/11 (L19): soChuong = số mục «Cần Ba Mẹ để ý» (lib/can-de-y.ts) · con[].matMang = máy của Con mất mạng hôm nay (dòng «Máy mất mạng · Laptop»)
       return json({ ten: f!.ten, quyVoucher: f!.quy_voucher, choDuyet: cho.length + ycCho.length + phieuCho.length,
-        canhBao: cb.length, soChuong: cdy.soChuong,
+        canhBao: cb.filter((x) => x.canSua).length, soChuong: cdy.soChuong,
         con: await Promise.all(con.map(async (c) => ({ id: c.id, ten: c.ten, avatar: c.avatar, nhom: c.nhom, ...(await homNay(fam, c.id, now)),
           coPin: !!c.pin_ma,
           matMang: mm.filter((x) => x.conId === c.id).map((x) => ({ mayId: x.mayId, ten: x.ten, nen: x.nen, tu: x.tu, phut: x.phut })) }))) });
@@ -463,7 +464,12 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       return json({ ds: (await q<{ dinh_danh: string }>(`select id, ten, vai, dinh_danh from parents where family_id = $1 and vai <> 'roi' order by created_at`, [fam]))
         .map((x) => ({ ...x, dinh_danh: hienDinhDanh(x.dinh_danh), laFacebook: x.dinh_danh.startsWith(TIEN_TO_FB) })) });
     if (d === "canh-bao" && get) return json({ ds: await dsCanhBao(fam) });
-    if (p[0] === "canh-bao" && p[2] === "doc" && post) { await q(`update alerts set da_doc = true where id = $1 and family_id = $2`, [p[1], fam]); return json({ ok: true }); }
+    // #657: đánh dấu đã đọc cả các dòng trùng (cùng loại + nội dung + Con) — danh sách chỉ hiện một dòng nên dòng cũ không được hiện lại
+    if (p[0] === "canh-bao" && p[2] === "doc" && post) {
+      await q(`update alerts set da_doc = true where family_id = $2 and (id = $1 or exists (select 1 from alerts g where g.id = $1 and g.family_id = $2 and g.loai = alerts.loai
+        and g.noi_dung = alerts.noi_dung and g.child_id is not distinct from alerts.child_id))`, [p[1], fam]);
+      return json({ ok: true });
+    }
     // 14/11 «Nhật ký cả nhà»: ?ca-nha=1 [&con=&ngay=7] ⇒ câu đời thường + «cho ngoài quy tắc» (lib/nhat-ky-ca-nha.ts); không có ⇒ sự kiện thô như cũ
     if (d === "nhat-ky" && get) {
       const u = new URL(req.url).searchParams;

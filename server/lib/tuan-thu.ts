@@ -17,6 +17,8 @@ import { coCuaSoThemGio, coTacTu, laDiDong, nhomCuaSo, SQL_NHOM_CUA_SO } from ".
 
 import { cheDoBaMeChon, cheDoCua, cheDoMayBao, trangThaiGo } from "./lenh-may.ts";
 import { banMayBao } from "./ban-agent.ts";
+import { mayMatMang } from "./may-mat-mang.ts";
+import { hienThiMay, type HienThiMay } from "./hien-thi-may.ts";
 
 let coBang = false;
 /** Tạo lười bảng M4b (schema.ts › SCHEMA_M4B). Gọi NGOÀI tx (PGlite một kết nối). */
@@ -225,6 +227,12 @@ async function mayCua(fam: string, mayId: string) {
   return m;
 }
 
+/** #657: trạng thái hiển thị (hien-thi-may.ts) của MỘT máy từ dữ liệu thật — cho nơi không đi qua dsTuanThu (Hồ sơ Con, Cần Ba Mẹ để ý). `matMang` = tập máy mất mạng hôm nay. */
+export async function hienThiCuaMay(m: May, matMang: Set<string>, now = new Date()): Promise<HienThiMay> {
+  const [t, go] = await Promise.all([tuanThuMay(m, now), trangThaiGo(m, now)]);
+  return hienThiMay({ trangThai: t.trangThai, baoVe: chiTietBaoVe(m).muc, dangGo: !!go.dangGo, matMang: matMang.has(m.id) });
+}
+
 /** Danh sách tuân thủ mọi máy của gia đình (quét mất nhịp trước). */
 /** `nhe`: bỏ bước quét mất nhịp (ghi cảnh báo) — Trang chủ chỉ cần đọc chế độ + bảo vệ; màn Máy / nhịp máy vẫn quét như cũ. */
 export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolean } = {}) {
@@ -232,12 +240,16 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
   const ds = await q<May>(`select * from devices where family_id = $1 order by created_at`, [fam]);
   const cfgCon = new Map((await q<{ id: string; c: Record<string, unknown> }>(`select id, cau_hinh as c from children where family_id = $1`, [fam])).map((x) => [x.id, x.c]));
   const noi = await tomTatNoi(fam, ds, now);
+  const matMang = new Set((await mayMatMang(fam, now)).map((x) => x.mayId));
   return Promise.all(ds.map(async (m) => {
     const r = await dongTT(m.id);
     const tt = await tuanThuMay(m, now);
     // MỘT nguồn tính mức bảo vệ (gia-dinh.ts › chiTietBaoVe) cho cả Hồ sơ Con lẫn An toàn thiết bị — hai trang không còn báo ngược nhau (BUG-010)
     const bv = chiTietBaoVe(m);
-    return { id: m.id, ten: m.name, nen: m.platform, con: m.child_id, dungChung: m.dung_chung, baoVe: bv.muc, baoVeCau: bv.cau, baoVeThieu: bv.thieu,
+    const go = await trangThaiGo(m, now);
+    // #657: MỘT trạng thái hiển thị + cờ «cần sửa» — mọi màn đọc từ đây
+    const hienThi = hienThiMay({ trangThai: tt.trangThai, baoVe: bv.muc, dangGo: !!go.dangGo, matMang: matMang.has(m.id) });
+    return { id: m.id, hienThi, canSua: hienThi === "can_sua", matMang: matMang.has(m.id), ten: m.name, nen: m.platform, con: m.child_id, dungChung: m.dung_chung, baoVe: bv.muc, baoVeCau: bv.cau, baoVeThieu: bv.thieu,
       lanCuoi: m.last_seen ? new Date(m.last_seen).toISOString() : null, phienBan: r?.phien_ban ?? banMayBao(m),
       adminTinCay: r?.admin_tin_cay ?? [], ...tt,
       coMaOffline: coMaOffline(m.platform),   // app Ba Mẹ hiện «Mã mở khi mất mạng» theo cờ này (máy chủ cũ không gửi ⇒ chỉ Windows)
@@ -247,7 +259,7 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
       lenhCho: (await q<{ id: string; loai: string }>(`select id, loai from lenh_may where device_id = $1 and trang_thai = 'cho'`, [m.id])),
       // An toàn & gỡ cài đặt: chế độ agent (Ba Mẹ chọn từ xa) + trạng thái gỡ (đang chờ máy nhận lệnh / xoá hẳn được chưa)
       // cheDo: hiển thị (Ba Mẹ chọn, không thì máy báo; null = chưa biết) · cheDoMay: agent THẬT SỰ đang chạy · cheDoBaMeChon: null = chưa chọn
-      cheDo: cheDoCua(m), cheDoMay: cheDoMayBao(m), cheDoBaMeChon: cheDoBaMeChon(m), ...(await trangThaiGo(m, now)),
+      cheDo: cheDoCua(m), cheDoMay: cheDoMayBao(m), cheDoBaMeChon: cheDoBaMeChon(m), ...go,
       // #267: khoá riêng máy này {khoa, den} (trước chỉ ở con/:id) · Con nối với máy · bé đang dùng · số Con · iPhone/iPad (một Con) · Ba Mẹ đang dùng tới
       khoaMay: { khoa: dangKhoa(m.khoa_may, now), den: khoaDen(m.khoa_may, now) },
       conDs: noi.get(m.id)?.conDs ?? [], dangDung: noi.get(m.id)?.dangDung ?? null, soCon: noi.get(m.id)?.soCon ?? 0, motCon: noi.get(m.id)?.motCon ?? false,

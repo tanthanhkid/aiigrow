@@ -8,6 +8,7 @@
 // iPhone / iPad: «Máy riêng của <bé> · iPad không đổi người dùng được nên chỉ một bé dùng» (không có «Máy này ai dùng?»).
 // Mục «An toàn & sự cố» giữ các tính năng cũ: mở khẩn cấp, gỡ từ xa (nhập lại mật khẩu), gỡ tại máy, nhật ký. Người trông giúp: xem, khoá máy, mã mất mạng.
 // Dữ liệu: GET may/:id/tuan-thu (conDs, dangDung, khoaMay, tungCon) + GET may/:id/con (mọi bé, gán chưa, sao) + GET tuan-thu (máy khác) + gia-dinh.
+import { maMay, TEN_HIEN_THI } from "@/lib/trang-thai-may";
 import { cheDoTu } from "@/lib/app-web";
 import { useCallback, useState } from "react";
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -124,7 +125,8 @@ export default function AnToanMay() {
   );
   const m = d.m;
   const win = m.nen === "windows";
-  const tot = m.baoVe ? m.baoVe === "day_du" : m.trangThai === "tuan_thu";
+  // #657: cùng trạng thái hiển thị với Máy trong nhà / Hồ sơ Con (lib/trang-thai-may.ts)
+  const hien = maMay(m), tot = hien === "bao_ve", sua = hien === "can_sua";
   const ten = ngan(m.ten);
   const tenNgan = ten.replace(/ của .*$/, "");
   const ai = d.ai;
@@ -223,6 +225,11 @@ export default function AnToanMay() {
             <Chu kieu="dam7" co={12} mau="#E3D9CB" dong={1}>{`${TEN_NEN[m.nen] ?? m.nen}${!chung && d.ct ? ` · ${cheDo}` : ""}${chung ? " · xem từng bé ›" : ""}`}</Chu>
           </View>
         </Pressable>
+      ) : !sua ? (
+        // #657: mất mạng / đang tắt / đang gỡ — một trạng thái, không còn «Đang bảo vệ» cạnh «Máy đang mất mạng»
+        <Bao loai="canh" ic={hien === "mat_mang" ? "wifi" : "canh_bao"} tieu={`${tenNgan} · ${TEN_HIEN_THI[hien]}`}
+          loi={hien === "mat_mang" ? `${m.lanCuoi ? `Báo về lần cuối ${truoc(m.lanCuoi)}` : "Chưa nhận được tin từ máy"} — chưa trừ sao, chưa theo danh sách app. Có mạng lại là Grow tự bảo vệ lại.`
+            : hien === "dang_go" ? "AiiGrow đang được gỡ khỏi máy này, máy biến khỏi danh sách khi gỡ xong." : "Máy đang tắt hoặc chưa báo về — bật máy lên là Grow tự bảo vệ lại."} />
       ) : (
         // bm2-may-m2 «lệch chuẩn»: cảnh đào cao 210 — bong bóng việc thiếu đầu tiên, máy 3D + dấu «!» cam, Grow «so-tay» góc phải, chip «… · vẫn trừ sao»;
         // dưới là tiêu đề «<máy> chưa được bảo vệ» 20/800 + một câu
@@ -268,7 +275,7 @@ export default function AnToanMay() {
       ) : null}
 
       {/* m2 «Nếu để vậy»: 3 hậu quả khi máy chưa được bảo vệ — ô lõm xám 88 (thiết kế .vi) */}
-      {!tot && !m.dangGo ? (
+      {sua ? (
         <>
           <TieuMuc chu="Nếu để vậy" />
           <View style={{ flexDirection: "row", gap: 8 }}>
