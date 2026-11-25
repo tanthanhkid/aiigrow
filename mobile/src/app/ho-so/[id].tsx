@@ -116,7 +116,6 @@ export default function HoSoCon() {
 }
 
 /** Giá trị bên phải hàng cài đặt (thiết kế: 12.5/700 xám, dòng dưới cam khi «cần sửa») + mũi tên. */
-/** «60 phút · cuối tuần 90 phút» (Bàn: dòng phụ dưới «Giờ chơi mỗi ngày»). */
 /** #658: cùng lời với form «Giờ chơi» (0 = không giới hạn, không ghi «0 phút»). */
 const tomTat = (g: GioiHan) => { const t = tomTatGioiHan(g); return t.duoi ? `${t.tren} · ${t.duoi}` : t.tren; };
 
