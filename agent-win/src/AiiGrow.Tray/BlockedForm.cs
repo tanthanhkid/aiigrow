@@ -154,7 +154,7 @@ internal sealed class BlockedForm : Form
                     var dd = UI.Text(ManChanView.ChuThichDs, 9.75f, true, Clay.Chu2, _w);
                     _flow.Controls.Add(dd);
                     _flow.Controls.Add(KhoiCon.Chips(_w, _appDuocPhep.Take(6).Select(a => (Control)new ChipClay(TenChip(_appDuocPhep, _tenDuocPhep, a), Clay.NgocSoft, Clay.NgocInk, Anh3D.Icon("sach")))
-                        .Concat(_appTinhPhut.Where(a => !_appDuocPhep.Contains(a)).Take(6).Select(a => (Control)new ChipClay(TenChip(_appTinhPhut, _tenTinhPhut, a), Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon(LaTrangWeb(a) ? "web" : "game"), kim: true)))
+                        .Concat(_appTinhPhut.Where(a => !_appDuocPhep.Contains(a)).Take(6).Select(a => (Control)new ChipClay(TenChip(_appTinhPhut, _tenTinhPhut, a), Clay.DiemSoft, Clay.DiemInk, Anh3D.Icon(ManChanView.IconMuc(a)), kim: true)))
                         .ToArray()));
                 }
                 if (ManChanView.CoNutXin(_appId))
