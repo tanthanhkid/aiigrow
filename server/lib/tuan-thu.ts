@@ -103,11 +103,16 @@ const nguongMatNhip = (nen: string, ts: ThamSo) => (laDiDong(nen) ? ts.mat_nhip_
 
 /** Trạng thái hiện tại của một máy (đọc, không ghi). */
 function trangThaiMay(may: Pick<May, "platform" | "last_seen">, r: DongTT | undefined, ts: ThamSo, now: Date): TuanThu {
-  if (!r) return { trangThai: "chua_co_nhip", diem: 100, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null };
+  // máy Windows/Mac chưa có nhịp tuân thủ (agent chỉ đồng bộ qua dong-bo ⇒ chỉ devices.last_seen) ⇒ đánh giá theo last_seen như
+  // nhịp: còn trong ngưỡng ⇒ đang chạy, quá ngưỡng ⇒ ngoài vòng; chưa từng thấy ⇒ chua_co_nhip (không khoá)
+  if (coTacTu(may.platform) && !r?.nhip_cuoi && !may.last_seen)
+    return tongHop([], ts.tuan_thu_nguong, r?.mo_khan_cap_den ? new Date(r.mo_khan_cap_den) : null, now, "chua_co_nhip");
+  if (!r) {
+    if (!coTacTu(may.platform)) return { trangThai: "chua_co_nhip", diem: 100, vanDe: [], khoaGiaiTri: false, moKhanCapDen: null };
+    r = { nhip_cuoi: null, van_de: [], tat_luc: null, mo_khan_cap_den: null } as unknown as DongTT;
+  }
   const ls = may.last_seen ? new Date(may.last_seen) : r.nhip_cuoi ? new Date(r.nhip_cuoi) : null;
   const moKC = r.mo_khan_cap_den ? new Date(r.mo_khan_cap_den) : null;
-  // máy Windows chỉ có dòng vì Ba Mẹ từng «Mở khẩn cấp» (agent Windows không gửi nhịp tuân thủ) ⇒ không tính mất nhịp
-  if (coTacTu(may.platform) && !r.nhip_cuoi) return tongHop([], ts.tuan_thu_nguong, moKC, now, "chua_co_nhip");
   if (r.tat_luc && ls && ls.getTime() <= new Date(r.tat_luc).getTime() + 60_000) return tongHop([], ts.tuan_thu_nguong, moKC, now, "tat_may");
   if (!ls || now.getTime() - ls.getTime() > nguongMatNhip(may.platform, ts) * 60_000) {
     const phut = ls ? Math.round((now.getTime() - ls.getTime()) / 60_000) : null;

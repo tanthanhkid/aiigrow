@@ -95,6 +95,7 @@ test("mở khẩn cấp rồi tắt máy lâu KHÔNG thành «ngoài vòng»; «
   const may = (await g.mayTuToken(r.token))!;
   await tt.moKhanCap(fam, may.id, { phut: 30 }, bm, T);
   assert.ok(await tt.hanMoCuaMay(may, con, T));
+  await q(`update devices set last_seen = null where id = $1`, [may.id]);   // agent chưa từng đồng bộ (đồng hồ test ≠ đồng hồ thật)
   const sau = new Date(T.getTime() + 60 * 60000);
   assert.deepEqual(await tt.quetMatNhip(fam, sau), []);
   const t1 = (await tt.dsTuanThu(fam, sau)).find((x) => x.id === may.id)!;
