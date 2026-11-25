@@ -12,7 +12,7 @@ import { HangChonBe } from "@/lib/ui-chung";
 import { Avt, BieuTron, ChoTai, Chu, Icon3D, M, Man, Nhan, The, useTai } from "@/lib/ui";
 import { KHOI } from "@/lib/clay";
 
-type Dong = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null;
+type Dong = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null; baMe?: boolean;
   tieu: string; phu: string; nhan: string | null; kieu: "tot" | "xau" | "cho" | "ngoai" | "thuong" };
 type NhatKy = { soNgay: number; ds: Dong[]; /** 15/11 */ choVay?: { so: number; sao: number; theoNguoi: { ten: string; so: number; sao: number }[] };
   /** (cũ) = số lần cho vay */ ngoaiQuyTac?: { so: number; theoNguoi: { ten: string; so: number }[] } };
@@ -78,7 +78,7 @@ function DanhSach({ loc, cacCon }: { loc: string | null; cacCon: GiaDinh["con"] 
               <The style={{ paddingVertical: 4 }}>
                 {n.ds.map((x, k) => (
                   <View key={`${x.luc}:${k}`} style={{ flexDirection: "row", alignItems: "center", gap: 12, minHeight: 60, paddingVertical: 8, borderTopWidth: k ? 1 : 0, borderTopColor: M.vien }}>
-                    {x.nguoi && x.tenNguoi ? <Avt ten={chuCai(x.tenNguoi)} mau={M.lam} co={40} />
+                    {(x.nguoi && x.tenNguoi) || x.baMe ? <Avt ten={chuCai(x.tenNguoi ?? "Ba Mẹ")} mau={M.lam} co={40} />
                       : x.con && x.tenCon ? <Avt ten={x.tenCon} mau={mauCon(cacCon.find((c) => c.id === x.con)?.avatar, thuCon(x.con))} co={40} con={cacCon.find((c) => c.id === x.con)} />
                       : <BieuTron ic="khien" mau="xam" />}
                     <View style={{ flex: 1, minWidth: 0 }}>

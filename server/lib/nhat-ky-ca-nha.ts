@@ -8,6 +8,7 @@ import { TEN_NHOM_DS, tenCheDo } from "./chan-co-ban.ts";
 import { soVN } from "./so-sao.ts";
 
 type DongNhatKy = { luc: string; ngay: string; con: string | null; tenCon: string | null; nguoi: string | null; tenNguoi: string | null;
+  /** người lớn làm (kể cả khi sự kiện không ghi `nguoi`, vd gỡ máy tại máy) ⇒ app vẽ avatar Ba Mẹ, không phải avatar của Con */ baMe: boolean;
   tieu: string; phu: string; nhan: string | null; kieu: "tot" | "xau" | "cho" | "ngoai" | "thuong" };
 
 const XIN: Record<string, string> = { vay_sao: "vay sao", them_gio: "thêm giờ", mo_web: "mở trang web", cai_app: "dùng app", ngoai_le: "thêm giờ",
@@ -17,6 +18,8 @@ const LOAI_NHAT_KY = ["gui_yeu_cau", "dong_y_yeu_cau", "tu_choi_yeu_cau", "cho_v
   "duyet_nhiem_vu", "tu_duyet_nhiem_vu", "tu_choi_nhiem_vu", "can_bo_sung", "lam_lai_nhiem_vu", "hoan_tac_duyet", "giao_nhiem_vu", "doi_qua", "xac_nhan_qua",
   "huy_qua", "doi_che_do_chan", "cho_phep_app", "doi_luat_web", "dat_luat_app", "doi_gio_choi", "doi_lich", "khoa_ngay", "mo_lai", "dat_pin", "go_may", "doi_ten_may",
   "khoa_may", "mo_khoa_may", "xoa_con", "bo_qua_yeu_cau", "them_vao_danh_sach", "doi_nhom_danh_sach", "bo_khoi_danh_sach"];
+/** Sự kiện do Con / Grow tự làm — mọi loại khác trong nhật ký là việc của người lớn. */
+const LOAI_CON_LAM = new Set(["gui_yeu_cau", "doi_sao_lay_gio", "nop_nhiem_vu", "tu_duyet_nhiem_vu", "doi_qua"]);
 const s = (v: unknown) => (typeof v === "string" ? v : v == null ? "" : String(v));
 const n = (v: unknown) => (typeof v === "number" ? v : Number(v) || 0);
 
@@ -116,7 +119,7 @@ export async function nhatKyCaNha(fam: string, o: { con?: string | null; ngay?: 
     if (!c) continue;
     const g = gioDiaPhuong(new Date(e.created_at), tz);
     const hhmm = `${String(Math.floor(g.phut / 60)).padStart(2, "0")}:${String(g.phut % 60).padStart(2, "0")}`;
-    ds.push({ luc: new Date(e.created_at).toISOString(), ngay: g.ngay, con: e.child_id, tenCon: e.ten_con, nguoi: e.nguoi, tenNguoi: e.ten_nguoi,
+    ds.push({ luc: new Date(e.created_at).toISOString(), ngay: g.ngay, con: e.child_id, tenCon: e.ten_con, nguoi: e.nguoi, tenNguoi: e.ten_nguoi, baMe: !!e.nguoi || !LOAI_CON_LAM.has(e.loai),
       tieu: c.tieu, phu: [hhmm, e.ten_con, c.phu].filter(Boolean).join(" · "), nhan: c.nhan, kieu: c.kieu });
   }
   const nguoiDs = dem.filter((x) => x.so > 0).map((x) => ({ ten: x.ten ?? "Ba Mẹ", so: x.so, sao: Math.max(0, x.sao) })).sort((a, b) => b.so - a.so);

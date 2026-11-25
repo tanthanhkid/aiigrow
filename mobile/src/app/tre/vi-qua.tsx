@@ -9,6 +9,7 @@ import { kid, taiSao, type QuaTre, type ViQua } from "@/lib/api-tre";
 import { dongLichSu, quaGanNhat, saoTuMayChu, soSao, soVN } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { MaQr } from "@/lib/qr";
+import { tenVoucher } from "@/lib/s3";
 import { Icon3D, tien } from "@/lib/ui";
 import { ChoD, ChuD, DongD, ManD, MatMangD, NutD, PillD, TamTruot, TheD, ThanhD } from "@/lib/ui-diu";
 import { ngayCua, useTaiTre } from "@/lib/ui-tre";
@@ -74,23 +75,23 @@ export default function ViQuaTre() {
       <ChuD kieu="den" co={15} style={{ marginTop: 4 }}>Quà của con</ChuD>
       {!d.vi.phieu.length && !vouchers.length && !daTrao.length ? <ChuD co={14} mau={D.chu2}>Chưa có quà nào — đổi quà trong «Xem quà đổi được» nhé.</ChuD> : null}
       {d.vi.phieu.map((p) => (
-        <DongD key={p.id} ic={p.loai === "voucher" ? "the_qua" : "qua"} tieu={p.ten} phu={`Đổi ${ngayCua(p.created_at).slice(0, 5)} · đang giữ ${p.diem} sao`}
+        <DongD key={p.id} ic={p.loai === "voucher" ? "the_qua" : "qua"} tieu={tenVoucher(p.ten)} phu={`Đổi ${ngayCua(p.created_at).slice(0, 5)} · đang giữ ${p.diem} sao`}
           nhan={<PillD chu="⏳ Chờ Ba Mẹ trao" loai="cho" />} />
       ))}
       {vouchers.map((v) => (
-        <DongD key={v.ma} ic="qr" tieu={v.ten || `Voucher AiiCafe ${tien(v.menh_gia).replace(".000đ", "k")}`}
+        <DongD key={v.ma} ic="qr" tieu={tenVoucher(v.ten || `Voucher AiiCafe ${tien(v.menh_gia).replace(".000đ", "k")}`)}
           phu={`Đã nhận · đưa mã ở quầy · hạn ${ngayCua(v.het_han).slice(0, 5)}`} bam={() => setQr(v)}
           nhan={v.conNgay != null ? <PillD chu={`Còn ${v.conNgay} ngày`} loai="xanh" /> : undefined} />
       ))}
       {daTrao.slice(0, 5).map((p) => (
-        <DongD key={p.id} ic="qua" tieu={p.ten} phu={`Ba Mẹ đã trao ${ngayCua(p.xu_ly_luc).slice(0, 5)}`} nhan={<PillD chu="Đã trao" loai="xanh" ic="tick" />} />
+        <DongD key={p.id} ic="qua" tieu={tenVoucher(p.ten)} phu={`Ba Mẹ đã trao ${ngayCua(p.xu_ly_luc).slice(0, 5)}`} nhan={<PillD chu="Đã trao" loai="xanh" ic="tick" />} />
       ))}
       <DongD ic="ngoi_sao_nho" tieu="Huy hiệu" phu={coHH ? `Có ${coHH} · làm nhiệm vụ để có thêm` : "Làm nhiệm vụ để có huy hiệu"} bam={() => router.push("/tre/huy-hieu")} />
       <NutD chu="Xem quà đổi được" loai="phu" ic="qua" bam={() => router.push("/tre/cua-hang")} />
       <TamTruot mo={!!qr} dong={() => setQr(null)} nhan="Mã voucher AiiCafe">
         {qr ? (
           <View style={{ alignItems: "center", gap: 10 }}>
-            <ChuD kieu="den" co={18}>{qr.ten || "Voucher AiiCafe"}</ChuD>
+            <ChuD kieu="den" co={18}>{tenVoucher(qr.ten || "Voucher AiiCafe")}</ChuD>
             <MaQr noiDung={qr.qr || qr.ma} co={220} />
             <ChuD kieu="den" co={20} so>{qr.ma}</ChuD>
             <ChuD co={14} mau={D.chu2}>{`Đưa mã này ở quầy AiiCafe · hạn ${ngayCua(qr.het_han)}`}</ChuD>

@@ -64,7 +64,11 @@ const THEO_TEN: [RegExp, string][] = [[/kem/i, "coc"], [/bữa|món|ăn/i, "chen
 export const icQua = (q: { hinh?: string | null; loai: LoaiQua | string; ten?: string }) =>
   HINH_QUA[q.hinh ?? ""] ?? THEO_TEN.find(([r]) => q.ten && r.test(q.ten))?.[1] ?? IC_LOAI[q.loai as LoaiQua] ?? "qua";
 /** «AiiCafe 20k» ⇒ «Voucher AiiCafe 20k» (thiết kế 14/11 «Quà của Bảo Anh»); sách / workshop AiiLab giữ tên. */
-export const tenVoucher = (ten: string) => (/^AiiCafe/.test(ten) ? `Voucher ${ten}` : ten);
+/** Một món quà một tên ở mọi màn (#660): «AiiCafe 20k» · «Phiếu quà AiiCafe 20.000đ» · «Voucher AiiCafe 20k» ⇒ «Voucher AiiCafe 20k». */
+export const tenVoucher = (ten: string) => {
+  const m = /^(?:Voucher |Phiếu quà )?AiiCafe\s+(\d+)(?:k|\.000đ|000đ)\s*$/i.exec(ten.trim());
+  return m ? `Voucher AiiCafe ${m[1]}k` : /^AiiCafe/.test(ten) ? `Voucher ${ten}` : ten;
+};
 /** Hình Ba Mẹ chọn được ở «Sửa quà» (khoá máy chủ, theo thứ tự hiện). */
 export const HINH_CHON = ["kem", "bua_toi", "aiicafe", "lego", "do_choi", "phim", "sach", "heo_dat"] as const;
 

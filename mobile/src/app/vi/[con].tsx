@@ -12,7 +12,7 @@ import { KHOI } from "@/lib/clay";
 import { BangTruot, BaoLoi, ChoTai, ChonMot, Chu, gioPhut, Icon3D, M, Man, Nhan, Nut, ONhap, Rob, The, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { OLomIcon } from "@/lib/ui-viec";
 import { HangViec, quyenToi, TieuMuc, type ChoDuyetMoi } from "@/lib/hang-ngay";
-import { icQua } from "@/lib/s3";
+import { icQua, tenVoucher } from "@/lib/s3";
 import { BangChoVay, cauNo, kieuSao, MAU_NO, saoTu, soChinh, soVN, thamSoXongVay, type SaoCon } from "@/lib/so-sao";
 import type { TenIcon } from "@/lib/ui";
 
@@ -134,11 +134,11 @@ export default function ViSao() {
       <TieuMuc chu="Con đổi sao lấy quà" phai={{ chu: d.baMe ? "Sửa quà ›" : "Quà ›", bam: () => router.push({ pathname: "/vi/qua", params: { con, tab: "nha" } }) }} />
       <The>
         {d.phieu.map((p, i) => (
-          <HangViec key={p.id} dau={i === 0} trai={<OLomIcon ic={icQua({ loai: p.loai, ten: p.ten }) as TenIcon} />} tieu={p.ten} phu={`Đã đổi ${p.diem} sao`} phai={<Nhan loai="canh" chu="Chờ Ba Mẹ trao" />}
+          <HangViec key={p.id} dau={i === 0} trai={<OLomIcon ic={icQua({ loai: p.loai, ten: p.ten }) as TenIcon} />} tieu={tenVoucher(p.ten)} phu={`Đã đổi ${p.diem} sao`} phai={<Nhan loai="canh" chu="Chờ Ba Mẹ trao" />}
             bam={() => router.push("/diem-qua" as never)} />
         ))}
-        {d.qua.filter((q) => !d.phieu.some((p) => p.ten === q.ten)).map((q, i) => (
-          <HangViec key={q.id} dau={!d.phieu.length && i === 0} trai={<OLomIcon ic={icQua(q) as TenIcon} />} tieu={q.ten}
+        {d.qua.filter((q) => !d.phieu.some((p) => tenVoucher(p.ten) === tenVoucher(q.ten))).map((q, i) => (
+          <HangViec key={q.id} dau={!d.phieu.length && i === 0} trai={<OLomIcon ic={icQua(q) as TenIcon} />} tieu={tenVoucher(q.ten)}
             phu={sao >= q.diem ? `Cần ${q.diem} sao · con tự đổi trên máy` : `Cần ${q.diem} sao · còn thiếu ${soVN(q.diem - sao)}`}
             phai={<Nhan loai={sao >= q.diem ? "ok" : "xam"} chu={sao >= q.diem ? "Đủ sao" : "Chưa đủ"} />} />
         ))}

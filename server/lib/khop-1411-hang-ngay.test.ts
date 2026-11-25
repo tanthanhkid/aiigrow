@@ -160,3 +160,7 @@ test("review PR #241: dau_luc — agent gửi dauLuc thì lấy, gửi lại gi�
   const r = await baoCaoTuan(fam, con, new Date(), true);
   assert.equal(r.tuanNay.dungNhieu.find((x: { muc: string }) => x.muc === "roblox.exe")?.may, "PC phòng khách");
 });
+
+test("#660 nhật ký: gỡ máy tại máy (không ghi người) vẫn là việc Ba Mẹ; con nộp việc thì không", () => {
+  assert.equal(cauSuKien("go_may", { ten: "maytinh6" }, null)?.tieu, "Ba Mẹ gỡ maytinh6");
+});

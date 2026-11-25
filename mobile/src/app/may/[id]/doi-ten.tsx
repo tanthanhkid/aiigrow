@@ -114,7 +114,7 @@ export default function DoiTenMay() {
             );
           })}
         </View>
-        {nhacGrow(false, "Tên này hiện trên app của Ba Mẹ và trên màn khoá của con. Trùng tên máy khác thì Grow nhắc ngay.")}
+        {nhacGrow(false, "Tên này hiện trên app của Ba Mẹ và trên màn khoá của con. Trùng tên máy khác thì AiiGrow nhắc ngay.")}
       </> : <>
         <View style={{ alignSelf: "center", width: 112, height: 112, borderRadius: 32, backgroundColor: M.the, alignItems: "center", justifyContent: "center", marginVertical: 6, ...KHOI.the }}>
           <Icon3D ten={hinhMay(m.nen, chung)} co={76} />

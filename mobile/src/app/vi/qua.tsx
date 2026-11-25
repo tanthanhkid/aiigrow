@@ -38,12 +38,12 @@ export default function QuaCuaCon() {
   if (!g.d) return <Man lui={{ chu: "", bam: ve }} tieu={TIEU}><ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man>;
   const c = g.d.con.find((x) => x.id === chon) ?? g.d.con[0];
   // một khối theo Con (key) ⇒ đổi chip Con là tải lại đúng quà của Con đó
-  return <QuaCon key={c?.id ?? "-"} c={c} dsCon={g.d.con} baMe={g.d.baMe} quyVoucher={g.d.quyVoucher} doiCon={setChon} tabDau={tab === "nha" ? "nha" : "voucher"} />;
+  return <QuaCon key={c?.id ?? "-"} c={c} coCon={!!conSan} dsCon={g.d.con} baMe={g.d.baMe} quyVoucher={g.d.quyVoucher} doiCon={setChon} tabDau={tab === "nha" ? "nha" : "voucher"} />;
 }
 
 type Con = GiaDinh["con"][number];
 
-function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undefined; dsCon: Con[]; baMe: boolean; quyVoucher: number;
+function QuaCon({ c, coCon, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undefined; coCon: boolean; dsCon: Con[]; baMe: boolean; quyVoucher: number;
   doiCon: (id: string) => void; tabDau: "voucher" | "nha" }) {
   const conId = c?.id ?? null;
   const thamCon = conId ? `?con=${encodeURIComponent(conId)}` : "";
@@ -58,7 +58,8 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
   const [sao, setSao] = useState(100);
   const st = useSaoTu(1000);
   const { lam, loi: loiLam, dangChay } = useLam();
-  const tieu = c ? `Quà của ${c.ten}` : TIEU;
+  // tiêu đề theo bé đang chọn (#660); vào không kèm bé mà nhà có nhiều bé ⇒ không gán đại cho bé đầu
+  const tieu = c && (coCon || dsCon.length < 2) ? `Quà của ${c.ten}` : TIEU;
   if (!q.d) return <Man lui={{ chu: "", bam: ve }} tieu={tieu}><ChoTai loi={q.loi} matMang={q.matMang} tai={q.tai} /></Man>;
   const nha = quaNha(q.d.qua, q.d.voucher.map((m) => m.ma));
   const themQua = () => lam(async () => {
@@ -120,7 +121,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
               <Chu kieu="rat" co={15} mau={M.chu2} style={{ marginHorizontal: 6, marginTop: 4 }}>Quà nhà</Chu>
               <Nhom>
                 {nha.map((x, i) => (
-                  <Dong key={x.id} dau={i === 0} tieu={x.ten} trai={<IconNet ten={icQua(x) as TenIcon} co={26} />} phai={<GiaSao n={x.sao} />}
+                  <Dong key={x.id} dau={i === 0} tieu={tenVoucher(x.ten)} trai={<IconNet ten={icQua(x) as TenIcon} co={26} />} phai={<GiaSao n={x.sao} />}
                     bam={baMe ? () => router.push({ pathname: "/vi/qua-sua", params: { id: x.id, ...(conId ? { con: conId } : {}) } }) : undefined} />
                 ))}
               </Nhom>
@@ -154,7 +155,7 @@ function QuaCon({ c, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con | undef
           </View>
           <Nhom>
             {nha.length ? nha.map((x, i) => (
-              <Dong key={x.id} dau={i === 0} tieu={x.ten} trai={<Icon3D ten={icQua(x) as TenIcon} co={30} />} phai={<GiaSao n={x.sao} />}
+              <Dong key={x.id} dau={i === 0} tieu={tenVoucher(x.ten)} trai={<Icon3D ten={icQua(x) as TenIcon} co={30} />} phai={<GiaSao n={x.sao} />}
                 bam={baMe ? () => router.push({ pathname: "/vi/qua-sua", params: { id: x.id, ...(conId ? { con: conId } : {}) } }) : undefined} />
             )) : (
               <View style={{ padding: 16, gap: 2 }}>

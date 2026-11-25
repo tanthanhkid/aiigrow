@@ -12,7 +12,7 @@ import { BONG, KHOI, MEN } from "@/lib/clay";
 import { DongQua } from "@/lib/dong-qua";
 import { DauMan, LienKet } from "@/lib/lan-dau";
 import { TheDs } from "@/lib/lan-dau-ds";
-import type { NhomThuVien, MauQua } from "@/lib/s3";
+import { tenVoucher, type NhomThuVien, type MauQua } from "@/lib/s3";
 import { layTl } from "@/lib/thiet-lap";
 import { BangTruot, BaoLoi, ChoTai, Chu, F, IconNet, LopMen, M, Man, Nut, ONhap, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
@@ -87,7 +87,7 @@ export default function ObQua() {
               <TheDs le>
                 {dsNha.map((m, i) => <DongQua key={m.ma} i={i} ten={m.ten} phu={phuMau(m)} n={m.daCo ? Math.max(1, sl[m.ma] ?? 1) : sl[m.ma] ?? 0} dat={(n) => dat(m.ma, n)} khoa={m.daCo} tran={1} />)}
                 {d.rieng.filter((q) => !daXoa.includes(q.id)).map((q, i) => (
-                  <DongQua key={q.id} i={dsNha.length + i} ten={q.ten} phu={`${soCham(q.sao)} sao`} n={1}
+                  <DongQua key={q.id} i={dsNha.length + i} ten={tenVoucher(q.ten)} phu={`${soCham(q.sao)} sao`} n={1}
                     dat={(n) => { if (n >= 1) return; setDaXoa((x) => [...x, q.id]); guiCham(`Đã xoá quà «${q.ten}»`, () => {
                       bm.goi(`qua/${q.id}/xoa`, {}).then(() => tai(), () => { setDaXoa((x) => x.filter((y) => y !== q.id)); setLoi(`Chưa xoá được quà «${q.ten}», thử lại nhé.`); tai(); });
                     }, () => setDaXoa((x) => x.filter((y) => y !== q.id))); }} tran={1} />
