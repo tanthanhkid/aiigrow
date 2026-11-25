@@ -109,8 +109,15 @@ public sealed class UpdateWorker : BackgroundService
         if (m == null) return ThuLaiManifest;                       // thân lạ (null) — giữ chu kỳ cũ, không đè về 6 giờ
         _chuKy = TuCapNhat.ChuKyKiem(m.ChuKyKiemPhut);
         var lyDo = TuCapNhat.KiemManifest(m, server, hienTai);
-        if (lyDo != null) { _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo); return _chuKy; }
-        if (DaThuGanDay(m.Version)) return _chuKy;
+        if (lyDo != null)
+        {
+            // #639: «đã là bản mới nhất» là bình thường (Debug); mọi lý do khác (URL/host/sha lạ…) là máy kẹt bản cũ — phải thấy trong log
+            if (CapNhat.DocBan(m.Version) is { } mb && mb > hienTai) _log.LogWarning("Tự cập nhật: máy chủ phát {Moi} (máy {Cu}) nhưng bỏ qua — {LyDo} (máy chủ {Server}, url {Url})", m.Version, hienTai.ToString(3), lyDo, server, m.Url);
+            else _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo);
+            return _chuKy;
+        }
+        if (DaThuGanDay(m.Version)) { _log.LogInformation("Tự cập nhật: bản {Ban} đã thử trong 24 giờ qua — chờ, hoặc bấm «Cập nhật ngay» sau khi hết hạn", m.Version); return _chuKy; }
+        _log.LogInformation("Tự cập nhật: có bản {Moi} (máy {Cu}) ⇒ tải về", m.Version, hienTai.ToString(3));
 
         if (KyBoCai.GhimSaiDang(KyBoCai.ThumbprintGhim))
         {
