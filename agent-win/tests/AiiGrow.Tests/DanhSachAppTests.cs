@@ -309,6 +309,27 @@ public class DanhSachAppTests
     }
 
     [Fact]
+    public void ChuanHoa_Roblox_Minecraft_LauncherVaGameGopMotDong_GiuKhoaCu()
+    {
+        var rb1 = new AppThat { Khoa = "exe:c:\\r\\robloxplayerbeta.exe", Muc = "robloxplayerbeta.exe", Ten = "Roblox Player for aiicon", Nguon = "registry" };
+        var rb2 = new AppThat { Khoa = "exe:c:\\r\\robloxplayerlauncher.exe", Muc = "robloxplayerlauncher.exe", Ten = "Roblox Player", Nguon = "start" };
+        var rb3 = new AppThat { Khoa = "appx:roblox.roblox_x", Muc = "roblox.roblox", Ten = "Roblox", Nguon = "store" };
+        var mc1 = new AppThat { Khoa = "appx:microsoft.minecraftuwp_x", Muc = "microsoft.minecraftuwp", Ten = "Minecraft", Nguon = "store" };
+        var mc2 = new AppThat { Khoa = "exe:c:\\m\\minecraftlauncher.exe", Muc = "minecraftlauncher.exe", Ten = "Minecraftlauncher", Nguon = "start" };
+        var studio = new AppThat { Khoa = "exe:c:\\r\\robloxstudiobeta.exe", Muc = "robloxstudiobeta.exe", Ten = "Roblox Studio", Nguon = "registry" };
+        var r = DanhSachApp.ChuanHoa(new[] { rb3, mc2, rb2, mc1, rb1, studio });
+        Assert.Equal(3, r.Count);
+        var rb = r.Single(x => x.Ten.StartsWith("Roblox Player", StringComparison.Ordinal));
+        Assert.Equal("registry", rb.Nguon);
+        Assert.Equal(new[] { "robloxplayerbeta.exe", "robloxplayerlauncher.exe", "roblox.roblox" }, rb.CacMuc);
+        Assert.Equal("robloxplayerbeta.exe", rb.Khoa.Split('\\').Last());
+        var mc = r.Single(x => x.Ten.StartsWith("Minecraft", StringComparison.Ordinal));
+        Assert.Equal(2, mc.CacMuc!.Count);
+        Assert.Contains(r, x => x.Ten == "Roblox Studio");
+        Assert.NotEqual(DanhSachApp.TenLoi("Roblox Studio"), DanhSachApp.TenLoi("Roblox"));
+    }
+
+    [Fact]
     public void ChuanHoa_GopEdgeHaiNguon_MangTheoMoiMuc_LuatChanApLenCaHai()
     {
         var store = new AppThat { Khoa = "appx:microsoft.edge_8wekyb", Muc = "microsoft.msedge", Ten = "Microsoft Edge", Nguon = "store" };

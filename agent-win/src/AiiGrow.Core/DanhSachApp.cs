@@ -388,7 +388,7 @@ public static class DanhSachApp
             var muc = (a.Muc ?? "").Trim().ToLowerInvariant();
             var ten = (a.Ten ?? "").Trim();
             if (khoa.Length == 0 || muc.Length == 0 || ten.Length == 0 || !seen.Add(khoa)) continue;
-            if (seenTen.TryGetValue(TenChuan(ten), out var daCo))
+            if (seenTen.TryGetValue(TenLoi(ten), out var daCo))
             {
                 // cùng tên (khác khoa: Copilot/Edge bản Store + bản đã cài) ⇒ một dòng, nhưng mang theo muc của bản bị gộp
                 if (!daCo.CacMuc!.Contains(muc)) daCo.CacMuc.Add(muc);
@@ -402,7 +402,7 @@ public static class DanhSachApp
             });
             var moi = kq[^1];
             moi.CacMuc = new List<string> { moi.Muc };
-            seenTen[TenChuan(ten)] = moi;
+            seenTen[TenLoi(ten)] = moi;
             moi.IconBam = moi.Icon == null ? null : BamIcon(moi.Icon);
             if (moi.IconBam == null) moi.Icon = null;
         }
@@ -417,6 +417,25 @@ public static class DanhSachApp
             if (a.CacMuc is { Count: > 1 } c)
                 foreach (var m in c) d[m] = d.TryGetValue(m, out var cu) ? cu.Union(c).ToArray() : c.ToArray();
         return d;
+    }
+
+    private static readonly string[] HauToChung = { "launcher", "player", "beta", "uwp", "client" };
+
+    /// <summary>Tên lõi để gộp launcher/game cùng hãng: bỏ «for &lt;người dùng&gt;», rồi bỏ hậu tố chung (launcher, player, beta, uwp, client)
+    /// ⇒ «Roblox Player for x» = «Roblox» = «RobloxPlayerBeta»; «Minecraft» = «Minecraftlauncher».</summary>
+    public static string TenLoi(string ten)
+    {
+        var t = ten;
+        var i = t.IndexOf(" for ", StringComparison.OrdinalIgnoreCase);
+        if (i > 0) t = t[..i];
+        var c = TenChuan(t);
+        for (var lap = true; lap;)
+        {
+            lap = false;
+            foreach (var h in HauToChung)
+                if (c.Length >= h.Length + 3 && c.EndsWith(h, StringComparison.Ordinal)) { c = c[..^h.Length]; lap = true; }
+        }
+        return c;
     }
 
     /// <summary>Tên so trùng: chữ thường, bỏ dấu, giữ chữ, số, «+», «#» (C++ khác C#).</summary>
