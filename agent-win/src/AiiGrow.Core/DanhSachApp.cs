@@ -396,7 +396,7 @@ public static class DanhSachApp
             }
             kq.Add(new AppThat
             {
-                Khoa = khoa, Muc = C(muc)!, Ten = C(ten)!, Nguon = a.Nguon, NhaPhatHanh = C(Rong(a.NhaPhatHanh)), DuongDan = a.DuongDan, ThuMuc = a.ThuMuc,
+                Khoa = khoa, Muc = C(muc)!, Ten = C(BoDuoiNguoiDung(ten))!, Nguon = a.Nguon, NhaPhatHanh = C(Rong(a.NhaPhatHanh)), DuongDan = a.DuongDan, ThuMuc = a.ThuMuc,
                 PhienBan = C(Rong(a.PhienBan)), Sha256 = Rong(a.Sha256)?.ToLowerInvariant(),
                 Icon = a.Icon is { Length: > 0 and <= ToiDaIconBase64 } ? a.Icon : null,
             });
@@ -419,22 +419,27 @@ public static class DanhSachApp
         return d;
     }
 
-    private static readonly string[] HauToChung = { "launcher", "player", "beta", "uwp", "client" };
+    private static readonly string[] HauToChung = { "playerbeta", "player", "launcher" };
 
-    /// <summary>Tên lõi để gộp launcher/game cùng hãng: bỏ «for &lt;người dùng&gt;», rồi bỏ hậu tố chung (launcher, player, beta, uwp, client)
-    /// ⇒ «Roblox Player for x» = «Roblox» = «RobloxPlayerBeta»; «Minecraft» = «Minecraftlauncher».</summary>
+    /// <summary>«Roblox Player for aiicon» ⇒ «Roblox Player»: chỉ bỏ «for &lt;một từ&gt;» khi phần trước kết thúc bằng Player/Launcher
+    /// (tên người dùng Windows không hiện ra, không làm đổi dấu vân tay khi đổi tên tài khoản).</summary>
+    public static string BoDuoiNguoiDung(string ten)
+    {
+        var i = ten.LastIndexOf(" for ", StringComparison.OrdinalIgnoreCase);
+        if (i <= 0) return ten;
+        var sau = ten[(i + 5)..].Trim();
+        var truoc = ten[..i].TrimEnd();
+        if (sau.Length == 0 || sau.Contains(' ')) return ten;
+        return truoc.EndsWith("player", StringComparison.OrdinalIgnoreCase) || truoc.EndsWith("launcher", StringComparison.OrdinalIgnoreCase) ? truoc : ten;
+    }
+
+    /// <summary>Tên lõi để gộp launcher/game cùng hãng: sau <see cref="BoDuoiNguoiDung"/>, bỏ MỘT hậu tố Player/PlayerBeta/Launcher
+    /// ⇒ «Roblox Player for x» = «Roblox» = «RobloxPlayerBeta»; «Minecraft» = «Minecraftlauncher». «Chrome Beta», «Roblox Studio» giữ riêng.</summary>
     public static string TenLoi(string ten)
     {
-        var t = ten;
-        var i = t.IndexOf(" for ", StringComparison.OrdinalIgnoreCase);
-        if (i > 0) t = t[..i];
-        var c = TenChuan(t);
-        for (var lap = true; lap;)
-        {
-            lap = false;
-            foreach (var h in HauToChung)
-                if (c.Length >= h.Length + 3 && c.EndsWith(h, StringComparison.Ordinal)) { c = c[..^h.Length]; lap = true; }
-        }
+        var c = TenChuan(BoDuoiNguoiDung(ten));
+        foreach (var h in HauToChung)
+            if (c.Length >= h.Length + 4 && c.EndsWith(h, StringComparison.Ordinal)) return c[..^h.Length];
         return c;
     }
 
