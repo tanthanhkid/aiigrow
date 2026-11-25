@@ -60,7 +60,8 @@ public sealed class DanhSachAppWorker : BackgroundService
             // #307: tên hiển thị cho khay (mục .exe / gói Store → tên trong danh sách app) — cùng nguồn danh sách gửi máy chủ
             var ten = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var a in ds)
-                if (!string.IsNullOrWhiteSpace(a.Muc) && !string.IsNullOrWhiteSpace(a.Ten)) ten.TryAdd(a.Muc.Trim(), a.Ten.Trim());
+                foreach (var m in a.CacMuc is { Count: > 0 } c ? c : new List<string> { a.Muc })   // #645: cả mục đã gộp (launcher/game cùng hãng) cùng một tên
+                    if (!string.IsNullOrWhiteSpace(m) && !string.IsNullOrWhiteSpace(a.Ten)) ten.TryAdd(m.Trim(), a.Ten.Trim());
             _rt.TenAppMay = ten;
             _rt.BiDanhMuc = DanhSachApp.BangBiDanh(ds);
             _rt.AppMay = XinThemChonView.Loc(ds.Select(x => new AppTrenMay { Muc = x.Muc, Ten = x.Ten }));
