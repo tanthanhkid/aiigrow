@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   boTheoTuoi, buocGia, CHIP_TUOI, cauDatPin, cauDoiSau, cauHanVoucher, cauLuuQuaLanDau, cauNgayDoi, cauThemQua, chiaMa, doiChonMau, icQua, kiemPin, locPin, loiGuiMa, phuQua,
-  namTuChipTuoi, saoMoiNgay, soTrenChuong, suKienMoMa, thanSuaQua,
+  namTuChipTuoi, saoMoiNgay, soTrenChuong, suKienMoMa, tenVoucher, thanSuaQua,
 } from "./s3.ts";
 
 test("PIN: chỉ giữ 4 chữ số", () => {
@@ -138,4 +138,10 @@ test("Thêm con từ Cả nhà: chip tuổi ⇒ năm sinh đại diện; 10–12
   assert.equal(namTuChipTuoi(null), null);
   assert.equal(namTuChipTuoi(9), null);
   assert.deepEqual([null, 0, 2, 3, 4].map((i) => boTheoTuoi(i)), ["tu_lap", "hoc_tap", "tu_lap", "viec_nha", "viec_nha"]);
+});
+
+test("#660 một món quà một tên: mọi cách gọi AiiCafe 20k ⇒ «Voucher AiiCafe 20k»", () => {
+  for (const t of ["AiiCafe 20k", "Phiếu quà AiiCafe 20.000đ", "Voucher AiiCafe 20k"]) assert.equal(tenVoucher(t), "Voucher AiiCafe 20k");
+  assert.equal(tenVoucher("Phiếu quà AiiCafe 50.000đ"), "Voucher AiiCafe 50k");
+  assert.equal(tenVoucher("Sách AiiLab"), "Sách AiiLab");
 });

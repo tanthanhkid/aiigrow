@@ -16,7 +16,7 @@ import { KHOA_NV_TAB, napNvTab, viecCuaCon } from "@/lib/nv-tab";
 import { OLomIcon } from "@/lib/ui-viec";
 import { HangChonBe } from "@/lib/ui-chung";
 import { BangTraoQua } from "@/lib/trao-qua";
-import { icQua } from "@/lib/s3";
+import { icQua, tenVoucher } from "@/lib/s3";
 import { kieuSao, saoTu, soVN, traNoLanLuot } from "@/lib/so-sao";
 
 /** «hôm nay 18:40» / «hôm qua» / «3/11». */
@@ -101,17 +101,17 @@ export default function TabNhiemVu() {
 
       {cua.phieu.length ? (
         <>
-          <TieuMuc ic="qua" chu="Quà chờ trao" so={cua.phieu.length} phai={{ chu: "Danh sách quà ›", bam: () => router.push("/vi/qua" as never) }} />
+          <TieuMuc ic="qua" chu="Quà chờ trao" so={cua.phieu.length} phai={{ chu: "Danh sách quà ›", bam: () => router.push({ pathname: "/vi/qua", params: { con: c.id } } as never) }} />
           {/* thiết kế .qua: mỗi quà một thẻ vàng — ô icon 48 nền #fff8e4 · tên 15.5/800 · «Đổi 50 sao · hôm qua» · nút đen «Trao quà» */}
           {cua.phieu.map((p) => (
             <View key={p.id} style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingLeft: 12, paddingRight: 16, borderRadius: 28,
               backgroundColor: M.the }, KHOI.the]}>
               <View style={{ width: 48, height: 48, borderRadius: 16, backgroundColor: M.chonSoft, alignItems: "center", justifyContent: "center" }}><IconNet ten={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten }) as TenIcon} co={24} /></View>
               <View style={{ flex: 1, minWidth: 0 }}>
-                <Chu kieu="rat" co={15.5} dong={1}>{p.ten}</Chu>
+                <Chu kieu="rat" co={15.5} dong={1}>{tenVoucher(p.ten)}</Chu>
                 <Chu kieu="dam" co={13} mau={M.diemInk}>{`Đổi ${soVN(p.diem)} sao · ${khiNao(p.created_at)}`}</Chu>
               </View>
-              <View><Nut chu="Trao quà" nho bam={() => setTrao(p)} nhanDoc={`Trao ${p.ten} cho ${p.ten_con}`} /></View>
+              <View><Nut chu="Trao quà" nho bam={() => setTrao(p)} nhanDoc={`Trao ${tenVoucher(p.ten)} cho ${p.ten_con}`} /></View>
             </View>
           ))}
         </>
