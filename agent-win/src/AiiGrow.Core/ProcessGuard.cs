@@ -168,6 +168,53 @@ public static class ProcessGuard
         return ten.Length == 0 ? null : ten;
     }
 
+    /// <summary>Mã nhà phát hành của gói Store từ đường dẫn «…\WindowsApps\&lt;Gói&gt;_&lt;bản&gt;_&lt;kiến trúc&gt;__&lt;nhàXB&gt;\app.exe» (chữ thường, vd «8wekyb3d8bbwe»);
+    /// không phải app Store / thư mục gói không có mã ⇒ null. Cùng điều kiện đường dẫn như <see cref="TenGoiStore"/>.</summary>
+    public static string? NhaXuatBanGoi(string exePath)
+    {
+        if (TenGoiStore(exePath) == null) return null;
+        var p = exePath.Replace('/', '\');
+        const string mk = ":\\Program Files\\WindowsApps\\";
+        var i = p.IndexOf(mk, StringComparison.OrdinalIgnoreCase);
+        var rest = p[(i + mk.Length)..];
+        var thuMuc = rest[..rest.IndexOf('\\')];
+        var k = thuMuc.LastIndexOf("__", StringComparison.Ordinal);
+        if (k < 0 || k + 2 >= thuMuc.Length) return null;
+        return thuMuc[(k + 2)..].Trim().ToLowerInvariant();
+    }
+
+    /// <summary>Mã nhà phát hành dùng chung cho cả trăm gói (Microsoft) — cùng mã KHÔNG đủ để coi là «cùng app»: Solitaire chạy không được kéo theo Mail, Camera…</summary>
+    public static readonly HashSet<string> NhaXuatBanChung = new(StringComparer.OrdinalIgnoreCase) { "8wekyb3d8bbwe", "cw5n1h2txyewy" };
+
+    /// <summary>Tiền tố tên gói đi kèm trò chơi / app của Microsoft (Xbox Identity Provider «Xboxidp», Game Bar, Gaming Services, Xbox TCUI) — chạy theo app cha.</summary>
+    public static readonly string[] TienToGoiPhuCuaMicrosoft = { "microsoft.xbox", "microsoft.gaming" };
+
+    /// <summary>#643: tiến trình phụ của app đã cho phép — cùng gói (cùng tên gói, khác thư mục bản / exe khác), cùng nhà phát hành (không phải mã dùng chung của
+    /// Microsoft), hoặc (nhà phát hành Microsoft) gói đi kèm Xbox / Gaming. <paramref name="goiCha"/> = các «tênGói|nhàXB» của app cha đang chạy và được phép
+    /// (<see cref="KhoaGoiCha"/>). Tiến trình đứng một mình (không có app cha chạy) ⇒ false, theo luật thường.</summary>
+    public static bool LaTienTrinhPhuCuaCha(string exePath, IReadOnlyCollection<string>? goiCha)
+    {
+        if (goiCha == null || goiCha.Count == 0) return false;
+        var ten = TenGoiStore(exePath);
+        var nha = NhaXuatBanGoi(exePath);
+        if (ten == null || nha == null) return false;
+        foreach (var k in goiCha)
+        {
+            var i = k.IndexOf('|');
+            if (i <= 0) continue;
+            var tenCha = k[..i]; var nhaCha = k[(i + 1)..];
+            if (!nhaCha.Equals(nha, StringComparison.OrdinalIgnoreCase)) continue;
+            if (tenCha.Equals(ten, StringComparison.OrdinalIgnoreCase)) return true;
+            if (!NhaXuatBanChung.Contains(nha)) return true;
+            if (TienToGoiPhuCuaMicrosoft.Any(t => ten.StartsWith(t, StringComparison.OrdinalIgnoreCase))) return true;
+        }
+        return false;
+    }
+
+    /// <summary>Khoá «tênGói|nhàXB» của exe app Store (null nếu không phải gói Store).</summary>
+    public static string? KhoaGoiCha(string exePath) =>
+        TenGoiStore(exePath) is { } t && NhaXuatBanGoi(exePath) is { } n ? t + "|" + n : null;
+
     /// <summary>Exe khớp luật cho phép: theo tên exe (tên trùng của Windows thì phải là bản thật — <see cref="TenCuaWindows"/>) hoặc theo tên gói Store.</summary>
     public static bool DuocPhepTheoLuat(string exePath, ISet<string> allowed, string? winDir)
     {
@@ -189,10 +236,13 @@ public static class ProcessGuard
     /// <param name="allowedDirs">Thư mục của các app được phép đang chạy (helper cùng thư mục thì không đóng).</param>
     /// <param name="safeDirs">Thư mục hệ thống.</param>
     /// <param name="winDir">Thư mục Windows (null = không miễn tiến trình hệ thống theo tên — chỉ test cũ).</param>
-    public static bool ShouldClose(string exePath, ISet<string> allowed, ISet<string> allowedDirs, IEnumerable<string> safeDirs, string? winDir = null)
+    /// <param name="goiCha">#643: khoá gói Store của các app cha đang chạy và được phép (<see cref="KhoaGoiCha"/>); tiến trình phụ cùng họ không bị đóng.</param>
+    public static bool ShouldClose(string exePath, ISet<string> allowed, ISet<string> allowedDirs, IEnumerable<string> safeDirs, string? winDir = null,
+        IReadOnlyCollection<string>? goiCha = null)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
         if (DuocPhepTheoLuat(exePath, allowed, winDir)) return false;
+        if (LaTienTrinhPhuCuaCha(exePath, goiCha)) return false;   // #643
         if (TenGoiStore(exePath) is { } goi && LaGoiStoreHeThong(goi)) return false;
         if (LaTienTrinhHeThongPhien(exePath, winDir)) return false;
 

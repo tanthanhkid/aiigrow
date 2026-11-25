@@ -88,6 +88,50 @@ public class ProcessEnforcerTests
         Assert.Equal(new[] { "game-thu.exe" }, seCho);  // vẫn nhận diện đúng game sẽ bị chặn
         Assert.Empty(fake.Closed);                       // nhưng không đóng tiến trình nào
     }
+
+    private const string Sol = @"C:\Program Files\WindowsApps\Microsoft.MicrosoftSolitaireCollection_4.20.1_x64__8wekyb3d8bbwe\Solitaire.exe";
+    private const string Xboxidp = @"C:\Program Files\WindowsApps\Microsoft.XboxIdentityProvider_12.0.0_x64__8wekyb3d8bbwe\XboxIdp.exe";
+    private const string Mail = @"C:\Program Files\WindowsApps\microsoft.windowscommunicationsapps_16005_x64__8wekyb3d8bbwe\HxOutlook.exe";
+    private const string FooApp = @"C:\Program Files\WindowsApps\Foo.Game_1.0.0_x64__abc123xyz\Foo.exe";
+    private const string FooHelper = @"C:\Program Files\WindowsApps\Foo.Helper_2.0.0_x64__abc123xyz\Helper.exe";
+    private const string FooKhac = @"C:\Program Files\WindowsApps\Foo.Helper_2.0.0_x64__zzz999\Helper.exe";
+
+    [Fact]
+    public void NhaXuatBanGoi_DocMaSauHaiGachDuoi()
+    {
+        Assert.Equal("8wekyb3d8bbwe", ProcessGuard.NhaXuatBanGoi(Sol));
+        Assert.Equal("abc123xyz", ProcessGuard.NhaXuatBanGoi(FooHelper));
+        Assert.Null(ProcessGuard.NhaXuatBanGoi(@"C:\Users\An\AppData\Local\Microsoft\WindowsApps\Foo_1__abc\x.exe"));
+        Assert.Null(ProcessGuard.NhaXuatBanGoi(@"C:\Games\x.exe"));
+    }
+
+    [Fact]
+    public void LaTienTrinhPhuCuaCha_TheoGoiVaNhaPhatHanh()
+    {
+        var chaSol = new[] { ProcessGuard.KhoaGoiCha(Sol)! };
+        var chaFoo = new[] { ProcessGuard.KhoaGoiCha(FooApp)! };
+        Assert.True(ProcessGuard.LaTienTrinhPhuCuaCha(Xboxidp, chaSol));      // gói Xbox đi kèm app Microsoft
+        Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(Mail, chaSol));        // cùng mã Microsoft nhưng không phải gói đi kèm
+        Assert.True(ProcessGuard.LaTienTrinhPhuCuaCha(FooHelper, chaFoo));    // cùng nhà phát hành riêng
+        Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(FooKhac, chaFoo));     // nhà phát hành khác
+        Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(Xboxidp, Array.Empty<string>()));   // không có app cha chạy
+        Assert.False(ProcessGuard.LaTienTrinhPhuCuaCha(Xboxidp, null));
+    }
+
+    [Fact]
+    public void Enforce_TienTrinhPhuDiTheoAppCha_DungMotMinhThiTheoLuatThuong()
+    {
+        var al = new[] { "foo.game" };
+        // app cha được phép đang chạy ⇒ helper cùng nhà phát hành không bị đóng
+        var a = new FakeProcessControl(new RunningProc(1, FooApp), new RunningProc(2, FooHelper), new RunningProc(3, FooKhac));
+        ProcessEnforcer.Enforce(a, 2, al, Safe, winDir: Win);
+        Assert.Equal(new[] { 3 }, a.Closed);
+        // app cha không chạy ⇒ helper đứng một mình bị đóng như luật thường
+        var b = new FakeProcessControl(new RunningProc(2, FooHelper));
+        ProcessEnforcer.Enforce(b, 2, al, Safe, winDir: Win);
+        Assert.Equal(new[] { 2 }, b.Closed);
+    }
+
 }
 
 public class CheDoAgentTests
