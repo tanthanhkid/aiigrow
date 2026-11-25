@@ -35,10 +35,12 @@ public static class ProcessEnforcer
 
         // Thư mục của các app được phép đang chạy: helper cùng thư mục thì không đóng.
         var allowedDirs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var goiCha = new HashSet<string>(StringComparer.OrdinalIgnoreCase);   // #643: gói Store của app cha được phép đang chạy
         foreach (var p in procs)
         {
             // cùng luật với ShouldClose: «notepad.exe» giả trong Downloads không kéo cả Downloads thành «helper cùng thư mục»
             if (!ProcessGuard.DuocPhepTheoLuat(p.Path, allowed, winDir)) continue;
+            if (ProcessGuard.KhoaGoiCha(p.Path) is { } kg) goiCha.Add(kg);
             var d = DirName(p.Path);
             // app được phép nằm trong thư mục Windows (vd notepad ở System32) KHÔNG kéo cả System32 thành «helper cùng thư mục» (cmd, powershell…)
             if (d != null && !ProcessGuard.TrongWindows(d, winDir))
@@ -49,7 +51,7 @@ public static class ProcessEnforcer
         foreach (var p in procs)
         {
             if (choThem?.Invoke(p.Path) == true) continue;   // «chặn theo lọc»: trình duyệt lọc web được (TrinhDuyetLoc.ChoChay)
-            if (!ProcessGuard.ShouldClose(p.Path, allowed, allowedDirs, safe, winDir)) continue;
+            if (!ProcessGuard.ShouldClose(p.Path, allowed, allowedDirs, safe, winDir, goiCha)) continue;
             if (dryRun) { closed.Add(FileName(p.Path).ToLowerInvariant()); continue; }
             if (control.Close(p.Id)) closed.Add(FileName(p.Path).ToLowerInvariant());
         }
