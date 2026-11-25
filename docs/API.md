@@ -419,8 +419,8 @@ iPhone / Android — `hanMoCuaMay`, như mở khẩn cấp) và **thắng giờ 
 
 | Đường | Ý |
 |---|---|
-| `GET con/:id/gio-choi` | «Giờ chơi của <Con>» (bm2-gio) ⇒ `{quyNgayThuong, quyCuoiTuan, phut10Sao, doiSaoBat, doiSaoToiDaNgay, choXinThemGio, ngoaiLeToiDaPhut, gioNgu, gioHoc, homNay: quy}` |
-| `POST con/:id/gio-choi {quyNgayThuong?, quyCuoiTuan?, phut10Sao?, doiSaoBat?, doiSaoToiDaNgay?, choXinThemGio?, ngoaiLeToiDaPhut?, gioNgu?: {tu, den}, gioHoc?: {tu, den, thu[]} \| null}` | chỉ khoá gửi lên; số kẹp min–max; giờ sai ⇒ 400 `gio_sai`; ghi nhật ký `doi_gio_choi` ⇒ như GET |
+| `GET con/:id/gio-choi` | «Giờ chơi của <Con>» (bm2-gio) ⇒ `{gioiHanNgayThuong, gioiHanCuoiTuan, phutMoiLuot, phut10Sao, doiSaoBat, doiSaoToiDaNgay, choXinThemGio, ngoaiLeToiDaPhut, gioNgu, gioHoc, homNay: quy}` |
+| `POST con/:id/gio-choi {gioiHanNgayThuong?, gioiHanCuoiTuan?, phutMoiLuot?, phut10Sao?, doiSaoBat?, doiSaoToiDaNgay?, choXinThemGio?, ngoaiLeToiDaPhut?, gioNgu?: {tu, den}, gioHoc?: {tu, den, thu[]} \| null}` | chỉ khoá gửi lên; số kẹp min–max; giờ sai ⇒ 400 `gio_sai`; ghi nhật ký `doi_gio_choi` ⇒ như GET |
 | `GET con/:id/quy` | `{quy, sao, ngoaiLe: [{id, den, muc \| null, nhom}]}` — thẻ «Bảo Anh còn chơi 18 phút trong 60 phút hôm nay» |
 | `POST con/:id/them-gio {phut: 5–240}` | Ba Mẹ «Cho thêm giờ» (15 / 30 / 60) — chỉ hôm nay ⇒ `{id, phut, quy}`; nhật ký `them_gio` (khay Con nhận tin «Ba Mẹ cho thêm giờ») |
 | `POST them-gio/:id/hoan-tac` | «Hoàn tác» trong 60 giây, đúng người cho (cả grant duyệt lời xin — lời xin về «chờ»). Quá hạn ⇒ 409 `het_hoan_tac` |

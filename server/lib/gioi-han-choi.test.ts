@@ -81,6 +81,13 @@ test("API Giờ chơi: lưu giới hạn ngày + mỗi lượt, dòng giải th�
   r = await m(tokBm, `con/${con}/gio-choi`, { gioiHanNgayThuong: 60, gioiHanCuoiTuan: 90, phutMoiLuot: 30 });
   assert.equal(r.status, 200);
   assert.deepEqual([r.body.gioiHanNgayThuong, r.body.gioiHanCuoiTuan, r.body.phutMoiLuot], [60, 90, 30]);
+  // #619: POST 10/90/30 rồi GET lại đúng, không ép về 0 / mặc định
+  r = await m(tokBm, `con/${con}/gio-choi`, { gioiHanNgayThuong: 10, gioiHanCuoiTuan: 90, phutMoiLuot: 30 });
+  assert.deepEqual([r.body.gioiHanNgayThuong, r.body.gioiHanCuoiTuan, r.body.phutMoiLuot], [10, 90, 30]);
+  r = await m(tokBm, `con/${con}/gio-choi`);
+  assert.deepEqual([r.body.gioiHanNgayThuong, r.body.gioiHanCuoiTuan, r.body.phutMoiLuot], [10, 90, 30], "GET sau POST");
+  assert.equal("quyNgayThuong" in r.body || "quyCuoiTuan" in r.body, false);
+  await m(tokBm, `con/${con}/gio-choi`, { gioiHanNgayThuong: 60 });
   r = await m(tokBm, `con/${con}/gio-choi`, { phutMoiLuot: 0 });
   assert.deepEqual([r.body.gioiHanNgayThuong, r.body.phutMoiLuot], [60, 0], "chỉ đổi khoá có gửi");
   assert.equal((await m(tokBm, `con/${con}/gio-choi`, { phutMoiLuot: 2 })).status, 400);

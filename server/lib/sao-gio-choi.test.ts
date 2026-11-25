@@ -87,12 +87,12 @@ test("API Ba Mẹ: Giờ chơi (giờ ngủ, giờ học; ô quỹ cũ bỏ qua)
   const { con, tokBm, tokMay } = await nha(30);
   let r = await m(tokBm, `con/${con}/gio-choi`);
   assert.equal(r.status, 200);
-  assert.deepEqual([r.body.quyNgayThuong, r.body.quyCuoiTuan, r.body.phut10Sao, r.body.doiSaoBat, r.body.choXinThemGio, r.body.gioHoc],
-    [0, 0, 10, false, true, null]);
+  assert.deepEqual([r.body.phut10Sao, r.body.doiSaoBat, r.body.choXinThemGio, r.body.gioHoc],
+    [10, false, true, null]);
   r = await m(tokBm, `con/${con}/gio-choi`, { quyNgayThuong: 45, quyCuoiTuan: 120, gioNgu: { tu: "21:30", den: "06:30" },
     gioHoc: { tu: "17:00", den: "18:00", thu: [1, 2, 3, 4, 5] }, doiSaoToiDaNgay: 9999, choXinThemGio: false });
   assert.equal(r.status, 200);
-  assert.deepEqual([r.body.quyNgayThuong, r.body.quyCuoiTuan], [0, 0], "ô quỹ cũ bỏ qua");
+  assert.equal("quyNgayThuong" in r.body || "quyCuoiTuan" in r.body, false, "ô quỹ cũ bỏ khỏi phản hồi");
   // #258: giờ ngủ / giờ học bỏ — nhận mà không lưu; trả giờ ngủ «tắt», giờ học null
   assert.deepEqual([r.body.gioNgu, r.body.gioHoc], [{ tu: "00:00", den: "00:00" }, null]);
   assert.equal((await one<{ c: any }>(`select cau_hinh as c from children where id = $1`, [con]))!.c.quy_ngay_thuong, undefined);

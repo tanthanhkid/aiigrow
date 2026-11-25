@@ -155,12 +155,12 @@ export async function baMeThemGio(fam: string, con: string, phutVao: unknown, ng
 /** (cũ) «Hoàn tác» cho thêm giờ ⇒ hoàn tác khoản vay (id = id khoản vay trả về lúc cho). */
 export const hoanTacThemGio = (fam: string, id: string, nguoi: string, now = new Date()) => hoanTacVay(fam, id, nguoi, now);
 
-/** Cài đặt «Giờ chơi của <Con>» (bm2-gio — màn bỏ ở thiết kế 15/11): còn giờ ngủ / giờ học (#262 lo) + số sao; các ô quỹ / đổi sao trả giá trị cũ cố định. */
+/** Cài đặt «Giờ chơi của <Con>» (bm2-gio — màn bỏ ở thiết kế 15/11): còn giờ ngủ / giờ học (#262 lo) + số sao; ô quỹ cũ (quyNgayThuong / quyCuoiTuan) đã bỏ khỏi phản hồi (#619); ô đổi sao trả giá trị cũ cố định. */
 export async function gioChoiCua(fam: string, con: string, now = new Date()) {
   const b = await boiCanhCon(con);
   if (b.fam !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   return {
-    quyNgayThuong: 0, quyCuoiTuan: 0, phut10Sao: 10, doiSaoBat: false, doiSaoToiDaNgay: 0, choXinThemGio: true, ngoaiLeToiDaPhut: 0,
+    phut10Sao: 10, doiSaoBat: false, doiSaoToiDaNgay: 0, choXinThemGio: true, ngoaiLeToiDaPhut: 0,
     gioNgu: b.lich.ngu, gioHoc: b.lich.hoc, homNay: await quyHomNay(con, now, q, b),
     // #302: giới hạn ngày (ngày thường / T7–CN) + mỗi lượt tối đa — 0 = không giới hạn
     ...gioiHanBm(b.cfg),
@@ -180,6 +180,7 @@ export async function datGioChoi(fam: string, con: string, b: Record<string, unk
   const cu = await boiCanhCon(con);
   if (cu.fam !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   await luuGioiHan(fam, con, b, nguoi);
+  // #619: trả giá trị ĐỌC LẠI từ DB sau khi ghi (không dựa bản đọc trước đó)
   return gioChoiCua(fam, con);
 }
 
