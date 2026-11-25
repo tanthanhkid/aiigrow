@@ -75,17 +75,18 @@ public static class ManChanView
     /// <summary>Có nút «Xin Ba Mẹ mở …» không (công cụ Windows như cmd, taskmgr… thì không).</summary>
     public static bool CoNutXin(string? appId) => BlockScreenView.CanAskOpen(appId);
 
-    /// <summary>Mục là tên miền (y8.com) chứ không phải app: không .exe, không mã gói Store («Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe»), không đường dẫn / khoảng trắng.</summary>
-    public static bool LaTrangWeb(string? muc)
+    /// <summary>Chỉ cho icon (#669): tên miền thật = chữ thường / số / gạch, các nhãn ngăn bằng dấu chấm, đuôi chữ 2–24 ký tự, không phải tệp (.exe/.msi…). Mã gói Store («Microsoft.WindowsCalculator», «…_8wekyb3d8bbwe») có chữ hoa hoặc _ ! nên không khớp.</summary>
+    public static bool LaTenMienThat(string? muc)
     {
         if (string.IsNullOrWhiteSpace(muc)) return false;
         var m = muc.Trim();
-        if (!m.Contains('.') || m.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return false;
-        return m.IndexOfAny(new[] { '_', '!', '\\', '/', ' ', ':' }) < 0;
+        if (!System.Text.RegularExpressions.Regex.IsMatch(m, @"^[a-z0-9-]+(\.[a-z0-9-]+)*\.[a-z]{2,24}$")) return false;
+        var duoi = m[(m.LastIndexOf('.') + 1)..];
+        return duoi is not ("exe" or "msi" or "bat" or "cmd" or "lnk" or "dll");
     }
 
     /// <summary>#669: icon theo loại MỤC chứ không theo phân loại «game»: tên miền ⇒ quả địa cầu; app cụ thể (Edge, Solitaire…) ⇒ icon máy tính trung tính.</summary>
-    public static string IconMuc(string? muc) => LaTrangWeb(muc) ? "web" : "may_tinh";
+    public static string IconMuc(string? muc) => LaTenMienThat(muc) ? "web" : "may_tinh";
 
     public const string DangXem = "Ba Mẹ đang xem nhé!";
     public const string TraLoiLaBiet = "Ba Mẹ trả lời là con biết ngay.";

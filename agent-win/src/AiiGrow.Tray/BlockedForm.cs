@@ -295,7 +295,7 @@ internal sealed class BlockedForm : Form
     }
 
     /// <summary>Mục là tên miền (y8.com) chứ không phải app (.exe / gói Store).</summary>
-    internal static bool LaTrangWeb(string muc) => ManChanView.LaTrangWeb(muc);
+    internal static bool LaTrangWeb(string muc) => muc.Contains('.') && !muc.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
 
     private void ThemNutVeHomNay(bool chinh, string? icon = null, string? chu = null)
     {

@@ -14,6 +14,9 @@ public class ManConTests
     [InlineData("Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App", "may_tinh")]
     [InlineData("y8.com", "web")]
     [InlineData("www.youtube.com", "web")]
+    [InlineData("Microsoft.WindowsCalculator", "may_tinh")]
+    [InlineData("setup.msi", "may_tinh")]
+    [InlineData("m.y8.com", "web")]
     [InlineData("", "may_tinh")]
     public void IconMuc669_theoLoaiMuc_khongSuyTuPhanLoaiGame(string muc, string icon) => Assert.Equal(icon, ManChanView.IconMuc(muc));
 
