@@ -415,7 +415,7 @@ public static class DanhSachApp
         var d = new Dictionary<string, string[]>(StringComparer.Ordinal);
         foreach (var a in ds)
             if (a.CacMuc is { Count: > 1 } c)
-                foreach (var m in c) d[m] = c.ToArray();
+                foreach (var m in c) d[m] = d.TryGetValue(m, out var cu) ? cu.Union(c).ToArray() : c.ToArray();
         return d;
     }
 

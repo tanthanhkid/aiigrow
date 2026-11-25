@@ -326,6 +326,9 @@ public class DanhSachAppTests
         // chặn bằng tên gói Store cũng kéo theo msedge.exe; không trùng khi đã có sẵn
         var hai = ChanAppThat.MoRongBiDanh(new[] { new AppBiChan { Muc = "microsoft.msedge" }, new AppBiChan { Muc = "msedge.exe" } }, bd);
         Assert.Equal(2, hai.Count);
+        // tên exe chung chung không bao giờ thành luật tên trần qua bí danh
+        var chung = ChanAppThat.MoRongBiDanh(new[] { new AppBiChan { Muc = "a.exe" } }, new Dictionary<string, string[]> { ["a.exe"] = new[] { "a.exe", "setup.exe" } });
+        Assert.Single(chung);
         // app một muc / không có bí danh ⇒ giữ nguyên
         Assert.Single(ChanAppThat.MoRongBiDanh(new[] { new AppBiChan { Muc = "zalo.exe" } }, bd));
         Assert.Single(ChanAppThat.MoRongBiDanh(new[] { new AppBiChan { Muc = "zalo.exe" } }, null));

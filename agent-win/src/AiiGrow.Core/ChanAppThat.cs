@@ -134,7 +134,7 @@ public static class ChanAppThat
         foreach (var a in ds)
             if (a.Muc.Length > 0 && biDanh.TryGetValue(a.Muc, out var cac))
                 foreach (var m in cac)
-                    if (m.Length > 0 && co.Add(m)) kq.Add(new AppBiChan { Muc = m });
+                    if (m.Length > 0 && !TenChung.Contains(m) && co.Add(m)) kq.Add(new AppBiChan { Muc = m });
         return kq;
     }
 
