@@ -369,18 +369,22 @@ public static class DanhSachApp
 
     // ------------------------------------------------------------------ chuẩn hoá, băm, phần đổi
 
-    /// <summary>Cắt chữ ≤ 300, bỏ icon &gt; 64 KB / không phải PNG (tính iconBam), bỏ app thiếu khoa/muc/tên, khoa trùng giữ cái đầu, sắp theo khoa, tối đa 1500.</summary>
+    /// <summary>Cắt chữ ≤ 300, bỏ icon &gt; 64 KB / không phải PNG (tính iconBam), bỏ app thiếu khoa/muc/tên, khoa trùng giữ cái đầu, tên chuẩn hoá trùng gộp một dòng (registry > start > store), sắp theo khoa, tối đa 1500.</summary>
     public static List<AppThat> ChuanHoa(IEnumerable<AppThat> ds)
     {
         static string? C(string? s) => s == null ? null : (s.Length > ToiDaChu ? s[..ToiDaChu] : s);
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        var seenTen = new HashSet<string>(StringComparer.Ordinal);
         var kq = new List<AppThat>();
-        foreach (var a in ds)
+        // Ưu tiên registry > start > store (OrderBy ổn định) để cùng tên thì giữ nguồn đầy đủ nhất.
+        static int UuTien(AppThat a) => a.Nguon switch { "registry" => 0, "start" => 1, "store" => 2, _ => 3 };
+        foreach (var a in ds.OrderBy(UuTien))
         {
             var khoa = (a.Khoa ?? "").Trim().ToLowerInvariant();
             var muc = (a.Muc ?? "").Trim().ToLowerInvariant();
             var ten = (a.Ten ?? "").Trim();
             if (khoa.Length == 0 || muc.Length == 0 || ten.Length == 0 || !seen.Add(khoa)) continue;
+            if (!seenTen.Add(TenChuan(ten))) continue; // cùng tên (khác khoa: Copilot/Edge bản Store + bản đã cài) ⇒ một dòng
             kq.Add(new AppThat
             {
                 Khoa = khoa, Muc = C(muc)!, Ten = C(ten)!, Nguon = a.Nguon, NhaPhatHanh = C(Rong(a.NhaPhatHanh)), DuongDan = a.DuongDan, ThuMuc = a.ThuMuc,
@@ -392,6 +396,20 @@ public static class DanhSachApp
             if (moi.IconBam == null) moi.Icon = null;
         }
         return kq.OrderBy(a => a.Khoa, StringComparer.Ordinal).Take(ToiDaApp).ToList();
+    }
+
+    /// <summary>Tên so trùng: chữ thường, bỏ dấu, giữ chữ, số, «+», «#» (C++ khác C#).</summary>
+    public static string TenChuan(string ten)
+    {
+        var d = ten.Normalize(NormalizationForm.FormD);
+        var sb = new StringBuilder();
+        foreach (var c in d)
+        {
+            if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.NonSpacingMark) continue;
+            var x = c == '\u0111' || c == '\u0110' ? 'd' : char.ToLowerInvariant(c);
+            if (char.IsLetterOrDigit(x) || x == '+' || x == '#') sb.Append(x);
+        }
+        return sb.Length > 0 ? sb.ToString() : ten.ToLowerInvariant();
     }
 
     /// <summary>SHA-256 hex chữ thường của byte PNG (base64 hỏng / không phải PNG ⇒ null).</summary>

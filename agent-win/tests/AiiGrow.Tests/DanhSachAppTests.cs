@@ -296,6 +296,19 @@ public class DanhSachAppTests
     }
 
     [Fact]
+    public void ChuanHoa_CungTenKhacKhoa_GopMotDong_UuTienRegistryTruocStartTruocStore()
+    {
+        var store = new AppThat { Khoa = "appx:microsoft.edge_8wekyb", Muc = "microsoft.msedge", Ten = "Microsoft Edge", Nguon = "store" };
+        var reg = new AppThat { Khoa = "exe:c:\\edge\\msedge.exe", Muc = "msedge.exe", Ten = "MICROSOFT  edge", Nguon = "registry" };
+        var khac = A("Copilot");
+        var r = DanhSachApp.ChuanHoa(new[] { store, khac, reg });
+        Assert.Equal(2, r.Count);
+        Assert.Equal("registry", r.Single(x => x.Ten.Contains("dge", StringComparison.OrdinalIgnoreCase)).Nguon);
+        Assert.NotEqual(DanhSachApp.TenChuan("C++"), DanhSachApp.TenChuan("C#"));
+        Assert.Equal(DanhSachApp.TenChuan("Microsoft Edge"), DanhSachApp.TenChuan("MICROSOFT  edge"));
+    }
+
+    [Fact]
     public void ChonLogoAppx_ScaleLonNhatTrongGioiHan_BoContrast_DuPhong150()
     {
         var tep = new (string, int, int, long)[]
