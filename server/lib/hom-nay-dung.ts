@@ -59,7 +59,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
   const dangMo = new Set(phien.map((p) => chuanMuc(p.muc)));
   const luatCua = (muc: string) => {
     const m = chuanMuc(muc);
-    return luat.filter((l) => m === l.muc || m.endsWith(`.${l.muc}`)).sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
+    return luat.filter((l) => m === l.muc || m.endsWith(`.${l.muc}`) || m === mucGop(l.muc)).sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
   };
   // gộp theo app / trang (một app dùng ở 2 máy ⇒ một dòng, máy = máy dùng nhiều nhất, giờ = lần đầu sớm nhất)
   const gop = new Map<string, DongDung & { _phutMay: number }>();

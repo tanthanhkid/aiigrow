@@ -73,8 +73,7 @@ export function xepMuc(mucTho: string, luat: Luat[], allow: string[] = allowlist
   // Ba Mẹ đã xếp nhóm Giải trí cụ thể ⇒ dùng đúng nhóm đó; xếp APP vào «Học tập» ⇒ Học tập.
   // Trang web «Cho phép» cũng lưu loai hoc nhưng chỉ nghĩa là được mở (YouTube cho phép vẫn là Video) ⇒ theo bản chất.
   // #659: nhóm «game» là mặc định khi Ba Mẹ chỉ bấm «Tính phút» (app-may.ts) — không đè bản chất đã biết (Edge không phải trò chơi)
-  const gyNhom = khoa.map((k) => GOI_Y.get(k)).find(Boolean);
-  const bamChatKhacGame = TRINH_DUYET.has(m) || (!!gyNhom && gyNhom !== "game") || khoa.some((k) => allow.includes(k));
+  const bamChatKhacGame = TRINH_DUYET.has(m) || khoa.some((k) => allow.includes(k));
   if (r?.loai === "giai_tri" && r.nhom !== "khac" && !(r.nhom === "game" && bamChatKhacGame)) return { muc: NHOM_SANG_MUC[r.nhom] ?? "khac", tenLuat: r.ten };
   if (r?.loai === "hoc" && (r.nhom as string) === "cho_phep") return { muc: "tien_ich", tenLuat: r.ten };   // «Cho phép» ≠ Học tập
   if (r?.loai === "hoc" && kieuMuc(r.muc) !== "web") return { muc: "hoc", tenLuat: r.ten };
@@ -91,7 +90,8 @@ type MucDung = { id: string; ten: string; kieu: "app" | "web"; muc: MucMH; giay:
 
 const NGAY_GIAY = 86_400;
 
-async function tuan(fam: string, con: string, dau: string, luat: Luat[]) {
+async function tuan(fam: string, con: string, dau: string, luat0: Luat[]) {
+  const luat = luat0.map((l) => ({ ...l, muc: mucGop(l.muc) }));   // luật lưu dưới tên cũ (Microsoft OneDrive) vẫn khớp mục đã gộp
   const het = congNgay(dau, 7);
   const ngayDs = Array.from({ length: 7 }, (_, i) => congNgay(dau, i));
   const [app, web] = await Promise.all([

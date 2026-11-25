@@ -4,13 +4,12 @@
 
 const TEN_APP: Record<string, string> = {
   bingweather: "Thời tiết", windowsalarms: "Báo thức & Đồng hồ", zunemusic: "Groove Music", zunevideo: "Phim & TV",
-  "mixedreality.portal": "Cổng thực tế hỗn hợp", mixedrealityportal: "Cổng thực tế hỗn hợp", stickynotes: "Sticky Notes", microsoftstickynotes: "Sticky Notes",
-  "3dviewer": "3D Viewer", microsoft3dviewer: "3D Viewer", xboxapp: "Xbox", windowscamera: "Máy ảnh", windowscalculator: "Máy tính", calculatorapp: "Máy tính",
-  solitairecollection: "Solitaire Collection", microsoftsolitairecollection: "Solitaire Collection", photos: "Ảnh",
+  mixedrealityportal: "Cổng thực tế hỗn hợp", stickynotes: "Sticky Notes",
+  "3dviewer": "3D Viewer", xboxapp: "Xbox", windowscamera: "Máy ảnh", windowscalculator: "Máy tính", calculatorapp: "Máy tính",
+  solitairecollection: "Solitaire Collection", photos: "Ảnh",
   onedrive: "OneDrive", mspaint: "Paint", paint: "Paint", notepad: "Notepad", snippingtool: "Snipping Tool", taskmgr: "Task Manager",
-  onenote: "OneNote", "ms-teams": "Teams", teams: "Teams", msedge: "Edge", edge: "Edge", explorer: "File Explorer",
+  onenote: "OneNote", msteams: "Teams", teams: "Teams", msedge: "Edge", edge: "Edge", explorer: "File Explorer",
   winword: "Word", excel: "Excel", powerpnt: "PowerPoint", graphstudionext: "GraphStudioNext", graphstudionext64: "GraphStudioNext",
-  "aiigrow.tray": "AiiGrow", "aiigrow.kid": "AiiGrow",
 };
 
 /** Cùng một app, nhiều tên kỹ thuật ⇒ một mục «gốc» (khoá `khoaTen` → mục chuẩn dùng làm khoá gộp). */
@@ -20,7 +19,7 @@ const GOC_GOP: Record<string, string> = {
 };
 
 export function khoaTen(mucTho: unknown): string {
-  return String(mucTho ?? "").trim().toLowerCase().replace(/\.exe$/, "").replace(/^microsoft[. ]/, "").replace(/\s+/g, "");
+  return String(mucTho ?? "").trim().toLowerCase().replace(/\.exe$/, "").replace(/[^a-z0-9]+/g, "").replace(/^(microsoft)+/, "");
 }
 
 /** Tên thân thiện của app, hoặc undefined nếu bảng chưa biết. */
