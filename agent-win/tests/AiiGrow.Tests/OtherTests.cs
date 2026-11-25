@@ -140,6 +140,23 @@ public class ProcessGuardTests
     }
 
     [Fact]
+    public void UwpTienCanh_ChiNhanCoreWindowCuaTienTrinhKhac()
+    {
+        const uint host = 100;
+        Assert.Equal(200u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, UwpTienCanh.LopCoreWindow), (300, "Khac"), (200, UwpTienCanh.LopCoreWindow) }, host));
+        Assert.Equal(0u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, "ApplicationFrameInputSinkWindow"), (300, "CabinetWClass") }, host));
+        Assert.Equal(0u, UwpTienCanh.ChonPid(new (uint, string)[] { (0, UwpTienCanh.LopCoreWindow) }, host));
+    }
+
+    [Fact]
+    public void TheChoDuyet_BoKhiBangKhong()
+    {
+        Assert.False(SaoView.CoTheChoDuyet(0));
+        Assert.True(SaoView.CoTheChoDuyet(5));
+        Assert.True(SaoView.CoTheChoDuyet(null));
+    }
+
+    [Fact]
     public void ShouldClose_AppStoreDuocPhepTheoTenGoiHoacTenExe()
     {
         const string calc = @"C:\Program Files\WindowsApps\Microsoft.WindowsCalculator_11.2.0.0_x64__8wekyb3d8bbwe\CalculatorApp.exe";

@@ -188,22 +188,72 @@ internal static class UI
     /// có pid khác host ⇒ pid của app thật (0 nếu không thấy, vd app đang treo/ngủ).</summary>
     private static uint PidUwpThat(IntPtr h, uint hostPid)
     {
-        uint kq = 0;
+        var ds = new List<(uint Pid, string Lop)>();
         try
         {
             EnumChildWindows(h, (c, _) =>
             {
                 var sb = new System.Text.StringBuilder(64);
                 GetClassName(c, sb, sb.Capacity);
-                if (sb.ToString() != "Windows.UI.Core.CoreWindow") return true;
                 GetWindowThreadProcessId(c, out var cp);
-                if (cp == 0 || cp == hostPid) return true;
-                kq = cp;
-                return false;
+                ds.Add((cp, sb.ToString()));
+                return true;
             }, IntPtr.Zero);
         }
         catch { }
+        var kq = AiiGrow.Core.UwpTienCanh.ChonPid(ds, hostPid);
+        if (kq != 0) return kq;
+        // #641: CoreWindow có khi là cửa sổ cấp cao (không nằm trong cửa sổ khung) ⇒ tìm cửa sổ CoreWindow cùng tiêu đề
+        try
+        {
+            var tieuDe = TieuDe(h);
+            if (tieuDe.Length > 0)
+            {
+                var top = new List<(uint Pid, string Lop)>();
+                EnumWindows((w, _) =>
+                {
+                    var sb = new System.Text.StringBuilder(64);
+                    GetClassName(w, sb, sb.Capacity);
+                    if (sb.ToString() != AiiGrow.Core.UwpTienCanh.LopCoreWindow || TieuDe(w) != tieuDe) return true;
+                    GetWindowThreadProcessId(w, out var wp);
+                    top.Add((wp, sb.ToString()));
+                    return true;
+                }, IntPtr.Zero);
+                kq = AiiGrow.Core.UwpTienCanh.ChonPid(top, hostPid);
+            }
+        }
+        catch { }
         return kq;
+    }
+
+    private delegate bool EnumTopProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")] private static extern bool EnumWindows(EnumTopProc cb, IntPtr lParam);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder sb, int max);
+    private static string TieuDe(IntPtr h)
+    {
+        var sb = new System.Text.StringBuilder(256);
+        return GetWindowText(h, sb, sb.Capacity) > 0 ? sb.ToString().Trim() : "";
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern bool CloseHandle(IntPtr h);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool QueryFullProcessImageName(IntPtr h, int flags, System.Text.StringBuilder sb, ref int size);
+    /// <summary>Đường dẫn exe — QueryFullProcessImageName (quyền hạn chế) vì <c>MainModule</c> hay bị từ chối với tiến trình AppContainer của app Store.</summary>
+    private static string? DuongExe(Process p)
+    {
+        var hp = OpenProcess(0x1000, false, p.Id);   // PROCESS_QUERY_LIMITED_INFORMATION — app Store (AppContainer) mở được, MainModule thì không
+        if (hp != IntPtr.Zero)
+        {
+            try
+            {
+                var sb = new System.Text.StringBuilder(1024);
+                int n = sb.Capacity;
+                if (QueryFullProcessImageName(hp, 0, sb, ref n)) return sb.ToString();
+            }
+            finally { CloseHandle(hp); }
+        }
+        try { return p.MainModule?.FileName; } catch { return null; }
     }
 
     private sealed record FgNho(int Pid, DateTime Bat, string Id, string Name);
@@ -235,16 +285,18 @@ internal static class UI
             if (bat != null && nho != null && nho.Pid == (int)pid && nho.Bat == bat) return (nho.Id, nho.Name);
             var id = p.ProcessName.ToLowerInvariant() + ".exe";
             var name = p.ProcessName;
+            string? duongExe = null;
             try
             {
                 // app Store: Id = tên gói (khớp DanhSachApp.Muc / luật chặn theo gói)
-                var goi = p.MainModule?.FileName is { } duong ? AiiGrow.Core.ProcessGuard.TenGoiStore(duong) : null;
+                duongExe = DuongExe(p);
+                var goi = duongExe is { } duong ? AiiGrow.Core.ProcessGuard.TenGoiStore(duong) : null;
                 if (goi != null) id = goi;
             }
             catch { }
             try
             {
-                var d = p.MainModule?.FileVersionInfo.FileDescription;
+                var d = duongExe is { } dx ? FileVersionInfo.GetVersionInfo(dx).FileDescription : null;
                 if (!string.IsNullOrWhiteSpace(d)) name = d!;
             }
             catch { }
