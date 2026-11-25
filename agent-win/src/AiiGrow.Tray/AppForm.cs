@@ -183,6 +183,9 @@ internal sealed class AppForm : Form
         var bm = KhoiCon.LienKet("Ba Mẹ dùng máy", "khoa", () => BaMeDungClicked?.Invoke(), 10.5f, Clay.Chu2);
         bm.Margin = Padding.Empty;
         chan.Controls.Add(bm);
+        // #639: số bản đang chạy — Ba Mẹ / Con đối chiếu với bản máy chủ phát
+        chan.Controls.Add(new Label { AutoSize = true, Text = "AiiGrow bản " + TuCapNhat.BanHienTai().ToString(3), Font = UI.F(9.5f), ForeColor = Clay.Chu2,
+            BackColor = Color.Transparent, Margin = new Padding(Px(2), Px(4), 0, 0), UseMnemonic = false });
 
         var flow = new FlowLayoutPanel
         {

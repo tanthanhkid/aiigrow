@@ -81,6 +81,7 @@ internal sealed class TrayContext : ApplicationContext
         menu.Items.Add(_khoaLaiItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(new ToolStripMenuItem("Máy này do Ba Mẹ quản lý bằng AiiGrow") { Enabled = false });
+        menu.Items.Add(new ToolStripMenuItem("AiiGrow bản " + TuCapNhat.BanHienTai().ToString(3)) { Enabled = false });   // #639
 
         _ni = new NotifyIcon
         {

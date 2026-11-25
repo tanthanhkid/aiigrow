@@ -218,6 +218,7 @@ export default function AnToanMay() {
               <View style={{ paddingHorizontal: 7, paddingVertical: 1, borderRadius: 9, backgroundColor: M.the }}>
                 <Chu kieu="rat" co={11.5} mau={M.chu}>{chung ? `Máy chung · ${d.conDs.length} bé` : "Máy riêng"}</Chu>
               </View>
+              {m.phienBan ? <Chu kieu="dam7" co={12} mau="#E3D9CB">{`Bản ${m.phienBan}`}</Chu> : null}
             </View>
             <Chu kieu="dam7" co={12} mau="#E3D9CB" dong={1}>{`${TEN_NEN[m.nen] ?? m.nen}${!chung && d.ct ? ` · ${cheDo}` : ""}${chung ? " · xem từng bé ›" : ""}`}</Chu>
           </View>
