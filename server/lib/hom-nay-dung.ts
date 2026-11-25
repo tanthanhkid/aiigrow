@@ -7,11 +7,12 @@
 // Chỉ tên app / tên miền + thời lượng — không nội dung (như man-hinh.ts).
 import { one, q } from "./db.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
-import { chuanMuc, laTienTrinhNenWindows } from "./luat-app.ts";
+import { chuanMuc, laAppAiiGrow, laTienTrinhNenWindows } from "./luat-app.ts";
 import { tenDoc, TRINH_DUYET } from "./man-hinh.ts";
 import { quyHomNay } from "./quy-gio.ts";
 import { mayMatMang } from "./can-de-y.ts";
 import { LA_APP } from "./so-sao.ts";
+import { mucGop, tenThanThien } from "./ten-than-thien.ts";
 
 type Luat = { child_id: string; muc: string; ten: string; loai: string; nhom: string };
 type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
@@ -63,7 +64,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
   // gộp theo app / trang (một app dùng ở 2 máy ⇒ một dòng, máy = máy dùng nhiều nhất, giờ = lần đầu sớm nhất)
   const gop = new Map<string, DongDung & { _phutMay: number }>();
   const them = (kieu: "app" | "web", muc0: string, mayId: string, phut: number, dau: Date | null, loaiUsage: string | null) => {
-    const muc = chuanMuc(muc0);
+    const muc = kieu === "app" ? mucGop(chuanMuc(muc0)) : chuanMuc(muc0);   // #659: tên trùng (OneDrive / Microsoft OneDrive…) về một mục
     const l = luatCua(muc);
     const k = `${kieu}:${muc}`;
     const m = tenMay.get(mayId);
@@ -80,14 +81,14 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     if (dau && (!x.luc || new Date(dau).getTime() < new Date(x.luc).getTime())) x.luc = new Date(dau).toISOString();
     if (phut > x._phutMay) { x._phutMay = phut; x.may = m?.name ?? x.may; x.nen = m?.platform ?? x.nen; x.mayId = m?.id ?? x.mayId; x.matMang = matMang.has(mayId); }
   };
-  for (const a of app) if (!TRINH_DUYET.has(chuanMuc(a.muc)) && a.loai !== "he_thong" && !(laTienTrinhNenWindows(a.muc) && !luatCua(chuanMuc(a.muc)))) them("app", a.muc, a.device_id, a.phut, a.dau_luc, a.loai);
+  for (const a of app) if (!laAppAiiGrow(a.muc) && !TRINH_DUYET.has(chuanMuc(a.muc)) && a.loai !== "he_thong" && !(laTienTrinhNenWindows(a.muc) && !luatCua(chuanMuc(a.muc)))) them("app", a.muc, a.device_id, a.phut, a.dau_luc, a.loai);
   for (const w of web) them("web", w.ten_mien, w.device_id, Math.round(w.giay / 60), w.dau_luc ?? w.lan_cuoi, null);
   const dung = [...gop.values()].filter((x) => x.phut > 0).map(({ _phutMay, ...x }) => x)
     // mới trước (dòng chưa biết giờ xuống cuối), cùng giờ thì dùng nhiều trước
     .sort((a, b) => (b.luc ? new Date(b.luc).getTime() : 0) - (a.luc ? new Date(a.luc).getTime() : 0) || b.phut - a.phut).slice(0, o.gioiHan ?? 50);
 
   const biChan: DongChan[] = [
-    ...yc.map((r) => ({ luc: new Date(r.created_at).toISOString(), ten: r.ten_app || r.gia_tri || (r.loai === "cai_app" ? "App mới" : r.loai === "mo_web" ? "Trang web" : "Mở máy"),
+    ...yc.map((r) => ({ luc: new Date(r.created_at).toISOString(), ten: (r.loai === "cai_app" ? tenThanThien(r.gia_tri) : undefined) || r.ten_app || r.gia_tri || (r.loai === "cai_app" ? "App mới" : r.loai === "mo_web" ? "Trang web" : "Mở máy"),
       may: r.device_id ? tenMay.get(r.device_id)?.name ?? null : null, ly: (r.trang_thai === "cho" ? "dang_xin" : "chua_cho") as DongChan["ly"], yeuCau: r.id, phut: r.phut })),
   ];
   const phutHoc = dung.filter((x) => !x.tinhGio && !x.chuaXep).reduce((s, x) => s + x.phut, 0);
@@ -124,7 +125,7 @@ export async function appHomNayCon(con: string, now = new Date(), c0?: { family_
   ]);
   const saoMuc = new Map<string, number>();
   for (const r of so) {
-    const k = !r.muc ? "" : r.muc.startsWith("ios:") ? r.muc : chuanMuc(r.muc);
+    const k = !r.muc ? "" : r.muc.startsWith("ios:") ? r.muc : mucGop(chuanMuc(r.muc));
     saoMuc.set(k, (saoMuc.get(k) ?? 0) + Number(r.sao));
   }
   const ra: AppHomNay[] = hn.dung.map((x) => {

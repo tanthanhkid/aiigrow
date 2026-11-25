@@ -2,6 +2,7 @@
 // «Theo danh sách», DANH SÁCH TRẮNG của Con (app + web, mỗi mục một nhóm «Tính phút» / «Không tính phút»): xem, thêm (lưới gợi ý, theo tên app,
 // theo tên miền), đổi nhóm, bỏ khỏi danh sách; khớp app theo tên khi máy gửi danh sách app thật; Con «Xin Ba Mẹ mở» app / web chưa có.
 // Phần thuần (chế độ, nhóm, lưới an toàn): lib/chan-co-ban.ts. Lời xin + 3 cách trả lời (Tính phút / Không tính phút / Bỏ qua): lib/yeu-cau.ts.
+import { tenThanThien } from "./ten-than-thien.ts";
 import { q, one, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
@@ -248,7 +249,7 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
     /** «Mở hết»: danh sách vẫn giữ, «tạm nghỉ» */ tamNghi: cheDo === "mo_het",
     app: chia("app"), web: chia("web"),
     soMuc: { app: tat.filter((x) => x.kieu === "app").length, web: tat.filter((x) => x.kieu === "web").length, tinhPhut: tat.filter((x) => x.nhom === "tinh_phut").length },
-    dangXin: xin.map((r) => ({ id: r.id, loai: r.loai, kieu: r.loai === "mo_web" ? "web" : "app", muc: r.gia_tri, ten: r.ten_app ?? r.gia_tri, lyDo: r.ly_do || null,
+    dangXin: xin.map((r) => ({ id: r.id, loai: r.loai, kieu: r.loai === "mo_web" ? "web" : "app", muc: r.gia_tri, ten: (r.loai === "cai_app" ? tenThanThien(r.gia_tri) : undefined) ?? r.ten_app ?? r.gia_tri, lyDo: r.ly_do || null,
       luc: new Date(r.created_at).toISOString(), may: r.may })),
     boQua: { so: boQua.ds.length },
     nhom: Object.entries(TEN_NHOM_DS).map(([ma, ten]) => ({ ma, ten })),

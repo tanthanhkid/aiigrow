@@ -1,3 +1,4 @@
+import { tenThanThien } from "./ten-than-thien.ts";
 // Tên dễ hiểu cho app Ba Mẹ thấy trong danh sách «đã thấy trên máy Con» (DX-028, QA 24/10: gõ «Edge» ra «edge», tên đúng là msedge.exe).
 // Tên tệp chạy Windows / mã gói macOS·Android → tên hiển thị. Không biết thì làm đẹp tên tệp (bỏ .exe, tách chữ), tên miền giữ nguyên.
 const BIET: Record<string, string> = {
@@ -19,6 +20,8 @@ const BIET: Record<string, string> = {
 export function tenApp(muc: string): string {
   const k = muc.trim().toLowerCase();
   if (BIET[k]) return BIET[k];
+  const tt = tenThanThien(k);   // #659: tên kỹ thuật Microsoft Store (BingWeather…) mà bảng trên chưa có
+  if (tt) return tt;
   if (k.endsWith(".exe")) {
     const goc = k.slice(0, -4).replace(/[-_.]+/g, " ").trim();
     return goc ? goc.charAt(0).toUpperCase() + goc.slice(1) : muc;

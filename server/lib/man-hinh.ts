@@ -4,8 +4,9 @@
 // KHÔNG đổi luật chặn/mở. Thời gian trong trình duyệt đã tách ra theo trang web, nên app trình duyệt chỉ giữ phần dư (không đếm hai lần).
 import { q } from "./db.ts";
 import { congNgay, dauTuan, gioDiaPhuong } from "./gio.ts";
-import { allowlistHieuLuc, chuanMuc, khoaSo, type NhomGiaiTri } from "./luat-app.ts";
+import { allowlistHieuLuc, chuanMuc, khoaSo, laAppAiiGrow, type NhomGiaiTri } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
+import { mucGop, tenThanThien } from "./ten-than-thien.ts";
 
 type MucMH = "hoc" | "game" | "video" | "video_ngan" | "mxh" | "tien_ich" | "khac" | "chua_xep";
 const MUC_MH: MucMH[] = ["hoc", "game", "video", "video_ngan", "mxh", "tien_ich", "khac", "chua_xep"];
@@ -56,6 +57,8 @@ type Luat = { child_id: string; muc: string; ten: string; loai: string; nhom: Nh
 export function tenDoc(muc: string, kieu: "app" | "web", tenLuat?: string) {
   if (kieu === "web") return muc;
   if (TEN[muc]) return TEN[muc];
+  const tt = tenThanThien(muc);   // #659: «BingWeather» ⇒ «Thời tiết», «microsoft.photos.exe» ⇒ «Ảnh»
+  if (tt) return tt;
   if (tenLuat && tenLuat !== muc) return tenLuat;
   const goc = muc.endsWith(".exe") ? muc.slice(0, -4) : /^[a-z0-9_]+(\.[a-z0-9_]+){2,}$/.test(muc) ? muc.split(".").pop()! : muc;
   return goc.charAt(0).toUpperCase() + goc.slice(1);
@@ -69,7 +72,10 @@ export function xepMuc(mucTho: string, luat: Luat[], allow: string[] = allowlist
     .sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
   // Ba Mẹ đã xếp nhóm Giải trí cụ thể ⇒ dùng đúng nhóm đó; xếp APP vào «Học tập» ⇒ Học tập.
   // Trang web «Cho phép» cũng lưu loai hoc nhưng chỉ nghĩa là được mở (YouTube cho phép vẫn là Video) ⇒ theo bản chất.
-  if (r?.loai === "giai_tri" && r.nhom !== "khac") return { muc: NHOM_SANG_MUC[r.nhom] ?? "khac", tenLuat: r.ten };
+  // #659: nhóm «game» là mặc định khi Ba Mẹ chỉ bấm «Tính phút» (app-may.ts) — không đè bản chất đã biết (Edge không phải trò chơi)
+  const gyNhom = khoa.map((k) => GOI_Y.get(k)).find(Boolean);
+  const bamChatKhacGame = TRINH_DUYET.has(m) || (!!gyNhom && gyNhom !== "game") || khoa.some((k) => allow.includes(k));
+  if (r?.loai === "giai_tri" && r.nhom !== "khac" && !(r.nhom === "game" && bamChatKhacGame)) return { muc: NHOM_SANG_MUC[r.nhom] ?? "khac", tenLuat: r.ten };
   if (r?.loai === "hoc" && (r.nhom as string) === "cho_phep") return { muc: "tien_ich", tenLuat: r.ten };   // «Cho phép» ≠ Học tập
   if (r?.loai === "hoc" && kieuMuc(r.muc) !== "web") return { muc: "hoc", tenLuat: r.ten };
   if (TRINH_DUYET.has(m)) return { muc: "tien_ich", tenLuat: r?.ten };
@@ -102,7 +108,8 @@ async function tuan(fam: string, con: string, dau: string, luat: Luat[]) {
   const cong = (kieu: "app" | "web", mucTho: string, ngay: string, giay: number, soLan = 0) => {
     const i = ngayDs.indexOf(ngay);
     if (i < 0 || (giay <= 0 && soLan <= 0)) return;
-    const id = chuanMuc(mucTho);
+    if (kieu === "app" && laAppAiiGrow(mucTho)) return;   // #659: chính AiiGrow không phải thời gian dùng máy của Con
+    const id = kieu === "app" ? mucGop(chuanMuc(mucTho)) : chuanMuc(mucTho);
     const k = `${kieu}:${id}`;
     let x = ds.get(k);
     if (!x) {

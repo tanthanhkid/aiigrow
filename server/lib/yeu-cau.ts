@@ -6,6 +6,7 @@
 // #258/#262 (15/11): lời xin mở app / web (cai_app / mo_web) = xin THÊM VÀO DANH SÁCH. Ba Mẹ trả lời 1 trong 3: «Tính phút» / «Không tính phút»
 // (dong-y {nhom} ⇒ luật lâu dài của Con) hoặc «Bỏ qua» (trang_thai «bo_qua» — không ghi gì vào danh sách, Con xin lại được) — Hoàn tác trong
 // 60 giây; «Lời xin đã bỏ qua» có «Thêm luôn». Con nhận kết quả (đã thêm vào nhóm nào / chưa thêm) — dsYcCuaCon, api-may › yeu-cau/:id.
+import { tenThanThien } from "./ten-than-thien.ts";
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
@@ -249,7 +250,7 @@ export async function dsBoQua(fam: string, con: string | null, now = new Date())
   for (const x of r) {
     const pl = phanLoaiTu(luat, x.child_id, x.gia_tri, allow);
     if (pl === "hoc" || pl === "giai_tri" || pl === "he_thong") continue;     // đã vào danh sách bằng đường khác
-    ds.push({ id: x.id, con: x.child_id, tenCon: x.ten_con, loai: x.loai, kieu: x.loai === "mo_web" ? "web" : "app", muc: x.gia_tri, ten: x.ten_app ?? x.gia_tri,
+    ds.push({ id: x.id, con: x.child_id, tenCon: x.ten_con, loai: x.loai, kieu: x.loai === "mo_web" ? "web" : "app", muc: x.gia_tri, ten: (x.loai === "cai_app" ? tenThanThien(x.gia_tri) : undefined) ?? x.ten_app ?? x.gia_tri,
       lyDo: x.ly_do || null, luc: new Date(x.luc).toISOString(), nguoiBoQua: x.ten_nguoi, may: x.device });
   }
   return { ds: ds.sort((a, b) => b.luc.localeCompare(a.luc)) };
