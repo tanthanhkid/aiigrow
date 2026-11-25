@@ -75,6 +75,18 @@ public static class ManChanView
     /// <summary>Có nút «Xin Ba Mẹ mở …» không (công cụ Windows như cmd, taskmgr… thì không).</summary>
     public static bool CoNutXin(string? appId) => BlockScreenView.CanAskOpen(appId);
 
+    /// <summary>Mục là tên miền (y8.com) chứ không phải app: không .exe, không mã gói Store («Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe»), không đường dẫn / khoảng trắng.</summary>
+    public static bool LaTrangWeb(string? muc)
+    {
+        if (string.IsNullOrWhiteSpace(muc)) return false;
+        var m = muc.Trim();
+        if (!m.Contains('.') || m.EndsWith(".exe", StringComparison.OrdinalIgnoreCase)) return false;
+        return m.IndexOfAny(new[] { '_', '!', '\\', '/', ' ', ':' }) < 0;
+    }
+
+    /// <summary>#669: icon theo loại MỤC chứ không theo phân loại «game»: tên miền ⇒ quả địa cầu; app cụ thể (Edge, Solitaire…) ⇒ icon máy tính trung tính.</summary>
+    public static string IconMuc(string? muc) => LaTrangWeb(muc) ? "web" : "may_tinh";
+
     public const string DangXem = "Ba Mẹ đang xem nhé!";
     public const string TraLoiLaBiet = "Ba Mẹ trả lời là con biết ngay.";
     public const string DangCho = "Đang chờ duyệt";

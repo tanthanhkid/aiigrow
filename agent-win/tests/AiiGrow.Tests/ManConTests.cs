@@ -8,6 +8,15 @@ public class ManConTests
 {
     private static readonly DateTimeOffset Luc = new(2026, 11, 3, 19, 30, 0, TimeSpan.FromHours(7));
 
+    [Theory]
+    [InlineData("msedge.exe", "may_tinh")]
+    [InlineData("Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe", "may_tinh")]
+    [InlineData("Microsoft.MicrosoftSolitaireCollection_8wekyb3d8bbwe!App", "may_tinh")]
+    [InlineData("y8.com", "web")]
+    [InlineData("www.youtube.com", "web")]
+    [InlineData("", "may_tinh")]
+    public void IconMuc669_theoLoaiMuc_khongSuyTuPhanLoaiGame(string muc, string icon) => Assert.Equal(icon, ManChanView.IconMuc(muc));
+
     [Fact]
     public void ManChan_KhongBaoGioTuGui_ChiCoNut()
     {
