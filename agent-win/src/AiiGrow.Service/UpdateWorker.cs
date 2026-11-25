@@ -117,7 +117,6 @@ public sealed class UpdateWorker : BackgroundService
             return _chuKy;
         }
         if (DaThuGanDay(m.Version)) { _log.LogInformation("Tự cập nhật: bản {Ban} đã thử trong 24 giờ qua — chờ, hoặc bấm «Cập nhật ngay» sau khi hết hạn", m.Version); return _chuKy; }
-        _log.LogInformation("Tự cập nhật: có bản {Moi} (máy {Cu}) ⇒ tải về", m.Version, hienTai.ToString(3));
 
         if (KyBoCai.GhimSaiDang(KyBoCai.ThumbprintGhim))
         {
@@ -136,7 +135,7 @@ public sealed class UpdateWorker : BackgroundService
         if (!daCo)
         {
             var tam = tep + ".tai";
-            _log.LogInformation("Tự cập nhật: tải bản {Ban} ({Url})", m.Version, m.Url);
+            _log.LogInformation("Tự cập nhật: có bản {Ban} (máy {Cu}) ⇒ tải ({Url})", m.Version, hienTai.ToString(3), m.Url);
             _dangTai = true;
             try { await TaiVe(http, m.Url, tam, ct); }
             catch (Exception e) when (!ct.IsCancellationRequested)

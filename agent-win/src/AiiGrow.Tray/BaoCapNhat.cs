@@ -27,10 +27,12 @@ internal static class BaoCapNhat
             using var k = Registry.LocalMachine.OpenSubKey(AppsEntry.Key);
             using var u = Registry.CurrentUser.CreateSubKey(@"Software\AiiGrow");
             var ban = CanBao(dang, u.GetValue("BanDaThay") as string, k?.GetValue("BanVuaCapNhat") as string, u.GetValue("DaBaoCapNhat") as string);
-            u.SetValue("BanDaThay", dang);
-            if (ban == null) return;
-            u.SetValue("DaBaoCapNhat", ban);
-            ni.ShowBalloonTip(5000, "AiiGrow đã cập nhật lên bản " + ban, "Mọi cài đặt của Ba Mẹ giữ nguyên.", ToolTipIcon.None);
+            if (ban != null)
+            {
+                u.SetValue("DaBaoCapNhat", ban);
+                ni.ShowBalloonTip(5000, "AiiGrow đã cập nhật lên bản " + ban, "Mọi cài đặt của Ba Mẹ giữ nguyên.", ToolTipIcon.None);
+            }
+            u.SetValue("BanDaThay", dang);   // ghi SAU khi báo: báo lỗi thì lần mở khay sau còn báo lại
         }
         catch { }
     }
