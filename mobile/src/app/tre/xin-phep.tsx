@@ -13,26 +13,22 @@ import { guiXinMo, kid, taiSao, type YcTre } from "@/lib/api-tre";
 import { soSao } from "@/lib/con-diu";
 import { BONG_D, D, FD } from "@/lib/diu";
 import { Icon, useLam, useTai, type TenIcon } from "@/lib/ui";
-import { CamXuc, ChipD, ChonD, ChuD, IcO, LoiD, ManD, NutD, PhuD, PillD, TheD } from "@/lib/ui-diu";
-import { useTre } from "@/lib/ui-tre";
+import { ChipD, ChonD, ChuD, IcO, LoiD, ManD, NutD, PhuD, PillD, TheD } from "@/lib/ui-diu";
 
 type Loai = "mo_web" | "cai_app" | "khac";
 const TU_VIET = "__tu_viet";
 
 export default function XinPhep() {
   const p = useLocalSearchParams<{ loai?: string; gia?: string; tu?: string; them?: string }>();
-  const { ten } = useTre();
   const loai0 = p.loai === "mo_web" || p.loai === "cai_app" || p.loai === "khac" ? (p.loai as Loai) : null;
   const [loai, setLoai] = useState<Loai>(loai0 ?? "cai_app");
   const [gia, setGia] = useState(p.gia ?? "");
   const [lyDo, setLyDo] = useState<string | null>(null);
   const [tuViet, setTuViet] = useState("");
-  const [day, setDay] = useState(false);
   const yc = useTai(() => kid.goi<{ ds: YcTre[]; lyDoNhanh: string[] }>("yeu-cau"));
   const sao = useTai(() => (p.them ? Promise.resolve(null) : taiSao().catch(() => null)));   // hộp «Xin thêm» không dùng sao
   const { dangChay, loi, lam, setLoi } = useLam();
   if (p.loai === "them_gio") return <Redirect href="/tre/them-gio" />;
-  const cho = yc.d?.ds.filter((x) => x.trang_thai === "cho").length ?? 0;
   const nhanh = (yc.d?.lyDoNhanh ?? ["Để làm bài tập", "Bạn rủ chơi", "Hôm nay con ngoan"]).slice(0, 2);
   const coSan = !!p.gia && loai === loai0;
   const tenMuc = gia.trim();
@@ -43,18 +39,11 @@ export default function XinPhep() {
         const r = await guiXinMo({ loai, muc: tenMuc, lyDo: loiNhan });
         router.replace(`/tre/yeu-cau?moi=${r.id}`);
       } catch (e) {
-        if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { setDay(true); return; }
+        if (e instanceof LoiApi && e.ma === "bam_don") { setLoi("Con bấm nhanh quá — đợi vài giây rồi gửi lại nhé"); return; }
         throw e;
       }
     }, { hangDoi: true }));
-  if (day || cho >= 3) {
-    return (
-      <ManD lui={true} giua day={<NutD chu={`Xem yêu cầu của ${ten || "con"}`} bam={() => router.replace("/tre/yeu-cau")} />}>
-        <CamXuc lv="cho" co={140} tieu={`Con đang có ${Math.max(cho, 3)} yêu cầu chờ`} phu="Đợi Ba Mẹ trả lời một yêu cầu rồi gửi tiếp nhé." />
-      </ManD>
-    );
-  }
-  if (p.them) return <XinThem the0={p.them === "web" ? "web" : "app"} gia0={p.gia ?? ""} day={() => setDay(true)} />;
+  if (p.them) return <XinThem the0={p.them === "web" ? "web" : "app"} gia0={p.gia ?? ""} />;
   const tenNut = loai === "khac" ? "Gửi cho Ba Mẹ" : `Xin Ba Mẹ mở ${tenMuc || (loai === "mo_web" ? "trang này" : "app này")}`;
   return (
     <ManD lui={p.tu === "chan-web" ? `/tre/chan-web?url=${encodeURIComponent(p.gia ?? "")}` : true} tieu={loai === "mo_web" ? "Xin mở trang web" : loai === "khac" ? "Xin Ba Mẹ" : "Xin mở app"}
@@ -155,7 +144,7 @@ function OApp({ ten, chon, bam }: { ten: string; chon: boolean; bam: () => void 
 
 const Nhan = ({ chu }: { chu: string }) => <ChuD kieu="rat" co={13.5} mau={D.chu2}>{chu}</ChuD>;
 
-function XinThem({ the0, gia0, day }: { the0: The; gia0: string; day: () => void }) {
+function XinThem({ the0, gia0 }: { the0: The; gia0: string }) {
   const [the, setThe] = useState<The>(the0);
   const [chon, setChon] = useState<string | null>(the0 === "app" && gia0 ? gia0 : null);
   const [tenGo, setTenGo] = useState("");
@@ -172,7 +161,7 @@ function XinThem({ the0, gia0, day }: { the0: The; gia0: string; day: () => void
         const r = await guiXinMo({ loai: the === "app" ? "cai_app" : "mo_web", muc, ten: the === "app" ? muc : undefined, lyDo: loiNhan.trim(), kieu: the });
         router.replace(`/tre/yeu-cau?moi=${r.id}`);
       } catch (e) {
-        if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { day(); return; }
+        if (e instanceof LoiApi && e.ma === "bam_don") { setLoi("Con bấm nhanh quá — đợi vài giây rồi gửi lại nhé"); return; }
         throw e;
       }
     }, { hangDoi: true });

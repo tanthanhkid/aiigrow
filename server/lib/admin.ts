@@ -125,7 +125,6 @@ const TEN_THAM_SO: Record<TenThamSo, [string, string]> = {
   nghi_giua: ["Nghỉ giữa hai phiên", "phút"], tu_dong_dong: ["Tự đóng khi không dùng", "phút"],
   voucher_xac_nhan_tu: ["Phiếu quà cần Ba Mẹ xác nhận từ", "đồng"], voucher_han_ngay: ["Hạn phiếu quà", "ngày"],
   tran_ngay: ["Trần giải trí mỗi ngày", "phút"], tran_tuan: ["Trần giải trí mỗi tuần", "phút"],
-  yc_cho_toi_da: ["Yêu cầu chờ tối đa", "yêu cầu"], yc_ngay_toi_da: ["Yêu cầu mỗi ngày tối đa", "yêu cầu"],
   yc_het_gio_them: ["Yêu cầu thêm giờ hết hạn sau", "giờ"], yc_het_ngay_cai: ["Yêu cầu mở web / cài app hết hạn sau", "ngày"],
   offline_gio: ["Báo máy mất kết nối sau", "giờ"],
   lech_gio_phut: ["Khoá giải trí khi giờ máy lệch quá", "phút"], ngung_chay_phut: ["Báo AiiGrow ngừng chạy sau", "phút"],

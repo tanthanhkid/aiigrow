@@ -27,13 +27,24 @@ test("BRD 6.4: xin mở scratch.mit.edu «Để làm bài tập» ⇒ Ba Mẹ đ
   assert.equal((await q(`select 1 from exceptions where child_id = $1`, [con])).length, 0, "không còn ghi ngoại lệ");
 });
 
-test("giới hạn 3 đang chờ / 10 mỗi ngày; huỷ được; hết hạn sau 24 giờ; nhà khác không duyệt được; người đầu tiên quyết", async () => {
+test("không trần số lời xin (chỉ chặn bấm dồn 5 giây); huỷ được; hết hạn sau 24 giờ; nhà khác không duyệt được; người đầu tiên quyết", async () => {
   const { fam, bm } = await taoNha();
   const ba = await taoBaMe(fam);
   const con = await g.taoCon(fam, { ten: "Bill" });
   const ids = [];
-  for (let i = 0; i < 3; i++) ids.push((await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15, lyDo: "Bạn rủ chơi" }, T)).id);
-  await loi(yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15, lyDo: "x" }, T), "qua_nhieu_cho");
+  // mỗi lời xin cách nhau > 5 giây ⇒ xin bao nhiêu lần cũng được (không còn trần 3 đang chờ)
+  const Tn = (i: number) => new Date(T.getTime() + i * 10_000);
+  for (let i = 0; i < 5; i++) ids.push((await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15, lyDo: "Bạn rủ chơi" }, Tn(i))).id);
+  assert.equal(new Set(ids).size, 5);
+  // bấm dồn: cùng loại + số sao trong 5 giây ⇒ gộp vào lời xin đang chờ, không tạo thêm
+  const don = await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15 }, new Date(Tn(4).getTime() + 2000));
+  assert.equal(don.id, ids[4]); assert.equal((don as { daCo?: boolean }).daCo, true);
+  assert.equal(Number((await q(`select count(*) from requests where child_id = $1`, [con]))[0].count), 5);
+  // dồn nhiều lời xin khác nhau trong vài giây ⇒ 429 bam_don
+  const Td = Tn(20);
+  for (let i = 0; i < yc.BAM_DON_TOI_DA; i++) await yc.guiYeuCau(con, null, { loai: "khac", giaTri: `d${i}`, lyDo: "y" }, Td);
+  await loi(yc.guiYeuCau(con, null, { loai: "khac", giaTri: "dx", lyDo: "y" }, Td), "bam_don");
+  await yc.guiYeuCau(con, null, { loai: "khac", giaTri: "dx", lyDo: "y" }, new Date(Td.getTime() + 6000));   // qua vài giây gửi lại được
   await yc.huyYeuCau(con, ids[0]);
   await loi(yc.huyYeuCau(con, ids[0]), "da_xu_ly");
   // 05/11: lời nhắn không bắt buộc
@@ -45,14 +56,13 @@ test("giới hạn 3 đang chờ / 10 mỗi ngày; huỷ được; hết hạn s
   await loi(yc.dongY(fam, ids[1], ba, {}, T), "da_xu_ly");
   await q(`update requests set het_han = $2 where id = $1`, [ids[2], new Date(T.getTime() - 60000)]);
   await loi(yc.dongY(fam, ids[2], bm, {}, T), "het_han");
-  for (let i = 0; i < 6; i++) { const x = await yc.guiYeuCau(con, null, { loai: "khac", giaTri: "x", lyDo: "y" }, T); await yc.huyYeuCau(con, x.id); }
-  await loi(yc.guiYeuCau(con, null, { loai: "khac", giaTri: "x", lyDo: "y" }, T), "qua_nhieu_ngay");
 });
 
 test("xin vay sao (vay_sao: chơi / đổi quà) và lời xin cũ (them_gio / ngoai_le / ngoai_gio) ⇒ Ba Mẹ cho vay N sao; không còn trừ điểm / ngoại lệ / cửa sổ", async () => {
+  let n = 0; const tk = () => new Date(T.getTime() + 10_000 * ++n);
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
-  const a = await yc.guiYeuCau(con, null, { loai: "vay_sao", soSao: 15, lyDo: "Con muốn chơi thêm" }, T);
+  const a = await yc.guiYeuCau(con, null, { loai: "vay_sao", soSao: 15, lyDo: "Con muốn chơi thêm" }, tk());
   assert.deepEqual([a.soSao, a.mucDich], [15, "choi"]);
   const xt = await yc.xemTruocDongY(fam, a.id);
   assert.deepEqual([xt.mucCanhBao, (xt as any).noSau, (xt as any).cau], ["khong", 15, "= 15 phút chơi hoặc đổi quà · Ken sẽ nợ 15 sao"]);
@@ -63,7 +73,7 @@ test("xin vay sao (vay_sao: chơi / đổi quà) và lời xin cũ (them_gio / n
   assert.deepEqual([yr.trang_thai, yr.tru_diem, yr.ngoai_le], ["dong_y", null, false]);
   // lời xin cũ: them_gio / ngoai_le (kèm phạm vi app) / ngoai_gio ⇒ cùng là xin vay `phut` sao, giữ loai cũ
   for (const [loai, them] of [["them_gio", {}], ["ngoai_le", { phamVi: "app", giaTri: "roblox.exe" }], ["ngoai_gio", {}]] as const) {
-    const x = await yc.guiYeuCau(con, null, { loai, phut: 10, ...them }, T);
+    const x = await yc.guiYeuCau(con, null, { loai, phut: 10, ...them }, tk());
     assert.equal(x.soSao, 10, loai);
     await yc.dongY(fam, x.id, bm, {}, T);
   }
@@ -73,8 +83,8 @@ test("xin vay sao (vay_sao: chơi / đổi quà) và lời xin cũ (them_gio / n
   // xin vay để đổi quà: quaId phải thuộc nhà; chi tiết kèm quà; vay xong đổi được
   const { taoQua, doiQua } = await import("./phan-thuong.ts");
   const qua = await taoQua(fam, { ten: "Voucher 20k", loai: "dac_quyen", diem: 50 });
-  await loi(yc.guiYeuCau(con, null, { loai: "vay_sao", soSao: 50, quaId: "khong-co" }, T), "khong_thay");
-  const b = await yc.guiYeuCau(con, null, { loai: "vay_sao", soSao: 50, mucDich: "qua", quaId: qua }, T);
+  await loi(yc.guiYeuCau(con, null, { loai: "vay_sao", soSao: 50, quaId: "khong-co" }, tk()), "khong_thay");
+  const b = await yc.guiYeuCau(con, null, { loai: "vay_sao", soSao: 50, mucDich: "qua", quaId: qua }, tk());
   const ct = await yc.chiTietYc(fam, b.id);
   assert.deepEqual([ct.laVay, ct.mucDich, ct.qua?.ten, ct.soSao, ct.sao, ct.no], [true, "qua", "Voucher 20k", 50, 0, 45]);
   await yc.dongY(fam, b.id, bm, {}, T);
@@ -83,7 +93,7 @@ test("xin vay sao (vay_sao: chơi / đổi quà) và lời xin cũ (them_gio / n
   assert.deepEqual([vi.soDu, vi.no, vi.sao], [45, 95, -50]);
   // quy tắc tự động cũ (tu_dong_15) không còn tự cho
   await q(`update children set cau_hinh = cau_hinh || '{"tu_dong_15": true}'::jsonb where id = $1`, [con]);
-  const c = await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15 }, T);
+  const c = await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15 }, tk());
   assert.equal(await yc.apQuyTacTuDong(fam, c.id, T), false);
 });
 

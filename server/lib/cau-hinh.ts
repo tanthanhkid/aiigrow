@@ -25,8 +25,6 @@ export const THAM_SO = {
   voucher_han_ngay: s(60, 30, 365),
   tran_ngay: s(90, 0, 480),
   tran_tuan: s(420, 0, 3000),
-  yc_cho_toi_da: s(3, 1, 10),
-  yc_ngay_toi_da: s(10, 1, 50),
   yc_het_gio_them: s(24, 1, 72),           // giờ
   yc_het_ngay_cai: s(7, 1, 30),            // ngày (mở web / cài app)
   offline_gio: s(24, 1, 168),

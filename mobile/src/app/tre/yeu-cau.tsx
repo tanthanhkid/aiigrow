@@ -93,7 +93,7 @@ export default function YeuCau() {
       router.replace(`/tre/yeu-cau?moi=${r.id}`);
       await tai();
     } catch (e) {
-      if (e instanceof LoiApi && e.ma === "qua_nhieu_cho") { setDaySo(true); return; }
+      if (e instanceof LoiApi && e.ma === "bam_don") { setDaySo(true); setTimeout(() => setDaySo(false), 5000); return; }
       throw e;
     }
   }, { hangDoi: true });
@@ -164,7 +164,7 @@ export default function YeuCau() {
   if (vuaTraLoi && laAppWeb(dau)) {
     if (kq === "chua") {
       return (
-        <ManD lui="/tre/nha" day={<><LoiD loi={daySo ? "Con đang có 3 lời xin chờ — đợi Ba Mẹ trả lời một lời rồi xin lại nhé." : loiLam} />
+        <ManD lui="/tre/nha" day={<><LoiD loi={daySo ? "Con bấm nhanh quá — đợi vài giây rồi xin lại nhé." : loiLam} />
           <NutD chu="Xin lại" ic="tin" bam={xinLai} dangChay={dangChay} tat={daySo} />
           <NutD chu="Về trang chính" loai="chu" bam={() => router.replace("/tre/nha")} /></>}>
           <View style={{ alignItems: "center", gap: 8 }}>

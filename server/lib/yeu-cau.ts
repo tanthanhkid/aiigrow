@@ -22,6 +22,9 @@ const LOAI_YC = ["vay_sao", "them_gio", "mo_web", "cai_app", "ngoai_le", "ngoai_
 /** Lời xin vay sao (mới) + các loại cũ nay nhận như xin vay để chơi. */
 const LOAI_VAY = new Set<string>(["vay_sao", "them_gio", "ngoai_le", "ngoai_gio"]);
 type LoaiYc = (typeof LOAI_YC)[number];
+/** Chống bấm dồn (#671): khung giây + số lời xin tối đa trong khung. */
+export const BAM_DON_GIAY = 5;
+export const BAM_DON_TOI_DA = 10;
 export const LY_DO_NHANH = ["Để làm bài tập", "Bạn rủ chơi", "Hôm nay con ngoan", "Con làm xong việc rồi"];
 
 type Yc = { id: string; child_id: string; device_id: string | null; loai: LoaiYc; phut: number | null; gia_tri: string | null; ly_do: string;
@@ -62,11 +65,19 @@ export async function guiYeuCau(con: string, mayId: string | null,
     const f = (await t<{ tz: string; cau_hinh: Record<string, unknown> }>(`select tz, cau_hinh from families where id = $1`, [fam]))[0];
     const c = (await t<{ cau_hinh: Record<string, unknown> }>(`select cau_hinh from children where id = $1`, [con]))[0];
     const ts = thamSo(f.cau_hinh, c.cau_hinh);
-    const dem = (await t<{ cho: number; ngay: number }>(
-      `select count(*) filter (where trang_thai = 'cho')::int as cho, count(*) filter (where created_at >= $2)::int as ngay from requests where child_id = $1`,
-      [con, dauNgayUtc(gioDiaPhuong(now, f.tz).ngay, f.tz)]))[0];
-    if (dem.cho >= ts.yc_cho_toi_da) throw new LoiNghiepVu("qua_nhieu_cho", `Con đã gửi ${dem.cho} yêu cầu đang chờ, đợi Ba Mẹ trả lời nhé`, 429);
-    if (dem.ngay >= ts.yc_ngay_toi_da) throw new LoiNghiepVu("qua_nhieu_ngay", `Hôm nay con đã gửi ${dem.ngay} yêu cầu rồi, mai gửi tiếp nhé`, 429);
+    // 25/11 (#671): không còn trần số lời xin (đang chờ / mỗi ngày). Chỉ chặn bấm dồn:
+    //  • cùng loại + cùng mục (+ cùng số sao) trong vòng 5 giây, hoặc đang chờ mà là app / web ⇒ gộp vào lời xin đó (không tạo thêm);
+    //  • quá BAM_DON_TOI_DA lời xin trong BAM_DON_GIAY giây ⇒ 429 bam_don.
+    const gan = await t<{ id: string; loai: string; gia_tri: string | null; phut: number | null; trang_thai: string; created_at: Date }>(
+      `select id, loai, gia_tri, phut, trang_thai, created_at from requests where child_id = $1 and created_at > $2 and created_at <= $3 order by created_at desc limit 50`,
+      [con, new Date(now.getTime() - BAM_DON_GIAY * 1000), now]);
+    const trung = gan.find((x) => x.loai === loai && (x.gia_tri ?? null) === (giaTri ?? null) && (x.phut ?? null) === (soSao ?? null) && x.trang_thai === "cho");
+    if (trung) return { id: trung.id, trang_thai: "cho", daCo: true, ...(laVay ? { soSao, mucDich } : {}) };
+    if (loai === "cai_app" || loai === "mo_web") {
+      const cho = (await t<{ id: string }>(`select id from requests where child_id = $1 and loai = $2 and trang_thai = 'cho' and gia_tri is not distinct from $3 limit 1`, [con, loai, giaTri]))[0];
+      if (cho) return { id: cho.id, trang_thai: "cho", daCo: true };
+    }
+    if (gan.length >= BAM_DON_TOI_DA) throw new LoiNghiepVu("bam_don", "Con bấm nhanh quá, đợi vài giây rồi gửi lại nhé", 429);
     const gio = loai === "mo_web" || loai === "cai_app" ? ts.yc_het_ngay_cai * 24 : ts.yc_het_gio_them;
     const id = newId();
     // phut = số sao xin vay (1 sao = 1 phút) — cột cũ giữ để máy cũ đọc «xin thêm 20 phút»
