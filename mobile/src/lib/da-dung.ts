@@ -26,3 +26,10 @@ export function icDung(x: { ten: string; kieu: "app" | "web"; tinhGio: boolean }
  * mục Tính phút trừ sao, 1 phút = 1 sao ⇒ «−39 sao»; mục Không tính phút ⇒ «Không tính 10′» (không trừ sao). */
 export const nhanDung = (x: { phut: number; tinhGio: boolean; chuaXep?: boolean }) =>
   x.chuaXep ? { chu: `Chưa xếp ${x.phut}′`, doc: `${x.phut} phút, chưa xếp nhóm, chưa trừ sao` } : x.tinhGio ? { chu: `${soVN(-x.phut)} sao`, doc: `trừ ${x.phut} sao` } : { chu: `Không tính ${x.phut}′`, doc: `${x.phut} phút, không trừ sao` };
+
+/** Tiêu đề thẻ chính «Hôm nay» (#672): cùng nguồn phút đã chơi với «Đã dùng» — Con đã chơi phút nào thì không ghi «Chưa dùng máy». */
+export function tieuTheChinh(o: { khoa: boolean; mo?: string | null; dangChoi?: string | null; daChoiPhut: number; gio?: (iso: string) => string }): string {
+  if (o.khoa) return o.mo ? `Mở lại lúc ${(o.gio ?? ((x) => x))(o.mo)}` : "Khoá tới khi Ba Mẹ mở";
+  if (o.dangChoi) return `Đang chơi ${o.dangChoi}`;
+  return o.daChoiPhut > 0 ? `Đã dùng ${o.daChoiPhut} phút` : "Chưa dùng máy";
+}
