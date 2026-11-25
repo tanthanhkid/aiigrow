@@ -117,7 +117,7 @@ public sealed class AgentWorker : BackgroundService
                         // chưa đọc được tài khoản: không ÁP được, nhưng «Mở»/mã mở tạm (AppLockerWanted=false) vẫn phải GỠ được
                         if (apThat && (childSids != null || !eff.AppLockerWanted))
                         {
-                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), p.AllowedApps, _rt.TrinhDuyetLoc(), p.BlockedApps);
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), p.AllowedApps, _rt.TrinhDuyetLoc(), ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc));
                             _rt.AppLockerApplied = applied;
                         }
                         else if (eff.AppLockerWanted)
@@ -351,7 +351,7 @@ public sealed class AgentWorker : BackgroundService
 
     private void EnforceChanApp(int sessionId, Policy p, bool apThat)
     {
-        var ds = ChanAppThat.Enforce(_procs, sessionId, p.BlockedApps, dryRun: !apThat, bam: BamTepCache.Chung.BamNen);
+        var ds = ChanAppThat.Enforce(_procs, sessionId, ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), dryRun: !apThat, bam: BamTepCache.Chung.BamNen);
         var tap = string.Join(",", ds.Select(x => x.Exe).Distinct().OrderBy(x => x, StringComparer.Ordinal));
         var ghi = tap != _chanDaBao;
         _chanDaBao = tap;

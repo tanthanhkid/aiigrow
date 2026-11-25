@@ -125,6 +125,19 @@ public static class ChanAppThat
         return kq;
     }
 
+    /// <summary>Luật chặn một muc của app đã gộp (Edge: msedge.exe + gói Store) ⇒ thêm luật cho các muc cùng app còn lại (chỉ tên, không kèm đường dẫn / băm).</summary>
+    public static List<AppBiChan> MoRongBiDanh(IReadOnlyList<AppBiChan> ds, IReadOnlyDictionary<string, string[]>? biDanh)
+    {
+        var kq = ds.ToList();
+        if (biDanh == null || biDanh.Count == 0) return kq;
+        var co = new HashSet<string>(ds.Select(a => a.Muc), StringComparer.Ordinal);
+        foreach (var a in ds)
+            if (a.Muc.Length > 0 && biDanh.TryGetValue(a.Muc, out var cac))
+                foreach (var m in cac)
+                    if (m.Length > 0 && co.Add(m)) kq.Add(new AppBiChan { Muc = m });
+        return kq;
+    }
+
     /// <summary>Tiến trình KHÔNG BAO GIỜ đóng dù khớp luật chặn: tiến trình hệ thống của phiên (explorer, dwm… ở chỗ chỉ quản trị ghi được), gói Store
     /// hệ thống, AiiGrow / Defender / Common Files (thư mục an toàn), exe mang tên AiiGrow.</summary>
     public static bool MienChan(string exePath, string? winDir, IEnumerable<string> safeDirs)

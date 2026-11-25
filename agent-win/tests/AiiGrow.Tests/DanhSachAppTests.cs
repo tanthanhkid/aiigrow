@@ -309,6 +309,41 @@ public class DanhSachAppTests
     }
 
     [Fact]
+    public void ChuanHoa_GopEdgeHaiNguon_MangTheoMoiMuc_LuatChanApLenCaHai()
+    {
+        var store = new AppThat { Khoa = "appx:microsoft.edge_8wekyb", Muc = "microsoft.msedge", Ten = "Microsoft Edge", Nguon = "store" };
+        var reg = new AppThat { Khoa = "exe:c:\\edge\\msedge.exe", Muc = "msedge.exe", Ten = "Microsoft Edge", Nguon = "registry" };
+        var r = DanhSachApp.ChuanHoa(new[] { store, reg });
+        var edge = Assert.Single(r);
+        Assert.Equal("msedge.exe", edge.Muc);
+        Assert.Equal(new[] { "msedge.exe", "microsoft.msedge" }, edge.CacMuc);
+        // CacMuc chỉ ở trong máy: không vào JSON gửi máy chủ
+        Assert.DoesNotContain("cacMuc", System.Text.Json.JsonSerializer.Serialize(edge), StringComparison.OrdinalIgnoreCase);
+
+        var bd = DanhSachApp.BangBiDanh(r);
+        var luat = ChanAppThat.MoRongBiDanh(new[] { new AppBiChan { Muc = "msedge.exe" } }, bd);
+        Assert.Equal(new[] { "msedge.exe", "microsoft.msedge" }, luat.Select(x => x.Muc).ToArray());
+        // chặn bằng tên gói Store cũng kéo theo msedge.exe; không trùng khi đã có sẵn
+        var hai = ChanAppThat.MoRongBiDanh(new[] { new AppBiChan { Muc = "microsoft.msedge" }, new AppBiChan { Muc = "msedge.exe" } }, bd);
+        Assert.Equal(2, hai.Count);
+        // app một muc / không có bí danh ⇒ giữ nguyên
+        Assert.Single(ChanAppThat.MoRongBiDanh(new[] { new AppBiChan { Muc = "zalo.exe" } }, bd));
+        Assert.Single(ChanAppThat.MoRongBiDanh(new[] { new AppBiChan { Muc = "zalo.exe" } }, null));
+    }
+
+    [Fact]
+    public void TenChuan_BoDauTiengViet_ChuDVaGiuCongThuc()
+    {
+        Assert.Equal("tronghoc", DanhSachApp.TenChuan("Trọng Học"));
+        Assert.Equal(DanhSachApp.TenChuan("Trình duyệt Đỏ"), DanhSachApp.TenChuan("TRINH DUYET do"));
+        Assert.Equal("dd", DanhSachApp.TenChuan("Đđ"));
+        Assert.Equal("c++", DanhSachApp.TenChuan("C++"));
+        Assert.Equal("c#", DanhSachApp.TenChuan("C #"));
+        // chuỗi dựng sẵn (NFC) và tổ hợp (NFD) cho cùng kết quả
+        Assert.Equal(DanhSachApp.TenChuan("Ế"), DanhSachApp.TenChuan("E\u0302\u0301"));
+    }
+
+    [Fact]
     public void ChonLogoAppx_ScaleLonNhatTrongGioiHan_BoContrast_DuPhong150()
     {
         var tep = new (string, int, int, long)[]
