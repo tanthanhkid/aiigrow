@@ -80,7 +80,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     if (dau && (!x.luc || new Date(dau).getTime() < new Date(x.luc).getTime())) x.luc = new Date(dau).toISOString();
     if (phut > x._phutMay) { x._phutMay = phut; x.may = m?.name ?? x.may; x.nen = m?.platform ?? x.nen; x.mayId = m?.id ?? x.mayId; x.matMang = matMang.has(mayId); }
   };
-  for (const a of app) if (!TRINH_DUYET.has(chuanMuc(a.muc)) && a.loai !== "he_thong" && !laTienTrinhNenWindows(a.muc)) them("app", a.muc, a.device_id, a.phut, a.dau_luc, a.loai);
+  for (const a of app) if (!TRINH_DUYET.has(chuanMuc(a.muc)) && a.loai !== "he_thong" && !(laTienTrinhNenWindows(a.muc) && !luatCua(chuanMuc(a.muc)))) them("app", a.muc, a.device_id, a.phut, a.dau_luc, a.loai);
   for (const w of web) them("web", w.ten_mien, w.device_id, Math.round(w.giay / 60), w.dau_luc ?? w.lan_cuoi, null);
   const dung = [...gop.values()].filter((x) => x.phut > 0).map(({ _phutMay, ...x }) => x)
     // mới trước (dòng chưa biết giờ xuống cuối), cùng giờ thì dùng nhiều trước

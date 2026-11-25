@@ -172,7 +172,7 @@ public sealed class AgentWorker : BackgroundService
         // Tray báo không có cửa sổ tiền cảnh (màn hình đã khoá): không tính giờ.
         if (fresh && string.IsNullOrEmpty(id)) return;
         // #622: tiến trình nền của phiên (Searchapp, Start…) là tiền cảnh thoáng qua — không ghi thành app Con dùng
-        if (fresh && ProcessGuard.KhongGhiDaDung(id)) return;
+        if (fresh && ProcessGuard.TienTrinhNenKhongTinhGio.Contains(id!)) return;
         // Tray chết: vẫn tính giờ phiên con dưới tên "không rõ" (con không thể ngưng đồng hồ bằng cách tắt tray).
         // #418: cửa sổ của chính AiiGrow — kể cả khay cũ «AiiGrow.Tray.exe.cu-…» còn chạy sau cập nhật — gộp về khay (hệ thống): không thành
         // «app mới», không trừ sao. Chỉ khi tệp chạy nằm trong thư mục cài (game đổi tên giống AiiGrow ở chỗ khác vẫn bị đếm).

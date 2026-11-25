@@ -66,11 +66,11 @@ export function laCongCuHeThong(mucTho: unknown, ten?: unknown): boolean {
   return !!m && MUC_CONG_CU.has(`${m}.exe`);      // định danh chỉ có tên tệp không đuôi («storedesktopextension»)
 }
 
-/** #644: tiến trình nền / thành phần của phiên Windows (đồng bộ ProcessGuard.TienTrinhNenKhongTinhGio ở agent-win) — tiền cảnh thoáng qua, không phải việc Con làm:
- *  không vào «Đã dùng» (máy Con, web Ba Mẹ), kể cả dòng agent cũ đã ghi. KHÔNG gồm explorer.exe (File Explorer là app người dùng mở). */
+/** #644: tiến trình nền / thành phần của phiên Windows (đồng bộ ProcessGuard.TienTrinhHeThongPhien ở agent-win, trừ explorer / Ảnh) — tiền cảnh thoáng qua, không phải việc Con làm:
+ *  không vào «Đã dùng» (máy Con, web Ba Mẹ), kể cả dòng agent cũ đã ghi — trừ khi Ba Mẹ đã đặt luật riêng cho mục đó. KHÔNG gồm explorer.exe (File Explorer là app người dùng mở). */
 const TIEN_TRINH_NEN_WIN = new Set(["shellexperiencehost.exe", "lockapp.exe", "startmenuexperiencehost.exe", "searchhost.exe", "searchapp.exe", "textinputhost.exe",
   "runtimebroker.exe", "applicationframehost.exe", "sihost.exe", "ctfmon.exe", "dwm.exe", "taskhostw.exe", "fontdrvhost.exe", "csrss.exe", "winlogon.exe", "wininit.exe",
-  "smss.exe", "services.exe", "lsass.exe", "svchost.exe", "dllhost.exe", "backgroundtaskhost.exe", "securityhealthsystray.exe", "logonui.exe", "consent.exe", "userinit.exe",
+  "smss.exe", "services.exe", "lsass.exe", "svchost.exe", "dllhost.exe", "conhost.exe", "backgroundtaskhost.exe", "securityhealthsystray.exe", "logonui.exe", "consent.exe", "userinit.exe",
   "werfault.exe", "smartscreen.exe", "shellhost.exe", "useroobebroker.exe", "searchprotocolhost.exe", "searchfilterhost.exe", "audiodg.exe", "wudfhost.exe", "dashost.exe",
   "sppsvc.exe", "hxtsr.exe", "gamebarftserver.exe", "gamebarpresencewriter.exe", "gamingservices.exe", "gamingservicesnet.exe"]);
 export function laTienTrinhNenWindows(mucTho: unknown): boolean {

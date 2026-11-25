@@ -134,7 +134,7 @@ public class ProcessGuardTests
     {
         foreach (var n in new[] { "Shellexperiencehost.exe", "lockapp.exe", "startmenuexperiencehost.exe", "searchhost", "textinputhost.exe", "runtimebroker.exe", "ApplicationFrameHost.exe" })
             Assert.True(ProcessGuard.KhongGhiDaDung(n), n);
-        foreach (var n in new[] { "explorer.exe", "roblox.exe", "notepad.exe", "", null })
+        foreach (var n in new[] { "explorer.exe", "microsoft.photos.exe", "roblox.exe", "notepad.exe", "", null })
             Assert.False(ProcessGuard.KhongGhiDaDung(n), n ?? "null");
         var u = new UsageTracker();
         var now = new DateTimeOffset(2026, 11, 25, 10, 0, 0, TimeSpan.FromHours(7));
