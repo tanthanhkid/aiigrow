@@ -487,6 +487,9 @@ internal sealed class AppForm : Form
         cho.Margin = new Padding(0, 0, Px(10), 0);
         var rn = KhoiApp.TrongThe(nua);
         var choDuyet = _tq?.SoSaoChoDuyet;
+        // #641: không có sao nào chờ duyệt (+0) ⇒ bỏ thẻ, «Nhiệm vụ hôm nay» chiếm cả hàng
+        var coTheCho = moMa != null || SaoView.CoTheChoDuyet(choDuyet);
+        if (!coTheCho) { nua = _cw; rn = KhoiApp.TrongThe(nua); }
         if (moMa != null)
         {
             // cmt-hom-nay-mo-bang-ma: «Sao của con · 30 sao» + nút «30 sao = 30 phút chơi» (→ Sao dùng thế nào?)
@@ -504,7 +507,7 @@ internal sealed class AppForm : Form
             dung.Click += (_, _) => XinVayClicked?.Invoke(true);
             cho.Controls.Add(dung);
         }
-        hai.Controls.Add(cho);
+        if (coTheCho) hai.Controls.Add(cho);
         var nv = KhoiApp.The(nua);
         nv.Margin = Padding.Empty;
         if (_kn.Loai == KetNoi.MatKetNoi && _s.BaiChoMang > 0)
@@ -536,7 +539,7 @@ internal sealed class AppForm : Form
         }
         hai.Controls.Add(nv);
         // hai thẻ cao bằng nhau
-        hai.Layout += (_, _) => { var h = Math.Max(cho.PreferredSize.Height, nv.PreferredSize.Height); cho.MinimumSize = new Size(nua, h); nv.MinimumSize = new Size(nua, h); };
+        hai.Layout += (_, _) => { var h = coTheCho ? Math.Max(cho.PreferredSize.Height, nv.PreferredSize.Height) : nv.PreferredSize.Height; if (coTheCho) cho.MinimumSize = new Size(nua, h); nv.MinimumSize = new Size(nua, h); };
         _content.Controls.Add(hai);
 
         // Tin mới nhất của Ba Mẹ

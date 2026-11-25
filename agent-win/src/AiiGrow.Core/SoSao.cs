@@ -75,6 +75,9 @@ public static class SaoView
         return t.Length > 0 ? $"{t} vẫn mở · không tính phút" : "App «Không tính phút» vẫn mở";
     }
 
+    /// <summary>#641: thẻ «Chờ Ba Mẹ duyệt» chỉ hiện khi có sao chờ (> 0) hoặc chưa tải xong (null ⇒ «…»); «+0 sao» thì bỏ.</summary>
+    public static bool CoTheChoDuyet(int? choDuyet) => choDuyet is null or > 0;
+
     /// <summary>Thẻ «Chờ Ba Mẹ duyệt»: «Duyệt xong +20 sao (đang nợ thì trả nợ trước)» / đang nợ: «Trả nợ 15 sao trước · con còn 5 sao».</summary>
     public static string ChoDuyet(int choDuyet, int no)
     {

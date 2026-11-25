@@ -188,22 +188,89 @@ internal static class UI
     /// có pid khác host ⇒ pid của app thật (0 nếu không thấy, vd app đang treo/ngủ).</summary>
     private static uint PidUwpThat(IntPtr h, uint hostPid)
     {
-        uint kq = 0;
+        var ds = new List<(uint Pid, string Lop)>();
         try
         {
             EnumChildWindows(h, (c, _) =>
             {
                 var sb = new System.Text.StringBuilder(64);
                 GetClassName(c, sb, sb.Capacity);
-                if (sb.ToString() != "Windows.UI.Core.CoreWindow") return true;
                 GetWindowThreadProcessId(c, out var cp);
-                if (cp == 0 || cp == hostPid) return true;
-                kq = cp;
-                return false;
+                ds.Add((cp, sb.ToString()));
+                return true;
             }, IntPtr.Zero);
         }
         catch { }
-        return kq;
+        var kq = UwpTienCanh.ChonPid(ds, hostPid);
+        if (kq != 0) return kq;
+        // #641: không có cửa sổ con (Solitaire…) ⇒ tìm cửa sổ cấp cao cùng tiêu đề thuộc tiến trình khác host
+        try
+        {
+            var tieuDe = TieuDe(h);
+            if (tieuDe.Length > 0)
+            {
+                var top = new List<(uint Pid, string Lop)>();
+                EnumWindows((w, _) =>
+                {
+                    if (TieuDe(w) != tieuDe) return true;
+                    GetWindowThreadProcessId(w, out var wp);
+                    var sb = new System.Text.StringBuilder(64);
+                    GetClassName(w, sb, sb.Capacity);
+                    top.Add((wp, sb.ToString()));
+                    return true;
+                }, IntPtr.Zero);
+                kq = UwpTienCanh.ChonPid(top, hostPid);
+                if (kq != 0) return kq;
+                // dự phòng cuối: khớp tiêu đề với tiến trình trong gói Store
+                var uv = new List<(int Pid, string Mo)>();
+                foreach (var pr in Process.GetProcesses())
+                {
+                    using (pr)
+                    {
+                        try
+                        {
+                            var d = DuongExe(pr);
+                            if (d == null || AiiGrow.Core.ProcessGuard.TenGoiStore(d) == null) continue;
+                            string? mo = null;
+                            try { mo = FileVersionInfo.GetVersionInfo(d).FileDescription; } catch { }
+                            uv.Add((pr.Id, string.IsNullOrWhiteSpace(mo) ? pr.ProcessName : mo!));
+                        }
+                        catch { }
+                    }
+                }
+                if (UwpTienCanh.ChonTheoTieuDe(tieuDe, uv) is int ip) return (uint)ip;
+            }
+        }
+        catch { }
+        return 0;
+    }
+
+    private delegate bool EnumTopProc(IntPtr hWnd, IntPtr lParam);
+    [DllImport("user32.dll")] private static extern bool EnumWindows(EnumTopProc cb, IntPtr lParam);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder sb, int max);
+    private static string TieuDe(IntPtr h)
+    {
+        var sb = new System.Text.StringBuilder(256);
+        return GetWindowText(h, sb, sb.Capacity) > 0 ? sb.ToString().Trim() : "";
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+    [DllImport("kernel32.dll", SetLastError = true)] private static extern bool CloseHandle(IntPtr h);
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern bool QueryFullProcessImageName(IntPtr h, int flags, System.Text.StringBuilder sb, ref int size);
+    /// <summary>Đường dẫn exe — QueryFullProcessImageName (quyền hạn chế) vì <c>MainModule</c> hay bị từ chối với tiến trình AppContainer của app Store.</summary>
+    private static string? DuongExe(Process p)
+    {
+        try { if (p.MainModule?.FileName is { Length: > 0 } f) return f; } catch { }
+        var hp = OpenProcess(0x1000, false, p.Id);   // PROCESS_QUERY_LIMITED_INFORMATION
+        if (hp == IntPtr.Zero) return null;
+        try
+        {
+            var sb = new System.Text.StringBuilder(1024);
+            int n = sb.Capacity;
+            return QueryFullProcessImageName(hp, 0, sb, ref n) ? sb.ToString() : null;
+        }
+        finally { CloseHandle(hp); }
     }
 
     private sealed record FgNho(int Pid, DateTime Bat, string Id, string Name);
@@ -238,13 +305,13 @@ internal static class UI
             try
             {
                 // app Store: Id = tên gói (khớp DanhSachApp.Muc / luật chặn theo gói)
-                var goi = p.MainModule?.FileName is { } duong ? AiiGrow.Core.ProcessGuard.TenGoiStore(duong) : null;
+                var goi = DuongExe(p) is { } duong ? AiiGrow.Core.ProcessGuard.TenGoiStore(duong) : null;
                 if (goi != null) id = goi;
             }
             catch { }
             try
             {
-                var d = p.MainModule?.FileVersionInfo.FileDescription;
+                var d = DuongExe(p) is { } dx ? FileVersionInfo.GetVersionInfo(dx).FileDescription : null;
                 if (!string.IsNullOrWhiteSpace(d)) name = d!;
             }
             catch { }

@@ -140,6 +140,26 @@ public class ProcessGuardTests
     }
 
     [Fact]
+    public void UwpTienCanh_QuyPhutVeAppThat_KhongVeApplicationFrameHost()
+    {
+        const uint host = 100;
+        Assert.Equal(200u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, "ApplicationFrameTitleBarWindow"), (300, "Khac"), (200, UwpTienCanh.LopCoreWindow) }, host));
+        Assert.Equal(300u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, "ApplicationFrameInputSinkWindow"), (300, "Khac") }, host));
+        Assert.Equal(0u, UwpTienCanh.ChonPid(new (uint, string)[] { (100, "A"), (0, "B") }, host));
+        Assert.Equal(7, UwpTienCanh.ChonTheoTieuDe("Microsoft Solitaire Collection", new[] { (7, "Microsoft Solitaire Collection"), (8, "Phim & TV") }));
+        Assert.Null(UwpTienCanh.ChonTheoTieuDe("Microsoft Solitaire Collection", new[] { (7, "Microsoft Solitaire Collection"), (8, "Solitaire") }));
+        Assert.Null(UwpTienCanh.ChonTheoTieuDe("", new[] { (7, "Microsoft Solitaire Collection") }));
+    }
+
+    [Fact]
+    public void TheChoDuyet_BoKhiBangKhong()
+    {
+        Assert.False(SaoView.CoTheChoDuyet(0));
+        Assert.True(SaoView.CoTheChoDuyet(5));
+        Assert.True(SaoView.CoTheChoDuyet(null));
+    }
+
+    [Fact]
     public void ShouldClose_AppStoreDuocPhepTheoTenGoiHoacTenExe()
     {
         const string calc = @"C:\Program Files\WindowsApps\Microsoft.WindowsCalculator_11.2.0.0_x64__8wekyb3d8bbwe\CalculatorApp.exe";
