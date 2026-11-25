@@ -26,6 +26,21 @@ public static class ManChanView
     /// Mọi app bị đóng chỉ hiện nút «Xin Ba Mẹ mở …»; lời xin chỉ đi khi Con bấm nút. Giữ chữ ký để các chỗ gọi không đổi.</summary>
     public static bool TuGui(string? appId, bool boiBaMe, bool offline, bool daXin = false) => false;
 
+    /// <summary>#642: có hiện bảng «chưa được thêm» cho tiến trình này không. Tiến trình nền của Windows / Xbox Game Bar (gamebarftserver…) không phải việc Con làm
+    /// ⇒ không bật bảng (không phủ màn hình, không có gì để xin). appId trống ⇒ vẫn hiện (không rõ là gì thì không nuốt).</summary>
+    public static bool CoHienBang(string? appId)
+    {
+        if (string.IsNullOrWhiteSpace(appId)) return true;
+        var t = appId.Trim();
+        var exe = t.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) ? t : t + ".exe";
+        return !ProcessGuard.TienTrinhHeThongPhien.Contains(exe);
+    }
+
+    /// <summary>#642: kết quả gọi gửi lời xin → bước kế. Chỉ khi dịch vụ NHẬN (ok) mới sang «Đã gửi»; lỗi ⇒ về màn có nút xin + câu lỗi (đóng được: nút, Esc, bấm nền).</summary>
+    public static (bool DaGui, string? Loi) KetQuaGui(bool ok, string? loi) =>
+        ok ? (true, null) : (false, string.IsNullOrWhiteSpace(loi) ? ChuaGuiDuoc : loi);
+    public const string ChuaGuiDuoc = "Chưa gửi được. Con thử lại nhé.";
+
     /// <summary>Có nút «Xin Ba Mẹ mở …» không (công cụ Windows như cmd, taskmgr… thì không).</summary>
     public static bool CoNutXin(string? appId) => BlockScreenView.CanAskOpen(appId);
 

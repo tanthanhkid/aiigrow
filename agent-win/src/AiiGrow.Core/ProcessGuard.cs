@@ -34,6 +34,8 @@ public static class ProcessGuard
         "searchprotocolhost.exe", "searchfilterhost.exe", "audiodg.exe", "wudfhost.exe", "dashost.exe", "sppsvc.exe",
         // #621: đồng bộ nền của Mail/Lịch (Microsoft.WindowsCommunicationsApps) — không cửa sổ, Con không mở
         "hxtsr.exe", "microsoft.photos.exe",   // exe thật của app Ảnh: luật cho phép theo tên chỉ nhận bản trong gói Store / Windows, không nhận game đổi tên
+        // #642: tiến trình phụ của Xbox Game Bar (mở theo trò chơi, vd Microsoft Solitaire) — không cửa sổ, Con không mở
+        "gamebarftserver.exe", "gamebarpresencewriter.exe", "gamingservices.exe", "gamingservicesnet.exe",
     };
 
     /// <summary>#622: tiến trình nền của phiên (tìm kiếm, Start, bàn phím ảo, màn khoá) — là tiền cảnh thoáng qua, không phải app Con chơi ⇒ không tính giờ / «đã dùng gì».</summary>
@@ -75,6 +77,8 @@ public static class ProcessGuard
         "microsoft.accountscontrol", "microsoft.ecapp", "microsoft.windows.apprep.chxapp",
         // #621: Mail/Lịch (hxtsr.exe đồng bộ nền) và app Ảnh (microsoft.photos.exe chạy ngầm) — Con không bấm mà vẫn bắn «Xin thêm …»
         "microsoft.windowscommunicationsapps", "microsoft.windows.photos",
+        // #642: Xbox Game Bar (GameBarFTServer) và dịch vụ Xbox chạy theo trò chơi Store
+        "microsoft.xboxgamingoverlay", "microsoft.gamingservices", "microsoft.xboxidentityprovider", "microsoft.xbox.tcui",
     };
 
     /// <summary>Gói Store hệ thống theo TIỀN TỐ (Windows App SDK: Microsoft.WindowsAppRuntime.1.5, …Singleton — PushNotificationsLongRunningTask). «MicrosoftWindows.» (KHÔNG phải «Microsoft.Windows…» như Máy tính / Terminal): tiền tố dành riêng cho thành phần của Windows — Client.CBS (Search,
