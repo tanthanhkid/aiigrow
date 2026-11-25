@@ -75,6 +75,8 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
       return;
     }
     x.phut += phut;
+    // cùng mục ở máy khác có loại khác ⇒ gộp theo nhóm «mạnh» nhất (tính giờ > không tính > chưa xếp), không theo thứ tự dòng
+    if (tinhGioCua(loaiUsage, l)) { x.tinhGio = true; x.chuaXep = false; } else if (!chuaXepCua(loaiUsage, l)) x.chuaXep = false;
     if (dau && (!x.luc || new Date(dau).getTime() < new Date(x.luc).getTime())) x.luc = new Date(dau).toISOString();
     if (phut > x._phutMay) { x._phutMay = phut; x.may = m?.name ?? x.may; x.nen = m?.platform ?? x.nen; x.mayId = m?.id ?? x.mayId; x.matMang = matMang.has(mayId); }
   };
