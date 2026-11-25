@@ -33,7 +33,7 @@ public static class ProcessGuard
         "logonui.exe", "consent.exe", "userinit.exe", "werfault.exe", "smartscreen.exe", "shellhost.exe", "useroobebroker.exe",
         "searchprotocolhost.exe", "searchfilterhost.exe", "audiodg.exe", "wudfhost.exe", "dashost.exe", "sppsvc.exe",
         // #621: đồng bộ nền của Mail/Lịch (Microsoft.WindowsCommunicationsApps) — không cửa sổ, Con không mở
-        "hxtsr.exe",
+        "hxtsr.exe", "microsoft.photos.exe",   // exe thật của app Ảnh: luật cho phép theo tên chỉ nhận bản trong gói Store / Windows, không nhận game đổi tên
     };
 
     /// <summary>#622: tiến trình nền của phiên (tìm kiếm, Start, bàn phím ảo, màn khoá) — là tiền cảnh thoáng qua, không phải app Con chơi ⇒ không tính giờ / «đã dùng gì».</summary>
