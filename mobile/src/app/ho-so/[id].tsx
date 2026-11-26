@@ -11,7 +11,6 @@ import { bm, type GiaDinh } from "@/lib/api";
 import {
   CAU_TRONG_GIUP, HangViec, mauCon, TieuMuc, tenGoi, quyenToi, soAppDuocMo, tuoiCua, type ConCt, type LuatDem, type NhiemVuMoi,
 } from "@/lib/hang-ngay";
-import { soVN } from "@/lib/so-sao";
 import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, useTai } from "@/lib/ui";
 import { saoChep } from "@/lib/luu-tep";
 import { HangChonBe } from "@/lib/ui-chung";
