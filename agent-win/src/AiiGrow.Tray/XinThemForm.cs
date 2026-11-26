@@ -39,6 +39,8 @@ internal sealed class XinThemForm : HopKhayCoBan
     /// <summary>Dịch vụ chưa quét xong (vừa khởi động / chưa ghép) ⇒ hỏi lại mỗi 10 giây khi hộp còn mở.</summary>
     private readonly System.Windows.Forms.Timer _taiLai = new() { Interval = 10_000 };
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
+    /// <summary>#686: 40 lần hỏi lỗi liên tiếp (3 giây / lần ≈ 2 phút) ⇒ thôi chờ.</summary>
+    private readonly DemLoiHoi _pollLoi = new(40);
     private string? _id;
     /// <summary>Đã gửi lời xin (máy chủ nhận / đang chờ) — chặn gửi trùng kể cả khi máy chủ không trả id.</summary>
     private bool _daGui;
@@ -450,7 +452,20 @@ internal sealed class XinThemForm : HopKhayCoBan
         _busy = true;
         var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Status, Id = _id });
         _busy = false;
-        if (!r.Ok || IsDisposed) return;
+        if (IsDisposed) return;
+        if (_pollLoi.Ghi(r.Ok))
+        {
+            // #686: hỏi lỗi liên tiếp ~2 phút (id không còn, dịch vụ cũ) ⇒ thôi chờ, mở lại nút gửi (máy chủ gộp lời xin trùng đang chờ);
+            // Ba Mẹ trả lời sau đó thì tin «đã thêm / chưa thêm» của máy chủ vẫn báo Con
+            _poll.Stop();
+            _id = null;
+            _daGui = false;
+            _pollLoi.DatLai();
+            VeXin();
+            if (_msg != null) { _msg.ForeColor = UI.Muted; _msg.Text = TheoDoiXinView.ThoiCho; }
+            return;
+        }
+        if (!r.Ok) return;
         var kq = KetQuaXinView.Doc(r.KetQua?.KetQua, r.Status);
         if (kq == KetQuaXinView.Loai.Cho) return;
         _poll.Stop();
