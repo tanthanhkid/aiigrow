@@ -80,6 +80,7 @@ public sealed class BaiChoMang
             if (b.Luc > now) b.Luc = now;
             if (now - b.Luc > HangXinCho.HetHan) { Xoa(b.Ma); continue; }
             var kq = await gui(b);
+            if (kq == KetQuaGuiXin.TamHoan) break;   // #684: 408 / 429 ⇒ máy chủ chưa nhận, giữ nguyên bài, gửi lượt sau
             if (kq == KetQuaGuiXin.LoiMang)
             {
                 b.LanLoi++;

@@ -244,7 +244,7 @@ public sealed class AgentWorker : BackgroundService
     }
 
     /// <summary>05/11 (L11): có mạng lại ⇒ gửi các lời xin Con bấm lúc mất mạng (xin vay sao, xin thêm app / web). Lỗi mạng ⇒ giữ lần sau;
-    /// máy chủ từ chối (4xx) ⇒ bỏ. Không làm hỏng lượt đồng bộ vừa xong.</summary>
+    /// 408 / 429 ⇒ giữ, gửi tiếp lượt sau; máy chủ từ chối (4xx) ⇒ bỏ và báo Con trên khay (#684). Không làm hỏng lượt đồng bộ vừa xong.</summary>
     private async Task GuiXinChoMang(ApiClient api, CancellationToken ct)
     {
         var cfg = _rt.Config;
@@ -270,10 +270,13 @@ public sealed class AgentWorker : BackgroundService
                 }
             }, DateTimeOffset.Now);
             if (xong.Count == 0 && loiThem == null) return;
+            var bo = hang.BiBo.ToList();
+            foreach (var x in bo) _log.LogWarning("Lời xin chờ mạng {loai} {muc} bị bỏ chưa tới Ba Mẹ — báo Con trên khay", x.Loai, x.Muc);
             var moi = _rt.Store.Update(c =>
             {
                 c.XinCho.Items.RemoveAll(i => xong.Contains(i.Ma));
                 foreach (var i in c.XinCho.Items) if (i.Ma == loiThem) i.LanLoi++;
+                if (bo.Count > 0) c.XinBo.Them(bo, DateTimeOffset.Now);   // #684: Con được báo, không im lặng
             });
             if (moi != null) _rt.NapLaiConfig(moi);
         }

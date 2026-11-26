@@ -309,6 +309,20 @@ internal sealed class TrayContext : ApplicationContext
         _app?.RefreshSoon();
     }
 
+    private readonly HashSet<string> _xinBoDaBao = new();
+
+    /// <summary>#684: lời xin lưu lúc mất mạng bị bỏ chưa tới Ba Mẹ (máy chủ từ chối, quá hạn, gửi lỗi nhiều lần) ⇒ bóng báo Con xin lại — mỗi mục
+    /// một lần, một bóng mỗi lượt. Máy đang khoá vẫn báo (bóng báo không mở app).</summary>
+    private void HandleXinBo()
+    {
+        foreach (var x in _state.XinBo)
+        {
+            if (!_xinBoDaBao.Add(x.Ma)) continue;
+            Toast(10000, XinBoView.Tieu, XinBoView.Cau(x), ToolTipIcon.Info, MucApp.HomNay);
+            break;
+        }
+    }
+
     /// <summary>Lời xin vay còn chờ sau khi Con đóng hộp: hỏi dịch vụ mỗi 15 giây, có kết quả thì bật màn (them-fsif1cbl / them-zo8kohea).</summary>
     private async Task TheoDoiVayAsync()
     {
@@ -707,6 +721,7 @@ internal sealed class TrayContext : ApplicationContext
             HandleBlocked();
             HandleWarnings();
             _ = TheoDoiVayAsync();
+            HandleXinBo();
             MoNeuDangCho();
         }
         catch (Exception e)

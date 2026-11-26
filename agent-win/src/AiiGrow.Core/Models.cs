@@ -352,6 +352,8 @@ public sealed class AgentConfig
     public DnsGiaDinhDaDat? DnsGiaDinh { get; set; }
     /// <summary>05/11 (L11): lời xin Con gửi lúc mất mạng — có mạng (đồng bộ được) dịch vụ tự gửi (<see cref="HangXinCho"/>).</summary>
     public HangXinCho XinCho { get; set; } = new();
+    /// <summary>#684: lời xin chờ mạng đã bị bỏ (chưa tới Ba Mẹ) — khay báo Con.</summary>
+    public XinBoDs XinBo { get; set; } = new();
     /// <summary>05/11: giây đã chơi app tính giờ từ Policy cuối (QuyTaiCho) — mất mạng + khởi động lại vẫn trừ đúng quỹ.</summary>
     public QuyDaDem? QuyDem { get; set; }
     /// <summary>06/11 (L13): ai đang dùng máy — bé (chọn tên + PIN) / Ba Mẹ (mã mở máy) / chưa ai (màn chọn tên). Thiếu (cấu hình cũ) ⇒ chưa ai.</summary>

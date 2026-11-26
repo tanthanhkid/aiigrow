@@ -19,12 +19,14 @@ public sealed class LoiXinCho
     public int LanLoi { get; set; }
 }
 
-/// <summary>Kết quả gửi một lời xin chờ mạng.</summary>
-public enum KetQuaGuiXin { DaGui, LoiMang, Bo }
+/// <summary>Kết quả gửi một lời xin chờ mạng. <see cref="TamHoan"/> (#684): máy chủ bảo «chậm lại» (408 / 429 bam_don) — chắc chắn CHƯA nhận,
+/// giữ nguyên lời xin (không tính lần lỗi), dừng lượt này, gửi tiếp lượt đồng bộ sau.</summary>
+public enum KetQuaGuiXin { DaGui, LoiMang, Bo, TamHoan }
 
 /// <summary>
 /// Hàng lời xin chờ có mạng. Thêm: trùng loại + mục ⇒ thay bản cũ (Con bấm lại không thành hai lời xin), tối đa <see cref="ToiDa"/>.
-/// Gửi: theo thứ tự; lỗi mạng ⇒ dừng, giữ phần còn lại; máy chủ từ chối (4xx: quá nhiều lời xin, web cấm…) ⇒ bỏ lời xin đó (gửi lại cũng không được).
+/// Gửi: theo thứ tự; lỗi mạng ⇒ dừng, giữ phần còn lại; 408 / 429 ⇒ dừng, giữ nguyên; máy chủ từ chối (4xx khác: web cấm…) ⇒ bỏ lời xin đó
+/// (gửi lại cũng không được). #684: mọi lời xin bị bỏ khi chưa tới Ba Mẹ (từ chối, quá hạn, lỗi quá số lần) nằm trong <see cref="BiBo"/> để báo Con.
 /// Lớp THUẦN (gửi qua delegate) để test.
 /// </summary>
 public sealed class HangXinCho
@@ -34,6 +36,9 @@ public sealed class HangXinCho
     /// <summary>Lời xin cũ hơn chừng này (mất mạng lâu) không gửi nữa — «xin vay 15 sao» của 3 ngày trước không còn ý nghĩa với Ba Mẹ.</summary>
     public static readonly TimeSpan HetHan = TimeSpan.FromHours(12);
     public List<LoiXinCho> Items { get; set; } = new();
+    /// <summary>Lời xin bị bỏ ở lượt <see cref="GuiAsync"/> vừa chạy (không lưu) — dịch vụ chép sang <see cref="XinBoDs"/> để khay báo Con.</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public List<LoiXinCho> BiBo { get; } = new();
 
     public void Them(LoiXinCho x)
     {
@@ -48,29 +53,68 @@ public sealed class HangXinCho
     {
         var xong = new List<string>();
         string? loi = null;
+        BiBo.Clear();
         foreach (var x in Items.ToList())
         {
             if (x.Luc > now) x.Luc = now;   // đồng hồ máy bị lùi ⇒ tính từ bây giờ, không giữ mãi
-            if (now - x.Luc > HetHan) { xong.Add(x.Ma); continue; }
+            if (now - x.Luc > HetHan) { xong.Add(x.Ma); BiBo.Add(x); continue; }
             var kq = await gui(x);
+            if (kq == KetQuaGuiXin.TamHoan) break;
             if (kq == KetQuaGuiXin.LoiMang)
             {
                 x.LanLoi++;
-                if (x.LanLoi >= ThuToiDa) { xong.Add(x.Ma); continue; }
+                if (x.LanLoi >= ThuToiDa) { xong.Add(x.Ma); BiBo.Add(x); continue; }
                 loi = x.Ma;
                 break;
             }
             xong.Add(x.Ma);
+            if (kq == KetQuaGuiXin.Bo) BiBo.Add(x);
         }
         Items.RemoveAll(x => xong.Contains(x.Ma));
         return (xong, loi);
     }
 
-    /// <summary>Phân loại lỗi khi gửi: lỗi mạng / máy chủ 5xx ⇒ giữ lại; còn lại (4xx) ⇒ bỏ.</summary>
+    /// <summary>Phân loại lỗi khi gửi: lỗi mạng / máy chủ 5xx ⇒ giữ lại (tính lần); 408 / 429 ⇒ tạm hoãn (giữ, không tính lần);
+    /// 401 / 403 không phải token sai (token đang xoay, tường lửa mạng khách sạn) ⇒ như lỗi mạng; còn lại (4xx, token sai) ⇒ bỏ.</summary>
     public static KetQuaGuiXin PhanLoai(Exception e) => e switch
     {
-        ApiException a => a.LaLoiDuongTruyen ? KetQuaGuiXin.LoiMang : KetQuaGuiXin.Bo,
+        ApiException a when a.LaLoiDuongTruyen => KetQuaGuiXin.LoiMang,
+        ApiException { StatusCode: 408 or 429 } => KetQuaGuiXin.TamHoan,
+        ApiException { LaTokenSai: true } => KetQuaGuiXin.Bo,
+        ApiException { StatusCode: 401 or 403 } => KetQuaGuiXin.LoiMang,
+        ApiException => KetQuaGuiXin.Bo,
         HttpRequestException or TimeoutException or TaskCanceledException or IOException => KetQuaGuiXin.LoiMang,
         _ => KetQuaGuiXin.Bo,
     };
+}
+
+/// <summary>#684: lời xin chờ mạng đã bị bỏ mà chưa tới Ba Mẹ — lưu trong config để khay (kể cả khay khởi động lại) báo Con «con xin lại nhé».
+/// Giữ tối đa <see cref="ToiDa"/> mục, mỗi mục <see cref="Han"/>.</summary>
+public sealed class XinBoDs
+{
+    public const int ToiDa = 10;
+    public static readonly TimeSpan Han = TimeSpan.FromHours(24);
+    public List<LoiXinCho> Items { get; set; } = new();
+
+    /// <summary>Thêm các lời xin vừa bị bỏ (Luc đổi thành lúc bỏ — tính hạn báo), dọn mục quá hạn.</summary>
+    public void Them(IEnumerable<LoiXinCho> ds, DateTimeOffset now)
+    {
+        foreach (var x in ds)
+            if (Items.All(i => i.Ma != x.Ma))
+                Items.Add(new LoiXinCho { Ma = x.Ma, Loai = x.Loai, Muc = x.Muc, Ten = x.Ten, Phut = x.Phut, Kieu = x.Kieu, Luc = now });
+        Items.RemoveAll(i => now - i.Luc > Han || i.Luc > now + Han);
+        while (Items.Count > ToiDa) Items.RemoveAt(0);
+    }
+
+    public List<LoiXinCho> ConHan(DateTimeOffset now) => Items.Where(i => now - i.Luc <= Han).ToList();
+}
+
+/// <summary>Chữ khay báo Con khi lời xin lưu lúc mất mạng không tới được Ba Mẹ (#684).</summary>
+public static class XinBoView
+{
+    public const string Tieu = "Lời xin chưa tới Ba Mẹ";
+
+    public static string Cau(LoiXinCho x) => x.Loai == LoaiXin.VaySao
+        ? $"Lời xin vay {x.Phut} sao lúc mất mạng chưa gửi được tới Ba Mẹ. Con xin lại nhé."
+        : $"Lời xin mở «{(string.IsNullOrWhiteSpace(x.Ten) ? x.Muc : x.Ten)}» lúc mất mạng chưa gửi được tới Ba Mẹ. Con xin lại nhé.";
 }

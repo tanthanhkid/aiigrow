@@ -838,6 +838,7 @@ public sealed class AgentRuntime
                 Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now),
                 OfflineSince = _offlineSince, LastSyncAt = _lastSyncAt, TokenRejected = TokenInvalid, WebRev = WebRev,
                 XinChoMang = Config?.XinCho.Items.Count ?? 0,
+                XinBo = Config?.XinBo.ConHan(now) ?? new(),
                 BaiChoMang = Math.Max(0, SoBaiCho < 0 ? (SoBaiCho = DemBaiCho()) : SoBaiCho),
             };
             if (_policy == null) return s;
