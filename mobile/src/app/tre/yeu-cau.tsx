@@ -19,11 +19,12 @@ import { CamXuc, ChoD, ChuD, IcO, LoiD, ManD, NutD, PillD, TamTruot, TheD, TieuD
 import { NO } from "@/lib/man-con";
 import { useTaiTre } from "@/lib/ui-tre";
 import { tenMuc } from "@/lib/ten-muc";
+import { chuPhut } from "@/lib/chu-phut";
 
 const laVay = (y: YcTre) => y.loai === "vay_sao" || y.loai === "them_gio" || y.loai === "ngoai_le" || y.loai === "ngoai_gio";
 const laAppWeb = (y: YcTre) => y.loai === "mo_web" || y.loai === "cai_app";
 const soVayCua = (y: YcTre) => Number(y.so_sao ?? y.soSao ?? y.phut ?? 0) || 0;
-const tieuYc = (y: YcTre) => laAppWeb(y) ? `Mở ${y.loai === "mo_web" ? "trang " : ""}${y.gia_tri ?? "app"}` : laVay(y) ? `Vay ${soVN(soVayCua(y))} sao` : y.gia_tri || y.ly_do;
+const tieuYc = (y: YcTre) => laAppWeb(y) ? `Mở ${y.loai === "mo_web" ? `trang ${y.gia_tri ?? ""}` : y.gia_tri ? tenMuc(y.gia_tri, (y as { ten_app?: string | null }).ten_app) : "app"}` : laVay(y) ? `Vay ${soVN(soVayCua(y))} sao` : y.gia_tri || y.ly_do;
 
 type Kq = "cho" | "duoc" | "mo_tam" | "chua" | "het_han" | "huy";
 const BO_QUA_HOAN_TAC_MS = 60_000;
@@ -85,7 +86,7 @@ export default function YeuCau() {
   const ai = dau.tenNguoiDuyet || "Ba Mẹ";
   const loiBaMe = dau.loiNhan ?? (dau as { loi_nhan?: string | null }).loi_nhan ?? dau.ly_do_tu_choi ?? null;
   const mucXin = dau.gia_tri ?? "app";
-  const tenXin = dau.gia_tri ? tenMuc(dau.gia_tri, (dau as { ten_app?: string | null }).ten_app) : "app";   // #691: không hiện «robloxplayerbeta.exe»
+  const tenXin = dau.loai === "mo_web" ? (dau.gia_tri ?? "trang") : dau.gia_tri ? tenMuc(dau.gia_tri, (dau as { ten_app?: string | null }).ten_app) : "app";   // #691: không hiện «robloxplayerbeta.exe»
   const xacNhanHuy = () => lam(async () => { await kid.goi(`yeu-cau/${huy!.id}/huy`, {}); setHuy(null); await tai(); });
   // «Xin lại» app / web chưa thêm: lời xin mới cùng mục (kèm lý do nếu chọn)
   const xinLai = () => lam(async () => {
@@ -189,7 +190,7 @@ export default function YeuCau() {
       <ManD lui="/tre/nha" day={<><NutD chu={kq === "mo_tam" || !tinhPhut || !s ? "Về trang chính" : `Mở ${tenXin} · còn ${soVN(s.phutCon)} phút`} ic="game"
         bam={() => router.replace("/tre/nha")} />
         <NutD chu={`Cảm ơn ${ai} ›`} loai="chu" bam={() => router.push("/tre/tin")} /></>}>
-        <TieuD chu={kq === "mo_tam" ? `${ai} cho mở ${tenXin}${dau.moTam?.phut ? ` ${dau.moTam.phut} phút` : ""}` : `${ai} đã thêm ${tenXin}!`} />
+        <TieuD chu={kq === "mo_tam" ? `${ai} cho mở ${tenXin}${dau.moTam?.phut ? ` ${chuPhut(dau.moTam.phut)}` : ""}` : `${ai} đã thêm ${tenXin}!`} />
         <TheD>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <IcO ic={dau.loai === "mo_web" ? "web" : "game"} co={48} />

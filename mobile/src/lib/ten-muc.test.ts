@@ -43,3 +43,19 @@ test("tenYc: lời xin không có ten_app ⇒ không hiện tên tệp", () => {
   assert.equal(tenYc({ gia_tri: "www.bbc.co.uk" }), "www.bbc.co.uk");
   assert.equal(tenYc({ gia_tri: null }), null);
 });
+
+test("#691 vòng 2: tên miền web không thành «App lạ»; tenChac không đoán; dsTenApp không gộp mất app lạ; tenTepCai launcher/_v2", async () => {
+  const { tenMuc, laMaGoi, tenChac, dsTenApp, tenTepCai } = await import("./ten-muc.ts");
+  for (const d of ["fr.wikipedia.org", "tv.zing.vn", "app.hocmai.vn"]) { assert.equal(laMaGoi(d), false, d); assert.equal(tenMuc(d), d); }
+  assert.equal(laMaGoi("com.snapchat.android"), true);
+  assert.equal(tenChac("robloxplayerbeta.exe"), "Roblox");
+  assert.equal(tenChac("abcgame.exe"), "");
+  assert.equal(tenChac("com.vendor.x"), "");
+  assert.equal(tenChac("x", "Tên thật"), "Tên thật");
+  assert.deepEqual(dsTenApp([{ muc: "com.a.b" }, { muc: "com.c.d", ten: "com.c.d" }, { muc: "roblox.exe" }, { muc: "robloxplayerbeta.exe" }]), ["Roblox", "2 app lạ"]);
+  assert.deepEqual(dsTenApp([{ muc: "com.a.b" }]), ["App lạ"]);
+  assert.equal(tenTepCai("RobloxPlayerLauncher.exe"), "Roblox");
+  assert.equal(tenTepCai("Minecraft_v2.exe"), "Minecraft");
+  assert.equal(tenTepCai("Roblox-setup_v2 (1).exe"), "Roblox");
+  assert.equal(tenTepCai("FIFA 23.exe"), "FIFA 23");
+});

@@ -4,7 +4,8 @@
 // agent-android cũ vẫn mở đường /tre/choi. Hết sao ⇒ «Hết sao rồi»; Ba Mẹ khoá máy ⇒ màn khoá.
 import { Redirect, router } from "expo-router";
 import { View } from "react-native";
-import { kid, taiCheDo, taiSao, tenMuc, type TroChoi } from "@/lib/api-tre";
+import { kid, taiCheDo, taiSao, type TroChoi } from "@/lib/api-tre";
+import { dsTenApp } from "@/lib/ten-muc";
 import { soSao, soVN } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { Icon3D } from "@/lib/ui";
@@ -44,7 +45,7 @@ export default function ChoiBangSao() {
     );
   }
   // tro-choi = app «Tính phút» trong danh sách của Con (luật giai_tri); «Không tính phút» = app học + AiiRob
-  const tinh = [...new Set(d.tc.map((x) => tenMuc(x.muc, x.ten)))];
+  const tinh = dsTenApp(d.tc);
   const khong = ["App học", "AiiRob"];
   return (
     <ManD lui={true} tieu="Chơi bằng sao" day={<>

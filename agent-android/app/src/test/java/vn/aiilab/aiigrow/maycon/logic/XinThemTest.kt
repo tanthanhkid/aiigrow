@@ -68,4 +68,8 @@ class XinThemTest {
         assertEquals("App lạ", tenTuGoi("vn.edu.hocvui"))
         assertEquals("App này", tenTuGoi(" "))
     }
+
+    @Test fun chuPhutDoiRaGio() {
+        assertEquals("45 phút", chuPhut(45)); assertEquals("1 giờ", chuPhut(60)); assertEquals("3 giờ 5 phút", chuPhut(185)); assertEquals("0 phút", chuPhut(-3))
+    }
 }

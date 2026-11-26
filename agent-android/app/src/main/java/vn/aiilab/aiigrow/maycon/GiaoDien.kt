@@ -188,7 +188,7 @@ object GiaoDien {
             val ten = DoPhut.tenApp(c, g)
             val ly = (if (choGoLyDo) oLyDo.text.toString().replace(Regex("\\s*\n\\s*"), " ") else lyDoChon ?: "")
             val gen = ++xinGen
-            xinGoi = g; xinTen = ten; hetHoi = false
+            xinGoi = g; xinTen = DoPhut.tenHien(c, g); hetHoi = false   // hiển thị: không lộ mã gói (#691); `ten` gửi máy chủ giữ như cũ
             xinKq = KetQuaXinApp(LoaiKetQuaXin.CHO, null)
             capNhatKetQua(g)
             val ctx = c.applicationContext

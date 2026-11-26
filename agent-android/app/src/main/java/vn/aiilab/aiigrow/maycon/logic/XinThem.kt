@@ -66,3 +66,11 @@ fun tenTuGoi(goi: String): String {
     if (g.isEmpty()) return "App này"
     return TEN_GOI_BIET[g.lowercase()] ?: "App lạ"
 }
+
+/** Số phút cho người đọc (#697): 45 → «45 phút», 60 → «1 giờ», 185 → «3 giờ 5 phút». */
+fun chuPhut(n: Int): String {
+    val p = maxOf(0, n)
+    if (p < 60) return "$p phút"
+    val g = p / 60; val du = p % 60
+    return if (du > 0) "$g giờ $du phút" else "$g giờ"
+}

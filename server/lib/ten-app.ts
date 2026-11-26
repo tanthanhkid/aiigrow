@@ -21,7 +21,14 @@ const BIET: Record<string, string> = {
 /** Khúc đầu của mã gói kiểu tên miền đảo — tên miền web thường không bắt đầu bằng các khúc này (www.bbc.co.uk, m.youtube.com). */
 const DAU_GOI = /^(com|org|net|io|vn|edu|gov|air|app|me|co|tv|de|uk|jp|kr|cn|in|us|ru|br|fr|it|es|info|biz)$/;
 /** Mã gói Android / bundle id Mac (com.king.candycrushsaga, com.whatsapp): khúc đầu là đuôi tên miền đảo, ≥ 2 khúc, không khoảng trắng. */
-export const laMaGoi = (s: string) => { const t = s.trim().toLowerCase(); return /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/.test(t) && DAU_GOI.test(t.split(".")[0]); };
+/** Khúc cuối là đuôi tên miền ⇒ tên miền web (fr.wikipedia.org, tv.zing.vn), không phải mã gói. */
+const DUOI_WEB = /^(com|org|net|io|vn|edu|gov|info|biz|me|co|tv|app|uk|us|jp|kr|cn|de|fr|ru|br|it|es|in|xyz|online|site|dev)$/;
+export const laMaGoi = (s: string) => {
+  const t = s.trim().toLowerCase();
+  if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/.test(t)) return false;
+  const k = t.split(".");
+  return DAU_GOI.test(k[0]) && !DUOI_WEB.test(k[k.length - 1]);
+};
 
 /** Tên hiển thị của một mục (đã chuẩn hoá chữ thường như lưu trong `usage` / `app_rules`). */
 export function tenApp(muc: string): string {

@@ -4,7 +4,8 @@
 // Ba Mẹ khoá máy ⇒ màn khoá; chế độ «Mở hết» ⇒ không đếm, không «Hết sao».
 import { Redirect, router } from "expo-router";
 import { View } from "react-native";
-import { kid, taiCheDo, taiSao, tenMuc, type TroChoi } from "@/lib/api-tre";
+import { kid, taiCheDo, taiSao, type TroChoi } from "@/lib/api-tre";
+import { dsTenApp } from "@/lib/ten-muc";
 import { soVN, tiVong } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { ChoD, ChuD, ManD, MatMangD, NutD, PillD, TheD, VongD } from "@/lib/ui-diu";
@@ -20,7 +21,7 @@ export default function DangChoi() {
   if (d.khoa) return <Redirect href="/tre/gio-ngu?ly=ba_me_khoa" />;
   const moHet = cd.d === "mo_het";
   if (d.hetSao && !moHet) return <Redirect href="/tre/het-phien" />;
-  const app = [...new Set((tc.d?.ds ?? []).map((x) => tenMuc(x.muc, x.ten)))];
+  const app = dsTenApp(tc.d?.ds ?? []);
   // máy chủ mới: phút từng app hôm nay + sao đã trừ; cũ: danh sách app Tính phút (chưa có số)
   const dong: (readonly [string, string, boolean])[] = d.appHomNay
     ? [...d.appHomNay.map((x) => [x.ten, x.nhom === "tinh_phut" && !moHet ? `${chuPhut(x.phut)} · \u2212${soVN(x.sao)} sao` : `${chuPhut(x.phut)} · không tính phút`, x.nhom !== "tinh_phut"] as const),

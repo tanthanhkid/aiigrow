@@ -6,6 +6,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 import { guiXinMo, tenMuc } from "@/lib/api-tre";
+import { tenChac } from "@/lib/ten-muc";
 import { useLam } from "@/lib/ui";
 import { CamXuc, LoiD, ManD, NutD, PillD } from "@/lib/ui-diu";
 import { ChanMan } from "@/lib/man-con";
@@ -15,8 +16,8 @@ export default function ChanApp() {
   const p = useLocalSearchParams<{ muc?: string; ten?: string }>();
   const { ten } = useTre();
   const muc = (p.muc ?? "").trim();
-  const tenThat = muc ? tenMuc(muc, p.ten, "") : p.ten || "";   // "" = không biết tên: không gửi tên đoán lên máy chủ (#691)
-  const tenApp = tenThat || (muc ? "App lạ" : "App này");
+  const tenThat = muc ? tenChac(muc, p.ten) : p.ten || "";   // "" = không biết chắc: không gửi tên đoán lên máy chủ (#691)
+  const tenApp = tenThat || (muc ? tenMuc(muc) : "App này");   // hiển thị: tên đẹp đoán được / «App lạ»
   const { dangChay, loi, lam } = useLam();
   const xin = () => lam(async () => {
     const r = await guiXinMo({ loai: "cai_app", muc: muc || tenApp, ...(tenThat ? { ten: tenThat } : {}) });
