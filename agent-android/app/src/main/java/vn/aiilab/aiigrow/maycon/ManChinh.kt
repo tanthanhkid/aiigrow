@@ -178,6 +178,8 @@ class ManChinh : Activity() {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = G.dp(this@ManChinh, 12); bottomMargin = G.dp(this@ManChinh, 4) }
         }
         val bao = G.dongBao(this, Diu.LOI_DAM)
+        // #707: gói cài QR bị máy chủ từ chối hẳn (đã dùng / hết hạn) ⇒ nói rõ, không để màn ghép trống như máy mới
+        Kho(this).loiGhepGoi?.let { bao.text = "$it. Hoặc nhập mã 6 số của Ba Mẹ để ghép." }
         t.addView(o)
         t.addView(G.nut(this, "Ghép máy") {
             val ma = chuanMaGhep(o.text.toString())

@@ -19,6 +19,9 @@ import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
 import vn.aiilab.aiigrow.maycon.logic.Cong
+import vn.aiilab.aiigrow.maycon.logic.CuaGoi
+import vn.aiilab.aiigrow.maycon.logic.ThuGhepGoi
+import vn.aiilab.aiigrow.maycon.logic.loiGhepGoiVinhVien
 import vn.aiilab.aiigrow.maycon.logic.KetQuaCho
 import vn.aiilab.aiigrow.maycon.logic.choLaiMs
 import vn.aiilab.aiigrow.maycon.logic.docKetQuaCho
@@ -65,8 +68,14 @@ class DichVuNhip : Service() {
     private var threadCho: Thread? = null
     @Volatile private var dangChay = false     // luồng «chờ thay đổi» (P1 07/11)
     private lateinit var h: Handler
-    private var lanGoiMayChu = 0L
+    @Volatile private var lanGoiMayChu = 0L
     private var lanGuiHangDoi = 0L
+    /** #708: gọi máy chủ của vòng nhịp (ghép gói, việc chờ, nhịp, DNS) chạy trên luồng riêng — mạng treo (≤ 35 giây / lần) không giữ
+     *  vòng áp luật 5 giây (khoá, chặn, nhắc giờ). Một lượt một lúc (`cuaMang`); xong ⇒ áp lại ngay theo phản hồi mới. */
+    private val mang = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "aiigrow-mang").apply { isDaemon = true } }
+    private val cuaMang = CuaGoi()
+    /** #707: thử ghép gói cài có lùi dần (chỉ luồng mạng ghi; vòng nhịp đọc). */
+    @Volatile private var thuGhepGoi = ThuGhepGoi()
     private var nhac = NhacGio()
     private var daBaoDemNguoc = 0L          // khoaTu của lượt đếm ngược đã bật thông báo
     private var trinhDuyet: Set<String> = emptySet()
@@ -110,6 +119,7 @@ class DichVuNhip : Service() {
     override fun onDestroy() {
         dangChay = false
         threadCho?.interrupt()
+        mang.shutdownNow()
         try { unregisterReceiver(nhanCaiApp) } catch (_: Exception) {}
         dsApp.dung()
         luong.quitSafely()
@@ -167,8 +177,7 @@ class DichVuNhip : Service() {
         val ph0: PhanHoiNhip? = if (k.cheDoThu) {
             try { docPhanHoiNhip(k.tepThu.readText()) } catch (e: Exception) { NhatKy.canh(TAG, "tệp thử hỏng", e); null }
         } else {
-            if (k.token == null && k.tokenGoiCai != null) ghepBangGoi(k)
-            if (k.token != null && (epGoi || nowMay - lanGoiMayChu >= 60_000)) { lanGoiMayChu = nowMay; goiNhip(k) }
+            goiMayChuNen(k, epGoi, nowMay)
             dsApp.kich(k)   // gửi app đã cài thật (Ba Mẹ chọn chặn) — chạy luồng riêng, không chặn thực thi
             k.phanHoi?.let { try { docPhanHoiNhip(it) } catch (_: Exception) { null } }
         }
@@ -267,13 +276,55 @@ class DichVuNhip : Service() {
         for (l in ph0.lenh) if (l.loai == "go" && !k.cheDoThu) xuLyGo(k, l.id)
     }
 
-    private fun ghepBangGoi(k: Kho) {
+    /** #708: mở một lượt gọi máy chủ trên luồng mạng nếu tới hạn; lượt trước còn chạy (mạng treo) ⇒ bỏ qua, vòng áp luật đi tiếp ngay. */
+    private fun goiMayChuNen(k: Kho, epGoi: Boolean, nowMay: Long) {
+        val ghep = k.token == null && k.tokenGoiCai != null && thuGhepGoi.nenThu(nowMay)
+        val nhip = k.token != null && (epGoi || nowMay - lanGoiMayChu >= 60_000)
+        if (!ghep && !nhip) return
+        if (!cuaMang.xin(epGoi)) return
+        if (nhip) lanGoiMayChu = nowMay
+        try {
+            mang.execute {
+                var ep = false
+                try {
+                    val k2 = Kho(this)
+                    val vuaGhep = k2.token == null && k2.tokenGoiCai != null && ghepBangGoi(k2)
+                    if ((nhip || vuaGhep) && k2.token != null) { if (vuaGhep) lanGoiMayChu = System.currentTimeMillis(); goiNhip(k2) }
+                } catch (e: Exception) { NhatKy.canh(TAG, "gọi máy chủ lỗi", e)
+                } finally { ep = cuaMang.xong() }
+                h.post { try { vong(ep) } catch (e: Exception) { NhatKy.canh(TAG, "vòng nhịp lỗi", e) } }   // áp ngay theo phản hồi mới
+            }
+        } catch (_: java.util.concurrent.RejectedExecutionException) { cuaMang.xong() }   // dịch vụ đang dừng
+    }
+
+    /** Ghép bằng token gói cài (QR Device Owner). true = vừa ghép xong. #707: lỗi vĩnh viễn (gói đã dùng / hết hạn / sai) ⇒ bỏ gói + báo ở màn
+     *  ghép; lỗi tạm ⇒ lùi dần 5 giây … 5 phút (không gõ máy chủ mỗi 5 giây, không lặp một dòng nhật ký). Chạy trên luồng mạng. */
+    private fun ghepBangGoi(k: Kho): Boolean {
+        val now = System.currentTimeMillis()
         try {
             val r = MayChu(k.mayChu, null).ghepGoi(thanGhepToken(k.tokenGoiCai!!, Build.MODEL ?: "Android"))
             MoMaOffline.quen(k); HocVien.quen(k); PinMay.quen(k)
             k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
-            k.tokenGoiCai = null
-        } catch (e: Exception) { NhatKy.canh(TAG, "ghép bằng token gói cài lỗi", e) }
+            k.tokenGoiCai = null; k.loiGhepGoi = null
+            thuGhepGoi = ThuGhepGoi()
+            NhatKy.tin(TAG, "đã ghép bằng gói cài")
+            return true
+        } catch (e: MayChu.Loi) {
+            if (loiGhepGoiVinhVien(e.http)) {
+                NhatKy.canh(TAG, "máy chủ từ chối gói cài (${e.http} ${e.ma}) — bỏ gói, chờ ghép bằng mã / gói mới", e)
+                k.tokenGoiCai = null; k.loiGhepGoi = e.cau
+                thuGhepGoi = ThuGhepGoi()
+                return false
+            }
+            loiTam(now, e)
+        } catch (e: Exception) { loiTam(now, e) }
+        return false
+    }
+
+    private fun loiTam(now: Long, e: Exception) {
+        val t = thuGhepGoi.sauLoiTam(now)
+        thuGhepGoi = t
+        if (t.nenGhiNhatKy) NhatKy.canh(TAG, "ghép bằng token gói cài lỗi (lần ${t.lanLoi}) — thử lại sau ${(t.thuLaiLuc - now) / 1000} giây", e)
     }
 
     private fun goiNhip(k: Kho) {
@@ -440,6 +491,7 @@ class DichVuNhip : Service() {
                 val r = MayChu(k.mayChu, null).ghep(vn.aiilab.aiigrow.maycon.logic.thanGhep(ma, Build.MODEL ?: "Android"))
                 MoMaOffline.quen(k); HocVien.quen(k); PinMay.quen(k)
                 k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
+                k.loiGhepGoi = null
                 lamMoi(ctx)
                 null
             } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Không kết nối được máy chủ AiiGrow. Kiểm tra mạng rồi thử lại." }
