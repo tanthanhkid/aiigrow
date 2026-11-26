@@ -180,6 +180,7 @@ public static class ChanAppThat
         "java.exe", "javaw.exe", "python.exe", "pythonw.exe", "node.exe", "electron.exe", "helper.exe", "update.exe", "updater.exe", "setup.exe",
         "unitycrashhandler64.exe", "unitycrashhandler32.exe", "crashhandler.exe", "cefsharp.browsersubprocess.exe", "qtwebengineprocess.exe",
         "launcherpatcher.exe", "bootstrapper.exe", "loader.exe", "win64.exe", "x64.exe",
+        "gamelaunchhelper.exe",   // #695: trình mở chung của game Xbox / Microsoft Store PC (mỗi game một bản, cùng tên)
     };
 
     /// <summary>Luật khớp theo tên exe trần: luôn khi luật CHỈ có tên; có định danh thật thì chỉ khi tên không chung chung (<see cref="TenChung"/>).</summary>
@@ -198,7 +199,7 @@ public static class ChanAppThat
             if (a.Muc.Length > 0 && a.Muc == goi) return a;
             if (a.Muc == ten && KhopTheoTen(a)) return a;
             if (a.DuongDan != null && string.Equals(a.DuongDan, p, StringComparison.OrdinalIgnoreCase)) return a;
-            if (a.ThuMuc != null && DanhSachApp.Trong(p, a.ThuMuc)) return a;
+            if (a.ThuMuc != null && GoiNgoaiWindowsApps.TrongGoi(p, a.ThuMuc)) return a;   // #695: gói «X:\WindowsApps» — mọi bản
         }
         if (bam != null && ds.Any(a => a.Sha256 != null))
         {

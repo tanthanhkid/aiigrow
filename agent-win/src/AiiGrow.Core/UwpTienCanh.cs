@@ -13,4 +13,29 @@ public static class UwpTienCanh
         foreach (var c in cuaSo) if (c.Lop == LopCoreWindow && c.Pid != 0 && c.Pid != hostPid) return c.Pid;
         return 0;
     }
+
+    /// <summary>Tên tiến trình host của app UWP (cửa sổ khung).</summary>
+    public const string Host = "applicationframehost.exe";
+
+    /// <summary>#696: khay không quy được cửa sổ ApplicationFrameHost về app thật (CoreWindow không thấy — app treo, toàn màn hình, đổi tiêu đề)
+    /// ⇒ tiền cảnh là một app UWP / Store. Nếu app Store «Tính phút» (<paramref name="tinhPhut"/>) là app Store DUY NHẤT (ngoài gói hệ thống) đang chạy
+    /// trong phiên Con thì quy phút về app đó (lỗi nhận diện cửa sổ không làm đồng hồ ngừng); còn app Store khác chạy ⇒ không biết cửa sổ của ai ⇒ null. CHỈ xét tiến trình
+    /// của gói Store (đường dẫn Program Files\WindowsApps, hoặc thư mục cài của gói ngoài WindowsApps — <paramref name="goi"/>): app Win32 chạy nền
+    /// (Roblox thu nhỏ) không bị tính thay. <paramref name="mucChinh"/>: muc bí danh → muc chính (#690).</summary>
+    public static string? QuyHostVeAppTinhPhut(IEnumerable<string> tinhPhut, IEnumerable<string> duongDan,
+        IReadOnlyDictionary<string, string>? mucChinh = null, IEnumerable<IReadOnlyList<string>>? goi = null)
+    {
+        var dangChay = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var d in duongDan)
+        {
+            if (string.IsNullOrWhiteSpace(d)) continue;
+            var g = ProcessGuard.TenGoiStore(d) ?? GoiNgoaiWindowsApps.GoiCua(d, goi);
+            if (string.IsNullOrEmpty(g)) continue;
+            dangChay.Add(mucChinh != null && mucChinh.TryGetValue(g, out var chinh) ? chinh : g);
+        }
+        // app Store khác (không phải gói hệ thống) cũng đang chạy ⇒ cửa sổ có thể là của nó (Máy tính, Ảnh…) — không đoán, không trừ oan
+        dangChay.RemoveWhere(ProcessGuard.LaGoiStoreHeThong);
+        var hop = tinhPhut.Where(m => !string.IsNullOrEmpty(m) && dangChay.Contains(m)).Select(m => m.ToLowerInvariant()).Distinct().ToList();
+        return hop.Count == 1 && dangChay.Count == 1 ? hop[0] : null;
+    }
 }

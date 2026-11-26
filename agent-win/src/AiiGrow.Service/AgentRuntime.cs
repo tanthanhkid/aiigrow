@@ -85,6 +85,17 @@ public sealed class AgentRuntime
         MucChinh = DanhSachApp.BangMucChinh(nhom);
     }
 
+    /// <summary>#695: gói Store cài ngoài WindowsApps ([muc gói, thư mục cài, exe…]) — Cho phép / Chặn theo thư mục cài.</summary>
+    public volatile IReadOnlyList<IReadOnlyList<string>>? GoiNgoai;
+    /// <summary>#695: exe của gói ngoài WindowsApps → muc gói (khay chỉ báo tên exe ở tiền cảnh).</summary>
+    public volatile IReadOnlyDictionary<string, string>? ExeGoi;
+
+    public void DatGoiNgoai(IReadOnlyList<List<string>>? goi)
+    {
+        GoiNgoai = goi?.Select(g => (IReadOnlyList<string>)g.ToList()).ToList();
+        ExeGoi = GoiNgoaiWindowsApps.ExeVeGoi(goi);
+    }
+
     /// <summary>#693: tên exe app đã cài ở chỗ khác Desktop / Downloads (null = chưa quét lần nào — mọi exe ở chỗ thả tệp không được nhận theo tên).</summary>
     public volatile ISet<string>? TenDaCai;
     /// <summary>#422: app đã cài theo lần quét gần nhất (mục + tên) — lưới «App trên máy» của hộp «Xin thêm app / web» (PipeCmd.AppMay). null = chưa quét.</summary>
@@ -127,6 +138,7 @@ public sealed class AgentRuntime
             // #690: bí danh của lần quét trước — có ngay sau khởi động lại (lượt quét đầu chỉ chạy sau 40 giây – 3 phút)
             if (BiDanhMuc == null && Config?.NhomMucApp is { Count: > 0 } nhom) DatNhomMuc(nhom);
             if (TenDaCai == null && Config?.TenExeDaCai is { } tdc) TenDaCai = new HashSet<string>(tdc, StringComparer.OrdinalIgnoreCase);
+            if (GoiNgoai == null && Config?.GoiNgoaiApp is { } gn) DatGoiNgoai(gn);
             // Máy mồ côi (token bị từ chối quá MoCoi.Nguong) ⇒ KHÔNG nạp lại Policy cuối (không áp luật cũ sau khởi động lại).
             // LastPolicyJson là CẢ phản hồi dong-bo ⇒ lấy phần `windows` (LayWindows nhận cả dạng phẳng cũ) — không thì mất mạng + khởi động lại nạp «tự do» rỗng.
             if (_policy == null && !MoCoi.La(Config, DateTimeOffset.UtcNow) && PolicyParser.TryParse(Config?.LastPolicyJson ?? "", out var p) && p != null)
@@ -764,8 +776,15 @@ public sealed class AgentRuntime
     {
         // #690: exe bí danh của app đã gộp (bản Store / bản cài) ⇒ muc chính máy chủ biết — phút, «đang chơi», phiên chơi, Tính phút cùng một app
         var goc = appId;
+        if (appId != null && ExeGoi is { } eg && eg.TryGetValue(appId, out var goi)) appId = goi;   // #695: exe của gói ngoài WindowsApps
         if (appId != null && MucChinh is { } mc && mc.TryGetValue(appId, out var chinh)) appId = chinh;
         lock (_gate) { _fgId = appId ?? ""; _fgIdGoc = goc ?? ""; _fgName = appName; _fgAt = DateTimeOffset.UtcNow; }
+    }
+
+    /// <summary>App «Tính phút» trong luật của bé đang dùng (#696: quy tiền cảnh ApplicationFrameHost không rõ app về app đang chạy).</summary>
+    public IReadOnlyList<string> AppTinhGioBe()
+    {
+        lock (_gate) return _policy == null ? Array.Empty<string>() : PolicyChoBe().P.AppTinhGio.ToList();
     }
 
     /// <summary>Fresh = tray còn sống (báo trong 20 giây qua).</summary>
