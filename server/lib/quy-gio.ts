@@ -129,6 +129,9 @@ export function saoKepGioiHan(qy: Quy) {
   const st = qy.gioiHan.apDung ? { ...qy.soSao, phutCon: qy.conPhut, hetSao: qy.soSao.hetSao || qy.conPhut <= 0 } : qy.soSao;
   const cau = cauSao(st);
   return { ...st, saoTieuDuoc: qy.soSao.phutCon,
+    /** #699: phút «Tính phút» đã trừ sao hôm nay (mọi máy của Con, giờ gia đình) — khay Windows «Hôm nay đã chơi N phút · −N sao» đọc số này,
+     *  không tự đếm trong bộ nhớ (mất khi dịch vụ khởi động lại, chỉ thấy máy mình, chỉ 8 app) */
+    phutChoiHomNay: qy.phutTruHomNay,
     cau: qy.gioiHan.lyDoKhoa ? { ...cau, phut: qy.gioiHan.cau ?? cau.phut } : cau };
 }
 

@@ -59,6 +59,10 @@ public static class LockReasons
 public sealed class Policy
 {
     public DateTimeOffset? ServerTime { get; set; }
+    /// <summary>#703: múi giờ gia đình (IANA, vd «Asia/Ho_Chi_Minh») — máy chủ chốt «hôm nay» theo múi này; tác tử ghi ngày dùng theo cùng múi.</summary>
+    public string? Tz { get; set; }
+    /// <summary>#703: độ lệch (phút) của múi gia đình so với UTC lúc máy chủ trả — dùng khi máy không tra được tên múi (InvariantGlobalization không có dữ liệu IANA).</summary>
+    public int? TzPhut { get; set; }
     public string ChildName { get; set; } = "";
     public string Mode { get; set; } = Modes.TuDo;
     public bool Locked { get; set; }
@@ -155,6 +159,9 @@ public sealed class SoSaoMay
     public double PhutCon { get; set; }
     public bool HetSao { get; set; }
     public bool CanhBaoNo { get; set; }
+    /// <summary>#699: phút «Tính phút» đã trừ sao HÔM NAY trên mọi máy của Con (cả web), giờ gia đình — số khay hiện ở «Hôm nay đã chơi N phút · −N sao».
+    /// null = máy chủ cũ (khay đếm tại máy như trước).</summary>
+    public int? PhutChoiHomNay { get; set; }
 }
 
 /// <summary>Số giây Con đã chơi app «Tính phút» tại máy kể từ Policy nhận lúc <see cref="PolicyAt"/> (lưu để dịch vụ khởi động lại vẫn trừ đúng sao).

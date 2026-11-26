@@ -55,7 +55,8 @@ public static class PolicyParser
                 double Thuc(string k) => s.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d) && double.IsFinite(d) ? d : 0;
                 bool Co(string k) => s.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.True;
                 p.SoSao = new SoSaoMay { Sao = So("sao"), No = Math.Max(0, So("no")), PhutCon = Math.Max(0, Thuc("phutCon")), HetSao = Co("hetSao"), CanhBaoNo = Co("canhBaoNo"),
-                    SaoTieuDuoc = s.TryGetProperty("saoTieuDuoc", out var st) && st.ValueKind == JsonValueKind.Number ? Math.Max(0, Thuc("saoTieuDuoc")) : null };
+                    SaoTieuDuoc = s.TryGetProperty("saoTieuDuoc", out var st) && st.ValueKind == JsonValueKind.Number ? Math.Max(0, Thuc("saoTieuDuoc")) : null,
+                    PhutChoiHomNay = s.TryGetProperty("phutChoiHomNay", out var pc) && pc.ValueKind == JsonValueKind.Number ? Math.Max(0, So("phutChoiHomNay")) : null };
             }
             if (g.TryGetProperty("cheDo", out var c) && c.ValueKind == JsonValueKind.String)
             {

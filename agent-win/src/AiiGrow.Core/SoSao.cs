@@ -40,6 +40,15 @@ public static class SaoView
     public static string DaChoi(int phut, bool matMang = false)
         => $"Hôm nay đã chơi {Math.Max(0, phut)} phút · {Tru}{Math.Max(0, phut)} sao" + (matMang ? " · mất mạng vẫn trừ" : "");
 
+    /// <summary>#699: phút đã chơi hôm nay khay hiện = số máy chủ <paramref name="phutMayChu"/> (sổ sao, mọi máy) + phút vừa trừ tại máy kể từ lần đồng bộ
+    /// (phút còn máy chủ gửi − phút còn tại máy, cùng cách làm tròn với <see cref="SoDuTaiMay"/> ⇒ «−N sao» khớp số dư đang hiện). null ⇒ null.</summary>
+    public static int? DaChoiTaiMay(int? phutMayChu, double? phutConMayChu, double? phutConTaiMay)
+    {
+        if (phutMayChu is not int p) return null;
+        if (phutConMayChu is not double a || phutConTaiMay is not double b) return Math.Max(0, p);
+        return Math.Max(0, p) + Math.Max(0, Phut(a) - Phut(b));
+    }
+
     /// <summary>Phút «Tính phút» đã trừ sao hôm nay: chỉ app trong <paramref name="appTinhPhut"/>, bỏ phần dùng lúc máy mở bằng mã (không trừ sao).</summary>
     public static int PhutTinh(IEnumerable<DungApp> ds, IEnumerable<string>? appTinhPhut, int phutBoiMa = 0)
     {

@@ -54,14 +54,14 @@ public static class WebHistory
     /// <summary>Mỗi lượt ghé tính tối đa ngần này giây: tab bỏ quên cả đêm không thổi phồng số liệu (xem thêm giới hạn ở README).</summary>
     public const double TranMotLuotGiay = 3 * 3600;
 
-    public static List<WebDayDomain> TongHop(IEnumerable<WebVisit> visits, string? boQuaMien = null)
+    public static List<WebDayDomain> TongHop(IEnumerable<WebVisit> visits, string? boQuaMien = null, string? tz = null)
     {
         var d = new Dictionary<(string Ngay, string Mien), (int Lan, double Giay, DateTimeOffset Cuoi)>();
         foreach (var v in visits)
         {
             var mien = WebDomain.Goc(v.Url);
             if (mien == null || mien == boQuaMien) continue;
-            var ngay = v.Luc.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var ngay = NgayGiaDinh.Cua(tz is null ? v.Luc : v.Luc.ToLocalTime(), tz);   // #703: ngày gia đình (không có múi ⇒ như cũ)
             d.TryGetValue((ngay, mien), out var cur);
             d[(ngay, mien)] = (cur.Lan + 1, cur.Giay + Math.Clamp(v.GiayO, 0, TranMotLuotGiay), cur.Cuoi > v.Luc ? cur.Cuoi : v.Luc);
         }

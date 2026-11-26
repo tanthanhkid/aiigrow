@@ -15,13 +15,14 @@
 // Agent khởi động ở GIÁM SÁT (chỉ ghi log việc sẽ làm) — xem agent-win/README.md. `cheDo` = lựa chọn của Ba Mẹ trên app (devices.che_do);
 // máy Windows/Mac riêng của Con ghép từ 25/10 có sẵn lựa chọn «chan» (gia-dinh.ts › cheDoMayMoi) ⇒ chặn thật từ lần đồng bộ đầu.
 import { kieuMuc } from "./chinh-sach.ts";
-import { gioDiaPhuong, phutCua, trongKhung } from "./gio.ts";
+import { gioDiaPhuong, lechMuiPhut, phutCua, trongKhung } from "./gio.ts";
 import { laMoHet, type Policy } from "./may-con.ts";
 import { nhipToiKhoaLai } from "./cau-hinh.ts";
 import { chinhSachWebCho, type ChinhSachWeb } from "./web.ts";
 
 type PolicyWindows = {
-  serverTime: string; childName: string; mode: "hoc" | "khoa" | "tu_do"; locked: boolean; lockReason: string | null;
+  serverTime: string; /** #703: múi giờ gia đình (IANA) — agent tính «ngày» của phút app / lịch sử web theo ngày gia đình (máy chủ chốt hôm nay theo đó) */ tz: string; /** #703: độ lệch múi gia đình (phút) lúc serverTime — tác tử dùng khi không tra được `tz` */ tzPhut: number;
+  childName: string; mode: "hoc" | "khoa" | "tu_do"; locked: boolean; lockReason: string | null;
   allowedApps: string[]; learningApps: string[]; minutesLeft: null; nextCheckSec: number; canExchangePoints: boolean;
   /** Bí mật mã mở offline (lib/ma-offline.ts) — agent lưu khi còn mạng để tự kiểm mã Ba Mẹ đọc lúc mất mạng. */
   maOfflineBiMat?: string;
@@ -171,7 +172,7 @@ export function chinhSachWindows(p: Policy, maOfflineBiMat?: string, cheDo?: "gi
   // Chỉ phiên trang web mới thả trình duyệt — phiên app của nền khác (vd .exe lọt sang Mac) không phải web ⇒ không mở trình duyệt
   const phienWeb = p.phien && kieuMuc(p.phien.muc.toLowerCase()) === "web" && p.luat.some((l) => l.muc.toLowerCase() === p.phien!.muc.toLowerCase() && l.loai === "giai_tri");
   return {
-    serverTime: p.serverTime, childName: p.con?.ten ?? "",
+    serverTime: p.serverTime, tz: p.tz, tzPhut: lechMuiPhut(new Date(p.serverTime), p.tz), childName: p.con?.ten ?? "",
     mode: nlCaMay ? "tu_do" : khoa ? "khoa" : dangMo || moHet ? "tu_do" : "hoc", locked: khoa,
     lockReason: khoa ? (p.khoaNgay ? "khoa" : "ngu") : null,
     // giờ ngủ / khoá mà chỉ có ngoại lệ từng app ⇒ chỉ app hệ thống + app ngoại lệ (không mở app Học / Giải trí khác)

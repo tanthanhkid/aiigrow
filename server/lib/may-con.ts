@@ -194,7 +194,7 @@ export type Policy = {
   ngoaiLe?: NgoaiLeMo[];
   /** 15/11 (#263/#264, lib/so-sao.ts): sổ sao của Con — `sao` số dư Con thấy (âm khi nợ) · `no` nợ Ba Mẹ · `phutCon` sao tiêu được = phút
    *  «Tính phút» còn chơi (1 sao = 1 phút) · `hetSao` ⇒ khoá nhóm «Tính phút», hiện lối «Xin Ba Mẹ cho vay sao». null = máy dùng chung chưa chọn Con. */
-  sao?: (TrangThaiSao & { cau: { soDu: string; phut: string; no: string | null }; saoTieuDuoc?: number }) | null;
+  sao?: (TrangThaiSao & { cau: { soDu: string; phut: string; no: string | null }; saoTieuDuoc?: number; phutChoiHomNay?: number }) | null;
   /** #302 (lib/gioi-han-choi.ts): giới hạn ngày + mỗi lượt. `lyDoKhoa` het_gio_ngay | dang_nghi ⇒ khoá nhóm «Tính phút» (màn khoá dùng `cau`:
    *  «Nghỉ một chút · chơi tiếp lúc HH:MM» / «Hôm nay đã chơi đủ N phút — mai chơi tiếp nhé»); `nghiDen` ISO — agent tự mở lại đúng giờ.
    *  Agent cũ không đọc khối này vẫn khoá đúng: `sao.phutCon` / `sao.hetSao` / `quy.conPhut` đã kẹp theo giới hạn. null = máy chung chưa chọn Con. */
