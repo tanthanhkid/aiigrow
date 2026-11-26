@@ -117,10 +117,10 @@ test("#691 thẻ «Đang chơi»: gói lạ không hiện mã gói; tên thật 
   await luonChoiDuoc(con, [luc]);
   const ph = await moPhien(con, may.deviceId, "com.vendor.superpuzzlepe", {}, luc);
   await q(`update play_sessions set nhip_cuoi = now() where id = $1`, [ph.id]);
-  assert.equal((await m("phien-dang", { tok })).body.ds[0].tenApp, "Superpuzzle");
+  assert.equal((await m("phien-dang", { tok })).body.ds[0].tenApp, "App lạ", "không đoán «Superpuzzlepe», không lộ mã gói");
   await q(`insert into app_may(device_id, khoa, muc, ten) values ($1, 'superpuzzle', 'com.vendor.superpuzzlepe', 'Super Puzzle Kids')`, [may.deviceId]);
   assert.equal((await m("phien-dang", { tok })).body.ds[0].tenApp, "Super Puzzle Kids");
-  assert.deepEqual([tenApp("com.king.candycrushsaga"), tenApp("m.youtube.com"), tenApp("com.mojang.minecraftpe")], ["Candy Crush Saga", "m.youtube.com", "Minecraft"]);
+  assert.deepEqual([tenApp("com.king.candycrushsaga"), tenApp("m.youtube.com"), tenApp("com.mojang.minecraftpe"), tenApp("www.bbc.co.uk")], ["Candy Crush Saga", "m.youtube.com", "Minecraft", "www.bbc.co.uk"]);
 });
 
 test("«≈ X phút chơi»: điểm đổi ra phút trò chơi theo giá của nhà", async () => {

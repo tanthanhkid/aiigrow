@@ -64,8 +64,8 @@ class XinThemTest {
     @Test fun tenTuGoiKhongLoMaGoi() {   // #691 mục 5
         assertEquals("Minecraft", tenTuGoi("com.mojang.minecraftpe"))
         assertEquals("Candy Crush Saga", tenTuGoi("com.king.candycrushsaga"))
-        assertEquals("Superpuzzle", tenTuGoi("com.vendor.superpuzzlepe"))
-        assertEquals("Hocvui", tenTuGoi("vn.edu.hocvui"))
+        assertEquals("App lạ", tenTuGoi("com.snapchat.android"))
+        assertEquals("App lạ", tenTuGoi("vn.edu.hocvui"))
         assertEquals("App này", tenTuGoi(" "))
     }
 }

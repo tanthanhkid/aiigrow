@@ -51,7 +51,7 @@ fun chuNutXinThem(kieu: KieuXin, tenApp: String?): String = when (kieu) {
     KieuXin.WEB -> "Xin Ba Mẹ mở trang này"
 }
 
-// #691 mục 5: app đã gỡ / chưa đọc được nhãn ⇒ tên người đọc được thay vì mã gói «com.xxx.yyy».
+// #691 mục 5: app đã gỡ / chưa đọc được nhãn ⇒ tên hiển thị không phải mã gói «com.xxx.yyy». Chỉ để HIỆN — tên gửi máy chủ vẫn là định danh.
 private val TEN_GOI_BIET = mapOf(
     "com.roblox.client" to "Roblox", "com.mojang.minecraftpe" to "Minecraft", "com.google.android.youtube" to "YouTube",
     "com.google.android.apps.youtube.kids" to "YouTube Kids", "com.zhiliaoapp.musically" to "TikTok", "com.ss.android.ugc.trill" to "TikTok",
@@ -59,15 +59,10 @@ private val TEN_GOI_BIET = mapOf(
     "com.facebook.katana" to "Facebook", "com.facebook.orca" to "Messenger", "com.instagram.android" to "Instagram", "com.zing.zalo" to "Zalo",
     "com.android.chrome" to "Google Chrome", "com.dts.freefireth" to "Free Fire", "com.garena.game.kgvn" to "Liên Quân Mobile",
 )
-private val DUOI_GOI = Regex("(pe|android|client|mobile|app|free|lite|hd|global|vn)$")
 
-/** Mã gói ⇒ tên hiển thị dự phòng: bảng app hay gặp, không thì khúc cuối bỏ đuôi vô nghĩa, viết hoa chữ đầu (com.vendor.superpuzzlepe ⇒ «Superpuzzle»). */
+/** Mã gói ⇒ tên hiển thị dự phòng: bảng app hay gặp, không thì «App lạ» (không đoán từ khúc cuối: com.snapchat.android ⇒ «Android» là sai). */
 fun tenTuGoi(goi: String): String {
     val g = goi.trim()
     if (g.isEmpty()) return "App này"
-    TEN_GOI_BIET[g.lowercase()]?.let { return it }
-    val cuoi = g.substringAfterLast('.').lowercase()
-    val bo = cuoi.replace(DUOI_GOI, "")
-    val t = if (bo.length >= 3) bo else cuoi
-    return if (t.isEmpty()) "App này" else t.replaceFirstChar { it.uppercaseChar() }
+    return TEN_GOI_BIET[g.lowercase()] ?: "App lạ"
 }

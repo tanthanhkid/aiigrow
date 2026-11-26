@@ -357,7 +357,7 @@ object GiaoDien {
             val hetSao = ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && !duyet && vi == null
             val xinSao = hetSao || vi != null
             nutXin.text = when {
-                duyet -> "Xin Ba Mẹ mở ${DoPhut.tenApp(c, goiChan!!)}"
+                duyet -> "Xin Ba Mẹ mở ${DoPhut.tenHien(c, goiChan!!)}"
                 xinSao -> "Xin Ba Mẹ cho vay sao"
                 else -> "Xin Ba Mẹ mở máy"
             }
@@ -374,7 +374,7 @@ object GiaoDien {
                 capNhatKetQua(goiChan!!)
             } else if (chanApp) {
                 // 15/11 (them-4e5fwl16 / them-n4iivj6d): ngoài danh sách ⇒ «Roblox chưa có trong danh sách»; app Tính phút lúc hết sao ⇒ «Hết sao rồi»
-                val ten = DoPhut.tenApp(c, goiChan!!)
+                val ten = DoPhut.tenHien(c, goiChan!!)
                 tieuDe.text = if (duyet) "$ten chưa có trong danh sách" else if (vi != null) vi else if (hetSao) "Hết sao rồi" else "$ten đang tạm dừng"
                 dem.text = if (hetSao) vn.aiilab.aiigrow.maycon.logic.soSao(ht.soDu ?: 0) else ten; dem.textSize = 24f
                 moLai.visibility = View.GONE

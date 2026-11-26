@@ -15,10 +15,11 @@ export default function ChanApp() {
   const p = useLocalSearchParams<{ muc?: string; ten?: string }>();
   const { ten } = useTre();
   const muc = (p.muc ?? "").trim();
-  const tenApp = muc ? tenMuc(muc, p.ten) : p.ten || "App này";
+  const tenThat = muc ? tenMuc(muc, p.ten, "") : p.ten || "";   // "" = không biết tên: không gửi tên đoán lên máy chủ (#691)
+  const tenApp = tenThat || (muc ? "App lạ" : "App này");
   const { dangChay, loi, lam } = useLam();
   const xin = () => lam(async () => {
-    const r = await guiXinMo({ loai: "cai_app", muc: muc || tenApp, ten: tenApp });
+    const r = await guiXinMo({ loai: "cai_app", muc: muc || tenApp, ...(tenThat ? { ten: tenThat } : {}) });
     router.replace(`/tre/yeu-cau?moi=${r.id}`);
   }, { hangDoi: true });
   return (
