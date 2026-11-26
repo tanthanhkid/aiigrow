@@ -224,10 +224,11 @@ class HopXinThem(private val c: Context) {
             for (i in 0 until 100) {
                 if (g != gen) return@Thread
                 val kq = DichVuNhip.hoiKetQuaXinApp(ctx, r.id)
-                if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { h.post { if (g == gen) hienKq(ten, kq) }; return@Thread }
+                if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { HocVien.xongXinApp(ctx, r.id); h.post { if (g == gen) hienKq(ten, kq) }; return@Thread }
                 try { Thread.sleep(3000) } catch (_: InterruptedException) { return@Thread }
             }
-            h.post { if (g == gen) hienKq(ten, KetQuaXinApp(LoaiKetQuaXin.HET_HAN, null)) }
+            // #686: 5 phút chưa có trả lời ⇒ lời xin VẪN chờ (máy chủ không hết hạn lúc này) — thôi hỏi ở hộp, nhịp nền báo khi Ba Mẹ trả lời
+            h.post { if (g == gen) hienKq(ten, KetQuaXinApp(LoaiKetQuaXin.CHO, null), khongHoi = true) }
         }.also { it.start() }
     }
 

@@ -39,13 +39,21 @@ class ViecNhip(ctx: Context, p: WorkerParameters) : Worker(ctx, p) {
     }
 }
 
-/** Bật lại sau khởi động máy / cập nhật app. */
+/** Bật lại sau khởi động máy / cập nhật app / hẹn lại khi app bị vuốt khỏi gần đây (#709, DichVuNhip.onTaskRemoved). */
 class KhoiDong : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
         val k = Kho(c)
         if (k.daGhep || k.tokenGoiCai != null || QuanTri.laDeviceOwner(c)) DichVuNhip.batDau(c)
     }
+
+    companion object {
+        const val HEN_LAI = "vn.aiilab.aiigrow.con.HEN_LAI"
+    }
 }
+
+/** #709: AiiGrow đã được bỏ tối ưu pin (Doze / hãng máy ít dừng dịch vụ; được bật dịch vụ tiền cảnh từ nền). */
+fun boQuaToiUuPin(c: Context): Boolean = Build.VERSION.SDK_INT < 23 ||
+    (c.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(c.packageName)
 
 /**
  * Cài Device Owner bằng QR (Android 10+): hệ thống hỏi chế độ (GET_PROVISIONING_MODE ⇒ máy được quản lý hoàn toàn) rồi mở

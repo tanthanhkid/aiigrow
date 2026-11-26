@@ -95,3 +95,19 @@ fun loiApk(goiApk: String?, versionCodeApk: Long, lichSuApk: Collection<String>,
     !chuKyHopLe(lichSuApk, chungChiHienTai) -> "chữ ký APK không trùng chữ ký app đang chạy"
     else -> null
 }
+
+// #683: mã kết quả PackageInstaller (android.content.pm.PackageInstaller.STATUS_*) — giữ số ở đây để test JVM thuần.
+const val CAI_LOI_CHUNG = 1
+const val CAI_LOI_BI_CHAN = 2
+const val CAI_LOI_APK_HONG = 4
+const val CAI_LOI_XUNG_DOT = 5
+const val CAI_LOI_DUNG_LUONG = 6
+const val CAI_LOI_KHONG_HOP_MAY = 7
+const val CAI_LOI_HET_GIO = 8
+
+/** Nghỉ bao lâu trước khi tự thử lại đúng bản vừa cài hỏng: APK hỏng / không hợp máy / bị chính sách chặn ⇒ 24 giờ (thử lại cũng vậy);
+ *  hết dung lượng, xung đột phiên cài, hết giờ, lỗi chung ⇒ 1 giờ (thoáng qua — trước đây cũng 24 giờ nên máy kẹt bản cũ cả ngày). */
+fun nghiSauLoiCaiMs(maLoi: Int): Long = when (maLoi) {
+    CAI_LOI_APK_HONG, CAI_LOI_KHONG_HOP_MAY, CAI_LOI_BI_CHAN -> 24 * 3600_000L
+    else -> 3600_000L
+}

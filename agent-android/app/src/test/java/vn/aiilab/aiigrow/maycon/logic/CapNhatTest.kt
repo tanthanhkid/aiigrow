@@ -103,4 +103,16 @@ class CapNhatTest {
         assertNotNull(loiApk(goi, 4, listOf(khac), goi, listOf(ed65), b, khongDocDuocKy = true))
         assertNotNull(loiApk(goi, 4, emptyList(), goi, listOf(ed65), b))
     }
+
+    /** #683: lỗi cài thoáng qua không làm máy kẹt bản cũ 24 giờ. Số mã theo android.content.pm.PackageInstaller.STATUS_FAILURE_*. */
+    @Test fun nghiSauLoiCai() {
+        val gio = 3600_000L
+        assertEquals(gio, nghiSauLoiCaiMs(6))        // STORAGE — hết dung lượng
+        assertEquals(gio, nghiSauLoiCaiMs(5))        // CONFLICT — phiên cài khác
+        assertEquals(gio, nghiSauLoiCaiMs(8))        // TIMEOUT
+        assertEquals(gio, nghiSauLoiCaiMs(1))        // FAILURE chung
+        assertEquals(24 * gio, nghiSauLoiCaiMs(4))   // INVALID — APK hỏng
+        assertEquals(24 * gio, nghiSauLoiCaiMs(7))   // INCOMPATIBLE
+        assertEquals(24 * gio, nghiSauLoiCaiMs(2))   // BLOCKED — chính sách chặn
+    }
 }

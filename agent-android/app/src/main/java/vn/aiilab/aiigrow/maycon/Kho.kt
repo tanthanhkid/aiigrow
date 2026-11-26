@@ -89,6 +89,8 @@ class Kho(ctx: Context) {
     var xinVayChoLuc: Long get() = p.getLong("xinVayChoLuc", 0); set(v) = p.edit().putLong("xinVayChoLuc", v).apply()
     /** Bé gửi lời xin vay đã lưu ("" = máy riêng / không rõ) — bé đổi thì lời xin đó huỷ, không gửi nhầm bé. */
     var xinVayChoCon: String? get() = p.getString("xinVayChoCon", null); set(v) = p.edit().putString("xinVayChoCon", v).apply()
+    /** #686: lời xin app / web đang chờ Ba Mẹ (logic/XinCho.kt › XinAppCho, JSON mảng) — hỏi lại mỗi nhịp, báo kết quả cả khi hộp xin đã đóng. */
+    var xinAppCho: String? get() = p.getString("xinAppCho", null); set(v) = p.edit().putString("xinAppCho", v).apply()
     /** Máy dùng chung: mốc phút giải trí cả máy lúc bé hiện tại vào (logic/PinBe.kt › MocPhut, JSON). */
     var mocBe: String? get() = p.getString("mocBe", null); set(v) = p.edit().putString("mocBe", v).apply()
     var lanDoiNguoi: Long get() = p.getLong("lanDoiNguoi", 0); set(v) = p.edit().putLong("lanDoiNguoi", v).apply()

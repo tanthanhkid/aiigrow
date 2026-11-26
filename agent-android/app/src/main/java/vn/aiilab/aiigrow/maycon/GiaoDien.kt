@@ -193,14 +193,15 @@ object GiaoDien {
             xinThread = Thread {
                 val r = DichVuNhip.xinDuyet(ctx, g, ten, ly)
                 if (r.id == null) { h.post { if (gen == xinGen) { xinGoi = null; xinKq = null; goiDuyet = null; cau.text = r.cau; nutXin.isEnabled = true } }; return@Thread }
-                // hỏi kết quả mỗi 3 giây, tối đa 5 phút; hết hạn mà chưa có ⇒ «Lời xin đã hết hạn · Xin lại»
+                // hỏi kết quả mỗi 3 giây, tối đa 5 phút (lời xin «hết hạn / huỷ» thật thì máy chủ trả het_han)
                 for (i in 0 until 100) {
                     if (gen != xinGen) return@Thread
                     val kq = DichVuNhip.hoiKetQuaXinApp(ctx, r.id)
-                    if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { h.post { if (gen == xinGen) { xinKq = kq; capNhatKetQua(g) } }; return@Thread }
+                    if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { HocVien.xongXinApp(ctx, r.id); h.post { if (gen == xinGen) { xinKq = kq; capNhatKetQua(g) } }; return@Thread }
                     try { Thread.sleep(3000) } catch (_: InterruptedException) { return@Thread }
                 }
-                h.post { if (gen == xinGen) { xinKq = KetQuaXinApp(LoaiKetQuaXin.HET_HAN, null); capNhatKetQua(g) } }
+                // #686: 5 phút chưa có trả lời ⇒ lời xin vẫn chờ (không báo «hết hạn» sai); nhịp nền báo khi Ba Mẹ trả lời
+                h.post { if (gen == xinGen) cau.text = "Ba Mẹ chưa trả lời. Có trả lời, AiiGrow sẽ báo con." }
             }.also { it.start() }
         }
 
