@@ -65,13 +65,15 @@ public sealed class ApiClient : IDisposable
     }
 
     public static async Task<PairResult> PairAsync(string server, string code, string deviceName,
-        CancellationToken ct = default, HttpMessageHandler? handler = null)
+        CancellationToken ct = default, HttpMessageHandler? handler = null, IReadOnlyList<TimeSpan>? choThuLai = null)
     {
         using var api = new ApiClient(server, null, handler);
         // Máy chủ AiiGrow: POST /api/device/ghep {ma, nen, tenMay, maMay?} → {deviceId, token, dungChung} (mã 6 số Ba Mẹ tạo trong app).
         // maMay (MaMay.cs): máy chủ thu hồi bản ghi cũ của chính máy này nếu máy từng ghép nhà khác; null ⇒ bỏ khỏi JSON.
-        var res = await api.PostAsync<PairResult>("api/device/ghep",
-            new { ma = code.Trim(), nen = "windows", tenMay = deviceName, maMay = MaMay.Doc() }, ct);
+        // #685: lỗi đường truyền ⇒ tự thử lại cùng mã + maMay (máy chủ cấp lại token nếu lần trước đã ghép xong mà phản hồi mất).
+        var maMay = MaMay.Doc();
+        var res = await GhepThuLai.ChayAsync(() => api.PostAsync<PairResult>("api/device/ghep",
+            new { ma = code.Trim(), nen = "windows", tenMay = deviceName, maMay }, ct), maMay != null, ct, choThuLai);
         if (string.IsNullOrEmpty(res.Token)) throw new ApiException("Máy chủ không trả token");
         res.Server = string.IsNullOrWhiteSpace(res.Server) ? NormalizeServer(server) : NormalizeServer(res.Server!);
         return res;
