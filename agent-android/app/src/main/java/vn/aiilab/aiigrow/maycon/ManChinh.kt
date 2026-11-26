@@ -114,7 +114,7 @@ class ManChinh : Activity() {
             minhBach()
         }
         // #707: gói cài bị từ chối lúc đang mở màn ghép ⇒ sửa dòng báo tại chỗ (không dựng lại màn: giữ mã bé đang gõ / lượt «Đang ghép…»)
-        if (!k.daGhep && !dangGhep) k.loiGhepGoi?.let { l -> if (l != loiGhepDaVe) { loiGhepDaVe = l; baoGhep?.text = cauLoiGhepGoi(l) } }
+        if (!k.daGhep && !dangGhep) k.loiGhepGoi.let { l -> if (l != loiGhepDaVe) { loiGhepDaVe = l; baoGhep?.text = l?.let(::cauLoiGhepGoi) ?: "" } }
         tBaMe?.let { t ->
             val den = anhCong.baMeDen
             t.text = if (den > 0) "Tới ${G.gio(den)} · còn ${G.mmssDai(((den - System.currentTimeMillis()) / 1000).toInt())}" else "Hết giờ Ba Mẹ dùng — máy khoá lại."
