@@ -30,13 +30,15 @@ public static class LuatThuCapNhat
 
     public static TimeSpan Nghi(int soLan) => soLan <= 1 ? TimeSpan.FromHours(1) : soLan == 2 ? TimeSpan.FromHours(4) : TimeSpan.FromHours(24);
 
-    /// <summary>Bản <paramref name="ban"/> đang trong thời gian nghỉ ⇒ không giao bộ cài lượt này. Đồng hồ bị lùi (tuổi âm) ⇒ coi như chưa thử.</summary>
-    public static bool DangNghi(LanThuCapNhat? t, string ban, DateTimeOffset now, bool epHoi = false)
+    /// <summary>Bản <paramref name="ban"/> đang trong thời gian nghỉ ⇒ không giao bộ cài lượt này. Đồng hồ bị lùi (tuổi âm) ⇒ coi như chưa thử.
+    /// <paramref name="boCaiDaXong"/>: đã biết bộ cài lượt trước chạy xong (dịch vụ khởi động lại sau lúc giao) ⇒ «Cập nhật ngay» không phải chờ.</summary>
+    public static bool DangNghi(LanThuCapNhat? t, string ban, DateTimeOffset now, bool epHoi = false, bool boCaiDaXong = false)
     {
         if (t == null || t.Ban != ban) return false;
         var tuoi = now - t.Luc;
         if (tuoi < TimeSpan.Zero) return false;
         if (t.ChanCung) return tuoi < ChanCung;
+        if (epHoi && boCaiDaXong) return false;
         return tuoi < (epHoi ? ChoBoCai : Nghi(t.SoLan));
     }
 
@@ -50,6 +52,10 @@ public static class LuatThuCapNhat
         if (t == null || t.Ban != ban || t.ChanCung || CapNhat.DocBan(ban) is not { } b || b <= hienTai) return false;
         return now - t.Luc >= ChoBoCai || dichVuBatDau > t.Luc;
     }
+
+    /// <summary>Có báo Ba Mẹ lần hỏng này không: chỉ khi chắc là lỗi thật — giao bộ cài lỗi, hoặc đã hỏng từ lần thử thứ 2 (một lần dịch vụ khởi động
+    /// lại sau lúc giao có thể chỉ là tắt máy / khởi động lại trước khi bộ cài kịp chạy, không báo nhầm).</summary>
+    public static bool NenBaoBaMe(int soLan) => soLan >= 2;
 
     /// <summary>Sự kiện «cập nhật lỗi» gửi máy chủ (Ba Mẹ thấy cảnh báo). Mã theo bản ⇒ mỗi bản báo Ba Mẹ một lần (máy chủ bỏ mã trùng), các lần
     /// thử lại sau chỉ ghi log.</summary>

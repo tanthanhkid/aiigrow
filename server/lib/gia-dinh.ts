@@ -313,24 +313,35 @@ async function thuHoiMayCu(t: Q, maMay: string, moi: string, famMoi: string) {
   return cu.length;
 }
 
+/** Kết quả ghép gửi agent — dùng chung cho lần ghép đầu và lần cấp lại token (#685) để hai đường luôn cùng dạng.
+ *  childName: khay chào đúng tên Con ngay sau khi cài; không có Con ⇒ bỏ hẳn field (bộ cài 0.2.0/0.2.1 đọc vào string không-null).
+ *  dungChung = máy CHUNG (≥ 2 Con) — agent cũ hiện «Máy dùng chung» + màn chọn tên; conDs (#267): Con nối với máy. */
+async function ketQuaGhep(t: Q, deviceId: string, token: string, dsCon: string[], conMot: string | null) {
+  const conDs = dsCon.length ? await t<{ id: string; ten: string; avatar: string }>(
+    `select id, ten, avatar from children where id = any($1::text[]) order by created_at`, [dsCon]) : [];
+  const ten = conMot ? conDs.find((c) => c.id === conMot)?.ten : undefined;
+  return { deviceId, token, dungChung: dsCon.length !== 1, conDs, ...(ten ? { childName: ten } : {}) };
+}
+
 /** #685 «ghép lại sau khi mất phản hồi»: máy chủ đã ghép (mã / gói cài đã đánh dấu dùng, token chỉ nằm trong phản hồi) nhưng phản hồi không tới máy
- *  (Wi-Fi rớt, hết giờ, bộ cài bị đóng) ⇒ máy thử lại cùng mã / cùng gói. Nếu lần thử lại mang ĐÚNG `maMay` của máy đã ghép bằng mã / gói đó,
- *  trong GHEP_LAI_MS kể từ lúc ghép, và máy vẫn còn trong nhà ⇒ cấp token MỚI cho chính máy đó (xoay token — token cũ chưa ai nhận) và trả kết quả
- *  giống lần đầu, thay vì 409 «đã dùng» để lại máy mồ côi. Không có maMay / khác maMay / quá hạn ⇒ null (giữ 409 như cũ). Dùng chung mọi nền
- *  (Windows, Mac, Android) — chỉ cần agent gửi maMay ổn định. */
+ *  (Wi-Fi rớt, hết giờ, bộ cài bị đóng) ⇒ máy thử lại cùng mã / cùng gói. Cấp token MỚI cho chính máy đó (xoay token) và trả kết quả như lần đầu
+ *  khi ĐỦ: cùng `maMay` với máy đã ghép bằng mã / gói đó, cùng nền, trong GHEP_LAI_MS kể từ lúc ghép, máy còn trong nhà, và máy CHƯA từng dùng
+ *  token (chưa đồng bộ / chưa gửi nhịp — như lenh-may.ts › trangThaiGo «daDongBo»). Điều kiện cuối chặn việc ai đó cầm gói cài còn trên máy
+ *  (maMay không bí mật) xoay mất token của agent đang chạy. Còn lại ⇒ null (giữ 409 như cũ). Dùng chung mọi nền — agent chỉ cần gửi maMay ổn định. */
 export const GHEP_LAI_MS = 60 * 60_000;
 export async function capLaiTokenGhep(t: Q, deviceId: string | null, fam: string, maMay: string | null, platform: string, daDung: Date | null, now: Date) {
   if (!deviceId || !maMay || !daDung || now.getTime() - new Date(daDung).getTime() > GHEP_LAI_MS) return null;
-  const d = (await t<{ id: string; platform: string; child_id: string | null; dung_chung: boolean }>(
-    `select id, platform, child_id, dung_chung from devices where id = $1 and family_id = $2 and ma_may = $3 for update`, [deviceId, fam, maMay]))[0];
-  if (!d || (platform && d.platform !== platform)) return null;
+  const d = (await t<{ id: string; platform: string; child_id: string | null; name: string; status: Record<string, unknown> | null }>(
+    `select id, platform, child_id, name, status from devices where id = $1 and family_id = $2 and ma_may = $3 for update`, [deviceId, fam, maMay]))[0];
+  if (!d || d.platform !== platform) return null;
+  if (Object.keys(d.status ?? {}).length > 0
+    || (await t(`select 1 from tuan_thu_may where device_id = $1 and nhip_cuoi is not null`, [d.id])).length) return null;
   const token = taoToken();
   await t(`update devices set token_hash = $2 where id = $1`, [d.id, sha(token)]);
-  const dsCon = await idConMay(d.id, t);
-  const conDs = dsCon.length ? await t<{ id: string; ten: string; avatar: string }>(
-    `select id, ten, avatar from children where id = any($1::text[]) order by created_at`, [dsCon]) : [];
-  const ten = d.child_id ? conDs.find((c) => c.id === d.child_id)?.ten : undefined;
-  return { deviceId: d.id, token, dungChung: dsCon.length !== 1, conDs, ...(ten ? { childName: ten } : {}), ghepLai: true as const };
+  // lệnh chờ (vd «gỡ» Ba Mẹ vừa bấm) gắn token cũ ⇒ chuyển sang token mới, agent báo xong được
+  await t(`update lenh_may set token_hash = $2 where device_id = $1 and trang_thai = 'cho'`, [d.id, sha(token)]);
+  await ghiSuKien(fam, "ghep_may_lai", { platform, ten: d.name }, { con: d.child_id, may: d.id }, t);
+  return { ...(await ketQuaGhep(t, d.id, token, await idConMay(d.id, t), d.child_id)), ghepLai: true as const };
 }
 
 /** Ghép trong giao dịch, không đếm lượt — `doiGoiCai` gọi thẳng (mã tạm tự tạo từ token gói cài, không phải mã người gõ). */
@@ -368,20 +379,14 @@ export function ghepMayGd(code: string, platform: string, tenMay: string, maMayV
       [id, conMot, m.family_id, platform, tenLuu, sha(token), dsCon.length !== 1, cheDo ?? "giam-sat", !!cheDo, maMay]);
     await ghiNoi(t, { id, family_id: m.family_id }, dsCon);
     if (maMay) await thuHoiMayCu(t, maMay, id, m.family_id);
-    await t(`update pair_codes set used_at = now(), device_id = $2 where code = $1`, [code, id]);
+    await t(`update pair_codes set used_at = $3, device_id = $2 where code = $1`, [code, id, now]);
     // link bộ cài đi kèm mã này (cùng một lần «Ghép máy») hết dùng — máy đã ghép bằng mã
     if (m.goi_cai) await t(`update goi_cai set device_id = coalesce(device_id, $2) where token_hash = $1`, [m.goi_cai, id]);
     await ghiSuKien(m.family_id, "ghep_may", { platform, ten: tenLuu, ...(cheDo ? { cheDo } : {}), ...(dsCon.length >= 2 ? { soCon: dsCon.length } : {}) },
       { con: conMot, may: id }, t);
     // «Cài giống máy trước» (L8): chép cài đặt của Con dùng máy đó sang Con của máy mới (cùng Con thì luật đã dùng chung, không cần chép)
     if (m.giong_may) for (const c of dsCon) await saoChepCaiDat(t, m.family_id, m.giong_may, c, id);
-    // childName: khay chào đúng tên Con ngay sau khi cài (không đợi lần đồng bộ đầu). Không có Con ⇒ bỏ hẳn field
-    // (bộ cài 0.2.0/0.2.1 đọc vào string không-null — gửi null là rủi ro).
-    const conDs = dsCon.length ? await t<{ id: string; ten: string; avatar: string }>(
-      `select id, ten, avatar from children where id = any($1::text[]) order by created_at`, [dsCon]) : [];
-    const ten = conMot ? conDs.find((c) => c.id === conMot)?.ten : undefined;
-    // dungChung = máy CHUNG (≥ 2 Con) — agent cũ hiện «Máy dùng chung» + màn chọn tên; conDs (#267): Con nối với máy
-    return { deviceId: id, token, dungChung: dsCon.length !== 1, conDs, ...(ten ? { childName: ten } : {}) };
+    return ketQuaGhep(t, id, token, dsCon, conMot);
   });
 }
 

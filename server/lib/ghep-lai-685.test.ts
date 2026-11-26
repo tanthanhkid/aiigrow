@@ -38,6 +38,7 @@ test("mã 6 số: thử lại cùng maMay sau khi phản hồi mất ⇒ cùng m
   assert.equal((await dv("dong-bo", { tok: lai.body.token, body: {} })).status, 200);
   assert.equal((await dv("dong-bo", { tok: dau.token, body: {} })).status, 401, "token của phản hồi mất không còn dùng được");
   assert.equal((await q(`select 1 from devices where family_id = $1`, [fam])).length, 1, "không có máy mồ côi");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'ghep_may_lai'`, [fam])).length, 1, "lần cấp lại có dấu vết");
   // máy khác (khác maMay) / không maMay / sai nền ⇒ vẫn 409
   assert.deepEqual([(await dv("ghep", { body: { ma, nen: "windows", maMay: MA2 } })).status], [409]);
   assert.equal((await dv("ghep", { body: { ma, nen: "windows" } })).status, 409);
@@ -47,13 +48,25 @@ test("mã 6 số: thử lại cùng maMay sau khi phản hồi mất ⇒ cùng m
 test("mã 6 số: quá GHEP_LAI_MS sau khi ghép ⇒ 409 như cũ (mốc giờ truyền vào)", async () => {
   const { fam } = await taoNha("G2");
   const con = await g.taoCon(fam, { ten: "Bo" });
+  const T0 = Date.now();                                   // một mốc, mọi lượt gọi tính từ mốc này (used_at = mốc truyền vào)
   const ma = await g.taoMaGhep(fam, con, "android");
-  const dau = await g.ghepMay(ma, "android", "Đt Bo", "1.2.3.4", Date.now(), MA);
+  const dau = await g.ghepMay(ma, "android", "Đt Bo", "1.2.3.4", T0, MA);
   assert.ok(dau.token);
-  const sau = Date.now() + g.GHEP_LAI_MS + 60_000;
-  await assert.rejects(g.ghepMay(ma, "android", "Đt Bo", "1.2.3.4", sau, MA), (e: any) => e.ma === "ma_da_dung" || e.ma === "ma_het_han");
-  const trong = await g.ghepMay(ma, "android", "Đt Bo", "1.2.3.4", Date.now() + 60_000, MA);
+  assert.equal(new Date((await q<{ used_at: Date }>(`select used_at from pair_codes where code = $1`, [ma]))[0].used_at).getTime(), T0);
+  await assert.rejects(g.ghepMay(ma, "android", "Đt Bo", "1.2.3.4", T0 + g.GHEP_LAI_MS + 1, MA), (e: any) => e.ma === "ma_da_dung");
+  const trong = await g.ghepMay(ma, "android", "Đt Bo", "1.2.3.4", T0 + g.GHEP_LAI_MS, MA);
   assert.equal(trong.deviceId, dau.deviceId);
+});
+
+test("agent đã dùng token (đồng bộ) ⇒ thử lại cùng gói + maMay KHÔNG xoay token (chặn cướp token bằng gói cài còn trên máy)", async () => {
+  const { fam } = await taoNha("G5");
+  const con = await g.taoCon(fam, { ten: "Le" });
+  const gc = await lm.taoGoiCai(fam, { con, nen: "windows" }, "https://app.test");
+  const dau = (await dv("ghep-goi", { body: { token: gc.token, nen: "windows", tenMay: "PC Le", maMay: MA } })).body;
+  assert.equal((await dv("dong-bo", { tok: dau.token, body: { status: { agent: "windows" } } })).status, 200);
+  assert.equal((await dv("ghep-goi", { body: { token: gc.token, nen: "windows", maMay: MA } })).status, 409);
+  assert.equal((await dv("ghep-goi", { body: { token: gc.token, nen: "", maMay: MA } })).status, 409, "thiếu nền không lọt");
+  assert.equal((await dv("dong-bo", { tok: dau.token, body: {} })).status, 200, "token agent đang chạy vẫn dùng được");
 });
 
 test("mã 6 số: Ba Mẹ đã xoá máy ⇒ thử lại không hồi sinh máy (409)", async () => {

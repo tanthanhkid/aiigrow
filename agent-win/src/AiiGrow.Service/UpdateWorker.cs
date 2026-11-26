@@ -128,15 +128,16 @@ public sealed class UpdateWorker : BackgroundService
         }
         var daThu = DocDaThu();
         var bayGio = DateTimeOffset.UtcNow;
-        if (LuatThuCapNhat.LanTruocHong(daThu, m.Version, hienTai, bayGio, DichVuBatDau) && _daBaoHong != daThu!.Ghi())
+        var hong = LuatThuCapNhat.LanTruocHong(daThu, m.Version, hienTai, bayGio, DichVuBatDau);
+        if (hong && _daBaoHong != daThu!.Ghi())
         {
             _daBaoHong = daThu.Ghi();          // mỗi lần thử hỏng báo một lần (vòng kiểm 15 phút không dội Sentry)
-            // #683: bộ cài lượt trước đã chạy xong mà máy vẫn bản cũ (lỗi chép tệp / khôi phục bản cũ) ⇒ Sentry + báo Ba Mẹ (mỗi bản một lần)
+            // #683: bộ cài lượt trước đã chạy xong mà máy vẫn bản cũ (lỗi chép tệp / khôi phục bản cũ) ⇒ Sentry; hỏng lặp lại ⇒ báo Ba Mẹ (mỗi bản một lần)
             _log.LogError("Tự cập nhật: lần thử thứ {Lan} lên bản {Ban} không thành (máy vẫn {Cu}) — xem install.log; thử lại sau {Nghi}",
                 daThu.SoLan, m.Version, hienTai.ToString(3), LuatThuCapNhat.Nghi(daThu.SoLan));
-            BaoLoi(m.Version, hienTai, daThu.SoLan, "bo_cai_loi");
+            if (LuatThuCapNhat.NenBaoBaMe(daThu.SoLan)) BaoLoi(m.Version, hienTai, daThu.SoLan, "bo_cai_loi");
         }
-        if (LuatThuCapNhat.DangNghi(daThu, m.Version, bayGio, epHoi))
+        if (LuatThuCapNhat.DangNghi(daThu, m.Version, bayGio, epHoi, boCaiDaXong: hong))
         {
             _log.LogInformation("Tự cập nhật: bản {Ban} đã thử {Lan} lần, lần cuối {Luc:o} — chờ hết thời gian nghỉ (hoặc bấm «Cập nhật ngay»)", m.Version, daThu!.SoLan, daThu.Luc);
             return _chuKy < ThuLaiManifest ? _chuKy : ThuLaiManifest;   // kiểm lại sớm: hết nghỉ (1 giờ) là thử, không đợi trọn chu kỳ 6 giờ
@@ -203,6 +204,7 @@ public sealed class UpdateWorker : BackgroundService
         // ghi «đã thử» SAU khi tải đúng: tải đứt giữa chừng thì sau ThuLaiTai tải lại. Ghi TRƯỚC khi giao (bộ cài dừng dịch vụ này ngay);
         // giao lỗi ⇒ vẫn tính một lần (nghỉ 1 giờ rồi thử lại — #683, trước đây 24 giờ) + báo Ba Mẹ
         var lan = GhiDaThu(daThu, m.Version);
+        _dangTai = false;   // đã tải xong: giao lỗi thì lượt kiểm kế tới sớm (ThuLaiManifest), không giãn như tải hỏng
         try { ChayBoCai(tep); }
         catch (Exception e)
         {
@@ -211,7 +213,9 @@ public sealed class UpdateWorker : BackgroundService
             throw new InvalidOperationException($"{e.Message} (lần {lan.SoLan}, thử lại sau {LuatThuCapNhat.Nghi(lan.SoLan)})", e);
         }
         _log.LogInformation("Tự cập nhật: đã giao bộ cài bản {Ban} chạy (--capnhat --im-lang)", m.Version);
-        return _chuKy;
+        // bộ cài thành công thì dịch vụ bị dừng / thay bản; còn chạy tới lượt sau là bộ cài không chạy / lỗi mà không dừng dịch vụ ⇒ kiểm lại sau
+        // thời gian nghỉ (1 giờ), không đợi trọn chu kỳ 6 giờ
+        return _chuKy < LuatThuCapNhat.Nghi(lan.SoLan) ? _chuKy : LuatThuCapNhat.Nghi(lan.SoLan);
     }
 
     /// <summary>Tải về <paramref name="tam"/>; mỗi lần đọc phải nhận được dữ liệu trong <see cref="HanDungTai"/> (HttpClient.Timeout không phủ

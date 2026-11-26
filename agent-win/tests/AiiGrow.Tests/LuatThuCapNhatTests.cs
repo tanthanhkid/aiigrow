@@ -48,9 +48,15 @@ public class LuatThuCapNhatTests
         var lan3 = new LanThuCapNhat("0.2.34", T0, 3, false);
         Assert.True(LuatThuCapNhat.DangNghi(lan3, "0.2.34", T0.AddMinutes(20), epHoi: true));     // bộ cài lượt trước có thể còn chạy
         Assert.False(LuatThuCapNhat.DangNghi(lan3, "0.2.34", T0.AddMinutes(31), epHoi: true));    // trước đây: «Cập nhật ngay» không làm gì 24 giờ
+        Assert.False(LuatThuCapNhat.DangNghi(lan3, "0.2.34", T0.AddMinutes(5), epHoi: true, boCaiDaXong: true));   // bộ cài đã xong ⇒ không chờ
+        Assert.True(LuatThuCapNhat.DangNghi(lan3, "0.2.34", T0.AddMinutes(5), epHoi: false, boCaiDaXong: true));  // lượt tự động vẫn nghỉ
         var saiKy = LuatThuCapNhat.LanMoi(null, "0.2.34", T0, chanCung: true);
         Assert.True(LuatThuCapNhat.DangNghi(saiKy, "0.2.34", T0.AddHours(23), epHoi: true));
         Assert.False(LuatThuCapNhat.DangNghi(saiKy, "0.2.34", T0.AddHours(25), epHoi: true));
+        Assert.True(LuatThuCapNhat.DangNghi(saiKy, "0.2.34", T0.AddMinutes(5), epHoi: true, boCaiDaXong: true));
+        // khởi động lại một lần (có thể chỉ tắt máy) không báo Ba Mẹ; hỏng lặp lại mới báo
+        Assert.False(LuatThuCapNhat.NenBaoBaMe(1));
+        Assert.True(LuatThuCapNhat.NenBaoBaMe(2));
     }
 
     [Fact]
