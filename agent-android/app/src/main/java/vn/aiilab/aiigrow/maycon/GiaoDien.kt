@@ -201,7 +201,8 @@ object GiaoDien {
                     try { Thread.sleep(3000) } catch (_: InterruptedException) { return@Thread }
                 }
                 // #686: 5 phút chưa có trả lời ⇒ lời xin vẫn chờ (không báo «hết hạn» sai); nhịp nền báo khi Ba Mẹ trả lời
-                h.post { if (gen == xinGen) cau.text = "Ba Mẹ chưa trả lời. Có trả lời, AiiGrow sẽ báo con." }
+                //     thôi màn «đang chờ» (nút không khoá mãi): về màn chặn, Con xin lại / xin app khác được
+                h.post { if (gen == xinGen) { xinGoi = null; xinKq = null; goiDuyet = null; cau.text = "Ba Mẹ chưa trả lời. Có trả lời, AiiGrow sẽ báo con."; nutXin.isEnabled = true } }
             }.also { it.start() }
         }
 

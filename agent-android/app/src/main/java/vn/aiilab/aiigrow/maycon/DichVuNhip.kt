@@ -123,7 +123,12 @@ class DichVuNhip : Service() {
             val am = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
             val pi = PendingIntent.getBroadcast(this, 3, Intent(this, KhoiDong::class.java).setAction(KhoiDong.HEN_LAI),
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-            am.setAndAllowWhileIdle(android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP, android.os.SystemClock.elapsedRealtime() + HEN_LAI_MS, pi)
+            val luc = android.os.SystemClock.elapsedRealtime() + HEN_LAI_MS
+            // báo thức CHÍNH XÁC được miễn hạn chế bật dịch vụ tiền cảnh từ nền (Android 12+); không có quyền đó thì báo thức thường
+            //     (đủ khi Ba Mẹ đã bỏ tối ưu pin — thẻ quyền ở màn chính)
+            if (Build.VERSION.SDK_INT < 31 || am.canScheduleExactAlarms())
+                am.setExactAndAllowWhileIdle(android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP, luc, pi)
+            else am.setAndAllowWhileIdle(android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP, luc, pi)
             NhatKy.tin(TAG, "app bị vuốt khỏi gần đây — hẹn bật lại dịch vụ")
         } catch (e: Exception) { NhatKy.canh(TAG, "chưa hẹn bật lại được", e) }
         super.onTaskRemoved(rootIntent)
@@ -685,7 +690,7 @@ class DichVuNhip : Service() {
             fun luu(): String {
                 val con = PinMay.nguoiDung(k)?.conId ?: ""
                 // #684: chỉ một ô chờ — lời xin cũ của cùng bé bị thay ⇒ nói rõ (trước: cả hai đều «Đã lưu»)
-                val cu = k.xinVayCho?.takeIf { k.xinVayChoCon == con && xetXinVayCho(k.xinVayChoLuc, k.xinVayChoCon, con, System.currentTimeMillis()) == XetXinVayCho.GUI }
+                val cu = k.xinVayCho?.takeIf { xetXinVayCho(k.xinVayChoLuc, k.xinVayChoCon, con, System.currentTimeMillis()) == XetXinVayCho.GUI }
                     ?.let { try { JSONObject(it).optInt("soSao") } catch (_: Exception) { null } }
                 k.xinVayCho = than.toString(); k.xinVayChoLuc = System.currentTimeMillis(); k.xinVayChoCon = con
                 return cauLuuXinVay(soSao, cu)

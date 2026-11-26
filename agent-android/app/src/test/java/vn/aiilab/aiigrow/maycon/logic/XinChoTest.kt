@@ -12,6 +12,7 @@ class XinChoTest {
         assertEquals(XetXinVayCho.GUI, xetXinVayCho(0, "", null, gio))                 // máy riêng: "" == không rõ bé
         assertEquals(XetXinVayCho.QUA_HAN, xetXinVayCho(0, "be1", "be1", 25 * gio))
         assertEquals(XetXinVayCho.DOI_NGUOI, xetXinVayCho(0, "be1", "be2", gio))
+        assertEquals(XetXinVayCho.DOI_NGUOI, xetXinVayCho(0, "be1", "be2", 25 * gio))   // quá hạn của bé trước: không báo bé đang dùng
     }
 
     /** #684: lời xin vay thứ hai lúc mất mạng thay lời xin đầu — Con được nói rõ, không phải «Đã lưu» cả hai. */
@@ -40,5 +41,14 @@ class XinChoTest {
         assertEquals("x14", ds.last().id)
         assertTrue(docXinAppCho("hỏng").isEmpty())
         assertTrue(docXinAppCho(null).isEmpty())
+        assertEquals("be1", docXinAppCho(jsonXinAppCho(listOf(XinAppCho("c", "Roblox", 0, "be1")))).single().con)
+    }
+
+    /** #686: 5 phút đầu hộp xin tự hỏi ⇒ nhịp nền không hỏi (không báo hai lần). */
+    @Test fun nenChiHoiSauCuaSoHop() {
+        val ds = listOf(XinAppCho("a", "YouTube", 0), XinAppCho("b", "Roblox", 4 * 60_000L))
+        assertEquals(emptyList<String>(), xinAppCanHoi(ds, 5 * 60_000L).map { it.id })
+        assertEquals(listOf("a"), xinAppCanHoi(ds, 6 * 60_000L).map { it.id })
+        assertEquals(listOf("a", "b"), xinAppCanHoi(ds, 10 * 60_000L).map { it.id })
     }
 }

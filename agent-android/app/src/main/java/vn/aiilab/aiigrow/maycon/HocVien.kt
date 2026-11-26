@@ -18,6 +18,7 @@ import vn.aiilab.aiigrow.maycon.logic.conHanXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.docKetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.docXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.jsonXinAppCho
+import vn.aiilab.aiigrow.maycon.logic.xinAppCanHoi
 import vn.aiilab.aiigrow.maycon.logic.themXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.cauXinVay
 import vn.aiilab.aiigrow.maycon.logic.dangDungPhien
@@ -146,12 +147,14 @@ object HocVien {
 
     // ------------------------------------------------------------ #686 lời xin app / web (hộp «Xin thêm app / web», màn chặn app)
     private val khoaXinApp = Any()
-    private const val MA_XIN_APP = 22
+    private const val MA_XIN_APP = 22   // mỗi lời xin một thông báo (tag = id lời xin)
+    private const val MA_XIN_KHONG_GUI = 23
 
     /** Lời xin app / web vừa gửi (có id) ⇒ nhớ bền: hộp xin đóng / tiến trình bị tắt thì nhịp sau vẫn hỏi và báo kết quả. */
     fun ghiXinApp(ctx: Context, id: String, ten: String) = synchronized(khoaXinApp) {
         val k = Kho(ctx)
-        k.xinAppCho = jsonXinAppCho(themXinAppCho(docXinAppCho(k.xinAppCho), XinAppCho(id, ten, System.currentTimeMillis()), System.currentTimeMillis()))
+        val con = PinMay.nguoiDung(k)?.conId ?: ""
+        k.xinAppCho = jsonXinAppCho(themXinAppCho(docXinAppCho(k.xinAppCho), XinAppCho(id, ten, System.currentTimeMillis(), con), System.currentTimeMillis()))
     }
 
     /** Hộp xin đã tự hiện kết quả cho Con ⇒ thôi theo dõi (không báo lần hai). */
@@ -161,7 +164,8 @@ object HocVien {
         if (ds.any { it.id == id }) k.xinAppCho = jsonXinAppCho(ds.filter { it.id != id })
     }
 
-    /** Mỗi nhịp: hỏi các lời xin app / web còn chờ (≤ 24 giờ); Ba Mẹ đã trả lời ⇒ thông báo + bỏ khỏi danh sách. */
+    /** Mỗi nhịp: hỏi các lời xin app / web còn chờ (≤ 24 giờ, qua 5 phút hộp xin tự hỏi); Ba Mẹ đã trả lời ⇒ bỏ khỏi danh sách, thông báo
+     *  nếu đúng bé xin đang dùng máy (máy chung đã Đổi người ⇒ không báo bé khác). */
     fun hoiXinApp(ctx: Context) {
         val k = Kho(ctx)
         if (k.token == null || k.cheDoThu) return
@@ -169,7 +173,7 @@ object HocVien {
             val tat = docXinAppCho(k.xinAppCho)
             conHanXinAppCho(tat, System.currentTimeMillis()).also { if (it.size != tat.size) k.xinAppCho = jsonXinAppCho(it) }
         }
-        for (x in ds) {
+        for (x in xinAppCanHoi(ds, System.currentTimeMillis())) {
             val kq = try { docKetQuaXinApp(may(k).yeuCau(x.id)) } catch (e: MayChu.Loi) {
                 if (e.http == 404) xongXinApp(ctx, x.id); continue
             } catch (_: Exception) { return }   // mất mạng ⇒ nhịp sau
@@ -181,9 +185,10 @@ object HocVien {
             } ?: continue
             val (tieu, _, cau) = chuKetQuaXinApp(kq, x.ten)
             if (kq.loai == LoaiKetQuaXin.DA_THEM) DichVuNhip.lamMoi(ctx)
+            if ((PinMay.nguoiDung(k)?.conId ?: "") != x.con) { NhatKy.tin(TAG, "lời xin app / web của bé trước có kết quả — không báo bé đang dùng"); continue }
             try {
                 (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-                    .notify(MA_XIN_APP, thongBao(ctx, tieu, cau, null, 32))
+                    .notify(x.id, MA_XIN_APP, thongBao(ctx, tieu, cau, null, 32))
             } catch (_: SecurityException) {}
             NhatKy.tin(TAG, "báo kết quả lời xin app / web: ${kq.loai}")
         }
@@ -194,7 +199,7 @@ object HocVien {
         NhatKy.tin(TAG, "báo Con: lời xin chờ mạng không gửi được")
         try {
             (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
-                .notify(MA_XIN, thongBao(ctx, "Lời xin chưa tới Ba Mẹ", cau, null, 31))
+                .notify(MA_XIN_KHONG_GUI, thongBao(ctx, "Lời xin chưa tới Ba Mẹ", cau, null, 31))
         } catch (_: SecurityException) {}
     }
 

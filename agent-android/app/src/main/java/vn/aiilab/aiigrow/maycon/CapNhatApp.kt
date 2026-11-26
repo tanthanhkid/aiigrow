@@ -299,7 +299,7 @@ class NhanKetQuaCai : BroadcastReceiver() {
             else -> {
                 val k = Kho(c)
                 k.shaLoi = i.getStringExtra("sha") ?: k.shaLoi
-                // #683: lỗi thoáng qua (hết dung lượng, xung đột phiên, hết giờ) nghỉ 1 giờ; APK hỏng / không hợp máy / bị chặn mới nghỉ 24 giờ
+                // #683: lỗi thoáng qua (hết dung lượng, hết giờ, lỗi chung) nghỉ 1 giờ; APK hỏng / không hợp máy / bị chặn / xung đột nghỉ 24 giờ
                 CapNhat.hong(c, k, null, "cài $ban không xong ($st): ${i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}", nghiSauLoiCaiMs(st))
             }
         }

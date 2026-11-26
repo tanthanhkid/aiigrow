@@ -108,7 +108,7 @@ class CapNhatTest {
     @Test fun nghiSauLoiCai() {
         val gio = 3600_000L
         assertEquals(gio, nghiSauLoiCaiMs(6))        // STORAGE — hết dung lượng
-        assertEquals(gio, nghiSauLoiCaiMs(5))        // CONFLICT — phiên cài khác
+        assertEquals(24 * gio, nghiSauLoiCaiMs(5))   // CONFLICT — chữ ký khác / provider trùng: thử lại cũng vậy
         assertEquals(gio, nghiSauLoiCaiMs(8))        // TIMEOUT
         assertEquals(gio, nghiSauLoiCaiMs(1))        // FAILURE chung
         assertEquals(24 * gio, nghiSauLoiCaiMs(4))   // INVALID — APK hỏng
