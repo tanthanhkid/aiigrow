@@ -180,7 +180,6 @@ public sealed class UpdateWorker : BackgroundService
         }
         // ghi «đã thử» SAU khi tải đúng: tải đứt giữa chừng thì sau ThuLaiTai tải lại, không phải chờ 24 giờ
         GhiDaThu(m.Version);
-        _dangTai = true;   // lỗi giao bộ cài (ChayBoCai ném) cũng tính là cập nhật thất bại ⇒ báo Sentry ở catch (#687)
         ChayBoCai(tep);
         _log.LogInformation("Tự cập nhật: đã giao bộ cài bản {Ban} chạy (--capnhat --im-lang)", m.Version);
         return _chuKy;
