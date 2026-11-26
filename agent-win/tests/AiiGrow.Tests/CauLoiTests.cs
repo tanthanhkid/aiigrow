@@ -59,6 +59,7 @@ public class CauLoiTests
     [InlineData(CauLoi.MatMang)]
     [InlineData("Nhà đã có Con tên «The Sims» rồi — chọn tên khác nhé.")]
     [InlineData("Tải bản mới ở aiigrow.aiilab.vn/tai nhé.")]
+    [InlineData("Mã ghép này dành cho máy Mac")]
     public void CauTiengViet_DiQuaNguyenVen(string cau) => Assert.True(CauLoi.HienDuoc(cau));
 
     [Fact]

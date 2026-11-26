@@ -42,8 +42,8 @@ public static class CauLoi
         return t.Any(LaChuViet);   // câu .NET / HĐH tiếng Anh (hay tiếng Pháp / Đức của HĐH) không có chữ riêng của tiếng Việt
     }
 
-    /// <summary>Chữ chỉ tiếng Việt có (ă â đ ê ô ơ ư, khối U+1EA0–U+1EF9 «ạ ả ấ…») — «é», «ü» của tiếng Pháp / Đức không tính.</summary>
-    private static bool LaChuViet(char c) => "ăâđêôơưĂÂĐÊÔƠƯ".IndexOf(c) >= 0 || (c >= '\u1EA0' && c <= '\u1EF9');
+    /// <summary>Chữ chỉ tiếng Việt có (ă â đ ê ô ơ ư ã õ ĩ ũ ì ò, khối U+1EA0–U+1EF9 «ạ ả ấ…») — «é», «ü» của tiếng Pháp / Đức không tính.</summary>
+    private static bool LaChuViet(char c) => "ăâđêôơưãõĩũìòĂÂĐÊÔƠƯÃÕĨŨÌÒ".IndexOf(c) >= 0 || (c >= '\u1EA0' && c <= '\u1EF9');
 
     /// <summary><paramref name="s"/> nếu hiện được, không thì <paramref name="duPhong"/>.</summary>
     public static string AnToan(string? s, string duPhong) => HienDuoc(s) ? s!.Trim() : duPhong;

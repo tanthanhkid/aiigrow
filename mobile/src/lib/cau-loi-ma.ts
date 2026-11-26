@@ -17,5 +17,5 @@ export function cauLoiMa(ma: number, tre = false): string {
 export function cauLoiAnh(e: unknown): string {
   const m = e instanceof Error ? e.message : "";
   // chữ RIÊNG tiếng Việt (ă â đ ê ô ơ ư, khối U+1EA0–1EF9): «Caméra non disponible», «nicht verfügbar» không lọt qua
-  return m && /[ăâđêôơưĂÂĐÊÔƠƯ\u1EA0-\u1EF9]/.test(m) && !/[A-Za-z]+Exception|Error:/.test(m) ? m : "Chưa lấy được ảnh — kiểm tra quyền Camera / Ảnh trong Cài đặt rồi thử lại.";
+  return m && /[ăâđêôơưãõĩũìòĂÂĐÊÔƠƯÃÕĨŨÌÒ\u1EA0-\u1EF9]/.test(m) && !/[A-Za-z]+Exception|Error:/.test(m) ? m : "Chưa lấy được ảnh — kiểm tra quyền Camera / Ảnh trong Cài đặt rồi thử lại.";
 }

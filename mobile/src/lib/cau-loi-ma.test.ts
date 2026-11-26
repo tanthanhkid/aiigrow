@@ -19,5 +19,6 @@ test("cauLoiMa: mỗi nhóm mã một câu nói phải làm gì, không có số
 
 test("cauLoiAnh: câu tiếng Việt giữ, lỗi native ⇒ câu cố định", () => {
   assert.equal(cauLoiAnh(new Error("Cần quyền dùng Camera để chụp ảnh")), "Cần quyền dùng Camera để chụp ảnh");
+  assert.equal(cauLoiAnh(new Error("Ảnh này lớn quá")), "Ảnh này lớn quá");
   for (const e of [new Error("Camera not available"), new Error("Failed to read image"), new Error("Caméra non disponible"), new Error("Kamera nicht verfügbar"), "x", null]) assert.match(cauLoiAnh(e), /^Chưa lấy được ảnh/);
 });
