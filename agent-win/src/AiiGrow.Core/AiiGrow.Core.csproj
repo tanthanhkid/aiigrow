@@ -9,4 +9,8 @@
     <!-- Mã QR phiếu quà (ViQuaMay.cs): chỉ dùng bộ sinh ma trận, khay tự vẽ. MIT. -->
     <PackageReference Include="QRCoder" Version="1.6.0" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- test câu lỗi của DeviceHttp (#688) gọi thẳng lớp internal -->
+    <InternalsVisibleTo Include="AiiGrow.Tests" />
+  </ItemGroup>
 </Project>
