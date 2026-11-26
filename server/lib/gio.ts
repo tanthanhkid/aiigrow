@@ -37,6 +37,13 @@ export function dauTuan(ngay: string) {
 
 export const congNgay = (ngay: string, k: number) => raNgay(soNgay(ngay) + k);
 
+/** #703: độ lệch (phút) của múi `tz` so với UTC tại `now` — tác tử Windows chạy InvariantGlobalization không tra được tên múi IANA. */
+export function lechMuiPhut(now: Date, tz: string) {
+  const g = gioDiaPhuong(now, tz);
+  const utcPhut = now.getUTCHours() * 60 + now.getUTCMinutes();
+  return (soNgay(g.ngay) - soNgay(now.toISOString().slice(0, 10))) * 1440 + g.phut - utcPhut;
+}
+
 /** Thời điểm UTC của 00:00 ngày `ngay` theo múi giờ `tz` (chỉ múi giờ không đổi giờ mùa hè — đủ cho VN; sai số ≤ 1 giờ ở múi khác). */
 export function dauNgayUtc(ngay: string, tz: string) {
   const goc = new Date(`${ngay}T00:00:00Z`);

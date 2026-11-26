@@ -145,6 +145,7 @@ public sealed class AgentRuntime
             {
                 p.CheDo = DangNhapView.CheDoMayChung(p.CheDo, Config?.LastPolicyJson);
                 _policy = p;
+                NgayGiaDinh.DangKy(p.Tz, p.TzPhut);
                 Usage.Tz = p.Tz;   // #703
                 _policyAt = Config?.LastPolicyAt ?? DateTimeOffset.UtcNow;
             }
@@ -299,6 +300,7 @@ public sealed class AgentRuntime
             var vtDoiDiem = VanTayDoiDiem(p);
             if (!string.Equals(vtDoiDiem, _vtDoiDiem, StringComparison.Ordinal)) { _vtDoiDiem = vtDoiDiem; PolicyRev++; }
             _policy = p;
+            NgayGiaDinh.DangKy(p.Tz, p.TzPhut);
             Usage.Tz = p.Tz;   // #703: ngày dùng theo múi giờ gia đình
             _policyAt = DateTimeOffset.UtcNow;
             _syncCuoi = _policyAt;

@@ -111,16 +111,34 @@ public sealed class UsageTracker
 public static class NgayGiaDinh
 {
     private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, TimeZoneInfo?> _cache = new();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, bool> _khongTra = new();
+
+    /// <summary>Nhớ múi gia đình từ Policy: tên tra được trên máy ⇒ dùng múi máy (đủ giờ mùa hè); không tra được (dịch vụ chạy InvariantGlobalization,
+    /// không có ICU) ⇒ múi cố định theo độ lệch máy chủ gửi kèm — Policy làm mới mỗi lượt đồng bộ nên đổi giờ mùa hè cũng theo kịp.</summary>
+    public static void DangKy(string? tz, int? lechPhut)
+    {
+        if (string.IsNullOrWhiteSpace(tz)) return;
+        var id = tz.Trim();
+        if (!_khongTra.ContainsKey(id))
+        {
+            if (TraMay(id) is { } may) { _cache[id] = may; return; }
+            _khongTra[id] = true;      // không tra lại mỗi lượt đồng bộ (mỗi lần tra hụt là một ngoại lệ)
+        }
+        if (lechPhut is int p && Math.Abs(p) <= 14 * 60 && !(_cache.TryGetValue(id, out var cu) && cu?.BaseUtcOffset == TimeSpan.FromMinutes(p)))
+            _cache[id] = TimeZoneInfo.CreateCustomTimeZone(id, TimeSpan.FromMinutes(p), id, id);
+    }
+
+    private static TimeZoneInfo? TraMay(string id)
+    {
+        try { return TimeZoneInfo.FindSystemTimeZoneById(id); } catch { }
+        try { if (TimeZoneInfo.TryConvertIanaIdToWindowsId(id, out var w)) return TimeZoneInfo.FindSystemTimeZoneById(w); } catch { }
+        return null;
+    }
 
     public static TimeZoneInfo? Mui(string? tz)
     {
         if (string.IsNullOrWhiteSpace(tz)) return null;
-        return _cache.GetOrAdd(tz.Trim(), id =>
-        {
-            try { return TimeZoneInfo.FindSystemTimeZoneById(id); } catch { }
-            try { if (TimeZoneInfo.TryConvertIanaIdToWindowsId(id, out var w)) return TimeZoneInfo.FindSystemTimeZoneById(w); } catch { }
-            return null;
-        });
+        return _cache.GetOrAdd(tz.Trim(), TraMay);
     }
 
     /// <summary>Ngày (00:00) theo múi gia đình; múi lạ / null ⇒ ngày theo độ lệch của chính mốc (như cũ — người gọi truyền giờ máy:

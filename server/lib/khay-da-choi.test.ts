@@ -48,6 +48,7 @@ test("#703: Windows đặt múi giờ UTC, gia đình giờ Việt Nam — 5h s�
   const p = await mc.taoPolicy(may, con, { gioMaySai: false }, now);
   const { chinhSachWindows } = await import("./agent-windows.ts");
   assert.equal(chinhSachWindows(p).tz, "Asia/Ho_Chi_Minh");
+  assert.equal(chinhSachWindows(p).tzPhut, 420, "độ lệch +07:00 cho tác tử không tra được tên múi");
   // agent theo ngày máy (UTC) — hành vi cũ: ghi vào hôm qua, KHÔNG trừ sao (đây là lỗi #703)
   await mc.dongBo(may, { clientTime: "2026-11-17T22:20:00+00:00", usage: [{ muc: "roblox.exe", phut: 20, day: "2026-11-17" }] } as never, now);
   assert.equal(await ss.phutDaTruHomNay(q, con, "Asia/Ho_Chi_Minh", now), 0, "ngày máy lệch ngày gia đình ⇒ không trừ (lý do agent phải theo windows.tz)");

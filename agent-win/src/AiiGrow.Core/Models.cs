@@ -61,6 +61,8 @@ public sealed class Policy
     public DateTimeOffset? ServerTime { get; set; }
     /// <summary>#703: múi giờ gia đình (IANA, vd «Asia/Ho_Chi_Minh») — máy chủ chốt «hôm nay» theo múi này; tác tử ghi ngày dùng theo cùng múi.</summary>
     public string? Tz { get; set; }
+    /// <summary>#703: độ lệch (phút) của múi gia đình so với UTC lúc máy chủ trả — dùng khi máy không tra được tên múi (InvariantGlobalization không có dữ liệu IANA).</summary>
+    public int? TzPhut { get; set; }
     public string ChildName { get; set; } = "";
     public string Mode { get; set; } = Modes.TuDo;
     public bool Locked { get; set; }

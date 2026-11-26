@@ -34,6 +34,7 @@ public sealed class WebHistoryWorker : BackgroundService
         string? host = null;
         try { host = new Uri(ApiClient.NormalizeServer(cfg.Server)).Host; } catch { }
         var tz = PolicyParser.TryParse(cfg.LastPolicyJson, out var pol) ? pol?.Tz : null;   // #703
+        NgayGiaDinh.DangKy(tz, pol?.TzPhut);
         var ds = WebHistory.TongHop(_src.Doc(hoSo, WebHistory.MocDoc(DateTimeOffset.Now)), host is null ? null : WebDomain.GocTuHost(host), tz);
         if (ds.Count == 0) return;
         var vt = string.Join("\n", ds.Select(x => $"{x.Ngay}|{x.TenMien}|{x.SoLan}|{x.Giay}"));
