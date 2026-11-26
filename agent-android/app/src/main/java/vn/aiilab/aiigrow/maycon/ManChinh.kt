@@ -77,7 +77,9 @@ class ManChinh : Activity() {
         CapNhat.chayNgay(this)
     }
 
-    override fun onResume() { super.onResume(); daVe = null; h.post(lap) }
+    override fun onResume() { super.onResume(); daVe = null; boQuaPin = boQuaToiUuPin(this); h.post(lap) }
+    /** #709: đã bỏ tối ưu pin — chỉ đổi khi Ba Mẹ từ Cài đặt quay lại (onResume), không hỏi PowerManager mỗi 2 giây. */
+    private var boQuaPin = false
     override fun onPause() { super.onPause(); h.removeCallbacks(lap) }
 
     private val lap = object : Runnable {
@@ -90,7 +92,7 @@ class ManChinh : Activity() {
         val laDo = QuanTri.laDeviceOwner(this)
         // quyền cài chỉ cần hỏi khi có bản chờ (đỡ một lời gọi PackageManager mỗi 2 giây)
         val duocCai = k.banMoiCho != null && (laDo || Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())
-        val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai${hienQuyenPin(k.daGhep, laDo, Build.VERSION.SDK_INT) && boQuaToiUuPin(this)}"
+        val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai$boQuaPin"
         // 15/11: có sổ sao / Ba Mẹ khoá ⇒ thẻ xin khác (cho vay sao / xin mở máy) — dựng lại khi đổi
         val htV = if (k.daGhep) HienThi.doc(k.hienThi) else null
         val appDiem = if (htV != null) "${chiNgoaiLe(htV.trangThai)}${htV.coSao}${htV.trangThai == TrangThai.KHOA_NGAY.name}" else ""
@@ -542,7 +544,7 @@ class ManChinh : Activity() {
             },
             Triple("Đếm thời gian dùng ứng dụng", DoPhut.coQuyen(this)) { moCaiDat(Settings.ACTION_USAGE_ACCESS_SETTINGS) },
             Triple("Trợ năng AiiGrow (màn tạm dừng)", TroNang.dangBat(this)) { moCaiDat(Settings.ACTION_ACCESSIBILITY_SETTINGS) },
-        ) + listOfNotNull(if (!xinPin) null else Triple("Chạy nền không bị tắt (bỏ tối ưu pin)", boQuaToiUuPin(this)) {
+        ) + listOfNotNull(if (!xinPin) null else Triple("Chạy nền không bị tắt (bỏ tối ưu pin)", boQuaPin) {
             @android.annotation.SuppressLint("BatteryLife")
             val xin = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:$packageName"))
             try { startActivity(xin) } catch (_: Exception) { moCaiDat(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) }

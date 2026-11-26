@@ -137,8 +137,8 @@ object CapNhat {
             kiemApk(ctx, tep, b)?.let { return hong(ctx, k, b, "APK bị loại: $it", NGHI_HONG_MS) }
         } catch (e: Exception) { return hong(ctx, k, b, "tải APK lỗi: ${e.message}", NGHI_TAI_MS) }
         return try { if (cai(ctx, tep, b, laDo, k)) KetQua.DA_GUI_CAI else KetQua.HOAN }
-        // #683: mở / ghi phiên cài lỗi (thường là hết chỗ trống, phiên cũ còn giữ) — thoáng qua ⇒ nghỉ 1 giờ, không 24 giờ
-        catch (e: Exception) { NhatKy.canh(TAG, "PackageInstaller lỗi", e); hong(ctx, k, b, "PackageInstaller lỗi", NGHI_TAI_MS) }
+        // #683: ghi phiên cài lỗi vào / ra (IOException — hết chỗ trống, phiên cũ còn giữ) thoáng qua ⇒ 1 giờ; lỗi khác (bảo mật, tham số) 24 giờ
+        catch (e: Exception) { NhatKy.canh(TAG, "PackageInstaller lỗi", e); hong(ctx, k, b, "PackageInstaller lỗi", if (e is java.io.IOException) NGHI_TAI_MS else NGHI_HONG_MS) }
     }
 
     /** Hỏng một bước: xoá tệp, bỏ thẻ «có bản mới», nghỉ `nghiMs` rồi mới thử lại đúng bản này (manifest đổi sha256 ⇒ thử ngay). */

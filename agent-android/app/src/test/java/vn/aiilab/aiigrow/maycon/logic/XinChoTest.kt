@@ -43,12 +43,4 @@ class XinChoTest {
         assertTrue(docXinAppCho(null).isEmpty())
         assertEquals("be1", docXinAppCho(jsonXinAppCho(listOf(XinAppCho("c", "Roblox", 0, "be1")))).single().con)
     }
-
-    /** #686: 5 phút đầu hộp xin tự hỏi ⇒ nhịp nền không hỏi (không báo hai lần). */
-    @Test fun nenChiHoiSauCuaSoHop() {
-        val ds = listOf(XinAppCho("a", "YouTube", 0), XinAppCho("b", "Roblox", 4 * 60_000L))
-        assertEquals(emptyList<String>(), xinAppCanHoi(ds, 5 * 60_000L).map { it.id })
-        assertEquals(listOf("a"), xinAppCanHoi(ds, 6 * 60_000L).map { it.id })
-        assertEquals(listOf("a", "b"), xinAppCanHoi(ds, 10 * 60_000L).map { it.id })
-    }
 }

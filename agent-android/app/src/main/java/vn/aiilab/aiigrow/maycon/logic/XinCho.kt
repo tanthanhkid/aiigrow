@@ -31,12 +31,6 @@ fun cauXinVayKhongGui(soSao: Int, lyDo: String?): String =
 /** Lời xin app / web đã gửi, đang chờ Ba Mẹ — lưu bền để hộp xin đóng / app bị tắt vẫn báo được kết quả (hỏi lại mỗi nhịp, ≤ 24 giờ). */
 data class XinAppCho(val id: String, val ten: String, val luc: Long, val con: String = "")
 
-/** Hộp xin tự hỏi kết quả trong 5 phút đầu ⇒ nhịp nền chỉ hỏi lời xin cũ hơn (không báo hai lần). */
-const val HOP_XIN_TU_HOI_MS = 5 * 60_000L + 30_000L
-
-/** Lời xin app / web nhịp nền nên hỏi lúc `now`: qua cửa sổ hộp xin tự hỏi. */
-fun xinAppCanHoi(ds: List<XinAppCho>, now: Long): List<XinAppCho> = ds.filter { now - it.luc >= HOP_XIN_TU_HOI_MS }
-
 const val XIN_APP_CHO_TOI_DA = 10
 
 fun docXinAppCho(s: String?): List<XinAppCho> = try {

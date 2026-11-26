@@ -18,7 +18,6 @@ import vn.aiilab.aiigrow.maycon.logic.conHanXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.docKetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.docXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.jsonXinAppCho
-import vn.aiilab.aiigrow.maycon.logic.xinAppCanHoi
 import vn.aiilab.aiigrow.maycon.logic.themXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.cauXinVay
 import vn.aiilab.aiigrow.maycon.logic.dangDungPhien
@@ -157,6 +156,10 @@ object HocVien {
         k.xinAppCho = jsonXinAppCho(themXinAppCho(docXinAppCho(k.xinAppCho), XinAppCho(id, ten, System.currentTimeMillis(), con), System.currentTimeMillis()))
     }
 
+    /** Id lời xin mà hộp xin đang tự hỏi kết quả (trong bộ nhớ: tiến trình bị tắt thì nhịp nền nhận lại). */
+    private val hopHoi = java.util.Collections.synchronizedSet(HashSet<String>())
+    fun hopDangHoi(id: String, dang: Boolean) { if (dang) hopHoi.add(id) else hopHoi.remove(id) }
+
     /** Hộp xin đã tự hiện kết quả cho Con ⇒ thôi theo dõi (không báo lần hai). */
     fun xongXinApp(ctx: Context, id: String) = synchronized(khoaXinApp) {
         val k = Kho(ctx)
@@ -164,7 +167,7 @@ object HocVien {
         if (ds.any { it.id == id }) k.xinAppCho = jsonXinAppCho(ds.filter { it.id != id })
     }
 
-    /** Mỗi nhịp: hỏi các lời xin app / web còn chờ (≤ 24 giờ, qua 5 phút hộp xin tự hỏi); Ba Mẹ đã trả lời ⇒ bỏ khỏi danh sách, thông báo
+    /** Mỗi nhịp: hỏi các lời xin app / web còn chờ (≤ 24 giờ, trừ lời xin hộp xin đang tự hỏi); Ba Mẹ đã trả lời ⇒ bỏ khỏi danh sách, thông báo
      *  nếu đúng bé xin đang dùng máy (máy chung đã Đổi người ⇒ không báo bé khác). */
     fun hoiXinApp(ctx: Context) {
         val k = Kho(ctx)
@@ -173,7 +176,7 @@ object HocVien {
             val tat = docXinAppCho(k.xinAppCho)
             conHanXinAppCho(tat, System.currentTimeMillis()).also { if (it.size != tat.size) k.xinAppCho = jsonXinAppCho(it) }
         }
-        for (x in xinAppCanHoi(ds, System.currentTimeMillis())) {
+        for (x in ds.filter { it.id !in hopHoi }) {
             val kq = try { docKetQuaXinApp(may(k).yeuCau(x.id)) } catch (e: MayChu.Loi) {
                 if (e.http == 404) xongXinApp(ctx, x.id); continue
             } catch (_: Exception) { return }   // mất mạng ⇒ nhịp sau

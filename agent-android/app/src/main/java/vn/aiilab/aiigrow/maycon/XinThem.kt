@@ -220,13 +220,15 @@ class HopXinThem(private val c: Context) {
                 return@Thread
             }
             h.post { if (g == gen) hienKq(ten, KetQuaXinApp(LoaiKetQuaXin.CHO, null)) }
-            // hỏi kết quả mỗi 3 giây, tối đa 5 phút (như màn chặn app)
-            for (i in 0 until 100) {
+            // hỏi kết quả mỗi 3 giây, tối đa 5 phút (như màn chặn app); trong lúc hộp hỏi, nhịp nền không hỏi lời xin này (không báo hai lần)
+            HocVien.hopDangHoi(r.id, true)
+            try { for (i in 0 until 100) {
                 if (g != gen) return@Thread
                 val kq = DichVuNhip.hoiKetQuaXinApp(ctx, r.id)
-                if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { HocVien.xongXinApp(ctx, r.id); h.post { if (g == gen) hienKq(ten, kq) }; return@Thread }
+                // hộp đã đóng ⇒ để lời xin lại cho nhịp nền báo (không xoá khỏi danh sách chờ mà không hiện)
+                if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { h.post { if (g == gen) { HocVien.xongXinApp(ctx, r.id); hienKq(ten, kq) } }; return@Thread }
                 try { Thread.sleep(3000) } catch (_: InterruptedException) { return@Thread }
-            }
+            } } finally { HocVien.hopDangHoi(r.id, false) }
             // #686: 5 phút chưa có trả lời ⇒ lời xin VẪN chờ (máy chủ không hết hạn lúc này) — thôi hỏi ở hộp, nhịp nền báo khi Ba Mẹ trả lời
             h.post { if (g == gen) hienKq(ten, KetQuaXinApp(LoaiKetQuaXin.CHO, null), khongHoi = true) }
         }.also { it.start() }

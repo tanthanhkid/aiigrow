@@ -107,7 +107,7 @@ class CapNhatTest {
     /** #683: lỗi cài thoáng qua không làm máy kẹt bản cũ 24 giờ. Số mã theo android.content.pm.PackageInstaller.STATUS_FAILURE_*. */
     @Test fun nghiSauLoiCai() {
         val gio = 3600_000L
-        assertEquals(gio, nghiSauLoiCaiMs(6))        // STORAGE — hết dung lượng
+        assertEquals(6 * gio, nghiSauLoiCaiMs(6))    // STORAGE — hết dung lượng (mỗi lần thử tải lại APK)
         assertEquals(24 * gio, nghiSauLoiCaiMs(5))   // CONFLICT — chữ ký khác / provider trùng: thử lại cũng vậy
         assertEquals(gio, nghiSauLoiCaiMs(8))        // TIMEOUT
         assertEquals(gio, nghiSauLoiCaiMs(1))        // FAILURE chung
