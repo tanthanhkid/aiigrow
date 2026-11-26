@@ -13,6 +13,7 @@ import { Icon3D, useLam } from "@/lib/ui";
 import { ChoD, ChonD, ChuD, LoiD, ManD, NutD, TheD } from "@/lib/ui-diu";
 import { NO } from "@/lib/man-con";
 import { useTaiTre } from "@/lib/ui-tre";
+import { chuPhut } from "@/lib/chu-phut";
 
 export default function XinVay() {
   const p = useLocalSearchParams<{ soSao?: string; mucDich?: string; quaId?: string; ten?: string }>();
@@ -44,7 +45,7 @@ export default function XinVay() {
           </View>
         </View>
         {d.cau.no ? <ChuD kieu="rat" co={13} mau={NO.chu}>{d.cau.no}</ChuD> : null}
-        {d.phutHomNay ? <ChuD co={13} mau={am ? NO.chu : D.saoInk}>{`Hôm nay chơi ${d.phutHomNay} phút · −${d.phutHomNay} sao`}</ChuD> : null}
+        {d.phutHomNay ? <ChuD co={13} mau={am ? NO.chu : D.saoInk}>{`Hôm nay chơi ${chuPhut(d.phutHomNay)} · −${soVN(d.phutHomNay)} sao`}</ChuD> : null}
       </TheD>
       {laQua && p.ten ? <ChuD kieu="rat" co={14.5} mau={D.chu2}>{`Để đổi ${p.ten}`}</ChuD> : null}
       <ChuD kieu="den" co={15}>Con xin vay</ChuD>

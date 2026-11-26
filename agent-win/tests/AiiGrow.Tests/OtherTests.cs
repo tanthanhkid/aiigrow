@@ -240,6 +240,15 @@ public class TrayViewTests
         => Assert.StartsWith("AiiGrow đang bật", TrayView.Tooltip(new TrayState { MinutesLeft = 25 }, Now, Now));
 
     [Fact]
+    public void Tooltip_SoPhutLon_DoiRaGio()   // #697: «còn 185 phút» ⇒ «còn 3 giờ 5 phút», khớp app điện thoại
+    {
+        Assert.Equal("AiiGrow đang bật · còn 3 giờ 5 phút", TrayView.Tooltip(new TrayState { MinutesLeft = 185 }, Now, Now));
+        Assert.Equal("AiiGrow đang bật · còn 2 giờ", TrayView.Tooltip(new TrayState { MinutesLeft = 120 }, Now, Now));
+        Assert.Equal("AiiGrow đang bật · còn 25 phút", TrayView.Tooltip(new TrayState { MinutesLeft = 25 }, Now, Now));
+        Assert.Equal("0 phút", TrayView.ConLai(0));
+    }
+
+    [Fact]
     public void FriendlyAppName()
     {
         Assert.Equal("Roblox", TrayView.FriendlyAppName("roblox.exe", null));

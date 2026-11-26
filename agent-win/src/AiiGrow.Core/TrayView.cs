@@ -37,13 +37,20 @@ public static class TrayView
         return ("Không giới hạn", "", null);
     }
 
+    /// <summary>#697: giây còn lại → «45 phút» / «3 giờ 5 phút» (cùng cách viết app điện thoại), làm tròn lên phút.</summary>
+    public static string ConLai(double giay)
+    {
+        var p = (int)Math.Ceiling(Math.Max(0, giay) / 60.0);
+        return p > 0 ? DungAppView.ThoiLuong(p) : "0 phút";
+    }
+
     public static string Tooltip(TrayState s, DateTimeOffset receivedAt, DateTimeOffset now)
     {
         if (s.MoCoi) return "AiiGrow · máy đã rời gia đình, không chặn gì";
         if (s.Locked) return "AiiGrow đang bật · máy đang khoá";
         var d = Describe(s, receivedAt, now);
         var text = d.RemainingSec.HasValue
-            ? "AiiGrow đang bật · còn " + (int)Math.Ceiling(d.RemainingSec.Value / 60.0) + " phút"
+            ? "AiiGrow đang bật · còn " + ConLai(d.RemainingSec.Value)
             : "AiiGrow đang bật · không giới hạn giờ";
         return text.Length > 120 ? text[..120] : text;
     }

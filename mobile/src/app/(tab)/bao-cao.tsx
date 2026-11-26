@@ -18,6 +18,7 @@ import { ChuGiaiVuong, CotGioChoi } from "@/lib/bieu-do";
 import { KHOI } from "@/lib/clay";
 import { luuTepChu } from "@/lib/luu-tep";
 import { soHomNay, type SoHomNayMayChu } from "@/lib/so-hom-nay";
+import { chuPhut } from "@/lib/chu-phut";
 
 type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number; vay?: number }[]; tongGiaiTri: number; phutHoc: number; duyet: { duoc: number; tu_choi: number }; ngoaiLe: number;
   top: { muc: string; phut: number }[]; dungNhieu?: { muc: string; ten?: string; loai: string; phut: number; may?: string | null; lech: number | null }[];
@@ -114,8 +115,8 @@ function BaoCaoCon({ id }: { id: string }) {
               return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: null, vay: x.vay ?? 0, doc: `${nhan}: ${gio(x.phut)} = ${x.phut} sao${x.vay ? `, trong đó ${x.vay} sao vay` : ""}` };
             })} />
           <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: M.badge },
-            ...(d.goc ? [{ chu: `Giới hạn ngày ${d.goc} phút`, dut: true }] : []),
-            { chu: d.tran ? `Nay: ${phutNay}/${d.tran} phút = ${soVN(phutNay)} sao · còn ${d.conNgay ?? 0} phút` : `Nay: ${phutNay} phút = ${soVN(phutNay)} sao` }]} />
+            ...(d.goc ? [{ chu: `Giới hạn ngày ${chuPhut(d.goc)}`, dut: true }] : []),
+            { chu: d.tran ? `Nay: ${chuPhut(phutNay)} / ${chuPhut(d.tran)} = ${soVN(phutNay)} sao · còn ${chuPhut(d.conNgay ?? 0)}` : `Nay: ${chuPhut(phutNay)} = ${soVN(phutNay)} sao` }]} />
           {d.goc ? (
             <Pressable onPress={() => router.push(`/ho-so/${id}/gio-choi` as never)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-start" }}>
               <Chu kieu="rat" co={14} mau={M.lienKet}>Giờ chơi mỗi ngày ›</Chu>

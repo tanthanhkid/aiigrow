@@ -1,4 +1,5 @@
 // Phần THUẦN của «App & web» 15/11 (#262 / #258) — tên chế độ / nhóm, kiểu dữ liệu GET con/:id/danh-sach, câu phụ một hàng. Không gọi mạng (test: app-web-chu.test.ts).
+import { chuPhut } from "./chu-phut.ts";
 
 export type CheDo = "theo_danh_sach" | "mo_het";
 export type Nhom = "tinh_phut" | "khong_tinh_phut";
@@ -32,4 +33,4 @@ export const hangCua = (d: DanhSach, kieu: Kieu) => [...d[kieu].tinhPhut, ...d[k
 /** «Hôm nay 39 phút» (cả hai nhóm — bàn them-g7g1cel5@v11 bỏ «−N sao») / «Hôm nay chưa dùng». */
 export const phuHomNay = (h: Pick<DongDs, "nhom" | "phutHomNay" | "choKhop">, web?: boolean) =>
   h.choKhop ? "Chờ máy của con báo app này" : !h.phutHomNay ? `Hôm nay chưa ${web ? "vào" : "dùng"}`
-    : `Hôm nay ${h.phutHomNay} phút`;
+    : `Hôm nay ${chuPhut(h.phutHomNay)}`;

@@ -7,6 +7,7 @@ import { ChipTen, ChuD, NutD, SaoD, TheD, TieuD, VongD } from "./ui-diu";
 import { D } from "./diu";
 import { useTre } from "./ui-tre";
 import { soSao, soVN, tiVong, type SaoCon } from "./con-diu";
+import { chuPhut } from "@/lib/chu-phut";
 
 /** Grow chào (cdt-chao): «Chào con! Mình là Grow» + 3 dòng quy tắc bằng icon (15/11: 1 sao = 1 phút chơi). */
 export function RobChao({ ten }: { ten?: string }) {
@@ -70,14 +71,14 @@ export function VienSao({ sao, chu }: { sao: number; chu?: string }) {
  *  + nút phụ `nut2` ngay dưới («Xin thêm app / web», #422 con-dt-xin 08-them-us1kc173). */
 export function ThePhut({ s, bam, nut, nut2 }: { s: SaoCon; bam?: () => void; nut?: { chu: string; bam: () => void }; nut2?: { chu: string; bam: () => void } }) {
   return (
-    <TheD bam={bam} nhanDoc={`Còn ${s.phutCon} sao bằng ${s.phutCon} phút chơi. Hôm nay chơi ${s.phutHomNay} phút`}>
+    <TheD bam={bam} nhanDoc={`Còn ${s.phutCon} sao bằng ${s.phutCon} phút chơi. Hôm nay chơi ${chuPhut(s.phutHomNay)}`}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 14 }}>
         <VongD ti={tiVong(s)} so={soVN(s.phutCon)} don="sao" co={104} day={11} />
         <View style={{ flex: 1, gap: 4 }}>
           <ChuD kieu="den" co={20}>{s.hetSao ? "Hết sao rồi" : `Còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút chơi`}</ChuD>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             <Icon3D ten="dongho" co={20} />
-            <ChuD kieu="rat" co={13.5} mau={D.chu2}>{`Hôm nay chơi ${s.phutHomNay} phút`}</ChuD>
+            <ChuD kieu="rat" co={13.5} mau={D.chu2}>{`Hôm nay chơi ${chuPhut(s.phutHomNay)}`}</ChuD>
           </View>
         </View>
       </View>

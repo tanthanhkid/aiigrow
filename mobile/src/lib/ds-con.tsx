@@ -12,6 +12,7 @@ import type { YeuCauMoi } from "./hang-ngay";
 import { laAppWeb, TheXin } from "./hom-nay-xin";
 import { HangBoQua, icCuaApp, veHoac } from "./ui-bm3";
 import { BaoLoi, ChoTai, Chu, M, Man, Nut, The, useLam, useTai, type TenIcon } from "./ui";
+import { chuPhut } from "@/lib/chu-phut";
 
 /** Icon một mục trong DANH SÁCH: trang / app xem video (YouTube, Netflix, TikTok) = máy quay, trang web khác không rõ loại = sách. */
 export const icMuc = (ten: string, kieu: Kieu): TenIcon => {
@@ -103,7 +104,7 @@ function MotMucTrong({ con, kieu, ten, muc, caNha }: { con: string; kieu: Kieu; 
     ve();
   });
   const bo = () => lam(async () => { if (h) await boKhoiDs(con, h); ve(); });
-  const phu = caNha ? "Áp cho cả nhà · mọi bé" : h ? (h.phutHomNay ? `Hôm nay đã ${web ? "vào" : h.nhom === "tinh_phut" ? "chơi" : "dùng"} ${h.phutHomNay} phút` : `Hôm nay chưa ${web ? "vào" : "dùng"}`)
+  const phu = caNha ? "Áp cho cả nhà · mọi bé" : h ? (h.phutHomNay ? `Hôm nay đã ${web ? "vào" : h.nhom === "tinh_phut" ? "chơi" : "dùng"} ${chuPhut(h.phutHomNay)}` : `Hôm nay chưa ${web ? "vào" : "dùng"}`)
     : "Chưa có trong danh sách";
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={caNha ? `${web ? "Web" : "App"} của cả nhà` : `${web ? "Web" : "App"} của ${tenCon}`}>

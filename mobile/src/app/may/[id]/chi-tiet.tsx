@@ -14,6 +14,7 @@ import {
 } from "@/lib/may-nhieu-con";
 import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { BangTruot, BaoLoi, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
+import { chuPhut } from "@/lib/chu-phut";
 
 
 export default function MayChiTiet() {
@@ -43,7 +44,7 @@ export default function MayChiTiet() {
   const xong = (chu: string, hoan: () => Promise<unknown>) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); };
   const dongBe = (c: ConCuaMay, k: number) => {
     const no = c.sao < 0;
-    const phu = c.phutHomNay ? `${c.phutHomNay} phút trên máy này hôm nay` : c.lanCuoi ? `dùng máy này lúc ${gioPhut(c.lanCuoi)}` : "chưa dùng máy này";
+    const phu = c.phutHomNay ? `${chuPhut(c.phutHomNay)} trên máy này hôm nay` : c.lanCuoi ? `dùng máy này lúc ${gioPhut(c.lanCuoi)}` : "chưa dùng máy này";
     return (
       <View key={c.id} style={[{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 10, paddingRight: 4 }, keDau(k)]}>
         <View style={{ marginTop: 2 }}><AvtCon c={c} co={36} /></View>
@@ -86,7 +87,7 @@ export default function MayChiTiet() {
         {dangDung ? (
           <View style={{ flexDirection: "row", gap: 8 }}>
             <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: M.the, ...KHOI.heroNho }}>
-              <Chu kieu="rat" co={20} so style={{ lineHeight: 24 }}>{`${cm.dangDung?.phutHomNay ?? dangDung.phutHomNay} phút`}</Chu>
+              <Chu kieu="rat" co={20} so style={{ lineHeight: 24 }}>{chuPhut(cm.dangDung?.phutHomNay ?? dangDung.phutHomNay)}</Chu>
               <Chu kieu="dam7" co={12} mau={M.chu2}>hôm nay trên máy này</Chu>
             </View>
             <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: M.the, ...KHOI.heroNho }}>

@@ -10,6 +10,7 @@ import { BieuTron, CanhGiua, ChoTai, ChonMot, Chu, Dong, Icon, M, Man, Nhom, Nho
 import { BONG } from "@/lib/clay";
 import { CotClay, ThanhClay } from "@/lib/bieu-do";
 import { HangViec, IC_MAY, type ConCt, type QuyCon } from "@/lib/hang-ngay";
+import { chuPhut } from "@/lib/chu-phut";
 
 const MUC: Record<MucMH, { chu: string; mau: string; ic: TenIcon }> = {
   // «Ánh kim»: bảng E (navy · đồng · vàng đồng sẫm · mận · ô liu · nâu), không còn tím / cam / hồng
@@ -27,7 +28,7 @@ const thuCua = (ngay: string) => THU[new Date(`${ngay}T12:00:00`).getDay()] ?? "
 const ngayNgan = (ngay: string) => `${ngay.slice(8, 10)}/${ngay.slice(5, 7)}`;
 /** Giây → «2 giờ 5 phút»; dưới 1 phút → «< 1 phút». */
 const gio = (giay: number) => { const p = Math.round(giay / 60);
-  return giay <= 0 ? "0 phút" : p < 1 ? "< 1 phút" : p >= 60 ? `${Math.floor(p / 60)} giờ${p % 60 ? ` ${p % 60} phút` : ""}` : `${p} phút`; };
+  return giay <= 0 ? "0 phút" : p < 1 ? "< 1 phút" : chuPhut(p); };
 const TUAN = [{ gia: 0, chu: "Tuần này" }, { gia: 1, chu: "Tuần trước" }, { gia: 2, chu: "2 tuần trước" }];
 
 export default function ManHinhCon() {

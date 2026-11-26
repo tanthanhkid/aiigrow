@@ -77,7 +77,7 @@ public static class KetNoiView
         {
             var d = TrayView.Describe(s, receivedAt, now);
             if (d.RemainingSec.HasValue)
-                text += "\nCòn " + (int)Math.Ceiling(d.RemainingSec.Value / 60.0) + " phút";
+                text += "\nCòn " + TrayView.ConLai(d.RemainingSec.Value);
         }
         return text.Length > 127 ? text[..127] : text;
     }

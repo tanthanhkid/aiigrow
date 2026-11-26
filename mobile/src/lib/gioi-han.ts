@@ -1,6 +1,7 @@
 // #302 mục 4 «Giờ chơi»: GIỚI HẠN TỐI ĐA mỗi ngày (ngày thường / T7–CN) + «Mỗi lượt tối đa» — chơi vẫn trả bằng sao (1 sao = 1 phút).
 // Hàm thuần (node --test) dùng chung cho màn Lần đầu (thiet-lap/gio) và «Giờ chơi» trong hồ sơ Con (ho-so/[id]/gio-choi).
 // Cùng luật với máy chủ (server/lib/gioi-han-choi.ts): 0 = không giới hạn; ngày 10–720 phút; lượt 5–240 phút; nghỉ = đúng số phút một lượt.
+import { chuPhut } from "./chu-phut.ts";
 
 /** Giá trị gửi / nhận máy chủ (phút; 0 = không giới hạn). */
 export type GioiHan = { ngayThuong: number; cuoiTuan: number; moiLuot: number };
@@ -40,11 +41,11 @@ export function quyRaTieng(n: number): string {
 
 /** Hàng «Giờ chơi» trong hồ sơ Con: «60 phút/ngày» + «mỗi lượt 30 phút». */
 export function tomTatGioiHan(c: GioiHan): { tren: string; duoi?: string } {
-  const tren = !c.ngayThuong && !c.cuoiTuan ? "Không giới hạn" : c.ngayThuong === c.cuoiTuan ? `${c.ngayThuong} phút/ngày`
-    : !c.cuoiTuan ? `${c.ngayThuong} phút ngày thường · cuối tuần không giới hạn`
-    : !c.ngayThuong ? `Ngày thường không giới hạn · cuối tuần ${c.cuoiTuan} phút`
-    : `${c.ngayThuong} · T7, CN ${c.cuoiTuan} phút`;
-  return { tren, ...(c.moiLuot ? { duoi: `mỗi lượt ${c.moiLuot} phút` } : {}) };
+  const tren = !c.ngayThuong && !c.cuoiTuan ? "Không giới hạn" : c.ngayThuong === c.cuoiTuan ? `${chuPhut(c.ngayThuong)}/ngày`
+    : !c.cuoiTuan ? `${chuPhut(c.ngayThuong)} ngày thường · cuối tuần không giới hạn`
+    : !c.ngayThuong ? `Ngày thường không giới hạn · cuối tuần ${chuPhut(c.cuoiTuan)}`
+    : `Ngày thường ${chuPhut(c.ngayThuong)} · T7, CN ${chuPhut(c.cuoiTuan)}`;
+  return { tren, ...(c.moiLuot ? { duoi: `mỗi lượt ${chuPhut(c.moiLuot)}` } : {}) };
 }
 
 /** Thân gửi máy chủ (POST thiet-lap / con/<id>/gio-choi). */
@@ -59,7 +60,7 @@ export function dongGioiHanTre(g: GioiHanTre | null | undefined): { tieu: string
   if (!g?.apDung) return null;
   if (g.dangNghi) return { tieu: `Đang nghỉ tới ${g.nghiDenGio ?? "lát nữa"}`, phu: `Nghỉ một chút · chơi tiếp lúc ${g.nghiDenGio ?? "lát nữa"}` };
   if (g.hetNgay) return { tieu: "Hôm nay chơi đủ rồi", phu: g.cau ?? "Mai chơi tiếp nhé" };
-  const luot = g.luotPhut && g.conLuot !== null ? `Lượt này còn ${Math.floor(g.conLuot)} phút rồi nghỉ ${g.luotPhut} phút` : undefined;
-  if (g.conNgay !== null) return { tieu: `Còn ${Math.floor(g.conNgay)} phút hôm nay`, ...(luot ? { phu: luot } : {}) };
+  const luot = g.luotPhut && g.conLuot !== null ? `Lượt này còn ${chuPhut(Math.floor(g.conLuot))} rồi nghỉ ${chuPhut(g.luotPhut)}` : undefined;
+  if (g.conNgay !== null) return { tieu: `Còn ${chuPhut(Math.floor(g.conNgay))} hôm nay`, ...(luot ? { phu: luot } : {}) };
   return luot ? { tieu: luot } : null;
 }

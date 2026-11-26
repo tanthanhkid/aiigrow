@@ -16,6 +16,7 @@ import { Avt, ChoTai, Chu, Icon, Icon3D, M, Man, NhanMen, Nut, The, useHoanTac, 
 import { saoChep } from "@/lib/luu-tep";
 import { HangChonBe } from "@/lib/ui-chung";
 import { KHOI, MEN, HERO, KHOI_HERO } from "@/lib/clay";
+import { chuPhut } from "@/lib/chu-phut";
 
 type Luat = { ds: LuatDem[] };
 
@@ -66,7 +67,7 @@ export default function HoSoCon() {
           style={[{ flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 12, borderRadius: 20, backgroundColor: M.the }, KHOI.heroThe]}>
           <View style={{ flex: 1, gap: 2 }}>
             <Chu kieu="dam" co={13.5} mau={M.chu2} so>{phutHomNay !== null
-              ? <>Hôm nay chơi <Chu kieu="rat" co={20} so>{`${soVN(phutHomNay)} phút`}</Chu></>
+              ? <>Hôm nay chơi <Chu kieu="rat" co={20} so>{chuPhut(phutHomNay)}</Chu></>
               : "1 sao = 1 phút chơi"}</Chu>
           </View>
           <View style={{ alignItems: "center", gap: 2, paddingLeft: 10, borderLeftWidth: 1.5, borderLeftColor: M.vien }}>

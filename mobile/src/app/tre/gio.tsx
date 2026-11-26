@@ -9,6 +9,7 @@ import { soVN, tiVong } from "@/lib/con-diu";
 import { D } from "@/lib/diu";
 import { ChoD, ChuD, ManD, MatMangD, NutD, PillD, TheD, VongD } from "@/lib/ui-diu";
 import { useTaiTre, useTre } from "@/lib/ui-tre";
+import { chuPhut } from "@/lib/chu-phut";
 
 export default function DangChoi() {
   const { ten } = useTre();
@@ -22,7 +23,7 @@ export default function DangChoi() {
   const app = [...new Set((tc.d?.ds ?? []).map((x) => tenMuc(x.muc, x.ten)))];
   // máy chủ mới: phút từng app hôm nay + sao đã trừ; cũ: danh sách app Tính phút (chưa có số)
   const dong: (readonly [string, string, boolean])[] = d.appHomNay
-    ? [...d.appHomNay.map((x) => [x.ten, x.nhom === "tinh_phut" && !moHet ? `${x.phut} phút · \u2212${soVN(x.sao)} sao` : `${x.phut} phút · không tính phút`, x.nhom !== "tinh_phut"] as const),
+    ? [...d.appHomNay.map((x) => [x.ten, x.nhom === "tinh_phut" && !moHet ? `${chuPhut(x.phut)} · \u2212${soVN(x.sao)} sao` : `${chuPhut(x.phut)} · không tính phút`, x.nhom !== "tinh_phut"] as const),
       ...(d.appHomNay.some((x) => x.ten === "AiiRob") ? [] : [["AiiRob", "không tính phút", true] as const])]
     : [...app.map((a) => [a, moHet ? "không tính phút" : "tính phút · trừ sao", moHet] as const), ["App học · AiiRob", "không tính phút", true] as const];
   return (
@@ -38,7 +39,7 @@ export default function DangChoi() {
         <View style={{ alignItems: "center", gap: 6, paddingVertical: 6 }}>
           <VongD ti={tiVong(d)} so={soVN(d.phutCon)} don="sao còn lại" co={180} day={15} />
           <ChuD kieu="den" co={18}>{`Còn ${soVN(d.phutCon)} sao = ${soVN(d.phutCon)} phút chơi`}</ChuD>
-          <ChuD kieu="rat" co={15} mau={D.chu2}>{`Hôm nay chơi ${d.phutHomNay} phút`}</ChuD>
+          <ChuD kieu="rat" co={15} mau={D.chu2}>{`Hôm nay chơi ${chuPhut(d.phutHomNay)}`}</ChuD>
         </View>
       )}
       <ChuD kieu="den" co={15}>{moHet ? "Hôm nay · không tính phút" : "Hôm nay · 1 sao = 1 phút"}</ChuD>
