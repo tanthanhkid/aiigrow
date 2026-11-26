@@ -232,7 +232,7 @@ const quyGia = (con = 18, tong = 60, o = {}) => ({ ngay: "2026-11-05", cuoiTuan:
   tyLe: { sao: 10, phut: 10 }, doiSao: { bat: true, toiDaNgay: 30, conDoiDuoc: 30 }, choXinThem: true, ...o });
 const gioChoi = (o = {}) => ({ gioiHanNgayThuong: 60, gioiHanCuoiTuan: 90, phutMoiLuot: 30, phut10Sao: 10, doiSaoBat: true, doiSaoToiDaNgay: 30, choXinThemGio: true, ngoaiLeToiDaPhut: 60,
   gioNgu: { tu: "21:30", den: "06:30" }, gioHoc: { tu: "19:00", den: "20:30", thu: [1, 2, 3, 4, 5] }, homNay: quyGia(),
-  /** #705: số «hôm nay» máy chủ tính (quy-gio › soHomNay) — Báo cáo «Nay: 45/60 phút · còn 15 phút» */ soHomNay: { daChoi: 45, gioiHanNgay: 60, conNgay: 15 }, ...o });
+  /** #705: số «hôm nay» máy chủ tính (quy-gio › soHomNay) — Báo cáo «Nay: 45/60 phút · còn 15 phút» */ soHomNay: { daChoi: 45, gioiHanNgay: 60, conNgay: 15, gioiHanGoc: 60 }, ...o });
 const viecBo = (ten, sao, bangChung, lapLai, hinh, nhan, moTa = "") => ({ ten, moTa, sao, bangChung, tuCham: bangChung === "tu_dong", lapLai, hinh, nhan, toiDaNgay: 1 });
 const BO_NV = [
   { ma: "tu_lap", ten: "Tự lập", tuoi: "9–10 tuổi", soViec: 5, saoToiDaNgay: 60, viec: [viecBo("Dọn phòng", 10, "anh", "hang_ngay", "choi", "Mỗi ngày · nộp ảnh", "Cất đồ về đúng chỗ, chụp ảnh phòng gọn."),

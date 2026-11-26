@@ -44,13 +44,13 @@ test("#705: giới hạn 60, chơi đủ 60, Ba Mẹ cho vay 20 ⇒ «Đã dùng
   const hn = await homNayDung(fam, con, now);
   assert.deepEqual({ daChoi: hn.choi.daChoi, gioiHanNgay: hn.choi.gioiHanNgay, conNgay: hn.choi.conNgay }, mong, "con/:id/hom-nay › choi");
   const gc = await qg.gioChoiCua(fam, con, now);
-  assert.deepEqual(gc.soHomNay, mong, "con/:id/gio-choi › soHomNay");
+  assert.deepEqual(gc.soHomNay, { ...mong, gioiHanGoc: 60 }, "con/:id/gio-choi › soHomNay (vạch biểu đồ = giới hạn gốc, chưa cộng sao vay)");
   // Chủ nhật giờ gia đình (5h sáng VN = 22h thứ Bảy UTC): giới hạn cuối tuần theo ngày gia đình, không theo điện thoại
   const cn = VN("2026-11-22T05:00:00");
   assert.equal((await qg.gioChoiCua(fam, con, cn)).soHomNay.gioiHanNgay, 90);
   // không đặt giới hạn ⇒ null (màn hiện số sao còn như cũ)
   const k = await nha(50);
-  assert.deepEqual((await qg.gioChoiCua(k.fam, k.con, now)).soHomNay, { daChoi: 0, gioiHanNgay: null, conNgay: null });
+  assert.deepEqual((await qg.gioChoiCua(k.fam, k.con, now)).soHomNay, { daChoi: 0, gioiHanNgay: null, conNgay: null, gioiHanGoc: null });
 });
 
 test("#700: «đã chơi hôm nay» ở Trang chủ / Đã dùng / Hồ sơ Con = phút đã trừ sao (số nguyên), không phải phút đo lẻ", async () => {
@@ -91,4 +91,9 @@ test("#704: «Không tính phút» và số mục «Đã dùng» tính trên C�
   const hn2 = await homNayDung(fam, con, now);
   assert.equal(hn2.dung.find((x) => x.muc === "tudien.vn")?.phut, 3);
   assert.equal(hn2.khongTinhPhut.phut, 63);
+  // dòng dưới 30 giây mỗi máy vẫn cộng: 25 giây × 3 máy = 75 giây ⇒ 1 phút
+  const may3 = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "PC 3");
+  for (const m of [mayId, may2.deviceId, may3.deviceId]) await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, dau_luc) values ($1, $2, '2026-11-18', 'tracuu.vn', 1, 25, $3)`, [m, con, VN("2026-11-18T19:30:00")]);
+  await la.datLuat(fam, { muc: "tracuu.vn", ten: "Tra cứu", loai: "hoc", nhom: "hoc" });
+  assert.equal((await homNayDung(fam, con, now)).dung.find((x) => x.muc === "tracuu.vn")?.phut, 1);
 });

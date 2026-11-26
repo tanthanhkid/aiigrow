@@ -43,7 +43,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
       `select device_id, muc, loai, phut, dau_luc from usage where child_id = $1 and ngay = $2 and phut > 0`, [con, ngay]),
     q<{ device_id: string; ten_mien: string; giay: number; dau_luc: Date | null; lan_cuoi: Date | null }>(
       `select w.device_id, w.ten_mien, w.giay, w.dau_luc, w.lan_cuoi from web_nhat_ky w left join devices d on d.id = w.device_id
-        where (w.child_id = $1 or (w.child_id is null and d.child_id = $1)) and d.family_id = $2 and w.ngay = $3 and w.giay >= 30`, [con, fam, ngay]),
+        where (w.child_id = $1 or (w.child_id is null and d.child_id = $1)) and d.family_id = $2 and w.ngay = $3 and w.giay > 0`, [con, fam, ngay]),
     q<Luat>(`select child_id, muc, ten, loai, nhom from app_rules where family_id = $1 and child_id in ('', $2) and (het is null or het > $3)`, [fam, con, now]),
     q<{ muc: string; device_id: string | null }>(`select muc, device_id from play_sessions where child_id = $1 and trang_thai = 'chay'`, [con]),
     q<{ id: string; name: string; platform: string }>(`select id, name, platform from devices where family_id = $1`, [fam]),

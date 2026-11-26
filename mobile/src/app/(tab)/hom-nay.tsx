@@ -236,7 +236,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         ) : null}
         {!khoa ? (
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-            <OSo vong={hn.d && daChoiPhut + s.phutCon > 0 ? daChoiPhut / (daChoiPhut + s.phutCon) : 0} mau={HERO.phu} ic="dongho" so={hn.d ? `${daChoiPhut} phút` : "–"} nhan="Đã chơi"
+            <OSo vong={hn.d && daChoiPhut + hn.d.choi.conPhut > 0 ? daChoiPhut / (daChoiPhut + hn.d.choi.conPhut) : 0} mau={HERO.phu} ic="dongho" so={hn.d ? `${daChoiPhut} phút` : "–"} nhan="Đã chơi"
               bam={() => router.push("/bao-cao" as never)} />
             <OSo vong={yViec ? xViec / yViec : 0} mau="#5cb98f" ic="tick" so={yViec ? `${xViec}/${yViec} việc` : `${xViec} việc`} nhan="Đã làm" bam={() => router.push("/diem-qua" as never)} />
           </View>

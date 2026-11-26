@@ -69,7 +69,7 @@ function BaoCaoCon({ id }: { id: string }) {
       bm.goi<{ soHomNay?: SoHomNayMayChu }>(`con/${id}/gio-choi`).catch(() => null)]);
     // #705: giới hạn hôm nay (đã cộng sao cho vay, thứ theo giờ gia đình) + phút còn — máy chủ tính (gio-choi › soHomNay)
     const so = soHomNay(gc?.soHomNay);
-    return { bc, sao: vs ? saoTu(vs) : null, tran: so.tran, conNgay: so.con };
+    return { bc, sao: vs ? saoTu(vs) : null, tran: so.tran, conNgay: so.con, goc: so.goc, daChoi: gc?.soHomNay ? so.daChoi : null };
   });
   const xuat = useLam();
   if (!d) return <ChoTai loi={loi} matMang={matMang} tai={tai} />;
@@ -78,14 +78,14 @@ function BaoCaoCon({ id }: { id: string }) {
   const ngay = nay.giaiTriTheoNgay;
   const homNay = ngay[ngay.length - 1]?.ngay;
   const lech = nay.tongGiaiTri - bc.tuanTruoc.tongGiaiTri;
-  const max = Math.max(d.tran ?? 60, ...ngay.map((x) => x.phut));
+  const max = Math.max(d.goc ?? 60, ...ngay.map((x) => x.phut));
   const nhieuNhat = [...ngay].sort((a, b) => b.phut - a.phut)[0];
   const saoTieu = nay.saoTieuChoi ?? nay.tongGiaiTri;
   const saoVay = nay.saoVay ?? 0;
   const saoKiem = nay.saoKiem ?? 0, traNo = nay.saoTraNo ?? 0;
   const xin = nay.xinVay ?? nay.xinThemGio ?? { so: nay.ngoaiLe, cho: nay.ngoaiLe };
   const no = d.sao?.no ?? 0;
-  const phutNay = ngay[ngay.length - 1]?.phut ?? 0;
+  const phutNay = d.daChoi ?? ngay[ngay.length - 1]?.phut ?? 0;   // #700: «Nay» = phút đã trừ sao (máy chủ), cùng số Trang chủ / «Đã dùng»
   const dung = nay.dungNhieu?.length ? nay.dungNhieu.slice(0, 3) : nay.top.slice(0, 3).map((x) => ({ ...x, ten: undefined, loai: "giai_tri", may: null, lech: null }));
   const xemDung = () => router.push(`/da-dung/${id}` as never);
   const ten = tenGoi(bc.ten);
@@ -108,15 +108,15 @@ function BaoCaoCon({ id }: { id: string }) {
               </View>
             ) : null;
           })()}
-          <CotGioChoi max={max} quyVach={d.tran} nhanDoc="Phút chơi theo ngày (1 phút = 1 sao)"
+          <CotGioChoi max={max} quyVach={d.goc} nhanDoc="Phút chơi theo ngày (1 phút = 1 sao)"
             ds={ngay.map((x) => {
               const laNay = x.ngay === homNay, nhan = laNay ? "Nay" : THU[thuCua(x.ngay)];
               return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: null, vay: x.vay ?? 0, doc: `${nhan}: ${gio(x.phut)} = ${x.phut} sao${x.vay ? `, trong đó ${x.vay} sao vay` : ""}` };
             })} />
           <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: M.badge },
-            ...(d.tran ? [{ chu: `Giới hạn ngày ${d.tran} phút`, dut: true }] : []),
+            ...(d.goc ? [{ chu: `Giới hạn ngày ${d.goc} phút`, dut: true }] : []),
             { chu: d.tran ? `Nay: ${phutNay}/${d.tran} phút = ${soVN(phutNay)} sao · còn ${d.conNgay ?? 0} phút` : `Nay: ${phutNay} phút = ${soVN(phutNay)} sao` }]} />
-          {d.tran ? (
+          {d.goc ? (
             <Pressable onPress={() => router.push(`/ho-so/${id}/gio-choi` as never)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-start" }}>
               <Chu kieu="rat" co={14} mau={M.lienKet}>Giờ chơi mỗi ngày ›</Chu>
             </Pressable>

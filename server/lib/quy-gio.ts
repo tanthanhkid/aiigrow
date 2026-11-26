@@ -143,8 +143,10 @@ export const gioiHanMay = (g: Quy["gioiHan"]) => ({ apDung: g.apDung, ngayPhut: 
  *  · daChoi = phút «Tính phút» đã trừ sao hôm nay (sổ sao, số nguyên) — cùng số máy Con «Hôm nay chơi N phút» và màn Màn hình (#658);
  *  · gioiHanNgay = giới hạn ngày HÔM NAY theo thứ trong tuần của giờ gia đình, ĐÃ cộng sao Ba Mẹ cho vay để chơi hôm nay;
  *  · conNgay = phần còn của giới hạn ngày (làm tròn xuống — đúng số máy Con khoá theo, «Còn N phút hôm nay»).
+ *  · gioiHanGoc = giới hạn ngày Ba Mẹ đặt cho thứ hôm nay (giờ gia đình), CHƯA cộng sao cho vay, còn khi «Mở hết» — vạch giới hạn trên biểu đồ tuần.
  *  gioiHanNgay / conNgay = null khi không giới hạn ngày hoặc đang «Mở hết». */
-export const soHomNay = (qy: Quy) => ({ daChoi: qy.phutTruHomNay, gioiHanNgay: qy.gioiHan.ngayPhut, conNgay: nguyen(qy.gioiHan.conNgay) });
+export const soHomNay = (qy: Quy) => ({ daChoi: qy.phutTruHomNay, gioiHanNgay: qy.gioiHan.ngayPhut, conNgay: nguyen(qy.gioiHan.conNgay),
+  gioiHanGoc: (qy.cuoiTuan ? qy.gioiHan.cauHinh.cuoiTuan : qy.gioiHan.cauHinh.ngayThuong) || null });
 
 /** (cũ) «Đổi sao lấy giờ» — đã bỏ (#264: sao chính là phút). Agent / app cũ gọi ⇒ trả thành công mà không trừ gì: phút còn = số sao. */
 export async function doiSaoLayGio(con: string, _phutVao: unknown, _mayId: string | null = null, now = new Date()) {
