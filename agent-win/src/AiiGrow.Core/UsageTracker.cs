@@ -12,8 +12,15 @@ public sealed class UsageTracker
     private string _ngayHomNay = "";
     private readonly object _gate = new();
 
-    /// <summary>#703: múi giờ gia đình từ Policy (null = giờ máy). Ngày của mọi dòng dùng = ngày gia đình, khớp «hôm nay» máy chủ trừ sao.</summary>
-    public string? Tz { get; set; }
+    /// <summary>#703: múi giờ gia đình từ Policy (null = giờ máy). Ngày của mọi dòng dùng = ngày gia đình, khớp «hôm nay» máy chủ trừ sao.
+    /// Đổi múi (Policy đầu tiên sau khi khởi động, nhà đổi múi) ⇒ ngày «hôm nay» của khay theo múi mới, không kẹt ở ngày cũ đi trước.</summary>
+    public string? Tz
+    {
+        get { lock (_gate) return _tz; }
+        set { lock (_gate) { if (string.Equals(_tz, value, StringComparison.Ordinal)) return; _tz = value; _doiMui = true; } }
+    }
+    private string? _tz;
+    private bool _doiMui;
 
     /// <summary>Định danh dùng khi khay chết (không biết app tiền cảnh) — không hiện ở «đã dùng theo app».</summary>
     public const string KhongRo = "khong-ro";
@@ -22,12 +29,18 @@ public sealed class UsageTracker
     public void Add(DateTimeOffset localNow, string appId, string appName, double seconds, string? con = null)
     {
         if (seconds <= 0 || string.IsNullOrWhiteSpace(appId)) return;
-        var key = (NgayGiaDinh.Cua(localNow, Tz), appId.Trim().ToLowerInvariant(), con?.Trim() ?? "");
         lock (_gate)
         {
+            var key = (NgayGiaDinh.Cua(localNow, _tz), appId.Trim().ToLowerInvariant(), con?.Trim() ?? "");
             _d.TryGetValue(key, out var cur);
             _d[key] = (string.IsNullOrWhiteSpace(appName) ? (cur.Name ?? appId) : appName, cur.Sec + seconds);
             if (!_cuoi.TryGetValue(key, out var cu) || localNow > cu) _cuoi[key] = localNow;
+            if (_doiMui)
+            {
+                // vừa đổi múi: giữ số đếm trong ngày, chỉ gắn sang ngày theo múi mới (không coi là «giờ lùi»)
+                _doiMui = false;
+                if (_ngayHomNay.Length > 0) _ngayHomNay = key.Item1;
+            }
             if (key.Item1 != _ngayHomNay)
             {
                 if (string.CompareOrdinal(key.Item1, _ngayHomNay) < 0) return;   // giờ máy lùi qua nửa đêm: không trộn vào ngày mới
@@ -51,7 +64,7 @@ public sealed class UsageTracker
     /// tối đa <paramref name="toiDa"/> dòng.</summary>
     public List<DungApp> DungHomNay(DateTimeOffset localNow, int toiDa = 8, string? con = null)
     {
-        var ngay = NgayGiaDinh.Cua(localNow, Tz);
+        var ngay = NgayGiaDinh.Cua(localNow, _tz);
         lock (_gate)
         {
             if (ngay != _ngayHomNay) return new List<DungApp>();
@@ -86,7 +99,7 @@ public sealed class UsageTracker
     /// Giây lẻ của ngày cũ không bao giờ gửi nữa ⇒ không tính.</summary>
     public double GiayChuaGui(DateTimeOffset localNow, Func<string, bool> tinh, string? con = null)
     {
-        var ngay = NgayGiaDinh.Cua(localNow, Tz);
+        var ngay = NgayGiaDinh.Cua(localNow, _tz);
         var be = con?.Trim() ?? "";
         lock (_gate)
             return _d.Where(x => x.Key.Day == ngay && x.Key.Con == be && tinh(x.Key.App)).Sum(x => x.Value.Sec);
@@ -110,12 +123,15 @@ public static class NgayGiaDinh
         });
     }
 
-    public static string Cua(DateTimeOffset luc, string? tz)
+    /// <summary>Ngày (00:00) theo múi gia đình; múi lạ / null ⇒ ngày theo độ lệch của chính mốc (như cũ — người gọi truyền giờ máy:
+    /// DateTimeOffset.Now / ToLocalTime()).</summary>
+    public static DateTime Ngay(DateTimeOffset luc, string? tz)
     {
         var m = Mui(tz);
-        var d = m == null ? luc.DateTime : TimeZoneInfo.ConvertTime(luc, m).DateTime;
-        return d.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        return (m == null ? luc.DateTime : TimeZoneInfo.ConvertTime(luc, m).DateTime).Date;
     }
+
+    public static string Cua(DateTimeOffset luc, string? tz) => Ngay(luc, tz).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
 }
 
 /// <summary>#418: tiến trình của CHÍNH AiiGrow — khay, app Con, kể cả khay cũ bộ cập nhật đổi tên «AiiGrow.Tray.exe.cu-xxxxxxxx»

@@ -442,6 +442,7 @@ public class AppConTests
         // 22:20 UTC ngày 17 = 05:20 sáng ngày 18 giờ VN: máy đặt múi UTC vẫn ghi phút vào ngày 18 (ngày máy chủ đang trừ sao)
         var luc = new DateTimeOffset(2026, 11, 17, 22, 20, 0, TimeSpan.Zero);
         Assert.Equal("2026-11-18", NgayGiaDinh.Cua(luc, "Asia/Ho_Chi_Minh"));
+        // không có múi / múi lạ ⇒ như cũ (ngày theo độ lệch của chính mốc)
         Assert.Equal("2026-11-17", NgayGiaDinh.Cua(luc, null));
         Assert.Equal("2026-11-17", NgayGiaDinh.Cua(luc, "Khong/Co"));
         var u = new UsageTracker { Tz = "Asia/Ho_Chi_Minh" };
@@ -449,6 +450,12 @@ public class AppConTests
         Assert.Equal("2026-11-18", Assert.Single(u.Drain()).Day);
         Assert.Single(u.DungHomNay(luc));
         Assert.Equal(0, u.GiayChuaGui(luc.AddMinutes(1), _ => true));
+        // đổi múi giữa ngày (Policy đầu tiên sau khởi động): số «hôm nay» theo app không mất, không kẹt ngày cũ
+        var u2 = new UsageTracker { Tz = "Pacific/Kiritimati" };   // +14: ngày 18 lúc 12:20
+        u2.Add(luc, "roblox.exe", "Roblox", 120);
+        u2.Tz = "America/Los_Angeles";                             // ngày 17
+        u2.Add(luc.AddMinutes(1), "roblox.exe", "Roblox", 60);
+        Assert.Equal(3, Assert.Single(u2.DungHomNay(luc.AddMinutes(1))).Phut);
         var web = WebHistory.TongHop(new[] { new WebVisit("https://youtube.com/watch", luc, 90) }, null, "Asia/Ho_Chi_Minh");
         Assert.Equal("2026-11-18", Assert.Single(web).Ngay);
         var parsed = PolicyParser.TuDongBo("{\"windows\":{\"mode\":\"tu_do\",\"tz\":\"Asia/Ho_Chi_Minh\"}}");

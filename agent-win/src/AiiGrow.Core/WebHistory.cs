@@ -61,7 +61,7 @@ public static class WebHistory
         {
             var mien = WebDomain.Goc(v.Url);
             if (mien == null || mien == boQuaMien) continue;
-            var ngay = NgayGiaDinh.Cua(v.Luc, tz);   // #703: ngày gia đình, không phải ngày máy
+            var ngay = NgayGiaDinh.Cua(tz is null ? v.Luc : v.Luc.ToLocalTime(), tz);   // #703: ngày gia đình (không có múi ⇒ như cũ)
             d.TryGetValue((ngay, mien), out var cur);
             d[(ngay, mien)] = (cur.Lan + 1, cur.Giay + Math.Clamp(v.GiayO, 0, TranMotLuotGiay), cur.Cuoi > v.Luc ? cur.Cuoi : v.Luc);
         }

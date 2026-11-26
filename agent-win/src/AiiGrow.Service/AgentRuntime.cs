@@ -429,7 +429,7 @@ public sealed class AgentRuntime
 
     /// <summary>Phút mở bằng mã hôm nay của bé (không trừ sao) — khay bỏ khỏi «Hôm nay đã chơi N phút · −N sao».</summary>
     private int PhutBoiMaHomNay(DateTimeOffset now, string? be)
-        => _boiMaNgay == now.ToLocalTime().Date && _boiMaHomNay.TryGetValue(be ?? string.Empty, out var g) ? (int)Math.Floor(g / 60.0) : 0;
+        => _boiMaNgay == NgayGiaDinh.Ngay(now.ToLocalTime(), Usage.Tz) && _boiMaHomNay.TryGetValue(be ?? string.Empty, out var g) ? (int)Math.Floor(g / 60.0) : 0;
 
     private QuyDaDem BanQuyDem(DateTimeOffset policyAt) => new()
     {
@@ -745,7 +745,7 @@ public sealed class AgentRuntime
                 if (!LaTinhPhut(appId, pBe)) return;
                 var k = con ?? string.Empty;
                 _boiMaGiay[k] = (_boiMaGiay.TryGetValue(k, out var g0) ? g0 : 0) + seconds;
-                var ngay = now.ToLocalTime().Date;
+                var ngay = NgayGiaDinh.Ngay(now.ToLocalTime(), Usage.Tz);   // #703: cùng ngày gia đình với dòng dùng
                 if (ngay != _boiMaNgay) { _boiMaNgay = ngay; _boiMaHomNay = new(); }
                 _boiMaHomNay[k] = (_boiMaHomNay.TryGetValue(k, out var g1) ? g1 : 0) + seconds;
             }
@@ -919,7 +919,7 @@ public sealed class AgentRuntime
             s.PhutBoiMaHomNay = PhutBoiMaHomNay(now, s.NguoiDung == LoaiNguoiDung.Con ? s.BeId : null);
             // #699: «Hôm nay đã chơi» theo sổ sao máy chủ (mọi máy, cả web, không mất khi dịch vụ khởi động lại) + phần vừa đếm tại máy.
             // Chỉ khi Policy là của chính bé này (máy chung đổi bé ⇒ gói có thể cũ) và lấy trong hôm nay; không thì null ⇒ khay đếm tại máy như cũ.
-            s.PhutChoiHomNay = ReferenceEquals(pBe, _policy) && NgayGiaDinh.Cua(_policyAt, pBe.Tz) == NgayGiaDinh.Cua(now, pBe.Tz)
+            s.PhutChoiHomNay = ReferenceEquals(pBe, _policy) && NgayGiaDinh.Ngay(_policyAt.ToLocalTime(), Usage.Tz) == NgayGiaDinh.Ngay(now.ToLocalTime(), Usage.Tz)
                 ? SaoView.DaChoiTaiMay(pBe.SoSao?.PhutChoiHomNay, s.MoHet ? null : pBe.QuyConPhut, s.QuyConPhut) : null;
             s.AppTinhPhut = QuyTaiCho.MucTinhPhut(pBe).ToList();
             var fgTuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;
