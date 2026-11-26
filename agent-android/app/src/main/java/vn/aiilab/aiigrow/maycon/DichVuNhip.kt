@@ -304,7 +304,9 @@ class DichVuNhip : Service() {
         val kip = try { xong.await(30, java.util.concurrent.TimeUnit.SECONDS) } catch (_: InterruptedException) { false }
         if (kip) return true
         if (tt.compareAndSet(0, 2)) return false   // chưa bắt đầu ⇒ huỷ hẳn
-        xong.awaitUninterruptibly(); return true    // đã bắt đầu ⇒ chờ nốt (ngắn: chỉ ghi Kho)
+        var cho = true   // đã bắt đầu ⇒ chờ nốt (ngắn: chỉ ghi Kho)
+        while (cho) try { xong.await(); cho = false } catch (_: InterruptedException) {}
+        return true
     }
 
     /** Ghép bằng token gói cài (QR Device Owner). true = Kho đổi (vừa ghép xong, hoặc gói bị từ chối hẳn). #707: lỗi vĩnh viễn (gói đã dùng /
