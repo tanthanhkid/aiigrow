@@ -72,4 +72,8 @@ class XinThemTest {
     @Test fun chuPhutDoiRaGio() {
         assertEquals("45 phút", chuPhut(45)); assertEquals("1 giờ", chuPhut(60)); assertEquals("3 giờ 5 phút", chuPhut(185)); assertEquals("0 phút", chuPhut(-3))
     }
+
+    @Test fun cauLoiMaKhongLoMaHttp() {
+        for (ma in listOf(400, 401, 403, 404, 408, 413, 429, 500, 502)) { val c = cauLoiMa(ma); assertFalse(c, c.contains(ma.toString())) }
+    }
 }

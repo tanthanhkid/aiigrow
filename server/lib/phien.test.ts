@@ -209,3 +209,7 @@ test("phiên Windows: trang khay gửi «không dùng» xen nhịp đồng bộ 
   assert.deepEqual([x.duoc, x.lyDo], [false, "khong_tuan_thu"]);
   await assert.rejects(tre.moTre(c, "roblox.exe", sau(t0, 12)), (e: { ma?: string }) => e.ma === "khong_mo_duoc");
 });
+
+test("#694: «chơi tiếp lúc» theo giờ Việt Nam dù máy chủ chạy UTC", () => {
+  assert.equal(ph.lyDoChu({ duoc: false, lyDo: "dang_nghi", nghiDen: "2026-11-26T02:30:00Z" }), "Nghỉ một chút · chơi tiếp lúc 09:30");
+});
