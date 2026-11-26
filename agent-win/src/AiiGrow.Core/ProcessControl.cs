@@ -23,8 +23,10 @@ public static class ProcessEnforcer
 {
     /// <summary>Đóng các tiến trình ngoài danh sách cho phép. Trả về tên các exe đã đóng (chữ thường).
     /// <paramref name="dryRun"/> = chế độ giám sát: CHỈ liệt kê tên exe SẼ bị đóng, KHÔNG thật sự đóng (để thử an toàn).</summary>
+    /// <param name="khongDong">#698: tiến trình phải đóng mà Windows không cho đóng (tên exe chữ thường) — để ghi nhật ký.</param>
     public static IReadOnlyList<string> Enforce(IProcessControl control, int sessionId, IEnumerable<string> allowedApps,
-        IEnumerable<string>? safeDirs = null, bool dryRun = false, string? winDir = null, Func<string, bool>? choThem = null)
+        IEnumerable<string>? safeDirs = null, bool dryRun = false, string? winDir = null, Func<string, bool>? choThem = null,
+        Action<string>? khongDong = null)
     {
         var procs = control.ListChildProcesses(sessionId)
             .Where(p => !string.IsNullOrWhiteSpace(p.Path))
@@ -54,6 +56,7 @@ public static class ProcessEnforcer
             if (!ProcessGuard.ShouldClose(p.Path, allowed, allowedDirs, safe, winDir, goiCha)) continue;
             if (dryRun) { closed.Add(FileName(p.Path).ToLowerInvariant()); continue; }
             if (control.Close(p.Id)) closed.Add(FileName(p.Path).ToLowerInvariant());
+            else khongDong?.Invoke(FileName(p.Path).ToLowerInvariant());
         }
         return closed;
     }

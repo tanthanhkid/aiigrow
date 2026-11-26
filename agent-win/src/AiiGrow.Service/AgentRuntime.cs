@@ -73,6 +73,15 @@ public sealed class AgentRuntime
     public volatile IReadOnlyDictionary<string, string>? TenAppMay;
     /// <summary>Muc → mọi muc cùng app đã gộp (#630): luật chặn áp lên tất cả.</summary>
     public volatile IReadOnlyDictionary<string, string[]>? BiDanhMuc;
+    /// <summary>#690: muc bí danh → muc chính (muc máy chủ biết) — phút của app mở bằng exe bí danh tính đúng app Ba Mẹ đã xếp.</summary>
+    public volatile IReadOnlyDictionary<string, string>? MucChinh;
+
+    /// <summary>#690: đặt bí danh từ nhóm muc (lượt quét app hoặc cấu hình đã lưu).</summary>
+    public void DatNhomMuc(IReadOnlyList<List<string>>? nhom)
+    {
+        BiDanhMuc = DanhSachApp.BangBiDanh(nhom);
+        MucChinh = DanhSachApp.BangMucChinh(nhom);
+    }
     /// <summary>#422: app đã cài theo lần quét gần nhất (mục + tên) — lưới «App trên máy» của hộp «Xin thêm app / web» (PipeCmd.AppMay). null = chưa quét.</summary>
     public volatile IReadOnlyList<AppTrenMay>? AppMay;
     /// <summary>05/11 (L11): bài nộp lúc mất mạng đang chờ gửi (BaiChoMang, mỗi bài một tệp). PipeServer / AgentWorker cập nhật số đếm.</summary>
@@ -110,6 +119,8 @@ public sealed class AgentRuntime
         {
             Config = Store.Load();
             _cfgStamp = Store.LastWriteUtc;
+            // #690: bí danh của lần quét trước — có ngay sau khởi động lại (lượt quét đầu chỉ chạy sau 40 giây – 3 phút)
+            if (BiDanhMuc == null && Config?.NhomMucApp is { Count: > 0 } nhom) DatNhomMuc(nhom);
             // Máy mồ côi (token bị từ chối quá MoCoi.Nguong) ⇒ KHÔNG nạp lại Policy cuối (không áp luật cũ sau khởi động lại).
             // LastPolicyJson là CẢ phản hồi dong-bo ⇒ lấy phần `windows` (LayWindows nhận cả dạng phẳng cũ) — không thì mất mạng + khởi động lại nạp «tự do» rỗng.
             if (_policy == null && !MoCoi.La(Config, DateTimeOffset.UtcNow) && PolicyParser.TryParse(Config?.LastPolicyJson ?? "", out var p) && p != null)

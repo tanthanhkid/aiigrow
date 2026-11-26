@@ -138,6 +138,21 @@ public static class ChanAppThat
         return kq;
     }
 
+    /// <summary>#690: danh sách muc Cho phép / Tính phút ⇒ thêm các muc cùng app đã gộp (bản Store + bản cài của Minecraft…), không thêm tên exe
+    /// chung chung (<see cref="TenChung"/>). Giữ thứ tự, không trùng (không phân biệt hoa thường).</summary>
+    public static List<string> MoRongTen(IEnumerable<string> ds, IReadOnlyDictionary<string, string[]>? biDanh)
+    {
+        var kq = new List<string>();
+        var co = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in ds) if (co.Add(a)) kq.Add(a);
+        if (biDanh == null || biDanh.Count == 0) return kq;
+        foreach (var a in kq.ToList())
+            if (biDanh.TryGetValue(a.ToLowerInvariant(), out var cac))
+                foreach (var m in cac)
+                    if (m.Length > 0 && !TenChung.Contains(m) && co.Add(m)) kq.Add(m);
+        return kq;
+    }
+
     /// <summary>Tiến trình KHÔNG BAO GIỜ đóng dù khớp luật chặn: tiến trình hệ thống của phiên (explorer, dwm… ở chỗ chỉ quản trị ghi được), gói Store
     /// hệ thống, AiiGrow / Defender / Common Files (thư mục an toàn), exe mang tên AiiGrow.</summary>
     public static bool MienChan(string exePath, string? winDir, IEnumerable<string> safeDirs)
@@ -187,8 +202,9 @@ public static class ChanAppThat
     }
 
     /// <summary>Đóng (hoặc, giám sát: chỉ liệt kê) tiến trình của phiên Con khớp luật chặn. → (tên exe, mục luật) đã đóng / sẽ đóng.</summary>
+    /// <param name="khongDong">#698: tiến trình khớp luật mà Windows không cho đóng (exe, muc) — để ghi nhật ký, không lặng lẽ bỏ qua.</param>
     public static IReadOnlyList<(string Exe, string Muc)> Enforce(IProcessControl control, int sessionId, IReadOnlyList<AppBiChan> ds, bool dryRun,
-        Func<string, string?>? bam = null, string? winDir = null, IEnumerable<string>? safeDirs = null)
+        Func<string, string?>? bam = null, string? winDir = null, IEnumerable<string>? safeDirs = null, Action<string, string>? khongDong = null)
     {
         var kq = new List<(string, string)>();
         if (ds.Count == 0) return kq;
@@ -202,6 +218,7 @@ public static class ChanAppThat
             var ten = DanhSachApp.TenTep(p.Path).ToLowerInvariant();
             var muc = luat.Muc.Length > 0 ? luat.Muc : ten;
             if (dryRun || control.Close(p.Id)) kq.Add((ten, muc));
+            else khongDong?.Invoke(ten, muc);
         }
         return kq;
     }

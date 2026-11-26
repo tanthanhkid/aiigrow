@@ -117,7 +117,7 @@ public sealed class AgentWorker : BackgroundService
                         // chưa đọc được tài khoản: không ÁP được, nhưng «Mở»/mã mở tạm (AppLockerWanted=false) vẫn phải GỠ được
                         if (apThat && (childSids != null || !eff.AppLockerWanted))
                         {
-                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), p.AllowedApps, _rt.TrinhDuyetLoc(), ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc));
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), ChanAppThat.MoRongTen(p.AllowedApps, _rt.BiDanhMuc), _rt.TrinhDuyetLoc(), ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc));
                             _rt.AppLockerApplied = applied;
                         }
                         else if (eff.AppLockerWanted)
@@ -183,6 +183,8 @@ public sealed class AgentWorker : BackgroundService
             catch { cuaAiiGrow = false; }
             if (cuaAiiGrow) (id, name) = (AppAiiGrow.Khay, AppAiiGrow.Ten);
         }
+        // #690: exe bí danh của app đã gộp (bản Store / bản cài) ⇒ phút ghi cho muc chính máy chủ biết (Tính phút trừ sao, «Đã dùng» một dòng)
+        if (fresh && _rt.MucChinh is { } mc && mc.TryGetValue(id!, out var chinh)) id = chinh;
         var be = _rt.DangNhap() is { Loai: LoaiNguoiDung.Con, ConId: { Length: > 0 } c } ? c : null;   // 15/11 (#267): phút ghi theo bé
         _rt.CountUsage(now, fresh ? id! : UsageTracker.KhongRo, fresh ? (name ?? id!) : "Không rõ", elapsed, be);
     }
@@ -331,7 +333,10 @@ public sealed class AgentWorker : BackgroundService
         // Giám sát (apThat=false): dryRun — liệt kê app SẼ bị đóng nhưng KHÔNG đóng thật.
         var pf = TrinhDuyetLoc.ThuMucProgramFiles();
         Func<string, bool>? choThem = trinhDuyet is { Count: > 0 } ? path => TrinhDuyetLoc.ChoChay(path, trinhDuyet, pf, _kiemKy.Kiem) : null;
-        var closed = ProcessEnforcer.Enforce(_procs, sessionId, p.AllowedApps, dryRun: !apThat, choThem: choThem);
+        // #690: app gộp (bản Store + bản cài) — Ba Mẹ cho phép một muc thì mọi lối mở của cùng app đều được
+        var closed = ProcessEnforcer.Enforce(_procs, sessionId, ChanAppThat.MoRongTen(p.AllowedApps, _rt.BiDanhMuc), dryRun: !apThat, choThem: choThem,
+            khongDong: exe => BaoKhongDong(exe, "ngoài danh sách"));
+        BaoKhongDocDuoc();
         // Giám sát: cùng một tập app chạy mãi ⇒ chỉ ghi log khi tập đổi (trước đây ~5 giây một lượt, hàng nghìn dòng may_log mỗi giờ).
         var tap = string.Join(",", closed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
         var ghiGiamSat = tap != _giamSatDaBao;
@@ -349,9 +354,39 @@ public sealed class AgentWorker : BackgroundService
 
     private string _chanDaBao = "";
 
+    /// <summary>#698: mỗi exe ghi nhật ký tối đa một lần / 30 phút (vòng 5 giây không làm ngập may_log).</summary>
+    private readonly Dictionary<string, long> _daBaoLoi = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly long BaoLoiCachMs = (long)TimeSpan.FromMinutes(30).TotalMilliseconds;
+
+    private bool NenBao(string khoa)
+    {
+        var bay = Environment.TickCount64;
+        if (_daBaoLoi.TryGetValue(khoa, out var luc) && bay - luc < BaoLoiCachMs) return false;
+        _daBaoLoi[khoa] = bay;
+        return true;
+    }
+
+    /// <summary>#698: Windows không cho đóng app phải đóng ⇒ luật không có hiệu lực — ghi rõ để tra khi Ba Mẹ báo «chặn không được».</summary>
+    private void BaoKhongDong(string exe, string lyDo)
+    {
+        if (!NenBao("dong:" + exe)) return;
+        var loi = (_procs as WindowsProcessControl)?.LoiDongCuoi;
+        _log.LogWarning("Không đóng được app {exe} ({lyDo}) — Windows từ chối: {loi}", exe, lyDo, loi ?? "không rõ");
+    }
+
+    /// <summary>#698: tiến trình trong phiên Con không đọc được đường dẫn ⇒ luật Chặn / Cho phép không xét được nó — ghi tên để tra.</summary>
+    private void BaoKhongDocDuoc()
+    {
+        if (_procs is not WindowsProcessControl w) return;
+        foreach (var ten in w.KhongDocDuoc)
+            if (NenBao("doc:" + ten)) _log.LogWarning("Không đọc được đường dẫn tiến trình {ten} trong phiên Con — luật Chặn / Cho phép không xét được", ten);
+    }
+
     private void EnforceChanApp(int sessionId, Policy p, bool apThat)
     {
-        var ds = ChanAppThat.Enforce(_procs, sessionId, ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), dryRun: !apThat, bam: BamTepCache.Chung.BamNen);
+        var ds = ChanAppThat.Enforce(_procs, sessionId, ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), dryRun: !apThat, bam: BamTepCache.Chung.BamNen,
+            khongDong: (exe, muc) => BaoKhongDong(exe, "Ba Mẹ đã Chặn, luật " + muc));
+        BaoKhongDocDuoc();
         var tap = string.Join(",", ds.Select(x => x.Exe).Distinct().OrderBy(x => x, StringComparer.Ordinal));
         var ghi = tap != _chanDaBao;
         _chanDaBao = tap;

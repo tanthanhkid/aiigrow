@@ -410,12 +410,34 @@ public static class DanhSachApp
     }
 
     /// <summary>Muc → mọi muc cùng app (cùng tên đã gộp): chỉ các app có từ hai muc trở lên.</summary>
-    public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds)
+    public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds) => BangBiDanh(NhomMuc(ds));
+
+    /// <summary>#690: các nhóm muc cùng app (chỉ app có từ hai muc), muc ĐẦU là muc gửi máy chủ — lưu vào cấu hình để dịch vụ khởi động lại
+    /// có bí danh ngay (không chờ lượt quét app đầu tiên).</summary>
+    public static List<List<string>> NhomMuc(IEnumerable<AppThat> ds) =>
+        ds.Where(a => a.CacMuc is { Count: > 1 }).Select(a => a.CacMuc!.Prepend(a.Muc).Distinct(StringComparer.Ordinal).ToList()).ToList();
+
+    /// <summary>Muc → mọi muc cùng app, từ các nhóm của <see cref="NhomMuc"/>.</summary>
+    public static Dictionary<string, string[]> BangBiDanh(IEnumerable<IReadOnlyList<string>>? nhom)
     {
         var d = new Dictionary<string, string[]>(StringComparer.Ordinal);
-        foreach (var a in ds)
-            if (a.CacMuc is { Count: > 1 } c)
+        if (nhom == null) return d;
+        foreach (var c in nhom)
+            if (c is { Count: > 1 })
                 foreach (var m in c) d[m] = d.TryGetValue(m, out var cu) ? cu.Union(c).ToArray() : c.ToArray();
+        return d;
+    }
+
+    /// <summary>#690: muc bí danh → muc chính (muc máy chủ biết, Ba Mẹ xếp Cho phép / Tính phút / Chặn). Tên exe chung chung
+    /// (<see cref="ChanAppThat.TenChung"/>) không quy về app nào.</summary>
+    public static Dictionary<string, string> BangMucChinh(IEnumerable<IReadOnlyList<string>>? nhom)
+    {
+        var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (nhom == null) return d;
+        foreach (var c in nhom)
+            if (c is { Count: > 1 })
+                foreach (var m in c.Skip(1))
+                    if (m.Length > 0 && !ChanAppThat.TenChung.Contains(m) && !string.Equals(m, c[0], StringComparison.OrdinalIgnoreCase)) d.TryAdd(m, c[0]);
         return d;
     }
 
