@@ -55,6 +55,8 @@ public class LuatThuCapNhatTests
         Assert.False(LuatThuCapNhat.DangNghi(saiKy, "0.2.34", T0.AddHours(25), epHoi: true));
         Assert.True(LuatThuCapNhat.DangNghi(saiKy, "0.2.34", T0.AddMinutes(5), epHoi: true, boCaiDaXong: true));
         // khởi động lại một lần (có thể chỉ tắt máy) không báo Ba Mẹ; hỏng lặp lại mới báo
+        Assert.Equal(TimeSpan.FromHours(23), LuatThuCapNhat.ConNghi(saiKy, T0.AddHours(1)));
+        Assert.Equal(TimeSpan.FromMinutes(1), LuatThuCapNhat.ConNghi(new LanThuCapNhat("0.2.34", T0, 1, false), T0.AddHours(2)));
         Assert.False(LuatThuCapNhat.NenBaoBaMe(1));
         Assert.True(LuatThuCapNhat.NenBaoBaMe(2));
     }

@@ -329,13 +329,19 @@ async function ketQuaGhep(t: Q, deviceId: string, token: string, dsCon: string[]
  *  token (chưa đồng bộ / chưa gửi nhịp — như lenh-may.ts › trangThaiGo «daDongBo»). Điều kiện cuối chặn việc ai đó cầm gói cài còn trên máy
  *  (maMay không bí mật) xoay mất token của agent đang chạy. Còn lại ⇒ null (giữ 409 như cũ). Dùng chung mọi nền — agent chỉ cần gửi maMay ổn định. */
 export const GHEP_LAI_MS = 60 * 60_000;
+
+/** Agent đã dùng token máy chưa: đã gọi dong-bo (status có dữ liệu) hoặc đã gửi nhịp. Ghép xong last_seen = lúc ghép nên không dùng last_seen.
+ *  Dùng chung: lenh-may.ts › trangThaiGo («đã đồng bộ») và capLaiTokenGhep (chặn xoay token của agent đang chạy). */
+export async function daDongBo(mayId: string, status: unknown, t: Q = q) {
+  return Object.keys((status as Record<string, unknown> | null) ?? {}).length > 0
+    || (await t(`select 1 from tuan_thu_may where device_id = $1 and nhip_cuoi is not null`, [mayId])).length > 0;
+}
 export async function capLaiTokenGhep(t: Q, deviceId: string | null, fam: string, maMay: string | null, platform: string, daDung: Date | null, now: Date) {
   if (!deviceId || !maMay || !daDung || now.getTime() - new Date(daDung).getTime() > GHEP_LAI_MS) return null;
   const d = (await t<{ id: string; platform: string; child_id: string | null; name: string; status: Record<string, unknown> | null }>(
     `select id, platform, child_id, name, status from devices where id = $1 and family_id = $2 and ma_may = $3 for update`, [deviceId, fam, maMay]))[0];
   if (!d || d.platform !== platform) return null;
-  if (Object.keys(d.status ?? {}).length > 0
-    || (await t(`select 1 from tuan_thu_may where device_id = $1 and nhip_cuoi is not null`, [d.id])).length) return null;
+  if (await daDongBo(d.id, d.status, t)) return null;
   const token = taoToken();
   await t(`update devices set token_hash = $2 where id = $1`, [d.id, sha(token)]);
   // lệnh chờ (vd «gỡ» Ba Mẹ vừa bấm) gắn token cũ ⇒ chuyển sang token mới, agent báo xong được
@@ -357,8 +363,8 @@ export function ghepMayGd(code: string, platform: string, tenMay: string, maMayV
     if (m.used_at) {
       const lai = await capLaiTokenGhep(t, m.device_id, m.family_id, maMay, platform, m.used_at, now);
       if (lai) return lai;
+      throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — xin Ba Mẹ mã mới", 409);
     }
-    if (m.used_at) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — xin Ba Mẹ mã mới", 409);
     if (new Date(m.expires_at) < now) throw new LoiNghiepVu("ma_het_han", "Mã đã hết hạn — xin Ba Mẹ mã mới", 410);
     // mã không gắn loại máy ('') ⇒ nhận loại máy agent báo (phải là loại hợp lệ)
     if (m.platform === "" ? !(NEN_TANG as readonly string[]).includes(platform) : m.platform !== platform)

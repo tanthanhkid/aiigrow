@@ -42,6 +42,14 @@ public static class LuatThuCapNhat
         return tuoi < (epHoi ? ChoBoCai : Nghi(t.SoLan));
     }
 
+    /// <summary>Còn bao lâu hết nghỉ (tối thiểu 1 phút) — vòng kiểm thức đúng lúc hết nghỉ, không hỏi manifest mỗi 15 phút suốt 24 giờ.</summary>
+    public static TimeSpan ConNghi(LanThuCapNhat t, DateTimeOffset now)
+    {
+        var het = t.Luc + (t.ChanCung ? ChanCung : Nghi(t.SoLan));
+        var con = het - now;
+        return con < TimeSpan.FromMinutes(1) ? TimeSpan.FromMinutes(1) : con;
+    }
+
     /// <summary>Bản ghi cho lần giao mới: cùng bản ⇒ cộng số lần; bản khác ⇒ lần 1.</summary>
     public static LanThuCapNhat LanMoi(LanThuCapNhat? cu, string ban, DateTimeOffset now, bool chanCung = false)
         => new(ban, now, cu?.Ban == ban ? cu.SoLan + 1 : 1, chanCung);

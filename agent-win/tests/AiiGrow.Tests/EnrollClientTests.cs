@@ -149,6 +149,15 @@ public class EnrollClientTests
         n = 0;
         await Assert.ThrowsAsync<HttpRequestException>(() => GhepThuLai.ChayAsync<int>(() => { n++; throw new HttpRequestException("x"); }, true, default, cho));
         Assert.Equal(3, n);
+        // 409 «đã dùng» SAU một lần đứt kết nối ⇒ thử lại (lần đầu còn đang chạy trên máy chủ)
+        n = 0;
+        Assert.Equal(7, await GhepThuLai.ChayAsync(() => ++n switch
+        {
+            1 => throw new HttpRequestException("đứt"),
+            2 => throw new ApiException("đã dùng", 409, null, "ma_da_dung"),
+            _ => Task.FromResult(7),
+        }, true, default, cho));
+        Assert.Equal(3, n);
         // không có maMay ⇒ không thử lại
         n = 0;
         await Assert.ThrowsAsync<ApiException>(() => GhepThuLai.ChayAsync<int>(() => { n++; throw new ApiException("x", 503); }, false, default, cho));

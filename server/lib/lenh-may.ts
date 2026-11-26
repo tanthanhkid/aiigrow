@@ -9,7 +9,7 @@ import { newId, one, q, tx } from "./db.ts";
 import { dungMatKhau, sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
-import { NEN_TANG, capLaiTokenGhep, conCua, ghepMayGd, maMayHopLe, taoMaGhep, type May, type NenTang } from "./gia-dinh.ts";
+import { NEN_TANG, capLaiTokenGhep, conCua, daDongBo as daDongBoMay, ghepMayGd, maMayHopLe, taoMaGhep, type May, type NenTang } from "./gia-dinh.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { bangM4b } from "./tuan-thu.ts";
 import { laMotCon, loiMotCon } from "./may-nhieu-con.ts";
@@ -115,7 +115,7 @@ export async function trangThaiGo(m: Pick<May, "id" | "status" | "last_seen">, n
   await bangM4b();
   const tt = await one<{ nhip_cuoi: Date | null }>(`select nhip_cuoi from tuan_thu_may where device_id = $1`, [m.id]);
   // Ghép xong (ghepMay) đã đặt last_seen = lúc ghép ⇒ «đã đồng bộ» = agent đã gọi dong-bo (status có dữ liệu) hoặc đã gửi nhịp.
-  const daDongBo = Object.keys(m.status ?? {}).length > 0 || !!tt?.nhip_cuoi;
+  const daDongBo = await daDongBoMay(m.id, m.status);
   const l = await one<{ id: string; created_at: Date }>(
     `select id, created_at from lenh_may where device_id = $1 and loai = 'go' and trang_thai = 'cho' order by created_at limit 1`, [m.id]);
   const moc = now.getTime() - NGAY_XOA_HAN * 86400_000;

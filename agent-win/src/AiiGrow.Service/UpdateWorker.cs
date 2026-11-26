@@ -82,7 +82,10 @@ public sealed class UpdateWorker : BackgroundService
         var m = JsonSerializer.Deserialize<BanMoi>(json);
         if (m == null || TuCapNhat.KiemManifest(m, server, TuCapNhat.BanHienTai()) != null) return null;
         // bộ cài lượt trước còn đang chạy / bản bị chặn cứng (sai chữ ký) thì «Cập nhật ngay» cũng bỏ qua ⇒ đừng mời Con bấm vô ích
-        if (LuatThuCapNhat.DangNghi(DocDaThu(), m.Version, DateTimeOffset.UtcNow, epHoi: true)) return null;
+        var daThu = DocDaThu();
+        var now = DateTimeOffset.UtcNow;
+        var hienTai = TuCapNhat.BanHienTai();
+        if (LuatThuCapNhat.DangNghi(daThu, m.Version, now, epHoi: true, boCaiDaXong: LuatThuCapNhat.LanTruocHong(daThu, m.Version, hienTai, now, DichVuBatDau))) return null;
         return CapNhat.DocBan(m.Version)?.ToString(3);
     }
     private static readonly TimeSpan ThuLaiManifest = TimeSpan.FromMinutes(15);
@@ -140,7 +143,8 @@ public sealed class UpdateWorker : BackgroundService
         if (LuatThuCapNhat.DangNghi(daThu, m.Version, bayGio, epHoi, boCaiDaXong: hong))
         {
             _log.LogInformation("Tự cập nhật: bản {Ban} đã thử {Lan} lần, lần cuối {Luc:o} — chờ hết thời gian nghỉ (hoặc bấm «Cập nhật ngay»)", m.Version, daThu!.SoLan, daThu.Luc);
-            return _chuKy < ThuLaiManifest ? _chuKy : ThuLaiManifest;   // kiểm lại sớm: hết nghỉ (1 giờ) là thử, không đợi trọn chu kỳ 6 giờ
+            var con = LuatThuCapNhat.ConNghi(daThu!, bayGio);         // thức đúng lúc hết nghỉ, không đợi trọn chu kỳ 6 giờ
+            return _chuKy < con ? _chuKy : con;
         }
 
         if (KyBoCai.GhimSaiDang(KyBoCai.ThumbprintGhim))
@@ -208,6 +212,7 @@ public sealed class UpdateWorker : BackgroundService
         try { ChayBoCai(tep); }
         catch (Exception e)
         {
+            _log.LogError("Tự cập nhật: không giao được bộ cài bản {Ban} (lần {Lan}): {Loi}", m.Version, lan.SoLan, e.Message);   // Sentry (#706)
             _daBaoHong = lan.Ghi();
             BaoLoi(m.Version, hienTai, lan.SoLan, "khong_giao_duoc");
             throw new InvalidOperationException($"{e.Message} (lần {lan.SoLan}, thử lại sau {LuatThuCapNhat.Nghi(lan.SoLan)})", e);
