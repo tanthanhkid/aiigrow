@@ -2,6 +2,7 @@
 // 05/11 (thiết kế chốt): «sao» thay «điểm» (số vẫn là cột diem), không PIN. 15/11 (#262–#267): 1 sao = 1 phút «Tính phút», vay sao (số dư âm),
 // bỏ quỹ ngày / đổi sao lấy giờ / ngoại lệ / giờ ngủ; «Mở hết» / «Theo danh sách» (GET kid/sao, POST kid/xin-vay, kid/toi › cheDo).
 // Hàng chờ nộp bằng chứng khi mất mạng: ảnh nằm trên máy, tự gửi lại khi có mạng (con-cho-duyet «mất mạng»).
+import { cauLoiMa } from "./cau-loi-ma";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { GOC, LoiApi, kid } from "./api";
@@ -35,7 +36,7 @@ export const may = {
     }
     const j = await r.json().catch(() => ({}));
     if (r.status === 401 && j.error === "token_sai") await may.dat(null);
-    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? `Máy chủ AiiGrow đang trục trặc (mã ${r.status}) — thử lại sau ít phút.`, r.status, j);
+    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? cauLoiMa(r.status, true), r.status, j);
     return j as T;
   },
 };

@@ -228,7 +228,7 @@ export function lyDoChu(x: XetPhien): string {
     case "gio_may_sai": return "Giờ máy không đúng, hãy nhờ Ba Mẹ";
     case "gio_ngu": return "Đến giờ ngủ rồi — mai chơi tiếp nhé";
     case "ngoai_khung": return "Bây giờ chưa phải giờ chơi";
-    case "dang_nghi": return `Nghỉ một chút · chơi tiếp lúc ${x.moLai ?? (x.nghiDen ? new Date(x.nghiDen).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) : "sau")}`;
+    case "dang_nghi": return `Nghỉ một chút · chơi tiếp lúc ${x.moLai ?? (x.nghiDen ? new Date(x.nghiDen).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Ho_Chi_Minh" }) : "sau")}`;
     case "dat_tran_ngay": return "Hôm nay con đã chơi đủ giờ rồi — mai chơi tiếp nhé";
     case "dat_tran_tuan": return "Tuần này con đã chơi đủ giờ rồi";
     case "het_diem": return "Con chưa đủ sao — làm nhiệm vụ để có thêm sao nhé";

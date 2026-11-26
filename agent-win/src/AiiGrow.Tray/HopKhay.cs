@@ -218,7 +218,7 @@ internal sealed class CapNhatKhayForm : HopKhayCoBan
         XoaHet();
         if (!r.Ok)
         {
-            Flow.Controls.Add(KhoiCon.Dau("canh_bao", KhoiCon.Mau.Cam, CapNhatKhayView.KhongKiemDuoc, r.Error, W));
+            Flow.Controls.Add(KhoiCon.Dau("canh_bao", KhoiCon.Mau.Cam, CapNhatKhayView.KhongKiemDuoc, CauLoi.HienDuoc(r.Error) ? r.Error : null, W));   // #688
             var dong = KhoiCon.Nut("Đóng", false, W);
             dong.Click += (_, _) => Close();
             Flow.Controls.Add(dong);

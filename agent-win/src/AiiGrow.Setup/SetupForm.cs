@@ -566,7 +566,8 @@ internal sealed class SetupForm : Form
         {
             Man(3, "Tài khoản");
             X(_body, 36, 72, "Các con mở máy bằng tài khoản nào?", Kieu.H);
-            X(_body, 38, 112, "Chưa đọc được các tài khoản trên máy: " + e.Message, Kieu.P, 650, Loi);
+            Program.WriteLog("Đọc tài khoản lỗi: " + CauLoiCai.Log(e));
+            X(_body, 38, 112, CauLoiCai.Tu(e, CauLoiCai.DocTaiKhoan), Kieu.P, 650, Loi);   // #689
             NutLui(BuocDieuKhoan);
             NutChinh("Thử lại", 160, BuocTaiKhoan);
             return;
@@ -714,7 +715,7 @@ internal sealed class SetupForm : Form
                 _child = new LocalAccount(n, sid, false);
                 BuocGhep();
             }
-            catch (Exception e) { Loi_("Chưa tạo được tài khoản: " + e.Message); tiep.Enabled = true; }
+            catch (Exception e) { Program.WriteLog("Tạo tài khoản lỗi: " + CauLoiCai.Log(e)); Loi_(CauLoiCai.Tu(e, CauLoiCai.TaoTaiKhoan)); tiep.Enabled = true; }
         });
         ten.TextChanged += (_, _) => DoiNhan();
         DoiNhan();
@@ -950,14 +951,14 @@ internal sealed class SetupForm : Form
         {
             _dangCai = false;
             if (IsDisposed) return;
-            Program.WriteLog("Cài lỗi: " + e.Message);
+            Program.WriteLog("Cài lỗi: " + CauLoiCai.Log(e));
             switch (LoiGhep.Phan(e, daGhep: o.Pair != null))
             {
                 case LoaiLoiGhep.MaSai when o.Package == null: ManMaSai(o); break;
                 case LoaiLoiGhep.MaSai:
                 case LoaiLoiGhep.HetHan: ManHetHan(o); break;
                 case LoaiLoiGhep.MatMang: ManMatMang(o); break;
-                default: ManLoiKhac(o, e.Message); break;
+                default: ManLoiKhac(o, CauLoiCai.Tu(e)); break;   // #689: không in chữ .NET / đường dẫn
             }
         }
     }

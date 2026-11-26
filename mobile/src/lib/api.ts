@@ -1,4 +1,5 @@
 // Gọi API máy chủ AiiGrow (docs/API.md): app Ba Mẹ /api/m/*, màn Con /api/kid/*. Token phiên giữ trong SecureStore (web: localStorage).
+import { cauLoiMa } from "./cau-loi-ma";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import { xoaTl } from "./thiet-lap";
@@ -52,7 +53,7 @@ function khach(tienTo: "m" | "kid", khoa: string) {
       await k.xoa();
       hetPhien?.();
     }
-    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? `Máy chủ AiiGrow đang trục trặc (mã ${r.status}) — thử lại sau ít phút.`, r.status, j);
+    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? cauLoiMa(r.status), r.status, j);
     return j as T;
   }
   return {

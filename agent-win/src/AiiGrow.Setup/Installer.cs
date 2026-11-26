@@ -119,7 +119,7 @@ internal static class Installer
     private static void InstallFilesAndService()
     {
         if (!Goi.Co(Paths.ServiceExeName))
-            throw new FileNotFoundException("Bộ cài thiếu " + Paths.ServiceExeName + " — tải lại AiiGrow-Setup.exe ở trang /tai");
+            throw new LoiCai(CauLoiCai.ThieuTep, "thiếu " + Paths.ServiceExeName);
 
         var dest = Paths.InstallDir;
         Directory.CreateDirectory(dest);
@@ -147,7 +147,7 @@ internal static class Installer
             $"& sc.exe failure {Paths.ServiceName} reset= 86400 actions= restart/5000/restart/5000/restart/30000 | Out-Null; " +
             $"& sc.exe failureflag {Paths.ServiceName} 1 | Out-Null; " +
             $"Start-Service -Name {Paths.ServiceName}");
-        if (!r.Ok) throw new InvalidOperationException("Không cài được dịch vụ: " + r.Error);
+        if (!r.Ok) throw new LoiCai(CauLoiCai.DichVu, r.Error);
 
         // Lối tắt «AiiGrow» trong menu Start (mọi tài khoản) ⇒ mở lại biểu tượng khay. Lỗi lối tắt không chặn việc cài.
         var tray = Path.Combine(dest, Paths.TrayExeName);

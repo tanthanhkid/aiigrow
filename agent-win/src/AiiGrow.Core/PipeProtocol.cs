@@ -220,7 +220,8 @@ public static class PipeClient
         }
         catch (Exception e)
         {
-            return new PipeResponse { Ok = false, Error = "Chưa nối được dịch vụ AiiGrow: " + e.Message };
+            System.Diagnostics.Trace.WriteLine($"PipeClient {req.Cmd}: {e}");   // chi tiết cho chẩn đoán (lệch bản, ống bận); khay chỉ nhận câu tiếng Việt
+            return new PipeResponse { Ok = false, Error = CauLoi.DichVuChuaSan };   // #688: không hiện «All pipe instances are busy.»
         }
     }
 }

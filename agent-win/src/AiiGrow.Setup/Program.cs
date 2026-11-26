@@ -82,8 +82,8 @@ internal static class Program
         }
         catch (Exception e)
         {
-            WriteLog("Cài lỗi: " + e.Message);
-            if (!silent) HopThoai.Hien("Chưa cài được: " + e.Message, "AiiGrow", loi: true);
+            WriteLog("Cài lỗi: " + CauLoiCai.Log(e));
+            if (!silent) HopThoai.Hien("Chưa cài được. " + CauLoiCai.Tu(e), "AiiGrow", loi: true);   // #689
             return 3;
         }
     }

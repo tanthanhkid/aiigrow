@@ -1,5 +1,6 @@
 package vn.aiilab.aiigrow.maycon
 
+import vn.aiilab.aiigrow.maycon.logic.cauLoiMa
 import org.json.JSONObject
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -29,7 +30,7 @@ class MayChu(private val goc: String, private val token: String?, private val do
             val o = try { JSONObject(s) } catch (_: Exception) { JSONObject() }
             if (ma !in 200..299) {
                 // server/lib/api.ts › loi(): { error, message }
-                throw Loi(o.optString("error", "http_$ma"), o.optString("message", "Máy chủ trả lỗi $ma"), ma, o)
+                throw Loi(o.optString("error", "http_$ma"), o.optString("message", cauLoiMa(ma)), ma, o)
             }
             return o
         } finally { c.disconnect() }

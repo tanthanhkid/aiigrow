@@ -74,3 +74,13 @@ fun chuPhut(n: Int): String {
     val g = p / 60; val du = p % 60
     return if (du > 0) "$g giờ $du phút" else "$g giờ"
 }
+
+/** Câu lỗi khi máy chủ / proxy trả mã lỗi không kèm câu tiếng Việt (#694): nói phải làm gì, không lộ mã HTTP. */
+fun cauLoiMa(ma: Int): String = when {
+    ma == 413 -> "Dữ liệu quá lớn — thử lại sau nhé."
+    ma == 429 -> "Bấm hơi nhanh — đợi một chút rồi thử lại nhé."
+    ma == 401 || ma == 403 -> "Máy cần ghép lại — nhờ Ba Mẹ ghép lại máy nhé."
+    ma == 408 || ma >= 500 -> "Máy chủ AiiGrow đang bận — thử lại sau ít phút."
+    ma >= 400 -> "Chưa làm được việc này — cập nhật AiiGrow lên bản mới rồi thử lại."
+    else -> "Chưa làm được — thử lại sau ít phút."
+}

@@ -262,11 +262,11 @@ public sealed class ApiClient : IDisposable
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
-            throw new ApiException("Máy chủ không trả lời kịp", null, new TimeoutException());
+            throw new ApiException(CauLoi.QuaHan, null, new TimeoutException());
         }
         catch (HttpRequestException e)
         {
-            throw new ApiException("Không kết nối được máy chủ: " + e.Message, null, e);
+            throw new ApiException(CauLoi.MatMang, null, e);   // #688: câu .NET (tiếng Anh, tên máy chủ) chỉ ở InnerException
         }
         using (resp)
         {
@@ -274,7 +274,7 @@ public sealed class ApiClient : IDisposable
             if (!resp.IsSuccessStatusCode)
             {
                 var (code, msg) = ExtractError(text);
-                throw new ApiException(msg ?? code ?? ("Máy chủ báo lỗi " + (int)resp.StatusCode), (int)resp.StatusCode, code: code, body: text);
+                throw new ApiException(CauLoi.AnToan(msg, CauLoi.TheoMa((int)resp.StatusCode)), (int)resp.StatusCode, code: code, body: text);   // #688: không hiện mã thô / mã HTTP
             }
             return text;
         }

@@ -85,8 +85,15 @@ public sealed class PipeServer : BackgroundService
                 }
                 catch (Exception e)
                 {
-                    resp = new PipeResponse { Ok = false, Error = e.Message };
+                    _log.LogWarning(e, "Lệnh pipe lỗi");
+                    resp = new PipeResponse { Ok = false, Error = CauLoi.Tu(e) };   // #688: chi tiết vào log, khay chỉ nhận câu tiếng Việt
                 }
+                if (resp is { Ok: false, Error: { } loi } && !CauLoi.HienDuoc(loi))   // #688: chốt chung — mọi lệnh (NguoiDungMay trả e.Message…) không lọt câu .NET ra khay
+                {
+                    _log.LogInformation("Câu lỗi kỹ thuật đã thay trước khi gửi khay: {Loi}", loi);
+                    resp.Error = CauLoi.LoiTrongMay;
+                }
+                if (resp is { Ok: false, Message: { } cau } && !CauLoi.HienDuoc(cau)) resp.Message = null;   // Loi() chép câu sang Message
                 await w.WriteLineAsync(JsonSerializer.Serialize(resp, Json.Options));
                 try { pipe.WaitForPipeDrain(); } catch { }
             }
@@ -164,7 +171,7 @@ public sealed class PipeServer : BackgroundService
                     lock (_playInfoNho) _playInfoNho[muc] = (now, tra);
                     return tra;
                 }
-                catch (Exception e) when (e is not OperationCanceledException) { return new PipeResponse { Ok = false, Error = e.Message }; }   // cả lỗi đọc JSON (phutToiDa lẻ…)
+                catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug(e, "play-info lỗi"); return new PipeResponse { Ok = false, Error = CauLoi.Tu(e) }; }   // cả lỗi đọc JSON (phutToiDa lẻ…)
             }
 
             case PipeCmd.Request:

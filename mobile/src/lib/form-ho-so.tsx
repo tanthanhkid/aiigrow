@@ -1,6 +1,7 @@
 // Phần form hồ sơ con dùng chung cho «Lần đầu · bước 1» (bm-thiet-lap-con/01 bm1-ob-ten-con, them-hjjdppuw) và «Thêm con» từ Cả nhà
 // (bm-ca-nha/02 them-9ozp26pq): thẻ hồ sơ (chữ cái + màu + «🐓 9 tuổi» theo con giáp — N11, Grow bên phải), «Tên gọi ở nhà», ô «Năm sinh» mở bảng
 // bánh xe năm, «Màu của con», thẻ «Mã PIN vào máy · 4 số». Logic lưu nằm ở từng màn.
+import { cauLoiAnh } from "./cau-loi-ma";
 import { useEffect, useState } from "react";
 import { Pressable, View } from "react-native";
 import { BO_CLAY, BONG, KHOI, MEN } from "./clay";
@@ -133,7 +134,7 @@ export function useAnhForm() {
   useEffect(() => { napThuVienAnh().catch(() => {}); }, []);   // nạp sẵn thư viện ảnh (#564) để lúc bấm mở hộp chọn ngay
   const lay = async (nguon: "chup" | "thu-vien") => {
     setLoi(null);
-    try { const a = await chonAnhCon(nguon); if (a) setAnh(a); } catch (e) { setLoi(e instanceof Error ? e.message : "Chưa lấy được ảnh — thử lại nhé"); }
+    try { const a = await chonAnhCon(nguon); if (a) setAnh(a); } catch (e) { setLoi(cauLoiAnh(e)); }
   };
   return { anh, uri: anh ? uriAnh(anh) : null, loi, chup: () => lay("chup"), chon: () => lay("thu-vien"), bo: () => setAnh(null) };
 }
