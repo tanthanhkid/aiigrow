@@ -41,11 +41,16 @@ class CuaGoi {
 
 // ---------------------------------------------------------------- #685 ghép lại được khi phản hồi mất
 /** Mã máy như máy chủ nhận (server/lib/gia-dinh.ts › maMayHopLe): 16–64 ký tự hex, chữ thường. Sai ⇒ null (không gửi). */
-fun maMayHopLe(s: String?): String? = s?.trim()?.lowercase()?.takeIf { Regex("^[0-9a-f]{16,64}$").matches(it) }
+fun maMayHopLe(s: String?): String? = s?.trim()?.lowercase()?.takeIf { MA_MAY.matches(it) }
+
+private val MA_MAY = Regex("^[0-9a-f]{16,64}$")
 
 /** Mã máy mới từ 16 byte ngẫu nhiên (32 hex) — sinh một lần, lưu trong Kho; không lấy từ định danh phần cứng. */
 fun taoMaMay(ngauNhien: ByteArray): String = ngauNhien.joinToString("") { "%02x".format(it) }
 
-/** Ghép bằng mã 6 số lỗi ĐƯỜNG TRUYỀN (không phải câu máy chủ): chờ trước lần thử lại thứ `lan` (1, 2) rồi thôi. Có maMay mới thử lại —
- *  không có thì lần thử lại gặp 409 «mã đã dùng» nếu lần trước thật ra đã ghép xong. */
-fun choThuLaiGhepMs(lan: Int, coMaMay: Boolean): Long? = if (!coMaMay) null else when (lan) { 1 -> 1_500L; 2 -> 4_000L; else -> null }
+/** Lỗi ghép nên thử lại cùng mã + maMay: không có mã HTTP (đường truyền), 5xx (cổng / proxy hết giờ — máy chủ có thể đã ghép xong), 408, 429.
+ *  4xx khác = câu máy chủ (mã sai / đã dùng / hết hạn) ⇒ báo ngay. */
+fun loiGhepNenThuLai(http: Int?): Boolean = http == null || http >= 500 || http == 408 || http == 429
+
+/** Chờ trước lần thử lại thứ `lan` (1, 2) khi ghép bằng mã 6 số; đã chạy quá 40 giây (mạng treo) ⇒ thôi, không để Con chờ «Đang ghép…» mãi. */
+fun choThuLaiGhepMs(lan: Int, daChayMs: Long): Long? = if (daChayMs > 40_000L) null else when (lan) { 1 -> 1_500L; 2 -> 4_000L; else -> null }

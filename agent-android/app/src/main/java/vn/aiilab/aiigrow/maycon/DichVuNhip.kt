@@ -48,6 +48,7 @@ import vn.aiilab.aiigrow.maycon.logic.phutGiaiTri
 import vn.aiilab.aiigrow.maycon.logic.quyetDinh
 import vn.aiilab.aiigrow.maycon.logic.thanGhepToken
 import vn.aiilab.aiigrow.maycon.logic.choThuLaiGhepMs
+import vn.aiilab.aiigrow.maycon.logic.loiGhepNenThuLai
 import vn.aiilab.aiigrow.maycon.logic.thanNhip
 import vn.aiilab.aiigrow.maycon.logic.truGoi
 import vn.aiilab.aiigrow.maycon.logic.SoPhutBe
@@ -333,7 +334,8 @@ class DichVuNhip : Service() {
     /** Ghép bằng token gói cài (QR Device Owner). true = Kho đổi (vừa ghép xong, hoặc gói bị từ chối hẳn). #707: lỗi vĩnh viễn (gói đã dùng /
      *  hết hạn / sai) ⇒ bỏ gói + báo ở màn ghép; lỗi tạm ⇒ lùi dần 5 giây … 5 phút (không gõ máy chủ mỗi 5 giây, không lặp một dòng nhật ký).
      *  Gọi máy chủ trên luồng mạng; ghi Kho trên luồng nhịp (#708 — vòng áp luật không thấy máy nửa ghép). */
-    private fun ghepBangGoi(k: Kho): Boolean {
+    private fun ghepBangGoi(k: Kho): Boolean = synchronized(KHOA_GHEP) {   // #685: không song song với ghép bằng mã (cùng maMay)
+        if (k.token != null) return false
         val goi = k.tokenGoiCai ?: return false
         try {
             val r = MayChu(k.mayChu, null).ghepGoi(thanGhepToken(goi, Build.MODEL ?: "Android", k.maMay))
@@ -550,22 +552,25 @@ class DichVuNhip : Service() {
         fun ghepBangMa(ctx: Context, ma: String): String? {
             val k = Kho(ctx)
             if (k.cheDoThu) { k.tenCon = k.tenCon ?: "Con (thử)"; return null }
-            return try {
-                // #685: lỗi đường truyền ⇒ thử lại cùng mã + cùng maMay (lần trước đã ghép mà phản hồi mất ⇒ máy chủ cấp lại token, không 409)
+            // #685: một lượt ghép một lúc (mã 6 số / gói cài cùng maMay ⇒ máy chủ thu hồi bản ghi kia — không chạy song song)
+            return synchronized(KHOA_GHEP) { try {
+                if (k.token != null) return@synchronized null   // gói cài vừa ghép xong trong lúc chờ khoá
+                // lỗi đường truyền / 5xx ⇒ thử lại cùng mã + cùng maMay (lần trước đã ghép mà phản hồi mất ⇒ máy chủ cấp lại token, không 409)
                 val than = vn.aiilab.aiigrow.maycon.logic.thanGhep(ma, Build.MODEL ?: "Android", k.maMay)
+                val batDau = SystemClock.elapsedRealtime()
                 fun goi(lan: Int): JSONObject = try { MayChu(k.mayChu, null).ghep(than) } catch (e: java.io.IOException) {
-                    if (e is MayChu.Loi) throw e   // câu máy chủ (mã sai / đã dùng / hết hạn) ⇒ báo ngay
-                    val cho = choThuLaiGhepMs(lan + 1, than.has("maMay")) ?: throw e
-                    NhatKy.canh(TAG, "ghép bằng mã lỗi đường truyền (lần ${lan + 1}) — thử lại", e)
+                    if (e is javax.net.ssl.SSLException || !loiGhepNenThuLai((e as? MayChu.Loi)?.http)) throw e
+                    val cho = choThuLaiGhepMs(lan + 1, SystemClock.elapsedRealtime() - batDau) ?: throw e
+                    NhatKy.canh(TAG, "ghép bằng mã lỗi tạm (lần ${lan + 1}) — thử lại", e)
                     Thread.sleep(cho); goi(lan + 1)
                 }
                 val r = goi(0)
                 MoMaOffline.quen(k); HocVien.quen(k); PinMay.quen(k)
                 k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
-                k.loiGhepGoi = null
+                k.tokenGoiCai = null; k.loiGhepGoi = null   // đã ghép bằng mã ⇒ thôi gói cài
                 lamMoi(ctx)
                 null
-            } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Không kết nối được máy chủ AiiGrow. Kiểm tra mạng rồi thử lại." }
+            } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Không kết nối được máy chủ AiiGrow. Kiểm tra mạng rồi thử lại." } }
         }
 
         /** Kết quả gửi lời xin app / web: `id` (null = chưa gửi được) + câu báo cho Con. */
@@ -625,6 +630,8 @@ class DichVuNhip : Service() {
         private val cuaMang = CuaGoi()
         /** #707: thử ghép gói cài có lùi dần (luồng mạng ghi; vòng nhịp đọc). */
         @Volatile private var thuGhepGoi = ThuGhepGoi()
+        /** #685: một lượt ghép (mã 6 số / gói cài) một lúc. */
+        private val KHOA_GHEP = Any()
         /** Gói cài mới (QR quét lại) ⇒ thử ngay, không chờ hết lùi của gói cũ. */
         fun thuGoiMoi() { thuGhepGoi = ThuGhepGoi() }
         private val dangGo = java.util.concurrent.atomic.AtomicBoolean(false)

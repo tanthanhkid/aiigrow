@@ -73,9 +73,11 @@ class GhepGoiTest {
         assertFalse(thanGhepToken("goi", "Pixel").has("maMay"))
     }
 
-    /** #685: mã 6 số lỗi đường truyền ⇒ thử lại tối đa 2 lần khi có maMay; không maMay ⇒ không thử lại (lần sau sẽ 409 nếu đã ghép). */
+    /** #685: mã 6 số lỗi đường truyền / 5xx ⇒ thử lại tối đa 2 lần trong ~40 giây; câu máy chủ (404/409/410) ⇒ báo ngay. */
     @Test fun thuLaiGhepBangMa() {
-        assertEquals(listOf(1_500L, 4_000L, null), (1..3).map { choThuLaiGhepMs(it, true) })
-        assertNull(choThuLaiGhepMs(1, false))
+        assertEquals(listOf(1_500L, 4_000L, null), (1..3).map { choThuLaiGhepMs(it, 0) })
+        assertNull(choThuLaiGhepMs(1, 41_000))
+        for (h in listOf(null, 500, 502, 504, 408, 429)) assertTrue("$h", loiGhepNenThuLai(h))
+        for (h in listOf(400, 401, 404, 409, 410)) assertFalse("$h", loiGhepNenThuLai(h))
     }
 }
