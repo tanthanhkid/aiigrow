@@ -27,6 +27,8 @@ public class LuatChanChoPhepTests
     [InlineData(@"C:\Windows\System32\Tasks\discord.exe", true)]
     [InlineData(@"E:\discord.exe", true)]
     [InlineData(@"C:\$Recycle.Bin\S-1-5-21-1\discord.exe", true)]
+    [InlineData(@"C:\Users\An\AppData\Local\Temp:discord.exe", true)]
+    [InlineData(@"\\nas\chung\discord.exe", true)]
     // app đã cài thật: không phải chỗ thả tệp
     [InlineData(@"C:\Users\An\AppData\Local\Discord\app-1.0.9\Discord.exe", false)]
     [InlineData(@"C:\Users\An\AppData\Local\Roblox\Versions\v1\RobloxPlayerBeta.exe", false)]
@@ -82,6 +84,13 @@ public class LuatChanChoPhepTests
         ProcessEnforcer.Enforce(fake, 2, new[] { "7zfm.exe" }, Safe, winDir: Win);
         // trên origin/main: không đóng gì (7zFM.exe ở Desktop được phép theo tên ⇒ cả Desktop thành «helper cùng thư mục»)
         Assert.Equal(new[] { 1, 2 }, fake.Closed);   // helper cùng thư mục cài thật (7zG) vẫn giữ
+
+        // như dịch vụ chạy thật: Ba Mẹ duyệt bản portable ở Desktop (không có bản cài) ⇒ nó chạy, nhưng Desktop vẫn không thành «helper»
+        var that = new FakeProcessControl(
+            new RunningProc(1, @"C:\Users\Con\Desktop\7zFM.exe"),
+            new RunningProc(2, @"C:\Users\Con\Desktop\game.exe"));
+        ProcessEnforcer.Enforce(that, 2, new[] { "7zfm.exe" }, Safe, winDir: Win, tenDaCai: Tap());
+        Assert.Equal(new[] { 2 }, that.Closed);
     }
 
     // ------------------------------------------------------------------ #690

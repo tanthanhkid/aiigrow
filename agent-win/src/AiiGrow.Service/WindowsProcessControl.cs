@@ -39,7 +39,7 @@ public sealed class WindowsProcessControl : IProcessControl
                 if (p.SessionId == sessionId)
                 {
                     id = p.Id; path = SessionHelper.ImagePath(id);
-                    if (string.IsNullOrEmpty(path)) { try { ten = p.ProcessName; } catch { ten = null; } }   // vừa thoát ⇒ ProcessName lỗi, không ghi
+                    if (string.IsNullOrEmpty(path)) { try { ten = p.ProcessName; } catch { ten = null; } }   // vừa thoát: AgentWorker chỉ báo tên gặp hai lượt liền
                 }
             }
             catch { }
@@ -65,14 +65,19 @@ public sealed class WindowsProcessControl : IProcessControl
     public bool Close(int processId)
     {
         LoiDongCuoi = null;
-        try
+        Process p;
+        try { p = Process.GetProcessById(processId); }
+        catch { return false; }                                 // đã thoát trước khi đóng — không phải bị từ chối
+        using (p)
         {
-            using var p = Process.GetProcessById(processId);
-            p.Kill();
-            return true;
+            try { p.Kill(); return true; }
+            catch (Exception e)
+            {
+                bool daThoat;
+                try { daThoat = p.HasExited; } catch { daThoat = false; }
+                if (!daThoat) LoiDongCuoi = e.Message;          // đang tự thoát (TerminateProcess báo từ chối) ⇒ không ghi là bị từ chối
+                return false;
+            }
         }
-        catch (ArgumentException) { return false; }            // đã thoát trước khi đóng (GetProcessById) — không phải bị từ chối
-        catch (InvalidOperationException) { return false; }    // thoát giữa chừng
-        catch (Exception e) { LoiDongCuoi = e.Message; return false; }
     }
 }

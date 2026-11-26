@@ -333,7 +333,7 @@ public sealed class AgentWorker : BackgroundService
         Func<string, bool>? choThem = trinhDuyet is { Count: > 0 } ? path => TrinhDuyetLoc.ChoChay(path, trinhDuyet, pf, _kiemKy.Kiem) : null;
         // #690: app gộp (bản Store + bản cài) — Ba Mẹ cho phép một muc thì mọi lối mở của cùng app đều được
         var closed = ProcessEnforcer.Enforce(_procs, sessionId, ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh), dryRun: !apThat, choThem: choThem,
-            khongDong: exe => BaoKhongDong(exe, "ngoài danh sách"), tenDaCai: _rt.TenDaCai);
+            khongDong: exe => BaoKhongDong(exe, "ngoài danh sách"), tenDaCai: _rt.TenDaCai ?? ChuaQuet);
         BaoKhongDocDuoc();
         // Giám sát: cùng một tập app chạy mãi ⇒ chỉ ghi log khi tập đổi (trước đây ~5 giây một lượt, hàng nghìn dòng may_log mỗi giờ).
         var tap = string.Join(",", closed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
@@ -351,14 +351,19 @@ public sealed class AgentWorker : BackgroundService
     }
 
     private string _chanDaBao = "";
+    /// <summary>#693: chưa quét app lần nào ⇒ chưa biết app nào cài ở đâu: không chặn theo chỗ thả tệp (app Ba Mẹ duyệt ở Downloads không bị đóng oan).</summary>
+    private static readonly HashSet<string> ChuaQuet = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>#698: mỗi exe ghi nhật ký tối đa một lần / 30 phút (vòng 5 giây không làm ngập may_log).</summary>
     private readonly Dictionary<string, long> _daBaoLoi = new(StringComparer.OrdinalIgnoreCase);
+    private HashSet<string> _khongDocTruoc = new(StringComparer.OrdinalIgnoreCase);
     private static readonly long BaoLoiCachMs = (long)TimeSpan.FromMinutes(30).TotalMilliseconds;
 
     private bool NenBao(string khoa)
     {
         var bay = Environment.TickCount64;
+        if (_daBaoLoi.Count > 200)   // dịch vụ chạy hàng tháng: bỏ mục đã quá hạn
+            foreach (var k in _daBaoLoi.Where(x => bay - x.Value >= BaoLoiCachMs).Select(x => x.Key).ToList()) _daBaoLoi.Remove(k);
         if (_daBaoLoi.TryGetValue(khoa, out var luc) && bay - luc < BaoLoiCachMs) return false;
         _daBaoLoi[khoa] = bay;
         return true;
@@ -377,8 +382,11 @@ public sealed class AgentWorker : BackgroundService
     private void BaoKhongDocDuoc()
     {
         if (_procs is not WindowsProcessControl w) return;
-        foreach (var ten in w.LayKhongDocDuoc())
-            if (NenBao("doc:" + ten)) _log.LogWarning("Không đọc được đường dẫn tiến trình {ten} trong phiên Con — luật Chặn / Cho phép không xét được", ten);
+        var nay = new HashSet<string>(w.LayKhongDocDuoc(), StringComparer.OrdinalIgnoreCase);
+        // chỉ tên gặp ở hai lượt liệt kê liền nhau (tiến trình vừa thoát giữa lúc liệt kê không phải lỗi đọc)
+        foreach (var ten in nay)
+            if (_khongDocTruoc.Contains(ten) && NenBao("doc:" + ten)) _log.LogWarning("Không đọc được đường dẫn tiến trình {ten} trong phiên Con — luật Chặn / Cho phép không xét được", ten);
+        if (nay.Count > 0 || _khongDocTruoc.Count > 0) _khongDocTruoc = nay;
     }
 
     private void EnforceChanApp(int sessionId, Policy p, bool apThat)

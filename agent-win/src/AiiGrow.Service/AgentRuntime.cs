@@ -21,6 +21,8 @@ public sealed class AgentRuntime
     private DateTimeOffset? _lastSyncAt;
     private string? _fgId;
     private string? _fgName;
+    /// <summary>#690: id khay báo TRƯỚC khi quy bí danh về muc chính (tên exe đang chạy thật — TienCanhChoi kiểm «đang chạy»).</summary>
+    private string? _fgIdGoc;
     private DateTimeOffset _fgAt = DateTimeOffset.MinValue;
     private int _blockedSeq;
     private string? _blockedId;
@@ -433,6 +435,9 @@ public sealed class AgentRuntime
             var p = _policy == null ? null : PolicyChoBe().P;
             var beDem = BeHienTai();
             var tuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;
+            // #690: tiền cảnh là exe bí danh đang chạy thật ⇒ muc chính (đã quy ở SetForeground) cũng coi là đang chạy
+            if (tienTrinhCon != null && !string.IsNullOrEmpty(_fgId) && _fgIdGoc != _fgId && tienTrinhCon.Contains(_fgIdGoc ?? ""))
+                tienTrinhCon = new HashSet<string>(tienTrinhCon.Append(_fgId!.ToLowerInvariant()), StringComparer.OrdinalIgnoreCase);
             bool dangChoi = conDangNhap && TienCanhChoi.DangChoi(p, _fgId, tuoi, manHinhKhoa, tienTrinhCon);
             var id = p?.PlaySessionId;
             if (_playSecId != id) { _playSecId = id; _playSec = 0; }
@@ -758,8 +763,9 @@ public sealed class AgentRuntime
     public void SetForeground(string? appId, string? appName)
     {
         // #690: exe bí danh của app đã gộp (bản Store / bản cài) ⇒ muc chính máy chủ biết — phút, «đang chơi», phiên chơi, Tính phút cùng một app
+        var goc = appId;
         if (appId != null && MucChinh is { } mc && mc.TryGetValue(appId, out var chinh)) appId = chinh;
-        lock (_gate) { _fgId = appId ?? ""; _fgName = appName; _fgAt = DateTimeOffset.UtcNow; }
+        lock (_gate) { _fgId = appId ?? ""; _fgIdGoc = goc ?? ""; _fgName = appName; _fgAt = DateTimeOffset.UtcNow; }
     }
 
     /// <summary>Fresh = tray còn sống (báo trong 20 giây qua).</summary>

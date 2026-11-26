@@ -242,7 +242,9 @@ public static class ProcessGuard
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
         var p = exePath.Replace('/', '\\');
+        if (p.StartsWith("\\\\", StringComparison.Ordinal)) return true;                           // \\máy\chia-sẻ\…: thư mục mạng / USB chia sẻ
         if (p.Length < 4 || p[1] != ':' || p[2] != '\\') return false;
+        if (p.IndexOf(':', 2) >= 0) return true;                                            // luồng dữ liệu phụ «…\Temp:game.exe» (review #75)
         var segs = p[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
         if (segs.Length <= 1) return true;                                                   // X:\game.exe
         if (segs[0].Equals("$Recycle.Bin", StringComparison.OrdinalIgnoreCase)) return true;

@@ -413,10 +413,12 @@ public static class DanhSachApp
     public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds) => BangBiDanh(NhomMuc(ds));
 
     /// <summary>#693: tên exe (chữ thường) của app đã cài mà tệp chạy KHÔNG nằm ở chỗ Con thả tệp (<see cref="ProcessGuard.LaChoConThaTep"/>) —
-    /// exe cùng tên ở Desktop / Downloads là bản giả. Tên exe chung chung không tính.</summary>
+    /// exe cùng tên ở Desktop / Downloads là bản giả. Tên exe chung chung không tính.
+    /// Gồm cả muc .exe bí danh của app đã gộp (bản cài thứ hai của cùng app — <see cref="AppThat.CacMuc"/>).</summary>
     public static List<string> TenExeDaCai(IEnumerable<AppThat> ds, string? winDir) =>
         ds.Where(a => !string.IsNullOrWhiteSpace(a.DuongDan) && !ProcessGuard.LaChoConThaTep(a.DuongDan!, winDir))
-          .Select(a => TenTep(a.DuongDan!).ToLowerInvariant())
+          .SelectMany(a => (a.CacMuc ?? new List<string>()).Prepend(TenTep(a.DuongDan!)))
+          .Select(t => t.ToLowerInvariant())
           .Where(t => t.EndsWith(".exe", StringComparison.Ordinal) && !ChanAppThat.TenChung.Contains(t))
           .Distinct(StringComparer.Ordinal).OrderBy(t => t, StringComparer.Ordinal).ToList();
 
