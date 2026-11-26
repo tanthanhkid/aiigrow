@@ -164,7 +164,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const quenPin = d.cdy.some((x) => x.loai === "quen_pin") ? d.cdy.filter((x) => x.loai === "quen_pin" && x.con === conId)
     : d.cb.filter((x) => x.loai === "quen_pin" && x.child_id === conId).slice(0, 1).map((x) => ({ id: x.id, tieu: x.noi_dung, den: `/ho-so/${conId}/pin` }));
   for (const x of quenPin) sau.push({ id: `pin:${x.id}`, ic: "mo_khoa", tieu: x.tieu, phu: "Đặt PIN mới cho con", nut: "Đặt PIN ›", den: x.den });
-  for (const x of d.cb.filter((a) => cuaCon({ con: a.child_id }) && a.loai !== "quen_pin" && a.canSua !== false).slice(0, 3))
+  for (const x of d.cb.filter((a) => cuaCon({ con: a.child_id }) && a.loai !== "quen_pin" && a.canSua !== false && a.chiBiet !== true).slice(0, 3))
     sau.push({ id: `cb:${x.id}`, ic: "canh_bao", tieu: x.noi_dung, phu: gioPhut(x.created_at), nut: "Xem ›", den: `/canh-bao/${x.id}` });
   // #508: Con CÀI app mới trên máy (máy chủ gửi qua «Cần Ba Mẹ để ý» — app_moi) ⇒ Ba Mẹ chọn Tính phút / Không tính phút
   for (const x of d.appMoi.length ? [] : d.cdy.filter((y) => y.loai === "app_moi" && (y.con === conId || !y.con))) sau.push({ id: x.id, ic: "luoi", tieu: x.tieu, phu: x.phu, nut: "Chọn ›", den: x.den });
