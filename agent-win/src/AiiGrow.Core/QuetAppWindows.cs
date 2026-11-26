@@ -146,14 +146,17 @@ public static class QuetAppWindows
         var dsSid = string.Join(",", sids.Select(Shell.PsQuote));
         var ps = "$kq = New-Object System.Collections.ArrayList; " +
             "foreach ($sid in @(" + dsSid + ")) { try { foreach ($p in @(Get-AppxPackage -User $sid -PackageTypeFilter Main)) { " +
-            "$dn = $null; $pd = $null; $logo = $null; $n = 0; " +
+            "$dn = $null; $pd = $null; $logo = $null; $n = 0; $ex = New-Object System.Collections.ArrayList; " +
             "try { $x = [xml](Get-Content -LiteralPath (Join-Path $p.InstallLocation 'AppxManifest.xml') -Raw -Encoding UTF8); " +
             "$dn = [string]$x.Package.Properties.DisplayName; $pd = [string]$x.Package.Properties.PublisherDisplayName; " +
-            "foreach ($a in @($x.Package.Applications.Application)) { $ve = $a.VisualElements; if ($ve -and $ve.AppListEntry -ne 'none') { $n++; if (-not $logo) { $logo = [string]$ve.Square44x44Logo + '|' + [string]$ve.Square150x150Logo } } } } catch { } " +
+            "foreach ($a in @($x.Package.Applications.Application)) { if ($a.Executable) { [void]$ex.Add([string]$a.Executable) }; $ve = $a.VisualElements; if ($ve -and $ve.AppListEntry -ne 'none') { $n++; if (-not $logo) { $logo = [string]$ve.Square44x44Logo + '|' + [string]$ve.Square150x150Logo } } } } catch { } " +
+            // #695: game Xbox / gói cài ngoài «Program Files\WindowsApps» — exe thật khai trong MicrosoftGame.config (đường dẫn không mang tên gói)
+            "if ($p.InstallLocation -and $p.InstallLocation -notlike '*\\Program Files\\WindowsApps\\*') { try { $g = [xml](Get-Content -LiteralPath (Join-Path $p.InstallLocation 'MicrosoftGame.config') -Raw -Encoding UTF8 -ErrorAction Stop); " +
+            "foreach ($e in @($g.Game.ExecutableList.Executable)) { if ($e.Name) { [void]$ex.Add([string]$e.Name) } } } catch { } } " +
             "if ($dn -like 'ms-resource:*') { $r = $dn.Substring(12); if ($r.StartsWith('//')) { $u = 'ms-resource:' + $r } elseif ($r.StartsWith('/')) { $u = 'ms-resource://' + $p.Name + $r } else { $u = 'ms-resource://' + $p.Name + '/resources/' + $r }; $dn = 'ms-resource:@{' + $p.PackageFullName + '?' + $u + '}' } " +
             "[void]$kq.Add([pscustomobject]@{ Name = $p.Name; PackageFamilyName = $p.PackageFamilyName; DisplayName = $dn; PublisherDisplayName = $pd; " +
             "Version = [string]$p.Version; InstallLocation = $p.InstallLocation; IsFramework = [bool]$p.IsFramework; IsResourcePackage = [bool]$p.IsResourcePackage; " +
-            "SignatureKind = [string]$p.SignatureKind; NonRemovable = [bool]$p.NonRemovable; SoApplication = $n; Logo = $logo }) } } catch { } }; " +
+            "SignatureKind = [string]$p.SignatureKind; NonRemovable = [bool]$p.NonRemovable; SoApplication = $n; Logo = $logo; Exe = @($ex) }) } } catch { } }; " +
             "ConvertTo-Json -InputObject @($kq) -Compress -Depth 3";
         var r = Shell.PowerShell(ps, 180000);
         if (!r.Ok) { loi?.Invoke("Get-AppxPackage: " + r.Error); return new(); }

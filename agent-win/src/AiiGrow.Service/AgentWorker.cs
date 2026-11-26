@@ -184,6 +184,21 @@ public sealed class AgentWorker : BackgroundService
             catch { cuaAiiGrow = false; }
             if (cuaAiiGrow) (id, name) = (AppAiiGrow.Khay, AppAiiGrow.Ten);
         }
+        // #696: khay không quy được cửa sổ khung UWP về app thật ⇒ app «Tính phút» đang chạy trong phiên Con (nếu có) nhận phút — không để
+        // game UWP chạy không trừ sao chỉ vì nhận diện cửa sổ hỏng
+        if (fresh && string.Equals(id, UwpTienCanh.Host, StringComparison.OrdinalIgnoreCase) && phienCon >= 0)
+        {
+            var tp = _rt.AppTinhGioBe();
+            if (tp.Count > 0)
+            {
+                try
+                {
+                    if (UwpTienCanh.QuyHostVeAppTinhPhut(tp, new WindowsProcessControl().ListChildProcesses(phienCon).Select(x => x.Path), _rt.MucChinh) is { } app)
+                        (id, name) = (app, app);
+                }
+                catch { }
+            }
+        }
         var be = _rt.DangNhap() is { Loai: LoaiNguoiDung.Con, ConId: { Length: > 0 } c } ? c : null;   // 15/11 (#267): phút ghi theo bé
         _rt.CountUsage(now, fresh ? id! : UsageTracker.KhongRo, fresh ? (name ?? id!) : "Không rõ", elapsed, be);
     }

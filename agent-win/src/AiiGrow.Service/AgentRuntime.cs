@@ -768,6 +768,12 @@ public sealed class AgentRuntime
         lock (_gate) { _fgId = appId ?? ""; _fgIdGoc = goc ?? ""; _fgName = appName; _fgAt = DateTimeOffset.UtcNow; }
     }
 
+    /// <summary>App «Tính phút» trong luật của bé đang dùng (#696: quy tiền cảnh ApplicationFrameHost không rõ app về app đang chạy).</summary>
+    public IReadOnlyList<string> AppTinhGioBe()
+    {
+        lock (_gate) return _policy == null ? Array.Empty<string>() : PolicyChoBe().P.AppTinhGio.ToList();
+    }
+
     /// <summary>Fresh = tray còn sống (báo trong 20 giây qua).</summary>
     public (string? Id, string? Name, bool Fresh) GetForeground(DateTimeOffset now)
     {

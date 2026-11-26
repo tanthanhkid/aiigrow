@@ -49,7 +49,7 @@ public sealed record MucShortcut(string Ten, string Target);
 /// <summary>Gói Store / UWP của tài khoản Con (Get-AppxPackage -User &lt;SID&gt;), DisplayName đã giải ms-resource nếu được.</summary>
 public sealed record MucAppx(string Name, string PackageFamilyName, string? DisplayName, string? PublisherDisplayName, string? Version,
     string? InstallLocation, bool IsFramework = false, bool IsResourcePackage = false, string? SignatureKind = null, bool NonRemovable = false,
-    int SoApplication = 1, string? Logo = null);
+    int SoApplication = 1, string? Logo = null, IReadOnlyList<string>? Exe = null);
 
 /// <summary>App Win32 trước khi đọc tệp (băm, icon, chữ ký).</summary>
 public sealed class UngVienApp
@@ -321,8 +321,26 @@ public static class DanhSachApp
                 Khoa = khoa, Muc = ten, Ten = hien!.Trim(), Nguon = "store",
                 NhaPhatHanh = Rong(p.PublisherDisplayName), PhienBan = Rong(p.Version), Icon = ic,
             };
+            if (ExeNgoaiWindowsApps(p) is { Count: > 0 } ex)
+            {
+                kq[khoa].CacMuc = ex.Prepend(ten).ToList();
+                kq[khoa].CacDuongDan = ex.Select(e => p.InstallLocation!.TrimEnd('\\', '/') + "\\" + e).ToList();   // #693: tên exe «đã cài»
+            }
         }
         return kq.Values.ToList();
+    }
+
+    /// <summary>#695: gói Store cài NGOÀI «&lt;ổ&gt;:\Program Files\WindowsApps» (ổ D: «D:\WindowsApps\…», game Xbox «C:\XboxGames\&lt;Game&gt;\Content»)
+    /// — đường dẫn tiến trình không mang tên gói (<see cref="ProcessGuard.TenGoiStore"/> = null) ⇒ quy theo tên exe khai trong manifest
+    /// (Application Executable, MicrosoftGame.config ExecutableList). Tên chung chung (<see cref="ChanAppThat.TenChung"/>) bỏ.</summary>
+    public static List<string> ExeNgoaiWindowsApps(MucAppx p)
+    {
+        if (p.Exe is not { Count: > 0 } || string.IsNullOrWhiteSpace(p.InstallLocation)) return new();
+        if (ProcessGuard.TenGoiStore(p.InstallLocation.TrimEnd('\\', '/') + "\\x.exe") != null) return new();
+        return p.Exe.Where(e => !string.IsNullOrWhiteSpace(e))
+            .Select(e => TenTep(e.Trim().Replace('/', '\\')).ToLowerInvariant())
+            .Where(e => e.EndsWith(".exe", StringComparison.Ordinal) && !ChanAppThat.TenChung.Contains(e))
+            .Distinct(StringComparer.Ordinal).ToList();
     }
 
     /// <summary>Chọn tệp logo app Store THẬT từ manifest (THUẦN): các biến thể «&lt;gốc&gt;.scale-N.png», «.targetsize-N[_altform-…].png», «&lt;gốc&gt;.png»
@@ -369,8 +387,14 @@ public static class DanhSachApp
             string? S(string n) => e.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
             bool B(string n) => e.TryGetProperty(n, out var v) && (v.ValueKind == JsonValueKind.True || (v.ValueKind == JsonValueKind.Number && v.GetInt32() != 0));
             int I(string n) => e.TryGetProperty(n, out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetInt32(out var x) ? x : 0;
+            List<string>? exe = null;
+            if (e.TryGetProperty("Exe", out var ve))
+            {
+                if (ve.ValueKind == JsonValueKind.Array) exe = ve.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString()!).ToList();
+                else if (ve.ValueKind == JsonValueKind.String) exe = new List<string> { ve.GetString()! };
+            }
             kq.Add(new MucAppx(S("Name") ?? "", S("PackageFamilyName") ?? "", S("DisplayName"), S("PublisherDisplayName"), S("Version"),
-                S("InstallLocation"), B("IsFramework"), B("IsResourcePackage"), S("SignatureKind"), B("NonRemovable"), I("SoApplication"), S("Logo")));
+                S("InstallLocation"), B("IsFramework"), B("IsResourcePackage"), S("SignatureKind"), B("NonRemovable"), I("SoApplication"), S("Logo"), exe));
         }
         return kq;
     }
@@ -395,7 +419,7 @@ public static class DanhSachApp
             if (seenTen.TryGetValue(TenLoi(ten), out var daCo))
             {
                 // cùng tên (khác khoa: Copilot/Edge bản Store + bản đã cài) ⇒ một dòng, nhưng mang theo muc của bản bị gộp
-                if (!daCo.CacMuc!.Contains(muc)) daCo.CacMuc.Add(muc);
+                foreach (var m in MucKem(muc, a.CacMuc)) if (!daCo.CacMuc!.Contains(m)) daCo.CacMuc.Add(m);
                 foreach (var d in DuongDanKem(a)) if (!daCo.CacDuongDan!.Contains(d, StringComparer.OrdinalIgnoreCase)) daCo.CacDuongDan.Add(d);
                 continue;
             }
@@ -406,7 +430,7 @@ public static class DanhSachApp
                 Icon = a.Icon is { Length: > 0 and <= ToiDaIconBase64 } ? a.Icon : null,
             });
             var moi = kq[^1];
-            moi.CacMuc = new List<string> { moi.Muc };
+            moi.CacMuc = MucKem(moi.Muc, a.CacMuc).ToList();
             moi.CacDuongDan = DuongDanKem(a).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             seenTen[TenLoi(ten)] = moi;
             moi.IconBam = moi.Icon == null ? null : BamIcon(moi.Icon);
@@ -414,6 +438,11 @@ public static class DanhSachApp
         }
         return kq.OrderBy(a => a.Khoa, StringComparer.Ordinal).Take(ToiDaApp).ToList();
     }
+
+    /// <summary>Muc chính rồi các muc kèm của bản đầu vào (exe của gói Store ngoài WindowsApps — #695), chữ thường, không trùng.</summary>
+    private static IEnumerable<string> MucKem(string muc, IEnumerable<string>? kem) =>
+        (kem ?? Enumerable.Empty<string>()).Select(m => (m ?? "").Trim().ToLowerInvariant()).Where(m => m.Length > 0)
+            .Prepend(muc).Distinct(StringComparer.Ordinal);
 
     /// <summary>Muc → mọi muc cùng app (cùng tên đã gộp): chỉ các app có từ hai muc trở lên.</summary>
     public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds) => BangBiDanh(NhomMuc(ds));
