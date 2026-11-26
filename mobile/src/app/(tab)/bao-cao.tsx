@@ -17,6 +17,7 @@ import { BaoLoi, CanhGiua, ChoTai, Chu, Icon3D, M, Man, NhanMen, Rob, The, useLa
 import { ChuGiaiVuong, CotGioChoi } from "@/lib/bieu-do";
 import { KHOI } from "@/lib/clay";
 import { luuTepChu } from "@/lib/luu-tep";
+import { soHomNay, type SoHomNayMayChu } from "@/lib/so-hom-nay";
 
 type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number; vay?: number }[]; tongGiaiTri: number; phutHoc: number; duyet: { duoc: number; tu_choi: number }; ngoaiLe: number;
   top: { muc: string; phut: number }[]; dungNhieu?: { muc: string; ten?: string; loai: string; phut: number; may?: string | null; lech: number | null }[];
@@ -65,8 +66,10 @@ export default function TabBaoCao() {
 function BaoCaoCon({ id }: { id: string }) {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [bc, vs, gc] = await Promise.all([bm.goi<BaoCao>(`con/${id}/bao-cao?bay=1`), bm.goi<Partial<SaoCon>>(`con/${id}/vi-sao?gioiHan=1`).catch(() => null),
-      bm.goi<{ gioiHanNgayThuong?: number; gioiHanCuoiTuan?: number }>(`con/${id}/gio-choi`).catch(() => null)]);
-    return { bc, sao: vs ? saoTu(vs) : null, tran: ([0, 6].includes(new Date().getDay()) ? gc?.gioiHanCuoiTuan : gc?.gioiHanNgayThuong) ?? null };
+      bm.goi<{ soHomNay?: SoHomNayMayChu }>(`con/${id}/gio-choi`).catch(() => null)]);
+    // #705: giới hạn hôm nay (đã cộng sao cho vay, thứ theo giờ gia đình) + phút còn — máy chủ tính (gio-choi › soHomNay)
+    const so = soHomNay(gc?.soHomNay);
+    return { bc, sao: vs ? saoTu(vs) : null, tran: so.tran, conNgay: so.con };
   });
   const xuat = useLam();
   if (!d) return <ChoTai loi={loi} matMang={matMang} tai={tai} />;
@@ -112,7 +115,7 @@ function BaoCaoCon({ id }: { id: string }) {
             })} />
           <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: M.badge },
             ...(d.tran ? [{ chu: `Giới hạn ngày ${d.tran} phút`, dut: true }] : []),
-            { chu: d.tran ? `Nay: ${phutNay}/${d.tran} phút = ${soVN(phutNay)} sao · còn ${Math.max(0, d.tran - phutNay)} phút` : `Nay: ${phutNay} phút = ${soVN(phutNay)} sao` }]} />
+            { chu: d.tran ? `Nay: ${phutNay}/${d.tran} phút = ${soVN(phutNay)} sao · còn ${d.conNgay ?? 0} phút` : `Nay: ${phutNay} phút = ${soVN(phutNay)} sao` }]} />
           {d.tran ? (
             <Pressable onPress={() => router.push(`/ho-so/${id}/gio-choi` as never)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-start" }}>
               <Chu kieu="rat" co={14} mau={M.lienKet}>Giờ chơi mỗi ngày ›</Chu>

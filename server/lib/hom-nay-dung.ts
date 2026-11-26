@@ -9,7 +9,7 @@ import { one, q } from "./db.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { chuanMuc, laAppAiiGrow, laTienTrinhNenWindows } from "./luat-app.ts";
 import { tenDoc, TRINH_DUYET } from "./man-hinh.ts";
-import { quyHomNay } from "./quy-gio.ts";
+import { quyHomNay, soHomNay } from "./quy-gio.ts";
 import { mayMatMang } from "./can-de-y.ts";
 import { LA_APP } from "./so-sao.ts";
 import { mucGop, tenThanThien } from "./ten-than-thien.ts";
@@ -82,8 +82,12 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     if (phut > x._phutMay) { x._phutMay = phut; x.may = m?.name ?? x.may; x.nen = m?.platform ?? x.nen; x.mayId = m?.id ?? x.mayId; x.matMang = matMang.has(mayId); }
   };
   for (const a of app) if (!laAppAiiGrow(a.muc) && !TRINH_DUYET.has(chuanMuc(a.muc)) && a.loai !== "he_thong" && !(laTienTrinhNenWindows(a.muc) && !luatCua(chuanMuc(a.muc)))) them("app", a.muc, a.device_id, a.phut, a.dau_luc, a.loai);
-  for (const w of web) them("web", w.ten_mien, w.device_id, Math.round(w.giay / 60), w.dau_luc ?? w.lan_cuoi, null);
-  const dung = [...gop.values()].filter((x) => x.phut > 0).map(({ _phutMay, ...x }) => x)
+  // #704: phút web cộng theo GIÂY (nhiều máy / nhiều lần cùng tên miền) rồi mới làm tròn một lần ở dòng — như phút «Giờ chơi» (quy-gio › phutDaDung)
+  for (const w of web) them("web", w.ten_mien, w.device_id, Number(w.giay) / 60, w.dau_luc ?? w.lan_cuoi, null);
+  const tatCa = [...gop.values()].map(({ _phutMay, ...x }) => ({ ...x, _phut: x.phut, phut: x.kieu === "web" ? Math.round(x.phut) : x.phut })).filter((x) => x.phut > 0);
+  // #704: tổng «Không tính phút» + số mục «Đã dùng» tính trên CẢ ngày (trước khi cắt danh sách), tổng phút cộng số lẻ rồi làm tròn một lần
+  const phutHoc = Math.round(tatCa.filter((x) => !x.tinhGio && !x.chuaXep).reduce((s, x) => s + x._phut, 0));
+  const dung = tatCa.map(({ _phut, ...x }) => x)
     // mới trước (dòng chưa biết giờ xuống cuối), cùng giờ thì dùng nhiều trước
     .sort((a, b) => (b.luc ? new Date(b.luc).getTime() : 0) - (a.luc ? new Date(a.luc).getTime() : 0) || b.phut - a.phut).slice(0, o.gioiHan ?? 50);
 
@@ -91,13 +95,14 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     ...yc.map((r) => ({ luc: new Date(r.created_at).toISOString(), ten: (r.loai === "cai_app" ? tenThanThien(r.gia_tri) : undefined) || r.ten_app || r.gia_tri || (r.loai === "cai_app" ? "App mới" : r.loai === "mo_web" ? "Trang web" : "Mở máy"),
       may: r.device_id ? tenMay.get(r.device_id)?.name ?? null : null, ly: (r.trang_thai === "cho" ? "dang_xin" : "chua_cho") as DongChan["ly"], yeuCau: r.id, phut: r.phut })),
   ];
-  const phutHoc = dung.filter((x) => !x.tinhGio && !x.chuaXep).reduce((s, x) => s + x.phut, 0);
   return {
     ten: c?.ten ?? "", ngay,
     // 15/11: conPhut = sao tiêu được (1 sao = 1 phút) · sao = sổ sao (số dư âm được, nợ)
-    choi: { daDung: qy.daDung, tongPhut: qy.tongPhut, conPhut: qy.conPhut, sao: qy.soSao },
+    // #705/#700: daChoi / gioiHanNgay / conNgay = một nguồn với máy Con (quy-gio › soHomNay); daDung (phút đo, số lẻ) giữ cho app cũ
+    choi: { daDung: qy.daDung, tongPhut: qy.tongPhut, conPhut: qy.conPhut, sao: qy.soSao, ...soHomNay(qy) },
     khongTinhPhut: { phut: phutHoc },
     /** (cũ) = khongTinhPhut; giờ học đã bỏ (#258) ⇒ khung luôn null */ hoc: { phut: phutHoc, khung: null },
+    /** #704: số mục đã dùng cả ngày (danh sách `dung` chỉ gọn 50 dòng mới nhất) */ soDung: tatCa.length,
     dung, biChan,
   };
 }

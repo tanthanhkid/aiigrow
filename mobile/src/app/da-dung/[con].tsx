@@ -12,16 +12,17 @@ import { kieuSao, saoTu, soVN, type SaoCon } from "@/lib/so-sao";
 import { BONG } from "@/lib/clay";
 import { ChoTai, Chu, gioPhut, IconNet, M, Man, Nhan, The, useTai, type TenIcon } from "@/lib/ui";
 import { icDung, nhanDung, tenNgan, type HomNayDung } from "@/lib/da-dung";
+import { soHomNay } from "@/lib/so-hom-nay";
 
 export type { HomNayDung };
 
 export default function DaDung() {
   const { con } = useLocalSearchParams<{ con: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [hn, vs, gc] = await Promise.all([bm.goi<HomNayDung>(`con/${con}/hom-nay`), bm.goi<Partial<SaoCon>>(`con/${con}/vi-sao?gioiHan=1`).catch(() => null),
-      bm.goi<{ gioiHanNgayThuong?: number; gioiHanCuoiTuan?: number }>(`con/${con}/gio-choi`).catch(() => null)]);
-    const thu = new Date().getDay();   // T7, CN dùng giới hạn cuối tuần
-    return { ...hn, sao: vs ? saoTu(vs) : null, tran: (thu === 0 || thu === 6 ? gc?.gioiHanCuoiTuan : gc?.gioiHanNgayThuong) ?? null };
+    const [hn, vs] = await Promise.all([bm.goi<HomNayDung>(`con/${con}/hom-nay`), bm.goi<Partial<SaoCon>>(`con/${con}/vi-sao?gioiHan=1`).catch(() => null)]);
+    // #705: đã chơi / giới hạn hôm nay (đã cộng sao cho vay, thứ theo giờ gia đình) / còn — máy chủ tính, không tự tính lại
+    const so = soHomNay(hn.choi, hn.choi.daDung);
+    return { ...hn, sao: vs ? saoTu(vs) : null, daChoi: so.daChoi, tran: so.tran, conNgay: so.con };
   });
   if (!d) return <Man lui={{ chu: "Báo cáo" }} tieu="Hôm nay con dùng gì"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const sao = d.sao;
@@ -35,13 +36,13 @@ export default function DaDung() {
         <Pressable onPress={() => router.push(`/ho-so/${con}/gio-choi` as never)} accessibilityRole="button" style={{ flex: 1 }}>
           <The dem style={{ gap: 4, padding: 14, minHeight: 138 }}>
             <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><IconNet ten="game" co={18} /><Chu kieu="rat" co={13.5}>Giờ chơi</Chu></View>
-            <Chu kieu="tieu7" co={32} so style={{ lineHeight: 38 }}>{`${d.choi.daDung}`}{d.tran ? <Chu kieu="dam7" co={14} mau={M.chu3}>{` / ${d.tran} phút`}</Chu> : <Chu kieu="dam7" co={14} mau={M.chu3}>{" phút"}</Chu>}</Chu>
+            <Chu kieu="tieu7" co={32} so style={{ lineHeight: 38 }}>{`${d.daChoi}`}{d.tran ? <Chu kieu="dam7" co={14} mau={M.chu3}>{` / ${d.tran} phút`}</Chu> : <Chu kieu="dam7" co={14} mau={M.chu3}>{" phút"}</Chu>}</Chu>
             {d.tran ? (
               <View style={{ height: 8, borderRadius: 4, backgroundColor: M.ranh, boxShadow: BONG.lom, overflow: "hidden" }}>
-                <View style={{ width: `${Math.min(100, Math.round((d.choi.daDung / d.tran) * 100))}%`, height: 8, borderRadius: 4, backgroundColor: M.badge }} />
+                <View style={{ width: `${Math.min(100, Math.round((d.daChoi / d.tran) * 100))}%`, height: 8, borderRadius: 4, backgroundColor: M.badge }} />
               </View>
             ) : null}
-            <Chu kieu="rat" co={13} mau={M.chu}>{d.tran ? `Còn ${Math.max(0, d.tran - d.choi.daDung)} phút hôm nay` : conCau}</Chu>
+            <Chu kieu="rat" co={13} mau={M.chu}>{d.tran ? `Còn ${d.conNgay ?? 0} phút hôm nay` : conCau}</Chu>
           </The>
         </Pressable>
         <Pressable onPress={() => router.push({ pathname: "/chan", params: { con } })} accessibilityRole="button" style={{ flex: 1 }}>
@@ -53,7 +54,7 @@ export default function DaDung() {
         </Pressable>
       </View>
 
-      <TieuMuc chu="Đã dùng" so={d.dung.length} />
+      <TieuMuc chu="Đã dùng" so={d.soDung ?? d.dung.length} />
       <The style={{ paddingVertical: 4 }}>
         {!d.dung.length ? <Chu co={14} mau={M.chu3} style={{ paddingVertical: 14 }}>{`Hôm nay ${d.ten} chưa dùng app nào.`}</Chu> : null}
         {d.dung.map((x, k) => (
