@@ -226,11 +226,13 @@ class HopXinThem(private val c: Context) {
                 if (g != gen) return@Thread
                 val kq = DichVuNhip.hoiKetQuaXinApp(ctx, r.id)
                 // hộp đã đóng ⇒ để lời xin lại cho nhịp nền báo (không xoá khỏi danh sách chờ mà không hiện)
-                if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { h.post { if (g == gen) { HocVien.xongXinApp(ctx, r.id); hienKq(ten, kq) } }; return@Thread }
+                if (kq != null && kq.loai != LoaiKetQuaXin.CHO) {
+                    if (g == gen) HocVien.xongXinApp(ctx, r.id)   // trước khi rời «hộp đang hỏi» ⇒ nhịp nền không báo lần hai
+                    h.post { if (g == gen) hienKq(ten, kq) }; return@Thread }
                 try { Thread.sleep(3000) } catch (_: InterruptedException) { return@Thread }
             } } finally { HocVien.hopDangHoi(r.id, false) }
             // #686: 5 phút chưa có trả lời ⇒ lời xin VẪN chờ (máy chủ không hết hạn lúc này) — thôi hỏi ở hộp, nhịp nền báo khi Ba Mẹ trả lời
-            h.post { if (g == gen) hienKq(ten, KetQuaXinApp(LoaiKetQuaXin.CHO, null), khongHoi = true) }
+            h.post { if (g == gen) { hienKq(ten, KetQuaXinApp(LoaiKetQuaXin.CHO, null), khongHoi = true); kqCau.text = "Ba Mẹ chưa trả lời. Có trả lời, AiiGrow sẽ báo con." } }
         }.also { it.start() }
     }
 

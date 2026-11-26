@@ -10,10 +10,12 @@ class ChayNenTest {
         for (h in listOf("Google", "samsung", "motorola", "", null)) assertFalse("$h", canNhacTuKhoiChay(h))
     }
 
-    @Test fun xinBoQuaPin() {
-        assertTrue(hienQuyenPin(daGhep = true, laDeviceOwner = false, sdk = 34))
-        assertFalse(hienQuyenPin(daGhep = true, laDeviceOwner = true, sdk = 34))   // DPC đã được miễn
-        assertFalse(hienQuyenPin(daGhep = false, laDeviceOwner = false, sdk = 34))
-        assertFalse(hienQuyenPin(daGhep = true, laDeviceOwner = false, sdk = 22))
+    /** #686: lời xin app chờ lâu không bị hỏi mỗi nhịp (10 lời xin × mỗi phút × 24 giờ). */
+    @Test fun nhipHoiXinApp() {
+        val p = 60_000L
+        assertTrue(nenHoiXinApp(5 * p, 1 * p))
+        assertTrue(nenHoiXinApp(60 * p, null))
+        assertFalse(nenHoiXinApp(60 * p, 3 * p))
+        assertTrue(nenHoiXinApp(60 * p, 10 * p))
     }
 }

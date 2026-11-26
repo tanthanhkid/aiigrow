@@ -18,6 +18,8 @@ import vn.aiilab.aiigrow.maycon.logic.conHanXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.docKetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.docXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.jsonXinAppCho
+import vn.aiilab.aiigrow.maycon.logic.nenHoiXinApp
+import vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.themXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.cauXinVay
 import vn.aiilab.aiigrow.maycon.logic.dangDungPhien
@@ -157,8 +159,16 @@ object HocVien {
     }
 
     /** Id lời xin mà hộp xin đang tự hỏi kết quả (trong bộ nhớ: tiến trình bị tắt thì nhịp nền nhận lại). */
-    private val hopHoi = java.util.Collections.synchronizedSet(HashSet<String>())
-    fun hopDangHoi(id: String, dang: Boolean) { if (dang) hopHoi.add(id) else hopHoi.remove(id) }
+    private val hopHoi = HashMap<String, Int>()   // id → số hộp đang hỏi (màn chặn + hộp «Xin thêm» cùng một lời xin)
+    fun hopDangHoi(id: String, dang: Boolean) {
+        synchronized(hopHoi) {
+            val n = (hopHoi[id] ?: 0) + if (dang) 1 else -1
+            if (n > 0) hopHoi[id] = n else hopHoi.remove(id)
+        }
+    }
+    private fun hopDangHoi(id: String) = synchronized(hopHoi) { id in hopHoi }
+    /** Lần nhịp nền hỏi gần nhất của từng lời xin (bộ nhớ) — lời xin chờ lâu hỏi thưa (logic/ChayNen.kt › nenHoiXinApp). */
+    private val lanHoiXinApp = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     /** Hộp xin đã tự hiện kết quả cho Con ⇒ thôi theo dõi (không báo lần hai). */
     fun xongXinApp(ctx: Context, id: String) = synchronized(khoaXinApp) {
@@ -176,9 +186,13 @@ object HocVien {
             val tat = docXinAppCho(k.xinAppCho)
             conHanXinAppCho(tat, System.currentTimeMillis()).also { if (it.size != tat.size) k.xinAppCho = jsonXinAppCho(it) }
         }
-        for (x in ds.filter { it.id !in hopHoi }) {
+        val now = System.currentTimeMillis()
+        for (x in ds) {
+            if (hopDangHoi(x.id) || !nenHoiXinApp(now - x.luc, lanHoiXinApp[x.id]?.let { now - it })) continue
+            lanHoiXinApp[x.id] = now
+            // 404 = máy chủ không còn lời xin ⇒ báo «hết hạn» như hộp xin (không bỏ im lặng)
             val kq = try { docKetQuaXinApp(may(k).yeuCau(x.id)) } catch (e: MayChu.Loi) {
-                if (e.http == 404) xongXinApp(ctx, x.id); continue
+                if (e.http == 404) KetQuaXinApp(LoaiKetQuaXin.HET_HAN, null) else continue
             } catch (_: Exception) { return }   // mất mạng ⇒ nhịp sau
             if (kq.loai == LoaiKetQuaXin.CHO) continue
             synchronized(khoaXinApp) {
@@ -186,6 +200,7 @@ object HocVien {
                 if (con.none { it.id == x.id }) return@synchronized null   // hộp xin vừa tự báo xong
                 k.xinAppCho = jsonXinAppCho(con.filter { it.id != x.id }); Unit
             } ?: continue
+            lanHoiXinApp.remove(x.id)
             val (tieu, _, cau) = chuKetQuaXinApp(kq, x.ten)
             if (kq.loai == LoaiKetQuaXin.DA_THEM) DichVuNhip.lamMoi(ctx)
             if ((PinMay.nguoiDung(k)?.conId ?: "") != x.con) { NhatKy.tin(TAG, "lời xin app / web của bé trước có kết quả — không báo bé đang dùng"); continue }

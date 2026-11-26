@@ -21,7 +21,6 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import vn.aiilab.aiigrow.maycon.logic.canNhacTuKhoiChay
-import vn.aiilab.aiigrow.maycon.logic.hienQuyenPin
 import vn.aiilab.aiigrow.maycon.logic.dongMay
 import vn.aiilab.aiigrow.maycon.logic.chiNgoaiLe
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
@@ -535,7 +534,7 @@ class ManChinh : Activity() {
         }
         t.addView(G.dauKhoi(this, R.drawable.fl_khien, "Cách quản lý: không cần khôi phục gốc", Clay.THE, 17f))
         // #709: máy đã ghép mà chưa bỏ tối ưu pin ⇒ thêm quyền thứ 4 (hãng máy / Doze dừng dịch vụ ⇒ chặn mất hiệu lực lặng lẽ)
-        val xinPin = hienQuyenPin(daGhep, false, Build.VERSION.SDK_INT)
+        val xinPin = daGhep   // nhánh này đã không phải Device Owner (DPC được miễn tối ưu pin); minSdk 26
         t.addView(G.chu(this, "Ba Mẹ bật đủ ${if (xinPin) 4 else 3} quyền dưới đây. Muốn giữ chặt hơn (app hiện «Đã tạm dừng»), cài lại bằng QR Device Owner.", 15f, G.CHU_PHU))
         val q = listOf(
             Triple("Quyền quản trị thiết bị (khoá máy)", QuanTri.laAdmin(this)) {

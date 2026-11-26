@@ -200,7 +200,10 @@ object GiaoDien {
                 try { for (i in 0 until 100) {
                     if (gen != xinGen) return@Thread
                     val kq = DichVuNhip.hoiKetQuaXinApp(ctx, r.id)
-                    if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { h.post { if (gen == xinGen) { HocVien.xongXinApp(ctx, r.id); xinKq = kq; capNhatKetQua(g) } }; return@Thread }
+                    if (kq != null && kq.loai != LoaiKetQuaXin.CHO) {
+                        // bỏ khỏi danh sách chờ TRƯỚC khi rời «hộp đang hỏi» (nhịp nền không báo lần hai); hộp vừa đóng ⇒ để nhịp nền báo
+                        if (gen == xinGen) HocVien.xongXinApp(ctx, r.id)
+                        h.post { if (gen == xinGen) { xinKq = kq; capNhatKetQua(g) } }; return@Thread }
                     try { Thread.sleep(3000) } catch (_: InterruptedException) { return@Thread }
                 } } finally { HocVien.hopDangHoi(r.id, false) }
                 // #686: 5 phút chưa có trả lời ⇒ lời xin vẫn chờ (không báo «hết hạn» sai); nhịp nền báo khi Ba Mẹ trả lời

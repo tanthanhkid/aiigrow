@@ -52,7 +52,7 @@ class KhoiDong : BroadcastReceiver() {
 }
 
 /** #709: AiiGrow đã được bỏ tối ưu pin (Doze / hãng máy ít dừng dịch vụ; được bật dịch vụ tiền cảnh từ nền). */
-fun boQuaToiUuPin(c: Context): Boolean = Build.VERSION.SDK_INT < 23 ||
+fun boQuaToiUuPin(c: Context): Boolean =
     (c.getSystemService(Context.POWER_SERVICE) as android.os.PowerManager).isIgnoringBatteryOptimizations(c.packageName)
 
 /**

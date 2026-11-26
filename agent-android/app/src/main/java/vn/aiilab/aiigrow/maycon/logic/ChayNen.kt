@@ -7,8 +7,8 @@ private val HANG_DON_NEN = setOf("xiaomi", "redmi", "poco", "oppo", "realme", "o
 
 fun canNhacTuKhoiChay(hang: String?): Boolean = hang?.trim()?.lowercase() in HANG_DON_NEN
 
-/** Thẻ quyền có dòng «bỏ tối ưu pin» (chưa bật ⇒ nút, đã bật ⇒ ✓): máy đã ghép, không phải Device Owner (DPC đã được miễn), Android 6+. */
-fun hienQuyenPin(daGhep: Boolean, laDeviceOwner: Boolean, sdk: Int): Boolean = daGhep && !laDeviceOwner && sdk >= 23
+/** Nhịp nền hỏi lại lời xin app / web chờ: 15 phút đầu mỗi nhịp; sau đó mỗi 10 phút (≤ 24 giờ) — không gõ máy chủ mỗi phút cả ngày. */
+fun nenHoiXinApp(tuoiMs: Long, tuLanHoiMs: Long?): Boolean = tuoiMs < 15 * 60_000L || tuLanHoiMs == null || tuLanHoiMs >= 10 * 60_000L
 
 /** Bị vuốt khỏi gần đây ⇒ hẹn bật lại dịch vụ sau ngần này (hãng giết tiến trình ngay sau onTaskRemoved). */
 const val HEN_LAI_MS = 3_000L
