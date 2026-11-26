@@ -14,11 +14,15 @@ import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONObject
 import vn.aiilab.aiigrow.maycon.logic.Cong
+import vn.aiilab.aiigrow.maycon.logic.CuaGoi
+import vn.aiilab.aiigrow.maycon.logic.ThuGhepGoi
+import vn.aiilab.aiigrow.maycon.logic.loiGhepGoiVinhVien
 import vn.aiilab.aiigrow.maycon.logic.KetQuaCho
 import vn.aiilab.aiigrow.maycon.logic.choLaiMs
 import vn.aiilab.aiigrow.maycon.logic.docKetQuaCho
@@ -65,7 +69,7 @@ class DichVuNhip : Service() {
     private var threadCho: Thread? = null
     @Volatile private var dangChay = false     // luồng «chờ thay đổi» (P1 07/11)
     private lateinit var h: Handler
-    private var lanGoiMayChu = 0L
+    @Volatile private var lanGoiMayChu = 0L
     private var lanGuiHangDoi = 0L
     private var nhac = NhacGio()
     private var daBaoDemNguoc = 0L          // khoaTu của lượt đếm ngược đã bật thông báo
@@ -167,8 +171,7 @@ class DichVuNhip : Service() {
         val ph0: PhanHoiNhip? = if (k.cheDoThu) {
             try { docPhanHoiNhip(k.tepThu.readText()) } catch (e: Exception) { NhatKy.canh(TAG, "tệp thử hỏng", e); null }
         } else {
-            if (k.token == null && k.tokenGoiCai != null) ghepBangGoi(k)
-            if (k.token != null && (epGoi || nowMay - lanGoiMayChu >= 60_000)) { lanGoiMayChu = nowMay; goiNhip(k) }
+            goiMayChuNen(k, epGoi, nowMay)
             dsApp.kich(k)   // gửi app đã cài thật (Ba Mẹ chọn chặn) — chạy luồng riêng, không chặn thực thi
             k.phanHoi?.let { try { docPhanHoiNhip(it) } catch (_: Exception) { null } }
         }
@@ -264,19 +267,91 @@ class DichVuNhip : Service() {
             // Device Owner được mở activity từ nền (miễn trừ BAL cho DPC). Đường không reset: TroNang phủ màn khoá.
             startActivity(Intent(this, ManKhoa::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
         }
-        for (l in ph0.lenh) if (l.loai == "go" && !k.cheDoThu) xuLyGo(k, l.id)
+        // #708: báo xong lệnh gỡ là lời gọi mạng ⇒ luồng mạng (một lượt một lúc), không chặn vòng áp luật
+        ph0.lenh.firstOrNull { it.loai == "go" }?.let { l -> if (!k.cheDoThu && dangGo.compareAndSet(false, true))
+            mang.execute { var daXep = false; try { daXep = xuLyGo(Kho(this), l.id) } finally { if (!daXep) dangGo.set(false) } } }   // đã xếp gỡ ⇒ giữ cờ: không gỡ lần hai
     }
 
-    private fun ghepBangGoi(k: Kho) {
+    /** #708: mở một lượt gọi máy chủ trên luồng mạng nếu tới hạn; lượt trước còn chạy (mạng treo) ⇒ bỏ qua, vòng áp luật đi tiếp ngay. */
+    private fun goiMayChuNen(k: Kho, epGoi: Boolean, nowMay: Long) {
+        val ghep = k.token == null && k.tokenGoiCai != null && thuGhepGoi.nenThu(SystemClock.elapsedRealtime())
+        val nhip = k.token != null && (epGoi || nowMay - lanGoiMayChu >= 60_000)
+        if (!ghep && !nhip) return
+        if (!cuaMang.xin(epGoi)) return
+        if (nhip) lanGoiMayChu = nowMay
+        mang.execute {
+            var ep = false
+            var doi = false
+            try {
+                val k2 = Kho(this)
+                var vuaGhep = false
+                if (k2.token == null && k2.tokenGoiCai != null) { doi = ghepBangGoi(k2); vuaGhep = k2.token != null }
+                if ((nhip || vuaGhep) && k2.token != null) { if (vuaGhep) lanGoiMayChu = System.currentTimeMillis(); if (goiNhip(k2)) doi = true }
+            } catch (e: Exception) { NhatKy.canh(TAG, "gọi máy chủ lỗi", e)
+            } finally { ep = cuaMang.xong() }
+            // Kho đổi (luật mới / vừa ghép / bị gỡ) hoặc Ba Mẹ ép trong lúc chạy ⇒ áp ngay; lượt hỏng / không đổi ⇒ chờ vòng 5 giây thường
+            if (doi || ep) h.post { try { vong(ep) } catch (e: Exception) { NhatKy.canh(TAG, "vòng nhịp lỗi", e) } }
+        }
+    }
+
+    /** Chạy `f` trên luồng nhịp và chờ xong: ghi kết quả máy chủ xen giữa hai vòng áp luật, không giữa một vòng.
+     *  false = `f` KHÔNG chạy và sẽ không chạy (dịch vụ đã dừng, hoặc luồng nhịp bận > 30 giây ⇒ huỷ) — người gọi bỏ cả phần sau, không ghi nửa vời. */
+    private fun trenLuongNhip(f: () -> Unit): Boolean {
+        val xong = java.util.concurrent.CountDownLatch(1)
+        val tt = java.util.concurrent.atomic.AtomicInteger(0)   // 0 chờ · 1 đang/đã chạy · 2 huỷ
+        // lỗi trong `f` không được làm sập luồng nhịp (Looper) — ghi nhật ký như lỗi lượt gọi máy chủ
+        if (!h.post { if (tt.compareAndSet(0, 1)) try { f() } catch (e: Exception) { NhatKy.canh(TAG, "ghi kết quả máy chủ lỗi", e) } finally { xong.countDown() } }) return false
+        val kip = try { xong.await(30, java.util.concurrent.TimeUnit.SECONDS) } catch (_: InterruptedException) { false }
+        if (kip) return true
+        if (tt.compareAndSet(0, 2)) return false   // chưa bắt đầu ⇒ huỷ hẳn
+        var cho = true   // đã bắt đầu ⇒ chờ nốt (ngắn: chỉ ghi Kho)
+        while (cho) try { xong.await(); cho = false } catch (_: InterruptedException) {}
+        return true
+    }
+
+    /** Ghép bằng token gói cài (QR Device Owner). true = Kho đổi (vừa ghép xong, hoặc gói bị từ chối hẳn). #707: lỗi vĩnh viễn (gói đã dùng /
+     *  hết hạn / sai) ⇒ bỏ gói + báo ở màn ghép; lỗi tạm ⇒ lùi dần 5 giây … 5 phút (không gõ máy chủ mỗi 5 giây, không lặp một dòng nhật ký).
+     *  Gọi máy chủ trên luồng mạng; ghi Kho trên luồng nhịp (#708 — vòng áp luật không thấy máy nửa ghép). */
+    private fun ghepBangGoi(k: Kho): Boolean {
+        val goi = k.tokenGoiCai ?: return false
         try {
-            val r = MayChu(k.mayChu, null).ghepGoi(thanGhepToken(k.tokenGoiCai!!, Build.MODEL ?: "Android"))
-            MoMaOffline.quen(k); HocVien.quen(k); PinMay.quen(k)
-            k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
-            k.tokenGoiCai = null
-        } catch (e: Exception) { NhatKy.canh(TAG, "ghép bằng token gói cài lỗi", e) }
+            val r = MayChu(k.mayChu, null).ghepGoi(thanGhepToken(goi, Build.MODEL ?: "Android"))
+            thuGhepGoi = ThuGhepGoi()
+            val token = r.getString("token")
+            val ghi = {
+                if (k.token != null) NhatKy.tin(TAG, "gói cài ghép xong nhưng máy đã ghép bằng mã trong lúc gọi — giữ lần ghép bằng mã")
+                else {
+                    MoMaOffline.quen(k); HocVien.quen(k); PinMay.quen(k)
+                    k.token = token; k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
+                    NhatKy.tin(TAG, "đã ghép bằng gói cài")
+                }
+                k.tokenGoiCai = null; k.loiGhepGoi = null
+            }
+            // máy chủ đã dùng gói (một lần) ⇒ không được bỏ token: dịch vụ vừa dừng / luồng nhịp kẹt thì ghi thẳng
+            if (!trenLuongNhip(ghi)) ghi()
+            return true
+        } catch (e: MayChu.Loi) {
+            if (loiGhepGoiVinhVien(e.http, e.ma)) {
+                NhatKy.canh(TAG, "máy chủ từ chối gói cài (${e.http} ${e.ma}) — bỏ gói, chờ ghép bằng mã / gói mới", e)
+                thuGhepGoi = ThuGhepGoi()
+                // chỉ bỏ đúng gói vừa thử (QR mới nạp trong lúc gọi thì giữ)
+                return trenLuongNhip { if (k.tokenGoiCai == goi) { k.tokenGoiCai = null; k.loiGhepGoi = e.cau } }
+            }
+            loiTam(e)
+        } catch (e: Exception) { loiTam(e) }
+        return false
     }
 
-    private fun goiNhip(k: Kho) {
+    /** Lùi tính từ lúc lời gọi vừa lỗi (mạng treo 35 giây thì vẫn nghỉ đủ sau đó), theo đồng hồ đơn điệu. */
+    private fun loiTam(e: Exception) {
+        val now = SystemClock.elapsedRealtime()
+        val t = thuGhepGoi.sauLoiTam(now)
+        thuGhepGoi = t
+        if (t.nenGhiNhatKy) NhatKy.canh(TAG, "ghép bằng token gói cài lỗi (lần ${t.lanLoi}) — thử lại sau ${(t.thuLaiLuc - now) / 1000} giây", e)
+    }
+
+    /** true = Kho đổi (luật mới, hoặc token bị thu hồi). */
+    private fun goiNhip(k: Kho): Boolean {
         val truoc = k.lanNhipThanhCong
         val matPhut = if (truoc == 0L) 0 else ((System.currentTimeMillis() - truoc) / 60_000).toInt().coerceAtLeast(0)
         val ht = HienThi.doc(k.hienThi)
@@ -289,38 +364,47 @@ class DichVuNhip : Service() {
             .apply { k.maOfflineBiMat?.let { put("maOfflineVan", vanBiMat(it)) } }   // vân bí mật đang nhớ: khớp ⇒ máy chủ khỏi gửi lại, lệch ⇒ gửi bí mật đúng
         val batDau = System.currentTimeMillis()
         // L13: bé vào / đăng xuất lúc mất mạng ⇒ báo máy chủ trước nhịp. Mất mạng ⇒ bỏ nhịp vòng này (khỏi chờ hết hạn kết nối lần nữa)
-        if (!PinMay.guiViecCho(k)) { Log.i(TAG, "mất mạng (gửi việc chờ) — bỏ nhịp vòng này"); return }
+        if (!PinMay.guiViecCho(k)) { Log.i(TAG, "mất mạng (gửi việc chờ) — bỏ nhịp vòng này"); return false }
         // 15/11: phút theo bé (dong-bo) gửi TRƯỚC nhịp ⇒ `sao.phutCon` trong phản hồi nhịp đã trừ đủ, đếm lùi tại chỗ tính từ đây
         if (csCu?.sao != null) guiNen { guiDongBo(this, k) }
-        try {
-            val r = MayChu(k.mayChu, k.token).nhip(than)
-            k.phanHoi = r.toString()
-            k.lanNhipThanhCong = System.currentTimeMillis()
-            try {   // mốc phút giải trí đo tại chỗ lúc máy chủ chốt quỹ (đếm lùi khi mất mạng)
-                val csMoi = docPhanHoiNhip(r.toString()).chinhSach
-                // 15/11: máy chủ có sổ sao ⇒ báo phút theo bé để trừ sao (+ gửi lời xin vay lưu lúc mất mạng)
-                if (csMoi.sao != null) guiNen { if (csCu?.sao == null) guiDongBo(this, k); guiXinVayCho(this, k) }
-                k.phutLucNhip = phutGiaiTri(DoPhut.homNay(this, csMoi.tz), goiAndroid(csMoi.giaiTri))
-                // ngày theo ĐỒNG HỒ MÁY CHỦ (như `now` của vòng thực thi) — đồng hồ máy lệch không làm lệch ngày
-                val st = r.optString("serverTime").takeIf { it.isNotBlank() }?.let { Instant.parse(it) } ?: Instant.now()
-                k.ngayNhip = gioDiaPhuong(st, csMoi.tz).zdt.toLocalDate().toString()
-            } catch (_: Exception) {}
-            r.optString("serverTime").takeIf { it.isNotBlank() }?.let { k.lechGioMs = Instant.parse(it).toEpochMilli() - System.currentTimeMillis() }
-            r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }
-            try { PinMay.sauNhip(k, r, batDau) } catch (e: Exception) { NhatKy.canh(TAG, "đọc người dùng máy lỗi", e) }
-            try { PinMay.sauDsCon(this, k, r) } catch (e: Exception) { NhatKy.canh(TAG, "đọc danh sách bé của máy lỗi", e) }   // #339
-            MoMaOffline.ketThucKhiCoMang(this)   // có mạng lại ⇒ hết lượt mở bằng mã (Ba Mẹ lại quyết bằng luật online)
-            // nhiệm vụ / lời nhắn mới ⇒ thông báo (tạm thay FCM); lời xin thêm giờ đang chờ ⇒ Ba Mẹ trả lời thì báo — luồng riêng, không chặn vòng thực thi
-            HocVien.chayNen(this)
-            if (System.currentTimeMillis() - lanGuiHangDoi > 120_000) { lanGuiHangDoi = System.currentTimeMillis(); NhatKy.gui(this, MayChu(k.mayChu, k.token)) }
-            // DNS gia đình (server/lib/dns-gia-dinh.ts › hoSoDns): Device Owner tự đặt DNS riêng tư; gia đình chưa bật DNS ⇒ máy chủ trả lỗi, bỏ qua
-            if (QuanTri.laDeviceOwner(this) && k.privateDnsDaDat == null) try {
-                val host = MayChu(k.mayChu, k.token).hoSoDns().optJSONObject("android")?.optString("privateDns")
-                Log.i(TAG, "DNS gia đình: " + ThucThi.datPrivateDns(this, host))   // mỗi nhịp tới khi gia đình bật DNS ⇒ chỉ logcat
-            } catch (e: Exception) { Log.i(TAG, "chưa có DNS gia đình: ${e.message}") }
-        } catch (e: MayChu.Loi) {
-            if (e.http == 401) { NhatKy.canh(TAG, "token bị thu hồi — máy đã bị gỡ khỏi gia đình"); k.token = null; k.phanHoi = null; MoMaOffline.quen(k); HocVien.quen(k); PinMay.quen(k) }
-        } catch (e: Exception) { Log.i(TAG, "mất mạng — chạy theo chính sách nhớ: ${e.message}") }
+        val r = try { MayChu(k.mayChu, k.token).nhip(than) } catch (e: MayChu.Loi) {
+            return e.http == 401 && trenLuongNhip {
+                NhatKy.canh(TAG, "token bị thu hồi — máy đã bị gỡ khỏi gia đình"); k.token = null; k.phanHoi = null; MoMaOffline.quen(k); HocVien.quen(k); PinMay.quen(k)
+            }
+        } catch (e: Exception) { Log.i(TAG, "mất mạng — chạy theo chính sách nhớ: ${e.message}"); return false }
+        // người dùng máy + hồ sơ TRƯỚC luật mới (có thể gọi mạng ⇒ luồng mạng): trong lúc tải hồ sơ vòng áp luật vẫn dùng luật cũ; người đổi
+        //     trước luật thì luatTheoBe chọn gói của đúng bé (#337). PinMay vốn được ghi từ nhiều luồng (màn chọn tên, «Đăng xuất») dưới PinMay.khoa
+        try { PinMay.sauNhip(k, r, batDau) } catch (e: Exception) { NhatKy.canh(TAG, "đọc người dùng máy lỗi", e) }
+        try { PinMay.sauDsCon(this, k, r) } catch (e: Exception) { NhatKy.canh(TAG, "đọc danh sách bé của máy lỗi", e) }   // #339
+        // #708: luật mới + mốc phút + giờ máy chủ + hết lượt mở bằng mã (có mạng lại ⇒ Ba Mẹ lại quyết bằng luật online) ghi trên luồng nhịp,
+        //     giữa hai vòng — một vòng áp luật không đọc nửa cũ nửa mới
+        if (!trenLuongNhip { ghiNhip(k, r, csCu); MoMaOffline.ketThucKhiCoMang(this) }) return false
+        // nhiệm vụ / lời nhắn mới ⇒ thông báo (tạm thay FCM); lời xin thêm giờ đang chờ ⇒ Ba Mẹ trả lời thì báo — luồng riêng, không chặn vòng thực thi
+        HocVien.chayNen(this)
+        if (System.currentTimeMillis() - lanGuiHangDoi > 120_000) { lanGuiHangDoi = System.currentTimeMillis(); NhatKy.gui(this, MayChu(k.mayChu, k.token)) }
+        // DNS gia đình (server/lib/dns-gia-dinh.ts › hoSoDns): Device Owner tự đặt DNS riêng tư; gia đình chưa bật DNS ⇒ máy chủ trả lỗi, bỏ qua
+        if (QuanTri.laDeviceOwner(this) && k.privateDnsDaDat == null) try {
+            val host = MayChu(k.mayChu, k.token).hoSoDns().optJSONObject("android")?.optString("privateDns")
+            Log.i(TAG, "DNS gia đình: " + ThucThi.datPrivateDns(this, host))   // mỗi nhịp tới khi gia đình bật DNS ⇒ chỉ logcat
+        } catch (e: Exception) { Log.i(TAG, "chưa có DNS gia đình: ${e.message}") }
+        return true
+    }
+
+    /** Ghi kết quả nhịp vào Kho (trên luồng nhịp — xem trenLuongNhip). */
+    private fun ghiNhip(k: Kho, r: JSONObject, csCu: vn.aiilab.aiigrow.maycon.logic.ChinhSach?) {
+        k.phanHoi = r.toString()
+        k.lanNhipThanhCong = System.currentTimeMillis()
+        try {   // mốc phút giải trí đo tại chỗ lúc máy chủ chốt quỹ (đếm lùi khi mất mạng)
+            val csMoi = docPhanHoiNhip(r.toString()).chinhSach
+            // 15/11: máy chủ có sổ sao ⇒ báo phút theo bé để trừ sao (+ gửi lời xin vay lưu lúc mất mạng)
+            if (csMoi.sao != null) guiNen { if (csCu?.sao == null) guiDongBo(this, k); guiXinVayCho(this, k) }
+            k.phutLucNhip = phutGiaiTri(DoPhut.homNay(this, csMoi.tz), goiAndroid(csMoi.giaiTri))
+            // ngày theo ĐỒNG HỒ MÁY CHỦ (như `now` của vòng thực thi) — đồng hồ máy lệch không làm lệch ngày
+            val st = r.optString("serverTime").takeIf { it.isNotBlank() }?.let { Instant.parse(it) } ?: Instant.now()
+            k.ngayNhip = gioDiaPhuong(st, csMoi.tz).zdt.toLocalDate().toString()
+        } catch (_: Exception) {}
+        r.optString("serverTime").takeIf { it.isNotBlank() }?.let { k.lechGioMs = Instant.parse(it).toEpochMilli() - System.currentTimeMillis() }
+        r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }
     }
 
     /** Nhắc 5 phút / 1 phút (thông báo ưu tiên cao, như bóng báo khay Windows) + thông báo đếm ngược khi bắt đầu 60 giây trước khoá. */
@@ -340,11 +424,18 @@ class DichVuNhip : Service() {
         } else if (daBaoDemNguoc != 0L) { daBaoDemNguoc = 0; nm.cancel(MA_DEM) }
     }
 
-    private fun xuLyGo(k: Kho, id: String) {
-        try { MayChu(k.mayChu, k.token).xongLenh(id) } catch (e: Exception) { NhatKy.canh(TAG, "báo xong lệnh gỡ", e); return }
-        ThucThi.goHet(this)
-        stopForeground(STOP_FOREGROUND_REMOVE); stopSelf()
-        startActivity(Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:$packageName")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+    /** Báo xong lệnh gỡ trên luồng mạng; gỡ quyền + dừng dịch vụ trên luồng nhịp (không chạy xen một vòng áp luật đang khoá / chặn lại). */
+    /** true = đã xếp việc gỡ lên luồng nhịp. */
+    private fun xuLyGo(k: Kho, id: String): Boolean {
+        try { MayChu(k.mayChu, k.token).xongLenh(id) } catch (e: Exception) { NhatKy.canh(TAG, "báo xong lệnh gỡ", e); return false }
+        return h.post {
+            h.removeCallbacksAndMessages(null)   // vòng đã xếp hàng không áp luật lại sau khi gỡ
+            try {
+                ThucThi.goHet(this)
+                stopForeground(STOP_FOREGROUND_REMOVE); stopSelf()
+                startActivity(Intent(Intent.ACTION_DELETE, android.net.Uri.parse("package:$packageName")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+            } catch (e: Exception) { NhatKy.canh(TAG, "gỡ máy lỗi", e) }
+        }
     }
 
     private fun capNhatThongBao(ht: HienThi?) {
@@ -440,6 +531,7 @@ class DichVuNhip : Service() {
                 val r = MayChu(k.mayChu, null).ghep(vn.aiilab.aiigrow.maycon.logic.thanGhep(ma, Build.MODEL ?: "Android"))
                 MoMaOffline.quen(k); HocVien.quen(k); PinMay.quen(k)
                 k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
+                k.loiGhepGoi = null
                 lamMoi(ctx)
                 null
             } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Không kết nối được máy chủ AiiGrow. Kiểm tra mạng rồi thử lại." }
@@ -492,6 +584,17 @@ class DichVuNhip : Service() {
                 gioDiaPhuong(luc, cs.tz).zdt.toLocalDate().toString(), if (cs.sao != null) SoPhutBe.doc(k.soPhutBe).phutBoiMa(con) else 0, cs.moHet)
             k.goiOffline = goiOfflineJson(docGoiOffline(k.goiOffline) + (con to catGoiBe(goc, tieu, luc)))
         }
+
+        /** #708: gọi máy chủ của vòng nhịp (ghép gói, việc chờ, nhịp, DNS, báo xong lệnh gỡ) chạy trên luồng riêng — mạng treo (≤ 35 giây / lần)
+         *  không giữ vòng áp luật 5 giây (khoá, chặn, nhắc giờ). Một lượt một lúc (`cuaMang`), dùng chung cả tiến trình: dịch vụ dừng rồi bật lại
+         *  (START_STICKY) trong lúc lượt cũ còn treo thì không mở lượt thứ hai song song. */
+        private val mang: java.util.concurrent.ExecutorService = java.util.concurrent.Executors.newSingleThreadExecutor { r -> Thread(r, "aiigrow-mang").apply { isDaemon = true } }
+        private val cuaMang = CuaGoi()
+        /** #707: thử ghép gói cài có lùi dần (luồng mạng ghi; vòng nhịp đọc). */
+        @Volatile private var thuGhepGoi = ThuGhepGoi()
+        /** Gói cài mới (QR quét lại) ⇒ thử ngay, không chờ hết lùi của gói cũ. */
+        fun thuGoiMoi() { thuGhepGoi = ThuGhepGoi() }
+        private val dangGo = java.util.concurrent.atomic.AtomicBoolean(false)
 
         /** Khoá ghi sổ phút theo bé (vòng nhịp và «Đổi người» trên luồng giao diện). */
         private val KHOA_SO = Any()

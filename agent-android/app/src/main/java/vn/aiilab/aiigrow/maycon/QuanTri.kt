@@ -34,7 +34,7 @@ class QuanTri : DeviceAdminReceiver() {
         fun luuExtras(ctx: Context, b: PersistableBundle?) {
             if (b == null) return
             val k = Kho(ctx)
-            b.getString("aiigrow_token")?.takeIf { it.isNotBlank() }?.let { k.tokenGoiCai = it }
+            b.getString("aiigrow_token")?.takeIf { it.isNotBlank() }?.let { k.tokenGoiCai = it; k.loiGhepGoi = null; DichVuNhip.thuGoiMoi() }   // gói mới ⇒ bỏ câu từ chối của gói cũ (#707)
             b.getString("aiigrow_may_chu")?.takeIf { it.startsWith("https://") }?.let { k.mayChu = it }
         }
     }

@@ -18,6 +18,8 @@ class Kho(ctx: Context) {
     var tenCon: String? get() = p.getString("tenCon", null); set(v) = p.edit().putString("tenCon", v).apply()
     /** Token gói cài nhúng trong QR Device Owner (PROVISIONING_ADMIN_EXTRAS_BUNDLE) — đổi lấy token máy bằng ghep-goi. */
     var tokenGoiCai: String? get() = p.getString("tokenGoiCai", null); set(v) = p.edit().putString("tokenGoiCai", v).apply()
+    /** #707: máy chủ từ chối hẳn gói cài (đã dùng / hết hạn / sai) ⇒ bỏ gói, giữ câu máy chủ để màn ghép báo Ba Mẹ xin gói / mã mới. */
+    var loiGhepGoi: String? get() = p.getString("loiGhepGoi", null); set(v) = p.edit().putString("loiGhepGoi", v).apply()
     var phanHoi: String? get() = p.getString("phanHoi", null); set(v) = p.edit().putString("phanHoi", v).apply()
     /** 05/11: phút giải trí đo tại chỗ lúc nhịp thành công gần nhất (-1 = chưa có) + ngày của nhịp (tz gia đình) — QuyetDinh.kt › quyetDinhQuy. */
     var phutLucNhip: Int get() = p.getInt("phutLucNhip", -1); set(v) = p.edit().putInt("phutLucNhip", v).apply()

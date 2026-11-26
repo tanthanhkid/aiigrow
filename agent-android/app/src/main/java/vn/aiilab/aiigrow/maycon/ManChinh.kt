@@ -38,6 +38,10 @@ class ManChinh : Activity() {
     private val h = Handler(Looper.getMainLooper())
     private lateinit var goc: LinearLayout
     private var dangGhep = false
+    /** #707: dòng báo của màn ghép + câu lỗi gói cài đã hiện. */
+    private var baoGhep: TextView? = null
+    private var loiGhepDaVe: String? = null
+    private fun cauLoiGhepGoi(l: String) = "$l. Hoặc nhập mã 6 số của Ba Mẹ để ghép."
     private lateinit var tPhut: TextView
     private lateinit var tCau: TextView
     private lateinit var tMoLai: TextView
@@ -98,7 +102,7 @@ class ManChinh : Activity() {
         }
         if (daVe != kieu + quyen + appDiem + nguoi) {
             daVe = kieu + quyen + appDiem + nguoi
-            goc.removeAllViews(); tBaMe = null
+            goc.removeAllViews(); tBaMe = null; baoGhep = null
             dauTrang(k)
             theCapNhat(k, laDo, duocCai)
             when {
@@ -109,6 +113,8 @@ class ManChinh : Activity() {
             theQuyen()
             minhBach()
         }
+        // #707: gói cài bị từ chối lúc đang mở màn ghép ⇒ sửa dòng báo tại chỗ (không dựng lại màn: giữ mã bé đang gõ / lượt «Đang ghép…»)
+        if (!k.daGhep && !dangGhep) k.loiGhepGoi.let { l -> if (l != loiGhepDaVe) { loiGhepDaVe = l; baoGhep?.text = l?.let(::cauLoiGhepGoi) ?: "" } }
         tBaMe?.let { t ->
             val den = anhCong.baMeDen
             t.text = if (den > 0) "Tới ${G.gio(den)} · còn ${G.mmssDai(((den - System.currentTimeMillis()) / 1000).toInt())}" else "Hết giờ Ba Mẹ dùng — máy khoá lại."
@@ -178,6 +184,9 @@ class ManChinh : Activity() {
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = G.dp(this@ManChinh, 12); bottomMargin = G.dp(this@ManChinh, 4) }
         }
         val bao = G.dongBao(this, Diu.LOI_DAM)
+        // #707: gói cài QR bị máy chủ từ chối hẳn (đã dùng / hết hạn) ⇒ nói rõ, không để màn ghép trống như máy mới
+        baoGhep = bao; loiGhepDaVe = Kho(this).loiGhepGoi
+        loiGhepDaVe?.let { bao.text = cauLoiGhepGoi(it) }
         t.addView(o)
         t.addView(G.nut(this, "Ghép máy") {
             val ma = chuanMaGhep(o.text.toString())
