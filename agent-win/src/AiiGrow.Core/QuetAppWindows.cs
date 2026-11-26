@@ -152,8 +152,9 @@ public static class QuetAppWindows
             "foreach ($a in @($x.Package.Applications.Application)) { if ($a.Executable -and $p.InstallLocation -like '?:\\WindowsApps\\*') { [void]$ex.Add([string]$a.Executable) }; $ve = $a.VisualElements; if ($ve -and $ve.AppListEntry -ne 'none') { $n++; if (-not $logo) { $logo = [string]$ve.Square44x44Logo + '|' + [string]$ve.Square150x150Logo } } } } catch { } " +
             // #695: gói cài ngoài «Program Files\WindowsApps» — «X:\WindowsApps» (ổ khác) lấy exe của manifest; game Xbox (XboxGames) lấy exe trong
             // MicrosoftGame.config. Gói «thưa» của app Win32 (InstallLocation trong Program Files của app) không có cả hai ⇒ không đổi gì.
-            "if ($p.InstallLocation -and $p.InstallLocation -notlike '*\\Program Files\\WindowsApps\\*') { try { $g = [xml](Get-Content -LiteralPath (Join-Path $p.InstallLocation 'MicrosoftGame.config') -Raw -Encoding UTF8 -ErrorAction Stop); " +
-            "foreach ($e in @($g.Game.ExecutableList.Executable)) { if ($e.Name) { [void]$ex.Add([string]$e.Name) } } } catch { } } " +
+            "if ($p.InstallLocation -and $p.InstallLocation -notlike '*\\Program Files\\WindowsApps\\*' -and $p.InstallLocation -notlike '*\\SystemApps\\*') { $gc = Join-Path $p.InstallLocation 'MicrosoftGame.config'; " +
+            "if (Test-Path -LiteralPath $gc) { try { $g = [xml](Get-Content -LiteralPath $gc -Raw -Encoding UTF8 -ErrorAction Stop); " +
+            "foreach ($e in @($g.Game.ExecutableList.Executable)) { if ($e.Name) { [void]$ex.Add([string]$e.Name) } } } catch { } } } " +
             "if ($dn -like 'ms-resource:*') { $r = $dn.Substring(12); if ($r.StartsWith('//')) { $u = 'ms-resource:' + $r } elseif ($r.StartsWith('/')) { $u = 'ms-resource://' + $p.Name + $r } else { $u = 'ms-resource://' + $p.Name + '/resources/' + $r }; $dn = 'ms-resource:@{' + $p.PackageFullName + '?' + $u + '}' } " +
             "[void]$kq.Add([pscustomobject]@{ Name = $p.Name; PackageFamilyName = $p.PackageFamilyName; DisplayName = $dn; PublisherDisplayName = $pd; " +
             "Version = [string]$p.Version; InstallLocation = $p.InstallLocation; IsFramework = [bool]$p.IsFramework; IsResourcePackage = [bool]$p.IsResourcePackage; " +

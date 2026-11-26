@@ -350,9 +350,10 @@ public sealed class AgentWorker : BackgroundService
         var choPhep = ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh);
         // #695: gói Store cài ngoài WindowsApps (ổ D, XboxGames) — được phép theo thư mục cài của gói
         var goi = _rt.GoiNgoai;
-        var tapChoPhep = new HashSet<string>(choPhep, StringComparer.OrdinalIgnoreCase);
-        Func<string, bool>? choThem = trinhDuyet is { Count: > 0 } || goi is { Count: > 0 }
-            ? path => (trinhDuyet is { Count: > 0 } && TrinhDuyetLoc.ChoChay(path, trinhDuyet, pf, _kiemKy.Kiem)) || GoiNgoaiWindowsApps.ChoChay(path, tapChoPhep, goi)
+        var tapChoPhep = goi is { Count: > 0 } ? new HashSet<string>(choPhep, StringComparer.OrdinalIgnoreCase) : null;
+        Func<string, bool>? choThem = trinhDuyet is { Count: > 0 } || tapChoPhep != null
+            ? path => (trinhDuyet is { Count: > 0 } && TrinhDuyetLoc.ChoChay(path, trinhDuyet, pf, _kiemKy.Kiem))
+                || (tapChoPhep != null && GoiNgoaiWindowsApps.ChoChay(path, tapChoPhep, goi))
             : null;
         var closed = ProcessEnforcer.Enforce(_procs, sessionId, choPhep, dryRun: !apThat, choThem: choThem,
             khongDong: exe => BaoKhongDong(exe, "ngoài danh sách"), tenDaCai: _rt.TenDaCai ?? ChuaQuet);

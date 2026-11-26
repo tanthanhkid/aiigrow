@@ -373,6 +373,10 @@ public class LuatChanChoPhepTests
         Assert.Null(UwpTienCanh.QuyHostVeAppTinhPhut(new[] { "microsoft.minecraftuwp", "roblox.roblox" },
             chay.Append(@"C:\Program Files\WindowsApps\Roblox.Roblox_2.6.0.0_x64__55nm5eh3cm0pr\Windows10Universal.exe")));
 
+        // app Store miễn phí (Máy tính) cũng đang chạy: cửa sổ có thể là của nó ⇒ không trừ oan game chạy nền
+        Assert.Null(UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut,
+            chay.Append(@"C:\Program Files\WindowsApps\Microsoft.WindowsCalculator_11.2.0.0_x64__8wekyb3d8bbwe\CalculatorApp.exe")));
+
         // app Win32 «Tính phút» chạy nền (Roblox thu nhỏ) KHÔNG bị tính thay cửa sổ UWP
         Assert.Null(UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut, new[] { @"C:\Users\Con\AppData\Local\Roblox\Versions\v1\RobloxPlayerBeta.exe" }));
 
