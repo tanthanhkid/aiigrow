@@ -2,6 +2,7 @@ package vn.aiilab.aiigrow.maycon.logic
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -55,5 +56,42 @@ class GhepGoiTest {
         assertTrue(c.xong())               // ⇒ gọi lại ngay khi xong
         assertTrue(c.xin(false))
         assertFalse(c.xong())
+    }
+
+    /** #685: thân ghép mang maMay hợp lệ (máy chủ nhận ra lần thử lại của chính máy này), sai thì bỏ khỏi thân. */
+    @Test fun maMayTrongThanGhep() {
+        val mm = taoMaMay(ByteArray(16) { it.toByte() })
+        assertEquals("000102030405060708090a0b0c0d0e0f", mm)
+        assertEquals(mm, maMayHopLe(mm))
+        assertEquals(mm, maMayHopLe(" " + mm.uppercase() + " "))
+        assertNull(maMayHopLe("abc"))                 // < 16
+        assertNull(maMayHopLe("z".repeat(32)))
+        assertNull(maMayHopLe(null))
+        assertEquals(mm, thanGhep("123456", "Pixel", mm).getString("maMay"))
+        assertEquals(mm, thanGhepToken("goi", "Pixel", mm).getString("maMay"))
+        assertFalse(thanGhep("123456", "Pixel", "hong").has("maMay"))
+        assertFalse(thanGhepToken("goi", "Pixel").has("maMay"))
+    }
+
+    /** #685: phản hồi mất sau khi gửi / 5xx ⇒ thử lại MỘT lần (lần đầu ≤ 25 giây); chưa gửi được / câu máy chủ (404/409/410/429) ⇒ báo ngay. */
+    @Test fun thuLaiGhepBangMa() {
+        assertEquals(listOf(2_000L, null), (1..2).map { choThuLaiGhepMs(it, 0) })
+        assertNull(choThuLaiGhepMs(1, 26_000))
+        assertTrue(loiGhepNenThuLai(null, daGui = true))
+        assertFalse(loiGhepNenThuLai(null, daGui = false))
+        for (h in listOf(500, 502, 504, 408)) assertTrue("$h", loiGhepNenThuLai(h, true))
+        for (h in listOf(400, 401, 404, 409, 410, 429)) assertFalse("$h", loiGhepNenThuLai(h, true))
+    }
+
+    /** #685: mã máy từ ANDROID_ID (băm + muối như Windows) — cài lại app vẫn cùng mã; trống / mã lỗi đã biết ⇒ null. */
+    @Test fun maMayTuAndroidIdOnDinh() {
+        val a = maMayTuAndroidId("A1B2c3d4e5f60718")!!
+        assertEquals(a, maMayTuAndroidId(" a1b2c3d4e5f60718 "))
+        assertEquals(64, a.length)
+        assertEquals(a, maMayHopLe(a))
+        assertEquals(sha256Hex("a1b2c3d4e5f60718aiigrow"), a)
+        assertNull(maMayTuAndroidId(""))
+        assertNull(maMayTuAndroidId(null))
+        assertNull(maMayTuAndroidId("9774d56d682e549c"))
     }
 }

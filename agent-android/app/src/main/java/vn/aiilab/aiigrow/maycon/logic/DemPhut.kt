@@ -49,11 +49,13 @@ fun phutGiaiTri(msTheoGoi: Map<String, Long>, giaiTri: Set<String>): Int =
 /** Mã ghép: đúng 6 chữ số (bỏ khoảng trắng, gạch). */
 fun chuanMaGhep(s: String): String? = s.filter { it.isDigit() }.takeIf { it.length == 6 && s.none { c -> c.isLetter() } }
 
-fun thanGhep(ma: String, tenMay: String): JSONObject =
-    JSONObject().put("ma", ma).put("nen", "android").put("tenMay", tenMay.take(80))
+/** #685: `maMay` (logic/GhepGoi.kt › maMayHopLe) ⇒ phản hồi ghép mất rồi thử lại cùng mã / gói ⇒ máy chủ cấp lại token cho chính máy này
+ *  (server/lib/gia-dinh.ts › capLaiTokenGhep) thay vì 409 «đã dùng»; ghép sang nhà khác thì máy chủ thu hồi bản ghi cũ của máy. */
+fun thanGhep(ma: String, tenMay: String, maMay: String? = null): JSONObject =
+    JSONObject().put("ma", ma).put("nen", "android").put("tenMay", tenMay.take(80)).apply { maMayHopLe(maMay)?.let { put("maMay", it) } }
 
-fun thanGhepToken(token: String, tenMay: String): JSONObject =
-    JSONObject().put("token", token).put("nen", "android").put("tenMay", tenMay.take(80))
+fun thanGhepToken(token: String, tenMay: String, maMay: String? = null): JSONObject =
+    JSONObject().put("token", token).put("nen", "android").put("tenMay", tenMay.take(80)).apply { maMayHopLe(maMay)?.let { put("maMay", it) } }
 
 /** Thân nhịp (NhipVao — server/lib/tuan-thu.ts) + phút dùng hôm nay theo app (máy chủ là sổ sách — CAN-SERVER.md). */
 fun thanNhip(
