@@ -28,6 +28,7 @@ import {
 } from "@/lib/hang-ngay";
 import { tenMayXin, TheXin } from "@/lib/hom-nay-xin";
 import { mayCuaCon } from "@/lib/may-nhieu-con";
+import { mayCanDeY } from "@/lib/trang-thai-may";
 import { cauNo, saoTu, soVN, VienSao } from "@/lib/so-sao";
 import { DaiCon, OLomIcon } from "@/lib/ui-viec";
 import { icDung, nhanDung, type HomNayDung } from "@/lib/da-dung";
@@ -157,13 +158,13 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   for (const m of c.matMang ?? []) muc.push({ id: `mm:${m.mayId}`, ic: "wifi", tieu: `${m.ten.replace(/ của .*$/, "")} mất mạng`, phu: "Hết sao vẫn tự khoá · con cần mã",
     nut: "Lấy mã mở máy", den: `/may/${m.mayId}/ma-offline`, maMay: m.mayId });
   const sau: MucDeY[] = [];
-  for (const m of d.tt.filter((x) => mayCuaCon(x, conId) && x.baoVe && x.baoVe !== "day_du" && !x.dangGo))
+  for (const m of d.tt.filter((x) => mayCuaCon(x, conId) && mayCanDeY(x)))
     sau.push({ id: `bv:${m.id}`, ic: IC_MAY[m.nen], tieu: `${m.ten} chưa được bảo vệ`, phu: m.baoVeCau ?? "Con tự tắt Grow được", nut: "Sửa ›", den: `/may/${m.id}` });
   // quên PIN: từ can-de-y; lời gọi đó lỗi ⇒ dựng lại từ cảnh báo loai quen_pin
   const quenPin = d.cdy.some((x) => x.loai === "quen_pin") ? d.cdy.filter((x) => x.loai === "quen_pin" && x.con === conId)
     : d.cb.filter((x) => x.loai === "quen_pin" && x.child_id === conId).slice(0, 1).map((x) => ({ id: x.id, tieu: x.noi_dung, den: `/ho-so/${conId}/pin` }));
   for (const x of quenPin) sau.push({ id: `pin:${x.id}`, ic: "mo_khoa", tieu: x.tieu, phu: "Đặt PIN mới cho con", nut: "Đặt PIN ›", den: x.den });
-  for (const x of d.cb.filter((a) => cuaCon({ con: a.child_id }) && a.loai !== "quen_pin").slice(0, 3))
+  for (const x of d.cb.filter((a) => cuaCon({ con: a.child_id }) && a.loai !== "quen_pin" && a.canSua !== false && a.chiBiet !== true).slice(0, 3))
     sau.push({ id: `cb:${x.id}`, ic: "canh_bao", tieu: x.noi_dung, phu: gioPhut(x.created_at), nut: "Xem ›", den: `/canh-bao/${x.id}` });
   // #508: Con CÀI app mới trên máy (máy chủ gửi qua «Cần Ba Mẹ để ý» — app_moi) ⇒ Ba Mẹ chọn Tính phút / Không tính phút
   for (const x of d.appMoi.length ? [] : d.cdy.filter((y) => y.loai === "app_moi" && (y.con === conId || !y.con))) sau.push({ id: x.id, ic: "luoi", tieu: x.tieu, phu: x.phu, nut: "Chọn ›", den: x.den });

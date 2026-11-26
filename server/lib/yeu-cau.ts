@@ -12,7 +12,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { khoaCon } from "./vi.ts";
-import { allowlistHieuLuc, chuanMuc, datLuat, dsLuat, laCongCuHeThong, phanLoaiTu } from "./luat-app.ts";
+import { allowlistHieuLuc, chuanMuc, datLuat, dsLuat, laCongCuHeThong, loiXinHienDuoc, phanLoaiTu } from "./luat-app.ts";
 import { loaiTuNhom, nhanNhom, nhomTuLoai, type NhomDs } from "./chan-co-ban.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { kieuMuc } from "./chinh-sach.ts";
@@ -314,7 +314,7 @@ export async function dsChoYc(fam: string, now = new Date(), o: { ghi?: boolean 
   if (o.ghi !== false) await hetHanLoiXin(now, fam);
   return q<Yc & { ten_con: string }>(`select r.*, c.ten as ten_con from requests r join children c on c.id = r.child_id
                                      where c.family_id = $1 and r.trang_thai = 'cho' and r.het_han > $2 order by r.created_at`, [fam, now])
-    .then((ds) => ds.filter((r) => !(r.loai === "cai_app" && laCongCuHeThong(r.gia_tri, r.ten_app ?? r.gia_tri))));   // #525: lời xin cũ của thành phần Windows
+    .then((ds) => ds.filter(loiXinHienDuoc));   // #525: lời xin cũ của thành phần Windows
 }
 
 /** Lời xin của Con (màn Con) — kèm KẾT QUẢ cho lời xin app / web (#258): `ketQua` cho | da_them | chua_them | het_han | huy · `nhom`

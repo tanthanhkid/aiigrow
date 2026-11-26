@@ -3,7 +3,7 @@
 // Khoá = SQL + tham số, nên hằng SQL dùng chung với nơi đọc (bao-cao.ts, vi.ts, so-sao.ts, quy-gio.ts); lệch ⇒ test gia-dinh-dem-cau báo số câu tăng.
 import { napDem, q } from "./db.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
-import { SQL_HOM_NAY_DEM, SQL_HOM_NAY_XONG } from "./bao-cao.ts";
+import { SQL_HOM_NAY_DEM, SQL_HOM_NAY_XONG, SQL_YC_CAI } from "./bao-cao.ts";
 import { KIEM_SQL, SQL_TOM_TAT_VI } from "./vi.ts";
 import { SQL_TRANG_THAI_SAO } from "./so-sao.ts";
 import { SQL_PHUT_DA_DUNG } from "./quy-gio.ts";
@@ -22,7 +22,8 @@ export async function napTongHopNha(fam: string, con: Hang[], tz: string, now: D
       `select c.id, d.*, v.* from children c
          left join lateral (select
             (select count(*)::int from submissions where child_id = c.id and trang_thai = 'cho_duyet') as nv_cho,
-            (select count(*)::int from requests where child_id = c.id and trang_thai = 'cho' and het_han > now()) as yc_cho,
+            (select count(*)::int from requests where child_id = c.id and trang_thai = 'cho' and het_han > now() and loai <> 'cai_app') as yc_khac,
+            ${SQL_YC_CAI("c.id")} as yc_cai,
             (select count(*)::int from redemptions where child_id = c.id and trang_thai = 'giu') as phieu_cho,
             (select count(*)::int from submissions where child_id = c.id and trang_thai = 'duoc_duyet' and duyet_luc >= $2) as xong,
             coalesce((select sum(coalesce(s.diem_nop, t.diem)) from submissions s join tasks t on t.id = s.task_id
@@ -51,7 +52,7 @@ export async function napTongHopNha(fam: string, con: Hang[], tz: string, now: D
   const theoCon = <T extends { child_id: string }>(xs: T[], id: string) => xs.filter((x) => x.child_id === id);
   for (const id of ids) {
     const t = tong.find((x) => x.id === id) as Record<string, unknown>;
-    napDem(SQL_HOM_NAY_DEM, [id, tu], [{ nv_cho: t.nv_cho, yc_cho: t.yc_cho, phieu_cho: t.phieu_cho, xong: t.xong }]);
+    napDem(SQL_HOM_NAY_DEM, [id, tu], [{ nv_cho: t.nv_cho, yc_khac: t.yc_khac, yc_cai: t.yc_cai, phieu_cho: t.phieu_cho, xong: t.xong }]);
     napDem(SQL_HOM_NAY_XONG, [id, tu], theoCon(xong, id).map((x) => ({ ten: x.ten })));
     napDem(SQL_TOM_TAT_VI, [id], [{ du: t.du, no: t.no, vay: t.vay, tra: t.tra, kiem: t.kiem, cho: t.cho, giu: t.giu }]);
     napDem(SQL_TRANG_THAI_SAO, [id, tu], [{ s: t.du, n: t.no, p: t.p }]);

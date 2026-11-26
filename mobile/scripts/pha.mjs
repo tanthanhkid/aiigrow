@@ -1412,6 +1412,18 @@ await kichBan("Hôm nay ⇒ «Khoá máy con» mở bảng «Khoá máy <Con>?»
   xet(await choGoi((x) => x.d === "con/c1/khoa" && x.body?.khoa === false), "Hoàn tác ⇒ mở lại máy");
 });
 
+await kichBan("Hôm nay (#701): «Cần Ba Mẹ để ý» cùng điều kiện chuông — máy đang tắt (dù thiếu quyền) và cảnh báo chỉ để biết không vào", async () => {
+  kb = { ...coBan,
+    "GET tuan-thu": { ds: coBan["GET tuan-thu"].ds.map((m) => (m.id === "m2" ? { ...m, trangThai: "tat_may", hienThi: "tat", canSua: false } : m)) },
+    "GET canh-bao": { ds: [{ id: "a7", child_id: "c1", loai: "lech_gio", muc: "chu_y", noi_dung: "Có dấu hiệu đổi giờ hệ thống trên iPad của Bảo Anh", chi_tiet: {}, da_doc: false,
+      created_at: luc(60 * 24 * 3), canSua: false, chiBiet: true }, ...coBan["GET canh-bao"].ds] } };
+  await di("/hom-nay");
+  xet(await doi("Cần Ba Mẹ để ý"), "mục «Cần Ba Mẹ để ý»");
+  const t = await chu();
+  xet(!t.includes("iPad của Bảo Anh chưa được bảo vệ"), "máy đang tắt không thành «chưa được bảo vệ» (màn Máy xếp «Đang tắt»)");
+  xet(!t.includes("đổi giờ hệ thống trên iPad"), "cảnh báo chỉ để biết không vào «Cần Ba Mẹ để ý»");
+});
+
 await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để ý» chỉ 1 mục gấp nhất + «Tất cả ›»; «<Con> vừa làm xong» mở thẳng bằng chứng; lời xin «Cho 15 phút» một chạm ⇒ kết quả + Hoàn tác; «Không cho»", async () => {
   await di("/hom-nay");
   xet(await doi("Cần Ba Mẹ để ý"), "mục «Cần Ba Mẹ để ý»");
