@@ -199,7 +199,7 @@ public static class ChanAppThat
             if (a.Muc.Length > 0 && a.Muc == goi) return a;
             if (a.Muc == ten && KhopTheoTen(a)) return a;
             if (a.DuongDan != null && string.Equals(a.DuongDan, p, StringComparison.OrdinalIgnoreCase)) return a;
-            if (a.ThuMuc != null && DanhSachApp.Trong(p, a.ThuMuc)) return a;
+            if (a.ThuMuc != null && GoiNgoaiWindowsApps.TrongGoi(p, a.ThuMuc)) return a;   // #695: gói «X:\WindowsApps» — mọi bản
         }
         if (bam != null && ds.Any(a => a.Sha256 != null))
         {

@@ -317,6 +317,33 @@ public class LuatChanChoPhepTests
         Assert.Contains("minecraft.windows.exe", DanhSachApp.TenExeDaCai(ds, Win));
     }
 
+    [Fact]
+    public void GoiNgoaiWindowsApps_CapNhatDoiThuMuc_ThuMucConGhiDuoc_TrungExeWin32()
+    {
+        // Store cập nhật: «D:\WindowsApps\<gói>_<bản>…» đổi tên trước lượt quét kế — vẫn là gói đó
+        var goi = new List<List<string>> { new() { "microsoft.minecraftuwp", @"D:\WindowsApps\Microsoft.MinecraftUWP_1.20.0.0_x64__8wekyb3d8bbwe", "minecraft.windows.exe" } };
+        const string banMoi = @"D:\WindowsApps\Microsoft.MinecraftUWP_1.21.0.0_x64__8wekyb3d8bbwe\Minecraft.Windows.exe";
+        Assert.True(GoiNgoaiWindowsApps.ChoChay(banMoi, Tap("microsoft.minecraftuwp"), goi));
+        Assert.NotNull(ChanAppThat.Khop(banMoi, GoiNgoaiWindowsApps.LuatChan(new[] { new AppBiChan { Muc = "microsoft.minecraftuwp" } }, goi), null));
+        Assert.False(GoiNgoaiWindowsApps.TrongGoi(@"D:\WindowsApps\Microsoft.MinecraftUWPX_1.0_x64__8wekyb3d8bbwe\a.exe", goi[0][1]));
+        Assert.False(GoiNgoaiWindowsApps.TrongGoi(@"D:\WindowsApps\Microsoft.MinecraftUWP_1.0_x64__khac\a.exe", goi[0][1]));
+
+        // gói đăng ký từ thư mục Con ghi được (chế độ nhà phát triển) ⇒ không quy theo thư mục
+        Assert.Empty(DanhSachApp.ExeNgoaiWindowsApps(new MucAppx("A.B", "A.B_x", "A", null, null, @"C:\Users\Con\Downloads\x", Exe: new[] { "a.exe" })));
+        Assert.Empty(DanhSachApp.ExeNgoaiWindowsApps(new MucAppx("A.B", "A.B_x", "A", null, null, @"D:\Games", Exe: new[] { "a.exe" })));
+
+        // exe của gói trùng muc app Win32 khác trên máy ⇒ không quy phút app Win32 về gói
+        var ds = DanhSachApp.ChuanHoa(DanhSachApp.TuAppx(new[]
+        {
+            new MucAppx("Microsoft.4297127D64EC6", "Microsoft.4297127D64EC6_8wekyb3d8bbwe", "Minecraft Launcher (Xbox)", null, null,
+                @"C:\XboxGames\Minecraft Launcher\Content", Exe: new[] { "MinecraftLauncher.exe" }),
+        }).Append(new AppThat { Khoa = @"exe:c:\program files (x86)\minecraft launcher\minecraftlauncher.exe", Muc = "minecraftlauncher.exe",
+            Ten = "Minecraft Launcher", Nguon = "registry", DuongDan = @"C:\Program Files (x86)\Minecraft Launcher\MinecraftLauncher.exe" }));
+        var nhom = Assert.Single(DanhSachApp.NhomGoiNgoai(ds));
+        Assert.Equal(2, nhom.Count);   // [muc gói, thư mục] — không còn minecraftlauncher.exe
+        Assert.Empty(GoiNgoaiWindowsApps.ExeVeGoi(DanhSachApp.NhomGoiNgoai(ds)));
+    }
+
     // ------------------------------------------------------------------ #696
 
     [Fact]
@@ -337,9 +364,14 @@ public class LuatChanChoPhepTests
         Assert.Equal("microsoft.minecraftuwp", app);
         Assert.True(QuyTaiCho.TinhGio(p, app));
 
-        // exe của gói ngoài WindowsApps (#695) cũng quy được
-        var exeGoi = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["minecraft.windows.exe"] = "microsoft.minecraftuwp" };
-        Assert.Equal("microsoft.minecraftuwp", UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut, new[] { XboxMc }, exeGoi: exeGoi));
+        // gói ngoài WindowsApps (#695) cũng quy được — theo thư mục cài, không theo tên exe
+        var goi = new List<List<string>> { new() { "microsoft.minecraftuwp", @"C:\XboxGames\Minecraft for Windows\Content", "minecraft.windows.exe" } };
+        Assert.Equal("microsoft.minecraftuwp", UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut, new[] { XboxMc }, goi: goi));
+        Assert.Null(UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut, new[] { @"D:\Games\Minecraft.Windows.exe" }, goi: goi));
+
+        // hai app Store «Tính phút» cùng chạy: không biết app nào ở trước ⇒ không đoán
+        Assert.Null(UwpTienCanh.QuyHostVeAppTinhPhut(new[] { "microsoft.minecraftuwp", "roblox.roblox" },
+            chay.Append(@"C:\Program Files\WindowsApps\Roblox.Roblox_2.6.0.0_x64__55nm5eh3cm0pr\Windows10Universal.exe")));
 
         // app Win32 «Tính phút» chạy nền (Roblox thu nhỏ) KHÔNG bị tính thay cửa sổ UWP
         Assert.Null(UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut, new[] { @"C:\Users\Con\AppData\Local\Roblox\Versions\v1\RobloxPlayerBeta.exe" }));

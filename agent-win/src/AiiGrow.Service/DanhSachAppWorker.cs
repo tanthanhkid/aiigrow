@@ -66,6 +66,8 @@ public sealed class DanhSachAppWorker : BackgroundService
                 foreach (var m in a.CacMuc is { Count: > 0 } c ? c : new List<string> { a.Muc })   // #645: cả mục đã gộp (launcher/game cùng hãng) cùng một tên
                     if (!string.IsNullOrWhiteSpace(m) && !string.IsNullOrWhiteSpace(a.Ten)) ten.TryAdd(m.Trim(), a.Ten.Trim());
             var goiNgoai = DanhSachApp.NhomGoiNgoai(ds);
+            // Get-AppxPackage lỗi (không có app Store nào) ⇒ giữ gói ngoài WindowsApps của lượt trước, không xoá trắng
+            if (goiNgoai.Count == 0 && !ds.Any(a => a.Nguon == "store") && _rt.Config?.GoiNgoaiApp is { Count: > 0 } cu) goiNgoai = cu;
             foreach (var a in ds)   // #695: exe của gói ngoài WindowsApps mang tên app ở khay
                 foreach (var g in a.GoiNgoai ?? new())
                     foreach (var e in g.Skip(2)) if (!string.IsNullOrWhiteSpace(a.Ten)) ten.TryAdd(e, a.Ten.Trim());

@@ -343,6 +343,8 @@ public static class DanhSachApp
     {
         if (p.Exe is not { Count: > 0 } || string.IsNullOrWhiteSpace(p.InstallLocation)) return new();
         if (ProcessGuard.TenGoiStore(p.InstallLocation.TrimEnd('\\', '/') + "\\x.exe") != null) return new();
+        // gói đăng ký từ thư mục Con ghi được (chế độ nhà phát triển) / thư mục quá rộng ⇒ không quy theo thư mục cài
+        if (!ChanAppThat.ThuMucHopLe(p.InstallLocation, null) || ProcessGuard.LaChoConThaTep(p.InstallLocation.TrimEnd('\\', '/') + "\\x.exe")) return new();
         return p.Exe.Where(e => !string.IsNullOrWhiteSpace(e))
             .Select(e => TenTep(e.Trim().Replace('/', '\\')).ToLowerInvariant())
             .Where(e => e.EndsWith(".exe", StringComparison.Ordinal) && !ChanAppThat.TenChung.Contains(e))
@@ -447,8 +449,15 @@ public static class DanhSachApp
         return kq.OrderBy(a => a.Khoa, StringComparer.Ordinal).Take(ToiDaApp).ToList();
     }
 
-    /// <summary>#695: mọi gói Store ngoài WindowsApps của danh sách app ([muc gói, thư mục cài, exe…]) — lưu vào cấu hình như <see cref="NhomMuc"/>.</summary>
-    public static List<List<string>> NhomGoiNgoai(IEnumerable<AppThat> ds) => ds.SelectMany(a => a.GoiNgoai ?? new()).Select(g => g.ToList()).ToList();
+    /// <summary>#695: mọi gói Store ngoài WindowsApps của danh sách app ([muc gói, thư mục cài, exe…]) — lưu vào cấu hình như <see cref="NhomMuc"/>.
+    /// Exe trùng muc của app khác trên máy (bản Win32 cùng tên exe) bỏ khỏi phần exe: không quy phút app Win32 về gói.
+    public static List<List<string>> NhomGoiNgoai(IEnumerable<AppThat> ds)
+    {
+        var list = ds.ToList();
+        var muc = new HashSet<string>(list.SelectMany(a => a.CacMuc ?? new List<string> { a.Muc }), StringComparer.OrdinalIgnoreCase);
+        return list.SelectMany(a => a.GoiNgoai ?? new())
+            .Select(g => g.Take(2).Concat(g.Skip(2).Where(e => !muc.Contains(e))).ToList()).ToList();
+    }
 
     /// <summary>Muc → mọi muc cùng app (cùng tên đã gộp): chỉ các app có từ hai muc trở lên.</summary>
     public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds) => BangBiDanh(NhomMuc(ds));

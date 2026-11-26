@@ -193,7 +193,7 @@ public sealed class AgentWorker : BackgroundService
             {
                 try
                 {
-                    if (UwpTienCanh.QuyHostVeAppTinhPhut(tp, new WindowsProcessControl().ListChildProcesses(phienCon).Select(x => x.Path), _rt.MucChinh, _rt.ExeGoi) is { } app)
+                    if (UwpTienCanh.QuyHostVeAppTinhPhut(tp, _procs.ListChildProcesses(phienCon).Select(x => x.Path).ToList(), _rt.MucChinh, _rt.GoiNgoai) is { } app)
                         (id, name) = (app, _rt.TenAppMay is { } tm && tm.TryGetValue(app, out var tenApp) ? tenApp : app);
                 }
                 catch { }

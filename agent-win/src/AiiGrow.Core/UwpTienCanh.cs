@@ -18,23 +18,22 @@ public static class UwpTienCanh
     public const string Host = "applicationframehost.exe";
 
     /// <summary>#696: khay không quy được cửa sổ ApplicationFrameHost về app thật (CoreWindow không thấy — app treo, toàn màn hình, đổi tiêu đề)
-    /// ⇒ tiền cảnh là một app UWP / Store. Nếu một app Store «Tính phút» (<paramref name="tinhPhut"/>) đang chạy trong phiên Con thì quy phút về app đó
-    /// (an toàn trước: lỗi nhận diện cửa sổ không làm đồng hồ ngừng). CHỈ xét tiến trình của gói Store (đường dẫn WindowsApps, hoặc exe của gói ngoài
-    /// WindowsApps — <paramref name="exeGoi"/>): app Win32 chạy nền (Roblox thu nhỏ) không bị tính thay. Không có ⇒ null (giữ nguyên tiền cảnh).
-    /// <paramref name="mucChinh"/>: muc bí danh → muc chính (#690).</summary>
+    /// ⇒ tiền cảnh là một app UWP / Store. Nếu ĐÚNG MỘT app Store «Tính phút» (<paramref name="tinhPhut"/>) đang chạy trong phiên Con thì quy phút về
+    /// app đó (an toàn trước: lỗi nhận diện cửa sổ không làm đồng hồ ngừng); từ hai app trở lên không biết app nào ở trước ⇒ null. CHỈ xét tiến trình
+    /// của gói Store (đường dẫn Program Files\WindowsApps, hoặc thư mục cài của gói ngoài WindowsApps — <paramref name="goi"/>): app Win32 chạy nền
+    /// (Roblox thu nhỏ) không bị tính thay. <paramref name="mucChinh"/>: muc bí danh → muc chính (#690).</summary>
     public static string? QuyHostVeAppTinhPhut(IEnumerable<string> tinhPhut, IEnumerable<string> duongDan,
-        IReadOnlyDictionary<string, string>? mucChinh = null, IReadOnlyDictionary<string, string>? exeGoi = null)
+        IReadOnlyDictionary<string, string>? mucChinh = null, IEnumerable<IReadOnlyList<string>>? goi = null)
     {
         var dangChay = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var d in duongDan)
         {
             if (string.IsNullOrWhiteSpace(d)) continue;
-            var goi = ProcessGuard.TenGoiStore(d);
-            if (goi == null && exeGoi != null) exeGoi.TryGetValue(DanhSachApp.TenTep(d.Replace('/', '\\')), out goi);
-            if (string.IsNullOrEmpty(goi)) continue;
-            dangChay.Add(mucChinh != null && mucChinh.TryGetValue(goi, out var chinh) ? chinh : goi);
+            var g = ProcessGuard.TenGoiStore(d) ?? GoiNgoaiWindowsApps.GoiCua(d, goi);
+            if (string.IsNullOrEmpty(g)) continue;
+            dangChay.Add(mucChinh != null && mucChinh.TryGetValue(g, out var chinh) ? chinh : g);
         }
-        foreach (var m in tinhPhut) if (!string.IsNullOrEmpty(m) && dangChay.Contains(m)) return m.ToLowerInvariant();
-        return null;
+        var hop = tinhPhut.Where(m => !string.IsNullOrEmpty(m) && dangChay.Contains(m)).Select(m => m.ToLowerInvariant()).Distinct().ToList();
+        return hop.Count == 1 ? hop[0] : null;
     }
 }
