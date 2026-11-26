@@ -38,3 +38,14 @@ class CuaGoi {
     /** Đóng lượt; true = có lượt ép bị gác trong lúc chạy ⇒ gọi lại ngay. */
     @Synchronized fun xong(): Boolean { dang = false; return lai.also { lai = false } }
 }
+
+// ---------------------------------------------------------------- #685 ghép lại được khi phản hồi mất
+/** Mã máy như máy chủ nhận (server/lib/gia-dinh.ts › maMayHopLe): 16–64 ký tự hex, chữ thường. Sai ⇒ null (không gửi). */
+fun maMayHopLe(s: String?): String? = s?.trim()?.lowercase()?.takeIf { Regex("^[0-9a-f]{16,64}$").matches(it) }
+
+/** Mã máy mới từ 16 byte ngẫu nhiên (32 hex) — sinh một lần, lưu trong Kho; không lấy từ định danh phần cứng. */
+fun taoMaMay(ngauNhien: ByteArray): String = ngauNhien.joinToString("") { "%02x".format(it) }
+
+/** Ghép bằng mã 6 số lỗi ĐƯỜNG TRUYỀN (không phải câu máy chủ): chờ trước lần thử lại thứ `lan` (1, 2) rồi thôi. Có maMay mới thử lại —
+ *  không có thì lần thử lại gặp 409 «mã đã dùng» nếu lần trước thật ra đã ghép xong. */
+fun choThuLaiGhepMs(lan: Int, coMaMay: Boolean): Long? = if (!coMaMay) null else when (lan) { 1 -> 1_500L; 2 -> 4_000L; else -> null }

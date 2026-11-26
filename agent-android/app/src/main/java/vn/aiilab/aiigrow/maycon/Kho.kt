@@ -5,9 +5,14 @@ import android.content.SharedPreferences
 import org.json.JSONArray
 import org.json.JSONObject
 import vn.aiilab.aiigrow.maycon.logic.QuyetDinh
+import vn.aiilab.aiigrow.maycon.logic.maMayHopLe
+import vn.aiilab.aiigrow.maycon.logic.taoMaMay
 import java.io.File
 
 /** Trạng thái bền của tác tử (SharedPreferences riêng của app; token không rời máy ngoài header Bearer). */
+/** Khoá sinh mã máy một lần (hai luồng cùng đọc lúc chưa có không sinh hai mã). */
+private val KHOA_MA_MAY = Any()
+
 class Kho(ctx: Context) {
     private val p: SharedPreferences = ctx.applicationContext.getSharedPreferences("aiigrow_con", Context.MODE_PRIVATE)
     private val filesDir: File = ctx.applicationContext.filesDir
@@ -17,6 +22,11 @@ class Kho(ctx: Context) {
     var deviceId: String? get() = p.getString("deviceId", null); set(v) = p.edit().putString("deviceId", v).apply()
     var tenCon: String? get() = p.getString("tenCon", null); set(v) = p.edit().putString("tenCon", v).apply()
     /** Token gói cài nhúng trong QR Device Owner (PROVISIONING_ADMIN_EXTRAS_BUNDLE) — đổi lấy token máy bằng ghep-goi. */
+    /** #685: mã máy ổn định (32 hex ngẫu nhiên, logic/GhepGoi.kt › taoMaMay) gửi khi ghép — máy chủ nhận ra lần thử lại của chính máy này. */
+    val maMay: String get() = synchronized(KHOA_MA_MAY) {
+        maMayHopLe(p.getString("maMay", null)) ?: taoMaMay(ByteArray(16).also { java.security.SecureRandom().nextBytes(it) })
+            .also { p.edit().putString("maMay", it).commit() }
+    }
     var tokenGoiCai: String? get() = p.getString("tokenGoiCai", null); set(v) = p.edit().putString("tokenGoiCai", v).apply()
     /** #707: máy chủ từ chối hẳn gói cài (đã dùng / hết hạn / sai) ⇒ bỏ gói, giữ câu máy chủ để màn ghép báo Ba Mẹ xin gói / mã mới. */
     var loiGhepGoi: String? get() = p.getString("loiGhepGoi", null); set(v) = p.edit().putString("loiGhepGoi", v).apply()

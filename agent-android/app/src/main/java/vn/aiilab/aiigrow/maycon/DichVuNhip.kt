@@ -47,6 +47,7 @@ import vn.aiilab.aiigrow.maycon.logic.laKhoa
 import vn.aiilab.aiigrow.maycon.logic.phutGiaiTri
 import vn.aiilab.aiigrow.maycon.logic.quyetDinh
 import vn.aiilab.aiigrow.maycon.logic.thanGhepToken
+import vn.aiilab.aiigrow.maycon.logic.choThuLaiGhepMs
 import vn.aiilab.aiigrow.maycon.logic.thanNhip
 import vn.aiilab.aiigrow.maycon.logic.truGoi
 import vn.aiilab.aiigrow.maycon.logic.SoPhutBe
@@ -335,7 +336,7 @@ class DichVuNhip : Service() {
     private fun ghepBangGoi(k: Kho): Boolean {
         val goi = k.tokenGoiCai ?: return false
         try {
-            val r = MayChu(k.mayChu, null).ghepGoi(thanGhepToken(goi, Build.MODEL ?: "Android"))
+            val r = MayChu(k.mayChu, null).ghepGoi(thanGhepToken(goi, Build.MODEL ?: "Android", k.maMay))
             thuGhepGoi = ThuGhepGoi()
             val token = r.getString("token")
             val ghi = {
@@ -550,7 +551,15 @@ class DichVuNhip : Service() {
             val k = Kho(ctx)
             if (k.cheDoThu) { k.tenCon = k.tenCon ?: "Con (thử)"; return null }
             return try {
-                val r = MayChu(k.mayChu, null).ghep(vn.aiilab.aiigrow.maycon.logic.thanGhep(ma, Build.MODEL ?: "Android"))
+                // #685: lỗi đường truyền ⇒ thử lại cùng mã + cùng maMay (lần trước đã ghép mà phản hồi mất ⇒ máy chủ cấp lại token, không 409)
+                val than = vn.aiilab.aiigrow.maycon.logic.thanGhep(ma, Build.MODEL ?: "Android", k.maMay)
+                fun goi(lan: Int): JSONObject = try { MayChu(k.mayChu, null).ghep(than) } catch (e: java.io.IOException) {
+                    if (e is MayChu.Loi) throw e   // câu máy chủ (mã sai / đã dùng / hết hạn) ⇒ báo ngay
+                    val cho = choThuLaiGhepMs(lan + 1, than.has("maMay")) ?: throw e
+                    NhatKy.canh(TAG, "ghép bằng mã lỗi đường truyền (lần ${lan + 1}) — thử lại", e)
+                    Thread.sleep(cho); goi(lan + 1)
+                }
+                val r = goi(0)
                 MoMaOffline.quen(k); HocVien.quen(k); PinMay.quen(k)
                 k.token = r.getString("token"); k.deviceId = r.optString("deviceId"); k.tenCon = r.optString("childName").ifBlank { null }
                 k.loiGhepGoi = null
