@@ -365,7 +365,8 @@ export function ghepMayGd(code: string, platform: string, tenMay: string, maMayV
       if (lai) return lai;
       throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — xin Ba Mẹ mã mới", 409);
     }
-    if (new Date(m.expires_at) < now) throw new LoiNghiepVu("ma_het_han", "Mã đã hết hạn — xin Ba Mẹ mã mới", 410);
+    // hạn mã theo đồng hồ thật như trước (now chỉ để tính cửa sổ ghép lại / đếm lượt sai — test truyền mốc giả cho khung đếm)
+    if (new Date(m.expires_at) < new Date()) throw new LoiNghiepVu("ma_het_han", "Mã đã hết hạn — xin Ba Mẹ mã mới", 410);
     // mã không gắn loại máy ('') ⇒ nhận loại máy agent báo (phải là loại hợp lệ)
     if (m.platform === "" ? !(NEN_TANG as readonly string[]).includes(platform) : m.platform !== platform)
       throw new LoiNghiepVu("sai_nen_tang", m.platform ? `Mã này dành cho ${TEN_NEN_TANG[m.platform]}` : "Loại máy không hợp lệ", 409);
