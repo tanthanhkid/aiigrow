@@ -3,16 +3,19 @@ package vn.aiilab.aiigrow.maycon.logic
 // #707: ghép bằng token gói cài (QR Device Owner ⇒ POST /api/device/ghep-goi) — thử lại có lùi dần, lỗi vĩnh viễn thì bỏ gói.
 // Trước đây vòng 5 giây gọi lại mãi khi máy chủ trả 409 «Gói cài này đã dùng rồi» và mỗi lần ghi một dòng nhật ký.
 
-/** Lỗi ghép gói cài là vĩnh viễn (gói sai 404, đã dùng / sai loại máy 409, hết hạn 410, thân sai 400…) — thử lại cũng vậy.
- *  `http` null = lỗi đường truyền; 5xx / 408 / 429 = tạm (như `boViecCho`). */
-fun loiGhepGoiVinhVien(http: Int?): Boolean = http != null && boViecCho(http)
+/** Lỗi ghép gói cài là vĩnh viễn — CHỈ khi chính máy chủ AiiGrow trả mã lỗi nghiệp vụ của gói (server/lib/lenh-may.ts › doiGoiCai: gói sai,
+ *  đã dùng, hết hạn, sai loại máy). 4xx không mã (tường lửa / proxy / Cloudflare 403, 404 lúc đang triển khai), 5xx, 408, 429 = tạm. */
+fun loiGhepGoiVinhVien(http: Int, ma: String): Boolean = http in 400..499 && ma in MA_GOI_HONG
+
+private val MA_GOI_HONG = setOf("ma_sai", "ma_da_dung", "ma_het_han", "sai_nen_tang")
 
 /** Chờ trước lần thử kế sau `lanLoi` lỗi tạm liên tiếp: 5, 10, 20, 40, 80, 160 giây rồi mỗi 5 phút. */
 fun choGhepGoiMs(lanLoi: Int): Long = if (lanLoi <= 0) 0 else minOf(GHEP_GOI_TOI_DA_MS, 5_000L shl minOf(lanLoi - 1, 10))
 
 const val GHEP_GOI_TOI_DA_MS = 5 * 60_000L
 
-/** Trạng thái thử ghép bằng gói cài (trong bộ nhớ dịch vụ — tiến trình khởi động lại thì thử ngay). */
+/** Trạng thái thử ghép bằng gói cài (trong bộ nhớ tiến trình — khởi động lại thì thử ngay). Mốc theo đồng hồ đơn điệu (elapsedRealtime):
+ *  đồng hồ máy chỉnh lùi không làm kẹt lượt thử. `now` = lúc lần thử vừa LỖI (sau khi lời gọi trả về), không phải lúc bắt đầu gọi. */
 data class ThuGhepGoi(val lanLoi: Int = 0, val thuLaiLuc: Long = 0) {
     fun nenThu(now: Long): Boolean = now >= thuLaiLuc
     fun sauLoiTam(now: Long): ThuGhepGoi = (lanLoi + 1).let { ThuGhepGoi(it, now + choGhepGoiMs(it)) }
@@ -34,5 +37,4 @@ class CuaGoi {
     }
     /** Đóng lượt; true = có lượt ép bị gác trong lúc chạy ⇒ gọi lại ngay. */
     @Synchronized fun xong(): Boolean { dang = false; return lai.also { lai = false } }
-    @get:Synchronized val dangGoi: Boolean get() = dang
 }

@@ -80,7 +80,7 @@ class ManChinh : Activity() {
 
     private fun ve() {
         val k = Kho(this)
-        val kieu = if (k.daGhep) "da_ghep" else "chua_ghep"
+        val kieu = if (k.daGhep) "da_ghep" else "chua_ghep${k.loiGhepGoi ?: ""}"   // #707: gói cài bị từ chối lúc đang mở màn ghép ⇒ vẽ lại để hiện câu
         val laDo = QuanTri.laDeviceOwner(this)
         // quyền cài chỉ cần hỏi khi có bản chờ (đỡ một lời gọi PackageManager mỗi 2 giây)
         val duocCai = k.banMoiCho != null && (laDo || Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())
