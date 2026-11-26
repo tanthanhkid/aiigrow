@@ -105,6 +105,8 @@ public sealed class TrayState
     public List<string> AppDuocPhep { get; set; } = new();
     /// <summary>05/11 (L11): số lời xin Con gửi lúc mất mạng còn chờ có mạng để gửi.</summary>
     public int XinChoMang { get; set; }
+    /// <summary>#684: lời xin lưu lúc mất mạng bị bỏ chưa tới Ba Mẹ (24 giờ gần nhất) — khay báo Con mỗi mục một lần.</summary>
+    public List<LoiXinCho> XinBo { get; set; } = new();
     /// <summary>15/11: số dư sao Con thấy (ÂM khi nợ), đã trừ phần đếm tại máy. null = máy chủ chưa gửi ⇒ khay không ghi số.</summary>
     public int? Sao { get; set; }
     /// <summary>15/11: số sao đang nợ Ba Mẹ (0 = không nợ; null = máy chủ cũ).</summary>
@@ -176,6 +178,8 @@ public sealed class PipeResponse
 {
     public bool Ok { get; set; }
     public string? Error { get; set; }
+    /// <summary>#686: Status — lời xin không hỏi được nữa (máy chủ trả 4xx / chưa ghép), khác lỗi tạm (mất mạng, 5xx).</summary>
+    public bool KhongCon { get; set; }
     public TrayState? State { get; set; }
     public string? Id { get; set; }
     public string? Status { get; set; }

@@ -187,7 +187,62 @@ public class ManConTests
         Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("hết giờ", null, new TimeoutException())));
         Assert.Equal(KetQuaGuiXin.Bo, HangXinCho.PhanLoai(new ApiException("Máy chủ trả dữ liệu rỗng")));          // lỗi của client: gửi lại cũng hỏng
         Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("5xx", 503)));
-        Assert.Equal(KetQuaGuiXin.Bo, HangXinCho.PhanLoai(new ApiException("nhiều", 429, code: "qua_nhieu_cho")));
+        Assert.Equal(KetQuaGuiXin.TamHoan, HangXinCho.PhanLoai(new ApiException("nhiều", 429, code: "bam_don")));    // #684: giữ, gửi lượt sau
+        Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("khoá", 429, code: "tam_khoa")));    // 429 lạ: tính lần, không chặn hàng mãi
+        Assert.Equal(KetQuaGuiXin.TamHoan, HangXinCho.PhanLoai(new ApiException("hết giờ", 408)));
+        Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("cấm", 403)));
+        Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("xoay token", 401)));
+        Assert.Equal(KetQuaGuiXin.Bo, HangXinCho.PhanLoai(new ApiException("gỡ", 401, code: "token_sai")));
+        Assert.Equal(KetQuaGuiXin.Bo, HangXinCho.PhanLoai(new ApiException("web cấm", 400, code: "web_cam")));
         Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new TaskCanceledException()));
+    }
+
+    /// <summary>#684: 12 lời xin lúc mất mạng, máy chủ nhận 10 rồi trả 429 bam_don ⇒ 2 lời xin còn lại GIỮ (trước đây bị bỏ im lặng), lượt sau gửi nốt.</summary>
+    [Fact]
+    public async Task HangXinCho_429BamDon_GiuLai_GuiLuotSau()
+    {
+        var h = new HangXinCho();
+        var now = new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.FromHours(7));
+        for (int i = 0; i < 12; i++) h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = $"app{i}.exe", Luc = now });
+        int nhan = 0;
+        Task<KetQuaGuiXin> MayChu(LoiXinCho x)
+        {
+            if (nhan < 10) { nhan++; return Task.FromResult(KetQuaGuiXin.DaGui); }
+            return Task.FromResult(HangXinCho.PhanLoai(new ApiException("Con bấm nhanh quá", 429, code: "bam_don")));
+        }
+        var (xong, loi) = await h.GuiAsync(MayChu, now);
+        Assert.Equal(10, xong.Count);
+        Assert.Null(loi);
+        Assert.Equal(2, h.Items.Count);
+        Assert.All(h.Items, x => Assert.Equal(0, x.LanLoi));      // không tính lần lỗi
+        Assert.Empty(h.BiBo);
+        nhan = 0;
+        (xong, _) = await h.GuiAsync(MayChu, now.AddMinutes(1));
+        Assert.Equal(2, xong.Count);
+        Assert.Empty(h.Items);
+    }
+
+    /// <summary>#684: lời xin bị bỏ (máy chủ từ chối / quá hạn / lỗi quá số lần) nằm trong BiBo ⇒ dịch vụ lưu XinBoDs ⇒ khay báo Con.</summary>
+    [Fact]
+    public async Task HangXinCho_BiBo_BaoCon()
+    {
+        var h = new HangXinCho();
+        var now = new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.FromHours(7));
+        h.Them(new LoiXinCho { Loai = LoaiXin.VaySao, Phut = 15, Luc = now.AddDays(-1) });                   // quá hạn
+        h.Them(new LoiXinCho { Loai = "them_gio", Phut = 30, Luc = now });                                   // loại cũ: bỏ im lặng
+        h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "roblox.exe", Ten = "Roblox", Luc = now });     // máy chủ từ chối
+        h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "capcut.exe", Luc = now });                     // gửi được
+        var (xong, _) = await h.GuiAsync(x => Task.FromResult(x.Muc == "roblox.exe" || x.Loai == "them_gio" ? KetQuaGuiXin.Bo : KetQuaGuiXin.DaGui), now);
+        Assert.Equal(4, xong.Count);
+        Assert.Equal(new[] { LoaiXin.VaySao, LoaiXin.XinDuyet }, h.BiBo.Select(x => x.Loai));
+        var ds = new XinBoDs();
+        ds.Them(h.BiBo, now);
+        ds.Them(h.BiBo, now);                                    // gọi lại không nhân đôi
+        Assert.Equal(2, ds.ConHan(now).Count);
+        Assert.Empty(ds.ConHan(now.AddHours(25)));
+        Assert.Contains("15 sao", XinBoView.Cau(ds.Items[0]));
+        Assert.Contains("«Roblox»", XinBoView.Cau(ds.Items[1]));
+        for (int i = 0; i < XinBoDs.ToiDa + 3; i++) ds.Them(new[] { new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = $"a{i}" } }, now);
+        Assert.Equal(XinBoDs.ToiDa, ds.Items.Count);
     }
 }

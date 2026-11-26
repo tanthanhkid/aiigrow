@@ -304,6 +304,12 @@ public class AppConTests
             Assert.Equal(2, h.Dem());
             Assert.Equal(1, await h.GuiAsync(b => Task.FromResult(b.Path.Contains("l1") ? KetQuaGuiXin.LoiMang : KetQuaGuiXin.DaGui), now.AddMinutes(6)));
             Assert.Equal(0, h.Dem());
+            // #684: 429 / 408 ⇒ giữ nguyên bài (không xoá, không tính lần lỗi), gửi lượt sau
+            h.Them("hoc-vien/luot/l4/nop", "{}", now.AddMinutes(7));
+            Assert.Equal(0, await h.GuiAsync(_ => Task.FromResult(HangXinCho.PhanLoai(new ApiException("nhanh", 429, code: "bam_don"))), now.AddMinutes(8)));
+            Assert.Equal(1, h.Dem());
+            Assert.Equal(0, h.DanhSach()[0].LanLoi);
+            Assert.Equal(1, await h.GuiAsync(_ => Task.FromResult(KetQuaGuiXin.DaGui), now.AddMinutes(9)));
             // quá 12 giờ ⇒ bỏ không gửi
             h.Them("hoc-vien/luot/l3/nop", "{}", now);
             var goi = 0;
