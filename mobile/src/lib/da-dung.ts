@@ -6,7 +6,10 @@ import { soVN } from "./so-sao";
 type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
   phut: number; tinhGio: boolean; chuaXep?: boolean; dangMo: boolean; matMang: boolean };
 type DongChan = { luc: string; ten: string; may: string | null; ly: "dang_xin" | "chua_cho" | "grow_chan"; yeuCau: string | null; phut: number | null };
-export type HomNayDung = { ten: string; ngay: string; choi: { daDung: number; tongPhut: number; conPhut: number };
+export type HomNayDung = { ten: string; ngay: string;
+  /** daDung (phút đo, số lẻ — cũ) · daChoi / gioiHanNgay / conNgay: số «hôm nay» máy chủ tính (#705, #700 — lib/so-hom-nay) */
+  choi: { daDung: number; tongPhut: number; conPhut: number; daChoi?: number; gioiHanNgay?: number | null; conNgay?: number | null };
+  /** #704: số mục đã dùng cả ngày (`dung` chỉ 50 dòng mới nhất) */ soDung?: number;
   hoc: { phut: number; khung: { tu: string; den: string } | null }; /** 15/11 (#262): phút nhóm «Không tính phút» hôm nay */ khongTinhPhut?: { phut: number };
   dung: DongDung[]; biChan: DongChan[] };
 

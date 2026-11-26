@@ -126,7 +126,8 @@ test("15/11 «còn N sao = N phút»: conPhut = sao tiêu được (không còn 
   const lay = async () => (await m("gia-dinh", { tok })).body.con[0];
   let c = await lay();
   assert.deepEqual([c.soDu, c.sao, c.conPhut, c.phutDoiDuoc, c.no], [30, 30, 30, 30, 0], "30 sao = 30 phút");
-  assert.deepEqual([c.phutChoi, c.tranNgay], [35, 65], "phutChoi = đã chơi hôm nay · tranNgay (cũ) = còn + đã chơi");
+  // #700: phutChoi = phút ĐÃ TRỪ SAO hôm nay (cùng số Trang chủ / «Đã dùng») — phiên chèn tay ở đây không trừ sao ⇒ 0; tranNgay (cũ) = còn + phút đo
+  assert.deepEqual([c.phutChoi, c.tranNgay], [0, 65], "phutChoi = đã trừ sao hôm nay · tranNgay (cũ) = còn + đã chơi");
   const { nhaTre } = await import("./choi-tre.ts");
   assert.equal((await nhaTre({ id: con, family_id: fam } as never)).conPhut, 30, "trang «Nhà» của Con cùng số");
   // tiêu hết 30 rồi Ba Mẹ cho vay 15, tiêu hết ⇒ số dư −15, hết sao

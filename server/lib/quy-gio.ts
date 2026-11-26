@@ -139,6 +139,15 @@ export const gioiHanMay = (g: Quy["gioiHan"]) => ({ apDung: g.apDung, ngayPhut: 
   luotPhut: g.luotPhut, luotDaChoi: Math.round(g.luotDaChoi), conLuot: nguyen(g.conLuot), dangNghi: g.dangNghi, nghiDen: g.nghiDen,
   nghiDenGio: g.nghiDenGio, hetNgay: g.hetNgay, lyDoKhoa: g.lyDoKhoa, phutToiDa: nguyen(g.phutToiDa), cau: g.cau });
 
+/** MỘT nguồn số «hôm nay» cho mọi màn Ba Mẹ (#705, #700) — app đọc, không tự tính lại từ trần gốc / giờ điện thoại:
+ *  · daChoi = phút «Tính phút» đã trừ sao hôm nay (sổ sao, số nguyên) — cùng số máy Con «Hôm nay chơi N phút» và màn Màn hình (#658);
+ *  · gioiHanNgay = giới hạn ngày HÔM NAY theo thứ trong tuần của giờ gia đình, ĐÃ cộng sao Ba Mẹ cho vay để chơi hôm nay;
+ *  · conNgay = phần còn của giới hạn ngày (làm tròn xuống — đúng số máy Con khoá theo, «Còn N phút hôm nay»).
+ *  · gioiHanGoc = giới hạn ngày Ba Mẹ đặt cho thứ hôm nay (giờ gia đình), CHƯA cộng sao cho vay, còn khi «Mở hết» — vạch giới hạn trên biểu đồ tuần.
+ *  gioiHanNgay / conNgay = null khi không giới hạn ngày hoặc đang «Mở hết». */
+export const soHomNay = (qy: Quy) => ({ daChoi: qy.phutTruHomNay, gioiHanNgay: qy.gioiHan.ngayPhut, conNgay: nguyen(qy.gioiHan.conNgay),
+  gioiHanGoc: (qy.cuoiTuan ? qy.gioiHan.cauHinh.cuoiTuan : qy.gioiHan.cauHinh.ngayThuong) || null });
+
 /** (cũ) «Đổi sao lấy giờ» — đã bỏ (#264: sao chính là phút). Agent / app cũ gọi ⇒ trả thành công mà không trừ gì: phút còn = số sao. */
 export async function doiSaoLayGio(con: string, _phutVao: unknown, _mayId: string | null = null, now = new Date()) {
   const qy = await quyHomNay(con, now);
@@ -159,9 +168,12 @@ export const hoanTacThemGio = (fam: string, id: string, nguoi: string, now = new
 export async function gioChoiCua(fam: string, con: string, now = new Date()) {
   const b = await boiCanhCon(con);
   if (b.fam !== fam) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
+  const hn = await quyHomNay(con, now, q, b);
   return {
     phut10Sao: 10, doiSaoBat: false, doiSaoToiDaNgay: 0, choXinThemGio: true, ngoaiLeToiDaPhut: 0,
-    gioNgu: b.lich.ngu, gioHoc: b.lich.hoc, homNay: await quyHomNay(con, now, q, b),
+    gioNgu: b.lich.ngu, gioHoc: b.lich.hoc, homNay: hn,
+    // #705: đã chơi / giới hạn hôm nay (đã cộng sao cho vay) / còn — màn Đã dùng, Báo cáo đọc thẳng, không tự tính
+    soHomNay: soHomNay(hn),
     // #302: giới hạn ngày (ngày thường / T7–CN) + mỗi lượt tối đa — 0 = không giới hạn
     ...gioiHanBm(b.cfg),
   };

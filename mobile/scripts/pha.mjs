@@ -231,7 +231,8 @@ const quyGia = (con = 18, tong = 60, o = {}) => ({ ngay: "2026-11-05", cuoiTuan:
   tongPhut: tong, dangNgu: false, dangHoc: false, khoa: false, gioNgu: { tu: "21:30", den: "06:30" }, gioHoc: null, phutToiNgu: 300, phutToiHoc: null,
   tyLe: { sao: 10, phut: 10 }, doiSao: { bat: true, toiDaNgay: 30, conDoiDuoc: 30 }, choXinThem: true, ...o });
 const gioChoi = (o = {}) => ({ gioiHanNgayThuong: 60, gioiHanCuoiTuan: 90, phutMoiLuot: 30, phut10Sao: 10, doiSaoBat: true, doiSaoToiDaNgay: 30, choXinThemGio: true, ngoaiLeToiDaPhut: 60,
-  gioNgu: { tu: "21:30", den: "06:30" }, gioHoc: { tu: "19:00", den: "20:30", thu: [1, 2, 3, 4, 5] }, homNay: quyGia(), ...o });
+  gioNgu: { tu: "21:30", den: "06:30" }, gioHoc: { tu: "19:00", den: "20:30", thu: [1, 2, 3, 4, 5] }, homNay: quyGia(),
+  /** #705: số «hôm nay» máy chủ tính (quy-gio › soHomNay) — Báo cáo «Nay: 45/60 phút · còn 15 phút» */ soHomNay: { daChoi: 45, gioiHanNgay: 60, conNgay: 15, gioiHanGoc: 60 }, ...o });
 const viecBo = (ten, sao, bangChung, lapLai, hinh, nhan, moTa = "") => ({ ten, moTa, sao, bangChung, tuCham: bangChung === "tu_dong", lapLai, hinh, nhan, toiDaNgay: 1 });
 const BO_NV = [
   { ma: "tu_lap", ten: "Tự lập", tuoi: "9–10 tuổi", soViec: 5, saoToiDaNgay: 60, viec: [viecBo("Dọn phòng", 10, "anh", "hang_ngay", "choi", "Mỗi ngày · nộp ảnh", "Cất đồ về đúng chỗ, chụp ảnh phòng gọn."),
@@ -539,7 +540,7 @@ const MAY_KHOA = { ...CO_XIN_VAY, "GET con/c1": { ...coBan["GET con/c1"], khoaNg
 const dungGia = (ten, kieu, phut, tinhGio, phutTruoc, may, o = {}) => ({ luc: luc(phutTruoc), ten, muc: ten.toLowerCase(), kieu, may, nen: "windows", mayId: may ? "m1" : null,
   phut, tinhGio, dangMo: false, matMang: false, ...o });
 /** GET con/c1/hom-nay (server/lib/hom-nay-dung.ts) — 4 mục như bàn bm2-trang-chu@v35 */
-const HN_C1 = { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-17", choi: { daDung: 42, tongPhut: 42, conPhut: 0 }, hoc: { phut: 50, khung: null }, khongTinhPhut: { phut: 50 },
+const HN_C1 = { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-17", choi: { daDung: 42, tongPhut: 42, conPhut: 0, daChoi: 42, gioiHanNgay: null, conNgay: null }, hoc: { phut: 50, khung: null }, khongTinhPhut: { phut: 50 },
   dung: [dungGia("Roblox", "app", 39, true, 38, "Laptop của Bảo Anh"), dungGia("Máy ảnh", "app", 3, false, 60, "iPad của Bảo Anh", { mayId: "m2", nen: "ios" }),
     dungGia("Từ điển", "app", 10, false, 112, "Laptop của Bảo Anh"), dungGia("Học với AiiRob", "app", 40, false, 155, "Laptop của Bảo Anh")], biChan: [] } };
 /** Laptop của Bảo Anh mất mạng (gia-dinh › con[].matMang) */
@@ -939,7 +940,7 @@ if (process.argv.includes("--giao-dien")) {
     // #325 bm-bao-cao-ngay (bàn 17/11): đúng CA của từng màn bàn
     M("bm-bao-cao (con thứ hai · w04gcohs)", "/bao-cao?con=c2", "Dùng nhiều nhất", { kb: { "GET con/c2/bao-cao": { ...coBan["GET con/c1/bao-cao"], ten: BILL,
       tuanNay: { ...coBan["GET con/c1/bao-cao"].tuanNay, saoKiem: 250, saoVay: 0, lanVay: 0, saoTieu: 230, saoTieuChoi: 230, saoTraNo: 0, xinVay: { so: 0, cho: 0 } } } } }),
-    M("bm-da-dung (c95l1cwc)", "/da-dung/c1", "Con xin hôm nay", { kb: { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-03", choi: { daDung: 42, tongPhut: 60, conPhut: 18 },
+    M("bm-da-dung (c95l1cwc)", "/da-dung/c1", "Con xin hôm nay", { kb: { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-03", choi: { daDung: 42, tongPhut: 60, conPhut: 18, daChoi: 42, gioiHanNgay: 60, conNgay: 18 },
       hoc: { phut: 50, khung: null }, khongTinhPhut: { phut: 50 },
       dung: [{ luc: luc(25), ten: "Roblox", muc: "roblox", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 39, tinhGio: true, dangMo: true, matMang: false },
         { luc: luc(47), ten: "Máy ảnh", muc: "camera", kieu: "app", may: "iPad của Bảo Anh", nen: "ios", mayId: "m2", phut: 3, tinhGio: true, dangMo: false, matMang: false },
@@ -947,9 +948,14 @@ if (process.argv.includes("--giao-dien")) {
         { luc: luc(142), ten: "Học với AiiRob", muc: "aiirob", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 40, tinhGio: false, dangMo: false, matMang: false }],
       biChan: [{ luc: luc(7), ten: "YouTube", may: null, ly: "dang_xin", yeuCau: "y5", phut: 30 }, { luc: luc(107), ten: "game.vn", may: "Laptop", ly: "chua_cho", yeuCau: null, phut: null }] } } }),
     // #623: app chưa xếp nhóm (vd UWP applicationframehost) — ví không trừ ⇒ «Chưa xếp 6′», không «−N sao»
-    M("bm-da-dung (chưa xếp · #623)", "/da-dung/c1", "Chưa xếp 6′", { kb: { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-03", choi: { daDung: 0, tongPhut: 60, conPhut: 10 },
+    M("bm-da-dung (chưa xếp · #623)", "/da-dung/c1", "Chưa xếp 6′", { kb: { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-03", choi: { daDung: 0, tongPhut: 60, conPhut: 10, daChoi: 0, gioiHanNgay: 60, conNgay: 60 },
       hoc: { phut: 0, khung: null }, khongTinhPhut: { phut: 0 },
       dung: [{ luc: luc(25), ten: "Chưa rõ tên", muc: "applicationframehost.exe", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 6, tinhGio: false, chuaXep: true, dangMo: false, matMang: false }],
+      biChan: [] } } }),
+    // #705: chơi đủ 60 rồi Ba Mẹ cho vay 20 sao ⇒ giới hạn hôm nay 80 (máy chủ đã cộng), còn 20 — đúng số máy Con, không «Còn 0»
+    M("bm-da-dung (cho vay · #705)", "/da-dung/c1", "Còn 20 phút hôm nay", { kb: { "GET con/c1/hom-nay": { ten: KEN, ngay: "2026-11-18",
+      choi: { daDung: 60, tongPhut: 80, conPhut: 20, daChoi: 60, gioiHanNgay: 80, conNgay: 20 }, hoc: { phut: 0, khung: null }, khongTinhPhut: { phut: 0 },
+      dung: [{ luc: luc(70), ten: "Roblox", muc: "roblox", kieu: "app", may: "Laptop của Bảo Anh", nen: "windows", mayId: "m1", phut: 60, tinhGio: true, dangMo: true, matMang: false }],
       biChan: [] } } }),
     M("bm-nhat-ky (r3dsl3py)", "/nhat-ky", "7 ngày qua", { kb: SO_SAO }),
     // App & web (bm-ung-dung — thiết kế chốt 15/11, #262 / #258)

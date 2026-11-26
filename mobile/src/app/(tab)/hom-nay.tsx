@@ -36,6 +36,7 @@ import { tieuTheChinh } from "@/lib/tieu-the-chinh";
 import { BaoLoi, CanhGiua, ChoTai, Chu, DauSach, gioPhut, IconNet, M, Man, Nhan, Nut, Rob, The, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 import Svg, { Circle } from "react-native-svg";
 import { HERO } from "@/lib/clay";
+import { soHomNay } from "@/lib/so-hom-nay";
 
 // Robot Grow 3D ở thẻ đầu (Bàn bm2-trang-chu v44 `.rob`: cao 104, sát mép phải, trên 8; máy khoá = Grow «ngủ», còn lại = Grow chỉ tay — #509).
 // Chữ chừa 96 bên phải (Bàn `.trai{margin-right:96px}`) = phần Grow nằm trong thẻ.
@@ -201,7 +202,8 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   }
   // tiêu đề thẻ chính: khoá ⇒ giờ mở lại · con đang chơi ⇒ «Đang chơi <app>» · đã chơi phút nào hôm nay (cùng nguồn «Đã chơi»/«Đã dùng») ⇒ «Đã dùng N phút» · chưa chơi ⇒ «Chưa dùng máy»
   const dangChoi = d.choi.find((x) => x.con === conId) ?? null;
-  const daChoiPhut = Math.max(Number(hn.d?.choi?.daDung) || 0, Number(q?.daDung) || 0); // hom-nay chưa về ⇒ dùng số từ quỹ/trạng thái
+  // #700: một nguồn «đã chơi hôm nay» = phút đã trừ sao (máy chủ: hom-nay › choi.daChoi, quy › phutTruHomNay) — số nguyên như Hồ sơ Con, Màn hình, máy Con
+  const daChoiPhut = soHomNay(hn.d?.choi, q?.phutTruHomNay ?? hn.d?.choi?.daDung ?? q?.daDung).daChoi;
   const tieuLon = tieuTheChinh({ khoa, mo: khoaDen, dangChoi: dangChoi?.tenApp, daChoiPhut, gio: gioPhut });
   const cheDo = ct.d?.cheDoChan === "mo_het" ? "Mở hết" : "Theo danh sách";
   const veVi = () => router.push(`/vi/${conId}` as never);
@@ -234,7 +236,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         ) : null}
         {!khoa ? (
           <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
-            <OSo vong={hn.d && hn.d.choi.tongPhut > 0 ? hn.d.choi.daDung / hn.d.choi.tongPhut : 0} mau={HERO.phu} ic="dongho" so={hn.d ? `${hn.d.choi.daDung} phút` : "–"} nhan="Đã chơi"
+            <OSo vong={hn.d && daChoiPhut + hn.d.choi.conPhut > 0 ? daChoiPhut / (daChoiPhut + hn.d.choi.conPhut) : 0} mau={HERO.phu} ic="dongho" so={hn.d ? `${daChoiPhut} phút` : "–"} nhan="Đã chơi"
               bam={() => router.push("/bao-cao" as never)} />
             <OSo vong={yViec ? xViec / yViec : 0} mau="#5cb98f" ic="tick" so={yViec ? `${xViec}/${yViec} việc` : `${xViec} việc`} nhan="Đã làm" bam={() => router.push("/diem-qua" as never)} />
           </View>

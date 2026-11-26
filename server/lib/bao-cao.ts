@@ -34,8 +34,9 @@ export async function homNay(fam: string, con: string, now = new Date()) {
     q<{ ten: string }>(SQL_HOM_NAY_XONG, [con, tu]), tomTatVi(con), conTheoTran(q, con, ts, f.tz, now)]);
   const r = r0!, tichCuc = tc.map((x) => x.ten);
   const conPhut = tran.conPhut;
-  // 15/11: tranNgay (cũ) = phút còn + đã dùng · `quy` (hình dạng cũ, conPhut = sao tiêu được) · `phutChoi` = phút «Tính phút» đã dùng hôm nay
-  return { ...vi, phutChoi: tran.daChoi, tranNgay: tran.quy.tongPhut, quy: tran.quy,
+  // 15/11: tranNgay (cũ) = phút còn + đã dùng · `quy` (hình dạng cũ, conPhut = sao tiêu được)
+  // #700: `phutChoi` = phút đã trừ sao hôm nay (quy-gio › soHomNay — cùng số Trang chủ, Đã dùng, Màn hình, máy Con), không phải phút đo lẻ
+  return { ...vi, phutChoi: tran.quy.phutTruHomNay, tranNgay: tran.quy.tongPhut, quy: tran.quy,
     /** phút giải trí còn được chơi hôm nay theo trần ngày lẫn tuần (đã cộng thêm giờ) — như conNgay/conTuan của xetMoPhien */ conPhut, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
     homNayConDa: tichCuc,
     /** «≈ X phút chơi»: điểm hiện có đổi được bao nhiêu phút trò chơi (giá gia_game, phần nghìn điểm / phút), không quá phần trần còn lại
