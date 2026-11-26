@@ -33,6 +33,10 @@ public sealed class AppThat
     /// Agent dùng để luật chặn «Edge» áp lên cả msedge.exe lẫn gói Store.</summary>
     [JsonIgnore]
     public List<string>? CacMuc { get; set; }
+    /// <summary>#693: đường dẫn exe của mọi bản đã gộp (kể cả chính nó) — CHỈ trong máy. Tên exe «đã cài» chỉ tính từ bản nằm ngoài chỗ Con thả tệp
+    /// (<see cref="DanhSachApp.TenExeDaCai"/>): lối tắt Con tự tạo trỏ vào Desktop không làm mất bản cài thật cùng tên.</summary>
+    [JsonIgnore]
+    public List<string>? CacDuongDan { get; set; }
 }
 
 /// <summary>Một khoá con của Uninstall (HKLM 64/32 hoặc HKU\&lt;SID Con&gt;).</summary>
@@ -392,6 +396,7 @@ public static class DanhSachApp
             {
                 // cùng tên (khác khoa: Copilot/Edge bản Store + bản đã cài) ⇒ một dòng, nhưng mang theo muc của bản bị gộp
                 if (!daCo.CacMuc!.Contains(muc)) daCo.CacMuc.Add(muc);
+                foreach (var d in DuongDanKem(a)) if (!daCo.CacDuongDan!.Contains(d, StringComparer.OrdinalIgnoreCase)) daCo.CacDuongDan.Add(d);
                 continue;
             }
             kq.Add(new AppThat
@@ -402,6 +407,7 @@ public static class DanhSachApp
             });
             var moi = kq[^1];
             moi.CacMuc = new List<string> { moi.Muc };
+            moi.CacDuongDan = DuongDanKem(a).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             seenTen[TenLoi(ten)] = moi;
             moi.IconBam = moi.Icon == null ? null : BamIcon(moi.Icon);
             if (moi.IconBam == null) moi.Icon = null;
@@ -410,12 +416,49 @@ public static class DanhSachApp
     }
 
     /// <summary>Muc → mọi muc cùng app (cùng tên đã gộp): chỉ các app có từ hai muc trở lên.</summary>
-    public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds)
+    public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds) => BangBiDanh(NhomMuc(ds));
+
+    private static IEnumerable<string> DuongDanKem(AppThat a) =>
+        (a.CacDuongDan ?? Enumerable.Empty<string>()).Prepend(a.DuongDan ?? "").Where(d => !string.IsNullOrWhiteSpace(d));
+
+    /// <summary>#693: tên exe (chữ thường) của app đã cài mà tệp chạy KHÔNG nằm ở chỗ Con thả tệp (<see cref="ProcessGuard.LaChoConThaTep"/>) —
+    /// exe cùng tên ở Desktop / Downloads là bản giả. Tên exe chung chung không tính. Xét TỪNG bản đã gộp (<see cref="AppThat.CacDuongDan"/>):
+    /// bản chính nằm ở Desktop (lối tắt Con tự tạo) không che bản cài thật cùng tên.</summary>
+    public static List<string> TenExeDaCai(IEnumerable<AppThat> ds, string? winDir) =>
+        ds.SelectMany(DuongDanKem)
+          .Where(d => !ProcessGuard.LaChoConThaTep(d, winDir))
+          .Select(d => TenTep(d.Replace('/', '\\')).ToLowerInvariant())
+          .Where(t => t.EndsWith(".exe", StringComparison.Ordinal) && !ChanAppThat.TenChung.Contains(t))
+          .Distinct(StringComparer.Ordinal).OrderBy(t => t, StringComparer.Ordinal).ToList();
+
+    /// <summary>#690: các nhóm muc cùng app (chỉ app có từ hai muc), muc ĐẦU là muc gửi máy chủ — lưu vào cấu hình để dịch vụ khởi động lại
+    /// có bí danh ngay (không chờ lượt quét app đầu tiên).</summary>
+    public static List<List<string>> NhomMuc(IEnumerable<AppThat> ds) =>
+        ds.Where(a => a.CacMuc is { Count: > 1 }).Select(a => a.CacMuc!.Prepend(a.Muc).Distinct(StringComparer.Ordinal).ToList()).ToList();
+
+    /// <summary>Muc → mọi muc cùng app, từ các nhóm của <see cref="NhomMuc"/>.</summary>
+    public static Dictionary<string, string[]> BangBiDanh(IEnumerable<IReadOnlyList<string>>? nhom)
     {
         var d = new Dictionary<string, string[]>(StringComparer.Ordinal);
-        foreach (var a in ds)
-            if (a.CacMuc is { Count: > 1 } c)
+        if (nhom == null) return d;
+        foreach (var c in nhom)
+            if (c is { Count: > 1 })
                 foreach (var m in c) d[m] = d.TryGetValue(m, out var cu) ? cu.Union(c).ToArray() : c.ToArray();
+        return d;
+    }
+
+    /// <summary>#690: muc bí danh → muc chính (muc máy chủ biết, Ba Mẹ xếp Cho phép / Tính phút / Chặn). Tên exe chung chung
+    /// (<see cref="ChanAppThat.TenChung"/>) không quy về app nào. Exe bí danh của muc chính .exe cũng không (<see cref="ChanAppThat.ThaDuocBiDanh"/>:
+    /// app gộp theo tên, lối tắt Con tự tạo được — «Discord» trỏ vào Roblox không được làm phút Roblox thành phút Discord).</summary>
+    public static Dictionary<string, string> BangMucChinh(IEnumerable<IReadOnlyList<string>>? nhom)
+    {
+        var d = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (nhom == null) return d;
+        foreach (var c in nhom)
+            if (c is { Count: > 1 })
+                foreach (var m in c.Skip(1))
+                    if (m.Length > 0 && !ChanAppThat.TenChung.Contains(m) && !string.Equals(m, c[0], StringComparison.OrdinalIgnoreCase)
+                        && ChanAppThat.ThaDuocBiDanh(m, c[0])) d.TryAdd(m, c[0]);
         return d;
     }
 

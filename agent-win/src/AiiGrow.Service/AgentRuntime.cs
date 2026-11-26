@@ -21,6 +21,8 @@ public sealed class AgentRuntime
     private DateTimeOffset? _lastSyncAt;
     private string? _fgId;
     private string? _fgName;
+    /// <summary>#690: id khay báo TRƯỚC khi quy bí danh về muc chính (tên exe đang chạy thật — TienCanhChoi kiểm «đang chạy»).</summary>
+    private string? _fgIdGoc;
     private DateTimeOffset _fgAt = DateTimeOffset.MinValue;
     private int _blockedSeq;
     private string? _blockedId;
@@ -73,6 +75,18 @@ public sealed class AgentRuntime
     public volatile IReadOnlyDictionary<string, string>? TenAppMay;
     /// <summary>Muc → mọi muc cùng app đã gộp (#630): luật chặn áp lên tất cả.</summary>
     public volatile IReadOnlyDictionary<string, string[]>? BiDanhMuc;
+    /// <summary>#690: muc bí danh → muc chính (muc máy chủ biết) — phút của app mở bằng exe bí danh tính đúng app Ba Mẹ đã xếp.</summary>
+    public volatile IReadOnlyDictionary<string, string>? MucChinh;
+
+    /// <summary>#690: đặt bí danh từ nhóm muc (lượt quét app hoặc cấu hình đã lưu).</summary>
+    public void DatNhomMuc(IReadOnlyList<List<string>>? nhom)
+    {
+        BiDanhMuc = DanhSachApp.BangBiDanh(nhom);
+        MucChinh = DanhSachApp.BangMucChinh(nhom);
+    }
+
+    /// <summary>#693: tên exe app đã cài ở chỗ khác Desktop / Downloads (null = chưa quét lần nào — mọi exe ở chỗ thả tệp không được nhận theo tên).</summary>
+    public volatile ISet<string>? TenDaCai;
     /// <summary>#422: app đã cài theo lần quét gần nhất (mục + tên) — lưới «App trên máy» của hộp «Xin thêm app / web» (PipeCmd.AppMay). null = chưa quét.</summary>
     public volatile IReadOnlyList<AppTrenMay>? AppMay;
     /// <summary>05/11 (L11): bài nộp lúc mất mạng đang chờ gửi (BaiChoMang, mỗi bài một tệp). PipeServer / AgentWorker cập nhật số đếm.</summary>
@@ -110,6 +124,9 @@ public sealed class AgentRuntime
         {
             Config = Store.Load();
             _cfgStamp = Store.LastWriteUtc;
+            // #690: bí danh của lần quét trước — có ngay sau khởi động lại (lượt quét đầu chỉ chạy sau 40 giây – 3 phút)
+            if (BiDanhMuc == null && Config?.NhomMucApp is { Count: > 0 } nhom) DatNhomMuc(nhom);
+            if (TenDaCai == null && Config?.TenExeDaCai is { } tdc) TenDaCai = new HashSet<string>(tdc, StringComparer.OrdinalIgnoreCase);
             // Máy mồ côi (token bị từ chối quá MoCoi.Nguong) ⇒ KHÔNG nạp lại Policy cuối (không áp luật cũ sau khởi động lại).
             // LastPolicyJson là CẢ phản hồi dong-bo ⇒ lấy phần `windows` (LayWindows nhận cả dạng phẳng cũ) — không thì mất mạng + khởi động lại nạp «tự do» rỗng.
             if (_policy == null && !MoCoi.La(Config, DateTimeOffset.UtcNow) && PolicyParser.TryParse(Config?.LastPolicyJson ?? "", out var p) && p != null)
@@ -418,6 +435,9 @@ public sealed class AgentRuntime
             var p = _policy == null ? null : PolicyChoBe().P;
             var beDem = BeHienTai();
             var tuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;
+            // #690: tiền cảnh là exe bí danh đang chạy thật ⇒ muc chính (đã quy ở SetForeground) cũng coi là đang chạy
+            if (tienTrinhCon != null && !string.IsNullOrEmpty(_fgId) && _fgIdGoc != _fgId && tienTrinhCon.Contains(_fgIdGoc ?? ""))
+                tienTrinhCon = new HashSet<string>(tienTrinhCon.Append(_fgId!.ToLowerInvariant()), StringComparer.OrdinalIgnoreCase);
             bool dangChoi = conDangNhap && TienCanhChoi.DangChoi(p, _fgId, tuoi, manHinhKhoa, tienTrinhCon);
             var id = p?.PlaySessionId;
             if (_playSecId != id) { _playSecId = id; _playSec = 0; }
@@ -742,7 +762,10 @@ public sealed class AgentRuntime
 
     public void SetForeground(string? appId, string? appName)
     {
-        lock (_gate) { _fgId = appId ?? ""; _fgName = appName; _fgAt = DateTimeOffset.UtcNow; }
+        // #690: exe bí danh của app đã gộp (bản Store / bản cài) ⇒ muc chính máy chủ biết — phút, «đang chơi», phiên chơi, Tính phút cùng một app
+        var goc = appId;
+        if (appId != null && MucChinh is { } mc && mc.TryGetValue(appId, out var chinh)) appId = chinh;
+        lock (_gate) { _fgId = appId ?? ""; _fgIdGoc = goc ?? ""; _fgName = appName; _fgAt = DateTimeOffset.UtcNow; }
     }
 
     /// <summary>Fresh = tray còn sống (báo trong 20 giây qua).</summary>

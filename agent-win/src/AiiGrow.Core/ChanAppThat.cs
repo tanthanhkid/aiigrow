@@ -138,6 +138,29 @@ public static class ChanAppThat
         return kq;
     }
 
+    /// <summary>#690: danh sách Cho phép ⇒ thêm các muc bí danh của app đã gộp (bản Store + bản cài của Minecraft…) khi MUC CHÍNH của app có
+    /// trong danh sách (<paramref name="mucChinh"/>: bí danh → muc chính, <see cref="DanhSachApp.BangMucChinh"/>, đã bỏ tên exe chung chung).
+    /// Chỉ một chiều: muc bí danh còn sót trong danh sách không kéo muc chính vào lại (hết sao đã bỏ muc chính — QuyTaiCho.ApDung).</summary>
+    /// <remarks>App gộp theo TÊN HIỂN THỊ, mà lối tắt Start Menu / khoá Uninstall của tài khoản Con thì Con tự tạo được ⇒ exe bí danh của muc chính
+    /// .exe KHÔNG được thả (lối tắt «Discord» trỏ vào RobloxPlayerBeta.exe không làm Roblox thành được phép). Chỉ thả bí danh là gói Store (chỉ hệ thống
+    /// cài được vào WindowsApps) hoặc khi muc chính là gói Store.</remarks>
+    public static List<string> MoRongTen(IEnumerable<string> ds, IReadOnlyDictionary<string, string>? mucChinh)
+    {
+        var kq = new List<string>();
+        var co = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in ds) if (co.Add(a)) kq.Add(a);
+        if (mucChinh == null || mucChinh.Count == 0) return kq;
+        var chinh = new HashSet<string>(kq, StringComparer.OrdinalIgnoreCase);
+        foreach (var (biDanh, m) in mucChinh)
+            if (chinh.Contains(m) && ThaDuocBiDanh(biDanh, m) && co.Add(biDanh)) kq.Add(biDanh);
+        return kq;
+    }
+
+    /// <summary>Bí danh được coi là cùng app với muc chính (thả theo Cho phép, quy phút): bí danh là gói Store, hoặc muc chính là gói Store
+    /// (exe khai trong manifest — #695). Hai exe gộp theo tên hiển thị thì không (lối tắt / khoá Uninstall của Con, Con tự tạo được).</summary>
+    public static bool ThaDuocBiDanh(string biDanh, string mucChinh) =>
+        !biDanh.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || !mucChinh.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>Tiến trình KHÔNG BAO GIỜ đóng dù khớp luật chặn: tiến trình hệ thống của phiên (explorer, dwm… ở chỗ chỉ quản trị ghi được), gói Store
     /// hệ thống, AiiGrow / Defender / Common Files (thư mục an toàn), exe mang tên AiiGrow.</summary>
     public static bool MienChan(string exePath, string? winDir, IEnumerable<string> safeDirs)
@@ -187,8 +210,9 @@ public static class ChanAppThat
     }
 
     /// <summary>Đóng (hoặc, giám sát: chỉ liệt kê) tiến trình của phiên Con khớp luật chặn. → (tên exe, mục luật) đã đóng / sẽ đóng.</summary>
+    /// <param name="khongDong">#698: tiến trình khớp luật mà Windows không cho đóng (exe, muc) — để ghi nhật ký, không lặng lẽ bỏ qua.</param>
     public static IReadOnlyList<(string Exe, string Muc)> Enforce(IProcessControl control, int sessionId, IReadOnlyList<AppBiChan> ds, bool dryRun,
-        Func<string, string?>? bam = null, string? winDir = null, IEnumerable<string>? safeDirs = null)
+        Func<string, string?>? bam = null, string? winDir = null, IEnumerable<string>? safeDirs = null, Action<string, string>? khongDong = null)
     {
         var kq = new List<(string, string)>();
         if (ds.Count == 0) return kq;
@@ -202,6 +226,7 @@ public static class ChanAppThat
             var ten = DanhSachApp.TenTep(p.Path).ToLowerInvariant();
             var muc = luat.Muc.Length > 0 ? luat.Muc : ten;
             if (dryRun || control.Close(p.Id)) kq.Add((ten, muc));
+            else khongDong?.Invoke(ten, muc);
         }
         return kq;
     }

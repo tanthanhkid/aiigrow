@@ -37,6 +37,9 @@ public sealed class DanhSachAppWorker : BackgroundService
         }
     }
 
+    private static bool CungNhom(List<List<string>>? a, List<List<string>> b) =>
+        a != null && a.Count == b.Count && a.Zip(b).All(x => x.First.SequenceEqual(x.Second, StringComparer.Ordinal));
+
     private async Task MotLuot(DateTimeOffset now, CancellationToken ct)
     {
         var cfg = _rt.Config;
@@ -63,7 +66,13 @@ public sealed class DanhSachAppWorker : BackgroundService
                 foreach (var m in a.CacMuc is { Count: > 0 } c ? c : new List<string> { a.Muc })   // #645: cả mục đã gộp (launcher/game cùng hãng) cùng một tên
                     if (!string.IsNullOrWhiteSpace(m) && !string.IsNullOrWhiteSpace(a.Ten)) ten.TryAdd(m.Trim(), a.Ten.Trim());
             _rt.TenAppMay = ten;
-            _rt.BiDanhMuc = DanhSachApp.BangBiDanh(ds);
+            // #690: bí danh dùng cho cả Chặn, Cho phép, Tính phút; lưu vào cấu hình khi đổi (khởi động lại có ngay)
+            var nhom = DanhSachApp.NhomMuc(ds);
+            _rt.DatNhomMuc(nhom);
+            var tenDaCai = DanhSachApp.TenExeDaCai(ds, Environment.GetFolderPath(Environment.SpecialFolder.Windows));
+            _rt.TenDaCai = new HashSet<string>(tenDaCai, StringComparer.OrdinalIgnoreCase);
+            if (!CungNhom(_rt.Config?.NhomMucApp, nhom) || !(_rt.Config?.TenExeDaCai ?? new()).SequenceEqual(tenDaCai, StringComparer.Ordinal))
+                try { _rt.Store.Update(c => { c.NhomMucApp = nhom; c.TenExeDaCai = tenDaCai; }); } catch (Exception e) { _log.LogDebug("Lưu bí danh app lỗi: {m}", e.Message); }
             _rt.AppMay = XinThemChonView.Loc(ds.Select(x => new AppTrenMay { Muc = x.Muc, Ten = x.Ten }));
             _sidDaQuet = string.Join(",", sids);
             _quetLuc = now;

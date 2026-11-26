@@ -228,13 +228,65 @@ public static class ProcessGuard
     public static string? KhoaGoiCha(string exePath) =>
         TenGoiStore(exePath) is { } t && NhaXuatBanGoi(exePath) is { } n ? t + "|" + n : null;
 
-    /// <summary>Exe khớp luật cho phép: theo tên exe (tên trùng của Windows thì phải là bản thật — <see cref="TenCuaWindows"/>) hoặc theo tên gói Store.</summary>
-    public static bool DuocPhepTheoLuat(string exePath, ISet<string> allowed, string? winDir)
+    /// <summary>#693: thư mục quen thuộc của tài khoản mà Con chép / tải tệp vào được (Desktop, Downloads, Documents, ảnh / nhạc / phim, OneDrive,
+    /// Temp, chính thư mục hồ sơ, Users\Public), thư mục tạm của Windows, thùng rác và gốc ổ. App ĐÃ CÀI không chạy từ đây.</summary>
+    private static readonly HashSet<string> ThuMucHoSoTha = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Desktop", "Downloads", "Documents", "Pictures", "Videos", "Music", "Favorites", "Links", "Saved Games", "Searches", "Contacts", "3D Objects",
+    };
+
+    /// <summary>#693: exe nằm ở chỗ Con tự thả tệp được (<see cref="ThuMucHoSoTha"/>, OneDrive, AppData\Local\Temp, Users\Public, Windows\Temp,
+    /// $Recycle.Bin, gốc ổ). Luật cho phép THEO TÊN exe không nhận các chỗ này (đổi tên game thành discord.exe rồi chạy từ Desktop / Downloads),
+    /// và thư mục ở đây không thành «helper cùng thư mục» của app được phép.</summary>
+    public static bool LaChoConThaTep(string exePath, string? winDir = null)
+    {
+        if (string.IsNullOrWhiteSpace(exePath)) return false;
+        var p = exePath.Replace('/', '\\');
+        if (p.StartsWith("\\\\", StringComparison.Ordinal)) return true;                           // \\máy\chia-sẻ\…: thư mục mạng / USB chia sẻ
+        if (p.Length < 4 || p[1] != ':' || p[2] != '\\') return false;
+        if (p.IndexOf(':', 2) >= 0) return true;                                            // luồng dữ liệu phụ «…\Temp:game.exe» (review #75)
+        var segs = p[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        if (segs.Length <= 1) return true;                                                   // X:\game.exe
+        if (segs[0].Equals("$Recycle.Bin", StringComparison.OrdinalIgnoreCase)) return true;
+        // trong Windows: mọi chỗ KHÔNG chỉ-quản-trị (Temp, Tracing, System32\Tasks, spool\drivers\color…) Con ghi được
+        if (winDir != null && TrongWindows(DirName(p), winDir)) return !TrongWindowsChiQuanTri(p, winDir);
+        if (!segs[0].Equals("Users", StringComparison.OrdinalIgnoreCase)) return false;
+        if (segs.Length <= 3) return true;                                                   // Users\An\game.exe, Users\Public\…
+        if (segs[1].Equals("Public", StringComparison.OrdinalIgnoreCase)) return true;
+        var con = segs[2];
+        if (ThuMucHoSoTha.Contains(con) || con.StartsWith("OneDrive", StringComparison.OrdinalIgnoreCase)) return true;
+        return con.Equals("AppData", StringComparison.OrdinalIgnoreCase) && segs.Length > 5
+            && segs[3].Equals("Local", StringComparison.OrdinalIgnoreCase) && segs[4].Equals("Temp", StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>#693: exe nằm NGAY ở gốc chỗ Con thả tệp (Desktop\game.exe, Downloads\game.exe, Users\An\game.exe, X:\game.exe, Temp, thư mục Windows Con
+    /// ghi được, thư mục mạng…) ⇒ thư mục của nó không được thành «helper cùng thư mục» của app được phép (không thì mọi game thả cạnh đó chạy theo).
+    /// Thư mục riêng của app portable Ba Mẹ duyệt (Downloads\MyGame\) thì được — helper của nó (UnityCrashHandler…) không bị đóng.</summary>
+    public static bool LaGocChoThaTep(string exePath, string? winDir = null)
+    {
+        if (!LaChoConThaTep(exePath, winDir)) return false;
+        var p = exePath.Replace('/', '\\');
+        if (p.Length < 4 || p[1] != ':' || p[2] != '\\' || p.IndexOf(':', 2) >= 0) return true;
+        var segs = p[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        if (segs.Length < 4 || !segs[0].Equals("Users", StringComparison.OrdinalIgnoreCase)) return true;   // X:\, Users\An\x.exe, Windows, thùng rác
+        var con = segs[2];
+        if (segs[1].Equals("Public", StringComparison.OrdinalIgnoreCase) || ThuMucHoSoTha.Contains(con)) return segs.Length <= 4;   // …\Downloads\x.exe
+        if (con.StartsWith("OneDrive", StringComparison.OrdinalIgnoreCase))
+            return segs.Length <= 4 || (segs.Length == 5 && ThuMucHoSoTha.Contains(segs[3]));                                  // OneDrive\Desktop\x.exe
+        return true;   // AppData\Local\Temp\… : mọi tầng (bộ cài, tệp giải nén tạm)
+    }
+
+    /// <summary>Exe khớp luật cho phép: theo tên exe (tên trùng của Windows thì phải là bản thật — <see cref="TenCuaWindows"/>) hoặc theo tên gói Store.
+    /// #693: exe ở chỗ Con tự thả tệp (<see cref="LaChoConThaTep"/>) mang tên một app ĐÃ CÀI ở chỗ khác trên máy (<paramref name="tenDaCai"/>, theo
+    /// danh sách app quét được) là bản giả (game đổi tên thành discord.exe) ⇒ không nhận. App Ba Mẹ duyệt chạy từ Downloads (không có bản cài) vẫn chạy.
+    /// <paramref name="tenDaCai"/> null ⇒ không nhận mọi exe ở chỗ thả tệp theo tên.</summary>
+    public static bool DuocPhepTheoLuat(string exePath, ISet<string> allowed, string? winDir, ISet<string>? tenDaCai = null)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
         var name = FileName(exePath);
         var goi = TenGoiStore(exePath);
         if (goi != null && allowed.Contains(goi)) return true;
+        if (goi == null && (tenDaCai == null || tenDaCai.Contains(name)) && LaChoConThaTep(exePath, winDir)) return false;   // #693
         return allowed.Contains(name) && (!TenCuaWindows(name) || goi != null || winDir == null || TrongWindowsChiQuanTri(exePath, winDir)
             || ProgramFiles.IsMatch(exePath.Replace('/', '\\')));   // wordpad (Windows NT\Accessories), pwsh (PowerShell\7) — Program Files chỉ quản trị ghi
     }
@@ -250,11 +302,12 @@ public static class ProcessGuard
     /// <param name="safeDirs">Thư mục hệ thống.</param>
     /// <param name="winDir">Thư mục Windows (null = không miễn tiến trình hệ thống theo tên — chỉ test cũ).</param>
     /// <param name="goiCha">#643: khoá gói Store của các app cha đang chạy và được phép (<see cref="KhoaGoiCha"/>); tiến trình phụ cùng họ không bị đóng.</param>
+    /// <param name="tenDaCai">#693: tên exe của app đã cài ở chỗ không phải chỗ thả tệp (<see cref="DuocPhepTheoLuat"/>).</param>
     public static bool ShouldClose(string exePath, ISet<string> allowed, ISet<string> allowedDirs, IEnumerable<string> safeDirs, string? winDir = null,
-        IReadOnlyCollection<string>? goiCha = null)
+        IReadOnlyCollection<string>? goiCha = null, ISet<string>? tenDaCai = null)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
-        if (DuocPhepTheoLuat(exePath, allowed, winDir)) return false;
+        if (DuocPhepTheoLuat(exePath, allowed, winDir, tenDaCai)) return false;
         if (LaTienTrinhPhuCuaCha(exePath, goiCha)) return false;   // #643
         if (TenGoiStore(exePath) is { } goi && LaGoiStoreHeThong(goi)) return false;
         if (LaTienTrinhHeThongPhien(exePath, winDir)) return false;
