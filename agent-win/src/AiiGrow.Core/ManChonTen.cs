@@ -167,7 +167,7 @@ public static class ManChonTenView
             case "khong_thay":
                 VeDau(st); st.Loi = loi ?? "Không thấy tên này trên máy — chọn lại nhé."; break;
             default:
-                st.Loi = string.IsNullOrWhiteSpace(loi) ? "Chưa vào được. Con thử lại nhé." : loi; break;
+                st.Loi = CauLoi.AnToan(loi, "Chưa vào được. Con thử lại nhé."); break;
         }
     }
 
@@ -186,7 +186,7 @@ public static class ManChonTenView
         "ma_sai" => conLan is int n ? $"Mã chưa đúng · còn {n} lần thử" : "Mã chưa đúng — xem lại trong app Ba Mẹ nhé.",
         "ma_tam_khoa" => $"Nhập sai nhiều lần — đợi {Math.Max(1, ((choGiay ?? 600) + 59) / 60)} phút rồi thử lại.",
         "ma_da_dung" => "Mã này đã dùng rồi — mở app Ba Mẹ lấy mã mới.",
-        _ => string.IsNullOrWhiteSpace(loi) ? "Chưa mở được. Thử lại nhé." : loi,
+        _ => CauLoi.AnToan(loi, "Chưa mở được. Thử lại nhé."),   // #688: câu .NET / mã thô không lọt ra
     };
 }
 

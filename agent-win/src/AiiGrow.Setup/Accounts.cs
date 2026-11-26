@@ -29,7 +29,7 @@ internal static class Accounts
             $"try {{ Add-LocalGroupMember -SID S-1-5-32-545 -Member {q} }} catch {{}}; " +
             $"(Get-LocalUser -Name {q}).SID.Value",
             60000, new Dictionary<string, string> { ["AIIG_PW"] = password });
-        if (!r.Ok) throw new InvalidOperationException("Không tạo được tài khoản: " + r.Error);
+        if (!r.Ok) throw new LoiCai(CauLoiCai.TuLoiTaoTaiKhoan(name, r.Error), r.Error);   // #689: stderr PowerShell chỉ vào install.log
         return r.Output.Trim();
     }
 
@@ -41,6 +41,6 @@ internal static class Accounts
         var r = Shell.PowerShell(
             $"try {{ Add-LocalGroupMember -SID S-1-5-32-545 -Member {q} }} catch {{}}; " +
             $"Remove-LocalGroupMember -SID S-1-5-32-544 -Member {q}");
-        if (!r.Ok) throw new InvalidOperationException("Không hạ được quyền quản trị: " + r.Error);
+        if (!r.Ok) throw new LoiCai(CauLoiCai.HaQuyen, r.Error);
     }
 }

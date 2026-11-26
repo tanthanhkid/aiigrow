@@ -225,7 +225,7 @@ internal sealed class CapNhatForm : Form
         _nut.Enabled = true;
         _tieuDe.Text = kq.Ok ? "Đã cập nhật lên bản " + CapNhat.Hien(_ph.BanMoi) : "Chưa cập nhật được";
         _tieuDe.ForeColor = kq.Ok ? SetupForm.Chinh : SetupForm.Loi;
-        _loi.Text = kq.Ok ? "AiiGrow đang chạy bản mới. Ghép máy và luật của Ba Mẹ giữ nguyên. Biểu tượng khay bản mới hiện ở lần đăng nhập sau." : kq.Log;
+        _loi.Text = kq.Ok ? "AiiGrow đang chạy bản mới. Ghép máy và luật của Ba Mẹ giữ nguyên. Biểu tượng khay bản mới hiện ở lần đăng nhập sau." : CauLoiCai.CapNhatLoi(kq);   // #689: nhật ký bước chỉ ở install.log
         _nut.Controls.Clear();
         _nut.Controls.Add(Nut("Đóng", true, Close));
     }

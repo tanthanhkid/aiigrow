@@ -41,8 +41,8 @@ internal static class DeviceHttp
         if (body != null) req.Content = JsonContent.Create(body, body.GetType(), null, Json.Options);
         HttpResponseMessage resp;
         try { resp = await http.SendAsync(req, ct); }
-        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new ApiException("Máy chủ không trả lời kịp", null, new TimeoutException()); }
-        catch (HttpRequestException e) { throw new ApiException("Không kết nối được máy chủ: " + e.Message, null, e); }
+        catch (OperationCanceledException) when (!ct.IsCancellationRequested) { throw new ApiException(CauLoi.QuaHan, null, new TimeoutException()); }
+        catch (HttpRequestException e) { throw new ApiException(CauLoi.MatMang, null, e); }
         using (resp)
         {
             var text = await resp.Content.ReadAsStringAsync(ct);
@@ -58,7 +58,7 @@ internal static class DeviceHttp
                 }
             }
             catch { }
-            throw new ApiException(msg ?? ("Máy chủ báo lỗi " + (int)resp.StatusCode), (int)resp.StatusCode, null, code);
+            throw new ApiException(CauLoi.AnToan(msg, CauLoi.TheoMa((int)resp.StatusCode)), (int)resp.StatusCode, null, code);
         }
     }
 
