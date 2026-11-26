@@ -21,8 +21,8 @@ public sealed record VayDangCho(string Id, int SoSao, DateTimeOffset Luc, string
     }
 }
 
-/// <summary>#686: đếm lần hỏi trạng thái lời xin lỗi LIÊN TIẾP (id không còn, dịch vụ cũ, 404…) — quá <see cref="ToiDa"/> thì thôi hỏi
-/// (trước đây hỏi mãi, hộp «Đang chờ» đứng mãi và nút gửi bị khoá). Hỏi được một lần là đếm lại từ đầu.</summary>
+/// <summary>#686: đếm lần hỏi trạng thái lời xin lỗi LIÊN TIẾP kiểu «không còn» (id không còn, 404…) — quá <see cref="ToiDa"/> thì thôi hỏi
+/// (trước đây hỏi mãi, hộp «Đang chờ» đứng mãi và nút gửi bị khoá). Hỏi được một lần là đếm lại từ đầu; mất mạng không tính (chờ có mạng hỏi tiếp).</summary>
 public sealed class DemLoiHoi
 {
     public int ToiDa { get; }
@@ -35,6 +35,9 @@ public sealed class DemLoiHoi
         Lan = ok ? 0 : Lan + 1;
         return Lan >= ToiDa;
     }
+
+    /// <summary>Theo một lần hỏi Status: được ⇒ đếm lại; lỗi tạm (mất mạng, 5xx) ⇒ giữ nguyên số đếm; lỗi «không còn» ⇒ tính.</summary>
+    public bool Ghi(PipeResponse r) => r.Ok ? Ghi(true) : r.KhongCon ? Ghi(false) : false;
 
     public void DatLai() => Lan = 0;
 }

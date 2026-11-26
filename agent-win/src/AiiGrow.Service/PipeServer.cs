@@ -102,6 +102,8 @@ public sealed class PipeServer : BackgroundService
     private PipeResponse LuuChoMang(LoiXinCho x)
     {
         int n = 0;
+        var dn = _rt.Config?.DangNhap;   // #684: nhớ bé đang dùng máy — lời xin bị bỏ chỉ báo lại đúng bé đó
+        if (dn != null && DangNhapView.HienTai(dn, DateTimeOffset.Now) == LoaiNguoiDung.Con) x.BeId ??= dn.ConId;
         try { var moi = _rt.Store.Update(c => c.XinCho.Them(x)) ?? throw new IOException("không ghi được cấu hình"); n = moi.XinCho.Items.Count; _rt.NapLaiConfig(moi); }
         catch (Exception e) { _log.LogWarning("Không lưu được lời xin chờ mạng: {m}", e.Message); return new PipeResponse { Ok = false, Error = "Chưa có mạng, con thử lại sau nhé." }; }
         _log.LogInformation("Mất mạng: đã lưu lời xin {loai} {muc} chờ có mạng ({n})", x.Loai, x.Muc, n);
@@ -304,7 +306,7 @@ public sealed class PipeServer : BackgroundService
             {
                 var cfg = _rt.Config;
                 if (cfg is not { Paired: true } || string.IsNullOrEmpty(req.Id))
-                    return new PipeResponse { Ok = false, Error = "Thiếu thông tin" };
+                    return new PipeResponse { Ok = false, Error = "Thiếu thông tin", KhongCon = true };
                 try
                 {
                     using var api = new ApiClient(cfg.Server, cfg.Token);
@@ -313,7 +315,11 @@ public sealed class PipeServer : BackgroundService
                     if (TrayView.XinGio(st.Status) == TrayView.KetQuaXin.Duoc) _rt.RequestSyncSoon();
                     return new PipeResponse { Ok = true, Id = req.Id, Status = st.Status, GrantEndsAt = st.GrantEndsAt, KetQua = st };
                 }
-                catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
+                catch (ApiException e)
+                {
+                    // #686: chỉ lỗi «không bao giờ hỏi được» (4xx: id không còn, không thuộc máy) mới tính trần lỗi; mất mạng / 5xx / 408 / 429 thì khay cứ chờ
+                    return new PipeResponse { Ok = false, Error = e.Message, KhongCon = !e.LaLoiDuongTruyen && e.StatusCode is >= 400 and < 500 and not 408 and not 429 };
+                }
             }
 
             case PipeCmd.SyncNow:

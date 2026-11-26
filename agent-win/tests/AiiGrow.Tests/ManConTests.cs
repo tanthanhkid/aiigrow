@@ -201,7 +201,7 @@ public class ManConTests
     public async Task HangXinCho_429BamDon_GiuLai_GuiLuotSau()
     {
         var h = new HangXinCho();
-        var now = DateTimeOffset.Now;
+        var now = new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.FromHours(7));
         for (int i = 0; i < 12; i++) h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = $"app{i}.exe", Luc = now });
         int nhan = 0;
         Task<KetQuaGuiXin> MayChu(LoiXinCho x)
@@ -226,12 +226,13 @@ public class ManConTests
     public async Task HangXinCho_BiBo_BaoCon()
     {
         var h = new HangXinCho();
-        var now = DateTimeOffset.Now;
-        h.Them(new LoiXinCho { Loai = LoaiXin.VaySao, Phut = 15, Luc = now.AddDays(-1) });                   // quá hạn
+        var now = new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.FromHours(7));
+        h.Them(new LoiXinCho { Loai = LoaiXin.VaySao, Phut = 15, Luc = now.AddDays(-1) });
+        h.Them(new LoiXinCho { Loai = "them_gio", Phut = 30, Luc = now });                                   // loại cũ: bỏ im lặng                   // quá hạn
         h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "roblox.exe", Ten = "Roblox", Luc = now });     // máy chủ từ chối
         h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "capcut.exe", Luc = now });                     // gửi được
-        var (xong, _) = await h.GuiAsync(x => Task.FromResult(x.Muc == "roblox.exe" ? KetQuaGuiXin.Bo : KetQuaGuiXin.DaGui), now);
-        Assert.Equal(3, xong.Count);
+        var (xong, _) = await h.GuiAsync(x => Task.FromResult(x.Muc == "roblox.exe" || x.Loai == "them_gio" ? KetQuaGuiXin.Bo : KetQuaGuiXin.DaGui), now);
+        Assert.Equal(4, xong.Count);
         Assert.Equal(new[] { LoaiXin.VaySao, LoaiXin.XinDuyet }, h.BiBo.Select(x => x.Loai));
         var ds = new XinBoDs();
         ds.Them(h.BiBo, now);

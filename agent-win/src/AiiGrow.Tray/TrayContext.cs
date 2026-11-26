@@ -36,8 +36,8 @@ internal sealed class TrayContext : ApplicationContext
         }
     }
     private static string TepVayCho => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiiGrow", "vay-cho.json");
-    /// <summary>~10 phút hỏi lỗi liên tiếp (15 giây / lần) ⇒ thôi theo dõi (tin «cho vay / chưa cho vay» của máy chủ vẫn báo Con).</summary>
-    private readonly DemLoiHoi _vayLoi = new(40);
+    /// <summary>Máy chủ trả «không còn» vài lần liền ⇒ thôi theo dõi (tin «cho vay / chưa cho vay» của máy chủ vẫn báo Con). Mất mạng không tính.</summary>
+    private readonly DemLoiHoi _vayLoi = new(5);
 
     /// <summary>Khay mới chạy: đọc lại lời xin vay đang theo dõi của lần chạy trước (còn hạn 24 giờ).</summary>
     private void KhoiPhucVayCho()
@@ -343,16 +343,31 @@ internal sealed class TrayContext : ApplicationContext
         _app?.RefreshSoon();
     }
 
-    private readonly HashSet<string> _xinBoDaBao = new();
+    private HashSet<string>? _xinBoDaBao;
+    private static string TepXinBoDaBao => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiiGrow", "xin-bo-da-bao.txt");
 
-    /// <summary>#684: lời xin lưu lúc mất mạng bị bỏ chưa tới Ba Mẹ (máy chủ từ chối, quá hạn, gửi lỗi nhiều lần) ⇒ bóng báo Con xin lại — mỗi mục
-    /// một lần, một bóng mỗi lượt. Máy đang khoá vẫn báo (bóng báo không mở app).</summary>
+    /// <summary>#684: lời xin lưu lúc mất mạng bị bỏ chưa tới Ba Mẹ (máy chủ từ chối, quá hạn, gửi lỗi nhiều lần) ⇒ bóng báo đúng bé đã xin —
+    /// mỗi mục một lần (nhớ qua tệp: khay chạy lại không báo lại), một bóng mỗi lượt; vừa có bóng khác (cảnh báo còn 5 phút…) thì để lượt sau, không đè.</summary>
     private void HandleXinBo()
     {
+        if (_state.NguoiDung != LoaiNguoiDung.Con || _state.XinBo.Count == 0 || (DateTimeOffset.Now - _toastAt).TotalSeconds < 12) return;
+        if (_xinBoDaBao == null)
+        {
+            _xinBoDaBao = new();
+            try { if (File.Exists(TepXinBoDaBao)) _xinBoDaBao.UnionWith(File.ReadAllLines(TepXinBoDaBao)); }
+            catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+        }
         foreach (var x in _state.XinBo)
         {
+            if (x.BeId != null && x.BeId != _state.BeId) continue;   // máy dùng chung: lời xin của bé khác
             if (!_xinBoDaBao.Add(x.Ma)) continue;
             Toast(10000, XinBoView.Tieu, XinBoView.Cau(x), ToolTipIcon.Info, MucApp.HomNay);
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(TepXinBoDaBao)!);
+                File.WriteAllLines(TepXinBoDaBao, _xinBoDaBao.Where(m => _state.XinBo.Any(i => i.Ma == m)));   // chỉ giữ mục dịch vụ còn giữ (24 giờ)
+            }
+            catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
             break;
         }
     }
@@ -362,10 +377,11 @@ internal sealed class TrayContext : ApplicationContext
     {
         // máy đang khoá ⇒ chưa hỏi, giữ lời xin: mở khoá rồi mới báo kết quả
         if (_vayCho is not { } v || _state.Locked || (DateTimeOffset.Now - _vayHoiLuc).TotalSeconds < 15 || XinVayForm.DangMo > 0) return;
+        if (_state.NguoiDung != LoaiNguoiDung.Con || _state.BeId != _vayBeId) return;   // chưa ai / Ba Mẹ đang dùng ⇒ chờ bé đã xin quay lại
         _vayHoiLuc = DateTimeOffset.Now;
         var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Status, Id = v.Id });
         if (_vayCho?.Id != v.Id) return;
-        if (_vayLoi.Ghi(r.Ok)) { _vayCho = null; return; }    // #686: hỏi lỗi mãi (id không còn, dịch vụ cũ) ⇒ thôi, không treo vô hạn
+        if (_vayLoi.Ghi(r)) { _vayCho = null; return; }    // #686: máy chủ báo lời xin không còn ⇒ thôi, không treo vô hạn
         if (!r.Ok) return;
         var kq = TrayView.XinGio(r.Status);
         if (kq == TrayView.KetQuaXin.Cho) return;
@@ -786,7 +802,7 @@ internal sealed class TrayContext : ApplicationContext
         if (_thoat is { IsDisposed: false }) _thoat.Close();   // «Cần mã của Ba Mẹ» của bé trước
         if (_nhac is { IsDisposed: false }) _nhac.Close();
         DongHetSao();
-        if (_vayCho != null && _vayBeId != id) _vayCho = null;   // #686: khay vừa chạy lại, cùng bé ⇒ giữ lời xin đang theo dõi
+        if (_vayCho != null && id != null && _vayBeId != id) _vayCho = null;   // #686: bé KHÁC vào máy ⇒ bỏ; chưa ai / Ba Mẹ ⇒ giữ (khay vừa chạy lại)
         _phutTruoc = null; _daBaoHetSao = false;
         _warned5 = false;
         if (id != null) _ = HocVienTickAsync();

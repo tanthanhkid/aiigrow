@@ -178,6 +178,8 @@ public sealed class PipeResponse
 {
     public bool Ok { get; set; }
     public string? Error { get; set; }
+    /// <summary>#686: Status — lời xin không hỏi được nữa (máy chủ trả 4xx / chưa ghép), khác lỗi tạm (mất mạng, 5xx).</summary>
+    public bool KhongCon { get; set; }
     public TrayState? State { get; set; }
     public string? Id { get; set; }
     public string? Status { get; set; }

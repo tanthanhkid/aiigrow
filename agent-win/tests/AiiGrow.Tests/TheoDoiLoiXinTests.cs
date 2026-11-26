@@ -32,5 +32,13 @@ public class TheoDoiLoiXinTests
         Assert.True(d.Ghi(false));
         d.DatLai();
         Assert.Equal(0, d.Lan);
+        // theo PipeResponse: mất mạng không tính, không đếm lại; «không còn» mới tính
+        Assert.False(d.Ghi(new PipeResponse { Ok = false, KhongCon = true }));
+        for (int i = 0; i < 50; i++) Assert.False(d.Ghi(new PipeResponse { Ok = false }));
+        Assert.Equal(1, d.Lan);
+        Assert.False(d.Ghi(new PipeResponse { Ok = false, KhongCon = true }));
+        Assert.True(d.Ghi(new PipeResponse { Ok = false, KhongCon = true }));
+        Assert.False(d.Ghi(new PipeResponse { Ok = true }));
+        Assert.Equal(0, d.Lan);
     }
 }

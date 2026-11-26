@@ -17,6 +17,8 @@ public sealed class LoiXinCho
     public DateTimeOffset Luc { get; set; }
     /// <summary>Số lần gửi lỗi đường truyền khi đã có mạng (hết giờ chờ — máy chủ có thể đã nhận) ⇒ quá <see cref="HangXinCho.ThuToiDa"/> thì bỏ, không tạo lời xin trùng mãi.</summary>
     public int LanLoi { get; set; }
+    /// <summary>#684: bé đang dùng máy lúc xin (máy dùng chung) — lời xin bị bỏ chỉ báo đúng bé này. null = không rõ (lời xin cũ / máy không đăng nhập theo bé).</summary>
+    public string? BeId { get; set; }
 }
 
 /// <summary>Kết quả gửi một lời xin chờ mạng. <see cref="TamHoan"/> (#684): máy chủ bảo «chậm lại» (408 / 429 bam_don) — chắc chắn CHƯA nhận,
@@ -57,21 +59,27 @@ public sealed class HangXinCho
         foreach (var x in Items.ToList())
         {
             if (x.Luc > now) x.Luc = now;   // đồng hồ máy bị lùi ⇒ tính từ bây giờ, không giữ mãi
-            if (now - x.Luc > HetHan) { xong.Add(x.Ma); BiBo.Add(x); continue; }
+            if (now - x.Luc > HetHan) { xong.Add(x.Ma); BaoBo(x); continue; }
             var kq = await gui(x);
             if (kq == KetQuaGuiXin.TamHoan) break;
             if (kq == KetQuaGuiXin.LoiMang)
             {
                 x.LanLoi++;
-                if (x.LanLoi >= ThuToiDa) { xong.Add(x.Ma); BiBo.Add(x); continue; }
+                if (x.LanLoi >= ThuToiDa) { xong.Add(x.Ma); BaoBo(x); continue; }
                 loi = x.Ma;
                 break;
             }
             xong.Add(x.Ma);
-            if (kq == KetQuaGuiXin.Bo) BiBo.Add(x);
+            if (kq == KetQuaGuiXin.Bo) BaoBo(x);
         }
         Items.RemoveAll(x => xong.Contains(x.Ma));
         return (xong, loi);
+    }
+
+    /// <summary>Chỉ lời xin Con còn xin được (vay sao / xin duyệt) mới báo; loại cũ (them_gio / ngoai_le, bỏ từ 15/11) bỏ im lặng.</summary>
+    private void BaoBo(LoiXinCho x)
+    {
+        if (x.Loai == LoaiXin.VaySao || x.Loai == LoaiXin.XinDuyet && !string.IsNullOrWhiteSpace(x.Ten ?? x.Muc)) BiBo.Add(x);
     }
 
     /// <summary>Phân loại lỗi khi gửi: lỗi mạng / máy chủ 5xx ⇒ giữ lại (tính lần); 408 / 429 ⇒ tạm hoãn (giữ, không tính lần);
@@ -101,7 +109,7 @@ public sealed class XinBoDs
     {
         foreach (var x in ds)
             if (Items.All(i => i.Ma != x.Ma))
-                Items.Add(new LoiXinCho { Ma = x.Ma, Loai = x.Loai, Muc = x.Muc, Ten = x.Ten, Phut = x.Phut, Kieu = x.Kieu, Luc = now });
+                Items.Add(new LoiXinCho { Ma = x.Ma, Loai = x.Loai, Muc = x.Muc, Ten = x.Ten, Phut = x.Phut, Kieu = x.Kieu, BeId = x.BeId, Luc = now });
         Items.RemoveAll(i => now - i.Luc > Han || i.Luc > now + Han);
         while (Items.Count > ToiDa) Items.RemoveAt(0);
     }
