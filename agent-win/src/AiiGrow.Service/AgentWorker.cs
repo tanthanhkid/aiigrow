@@ -117,7 +117,7 @@ public sealed class AgentWorker : BackgroundService
                         // chưa đọc được tài khoản: không ÁP được, nhưng «Mở»/mã mở tạm (AppLockerWanted=false) vẫn phải GỠ được
                         if (apThat && (childSids != null || !eff.AppLockerWanted))
                         {
-                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh), _rt.TrinhDuyetLoc(), ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc));
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh), _rt.TrinhDuyetLoc(), GoiNgoaiWindowsApps.LuatChan(ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), _rt.GoiNgoai));
                             _rt.AppLockerApplied = applied;
                         }
                         else if (eff.AppLockerWanted)
@@ -193,8 +193,8 @@ public sealed class AgentWorker : BackgroundService
             {
                 try
                 {
-                    if (UwpTienCanh.QuyHostVeAppTinhPhut(tp, new WindowsProcessControl().ListChildProcesses(phienCon).Select(x => x.Path), _rt.MucChinh) is { } app)
-                        (id, name) = (app, app);
+                    if (UwpTienCanh.QuyHostVeAppTinhPhut(tp, new WindowsProcessControl().ListChildProcesses(phienCon).Select(x => x.Path), _rt.MucChinh, _rt.ExeGoi) is { } app)
+                        (id, name) = (app, _rt.TenAppMay is { } tm && tm.TryGetValue(app, out var tenApp) ? tenApp : app);
                 }
                 catch { }
             }
@@ -346,9 +346,15 @@ public sealed class AgentWorker : BackgroundService
     {
         // Giám sát (apThat=false): dryRun — liệt kê app SẼ bị đóng nhưng KHÔNG đóng thật.
         var pf = TrinhDuyetLoc.ThuMucProgramFiles();
-        Func<string, bool>? choThem = trinhDuyet is { Count: > 0 } ? path => TrinhDuyetLoc.ChoChay(path, trinhDuyet, pf, _kiemKy.Kiem) : null;
         // #690: app gộp (bản Store + bản cài) — Ba Mẹ cho phép một muc thì mọi lối mở của cùng app đều được
-        var closed = ProcessEnforcer.Enforce(_procs, sessionId, ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh), dryRun: !apThat, choThem: choThem,
+        var choPhep = ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh);
+        // #695: gói Store cài ngoài WindowsApps (ổ D, XboxGames) — được phép theo thư mục cài của gói
+        var goi = _rt.GoiNgoai;
+        var tapChoPhep = new HashSet<string>(choPhep, StringComparer.OrdinalIgnoreCase);
+        Func<string, bool>? choThem = trinhDuyet is { Count: > 0 } || goi is { Count: > 0 }
+            ? path => (trinhDuyet is { Count: > 0 } && TrinhDuyetLoc.ChoChay(path, trinhDuyet, pf, _kiemKy.Kiem)) || GoiNgoaiWindowsApps.ChoChay(path, tapChoPhep, goi)
+            : null;
+        var closed = ProcessEnforcer.Enforce(_procs, sessionId, choPhep, dryRun: !apThat, choThem: choThem,
             khongDong: exe => BaoKhongDong(exe, "ngoài danh sách"), tenDaCai: _rt.TenDaCai ?? ChuaQuet);
         // Giám sát: cùng một tập app chạy mãi ⇒ chỉ ghi log khi tập đổi (trước đây ~5 giây một lượt, hàng nghìn dòng may_log mỗi giờ).
         var tap = string.Join(",", closed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
@@ -406,7 +412,7 @@ public sealed class AgentWorker : BackgroundService
 
     private void EnforceChanApp(int sessionId, Policy p, bool apThat)
     {
-        var ds = ChanAppThat.Enforce(_procs, sessionId, ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), dryRun: !apThat, bam: BamTepCache.Chung.BamNen,
+        var ds = ChanAppThat.Enforce(_procs, sessionId, GoiNgoaiWindowsApps.LuatChan(ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), _rt.GoiNgoai), dryRun: !apThat, bam: BamTepCache.Chung.BamNen,
             khongDong: (exe, muc) => BaoKhongDong(exe, "Ba Mẹ đã Chặn, luật " + muc));
         var tap = string.Join(",", ds.Select(x => x.Exe).Distinct().OrderBy(x => x, StringComparer.Ordinal));
         var ghi = tap != _chanDaBao;

@@ -270,35 +270,48 @@ public class LuatChanChoPhepTests
         => Assert.Null(ProcessGuard.TenGoiStore(duong));
 
     [Fact]
-    public void GoiNgoaiWindowsApps_ExeManifestThanhBiDanh()
+    public void GoiNgoaiWindowsApps_ChanChoPhepTinhPhutTheoThuMucCai()
     {
         var ds = GoiXbox();
         var mc = ds.Single(a => a.Muc == "microsoft.minecraftuwp");
-        // tên exe chung chung (gamelaunchhelper.exe) không thành bí danh; gói trong Program Files\WindowsApps không cần bí danh
-        Assert.Equal(new[] { "microsoft.minecraftuwp", "minecraft.windows.exe" }, mc.CacMuc);
-        Assert.Equal(new[] { "microsoft.microsoftsolitairecollection" }, ds.Single(a => a.Muc != mc.Muc).CacMuc);
-        var nhom = DanhSachApp.NhomMuc(ds);
-        var chinh = DanhSachApp.BangMucChinh(nhom);
-        Assert.Equal("microsoft.minecraftuwp", chinh["minecraft.windows.exe"]);
+        Assert.Equal(new[] { "microsoft.minecraftuwp" }, mc.CacMuc);   // không thành bí danh theo tên (exe cùng tên ở chỗ khác không được phép)
+        var goi = DanhSachApp.NhomGoiNgoai(ds);
+        var nhom = Assert.Single(goi);   // gói trong Program Files\WindowsApps không cần (đường dẫn mang tên gói)
+        Assert.Equal(new[] { "microsoft.minecraftuwp", @"C:\XboxGames\Minecraft for Windows\Content", "minecraft.windows.exe" }, nhom);   // gamelaunchhelper.exe: tên chung
+        const string helper = @"C:\XboxGames\Minecraft for Windows\Content\GameLaunchHelper.exe";
+        const string gia = @"C:\Users\Con\AppData\Local\X\Minecraft.Windows.exe";
 
         // Chặn: trên origin/main luật «microsoft.minecraftuwp» không khớp tiến trình ở XboxGames
         var luat = new[] { new AppBiChan { Muc = "microsoft.minecraftuwp" } };
         Assert.Null(ChanAppThat.Khop(XboxMc, luat, null));
-        Assert.NotNull(ChanAppThat.Khop(XboxMc, ChanAppThat.MoRongBiDanh(luat, DanhSachApp.BangBiDanh(nhom)), null));
+        var luatMoi = GoiNgoaiWindowsApps.LuatChan(luat, goi);
+        Assert.Equal("microsoft.minecraftuwp", ChanAppThat.Khop(XboxMc, luatMoi, null)?.Muc);
+        Assert.NotNull(ChanAppThat.Khop(helper, luatMoi, null));
+        Assert.Single(GoiNgoaiWindowsApps.LuatChan(new[] { new AppBiChan { Muc = "khac.exe" } }, goi));
 
         // Cho phép: trên origin/main game bị đóng dù Ba Mẹ cho phép
         var cu = new FakeProcessControl(new RunningProc(1, XboxMc));
         ProcessEnforcer.Enforce(cu, 2, new[] { "microsoft.minecraftuwp" }, Safe, winDir: Win);
         Assert.Equal(new[] { 1 }, cu.Closed);
-        var moi = new FakeProcessControl(new RunningProc(1, XboxMc));
-        ProcessEnforcer.Enforce(moi, 2, ChanAppThat.MoRongTen(new[] { "microsoft.minecraftuwp" }, chinh), Safe, winDir: Win,
+        var choPhep = Tap("microsoft.minecraftuwp");
+        var moi = new FakeProcessControl(new RunningProc(1, helper), new RunningProc(2, XboxMc), new RunningProc(3, gia));
+        ProcessEnforcer.Enforce(moi, 2, choPhep, Safe, winDir: Win, choThem: d => GoiNgoaiWindowsApps.ChoChay(d, choPhep, goi),
             tenDaCai: DanhSachApp.TenExeDaCai(ds, Win).ToHashSet());
-        Assert.Empty(moi.Closed);
+        Assert.Equal(new[] { 3 }, moi.Closed);   // helper + game giữ; exe cùng tên đặt chỗ khác vẫn đóng
+        Assert.False(GoiNgoaiWindowsApps.ChoChay(XboxMc, Tap("khac.exe"), goi));
 
-        // Tính phút: khay báo tên exe ⇒ quy về gói (AgentRuntime.SetForeground dùng BangMucChinh)
+        // Tính phút: khay báo tên exe ⇒ quy về gói (AgentRuntime.SetForeground)
+        var exeGoi = GoiNgoaiWindowsApps.ExeVeGoi(goi);
+        Assert.Equal("microsoft.minecraftuwp", exeGoi["Minecraft.Windows.exe"]);
+        Assert.False(exeGoi.ContainsKey("gamelaunchhelper.exe"));   // tên chung của mọi game Xbox
         var p = new Policy { AppTinhGio = new List<string> { "microsoft.minecraftuwp" } };
         Assert.False(QuyTaiCho.TinhGio(p, "minecraft.windows.exe"));
-        Assert.True(QuyTaiCho.TinhGio(p, chinh["minecraft.windows.exe"]));
+        Assert.True(QuyTaiCho.TinhGio(p, exeGoi["minecraft.windows.exe"]));
+
+        // lưu cấu hình đọc lại được (khởi động lại không chờ lượt quét)
+        var cfg = System.Text.Json.JsonSerializer.Deserialize<AgentConfig>(
+            System.Text.Json.JsonSerializer.Serialize(new AgentConfig { GoiNgoaiApp = goi }, Json.Options), Json.Options)!;
+        Assert.Equal(goi, cfg.GoiNgoaiApp);
 
         // exe của gói ngoài WindowsApps là app đã cài: bản giả cùng tên ở Downloads vẫn bị chặn (#693)
         Assert.Contains("minecraft.windows.exe", DanhSachApp.TenExeDaCai(ds, Win));
@@ -324,9 +337,12 @@ public class LuatChanChoPhepTests
         Assert.Equal("microsoft.minecraftuwp", app);
         Assert.True(QuyTaiCho.TinhGio(p, app));
 
-        // exe bí danh (#695) cũng quy được
-        var chinh = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["minecraft.windows.exe"] = "microsoft.minecraftuwp" };
-        Assert.Equal("microsoft.minecraftuwp", UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut, new[] { XboxMc }, chinh));
+        // exe của gói ngoài WindowsApps (#695) cũng quy được
+        var exeGoi = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["minecraft.windows.exe"] = "microsoft.minecraftuwp" };
+        Assert.Equal("microsoft.minecraftuwp", UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut, new[] { XboxMc }, exeGoi: exeGoi));
+
+        // app Win32 «Tính phút» chạy nền (Roblox thu nhỏ) KHÔNG bị tính thay cửa sổ UWP
+        Assert.Null(UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut, new[] { @"C:\Users\Con\AppData\Local\Roblox\Versions\v1\RobloxPlayerBeta.exe" }));
 
         // không có app «Tính phút» nào chạy ⇒ giữ nguyên (không trừ oan)
         Assert.Null(UwpTienCanh.QuyHostVeAppTinhPhut(tinhPhut, new[] { @"C:\Windows\System32\ApplicationFrameHost.exe", @"C:\Windows\explorer.exe" }));

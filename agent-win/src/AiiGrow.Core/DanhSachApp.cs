@@ -37,6 +37,10 @@ public sealed class AppThat
     /// (<see cref="DanhSachApp.TenExeDaCai"/>): lối tắt Con tự tạo trỏ vào Desktop không làm mất bản cài thật cùng tên.</summary>
     [JsonIgnore]
     public List<string>? CacDuongDan { get; set; }
+    /// <summary>#695: gói Store cài ngoài «Program Files\WindowsApps» của app này (kể cả bản đã gộp): mỗi phần tử [muc gói, thư mục cài, exe…] —
+    /// CHỈ trong máy (<see cref="GoiNgoaiWindowsApps"/>).</summary>
+    [JsonIgnore]
+    public List<List<string>>? GoiNgoai { get; set; }
 }
 
 /// <summary>Một khoá con của Uninstall (HKLM 64/32 hoặc HKU\&lt;SID Con&gt;).</summary>
@@ -323,16 +327,18 @@ public static class DanhSachApp
             };
             if (ExeNgoaiWindowsApps(p) is { Count: > 0 } ex)
             {
-                kq[khoa].CacMuc = ex.Prepend(ten).ToList();
-                kq[khoa].CacDuongDan = ex.Select(e => p.InstallLocation!.TrimEnd('\\', '/') + "\\" + e).ToList();   // #693: tên exe «đã cài»
+                var thuMuc = p.InstallLocation!.Trim().TrimEnd('\\', '/');
+                kq[khoa].GoiNgoai = new List<List<string>> { ex.Prepend(thuMuc).Prepend(ten).ToList() };
+                kq[khoa].CacDuongDan = ex.Select(e => thuMuc + "\\" + e).ToList();   // #693: tên exe «đã cài»
             }
         }
         return kq.Values.ToList();
     }
 
     /// <summary>#695: gói Store cài NGOÀI «&lt;ổ&gt;:\Program Files\WindowsApps» (ổ D: «D:\WindowsApps\…», game Xbox «C:\XboxGames\&lt;Game&gt;\Content»)
-    /// — đường dẫn tiến trình không mang tên gói (<see cref="ProcessGuard.TenGoiStore"/> = null) ⇒ quy theo tên exe khai trong manifest
-    /// (Application Executable, MicrosoftGame.config ExecutableList). Tên chung chung (<see cref="ChanAppThat.TenChung"/>) bỏ.</summary>
+    /// — đường dẫn tiến trình không mang tên gói (<see cref="ProcessGuard.TenGoiStore"/> = null). Cho phép / Chặn theo THƯ MỤC CÀI của gói
+    /// (<see cref="GoiNgoaiWindowsApps"/>), tiền cảnh (khay chỉ báo tên exe) theo tên exe khai trong manifest (Application Executable của gói ở
+    /// «X:\WindowsApps», MicrosoftGame.config ExecutableList). Tên chung chung (<see cref="ChanAppThat.TenChung"/>) bỏ.</summary>
     public static List<string> ExeNgoaiWindowsApps(MucAppx p)
     {
         if (p.Exe is not { Count: > 0 } || string.IsNullOrWhiteSpace(p.InstallLocation)) return new();
@@ -419,7 +425,8 @@ public static class DanhSachApp
             if (seenTen.TryGetValue(TenLoi(ten), out var daCo))
             {
                 // cùng tên (khác khoa: Copilot/Edge bản Store + bản đã cài) ⇒ một dòng, nhưng mang theo muc của bản bị gộp
-                foreach (var m in MucKem(muc, a.CacMuc)) if (!daCo.CacMuc!.Contains(m)) daCo.CacMuc.Add(m);
+                if (!daCo.CacMuc!.Contains(muc)) daCo.CacMuc.Add(muc);
+                if (a.GoiNgoai is { Count: > 0 } gn) (daCo.GoiNgoai ??= new()).AddRange(gn);
                 foreach (var d in DuongDanKem(a)) if (!daCo.CacDuongDan!.Contains(d, StringComparer.OrdinalIgnoreCase)) daCo.CacDuongDan.Add(d);
                 continue;
             }
@@ -430,7 +437,8 @@ public static class DanhSachApp
                 Icon = a.Icon is { Length: > 0 and <= ToiDaIconBase64 } ? a.Icon : null,
             });
             var moi = kq[^1];
-            moi.CacMuc = MucKem(moi.Muc, a.CacMuc).ToList();
+            moi.CacMuc = new List<string> { moi.Muc };
+            moi.GoiNgoai = a.GoiNgoai is { Count: > 0 } g ? g.ToList() : null;
             moi.CacDuongDan = DuongDanKem(a).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
             seenTen[TenLoi(ten)] = moi;
             moi.IconBam = moi.Icon == null ? null : BamIcon(moi.Icon);
@@ -439,10 +447,8 @@ public static class DanhSachApp
         return kq.OrderBy(a => a.Khoa, StringComparer.Ordinal).Take(ToiDaApp).ToList();
     }
 
-    /// <summary>Muc chính rồi các muc kèm của bản đầu vào (exe của gói Store ngoài WindowsApps — #695), chữ thường, không trùng.</summary>
-    private static IEnumerable<string> MucKem(string muc, IEnumerable<string>? kem) =>
-        (kem ?? Enumerable.Empty<string>()).Select(m => (m ?? "").Trim().ToLowerInvariant()).Where(m => m.Length > 0)
-            .Prepend(muc).Distinct(StringComparer.Ordinal);
+    /// <summary>#695: mọi gói Store ngoài WindowsApps của danh sách app ([muc gói, thư mục cài, exe…]) — lưu vào cấu hình như <see cref="NhomMuc"/>.</summary>
+    public static List<List<string>> NhomGoiNgoai(IEnumerable<AppThat> ds) => ds.SelectMany(a => a.GoiNgoai ?? new()).Select(g => g.ToList()).ToList();
 
     /// <summary>Muc → mọi muc cùng app (cùng tên đã gộp): chỉ các app có từ hai muc trở lên.</summary>
     public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds) => BangBiDanh(NhomMuc(ds));

@@ -65,14 +65,20 @@ public sealed class DanhSachAppWorker : BackgroundService
             foreach (var a in ds)
                 foreach (var m in a.CacMuc is { Count: > 0 } c ? c : new List<string> { a.Muc })   // #645: cả mục đã gộp (launcher/game cùng hãng) cùng một tên
                     if (!string.IsNullOrWhiteSpace(m) && !string.IsNullOrWhiteSpace(a.Ten)) ten.TryAdd(m.Trim(), a.Ten.Trim());
+            var goiNgoai = DanhSachApp.NhomGoiNgoai(ds);
+            foreach (var a in ds)   // #695: exe của gói ngoài WindowsApps mang tên app ở khay
+                foreach (var g in a.GoiNgoai ?? new())
+                    foreach (var e in g.Skip(2)) if (!string.IsNullOrWhiteSpace(a.Ten)) ten.TryAdd(e, a.Ten.Trim());
             _rt.TenAppMay = ten;
+            _rt.DatGoiNgoai(goiNgoai);
             // #690: bí danh dùng cho cả Chặn, Cho phép, Tính phút; lưu vào cấu hình khi đổi (khởi động lại có ngay)
             var nhom = DanhSachApp.NhomMuc(ds);
             _rt.DatNhomMuc(nhom);
             var tenDaCai = DanhSachApp.TenExeDaCai(ds, Environment.GetFolderPath(Environment.SpecialFolder.Windows));
             _rt.TenDaCai = new HashSet<string>(tenDaCai, StringComparer.OrdinalIgnoreCase);
-            if (!CungNhom(_rt.Config?.NhomMucApp, nhom) || !(_rt.Config?.TenExeDaCai ?? new()).SequenceEqual(tenDaCai, StringComparer.Ordinal))
-                try { _rt.Store.Update(c => { c.NhomMucApp = nhom; c.TenExeDaCai = tenDaCai; }); } catch (Exception e) { _log.LogDebug("Lưu bí danh app lỗi: {m}", e.Message); }
+            if (!CungNhom(_rt.Config?.NhomMucApp, nhom) || !(_rt.Config?.TenExeDaCai ?? new()).SequenceEqual(tenDaCai, StringComparer.Ordinal)
+                || !CungNhom(_rt.Config?.GoiNgoaiApp, goiNgoai))
+                try { _rt.Store.Update(c => { c.NhomMucApp = nhom; c.TenExeDaCai = tenDaCai; c.GoiNgoaiApp = goiNgoai; }); } catch (Exception e) { _log.LogDebug("Lưu bí danh app lỗi: {m}", e.Message); }
             _rt.AppMay = XinThemChonView.Loc(ds.Select(x => new AppTrenMay { Muc = x.Muc, Ten = x.Ten }));
             _sidDaQuet = string.Join(",", sids);
             _quetLuc = now;

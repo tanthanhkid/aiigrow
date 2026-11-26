@@ -149,8 +149,9 @@ public static class QuetAppWindows
             "$dn = $null; $pd = $null; $logo = $null; $n = 0; $ex = New-Object System.Collections.ArrayList; " +
             "try { $x = [xml](Get-Content -LiteralPath (Join-Path $p.InstallLocation 'AppxManifest.xml') -Raw -Encoding UTF8); " +
             "$dn = [string]$x.Package.Properties.DisplayName; $pd = [string]$x.Package.Properties.PublisherDisplayName; " +
-            "foreach ($a in @($x.Package.Applications.Application)) { if ($a.Executable) { [void]$ex.Add([string]$a.Executable) }; $ve = $a.VisualElements; if ($ve -and $ve.AppListEntry -ne 'none') { $n++; if (-not $logo) { $logo = [string]$ve.Square44x44Logo + '|' + [string]$ve.Square150x150Logo } } } } catch { } " +
-            // #695: game Xbox / gói cài ngoài «Program Files\WindowsApps» — exe thật khai trong MicrosoftGame.config (đường dẫn không mang tên gói)
+            "foreach ($a in @($x.Package.Applications.Application)) { if ($a.Executable -and $p.InstallLocation -like '?:\\WindowsApps\\*') { [void]$ex.Add([string]$a.Executable) }; $ve = $a.VisualElements; if ($ve -and $ve.AppListEntry -ne 'none') { $n++; if (-not $logo) { $logo = [string]$ve.Square44x44Logo + '|' + [string]$ve.Square150x150Logo } } } } catch { } " +
+            // #695: gói cài ngoài «Program Files\WindowsApps» — «X:\WindowsApps» (ổ khác) lấy exe của manifest; game Xbox (XboxGames) lấy exe trong
+            // MicrosoftGame.config. Gói «thưa» của app Win32 (InstallLocation trong Program Files của app) không có cả hai ⇒ không đổi gì.
             "if ($p.InstallLocation -and $p.InstallLocation -notlike '*\\Program Files\\WindowsApps\\*') { try { $g = [xml](Get-Content -LiteralPath (Join-Path $p.InstallLocation 'MicrosoftGame.config') -Raw -Encoding UTF8 -ErrorAction Stop); " +
             "foreach ($e in @($g.Game.ExecutableList.Executable)) { if ($e.Name) { [void]$ex.Add([string]$e.Name) } } } catch { } } " +
             "if ($dn -like 'ms-resource:*') { $r = $dn.Substring(12); if ($r.StartsWith('//')) { $u = 'ms-resource:' + $r } elseif ($r.StartsWith('/')) { $u = 'ms-resource://' + $p.Name + $r } else { $u = 'ms-resource://' + $p.Name + '/resources/' + $r }; $dn = 'ms-resource:@{' + $p.PackageFullName + '?' + $u + '}' } " +

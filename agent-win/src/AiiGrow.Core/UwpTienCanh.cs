@@ -18,18 +18,21 @@ public static class UwpTienCanh
     public const string Host = "applicationframehost.exe";
 
     /// <summary>#696: khay không quy được cửa sổ ApplicationFrameHost về app thật (CoreWindow không thấy — app treo, toàn màn hình, đổi tiêu đề)
-    /// ⇒ tiền cảnh là app UWP nào đó. Nếu một app «Tính phút» (<paramref name="tinhPhut"/>) đang chạy trong phiên Con thì quy phút về app đó
-    /// (an toàn trước: lỗi nhận diện cửa sổ không làm đồng hồ ngừng). Không có ⇒ null (giữ nguyên tiền cảnh).
-    /// <paramref name="duongDan"/>: đường dẫn exe các tiến trình của phiên; <paramref name="mucChinh"/>: exe bí danh → muc chính (#690/#695).</summary>
-    public static string? QuyHostVeAppTinhPhut(IEnumerable<string> tinhPhut, IEnumerable<string> duongDan, IReadOnlyDictionary<string, string>? mucChinh = null)
+    /// ⇒ tiền cảnh là một app UWP / Store. Nếu một app Store «Tính phút» (<paramref name="tinhPhut"/>) đang chạy trong phiên Con thì quy phút về app đó
+    /// (an toàn trước: lỗi nhận diện cửa sổ không làm đồng hồ ngừng). CHỈ xét tiến trình của gói Store (đường dẫn WindowsApps, hoặc exe của gói ngoài
+    /// WindowsApps — <paramref name="exeGoi"/>): app Win32 chạy nền (Roblox thu nhỏ) không bị tính thay. Không có ⇒ null (giữ nguyên tiền cảnh).
+    /// <paramref name="mucChinh"/>: muc bí danh → muc chính (#690).</summary>
+    public static string? QuyHostVeAppTinhPhut(IEnumerable<string> tinhPhut, IEnumerable<string> duongDan,
+        IReadOnlyDictionary<string, string>? mucChinh = null, IReadOnlyDictionary<string, string>? exeGoi = null)
     {
         var dangChay = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var d in duongDan)
         {
             if (string.IsNullOrWhiteSpace(d)) continue;
-            var id = ProcessGuard.TenGoiStore(d) ?? DanhSachApp.TenTep(d.Replace('/', '\\')).ToLowerInvariant();
-            if (id.Length == 0 || string.Equals(id, Host, StringComparison.OrdinalIgnoreCase)) continue;
-            dangChay.Add(mucChinh != null && mucChinh.TryGetValue(id, out var chinh) ? chinh : id);
+            var goi = ProcessGuard.TenGoiStore(d);
+            if (goi == null && exeGoi != null) exeGoi.TryGetValue(DanhSachApp.TenTep(d.Replace('/', '\\')), out goi);
+            if (string.IsNullOrEmpty(goi)) continue;
+            dangChay.Add(mucChinh != null && mucChinh.TryGetValue(goi, out var chinh) ? chinh : goi);
         }
         foreach (var m in tinhPhut) if (!string.IsNullOrEmpty(m) && dangChay.Contains(m)) return m.ToLowerInvariant();
         return null;
