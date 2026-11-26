@@ -66,6 +66,11 @@ export function laCongCuHeThong(mucTho: unknown, ten?: unknown): boolean {
   return !!m && MUC_CONG_CU.has(`${m}.exe`);      // định danh chỉ có tên tệp không đuôi («storedesktopextension»)
 }
 
+/** #525/#702: lời xin Ba Mẹ thấy được — lời xin cài thành phần Windows (agent cũ gửi trước #525) không hiện ở Chờ duyệt và không được đếm.
+ *  MỘT điều kiện cho danh sách Chờ duyệt (yeu-cau.ts › dsChoYc) và số «lời xin» trên avatar Con (bao-cao.ts › demYcCho). */
+export const loiXinHienDuoc = (r: { loai: string; gia_tri?: string | null; ten_app?: string | null }) =>
+  !(r.loai === "cai_app" && laCongCuHeThong(r.gia_tri, r.ten_app ?? r.gia_tri));
+
 /** #644: tiến trình nền / thành phần của phiên Windows (đồng bộ ProcessGuard.TienTrinhHeThongPhien ở agent-win, trừ explorer / Ảnh) — tiền cảnh thoáng qua, không phải việc Con làm:
  *  không vào «Đã dùng» (máy Con, web Ba Mẹ), kể cả dòng agent cũ đã ghi — trừ khi Ba Mẹ đã đặt luật riêng cho mục đó. KHÔNG gồm explorer.exe (File Explorer là app người dùng mở). */
 const TIEN_TRINH_NEN_WIN = new Set(["shellexperiencehost.exe", "lockapp.exe", "startmenuexperiencehost.exe", "searchhost.exe", "searchapp.exe", "textinputhost.exe",

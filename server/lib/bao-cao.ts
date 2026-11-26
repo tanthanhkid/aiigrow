@@ -11,12 +11,21 @@ import { conTheoTran } from "./phien.ts";
 import { thongKeSao } from "./so-sao.ts";
 import { tenDoc } from "./man-hinh.ts";
 import { nhomTuLoai } from "./chan-co-ban.ts";
+import { loiXinHienDuoc } from "./luat-app.ts";
 
 const NHOM_NV_CHU: Record<string, string> = { doc_sach: "đọc sách", viec_nha: "việc nhà", hoc_tap: "học tập", van_dong: "vận động", ky_nang: "kỹ năng", khac: "việc khác" };
 
+/** #702: lời xin cài app đang chờ (gia_tri, ten_app) — lọc thành phần Windows bằng JS (luat-app.ts › loiXinHienDuoc), cùng điều kiện với Chờ duyệt. */
+export const SQL_YC_CAI = (con: string) => `coalesce((select json_agg(json_build_object('gia_tri', gia_tri, 'ten_app', ten_app)) from requests
+               where child_id = ${con} and trang_thai = 'cho' and het_han > now() and loai = 'cai_app'), '[]'::json)`;
+type DemYc = { yc_khac: number; yc_cai: { gia_tri: string | null; ten_app: string | null }[] | null };
+/** #702: số «lời xin» của Con = đúng số dòng của Con trong Chờ duyệt (dsChoYc). */
+export const demYcCho = (r: DemYc) => r.yc_khac + (r.yc_cai ?? []).filter((x) => loiXinHienDuoc({ loai: "cai_app", ...x })).length;
+
 /** Hai câu đọc của `homNay` — tách hằng để GET gia-dinh gộp theo cả nhà rồi nạp đệm đúng khoá (lib/gia-dinh-tong-hop.ts). */
 export const SQL_HOM_NAY_DEM = `select (select count(*)::int from submissions where child_id = $1 and trang_thai = 'cho_duyet') as nv_cho,
-            (select count(*)::int from requests where child_id = $1 and trang_thai = 'cho' and het_han > now()) as yc_cho,
+            (select count(*)::int from requests where child_id = $1 and trang_thai = 'cho' and het_han > now() and loai <> 'cai_app') as yc_khac,
+            ${SQL_YC_CAI("$1")} as yc_cai,
             (select count(*)::int from redemptions where child_id = $1 and trang_thai = 'giu') as phieu_cho,
             (select count(*)::int from submissions where child_id = $1 and trang_thai = 'duoc_duyet' and duyet_luc >= $2) as xong`;
 export const SQL_HOM_NAY_XONG = `select t.ten from submissions s join tasks t on t.id = s.task_id where s.child_id = $1 and s.trang_thai = 'duoc_duyet' and s.duyet_luc >= $2
@@ -30,14 +39,14 @@ export async function homNay(fam: string, con: string, now = new Date()) {
   const ngay = gioDiaPhuong(now, f.tz).ngay;
   const tu = dauNgayUtc(ngay, f.tz);
   const ts = thamSo(f.cau_hinh, c.cau_hinh);
-  const [r0, tc, vi, tran] = await Promise.all([one<{ nv_cho: number; yc_cho: number; phieu_cho: number; xong: number }>(SQL_HOM_NAY_DEM, [con, tu]),
+  const [r0, tc, vi, tran] = await Promise.all([one<{ nv_cho: number; phieu_cho: number; xong: number } & DemYc>(SQL_HOM_NAY_DEM, [con, tu]),
     q<{ ten: string }>(SQL_HOM_NAY_XONG, [con, tu]), tomTatVi(con), conTheoTran(q, con, ts, f.tz, now)]);
   const r = r0!, tichCuc = tc.map((x) => x.ten);
   const conPhut = tran.conPhut;
   // 15/11: tranNgay (cũ) = phút còn + đã dùng · `quy` (hình dạng cũ, conPhut = sao tiêu được)
   // #700: `phutChoi` = phút đã trừ sao hôm nay (quy-gio › soHomNay — cùng số Trang chủ, Đã dùng, Màn hình, máy Con), không phải phút đo lẻ
   return { ...vi, phutChoi: tran.quy.phutTruHomNay, tranNgay: tran.quy.tongPhut, quy: tran.quy,
-    /** phút giải trí còn được chơi hôm nay theo trần ngày lẫn tuần (đã cộng thêm giờ) — như conNgay/conTuan của xetMoPhien */ conPhut, nhiemVuCho: r.nv_cho, yeuCauCho: r.yc_cho, phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
+    /** phút giải trí còn được chơi hôm nay theo trần ngày lẫn tuần (đã cộng thêm giờ) — như conNgay/conTuan của xetMoPhien */ conPhut, nhiemVuCho: r.nv_cho, yeuCauCho: demYcCho(r), phieuCho: r.phieu_cho, nhiemVuXong: r.xong,
     homNayConDa: tichCuc,
     /** «≈ X phút chơi»: điểm hiện có đổi được bao nhiêu phút trò chơi (giá gia_game, phần nghìn điểm / phút), không quá phần trần còn lại
      *  SAU phút thêm giờ chưa dùng (phiên tiêu thêm giờ trước, như xetMoPhien) */

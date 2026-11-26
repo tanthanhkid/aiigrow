@@ -13,4 +13,7 @@ export function maMay(m: Nguon): HienThiMay {
   return "bao_ve";
 }
 export const canSuaMay = (m: Nguon) => maMay(m) === "can_sua";
+/** #701: máy vào «Cần Ba Mẹ để ý» (Trang chủ, Chờ duyệt) — cùng điều kiện chuông / Thông báo (server/lib/can-de-y.ts): đã từng kết nối và màn Máy
+ *  xếp «Cần sửa», mức bảo vệ chưa đủ (máy đủ quyền mà lệch chuẩn ⇒ màn Máy, không phải «chưa được bảo vệ»). Máy đang tắt / mất mạng / đang gỡ / chưa báo quyền không vào (mất mạng đã có dòng riêng). */
+export const mayCanDeY = (m: Nguon & { lanCuoi?: string | null }) => !!m.lanCuoi && !!m.baoVe && m.baoVe !== "day_du" && canSuaMay(m);
 export const TEN_HIEN_THI: Record<HienThiMay, string> = { dang_go: "Đang gỡ AiiGrow", tat: "Đang tắt", mat_mang: "Mất mạng", can_sua: "Cần sửa", bao_ve: "Đang bảo vệ" };
