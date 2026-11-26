@@ -7,6 +7,7 @@ import org.json.JSONObject
 import vn.aiilab.aiigrow.maycon.logic.QuyetDinh
 import vn.aiilab.aiigrow.maycon.logic.maMayHopLe
 import vn.aiilab.aiigrow.maycon.logic.taoMaMay
+import vn.aiilab.aiigrow.maycon.logic.maMayTuAndroidId
 import java.io.File
 
 /** Khoá sinh mã máy một lần (hai luồng cùng đọc lúc chưa có không sinh hai mã). */
@@ -14,6 +15,7 @@ private val KHOA_MA_MAY = Any()
 
 /** Trạng thái bền của tác tử (SharedPreferences riêng của app; token không rời máy ngoài header Bearer). */
 class Kho(ctx: Context) {
+    private val app: Context = ctx.applicationContext
     private val p: SharedPreferences = ctx.applicationContext.getSharedPreferences("aiigrow_con", Context.MODE_PRIVATE)
     private val filesDir: File = ctx.applicationContext.filesDir
 
@@ -21,10 +23,12 @@ class Kho(ctx: Context) {
     var token: String? get() = p.getString("token", null); set(v) = p.edit().putString("token", v).apply()
     var deviceId: String? get() = p.getString("deviceId", null); set(v) = p.edit().putString("deviceId", v).apply()
     var tenCon: String? get() = p.getString("tenCon", null); set(v) = p.edit().putString("tenCon", v).apply()
-    /** #685: mã máy ổn định (32 hex ngẫu nhiên, logic/GhepGoi.kt › taoMaMay) gửi khi ghép — máy chủ nhận ra lần thử lại của chính máy này. */
+    /** #685: mã máy ổn định gửi khi ghép — máy chủ nhận ra lần thử lại / lần ghép lại của chính máy này. Băm ANDROID_ID như Windows
+     *  (logic/GhepGoi.kt › maMayTuAndroidId); không đọc được ⇒ 32 hex ngẫu nhiên sinh một lần (taoMaMay). */
     val maMay: String get() = synchronized(KHOA_MA_MAY) {
-        maMayHopLe(p.getString("maMay", null)) ?: taoMaMay(ByteArray(16).also { java.security.SecureRandom().nextBytes(it) })
-            .also { p.edit().putString("maMay", it).commit() }
+        maMayHopLe(p.getString("maMay", null))
+            ?: (maMayTuAndroidId(try { android.provider.Settings.Secure.getString(app.contentResolver, android.provider.Settings.Secure.ANDROID_ID) } catch (_: Exception) { null })
+                ?: taoMaMay(ByteArray(16).also { java.security.SecureRandom().nextBytes(it) })).also { p.edit().putString("maMay", it).commit() }
     }
     /** Token gói cài nhúng trong QR Device Owner (PROVISIONING_ADMIN_EXTRAS_BUNDLE) — đổi lấy token máy bằng ghep-goi. */
     var tokenGoiCai: String? get() = p.getString("tokenGoiCai", null); set(v) = p.edit().putString("tokenGoiCai", v).apply()

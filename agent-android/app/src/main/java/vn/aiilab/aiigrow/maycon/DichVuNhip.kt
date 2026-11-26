@@ -334,7 +334,13 @@ class DichVuNhip : Service() {
     /** Ghép bằng token gói cài (QR Device Owner). true = Kho đổi (vừa ghép xong, hoặc gói bị từ chối hẳn). #707: lỗi vĩnh viễn (gói đã dùng /
      *  hết hạn / sai) ⇒ bỏ gói + báo ở màn ghép; lỗi tạm ⇒ lùi dần 5 giây … 5 phút (không gõ máy chủ mỗi 5 giây, không lặp một dòng nhật ký).
      *  Gọi máy chủ trên luồng mạng; ghi Kho trên luồng nhịp (#708 — vòng áp luật không thấy máy nửa ghép). */
-    private fun ghepBangGoi(k: Kho): Boolean = synchronized(KHOA_GHEP) {   // #685: không song song với ghép bằng mã (cùng maMay)
+    private fun ghepBangGoi(k: Kho): Boolean {
+        // #685: không song song với ghép bằng mã (cùng maMay); Con đang ghép bằng mã ⇒ bỏ lượt này (không tính là lỗi)
+        if (!dangGhepMay.compareAndSet(false, true)) return false
+        try { return ghepBangGoiMot(k) } finally { dangGhepMay.set(false) }
+    }
+
+    private fun ghepBangGoiMot(k: Kho): Boolean {
         if (k.token != null) return false
         val goi = k.tokenGoiCai ?: return false
         try {
@@ -552,14 +558,20 @@ class DichVuNhip : Service() {
         fun ghepBangMa(ctx: Context, ma: String): String? {
             val k = Kho(ctx)
             if (k.cheDoThu) { k.tenCon = k.tenCon ?: "Con (thử)"; return null }
-            // #685: một lượt ghép một lúc (mã 6 số / gói cài cùng maMay ⇒ máy chủ thu hồi bản ghi kia — không chạy song song)
-            return synchronized(KHOA_GHEP) { try {
-                if (k.token != null) return@synchronized null   // gói cài vừa ghép xong trong lúc chờ khoá
+            // #685: một lượt ghép một lúc (mã 6 số / gói cài cùng maMay ⇒ máy chủ thu hồi bản ghi kia — không chạy song song).
+            //     Gói cài đang gọi (mạng treo ≤ 35 giây) ⇒ chờ nó xong; Con đang ghép bằng mã thì vòng nhịp bỏ lượt gói cài (không giữ khoá chờ mạng)
+            var cho = 0
+            while (!dangGhepMay.compareAndSet(false, true)) {
+                if (++cho > 200) return "Máy đang ghép bằng gói cài. Đợi một chút rồi thử lại nhé."
+                Thread.sleep(200)
+            }
+            return try { try {
+                if (k.token != null) { lamMoi(ctx); return null }   // gói cài vừa ghép xong trong lúc chờ
                 // lỗi đường truyền / 5xx ⇒ thử lại cùng mã + cùng maMay (lần trước đã ghép mà phản hồi mất ⇒ máy chủ cấp lại token, không 409)
                 val than = vn.aiilab.aiigrow.maycon.logic.thanGhep(ma, Build.MODEL ?: "Android", k.maMay)
                 val batDau = SystemClock.elapsedRealtime()
                 fun goi(lan: Int): JSONObject = try { MayChu(k.mayChu, null).ghep(than) } catch (e: java.io.IOException) {
-                    if (e is javax.net.ssl.SSLException || !loiGhepNenThuLai((e as? MayChu.Loi)?.http)) throw e
+                    if (!loiGhepNenThuLai((e as? MayChu.Loi)?.http, daGuiYeuCau(e))) throw e
                     val cho = choThuLaiGhepMs(lan + 1, SystemClock.elapsedRealtime() - batDau) ?: throw e
                     NhatKy.canh(TAG, "ghép bằng mã lỗi tạm (lần ${lan + 1}) — thử lại", e)
                     Thread.sleep(cho); goi(lan + 1)
@@ -570,7 +582,17 @@ class DichVuNhip : Service() {
                 k.tokenGoiCai = null; k.loiGhepGoi = null   // đã ghép bằng mã ⇒ thôi gói cài
                 lamMoi(ctx)
                 null
-            } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Không kết nối được máy chủ AiiGrow. Kiểm tra mạng rồi thử lại." } }
+            } catch (e: MayChu.Loi) { e.cau } catch (e: Exception) { "Không kết nối được máy chủ AiiGrow. Kiểm tra mạng rồi thử lại." }
+            } finally { dangGhepMay.set(false) }
+        }
+
+        /** Lỗi đường truyền xảy ra SAU khi yêu cầu đã đi (máy chủ có thể đã xử lý): hết giờ đọc, đứt kết nối / TLS giữa chừng. Không tới được
+         *  máy chủ (tên miền, nối, bắt tay TLS / chứng chỉ, hết giờ nối) ⇒ false. */
+        private fun daGuiYeuCau(e: java.io.IOException): Boolean = when (e) {
+            is java.net.UnknownHostException, is java.net.ConnectException, is java.net.NoRouteToHostException,
+            is javax.net.ssl.SSLHandshakeException, is javax.net.ssl.SSLPeerUnverifiedException -> false
+            is java.net.SocketTimeoutException -> e.message?.contains("connect", ignoreCase = true) != true
+            else -> true
         }
 
         /** Kết quả gửi lời xin app / web: `id` (null = chưa gửi được) + câu báo cho Con. */
@@ -631,7 +653,7 @@ class DichVuNhip : Service() {
         /** #707: thử ghép gói cài có lùi dần (luồng mạng ghi; vòng nhịp đọc). */
         @Volatile private var thuGhepGoi = ThuGhepGoi()
         /** #685: một lượt ghép (mã 6 số / gói cài) một lúc. */
-        private val KHOA_GHEP = Any()
+        private val dangGhepMay = java.util.concurrent.atomic.AtomicBoolean(false)
         /** Gói cài mới (QR quét lại) ⇒ thử ngay, không chờ hết lùi của gói cũ. */
         fun thuGoiMoi() { thuGhepGoi = ThuGhepGoi() }
         private val dangGo = java.util.concurrent.atomic.AtomicBoolean(false)

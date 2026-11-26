@@ -73,11 +73,25 @@ class GhepGoiTest {
         assertFalse(thanGhepToken("goi", "Pixel").has("maMay"))
     }
 
-    /** #685: mã 6 số lỗi đường truyền / 5xx ⇒ thử lại tối đa 2 lần trong ~40 giây; câu máy chủ (404/409/410) ⇒ báo ngay. */
+    /** #685: phản hồi mất sau khi gửi / 5xx ⇒ thử lại MỘT lần (lần đầu ≤ 25 giây); chưa gửi được / câu máy chủ (404/409/410/429) ⇒ báo ngay. */
     @Test fun thuLaiGhepBangMa() {
-        assertEquals(listOf(1_500L, 4_000L, null), (1..3).map { choThuLaiGhepMs(it, 0) })
-        assertNull(choThuLaiGhepMs(1, 41_000))
-        for (h in listOf(null, 500, 502, 504, 408, 429)) assertTrue("$h", loiGhepNenThuLai(h))
-        for (h in listOf(400, 401, 404, 409, 410)) assertFalse("$h", loiGhepNenThuLai(h))
+        assertEquals(listOf(2_000L, null), (1..2).map { choThuLaiGhepMs(it, 0) })
+        assertNull(choThuLaiGhepMs(1, 26_000))
+        assertTrue(loiGhepNenThuLai(null, daGui = true))
+        assertFalse(loiGhepNenThuLai(null, daGui = false))
+        for (h in listOf(500, 502, 504, 408)) assertTrue("$h", loiGhepNenThuLai(h, true))
+        for (h in listOf(400, 401, 404, 409, 410, 429)) assertFalse("$h", loiGhepNenThuLai(h, true))
+    }
+
+    /** #685: mã máy từ ANDROID_ID (băm + muối như Windows) — cài lại app vẫn cùng mã; trống / mã lỗi đã biết ⇒ null. */
+    @Test fun maMayTuAndroidIdOnDinh() {
+        val a = maMayTuAndroidId("A1B2c3d4e5f60718")!!
+        assertEquals(a, maMayTuAndroidId(" a1b2c3d4e5f60718 "))
+        assertEquals(64, a.length)
+        assertEquals(a, maMayHopLe(a))
+        assertEquals(sha256Hex("a1b2c3d4e5f60718aiigrow"), a)
+        assertNull(maMayTuAndroidId(""))
+        assertNull(maMayTuAndroidId(null))
+        assertNull(maMayTuAndroidId("9774d56d682e549c"))
     }
 }

@@ -45,12 +45,19 @@ fun maMayHopLe(s: String?): String? = s?.trim()?.lowercase()?.takeIf { MA_MAY.ma
 
 private val MA_MAY = Regex("^[0-9a-f]{16,64}$")
 
-/** Mã máy mới từ 16 byte ngẫu nhiên (32 hex) — sinh một lần, lưu trong Kho; không lấy từ định danh phần cứng. */
+/** Mã máy như agent Windows (agent-win › MaMay.cs): SHA-256 hex của ANDROID_ID + muối "aiigrow" — không gửi mã thô; cài lại app / xoá dữ liệu
+ *  vẫn cùng mã ⇒ máy chủ nhận ra máy cũ (thu hồi bản ghi cũ, «máy chuyển nhà»). ANDROID_ID trống / mã lỗi đã biết của Android 2.2 ⇒ null. */
+fun maMayTuAndroidId(androidId: String?): String? =
+    androidId?.trim()?.lowercase()?.takeIf { it.isNotEmpty() && it != "9774d56d682e549c" }?.let { sha256Hex(it + "aiigrow") }
+
+/** Mã máy dự phòng từ 16 byte ngẫu nhiên (32 hex) khi không đọc được ANDROID_ID — sinh một lần, lưu trong Kho. */
 fun taoMaMay(ngauNhien: ByteArray): String = ngauNhien.joinToString("") { "%02x".format(it) }
 
-/** Lỗi ghép nên thử lại cùng mã + maMay: không có mã HTTP (đường truyền), 5xx (cổng / proxy hết giờ — máy chủ có thể đã ghép xong), 408, 429.
- *  4xx khác = câu máy chủ (mã sai / đã dùng / hết hạn) ⇒ báo ngay. */
-fun loiGhepNenThuLai(http: Int?): Boolean = http == null || http >= 500 || http == 408 || http == 429
+/** Lỗi ghép bằng mã 6 số nên thử lại cùng mã + maMay: yêu cầu ĐÃ GỬI mà phản hồi mất (`daGui` — hết giờ đọc, đứt kết nối giữa chừng) hoặc
+ *  5xx / 408 (cổng / proxy hết giờ — máy chủ có thể đã ghép xong). Chưa gửi được (không có mạng, không tới máy chủ) ⇒ thử lại vô ích;
+ *  4xx khác (kể cả 429 «nhập sai nhiều lần») = câu máy chủ ⇒ báo ngay. */
+fun loiGhepNenThuLai(http: Int?, daGui: Boolean): Boolean = if (http == null) daGui else http >= 500 || http == 408
 
-/** Chờ trước lần thử lại thứ `lan` (1, 2) khi ghép bằng mã 6 số; đã chạy quá 40 giây (mạng treo) ⇒ thôi, không để Con chờ «Đang ghép…» mãi. */
-fun choThuLaiGhepMs(lan: Int, daChayMs: Long): Long? = if (daChayMs > 40_000L) null else when (lan) { 1 -> 1_500L; 2 -> 4_000L; else -> null }
+/** Một lần thử lại (sau 2 giây) khi ghép bằng mã 6 số, chỉ khi lần đầu chưa quá 25 giây — Con không chờ «Đang ghép…» quá ~1 phút
+ *  (mỗi lần gọi tối đa 15 giây nối + 20 giây đọc). */
+fun choThuLaiGhepMs(lan: Int, daChayMs: Long): Long? = if (lan == 1 && daChayMs <= 25_000L) 2_000L else null
