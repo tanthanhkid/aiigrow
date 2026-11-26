@@ -145,6 +145,7 @@ public sealed class AgentRuntime
             {
                 p.CheDo = DangNhapView.CheDoMayChung(p.CheDo, Config?.LastPolicyJson);
                 _policy = p;
+                Usage.Tz = p.Tz;   // #703
                 _policyAt = Config?.LastPolicyAt ?? DateTimeOffset.UtcNow;
             }
             _cheDo = AiiGrow.Core.CheDoHieuLuc.Chon(_policy?.CheDo, Config?.CheDo, MoCoi.La(Config, DateTimeOffset.UtcNow));
@@ -298,6 +299,7 @@ public sealed class AgentRuntime
             var vtDoiDiem = VanTayDoiDiem(p);
             if (!string.Equals(vtDoiDiem, _vtDoiDiem, StringComparison.Ordinal)) { _vtDoiDiem = vtDoiDiem; PolicyRev++; }
             _policy = p;
+            Usage.Tz = p.Tz;   // #703: ngày dùng theo múi giờ gia đình
             _policyAt = DateTimeOffset.UtcNow;
             _syncCuoi = _policyAt;
             _nhipSyncSec = p.NextCheckSec;
@@ -915,6 +917,10 @@ public sealed class AgentRuntime
                     (s.GioiHanLyDo, s.GioiHanGio, s.GioiHanCau) = (doan.LyDo, doan.Gio, doan.Cau);
             }
             s.PhutBoiMaHomNay = PhutBoiMaHomNay(now, s.NguoiDung == LoaiNguoiDung.Con ? s.BeId : null);
+            // #699: «Hôm nay đã chơi» theo sổ sao máy chủ (mọi máy, cả web, không mất khi dịch vụ khởi động lại) + phần vừa đếm tại máy.
+            // Chỉ khi Policy là của chính bé này (máy chung đổi bé ⇒ gói có thể cũ) và lấy trong hôm nay; không thì null ⇒ khay đếm tại máy như cũ.
+            s.PhutChoiHomNay = ReferenceEquals(pBe, _policy) && NgayGiaDinh.Cua(_policyAt, pBe.Tz) == NgayGiaDinh.Cua(now, pBe.Tz)
+                ? SaoView.DaChoiTaiMay(pBe.SoSao?.PhutChoiHomNay, s.MoHet ? null : pBe.QuyConPhut, s.QuyConPhut) : null;
             s.AppTinhPhut = QuyTaiCho.MucTinhPhut(pBe).ToList();
             var fgTuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;
             s.DangChoiTinhPhut = !s.MoHet && !moTam && fgTuoi && !string.IsNullOrEmpty(_fgId) && LaTinhPhut(_fgId!, pBe) && _fgId != UsageTracker.KhongRo;

@@ -12,6 +12,9 @@ public sealed class UsageTracker
     private string _ngayHomNay = "";
     private readonly object _gate = new();
 
+    /// <summary>#703: múi giờ gia đình từ Policy (null = giờ máy). Ngày của mọi dòng dùng = ngày gia đình, khớp «hôm nay» máy chủ trừ sao.</summary>
+    public string? Tz { get; set; }
+
     /// <summary>Định danh dùng khi khay chết (không biết app tiền cảnh) — không hiện ở «đã dùng theo app».</summary>
     public const string KhongRo = "khong-ro";
 
@@ -19,7 +22,7 @@ public sealed class UsageTracker
     public void Add(DateTimeOffset localNow, string appId, string appName, double seconds, string? con = null)
     {
         if (seconds <= 0 || string.IsNullOrWhiteSpace(appId)) return;
-        var key = (localNow.DateTime.ToString("yyyy-MM-dd"), appId.Trim().ToLowerInvariant(), con?.Trim() ?? "");
+        var key = (NgayGiaDinh.Cua(localNow, Tz), appId.Trim().ToLowerInvariant(), con?.Trim() ?? "");
         lock (_gate)
         {
             _d.TryGetValue(key, out var cur);
@@ -48,7 +51,7 @@ public sealed class UsageTracker
     /// tối đa <paramref name="toiDa"/> dòng.</summary>
     public List<DungApp> DungHomNay(DateTimeOffset localNow, int toiDa = 8, string? con = null)
     {
-        var ngay = localNow.DateTime.ToString("yyyy-MM-dd");
+        var ngay = NgayGiaDinh.Cua(localNow, Tz);
         lock (_gate)
         {
             if (ngay != _ngayHomNay) return new List<DungApp>();
@@ -83,10 +86,35 @@ public sealed class UsageTracker
     /// Giây lẻ của ngày cũ không bao giờ gửi nữa ⇒ không tính.</summary>
     public double GiayChuaGui(DateTimeOffset localNow, Func<string, bool> tinh, string? con = null)
     {
-        var ngay = localNow.DateTime.ToString("yyyy-MM-dd");
+        var ngay = NgayGiaDinh.Cua(localNow, Tz);
         var be = con?.Trim() ?? "";
         lock (_gate)
             return _d.Where(x => x.Key.Day == ngay && x.Key.Con == be && tinh(x.Key.App)).Sum(x => x.Value.Sec);
+    }
+}
+
+/// <summary>#703: ngày «yyyy-MM-dd» theo múi giờ gia đình. Máy đặt sai múi (UTC, giờ Mỹ…) vẫn ghi phút vào đúng ngày máy chủ đang trừ sao
+/// — trước đây 5h sáng giờ VN trên máy UTC ghi vào «hôm qua» ⇒ máy chủ không trừ. Múi lạ / null ⇒ giờ của chính mốc (như cũ).</summary>
+public static class NgayGiaDinh
+{
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, TimeZoneInfo?> _cache = new();
+
+    public static TimeZoneInfo? Mui(string? tz)
+    {
+        if (string.IsNullOrWhiteSpace(tz)) return null;
+        return _cache.GetOrAdd(tz.Trim(), id =>
+        {
+            try { return TimeZoneInfo.FindSystemTimeZoneById(id); } catch { }
+            try { if (TimeZoneInfo.TryConvertIanaIdToWindowsId(id, out var w)) return TimeZoneInfo.FindSystemTimeZoneById(w); } catch { }
+            return null;
+        });
+    }
+
+    public static string Cua(DateTimeOffset luc, string? tz)
+    {
+        var m = Mui(tz);
+        var d = m == null ? luc.DateTime : TimeZoneInfo.ConvertTime(luc, m).DateTime;
+        return d.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
     }
 }
 

@@ -268,7 +268,7 @@ internal sealed class AppForm : Form
         _kn = kn;
         ApplyKetNoiUi();
         // 15/11: số sao / phút còn đổi (mỗi phút chơi một lần) ⇒ dựng lại thẻ Hôm nay (chip, màu số âm, dòng nợ đổi theo)
-        var sig = $"{kn.Loai}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.Sao}|{SaoView.Phut(_s.QuyConPhut)}|{_s.QuyConPhut.HasValue}|{_s.No}|{_s.MoHet}|{_s.BaiChoMang}|{_s.OfflineSince}|{_s.PhutBoiMaHomNay}";
+        var sig = $"{kn.Loai}|{_s.Paired}|{_s.MoCoi}|{_s.Locked}|{_s.ChildName}|{_s.MoOfflineDen}|{TinMoi}|{_s.Sao}|{SaoView.Phut(_s.QuyConPhut)}|{_s.QuyConPhut.HasValue}|{_s.No}|{_s.MoHet}|{_s.BaiChoMang}|{_s.OfflineSince}|{_s.PhutBoiMaHomNay}|{_s.PhutChoiHomNay}";
         if (sig != _sig)
         {
             _sig = sig;
@@ -667,8 +667,9 @@ internal sealed class AppForm : Form
             the.Controls.Add(T(SaoView.VanMo(TrayView.TenKhongTinh(_s)), 11f, false, UI.Muted, r));
             return the;
         }
-        var daChoi = SaoView.PhutTinh(_s.DungTheoApp, _s.AppTinhPhut, _s.PhutBoiMaHomNay);
-        if (_s.DungTheoApp.Count > 0) the.Controls.Add(T(SaoView.DaChoi(daChoi, matMang), 12f, true, Clay.Chu2, r));
+        // #699: số máy chủ (mọi máy, cả web — cùng ví và web Ba Mẹ); máy chủ cũ ⇒ đếm tại máy như trước
+        var daChoi = _s.PhutChoiHomNay ?? SaoView.PhutTinh(_s.DungTheoApp, _s.AppTinhPhut, _s.PhutBoiMaHomNay);
+        if (daChoi > 0 || _s.DungTheoApp.Count > 0) the.Controls.Add(T(SaoView.DaChoi(daChoi, matMang), 12f, true, Clay.Chu2, r));
         if (matMang) return the;   // Bàn cmt-hom-nay-mat-mang: không dòng app đã dùng
         _lblApp = T("", 11f, false, UI.Muted, r);
         the.Controls.Add(_lblApp);

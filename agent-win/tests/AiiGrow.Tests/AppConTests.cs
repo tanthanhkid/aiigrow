@@ -131,6 +131,20 @@ public class AppConTests
     }
 
     [Fact]
+    public void DaChoiTaiMay_SoMayChuCongPhanDemTaiMay_699()
+    {
+        // máy chủ: 42 phút đã trừ trên mọi máy (máy này 30 app + máy kia 12 web); tại máy vừa chơi thêm 3 phút chưa đồng bộ
+        Assert.Equal(45, SaoView.DaChoiTaiMay(42, 58, 55.4));
+        Assert.Equal(42, SaoView.DaChoiTaiMay(42, null, null));      // «Mở hết» / chưa có phút còn ⇒ đúng số máy chủ
+        Assert.Equal(42, SaoView.DaChoiTaiMay(42, 58, 58));
+        Assert.Null(SaoView.DaChoiTaiMay(null, 58, 55));             // máy chủ cũ ⇒ khay đếm tại máy như trước
+        // số nằm ở máy chủ: không bị chặn 8 app, không về 0 khi dịch vụ khởi động lại
+        var p = PolicyParser.TuDongBo("""{"windows":{"mode":"tu_do"},"sao":{"sao":58,"no":0,"phutCon":58,"hetSao":false,"phutChoiHomNay":42}}""");
+        Assert.Equal(42, p.SoSao!.PhutChoiHomNay);
+        Assert.Null(PolicyParser.TuDongBo("""{"windows":{"mode":"tu_do"},"sao":{"sao":58,"no":0,"phutCon":58}}""").SoSao!.PhutChoiHomNay);
+    }
+
+    [Fact]
     public void XinVay_ChuVaKep()
     {
         Assert.Equal(new[] { 10, 15, 30 }, XinVayView.Muc);
@@ -420,5 +434,24 @@ public class AppConTests
         // chưa đủ ⇒ câu theo sao tiêu được
         Assert.Equal("Con dùng được 10 sao · còn thiếu 20 sao", AppConView.ThieuSao(qua, 10));
         Assert.Equal(0, AppConView.SaoDungDuoc(new HvTongQuan { SoDu = -5 }));
+    }
+
+    [Fact]
+    public void NgayDung_TheoMuiGioGiaDinh_703()
+    {
+        // 22:20 UTC ngày 17 = 05:20 sáng ngày 18 giờ VN: máy đặt múi UTC vẫn ghi phút vào ngày 18 (ngày máy chủ đang trừ sao)
+        var luc = new DateTimeOffset(2026, 11, 17, 22, 20, 0, TimeSpan.Zero);
+        Assert.Equal("2026-11-18", NgayGiaDinh.Cua(luc, "Asia/Ho_Chi_Minh"));
+        Assert.Equal("2026-11-17", NgayGiaDinh.Cua(luc, null));
+        Assert.Equal("2026-11-17", NgayGiaDinh.Cua(luc, "Khong/Co"));
+        var u = new UsageTracker { Tz = "Asia/Ho_Chi_Minh" };
+        u.Add(luc, "roblox.exe", "Roblox", 120);
+        Assert.Equal("2026-11-18", Assert.Single(u.Drain()).Day);
+        Assert.Single(u.DungHomNay(luc));
+        Assert.Equal(0, u.GiayChuaGui(luc.AddMinutes(1), _ => true));
+        var web = WebHistory.TongHop(new[] { new WebVisit("https://youtube.com/watch", luc, 90) }, null, "Asia/Ho_Chi_Minh");
+        Assert.Equal("2026-11-18", Assert.Single(web).Ngay);
+        var parsed = PolicyParser.TuDongBo("{\"windows\":{\"mode\":\"tu_do\",\"tz\":\"Asia/Ho_Chi_Minh\"}}");
+        Assert.Equal("Asia/Ho_Chi_Minh", parsed.Tz);
     }
 }

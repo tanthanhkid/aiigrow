@@ -131,6 +131,9 @@ public sealed class TrayState
     public bool DangChoiTinhPhut { get; set; }
     /// <summary>15/11 (PR #277): phút «Tính phút» hôm nay lúc máy mở bằng mã của Ba Mẹ (không trừ sao) — bỏ khỏi «Hôm nay đã chơi N phút · −N sao».</summary>
     public int PhutBoiMaHomNay { get; set; }
+    /// <summary>#699: «Hôm nay đã chơi N phút · −N sao» — số máy chủ (mọi máy của Con, cả web) cộng phần vừa đếm tại máy chưa đồng bộ
+    /// (<see cref="SaoView.DaChoiTaiMay"/>). null = máy chủ cũ / Policy của bé khác / Policy từ hôm trước ⇒ khay đếm tại máy như cũ.</summary>
+    public int? PhutChoiHomNay { get; set; }
     /// <summary>Tên đẹp app tiền cảnh khi <see cref="DangChoiTinhPhut"/> («Roblox»).</summary>
     public string? AppDangChoi { get; set; }
     /// <summary>05/11 (L11): số bài nộp lúc mất mạng đang chờ có mạng để tự gửi (BaiChoMang).</summary>
