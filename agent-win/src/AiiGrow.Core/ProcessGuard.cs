@@ -246,11 +246,8 @@ public static class ProcessGuard
         var segs = p[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
         if (segs.Length <= 1) return true;                                                   // X:\game.exe
         if (segs[0].Equals("$Recycle.Bin", StringComparison.OrdinalIgnoreCase)) return true;
-        if (winDir != null && TrongWindows(DirName(p), winDir))
-        {
-            var w = winDir.TrimEnd('\\', '/') + "\\";
-            return p.StartsWith(w + "Temp\\", StringComparison.OrdinalIgnoreCase);
-        }
+        // trong Windows: mọi chỗ KHÔNG chỉ-quản-trị (Temp, Tracing, System32\Tasks, spool\drivers\color…) Con ghi được
+        if (winDir != null && TrongWindows(DirName(p), winDir)) return !TrongWindowsChiQuanTri(p, winDir);
         if (!segs[0].Equals("Users", StringComparison.OrdinalIgnoreCase)) return false;
         if (segs.Length <= 3) return true;                                                   // Users\An\game.exe, Users\Public\…
         if (segs[1].Equals("Public", StringComparison.OrdinalIgnoreCase)) return true;
@@ -260,15 +257,17 @@ public static class ProcessGuard
             && segs[3].Equals("Local", StringComparison.OrdinalIgnoreCase) && segs[4].Equals("Temp", StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>Exe khớp luật cho phép: theo tên exe (tên trùng của Windows thì phải là bản thật — <see cref="TenCuaWindows"/>; #693: không nhận
-    /// exe ở chỗ Con tự thả tệp — <see cref="LaChoConThaTep"/>) hoặc theo tên gói Store.</summary>
-    public static bool DuocPhepTheoLuat(string exePath, ISet<string> allowed, string? winDir)
+    /// <summary>Exe khớp luật cho phép: theo tên exe (tên trùng của Windows thì phải là bản thật — <see cref="TenCuaWindows"/>) hoặc theo tên gói Store.
+    /// #693: exe ở chỗ Con tự thả tệp (<see cref="LaChoConThaTep"/>) mang tên một app ĐÃ CÀI ở chỗ khác trên máy (<paramref name="tenDaCai"/>, theo
+    /// danh sách app quét được) là bản giả (game đổi tên thành discord.exe) ⇒ không nhận. App Ba Mẹ duyệt chạy từ Downloads (không có bản cài) vẫn chạy.
+    /// <paramref name="tenDaCai"/> null ⇒ không nhận mọi exe ở chỗ thả tệp theo tên.</summary>
+    public static bool DuocPhepTheoLuat(string exePath, ISet<string> allowed, string? winDir, ISet<string>? tenDaCai = null)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
         var name = FileName(exePath);
         var goi = TenGoiStore(exePath);
         if (goi != null && allowed.Contains(goi)) return true;
-        if (goi == null && LaChoConThaTep(exePath, winDir)) return false;   // #693: game đổi tên thành tên app được phép ở Desktop / Downloads
+        if (goi == null && (tenDaCai == null || tenDaCai.Contains(name)) && LaChoConThaTep(exePath, winDir)) return false;   // #693
         return allowed.Contains(name) && (!TenCuaWindows(name) || goi != null || winDir == null || TrongWindowsChiQuanTri(exePath, winDir)
             || ProgramFiles.IsMatch(exePath.Replace('/', '\\')));   // wordpad (Windows NT\Accessories), pwsh (PowerShell\7) — Program Files chỉ quản trị ghi
     }
@@ -284,11 +283,12 @@ public static class ProcessGuard
     /// <param name="safeDirs">Thư mục hệ thống.</param>
     /// <param name="winDir">Thư mục Windows (null = không miễn tiến trình hệ thống theo tên — chỉ test cũ).</param>
     /// <param name="goiCha">#643: khoá gói Store của các app cha đang chạy và được phép (<see cref="KhoaGoiCha"/>); tiến trình phụ cùng họ không bị đóng.</param>
+    /// <param name="tenDaCai">#693: tên exe của app đã cài ở chỗ không phải chỗ thả tệp (<see cref="DuocPhepTheoLuat"/>).</param>
     public static bool ShouldClose(string exePath, ISet<string> allowed, ISet<string> allowedDirs, IEnumerable<string> safeDirs, string? winDir = null,
-        IReadOnlyCollection<string>? goiCha = null)
+        IReadOnlyCollection<string>? goiCha = null, ISet<string>? tenDaCai = null)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
-        if (DuocPhepTheoLuat(exePath, allowed, winDir)) return false;
+        if (DuocPhepTheoLuat(exePath, allowed, winDir, tenDaCai)) return false;
         if (LaTienTrinhPhuCuaCha(exePath, goiCha)) return false;   // #643
         if (TenGoiStore(exePath) is { } goi && LaGoiStoreHeThong(goi)) return false;
         if (LaTienTrinhHeThongPhien(exePath, winDir)) return false;

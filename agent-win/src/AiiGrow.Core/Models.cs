@@ -361,6 +361,8 @@ public sealed class AgentConfig
     /// <summary>#690: nhóm muc cùng app đã gộp theo lần quét app gần nhất (muc đầu = muc máy chủ biết — <see cref="DanhSachApp.NhomMuc"/>).
     /// Lưu để dịch vụ khởi động lại áp bí danh ngay, không chờ lượt quét đầu (40 giây – 3 phút). null = chưa quét.</summary>
     public List<List<string>>? NhomMucApp { get; set; }
+    /// <summary>#693: tên exe của app đã cài ở chỗ không phải Desktop / Downloads… (<see cref="DanhSachApp.TenExeDaCai"/>) — lưu như <see cref="NhomMucApp"/>.</summary>
+    public List<string>? TenExeDaCai { get; set; }
 
     [JsonIgnore]
     public bool Paired => !string.IsNullOrEmpty(Token) && !string.IsNullOrEmpty(Server);

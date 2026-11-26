@@ -23,6 +23,8 @@ public class LuatChanChoPhepTests
     [InlineData(@"C:\Users\An\discord.exe", true)]
     [InlineData(@"C:\Users\Public\Games\discord.exe", true)]
     [InlineData(@"C:\Windows\Temp\discord.exe", true)]
+    [InlineData(@"C:\Windows\Tracing\discord.exe", true)]
+    [InlineData(@"C:\Windows\System32\Tasks\discord.exe", true)]
     [InlineData(@"E:\discord.exe", true)]
     [InlineData(@"C:\$Recycle.Bin\S-1-5-21-1\discord.exe", true)]
     // app đã cài thật: không phải chỗ thả tệp
@@ -47,6 +49,26 @@ public class LuatChanChoPhepTests
         // app Store được phép theo tên gói: không đổi
         Assert.False(ProcessGuard.ShouldClose(@"C:\Program Files\WindowsApps\Microsoft.MinecraftUWP_1.0_x64__8wekyb3d8bbwe\Minecraft.Windows.exe",
             Tap("microsoft.minecraftuwp"), NoDirs, Safe, Win));
+    }
+
+    [Fact]
+    public void ChoThaTep_ChiChanBanGiaCuaAppDaCai_AppBaMeDuyetTuDownloadsVanChay()
+    {
+        var al = Tap("discord.exe", "tool.exe");
+        var daCai = Tap("discord.exe");   // danh sách app quét được: Discord cài ở AppData\Local\Discord
+        Assert.True(ProcessGuard.ShouldClose(@"C:\Users\Con\Desktop\discord.exe", al, NoDirs, Safe, Win, tenDaCai: daCai));
+        // tool.exe không có bản cài trên máy (Con xin, Ba Mẹ duyệt khi nó nằm ở Downloads) ⇒ vẫn chạy được
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Users\Con\Downloads\tool.exe", al, NoDirs, Safe, Win, tenDaCai: daCai));
+        Assert.False(ProcessGuard.ShouldClose(@"C:\Users\Con\AppData\Local\Discord\app-1.0.9\Discord.exe", al, NoDirs, Safe, Win, tenDaCai: daCai));
+
+        var ds = new[]
+        {
+            new AppThat { Khoa = "a", Muc = "discord.exe", Ten = "Discord", DuongDan = @"C:\Users\Con\AppData\Local\Discord\app-1.0.9\Discord.exe" },
+            new AppThat { Khoa = "b", Muc = "tool.exe", Ten = "Tool", DuongDan = @"C:\Users\Con\Downloads\tool.exe" },
+            new AppThat { Khoa = "c", Muc = "launcher.exe", Ten = "X", DuongDan = @"C:\Program Files\X\launcher.exe" },
+            new AppThat { Khoa = "d", Muc = "microsoft.minecraftuwp", Ten = "Minecraft" },
+        };
+        Assert.Equal(new[] { "discord.exe" }, DanhSachApp.TenExeDaCai(ds, Win));
     }
 
     [Fact]
@@ -86,8 +108,9 @@ public class LuatChanChoPhepTests
         Assert.Equal(new[] { 1 }, cu.Closed);
 
         var moi = new FakeProcessControl(new RunningProc(1, store));
-        ProcessEnforcer.Enforce(moi, 2, ChanAppThat.MoRongTen(new[] { "minecraftlauncher.exe" }, bd), Safe, winDir: Win);
+        ProcessEnforcer.Enforce(moi, 2, ChanAppThat.MoRongTen(new[] { "minecraftlauncher.exe" }, DanhSachApp.BangMucChinh(nhom)), Safe, winDir: Win);
         Assert.Empty(moi.Closed);
+        Assert.Equal(new[] { "minecraftlauncher.exe", "microsoft.4297127d64ec6" }, bd["minecraftlauncher.exe"]);
     }
 
     [Fact]
@@ -111,11 +134,18 @@ public class LuatChanChoPhepTests
             new() { "a.exe", "launcher.exe", "a-store" },
             new() { "b.exe", "b-store" },
         });
-        Assert.Equal(new[] { "a.exe", "x.exe", "a-store" }, ChanAppThat.MoRongTen(new[] { "a.exe", "x.exe", "A.EXE" }, bd));
-        Assert.Equal(new[] { "x.exe" }, ChanAppThat.MoRongTen(new[] { "x.exe" }, null));
-        var chinh = DanhSachApp.BangMucChinh(new List<List<string>> { new() { "a.exe", "launcher.exe", "a-store" } });
+        Assert.Equal(new[] { "a.exe", "launcher.exe", "a-store" }, bd["a-store"]);
+        var chinh = DanhSachApp.BangMucChinh(new List<List<string>>
+        {
+            new() { "a.exe", "launcher.exe", "a-store" },
+            new() { "b.exe", "b-store" },
+        });
         Assert.False(chinh.ContainsKey("launcher.exe"));   // tên chung chung không quy về app nào
         Assert.Equal("a.exe", chinh["A-STORE"]);
+        Assert.Equal(new[] { "a.exe", "x.exe", "a-store" }, ChanAppThat.MoRongTen(new[] { "a.exe", "x.exe", "A.EXE" }, chinh));
+        Assert.Equal(new[] { "x.exe" }, ChanAppThat.MoRongTen(new[] { "x.exe" }, null));
+        // một chiều: muc bí danh còn sót trong danh sách (hết sao đã bỏ muc chính) không kéo muc chính vào lại
+        Assert.Equal(new[] { "b-store" }, ChanAppThat.MoRongTen(new[] { "b-store" }, chinh));
         Assert.Empty(DanhSachApp.BangBiDanh((IEnumerable<IReadOnlyList<string>>?)null));
     }
 

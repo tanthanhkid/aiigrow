@@ -82,6 +82,9 @@ public sealed class AgentRuntime
         BiDanhMuc = DanhSachApp.BangBiDanh(nhom);
         MucChinh = DanhSachApp.BangMucChinh(nhom);
     }
+
+    /// <summary>#693: tên exe app đã cài ở chỗ khác Desktop / Downloads (null = chưa quét lần nào — mọi exe ở chỗ thả tệp không được nhận theo tên).</summary>
+    public volatile ISet<string>? TenDaCai;
     /// <summary>#422: app đã cài theo lần quét gần nhất (mục + tên) — lưới «App trên máy» của hộp «Xin thêm app / web» (PipeCmd.AppMay). null = chưa quét.</summary>
     public volatile IReadOnlyList<AppTrenMay>? AppMay;
     /// <summary>05/11 (L11): bài nộp lúc mất mạng đang chờ gửi (BaiChoMang, mỗi bài một tệp). PipeServer / AgentWorker cập nhật số đếm.</summary>
@@ -121,6 +124,7 @@ public sealed class AgentRuntime
             _cfgStamp = Store.LastWriteUtc;
             // #690: bí danh của lần quét trước — có ngay sau khởi động lại (lượt quét đầu chỉ chạy sau 40 giây – 3 phút)
             if (BiDanhMuc == null && Config?.NhomMucApp is { Count: > 0 } nhom) DatNhomMuc(nhom);
+            if (TenDaCai == null && Config?.TenExeDaCai is { } tdc) TenDaCai = new HashSet<string>(tdc, StringComparer.OrdinalIgnoreCase);
             // Máy mồ côi (token bị từ chối quá MoCoi.Nguong) ⇒ KHÔNG nạp lại Policy cuối (không áp luật cũ sau khởi động lại).
             // LastPolicyJson là CẢ phản hồi dong-bo ⇒ lấy phần `windows` (LayWindows nhận cả dạng phẳng cũ) — không thì mất mạng + khởi động lại nạp «tự do» rỗng.
             if (_policy == null && !MoCoi.La(Config, DateTimeOffset.UtcNow) && PolicyParser.TryParse(Config?.LastPolicyJson ?? "", out var p) && p != null)
@@ -753,6 +757,8 @@ public sealed class AgentRuntime
 
     public void SetForeground(string? appId, string? appName)
     {
+        // #690: exe bí danh của app đã gộp (bản Store / bản cài) ⇒ muc chính máy chủ biết — phút, «đang chơi», phiên chơi, Tính phút cùng một app
+        if (appId != null && MucChinh is { } mc && mc.TryGetValue(appId, out var chinh)) appId = chinh;
         lock (_gate) { _fgId = appId ?? ""; _fgName = appName; _fgAt = DateTimeOffset.UtcNow; }
     }
 

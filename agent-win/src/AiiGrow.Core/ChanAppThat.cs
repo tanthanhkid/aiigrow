@@ -138,18 +138,18 @@ public static class ChanAppThat
         return kq;
     }
 
-    /// <summary>#690: danh sách muc Cho phép / Tính phút ⇒ thêm các muc cùng app đã gộp (bản Store + bản cài của Minecraft…), không thêm tên exe
-    /// chung chung (<see cref="TenChung"/>). Giữ thứ tự, không trùng (không phân biệt hoa thường).</summary>
-    public static List<string> MoRongTen(IEnumerable<string> ds, IReadOnlyDictionary<string, string[]>? biDanh)
+    /// <summary>#690: danh sách Cho phép ⇒ thêm các muc bí danh của app đã gộp (bản Store + bản cài của Minecraft…) khi MUC CHÍNH của app có
+    /// trong danh sách (<paramref name="mucChinh"/>: bí danh → muc chính, <see cref="DanhSachApp.BangMucChinh"/>, đã bỏ tên exe chung chung).
+    /// Chỉ một chiều: muc bí danh còn sót trong danh sách không kéo muc chính vào lại (hết sao đã bỏ muc chính — QuyTaiCho.ApDung).</summary>
+    public static List<string> MoRongTen(IEnumerable<string> ds, IReadOnlyDictionary<string, string>? mucChinh)
     {
         var kq = new List<string>();
         var co = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (var a in ds) if (co.Add(a)) kq.Add(a);
-        if (biDanh == null || biDanh.Count == 0) return kq;
-        foreach (var a in kq.ToList())
-            if (biDanh.TryGetValue(a.ToLowerInvariant(), out var cac))
-                foreach (var m in cac)
-                    if (m.Length > 0 && !TenChung.Contains(m) && co.Add(m)) kq.Add(m);
+        if (mucChinh == null || mucChinh.Count == 0) return kq;
+        var chinh = new HashSet<string>(kq, StringComparer.OrdinalIgnoreCase);
+        foreach (var (biDanh, m) in mucChinh)
+            if (chinh.Contains(m) && co.Add(biDanh)) kq.Add(biDanh);
         return kq;
     }
 

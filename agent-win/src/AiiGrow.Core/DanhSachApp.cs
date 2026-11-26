@@ -412,6 +412,14 @@ public static class DanhSachApp
     /// <summary>Muc → mọi muc cùng app (cùng tên đã gộp): chỉ các app có từ hai muc trở lên.</summary>
     public static Dictionary<string, string[]> BangBiDanh(IEnumerable<AppThat> ds) => BangBiDanh(NhomMuc(ds));
 
+    /// <summary>#693: tên exe (chữ thường) của app đã cài mà tệp chạy KHÔNG nằm ở chỗ Con thả tệp (<see cref="ProcessGuard.LaChoConThaTep"/>) —
+    /// exe cùng tên ở Desktop / Downloads là bản giả. Tên exe chung chung không tính.</summary>
+    public static List<string> TenExeDaCai(IEnumerable<AppThat> ds, string? winDir) =>
+        ds.Where(a => !string.IsNullOrWhiteSpace(a.DuongDan) && !ProcessGuard.LaChoConThaTep(a.DuongDan!, winDir))
+          .Select(a => TenTep(a.DuongDan!).ToLowerInvariant())
+          .Where(t => t.EndsWith(".exe", StringComparison.Ordinal) && !ChanAppThat.TenChung.Contains(t))
+          .Distinct(StringComparer.Ordinal).OrderBy(t => t, StringComparer.Ordinal).ToList();
+
     /// <summary>#690: các nhóm muc cùng app (chỉ app có từ hai muc), muc ĐẦU là muc gửi máy chủ — lưu vào cấu hình để dịch vụ khởi động lại
     /// có bí danh ngay (không chờ lượt quét app đầu tiên).</summary>
     public static List<List<string>> NhomMuc(IEnumerable<AppThat> ds) =>

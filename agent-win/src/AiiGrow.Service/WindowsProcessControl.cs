@@ -9,10 +9,17 @@ namespace AiiGrow.Service;
 /// </summary>
 public sealed class WindowsProcessControl : IProcessControl
 {
-    /// <summary>#698: tên tiến trình trong phiên Con KHÔNG đọc được đường dẫn ở lượt liệt kê gần nhất (luật không xét được — AgentWorker ghi nhật ký).</summary>
-    public IReadOnlyList<string> KhongDocDuoc => _khongDoc;
     private List<string> _khongDoc = new();
-    /// <summary>#698: lý do lần <see cref="Close"/> thất bại gần nhất (thiếu quyền, tiến trình được bảo vệ…).</summary>
+    /// <summary>#698: tên tiến trình trong phiên Con KHÔNG đọc được đường dẫn ở lượt liệt kê gần nhất (luật không xét được — AgentWorker ghi nhật ký).
+    /// Lấy một lần: gọi xong là rỗng (lượt sau không liệt kê thì không báo lại danh sách cũ).</summary>
+    public IReadOnlyList<string> LayKhongDocDuoc()
+    {
+        var ds = _khongDoc;
+        _khongDoc = new();
+        return ds;
+    }
+    /// <summary>#698: lý do lần <see cref="Close"/> GẦN NHẤT thất bại vì Windows từ chối (thiếu quyền, tiến trình được bảo vệ…); null = lần gần nhất
+    /// không phải bị từ chối (tiến trình đã tự thoát trước khi đóng).</summary>
     public string? LoiDongCuoi { get; private set; }
 
     public IEnumerable<RunningProc> ListChildProcesses(int sessionId)
@@ -57,12 +64,15 @@ public sealed class WindowsProcessControl : IProcessControl
 
     public bool Close(int processId)
     {
+        LoiDongCuoi = null;
         try
         {
             using var p = Process.GetProcessById(processId);
             p.Kill();
             return true;
         }
+        catch (ArgumentException) { return false; }            // đã thoát trước khi đóng (GetProcessById) — không phải bị từ chối
+        catch (InvalidOperationException) { return false; }    // thoát giữa chừng
         catch (Exception e) { LoiDongCuoi = e.Message; return false; }
     }
 }
