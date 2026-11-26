@@ -50,3 +50,24 @@ fun chuNutXinThem(kieu: KieuXin, tenApp: String?): String = when (kieu) {
     KieuXin.APP -> if (tenApp.isNullOrBlank()) "Chọn một app để xin" else "Xin Ba Mẹ thêm $tenApp"
     KieuXin.WEB -> "Xin Ba Mẹ mở trang này"
 }
+
+// #691 mục 5: app đã gỡ / chưa đọc được nhãn ⇒ tên người đọc được thay vì mã gói «com.xxx.yyy».
+private val TEN_GOI_BIET = mapOf(
+    "com.roblox.client" to "Roblox", "com.mojang.minecraftpe" to "Minecraft", "com.google.android.youtube" to "YouTube",
+    "com.google.android.apps.youtube.kids" to "YouTube Kids", "com.zhiliaoapp.musically" to "TikTok", "com.ss.android.ugc.trill" to "TikTok",
+    "com.supercell.clashofclans" to "Clash of Clans", "com.supercell.brawlstars" to "Brawl Stars", "com.king.candycrushsaga" to "Candy Crush Saga",
+    "com.facebook.katana" to "Facebook", "com.facebook.orca" to "Messenger", "com.instagram.android" to "Instagram", "com.zing.zalo" to "Zalo",
+    "com.android.chrome" to "Google Chrome", "com.dts.freefireth" to "Free Fire", "com.garena.game.kgvn" to "Liên Quân Mobile",
+)
+private val DUOI_GOI = Regex("(pe|android|client|mobile|app|free|lite|hd|global|vn)$")
+
+/** Mã gói ⇒ tên hiển thị dự phòng: bảng app hay gặp, không thì khúc cuối bỏ đuôi vô nghĩa, viết hoa chữ đầu (com.vendor.superpuzzlepe ⇒ «Superpuzzle»). */
+fun tenTuGoi(goi: String): String {
+    val g = goi.trim()
+    if (g.isEmpty()) return "App này"
+    TEN_GOI_BIET[g.lowercase()]?.let { return it }
+    val cuoi = g.substringAfterLast('.').lowercase()
+    val bo = cuoi.replace(DUOI_GOI, "")
+    val t = if (bo.length >= 3) bo else cuoi
+    return if (t.isEmpty()) "App này" else t.replaceFirstChar { it.uppercaseChar() }
+}

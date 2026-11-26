@@ -108,6 +108,21 @@ test("Thẻ «Đang chơi»: liệt kê phiên chạy (Con, máy, app, phút cò
   assert.equal(sau.ly_do_ket, "ba_me_khoa");
 });
 
+test("#691 thẻ «Đang chơi»: gói lạ không hiện mã gói; tên thật máy gửi thắng", async () => {
+  const { fam, con, tok } = await nha();
+  const may = await ghep(fam, con);
+  await datLuat(fam, { muc: "com.vendor.superpuzzlepe", loai: "giai_tri", nhom: "game" });
+  await dieuChinhTay(fam, con, 50, "Điểm thử", await bmId(fam));
+  const luc = new Date("2026-10-21T18:00:00+07:00");
+  await luonChoiDuoc(con, [luc]);
+  const ph = await moPhien(con, may.deviceId, "com.vendor.superpuzzlepe", {}, luc);
+  await q(`update play_sessions set nhip_cuoi = now() where id = $1`, [ph.id]);
+  assert.equal((await m("phien-dang", { tok })).body.ds[0].tenApp, "Superpuzzle");
+  await q(`insert into app_may(device_id, khoa, muc, ten) values ($1, 'superpuzzle', 'com.vendor.superpuzzlepe', 'Super Puzzle Kids')`, [may.deviceId]);
+  assert.equal((await m("phien-dang", { tok })).body.ds[0].tenApp, "Super Puzzle Kids");
+  assert.deepEqual([tenApp("com.king.candycrushsaga"), tenApp("m.youtube.com"), tenApp("com.mojang.minecraftpe")], ["Candy Crush Saga", "m.youtube.com", "Minecraft"]);
+});
+
 test("«≈ X phút chơi»: điểm đổi ra phút trò chơi theo giá của nhà", async () => {
   const { fam, con, tok } = await nha();
   await q(`insert into points(id, child_id, delta, loai, ly_do) values ($1,$2,30,'thuong','thử')`, [newId(), con]);

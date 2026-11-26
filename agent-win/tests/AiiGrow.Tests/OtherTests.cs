@@ -252,6 +252,13 @@ public class TrayViewTests
     public void FriendlyAppName()
     {
         Assert.Equal("Roblox", TrayView.FriendlyAppName("roblox.exe", null));
+        // #692: bảng tên khay khớp máy chủ — không còn «Mspaint», «Javaw», «Minecraftlauncher»
+        Assert.Equal("Paint", TrayView.FriendlyAppName("mspaint.exe", null));
+        Assert.Equal("Minecraft", TrayView.FriendlyAppName("minecraftlauncher.exe", null));
+        Assert.Equal("Java (thường là Minecraft)", TrayView.FriendlyAppName("javaw.exe", null));
+        Assert.Equal("Fortnite", TrayView.FriendlyAppName("fortniteclient-win64-shipping.exe", null));
+        Assert.Equal("Word", TrayView.FriendlyAppName("WINWORD.EXE", null));
+        Assert.Equal("trình duyệt web", ManChanView.MoTaApp("chrome.exe"));
         Assert.Equal("Trò chơi", TrayView.FriendlyAppName("x.exe", "Trò chơi"));
     }
 }

@@ -60,4 +60,12 @@ class XinThemTest {
         assertEquals("Chọn một app để xin", chuNutXinThem(KieuXin.APP, null))
         assertEquals("Xin Ba Mẹ mở trang này", chuNutXinThem(KieuXin.WEB, null))
     }
+
+    @Test fun tenTuGoiKhongLoMaGoi() {   // #691 mục 5
+        assertEquals("Minecraft", tenTuGoi("com.mojang.minecraftpe"))
+        assertEquals("Candy Crush Saga", tenTuGoi("com.king.candycrushsaga"))
+        assertEquals("Superpuzzle", tenTuGoi("com.vendor.superpuzzlepe"))
+        assertEquals("Hocvui", tenTuGoi("vn.edu.hocvui"))
+        assertEquals("App này", tenTuGoi(" "))
+    }
 }

@@ -90,5 +90,5 @@ object DoPhut {
     fun tenApp(ctx: Context, goi: String): String = try {
         val pm = ctx.packageManager
         pm.getApplicationLabel(pm.getApplicationInfo(goi, 0)).toString()
-    } catch (_: Exception) { goi }
+    } catch (_: Exception) { vn.aiilab.aiigrow.maycon.logic.tenTuGoi(goi) }   // #691: app đã gỡ ⇒ không hiện mã gói
 }

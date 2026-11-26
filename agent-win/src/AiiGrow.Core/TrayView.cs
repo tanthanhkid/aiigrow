@@ -61,6 +61,14 @@ public static class TrayView
         ["coccoc"] = "Cốc Cốc", ["opera"] = "Opera", ["roblox"] = "Roblox",
         ["robloxplayerbeta"] = "Roblox", ["minecraft"] = "Minecraft", ["steam"] = "Steam",
         ["discord"] = "Discord", ["spotify"] = "Spotify", ["notepad"] = "Notepad", ["onedrive"] = "OneDrive", ["calculatorapp"] = "Máy tính",
+        // #692: khớp bảng máy chủ server/lib/ten-app.ts (cùng app, cùng tên trên khay và app Ba Mẹ)
+        ["robloxplayerlauncher"] = "Roblox", ["minecraftlauncher"] = "Minecraft", ["javaw"] = "Java (thường là Minecraft)", ["fortniteclient-win64-shipping"] = "Fortnite",
+        ["epicgameslauncher"] = "Epic Games", ["vlc"] = "VLC", ["zalo"] = "Zalo", ["telegram"] = "Telegram", ["whatsapp"] = "WhatsApp", ["skype"] = "Skype",
+        ["tiktok"] = "TikTok", ["netflix"] = "Netflix", ["mspaint"] = "Paint", ["calc"] = "Máy tính", ["cmd"] = "Command Prompt", ["powershell"] = "PowerShell",
+        ["winword"] = "Word", ["excel"] = "Excel", ["powerpnt"] = "PowerPoint", ["onenote"] = "OneNote", ["outlook"] = "Outlook",
+        ["teams"] = "Microsoft Teams", ["ms-teams"] = "Microsoft Teams", ["explorer"] = "File Explorer", ["taskmgr"] = "Task Manager",
+        ["snippingtool"] = "Snipping Tool", ["photos"] = "Ảnh", ["microsoft.photos"] = "Ảnh", ["windowscamera"] = "Camera", ["systemsettings"] = "Cài đặt Windows",
+        ["applicationframehost"] = "App Windows", ["msedgewebview2"] = "Trình duyệt nhúng của Windows",
     };
 
     /// <summary>Bảng mục → tên (không phân biệt hoa thường, bỏ mục / tên trống).</summary>
