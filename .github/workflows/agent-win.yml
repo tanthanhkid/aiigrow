@@ -101,6 +101,9 @@ jobs:
         run: sed -i -E "s#<Version>[^<]*</Version>#<Version>${{ matrix.ban }}</Version>#" agent-win/Directory.Build.props && grep Version agent-win/Directory.Build.props
       - name: Build bộ cài một tệp
         shell: bash
+        # DSN Sentry (project aiigrow-agent) chỉ gắn vào bản gốc build trên main (bản phát hành); PR và bản 9.9.x của e2e không gửi lỗi.
+        env:
+          AIIGROW_SENTRY_DSN: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.ban == 'goc') && secrets.AIIGROW_SENTRY_DSN || '' }}
         # Git Bash trên runner Windows không có «shasum» (build-mot-file.sh dòng cuối) ⇒ cấp một shim gọi sha256sum, không sửa script build.
         run: |
           mkdir -p "$HOME/shim"
