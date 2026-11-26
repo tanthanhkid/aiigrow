@@ -150,7 +150,7 @@ object PinMay {
     /**
      * #339: nhịp có `dsCon` (bé được gán máy). Lệch danh sách hồ sơ đang nhớ ⇒ tải lại ho-so NGAY (Ba Mẹ đổi gán ⇒ «chờ thay đổi» ép nhịp
      * ⇒ máy nhận trong ~5 giây, không chờ chu kỳ 10 phút); bé đang dùng không còn được gán ⇒ về màn chọn tên (như «Đăng xuất»).
-     * Gọi sau sauNhip, trên luồng nhịp.
+     * Gọi sau sauNhip, trên luồng mạng của DichVuNhip (napHoSo gọi máy chủ).
      */
     fun sauDsCon(ctx: Context, k: Kho, r: JSONObject) {
         val ds = docDsCon(r) ?: return
