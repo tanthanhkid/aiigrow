@@ -36,7 +36,7 @@ export const may = {
     }
     const j = await r.json().catch(() => ({}));
     if (r.status === 401 && j.error === "token_sai") await may.dat(null);
-    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? cauLoiMa(r.status), r.status, j);
+    if (!r.ok) throw new LoiApi(j.error ?? "loi", j.message ?? cauLoiMa(r.status, true), r.status, j);
     return j as T;
   },
 };

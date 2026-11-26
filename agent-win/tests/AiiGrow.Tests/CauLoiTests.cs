@@ -47,6 +47,8 @@ public class CauLoiTests
     [InlineData("token_sai")]
     [InlineData("Access to the path 'C:\\Program Files\\AiiGrow\\x.exe' is denied.")]
     [InlineData("Object reference not set to an instance of an object.")]
+    [InlineData("Caméra non disponible")]
+    [InlineData("Kamera nicht verfügbar")]
     [InlineData(null)]
     public void CauLoiMa_KhongHienCauKyThuat(string? loi)
         => Assert.Equal("Chưa mở được. Thử lại nhé.", ManChonTenView.CauLoiMa(null, null, null, loi));
@@ -55,6 +57,8 @@ public class CauLoiTests
     [InlineData("Mã chưa đúng — xem lại trong app Ba Mẹ nhé.")]
     [InlineData("youtube.com chưa có trong danh sách")]
     [InlineData(CauLoi.MatMang)]
+    [InlineData("Nhà đã có Con tên «The Sims» rồi — chọn tên khác nhé.")]
+    [InlineData("Tải bản mới ở aiigrow.aiilab.vn/tai nhé.")]
     public void CauTiengViet_DiQuaNguyenVen(string cau) => Assert.True(CauLoi.HienDuoc(cau));
 
     [Fact]

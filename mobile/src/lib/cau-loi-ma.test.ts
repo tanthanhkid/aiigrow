@@ -13,9 +13,11 @@ test("cauLoiMa: mỗi nhóm mã một câu nói phải làm gì, không có số
   assert.match(cauLoiMa(429), /đợi/);
   assert.match(cauLoiMa(404), /cập nhật app/);
   assert.match(cauLoiMa(502), /bận/);
+  assert.match(cauLoiMa(401, true), /Ba Mẹ ghép lại/);
+  assert.doesNotMatch(cauLoiMa(403), /đăng nhập/);
 });
 
 test("cauLoiAnh: câu tiếng Việt giữ, lỗi native ⇒ câu cố định", () => {
   assert.equal(cauLoiAnh(new Error("Cần quyền dùng Camera để chụp ảnh")), "Cần quyền dùng Camera để chụp ảnh");
-  for (const e of [new Error("Camera not available"), new Error("Failed to read image"), "x", null]) assert.match(cauLoiAnh(e), /^Chưa lấy được ảnh/);
+  for (const e of [new Error("Camera not available"), new Error("Failed to read image"), new Error("Caméra non disponible"), new Error("Kamera nicht verfügbar"), "x", null]) assert.match(cauLoiAnh(e), /^Chưa lấy được ảnh/);
 });

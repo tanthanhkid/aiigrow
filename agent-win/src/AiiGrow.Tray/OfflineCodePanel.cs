@@ -81,7 +81,7 @@ internal sealed class OfflineCodePanel : FlowLayoutPanel
         _msg.Text = "Đang kiểm mã…";
         var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.MaOffline, Code = code });
         _busy = false; _go.Enabled = _box.Enabled = true;
-        _msg.Text = res.Ok ? res.Message ?? "Đã mở." : CauLoi.AnToan(res.Message ?? res.Error, "Chưa mở được. Thử lại nhé.");
+        _msg.Text = res.Ok ? res.Message ?? "Đã mở." : CauLoi.AnToan(CauLoi.HienDuoc(res.Message) ? res.Message : res.Error, "Chưa mở được. Thử lại nhé.");
         if (res.Ok)
         {
             _box.Text = "";
