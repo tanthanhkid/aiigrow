@@ -40,7 +40,9 @@ public sealed class UpdateWorker : BackgroundService
                 catch (Exception e) when (e is not OperationCanceledException || !ct.IsCancellationRequested)
                 {
                     // chưa đọc được manifest (mạng chưa lên sau khi thức, máy chủ lỗi): thử lại sớm, không đợi trọn chu kỳ — chỉ tốn một GET nhỏ
-                    _log.LogWarning("Tự cập nhật: {Loi}", e.Message);
+                    // đã bắt đầu tải/giao bộ cài mà lỗi (kiểm sha, đổi tên tệp, không giao được bộ cài…) ⇒ máy kẹt bản cũ, lên Sentry (#687); chỉ đọc manifest lỗi (mạng) thì giữ Warning
+                    if (_dangTai) _log.LogError("Tự cập nhật: lỗi sau khi bắt đầu tải: {Loi}", e.Message);
+                    else _log.LogWarning("Tự cập nhật: {Loi}", e.Message);
                     // đã bắt đầu tải (lỗi ở bước sau: kiểm sha, đổi tên tệp bị khoá…) thì giãn như tải hỏng, không tải lại 182 MB mỗi chu kỳ
                     cho = _dangTai ? (_chuKy > ThuLaiTai ? _chuKy : ThuLaiTai) : (_chuKy < ThuLaiManifest ? _chuKy : ThuLaiManifest);
                 }
@@ -112,7 +114,7 @@ public sealed class UpdateWorker : BackgroundService
         if (lyDo != null)
         {
             // #639: «đã là bản mới nhất» là bình thường (Debug); mọi lý do khác (URL/host/sha lạ…) là máy kẹt bản cũ — phải thấy trong log
-            if (CapNhat.DocBan(m.Version) is { } mb && mb > hienTai) _log.LogWarning("Tự cập nhật: máy chủ phát {Moi} (máy {Cu}) nhưng bỏ qua — {LyDo} (máy chủ {Server}, url {Url})", m.Version, hienTai.ToString(3), lyDo, server, m.Url);
+            if (CapNhat.DocBan(m.Version) is { } mb && mb > hienTai) _log.LogError("Tự cập nhật: máy chủ phát {Moi} (máy {Cu}) nhưng bỏ qua — {LyDo} (máy chủ {Server}, url {Url})", m.Version, hienTai.ToString(3), lyDo, server, m.Url);
             else _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo);
             return _chuKy;
         }
@@ -141,7 +143,7 @@ public sealed class UpdateWorker : BackgroundService
             catch (Exception e) when (!ct.IsCancellationRequested)
             {
                 try { File.Delete(tam); } catch { }
-                _log.LogWarning("Tự cập nhật: tải bản {Ban} lỗi ({Loi}) ⇒ thử lại sau {Gio}", m.Version, e.Message, ThuLaiTai);
+                _log.LogError("Tự cập nhật: tải bản {Ban} lỗi ({Loi}) ⇒ thử lại sau {Gio}", m.Version, e.Message, ThuLaiTai);
                 return _chuKy > ThuLaiTai ? _chuKy : ThuLaiTai;
             }
 
@@ -149,7 +151,7 @@ public sealed class UpdateWorker : BackgroundService
             {
                 try { File.Delete(tam); } catch { }
                 // có thể chỉ thoáng qua (Wi-Fi khách sạn trả trang đăng nhập) hoặc máy chủ sắp sửa sha: thử lại sau ≥1 giờ, không đốt 182 MB mỗi chu kỳ
-                _log.LogWarning("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; thử lại sau {Gio}", ThuLaiSaiSha);
+                _log.LogError("Tự cập nhật: tệp tải về SAI sha256 ⇒ đã xoá, không chạy; thử lại sau {Gio}", ThuLaiSaiSha);
                 return _chuKy > ThuLaiSaiSha ? _chuKy : ThuLaiSaiSha;
             }
             // Kiểm trên tệp đã đổi về đuôi .exe (WinVerifyTrust chọn SIP theo tệp; đuôi .tai lạ thì kiểm PE không chắc).
@@ -170,7 +172,7 @@ public sealed class UpdateWorker : BackgroundService
                 return _chuKy;
             case KetQuaKyBoCai.ChuaKiemDuoc:
                 // giữ tệp (đúng sha, đúng người ký ghim): lượt sau chỉ kiểm lại chữ ký, không tải lại
-                _log.LogWarning("Tự cập nhật: chưa kiểm xong chữ ký bộ cài bản {Ban} (mạng/CRL-OCSP/chuỗi chứng chỉ) ⇒ không chạy lượt này, thử lại sau {Gio}", m.Version, ThuLaiTai);
+                _log.LogError("Tự cập nhật: chưa kiểm xong chữ ký bộ cài bản {Ban} (mạng/CRL-OCSP/chuỗi chứng chỉ) ⇒ không chạy lượt này, thử lại sau {Gio}", m.Version, ThuLaiTai);
                 return _chuKy > ThuLaiTai ? _chuKy : ThuLaiTai;
             case KetQuaKyBoCai.ChuaGhim:
                 _log.LogWarning("Tự cập nhật: agent chưa ghim chứng chỉ ký bộ cài ⇒ chỉ kiểm sha256 (bản {Ban})", m.Version);
@@ -178,6 +180,7 @@ public sealed class UpdateWorker : BackgroundService
         }
         // ghi «đã thử» SAU khi tải đúng: tải đứt giữa chừng thì sau ThuLaiTai tải lại, không phải chờ 24 giờ
         GhiDaThu(m.Version);
+        _dangTai = true;   // lỗi giao bộ cài (ChayBoCai ném) cũng tính là cập nhật thất bại ⇒ báo Sentry ở catch (#687)
         ChayBoCai(tep);
         _log.LogInformation("Tự cập nhật: đã giao bộ cài bản {Ban} chạy (--capnhat --im-lang)", m.Version);
         return _chuKy;
