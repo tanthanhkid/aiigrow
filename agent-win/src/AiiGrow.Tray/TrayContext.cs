@@ -350,7 +350,7 @@ internal sealed class TrayContext : ApplicationContext
     /// mỗi mục một lần (nhớ qua tệp: khay chạy lại không báo lại), một bóng mỗi lượt; vừa có bóng khác (cảnh báo còn 5 phút…) thì để lượt sau, không đè.</summary>
     private void HandleXinBo()
     {
-        if (_state.NguoiDung != LoaiNguoiDung.Con || _state.XinBo.Count == 0 || (DateTimeOffset.Now - _toastAt).TotalSeconds < 12) return;
+        if (_state.Locked || _state.NguoiDung != LoaiNguoiDung.Con || _state.XinBo.Count == 0 || (DateTimeOffset.Now - _toastAt).TotalSeconds < 12) return;
         if (_xinBoDaBao == null)
         {
             _xinBoDaBao = new();

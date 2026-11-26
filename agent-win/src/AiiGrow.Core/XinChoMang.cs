@@ -79,7 +79,7 @@ public sealed class HangXinCho
     /// <summary>Chỉ lời xin Con còn xin được (vay sao / xin duyệt) mới báo; loại cũ (them_gio / ngoai_le, bỏ từ 15/11) bỏ im lặng.</summary>
     private void BaoBo(LoiXinCho x)
     {
-        if (x.Loai == LoaiXin.VaySao || x.Loai == LoaiXin.XinDuyet && !string.IsNullOrWhiteSpace(x.Ten ?? x.Muc)) BiBo.Add(x);
+        if (x.Loai == LoaiXin.VaySao || x.Loai == LoaiXin.XinDuyet && !(string.IsNullOrWhiteSpace(x.Ten) && string.IsNullOrWhiteSpace(x.Muc))) BiBo.Add(x);
     }
 
     /// <summary>Phân loại lỗi khi gửi: lỗi mạng / máy chủ 5xx ⇒ giữ lại (tính lần); 408 / 429 ⇒ tạm hoãn (giữ, không tính lần);
@@ -87,7 +87,8 @@ public sealed class HangXinCho
     public static KetQuaGuiXin PhanLoai(Exception e) => e switch
     {
         ApiException a when a.LaLoiDuongTruyen => KetQuaGuiXin.LoiMang,
-        ApiException { StatusCode: 408 or 429 } => KetQuaGuiXin.TamHoan,
+        ApiException { StatusCode: 408 } or ApiException { StatusCode: 429, Code: null or "" or "bam_don" } => KetQuaGuiXin.TamHoan,
+        ApiException { StatusCode: 429 } => KetQuaGuiXin.LoiMang,   // 429 khác (khoá lâu): tính lần như lỗi mạng ⇒ quá ThuToiDa thì bỏ + báo Con, không chặn đầu hàng 12 giờ
         ApiException { LaTokenSai: true } => KetQuaGuiXin.Bo,
         ApiException { StatusCode: 401 or 403 } => KetQuaGuiXin.LoiMang,
         ApiException => KetQuaGuiXin.Bo,

@@ -39,7 +39,7 @@ internal sealed class XinThemForm : HopKhayCoBan
     /// <summary>Dịch vụ chưa quét xong (vừa khởi động / chưa ghép) ⇒ hỏi lại mỗi 10 giây khi hộp còn mở.</summary>
     private readonly System.Windows.Forms.Timer _taiLai = new() { Interval = 10_000 };
     private readonly System.Windows.Forms.Timer _poll = new() { Interval = 3000 };
-    /// <summary>#686: 40 lần hỏi lỗi liên tiếp (3 giây / lần ≈ 2 phút) ⇒ thôi chờ.</summary>
+    /// <summary>#686: máy chủ báo lời xin không còn 5 lần liền ⇒ thôi chờ (mất mạng / 5xx không tính).</summary>
     private readonly DemLoiHoi _pollLoi = new(5);
     private string? _id;
     /// <summary>Đã gửi lời xin (máy chủ nhận / đang chờ) — chặn gửi trùng kể cả khi máy chủ không trả id.</summary>

@@ -317,8 +317,8 @@ public sealed class PipeServer : BackgroundService
                 }
                 catch (ApiException e)
                 {
-                    // #686: chỉ lỗi «không bao giờ hỏi được» (4xx: id không còn, không thuộc máy) mới tính trần lỗi; mất mạng / 5xx / 408 / 429 thì khay cứ chờ
-                    return new PipeResponse { Ok = false, Error = e.Message, KhongCon = !e.LaLoiDuongTruyen && e.StatusCode is >= 400 and < 500 and not 408 and not 429 };
+                    // #686: chỉ lỗi «không bao giờ hỏi được» (4xx: id không còn, không thuộc máy) mới tính trần lỗi; mất mạng / 5xx / 401-403 / 408 / 429 thì khay cứ chờ
+                    return new PipeResponse { Ok = false, Error = e.Message, KhongCon = HangXinCho.PhanLoai(e) == KetQuaGuiXin.Bo };   // chung luật với hàng chờ: 401/403 tường lửa, 408/429 không tính
                 }
             }
 

@@ -188,6 +188,7 @@ public class ManConTests
         Assert.Equal(KetQuaGuiXin.Bo, HangXinCho.PhanLoai(new ApiException("Máy chủ trả dữ liệu rỗng")));          // lỗi của client: gửi lại cũng hỏng
         Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("5xx", 503)));
         Assert.Equal(KetQuaGuiXin.TamHoan, HangXinCho.PhanLoai(new ApiException("nhiều", 429, code: "bam_don")));    // #684: giữ, gửi lượt sau
+        Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("khoá", 429, code: "tam_khoa")));    // 429 lạ: tính lần, không chặn hàng mãi
         Assert.Equal(KetQuaGuiXin.TamHoan, HangXinCho.PhanLoai(new ApiException("hết giờ", 408)));
         Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("cấm", 403)));
         Assert.Equal(KetQuaGuiXin.LoiMang, HangXinCho.PhanLoai(new ApiException("xoay token", 401)));
@@ -227,8 +228,8 @@ public class ManConTests
     {
         var h = new HangXinCho();
         var now = new DateTimeOffset(2026, 11, 20, 9, 0, 0, TimeSpan.FromHours(7));
-        h.Them(new LoiXinCho { Loai = LoaiXin.VaySao, Phut = 15, Luc = now.AddDays(-1) });
-        h.Them(new LoiXinCho { Loai = "them_gio", Phut = 30, Luc = now });                                   // loại cũ: bỏ im lặng                   // quá hạn
+        h.Them(new LoiXinCho { Loai = LoaiXin.VaySao, Phut = 15, Luc = now.AddDays(-1) });                   // quá hạn
+        h.Them(new LoiXinCho { Loai = "them_gio", Phut = 30, Luc = now });                                   // loại cũ: bỏ im lặng
         h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "roblox.exe", Ten = "Roblox", Luc = now });     // máy chủ từ chối
         h.Them(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = "capcut.exe", Luc = now });                     // gửi được
         var (xong, _) = await h.GuiAsync(x => Task.FromResult(x.Muc == "roblox.exe" || x.Loai == "them_gio" ? KetQuaGuiXin.Bo : KetQuaGuiXin.DaGui), now);
