@@ -74,14 +74,17 @@ internal static class DeviceHttp
 public sealed class EnrollClient : IEnroller
 {
     private readonly HttpMessageHandler? _handler;
-    public EnrollClient(HttpMessageHandler? handler = null) { _handler = handler; }
+    private readonly IReadOnlyList<TimeSpan>? _choThuLai;
+    public EnrollClient(HttpMessageHandler? handler = null, IReadOnlyList<TimeSpan>? choThuLai = null) { _handler = handler; _choThuLai = choThuLai; }
 
     public async Task<EnrollResult> EnrollAsync(EnrollmentPackage pkg, string tenMay, CancellationToken ct = default)
     {
         if (!pkg.Valid) throw new ApiException("Gói cài thiếu địa chỉ máy chủ hoặc token");
         using var http = DeviceHttp.New(pkg.Server, null, _handler);
-        var raw = await DeviceHttp.SendAsync(http, HttpMethod.Post, "api/device/ghep-goi",
-            new { token = pkg.Token, nen = "windows", tenMay, maMay = MaMay.Doc() }, ct);
+        var maMay = MaMay.Doc();
+        // #685: phản hồi mất sau khi máy chủ đã ghép ⇒ thử lại cùng gói + maMay, máy chủ cấp lại token cho chính máy này
+        var raw = await GhepThuLai.ChayAsync(() => DeviceHttp.SendAsync(http, HttpMethod.Post, "api/device/ghep-goi",
+            new { token = pkg.Token, nen = "windows", tenMay, maMay }, ct), maMay != null, ct, _choThuLai);
         var res = DeviceHttp.Parse<EnrollResult>(raw);
         if (string.IsNullOrEmpty(res.Token)) throw new ApiException("Máy chủ không trả token thiết bị");
         return res;

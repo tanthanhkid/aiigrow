@@ -9,7 +9,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { maHoaPin } from "./pin-ma.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { saoChepCaiDat } from "./ghep-may.ts";
-import { coNoi, conChoMayMoi, datConMay, ghiNoi, kiemConNha, laMotCon, loiMotCon, noiConMoiVaoMayChung } from "./may-nhieu-con.ts";
+import { coNoi, conChoMayMoi, datConMay, ghiNoi, idConMay, kiemConNha, laMotCon, loiMotCon, noiConMoiVaoMayChung } from "./may-nhieu-con.ts";
 
 export const NEN_TANG = ["windows", "mac", "ios", "android"] as const;
 export type NenTang = (typeof NEN_TANG)[number];
@@ -253,7 +253,7 @@ export async function ghepMay(code: string, platform: string, tenMay: string, ng
   }
   let kq: Awaited<ReturnType<typeof ghepMayGd>>;
   try {
-    kq = await ghepMayGd(code, platform, tenMay, maMay, chon);
+    kq = await ghepMayGd(code, platform, tenMay, maMay, chon, new Date(now));
   } catch (e) {
     if (!(e instanceof LoiNghiepVu && e.ma === "ma_sai")) await traLuot(daGiu);
     throw e;
@@ -313,18 +313,42 @@ async function thuHoiMayCu(t: Q, maMay: string, moi: string, famMoi: string) {
   return cu.length;
 }
 
+/** #685 «ghép lại sau khi mất phản hồi»: máy chủ đã ghép (mã / gói cài đã đánh dấu dùng, token chỉ nằm trong phản hồi) nhưng phản hồi không tới máy
+ *  (Wi-Fi rớt, hết giờ, bộ cài bị đóng) ⇒ máy thử lại cùng mã / cùng gói. Nếu lần thử lại mang ĐÚNG `maMay` của máy đã ghép bằng mã / gói đó,
+ *  trong GHEP_LAI_MS kể từ lúc ghép, và máy vẫn còn trong nhà ⇒ cấp token MỚI cho chính máy đó (xoay token — token cũ chưa ai nhận) và trả kết quả
+ *  giống lần đầu, thay vì 409 «đã dùng» để lại máy mồ côi. Không có maMay / khác maMay / quá hạn ⇒ null (giữ 409 như cũ). Dùng chung mọi nền
+ *  (Windows, Mac, Android) — chỉ cần agent gửi maMay ổn định. */
+export const GHEP_LAI_MS = 60 * 60_000;
+export async function capLaiTokenGhep(t: Q, deviceId: string | null, fam: string, maMay: string | null, platform: string, daDung: Date | null, now: Date) {
+  if (!deviceId || !maMay || !daDung || now.getTime() - new Date(daDung).getTime() > GHEP_LAI_MS) return null;
+  const d = (await t<{ id: string; platform: string; child_id: string | null; dung_chung: boolean }>(
+    `select id, platform, child_id, dung_chung from devices where id = $1 and family_id = $2 and ma_may = $3 for update`, [deviceId, fam, maMay]))[0];
+  if (!d || (platform && d.platform !== platform)) return null;
+  const token = taoToken();
+  await t(`update devices set token_hash = $2 where id = $1`, [d.id, sha(token)]);
+  const dsCon = await idConMay(d.id, t);
+  const conDs = dsCon.length ? await t<{ id: string; ten: string; avatar: string }>(
+    `select id, ten, avatar from children where id = any($1::text[]) order by created_at`, [dsCon]) : [];
+  const ten = d.child_id ? conDs.find((c) => c.id === d.child_id)?.ten : undefined;
+  return { deviceId: d.id, token, dungChung: dsCon.length !== 1, conDs, ...(ten ? { childName: ten } : {}), ghepLai: true as const };
+}
+
 /** Ghép trong giao dịch, không đếm lượt — `doiGoiCai` gọi thẳng (mã tạm tự tạo từ token gói cài, không phải mã người gõ). */
 /** `chon` (#267): iPhone/iPad ghép bằng mã cho nhiều Con ⇒ agent gửi id MỘT Con trong danh sách (thiếu ⇒ 409 ios_mot_con kèm `conChon`). */
-export function ghepMayGd(code: string, platform: string, tenMay: string, maMayVao?: unknown, chon?: unknown) {
+export function ghepMayGd(code: string, platform: string, tenMay: string, maMayVao?: unknown, chon?: unknown, now = new Date()) {
   const maMay = maMayHopLe(maMayVao);
   return tx(async (t) => {
     code = String(code ?? "").trim();
     const m = (await t<{ family_id: string; child_id: string | null; platform: NenTang | ""; expires_at: Date; used_at: Date | null;
-      giong_may: string | null; goi_cai: string | null; con_ds: unknown }>(
-      `select family_id, child_id, platform, expires_at, used_at, giong_may, goi_cai, con_ds from pair_codes where code = $1 for update`, [code]))[0];
+      giong_may: string | null; goi_cai: string | null; con_ds: unknown; device_id: string | null }>(
+      `select family_id, child_id, platform, expires_at, used_at, giong_may, goi_cai, con_ds, device_id from pair_codes where code = $1 for update`, [code]))[0];
     if (!m) throw new LoiNghiepVu("ma_sai", "Mã ghép không đúng", 404);
+    if (m.used_at) {
+      const lai = await capLaiTokenGhep(t, m.device_id, m.family_id, maMay, platform, m.used_at, now);
+      if (lai) return lai;
+    }
     if (m.used_at) throw new LoiNghiepVu("ma_da_dung", "Mã này đã dùng rồi — xin Ba Mẹ mã mới", 409);
-    if (new Date(m.expires_at) < new Date()) throw new LoiNghiepVu("ma_het_han", "Mã đã hết hạn — xin Ba Mẹ mã mới", 410);
+    if (new Date(m.expires_at) < now) throw new LoiNghiepVu("ma_het_han", "Mã đã hết hạn — xin Ba Mẹ mã mới", 410);
     // mã không gắn loại máy ('') ⇒ nhận loại máy agent báo (phải là loại hợp lệ)
     if (m.platform === "" ? !(NEN_TANG as readonly string[]).includes(platform) : m.platform !== platform)
       throw new LoiNghiepVu("sai_nen_tang", m.platform ? `Mã này dành cho ${TEN_NEN_TANG[m.platform]}` : "Loại máy không hợp lệ", 409);

@@ -100,4 +100,58 @@ public class EnrollClientTests
         await c.AckLenhAsync("77");
         Assert.Equal("/api/device/lenh/77/xong", h.Path);
     }
+
+    /// <summary>#685: lần đầu đứt kết nối (máy chủ có thể đã ghép), lần sau trả token ⇒ ghép xong, không báo lỗi.</summary>
+    private sealed class DutLanDau : HttpMessageHandler
+    {
+        public int SoLan;
+        public readonly List<string?> Bodies = new();
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage req, CancellationToken ct)
+        {
+            SoLan++;
+            Bodies.Add(req.Content == null ? null : await req.Content.ReadAsStringAsync(ct));
+            if (SoLan == 1) throw new HttpRequestException("mất kết nối");
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent("""{"deviceId":"d1","token":"moi"}""", Encoding.UTF8, "application/json") };
+        }
+    }
+
+    [Fact]
+    public async Task Ghep_DutKetNoi_TuThuLaiCungMaMay()
+    {
+        var cho = new[] { TimeSpan.Zero, TimeSpan.Zero };
+        var h = new DutLanDau();
+        if (MaMay.Doc() == null)
+        {
+            // không đọc được maMay ⇒ không tự thử lại (máy chủ không nhận ra lần thử lại)
+            await Assert.ThrowsAsync<ApiException>(() => new EnrollClient(h, cho).EnrollAsync(new EnrollmentPackage { Server = "https://aiigrow.vn", Token = "g" }, "PC"));
+            Assert.Equal(1, h.SoLan);
+            return;
+        }
+        var r = await new EnrollClient(h, cho).EnrollAsync(new EnrollmentPackage { Server = "https://aiigrow.vn", Token = "g" }, "PC");
+        Assert.Equal("moi", r.Token);
+        Assert.Equal(2, h.SoLan);
+        Assert.Equal(h.Bodies[0], h.Bodies[1]);                    // cùng gói + cùng maMay
+        var h2 = new DutLanDau();
+        var p = await ApiClient.PairAsync("https://aiigrow.vn", "123456", "PC", default, h2, cho);
+        Assert.Equal("moi", p.Token);
+        Assert.Equal(2, h2.SoLan);
+    }
+
+    [Fact]
+    public async Task GhepThuLai_ChiThuLaiLoiDuongTruyen_CoHan()
+    {
+        var cho = new[] { TimeSpan.Zero, TimeSpan.Zero };
+        var n = 0;
+        // 409 (mã đã dùng) ⇒ không thử lại
+        await Assert.ThrowsAsync<ApiException>(() => GhepThuLai.ChayAsync<int>(() => { n++; throw new ApiException("đã dùng", 409, null, "ma_da_dung"); }, true, default, cho));
+        Assert.Equal(1, n);
+        // lỗi đường truyền mãi ⇒ 1 + 2 lần rồi ném
+        n = 0;
+        await Assert.ThrowsAsync<HttpRequestException>(() => GhepThuLai.ChayAsync<int>(() => { n++; throw new HttpRequestException("x"); }, true, default, cho));
+        Assert.Equal(3, n);
+        // không có maMay ⇒ không thử lại
+        n = 0;
+        await Assert.ThrowsAsync<ApiException>(() => GhepThuLai.ChayAsync<int>(() => { n++; throw new ApiException("x", 503); }, false, default, cho));
+        Assert.Equal(1, n);
+    }
 }

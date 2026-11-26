@@ -5,11 +5,11 @@
 // (b) Gỡ từ xa: chủ gia đình xác thực lại bằng mật khẩu ⇒ máy chủ ghi lệnh «go» ⇒ agent lấy lệnh qua nhịp / dong-bo (`lenh: [{id, loai}]`)
 //     ⇒ `POST /api/device/lenh/:id/xong` ⇒ máy chuyển «đã gỡ» (xoá khỏi gia đình, hết cảnh báo mất nhịp). Báo xong lần hai ⇒ ok, không ghi đôi.
 import { chuaCoMatKhau } from "./dang-nhap-mxh.ts";
-import { newId, one, q } from "./db.ts";
+import { newId, one, q, tx } from "./db.ts";
 import { dungMatKhau, sha, taoToken } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
-import { NEN_TANG, conCua, ghepMayGd, taoMaGhep, type May, type NenTang } from "./gia-dinh.ts";
+import { NEN_TANG, capLaiTokenGhep, conCua, ghepMayGd, maMayHopLe, taoMaGhep, type May, type NenTang } from "./gia-dinh.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { bangM4b } from "./tuan-thu.ts";
 import { laMotCon, loiMotCon } from "./may-nhieu-con.ts";
@@ -38,9 +38,14 @@ export async function doiGoiCai(token: string, nen: string, tenMay: string, now 
   await bangM4b();
   const h = sha(String(token ?? ""));
   const g = await one<{ family_id: string; child_id: string | null; platform: string; expires_at: Date; used_at: Date | null; giong_may: string | null;
-    ma_ghep: string | null; con_ds: string[] | null }>(
-    `select family_id, child_id, platform, expires_at, used_at, giong_may, ma_ghep, con_ds from goi_cai where token_hash = $1`, [h]);
+    ma_ghep: string | null; con_ds: string[] | null; device_id: string | null }>(
+    `select family_id, child_id, platform, expires_at, used_at, giong_may, ma_ghep, con_ds, device_id from goi_cai where token_hash = $1`, [h]);
   if (!g) throw new LoiNghiepVu("ma_sai", "Gói cài không hợp lệ — tải lại gói mới từ app Ba Mẹ", 404);
+  // #685: gói đã đổi xong nhưng phản hồi không tới máy ⇒ cùng máy (maMay) thử lại trong hạn được cấp lại token thay vì 409
+  if (g.used_at && g.device_id) {
+    const lai = await tx((t) => capLaiTokenGhep(t, g.device_id, g.family_id, maMayHopLe(maMay), nen, g.used_at, now));
+    if (lai) return lai;
+  }
   if (g.used_at) throw new LoiNghiepVu("ma_da_dung", "Gói cài này đã dùng rồi — tải gói mới từ app Ba Mẹ", 409);
   if (new Date(g.expires_at) < now) throw new LoiNghiepVu("ma_het_han", "Gói cài đã hết hạn — tải gói mới từ app Ba Mẹ", 410);
   // gói cài của «phiên ghép» (lib/ghep-may.ts) không gắn loại máy ('') ⇒ nhận loại máy bộ cài báo
