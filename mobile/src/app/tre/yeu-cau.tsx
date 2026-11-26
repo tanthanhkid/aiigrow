@@ -24,7 +24,7 @@ import { chuPhut } from "@/lib/chu-phut";
 const laVay = (y: YcTre) => y.loai === "vay_sao" || y.loai === "them_gio" || y.loai === "ngoai_le" || y.loai === "ngoai_gio";
 const laAppWeb = (y: YcTre) => y.loai === "mo_web" || y.loai === "cai_app";
 const soVayCua = (y: YcTre) => Number(y.so_sao ?? y.soSao ?? y.phut ?? 0) || 0;
-const tieuYc = (y: YcTre) => laAppWeb(y) ? `Mở ${y.loai === "mo_web" ? `trang ${y.gia_tri ?? ""}` : y.gia_tri ? tenMuc(y.gia_tri, (y as { ten_app?: string | null }).ten_app) : "app"}` : laVay(y) ? `Vay ${soVN(soVayCua(y))} sao` : y.gia_tri || y.ly_do;
+const tieuYc = (y: YcTre) => laAppWeb(y) ? `Mở ${y.loai === "mo_web" ? (y.gia_tri ? `trang ${y.gia_tri}` : "trang web") : y.gia_tri ? tenMuc(y.gia_tri, (y as { ten_app?: string | null }).ten_app) : "app"}` : laVay(y) ? `Vay ${soVN(soVayCua(y))} sao` : y.gia_tri || y.ly_do;
 
 type Kq = "cho" | "duoc" | "mo_tam" | "chua" | "het_han" | "huy";
 const BO_QUA_HOAN_TAC_MS = 60_000;
@@ -117,7 +117,7 @@ export default function YeuCau() {
       return (
         <ManD lui="/tre/nha" day={<>{quaId
           ? <NutD chu="Đổi quà ngay" ic="qua" bam={() => router.replace(`/tre/doi/${quaId}`)} />
-          : <NutD chu={`Chơi ${soVN(s?.phutCon ?? so)} phút`} ic="game" bam={() => router.replace("/tre/gio")} />}
+          : <NutD chu={`Chơi ${chuPhut(s?.phutCon ?? so)}`} ic="game" bam={() => router.replace("/tre/gio")} />}
           <NutD chu={`Cảm ơn ${ai} ›`} loai="chu" bam={() => router.push("/tre/tin")} /></>}>
           <TieuD chu={`${ai} cho vay ${soVN(so)} sao!`} />
           <TheD>
@@ -187,7 +187,7 @@ export default function YeuCau() {
     }
     const tinhPhut = dau.nhom !== "khong_tinh_phut";
     return (
-      <ManD lui="/tre/nha" day={<><NutD chu={kq === "mo_tam" || !tinhPhut || !s ? "Về trang chính" : `Mở ${tenXin} · còn ${soVN(s.phutCon)} phút`} ic="game"
+      <ManD lui="/tre/nha" day={<><NutD chu={kq === "mo_tam" || !tinhPhut || !s ? "Về trang chính" : `Mở ${tenXin} · còn ${chuPhut(s.phutCon)}`} ic="game"
         bam={() => router.replace("/tre/nha")} />
         <NutD chu={`Cảm ơn ${ai} ›`} loai="chu" bam={() => router.push("/tre/tin")} /></>}>
         <TieuD chu={kq === "mo_tam" ? `${ai} cho mở ${tenXin}${dau.moTam?.phut ? ` ${chuPhut(dau.moTam.phut)}` : ""}` : `${ai} đã thêm ${tenXin}!`} />

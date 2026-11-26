@@ -16,6 +16,7 @@ import vn.aiilab.aiigrow.maycon.logic.Cong
 import vn.aiilab.aiigrow.maycon.logic.KetQuaMoOffline
 import vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin
+import vn.aiilab.aiigrow.maycon.logic.tenTuGoi
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
 import vn.aiilab.aiigrow.maycon.logic.chuKetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.mmss
@@ -188,7 +189,7 @@ object GiaoDien {
             val ten = DoPhut.tenApp(c, g)
             val ly = (if (choGoLyDo) oLyDo.text.toString().replace(Regex("\\s*\n\\s*"), " ") else lyDoChon ?: "")
             val gen = ++xinGen
-            xinGoi = g; xinTen = DoPhut.tenHien(c, g); hetHoi = false   // hiển thị: không lộ mã gói (#691); `ten` gửi máy chủ giữ như cũ
+            xinGoi = g; xinTen = if (ten == g) tenTuGoi(g) else ten; hetHoi = false   // hiển thị: không lộ mã gói (#691); `ten` gửi máy chủ giữ như cũ
             xinKq = KetQuaXinApp(LoaiKetQuaXin.CHO, null)
             capNhatKetQua(g)
             val ctx = c.applicationContext

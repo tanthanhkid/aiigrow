@@ -25,7 +25,12 @@ test("laMaGoi phân biệt mã gói với tên miền", () => {
 test("tenTepCai: tệp cài ⇒ tên app", () => {
   assert.equal(tenTepCai("SetupRoblox.exe"), "Roblox");
   assert.equal(tenTepCai("Roblox Installer (1).exe"), "Roblox");
-  assert.equal(tenTepCai("Minecraft-2.exe"), "Minecraft");
+  assert.equal(tenTepCai("GTA-5.exe"), "GTA 5");
+  assert.equal(tenTepCai("FIFA_23.exe"), "FIFA 23");
+  assert.equal(tenTepCai("Installation Simulator.exe"), "Installation Simulator");
+  assert.equal(tenMuc("microsoft.minecraftuwp"), "Minecraft");
+  assert.equal(tenMuc("microsoft.someapp"), "App lạ");
+  assert.equal(laMaGoi("tv.twitch.android.app"), true);
   assert.equal(tenTepCai("MinecraftInstaller.exe"), "Minecraft");
   assert.equal(tenTepCai("vlc-3.0.20-win64.exe"), "VLC");
   assert.equal(tenTepCai("ZaloSetup-24.10.1.exe"), "Zalo");

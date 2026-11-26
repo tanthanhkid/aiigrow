@@ -13,12 +13,13 @@ const BIET: Record<string, string> = {
   "com.king.candycrushsaga": "Candy Crush Saga", "com.facebook.katana": "Facebook", "com.facebook.orca": "Messenger", "com.instagram.android": "Instagram",
   "com.zing.zalo": "Zalo", "com.android.chrome": "Google Chrome", "com.google.chrome": "Google Chrome", "com.apple.safari": "Safari", "com.spotify.music": "Spotify",
   "com.dts.freefireth": "Free Fire", "com.garena.game.kgvn": "Liên Quân Mobile", "com.vng.pubgmobile": "PUBG Mobile", "com.tencent.ig": "PUBG Mobile",
+  "microsoft.minecraftuwp": "Minecraft", "microsoft.mspaint": "Paint", "microsoft.windowscalculator": "Máy tính", "microsoft.windowsnotepad": "Notepad", "microsoft.zunevideo": "Phim & TV",
 };
 /** Khúc đầu của mã gói kiểu tên miền đảo (com.…, org.…, vn.…) — tên miền web thường KHÔNG bắt đầu bằng các khúc này (www.bbc.co.uk, m.youtube.com). */
-const DAU_GOI = /^(com|org|net|io|vn|edu|gov|air|app|me|co|tv|de|uk|jp|kr|cn|in|us|ru|br|fr|it|es|info|biz)$/;
+const DAU_GOI = /^(com|org|net|io|vn|edu|gov|air|app|me|co|tv|de|uk|jp|kr|cn|in|us|ru|br|fr|it|es|info|biz|microsoft)$/;
 
 /** Khúc cuối là đuôi tên miền ⇒ tên miền web (fr.wikipedia.org, tv.zing.vn, app.hocmai.vn), không phải mã gói. */
-const DUOI_WEB = /^(com|org|net|io|vn|edu|gov|info|biz|me|co|tv|app|uk|us|jp|kr|cn|de|fr|ru|br|it|es|in|xyz|online|site|dev)$/;
+const DUOI_WEB = /^(com|org|net|io|vn|edu|gov|info|biz|me|co|tv|uk|us|jp|kr|cn|de|fr|ru|br|it|es|in|xyz|online|site|gg|ai)$/;
 
 const hoaDau = (s: string) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : s);
 
@@ -73,8 +74,9 @@ export function tenTepCai(tep: string): string {
     t = t.replace(/\s*\(\d+\)$/, "");                                  // bản sao trình duyệt: «x (1)»
     t = t.replace(/[-_ ]+v?\d+(\.\d+)+([-_ ].*)?$/i, "");              // phiên bản có dấu chấm: -3.0.20-win64, _v1.2
     t = t.replace(/[-_ ]*(x64|x86|win64|win32|amd64|arm64)$/i, "");
-    t = t.replace(/[-_]v?\d+$/i, "");                                  // tệp tải trùng / bản: Minecraft-2, Roblox_v2 («FIFA 23» giữ)
-    t = t.replace(/^(installer|install|setup)[-_ ]*/i, "").replace(/[-_ ]*(installer|install|setup|launcher)$/i, "");
+    t = t.replace(/[-_ ]v\d+$/i, "");                                    // bản: Roblox_v2 (số trần giữ: GTA-5, FIFA_23 là tên)
+    t = t.replace(/^(?:[Ii]nstaller|[Ii]nstall|[Ss]etup|INSTALL|SETUP)(?:[-_ ]+|(?=[A-Z0-9]))/, "")   // SetupRoblox; «Installation Simulator» giữ
+      .replace(/(?:[-_ ]+|(?<=[a-z0-9]))(?:[Ii]nstaller|[Ii]nstall|[Ss]etup|[Ll]auncher)$/, "");
     t = t.replace(/[-_.]+$/, "").trim();
     if (t === truoc) break;
   }

@@ -19,10 +19,10 @@ const BIET: Record<string, string> = {
   "com.dts.freefireth": "Free Fire", "com.garena.game.kgvn": "Liên Quân Mobile", "robloxplayerlauncher.exe": "Roblox", "minecraftlauncher.exe": "Minecraft",
 };
 /** Khúc đầu của mã gói kiểu tên miền đảo — tên miền web thường không bắt đầu bằng các khúc này (www.bbc.co.uk, m.youtube.com). */
-const DAU_GOI = /^(com|org|net|io|vn|edu|gov|air|app|me|co|tv|de|uk|jp|kr|cn|in|us|ru|br|fr|it|es|info|biz)$/;
-/** Mã gói Android / bundle id Mac (com.king.candycrushsaga, com.whatsapp): khúc đầu là đuôi tên miền đảo, ≥ 2 khúc, không khoảng trắng. */
+const DAU_GOI = /^(com|org|net|io|vn|edu|gov|air|app|me|co|tv|de|uk|jp|kr|cn|in|us|ru|br|fr|it|es|info|biz|microsoft)$/;
 /** Khúc cuối là đuôi tên miền ⇒ tên miền web (fr.wikipedia.org, tv.zing.vn), không phải mã gói. */
-const DUOI_WEB = /^(com|org|net|io|vn|edu|gov|info|biz|me|co|tv|app|uk|us|jp|kr|cn|de|fr|ru|br|it|es|in|xyz|online|site|dev)$/;
+const DUOI_WEB = /^(com|org|net|io|vn|edu|gov|info|biz|me|co|tv|uk|us|jp|kr|cn|de|fr|ru|br|it|es|in|xyz|online|site|gg|ai)$/;
+/** Mã gói Android / bundle id Mac (com.king.candycrushsaga, com.whatsapp): khúc đầu là đuôi tên miền đảo, ≥ 2 khúc, không khoảng trắng; khúc cuối không phải đuôi web. */
 export const laMaGoi = (s: string) => {
   const t = s.trim().toLowerCase();
   if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/.test(t)) return false;

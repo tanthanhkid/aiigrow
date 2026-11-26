@@ -28,8 +28,7 @@ type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number; vay?: number }[]; t
 type BaoCao = { ten: string; tuanNay: Tuan; tuanTruoc: Tuan; chuGiai: string[] };
 const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const THU_DAI = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
-/** 385 → «6 giờ 25»; 45 → «45 phút». */
-/** Số lớn đầu thẻ (gọn «3 giờ 05»); câu chữ dùng chuPhut. */
+/** Số lớn đầu thẻ: 385 → «6 giờ 25», 45 → «45 phút»; câu chữ dùng chuPhut. */
 const gio = (p: number) => (p >= 60 ? `${Math.floor(p / 60)} giờ${p % 60 ? ` ${String(p % 60).padStart(2, "0")}` : ""}` : `${p} phút`);
 const gioNgan = (p: number) => (p >= 60 ? `${Math.floor(p / 60)}g ${String(p % 60).padStart(2, "0")}` : `${p}′`);
 const ngayNgan = (ngay: string) => `${Number(ngay.slice(8, 10))}/${Number(ngay.slice(5, 7))}`;
