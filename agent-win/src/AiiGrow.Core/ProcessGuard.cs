@@ -259,6 +259,23 @@ public static class ProcessGuard
             && segs[3].Equals("Local", StringComparison.OrdinalIgnoreCase) && segs[4].Equals("Temp", StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>#693: exe nằm NGAY ở gốc chỗ Con thả tệp (Desktop\game.exe, Downloads\game.exe, Users\An\game.exe, X:\game.exe, Temp, thư mục Windows Con
+    /// ghi được, thư mục mạng…) ⇒ thư mục của nó không được thành «helper cùng thư mục» của app được phép (không thì mọi game thả cạnh đó chạy theo).
+    /// Thư mục riêng của app portable Ba Mẹ duyệt (Downloads\MyGame\) thì được — helper của nó (UnityCrashHandler…) không bị đóng.</summary>
+    public static bool LaGocChoThaTep(string exePath, string? winDir = null)
+    {
+        if (!LaChoConThaTep(exePath, winDir)) return false;
+        var p = exePath.Replace('/', '\\');
+        if (p.Length < 4 || p[1] != ':' || p[2] != '\\' || p.IndexOf(':', 2) >= 0) return true;
+        var segs = p[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        if (segs.Length < 4 || !segs[0].Equals("Users", StringComparison.OrdinalIgnoreCase)) return true;   // X:\, Users\An\x.exe, Windows, thùng rác
+        var con = segs[2];
+        if (segs[1].Equals("Public", StringComparison.OrdinalIgnoreCase) || ThuMucHoSoTha.Contains(con)) return segs.Length <= 4;   // …\Downloads\x.exe
+        if (con.StartsWith("OneDrive", StringComparison.OrdinalIgnoreCase))
+            return segs.Length <= 4 || (segs.Length == 5 && ThuMucHoSoTha.Contains(segs[3]));                                  // OneDrive\Desktop\x.exe
+        return true;   // AppData\Local\Temp\… : mọi tầng (bộ cài, tệp giải nén tạm)
+    }
+
     /// <summary>Exe khớp luật cho phép: theo tên exe (tên trùng của Windows thì phải là bản thật — <see cref="TenCuaWindows"/>) hoặc theo tên gói Store.
     /// #693: exe ở chỗ Con tự thả tệp (<see cref="LaChoConThaTep"/>) mang tên một app ĐÃ CÀI ở chỗ khác trên máy (<paramref name="tenDaCai"/>, theo
     /// danh sách app quét được) là bản giả (game đổi tên thành discord.exe) ⇒ không nhận. App Ba Mẹ duyệt chạy từ Downloads (không có bản cài) vẫn chạy.

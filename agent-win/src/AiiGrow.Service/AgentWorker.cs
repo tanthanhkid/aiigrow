@@ -136,6 +136,7 @@ public sealed class AgentWorker : BackgroundService
                         // 25/10: app Ba Mẹ đặt «Chặn» (định danh thật của máy) — MỌI mode kể cả tu_do; giám sát chỉ ghi log (ChanAppThat.cs)
                         // 06/11 (L13): Ba Mẹ đang dùng máy (mở bằng mã) ⇒ không đóng app nào
                         if (sess != null && p.BlockedApps.Count > 0 && !DangNhapView.BaMeDangDung(cfg.DangNhap, DateTimeOffset.Now)) EnforceChanApp(sess.SessionId, p, apThat);
+                        BaoKhongDocDuoc();   // một lần mỗi nhịp, sau cả hai lượt liệt kê (Cho phép + Chặn)
 
                         _rt.SetLock(eff.Locked, eff.LockReason, now, active);
                         if (eff.Locked && active && _rt.LockGraceExpired(now) && (now - lastDisconnect).TotalSeconds > 30)
@@ -334,7 +335,6 @@ public sealed class AgentWorker : BackgroundService
         // #690: app gộp (bản Store + bản cài) — Ba Mẹ cho phép một muc thì mọi lối mở của cùng app đều được
         var closed = ProcessEnforcer.Enforce(_procs, sessionId, ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh), dryRun: !apThat, choThem: choThem,
             khongDong: exe => BaoKhongDong(exe, "ngoài danh sách"), tenDaCai: _rt.TenDaCai ?? ChuaQuet);
-        BaoKhongDocDuoc();
         // Giám sát: cùng một tập app chạy mãi ⇒ chỉ ghi log khi tập đổi (trước đây ~5 giây một lượt, hàng nghìn dòng may_log mỗi giờ).
         var tap = string.Join(",", closed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
         var ghiGiamSat = tap != _giamSatDaBao;
@@ -383,7 +383,7 @@ public sealed class AgentWorker : BackgroundService
     {
         if (_procs is not WindowsProcessControl w) return;
         var nay = new HashSet<string>(w.LayKhongDocDuoc(), StringComparer.OrdinalIgnoreCase);
-        // chỉ tên gặp ở hai lượt liệt kê liền nhau (tiến trình vừa thoát giữa lúc liệt kê không phải lỗi đọc)
+        // chỉ tên gặp ở hai NHỊP liền nhau (tiến trình vừa mở / vừa thoát giữa lúc liệt kê không phải lỗi đọc)
         foreach (var ten in nay)
             if (_khongDocTruoc.Contains(ten) && NenBao("doc:" + ten)) _log.LogWarning("Không đọc được đường dẫn tiến trình {ten} trong phiên Con — luật Chặn / Cho phép không xét được", ten);
         if (nay.Count > 0 || _khongDocTruoc.Count > 0) _khongDocTruoc = nay;
@@ -393,7 +393,6 @@ public sealed class AgentWorker : BackgroundService
     {
         var ds = ChanAppThat.Enforce(_procs, sessionId, ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), dryRun: !apThat, bam: BamTepCache.Chung.BamNen,
             khongDong: (exe, muc) => BaoKhongDong(exe, "Ba Mẹ đã Chặn, luật " + muc));
-        BaoKhongDocDuoc();
         var tap = string.Join(",", ds.Select(x => x.Exe).Distinct().OrderBy(x => x, StringComparer.Ordinal));
         var ghi = tap != _chanDaBao;
         _chanDaBao = tap;

@@ -9,13 +9,13 @@ namespace AiiGrow.Service;
 /// </summary>
 public sealed class WindowsProcessControl : IProcessControl
 {
-    private List<string> _khongDoc = new();
-    /// <summary>#698: tên tiến trình trong phiên Con KHÔNG đọc được đường dẫn ở lượt liệt kê gần nhất (luật không xét được — AgentWorker ghi nhật ký).
-    /// Lấy một lần: gọi xong là rỗng (lượt sau không liệt kê thì không báo lại danh sách cũ).</summary>
+    private HashSet<string> _khongDoc = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>#698: tên tiến trình trong phiên Con KHÔNG đọc được đường dẫn ở các lượt liệt kê từ lần lấy trước (luật không xét được — AgentWorker
+    /// ghi nhật ký, mỗi nhịp lấy một lần). Lấy xong là rỗng (nhịp sau không liệt kê thì không báo lại danh sách cũ).</summary>
     public IReadOnlyList<string> LayKhongDocDuoc()
     {
-        var ds = _khongDoc;
-        _khongDoc = new();
+        var ds = _khongDoc.ToList();
+        _khongDoc = new(StringComparer.OrdinalIgnoreCase);
         return ds;
     }
     /// <summary>#698: lý do lần <see cref="Close"/> GẦN NHẤT thất bại vì Windows từ chối (thiếu quyền, tiến trình được bảo vệ…); null = lần gần nhất
@@ -24,8 +24,6 @@ public sealed class WindowsProcessControl : IProcessControl
 
     public IEnumerable<RunningProc> ListChildProcesses(int sessionId)
     {
-        var khongDoc = new List<string>();
-        _khongDoc = khongDoc;
         foreach (var p in Process.GetProcesses())
         {
             string? path = null;
@@ -45,7 +43,7 @@ public sealed class WindowsProcessControl : IProcessControl
             catch { }
             finally { p.Dispose(); }
             if (!string.IsNullOrEmpty(path)) yield return new RunningProc(id, path!);
-            else if (ten != null) khongDoc.Add(ten.ToLowerInvariant());
+            else if (ten != null) _khongDoc.Add(ten.ToLowerInvariant());
         }
     }
 

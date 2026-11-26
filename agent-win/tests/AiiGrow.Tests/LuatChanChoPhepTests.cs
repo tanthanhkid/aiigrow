@@ -93,6 +93,40 @@ public class LuatChanChoPhepTests
         Assert.Equal(new[] { 2 }, that.Closed);
     }
 
+    [Fact]
+    public void AppPortableTrongThuMucRieng_HelperKhongBiDong_GocDownloadsVanKhong()
+    {
+        var fake = new FakeProcessControl(
+            new RunningProc(1, @"C:\Users\Con\Downloads\MyGame\game.exe"),
+            new RunningProc(2, @"C:\Users\Con\Downloads\MyGame\UnityCrashHandler64.exe"),
+            new RunningProc(3, @"C:\Users\Con\Downloads\roblox.exe"),
+            new RunningProc(4, @"C:\Users\Con\OneDrive\Desktop\roblox.exe"));
+        ProcessEnforcer.Enforce(fake, 2, new[] { "game.exe" }, Safe, winDir: Win, tenDaCai: Tap());
+        Assert.Equal(new[] { 3, 4 }, fake.Closed);   // helper của app Ba Mẹ duyệt giữ; game thả ở gốc Downloads vẫn đóng
+
+        Assert.True(ProcessGuard.LaGocChoThaTep(@"C:\Users\Con\Downloads\x.exe", Win));
+        Assert.True(ProcessGuard.LaGocChoThaTep(@"C:\Users\Con\x.exe", Win));
+        Assert.True(ProcessGuard.LaGocChoThaTep(@"D:\x.exe", Win));
+        Assert.True(ProcessGuard.LaGocChoThaTep(@"C:\Users\Con\AppData\Local\Temp\a\b\x.exe", Win));
+        Assert.True(ProcessGuard.LaGocChoThaTep(@"C:\Users\Con\OneDrive\Desktop\x.exe", Win));
+        Assert.False(ProcessGuard.LaGocChoThaTep(@"C:\Users\Con\OneDrive\Desktop\G\x.exe", Win));
+        Assert.False(ProcessGuard.LaGocChoThaTep(@"C:\Users\Con\Desktop\G\x.exe", Win));
+        Assert.False(ProcessGuard.LaGocChoThaTep(@"C:\Program Files\G\x.exe", Win));
+    }
+
+    [Fact]
+    public void TenExeDaCai_BanChinhODesktop_KhongCheBanCaiThat()
+    {
+        // lối tắt «Discord» Con tự tạo trỏ vào Desktop\discord.exe gộp chung với bản cài thật (cùng muc) ⇒ tên vẫn là «đã cài»
+        var ds = DanhSachApp.ChuanHoa(new[]
+        {
+            new AppThat { Khoa = @"exe:c:\users\con\desktop\discord.exe", Muc = "discord.exe", Ten = "Discord", Nguon = "registry", DuongDan = @"C:\Users\Con\Desktop\discord.exe" },
+            new AppThat { Khoa = @"exe:c:\users\con\appdata\local\discord\app-1\discord.exe", Muc = "discord.exe", Ten = "Discord", Nguon = "start", DuongDan = @"C:\Users\Con\AppData\Local\Discord\app-1\Discord.exe" },
+        });
+        Assert.Equal(new[] { "discord.exe" }, DanhSachApp.TenExeDaCai(ds, Win));
+        Assert.True(ProcessGuard.ShouldClose(@"C:\Users\Con\Desktop\discord.exe", Tap("discord.exe"), NoDirs, Safe, Win, tenDaCai: DanhSachApp.TenExeDaCai(ds, Win).ToHashSet()));
+    }
+
     // ------------------------------------------------------------------ #690
 
     private static List<AppThat> MinecraftHaiNguon() => DanhSachApp.ChuanHoa(new[]
@@ -156,6 +190,22 @@ public class LuatChanChoPhepTests
         // một chiều: muc bí danh còn sót trong danh sách (hết sao đã bỏ muc chính) không kéo muc chính vào lại
         Assert.Equal(new[] { "b-store" }, ChanAppThat.MoRongTen(new[] { "b-store" }, chinh));
         Assert.Empty(DanhSachApp.BangBiDanh((IEnumerable<IReadOnlyList<string>>?)null));
+    }
+
+    [Fact]
+    public void BiDanh_ExeCuaMucChinhExe_KhongThaVaoChoPhep()
+    {
+        // app gộp theo TÊN: lối tắt «Discord» Con tự tạo trỏ vào game ⇒ bí danh robloxplayerbeta.exe của discord.exe — không được thành «được phép»
+        var nhom = DanhSachApp.NhomMuc(DanhSachApp.ChuanHoa(new[]
+        {
+            new AppThat { Khoa = @"exe:c:\users\con\appdata\local\discord\app-1\discord.exe", Muc = "discord.exe", Ten = "Discord", Nguon = "registry", DuongDan = @"C:\Users\Con\AppData\Local\Discord\app-1\Discord.exe" },
+            new AppThat { Khoa = @"exe:c:\users\con\appdata\roaming\g\robloxplayerbeta.exe", Muc = "robloxplayerbeta.exe", Ten = "Discord", Nguon = "start", DuongDan = @"C:\Users\Con\AppData\Roaming\g\RobloxPlayerBeta.exe" },
+        }));
+        var chinh = DanhSachApp.BangMucChinh(nhom);
+        Assert.False(chinh.ContainsKey("robloxplayerbeta.exe"));   // phút Roblox không thành phút Discord
+        Assert.Equal(new[] { "discord.exe" }, ChanAppThat.MoRongTen(new[] { "discord.exe" },
+            new Dictionary<string, string> { ["robloxplayerbeta.exe"] = "discord.exe" }));
+        Assert.Equal(new[] { "discord.exe" }, ChanAppThat.MoRongTen(new[] { "discord.exe" }, chinh));
     }
 
     [Fact]

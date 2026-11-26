@@ -141,6 +141,9 @@ public static class ChanAppThat
     /// <summary>#690: danh sách Cho phép ⇒ thêm các muc bí danh của app đã gộp (bản Store + bản cài của Minecraft…) khi MUC CHÍNH của app có
     /// trong danh sách (<paramref name="mucChinh"/>: bí danh → muc chính, <see cref="DanhSachApp.BangMucChinh"/>, đã bỏ tên exe chung chung).
     /// Chỉ một chiều: muc bí danh còn sót trong danh sách không kéo muc chính vào lại (hết sao đã bỏ muc chính — QuyTaiCho.ApDung).</summary>
+    /// <remarks>App gộp theo TÊN HIỂN THỊ, mà lối tắt Start Menu / khoá Uninstall của tài khoản Con thì Con tự tạo được ⇒ exe bí danh của muc chính
+    /// .exe KHÔNG được thả (lối tắt «Discord» trỏ vào RobloxPlayerBeta.exe không làm Roblox thành được phép). Chỉ thả bí danh là gói Store (chỉ hệ thống
+    /// cài được vào WindowsApps) hoặc khi muc chính là gói Store.</remarks>
     public static List<string> MoRongTen(IEnumerable<string> ds, IReadOnlyDictionary<string, string>? mucChinh)
     {
         var kq = new List<string>();
@@ -149,9 +152,14 @@ public static class ChanAppThat
         if (mucChinh == null || mucChinh.Count == 0) return kq;
         var chinh = new HashSet<string>(kq, StringComparer.OrdinalIgnoreCase);
         foreach (var (biDanh, m) in mucChinh)
-            if (chinh.Contains(m) && co.Add(biDanh)) kq.Add(biDanh);
+            if (chinh.Contains(m) && ThaDuocBiDanh(biDanh, m) && co.Add(biDanh)) kq.Add(biDanh);
         return kq;
     }
+
+    /// <summary>Bí danh được coi là cùng app với muc chính (thả theo Cho phép, quy phút): bí danh là gói Store, hoặc muc chính là gói Store
+    /// (exe khai trong manifest — #695). Hai exe gộp theo tên hiển thị thì không (lối tắt / khoá Uninstall của Con, Con tự tạo được).</summary>
+    public static bool ThaDuocBiDanh(string biDanh, string mucChinh) =>
+        !biDanh.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) || !mucChinh.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Tiến trình KHÔNG BAO GIỜ đóng dù khớp luật chặn: tiến trình hệ thống của phiên (explorer, dwm… ở chỗ chỉ quản trị ghi được), gói Store
     /// hệ thống, AiiGrow / Defender / Common Files (thư mục an toàn), exe mang tên AiiGrow.</summary>

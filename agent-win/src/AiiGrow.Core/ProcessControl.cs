@@ -44,7 +44,7 @@ public static class ProcessEnforcer
             // cùng luật với ShouldClose: «notepad.exe» giả trong Downloads không kéo cả Downloads thành «helper cùng thư mục»
             if (!ProcessGuard.DuocPhepTheoLuat(p.Path, allowed, winDir, tenDaCai)) continue;
             if (ProcessGuard.KhoaGoiCha(p.Path) is { } kg) goiCha.Add(kg);
-            if (ProcessGuard.LaChoConThaTep(p.Path, winDir)) continue;   // #693: Desktop / Downloads… không thành «helper cùng thư mục»
+            if (ProcessGuard.LaGocChoThaTep(p.Path, winDir)) continue;   // #693: gốc Desktop / Downloads… không thành «helper cùng thư mục»
             var d = DirName(p.Path);
             // app được phép nằm trong thư mục Windows (vd notepad ở System32) KHÔNG kéo cả System32 thành «helper cùng thư mục» (cmd, powershell…)
             if (d != null && !ProcessGuard.TrongWindows(d, winDir))
