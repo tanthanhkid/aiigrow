@@ -8,7 +8,8 @@ namespace AiiGrow.Service;
 /// TỰ CẬP NHẬT (Thanh 22/10: «từ phiên bản này trở đi, nó sẽ tự động download phiên bản mới»). Lúc khởi động (+2 phút) rồi theo chu kỳ máy chủ đặt (chuKyKiemPhut, mặc định 6 giờ, tính theo giờ thật):
 /// GET /api/agent/ban-moi → bản mới hơn ⇒ tải AiiGrow-Setup.exe về ProgramData\AiiGrow\cap-nhat, KIỂM sha256 + chữ ký Authenticode người ký ghim trong agent (KyBoCai, sai ⇒ xoá, bỏ qua) rồi chạy
 /// «AiiGrow-Setup.exe --capnhat --im-lang» qua một tác vụ Task Scheduler (SYSTEM) tách rời — bộ cài sẽ dừng chính dịch vụ này.
-/// Bộ cài giữ nguyên config/token/AppLocker, lỗi thì tự khôi phục bản cũ. Một bản thử tối đa một lần mỗi 24 giờ.
+/// Bộ cài giữ nguyên config/token/AppLocker, lỗi thì tự khôi phục bản cũ. #683: thử lại cùng bản nghỉ tăng dần 1 giờ → 4 giờ → 24 giờ
+/// (LuatThuCapNhat); bộ cài lỗi / khôi phục bản cũ ⇒ báo máy chủ «cap_nhat_loi» (Ba Mẹ thấy cảnh báo) + Sentry.
 /// </summary>
 public sealed class UpdateWorker : BackgroundService
 {
@@ -50,12 +51,17 @@ public sealed class UpdateWorker : BackgroundService
                 hen = DateTimeOffset.UtcNow + cho;
             }
             try { await Danh.WaitAsync(TimeSpan.FromMinutes(1), ct); } catch (OperationCanceledException) { break; }
-            if (Interlocked.Exchange(ref _kiemNgay, 0) == 1) hen = DateTimeOffset.UtcNow;   // bản đã thử trong 24 giờ vẫn bỏ qua (DaThuGanDay) — không lặp cài lỗi
+            // «Cập nhật ngay» bỏ qua thời gian nghỉ thử lại (chỉ chờ bộ cài lượt trước chạy xong; bộ cài sai chữ ký vẫn chặn 24 giờ) — #683
+            if (Interlocked.Exchange(ref _kiemNgay, 0) == 1) { hen = DateTimeOffset.UtcNow; _epHoi = true; }
         }
     }
 
     /// <summary>Chu kỳ máy chủ đặt lần gần nhất đọc được manifest (mặc định 6 giờ).</summary>
     private TimeSpan _chuKy = TuCapNhat.ChuKyMacDinh;
+    /// <summary>Lượt kiểm này do Con/Ba Mẹ bấm «Cập nhật ngay».</summary>
+    private bool _epHoi;
+    private static readonly DateTimeOffset DichVuBatDau = DateTimeOffset.UtcNow;
+    private string? _daBaoHong;
 
     // 05/11: khay «Kiểm tra cập nhật › Cập nhật để sửa lỗi» (PipeCmd.CapNhatNgay) ⇒ chạy lượt kiểm + tải + cài ngay, không chờ chu kỳ.
     private static readonly SemaphoreSlim Danh = new(0, 1);
@@ -75,8 +81,8 @@ public sealed class UpdateWorker : BackgroundService
         var json = await http.GetStringAsync(server + TuCapNhat.DuongManifest, ct);
         var m = JsonSerializer.Deserialize<BanMoi>(json);
         if (m == null || TuCapNhat.KiemManifest(m, server, TuCapNhat.BanHienTai()) != null) return null;
-        // bản đã thử cài trong 24 giờ (lỗi) thì lượt cập nhật ngay cũng bỏ qua (DaThuGanDay) ⇒ đừng mời Con bấm cập nhật vô ích
-        if (DaThuGanDay(m.Version)) return null;
+        // bộ cài lượt trước còn đang chạy / bản bị chặn cứng (sai chữ ký) thì «Cập nhật ngay» cũng bỏ qua ⇒ đừng mời Con bấm vô ích
+        if (LuatThuCapNhat.DangNghi(DocDaThu(), m.Version, DateTimeOffset.UtcNow, epHoi: true)) return null;
         return CapNhat.DocBan(m.Version)?.ToString(3);
     }
     private static readonly TimeSpan ThuLaiManifest = TimeSpan.FromMinutes(15);
@@ -94,6 +100,8 @@ public sealed class UpdateWorker : BackgroundService
     private async Task<TimeSpan> KiemMotLuot(CancellationToken ct)
     {
         _dangTai = false;
+        var epHoi = _epHoi;
+        _epHoi = false;
         var cfg = _store.Load();
         if (cfg is not { Paired: true }) return ThuLaiManifest;   // vừa ghép máy thì lượt đầu tới sớm
         var hienTai = TuCapNhat.BanHienTai();
@@ -118,7 +126,21 @@ public sealed class UpdateWorker : BackgroundService
             else _log.LogDebug("Tự cập nhật: bỏ qua — {LyDo}", lyDo);
             return _chuKy;
         }
-        if (DaThuGanDay(m.Version)) { _log.LogInformation("Tự cập nhật: bản {Ban} đã thử trong 24 giờ qua — chờ, hoặc bấm «Cập nhật ngay» sau khi hết hạn", m.Version); return _chuKy; }
+        var daThu = DocDaThu();
+        var bayGio = DateTimeOffset.UtcNow;
+        if (LuatThuCapNhat.LanTruocHong(daThu, m.Version, hienTai, bayGio, DichVuBatDau) && _daBaoHong != daThu!.Ghi())
+        {
+            _daBaoHong = daThu.Ghi();          // mỗi lần thử hỏng báo một lần (vòng kiểm 15 phút không dội Sentry)
+            // #683: bộ cài lượt trước đã chạy xong mà máy vẫn bản cũ (lỗi chép tệp / khôi phục bản cũ) ⇒ Sentry + báo Ba Mẹ (mỗi bản một lần)
+            _log.LogError("Tự cập nhật: lần thử thứ {Lan} lên bản {Ban} không thành (máy vẫn {Cu}) — xem install.log; thử lại sau {Nghi}",
+                daThu.SoLan, m.Version, hienTai.ToString(3), LuatThuCapNhat.Nghi(daThu.SoLan));
+            BaoLoi(m.Version, hienTai, daThu.SoLan, "bo_cai_loi");
+        }
+        if (LuatThuCapNhat.DangNghi(daThu, m.Version, bayGio, epHoi))
+        {
+            _log.LogInformation("Tự cập nhật: bản {Ban} đã thử {Lan} lần, lần cuối {Luc:o} — chờ hết thời gian nghỉ (hoặc bấm «Cập nhật ngay»)", m.Version, daThu!.SoLan, daThu.Luc);
+            return _chuKy < ThuLaiManifest ? _chuKy : ThuLaiManifest;   // kiểm lại sớm: hết nghỉ (1 giờ) là thử, không đợi trọn chu kỳ 6 giờ
+        }
 
         if (KyBoCai.GhimSaiDang(KyBoCai.ThumbprintGhim))
         {
@@ -167,7 +189,7 @@ public sealed class UpdateWorker : BackgroundService
             case KetQuaKyBoCai.SaiChuKy:
             case KetQuaKyBoCai.GhimSaiDang:
                 XoaBoCaiChuaKiem(tep);
-                GhiDaThu(m.Version);   // bỏ hẳn bản này 24 giờ (DaThuGanDay): «Cập nhật ngay» trên khay không tải lại 182 MB mỗi lần bấm
+                GhiDaThu(daThu, m.Version, chanCung: true);   // bỏ hẳn bản này 24 giờ: «Cập nhật ngay» trên khay không tải lại 182 MB mỗi lần bấm
                 _log.LogError("Tự cập nhật: bộ cài bản {Ban} KHÔNG có chữ ký Authenticode hợp lệ của AiiGrow ({Kq}) ⇒ đã xoá, không chạy; bỏ qua bản này 24 giờ", m.Version, ky);
                 return _chuKy;
             case KetQuaKyBoCai.ChuaKiemDuoc:
@@ -178,9 +200,16 @@ public sealed class UpdateWorker : BackgroundService
                 _log.LogWarning("Tự cập nhật: agent chưa ghim chứng chỉ ký bộ cài ⇒ chỉ kiểm sha256 (bản {Ban})", m.Version);
                 break;
         }
-        // ghi «đã thử» SAU khi tải đúng: tải đứt giữa chừng thì sau ThuLaiTai tải lại, không phải chờ 24 giờ
-        GhiDaThu(m.Version);
-        ChayBoCai(tep);
+        // ghi «đã thử» SAU khi tải đúng: tải đứt giữa chừng thì sau ThuLaiTai tải lại. Ghi TRƯỚC khi giao (bộ cài dừng dịch vụ này ngay);
+        // giao lỗi ⇒ vẫn tính một lần (nghỉ 1 giờ rồi thử lại — #683, trước đây 24 giờ) + báo Ba Mẹ
+        var lan = GhiDaThu(daThu, m.Version);
+        try { ChayBoCai(tep); }
+        catch (Exception e)
+        {
+            _daBaoHong = lan.Ghi();
+            BaoLoi(m.Version, hienTai, lan.SoLan, "khong_giao_duoc");
+            throw new InvalidOperationException($"{e.Message} (lần {lan.SoLan}, thử lại sau {LuatThuCapNhat.Nghi(lan.SoLan)})", e);
+        }
         _log.LogInformation("Tự cập nhật: đã giao bộ cài bản {Ban} chạy (--capnhat --im-lang)", m.Version);
         return _chuKy;
     }
@@ -265,20 +294,24 @@ public sealed class UpdateWorker : BackgroundService
 
     private static string TepDaThu => Path.Combine(ThuMuc, "da-thu.txt");
 
-    private static bool DaThuGanDay(string ban)
+    private static LanThuCapNhat? DocDaThu()
     {
-        try
-        {
-            if (!File.Exists(TepDaThu)) return false;
-            var d = File.ReadAllText(TepDaThu).Split('|');
-            return d.Length == 2 && d[0] == ban && DateTimeOffset.TryParse(d[1], out var luc) && DateTimeOffset.UtcNow - luc is var tuoi && tuoi >= TimeSpan.Zero && tuoi < TimeSpan.FromHours(24);   // đồng hồ bị lùi ⇒ coi như chưa thử
-        }
-        catch { return false; }
+        try { return File.Exists(TepDaThu) ? LanThuCapNhat.Doc(File.ReadAllText(TepDaThu)) : null; }
+        catch { return null; }
     }
 
-    private static void GhiDaThu(string ban)
+    private static LanThuCapNhat GhiDaThu(LanThuCapNhat? cu, string ban, bool chanCung = false)
     {
+        var moi = LuatThuCapNhat.LanMoi(cu, ban, DateTimeOffset.UtcNow, chanCung);
         Directory.CreateDirectory(ThuMuc);
-        File.WriteAllText(TepDaThu, ban + "|" + DateTimeOffset.UtcNow.ToString("o"), new UTF8Encoding(false));
+        File.WriteAllText(TepDaThu, moi.Ghi(), new UTF8Encoding(false));
+        return moi;
+    }
+
+    /// <summary>Xếp sự kiện «cap_nhat_loi» vào hàng gửi máy chủ (nhịp kế gửi) — Ba Mẹ thấy máy chưa lên bản mới. Lỗi ghi hàng không chặn cập nhật.</summary>
+    private void BaoLoi(string ban, Version hienTai, int soLan, string lyDo)
+    {
+        try { _store.Update(c => c.Queue.Add(LuatThuCapNhat.SuKienLoi(ban, hienTai, soLan, lyDo))); }
+        catch (Exception e) { _log.LogWarning("Tự cập nhật: chưa xếp được sự kiện cap_nhat_loi: {Loi}", e.Message); }
     }
 }
