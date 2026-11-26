@@ -31,6 +31,8 @@ import vn.aiilab.aiigrow.maycon.logic.docBanMoi
 import vn.aiilab.aiigrow.maycon.logic.khopSha256
 import vn.aiilab.aiigrow.maycon.logic.loiApk
 import vn.aiilab.aiigrow.maycon.logic.nenHoiCai
+import vn.aiilab.aiigrow.maycon.logic.nghiSauLoiCaiMs
+import vn.aiilab.aiigrow.maycon.logic.CAI_LOI_DUNG_LUONG
 import vn.aiilab.aiigrow.maycon.logic.urlDauHopLe
 import vn.aiilab.aiigrow.maycon.logic.vanTayChungChi
 import java.io.File
@@ -136,7 +138,8 @@ object CapNhat {
             kiemApk(ctx, tep, b)?.let { return hong(ctx, k, b, "APK bị loại: $it", NGHI_HONG_MS) }
         } catch (e: Exception) { return hong(ctx, k, b, "tải APK lỗi: ${e.message}", NGHI_TAI_MS) }
         return try { if (cai(ctx, tep, b, laDo, k)) KetQua.DA_GUI_CAI else KetQua.HOAN }
-        catch (e: Exception) { NhatKy.canh(TAG, "PackageInstaller lỗi", e); hong(ctx, k, b, "PackageInstaller lỗi", NGHI_HONG_MS) }
+        // #683: ghi phiên cài lỗi vào / ra (IOException — thường hết chỗ trống) nghỉ như STATUS_FAILURE_STORAGE; lỗi khác (bảo mật, tham số) 24 giờ
+        catch (e: Exception) { NhatKy.canh(TAG, "PackageInstaller lỗi", e); hong(ctx, k, b, "PackageInstaller lỗi", if (e is java.io.IOException) nghiSauLoiCaiMs(CAI_LOI_DUNG_LUONG) else NGHI_HONG_MS) }
     }
 
     /** Hỏng một bước: xoá tệp, bỏ thẻ «có bản mới», nghỉ `nghiMs` rồi mới thử lại đúng bản này (manifest đổi sha256 ⇒ thử ngay). */
@@ -297,7 +300,8 @@ class NhanKetQuaCai : BroadcastReceiver() {
             else -> {
                 val k = Kho(c)
                 k.shaLoi = i.getStringExtra("sha") ?: k.shaLoi
-                CapNhat.hong(c, k, null, "cài $ban không xong ($st): ${i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}", 24 * 3600_000L)
+                // #683: lỗi thoáng qua (hết dung lượng, hết giờ, lỗi chung) nghỉ 1 giờ; APK hỏng / không hợp máy / bị chặn / xung đột nghỉ 24 giờ
+                CapNhat.hong(c, k, null, "cài $ban không xong ($st): ${i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}", nghiSauLoiCaiMs(st))
             }
         }
     }

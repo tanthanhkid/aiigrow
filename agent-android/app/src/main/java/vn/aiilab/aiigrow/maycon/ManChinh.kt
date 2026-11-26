@@ -20,6 +20,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
+import vn.aiilab.aiigrow.maycon.logic.canNhacTuKhoiChay
 import vn.aiilab.aiigrow.maycon.logic.dongMay
 import vn.aiilab.aiigrow.maycon.logic.chiNgoaiLe
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
@@ -75,7 +76,9 @@ class ManChinh : Activity() {
         CapNhat.chayNgay(this)
     }
 
-    override fun onResume() { super.onResume(); daVe = null; h.post(lap) }
+    override fun onResume() { super.onResume(); daVe = null; boQuaPin = boQuaToiUuPin(this); h.post(lap) }
+    /** #709: đã bỏ tối ưu pin — chỉ đổi khi Ba Mẹ từ Cài đặt quay lại (onResume), không hỏi PowerManager mỗi 2 giây. */
+    private var boQuaPin = false
     override fun onPause() { super.onPause(); h.removeCallbacks(lap) }
 
     private val lap = object : Runnable {
@@ -88,7 +91,7 @@ class ManChinh : Activity() {
         val laDo = QuanTri.laDeviceOwner(this)
         // quyền cài chỉ cần hỏi khi có bản chờ (đỡ một lời gọi PackageManager mỗi 2 giây)
         val duocCai = k.banMoiCho != null && (laDo || Build.VERSION.SDK_INT < 26 || packageManager.canRequestPackageInstalls())
-        val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai"
+        val quyen = "$laDo${QuanTri.laAdmin(this)}${DoPhut.coQuyen(this)}${TroNang.dangBat(this)}${k.banMoiCho}$duocCai$boQuaPin"
         // 15/11: có sổ sao / Ba Mẹ khoá ⇒ thẻ xin khác (cho vay sao / xin mở máy) — dựng lại khi đổi
         val htV = if (k.daGhep) HienThi.doc(k.hienThi) else null
         val appDiem = if (htV != null) "${chiNgoaiLe(htV.trangThai)}${htV.coSao}${htV.trangThai == TrangThai.KHOA_NGAY.name}" else ""
@@ -110,7 +113,7 @@ class ManChinh : Activity() {
                 cong == Cong.BA_ME -> dungManBaMe()
                 else -> dungManDaGhep()
             }
-            theQuyen()
+            theQuyen(k.daGhep)
             minhBach()
         }
         // #707: gói cài bị từ chối lúc đang mở màn ghép ⇒ sửa dòng báo tại chỗ (không dựng lại màn: giữ mã bé đang gõ / lượt «Đang ghép…»)
@@ -521,7 +524,7 @@ class ManChinh : Activity() {
     private fun capNhatXin(k: Kho) { tXin?.text = HocVien.cauLoiXin(k) ?: "" }
 
     // ------------------------------------------------------------ quyền (đường không reset) + minh bạch
-    private fun theQuyen() {
+    private fun theQuyen(daGhep: Boolean) {
         val t = G.the(this, G.XANH_NHAT)
         if (QuanTri.laDeviceOwner(this)) {
             t.addView(G.dauKhoi(this, R.drawable.fl_khien, "Cách quản lý: Device Owner", Clay.THE, 17f))
@@ -530,7 +533,9 @@ class ManChinh : Activity() {
             goc.addView(t); return
         }
         t.addView(G.dauKhoi(this, R.drawable.fl_khien, "Cách quản lý: không cần khôi phục gốc", Clay.THE, 17f))
-        t.addView(G.chu(this, "Ba Mẹ bật đủ 3 quyền dưới đây. Muốn giữ chặt hơn (app hiện «Đã tạm dừng»), cài lại bằng QR Device Owner.", 15f, G.CHU_PHU))
+        // #709: máy đã ghép mà chưa bỏ tối ưu pin ⇒ thêm quyền thứ 4 (hãng máy / Doze dừng dịch vụ ⇒ chặn mất hiệu lực lặng lẽ)
+        val xinPin = daGhep   // nhánh này đã không phải Device Owner (DPC được miễn tối ưu pin); minSdk 26
+        t.addView(G.chu(this, "Ba Mẹ bật đủ ${if (xinPin) 4 else 3} quyền dưới đây. Muốn giữ chặt hơn (app hiện «Đã tạm dừng»), cài lại bằng QR Device Owner.", 15f, G.CHU_PHU))
         val q = listOf(
             Triple("Quyền quản trị thiết bị (khoá máy)", QuanTri.laAdmin(this)) {
                 startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, QuanTri.ten(this))
@@ -538,11 +543,17 @@ class ManChinh : Activity() {
             },
             Triple("Đếm thời gian dùng ứng dụng", DoPhut.coQuyen(this)) { moCaiDat(Settings.ACTION_USAGE_ACCESS_SETTINGS) },
             Triple("Trợ năng AiiGrow (màn tạm dừng)", TroNang.dangBat(this)) { moCaiDat(Settings.ACTION_ACCESSIBILITY_SETTINGS) },
-        )
+        ) + listOfNotNull(if (!xinPin) null else Triple("Chạy nền không bị tắt (bỏ tối ưu pin)", boQuaPin) {
+            @android.annotation.SuppressLint("BatteryLife")
+            val xin = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, android.net.Uri.parse("package:$packageName"))
+            try { startActivity(xin) } catch (_: Exception) { moCaiDat(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS) }
+        })
         for ((ten, co, mo) in q) {
             if (co) t.addView(G.chu(this, "✓  $ten", 16f, Diu.OK).apply { minHeight = G.dp(this@ManChinh, 48); gravity = Gravity.CENTER_VERTICAL })
             else t.addView(G.nut(this, "Bật: $ten", phu = true) { mo() })
         }
+        if (daGhep && canNhacTuKhoiChay(Build.MANUFACTURER))
+            t.addView(G.chu(this, "Máy ${Build.MANUFACTURER}: Ba Mẹ vào Cài đặt › Ứng dụng › AiiGrow, bật thêm «Tự khởi chạy» để AiiGrow không bị tắt khi con dọn máy.", 14f, G.CHU_PHU))
         goc.addView(t)
     }
 

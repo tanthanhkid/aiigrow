@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat
 import org.json.JSONObject
 import vn.aiilab.aiigrow.maycon.logic.Cong
 import vn.aiilab.aiigrow.maycon.logic.CuaGoi
+import vn.aiilab.aiigrow.maycon.logic.HEN_LAI_MS
 import vn.aiilab.aiigrow.maycon.logic.ThuGhepGoi
 import vn.aiilab.aiigrow.maycon.logic.loiGhepGoiVinhVien
 import vn.aiilab.aiigrow.maycon.logic.KetQuaCho
@@ -51,6 +52,10 @@ import vn.aiilab.aiigrow.maycon.logic.truGoi
 import vn.aiilab.aiigrow.maycon.logic.SoPhutBe
 import vn.aiilab.aiigrow.maycon.logic.beGhiPhut
 import vn.aiilab.aiigrow.maycon.logic.boViecCho
+import vn.aiilab.aiigrow.maycon.logic.XetXinVayCho
+import vn.aiilab.aiigrow.maycon.logic.cauLuuXinVay
+import vn.aiilab.aiigrow.maycon.logic.cauXinVayKhongGui
+import vn.aiilab.aiigrow.maycon.logic.xetXinVayCho
 import vn.aiilab.aiigrow.maycon.logic.CAU_CHO_MANG_LUAT
 import vn.aiilab.aiigrow.maycon.logic.LuatBe
 import vn.aiilab.aiigrow.maycon.logic.chonLuatBe
@@ -109,6 +114,21 @@ class DichVuNhip : Service() {
         if (intent?.action == HANH_DONG_LAM_MOI && ::h.isInitialized) h.post { vong(true) }
         if (intent?.action == HANH_DONG_AP && ::h.isInitialized) h.post { vong(false) }   // áp ngay, không ép gọi máy chủ (mã offline)
         return START_STICKY
+    }
+
+    /** #709: Con vuốt AiiGrow khỏi gần đây — máy hãng (Xiaomi, Oppo…) giết tiến trình ngay sau đây và không tôn trọng START_STICKY ⇒ hẹn
+     *  báo thức bật lại dịch vụ sau vài giây (máy thuần: dịch vụ tiền cảnh vẫn chạy, lượt bật lại chỉ là onStartCommand rỗng). */
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        try {
+            val am = getSystemService(ALARM_SERVICE) as android.app.AlarmManager
+            val pi = PendingIntent.getBroadcast(this, 3, Intent(this, KhoiDong::class.java).setAction(KhoiDong.HEN_LAI),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            // Android 12+: bật dịch vụ tiền cảnh từ báo thức chỉ được khi app đã bỏ tối ưu pin (thẻ quyền ở màn chính xin điều này;
+            //     Device Owner được miễn sẵn) — không xin quyền báo thức chính xác (Ba Mẹ phải bật tay, không đáng cho một lượt hẹn lại)
+            am.setAndAllowWhileIdle(android.app.AlarmManager.ELAPSED_REALTIME_WAKEUP, android.os.SystemClock.elapsedRealtime() + HEN_LAI_MS, pi)
+            NhatKy.tin(TAG, "app bị vuốt khỏi gần đây — hẹn bật lại dịch vụ")
+        } catch (e: Exception) { NhatKy.canh(TAG, "chưa hẹn bật lại được", e) }
+        super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
@@ -397,12 +417,14 @@ class DichVuNhip : Service() {
         try {   // mốc phút giải trí đo tại chỗ lúc máy chủ chốt quỹ (đếm lùi khi mất mạng)
             val csMoi = docPhanHoiNhip(r.toString()).chinhSach
             // 15/11: máy chủ có sổ sao ⇒ báo phút theo bé để trừ sao (+ gửi lời xin vay lưu lúc mất mạng)
-            if (csMoi.sao != null) guiNen { if (csCu?.sao == null) guiDongBo(this, k); guiXinVayCho(this, k) }
+            if (csMoi.sao != null && csCu?.sao == null) guiNen { guiDongBo(this, k) }
             k.phutLucNhip = phutGiaiTri(DoPhut.homNay(this, csMoi.tz), goiAndroid(csMoi.giaiTri))
             // ngày theo ĐỒNG HỒ MÁY CHỦ (như `now` của vòng thực thi) — đồng hồ máy lệch không làm lệch ngày
             val st = r.optString("serverTime").takeIf { it.isNotBlank() }?.let { Instant.parse(it) } ?: Instant.now()
             k.ngayNhip = gioDiaPhuong(st, csMoi.tz).zdt.toLocalDate().toString()
         } catch (_: Exception) {}
+        // #684: lời xin vay lưu lúc mất mạng gửi sau MỌI nhịp thành công (trước chỉ khi máy chủ có sổ sao ⇒ có lúc không bao giờ gửi)
+        if (k.xinVayCho != null) guiNen { guiXinVayCho(this, k) }
         r.optString("serverTime").takeIf { it.isNotBlank() }?.let { k.lechGioMs = Instant.parse(it).toEpochMilli() - System.currentTimeMillis() }
         r.optString("maOfflineBiMat").takeIf { it.isNotBlank() && it != "null" }?.let { if (it != k.maOfflineBiMat) k.maOfflineBiMat = it }
     }
@@ -548,7 +570,9 @@ class DichVuNhip : Service() {
             if (k.cheDoThu) { try { k.tepYeuCauThu.appendText(than.toString() + "\n") } catch (_: Exception) {}; return KetXinApp(null, "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé.", daGui = true) }
             return try {
                 val r = MayChu(k.mayChu, k.token).xinDuyet(than)
-                KetXinApp(r.optString("id").ifBlank { null }, "Đã gửi Ba Mẹ. Chờ Ba Mẹ trả lời nhé.", daGui = true)
+                val id = r.optString("id").ifBlank { null }
+                id?.let { HocVien.ghiXinApp(ctx, it, ten ?: goi) }   // #686: theo dõi bền — hộp đóng / app tắt vẫn báo kết quả
+                KetXinApp(id, "Đã gửi Ba Mẹ. Chờ Ba Mẹ trả lời nhé.", daGui = true)
             } catch (e: MayChu.Loi) { KetXinApp(null, e.cau) } catch (e: Exception) { KetXinApp(null, "Chưa gửi được — máy đang mất mạng.") }
         }
 
@@ -598,6 +622,8 @@ class DichVuNhip : Service() {
 
         /** Khoá ghi sổ phút theo bé (vòng nhịp và «Đổi người» trên luồng giao diện). */
         private val KHOA_SO = Any()
+        /** Khoá ba khoá Kho của lời xin vay chờ mạng (xinVayCho / Luc / Con) — lưu (luồng giao diện) và gửi (luồng nền). */
+        private val KHOA_XIN_VAY = Any()
         /** Khoá gửi dong-bo (một lượt một lúc). */
         private val KHOA_GUI_SO = Any()
 
@@ -660,9 +686,13 @@ class DichVuNhip : Service() {
             val k = Kho(ctx)
             val than = vn.aiilab.aiigrow.maycon.logic.thanXinVay(soSao, loiNhan)
             if (k.cheDoThu) { k.tepYeuCauThu.appendText(than.toString() + "\n"); return "Đã gửi Ba Mẹ (chế độ thử). Chờ Ba Mẹ trả lời nhé." }
-            fun luu(): String {
-                k.xinVayCho = than.toString(); k.xinVayChoLuc = System.currentTimeMillis(); k.xinVayChoCon = PinMay.nguoiDung(k)?.conId ?: ""
-                return "Đã lưu lời xin vay $soSao sao. Có mạng là gửi Ba Mẹ ngay!"
+            fun luu(): String = synchronized(KHOA_XIN_VAY) {
+                val con = PinMay.nguoiDung(k)?.conId ?: ""
+                // #684: chỉ một ô chờ — lời xin cũ của cùng bé bị thay ⇒ nói rõ (trước: cả hai đều «Đã lưu»)
+                val cu = k.xinVayCho?.takeIf { xetXinVayCho(k.xinVayChoLuc, k.xinVayChoCon, con, System.currentTimeMillis()) == XetXinVayCho.GUI }
+                    ?.let { try { JSONObject(it).optInt("soSao") } catch (_: Exception) { null } }
+                k.xinVayCho = than.toString(); k.xinVayChoLuc = System.currentTimeMillis(); k.xinVayChoCon = con
+                cauLuuXinVay(soSao, cu)
             }
             return try {
                 val r = MayChu(k.mayChu, k.token).xinVay(than)
@@ -672,18 +702,33 @@ class DichVuNhip : Service() {
             } catch (e: Exception) { luu() }
         }
 
-        /** Gửi lời xin vay đã lưu lúc mất mạng (≤ 24 giờ). */
+        /** Gửi lời xin vay đã lưu lúc mất mạng (≤ 24 giờ). #684: bỏ lời xin (máy chủ từ chối, quá hạn) thì báo Con — Con đã được báo «Đã lưu». */
         fun guiXinVayCho(ctx: Context, k: Kho) {
-            val s = k.xinVayCho ?: return
-            if (System.currentTimeMillis() - k.xinVayChoLuc > 24 * 3600_000L) { k.xinVayCho = null; return }
-            // lời xin của bé khác (đã Đổi người) ⇒ huỷ, không gửi nhầm tên bé đang dùng
-            if ((PinMay.nguoiDung(k)?.conId ?: "") != (k.xinVayChoCon ?: "")) { k.xinVayCho = null; return }
+            // đọc / xoá ba khoá lời xin dưới cùng khoá với lúc lưu (luu) — không đọc lời xin mới với mốc giờ / bé của lời xin cũ
+            fun boNeuVan(s: String) = synchronized(KHOA_XIN_VAY) { if (k.xinVayCho == s) k.xinVayCho = null }   // Con lưu lời xin mới ⇒ giữ
+            val (s, xet) = synchronized(KHOA_XIN_VAY) {
+                val s = k.xinVayCho ?: return
+                s to xetXinVayCho(k.xinVayChoLuc, k.xinVayChoCon, PinMay.nguoiDung(k)?.conId, System.currentTimeMillis())
+            }
+            val than = try { JSONObject(s) } catch (_: Exception) { boNeuVan(s); return }
+            val soSao = than.optInt("soSao")
+            when (xet) {
+                XetXinVayCho.QUA_HAN -> { boNeuVan(s); HocVien.baoXinKhongGui(ctx, cauXinVayKhongGui(soSao, null)); return }
+                // lời xin của bé khác (đã Đổi người) ⇒ huỷ, không gửi nhầm tên bé đang dùng; không báo bé đang dùng về lời xin của bé khác
+                XetXinVayCho.DOI_NGUOI -> { boNeuVan(s); NhatKy.tin(TAG, "bỏ lời xin vay $soSao sao chờ mạng của bé trước (đã đổi người)"); return }
+                XetXinVayCho.GUI -> {}
+            }
             try {
-                val than = JSONObject(s)
                 val r = MayChu(k.mayChu, k.token).xinVay(than)
-                k.xinVayCho = null
-                HocVien.ghiLoiXin(ctx, r.optString("id").ifBlank { null }, than.optInt("soSao"), false, vay = true)
-            } catch (e: MayChu.Loi) { if (boViecCho(e.http)) k.xinVayCho = null } catch (_: Exception) {}
+                boNeuVan(s)
+                HocVien.ghiLoiXin(ctx, r.optString("id").ifBlank { null }, soSao, false, vay = true)
+            } catch (e: MayChu.Loi) {
+                if (boViecCho(e.http)) {
+                    boNeuVan(s)
+                    NhatKy.canh(TAG, "máy chủ từ chối lời xin vay chờ mạng (${e.http} ${e.ma})")
+                    HocVien.baoXinKhongGui(ctx, cauXinVayKhongGui(soSao, e.cau))
+                }
+            } catch (_: Exception) {}
         }
     }
 }

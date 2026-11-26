@@ -174,6 +174,8 @@ object GiaoDien {
         private var xinTen = ""
         private var xinGen = 0
         private var xinThread: Thread? = null
+        /** #686: hỏi đủ 5 phút mà Ba Mẹ chưa trả lời (lời xin vẫn chờ, nhịp nền báo sau). */
+        private var hetHoi = false
         private val lamMoiSau = Runnable { DichVuNhip.lamMoi(c) }
 
         /** Huỷ vòng hỏi kết quả (Activity bị huỷ / lớp phủ gỡ) — không giữ Context. */
@@ -186,21 +188,27 @@ object GiaoDien {
             val ten = DoPhut.tenApp(c, g)
             val ly = (if (choGoLyDo) oLyDo.text.toString().replace(Regex("\\s*\n\\s*"), " ") else lyDoChon ?: "")
             val gen = ++xinGen
-            xinGoi = g; xinTen = ten
+            xinGoi = g; xinTen = ten; hetHoi = false
             xinKq = KetQuaXinApp(LoaiKetQuaXin.CHO, null)
             capNhatKetQua(g)
             val ctx = c.applicationContext
             xinThread = Thread {
                 val r = DichVuNhip.xinDuyet(ctx, g, ten, ly)
                 if (r.id == null) { h.post { if (gen == xinGen) { xinGoi = null; xinKq = null; goiDuyet = null; cau.text = r.cau; nutXin.isEnabled = true } }; return@Thread }
-                // hỏi kết quả mỗi 3 giây, tối đa 5 phút; hết hạn mà chưa có ⇒ «Lời xin đã hết hạn · Xin lại»
-                for (i in 0 until 100) {
+                // hỏi kết quả mỗi 3 giây, tối đa 5 phút (lời xin «hết hạn / huỷ» thật thì máy chủ trả het_han); nhịp nền không hỏi trùng
+                HocVien.hopDangHoi(r.id, true)
+                try { for (i in 0 until 100) {
                     if (gen != xinGen) return@Thread
                     val kq = DichVuNhip.hoiKetQuaXinApp(ctx, r.id)
-                    if (kq != null && kq.loai != LoaiKetQuaXin.CHO) { h.post { if (gen == xinGen) { xinKq = kq; capNhatKetQua(g) } }; return@Thread }
+                    if (kq != null && kq.loai != LoaiKetQuaXin.CHO) {
+                        // bỏ khỏi danh sách chờ TRƯỚC khi rời «hộp đang hỏi» (nhịp nền không báo lần hai); hộp vừa đóng ⇒ để nhịp nền báo
+                        if (gen == xinGen) HocVien.xongXinApp(ctx, r.id)
+                        h.post { if (gen == xinGen) { xinKq = kq; capNhatKetQua(g) } }; return@Thread }
                     try { Thread.sleep(3000) } catch (_: InterruptedException) { return@Thread }
-                }
-                h.post { if (gen == xinGen) { xinKq = KetQuaXinApp(LoaiKetQuaXin.HET_HAN, null); capNhatKetQua(g) } }
+                } } finally { HocVien.hopDangHoi(r.id, false) }
+                // #686: 5 phút chưa có trả lời ⇒ lời xin vẫn chờ (không báo «hết hạn» sai); nhịp nền báo khi Ba Mẹ trả lời
+                //     giữ màn «đã gửi», nút thành «Xin lại» (không khoá mãi)
+                h.post { if (gen == xinGen) { hetHoi = true; capNhatKetQua(g) } }
             }.also { it.start() }
         }
 
@@ -214,6 +222,7 @@ object GiaoDien {
             moLai.visibility = View.GONE; oLyDo.visibility = View.GONE; hangLyDo.visibility = View.GONE
             nutXin.text = if (cho) "Đang chờ Ba Mẹ…" else if (kq.loai == LoaiKetQuaXin.DA_THEM) "Xong" else "Xin lại"
             nutXin.isEnabled = !cho
+            if (cho && hetHoi) { cau.text = "Ba Mẹ chưa trả lời. Có trả lời, AiiGrow sẽ báo con."; nutXin.text = "Xin lại"; nutXin.isEnabled = true }
             // đã thêm: giữ màn kết quả cho Con đọc; áp luật mới khi Con bấm «Xong» (hoặc sau vài giây)
             if (kq.loai == LoaiKetQuaXin.DA_THEM) { h.removeCallbacks(lamMoiSau); h.postDelayed(lamMoiSau, 6000) }
         }
@@ -222,7 +231,7 @@ object GiaoDien {
             val kq = xinKq
             if (kq != null) {
                 when (kq.loai) {
-                    LoaiKetQuaXin.CHO -> {}
+                    LoaiKetQuaXin.CHO -> if (hetHoi) { boKetQua(); htCuoi?.let { ve(it, goiCuoi) } }
                     LoaiKetQuaXin.DA_THEM -> { boKetQua(); DichVuNhip.lamMoi(c); onVe?.invoke() }
                     else -> { boKetQua(); htCuoi?.let { ve(it, goiCuoi) } }   // «Xin lại»: về màn «chưa có trong danh sách»
                 }

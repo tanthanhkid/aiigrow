@@ -10,7 +10,17 @@ import vn.aiilab.aiigrow.maycon.logic.ChinhSach
 import vn.aiilab.aiigrow.maycon.logic.HOI_XIN_TOI_DA_MS
 import vn.aiilab.aiigrow.maycon.logic.KetXet
 import vn.aiilab.aiigrow.maycon.logic.TrangThaiXin
+import vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin
+import vn.aiilab.aiigrow.maycon.logic.XinAppCho
 import vn.aiilab.aiigrow.maycon.logic.cauXin
+import vn.aiilab.aiigrow.maycon.logic.chuKetQuaXinApp
+import vn.aiilab.aiigrow.maycon.logic.conHanXinAppCho
+import vn.aiilab.aiigrow.maycon.logic.docKetQuaXinApp
+import vn.aiilab.aiigrow.maycon.logic.docXinAppCho
+import vn.aiilab.aiigrow.maycon.logic.jsonXinAppCho
+import vn.aiilab.aiigrow.maycon.logic.nenHoiXinApp
+import vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp
+import vn.aiilab.aiigrow.maycon.logic.themXinAppCho
 import vn.aiilab.aiigrow.maycon.logic.cauXinVay
 import vn.aiilab.aiigrow.maycon.logic.dangDungPhien
 import vn.aiilab.aiigrow.maycon.logic.docTin
@@ -43,7 +53,7 @@ object HocVien {
         if (!dangChay.compareAndSet(false, true)) return
         val c = ctx.applicationContext
         try {
-            luong.execute { try { hoiTin(c); hoiLoiXin(c) } catch (e: Exception) { NhatKy.canh(TAG, "hỏi tin / lời xin lỗi", e) } finally { dangChay.set(false) } }
+            luong.execute { try { hoiTin(c); hoiLoiXin(c); hoiXinApp(c) } catch (e: Exception) { NhatKy.canh(TAG, "hỏi tin / lời xin lỗi", e) } finally { dangChay.set(false) } }
         } catch (e: Exception) { dangChay.set(false) }
     }
 
@@ -62,7 +72,7 @@ object HocVien {
     /** Máy rời gia đình / ghép lại ⇒ quên dữ liệu của Con cũ (tổng quan, tin đã thấy, lời xin, phiên điểm). */
     fun quen(k: Kho) {
         k.hvTongQuan = null; k.tinBay = null; k.tinDaThay = emptyList()
-        k.yeuCauId = null; k.yeuCauTrangThai = null; k.yeuCauLuc = 0; k.phienId = null
+        k.yeuCauId = null; k.yeuCauTrangThai = null; k.yeuCauLuc = 0; k.phienId = null; k.xinAppCho = null
     }
 
     private const val CAU_THU = "Chế độ thử: không gọi máy chủ."
@@ -134,6 +144,81 @@ object HocVien {
         (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
             .notify(MA_XIN, thongBao(ctx, if (t == TrangThaiXin.DUOC) (if (k.yeuCauVay) "Ba Mẹ cho vay sao!" else "Ba Mẹ đã đồng ý") else "Ba Mẹ đã trả lời",
                 if (k.yeuCauVay) cauXinVay(t, k.yeuCauPhut) else cauXin(t, k.yeuCauPhut), null, 31))
+    }
+
+    // ------------------------------------------------------------ #686 lời xin app / web (hộp «Xin thêm app / web», màn chặn app)
+    private val khoaXinApp = Any()
+    private const val MA_XIN_APP = 22   // mỗi lời xin một thông báo (tag = id lời xin)
+    private const val MA_XIN_KHONG_GUI = 23
+
+    /** Lời xin app / web vừa gửi (có id) ⇒ nhớ bền: hộp xin đóng / tiến trình bị tắt thì nhịp sau vẫn hỏi và báo kết quả. */
+    fun ghiXinApp(ctx: Context, id: String, ten: String) = synchronized(khoaXinApp) {
+        val k = Kho(ctx)
+        val con = PinMay.nguoiDung(k)?.conId ?: ""
+        k.xinAppCho = jsonXinAppCho(themXinAppCho(docXinAppCho(k.xinAppCho), XinAppCho(id, ten, System.currentTimeMillis(), con), System.currentTimeMillis()))
+    }
+
+    /** Id lời xin mà hộp xin đang tự hỏi kết quả (trong bộ nhớ: tiến trình bị tắt thì nhịp nền nhận lại). */
+    private val hopHoi = HashMap<String, Int>()   // id → số hộp đang hỏi (màn chặn + hộp «Xin thêm» cùng một lời xin)
+    fun hopDangHoi(id: String, dang: Boolean) {
+        synchronized(hopHoi) {
+            val n = (hopHoi[id] ?: 0) + if (dang) 1 else -1
+            if (n > 0) hopHoi[id] = n else hopHoi.remove(id)
+        }
+    }
+    private fun hopDangHoi(id: String) = synchronized(hopHoi) { id in hopHoi }
+    /** Lần nhịp nền hỏi gần nhất của từng lời xin (bộ nhớ) — lời xin chờ lâu hỏi thưa (logic/ChayNen.kt › nenHoiXinApp). */
+    private val lanHoiXinApp = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
+    /** Hộp xin đã tự hiện kết quả cho Con ⇒ thôi theo dõi (không báo lần hai). */
+    fun xongXinApp(ctx: Context, id: String) = synchronized(khoaXinApp) {
+        val k = Kho(ctx)
+        val ds = docXinAppCho(k.xinAppCho)
+        if (ds.any { it.id == id }) k.xinAppCho = jsonXinAppCho(ds.filter { it.id != id })
+    }
+
+    /** Mỗi nhịp: hỏi các lời xin app / web còn chờ (≤ 24 giờ, trừ lời xin hộp xin đang tự hỏi); Ba Mẹ đã trả lời ⇒ bỏ khỏi danh sách, thông báo
+     *  nếu đúng bé xin đang dùng máy (máy chung đã Đổi người ⇒ không báo bé khác). */
+    fun hoiXinApp(ctx: Context) {
+        val k = Kho(ctx)
+        if (k.token == null || k.cheDoThu) return
+        val ds = synchronized(khoaXinApp) {
+            val tat = docXinAppCho(k.xinAppCho)
+            conHanXinAppCho(tat, System.currentTimeMillis()).also { if (it.size != tat.size) k.xinAppCho = jsonXinAppCho(it) }
+        }
+        val now = System.currentTimeMillis()
+        for (x in ds) {
+            if (hopDangHoi(x.id) || !nenHoiXinApp(now - x.luc, lanHoiXinApp[x.id]?.let { now - it })) continue
+            lanHoiXinApp[x.id] = now
+            // 404 = máy chủ không còn lời xin ⇒ báo «hết hạn» như hộp xin (không bỏ im lặng)
+            val kq = try { docKetQuaXinApp(may(k).yeuCau(x.id)) } catch (e: MayChu.Loi) {
+                if (e.http == 404) KetQuaXinApp(LoaiKetQuaXin.HET_HAN, null) else continue
+            } catch (_: Exception) { return }   // mất mạng ⇒ nhịp sau
+            if (kq.loai == LoaiKetQuaXin.CHO) continue
+            synchronized(khoaXinApp) {
+                val con = docXinAppCho(k.xinAppCho)
+                if (con.none { it.id == x.id }) return@synchronized null   // hộp xin vừa tự báo xong
+                k.xinAppCho = jsonXinAppCho(con.filter { it.id != x.id }); Unit
+            } ?: continue
+            lanHoiXinApp.remove(x.id)
+            val (tieu, _, cau) = chuKetQuaXinApp(kq, x.ten)
+            if (kq.loai == LoaiKetQuaXin.DA_THEM) DichVuNhip.lamMoi(ctx)
+            if ((PinMay.nguoiDung(k)?.conId ?: "") != x.con) { NhatKy.tin(TAG, "lời xin app / web của bé trước có kết quả — không báo bé đang dùng"); continue }
+            try {
+                (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                    .notify(x.id, MA_XIN_APP, thongBao(ctx, tieu, cau, null, 32))
+            } catch (_: SecurityException) {}
+            NhatKy.tin(TAG, "báo kết quả lời xin app / web: ${kq.loai}")
+        }
+    }
+
+    /** #684: lời xin lưu lúc mất mạng không tới được Ba Mẹ ⇒ báo Con (thông báo lời xin), không bỏ im lặng. */
+    fun baoXinKhongGui(ctx: Context, cau: String) {
+        NhatKy.tin(TAG, "báo Con: lời xin chờ mạng không gửi được")
+        try {
+            (ctx.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager)
+                .notify(MA_XIN_KHONG_GUI, thongBao(ctx, "Lời xin chưa tới Ba Mẹ", cau, null, 31))
+        } catch (_: SecurityException) {}
     }
 
     // ------------------------------------------------------------ chơi bằng điểm (như ChoiBangDiemForm / RequestForm.ExchangeAsync)
