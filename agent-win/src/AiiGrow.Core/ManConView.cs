@@ -61,6 +61,15 @@ public static class ManChanView
         ["mspaint"] = "chỗ vẽ tranh của Windows",
         ["teams"] = "chỗ gọi và nhắn tin họp nhóm",
         ["outlook"] = "chỗ đọc và gửi thư",
+        // #692: app hay bị chặn trên máy Con
+        ["chrome"] = "trình duyệt web", ["firefox"] = "trình duyệt web", ["coccoc"] = "trình duyệt web", ["brave"] = "trình duyệt web", ["opera"] = "trình duyệt web",
+        ["winword"] = "chỗ soạn văn bản", ["excel"] = "chỗ làm bảng tính", ["powerpnt"] = "chỗ làm trình chiếu",
+        ["explorer"] = "chỗ xem thư mục và file", ["cmd"] = "chỗ gõ lệnh cho máy", ["powershell"] = "chỗ gõ lệnh cho máy", ["taskmgr"] = "chỗ xem và tắt app đang chạy",
+        ["zalo"] = "chỗ nhắn tin và gọi điện", ["discord"] = "chỗ trò chuyện khi chơi game", ["telegram"] = "chỗ nhắn tin", ["messenger"] = "chỗ nhắn tin",
+        ["steam"] = "cửa hàng và chỗ mở game", ["epicgameslauncher"] = "cửa hàng và chỗ mở game",
+        ["roblox"] = "trò chơi", ["robloxplayerbeta"] = "trò chơi", ["minecraft"] = "trò chơi", ["minecraftlauncher"] = "chỗ mở game Minecraft",
+        ["fortniteclient-win64-shipping"] = "trò chơi",
+        ["vlc"] = "chỗ xem phim, nghe nhạc", ["spotify"] = "chỗ nghe nhạc", ["netflix"] = "chỗ xem phim", ["tiktok"] = "chỗ xem video ngắn",
     };
 
     /// <summary>#668: lời bảng chặn cho bé — «Con vừa mở OneDrive (chỗ lưu file của Windows). Ba Mẹ chưa cho mở app này. Con cần dùng thì bấm Xin Ba Mẹ nhé.»</summary>

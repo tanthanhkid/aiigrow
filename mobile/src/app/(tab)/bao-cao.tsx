@@ -18,6 +18,7 @@ import { ChuGiaiVuong, CotGioChoi } from "@/lib/bieu-do";
 import { KHOI } from "@/lib/clay";
 import { luuTepChu } from "@/lib/luu-tep";
 import { soHomNay, type SoHomNayMayChu } from "@/lib/so-hom-nay";
+import { chuPhut } from "@/lib/chu-phut";
 
 type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number; vay?: number }[]; tongGiaiTri: number; phutHoc: number; duyet: { duoc: number; tu_choi: number }; ngoaiLe: number;
   top: { muc: string; phut: number }[]; dungNhieu?: { muc: string; ten?: string; loai: string; phut: number; may?: string | null; lech: number | null }[];
@@ -27,7 +28,7 @@ type Tuan = { giaiTriTheoNgay: { ngay: string; phut: number; vay?: number }[]; t
 type BaoCao = { ten: string; tuanNay: Tuan; tuanTruoc: Tuan; chuGiai: string[] };
 const THU = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const THU_DAI = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
-/** 385 → «6 giờ 25»; 45 → «45 phút». */
+/** Số lớn đầu thẻ: 385 → «6 giờ 25», 45 → «45 phút»; câu chữ dùng chuPhut. */
 const gio = (p: number) => (p >= 60 ? `${Math.floor(p / 60)} giờ${p % 60 ? ` ${String(p % 60).padStart(2, "0")}` : ""}` : `${p} phút`);
 const gioNgan = (p: number) => (p >= 60 ? `${Math.floor(p / 60)}g ${String(p % 60).padStart(2, "0")}` : `${p}′`);
 const ngayNgan = (ngay: string) => `${Number(ngay.slice(8, 10))}/${Number(ngay.slice(5, 7))}`;
@@ -100,7 +101,7 @@ function BaoCaoCon({ id }: { id: string }) {
           </View>
           {(() => {
             const cau = nay.tongGiaiTri && !saoVay ? "Chơi toàn bằng sao tự kiếm"
-              : bc.tuanTruoc.tongGiaiTri ? (lech === 0 ? "Bằng 7 ngày trước" : `${lech > 0 ? "Nhiều" : "Ít"} hơn 7 ngày trước ${gio(Math.abs(lech))}`) : null;
+              : bc.tuanTruoc.tongGiaiTri ? (lech === 0 ? "Bằng 7 ngày trước" : `${lech > 0 ? "Nhiều" : "Ít"} hơn 7 ngày trước ${chuPhut(Math.abs(lech))}`) : null;
             const xau = lech > 0 && saoVay > 0;
             return cau ? (
               <View style={{ alignSelf: "flex-start", marginTop: 6, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 13, backgroundColor: xau ? M.chonSoft : M.chinhSoft }}>
@@ -111,11 +112,11 @@ function BaoCaoCon({ id }: { id: string }) {
           <CotGioChoi max={max} quyVach={d.goc} nhanDoc="Phút chơi theo ngày (1 phút = 1 sao)"
             ds={ngay.map((x) => {
               const laNay = x.ngay === homNay, nhan = laNay ? "Nay" : THU[thuCua(x.ngay)];
-              return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: null, vay: x.vay ?? 0, doc: `${nhan}: ${gio(x.phut)} = ${x.phut} sao${x.vay ? `, trong đó ${x.vay} sao vay` : ""}` };
+              return { khoa: x.ngay, nhan, nay: laNay, phut: x.phut, quy: null, vay: x.vay ?? 0, doc: `${nhan}: ${chuPhut(x.phut)} = ${x.phut} sao${x.vay ? `, trong đó ${x.vay} sao vay` : ""}` };
             })} />
           <ChuGiaiVuong ds={[{ chu: "Chơi bằng sao tự kiếm", mau: M.chinh }, { chu: "Chơi bằng sao vay", mau: M.badge },
-            ...(d.goc ? [{ chu: `Giới hạn ngày ${d.goc} phút`, dut: true }] : []),
-            { chu: d.tran ? `Nay: ${phutNay}/${d.tran} phút = ${soVN(phutNay)} sao · còn ${d.conNgay ?? 0} phút` : `Nay: ${phutNay} phút = ${soVN(phutNay)} sao` }]} />
+            ...(d.goc ? [{ chu: `Giới hạn ngày ${chuPhut(d.goc)}`, dut: true }] : []),
+            { chu: d.tran ? `Nay: ${chuPhut(phutNay)} / ${chuPhut(d.tran)} = ${soVN(phutNay)} sao · còn ${chuPhut(d.conNgay ?? 0)}` : `Nay: ${chuPhut(phutNay)} = ${soVN(phutNay)} sao` }]} />
           {d.goc ? (
             <Pressable onPress={() => router.push(`/ho-so/${id}/gio-choi` as never)} accessibilityRole="button" style={{ minHeight: 44, justifyContent: "center", alignSelf: "flex-start" }}>
               <Chu kieu="rat" co={14} mau={M.lienKet}>Giờ chơi mỗi ngày ›</Chu>
@@ -171,7 +172,7 @@ function BaoCaoCon({ id }: { id: string }) {
           <Rob ten="chi" co={58} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ lineHeight: 20 }}>
-              {saoVay > 0 && nhieuNhat ? `${THU_DAI[thuCua(nhieuNhat.ngay)]} ${ten} chơi ${gio(nhieuNhat.phut)}. 7 ngày qua chơi bằng ${soVN(saoVay)} sao vay.`
+              {saoVay > 0 && nhieuNhat ? `${THU_DAI[thuCua(nhieuNhat.ngay)]} ${ten} chơi ${chuPhut(nhieuNhat.phut)}. 7 ngày qua chơi bằng ${soVN(saoVay)} sao vay.`
                 : `Ngày của ${ten} còn trống.`}
             </Chu>
             <View style={{ minHeight: 32, justifyContent: "center" }}>

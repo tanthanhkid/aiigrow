@@ -91,4 +91,7 @@ object DoPhut {
         val pm = ctx.packageManager
         pm.getApplicationLabel(pm.getApplicationInfo(goi, 0)).toString()
     } catch (_: Exception) { goi }
+
+    /** Tên để HIỆN trên màn Con (#691): nhãn app; không đọc được (đã gỡ) ⇒ bảng / «App lạ», không hiện mã gói. Tên gửi máy chủ dùng [tenApp]. */
+    fun tenHien(ctx: Context, goi: String): String = tenApp(ctx, goi).let { if (it == goi) vn.aiilab.aiigrow.maycon.logic.tenTuGoi(goi) else it }
 }

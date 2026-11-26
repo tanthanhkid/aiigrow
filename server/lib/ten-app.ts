@@ -14,6 +14,20 @@ const BIET: Record<string, string> = {
   "com.spotify.client": "Spotify", "com.hnc.discord": "Discord", "com.valvesoftware.steam": "Steam", "com.roblox.robloxplayer": "Roblox",
   "com.google.android.youtube": "YouTube", "com.zhiliaoapp.musically": "TikTok", "com.roblox.client": "Roblox", "com.mojang.minecraftpe": "Minecraft",
   "com.facebook.katana": "Facebook", "com.instagram.android": "Instagram", "com.supercell.clashofclans": "Clash of Clans",
+  "com.google.android.apps.youtube.kids": "YouTube Kids", "com.ss.android.ugc.trill": "TikTok", "com.supercell.brawlstars": "Brawl Stars",
+  "com.king.candycrushsaga": "Candy Crush Saga", "com.facebook.orca": "Messenger", "com.zing.zalo": "Zalo", "com.android.chrome": "Google Chrome",
+  "com.dts.freefireth": "Free Fire", "com.garena.game.kgvn": "Liên Quân Mobile", "robloxplayerlauncher.exe": "Roblox", "minecraftlauncher.exe": "Minecraft",
+};
+/** Khúc đầu của mã gói kiểu tên miền đảo — tên miền web thường không bắt đầu bằng các khúc này (www.bbc.co.uk, m.youtube.com). */
+const DAU_GOI = /^(com|org|net|io|vn|edu|gov|air|app|me|co|tv|de|uk|jp|kr|cn|in|us|ru|br|fr|it|es|info|biz|microsoft)$/;
+/** Khúc cuối là đuôi tên miền ⇒ tên miền web (fr.wikipedia.org, tv.zing.vn), không phải mã gói. */
+const DUOI_WEB = /^(com|org|net|io|vn|edu|gov|info|biz|me|co|tv|uk|us|jp|kr|cn|de|fr|ru|br|it|es|in|xyz|online|site|gg|ai)$/;
+/** Mã gói Android / bundle id Mac (com.king.candycrushsaga, com.whatsapp): khúc đầu là đuôi tên miền đảo, ≥ 2 khúc, không khoảng trắng; khúc cuối không phải đuôi web. */
+export const laMaGoi = (s: string) => {
+  const t = s.trim().toLowerCase();
+  if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/.test(t)) return false;
+  const k = t.split(".");
+  return DAU_GOI.test(k[0]) && !DUOI_WEB.test(k[k.length - 1]);
 };
 
 /** Tên hiển thị của một mục (đã chuẩn hoá chữ thường như lưu trong `usage` / `app_rules`). */
@@ -27,4 +41,10 @@ export function tenApp(muc: string): string {
     return goc ? goc.charAt(0).toUpperCase() + goc.slice(1) : muc;
   }
   return muc;
+}
+
+/** Tên cho thẻ «Đang chơi» (#691): tên THẬT agent gửi (`am.tenAppThat`, khoá chữ thường) › bảng › mã gói lạ thành «App lạ» (không đoán từ khúc cuối, không lộ mã gói). */
+export function tenHienThi(muc: string, tenThat?: Map<string, string>): string {
+  const t = tenThat?.get(muc.trim().toLowerCase()) ?? tenApp(muc);
+  return laMaGoi(t) ? "App lạ" : t;
 }

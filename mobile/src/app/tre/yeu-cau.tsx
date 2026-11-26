@@ -18,11 +18,13 @@ import { gioPhut, useLam } from "@/lib/ui";
 import { CamXuc, ChoD, ChuD, IcO, LoiD, ManD, NutD, PillD, TamTruot, TheD, TieuD } from "@/lib/ui-diu";
 import { NO } from "@/lib/man-con";
 import { useTaiTre } from "@/lib/ui-tre";
+import { tenMuc } from "@/lib/ten-muc";
+import { chuPhut } from "@/lib/chu-phut";
 
 const laVay = (y: YcTre) => y.loai === "vay_sao" || y.loai === "them_gio" || y.loai === "ngoai_le" || y.loai === "ngoai_gio";
 const laAppWeb = (y: YcTre) => y.loai === "mo_web" || y.loai === "cai_app";
 const soVayCua = (y: YcTre) => Number(y.so_sao ?? y.soSao ?? y.phut ?? 0) || 0;
-const tieuYc = (y: YcTre) => laAppWeb(y) ? `Mở ${y.loai === "mo_web" ? "trang " : ""}${y.gia_tri ?? "app"}` : laVay(y) ? `Vay ${soVN(soVayCua(y))} sao` : y.gia_tri || y.ly_do;
+const tieuYc = (y: YcTre) => laAppWeb(y) ? `Mở ${y.loai === "mo_web" ? (y.gia_tri ? `trang ${y.gia_tri}` : "trang web") : y.gia_tri ? tenMuc(y.gia_tri, (y as { ten_app?: string | null }).ten_app) : "app"}` : laVay(y) ? `Vay ${soVN(soVayCua(y))} sao` : y.gia_tri || y.ly_do;
 
 type Kq = "cho" | "duoc" | "mo_tam" | "chua" | "het_han" | "huy";
 const BO_QUA_HOAN_TAC_MS = 60_000;
@@ -83,13 +85,14 @@ export default function YeuCau() {
   const vuaTraLoi = kq === "duoc" || kq === "mo_tam" || kq === "chua";
   const ai = dau.tenNguoiDuyet || "Ba Mẹ";
   const loiBaMe = dau.loiNhan ?? (dau as { loi_nhan?: string | null }).loi_nhan ?? dau.ly_do_tu_choi ?? null;
-  const tenMuc = dau.gia_tri ?? "app";
+  const mucXin = dau.gia_tri ?? "app";
+  const tenXin = dau.loai === "mo_web" ? (dau.gia_tri ?? "trang") : dau.gia_tri ? tenMuc(dau.gia_tri, (dau as { ten_app?: string | null }).ten_app) : "app";   // #691: không hiện «robloxplayerbeta.exe»
   const xacNhanHuy = () => lam(async () => { await kid.goi(`yeu-cau/${huy!.id}/huy`, {}); setHuy(null); await tai(); });
   // «Xin lại» app / web chưa thêm: lời xin mới cùng mục (kèm lý do nếu chọn)
   const xinLai = () => lam(async () => {
     setDaySo(false);
     try {
-      const r = await guiXinMo({ loai: dau.loai === "mo_web" ? "mo_web" : "cai_app", muc: tenMuc, lyDo: lyDo ?? "" });
+      const r = await guiXinMo({ loai: dau.loai === "mo_web" ? "mo_web" : "cai_app", muc: mucXin, lyDo: lyDo ?? "" });
       setLyDo(null);
       router.replace(`/tre/yeu-cau?moi=${r.id}`);
       await tai();
@@ -114,7 +117,7 @@ export default function YeuCau() {
       return (
         <ManD lui="/tre/nha" day={<>{quaId
           ? <NutD chu="Đổi quà ngay" ic="qua" bam={() => router.replace(`/tre/doi/${quaId}`)} />
-          : <NutD chu={`Chơi ${soVN(s?.phutCon ?? so)} phút`} ic="game" bam={() => router.replace("/tre/gio")} />}
+          : <NutD chu={`Chơi ${chuPhut(s?.phutCon ?? so)}`} ic="game" bam={() => router.replace("/tre/gio")} />}
           <NutD chu={`Cảm ơn ${ai} ›`} loai="chu" bam={() => router.push("/tre/tin")} /></>}>
           <TieuD chu={`${ai} cho vay ${soVN(so)} sao!`} />
           <TheD>
@@ -170,9 +173,9 @@ export default function YeuCau() {
           <NutD chu="Về trang chính" loai="chu" bam={() => router.replace("/tre/nha")} /></>}>
           <View style={{ alignItems: "center", gap: 8 }}>
             <IcO ic={dau.loai === "mo_web" ? "web" : "game"} co={72} />
-            <ChuD kieu="rat" co={15} mau={D.chu2}>{tenMuc}</ChuD>
-            <TieuD chu={`Ba Mẹ chưa thêm ${tenMuc}`} giua nho />
-            <ChuD co={15} mau={D.chu2} giua>{`Ba Mẹ chưa thêm ${tenMuc} lúc này.\nCon xin lại sau được nhé!`}</ChuD>
+            <ChuD kieu="rat" co={15} mau={D.chu2}>{tenXin}</ChuD>
+            <TieuD chu={`Ba Mẹ chưa thêm ${tenXin}`} giua nho />
+            <ChuD co={15} mau={D.chu2} giua>{`Ba Mẹ chưa thêm ${tenXin} lúc này.\nCon xin lại sau được nhé!`}</ChuD>
           </View>
           {loiNhanThe}
           <ChuD kieu="den" co={15}>Lý do (không bắt buộc)</ChuD>
@@ -184,15 +187,15 @@ export default function YeuCau() {
     }
     const tinhPhut = dau.nhom !== "khong_tinh_phut";
     return (
-      <ManD lui="/tre/nha" day={<><NutD chu={kq === "mo_tam" || !tinhPhut || !s ? "Về trang chính" : `Mở ${tenMuc} · còn ${soVN(s.phutCon)} phút`} ic="game"
+      <ManD lui="/tre/nha" day={<><NutD chu={kq === "mo_tam" || !tinhPhut || !s ? "Về trang chính" : `Mở ${tenXin} · còn ${chuPhut(s.phutCon)}`} ic="game"
         bam={() => router.replace("/tre/nha")} />
         <NutD chu={`Cảm ơn ${ai} ›`} loai="chu" bam={() => router.push("/tre/tin")} /></>}>
-        <TieuD chu={kq === "mo_tam" ? `${ai} cho mở ${tenMuc}${dau.moTam?.phut ? ` ${dau.moTam.phut} phút` : ""}` : `${ai} đã thêm ${tenMuc}!`} />
+        <TieuD chu={kq === "mo_tam" ? `${ai} cho mở ${tenXin}${dau.moTam?.phut ? ` ${chuPhut(dau.moTam.phut)}` : ""}` : `${ai} đã thêm ${tenXin}!`} />
         <TheD>
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
             <IcO ic={dau.loai === "mo_web" ? "web" : "game"} co={48} />
             <View style={{ flex: 1 }}>
-              <ChuD kieu="den" co={17} dong={1}>{tenMuc}</ChuD>
+              <ChuD kieu="den" co={17} dong={1}>{tenXin}</ChuD>
               <ChuD co={13.5} mau={D.chu2}>{kq === "mo_tam" ? "Mở tạm lần này · chưa vào danh sách" : "Đã vào danh sách · lần sau không cần xin"}</ChuD>
             </View>
             <PillD chu={kq === "mo_tam" ? "✓ Mở tạm" : "✓ Đã thêm"} loai="xanh" />

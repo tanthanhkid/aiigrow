@@ -12,7 +12,7 @@ import * as nv from "./nhiem-vu.ts";
 import * as yc from "./yeu-cau.ts";
 import * as pt from "./phan-thuong.ts";
 import * as la from "./luat-app.ts";
-import { tenApp } from "./ten-app.ts";
+import { tenApp, tenHienThi } from "./ten-app.ts";
 import * as am from "./app-may.ts";
 import { dungPhien } from "./phien.ts";
 import { dieuChinhTay, lichSu, tomTatVi } from "./vi.ts";
@@ -389,7 +389,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       const loaiCaNha = (muc: string) => caNha.filter((r) => la.khoaSo(muc).includes(r.muc)).sort((a, b) => b.muc.length - a.muc.length)[0]?.loai ?? "chua_xep";
       // tên THẬT agent gửi trong danh sách app của máy (lib/app-may.ts) thắng tên đoán từ tệp
       const tenThat = await am.tenAppThat(fam);
-      const ten = (muc: string) => tenThat.get(muc) ?? tenApp(muc);
+      const ten = (muc: string) => tenThat.get(muc) ?? tenApp(muc);   // danh sách để Ba Mẹ xếp: gói lạ giữ định danh
       const daThay = thay.filter((x) => !la.laAppAiiGrow(x.muc) && !la.khoaSo(x.muc).some((k) => he.includes(k)))
         .map((x) => ({ muc: x.muc, ten: ten(x.muc), phut: x.phut, loai: loaiCaNha(x.muc) }));
       return json({ ds: ds.filter((r) => r.loai !== la.LOAI_TRU), heThong: he, chuaXep: chuaXep.map((x) => ({ ...x, ten: ten(x.muc) })), ...(canThay ? { daThay } : {}) });
@@ -401,7 +401,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
            from play_sessions p join children c on c.id = p.child_id left join devices d on d.id = p.device_id
           where c.family_id = $1 and p.trang_thai in ('chay', 'tam') and p.nhip_cuoi > now() - interval '15 minutes' order by p.bat_dau`, [fam]);
       // phiên mất nhịp > 15 phút (máy ngủ / mất mạng) không phải «đang chơi»: không hiện thẻ đứng hình hàng giờ
-      return json({ ds: r.map((x) => ({ id: x.id, con: x.child_id, tenCon: x.ten_con, may: x.may, muc: x.muc, tenApp: tenApp(x.muc), tam: x.trang_thai === "tam",
+      const tenThat = r.length ? await am.tenAppThat(fam, [...new Set(r.map((x) => x.muc))]) : undefined;   // #691: cùng nguồn tên với danh sách app, không lộ mã gói
+      return json({ ds: r.map((x) => ({ id: x.id, con: x.child_id, tenCon: x.ten_con, may: x.may, muc: x.muc, tenApp: tenHienThi(x.muc, tenThat), tam: x.trang_thai === "tam",
         conPhut: Math.max(0, Math.ceil(x.toi_da_phut - x.phut_dung)) })) });
     }
     if (p[0] === "phien" && p[1] && p[2] === "dung" && post) {

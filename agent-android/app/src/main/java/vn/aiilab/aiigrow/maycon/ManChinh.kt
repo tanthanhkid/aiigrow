@@ -1,5 +1,6 @@
 package vn.aiilab.aiigrow.maycon
 
+import vn.aiilab.aiigrow.maycon.logic.chuPhut
 import android.Manifest
 import android.app.Activity
 import android.app.admin.DevicePolicyManager
@@ -357,9 +358,9 @@ class ManChinh : Activity() {
         for ((goi, p) in ht.dungTop) {
             dsDung.addView(LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL; minimumHeight = G.dp(this@ManChinh, 40); gravity = Gravity.CENTER_VERTICAL
-                addView(G.chu(this@ManChinh, DoPhut.tenApp(this@ManChinh, goi) + if (goi in ht.goiChan) " · đang dừng" else "", 16f).apply {
+                addView(G.chu(this@ManChinh, DoPhut.tenHien(this@ManChinh, goi) + if (goi in ht.goiChan) " · đang dừng" else "", 16f).apply {
                     layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f) })
-                addView(G.chu(this@ManChinh, "$p phút", 16f, G.CHU_PHU).apply {
+                addView(G.chu(this@ManChinh, chuPhut(p), 16f, G.CHU_PHU).apply {
                     layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { marginStart = G.dp(this@ManChinh, 12) } })
             })
         }

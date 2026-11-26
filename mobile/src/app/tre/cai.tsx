@@ -11,14 +11,13 @@ import { D, FD } from "@/lib/diu";
 import { useLam } from "@/lib/ui";
 import { ChuD, IcO, LoiD, ManD, NutD, PillD, TheD, TieuD } from "@/lib/ui-diu";
 import { useTaiTre } from "@/lib/ui-tre";
+import { tenTepCai } from "@/lib/ten-muc";
 
 const LY_DO = ["Học xây nhà", "Chơi với bạn"];
-/** MinecraftInstaller.exe → Minecraft */
-const tenApp = (tep: string) => tep.replace(/\.(exe|msi|apk)$/i, "").replace(/(setup|installer|install|launcher)$/i, "").replace(/[-_.]+$/, "") || tep;
 
 export default function XinCai() {
   const p = useLocalSearchParams<{ tep?: string; ten?: string }>();
-  const ten = p.ten || tenApp(p.tep || "App mới");
+  const ten = p.ten || tenTepCai(p.tep || "");
   const sao = useTaiTre("sao", taiSao);
   const [lyDo, setLyDo] = useState<string | null>(null);
   const [tuViet, setTuViet] = useState("");

@@ -147,13 +147,8 @@ export type TroChoi = { muc: string; ten: string; nhom: string; giaPhut: number 
 export type ThanhTich = { chuoiNgay: number; soDu: number; tongKiem: number; capDo: { cap: number; diemCapSau: number; conThieu: number };
   huyHieu: { ma: string; ten: string; mo_ta: string; dat: boolean; datLuc: string | null }[] };
 
-/** Tên trò chơi đẹp từ định danh (roblox.exe → Roblox, com.mojang.minecraftpe → Minecraft). */
-export function tenMuc(muc: string, ten?: string) {
-  if (ten && ten !== muc) return ten;
-  const m = muc.toLowerCase();
-  const goc = m.endsWith(".exe") ? m.slice(0, -4) : m.includes("://") ? m : m.split(".").length > 2 && !/\.(com|vn|org|net|edu)$/.test(m) ? m.split(".").pop()! : m;
-  return goc.charAt(0).toUpperCase() + goc.slice(1);
-}
+/** Tên trò chơi đẹp từ định danh (#691: lib/ten-muc.ts — com.mojang.minecraftpe → Minecraft, msedge.exe → Microsoft Edge). */
+export { tenMuc } from "./ten-muc";
 
 // ------------------------------------------------------------------ hàng chờ nộp bằng chứng khi mất mạng
 export type AnhNop = { mime: string; base64: string };

@@ -283,9 +283,12 @@ export async function appChanCuaMay(may: Pick<May, "id" | "family_id" | "platfor
 }
 
 /** Tên thật của app trên máy cho các mục (luồng «Chưa xếp» / «Đã thấy» cũ hiện tên đúng thay vì tên đoán từ tệp). */
-export async function tenAppThat(fam: string): Promise<Map<string, string>> {
+export async function tenAppThat(fam: string, chiMuc?: string[]): Promise<Map<string, string>> {
+  // chiMuc: chỉ đọc tên các mục này (thẻ «Đang chơi» gọi mỗi lần tải Trang chủ — khỏi quét cả danh sách app của nhà)
+  const loc = chiMuc ? " and lower(a.muc) = any($2::text[])" : "";
   const r = await q<{ muc: string; ten: string }>(
-    `select distinct on (lower(a.muc)) lower(a.muc) as muc, a.ten from app_may a join devices d on d.id = a.device_id where d.family_id = $1 order by lower(a.muc), a.thay_luc desc`, [fam]);
+    `select distinct on (lower(a.muc)) lower(a.muc) as muc, a.ten from app_may a join devices d on d.id = a.device_id where d.family_id = $1${loc} order by lower(a.muc), a.thay_luc desc`,
+    chiMuc ? [fam, chiMuc.map((m) => m.trim().toLowerCase())] : [fam]);
   return new Map(r.map((x) => [x.muc, x.ten]));
 }
 

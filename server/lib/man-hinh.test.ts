@@ -38,6 +38,7 @@ test("xếp mục: gợi ý theo bản chất, tên miền con, luật Giải tr
   assert.equal(mh.tenDoc("robloxplayerbeta.exe", "app"), "Roblox");
   assert.equal(mh.tenDoc("com.zing.zalo", "app"), "Zalo");
   assert.equal(mh.tenDoc("paint3d.exe", "app"), "Paint3d");
+  assert.equal(mh.tenDoc("com.snapchat.android", "app"), "App lạ", "#691: không đoán «Android» từ khúc cuối");
 });
 
 test("tuần: app + web theo mục và theo ngày (giây), trình duyệt chỉ giữ phần dư, tuần trước, trung bình ngày đã qua", async () => {

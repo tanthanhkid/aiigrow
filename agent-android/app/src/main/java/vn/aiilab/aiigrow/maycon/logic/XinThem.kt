@@ -50,3 +50,27 @@ fun chuNutXinThem(kieu: KieuXin, tenApp: String?): String = when (kieu) {
     KieuXin.APP -> if (tenApp.isNullOrBlank()) "Chọn một app để xin" else "Xin Ba Mẹ thêm $tenApp"
     KieuXin.WEB -> "Xin Ba Mẹ mở trang này"
 }
+
+// #691 mục 5: app đã gỡ / chưa đọc được nhãn ⇒ tên hiển thị không phải mã gói «com.xxx.yyy». Chỉ để HIỆN — tên gửi máy chủ vẫn là định danh.
+private val TEN_GOI_BIET = mapOf(
+    "com.roblox.client" to "Roblox", "com.mojang.minecraftpe" to "Minecraft", "com.google.android.youtube" to "YouTube",
+    "com.google.android.apps.youtube.kids" to "YouTube Kids", "com.zhiliaoapp.musically" to "TikTok", "com.ss.android.ugc.trill" to "TikTok",
+    "com.supercell.clashofclans" to "Clash of Clans", "com.supercell.brawlstars" to "Brawl Stars", "com.king.candycrushsaga" to "Candy Crush Saga",
+    "com.facebook.katana" to "Facebook", "com.facebook.orca" to "Messenger", "com.instagram.android" to "Instagram", "com.zing.zalo" to "Zalo",
+    "com.android.chrome" to "Google Chrome", "com.dts.freefireth" to "Free Fire", "com.garena.game.kgvn" to "Liên Quân Mobile",
+)
+
+/** Mã gói ⇒ tên hiển thị dự phòng: bảng app hay gặp, không thì «App lạ» (không đoán từ khúc cuối: com.snapchat.android ⇒ «Android» là sai). */
+fun tenTuGoi(goi: String): String {
+    val g = goi.trim()
+    if (g.isEmpty()) return "App này"
+    return TEN_GOI_BIET[g.lowercase()] ?: "App lạ"
+}
+
+/** Số phút cho người đọc (#697): 45 → «45 phút», 60 → «1 giờ», 185 → «3 giờ 5 phút». */
+fun chuPhut(n: Int): String {
+    val p = maxOf(0, n)
+    if (p < 60) return "$p phút"
+    val g = p / 60; val du = p % 60
+    return if (du > 0) "$g giờ $du phút" else "$g giờ"
+}

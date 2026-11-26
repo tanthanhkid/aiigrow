@@ -29,7 +29,7 @@ test("Lần đầu gửi giới hạn khi Ba Mẹ đã qua bước Giờ chơi; 
   const b = thanThietLap({ conId: "c1", gioiHan: { ngayThuong: 120, cuoiTuan: 120, moiLuot: 30 } });
   assert.deepEqual([b.gioiHanNgayThuong, b.gioiHanCuoiTuan, b.phutMoiLuot], [120, 120, 30]);
   assert.deepEqual(thanGioiHan(GIOI_HAN_MD), { gioiHanNgayThuong: 60, gioiHanCuoiTuan: 90, phutMoiLuot: 30 });
-  assert.deepEqual(tomTatGioiHan({ ngayThuong: 60, cuoiTuan: 60, moiLuot: 30 }), { tren: "60 phút/ngày", duoi: "mỗi lượt 30 phút" });
+  assert.deepEqual(tomTatGioiHan({ ngayThuong: 60, cuoiTuan: 60, moiLuot: 30 }), { tren: "1 giờ/ngày", duoi: "mỗi lượt 30 phút" });
   assert.deepEqual(tomTatGioiHan({ ngayThuong: 0, cuoiTuan: 0, moiLuot: 0 }), { tren: "Không giới hạn" });
 });
 
@@ -44,5 +44,5 @@ test("màn Con /tre: còn X phút hôm nay · đang nghỉ tới HH:MM · hết 
 });
 
 test("hồ sơ Con tóm tắt: cuối tuần không giới hạn ghi rõ", () => {
-  assert.deepEqual(tomTatGioiHan({ ngayThuong: 60, cuoiTuan: 0, moiLuot: 0 }), { tren: "60 phút ngày thường · cuối tuần không giới hạn" });
+  assert.deepEqual(tomTatGioiHan({ ngayThuong: 60, cuoiTuan: 0, moiLuot: 0 }), { tren: "1 giờ ngày thường · cuối tuần không giới hạn" });
 });

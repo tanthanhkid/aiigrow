@@ -7,6 +7,7 @@ import { congNgay, dauTuan, gioDiaPhuong } from "./gio.ts";
 import { allowlistHieuLuc, chuanMuc, khoaSo, laAppAiiGrow, type NhomGiaiTri } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { mucGop, tenThanThien } from "./ten-than-thien.ts";
+import { laMaGoi, tenApp } from "./ten-app.ts";
 
 type MucMH = "hoc" | "game" | "video" | "video_ngan" | "mxh" | "tien_ich" | "khac" | "chua_xep";
 const MUC_MH: MucMH[] = ["hoc", "game", "video", "video_ngan", "mxh", "tien_ich", "khac", "chua_xep"];
@@ -60,7 +61,8 @@ export function tenDoc(muc: string, kieu: "app" | "web", tenLuat?: string) {
   const tt = tenThanThien(muc);   // #659: «BingWeather» ⇒ «Thời tiết», «microsoft.photos.exe» ⇒ «Ảnh»
   if (tt) return tt;
   if (tenLuat && tenLuat !== muc) return tenLuat;
-  const goc = muc.endsWith(".exe") ? muc.slice(0, -4) : /^[a-z0-9_]+(\.[a-z0-9_]+){2,}$/.test(muc) ? muc.split(".").pop()! : muc;
+  if (laMaGoi(muc)) { const t = tenApp(muc); return t !== muc ? t : "App lạ"; }   // #691: không đoán tên từ khúc cuối (com.snapchat.android ⇒ «Android» là sai)
+  const goc = muc.endsWith(".exe") ? muc.slice(0, -4) : muc;
   return goc.charAt(0).toUpperCase() + goc.slice(1);
 }
 

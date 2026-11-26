@@ -16,6 +16,7 @@ import vn.aiilab.aiigrow.maycon.logic.Cong
 import vn.aiilab.aiigrow.maycon.logic.KetQuaMoOffline
 import vn.aiilab.aiigrow.maycon.logic.KetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.LoaiKetQuaXin
+import vn.aiilab.aiigrow.maycon.logic.tenTuGoi
 import vn.aiilab.aiigrow.maycon.logic.TrangThai
 import vn.aiilab.aiigrow.maycon.logic.chuKetQuaXinApp
 import vn.aiilab.aiigrow.maycon.logic.mmss
@@ -188,7 +189,7 @@ object GiaoDien {
             val ten = DoPhut.tenApp(c, g)
             val ly = (if (choGoLyDo) oLyDo.text.toString().replace(Regex("\\s*\n\\s*"), " ") else lyDoChon ?: "")
             val gen = ++xinGen
-            xinGoi = g; xinTen = ten; hetHoi = false
+            xinGoi = g; xinTen = if (ten == g) tenTuGoi(g) else ten; hetHoi = false   // hiển thị: không lộ mã gói (#691); `ten` gửi máy chủ giữ như cũ
             xinKq = KetQuaXinApp(LoaiKetQuaXin.CHO, null)
             capNhatKetQua(g)
             val ctx = c.applicationContext
@@ -357,7 +358,7 @@ object GiaoDien {
             val hetSao = ht.coSao && ht.trangThai == TrangThai.HET_GIO.name && !duyet && vi == null
             val xinSao = hetSao || vi != null
             nutXin.text = when {
-                duyet -> "Xin Ba Mẹ mở ${DoPhut.tenApp(c, goiChan!!)}"
+                duyet -> "Xin Ba Mẹ mở ${DoPhut.tenHien(c, goiChan!!)}"
                 xinSao -> "Xin Ba Mẹ cho vay sao"
                 else -> "Xin Ba Mẹ mở máy"
             }
@@ -374,7 +375,7 @@ object GiaoDien {
                 capNhatKetQua(goiChan!!)
             } else if (chanApp) {
                 // 15/11 (them-4e5fwl16 / them-n4iivj6d): ngoài danh sách ⇒ «Roblox chưa có trong danh sách»; app Tính phút lúc hết sao ⇒ «Hết sao rồi»
-                val ten = DoPhut.tenApp(c, goiChan!!)
+                val ten = DoPhut.tenHien(c, goiChan!!)
                 tieuDe.text = if (duyet) "$ten chưa có trong danh sách" else if (vi != null) vi else if (hetSao) "Hết sao rồi" else "$ten đang tạm dừng"
                 dem.text = if (hetSao) vn.aiilab.aiigrow.maycon.logic.soSao(ht.soDu ?: 0) else ten; dem.textSize = 24f
                 moLai.visibility = View.GONE

@@ -115,8 +115,8 @@ export type LuotCho = { id: string; child_id: string; ten_con: string; ten: stri
 export type YeuCau = { id: string; child_id: string; ten_con: string; loai: "vay_sao" | "them_gio" | "mo_web" | "cai_app" | "ngoai_le" | "ngoai_gio" | "khac";
   phut: number | null; gia_tri: string | null; ly_do: string; created_at: string; het_han: string; muc_dich?: "choi" | "qua" | null;
   /** #425: tên app Con chọn trong lưới («Paint») khi gia_tri là định danh («microsoft.mspaint») — máy chủ cũ không gửi */ ten_app?: string | null };
-/** Tên hiển thị của mục Con xin: tên app máy chủ gửi, thiếu thì mã thô (gia_tri). */
-export const tenYc = (y: { gia_tri: string | null; ten_app?: string | null }) => y.ten_app || y.gia_tri;
+/** Tên hiển thị của mục Con xin (#691): tên app máy chủ gửi, thiếu thì tên đẹp từ định danh — lib/ten-muc.ts. */
+export { tenYc } from "./ten-muc";
 export type Qua = { id: string; ten: string; loai: "voucher" | "qua" | "dac_quyen" | "tiet_kiem"; diem: number; menh_gia: number | null; ton_kho: number | null;
   toi_da_thang: number | null; chi_cuoi_tuan: boolean; bat: boolean };
 export type CanhBao = { id: string; child_id: string | null; loai: string; muc: "thong_tin" | "chu_y" | "nghiem_trong"; noi_dung: string;

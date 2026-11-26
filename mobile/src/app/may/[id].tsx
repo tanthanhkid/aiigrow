@@ -10,6 +10,7 @@
 // Dữ liệu: GET may/:id/tuan-thu (conDs, dangDung, khoaMay, tungCon) + GET may/:id/con (mọi bé, gán chưa, sao) + GET tuan-thu (máy khác) + gia-dinh.
 import { maMay, TEN_HIEN_THI } from "@/lib/trang-thai-may";
 import { cheDoTu } from "@/lib/app-web";
+import { chuPhut } from "@/lib/chu-phut";
 import { useCallback, useState } from "react";
 import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -252,7 +253,7 @@ export default function AnToanMay() {
               </View>
             ) : null}
             <View style={{ position: "absolute", left: 16, bottom: 14, right: 132, alignItems: "flex-start" }}><View style={{ paddingHorizontal: 11, paddingVertical: 5, borderRadius: 12, backgroundColor: M.the }}>
-              <Chu kieu="rat" co={12.5} mau={M.canh} dong={2}>{phutAi != null ? `Hôm nay ${phutAi} phút · vẫn trừ sao` : `Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn trừ sao`}</Chu>
+              <Chu kieu="rat" co={12.5} mau={M.canh} dong={2}>{phutAi != null ? `Hôm nay ${chuPhut(phutAi)} · vẫn trừ sao` : `Báo về ${truoc(m.lanCuoi) || "chưa lần nào"} · vẫn trừ sao`}</Chu>
             </View></View>
           </View>
           <View style={{ paddingHorizontal: 6, gap: 4 }}>
