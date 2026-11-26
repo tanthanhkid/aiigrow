@@ -84,10 +84,10 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
   for (const a of app) if (!laAppAiiGrow(a.muc) && !TRINH_DUYET.has(chuanMuc(a.muc)) && a.loai !== "he_thong" && !(laTienTrinhNenWindows(a.muc) && !luatCua(chuanMuc(a.muc)))) them("app", a.muc, a.device_id, a.phut, a.dau_luc, a.loai);
   // #704: phút web cộng theo GIÂY (nhiều máy / nhiều lần cùng tên miền) rồi mới làm tròn một lần ở dòng — như phút «Giờ chơi» (quy-gio › phutDaDung)
   for (const w of web) them("web", w.ten_mien, w.device_id, Number(w.giay) / 60, w.dau_luc ?? w.lan_cuoi, null);
-  const tatCa = [...gop.values()].map(({ _phutMay, ...x }) => ({ ...x, _phut: x.phut, phut: x.kieu === "web" ? Math.round(x.phut) : x.phut })).filter((x) => x.phut > 0);
-  // #704: tổng «Không tính phút» + số mục «Đã dùng» tính trên CẢ ngày (trước khi cắt danh sách), tổng phút cộng số lẻ rồi làm tròn một lần
-  const phutHoc = Math.round(tatCa.filter((x) => !x.tinhGio && !x.chuaXep).reduce((s, x) => s + x._phut, 0));
-  const dung = tatCa.map(({ _phut, ...x }) => x)
+  // #704: tổng «Không tính phút» tính trên CẢ ngày (trước khi cắt danh sách), cộng số lẻ — kể cả tên miền dưới 1 phút — rồi làm tròn một lần
+  const phutHoc = Math.round([...gop.values()].filter((x) => !x.tinhGio && !x.chuaXep).reduce((s, x) => s + x.phut, 0));
+  const tatCa = [...gop.values()].map(({ _phutMay, ...x }) => ({ ...x, phut: x.kieu === "web" ? Math.round(x.phut) : x.phut })).filter((x) => x.phut > 0);
+  const dung = tatCa
     // mới trước (dòng chưa biết giờ xuống cuối), cùng giờ thì dùng nhiều trước
     .sort((a, b) => (b.luc ? new Date(b.luc).getTime() : 0) - (a.luc ? new Date(a.luc).getTime() : 0) || b.phut - a.phut).slice(0, o.gioiHan ?? 50);
 
