@@ -486,7 +486,8 @@ public static class DanhSachApp
             if (!string.IsNullOrWhiteSpace(a.ThuMuc))
             {
                 var t = ChuanThuMuc(a.ThuMuc);
-                if (LaDuongTuyetDoi(t) && t.Length > 3 && !ProcessGuard.LaChoConThaTep(t + "\\x.exe", winDir)) kq.Add(t);
+                // InstallLocation có thể là thư mục BẢN (Roblox\Versions\version-x, Discord\app-1.0.9) ⇒ quy về gốc app để đổi bản vẫn tin cậy
+                if (LaDuongTuyetDoi(t) && t.Length > 3 && !ProcessGuard.LaChoConThaTep(t + "\\x.exe", winDir)) kq.Add(GocCai(t + "\\x.exe") ?? t);
             }
             foreach (var d in DuongDanKem(a))
             {

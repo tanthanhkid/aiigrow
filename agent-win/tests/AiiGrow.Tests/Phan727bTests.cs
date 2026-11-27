@@ -129,4 +129,36 @@ public class Phan727bTests
         }
         finally { try { File.Delete(tep); } catch { } }
     }
+
+    [Fact]
+    public void AppPerUser_RobloxDiscordZoomChrome_KhongBiDongOan_KeCaDoiBan()
+    {
+        var ds = DanhSachApp.ChuanHoa(new[]
+        {
+            new AppThat { Khoa = "r", Muc = "robloxplayerbeta.exe", Ten = "Roblox", Nguon = "registry", DuongDan = @"C:\Users\Con\AppData\Local\Roblox\Versions\version-aaa\RobloxPlayerBeta.exe", ThuMuc = @"C:\Users\Con\AppData\Local\Roblox\Versions\version-aaa" },
+            new AppThat { Khoa = "d", Muc = "discord.exe", Ten = "Discord", Nguon = "registry", DuongDan = @"C:\Users\Con\AppData\Local\Discord\app-1.0.9001\Discord.exe", ThuMuc = @"C:\Users\Con\AppData\Local\Discord\app-1.0.9001" },
+            new AppThat { Khoa = "z", Muc = "zoom.exe", Ten = "Zoom", Nguon = "registry", DuongDan = @"C:\Users\Con\AppData\Roaming\Zoom\bin\Zoom.exe" },
+            new AppThat { Khoa = "c", Muc = "chrome.exe", Ten = "Chrome", Nguon = "registry", DuongDan = @"C:\Users\Con\AppData\Local\Google\Chrome\Application\chrome.exe" },
+            new AppThat { Khoa = "m", Muc = "minecraftlauncher.exe", Ten = "Minecraft", Nguon = "registry", DuongDan = @"C:\Users\Con\AppData\Local\Programs\Minecraft Launcher\MinecraftLauncher.exe" },
+        });
+        var d = DanhSachApp.ThuMucDaCai(ds, Win);
+        var cho = Tap("robloxplayerbeta.exe", "discord.exe", "zoom.exe", "chrome.exe", "minecraftlauncher.exe");
+        foreach (var p in new[]
+        {
+            @"C:\Users\Con\AppData\Local\Roblox\Versions\version-aaa\RobloxPlayerBeta.exe",
+            @"C:\Users\Con\AppData\Local\Roblox\Versions\version-bbb\RobloxPlayerBeta.exe",          // sau tự cập nhật
+            @"C:\Users\Con\AppData\Local\Discord\app-1.0.9001\Discord.exe",
+            @"C:\Users\Con\AppData\Local\Discord\app-1.0.9002\Discord.exe",                           // đổi thư mục phiên bản
+            @"C:\Users\Con\AppData\Roaming\Zoom\bin\Zoom.exe",
+            @"C:\Users\Con\AppData\Local\Google\Chrome\Application\chrome.exe",
+            @"C:\Users\Con\AppData\Local\Programs\Minecraft Launcher\MinecraftLauncher.exe",
+        })
+            Assert.False(ProcessGuard.ShouldClose(p, cho, NoDirs, Safe, Win, tenDaCai: Tap(), thuMucDaCai: d), p);
+        // AppLocker: wildcard thư mục cha ⇒ đổi bản không bị chặn
+        var ex = XDocument.Parse(AppLockerXml.Build(new AppLockerOptions { ChildSid = "S-1-5-21-1-2-3-1001", AllowedApps = new[] { "discord.exe", "robloxplayerbeta.exe" }, ThuMucCai = d }))
+            .Descendants("FilePathCondition").Select(e => (string?)e.Attribute("Path")).ToList();
+        Assert.Contains(@"C:\Users\Con\AppData\Local\Discord\*\discord.exe", ex);
+        Assert.Contains(@"C:\Users\Con\AppData\Local\Roblox\*\robloxplayerbeta.exe", ex);
+        Assert.DoesNotContain(ex, e => e!.Contains("app-1.0.9001") || e.Contains("version-aaa"));
+    }
 }
