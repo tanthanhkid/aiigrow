@@ -80,10 +80,10 @@ public sealed class DanhSachAppWorker : BackgroundService
             _rt.TenDaCai = new HashSet<string>(tenDaCai, StringComparer.OrdinalIgnoreCase);
             var thuMucDaCai = DanhSachApp.ThuMucDaCai(ds, Environment.GetFolderPath(Environment.SpecialFolder.Windows));
             var theoTen = DanhSachApp.TenThuMuc(ds, Environment.GetFolderPath(Environment.SpecialFolder.Windows));
-            if (thuMucDaCai.Count > 0) { _rt.ThuMucDaCai = thuMucDaCai; _rt.ThuMucTheoTen = theoTen; }   // quét rỗng / lỗi ⇒ giữ lần trước (không khoá hết app per-user)
+            if (thuMucDaCai.Count > 0) { _rt.ThuMucDaCai = thuMucDaCai; if (theoTen.Count > 0) _rt.ThuMucTheoTen = theoTen; }   // quét rỗng / lỗi ⇒ giữ lần trước (không khoá hết app per-user)
             if (!CungNhom(_rt.Config?.NhomMucApp, nhom) || (thuMucDaCai.Count > 0 && (!(_rt.Config?.ThuMucDaCai ?? new()).SequenceEqual(thuMucDaCai, StringComparer.Ordinal) || !(_rt.Config?.ThuMucTheoTen ?? new()).SequenceEqual(theoTen, StringComparer.Ordinal))) || !(_rt.Config?.TenExeDaCai ?? new()).SequenceEqual(tenDaCai, StringComparer.Ordinal)
                 || !CungNhom(_rt.Config?.GoiNgoaiApp, goiNgoai))
-                try { _rt.Store.Update(c => { c.NhomMucApp = nhom; c.TenExeDaCai = tenDaCai; if (thuMucDaCai.Count > 0) { c.ThuMucDaCai = thuMucDaCai; c.ThuMucTheoTen = theoTen; } c.GoiNgoaiApp = goiNgoai; }); } catch (Exception e) { _log.LogDebug("Lưu bí danh app lỗi: {m}", e.Message); }
+                try { _rt.Store.Update(c => { c.NhomMucApp = nhom; c.TenExeDaCai = tenDaCai; if (thuMucDaCai.Count > 0) { c.ThuMucDaCai = thuMucDaCai; if (theoTen.Count > 0) c.ThuMucTheoTen = theoTen; } c.GoiNgoaiApp = goiNgoai; }); } catch (Exception e) { _log.LogDebug("Lưu bí danh app lỗi: {m}", e.Message); }
             _rt.AppMay = XinThemChonView.Loc(ds.Select(x => new AppTrenMay { Muc = x.Muc, Ten = x.Ten }));
             _sidDaQuet = string.Join(",", sids);
             _quetLuc = now;

@@ -380,7 +380,7 @@ internal sealed class TrayContext : ApplicationContext
     /// <summary>#727 (#686): lời xin app / web còn chờ (tệp, sống qua khởi động lại khay — hoặc Con đóng hộp khi còn chờ) ⇒ hỏi trạng thái, có trả lời thì bóng báo đúng bé đã xin.</summary>
     private async Task TheoDoiXinAppWebAsync()
     {
-        if (_state.Locked || _state.NguoiDung != LoaiNguoiDung.Con || (DateTimeOffset.Now - _xinAwHoiLuc).TotalSeconds < 15 || XinThemForm.DangTheoDoi.Count > 0) return;
+        if (_state.Locked || _state.NguoiDung != LoaiNguoiDung.Con || (DateTimeOffset.Now - _xinAwHoiLuc).TotalSeconds < 15 ) return;
         if (Interlocked.Exchange(ref _xinAwDangHoi, 1) == 1) return;
         try
         {
@@ -389,6 +389,7 @@ internal sealed class TrayContext : ApplicationContext
             foreach (var x in XinAppWebCho.Doc(XinThemForm.TepXinCho, now))
             {
                 if (x.BeId != null && x.BeId != _state.BeId) continue;   // máy dùng chung: lời xin của bé khác
+                if (XinThemForm.DangTheoDoi.Contains(x.Id)) continue;   // hộp đang mở tự theo dõi id này
                 var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Status, Id = x.Id });
                 if (!_xinAwLoi.TryGetValue(x.Id, out var dem)) _xinAwLoi[x.Id] = dem = new DemLoiHoi(5);
                 if (dem.Ghi(r)) { XinAppWebCho.Xoa(XinThemForm.TepXinCho, x.Id, now); _xinAwLoi.Remove(x.Id); continue; }

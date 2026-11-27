@@ -170,4 +170,27 @@ public class Phan727bTests
         Assert.Contains(@"C:\Users\Con\AppData\Local\Roblox\*", ex);
         Assert.DoesNotContain(ex, e => e!.Contains("app-1.0.9001") || e.Contains("version-aaa"));
     }
+
+    [Fact]
+    public void ThuMucCai_GocChungKhongTinCay_VaLuatAppLockerBamHong()
+    {
+        var ds = DanhSachApp.ChuanHoa(new[]
+        {
+            new AppThat { Khoa = "a", Muc = "foo.exe", Ten = "Foo", Nguon = "registry", DuongDan = @"C:\ProgramData\foo.exe" },
+            new AppThat { Khoa = "b", Muc = "bar.exe", Ten = "Bar", Nguon = "registry", DuongDan = @"D:\Games\bar.exe" },
+            new AppThat { Khoa = "c", Muc = "baz.exe", Ten = "Baz", Nguon = "registry", DuongDan = @"C:\Program Files\baz.exe" },
+            new AppThat { Khoa = "d", Muc = "wa.exe", Ten = "Wa", Nguon = "registry", DuongDan = @"C:\Users\Con\AppData\Local\Microsoft\WindowsApps\wa.exe" },
+        });
+        Assert.Empty(DanhSachApp.ThuMucDaCai(ds, Win));
+        Assert.Empty(DanhSachApp.TenThuMuc(ds, Win));
+        // băm AppLocker lỗi (null) hoặc sai định dạng ⇒ vẫn có luật theo tên; băm đúng ⇒ chỉ luật băm + đường dẫn
+        var chan = new[] { new AppBiChan { Muc = "foo.exe", DuongDan = @"D:\Games\Foo\foo.exe", Sha256 = new string('a', 64) } };
+        var hong = ChanAppThat.LuatAppLocker(chan, Win, Safe, _ => null);
+        Assert.Contains(hong, l => l.Path == @"*\foo.exe");
+        var sai = ChanAppThat.LuatAppLocker(chan, Win, Safe, _ => ("zzz", 10L, "foo.exe"));
+        Assert.Contains(sai, l => l.Path == @"*\foo.exe");
+        var tot = ChanAppThat.LuatAppLocker(chan, Win, Safe, _ => ("0x" + new string('A', 64), 10L, "foo.exe"));
+        Assert.DoesNotContain(tot, l => l.Path == @"*\foo.exe");
+        Assert.Contains(tot, l => l.HashData != null);
+    }
 }

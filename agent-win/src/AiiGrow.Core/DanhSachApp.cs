@@ -533,10 +533,23 @@ public static class DanhSachApp
             var i = segs.Length > 4 && segs[4].Equals("Programs", StringComparison.OrdinalIgnoreCase) ? 5 : 4;
             // thư mục nhà phát hành chung (Google\Chrome, Microsoft\Teams…): lấy thêm một tầng, không tin cả thư mục hãng
             if (segs.Length > i + 1 && VanChung.Contains(segs[i])) i++;
-            if (segs.Length > i + 1) return exe[..3] + string.Join("\\", segs.Take(i + 1));
+            if (segs.Length > i + 1) return TooRong(exe[..3] + string.Join("\\", segs.Take(i + 1)));
             return null;   // exe nằm ngay trong AppData\Local|Roaming|Programs: không biến cả thư mục đó thành «thư mục cài»
         }
-        return exe[..exe.LastIndexOf('\\')];
+        return TooRong(exe[..exe.LastIndexOf('\\')]);
+    }
+
+    /// <summary>Thư mục gốc chung Con ghi được / chứa mọi app (X:\ProgramData, X:\Program Files, X:\Games, …\WindowsApps) không thành «thư mục cài».</summary>
+    private static readonly HashSet<string> GocChung = new(StringComparer.OrdinalIgnoreCase)
+        { "ProgramData", "Program Files", "Program Files (x86)", "Users", "Windows", "Games", "Temp", "Downloads", "Apps", "Software" };
+
+    private static string? TooRong(string dir)
+    {
+        var segs = dir[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        if (segs.Length == 0) return null;
+        if (segs.Length == 1 && GocChung.Contains(segs[0])) return null;
+        if (segs[^1].Equals("WindowsApps", StringComparison.OrdinalIgnoreCase)) return null;
+        return dir;
     }
 
     /// <summary>#690: các nhóm muc cùng app (chỉ app có từ hai muc), muc ĐẦU là muc gửi máy chủ — lưu vào cấu hình để dịch vụ khởi động lại
