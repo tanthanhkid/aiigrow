@@ -183,17 +183,19 @@ const TEN_MIEN_DI_KEM: Record<string, string[]> = {
   "microsoft.com": ["login.microsoftonline.com", "login.live.com", "office.net"],
   "khanacademy.org": ["kastatic.org", "kasandbox.org"],
   "canva.com": ["canva-apps.com", "canva.dev"],
-  // bí danh hai chiều (#750): trang chuyển hướng giữa hai tên — bé gõ tên nào cũng vào được
-  "vioedu.vn": ["vio.edu.vn"], "vio.edu.vn": ["vioedu.vn"],
-  "olm.vn": ["olm.edu.vn"], "olm.edu.vn": ["olm.vn"],
-  "violympic.vn": ["violympic.edu.vn"], "violympic.edu.vn": ["violympic.vn"],
 };
+
+/** Bí danh hai chiều (#750): trang chuyển hướng giữa hai tên — khớp ĐÚNG tên miền (không tính tên miền con), dùng cho cả cho phép lẫn chặn. */
+const BI_DANH: Record<string, string> = { "vioedu.vn": "vio.edu.vn", "vio.edu.vn": "vioedu.vn", "olm.vn": "olm.edu.vn", "olm.edu.vn": "olm.vn",
+  "violympic.vn": "violympic.edu.vn", "violympic.edu.vn": "violympic.vn" };
+export const biDanhTenMien = (ds: string[]): string[] => ds.map((m) => BI_DANH[m]).filter((x): x is string => !!x && !ds.includes(x));
 
 /** Tên miền đi kèm của các mục `ds` (không lặp lại mục đã có). */
 export function tenMienDiKem(ds: string[]): string[] {
   const co = new Set(ds), ra = new Set<string>();
   for (const m of ds) for (const [k, kem] of Object.entries(TEN_MIEN_DI_KEM))
     if (m === k || m.endsWith("." + k)) for (const x of kem) if (!co.has(x)) ra.add(x);
+  for (const x of biDanhTenMien(ds)) ra.add(x);
   return [...ra];
 }
 
@@ -201,10 +203,10 @@ export function tenMienDiKem(ds: string[]): string[] {
 export function chuanHoaDuongDan(v: unknown): { mien: string | null; gopVe?: { tu: string; ve: string } } {
   const mien = tenMienSach(v);
   if (!mien) return { mien: null };
-  const tho = String(v ?? "").trim().toLowerCase().replace(/^[a-z][a-z0-9+.-]*:\/\//, "").replace(/^www\./, "");
-  const i = tho.search(/[/?#]/);
-  const duong = i < 0 ? "" : tho.slice(i).replace(/[?#].*$/, "").replace(/\/+$/, "");
-  return duong ? { mien, gopVe: { tu: tho.slice(0, i) + duong, ve: mien } } : { mien };
+  const tho = String(v ?? "").trim();
+  let duong = "";
+  try { duong = new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(tho) ? tho : `https://${tho.replace(/^\/\//, "")}`).pathname.replace(/\/+$/, ""); } catch { /* không có đường dẫn */ }
+  return duong ? { mien, gopVe: { tu: (mien + duong.toLowerCase()).slice(0, 200), ve: mien } } : { mien };
 }
 
 export type ChinhSachWeb = {
@@ -233,7 +235,7 @@ export function chinhSachWebCho(p: Pick<Policy, "luat" | "allowlistHeThong" | "p
   // choKhiMo: trang Giải trí chỉ mở NHỜ cửa sổ «mở» có hạn ⇒ agent tự chặn lại khi grantEndsAt qua mà máy đang mất mạng
   const theoPhien = (m: string) => phien === m.toLowerCase() || (phien !== "" && phien.endsWith("." + m.toLowerCase()));
   const choKhiMo = (o.moCoHan ?? o.moGiaiTri) ? web.filter((l) => l.loai === "giai_tri" && !theoPhien(l.muc)).map((l) => l.muc.toLowerCase()) : [];
-  const chanHet = [...chan, ...(p.webLuonChan ?? [])];     // lưới web cấm cứng đã bỏ (#258/#262): webLuonChan luôn []
+  const chanHet = [...chan, ...biDanhTenMien(chan), ...(p.webLuonChan ?? [])];     // lưới web cấm cứng đã bỏ (#258/#262): webLuonChan luôn []
   // tên miền đi kèm (TEN_MIEN_DI_KEM) — trừ trang Ba Mẹ chặn đích danh; kèm của trang chỉ mở nhờ cửa sổ có hạn cũng vào choKhiMo
   const kem = (ds: string[]) => tenMienDiKem(ds).filter((m) => !chan.includes(m));
   const choLau = cho.filter((m) => !choKhiMo.includes(m)), kemLau = new Set(kem(choLau));

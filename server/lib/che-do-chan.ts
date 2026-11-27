@@ -275,7 +275,7 @@ export async function themVaoDanhSach(fam: string, con: string, b: MucThem & { d
         const laWeb = x.kieu === "web" || (x.kieu !== "app" && kieuMuc(chuanMuc(tho)) === "web");
         const cd = laWeb ? chuanHoaDuongDan(tho) : null;
         const muc = cd ? cd.mien : chuanMuc(tho);
-        if (cd?.gopVe) gopVe.push(cd.gopVe);
+        if (cd?.gopVe && !gopVe.some((g) => g.tu === cd.gopVe!.tu)) gopVe.push(cd.gopVe);
         if (!muc) throw new LoiNghiepVu("ten_mien_sai", "Nhập tên miền dạng ten.com (dán link cũng được)");
         // trang web: tên hiển thị = tên miền (hàng «Web»); app theo định danh: tên Ba Mẹ gõ hoặc chính định danh
         const ten = laWeb ? muc : String(x.ten ?? muc).trim().slice(0, 60) || muc;

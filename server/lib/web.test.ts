@@ -200,6 +200,10 @@ test("#750: bí danh tên miền hai chiều + chuẩn hoá đường dẫn con"
   assert.deepEqual(web.tenMienDiKem(["vio.edu.vn"]), ["vioedu.vn"]);
   assert.deepEqual(web.tenMienDiKem(["vioedu.vn", "vio.edu.vn"]), []);
   assert.deepEqual(web.chuanHoaDuongDan("https://www.youtube.com/kids?x=1"), { mien: "youtube.com", gopVe: { tu: "youtube.com/kids", ve: "youtube.com" } });
+  assert.deepEqual(web.tenMienDiKem(["lop.vio.edu.vn"]), []);
+  assert.deepEqual(web.chuanHoaDuongDan("https://u:pw@youtube.com:8080/kids"), { mien: "youtube.com", gopVe: { tu: "youtube.com/kids", ve: "youtube.com" } });
+  const cc = web.chinhSachWebCho({ luat: [{ muc: "vioedu.vn", loai: "chan" } as never], allowlistHeThong: [], phien: null as never, webChiChoPhep: false });
+  assert.ok(cc.chan.includes("vio.edu.vn") && cc.chan.includes("vioedu.vn"));
   assert.deepEqual(web.chuanHoaDuongDan("youtube.com/"), { mien: "youtube.com" });
   assert.deepEqual(web.chuanHoaDuongDan("scratch.mit.edu"), { mien: "scratch.mit.edu" });
   assert.deepEqual(web.chuanHoaDuongDan("khong hop le"), { mien: null });
