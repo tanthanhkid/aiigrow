@@ -104,7 +104,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
           tru={() => buoc("nt", -1)} cong={() => buoc("nt", 1)} />
         <DongPhut nhan="Thứ 7, Chủ nhật" quy={quyNgay(chu.ct)} chu={chu.ct} doi={(s) => go("ct", s)} nhanO="Số phút cuối tuần"
           tru={() => buoc("ct", -1)} cong={() => buoc("ct", 1)} />
-        {cu0 ? <Chu co={12.5} mau={M.chu2}>Trước đây chưa giới hạn giờ mỗi ngày — đã đặt sẵn 60 và 90 phút, chỉnh rồi lưu.</Chu> : null}
+        {cu0 ? <Chu co={12.5} mau={M.chu2}>Trước đây chưa giới hạn giờ mỗi ngày — đang gợi ý 60 và 90 phút; bấm Lưu để áp dụng, chưa lưu thì hồ sơ con vẫn ghi «Không giới hạn».</Chu> : null}
       </View>
       <View style={theKem}>
         <Hoi ic="dong_ho_cat" chu="Chơi liền bao lâu thì nghỉ?" />

@@ -33,6 +33,11 @@ test("Lần đầu gửi giới hạn khi Ba Mẹ đã qua bước Giờ chơi; 
   assert.deepEqual(tomTatGioiHan({ ngayThuong: 0, cuoiTuan: 0, moiLuot: 0 }), { tren: "Không giới hạn" });
 });
 
+test("hồ sơ con: chỉ «Không giới hạn» khi chưa đặt (0/0); đã lưu thì hiện đúng 60 / 90 / chơi liền 30", () => {
+  assert.deepEqual(tomTatGioiHan({ ngayThuong: 0, cuoiTuan: 0, moiLuot: 0 }), { tren: "Không giới hạn" });
+  assert.deepEqual(tomTatGioiHan(GIOI_HAN_MD), { tren: "Ngày thường 1 giờ · T7, CN 1 giờ 30 phút", duoi: "mỗi lượt 30 phút" });
+});
+
 test("màn Con /tre: còn X phút hôm nay · đang nghỉ tới HH:MM · hết hôm nay", () => {
   const g = { apDung: true, conNgay: 25.4, dangNghi: false, nghiDen: null, nghiDenGio: null, hetNgay: false, lyDoKhoa: null, luotPhut: 30, conLuot: 10, cau: null };
   assert.deepEqual(dongGioiHanTre(g), { tieu: "Còn 25 phút hôm nay", phu: "Lượt này còn 10 phút rồi nghỉ 30 phút" });
