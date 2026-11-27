@@ -766,9 +766,12 @@ public sealed class AgentRuntime
                 else _quyGiay += seconds;
             }
             _quyChoGhi += seconds;
+            if (_nhipPhut.Cong(seconds)) RequestSyncSoon();   // #744: mỗi phút tròn «Tính phút» ⇒ đẩy phút lên máy chủ ngay (khoá _gate vào lại được)
             if (_quyChoGhi >= 60) LuuQuy();
         }
     }
+
+    private readonly NhipPhut _nhipPhut = new();
 
     private bool LaTinhPhut(string appId, Policy? p = null) => appId == UsageTracker.KhongRo || QuyTaiCho.MucTinhPhut(p ?? _policy).Contains(appId, StringComparer.OrdinalIgnoreCase);
 

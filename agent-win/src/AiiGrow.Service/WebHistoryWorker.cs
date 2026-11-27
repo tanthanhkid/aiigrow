@@ -56,11 +56,16 @@ public sealed class WebHistoryWorker : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
         try { await Task.Delay(TimeSpan.FromSeconds(45), ct); } catch (OperationCanceledException) { return; }
+        double tongTruoc = 0;
         while (!ct.IsCancellationRequested)
         {
             try { await MotLuot(ct); }
             catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug("Gửi lịch sử web lỗi (lần sau thử lại): {m}", e.Message); }
-            try { await Task.Delay(Nhip, ct); } catch (OperationCanceledException) { break; }
+            // #744: trình duyệt đang ở tiền cảnh ⇒ gửi mỗi phút (web «Tính phút» trừ sao đúng phút); không ⇒ 5 phút như cũ
+            var tong = _rt?.TabXem.TongGiayGhi ?? 0;
+            var cho = NhipWeb.Chon(tongTruoc, tong);
+            tongTruoc = tong;
+            try { await Task.Delay(cho, ct); } catch (OperationCanceledException) { break; }
         }
     }
 
@@ -93,6 +98,7 @@ public sealed class WebHistoryWorker : BackgroundService
         using var c = new WebHistoryClient(cfg.Server, cfg.Token);
         foreach (var lo in ds.Chunk(400)) await c.GuiAsync(lo, ct);
         _daGui = vt;
+        _rt?.RequestSyncSoon();   // #744: sao / chặn theo phút web vừa gửi — nhận Policy mới ngay, không đợi nhịp đồng bộ
         _log.LogInformation("Đã gửi lịch sử web: {n} dòng (tên miền × ngày)", ds.Count);
     }
 }
