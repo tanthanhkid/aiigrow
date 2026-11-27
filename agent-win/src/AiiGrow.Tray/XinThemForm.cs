@@ -132,9 +132,8 @@ internal sealed class XinThemForm : HopKhayCoBan
         Flow.Controls.Add(dau);
         var nhan = UI.Text(XinThemView.BaMeChonNhom, 10.5f, true, Clay.Chu2, W); nhan.Margin = new Padding(0, 0, 0, UI.Px(6));
         Flow.Controls.Add(nhan);
-        Flow.Controls.Add(KhoiCon.Chips(W,
-            KhoiXin.Chip(XinThemView.NhomTinh, Clay.DiemSoft, Clay.DiemInk, "sao", kim: true),
-            KhoiXin.Chip(XinThemView.NhomKhong, Clay.NgocSoft, Clay.NgocInk, "sach")));
+        var thongTin = UI.Text(XinThemView.NhomThongTin, 9.75f, false, UI.Muted, W); thongTin.Margin = new Padding(0, 0, 0, UI.Px(8));
+        Flow.Controls.Add(thongTin);
         Flow.Controls.Add(ONhapClay.Boc(_note, W));
         var gui = KhoiCon.Nut(XinThemView.Nut(_ten), true, W, "tin");
         gui.Click += async (_, _) => await GuiAsync(gui);
@@ -256,9 +255,8 @@ internal sealed class XinThemForm : HopKhayCoBan
         Flow.Controls.Add(ONhapClay.Boc(_note, W));
         var nhan = UI.Text(XinThemView.BaMeChonNhom, 10.5f, true, Clay.Chu2, W); nhan.Margin = new Padding(0, UI.Px(4), 0, UI.Px(6));
         Flow.Controls.Add(nhan);
-        Flow.Controls.Add(KhoiCon.Chips(W,
-            KhoiXin.Chip(XinThemView.NhomTinh, Clay.DiemSoft, Clay.DiemInk, "sao", kim: true),
-            KhoiXin.Chip(XinThemView.NhomKhong, Clay.NgocSoft, Clay.NgocInk, "sach")));
+        var thongTin = UI.Text(XinThemView.NhomThongTin, 9.75f, false, UI.Muted, W); thongTin.Margin = new Padding(0, 0, 0, UI.Px(8));
+        Flow.Controls.Add(thongTin);
         var gui = KhoiCon.Nut(XinThemChonView.NutWeb, true, W, "tin");
         gui.Click += async (_, _) => await GuiAsync(gui);
         _gui = gui;

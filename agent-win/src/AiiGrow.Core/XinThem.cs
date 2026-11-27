@@ -11,8 +11,8 @@ public static class XinThemView
     public static string Tieu(string ten) => "Xin thêm " + ten;
     public static string Phu(string ten) => ten + " chưa có trong danh sách của con";
     public const string BaMeChonNhom = "Ba Mẹ sẽ chọn nhóm";
-    public const string NhomTinh = "Tính phút · 1 sao = 1 phút";
-    public const string NhomKhong = "Không tính phút";
+    /// Mục «Ba Mẹ sẽ chọn nhóm» — một dòng chữ thông tin, không chip.
+    public const string NhomThongTin = "Tính phút · 1 sao = 1 phút, hoặc Không tính phút";
     public const string GoiYNhan = "Nhắn Ba Mẹ: con cần dùng để làm gì ạ";
     public static string Nut(string ten) => "Xin Ba Mẹ thêm " + ten;
 

@@ -79,10 +79,7 @@ struct XinMoView: View {
       .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
     VStack(alignment: .leading, spacing: 6) {
       Text("Ba Mẹ sẽ chọn nhóm").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
-      HStack(spacing: 8) {                                            // chỉ thông tin: Ba Mẹ chọn nhóm khi duyệt
-        chipTin("hourglass_not_done", "Tính phút · 1 sao = 1 phút")
-        chipTin("party_popper", "Không tính phút")
-      }
+      Chu("Tính phút · 1 sao = 1 phút, hoặc Không tính phút", co: 13, mau: ClayMau.chu3, dong: 3)   // chỉ thông tin (chữ, không chip): Ba Mẹ chọn nhóm khi duyệt
     }
     Button(XinThem.nut(the: the, tenApp: loi?.ten)) {
       guard let l = loi else { return }
@@ -135,15 +132,6 @@ struct XinMoView: View {
     }
     .buttonStyle(.plain)
     .accessibilityLabel(a.ten).accessibilityAddTraits(dang ? .isSelected : [])
-  }
-
-  private func chipTin(_ icon: String, _ chu: String) -> some View {
-    HStack(spacing: 5) {
-      HinhFluent(ten: icon, duPhong: "circle.fill", co: 16)
-      Text(chu).font(.clay(size: 12, weight: .semibold)).lineLimit(1)
-    }
-    .padding(.horizontal, 10).padding(.vertical, 6)
-    .background(Capsule().fill(ClayMau.diemSoft)).foregroundColor(ClayMau.diemInk)
   }
 
   static let iconChung = NSImage(systemSymbolName: "app.fill", accessibilityDescription: nil) ?? NSImage()
