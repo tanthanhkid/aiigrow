@@ -1,5 +1,5 @@
 // Bảng trượt «Trao quà cho con» (bàn 17/11 them-5otw85h4@v6; chốt 06/11 — L14): quà chờ trao đang GIỮ sao (chưa trừ). «Đã trao, trừ N sao» = POST phieu/:id/trao
-// (trừ hẳn; voucher AiiCafe ⇒ máy chủ phát mã: hiện QR + hạn dùng để Ba Mẹ đưa con / chụp lại), «Chưa, để tối mai» = đóng, «Huỷ & hoàn sao» =
+// (trừ hẳn; voucher AiiCafe ⇒ máy chủ phát mã: hiện QR + hạn dùng để Ba Mẹ đưa con / chụp lại), «Chưa, để tối mai» = đóng, «Từ chối & hoàn sao» =
 // POST phieu/:id/huy (hoàn sao cho con). Dùng ở tab Nhiệm vụ và Chờ duyệt.
 // 15/11 (#263, them-5otw85h4): sao giữ cho quà có thể là sao Ba Mẹ cho vay ⇒ «trong đó N sao Ba Mẹ cho vay», «<Con> sẽ còn −20 sao, trả dần bằng nhiệm vụ».
 // Sao đã trừ tạm lúc con đổi (máy chủ phan-thuong › doiQua) ⇒ số dư hiện tại (GET con/:id/vi) chính là số còn lại sau khi trao.
@@ -48,7 +48,7 @@ export function BangTraoQua({ p, dong, xong }: {
   const huy = (x: PhieuCho) => lam(async () => {
     await bm.goi(`phieu/${x.id}/huy`, {});
     dong();
-    xong(`Đã huỷ «${x.ten}» — hoàn ${x.diem} sao cho ${x.ten_con}`);
+    xong(`Đã từ chối «${x.ten}» — hoàn ${x.diem} sao cho ${x.ten_con}`);
   });
   if (vc) {
     return (
@@ -83,7 +83,7 @@ export function BangTraoQua({ p, dong, xong }: {
         <Nut chu={`Đã trao, trừ ${p.diem} sao`} rong dangChay={dangChay} bam={() => trao(p)} />
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Nut chu="Chưa, để tối mai" loai="vien" bam={dongHet} />
-          <Nut chu="Huỷ & hoàn sao" loai="huy" dangChay={dangChay} bam={() => huy(p)} nhanDoc={`Huỷ quà, hoàn ${p.diem} sao cho ${p.ten_con}`} />
+          <Nut chu="Từ chối & hoàn sao" loai="huy" dangChay={dangChay} bam={() => huy(p)} nhanDoc={`Từ chối quà, hoàn ${p.diem} sao cho ${p.ten_con}`} />
         </View>
       </> : null}
     </BangTruot>

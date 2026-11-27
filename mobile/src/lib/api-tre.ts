@@ -76,7 +76,9 @@ export type LuotTre = { id: string; trang_thai: string; diem: number | null; ly_
 export type QuaTre = { id: string; ten: string; loai: "voucher" | "qua" | "dac_quyen" | "tiet_kiem" | "phut"; diem: number; menh_gia: number | null; chi_cuoi_tuan: boolean;
   toi_da_thang: number | null; du: boolean; conThieu: number };
 export type ViQua = { daTrao?: QuaDaTrao[]; voucher: { ma: string; menh_gia: number; trang_thai: string; het_han: string; dung_luc: string | null }[];
-  phieu: { id: string; ten: string; loai: string; diem: number; trang_thai: string; created_at: string }[] };
+  phieu: { id: string; ten: string; loai: string; diem: number; trang_thai: string; created_at: string }[];
+  /** quà Ba Mẹ từ chối / huỷ 14 ngày gần đây (đã hoàn sao) — máy chủ cũ không gửi */
+  daTuChoi?: { id: string; ten: string; loai: string; diem: number; xu_ly_luc: string }[] };
 export type YcTre = { id: string; loai: "vay_sao" | "them_gio" | "mo_web" | "cai_app" | "ngoai_le" | "ngoai_gio" | "khac"; phut: number | null; gia_tri: string | null;
   ly_do: string; trang_thai: string; created_at: string; xu_ly_luc?: string | null; ly_do_tu_choi?: string | null; het_han: string; pham_vi?: "ca_may" | "app" | null;
   /** 15/11: lời xin vay (`so_sao` / `soSao`), kết quả lời xin app / web (#258) — máy chủ cũ không có */

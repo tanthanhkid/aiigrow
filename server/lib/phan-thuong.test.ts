@@ -117,3 +117,23 @@ test("phiếu chờ tính vào homNay.phieuCho của từng Con", async () => {
   await pt.doiQua(con, qua, THU4);
   assert.equal((await homNay(fam, con)).phieuCho, 1);
 });
+
+test("#757: Ba Mẹ từ chối quà chờ trao ⇒ hoàn đúng sao + tồn kho, con thấy daTuChoi; không từ chối lại, không từ chối nhà khác", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Mi" });
+  await v.dieuChinhTay(fam, con, 300, "Điểm thử", bm);
+  const lego = await pt.taoQua(fam, { ten: "Bộ Lego", loai: "qua", diem: 200, ton_kho: 1 });
+  const r = await pt.doiQua(con, lego, THU4);
+  assert.equal(await v.soDu(con), 100);
+  const khac = await taoNha();
+  await loi(pt.huyPhieu(khac.fam, r.phieu, khac.bm), "khong_thay");
+  const kq = await pt.huyPhieu(fam, r.phieu, bm);
+  assert.equal(kq.hoan, 200);
+  assert.equal(await v.soDu(con), 300);
+  const ví = await pt.viQua(con);
+  assert.equal(ví.phieu.length, 0);
+  assert.deepEqual(ví.daTuChoi.map((x) => [x.id, x.diem]), [[r.phieu, 200]]);
+  assert.ok((await pt.cuaHang(con)).qua.some((x) => x.id === lego), "trả tồn kho");
+  await loi(pt.huyPhieu(fam, r.phieu, bm), "da_xu_ly");
+  assert.equal(await v.soDu(con), 300, "từ chối lần hai không hoàn thêm");
+});

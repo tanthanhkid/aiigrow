@@ -573,7 +573,7 @@ voucher 20.000đ) · Đồ chơi nhỏ 200 (`do_choi_nho`) · Đi xem phim 300 (
 «Thêm 30 phút» **không phải quà** — là nút đổi sao lấy phút (`POST /api/kid/doi-sao`, L2). Quà `loai: phut` cũ vẫn chạy cho dữ liệu cũ.
 
 **Giữ / trao / huỷ.** Con đổi ⇒ sao bị GIỮ (ghi trừ tạm, phiếu `giu`) — ví trả `saoGiu` («Con đang có 0 sao · Đang giữ 50 sao»: `tomTatVi`, `GET con/:id/vi`,
-`gia-dinh.con[]`, `kid/toi`, `cua-hang`). Ba Mẹ «Đã trao» (`POST phieu/:id/trao` → `{trangThai, saoTru, voucher?}`) = trừ hẳn; «Huỷ & hoàn sao» (`phieu/:id/huy`) = hoàn;
+`gia-dinh.con[]`, `kid/toi`, `cua-hang`). Ba Mẹ «Đã trao» (`POST phieu/:id/trao` → `{trangThai, saoTru, voucher?}`) = trừ hẳn; «Từ chối & hoàn sao» (`phieu/:id/huy` → `{ok, hoan}`) = hoàn đúng số sao đã trừ, con thấy ở `vi-qua › daTuChoi`;
 **quà bị xoá ⇒ hoàn mọi phiếu đang giữ**.
 
 **Voucher AiiCafe bật lại** (trao tay, KHÔNG cần quỹ phiếu): Con đổi ⇒ `cho_trao`, chưa có mã; Ba Mẹ trao ⇒ phát mã: `voucher: {ma, qr, hetHan, menhGia}` —
