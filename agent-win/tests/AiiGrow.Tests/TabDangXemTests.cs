@@ -54,7 +54,7 @@ public class TabDangXemTests
         for (var i = 0; i < 6; i++) t.Ghi(Ngay, "chrome.exe", "Scratch - Imagine - Google Chrome", 10);   // 60 giây ở Scratch
         for (var i = 0; i < 3; i++) t.Ghi(Ngay, "chrome.exe", "Meo - YouTube - Google Chrome", 10);       // rồi 30 giây ở YouTube
         var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits), t.NgayDaGhi(t.ChupAnh()));
-        Assert.Equal(60, ds.Single(x => x.TenMien == "scratch.mit.edu").Giay);
+        Assert.Equal(60, ds.Single(x => x.TenMien == "mit.edu").Giay);
         Assert.Equal(30, ds.Single(x => x.TenMien == "youtube.com").Giay);
     }
 

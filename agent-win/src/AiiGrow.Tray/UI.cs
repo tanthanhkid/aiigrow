@@ -259,11 +259,6 @@ internal static class UI
     private sealed record FgNho(int Pid, DateTime Bat, string Id, string Name);
     private static volatile FgNho? _fgNho;   // bất biến, thay nguyên khối ⇒ luồng nào đọc cũng không thấy nửa này nửa kia
 
-    /// <summary>App đang ở tiền cảnh của phiên này: (tên exe, tên hiển thị). Rỗng nếu không có cửa sổ (vd màn hình khoá).
-    /// <c>MainModule.FileVersionInfo</c> mở tệp exe (chậm 10–100 ms, có khi hơn khi diệt virus quét) ⇒ nhớ theo pid, và khay gọi hàm này
-    /// ngoài luồng giao diện (<c>Task.Run</c>) — trước đây chạy ngay trên luồng UI mỗi 3 giây làm app giật.</summary>
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern int GetWindowText(IntPtr hWnd, System.Text.StringBuilder sb, int max);
-
     /// <summary>#771: tiêu đề cửa sổ tiền cảnh khi nó là trình duyệt (tab đang xem) — trình duyệt hiện tên tab đang chọn ở tiêu đề cửa sổ; tab nền không lọt vào.
     /// Không phải trình duyệt ⇒ "" (không đưa tiêu đề app khác ra khỏi khay).</summary>
     public static string TieuDeTrinhDuyet(string appId)
@@ -279,6 +274,9 @@ internal static class UI
         catch { return ""; }
     }
 
+    /// <summary>App đang ở tiền cảnh của phiên này: (tên exe, tên hiển thị). Rỗng nếu không có cửa sổ (vd màn hình khoá).
+    /// <c>MainModule.FileVersionInfo</c> mở tệp exe (chậm 10–100 ms, có khi hơn khi diệt virus quét) ⇒ nhớ theo pid, và khay gọi hàm này
+    /// ngoài luồng giao diện (<c>Task.Run</c>) — trước đây chạy ngay trên luồng UI mỗi 3 giây làm app giật.</summary>
     public static (string Id, string Name) Foreground()
     {
         try

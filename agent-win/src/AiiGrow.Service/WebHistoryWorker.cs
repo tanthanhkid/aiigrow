@@ -51,6 +51,17 @@ public sealed class WebHistoryWorker : BackgroundService
 
     private sealed record DongTab(string Ngay, string TenMien, double Giay);
 
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        try { await Task.Delay(TimeSpan.FromSeconds(45), ct); } catch (OperationCanceledException) { return; }
+        while (!ct.IsCancellationRequested)
+        {
+            try { await MotLuot(ct); }
+            catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug("Gửi lịch sử web lỗi (lần sau thử lại): {m}", e.Message); }
+            try { await Task.Delay(Nhip, ct); } catch (OperationCanceledException) { break; }
+        }
+    }
+
     public async Task MotLuot(CancellationToken ct)
     {
         var cfg = _store.Load();
