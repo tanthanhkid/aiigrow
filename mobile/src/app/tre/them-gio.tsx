@@ -3,7 +3,7 @@
 // đổi quà · con sẽ nợ 15 sao», «Nhắn Ba Mẹ» (không bắt buộc), «Sao vay là nợ · Sao nhiệm vụ trả nợ trước», «Xin Ba Mẹ cho vay 15 sao»
 // (POST /api/kid/xin-vay {soSao, mucDich, quaId?, loiNhan}; máy chủ cũ ⇒ lời xin them_gio cùng số), «Xin mở app ›». Đường giữ tên cũ
 // /tre/them-gio (agent + màn khác trỏ vào). `?soSao=&mucDich=qua&quaId=` từ màn Đổi quà (vay đúng phần thiếu).
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { TextInput, View } from "react-native";
 import { taiSao, xinVay } from "@/lib/api-tre";
@@ -22,15 +22,21 @@ export default function XinVay() {
   const [chon, setChon] = useState<number | null>(xinTheo > 0 && xinTheo <= 1000 ? xinTheo : null);
   const [nhan, setNhan] = useState("");
   const { dangChay, loi: loiLam, lam } = useLam();
+  const [khoa] = useState(() => `xv${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);   // một khoá cho mọi lần gửi lại của cùng lần bấm
+  const daBam = useRef(false);   // #758: khoá đồng bộ — bấm đúp trước khi nút kịp tối cũng chỉ một lời xin
   if (!d) return <ManD lui={true} tieu="Xin Ba Mẹ cho vay sao"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
   if (d.khoa) return <Redirect href="/tre/gio-ngu?ly=ba_me_khoa" />;
   const soVay = chon ?? d.vayMacDinh;
   const muc = [...new Set([...d.mucVay, soVay])].sort((a, b) => a - b);
   const laQua = p.mucDich === "qua";
-  const xin = () => lam(async () => {
-    const r = await xinVay({ soSao: soVay, mucDich: laQua ? "qua" : "choi", ...(laQua && p.quaId ? { quaId: p.quaId } : {}), loiNhan: nhan.trim() });
+  const xin = () => {
+    if (daBam.current) return;
+    daBam.current = true;
+    return lam(async () => {
+    const r = await xinVay({ soSao: soVay, mucDich: laQua ? "qua" : "choi", ...(laQua && p.quaId ? { quaId: p.quaId } : {}), loiNhan: nhan.trim(), khoa });
     router.replace(`/tre/yeu-cau?moi=${r.id}`);
-  }, { hangDoi: true });
+  }, { hangDoi: true }).then((ok) => { if (!ok) daBam.current = false; });   // lỗi ⇒ cho bấm lại; thành công ⇒ giữ khoá tới khi rời màn
+  };
   const am = d.no > 0 && d.hetSao;
   return (
     <ManD lui={true} tieu="Xin Ba Mẹ cho vay sao" day={<><LoiD loi={loiLam} />

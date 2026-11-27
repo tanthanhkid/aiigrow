@@ -103,7 +103,7 @@ export async function xuLyConSao(con: string, mayId: string | null, req: Request
     return json({ ...st, gioiHan: qg.gioiHanMay(qy.gioiHan), mucVay: [...ss.MUC_VAY], vayMacDinh: ss.VAY_MAC_DINH, lichSu, appHomNay, phutChoiHomNay });
   }
   if (d === "xin-vay" && post) {
-    const r = await yc.guiYeuCau(con, mayId, { loai: "vay_sao", soSao: b.soSao ?? ss.VAY_MAC_DINH, mucDich: b.mucDich, quaId: b.quaId, lyDo: b.loiNhan ?? b.lyDo });
+    const r = await yc.guiYeuCau(con, mayId, { loai: "vay_sao", soSao: b.soSao ?? ss.VAY_MAC_DINH, mucDich: b.mucDich, quaId: b.quaId, lyDo: b.loiNhan ?? b.lyDo, khoa: b.khoa });
     return json(r);
   }
   // khay Windows (05/11 «Quà của con»): quà Ba Mẹ đã trao — màn Con web có sẵn `kid/vi-qua` ở api-con

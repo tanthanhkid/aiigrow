@@ -37,12 +37,14 @@ async function hetHanCu(t: Q, con: string, now: Date) {
 export async function guiYeuCau(con: string, mayId: string | null,
   b: { loai?: unknown; phut?: unknown; soSao?: unknown; mucDich?: unknown; quaId?: unknown; giaTri?: unknown; lyDo?: unknown; phamVi?: unknown;
      /** #425: lời xin app theo tên (true) / theo định danh thật (false); không gửi ⇒ đoán theo dạng giaTri */ theoTen?: boolean;
-     /** tên hiển thị app (lưới app máy báo) khi giaTri là định danh */ tenApp?: unknown },
+     /** tên hiển thị app (lưới app máy báo) khi giaTri là định danh */ tenApp?: unknown;
+     /** #758: khoá một lần bấm (máy tự sinh) — gửi lại cùng khoá ⇒ cùng lời xin */ khoa?: unknown },
   now = new Date()) {
   const loai = (LOAI_YC as readonly string[]).includes(String(b.loai)) ? (b.loai as LoaiYc) : null;
   if (!loai) throw new LoiNghiepVu("loai_sai", "Chọn điều con muốn xin");
   // 05/11: lời nhắn / lý do không bắt buộc (con-xin, con-bi-chan)
   const lyDo = String(b.lyDo ?? "").trim().slice(0, 100);
+  const khoa = typeof b.khoa === "string" && /^[\w-]{8,64}$/.test(b.khoa) ? b.khoa : null;
   const laVay = LOAI_VAY.has(loai);
   const soSao = laVay ? Math.round(Number(b.soSao ?? b.phut)) : null;
   if (soSao !== null && !(soSao >= 1 && soSao <= VAY_TOI_DA)) throw new LoiNghiepVu("so_sao_sai", `Số sao xin vay từ 1 đến ${VAY_TOI_DA} (thường 10, 15, 30 sao)`);
@@ -73,6 +75,12 @@ export async function guiYeuCau(con: string, mayId: string | null,
       [con, new Date(now.getTime() - BAM_DON_GIAY * 1000), now]);
     const trung = gan.find((x) => x.loai === loai && (x.gia_tri ?? null) === (giaTri ?? null) && (x.phut ?? null) === (soSao ?? null) && (giaTri || x.ly_do === lyDo) && x.trang_thai === "cho");
     if (trung) return { id: trung.id, trang_thai: "cho", daCo: true, ...(laVay ? { soSao, mucDich } : {}) };
+    // #758: gửi lại cùng một lần bấm (bấm đúp, mất mạng rồi tự gửi lại khi lời xin đầu đã tới) — máy gửi kèm `khoa` riêng cho mỗi lần bấm ⇒ trả lại chính
+    // lời xin đó (kể cả đã được trả lời), không tạo thêm: Ba Mẹ thấy một lời xin, «cho vay» một lần, Con nhận một thông báo
+    if (khoa) {
+      const cu = (await t<{ id: string; trang_thai: string }>(`select id, trang_thai from requests where child_id = $1 and khoa_gui = $2 limit 1`, [con, khoa]))[0];
+      if (cu) return { id: cu.id, trang_thai: cu.trang_thai, daCo: true, ...(laVay ? { soSao, mucDich } : {}) };
+    }
     if (loai === "cai_app" || loai === "mo_web") {
       const cho = (await t<{ id: string }>(`select id from requests where child_id = $1 and loai = $2 and trang_thai = 'cho' and het_han > $4 and gia_tri is not distinct from $3 limit 1`, [con, loai, giaTri, now]))[0];
       if (cho) return { id: cho.id, trang_thai: "cho", daCo: true };
@@ -81,9 +89,9 @@ export async function guiYeuCau(con: string, mayId: string | null,
     const gio = loai === "mo_web" || loai === "cai_app" ? ts.yc_het_ngay_cai * 24 : ts.yc_het_gio_them;
     const id = newId();
     // phut = số sao xin vay (1 sao = 1 phút) — cột cũ giữ để máy cũ đọc «xin thêm 20 phút»
-    await t(`insert into requests(id, child_id, device_id, loai, phut, gia_tri, ly_do, het_han, created_at, muc_dich, theo_ten, ten_app) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)`,
+    await t(`insert into requests(id, child_id, device_id, loai, phut, gia_tri, ly_do, het_han, created_at, muc_dich, theo_ten, ten_app, khoa_gui) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
       [id, con, mayId, loai, soSao, giaTri, lyDo, new Date(now.getTime() + gio * 3600_000), now, mucDich, loai === "cai_app" ? theoTen : null,
-        loai === "cai_app" && typeof b.tenApp === "string" && b.tenApp.trim() ? b.tenApp.trim().slice(0, 60) : null]);
+        loai === "cai_app" && typeof b.tenApp === "string" && b.tenApp.trim() ? b.tenApp.trim().slice(0, 60) : null, khoa]);
     await ghiSuKien(fam, "gui_yeu_cau", { loai, phut: soSao, gia_tri: giaTri, ...(laVay ? { vay: true, so_sao: soSao, muc_dich: mucDich } : {}) }, { con, may: mayId }, t);
     return { id, trang_thai: "cho", ...(laVay ? { soSao, mucDich } : {}) };
   });
