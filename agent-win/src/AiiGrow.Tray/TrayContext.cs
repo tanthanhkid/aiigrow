@@ -999,7 +999,7 @@ internal sealed class TrayContext : ApplicationContext
         // 15/11: app «Tính phút» bị đóng vì HẾT SAO ⇒ popup «Hết sao rồi · Roblox sắp đóng» (them-zxuekzer), không phải «chưa có trong danh sách»;
         // màn «Hết sao rồi» toàn màn hình đang hiện (vừa hết sao lúc chơi) ⇒ không chồng thêm popup
         if (id != null && _state.QuyConPhut is <= 0 && _hetSao is { IsDisposed: false } && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase)) return;
-        if (id != null && _state.QuyConPhut is <= 0 && !_state.MoHet && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase))
+        if (id != null && _state.QuyConPhut is <= 0 && !_state.MoHet && !MoCoHan.Dang(_state.GrantEndsAt, DateTimeOffset.Now) && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase))
         {
             HienPopupHetSao(id, _state.BlockedAppName);
             return;
@@ -1082,7 +1082,7 @@ internal sealed class TrayContext : ApplicationContext
     /// «Hết sao rồi» (them-uqukvnas) khi vừa hết sao lúc đang chơi app «Tính phút». Không khoá máy; có sao lại / mở bằng mã / «Mở hết» ⇒ đóng màn.</summary>
     private void HandleSao()
     {
-        var p = _state.MoHet || _state.MoOfflineDen != null || _state.NguoiDung != LoaiNguoiDung.Con ? null : _state.QuyConPhut;
+        var p = _state.MoHet || _state.MoOfflineDen != null || MoCoHan.Dang(_state.GrantEndsAt, DateTimeOffset.Now) || _state.NguoiDung != LoaiNguoiDung.Con ? null : _state.QuyConPhut;
         var truoc = _phutTruoc;
         _phutTruoc = p;
         if (p is not double con) { DongHetSao(); return; }
