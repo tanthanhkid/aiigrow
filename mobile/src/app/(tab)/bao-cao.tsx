@@ -99,6 +99,8 @@ function BaoCaoCon({ id }: { id: string }) {
             <Chu kieu="rat" co={38} so style={{ letterSpacing: -1 }}>{gio(nay.tongGiaiTri)}</Chu>
             <Chu kieu="dam7" co={15} mau={M.chu3}>{`= ${soVN(saoTieu)} sao đã tiêu`}</Chu>
           </View>
+          {/* #727: mỗi số nói rõ tính gì — «Dùng nhiều nhất» và «Cả tuần» ở Màn hình tính phạm vi khác */}
+          <Chu kieu="dam" co={12.5} mau={M.chu3}>Chỉ tính phút giải trí đã trừ sao trong 7 ngày qua</Chu>
           {(() => {
             const cau = nay.tongGiaiTri && !saoVay ? "Chơi toàn bằng sao tự kiếm"
               : bc.tuanTruoc.tongGiaiTri ? (lech === 0 ? "Bằng 7 ngày trước" : `${lech > 0 ? "Nhiều" : "Ít"} hơn 7 ngày trước ${chuPhut(Math.abs(lech))}`) : null;
@@ -128,6 +130,7 @@ function BaoCaoCon({ id }: { id: string }) {
       {dung.length ? (
         <>
           <TieuMuc chu="Dùng nhiều nhất" phai={{ chu: "Xem hết ›", bam: xemDung }} />
+          <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginHorizontal: 4, marginTop: -6 }}>Phút từng app trong 7 ngày qua, gồm cả app học không trừ sao</Chu>
           <The dem style={{ paddingVertical: 4, paddingHorizontal: 12 }}>
             {dung.map((x, k) => {
               const hoc = x.loai === "hoc";

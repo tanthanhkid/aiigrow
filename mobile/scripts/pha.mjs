@@ -874,7 +874,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ho-so-pin (z2fyhohj)", "/ho-so/c1/pin", "Lưu PIN mới", { kb: { "GET con/c1/pin": { coPin: true, pin: "2581", pinDatLuc: luc(60 * 24 * 11), ten: "Bảo Anh" } } }),
     M("bm-ho-so-con (liên kết AiiRob)", "/ho-so/c1", "Liên kết AiiRob"),
     M("bm-man-hinh", "/man-hinh/c1", "Theo app"),
-    M("bm-man-hinh (cả tuần)", "/man-hinh/c1", "APP & TRANG WEB", { truoc: async () => { await di("/man-hinh/c1"); await doi("Cả tuần"); await bam("Cả tuần"); } }),
+    M("bm-man-hinh (cả tuần)", "/man-hinh/c1", "Tổng thời gian mở app và trang web cả tuần", { truoc: async () => { await di("/man-hinh/c1"); await doi("Cả tuần"); await bam("Cả tuần"); } }),
     M("bm-man-hinh (trống)", "/man-hinh/c1", "Hôm nay con chưa dùng app nào", { kb: { "GET con/c1/man-hinh": { ten: KEN, lui: 0, dau: "2026-10-19", cuoi: "2026-10-25", homNay: "2026-10-23", tongGiay: 0, tbNgayGiay: 0, tuanTruocGiay: 0, tatCa: 0, theoNgay: [], theoMuc: [], ds: [] } } }),
     M("bm-yeu-cau (danh sách)", "/yeu-cau?con=c2", "Cho vay 15 sao"),
     M("bm-yeu-cau-web", "/yeu-cau/y5", "đang xin phép", { kb: { "GET cho-duyet": CHO_DUYET_Y5() } }),
@@ -936,7 +936,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-trao-qua (5otw85h4)", "/diem-qua", "Huỷ & hoàn sao", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"],
       phieu: [{ id: "ph2", child_id: "c1", ten: "Chọn món bữa tối", loai: "dac_quyen", diem: 50, ten_con: KEN, created_at: luc(30) }] } },
       truoc: async () => { await di("/diem-qua"); await doi("Trao quà"); await bam("Trao quà"); } }),
-    M("bm-bao-cao", "/bao-cao", "Dùng nhiều nhất"),
+    M("bm-bao-cao", "/bao-cao", "Phút từng app trong 7 ngày qua"),   // #727: chú thích dưới «Dùng nhiều nhất»
     // #325 bm-bao-cao-ngay (bàn 17/11): đúng CA của từng màn bàn
     M("bm-bao-cao (con thứ hai · w04gcohs)", "/bao-cao?con=c2", "Dùng nhiều nhất", { kb: { "GET con/c2/bao-cao": { ...coBan["GET con/c1/bao-cao"], ten: BILL,
       tuanNay: { ...coBan["GET con/c1/bao-cao"].tuanNay, saoKiem: 250, saoVay: 0, lanVay: 0, saoTieu: 230, saoTieuChoi: 230, saoTraNo: 0, xinVay: { so: 0, cho: 0 } } } } }),
@@ -1456,6 +1456,7 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   xet(await doi("Đã không cho lần này"), "màn kết quả «Đã không cho lần này»");
   // lời xin ngoại lệ cũ (YouTube 30 phút) = xin vay 30 sao — không còn «ngoại lệ»
   kb["GET cho-duyet"] = { ...coBan["GET cho-duyet"], yeuCau: coBan["GET cho-duyet"].yeuCau.filter((y) => y.id === "y3") };
+  kb["GET canh-bao"] = { ds: [] };   // #727: Trang chủ hiện ĐỦ mục «Cần Ba Mẹ để ý» — cảnh báo mẫu của Bill (có chữ «ngoại lệ») không thuộc ca này
   await di("/hom-nay");
   await doi("Khoá máy");
   await bam(BILL);

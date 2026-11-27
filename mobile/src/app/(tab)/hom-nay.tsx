@@ -259,20 +259,30 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
       {/* 2. cần Ba Mẹ để ý — 1 mục + Tất cả */}
       <TieuMuc chu="Cần Ba Mẹ để ý" so={soDeY} phai={{ chu: "Tất cả ›", bam: () => router.push("/thong-bao" as never) }} />
       {/* mục cần để ý: thẻ cảnh (Ánh kim: canhSoft #F0DCC8, thay đào #ffe6d6); lời xin — ô icon + tiêu đề một dòng + «Bỏ qua | Thêm · Tính phút» */}
+      {/* #727: HIỆN ĐỦ mọi mục — số trên tiêu đề (soDeY) = đúng số thẻ ở đây (máy mất mạng › lời xin › còn lại) */}
       <The style={dauTien ? { backgroundColor: NEN_XIN, paddingVertical: 4 } : undefined}>
-        {!dauTien ? <HangViec dau ic="tick" mau="xanh" tieu="Không có gì cần Ba Mẹ trả lời" /> : dauTien.loai === "xin" ? (
-          <TheXin y={xin[0]} may={tenMayXin(xin[0], may)} lam={(fn) => lam(fn)} dang={dangChay} sao={s} oIcon
-            moKhoa={khoa ? async () => { await moLaiMay(conId, c.ten, bao, tai); } : undefined} />
-        ) : (
+        {!dauTien ? <HangViec dau ic="tick" mau="xanh" tieu="Không có gì cần Ba Mẹ trả lời" /> : (
           <>
-            <HangViec dau ic={dauTien.m.ic} mau="cam" tieu={dauTien.m.tieu} phu={dauTien.m.phu}
-              phai={dauTien.m.maMay ? undefined : <Chu kieu="rat" co={14} mau={M.chinhInk}>{dauTien.m.nut}</Chu>}
-              bam={() => router.push((dauTien.m.maMay ? `/may/${dauTien.m.maMay}` : dauTien.m.den) as never)} />
-            {dauTien.m.maMay ? (
-              <View style={{ marginTop: 4, marginBottom: 6 }}>
-                <Nut chu="Lấy mã mở máy" ic="mo_khoa" ic3d rong bam={() => router.push({ pathname: "/may/[id]/ma-offline", params: { id: dauTien.m.maMay! } })} />
+            {muc.map((m) => (
+              <View key={m.id}>
+                <HangViec dau={m.id === muc[0]?.id} ic={m.ic} mau="cam" tieu={m.tieu} phu={m.phu}
+                  phai={m.maMay ? undefined : <Chu kieu="rat" co={14} mau={M.chinhInk}>{m.nut}</Chu>}
+                  bam={() => router.push((m.maMay ? `/may/${m.maMay}` : m.den) as never)} />
+                {m.maMay ? (
+                  <View style={{ marginTop: 4, marginBottom: 6 }}>
+                    <Nut chu="Lấy mã mở máy" ic="mo_khoa" ic3d rong bam={() => router.push({ pathname: "/may/[id]/ma-offline", params: { id: m.maMay! } })} />
+                  </View>
+                ) : null}
               </View>
-            ) : null}
+            ))}
+            {xin.map((y) => (
+              <TheXin key={y.id} y={y} may={tenMayXin(y, may)} lam={(fn) => lam(fn)} dang={dangChay} sao={s} oIcon
+                moKhoa={khoa ? async () => { await moLaiMay(conId, c.ten, bao, tai); } : undefined} />
+            ))}
+            {sau.map((m) => (
+              <HangViec key={m.id} dau={!muc.length && !xin.length && m.id === sau[0]?.id} ic={m.ic} mau="cam" tieu={m.tieu} phu={m.phu}
+                phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>{m.nut}</Chu>} bam={() => router.push(m.den as never)} />
+            ))}
           </>
         )}
       </The>

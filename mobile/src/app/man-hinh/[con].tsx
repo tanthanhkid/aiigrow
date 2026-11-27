@@ -142,6 +142,7 @@ function Tuan({ con, lui }: { con: string; lui: number }) {
         <Chu co={14} mau={M.chu2}>
           {`Trung bình ${gio(d.tbNgayGiay)}/ngày${lech !== null && lech !== 0 ? ` · ${lech > 0 ? "nhiều" : "ít"} hơn tuần trước ${Math.abs(lech)}%` : ""}`}
         </Chu>
+        <Chu co={12.5} mau={M.chu3}>Tổng thời gian mở app và trang web cả tuần, gồm cả app học — khác «Giờ chơi» ở Báo cáo (chỉ phút trừ sao)</Chu>
         <CotClay kieu="chong" max={lonNhat} cao={140} chon={ngay} tat={(i) => d.theoNgay[i].ngay > d.homNay}
           bam={(i) => { setNgay(ngay === i ? null : i); setHet(false); }}
           ds={d.theoNgay.map((x) => ({ khoa: x.ngay, nhan: thuCua(x.ngay), doc: `${thuCua(x.ngay)} ${ngayNgan(x.ngay)}: ${gio(x.giay)}`, tong: x.giay,

@@ -4,7 +4,7 @@
 // KHÔNG đổi luật chặn/mở. Thời gian trong trình duyệt đã tách ra theo trang web, nên app trình duyệt chỉ giữ phần dư (không đếm hai lần).
 import { q } from "./db.ts";
 import { congNgay, dauTuan, gioDiaPhuong } from "./gio.ts";
-import { allowlistHieuLuc, chuanMuc, khoaSo, laAppAiiGrow, type NhomGiaiTri } from "./luat-app.ts";
+import { allowlistHieuLuc, chuanMuc, khoaSo, laAppAiiGrow, laTienTrinhNenWindows, type NhomGiaiTri } from "./luat-app.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { mucGop, tenThanThien } from "./ten-than-thien.ts";
 import { laMaGoi, tenApp } from "./ten-app.ts";
@@ -111,6 +111,8 @@ async function tuan(fam: string, con: string, dau: string, luat0: Luat[]) {
     const i = ngayDs.indexOf(ngay);
     if (i < 0 || (giay <= 0 && soLan <= 0)) return;
     if (kieu === "app" && laAppAiiGrow(mucTho)) return;   // #659: chính AiiGrow không phải thời gian dùng máy của Con
+    // #727: tiến trình nền của Windows (applicationframehost, searchapp…) lọc lúc HIỂN THỊ — dữ liệu cũ cũng sạch; Ba Mẹ đã đặt luật riêng thì giữ
+    if (kieu === "app" && laTienTrinhNenWindows(mucTho) && !khoaSo(chuanMuc(mucTho)).some((k) => luat.some((l) => l.muc === k))) return;
     const id = kieu === "app" ? mucGop(chuanMuc(mucTho)) : chuanMuc(mucTho);
     const k = `${kieu}:${id}`;
     let x = ds.get(k);

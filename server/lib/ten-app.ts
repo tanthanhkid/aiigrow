@@ -48,3 +48,14 @@ export function tenHienThi(muc: string, tenThat?: Map<string, string>): string {
   const t = tenThat?.get(muc.trim().toLowerCase()) ?? tenApp(muc);
   return laMaGoi(t) ? "App lạ" : t;
 }
+
+/** #727: tên app cho Ba Mẹ đọc từ (tên agent báo, định danh). Tên thật agent gửi (FileDescription — khác định danh, không phải tên tệp) thắng; không có thì bảng / tên tệp
+ *  viết đẹp; mã gói lạ ⇒ «App lạ». Một hàm cho chuông, thẻ Cần để ý, Chờ duyệt — không để «microsoft.photos.exe» lọt ra màn. */
+export function tenAppDep(muc: string | null | undefined, ten?: string | null): string {
+  const m = (muc ?? "").trim();
+  const t = (ten ?? "").trim();
+  if (t && t.toLowerCase() !== m.toLowerCase() && !/\.exe$/i.test(t) && !laMaGoi(t)) return t;
+  if (!m) return "App";
+  const d = tenApp(m);
+  return laMaGoi(d) ? "App lạ" : d;
+}
