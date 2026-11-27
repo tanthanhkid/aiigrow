@@ -94,6 +94,7 @@ export function saoTuMayChu(s: SaoMayChu | null, q: QuySao): SaoCon {
   const no = Math.max(0, Math.round(Number(s?.no ?? (sao0 < 0 ? -sao0 : 0))) || 0);
   const phutCon = Math.max(0, Math.round(Number(s?.phutCon ?? q?.quy?.conPhut ?? Math.max(0, sao0))) || 0);
   // #812: vừa vay mà còn sao chưa tiêu ⇒ số to = đúng số sao tiêu được (= phút chơi), cùng nguồn với dòng «còn N sao = N phút chơi» và app Ba Mẹ
+  // (cùng điều kiện kieuSao «vay» của app Ba Mẹ: còn nợ + còn sao tiêu được; máy chủ gửi phutCon = sao tiêu được, không kẹp giới hạn ngày)
   const sao = no > 0 && phutCon > 0 ? phutCon : Math.max(0, sao0);
   const muc = Array.isArray(s?.mucVay) && s!.mucVay!.length ? s!.mucVay! : MUC_VAY;
   return {
