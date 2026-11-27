@@ -118,6 +118,20 @@ export async function taoNv(fam: string, b: Record<string, unknown>, nguoi?: str
   return id;
 }
 
+const chuanTen = (t: string) => t.trim().replace(/\s+/g, " ").toLowerCase();
+
+/** Tên việc (không phân biệt hoa thường/khoảng trắng thừa) đã có ở một trong các Con (hoặc việc giao cả nhà) ⇒ ném `trung_ten` 409 — Ba Mẹ bấm đúp/gõ lại thì không ra việc thứ hai (#756). */
+export async function chanTrungTen(fam: string, ten: unknown, cons: (string | null)[], t: Q = q) {
+  const tenChuan = chuanTen(String(ten ?? "").slice(0, TEN_NV_TOI_DA));
+  if (!tenChuan) return;
+  const co = await t<{ ten: string; giao_cho: string | null }>(`select ten, giao_cho from tasks where family_id = $1 and bat`, [fam]);
+  const trung = co.filter((x) => chuanTen(x.ten) === tenChuan && (x.giao_cho === null || cons.includes(null) || cons.includes(x.giao_cho)));
+  if (!trung.length) return;
+  const e = new LoiNghiepVu("trung_ten", `Đã có việc «${trung[0].ten.trim()}» — thêm nữa thì con sẽ nhận hai việc giống nhau`, 409);
+  e.them = { ten: trung[0].ten };
+  throw e;
+}
+
 /** Áp mẫu theo tuổi cho gia đình (bỏ qua nhiệm vụ trùng tên đã có). → số nhiệm vụ đã tạo. */
 export async function apDungMau(fam: string, nhom: "nhi" | "teen") {
   const co = new Set((await q<{ ten: string }>(`select ten from tasks where family_id = $1`, [fam])).map((x) => x.ten));

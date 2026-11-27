@@ -31,6 +31,8 @@ export default function GiaoViec() {
 }
 
 const TIEU = "Giao việc";
+// Việc gợi ý đã chạm ＋ giữ theo Con khi mở «+ Ba Mẹ tự thêm việc» rồi quay lại (màn có thể dựng lại ⇒ không để state mất im lặng — #756)
+const chonGiu = new Map<string, string[]>();
 
 function GiaoCho({ c, dsCon, tatCaCon, doiCon }: { c: GiaDinh["con"][number]; dsCon: GiaDinh["con"] | null; tatCaCon: GiaDinh["con"]; doiCon: (id: string) => void; }) {
   // danh mục (mã + «Đã có» theo Con) và kho việc (emoji từng việc / chủ đề — cùng tên, server/lib/kho-viec.ts) tải song song
@@ -40,7 +42,8 @@ function GiaoCho({ c, dsCon, tatCaCon, doiCon }: { c: GiaDinh["con"][number]; ds
     return { muc: d.muc, eViec: new Map(kho?.ds.map((v) => [v.ten, v.e]) ?? []), eChuDe: new Map(kho?.chuDe.map((x) => [x.ten, x.e]) ?? []) };
   });
   const [muc, setMuc] = useState<MucDm["ma"]>("hoc");
-  const [chon, setChon] = useState<string[]>([]);
+  const [chon, setChon0] = useState<string[]>(() => chonGiu.get(c.id) ?? []);
+  const setChon = (f: string[] | ((x: string[]) => string[])) => setChon0((x) => { const n = typeof f === "function" ? f(x) : f; chonGiu.set(c.id, n); return n; });
   const { lam, loi: loiLam, dangChay } = useLam();
   const tieu = TIEU;
   const m = useMemo(() => dm.d?.muc.find((x) => x.ma === muc) ?? dm.d?.muc[0], [dm.d, muc]);
@@ -57,6 +60,7 @@ function GiaoCho({ c, dsCon, tatCaCon, doiCon }: { c: GiaDinh["con"][number]; ds
   };
   const them = () => lam(async () => {
     const r = await bm.goi<{ taoMoi: number }>("nhiem-vu/danh-muc", { con: c.id, viec: chon });
+    chonGiu.delete(c.id);
     baoKhiVe(r.taoMoi ? `Đã thêm ${r.taoMoi} việc vào ngày của ${c.ten}` : `${c.ten} đã có sẵn các việc này`);
     router.back();
   });
