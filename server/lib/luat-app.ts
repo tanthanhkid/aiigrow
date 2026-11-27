@@ -68,8 +68,12 @@ export function laCongCuHeThong(mucTho: unknown, ten?: unknown): boolean {
 
 /** #525/#702: lời xin Ba Mẹ thấy được — lời xin cài thành phần Windows (agent cũ gửi trước #525) không hiện ở Chờ duyệt và không được đếm.
  *  MỘT điều kiện cho danh sách Chờ duyệt (yeu-cau.ts › dsChoYc) và số «lời xin» trên avatar Con (bao-cao.ts › demYcCho). */
-export const loiXinHienDuoc = (r: { loai: string; gia_tri?: string | null; ten_app?: string | null }) =>
-  !(r.loai === "cai_app" && (laCongCuHeThong(r.gia_tri, r.ten_app ?? r.gia_tri) || laTienTrinhNenWindows(r.gia_tri)));   // #727: + tiến trình nền (hxtsr…)
+export const loiXinHienDuoc = (r: { loai: string; gia_tri?: string | null; ten_app?: string | null; co_luat?: boolean | null }) =>
+  !(r.loai === "cai_app" && (laCongCuHeThong(r.gia_tri, r.ten_app ?? r.gia_tri) || (laTienTrinhNenWindows(r.gia_tri) && !r.co_luat)));
+  // #727: + tiến trình nền (hxtsr…) — trừ khi Ba Mẹ ĐÃ đặt luật riêng cho mục đó (`co_luat`: Ba Mẹ chủ động quan tâm ⇒ vẫn hiện)
+/** SQL `co_luat` cho một dòng `requests` (alias r): có luật còn hiệu lực của gia đình cho đúng mục của lời xin. */
+export const SQL_CO_LUAT_YC = (r: string) => `exists (select 1 from app_rules l join children c on c.id = ${r}.child_id where l.family_id = c.family_id and l.child_id in ('', ${r}.child_id)
+  and (l.het is null or l.het > now()) and regexp_replace(l.muc, '\\.exe$', '') = regexp_replace(lower(trim(${r}.gia_tri)), '\\.exe$', ''))`;
 
 /** #644: tiến trình nền / thành phần của phiên Windows (đồng bộ ProcessGuard.TienTrinhHeThongPhien ở agent-win, trừ explorer / Ảnh) — tiền cảnh thoáng qua, không phải việc Con làm:
  *  không vào «Đã dùng» (máy Con, web Ba Mẹ), kể cả dòng agent cũ đã ghi — trừ khi Ba Mẹ đã đặt luật riêng cho mục đó. KHÔNG gồm explorer.exe (File Explorer là app người dùng mở). */

@@ -60,10 +60,10 @@ export default function HomNay() {
       // app mới chưa xếp loại vẫn là việc chờ Ba Mẹ (issue #70 §2.3) ⇒ một mục «Cần Ba Mẹ để ý»; ds = luật để đếm «N app được mở»
       bm.goi<{ ds: LuatDem[]; chuaXep: AppChuaXep[] }>("luat").catch(() => null),
       // «Cần Ba Mẹ để ý» của máy chủ (mất mạng, quên PIN…) — máy chủ cũ không có ⇒ bỏ qua
-      bm.goi<{ ds: MucCanDeY[] }>("can-de-y").catch(() => null),
+      bm.goi<{ ds: MucCanDeY[]; soTheoCon?: Record<string, number>; soCaNha?: number }>("can-de-y").catch(() => null),
       quyenToi(),         // «＋ Thêm con» ở dải avatar chỉ cho Ba Mẹ (như tab Cả nhà)
     ]);
-    return { quyen, g, cd, cb: (cb?.ds ?? []).filter((x) => !x.da_doc), choi: choi?.ds ?? [], tt: tt?.ds ?? [], luat: luat?.ds ?? [], appMoi: luat?.chuaXep ?? [], cdy: cdy?.ds ?? [] };
+    return { quyen, g, cd, cb: (cb?.ds ?? []).filter((x) => !x.da_doc), choi: choi?.ds ?? [], tt: tt?.ds ?? [], luat: luat?.ds ?? [], appMoi: luat?.chuaXep ?? [], cdy: cdy?.ds ?? [], cdyOk: !!cdy?.soTheoCon, soTheoCon: cdy?.soTheoCon ?? {}, soCaNha: cdy?.soCaNha ?? 0 };
   });
   const [chon, setChon] = useState<string | null>(null);
   const { bao, noi } = useHoanTac();
@@ -127,7 +127,7 @@ function DaiConTrangChu({ d, chon, doi }: { d: DuLieu & { quyen?: string }; chon
   );
 }
 
-type DuLieu = { g: GiaDinh; cd: ChoDuyetMoi | null; cb: CanhBao[]; choi: PhienDang[]; tt: TuanThuMay[]; luat: LuatDem[]; appMoi: AppChuaXep[]; cdy: MucCanDeY[] };
+type DuLieu = { g: GiaDinh; cd: ChoDuyetMoi | null; cb: CanhBao[]; choi: PhienDang[]; tt: TuanThuMay[]; luat: LuatDem[]; appMoi: AppChuaXep[]; cdy: MucCanDeY[]; cdyOk: boolean; soTheoCon: Record<string, number>; soCaNha: number };
 /** Một mục «Cần Ba Mẹ để ý» (không phải lời xin — lời xin vẽ bằng TheXin). */
 type MucDeY = { id: string; ic: TenIcon; tieu: string; phu: string; nut: string; den: string; maMay?: string };
 
@@ -152,25 +152,35 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const khoa = !!ct.d?.khoaNgay || !!q?.khoa;
 
   // ---- 2. cần Ba Mẹ để ý (mục của con này; mục cả nhà — cảnh báo không gắn con — cũng tính)
-  const xin = (d.cd?.yeuCau ?? []).filter((y) => y.child_id === conId);
+  const xin0 = (d.cd?.yeuCau ?? []).filter((y) => y.child_id === conId);
   const cuaCon = (x: { con: string | null }) => !x.con || x.con === conId;
-  const muc: MucDeY[] = [];
-  for (const m of c.matMang ?? []) muc.push({ id: `mm:${m.mayId}`, ic: "wifi", tieu: `${m.ten.replace(/ của .*$/, "")} mất mạng`, phu: "Hết sao vẫn tự khoá · con cần mã",
+  const muc0: MucDeY[] = [];
+  for (const m of c.matMang ?? []) muc0.push({ id: `mm:${m.mayId}`, ic: "wifi", tieu: `${m.ten.replace(/ của .*$/, "")} mất mạng`, phu: "Hết sao vẫn tự khoá · con cần mã",
     nut: "Lấy mã mở máy", den: `/may/${m.mayId}/ma-offline`, maMay: m.mayId });
-  const sau: MucDeY[] = [];
+  const sau0: MucDeY[] = [];
   for (const m of d.tt.filter((x) => mayCuaCon(x, conId) && mayCanDeY(x)))
-    sau.push({ id: `bv:${m.id}`, ic: IC_MAY[m.nen], tieu: `${m.ten} chưa được bảo vệ`, phu: m.baoVeCau ?? "Con tự tắt Grow được", nut: "Sửa ›", den: `/may/${m.id}` });
+    sau0.push({ id: `bv:${m.id}`, ic: IC_MAY[m.nen], tieu: `${m.ten} chưa được bảo vệ`, phu: m.baoVeCau ?? "Con tự tắt Grow được", nut: "Sửa ›", den: `/may/${m.id}` });
   // quên PIN: từ can-de-y; lời gọi đó lỗi ⇒ dựng lại từ cảnh báo loai quen_pin
   const quenPin = d.cdy.some((x) => x.loai === "quen_pin") ? d.cdy.filter((x) => x.loai === "quen_pin" && x.con === conId)
     : d.cb.filter((x) => x.loai === "quen_pin" && x.child_id === conId).slice(0, 1).map((x) => ({ id: x.id, tieu: x.noi_dung, den: `/ho-so/${conId}/pin` }));
-  for (const x of quenPin) sau.push({ id: `pin:${x.id}`, ic: "mo_khoa", tieu: x.tieu, phu: "Đặt PIN mới cho con", nut: "Đặt PIN ›", den: x.den });
+  for (const x of quenPin) sau0.push({ id: `pin:${x.id}`, ic: "mo_khoa", tieu: x.tieu, phu: "Đặt PIN mới cho con", nut: "Đặt PIN ›", den: x.den });
   for (const x of d.cb.filter((a) => cuaCon({ con: a.child_id }) && a.loai !== "quen_pin" && a.canSua !== false && a.chiBiet !== true).slice(0, 3))
-    sau.push({ id: `cb:${x.id}`, ic: "canh_bao", tieu: x.noi_dung, phu: gioPhut(x.created_at), nut: "Xem ›", den: `/canh-bao/${x.id}` });
+    sau0.push({ id: `cb:${x.id}`, ic: "canh_bao", tieu: x.noi_dung, phu: gioPhut(x.created_at), nut: "Xem ›", den: `/canh-bao/${x.id}` });
   // #508: Con CÀI app mới trên máy (máy chủ gửi qua «Cần Ba Mẹ để ý» — app_moi) ⇒ Ba Mẹ chọn Tính phút / Không tính phút
-  for (const x of d.appMoi.length ? [] : d.cdy.filter((y) => y.loai === "app_moi" && (y.con === conId || !y.con))) sau.push({ id: x.id, ic: "luoi", tieu: x.tieu, phu: x.phu, nut: "Chọn ›", den: x.den });
-  if (d.appMoi.length) sau.push({ id: "app-moi", ic: "luoi", tieu: `${d.appMoi.length} app mới chờ Ba Mẹ xếp`, phu: d.appMoi.slice(0, 2).map((x) => x.ten ?? x.muc).join(", "),
+  for (const x of d.appMoi.length ? [] : d.cdy.filter((y) => y.loai === "app_moi" && (y.con === conId || !y.con))) sau0.push({ id: x.id, ic: "luoi", tieu: x.tieu, phu: x.phu, nut: "Chọn ›", den: x.den });
+  if (d.appMoi.length) sau0.push({ id: "app-moi", ic: "luoi", tieu: `${d.appMoi.length} app mới chờ Ba Mẹ xếp`, phu: d.appMoi.slice(0, 2).map((x) => x.ten ?? x.muc).join(", "),
     nut: "Xếp ›", den: "/app-web" });
-  const soDeY = muc.length + xin.length + sau.length;
+  // #727: MỘT nguồn đếm — máy chủ (can-de-y › demCanDeY): thẻ vẽ từ CHÍNH các dòng đó, số tiêu đề = soTheoCon của máy chủ = số thẻ hiện ra (cũng là số trên chuông, chấm tab).
+  // Máy chủ cũ không có can-de-y ⇒ dựng như trước từ các nguồn lẻ.
+  const hang = d.cdyOk ? d.cdy.filter((x) => x.loai !== "nop_bai" && cuaCon(x)) : null;
+  const IC_DONG: Record<string, TenIcon> = { quen_pin: "mo_khoa", canh_bao: "canh_bao", app_moi: "luoi", chua_bao_ve: "khoa" };
+  const muc: MucDeY[] = hang ? hang.filter((x) => x.loai === "mat_mang").map((x) => ({ id: x.id, ic: "wifi" as TenIcon, tieu: `${x.tieu.replace(/ của .*? mất mạng$/, " mất mạng")}`, phu: "Hết sao vẫn tự khoá · con cần mã",
+    nut: "Lấy mã mở máy", den: x.den, maMay: x.may })) : muc0;
+  const xinKhop = (x: MucCanDeY) => xin0.find((y) => `con_xin:${y.id}` === x.id);
+  const xin = hang ? hang.filter((x) => x.loai === "con_xin").map(xinKhop).filter((y): y is NonNullable<typeof y> => !!y) : xin0;
+  // lời xin máy chủ đếm mà danh sách Chờ duyệt chưa có (tải lệch nhịp) vẫn là MỘT thẻ — số và thẻ luôn bằng nhau
+  const sau: MucDeY[] = hang ? hang.filter((x) => x.loai !== "mat_mang" && (x.loai !== "con_xin" || !xinKhop(x))).map((x) => ({ id: x.id, ic: IC_DONG[x.loai] ?? (x.loai === "con_xin" ? "web" : "canh_bao"), tieu: x.tieu, phu: x.phu, nut: `${x.nut} ›`, den: x.den })) : sau0;
+  const soDeY = hang ? (d.soTheoCon[conId] ?? d.soCaNha) : muc.length + xin.length + sau.length;
   // gấp nhất trước: máy mất mạng (con đang kẹt) › lời xin (con đang chờ) › còn lại
   const dauTien: { loai: "muc"; m: MucDeY } | { loai: "xin" } | null = muc[0] ? { loai: "muc", m: muc[0] } : xin[0] ? { loai: "xin" } : sau[0] ? { loai: "muc", m: sau[0] } : null;
 

@@ -110,5 +110,8 @@ export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<
   }
   const thu: Record<MucCanDeY["loai"], number> = { mat_mang: 0, quen_pin: 1, canh_bao: 2, con_xin: 3, app_moi: 4, nop_bai: 5, chua_bao_ve: 6 };
   ds.sort((a, b) => thu[a.loai] - thu[b.loai] || Date.parse(b.luc) - Date.parse(a.luc));
-  return { ds, soChuong: demCanDeY(ds), soTab: demCanDeY(ds, { boNopBai: true }) };
+  // #727: số ở tiêu đề «Cần Ba Mẹ để ý» của Trang chủ từng Con (không tính bài nộp) — client KHÔNG tự đếm; Con không có dòng riêng ⇒ soCaNha (mục không gắn Con)
+  const soTheoCon: Record<string, number> = {};
+  for (const c of new Set(ds.map((x) => x.con).filter((x): x is string => !!x))) soTheoCon[c] = demCanDeY(ds, { con: c, boNopBai: true });
+  return { ds, soChuong: demCanDeY(ds), soTab: demCanDeY(ds, { boNopBai: true }), soTheoCon, soCaNha: ds.filter((x) => !x.con && x.loai !== "nop_bai").length };
 }

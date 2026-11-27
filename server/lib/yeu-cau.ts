@@ -12,7 +12,7 @@ import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
 import { khoaCon } from "./vi.ts";
-import { allowlistHieuLuc, chuanMuc, datLuat, dsLuat, laCongCuHeThong, loiXinHienDuoc, phanLoaiTu } from "./luat-app.ts";
+import { allowlistHieuLuc, chuanMuc, datLuat, dsLuat, laCongCuHeThong, loiXinHienDuoc, phanLoaiTu, SQL_CO_LUAT_YC } from "./luat-app.ts";
 import { loaiTuNhom, nhanNhom, nhomTuLoai, type NhomDs } from "./chan-co-ban.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { kieuMuc } from "./chinh-sach.ts";
@@ -312,7 +312,7 @@ export const hetHanLoiXin = async (now = new Date(), fam?: string) =>
  *  danh sách, việc đánh dấu `het_han` để cron qua-han làm. */
 export async function dsChoYc(fam: string, now = new Date(), o: { ghi?: boolean } = {}) {
   if (o.ghi !== false) await hetHanLoiXin(now, fam);
-  return q<Yc & { ten_con: string }>(`select r.*, c.ten as ten_con from requests r join children c on c.id = r.child_id
+  return q<Yc & { ten_con: string; co_luat: boolean }>(`select r.*, c.ten as ten_con, ${SQL_CO_LUAT_YC("r")} as co_luat from requests r join children c on c.id = r.child_id
                                      where c.family_id = $1 and r.trang_thai = 'cho' and r.het_han > $2 order by r.created_at`, [fam, now])
     .then((ds) => ds.filter(loiXinHienDuoc));   // #525: lời xin cũ của thành phần Windows
 }
