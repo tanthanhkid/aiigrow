@@ -70,7 +70,7 @@ function DsMucConTrong({ con, kieu }: { con: string; kieu: Kieu }) {
       {!web && tat.length ? (
         <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginHorizontal: 6 }}>
           {d.ds.tamNghi ? `Đang «Mở hết»: ${ten} mở được mọi app. Danh sách giữ nguyên, bật «Theo danh sách» là dùng tiếp.`
-            : `${ten} chỉ mở được ${tat.length} app này. Bấm vào app để đổi loại hoặc bỏ khỏi danh sách.`}
+            : `${ten} chỉ mở được ${tat.length} app này, cùng các trang web trong mục Web. Bấm vào app để đổi loại hoặc bỏ khỏi danh sách.`}
         </Chu>
       ) : null}
       {web && d.heThong.length ? (

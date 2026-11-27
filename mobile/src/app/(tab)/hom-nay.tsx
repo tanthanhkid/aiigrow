@@ -230,10 +230,10 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
       <The hero style={{ overflow: "visible" }}>
         <View style={{ position: "absolute", left: 24, top: 0 }} pointerEvents="none"><DauSach mau={HERO.phu} rong={16} cao={22} /></View>
         <View style={{ position: "absolute", right: ROB_PHAI, top: ROB_TREN }} pointerEvents="none"><Rob ten={khoa ? "ngu" : "chi"} co={ROB_CO} /></View>
-        {/* chip trạng thái: máy khoá «Laptop, iPad · Đã khoá» (không bấm) — còn lại «Chặn: Theo danh sách ›» → App & web của con */}
+        {/* chip trạng thái: máy khoá «Laptop, iPad · Đã khoá» (không bấm) — còn lại «Chặn: Theo danh sách ›» → tab App & web (Con mở được gì: App + Web) */}
         {khoa ? <ChipThe ic="khoa" nen="#1F2A44" dau={mayKhoa.length ? mayKhoa.join(", ") : "Máy"} cuoi="Đã khoá" />
           : matMangMay.length ? <ChipThe ic="wifi" icMau={HERO.phu} dau={matMangMay.join(", ")} cuoi="Mất mạng" cuoiMau={HERO.phu} />
-          : <ChipThe ic="khien" dau="Chặn:" cuoi={`${cheDo}\u00A0›`} cuoiMau={HERO.phu} bam={() => router.push(`/ung-dung?con=${conId}` as never)} nhanDoc={`Chặn: ${cheDo}`} gon />}
+          : <ChipThe ic="khien" dau="Chặn:" cuoi={`${cheDo}\u00A0›`} cuoiMau={HERO.phu} bam={() => router.push(`/chan?con=${conId}` as never)} nhanDoc={`Chặn: ${cheDo}`} gon />}
         <View style={{ marginTop: 10, marginRight: CHUA_ROB, minHeight: 30 }}>
           <Chu kieu="tieu7" co={24} so mau={khoa ? HERO.phu : HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu>
         </View>
