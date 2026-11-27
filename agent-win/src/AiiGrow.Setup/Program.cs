@@ -12,7 +12,7 @@ internal static class Program
         bool silent = args.Any(a => a.Equals("/silent", StringComparison.OrdinalIgnoreCase) || a.Equals("--silent", StringComparison.OrdinalIgnoreCase));
 
         if (args.Any(a => a.Equals("--uninstall", StringComparison.OrdinalIgnoreCase) || a.Equals("/uninstall", StringComparison.OrdinalIgnoreCase)))
-            return Uninstall(silent);
+            return Uninstall(silent, args);
 
         // Công tắc chế độ (Ba Mẹ chạy, cần quyền admin — manifest đã xin): AiiGrow.Setup.exe --che-do=chan | --che-do=giam-sat
         var cheDo = args.FirstOrDefault(x => x.StartsWith("--che-do=", StringComparison.OrdinalIgnoreCase));
@@ -97,8 +97,37 @@ internal static class Program
         return ok ? 0 : 4;
     }
 
-    private static int Uninstall(bool silent)
+    /// <summary>Hỏi Ba Mẹ (tối đa 5 lần). Im lặng: mã qua «--ma=123456». → true = được gỡ.</summary>
+    private static bool CongGoBaMe(bool silent, string[] args)
     {
+        AgentConfig? cfg = null;
+        try { cfg = new ConfigStore().Load(); } catch { }
+        if (!CongGo.CanHoi(cfg)) return true;
+        if (silent)
+        {
+            var ma = args.FirstOrDefault(a => a.StartsWith("--ma=", StringComparison.OrdinalIgnoreCase))?["--ma=".Length..];
+            var kq0 = CongGo.Kiem(cfg, ma, null, null, DateTimeOffset.Now, MatKhauQuanTri.Kiem);
+            if (kq0 != CongGo.KetQua.Duoc) WriteLog("Gỡ im lặng bị từ chối: " + (kq0 == CongGo.KetQua.Sai ? CongGo.CauSai : CongGo.CauYeuCau));
+            return kq0 == CongGo.KetQua.Duoc;
+        }
+        string? loi = null;
+        for (int lan = 0; lan < 5; lan++)
+        {
+            var d = HopGoCanBaMe.Hoi(loi);
+            if (d == null) return false;
+            var kq = CongGo.Kiem(cfg, d.Ma, d.TaiKhoan, d.MatKhau, DateTimeOffset.Now, MatKhauQuanTri.Kiem);
+            if (kq == CongGo.KetQua.Duoc) return true;
+            loi = kq == CongGo.KetQua.Sai ? CongGo.CauSai : CongGo.CauYeuCau;
+            if (kq == CongGo.KetQua.Sai) Thread.Sleep(1500);   // chậm dò mã / mật khẩu
+        }
+        HopThoai.Hien("Nhập sai quá nhiều lần. Chạy lại bộ gỡ khi có Ba Mẹ.", "AiiGrow", loi: true);
+        return false;
+    }
+
+    private static int Uninstall(bool silent, string[] args)
+    {
+        // #739: gỡ tại máy phải có Ba Mẹ (mã mở máy / mật khẩu quản trị) — bé không tự gỡ được qua Start › Uninstall.
+        if (!CongGoBaMe(silent, args)) return 9;
         if (!silent && HopThoai.Hien("Gỡ AiiGrow khỏi máy này?", "AiiGrow", hoi: true) != DialogResult.Yes)
             return 0;
         var kq = Task.Run(Installer.UninstallAsync).GetAwaiter().GetResult();

@@ -6,7 +6,10 @@ namespace AiiGrow.Setup;
 internal static class Accounts
 {
     private static readonly Regex NameRegex = new(@"^[A-Za-z0-9._-]{1,20}$", RegexOptions.Compiled);
-    public static bool IsValidName(string? n) => !string.IsNullOrEmpty(n) && NameRegex.IsMatch(n);
+    public static bool IsValidName(string? n) => !string.IsNullOrEmpty(n) && NameRegex.IsMatch(n) && !TenThietBi.LaTenCam(n);
+
+    /// <summary>Tên đúng cú pháp nhưng Windows cấm làm tên thư mục (CON, PRN…) ⇒ không tạo được C:\Users\&lt;tên&gt;.</summary>
+    public static bool LaTenThietBi(string? n) => TenThietBi.LaTenCam(n);
 
     public static List<LocalAccount> List() => TaiKhoanCon.DocMay();
 
@@ -14,6 +17,7 @@ internal static class Accounts
     /// <param name="password">Rỗng ⇒ tài khoản KHÔNG mật khẩu (06/11 L13: tài khoản chung của các bé — AiiGrow nhận bé bằng tên + PIN trên màn khoá).</param>
     public static string CreateStandard(string name, string password)
     {
+        if (TenThietBi.LaTenCam(name)) throw new LoiCai(CauLoiCai.TenCam(name));
         if (!IsValidName(name)) throw new ArgumentException("Tên tài khoản chỉ gồm chữ, số, dấu . _ - (tối đa 20 ký tự)");
         var q = Shell.PsQuote(name);
         var tao = string.IsNullOrEmpty(password)
@@ -30,7 +34,19 @@ internal static class Accounts
             $"(Get-LocalUser -Name {q}).SID.Value",
             60000, new Dictionary<string, string> { ["AIIG_PW"] = password });
         if (!r.Ok) throw new LoiCai(CauLoiCai.TuLoiTaoTaiKhoan(name, r.Error), r.Error);   // #689: stderr PowerShell chỉ vào install.log
-        return r.Output.Trim();
+        var sid = r.Output.Trim();
+        KiemHoSo(name, sid);
+        return sid;
+    }
+
+    /// <summary>#739: dựng hồ sơ (C:\Users\&lt;tên&gt;) ngay lúc tạo tài khoản — không để tới lần đăng nhập đầu mới biết không tạo được (Windows báo
+    /// «We can't sign in to your account», hồ sơ tạm, mất dữ liệu mỗi lần đăng xuất). Hồ sơ không dựng được ⇒ xoá tài khoản vừa tạo và báo rõ.</summary>
+    private static void KiemHoSo(string name, string sid)
+    {
+        var loi = HoSoWindows.Dung(sid, name, out var duong);
+        if (loi == null) return;
+        try { Shell.PowerShell($"Remove-LocalUser -Name {Shell.PsQuote(name)}", 30000); } catch { }
+        throw new LoiCai(CauLoiCai.HoSoLoi(name), $"CreateProfile {name}: {loi} ({duong})");
     }
 
     /// <summary>Hạ tài khoản từ Administrators xuống Users (Standard).</summary>

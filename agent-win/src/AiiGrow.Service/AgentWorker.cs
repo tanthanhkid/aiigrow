@@ -103,6 +103,8 @@ public sealed class AgentWorker : BackgroundService
                     // Kiểm lại DangGo NGAY TRƯỚC khi áp AppLocker / enforcement để không áp lại luật vào đúng lúc đang gỡ (tránh luật «dính» lại sau khi gỡ).
                     if (_rt.DangGo) { await _rt.WaitAsync(TimeSpan.FromSeconds(5), ct); continue; }
 
+                    TuBatLaiKhay();   // #739: bé End task AiiGrow.Tray ⇒ bật lại trong phiên đang ngồi trước máy
+
                     var p = _rt.CurrentPolicy;
                     var eff = _rt.Evaluate(DateTimeOffset.Now);
                     _rt.AppLockerKhaDung = _locker.KhaDung;   // Win Home: không AppLocker ⇒ BuildStatus không báo «thiếu»
@@ -161,6 +163,33 @@ public sealed class AgentWorker : BackgroundService
             }
             await _rt.WaitAsync(TimeSpan.FromSeconds(5), ct);
         }
+    }
+
+    private readonly KhayTuBatLai _khayTuBat = new();
+
+    /// <summary>#739: khay chết (bé End task / sập) ⇒ dịch vụ bật lại trong phiên đang có người ngồi trước máy. Lỗi không làm hỏng vòng lặp chính.</summary>
+    private void TuBatLaiKhay()
+    {
+        try
+        {
+            var phien = SessionHelper.ActiveConsoleSession();
+            var coNguoi = phien > 0 && SessionHelper.SessionUser(phien).Length > 0;
+            var khay = Path.Combine(AppContext.BaseDirectory, Paths.TrayExeName);
+            bool coKhay = false;
+            if (coNguoi)
+                foreach (var p in System.Diagnostics.Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Paths.TrayExeName)))
+                {
+                    try { if (p.SessionId == phien) coKhay = true; } catch { }
+                    p.Dispose();
+                }
+            if (!File.Exists(khay)) return;
+            if (_khayTuBat.CanBat(DateTimeOffset.Now, coKhay, coNguoi, _rt.DangGo))
+            {
+                KhoiDongTrongPhien.Chay(phien, khay);
+                _log.LogInformation("Khay đã tắt trong phiên {id} — bật lại", phien);
+            }
+        }
+        catch (Exception e) when (e is not OperationCanceledException) { _log.LogWarning(e, "Chưa bật lại được khay"); }
     }
 
     private void CountUsage(DateTimeOffset now, double elapsed, bool sessionActive, int phienCon)
