@@ -61,7 +61,10 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
   const dsTab = useMemo(() => ten.split("|"), [ten]);
   useChuyenTab(dsTab, state.index, !!useReducedMotion());
   useEffect(() => {
-    bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => { setSo(r.nhiemVu.length + (r.phieu?.length ?? 0)); setSoXin(r.yeuCau.length); }).catch(() => {});
+    bm.goi<{ nhiemVu: unknown[]; yeuCau: unknown[]; phieu?: unknown[] }>("cho-duyet").then((r) => { setSo(r.nhiemVu.length + (r.phieu?.length ?? 0));  }).catch(() => {});
+    // #727: chấm Hôm nay = số mục «Cần Ba Mẹ để ý» do máy chủ đếm (cùng hàm với chuông; không tính bài nộp — đã có chấm Việc & quà); máy chủ cũ ⇒ số lời xin
+    bm.goi<{ soTab?: number }>("can-de-y").then((r) => (typeof r.soTab === "number" ? setSoXin(r.soTab) : Promise.reject(new Error("cu"))))
+      .catch(() => bm.goi<{ yeuCau: unknown[] }>("cho-duyet").then((r) => setSoXin(r.yeuCau.length)).catch(() => {}));
   }, [state.index]);       // đổi tab là cập nhật số chờ duyệt
   return (
     <View accessibilityRole="tablist" style={{ flexDirection: "row", backgroundColor: M.the, paddingHorizontal: 4, paddingTop: 6,
@@ -76,7 +79,7 @@ function ThanhTab({ state, navigateToTab }: BottomTabBarProps) {
         const soDo = r.name === "diem-qua" ? so : r.name === "hom-nay" ? soXin : 0;
         return (
           <NhanMen key={r.key} onPress={() => navigateToTab(r.key)} accessibilityRole="tab" accessibilityState={{ selected: dang }} muc="chip"
-            accessibilityLabel={r.name === "diem-qua" && so ? `${m.chu}, ${so} việc chờ duyệt` : r.name === "hom-nay" && soXin ? `${m.chu}, ${soXin} lời xin` : m.chu}
+            accessibilityLabel={r.name === "diem-qua" && so ? `${m.chu}, ${so} việc chờ duyệt` : r.name === "hom-nay" && soXin ? `${m.chu}, ${soXin} việc cần Ba Mẹ` : m.chu}
             style={{ flex: 1, alignItems: "center", justifyContent: "center", gap: 2, minHeight: 54, minWidth: 0 }}>
             {/* viên kem ôm icon khi đang chọn (bàn .tab .on img: nền #F2EBE3, lề 3×16, bo 15, bóng lõm) */}
             {/* #417 (mẫu E `.tab`): icon NÉT — chưa chọn navy, đang chọn vàng kim trong viên lõm */}

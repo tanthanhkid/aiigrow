@@ -1,13 +1,14 @@
 // «Cần Ba Mẹ để ý» + số trên chuông + cờ «máy con mất mạng hôm nay» — thiết kế chốt 06/11 (L19; màn them-0xf9hrgn «Thông báo»,
 // them-1mnk3mjz «Hôm nay · máy con mất mạng»). Số trên chuông = ĐÚNG số mục «Cần Ba Mẹ để ý» (không đếm mục «Để biết»).
 // Mục (mỗi mục một dòng, xếp mới trước): máy mất mạng (Con cần mã để mở máy) · Con quên PIN · cảnh báo chưa đọc (chú ý / nghiêm trọng) ·
-// Con đang xin (gộp theo Con) · Con nộp bài chờ duyệt (gộp theo Con) · #508 Con CÀI app mới trên máy (app thấy sau danh sách đầu, chưa xếp — Con chưa mở được) · máy chưa được bảo vệ đủ.
+// mỗi lời xin của Con một dòng · mỗi bài Con nộp chờ duyệt một dòng (#727) · #508 Con CÀI app mới trên máy (app thấy sau danh sách đầu, chưa xếp — Con chưa mở được) · máy chưa được bảo vệ đủ.
 import { one, q } from "./db.ts";
 import { chiTietBaoVe, mucBaoVe, type May } from "./gia-dinh.ts";
 import { gioDiaPhuong } from "./gio.ts";
 import { dsChoYc } from "./yeu-cau.ts";
 import { choDuyet } from "./nhiem-vu.ts";
-import { allowlistHieuLuc, dsLuat, laAppAiiGrow } from "./luat-app.ts";
+import { allowlistHieuLuc, dsLuat, laAppAiiGrow, laCongCuHeThong, laTienTrinhNenWindows } from "./luat-app.ts";
+import { tenAppDep } from "./ten-app.ts";
 import { trangThaiApp } from "./app-may.ts";
 import { mayMatMang, type MayMatMang } from "./may-mat-mang.ts";
 import { hienThiCuaMay } from "./tuan-thu.ts";
@@ -27,9 +28,10 @@ async function appMoiCaiMay(fam: string, now = new Date()) {
   const allow = allowlistHieuLuc();
   const theoMay = new Map<string, { mayId: string; tenMay: string; conId: string | null; tenCon: string | null; luc: string; ds: string[] }>();
   for (const r of rows) {
-    if (laAppAiiGrow(r.muc) || trangThaiApp(r.muc, r.dung_chung ? "" : r.child_id ?? "", luat, allow, r.ten).trangThai !== "chua_xep") continue;
+    // #727: tiến trình nền / công cụ hệ thống không phải «app mới» Con cài
+    if (laAppAiiGrow(r.muc) || laTienTrinhNenWindows(r.muc) || laCongCuHeThong(r.muc, r.ten) || trangThaiApp(r.muc, r.dung_chung ? "" : r.child_id ?? "", luat, allow, r.ten).trangThai !== "chua_xep") continue;
     const m = theoMay.get(r.device_id) ?? { mayId: r.device_id, tenMay: r.ten_may, conId: r.child_id, tenCon: r.ten_con, luc: new Date(r.dau_luc).toISOString(), ds: [] };
-    m.ds.push(r.ten);
+    m.ds.push(tenAppDep(r.muc, r.ten));
     theoMay.set(r.device_id, m);
   }
   return [...theoMay.values()];
@@ -40,7 +42,13 @@ type MucCanDeY = { id: string; loai: "mat_mang" | "quen_pin" | "canh_bao" | "con
 
 const hhmm = (d: Date, tz: string) => { const g = gioDiaPhuong(d, tz).phut; return `${String(Math.floor(g / 60)).padStart(2, "0")}:${String(g % 60).padStart(2, "0")}`; };
 
-/** Danh sách «Cần Ba Mẹ để ý» + `soChuong` (= số mục). */
+/** #727: MỘT hàm đếm cho thẻ «Cần Ba Mẹ để ý» (Trang chủ), chuông (Cần trả lời), chấm tab Hôm nay — số = đúng số dòng/thẻ hiện ra.
+ *  `con`: chỉ mục của Con đó + mục cả nhà (không gắn Con) · `boNopBai`: bỏ «Con nộp bài» (có chỗ riêng ở Việc & quà / Chờ duyệt). */
+export function demCanDeY(ds: readonly { loai: string; con: string | null }[], o: { con?: string; boNopBai?: boolean } = {}): number {
+  return ds.filter((x) => !(o.boNopBai && x.loai === "nop_bai") && (!o.con || !x.con || x.con === o.con)).length;
+}
+
+/** Danh sách «Cần Ba Mẹ để ý» + `soChuong` (= số mục, qua demCanDeY). */
 /** `san`: dữ liệu người gọi đã đọc (GET gia-dinh) ⇒ không đọc lại (dsChoYc / choDuyet có ghi phụ: hết hạn lời xin, tự duyệt quá hạn). */
 export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<ReturnType<typeof dsChoYc>>; nv?: Awaited<ReturnType<typeof choDuyet>>;
   mm?: MayMatMang[] } = {}) {
@@ -73,21 +81,17 @@ export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<
     else ds.push({ id: `a:${a.id}`, loai: "canh_bao", tieu: `Cảnh báo: ${a.noi_dung}`, phu: `${hhmm(new Date(a.created_at), tz)}${a.ten_may ? ` · ${a.ten_may}` : ""}`,
       luc: new Date(a.created_at).toISOString(), con: a.child_id, ...(a.device_id ? { may: a.device_id } : {}), so: 1, nut: "Xem", den: `/canh-bao/${a.id}` });
   }
-  const theoCon = <T extends { child_id: string; ten_con: string }>(xs: T[]) => {
-    const m = new Map<string, T[]>();
-    for (const x of xs) m.set(x.child_id, [...(m.get(x.child_id) ?? []), x]);
-    return [...m.values()];
-  };
-  for (const g of theoCon(yc)) {
-    const moi = g.reduce((a, b) => (new Date(b.created_at) > new Date(a.created_at) ? b : a));
-    ds.push({ id: `con_xin:${g[0].child_id}`, loai: "con_xin", tieu: `${g[0].ten_con} xin ${g.length} việc`,
-      phu: g.slice(0, 3).map((r) => (r.loai === "them_gio" ? `thêm ${r.phut ?? ""} phút`.replace("  ", " ") : r.gia_tri ? `Mở ${r.gia_tri}` : "xin phép")).join(" · "),
-      luc: new Date(moi.created_at).toISOString(), con: g[0].child_id, so: g.length, nut: "Trả lời", den: "/cho-duyet" });
+  // #727: MỖI lời xin một dòng (cùng đơn vị với Chờ duyệt: lời xin) — số trên chuông, thẻ Trang chủ, chấm tab đều đếm cùng một thứ
+  for (const r of yc) {
+    const vay = r.loai !== "mo_web" && r.loai !== "cai_app" && r.loai !== "khac";
+    const ten = r.loai === "mo_web" ? (r.gia_tri ?? "trang web") : tenAppDep(r.gia_tri, r.ten_app);
+    ds.push({ id: `con_xin:${r.id}`, loai: "con_xin", tieu: r.loai === "mo_web" ? `Xin mở ${ten}` : r.loai === "cai_app" ? `Xin mở ${ten}`
+        : vay ? (r.phut ? `Xin vay ${r.phut} sao` : "Xin vay sao") : "Xin phép",
+      phu: `${r.ten_con} · ${hhmm(new Date(r.created_at), tz)}`, luc: new Date(r.created_at).toISOString(), con: r.child_id, so: 1, nut: "Trả lời", den: "/cho-duyet" });
   }
-  for (const g of theoCon(nv)) {
-    const moi = g.reduce((a, b) => (new Date(b.nop_luc) > new Date(a.nop_luc) ? b : a));
-    ds.push({ id: `nop_bai:${g[0].child_id}`, loai: "nop_bai", tieu: `${g[0].ten_con} nộp bài ${g.length} việc`, phu: hhmm(new Date(moi.nop_luc), tz),
-      luc: new Date(moi.nop_luc).toISOString(), con: g[0].child_id, so: g.length, nut: "Duyệt", den: "/cho-duyet" });
+  for (const r of nv) {
+    ds.push({ id: `nop_bai:${r.id}`, loai: "nop_bai", tieu: `${r.ten_con} nộp «${r.ten}»`, phu: hhmm(new Date(r.nop_luc), tz),
+      luc: new Date(r.nop_luc).toISOString(), con: r.child_id, so: 1, nut: "Duyệt", den: "/cho-duyet" });
   }
   for (const m of appMoi) {
     const ten = m.tenCon ?? m.tenMay;
@@ -106,5 +110,5 @@ export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<
   }
   const thu: Record<MucCanDeY["loai"], number> = { mat_mang: 0, quen_pin: 1, canh_bao: 2, con_xin: 3, app_moi: 4, nop_bai: 5, chua_bao_ve: 6 };
   ds.sort((a, b) => thu[a.loai] - thu[b.loai] || Date.parse(b.luc) - Date.parse(a.luc));
-  return { ds, soChuong: ds.length };
+  return { ds, soChuong: demCanDeY(ds), soTab: demCanDeY(ds, { boNopBai: true }) };
 }

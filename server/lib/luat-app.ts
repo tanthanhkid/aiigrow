@@ -69,7 +69,7 @@ export function laCongCuHeThong(mucTho: unknown, ten?: unknown): boolean {
 /** #525/#702: lời xin Ba Mẹ thấy được — lời xin cài thành phần Windows (agent cũ gửi trước #525) không hiện ở Chờ duyệt và không được đếm.
  *  MỘT điều kiện cho danh sách Chờ duyệt (yeu-cau.ts › dsChoYc) và số «lời xin» trên avatar Con (bao-cao.ts › demYcCho). */
 export const loiXinHienDuoc = (r: { loai: string; gia_tri?: string | null; ten_app?: string | null }) =>
-  !(r.loai === "cai_app" && laCongCuHeThong(r.gia_tri, r.ten_app ?? r.gia_tri));
+  !(r.loai === "cai_app" && (laCongCuHeThong(r.gia_tri, r.ten_app ?? r.gia_tri) || laTienTrinhNenWindows(r.gia_tri)));   // #727: + tiến trình nền (hxtsr…)
 
 /** #644: tiến trình nền / thành phần của phiên Windows (đồng bộ ProcessGuard.TienTrinhHeThongPhien ở agent-win, trừ explorer / Ảnh) — tiền cảnh thoáng qua, không phải việc Con làm:
  *  không vào «Đã dùng» (máy Con, web Ba Mẹ), kể cả dòng agent cũ đã ghi — trừ khi Ba Mẹ đã đặt luật riêng cho mục đó. KHÔNG gồm explorer.exe (File Explorer là app người dùng mở). */
@@ -77,7 +77,9 @@ const TIEN_TRINH_NEN_WIN = new Set(["shellexperiencehost.exe", "lockapp.exe", "s
   "runtimebroker.exe", "applicationframehost.exe", "sihost.exe", "ctfmon.exe", "dwm.exe", "taskhostw.exe", "fontdrvhost.exe", "csrss.exe", "winlogon.exe", "wininit.exe",
   "smss.exe", "services.exe", "lsass.exe", "svchost.exe", "dllhost.exe", "conhost.exe", "backgroundtaskhost.exe", "securityhealthsystray.exe", "logonui.exe", "consent.exe", "userinit.exe",
   "werfault.exe", "smartscreen.exe", "shellhost.exe", "useroobebroker.exe", "searchprotocolhost.exe", "searchfilterhost.exe", "audiodg.exe", "wudfhost.exe", "dashost.exe",
-  "sppsvc.exe", "hxtsr.exe", "gamebarftserver.exe", "gamebarpresencewriter.exe", "gamingservices.exe", "gamingservicesnet.exe"]);
+  "sppsvc.exe", "hxtsr.exe", "gamebarftserver.exe", "gamebarpresencewriter.exe", "gamingservices.exe", "gamingservicesnet.exe",
+  // #727: trình trợ giúp của driver / Office hay gặp ở máy Con (Dolby, Office, Realtek…) — không phải app Con mở
+  "dax3api.exe", "filecoauth.exe", "rsappui.exe", "sdxhelper.exe"]);
 export function laTienTrinhNenWindows(mucTho: unknown): boolean {
   const m = chuanMuc(mucTho);
   return !!m && TIEN_TRINH_NEN_WIN.has(m.endsWith(".exe") ? m : `${m}.exe`);

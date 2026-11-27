@@ -9,6 +9,8 @@ import { gioDiaPhuong, trongKhung } from "./gio.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { bangTvTb, TEN_VAI } from "./thanh-vien.ts";
 import { soVN } from "./so-sao.ts";
+import { tenAppDep } from "./ten-app.ts";
+import { laTienTrinhNenWindows } from "./luat-app.ts";
 
 // canh_bao_no (15/11, #266): «<Tên> đã nợ quá 1.000 sao» — công tắc «Cảnh báo nợ» trong cài đặt thông báo (tắt ⇒ vẫn có dòng, không đẩy)
 export const NHOM_TB = ["nhiem_vu", "yeu_cau", "qua", "thanh_tich", "ba_me_khac", "canh_bao", "canh_bao_no", "gia_dinh"] as const;
@@ -86,7 +88,7 @@ type CanhBaoRow = { id: string; child_id: string | null; loai: string; muc: MucT
 const xinVay = (c: Record<string, any>) => `xin vay ${c.so_sao ?? c.phut ?? ""} sao${c.muc_dich === "qua" ? " để đổi quà" : ""}`.replace("  ", " ");
 const YC: Record<string, (c: Record<string, any>) => string> = {
   vay_sao: xinVay, them_gio: (c) => (c.vay ? xinVay(c) : `xin thêm ${c.phut ?? ""} phút`.replace("  ", " ")), mo_web: (c) => `xin mở ${c.gia_tri ?? "một trang web"}`,
-  cai_app: (c) => `xin mở ${c.gia_tri ?? "một ứng dụng"}`, ngoai_le: xinVay, ngoai_gio: xinVay,
+  cai_app: (c) => `xin mở ${c.gia_tri ? tenAppDep(c.gia_tri, c.ten_app) : "một ứng dụng"}`, ngoai_le: xinVay, ngoai_gio: xinVay,
   khac: (c) => (c.gia_tri ? `xin: ${c.gia_tri}` : "gửi một yêu cầu"),
 };
 const so = soVN;
@@ -101,7 +103,8 @@ function tuSuKien(e: SuKien): Omit<ThongBao, "moi" | "day" | "imLang" | "so" | "
     case "nop_nhiem_vu": return g("nhiem_vu", `${con} vừa nộp «${c.ten ?? "nhiệm vụ"}»`, c.nghi_trung ? "Ảnh giống ảnh cũ — Ba Mẹ xem kỹ nhé" : "Chờ Ba Mẹ duyệt", "/cho-duyet", c.nghi_trung ? "chu_y" : "thong_tin");
     case "bat_dau_nhiem_vu": return g("nhiem_vu", `${con} đã nhận «${c.ten ?? "nhiệm vụ"}»`, "Đang làm, nộp xong sẽ báo Ba Mẹ", veCon);
     case "phan_hoi_con": return g("nhiem_vu", `${con} nhắn lại Ba Mẹ`, `«${String(c.noi_dung ?? "").slice(0, 80)}»`, veCon);
-    case "gui_yeu_cau": return g("yeu_cau", `${con} ${(YC[c.loai] ?? YC.khac)(c)}`,
+    case "gui_yeu_cau": if (c.loai === "cai_app" && laTienTrinhNenWindows(c.gia_tri)) return null;   // #727: lời xin của tiến trình nền không báo
+      return g("yeu_cau", `${con} ${(YC[c.loai] ?? YC.khac)(c)}`,
       c.loai === "mo_web" || c.loai === "cai_app" ? "Chưa có trong danh sách · Tính phút, Không tính phút hoặc Bỏ qua" : "Đồng ý hoặc từ chối trong Chờ duyệt", "/cho-duyet");
     case "doi_qua": return g("qua", `${con} đổi «${c.ten ?? "phần thưởng"}»`, `${c.diem ?? 0} sao${c.cho_xac_nhan ? " · chờ Ba Mẹ trao quà" : ""}`, "/diem-qua");
     case "dung_voucher": return g("qua", `Phiếu quà ${tien(Number(c.menh_gia ?? 0))} đã dùng ở AiiCafe`, c.ma ? `Mã ${c.ma}` : "Quầy đã quét", "/quy");
