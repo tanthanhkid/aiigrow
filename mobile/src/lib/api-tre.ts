@@ -134,12 +134,12 @@ export async function guiXinMo(b: { loai: "mo_web" | "cai_app" | "khac"; muc: st
 }
 
 /** «Xin Ba Mẹ cho vay sao» (POST kid/xin-vay). Máy chủ cũ (404) ⇒ lời xin «thêm giờ» cũ cùng số (Ba Mẹ đồng ý = cho vay ở máy chủ mới). */
-export async function xinVay(b: { soSao: number; mucDich?: "choi" | "qua"; quaId?: string; loiNhan?: string }): Promise<{ id: string }> {
+export async function xinVay(b: { soSao: number; mucDich?: "choi" | "qua"; quaId?: string; loiNhan?: string; khoa?: string }): Promise<{ id: string }> {
   try {
     return await kid.goi<{ id: string }>("xin-vay", b);
   } catch (e) {
     if (!(e instanceof LoiApi) || e.status !== 404) throw e;
-    return kid.goi<{ id: string }>("yeu-cau", { loai: "them_gio", phut: b.soSao, lyDo: b.loiNhan ?? "" });
+    return kid.goi<{ id: string }>("yeu-cau", { loai: "them_gio", phut: b.soSao, lyDo: b.loiNhan ?? "", khoa: b.khoa });
   }
 }
 /** Quà đã Ba Mẹ trao (GET vi-qua › daTrao). */
