@@ -761,6 +761,7 @@ internal sealed class TrayContext : ApplicationContext
         {
             var fg = await Task.Run(UI.Foreground);   // mở tệp exe lấy tên ⇒ không trên luồng UI
             var tieuDe = UI.TieuDeTrinhDuyet(fg.Id);   // #771: tab đang xem (chỉ trình duyệt)
+            _tieuDeTab = tieuDe;
             var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Foreground, AppId = fg.Id, AppName = fg.Name, TieuDe = tieuDe });
             if (!res.Ok || res.State == null)
             {
@@ -811,6 +812,7 @@ internal sealed class TrayContext : ApplicationContext
             HandleWeb();
             HandleLock();
             HandleBlocked();
+            HandleTrangChan();
             HandleWarnings();
             BaoBeDoiTrangThaiXet();
             _ = TheoDoiVayAsync();
@@ -982,6 +984,24 @@ internal sealed class TrayContext : ApplicationContext
             if (_app is { IsDisposed: false }) _app.TopMost = false;
             if (_bat.MoKhoa(AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now)) OpenApp(MucApp.NhiemVu, tuBat: true);
         }
+    }
+
+    private string _tieuDeTab = "";
+    private readonly TrangChanWeb _trangChan = new();
+
+    /// <summary>#741: tab tiền cảnh là trang Ba Mẹ chặn (trình duyệt hiện trang lỗi tiếng Anh) ⇒ hộp web tiếng Việt + tên miền + «Xin Ba Mẹ mở».</summary>
+    private void HandleTrangChan()
+    {
+        if (_state.Locked || _state.MoCoi) return;
+        var mien = TrangChanWeb.TimMien(_tieuDeTab, _state.WebChan);
+        if (mien == null || !_trangChan.NenHien(mien, DateTimeOffset.Now)) return;
+        if (_blocked is { IsDisposed: false }) return;
+        var daXin = _daXin.Contains(mien);
+        _blocked = new BlockedForm(mien, mien, boiBaMe: true, _state.Offline, web: true, daXin: daXin);
+        _blocked.VeHomNay += () => OpenApp(MucApp.HomNay);
+        _blocked.NhanBaMe += () => OpenApp(MucApp.TinNhan);
+        _blocked.DaXin += x => _daXin.Add(x);
+        _blocked.Show();
     }
 
     private void HandleBlocked()
