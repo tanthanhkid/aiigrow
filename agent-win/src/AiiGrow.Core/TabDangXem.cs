@@ -35,8 +35,12 @@ public sealed class TabDangXem
         if (giay <= 0 || !LaTrinhDuyet(appId)) return;
         var t = ChuanHoa(tieuDe);
         if (t.Length == 0) return;
-        lock (_khoa) { _giay[(ngay, t)] = (_giay.TryGetValue((ngay, t), out var c) ? c : 0) + giay; }
+        lock (_khoa) { _giay[(ngay, t)] = (_giay.TryGetValue((ngay, t), out var c) ? c : 0) + giay; _tong += giay; }
     }
+
+    private double _tong;
+    /// <summary>#744: tổng giây đã ghi từ lúc dịch vụ chạy (chỉ tăng) — nhịp gửi lịch sử web so hai lần để biết trình duyệt có ở tiền cảnh không.</summary>
+    public double TongGiayGhi { get { lock (_khoa) return _tong; } }
 
     public Dictionary<(string Ngay, string TieuDe), double> ChupAnh()
     {
