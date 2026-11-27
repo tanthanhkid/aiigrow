@@ -65,7 +65,7 @@ public static class ManChonTenView
     public const string NutChonKhac = "Chọn bé khác";
     public const string TieuBaMe = "Ba Mẹ nhập mã";
     public const string PhuBaMe = "Mở app AiiGrow của Ba Mẹ → Mã mở máy";
-    public const string GhiMa = "Mã 6 số · đổi sau 10 phút · gõ bằng bàn phím";
+    public const string GhiMa = "Mã 6 số · đổi mỗi 5 phút · gõ bằng bàn phím";
     public const string KhongTru = "Ba Mẹ dùng thì không trừ sao của con";
     public const string NutMo = "Mở máy cho Ba Mẹ";
     public const string ChuaDatPin = "Ba Mẹ chưa đặt PIN cho con — nhờ Ba Mẹ đặt trong app nhé.";

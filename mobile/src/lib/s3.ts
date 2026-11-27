@@ -140,10 +140,10 @@ export function cauHanVoucher(hetHan: string, now = new Date()) {
 export const PHUT_MO = [15, 30, 60] as const;
 /** «731594» ⇒ ["7","3","1","5","9","4"] (ô số to, cách ở giữa). */
 export const chiaMa = (ma: string) => ma.replace(/\D/g, "").split("");
-/** «Mã đổi sau 4 phút» — làm tròn lên phút; dưới 1 phút ⇒ «Mã đổi sau 40 giây». */
+/** #813: một thời hạn cho mọi nơi — «Mã đổi mỗi 5 phút» (server/lib/ma-offline.ts › BUOC_GIAY) kèm còn bao lâu: «· còn 4 phút» / «· còn 40 giây». */
 export function cauDoiSau(giay: number) {
   const g = Math.max(0, Math.round(giay));
-  return g < 60 ? `Mã đổi sau ${g} giây` : `Mã đổi sau ${Math.ceil(g / 60)} phút`;
+  return g < 60 ? `Mã đổi mỗi 5 phút · còn ${g} giây` : `Mã đổi mỗi 5 phút · còn ${Math.ceil(g / 60)} phút`;
 }
 /** Lời gửi kèm mã cho con (Zalo / Tin nhắn …). */
 export const loiGuiMa = (ma: string, phut: number, ten: string | null, may: string | null) =>

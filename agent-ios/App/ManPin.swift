@@ -170,7 +170,7 @@ struct ManBaMeNhapMa: View {
       }
       .theDiu(dem: 12)
       OSo(so: ma, dai: 6, loi: cau != nil)
-      Text(cau ?? "Mã 6 số · đổi sau 10 phút").font(Diu.t2).foregroundColor(cau == nil ? Diu.chu3 : Diu.doChu).multilineTextAlignment(.center)
+      Text(cau ?? "Mã 6 số · đổi mỗi 5 phút").font(Diu.t2).foregroundColor(cau == nil ? Diu.chu3 : Diu.doChu).multilineTextAlignment(.center)
       BanPhimSo(so: $ma, toiDa: 6, tat: m.dangBan)
         .onChange(of: ma) { v in if !v.isEmpty { cau = nil } }
       Button {
