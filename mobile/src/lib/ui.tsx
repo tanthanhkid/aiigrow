@@ -20,6 +20,7 @@ import { BONG, BO_CLAY, HERO, KHOI, KHOI_HERO, MEN } from "./clay";
 import { ICON_3D, co3D } from "./icon-3d";
 import { LopMen, NhanMen, vaoLanLuot } from "./chuyen-dong";
 import { bm, LoiApi } from "./api";
+import { HuyYen } from "./xac-nhan-tuoi";
 import { useAnhCon } from "./anh-con";
 
 export { M, F, BO };
@@ -688,7 +689,7 @@ export function useLam() {
           await fn();
           return true;
         } catch (e) {
-          if (!conMo.current) return false;
+          if (!conMo.current || e instanceof HuyYen) return false;   // #751: Ba Mẹ chọn «Thôi» ở hộp cảnh báo 13+ — không phải lỗi
           if (laMatMang(e) && o?.hangDoi && Date.now() < het) {
             setLoi("Mất kết nối mạng — chưa gửi được. AiiGrow đang chờ mạng và sẽ tự gửi lại; đừng thoát màn này.");
             await new Promise((r) => setTimeout(r, CHO_MANG_MS));
