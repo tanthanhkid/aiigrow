@@ -43,6 +43,7 @@ export async function viQuaMay(con: string, now = new Date()) {
     sao: ch.sao, saoGiu: ch.saoGiu,
     qua,
     phieuCho: vi.phieu.map((p) => ({ id: p.id, ten: p.ten, loai: p.loai, sao: p.diem, doiLuc: iso(p.created_at) })),
+    daTuChoi: vi.daTuChoi.map((p) => ({ id: p.id, ten: p.ten, loai: p.loai, sao: p.diem, luc: iso(p.xu_ly_luc) })),
     daTrao: got.map((p) => { const v = vPhieu.get(p.id); const hien = v && ["da_phat_hanh", "da_dung", "het_han"].includes(v.trang_thai); return { id: p.id, ten: p.ten, loai: p.loai, sao: p.diem, traoLuc: iso(p.xu_ly_luc), voucher: hien ? voucherRa(v!) : null }; }),
     voucher: vi.voucher.map((v) => ({ ten: v.ten, ...voucherRa(v), dungLuc: iso(v.dung_luc) })),
     huyHieu: huy.filter((h) => HUY_HIEU[h.ma]).map((h) => ({ ma: h.ma, ten: HUY_HIEU[h.ma].ten, moTa: HUY_HIEU[h.ma].mo_ta, datLuc: iso(h.dat_luc) })),

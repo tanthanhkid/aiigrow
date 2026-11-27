@@ -73,7 +73,7 @@ export default function ViQuaTre() {
         {no > 0 ? <NutD chu="Làm nhiệm vụ trả nợ" loai="phu" ic="sao" nho bam={() => router.push("/tre/nhiem-vu")} /> : null}
       </TheD>
       <ChuD kieu="den" co={15} style={{ marginTop: 4 }}>Quà của con</ChuD>
-      {!d.vi.phieu.length && !vouchers.length && !daTrao.length ? <ChuD co={14} mau={D.chu2}>Chưa có quà nào — đổi quà trong «Xem quà đổi được» nhé.</ChuD> : null}
+      {!d.vi.phieu.length && !vouchers.length && !daTrao.length && !(d.vi.daTuChoi ?? []).length ? <ChuD co={14} mau={D.chu2}>Chưa có quà nào — đổi quà trong «Xem quà đổi được» nhé.</ChuD> : null}
       {d.vi.phieu.map((p) => (
         <DongD key={p.id} ic={p.loai === "voucher" ? "the_qua" : "qua"} tieu={tenVoucher(p.ten)} phu={`Đổi ${ngayCua(p.created_at).slice(0, 5)} · đang giữ ${p.diem} sao`}
           nhan={<PillD chu="⏳ Chờ Ba Mẹ trao" loai="cho" />} />
@@ -85,6 +85,10 @@ export default function ViQuaTre() {
       ))}
       {daTrao.slice(0, 5).map((p) => (
         <DongD key={p.id} ic="qua" tieu={tenVoucher(p.ten)} phu={`Ba Mẹ đã trao ${ngayCua(p.xu_ly_luc).slice(0, 5)}`} nhan={<PillD chu="Đã trao" loai="xanh" ic="tick" />} />
+      ))}
+      {(d.vi.daTuChoi ?? []).map((p) => (
+        <DongD key={p.id} ic="qua" tieu={tenVoucher(p.ten)} phu={`Ba Mẹ đã từ chối ${ngayCua(p.xu_ly_luc).slice(0, 5)}${p.diem > 0 ? ` · đã hoàn ${p.diem} sao` : ""}`}
+          nhan={<PillD chu="Đã từ chối" loai="cho" />} />
       ))}
       <DongD ic="ngoi_sao_nho" tieu="Huy hiệu" phu={coHH ? `Có ${coHH} · làm nhiệm vụ để có thêm` : "Làm nhiệm vụ để có huy hiệu"} bam={() => router.push("/tre/huy-hieu")} />
       <NutD chu="Xem quà đổi được" loai="phu" ic="qua" bam={() => router.push("/tre/cua-hang")} />

@@ -4,7 +4,7 @@
 //    «Thêm · Tính phút» · «Thêm · Không tính phút» · «Bỏ qua» (lib/hom-nay-xin)
 //  • Cần để ý · n — máy chưa được bảo vệ đủ (tuan-thu?nhe=1) → /may/<id>
 //  • Con đã nộp · n — «Duyệt cả n · +S sao» (duyet-hang-loat) + từng việc → màn bằng chứng /duyet/<id>
-//  • Quà chờ trao — «Trao quà» ⇒ bảng them-5otw85h4 (lib/trao-qua: Đã trao trừ sao / Huỷ & hoàn sao / voucher QR + hạn)
+//  • Quà chờ trao — «Trao quà» ⇒ bảng them-5otw85h4 (lib/trao-qua: Đã trao trừ sao / Từ chối & hoàn sao / voucher QR + hạn)
 //  • Đã xử lý hôm nay — việc tự cộng sao (AiiRob tự chấm / tự cộng sao)
 // Trống ⇒ «Duyệt hết rồi!» + «Thêm việc cho <Con>» · «Về Trang chủ» (thiết kế 14/11 bm-viec-duyet/16). Mất mạng ⇒ khung ChoTai (Grow chờ, tự tải lại).
 import { useState } from "react";

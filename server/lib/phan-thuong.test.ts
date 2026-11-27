@@ -13,7 +13,7 @@ const { taoNha } = await import("./test-fixtures/nha.ts");
 const loi = async (p: Promise<unknown>, ma: string) => assert.rejects(p, (e: { ma?: string }) => e.ma === ma);
 const THU4 = new Date("2026-10-21T11:00:00Z"), THU7 = new Date("2026-10-24T03:00:00Z");     // 18:00 thứ Tư / 10:00 thứ Bảy giờ VN
 
-test("BRD 6.5: nạp quỹ 200.000đ, Con đổi phiếu 50k ⇒ trừ 500 điểm, QR trong ví, quỹ còn 150.000đ; quét tại quầy một lần", async () => {
+test("BRD 6.5: nạp quỹ 200.000đ, Con đổi phiếu 50k ⇒ trừ 500 điểm, QR trong vq, quỹ còn 150.000đ; quét tại quầy một lần", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Ken" });
   await v.dieuChinhTay(fam, con, 700, "Điểm thử", bm);
@@ -116,4 +116,29 @@ test("phiếu chờ tính vào homNay.phieuCho của từng Con", async () => {
   assert.equal((await homNay(fam, con)).phieuCho, 0);
   await pt.doiQua(con, qua, THU4);
   assert.equal((await homNay(fam, con)).phieuCho, 1);
+});
+
+test("#757: Ba Mẹ từ chối quà chờ trao ⇒ hoàn đúng sao + tồn kho, con thấy daTuChoi; không từ chối lại, không từ chối nhà khác", async () => {
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Mi" });
+  await v.dieuChinhTay(fam, con, 300, "Điểm thử", bm);
+  const lego = await pt.taoQua(fam, { ten: "Bộ Lego", loai: "qua", diem: 200, ton_kho: 1 });
+  const r = await pt.doiQua(con, lego, THU4);
+  assert.equal(await v.soDu(con), 100);
+  const khac = await taoNha();
+  await loi(pt.huyPhieu(khac.fam, r.phieu, khac.bm), "khong_thay");
+  const kq = await pt.huyPhieu(fam, r.phieu, bm);
+  assert.equal(kq.hoan, 200);
+  assert.equal(await v.soDu(con), 300);
+  const vq = await pt.viQua(con);
+  assert.equal(vq.phieu.length, 0);
+  assert.deepEqual(vq.daTuChoi.map((x) => [x.id, x.diem]), [[r.phieu, 200]]);
+  assert.ok((await pt.cuaHang(con)).qua.some((x) => x.id === lego), "trả tồn kho");
+  await loi(pt.huyPhieu(fam, r.phieu, bm), "da_xu_ly");
+  assert.equal(await v.soDu(con), 300, "từ chối lần hai không hoàn thêm");
+  // quà bị xoá khỏi bảng giá (huỷ tự động) không hiện là «Ba Mẹ từ chối»
+  const q2 = await pt.taoQua(fam, { ten: "Gấu bông", loai: "qua", diem: 50 });
+  await pt.doiQua(con, q2, THU4);
+  await (await import("./qua-bang-gia.ts")).xoaQua(fam, q2, bm);
+  assert.deepEqual((await pt.viQua(con)).daTuChoi.map((x) => x.ten), ["Bộ Lego"]);
 });

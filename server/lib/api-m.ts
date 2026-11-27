@@ -360,7 +360,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     // 14/11 «Trao luôn cho <Con>» (quà Ba Mẹ mua): trao ngay, không trừ sao — {con} ⇒ {phieu, trangThai, voucher?, phut?, saoTru: 0} (phan-thuong.ts › traoLuon)
     if (p[0] === "qua" && p[1] && p[2] === "trao-luon" && p.length === 3 && post) return json({ ok: true, ...(await traoLuon(fam, p[1], s(b.con, 40), bm.id)) });
     if (p[0] === "phieu" && p[1] && p[2] === "xac-nhan" && post) return json({ ok: true, ...(await pt.xacNhanPhieu(fam, p[1], bm.id)) });   // 06/11: kèm voucher {ma, qr, hetHan}
-    if (p[0] === "phieu" && p[1] && p[2] === "huy" && post) { await pt.huyPhieu(fam, p[1], bm.id); return json({ ok: true }); }
+    if (p[0] === "phieu" && p[1] && p[2] === "huy" && post) { const r = await pt.huyPhieu(fam, p[1], bm.id); return json({ ok: true, hoan: r.hoan }); }
     if (d === "phieu" && get)
       return json({ ds: await pt.dsPhieuCho(fam) });
     if (d === "quy" && get)
