@@ -31,6 +31,10 @@ import vn.aiilab.aiigrow.maycon.logic.docBanMoi
 import vn.aiilab.aiigrow.maycon.logic.khopSha256
 import vn.aiilab.aiigrow.maycon.logic.loiApk
 import vn.aiilab.aiigrow.maycon.logic.nenHoiCai
+import vn.aiilab.aiigrow.maycon.logic.chiTietCapNhatLoi
+import vn.aiilab.aiigrow.maycon.logic.lanLoiMoi
+import vn.aiilab.aiigrow.maycon.logic.maSuKienCapNhatLoi
+import vn.aiilab.aiigrow.maycon.logic.nenBaoBaMeLoi
 import vn.aiilab.aiigrow.maycon.logic.nghiSauLoiCaiMs
 import vn.aiilab.aiigrow.maycon.logic.CAI_LOI_DUNG_LUONG
 import vn.aiilab.aiigrow.maycon.logic.urlDauHopLe
