@@ -22,7 +22,7 @@ export default function XinVay() {
   const [chon, setChon] = useState<number | null>(xinTheo > 0 && xinTheo <= 1000 ? xinTheo : null);
   const [nhan, setNhan] = useState("");
   const { dangChay, loi: loiLam, lam } = useLam();
-  const [khoa] = useState(() => `xv${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`);   // một khoá cho mọi lần gửi lại của cùng lần bấm
+  const khoa = useRef<string | null>(null);   // khoá một lần bấm; đổi số sao / lời nhắn thì sinh khoá mới (lần gửi khác nội dung)
   const daBam = useRef(false);   // #758: khoá đồng bộ — bấm đúp trước khi nút kịp tối cũng chỉ một lời xin
   if (!d) return <ManD lui={true} tieu="Xin Ba Mẹ cho vay sao"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
   if (d.khoa) return <Redirect href="/tre/gio-ngu?ly=ba_me_khoa" />;
@@ -32,10 +32,11 @@ export default function XinVay() {
   const xin = () => {
     if (daBam.current) return;
     daBam.current = true;
+    khoa.current ??= `xv${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
     return lam(async () => {
-    const r = await xinVay({ soSao: soVay, mucDich: laQua ? "qua" : "choi", ...(laQua && p.quaId ? { quaId: p.quaId } : {}), loiNhan: nhan.trim(), khoa });
+    const r = await xinVay({ soSao: soVay, mucDich: laQua ? "qua" : "choi", ...(laQua && p.quaId ? { quaId: p.quaId } : {}), loiNhan: nhan.trim(), khoa: khoa.current ?? undefined });
     router.replace(`/tre/yeu-cau?moi=${r.id}`);
-  }, { hangDoi: true }).then((ok) => { if (!ok) daBam.current = false; });   // lỗi ⇒ cho bấm lại; thành công ⇒ giữ khoá tới khi rời màn
+  }, { hangDoi: true }).then((ok) => { if (!ok) { daBam.current = false; khoa.current = null; } else setTimeout(() => { daBam.current = false; }, 2000); });   // lỗi ⇒ cho bấm lại; thành công ⇒ giữ khoá tới khi rời màn
   };
   const am = d.no > 0 && d.hetSao;
   return (
@@ -55,11 +56,11 @@ export default function XinVay() {
       </TheD>
       {laQua && p.ten ? <ChuD kieu="rat" co={14.5} mau={D.chu2}>{`Để đổi ${p.ten}`}</ChuD> : null}
       <ChuD kieu="den" co={15}>Con xin vay</ChuD>
-      <ChonD nhan="Con xin vay bao nhiêu sao" ds={muc.map((x) => ({ gia: x, chu: `${soVN(x)} sao` }))} gia={soVay} doi={setChon} />
+      <ChonD nhan="Con xin vay bao nhiêu sao" ds={muc.map((x) => ({ gia: x, chu: `${soVN(x)} sao` }))} gia={soVay} doi={(x) => { khoa.current = null; setChon(x); }} />
       <ChuD kieu="rat" co={14} mau={D.xanhD}>{cauVay(soVay, d.no)}</ChuD>
       <TheD mong lom>
         <ChuD kieu="rat" co={13} mau={D.chu2}>Nhắn Ba Mẹ (không bắt buộc)</ChuD>
-        <TextInput value={nhan} onChangeText={setNhan} maxLength={100} accessibilityLabel="Nhắn Ba Mẹ" placeholder="vd Con làm nốt bài với bạn ạ"
+        <TextInput value={nhan} onChangeText={(x) => { khoa.current = null; setNhan(x); }} maxLength={100} accessibilityLabel="Nhắn Ba Mẹ" placeholder="vd Con làm nốt bài với bạn ạ"
           placeholderTextColor={D.chu3} style={{ fontFamily: FD.dam, fontSize: 16, color: D.chu, minHeight: 28, padding: 0 }} />
       </TheD>
       <TheD mong style={{ backgroundColor: NO.nen, borderColor: NO.vien }}>

@@ -44,6 +44,9 @@ test("#758: bấm đúp / gửi lại (kể cả sau > 5 giây) ⇒ cùng một 
   // bấm lần mới (khoá mới) ⇒ lời xin mới
   const f = await yc.guiYeuCau(con, may, { loai: "vay_sao", soSao: 15, mucDich: "choi", khoa: "lan-bam-0003-abcdef" }, new Date(t0.getTime() + 50_000));
   assert.notEqual(f.id, a.id);
+  // cùng khoá nhưng nội dung khác (đổi số sao) ⇒ lời xin mới, không trả lời xin cũ
+  const h = await yc.guiYeuCau(con, may, { loai: "vay_sao", soSao: 45, mucDich: "choi", khoa: "lan-bam-0003-abcdef" }, new Date(t0.getTime() + 55_000));
+  assert.notEqual(h.id, f.id);
   // qua API kid/xin-vay cũng nhận khoá
   const { xuLyConSao } = await import("./api-sao.ts");
   const goi = async () => (await (await xuLyConSao(con, null, new Request("http://x/api/kid/xin-vay", { method: "POST", headers: { "content-type": "application/json" },

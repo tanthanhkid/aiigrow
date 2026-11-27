@@ -139,7 +139,7 @@ export async function xinVay(b: { soSao: number; mucDich?: "choi" | "qua"; quaId
     return await kid.goi<{ id: string }>("xin-vay", b);
   } catch (e) {
     if (!(e instanceof LoiApi) || e.status !== 404) throw e;
-    return kid.goi<{ id: string }>("yeu-cau", { loai: "them_gio", phut: b.soSao, lyDo: b.loiNhan ?? "" });
+    return kid.goi<{ id: string }>("yeu-cau", { loai: "them_gio", phut: b.soSao, lyDo: b.loiNhan ?? "", khoa: b.khoa });
   }
 }
 /** Quà đã Ba Mẹ trao (GET vi-qua › daTrao). */

@@ -77,9 +77,16 @@ export async function guiYeuCau(con: string, mayId: string | null,
     if (trung) return { id: trung.id, trang_thai: "cho", daCo: true, ...(laVay ? { soSao, mucDich } : {}) };
     // #758: gửi lại cùng một lần bấm (bấm đúp, mất mạng rồi tự gửi lại khi lời xin đầu đã tới) — máy gửi kèm `khoa` riêng cho mỗi lần bấm ⇒ trả lại chính
     // lời xin đó (kể cả đã được trả lời), không tạo thêm: Ba Mẹ thấy một lời xin, «cho vay» một lần, Con nhận một thông báo
+    // chỉ khi cùng nội dung (loại, số sao, mục đích, quà) và chưa huỷ / hết hạn; khác ⇒ lời xin mới, không giữ khoá (chỉ lời xin đầu giữ khoá nên không đụng chỉ mục duy nhất)
+    let khoaMoi = khoa;
     if (khoa) {
-      const cu = (await t<{ id: string; trang_thai: string }>(`select id, trang_thai from requests where child_id = $1 and khoa_gui = $2 limit 1`, [con, khoa]))[0];
-      if (cu) return { id: cu.id, trang_thai: cu.trang_thai, daCo: true, ...(laVay ? { soSao, mucDich } : {}) };
+      const cu = (await t<{ id: string; trang_thai: string; loai: string; phut: number | null; muc_dich: string | null; gia_tri: string | null }>(
+        `select id, trang_thai, loai, phut, muc_dich, gia_tri from requests where child_id = $1 and khoa_gui = $2 limit 1`, [con, khoa]))[0];
+      if (cu) {
+        if (cu.loai === loai && (cu.phut ?? null) === (soSao ?? null) && (cu.muc_dich ?? null) === (mucDich ?? null) && (cu.gia_tri ?? null) === (giaTri ?? null)
+          && cu.trang_thai !== "huy" && cu.trang_thai !== "het_han") return { id: cu.id, trang_thai: cu.trang_thai, daCo: true, ...(laVay ? { soSao, mucDich } : {}) };
+        khoaMoi = null;
+      }
     }
     if (loai === "cai_app" || loai === "mo_web") {
       const cho = (await t<{ id: string }>(`select id from requests where child_id = $1 and loai = $2 and trang_thai = 'cho' and het_han > $4 and gia_tri is not distinct from $3 limit 1`, [con, loai, giaTri, now]))[0];
@@ -91,7 +98,7 @@ export async function guiYeuCau(con: string, mayId: string | null,
     // phut = số sao xin vay (1 sao = 1 phút) — cột cũ giữ để máy cũ đọc «xin thêm 20 phút»
     await t(`insert into requests(id, child_id, device_id, loai, phut, gia_tri, ly_do, het_han, created_at, muc_dich, theo_ten, ten_app, khoa_gui) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
       [id, con, mayId, loai, soSao, giaTri, lyDo, new Date(now.getTime() + gio * 3600_000), now, mucDich, loai === "cai_app" ? theoTen : null,
-        loai === "cai_app" && typeof b.tenApp === "string" && b.tenApp.trim() ? b.tenApp.trim().slice(0, 60) : null, khoa]);
+        loai === "cai_app" && typeof b.tenApp === "string" && b.tenApp.trim() ? b.tenApp.trim().slice(0, 60) : null, khoaMoi]);
     await ghiSuKien(fam, "gui_yeu_cau", { loai, phut: soSao, gia_tri: giaTri, ...(laVay ? { vay: true, so_sao: soSao, muc_dich: mucDich } : {}) }, { con, may: mayId }, t);
     return { id, trang_thai: "cho", ...(laVay ? { soSao, mucDich } : {}) };
   });
