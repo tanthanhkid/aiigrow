@@ -142,6 +142,9 @@ internal static class ChupMain
         await Mot("khoa-mat-mang-da-luu", () => ManHop("khoa-mat-mang-da-luu", () => HopDaLuu.Hop(XinVayView.DaLuu, XinVayView.Nut(15), 1, ManKhoaView.VeManKhoa)));
         await Mot("xin-vay-da-luu", () => ManHop("xin-vay-da-luu", () => HopXinVay(false, f => { DatTruong(f, "_soDaXin", 15); Goi(f, "VeDaLuu", 1); })));
         await Mot("nhac-5-sao", () => ManHop("nhac-5-sao", () => new NhacSaoForm(5, "Roblox")));
+        await Mot("bao-be-khoa-may", () => ManHop("bao-be-khoa-may", () => { var b = BaoBeDoiTrangThai.KhoaMay(LockReasons.Khoa); return new HopThongBao(b.Icon, b.Tieu, b.Phu, "Đã hiểu", true); }));
+        await Mot("bao-be-het-gio", () => ManHop("bao-be-het-gio", () => { var b = BaoBeDoiTrangThai.HetGioChoi(GioiHanMay.HetGioNgay, null); return new HopThongBao(b.Icon, b.Tieu, b.Phu, "Đã hiểu", true); }));
+        await Mot("bao-be-them-web", () => ManHop("bao-be-them-web", () => { var b = BaoBeDoiTrangThai.Xet(new TrangThaiBaoBe(false, null, null, null, new string[0], new string[0]), new TrangThaiBaoBe(false, null, null, null, new[] { "youtube.com" }, new string[0]))[0]; return new HopThongBao(b.Icon, b.Tieu, b.Phu, "Đã hiểu", true); }));
         await Mot("hoi-aiigrow", () => ManHop("hoi-aiigrow", () => new HoiAiiGrowForm()));
         await Mot("cap-nhat-khay-co-ban-moi", () => ManHop("cap-nhat-khay-co-ban-moi", () => { var f = new CapNhatKhayForm(kiemNgay: false); DatXong(f, "VeCoBanMoi", "0.2.10"); return f; }));
         await Mot("cap-nhat-khay-moi-nhat", () => ManHop("cap-nhat-khay-moi-nhat", () => { var f = new CapNhatKhayForm(kiemNgay: false); DatXong(f, "VeMoiNhat", "0.2.10"); return f; }));

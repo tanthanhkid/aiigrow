@@ -92,6 +92,9 @@ public sealed class TrayState
     /// <summary>0.2.6: tăng mỗi lần dịch vụ đổi / gỡ luật web trong hive của Con. Khay (chạy trong phiên Con) thấy đổi ⇒ gọi RefreshPolicyEx(user) để trình duyệt
     /// đọc lại ngay và nhắc «mở lại trình duyệt nếu luật mới chưa áp» (dịch vụ SYSTEM không làm mới được chính sách của người dùng khác).</summary>
     public int WebRev { get; set; }
+    /// <summary>#822: trang web Ba Mẹ chặn / cho phép lúc này (null = dịch vụ chưa biết hoặc không áp luật web) — khay so với lượt trước để báo bé khi Ba Mẹ thêm web.</summary>
+    public List<string>? WebChan { get; set; }
+    public List<string>? WebCho { get; set; }
     /// <summary>0.2.6: các app / trang Giải trí Ba Mẹ đã xếp (chữ thường) — Grow liệt kê cho nút «Chơi bằng sao» (máy chủ: windows.playChoices).</summary>
     public List<string> PlayChoices { get; set; } = new();
     /// <summary>0.2.6 (BUG-007): khay đang chạy trong phiên của tài khoản Con? false ⇒ khay (phiên Ba Mẹ / tài khoản quản trị) tự thoát, không hiện biểu tượng / màn chặn.

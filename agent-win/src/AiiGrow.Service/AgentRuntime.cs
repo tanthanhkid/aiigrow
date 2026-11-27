@@ -70,6 +70,8 @@ public sealed class AgentRuntime
     /// <summary>0.2.6: tăng khi luật web trong hive của Con đổi/gỡ — khay thấy đổi thì làm mới chính sách trình duyệt trong phiên Con.</summary>
     public int WebRev => Volatile.Read(ref _webRev);
     public void WebDaDoi() => Interlocked.Increment(ref _webRev);
+    /// <summary>#822: danh sách web chặn / cho phép luật đang áp (WebGuardWorker đặt mỗi vòng; null = không áp luật web) — khay báo bé khi Ba Mẹ thêm web.</summary>
+    public volatile IReadOnlyList<string>? WebChanDangAp, WebChoDangAp;
     public int ChildSessionId { get; set; } = -1;
     /// <summary>16/11 (#307): mục → tên hiển thị theo lần quét danh sách app gần nhất (DanhSachAppWorker) — khay hiện «Từ điển», không «Tudien».</summary>
     public volatile IReadOnlyDictionary<string, string>? TenAppMay;
@@ -878,6 +880,7 @@ public sealed class AgentRuntime
             {
                 Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now),
                 OfflineSince = _offlineSince, LastSyncAt = _lastSyncAt, TokenRejected = TokenInvalid, WebRev = WebRev,
+                WebChan = WebChanDangAp?.ToList(), WebCho = WebChoDangAp?.ToList(),
                 XinChoMang = Config?.XinCho.Items.Count ?? 0,
                 XinBo = Config?.XinBo.ConHan(now) ?? new(),
                 BaiChoMang = Math.Max(0, SoBaiCho < 0 ? (SoBaiCho = DemBaiCho()) : SoBaiCho),
