@@ -135,7 +135,7 @@ internal sealed class BlockedForm : Form
         {
             case Buoc.ChuaMo when _web:
                 // them-dnm1pzqs: «Trang này chưa có trong danh sách» · Xin Ba Mẹ mở · Về trang chính
-                _flow.Controls.Add(KhoiCon.Dau("web", KhoiCon.Mau.Ngoc, ManChanView.WebTieu, null, _w));
+                _flow.Controls.Add(KhoiCon.Dau("web", KhoiCon.Mau.Ngoc, ManChanView.WebTieu, LaTrangWeb(_ten) ? _ten : null, _w));
                 _flow.Controls.Add(KhoiCon.RobNoi("cho", ManChanView.WebVui1, ManChanView.WebVui2, _w));
                 if (ManChanView.CoNutXin(_appId))
                 {
