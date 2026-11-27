@@ -574,7 +574,8 @@ internal sealed class SetupForm : Form
         }
         var toi = SidDangDung();
         // Gợi ý: máy đã có tài khoản giới hạn (không phải tài khoản đang dùng) ⇒ chắc là của con; không thì tạo mới.
-        HienTaiKhoan(_accounts.Any(a => !a.IsAdmin && a.Sid != toi) ? 1 : 2);
+        var coSan = _accounts.FirstOrDefault(a => !a.IsAdmin && a.Sid != toi);
+        HienTaiKhoan(coSan != null ? 1 : 2);
     }
 
     /// <summary><paramref name="cach"/> 1 = con đã có tài khoản riêng (danh sách), 2 = tạo tài khoản mới.</summary>
@@ -589,7 +590,7 @@ internal sealed class SetupForm : Form
         var toi = SidDangDung();
         X(_body, 36, 72, "Các con mở máy bằng tài khoản nào?", Kieu.H);
         // 06/11 (L13 — con-cai-win 03): MỘT tài khoản Windows giới hạn dùng chung, AiiGrow nhận từng bé bằng tên + PIN
-        X(_body, 38, 112, "Các con dùng chung 1 tài khoản giới hạn. AiiGrow nhận từng bé bằng tên + PIN.", Kieu.P);
+        X(_body, 38, 112, "Các con dùng chung 1 tài khoản trên máy này. Mỗi bé chọn tên của mình khi mở máy.", Kieu.P);
         // Tài khoản đang dùng (người cài — Ba Mẹ) lên cuối, mờ, không chọn được.
         var ds = _accounts.OrderBy(a => a.Sid == toi).ThenBy(a => a.IsAdmin).ToList();
         var cao = 96 + Math.Max(1, ds.Count) * 52 + 14;
@@ -598,6 +599,7 @@ internal sealed class SetupForm : Form
         X(the, 128, 176, "Các con đã có tài khoản chung", Kieu.B);
         X(the, 128, 200, "Không cần mỗi bé một tài khoản Windows", Kieu.S);
         if (_child != null && (_child.Sid == toi || ds.All(a => a.Sid != _child.Sid))) _child = null;
+        if (_child == null) _child = ds.FirstOrDefault(a => !a.IsAdmin && a.Sid != toi);   // #777 B5: chọn sẵn tài khoản có sẵn của con
         ClayButton? tiep = null;
         var hang = new List<(ClayCard The, LocalAccount Tk, Label Ten, Label Phu)>();
         void VeChon()
@@ -650,7 +652,7 @@ internal sealed class SetupForm : Form
             h.Controls.Add(cham);
             var ten = X(h, 102, y + 10, a.Name, Kieu.B, 0, la ? Clay.Chu3 : Chu);
             var phu = la ? "bạn đang dùng · toàn quyền, không chọn cho con"
-                : a.IsAdmin ? "toàn quyền · sẽ đổi sang loại giới hạn" : "sẽ là loại giới hạn";
+                : a.IsAdmin ? "tài khoản Ba Mẹ · sẽ chuyển thành tài khoản cho con" : "sẽ là tài khoản chung của các con";
             var lbPhu = X(h, 102 + (int)Math.Ceiling(ten.PreferredWidth / Clay.Scale) + 14, y + 11, phu, Kieu.S, 0, Clay.Chu3);
             if (!la)
             {
@@ -679,7 +681,7 @@ internal sealed class SetupForm : Form
         Vien(the, 56, 230, "cong", mau: "ngoc");
         // 06/11 (L13 — con-cai-win 04): 1 tài khoản chung «con», không mật khẩu Windows (các bé vào bằng tên + PIN của AiiGrow)
         X(the, 128, 236, "Tạo 1 tài khoản chung cho các con", Kieu.B);
-        X(the, 128, 260, "Tài khoản của Ba Mẹ giữ nguyên · các bé vào bằng tên + PIN", Kieu.S);
+        X(the, 128, 260, "Tài khoản của Ba Mẹ giữ nguyên · mỗi bé chọn tên của mình khi mở máy", Kieu.S);
         X(the, 58, 304, "Tên đăng nhập", Kieu.S, 0, Chu2, dam: true);
         X(the, 372, 304, "Đăng nhập Windows", Kieu.S, 0, Chu2, dam: true);
         var ten = new TextBox { Font = PhongChu.Tao(12.75f), MaxLength = 20, Text = TenTaiKhoanChung() };
@@ -1028,6 +1030,7 @@ internal sealed class SetupForm : Form
     {
         // 06/11 (L13 — con-cai-win 12): máy dùng chung cho cả nhà — cài xong máy chuyển sang tài khoản Con và khoá lại, các bé chọn tên + PIN
         Man(6, "Xong", daiNgoc: true);
+        MoKhaySauCai();   // #777 B11: cài xong app tự mở
         var ten = string.IsNullOrWhiteSpace(tenHoSo) ? "con" : tenHoSo!;   // mayRieng chỉ khi có tên (nơi gọi đã chặn), «con» là dự phòng không để null lọt vào chuỗi
         Rob("xong", 24, 84, 250, 330);
         var ph = new ClayIcon { Size = new Size(S(56), S(56)), MauVien = Color.Transparent, Hinh = Net("phao_hoa") ?? Anh3D.Icon("phao_hoa"), Location = ToaDo(_body, 206, 84) };
@@ -1048,9 +1051,22 @@ internal sealed class SetupForm : Form
             X(the, 374, y + 36, phu, Kieu.S, 300);
         }
         X(_body, 36, 556, mayRieng ? $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại." : $"Máy chuyển sang tài khoản {TenHien(child.Name)} và khoá lại: các con chọn tên để vào.", Kieu.S, 650);
+        X(_body, 36, 500, "AiiGrow đã mở sẵn: biểu tượng nằm cạnh đồng hồ. Nếu không thấy, bấm mũi tên ^ rồi kéo biểu tượng ra để ghim.", Kieu.S, 650);
         NutLui(Close, "Để sau");
         // #70 §1: chuyển người dùng (khoá phiên), KHÔNG đăng xuất — Ba Mẹ không mất việc đang mở. Vào tài khoản Con ⇒ AiiGrow hiện «Ai đang dùng máy?».
         NutChinh(mayRieng ? "Khoá máy" : "Mở màn chọn tên", mayRieng ? 200 : 250, () => LockWorkStation());
+    }
+
+    /// <summary>#777 B11: mở khay AiiGrow ngay cho phiên đang cài (explorer.exe ⇒ chạy không nâng quyền như người dùng). Đã chạy rồi thì thôi; lỗi không chặn.</summary>
+    private static void MoKhaySauCai()
+    {
+        try
+        {
+            var tray = Path.Combine(Paths.InstallDir, Paths.TrayExeName);
+            if (File.Exists(tray) && System.Diagnostics.Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Paths.TrayExeName)).Length == 0)
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", "\"" + tray + "\"") { UseShellExecute = false })?.Dispose();
+        }
+        catch { /* không mở được thì Ba Mẹ mở từ menu Start */ }
     }
 
     /// <summary>Tên gợi ý cho tài khoản chung: «treem» (đã có thì «treem2», «treem3»…). #739: KHÔNG dùng «con» — CON là tên thiết bị Windows cấm, không có C:\Users\con.</summary>
