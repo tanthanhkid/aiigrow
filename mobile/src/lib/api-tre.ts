@@ -56,8 +56,9 @@ export function nenMay(): "windows" | "mac" | "ios" | "android" {
 export function laMayTinhWeb(): boolean {
   if (Platform.OS !== "web") return false;
   const nav = globalThis.navigator;
-  if (/android|iphone|ipad|ipod|mobile/i.test(String(nav?.userAgent ?? ""))) return false;
-  return !(nav?.maxTouchPoints > 1);            // iPadOS giả «Macintosh» nhưng có cảm ứng
+  const ua = String(nav?.userAgent ?? "");
+  if (/android|iphone|ipad|ipod|mobile/i.test(ua)) return false;
+  return !(/macintosh/i.test(ua) && nav?.maxTouchPoints > 1);            // iPadOS giả «Macintosh» nhưng có cảm ứng (Mac thật không có)
 }
 
 /** Máy dùng chung (S3 06/11, `GET|POST /api/device/ho-so`): bé trên máy, ai đang dùng, Ba Mẹ đang dùng tới lúc nào. */

@@ -62,7 +62,7 @@ export default function GhepMay() {
     const t = setTimeout(() => setBay(Date.now()), Math.min(...ke) - Date.now() + 50);
     return () => clearTimeout(t);
   }, [hetLuc, moc, bay]);
-  const qr = useMemo(() => (kq ? <MaQr noiDung={kq.qr} co={150} /> : <View style={{ width: 150, height: 150 }} />), [kq]);
+  const qr = useMemo(() => (may ? null : kq ? <MaQr noiDung={kq.qr} co={150} /> : <View style={{ width: 150, height: 150 }} />), [kq, may]);
   const sangCho = useCallback(() => kq && router.push({ pathname: "/thiet-lap/cho", params: { ma: kq.ma, con: con ?? "", nguon, sau, ...(chung ? { conDs: conDsChu } : {}) } }), [kq, con, nguon, sau, chung, conDsChu]);
   // Máy mở link là tự ghép — đang ở màn này cũng chuyển thẳng sang «Đã ghép». CHỈ khi màn đang hiện: đã sang «Đang chờ» thì màn đó lo.
   useFocusEffect(useCallback(() => {
