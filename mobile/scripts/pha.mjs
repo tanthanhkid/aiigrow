@@ -974,6 +974,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-web", "/web/c1", "Thêm trang web cho"),
     // đúng ca bàn bm2-web: con đang xin mở một trang web (tiktok.com)
     M("bm-web (con xin web)", "/web/c1", "chưa có trong danh sách được mở", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { dangXin: [{ ...XIN_YT, id: "y6", loai: "mo_web", kieu: "web", muc: "tiktok.com", ten: "tiktok.com" }] }) } }),
+    M("bm-web (luôn mở theo hệ thống · #752)", "/web/c1", "teams.microsoft.com", { kb: { "GET con/c1/web": { ...coBan["GET con/c1/web"], heThong: ["classroom.google.com", "teams.microsoft.com", "zoom.us"] } } }),
     M("bm-web-trang", "/web/trang?con=c1&ten=youtube.com", "youtube.com có tính phút không?"),
     M("bm-web-them", "/web/them?con=c1", "Thêm web cho"),
     // đúng ca bàn them-yzl99l3y: đã gõ «tiktok.com», chạm ＋ dòng tiktok.com
