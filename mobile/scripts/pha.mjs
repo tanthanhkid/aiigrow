@@ -782,7 +782,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-ob-doi-web (them-4glrqqlq)", "/thiet-lap/doi-web?muc=vioedu.vn", "vioedu.vn có tính phút không?", { truoc: async () => { await di("/chao");
       await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify({ ...TL, webs: [{ muc: "vioedu.vn", tinhGio: true }] }))})`);
       await goi("Page.navigate", { url: `${GOC}/thiet-lap/doi-web?muc=vioedu.vn` }); } }),
-    M("bm-ob-ghep", "/thiet-lap/ghep", "quét mã này", { truoc: diTl("/thiet-lap/ghep") }),
+    M("bm-ob-ghep (máy tính · #792)", "/thiet-lap/ghep", "nhập mã này", { truoc: diTl("/thiet-lap/ghep") }),
     M("bm-ob-ghep (có tên bé · bm1-ob-ghep)", "/thiet-lap/ghep?con=c1", "Ghép trước để thấy app trên máy", { truoc: diTl("/thiet-lap/ghep?con=c1&moi=1") }),
     M("bm-ob-cho", "/thiet-lap/cho?ma=482017&con=c1", "482"),
     // them-q44uxha5 / them-ytmgijqo: mã quá 10 phút ⇒ «Mã đã hết hạn»; chờ quá 5 phút (mã còn hạn) ⇒ «Chưa thấy máy của con»
@@ -2195,6 +2195,20 @@ await kichBan("#267 Máy này ai dùng?: bỏ Bảo Anh ⇒ «Lưu · máy riên
   xet(await doi("iPhone, iPad chỉ một bé:"), "iPad: giải thích chỉ một bé");
 });
 
+await kichBan("#792 Mã ghép: máy tính không nhắc «quét» / «vuốt ngang»; điện thoại giữ lời cũ", async () => {
+  const vao = async () => { await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`); await goi("Page.navigate", { url: `${GOC}/thiet-lap/ghep` }); };
+  await vao();
+  xet(await doi("Mở app AiiGrow trên máy con, nhập mã này"), "máy tính: «nhập mã này»");
+  const t = await chu();
+  xet(!/quét|vuốt ngang/i.test(t) && !(await js(`!!document.querySelector('[aria-label^="Mã QR ghép máy"]')`)), "máy tính: không chữ «quét» / «vuốt ngang», không QR");
+  try {
+    await goi("Emulation.setUserAgentOverride", { userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148" });
+    await vao();
+    xet(await doi("quét mã này"), "điện thoại: «quét mã này»");
+    xet((await chu()).includes("Vuốt ngang để xem thêm"), "điện thoại: «Vuốt ngang để xem thêm»");
+  } finally { await goi("Emulation.setUserAgentOverride", { userAgent: "" }); }
+});
+
 await kichBan("#267 Ghép thêm máy chọn 2 bé ⇒ «Ghép máy chung · 2 bé» ⇒ POST ghep-may {conDs}", async () => {
   await di("/may/them?con=c1");
   xet(await doi("Máy mới cho bé nào?"), "màn chọn bé");
@@ -2204,7 +2218,7 @@ await kichBan("#267 Ghép thêm máy chọn 2 bé ⇒ «Ghép máy chung · 2 b�
   await bam("Lấy mã ghép máy chung cho 2 bé");
   xet(await choGoi((x) => x.d === "ghep-may" && x.m === "POST" && x.body?.conDs?.length === 2), "gửi ghep-may kèm conDs 2 bé");
   xet(await doi("Ghép máy chung · 2 bé"), "tiêu đề «Ghép máy chung · 2 bé»");
-  xet(await doi("chọn 1 bé khi quét"), "nhắc iPhone/iPad chọn 1 bé khi quét");
+  xet(await doi("chọn 1 bé khi ghép"), "máy tính: nhắc iPhone/iPad chọn 1 bé khi ghép (không «quét»)");
 });
 
 await kichBan("#267 Khoá theo máy (Máy cả nhà: mọi bé «Sẽ khoá», máy khác «Vẫn dùng») · khoá theo bé ở «chi tiết» ⇒ con/c2/khoa", async () => {

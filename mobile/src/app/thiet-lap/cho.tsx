@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet } from "@/lib/api";
+import { laMayTinhWeb } from "@/lib/api-tre";
 import { diTiepSauGhep, docSau, kqTheoMa, xemGhep } from "@/lib/ghep-may";
 import { BuocMayCon, CanhRob, DauMan, demNguoc, DongTrangThai, hienMa, KhoiTrangThaiGhep, LienKet, linkNgan, TieuDe } from "@/lib/lan-dau";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
@@ -102,7 +103,7 @@ export default function ChoMayCon() {
       <CanhRob lv="cho" tieu={hetHan ? "Mã chỉ dùng được 10 phút. Lấy mã mới là xong!" : `Trên ${nguon === "them" ? "máy mới" : "máy của con"}, làm 3 bước này nhé!`} cao={160} robTrai />
       <BuocMayCon n={1} ic="tin" tieu="Mở link vừa gửi" phu={kq ? linkNgan(kq.lienKet) : "aiigrow.aiilab.vn/tai"} />
       <BuocMayCon n={2} ic="tai" tieu="Cài AiiGrow" phu="Trang tải tự nhận loại máy" />
-      <BuocMayCon n={3} ic="khoa" tieu={<Chu kieu="rat" co={15.5}>Nhập mã <Chu kieu="rat" co={15.5} mau={M.chinhInk} so style={maHet ? { textDecorationLine: "line-through" } : undefined}>{maHien}</Chu></Chu>} phu={maHet && linkCon ? "iPhone / iPad mở link vừa gửi vẫn tự ghép" : "Hoặc quét QR"} />
+      <BuocMayCon n={3} ic="khoa" tieu={<Chu kieu="rat" co={15.5}>Nhập mã <Chu kieu="rat" co={15.5} mau={M.chinhInk} so style={maHet ? { textDecorationLine: "line-through" } : undefined}>{maHien}</Chu></Chu>} phu={maHet && linkCon ? "iPhone / iPad mở link vừa gửi vẫn tự ghép" : laMayTinhWeb() ? "Mã 6 số trên trang này" : "Hoặc quét QR"} />
     </Man>
   );
 }
