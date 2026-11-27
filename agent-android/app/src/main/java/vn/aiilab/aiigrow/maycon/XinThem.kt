@@ -108,15 +108,7 @@ class HopXinThem(private val c: Context) {
 
         // «Ba Mẹ sẽ chọn nhóm» — chỉ thông tin, không bấm (như hộp «Xin thêm YouTube»)
         bieuMau.addView(Diu.chu(c, "Ba Mẹ sẽ chọn nhóm", 15f, Diu.CHU2).apply { setPadding(0, Diu.dp(c, 12), 0, 0) })
-        val chip = LinearLayout(c).apply { orientation = LinearLayout.HORIZONTAL }
-        listOf("Tính phút · 1 sao = 1 phút", "Không tính phút").forEachIndexed { i, s ->
-            chip.addView(Diu.chu(c, s, 14f, Diu.CHU).apply {
-                background = Diu.khoi(c, Diu.XANH_NHAT, 14, null); setPadding(Diu.dp(c, 12), Diu.dp(c, 6), Diu.dp(c, 12), Diu.dp(c, 6))
-                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
-                    topMargin = Diu.dp(c, 6); if (i > 0) marginStart = Diu.dp(c, 8) }
-            })
-        }
-        bieuMau.addView(chip)
+        bieuMau.addView(Diu.chu(c, "Tính phút · 1 sao = 1 phút, hoặc Không tính phút", 14f, Diu.CHU2).apply { setPadding(0, Diu.dp(c, 6), 0, 0) })
         bieuMau.addView(bao); bieuMau.addView(nutGui)
         bieuMau.addView(Diu.nut(c, "Để sau", Diu.KieuNut.CHU) { d.dismiss() })
 

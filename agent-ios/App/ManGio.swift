@@ -280,11 +280,7 @@ struct ManXinAppWeb: View {
       if the == .app { theApp } else { theWeb }
       VStack(alignment: .leading, spacing: 8) {
         Text("Ba Mẹ sẽ chọn nhóm").font(Diu.t1).foregroundColor(Diu.chu2)
-        HStack(spacing: 8) {
-          NhanNho(chu: "Tính phút · 1 sao = 1 phút", icon: "ic_dongho")
-          NhanNho(chu: "Không tính phút", icon: "ic_sach")
-          Spacer(minLength: 0)
-        }
+        Text("Tính phút · 1 sao = 1 phút, hoặc Không tính phút").font(Diu.t2).foregroundColor(Diu.chu2).frame(maxWidth: .infinity, alignment: .leading)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       if let l = m.loi { Text(l).font(Diu.t2).foregroundColor(Diu.doChu).frame(maxWidth: .infinity, alignment: .leading) }

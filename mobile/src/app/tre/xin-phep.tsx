@@ -4,7 +4,7 @@
 // chọn 15 / 30 / 60 phút). App / web lạ ⇒ POST /api/kid/xin-duyet (máy chủ cũ trả `web_cam` ⇒ guiXinMo đổi thành «Ba Mẹ chưa thêm … lúc này»). ≤ 3 lời chờ.
 // `?them=app|web` (#422 «Xin thêm app / web» từ Hôm nay — con-dt-xin 09 them-pj2ra3jh / 10 them-euz1k35r): hộp 2 thẻ «App trên máy» (lưới app phổ
 // biến — điện thoại không đọc được app đã cài, máy chủ chưa có danh sách app của máy Con — + ô gõ tên app khác) / «Trang web» (ô «Địa chỉ trang web»),
-// ô lời nhắn, «Ba Mẹ sẽ chọn nhóm» + 2 chip (chỉ thông tin), «Xin Ba Mẹ thêm <app>» / «Xin Ba Mẹ mở trang này» ⇒ xin-duyet kèm `kieu` ⇒ màn kết quả yeu-cau.
+// ô lời nhắn, «Ba Mẹ sẽ chọn nhóm» + một dòng chữ thông tin (không chip), «Xin Ba Mẹ thêm <app>» / «Xin Ba Mẹ mở trang này» ⇒ xin-duyet kèm `kieu` ⇒ màn kết quả yeu-cau.
 import { useState, type ComponentProps } from "react";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { Pressable, TextInput, View } from "react-native";
@@ -13,7 +13,7 @@ import { guiXinMo, kid, taiSao, type YcTre } from "@/lib/api-tre";
 import { soSao } from "@/lib/con-diu";
 import { BONG_D, D, FD } from "@/lib/diu";
 import { Icon, useLam, useTai, type TenIcon } from "@/lib/ui";
-import { ChipD, ChonD, ChuD, IcO, LoiD, ManD, NutD, PhuD, PillD, TheD } from "@/lib/ui-diu";
+import { ChonD, ChuD, IcO, LoiD, ManD, NutD, PhuD, PillD, TheD } from "@/lib/ui-diu";
 
 type Loai = "mo_web" | "cai_app" | "khac";
 const TU_VIET = "__tu_viet";
@@ -194,10 +194,7 @@ function XinThem({ the0, gia0 }: { the0: The; gia0: string }) {
         </>
       )}
       <Nhan chu="Ba Mẹ sẽ chọn nhóm" />
-      <View style={{ gap: 8, alignItems: "flex-start" }}>
-        <ChipD ic="sao" chu="Tính phút · 1 sao = 1 phút" />
-        <ChipD ic="tick" chu="Không tính phút" />
-      </View>
+      <ChuD co={13} mau={D.chu2}>Tính phút · 1 sao = 1 phút, hoặc Không tính phút</ChuD>
     </ManD>
   );
 }
