@@ -107,7 +107,7 @@ export async function tinhPhutChoi(t: Q, con: string, phut: number, now = new Da
   if (nguyen > 0 && du > 0) {
     tru = Math.min(nguyen, du);
     const tz = o.tz ?? (await t<{ tz: string }>(`select f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]))[0]?.tz ?? "Asia/Ho_Chi_Minh";
-    for (const [muc, n] of chiaTheoMuc(tru, o.theoMuc, o.muc ?? null)) await ghiChoi(t, con, n, muc, now, tz, o.theoMuc && o.theoMuc.size > 1 ? null : o.ten ?? null);
+    for (const [muc, n] of chiaTheoMuc(tru, o.theoMuc, o.muc ?? null)) await ghiChoi(t, con, n, muc, den, tz, o.theoMuc && o.theoMuc.size > 1 ? null : o.ten ?? null);
   }
   if (du - tru <= 0) le = 0;                        // hết sao: phần lẻ bỏ (không nợ phút)
   await t(`insert into choi_dong_ho(child_id, phut_le) values ($1, $2) on conflict (child_id) do update set phut_le = excluded.phut_le`, [con, le]);
@@ -134,6 +134,8 @@ export function chiaTheoMuc(tru: number, theoMuc: Map<string, number> | undefine
   return phan.filter((x) => x.n > 0).map((x) => [x.m, x.n]);
 }
 
+/** #746: dòng sổ mang GIỜ CỦA PHÚT PHÁT SINH (`now` ở đây = cuối khung giờ chơi do agent báo, hoặc lúc nhận nếu agent cũ) — không phải giờ máy chủ nhận ⇒
+ *  Ví sao và «Đã dùng gì» cùng một giờ; báo bù (agent offline rồi đẩy) vẫn ghi đúng giờ cũ, đúng ngày gia đình. */
 async function ghiChoi(t: Q, con: string, tru: number, muc: string | null, now: Date, tz: string, ten0: string | null) {
   const ref = `choi:${gioDiaPhuong(now, tz).ngay}:${muc ?? ""}`;
   // nạp lười: man-hinh → chinh-sach → may-con → so-sao là vòng import
@@ -146,7 +148,8 @@ async function ghiChoi(t: Q, con: string, tru: number, muc: string | null, now: 
   if (cuoi && cuoi.loai === "choi" && cuoi.ref === ref
       && Math.abs(now.getTime() - new Date(cuoi.cap_nhat ?? cuoi.created_at).getTime()) <= GOP_DONG_PHUT * 60_000) {
     const phut = -cuoi.delta + tru;
-    await t(`update points set delta = $2, ly_do = $3, cap_nhat = $4 where id = $1`, [cuoi.id, -phut, `Chơi ${ten} ${phut} phút`.slice(0, 120), now]);
+    const cuoiLuc = new Date(Math.max(now.getTime(), new Date(cuoi.cap_nhat ?? cuoi.created_at).getTime()));   // giờ phút CUỐI của dòng gộp
+    await t(`update points set delta = $2, ly_do = $3, cap_nhat = $4, created_at = $4 where id = $1`, [cuoi.id, -phut, `Chơi ${ten} ${phut} phút`.slice(0, 120), cuoiLuc]);
     return;
   }
   await t(`insert into points(id, child_id, delta, loai, ly_do, ref, cap_nhat, created_at) values ($1,$2,$3,'choi',$4,$5,$6,$6)`,

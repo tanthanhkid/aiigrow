@@ -155,7 +155,7 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     if (phut <= 0) continue;
     // lỗi trừ sao không làm hỏng cả lượt đồng bộ (agent vẫn cần Policy) — phút đã ghi usage, lần sau không tính lại
     const luc = x.ngay === nay ? now : new Date(dauNay.getTime() - 1);   // phần hôm qua: ghi ở giây cuối hôm qua (sổ + «đã dùng gì» đúng ngày)
-    try { await truPhutChoi(be, phut, luc, { muc: x.muc, tz: f.tz, theoMuc: x.theoMuc, den: x.ngay === nay ? x.den ?? undefined : undefined }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
+    try { await truPhutChoi(be, phut, luc, { muc: x.muc, tz: f.tz, theoMuc: x.theoMuc, den: x.ngay === nay && x.den && x.den >= dauNay ? x.den : undefined }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
   }
   const status = { ...(may.status ?? {}), ...(b.status ?? {}), lechGiay: gioMaySai ? lechGiay : null };
   await q(`update devices set last_seen = $2, status = $3::text::jsonb where id = $1`, [may.id, now, JSON.stringify(status)]);
