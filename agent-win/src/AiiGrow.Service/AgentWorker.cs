@@ -103,6 +103,7 @@ public sealed class AgentWorker : BackgroundService
                     // Kiểm lại DangGo NGAY TRƯỚC khi áp AppLocker / enforcement để không áp lại luật vào đúng lúc đang gỡ (tránh luật «dính» lại sau khi gỡ).
                     if (_rt.DangGo) { await _rt.WaitAsync(TimeSpan.FromSeconds(5), ct); continue; }
 
+                    GiuDangNhapMacDinh(cfg);
                     TuBatLaiKhay();   // #739: bé End task AiiGrow.Tray ⇒ bật lại trong phiên đang ngồi trước máy
 
                     var p = _rt.CurrentPolicy;
@@ -148,6 +149,7 @@ public sealed class AgentWorker : BackgroundService
                             {
                                 _log.LogInformation("Khoá ({reason}): ngắt phiên {id}", eff.LockReason, sess!.SessionId);
                                 SessionHelper.Disconnect(sess.SessionId);
+                                _rt.GhiNgatPhien(now);
                             }
                             else
                             {
@@ -163,6 +165,25 @@ public sealed class AgentWorker : BackgroundService
             }
             await _rt.WaitAsync(TimeSpan.FromSeconds(5), ct);
         }
+    }
+
+    private DateTimeOffset _dangNhapKiemLuc;
+
+    /// <summary>#778: giữ màn đăng nhập Windows chọn sẵn tài khoản bé — Windows ghi đè «người dùng gần nhất» mỗi lần Ba Mẹ đăng nhập, ghi lại mỗi phút nếu lệch.</summary>
+    private void GiuDangNhapMacDinh(AgentConfig cfg)
+    {
+        var bay = DateTimeOffset.Now;
+        if ((bay - _dangNhapKiemLuc).TotalSeconds < 60) return;
+        _dangNhapKiemLuc = bay;
+        try
+        {
+            var gt = DangNhapMacDinh.GiaTri(cfg.ChildUser, cfg.ChildSid, Environment.MachineName);
+            if (gt == null) return;
+            using var k = Microsoft.Win32.Registry.LocalMachine.CreateSubKey(DangNhapMacDinh.KhoaLogonUI);
+            if (DangNhapMacDinh.DaKhop(gt, n => k.GetValue(n) as string)) return;
+            foreach (var (ten, v) in gt) k.SetValue(ten, v);
+        }
+        catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug(e, "Chưa giữ được đăng nhập mặc định"); }
     }
 
     private readonly KhayTuBatLai _khayTuBat = new();
