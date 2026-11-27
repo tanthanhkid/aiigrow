@@ -149,7 +149,7 @@ async function ghiChoi(t: Q, con: string, tru: number, muc: string | null, now: 
       && Math.abs(now.getTime() - new Date(cuoi.cap_nhat ?? cuoi.created_at).getTime()) <= GOP_DONG_PHUT * 60_000) {
     const phut = -cuoi.delta + tru;
     const cuoiLuc = new Date(Math.max(now.getTime(), new Date(cuoi.cap_nhat ?? cuoi.created_at).getTime()));   // giờ phút CUỐI của dòng gộp
-    await t(`update points set delta = $2, ly_do = $3, cap_nhat = $4, created_at = $4 where id = $1`, [cuoi.id, -phut, `Chơi ${ten} ${phut} phút`.slice(0, 120), cuoiLuc]);
+    await t(`update points set delta = $2, ly_do = $3, cap_nhat = $4 where id = $1`, [cuoi.id, -phut, `Chơi ${ten} ${phut} phút`.slice(0, 120), cuoiLuc]);
     return;
   }
   await t(`insert into points(id, child_id, delta, loai, ly_do, ref, cap_nhat, created_at) values ($1,$2,$3,'choi',$4,$5,$6,$6)`,
