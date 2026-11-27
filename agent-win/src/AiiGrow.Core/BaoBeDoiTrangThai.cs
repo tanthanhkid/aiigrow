@@ -7,9 +7,30 @@ namespace AiiGrow.Core;
 /// <param name="GioNghiDen">«HH:MM» hết nghỉ khi đang nghỉ.</param>
 /// <param name="WebChan">Trang web Ba Mẹ chặn (null = dịch vụ chưa biết / không áp luật web lúc này).</param>
 /// <param name="WebCho">Trang web Ba Mẹ cho phép (null = như trên).</param>
-public sealed record TrangThaiBaoBe(bool Khoa, string? LyDoKhoa, string? HetGio, string? GioNghiDen, IReadOnlyCollection<string>? WebChan, IReadOnlyCollection<string>? WebCho)
+/// <param name="MoDenGio">#823: «HH:MM» hết hạn khi Ba Mẹ đang mở có hạn (mở khẩn cấp / thêm giờ); null = không mở có hạn.</param>
+public sealed record TrangThaiBaoBe(bool Khoa, string? LyDoKhoa, string? HetGio, string? GioNghiDen, IReadOnlyCollection<string>? WebChan, IReadOnlyCollection<string>? WebCho, string? MoDenGio = null)
 {
-    public static TrangThaiBaoBe Tu(TrayState s) => new(s.Locked, s.LockReason, s.GioiHanLyDo, s.GioiHanGio, s.WebChan, s.WebCho);
+    public static TrangThaiBaoBe Tu(TrayState s, DateTimeOffset? now = null)
+        => new(s.Locked, s.LockReason, s.GioiHanLyDo, s.GioiHanGio, s.WebChan, s.WebCho, s.Mode == Modes.TuDo ? MoCoHan.GioHet(s.GrantEndsAt, now ?? DateTimeOffset.Now) : null);
+}
+
+/// <summary>#823: Ba Mẹ mở khẩn cấp / thêm giờ = mode tu_do + hạn (GrantEndsAt). Lớp thuần: chữ báo bé và chữ trong app khi đang mở.</summary>
+public static class MoCoHan
+{
+    /// <summary>«HH:MM» giờ máy của hạn mở nếu còn hạn, ngược lại null.</summary>
+    public static string? GioHet(DateTimeOffset? hetHan, DateTimeOffset now)
+        => hetHan is { } h && h > now ? h.ToLocalTime().ToString("HH:mm") : null;
+
+    public static bool Dang(DateTimeOffset? hetHan, DateTimeOffset now) => hetHan is { } h && h > now;
+
+    /// <summary>Trạng thái khay: đang mở có hạn thật sự (mode tu_do — mode hoc có hạn vẫn chặn app «Tính phút»).</summary>
+    public static bool Dang(TrayState s, DateTimeOffset now) => s.Mode == Modes.TuDo && Dang(s.GrantEndsAt, now);
+
+    public static BaoBe BaoMo(string gio) => new("mo_khoa", "Ba Mẹ vừa mở máy cho con", $"Con chơi và học thoải mái tới {gio} nhé.");
+    public static BaoBe BaoHet() => new("dong_ho_cat", "Hết giờ Ba Mẹ mở rồi", "Máy trở lại như mọi hôm. Con xem lại giờ chơi trong AiiGrow nhé.");
+
+    /// <summary>Dòng trong thẻ Sao khi đang mở: thay «Hết sao để chơi · … đang khoá» (app «Tính phút» đang chơi được).</summary>
+    public static string DongDangMo(string gio) => $"Ba Mẹ đang mở máy · chơi thoải mái tới {gio}";
 }
 
 /// <summary>Một hộp báo: icon 3D, tiêu đề, câu phụ.</summary>
@@ -38,6 +59,10 @@ public static class BaoBeDoiTrangThai
         // «hết giờ chơi» chỉ khi vào trạng thái giới hạn mới (hoặc đổi từ nghỉ sang hết giờ ngày), đang khoá máy thì màn khoá đã nói rồi
         if (!nay.Khoa && nay.HetGio is GioiHanMay.HetGioNgay or GioiHanMay.DangNghi && nay.HetGio != truoc.HetGio)
             ds.Add(HetGioChoi(nay.HetGio, nay.GioNghiDen));
+
+        // #823: Ba Mẹ mở khẩn cấp bật / hết hạn
+        if (nay.MoDenGio != null && truoc.MoDenGio == null) ds.Add(MoCoHan.BaoMo(nay.MoDenGio));
+        else if (nay.MoDenGio == null && truoc.MoDenGio != null && !nay.Khoa) ds.Add(MoCoHan.BaoHet());
 
         if (ThemWeb(truoc, nay) is { } web) ds.Add(web);
         return ds;
