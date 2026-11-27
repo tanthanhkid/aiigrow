@@ -53,12 +53,15 @@ public sealed class TabDangXem
         lock (_khoa) foreach (var k in _giay.Keys.Where(k => string.CompareOrdinal(k.Ngay, giuTu) < 0).ToList()) _giay.Remove(k);
     }
 
-    /// <summary>Quy giây theo tiêu đề ⇒ giây theo (ngày, tên miền) nhờ lịch sử: tiêu đề khớp đúng (hoặc lịch sử bắt đầu bằng tiêu đề tab — tab đang tải
-    /// dở), lấy lượt ghé GẦN NHẤT có tiêu đề đó. Tiêu đề không quy được (trang mới chưa vào lịch sử, trang nội bộ) ⇒ bỏ.</summary>
+    /// <summary>Các ngày đã có giây tab trong sổ.</summary>
+    public HashSet<string> NgayDaGhi(IReadOnlyDictionary<(string Ngay, string TieuDe), double> snap) => snap.Keys.Select(k => k.Ngay).ToHashSet();
+
+    /// <summary>Quy giây theo tiêu đề ⇒ giây theo (ngày, tên miền) nhờ lịch sử: tiêu đề KHỚP ĐÚNG tiêu đề một lượt ghé (lấy lượt GẦN NHẤT). Tiêu đề còn đuôi
+    /// lạ (« - Personal», « - [InPrivate]», tên hồ sơ) ⇒ cắt dần từng đoạn « - » cuối rồi thử lại; không khớp tiền tố lỏng (tránh gán «Google» cho mọi trang).
+    /// Không quy được (trang mới chưa vào lịch sử, trang nội bộ, InPrivate) ⇒ bỏ.</summary>
     public static Dictionary<(string Ngay, string Mien), double> QuyTenMien(IReadOnlyDictionary<(string Ngay, string TieuDe), double> giay, IEnumerable<WebVisit> visits)
     {
         var theoTieuDe = new Dictionary<string, (string Mien, DateTimeOffset Luc)>(StringComparer.OrdinalIgnoreCase);
-        var ds = new List<(string Tieu, string Mien, DateTimeOffset Luc)>();
         foreach (var v in visits)
         {
             if (string.IsNullOrWhiteSpace(v.TieuDe)) continue;
@@ -67,18 +70,16 @@ public sealed class TabDangXem
             var t = ChuanHoa(v.TieuDe);
             if (t.Length == 0) continue;
             if (!theoTieuDe.TryGetValue(t, out var cu) || v.Luc > cu.Luc) theoTieuDe[t] = (mien, v.Luc);
-            ds.Add((t, mien, v.Luc));
         }
         var kq = new Dictionary<(string, string), double>();
         foreach (var ((ngay, tieu), s) in giay)
         {
             string? mien = null;
-            if (theoTieuDe.TryGetValue(tieu, out var m)) mien = m.Mien;
-            else
+            for (var t = tieu; t.Length > 0 && mien == null;)
             {
-                var gan = ds.Where(x => x.Tieu.StartsWith(tieu, StringComparison.OrdinalIgnoreCase) || (x.Tieu.Length >= 4 && tieu.StartsWith(x.Tieu, StringComparison.OrdinalIgnoreCase)))
-                    .OrderByDescending(x => x.Luc).FirstOrDefault();
-                if (gan.Mien != null) mien = gan.Mien;
+                if (theoTieuDe.TryGetValue(t, out var m)) { mien = m.Mien; break; }
+                var cat = t.LastIndexOf(" - ", StringComparison.Ordinal);
+                t = cat > 0 ? t[..cat].TrimEnd() : "";
             }
             if (mien == null) continue;
             kq[(ngay, mien)] = (kq.TryGetValue((ngay, mien), out var c) ? c : 0) + s;

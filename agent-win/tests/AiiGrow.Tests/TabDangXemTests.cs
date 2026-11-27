@@ -40,7 +40,7 @@ public class TabDangXemTests
         };
         var t = new TabDangXem();
         for (var i = 0; i < 12 * 12; i++) t.Ghi(Ngay, "msedge.exe", "(2) Video hay - YouTube - Microsoft Edge", 5);   // 12 phút, nhịp 5 giây
-        var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits));
+        var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits), t.NgayDaGhi(t.ChupAnh()));
         Assert.Equal(720, ds.Single(x => x.TenMien == "youtube.com").Giay);
         Assert.Equal(0, ds.Single(x => x.TenMien == "wikipedia.org").Giay);   // tab mở sẵn không còn ăn giờ
         Assert.Equal(1, ds.Single(x => x.TenMien == "wikipedia.org").SoLan);
@@ -53,7 +53,7 @@ public class TabDangXemTests
         var t = new TabDangXem();
         for (var i = 0; i < 6; i++) t.Ghi(Ngay, "chrome.exe", "Scratch - Imagine - Google Chrome", 10);   // 60 giây ở Scratch
         for (var i = 0; i < 3; i++) t.Ghi(Ngay, "chrome.exe", "Meo - YouTube - Google Chrome", 10);       // rồi 30 giây ở YouTube
-        var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits));
+        var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits), t.NgayDaGhi(t.ChupAnh()));
         Assert.Equal(60, ds.Single(x => x.TenMien == "scratch.mit.edu").Giay);
         Assert.Equal(30, ds.Single(x => x.TenMien == "youtube.com").Giay);
     }
@@ -67,8 +67,9 @@ public class TabDangXemTests
         t.Ghi(Ngay, "msedge.exe", "", 30);
         t.Ghi(Ngay, "msedge.exe", null, 30);
         Assert.Empty(t.ChupAnh());
+        t.Ghi(Ngay, "msedge.exe", "Trang khác - Microsoft Edge", 5);   // ngày đã có dữ liệu tab
         var visits = new[] { V("https://youtube.com/watch", "Meo - YouTube", 10, 600) };
-        var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits));
+        var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits), t.NgayDaGhi(t.ChupAnh()));
         Assert.Equal(0, ds.Single().Giay);   // 600 giây trong lịch sử (tab nền) không được tính
     }
 
@@ -81,7 +82,7 @@ public class TabDangXemTests
         t.Ghi(Ngay, "msedge.exe", "Trang A - Microsoft Edge", 15);
         t.Ghi(Ngay, "msedge.exe", "Trang B - Microsoft Edge", 15);
         t.Ghi(Ngay, "msedge.exe", "Trang B - Microsoft Edge", 15);
-        var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits));
+        var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits), t.NgayDaGhi(t.ChupAnh()));
         Assert.Equal(15, ds.Single(x => x.TenMien == "a.com").Giay);
         Assert.Equal(30, ds.Single(x => x.TenMien == "b.com").Giay);
     }
@@ -104,7 +105,38 @@ public class TabDangXemTests
         t.Ghi(Ngay, "msedge.exe", "Tab trống - Microsoft Edge", 50);
         var q = TabDangXem.QuyTenMien(t.ChupAnh(), visits);
         Assert.Empty(q);
-        Assert.Equal(0, WebHistory.TongHop(visits, null, null, q).Single().Giay);
+        Assert.Equal(0, WebHistory.TongHop(visits, null, null, q, t.NgayDaGhi(t.ChupAnh())).Single().Giay);
+    }
+
+    [Fact]
+    public void EdgeCoDuoiHoSo_VanQuyDuoc_VaKhongKhopTienToLong()
+    {
+        var visits = new[] { V("https://youtube.com/watch", "Meo - YouTube", 10), V("https://docs.google.com/", "Google Docs", 3) };
+        var t = new TabDangXem();
+        t.Ghi(Ngay, "msedge.exe", "Meo - YouTube - Personal - Microsoft Edge", 40);
+        t.Ghi(Ngay, "msedge.exe", "Google - Microsoft Edge", 40);   // «Google» không phải tiêu đề nào trong lịch sử ⇒ không gán cho docs.google.com
+        var q = TabDangXem.QuyTenMien(t.ChupAnh(), visits);
+        Assert.Equal(40, q[(Ngay, "youtube.com")]);
+        Assert.Single(q);
+    }
+
+    [Fact]
+    public void XemLienQuaNuaDem_NgayMoiChuaCoLuotGhe_VanCoDong()
+    {
+        var visits = new[] { new WebVisit("https://youtube.com/watch", new DateTimeOffset(2026, 11, 27, 23, 30, 0, TimeSpan.FromHours(7)), 0, "Phim - YouTube") };
+        var t = new TabDangXem();
+        t.Ghi("2026-11-28", "msedge.exe", "Phim - YouTube - Microsoft Edge", 3600);
+        var ds = WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits), t.NgayDaGhi(t.ChupAnh()));
+        Assert.Equal(3600, ds.Single(x => x.Ngay == "2026-11-28" && x.TenMien == "youtube.com").Giay);
+    }
+
+    [Fact]
+    public void NgayChuaCoDuLieuTab_GiuVisitDuration()
+    {
+        // khay cũ chưa báo tiêu đề / dịch vụ mới cài: không rơi về 0 phút
+        var visits = new[] { V("https://a.com/", "Trang A", 5, 100) };
+        var t = new TabDangXem();
+        Assert.Equal(100, WebHistory.TongHop(visits, null, null, TabDangXem.QuyTenMien(t.ChupAnh(), visits), t.NgayDaGhi(t.ChupAnh())).Single().Giay);
     }
 
     [Fact]

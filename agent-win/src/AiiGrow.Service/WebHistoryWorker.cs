@@ -33,12 +33,17 @@ public sealed class WebHistoryWorker : BackgroundService
         catch { /* tệp hỏng: bắt đầu lại sổ */ }
     }
 
+    private string? _daLuu;
+
     private void LuuSo(IReadOnlyDictionary<(string Ngay, string TieuDe), double> snap)
     {
         try
         {
+            var noiDung = System.Text.Json.JsonSerializer.Serialize(snap.Select(kv => new DongTab(kv.Key.Ngay, kv.Key.TieuDe, kv.Value)).ToList());
+            if (noiDung == _daLuu) return;   // không đổi ⇒ khỏi ghi đĩa
+            _daLuu = noiDung;
             Directory.CreateDirectory(Paths.DataDir);
-            File.WriteAllText(TepTab, System.Text.Json.JsonSerializer.Serialize(snap.Select(kv => new DongTab(kv.Key.Ngay, kv.Key.TieuDe, kv.Value)).ToList()));
+            File.WriteAllText(TepTab, noiDung);
         }
         catch { }
     }
@@ -68,15 +73,17 @@ public sealed class WebHistoryWorker : BackgroundService
         NgayGiaDinh.DangKy(tz, pol?.TzPhut);
         var visits = _src.Doc(hoSo, WebHistory.MocDoc(DateTimeOffset.Now));
         Dictionary<(string Ngay, string Mien), double>? giayTab = null;
+        HashSet<string>? ngayTheoDoi = null;
         if (_rt != null)
         {
             NapSo();
             _rt.TabXem.DonCu(NgayGiaDinh.Cua(DateTimeOffset.Now.AddDays(-3), tz));
             var snap = _rt.TabXem.ChupAnh();
             giayTab = TabDangXem.QuyTenMien(snap, visits);
+            ngayTheoDoi = _rt.TabXem.NgayDaGhi(snap);
             LuuSo(snap);
         }
-        var ds = WebHistory.TongHop(visits, host is null ? null : WebDomain.GocTuHost(host), tz, giayTab);
+        var ds = WebHistory.TongHop(visits, host is null ? null : WebDomain.GocTuHost(host), tz, giayTab, ngayTheoDoi);
         if (ds.Count == 0) return;
         var vt = string.Join("\n", ds.Select(x => $"{x.Ngay}|{x.TenMien}|{x.SoLan}|{x.Giay}"));
         if (vt == _daGui) return;
