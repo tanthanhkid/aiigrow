@@ -88,7 +88,7 @@ function QuaCon({ c, coCon, dsCon, baMe, quyVoucher, doiCon, tabDau }: { c: Con 
       {tab !== "nha" ? (
         <>
           <Chu kieu="dam" co={13} mau={M.chu2} style={{ marginHorizontal: 6 }}>Ba Mẹ mua một lần, quà nằm sẵn trong kho của con. Con đủ sao thì đổi; thiếu sao thì con xin Ba Mẹ cho vay.</Chu>
-          <Chu kieu="dam" co={13} mau={M.chu2} style={{ marginHorizontal: 6 }}>Voucher AiiCafe: Ba Mẹ trả tiền thật, con đổi bằng sao rồi đưa mã ở quầy AiiCafe để nhận nước, bánh hoặc đồ chơi nhỏ.</Chu>
+          {q.d.voucher.some((m) => /AiiCafe/i.test(m.ten)) ? <Chu kieu="dam" co={13} mau={M.chu2} style={{ marginHorizontal: 6 }}>Voucher AiiCafe: Ba Mẹ trả tiền thật, con đổi bằng sao rồi đưa mã ở quầy AiiCafe để nhận nước, bánh hoặc đồ chơi nhỏ.</Chu> : null}
           <View style={{ gap: 10 }}>
             {q.d.voucher.map((m) => (
               <NhanMen key={m.ma} onPress={() => moMon(m)} accessibilityRole="button" accessibilityLabel={`${m.ten}, ${m.menhGia ? `${tien(m.menhGia)}, ` : ""}${m.sao} sao${m.daCo ? (m.het ? ", hết" : m.dangCo != null ? `, đang có ${m.dangCo}` : ", đã mua") : ""}`}

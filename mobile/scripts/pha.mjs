@@ -2402,7 +2402,7 @@ await kichBan("Sổ sao · Cho vay khi đang nợ > 200: dải nhắc, vẫn cho
   await doi("Cho vay thêm"); await bam("Cho vay thêm");
   xet(await doi("đã nợ quá 200 sao (đang nợ 220)"), "dải nhắc nợ > 200 (them-y1r1eidm)");
   xet(await doi("Chỉ nhắc thôi · Ba Mẹ vẫn cho vay được"), "nói rõ không chặn");
-  xet(await doi("sẽ nợ 1.035 sao"), "số nợ sau vay có dấu chấm nghìn");
+  xet(await doi("sẽ nợ 235 sao"), "số nợ sau vay (220 + 15)");
   await bam(`Cho ${KEN} vay 15 sao`);
   xet(await choGoi((x) => x.d === "con/c1/cho-vay" && x.body?.soSao === 15), "vẫn gửi cho-vay");
 });
