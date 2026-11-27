@@ -1617,7 +1617,7 @@ await kichBan("App của <Con>: 2 nhóm + phút / sao hôm nay ⇒ Roblox ⇒ «
   xet(await doi(`App của ${KEN}`), "«Sửa ›» App ⇒ danh sách App của Con");
   const c = await chu();
   xet(c.includes("Hôm nay 39 phút") && c.includes("Hôm nay 40 phút") && !c.includes("−39 sao") && c.indexOf("Tính phút trả bằng sao") < c.indexOf("Không tính phút vào thoải mái"), "cả hai nhóm chỉ ghi «Hôm nay N phút»; Tính phút đứng trước");
-  xet(c.includes(`${KEN} chỉ mở được 4 app này`), "câu «<Con> chỉ mở được 4 app này»");
+  xet(c.includes(`${KEN} chỉ mở được 4 app này`) && /app này, cùng các trang web/.test(c), "câu «<Con> chỉ mở được 4 app này, cùng các trang web…» (không bỏ sót web)");
   await bam("Roblox");
   xet(await doi("Roblox có tính phút không?"), "mở màn một app");
   xet(await coChon('[role="radio"][aria-checked="true"][aria-label^="Tính phút"]'), "nhóm hiện tại «Tính phút» đang chọn");

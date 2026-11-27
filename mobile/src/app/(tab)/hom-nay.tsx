@@ -233,7 +233,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
         {/* chip trạng thái: máy khoá «Laptop, iPad · Đã khoá» (không bấm) — còn lại «Chặn: Theo danh sách ›» → tab App & web (Con mở được gì: App + Web) */}
         {khoa ? <ChipThe ic="khoa" nen="#1F2A44" dau={mayKhoa.length ? mayKhoa.join(", ") : "Máy"} cuoi="Đã khoá" />
           : matMangMay.length ? <ChipThe ic="wifi" icMau={HERO.phu} dau={matMangMay.join(", ")} cuoi="Mất mạng" cuoiMau={HERO.phu} />
-          : <ChipThe ic="khien" dau="Chặn:" cuoi={`${cheDo}\u00A0›`} cuoiMau={HERO.phu} bam={() => router.push(`/chan?con=${conId}` as never)} nhanDoc={`Chặn: ${cheDo}`} gon />}
+          : <ChipThe ic="khien" dau="Chặn:" cuoi={`${cheDo}\u00A0›`} cuoiMau={HERO.phu} bam={() => router.push(`/chan?con=${conId}&k=${Date.now()}` as never)} nhanDoc={`Chặn: ${cheDo}`} gon />}
         <View style={{ marginTop: 10, marginRight: CHUA_ROB, minHeight: 30 }}>
           <Chu kieu="tieu7" co={24} so mau={khoa ? HERO.phu : HERO.chu} style={{ letterSpacing: -0.6 }}>{tieuLon}</Chu>
         </View>
