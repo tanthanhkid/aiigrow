@@ -109,3 +109,17 @@ test("A11: phút trước 0h báo sau 0h ⇒ vẫn trừ sao, ghi vào hôm qua;
   assert.equal(await v.soDu(con), 13);
   assert.equal((await one<{ phut: number }>(`select phut from usage where child_id = $1 and ngay = '2026-11-18'`, [con]))!.phut, 20);
 });
+
+test("#746: dòng sổ sao mang giờ phút phát sinh (cuoiLuc), kể cả báo bù trễ — Ví sao và «đã dùng gì» cùng giờ", async () => {
+  const { con, may } = await nha(30);
+  const now = VN("2026-11-27T14:40:00");
+  const ngay = gioDiaPhuong(now, "Asia/Ho_Chi_Minh").ngay;
+  // agent offline rồi đẩy bù lúc 14:40 cho khung youtube.com 14:26→14:32 (6 phút)
+  await dongBo(await may(), { usage: [{ muc: "youtube.com", phut: 6, day: ngay, dauLuc: "2026-11-27T14:26:00+07:00", cuoiLuc: "2026-11-27T14:32:00+07:00" }] }, now);
+  const r = (await q<{ delta: number; created_at: Date; cap_nhat: Date }>(`select delta, created_at, cap_nhat from points where child_id = $1 and loai = 'choi'`, [con]));
+  assert.equal(r.length, 1);
+  assert.equal(r[0].delta, -6);
+  assert.equal(new Date(r[0].created_at).toISOString(), VN("2026-11-27T14:32:00").toISOString(), "giờ ghi sổ = cuối khung dùng, không phải giờ nhận 14:40");
+  const hn = (await appHomNayCon(con, now)).find((x) => x.muc === "youtube.com");
+  assert.equal(hn?.sao, 6);
+});
