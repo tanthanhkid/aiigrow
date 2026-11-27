@@ -28,7 +28,7 @@ export default function ViQuaTre() {
   if (!d) return <ManD tab="vi-qua" tieu="Sao & quà"><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
   const sao = d.s.sao;
   const no = d.s.no;
-  const am = sao < 0;
+  const am = no > 0 && sao <= 0;
   const mau = am ? NO.chu : D.saoInk;
   const giu = d.ch.saoGiu ?? 0;
   const gan = quaGanNhat(d.ch.qua.filter((x) => x.loai !== "phut"), Math.max(0, sao));

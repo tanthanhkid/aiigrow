@@ -2,7 +2,9 @@
 //   • Tổng delta = SAO TIÊU ĐƯỢC (≥ 0, = số phút «Tính phút» còn chơi được) — mọi lần trừ chạy trong giao dịch có khoá dòng Con
 //     (`select … for update`), nên hai lần trừ song song không cùng thấy số dư cũ; trừ quá ⇒ `khong_du_diem`.
 //   • NỢ Ba Mẹ = tổng delta loại vay + tra_no (Ba Mẹ cho vay +N; sao kiếm được trả nợ trước −N). Không trần nợ.
-//   • Số dư Con thấy (`sao`) = sao tiêu được − nợ — ÂM khi đang nợ (Con 0 sao vay 30, tiêu hết ⇒ −30; nhiệm vụ +10 ⇒ −20).
+//   • Số dư Con thấy (`sao`) = sao tiêu được − nợ, KẸP ≥ 0 (#745): không còn số âm ở bất kỳ màn nào; phần nợ hiện riêng ở `no`
+//     («Đang nợ Ba Mẹ N sao»). Sao đang giữ cho quà chờ trao đã trừ sẵn trong sổ cái (`saoGiu` chỉ để hiện dòng «đang giữ»).
+//     `saoRong` = sao tiêu được − nợ (có thể âm; chỉ để báo cáo / dò lệch).
 // Cấp độ tính theo điểm KIẾM ĐƯỢC trọn đời (FR-03.06), không theo số dư.
 import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
@@ -21,6 +23,12 @@ export const KIEM_SQL = `((delta > 0 and loai not in ('hoan', 'vay', 'tra_no', '
 /** Sao tiêu được (tổng sổ cái, ≥ 0). Tên cũ giữ cho mọi chỗ gọi. */
 export const soDu = async (con: string, t: Q = q) =>
   ((await t<{ d: number }>(`select coalesce(sum(delta), 0)::int as d from points where child_id = $1`, [con]))[0].d);
+
+/** MỘT hàm duy nhất cho số dư khả dụng (#745): `tong` = tổng sổ cái, kẹp về 0 (lệch dữ liệu ⇒ ghi log để dò). Dùng cho cả «sao» lẫn «phút chơi». */
+export function saoKhaDung(tong: number, con?: string) {
+  if (tong < 0) console.warn(`[vi] sổ sao lệch: Con ${con ?? "?"} tổng ${tong} < 0 ⇒ kẹp về 0`);
+  return Math.max(0, tong);
+}
 
 /** Nợ Ba Mẹ còn lại (≥ 0). */
 export const noCua = async (con: string, t: Q = q) =>
@@ -92,10 +100,10 @@ export const SQL_TOM_TAT_VI = `select coalesce((select sum(delta) from points wh
 
 export async function tomTatVi(con: string) {
   const r = (await one<{ du: number; no: number; vay: number; tra: number; kiem: number; cho: number; giu: number }>(SQL_TOM_TAT_VI, [con]))!;
-  const no = Math.max(0, r.no), tieu = Math.max(0, r.du);
+  const no = Math.max(0, r.no), tieu = saoKhaDung(r.du, con);
   // `soDu` (cũ) = sao TIÊU ĐƯỢC (≥ 0 — app/agent cũ dùng để biết đủ sao đổi quà) · `sao` (15/11) = số dư Con thấy, ÂM khi nợ.
   // saoGiu (06/11, L14): sao đang GIỮ cho quà chờ Ba Mẹ trao (đã ghi trừ tạm; Ba Mẹ huỷ ⇒ hoàn) — «Đang giữ 50 sao cho quà chờ trao»
-  return { soDu: tieu, sao: r.du - no, no, saoVayChuaTieu: Math.min(tieu, no), phutCon: tieu, hetSao: tieu <= 0, tongVay: r.vay, daTraNo: r.tra,
+  return { soDu: tieu, sao: Math.max(0, tieu - no), saoRong: tieu - no, no, saoVayChuaTieu: Math.min(tieu, no), phutCon: tieu, hetSao: tieu <= 0, tongVay: r.vay, daTraNo: r.tra,
     canhBaoNo: no > NGUONG_NO, diemChoDuyet: r.cho, saoChoDuyet: r.cho, saoGiu: r.giu, tongKiem: Math.max(0, r.kiem), capDo: capDo(Math.max(0, r.kiem)) };
 }
 

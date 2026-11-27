@@ -73,19 +73,19 @@ test("nghiệm thu #315 (khay Windows + màn Con điện thoại): 0 sao xin qu�
   const doi = await dv(tok, `hoc-vien/doi/${qua}`, {});
   assert.equal(doi.status, 200, JSON.stringify(doi.body));
   tq = (await dv(tok, "hoc-vien/tong-quan")).body;
-  assert.deepEqual([tq.sao, tq.soDu, tq.soSao.no, tq.soSao.saoTieuDuoc], [-30, 0, 30, 0], "tiêu hết ⇒ số dư âm đúng số nợ");
-  assert.equal((await kid(con, "sao")).body.sao, -30);
+  assert.deepEqual([tq.sao, tq.soDu, tq.soSao.no, tq.soSao.saoTieuDuoc], [0, 0, 30, 0], "tiêu hết ⇒ số dư kẹp 0, nợ hiện riêng");
+  assert.equal((await kid(con, "sao")).body.sao, 0);
   // Ba Mẹ thấy nợ
   let vi = (await m(tokBm, `con/${con}/vi-sao`)).body;
-  assert.deepEqual([vi.sao, vi.no], [-30, 30]);
+  assert.deepEqual([vi.sao, vi.no], [0, 30]);
 
   // nhiệm vụ +10 ⇒ trả nợ trước ⇒ −20
   await lamNv(fam, con, bm, 10);
   tq = (await dv(tok, "hoc-vien/tong-quan")).body;
-  assert.deepEqual([tq.sao, tq.soSao.no], [-20, 20]);
-  assert.equal((await kid(con, "sao")).body.sao, -20);
+  assert.deepEqual([tq.sao, tq.soSao.no], [0, 20]);
+  assert.equal((await kid(con, "sao")).body.sao, 0);
   vi = (await m(tokBm, `con/${con}/vi-sao`)).body;
-  assert.deepEqual([vi.sao, vi.no], [-20, 20]);
+  assert.deepEqual([vi.sao, vi.no], [0, 20]);
 });
 
 test("#315: Con còn sao riêng + vay phần thiếu (30 có, quà 50, vay 20) ⇒ dùng được 50, đổi được; số dư 30 → −20", async () => {
@@ -98,7 +98,7 @@ test("#315: Con còn sao riêng + vay phần thiếu (30 có, quà 50, vay 20) �
   assert.deepEqual([tq.sao, tq.soDu, tq.soSao.no], [30, 50, 20], "khay 0.2.20 chặn theo sao=30 ⇒ «còn thiếu 20 sao» và xin vay lại mãi");
   assert.equal((await m(tokBm, `con/${con}/vi-sao`)).body.sao, 30);
   assert.equal((await dv(tok, `hoc-vien/doi/${qua}`, {})).status, 200);
-  assert.equal((await dv(tok, "hoc-vien/tong-quan")).body.sao, -20);
+  assert.equal((await dv(tok, "hoc-vien/tong-quan")).body.sao, 0);
 });
 
 test("#315 + #302: Con có giới hạn ngày / lượt đã chơi đủ ⇒ vay cho quà vẫn hiện sao và đổi được quà (giới hạn chỉ chặn chơi)", async () => {
@@ -125,9 +125,9 @@ test("#315 + #302: Con có giới hạn ngày / lượt đã chơi đủ ⇒ vay
     assert.equal(ch.qua.find((x) => x.id === qua)!.du, true);
     await pt.doiQua(con, qua, sau(t1, 4));
     qy = await qg.quyHomNay(con, sau(t1, 5));
-    assert.deepEqual([qg.saoKepGioiHan(qy).sao, qy.soSao.no], [-30, 30]);
+    assert.deepEqual([qg.saoKepGioiHan(qy).sao, qy.soSao.no], [0, 30]);
     await lamNv(fam, con, bm, 10);
     qy = await qg.quyHomNay(con, sau(t1, 6));
-    assert.deepEqual([qg.saoKepGioiHan(qy).sao, qy.soSao.no], [-20, 20]);
+    assert.deepEqual([qg.saoKepGioiHan(qy).sao, qy.soSao.no], [0, 20]);
   }
 });

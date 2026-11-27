@@ -89,7 +89,8 @@ export function cauMatMangTre(ten: string, s: { sao: number; no: number; phutCon
 }
 
 export function saoTuMayChu(s: SaoMayChu | null, q: QuySao): SaoCon {
-  const sao = Math.round(Number(s?.sao ?? q?.sao ?? 0)) || 0;
+  // #745: sao khả dụng KHÔNG âm (= phút chơi); máy chủ cũ còn gửi số âm ⇒ kẹp 0, phần nợ hiện riêng ở `no`
+  const sao = Math.max(0, Math.round(Number(s?.sao ?? q?.sao ?? 0)) || 0);
   const no = Math.max(0, Math.round(Number(s?.no ?? 0)) || 0);
   const phutCon = Math.max(0, Math.round(Number(s?.phutCon ?? q?.quy?.conPhut ?? Math.max(0, sao))) || 0);
   const muc = Array.isArray(s?.mucVay) && s!.mucVay!.length ? s!.mucVay! : MUC_VAY;

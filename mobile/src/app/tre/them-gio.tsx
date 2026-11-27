@@ -31,7 +31,7 @@ export default function XinVay() {
     const r = await xinVay({ soSao: soVay, mucDich: laQua ? "qua" : "choi", ...(laQua && p.quaId ? { quaId: p.quaId } : {}), loiNhan: nhan.trim() });
     router.replace(`/tre/yeu-cau?moi=${r.id}`);
   }, { hangDoi: true });
-  const am = d.sao < 0;
+  const am = d.no > 0 && d.sao <= 0;
   return (
     <ManD lui={true} tieu="Xin Ba Mẹ cho vay sao" day={<><LoiD loi={loiLam} />
       <NutD chu={`Xin Ba Mẹ cho vay ${soVN(soVay)} sao`} ic="gui" bam={xin} dangChay={dangChay} />

@@ -95,7 +95,7 @@ test("hết sao ⇒ kết thúc het_thoi_gian, cảnh báo 5 / 1 phút; Ba Mẹ 
   assert.equal(dong.lyDoKet, "khong_hoat_dong");
   assert.equal((await one<{ p: number }>(`select phut_dung as p from play_sessions where id = $1`, [p2.id]))!.p, 5, "chỉ tính 5 phút dùng thật");
   const vi = await v.tomTatVi(con);
-  assert.deepEqual([vi.soDu, vi.sao, vi.no], [25, -5, 30], "chơi 5 phút bằng sao vay ⇒ số dư −5");
+  assert.deepEqual([vi.soDu, vi.sao, vi.no], [25, 0, 30], "chơi 5 phút bằng sao vay ⇒ số dư kẹp 0 (không âm)");
   // nhịp tạm dừng MỖI PHÚT vẫn đóng sau 3 phút tính từ lúc bắt đầu tạm dừng; dùng lại thì đếm lại
   const t2 = sau(t1, 20);
   const p3 = await ph.moPhien(con, "may-b", "roblox.exe", {}, t2);
