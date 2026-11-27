@@ -16,7 +16,7 @@ import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-rou
 import { Pressable, View } from "react-native";
 import { bm, coMaOff, GOC, LoiApi, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type PhienDang, type SuKienTuanThu, type TuanThuMay } from "@/lib/api";
 import { BangKhoaMay, HangViec, quyenToi, tenGoi, TieuMuc, type ChoDuyetMoi, type ConCt } from "@/lib/hang-ngay";
-import { cauMoTam, conHan, datKhoaMay } from "@/lib/khoa-may";
+import { cauMoTam, conHan, datKhoa, datKhoaMay } from "@/lib/khoa-may";
 import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { tieuXin } from "@/lib/hom-nay-xin";
 import {
@@ -32,7 +32,7 @@ const SU_KIEN: Record<string, string> = {
   tuan_thu_lech: "Lệch chuẩn tuân thủ", tuan_thu_on: "Tuân thủ trở lại", may_ngoai_vong: "Máy ngoài vòng kiểm soát", may_tro_lai: "Máy đồng bộ trở lại",
   mo_khan_cap: "Ba Mẹ mở khẩn cấp", huy_mo_khan_cap: "Huỷ mở khẩn cấp", het_mo_khan_cap: "Hết giờ mở khẩn cấp", tin_cay_admin: "Xác nhận tài khoản quản trị",
   lenh_go: "Ra lệnh gỡ từ xa", go_may: "Máy đã gỡ AiiGrow", xem_ma_offline: "Xem mã mở offline", may_mo_ma_offline: "Máy mở bằng mã offline", may_sai_ma_offline: "Gõ sai mã offline nhiều lần", may_het_ma_offline: "Có mạng lại, hết mở bằng mã", doi_che_do: "Đổi chế độ", doi_ten_may: "Đổi tên máy",
-  doi_con_may: "Đổi bé dùng máy", khoa_may: "Ba Mẹ khoá máy", mo_khoa_may: "Ba Mẹ mở khoá máy",
+  doi_con_may: "Đổi bé dùng máy", khoa_may: "Ba Mẹ khoá máy", mo_khoa_may: "Ba Mẹ mở khoá máy", khoa_ngay: "Ba Mẹ khoá bé trên mọi máy", mo_lai: "Ba Mẹ mở khoá bé",
 };
 const NGAY_XOA_HAN = 7;
 /** Agent-win tự thôi theo danh sách khi bị bỏ khỏi gia đình quá ngần này giờ (agent-win AnToan.cs › MoCoi.GioNguong). */
@@ -361,6 +361,16 @@ export default function AnToanMay() {
 
       {tot ? caiDat : null}
       {tot ? nutSuaGo : null}
+      {/* #772: khoá THEO BÉ (con/:id/khoa) áp xuống mọi máy của bé — hiện ở trang máy + nút Mở khoá (trước chỉ khoá theo máy mới có) */}
+      {(m.khoaBe ?? []).map((b) => (
+        <Bao key={b.id} loai="lam" ic="khoa" tieu={`${tenGoi(b.ten)} đang bị khoá · mọi máy`}
+          loi={`${b.den ? `Khoá tới ${gio(b.den)}` : "Khoá tới khi Ba Mẹ mở"} — ${tenGoi(b.ten)} không vào được máy này và các máy khác của bé.`}>
+          {d.xem ? null : <Nut chu={`Mở khoá ${tenGoi(b.ten)}`} ic="mo_khoa" loai="vien" nho dangChay={dangChay} bam={() => lam(async () => {
+            await datKhoa(b.id, false, null);
+            bao(`Đã mở khoá ${tenGoi(b.ten)} trên mọi máy`, () => { datKhoa(b.id, true, null, true).then(tai, tai); }); await tai();
+          })} />}
+        </Bao>
+      ))}
       {khoaRieng && cauKhoaRieng ? (
         <Bao loai="lam" ic="khoa" tieu={`${tenNgan} ${cauKhoaRieng.charAt(0).toLowerCase()}${cauKhoaRieng.slice(1)}`}
           loi={chung ? "Mọi bé đều không vào được máy này — máy khác vẫn dùng bình thường." : "Chỉ máy này khoá — máy khác của con vẫn dùng bình thường."}>
@@ -378,7 +388,7 @@ export default function AnToanMay() {
         // «Chỉ khoá <bé> · mọi máy» ⇒ bảng khoá theo bé (them-sll7clha)
         <Pressable onPress={() => setMo("khoa_be")} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 44 }}>
           <AvtCon c={ai} co={24} />
-          <Chu kieu="rat" co={14} mau={M.chinhInk}>{chung ? `Chỉ khoá ${tenAi} · mọi máy` : `Khoá ${tenAi} · mọi máy`}</Chu>
+          <Chu kieu="rat" co={14} mau={M.chinhInk}>{chung ? `Chỉ khoá ${tenAi} trên mọi máy` : `Khoá ${tenAi} trên mọi máy`}</Chu>
         </Pressable>
       ) : null}
       {!tot ? caiDat : null}
@@ -517,6 +527,7 @@ const gio = (iso: string) => new Date(iso).toLocaleTimeString("vi-VN", { hour: "
 function chiTiet(s: SuKienTuanThu) {
   const c = s.chi_tiet || {};
   if (s.loai === "doi_ten_may" && c.tu && c.den) return ` · từ «${c.tu}» thành «${c.den}»`;
+  if (s.loai === "khoa_ngay") return typeof c.den === "string" ? ` · tới ${gio(c.den)}` : " · tới khi Ba Mẹ mở";
   if (s.loai === "mo_khan_cap" && c.phut) return ` · ${c.phut} phút${c.lyDo ? ` — ${c.lyDo}` : ""}`;
   return "";
 }

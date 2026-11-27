@@ -252,11 +252,11 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
             <OSo vong={yViec ? xViec / yViec : 0} mau="#5cb98f" ic="tick" so={yViec ? `${xViec}/${yViec} việc` : `${xViec} việc`} nhan="Đã làm" bam={() => router.push("/diem-qua" as never)} />
           </View>
         ) : null}
-        {/* hai nút: vàng (Khoá máy / Mở khoá ngay) + sáng (Thêm nhiệm vụ / Đổi giờ) */}
+        {/* hai nút: vàng (Khoá mọi máy / Mở khoá ngay) + sáng (Thêm nhiệm vụ / Đổi giờ) */}
         <View style={{ flexDirection: "row", gap: 8, marginTop: 10 }}>
           <View style={{ flex: 1 }}>
             {khoa ? <Nut chu="Mở khoá ngay" ic="mo_khoa" ic3d nho sat rong motDong loai="vang" toi dangChay={dangChay} bam={() => lam(async () => { await moLaiMay(conId, c.ten, bao, tai); tai(); })} />
-              : <Nut chu="Khoá máy" ic="khoa" ic3d nho sat rong motDong loai="vang" toi nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
+              : <Nut chu="Khoá mọi máy" ic="khoa" ic3d nho sat rong motDong loai="vang" toi nhanDoc={`Khoá máy của ${c.ten}`} tat={!ct.d} bam={() => setBang("khoa")} />}
           </View>
           <View style={{ flex: 1 }}>
             {khoa ? <Nut chu="Đổi giờ" ic="dongho" ic3d nho sat rong motDong loai="nho" bam={() => setBang("khoa")} />

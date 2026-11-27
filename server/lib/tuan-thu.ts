@@ -262,6 +262,8 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
       cheDo: cheDoCua(m), cheDoMay: cheDoMayBao(m), cheDoBaMeChon: cheDoBaMeChon(m), ...go,
       // #267: khoá riêng máy này {khoa, den} (trước chỉ ở con/:id) · Con nối với máy · bé đang dùng · số Con · iPhone/iPad (một Con) · Ba Mẹ đang dùng tới
       khoaMay: { khoa: dangKhoa(m.khoa_may, now), den: khoaDen(m.khoa_may, now) },
+      // #772: bé nào trên máy này đang bị khoá THEO BÉ (mọi máy của bé) — trang máy hiện «<bé> đang khoá tới …» + nút Mở khoá
+      khoaBe: (noi.get(m.id)?.conDs ?? []).filter((c) => dangKhoa(cfgCon.get(c.id), now)).map((c) => ({ id: c.id, ten: c.ten, den: khoaDen(cfgCon.get(c.id), now) })),
       conDs: noi.get(m.id)?.conDs ?? [], dangDung: noi.get(m.id)?.dangDung ?? null, soCon: noi.get(m.id)?.soCon ?? 0, motCon: noi.get(m.id)?.motCon ?? false,
       baMeDungDen: m.ba_me_den && new Date(m.ba_me_den).getTime() > now.getTime() ? new Date(m.ba_me_den).toISOString() : null };
   }));
@@ -270,9 +272,12 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
 export async function chiTietTuanThu(fam: string, mayId: string, now = new Date()) {
   await mayCua(fam, mayId);
   const may = (await dsTuanThu(fam, now)).find((x) => x.id === mayId)!;
-  const suKien = await q(`select loai, chi_tiet, nguoi, created_at from events where family_id = $1 and device_id = $2 and
-      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline','doi_che_do','doi_ten_may','may_chuyen_nha','doi_con_may','khoa_may','mo_khoa_may')
-      order by created_at desc, seq desc limit 50`, [fam, mayId]);
+  // #772: khoá / mở khoá THEO BÉ (events.child_id, không có device_id) của bé đang gắn với máy này cũng nằm trong nhật ký máy
+  const conIds = may.conDs.map((c) => c.id);
+  const suKien = await q(`select loai, chi_tiet, nguoi, created_at from events where family_id = $1 and (
+      (loai in ('khoa_ngay','mo_lai') and child_id = any($3::text[]) and device_id is null) or (device_id = $2 and
+      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline','doi_che_do','doi_ten_may','may_chuyen_nha','doi_con_may','khoa_may','mo_khoa_may'))
+    ) order by created_at desc, seq desc limit 50`, [fam, mayId, conIds]);
   // #267 «Máy cả nhà · chi tiết»: từng Con đã gán (sao, phút hôm nay trên máy này, lần cuối, khoá theo Con) — đủ danh sách nhà ở GET may/:id/con
   const tungCon = (await conMay(fam, mayId, now)).ds.filter((c) => c.gan);
   return { ...may, tungCon, suKien };
