@@ -4,14 +4,15 @@
 // #564: video (~460 KB) chỉ gắn SAU khi trang tải xong (sự kiện load + lúc rảnh) ⇒ không tranh băng thông với JS / font / ảnh LCP; trước đó ảnh tĩnh
 // (cũng là poster, trùng khung đầu) đứng nguyên chỗ nên nhìn không đổi.
 import { useEffect, useState, type ReactNode } from "react";
-import { StyleSheet, View } from "react-native";
+import { View } from "react-native";
 // @ts-ignore — react-native-web không kèm kiểu; chỉ dùng hàm tạo thẻ DOM <img> / <video>
 import { unstable_createElement } from "react-native-web";
 
 const ANH = require("../../assets/chao/welcome-03.webp");
 const VIDEO = require("../../assets/chao/welcome-03-intro.mp4");
 const nguon = (x: unknown) => (typeof x === "string" ? x : (x as { uri?: string; default?: string })?.uri ?? (x as { default?: string })?.default ?? "");
-const PHU = { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" } as const;
+// #775: «contain» + nền cùng màu ảnh ⇒ chữ «AiiGrow» của ảnh nằm trong vùng ảnh, nút / câu giới thiệu xếp DƯỚI ảnh, không đè lên
+const PHU = { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain" } as const;
 
 /** true khi trang đã tải xong và trình duyệt rảnh (tối đa chờ 1,5 s sau load). */
 function useSauTai() {
@@ -33,13 +34,15 @@ function useSauTai() {
 export function NenChao({ children }: { children?: ReactNode }) {
   const coVideo = useSauTai();
   return (
-    <View style={StyleSheet.absoluteFill}>
-      {unstable_createElement("img", { src: nguon(ANH), alt: "AiiGrow · Ươm mầm thói quen số", style: PHU })}
-      {coVideo ? unstable_createElement("video", {
-        src: nguon(VIDEO), poster: nguon(ANH), autoPlay: true, muted: true, playsInline: true, preload: "auto",
-        style: { ...PHU, pointerEvents: "none" },
-      }) : null}
-      <View style={StyleSheet.absoluteFill}>{children}</View>
+    <View style={{ flex: 1, backgroundColor: "#E6DFCF" }}>
+      <View style={{ flex: 1, minHeight: 0 }}>
+        {unstable_createElement("img", { src: nguon(ANH), alt: "AiiGrow · Ươm mầm thói quen số", style: PHU })}
+        {coVideo ? unstable_createElement("video", {
+          src: nguon(VIDEO), poster: nguon(ANH), autoPlay: true, muted: true, playsInline: true, preload: "auto",
+          style: { ...PHU, pointerEvents: "none" },
+        }) : null}
+      </View>
+      <View>{children}</View>
     </View>
   );
 }

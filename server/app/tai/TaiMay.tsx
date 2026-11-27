@@ -1,12 +1,13 @@
 "use client";
 // Màn tải bộ cài máy tính (Windows / Mac) — Bàn web-tai: «Trang tải trên máy tính» (bm1-web-tai-may-tinh), «Tải cho Windows» / «Tải cho Mac»
 // (Đang tải + làm theo hình) và «Tải không được». Ba trạng thái trên một trang: cho = nút tải đúng máy · tai = «Đang tải» · dung = «Tải không được».
-// Trình duyệt tự tải tệp (thẻ <a>), trang không đo được % thật ⇒ thanh «Đang tải» chạy liên tục, không bịa số.
+// Trình duyệt tự tải tệp (thẻ <a>), trang không đo được % thật ⇒ KHÔNG vẽ thanh tiến độ giả (#775): «Đang tải» chỉ dẫn xem tiến độ ở trình duyệt,
+// Ba Mẹ bấm «Tải xong rồi» ⇒ trạng thái «Đã tải xong» (pha xong).
 import { useState } from "react";
-import { Anh, Buoc, CHU, Canh, Chips, Dau, HinhBuoc, Khac, Bt, NutTai, TEN, type NenTai } from "./Ban";
+import { Anh, Buoc, CHU, Canh, CanhBaoWin, Chips, Dau, HinhBuoc, Khac, Bt, NutTai, TEN, type NenTai } from "./Ban";
 import Chep from "./Chep";
 
-type Pha = "cho" | "tai" | "dung";
+type Pha = "cho" | "tai" | "xong" | "dung";
 type Props = {
   duPhong: string; nen: "windows" | "mac"; link: string; nut: string; tep: string; ma: string; tuGhep: boolean; dau: Pha;
   hrefHe: Record<NenTai, string>; duPhongHien: string;
@@ -45,30 +46,34 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
   );
 
   // ---- Đang tải + làm theo hình (Tải cho Windows / Tải cho Mac) ----
-  if (pha === "tai") return (
+  if (pha === "tai" || pha === "xong") { const xong = pha === "xong"; return (
     <div className="tb-pg hep">
       <Dau ve={hre(nen)} onVe={veCho} may={nen} />
       <div className="tb-the" style={{ padding: "16px 18px 18px" }} aria-live="polite">
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <img src="/assets/rob/cho.webp" alt="" width={78} height={78} style={{ flex: "none", filter: "drop-shadow(0 8px 8px rgba(120,98,70,.28))" }} />
-          <div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.3px" }}>Đang tải…</div><div className="tb-t2" style={{ fontSize: 14 }}>{tenTep} · tiến độ xem ở góc trên trình duyệt</div></div>
+          <img src={xong ? "/assets/rob/rob-goc.webp" : "/assets/rob/cho.webp"} alt="" width={78} height={78} style={{ flex: "none", filter: "drop-shadow(0 8px 8px rgba(120,98,70,.28))" }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: "-.3px" }}>{xong ? "Đã tải xong" : "Trình duyệt đang tải"}</div>
+            <div className="tb-t2" style={{ fontSize: 14 }}>{tenTep} · {xong ? "làm theo các bước bên dưới" : "xem tiến độ ở góc trên trình duyệt"}</div>
+          </div>
         </div>
-        <div className="tb-vach chay" style={{ marginTop: 14 }} role="progressbar" aria-label="Đang tải"><i /></div>
-        <div className="tb-dung"><span className="tb-ghi" style={{ fontSize: 13.5, color: "#2E3A50" }}>Tải bị dừng?</span><a className="tb-lk" href={link} onClick={(e) => { e.preventDefault(); setPha("dung"); }}>Tải lại</a></div>
+        {xong ? null : <div style={{ marginTop: 14 }}><NutTai tiep onClick={() => setPha("xong")}>Tôi tải xong rồi</NutTai></div>}
+        <div className="tb-dung"><span className="tb-ghi" style={{ fontSize: 13.5, color: "#2E3A50" }}>{xong ? "Chưa tải xong?" : "Tải bị dừng?"}</span>{xong ? <button type="button" className="tb-lk" onClick={() => setPha("tai")}>Quay lại</button> : null}<a className="tb-lk" href={link} onClick={(e) => { e.preventDefault(); setPha("dung"); }}>Tải lại</a></div>
       </div>
       <ThongDiep />
       <p className="tb-tieu">Tải xong, làm theo hình:</p>
-      <ol className="tb-cac">
+      <ol className="tb-cac" id="tb-cai">
         {CHU[nen].sau.map(([ten, phu], i) => (
           <Buoc key={i} so={i + 1} lo={<HinhBuoc nen={nen} b={(i + 1) as 1 | 2 | 3} xong={i < 2 || tuGhep} ma={ma} />}
             ten={i === 2 && tuGhep ? "Bộ cài tự ghép máy" : ten}
             phu={i === 2 && tuGhep ? "Không cần gõ mã. Link hết hạn thì gõ mã 6 số trên điện thoại Ba Mẹ" : phu} />
         ))}
       </ol>
-      <div><NutTai tiep onClick={() => { document.querySelector(".tb-cac li:last-child")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>Bộ cài mở rồi, cài tiếp</NutTai><p className="tb-nho">{tep}</p></div>
+      {nen === "windows" ? <CanhBaoWin /> : null}
+      <div><NutTai tiep onClick={() => { document.querySelector("#tb-cai li:last-child")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>Bộ cài mở rồi, cài tiếp</NutTai><p className="tb-nho">{tep}</p></div>
       <Khac nen={nen} hrefHe={hre} />
     </div>
-  );
+  ); }
 
   // ---- Trang tải trên máy tính (bm1-web-tai-may-tinh) ----
   return (
@@ -97,6 +102,7 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
             phu={i === 2 && tuGhep ? "Không cần gõ mã. Link hết hạn thì gõ mã 6 số trên điện thoại Ba Mẹ" : phu} />
         ))}
       </ol>
+      {nen === "windows" ? <CanhBaoWin /> : null}
       <div className="tb-cuoi"><Bt ten="khien" c={44} /><span className="ft">Cài xong, máy của con tự báo về điện thoại Ba Mẹ.</span></div>
     </div>
   );

@@ -82,7 +82,7 @@
 @media (min-width:900px){
  .tb-pg{padding:36px 40px 40px}.tb-pg.hep{max-width:520px}
  .tb-top .logo{width:56px;height:56px}.tb-top b{font-size:24px}
- .tb-hero{flex-direction:row;align-items:center;gap:40px;margin-top:40px}.tb-hero>.tb-h{flex:1}.tb-hero h1{font-size:58px;letter-spacing:-1.8px}
+ .tb-hero{margin-top:40px}.tb-hero>.tb-h{flex:1}.tb-hero h1{font-size:58px;letter-spacing:-1.8px}
  .tb-hero>.tb-h{min-width:0}.tb-hero .tb-canh{flex:none;width:580px;justify-content:flex-end}.tb-hero .tb-noi{order:-1}.tb-may.tren{margin-bottom:20px}
  .tb-hero .tb-noi{flex:none;width:300px;padding:20px 24px;border-radius:32px;font-size:22px;margin-bottom:90px}
  .tb-hero .tb-noi::before{left:auto;right:-9px;box-shadow:3px -3px 5px -2px var(--lo)}.tb-noi small{font-size:16px}
@@ -94,7 +94,7 @@
  .tb-cac3 .tb-lo{--lo:250px;border-radius:28px}.tb-cac3 .tb-hop{width:min(300px,100%);padding:16px 18px}
  .tb-cac3 .tb-ma i{height:58px;font-size:26px}
  .tb-hoi+.tb-chip,.tb-hoi{display:inline-flex}.tb-top .tb-chip.tr{display:inline-flex}
- .tb-hero.cu .tb-canh{width:470px}.tb-cuoi{margin-top:auto;padding-top:24px}
+.tb-hero.cu .tb-canh{width:470px}.tb-cuoi{margin-top:auto;padding-top:24px}
  .tb-cachs{display:flex;gap:26px;margin-top:80px}
 }
 @media (max-width:899px){
@@ -110,4 +110,13 @@
  .tb-cach{border-radius:36px;padding:40px 36px;gap:28px;min-height:280px;justify-content:center}.tb-cach h3{font-size:25px}.tb-cach p{font-size:16.5px;margin-top:6px}
  .tb-cach .tb-du{height:64px;padding:0 8px 0 20px;border-radius:22px}.tb-cach .tb-du code{font-size:18px}
  .tb-pg>.tb-cuoi{margin-top:auto}
+}
+
+/* #775: hero chỉ chia hai cột khi đủ rộng (900–1099px trước đây ép tiêu đề xuống từng chữ, nút cắt chữ) */
+.tb-tai.lon{white-space:normal}.tb-tai>span{min-width:0;overflow-wrap:anywhere}
+@media (min-width:1100px){
+ .tb-hero{flex-direction:row;align-items:center;gap:40px}
+}
+@media (min-width:900px) and (max-width:1099px){
+ .tb-hero .tb-canh{width:100%;justify-content:center}.tb-hero .tb-noi{width:auto;margin-bottom:0}.tb-hero h1{font-size:46px}
 }

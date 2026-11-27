@@ -14,7 +14,12 @@ export default function Chao() {
     <View style={{ flex: 1, backgroundColor: M.nen, overflow: "hidden" }}>
       <NenChao>
       <SafeAreaView style={{ flex: 1, justifyContent: "flex-end" }} edges={["top", "bottom", "left", "right"]}>
-        <View style={{ paddingHorizontal: 16, paddingBottom: 24, gap: 6 }}>
+        <View style={{ paddingHorizontal: 16, paddingBottom: 24, gap: 6, ...(Platform.OS === "web" ? { width: "100%", maxWidth: 480, alignSelf: "center" as const } : null) }}>
+          {Platform.OS === "web" ? (
+            <Text style={{ fontFamily: F.dam, fontSize: 16, lineHeight: 23, color: M.chu, textAlign: "center", marginBottom: 12 }}>
+              AiiGrow giúp Ba Mẹ đặt giờ dùng máy và xem con dùng điện thoại, máy tính ra sao, để con tập thói quen số lành mạnh.
+            </Text>
+          ) : null}
           <NhanMen onPress={() => router.push("/tao-tai-khoan")} accessibilityRole="button" muc="nut" men={MEN.ngoc}
             style={{ minHeight: 58, borderRadius: BO_CLAY.nut, backgroundColor: M.chinh, boxShadow: BONG.ngoc, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 }}>
             <LopMen men={MEN.ngoc} bo={BO_CLAY.nut} />
