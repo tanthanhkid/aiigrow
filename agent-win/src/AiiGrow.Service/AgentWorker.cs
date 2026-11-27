@@ -117,7 +117,7 @@ public sealed class AgentWorker : BackgroundService
                         // chưa đọc được tài khoản: không ÁP được, nhưng «Mở»/mã mở tạm (AppLockerWanted=false) vẫn phải GỠ được
                         if (apThat && (childSids != null || !eff.AppLockerWanted))
                         {
-                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh), _rt.TrinhDuyetLoc(), GoiNgoaiWindowsApps.LuatChan(ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), _rt.GoiNgoai), _rt.ThuMucDaCai);
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh), _rt.TrinhDuyetLoc(), GoiNgoaiWindowsApps.LuatChan(ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), _rt.GoiNgoai), _rt.ThuMucTheoTen);
                             _rt.AppLockerApplied = applied;
                         }
                         else if (eff.AppLockerWanted)

@@ -63,14 +63,14 @@ public class Phan727bTests
     [Fact]
     public void AppLocker_TheoTen_LaLuatDuongDan_KhongConAsteriskTen()
     {
-        var o = new AppLockerOptions { ChildSid = "S-1-5-21-1-2-3-1001", AllowedApps = new[] { "discord.exe" }, ThuMucCai = DaCai };
+        var o = new AppLockerOptions { ChildSid = "S-1-5-21-1-2-3-1001", AllowedApps = new[] { "discord.exe" }, ThuMucCai = new[] { @"discord.exe|C:\Users\Con\AppData\Local\Discord", @"discord.exe|D:\Games\Foo" } };
         var xml = AppLockerXml.Build(o);
         var ex = XDocument.Parse(xml).Descendants("FilePathRule").Single(r => (string?)r.Attribute("Action") == "Deny")
             .Element("Exceptions")!.Elements("FilePathCondition").Select(e => (string?)e.Attribute("Path")).ToList();
         Assert.DoesNotContain(@"*\discord.exe", ex);
-        Assert.Contains(@"%PROGRAMFILES%\*\discord.exe", ex);
-        Assert.Contains(@"C:\Users\Con\AppData\Local\Discord\*\discord.exe", ex);
-        Assert.Contains(@"D:\Games\Foo\discord.exe", ex);
+        Assert.Contains(@"C:\Users\Con\AppData\Local\Discord\*", ex);
+        Assert.Contains(@"D:\Games\Foo\*", ex);
+        Assert.DoesNotContain(ex, e => e!.Contains(@"\*\"));   // chỉ wildcard cuối đường dẫn
         // chưa quét ⇒ luật tên như cũ
         var cu = XDocument.Parse(AppLockerXml.Build(new AppLockerOptions { ChildSid = "S-1-5-21-1-2-3-1001", AllowedApps = new[] { "discord.exe" } }))
             .Descendants("FilePathCondition").Select(e => (string?)e.Attribute("Path")).ToList();
@@ -164,10 +164,10 @@ public class Phan727bTests
         })
             Assert.False(ProcessGuard.ShouldClose(p, cho, NoDirs, Safe, Win, tenDaCai: Tap(), thuMucDaCai: d), p);
         // AppLocker: wildcard thư mục cha ⇒ đổi bản không bị chặn
-        var ex = XDocument.Parse(AppLockerXml.Build(new AppLockerOptions { ChildSid = "S-1-5-21-1-2-3-1001", AllowedApps = new[] { "discord.exe", "robloxplayerbeta.exe" }, ThuMucCai = d }))
+        var ex = XDocument.Parse(AppLockerXml.Build(new AppLockerOptions { ChildSid = "S-1-5-21-1-2-3-1001", AllowedApps = new[] { "discord.exe", "robloxplayerbeta.exe" }, ThuMucCai = DanhSachApp.TenThuMuc(ds, Win) }))
             .Descendants("FilePathCondition").Select(e => (string?)e.Attribute("Path")).ToList();
-        Assert.Contains(@"C:\Users\Con\AppData\Local\Discord\*\discord.exe", ex);
-        Assert.Contains(@"C:\Users\Con\AppData\Local\Roblox\*\robloxplayerbeta.exe", ex);
+        Assert.Contains(@"C:\Users\Con\AppData\Local\Discord\*", ex);
+        Assert.Contains(@"C:\Users\Con\AppData\Local\Roblox\*", ex);
         Assert.DoesNotContain(ex, e => e!.Contains("app-1.0.9001") || e.Contains("version-aaa"));
     }
 }

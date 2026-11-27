@@ -500,6 +500,27 @@ public static class DanhSachApp
         return kq.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    /// <summary>#727: «tên.exe|thư mục cài» của app đã quét (tên exe chữ thường; thư mục như <see cref="ThuMucDaCai"/> nhưng cả Program Files) — luật AppLocker «thư mục\*» theo từng app cho phép.</summary>
+    public static List<string> TenThuMuc(IEnumerable<AppThat> ds, string? winDir)
+    {
+        var kq = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in ds)
+        {
+            var thuMuc = string.IsNullOrWhiteSpace(a.ThuMuc) ? null : ChuanThuMuc(a.ThuMuc);
+            foreach (var d in DuongDanKem(a))
+            {
+                var p = d.Replace('/', '\\');
+                if (!LaDuongTuyetDoi(p) || ProcessGuard.LaChoConThaTep(p, winDir)) continue;
+                var ten = TenTep(p).ToLowerInvariant();
+                if (!ten.EndsWith(".exe", StringComparison.Ordinal) || ChanAppThat.TenChung.Contains(ten)) continue;
+                var goc = GocCai(p);
+                if (goc != null) kq.Add(ten + "|" + goc);
+                if (thuMuc != null && p.StartsWith(thuMuc.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase) && GocCai(thuMuc + "\\x.exe") is { } g2) kq.Add(ten + "|" + g2);
+            }
+        }
+        return kq.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
     private static readonly HashSet<string> VanChung = new(StringComparer.OrdinalIgnoreCase) { "Google", "Microsoft", "Mozilla", "JetBrains", "Packages" };
 
     private static string? GocCai(string exe)

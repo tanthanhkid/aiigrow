@@ -16,8 +16,8 @@ public sealed class AppLockerOptions
     public IEnumerable<string> AllowedApps { get; set; } = Array.Empty<string>();
     /// <summary>Cho phép cả %PROGRAMFILES%. Mặc định tắt: nếu bật thì mọi app cài ở Program Files đều chạy được.</summary>
     public bool AllowProgramFiles { get; set; }
-    /// <summary>#727: thư mục cài đã quét (<see cref="DanhSachApp.ThuMucDaCai"/>). Có (đã quét) ⇒ app cho phép theo tên chỉ chạy từ Program Files (+ WindowsApps) /
-    /// các thư mục này (luật đường dẫn), KHÔNG còn «*\tên.exe» ở mọi nơi (exe lạ đổi tên ở Desktop / AppData\Roaming). null = chưa quét ⇒ luật tên như cũ.</summary>
+    /// <summary>#727: «tên.exe|thư mục cài» đã quét (<see cref="DanhSachApp.TenThuMuc"/>). Có (đã quét) ⇒ app cho phép theo tên chỉ chạy từ thư mục cài đã quét của nó
+    /// (luật «thư mục\*»), KHÔNG còn «*\tên.exe» ở mọi nơi (exe lạ đổi tên ở Desktop / AppData\Roaming). null = chưa quét ⇒ luật tên như cũ.</summary>
     public IReadOnlyList<string>? ThuMucCai { get; set; }
     /// <summary>Chặn thật «chặn theo lọc»: trình duyệt được chạy cho từng SID Con (tên trong <see cref="TrinhDuyetLoc.TatCa"/>) — chỉ khi luật web đang áp cho SID đó.</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>>? TrinhDuyetTheoSid { get; set; }
@@ -258,12 +258,12 @@ public static class AppLockerXml
         catch { return false; }
     }
 
-    /// <summary>Thư mục cài đã quét nằm ngoài Program Files (đã có luật %PROGRAMFILES%), chuẩn hoá, không ký tự đại diện / nháy.</summary>
-    private static IEnumerable<string> ThuMucNgoaiProgramFiles(IEnumerable<string> ds) =>
-        ds.Select(d => DanhSachApp.ChuanThuMuc(d))
-          .Where(d => d.Length > 3 && DanhSachApp.LaDuongTuyetDoi(d) && d.IndexOfAny(new[] { '*', '?', '"', '<', '>', '|', '%' }) < 0
-                      && !(char.ToUpperInvariant(d[0]) == ProcessGuard.OSDrive && (d[3..].StartsWith(@"Program Files\", StringComparison.OrdinalIgnoreCase) || d[3..].StartsWith(@"Program Files (x86)\", StringComparison.OrdinalIgnoreCase))))
-          .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(d => d, StringComparer.OrdinalIgnoreCase);
+    /// <summary>Thư mục cài của app <paramref name="ten"/> (từ các mục «tên|thư mục» đã quét): chuẩn hoá, không ký tự đại diện / nháy / %.</summary>
+    private static IEnumerable<string> ThuMucCuaApp(IEnumerable<string> cap, string ten) =>
+        cap.Select(c => c.Split('|', 2)).Where(p => p.Length == 2 && p[0].Equals(ten, StringComparison.OrdinalIgnoreCase))
+           .Select(p => DanhSachApp.ChuanThuMuc(p[1]))
+           .Where(d => d.Length > 3 && DanhSachApp.LaDuongTuyetDoi(d) && d.IndexOfAny(new[] { '*', '?', '"', '<', '>', '|', '%' }) < 0)
+           .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(d => d, StringComparer.OrdinalIgnoreCase);
 
     private static IEnumerable<XElement> OurRules(AppLockerOptions o)
     {
@@ -277,13 +277,9 @@ public static class AppLockerXml
             var n = NormalizeExe(a);
             if (n == null || !seen.Add(n)) continue;
             if (o.ThuMucCai == null) { exceptions.Add(@"*\" + n); continue; }
-            exceptions.Add(@"%PROGRAMFILES%\" + n);
-            exceptions.Add(@"%PROGRAMFILES%\*\" + n);
-            foreach (var d in ThuMucNgoaiProgramFiles(o.ThuMucCai))
-            {
-                exceptions.Add(d + @"\" + n);
-                exceptions.Add(d + @"\*\" + n);
-            }
+            // #727: chỉ dùng wildcard CUỐI đường dẫn (AppLocker không đánh giá được «dir\*\tên.exe»): cả thư mục cài đã quét của app được phép
+            // (đổi thư mục phiên bản vẫn chạy). Không có thư mục quét được cho tên này ⇒ không luật theo tên (Program Files thì AllowProgramFiles / thư mục cài ở trên).
+            foreach (var d in ThuMucCuaApp(o.ThuMucCai, n)) exceptions.Add(d + @"\*");
         }
         foreach (var sid in o.Sids)
         {
