@@ -7,14 +7,14 @@
 // Chỉ tên app / tên miền + thời lượng — không nội dung (như man-hinh.ts).
 import { one, q } from "./db.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
-import { chuanMuc, laAppAiiGrow, laTienTrinhNenWindows } from "./luat-app.ts";
-import { tenDoc, TRINH_DUYET } from "./man-hinh.ts";
+import { chuanMuc } from "./luat-app.ts";
+import { chonLuat, docDongDung } from "./phut-dung.ts";
+import { tenDoc } from "./man-hinh.ts";
 import { quyHomNay, soHomNay } from "./quy-gio.ts";
 import { mayMatMang } from "./can-de-y.ts";
 import { LA_APP } from "./so-sao.ts";
 import { mucGop, tenThanThien } from "./ten-than-thien.ts";
 
-type Luat = { child_id: string; muc: string; ten: string; loai: string; nhom: string };
 type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
   phut: number; tinhGio: boolean; chuaXep: boolean; dangMo: boolean; matMang: boolean };
 /** `ly` «grow_chan» (cũ) không còn trả từ #258. */
@@ -38,13 +38,8 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     one<{ ten: string }>(`select ten from children where id = $1 and family_id = $2`, [con, fam])]);
   const tz = f?.tz ?? "Asia/Ho_Chi_Minh";
   const ngay = gioDiaPhuong(now, tz).ngay, tu = dauNgayUtc(ngay, tz);
-  const [app, web, luat, phien, may, mm, yc, qy] = await Promise.all([
-    q<{ device_id: string; muc: string; loai: string; phut: number; dau_luc: Date | null }>(
-      `select device_id, muc, loai, phut, dau_luc from usage where child_id = $1 and ngay = $2 and phut > 0`, [con, ngay]),
-    q<{ device_id: string; ten_mien: string; giay: number; dau_luc: Date | null; lan_cuoi: Date | null }>(
-      `select w.device_id, w.ten_mien, w.giay, w.dau_luc, w.lan_cuoi from web_nhat_ky w left join devices d on d.id = w.device_id
-        where (w.child_id = $1 or (w.child_id is null and d.child_id = $1)) and d.family_id = $2 and w.ngay = $3 and w.giay > 0`, [con, fam, ngay]),
-    q<Luat>(`select child_id, muc, ten, loai, nhom from app_rules where family_id = $1 and child_id in ('', $2) and (het is null or het > $3)`, [fam, con, now]),
+  const [{ app, web, luat }, phien, may, mm, yc, qy] = await Promise.all([
+    docDongDung(fam, con, ngay, now),
     q<{ muc: string; device_id: string | null }>(`select muc, device_id from play_sessions where child_id = $1 and trang_thai = 'chay'`, [con]),
     q<{ id: string; name: string; platform: string }>(`select id, name, platform from devices where family_id = $1`, [fam]),
     mayMatMang(fam, now),
@@ -57,12 +52,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
   const tenMay = new Map(may.map((m) => [m.id, m]));
   const matMang = new Set(mm.map((m) => m.mayId));
   const dangMo = new Set(phien.map((p) => chuanMuc(p.muc)));
-  const luatCua = (muc: string, kieu: "app" | "web" = "app") => {
-    const m = chuanMuc(muc);
-    // #813: nhật ký web gộp theo tên miền gốc (wikipedia.org) còn Ba Mẹ thêm luật cho tên miền con (vi.wikipedia.org) ⇒ luật con cũng xếp đúng nhóm tên miền gốc
-    return luat.filter((l) => m === l.muc || m.endsWith(`.${l.muc}`) || m === mucGop(l.muc) || (kieu === "web" && l.muc.endsWith(`.${m}`))).sort((a, b) => (+laCon(a) - +laCon(b)) || b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];   // luật khớp thẳng / tên miền cha thắng luật tên miền con
-    function laCon(l: { muc: string }) { return kieu === "web" && l.muc !== m && l.muc.endsWith(`.${m}`); }
-  };
+  const luatCua = (muc: string, kieu: "app" | "web" = "app") => chonLuat(luat, muc, kieu);   // #810: một hàm chọn luật dùng chung (lib/phut-dung)
   // gộp theo app / trang (một app dùng ở 2 máy ⇒ một dòng, máy = máy dùng nhiều nhất, giờ = lần đầu sớm nhất)
   const gop = new Map<string, DongDung & { _phutMay: number }>();
   const them = (kieu: "app" | "web", muc0: string, mayId: string, phut: number, dau: Date | null, loaiUsage: string | null) => {
@@ -83,7 +73,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     if (dau && (!x.luc || new Date(dau).getTime() < new Date(x.luc).getTime())) x.luc = new Date(dau).toISOString();
     if (phut > x._phutMay) { x._phutMay = phut; x.may = m?.name ?? x.may; x.nen = m?.platform ?? x.nen; x.mayId = m?.id ?? x.mayId; x.matMang = matMang.has(mayId); }
   };
-  for (const a of app) if (!laAppAiiGrow(a.muc) && !TRINH_DUYET.has(chuanMuc(a.muc)) && a.loai !== "he_thong" && !(laTienTrinhNenWindows(a.muc) && !luatCua(chuanMuc(a.muc)))) them("app", a.muc, a.device_id, a.phut, a.dau_luc, a.loai);
+  for (const a of app) them("app", a.muc, a.device_id, a.phut, a.dau_luc, a.loai);   // `app` đã lọc ở docDongDung (laDongTinhPhut)
   // #704: phút web cộng theo GIÂY (nhiều máy / nhiều lần cùng tên miền) rồi mới làm tròn một lần ở dòng — như phút «Giờ chơi» (quy-gio › phutDaDung)
   for (const w of web) them("web", w.ten_mien, w.device_id, Number(w.giay) / 60, w.dau_luc ?? w.lan_cuoi, null);
   // #704: tổng «Không tính phút» tính trên CẢ ngày (trước khi cắt danh sách), cộng số lẻ — kể cả tên miền dưới 1 phút — rồi làm tròn một lần
