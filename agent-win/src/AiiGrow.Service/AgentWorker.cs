@@ -117,7 +117,7 @@ public sealed class AgentWorker : BackgroundService
                         // chưa đọc được tài khoản: không ÁP được, nhưng «Mở»/mã mở tạm (AppLockerWanted=false) vẫn phải GỠ được
                         if (apThat && (childSids != null || !eff.AppLockerWanted))
                         {
-                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh), _rt.TrinhDuyetLoc(), GoiNgoaiWindowsApps.LuatChan(ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), _rt.GoiNgoai));
+                            var applied = _locker.Reconcile(eff.AppLockerWanted, childSids ?? Array.Empty<string>(), ChanAppThat.MoRongTen(p.AllowedApps, _rt.MucChinh), _rt.TrinhDuyetLoc(), GoiNgoaiWindowsApps.LuatChan(ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), _rt.GoiNgoai), _rt.ThuMucTheoTen);
                             _rt.AppLockerApplied = applied;
                         }
                         else if (eff.AppLockerWanted)
@@ -359,7 +359,7 @@ public sealed class AgentWorker : BackgroundService
                 || (tapChoPhep != null && GoiNgoaiWindowsApps.ChoChay(path, tapChoPhep, goi))
             : null;
         var closed = ProcessEnforcer.Enforce(_procs, sessionId, choPhep, dryRun: !apThat, choThem: choThem,
-            khongDong: exe => BaoKhongDong(exe, "ngoài danh sách"), tenDaCai: _rt.TenDaCai ?? ChuaQuet);
+            khongDong: exe => BaoKhongDong(exe, "ngoài danh sách"), tenDaCai: _rt.TenDaCai ?? ChuaQuet, thuMucDaCai: _rt.ThuMucDaCai);
         // Giám sát: cùng một tập app chạy mãi ⇒ chỉ ghi log khi tập đổi (trước đây ~5 giây một lượt, hàng nghìn dòng may_log mỗi giờ).
         var tap = string.Join(",", closed.OrderBy(x => x, StringComparer.OrdinalIgnoreCase));
         var ghiGiamSat = tap != _giamSatDaBao;

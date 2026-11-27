@@ -245,6 +245,7 @@ public static class ChanAppThat
         foreach (var a in ds)
         {
             var ten = a.Muc.Length > 0 ? a.Muc : DanhSachApp.TenTep(a.DuongDan ?? a.ThuMuc ?? "?").ToLowerInvariant();
+            var bamHong = false;   // #727: đã thử băm AppLocker mà không được (tệp lỗi / quá lớn) ⇒ thêm luật theo tên
             if (a.DuongDan != null && !MienChan(a.DuongDan, winDir, safe))
             {
                 Them(new LuatChanApp(ten + " (đường dẫn)", a.DuongDan));
@@ -254,12 +255,14 @@ public static class ChanAppThat
                     try { h = bamAppLocker(a.DuongDan); } catch { }
                     if (h is { } x && x.Length > 0 && Regex.IsMatch(x.Data, "^0x[0-9A-Fa-f]{64}$"))
                         Them(new LuatChanApp(ten + " (băm)", null, x.Data.ToUpperInvariant().Replace("0X", "0x"), x.Length, x.SourceFile));
+                    else bamHong = a.Sha256 != null;
                 }
             }
             if (a.ThuMuc != null && ThuMucHopLe(a.ThuMuc, winDir) && !safe.Any(s => !string.IsNullOrEmpty(s) && (DanhSachApp.Trong(a.ThuMuc + "\\x.exe", s) || DanhSachApp.Trong(s + "\\x", a.ThuMuc))))
                 Them(new LuatChanApp(ten + " (thư mục)", DanhSachApp.ChuanThuMuc(a.ThuMuc) + @"\*"));
             // chỉ có tên exe (luật chan không có trong danh sách của máy): «*\ten.exe» như danh sách chặn cũ — trừ tên tiến trình phiên của Windows
-            if (a.DuongDan == null && a.ThuMuc == null && KhopTheoTen(a) && AppLockerXml.NormalizeExe(a.Muc) is { } n && !ProcessGuard.TienTrinhHeThongPhien.Contains(n)
+            // #727: luật có băm mà AppLocker không đọc được băm (tệp lỗi / quá lớn) ⇒ vẫn chặn theo tên exe (không để băm lỗi = không chặn)
+            if ((a.DuongDan == null && a.ThuMuc == null || bamHong) && KhopTheoTen(a) && AppLockerXml.NormalizeExe(a.Muc) is { } n && !ProcessGuard.TienTrinhHeThongPhien.Contains(n)
                 && !n.StartsWith("aiigrow.", StringComparison.Ordinal))
                 Them(new LuatChanApp(n + " (tên)", @"*\" + n));
         }

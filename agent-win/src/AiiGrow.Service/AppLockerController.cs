@@ -48,7 +48,7 @@ public sealed class AppLockerController
     /// <param name="trinhDuyet">«Chặn theo lọc»: SID → trình duyệt được chạy (TrinhDuyetLoc) — chỉ những SID luật web đang áp.</param>
     /// <param name="chan">25/10: app Ba Mẹ đặt «Chặn» (Policy.BlockedApps) — có ⇒ thêm luật Deny cho SID Con ở MỌI mode (kể cả khi không «chỉ app học»).</param>
     public bool Reconcile(bool wantApply, IReadOnlyList<string> sids, IEnumerable<string> apps, IReadOnlyDictionary<string, IReadOnlyList<string>>? trinhDuyet = null,
-        IReadOnlyList<AppBiChan>? chan = null)
+        IReadOnlyList<AppBiChan>? chan = null, IReadOnlyList<string>? thuMucCai = null)
     {
         if (!KhaDung) { Applied = false; return false; }   // Win Home: không áp, không gỡ, không log mỗi nhịp
         // 28/10: lần đầu sau khi dịch vụ khởi động (vd ngay sau khi tự cập nhật) — chữa máy bản cũ để lại Exe bật + Appx rỗng (Start đơ), kể cả khi
@@ -73,11 +73,11 @@ public sealed class AppLockerController
         var td = want && trinhDuyet != null
             ? ds.Where(trinhDuyet.ContainsKey).ToDictionary(s => s, s => (IReadOnlyList<string>)trinhDuyet[s].OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList(), StringComparer.OrdinalIgnoreCase)
             : new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
-        var key = want ? string.Join(";", ds) + "|" + (wantApply ? string.Join(",", list) : "-") + "|" + ChanAppThat.VanTay(luatChan) + "|" + string.Join(";", td.OrderBy(x => x.Key).Select(x => x.Key + "=" + string.Join(",", x.Value))) : "off";
+        var key = want ? string.Join(";", ds) + "|" + (wantApply ? string.Join(",", list) + "#" + (thuMucCai == null ? "-" : string.Join(",", thuMucCai)) : "-") + "|" + ChanAppThat.VanTay(luatChan) + "|" + string.Join(";", td.OrderBy(x => x.Key).Select(x => x.Key + "=" + string.Join(",", x.Value))) : "off";
         if (key == _lastKey) return Applied;
         if (DateTimeOffset.UtcNow < _nextTry) return Applied;
 
-        bool ok = want ? Apply(ds, list, td, wantApply, luatChan) : Remove();
+        bool ok = want ? Apply(ds, list, td, wantApply, luatChan, thuMucCai) : Remove();
         if (ok) { _lastKey = key; Applied = want; }
         else _nextTry = DateTimeOffset.UtcNow.AddSeconds(60);
         return Applied;
@@ -187,7 +187,7 @@ public sealed class AppLockerController
         try { return File.ReadAllText(tmp); } catch { loi = true; return null; }
     }
 
-    private bool Apply(List<string> sids, List<string> apps, IReadOnlyDictionary<string, IReadOnlyList<string>> trinhDuyet, bool hoc = true, List<LuatChanApp>? chan = null)
+    private bool Apply(List<string> sids, List<string> apps, IReadOnlyDictionary<string, IReadOnlyList<string>> trinhDuyet, bool hoc = true, List<LuatChanApp>? chan = null, IReadOnlyList<string>? thuMucCai = null)
     {
         try
         {
@@ -197,7 +197,7 @@ public sealed class AppLockerController
             var cu = ReadExisting(out var loiDoc);
             _docLoi = loiDoc ? _docLoi + 1 : 0;
             if (loiDoc && _docLoi < AppLockerXml.DocLoiToiDa) return false;
-            var opt = new AppLockerOptions { ChildSids = sids, AllowedApps = apps, TrinhDuyetTheoSid = trinhDuyet };
+            var opt = new AppLockerOptions { ChildSids = sids, AllowedApps = apps, ThuMucCai = thuMucCai, TrinhDuyetTheoSid = trinhDuyet };
             var xml = chan is { Count: > 0 } ? AppLockerXml.MergeChanApp(cu, sids, chan, hoc ? opt : null) : AppLockerXml.Merge(cu, opt);
             var file = Path.Combine(Paths.DataDir, "applocker-aii.xml");
             File.WriteAllText(file, xml, new System.Text.UTF8Encoding(false));

@@ -280,15 +280,42 @@ public static class ProcessGuard
     /// #693: exe ở chỗ Con tự thả tệp (<see cref="LaChoConThaTep"/>) mang tên một app ĐÃ CÀI ở chỗ khác trên máy (<paramref name="tenDaCai"/>, theo
     /// danh sách app quét được) là bản giả (game đổi tên thành discord.exe) ⇒ không nhận. App Ba Mẹ duyệt chạy từ Downloads (không có bản cài) vẫn chạy.
     /// <paramref name="tenDaCai"/> null ⇒ không nhận mọi exe ở chỗ thả tệp theo tên.</summary>
-    public static bool DuocPhepTheoLuat(string exePath, ISet<string> allowed, string? winDir, ISet<string>? tenDaCai = null)
+    public static bool DuocPhepTheoLuat(string exePath, ISet<string> allowed, string? winDir, ISet<string>? tenDaCai = null, IReadOnlyCollection<string>? thuMucDaCai = null)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
         var name = FileName(exePath);
         var goi = TenGoiStore(exePath);
         if (goi != null && allowed.Contains(goi)) return true;
         if (goi == null && (tenDaCai == null || tenDaCai.Contains(name)) && LaChoConThaTep(exePath, winDir)) return false;   // #693
+        // #727: đã quét app ⇒ theo TÊN chỉ nhận exe ở chỗ tin cậy (Program Files, WindowsApps, thư mục cài đã quét). Mọi chỗ khác Con ghi được
+        // (AppData Roaming / LocalLow, ProgramData, D:\Games, Desktop…) là chỗ thả tệp — kể cả khi máy chưa cài app mang tên đó (discord.exe đổi tên).
+        if (goi == null && thuMucDaCai != null && allowed.Contains(name) && !LaChoTinCay(exePath, winDir, thuMucDaCai)) return false;
         return allowed.Contains(name) && (!TenCuaWindows(name) || goi != null || winDir == null || TrongWindowsChiQuanTri(exePath, winDir)
             || ProgramFiles.IsMatch(exePath.Replace('/', '\\')));   // wordpad (Windows NT\Accessories), pwsh (PowerShell\7) — Program Files chỉ quản trị ghi
+    }
+
+    /// <summary>Chữ ổ hệ thống (nơi %PROGRAMFILES% trỏ tới).</summary>
+    public static readonly char OSDrive = char.ToUpperInvariant((Environment.GetEnvironmentVariable("SystemDrive") is { Length: > 0 } sd ? sd : "C:")[0]);
+
+    private static readonly System.Text.RegularExpressions.Regex ChoCaiTinCay = new(@"^[A-Za-z]:\\(Program Files( \(x86\))?\\|WindowsApps\\)",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>#727: exe ở chỗ tin cậy để nhận THEO TÊN: gói Store, Program Files / Program Files (x86) / «X:\WindowsApps», thư mục Windows chỉ-quản-trị,
+    /// hoặc nằm trong một thư mục cài đã quét (<paramref name="thuMucDaCai"/>, <see cref="DanhSachApp.ThuMucDaCai"/>). Còn lại là chỗ thả tệp.</summary>
+    public static bool LaChoTinCay(string exePath, string? winDir, IReadOnlyCollection<string>? thuMucDaCai)
+    {
+        if (string.IsNullOrWhiteSpace(exePath)) return false;
+        var p = exePath.Replace('/', '\\');
+        if (p.Length < 4 || p[1] != ':' || p[2] != '\\' || p.IndexOf(':', 2) >= 0) return false;
+        if (TenGoiStore(p) != null) return true;
+        // chỉ ổ hệ thống: ở ổ khác Con tạo được thư mục «Program Files» / «WindowsApps» (ổ D: ghi được) ⇒ chỉ tin thư mục cài đã quét
+        if (ChoCaiTinCay.IsMatch(p) && char.ToUpperInvariant(p[0]) == OSDrive) return true;
+        if (winDir != null && TrongWindows(DirName(p), winDir)) return TrongWindowsChiQuanTri(p, winDir);
+        if (LaChoConThaTep(p, winDir)) return false;
+        if (thuMucDaCai != null)
+            foreach (var d in thuMucDaCai)
+                if (!string.IsNullOrEmpty(d) && DanhSachApp.Trong(p, d)) return true;
+        return false;
     }
 
     // CHỈ thư mục Windows tự cài trong Program Files (wordpad, pwsh, IE, Media Player…) — Program Files có thư mục con Users ghi được (Steam…) ⇒
@@ -304,10 +331,10 @@ public static class ProcessGuard
     /// <param name="goiCha">#643: khoá gói Store của các app cha đang chạy và được phép (<see cref="KhoaGoiCha"/>); tiến trình phụ cùng họ không bị đóng.</param>
     /// <param name="tenDaCai">#693: tên exe của app đã cài ở chỗ không phải chỗ thả tệp (<see cref="DuocPhepTheoLuat"/>).</param>
     public static bool ShouldClose(string exePath, ISet<string> allowed, ISet<string> allowedDirs, IEnumerable<string> safeDirs, string? winDir = null,
-        IReadOnlyCollection<string>? goiCha = null, ISet<string>? tenDaCai = null)
+        IReadOnlyCollection<string>? goiCha = null, ISet<string>? tenDaCai = null, IReadOnlyCollection<string>? thuMucDaCai = null)
     {
         if (string.IsNullOrWhiteSpace(exePath)) return false;
-        if (DuocPhepTheoLuat(exePath, allowed, winDir, tenDaCai)) return false;
+        if (DuocPhepTheoLuat(exePath, allowed, winDir, tenDaCai, thuMucDaCai)) return false;
         if (LaTienTrinhPhuCuaCha(exePath, goiCha)) return false;   // #643
         if (TenGoiStore(exePath) is { } goi && LaGoiStoreHeThong(goi)) return false;
         if (LaTienTrinhHeThongPhien(exePath, winDir)) return false;

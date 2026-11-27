@@ -90,6 +90,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         _moLai = moLai;
         KhoiPhucVayCho();
+        XinThemForm.BeIdHienTai = () => _beId;
         // Menu khay theo Clay: nền thẻ sáng, mục được trỏ là viên bo ngọc nhạt, icon Fluent 3D nhỏ.
         var menu = new ContextMenuStrip { Renderer = new AiiGrow.ClayUi.ClayMenuRenderer(), Font = UI.F(10.5f), ImageScalingSize = new Size(UI.Px(20), UI.Px(20)) };
         // Thiết kế chốt 15/11 (con-mat-mang 13 them-g4d1cfk1): ● trạng thái · Đồng bộ ngay · Mở AiiGrow · Xin Ba Mẹ cho vay sao… · Kiểm tra cập nhật
@@ -370,6 +371,41 @@ internal sealed class TrayContext : ApplicationContext
             catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
             break;
         }
+    }
+
+    private DateTimeOffset _xinAwHoiLuc;
+    private int _xinAwDangHoi;
+    private readonly Dictionary<string, DemLoiHoi> _xinAwLoi = new();
+
+    /// <summary>#727 (#686): lời xin app / web còn chờ (tệp, sống qua khởi động lại khay — hoặc Con đóng hộp khi còn chờ) ⇒ hỏi trạng thái, có trả lời thì bóng báo đúng bé đã xin.</summary>
+    private async Task TheoDoiXinAppWebAsync()
+    {
+        if (_state.Locked || _state.NguoiDung != LoaiNguoiDung.Con || (DateTimeOffset.Now - _xinAwHoiLuc).TotalSeconds < 15 ) return;
+        if (Interlocked.Exchange(ref _xinAwDangHoi, 1) == 1) return;
+        try
+        {
+            _xinAwHoiLuc = DateTimeOffset.Now;
+            var now = DateTimeOffset.Now;
+            foreach (var x in XinAppWebCho.Doc(XinThemForm.TepXinCho, now))
+            {
+                if (x.BeId != null && x.BeId != _state.BeId) continue;   // máy dùng chung: lời xin của bé khác
+                if (XinThemForm.DangTheoDoi.Contains(x.Id)) continue;   // hộp đang mở tự theo dõi id này
+                var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Status, Id = x.Id });
+                if (!_xinAwLoi.TryGetValue(x.Id, out var dem)) _xinAwLoi[x.Id] = dem = new DemLoiHoi(5);
+                if (dem.Ghi(r)) { XinAppWebCho.Xoa(XinThemForm.TepXinCho, x.Id, now); _xinAwLoi.Remove(x.Id); continue; }
+                if (!r.Ok) continue;
+                var kq = TrayView.XinGio(r.Status);
+                if (kq == TrayView.KetQuaXin.Cho) continue;
+                if (_state.Locked) return;
+                XinAppWebCho.Xoa(XinThemForm.TepXinCho, x.Id, now);
+                _xinAwLoi.Remove(x.Id);
+                if (kq == TrayView.KetQuaXin.Duoc) _ = PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.SyncNow });
+                Toast(10000, "Ba Mẹ trả lời", XinMoView.ThongBao(kq, string.IsNullOrWhiteSpace(x.Ten) ? x.Muc : x.Ten), ToolTipIcon.Info, MucApp.HomNay);
+                break;   // một bóng mỗi lượt
+            }
+        }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+        finally { Interlocked.Exchange(ref _xinAwDangHoi, 0); }
     }
 
     /// <summary>Lời xin vay còn chờ sau khi Con đóng hộp: hỏi dịch vụ mỗi 15 giây, có kết quả thì bật màn (them-fsif1cbl / them-zo8kohea).</summary>
@@ -773,6 +809,7 @@ internal sealed class TrayContext : ApplicationContext
             HandleBlocked();
             HandleWarnings();
             _ = TheoDoiVayAsync();
+            _ = TheoDoiXinAppWebAsync();
             HandleXinBo();
             MoNeuDangCho();
         }

@@ -475,6 +475,83 @@ public static class DanhSachApp
           .Where(t => t.EndsWith(".exe", StringComparison.Ordinal) && !ChanAppThat.TenChung.Contains(t))
           .Distinct(StringComparer.Ordinal).OrderBy(t => t, StringComparer.Ordinal).ToList();
 
+    /// <summary>#727: thư mục CÀI của app đã quét (gốc app, không phải thư mục bản «app-1.0.9»): <see cref="AppThat.ThuMuc"/> nếu có, ngược lại gốc dưới
+    /// AppData\(Local|Roaming|LocalLow)[\Programs] / thư mục chứa exe. Bỏ mọi tệp ở chỗ thả tệp (<see cref="ProcessGuard.LaChoConThaTep"/>) — lối tắt Desktop
+    /// không biến Desktop thành «thư mục cài». Cho luật cho phép theo tên (<see cref="ProcessGuard.LaChoTinCay"/>).</summary>
+    public static List<string> ThuMucDaCai(IEnumerable<AppThat> ds, string? winDir)
+    {
+        var kq = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in ds)
+        {
+            if (!string.IsNullOrWhiteSpace(a.ThuMuc))
+            {
+                var t = ChuanThuMuc(a.ThuMuc);
+                // InstallLocation có thể là thư mục BẢN (Roblox\Versions\version-x, Discord\app-1.0.9) ⇒ quy về gốc app để đổi bản vẫn tin cậy
+                if (LaDuongTuyetDoi(t) && t.Length > 3 && !ProcessGuard.LaChoConThaTep(t + "\\x.exe", winDir)) kq.Add(GocCai(t + "\\x.exe") ?? t);
+            }
+            foreach (var d in DuongDanKem(a))
+            {
+                var p = d.Replace('/', '\\');
+                if (!LaDuongTuyetDoi(p) || ProcessGuard.LaChoConThaTep(p, winDir)) continue;
+                var goc = GocCai(p);
+                if (goc != null) kq.Add(goc);
+            }
+        }
+        return kq.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>#727: «tên.exe|thư mục cài» của app đã quét (tên exe chữ thường; thư mục như <see cref="ThuMucDaCai"/> nhưng cả Program Files) — luật AppLocker «thư mục\*» theo từng app cho phép.</summary>
+    public static List<string> TenThuMuc(IEnumerable<AppThat> ds, string? winDir)
+    {
+        var kq = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var a in ds)
+        {
+            var thuMuc = string.IsNullOrWhiteSpace(a.ThuMuc) ? null : ChuanThuMuc(a.ThuMuc);
+            foreach (var d in DuongDanKem(a))
+            {
+                var p = d.Replace('/', '\\');
+                if (!LaDuongTuyetDoi(p) || ProcessGuard.LaChoConThaTep(p, winDir)) continue;
+                var ten = TenTep(p).ToLowerInvariant();
+                if (!ten.EndsWith(".exe", StringComparison.Ordinal) || ChanAppThat.TenChung.Contains(ten)) continue;
+                var goc = GocCai(p);
+                if (goc != null) kq.Add(ten + "|" + goc);
+                if (thuMuc != null && p.StartsWith(thuMuc.TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase) && GocCai(thuMuc + "\\x.exe") is { } g2) kq.Add(ten + "|" + g2);
+            }
+        }
+        return kq.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    private static readonly HashSet<string> VanChung = new(StringComparer.OrdinalIgnoreCase) { "Google", "Microsoft", "Mozilla", "JetBrains", "Packages" };
+
+    private static string? GocCai(string exe)
+    {
+        var segs = exe[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        if (segs.Length < 2) return null;
+        if (segs.Length >= 4 && segs[0].Equals("Users", StringComparison.OrdinalIgnoreCase) && segs[2].Equals("AppData", StringComparison.OrdinalIgnoreCase)
+            && (segs[3].Equals("Local", StringComparison.OrdinalIgnoreCase) || segs[3].Equals("Roaming", StringComparison.OrdinalIgnoreCase) || segs[3].Equals("LocalLow", StringComparison.OrdinalIgnoreCase)))
+        {
+            var i = segs.Length > 4 && segs[4].Equals("Programs", StringComparison.OrdinalIgnoreCase) ? 5 : 4;
+            // thư mục nhà phát hành chung (Google\Chrome, Microsoft\Teams…): lấy thêm một tầng, không tin cả thư mục hãng
+            if (segs.Length > i + 1 && VanChung.Contains(segs[i])) i++;
+            if (segs.Length > i + 1) return TooRong(exe[..3] + string.Join("\\", segs.Take(i + 1)));
+            return null;   // exe nằm ngay trong AppData\Local|Roaming|Programs: không biến cả thư mục đó thành «thư mục cài»
+        }
+        return TooRong(exe[..exe.LastIndexOf('\\')]);
+    }
+
+    /// <summary>Thư mục gốc chung Con ghi được / chứa mọi app (X:\ProgramData, X:\Program Files, X:\Games, …\WindowsApps) không thành «thư mục cài».</summary>
+    private static readonly HashSet<string> GocChung = new(StringComparer.OrdinalIgnoreCase)
+        { "ProgramData", "Program Files", "Program Files (x86)", "Users", "Windows", "Games", "Temp", "Downloads", "Apps", "Software" };
+
+    private static string? TooRong(string dir)
+    {
+        var segs = dir[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
+        if (segs.Length == 0) return null;
+        if (segs.Length == 1 && GocChung.Contains(segs[0])) return null;
+        if (segs[^1].Equals("WindowsApps", StringComparison.OrdinalIgnoreCase)) return null;
+        return dir;
+    }
+
     /// <summary>#690: các nhóm muc cùng app (chỉ app có từ hai muc), muc ĐẦU là muc gửi máy chủ — lưu vào cấu hình để dịch vụ khởi động lại
     /// có bí danh ngay (không chờ lượt quét app đầu tiên).</summary>
     public static List<List<string>> NhomMuc(IEnumerable<AppThat> ds) =>
