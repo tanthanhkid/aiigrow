@@ -107,6 +107,19 @@ const val CAI_LOI_HET_GIO = 8
 
 /** Nghỉ bao lâu trước khi tự thử lại đúng bản vừa cài hỏng: APK hỏng / không hợp máy / bị chính sách chặn / xung đột (chữ ký khác, provider
  *  trùng — thử lại cũng vậy) ⇒ 24 giờ; hết dung lượng, hết giờ, lỗi chung ⇒ 1 giờ (thoáng qua — trước đây cũng 24 giờ nên máy kẹt bản cũ cả ngày). */
+/** #727 C / #683: lần hỏng thứ mấy của đúng bản này (đổi bản ⇒ đếm lại từ 1). */
+fun lanLoiMoi(banCu: String?, lanCu: Int, ban: String): Int = if (banCu == ban) lanCu + 1 else 1
+
+/** Giống agent-win (LuatThuCapNhat.NenBaoBaMe): lần đầu có thể là lỗi thoáng qua — từ lần 2 mới báo Ba Mẹ. */
+fun nenBaoBaMeLoi(lan: Int): Boolean = lan >= 2
+
+/** Mã sự kiện theo bản ⇒ mỗi bản báo Ba Mẹ một lần (máy chủ bỏ mã trùng). */
+fun maSuKienCapNhatLoi(ban: String): String = "cap_nhat_loi:$ban"
+
+/** chiTiet sự kiện `cap_nhat_loi` — cùng dạng agent-win: { ban, dangChay, lan, lyDo } (chuỗi hết) + nenTang để Ba Mẹ biết máy nào. */
+fun chiTietCapNhatLoi(ban: String, dangChay: String, lan: Int, lyDo: String): Map<String, Any> =
+    mapOf("ban" to ban, "dangChay" to dangChay, "lan" to lan.toString(), "lyDo" to lyDo.take(200), "nenTang" to "android")
+
 fun nghiSauLoiCaiMs(maLoi: Int): Long = when (maLoi) {
     CAI_LOI_APK_HONG, CAI_LOI_KHONG_HOP_MAY, CAI_LOI_BI_CHAN, CAI_LOI_XUNG_DOT -> 24 * 3600_000L
     // hết chỗ trống: mỗi lần thử là tải lại cả APK ⇒ 6 giờ (Con / Ba Mẹ kịp dọn máy, không tốn dữ liệu mỗi giờ)

@@ -346,7 +346,7 @@ const SU_KIEN_MAY: Record<string, { muc: "thong_tin" | "chu_y" | "nghiem_trong" 
   // 11/11: Con «Mở hết» ⇒ agent gỡ dòng chặn 0.0.0.0 / :: trong tệp hosts do phần mềm khác đặt (YouTube, TikTok… báo «Không thể truy cập»).
   // chiTiet: { soDong, tenMien: [...≤20], saoLuu } — Ba Mẹ cần biết vì có thể là chặn cố ý của IT / nhà trường.
   go_chan_hosts: { muc: "thong_tin", cau: (t) => `Đã gỡ chặn web ngoài AiiGrow (tệp hosts) trên ${t} vì Con đang ở «Mở hết»` },
-  // #683: agent-win tự cập nhật lỗi (bộ cài lỗi / khôi phục bản cũ / không giao được bộ cài) — mỗi bản một lần; agent tự thử lại (1 giờ → 4 giờ → 24 giờ).
+  // #683 (+#727 C: cả agent-android, chiTiet.nenTang="android"): tự cập nhật lỗi (bộ cài lỗi / khôi phục bản cũ / không giao được bộ cài) — mỗi bản một lần; agent tự thử lại (1 giờ → 4 giờ → 24 giờ).
   // chiTiet: { ban, dangChay, lan, lyDo }
   cap_nhat_loi: { muc: "chu_y", cau: (t) => `AiiGrow trên ${t} chưa tự cập nhật được lên bản mới — máy vẫn chạy bản cũ, AiiGrow sẽ tự thử lại` },
   // GỠ TỪ XA gặp trục trặc (agent báo trước khi máy rời gia đình) — Ba Mẹ cần thấy để biết chưa gỡ xong sạch:

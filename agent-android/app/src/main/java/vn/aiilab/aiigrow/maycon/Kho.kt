@@ -65,6 +65,9 @@ class Kho(ctx: Context) {
     /** Cập nhật: thông báo «bật quyền» lần cuối; sha256 bản vừa hỏng + thời điểm được thử lại; lúc bắt đầu hoãn vì khoá (≤ 12 giờ). */
     var lanBaoQuyen: Long get() = p.getLong("lanBaoQuyen", 0); set(v) = p.edit().putLong("lanBaoQuyen", v).apply()
     var shaLoi: String? get() = p.getString("shaLoi", null); set(v) = p.edit().putString("shaLoi", v).apply()
+    /** #727 C: bản đang hỏng + số lần hỏng liên tiếp (báo Ba Mẹ từ lần 2). */
+    var loiBan: String? get() = p.getString("loiBan", null); set(v) = p.edit().putString("loiBan", v).apply()
+    var loiLan: Int get() = p.getInt("loiLan", 0); set(v) = p.edit().putInt("loiLan", v).apply()
     var thuLaiSau: Long get() = p.getLong("thuLaiSau", 0); set(v) = p.edit().putLong("thuLaiSau", v).apply()
     var hoanTu: Long get() = p.getLong("hoanTu", 0); set(v) = p.edit().putLong("hoanTu", v).apply()
     /** Mã mở offline: bí mật máy chủ gửi trong nhịp (nhớ để kiểm mã khi mất mạng) + trạng thái mở tạm (logic/MaOffline.kt, JSON). */
