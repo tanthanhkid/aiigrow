@@ -27,9 +27,12 @@ const NHOM: Record<Muc, string> = { hoc: "hoc_tap", van_dong: "van_dong", giup_b
 const NOP: { gia: string; tieu: string; phu: string; ic: TenIcon }[] = [
   { gia: "anh", tieu: "Chụp ảnh", phu: "Dọn dẹp, vẽ tranh, nấu ăn", ic: "camera" },
   { gia: "ghi_am", tieu: "Ghi âm", phu: "Đọc sách, tiếng Anh, học thuộc", ic: "sach" },
+  { gia: "van_ban", tieu: "Viết", phu: "Viết vài dòng, làm bài tập", ic: "but" },
   { gia: "xong", tieu: "Bấm «Xong»", phu: "Việc nhỏ, Ba Mẹ thấy tận mắt", ic: "tick" },
 ];
 
+
+const LAP: { gia: string; chu: string }[] = [{ gia: "hang_ngay", chu: "Mỗi ngày" }, { gia: "ngay_thuong", chu: "Thứ 2 – Thứ 6" }, { gia: "cuoi_tuan", chu: "Cuối tuần" }];
 
 const Nhan = ({ chu }: { chu: string }) => <MucTieu chu={chu} />;
 
@@ -42,6 +45,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong, nhanNut = "Thêm vào m�
   const st = useSaoTu(SAO_TOI_DA);                       // ô «Số sao khác» (rỗng = dùng chip)
   const [tenMuc, setTenMuc] = useState("");
   const [nop, setNop] = useState("anh");
+  const [lap, setLap] = useState("hang_ngay");
   const [apCho, setApCho] = useState<string[] | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
   const [trung, setTrung] = useState<string | null>(null);   // máy chủ báo đã có việc cùng tên ⇒ hỏi «Vẫn thêm»
@@ -58,7 +62,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong, nhanNut = "Thêm vào m�
     dangGui.current = true;
     return lam(async () => {
       try {
-        await bm.goi("nhiem-vu", { ten: ten.trim(), hinh, diem: saoDung, nhom: NHOM[muc], bo: mucKhac ? `khac:${tenMucGon}` : muc, bang_chung: nop, lap_lai: "hang_ngay", toi_da_ngay: 1, tu_duyet: false, giao_cho: giao,
+        await bm.goi("nhiem-vu", { ten: ten.trim(), hinh, diem: saoDung, nhom: NHOM[muc], bo: mucKhac ? `khac:${tenMucGon}` : muc, bang_chung: nop, lap_lai: lap, toi_da_ngay: 1, tu_duyet: false, giao_cho: giao,
           ...(chapNhanTrung ? { chap_nhan_trung: true } : {}) });
       } catch (e) {
         if (e instanceof LoiApi && e.ma === "trung_ten") { setTrung(e.message); return; }
@@ -95,8 +99,11 @@ export function FormTuThem({ dsCon, con, mucSan, xong, nhanNut = "Thêm vào m�
       <ChonO ds={MUC} chon={muc} doi={setMuc} />
       {mucKhac ? <ONhap nhan="Tên mục mới" value={tenMuc} onChangeText={(t) => setTenMuc(t.slice(0, TEN_MUC_TOI_DA))} placeholder="Ví dụ: Âm nhạc" maxLength={TEN_MUC_TOI_DA} autoFocus /> : null}
 
-      <Nhan chu="Con nhận" />
+      <Nhan chu="Con nhận (sao)" />
       <ChonSao muc={[5, 10, 15, 20]} gia={sao} doi={setSao} st={st} />
+
+      <Nhan chu="Lặp lại" />
+      <ChonO ds={LAP} chon={lap} doi={setLap} />
 
       <Nhan chu="Con nộp bằng" />
       {/* thiết kế: một thẻ danh sách, mỗi cách một dòng icon 3D · tên + ví dụ · nút tròn chọn */}

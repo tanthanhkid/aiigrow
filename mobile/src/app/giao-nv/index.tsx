@@ -69,7 +69,7 @@ function GiaoCho({ c, dsCon, tatCaCon, doiCon }: { c: GiaDinh["con"][number]; ds
     <TheDs>
       {cd.viec.map((v, i) => (
         // việc con đã có: dấu ✓ sẵn + dòng phụ «Đã có», chạm không đổi
-        <DongChon key={v.ma} dau={!i} e={eViec.get(v.ten) ?? t.e} mau={t.mau} ten={v.ten} sao={v.sao} lon={v.tu12} phu={v.daCo ? "Đã có" : undefined}
+        <DongChon key={v.ma} dau={!i} e={eViec.get(v.ten) ?? t.e} mau={t.mau} ten={v.ten} sao={v.sao} lon={v.tu12} phu={v.daCo ? "Con đã có việc này" : undefined}
           chon={v.daCo || chon.includes(v.ma)} bam={() => { if (!v.daCo) doi(v.ma); }} />
       ))}
     </TheDs>

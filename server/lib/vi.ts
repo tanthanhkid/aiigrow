@@ -113,7 +113,7 @@ export async function tomTatVi(con: string) {
 }
 
 /** #266: nợ quá mốc này ⇒ cảnh báo Ba Mẹ (không chặn cho vay). */
-export const NGUONG_NO = 1000;
+export const NGUONG_NO = 200;   // #781: hạ từ 1.000 - 200 sao = 200 phút chơi, mức Ba Mẹ còn kịp nhắc con trả nợ
 
 /** Cấp độ theo tổng điểm kiếm được trọn đời: cấp n cần 100·n·(n+1)/2 điểm (100, 300, 600, 1000…). */
 export function capDo(tongKiem: number) {

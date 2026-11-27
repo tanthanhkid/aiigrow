@@ -13,14 +13,15 @@ import { View } from "react-native";
 import { bm } from "@/lib/api";
 import { MucTieu, NhanLuon, OIcon } from "@/lib/ui-bm3";
 import { gioGon } from "@/lib/hang-ngay";
+import { NGUONG_NO, soVN } from "@/lib/so-sao";
 import { BangTruot, BaoLoi, ChoTai, Chu, CongTac, Dong, M, Man, Nhom, Nut, ONhap, type TenIcon, useHoanTac, useLam, useTai } from "@/lib/ui";
 
 type CaiDat = { yenLang: { bat: boolean; tu: string; den: string }; tat: string[] };
 type Hang = { ma: string; ten: string; phu?: string; ic: TenIcon };
 const BAO_NGAY: Hang[] = [
   { ma: "yeu_cau", ten: "Con xin vay sao", phu: "Và xin thêm app, web vào danh sách", ic: "game" },
-  { ma: "nhiem_vu", ten: "Con nộp ảnh nhiệm vụ", ic: "camera" },
-  { ma: "canh_bao_no", ten: "Cảnh báo nợ quá 1.000 sao", phu: "Mỗi lần vượt mốc · nhắc lại khi Ba Mẹ cho vay thêm", ic: "canh_bao" },
+  { ma: "nhiem_vu", ten: "Con nộp bài nhiệm vụ", phu: "Ảnh, ghi âm, bài viết hoặc bấm «Xong»", ic: "camera" },
+  { ma: "canh_bao_no", ten: `Cảnh báo nợ quá ${soVN(NGUONG_NO)} sao`, phu: "Mỗi lần vượt mốc · nhắc lại khi Ba Mẹ cho vay thêm", ic: "canh_bao" },
 ];
 const DE_BIET: Hang[] = [
   { ma: "qua", ten: "Con đổi sao lấy quà", ic: "qua" },

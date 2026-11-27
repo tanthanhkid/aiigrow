@@ -20,7 +20,7 @@ export type SaoCon = {
   saoVayChuaTieu?: number; hetSao?: boolean; /** nợ > 1.000 */ canhBaoNo?: boolean; tongVay?: number; daTraNo?: number;
 };
 /** Mốc cảnh báo nợ (máy chủ NGUONG_NO). */
-export const NGUONG_NO = 1000;
+export const NGUONG_NO = 200;
 export const MUC_VAY = [10, 15, 30] as const;
 export const VAY_MAC_DINH = 15;
 /** Sao tặng khởi đầu khi tạo hồ sơ Con (POST con / thiet-lap › saoKhoiDau): số nguyên 0…200, nút −/+ bước 10, mặc định 30 (#306). */
