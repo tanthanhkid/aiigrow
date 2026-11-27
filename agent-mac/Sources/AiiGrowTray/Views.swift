@@ -79,7 +79,7 @@ struct XinMoView: View {
       .textFieldStyle(.plain).font(.clay(size: 14)).padding(.horizontal, 14).frame(minHeight: 44).clayLom()
     VStack(alignment: .leading, spacing: 6) {
       Text("Ba Mẹ sẽ chọn nhóm").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.chu3)
-      Chu("Tính phút · 1 sao = 1 phút, hoặc Không tính phút", co: 13, mau: ClayMau.chu3, dong: 2)   // chỉ thông tin (chữ, không chip): Ba Mẹ chọn nhóm khi duyệt
+      Chu("Tính phút · 1 sao = 1 phút, hoặc Không tính phút", co: 13, mau: ClayMau.chu3, dong: 3)   // chỉ thông tin (chữ, không chip): Ba Mẹ chọn nhóm khi duyệt
     }
     Button(XinThem.nut(the: the, tenApp: loi?.ten)) {
       guard let l = loi else { return }
