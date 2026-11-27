@@ -55,6 +55,8 @@ export async function xuLyMSao(bm: { id: string; family_id: string; vai: string 
   if (d === "nhiem-vu" && post && Array.isArray(b.giao_cho)) {
     const ds = [...new Set((b.giao_cho as unknown[]).map(String))].slice(0, 10);
     const ids: string[] = [];
+    // trùng tên việc đã có ⇒ 409 trung_ten; app hỏi lại, Ba Mẹ chọn «Vẫn thêm» ⇒ gửi chap_nhan_trung: true (#756)
+    if (b.chap_nhan_trung !== true) await nv.chanTrungTen(fam, b.ten, ds.length ? ds : [null]);
     for (const con of ds.length ? ds : [null]) ids.push(await nv.taoNv(fam, { ...b, giao_cho: con }, bm.id));
     return json({ id: ids[0], ids });
   }

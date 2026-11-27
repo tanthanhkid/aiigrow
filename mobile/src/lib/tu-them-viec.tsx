@@ -3,9 +3,9 @@
 // #302: «Nằm trong mục» có chip «+ Khác» (Ba Mẹ gõ tên mục mới — lưu tasks.bo = «khac:<tên>»), «Con nhận» có ô tự nhập số sao (1–1000);
 // ghi chú «Con nộp xong, Ba Mẹ nhận thông báo…» ⇒ «Thêm vào mục đã chọn» = POST nhiem-vu {…, bo: mục, giao_cho: id[]}. Nhà > 1 con ⇒ «Áp cho» (N9).
 // Dùng ở bảng trượt của app/giao-nv/index.tsx, app/thiet-lap/mau.tsx (Lần đầu) và màn dự phòng app/giao-nv/tu-dat.tsx.
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Pressable, TextInput, View } from "react-native";
-import { bm, type GiaDinh } from "./api";
+import { bm, LoiApi, type GiaDinh } from "./api";
 import { BONG } from "./clay";
 import { useSaoTu } from "./sao-tu-nhap";
 import { BaoLoi, Chips, Chu, F, IconNet, Icon3D, M, Nut, ONhap, useLam, type TenIcon } from "./ui";
@@ -44,23 +44,38 @@ export function FormTuThem({ dsCon, con, mucSan, xong, nhanNut = "Thêm vào m�
   const [nop, setNop] = useState("anh");
   const [apCho, setApCho] = useState<string[] | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
+  const [trung, setTrung] = useState<string | null>(null);   // máy chủ báo đã có việc cùng tên ⇒ hỏi «Vẫn thêm»
+  const [daLuu, setDaLuu] = useState(false);                 // lưu xong thì khoá nút (không bấm đúp ra nhiều việc giống nhau — #756)
+  const dangGui = useRef(false);
   const giao = apCho ?? [dsCon.find((c) => c.id === con)?.id ?? dsCon[0]?.id].filter(Boolean) as string[];
   const ngan = ten.trim().length > 0 && !tenHopLe(ten);
   const mucKhac = muc === "khac";
   const tenMucGon = tenMuc.trim().replace(/\s+/g, " ");
   const saoDung = st.dung(sao);
   const duDieuKien = tenHopLe(ten) && giao.length > 0 && !st.loi && (!mucKhac || tenMucGon.length > 0);
-  const them = () => lam(async () => {
-    await bm.goi("nhiem-vu", { ten: ten.trim(), hinh, diem: saoDung, nhom: NHOM[muc], bo: mucKhac ? `khac:${tenMucGon}` : muc, bang_chung: nop, lap_lai: "hang_ngay", toi_da_ngay: 1, tu_duyet: false, giao_cho: giao });
-    xong(ten.trim(), dsCon.filter((c) => giao.includes(c.id)).map((c) => c.ten).join(", "));
-  });
+  const them = (chapNhanTrung = false) => {
+    if (dangGui.current || daLuu) return;
+    dangGui.current = true;
+    return lam(async () => {
+      try {
+        await bm.goi("nhiem-vu", { ten: ten.trim(), hinh, diem: saoDung, nhom: NHOM[muc], bo: mucKhac ? `khac:${tenMucGon}` : muc, bang_chung: nop, lap_lai: "hang_ngay", toi_da_ngay: 1, tu_duyet: false, giao_cho: giao,
+          ...(chapNhanTrung ? { chap_nhan_trung: true } : {}) });
+      } catch (e) {
+        if (e instanceof LoiApi && e.ma === "trung_ten") { setTrung(e.message); return; }
+        throw e;
+      }
+      setTrung(null);
+      setDaLuu(true);
+      xong(ten.trim(), dsCon.filter((c) => giao.includes(c.id)).map((c) => c.ten).join(", "));
+    }).finally(() => { dangGui.current = false; });
+  };
   return (
     <View style={{ gap: 10 }}>
       <Nhan chu="Con sẽ làm gì?" />
-      <TextInput value={ten} onChangeText={setTen} placeholder="Ví dụ: Tưới cây" placeholderTextColor={M.chu3} maxLength={90} accessibilityLabel="Con sẽ làm gì?"
+      <TextInput value={ten} onChangeText={(t) => { setTen(t); setTrung(null); }} placeholder="Ví dụ: Tưới cây" placeholderTextColor={M.chu3} maxLength={90} accessibilityLabel="Con sẽ làm gì?"
         style={{ minHeight: 50, borderRadius: 25, paddingHorizontal: 18, backgroundColor: M.xamSoft, boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 16, color: M.chu }} />
       {ngan ? <Chu kieu="dam" co={13.5} mau={M.loi} style={{ marginHorizontal: 4 }}>Tên cần ít nhất 3 ký tự để con hiểu việc cần làm</Chu> : null}
-      <Chips ds={GOI_Y.map((x) => ({ gia: x, chu: x }))} chon={[ten.trim()]} doi={setTen} />
+      <Chips ds={GOI_Y.map((x) => ({ gia: x, chu: x }))} chon={[ten.trim()]} doi={(t) => { setTen(t); setTrung(null); }} />
 
       <Nhan chu="Hình" />
       <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
@@ -114,7 +129,8 @@ export function FormTuThem({ dsCon, con, mucSan, xong, nhanNut = "Thêm vào m�
         <Chu kieu="dam" co={13} mau={M.chu2} style={{ flex: 1 }}>Con nộp xong, Ba Mẹ nhận thông báo. Ba Mẹ duyệt thì con mới nhận sao.</Chu>
       </View>
       <BaoLoi loi={loiLam} />
-      <Nut chu={nhanNut} rong dangChay={dangChay} tat={!duDieuKien} bam={them} />
+      {trung ? <Chu kieu="dam" co={13.5} mau={M.loi} style={{ marginHorizontal: 4 }}>{trung}. Muốn thêm một việc nữa thì bấm «Vẫn thêm», hoặc đổi tên.</Chu> : null}
+      <Nut chu={trung ? "Vẫn thêm việc này" : daLuu ? "Đã thêm" : nhanNut} rong dangChay={dangChay} tat={!duDieuKien || daLuu} bam={() => them(!!trung)} />
     </View>
   );
 }

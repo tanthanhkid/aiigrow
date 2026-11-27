@@ -12,7 +12,7 @@ export default function BaMeTuThem() {
   if (!d) return <Man lui={{ chu: "" }} tieu={tieu}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   return (
     <Man lui={{ chu: "" }} tieu={tieu}>
-      <FormTuThem dsCon={d.con} con={p.con} mucSan={p.muc} xong={(ten, tenCon) => { baoKhiVe(`Đã thêm «${ten}»${tenCon ? ` cho ${tenCon}` : ""}`); if (p.sau === "2") router.dismiss(2); else router.back(); }} nhanNut="Thêm việc" />
+      <FormTuThem dsCon={d.con} con={p.con} mucSan={p.muc} xong={(ten, tenCon) => { baoKhiVe(`Đã thêm «${ten}»${tenCon ? ` cho ${tenCon}` : ""}`); router.back(); }} nhanNut="Thêm việc" />
     </Man>
   );
 }
