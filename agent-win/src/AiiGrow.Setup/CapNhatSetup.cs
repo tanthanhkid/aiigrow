@@ -240,7 +240,7 @@ internal sealed class CapNhatForm : Form
         if (File.Exists(tray) && Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Paths.TrayExeName)).Length == 0)
             try { Process.Start(new ProcessStartInfo("explorer.exe", "\"" + tray + "\"") { UseShellExecute = false })?.Dispose(); } catch { }
         _nut.Enabled = true;
-        _loi.Text = r.Ok ? "Đã chạy lại AiiGrow." : "Chưa chạy lại được dịch vụ: " + r.Error;
+        _loi.Text = r.Ok ? "Đã chạy lại AiiGrow." : CauLoiCai.DichVu;   // #689: stderr PowerShell không hiện cho Ba Mẹ
     }
 
     private static Button Nut(string chu, bool chinh, Action bam)

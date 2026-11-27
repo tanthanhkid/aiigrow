@@ -21,6 +21,55 @@ public sealed record VayDangCho(string Id, int SoSao, DateTimeOffset Luc, string
     }
 }
 
+/// <summary>#727 (#686): lời xin app / web khay đang theo dõi — lưu tệp như <see cref="VayDangCho"/> để khay khởi động lại vẫn hỏi tiếp và báo Con kết quả.</summary>
+public sealed record XinAppWebDangCho(string Id, string Ten, string Muc, DateTimeOffset Luc, string? BeId)
+{
+    public bool ConHan(DateTimeOffset now) => now - Luc <= VayDangCho.Han && Luc <= now + TimeSpan.FromMinutes(5);
+}
+
+/// <summary>#727: danh sách lời xin app / web đang chờ, lưu tệp (tối đa <see cref="ToiDa"/>; trùng id thay; quá hạn bỏ). THUẦN theo đường dẫn tệp để test.</summary>
+public static class XinAppWebCho
+{
+    public const int ToiDa = 10;
+
+    public static List<XinAppWebDangCho> Doc(string tep, DateTimeOffset now)
+    {
+        try
+        {
+            if (!File.Exists(tep)) return new();
+            var ds = JsonSerializer.Deserialize<List<XinAppWebDangCho>>(File.ReadAllText(tep), Json.Options) ?? new();
+            return ds.Where(x => !string.IsNullOrEmpty(x?.Id) && x.ConHan(now)).ToList();
+        }
+        catch (Exception e) when (e is JsonException or IOException or UnauthorizedAccessException) { return new(); }
+    }
+
+    private static void Ghi(string tep, List<XinAppWebDangCho> ds)
+    {
+        try
+        {
+            if (ds.Count == 0) { if (File.Exists(tep)) File.Delete(tep); return; }
+            Directory.CreateDirectory(Path.GetDirectoryName(tep)!);
+            File.WriteAllText(tep, JsonSerializer.Serialize(ds, Json.Options));
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException) { }
+    }
+
+    public static void Them(string tep, XinAppWebDangCho x, DateTimeOffset now)
+    {
+        var ds = Doc(tep, now);
+        ds.RemoveAll(i => i.Id == x.Id);
+        ds.Add(x);
+        while (ds.Count > ToiDa) ds.RemoveAt(0);
+        Ghi(tep, ds);
+    }
+
+    public static void Xoa(string tep, string id, DateTimeOffset now)
+    {
+        var ds = Doc(tep, now);
+        if (ds.RemoveAll(i => i.Id == id) > 0 || File.Exists(tep)) Ghi(tep, ds);
+    }
+}
+
 /// <summary>#686: đếm lần hỏi trạng thái lời xin lỗi LIÊN TIẾP kiểu «không còn» (id không còn, 404…) — quá <see cref="ToiDa"/> thì thôi hỏi
 /// (trước đây hỏi mãi, hộp «Đang chờ» đứng mãi và nút gửi bị khoá). Hỏi được một lần là đếm lại từ đầu; mất mạng không tính (chờ có mạng hỏi tiếp).</summary>
 public sealed class DemLoiHoi

@@ -16,6 +16,9 @@ public sealed class AppLockerOptions
     public IEnumerable<string> AllowedApps { get; set; } = Array.Empty<string>();
     /// <summary>Cho phép cả %PROGRAMFILES%. Mặc định tắt: nếu bật thì mọi app cài ở Program Files đều chạy được.</summary>
     public bool AllowProgramFiles { get; set; }
+    /// <summary>#727: thư mục cài đã quét (<see cref="DanhSachApp.ThuMucDaCai"/>). Có (đã quét) ⇒ app cho phép theo tên chỉ chạy từ Program Files (+ WindowsApps) /
+    /// các thư mục này (luật đường dẫn), KHÔNG còn «*\tên.exe» ở mọi nơi (exe lạ đổi tên ở Desktop / AppData\Roaming). null = chưa quét ⇒ luật tên như cũ.</summary>
+    public IReadOnlyList<string>? ThuMucCai { get; set; }
     /// <summary>Chặn thật «chặn theo lọc»: trình duyệt được chạy cho từng SID Con (tên trong <see cref="TrinhDuyetLoc.TatCa"/>) — chỉ khi luật web đang áp cho SID đó.</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>>? TrinhDuyetTheoSid { get; set; }
 }
@@ -141,7 +144,7 @@ public static class AppLockerXml
         var doc = Parse(existingXml);
         StripOurs(doc);
         var exe = Collection(doc, "Exe");
-        if (hoc != null) foreach (var r in OurRules(new AppLockerOptions { ChildSids = sids, AllowedApps = hoc.AllowedApps, AllowProgramFiles = hoc.AllowProgramFiles, TrinhDuyetTheoSid = hoc.TrinhDuyetTheoSid })) exe.Add(r);
+        if (hoc != null) foreach (var r in OurRules(new AppLockerOptions { ChildSids = sids, AllowedApps = hoc.AllowedApps, AllowProgramFiles = hoc.AllowProgramFiles, ThuMucCai = hoc.ThuMucCai, TrinhDuyetTheoSid = hoc.TrinhDuyetTheoSid })) exe.Add(r);
         else exe.Add(Rule("Cho phép mọi người dùng (nền)", "S-1-1-0", "Allow", "*", null));
         var ds = chan.ToList();
         foreach (var sid in sids)
@@ -255,6 +258,13 @@ public static class AppLockerXml
         catch { return false; }
     }
 
+    /// <summary>Thư mục cài đã quét nằm ngoài Program Files (đã có luật %PROGRAMFILES%), chuẩn hoá, không ký tự đại diện / nháy.</summary>
+    private static IEnumerable<string> ThuMucNgoaiProgramFiles(IEnumerable<string> ds) =>
+        ds.Select(d => DanhSachApp.ChuanThuMuc(d))
+          .Where(d => d.Length > 3 && DanhSachApp.LaDuongTuyetDoi(d) && d.IndexOfAny(new[] { '*', '?', '"', '<', '>', '|', '%' }) < 0
+                      && !d.Contains(@"\Program Files", StringComparison.OrdinalIgnoreCase))
+          .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(d => d, StringComparer.OrdinalIgnoreCase);
+
     private static IEnumerable<XElement> OurRules(AppLockerOptions o)
     {
         yield return Rule("Cho phép mọi người dùng (nền)", "S-1-1-0", "Allow", "*", null);
@@ -265,7 +275,15 @@ public static class AppLockerXml
         foreach (var a in o.AllowedApps)
         {
             var n = NormalizeExe(a);
-            if (n != null && seen.Add(n)) exceptions.Add(@"*\" + n);
+            if (n == null || !seen.Add(n)) continue;
+            if (o.ThuMucCai == null) { exceptions.Add(@"*\" + n); continue; }
+            exceptions.Add(@"%PROGRAMFILES%\" + n);
+            exceptions.Add(@"%PROGRAMFILES%\*\" + n);
+            foreach (var d in ThuMucNgoaiProgramFiles(o.ThuMucCai))
+            {
+                exceptions.Add(d + @"\" + n);
+                exceptions.Add(d + @"\*\" + n);
+            }
         }
         foreach (var sid in o.Sids)
         {

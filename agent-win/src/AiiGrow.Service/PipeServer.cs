@@ -212,6 +212,7 @@ public sealed class PipeServer : BackgroundService
                 {
                     return LuuChoMang(new LoiXinCho { Loai = LoaiXin.VaySao, Muc = string.IsNullOrWhiteSpace(req.Id) ? null : req.Id!.Trim(), Phut = soSao, LyDo = nhan, Luc = now });
                 }
+                catch (ApiException e) when (XinTrung.La(e)) { return new PipeResponse { Ok = false, Error = XinTrung.Cau }; }   // #727 (#684)
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
 
@@ -255,6 +256,7 @@ public sealed class PipeServer : BackgroundService
                 {
                     return LuuChoMang(new LoiXinCho { Loai = LoaiXin.XinDuyet, Muc = muc, Ten = req.AppName, LyDo = req.Note, Kieu = kieu, Luc = now });
                 }
+                catch (ApiException e) when (XinTrung.La(e)) { return new PipeResponse { Ok = false, Error = XinTrung.Cau }; }   // #727 (#684)
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
 

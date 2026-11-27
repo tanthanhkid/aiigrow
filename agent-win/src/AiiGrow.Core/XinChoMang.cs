@@ -23,7 +23,15 @@ public sealed class LoiXinCho
 
 /// <summary>Kết quả gửi một lời xin chờ mạng. <see cref="TamHoan"/> (#684): máy chủ bảo «chậm lại» (408 / 429 bam_don) — chắc chắn CHƯA nhận,
 /// giữ nguyên lời xin (không tính lần lỗi), dừng lượt này, gửi tiếp lượt đồng bộ sau.</summary>
-public enum KetQuaGuiXin { DaGui, LoiMang, Bo, TamHoan }
+public enum KetQuaGuiXin { DaGui, LoiMang, Bo, TamHoan, DaCoSan }
+
+/// <summary>#727 (#684): máy chủ đã có lời xin ĐANG CHỜ cùng mục (HTTP 409 trùng) — lời xin đã tới Ba Mẹ, không phải «chưa tới».</summary>
+public static class XinTrung
+{
+    public const string Cau = "Đã gửi rồi, đang chờ Ba Mẹ trả lời.";
+    /// <summary>409 trùng lời xin. 409 «web_cam» (máy chủ cũ) và «can_gui_du» là chuyện khác.</summary>
+    public static bool La(ApiException e) => e.StatusCode == 409 && e.Code is not ("web_cam" or "can_gui_du");
+}
 
 /// <summary>
 /// Hàng lời xin chờ có mạng. Thêm: trùng loại + mục ⇒ thay bản cũ (Con bấm lại không thành hai lời xin), tối đa <see cref="ToiDa"/>.
@@ -69,7 +77,7 @@ public sealed class HangXinCho
                 loi = x.Ma;
                 break;
             }
-            xong.Add(x.Ma);
+            xong.Add(x.Ma);   // DaCoSan: Ba Mẹ đã có lời xin này đang chờ ⇒ xong, KHÔNG báo Con «chưa tới»
             if (kq == KetQuaGuiXin.Bo) BaoBo(x);
         }
         Items.RemoveAll(x => xong.Contains(x.Ma));
@@ -90,6 +98,7 @@ public sealed class HangXinCho
         ApiException { StatusCode: 408 } or ApiException { StatusCode: 429, Code: null or "" or "bam_don" } => KetQuaGuiXin.TamHoan,
         ApiException { StatusCode: 429 } => KetQuaGuiXin.LoiMang,   // 429 khác (khoá lâu): tính lần như lỗi mạng ⇒ quá ThuToiDa thì bỏ + báo Con, không chặn đầu hàng 12 giờ
         ApiException { LaTokenSai: true } => KetQuaGuiXin.Bo,
+        ApiException a when XinTrung.La(a) => KetQuaGuiXin.DaCoSan,
         ApiException { StatusCode: 401 or 403 } => KetQuaGuiXin.LoiMang,
         ApiException => KetQuaGuiXin.Bo,
         HttpRequestException or TimeoutException or TaskCanceledException or IOException => KetQuaGuiXin.LoiMang,

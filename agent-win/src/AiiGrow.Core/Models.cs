@@ -372,6 +372,8 @@ public sealed class AgentConfig
     public List<List<string>>? NhomMucApp { get; set; }
     /// <summary>#693: tên exe của app đã cài ở chỗ không phải Desktop / Downloads… (<see cref="DanhSachApp.TenExeDaCai"/>) — lưu như <see cref="NhomMucApp"/>.</summary>
     public List<string>? TenExeDaCai { get; set; }
+    /// <summary>#727: thư mục cài của app đã quét (<see cref="DanhSachApp.ThuMucDaCai"/>) — Cho phép theo tên chỉ nhận exe ở đây / Program Files / WindowsApps.</summary>
+    public List<string>? ThuMucDaCai { get; set; }
     /// <summary>#695: gói Store cài ngoài «Program Files\WindowsApps» ([muc gói, thư mục cài, exe…] — <see cref="DanhSachApp.NhomGoiNgoai"/>), lưu như <see cref="NhomMucApp"/>.</summary>
     public List<List<string>>? GoiNgoaiApp { get; set; }
 

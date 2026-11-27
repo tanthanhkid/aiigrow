@@ -91,6 +91,7 @@ internal sealed class XinThemForm : HopKhayCoBan
 
     private void DonDep()
     {
+        if (_idLuu != null) DangTheoDoi.Remove(_idLuu);   // đóng hộp khi còn chờ: tệp giữ, khay tự hỏi tiếp (#727)
         _poll.Dispose();
         _taiLai.Dispose();
         BoLuoi();
@@ -189,6 +190,7 @@ internal sealed class XinThemForm : HopKhayCoBan
         _id = string.IsNullOrEmpty(r.Id) ? null : r.Id;
         _pollLoi.DatLai();
         _daGui = true;
+        if (_id != null) LuuTheoDoi(_id);
         var kq = KetQuaXinView.Doc(r.KetQua?.KetQua, r.Status);
         if (kq != KetQuaXinView.Loai.Cho) { VeKetQua(kq, r.KetQua); return; }
         VeDaGui();
@@ -447,6 +449,25 @@ internal sealed class XinThemForm : HopKhayCoBan
         Xong();
     }
 
+    /// <summary>#727 (#686): tệp lời xin app / web đang chờ — khay khởi động lại (hoặc hộp đóng khi còn chờ) vẫn hỏi tiếp và báo Con.</summary>
+    internal static string TepXinCho => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiiGrow", "xin-appweb-cho.json");
+    /// <summary>Id lời xin đang được hộp mở theo dõi — khay không hỏi trùng.</summary>
+    internal static readonly HashSet<string> DangTheoDoi = new();
+    private string? _idLuu;
+    /// <summary>Con bấm gửi: ghi tệp (kèm bé đang dùng máy — máy dùng chung).</summary>
+    public static Func<string?>? BeIdHienTai;
+    private void LuuTheoDoi(string id)
+    {
+        _idLuu = id; DangTheoDoi.Add(id);
+        try { XinAppWebCho.Them(TepXinCho, new XinAppWebDangCho(id, _ten, _muc, DateTimeOffset.Now, BeIdHienTai?.Invoke()), DateTimeOffset.Now); } catch { }
+    }
+    private void BoTheoDoi()
+    {
+        if (_idLuu == null) return;
+        var id = _idLuu; _idLuu = null; DangTheoDoi.Remove(id);
+        try { XinAppWebCho.Xoa(TepXinCho, id, DateTimeOffset.Now); } catch { }
+    }
+
     private async Task PollAsync()
     {
         if (_id == null || _busy) return;
@@ -459,6 +480,7 @@ internal sealed class XinThemForm : HopKhayCoBan
             // #686: máy chủ báo lời xin không còn vài lần liền (mất mạng không tính) ⇒ thôi chờ, mở lại nút gửi (máy chủ gộp lời xin trùng đang chờ);
             // Ba Mẹ trả lời sau đó thì tin «đã thêm / chưa thêm» của máy chủ vẫn báo Con
             _poll.Stop();
+            BoTheoDoi();
             _id = null;
             _daGui = false;
             _pollLoi.DatLai();
@@ -476,6 +498,7 @@ internal sealed class XinThemForm : HopKhayCoBan
     internal void VeKetQua(KetQuaXinView.Loai kq, RequestStatus? s)
     {
         _poll.Stop();
+        BoTheoDoi();
         _id = null;
         _daGui = false;
         switch (kq)

@@ -27,7 +27,7 @@ public static class ProcessEnforcer
     /// <param name="khongDong">#698: tiến trình phải đóng mà Windows không cho đóng (tên exe chữ thường) — để ghi nhật ký.</param>
     public static IReadOnlyList<string> Enforce(IProcessControl control, int sessionId, IEnumerable<string> allowedApps,
         IEnumerable<string>? safeDirs = null, bool dryRun = false, string? winDir = null, Func<string, bool>? choThem = null,
-        Action<string>? khongDong = null, ISet<string>? tenDaCai = null)
+        Action<string>? khongDong = null, ISet<string>? tenDaCai = null, IReadOnlyCollection<string>? thuMucDaCai = null)
     {
         var procs = control.ListChildProcesses(sessionId)
             .Where(p => !string.IsNullOrWhiteSpace(p.Path))
@@ -42,7 +42,7 @@ public static class ProcessEnforcer
         foreach (var p in procs)
         {
             // cùng luật với ShouldClose: «notepad.exe» giả trong Downloads không kéo cả Downloads thành «helper cùng thư mục»
-            if (!ProcessGuard.DuocPhepTheoLuat(p.Path, allowed, winDir, tenDaCai)) continue;
+            if (!ProcessGuard.DuocPhepTheoLuat(p.Path, allowed, winDir, tenDaCai, thuMucDaCai)) continue;
             if (ProcessGuard.KhoaGoiCha(p.Path) is { } kg) goiCha.Add(kg);
             if (ProcessGuard.LaGocChoThaTep(p.Path, winDir)) continue;   // #693: gốc Desktop / Downloads… không thành «helper cùng thư mục»
             var d = DirName(p.Path);
@@ -55,7 +55,7 @@ public static class ProcessEnforcer
         foreach (var p in procs)
         {
             if (choThem?.Invoke(p.Path) == true) continue;   // «chặn theo lọc»: trình duyệt lọc web được (TrinhDuyetLoc.ChoChay)
-            if (!ProcessGuard.ShouldClose(p.Path, allowed, allowedDirs, safe, winDir, goiCha, tenDaCai)) continue;
+            if (!ProcessGuard.ShouldClose(p.Path, allowed, allowedDirs, safe, winDir, goiCha, tenDaCai, thuMucDaCai)) continue;
             if (dryRun) { closed.Add(FileName(p.Path).ToLowerInvariant()); continue; }
             if (control.Close(p.Id)) closed.Add(FileName(p.Path).ToLowerInvariant());
             else khongDong?.Invoke(FileName(p.Path).ToLowerInvariant());

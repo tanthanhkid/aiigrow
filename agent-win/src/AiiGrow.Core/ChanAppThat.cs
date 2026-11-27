@@ -188,7 +188,7 @@ public static class ChanAppThat
         a.Muc.Length > 0 && ((a.DuongDan == null && a.ThuMuc == null && a.Sha256 == null) || !TenChung.Contains(a.Muc));
 
     /// <summary>Tiến trình <paramref name="exePath"/> khớp một luật chặn? <paramref name="bam"/> = SHA-256 hex chữ thường của tệp (chỉ gọi khi có luật băm).</summary>
-    public static AppBiChan? Khop(string exePath, IReadOnlyList<AppBiChan> ds, Func<string, string?>? bam)
+    public static AppBiChan? Khop(string exePath, IReadOnlyList<AppBiChan> ds, Func<string, string?>? bam, Func<string, bool>? khongBamDuoc = null)
     {
         if (string.IsNullOrWhiteSpace(exePath) || ds.Count == 0) return null;
         var p = exePath.Replace('/', '\\');
@@ -206,6 +206,9 @@ public static class ChanAppThat
             string? h = null;
             try { h = bam(p)?.ToLowerInvariant(); } catch { }
             if (h != null) foreach (var a in ds) if (a.Sha256 == h) return a;
+            // #727: băm lỗi / tệp > 512 MB (đã thử, không phải «chưa băm xong») ⇒ KHÔNG bỏ qua: khớp theo tên với luật chỉ có băm, trừ exe ở Program Files / thư mục Windows
+            if (h == null && khongBamDuoc?.Invoke(p) == true && !ProcessGuard.LaChoTinCay(p, null, null))
+                foreach (var a in ds) if (a.Sha256 != null && a.Muc == ten && a.Muc.Length > 0) return a;
         }
         return null;
     }
@@ -213,7 +216,8 @@ public static class ChanAppThat
     /// <summary>Đóng (hoặc, giám sát: chỉ liệt kê) tiến trình của phiên Con khớp luật chặn. → (tên exe, mục luật) đã đóng / sẽ đóng.</summary>
     /// <param name="khongDong">#698: tiến trình khớp luật mà Windows không cho đóng (exe, muc) — để ghi nhật ký, không lặng lẽ bỏ qua.</param>
     public static IReadOnlyList<(string Exe, string Muc)> Enforce(IProcessControl control, int sessionId, IReadOnlyList<AppBiChan> ds, bool dryRun,
-        Func<string, string?>? bam = null, string? winDir = null, IEnumerable<string>? safeDirs = null, Action<string, string>? khongDong = null)
+        Func<string, string?>? bam = null, string? winDir = null, IEnumerable<string>? safeDirs = null, Action<string, string>? khongDong = null,
+        Func<string, bool>? khongBamDuoc = null)
     {
         var kq = new List<(string, string)>();
         if (ds.Count == 0) return kq;
@@ -222,7 +226,7 @@ public static class ChanAppThat
         foreach (var p in control.ListChildProcesses(sessionId))
         {
             if (string.IsNullOrWhiteSpace(p.Path) || MienChan(p.Path, winDir, safe)) continue;
-            var luat = Khop(p.Path, ds, bam);
+            var luat = Khop(p.Path, ds, bam, khongBamDuoc);
             if (luat == null) continue;
             var ten = DanhSachApp.TenTep(p.Path).ToLowerInvariant();
             var muc = luat.Muc.Length > 0 ? luat.Muc : ten;
@@ -259,7 +263,9 @@ public static class ChanAppThat
             if (a.ThuMuc != null && ThuMucHopLe(a.ThuMuc, winDir) && !safe.Any(s => !string.IsNullOrEmpty(s) && (DanhSachApp.Trong(a.ThuMuc + "\\x.exe", s) || DanhSachApp.Trong(s + "\\x", a.ThuMuc))))
                 Them(new LuatChanApp(ten + " (thư mục)", DanhSachApp.ChuanThuMuc(a.ThuMuc) + @"\*"));
             // chỉ có tên exe (luật chan không có trong danh sách của máy): «*\ten.exe» như danh sách chặn cũ — trừ tên tiến trình phiên của Windows
-            if (a.DuongDan == null && a.ThuMuc == null && KhopTheoTen(a) && AppLockerXml.NormalizeExe(a.Muc) is { } n && !ProcessGuard.TienTrinhHeThongPhien.Contains(n)
+            // #727: luật có băm mà AppLocker không đọc được băm (tệp lỗi / quá lớn) ⇒ vẫn chặn theo tên exe (không để băm lỗi = không chặn)
+            var khongCoBam = bamAppLocker != null && a.DuongDan != null && a.Sha256 != null && !kq.Any(l => l.HashData != null && (l.Ten == ten + " (băm)"));
+            if ((a.DuongDan == null && a.ThuMuc == null || khongCoBam) && KhopTheoTen(a) && AppLockerXml.NormalizeExe(a.Muc) is { } n && !ProcessGuard.TienTrinhHeThongPhien.Contains(n)
                 && !n.StartsWith("aiigrow.", StringComparison.Ordinal))
                 Them(new LuatChanApp(n + " (tên)", @"*\" + n));
         }
@@ -297,6 +303,18 @@ public sealed class BamTepCache
             return null;
         }
         catch { return null; }
+    }
+    /// <summary>#727: đã băm (hoặc đã thử) mà không có băm — tệp quá lớn / không đọc được; khác «chưa băm xong».</summary>
+    public bool KhongBamDuoc(string path)
+    {
+        try
+        {
+            var fi = new FileInfo(path);
+            if (!fi.Exists) return false;
+            if (fi.Length > ToiDaByte) return true;
+            lock (_k) return _d.TryGetValue(path, out var c) && c.Len == fi.Length && c.Mtime == fi.LastWriteTimeUtc && c.Hash == null;
+        }
+        catch { return false; }
     }
     private readonly Dictionary<string, (long Len, DateTime Mtime, string? Hash)> _d = new(StringComparer.OrdinalIgnoreCase);
     private readonly object _k = new();
