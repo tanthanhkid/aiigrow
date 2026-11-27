@@ -4,6 +4,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { Platform } from "react-native";
 import { router, useGlobalSearchParams } from "expo-router";
+import { raKhoiMay } from "./doi-be";
 import { useTai } from "./ui";
 import { kid, may, type NhomTre, type NvTre, type ToiTre } from "./api-tre";
 import { GOC } from "./api";
@@ -95,14 +96,13 @@ export function TreProvider({ children }: { children: ReactNode }) {
   }, [co, toi, nap]);
   // «Đổi bé / Đăng xuất»: máy dùng chung ⇒ máy chủ bỏ «bé đang dùng» + xoá phiên Con của máy (máy khoá về màn chọn tên); máy không có
   // token thiết bị (khung Kid do agent mở) ⇒ chỉ đăng xuất phiên Con.
-  const ra = useCallback(async () => {
-    if (may.co()) { try { await may.goi("dang-xuat", {}); } catch { /* mất mạng: vẫn xoá trên máy */ } }
-    try { await kid.goi("dang-xuat", {}); } catch { /* vẫn xoá trên máy */ }
-    await kid.dat(null);
-    setCo(false);
-    setToi(null);
-    router.replace("/tre/chon-ten");
-  }, []);
+  const ra = useCallback(() => raKhoiMay({
+    coTokenMay: may.co(),
+    roiMay: () => may.goi("dang-xuat", {}),
+    raPhienCon: () => kid.goi("dang-xuat", {}),
+    xoaPhienCon: () => kid.dat(null),
+    veManChonTen: () => { setCo(false); setToi(null); router.replace("/tre/chon-ten"); },
+  }), []);
   return (
     <Ctx.Provider value={{ san, co, daChao: toi?.daChao ?? true, ten: toi?.ten ?? "", nhom: toi?.nhom ?? "nhi", id: toi?.id ?? "", iAvt, soTin, nap, vao, ra }}>{children}</Ctx.Provider>
   );

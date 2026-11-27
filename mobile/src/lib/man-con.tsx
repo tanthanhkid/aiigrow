@@ -5,6 +5,8 @@ import { View } from "react-native";
 import { Icon3D, Rob, type TenIcon } from "./ui";
 import { ChipTen, ChuD, NutD, SaoD, TheD, TieuD, VongD } from "./ui-diu";
 import { D } from "./diu";
+import { coTheDoiBe } from "./doi-be";
+import { may } from "./api-tre";
 import { useTre } from "./ui-tre";
 import { soSao, soVN, tiVong, type SaoCon } from "./con-diu";
 import { chuPhut } from "@/lib/chu-phut";
@@ -38,7 +40,8 @@ export function RobChao({ ten }: { ten?: string }) {
 export function ChipBe() {
   const { ten, iAvt, ra } = useTre();
   if (!ten) return null;
-  return <ChipTen ten={ten} i={iAvt} doiBe={ra} dangXuat={ra} />;
+  // #824: chỉ máy dùng chung đã ghép (có token thiết bị) mới có màn chọn tên để về; khung Kid do agent mở thì không hiện nút vô tác dụng
+  return coTheDoiBe(may.co()) ? <ChipTen ten={ten} i={iAvt} doiBe={ra} dangXuat={ra} /> : <ChipTen ten={ten} i={iAvt} />;
 }
 
 /** Đầu màn Hôm nay: «Chào Bảo Anh!» + «Thứ Năm · 19:30» + chip tên. */
