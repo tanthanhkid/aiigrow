@@ -11,6 +11,7 @@ import { allowlistHieuLuc, boMucChoCon, chuanMuc, datLuat, khoaSo, type NhomGiai
 import { kieuMuc } from "./chinh-sach.ts";
 import { dsBoQua, guiYeuCau } from "./yeu-cau.ts";
 import { gioDiaPhuong } from "./gio.ts";
+import { docDongDung } from "./phut-dung.ts";
 import { chuanHoaDuongDan, tenMienSach } from "./web.ts";
 import {
   cheDoChanCua, cheDoCua, loaiTuNhom, nhanCheDo, nhanNhom, nhomTuLoai, TEN_CHE_DO, TEN_NHOM_DS, type NhomDs,
@@ -202,13 +203,11 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
   const c = await conCua(fam, con);
   const tz = (await one<{ tz: string }>(`select tz from families where id = $1`, [fam]))?.tz ?? "Asia/Ho_Chi_Minh";
   const ngay = gioDiaPhuong(now, tz).ngay;
-  const [luat, choKhop, app, web, xin, boQua] = await Promise.all([
+  const [luat, choKhop, dung, xin, boQua] = await Promise.all([
     q<{ child_id: string; muc: string; ten: string; loai: string }>(`select child_id, muc, ten, loai from app_rules where family_id = $1 and child_id in ('', $2)
        and loai in ('hoc', 'giai_tri', 'loai_tru') and (het is null or het > $3) order by ten, muc`, [fam, con, now]),
     q<{ ten: string; tinh_gio: boolean }>(`select ten, tinh_gio from app_theo_ten where child_id = $1 and khop_luc is null order by ten`, [con]),
-    q<{ muc: string; phut: number }>(`select lower(muc) as muc, sum(phut)::int as phut from usage where child_id = $1 and ngay = $2 group by lower(muc)`, [con, ngay]),
-    q<{ ten_mien: string; giay: number }>(`select w.ten_mien, sum(w.giay)::int as giay from web_nhat_ky w left join devices d on d.id = w.device_id
-       where (w.child_id = $1 or (w.child_id is null and d.child_id = $1)) and w.ngay = $2 group by w.ten_mien`, [con, ngay]),
+    docDongDung(fam, con, ngay, now),            // #810: cùng tập dòng với «Đã dùng gì» / trang máy (không cộng Edge… + tiến trình hệ thống)
     q<{ id: string; loai: string; gia_tri: string | null; ten_app: string | null; ly_do: string; created_at: Date; may: string | null }>(
       `select r.id, r.loai, r.gia_tri, r.ten_app, r.ly_do, r.created_at, d.name as may from requests r left join devices d on d.id = r.device_id
         where r.child_id = $1 and r.loai in ('mo_web', 'cai_app') and r.trang_thai = 'cho' and r.het_han > $2 order by r.created_at`, [con, now]),
@@ -218,7 +217,9 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
   const theoMuc = new Map<string, (typeof luat)[number]>();
   for (const l of [...luat].sort((a, b) => (a.child_id ? 1 : 0) - (b.child_id ? 1 : 0))) theoMuc.set(l.muc, l);
   for (const [k, l] of theoMuc) if (l.loai === "loai_tru") theoMuc.delete(k);       // mục cả nhà Ba Mẹ đã bỏ khỏi danh sách của Con này
-  const phutApp = new Map(app.map((x) => [x.muc, x.phut]));
+  const phutApp = new Map<string, number>();
+  for (const x of dung.app) phutApp.set(x.muc.toLowerCase(), (phutApp.get(x.muc.toLowerCase()) ?? 0) + Number(x.phut));
+  const web = dung.web;
   const gop = new Map<string, DongDanhSach>();
   for (const l of theoMuc.values()) {
     const kieu = laMucWeb(l) ? "web" as const : "app" as const;
@@ -233,7 +234,7 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
   for (const x of gop.values()) {
     const ds = new Set(x.muc);
     let phut = x.muc.reduce((a, m) => a + (phutApp.get(m) ?? 0), 0);
-    for (const w of web) if (khoaSo(w.ten_mien).some((m) => ds.has(m))) phut += w.giay / 60;
+    for (const w of web) if (khoaSo(w.ten_mien).some((m) => ds.has(m))) phut += Number(w.giay) / 60;
     x.phutHomNay = Math.round(phut);
   }
   for (const a of choKhop) {

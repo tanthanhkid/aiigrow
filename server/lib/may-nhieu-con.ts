@@ -20,6 +20,7 @@ import { ghiSuKien } from "./nhat-ky.ts";
 import { trangThaiSao } from "./so-sao.ts";
 import { dangKhoa, khoaDen } from "./cau-hinh.ts";
 import { gioDiaPhuong } from "./gio.ts";
+import { docDongDung, phutTheoMay } from "./phut-dung.ts";
 
 /** Nền tảng chỉ một Con mỗi máy. NEN_TANG chỉ có "ios"; "ipados" nhận phòng agent sau này báo riêng. */
 const NEN_MOT_CON = ["ios", "ipados"] as const;
@@ -190,8 +191,8 @@ export async function conMay(fam: string, mayId: string, now = new Date()) {
   const gan = await idConMay(m.id);
   const tom = (await tomTatNoi(fam, [m], now)).get(m.id)!;
   const ngay = gioDiaPhuong(now, m.tz).ngay;
-  const phut = new Map((await q<{ child_id: string; p: number }>(
-    `select child_id, coalesce(sum(phut), 0)::int as p from usage where device_id = $1 and ngay = $2 group by child_id`, [m.id, ngay])).map((r) => [r.child_id, r.p]));
+  // #810: phút của Con trên máy này = cùng nguồn với «Đã dùng gì» (lib/phut-dung): không cộng trình duyệt / tiến trình hệ thống, có cả phút web
+  const phut = new Map(await Promise.all(con.map(async (c) => [c.id, phutTheoMay(await docDongDung(fam, c.id, ngay, now)).get(m.id) ?? 0] as const)));
   const lanCuoi = new Map((await q<{ child_id: string; luc: Date }>(
     `select child_id, max(created_at) as luc from events where family_id = $1 and device_id = $2 and loai = 'doi_nguoi_may' and child_id is not null
       group by child_id`, [fam, m.id])).map((r) => [r.child_id, r.luc]));
