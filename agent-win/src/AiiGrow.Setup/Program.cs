@@ -12,7 +12,7 @@ internal static class Program
         bool silent = args.Any(a => a.Equals("/silent", StringComparison.OrdinalIgnoreCase) || a.Equals("--silent", StringComparison.OrdinalIgnoreCase));
 
         if (args.Any(a => a.Equals("--uninstall", StringComparison.OrdinalIgnoreCase) || a.Equals("/uninstall", StringComparison.OrdinalIgnoreCase)))
-            return Uninstall(silent);
+            return Uninstall(silent, args);
 
         // Công tắc chế độ (Ba Mẹ chạy, cần quyền admin — manifest đã xin): AiiGrow.Setup.exe --che-do=chan | --che-do=giam-sat
         var cheDo = args.FirstOrDefault(x => x.StartsWith("--che-do=", StringComparison.OrdinalIgnoreCase));
@@ -97,8 +97,50 @@ internal static class Program
         return ok ? 0 : 4;
     }
 
-    private static int Uninstall(bool silent)
+    private static bool _baMeHuy;
+
+    /// <summary>Hỏi Ba Mẹ (tối đa 5 lần). Im lặng: mã qua «--ma=123456». → true = được gỡ.</summary>
+    private static bool CongGoBaMe(bool silent, string[] args)
     {
+        var store = new ConfigStore();
+        var cfg = store.Load();
+        // Tệp cấu hình CÓ mà không đọc được (khoá/hỏng) ⇒ không biết máy đã ghép chưa: KHÔNG coi là chưa ghép (không để mở cổng bằng cách làm hỏng tệp).
+        if (cfg == null && File.Exists(Paths.ConfigFile))
+        {
+            WriteLog("Gỡ bị chặn: có tệp cấu hình nhưng không đọc được.");
+            if (!silent) HopThoai.Hien("Chưa đọc được cấu hình AiiGrow nên chưa xác nhận được Ba Mẹ. Khởi động lại máy rồi thử lại.", "AiiGrow", loi: true);
+            return false;
+        }
+        if (!CongGo.CanHoi(cfg)) return true;
+        if (silent)
+        {
+            var ma = args.FirstOrDefault(a => a.StartsWith("--ma=", StringComparison.OrdinalIgnoreCase))?["--ma=".Length..];
+            var kq0 = CongGo.Kiem(cfg, ma, null, null, DateTimeOffset.Now, MatKhauQuanTri.Kiem);
+            if (kq0 != CongGo.KetQua.Duoc)
+            {
+                WriteLog("Gỡ im lặng bị từ chối: " + (kq0 == CongGo.KetQua.Sai ? CongGo.CauSai : CongGo.CauYeuCau));
+                Thread.Sleep(3000);   // chậm dò mã qua chạy lặp
+            }
+            return kq0 == CongGo.KetQua.Duoc;
+        }
+        string? loi = null;
+        for (int lan = 0; lan < 5; lan++)
+        {
+            var d = HopGoCanBaMe.Hoi(loi);
+            if (d == null) { _baMeHuy = true; return false; }
+            var kq = CongGo.Kiem(cfg, d.Ma, d.TaiKhoan, d.MatKhau, DateTimeOffset.Now, MatKhauQuanTri.Kiem);
+            if (kq == CongGo.KetQua.Duoc) return true;
+            loi = kq == CongGo.KetQua.Sai ? CongGo.CauSai : CongGo.CauYeuCau;
+            if (kq == CongGo.KetQua.Sai) Thread.Sleep(1500);   // chậm dò mã / mật khẩu
+        }
+        HopThoai.Hien("Nhập sai quá nhiều lần. Chạy lại bộ gỡ khi có Ba Mẹ.", "AiiGrow", loi: true);
+        return false;
+    }
+
+    private static int Uninstall(bool silent, string[] args)
+    {
+        // #739: gỡ tại máy phải có Ba Mẹ (mã mở máy / mật khẩu quản trị) — bé không tự gỡ được qua Start › Uninstall.
+        if (!CongGoBaMe(silent, args)) return _baMeHuy ? 0 : 9;   // Ba Mẹ bấm «Không gỡ» = huỷ, không phải lỗi
         if (!silent && HopThoai.Hien("Gỡ AiiGrow khỏi máy này?", "AiiGrow", hoi: true) != DialogResult.Yes)
             return 0;
         var kq = Task.Run(Installer.UninstallAsync).GetAwaiter().GetResult();

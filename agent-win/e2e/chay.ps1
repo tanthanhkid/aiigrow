@@ -711,9 +711,13 @@ KichBan 'KB9' 'Gỡ --uninstall' {
   Log "trước khi gỡ: $truoc"
   ChepLog 'truoc-go'
   $setup = Join-Path $InstallDir 'AiiGrow.Setup.exe'   # đúng bản Cài đặt › Ứng dụng › Gỡ gọi
-  $ma = ChaySetup $setup @('--uninstall', '--silent')
+  # #739: gỡ tại máy cần Ba Mẹ ⇒ lấy mã mở máy (máy đã ghép) từ máy chủ, đưa qua --ma=
+  $maGo = $null
+  if ($Chung.MayId -and $Chung.TokenBaMe) { try { $maGo = (Api GET "/api/m/may/$($Chung.MayId)/ma-offline?phut=15" $null $Chung.TokenBaMe).ma } catch { Log "KB9 lấy mã gỡ lỗi: $($_.Exception.Message)" } }
+  $tsGo = @('--uninstall', '--silent'); if ($maGo) { $tsGo += "--ma=$maGo" }
+  $ma = ChaySetup $setup $tsGo
   ChepLog 'sau-go'
-  Dat '9.1' 'Mã thoát gỡ = 0' ($ma -eq 0) "mã $ma (5 = chưa gỡ AppLocker, 6 = chưa trả quyền admin) · trước gỡ: $truoc · $(DuoiLog 4)"
+  Dat '9.1' 'Mã thoát gỡ = 0' ($ma -eq 0) "mã $ma (5 = chưa gỡ AppLocker, 9 = thiếu/sai mã Ba Mẹ) · trước gỡ: $truoc · $(DuoiLog 4)"
   $mat = Cho { -not (DichVu) } 60 3
   Dat '9.2' 'Dịch vụ AiiGrowService đã mất' $mat "$(if (DichVu) { (DichVu).Status } else { 'không còn' })"
   Dat '9.3' 'AppLocker không còn luật AiiGrow' (@(LuatAiiGrow (AppLocker)).Count -eq 0) "còn $(@(LuatAiiGrow (AppLocker)).Count)"

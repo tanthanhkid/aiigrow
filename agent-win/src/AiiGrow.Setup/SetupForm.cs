@@ -705,7 +705,8 @@ internal sealed class SetupForm : Form
         {
             var n = ten.Text.Trim();
             void Loi_(string c) { goiY.Text = c; goiY.ForeColor = Loi; goiY.Font = PhongChu.Tao(10f, FontStyle.Bold); }
-            if (!Accounts.IsValidName(n)) { Loi_("Tên chỉ gồm chữ không dấu, số, dấu . _ - (tối đa 20 ký tự). Ví dụ: con"); return; }
+            if (Accounts.LaTenThietBi(n)) { Loi_(CauLoiCai.TenCam(n)); return; }
+            if (!Accounts.IsValidName(n)) { Loi_("Tên chỉ gồm chữ không dấu, số, dấu . _ - (tối đa 20 ký tự). Ví dụ: treem"); return; }
             if (_accounts.Any(a => a.Name.Equals(n, StringComparison.OrdinalIgnoreCase))) { Loi_($"Máy đã có tài khoản «{n}». Đặt tên khác, hoặc chọn «Các con đã có tài khoản chung»."); return; }
             tiep!.Enabled = false;
             try
@@ -729,7 +730,7 @@ internal sealed class SetupForm : Form
         var khac = _accounts.Count(a => a.IsAdmin && a.Sid != con.Sid);
         if (khac > 0)
         {
-            if (HopThoai.Hien($"Đổi «{con.Name}» thành tài khoản giới hạn? Con vẫn mở máy, học, chơi như cũ — chỉ không tự gỡ AiiGrow được. Gỡ AiiGrow thì trả lại như cũ.",
+            if (HopThoai.Hien($"Đổi «{con.Name}» thành tài khoản giới hạn? Con vẫn mở máy, học, chơi như cũ — chỉ không tự gỡ AiiGrow được (gỡ cần Ba Mẹ).",
                     "Cài AiiGrow", hoi: true) == DialogResult.Yes)
                 BuocGhep();
             return;
@@ -1052,15 +1053,15 @@ internal sealed class SetupForm : Form
         NutChinh(mayRieng ? "Khoá máy" : "Mở màn chọn tên", mayRieng ? 200 : 250, () => LockWorkStation());
     }
 
-    /// <summary>Tên gợi ý cho tài khoản chung: «con» (đã có thì «con2», «con3»…).</summary>
+    /// <summary>Tên gợi ý cho tài khoản chung: «treem» (đã có thì «treem2», «treem3»…). #739: KHÔNG dùng «con» — CON là tên thiết bị Windows cấm, không có C:\Users\con.</summary>
     private string TenTaiKhoanChung()
     {
         for (int i = 1; i < 50; i++)
         {
-            var n = i == 1 ? "con" : "con" + i;
+            var n = i == 1 ? "treem" : "treem" + i;
             if (!_accounts.Any(a => a.Name.Equals(n, StringComparison.OrdinalIgnoreCase))) return n;
         }
-        return "con";
+        return "treem";
     }
 
     /// <summary>«con» ⇒ «Con» (cách thiết kế gọi tài khoản chung).</summary>

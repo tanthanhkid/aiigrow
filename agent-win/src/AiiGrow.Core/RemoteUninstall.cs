@@ -28,7 +28,8 @@ public static class AppsEntry
         k.SetValue("InstallLocation", installDir);
         k.SetValue("DisplayIcon", Path.Combine(installDir, Paths.TrayExeName));
         k.SetValue("UninstallString", "\"" + setup + "\" --uninstall");
-        k.SetValue("QuietUninstallString", "\"" + setup + "\" --uninstall --silent");
+        // #739: bỏ QuietUninstallString — gỡ im lặng cần mã Ba Mẹ (--ma=), không có gì để ghi sẵn vào registry.
+        try { k.DeleteValue("QuietUninstallString", false); } catch { }
         k.SetValue("NoModify", 1, RegistryValueKind.DWord);
         k.SetValue("NoRepair", 1, RegistryValueKind.DWord);
     }
@@ -53,11 +54,6 @@ public sealed class WindowsCleanupOps : ICleanupOps, IWebCleanup, IDnsCleanup
     private const string RunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string PolicyKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
 
-    // Danh sách tài khoản đã hạ quyền, đọc MỘT lần từ cấu hình rồi giữ lại: XoaCauHinh có thể chạy trước HenDonTachRoi,
-    // mà tác vụ dọn cần SID để trả quyền làm lưới đỡ.
-    private List<QuyenDaHa>? _daHa;
-    private List<QuyenDaHa> DaHa() => _daHa ??= new ConfigStore().Load()?.DaHaQuyen?.ToList() ?? new();
-
     public void TatKhoiPhucDichVu()
     {
         Shell.Run("sc.exe", new[] { "failure", Paths.ServiceName, "reset=", "0", "actions=", "" }, 30000);
@@ -78,7 +74,8 @@ public sealed class WindowsCleanupOps : ICleanupOps, IWebCleanup, IDnsCleanup
 
     public void HenDonTachRoi()
     {
-        var script = SystemCleanup.KichBanDonTachRoi(Paths.ServiceName, Paths.InstallDir, Paths.DataDir, AppsEntry.Key, DaHa());
+        // #739: KHÔNG truyền danh sách trả quyền — gỡ xong tài khoản của bé vẫn là tài khoản thường (không tự nâng lên Administrators).
+        var script = SystemCleanup.KichBanDonTachRoi(Paths.ServiceName, Paths.InstallDir, Paths.DataDir, AppsEntry.Key, null);
         var b64 = Convert.ToBase64String(Encoding.Unicode.GetBytes(SystemCleanup.BocNen(script)));
         var arg = "-NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -EncodedCommand " + b64;
         var tn = Shell.PsQuote(SystemCleanup.TenTacVuDon);
@@ -125,24 +122,9 @@ public sealed class WindowsCleanupOps : ICleanupOps, IWebCleanup, IDnsCleanup
         catch { /* dọn đệm là phần thêm, không được làm hỏng cổng gỡ luật; tác vụ dọn tách rời dọn lại */ }
     }
 
-    public void TraQuyenQuanTri()
-    {
-        var ds = DaHa();
-        if (ds.Count == 0) return;   // không hạ ai (máy dùng chung) ⇒ không có gì để trả
-        var loi = new List<string>();
-        foreach (var q in ds)
-        {
-            if (!AppLockerXml.IsValidSid(q.Sid) || !AppLockerXml.IsValidSid(q.Nhom)) continue;
-            var sid = Shell.PsQuote(q.Sid);
-            var nhom = Shell.PsQuote(q.Nhom);
-            // «đã là thành viên» (tài khoản chưa từng bị hạ / đã trả rồi) không phải lỗi — chỉ ghi lỗi thật.
-            var r = Shell.PowerShell(
-                $"try {{ Add-LocalGroupMember -SID {nhom} -Member {sid} -ErrorAction Stop }} " +
-                "catch { if ($_.CategoryInfo.Category -ne 'ResourceExists' -and $_.Exception.GetType().Name -ne 'MemberExistsException') { throw } }");
-            if (!r.Ok) loi.Add(q.Sid + ": " + r.Error);
-        }
-        if (loi.Count > 0) throw new InvalidOperationException("Chưa trả được quyền quản trị cho: " + string.Join("; ", loi));
-    }
+    /// <summary>#739: gỡ xong KHÔNG nâng tài khoản của bé lên Administrators (trước đây bé thành admin ngay sau khi gỡ). Ba Mẹ muốn nâng thì tự làm trong
+    /// Cài đặt Windows. Giữ bước trong quy trình gỡ (báo cáo «đã xử lý quyền») nhưng không đổi nhóm nào.</summary>
+    public void TraQuyenQuanTri() { }
 
     public void GoKhay()
     {
