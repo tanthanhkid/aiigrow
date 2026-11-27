@@ -6,7 +6,7 @@ import { useState, type ReactNode } from "react";
 import { Pressable, View } from "react-native";
 import { bm, type ConChiTiet, type LuotCho, type MayCon, type YeuCau } from "./api";
 import { BONG, KHOI } from "./clay";
-import { datKhoa, datKhoaMay } from "./khoa-may";
+import { cauChuaCoMay, datKhoa, datKhoaMay } from "./khoa-may";
 import { cachKhoa, cauKhoaMay, mayDangKhoa } from "./noi-1411";
 import { nganTen, tenGocMay } from "./may-nhieu-con";
 import { khoaTen, laWeb } from "./ui-bm3";
@@ -225,20 +225,21 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
     if (caNha) {
       const kq = await Promise.allSettled(caNha.map((c) => datKhoa(c.id, true, den)));
       const ok = caNha.filter((_, i) => kq[i].status === "fulfilled");
+      const chuaMay = caNha.filter((_, i) => { const r = kq[i]; return r.status === "fulfilled" && r.value?.soMay === 0; });   // #738
       if (!ok.length) throw (kq[0] as PromiseRejectedResult).reason;
       dongBang();
       const hong = caNha.filter((_, i) => kq[i].status === "rejected");
       // Hoàn tác: bé đang khoá từ trước ⇒ khoá lại đúng hạn cũ; bé chưa khoá ⇒ mở
-      xong(`Đã khoá mọi máy ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${hong.map((c) => tenGoi(c.ten)).join(", ")}, thử lại` : ""}`,
+      xong(`Đã khoá mọi máy ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${hong.map((c) => tenGoi(c.ten)).join(", ")}, thử lại` : ""}${chuaMay.length ? ` · ${chuaMay.map((c) => tenGoi(c.ten)).join(", ")} chưa ghép máy nào` : ""}`,
         async () => { await Promise.all(ok.map((c) => (c.khoa?.khoa && (!c.khoa.den || Date.parse(c.khoa.den) > Date.now())
           ? datKhoa(c.id, true, c.khoa.den ? new Date(c.khoa.den) : null) : datKhoa(c.id, false, null)))); });
       return;
     }
     if (!con) return;
     if (cach.kieu === "con") {
-      await datKhoa(con, true, den);
+      const kq = await datKhoa(con, true, den);
       dongBang();
-      xong(`Đã khoá ${ten} trên mọi máy ${cauDen(han, luc)}`, () => datKhoa(con, false, null));
+      xong(`Đã khoá ${ten} trên mọi máy ${cauDen(han, luc)}${cauChuaCoMay(kq?.soMay, ten)}`, async () => { await datKhoa(con, false, null); });
       return;
     }
     // khoá riêng từng máy: máy nào lỗi thì báo, máy đã khoá vẫn có Hoàn tác; Hoàn tác trả lại khoá riêng CŨ (nếu có), không mở trắng
@@ -270,7 +271,7 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
   return (
     <BangTruot mo={mo} dong={dongBang} tieu={caNha ? "Khoá tất cả máy?" : `Khoá máy ${ten}?`} hinh="khoa">
       <Chu kieu="dam" co={13} mau={M.chu3} style={{ textAlign: "center", marginTop: -4, lineHeight: 18 }}>
-        {caNha ? "Mọi bé không vào được máy nào tới khi hết hạn khoá." : `Khoá theo bé: ${ten} không vào được máy nào. Máy chung chỉ khoá phần của ${ten}.`}
+        {caNha ? "Mọi bé không vào được máy nào tới khi hết hạn khoá." : !may.length ? `${ten} chưa ghép máy nào nên chưa có máy để khoá — khoá có hiệu lực khi máy ghép xong.` : `Khoá theo bé: ${ten} không vào được máy nào. Máy chung chỉ khoá phần của ${ten}.`}
       </Chu>
       {may.length ? (
         // thiết kế .ds: một thẻ, mỗi máy một hàng (ô icon lõm · tên · trạng thái · ô tick ngọc 30)

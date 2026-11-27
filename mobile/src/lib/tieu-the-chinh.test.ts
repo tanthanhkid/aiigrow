@@ -9,6 +9,6 @@ test("đã chơi 21 phút, không đang chơi ⇒ «Đã dùng 21 phút», khôn
 test("chưa chơi phút nào ⇒ «Chưa dùng máy»", () => assert.equal(tieuTheChinh({ khoa: false, daChoiPhut: 0 }), "Chưa dùng máy"));
 test("đang chơi thắng; khoá thắng tất cả", () => {
   assert.equal(tieuTheChinh({ khoa: false, dangChoi: "Roblox", daChoiPhut: 21 }), "Đang chơi Roblox");
-  assert.equal(tieuTheChinh({ khoa: true, dangChoi: "Roblox", daChoiPhut: 21 }), "Khoá tới khi Ba Mẹ mở");
-  assert.equal(tieuTheChinh({ khoa: true, mo: "19:00", daChoiPhut: 0 }), "Mở lại lúc 19:00");
+  assert.equal(tieuTheChinh({ khoa: true, dangChoi: "Roblox", daChoiPhut: 21 }), "Đang khoá tới khi Ba Mẹ mở");
+  assert.equal(tieuTheChinh({ khoa: true, mo: "19:00", daChoiPhut: 0 }), "Đang khoá tới 19:00");
 });
