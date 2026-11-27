@@ -436,3 +436,18 @@ test("M5 màn Mã mở máy: đường nhẹ mo-bang-ma?sau= chỉ trả sự ki
   assert.equal((await m(khac, `may/${rieng.id}/mo-bang-ma`)).status, 404);
   assert.equal(await dem(), 2, "đường nhẹ không ghi gì");
 });
+
+test("#745: có 50 sao, đổi quà 50 sao chờ trao ⇒ sao = phút = 0, saoGiu 50, không âm ở mọi nơi", async () => {
+  const { fam, bm, tokBm, anh, rieng } = await nha();
+  await v.dieuChinhTay(fam, anh, 50, "Sao thử", bm);
+  const bua = (await m(tokBm, "qua")).body.ds.find((x: any) => x.mau === "bua_toi");
+  await dv(rieng.tok, `hoc-vien/doi/${bua.id}`, {});
+  const vi = await v.tomTatVi(anh);
+  assert.deepEqual([vi.sao, vi.phutCon, vi.hetSao, vi.saoGiu, vi.saoRong], [0, 0, true, 50, 0]);
+  const ch = await (await import("./phan-thuong.ts")).cuaHang(anh);
+  assert.deepEqual([ch.sao, ch.soDu, ch.saoGiu], [0, 0, 50]);
+  const vs = (await m(tokBm, `con/${anh}/vi-sao`)).body;
+  assert.deepEqual([vs.sao, vs.phutCon, vs.saoGiu, vs.cau.soDu], [0, 0, 50, "0 sao"]);
+  // sổ lệch (tổng âm, không nợ) ⇒ kẹp 0, không bao giờ âm
+  assert.equal(v.saoKhaDung(-5, anh), 0);
+});

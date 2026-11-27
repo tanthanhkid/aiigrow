@@ -90,7 +90,7 @@ test("xin vay sao (vay_sao: chơi / đổi quà) và lời xin cũ (them_gio / n
   await yc.dongY(fam, b.id, bm, {}, T);
   await doiQua(con, qua, T);
   const vi = await v.tomTatVi(con);
-  assert.deepEqual([vi.soDu, vi.no, vi.sao], [45, 95, -50]);
+  assert.deepEqual([vi.soDu, vi.no, vi.sao], [45, 95, 0]);
   // quy tắc tự động cũ (tu_dong_15) không còn tự cho
   await q(`update children set cau_hinh = cau_hinh || '{"tu_dong_15": true}'::jsonb where id = $1`, [con]);
   const c = await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15 }, tk());

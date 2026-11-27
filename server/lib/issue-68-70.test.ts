@@ -149,7 +149,7 @@ test("15/11 «còn N sao = N phút»: conPhut = sao tiêu được (không còn 
   await q(`insert into points(id, child_id, delta, loai, ly_do) values ($1,$2,-30,'choi','Chơi')`, [newId(), con]);
   await q(`insert into points(id, child_id, delta, loai, ly_do) values ($1,$2,15,'vay','vay'), ($3,$2,-15,'choi','Chơi')`, [newId(), con, newId()]);
   c = await lay();
-  assert.deepEqual([c.sao, c.no, c.conPhut, c.hetSao, c.soDu], [-15, 15, 0, true, 0]);
+  assert.deepEqual([c.sao, c.no, c.conPhut, c.hetSao, c.soDu], [0, 15, 0, true, 0]);
 });
 
 test("Xếp / hoàn tác app: giữ khoá tư vấn theo (nhà, Con, mục) TRƯỚC khi đọc luật cũ — `for update` không khoá dòng chưa tồn tại", async () => {

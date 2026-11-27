@@ -8,7 +8,7 @@ import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { thamSo } from "./cau-hinh.ts";
 import { dauNgayUtc, gioDiaPhuong, laCuoiTuan } from "./gio.ts";
-import { ghiDiem, khoaCon, soDu } from "./vi.ts";
+import { ghiDiem, khoaCon, saoKhaDung, soDu } from "./vi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 
 // TỪ 05/11 (thiết kế chốt L10): quà đổi bằng sao ⇒ «Đã gửi Ba Mẹ» (phiếu giu = chờ trao) ⇒ Ba Mẹ bấm «Đã trao» (da_trao). Quà «Thêm N phút
@@ -85,7 +85,7 @@ async function soLanThang(t: Q, con: string, qua: string, tz: string, now: Date)
 export async function cuaHang(con: string, o: { anVoucher?: boolean } = {}) {
   const c = await one<{ family_id: string }>(`select family_id from children where id = $1`, [con]);
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
-  const du = await soDu(con);
+  const du = saoKhaDung(await soDu(con), con);
   // 06/11: quà «Áp cho» Con khác thì không hiện (ap_cho null = mọi Con)
   const ds = (await q<Qua & { phut: number | null }>(`select * from rewards where family_id = $1 and bat and (ton_kho is null or ton_kho > 0)
       and (ap_cho is null or ap_cho ? $2) order by diem`, [c.family_id, con]))

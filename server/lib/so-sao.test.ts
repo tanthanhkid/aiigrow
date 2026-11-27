@@ -42,10 +42,10 @@ test("nghiệm thu #263: Con 0 sao, Ba Mẹ cho vay 30, tiêu hết ⇒ −30; n
   assert.deepEqual([vay.soSao, vay.sao, vay.no, vay.phutCon, vay.saoVayChuaTieu, vay.hetSao], [30, 0, 30, 30, 30, false]);
   await tx(async (t) => { await v.khoaCon(t, con); await v.ghiDiem(t, con, -30, "doi_qua", "Đổi quà"); });
   let st = await ss.trangThaiSao(con);
-  assert.deepEqual([st.sao, st.no, st.phutCon, st.hetSao], [-30, 30, 0, true]);
+  assert.deepEqual([st.sao, st.no, st.phutCon, st.hetSao], [0, 30, 0, true]);
   await lamNv(fam, con, bm, 10, "Dọn phòng");
   st = await ss.trangThaiSao(con);
-  assert.deepEqual([st.sao, st.no, st.phutCon], [-20, 20, 0], "+10 trả nợ trước, chưa cộng vào sao tiêu được");
+  assert.deepEqual([st.sao, st.no, st.phutCon], [0, 20, 0], "+10 trả nợ trước, chưa cộng vào sao tiêu được");
   await lamNv(fam, con, bm, 30, "Tưới cây");
   st = await ss.trangThaiSao(con);
   assert.deepEqual([st.sao, st.no, st.phutCon, st.hetSao], [10, 0, 10, false], "trả nốt 20, cộng 10");
@@ -72,9 +72,9 @@ test("hoàn tác duyệt nhiệm vụ đã trả nợ ⇒ nợ quay lại đúng
   const luot = await nv.batDau(con, id);
   await nv.nop(con, luot, { anh: [anhGia("doc")] });
   await nv.duyet(fam, luot, bm, {});
-  assert.deepEqual([(await ss.trangThaiSao(con)).sao, await v.noCua(con)], [-5, 5]);
+  assert.deepEqual([(await ss.trangThaiSao(con)).sao, await v.noCua(con)], [0, 5]);
   await nv.hoanTacDuyet(fam, luot, bm);
-  assert.deepEqual([(await ss.trangThaiSao(con)).sao, await v.noCua(con), await v.soDu(con)], [-15, 15, 0]);
+  assert.deepEqual([(await ss.trangThaiSao(con)).sao, await v.noCua(con), await v.soDu(con)], [0, 15, 0]);
   await v.dieuChinhTay(fam, con, 20, "Sinh nhật", bm);
   assert.deepEqual([(await ss.trangThaiSao(con)).sao, await v.noCua(con), await v.soDu(con)], [5, 0, 5]);
 });
@@ -106,7 +106,7 @@ test("cảnh báo nợ > 1.000 (#266): −990 vay 20 ⇒ −1.010 có cảnh bá
   const con = await g.taoCon(fam, { ten: "Bảo Anh" });
   await ss.choVay(fam, con, 990, bm);
   await tx(async (t) => { await v.khoaCon(t, con); await v.ghiDiem(t, con, -990, "choi", "Chơi"); });
-  assert.equal((await ss.trangThaiSao(con)).sao, -990);
+  assert.equal((await ss.trangThaiSao(con)).sao, 0);
   let xt = await ss.xemTruocVay(fam, con, 20);
   assert.deepEqual([xt.nhacNo, xt.seCanhBao, xt.noSau], [null, true, 1010], "chưa quá mốc ⇒ chưa nhắc trên bảng, nhưng vay xong sẽ cảnh báo");
   const a = await ss.choVay(fam, con, 20, bm);
@@ -203,7 +203,7 @@ test("tương thích agent cũ: Policy.quy (conPhut = sao, ngayPhut + themPhut �
   await tx(async (t) => { await v.khoaCon(t, con); await v.ghiDiem(t, con, -15, "choi", "Chơi"); });
   p = (await dv(a.token, "dong-bo", {})).body;
   assert.deepEqual([p.soDu, p.quy.conPhut, p.windows.quyConPhut, p.windows.appTinhGio, p.windows.allowedApps.includes("roblox.exe")], [0, 0, 0, [], false]);
-  assert.deepEqual([p.sao.sao, p.sao.no, p.sao.hetSao, p.sao.cau.soDu, p.sao.cau.no, p.windows.sao], [-15, 15, true, "−15 sao", "Đang nợ Ba Mẹ 15 sao · sao nhiệm vụ trả nợ trước", -15]);
+  assert.deepEqual([p.sao.sao, p.sao.no, p.sao.hetSao, p.sao.cau.soDu, p.sao.cau.no, p.windows.sao], [0, 15, true, "0 sao", "Đang nợ Ba Mẹ 15 sao · sao nhiệm vụ trả nợ trước", 0]);
 });
 
 test("API Ba Mẹ: gia-dinh có số sao từng Con (âm được); ví sao; xem trước + cho vay; báo cáo theo sao; tạo Con tặng 30 sao (chọn 0/20/30/60)", async () => {
@@ -223,9 +223,9 @@ test("API Ba Mẹ: gia-dinh có số sao từng Con (âm được); ví sao; xem
   assert.deepEqual([cv.status, cv.body.no, cv.body.sao, cv.body.phutCon], [200, 30, 30, 60]);
   await tx(async (t) => { await v.khoaCon(t, anh); await v.ghiDiem(t, anh, -60, "choi", "Chơi YouTube 60 phút"); });
   gd = (await m(tok, "gia-dinh")).body.con;
-  assert.deepEqual([gd[0].sao, gd[0].no, gd[0].hetSao], [-30, 30, true]);
+  assert.deepEqual([gd[0].sao, gd[0].no, gd[0].hetSao], [0, 30, true]);
   const vs = (await m(tok, `con/${anh}/vi-sao`)).body;
-  assert.deepEqual([vs.sao, vs.no, vs.tongVay, vs.cau.soDu, vs.lichSu[0].kieu], [-30, 30, 30, "−30 sao", "choi"]);
+  assert.deepEqual([vs.sao, vs.no, vs.tongVay, vs.cau.soDu, vs.lichSu[0].kieu], [0, 30, 30, "0 sao", "choi"]);
   const bc = (await m(tok, `con/${anh}/bao-cao?bay=1`)).body.tuanNay;
   assert.deepEqual([bc.saoKiem, bc.saoVay, bc.lanVay, bc.saoTieu, bc.saoTieuChoi, bc.ngoaiLe], [0, 30, 1, 60, 60, 1]);
   assert.equal((await m(tok, `vay/${cv.body.id}/hoan-tac`, {})).body.error, "da_tieu");

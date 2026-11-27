@@ -1,6 +1,6 @@
 // SỔ SAO (#263–#266, thiết kế chốt 15/11/2026) — vay sao, số dư âm, trả nợ trước, 1 sao = 1 phút «Tính phút», cảnh báo nợ > 1.000.
 //   • Sổ cái là `points` (lib/vi.ts): tổng delta = SAO TIÊU ĐƯỢC (≥ 0) = phút «Tính phút» còn chơi được. Nợ = tổng (vay + tra_no).
-//     Số dư Con thấy (`sao`) = sao tiêu được − nợ (âm khi nợ). Hết sao = sao tiêu được ≤ 0 (số dư ≤ 0 và không còn sao vay chưa tiêu).
+//     Số dư Con thấy (`sao`) = sao tiêu được − nợ (kẹp ≥ 0 (#745), nợ ở no). Hết sao = sao tiêu được ≤ 0 (số dư ≤ 0 và không còn sao vay chưa tiêu).
 //   • Ba Mẹ cho vay N sao (choVay): +N `vay` — Con dùng ngay (chơi N phút hoặc đổi quà). Sao kiếm được trả nợ trước (vi.ts › ghiDiem).
 //   • Chơi app / web nhóm «Tính phút» (luật giai_tri): trừ 1 sao mỗi phút dùng thật (tinhPhutChoi) — tính theo ĐỒNG HỒ MÁY CHỦ của từng Con
 //     (choi_dong_ho.phu_den): hai máy cùng chơi một lúc chỉ trừ phần thời gian thật đã trôi, không trừ đôi. Không còn quỹ phút mỗi ngày.
@@ -11,7 +11,7 @@ import { newId, one, q, tx, type Q } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
-import { ghiDiem, KIEM_SQL, khoaCon, NGUONG_NO, noCua, soDu, tomTatVi } from "./vi.ts";
+import { ghiDiem, KIEM_SQL, khoaCon, NGUONG_NO, noCua, saoKhaDung, soDu, tomTatVi } from "./vi.ts";
 
 /** Bảng «Cho vay sao» (bm them-6wjhze1d): chọn 10 / 15 / 30, mặc định 15. Máy chủ nhận 1–VAY_TOI_DA. */
 export const MUC_VAY = [10, 15, 30] as const;
@@ -29,7 +29,8 @@ export type MucDichVay = "choi" | "qua";
 export const soVN = (n: unknown) => { const x = Math.round(Number(n ?? 0)); return `${x < 0 ? "−" : ""}${Math.abs(x).toLocaleString("en-US").replace(/,/g, ".")}`; };
 
 export type TrangThaiSao = {
-  /** số dư Con thấy — âm khi đang nợ */ sao: number;
+  /** số dư Con thấy = sao tiêu được − nợ, kẹp ≥ 0 (#745) */ sao: number;
+  /** sao tiêu được − nợ (có thể âm, chỉ để báo cáo) */ saoRong?: number;
   /** nợ Ba Mẹ còn lại */ no: number;
   /** sao tiêu được ngay (= phút «Tính phút» còn chơi được) */ phutCon: number;
   /** phần sao vay Ba Mẹ cho mà Con chưa tiêu */ saoVayChuaTieu: number;
@@ -38,8 +39,8 @@ export type TrangThaiSao = {
 };
 
 function tinhTrangThai(tong: number, no0: number): TrangThaiSao {
-  const no = Math.max(0, no0), tieu = Math.max(0, tong);
-  return { sao: tong - no, no, phutCon: tieu, saoVayChuaTieu: Math.min(tieu, no), hetSao: tieu <= 0, canhBaoNo: no > NGUONG_NO };
+  const no = Math.max(0, no0), tieu = saoKhaDung(tong);
+  return { sao: Math.max(0, tieu - no), saoRong: tieu - no, no, phutCon: tieu, saoVayChuaTieu: Math.min(tieu, no), hetSao: tieu <= 0, canhBaoNo: no > NGUONG_NO };
 }
 
 export async function trangThaiSao(con: string, t: Q = q): Promise<TrangThaiSao> {
