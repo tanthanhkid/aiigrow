@@ -34,9 +34,9 @@ export function DsMucCon(p: Parameters<typeof DsMucConTrong>[0]) {
 function DsMucConTrong({ con, kieu }: { con: string; kieu: Kieu }) {
   const { d, loi, matMang, tai } = useTai(async () => {
     // «Đã bỏ qua N lời xin» đếm ĐÚNG loại của màn (app / web) — danh-sach chỉ trả tổng ⇒ đọc danh sách bỏ qua của Con
-    const [ds, xem, bq] = await Promise.all([napDanhSach(con), laChiXem(), napBoQua(con).catch(() => null)]);
-    // #752: các trang hệ thống luôn mở (Teams, Zoom, Office…) — chỉ màn Web cần, lỗi thì bỏ qua mục này
-    const heThong = kieu === "web" ? await bm.goi<ThongKeWeb>(`con/${con}/web?ngay=1`).then((w) => w.heThong ?? []).catch(() => [] as string[]) : [];
+    // #752: các trang hệ thống luôn mở (Teams, Zoom, Office…) — chỉ màn Web cần; lỗi thì ẩn mục này (không chặn màn)
+    const [ds, xem, bq, heThong] = await Promise.all([napDanhSach(con), laChiXem(), napBoQua(con).catch(() => null),
+      kieu === "web" ? bm.goi<ThongKeWeb>(`con/${con}/web?ngay=1`).then((w) => w.heThong ?? []).catch(() => [] as string[]) : Promise.resolve([] as string[])]);
     return { ds, xem, heThong, soBoQua: bq ? bq.ds.filter((x) => x.kieu === kieu).length : 0 };
   });
   const { lam, loi: loiLam, dangChay } = useLam();
@@ -77,7 +77,7 @@ function DsMucConTrong({ con, kieu }: { con: string; kieu: Kieu }) {
         <The>
           <Chu kieu="rat" co={15} mau={M.chu}>Luôn mở theo hệ thống</Chu>
           <Chu kieu="dam" co={13} mau={M.chu3} style={{ marginTop: 4 }}>
-            {`Những trang này luôn mở được trên máy của ${ten}, dù không có trong danh sách ở trên — để học online và họp lớp không bị cắt giữa chừng. Chỉ để xem, không đổi được.`}
+            {`Những trang này thường được mở trên máy của ${ten}, dù không có trong danh sách ở trên — để học online và họp lớp không bị cắt giữa chừng. Chỉ để xem, không đổi được.`}
           </Chu>
           <Chu kieu="dam" co={14} mau={M.chu2} style={{ marginTop: 8 }}>{d.heThong.join(" · ")}</Chu>
         </The>
