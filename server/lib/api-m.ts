@@ -214,8 +214,10 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (sau === "khoa" && post) { await khoaNgay(fam, id, b.khoa !== false, bm.id, hanTuBody(b.den), new Date(),
         b.hoanTac === true);
         // #738: Con chưa có máy nào ⇒ lệnh khoá không tới máy nào — app báo Ba Mẹ thay vì im lặng (`soMay` = máy nối với Con này)
-        const soMay = Number((await one<{ n: number }>(`select count(*)::int as n from devices d where d.family_id = $2 and exists (select 1 from device_children x where x.device_id = d.id and x.child_id = $1)`, [id, fam]))?.n ?? 0);
-        return json({ ok: true, soMay }); }
+        // chỉ khi khoá (mở khoá không cần); lỗi đếm không làm hỏng lệnh đã áp
+        const soMay = b.khoa === false ? undefined : await one<{ n: number }>(`select count(*)::int as n from devices d where d.family_id = $2
+            and (d.child_id = $1 or exists (select 1 from device_children x where x.device_id = d.id and x.child_id = $1))`, [id, fam]).then((r) => Number(r?.n ?? 0), () => undefined);
+        return json({ ok: true, ...(soMay === undefined ? {} : { soMay }) }); }
       if (sau === "diem" && post) return json({ soDu: await dieuChinhTay(fam, id, Number(b.delta), s(b.lyDo, 120), bm.id) });
       if (sau === "vi" && get) return json({ ...(await tomTatVi(id)), lichSu: await lichSu(id) });
       if (sau === "bao-cao" && get) return json(await baoCaoTuan(fam, id, new Date(), new URL(req.url).searchParams.get("bay") === "1"));

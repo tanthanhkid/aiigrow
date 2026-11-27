@@ -225,11 +225,12 @@ export function BangKhoaMay({ mo, dong, con, ten, may, dang, xong, caNha }: {
     if (caNha) {
       const kq = await Promise.allSettled(caNha.map((c) => datKhoa(c.id, true, den)));
       const ok = caNha.filter((_, i) => kq[i].status === "fulfilled");
+      const chuaMay = caNha.filter((_, i) => { const r = kq[i]; return r.status === "fulfilled" && r.value?.soMay === 0; });   // #738
       if (!ok.length) throw (kq[0] as PromiseRejectedResult).reason;
       dongBang();
       const hong = caNha.filter((_, i) => kq[i].status === "rejected");
       // Hoàn tác: bé đang khoá từ trước ⇒ khoá lại đúng hạn cũ; bé chưa khoá ⇒ mở
-      xong(`Đã khoá mọi máy ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${hong.map((c) => tenGoi(c.ten)).join(", ")}, thử lại` : ""}`,
+      xong(`Đã khoá mọi máy ${cauDen(han, luc)}${hong.length ? ` · chưa khoá được ${hong.map((c) => tenGoi(c.ten)).join(", ")}, thử lại` : ""}${chuaMay.length ? ` · ${chuaMay.map((c) => tenGoi(c.ten)).join(", ")} chưa ghép máy nào` : ""}`,
         async () => { await Promise.all(ok.map((c) => (c.khoa?.khoa && (!c.khoa.den || Date.parse(c.khoa.den) > Date.now())
           ? datKhoa(c.id, true, c.khoa.den ? new Date(c.khoa.den) : null) : datKhoa(c.id, false, null)))); });
       return;
