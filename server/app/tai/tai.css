@@ -29,7 +29,7 @@
 .tb-noi::before{content:"";position:absolute;left:-9px;bottom:26px;width:22px;height:22px;background:var(--the);transform:rotate(45deg);border-radius:4px;box-shadow:-3px 3px 5px -2px var(--lo)}
 .tb-noi small{display:block;font-weight:600;color:var(--chu3);margin-top:4px;font-size:inherit}
 .tb-noi small{font-size:.8em}
-.tb-tai{position:relative;overflow:hidden;isolation:isolate;display:flex;align-items:center;justify-content:center;gap:12px;width:100%;color:var(--navy);font-weight:700;text-align:center;line-height:1.2;background:var(--ngocK);box-shadow:var(--bongNgoc);border:0;cursor:pointer;
+.tb-tai{position:relative;overflow:hidden;isolation:isolate;display:flex;align-items:center;justify-content:center;gap:12px;width:100%;color:var(--navy);font-weight:700;text-align:center;line-height:1.2;white-space:nowrap;background:var(--ngocK);box-shadow:var(--bongNgoc);border:0;cursor:pointer;
   min-height:68px;border-radius:20px;font-size:18px;padding:8px 18px;font-family:inherit}
 .tb-tai svg{flex:none;fill:var(--navy)}.tb a.tb-tai{color:var(--navy)}
 .tb-nho{text-align:center;font-size:13.5px;font-weight:600;color:var(--chu3);margin-top:10px}
@@ -113,7 +113,7 @@
 }
 
 /* #775: hero chỉ chia hai cột khi đủ rộng (900–1099px trước đây ép tiêu đề xuống từng chữ, nút cắt chữ) */
-.tb-tai>span{min-width:0;overflow-wrap:anywhere}
+.tb-tai.lon{white-space:normal}.tb-tai>span{min-width:0;overflow-wrap:anywhere}
 @media (min-width:1100px){
  .tb-hero{flex-direction:row;align-items:center;gap:40px}
 }

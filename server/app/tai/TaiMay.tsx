@@ -58,11 +58,11 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
           </div>
         </div>
         {xong ? null : <div style={{ marginTop: 14 }}><NutTai tiep onClick={() => setPha("xong")}>Tôi tải xong rồi</NutTai></div>}
-        <div className="tb-dung"><span className="tb-ghi" style={{ fontSize: 13.5, color: "#2E3A50" }}>{xong ? "Chưa thấy tệp?" : "Tải bị dừng?"}</span><a className="tb-lk" href={link} onClick={(e) => { e.preventDefault(); setPha("dung"); }}>Tải lại</a></div>
+        <div className="tb-dung"><span className="tb-ghi" style={{ fontSize: 13.5, color: "#2E3A50" }}>{xong ? "Chưa tải xong?" : "Tải bị dừng?"}</span>{xong ? <button type="button" className="tb-lk" onClick={() => setPha("tai")}>Quay lại</button> : null}<a className="tb-lk" href={link} onClick={(e) => { e.preventDefault(); setPha("dung"); }}>Tải lại</a></div>
       </div>
       <ThongDiep />
       <p className="tb-tieu">Tải xong, làm theo hình:</p>
-      <ol className="tb-cac">
+      <ol className="tb-cac" id="tb-cai">
         {CHU[nen].sau.map(([ten, phu], i) => (
           <Buoc key={i} so={i + 1} lo={<HinhBuoc nen={nen} b={(i + 1) as 1 | 2 | 3} xong={i < 2 || tuGhep} ma={ma} />}
             ten={i === 2 && tuGhep ? "Bộ cài tự ghép máy" : ten}
@@ -70,7 +70,7 @@ export default function TaiMay({ duPhong, nen, link, nut, tep, ma, tuGhep, dau, 
         ))}
       </ol>
       {nen === "windows" ? <CanhBaoWin /> : null}
-      <div><NutTai tiep onClick={() => { document.querySelector(".tb-cac li:last-child")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>Bộ cài mở rồi, cài tiếp</NutTai><p className="tb-nho">{tep}</p></div>
+      <div><NutTai tiep onClick={() => { document.querySelector("#tb-cai li:last-child")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>Bộ cài mở rồi, cài tiếp</NutTai><p className="tb-nho">{tep}</p></div>
       <Khac nen={nen} hrefHe={hre} />
     </div>
   ); }

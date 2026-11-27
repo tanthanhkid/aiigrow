@@ -14,7 +14,7 @@ export default function Chao() {
     <View style={{ flex: 1, backgroundColor: M.nen, overflow: "hidden" }}>
       <NenChao>
       <SafeAreaView style={{ flex: 1, justifyContent: "flex-end" }} edges={["top", "bottom", "left", "right"]}>
-        <View style={{ paddingHorizontal: 16, paddingBottom: 24, gap: 6, width: "100%", maxWidth: 480, alignSelf: "center" }}>
+        <View style={{ paddingHorizontal: 16, paddingBottom: 24, gap: 6, ...(Platform.OS === "web" ? { width: "100%", maxWidth: 480, alignSelf: "center" as const } : null) }}>
           {Platform.OS === "web" ? (
             <Text style={{ fontFamily: F.dam, fontSize: 16, lineHeight: 23, color: M.chu, textAlign: "center", marginBottom: 12 }}>
               AiiGrow giúp Ba Mẹ đặt giờ dùng máy và xem con dùng điện thoại, máy tính ra sao, để con tập thói quen số lành mạnh.
