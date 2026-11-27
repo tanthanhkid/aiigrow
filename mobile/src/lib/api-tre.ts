@@ -52,6 +52,15 @@ export function nenMay(): "windows" | "mac" | "ios" | "android" {
   return "windows";
 }
 
+/** Trang chạy trên web bằng máy tính (không phải điện thoại / máy tính bảng): hướng dẫn ghép máy khác điện thoại (không «quét», không «vuốt ngang»). */
+export function laMayTinhWeb(): boolean {
+  if (Platform.OS !== "web") return false;
+  const nav = globalThis.navigator;
+  const ua = String(nav?.userAgent ?? "");
+  if (/android|iphone|ipad|ipod|mobile/i.test(ua)) return false;
+  return !(/macintosh/i.test(ua) && nav?.maxTouchPoints > 1);            // iPadOS giả «Macintosh» nhưng có cảm ứng (Mac thật không có)
+}
+
 /** Máy dùng chung (S3 06/11, `GET|POST /api/device/ho-so`): bé trên máy, ai đang dùng, Ba Mẹ đang dùng tới lúc nào. */
 export type HoSoBe = { id: string; ten: string; avatar: string; coPin?: boolean; khoaDen?: string; choGiay?: number; /** #267: số dư (âm khi nợ) */ sao?: number };
 export type HoSoMay = { con: HoSoBe[]; mayRieng?: boolean; /** #267 */ mayChung?: boolean; tenMay?: string; soCon?: number; motCon?: boolean; dangDung?: { id: string; ten: string } | null; baMeDung?: { den: string; tu?: string | null } | null;

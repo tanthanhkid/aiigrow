@@ -18,6 +18,7 @@ import { MaQr } from "@/lib/qr";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { BangTruot, BaoLoi, Chu, LopMen, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { bm, type GiaDinh } from "@/lib/api";
+import { laMayTinhWeb } from "@/lib/api-tre";
 import { tenGoi } from "@/lib/hang-ngay";
 import { AvtCon, CapAvt } from "@/lib/may-nhieu-con";
 
@@ -26,6 +27,7 @@ const gioPhut = (ms: number) => { const d = new Date(ms); return `${d.getHours()
 
 export default function GhepMay() {
   const p = useLocalSearchParams<{ con?: string; giong?: string; nguon?: string; moi?: string; conDs?: string; sau?: string }>();
+  const may = useMemo(() => laMayTinhWeb(), []);          // #792: trang mở trên máy tính ⇒ hướng dẫn không «quét», không «vuốt ngang»
   const sau = docSau(p.sau);
   const con = p.con ? String(p.con) : null;
   const conDsChu = p.conDs ? String(p.conDs) : "";
@@ -60,7 +62,7 @@ export default function GhepMay() {
     const t = setTimeout(() => setBay(Date.now()), Math.min(...ke) - Date.now() + 50);
     return () => clearTimeout(t);
   }, [hetLuc, moc, bay]);
-  const qr = useMemo(() => (kq ? <MaQr noiDung={kq.qr} co={150} /> : <View style={{ width: 150, height: 150 }} />), [kq]);
+  const qr = useMemo(() => (may ? null : kq ? <MaQr noiDung={kq.qr} co={150} /> : <View style={{ width: 150, height: 150 }} />), [kq, may]);
   const sangCho = useCallback(() => kq && router.push({ pathname: "/thiet-lap/cho", params: { ma: kq.ma, con: con ?? "", nguon, sau, ...(chung ? { conDs: conDsChu } : {}) } }), [kq, con, nguon, sau, chung, conDsChu]);
   // Máy mở link là tự ghép — đang ở màn này cũng chuyển thẳng sang «Đã ghép». CHỈ khi màn đang hiện: đã sang «Đang chờ» thì màn đó lo.
   useFocusEffect(useCallback(() => {
@@ -118,7 +120,7 @@ export default function GhepMay() {
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10, paddingHorizontal: 8 }}>
             {chung ? <CapAvt ds={cacBe} co={24} /> : <AvtCon c={cacBe[0]} co={24} />}
             <Chu kieu="dam7" co={12.5} mau={M.chu2} style={{ flex: 1, lineHeight: 17, textAlign: "center" }}>
-              {chung ? `Cho ${cacBe.map((x) => tenGoi(x.ten)).join(", ")} dùng chung.\nMáy con là iPhone/iPad thì chọn 1 bé khi quét.`
+              {chung ? `Cho ${cacBe.map((x) => tenGoi(x.ten)).join(", ")} dùng chung.\nMáy con là iPhone/iPad thì chọn 1 bé khi ${may ? "ghép" : "quét"}.`
                 : `Máy này cho ${ten}. Windows, Mac, Android thêm bé khác dùng chung sau được.`}
             </Chu>
           </View>
@@ -133,23 +135,25 @@ export default function GhepMay() {
       ) : null}
       <View style={{ borderRadius: 32, backgroundColor: M.chinhSoft, paddingVertical: 18, paddingHorizontal: 16, alignItems: "center", gap: 6, ...KHOI.the }}>
         <LopMen men={MEN.vien} bo={32} />
-        <Chu kieu="rat" co={15} mau={M.chinhInk} style={{ textAlign: "center" }}>Mở app AiiGrow trên máy con, quét mã này</Chu>
-        <Pressable onPress={() => kq && setQrTo(true)} accessibilityRole="button" accessibilityLabel="Mã QR ghép máy — chạm để phóng to"
-          style={{ padding: 10, borderRadius: 24, backgroundColor: M.the, ...KHOI.nho }}>
-          {qr}
-        </Pressable>
+        <Chu kieu="rat" co={15} mau={M.chinhInk} style={{ textAlign: "center" }}>{may ? "Mở app AiiGrow trên máy con, nhập mã này" : "Mở app AiiGrow trên máy con, quét mã này"}</Chu>
+        {may ? null : (
+          <Pressable onPress={() => kq && setQrTo(true)} accessibilityRole="button" accessibilityLabel="Mã QR ghép máy — chạm để phóng to"
+            style={{ padding: 10, borderRadius: 24, backgroundColor: M.the, ...KHOI.nho }}>
+            {qr}
+          </Pressable>
+        )}
         <Chu kieu="rat" co={44} so style={{ letterSpacing: 2, lineHeight: 52 }}>{kq?.maHien ?? "··· ···"}</Chu>
         <Chu kieu="dam" co={13} mau={M.chu2}>{kq && hetLuc ? `Mã dùng được ${kq.hanPhut} phút · hết hạn lúc ${gioPhut(hetLuc)}` : "Đang lấy mã…"}</Chu>
       </View>
       <View style={{ paddingHorizontal: 4 }}>
         <Chu kieu="rat" co={15}>Hoặc gửi link cho con</Chu>
-        <Chu co={12} mau={M.chu3}>Vuốt ngang để xem thêm · «Thêm…» gửi qua mọi app</Chu>
+        <Chu co={12} mau={M.chu3}>{may ? "Chọn một cách gửi link sang máy của con, hoặc «Sao chép» rồi dán" : "Vuốt ngang để xem thêm · «Thêm…» gửi qua mọi app"}</Chu>
       </View>
       {/* hàng cuộn ngang: ô ló khỏi mép là chủ ý (vuốt xem thêm) ⇒ nền phẳng, không làm thẻ clay (cổng LE-THE đo lề trong thẻ) */}
       <View style={{ borderRadius: 24, backgroundColor: M.the, paddingVertical: 10, paddingLeft: 12, overflow: "hidden" }}>
         {kq ? <HangChiaSe chiaSe={kq.chiaSe} bao={bao} daGui={sangCho} /> : <View style={{ height: 76 }} />}
       </View>
-      <BangTruot mo={qrTo} dong={() => setQrTo(false)} tieu="Quét bằng camera máy của con">
+      <BangTruot mo={qrTo && !may} dong={() => setQrTo(false)} tieu="Quét bằng camera máy của con">
         <View style={{ alignItems: "center", gap: 10 }}>
           {kq ? <MaQr noiDung={kq.qr} co={260} /> : null}
           <Chu co={14} mau={M.chu2} style={{ textAlign: "center" }}>{`Hoặc mở aiigrow.aiilab.vn/tai trên máy của ${ten} rồi nhập mã ${kq?.maHien ?? ""}`}</Chu>
