@@ -72,6 +72,7 @@ export const BAN_AGENT_MAC = {
  *  Phát bản: tăng versionCode/versionName trong agent-android/app/build.gradle.kts → assembleRelease (ky.env) → `gh release create
  *  con-android-<bản>` ở tanthanhkid/aiigrow-tai, tệp AiiGrow-Con-android.apk → điền ba giá trị dưới (sha256 của đúng tệp tải về từ Release)
  *  → sửa redirect /tai/aiigrow-con.apk trong next.config. versionCode PHẢI khớp APK (app kiểm, lệch ⇒ không cài). */
+// 0.3.8 (27/11, Android: cập nhật lỗi từ lần 2 báo Ba Mẹ cap_nhat_loi — PR #728, bản này): assembleRelease khoá aiigrow-con từ a72b4276 (main); sha256 đo trên tệp tải về từ Release con-android-0.3.8.
 // 0.3.7 (26/11, Android: ghép gói cài lùi dần + gọi máy chủ ngoài luồng #707 #708, lời xin không mất im lặng + cập nhật lỗi thoáng qua nghỉ 1 giờ #709, ghép máy gửi mã máy ổn định + mã 6 số tự thử lại #685 — PR #710 #717 #718, bản #722): assembleRelease khoá aiigrow-con từ bc470788 (main); sha256 đo trên tệp tải về từ Release con-android-0.3.7.
 // 0.3.6 (22/11, đếm tiền cảnh gia tăng + cache danh sách app #559 — PR #587 #588, bản #589): assembleRelease khoá aiigrow-con từ 64eb35a3 (trên main 1d9e52d9); sha256 đo trên tệp tải về từ Release con-android-0.3.6.
 // 0.3.5 (19/11, #459 sửa dòng «Đang dùng…» — bản #463): assembleRelease khoá aiigrow-con từ 21681eb3; sha256 đo trên tệp tải về từ Release con-android-0.3.5.
@@ -85,10 +86,10 @@ export const BAN_AGENT_MAC = {
 // 0.2.4 (05/11, quỹ phút, ngoại lệ, 2 chế độ chặn, bỏ PIN, sao — PR #185): assembleRelease khoá aiigrow-con từ commit 3a43ca0 (tag phathanh-0511-src, PR #190);
 // sha256 đo trên tệp tải về từ Release con-android-0.2.4. (0.2.3: commit 68d44f6, PR #128.)
 export const BAN_CON_ANDROID = {
-  version: "0.3.7",
-  versionCode: 16,
-  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.3.7.apk",
-  sha256: "cc07857cec280ab502c65945e80c563b3d8d5a25fc47e5ebcf95d361a3d35c2c",
+  version: "0.3.8",
+  versionCode: 17,
+  url: "https://aiigrow.aiilab.vn/tai/AiiGrow-Con-0.3.8.apk",
+  sha256: "a3a3728ebb727783167cd96015a693ed62947afff5fdf7e48b265ffee0e16909",
 } as const;
 
 /** Đổi host của URL gói sang CHÍNH máy chủ được hỏi (`origin` https — vd staging): agent Mac/Android chỉ nhận gói cùng host với máy chủ
