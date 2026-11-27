@@ -192,7 +192,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
   const nopCho = (d.cd?.nhiemVu ?? []).filter((x) => x.child_id === conId);
   const tuDong = (d.cd?.tuDong ?? []).filter((x) => x.child_id === conId);
   const xong = [
-    ...nopCho.map((x) => ({ id: x.id, ten: x.ten, ic: hinhNv(x)[0], phu: `${x.so_ghi_am ? "Ghi âm" : x.so_anh ? `${x.so_anh} ảnh` : "Đã báo xong"} · ${gioPhut(x.nop_luc)}`,
+    ...nopCho.map((x) => ({ id: x.id, ten: x.ten, ic: hinhNv(x)[0], phu: `${x.so_ghi_am ? "Ghi âm" : x.so_anh ? `${x.so_anh} ảnh` : x.ghi_chu && x.bang_chung !== "xong" ? "Con viết" : "Đã báo xong"} · ${gioPhut(x.nop_luc)}`,
       sao: x.sao ?? x.diem, den: `/duyet/${x.id}` })),
     ...tuDong.map((x) => ({ id: x.id, ten: x.ten, ic: "may_tinh" as TenIcon, phu: `Tự cộng sao · ${gioPhut(x.duyet_luc)}`, sao: x.diem, den: "/diem-qua" })),
   ];

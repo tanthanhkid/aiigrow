@@ -14,6 +14,7 @@ import { DauMan, LienKet } from "@/lib/lan-dau";
 import { TheDs } from "@/lib/lan-dau-ds";
 import { tenVoucher, type NhomThuVien, type MauQua } from "@/lib/s3";
 import { layTl } from "@/lib/thiet-lap";
+import { soNguyenGo } from "@/lib/so-nguyen";
 import { BangTruot, BaoLoi, ChoTai, Chu, F, IconNet, LopMen, M, Man, Nut, ONhap, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { dong, soCham } from "@/lib/voucher-lan-dau";
@@ -187,7 +188,7 @@ function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f
         {nhap ? (
           <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
             <View style={{ flex: 1 }}>
-              <ONhap nhan="Số sao" value={chuSao} onChangeText={(t) => setChuSao(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" placeholder="Số sao" onSubmitEditing={xongSao} autoFocus />
+              <ONhap nhan="Số sao" value={chuSao} onChangeText={(t) => setChuSao(soNguyenGo(t).slice(0, 4))} keyboardType="number-pad" placeholder="Số sao" onSubmitEditing={xongSao} autoFocus />
             </View>
             <Nut chu="Chọn" nho bam={xongSao} tat={!(parseInt(chuSao, 10) > 0)} />
           </View>

@@ -58,7 +58,7 @@ export const TEN_NEN: Record<string, string> = { windows: "Windows", mac: "Mac",
 /** «còn 25 sao = 25 phút chơi» (1 sao = 1 phút). Âm ⇒ «đang nợ 20 sao». */
 export const cauSao = (n: number) => (n < 0 ? `đang nợ ${-n} sao` : `còn ${n} sao = ${n} phút chơi`);
 /** «25 sao» / «−20 sao» (dấu trừ thật U+2212). */
-export const soSao = (n: number) => `${n < 0 ? "−" : ""}${Math.abs(n)} sao`;
+export const soSao = (n: number) => { const x = Math.round(n) || 0; return `${x < 0 ? "−" : ""}${Math.abs(x)} sao`; };   // làm tròn trước dấu: −0,4 không ra «−0 sao»
 
 /** Viên sao nhỏ (thiết kế .diem): vàng «⭐ 25 sao»; âm ⇒ viên cảnh báo «⭐ −20 sao» (nền canhSoft #F0DCC8, chữ canh #983e04). */
 export function SaoNho({ n, co = 12 }: { n: number; co?: number }) {

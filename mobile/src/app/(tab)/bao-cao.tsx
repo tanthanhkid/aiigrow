@@ -32,7 +32,8 @@ const THU_DAI = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ N�
 const gio = (p: number) => (p >= 60 ? `${Math.floor(p / 60)} giờ${p % 60 ? ` ${String(p % 60).padStart(2, "0")}` : ""}` : `${p} phút`);
 const gioNgan = (p: number) => (p >= 60 ? `${Math.floor(p / 60)}g ${String(p % 60).padStart(2, "0")}` : `${p}′`);
 const ngayNgan = (ngay: string) => `${Number(ngay.slice(8, 10))}/${Number(ngay.slice(5, 7))}`;
-const thuCua = (ngay: string) => new Date(`${ngay}T12:00:00`).getDay();
+/** Thứ của «YYYY-MM-DD» (lịch thuần, không lệch theo múi giờ máy xem). */
+const thuCua = (ngay: string) => new Date(Date.UTC(Number(ngay.slice(0, 4)), Number(ngay.slice(5, 7)) - 1, Number(ngay.slice(8, 10)))).getUTCDay();
 
 export default function TabBaoCao() {
   const g = useTai(() => bm.goi<GiaDinh>("gia-dinh"), "tab:bao-cao");
@@ -175,7 +176,7 @@ function BaoCaoCon({ id }: { id: string }) {
           <Rob ten="chi" co={58} />
           <View style={{ flex: 1, minWidth: 0 }}>
             <Chu kieu="dam7" co={14} mau={M.chinhInk} style={{ lineHeight: 20 }}>
-              {saoVay > 0 && nhieuNhat ? `${THU_DAI[thuCua(nhieuNhat.ngay)]} ${ten} chơi ${chuPhut(nhieuNhat.phut)}. 7 ngày qua chơi bằng ${soVN(saoVay)} sao vay.`
+              {saoVay > 0 && nhieuNhat ? `${nhieuNhat.ngay === homNay ? "Hôm nay" : THU_DAI[thuCua(nhieuNhat.ngay)]} ${ten} chơi ${chuPhut(nhieuNhat.phut)}. 7 ngày qua chơi bằng ${soVN(saoVay)} sao vay.`
                 : `Ngày của ${ten} còn trống.`}
             </Chu>
             <View style={{ minHeight: 32, justifyContent: "center" }}>

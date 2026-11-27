@@ -39,6 +39,7 @@ export default function BangChungLuot() {
   const anh = d.bc.filter((b) => b.loai === "anh");
   const am = d.bc.filter((b) => b.loai === "ghi_am");
   const ghiAm = am.length > 0 && !anh.length;
+  const viet = !anh.length && !am.length && !!l.ghi_chu;
   const dsKhen = ghiAm ? KHEN_AM : KHEN_ANH;
   const chon = khen ?? dsKhen[0];
   const loiKhen = chon === "tu_viet" ? tuViet.trim() : chon;
@@ -133,7 +134,7 @@ export default function BangChungLuot() {
         </>
       ) : null}
       <BangTruot mo={lamLai} dong={() => setLamLai(false)} tieu="" cuon>
-        <FormLamLai l={l} ghiAm={ghiAm} huy={() => setLamLai(false)} daGui={(nhan) => {
+        <FormLamLai l={l} ghiAm={ghiAm} viet={viet} huy={() => setLamLai(false)} daGui={(nhan) => {
           setLamLai(false);
           router.replace({ pathname: "/duyet/lam-lai", params: { id, gui: nhan, luc: new Date().toISOString() } } as never);
         }} />

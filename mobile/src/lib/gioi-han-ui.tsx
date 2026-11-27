@@ -6,6 +6,7 @@ import { Pressable, TextInput, View } from "react-native";
 import { BONG, KHOI } from "@/lib/clay";
 import { buocPhut, docPhut, GIOI_HAN_MD, KHOANG_LUOT, KHOANG_NGAY, LUOT_MD, quyRaTieng, type GioiHan } from "@/lib/gioi-han";
 import { Chu, F, IconNet, M } from "@/lib/ui";
+import { soNguyenGo } from "@/lib/so-nguyen";
 
 const XANH = M.chinhInk;
 
@@ -81,7 +82,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
   // Con cũ không giới hạn ngày: ô đã đổi sang 60 / 90 ⇒ báo màn có thay đổi chờ lưu
   useEffect(() => { if (cu0) bao(cur.current.chu, cur.current.kn); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const dat = (c: typeof chu, kn: boolean) => { cur.current = { chu: c, kn }; setChu(c); setKhongNghi(kn); bao(c, kn); };
-  const go = (k: "nt" | "ct" | "l", s: string) => dat({ ...cur.current.chu, [k]: s.replace(/\D/g, "") }, cur.current.kn);
+  const go = (k: "nt" | "ct" | "l", s: string) => dat({ ...cur.current.chu, [k]: soNguyenGo(s) }, cur.current.kn);
   const buoc = (k: "nt" | "ct" | "l", h: 1 | -1) => {
     const kh = k === "l" ? KHOANG_LUOT : KHOANG_NGAY;
     const n = buocPhut(docPhut(cur.current.chu[k], kh).phut, h, kh);
