@@ -39,9 +39,6 @@ export function quyRaTieng(n: number): string {
   return !p ? `${g} tiếng` : p === 30 ? `${g} tiếng rưỡi` : `${g} tiếng ${p} phút`;
 }
 
-/** Chưa lưu giới hạn nào (cả ba ô = 0): trang «Giờ chơi» chỉ GỢI Ý 60 / 90 / 30 — hồ sơ Con ghi «Không giới hạn» cho tới khi Ba Mẹ bấm Lưu. */
-export const chuaDatGioiHan = (c: GioiHan): boolean => !c.ngayThuong && !c.cuoiTuan && !c.moiLuot;
-
 /** Hàng «Giờ chơi» trong hồ sơ Con: «60 phút/ngày» + «mỗi lượt 30 phút». */
 export function tomTatGioiHan(c: GioiHan): { tren: string; duoi?: string } {
   const tren = !c.ngayThuong && !c.cuoiTuan ? "Không giới hạn" : c.ngayThuong === c.cuoiTuan ? `${chuPhut(c.ngayThuong)}/ngày`

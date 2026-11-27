@@ -1,7 +1,7 @@
 // node --test src/lib/gioi-han.test.ts — #302 «Giờ chơi»: giới hạn tối đa mỗi ngày + mỗi lượt tối đa (khớp server/lib/gioi-han-choi.ts).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buocPhut, chuaDatGioiHan, docPhut, dongGioiHanTre, GIOI_HAN_MD, KHOANG_LUOT, KHOANG_NGAY, quyRaTieng, thanGioiHan, tomTatGioiHan } from "./gioi-han.ts";
+import { buocPhut, docPhut, dongGioiHanTre, GIOI_HAN_MD, KHOANG_LUOT, KHOANG_NGAY, quyRaTieng, thanGioiHan, tomTatGioiHan } from "./gioi-han.ts";
 import { doiSaoKhoiDau } from "./sao-khoi-dau.ts";
 import { thanThietLap } from "./thiet-lap.ts";
 
@@ -33,9 +33,8 @@ test("Lần đầu gửi giới hạn khi Ba Mẹ đã qua bước Giờ chơi; 
   assert.deepEqual(tomTatGioiHan({ ngayThuong: 0, cuoiTuan: 0, moiLuot: 0 }), { tren: "Không giới hạn" });
 });
 
-test("hồ sơ con: chỉ «Không giới hạn» khi chưa đặt; đã lưu thì hiện đúng 60 / 90 / chơi liền 30", () => {
-  assert.equal(chuaDatGioiHan({ ngayThuong: 0, cuoiTuan: 0, moiLuot: 0 }), true);
-  assert.equal(chuaDatGioiHan(GIOI_HAN_MD), false);
+test("hồ sơ con: chỉ «Không giới hạn» khi chưa đặt (0/0); đã lưu thì hiện đúng 60 / 90 / chơi liền 30", () => {
+  assert.deepEqual(tomTatGioiHan({ ngayThuong: 0, cuoiTuan: 0, moiLuot: 0 }), { tren: "Không giới hạn" });
   assert.deepEqual(tomTatGioiHan(GIOI_HAN_MD), { tren: "Ngày thường 1 giờ · T7, CN 1 giờ 30 phút", duoi: "mỗi lượt 30 phút" });
 });
 
