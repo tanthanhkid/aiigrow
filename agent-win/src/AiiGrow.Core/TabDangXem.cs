@@ -53,10 +53,11 @@ public sealed class TabDangXem
     /// chưa quy được ⇒ giữ lại thử lần sau (trang mới chưa vào lịch sử).</summary>
     public void Chot(IEnumerable<WebVisit> visits)
     {
+        List<string> tieu;
+        lock (_khoa) { if (_giay.Count == 0) return; tieu = _giay.Keys.Select(k => k.TieuDe).Distinct().ToList(); }
+        var quy = QuyTungTieuDe(tieu, visits);   // dựng từ điển tiêu đề NGOÀI khoá — không chặn nhịp đếm giờ
         lock (_khoa)
         {
-            if (_giay.Count == 0) return;
-            var quy = QuyTungTieuDe(_giay.Keys.Select(k => k.TieuDe).Distinct(), visits);
             foreach (var k in _giay.Keys.ToList())
             {
                 if (!quy.TryGetValue(k.TieuDe, out var mien)) continue;

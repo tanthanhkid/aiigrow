@@ -42,9 +42,11 @@ public sealed class WebHistoryWorker : BackgroundService
         {
             var noiDung = System.Text.Json.JsonSerializer.Serialize(snap.Select(kv => new DongTab(kv.Key.Ngay, kv.Key.Mien, kv.Value)).ToList());
             if (noiDung == _daLuu) return;   // không đổi ⇒ khỏi ghi đĩa
-            _daLuu = noiDung;
             Directory.CreateDirectory(Paths.DataDir);
-            File.WriteAllText(TepTab, noiDung);
+            var tam = TepTab + ".tmp";
+            File.WriteAllText(tam, noiDung);
+            File.Move(tam, TepTab, true);   // ghi tệp tạm rồi đổi tên: tắt máy giữa chừng không để tệp cụt
+            _daLuu = noiDung;
         }
         catch { }
     }
