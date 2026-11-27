@@ -142,7 +142,7 @@ public sealed class PipeServer : BackgroundService
 
             case PipeCmd.Foreground:
                 // Chỉ khay thật: app khác trong phiên Con giả lời báo («không có cửa sổ») sẽ ngừng được đồng hồ phiên chơi.
-                if (fromChild && khayThat) _rt.SetForeground(req.AppId, req.AppName);
+                if (fromChild && khayThat) _rt.SetForeground(req.AppId, req.AppName, req.TieuDe);
                 return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
 
             case PipeCmd.PlayInfo:

@@ -9,7 +9,7 @@ namespace AiiGrow.Core;
 // gửi lại bao nhiêu lần cũng không cộng đôi (máy chủ lấy giá trị lớn hơn). Phần THUẦN ở đây; đọc tệp SQLite ở AiiGrow.Service.
 
 /// <summary>Một lượt ghé trang đọc từ bảng visits của trình duyệt.</summary>
-public sealed record WebVisit(string Url, DateTimeOffset Luc, double GiayO);
+public sealed record WebVisit(string Url, DateTimeOffset Luc, double GiayO, string? TieuDe = null);
 
 /// <summary>Tổng của một tên miền trong một ngày (ngày theo giờ máy).</summary>
 public sealed record WebDayDomain(string Ngay, string TenMien, int SoLan, int Giay, DateTimeOffset LanCuoi);
@@ -54,8 +54,15 @@ public static class WebHistory
     /// <summary>Mỗi lượt ghé tính tối đa ngần này giây: tab bỏ quên cả đêm không thổi phồng số liệu (xem thêm giới hạn ở README).</summary>
     public const double TranMotLuotGiay = 3 * 3600;
 
-    public static List<WebDayDomain> TongHop(IEnumerable<WebVisit> visits, string? boQuaMien = null, string? tz = null)
+    /// <param name="giayTab">#771: giây theo TAB ĐANG XEM (<see cref="TabDangXem.QuyTenMien"/>).</param>
+    /// <param name="ngayTheoDoi">Các ngày dịch vụ ĐÃ ghi tab đang xem (<see cref="TabDangXem.NgayDaGhi"/>). Ngày nằm trong đó ⇒ giây của ngày ấy lấy HẲN từ
+    /// <paramref name="giayTab"/> (visit_duration tính cả tab mở sẵn / tab nền, và chưa có cho tab đang xem; tên miền không có giây tab ⇒ 0, vẫn đếm số lần mở;
+    /// miền có giây tab mà lịch sử chưa có lượt ghé trong ngày — xem một trang liền qua nửa đêm — vẫn được thêm dòng). Ngày chưa có dữ liệu tab (khay cũ không
+    /// báo tiêu đề, dịch vụ mới cài) ⇒ giữ visit_duration như cũ, không hồi quy về 0.</param>
+    public static List<WebDayDomain> TongHop(IEnumerable<WebVisit> visits, string? boQuaMien = null, string? tz = null,
+        IReadOnlyDictionary<(string Ngay, string Mien), double>? giayTab = null, IReadOnlySet<string>? ngayTheoDoi = null)
     {
+        bool TheoTab(string ngay) => giayTab != null && ngayTheoDoi != null && ngayTheoDoi.Contains(ngay);
         var d = new Dictionary<(string Ngay, string Mien), (int Lan, double Giay, DateTimeOffset Cuoi)>();
         foreach (var v in visits)
         {
@@ -63,8 +70,15 @@ public static class WebHistory
             if (mien == null || mien == boQuaMien) continue;
             var ngay = NgayGiaDinh.Cua(tz is null ? v.Luc : v.Luc.ToLocalTime(), tz);   // #703: ngày gia đình (không có múi ⇒ như cũ)
             d.TryGetValue((ngay, mien), out var cur);
-            d[(ngay, mien)] = (cur.Lan + 1, cur.Giay + Math.Clamp(v.GiayO, 0, TranMotLuotGiay), cur.Cuoi > v.Luc ? cur.Cuoi : v.Luc);
+            d[(ngay, mien)] = (cur.Lan + 1, cur.Giay + (TheoTab(ngay) ? 0 : Math.Clamp(v.GiayO, 0, TranMotLuotGiay)), cur.Cuoi > v.Luc ? cur.Cuoi : v.Luc);
         }
+        if (giayTab != null)
+            foreach (var (k, giay) in giayTab)
+            {
+                if (k.Mien == boQuaMien || giay <= 0 || !TheoTab(k.Ngay)) continue;
+                d.TryGetValue(k, out var cu);
+                d[k] = (cu.Lan, giay, cu.Cuoi == default ? DateTimeOffset.UnixEpoch : cu.Cuoi);   // chưa có lượt ghé: lanCuoi = epoch (máy chủ bỏ qua)
+            }
         return d.Select(kv => new WebDayDomain(kv.Key.Ngay, kv.Key.Mien, kv.Value.Lan, (int)Math.Round(kv.Value.Giay), kv.Value.Cuoi))
             .OrderBy(x => x.Ngay, StringComparer.Ordinal).ThenBy(x => x.TenMien, StringComparer.Ordinal).ToList();
     }

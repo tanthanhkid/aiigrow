@@ -12,7 +12,46 @@ public sealed class WebHistoryWorker : BackgroundService
     private readonly ChromiumHistorySource _src = new();
     private string? _daGui;   // dấu vân tay lần gửi thành công cuối: không đổi ⇒ khỏi gửi lại
 
-    public WebHistoryWorker(ILogger<WebHistoryWorker> log) { _log = log; }
+    private readonly AgentRuntime? _rt;
+    private bool _daNap;
+
+    public WebHistoryWorker(ILogger<WebHistoryWorker> log, AgentRuntime? rt = null) { _log = log; _rt = rt; }
+
+    private static string TepTab => Path.Combine(Paths.DataDir, "tab-xem.json");
+
+    /// <summary>#771: sổ giây theo TÊN MIỀN giữ qua khởi động lại dịch vụ (máy chủ lấy giá trị lớn hơn nên mất sổ chỉ làm số hôm nay đứng chờ, không tăng ảo).
+    /// Tiêu đề tab KHÔNG ghi đĩa — chỉ tên miền đã quy + số giây; tiêu đề chưa quy được nằm trong RAM.</summary>
+    private void NapSo()
+    {
+        if (_daNap || _rt == null) return;
+        _daNap = true;
+        try
+        {
+            if (!File.Exists(TepTab)) return;
+            var ds = System.Text.Json.JsonSerializer.Deserialize<List<DongTab>>(File.ReadAllText(TepTab)) ?? new();
+            _rt.TabXem.Nap(ds.Select(d => new KeyValuePair<(string, string), double>((d.Ngay, d.TenMien), d.Giay)));
+        }
+        catch { /* tệp hỏng: bắt đầu lại sổ */ }
+    }
+
+    private string? _daLuu;
+
+    private void LuuSo(IReadOnlyDictionary<(string Ngay, string Mien), double> snap)
+    {
+        try
+        {
+            var noiDung = System.Text.Json.JsonSerializer.Serialize(snap.Select(kv => new DongTab(kv.Key.Ngay, kv.Key.Mien, kv.Value)).ToList());
+            if (noiDung == _daLuu) return;   // không đổi ⇒ khỏi ghi đĩa
+            Directory.CreateDirectory(Paths.DataDir);
+            var tam = TepTab + ".tmp";
+            File.WriteAllText(tam, noiDung);
+            File.Move(tam, TepTab, true);   // ghi tệp tạm rồi đổi tên: tắt máy giữa chừng không để tệp cụt
+            _daLuu = noiDung;
+        }
+        catch { }
+    }
+
+    private sealed record DongTab(string Ngay, string TenMien, double Giay);
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
@@ -35,7 +74,19 @@ public sealed class WebHistoryWorker : BackgroundService
         try { host = new Uri(ApiClient.NormalizeServer(cfg.Server)).Host; } catch { }
         var tz = PolicyParser.TryParse(cfg.LastPolicyJson, out var pol) ? pol?.Tz : null;   // #703
         NgayGiaDinh.DangKy(tz, pol?.TzPhut);
-        var ds = WebHistory.TongHop(_src.Doc(hoSo, WebHistory.MocDoc(DateTimeOffset.Now)), host is null ? null : WebDomain.GocTuHost(host), tz);
+        var visits = _src.Doc(hoSo, WebHistory.MocDoc(DateTimeOffset.Now));
+        Dictionary<(string Ngay, string Mien), double>? giayTab = null;
+        HashSet<string>? ngayTheoDoi = null;
+        if (_rt != null)
+        {
+            NapSo();
+            _rt.TabXem.DonCu(NgayGiaDinh.Cua(DateTimeOffset.Now.AddDays(-3), tz));
+            _rt.TabXem.Chot(visits);
+            giayTab = _rt.TabXem.GiayTheoMien();
+            ngayTheoDoi = _rt.TabXem.NgayDaGhi();
+            LuuSo(giayTab);
+        }
+        var ds = WebHistory.TongHop(visits, host is null ? null : WebDomain.GocTuHost(host), tz, giayTab, ngayTheoDoi);
         if (ds.Count == 0) return;
         var vt = string.Join("\n", ds.Select(x => $"{x.Ngay}|{x.TenMien}|{x.SoLan}|{x.Giay}"));
         if (vt == _daGui) return;

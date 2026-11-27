@@ -82,7 +82,7 @@ public sealed class ChromiumHistorySource
                 c.Open();
                 using var cmd = c.CreateCommand();
                 // transition & 0xFF: 3 / 4 = khung con (quảng cáo, nhúng) — không phải Con chủ động mở trang
-                cmd.CommandText = "select u.url, v.visit_time, v.visit_duration from visits v join urls u on u.id = v.url " +
+                cmd.CommandText = "select u.url, v.visit_time, v.visit_duration, u.title from visits v join urls u on u.id = v.url " +
                                   "where v.visit_time >= $tu and (v.transition & 255) not in (3, 4) order by v.visit_time";
                 cmd.Parameters.AddWithValue("$tu", ChromeTime.FromDateTimeOffset(tu));
                 using var r = cmd.ExecuteReader();
@@ -91,7 +91,7 @@ public sealed class ChromiumHistorySource
                     var url = r.IsDBNull(0) ? "" : r.GetString(0);
                     var luc = ChromeTime.ToDateTimeOffset(r.GetInt64(1)).ToLocalTime();
                     var giay = r.IsDBNull(2) ? 0 : r.GetInt64(2) / 1_000_000.0;
-                    kq.Add(new WebVisit(url, luc, giay));
+                    kq.Add(new WebVisit(url, luc, giay, r.IsDBNull(3) ? null : r.GetString(3)));
                 }
             }
             SqliteConnection.ClearAllPools();

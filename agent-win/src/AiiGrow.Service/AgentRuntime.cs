@@ -781,19 +781,29 @@ public sealed class AgentRuntime
         else if (Config != null) Config.QuyDem = qd;
     }
 
-    public void SetForeground(string? appId, string? appName)
+    public void SetForeground(string? appId, string? appName, string? tieuDe = null)
     {
         // #690: exe bí danh của app đã gộp (bản Store / bản cài) ⇒ muc chính máy chủ biết — phút, «đang chơi», phiên chơi, Tính phút cùng một app
         var goc = appId;
         if (appId != null && ExeGoi is { } eg && eg.TryGetValue(appId, out var goi)) appId = goi;   // #695: exe của gói ngoài WindowsApps
         if (appId != null && MucChinh is { } mc && mc.TryGetValue(appId, out var chinh)) appId = chinh;
-        lock (_gate) { _fgId = appId ?? ""; _fgIdGoc = goc ?? ""; _fgName = appName; _fgAt = DateTimeOffset.UtcNow; }
+        lock (_gate) { _fgId = appId ?? ""; _fgIdGoc = goc ?? ""; _fgName = appName; _fgTieuDe = tieuDe; _fgAt = DateTimeOffset.UtcNow; }
     }
 
     /// <summary>App «Tính phút» trong luật của bé đang dùng (#696: quy tiền cảnh ApplicationFrameHost không rõ app về app đang chạy).</summary>
     public IReadOnlyList<string> AppTinhGioBe()
     {
         lock (_gate) return _policy == null ? Array.Empty<string>() : PolicyChoBe().P.AppTinhGio.ToList();
+    }
+
+    private string? _fgTieuDe;
+    /// <summary>#771: tab trình duyệt đang xem — hàng đợi giây theo tiêu đề.</summary>
+    public readonly TabDangXem TabXem = new();
+
+    /// <summary>#771: (exe gốc, tiêu đề cửa sổ) tiền cảnh khay báo gần nhất.</summary>
+    public (string? Exe, string? TieuDe) GetTabTienCanh()
+    {
+        lock (_gate) return (_fgIdGoc, _fgTieuDe);
     }
 
     /// <summary>Fresh = tray còn sống (báo trong 20 giây qua).</summary>
