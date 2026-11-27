@@ -406,7 +406,7 @@ const M4 = { ...coBan["GET tuan-thu"].ds[0], id: "m4", ten: "Máy cả nhà", co
 const conMayGia = (c, o = {}) => ({ ...cn(c), coPin: true, gan: true, dangDung: false, sao: 30, phutHomNay: 0, lanCuoi: null, khoaCon: { khoa: false, den: null }, mayKhac: [], ganDuoc: true, ...o });
 const M4_CON = { may: { id: "m4", ten: "Máy cả nhà", nen: "windows", motCon: false, soCon: 2, mayChung: true, mayRieng: false }, dangDung: { ...cn("c2"), tu: luc(40), phutHomNay: 39 },
   baMeDungDen: null, khoaMay: { khoa: false, den: null }, ds: [
-    conMayGia("c1", { sao: 0, lanCuoi: luc(120), mayKhac: [{ id: "m1", ten: "Laptop của Bảo Anh · Windows 11", nen: "windows", rieng: true }, { id: "m2", ten: "iPad của Bảo Anh", nen: "ios", rieng: true }] }),
+    conMayGia("c1", { sao: 0, no: 20, lanCuoi: luc(120), mayKhac: [{ id: "m1", ten: "Laptop của Bảo Anh · Windows 11", nen: "windows", rieng: true }, { id: "m2", ten: "iPad của Bảo Anh", nen: "ios", rieng: true }] }),
     conMayGia("c2", { dangDung: true, sao: 25, phutHomNay: 39, lanCuoi: luc(40), mayKhac: [{ id: "m3", ten: "Laptop của Bill", nen: "windows", rieng: true }] })] };
 const datConM4 = (ds) => ({ ...M4_CON, may: { ...M4_CON.may, soCon: ds.length, mayChung: ds.length >= 2, mayRieng: ds.length === 1 }, ds: M4_CON.ds.map((c) => ({ ...c, gan: ds.includes(c.id) })) });
 const MAY_CHUNG = {
@@ -415,7 +415,7 @@ const MAY_CHUNG = {
   "GET may/m4/tuan-thu": { ...M4, daDongBo: true, dangGo: null, coTheXoaHan: false, moDen: null, suKien: [], tungCon: M4_CON.ds },
   "GET may/m4/con": M4_CON,
   "GET may/m2/con": { may: { id: "m2", ten: "iPad của Bảo Anh", nen: "ios", motCon: true, soCon: 1, mayChung: false, mayRieng: true }, dangDung: null, baMeDungDen: null,
-    khoaMay: { khoa: false, den: null }, ds: [conMayGia("c1", { sao: 0 }), conMayGia("c2", { gan: false, sao: 25, ganDuoc: false,
+    khoaMay: { khoa: false, den: null }, ds: [conMayGia("c1", { sao: 0, no: 20 }), conMayGia("c2", { gan: false, sao: 25, ganDuoc: false,
       lyDo: "iPhone, iPad chỉ dùng cho một bé: hệ điều hành của Apple không cho đổi người dùng trên máy. Muốn bé khác dùng, gỡ máy rồi ghép lại cho bé đó." })] },
   "POST may/m4/con": (b) => (!b?.ds?.length ? { status: 400, body: { error: "can_mot_con", message: "Máy cần ít nhất một bé. Muốn bỏ hẳn: gỡ máy." } } : { ok: true, them: [], bo: [], ...datConM4(b.ds) }),
   "POST may/m4/con/c1/bo": datConM4(["c2"]), "POST may/m4/con/c1/gan": datConM4(["c1", "c2"]),
@@ -974,7 +974,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-web", "/web/c1", "Thêm trang web cho"),
     // đúng ca bàn bm2-web: con đang xin mở một trang web (tiktok.com)
     M("bm-web (con xin web)", "/web/c1", "chưa có trong danh sách được mở", { kb: { "GET con/c1/danh-sach": dsCon("c1", KEN, { dangXin: [{ ...XIN_YT, id: "y6", loai: "mo_web", kieu: "web", muc: "tiktok.com", ten: "tiktok.com" }] }) } }),
-    M("bm-web (luôn mở theo hệ thống · #752)", "/web/c1", "teams.microsoft.com", { kb: { "GET con/c1/web": { ...coBan["GET con/c1/web"], heThong: ["classroom.google.com", "teams.microsoft.com", "zoom.us"] } } }),
+    M("bm-web (luôn mở theo hệ thống · #752)", "/web/c1", "Luôn mở theo hệ thống", { kb: { "GET con/c1/web": { ...coBan["GET con/c1/web"], heThong: ["classroom.google.com", "teams.microsoft.com", "zoom.us"] } } }),
     M("bm-web-trang", "/web/trang?con=c1&ten=youtube.com", "youtube.com có tính phút không?"),
     M("bm-web-them", "/web/them?con=c1", "Thêm web cho"),
     // đúng ca bàn them-yzl99l3y: đã gõ «tiktok.com», chạm ＋ dòng tiktok.com
@@ -2317,7 +2317,7 @@ await kichBan("Hộp thư hỗ trợ (admin): ?loc=cho ⇒ «4 chờ», «Gấp 
 const CHU_BO_SAO = [/giờ chơi hôm nay/i, /(^|[^\p{L}])quỹ(?![\p{L}])(?! phiếu)/iu, /ngoại lệ/i, /ngoài quy tắc/i, /cho thêm giờ/i];
 const chuBoSao = async () => { const t = (await chu()) ?? ""; return CHU_BO_SAO.filter((r) => r.test(t)).map(String); };
 
-await kichBan("Sổ sao · Trang chủ ví âm: viên «−20 sao» + dòng nợ, viên sao từng con, không còn quỹ / thêm giờ", async () => {
+await kichBan("Sổ sao · Trang chủ ví âm: viên «0 sao» + dòng nợ, viên sao từng con, không còn quỹ / thêm giờ", async () => {
   kb = { ...kb, ...SO_SAO };
   await di("/hom-nay");
   xet(await doi("0 sao"), "kẹp 0 sao");
@@ -2345,7 +2345,7 @@ await kichBan("Sổ sao · Cho vay (từ «Cho vay thêm» ở Cảnh báo nợ)
   xet(await choGoi((x) => x.d === "con/c1/cho-vay" && x.m === "POST" && x.body?.soSao === 30), "gửi cho-vay soSao 30");
   xet(await doi(`Đã cho ${KEN} vay 30 sao`), "màn kết quả them-3wp5ty1o");
   xet(await doi("Nợ cũ 20 + vay 30 sao"), "dòng «Nợ cũ 20 + vay 30 sao»");
-  xet(await doi("0 sao"), "viên sau vay: 0 sao");
+  xet(await doi("50 sao"), "viên nợ sau vay «50 sao» (không dấu trừ)");
   xet(!((await chu()) ?? "").includes("−50 sao"), "không còn số âm −50 sao");
   await bam("Hoàn tác");
   xet(await choGoi((x) => x.d === "vay/v1/hoan-tac" && x.m === "POST"), "Hoàn tác ⇒ vay/v1/hoan-tac");
@@ -2431,11 +2431,11 @@ await kichBan("Sổ sao · Lời xin vay: «Xin Ba Mẹ cho vay 20 sao» ⇒ Cho
   xet(!bo.length, `chi tiết không còn chữ đã bỏ ${bo.join(" ")}`);
 });
 
-await kichBan("Sổ sao · Ví sao âm: thẻ «−20 sao», vay / trả / chơi, «1 sao = 1 phút»", async () => {
+await kichBan("Sổ sao · Ví sao âm: thẻ «0 sao», vay / trả / chơi, «1 sao = 1 phút»", async () => {
   kb = { ...kb, ...SO_SAO };
   await di("/vi/c1");
   xet(await doi("0 sao"), "số dư kẹp 0");
-  xet(!((await chu()) ?? "").includes("−20"), "không còn số âm −20");
+  xet(!/Điều chỉnh\s*−/.test((await chu()) ?? ""), "thẻ số dư không còn số âm (dòng lịch sử «−20 sao» của lượt chơi là số trừ, giữ)");
   xet(await doi("Đang nợ Ba Mẹ 20 sao"), "dòng đang nợ");
   xet(await doi("vay 45"), "«Tuần này: vay 45 · đã trả 25 sao»");
   xet(await doi("1 sao = 1 phút"), "tỷ lệ 1 sao = 1 phút");

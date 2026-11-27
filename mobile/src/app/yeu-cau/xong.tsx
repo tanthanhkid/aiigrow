@@ -60,7 +60,7 @@ export default function XongYeuCau() {
     ds = <>
       {no !== null ? (
         <Dong dau ic="sao" tieu={`${p.ten} đang nợ`} phu={noTruoc ? `Nợ cũ ${soVN(noTruoc)} + vay ${soVN(phut)} sao` : `Vay ${soVN(phut)} sao`}
-          phai={<VienSao n={-no} />} />
+          phai={<VienSao n={-no} chu={`${soVN(no)} sao`} />} />
       ) : null}
       <Dong dau={no === null} ic="tin" tieu={`Đã báo ${p.ten}`} phu={baoLuc} />
     </>;

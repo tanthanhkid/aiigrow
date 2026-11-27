@@ -1,5 +1,5 @@
 // them-1016dwpz «Máy cả nhà · chi tiết» (thiết kế chốt 15/11, #267): một máy chung nhiều bé — thẻ «<bé> đang dùng» (app · phút hôm nay trên máy
-// này · sao còn = phút chơi, nút «Đổi người» — bảng them-jjrfg2hs: 3 bước đổi trên máy), «Sao của từng bé · luật đi theo bé» (số dư từng bé, âm = đang nợ), «Khoá»:
+// này · sao còn = phút chơi, nút «Đổi người» — bảng them-jjrfg2hs: 3 bước đổi trên máy), «Sao của từng bé · luật đi theo bé» (số dư từng bé, nợ hiện riêng), «Khoá»:
 // theo máy (POST may/:id/khoa — mọi bé, them-tmezw761) · theo bé (POST con/:id/khoa — mọi máy của bé, máy chung chỉ khoá phần của bé, them-sll7clha).
 // Dữ liệu: GET may/:id/con + GET tuan-thu (máy khác) + GET phien-dang (app đang mở). Mở từ thẻ sân của màn máy (bm2-may-m1).
 import { useState } from "react";
@@ -43,7 +43,7 @@ export default function MayChiTiet() {
   const khoaMay = mayDangKhoa(cm.khoaMay);
   const xong = (chu: string, hoan: () => Promise<unknown>) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); };
   const dongBe = (c: ConCuaMay, k: number) => {
-    const no = c.sao < 0;
+    const no = c.no ?? (c.sao < 0 ? -c.sao : 0);
     const phu = c.phutHomNay ? `${chuPhut(c.phutHomNay)} trên máy này hôm nay` : c.lanCuoi ? `dùng máy này lúc ${gioPhut(c.lanCuoi)}` : "chưa dùng máy này";
     return (
       <View key={c.id} style={[{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 10, paddingRight: 4 }, keDau(k)]}>
@@ -53,7 +53,7 @@ export default function MayChiTiet() {
             <Chu kieu="rat" dong={1} style={{ flex: 1 }}>{tenGoi(c.ten)}</Chu>
             <SaoNho n={c.sao} co={12.5} />
           </View>
-          {no ? <Chu kieu="dam7" co={12} mau={M.canh} style={{ lineHeight: 16 }}>{`Đang nợ Ba Mẹ ${-c.sao} sao · sao nhiệm vụ trả nợ trước`}</Chu> : null}
+          {no > 0 ? <Chu kieu="dam7" co={12} mau={M.canh} style={{ lineHeight: 16 }}>{`Đang nợ Ba Mẹ ${no} sao · sao nhiệm vụ trả nợ trước`}</Chu> : null}
           <Chu kieu="dam" co={12} mau={M.chu3} style={{ lineHeight: 16 }}>{`${c.dangDung ? "Đang dùng · " : ""}${phu}`}</Chu>
         </View>
       </View>

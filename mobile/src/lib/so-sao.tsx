@@ -44,10 +44,10 @@ export function saoTu(x: Partial<SaoCon> & { soDu?: number | null } | null | und
 export type KieuSao = "thuong" | "vay" | "am";
 export const kieuSao = (s: SaoCon): KieuSao => (s.no <= 0 ? "thuong" : s.phutCon > 0 ? "vay" : "am");
 
-/** Chữ chính: «30 sao» · «còn 10 sao = 10 phút chơi» · «−20 sao». */
+/** Chữ chính: «30 sao» · «còn 10 sao = 10 phút chơi» · «0 sao» (hết sao mà còn nợ; nợ hiện riêng ở cauNo, #745). */
 export function soChinh(s: SaoCon) {
   const k = kieuSao(s);
-  return k === "vay" ? `còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút chơi` : `${soVN(k === "thuong" ? s.sao : -s.no)} sao`;
+  return k === "vay" ? `còn ${soVN(s.phutCon)} sao = ${soVN(s.phutCon)} phút chơi` : `${soVN(k === "thuong" ? s.sao : 0)} sao`;
 }
 /** Dòng nợ: «Đang nợ Ba Mẹ 20 sao» (còn sao vay) / «… · sao nhiệm vụ trả nợ trước» (tiêu hết). Không nợ ⇒ null. */
 export function cauNo(s: SaoCon) {
@@ -55,7 +55,7 @@ export function cauNo(s: SaoCon) {
   return k === "thuong" ? null : `Đang nợ Ba Mẹ ${soVN(s.no)} sao${k === "am" ? " · sao nhiệm vụ trả nợ trước" : ""}`;
 }
 /** Chữ viên nhỏ (dải avatar, danh sách): số dư Con thấy — còn sao vay chưa tiêu thì hiện số sao tiêu được. */
-export const chuVien = (s: SaoCon) => `${soVN(kieuSao(s) === "vay" ? s.phutCon : kieuSao(s) === "am" ? -s.no : s.sao)} sao`;
+export const chuVien = (s: SaoCon) => `${soVN(kieuSao(s) === "vay" ? s.phutCon : kieuSao(s) === "am" ? 0 : s.sao)} sao`;
 
 const VANG = { nen: M.diemSoft, chu: M.diemInk }, CANH = { nen: M.canhSoft, chu: M.canh };
 export const MAU_NO = CANH;
