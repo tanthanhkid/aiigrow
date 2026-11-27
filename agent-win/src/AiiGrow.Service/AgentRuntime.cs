@@ -766,8 +766,9 @@ public sealed class AgentRuntime
                 else _quyGiay += seconds;
             }
             _quyChoGhi += seconds;
-            if (_nhipPhut.Cong(seconds)) RequestSyncSoon();   // #744: mỗi phút tròn «Tính phút» ⇒ đẩy phút lên máy chủ ngay (khoá _gate vào lại được)
             if (_quyChoGhi >= 60) LuuQuy();
+            // #744: mỗi phút tròn «Tính phút» của bé đang theo Policy ⇒ đẩy phút lên máy chủ ngay (sau LuuQuy; bé khác / mở bằng mã không tính)
+            if (!khac && _nhipPhut.Cong(seconds)) RequestSyncSoon();
         }
     }
 
