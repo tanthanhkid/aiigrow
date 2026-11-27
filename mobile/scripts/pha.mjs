@@ -801,10 +801,10 @@ if (process.argv.includes("--giao-dien")) {
     M("cn giong (nhà ≥3 con · them-5t1kazz5)", "/thiet-lap/giong?con=c2&nguon=them", "dùng luật giống ai?", { kb: NGUON_3 }),
     M("bm-may-them", "/may/them?con=c1", "Máy mới"),
     // Hằng ngày (bm-hang-ngay — L2, L3, L12)
-    M("bm-trang", "/hom-nay", "Khoá máy"),
+    M("bm-trang", "/hom-nay", "Khoá mọi máy"),
     M("bm-trang (trống)", "/hom-nay", "Chưa có con nào", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] } } }),
     M("bm-trang (mất mạng)", "/hom-nay", "Đang chờ mạng", { matMang: true }),
-    M("bm-trang (bảng khoá máy)", "/hom-nay", "Thôi, để con chơi tiếp", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy"); } }),
+    M("bm-trang (bảng khoá máy)", "/hom-nay", "Thôi, để con chơi tiếp", { truoc: async () => { await di("/hom-nay"); await doi("Khoá mọi máy"); await bam("Khoá mọi máy"); } }),
     // #421: Hôm nay bỏ nút «Cho vay sao» thường trực — bảng cho vay mở từ «Cho vay thêm» ở màn Cảnh báo nợ sao
     M("bm-trang (bảng cho vay sao)", "/canh-bao/a9", "Sao nhiệm vụ của con sẽ trả nợ trước", { kb: CO_CANH_NO, truoc: async () => { await di("/canh-bao/a9"); await doi("Cho vay thêm"); await bam("Cho vay thêm"); } }),
     M("bm-trang (bảng cho vay · nợ > 200)", "/canh-bao/a9", "Chỉ nhắc thôi", { kb: NO_LON, truoc: async () => { await di("/canh-bao/a9"); await doi("Cho vay thêm"); await bam("Cho vay thêm"); } }),
@@ -819,10 +819,10 @@ if (process.argv.includes("--giao-dien")) {
     // #325 khớp bàn bm-hang-ngay (bm2-trang-chu@v35, them-1mnk3mjz@v11, them-cjrbm5gj@v1, them-rz77kk45@v4, them-c4ldnqj8@v4, them-y5iwt1fv@v8, them-lsf4eews@v8)
     M("bm-trang (đã dùng gì hôm nay)", "/hom-nay", "đã dùng gì hôm nay", { kb: { ...SO_SAO, ...HN_C1, "GET cho-duyet": CHO_DUYET_Y5() } }),
     M("bm-trang (máy con mất mạng)", "/hom-nay", "Lấy mã mở máy", { kb: MAT_MANG_C1 }),
-    M("bm-trang (bảng khoá máy · bé thứ 2)", "/hom-nay", "Thôi, để con chơi tiếp", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy");
+    M("bm-trang (bảng khoá máy · bé thứ 2)", "/hom-nay", "Thôi, để con chơi tiếp", { truoc: async () => { await di("/hom-nay"); await doi("Khoá mọi máy");
       // bé thứ 2 trong dải avatar (lượt chữ dài đổi tên ⇒ chọn theo vị trí)
       await nhanChuot(await viTriYen(`() => document.querySelectorAll('[role="tab"]')[1]`));
-      await doi("Khoá máy"); await sleep(600); await bam("Khoá máy"); } }),
+      await doi("Khoá mọi máy"); await sleep(600); await bam("Khoá mọi máy"); } }),
     M("bm-ma-offline", "/may/m1/ma-offline", "không cần mạng", { kb: MAT_MANG_C1 }),
     M("bm-canh-bao (Grow bị tắt)", "/canh-bao/a5", "Ba Mẹ tắt đấy, bỏ qua", { kb: CANH_MAY }),
     M("bm-canh-bao (mất liên lạc > 1 ngày)", "/canh-bao/a6", "Thường do", { kb: CANH_MAY }),
@@ -857,7 +857,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-may-doi-nguoi (jjrfg2hs)", "/may/m4/chi-tiet", "Phút của bé trước dừng ngay", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4/chi-tiet"); await doi("Đổi người"); await bam("Đổi người"); } }),
     M("bm-may-ghep (máy chung 2 bé)", "/thiet-lap/ghep?con=c1&conDs=c1,c2&nguon=them", "Ghép máy chung · 2 bé"),
     M("bm-may-moi (máy chung đã ghép)", "/thiet-lap/da-ghep?con=c1&may=m4&nguon=them", "Luật đi theo bé đang dùng", { kb: MAY_CHUNG }),
-    M("bm-trang (bảng khoá máy · bỏ chọn iPad)", "/hom-nay", "Khoá máy tới", { truoc: async () => { await di("/hom-nay"); await doi("Khoá máy"); await bam("Khoá máy");
+    M("bm-trang (bảng khoá máy · bỏ chọn iPad)", "/hom-nay", "Khoá máy tới", { truoc: async () => { await di("/hom-nay"); await doi("Khoá mọi máy"); await bam("Khoá mọi máy");
       await doi("Khoá bao lâu?"); // bamChon định nghĩa sau khối cổng ⇒ bấm trực tiếp bằng viTriYen + nhanChuot
       await nhanChuot(await viTriYen(`() => document.querySelector('[role="checkbox"][aria-label="Khoá iPad"]')`)); } }),
     M("bm-ho-so-xoa", "/ho-so/c1/xoa", "Xoá rồi không lấy lại được."),
@@ -1129,7 +1129,7 @@ const choGoi = async (dk, ms = 6000) => { for (let t = 0; t < ms; t += 100) { if
 const coChon = async (chon, ms = 6000) => { for (let t = 0; t < ms; t += 250) { if (await js(`!!document.querySelector(${JSON.stringify(chon)})`)) return true; await sleep(250); } return false; };
 
 // ---- khối A (fork A): kịch bản luồng nhóm A theo thiết kế chốt 05/11 (cần bamChon / choGoi / coChon định nghĩa TRƯỚC khối này)
-const HOM_NAY_TAI = "Khoá máy";     // thẻ đầu Trang chủ «Hôm nay» (#421: số sao + một nút «Khoá máy» rộng hết thẻ)
+const HOM_NAY_TAI = "Khoá mọi máy";     // thẻ đầu Trang chủ «Hôm nay» (#421: số sao + một nút «Khoá máy» rộng hết thẻ)
 
 await kichBan("Đăng ký bằng số điện thoại → mã 6 số → vào bước 1 thiết lập (tên con)", async () => {
   await dangKyToiOtp();
@@ -1401,7 +1401,7 @@ const bamDau = async (txt) => {
 
 await kichBan("Hôm nay ⇒ «Khoá máy con» mở bảng «Khoá máy <Con>?» liệt kê máy + «Khoá bao lâu?» ⇒ khoá ⇒ báo + Hoàn tác mở lại (thiết kế 14/11 bm-hang-ngay/05)", async () => {
   await di("/hom-nay");
-  await doi("Khoá máy"); await bam("Khoá máy");
+  await doi("Khoá mọi máy"); await bam("Khoá mọi máy");
   xet(await doi(`Khoá máy ${KEN}?`), "mở bảng «Khoá máy <Con>?»");
   xet(await doi("Máy riêng · chưa mở"), "bảng liệt kê máy + trạng thái (máy tắt: «Máy riêng · chưa mở» — bàn them-cjrbm5gj)");
   xet(await doi("Khoá bao lâu?"), "chọn khoá bao lâu");
@@ -1437,7 +1437,7 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   xet(await doi(`Duyệt · ${KEN} nhận 10 sao`), "việc vừa làm xong mở THẲNG màn bằng chứng (nút duyệt nói rõ số sao)");
   // Bill: lời xin vay (máy cũ them_gio 15 phút = vay 15 sao) là mục gấp nhất
   await di("/hom-nay");
-  await doi("Khoá máy");
+  await doi("Khoá mọi máy");
   await bam(BILL);
   xet(await doi("Xin Ba Mẹ cho vay 15 sao"), "chọn Bill ⇒ lời xin vay có tiêu đề rõ số sao");
   xet(await doi("«Con đang xây dở nhà»"), "hiện lời nhắn của con");
@@ -1449,7 +1449,7 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   await bam("Hoàn tác");
   xet(await choGoi((x) => x.d === "vay/g2/hoan-tac"), "Hoàn tác ⇒ gọi vay/:grant/hoan-tac");
   await di("/hom-nay");
-  await doi("Khoá máy");
+  await doi("Khoá mọi máy");
   await bam(BILL);
   await doi("Xin Ba Mẹ cho vay 15 sao");
   nhatKy.length = 0;
@@ -1460,7 +1460,7 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   kb["GET cho-duyet"] = { ...coBan["GET cho-duyet"], yeuCau: coBan["GET cho-duyet"].yeuCau.filter((y) => y.id === "y3") };
   kb["GET canh-bao"] = { ds: [] };   // #727: Trang chủ hiện ĐỦ mục «Cần Ba Mẹ để ý» — cảnh báo mẫu của Bill (có chữ «ngoại lệ») không thuộc ca này
   await di("/hom-nay");
-  await doi("Khoá máy");
+  await doi("Khoá mọi máy");
   await bam(BILL);
   xet(await doi("Xin Ba Mẹ cho vay 30 sao"), "lời xin ngoại lệ cũ hiện thành xin vay 30 sao");
   xet(!(await chu()).includes("ngoại lệ"), "không còn chữ «ngoại lệ»");
@@ -1480,11 +1480,11 @@ await kichBan("Hôm nay #727: số ở tiêu đề «Cần Ba Mẹ để ý» do
 
 await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm được + cuộn được (TestFlight build 10: Trang chủ đứng)", async () => {
   await di("/hom-nay");
-  xet(await doi("Khoá máy"), "Hôm nay đã tải");
+  xet(await doi("Khoá mọi máy"), "Hôm nay đã tải");
   // màn đang mở = chữ đặc trưng của tab nằm trong khung nhìn (màn tab khác vẫn gắn nhưng trượt ra ngoài / ẩn)
   // (lỗi gốc chỉ có ở bản native — react-native-screens + native driver; web không tái hiện được, kịch bản này giữ hành vi đổi tab ở web.)
   const tab = (t) => `[role="tab"][aria-label^="${t}"]`;
-  const DAU = { "Hôm nay": "Khoá máy", "Việc & quà": "Việc mỗi ngày", "Báo cáo": "Sao kiếm, sao vay", "Cả nhà": "Người lớn trông con" };
+  const DAU = { "Hôm nay": "Khoá mọi máy", "Việc & quà": "Việc mỗi ngày", "Báo cáo": "Sao kiếm, sao vay", "Cả nhà": "Người lớn trông con" };
   const dangMo = async (t) => { for (const het = Date.now() + 5000; Date.now() < het;) {
     if (await js(`[...document.querySelectorAll("div,span")].some((e) => e.innerText?.trim().startsWith(${JSON.stringify(DAU[t])}) && e.children.length <= 1 && (() => { const b = e.getBoundingClientRect();
       return b.width > 0 && b.left >= 0 && b.right <= innerWidth + 1 && b.top < innerHeight && b.bottom > 0 && document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2) !== null && e.contains(document.elementFromPoint(b.x + b.width / 2, Math.min(b.y + b.height / 2, innerHeight - 1))); })())`)) return true;
@@ -1504,7 +1504,7 @@ await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm đư
   if (chipKen) await nhanChuot(chipKen);
   await doi("Xin Ba Mẹ cho vay 20 sao");
   const khung = `(() => [...document.querySelectorAll("div")].filter((e) => e.scrollHeight > e.clientHeight + 40 && /(auto|scroll)/.test(getComputedStyle(e).overflowY)
-    && e.innerText.includes("Khoá máy") && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().left > -5 && e.getBoundingClientRect().left < 5).pop())()`;
+    && e.innerText.includes("Khoá mọi máy") && e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().left > -5 && e.getBoundingClientRect().left < 5).pop())()`;
   await js(`${khung}?.scrollTo(0, 0)`); await sleep(200);
   const dau = await js(`${khung}?.scrollTop ?? -1`);
   await goi("Input.dispatchMouseEvent", { type: "mouseWheel", x: 195, y: 420, deltaX: 0, deltaY: 500 });
@@ -1552,7 +1552,7 @@ await kichBan("Hôm nay: thẻ số sao (145 sao, không nợ) + một nút «Kh
   xet(/\d+\/\d+ việc\s*Đã làm/.test(await chu()) && (await chu()).includes("Đã chơi"), "#509: hai ô số «Đã chơi» + «x/y việc · Đã làm» (Bàn bm2-trang-chu v44)");
   xet((await chu()).includes("đã dùng gì hôm nay"), "mục «<Con> đã dùng gì hôm nay» (bàn bm2-trang-chu@v35 — thay chip «Roblox · Laptop»)");
   { const cu = await chuCu(); xet(!cu.length, `không còn chữ cũ (${cu.join(", ")})`); }
-  xet(await doi("Khoá máy"), "thẻ hero có nút «Khoá máy»");
+  xet(await doi("Khoá mọi máy"), "thẻ hero có nút «Khoá máy»");
   xet(!(await chu()).includes("Cho vay sao"), "#421: thẻ hero không còn nút «Cho vay sao»");
   // app mới chưa xếp: chỉ hiện khi là mục gấp nhất (N8 — «Cần Ba Mẹ để ý» chỉ 1 mục)
   kb["GET tuan-thu"] = { ds: coBan["GET tuan-thu"].ds.map((m) => ({ ...m, baoVe: "day_du", baoVeThieu: [] })) };
@@ -2234,7 +2234,7 @@ await kichBan("#267 Khoá theo máy (Máy cả nhà: mọi bé «Sẽ khoá», m
   await di("/may/m4/chi-tiet");
   xet(await doi("Sao của từng bé"), "màn «Máy cả nhà · chi tiết»");
   xet(await doi("Đang nợ Ba Mẹ 20 sao"), "bé nợ hiện «Đang nợ Ba Mẹ 20 sao»");
-  await bam("Khoá Bill");
+  await bam("Khoá Bill mọi máy");
   xet(await doi("Khoá theo bé: Bill"), "bảng khoá theo bé");
   nhatKy.length = 0;
   xet(await bamDauCo("Khoá Bill tới "), "nút «Khoá Bill tới HH:MM»");
@@ -2244,7 +2244,7 @@ await kichBan("#267 Khoá theo máy (Máy cả nhà: mọi bé «Sẽ khoá», m
 // ---------------------------------------------------------------- PR #253 nối app (docs/API.md «Khớp thiết kế 14/11 — phần máy chủ còn lệch»)
 await kichBan("Khoá máy <Con>? bỏ chọn iPad ⇒ khoá RIÊNG Laptop (may/m1/khoa, không khoá theo Con) ⇒ Hoàn tác mở đúng máy đó", async () => {
   await di("/hom-nay");
-  await doi("Khoá máy"); await bam("Khoá máy");
+  await doi("Khoá mọi máy"); await bam("Khoá mọi máy");
   xet(await doi("Khoá bao lâu?"), "mở bảng «Khoá máy <Con>?»");
   xet(await bamChon('[role="checkbox"][aria-label="Khoá iPad"]'), "bỏ chọn iPad");
   await bamChon('[role="radio"][aria-label^="1 giờ"]');
@@ -2272,6 +2272,15 @@ await kichBan("Màn máy: «Khoá Laptop ngay» ⇒ bảng them-tmezw761 (máy k
   await bam("Mở khoá Laptop");
   xet(await choGoi((x) => x.d === "may/m1/khoa" && x.body?.khoa === false), "mở khoá riêng Laptop");
   xet(await doi("Đã mở khoá Laptop"), "báo đã mở khoá");
+});
+
+await kichBan("#772 Khoá THEO BÉ hiện ở trang máy: «<bé> đang bị khoá · mọi máy» + «Mở khoá <bé>» ⇒ con/c1/khoa {khoa:false}", async () => {
+  kb = { ...kb, "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], khoaBe: [{ id: "c1", ten: KEN, den: luc(-60) }] } };
+  await di("/may/m1");
+  xet(await doi("đang bị khoá · mọi máy"), "trang máy hiện khoá theo bé");
+  nhatKy.length = 0;
+  await bamDauCo("Mở khoá ");
+  xet(await choGoi((x) => x.d === "con/c1/khoa" && x.m === "POST" && x.body?.khoa === false), "mở khoá theo bé");
 });
 
 await kichBan("Xoá hồ sơ Con ⇒ con/c1/xoa {xacNhan:true} ⇒ máy thành dùng chung ⇒ «Máy của Bill» gắn lại (gan-con)", async () => {

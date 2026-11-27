@@ -122,7 +122,7 @@ export default function MayChiTiet() {
         {theKhoa("may_tinh", "Theo máy", `${gan.length >= 2 ? `Cả ${gan.length} bé` : gan[0] ? tenGoi(gan[0].ten) : "Bé"} không vào được ${tenNgan}. Máy riêng vẫn dùng.`,
           <Nut chu="Khoá máy này" nho rong tat={khoaMay || !gan.length} bam={() => setMo("may")} />)}
         {theKhoa("nguoi", "Theo bé", be ? `${tenBe} không vào được mọi máy.${gan.length >= 2 ? ` ${gan.filter((c) => c.id !== be.id).map((c) => tenGoi(c.ten)).join(", ")} vẫn dùng.` : ""}` : "Chưa có bé dùng máy này.",
-          <Nut chu={be ? `Khoá ${tenBe}` : "Khoá bé"} nho rong loai="vien" tat={!be} bam={() => setMo("be")} />)}
+          <Nut chu={be ? `Khoá ${tenBe} mọi máy` : "Khoá bé mọi máy"} nho rong loai="vien" tat={!be} bam={() => setMo("be")} />)}
       </View>
       {gan.length >= 2 ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginHorizontal: 4 }}>

@@ -80,3 +80,34 @@ test("Con chưa ghép máy nào: khoá vẫn lưu nhưng trả soMay 0 để app
   assert.deepEqual([k.status, k.body.ok, k.body.soMay], [200, true, 0]);
   assert.equal((await m(`con/${con}`, { tok })).body.khoaNgay, true);
 });
+
+// #772 — khoá THEO BÉ hiện ở trang máy: khoaBe + nhật ký máy có «khoa_ngay» / «mo_lai» của bé trên máy; mở khoá theo bé mở máy.
+test("trang máy: khoaBe + nhật ký khoá/mở khoá theo bé (mốc giờ truyền vào)", async () => {
+  const { dsTuanThu, chiTietTuanThu } = await import("./tuan-thu.ts");
+  const { fam, bm } = await taoNha("Mẹ D");
+  const con = await g.taoCon(fam, { ten: "Bé D" });
+  const khac = await g.taoCon(fam, { ten: "Bé E" });
+  const tok = await taoPhien(bm);
+  const may = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop D");
+  const t0 = new Date();
+  const den = new Date(t0.getTime() + 60 * 60_000).toISOString();
+  await m(`con/${con}/khoa`, { tok, body: { khoa: true, den } });
+  await m(`con/${khac}/khoa`, { tok, body: { khoa: true } });   // bé khác không dùng máy này
+  const ds = await dsTuanThu(fam, t0);
+  const mm = ds.find((x) => x.id === may.deviceId)!;
+  assert.deepEqual(mm.khoaBe.map((b) => [b.id, b.den]), [[con, den]]);
+  assert.equal(ds.find((x) => x.id === may.deviceId)!.khoaMay.khoa, false, "khoá theo bé không giả làm khoá theo máy");
+  const ct = await chiTietTuanThu(fam, may.deviceId, t0);
+  assert.deepEqual((ct.suKien as { loai: string }[]).map((x) => x.loai), ["khoa_ngay"], "nhật ký máy chỉ có khoá của bé trên máy");
+  assert.equal((await dv("dong-bo", { tok: may.token, body: {} })).body.windows.locked, true);
+  await m(`con/${con}/khoa`, { tok, body: { khoa: false } });
+  assert.deepEqual((await dsTuanThu(fam, new Date())).find((x) => x.id === may.deviceId)!.khoaBe, []);
+  assert.deepEqual(((await chiTietTuanThu(fam, may.deviceId, new Date())).suKien as { loai: string }[]).map((x) => x.loai), ["mo_lai", "khoa_ngay"]);
+  assert.equal((await dv("dong-bo", { tok: may.token, body: {} })).body.windows.locked, false);
+  // khoá theo MÁY độc lập: khoá máy rồi mở khoá ⇒ trạng thái theo mốc giờ truyền vào
+  assert.equal((await m(`may/${may.deviceId}/khoa`, { tok, body: { khoa: true, den: new Date(t0.getTime() + 15 * 60_000).toISOString() } })).status, 200);
+  const hai = (now: Date) => dsTuanThu(fam, now).then((d) => d.find((x) => x.id === may.deviceId)!.khoaMay.khoa);
+  assert.deepEqual([await hai(t0), await hai(new Date(t0.getTime() + 16 * 60_000))], [true, false]);
+  assert.equal((await m(`may/${may.deviceId}/khoa`, { tok, body: { khoa: false } })).status, 200);
+  assert.equal(await hai(t0), false);
+});

@@ -165,7 +165,7 @@ export type TuanThuMay = {
   coTheXoaHan: boolean;
   /** #267 (docs/API.md): khoá theo máy · Con nối với máy (≥ 2 = máy chung, 0 = chờ Ba Mẹ gán) · bé đang dùng (máy riêng = Con của máy) ·
    *  số Con · iPhone/iPad chỉ một Con · Ba Mẹ đang dùng máy tới. Máy chủ cũ không gửi ⇒ suy từ con / dungChung (lib/may-nhieu-con). */
-  khoaMay?: { khoa: boolean; den: string | null }; conDs?: { id: string; ten: string; avatar: string }[];
+  khoaMay?: { khoa: boolean; den: string | null }; /** #772: bé trên máy đang bị khoá THEO BÉ (mọi máy của bé) */ khoaBe?: { id: string; ten: string; den: string | null }[]; conDs?: { id: string; ten: string; avatar: string }[];
   dangDung?: { id: string; ten: string; avatar: string; tu?: string | null } | null; soCon?: number; motCon?: boolean; baMeDungDen?: string | null;
 };
 export type CheDoMay = "giam-sat" | "chan";
