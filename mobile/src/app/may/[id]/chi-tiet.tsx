@@ -17,6 +17,9 @@ import { BangTruot, BaoLoi, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, useHoanTa
 import { chuPhut } from "@/lib/chu-phut";
 
 
+/** Nợ của một bé: máy chủ gửi `no`; máy chủ cũ chỉ gửi sao âm ⇒ suy từ đó (#745). */
+const noCua = (c: { sao: number; no?: number }) => c.no ?? (c.sao < 0 ? -c.sao : 0);
+
 export default function MayChiTiet() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
@@ -43,7 +46,7 @@ export default function MayChiTiet() {
   const khoaMay = mayDangKhoa(cm.khoaMay);
   const xong = (chu: string, hoan: () => Promise<unknown>) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); };
   const dongBe = (c: ConCuaMay, k: number) => {
-    const no = c.no ?? (c.sao < 0 ? -c.sao : 0);
+    const no = noCua(c);
     const phu = c.phutHomNay ? `${chuPhut(c.phutHomNay)} trên máy này hôm nay` : c.lanCuoi ? `dùng máy này lúc ${gioPhut(c.lanCuoi)}` : "chưa dùng máy này";
     return (
       <View key={c.id} style={[{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 10, paddingRight: 4 }, keDau(k)]}>
@@ -91,8 +94,8 @@ export default function MayChiTiet() {
               <Chu kieu="dam7" co={12} mau={M.chu2}>hôm nay trên máy này</Chu>
             </View>
             <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: M.the, ...KHOI.heroNho }}>
-              <Chu kieu="rat" co={20} so mau={dangDung.sao < 0 ? M.canh : M.diemInk} style={{ lineHeight: 24 }}>{`${dangDung.sao < 0 ? "−" : ""}${Math.abs(dangDung.sao)} sao`}</Chu>
-              <Chu kieu="dam7" co={12} mau={M.chu2}>{dangDung.sao < 0 ? "đang nợ Ba Mẹ" : `còn = ${dangDung.sao} phút chơi`}</Chu>
+              <Chu kieu="rat" co={20} so mau={noCua(dangDung) > 0 && dangDung.sao <= 0 ? M.canh : M.diemInk} style={{ lineHeight: 24 }}>{`${Math.max(0, dangDung.sao)} sao`}</Chu>
+              <Chu kieu="dam7" co={12} mau={M.chu2}>{noCua(dangDung) > 0 && dangDung.sao <= 0 ? "đang nợ Ba Mẹ" : `còn = ${Math.max(0, dangDung.sao)} phút chơi`}</Chu>
             </View>
           </View>
         ) : null}
