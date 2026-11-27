@@ -1,4 +1,4 @@
-// «Ba Mẹ nhập mã» + «Ba Mẹ đang dùng» (con-dt-khac 11–12, PIN 06/11 — L13/L19): Ba Mẹ mở app AiiGrow → «Mã mở máy» 6 số (đổi sau 10 phút,
+// «Ba Mẹ nhập mã» + «Ba Mẹ đang dùng» (con-dt-khac 11–12, PIN 06/11 — L13/L19): Ba Mẹ mở app AiiGrow → «Mã mở máy» 6 số (đổi mỗi 5 phút,
 // mang sẵn 15 / 30 / 60 phút) → gõ trên máy con ⇒ `POST /api/device/ba-me-mo {ma}` → máy mở hết cho Ba Mẹ, KHÔNG trừ giờ của con, tới `den`.
 // «Khoá lại» (`khoa-lai`) hoặc hết giờ ⇒ máy về màn chọn tên. Mỗi mã một lượt (409 `ma_da_dung`); sai 5 lần ⇒ chờ 10 phút.
 import { useEffect, useRef, useState } from "react";
@@ -81,7 +81,7 @@ export default function BaMe() {
       </TheD>
       <View style={{ gap: 8 }}>
         <O6 gia={ma} loi={!!loi && !ma} />
-        <ChuD kieu="rat" co={13.5} mau={D.chu2} giua>{cho > 0 ? `Sai nhiều lần — chờ ${mmss(cho)} rồi thử lại` : "Mã 6 số · đổi sau 10 phút"}</ChuD>
+        <ChuD kieu="rat" co={13.5} mau={D.chu2} giua>{cho > 0 ? `Sai nhiều lần — chờ ${mmss(cho)} rồi thử lại` : "Mã 6 số · đổi mỗi 5 phút"}</ChuD>
       </View>
       <LoiD loi={loi} />
       <BanPhim go={(k) => { if (ma.length >= 6) return; const v = ma + k; setMa(v); if (v.length === 6 && cho === 0) mo(v); }}

@@ -566,7 +566,7 @@ internal sealed partial class LockForm
         return the;
     }
 
-    /// <summary>06 «Ba Mẹ nhập mã» — khiên 110, 6 ô (64×78), «Mã 6 số · đổi sau 10 phút · gõ bằng bàn phím», «Mở máy cho Ba Mẹ».</summary>
+    /// <summary>06 «Ba Mẹ nhập mã» — khiên 110, 6 ô (64×78), «Mã 6 số · đổi mỗi 5 phút · gõ bằng bàn phím», «Mở máy cho Ba Mẹ».</summary>
     private Control TheBaMe()
     {
         var (the, w) = The(600);

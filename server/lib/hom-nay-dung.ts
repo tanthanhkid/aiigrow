@@ -57,15 +57,17 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
   const tenMay = new Map(may.map((m) => [m.id, m]));
   const matMang = new Set(mm.map((m) => m.mayId));
   const dangMo = new Set(phien.map((p) => chuanMuc(p.muc)));
-  const luatCua = (muc: string) => {
+  const luatCua = (muc: string, kieu: "app" | "web" = "app") => {
     const m = chuanMuc(muc);
-    return luat.filter((l) => m === l.muc || m.endsWith(`.${l.muc}`) || m === mucGop(l.muc)).sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
+    // #813: nhật ký web gộp theo tên miền gốc (wikipedia.org) còn Ba Mẹ thêm luật cho tên miền con (vi.wikipedia.org) ⇒ luật con cũng xếp đúng nhóm tên miền gốc
+    return luat.filter((l) => m === l.muc || m.endsWith(`.${l.muc}`) || m === mucGop(l.muc) || (kieu === "web" && l.muc.endsWith(`.${m}`))).sort((a, b) => (+laCon(a) - +laCon(b)) || b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];   // luật khớp thẳng / tên miền cha thắng luật tên miền con
+    function laCon(l: { muc: string }) { return kieu === "web" && l.muc !== m && l.muc.endsWith(`.${m}`); }
   };
   // gộp theo app / trang (một app dùng ở 2 máy ⇒ một dòng, máy = máy dùng nhiều nhất, giờ = lần đầu sớm nhất)
   const gop = new Map<string, DongDung & { _phutMay: number }>();
   const them = (kieu: "app" | "web", muc0: string, mayId: string, phut: number, dau: Date | null, loaiUsage: string | null) => {
     const muc = kieu === "app" ? mucGop(chuanMuc(muc0)) : chuanMuc(muc0);   // #659: tên trùng (OneDrive / Microsoft OneDrive…) về một mục
-    const l = luatCua(muc);
+    const l = luatCua(muc, kieu);
     const k = `${kieu}:${muc}`;
     const m = tenMay.get(mayId);
     const x = gop.get(k);

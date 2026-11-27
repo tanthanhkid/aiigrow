@@ -100,9 +100,9 @@ test("voucher: hạn dùng + số ngày còn", () => {
 
 test("mã mở máy: tách số, câu đổi sau, lời gửi", () => {
   assert.deepEqual(chiaMa("731 594"), ["7", "3", "1", "5", "9", "4"]);
-  assert.equal(cauDoiSau(212), "Mã đổi sau 4 phút");
-  assert.equal(cauDoiSau(40), "Mã đổi sau 40 giây");
-  assert.equal(cauDoiSau(-3), "Mã đổi sau 0 giây");
+  assert.equal(cauDoiSau(212), "Mã đổi mỗi 5 phút · còn 4 phút");
+  assert.equal(cauDoiSau(40), "Mã đổi mỗi 5 phút · còn 40 giây");
+  assert.equal(cauDoiSau(-3), "Mã đổi mỗi 5 phút · còn 0 giây");
   assert.equal(loiGuiMa("731594", 30, "Bảo Anh", "Laptop"), "Mã mở Laptop cho Bảo Anh: 731 594 — mở được 30 phút. Máy không cần mạng vẫn nhập được.");
 });
 

@@ -188,7 +188,7 @@ export default function AnToanMay() {
           {["windows", "mac", "android"].includes(m.nen) ? <HangViec ic="laptop" mau="lam" tieu="Ứng dụng trên máy này" phu="App đã cài thật trên máy — thêm vào danh sách"
             bam={() => router.push({ pathname: "/ung-dung/[may]", params: { may: id } })} /> : null}
         </>}
-        {coMaOff(m) ? <HangViec ic="mo_khoa" mau="xanh" tieu="Mã mở máy khi mất mạng" phu={d.ct?.may.find((x) => x.id === id)?.matMang ? "Máy đang mất mạng · lấy mã cho con" : "Mã 6 số, máy không cần mạng"}
+        {coMaOff(m) ? <HangViec ic="mo_khoa" mau="xanh" tieu="Mã mở máy" phu={d.ct?.may.find((x) => x.id === id)?.matMang ? "Máy đang mất mạng · lấy mã cho con" : "Mã 6 số, máy không cần mạng"}
           bam={() => router.push({ pathname: "/may/[id]/ma-offline", params: { id } })} /> : null}
       </TheDs>
     </>
