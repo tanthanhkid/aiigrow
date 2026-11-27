@@ -12,6 +12,9 @@ export function denCua(han: Han, now = new Date()): Date | null {
   return han === "15" ? new Date(now.getTime() + 15 * 60_000) : han === "60" ? new Date(now.getTime() + 3600_000) : null;   // «sang» do máy chủ tính theo múi giờ gia đình
 }
 
+/** #738: Con chưa có máy nào ⇒ lệnh khoá chưa tới máy nào — báo rõ (máy chủ trả `soMay`; máy chủ cũ không có ⇒ không nói gì). */
+export const cauChuaCoMay = (soMay: number | undefined, ten: string) => (soMay === 0 ? ` · ${ten} chưa ghép máy nào nên chưa có máy bị khoá` : "");
+
 /** Khoá còn hiệu lực theo hạn: không hạn = tới khi mở; hạn đã qua = hết khoá. */
 export const conHan = (den: string | null | undefined, now = new Date()) => !den || Date.parse(den) > now.getTime();
 
@@ -25,7 +28,7 @@ export function cauMoTam(moTamDen: string | null | undefined, khoaDen?: string |
 /** Gọi API khoá (có hạn hoặc không) / mở lại. «sang» để máy chủ tính 6:30 theo múi giờ gia đình (Ba Mẹ ở nước ngoài vẫn đúng giờ Con).
  *  `hoanTac`: Hoàn tác «Mở lại máy» — máy chủ bật lại đúng khoá đang lưu (hạn + mốc mở tạm), không dựa dữ liệu màn (Ba Mẹ khác có thể vừa đổi). */
 export async function datKhoa(con: string, khoa: boolean, den: Date | "sang" | null, hoanTac = false) {
-  await bm.goi(`con/${con}/khoa`, { ...thanKhoaMay(khoa, den), ...(khoa && hoanTac ? { hoanTac } : {}) });
+  return bm.goi<{ ok: boolean; soMay?: number }>(`con/${con}/khoa`, { ...thanKhoaMay(khoa, den), ...(khoa && hoanTac ? { hoanTac } : {}) });
 }
 
 /** «Mở lại máy» (trang chủ + Giờ dùng máy). Hoàn tác = máy chủ bật lại khoá đang lưu (hạn đã qua thì tự hết); lỗi thì báo. */
@@ -61,9 +64,9 @@ export function BangKhoa({ mo, dong, con, ten, xong }: {
       <BaoLoi loi={loi} />
       <Nut chu="Khoá ngay" ic="khoa" loai="huy" rong dangChay={dangChay} bam={() => lam(async () => {
         const den = han === "sang" ? "sang" : denCua(han);
-        await datKhoa(con, true, den);
+        const kq = await datKhoa(con, true, den);
         dong();
-        xong(`Đã khoá máy của ${ten}${den === "sang" ? " tới 6:30 sáng" : den ? ` tới ${gioPhut(den)}` : ""}`, () => datKhoa(con, false, null));
+        xong(`Đã khoá máy của ${ten}${den === "sang" ? " tới 6:30 sáng" : den ? ` tới ${gioPhut(den)}` : ""}${cauChuaCoMay(kq?.soMay, ten)}`, async () => { await datKhoa(con, false, null); });
       })} />
     </BangTruot>
   );
