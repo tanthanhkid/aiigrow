@@ -14,10 +14,12 @@ public sealed class TrangChanWeb
 
     /// <summary>Tiêu đề cửa sổ trình duyệt ⇒ tên miền bị chặn khớp (theo danh sách <paramref name="webChan"/>), không khớp ⇒ null.
     /// Chỉ nhận tiêu đề CÓ DẠNG ĐỊA CHỈ (không dấu cách), nên tab «Hướng dẫn youtube.com» của trang khác không bị nhầm.</summary>
-    public static string? TimMien(string? tieuDe, IEnumerable<string>? webChan)
+    public static string? TimMien(string? tieuDe, IEnumerable<string>? webChan, IEnumerable<string>? webCho = null)
     {
         if (webChan == null) return null;
         var s = TabDangXem.ChuanHoa(tieuDe).ToLowerInvariant();
+        var gach = s.IndexOf(" - ", StringComparison.Ordinal);   // «địa chỉ - Tên hồ sơ» (đuôi hồ sơ đứng trước tên trình duyệt)
+        if (gach > 0) s = s[..gach];
         s = Regex.Replace(s, @"^[a-z][a-z0-9+.-]*://", "");
         var cat = s.IndexOfAny(new[] { '/', '?', '#' });
         if (cat >= 0) s = s[..cat];
@@ -27,7 +29,9 @@ public sealed class TrangChanWeb
         {
             var m = (raw ?? "").Trim().ToLowerInvariant().TrimStart('*', '.');
             if (m.Length == 0 || !m.Contains('.')) continue;
-            if (s == m || s.EndsWith("." + m, StringComparison.Ordinal)) return m;
+            if (s != m && !s.EndsWith("." + m, StringComparison.Ordinal)) continue;
+            if (webCho != null && webCho.Any(c => { var k = (c ?? "").Trim().ToLowerInvariant().TrimStart('*', '.'); return k.Length > 0 && (s == k || s.EndsWith("." + k, StringComparison.Ordinal)); })) return null;   // Ba Mẹ đã cho trang này
+            return m;
         }
         return null;
     }

@@ -38,3 +38,13 @@ public class TrangChanWebTests
         Assert.True(t.NenHien("youtube.com", T.AddSeconds(TrangChanWeb.NghiGiay + 1)));
     }
 }
+
+public class TrangChanWebMoRongTests
+{
+    [Fact]
+    public void DuoiHoSo_VaTrangDuocCho()
+    {
+        Assert.Equal("youtube.com", TrangChanWeb.TimMien("www.youtube.com - Cá nhân - Microsoft Edge", new[] { "youtube.com" }));
+        Assert.Null(TrangChanWeb.TimMien("classroom.youtube.com", new[] { "youtube.com" }, new[] { "classroom.youtube.com" }));
+    }
+}

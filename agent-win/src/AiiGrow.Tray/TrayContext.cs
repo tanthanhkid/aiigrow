@@ -993,10 +993,10 @@ internal sealed class TrayContext : ApplicationContext
     private void HandleTrangChan()
     {
         if (_state.Locked || _state.MoCoi) return;
-        var mien = TrangChanWeb.TimMien(_tieuDeTab, _state.WebChan);
-        if (mien == null || !_trangChan.NenHien(mien, DateTimeOffset.Now)) return;
-        if (_blocked is { IsDisposed: false }) return;
-        var daXin = _daXin.Contains(mien);
+        var mien = TrangChanWeb.TimMien(_tieuDeTab, _state.WebChan, _state.WebCho);
+        if (mien == null || _blocked is { IsDisposed: false } || _daXin.Contains(mien)) return;   // hộp khác đang mở / đã xin Ba Mẹ trong phiên khay ⇒ không lặp
+        if (!_trangChan.NenHien(mien, DateTimeOffset.Now)) return;
+        var daXin = false;
         _blocked = new BlockedForm(mien, mien, boiBaMe: true, _state.Offline, web: true, daXin: daXin);
         _blocked.VeHomNay += () => OpenApp(MucApp.HomNay);
         _blocked.NhanBaMe += () => OpenApp(MucApp.TinNhan);
