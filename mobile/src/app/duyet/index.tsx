@@ -16,7 +16,7 @@ import { BaoLoi, CanhGiua, ChoTai, Chu, gioPhut, Icon, Icon3D, M, Man, NhanMen, 
 const KHEN_LOAT = "Giỏi lắm con!";
 
 /** «Ảnh trước & sau» / «Ghi âm con đọc» / «Bấm Xong» — dòng mô tả cách nộp. */
-const cauNop = (x: LuotChoMoi) => (x.so_ghi_am ? "Ghi âm con đọc" : x.so_anh > 1 ? "Ảnh trước & sau" : x.so_anh ? "Ảnh con chụp" : `Con ${cachBao(x.bang_chung)}`);
+const cauNop = (x: LuotChoMoi) => (x.so_ghi_am ? "Ghi âm con đọc" : x.so_anh > 1 ? "Ảnh trước & sau" : x.so_anh ? "Ảnh con chụp" : x.ghi_chu ? "Con viết bài" : `Con ${cachBao(x.bang_chung)}`);
 const laGhiAm = (x: LuotChoMoi) => !!x.so_ghi_am || x.bang_chung === "ghi_am";
 
 export default function DuyetDs() {

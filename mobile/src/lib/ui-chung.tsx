@@ -8,6 +8,7 @@ import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "./clay";
 import { saoTu, VienSao } from "./so-sao";
 import { DaiCon } from "./ui-viec";
+import { soNguyenGo } from "./so-nguyen";
 import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Nut, ONhap, Rob, type LinhVat, type TenIcon } from "./ui";
 
 /** Chip sao dưới tên bé: «⭐ 35 sao» vàng; nợ ⇒ «−20 sao» chữ đỏ #A2412C trên chip lõm kem (vẽ ở so-sao › VienSao). `n` = số sao (âm = nợ) hoặc `s` = trạng thái đầy đủ. */
@@ -97,7 +98,7 @@ export function ChipMuc({ muc, gia, doi, donVi = "sao", toiDa = 999, nhanTuChon 
       {nhap ? (
         <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
           <View style={{ flex: 1 }}>
-            <ONhap nhan={`Số ${donVi}`} value={chu} onChangeText={(t) => setChu(t.replace(/\D/g, "").slice(0, 4))} keyboardType="number-pad" placeholder={`Số ${donVi}`} onSubmitEditing={xong} autoFocus />
+            <ONhap nhan={`Số ${donVi}`} value={chu} onChangeText={(t) => setChu(soNguyenGo(t).slice(0, 4))} keyboardType="number-pad" placeholder={`Số ${donVi}`} onSubmitEditing={xong} autoFocus />
           </View>
           <Nut chu="Chọn" nho bam={xong} tat={!(parseInt(chu, 10) > 0)} />
         </View>

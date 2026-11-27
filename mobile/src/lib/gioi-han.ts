@@ -2,6 +2,7 @@
 // Hàm thuần (node --test) dùng chung cho màn Lần đầu (thiet-lap/gio) và «Giờ chơi» trong hồ sơ Con (ho-so/[id]/gio-choi).
 // Cùng luật với máy chủ (server/lib/gioi-han-choi.ts): 0 = không giới hạn; ngày 10–720 phút; lượt 5–240 phút; nghỉ = đúng số phút một lượt.
 import { chuPhut } from "./chu-phut.ts";
+import { soNguyenGo } from "./so-nguyen.ts";
 
 /** Giá trị gửi / nhận máy chủ (phút; 0 = không giới hạn). */
 export type GioiHan = { ngayThuong: number; cuoiTuan: number; moiLuot: number };
@@ -18,7 +19,7 @@ export const LUOT_MD = 30;
 /** Ô số phút: chuỗi Ba Mẹ gõ ⇒ số phút hoặc lỗi. `batBuoc` (ô ngày — bàn v21 không có «không giới hạn»): trống / 0 là lỗi; không thì trống / 0 = không giới hạn (ô lượt). */
 export function docPhut(chu: string, k: { min: number; max: number }, batBuoc = false): { phut: number; loi: string | null } {
   const loiKhoang = `Từ ${k.min} đến ${k.max} phút`;
-  const s = chu.replace(/\D/g, "");
+  const s = soNguyenGo(chu);
   if (!s || Number(s) === 0) return { phut: 0, loi: batBuoc ? loiKhoang : null };
   const n = Number(s);
   if (n < k.min || n > k.max) return { phut: n, loi: loiKhoang };

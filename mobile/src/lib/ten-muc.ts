@@ -3,6 +3,7 @@
 
 /** App phổ biến (khớp bảng máy chủ server/lib/ten-app.ts phần hay gặp ở máy Con). Khoá: chữ thường, không «.exe». */
 const BIET: Record<string, string> = {
+  mmc: "Microsoft Management Console", regedit: "Registry Editor", conhost: "Console Windows", wt: "Windows Terminal", pwsh: "PowerShell",
   "khong-ro": "Chưa rõ app nào",   // #813: khớp server/lib/ten-app.ts
   msedge: "Microsoft Edge", chrome: "Google Chrome", firefox: "Firefox", brave: "Brave", coccoc: "Cốc Cốc", opera: "Opera",
   roblox: "Roblox", robloxplayerbeta: "Roblox", robloxplayerlauncher: "Roblox", robloxplayer: "Roblox", minecraft: "Minecraft", minecraftlauncher: "Minecraft", javaw: "Java (thường là Minecraft)",

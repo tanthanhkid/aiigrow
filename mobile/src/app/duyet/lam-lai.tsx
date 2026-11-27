@@ -12,15 +12,15 @@ export default function NhoLamLai() {
   const { d, loi, matMang, tai } = useTai(async () => {
     const [l, bc] = await Promise.all([bm.goi<LuotLamLai>(`luot/${id}`), bm.goi<{ ds: Pick<BangChung, "loai">[] }>(`luot/${id}/bang-chung`).catch(() => ({ ds: [] }))]);
     const vi = await bm.goi<{ soDu: number; sao?: number }>(`con/${l.child_id}/vi`).catch(() => null);
-    return { l, ghiAm: bc.ds.some((b) => b.loai === "ghi_am") && !bc.ds.some((b) => b.loai === "anh"), sao: vi ? (vi.sao ?? vi.soDu) : null };
+    return { l, ghiAm: bc.ds.some((b) => b.loai === "ghi_am") && !bc.ds.some((b) => b.loai === "anh"), viet: !bc.ds.length && !!l.ghi_chu, sao: vi ? (vi.sao ?? vi.soDu) : null };
   });
   const [daGui, setDaGui] = useState<{ nhan: string; luc: Date } | null>(gui !== undefined ? { nhan: gui, luc: luc ? new Date(luc) : new Date() } : null);
   if (!d) return <Man lui={{ chu: "Bằng chứng" }} tieu="Nhờ làm lại"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
   const l = d.l;
-  if (daGui) return <KetQuaLamLai tenCon={l.ten_con} con={l.child_id} ghiAm={d.ghiAm} nhan={daGui.nhan} luc={daGui.luc} sao={d.sao} />;
+  if (daGui) return <KetQuaLamLai tenCon={l.ten_con} con={l.child_id} ghiAm={d.ghiAm} viet={d.viet} nhan={daGui.nhan} luc={daGui.luc} sao={d.sao} />;
   return (
     <Man lui={{ chu: "Bằng chứng" }} tieu={l.ten}>
-      <FormLamLai l={l} ghiAm={d.ghiAm} daGui={(nhan) => setDaGui({ nhan, luc: new Date() })} huy={() => router.back()} />
+      <FormLamLai l={l} ghiAm={d.ghiAm} viet={d.viet} daGui={(nhan) => setDaGui({ nhan, luc: new Date() })} huy={() => router.back()} />
     </Man>
   );
 }

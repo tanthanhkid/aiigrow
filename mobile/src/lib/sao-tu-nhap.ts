@@ -1,5 +1,6 @@
 // Ô «Hoặc tự nhập số sao» dùng chung (#302): giao-nv/tu-dat, giao-nv/sua, thiet-lap/qua. Rỗng = dùng chip; xoá ô thì không còn giá trị ẩn.
 import { useState } from "react";
+import { soNguyenGo } from "./so-nguyen";
 
 export function useSaoTu(toiDa: number) {
   const [chu, setChu] = useState("");
@@ -9,7 +10,7 @@ export function useSaoTu(toiDa: number) {
   const loi = thieu || (so !== null && (!Number.isInteger(so) || so < 1 || so > toiDa));
   return {
     chu, so, loi, toiDa, mo, setMo, thieu, maxLength: String(toiDa).length,
-    nhap: (t: string) => setChu(t.replace(/\D/g, "").slice(0, String(toiDa).length)),
+    nhap: (t: string) => setChu(soNguyenGo(t).slice(0, String(toiDa).length)),
     xoa: () => setChu(""),
     /** số sao dùng: ô tự nhập hợp lệ thắng chip */
     dung: (chip: number) => (so !== null && !loi ? so : chip),
