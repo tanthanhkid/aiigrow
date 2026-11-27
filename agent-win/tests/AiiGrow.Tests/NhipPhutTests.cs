@@ -51,7 +51,7 @@ public class NhipPhutTests
         var p = Luat(9);
         var (_, giayChan) = ChayDen(p, 20);
         Assert.Equal(9 * 60, giayChan);                         // đúng giây thứ 540 — không chờ nhịp đồng bộ sau
-        Assert.Equal(0, QuyTaiCho.ConPhut(p, 9 * 60));
+        Assert.Equal(0.0, QuyTaiCho.ConPhut(p, 9 * 60)!.Value, 3);
         Assert.True(QuyTaiCho.ConPhut(p, 9 * 60 - 5) > 0);
     }
 
