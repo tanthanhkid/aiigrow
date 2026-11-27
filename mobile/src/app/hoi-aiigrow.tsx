@@ -31,7 +31,7 @@ export default function HoiAiiGrow() {
         <OIcon ic="tin" co={52} nen={M.chinhSoft} />
         <View style={{ flex: 1, minWidth: 0 }}>
           <Chu kieu="rat" co={17}>Nhắn tin AiiGrow</Chu>
-          <Chu kieu="dam" co={13} mau={M.chu3}>Hỏi gì cũng được, có người trả lời</Chu>
+          <Chu kieu="dam" co={13} mau={M.chu3}>Hỏi gì cũng được, trả lời qua tin nhắn</Chu>
         </View>
         <Icon ten="phai" mau={M.chinhInk} co={18} />
       </NhanMen>
