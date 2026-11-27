@@ -1456,6 +1456,7 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   xet(await doi("Đã không cho lần này"), "màn kết quả «Đã không cho lần này»");
   // lời xin ngoại lệ cũ (YouTube 30 phút) = xin vay 30 sao — không còn «ngoại lệ»
   kb["GET cho-duyet"] = { ...coBan["GET cho-duyet"], yeuCau: coBan["GET cho-duyet"].yeuCau.filter((y) => y.id === "y3") };
+  kb["GET canh-bao"] = { ds: [] };   // #727: Trang chủ hiện ĐỦ mục «Cần Ba Mẹ để ý» — cảnh báo mẫu của Bill (có chữ «ngoại lệ») không thuộc ca này
   await di("/hom-nay");
   await doi("Khoá máy");
   await bam(BILL);
