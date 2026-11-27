@@ -500,15 +500,20 @@ public static class DanhSachApp
         return kq.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
+    private static readonly HashSet<string> VanChung = new(StringComparer.OrdinalIgnoreCase) { "Google", "Microsoft", "Mozilla", "JetBrains", "Packages" };
+
     private static string? GocCai(string exe)
     {
         var segs = exe[3..].Split('\\', StringSplitOptions.RemoveEmptyEntries);
         if (segs.Length < 2) return null;
-        if (segs.Length >= 6 && segs[0].Equals("Users", StringComparison.OrdinalIgnoreCase) && segs[2].Equals("AppData", StringComparison.OrdinalIgnoreCase)
+        if (segs.Length >= 4 && segs[0].Equals("Users", StringComparison.OrdinalIgnoreCase) && segs[2].Equals("AppData", StringComparison.OrdinalIgnoreCase)
             && (segs[3].Equals("Local", StringComparison.OrdinalIgnoreCase) || segs[3].Equals("Roaming", StringComparison.OrdinalIgnoreCase) || segs[3].Equals("LocalLow", StringComparison.OrdinalIgnoreCase)))
         {
-            var i = segs[4].Equals("Programs", StringComparison.OrdinalIgnoreCase) ? 5 : 4;
+            var i = segs.Length > 4 && segs[4].Equals("Programs", StringComparison.OrdinalIgnoreCase) ? 5 : 4;
+            // thư mục nhà phát hành chung (Google\Chrome, Microsoft\Teams…): lấy thêm một tầng, không tin cả thư mục hãng
+            if (segs.Length > i + 1 && VanChung.Contains(segs[i])) i++;
             if (segs.Length > i + 1) return exe[..3] + string.Join("\\", segs.Take(i + 1));
+            return null;   // exe nằm ngay trong AppData\Local|Roaming|Programs: không biến cả thư mục đó thành «thư mục cài»
         }
         return exe[..exe.LastIndexOf('\\')];
     }

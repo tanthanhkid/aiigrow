@@ -294,6 +294,9 @@ public static class ProcessGuard
             || ProgramFiles.IsMatch(exePath.Replace('/', '\\')));   // wordpad (Windows NT\Accessories), pwsh (PowerShell\7) — Program Files chỉ quản trị ghi
     }
 
+    /// <summary>Chữ ổ hệ thống (nơi %PROGRAMFILES% trỏ tới).</summary>
+    public static readonly char OSDrive = char.ToUpperInvariant((Environment.GetEnvironmentVariable("SystemDrive") is { Length: > 0 } sd ? sd : "C:")[0]);
+
     private static readonly System.Text.RegularExpressions.Regex ChoCaiTinCay = new(@"^[A-Za-z]:\\(Program Files( \(x86\))?\\|WindowsApps\\)",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
@@ -305,7 +308,8 @@ public static class ProcessGuard
         var p = exePath.Replace('/', '\\');
         if (p.Length < 4 || p[1] != ':' || p[2] != '\\' || p.IndexOf(':', 2) >= 0) return false;
         if (TenGoiStore(p) != null) return true;
-        if (ChoCaiTinCay.IsMatch(p)) return true;
+        // chỉ ổ hệ thống: ở ổ khác Con tạo được thư mục «Program Files» / «WindowsApps» (ổ D: ghi được) ⇒ chỉ tin thư mục cài đã quét
+        if (ChoCaiTinCay.IsMatch(p) && char.ToUpperInvariant(p[0]) == OSDrive) return true;
         if (winDir != null && TrongWindows(DirName(p), winDir)) return TrongWindowsChiQuanTri(p, winDir);
         if (LaChoConThaTep(p, winDir)) return false;
         if (thuMucDaCai != null)

@@ -416,7 +416,7 @@ public sealed class AgentWorker : BackgroundService
 
     private void EnforceChanApp(int sessionId, Policy p, bool apThat)
     {
-        var ds = ChanAppThat.Enforce(_procs, sessionId, GoiNgoaiWindowsApps.LuatChan(ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), _rt.GoiNgoai), dryRun: !apThat, bam: BamTepCache.Chung.BamNen, khongBamDuoc: BamTepCache.Chung.KhongBamDuoc,
+        var ds = ChanAppThat.Enforce(_procs, sessionId, GoiNgoaiWindowsApps.LuatChan(ChanAppThat.MoRongBiDanh(p.BlockedApps, _rt.BiDanhMuc), _rt.GoiNgoai), dryRun: !apThat, bam: BamTepCache.Chung.BamNen,
             khongDong: (exe, muc) => BaoKhongDong(exe, "Ba Mẹ đã Chặn, luật " + muc));
         var tap = string.Join(",", ds.Select(x => x.Exe).Distinct().OrderBy(x => x, StringComparer.Ordinal));
         var ghi = tap != _chanDaBao;

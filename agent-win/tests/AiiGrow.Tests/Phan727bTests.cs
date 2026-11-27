@@ -28,7 +28,7 @@ public class Phan727bTests
     [InlineData(@"C:\Program Files (x86)\Discord\Discord.exe")]
     [InlineData(@"C:\Users\Con\AppData\Local\Discord\app-1.0.9\Discord.exe")]    // thư mục cài đã quét
     [InlineData(@"D:\Games\Foo\bin\Discord.exe")]
-    [InlineData(@"D:\WindowsApps\Foo\Discord.exe")]
+    [InlineData(@"D:\Games\Foo\Sub\Discord.exe")]
     public void TheoTen_ChoTinCay_DuocChay(string path)
         => Assert.False(ProcessGuard.ShouldClose(path, Tap("discord.exe"), NoDirs, Safe, Win, tenDaCai: Tap("discord.exe"), thuMucDaCai: DaCai));
 
@@ -78,19 +78,28 @@ public class Phan727bTests
     }
 
     [Fact]
-    public void BamLoiHoacQuaLon_VanKhopTheoTen_ChiKhiDaThuBam()
+    public void BamLoi_TenKhongChung_VanKhop_TenChungKhongChanNham()
     {
-        var luat = new List<AppBiChan> { new() { Muc = "game.exe", DuongDan = @"D:\Games\Foo\game.exe", Sha256 = new string('a', 64) } };
-        // game đổi tên chỗ khác, tên gốc giữ: băm không đọc được ⇒ khớp theo tên (trước đây bỏ qua)
-        Assert.NotNull(ChanAppThat.Khop(@"C:\Users\Con\Desktop\game.exe", luat, _ => null, _ => true));
-        // «chưa băm xong» (lần đầu) khác «băm không được»
-        Assert.Null(ChanAppThat.Khop(@"C:\Users\Con\Desktop\game.exe", luat, _ => null, null));   // tên chung + chưa chắc băm lỗi ⇒ không chặn nhầm
-        // app hợp lệ ở Program Files cùng tên chung không bị chặn nhầm khi luật chỉ có băm
+        var luat = new List<AppBiChan> { new() { Muc = "foo.exe", DuongDan = @"D:\Games\Foo\foo.exe", Sha256 = new string('a', 64) } };
+        Assert.NotNull(ChanAppThat.Khop(@"C:\Users\Con\Desktop\foo.exe", luat, _ => null));   // băm lỗi / quá lớn: vẫn khớp theo tên
         var chung = new List<AppBiChan> { new() { Muc = "setup.exe", Sha256 = new string('b', 64), DuongDan = @"D:\X\setup.exe" } };
-        Assert.Null(ChanAppThat.Khop(@"C:\Program Files\Foo\setup.exe", chung, _ => null, _ => true));
-        Assert.NotNull(ChanAppThat.Khop(@"C:\Users\Con\Desktop\setup.exe", chung, _ => null, _ => true));
-        Assert.Null(ChanAppThat.Khop(@"C:\Users\Con\Desktop\setup.exe", chung, _ => null, _ => false));
+        Assert.Null(ChanAppThat.Khop(@"C:\Users\Con\Desktop\setup.exe", chung, _ => null));   // tên chung không chặn theo tên
     }
+
+    [Fact]
+    public void ThuMucDaCai_ExeNgayTrongAppData_KhongThanhThuMucCai()
+    {
+        var ds = DanhSachApp.ChuanHoa(new[]
+        {
+            new AppThat { Khoa = "a", Muc = "foo.exe", Ten = "Foo", Nguon = "registry", DuongDan = @"C:\Users\Con\AppData\Roaming\foo.exe" },
+            new AppThat { Khoa = "b", Muc = "bar.exe", Ten = "Bar", Nguon = "registry", DuongDan = @"C:\Users\Con\AppData\Local\Programs\bar.exe" },
+        });
+        Assert.Empty(DanhSachApp.ThuMucDaCai(ds, Win));
+    }
+
+    [Fact]
+    public void ThuMucProgramFilesODiaKhac_KhongTinTheoRegex()
+        => Assert.True(ProcessGuard.ShouldClose(@"D:\Program Files\x\discord.exe", Tap("discord.exe"), NoDirs, Safe, Win, tenDaCai: Tap(), thuMucDaCai: DaCai));
 
     [Fact]
     public async Task Xin409_LaDaCoSan_KhongBaoChuaToiBaMe()

@@ -373,7 +373,6 @@ internal sealed class TrayContext : ApplicationContext
         }
     }
 
-    /// <summary>Lời xin vay còn chờ sau khi Con đóng hộp: hỏi dịch vụ mỗi 15 giây, có kết quả thì bật màn (them-fsif1cbl / them-zo8kohea).</summary>
     private DateTimeOffset _xinAwHoiLuc;
     private int _xinAwDangHoi;
     private readonly Dictionary<string, DemLoiHoi> _xinAwLoi = new();
@@ -408,6 +407,7 @@ internal sealed class TrayContext : ApplicationContext
         finally { Interlocked.Exchange(ref _xinAwDangHoi, 0); }
     }
 
+    /// <summary>Lời xin vay còn chờ sau khi Con đóng hộp: hỏi dịch vụ mỗi 15 giây, có kết quả thì bật màn (them-fsif1cbl / them-zo8kohea).</summary>
     private async Task TheoDoiVayAsync()
     {
         // máy đang khoá ⇒ chưa hỏi, giữ lời xin: mở khoá rồi mới báo kết quả

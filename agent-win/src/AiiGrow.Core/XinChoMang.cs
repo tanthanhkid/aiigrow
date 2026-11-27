@@ -30,7 +30,8 @@ public static class XinTrung
 {
     public const string Cau = "Đã gửi rồi, đang chờ Ba Mẹ trả lời.";
     /// <summary>409 trùng lời xin. 409 «web_cam» (máy chủ cũ) và «can_gui_du» là chuyện khác.</summary>
-    public static bool La(ApiException e) => e.StatusCode == 409 && e.Code is not ("web_cam" or "can_gui_du");
+    public static bool La(ApiException e) => e.StatusCode == 409 && e.Code is not ("web_cam" or "can_gui_du")
+        && e.Message.Contains("đang chờ", StringComparison.OrdinalIgnoreCase);   // máy chủ hiện trả 200 «daCo»; chỉ nhận 409 nói rõ «đã có lời xin đang chờ»
 }
 
 /// <summary>

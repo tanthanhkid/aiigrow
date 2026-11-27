@@ -262,7 +262,7 @@ public static class AppLockerXml
     private static IEnumerable<string> ThuMucNgoaiProgramFiles(IEnumerable<string> ds) =>
         ds.Select(d => DanhSachApp.ChuanThuMuc(d))
           .Where(d => d.Length > 3 && DanhSachApp.LaDuongTuyetDoi(d) && d.IndexOfAny(new[] { '*', '?', '"', '<', '>', '|', '%' }) < 0
-                      && !d.Contains(@"\Program Files", StringComparison.OrdinalIgnoreCase))
+                      && !(char.ToUpperInvariant(d[0]) == ProcessGuard.OSDrive && (d[3..].StartsWith(@"Program Files\", StringComparison.OrdinalIgnoreCase) || d[3..].StartsWith(@"Program Files (x86)\", StringComparison.OrdinalIgnoreCase))))
           .Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(d => d, StringComparer.OrdinalIgnoreCase);
 
     private static IEnumerable<XElement> OurRules(AppLockerOptions o)
