@@ -60,7 +60,8 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
   const luatCua = (muc: string, kieu: "app" | "web" = "app") => {
     const m = chuanMuc(muc);
     // #813: nhật ký web gộp theo tên miền gốc (wikipedia.org) còn Ba Mẹ thêm luật cho tên miền con (vi.wikipedia.org) ⇒ luật con cũng xếp đúng nhóm tên miền gốc
-    return luat.filter((l) => m === l.muc || m.endsWith(`.${l.muc}`) || m === mucGop(l.muc) || (kieu === "web" && l.muc.endsWith(`.${m}`))).sort((a, b) => b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];
+    return luat.filter((l) => m === l.muc || m.endsWith(`.${l.muc}`) || m === mucGop(l.muc) || (kieu === "web" && l.muc.endsWith(`.${m}`))).sort((a, b) => (+laCon(a) - +laCon(b)) || b.muc.length - a.muc.length || (b.child_id ? 1 : 0) - (a.child_id ? 1 : 0))[0];   // luật khớp thẳng / tên miền cha thắng luật tên miền con
+    function laCon(l: { muc: string }) { return kieu === "web" && l.muc !== m && l.muc.endsWith(`.${m}`); }
   };
   // gộp theo app / trang (một app dùng ở 2 máy ⇒ một dòng, máy = máy dùng nhiều nhất, giờ = lần đầu sớm nhất)
   const gop = new Map<string, DongDung & { _phutMay: number }>();

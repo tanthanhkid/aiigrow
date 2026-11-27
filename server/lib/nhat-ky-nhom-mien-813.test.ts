@@ -30,3 +30,15 @@ test("«khong-ro» ⇒ «Chưa rõ app nào»", () => {
   assert.equal(tenApp("khong-ro"), "Chưa rõ app nào");
   assert.equal(tenAppDep("khong-ro"), "Chưa rõ app nào");
 });
+
+test("luật khớp thẳng wikipedia.org thắng luật tên miền con; tên miền con chỉ ảnh hưởng khi chưa có luật gốc", async () => {
+  const { fam } = await taoNha("Mẹ Hoa");
+  const con = await g.taoCon(fam, { ten: "Bảo Anh" });
+  const may = (await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop")).deviceId;
+  const n = gioDiaPhuong(new Date(), "Asia/Ho_Chi_Minh").ngay;
+  await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, dau_luc) values ($1,$2,$3,'wikipedia.org',2,600, now())`, [may, con, n]);
+  await datLuat(fam, { con, muc: "wikipedia.org", ten: "Wikipedia", loai: "hoc" });
+  await datLuat(fam, { con, muc: "commons.wikipedia.org", ten: "commons", loai: "giai_tri" });
+  const x = (await homNayDung(fam, con)).dung.find((d) => d.muc === "wikipedia.org")!;
+  assert.equal(x.tinhGio, false, "luật gốc (hoc) thắng luật tên miền con (giai_tri)");
+});
