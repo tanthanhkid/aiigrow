@@ -164,7 +164,9 @@ export const AvtD = ({ ten, co = 96, chu, chon }: { ten: string; i?: number; co?
 export function ChipTen({ ten, i = 0, doiBe, dangXuat }: { ten: string; i?: number; doiBe?: () => void | Promise<void>; dangXuat?: () => void | Promise<void> }) {
   const [mo, setMo] = useState(false);
   // #824: đóng tấm trượt xong mới chuyển màn (chuyển ngay khi Modal đang đóng ⇒ iOS bỏ lệnh điều hướng, bấm như không có gì)
-  const sauKhiDong = (fn: () => void | Promise<void>) => { setMo(false); setTimeout(() => { void fn(); }, TRE_DONG_TAM_MS); };
+  const hen = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (hen.current) clearTimeout(hen.current); }, []);
+  const sauKhiDong = (fn: () => void | Promise<void>) => { setMo(false); if (hen.current) clearTimeout(hen.current); hen.current = setTimeout(() => { hen.current = null; void fn(); }, TRE_DONG_TAM_MS); };
   // không có đường về màn chọn tên (khung Kid do agent mở) ⇒ chỉ hiện tên, không có nút vô tác dụng
   if (!doiBe || !dangXuat) {
     return (

@@ -4,7 +4,8 @@ import { coTheDoiBe, raKhoiMay } from "./doi-be.ts";
 
 test("chỉ máy có token thiết bị mới có nút Đổi người / Đăng xuất", () => {
   assert.equal(coTheDoiBe(true), true);
-  assert.equal(coTheDoiBe(false), false);
+  assert.equal(coTheDoiBe(false, true), false);   // khung Kid web do agent mở
+  assert.equal(coTheDoiBe(false, false), true);   // native: phiên từ link sâu vẫn đăng xuất được
 });
 
 test("ra khỏi máy: gọi máy chủ rồi về màn chọn tên", async () => {

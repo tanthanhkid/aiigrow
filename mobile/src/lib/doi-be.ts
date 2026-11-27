@@ -4,7 +4,8 @@
 // - Tấm trượt (Modal) phải đóng hẳn rồi mới chuyển màn: chuyển ngay khi Modal đang đóng, iOS bỏ qua lệnh điều hướng ⇒ bấm không có tác dụng.
 export const TRE_DONG_TAM_MS = 350;
 
-export const coTheDoiBe = (coTokenMay: boolean) => coTokenMay;
+// Chỉ khung web không token (agent mở bằng ?phien=) mới ẩn nút; app native có phiên từ link sâu vẫn đăng xuất được.
+export const coTheDoiBe = (coTokenMay: boolean, laWeb = false) => coTokenMay || !laWeb;
 
 export type PhuThuocRa = {
   coTokenMay: boolean;

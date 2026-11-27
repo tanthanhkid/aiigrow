@@ -1,7 +1,7 @@
 // Mảnh màn dùng chung của phía Con bản «Dịu» (nhiều màn con-dt-* lặp lại): Grow chào 3 quy tắc, chip «Bảo Anh ▾», thẻ sao = phút có vòng (15/11),
 // thẻ sao vàng / âm (đang nợ), dòng chân màn khoá «AiiGrow · Bảo Anh · Ba Mẹ quản lý».
 import { router } from "expo-router";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
 import { Icon3D, Rob, type TenIcon } from "./ui";
 import { ChipTen, ChuD, NutD, SaoD, TheD, TieuD, VongD } from "./ui-diu";
 import { D } from "./diu";
@@ -41,7 +41,7 @@ export function ChipBe() {
   const { ten, iAvt, ra } = useTre();
   if (!ten) return null;
   // #824: chỉ máy dùng chung đã ghép (có token thiết bị) mới có màn chọn tên để về; khung Kid do agent mở thì không hiện nút vô tác dụng
-  return coTheDoiBe(may.co()) ? <ChipTen ten={ten} i={iAvt} doiBe={ra} dangXuat={ra} /> : <ChipTen ten={ten} i={iAvt} />;
+  return coTheDoiBe(may.co(), Platform.OS === "web") ? <ChipTen ten={ten} i={iAvt} doiBe={ra} dangXuat={ra} /> : <ChipTen ten={ten} i={iAvt} />;
 }
 
 /** Đầu màn Hôm nay: «Chào Bảo Anh!» + «Thứ Năm · 19:30» + chip tên. */
