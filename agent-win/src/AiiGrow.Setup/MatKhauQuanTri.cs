@@ -1,9 +1,10 @@
 using System.Runtime.InteropServices;
-using AiiGrow.Core;
+using System.Security.Principal;
 
 namespace AiiGrow.Setup;
 
-/// <summary>#739: kiểm «tài khoản + mật khẩu Ba Mẹ» của bộ gỡ: đăng nhập được (LogonUser) VÀ là thành viên Administrators.</summary>
+/// <summary>#739: kiểm «tài khoản + mật khẩu Ba Mẹ» của bộ gỡ: đăng nhập được (LogonUser) VÀ token đó thuộc nhóm Administrators
+/// (đọc từ chính token đăng nhập ⇒ tính cả nhóm lồng, không vấp SID mồ côi trong nhóm).</summary>
 internal static class MatKhauQuanTri
 {
     [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
@@ -15,22 +16,17 @@ internal static class MatKhauQuanTri
 
     public static bool Kiem(string taiKhoan, string matKhau)
     {
-        // «MAY\\ten», «ten@mail» hoặc «ten» (tài khoản cục bộ)
-        string user = taiKhoan, domain = ".";
-        var i = taiKhoan.IndexOf('\\');
-        if (i > 0) { domain = taiKhoan[..i]; user = taiKhoan[(i + 1)..]; }
-        else if (taiKhoan.Contains('@')) domain = null!;
+        // «MAY\ten», «.\ten», «ten@mail» (UPN) hoặc «ten» (tài khoản cục bộ)
+        string user = taiKhoan.Trim(), domain = ".";
+        var i = user.IndexOf('\\');
+        if (i > 0) { domain = user[..i]; user = user[(i + 1)..]; }
+        else if (user.Contains('@')) domain = null!;
         if (!LogonUser(user, domain, matKhau, LogonNetwork, ProviderDefault, out var tk)) return false;
-        CloseHandle(tk);
-        return LaQuanTri(taiKhoan);
-    }
-
-    private static bool LaQuanTri(string taiKhoan)
-    {
-        var q = Shell.PsQuote(taiKhoan);
-        var r = Shell.PowerShell(
-            "$sid = (New-Object System.Security.Principal.NTAccount(" + q + ")).Translate([System.Security.Principal.SecurityIdentifier]).Value; " +
-            "if ((Get-LocalGroupMember -SID S-1-5-32-544 | ForEach-Object { $_.SID.Value }) -contains $sid) { 'YES' } else { 'NO' }", 30000);
-        return r.Ok && r.Output.Trim() == "YES";
+        try
+        {
+            using var id = new WindowsIdentity(tk);
+            return new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator);
+        }
+        finally { CloseHandle(tk); }
     }
 }

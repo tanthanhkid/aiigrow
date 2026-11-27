@@ -168,8 +168,13 @@ public sealed class AgentWorker : BackgroundService
     private readonly KhayTuBatLai _khayTuBat = new();
 
     /// <summary>#739: khay chết (bé End task / sập) ⇒ dịch vụ bật lại trong phiên đang có người ngồi trước máy. Lỗi không làm hỏng vòng lặp chính.</summary>
+    private DateTimeOffset _khayKiemLuc;
+
     private void TuBatLaiKhay()
     {
+        var bay = DateTimeOffset.Now;
+        if ((bay - _khayKiemLuc).TotalSeconds < 4) return;   // không cần kiểm mỗi vòng
+        _khayKiemLuc = bay;
         try
         {
             var phien = SessionHelper.ActiveConsoleSession();
@@ -177,9 +182,10 @@ public sealed class AgentWorker : BackgroundService
             var khay = Path.Combine(AppContext.BaseDirectory, Paths.TrayExeName);
             bool coKhay = false;
             if (coNguoi)
-                foreach (var p in System.Diagnostics.Process.GetProcessesByName(Path.GetFileNameWithoutExtension(Paths.TrayExeName)))
+                // khớp theo tiền tố tên (kể cả khay cũ «AiiGrow.Tray.exe.cu-…» còn chạy lúc cập nhật) — không bật thêm bản thứ hai đè lên
+                foreach (var p in System.Diagnostics.Process.GetProcesses())
                 {
-                    try { if (p.SessionId == phien) coKhay = true; } catch { }
+                    try { if (p.SessionId == phien && p.ProcessName.StartsWith("AiiGrow.Tray", StringComparison.OrdinalIgnoreCase)) coKhay = true; } catch { }
                     p.Dispose();
                 }
             if (!File.Exists(khay)) return;

@@ -51,7 +51,8 @@ Dịch vụ bị dừng/đổ ⇒ **Windows SCM tự khởi động lại** bằ
   mục Ứng dụng, cấu hình ⇒ dịch vụ tự dừng (không `Stop-Service` chính mình).
 - **Gỡ tại máy**: bộ cài chép `AiiGrow.Setup.exe` vào `Program Files\AiiGrow` và đăng ký `HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AiiGrow`
   (UninstallString `"…\AiiGrow.Setup.exe" --uninstall`, Publisher AiiLab, NoModify/NoRepair) ⇒ Cài đặt › Ứng dụng › AiiGrow › Gỡ cài đặt, UAC hỏi mật
-  khẩu quản trị (Con là Standard nên không tự gỡ). `--uninstall` gọi `POST /api/device/da-go` trước khi xoá token (máy rời gia đình trên app ngay),
+  khẩu quản trị (Con là Standard nên không tự gỡ); từ #739 bộ gỡ còn đòi mã mở máy của Ba Mẹ hoặc tài khoản + mật khẩu quản trị (im lặng: `--ma=<mã>`, mã thoát 9 = thiếu/sai),
+  và gỡ xong KHÔNG nâng tài khoản của bé lên Administrators. `--uninstall` gọi `POST /api/device/da-go` trước khi xoá token (máy rời gia đình trên app ngay),
   rồi `SystemCleanup.Run(ops, tuDichVu: false)`. Mỗi bước bọc riêng, chạy lại bao nhiêu lần cũng được.
 
 ## Lọc web theo tên miền + ghi lịch sử web (22/10)

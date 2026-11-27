@@ -44,11 +44,10 @@ public class Windows739Tests
     }
 
     [Fact]
-    public void CongGo_MaSai_KhongRoiSangMatKhau()
+    public void CongGo_MaSai_NhungMatKhauDung_Duoc()
     {
-        var goi = 0;
-        Assert.Equal(CongGo.KetQua.Sai, CongGo.Kiem(May(), "000000", "ba", "mk", Moc, (a, b) => { goi++; return true; }));
-        Assert.Equal(0, goi);
+        Assert.Equal(CongGo.KetQua.Duoc, CongGo.Kiem(May(), "000000", "ba", "mk", Moc, (a, b) => true));
+        Assert.Equal(CongGo.KetQua.Sai, CongGo.Kiem(May(), "000000", "ba", "mk", Moc, (a, b) => false));
     }
 
     [Fact]
@@ -72,10 +71,10 @@ public class Windows739Tests
     {
         var k = new KhayTuBatLai();
         Assert.False(k.CanBat(Moc, false, true, false));                       // vừa thấy mất: chờ
-        Assert.False(k.CanBat(Moc.AddSeconds(5), false, true, false));
-        Assert.True(k.CanBat(Moc.AddSeconds(9), false, true, false));          // quá 8 giây ⇒ bật
-        Assert.False(k.CanBat(Moc.AddSeconds(15), false, true, false));        // vừa bật, chưa 30 giây
-        Assert.True(k.CanBat(Moc.AddSeconds(40), false, true, false));         // vẫn chết ⇒ bật lại
+        Assert.False(k.CanBat(Moc.AddSeconds(15), false, true, false));
+        Assert.True(k.CanBat(Moc.AddSeconds(21), false, true, false));         // quá 20 giây ⇒ bật
+        Assert.False(k.CanBat(Moc.AddSeconds(35), false, true, false));        // vừa bật, chưa 30 giây
+        Assert.True(k.CanBat(Moc.AddSeconds(55), false, true, false));         // vẫn chết ⇒ bật lại
     }
 
     [Fact]
@@ -86,6 +85,6 @@ public class Windows739Tests
         Assert.False(k.CanBat(Moc.AddMinutes(1), false, false, false));
         Assert.False(k.CanBat(Moc.AddMinutes(2), false, true, true));
         Assert.False(k.CanBat(Moc.AddMinutes(3), false, true, false));         // đồng hồ chờ tính lại sau khi gián đoạn
-        Assert.True(k.CanBat(Moc.AddMinutes(3).AddSeconds(9), false, true, false));
+        Assert.True(k.CanBat(Moc.AddMinutes(3).AddSeconds(21), false, true, false));
     }
 }

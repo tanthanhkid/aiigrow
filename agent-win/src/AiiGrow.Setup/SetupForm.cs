@@ -730,7 +730,7 @@ internal sealed class SetupForm : Form
         var khac = _accounts.Count(a => a.IsAdmin && a.Sid != con.Sid);
         if (khac > 0)
         {
-            if (HopThoai.Hien($"Đổi «{con.Name}» thành tài khoản giới hạn? Con vẫn mở máy, học, chơi như cũ — chỉ không tự gỡ AiiGrow được. Gỡ AiiGrow thì trả lại như cũ.",
+            if (HopThoai.Hien($"Đổi «{con.Name}» thành tài khoản giới hạn? Con vẫn mở máy, học, chơi như cũ — chỉ không tự gỡ AiiGrow được (gỡ cần Ba Mẹ).",
                     "Cài AiiGrow", hoi: true) == DialogResult.Yes)
                 BuocGhep();
             return;

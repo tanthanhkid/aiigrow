@@ -100,14 +100,25 @@ internal static class Program
     /// <summary>Hỏi Ba Mẹ (tối đa 5 lần). Im lặng: mã qua «--ma=123456». → true = được gỡ.</summary>
     private static bool CongGoBaMe(bool silent, string[] args)
     {
-        AgentConfig? cfg = null;
-        try { cfg = new ConfigStore().Load(); } catch { }
+        var store = new ConfigStore();
+        var cfg = store.Load();
+        // Tệp cấu hình CÓ mà không đọc được (khoá/hỏng) ⇒ không biết máy đã ghép chưa: KHÔNG coi là chưa ghép (không để mở cổng bằng cách làm hỏng tệp).
+        if (cfg == null && File.Exists(Paths.ConfigFile))
+        {
+            WriteLog("Gỡ bị chặn: có tệp cấu hình nhưng không đọc được.");
+            if (!silent) HopThoai.Hien("Chưa đọc được cấu hình AiiGrow nên chưa xác nhận được Ba Mẹ. Khởi động lại máy rồi thử lại.", "AiiGrow", loi: true);
+            return false;
+        }
         if (!CongGo.CanHoi(cfg)) return true;
         if (silent)
         {
             var ma = args.FirstOrDefault(a => a.StartsWith("--ma=", StringComparison.OrdinalIgnoreCase))?["--ma=".Length..];
             var kq0 = CongGo.Kiem(cfg, ma, null, null, DateTimeOffset.Now, MatKhauQuanTri.Kiem);
-            if (kq0 != CongGo.KetQua.Duoc) WriteLog("Gỡ im lặng bị từ chối: " + (kq0 == CongGo.KetQua.Sai ? CongGo.CauSai : CongGo.CauYeuCau));
+            if (kq0 != CongGo.KetQua.Duoc)
+            {
+                WriteLog("Gỡ im lặng bị từ chối: " + (kq0 == CongGo.KetQua.Sai ? CongGo.CauSai : CongGo.CauYeuCau));
+                Thread.Sleep(3000);   // chậm dò mã qua chạy lặp
+            }
             return kq0 == CongGo.KetQua.Duoc;
         }
         string? loi = null;

@@ -9,7 +9,7 @@ namespace AiiGrow.Core;
 /// </summary>
 public sealed class KhayTuBatLai
 {
-    public static readonly TimeSpan ChoTruocKhiBat = TimeSpan.FromSeconds(8);   // chịu được khay đang khởi động / cập nhật đè
+    public static readonly TimeSpan ChoTruocKhiBat = TimeSpan.FromSeconds(20);  // chịu được khay đang khởi động (Run key chậm lúc đăng nhập) / cập nhật đè
     public static readonly TimeSpan CachNhauToiThieu = TimeSpan.FromSeconds(30); // khay chết liên tục ⇒ không bật dồn dập
 
     private DateTimeOffset? _matTu;

@@ -28,6 +28,8 @@ public static class CauLoiCai
     /// <summary>#739: tạo xong tài khoản nhưng Windows không dựng được hồ sơ (thư mục người dùng).</summary>
     public static string HoSoLoi(string ten) => $"Tài khoản «{ten}» chưa dùng được vì Windows không tạo được hồ sơ cho nó. Bộ cài đã xoá tài khoản đó; thử tên khác, vẫn lỗi thì khởi động lại máy rồi chạy lại bộ cài.";
 
+    public static string HoSoLoiChuaXoa(string ten) => $"Tài khoản «{ten}» chưa dùng được vì Windows không tạo được hồ sơ cho nó, và bộ cài chưa xoá được tài khoản đó. Xoá «{ten}» trong Cài đặt Windows › Tài khoản rồi thử tên khác.";
+
     /// <summary>Máy đã có tài khoản tên này (stderr «The user account already exists» / «đã tồn tại»).</summary>
     public static string TrungTen(string ten) => $"Máy đã có tài khoản «{ten}». Đặt tên khác, hoặc chọn «Các con đã có tài khoản chung».";
 

@@ -34,6 +34,7 @@ public static class HoSoWindows
         {
             var hr = CreateProfile(sid, ten, sb, (uint)sb.Capacity);
             if (hr != 0 && hr != DaTonTai) return "HRESULT 0x" + hr.ToString("X8");
+            if (hr == DaTonTai) return null;   // hồ sơ đã có (CreateProfile không điền đường dẫn) — tên đã qua kiểm tên cấm ở trên
             duong = sb.ToString();
             return !string.IsNullOrEmpty(duong) && Directory.Exists(duong) ? null : "thư mục hồ sơ không có: " + duong;
         }

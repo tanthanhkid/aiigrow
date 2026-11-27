@@ -45,8 +45,9 @@ internal static class Accounts
     {
         var loi = HoSoWindows.Dung(sid, name, out var duong);
         if (loi == null) return;
-        try { Shell.PowerShell($"Remove-LocalUser -Name {Shell.PsQuote(name)}", 30000); } catch { }
-        throw new LoiCai(CauLoiCai.HoSoLoi(name), $"CreateProfile {name}: {loi} ({duong})");
+        bool daXoa = false;
+        try { daXoa = Shell.PowerShell($"Remove-LocalUser -Name {Shell.PsQuote(name)}", 30000).Ok; } catch { }
+        throw new LoiCai(daXoa ? CauLoiCai.HoSoLoi(name) : CauLoiCai.HoSoLoiChuaXoa(name), $"CreateProfile {name}: {loi} ({duong}); xoá tài khoản: {(daXoa ? "ok" : "lỗi")}");
     }
 
     /// <summary>Hạ tài khoản từ Administrators xuống Users (Standard).</summary>

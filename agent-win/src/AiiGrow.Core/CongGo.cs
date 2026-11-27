@@ -20,9 +20,11 @@ public static class CongGo
     public static KetQua Kiem(AgentConfig? cfg, string? ma, string? taiKhoan, string? matKhau, DateTimeOffset now, Func<string, string, bool> kiemMatKhau)
     {
         if (!CanHoi(cfg)) return KetQua.Duoc;
-        if (!string.IsNullOrWhiteSpace(ma))
-            return MaOffline.KiemPhut(cfg!.MaOfflineBiMat, ma, now) != null ? KetQua.Duoc : KetQua.Sai;
-        if (!string.IsNullOrWhiteSpace(taiKhoan) && !string.IsNullOrEmpty(matKhau))
+        var coMa = !string.IsNullOrWhiteSpace(ma);
+        if (coMa && MaOffline.KiemPhut(cfg!.MaOfflineBiMat, ma, now) != null) return KetQua.Duoc;
+        var coMatKhau = !string.IsNullOrWhiteSpace(taiKhoan) && !string.IsNullOrEmpty(matKhau);
+        if (coMa && !coMatKhau) return KetQua.Sai;
+        if (coMatKhau)
         {
             bool ok;
             try { ok = kiemMatKhau(taiKhoan!.Trim(), matKhau!); } catch { ok = false; }

@@ -28,7 +28,8 @@ public static class AppsEntry
         k.SetValue("InstallLocation", installDir);
         k.SetValue("DisplayIcon", Path.Combine(installDir, Paths.TrayExeName));
         k.SetValue("UninstallString", "\"" + setup + "\" --uninstall");
-        k.SetValue("QuietUninstallString", "\"" + setup + "\" --uninstall --silent");
+        // #739: bỏ QuietUninstallString — gỡ im lặng cần mã Ba Mẹ (--ma=), không có gì để ghi sẵn vào registry.
+        try { k.DeleteValue("QuietUninstallString", false); } catch { }
         k.SetValue("NoModify", 1, RegistryValueKind.DWord);
         k.SetValue("NoRepair", 1, RegistryValueKind.DWord);
     }
