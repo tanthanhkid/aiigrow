@@ -233,7 +233,7 @@ export async function huyPhieu(fam: string, phieu: string, nguoi: string) {
     if (p.reward_id) await t(`update rewards set ton_kho = ton_kho + 1 where id = $1 and ton_kho is not null`, [p.reward_id]);
     if (p.loai === "voucher") await t(`update vouchers set trang_thai = 'thu_hoi' where redemption_id = $1`, [p.id]);
     await ghiSuKien(fam, "huy_qua", { ten: p.ten, hoan: p.diem }, { con: p.child_id, nguoi }, t);
-    return { hoan: p.diem, ten: p.ten };
+    return { hoan: p.diem };
   });
 }
 
@@ -290,9 +290,9 @@ export async function viQua(con: string) {
         conNgay: v.trang_thai === "da_phat_hanh" ? Math.max(0, Math.ceil((new Date(v.het_han).getTime() - Date.now()) / 86_400_000)) : 0 })),
     phieu: await q<{ id: string; ten: string; loai: string; diem: number; trang_thai: string; created_at: Date }>(
       `select id, ten, loai, diem, trang_thai, created_at from redemptions where child_id = $1 and trang_thai = 'giu' order by created_at desc`, [con]),
-    // quà Ba Mẹ từ chối / huỷ trong 14 ngày gần đây — con thấy «Ba Mẹ đã từ chối · hoàn N sao»
+    // quà Ba Mẹ từ chối / huỷ trong 14 ngày gần đây (quà bị xoá khỏi bảng giá ⇒ reward_id null ⇒ không tính là từ chối) — con thấy «Ba Mẹ đã từ chối · hoàn N sao»
     daTuChoi: await q<{ id: string; ten: string; loai: string; diem: number; xu_ly_luc: Date }>(
-      `select id, ten, loai, diem, xu_ly_luc from redemptions where child_id = $1 and trang_thai = 'huy' and xu_ly_luc > now() - interval '14 days' order by xu_ly_luc desc limit 5`, [con]),
+      `select id, ten, loai, diem, xu_ly_luc from redemptions where child_id = $1 and trang_thai = 'huy' and reward_id is not null and xu_ly_luc > now() - interval '14 days' order by xu_ly_luc desc limit 5`, [con]),
   };
 }
 

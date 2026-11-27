@@ -46,9 +46,9 @@ export function BangTraoQua({ p, dong, xong }: {
     xong(`Đã trao «${x.ten}» — trừ ${r.saoTru ?? x.diem} sao, Grow đã báo ${x.ten_con}`);
   });
   const huy = (x: PhieuCho) => lam(async () => {
-    await bm.goi(`phieu/${x.id}/huy`, {});
+    const r = await bm.goi<{ hoan?: number }>(`phieu/${x.id}/huy`, {});
     dong();
-    xong(`Đã từ chối «${x.ten}» — hoàn ${x.diem} sao cho ${x.ten_con}`);
+    xong(`Đã từ chối «${x.ten}» — hoàn ${r.hoan ?? x.diem} sao cho ${x.ten_con}`);
   });
   if (vc) {
     return (
