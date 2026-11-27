@@ -184,13 +184,14 @@ export function NutBo({ chu, tat, bam }: { chu: string; tat?: boolean; bam: () =
 }
 
 /** Một mục trong kết quả tìm của màn Thêm app / Thêm web. */
-export type MucThem = { k: string; ten: string; phu: string; ic?: TenIcon; anh?: string | null; e?: string; nhom: Nhom; luuY?: string };
-export type ChonThem = Map<string, { m: MucThem; nhom: Nhom }>;
+export type MucThem = { k: string; ten: string; phu: string; ic?: TenIcon; anh?: string | null; e?: string; nhom: Nhom | null; luuY?: string };
+/** `nhom` null = Ba Mẹ chưa chọn (Thêm web: không chọn sẵn). */
+export type ChonThem = Map<string, { m: MucThem; nhom: Nhom | null }>;
 
 /** Chữ nút đáy màn Thêm: «Thêm Duolingo ABC · Không tính phút» / «Thêm 3 app» / «Chọn app để thêm». `loai` = «app» | «trang». */
 export function chuNutThem(chon: ChonThem, loai: "app" | "trang") {
   const so = chon.size, mot = so === 1 ? [...chon.values()][0] : null;
-  return mot ? `Thêm ${mot.m.ten} · ${TEN_NHOM[mot.nhom]}` : so ? `Thêm ${so} ${loai}` : `Chọn ${loai} để thêm`;
+  return mot ? `Thêm ${mot.m.ten}${mot.nhom ? ` · ${TEN_NHOM[mot.nhom]}` : ""}` : so ? `Thêm ${so} ${loai}` : `Chọn ${loai} để thêm`;
 }
 
 /** Danh sách kết quả màn Thêm: khối «Đã chọn» (đã chọn nhưng không khớp chữ đang gõ) + «Kết quả cho «…»» ; chạm dòng ⇒ chọn / bỏ, ngay dưới dòng hiện câu hỏi nhóm. */

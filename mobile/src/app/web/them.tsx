@@ -43,6 +43,7 @@ function ThemWebCon({ con }: { con: string }) {
   });
   const [go, setGo] = useState("");
   const [chon, setChon] = useState<ChonThem>(new Map());
+  const [nhac, setNhac] = useState<string | null>(null);
   const { lam, loi: loiLam, dangChay } = useLam();
   const ve = () => veHoac(`/web/${con}`);
   const luat = useMemo(() => {
@@ -73,21 +74,24 @@ function ThemWebCon({ con }: { con: string }) {
       .filter(Boolean).join(" ");
   };
   const mt = (t: Trang): MucThem => ({ k: t.muc, ten: t.muc, phu: t.phu, ic: icCuaApp(t.muc), luuY: luuY(t.muc) || undefined,
-    nhom: ["hoc", "cho_phep"].includes(luat.get(t.muc) ?? "") ? "khong_tinh_phut" : "tinh_phut" });
+    nhom: null });
   const luu = () => lam(async () => {
-    await themVaoDs(con, [...chon.values()].map(({ m, nhom }) => ({ nhom, muc: m.k, kieu: "web" as const })));
+    const chua = [...chon.values()].filter((x) => !x.nhom);
+    if (chua.length) { setNhac(`Chọn «Tính phút» hoặc «Không tính phút» cho ${chua.map((x) => x.m.ten).join(", ")}.`); return; }
+    setNhac(null);
+    await themVaoDs(con, [...chon.values()].map(({ m, nhom }) => ({ nhom: nhom!, muc: m.k, kieu: "web" as const })));
     ve();
   });
   return (
     <Man lui={{ chu: "", bam: ve }} tieu={`Thêm web cho ${d.ten}`} dau={<View style={{ paddingHorizontal: 16, paddingBottom: 6 }}>
-      <OTim gia={go} doi={setGo} goiY="Gõ địa chỉ: vuihoc.vn, tiktok.com…" nhan="Địa chỉ trang web" url khongKinh />
+      <OTim gia={go} doi={setGo} goiY="Gõ địa chỉ, ví dụ vuihoc.vn" nhan="Địa chỉ trang web" url khongKinh />
     </View>} day={<>
-      <BaoLoi loi={loiLam} />
+      <BaoLoi loi={nhac ?? loiLam} />
       <Nut thu chu={chuNutThem(chon, "trang")} rong dangChay={dangChay} tat={!chon.size} bam={luu} />
     </>}>
-      <KetQuaThem go={go} kq={kq.map(mt)} chon={chon} doi={(m) => setChon(bamChonThem(m))} datNhom={(m, n) => setChon(datNhomThem(m, n))}
-        trong="Gõ đủ địa chỉ trang, vd tiktok.com."
-        chuaGo={muc.length >= 2 ? "Gõ đủ địa chỉ trang, vd tiktok.com." : `Gõ địa chỉ trang web ${d.ten} được vào. Dán được cả đường link — mọi trang con theo cùng nhóm.`} />
+      <KetQuaThem go={go} kq={kq.map(mt)} chon={chon} doi={(m) => { setNhac(null); setChon(bamChonThem(m)); }} datNhom={(m, n) => { setNhac(null); setChon(datNhomThem(m, n)); }}
+        trong="Gõ đủ địa chỉ trang, vd vuihoc.vn."
+        chuaGo={muc.length >= 2 ? "Gõ đủ địa chỉ trang, vd vuihoc.vn." : `Gõ địa chỉ trang web ${d.ten} được vào. Dán được cả đường link — mọi trang con theo cùng nhóm.`} />
     </Man>
   );
 }

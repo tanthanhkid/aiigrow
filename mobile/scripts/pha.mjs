@@ -1654,6 +1654,10 @@ await kichBan("Thêm app / Thêm web: tìm ⇒ chạm ＋ ⇒ «<mục> có tín
   await bamDau("tiktok.com");
   xet(await doi("tiktok.com có tính phút không?"), "chạm ＋ ⇒ hỏi nhóm");
   nhatKy.length = 0;
+  await bam("Thêm tiktok.com");
+  xet(await doi("Chọn «Tính phút» hoặc «Không tính phút» cho tiktok.com."), "chưa chọn nhóm mà lưu ⇒ hiện nhắc, không POST");
+  xet(!nhatKy.some((x) => x.d === "con/c1/danh-sach" && x.m === "POST"), "chưa chọn nhóm ⇒ chưa gọi POST");
+  await bamTrong('[role="radio"]', "Tính phút");
   await bam("Thêm tiktok.com · Tính phút");
   xet(await choGoi((x) => x.d === "con/c1/danh-sach" && x.body?.ds?.[0]?.muc === "tiktok.com" && x.body.ds[0].kieu === "web" && x.body.ds[0].nhom === "tinh_phut"),
     "POST danh-sach {ds: [{muc: tiktok.com, kieu: web, nhom: tinh_phut}]}");

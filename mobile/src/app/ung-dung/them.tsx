@@ -71,7 +71,7 @@ function ThemAppCon({ con }: { con: string }) {
     .slice(0, 20);
   const mt = (u: Ung): MucThem => ({ k: u.k, ten: u.ten, phu: u.phu, anh: u.anh, ic: icCuaApp(`${u.ten} ${u.muc}`), nhom: u.tinhGio ? "tinh_phut" : "khong_tinh_phut" });
   const luu = () => lam(async () => {
-    await themVaoDs(con, [...chon.values()].map(({ m, nhom }) => { const u = tatCa.find((x) => x.k === m.k); return u?.ma ? { nhom, ma: u.ma } : { nhom, ten: m.ten }; }));
+    await themVaoDs(con, [...chon.values()].map(({ m, nhom: n }) => { const nhom = n ?? "khong_tinh_phut"; const u = tatCa.find((x) => x.k === m.k); return u?.ma ? { nhom, ma: u.ma } : { nhom, ten: m.ten }; }));
     ve();
   });
   return (
