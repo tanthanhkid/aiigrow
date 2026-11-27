@@ -46,6 +46,7 @@ import { cauHinhMxh, dangNhapMxh, datMatKhauMxh, doiMatKhau, lienKetMxh } from "
 import { baMeTuToken } from "./auth.ts";
 import { laChuNha, quyenCua, trongGiupDuoc, vaiCu } from "./quyen.ts";
 import { doiTenToi, loiMoiChoToi } from "./thanh-vien.ts";
+import { kiemTuoiLoiXin, kiemTuoiTruocKhiCho } from "./gioi-han-tuoi.ts";
 import { boKhoiDanhSach, danhSachCon, datAppChoPhep, datCheDoChan, doiNhomDanhSach, luoiApp, themVaoDanhSach } from "./che-do-chan.ts";
 import { cheDoChanCua, cheDoCua, TEN_CHE_DO } from "./chan-co-ban.ts";
 import { thietLapLanDau, tomTatThietLap, webLanDau } from "./thiet-lap.ts";
@@ -184,7 +185,11 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if ((sau === "che-do" || sau === "che-do-chan") && post) return json(await datCheDoChan(fam, id, b.cheDo ?? b.cheDoChan, bm.id));
       // #262 danh sách trắng của Con: xem · thêm {nhom, ma | ten | muc} · đổi nhóm {muc[], nhom} · bỏ {muc[]} (che-do-chan.ts)
       if (sau === "danh-sach" && get) return json(await danhSachCon(fam, id));
-      if (sau === "danh-sach" && post) return json(await themVaoDanhSach(fam, id, b, bm.id));
+      if (sau === "danh-sach" && post) {
+        // #751: trang 13+ cho bé dưới 13 tuổi ⇒ 409 can_xac_nhan_tuoi, Ba Mẹ xác nhận tiếp bằng xacNhanTuoi: true
+        await kiemTuoiTruocKhiCho(id, (Array.isArray(b.ds) ? b.ds : [b]).slice(0, 60).map((x: any) => x?.muc), b.xacNhanTuoi, fam);
+        return json(await themVaoDanhSach(fam, id, b, bm.id));
+      }
       if (sau === "danh-sach/doi" && post) return json(await doiNhomDanhSach(fam, id, b, bm.id));
       if (sau === "danh-sach/bo" && post) return json(await boKhoiDanhSach(fam, id, b, bm.id));
       if (sau === "app-cho-phep" && post) return json(await tx((t) => datAppChoPhep(fam, id, b.apps, bm.id, t)));
@@ -347,6 +352,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       // #258: «Bỏ qua» {loiNhan?} ⇒ {hoanTacDen} · «Hoàn tác» (60 giây sau Bỏ qua) · «Thêm luôn» {nhom} (lời xin đã bỏ qua)
       if (p[2] === "bo-qua" && post) return json(await yc.boQuaYc(fam, p[1], bm.id, b));
       if (p[2] === "hoan-tac" && post) return json(await yc.moLaiYc(fam, p[1], bm.id));
+      if ((p[2] === "them-luon" || p[2] === "dong-y") && post) await kiemTuoiLoiXin(fam, p[1], b.xacNhanTuoi);   // #751
       if (p[2] === "them-luon" && post) return json(await yc.themLuonYc(fam, p[1], bm.id, b));
       if (p[2] === "xem-truoc" && get) return json(await yc.xemTruocDongY(fam, p[1], new URL(req.url).searchParams.get("soSao") ?? undefined));
       if (p[2] === "dong-y" && post) return json(await yc.dongY(fam, p[1], bm.id, b as yc.DongY));
