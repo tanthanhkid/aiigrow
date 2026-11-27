@@ -554,8 +554,8 @@ KichBan 'KB11' 'Thêm / bỏ app chọn từ danh sách app thật của máy (d
   Dat '11.3' 'Ba Mẹ thêm app đó vào «Không tính phút» (ung-dung/dat)' ([bool]$dat) (ConvertTo-Json $dat -Compress -Depth 4)
   DongBoNgay
   $exe = [System.IO.Path]::GetFileName([string]$app.duongDan).ToLowerInvariant()
-  $ngoaiLe = "*\$exe"
-  function CoNgoaiLe { @(LuatAiiGrow (AppLocker) $Chung.SidCon | Where-Object { $_.Action -eq 'Deny' -and @($_.SelectNodes('.//Exceptions/FilePathCondition') | Where-Object { $_.Path -eq $ngoaiLe }).Count }).Count -gt 0 }
+  $ngoaiLe = "*\$exe"   # #727: luật theo đường dẫn («%PROGRAMFILES%\*\firefox.exe», «<thư mục cài>\*\firefox.exe») cũng tính; luật tên «*\firefox.exe» chỉ còn khi chưa quét app
+  function CoNgoaiLe { @(LuatAiiGrow (AppLocker) $Chung.SidCon | Where-Object { $_.Action -eq 'Deny' -and @($_.SelectNodes('.//Exceptions/FilePathCondition') | Where-Object { $_.Path -like $ngoaiLe }).Count }).Count -gt 0 }
   $co = Cho { CoNgoaiLe } 180 5
   Dat '11.4' "AppLocker «chỉ app trong danh sách» cho SID Con có ngoại lệ $ngoaiLe (app trong danh sách mở được)" ([bool]$co) ("{0} luật Deny AiiGrow của Con" -f @(LuatAiiGrow (AppLocker) $Chung.SidCon | Where-Object { $_.Action -eq 'Deny' }).Count)
   [void](Api POST "/api/m/may/$($Chung.MayId)/ung-dung/dat" @{ khoa = $app.khoa; trangThai = 'chan' } $Chung.TokenBaMe)   # «chan» cũ = bỏ khỏi danh sách
