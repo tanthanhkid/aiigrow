@@ -107,6 +107,22 @@ public class BaoBeDoiTrangThaiTests
     }
 
     [Fact]
+    public void HetHanMo_DongThoiKhoaMay_ChiBaoKhoa()
+    {
+        var b = Assert.Single(BaoBeDoiTrangThai.Xet(T(mo: "17:30"), T(khoa: true, lyDo: LockReasons.Khoa)));
+        Assert.Equal("Ba Mẹ vừa khoá máy", b.Tieu);
+    }
+
+    [Fact]
+    public void Tu_ModeHocCoHan_KhongTinhLaMo()
+    {
+        var het = DateTimeOffset.Now.AddMinutes(30);
+        Assert.Null(TrangThaiBaoBe.Tu(new TrayState { Mode = Modes.Hoc, GrantEndsAt = het }).MoDenGio);
+        Assert.NotNull(TrangThaiBaoBe.Tu(new TrayState { Mode = Modes.TuDo, GrantEndsAt = het }).MoDenGio);
+        Assert.False(MoCoHan.Dang(new TrayState { Mode = Modes.Hoc, GrantEndsAt = het }, DateTimeOffset.Now));
+    }
+
+    [Fact]
     public void MoCoHan_GioHetVaDang_TheoMocGio()
     {
         var now = new DateTimeOffset(2026, 11, 27, 10, 0, 0, TimeSpan.Zero);

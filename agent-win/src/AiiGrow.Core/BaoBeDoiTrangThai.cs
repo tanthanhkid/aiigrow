@@ -11,7 +11,7 @@ namespace AiiGrow.Core;
 public sealed record TrangThaiBaoBe(bool Khoa, string? LyDoKhoa, string? HetGio, string? GioNghiDen, IReadOnlyCollection<string>? WebChan, IReadOnlyCollection<string>? WebCho, string? MoDenGio = null)
 {
     public static TrangThaiBaoBe Tu(TrayState s, DateTimeOffset? now = null)
-        => new(s.Locked, s.LockReason, s.GioiHanLyDo, s.GioiHanGio, s.WebChan, s.WebCho, MoCoHan.GioHet(s.GrantEndsAt, now ?? DateTimeOffset.Now));
+        => new(s.Locked, s.LockReason, s.GioiHanLyDo, s.GioiHanGio, s.WebChan, s.WebCho, s.Mode == Modes.TuDo ? MoCoHan.GioHet(s.GrantEndsAt, now ?? DateTimeOffset.Now) : null);
 }
 
 /// <summary>#823: Ba Mẹ mở khẩn cấp / thêm giờ = mode tu_do + hạn (GrantEndsAt). Lớp thuần: chữ báo bé và chữ trong app khi đang mở.</summary>
@@ -22,6 +22,9 @@ public static class MoCoHan
         => hetHan is { } h && h > now ? h.ToLocalTime().ToString("HH:mm") : null;
 
     public static bool Dang(DateTimeOffset? hetHan, DateTimeOffset now) => hetHan is { } h && h > now;
+
+    /// <summary>Trạng thái khay: đang mở có hạn thật sự (mode tu_do — mode hoc có hạn vẫn chặn app «Tính phút»).</summary>
+    public static bool Dang(TrayState s, DateTimeOffset now) => s.Mode == Modes.TuDo && Dang(s.GrantEndsAt, now);
 
     public static BaoBe BaoMo(string gio) => new("mo_khoa", "Ba Mẹ vừa mở máy cho con", $"Con chơi và học thoải mái tới {gio} nhé.");
     public static BaoBe BaoHet() => new("dong_ho_cat", "Hết giờ Ba Mẹ mở rồi", "Máy trở lại như mọi hôm. Con xem lại giờ chơi trong AiiGrow nhé.");
@@ -59,7 +62,7 @@ public static class BaoBeDoiTrangThai
 
         // #823: Ba Mẹ mở khẩn cấp bật / hết hạn
         if (nay.MoDenGio != null && truoc.MoDenGio == null) ds.Add(MoCoHan.BaoMo(nay.MoDenGio));
-        else if (nay.MoDenGio == null && truoc.MoDenGio != null) ds.Add(MoCoHan.BaoHet());
+        else if (nay.MoDenGio == null && truoc.MoDenGio != null && !nay.Khoa) ds.Add(MoCoHan.BaoHet());
 
         if (ThemWeb(truoc, nay) is { } web) ds.Add(web);
         return ds;

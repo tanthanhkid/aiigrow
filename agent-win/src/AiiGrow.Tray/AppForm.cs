@@ -661,7 +661,7 @@ internal sealed class AppForm : Form
             if (!am) the.Controls.Add(Chip(SaoView.ConPhut(phut), Clay.DiemSoft, Clay.DiemInk, kim: true));
         }
         var matMang = _kn.Loai == KetNoi.MatKetNoi;
-        if (phut is <= 0 && MoCoHan.GioHet(_s.GrantEndsAt, DateTimeOffset.Now) is { } gioMo)
+        if (phut is <= 0 && _s.Mode == Modes.TuDo && MoCoHan.GioHet(_s.GrantEndsAt, DateTimeOffset.Now) is { } gioMo)
         {
             // #823: Ba Mẹ đang mở khẩn cấp ⇒ app «Tính phút» chơi được, không ghi «đang khoá»
             the.Controls.Add(T(MoCoHan.DongDangMo(gioMo), 12f, true, Clay.Chu2, r));
