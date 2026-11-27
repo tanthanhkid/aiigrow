@@ -20,11 +20,11 @@ const TIEU = "App & web";
 
 export default function TabChan() {
   const g = useTai(() => bm.goi<GiaDinh>("gia-dinh"), "tab:chan");
-  const { con: conVao } = useLocalSearchParams<{ con?: string }>();
+  const { con: conVao, k: nonce } = useLocalSearchParams<{ con?: string; k?: string }>();
   const [chon, setChon] = useState<string | null>(null);
   // tab giữ trạng thái giữa các lần mở ⇒ mở từ màn của một Con (?con=) thì Con đó thắng lựa chọn chip cũ
-  const [vaoCu, setVaoCu] = useState(conVao);
-  if (conVao !== vaoCu) { setVaoCu(conVao); setChon(null); }
+  const [vaoCu, setVaoCu] = useState(`${conVao}|${nonce}`);   // nonce `k` từ chip «Chặn» Hôm nay: bấm lại cùng con vẫn về đúng con
+  if (`${conVao}|${nonce}` !== vaoCu) { setVaoCu(`${conVao}|${nonce}`); setChon(null); }
   const con = chon ?? (conVao && g.d?.con.some((c) => c.id === conVao) ? conVao : g.d?.con[0]?.id) ?? null;
   const dau = <Chu kieu="rat" co={13} mau={M.chu3} style={{ marginTop: -12, marginLeft: 4 }}>Con mở được gì trên máy</Chu>;
   if (!g.d) return <View style={{ flex: 1 }}><Man tieuLon={TIEU}>{dau}<ChoTai loi={g.loi} matMang={g.matMang} tai={g.tai} /></Man></View>;
