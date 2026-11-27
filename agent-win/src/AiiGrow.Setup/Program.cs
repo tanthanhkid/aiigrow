@@ -10,9 +10,12 @@ internal static class Program
     {
         ApplicationConfiguration.Initialize();
         var huong = QuyenBoCai.Quyet(Installer.IsAdmin(), LoaiNangQuyen());
+        bool chayNgam = args.Any(x => x.Equals("/silent", StringComparison.OrdinalIgnoreCase) || x.Equals("--silent", StringComparison.OrdinalIgnoreCase)
+            || x.Equals("--im-lang", StringComparison.OrdinalIgnoreCase) || x.Equals("/im-lang", StringComparison.OrdinalIgnoreCase));
         if (huong == HuongChayBoCai.TuNangQuyen) return NangQuyenRoiChayLai(args);
         if (huong == HuongChayBoCai.CanTaiKhoanBaMe)
         {
+            if (chayNgam) { WriteLog("Cần chạy bằng tài khoản quản trị (Ba Mẹ)."); return 5; }   // không hộp thoại khi chạy ngầm
             HopThoai.Hien(QuyenBoCai.ChuCanBaMe, QuyenBoCai.TieuDeCanBaMe, loi: true);
             return 5;
         }
@@ -75,10 +78,12 @@ internal static class Program
     {
         try
         {
-            var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath ?? "", string.Join(" ", args.Select(a => a.Contains(' ') ? "\"" + a + "\"" : a)))
+            var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath ?? Application.ExecutablePath, string.Join(" ", args.Select(a => a.Length == 0 || a.IndexOfAny(new[] { ' ', '\t', '"' }) >= 0 ? "\"" + a.Replace("\"", "\\\"") + "\"" : a)))
             { UseShellExecute = true, Verb = "runas" };
             using var p = System.Diagnostics.Process.Start(psi);
-            return 0;
+            if (p == null) return 1;
+            p.WaitForExit();
+            return p.ExitCode;
         }
         catch (System.ComponentModel.Win32Exception) { return 1; }   // Ba Mẹ bấm «Không» ở hộp UAC
     }

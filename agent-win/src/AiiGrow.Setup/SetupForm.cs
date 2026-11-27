@@ -575,7 +575,6 @@ internal sealed class SetupForm : Form
         var toi = SidDangDung();
         // Gợi ý: máy đã có tài khoản giới hạn (không phải tài khoản đang dùng) ⇒ chắc là của con; không thì tạo mới.
         var coSan = _accounts.FirstOrDefault(a => !a.IsAdmin && a.Sid != toi);
-        if (coSan != null && _child == null) _child = coSan;   // #777 B5: chọn sẵn tài khoản có sẵn của con, Ba Mẹ chỉ bấm tiếp
         HienTaiKhoan(coSan != null ? 1 : 2);
     }
 
@@ -600,6 +599,7 @@ internal sealed class SetupForm : Form
         X(the, 128, 176, "Các con đã có tài khoản chung", Kieu.B);
         X(the, 128, 200, "Không cần mỗi bé một tài khoản Windows", Kieu.S);
         if (_child != null && (_child.Sid == toi || ds.All(a => a.Sid != _child.Sid))) _child = null;
+        if (_child == null) _child = ds.FirstOrDefault(a => !a.IsAdmin && a.Sid != toi);   // #777 B5: chọn sẵn tài khoản có sẵn của con
         ClayButton? tiep = null;
         var hang = new List<(ClayCard The, LocalAccount Tk, Label Ten, Label Phu)>();
         void VeChon()

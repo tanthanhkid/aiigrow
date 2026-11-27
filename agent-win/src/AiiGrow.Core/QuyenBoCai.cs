@@ -6,13 +6,14 @@ public enum HuongChayBoCai { Chay, TuNangQuyen, CanTaiKhoanBaMe }
 
 public static class QuyenBoCai
 {
-    /// <summary>Giá trị TOKEN_ELEVATION_TYPE: 1 = Default (tài khoản thường, hoặc UAC tắt), 2 = Full (đã nâng), 3 = Limited (quản trị, token đã lọc UAC).</summary>
+    /// <summary>0 = không đọc được ⇒ thử xin nâng quyền (UAC tự từ chối nếu là tài khoản thường).
+    /// Giá trị TOKEN_ELEVATION_TYPE: 1 = Default (tài khoản thường, hoặc UAC tắt), 2 = Full (đã nâng), 3 = Limited (quản trị, token đã lọc UAC).</summary>
     public const int NangDayDu = 2, DaLoc = 3;
 
     public static HuongChayBoCai Quyet(bool laQuanTri, int loaiNangQuyen)
     {
         if (laQuanTri) return HuongChayBoCai.Chay;           // đã nâng quyền (hoặc SYSTEM của dịch vụ tự cập nhật)
-        if (loaiNangQuyen == DaLoc) return HuongChayBoCai.TuNangQuyen;
+        if (loaiNangQuyen == DaLoc || loaiNangQuyen == 0) return HuongChayBoCai.TuNangQuyen;
         return HuongChayBoCai.CanTaiKhoanBaMe;
     }
 

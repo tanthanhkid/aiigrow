@@ -8,6 +8,7 @@ public class QuyenBoCaiTests
     [Fact] public void DaNangQuyen_Chay() => Assert.Equal(HuongChayBoCai.Chay, QuyenBoCai.Quyet(true, QuyenBoCai.NangDayDu));
     [Fact] public void QuanTriChuaNang_TuXinNangQuyen() => Assert.Equal(HuongChayBoCai.TuNangQuyen, QuyenBoCai.Quyet(false, QuyenBoCai.DaLoc));
     [Fact] public void TaiKhoanThuong_BaoCanBaMe() => Assert.Equal(HuongChayBoCai.CanTaiKhoanBaMe, QuyenBoCai.Quyet(false, 1));
+    [Fact] public void KhongDocDuocToken_ThuXinNangQuyen() => Assert.Equal(HuongChayBoCai.TuNangQuyen, QuyenBoCai.Quyet(false, 0));
     [Fact] public void ChuBao_TiengViet_KhongNoiPIN()
     {
         Assert.Contains("Ba Mẹ", QuyenBoCai.ChuCanBaMe);
