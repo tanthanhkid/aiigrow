@@ -194,3 +194,15 @@ test("#563: lượt có trang «Tính phút» đọc luật MỘT lần cho cả
   const conLai = (await q<{ ten_mien: string }>(`select ten_mien from web_nhat_ky where device_id = $1`, [mayId])).map((x) => x.ten_mien);
   assert.ok(!conLai.includes("ngay-92.vn") && conLai.includes("ngay-91.vn") && conLai.includes("choi0.vn"), conLai.join(","));
 });
+
+test("#750: bí danh tên miền hai chiều + chuẩn hoá đường dẫn con", () => {
+  assert.deepEqual(web.tenMienDiKem(["vioedu.vn"]), ["vio.edu.vn"]);
+  assert.deepEqual(web.tenMienDiKem(["vio.edu.vn"]), ["vioedu.vn"]);
+  assert.deepEqual(web.tenMienDiKem(["vioedu.vn", "vio.edu.vn"]), []);
+  assert.deepEqual(web.chuanHoaDuongDan("https://www.youtube.com/kids?x=1"), { mien: "youtube.com", gopVe: { tu: "youtube.com/kids", ve: "youtube.com" } });
+  assert.deepEqual(web.chuanHoaDuongDan("youtube.com/"), { mien: "youtube.com" });
+  assert.deepEqual(web.chuanHoaDuongDan("scratch.mit.edu"), { mien: "scratch.mit.edu" });
+  assert.deepEqual(web.chuanHoaDuongDan("khong hop le"), { mien: null });
+  const cs = web.chinhSachWebCho({ luat: [{ muc: "vioedu.vn", loai: "hoc" } as never], allowlistHeThong: [], phien: null as never, webChiChoPhep: true });
+  assert.ok(cs.cho.includes("vio.edu.vn") && cs.cho.includes("vioedu.vn"));
+});

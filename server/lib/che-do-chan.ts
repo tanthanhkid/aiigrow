@@ -11,7 +11,7 @@ import { allowlistHieuLuc, boMucChoCon, chuanMuc, datLuat, khoaSo, type NhomGiai
 import { kieuMuc } from "./chinh-sach.ts";
 import { dsBoQua, guiYeuCau } from "./yeu-cau.ts";
 import { gioDiaPhuong } from "./gio.ts";
-import { tenMienSach } from "./web.ts";
+import { chuanHoaDuongDan, tenMienSach } from "./web.ts";
 import {
   cheDoChanCua, cheDoCua, loaiTuNhom, nhanCheDo, nhanNhom, nhomTuLoai, TEN_CHE_DO, TEN_NHOM_DS, type NhomDs,
 } from "./chan-co-ban.ts";
@@ -266,14 +266,16 @@ export async function themVaoDanhSach(fam: string, con: string, b: MucThem & { d
   const ds = (Array.isArray(b.ds) ? b.ds : [b]).slice(0, 60) as MucThem[];
   if (!ds.length) throw new LoiNghiepVu("thieu_muc", "Chọn app hoặc trang web để thêm");
   return tx(async (t) => {
-    const daDat: { ten: string; muc: string[]; nhom: NhomDs }[] = [], choKhop: string[] = [];
+    const daDat: { ten: string; muc: string[]; nhom: NhomDs }[] = [], choKhop: string[] = [], gopVe: { tu: string; ve: string }[] = [];
     for (const x of ds) {
       const nhom = nhanNhom(x?.nhom);
       if (!nhom) throw new LoiNghiepVu("nhom_sai", "Chọn «Tính phút» hoặc «Không tính phút»");
       if (x.muc !== undefined && x.muc !== null && String(x.muc).trim()) {
         const tho = String(x.muc);
         const laWeb = x.kieu === "web" || (x.kieu !== "app" && kieuMuc(chuanMuc(tho)) === "web");
-        const muc = laWeb ? tenMienSach(tho) : chuanMuc(tho);
+        const cd = laWeb ? chuanHoaDuongDan(tho) : null;
+        const muc = cd ? cd.mien : chuanMuc(tho);
+        if (cd?.gopVe) gopVe.push(cd.gopVe);
         if (!muc) throw new LoiNghiepVu("ten_mien_sai", "Nhập tên miền dạng ten.com (dán link cũng được)");
         // trang web: tên hiển thị = tên miền (hàng «Web»); app theo định danh: tên Ba Mẹ gõ hoặc chính định danh
         const ten = laWeb ? muc : String(x.ten ?? muc).trim().slice(0, 60) || muc;
@@ -287,7 +289,7 @@ export async function themVaoDanhSach(fam: string, con: string, b: MucThem & { d
     }
     if (daDat.length || choKhop.length)
       await ghiSuKien(fam, "them_vao_danh_sach", { ds: [...daDat.map((d) => ({ ten: d.ten, nhom: d.nhom })), ...choKhop.map((ten) => ({ ten, nhom: null }))] }, { con, nguoi }, t);
-    return { daDat, choKhop };
+    return { daDat, choKhop, ...(gopVe.length ? { gopVe } : {}) };   // gopVe: mục dán kèm đường dẫn con, luật chỉ giữ tên miền (#750)
   });
 }
 

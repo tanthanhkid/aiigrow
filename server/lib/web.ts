@@ -183,6 +183,10 @@ const TEN_MIEN_DI_KEM: Record<string, string[]> = {
   "microsoft.com": ["login.microsoftonline.com", "login.live.com", "office.net"],
   "khanacademy.org": ["kastatic.org", "kasandbox.org"],
   "canva.com": ["canva-apps.com", "canva.dev"],
+  // bí danh hai chiều (#750): trang chuyển hướng giữa hai tên — bé gõ tên nào cũng vào được
+  "vioedu.vn": ["vio.edu.vn"], "vio.edu.vn": ["vioedu.vn"],
+  "olm.vn": ["olm.edu.vn"], "olm.edu.vn": ["olm.vn"],
+  "violympic.vn": ["violympic.edu.vn"], "violympic.edu.vn": ["violympic.vn"],
 };
 
 /** Tên miền đi kèm của các mục `ds` (không lặp lại mục đã có). */
@@ -191,6 +195,16 @@ export function tenMienDiKem(ds: string[]): string[] {
   for (const m of ds) for (const [k, kem] of Object.entries(TEN_MIEN_DI_KEM))
     if (m === k || m.endsWith("." + k)) for (const x of kem) if (!co.has(x)) ra.add(x);
   return [...ra];
+}
+
+/** Dán đường dẫn con (youtube.com/kids): luật chỉ giữ tên miền ⇒ trả thêm `gopVe` để báo Ba Mẹ mục sẽ được gộp về cả tên miền. */
+export function chuanHoaDuongDan(v: unknown): { mien: string | null; gopVe?: { tu: string; ve: string } } {
+  const mien = tenMienSach(v);
+  if (!mien) return { mien: null };
+  const tho = String(v ?? "").trim().toLowerCase().replace(/^[a-z][a-z0-9+.-]*:\/\//, "").replace(/^www\./, "");
+  const i = tho.search(/[/?#]/);
+  const duong = i < 0 ? "" : tho.slice(i).replace(/[?#].*$/, "").replace(/\/+$/, "");
+  return duong ? { mien, gopVe: { tu: tho.slice(0, i) + duong, ve: mien } } : { mien };
 }
 
 export type ChinhSachWeb = {
