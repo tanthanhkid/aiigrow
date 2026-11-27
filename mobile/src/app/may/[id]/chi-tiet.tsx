@@ -1,5 +1,5 @@
 // them-1016dwpz «Máy cả nhà · chi tiết» (thiết kế chốt 15/11, #267): một máy chung nhiều bé — thẻ «<bé> đang dùng» (app · phút hôm nay trên máy
-// này · sao còn = phút chơi, nút «Đổi người» — bảng them-jjrfg2hs: 3 bước đổi trên máy), «Sao của từng bé · luật đi theo bé» (số dư từng bé, âm = đang nợ), «Khoá»:
+// này · sao còn = phút chơi, nút «Đổi người» — bảng them-jjrfg2hs: 3 bước đổi trên máy), «Sao của từng bé · luật đi theo bé» (số dư từng bé, nợ hiện riêng), «Khoá»:
 // theo máy (POST may/:id/khoa — mọi bé, them-tmezw761) · theo bé (POST con/:id/khoa — mọi máy của bé, máy chung chỉ khoá phần của bé, them-sll7clha).
 // Dữ liệu: GET may/:id/con + GET tuan-thu (máy khác) + GET phien-dang (app đang mở). Mở từ thẻ sân của màn máy (bm2-may-m1).
 import { useState } from "react";
@@ -16,6 +16,9 @@ import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { BangTruot, BaoLoi, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { chuPhut } from "@/lib/chu-phut";
 
+
+/** Nợ của một bé: máy chủ gửi `no`; máy chủ cũ chỉ gửi sao âm ⇒ suy từ đó (#745). */
+const noCua = (c: { sao: number; no?: number }) => c.no ?? (c.sao < 0 ? -c.sao : 0);
 
 export default function MayChiTiet() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -43,7 +46,7 @@ export default function MayChiTiet() {
   const khoaMay = mayDangKhoa(cm.khoaMay);
   const xong = (chu: string, hoan: () => Promise<unknown>) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); };
   const dongBe = (c: ConCuaMay, k: number) => {
-    const no = c.sao < 0;
+    const no = noCua(c);
     const phu = c.phutHomNay ? `${chuPhut(c.phutHomNay)} trên máy này hôm nay` : c.lanCuoi ? `dùng máy này lúc ${gioPhut(c.lanCuoi)}` : "chưa dùng máy này";
     return (
       <View key={c.id} style={[{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 10, paddingRight: 4 }, keDau(k)]}>
@@ -53,7 +56,7 @@ export default function MayChiTiet() {
             <Chu kieu="rat" dong={1} style={{ flex: 1 }}>{tenGoi(c.ten)}</Chu>
             <SaoNho n={c.sao} co={12.5} />
           </View>
-          {no ? <Chu kieu="dam7" co={12} mau={M.canh} style={{ lineHeight: 16 }}>{`Đang nợ Ba Mẹ ${-c.sao} sao · sao nhiệm vụ trả nợ trước`}</Chu> : null}
+          {no > 0 ? <Chu kieu="dam7" co={12} mau={M.canh} style={{ lineHeight: 16 }}>{`Đang nợ Ba Mẹ ${no} sao · sao nhiệm vụ trả nợ trước`}</Chu> : null}
           <Chu kieu="dam" co={12} mau={M.chu3} style={{ lineHeight: 16 }}>{`${c.dangDung ? "Đang dùng · " : ""}${phu}`}</Chu>
         </View>
       </View>
@@ -91,8 +94,8 @@ export default function MayChiTiet() {
               <Chu kieu="dam7" co={12} mau={M.chu2}>hôm nay trên máy này</Chu>
             </View>
             <View style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 10, borderRadius: 18, backgroundColor: M.the, ...KHOI.heroNho }}>
-              <Chu kieu="rat" co={20} so mau={dangDung.sao < 0 ? M.canh : M.diemInk} style={{ lineHeight: 24 }}>{`${dangDung.sao < 0 ? "−" : ""}${Math.abs(dangDung.sao)} sao`}</Chu>
-              <Chu kieu="dam7" co={12} mau={M.chu2}>{dangDung.sao < 0 ? "đang nợ Ba Mẹ" : `còn = ${dangDung.sao} phút chơi`}</Chu>
+              <Chu kieu="rat" co={20} so mau={noCua(dangDung) > 0 && dangDung.sao <= 0 ? M.canh : M.diemInk} style={{ lineHeight: 24 }}>{`${Math.max(0, dangDung.sao)} sao`}</Chu>
+              <Chu kieu="dam7" co={12} mau={M.chu2}>{noCua(dangDung) > 0 && dangDung.sao <= 0 ? "đang nợ Ba Mẹ" : `còn = ${Math.max(0, dangDung.sao)} phút chơi`}</Chu>
             </View>
           </View>
         ) : null}

@@ -108,7 +108,7 @@ export default function ViSao() {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingRight: 100 }}>
           <Icon3D ten="sao" co={48} />
           {k === "vay" ? <Chu kieu="rat" co={24} mau={mauThe} so style={{ flexShrink: 1 }}>{soChinh(s)}</Chu> : <>
-            <Chu kieu="tieu7" co={50} mau={k === "am" ? mauThe : M.chu} so style={{ lineHeight: 56, letterSpacing: -1 }}>{soVN(k === "am" ? -s.no : sao)}</Chu>
+            <Chu kieu="tieu7" co={50} mau={k === "am" ? mauThe : M.chu} so style={{ lineHeight: 56, letterSpacing: -1 }}>{soVN(k === "am" ? 0 : sao)}</Chu>
             <Chu kieu="rat" co={22} mau={k === "am" ? mauThe : M.chu} style={{ marginTop: 10 }}>sao</Chu>
           </>}
         </View>

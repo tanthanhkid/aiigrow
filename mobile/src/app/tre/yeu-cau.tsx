@@ -136,7 +136,7 @@ export default function YeuCau() {
                   <ChuD kieu="den" co={15} mau={NO.chu}>{`Đang nợ Ba Mẹ ${soVN(s.no)} sao`}</ChuD>
                   <ChuD kieu="rat" co={13} mau={NO.chu}>Sao nhiệm vụ trả nợ trước</ChuD>
                 </View>
-                <ChuD kieu="den" co={17} mau={NO.chu} so>{soSao(-s.no)}</ChuD>
+                <ChuD kieu="den" co={17} mau={NO.chu} so>{`${soVN(s.no)} sao`}</ChuD>
               </View>
             </TheD>
           ) : null}
