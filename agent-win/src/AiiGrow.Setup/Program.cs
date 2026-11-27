@@ -9,6 +9,13 @@ internal static class Program
     private static int Main(string[] args)
     {
         ApplicationConfiguration.Initialize();
+        var huong = QuyenBoCai.Quyet(Installer.IsAdmin(), LoaiNangQuyen());
+        if (huong == HuongChayBoCai.TuNangQuyen) return NangQuyenRoiChayLai(args);
+        if (huong == HuongChayBoCai.CanTaiKhoanBaMe)
+        {
+            HopThoai.Hien(QuyenBoCai.ChuCanBaMe, QuyenBoCai.TieuDeCanBaMe, loi: true);
+            return 5;
+        }
         bool silent = args.Any(a => a.Equals("/silent", StringComparison.OrdinalIgnoreCase) || a.Equals("--silent", StringComparison.OrdinalIgnoreCase));
 
         if (args.Any(a => a.Equals("--uninstall", StringComparison.OrdinalIgnoreCase) || a.Equals("/uninstall", StringComparison.OrdinalIgnoreCase)))
@@ -47,6 +54,33 @@ internal static class Program
         // Luồng cài có giao diện (chọn tài khoản; ghép bằng gói nếu có, không thì mã 6 số).
         Application.Run(new SetupForm(coGoi ? pkg : null));
         return 0;
+    }
+
+    [System.Runtime.InteropServices.DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool GetTokenInformation(IntPtr token, int lop, out int giaTri, int cb, out int cbRa);
+
+    /// <summary>TOKEN_ELEVATION_TYPE của tiến trình (1 thường, 2 đã nâng, 3 quản trị bị lọc UAC); 0 nếu không đọc được.</summary>
+    private static int LoaiNangQuyen()
+    {
+        try
+        {
+            using var id = System.Security.Principal.WindowsIdentity.GetCurrent();
+            return GetTokenInformation(id.Token, 18, out var v, sizeof(int), out _) ? v : 0;
+        }
+        catch { return 0; }
+    }
+
+    /// <summary>Tài khoản quản trị mở bộ cài thường (token lọc UAC) ⇒ xin nâng quyền (hộp UAC «Có/Không») rồi chạy lại cùng tham số.</summary>
+    private static int NangQuyenRoiChayLai(string[] args)
+    {
+        try
+        {
+            var psi = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath ?? "", string.Join(" ", args.Select(a => a.Contains(' ') ? "\"" + a + "\"" : a)))
+            { UseShellExecute = true, Verb = "runas" };
+            using var p = System.Diagnostics.Process.Start(psi);
+            return 0;
+        }
+        catch (System.ComponentModel.Win32Exception) { return 1; }   // Ba Mẹ bấm «Không» ở hộp UAC
     }
 
     private static bool CoCo(string[] args, string ten) =>
