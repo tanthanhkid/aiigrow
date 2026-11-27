@@ -245,7 +245,7 @@ internal sealed class SetupForm : Form
         }
     }
 
-    /// <summary>Điện thoại Ba Mẹ minh hoạ (màn Ghép máy): AiiGrow › Ghép máy hiện mã 6 số, «Dùng được 10 phút».</summary>
+    /// <summary>Điện thoại Ba Mẹ minh hoạ (màn Ghép máy): AiiGrow › Cả nhà › Ghép thêm máy hiện mã 6 số, «Dùng được 10 phút».</summary>
     private sealed class DienThoai : VeTay
     {
         protected override void Ve(Graphics g)
@@ -833,7 +833,7 @@ internal sealed class SetupForm : Form
         var ve = new DienThoai { Size = new Size(S(141), S(237)), Location = ToaDo(dt, 94, 146) };
         dt.Controls.Add(ve);
         var a = X(dt, 36, 396, "Điện thoại Ba Mẹ", Kieu.B);
-        var b = X(dt, 36, 420, "AiiGrow › Ghép máy", Kieu.S);
+        var b = X(dt, 36, 420, "AiiGrow › Cả nhà › Ghép thêm máy", Kieu.S);
         foreach (var l in new[] { a, b }) { l.AutoSize = false; l.Size = new Size(S(256), l.PreferredHeight); l.TextAlign = ContentAlignment.TopCenter; }
     }
 
@@ -904,7 +904,7 @@ internal sealed class SetupForm : Form
         var the = The(316, 372, 371, 94);
         Vien(the, 334, 397, "dong_ho_cat", 44, "ngoc");
         X(the, 392, 394, "Xin Ba Mẹ mã mới trên điện thoại", Kieu.B, 280);
-        X(the, 392, 420, "AiiGrow › Ghép máy › Lấy mã mới", Kieu.S, 280);
+        X(the, 392, 420, "AiiGrow › Cả nhà › Ghép thêm máy", Kieu.S, 280);
         NutChinh("Gõ lại mã", 220, () => { _dungMa = true; BuocGhep(); });
     }
 
@@ -972,8 +972,8 @@ internal sealed class SetupForm : Form
         var link = o.Package != null;
         X(_body, 270, 90, link ? "Link ghép đã hết hạn" : "Mã ghép đã hết hạn", Kieu.H);
         X(_body, 270, 134, link
-            ? "Link Ba Mẹ gửi đã hết hạn hoặc đã dùng. Trên điện thoại Ba Mẹ, bấm «Ghép máy» để lấy mã mới rồi gõ ở đây."
-            : $"Mã {LoiGhep.Hien(o.Code)} chỉ dùng được 10 phút. Trên điện thoại Ba Mẹ, bấm «Lấy mã mới» rồi gõ lại.", Kieu.P, 417);
+            ? "Link Ba Mẹ gửi đã hết hạn hoặc đã dùng. Trên điện thoại Ba Mẹ, vào Cả nhà › Ghép thêm máy để lấy mã mới rồi gõ ở đây."
+            : $"Mã {LoiGhep.Hien(o.Code)} chỉ dùng được 10 phút. Trên điện thoại Ba Mẹ, vào Cả nhà › Ghép thêm máy để lấy mã mới rồi gõ lại.", Kieu.P, 417);
         var the = The(270, 218, 417, 96);
         Vien(the, 290, 238, "dong_ho_cat", mau: "cam");
         X(the, 362, 244, "Chưa cài gì lên máy", Kieu.B, 310);
