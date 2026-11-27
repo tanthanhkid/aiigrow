@@ -1532,7 +1532,8 @@ await kichBan("Hồ sơ Con: mục «Liên kết AiiRob» hiện mã <family_id>
   await goi("Browser.grantPermissions", { origin: GOC, permissions: ["clipboardReadWrite", "clipboardSanitizedWrite"] });
   await di("/ho-so/c1");
   xet(await doi("Liên kết AiiRob"), "có mục Liên kết AiiRob");
-  xet(!(await chu())?.includes(MA_AIIROB), "chuỗi mã dài không hiện làm nội dung chính");
+  xet(await doi("Bấm «Sao chép mã» rồi dán vào AiiRob"), "có 1 câu giải thích");
+  xet(!((await chu()) ?? "").includes(MA_AIIROB), "chuỗi mã dài không hiện làm nội dung chính");
   xet(nhatKy.some((x) => x.m === "GET" && x.d === "con/c1/lien-ket-aiirob"), "gọi GET con/c1/lien-ket-aiirob");
   await bam("Sao chép mã");
   xet((await js("navigator.clipboard.readText().catch(() => null)")) === MA_AIIROB, "Sao chép ⇒ mã vào bộ nhớ tạm");

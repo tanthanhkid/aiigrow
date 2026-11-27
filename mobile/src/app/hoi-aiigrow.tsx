@@ -1,4 +1,4 @@
-// «Hỏi AiiGrow» (thiết kế 14/11 bm-ca-nha/13 them-zxu4yvp3): Grow «Ba Mẹ cần giúp gì ạ?», thẻ lớn «Nhắn tin AiiGrow · Hỏi gì cũng được, có người trả lời»
+// «Hỏi AiiGrow» (thiết kế 14/11 bm-ca-nha/13 them-zxu4yvp3): Grow «Ba Mẹ cần giúp gì ạ?», thẻ lớn «Nhắn tin AiiGrow · Hỏi gì cũng được, trả lời qua tin nhắn»
 // (⇒ chat /ho-tro, bm-ca-nha/14), «Ba Mẹ hay hỏi» — mỗi câu mở thẳng màn trả lời: máy chưa bảo vệ ⇒ Máy của con · sao đổi ra phút ⇒ Ví sao của con ·
 // mời ông bà ⇒ Mời người nhà · ghép thêm máy ⇒ Máy của con.
 import { router } from "expo-router";
