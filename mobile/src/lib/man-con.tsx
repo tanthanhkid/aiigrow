@@ -88,9 +88,9 @@ export function ThePhut({ s, bam, nut, nut2 }: { s: SaoCon; bam?: () => void; nu
   );
 }
 
-/** Thẻ sao (cdt-nha-chinh / Ví quà): «Sao của con · ⏳ chờ duyệt +10» + «18 sao» to; âm ⇒ màu cảnh báo + «Đang nợ Ba Mẹ 20 sao». Thẻ màu DUY NHẤT của màn. */
-export function TheSao({ sao, no = 0, choThem, nut, nhan = "Sao của con" }: { sao: number; no?: number; choThem?: number; nut?: { chu: string; bam: () => void; ic?: TenIcon }; nhan?: string }) {
-  const am = no > 0 && sao <= 0;
+/** Thẻ sao (cdt-nha-chinh / Ví quà): «Sao của con · ⏳ chờ duyệt +10» + «18 sao» to; hết sao mà còn nợ ⇒ màu cảnh báo + «Đang nợ Ba Mẹ 20 sao». Thẻ màu DUY NHẤT của màn. */
+export function TheSao({ sao, no = 0, het = sao <= 0, choThem, nut, nhan = "Sao của con" }: { sao: number; no?: number; het?: boolean; choThem?: number; nut?: { chu: string; bam: () => void; ic?: TenIcon }; nhan?: string }) {
+  const am = no > 0 && het;
   const mau = am ? NO.chu : D.saoInk;
   return (
     <TheD vang={!am} style={am ? { backgroundColor: NO.nen, borderColor: NO.vien } : undefined} nhanDoc={`${nhan}: ${soSao(sao)}${no > 0 ? `. Đang nợ Ba Mẹ ${no} sao` : ""}`}>

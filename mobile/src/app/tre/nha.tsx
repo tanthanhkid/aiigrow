@@ -68,7 +68,7 @@ export default function Nha() {
         <ThePhut s={s} bam={() => diGio(s.hetSao)} nut={{ chu: "Xin Ba Mẹ cho vay sao", bam: () => router.push("/tre/them-gio") }} nut2={XIN_THEM} />
       )}
       {!s.khoa && !moHet && gh ? <DongD ic={nha.gioiHan?.lyDoKhoa ? "dong_ho_cat" : "dongho"} tieu={gh.tieu} phu={gh.phu} /> : null}
-      <TheSao sao={s.sao} no={s.no} choThem={nha.diemChoDuyet || undefined} nhan={moHet ? "Sao để đổi quà" : "Sao của con"}
+      <TheSao sao={s.sao} no={s.no} het={s.hetSao} choThem={nha.diemChoDuyet || undefined} nhan={moHet ? "Sao để đổi quà" : "Sao của con"}
         nut={moHet ? { chu: "Đổi quà bằng sao", ic: "qua", bam: () => router.push("/tre/cua-hang") }
           : { chu: "Chơi bằng sao · 1 sao = 1 phút", bam: () => router.push("/tre/choi") }} />
       {nha.canBoSung.map((x) => (

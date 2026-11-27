@@ -233,7 +233,7 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     // 14/11 «Khoá riêng máy này»: khoá của MÁY gộp vào cùng trường khoaNgay (agent mọi OS đã đọc) — khoá của Con thắng (giữ mở tạm / hạn của Con)
     lich: lichCua(c?.lich as never), khoaNgay: conKhoa || mayKhoa,
     khoaLaiLuc: mayKhoa ? null : moTamDen(c?.cau_hinh, now), khoaHetLuc,
-    soDu: qy ? qy.soSao.phutCon : 0,          // = tổng điểm (sao + nợ) — trùng `soDu(con)`, lấy từ quyHomNay khỏi thêm một câu `points`
+    soDu: qy ? qy.soSao.phutCon : 0,          // = sao tiêu được (≥ 0, #745) — trùng `soDu(con)` khi sổ không lệch, lấy từ quyHomNay khỏi thêm một câu `points`
     phien: ph ? { id: ph.id, muc: ph.muc, conPhut: Math.max(0, Math.ceil(ph.toi_da_phut - ph.phut_dung)), may: ph.device_id } : null,
     tz: f.tz, lechGioPhut: ts.lech_gio_phut, phienToiDa: ts.phien_toi_da,
     // #262: web theo chế độ — «Theo danh sách» chỉ mở trang trong danh sách; «Mở hết» mở mọi trang

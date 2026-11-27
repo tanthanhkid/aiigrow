@@ -24,9 +24,13 @@ export const KIEM_SQL = `((delta > 0 and loai not in ('hoan', 'vay', 'tra_no', '
 export const soDu = async (con: string, t: Q = q) =>
   ((await t<{ d: number }>(`select coalesce(sum(delta), 0)::int as d from points where child_id = $1`, [con]))[0].d);
 
+const daLog = new Map<string, number>();
 /** MỘT hàm duy nhất cho số dư khả dụng (#745): `tong` = tổng sổ cái, kẹp về 0 (lệch dữ liệu ⇒ ghi log để dò). Dùng cho cả «sao» lẫn «phút chơi». */
 export function saoKhaDung(tong: number, con?: string) {
-  if (tong < 0) console.warn(`[vi] sổ sao lệch: Con ${con ?? "?"} tổng ${tong} < 0 ⇒ kẹp về 0`);
+  if (tong < 0) {   // log tối đa 1 lần / phút / Con (đường nóng gọi liên tục)
+    const k = con ?? "?", now = Date.now();
+    if (now - (daLog.get(k) ?? 0) > 60_000) { daLog.set(k, now); console.warn(`[vi] sổ sao lệch: Con ${k} tổng ${tong} < 0 ⇒ kẹp về 0`); }
+  }
   return Math.max(0, tong);
 }
 
@@ -101,7 +105,8 @@ export const SQL_TOM_TAT_VI = `select coalesce((select sum(delta) from points wh
 export async function tomTatVi(con: string) {
   const r = (await one<{ du: number; no: number; vay: number; tra: number; kiem: number; cho: number; giu: number }>(SQL_TOM_TAT_VI, [con]))!;
   const no = Math.max(0, r.no), tieu = saoKhaDung(r.du, con);
-  // `soDu` (cũ) = sao TIÊU ĐƯỢC (≥ 0 — app/agent cũ dùng để biết đủ sao đổi quà) · `sao` (15/11) = số dư Con thấy, ÂM khi nợ.
+  // `soDu` (cũ) = sao TIÊU ĐƯỢC (≥ 0 — app/agent cũ dùng để biết đủ sao đổi quà) · `sao` = số dư Con thấy, kẹp >= 0 (#745).
+  // `sao` (#745) KẸP ≥ 0, KHÔNG âm khi nợ (nợ ở `no`).
   // saoGiu (06/11, L14): sao đang GIỮ cho quà chờ Ba Mẹ trao (đã ghi trừ tạm; Ba Mẹ huỷ ⇒ hoàn) — «Đang giữ 50 sao cho quà chờ trao»
   return { soDu: tieu, sao: Math.max(0, tieu - no), saoRong: tieu - no, no, saoVayChuaTieu: Math.min(tieu, no), phutCon: tieu, hetSao: tieu <= 0, tongVay: r.vay, daTraNo: r.tra,
     canhBaoNo: no > NGUONG_NO, diemChoDuyet: r.cho, saoChoDuyet: r.cho, saoGiu: r.giu, tongKiem: Math.max(0, r.kiem), capDo: capDo(Math.max(0, r.kiem)) };

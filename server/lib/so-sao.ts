@@ -1,6 +1,6 @@
 // SỔ SAO (#263–#266, thiết kế chốt 15/11/2026) — vay sao, số dư âm, trả nợ trước, 1 sao = 1 phút «Tính phút», cảnh báo nợ > 1.000.
 //   • Sổ cái là `points` (lib/vi.ts): tổng delta = SAO TIÊU ĐƯỢC (≥ 0) = phút «Tính phút» còn chơi được. Nợ = tổng (vay + tra_no).
-//     Số dư Con thấy (`sao`) = sao tiêu được − nợ (âm khi nợ). Hết sao = sao tiêu được ≤ 0 (số dư ≤ 0 và không còn sao vay chưa tiêu).
+//     Số dư Con thấy (`sao`) = sao tiêu được − nợ (kẹp ≥ 0 (#745), nợ ở no). Hết sao = sao tiêu được ≤ 0 (số dư ≤ 0 và không còn sao vay chưa tiêu).
 //   • Ba Mẹ cho vay N sao (choVay): +N `vay` — Con dùng ngay (chơi N phút hoặc đổi quà). Sao kiếm được trả nợ trước (vi.ts › ghiDiem).
 //   • Chơi app / web nhóm «Tính phút» (luật giai_tri): trừ 1 sao mỗi phút dùng thật (tinhPhutChoi) — tính theo ĐỒNG HỒ MÁY CHỦ của từng Con
 //     (choi_dong_ho.phu_den): hai máy cùng chơi một lúc chỉ trừ phần thời gian thật đã trôi, không trừ đôi. Không còn quỹ phút mỗi ngày.
