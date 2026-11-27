@@ -118,7 +118,7 @@ export async function taoNv(fam: string, b: Record<string, unknown>, nguoi?: str
   return id;
 }
 
-const chuanTen = (t: string) => t.trim().replace(/\s+/g, " ").toLowerCase();
+const chuanTen = (t: string) => t.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase();
 
 /** Tên việc (không phân biệt hoa thường/khoảng trắng thừa) đã có ở một trong các Con (hoặc việc giao cả nhà) ⇒ ném `trung_ten` 409 — Ba Mẹ bấm đúp/gõ lại thì không ra việc thứ hai (#756). */
 export async function chanTrungTen(fam: string, ten: unknown, cons: (string | null)[], t: Q = q) {

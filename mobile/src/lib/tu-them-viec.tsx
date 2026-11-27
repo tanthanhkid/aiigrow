@@ -75,7 +75,7 @@ export function FormTuThem({ dsCon, con, mucSan, xong, nhanNut = "Thêm vào m�
       <TextInput value={ten} onChangeText={(t) => { setTen(t); setTrung(null); }} placeholder="Ví dụ: Tưới cây" placeholderTextColor={M.chu3} maxLength={90} accessibilityLabel="Con sẽ làm gì?"
         style={{ minHeight: 50, borderRadius: 25, paddingHorizontal: 18, backgroundColor: M.xamSoft, boxShadow: BONG.lom, fontFamily: F.dam7, fontSize: 16, color: M.chu }} />
       {ngan ? <Chu kieu="dam" co={13.5} mau={M.loi} style={{ marginHorizontal: 4 }}>Tên cần ít nhất 3 ký tự để con hiểu việc cần làm</Chu> : null}
-      <Chips ds={GOI_Y.map((x) => ({ gia: x, chu: x }))} chon={[ten.trim()]} doi={setTen} />
+      <Chips ds={GOI_Y.map((x) => ({ gia: x, chu: x }))} chon={[ten.trim()]} doi={(t) => { setTen(t); setTrung(null); }} />
 
       <Nhan chu="Hình" />
       <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
