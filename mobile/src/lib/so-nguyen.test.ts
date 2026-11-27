@@ -8,4 +8,6 @@ test("số thập phân: chỉ giữ phần nguyên, không dính thành 455 / 2
   assert.equal(soNguyenGo("120"), "120");
   assert.equal(soNguyenGo("a1b2"), "12");
   assert.equal(soNguyenGo(".5"), "");
+  assert.equal(soNguyenGo("1.000"), "1000");
+  assert.equal(soNguyenGo("1,5"), "1");
 });

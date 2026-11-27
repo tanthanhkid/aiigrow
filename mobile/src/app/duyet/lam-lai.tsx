@@ -10,9 +10,9 @@ import { ChoTai, Man, useTai } from "@/lib/ui";
 export default function NhoLamLai() {
   const { id, gui, luc } = useLocalSearchParams<{ id: string; gui?: string; luc?: string }>();
   const { d, loi, matMang, tai } = useTai(async () => {
-    const [l, bc] = await Promise.all([bm.goi<LuotLamLai>(`luot/${id}`), bm.goi<{ ds: Pick<BangChung, "loai">[] }>(`luot/${id}/bang-chung`).catch(() => ({ ds: [] }))]);
+    const [l, bc] = await Promise.all([bm.goi<LuotLamLai>(`luot/${id}`), bm.goi<{ ds: Pick<BangChung, "loai">[] }>(`luot/${id}/bang-chung`).catch(() => ({ ds: [], loi: true as const }))]);
     const vi = await bm.goi<{ soDu: number; sao?: number }>(`con/${l.child_id}/vi`).catch(() => null);
-    return { l, ghiAm: bc.ds.some((b) => b.loai === "ghi_am") && !bc.ds.some((b) => b.loai === "anh"), viet: !bc.ds.length && !!l.ghi_chu, sao: vi ? (vi.sao ?? vi.soDu) : null };
+    return { l, ghiAm: bc.ds.some((b) => b.loai === "ghi_am") && !bc.ds.some((b) => b.loai === "anh"), viet: !("loi" in bc) && !bc.ds.length && !!l.ghi_chu, sao: vi ? (vi.sao ?? vi.soDu) : null };
   });
   const [daGui, setDaGui] = useState<{ nhan: string; luc: Date } | null>(gui !== undefined ? { nhan: gui, luc: luc ? new Date(luc) : new Date() } : null);
   if (!d) return <Man lui={{ chu: "Bằng chứng" }} tieu="Nhờ làm lại"><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;

@@ -1,6 +1,6 @@
 // Ô «Hoặc tự nhập số sao» dùng chung (#302): giao-nv/tu-dat, giao-nv/sua, thiet-lap/qua. Rỗng = dùng chip; xoá ô thì không còn giá trị ẩn.
 import { useState } from "react";
-import { soNguyenGo } from "./so-nguyen";
+import { soNguyenGo } from "./so-nguyen.ts";
 
 export function useSaoTu(toiDa: number) {
   const [chu, setChu] = useState("");
