@@ -123,7 +123,7 @@ internal static class Installer
         try
         {
             var gt = DangNhapMacDinh.GiaTri(child.Name, child.Sid, Environment.MachineName);
-            if (gt == null) return;
+            if (gt == null) { Program.WriteLog("Bỏ qua đăng nhập mặc định: tài khoản bé chưa rõ hoặc là tài khoản hệ thống."); return; }
             using var k = Registry.LocalMachine.CreateSubKey(DangNhapMacDinh.KhoaLogonUI);
             foreach (var (ten, v) in gt) k.SetValue(ten, v);
         }

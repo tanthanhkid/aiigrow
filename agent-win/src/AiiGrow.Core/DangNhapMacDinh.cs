@@ -26,10 +26,17 @@ public static class DangNhapMacDinh
         };
     }
 
+    /// <summary>Đã ghi đúng giá trị (không cần ghi lại) — Windows ghi đè «người dùng gần nhất» mỗi lần ai đó đăng nhập (kể cả Ba Mẹ).</summary>
+    public static bool DaKhop(IReadOnlyDictionary<string, string> mong, Func<string, string?> doc) =>
+        mong.All(kv => string.Equals(doc(kv.Key), kv.Value, StringComparison.OrdinalIgnoreCase));
+
     /// <summary>Số giây khoá chờ trước khi ngắt phiên của bé. Vừa bị ngắt (bé bấm Enter ở màn đăng nhập để vào lại) ⇒ chờ lâu hơn để bé thấy màn khoá
     /// và xin thêm giờ, thay vì bị đăng xuất lại ngay — vòng lặp «Enter → đăng xuất».</summary>
     public static int GiayChoNgat(DateTimeOffset now, DateTimeOffset? ngatCuoi) =>
-        ngatCuoi is { } n && now - n < TimedKhoiPhucLai ? 60 : 10;
+        ngatCuoi is { } n && now - n >= TimeSpan.Zero && now - n < CuaSoVaoLai ? GiayChoSauVaoLai : GiayChoMacDinh;
 
-    private static readonly TimeSpan TimedKhoiPhucLai = TimeSpan.FromMinutes(10);
+    /// <summary>Vào lại trong chừng này sau khi bị ngắt phiên coi là «bấm Enter ở màn đăng nhập để vào lại».</summary>
+    public static readonly TimeSpan CuaSoVaoLai = TimeSpan.FromMinutes(2);
+    public const int GiayChoMacDinh = 10;
+    public const int GiayChoSauVaoLai = 60;
 }

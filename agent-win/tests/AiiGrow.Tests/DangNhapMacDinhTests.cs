@@ -38,5 +38,15 @@ public class DangNhapMacDinhTests
         Assert.Equal(10, DangNhapMacDinh.GiayChoNgat(now, null));
         Assert.Equal(60, DangNhapMacDinh.GiayChoNgat(now, now.AddSeconds(-40)));
         Assert.Equal(10, DangNhapMacDinh.GiayChoNgat(now, now.AddMinutes(-30)));
+        Assert.Equal(10, DangNhapMacDinh.GiayChoNgat(now, now.AddMinutes(-5)));
+    }
+
+    [Fact]
+    public void DaKhop_ChiKhiMoiGiaTriDung()
+    {
+        var gt = DangNhapMacDinh.GiaTri("be", "S-1-5-21-1-2-3-1002", "MAY1")!;
+        Assert.True(DangNhapMacDinh.DaKhop(gt, n => gt[n]));
+        Assert.False(DangNhapMacDinh.DaKhop(gt, n => n == "SelectedUserSID" ? "S-1-5-21-1-2-3-1001" : gt[n]));
+        Assert.False(DangNhapMacDinh.DaKhop(gt, _ => null));
     }
 }

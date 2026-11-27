@@ -857,8 +857,7 @@ public sealed class AgentRuntime
             // màn «Ai đang dùng máy?» không đếm ngược, không ngắt phiên Windows (các bé chọn tên ngay trên màn này)
             // #337: «Cần có mạng» (bé chưa có luật lúc mất mạng) cũng không ngắt phiên — bé khác còn «Đổi người», Ba Mẹ nhập mã ngay trên màn
             if (!locked || !sessionActive || reason is LockReasons.ChonTen or LockReasons.CanMang) { _lockStartedAt = null; return; }
-            _lockStartedAt ??= now;
-            _lockGraceSec = DangNhapMacDinh.GiayChoNgat(now, _ngatCuoi);
+            if (_lockStartedAt == null) { _lockStartedAt = now; _lockGraceSec = DangNhapMacDinh.GiayChoNgat(now, _ngatCuoi); }   // chốt lúc bắt đầu khoá, không đổi giữa chừng
         }
     }
 
