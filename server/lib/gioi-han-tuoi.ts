@@ -21,7 +21,10 @@ const TRANG_13: [ten: string, mien: string[]][] = [
 
 /** Tên miền / link ⇒ tên trang giới hạn 13+ (hoặc null). «m.tiktok.com», «https://www.youtube.com/x» đều khớp. */
 export function trangGioiHan(muc: unknown): string | null {
-  const m = String(muc ?? "").trim().toLowerCase().replace(/^[a-z]+:\/\//, "").split(/[/?#\s]/)[0].replace(/:\d+$/, "").replace(/\.$/, "");
+  const goc = String(muc ?? "").trim().toLowerCase();
+  // app theo tên («TikTok», «You Tube»): khớp tên trang
+  for (const [ten] of TRANG_13) if (goc.replace(/[\s.]/g, "") === ten.toLowerCase().replace(/[\s().]/g, "")) return ten;
+  const m = goc.replace(/^[a-z]+:\/\//, "").split(/[/?#\s]/)[0].replace(/:\d+$/, "").replace(/\.$/, "");
   if (!m) return null;
   for (const [ten, miens] of TRANG_13) if (miens.some((d) => m === d || m.endsWith(`.${d}`))) return ten;
   return null;
@@ -65,5 +68,5 @@ export async function kiemTuoiLoiXin(fam: string, id: string, xacNhan: unknown, 
   if (xacNhan === true) return;
   const r = await one<{ child_id: string; loai: string; gia_tri: string }>(
     `select r.child_id, r.loai, r.gia_tri from requests r join children c on c.id = r.child_id where r.id = $1 and c.family_id = $2`, [id, fam]);
-  if (r && r.loai === "mo_web") await kiemTuoiTruocKhiCho(r.child_id, [r.gia_tri], xacNhan, fam, now);
+  if (r && (r.loai === "mo_web" || r.loai === "cai_app")) await kiemTuoiTruocKhiCho(r.child_id, [r.gia_tri], xacNhan, fam, now);
 }

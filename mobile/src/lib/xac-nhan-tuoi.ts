@@ -10,7 +10,7 @@ export class HuyYen extends Error {
 export const TIEU_DE_13 = "Trang này ghi từ 13 tuổi";
 
 const hoi = (cau: string) => new Promise<boolean>((xong) => {
-  if (Platform.OS === "web") { xong(typeof globalThis.confirm === "function" ? globalThis.confirm(`${TIEU_DE_13}\n\n${cau}`) : true); return; }
+  if (Platform.OS === "web") { xong(typeof globalThis.confirm === "function" ? globalThis.confirm(`${TIEU_DE_13}\n\n${cau}`) : false); return; }
   Alert.alert(TIEU_DE_13, cau, [{ text: "Thôi", style: "cancel", onPress: () => xong(false) }, { text: "Vẫn cho phép", onPress: () => xong(true) }],
     { cancelable: true, onDismiss: () => xong(false) });
 });

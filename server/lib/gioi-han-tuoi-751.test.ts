@@ -13,6 +13,7 @@ const NAM = new Date("2026-11-27T12:00:00+07:00");
 test("trangGioiHan: tên miền con, link đầy đủ, hoa thường; trang thường không khớp", () => {
   for (const m of ["tiktok.com", "m.tiktok.com", "https://www.youtube.com/watch?v=1", "YouTu.be", "instagram.com", "web.facebook.com", "discord.gg", "snapchat.com"])
     assert.ok(h.trangGioiHan(m), m);
+  assert.equal(h.trangGioiHan("TikTok"), "TikTok");
   for (const m of ["scratch.mit.edu", "khanacademy.org", "nottiktok.com", "tiktok.com.vn.example.org", "", null]) assert.equal(h.trangGioiHan(m), null, String(m));
 });
 

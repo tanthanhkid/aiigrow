@@ -187,7 +187,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       if (sau === "danh-sach" && get) return json(await danhSachCon(fam, id));
       if (sau === "danh-sach" && post) {
         // #751: trang 13+ cho bé dưới 13 tuổi ⇒ 409 can_xac_nhan_tuoi, Ba Mẹ xác nhận tiếp bằng xacNhanTuoi: true
-        await kiemTuoiTruocKhiCho(id, (Array.isArray(b.ds) ? b.ds : [b]).slice(0, 60).map((x: any) => x?.muc), b.xacNhanTuoi, fam);
+        await kiemTuoiTruocKhiCho(id, (Array.isArray(b.ds) ? b.ds : [b]).map((x: any) => x?.muc ?? x?.ten), b.xacNhanTuoi, fam);
         return json(await themVaoDanhSach(fam, id, b, bm.id));
       }
       if (sau === "danh-sach/doi" && post) return json(await doiNhomDanhSach(fam, id, b, bm.id));
@@ -352,7 +352,7 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
       // #258: «Bỏ qua» {loiNhan?} ⇒ {hoanTacDen} · «Hoàn tác» (60 giây sau Bỏ qua) · «Thêm luôn» {nhom} (lời xin đã bỏ qua)
       if (p[2] === "bo-qua" && post) return json(await yc.boQuaYc(fam, p[1], bm.id, b));
       if (p[2] === "hoan-tac" && post) return json(await yc.moLaiYc(fam, p[1], bm.id));
-      if ((p[2] === "them-luon" || p[2] === "dong-y") && post) await kiemTuoiLoiXin(fam, p[1], b.xacNhanTuoi);   // #751
+      if ((p[2] === "them-luon" || p[2] === "dong-y") && post && b.soSao === undefined) await kiemTuoiLoiXin(fam, p[1], b.xacNhanTuoi);   // #751
       if (p[2] === "them-luon" && post) return json(await yc.themLuonYc(fam, p[1], bm.id, b));
       if (p[2] === "xem-truoc" && get) return json(await yc.xemTruocDongY(fam, p[1], new URL(req.url).searchParams.get("soSao") ?? undefined));
       if (p[2] === "dong-y" && post) return json(await yc.dongY(fam, p[1], bm.id, b as yc.DongY));
