@@ -37,8 +37,8 @@ object NhatKy {
     }
 
     /** Sự kiện cho Ba Mẹ (loại phải có trong SU_KIEN_MAY của máy chủ, vd mo_ma_offline). `ma` sinh một lần ⇒ gửi lại không trùng. */
-    fun suKien(c: Context, loai: String, chiTiet: Map<String, Any> = emptyMap()) {
-        them(tepSuKien(c), dongSuKien(UUID.randomUUID().toString(), loai, Instant.now().toString(), chiTiet), SU_KIEN_GIU)
+    fun suKien(c: Context, loai: String, chiTiet: Map<String, Any> = emptyMap(), ma: String = UUID.randomUUID().toString()) {
+        them(tepSuKien(c), dongSuKien(ma, loai, Instant.now().toString(), chiTiet), SU_KIEN_GIU)
         tin("SuKien", "sự kiện $loai")
     }
 

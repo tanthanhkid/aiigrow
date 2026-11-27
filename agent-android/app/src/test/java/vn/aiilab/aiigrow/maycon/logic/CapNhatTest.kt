@@ -104,6 +104,17 @@ class CapNhatTest {
         assertNotNull(loiApk(goi, 4, emptyList(), goi, listOf(ed65), b))
     }
 
+    /** #727 C: Android báo `cap_nhat_loi` từ lần hỏng thứ 2 của cùng một bản, mã theo bản (cùng dạng agent-win). */
+    @Test fun baoBaMeCapNhatLoi() {
+        assertEquals(1, lanLoiMoi(null, 0, "0.2.5"))
+        assertEquals(2, lanLoiMoi("0.2.5", 1, "0.2.5"))
+        assertEquals(1, lanLoiMoi("0.2.5", 3, "0.2.6"))   // đổi bản ⇒ đếm lại
+        assertFalse(nenBaoBaMeLoi(1)); assertTrue(nenBaoBaMeLoi(2))
+        assertEquals("cap_nhat_loi:0.2.6", maSuKienCapNhatLoi("0.2.6"))
+        val ct = chiTietCapNhatLoi("0.2.6", "0.2.5", 2, "tải APK lỗi")
+        assertEquals("0.2.6", ct["ban"]); assertEquals("2", ct["lan"]); assertEquals("android", ct["nenTang"])
+    }
+
     /** #683: lỗi cài thoáng qua không làm máy kẹt bản cũ 24 giờ. Số mã theo android.content.pm.PackageInstaller.STATUS_FAILURE_*. */
     @Test fun nghiSauLoiCai() {
         val gio = 3600_000L

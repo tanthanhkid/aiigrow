@@ -33,3 +33,20 @@ test("cap_nhat_loi: cảnh báo chú ý cho Ba Mẹ kèm bản, mỗi mã một 
   const sk = await q<{ chi_tiet: any }>(`select chi_tiet from events where family_id = $1 and loai = 'may_cap_nhat_loi'`, [fam]);
   assert.equal(sk[0].chi_tiet.ban, "0.2.34");
 });
+
+// #727 C: máy Android cũng báo cùng loại sự kiện (chiTiet có nenTang) ⇒ cùng cảnh báo chú ý với Windows.
+test("cap_nhat_loi từ máy Android: cảnh báo chú ý, mã trùng không báo đôi", async () => {
+  const { fam } = await taoNha("CA");
+  const con = await g.taoCon(fam, { ten: "Bi" });
+  const may = await g.ghepMay(await g.taoMaGhep(fam, con, "android"), "android", "Pixel Bi", "9.9.9.8");
+  const e = { ma: "cap_nhat_loi:0.2.6", loai: "cap_nhat_loi", luc: "2026-11-27T08:00:00Z", chiTiet: { ban: "0.2.6", dangChay: "0.2.5", lan: "2", lyDo: "tải APK lỗi", nenTang: "android" } };
+  assert.equal((await dv("su-kien", { tok: may.token, body: { ds: [e] } })).body.nhan, 1);
+  assert.equal((await dv("su-kien", { tok: may.token, body: { ds: [e] } })).body.nhan, 0);
+  const cb = await q<{ loai: string; muc: string; noi_dung: string }>(`select * from alerts where family_id = $1`, [fam]);
+  assert.equal(cb.length, 1);
+  assert.equal(cb[0].loai, "may_cap_nhat_loi");
+  assert.equal(cb[0].muc, "chu_y");
+  assert.match(cb[0].noi_dung, /Pixel Bi/);
+  const sk = await q<{ chi_tiet: any }>(`select chi_tiet from events where family_id = $1 and loai = 'may_cap_nhat_loi'`, [fam]);
+  assert.equal(sk[0].chi_tiet.nenTang, "android");
+});

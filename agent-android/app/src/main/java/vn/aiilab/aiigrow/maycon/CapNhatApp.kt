@@ -31,6 +31,10 @@ import vn.aiilab.aiigrow.maycon.logic.docBanMoi
 import vn.aiilab.aiigrow.maycon.logic.khopSha256
 import vn.aiilab.aiigrow.maycon.logic.loiApk
 import vn.aiilab.aiigrow.maycon.logic.nenHoiCai
+import vn.aiilab.aiigrow.maycon.logic.chiTietCapNhatLoi
+import vn.aiilab.aiigrow.maycon.logic.lanLoiMoi
+import vn.aiilab.aiigrow.maycon.logic.maSuKienCapNhatLoi
+import vn.aiilab.aiigrow.maycon.logic.nenBaoBaMeLoi
 import vn.aiilab.aiigrow.maycon.logic.nghiSauLoiCaiMs
 import vn.aiilab.aiigrow.maycon.logic.CAI_LOI_DUNG_LUONG
 import vn.aiilab.aiigrow.maycon.logic.urlDauHopLe
@@ -103,7 +107,7 @@ object CapNhat {
         val b = try { layManifest(mayChu) } catch (e: Exception) { NhatKy.tin(TAG, "không lấy được manifest: ${e.message}"); return KetQua.LOI }
         if (!canCapNhat(b, BuildConfig.VERSION_CODE.toLong())) {
             thuMuc(ctx).listFiles()?.forEach { it.delete() }   // bản đã cài xong / manifest lùi bản ⇒ dọn tệp cũ
-            k.banMoiCho = null; k.hoanTu = 0; k.lanHoiCai = 0; huyThongBao(ctx)   // đã mới nhất ⇒ bản sau (hotfix) hỏi/cài ngay
+            k.banMoiCho = null; k.hoanTu = 0; k.lanHoiCai = 0; k.loiBan = null; k.loiLan = 0; huyThongBao(ctx)   // đã mới nhất ⇒ bản sau (hotfix) hỏi/cài ngay
             return KetQua.KHONG_CO
         }
         b!!
@@ -143,11 +147,23 @@ object CapNhat {
     }
 
     /** Hỏng một bước: xoá tệp, bỏ thẻ «có bản mới», nghỉ `nghiMs` rồi mới thử lại đúng bản này (manifest đổi sha256 ⇒ thử ngay). */
-    fun hong(ctx: Context, k: Kho, b: BanMoi?, lyDo: String, nghiMs: Long): KetQua {
+    fun hong(ctx: Context, k: Kho, b: BanMoi?, lyDo: String, nghiMs: Long, ban: String? = null): KetQua {
         NhatKy.canh(TAG, "${b?.version ?: "bản mới"}: $lyDo — xoá tệp, không cài, thử lại sau ${nghiMs / 60_000} phút")
         xoaTep(ctx); k.banMoiCho = null
         k.shaLoi = b?.sha256 ?: k.shaLoi; k.thuLaiSau = System.currentTimeMillis() + nghiMs
+        baoBaMe(ctx, k, b?.version ?: ban, lyDo)
         return KetQua.LOI
+    }
+
+    /** #727 C: hỏng lặp lại (từ lần 2) ⇒ xếp sự kiện `cap_nhat_loi` như agent-win; hàng đợi gửi ở nhịp kế, mã theo bản nên chỉ báo một lần. */
+    private fun baoBaMe(ctx: Context, k: Kho, ban: String?, lyDo: String) {
+        if (ban.isNullOrBlank()) return
+        val lan = lanLoiMoi(k.loiBan, k.loiLan, ban)
+        k.loiBan = ban; k.loiLan = lan
+        if (!nenBaoBaMeLoi(lan)) return
+        try {
+            NhatKy.suKien(ctx, "cap_nhat_loi", chiTietCapNhatLoi(ban, BuildConfig.VERSION_NAME, lan, lyDo), maSuKienCapNhatLoi(ban))
+        } catch (e: Exception) { NhatKy.canh(TAG, "chưa xếp được sự kiện cap_nhat_loi", e) }
     }
 
     /** Đang khoá / đếm ngược (ảnh chụp hiển thị còn mới ≤ 10 phút). Hoãn quá 12 giờ liền (khoá cả đêm, ảnh chụp kẹt) ⇒ cài luôn:
@@ -294,14 +310,14 @@ class NhanKetQuaCai : BroadcastReceiver() {
                 CapNhat.thongBao(c, null, "Có bản AiiGrow mới $ban", "Chạm để cập nhật AiiGrow (Ba Mẹ quản lý máy này).", Intent(xn))
                 try { c.startActivity(xn.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) } catch (e: Exception) { Log.i("AiiGrowCapNhat", "chưa mở được hộp xác nhận từ nền — chờ chạm thông báo") }
             }
-            PackageInstaller.STATUS_SUCCESS -> { CapNhat.xoaTep(c); CapNhat.huyThongBao(c); Kho(c).let { it.banMoiCho = null; it.lanHoiCai = 0 } }
+            PackageInstaller.STATUS_SUCCESS -> { CapNhat.xoaTep(c); CapNhat.huyThongBao(c); Kho(c).let { it.banMoiCho = null; it.lanHoiCai = 0; it.loiBan = null; it.loiLan = 0 } }
             // Con / Ba Mẹ bấm Huỷ: giữ tệp đã kiểm (không tải lại), thẻ «Cập nhật ngay» còn; tự hỏi lại sau 6 giờ
             PackageInstaller.STATUS_FAILURE_ABORTED -> Log.i("AiiGrowCapNhat", "huỷ cài $ban — giữ tệp, hỏi lại sau")
             else -> {
                 val k = Kho(c)
                 k.shaLoi = i.getStringExtra("sha") ?: k.shaLoi
                 // #683: lỗi thoáng qua (hết dung lượng, hết giờ, lỗi chung) nghỉ 1 giờ; APK hỏng / không hợp máy / bị chặn / xung đột nghỉ 24 giờ
-                CapNhat.hong(c, k, null, "cài $ban không xong ($st): ${i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}", nghiSauLoiCaiMs(st))
+                CapNhat.hong(c, k, null, "cài $ban không xong ($st): ${i.getStringExtra(PackageInstaller.EXTRA_STATUS_MESSAGE)}", nghiSauLoiCaiMs(st), ban)
             }
         }
     }
