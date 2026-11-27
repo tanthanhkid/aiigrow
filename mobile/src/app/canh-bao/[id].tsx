@@ -15,7 +15,7 @@ import { bm, type CanhBao, type GiaDinh, type TuanThuMay } from "@/lib/api";
 import { BONG, KHOI } from "@/lib/clay";
 import { HangViec, IC_MAY, quyenToi } from "@/lib/hang-ngay";
 import { BangKhoa } from "@/lib/khoa-may";
-import { BangChoVay, MAU_NO, saoTu, soVN, thamSoXongVay, type SaoCon } from "@/lib/so-sao";
+import { BangChoVay, MAU_NO, NGUONG_NO, saoTu, soVN, thamSoXongVay, type SaoCon } from "@/lib/so-sao";
 import { BaoLoi, ChoTai, Chu, gioPhut, Icon3D, M, Man, Nut, The, TickDong, useHoanTac, useLam, useTai, type TenIcon } from "@/lib/ui";
 
 const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
@@ -217,7 +217,7 @@ function CanhBaoNo({ id, x }: { id: string; x: CanhBao & { child_id: string; ten
       </Pressable>
       <Chu kieu="rat" co={16} style={{ marginHorizontal: 4, marginTop: 4 }}>Ba Mẹ nên biết</Chu>
       <The dem style={{ paddingVertical: 4 }}>
-        <HangViec dau ic="khoa" mau="cam" tieu="Không chặn việc cho vay" phu="Còn nợ trên 1.000, mỗi lần cho vay thêm Grow sẽ nhắc lại" />
+        <HangViec dau ic="khoa" mau="cam" tieu="Không chặn việc cho vay" phu={`Còn nợ trên ${soVN(NGUONG_NO)}, mỗi lần cho vay thêm Grow sẽ nhắc lại`} />
         <HangViec ic="tick" mau="xanh" tieu="Sao nhiệm vụ trả nợ trước"
           phu={viec ? `Duyệt «${viec.ten}» ${soVN(saoViec)} sao ⇒ còn nợ ${soVN(Math.max(0, s.no - saoViec))}` : "Mỗi sao con kiếm được trả nợ trước, hết nợ mới cộng"} />
         {bay ? <HangViec ic="lich" mau="lam" tieu={`7 ngày qua: vay ${soVN(bay.saoVay)}, trả ${soVN(bay.saoTraNo)} sao`}

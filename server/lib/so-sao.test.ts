@@ -100,23 +100,23 @@ test("cho vay song song không lệch; số sao sai ⇒ lỗi; nhà khác không
   await loi(ss.hoanTacVay(fam, v2.id, bm, t0), "da_tieu");
 });
 
-test("cảnh báo nợ > 1.000 (#266): −990 vay 20 ⇒ −1.010 có cảnh báo; vay thêm 5 ⇒ nhắc lại, vẫn cho vay được; Thông báo nhóm «Cảnh báo nợ» tắt được", async () => {
+test("cảnh báo nợ > 200 (#266): −190 vay 20 ⇒ −210 có cảnh báo; vay thêm 5 ⇒ nhắc lại, vẫn cho vay được; Thông báo nhóm «Cảnh báo nợ» tắt được", async () => {
   const { fam, bm } = await taoNha();
   const me2 = (await one<{ id: string }>(`select id from parents where family_id = $1`, [fam]))!.id;
   const con = await g.taoCon(fam, { ten: "Bảo Anh" });
-  await ss.choVay(fam, con, 990, bm);
-  await tx(async (t) => { await v.khoaCon(t, con); await v.ghiDiem(t, con, -990, "choi", "Chơi"); });
+  await ss.choVay(fam, con, 190, bm);
+  await tx(async (t) => { await v.khoaCon(t, con); await v.ghiDiem(t, con, -190, "choi", "Chơi"); });
   assert.equal((await ss.trangThaiSao(con)).sao, 0);
   let xt = await ss.xemTruocVay(fam, con, 20);
-  assert.deepEqual([xt.nhacNo, xt.seCanhBao, xt.noSau], [null, true, 1010], "chưa quá mốc ⇒ chưa nhắc trên bảng, nhưng vay xong sẽ cảnh báo");
+  assert.deepEqual([xt.nhacNo, xt.seCanhBao, xt.noSau], [null, true, 210], "chưa quá mốc ⇒ chưa nhắc trên bảng, nhưng vay xong sẽ cảnh báo");
   const a = await ss.choVay(fam, con, 20, bm);
-  assert.deepEqual([a.no, a.canhBaoNo?.vuotMoc, a.canhBaoNo?.cau], [1010, true, "Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.010)"]);
+  assert.deepEqual([a.no, a.canhBaoNo?.vuotMoc, a.canhBaoNo?.cau], [210, true, "Bảo Anh đã nợ quá 200 sao (đang nợ 210)"]);
   xt = await ss.xemTruocVay(fam, con, 5);
-  assert.equal(xt.nhacNo, "Bảo Anh đã nợ quá 1.000 sao (đang nợ 1.010)", "bảng cho vay hiện dòng nhắc");
+  assert.equal(xt.nhacNo, "Bảo Anh đã nợ quá 200 sao (đang nợ 210)", "bảng cho vay hiện dòng nhắc");
   const b = await ss.choVay(fam, con, 5, bm);
-  assert.deepEqual([b.no, b.canhBaoNo?.vuotMoc, b.canhBaoNo?.cau], [1015, false, "Bảo Anh vẫn nợ quá 1.000 sao · Lan vừa cho vay thêm 5 sao (đang nợ 1.015)"]);
+  assert.deepEqual([b.no, b.canhBaoNo?.vuotMoc, b.canhBaoNo?.cau], [215, false, "Bảo Anh vẫn nợ quá 200 sao · Lan vừa cho vay thêm 5 sao (đang nợ 215)"]);
   const cb = await q<{ noi_dung: string; muc: string }>(`select noi_dung, muc from alerts where family_id = $1 and loai = 'no_qua_1000' order by created_at`, [fam]);
-  assert.equal(cb.length, 2, "mỗi lần vượt mốc / cho vay thêm khi đang nợ > 1.000 một cảnh báo");
+  assert.equal(cb.length, 2, "mỗi lần vượt mốc / cho vay thêm khi đang nợ > 200 một cảnh báo");
   assert.equal(cb[0].muc, "chu_y");
   // dòng Thông báo của Ba Mẹ: nhóm canh_bao_no, có đẩy; tắt «Cảnh báo nợ» ⇒ vẫn có dòng, không đẩy
   const bmObj = (await one<any>(`select * from parents where id = $1`, [me2]))!;
@@ -129,7 +129,7 @@ test("cảnh báo nợ > 1.000 (#266): −990 vay 20 ⇒ −1.010 có cảnh bá
   assert.ok(ds.length === 2 && ds.every((x) => !x.day));
   // không vượt mốc ⇒ không cảnh báo
   const con2 = await g.taoCon(fam, { ten: "Bảo Minh" });
-  assert.equal((await ss.choVay(fam, con2, 1000, bm)).canhBaoNo, null);
+  assert.equal((await ss.choVay(fam, con2, 200, bm)).canhBaoNo, null);
 });
 
 test("trừ phút song song 2 máy: cùng chơi 10 phút trên 2 máy chỉ trừ ~10 sao (theo đồng hồ máy chủ); hết sao ⇒ dừng, không âm", async () => {
@@ -254,13 +254,13 @@ test("review #269: hoàn tác cho vay chỉ rút phần chưa trả / chưa tiê
   assert.deepEqual([st.no, st.sao, st.phutCon], [15, 10, 25]);
   // cảnh báo nợ của khoản vay bị rút trọn ⇒ gỡ; lần vay đó không còn đếm
   const con2 = await g.taoCon(fam, { ten: "Bảo Minh" });
-  await ss.choVay(fam, con2, 1000, bm);
+  await ss.choVay(fam, con2, 200, bm);
   const v3 = await ss.choVay(fam, con2, 20, bm);
   assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'no_qua_1000'`, [fam])).length, 1);
   await ss.hoanTacVay(fam, v3.id, bm);
   assert.equal((await q(`select 1 from alerts where family_id = $1 and loai = 'no_qua_1000'`, [fam])).length, 0);
   const tk = await ss.thongKeSao(con2, new Date(Date.now() - 86_400_000), new Date(Date.now() + 60_000));
-  assert.deepEqual([tk.lanVay, tk.saoVay], [1, 1000]);
+  assert.deepEqual([tk.lanVay, tk.saoVay], [1, 200]);
 });
 
 test("review #269 đồng hồ cửa sổ: Roblox 5′ rồi YouTube 5′ nối tiếp (kênh khác nhau) ⇒ trừ 10; hai máy song song 10′ ⇒ trừ 10; kênh báo thưa không mất phút", async () => {
