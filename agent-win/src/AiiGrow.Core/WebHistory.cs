@@ -9,7 +9,7 @@ namespace AiiGrow.Core;
 // gửi lại bao nhiêu lần cũng không cộng đôi (máy chủ lấy giá trị lớn hơn). Phần THUẦN ở đây; đọc tệp SQLite ở AiiGrow.Service.
 
 /// <summary>Một lượt ghé trang đọc từ bảng visits của trình duyệt.</summary>
-public sealed record WebVisit(string Url, DateTimeOffset Luc, double GiayO);
+public sealed record WebVisit(string Url, DateTimeOffset Luc, double GiayO, string? TieuDe = null);
 
 /// <summary>Tổng của một tên miền trong một ngày (ngày theo giờ máy).</summary>
 public sealed record WebDayDomain(string Ngay, string TenMien, int SoLan, int Giay, DateTimeOffset LanCuoi);
@@ -54,7 +54,10 @@ public static class WebHistory
     /// <summary>Mỗi lượt ghé tính tối đa ngần này giây: tab bỏ quên cả đêm không thổi phồng số liệu (xem thêm giới hạn ở README).</summary>
     public const double TranMotLuotGiay = 3 * 3600;
 
-    public static List<WebDayDomain> TongHop(IEnumerable<WebVisit> visits, string? boQuaMien = null, string? tz = null)
+    /// <param name="giayTab">#771: giây theo TAB ĐANG XEM (<see cref="TabDangXem.QuyTenMien"/>). Có ⇒ thay hẳn «giây ở trang» của lịch sử (visit_duration
+    /// tính cả tab nền / tab mở sẵn, và chưa có cho tab đang xem); tên miền không có trong đó ⇒ 0 giây (vẫn đếm số lần mở). null ⇒ như cũ.</param>
+    public static List<WebDayDomain> TongHop(IEnumerable<WebVisit> visits, string? boQuaMien = null, string? tz = null,
+        IReadOnlyDictionary<(string Ngay, string Mien), double>? giayTab = null)
     {
         var d = new Dictionary<(string Ngay, string Mien), (int Lan, double Giay, DateTimeOffset Cuoi)>();
         foreach (var v in visits)
@@ -63,8 +66,14 @@ public static class WebHistory
             if (mien == null || mien == boQuaMien) continue;
             var ngay = NgayGiaDinh.Cua(tz is null ? v.Luc : v.Luc.ToLocalTime(), tz);   // #703: ngày gia đình (không có múi ⇒ như cũ)
             d.TryGetValue((ngay, mien), out var cur);
-            d[(ngay, mien)] = (cur.Lan + 1, cur.Giay + Math.Clamp(v.GiayO, 0, TranMotLuotGiay), cur.Cuoi > v.Luc ? cur.Cuoi : v.Luc);
+            d[(ngay, mien)] = (cur.Lan + 1, cur.Giay + (giayTab != null ? 0 : Math.Clamp(v.GiayO, 0, TranMotLuotGiay)), cur.Cuoi > v.Luc ? cur.Cuoi : v.Luc);
         }
+        if (giayTab != null)
+            foreach (var (k, giay) in giayTab)
+            {
+                if (k.Mien == boQuaMien || giay <= 0 || !d.TryGetValue(k, out var cur)) continue;   // tên miền có giây mà lịch sử không có lượt ghé ⇒ bỏ (không bịa dòng)
+                d[k] = (cur.Lan, giay, cur.Cuoi);
+            }
         return d.Select(kv => new WebDayDomain(kv.Key.Ngay, kv.Key.Mien, kv.Value.Lan, (int)Math.Round(kv.Value.Giay), kv.Value.Cuoi))
             .OrderBy(x => x.Ngay, StringComparer.Ordinal).ThenBy(x => x.TenMien, StringComparer.Ordinal).ToList();
     }

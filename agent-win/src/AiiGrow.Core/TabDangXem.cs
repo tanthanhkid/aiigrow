@@ -1,0 +1,88 @@
+using System.Text.RegularExpressions;
+
+namespace AiiGrow.Core;
+
+// #771 (thuộc #763): THỜI GIAN WEB TÍNH THEO TAB ĐANG XEM. Trước đây số giây ở trang lấy từ cột visit_duration của lịch sử trình duyệt — tab mở sẵn
+// (hoặc tab nền đang phát âm thanh) ăn hết giờ, tab đang xem (YouTube) lại chưa «đóng» lượt ghé nên không có dòng nào ⇒ xem YouTube miễn phí.
+// Giờ khay báo thêm TIÊU ĐỀ cửa sổ tiền cảnh; khi tiền cảnh là trình duyệt, dịch vụ cộng giây vào tiêu đề tab đang chọn (mỗi nhịp, theo đồng hồ truyền vào),
+// rồi quy tiêu đề ⇒ tên miền bằng lịch sử (urls.title). Cửa sổ thu nhỏ / tab nền / trình duyệt không ở tiền cảnh: không cộng gì.
+// Phần THUẦN (không đọc đồng hồ, không đụng đĩa) — test được ngoài Windows.
+
+public sealed class TabDangXem
+{
+    /// <summary>Họ Chromium mà lịch sử đọc được (ChromiumHistorySource): Chrome, Edge, Brave.</summary>
+    public static readonly string[] TrinhDuyet = { "chrome.exe", "msedge.exe", "brave.exe" };
+
+    private readonly object _khoa = new();
+    private readonly Dictionary<(string Ngay, string TieuDe), double> _giay = new();
+
+    public static bool LaTrinhDuyet(string? appId) => appId != null && TrinhDuyet.Contains(appId.Trim().ToLowerInvariant());
+
+    /// <summary>Tiêu đề cửa sổ trình duyệt ⇒ tiêu đề tab (bỏ đuôi « - Microsoft Edge» (kèm tên hồ sơ), «và N trang khác», số thông báo «(3) » đầu). Rỗng ⇒ "".</summary>
+    public static string ChuanHoa(string? tieuDe)
+    {
+        var s = (tieuDe ?? "").Replace("​", "").Replace("‎", "").Trim();
+        s = Regex.Replace(s, @"\s+(and \d+ more pages?|và \d+ trang khác).*$", "", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"\s+[-–—]\s+(Microsoft\s*Edge|Google Chrome|Brave|Chromium)(\s+[-–—].*)?$", "", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"^\(\d+\)\s+", "");
+        return s.Trim();
+    }
+
+    /// <summary>Một nhịp: tiền cảnh là <paramref name="appId"/> với cửa sổ <paramref name="tieuDe"/>, đã trôi <paramref name="giay"/> giây. Không phải trình duyệt ⇒ bỏ.</summary>
+    public void Ghi(string ngay, string? appId, string? tieuDe, double giay)
+    {
+        if (giay <= 0 || !LaTrinhDuyet(appId)) return;
+        var t = ChuanHoa(tieuDe);
+        if (t.Length == 0) return;
+        lock (_khoa) { _giay[(ngay, t)] = (_giay.TryGetValue((ngay, t), out var c) ? c : 0) + giay; }
+    }
+
+    public Dictionary<(string Ngay, string TieuDe), double> ChupAnh()
+    {
+        lock (_khoa) return new Dictionary<(string, string), double>(_giay);
+    }
+
+    public void Nap(IEnumerable<KeyValuePair<(string Ngay, string TieuDe), double>> cu)
+    {
+        lock (_khoa) foreach (var kv in cu) _giay[kv.Key] = Math.Max(_giay.TryGetValue(kv.Key, out var c) ? c : 0, kv.Value);
+    }
+
+    /// <summary>Bỏ ngày cũ hơn <paramref name="giuTu"/> (yyyy-MM-dd, so chuỗi) — sổ không phình mãi.</summary>
+    public void DonCu(string giuTu)
+    {
+        lock (_khoa) foreach (var k in _giay.Keys.Where(k => string.CompareOrdinal(k.Ngay, giuTu) < 0).ToList()) _giay.Remove(k);
+    }
+
+    /// <summary>Quy giây theo tiêu đề ⇒ giây theo (ngày, tên miền) nhờ lịch sử: tiêu đề khớp đúng (hoặc lịch sử bắt đầu bằng tiêu đề tab — tab đang tải
+    /// dở), lấy lượt ghé GẦN NHẤT có tiêu đề đó. Tiêu đề không quy được (trang mới chưa vào lịch sử, trang nội bộ) ⇒ bỏ.</summary>
+    public static Dictionary<(string Ngay, string Mien), double> QuyTenMien(IReadOnlyDictionary<(string Ngay, string TieuDe), double> giay, IEnumerable<WebVisit> visits)
+    {
+        var theoTieuDe = new Dictionary<string, (string Mien, DateTimeOffset Luc)>(StringComparer.OrdinalIgnoreCase);
+        var ds = new List<(string Tieu, string Mien, DateTimeOffset Luc)>();
+        foreach (var v in visits)
+        {
+            if (string.IsNullOrWhiteSpace(v.TieuDe)) continue;
+            var mien = WebDomain.Goc(v.Url);
+            if (mien == null) continue;
+            var t = ChuanHoa(v.TieuDe);
+            if (t.Length == 0) continue;
+            if (!theoTieuDe.TryGetValue(t, out var cu) || v.Luc > cu.Luc) theoTieuDe[t] = (mien, v.Luc);
+            ds.Add((t, mien, v.Luc));
+        }
+        var kq = new Dictionary<(string, string), double>();
+        foreach (var ((ngay, tieu), s) in giay)
+        {
+            string? mien = null;
+            if (theoTieuDe.TryGetValue(tieu, out var m)) mien = m.Mien;
+            else
+            {
+                var gan = ds.Where(x => x.Tieu.StartsWith(tieu, StringComparison.OrdinalIgnoreCase) || (x.Tieu.Length >= 4 && tieu.StartsWith(x.Tieu, StringComparison.OrdinalIgnoreCase)))
+                    .OrderByDescending(x => x.Luc).FirstOrDefault();
+                if (gan.Mien != null) mien = gan.Mien;
+            }
+            if (mien == null) continue;
+            kq[(ngay, mien)] = (kq.TryGetValue((ngay, mien), out var c) ? c : 0) + s;
+        }
+        return kq;
+    }
+}

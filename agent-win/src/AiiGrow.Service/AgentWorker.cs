@@ -236,6 +236,12 @@ public sealed class AgentWorker : BackgroundService
         }
         var be = _rt.DangNhap() is { Loai: LoaiNguoiDung.Con, ConId: { Length: > 0 } c } ? c : null;   // 15/11 (#267): phút ghi theo bé
         _rt.CountUsage(now, fresh ? id! : UsageTracker.KhongRo, fresh ? (name ?? id!) : "Không rõ", elapsed, be);
+        // #771: tiền cảnh là trình duyệt ⇒ giây cộng cho TAB ĐANG XEM (tiêu đề cửa sổ), không cho tab mở sẵn / tab nền — phía lịch sử web dùng số này
+        if (fresh)
+        {
+            var (exe, tieuDe) = _rt.GetTabTienCanh();
+            _rt.TabXem.Ghi(NgayGiaDinh.Cua(now.ToLocalTime(), _rt.Usage.Tz), exe, tieuDe, elapsed);
+        }
     }
 
     private async Task<DateTimeOffset> SyncAsync(AgentConfig cfg, bool active, DateTimeOffset now, CancellationToken ct)

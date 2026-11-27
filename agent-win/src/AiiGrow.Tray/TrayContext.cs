@@ -757,7 +757,8 @@ internal sealed class TrayContext : ApplicationContext
         try
         {
             var fg = await Task.Run(UI.Foreground);   // mở tệp exe lấy tên ⇒ không trên luồng UI
-            var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Foreground, AppId = fg.Id, AppName = fg.Name });
+            var tieuDe = UI.TieuDeTrinhDuyet(fg.Id);   // #771: tab đang xem (chỉ trình duyệt)
+            var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Foreground, AppId = fg.Id, AppName = fg.Name, TieuDe = tieuDe });
             if (!res.Ok || res.State == null)
             {
                 // Dịch vụ không trả lời: chờ 2 lần liền (~6 giây) cho chắc rồi mới đổi biểu tượng + báo «Dịch vụ AiiGrow không chạy».

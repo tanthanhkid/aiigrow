@@ -158,6 +158,8 @@ public sealed class PipeRequest
     public string Cmd { get; set; } = PipeCmd.State;
     public string? AppId { get; set; }
     public string? AppName { get; set; }
+    /// <summary>#771 lệnh <see cref="PipeCmd.Foreground"/>: tiêu đề cửa sổ tiền cảnh — chỉ khay điền, và chỉ khi tiền cảnh là trình duyệt (tab đang xem).</summary>
+    public string? TieuDe { get; set; }
     /// <summary>Lệnh <see cref="PipeCmd.Request"/>: <see cref="LoaiXin"/> — vay_sao (số sao ở <see cref="Minutes"/>, lời nhắn ở <see cref="Note"/>) | mo_web | cai_app.
     /// Hai loại «mở»: giá trị (địa chỉ trang / tên app) ở <see cref="AppId"/>, tên hiển thị ở <see cref="AppName"/>.</summary>
     public string? Kind { get; set; }

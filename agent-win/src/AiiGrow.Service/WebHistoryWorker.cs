@@ -12,7 +12,38 @@ public sealed class WebHistoryWorker : BackgroundService
     private readonly ChromiumHistorySource _src = new();
     private string? _daGui;   // dấu vân tay lần gửi thành công cuối: không đổi ⇒ khỏi gửi lại
 
-    public WebHistoryWorker(ILogger<WebHistoryWorker> log) { _log = log; }
+    private readonly AgentRuntime? _rt;
+    private bool _daNap;
+
+    public WebHistoryWorker(ILogger<WebHistoryWorker> log, AgentRuntime? rt = null) { _log = log; _rt = rt; }
+
+    private static string TepTab => Path.Combine(Paths.DataDir, "tab-xem.json");
+
+    /// <summary>#771: sổ giây theo tab giữ qua khởi động lại dịch vụ (máy chủ lấy giá trị lớn hơn nên mất sổ chỉ làm số hôm nay đứng chờ, không tăng ảo).</summary>
+    private void NapSo()
+    {
+        if (_daNap || _rt == null) return;
+        _daNap = true;
+        try
+        {
+            if (!File.Exists(TepTab)) return;
+            var ds = System.Text.Json.JsonSerializer.Deserialize<List<DongTab>>(File.ReadAllText(TepTab)) ?? new();
+            _rt.TabXem.Nap(ds.Select(d => new KeyValuePair<(string, string), double>((d.Ngay, d.TieuDe), d.Giay)));
+        }
+        catch { /* tệp hỏng: bắt đầu lại sổ */ }
+    }
+
+    private void LuuSo(IReadOnlyDictionary<(string Ngay, string TieuDe), double> snap)
+    {
+        try
+        {
+            Directory.CreateDirectory(Paths.DataDir);
+            File.WriteAllText(TepTab, System.Text.Json.JsonSerializer.Serialize(snap.Select(kv => new DongTab(kv.Key.Ngay, kv.Key.TieuDe, kv.Value)).ToList()));
+        }
+        catch { }
+    }
+
+    private sealed record DongTab(string Ngay, string TieuDe, double Giay);
 
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
@@ -35,7 +66,17 @@ public sealed class WebHistoryWorker : BackgroundService
         try { host = new Uri(ApiClient.NormalizeServer(cfg.Server)).Host; } catch { }
         var tz = PolicyParser.TryParse(cfg.LastPolicyJson, out var pol) ? pol?.Tz : null;   // #703
         NgayGiaDinh.DangKy(tz, pol?.TzPhut);
-        var ds = WebHistory.TongHop(_src.Doc(hoSo, WebHistory.MocDoc(DateTimeOffset.Now)), host is null ? null : WebDomain.GocTuHost(host), tz);
+        var visits = _src.Doc(hoSo, WebHistory.MocDoc(DateTimeOffset.Now));
+        Dictionary<(string Ngay, string Mien), double>? giayTab = null;
+        if (_rt != null)
+        {
+            NapSo();
+            _rt.TabXem.DonCu(NgayGiaDinh.Cua(DateTimeOffset.Now.AddDays(-3), tz));
+            var snap = _rt.TabXem.ChupAnh();
+            giayTab = TabDangXem.QuyTenMien(snap, visits);
+            LuuSo(snap);
+        }
+        var ds = WebHistory.TongHop(visits, host is null ? null : WebDomain.GocTuHost(host), tz, giayTab);
         if (ds.Count == 0) return;
         var vt = string.Join("\n", ds.Select(x => $"{x.Ngay}|{x.TenMien}|{x.SoLan}|{x.Giay}"));
         if (vt == _daGui) return;
