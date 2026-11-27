@@ -25,7 +25,9 @@ internal static class MatKhauQuanTri
         try
         {
             using var id = new WindowsIdentity(tk);
-            return new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator);
+            // Groups gồm cả nhóm «deny-only» của token đã lọc UAC (quản trị cục bộ ≠ Administrator dựng sẵn đăng nhập mạng ra token lọc) ⇒ IsInRole sẽ sai.
+            var quanTri = new SecurityIdentifier(WellKnownSidType.BuiltinAdministratorsSid, null);
+            return id.Groups?.Any(g => g.Equals(quanTri)) == true;
         }
         finally { CloseHandle(tk); }
     }

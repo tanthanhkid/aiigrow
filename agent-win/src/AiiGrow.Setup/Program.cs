@@ -97,6 +97,8 @@ internal static class Program
         return ok ? 0 : 4;
     }
 
+    private static bool _baMeHuy;
+
     /// <summary>Hỏi Ba Mẹ (tối đa 5 lần). Im lặng: mã qua «--ma=123456». → true = được gỡ.</summary>
     private static bool CongGoBaMe(bool silent, string[] args)
     {
@@ -125,7 +127,7 @@ internal static class Program
         for (int lan = 0; lan < 5; lan++)
         {
             var d = HopGoCanBaMe.Hoi(loi);
-            if (d == null) return false;
+            if (d == null) { _baMeHuy = true; return false; }
             var kq = CongGo.Kiem(cfg, d.Ma, d.TaiKhoan, d.MatKhau, DateTimeOffset.Now, MatKhauQuanTri.Kiem);
             if (kq == CongGo.KetQua.Duoc) return true;
             loi = kq == CongGo.KetQua.Sai ? CongGo.CauSai : CongGo.CauYeuCau;
@@ -138,7 +140,7 @@ internal static class Program
     private static int Uninstall(bool silent, string[] args)
     {
         // #739: gỡ tại máy phải có Ba Mẹ (mã mở máy / mật khẩu quản trị) — bé không tự gỡ được qua Start › Uninstall.
-        if (!CongGoBaMe(silent, args)) return 9;
+        if (!CongGoBaMe(silent, args)) return _baMeHuy ? 0 : 9;   // Ba Mẹ bấm «Không gỡ» = huỷ, không phải lỗi
         if (!silent && HopThoai.Hien("Gỡ AiiGrow khỏi máy này?", "AiiGrow", hoi: true) != DialogResult.Yes)
             return 0;
         var kq = Task.Run(Installer.UninstallAsync).GetAwaiter().GetResult();
