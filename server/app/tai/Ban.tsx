@@ -121,3 +121,30 @@ export const CHU: Record<"windows" | "mac", { truoc: [string, string][]; sau: [s
     sau: [["Bấm đúp file AiiGrow.pkg", "Trong mục Tải về"], ["Bấm «Mở»", "Mac hỏi một lần"], ["Làm theo bộ cài", "Có bước nhập mã 6 số trên điện thoại Ba Mẹ"]],
   },
 };
+
+/** #775 — Edge / SmartScreen báo «isn't commonly downloaded» (bộ cài chưa có chữ ký số): 4 bước bằng hình, đúng chữ tiếng Anh Windows hiện. */
+const MAN_WIN: { ten: string; phu: string; hinh: ReactNode }[] = [
+  { ten: "Bấm dấu ba chấm «…»", phu: "Edge báo «AiiGrow-Setup.exe isn't commonly downloaded», đây là bộ cài của AiiGrow, chỉ là chưa nhiều người tải",
+    hinh: <div className="tb-hop"><div style={{ fontSize: 12.5, fontWeight: 800, lineHeight: 1.3 }}>AiiGrow-Setup.exe isn&apos;t commonly downloaded.</div>
+      <div style={{ display: "flex", gap: 8, marginTop: 10, alignItems: "center" }}><span className="tb-mn" style={{ height: 30, fontSize: 12 }}>Delete</span><span className="tb-mn ok" style={{ height: 30, width: 38, padding: 0 }}>…</span></div><Tay /></div> },
+  { ten: "Chọn «Keep»", phu: "Nghĩa là «Giữ lại» tệp",
+    hinh: <div className="tb-hop"><div style={{ fontSize: 12.5, fontWeight: 700, color: "#675D53", padding: "2px 0 8px" }}>Delete</div>
+      <div style={{ fontSize: 13.5, fontWeight: 800, background: "var(--soft)", borderRadius: 8, padding: "7px 8px" }}>Keep</div><Tay /></div> },
+  { ten: "Bấm «Show more» rồi «Keep anyway»", phu: "«Keep anyway» là «Vẫn giữ lại»",
+    hinh: <div className="tb-hop"><div style={{ fontSize: 12.5, fontWeight: 700, lineHeight: 1.3 }}>This app isn&apos;t commonly downloaded.</div>
+      <div style={{ fontSize: 12.5, fontWeight: 800, color: "#7A5A1C", margin: "6px 0 10px" }}>Show more</div><span className="tb-mn ok" style={{ height: 30, fontSize: 12.5 }}>Keep anyway</span><Tay /></div> },
+  { ten: "Nếu Windows hiện khung xanh: «More info» rồi «Run anyway»", phu: "Khung «Windows protected your PC». «Run anyway» là «Vẫn chạy»",
+    hinh: <div className="tb-hop"><div style={{ fontSize: 13, fontWeight: 800, color: "#0A4A9A" }}>Windows protected your PC</div>
+      <div style={{ fontSize: 12, fontWeight: 700, color: "#675D53", margin: "6px 0 8px" }}>More info</div><span className="tb-mn ok" style={{ height: 30, fontSize: 12.5 }}>Run anyway</span><Tay /></div> },
+];
+export function CanhBaoWin() {
+  return (
+    <section aria-labelledby="tb-sm">
+      <p className="tb-tieu" id="tb-sm">Trình duyệt hoặc Windows báo «không phổ biến»?</p>
+      <p className="tb-nho" style={{ textAlign: "left", margin: "6px 4px 14px" }}>Bộ cài AiiGrow chưa có chữ ký số nên Edge và Windows hỏi thêm vài bước bằng tiếng Anh. Làm lần lượt như hình, chỉ một lần.</p>
+      <ol className="tb-cac">
+        {MAN_WIN.map((m, i) => <Buoc key={i} so={i + 1} lo={<Dem>{m.hinh}</Dem>} ten={m.ten} phu={m.phu} />)}
+      </ol>
+    </section>
+  );
+}
