@@ -48,6 +48,25 @@ public static class XinThemView
     public const string VeTrangChinh = "Về trang chính";
 }
 
+/// <summary>#780: bảng công cụ hệ thống Windows — không hiện ở lưới «App trên máy» của bé xin thêm. BẢN SAO của server/lib/luat-app.ts › MUC_CONG_CU / TEN_CONG_CU
+/// (Ba Mẹ «Thêm app»): sửa một nơi thì sửa nơi kia (server/lib/cong-cu-780.test.ts đối chiếu hai bảng).</summary>
+public static class CongCuHeThongView
+{
+    private static readonly HashSet<string> Muc = new(StringComparer.OrdinalIgnoreCase) { "mstsc.exe", "iexplore.exe", "taskmgr.exe", "resmon.exe", "perfmon.exe", "eventvwr.exe", "taskschd.msc", "compmgmt.msc", "devmgmt.msc", "diskmgmt.msc", "services.msc",
+        "cmd.exe", "powershell.exe", "pwsh.exe", "wt.exe", "conhost.exe", "regedit.exe", "mmc.exe", "msiexec.exe", "charmap.exe", "git-bash.exe", "git-cmd.exe",
+        "storedesktopextension.exe", "gamebar.exe", "gamebarftserver.exe", "rstmwservice.exe", "msconfig.exe", "dxdiag.exe", "control.exe", "winver.exe", "wscript.exe", "cscript.exe" };
+    private static readonly string[] Ten = { "command prompt", "task manager", "remote desktop", "remote desktop connection", "internet explorer", "resource monitor", "performance monitor",
+        "registry editor", "device manager", "task scheduler", "event viewer", "disk cleanup", "system configuration", "character map", "windows powershell", "windows terminal" };
+
+    public static bool La(string? muc, string? ten)
+    {
+        var m = (muc ?? "").Trim();
+        if (m.Length > 0 && (Muc.Contains(m) || Muc.Contains(m + ".exe"))) return true;
+        var t = (ten ?? "").Trim();
+        return t.Length > 0 && (Array.Exists(Ten, x => string.Equals(x, t, StringComparison.OrdinalIgnoreCase)) || t.Contains("powershell", StringComparison.OrdinalIgnoreCase));
+    }
+}
+
 /// <summary>#422: một app đã cài trên máy cho lưới «App trên máy» (dịch vụ → khay qua <see cref="PipeCmd.AppMay"/>).
 /// <see cref="Muc"/> = định danh thật gửi máy chủ (tên exe chữ thường / gói Store — như <see cref="AppThat.Muc"/>), <see cref="Ten"/> = tên hiển thị.</summary>
 public sealed class AppTrenMay
@@ -118,7 +137,7 @@ public static class XinThemChonView
     /// <summary>Đuôi tệp chạy được — gõ «roblox.exe» ở thẻ web là nhầm app.</summary>
     private static readonly HashSet<string> DuoiTep = new(StringComparer.Ordinal) { "exe", "msi", "bat", "cmd", "lnk", "appx", "msix" };
 
-    /// <summary>Lưới app: bỏ mục trống / trùng (giữ bản đầu), bỏ chính AiiGrow, xếp theo tên (không phân biệt hoa thường).</summary>
+    /// <summary>Lưới app: bỏ mục trống / trùng (giữ bản đầu), bỏ chính AiiGrow + công cụ hệ thống (#780), xếp theo tên (không phân biệt hoa thường).</summary>
     public static List<AppTrenMay> Loc(IEnumerable<AppTrenMay>? ds)
     {
         var thay = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -128,6 +147,7 @@ public static class XinThemChonView
             var muc = (a.Muc ?? "").Trim();
             if (muc.Length == 0 || muc.StartsWith("aiigrow", StringComparison.OrdinalIgnoreCase) || !thay.Add(muc)) continue;
             var ten = string.IsNullOrWhiteSpace(a.Ten) ? muc : a.Ten.Trim();
+            if (CongCuHeThongView.La(muc, ten)) continue;   // #780: công cụ hệ thống không để bé xin
             ra.Add(new AppTrenMay { Muc = muc, Ten = ten });
         }
         ra.Sort((x, y) => string.Compare(x.Ten, y.Ten, StringComparison.CurrentCultureIgnoreCase));

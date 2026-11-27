@@ -60,6 +60,9 @@ export const APP_GOI_Y: AppGoiY[] = [
   { ma: "capcut", ten: "CapCut", tinhGio: true, nhom: "khac", muc: ["capcut.exe", "com.lemon.lvoverseas", "com.lemon.lvoverseas.mac", "capcut.com"] },
 ];
 
+/** #780: app chỉ có bản điện thoại (khoá `khoaTen`) — không chờ máy tính báo. */
+const APP_CHI_DIEN_THOAI = new Set(["vioedu"]);
+
 /** Bỏ dấu, chữ thường, chỉ chữ + số — so tên app người gõ với tên app máy báo. */
 const khoaTen = (s: unknown) => {
   const t = String(s ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/đ/gi, "d").toLowerCase();
@@ -236,7 +239,11 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
     for (const w of web) if (khoaSo(w.ten_mien).some((m) => ds.has(m))) phut += w.giay / 60;
     x.phutHomNay = Math.round(phut);
   }
+  // #780: app CHỈ có trên điện thoại (VioEdu…) mà máy của Con toàn Windows / Mac thì máy không bao giờ báo ⇒ không treo «Chờ máy báo»
+  const nenCua = new Set((await q<{ platform: string }>(`select distinct platform from devices where child_id = $1`, [con])).map((x) => x.platform));
+  const chiMayTinh = nenCua.size > 0 && [...nenCua].every((n) => n === "windows" || n === "mac");
   for (const a of choKhop) {
+    if (chiMayTinh && APP_CHI_DIEN_THOAI.has(khoaTen(a.ten))) continue;
     if ([...gop.values()].some((x) => x.kieu === "app" && khoaTen(x.ten) === khoaTen(a.ten))) continue;
     gop.set(`app|cho|${a.ten}`, { ten: a.ten, kieu: "app", nhom: a.tinh_gio ? "tinh_phut" : "khong_tinh_phut", muc: [], phutHomNay: 0, theoCaNha: false, choKhop: true });
   }

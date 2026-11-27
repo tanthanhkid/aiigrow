@@ -190,6 +190,16 @@ test("L7 «Thêm app khác» theo tên: máy gửi danh sách app thật ⇒ kh�
   assert.deepEqual(them.daDat, [{ ten: "KHÁC", muc: ["x.exe"] }]);
 });
 
+test("#780 app chỉ có trên điện thoại (VioEdu) không treo «Chờ máy báo» khi máy của Con toàn Windows", async () => {
+  const bm = await dangKy("Mẹ Vy");
+  const con = (await m("thiet-lap", { tok: bm, body: { con: { ten: "Bin" }, apps: [{ ten: "VioEdu", tinhGio: false }, { ten: "Game Lạ" }] } })).body.conId;
+  const ten = async () => (await m(`con/${con}/danh-sach`, { tok: bm })).body.app.khongTinhPhut.concat((await m(`con/${con}/danh-sach`, { tok: bm })).body.app.tinhPhut).map((x: any) => x.ten).sort();
+  assert.deepEqual(await ten(), ["Game Lạ", "VioEdu"], "chưa có máy: giữ như cũ");
+  const pg = (await m("ghep-may", { tok: bm, body: { con } })).body;
+  await dv("ghep", { body: { ma: pg.ma, nen: "windows", tenMay: "PC của Bin" } });
+  assert.deepEqual(await ten(), ["Game Lạ"], "máy Windows: VioEdu không chờ máy báo");
+});
+
 test("L4 chế độ chặn theo Con + Con «Xin Ba Mẹ duyệt» (lý do không bắt buộc, bấm lại không trùng); Policy mang chế độ", async () => {
   const bm = await dangKy("Ba Khoa");
   const con = (await m("con", { tok: bm, body: { ten: "Na" } })).body.id;

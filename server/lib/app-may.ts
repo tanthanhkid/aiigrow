@@ -10,7 +10,7 @@ import { createHash } from "node:crypto";
 import { one, q, tx, type Q } from "./db.ts";
 import type { May } from "./gia-dinh.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { allowlistHieuLuc, boMucChoCon, laCongCuHeThong, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc } from "./luat-app.ts";
+import { allowlistHieuLuc, boMucChoCon, laCongCuHeThong, laTrinhDuyet, datLuat, dsLuat, khoaSo, luatHienCo, xoaLuat, NHOM_GT, type LoaiMuc } from "./luat-app.ts";
 import type { NhomDs } from "./chan-co-ban.ts";
 import { kieuMuc } from "./chinh-sach.ts";
 import { idConMay } from "./may-nhieu-con.ts";
@@ -190,7 +190,7 @@ export async function dsAppMay(fam: string, mayId: string, chon?: string | null,
     yeuCauLuc: may.app_yeu_cau ? new Date(may.app_yeu_cau).toISOString() : null,
     ds: rows.map((a) => ({
       khoa: a.khoa, muc: a.muc, ten: a.ten, nguon: a.nguon, nhaPhatHanh: a.nha_phat_hanh, teamId: a.team_id, duongDan: a.duong_dan,
-      phienBan: a.phien_ban, iconBam: a.icon_bam, ...(gon ? {} : { icon: a.icon ?? null }), ...trangThaiApp(a.muc, con, luat, allow, a.ten),
+      phienBan: a.phien_ban, iconBam: a.icon_bam, ...(gon ? {} : { icon: a.icon ?? null }), ...trangThaiApp(a.muc, con, luat, allow, a.ten), trinhDuyet: laTrinhDuyet(a.muc),
     })),
   };
 }

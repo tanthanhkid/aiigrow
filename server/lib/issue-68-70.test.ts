@@ -48,7 +48,7 @@ test("DX-028: danh sách «đã thấy trên máy Con» có tên dễ hiểu, k�
   const { fam, con, tok } = await nha();
   const may = await ghep(fam, con);
   const ngay = new Date().toISOString().slice(0, 10);
-  for (const [muc, loai, phut] of [["msedge.exe", "chua_phan_loai", 30], ["roblox.exe", "giai_tri", 20], ["notepad.exe", "he_thong", 5], ["la-la.exe", "chua_phan_loai", 3]] as const)
+  for (const [muc, loai, phut] of [["msedge.exe", "chua_phan_loai", 30], ["roblox.exe", "giai_tri", 20], ["calc.exe", "he_thong", 5], ["la-la.exe", "chua_phan_loai", 3]] as const)
     await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,$4,$5,$6)`, [may.deviceId, con, ngay, muc, loai, phut]);
   await datLuat(fam, { muc: "roblox.exe", ten: "Roblox", loai: "giai_tri", nhom: "game" });
   assert.equal((await m("luat", { tok })).body.daThay, undefined, "Trang chủ / Chờ duyệt không phải gộp 30 ngày usage");
@@ -56,7 +56,7 @@ test("DX-028: danh sách «đã thấy trên máy Con» có tên dễ hiểu, k�
   const edge = r.daThay.find((x: any) => x.muc === "msedge.exe");
   assert.deepEqual([edge.ten, edge.loai], ["Microsoft Edge", "chua_xep"]);
   assert.equal(r.daThay.find((x: any) => x.muc === "roblox.exe").loai, "giai_tri");
-  assert.ok(!r.daThay.some((x: any) => x.muc === "notepad.exe"), "mục hệ thống không liệt kê");
+  assert.ok(!r.daThay.some((x: any) => x.muc === "calc.exe"), "mục hệ thống không liệt kê");
   assert.equal(r.chuaXep.find((x: any) => x.muc === "msedge.exe").ten, "Microsoft Edge");
   assert.equal(tenApp("la-la.exe"), "La la");
   assert.equal(tenApp("youtube.com"), "youtube.com");
@@ -254,8 +254,8 @@ test("Review lượt 6: Hoàn tác không đè luật người khác vừa đổ
   const { fam, con, tok } = await nha();
   const may = await ghep(fam, con);
   const ngay = new Date().toISOString().slice(0, 10);
-  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,'notepad.exe','chua_phan_loai',4)`, [may.deviceId, con, ngay]);
-  assert.ok(!(await m("luat", { tok })).body.chuaXep.some((x: any) => x.muc === "notepad.exe"));
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut) values ($1,$2,$3,'calc.exe','chua_phan_loai',4)`, [may.deviceId, con, ngay]);
+  assert.ok(!(await m("luat", { tok })).body.chuaXep.some((x: any) => x.muc === "calc.exe"));
   const r = await m("luat", { tok, body: { muc: "capcut.exe", loai: "hoc" } });
   await datLuat(fam, { muc: "capcut.exe", loai: "giai_tri" });                      // người khác đổi trong lúc chờ Hoàn tác
   const h = await m("luat/xoa", { tok, body: { muc: r.body.muc, neuLoai: "hoc" } });

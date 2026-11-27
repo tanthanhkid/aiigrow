@@ -53,7 +53,7 @@ test("agent gửi đủ ⇒ lưu; phần đổi chỉ nhận khi bamTruoc khớp
   const ds = (await goiBm(`may/${mayId}/ung-dung`, tokBm)).body;
   assert.ok(ds.capNhatLuc);
   assert.deepEqual(ds.ds.map((x: any) => [x.ten, x.muc, x.trangThai]), [
-    ["Notepad", "notepad.exe", "he_thong"],          // allowlist hệ thống: luôn dùng được, Ba Mẹ không đổi
+    ["Notepad", "notepad.exe", "chua_xep"],          // #780: Notepad không còn ở allowlist — Ba Mẹ thấy và tự xếp
     ["Roblox Player", "robloxplayerbeta.exe", "chua_xep"],
     ["Scratch Desktop", "scratch 3.exe", "chua_xep"],
   ]);
