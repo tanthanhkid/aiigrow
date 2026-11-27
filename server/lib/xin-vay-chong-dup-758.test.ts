@@ -53,4 +53,9 @@ test("#758: bấm đúp / gửi lại (kể cả sau > 5 giây) ⇒ cùng một 
     body: JSON.stringify({ soSao: 10, khoa: "lan-bam-0004-abcdef" }) }), ["xin-vay"], { soSao: 10, khoa: "lan-bam-0004-abcdef" }))!.json()) as any;
   const x1 = await goi(), x2 = await goi();
   assert.equal(x1.id, x2.id);
+
+  // bấm đúp thật sự (hai lời gọi đồng thời, cùng khoá) ⇒ một lời xin
+  const KK = "lan-bam-0009-abcdef";
+  const [p1, p2] = await Promise.all([1, 2].map(() => yc.guiYeuCau(con, may, { loai: "vay_sao", soSao: 20, mucDich: "choi", khoa: KK }, new Date(t0.getTime() + 60_000))));
+  assert.equal(p1.id, p2.id);
 });
