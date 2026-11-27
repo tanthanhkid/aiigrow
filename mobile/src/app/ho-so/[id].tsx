@@ -89,8 +89,7 @@ export default function HoSoCon() {
 
       {lk.d ? (
         <The dem style={{ gap: 10 }}>
-          <HangViec dau ic="sach" mau="xanh" tieu="Liên kết AiiRob" phu={`Dán mã này vào AiiRob để bài học đạt tự cộng sao cho ${c.ten}`} />
-          <Chu kieu="rat" co={14} so mau={M.chu2} style={{ marginHorizontal: 4 }}>{lk.d.ma}</Chu>
+          <HangViec dau ic="sach" mau="xanh" tieu="Liên kết AiiRob" phu={`Bấm «Sao chép mã» rồi dán vào AiiRob, bài học đạt sẽ tự cộng sao cho ${c.ten}.`} />
           <Nut chu="Sao chép mã" nho loai="vien" rong bam={() => saoChep(lk.d!.ma).then((ok) => ok && bao("Đã sao chép mã — dán vào AiiRob"))} />
         </The>
       ) : null}

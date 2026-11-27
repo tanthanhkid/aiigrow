@@ -17,6 +17,14 @@ public class AppConTests
     }
 
     [Fact]
+    public void NutMoHocVoiAiiRob_TroVeTrangDangChay()
+    {
+        // aiilab.vn/aiirob trả 404 (issue #774) — không trỏ lại đường dẫn đó.
+        Assert.StartsWith("https://aiilab.vn", AppConView.AiiRobUrl);
+        Assert.DoesNotContain("/aiirob", AppConView.AiiRobUrl);
+    }
+
+    [Fact]
     public void PolicyParser_DocSaoVaTruongCu()
     {
         var p = Goc();

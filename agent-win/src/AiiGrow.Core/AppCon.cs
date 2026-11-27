@@ -50,8 +50,8 @@ public sealed record KetQuaTin(string Loai, string Ten, int? Sao, int? Phut, str
 
 public static class AppConView
 {
-    /// <summary>«Mở Học với AiiRob» — trang học của AiiRob (Câu mở: chưa có địa chỉ chính thức; mặc định trang AiiLab).</summary>
-    public const string AiiRobUrl = "https://aiilab.vn/aiirob";
+    /// <summary>«Mở Học với AiiRob» — trang học của AiiRob (chưa có trang riêng đang chạy: aiilab.vn/aiirob trả 404, aiirob.aiilab.vn bị tắt ⇒ về trang chủ AiiLab, curl 200).</summary>
+    public const string AiiRobUrl = "https://aiilab.vn";
 
     private static readonly string[] Thu = { "Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy" };
 
