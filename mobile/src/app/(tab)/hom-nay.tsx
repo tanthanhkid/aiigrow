@@ -265,7 +265,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
           <>
             {muc.map((m) => (
               <View key={m.id}>
-                <HangViec dau={m === muc[0]} ic={m.ic} mau="cam" tieu={m.tieu} phu={m.phu}
+                <HangViec dau={m.id === muc[0]?.id} ic={m.ic} mau="cam" tieu={m.tieu} phu={m.phu}
                   phai={m.maMay ? undefined : <Chu kieu="rat" co={14} mau={M.chinhInk}>{m.nut}</Chu>}
                   bam={() => router.push((m.maMay ? `/may/${m.maMay}` : m.den) as never)} />
                 {m.maMay ? (
@@ -280,7 +280,7 @@ const BangCon = memo(function BangCon({ conId, d, taiLai, bao }: {
                 moKhoa={khoa ? async () => { await moLaiMay(conId, c.ten, bao, tai); } : undefined} />
             ))}
             {sau.map((m) => (
-              <HangViec key={m.id} dau={!muc.length && !xin.length && m === sau[0]} ic={m.ic} mau="cam" tieu={m.tieu} phu={m.phu}
+              <HangViec key={m.id} dau={!muc.length && !xin.length && m.id === sau[0]?.id} ic={m.ic} mau="cam" tieu={m.tieu} phu={m.phu}
                 phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>{m.nut}</Chu>} bam={() => router.push(m.den as never)} />
             ))}
           </>
