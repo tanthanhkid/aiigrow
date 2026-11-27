@@ -1011,6 +1011,7 @@ if (process.argv.includes("--giao-dien")) {
       await go("Số điện thoại người được mời", "0909876543"); await go("Gọi là gì trong nhà", "Ba Tuấn"); await sleep(200); await bam("Ba Tuấn chưa có app? Xem cách gửi link"); } }),
     M("cd admin-ho-tro", "/admin-ho-tro", "Đang chờ"),
     M("bm-cai-dat", "/cai-dat", "Người lớn trông con"),
+    M("bm-cai-dat (ghép thêm máy · #791)", "/cai-dat", "Lấy mã 6 số hoặc link cho máy mới"),
     M("bm-cai-dat (xoá tài khoản)", "/tai-khoan", "Xoá hẳn, không lấy lại được", { kb: { "GET thanh-vien": TV_MOT_MINH, "GET tuan-thu": { ds: [] } }, truoc: moXoaTk }),
     M("bm-cai-dat (xoá: còn máy)", "/tai-khoan", "Xem các máy", { kb: { "GET thanh-vien": TV_MOT_MINH }, truoc: moXoaTk }),
     M("bm-cai-dat (xoá: còn thành viên)", "/tai-khoan", "Xem người lớn trong nhà", { truoc: moXoaTk }),

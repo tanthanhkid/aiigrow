@@ -354,7 +354,7 @@ struct GhepMayView: View {
           OMa6View(ma: $ma, khiXong: gui).disabled(khoaNhap)
           vien("hourglass_not_done", "Mã dùng được 10 phút")
           Button { hoiMa.toggle() } label: { Text("Mã không nhận? ›").font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.canh) }.buttonStyle(.plain)
-          if hoiMa { Chu("Ba Mẹ mở AiiGrow › Ghép máy › «Lấy mã mới», rồi gõ 6 số mới.", co: 12, mau: ClayMau.chu3, dong: 3) }
+          if hoiMa { Chu("Ba Mẹ mở AiiGrow › Cả nhà › Ghép thêm máy, rồi gõ 6 số mới.", co: 12, mau: ClayMau.chu3, dong: 3) }
         }
       }
     }
@@ -397,9 +397,9 @@ struct GhepMayView: View {
         OMa6View(ma: .constant(ma), loi: true, khiXong: {}).allowsHitTesting(false)
         vien(het ? "hourglass_not_done" : "warning", het ? "Mã \(ManMac.maHien(ma)) đã quá 10 phút" : "Số cuối khác mã của Ba Mẹ", canh: true)
         if het {
-          theGhi("iphone", "Ba Mẹ bấm «Lấy mã mới»", "Trên điện thoại: AiiGrow › Ghép máy, rồi gõ 6 số mới.")
+          theGhi("iphone", "Ba Mẹ bấm «Lấy mã mới»", "Trên điện thoại: AiiGrow › Cả nhà › Ghép thêm máy, rồi gõ 6 số mới.")
         } else {
-          theGhi("hourglass_not_done", "Mã quá 10 phút? ›", "Ba Mẹ bấm «Lấy mã mới» trong AiiGrow › Ghép máy.")
+          theGhi("hourglass_not_done", "Mã quá 10 phút? ›", "Ba Mẹ bấm «Lấy mã mới» trong AiiGrow › Cả nhà › Ghép thêm máy.")
         }
       }
     }

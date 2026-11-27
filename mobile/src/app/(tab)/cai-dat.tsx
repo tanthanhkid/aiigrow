@@ -115,7 +115,9 @@ export default function CaiDat() {
           phai={<View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
             {canSua ? <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 11, backgroundColor: M.canhSoft }}><Chu kieu="rat" co={12} mau={M.canh}>{`${canSua} cần sửa`}</Chu></View> : null}
             <Icon ten="phai" mau={M.oNhap} co={18} /></View>}
-          bam={() => router.push("/may")} />
+          bam={() => router.push(may.length ? "/may" : "/may/them")} />
+        {/* #791: đường đi thẳng tới ghép máy, khớp lời trong bộ cài «AiiGrow › Cả nhà › Ghép thêm máy» */}
+        {may.length && laBaMe ? <Dong tieu="Ghép thêm máy" phu="Lấy mã 6 số hoặc link cho máy mới" trai={<OIcon ic="laptop" />} phai={<Icon ten="phai" mau={M.oNhap} co={18} />} bam={() => router.push("/may/them")} /> : null}
       </Nhom>
 
       <MucTieu chu="Cài đặt chung" />
