@@ -19,7 +19,8 @@ public sealed class WebHistoryWorker : BackgroundService
 
     private static string TepTab => Path.Combine(Paths.DataDir, "tab-xem.json");
 
-    /// <summary>#771: sổ giây theo tab giữ qua khởi động lại dịch vụ (máy chủ lấy giá trị lớn hơn nên mất sổ chỉ làm số hôm nay đứng chờ, không tăng ảo).</summary>
+    /// <summary>#771: sổ giây theo TÊN MIỀN giữ qua khởi động lại dịch vụ (máy chủ lấy giá trị lớn hơn nên mất sổ chỉ làm số hôm nay đứng chờ, không tăng ảo).
+    /// Tiêu đề tab KHÔNG ghi đĩa — chỉ tên miền đã quy + số giây; tiêu đề chưa quy được nằm trong RAM.</summary>
     private void NapSo()
     {
         if (_daNap || _rt == null) return;
@@ -28,18 +29,18 @@ public sealed class WebHistoryWorker : BackgroundService
         {
             if (!File.Exists(TepTab)) return;
             var ds = System.Text.Json.JsonSerializer.Deserialize<List<DongTab>>(File.ReadAllText(TepTab)) ?? new();
-            _rt.TabXem.Nap(ds.Select(d => new KeyValuePair<(string, string), double>((d.Ngay, d.TieuDe), d.Giay)));
+            _rt.TabXem.Nap(ds.Select(d => new KeyValuePair<(string, string), double>((d.Ngay, d.TenMien), d.Giay)));
         }
         catch { /* tệp hỏng: bắt đầu lại sổ */ }
     }
 
     private string? _daLuu;
 
-    private void LuuSo(IReadOnlyDictionary<(string Ngay, string TieuDe), double> snap)
+    private void LuuSo(IReadOnlyDictionary<(string Ngay, string Mien), double> snap)
     {
         try
         {
-            var noiDung = System.Text.Json.JsonSerializer.Serialize(snap.Select(kv => new DongTab(kv.Key.Ngay, kv.Key.TieuDe, kv.Value)).ToList());
+            var noiDung = System.Text.Json.JsonSerializer.Serialize(snap.Select(kv => new DongTab(kv.Key.Ngay, kv.Key.Mien, kv.Value)).ToList());
             if (noiDung == _daLuu) return;   // không đổi ⇒ khỏi ghi đĩa
             _daLuu = noiDung;
             Directory.CreateDirectory(Paths.DataDir);
@@ -48,18 +49,7 @@ public sealed class WebHistoryWorker : BackgroundService
         catch { }
     }
 
-    private sealed record DongTab(string Ngay, string TieuDe, double Giay);
-
-    protected override async Task ExecuteAsync(CancellationToken ct)
-    {
-        try { await Task.Delay(TimeSpan.FromSeconds(45), ct); } catch (OperationCanceledException) { return; }
-        while (!ct.IsCancellationRequested)
-        {
-            try { await MotLuot(ct); }
-            catch (Exception e) when (e is not OperationCanceledException) { _log.LogDebug("Gửi lịch sử web lỗi (lần sau thử lại): {m}", e.Message); }
-            try { await Task.Delay(Nhip, ct); } catch (OperationCanceledException) { break; }
-        }
-    }
+    private sealed record DongTab(string Ngay, string TenMien, double Giay);
 
     public async Task MotLuot(CancellationToken ct)
     {
@@ -78,10 +68,10 @@ public sealed class WebHistoryWorker : BackgroundService
         {
             NapSo();
             _rt.TabXem.DonCu(NgayGiaDinh.Cua(DateTimeOffset.Now.AddDays(-3), tz));
-            var snap = _rt.TabXem.ChupAnh();
-            giayTab = TabDangXem.QuyTenMien(snap, visits);
-            ngayTheoDoi = _rt.TabXem.NgayDaGhi(snap);
-            LuuSo(snap);
+            _rt.TabXem.Chot(visits);
+            giayTab = _rt.TabXem.GiayTheoMien();
+            ngayTheoDoi = _rt.TabXem.NgayDaGhi();
+            LuuSo(giayTab);
         }
         var ds = WebHistory.TongHop(visits, host is null ? null : WebDomain.GocTuHost(host), tz, giayTab, ngayTheoDoi);
         if (ds.Count == 0) return;

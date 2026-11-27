@@ -140,6 +140,27 @@ public class TabDangXemTests
     }
 
     [Fact]
+    public void Chot_ChiTenMienDuocLuu_TieuDeChuaQuyGiuTrongRam_KhongCongDoi()
+    {
+        var visits = new[] { V("https://youtube.com/watch", "Meo - YouTube", 10) };
+        var t = new TabDangXem();
+        t.Ghi(Ngay, "msedge.exe", "Meo - YouTube - Microsoft Edge", 30);
+        t.Ghi(Ngay, "msedge.exe", "Trang bí mật - Microsoft Edge", 20);   // chưa vào lịch sử
+        t.Chot(visits);
+        t.Chot(visits);   // chốt lại không cộng đôi
+        Assert.Equal(30, t.GiayTheoMien()[(Ngay, "youtube.com")]);
+        Assert.Equal(new[] { "Trang bí mật" }, t.ChupAnh().Keys.Select(k => k.TieuDe));   // chỉ trong RAM
+        t.Ghi(Ngay, "msedge.exe", "Meo - YouTube - Microsoft Edge", 10);
+        t.Chot(visits);
+        Assert.Equal(40, t.GiayTheoMien()[(Ngay, "youtube.com")]);
+        // trang bí mật vào lịch sử lượt sau ⇒ quy được, rời RAM
+        t.Chot(visits.Append(V("https://b.com/", "Trang bí mật", 1)));
+        Assert.Empty(t.ChupAnh());
+        Assert.Equal(20, t.GiayTheoMien()[(Ngay, "b.com")]);
+        Assert.All(t.GiayTheoMien().Keys, k => Assert.DoesNotContain("bí mật", k.Mien));
+    }
+
+    [Fact]
     public void KhongCoSoTab_GiuCachCu()
     {
         var visits = new[] { V("https://a.com/", "Trang A", 5, 100) };
@@ -152,10 +173,11 @@ public class TabDangXemTests
         var t = new TabDangXem();
         t.Ghi("2026-11-20", "msedge.exe", "Cũ - Microsoft Edge", 10);
         t.Ghi(Ngay, "msedge.exe", "Mới - Microsoft Edge", 10);
-        t.Nap(new[] { new KeyValuePair<(string, string), double>((Ngay, "Mới"), 50) });
+        t.Nap(new[] { new KeyValuePair<(string, string), double>(("2026-11-20", "cu.com"), 5), new KeyValuePair<(string, string), double>((Ngay, "moi.com"), 50) });
         t.DonCu("2026-11-25");
-        var s = t.ChupAnh();
-        Assert.Single(s);
-        Assert.Equal(50, s[(Ngay, "Mới")]);
+        Assert.Single(t.ChupAnh());
+        var m = t.GiayTheoMien();
+        Assert.Single(m);
+        Assert.Equal(50, m[(Ngay, "moi.com")]);
     }
 }

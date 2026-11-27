@@ -14,7 +14,8 @@ public sealed class TabDangXem
     public static readonly string[] TrinhDuyet = { "chrome.exe", "msedge.exe", "brave.exe" };
 
     private readonly object _khoa = new();
-    private readonly Dictionary<(string Ngay, string TieuDe), double> _giay = new();
+    private readonly Dictionary<(string Ngay, string TieuDe), double> _giay = new();   // CHỈ trong RAM: tiêu đề tab không bao giờ ghi đĩa
+    private readonly Dictionary<(string Ngay, string Mien), double> _mien = new();     // tiêu đề đã quy được ⇒ tên miền + giây (phần duy nhất được lưu tệp)
 
     public static bool LaTrinhDuyet(string? appId) => appId != null && TrinhDuyet.Contains(appId.Trim().ToLowerInvariant());
 
@@ -42,15 +43,48 @@ public sealed class TabDangXem
         lock (_khoa) return new Dictionary<(string, string), double>(_giay);
     }
 
-    public void Nap(IEnumerable<KeyValuePair<(string Ngay, string TieuDe), double>> cu)
+    /// <summary>Nạp sổ theo TÊN MIỀN đã lưu tệp (lấy giá trị lớn hơn).</summary>
+    public void Nap(IEnumerable<KeyValuePair<(string Ngay, string Mien), double>> cu)
     {
-        lock (_khoa) foreach (var kv in cu) _giay[kv.Key] = Math.Max(_giay.TryGetValue(kv.Key, out var c) ? c : 0, kv.Value);
+        lock (_khoa) foreach (var kv in cu) _mien[kv.Key] = Math.Max(_mien.TryGetValue(kv.Key, out var c) ? c : 0, kv.Value);
+    }
+
+    /// <summary>Quy các tiêu đề đang giữ trong RAM ra tên miền bằng lịch sử: tiêu đề quy được ⇒ cộng vào sổ tên miền rồi BỎ khỏi RAM (không cộng đôi);
+    /// chưa quy được ⇒ giữ lại thử lần sau (trang mới chưa vào lịch sử).</summary>
+    public void Chot(IEnumerable<WebVisit> visits)
+    {
+        lock (_khoa)
+        {
+            if (_giay.Count == 0) return;
+            var quy = QuyTungTieuDe(_giay.Keys.Select(k => k.TieuDe).Distinct(), visits);
+            foreach (var k in _giay.Keys.ToList())
+            {
+                if (!quy.TryGetValue(k.TieuDe, out var mien)) continue;
+                _mien[(k.Ngay, mien)] = (_mien.TryGetValue((k.Ngay, mien), out var c) ? c : 0) + _giay[k];
+                _giay.Remove(k);
+            }
+        }
+    }
+
+    public Dictionary<(string Ngay, string Mien), double> GiayTheoMien()
+    {
+        lock (_khoa) return new Dictionary<(string, string), double>(_mien);
+    }
+
+    /// <summary>Ngày đã có dữ liệu tab (đã quy hoặc còn chờ quy).</summary>
+    public HashSet<string> NgayDaGhi()
+    {
+        lock (_khoa) return _giay.Keys.Select(k => k.Ngay).Concat(_mien.Keys.Select(k => k.Ngay)).ToHashSet();
     }
 
     /// <summary>Bỏ ngày cũ hơn <paramref name="giuTu"/> (yyyy-MM-dd, so chuỗi) — sổ không phình mãi.</summary>
     public void DonCu(string giuTu)
     {
-        lock (_khoa) foreach (var k in _giay.Keys.Where(k => string.CompareOrdinal(k.Ngay, giuTu) < 0).ToList()) _giay.Remove(k);
+        lock (_khoa)
+        {
+            foreach (var k in _giay.Keys.Where(k => string.CompareOrdinal(k.Ngay, giuTu) < 0).ToList()) _giay.Remove(k);
+            foreach (var k in _mien.Keys.Where(k => string.CompareOrdinal(k.Ngay, giuTu) < 0).ToList()) _mien.Remove(k);
+        }
     }
 
     /// <summary>Các ngày đã có giây tab trong sổ.</summary>
@@ -60,6 +94,19 @@ public sealed class TabDangXem
     /// lạ (« - Personal», « - [InPrivate]», tên hồ sơ) ⇒ cắt dần từng đoạn « - » cuối rồi thử lại; không khớp tiền tố lỏng (tránh gán «Google» cho mọi trang).
     /// Không quy được (trang mới chưa vào lịch sử, trang nội bộ, InPrivate) ⇒ bỏ.</summary>
     public static Dictionary<(string Ngay, string Mien), double> QuyTenMien(IReadOnlyDictionary<(string Ngay, string TieuDe), double> giay, IEnumerable<WebVisit> visits)
+    {
+        var quy = QuyTungTieuDe(giay.Keys.Select(k => k.TieuDe).Distinct(), visits);
+        var kq = new Dictionary<(string, string), double>();
+        foreach (var ((ngay, tieu), s) in giay)
+        {
+            if (!quy.TryGetValue(tieu, out var mien)) continue;
+            kq[(ngay, mien)] = (kq.TryGetValue((ngay, mien), out var c) ? c : 0) + s;
+        }
+        return kq;
+    }
+
+    /// <summary>Tiêu đề tab ⇒ tên miền (chỉ những tiêu đề quy được).</summary>
+    public static Dictionary<string, string> QuyTungTieuDe(IEnumerable<string> tieuDe, IEnumerable<WebVisit> visits)
     {
         var theoTieuDe = new Dictionary<string, (string Mien, DateTimeOffset Luc)>(StringComparer.OrdinalIgnoreCase);
         foreach (var v in visits)
@@ -71,8 +118,8 @@ public sealed class TabDangXem
             if (t.Length == 0) continue;
             if (!theoTieuDe.TryGetValue(t, out var cu) || v.Luc > cu.Luc) theoTieuDe[t] = (mien, v.Luc);
         }
-        var kq = new Dictionary<(string, string), double>();
-        foreach (var ((ngay, tieu), s) in giay)
+        var kq = new Dictionary<string, string>();
+        foreach (var tieu in tieuDe)
         {
             string? mien = null;
             for (var t = tieu; t.Length > 0 && mien == null;)
@@ -81,8 +128,7 @@ public sealed class TabDangXem
                 var cat = t.LastIndexOf(" - ", StringComparison.Ordinal);
                 t = cat > 0 ? t[..cat].TrimEnd() : "";
             }
-            if (mien == null) continue;
-            kq[(ngay, mien)] = (kq.TryGetValue((ngay, mien), out var c) ? c : 0) + s;
+            if (mien != null) kq[tieu] = mien;
         }
         return kq;
     }
