@@ -1464,6 +1464,18 @@ await kichBan("Hôm nay (Trang chủ gọn 14/11 — N8): «Cần Ba Mẹ để 
   xet(!(await chu()).includes("ngoại lệ"), "không còn chữ «ngoại lệ»");
 });
 
+await kichBan("Hôm nay #727: số ở tiêu đề «Cần Ba Mẹ để ý» do máy chủ đếm = đúng số thẻ hiện ra", async () => {
+  const dong = (id, loai, tieu, nut, den) => ({ id, loai, tieu, phu: "09:00", luc: "2026-10-23T02:00:00.000Z", con: "c1", so: 1, nut, den });
+  kb["GET can-de-y"] = { ds: [dong("a:a1", "canh_bao", "Cảnh báo thử một", "Xem", "/canh-bao/a1"), dong("chua_bao_ve:m9", "chua_bao_ve", "Máy thử hai chưa được bảo vệ", "Sửa", "/may/m9")],
+    soChuong: 2, soTab: 2, soTheoCon: { c1: 2 }, soCaNha: 0 };
+  kb["GET cho-duyet"] = { ...coBan["GET cho-duyet"], yeuCau: [] };
+  await di("/hom-nay");
+  xet(await doi("Cảnh báo thử một"), "thẻ thứ nhất");
+  xet(await doi("Máy thử hai chưa được bảo vệ"), "thẻ thứ hai");
+  const t = await chu();
+  xet(/Cần Ba Mẹ để ý 2(?!\d)/.test(t), "tiêu đề «Cần Ba Mẹ để ý 2» = 2 thẻ");
+});
+
 await kichBan("Đổi tab qua lại ×3 rồi về Hôm nay ⇒ vẫn bấm được + cuộn được (TestFlight build 10: Trang chủ đứng)", async () => {
   await di("/hom-nay");
   xet(await doi("Khoá máy"), "Hôm nay đã tải");

@@ -11,14 +11,14 @@ import { conTheoTran } from "./phien.ts";
 import { thongKeSao } from "./so-sao.ts";
 import { tenDoc } from "./man-hinh.ts";
 import { nhomTuLoai } from "./chan-co-ban.ts";
-import { loiXinHienDuoc } from "./luat-app.ts";
+import { loiXinHienDuoc, SQL_CO_LUAT_YC } from "./luat-app.ts";
 
 const NHOM_NV_CHU: Record<string, string> = { doc_sach: "đọc sách", viec_nha: "việc nhà", hoc_tap: "học tập", van_dong: "vận động", ky_nang: "kỹ năng", khac: "việc khác" };
 
 /** #702: lời xin cài app đang chờ (gia_tri, ten_app) — lọc thành phần Windows bằng JS (luat-app.ts › loiXinHienDuoc), cùng điều kiện với Chờ duyệt. */
-export const SQL_YC_CAI = (con: string) => `coalesce((select json_agg(json_build_object('gia_tri', gia_tri, 'ten_app', ten_app)) from requests
+export const SQL_YC_CAI = (con: string) => `coalesce((select json_agg(json_build_object('gia_tri', gia_tri, 'ten_app', ten_app, 'co_luat', ${SQL_CO_LUAT_YC("requests")})) from requests
                where child_id = ${con} and trang_thai = 'cho' and het_han > now() and loai = 'cai_app'), '[]'::json)`;
-type DemYc = { yc_khac: number; yc_cai: { gia_tri: string | null; ten_app: string | null }[] | null };
+type DemYc = { yc_khac: number; yc_cai: { gia_tri: string | null; ten_app: string | null; co_luat?: boolean }[] | null };
 /** #702: số «lời xin» của Con = đúng số dòng của Con trong Chờ duyệt (dsChoYc). */
 export const demYcCho = (r: DemYc) => r.yc_khac + (r.yc_cai ?? []).filter((x) => loiXinHienDuoc({ loai: "cai_app", ...x })).length;
 
