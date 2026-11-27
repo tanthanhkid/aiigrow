@@ -75,7 +75,7 @@ export default function Ghep() {
           <TieuD chu="Máy này chưa ghép" />
           <ChuD co={15} mau={D.chu2}>Nhờ Ba Mẹ mở AiiGrow nhé.</ChuD>
           <TheD style={{ gap: 14 }}>
-            <BuocD n={1} tieu="Ba Mẹ mở AiiGrow" phu="Bấm «Thêm máy»" />
+            <BuocD n={1} tieu="Ba Mẹ mở AiiGrow" phu="Cả nhà › Ghép thêm máy" />
             <BuocD n={2} tieu="Máy Ba Mẹ hiện mã 6 số" phu={`Mã đổi sau ${MA_PHUT} phút`} />
             <BuocD n={3} tieu="Con gõ mã vào đây" phu="Xong là ghép" cuoi />
           </TheD>
@@ -109,7 +109,7 @@ export default function Ghep() {
           <NutD chu="Quét QR mới" loai="phu" bam={() => setBuoc("qr")} /></>}>
           <CamXuc lv="cho" co={120} tieu="Mã hết hạn rồi" phu={`Mã chỉ dùng được ${MA_PHUT} phút.`} />
           <TheD style={{ gap: 14 }}>
-            <BuocD n={1} tieu="Ba Mẹ bấm «Lấy mã mới»" phu="Trong AiiGrow · Thêm máy" />
+            <BuocD n={1} tieu="Ba Mẹ bấm «Lấy mã mới»" phu="Trong AiiGrow · Cả nhà › Ghép thêm máy" />
             <BuocD n={2} tieu="Con gõ mã mới" phu="Xong là ghép" cuoi />
           </TheD>
         </ManD>
@@ -236,7 +236,7 @@ function QuetQr({ lui, go, ghep, dangChay, loi }: { lui: () => void; go: () => v
         ) : <Icon3D ten="tim_kiem" co={72} />}
         <View pointerEvents="none" style={{ width: 200, height: 200, borderRadius: 22, borderWidth: 3, borderColor: D.sao }} />
       </View>
-      <ChuD kieu="rat" co={14} mau={D.chu2} giua>{web ? "Máy này không quét được — gõ mã 6 số thay nhé." : la ? "Mã này không phải của AiiGrow — quét mã trong «Thêm máy» nhé." : `Mã đổi sau ${MA_PHUT} phút`}</ChuD>
+      <ChuD kieu="rat" co={14} mau={D.chu2} giua>{web ? "Máy này không quét được — gõ mã 6 số thay nhé." : la ? "Mã này không phải của AiiGrow — quét mã trong «Ghép thêm máy» nhé." : `Mã đổi sau ${MA_PHUT} phút`}</ChuD>
       {dangChay ? <ChuD kieu="rat" co={14} mau={D.xanhD} giua>Quét được · đang ghép máy này…</ChuD> : null}
       <LoiD loi={loi} />
     </ManD>

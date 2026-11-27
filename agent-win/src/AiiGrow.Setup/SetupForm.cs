@@ -973,7 +973,7 @@ internal sealed class SetupForm : Form
         X(_body, 270, 90, link ? "Link ghép đã hết hạn" : "Mã ghép đã hết hạn", Kieu.H);
         X(_body, 270, 134, link
             ? "Link Ba Mẹ gửi đã hết hạn hoặc đã dùng. Trên điện thoại Ba Mẹ, vào Cả nhà › Ghép thêm máy để lấy mã mới rồi gõ ở đây."
-            : $"Mã {LoiGhep.Hien(o.Code)} chỉ dùng được 10 phút. Trên điện thoại Ba Mẹ, bấm «Lấy mã mới» rồi gõ lại.", Kieu.P, 417);
+            : $"Mã {LoiGhep.Hien(o.Code)} chỉ dùng được 10 phút. Trên điện thoại Ba Mẹ, vào Cả nhà › Ghép thêm máy để lấy mã mới rồi gõ lại.", Kieu.P, 417);
         var the = The(270, 218, 417, 96);
         Vien(the, 290, 238, "dong_ho_cat", mau: "cam");
         X(the, 362, 244, "Chưa cài gì lên máy", Kieu.B, 310);
