@@ -55,7 +55,10 @@ test("sổ sao 15/11: số âm có dấu − thật, câu phút / nợ, suy từ
   assert.equal(m.cau.soDu, "0 sao"); assert.equal(m.cau.no, "Đang nợ Ba Mẹ 20 sao"); assert.equal(m.vayMacDinh, 15);
   // vừa vay 30 ở 0 sao: số dư 0, còn 30 phút, chưa hết sao
   const v = saoTuMayChu({ sao: 0, no: 30, phutCon: 30, hetSao: false }, null);
-  assert.equal(v.hetSao, false); assert.equal(v.cau.phut, "còn 30 sao = 30 phút chơi");
+  assert.equal(v.hetSao, false); assert.equal(v.sao, 30, "#812: số to khớp phút chơi sau vay"); assert.equal(v.cau.soDu, "30 sao"); assert.equal(v.cau.phut, "còn 30 sao = 30 phút chơi");
+  // còn sao tự kiếm + vay: số to vẫn = phút chơi (sao tiêu được), không lệch dòng phụ
+  const v2 = saoTuMayChu({ sao: 20, no: 10, phutCon: 30, saoVayChuaTieu: 10 }, null);
+  assert.deepEqual([v2.sao, v2.phutCon, v2.cau.soDu, v2.cau.phut], [30, 30, "30 sao", "còn 30 sao = 30 phút chơi"]);
   // máy chủ cũ: không có kid/sao ⇒ sao + conPhut từ kid/quy, không nợ
   const c = saoTuMayChu(null, { sao: 40, quy: { conPhut: 18, daDung: 42, khoa: true } });
   assert.deepEqual([c.sao, c.no, c.phutCon, c.hetSao, c.khoa], [40, 0, 18, false, true]);

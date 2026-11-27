@@ -91,9 +91,11 @@ export function cauMatMangTre(ten: string, s: { sao: number; no: number; phutCon
 export function saoTuMayChu(s: SaoMayChu | null, q: QuySao): SaoCon {
   // #745: sao khả dụng KHÔNG âm (= phút chơi); máy chủ cũ còn gửi số âm ⇒ kẹp 0, phần nợ hiện riêng ở `no`
   const sao0 = Math.round(Number(s?.sao ?? q?.sao ?? 0)) || 0;
-  const sao = Math.max(0, sao0);
   const no = Math.max(0, Math.round(Number(s?.no ?? (sao0 < 0 ? -sao0 : 0))) || 0);
-  const phutCon = Math.max(0, Math.round(Number(s?.phutCon ?? q?.quy?.conPhut ?? Math.max(0, sao))) || 0);
+  const phutCon = Math.max(0, Math.round(Number(s?.phutCon ?? q?.quy?.conPhut ?? Math.max(0, sao0))) || 0);
+  // #812: vừa vay mà còn sao chưa tiêu ⇒ số to = đúng số sao tiêu được (= phút chơi), cùng nguồn với dòng «còn N sao = N phút chơi» và app Ba Mẹ
+  // (cùng điều kiện kieuSao «vay» của app Ba Mẹ: còn nợ + còn sao tiêu được; máy chủ gửi phutCon = sao tiêu được, không kẹp giới hạn ngày)
+  const sao = no > 0 && phutCon > 0 ? phutCon : Math.max(0, sao0);
   const muc = Array.isArray(s?.mucVay) && s!.mucVay!.length ? s!.mucVay! : MUC_VAY;
   return {
     sao, no, phutCon, saoVayChuaTieu: Math.max(0, Number(s?.saoVayChuaTieu ?? 0) || 0), hetSao: s?.hetSao ?? phutCon <= 0,
