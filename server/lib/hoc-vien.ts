@@ -79,6 +79,8 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
                   'lam_lai_nhiem_vu', 'them_gio', 'dong_y_yeu_cau', 'bo_qua_yeu_cau', 'cho_vay', 'tu_choi_yeu_cau', 'tang_sao')
        -- #258: «Bỏ qua» chỉ báo Con sau 60 giây (Ba Mẹ còn Hoàn tác được — hoàn tác thì sự kiện bị thu hồi)
        and (e.loai <> 'bo_qua_yeu_cau' or e.created_at <= now() - interval '60 seconds')
+       -- #759: lượt duyệt đã bị Ba Mẹ «Hoàn tác» được đánh dấu thu_hoi ngay lúc hoàn tác ⇒ không báo Con (duyệt lại tạo sự kiện mới, số sao đúng)
+       and coalesce(e.chi_tiet->>'thu_hoi', '') <> 'true'
        -- #263: «Ba Mẹ cho vay N sao» cũng chờ hết 60 giây Hoàn tác; khoản vay đã rút trọn (hoan_tac_vay không «mot_phan») thì không báo
        and (e.loai <> 'cho_vay' or (e.created_at <= now() - interval '60 seconds' and not exists (select 1 from events h where h.child_id = e.child_id
               and h.loai = 'hoan_tac_vay' and h.created_at >= e.created_at and h.created_at <= e.created_at + interval '61 seconds' and not (h.chi_tiet ? 'mot_phan'))))
