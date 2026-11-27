@@ -542,6 +542,10 @@ export async function hoanTacDuyet(fam: string, subId: string, nguoi: string) {
     await ghiDiem(t, s.child_id, -s.diem, "hoan", `Hoàn tác duyệt ${s.ten}`, { ref: s.id, nguoi });
     await t(`update submissions set trang_thai = 'cho_duyet', diem = null, nguoi_duyet = null, duyet_luc = null, loi_khen = null where id = $1`, [s.id]);
     if (s.loi_khen) await t(`delete from messages where id = (select id from messages where child_id = $1 and noi_dung = $2 order by created_at desc limit 1)`, [s.child_id, s.loi_khen]);
+    // #759: thu hồi thông báo của lần duyệt vừa hoàn tác (sự kiện mới nhất của lượt này; sự kiện cũ chưa có `sub` thì khớp theo tên việc)
+    await t(`update events set chi_tiet = chi_tiet || '{"thu_hoi": true}'::jsonb where id = (select id from events where child_id = $1
+               and loai in ('duyet_nhiem_vu', 'tu_duyet_nhiem_vu') and coalesce(chi_tiet->>'thu_hoi', '') <> 'true'
+               and (chi_tiet->>'sub' = $2 or (not chi_tiet ? 'sub' and chi_tiet->>'ten' = $3)) order by created_at desc limit 1)`, [s.child_id, s.id, s.ten]);
     await ghiSuKien(fam, "hoan_tac_duyet", { ten: s.ten, sub: s.id }, { con: s.child_id, nguoi }, t);
     return { con: s.child_id, duyetLuc: new Date(s.duyet_luc) };
   });

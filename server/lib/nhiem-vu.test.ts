@@ -192,3 +192,17 @@ test("#759: duyệt → hoàn tác → duyệt lại: khay Con chỉ còn thông
   assert.deepEqual((await hv.tinCho(con)).ds.filter((x) => x.loai === "duyet_nhiem_vu").map((x) => x.noi), ["«Gấp quần áo» · +30 sao"]);
   assert.equal(await v.soDu(con), 30);
 });
+
+test("#759: hoàn tác một lượt không thu hồi thông báo của lượt khác; sự kiện cũ chưa có sub khớp theo tên", async () => {
+  const hv = await import("./hoc-vien.ts");
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Mi" });
+  const t1 = await nv.taoNv(fam, { ten: "Quét nhà", diem: 10 });
+  const t2 = await nv.taoNv(fam, { ten: "Tưới cây", diem: 15 });
+  const s1 = await nv.batDau(con, t1); await nv.nop(con, s1, { anh: [anhGia("a759")] }); await nv.duyet(fam, s1, bm);
+  const s2 = await nv.batDau(con, t2); await nv.nop(con, s2, { anh: [anhGia("b759")] }); await nv.duyet(fam, s2, bm);
+  await q(`update events set chi_tiet = chi_tiet - 'sub' where child_id = $1 and loai = 'duyet_nhiem_vu' and chi_tiet->>'ten' = 'Tưới cây'`, [con]);   // sự kiện cũ
+  await nv.hoanTacDuyet(fam, s2, bm);
+  const ds = (await hv.tinCho(con)).ds.filter((x) => x.loai === "duyet_nhiem_vu").map((x) => x.noi);
+  assert.deepEqual(ds, ["«Quét nhà» · +10 sao"]);
+});
