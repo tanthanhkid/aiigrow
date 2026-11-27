@@ -99,7 +99,7 @@ public sealed class AgentRuntime
     /// <summary>#693: tên exe app đã cài ở chỗ khác Desktop / Downloads (null = chưa quét lần nào — mọi exe ở chỗ thả tệp không được nhận theo tên).</summary>
     public volatile ISet<string>? TenDaCai;
     /// <summary>#727: thư mục cài đã quét (null = chưa quét lần nào ⇒ chưa chặn theo chỗ thả tệp).</summary>
-    public volatile IReadOnlyCollection<string>? ThuMucDaCai;
+    public volatile IReadOnlyList<string>? ThuMucDaCai;
     /// <summary>#422: app đã cài theo lần quét gần nhất (mục + tên) — lưới «App trên máy» của hộp «Xin thêm app / web» (PipeCmd.AppMay). null = chưa quét.</summary>
     public volatile IReadOnlyList<AppTrenMay>? AppMay;
     /// <summary>05/11 (L11): bài nộp lúc mất mạng đang chờ gửi (BaiChoMang, mỗi bài một tệp). PipeServer / AgentWorker cập nhật số đếm.</summary>
