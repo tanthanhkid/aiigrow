@@ -84,7 +84,7 @@ public class Phan727bTests
         // game đổi tên chỗ khác, tên gốc giữ: băm không đọc được ⇒ khớp theo tên (trước đây bỏ qua)
         Assert.NotNull(ChanAppThat.Khop(@"C:\Users\Con\Desktop\game.exe", luat, _ => null, _ => true));
         // «chưa băm xong» (lần đầu) khác «băm không được»
-        Assert.NotNull(ChanAppThat.Khop(@"C:\Users\Con\Desktop\game.exe", luat, _ => null, null));   // khớp theo tên sẵn (tên không chung)
+        Assert.Null(ChanAppThat.Khop(@"C:\Users\Con\Desktop\game.exe", luat, _ => null, null));   // tên chung + chưa chắc băm lỗi ⇒ không chặn nhầm
         // app hợp lệ ở Program Files cùng tên chung không bị chặn nhầm khi luật chỉ có băm
         var chung = new List<AppBiChan> { new() { Muc = "setup.exe", Sha256 = new string('b', 64), DuongDan = @"D:\X\setup.exe" } };
         Assert.Null(ChanAppThat.Khop(@"C:\Program Files\Foo\setup.exe", chung, _ => null, _ => true));
