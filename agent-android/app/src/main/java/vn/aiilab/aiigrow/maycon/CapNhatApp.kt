@@ -153,7 +153,7 @@ object CapNhat {
 
     /** #727 C: hỏng lặp lại (từ lần 2) ⇒ xếp sự kiện `cap_nhat_loi` như agent-win; hàng đợi gửi ở nhịp kế, mã theo bản nên chỉ báo một lần. */
     private fun baoBaMe(ctx: Context, k: Kho, ban: String?, lyDo: String) {
-        if (ban.isNullOrBlank() || ban == "mới") return
+        if (ban.isNullOrBlank()) return
         val lan = lanLoiMoi(k.loiBan, k.loiLan, ban)
         k.loiBan = ban; k.loiLan = lan
         if (!nenBaoBaMeLoi(lan)) return
