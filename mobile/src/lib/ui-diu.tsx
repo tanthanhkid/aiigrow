@@ -10,6 +10,7 @@ import { Icon, Icon3D, Rob, type LinhVat, type TenIcon } from "./ui";
 import { BONG_D, D, FD, KT, MEN_D } from "./diu";
 import { useTre } from "./ui-tre";
 import { chuAvt } from "./con-diu";
+import { TRE_DONG_TAM_MS } from "./doi-be";
 
 // ---------------------------------------------------------------- chữ
 
@@ -160,8 +161,22 @@ export const AvtD = ({ ten, co = 96, chu, chon }: { ten: string; i?: number; co?
 );
 
 /** Chip «Bảo Anh ▾» dưới lời chào: chạm mở tấm «Đổi người / Đăng xuất» (PIN 06/11 — them-j424uyis; #267 «Đổi người»). */
-export function ChipTen({ ten, i = 0, doiBe, dangXuat }: { ten: string; i?: number; doiBe: () => void | Promise<void>; dangXuat: () => void | Promise<void> }) {
+export function ChipTen({ ten, i = 0, doiBe, dangXuat }: { ten: string; i?: number; doiBe?: () => void | Promise<void>; dangXuat?: () => void | Promise<void> }) {
   const [mo, setMo] = useState(false);
+  // #824: đóng tấm trượt xong mới chuyển màn (chuyển ngay khi Modal đang đóng ⇒ iOS bỏ lệnh điều hướng, bấm như không có gì)
+  const hen = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => { if (hen.current) clearTimeout(hen.current); }, []);
+  const sauKhiDong = (fn: () => void | Promise<void>) => { setMo(false); if (hen.current) clearTimeout(hen.current); hen.current = setTimeout(() => { hen.current = null; void fn(); }, TRE_DONG_TAM_MS); };
+  // không có đường về màn chọn tên (khung Kid do agent mở) ⇒ chỉ hiện tên, không có nút vô tác dụng
+  if (!doiBe || !dangXuat) {
+    return (
+      <View accessibilityLabel={ten} style={{ alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 8, height: 40, paddingLeft: 4, paddingRight: 12, borderRadius: 20,
+        backgroundColor: D.the, boxShadow: BONG_D.phim }}>
+        <AvtD ten={ten} i={i} co={32} chon />
+        <ChuD kieu="rat" co={15}>{ten}</ChuD>
+      </View>
+    );
+  }
   return (
     <>
       <Pressable onPress={() => setMo(true)} accessibilityRole="button" accessibilityLabel={`${ten} — đổi người hoặc đăng xuất`}
@@ -179,8 +194,8 @@ export function ChipTen({ ten, i = 0, doiBe, dangXuat }: { ten: string; i?: numb
             <ChuD co={14} mau={D.chu2}>Đang dùng máy này</ChuD>
           </View>
         </View>
-        <NutD chu="Đổi người" loai="phu" ic="nguoi" bam={() => { setMo(false); doiBe(); }} />
-        <NutD chu="Đăng xuất" ic="thoat" bam={() => { setMo(false); dangXuat(); }} />
+        <NutD chu="Đổi người" loai="phu" ic="nguoi" bam={() => sauKhiDong(doiBe)} />
+        <NutD chu="Đăng xuất" ic="thoat" bam={() => sauKhiDong(dangXuat)} />
         <ChuD co={13.5} mau={D.chu2} giua>{`Đổi người hay đăng xuất đều dừng tính phút của ${ten}.\nVào lại bằng tên + PIN.`}</ChuD>
         <NutD chu="Ở lại" loai="chu" bam={() => setMo(false)} />
       </TamTruot>
