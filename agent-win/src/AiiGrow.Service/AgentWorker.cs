@@ -255,6 +255,14 @@ public sealed class AgentWorker : BackgroundService
                 catch { }
             }
         }
+        // #780: tên thường «aiigrow.tray.exe» / «aiigrow.kid.exe» (khay, app Con) từ thư mục cài không ghi vào «đã dùng» của bé (máy chủ vẫn lọc cả dữ liệu cũ)
+        if (fresh && AppAiiGrow.La(id) && !AppAiiGrow.LaKhayCu(id) && phienCon >= 0)
+        {
+            bool cuaAiiGrow;
+            try { cuaAiiGrow = AppAiiGrow.ChayTuThuMucCai(id!, _procs.ListChildProcesses(phienCon), AppContext.BaseDirectory); }
+            catch { cuaAiiGrow = false; }
+            if (cuaAiiGrow) return;
+        }
         var be = _rt.DangNhap() is { Loai: LoaiNguoiDung.Con, ConId: { Length: > 0 } c } ? c : null;   // 15/11 (#267): phút ghi theo bé
         _rt.CountUsage(now, fresh ? id! : UsageTracker.KhongRo, fresh ? (name ?? id!) : "Không rõ", elapsed, be);
         // #771: tiền cảnh là trình duyệt ⇒ giây cộng cho TAB ĐANG XEM (tiêu đề cửa sổ), không cho tab mở sẵn / tab nền — phía lịch sử web dùng số này

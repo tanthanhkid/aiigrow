@@ -9,7 +9,7 @@ import { BONG, KHOI } from "./clay";
 import { icCuaApp, OIconTrang, OTim } from "./ui-bm3";
 import { Chu, IconNet, M, Nut } from "./ui";
 
-export type AppMay = { khoa: string; muc: string; ten: string; icon: string | null; trangThai: string; nhaPhatHanh: string | null };
+export type AppMay = { khoa: string; muc: string; ten: string; icon: string | null; trangThai: string; nhaPhatHanh: string | null; /** #780: trình duyệt — vào trang nào do luật web quyết */ trinhDuyet?: boolean };
 export type MayApp = { id: string; ten: string; nen: string; luc: string | null; ds: AppMay[] };
 
 /** Chuẩn hoá tên để so trùng (bỏ dấu, chữ thường, chỉ chữ + số). */
@@ -55,7 +55,10 @@ export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep, loc: locNgoa
   ten: string; may: MayApp[] | null; daXep: (a: AppMay) => boolean; chon: (a: AppMay, nhom: Nhom) => void; ghep: () => void;
   /** #525: màn đã có ô tìm riêng (Thêm app) ⇒ lọc theo chữ đó, KHÔNG vẽ ô lọc thứ hai */ loc?: string;
 }) {
-  const [locRieng, setLoc] = useState("");
+  const [locRieng, setLocRieng] = useState("");
+  const setLoc = (t: string) => { setCho(null); setLocRieng(t); };
+  /** #780: chạm nhóm chưa thêm ngay — hiện dòng xác nhận «Thêm <app> vào <nhóm>?» rồi mới ghi */
+  const [cho, setCho] = useState<{ k: string; nhom: Nhom } | null>(null);
   const loc = locNgoai ?? locRieng;
   if (!may) return null;
   if (!may.length) {
@@ -73,6 +76,7 @@ export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep, loc: locNgoa
   const tong = may.reduce((n, m) => n + m.ds.filter((a) => a.trangThai !== "he_thong").length, 0);
   const m0 = may[0];
   const chua = appChuaXep(may, daXep);
+  const soChuaMo = chua.filter((a) => !a.trinhDuyet).length;
   const q = chuanTen(loc);
   const hien = q ? chua.filter((a) => chuanTen(a.ten).includes(q) || chuanTen(a.muc).includes(q)) : chua;
   const rong = may.every((m) => !m.ds.length);
@@ -96,19 +100,30 @@ export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep, loc: locNgoa
           <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginHorizontal: 6 }}>
             <View style={{ width: 10, height: 10, borderRadius: 5, borderWidth: 2, borderColor: M.chu2 }} />
             <Chu kieu="rat" co={15} style={{ flex: 1 }}>{`Chưa xếp · ${chua.length} app`}</Chu>
-            <Chu kieu="dam" co={12.5} mau={M.chu2}>{`${ten} chưa mở được`}</Chu>
+            <Chu kieu="dam" co={12.5} mau={M.chu2}>{soChuaMo ? `${ten} chưa mở được` : ""}</Chu>
           </View>
           {hien.length ? (
             <View style={[{ borderRadius: 26, backgroundColor: M.the, paddingHorizontal: 16, paddingVertical: 4 }, KHOI.the]}>
               {hien.map((a, i) => (
-                <View key={a.k} style={[{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62 }, i > 0 && { borderTopWidth: 1, borderTopColor: "rgba(120,98,70,0.18)" }]}>
+                <View key={a.k} style={i > 0 ? { borderTopWidth: 1, borderTopColor: "rgba(120,98,70,0.18)" } : undefined}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10, minHeight: 62 }}>
                   <OIconTrang ic={icCuaApp(`${a.ten} ${a.muc}`)} anh={a.icon} />
                   <View style={{ flex: 1, minWidth: 0 }}>
                     <Chu kieu="rat" co={15} dong={2}>{a.ten}</Chu>
-                    {a.nhaPhatHanh ? <Chu kieu="dam" co={12} mau={M.chu3} dong={1}>{a.nhaPhatHanh}</Chu> : null}
+                    {a.trinhDuyet || a.nhaPhatHanh ? <Chu kieu="dam" co={12} mau={M.chu3} dong={1}>{a.trinhDuyet ? "Vào trang nào theo luật web" : a.nhaPhatHanh}</Chu> : null}
                   </View>
-                  <NutNhom nhom="tinh_phut" ten={a.ten} chu="Tính phút" bam={() => chon(a, "tinh_phut")} />
-                  <NutNhom nhom="khong_tinh_phut" ten={a.ten} chu="Không tính" bam={() => chon(a, "khong_tinh_phut")} />
+                  {a.trinhDuyet ? null : <>
+                    <NutNhom nhom="tinh_phut" ten={a.ten} chu="Tính phút" bam={() => setCho({ k: a.k, nhom: "tinh_phut" })} />
+                    <NutNhom nhom="khong_tinh_phut" ten={a.ten} chu="Không tính" bam={() => setCho({ k: a.k, nhom: "khong_tinh_phut" })} />
+                  </>}
+                </View>
+                  {cho?.k === a.k ? (
+                    <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 10 }}>
+                      <Chu kieu="rat" co={13.5} style={{ flex: 1 }} dong={2}>{`Thêm ${a.ten} vào ${cho.nhom === "tinh_phut" ? "Tính phút" : "Không tính phút"}?`}</Chu>
+                      <NutNhom nhom="khong_tinh_phut" ten={a.ten} chu="Huỷ" bam={() => setCho(null)} />
+                      <NutNhom nhom="tinh_phut" ten={`${a.ten} vào ${cho.nhom === "tinh_phut" ? "Tính phút" : "Không tính phút"}`} chu="Thêm" bam={() => { const n = cho.nhom; setCho(null); chon(a, n); }} />
+                    </View>
+                  ) : null}
                 </View>
               ))}
             </View>

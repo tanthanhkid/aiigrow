@@ -113,3 +113,27 @@ public class XinThemTests
         Assert.Contains("\"kieu\":\"app\"", req);
     }
 }
+
+/// <summary>#780: lưới «App trên máy» của bé bỏ công cụ hệ thống, giữ Notepad / Paint.</summary>
+public class CongCuHeThong780Tests
+{
+    [Fact]
+    public void Loc_BoCongCuHeThong_GiuNotepadPaint()
+    {
+        var ds = new[]
+        {
+            new AppTrenMay { Muc = "cmd.exe", Ten = "Command Prompt" }, new AppTrenMay { Muc = "regedit.exe", Ten = "Registry Editor" },
+            new AppTrenMay { Muc = "taskmgr.exe", Ten = "Task Manager" }, new AppTrenMay { Muc = "resmon.exe", Ten = "Resource Monitor" },
+            new AppTrenMay { Muc = "mstsc.exe", Ten = "Remote Desktop Connection" }, new AppTrenMay { Muc = "iexplore.exe", Ten = "Internet Explorer" },
+            new AppTrenMay { Muc = "notepad.exe", Ten = "Notepad" }, new AppTrenMay { Muc = "mspaint.exe", Ten = "Paint" }, new AppTrenMay { Muc = "msedge.exe", Ten = "Microsoft Edge" },
+        };
+        Assert.Equal(new[] { "Microsoft Edge", "Notepad", "Paint" }, XinThemChonView.Loc(ds).Select(a => a.Ten).ToArray());
+    }
+
+    [Fact]
+    public void AppAiiGrow_TenThuongLaAiiGrow()
+    {
+        Assert.True(AppAiiGrow.La("aiigrow.tray.exe"));
+        Assert.False(AppAiiGrow.La("roblox.exe"));
+    }
+}

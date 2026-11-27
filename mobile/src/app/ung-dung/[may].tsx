@@ -15,7 +15,7 @@ import {
 type TrangThai = "he_thong" | "cho_phep" | "hoc" | "giai_tri" | "chan" | "chua_xep";
 type AppMay = {
   khoa: string; muc: string; ten: string; nguon: string | null; nhaPhatHanh: string | null; teamId: string | null; duongDan: string | null;
-  phienBan: string | null; icon: string | null; iconBam?: string | null; trangThai: TrangThai; nhom: string | null; theoCaNha: boolean; tamThoi?: boolean;
+  phienBan: string | null; icon: string | null; iconBam?: string | null; trangThai: TrangThai; nhom: string | null; theoCaNha: boolean; tamThoi?: boolean; trinhDuyet?: boolean;
 };
 type DsMay = { may: { id: string; ten: string; nen: string; dungChung: boolean; con: string | null }; capNhatLuc: string | null; yeuCauLuc: string | null; ds: AppMay[];
   /** #338: bé được gán máy (máy chủ cũ không gửi) */ conDs?: { id: string; ten: string }[] };
@@ -193,7 +193,7 @@ export default function UngDungMay() {
               <Nhom>
                 {ds.map((a, i) => (
                   <Dong key={a.khoa} dau={i === 0} tieu={a.ten} phu={phuCua(a)} trai={<IconApp a={a} may={may} />}
-                    phai={<Nhan loai={TT[tt(a)].nhan} chu={TT[tt(a)].chu} />} bam={() => moChon(a)} />
+                    phai={a.trinhDuyet && tt(a) === "chua_xep" ? <Nhan loai="xam" chu="Theo luật web" /> : <Nhan loai={TT[tt(a)].nhan} chu={TT[tt(a)].chu} />} bam={() => moChon(a)} />
                 ))}
               </Nhom>
             </>

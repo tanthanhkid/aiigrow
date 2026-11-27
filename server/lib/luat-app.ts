@@ -17,8 +17,8 @@ export const NHOM_GT: NhomGiaiTri[] = ["game", "video_ngan", "mxh", "phim_gd", "
 
 /** Allowlist hệ thống mặc định (Phụ lục B, trích) — định danh thấp: tên tệp chạy Windows/macOS, gói Android, tên miền. */
 export const ALLOWLIST_HE_THONG: string[] = [
-  // Windows
-  "explorer.exe", "systemsettings.exe", "calculatorapp.exe", "calc.exe", "notepad.exe", "mspaint.exe", "photos.exe", "microsoft.photos.exe", "windowscamera.exe",
+  // Windows (#780: Notepad / Paint KHÔNG ở đây — Ba Mẹ thấy ở «Thêm app» và tự xếp nhóm; «Theo danh sách» thì Con xin như app khác)
+  "explorer.exe", "systemsettings.exe", "calculatorapp.exe", "calc.exe", "photos.exe", "microsoft.photos.exe", "windowscamera.exe",
   "snippingtool.exe", "taskmgr.exe", "winword.exe", "excel.exe", "powerpnt.exe", "onenote.exe", "ms-teams.exe", "teams.exe",
   "aiigrow.kid.exe", "aiigrow.tray.exe",
   // gõ tiếng Việt + hỗ trợ từ xa của AiiLab (Thanh 22/10): không bị đóng khi Chặn thật
@@ -53,9 +53,11 @@ export const laKhayCuAiiGrow = (mucTho: unknown) => laAppAiiGrow(mucTho) && Stri
 
 /** #525: công cụ hệ thống / trình điều khiển / thành phần Windows — không phải app con mở để chơi, học: không hiện ở «Thêm app», không thành «app mới»,
  *  không thành lời xin. So theo mục (tên tệp / gói) + tên hiển thị, TỪ trọn vẹn (không so chuỗi con ngẫu nhiên). */
-const MUC_CONG_CU = new Set(["cmd.exe", "powershell.exe", "pwsh.exe", "wt.exe", "conhost.exe", "regedit.exe", "mmc.exe", "msiexec.exe", "charmap.exe", "git-bash.exe", "git-cmd.exe",
+// #780: bảng loại trừ MỘT chỗ cho Ba Mẹ (Thêm app) + lời xin; bản sao phía bé: agent-win CongCuHeThongView (XinThem.cs — giữ hai bảng khớp, test congcu-780 kiểm).
+const MUC_CONG_CU = new Set(["mstsc.exe", "iexplore.exe", "taskmgr.exe", "resmon.exe", "perfmon.exe", "eventvwr.exe", "taskschd.msc", "compmgmt.msc", "devmgmt.msc", "diskmgmt.msc", "services.msc",
+  "cmd.exe", "powershell.exe", "pwsh.exe", "wt.exe", "conhost.exe", "regedit.exe", "mmc.exe", "msiexec.exe", "charmap.exe", "git-bash.exe", "git-cmd.exe",
   "storedesktopextension.exe", "gamebar.exe", "gamebarftserver.exe", "rstmwservice.exe", "msconfig.exe", "dxdiag.exe", "control.exe", "winver.exe", "wscript.exe", "cscript.exe"]);
-const TEN_CONG_CU = [/^command prompt$/, /\bgit (bash|cmd|gui)\b/, /^character map$/, /\bcodec tweak/, /\blav (audio|video|filters)\b/, /\bintel\b.*\b(rapid storage|management engine|graphics command|driver)\b/,
+const TEN_CONG_CU = [/^command prompt$/, /^(task manager|remote desktop( connection)?|internet explorer|resource monitor|performance monitor|registry editor)$/, /\bgit (bash|cmd|gui)\b/, /^character map$/, /\bcodec tweak/, /\blav (audio|video|filters)\b/, /\bintel\b.*\b(rapid storage|management engine|graphics command|driver)\b/,
   /\bgame bar\b/, /\bstoredesktopextension\b/, /\bpowershell\b/, /^windows (terminal|powershell|security|defender)/, /\b(registry editor|device manager|task scheduler|event viewer|resource monitor|disk cleanup|system configuration)\b/,
   /\bredistributable\b/, /^(microsoft )?\.net (desktop )?runtime/, /^(intel|realtek|nvidia|amd)\b.*\b(driver|audio|control panel)\b/, /\bwindows (software development kit|sdk)\b/];
 export function laCongCuHeThong(mucTho: unknown, ten?: unknown): boolean {
@@ -65,6 +67,12 @@ export function laCongCuHeThong(mucTho: unknown, ten?: unknown): boolean {
   if (t && TEN_CONG_CU.some((r) => r.test(t))) return true;
   return !!m && MUC_CONG_CU.has(`${m}.exe`);      // định danh chỉ có tên tệp không đuôi («storedesktopextension»)
 }
+
+/** #780: trình duyệt — vào được trang nào do luật WEB quyết (không phải luật app), nên «chưa thêm» ở danh sách app không có nghĩa «chưa mở được». */
+const TRINH_DUYET_MUC = new Set(["chrome.exe", "msedge.exe", "brave.exe", "firefox.exe", "opera.exe", "vivaldi.exe", "browser.exe", "coccoc.exe",
+  "com.google.chrome", "com.microsoft.edgemac", "com.brave.browser", "com.apple.safari", "com.coccoc.coccoc", "org.mozilla.firefox",
+  "com.android.chrome", "com.microsoft.emmx", "com.sec.android.app.sbrowser"]);
+export const laTrinhDuyet = (mucTho: unknown) => TRINH_DUYET_MUC.has(String(mucTho ?? "").trim().toLowerCase());
 
 /** #525/#702: lời xin Ba Mẹ thấy được — lời xin cài thành phần Windows (agent cũ gửi trước #525) không hiện ở Chờ duyệt và không được đếm.
  *  MỘT điều kiện cho danh sách Chờ duyệt (yeu-cau.ts › dsChoYc) và số «lời xin» trên avatar Con (bao-cao.ts › demYcCho). */
