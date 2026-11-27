@@ -57,7 +57,7 @@ public sealed class WebGuardWorker : BackgroundService
                 string.Join(",", kq.HklmKhongTha));
         }
         _rt?.DatTrinhDuyetLoc(td);
-        if (_rt != null) { _rt.WebChanDangAp = p?.Chan.ToList(); _rt.WebChoDangAp = p?.Cho.Except(p.ChoKhiMo).ToList(); }   // #822
+        if (_rt != null) { _rt.WebChanDangAp = p?.Chan.ToList(); _rt.WebChoDangAp = p?.Cho.ToList(); }   // #822
         var canBao = false;   // báo trình duyệt đọc lại chính sách MỘT lần cuối lượt (RefreshPolicyEx force xử lý lại cả chính sách máy)
         if (kq.HklmDaGoRong.Count > 0)
         {

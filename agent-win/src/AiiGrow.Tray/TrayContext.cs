@@ -931,7 +931,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         try
         {
-            if (_hopBao is { IsDisposed: false }) { _hopBao.Close(); _hopBao.Dispose(); }
+            if (_hopBao is { IsDisposed: false } cu) { _hopBao = null; cu.Close(); cu.Dispose(); }
             var h = new HopThongBao(icon, tieu, phu, "Đã hiểu", khongCuopPhim: true);
             h.FormClosed += (_, _) => { if (_hopBao == h) _hopBao = null; h.Dispose(); };
             _hopBao = h;
@@ -951,7 +951,8 @@ internal sealed class TrayContext : ApplicationContext
         // «hết giờ chơi» đã có màn «Hết sao / Nghỉ một chút» toàn màn hình ⇒ không chồng hộp thứ hai
         var baos = BaoBeDoiTrangThai.Xet(_moc822, nay).Where(b => !(_hetSao is { IsDisposed: false } && b.Icon == "dong_ho_cat")).ToList();
         _moc822 = BaoBeDoiTrangThai.GiuMoc(_moc822, nay);
-        if (baos.Count > 0) HienHopAiiGrow(baos[0].Icon, baos[0].Tieu, baos[0].Phu);
+        if (baos.Count == 1) HienHopAiiGrow(baos[0].Icon, baos[0].Tieu, baos[0].Phu);
+        else if (baos.Count > 1) HienHopAiiGrow(baos[0].Icon, baos[0].Tieu, baos[0].Phu + " " + string.Join(" ", baos.Skip(1).Select(b => b.Tieu + ": " + b.Phu)));   // nhiều việc cùng lượt: một hộp, không bỏ việc nào
     }
 
     private void HandleLock()

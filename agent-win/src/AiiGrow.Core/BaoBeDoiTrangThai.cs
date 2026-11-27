@@ -33,7 +33,7 @@ public static class BaoBeDoiTrangThai
         var ds = new List<BaoBe>();
         if (truoc == null) return ds;
 
-        if (nay.Khoa && !truoc.Khoa && LaKhoaBaoDuoc(nay.LyDoKhoa)) ds.Add(KhoaMay(nay.LyDoKhoa));
+        if (nay.Khoa && LaKhoaBaoDuoc(nay.LyDoKhoa) && (!truoc.Khoa || !LaKhoaBaoDuoc(truoc.LyDoKhoa))) ds.Add(KhoaMay(nay.LyDoKhoa));
 
         // «hết giờ chơi» chỉ khi vào trạng thái giới hạn mới (hoặc đổi từ nghỉ sang hết giờ ngày), đang khoá máy thì màn khoá đã nói rồi
         if (!nay.Khoa && nay.HetGio is GioiHanMay.HetGioNgay or GioiHanMay.DangNghi && nay.HetGio != truoc.HetGio)

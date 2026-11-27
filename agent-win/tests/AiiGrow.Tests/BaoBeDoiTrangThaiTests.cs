@@ -23,6 +23,10 @@ public class BaoBeDoiTrangThaiTests
         Assert.Empty(BaoBeDoiTrangThai.Xet(khoa, T()));           // mở khoá: không báo
     }
 
+    [Fact]
+    public void DoiLyDoKhoa_TuChonTenSangBaMeKhoa_Bao()
+        => Assert.Single(BaoBeDoiTrangThai.Xet(T(khoa: true, lyDo: LockReasons.ChonTen), T(khoa: true, lyDo: LockReasons.Khoa)));
+
     [Theory]
     [InlineData(LockReasons.ChonTen)]
     [InlineData(LockReasons.CanMang)]

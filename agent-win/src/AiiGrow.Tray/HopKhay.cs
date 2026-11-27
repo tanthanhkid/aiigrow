@@ -53,6 +53,14 @@ internal sealed class HopThongBao : HopKhayCoBan
         ok.Click += (_, _) => Close();
         Flow.Controls.Add(ok);
         CancelButton = ok;
+        if (khongCuopPhim)
+        {
+            // không giành phím nên Esc không tới được: tự đóng sau 30 giây, không để hộp cũ chồng lên game / bài đang làm
+            var tat = new System.Windows.Forms.Timer { Interval = 30_000 };
+            tat.Tick += (_, _) => { tat.Stop(); if (!IsDisposed) Close(); };
+            Shown += (_, _) => tat.Start();
+            FormClosed += (_, _) => tat.Dispose();
+        }
     }
 
     protected override bool ShowWithoutActivation => _khongCuopPhim;
