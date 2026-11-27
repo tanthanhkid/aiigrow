@@ -55,7 +55,8 @@ export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep, loc: locNgoa
   ten: string; may: MayApp[] | null; daXep: (a: AppMay) => boolean; chon: (a: AppMay, nhom: Nhom) => void; ghep: () => void;
   /** #525: màn đã có ô tìm riêng (Thêm app) ⇒ lọc theo chữ đó, KHÔNG vẽ ô lọc thứ hai */ loc?: string;
 }) {
-  const [locRieng, setLoc] = useState("");
+  const [locRieng, setLocRieng] = useState("");
+  const setLoc = (t: string) => { setCho(null); setLocRieng(t); };
   /** #780: chạm nhóm chưa thêm ngay — hiện dòng xác nhận «Thêm <app> vào <nhóm>?» rồi mới ghi */
   const [cho, setCho] = useState<{ k: string; nhom: Nhom } | null>(null);
   const loc = locNgoai ?? locRieng;
@@ -111,8 +112,10 @@ export function KhoiAppMay({ ten, may, daXep, chon, ghep, chuaGhep, loc: locNgoa
                     <Chu kieu="rat" co={15} dong={2}>{a.ten}</Chu>
                     {a.trinhDuyet || a.nhaPhatHanh ? <Chu kieu="dam" co={12} mau={M.chu3} dong={1}>{a.trinhDuyet ? "Vào trang nào theo luật web" : a.nhaPhatHanh}</Chu> : null}
                   </View>
-                  <NutNhom nhom="tinh_phut" ten={a.ten} chu="Tính phút" bam={() => setCho({ k: a.k, nhom: "tinh_phut" })} />
-                  <NutNhom nhom="khong_tinh_phut" ten={a.ten} chu="Không tính" bam={() => setCho({ k: a.k, nhom: "khong_tinh_phut" })} />
+                  {a.trinhDuyet ? null : <>
+                    <NutNhom nhom="tinh_phut" ten={a.ten} chu="Tính phút" bam={() => setCho({ k: a.k, nhom: "tinh_phut" })} />
+                    <NutNhom nhom="khong_tinh_phut" ten={a.ten} chu="Không tính" bam={() => setCho({ k: a.k, nhom: "khong_tinh_phut" })} />
+                  </>}
                 </View>
                   {cho?.k === a.k ? (
                     <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingBottom: 10 }}>

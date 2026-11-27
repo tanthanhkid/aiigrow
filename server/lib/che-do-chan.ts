@@ -240,7 +240,8 @@ export async function danhSachCon(fam: string, con: string, now = new Date()) {
     x.phutHomNay = Math.round(phut);
   }
   // #780: app CHỈ có trên điện thoại (VioEdu…) mà máy của Con toàn Windows / Mac thì máy không bao giờ báo ⇒ không treo «Chờ máy báo»
-  const nenCua = new Set((await q<{ platform: string }>(`select distinct platform from devices where child_id = $1`, [con])).map((x) => x.platform));
+  const coChiDienThoai = choKhop.some((a) => APP_CHI_DIEN_THOAI.has(khoaTen(a.ten)));
+  const nenCua = coChiDienThoai ? new Set((await q<{ platform: string }>(`select distinct platform from devices where child_id = $1`, [con])).map((x) => x.platform)) : new Set<string>();
   const chiMayTinh = nenCua.size > 0 && [...nenCua].every((n) => n === "windows" || n === "mac");
   for (const a of choKhop) {
     if (chiMayTinh && APP_CHI_DIEN_THOAI.has(khoaTen(a.ten))) continue;

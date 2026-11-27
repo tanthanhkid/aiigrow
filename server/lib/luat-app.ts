@@ -69,9 +69,9 @@ export function laCongCuHeThong(mucTho: unknown, ten?: unknown): boolean {
 }
 
 /** #780: trình duyệt — vào được trang nào do luật WEB quyết (không phải luật app), nên «chưa thêm» ở danh sách app không có nghĩa «chưa mở được». */
-const TRINH_DUYET_MUC = new Set(["chrome.exe", "msedge.exe", "brave.exe", "firefox.exe", "opera.exe", "vivaldi.exe", "browser.exe", "coccoc.exe", "iexplore.exe",
+const TRINH_DUYET_MUC = new Set(["chrome.exe", "msedge.exe", "brave.exe", "firefox.exe", "opera.exe", "vivaldi.exe", "browser.exe", "coccoc.exe",
   "com.google.chrome", "com.microsoft.edgemac", "com.brave.browser", "com.apple.safari", "com.coccoc.coccoc", "org.mozilla.firefox",
-  "com.android.chrome", "com.microsoft.emmx", "com.brave.browser", "org.mozilla.firefox", "com.sec.android.app.sbrowser"]);
+  "com.android.chrome", "com.microsoft.emmx", "com.sec.android.app.sbrowser"]);
 export const laTrinhDuyet = (mucTho: unknown) => TRINH_DUYET_MUC.has(String(mucTho ?? "").trim().toLowerCase());
 
 /** #525/#702: lời xin Ba Mẹ thấy được — lời xin cài thành phần Windows (agent cũ gửi trước #525) không hiện ở Chờ duyệt và không được đếm.

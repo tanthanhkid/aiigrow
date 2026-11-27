@@ -259,7 +259,7 @@ public sealed class AgentWorker : BackgroundService
         if (fresh && AppAiiGrow.La(id) && !AppAiiGrow.LaKhayCu(id) && phienCon >= 0)
         {
             bool cuaAiiGrow;
-            try { cuaAiiGrow = AppAiiGrow.ChayTuThuMucCai(id!, new WindowsProcessControl().ListChildProcesses(phienCon), AppContext.BaseDirectory); }
+            try { cuaAiiGrow = AppAiiGrow.ChayTuThuMucCai(id!, _procs.ListChildProcesses(phienCon), AppContext.BaseDirectory); }
             catch { cuaAiiGrow = false; }
             if (cuaAiiGrow) return;
         }
