@@ -148,6 +148,7 @@ public sealed class AgentWorker : BackgroundService
                             {
                                 _log.LogInformation("Khoá ({reason}): ngắt phiên {id}", eff.LockReason, sess!.SessionId);
                                 SessionHelper.Disconnect(sess.SessionId);
+                                _rt.GhiNgatPhien(now);
                             }
                             else
                             {

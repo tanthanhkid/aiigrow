@@ -858,9 +858,13 @@ public sealed class AgentRuntime
             // #337: «Cần có mạng» (bé chưa có luật lúc mất mạng) cũng không ngắt phiên — bé khác còn «Đổi người», Ba Mẹ nhập mã ngay trên màn
             if (!locked || !sessionActive || reason is LockReasons.ChonTen or LockReasons.CanMang) { _lockStartedAt = null; return; }
             _lockStartedAt ??= now;
-            _lockGraceSec = 10;
+            _lockGraceSec = DangNhapMacDinh.GiayChoNgat(now, _ngatCuoi);
         }
     }
+
+    private DateTimeOffset? _ngatCuoi;
+    /// <summary>Ghi lúc vừa ngắt phiên của bé (khoá hết hạn chờ) — lần vào lại ngay sau đó được chờ lâu hơn, không bị đăng xuất liền (#778).</summary>
+    public void GhiNgatPhien(DateTimeOffset now) { lock (_gate) _ngatCuoi = now; }
 
     public bool LockGraceExpired(DateTimeOffset now)
     {

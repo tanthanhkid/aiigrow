@@ -19,8 +19,8 @@ internal static class Installer
 {
     private const string RunKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
     private const string PolicyKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System";
-    private const string LegalCaption = "Máy được Ba Mẹ quản lý";
-    private const string LegalText = "Laptop này dùng AiiGrow. Ba Mẹ đặt giờ dùng và app được mở. Con có thể xin thêm thời gian bất cứ lúc nào.";
+    private const string LegalCaption = DangNhapMacDinh.TieuDeThongBao;
+    private const string LegalText = DangNhapMacDinh.ChuThongBao;
 
     public static bool IsAdmin()
     {
@@ -75,6 +75,7 @@ internal static class Installer
         step(2, null);
 
         SetTrayAndNotice();
+        DatDangNhapMacDinh(o.Child);
         Program.WriteLog(await Task.Run(() => DatDnsGiaDinhAsync()));   // PowerShell chạy nền, không đứng giao diện cài
         step(3, null);
     }
@@ -114,6 +115,19 @@ internal static class Installer
             pol.SetValue("LegalNoticeCaption", LegalCaption);
             pol.SetValue("LegalNoticeText", LegalText);
         }
+    }
+
+    /// <summary>#778: sau thiết lập, màn đăng nhập Windows chọn sẵn tài khoản của bé (không phải Ba Mẹ). Lỗi ghi không chặn việc cài.</summary>
+    private static void DatDangNhapMacDinh(LocalAccount child)
+    {
+        try
+        {
+            var gt = DangNhapMacDinh.GiaTri(child.Name, child.Sid, Environment.MachineName);
+            if (gt == null) return;
+            using var k = Registry.LocalMachine.CreateSubKey(DangNhapMacDinh.KhoaLogonUI);
+            foreach (var (ten, v) in gt) k.SetValue(ten, v);
+        }
+        catch (Exception e) { Program.WriteLog("Chưa đặt được tài khoản đăng nhập mặc định: " + e.Message); }
     }
 
     private static void InstallFilesAndService()
