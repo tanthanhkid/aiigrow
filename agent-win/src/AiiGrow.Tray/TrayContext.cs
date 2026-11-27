@@ -11,6 +11,9 @@ internal sealed class TrayContext : ApplicationContext
     /// <summary>App lạ đã tự gửi lời xin duyệt trong phiên khay — Con mở lại liên tục không gửi lặp (máy chủ cũng gộp lời xin chờ).</summary>
     private readonly HashSet<string> _daXin = new(StringComparer.OrdinalIgnoreCase);
     private NhacSaoForm? _nhac;
+    /// <summary>#822: trạng thái lượt trước để so — chỉ báo bé khi trạng thái ĐỔI (khoá / hết giờ chơi / Ba Mẹ thêm web).</summary>
+    private TrangThaiBaoBe? _moc822;
+    private HopThongBao? _hopBao;
     /// <summary>15/11: màn «Sắp hết sao» / «Hết sao rồi» (LockForm.ChiBao — không khoá máy).</summary>
     private LockForm? _hetSao;
     private double? _phutTruoc;     // phút còn chơi ở lượt trạng thái trước (biết lúc VỪA hết sao trong khi đang chơi)
@@ -809,6 +812,7 @@ internal sealed class TrayContext : ApplicationContext
             HandleLock();
             HandleBlocked();
             HandleWarnings();
+            BaoBeDoiTrangThaiXet();
             _ = TheoDoiVayAsync();
             _ = TheoDoiXinAppWebAsync();
             HandleXinBo();
@@ -920,6 +924,34 @@ internal sealed class TrayContext : ApplicationContext
         UI.LamMoiChinhSachNguoiDung();
         if (!_state.MoCoi)
             Toast(8000, "Luật web vừa đổi", "Nếu trang web chưa theo luật mới, con đóng rồi mở lại trình duyệt nhé.", ToolTipIcon.Info, MucApp.HomNay);
+    }
+
+    /// <summary>#822: hộp AiiGrow nhỏ báo bé một việc (dùng chung — #823 nối vào đây). Hộp cũ đóng trước (không chồng), không giành phím của game.</summary>
+    internal void HienHopAiiGrow(string icon, string tieu, string phu)
+    {
+        try
+        {
+            if (_hopBao is { IsDisposed: false }) { _hopBao.Close(); _hopBao.Dispose(); }
+            var h = new HopThongBao(icon, tieu, phu, "Đã hiểu", khongCuopPhim: true);
+            h.FormClosed += (_, _) => { if (_hopBao == h) _hopBao = null; h.Dispose(); };
+            _hopBao = h;
+            h.Show();
+        }
+        catch (Exception e)
+        {
+            System.Diagnostics.Debug.WriteLine(e);
+            Toast(6000, tieu, phu, ToolTipIcon.Info, MucApp.HomNay);
+        }
+    }
+
+    private void BaoBeDoiTrangThaiXet()
+    {
+        if (_state.NguoiDung != LoaiNguoiDung.Con || _state.MoCoi) { _moc822 = null; return; }
+        var nay = TrangThaiBaoBe.Tu(_state);
+        // «hết giờ chơi» đã có màn «Hết sao / Nghỉ một chút» toàn màn hình ⇒ không chồng hộp thứ hai
+        var baos = BaoBeDoiTrangThai.Xet(_moc822, nay).Where(b => !(_hetSao is { IsDisposed: false } && b.Icon == "dong_ho_cat")).ToList();
+        _moc822 = BaoBeDoiTrangThai.GiuMoc(_moc822, nay);
+        if (baos.Count > 0) HienHopAiiGrow(baos[0].Icon, baos[0].Tieu, baos[0].Phu);
     }
 
     private void HandleLock()
