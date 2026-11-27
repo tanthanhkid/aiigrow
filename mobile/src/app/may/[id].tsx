@@ -16,7 +16,7 @@ import { Redirect, router, useFocusEffect, useLocalSearchParams } from "expo-rou
 import { Pressable, View } from "react-native";
 import { bm, coMaOff, GOC, LoiApi, type ChiTietTuanThu, type GiaDinh, type KqGoMay, type PhienDang, type SuKienTuanThu, type TuanThuMay } from "@/lib/api";
 import { BangKhoaMay, HangViec, quyenToi, tenGoi, TieuMuc, type ChoDuyetMoi, type ConCt } from "@/lib/hang-ngay";
-import { cauMoTam, conHan, datKhoa, datKhoaMay } from "@/lib/khoa-may";
+import { cauMoTam, conHan, datKhoaMay, moLaiMay } from "@/lib/khoa-may";
 import { cauKhoaMay, mayDangKhoa } from "@/lib/noi-1411";
 import { tieuXin } from "@/lib/hom-nay-xin";
 import {
@@ -364,10 +364,9 @@ export default function AnToanMay() {
       {/* #772: khoá THEO BÉ (con/:id/khoa) áp xuống mọi máy của bé — hiện ở trang máy + nút Mở khoá (trước chỉ khoá theo máy mới có) */}
       {(m.khoaBe ?? []).map((b) => (
         <Bao key={b.id} loai="lam" ic="khoa" tieu={`${tenGoi(b.ten)} đang bị khoá · mọi máy`}
-          loi={`${b.den ? `Khoá tới ${gio(b.den)}` : "Khoá tới khi Ba Mẹ mở"} — ${tenGoi(b.ten)} không vào được máy này và các máy khác của bé.`}>
+          loi={`${b.den ? `Khoá tới ${gio(b.den)}` : "Khoá tới khi Ba Mẹ mở"} — ${(m.conDs?.length ?? 0) >= 2 ? `máy dùng chung: khoá áp khi ${tenGoi(b.ten)} dùng máy này, ` : ""}các máy khác của ${tenGoi(b.ten)} cũng khoá.`}>
           {d.xem ? null : <Nut chu={`Mở khoá ${tenGoi(b.ten)}`} ic="mo_khoa" loai="vien" nho dangChay={dangChay} bam={() => lam(async () => {
-            await datKhoa(b.id, false, null);
-            bao(`Đã mở khoá ${tenGoi(b.ten)} trên mọi máy`, () => { datKhoa(b.id, true, null, true).then(tai, tai); }); await tai();
+            await moLaiMay(b.id, tenGoi(b.ten), bao, tai); await tai();
           })} />}
         </Bao>
       ))}
@@ -384,7 +383,7 @@ export default function AnToanMay() {
           </Chu>
         </>
       ) : null}
-      {ai && !khoaRieng ? (
+      {ai && !khoaRieng && !(m.khoaBe ?? []).some((b) => b.id === ai.id) ? (
         // «Chỉ khoá <bé> · mọi máy» ⇒ bảng khoá theo bé (them-sll7clha)
         <Pressable onPress={() => setMo("khoa_be")} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 44 }}>
           <AvtCon c={ai} co={24} />
