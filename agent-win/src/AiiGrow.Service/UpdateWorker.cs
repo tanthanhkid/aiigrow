@@ -157,6 +157,7 @@ public sealed class UpdateWorker : BackgroundService
 
         Directory.CreateDirectory(ThuMuc);
         var tep = Path.Combine(ThuMuc, "AiiGrow-Setup-" + CapNhat.DocBan(m.Version)!.ToString(3) + ".exe");
+        DungBoCaiCu();   // bộ cài lượt trước treo còn giữ tệp ⇒ kết thúc trước khi dọn / ghi đè tệp
         DonBoCaiCu(tep);
         // Lượt trước đã tải đúng sha nhưng chưa kiểm xong chữ ký (ChuaKiemDuoc) ⇒ dùng lại tệp, không tải lại 182 MB.
         // Thư mục dữ liệu chỉ SYSTEM + Administrators ghi được (Paths.SecureDirectory); sha vẫn kiểm lại.
@@ -268,11 +269,11 @@ public sealed class UpdateWorker : BackgroundService
 
     /// <summary>Chạy bộ cài bằng tác vụ SYSTEM tách rời: dịch vụ bị bộ cài dừng không kéo bộ cài chết theo.</summary>
     /// <remarks>#854: lượt trước còn chạy (tác vụ «Đang chạy») thì Task Scheduler BỎ QUA lần chạy mới (MultipleInstances mặc định IgnoreNew) mà
-    /// Start-ScheduledTask vẫn báo thành công ⇒ máy kẹt bản cũ, log ghi «đã giao». Nay: kết thúc bộ cài cũ đã treo quá <see cref="HanBoCaiTreo"/>
-    /// (DungBoCaiCu), rồi sau khi Start kiểm LastRunTime có đổi không — không đổi ⇒ ném (lượt này tính là «không giao được», có log + báo).</remarks>
+    /// Start-ScheduledTask vẫn báo thành công ⇒ máy kẹt bản cũ, log ghi «đã giao». Nay: trước khi tải/giao, kết thúc bộ cài cũ đã treo quá
+    /// <see cref="HanBoCaiTreo"/> (DungBoCaiCu, gọi ở KiemMotLuot); sau khi Start kiểm LastRunTime có đổi không — không đổi chỉ GHI LỖI (máy bận có thể
+    /// chưa kịp cập nhật LastRunTime, không báo Ba Mẹ nhầm); lần hỏng thật do LanTruocHong bắt ở lượt sau, kèm chẩn đoán.</remarks>
     private void ChayBoCai(string tep)
     {
-        DungBoCaiCu();
         var tn = Shell.PsQuote(TenTacVu);
         var r = Shell.PowerShell(
             $"$a = New-ScheduledTaskAction -Execute {Shell.PsQuote(tep)} -Argument '--capnhat --im-lang'; " +
@@ -284,11 +285,11 @@ public sealed class UpdateWorker : BackgroundService
             $"try {{ Start-Sleep -Seconds 3; $i = Get-ScheduledTaskInfo -TaskName {tn} -ErrorAction Stop; if ($i.LastRunTime -lt $t0) {{ 'chua-chay ' + $i.LastRunTime.ToString('o') + ' ma ' + $i.LastTaskResult }} }} catch {{}}", 60000);
         if (!r.Ok) throw new InvalidOperationException("không giao được bộ cài: " + r.Error);
         if (r.Output.Contains("chua-chay"))
-            _log.LogWarning("Tự cập nhật: 3 giây sau khi giao, tác vụ AiiGrowCapNhat chưa ghi lần chạy mới ({TacVu}) — lượt trước còn chạy thì lần này bị bỏ qua", r.Output.Trim());
+            _log.LogError("Tự cập nhật: 3 giây sau khi giao, tác vụ AiiGrowCapNhat chưa ghi lần chạy mới ({TacVu}) — lượt trước còn chạy thì lần này bị bỏ qua", r.Output.Trim());
     }
 
     /// <summary>Bộ cài tự cập nhật chạy quá ngần này là treo: xa hơn ExecutionTimeLimit 30 phút của tác vụ (Task Scheduler lẽ ra đã dừng nó).</summary>
-    private static readonly TimeSpan HanBoCaiTreo = TimeSpan.FromMinutes(45);
+    private static readonly TimeSpan HanBoCaiTreo = LuatThuCapNhat.ChoBoCai + TimeSpan.FromMinutes(5);
 
     /// <summary>Bộ cài tự cập nhật lượt trước còn chạy (treo) từ thư mục cap-nhat ⇒ kết thúc, ghi log (để biết có treo).</summary>
     private void DungBoCaiCu()

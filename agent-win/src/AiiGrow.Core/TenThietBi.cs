@@ -31,7 +31,7 @@ public static class TenThietBi
     {
         if (ds == null || sidCon == null) return null;
         var cam = TaiKhoanCam(ds, sidCon);
-        return cam.Count == 0 ? null : CauLoiCai.GhiChuTaiKhoanTenCam(cam);
+        return cam.Count == 0 ? null : CauLoiCai.GhiChuTaiKhoanTenCam(cam.Take(2));   // máy chủ cắt cả ghi chú 240 ký tự
     }
 }
 
