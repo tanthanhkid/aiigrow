@@ -68,7 +68,7 @@ public sealed class HeartbeatWorker : BackgroundService
         {
             // cheDo: chế độ THẬT đang áp (máy chủ hiển thị đúng cho Ba Mẹ, kể cả máy cài sẵn «chặn» khi Ba Mẹ chưa chọn trên app)
             var cheDo = _rt?.CheDoHieuLuc ?? CheDoHieuLuc.Chon(null, cfg.CheDo, MoCoi.La(cfg, DateTimeOffset.UtcNow));
-            var status = new { agent = "windows", version = Version(), online = true, cheDo };
+            var status = new { agent = "windows", version = Version(), online = true, cheDo, quanTriTrong = _rt?.QuanTriTrong };   // #860 (null ⇒ không gửi)
             SyncResult sync;
             try
             {

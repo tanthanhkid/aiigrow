@@ -66,6 +66,10 @@ public sealed class AgentRuntime
     public volatile IReadOnlyList<string>? ChildSids;
     /// <summary>0.2.6: danh sách tài khoản Windows của máy (AgentWorker đọc mỗi ~2 phút; null = chưa đọc được) — khay hỏi «phiên này có phải của Con không».</summary>
     public volatile IReadOnlyList<LocalAccount>? TaiKhoanMay;
+    /// <summary>#860: kết quả mới nhất của QuanTriTrongWorker — tài khoản quản trị chưa có mật khẩu (null = chưa kiểm xong lượt đầu). Gửi trong status mọi nhịp.</summary>
+    public volatile IReadOnlyList<string>? QuanTriTrong;
+    /// <summary>#860: tên tài khoản cục bộ đang bật thuộc Administrators (tính cả nhóm lồng) — lượt đọc mới nhất của QuanTriTrongWorker; null = chưa đọc.</summary>
+    public volatile IReadOnlyList<string>? TenQuanTri;
     private int _webRev;
     /// <summary>0.2.6: tăng khi luật web trong hive của Con đổi/gỡ — khay thấy đổi thì làm mới chính sách trình duyệt trong phiên Con.</summary>
     public int WebRev => Volatile.Read(ref _webRev);
@@ -1016,6 +1020,7 @@ public sealed class AgentRuntime
                 PlaySessionId = _playSecId,
                 Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive, phienKhac, AppLockerKhaDung),
                 GhiChuBaoVe = string.Join("; ", new[] { TenThietBi.GhiChuTenCam(TaiKhoanMay, ChildSids), AppLockerKhaDung ? null : AiiGrow.Core.AppLockerKhaDung.CauGhiChu, GhiChuWeb }.Where(x => !string.IsNullOrEmpty(x))) is { Length: > 0 } g ? g : null,
+                QuanTriTrong = QuanTriTrong?.ToList(),
             };
         }
     }

@@ -270,6 +270,16 @@ public sealed class PipeServer : BackgroundService
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
             }
 
+            case PipeCmd.QuanTriTrong:
+            {
+                // #860: chỉ phiên của tài khoản quản trị (cùng lượt đọc với bộ kiểm — tính cả nhóm lồng); phiên bé ⇒ từ chối
+                var user = SessionHelper.SessionUser(clientSession);
+                if (string.IsNullOrWhiteSpace(user) || _rt.TenQuanTri?.Contains(user, StringComparer.OrdinalIgnoreCase) != true)
+                    return new PipeResponse { Ok = false, Error = "Chỉ tài khoản quản trị xem được" };
+                var qt = _rt.QuanTriTrong;
+                return new PipeResponse { Ok = true, Data = JsonSerializer.Serialize(qt ?? Array.Empty<string>(), Json.Options), Status = qt == null ? "chua_kiem" : "ok" };
+            }
+
             case PipeCmd.AppMay:
             {
                 // #422: chỉ đọc (mục + tên app đã cài, không đường dẫn / icon) — lưới «App trên máy»; chưa quét xong ⇒ mảng rỗng
