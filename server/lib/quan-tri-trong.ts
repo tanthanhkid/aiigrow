@@ -24,6 +24,10 @@ export function docQuanTriTrong(v: unknown): string[] | null {
 /** Danh sách tài khoản quản trị trống mật khẩu agent báo gần nhất (devices.status). Agent chưa báo ⇒ []. */
 export const quanTriTrongCua = (may: { status?: Record<string, unknown> | null }): string[] => docQuanTriTrong(may.status?.quanTriTrong) ?? [];
 
+/** Danh sách còn hiệu lực để HIỂN THỊ (trang máy, «Cần Ba Mẹ để ý»): chỉ máy Windows, máy im quá 7 ngày ⇒ thôi nhắc (không còn biết đúng sai). */
+export const quanTriTrongHieuLuc = (may: { platform: string; last_seen: Date | string | null; status?: Record<string, unknown> | null }, now: Date): string[] =>
+  may.platform === "windows" && may.last_seen && now.getTime() - new Date(may.last_seen).getTime() <= 7 * 86_400_000 ? quanTriTrongCua(may) : [];
+
 /** Câu cảnh báo (cảnh báo ghi + «Cần Ba Mẹ để ý»). */
 export const cauQuanTriTrong = (tenMay: string, ds: readonly string[]) =>
   `${tenMay}: tài khoản quản trị chưa có mật khẩu — bé có thể tự vào và gỡ AiiGrow (${ds.join(", ")})`;
@@ -37,9 +41,10 @@ export async function capNhatCanhBaoQuanTri(may: { id: string; family_id: string
     return;
   }
   const moi = await canhBao(may.family_id, LOAI_QUAN_TRI_TRONG, "chu_y", cauQuanTriTrong(may.name, ds),
-    { con: may.child_id, may: may.id, khoa: khoaQtt(may.id), chiTiet: { taiKhoan: ds } }, t);
+    { con: may.child_id, may: may.id, khoa: khoaQtt(may.id), chiTiet: { taiKhoan: ds, mayId: may.id } }, t);
   // đã có cảnh báo đang mở ⇒ danh sách / tên máy đổi thì sửa nội dung (màn Cảnh báo đọc đúng danh sách mới nhất)
-  if (!moi) await t(`update alerts set noi_dung = $3, chi_tiet = $4::text::jsonb where family_id = $1 and khoa = $2 and noi_dung is distinct from $3`,
-    [may.family_id, khoaQtt(may.id), cauQuanTriTrong(may.name, ds), JSON.stringify({ taiKhoan: ds })]);
+  // Ba Mẹ đã đọc rồi mà danh sách đổi (vd thêm tài khoản mới) ⇒ hiện lại là chưa đọc
+  if (!moi) await t(`update alerts set noi_dung = $3, chi_tiet = $4::text::jsonb, da_doc = false where family_id = $1 and khoa = $2 and noi_dung is distinct from $3`,
+    [may.family_id, khoaQtt(may.id), cauQuanTriTrong(may.name, ds), JSON.stringify({ taiKhoan: ds, mayId: may.id })]);
   if (moi) await ghiSuKien(may.family_id, "quan_tri_trong_mat_khau", { taiKhoan: ds }, { con: may.child_id, may: may.id }, t);
 }

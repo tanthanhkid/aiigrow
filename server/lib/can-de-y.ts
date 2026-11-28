@@ -13,7 +13,7 @@ import { trangThaiApp } from "./app-may.ts";
 import { mayMatMang, type MayMatMang } from "./may-mat-mang.ts";
 import { hienThiCuaMay } from "./tuan-thu.ts";
 import { LOAI_CHI_BIET } from "./hien-thi-may.ts";
-import { cauQuanTriTrong, quanTriTrongCua } from "./quan-tri-trong.ts";
+import { cauQuanTriTrong, LOAI_QUAN_TRI_TRONG, quanTriTrongHieuLuc } from "./quan-tri-trong.ts";
 export { mayMatMang };
 
 /** #508: app Con CÀI MỚI trên máy — máy chủ thấy sau danh sách đầu tiên của máy (cách ≥ 2 phút), trong 14 ngày, chưa được Ba Mẹ xếp (không «Tính phút» / «Không tính phút»),
@@ -59,7 +59,7 @@ export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<
       `select a.id, a.child_id, a.device_id, a.loai, a.muc, a.noi_dung, a.created_at, c.ten as ten_con, d.name as ten_may from alerts a
          left join children c on c.id = a.child_id left join devices d on d.id = a.device_id
         where a.family_id = $1 and not a.da_doc and (a.loai in ('quen_pin', 'pin_bi_do') or a.muc in ('chu_y', 'nghiem_trong')) and a.loai <> all($3::text[]) and a.created_at > $2
-        order by a.created_at desc limit 40`, [fam, new Date(now.getTime() - 7 * 86_400_000), LOAI_CHI_BIET]),
+        order by a.created_at desc limit 40`, [fam, new Date(now.getTime() - 7 * 86_400_000), [...LOAI_CHI_BIET, LOAI_QUAN_TRI_TRONG]]),   // #861: dòng riêng theo máy ở dưới
     q<May & { ten_con: string | null }>(`select d.*, c.ten as ten_con from devices d left join children c on c.id = d.child_id where d.family_id = $1`, [fam]),
     appMoiCaiMay(fam, now)]);
   const ds: MucCanDeY[] = [];
@@ -102,9 +102,9 @@ export async function canDeY(fam: string, now = new Date(), san: { yc?: Awaited<
   }
   // #861: máy Windows còn tài khoản quản trị chưa có mật khẩu (agent báo trong status.quanTriTrong) — tính từ trạng thái máy hiện tại
   // (không từ cảnh báo đã ghi): tự hết khi máy báo [] hoặc máy bị gỡ, tên máy / Con luôn đúng, không hết hạn khi máy vẫn còn trống mật khẩu
-  // Máy im quá 7 ngày ⇒ thôi nhắc (không còn biết đúng sai). `luc` = lúc máy bắt đầu báo trống (status.quanTriTrongTu), không nhảy lên đầu mỗi lượt đồng bộ.
+  // `luc` = lúc máy bắt đầu báo trống (status.quanTriTrongTu), không nhảy lên đầu mỗi lượt đồng bộ.
   for (const m of may) {
-    const qtt = m.platform === "windows" && m.last_seen && now.getTime() - new Date(m.last_seen).getTime() <= 7 * 86_400_000 ? quanTriTrongCua(m) : [];
+    const qtt = quanTriTrongHieuLuc(m, now);
     if (!qtt.length) continue;
     const tu = typeof m.status?.quanTriTrongTu === "string" && Number.isFinite(Date.parse(m.status.quanTriTrongTu)) ? new Date(m.status.quanTriTrongTu) : new Date(m.last_seen!);
     ds.push({ id: `quan_tri_trong:${m.id}`, loai: "canh_bao", tieu: `Cảnh báo: ${cauQuanTriTrong(m.name, qtt)}`, phu: "Đặt mật khẩu trên máy Con",

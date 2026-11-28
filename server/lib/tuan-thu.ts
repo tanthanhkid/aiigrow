@@ -5,7 +5,7 @@
 //   · mất nhịp quá ngưỡng (ngung_chay_phut; điện thoại: mat_nhip_di_dong_phut) ⇒ «ngoài vòng kiểm soát» + cảnh báo Ba Mẹ MỘT lần / lần mất;
 //   · Ba Mẹ mở khẩn cấp qua app (có hạn, ghi nhật ký). Không có «chế độ cục bộ»: mọi nới lỏng chỉ do Ba Mẹ duyệt qua máy chủ.
 // Máy chưa từng gửi nhịp (agent M4 cũ chỉ dong-bo) ⇒ «chua_co_nhip»: không khoá (tương thích), Ba Mẹ thấy rõ trạng thái này.
-import { quanTriTrongCua } from "./quan-tri-trong.ts";
+import { quanTriTrongHieuLuc } from "./quan-tri-trong.ts";
 import { coDemYeuCau, one, q, type Q, sanSang } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, khoaDen, khoaMayHieuLuc, thamSo, type ThamSo } from "./cau-hinh.ts";
@@ -267,8 +267,8 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
       khoaBe: (noi.get(m.id)?.conDs ?? []).filter((c) => dangKhoa(cfgCon.get(c.id), now)).map((c) => ({ id: c.id, ten: c.ten, den: khoaDen(cfgCon.get(c.id), now) })),
       conDs: noi.get(m.id)?.conDs ?? [], dangDung: noi.get(m.id)?.dangDung ?? null, soCon: noi.get(m.id)?.soCon ?? 0, motCon: noi.get(m.id)?.motCon ?? false,
       baMeDungDen: m.ba_me_den && new Date(m.ba_me_den).getTime() > now.getTime() ? new Date(m.ba_me_den).toISOString() : null,
-      // #861: tài khoản quản trị chưa có mật khẩu agent báo ([] = ổn / agent chưa báo) — trang máy hiện cảnh báo + cách đặt mật khẩu
-      quanTriTrong: quanTriTrongCua(m) };
+      // #861: tài khoản quản trị chưa có mật khẩu agent báo ([] = ổn / agent chưa báo / máy im quá 7 ngày) — trang máy hiện cảnh báo + cách đặt mật khẩu
+      quanTriTrong: quanTriTrongHieuLuc(m, now) };
   }));
 }
 
@@ -279,7 +279,7 @@ export async function chiTietTuanThu(fam: string, mayId: string, now = new Date(
   const conIds = may.conDs.map((c) => c.id);
   const suKien = await q(`select loai, chi_tiet, nguoi, created_at from events where family_id = $1 and (
       (loai in ('khoa_ngay','mo_lai') and child_id = any($3::text[]) and device_id is null and coalesce(chi_tiet->>'hoanTac','') = '') or (device_id = $2 and
-      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline','doi_che_do','doi_ten_may','may_chuyen_nha','doi_con_may','khoa_may','mo_khoa_may'))
+      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline','doi_che_do','doi_ten_may','may_chuyen_nha','doi_con_may','khoa_may','mo_khoa_may','quan_tri_trong_mat_khau','quan_tri_co_mat_khau'))
     ) order by created_at desc, seq desc limit 50`, [fam, mayId, conIds]);
   // #267 «Máy cả nhà · chi tiết»: từng Con đã gán (sao, phút hôm nay trên máy này, lần cuối, khoá theo Con) — đủ danh sách nhà ở GET may/:id/con
   const tungCon = (await conMay(fam, mayId, now)).ds.filter((c) => c.gan);

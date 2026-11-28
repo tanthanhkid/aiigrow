@@ -24,6 +24,7 @@ const TIEU: Record<string, (ten: string) => string> = {
   lech_gio: (t) => `Giờ trên máy của ${t} bị đổi`, ngung_chay: (t) => `AiiGrow trên máy ${t} bị tắt`, go_may: (t) => `Có người gỡ AiiGrow trên máy của ${t}`,
   may_thu_go: (t) => `Có người thử gỡ Grow trên máy của ${t}`, tai_khoan_la: (t) => `Tài khoản lạ trên máy ${t}`, offline_lau: (t) => `Máy của ${t} không báo về lâu`,
   may_go_chan_hosts: (t) => `Đã gỡ danh sách web của AiiGrow trên máy của ${t}`, may_chuyen_nha: (t) => `Máy của ${t} đã ghép sang tài khoản khác`, may_ngoai_vong: (t) => `Máy của ${t} chưa được bảo vệ đủ`, safe_mode: (t) => `Máy của ${t} vào Safe Mode`, bang_chung_trung: (t) => `Ảnh của ${t} giống ảnh cũ`,
+  quan_tri_trong_mat_khau: (t) => `Máy của ${t} có tài khoản quản trị chưa có mật khẩu`,
 };
 /** Cảnh báo cũ về trang web ngoài danh sách (loại có «web»). */
 const laWeb = (x: Pick<CanhBao, "loai">) => /web|nguoi_lon|co_bac/.test(x.loai);
@@ -103,6 +104,8 @@ export default function ChiTietCanhBao() {
         : kieu === "tat" && x.child_id && !x.xem ? <Nut chu={`Khoá ${tenMay}`} ic="khoa" ic3d rong bam={() => setKhoa(true)} />
         : kieu === "mat_lien_lac" ? <Nut chu={`Kiểm tra ${tenMay} cùng con`} ic={icMay} ic3d rong dangChay={dangChay}
           bam={() => lam(async () => { await bm.goi(`canh-bao/${id}/doc`, {}); if (may) router.replace(`/may/${may.id}` as never); else router.back(); })} />
+        // #861: cách đặt mật khẩu nằm ở trang máy
+        : x.loai === "quan_tri_trong_mat_khau" && xemMay ? <Nut chu={`Xem ${tenMay}`} ic={icMay} ic3d rong bam={xemMay} />
         : x.child_id ? <Nut chu={`Xem lịch sử ${x.ten} dùng máy`} rong bam={() => router.push(`/man-hinh/${x.child_id}` as never)} /> : null}
       {xemMay && kieu !== "lech_gio" && kieu !== "khac" ? <Nut chu={`Xem ${tenMay}`} loai="vien" rong bam={xemMay} /> : null}
       {kieu === "mat_lien_lac" ? null

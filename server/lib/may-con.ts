@@ -164,7 +164,9 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
   const qtt = may.platform === "windows" ? docQuanTriTrong(qttVao) : null;
   const qttCu = docQuanTriTrong(may.status?.quanTriTrong) ?? [];
   const status: Record<string, unknown> = { ...(may.status ?? {}), ...stVao, lechGiay: gioMaySai ? lechGiay : null };
-  if (qtt) Object.assign(status, { quanTriTrong: qtt, quanTriTrongTu: !qtt.length ? null : qttCu.length ? may.status?.quanTriTrongTu ?? now.toISOString() : now.toISOString() });
+  // mốc giữ nguyên khi danh sách chỉ bớt đi; có tài khoản MỚI ⇒ mốc mới
+  if (qtt) Object.assign(status, { quanTriTrong: qtt,
+    quanTriTrongTu: !qtt.length ? null : qtt.every((x) => qttCu.includes(x)) ? may.status?.quanTriTrongTu ?? now.toISOString() : now.toISOString() });
   await q(`update devices set last_seen = $2, status = $3::text::jsonb where id = $1`, [may.id, now, JSON.stringify(status)]);
   if (gioMaySai) {
     const moi = await canhBao(may.family_id, "lech_gio", "chu_y", `Có dấu hiệu đổi giờ hệ thống trên ${may.name}${c ? ` của ${c.ten}` : ""}`,
@@ -172,7 +174,8 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     if (moi) await ghiSuKien(may.family_id, "lech_gio", { lech_giay: lechGiay }, { con, may: may.id });
   }
   // #861: tài khoản quản trị chưa có mật khẩu (agent Windows báo) ⇒ cảnh báo Ba Mẹ / tự hết khi báo rỗng. Lỗi không làm hỏng lượt đồng bộ.
-  try { await capNhatCanhBaoQuanTri(may, qtt); } catch (e) { console.error("dong-bo: cảnh báo quản trị trống lỗi", e); }
+  // danh sách không đổi ⇒ không ghi gì (đường nóng: agent đồng bộ mỗi phút, thường gửi [])
+  if (qtt && JSON.stringify(qtt) !== JSON.stringify(qttCu)) try { await capNhatCanhBaoQuanTri(may, qtt); } catch (e) { console.error("dong-bo: cảnh báo quản trị trống lỗi", e); }
   return taoPolicy(may, con, { gioMaySai }, now);
 }
 
