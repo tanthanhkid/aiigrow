@@ -46,7 +46,7 @@ public class Windows739Tests
         Assert.NotNull(g);
         Assert.Contains("«con»", g);
         Assert.Contains("Sửa cài đặt", g);
-        Assert.True(g!.Length <= 240);   // máy chủ cắt ghi chú ở 240 ký tự
+        Assert.True(g!.Length <= 130);   // máy chủ cắt cả ghi chú ở 240 ký tự — phần này đứng đầu, chừa chỗ cho ghi chú khác
         Assert.Null(TenThietBi.GhiChuTenCam(ds, new[] { "S-1-5-21-1-1-1-1002" }));
         Assert.Null(TenThietBi.GhiChuTenCam(null, new[] { "S-1-5-21-1-1-1-1001" }));
         Assert.Null(TenThietBi.GhiChuTenCam(ds, null));

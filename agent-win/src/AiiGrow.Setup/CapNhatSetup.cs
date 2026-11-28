@@ -191,22 +191,24 @@ internal sealed class CapNhatForm : Form
         // #854: hộp mở sau hộp UAC / từ trình duyệt hay nằm khuất sau cửa sổ khác (trông như bộ cài treo) ⇒ lúc hiện thì nổi lên trước + lấy
         // tiêu điểm; TopMost chỉ bật thoáng qua (không đè hộp UAC / cửa sổ khác suốt lúc hộp mở)
         Shown += (_, _) => NoiLenTruoc();
-        _man = ph.CheDo == CheDoBoCai.CapNhat ? ManCapNhat : ManMoiNhat;
-        _man();
-        // #854: đọc tài khoản (PowerShell + ADSI, vài giây) ngoài luồng giao diện — hộp mở ngay, lời nhắc tên cấm nối vào khi đọc xong
+        if (ph.CheDo == CheDoBoCai.CapNhat) ManCapNhat(); else ManMoiNhat();
+        // #854: đọc tài khoản (PowerShell + ADSI, vài giây) ngoài luồng giao diện — hộp mở ngay; xong thì chỉ NỐI lời nhắc (+ nút «Sửa cài đặt»
+        // ở màn cập nhật), không vẽ lại nút đang được bấm
         Load += async (_, _) =>
         {
             var nhac = await Task.Run(() => LoiNhacTenCam());
             if (nhac.Length == 0 || IsDisposed || _dangChay || _daChay) return;
-            _nhacTenCam = nhac;
-            _man();
+            _loi.Text += nhac;
+            if (ph.CheDo == CheDoBoCai.CapNhat && _nut.Controls.Count > 0)
+            {
+                var sua = Nut("Sửa cài đặt", false, () => { MuonSua = true; Close(); });
+                _nut.Controls.Add(sua);
+                _nut.Controls.SetChildIndex(sua, _nut.Controls.Count - 2);   // trước «Để sau»
+            }
             CenterToScreen();   // hộp tự giãn theo chữ dài ⇒ canh giữa lại, nút không tụt khỏi màn
         };
     }
 
-    /// <summary>Màn đang hiện (cập nhật / đã mới nhất) — vẽ lại khi lời nhắc tên cấm tới.</summary>
-    private readonly Action _man;
-    private string _nhacTenCam = "";
     /// <summary>Đã bấm «Cập nhật» (màn kết quả thay màn đầu) ⇒ không vẽ lại màn đầu.</summary>
     private bool _daChay;
 
@@ -229,11 +231,9 @@ internal sealed class CapNhatForm : Form
         _tieuDe.Text = "Cập nhật AiiGrow lên bản " + CapNhat.Hien(_ph.BanMoi);
         _loi.Text = $"Máy này đang chạy AiiGrow bản {CapNhat.Hien(_ph.BanDangCai)} → bản mới {CapNhat.Hien(_ph.BanMoi)}.\n\n" +
                     "Cập nhật giữ nguyên ghép máy, tài khoản của Con và các luật Ba Mẹ đã đặt — không phải ghép lại. " +
-                    "Mất khoảng một phút; nếu có lỗi, AiiGrow tự quay về bản cũ để máy vẫn được bảo vệ." + _nhacTenCam;
+                    "Mất khoảng một phút; nếu có lỗi, AiiGrow tự quay về bản cũ để máy vẫn được bảo vệ.";
         _nut.Controls.Clear();
         _nut.Controls.Add(Nut("Cập nhật", true, CapNhatNgay));
-        // #854: lời nhắc tài khoản tên cấm chỉ cách sửa qua «Sửa cài đặt» ⇒ có nút ngay ở màn này
-        if (_nhacTenCam.Length > 0) _nut.Controls.Add(Nut("Sửa cài đặt", false, () => { MuonSua = true; Close(); }));
         _nut.Controls.Add(Nut("Để sau", false, Close));
     }
 
@@ -241,7 +241,7 @@ internal sealed class CapNhatForm : Form
     {
         _tieuDe.Text = "AiiGrow đã là bản mới nhất";
         _loi.Text = $"Máy này đang chạy AiiGrow bản {CapNhat.Hien(_ph.BanDangCai)} (bộ cài này: {CapNhat.Hien(_ph.BanMoi)}). Không cần cập nhật.\n\n" +
-                    "«Mở lại AiiGrow» chạy lại dịch vụ và biểu tượng ở khay. «Sửa cài đặt» mở trình cài đầy đủ (ghép lại, đổi tài khoản của Con)." + _nhacTenCam;
+                    "«Mở lại AiiGrow» chạy lại dịch vụ và biểu tượng ở khay. «Sửa cài đặt» mở trình cài đầy đủ (ghép lại, đổi tài khoản của Con).";
         _nut.Controls.Clear();
         _nut.Controls.Add(Nut("Mở lại AiiGrow", true, MoLai));
         _nut.Controls.Add(Nut("Sửa cài đặt", false, () => { MuonSua = true; Close(); }));
@@ -253,9 +253,13 @@ internal sealed class CapNhatForm : Form
     {
         try
         {
-            var cam = TenThietBi.TaiKhoanCam(TaiKhoanCon.DocMay());
+            // chỉ tài khoản AiiGrow đang áp cho bé (cấu hình có SID) — tài khoản tên cấm bỏ không ai dùng thì không nhắc
+            var ds = TaiKhoanCon.DocMay();
+            AgentConfig? cfg = null;
+            try { cfg = new ConfigStore().Load(); } catch { }
+            var cam = TenThietBi.TaiKhoanCam(ds, TaiKhoanCon.ChonSids(cfg?.ChildSid, ds));
             if (cam.Count == 0) return "";
-            Program.WriteLog("Cập nhật: tài khoản Windows tên cấm: " + string.Join(", ", cam));
+            Program.WriteLog($"Cập nhật: {cam.Count} tài khoản Windows của bé mang tên cấm (hồ sơ tạm)");   // không ghi tên: install.log có thể lên log chẩn đoán
             return "\n\n" + CauLoiCai.TaiKhoanTenCam(cam);
         }
         catch { return ""; }

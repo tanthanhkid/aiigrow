@@ -279,10 +279,12 @@ public sealed class UpdateWorker : BackgroundService
             "$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 30); " +
             $"Register-ScheduledTask -TaskName {tn} -Action $a -Settings $s -User 'SYSTEM' -RunLevel Highest -Force | Out-Null; " +
             "$t0 = (Get-Date).AddSeconds(-5); " +
-            $"Start-ScheduledTask -TaskName {tn}; Start-Sleep -Seconds 3; " +
-            $"$i = Get-ScheduledTaskInfo -TaskName {tn}; " +
-            "if ($i.LastRunTime -lt $t0) { throw ('tác vụ không chạy lần mới (lượt trước còn chạy?) · lần chạy cuối ' + $i.LastRunTime.ToString('o') + ' · mã ' + $i.LastTaskResult) }", 60000);
+            $"Start-ScheduledTask -TaskName {tn}; " +
+            // chỉ để log: máy bận có thể chưa kịp cập nhật LastRunTime ⇒ KHÔNG coi là lỗi giao (lần hỏng thật do LanTruocHong bắt + chẩn đoán)
+            $"try {{ Start-Sleep -Seconds 3; $i = Get-ScheduledTaskInfo -TaskName {tn} -ErrorAction Stop; if ($i.LastRunTime -lt $t0) {{ 'chua-chay ' + $i.LastRunTime.ToString('o') + ' ma ' + $i.LastTaskResult }} }} catch {{}}", 60000);
         if (!r.Ok) throw new InvalidOperationException("không giao được bộ cài: " + r.Error);
+        if (r.Output.Contains("chua-chay"))
+            _log.LogWarning("Tự cập nhật: 3 giây sau khi giao, tác vụ AiiGrowCapNhat chưa ghi lần chạy mới ({TacVu}) — lượt trước còn chạy thì lần này bị bỏ qua", r.Output.Trim());
     }
 
     /// <summary>Bộ cài tự cập nhật chạy quá ngần này là treo: xa hơn ExecutionTimeLimit 30 phút của tác vụ (Task Scheduler lẽ ra đã dừng nó).</summary>
@@ -305,6 +307,8 @@ public sealed class UpdateWorker : BackgroundService
                     _log.LogError("Tự cập nhật: bộ cài lượt trước còn chạy từ {Luc:o} ({Tep}) — treo ⇒ kết thúc trước khi giao bản mới. install.log: {Log}",
                         p.StartTime, Path.GetFileName(duong), DocInstallLog(p.StartTime));
                     p.Kill(entireProcessTree: true);
+                    p.WaitForExit(15000);   // Task Scheduler thấy lượt cũ kết thúc rồi mới đăng ký + chạy lượt mới (IgnoreNew)
+                    Thread.Sleep(2000);
                     // bộ cài bị giết thì «finally» của nó không bật lại «tự chạy lại khi lỗi» cho dịch vụ ⇒ dịch vụ (đang chạy) tự bật
                     BatLaiTuKhoiDong();
                 }

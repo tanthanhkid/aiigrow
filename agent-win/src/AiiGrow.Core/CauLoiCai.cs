@@ -34,7 +34,7 @@ public static class CauLoiCai
 
     /// <summary>#854: ghi chú gửi kèm trạng thái máy (Ba Mẹ thấy trên app, máy chủ cắt 240 ký tự) khi tài khoản bé mang tên cấm.</summary>
     public static string GhiChuTaiKhoanTenCam(IEnumerable<string> ten) =>
-        $"Tài khoản Windows «{string.Join("», «", ten)}» của bé mang tên hệ thống giữ riêng nên chỉ vào hồ sơ tạm — mở AiiGrow-Setup trên máy, chọn Sửa cài đặt để tạo tài khoản mới";
+        $"Tài khoản Windows «{string.Join("», «", ten)}» của bé là tên hệ thống cấm, chỉ vào hồ sơ tạm: chạy AiiGrow-Setup › Sửa cài đặt, tạo tài khoản mới";
 
     /// <summary>#739: tạo xong tài khoản nhưng Windows không dựng được hồ sơ (thư mục người dùng).</summary>
     public static string HoSoLoi(string ten) => $"Tài khoản «{ten}» chưa dùng được vì Windows không tạo được hồ sơ cho nó. Bộ cài đã xoá tài khoản đó; thử tên khác, vẫn lỗi thì khởi động lại máy rồi chạy lại bộ cài.";
