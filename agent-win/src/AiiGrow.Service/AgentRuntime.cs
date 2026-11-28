@@ -68,6 +68,8 @@ public sealed class AgentRuntime
     public volatile IReadOnlyList<LocalAccount>? TaiKhoanMay;
     /// <summary>#860: kết quả mới nhất của QuanTriTrongWorker — tài khoản quản trị chưa có mật khẩu (null = chưa kiểm xong lượt đầu). Gửi trong status mọi nhịp.</summary>
     public volatile IReadOnlyList<string>? QuanTriTrong;
+    /// <summary>#860: tên tài khoản cục bộ đang bật thuộc Administrators (tính cả nhóm lồng) — lượt đọc mới nhất của QuanTriTrongWorker; null = chưa đọc.</summary>
+    public volatile IReadOnlyList<string>? TenQuanTri;
     private int _webRev;
     /// <summary>0.2.6: tăng khi luật web trong hive của Con đổi/gỡ — khay thấy đổi thì làm mới chính sách trình duyệt trong phiên Con.</summary>
     public int WebRev => Volatile.Read(ref _webRev);

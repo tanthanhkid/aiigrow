@@ -169,6 +169,18 @@ public class QuanTriTrongTests
     public void MaLoiLogonUser(bool ok, int loi, KiemMatKhau mong) => Assert.Equal(mong, QuanTriTrong.TuLogonUser(ok, loi));
 
     [Fact]
+    public void DangTrongMaKiemLaiChuaRo_VanBaoTrong_ThuLaiSau5Phut()
+    {
+        var kq = KiemMatKhau.Trong;
+        var so = new Dictionary<string, LuotKiemQuanTri>();
+        var ds = new[] { Tk("BaMe") };
+        QuanTriTrong.Tinh(ds, so, _ => kq, T0);
+        kq = KiemMatKhau.KhongRo;
+        Assert.Equal(new[] { "BaMe" }, QuanTriTrong.Tinh(ds, so, _ => kq, T0.AddMinutes(5)));
+        Assert.True(QuanTriTrong.DenHanKiem(so.Values.Single(), T0.AddMinutes(10)));
+    }
+
+    [Fact]
     public void KhongRo_KhongBao()
     {
         var kq = QuanTriTrong.Tinh(new[] { Tk("BaMe") }, new Dictionary<string, LuotKiemQuanTri>(), _ => KiemMatKhau.KhongRo, T0);

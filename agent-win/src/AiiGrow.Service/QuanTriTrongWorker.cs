@@ -34,9 +34,13 @@ public sealed class QuanTriTrongWorker : BackgroundService
     {
         _so ??= QuanTriTrong.DocSo(File.Exists(QuanTriTrongMay.SoKiemFile) ? File.ReadAllText(QuanTriTrongMay.SoKiemFile) : null);
         var ds = QuanTriTrongMay.DocMay();   // lỗi ⇒ ném, giữ kết quả cũ (không báo «đã ổn» nhầm)
+        // lưu lỗi (khoá tệp…) hoặc Tinh ném giữa chừng (sổ đã có mốc mới trong bộ nhớ) ⇒ còn cờ chưa lưu, lượt sau ghi lại —
+        // mốc thử phải nằm trên đĩa trước khi dịch vụ khởi động lại
+        var chuaLuu = _chuaLuu;
+        _chuaLuu = true;
         var moi = QuanTriTrong.Tinh(ds, _so, QuanTriTrongMay.KiemTrong, now, out var doi);
-        // lưu lỗi (khoá tệp…) ⇒ còn cờ chưa lưu, lượt sau ghi lại — mốc thử phải nằm trên đĩa trước khi dịch vụ khởi động lại
-        if (doi || _chuaLuu) _chuaLuu = !LuuSo(QuanTriTrong.GhiSo(_so));
+        _chuaLuu = (doi || chuaLuu) && !LuuSo(QuanTriTrong.GhiSo(_so));
+        _rt.TenQuanTri = ds.Where(t => t.DangBat && t.LaQuanTri).Select(t => t.Ten).ToList();
 
         var cu = _rt.QuanTriTrong;
         _rt.QuanTriTrong = moi;

@@ -126,8 +126,9 @@ public sealed class PipeServer : BackgroundService
         var user = SessionHelper.SessionUser(phienGoi);
         st.PhienCon = QuyenPhien.KhayChayOPhien(user, _rt.Config?.ChildUser, _rt.TaiKhoanMay);
         // #860: tên tài khoản quản trị chưa có mật khẩu CHỈ cho khay ở phiên của một tài khoản quản trị (Ba Mẹ) — phiên bé đọc được là lộ đường vượt chặn
+        // (cùng nguồn với lượt kiểm — QuanTriTrongWorker, tính cả nhóm lồng)
         if (!st.PhienCon && !string.IsNullOrWhiteSpace(user)
-            && _rt.TaiKhoanMay?.Any(a => a.IsAdmin && string.Equals(a.Name, user, StringComparison.OrdinalIgnoreCase)) == true)
+            && _rt.TenQuanTri?.Contains(user!, StringComparer.OrdinalIgnoreCase) == true)
             st.QuanTriTrong = _rt.QuanTriTrong?.ToList();
         return st;
     }

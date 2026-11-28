@@ -88,7 +88,15 @@ public static class QuanTriTrong
             var k = Khoa(t);
             conDung.Add(k);
             soKiem.TryGetValue(k, out var truoc);
-            if (DenHanKiem(truoc, now)) { soKiem[k] = truoc = new LuotKiemQuanTri { KetQua = kiem(t), Luc = now }; doi = true; }
+            if (DenHanKiem(truoc, now))
+            {
+                var kq = kiem(t);
+                // chưa rõ (lỗi thoáng qua, tài khoản đang bị khoá…) ⇒ giữ kết quả trước: đang trống thì vẫn báo trống và thử lại sau 5 phút,
+                // không báo «đã ổn» nhầm; chưa từng kiểm thì chờ 6 giờ (không thử dày tài khoản đang có chuyện)
+                if (kq == KiemMatKhau.KhongRo && truoc != null) kq = truoc.KetQua;
+                soKiem[k] = truoc = new LuotKiemQuanTri { KetQua = kq, Luc = now };
+                doi = true;
+            }
             if (truoc!.KetQua == KiemMatKhau.Trong) trong.Add(string.IsNullOrWhiteSpace(t.TenHienThi) ? t.Ten : t.TenHienThi.Trim());
         }
         foreach (var k in soKiem.Where(x => !conDung.Contains(x.Key) && DenHanKiem(x.Value, now)).Select(x => x.Key).ToList()) { soKiem.Remove(k); doi = true; }
@@ -132,7 +140,7 @@ public static class QuanTriTrongMay
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool CloseHandle(IntPtr h);
 
-    private const int FilterNormalAccount = 2, MaxPreferred = -1, ErrorMoreData = 234, LgIncludeIndirect = 1;
+    private const int FilterNormalAccount = 2, MaxPreferred = -1, ErrorMoreData = 234, LgIncludeIndirect = 1, NerrUserNotFound = 2221;
     private const uint UfAccountDisable = 0x2;
     private const int LogonNetwork = 3, ProviderDefault = 0;
 
@@ -154,8 +162,14 @@ public static class QuanTriTrongMay
                 for (int i = 0; i < read; i++)
                 {
                     var u = Marshal.PtrToStructure<USER_INFO_20>(buf + i * size);
-                    ds.Add(new TaiKhoanQuanTri(u.usri20_name, u.usri20_full_name ?? "", (int)u.usri20_user_id,
-                        (u.usri20_flags & UfAccountDisable) == 0, LaQuanTri(u.usri20_name, tenNhom), Nguon(u.usri20_name)));
+                    var bat = (u.usri20_flags & UfAccountDisable) == 0;
+                    if (!bat) { ds.Add(new TaiKhoanQuanTri(u.usri20_name, u.usri20_full_name ?? "", (int)u.usri20_user_id, false, false, NguonTaiKhoan.CucBo)); continue; }
+                    // tài khoản tắt không đọc nhóm / nguồn (lỗi ở tài khoản hệ thống không liên quan không làm hỏng cả lượt)
+                    var qt = LaQuanTri(u.usri20_name, tenNhom);
+                    if (qt == null) continue;   // vừa bị xoá giữa hai lời gọi
+                    var nguon = qt == true ? Nguon(u.usri20_name) : NguonTaiKhoan.CucBo;
+                    if (nguon == null) continue;
+                    ds.Add(new TaiKhoanQuanTri(u.usri20_name, u.usri20_full_name ?? "", (int)u.usri20_user_id, true, qt.Value, nguon.Value));
                 }
             }
             finally { if (buf != IntPtr.Zero) NetApiBufferFree(buf); }
@@ -164,11 +178,12 @@ public static class QuanTriTrongMay
     }
 
     /// <summary>Đọc nhóm lỗi ⇒ ném (cả lượt lỗi, giữ kết quả cũ) — KHÔNG coi là «không phải quản trị» (sẽ báo «đã ổn» nhầm).</summary>
-    private static bool LaQuanTri(string user, string tenNhom)
+    private static bool? LaQuanTri(string user, string tenNhom)
     {
         var rc = NetUserGetLocalGroups(null, user, 0, LgIncludeIndirect, out var buf, MaxPreferred, out var read, out _);
         try
         {
+            if (rc == NerrUserNotFound) return null;
             if (rc != 0) throw new InvalidOperationException("NetUserGetLocalGroups lỗi " + rc);
             var size = Marshal.SizeOf<LOCALGROUP_USERS_INFO_0>();
             for (int i = 0; i < read; i++)
@@ -178,11 +193,17 @@ public static class QuanTriTrongMay
         finally { if (buf != IntPtr.Zero) NetApiBufferFree(buf); }
     }
 
-    /// <summary>USER_INFO_24.usri24_internet_identity = tài khoản cục bộ liên kết tài khoản Microsoft. Đọc lỗi ⇒ coi là cục bộ (vẫn kiểm).</summary>
-    private static NguonTaiKhoan Nguon(string user)
+    /// <summary>USER_INFO_24.usri24_internet_identity = tài khoản cục bộ liên kết tài khoản Microsoft. Đọc lỗi ⇒ ném (không thử mật khẩu
+    /// một tài khoản có thể là tài khoản Microsoft; cả lượt giữ kết quả cũ); tài khoản vừa bị xoá ⇒ null.</summary>
+    private static NguonTaiKhoan? Nguon(string user)
     {
         var rc = NetUserGetInfo(null, user, 24, out var buf);
-        try { return rc == 0 && Marshal.PtrToStructure<USER_INFO_24>(buf).usri24_internet_identity ? NguonTaiKhoan.Microsoft : NguonTaiKhoan.CucBo; }
+        try
+        {
+            if (rc == NerrUserNotFound) return null;
+            if (rc != 0) throw new InvalidOperationException("NetUserGetInfo(24) lỗi " + rc);
+            return Marshal.PtrToStructure<USER_INFO_24>(buf).usri24_internet_identity ? NguonTaiKhoan.Microsoft : NguonTaiKhoan.CucBo;
+        }
         finally { if (buf != IntPtr.Zero) NetApiBufferFree(buf); }
     }
 
