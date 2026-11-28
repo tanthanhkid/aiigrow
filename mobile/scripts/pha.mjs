@@ -465,7 +465,7 @@ coBan["POST yeu-cau/y5/dong-y"] = (b) => ({ ngoaiLe: false, nhom: b?.nhom, muc: 
 coBan["POST yeu-cau/y5/bo-qua"] = () => ({ ok: true, trangThai: "bo_qua", hoanTacDen: new Date(Date.now() + 60_000).toISOString() });
 coBan["POST yeu-cau/y5/hoan-tac"] = { ok: true };
 coBan["GET yeu-cau/bo-qua"] = { ds: [
-  { id: "y7", con: "c1", tenCon: KEN, loai: "cai_app", kieu: "app", muc: "Minecraft", ten: "Minecraft", lyDo: null, luc: luc(60 * 24 + 30), nguoiBoQua: "Mẹ Lan", may: "Laptop" },
+  { id: "y7", con: "c1", tenCon: KEN, loai: "cai_app", kieu: "app", muc: "Minecraft", ten: "Minecraft", lyDo: null, luc: new Date(new Date(bay).setHours(20, 5, 0, 0) - 86400000).toISOString(), nguoiBoQua: "Mẹ Lan", may: "Laptop" },
   { id: "y8", con: "c1", tenCon: KEN, loai: "mo_web", kieu: "web", muc: "tiktok.com", ten: "tiktok.com", lyDo: null, luc: luc(60 * 72), nguoiBoQua: "Mẹ Lan", may: "Laptop" }] };
 coBan["GET yeu-cau/bo-qua?con=c1"] = coBan["GET yeu-cau/bo-qua"];
 coBan["POST yeu-cau/y7/them-luon"] = (b) => ({ ok: true, nhom: b?.nhom, muc: "minecraft.exe" });
@@ -899,7 +899,7 @@ if (process.argv.includes("--giao-dien")) {
     // #325 bm-viec-duyet (bàn 17/11): đúng CA của từng màn bàn
     M("bm-nhiem-vu (nợ · quà chờ trao · e91jg28j)", "/diem-qua", "Quà chờ trao", { kb: { ...SO_SAO, "GET cho-duyet": { ...coBan["GET cho-duyet"],
       phieu: [{ id: "ph2", child_id: "c1", ten: "Chọn món bữa tối", loai: "dac_quyen", diem: 50, ten_con: KEN, created_at: luc(60 * 26) }] } } }),
-    M("bm-nhiem-vu (trống · đang nợ vẫn hiện ví)", "/diem-qua", "−20 sao", { kb: { ...SO_SAO, "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
+    M("bm-nhiem-vu (trống · đang nợ vẫn hiện ví)", "/diem-qua", "+ Quà", { kb: { ...SO_SAO, "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
     M("bm-nhiem-vu (trống · e44cwmvu)", "/diem-qua", "còn trống", { kb: { "GET nhiem-vu": { ds: [] }, "GET cho-duyet": { ...coBan["GET cho-duyet"], nhiemVu: [] } } }),
     // #495: «Ba Mẹ tự thêm» không còn là bảng trượt của /giao-nv (bỏ ?tuThem) — thành màn /giao-nv/tu-dat, nút «Thêm việc»
     M("bm-giao-nv (bảng tự thêm · 6pjz1stu)", "/giao-nv/tu-dat?con=c1", "Thêm việc"),
@@ -2201,6 +2201,7 @@ await kichBan("#267 Máy này ai dùng?: bỏ Bảo Anh ⇒ «Lưu · máy riên
 });
 
 await kichBan("#792 Mã ghép: máy tính không nhắc «quét» / «vuốt ngang»; điện thoại giữ lời cũ", async () => {
+  const TL = { conId: "c1", tenCon: "Bảo Anh", namSinh: 2017, mau: 0, daLuu: [{ id: "c1", ten: "Bảo Anh", mau: 0, namSinh: 2017 }] };
   const vao = async () => { await di("/chao"); await js(`sessionStorage.setItem("aiigrow.thiet-lap", ${JSON.stringify(JSON.stringify(TL))})`); await goi("Page.navigate", { url: `${GOC}/thiet-lap/ghep` }); };
   await vao();
   xet(await doi("Mở app AiiGrow trên máy con, nhập mã này"), "máy tính: «nhập mã này»");
