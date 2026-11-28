@@ -28,9 +28,10 @@ import { one, q, tx, xoaTheoLo, type Q } from "./db.ts";
 import { dungMatKhau, type BaMe } from "./auth.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
-import { damBaoBang, ghiKiemToan } from "./admin.ts";
+import { damBaoBang } from "./admin.ts";
 import { bangM4b } from "./tuan-thu.ts";
 import { bangTvTb } from "./thanh-vien.ts";
+import { xoaGiaDinhTrongTx } from "./xoa-gia-dinh.ts";
 import { bangMang } from "./dns-gia-dinh.ts";
 import { bangLog, donLogCu } from "./log-may.ts";
 import { donWebCu } from "./web.ts";
@@ -99,22 +100,8 @@ export async function xoaTaiKhoan(bm: BaMe, b: { matKhau?: unknown; kiemTra?: un
       await ghiSuKien(bm.family_id, "thanh_vien_xoa_tai_khoan", { ten: toi.ten }, { nguoi: bm.id }, t);
       return { xoa: "tai_khoan" };
     }
-    const con = (await t<{ id: string }>(`select id from children where family_id = $1`, [bm.family_id])).map((x) => x.id);
-    // máy của gia đình, kể cả máy đã gỡ trước đó (dòng devices đã mất, id còn trong sự kiện / lệnh / gói cài)
-    const may = (await t<{ id: string }>(`select device_id as id from events where family_id = $1 and device_id is not null
-        union select device_id from lenh_may where family_id = $1 union select device_id from goi_cai where family_id = $1 and device_id is not null`,
-      [bm.family_id])).map((x) => x.id);
-    await t(`delete from pin_sai where khoa = any($1::text[]) or split_part(khoa, ':', 1) = any($2::text[]) or split_part(khoa, ':', 2) = any($3::text[])`,
-      [may.map((id) => `go:${id}`), may, con]);
-    await t(`delete from may_log where family_id = $1`, [bm.family_id]);
-    // người đã «mời ra» có định danh «<gốc>#roi:<id>» ⇒ lấy phần gốc
-    await t(`delete from otp where dinh_danh in (select split_part(dinh_danh, '#roi:', 1) from parents where family_id = $1)`, [bm.family_id]);
-    await goKhoaTaiKhoan("bm", (await t<{ d: string }>(`select split_part(dinh_danh, '#roi:', 1) as d from parents where family_id = $1`,
-      [bm.family_id])).map((x) => x.d), t);                                 // bộ đếm / khoá / nguồn quen đăng nhập (#553)
-    await t(`delete from pin_sai where split_part(khoa, ':', 1) in ('xoa_tk', 'dat_mk_tk') and split_part(khoa, ':', 2) in (select id from parents where family_id = $1)`, [bm.family_id]);
-    await t(`delete from families where id = $1`, [bm.family_id]);
-    await ghiKiemToan(null, "xoa_gia_dinh", { soCon: con.length }, bm.family_id, t);
-    return { xoa: "gia_dinh", soCon: con.length };
+    const { soCon } = await xoaGiaDinhTrongTx(t, bm.family_id);
+    return { xoa: "gia_dinh", soCon };
   });
 }
 

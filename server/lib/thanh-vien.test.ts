@@ -149,7 +149,7 @@ test("L6 hai quyền: đổi quyền / mời ra do Ba Mẹ; không đụng ngư�
   assert.deepEqual((await m("thanh-vien", { tok: mai })).body.ds.map((x: any) => x.ten), ["Mẹ Mai"]);
 });
 
-test("L6 tự thấy lời mời: đăng ký / đăng nhập bằng đúng SĐT được mời ⇒ trả kèm lời mời ⇒ «Vào nhà» một lệnh (moi/nhan {id}); tài khoản có dữ liệu thì không", async () => {
+test("L6 tự thấy lời mời: đăng ký / đăng nhập bằng đúng SĐT được mời ⇒ trả kèm lời mời ⇒ «Vào nhà» một lệnh (moi/nhan {id}); tài khoản có dữ liệu phải chọn hướng (#877)", async () => {
   const thu = await dangKy("Mẹ Thu");
   const so = sdt();
   const moi = (await m("thanh-vien/moi", { tok: thu, body: { dinhDanh: so, quyen: "trong_giup", tenGoi: "Ba Long" } })).body;
@@ -168,11 +168,11 @@ test("L6 tự thấy lời mời: đăng ký / đăng nhập bằng đúng SĐT 
   assert.equal((await m("toi", { tok: ba })).body.baMe.quyen, "trong_giup");
   assert.equal((await m("gia-dinh", { tok: ba })).body.ten, "Nhà Mẹ Thu");
   assert.equal((await m("moi/cho-toi", { tok: ba })).body.ds.length, 0);
-  // nhận bằng link (ma) vẫn được; tài khoản đã có Con thì không chuyển
+  // nhận bằng link (ma) vẫn được; tài khoản đã có Con phải chọn mang theo / bỏ nhà cũ
   const moi2 = (await m("thanh-vien/moi", { tok: thu, body: { quyen: "ba_me" } })).body;
   const co = await dangKy("Bà có dữ liệu");
   await m("con", { tok: co, body: { ten: "Bé" } });
-  assert.equal((await m("moi/nhan", { tok: co, body: { ma: moi2.ma } })).body.error, "gia_dinh_co_du_lieu");
+  assert.equal((await m("moi/nhan", { tok: co, body: { ma: moi2.ma } })).body.error, "can_chon_nha_cu");   // #877: có nhà riêng ⇒ phải chọn mang theo / bỏ (xem thanh-vien-nhan-moi-877.test.ts)
   assert.equal((await m("moi/nhan", { tok: ba, body: { ma: moi2.ma } })).body.error, "da_trong_gia_dinh");
   const ba3 = await dangKy("Ba Ba");
   assert.equal((await m("moi/nhan", { tok: ba3, body: { ma: moi2.ma } })).body.quyen, "ba_me");

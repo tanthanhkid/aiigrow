@@ -2,7 +2,7 @@
 //   không cần đăng nhập: GET moi/:ma · POST moi/dang-ky
 //   cần đăng nhập:       GET thanh-vien · POST thanh-vien/moi · POST thanh-vien/moi/:id/gui-lai · POST thanh-vien/moi/:id/huy
 //                        POST thanh-vien/:id/quyen (bí danh /vai) · POST thanh-vien/:id/moi-ra · POST thanh-vien/roi-nha
-//                        GET moi/cho-toi · POST moi/nhan {id | ma} · GET con/:id/bao-cao/csv
+//                        GET moi/cho-toi · GET moi/nha-cu · POST moi/nhan {id | ma, huong?} · GET con/:id/bao-cao/csv
 //                        GET thong-bao · POST thong-bao/doc · GET/POST thong-bao/cai-dat
 // Thông báo là của RIÊNG từng người ⇒ Người trông giúp vẫn đánh dấu đã đọc / đặt giờ yên lặng được (đi trước chặn quyền của api-m).
 import { docJson, json } from "./api.ts";
@@ -22,7 +22,7 @@ export async function xuLyMoiCongKhai(req: Request, p: string[]): Promise<Respon
   if (p[0] !== "moi") return null;
   if (p[1] === "dang-ky" && p.length === 2 && req.method === "POST")
     return json({ token: await taoPhien(await tv.dangKyTheoLoiMoi(await docJson(req))) });
-  if (p[1] && !["nhan", "dang-ky", "cho-toi"].includes(p[1]) && p.length === 2 && req.method === "GET") return json(await tv.xemLoiMoi(p[1]));
+  if (p[1] && !["nhan", "dang-ky", "cho-toi", "nha-cu"].includes(p[1]) && p.length === 2 && req.method === "GET") return json(await tv.xemLoiMoi(p[1]));
   return null;
 }
 
@@ -46,8 +46,9 @@ export async function xuLyThongBao(req: Request, bm: BaMe, p: string[]): Promise
 /** Thành viên — sau chặn quyền của api-m (Người trông giúp chỉ tới đây với moi/nhan; các hàm tv.* tự kiểm quyền Ba Mẹ). */
 export async function xuLyThanhVien(req: Request, bm: BaMe, p: string[], b: Record<string, any>): Promise<Response | null> {
   const get = req.method === "GET", post = req.method === "POST";
-  if (p[0] === "moi" && p[1] === "nhan" && p.length === 2 && post) return json(await tv.nhanLoiMoi(bm, b.id ? { id: b.id } : { ma: b.ma }));
+  if (p[0] === "moi" && p[1] === "nhan" && p.length === 2 && post) return json(await tv.nhanLoiMoi(bm, { ...(b.id ? { id: b.id } : { ma: b.ma }), huong: b.huong }));
   if (p[0] === "moi" && p[1] === "cho-toi" && p.length === 2 && get) return json({ ds: await tv.loiMoiChoToi(bm), chiQuaLink: await tv.emailChuaXacMinh(q, bm.id) });   // Facebook: chỉ nhận qua link
+  if (p[0] === "moi" && p[1] === "nha-cu" && p.length === 2 && get) return json(await tv.tomTatNhaCu(bm));   // #877: «Nhà của bạn đang có N bé, M máy, K người lớn»
   // FR-03.06 đóng băng chuỗi ngày · FR-06.02 xuất CSV báo cáo tuần
   if (p[0] === "con" && p[1] && p.length >= 3) {
     const sau = p.slice(2).join("/");

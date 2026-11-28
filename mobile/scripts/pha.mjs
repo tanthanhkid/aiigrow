@@ -151,6 +151,8 @@ Object.assign(coBan, {
   "POST thanh-vien/p2/vai": { vai: "xem" }, "POST thanh-vien/p3/moi-ra": { ok: true }, "POST thanh-vien/moi/lm1/huy": { ok: true },
   "GET moi/ABCD2345": { tenGiaDinh: "Nhà Mẹ Lan", nguoiMoi: "Mẹ Lan", vai: "duyet", tenVai: "Phê duyệt", tenGoi: "Ba Huy", het: luc(-4000) },
   "POST moi/dang-ky": { token: "tok-ba" }, "POST moi/nhan": { vai: "duyet" },
+  // #877: nhà hiện tại của người nhận lời mời — mặc định có 1 bé + 1 máy, là người lớn duy nhất
+  "GET moi/nha-cu": { soBe: 1, soMay: 1, soNguoiLon: 1, laNguoiLonDuyNhat: true, laChu: true, tenBe: ["Ken"], tenNha: "Nhà Mẹ Hoa" },
   "GET thong-bao": { chuaDoc: 3, caiDat: { yenLang: { bat: true, tu: "22:00", den: "06:30" }, tat: [] }, ds: [
     tbDong("e1", "nhiem_vu", `${KEN} vừa nộp 3 nhiệm vụ`, "Rửa chén · Đọc sách “Dế Mèn phiêu lưu ký” 50 trang · Tập thể dục 30 phút", 4, { so: 3, moi: true }),
     tbDong("e2", "yeu_cau", "Bill xin thêm 15 phút", "Đồng ý hoặc từ chối trong Chờ duyệt", 9, { con: "c2", moi: true }),
@@ -1030,12 +1032,15 @@ if (process.argv.includes("--giao-dien")) {
     M("thanh-vien (người lớn)", "/thanh-vien", "Mời Ba Huy rời nhà", { truoc: async () => { await di("/thanh-vien"); await doi("Ba Huy"); await bam("Ba Huy"); } }),
     M("moi (chưa có link)", "/moi", "Được người nhà mời?", { token: null }),
     M("moi (tạo tài khoản)", "/moi?ma=ABCD2345", "Vào nhà cùng Mẹ Lan", { token: null }),
-    M("moi (đã đăng nhập)", "/moi?ma=ABCD2345", "Tài khoản này đã có nhà riêng"),
+    M("moi (đã đăng nhập)", "/moi?ma=ABCD2345", "Mang các bé theo vào nhà mới"),
+    M("moi-vao (bỏ nhà cũ · #877)", "/moi/vao?ma=ABCD2345", "Không hoàn tác được", { truoc: async () => { await di("/moi/vao?ma=ABCD2345"); await doi("Bỏ nhà cũ"); await bam("Bỏ nhà cũ"); } }),
+    M("moi-vao (nhà cũ còn người lớn · #877)", "/moi/vao?ma=ABCD2345", "Bạn chỉ rời nhà cũ", { kb: { "GET moi/nha-cu": { soBe: 2, soMay: 1, soNguoiLon: 2, laNguoiLonDuyNhat: false, laChu: true, tenBe: ["Ken", "Bill"], tenNha: "Nhà Mẹ Hoa" } } }),
     M("moi (mã hết hạn)", "/moi?ma=ABCD2345", "quá 72 giờ", { token: null, kb: { "GET moi/ABCD2345": { status: 410, body: { error: "ma_moi_het_han", message: "Mã mời đã quá 72 giờ — xin người mời mã mới" } } } }),
     M("moi-vao", "/moi/vao?ma=ABCD2345", "Mẹ Lan"),
     // bm-duoc-moi đúng ca bàn: them-ux0c23p4 (có Google / Facebook), them-0zrwe8yz đã điền, them-pacl0mle đã gõ 4 số
     // bm1-moi v14: người được mời CHƯA có nhà riêng, quyền Trông giúp (ô thứ 3 «Khoá máy khi cần»)
     M("moi-vao (chưa có nhà · bm1-moi)", "/moi/vao?ma=ABCD2345", "Không phải tôi", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] },
+      "GET moi/nha-cu": { soBe: 0, soMay: 0, soNguoiLon: 1, laNguoiLonDuyNhat: true, laChu: true, tenBe: [], tenNha: "Nhà Mẹ Hoa" },
       "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], quyen: "trong_giup", tenQuyen: "Chỉ trông con" } } }),
     M("moi (được mời · them-ux0c23p4)", "/moi?ma=ABCD2345", "Vào nhà cùng Mẹ Lan", { token: null, kb: { "GET cau-hinh-dang-nhap": { google: true, facebook: true },
       "GET moi/ABCD2345": { ...coBan["GET moi/ABCD2345"], tenCon: ["An", "Minh", "Nam", "Khoa"] } } }),
