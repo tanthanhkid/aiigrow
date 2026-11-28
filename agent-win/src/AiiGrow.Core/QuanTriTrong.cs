@@ -4,8 +4,9 @@ using System.Text.Json;
 
 namespace AiiGrow.Core;
 
-/// <summary>Nguồn của một tài khoản Windows: cục bộ (mật khẩu nằm ở máy), tài khoản Microsoft liên kết, hoặc miền / Entra ID.</summary>
-public enum NguonTaiKhoan { CucBo, Microsoft, Mien }
+/// <summary>Nguồn của một tài khoản cục bộ: mật khẩu nằm ở máy, hoặc liên kết tài khoản Microsoft (mật khẩu trực tuyến).
+/// Thành viên miền / Entra ID của nhóm Administrators không phải tài khoản cục bộ ⇒ không được liệt kê (coi là có bảo vệ).</summary>
+public enum NguonTaiKhoan { CucBo, Microsoft }
 
 /// <summary>Một tài khoản trên máy. <paramref name="Rid"/> = số cuối của SID (500 = Administrator dựng sẵn).
 /// <paramref name="LaQuanTri"/> = thuộc nhóm Administrators (S-1-5-32-544), kể cả qua nhóm lồng.</summary>
@@ -40,7 +41,7 @@ public static class QuanTriTrong
     public const int RidAdministrator = 500;
 
     /// <summary>Tài khoản cần thử mật khẩu: đang bật, thuộc Administrators, tài khoản cục bộ thuần.
-    /// Tài khoản Microsoft / miền / Entra có mật khẩu trực tuyến (PIN, Windows Hello cũng là lớp bảo vệ) ⇒ không thử.
+    /// Tài khoản Microsoft (và miền / Entra — không có trong danh sách cục bộ) có mật khẩu trực tuyến (PIN, Windows Hello cũng là lớp bảo vệ) ⇒ không thử.
     /// Administrator dựng sẵn (RID 500) đi cùng luật này: tắt (mặc định) ⇒ bỏ qua, bật ⇒ kiểm.</summary>
     public static bool CanKiem(TaiKhoanQuanTri t) => t.DangBat && t.LaQuanTri && t.Nguon == NguonTaiKhoan.CucBo;
 
@@ -68,11 +69,17 @@ public static class QuanTriTrong
 
     /// <summary>
     /// Một lượt: tài khoản cần kiểm mà tới hạn thì gọi <paramref name="kiem"/> (thử đăng nhập), còn lại dùng kết quả cũ trong <paramref name="soKiem"/>.
-    /// Sửa <paramref name="soKiem"/> tại chỗ (thêm lượt mới, bỏ tài khoản không còn cần kiểm). → tên hiển thị các tài khoản quản trị trống, sắp xếp, không trùng.
+    /// Sửa <paramref name="soKiem"/> tại chỗ (thêm lượt mới; tài khoản không còn cần kiểm chỉ bỏ khi lượt cũ đã hết hạn — tắt/bật lại hay rời nhóm
+    /// thoáng qua không làm mất mốc chống thử dày). → tên hiển thị các tài khoản quản trị trống, sắp xếp (mỗi tài khoản một dòng, kể cả trùng tên hiển thị).
+    /// <paramref name="doi"/> = sổ đã đổi (cần lưu).
     /// </summary>
     public static List<string> Tinh(IEnumerable<TaiKhoanQuanTri> ds, IDictionary<string, LuotKiemQuanTri> soKiem,
-        Func<TaiKhoanQuanTri, KiemMatKhau> kiem, DateTimeOffset now)
+        Func<TaiKhoanQuanTri, KiemMatKhau> kiem, DateTimeOffset now) => Tinh(ds, soKiem, kiem, now, out _);
+
+    public static List<string> Tinh(IEnumerable<TaiKhoanQuanTri> ds, IDictionary<string, LuotKiemQuanTri> soKiem,
+        Func<TaiKhoanQuanTri, KiemMatKhau> kiem, DateTimeOffset now, out bool doi)
     {
+        doi = false;
         var trong = new List<string>();
         var conDung = new HashSet<string>(StringComparer.Ordinal);
         foreach (var t in ds)
@@ -81,11 +88,11 @@ public static class QuanTriTrong
             var k = Khoa(t);
             conDung.Add(k);
             soKiem.TryGetValue(k, out var truoc);
-            if (DenHanKiem(truoc, now)) soKiem[k] = truoc = new LuotKiemQuanTri { KetQua = kiem(t), Luc = now };
+            if (DenHanKiem(truoc, now)) { soKiem[k] = truoc = new LuotKiemQuanTri { KetQua = kiem(t), Luc = now }; doi = true; }
             if (truoc!.KetQua == KiemMatKhau.Trong) trong.Add(string.IsNullOrWhiteSpace(t.TenHienThi) ? t.Ten : t.TenHienThi.Trim());
         }
-        foreach (var k in soKiem.Keys.Where(k => !conDung.Contains(k)).ToList()) soKiem.Remove(k);
-        return trong.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
+        foreach (var k in soKiem.Where(x => !conDung.Contains(x.Key) && DenHanKiem(x.Value, now)).Select(x => x.Key).ToList()) { soKiem.Remove(k); doi = true; }
+        return trong.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).ToList();
     }
 
     // ---- sổ kiểm trên đĩa (C:\ProgramData\AiiGrow, chỉ SYSTEM + Administrators đọc) ----
@@ -140,9 +147,9 @@ public static class QuanTriTrongMay
         do
         {
             rc = NetUserEnum(null, 20, FilterNormalAccount, out var buf, MaxPreferred, out var read, out _, ref resume);
-            if (rc != 0 && rc != ErrorMoreData) throw new InvalidOperationException("NetUserEnum lỗi " + rc);
             try
             {
+                if (rc != 0 && rc != ErrorMoreData) throw new InvalidOperationException("NetUserEnum lỗi " + rc);
                 var size = Marshal.SizeOf<USER_INFO_20>();
                 for (int i = 0; i < read; i++)
                 {
@@ -156,12 +163,13 @@ public static class QuanTriTrongMay
         return ds;
     }
 
+    /// <summary>Đọc nhóm lỗi ⇒ ném (cả lượt lỗi, giữ kết quả cũ) — KHÔNG coi là «không phải quản trị» (sẽ báo «đã ổn» nhầm).</summary>
     private static bool LaQuanTri(string user, string tenNhom)
     {
         var rc = NetUserGetLocalGroups(null, user, 0, LgIncludeIndirect, out var buf, MaxPreferred, out var read, out _);
         try
         {
-            if (rc != 0) return false;
+            if (rc != 0) throw new InvalidOperationException("NetUserGetLocalGroups lỗi " + rc);
             var size = Marshal.SizeOf<LOCALGROUP_USERS_INFO_0>();
             for (int i = 0; i < read; i++)
                 if (string.Equals(Marshal.PtrToStructure<LOCALGROUP_USERS_INFO_0>(buf + i * size).lgrui0_name, tenNhom, StringComparison.OrdinalIgnoreCase)) return true;

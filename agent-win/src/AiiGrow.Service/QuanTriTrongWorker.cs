@@ -14,6 +14,7 @@ public sealed class QuanTriTrongWorker : BackgroundService
     private readonly ILogger<QuanTriTrongWorker> _log;
     private readonly AgentRuntime _rt;
     private Dictionary<string, LuotKiemQuanTri>? _so;
+    private bool _chuaLuu;
 
     public QuanTriTrongWorker(ILogger<QuanTriTrongWorker> log, AgentRuntime rt) { _log = log; _rt = rt; }
 
@@ -32,11 +33,10 @@ public sealed class QuanTriTrongWorker : BackgroundService
     private void MotLuot(DateTimeOffset now)
     {
         _so ??= QuanTriTrong.DocSo(File.Exists(QuanTriTrongMay.SoKiemFile) ? File.ReadAllText(QuanTriTrongMay.SoKiemFile) : null);
-        var truocJson = QuanTriTrong.GhiSo(_so);
-        var ds = QuanTriTrongMay.DocMay();
-        var moi = QuanTriTrong.Tinh(ds, _so, QuanTriTrongMay.KiemTrong, now);
-        var sauJson = QuanTriTrong.GhiSo(_so);
-        if (sauJson != truocJson) LuuSo(sauJson);
+        var ds = QuanTriTrongMay.DocMay();   // lỗi ⇒ ném, giữ kết quả cũ (không báo «đã ổn» nhầm)
+        var moi = QuanTriTrong.Tinh(ds, _so, QuanTriTrongMay.KiemTrong, now, out var doi);
+        // lưu lỗi (khoá tệp…) ⇒ còn cờ chưa lưu, lượt sau ghi lại — mốc thử phải nằm trên đĩa trước khi dịch vụ khởi động lại
+        if (doi || _chuaLuu) _chuaLuu = !LuuSo(QuanTriTrong.GhiSo(_so));
 
         var cu = _rt.QuanTriTrong;
         _rt.QuanTriTrong = moi;
@@ -48,7 +48,7 @@ public sealed class QuanTriTrongWorker : BackgroundService
         }
     }
 
-    private void LuuSo(string json)
+    private bool LuuSo(string json)
     {
         try
         {
@@ -56,7 +56,8 @@ public sealed class QuanTriTrongWorker : BackgroundService
             var tam = QuanTriTrongMay.SoKiemFile + ".tmp";
             File.WriteAllText(tam, json);
             File.Move(tam, QuanTriTrongMay.SoKiemFile, overwrite: true);
+            return true;
         }
-        catch (Exception e) { _log.LogWarning("Không lưu được sổ kiểm tài khoản quản trị: {m}", e.Message); }
+        catch (Exception e) { _log.LogWarning("Không lưu được sổ kiểm tài khoản quản trị: {m}", e.Message); return false; }
     }
 }

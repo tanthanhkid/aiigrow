@@ -48,11 +48,10 @@ public class QuanTriTrongTests
     }
 
     [Fact]
-    public void TaiKhoanMicrosoftVaMien_TinhCoBaoVe_KhongThu()
+    public void TaiKhoanMicrosoft_TinhCoBaoVe_KhongThu()
     {
-        var k = new KiemGia("ms", "mien");
-        var kq = QuanTriTrong.Tinh(new[] { Tk("ms", nguon: NguonTaiKhoan.Microsoft), Tk("mien", 1005, nguon: NguonTaiKhoan.Mien) },
-            new Dictionary<string, LuotKiemQuanTri>(), k.Kiem, T0);
+        var k = new KiemGia("ms");
+        var kq = QuanTriTrong.Tinh(new[] { Tk("ms", nguon: NguonTaiKhoan.Microsoft) }, new Dictionary<string, LuotKiemQuanTri>(), k.Kiem, T0);
         Assert.Empty(kq);
         Assert.Empty(k.DaThu);
     }
@@ -115,7 +114,7 @@ public class QuanTriTrongTests
     }
 
     [Fact]
-    public void TaiKhoanMoiHoacDoiTen_KiemNgay_TaiKhoanMatThiBoKhoiSo()
+    public void TaiKhoanMoi_KiemNgay_TaiKhoanMatChiBoKhoiSoKhiHetHan()
     {
         var k = new KiemGia("Moi");
         var so = new Dictionary<string, LuotKiemQuanTri>();
@@ -123,7 +122,30 @@ public class QuanTriTrongTests
         var kq = QuanTriTrong.Tinh(new[] { Tk("Moi", 1002) }, so, k.Kiem, T0.AddMinutes(1));
         Assert.Equal(new[] { "Moi" }, kq);
         Assert.Equal(new[] { "BaMe", "Moi" }, k.DaThu);
+        Assert.Equal(2, so.Count);   // mốc BaMe còn hạn ⇒ giữ
+        QuanTriTrong.Tinh(new[] { Tk("Moi", 1002) }, so, k.Kiem, T0.AddHours(6), out var doi);
+        Assert.True(doi);
         Assert.Single(so);
+    }
+
+    [Fact]
+    public void TatRoiBatLai_KhongThuThemTruocHan()
+    {
+        var k = new KiemGia();
+        var so = new Dictionary<string, LuotKiemQuanTri>();
+        QuanTriTrong.Tinh(new[] { Tk("BaMe") }, so, k.Kiem, T0);
+        QuanTriTrong.Tinh(new[] { Tk("BaMe", bat: false) }, so, k.Kiem, T0.AddMinutes(5));
+        QuanTriTrong.Tinh(new[] { Tk("BaMe") }, so, k.Kiem, T0.AddMinutes(10), out var doi);
+        Assert.Single(k.DaThu);
+        Assert.False(doi);
+    }
+
+    [Fact]
+    public void TrungTenHienThi_MoiTaiKhoanMotDong()
+    {
+        var kq = QuanTriTrong.Tinh(new[] { Tk("bo", 1001, hienThi: "Admin"), Tk("me", 1002, hienThi: "Admin") },
+            new Dictionary<string, LuotKiemQuanTri>(), _ => KiemMatKhau.Trong, T0);
+        Assert.Equal(new[] { "Admin", "Admin" }, kq);
     }
 
     [Fact]

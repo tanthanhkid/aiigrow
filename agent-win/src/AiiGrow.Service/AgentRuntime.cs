@@ -900,7 +900,6 @@ public sealed class AgentRuntime
                 XinChoMang = Config?.XinCho.Items.Count ?? 0,
                 XinBo = Config?.XinBo.ConHan(now) ?? new(),
                 BaiChoMang = Math.Max(0, SoBaiCho < 0 ? (SoBaiCho = DemBaiCho()) : SoBaiCho),
-                QuanTriTrong = QuanTriTrong?.ToList(),
             };
             if (_policy == null) return s;
             bool moTam = MoTamDangMo(now);

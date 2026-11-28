@@ -123,7 +123,12 @@ public sealed class PipeServer : BackgroundService
     private TrayState TrangThaiChoPhien(DateTimeOffset now, int phienGoi)
     {
         var st = _rt.BuildState(now);
-        st.PhienCon = QuyenPhien.KhayChayOPhien(SessionHelper.SessionUser(phienGoi), _rt.Config?.ChildUser, _rt.TaiKhoanMay);
+        var user = SessionHelper.SessionUser(phienGoi);
+        st.PhienCon = QuyenPhien.KhayChayOPhien(user, _rt.Config?.ChildUser, _rt.TaiKhoanMay);
+        // #860: tên tài khoản quản trị chưa có mật khẩu CHỈ cho khay ở phiên của một tài khoản quản trị (Ba Mẹ) — phiên bé đọc được là lộ đường vượt chặn
+        if (!st.PhienCon && !string.IsNullOrWhiteSpace(user)
+            && _rt.TaiKhoanMay?.Any(a => a.IsAdmin && string.Equals(a.Name, user, StringComparison.OrdinalIgnoreCase)) == true)
+            st.QuanTriTrong = _rt.QuanTriTrong?.ToList();
         return st;
     }
 

@@ -144,7 +144,8 @@ public sealed class TrayState
     public string? AppDangChoi { get; set; }
     /// <summary>05/11 (L11): số bài nộp lúc mất mạng đang chờ có mạng để tự gửi (BaiChoMang).</summary>
     public int BaiChoMang { get; set; }
-    /// <summary>#860: tên các tài khoản quản trị trên máy chưa có mật khẩu (rỗng = ổn; null = dịch vụ chưa kiểm xong) — thẻ nhắc Ba Mẹ ở khay.</summary>
+    /// <summary>#860: tên các tài khoản quản trị trên máy chưa có mật khẩu (rỗng = ổn; null = dịch vụ chưa kiểm xong, hoặc khay
+    /// không ở phiên tài khoản quản trị — phiên bé không bao giờ nhận) — thẻ nhắc Ba Mẹ ở khay.</summary>
     public List<string>? QuanTriTrong { get; set; }
     // ---- 06/11 (L13): ai đang dùng máy
     /// <summary>con | ba_me | chua (<see cref="LoaiNguoiDung"/>). chua ⇒ màn khoá «Ai đang dùng máy?» (LockReason chon_ten).</summary>
