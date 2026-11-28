@@ -1,7 +1,7 @@
 // #861 (thuộc #857): máy Con Windows còn tài khoản quản trị chưa có mật khẩu / PIN ⇒ bé tự vào tài khoản đó (hoặc bấm «Có» ở UAC) và gỡ được AiiGrow.
 // Hợp đồng agent: POST /api/device/dong-bo › `status.quanTriTrong?: string[]` — tên tài khoản quản trị trống mật khẩu; `[]` = đã ổn;
 // không có trường = agent cũ ⇒ không đổi gì. Danh sách lưu theo máy trong devices.status (dongBo gộp status) — trang máy đọc từ đó.
-// Cảnh báo `quan_tri_trong_mat_khau` (chú ý, khoá `quan_tri_trong:<máy>`) ghi MỘT lần khi máy bắt đầu báo trống (nhật ký / màn Cảnh báo);
+// Cảnh báo `quan_tri_trong_mat_khau` (chú ý, chỉ để biết, khoá `quan_tri_trong:<máy>`) MỘT dòng mỗi máy (danh sách đổi ⇒ sửa nội dung);
 // agent báo rỗng ⇒ dòng đó đánh dấu đã đọc + bỏ khoá (lần sau còn trống lại ⇒ cảnh báo mới). «Cần Ba Mẹ để ý» tính từ trạng thái máy (can-de-y.ts).
 import { q, type Q } from "./db.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
@@ -38,5 +38,8 @@ export async function capNhatCanhBaoQuanTri(may: { id: string; family_id: string
   }
   const moi = await canhBao(may.family_id, LOAI_QUAN_TRI_TRONG, "chu_y", cauQuanTriTrong(may.name, ds),
     { con: may.child_id, may: may.id, khoa: khoaQtt(may.id), chiTiet: { taiKhoan: ds } }, t);
+  // đã có cảnh báo đang mở ⇒ danh sách / tên máy đổi thì sửa nội dung (màn Cảnh báo đọc đúng danh sách mới nhất)
+  if (!moi) await t(`update alerts set noi_dung = $3, chi_tiet = $4::text::jsonb where family_id = $1 and khoa = $2 and noi_dung is distinct from $3`,
+    [may.family_id, khoaQtt(may.id), cauQuanTriTrong(may.name, ds), JSON.stringify({ taiKhoan: ds })]);
   if (moi) await ghiSuKien(may.family_id, "quan_tri_trong_mat_khau", { taiKhoan: ds }, { con: may.child_id, may: may.id }, t);
 }

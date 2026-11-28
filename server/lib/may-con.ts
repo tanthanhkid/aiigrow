@@ -159,8 +159,12 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     try { await truPhutChoi(be, phut, luc, { may: may.id, muc: x.muc, tz: f.tz, theoMuc: x.theoMuc, den: x.ngay === nay && x.den && x.den >= dauNay ? x.den : undefined }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
   }
   // #861: lưu danh sách đã chuẩn hoá (agent gửi bao nhiêu cũng chỉ giữ ≤ 20 tên); không có trường ⇒ giữ giá trị cũ
-  const qtt = docQuanTriTrong(b.status?.quanTriTrong);
-  const status = { ...(may.status ?? {}), ...(b.status ?? {}), ...(qtt ? { quanTriTrong: qtt } : {}), lechGiay: gioMaySai ? lechGiay : null };
+  // (Windows; giá trị không phải mảng ⇒ coi như không gửi). quanTriTrongTu = lúc máy bắt đầu báo trống («Cần Ba Mẹ để ý» xếp theo mốc này).
+  const { quanTriTrong: qttVao, ...stVao } = b.status ?? {};
+  const qtt = may.platform === "windows" ? docQuanTriTrong(qttVao) : null;
+  const qttCu = docQuanTriTrong(may.status?.quanTriTrong) ?? [];
+  const status: Record<string, unknown> = { ...(may.status ?? {}), ...stVao, lechGiay: gioMaySai ? lechGiay : null };
+  if (qtt) Object.assign(status, { quanTriTrong: qtt, quanTriTrongTu: !qtt.length ? null : qttCu.length ? may.status?.quanTriTrongTu ?? now.toISOString() : now.toISOString() });
   await q(`update devices set last_seen = $2, status = $3::text::jsonb where id = $1`, [may.id, now, JSON.stringify(status)]);
   if (gioMaySai) {
     const moi = await canhBao(may.family_id, "lech_gio", "chu_y", `Có dấu hiệu đổi giờ hệ thống trên ${may.name}${c ? ` của ${c.ten}` : ""}`,

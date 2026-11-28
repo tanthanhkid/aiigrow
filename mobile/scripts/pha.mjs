@@ -2293,7 +2293,7 @@ await kichBan("#772 Khoá THEO BÉ hiện ở trang máy: «<bé> đang bị kho
 await kichBan("#861 Tài khoản quản trị chưa có mật khẩu: trang máy + «Cần Ba Mẹ để ý» hiện cảnh báo; máy báo đã ổn ⇒ hết", async () => {
   const CAU = "Laptop của Bảo Anh: tài khoản quản trị chưa có mật khẩu — bé có thể tự vào và gỡ AiiGrow (Administrator)";
   kb = { ...kb, "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], quanTriTrong: ["Administrator"] },
-    "GET can-de-y": { ds: [{ id: "a:q1", loai: "canh_bao", tieu: `Cảnh báo: ${CAU}`, phu: "09:00", luc: luc(5), con: "c1", may: "m1", so: 1, nut: "Xem", den: "/may/m1" }],
+    "GET can-de-y": { ds: [{ id: "quan_tri_trong:m1", loai: "canh_bao", tieu: `Cảnh báo: ${CAU}`, phu: "Đặt mật khẩu trên máy Con", luc: luc(5), con: "c1", may: "m1", so: 1, nut: "Xem", den: "/may/m1" }],
       soChuong: 1, soTab: 1, soTheoCon: { c1: 1 }, soCaNha: 0 },
     "GET cho-duyet": { ...coBan["GET cho-duyet"], yeuCau: [] } };
   await di("/may/m1");

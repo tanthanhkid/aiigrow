@@ -13,7 +13,9 @@ export function hienThiMay(x: { trangThai: string; baoVe?: string | null; dangGo
 
 /** Cảnh báo chỉ để biết (sự việc đã xảy ra / AiiGrow đã tự xử lý / máy mất mạng đã có dòng riêng): không nút «Sửa», không tính vào «cần sửa». */
 export const LOAI_CHI_BIET = ["go_may", "may_chuyen_nha", "het_han_nhiem_vu", "lech_gio", "bang_chung_trung", "doi_che_do", "mo_khan_cap", "nhac_duyet",
-  "dns_vuot_gio", "may_go_chan_hosts", "may_ngoai_vong", "offline_lau"];
+  "dns_vuot_gio", "may_go_chan_hosts", "may_ngoai_vong", "offline_lau",
+  // #861: tài khoản quản trị chưa có mật khẩu — «Cần Ba Mẹ để ý» có dòng riêng tính từ trạng thái máy (can-de-y.ts), cảnh báo đã ghi chỉ để biết
+  "quan_tri_trong_mat_khau"];
 /** Cảnh báo CHƯA đọc, trong 7 ngày, mức chú ý / nghiêm trọng, không thuộc loại chỉ để biết ⇒ Ba Mẹ cần sửa. MỘT hàm cho chuông, Cả nhà và màn Cảnh báo. */
 export function canSuaCanhBao(a: { loai: string; muc: string; da_doc: boolean; created_at: Date | string }, now = new Date()): boolean {
   if (a.da_doc || LOAI_CHI_BIET.includes(a.loai)) return false;
