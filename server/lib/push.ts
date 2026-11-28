@@ -58,14 +58,15 @@ export const phanLoaiApns = (status: number, body: string): KetQuaGui => {
   const ly = (() => { try { return String(JSON.parse(body).reason ?? ""); } catch { return ""; } })();
   return status === 410 || (status === 400 && /BadDeviceToken|Unregistered/.test(ly)) ? "chet" : "loi";
 };
-let jwtApns: { jwt: string; luc: number } | null = null;
+let jwtApns: { jwt: string; luc: number; ma: string } | null = null;
 type MoApns = typeof http2Connect;
 /** Gửi một tin tới APNs qua HTTP/2. `ket` tiêm được cho test. */
 export function guiApns(token: string, moiTruong: string, tin: TinPush, ket: MoApns = http2Connect, nay = Date.now()): Promise<KetQuaGui> {
   const keyId = process.env.APNS_KEY_ID, teamId = process.env.APNS_TEAM_ID, pem = process.env.APNS_KEY_P8?.replace(/\\n/g, "\n");
   if (!keyId || !teamId || !pem) { baoMotLan("apns", "thiếu APNS_KEY_ID / APNS_TEAM_ID / APNS_KEY_P8 — bỏ qua push iOS"); return Promise.resolve("loi"); }
   try {
-    if (!jwtApns || nay - jwtApns.luc > 40 * 60_000) jwtApns = { jwt: taoJwtEs256(pem, keyId, teamId, Math.floor(nay / 1000)), luc: nay };   // APNs: JWT sống 20–60 phút
+    const ma = `${keyId}|${teamId}|${pem}`;      // đổi khoá / team ⇒ không dùng JWT cũ
+    if (!jwtApns || jwtApns.ma !== ma || nay - jwtApns.luc > 40 * 60_000) jwtApns = { jwt: taoJwtEs256(pem, keyId, teamId, Math.floor(nay / 1000)), luc: nay, ma };   // APNs: JWT sống 20–60 phút
   } catch { baoMotLan("apns-khoa", "APNS_KEY_P8 không đọc được — bỏ qua push iOS"); return Promise.resolve("loi"); }
   const jwt = jwtApns.jwt;
   return new Promise((xong) => {

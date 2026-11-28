@@ -22,7 +22,7 @@ export async function dangKyPush(): Promise<void> {
     if (status !== "granted") return;
     // token GỐC của máy (không qua Expo): iOS = APNs device token, Android = FCM token; máy chủ gửi thẳng APNs / FCM (server/lib/push.ts)
     const { data } = await N.getDevicePushTokenAsync();
-    if (typeof data !== "string" || data === tokenDaDangKy) return;
+    if (typeof data !== "string") return;                      // đăng ký lại mỗi lần (máy chủ upsert) — đổi tài khoản không qua đăng xuất vẫn chuyển chủ token
     // bản TestFlight / App Store dùng APNs production; bản dev chạy máy thật dùng sandbox
     await bm.goi("thong-bao/push-token", { token: data, loai: Platform.OS === "ios" ? "apns" : "fcm", moiTruong: __DEV__ ? "sandbox" : "production" });
     tokenDaDangKy = data;
@@ -50,7 +50,7 @@ export async function nghePushBam(mo: (den: string) => void): Promise<() => void
       daMoPush = r.notification.request.identifier;
       mo(d);
     };
-    mot(dau);
+    try { mot(dau); } catch { /* mở màn lỗi lúc app nguội: vẫn phải nghe các lần bấm sau */ }
     const ng = N.addNotificationResponseReceivedListener(mot);
     return () => ng.remove();
   } catch { return () => {}; }

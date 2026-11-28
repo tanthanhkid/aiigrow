@@ -22,7 +22,7 @@ export function PhienProvider({ children }: { children: ReactNode }) {
     router.replace((den ?? (moi ? "/thiet-lap/ten-con" : "/")) as never);
   }, []);
   const ra = useCallback(async (o?: { daXoa?: boolean }) => {
-    await huyDangKyPush(!!o?.daXoa);
+    await Promise.race([huyDangKyPush(!!o?.daXoa), new Promise((r) => setTimeout(r, 2000))]);   // mất mạng / máy chủ chậm không được giữ nút Đăng xuất
     if (!o?.daXoa) try { await bm.goi("dang-xuat", {}); } catch { /* vẫn xoá phiên trên máy */ }
     await bm.dat(null);
     setCo(false);
