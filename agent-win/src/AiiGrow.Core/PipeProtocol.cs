@@ -55,6 +55,9 @@ public static class PipeCmd
     /// <summary>14/11 (con-ngay-thuong 24 — FR-01.05): Con bấm «Thoát AiiGrow…» ⇒ dịch vụ báo Ba Mẹ ngay (sự kiện con_muon_thoat, mất mạng thì vào hàng đợi).
     /// Trả Status = da_bao | cho_mang. Tắt / gỡ chỉ được khi Ba Mẹ gõ mã 6 số (<see cref="BaMeMo"/>).</summary>
     public const string BaoThoat = "bao-thoat";
+    /// <summary>#860: tài khoản quản trị chưa có mật khẩu (thẻ nhắc Ba Mẹ ở khay). CHỈ trả cho khay ở phiên một tài khoản quản trị — phiên bé đọc được là lộ
+    /// đường vượt chặn. <see cref="PipeResponse.Data"/> = JSON mảng tên (rỗng = ổn); <see cref="PipeResponse.Status"/> = ok | chua_kiem.</summary>
+    public const string QuanTriTrong = "quan-tri-trong";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray (15/11: có số sao — sao = phút chơi, Con thấy số dư của mình).</summary>
@@ -144,9 +147,6 @@ public sealed class TrayState
     public string? AppDangChoi { get; set; }
     /// <summary>05/11 (L11): số bài nộp lúc mất mạng đang chờ có mạng để tự gửi (BaiChoMang).</summary>
     public int BaiChoMang { get; set; }
-    /// <summary>#860: tên các tài khoản quản trị trên máy chưa có mật khẩu (rỗng = ổn; null = dịch vụ chưa kiểm xong, hoặc khay
-    /// không ở phiên tài khoản quản trị — phiên bé không bao giờ nhận) — thẻ nhắc Ba Mẹ ở khay.</summary>
-    public List<string>? QuanTriTrong { get; set; }
     // ---- 06/11 (L13): ai đang dùng máy
     /// <summary>con | ba_me | chua (<see cref="LoaiNguoiDung"/>). chua ⇒ màn khoá «Ai đang dùng máy?» (LockReason chon_ten).</summary>
     public string NguoiDung { get; set; } = LoaiNguoiDung.Con;

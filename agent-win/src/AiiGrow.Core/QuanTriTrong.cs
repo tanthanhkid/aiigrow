@@ -20,6 +20,8 @@ public sealed class LuotKiemQuanTri
 {
     public KiemMatKhau KetQua { get; set; }
     public DateTimeOffset Luc { get; set; }
+    /// <summary>Số lượt «chưa rõ» liền nhau đang giữ kết quả trước (quá <see cref="QuanTriTrong.GiuKhiChuaRo"/> ⇒ thôi giữ).</summary>
+    public int ChuaRo { get; set; }
 }
 
 /// <summary>
@@ -39,6 +41,8 @@ public static class QuanTriTrong
     public static readonly TimeSpan KiemLaiKhiCoMatKhau = TimeSpan.FromHours(6);
 
     public const int RidAdministrator = 500;
+    /// <summary>Đang trống mà kiểm lại ra «chưa rõ» tối đa bấy nhiêu lượt liền vẫn giữ «trống» (lỗi thoáng qua); quá ⇒ ghi «chưa rõ», 6 giờ thử lại.</summary>
+    public const int GiuKhiChuaRo = 3;
 
     /// <summary>Tài khoản cần thử mật khẩu: đang bật, thuộc Administrators, tài khoản cục bộ thuần.
     /// Tài khoản Microsoft (và miền / Entra — không có trong danh sách cục bộ) có mật khẩu trực tuyến (PIN, Windows Hello cũng là lớp bảo vệ) ⇒ không thử.
@@ -51,7 +55,8 @@ public static class QuanTriTrong
     /// <summary>Đã tới lúc thử lại tài khoản này chưa (null = chưa kiểm lần nào).</summary>
     public static bool DenHanKiem(LuotKiemQuanTri? truoc, DateTimeOffset now)
     {
-        if (truoc == null || truoc.Luc > now) return true;   // đồng hồ máy lùi ⇒ coi như tới hạn (không kẹt mãi kết quả cũ)
+        if (truoc == null) return true;
+        if (truoc.Luc > now) return false;   // đồng hồ máy lùi ⇒ CHƯA tới hạn (Tinh đặt lại mốc = now) — đổi giờ không làm thử dày
         var han = truoc.KetQua == KiemMatKhau.Trong ? KiemLaiKhiTrong : KiemLaiKhiCoMatKhau;
         return now - truoc.Luc >= han;
     }
@@ -88,13 +93,16 @@ public static class QuanTriTrong
             var k = Khoa(t);
             conDung.Add(k);
             soKiem.TryGetValue(k, out var truoc);
+            if (truoc != null && truoc.Luc > now) { truoc.Luc = now; doi = true; }
             if (DenHanKiem(truoc, now))
             {
                 var kq = kiem(t);
                 // chưa rõ (lỗi thoáng qua, tài khoản đang bị khoá…) ⇒ giữ kết quả trước: đang trống thì vẫn báo trống và thử lại sau 5 phút,
                 // không báo «đã ổn» nhầm; chưa từng kiểm thì chờ 6 giờ (không thử dày tài khoản đang có chuyện)
-                if (kq == KiemMatKhau.KhongRo && truoc != null) kq = truoc.KetQua;
-                soKiem[k] = truoc = new LuotKiemQuanTri { KetQua = kq, Luc = now };
+                var chuaRo = 0;
+                if (kq == KiemMatKhau.KhongRo && truoc != null && truoc.KetQua != KiemMatKhau.KhongRo && truoc.ChuaRo < GiuKhiChuaRo)
+                { kq = truoc.KetQua; chuaRo = truoc.ChuaRo + 1; }
+                soKiem[k] = truoc = new LuotKiemQuanTri { KetQua = kq, Luc = now, ChuaRo = chuaRo };
                 doi = true;
             }
             if (truoc!.KetQua == KiemMatKhau.Trong) trong.Add(string.IsNullOrWhiteSpace(t.TenHienThi) ? t.Ten : t.TenHienThi.Trim());

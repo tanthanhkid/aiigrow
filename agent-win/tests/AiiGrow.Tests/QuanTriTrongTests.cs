@@ -152,7 +152,7 @@ public class QuanTriTrongTests
     public void DongHoLui_CoiNhuToiHan()
     {
         var truoc = new LuotKiemQuanTri { KetQua = KiemMatKhau.CoMatKhau, Luc = T0 };
-        Assert.True(QuanTriTrong.DenHanKiem(truoc, T0.AddDays(-1)));
+        Assert.False(QuanTriTrong.DenHanKiem(truoc, T0.AddDays(-1)));
         Assert.False(QuanTriTrong.DenHanKiem(truoc, T0.AddHours(1)));
         Assert.True(QuanTriTrong.DenHanKiem(null, T0));
     }
@@ -178,6 +178,29 @@ public class QuanTriTrongTests
         kq = KiemMatKhau.KhongRo;
         Assert.Equal(new[] { "BaMe" }, QuanTriTrong.Tinh(ds, so, _ => kq, T0.AddMinutes(5)));
         Assert.True(QuanTriTrong.DenHanKiem(so.Values.Single(), T0.AddMinutes(10)));
+    }
+
+    [Fact]
+    public void DongHoLui_KhongThuDay_DatLaiMoc()
+    {
+        var k = new KiemGia();
+        var so = new Dictionary<string, LuotKiemQuanTri>();
+        var ds = new[] { Tk("BaMe") };
+        QuanTriTrong.Tinh(ds, so, k.Kiem, T0);
+        for (int p = 1; p <= 10; p++) QuanTriTrong.Tinh(ds, so, k.Kiem, T0.AddDays(-p));   // mỗi lượt lùi giờ thêm
+        Assert.Single(k.DaThu);
+    }
+
+    [Fact]
+    public void ChuaRoLienTuc_ThoiGiuTrong()
+    {
+        var kq = KiemMatKhau.Trong;
+        var so = new Dictionary<string, LuotKiemQuanTri>();
+        var ds = new[] { Tk("BaMe") };
+        QuanTriTrong.Tinh(ds, so, _ => kq, T0);
+        kq = KiemMatKhau.KhongRo;
+        for (int i = 1; i <= QuanTriTrong.GiuKhiChuaRo; i++) Assert.Single(QuanTriTrong.Tinh(ds, so, _ => kq, T0.AddMinutes(5 * i)));
+        Assert.Empty(QuanTriTrong.Tinh(ds, so, _ => kq, T0.AddMinutes(5 * (QuanTriTrong.GiuKhiChuaRo + 1))));
     }
 
     [Fact]

@@ -123,13 +123,7 @@ public sealed class PipeServer : BackgroundService
     private TrayState TrangThaiChoPhien(DateTimeOffset now, int phienGoi)
     {
         var st = _rt.BuildState(now);
-        var user = SessionHelper.SessionUser(phienGoi);
-        st.PhienCon = QuyenPhien.KhayChayOPhien(user, _rt.Config?.ChildUser, _rt.TaiKhoanMay);
-        // #860: tên tài khoản quản trị chưa có mật khẩu CHỈ cho khay ở phiên của một tài khoản quản trị (Ba Mẹ) — phiên bé đọc được là lộ đường vượt chặn
-        // (cùng nguồn với lượt kiểm — QuanTriTrongWorker, tính cả nhóm lồng)
-        if (!st.PhienCon && !string.IsNullOrWhiteSpace(user)
-            && _rt.TenQuanTri?.Contains(user!, StringComparer.OrdinalIgnoreCase) == true)
-            st.QuanTriTrong = _rt.QuanTriTrong?.ToList();
+        st.PhienCon = QuyenPhien.KhayChayOPhien(SessionHelper.SessionUser(phienGoi), _rt.Config?.ChildUser, _rt.TaiKhoanMay);
         return st;
     }
 
@@ -274,6 +268,16 @@ public sealed class PipeServer : BackgroundService
                 }
                 catch (ApiException e) when (XinTrung.La(e)) { return new PipeResponse { Ok = false, Error = XinTrung.Cau }; }   // #727 (#684)
                 catch (ApiException e) { return new PipeResponse { Ok = false, Error = e.Message }; }
+            }
+
+            case PipeCmd.QuanTriTrong:
+            {
+                // #860: chỉ phiên của tài khoản quản trị (cùng lượt đọc với bộ kiểm — tính cả nhóm lồng); phiên bé ⇒ từ chối
+                var user = SessionHelper.SessionUser(clientSession);
+                if (string.IsNullOrWhiteSpace(user) || _rt.TenQuanTri?.Contains(user, StringComparer.OrdinalIgnoreCase) != true)
+                    return new PipeResponse { Ok = false, Error = "Chỉ tài khoản quản trị xem được" };
+                var qt = _rt.QuanTriTrong;
+                return new PipeResponse { Ok = true, Data = JsonSerializer.Serialize(qt ?? Array.Empty<string>(), Json.Options), Status = qt == null ? "chua_kiem" : "ok" };
             }
 
             case PipeCmd.AppMay:
