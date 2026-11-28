@@ -214,6 +214,9 @@ public sealed class AgentStatus
     public string? PlaySessionId { get; set; }
     /// <summary>0.2.6 (BUG-005): ghi chú bảo vệ cho Ba Mẹ — vd «Win Home: chặn bằng cách đóng app». null = không có gì đặc biệt.</summary>
     public string? GhiChuBaoVe { get; set; }
+    /// <summary>#860: tên hiển thị các tài khoản quản trị (Administrators) chưa có mật khẩu — bé vào thẳng / bấm «Có» ở UAC là vượt mọi lớp chặn.
+    /// [] = đã ổn; null (không gửi) = dịch vụ chưa kiểm xong lượt đầu.</summary>
+    public List<string>? QuanTriTrong { get; set; }
 }
 
 /// <summary>Tính <see cref="AgentStatus.Quyen"/> từ trạng thái thật (thuần, test được).</summary>
