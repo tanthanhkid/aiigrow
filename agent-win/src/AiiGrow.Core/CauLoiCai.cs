@@ -25,6 +25,11 @@ public static class CauLoiCai
     /// <summary>#739: tên Windows cấm làm tên thư mục hồ sơ.</summary>
     public static string TenCam(string ten) => $"Windows không cho đặt tên «{ten}» (tên dành riêng của hệ thống: CON, PRN, AUX, NUL, COM1–9, LPT1–9). Đặt tên khác, ví dụ: treem.";
 
+    /// <summary>#854: cập nhật gặp tài khoản Windows đang mang tên cấm (hồ sơ tạm mỗi lần đăng nhập).</summary>
+    public static string TaiKhoanTenCam(IEnumerable<string> ten) =>
+        $"Máy có tài khoản Windows tên «{string.Join("», «", ten)}» (tên dành riêng của hệ thống) nên mỗi lần đăng nhập Windows chỉ cho vào hồ sơ tạm. " +
+        "Cập nhật không sửa được việc này. Tạo tài khoản mới tên khác (ví dụ: treem) trong Cài đặt Windows › Tài khoản, chép dữ liệu của bé sang, rồi chọn tài khoản mới trong «Sửa cài đặt».";
+
     /// <summary>#739: tạo xong tài khoản nhưng Windows không dựng được hồ sơ (thư mục người dùng).</summary>
     public static string HoSoLoi(string ten) => $"Tài khoản «{ten}» chưa dùng được vì Windows không tạo được hồ sơ cho nó. Bộ cài đã xoá tài khoản đó; thử tên khác, vẫn lỗi thì khởi động lại máy rồi chạy lại bộ cài.";
 

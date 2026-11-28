@@ -15,6 +15,15 @@ public class Windows739Tests
     public void TenThietBi_ChoPhep(string ten) => Assert.False(TenThietBi.LaTenCam(ten));
 
     [Fact]
+    public void TaiKhoanCam_ChiLayTaiKhoanTenCam_854()
+    {
+        var ds = new[] { new LocalAccount("con", "S-1-5-21-1-1-1-1001", false), new LocalAccount("treem", "S-1-5-21-1-1-1-1002", false), new LocalAccount("CON", "S-1-5-21-1-1-1-1003", false) };
+        Assert.Equal(new[] { "con" }, TenThietBi.TaiKhoanCam(ds));
+        Assert.Empty(TenThietBi.TaiKhoanCam(ds.Skip(1).Take(1)));
+        Assert.Contains("«con»", CauLoiCai.TaiKhoanTenCam(new[] { "con" }));
+    }
+
+    [Fact]
     public void CauLoi_TenCam_NoiRoVaGoiYTen()
     {
         var c = CauLoiCai.TenCam("con");

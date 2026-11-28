@@ -187,6 +187,9 @@ internal sealed class CapNhatForm : Form
         cot.Controls.AddRange(new Control[] { _tieuDe, _loi, _thanh, _nut });
         Controls.Add(cot);
         FormClosing += (_, e) => { if (_dangChay) e.Cancel = true; };
+        // #854: hộp mở từ bộ cài chạy ngầm nằm khuất sau cửa sổ khác (trông như bộ cài treo) ⇒ nổi lên trước, lấy tiêu điểm
+        TopMost = true;
+        Shown += (_, _) => { try { Activate(); BringToFront(); } catch { } };
         if (ph.CheDo == CheDoBoCai.CapNhat) ManCapNhat(); else ManMoiNhat();
     }
 
@@ -195,7 +198,7 @@ internal sealed class CapNhatForm : Form
         _tieuDe.Text = "Cập nhật AiiGrow lên bản " + CapNhat.Hien(_ph.BanMoi);
         _loi.Text = $"Máy này đang chạy AiiGrow bản {CapNhat.Hien(_ph.BanDangCai)} → bản mới {CapNhat.Hien(_ph.BanMoi)}.\n\n" +
                     "Cập nhật giữ nguyên ghép máy, tài khoản của Con và các luật Ba Mẹ đã đặt — không phải ghép lại. " +
-                    "Mất khoảng một phút; nếu có lỗi, AiiGrow tự quay về bản cũ để máy vẫn được bảo vệ.";
+                    "Mất khoảng một phút; nếu có lỗi, AiiGrow tự quay về bản cũ để máy vẫn được bảo vệ." + LoiNhacTenCam();
         _nut.Controls.Clear();
         _nut.Controls.Add(Nut("Cập nhật", true, CapNhatNgay));
         _nut.Controls.Add(Nut("Để sau", false, Close));
@@ -210,6 +213,19 @@ internal sealed class CapNhatForm : Form
         _nut.Controls.Add(Nut("Mở lại AiiGrow", true, MoLai));
         _nut.Controls.Add(Nut("Sửa cài đặt", false, () => { MuonSua = true; Close(); }));
         _nut.Controls.Add(Nut("Đóng", false, Close));
+    }
+
+    /// <summary>#854: tài khoản mang tên cấm (vd «con») ⇒ lời nhắc cho Ba Mẹ; không đọc được danh sách thì im.</summary>
+    private static string LoiNhacTenCam()
+    {
+        try
+        {
+            var cam = TenThietBi.TaiKhoanCam(TaiKhoanCon.DocMay());
+            if (cam.Count == 0) return "";
+            Program.WriteLog("Cập nhật: tài khoản Windows tên cấm: " + string.Join(", ", cam));
+            return "\n\n" + CauLoiCai.TaiKhoanTenCam(cam);
+        }
+        catch { return ""; }
     }
 
     private async void CapNhatNgay()

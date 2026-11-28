@@ -14,6 +14,10 @@ public static class TenThietBi
         var t = (ten ?? "").Trim().TrimEnd('.', ' ');
         return t.Length > 0 && Cam.IsMatch(t);
     }
+
+    /// <summary>#854: tên các tài khoản Windows ĐANG có trên máy mà mang tên cấm (cập nhật không tạo lại được hồ sơ cho chúng).</summary>
+    public static List<string> TaiKhoanCam(IEnumerable<LocalAccount> ds) =>
+        ds.Where(a => LaTenCam(a.Name)).Select(a => a.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 }
 
 /// <summary>Dựng hồ sơ người dùng ngay (userenv!CreateProfile) để biết sớm hồ sơ có tạo được không.</summary>
