@@ -318,6 +318,24 @@ internal static class ChupMain
                 Server = "http://127.0.0.1:9", Code = "482915", Child = ConMau(),
                 Pair = new PairResult { DeviceId = "may1", Token = "t", ChildName = "Minh Khôi" },
             })));
+        // #862: tài khoản quản trị chưa có mật khẩu ⇒ màn đặt mật khẩu (dữ liệu mẫu — không đọc / đổi tài khoản thật)
+        await Mot("cai-5b-mat-khau-qt", () => ManCai("cai-5b-mat-khau-qt", f => Goi(f, "ManMatKhauQuanTri", QuanTriMau(1), (Action)(() => { }), true, new List<string>(), null)));
+        await Mot("cai-5b-mat-khau-qt-nhieu", () => ManCai("cai-5b-mat-khau-qt-nhieu", f => Goi(f, "ManMatKhauQuanTri", QuanTriMau(2), (Action)(() => { }), true, new List<string>(), null)));
+        await Mot("cai-5b-mat-khau-qt-tung-cai", () => ManCai("cai-5b-mat-khau-qt-tung-cai", f =>
+        {
+            Goi(f, "ManMatKhauQuanTri", QuanTriMau(2).Skip(1).ToList(), (Action)(() => { }), false, new List<string> { "Ba Mẹ (BaMe)" }, null);
+            var o = TatCa(f).OfType<TextBox>().ToList();
+            o[0].Text = "HoaXanh2026"; o[1].Text = "HoaXanh2026";
+        }));
+        await Mot("cai-5b-mat-khau-qt-loi", () => ManCai("cai-5b-mat-khau-qt-loi", f =>
+        {
+            Goi(f, "ManMatKhauQuanTri", QuanTriMau(1), (Action)(() => { }), true, new List<string>(), null);
+            var o = TatCa(f).OfType<TextBox>().ToList();
+            o[0].Text = "abc1"; o[1].Text = "abc2";
+            TatCa(f).OfType<Button>().First(b => b.Text.StartsWith("Đặt mật khẩu")).PerformClick();
+        }));
+        await Mot("cai-5b-tu-dat-sau", () => ManCai("cai-5b-tu-dat-sau", f => Goi(f, "ManTuDatSau", QuanTriMau(2), (Action)(() => { }), new List<string>())));
+        await Mot("cai-5b-da-dat", () => ManCai("cai-5b-da-dat", f => Goi(f, "ManDaDatMatKhau", new List<string> { "Ba Mẹ (BaMe)", "admin" }, (Action)(() => { }))));
         await Mot("cai-6-xong", () => ManCai("cai-6-xong", f => Goi(f, "BuocXong", ConMau(), "Minh Khôi", false)));
         await Mot("cai-6-xong-may-rieng", () => ManCai("cai-6-xong-may-rieng", f => Goi(f, "BuocXong", ConMau(), "Minh Khôi", true)));
         await Mot("cap-nhat", () => ManHop("cap-nhat", () => new CapNhatForm(new PhatHienCai(CheDoBoCai.CapNhat, new Version(0, 2, 9), new Version(0, 2, 10)))));
@@ -674,6 +692,12 @@ internal static class ChupMain
         new("minhkhoi", "S-1-5-21-1111111111-2222222222-3333333333-1002", false),
         new("Khach", "S-1-5-21-1111111111-2222222222-3333333333-1003", false),
     };
+
+    private static List<TaiKhoanQuanTri> QuanTriMau(int n) => new List<TaiKhoanQuanTri>
+    {
+        new("BaMe", "Ba Mẹ", 1001, true, true, NguonTaiKhoan.CucBo),
+        new("admin", "", 1003, true, true, NguonTaiKhoan.CucBo),
+    }.Take(n).ToList();
 
     private static LocalAccount ConMau() => new("minhkhoi", "S-1-5-21-1111111111-2222222222-3333333333-1002", false);
 
