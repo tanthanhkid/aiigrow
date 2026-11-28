@@ -1,4 +1,4 @@
-// «Sao & quà» (ví) bản «Dịu» (con-dt-ngay 14 cdt-vi-qua, Nghi chốt 06/11 — L14, sổ sao 15/11 #263): thẻ vàng «Con đang có 40 sao · Đang giữ 50
+// «Sao & quà» (ví) bản «Dịu» (con-dt-ngay 14 cdt-vi-qua, Nghi chốt 06/11 — L14, sổ sao 15/11 #263): thẻ vàng «Con đang có 40 sao · Đã trừ 50
 // sao cho quà chờ trao» + thanh tới quà gần nhất; đang nợ ⇒ thẻ cảnh báo «−20 sao · Đang nợ Ba Mẹ 20 sao · Sao nhiệm vụ trả nợ trước · hết nợ mới
 // cộng» + «Làm nhiệm vụ trả nợ» (bỏ «Đổi sao lấy phút» — sao chính là phút); «Quà của con»: quà đang giữ sao chờ Ba Mẹ trao (⏳), voucher AiiCafe đã nhận
 // (mã QR — chạm để hiện cho quầy quét, «Còn 49 ngày»), quà đã trao; «Huy hiệu»; «Xem quà đổi được».
@@ -50,7 +50,7 @@ export default function ViQuaTre() {
           <ChuD kieu="den" co={15} mau={NO.chu}>{`Đang nợ Ba Mẹ ${soVN(no)} sao`}</ChuD>
           <ChuD kieu="rat" co={13} mau={NO.chu}>Sao nhiệm vụ trả nợ trước · hết nợ mới cộng</ChuD>
         </View> : null}
-        {giu ? <ChuD kieu="rat" co={13.5} mau={mau}>{`Đang giữ ${giu} sao cho quà chờ trao`}</ChuD> : null}
+        {giu ? <ChuD kieu="rat" co={13.5} mau={mau}>{`Đã trừ ${giu} sao cho quà chờ trao`}</ChuD> : null}
         {d.s.lichSu?.length ? (
           <View style={{ gap: 4 }}>
             {d.s.lichSu.slice(0, 5).map((x) => {

@@ -291,7 +291,7 @@ struct ManSaoQua: View {
         Anh(ten: "ic_sao", co: 56)
         Text("Con đang có \(Diu.soSao(m.soSao))").font(Diu.fraunces(22)).foregroundColor(m.soSao < 0 ? Diu.noChu : Diu.chu)
         if m.soNo > 0 { DongNo(no: m.soNo) } else if !m.moHet { Text("\(m.saoHienThi) sao = \(m.saoHienThi) phút chơi").font(Diu.t2).foregroundColor(Diu.chu2) }
-        if giu > 0 { Text("Đang giữ \(giu) sao cho quà chờ trao").font(Diu.t2).foregroundColor(Diu.chu2) }
+        if giu > 0 { Text("Đã trừ \(giu) sao cho quà chờ trao").font(Diu.t2).foregroundColor(Diu.chu2) }
         // cdt-vi-qua (15/11): bỏ «Đổi sao lấy phút» — sao chính là phút
         Button { m.tab = .nhiemVu } label: { Label { Text(m.soNo > 0 ? "Làm nhiệm vụ trả nợ" : "Làm nhiệm vụ kiếm sao") } icon: { Anh(ten: "ic_tick", co: 26) } }.buttonStyle(NutDiu())
       }
@@ -299,7 +299,7 @@ struct ManSaoQua: View {
       HStack { Text("Quà của con").font(Diu.t1).foregroundColor(Diu.chu2); Spacer() }.padding(.top, 4)
       VStack(spacing: 0) {
         ForEach(m.viQua?.phieu ?? []) { p in
-          HangDs(icon: ManCuaHang.icon(nil, ten: p.ten), t1: p.ten, t2: "Đang giữ \(p.diem) sao · ⏳ Chờ Ba Mẹ trao")
+          HangDs(icon: ManCuaHang.icon(nil, ten: p.ten), t1: p.ten, t2: "Đã trừ \(p.diem) sao · ⏳ Chờ Ba Mẹ trao")
         }
         ForEach(Array((m.viQua?.voucher ?? []).filter { $0.trang_thai == "da_phat_hanh" }.enumerated()), id: \.offset) { _, v in
           Button { qrMo = v.qr ?? v.ma } label: {
@@ -414,7 +414,7 @@ struct ManCuaHang: View {
         ChipSao(so: co, chu: ""); Image(systemName: "arrow.right").font(.system(size: 16, weight: .heavy)).foregroundColor(Diu.chu3)
         ChipSao(so: co - q.gia)
       }
-      Text("Sao được giữ lại · Ba Mẹ trao xong mới trừ").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
+      Text("Đổi là trừ sao ngay · Ba Mẹ từ chối thì hoàn").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       if let mt = q.moTa { HangDs(icon: "ic_tim", t1: mt).theDiu(dem: 12) }
       if let l = m.loi { Text(l).font(Diu.t2).foregroundColor(Diu.doChu).multilineTextAlignment(.center) }
       Button { Task { if await m.doiQua(q) { daGui = q } } } label: {
@@ -439,9 +439,9 @@ struct ManCuaHang: View {
     VStack(spacing: 14) {
       Text("Đã gửi Ba Mẹ").font(Diu.tieuDe).foregroundColor(Diu.chu)
       Anh(ten: "rob_xong", co: 120)
-      HangDs(icon: Self.icon(q.hinh, ten: q.ten), t1: q.ten, t2: "Đang giữ \(q.gia) sao · còn \(Diu.soSao((m.cuaHang?.soSao ?? m.soSao) - q.gia))").theDiu(dem: 12)
+      HangDs(icon: Self.icon(q.hinh, ten: q.ten), t1: q.ten, t2: "Đã trừ \(q.gia) sao · còn \(Diu.soSao(m.demo != nil ? (m.cuaHang?.soSao ?? m.soSao) - q.gia : (m.cuaHang?.soSao ?? m.soSao)))").theDiu(dem: 12)
       NhanNho(chu: "⏳ Chờ Ba Mẹ trao")
-      Text("Ba Mẹ trao quà thì mới trừ sao. Ba Mẹ huỷ thì \(q.gia) sao về lại cho con.").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
+      Text("Ba Mẹ từ chối thì \(q.gia) sao về lại cho con.").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       Button { m.tab = .saoQua; dong() } label: { Label { Text("Về Sao & quà") } icon: { Anh(ten: "ic_sao", co: 26) } }.buttonStyle(NutDiu())
       Button("Làm nhiệm vụ kiếm sao") { m.tab = .nhiemVu; dong() }.buttonStyle(NutDiu(kieu: .lk))
     }

@@ -182,12 +182,17 @@ internal sealed class DoiQuaHop : HopKhayCoBan
 
     /// <summary>Đổi xong (để app tải lại «Sao & quà»).</summary>
     public event Action? DaDoi;
+
+    /// <summary>#757: hộp đang ở màn «Đã gửi Ba Mẹ · Chờ Ba Mẹ trao quà…» — khay đóng khi có tin Ba Mẹ trao / từ chối quà này.</summary>
+    public static DoiQuaHop? DangCho { get; private set; }
+    public string TenQua => _qua.Ten;
     /// <summary>«Làm thêm sao» ⇒ mở mục Nhiệm vụ.</summary>
     public event Action? LamThemSao;
 
     public DoiQuaHop(HvQua qua, int dungDuoc, int no = 0) : base("AiiGrow · Đổi quà", UI.Px(425))
     {
         _qua = qua; _sao = dungDuoc; _no = no;
+        FormClosed += (_, _) => { if (DangCho == this) DangCho = null; };
         _loi = UI.Text("", 10.5f, true, UI.Error, W);
         VeXacNhan();
     }
@@ -216,7 +221,7 @@ internal sealed class DoiQuaHop : HopKhayCoBan
         if (AppConView.NhanQua(_qua) is { } nhan) Flow.Controls.Add(UI.Text(nhan + (_qua.MoTa is { Length: > 0 } mt ? " · " + mt : ""), 10.5f, true, Clay.NgocInk, W));
         // 15/11 (them-1zxa6ip0): chưa đủ sao ⇒ «Con sẽ nợ Ba Mẹ 20 sao · sao nhiệm vụ trả nợ trước» + «Xin Ba Mẹ cho vay 20 sao» (vay để đổi quà)
         var canVay = Math.Max(0, _qua.SoSao - Math.Max(0, _sao));
-        Flow.Controls.Add(UI.Text(thieu != null ? $"Con sẽ nợ Ba Mẹ {canVay} sao · sao nhiệm vụ trả nợ trước" : "Ba Mẹ trao quà thì mới trừ sao", 10.5f, thieu != null, thieu != null ? Clay.Canh : UI.Muted, W));
+        Flow.Controls.Add(UI.Text(thieu != null ? $"Con sẽ nợ Ba Mẹ {canVay} sao · sao nhiệm vụ trả nợ trước" : AppConView.LuatDoiQua, 10.5f, thieu != null, thieu != null ? Clay.Canh : UI.Muted, W));
         if (thieu != null)
         {
             var vay = KhoiCon.Nut(XinVayView.Nut(canVay), true, W, "gui");
@@ -257,18 +262,19 @@ internal sealed class DoiQuaHop : HopKhayCoBan
     {
         if (_busy) return;
         _busy = true; b.Enabled = false; _loi.Text = "";
+        DangCho = this;   // đặt TRƯỚC khi gửi: tin Ba Mẹ trả lời tới ngay (lượt hỏi tin chạy xen) vẫn đóng được hộp
         var (kq, loi) = await HvApi.PostAsync<HvDoiKq>($"hoc-vien/doi/{_qua.Id}");
         _busy = false;
         if (IsDisposed) return;
-        if (kq == null) { _loi.Text = loi ?? "Chưa gửi được. Con thử lại nhé."; b.Enabled = true; return; }
+        if (kq == null) { if (DangCho == this) DangCho = null; _loi.Text = loi ?? "Chưa gửi được. Con thử lại nhé."; b.Enabled = true; return; }
         DaDoi?.Invoke();
         XoaHet();
         Flow.Controls.Add(KhoiCon.Dau("gui", KhoiCon.Mau.Ngoc, "Đã gửi Ba Mẹ", "Chờ Ba Mẹ trao quà…", W));
-        Flow.Controls.Add(KhoiApp.Dong(W + VeThe.LeBong.Horizontal, AppConView.IconQua(_qua), _qua.Ten, "Chờ Ba Mẹ trao", null, KhoiApp.ChipSao(AppConView.Sao(_qua.SoSao))));
+        Flow.Controls.Add(KhoiApp.Dong(W + VeThe.LeBong.Horizontal, AppConView.IconQua(_qua), _qua.Ten, AppConView.DangGiu(_qua.SoSao), null, KhoiApp.ChipSao(AppConView.Sao(_qua.SoSao))));
         var ve = KhoiCon.Nut("Về Sao & quà", true, W, "sao");
         ve.Click += (_, _) => Close();
         Flow.Controls.Add(ve);
-        Flow.Controls.Add(UI.Text(_qua.Phut is > 0 ? $"Ba Mẹ trao xong là con có thêm {_qua.Phut} phút" : "Ba Mẹ trao xong là máy báo con ngay", 10f, false, UI.Muted, W));
+        Flow.Controls.Add(UI.Text(_qua.Phut is > 0 ? $"Ba Mẹ trao xong là con có thêm {_qua.Phut} phút" : "Ba Mẹ trao hay từ chối, máy báo con ngay", 10f, false, UI.Muted, W));
         Xong();
     }
 }

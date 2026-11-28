@@ -1,6 +1,6 @@
 // Tab «Việc & quà» (bàn 17/11 them-e91jg28j@v13, trống them-e44cwmvu@v8): «+ Việc» (→ Giao việc) · «+ Quà» (→ Thêm quà) cạnh tiêu đề, dải các con
 // (nhà > 1 con, số việc chờ góc trên) → ví sao (đổi được bao nhiêu phút) → việc chờ Ba Mẹ duyệt (mỗi việc mở THẲNG màn bằng chứng) → quà con đã đổi
-// chờ trao (bảng trượt «Đã trao … chưa?», them-5otw85h4 — sao GIỮ, trao mới trừ, huỷ hoàn; lib/trao-qua) → «Việc mỗi ngày · N việc».
+// chờ trao (bảng trượt «Đã trao … chưa?», them-5otw85h4 — sao trừ lúc con đổi, từ chối thì hoàn — #757; lib/trao-qua) → «Việc mỗi ngày · N việc».
 // Người trông giúp (dữ liệu cũ): duyệt + trao quà được; giao / sửa việc ẩn.
 // 15/11 (#263/#266, them-e91jg28j): viên sao dưới từng con (âm = viên cảnh báo); đang nợ ⇒ thẻ cảnh báo «<Con> đang nợ Ba Mẹ 20 sao · −20 sao ·
 // Duyệt 2 việc chờ là hết nợ ›», việc chờ duyệt ghi «trả nợ 10 sao». 1 sao = 1 phút chơi (bỏ «đổi ra phút»).

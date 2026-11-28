@@ -95,7 +95,7 @@ test("quà gần nhất + dòng phụ + nhãn điều kiện", () => {
   assert.equal(quaGanNhat([], 10), null);
   assert.equal(phuQua({ diem: 50, du: true, conThieu: 0 }), "Đủ sao rồi! Bấm để đổi");
   assert.equal(phuQua({ diem: 200, du: false, conThieu: 150 }), "Còn thiếu 150 sao");
-  assert.equal(phuQua({ diem: 100, du: false, conThieu: 60, choTraoTu: "2026-11-06" }), "Đang giữ 100 sao · chờ Ba Mẹ trao");
+  assert.equal(phuQua({ diem: 100, du: false, conThieu: 60, choTraoTu: "2026-11-06" }), "Đã trừ 100 sao · chờ Ba Mẹ trao");
   assert.equal(nhanQua({ loai: "voucher" }), "Mã QR");
   assert.equal(nhanQua({ loai: "dac_quyen", chiCuoiTuan: true }), "T7, CN");
   assert.equal(nhanQua({ loai: "qua", tonKho: 1 }), "Còn 1 bộ");

@@ -196,10 +196,20 @@ public sealed class HvTin
     public DateTimeOffset? Luc { get; set; }
 }
 
+/// <summary>#759: tin duyệt đã gửi Con rồi bị Ba Mẹ «Hoàn tác» — <see cref="Id"/> = id tin duyệt cũ (máy chủ cũ không gửi).</summary>
+public sealed class HvThuHoi
+{
+    public string Id { get; set; } = "";
+    public string Ten { get; set; } = "";
+    public DateTimeOffset? Luc { get; set; }
+}
+
 /// <summary>GET hoc-vien/tin?sau=…</summary>
 public sealed class HvTinDs
 {
     public List<HvTin> Ds { get; set; } = new();
+    /// <summary>#759: tin duyệt bị thu hồi (Ba Mẹ hoàn tác) — khay chỉ xử lý id đã thấy (<see cref="TinTracker.ThuHoi"/>).</summary>
+    public List<HvThuHoi> ThuHoi { get; set; } = new();
     public DateTimeOffset? Bay { get; set; }
 }
 
@@ -347,6 +357,34 @@ public static class HocVienView
     /// (bóng báo trên Windows 11 dễ bị chìm vào trung tâm thông báo, Con không thấy).</summary>
     public static bool CoNhiemVuMoi(IReadOnlyList<HvTin> moi) => moi.Any(t => t.Loai is "giao_nhiem_vu" or "nhiem_vu_moi");
 
+    /// <summary>#759: Ba Mẹ hoàn tác lượt duyệt mà khay đã báo ⇒ bóng báo «Ba Mẹ đã hoàn tác» (sao chưa cộng, việc về Chờ Ba Mẹ duyệt).</summary>
+    public static (string Tieu, string Noi) ThuHoiText(IReadOnlyList<HvThuHoi> ds)
+        => ("Ba Mẹ đã hoàn tác", ds.Count == 1
+            ? Cat($"«{ds[0].Ten}» · chưa cộng sao, việc về lại Chờ Ba Mẹ duyệt", 180)
+            : Cat($"{ds.Count} việc chưa cộng sao, về lại Chờ Ba Mẹ duyệt", 180));
+
+    /// <summary>#759: tin «Ba Mẹ đã hoàn tác» (chỉ để gộp chung bóng báo với tin mới cùng lượt — không phải tin máy chủ).</summary>
+    public static HvTin TinThuHoi(IReadOnlyList<HvThuHoi> ds)
+    {
+        var (tieu, noi) = ThuHoiText(ds);
+        return new HvTin { Id = "thu_hoi", Loai = "hoan_tac_duyet", Tieu = tieu, Noi = noi };
+    }
+
+    /// <summary>#757: tin Ba Mẹ trao / từ chối đúng quà <paramref name="tenQua"/> ⇒ hộp «Đã gửi Ba Mẹ · Chờ Ba Mẹ trao quà…» tự đóng.
+    /// Tên quà = phần đầu của nội dung tin («Bộ Lego» / «Bộ Lego · +30 phút», bỏ ngoặc «»), so KHỚP ĐỦ (không đóng nhầm hộp của quà tên gần giống).</summary>
+    public static bool XongQuaCho(IReadOnlyList<HvTin> moi, string tenQua)
+        => moi.Any(t => t.Loai is "huy_qua" or "xac_nhan_qua"
+                        && string.Equals(TenQuaTrongTin(t.Noi), tenQua.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>huy_qua: «Kem · socola» (cả chuỗi trong ngoặc) · xac_nhan_qua: «Kem · socola» / «Thêm 30 phút · +30 phút» (bỏ đuôi « · +N phút»).</summary>
+    private static string TenQuaTrongTin(string? noi)
+    {
+        var n = (noi ?? "").Trim();
+        if (n.StartsWith('«') && n.IndexOf('»') is var j and > 0) return n[1..j].Trim();
+        var i = n.LastIndexOf(" · +", StringComparison.Ordinal);
+        return (i >= 0 ? n[..i] : n).Trim();
+    }
+
     private static string Cat(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
 }
 
@@ -400,8 +438,32 @@ public sealed class TinTracker
     /// <summary>06/11 (L13): đổi bé trên máy dùng chung ⇒ quên tin đã thấy của bé trước; lần hỏi kế là «lần đầu» của bé mới (không bật bóng báo tin cũ).</summary>
     public void DatLai()
     {
-        _seen.Clear(); _order.Clear(); Moc = null; DaCoLanDau = false;
+        _seen.Clear(); _order.Clear(); _daBao.Clear(); _daBaoOrder.Clear(); _thuHoi.Clear(); _thuHoiOrder.Clear(); Moc = null; DaCoLanDau = false;
     }
+
+    /// <summary>#759: id tin khay ĐÃ BÁO Con (trả trong <see cref="Nhan"/>, không tính lần hỏi đầu nạp im) — giới hạn như <see cref="_seen"/>.</summary>
+    private readonly HashSet<string> _daBao = new();
+    private readonly Queue<string> _daBaoOrder = new();
+    /// <summary>#759: id tin đã bị Ba Mẹ thu hồi (hoàn tác) — popup đang chờ tải không được mở nữa.</summary>
+    private readonly HashSet<string> _thuHoi = new();
+    private readonly Queue<string> _thuHoiOrder = new();
+
+    /// <summary>#759: tin khay ĐÃ BÁO Con rồi bị Ba Mẹ hoàn tác ⇒ cần đóng popup + báo. Mỗi id một lần;
+    /// tin chưa báo (hoàn tác trước khi khay hỏi tới, hoặc lần hỏi đầu chỉ nạp im) ⇒ bỏ qua — Con chưa từng thấy thì không cần báo.</summary>
+    public List<HvThuHoi> ThuHoi(HvTinDs r)
+    {
+        var ra = new List<HvThuHoi>();
+        foreach (var x in r.ThuHoi)
+        {
+            if (string.IsNullOrEmpty(x.Id)) continue;
+            if (_thuHoi.Add(x.Id)) { _thuHoiOrder.Enqueue(x.Id); if (_thuHoiOrder.Count > Max) _thuHoi.Remove(_thuHoiOrder.Dequeue()); }
+            if (_daBao.Remove(x.Id)) ra.Add(x);
+        }
+        return ra;
+    }
+
+    /// <summary>#759: tin này đã bị Ba Mẹ thu hồi (popup đang tải dở thì thôi không mở).</summary>
+    public bool DaThuHoi(string? id) => id != null && _thuHoi.Contains(id);
 
     /// <summary>Nhận kết quả một lần hỏi → danh sách tin mới nên báo (rỗng ở lần đầu).</summary>
     public List<HvTin> Nhan(HvTinDs r)
@@ -417,7 +479,14 @@ public sealed class TinTracker
         if (r.Bay != null) Moc = r.Bay;
         var lanDau = !DaCoLanDau;
         DaCoLanDau = true;
-        return lanDau ? new List<HvTin>() : moi;
+        if (lanDau) return new List<HvTin>();
+        foreach (var t in moi)
+        {
+            if (!_daBao.Add(t.Id)) continue;
+            _daBaoOrder.Enqueue(t.Id);
+            if (_daBaoOrder.Count > Max) _daBao.Remove(_daBaoOrder.Dequeue());
+        }
+        return moi;
     }
 }
 
