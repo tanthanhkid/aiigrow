@@ -84,6 +84,13 @@ public static class ManChanView
     /// <summary>Có nút «Xin Ba Mẹ mở …» không (công cụ Windows như cmd, taskmgr… thì không).</summary>
     public static bool CoNutXin(string? appId) => BlockScreenView.CanAskOpen(appId);
 
+    /// <summary>#741 (test 28/11): công cụ Windows (PowerShell, cmd…) không gửi lời xin «thêm app» được (máy chủ bỏ qua — #525/#780), nhưng hộp chặn vẫn phải có
+    /// đường xin ⇒ nút «Xin Ba Mẹ mở …» mở mục Tin nhắn để bé nhắn Ba Mẹ. Chỉ khi KHÔNG có nút xin thật và biết tên app.</summary>
+    public static bool CoNutNhanXin(string? appId) =>
+        !CoNutXin(appId) && !string.IsNullOrWhiteSpace(appId) && appId.Trim() != UsageTracker.KhongRo;
+    public static string NutNhanXin(string ten) => "Xin Ba Mẹ mở " + ten;
+    public const string NhanXinPhu = "Con nhắn Ba Mẹ trong mục Tin nhắn nhé.";
+
     /// <summary>Chỉ cho icon (#669): tên miền thật = chữ thường / số / gạch, các nhãn ngăn bằng dấu chấm, đuôi chữ 2–24 ký tự, không phải tệp (.exe/.msi…). Mã gói Store («Microsoft.WindowsCalculator», «…_8wekyb3d8bbwe») có chữ hoa hoặc _ ! nên không khớp.</summary>
     public static bool LaTenMienThat(string? muc)
     {

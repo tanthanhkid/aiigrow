@@ -72,6 +72,9 @@ public sealed class AgentRuntime
     public void WebDaDoi() => Interlocked.Increment(ref _webRev);
     /// <summary>#822: danh sách web chặn / cho phép luật đang áp (WebGuardWorker đặt mỗi vòng; null = không áp luật web) — khay báo bé khi Ba Mẹ thêm web.</summary>
     public volatile IReadOnlyList<string>? WebChanDangAp, WebChoDangAp;
+    /// <summary>#741: luật web đang áp là «Theo danh sách» (chi_cho_phep: trình duyệt chặn «*» trừ WebCho + máy chủ) và tên máy chủ AiiGrow được cho.</summary>
+    public volatile bool WebChiChoPhepDangAp;
+    public volatile string? WebMayChuDangAp;
     public int ChildSessionId { get; set; } = -1;
     /// <summary>16/11 (#307): mục → tên hiển thị theo lần quét danh sách app gần nhất (DanhSachAppWorker) — khay hiện «Từ điển», không «Tudien».</summary>
     public volatile IReadOnlyDictionary<string, string>? TenAppMay;
@@ -885,6 +888,8 @@ public sealed class AgentRuntime
                 Paired = Config?.Paired == true, Offline = _offline, CheDo = _cheDo, MoCoi = MoCoi.La(Config, now),
                 OfflineSince = _offlineSince, LastSyncAt = _lastSyncAt, TokenRejected = TokenInvalid, WebRev = WebRev,
                 WebChan = WebChanDangAp?.ToList(), WebCho = WebChoDangAp?.ToList(),
+                TrangChan = TabDangXem.LaTrinhDuyet(_fgIdGoc) && (now - _fgAt).TotalSeconds < 20
+                    ? TrangChanWeb.TimMien(_fgTieuDe, WebChanDangAp, WebChoDangAp, WebChiChoPhepDangAp, WebMayChuDangAp) : null,
                 XinChoMang = Config?.XinCho.Items.Count ?? 0,
                 XinBo = Config?.XinBo.ConHan(now) ?? new(),
                 BaiChoMang = Math.Max(0, SoBaiCho < 0 ? (SoBaiCho = DemBaiCho()) : SoBaiCho),

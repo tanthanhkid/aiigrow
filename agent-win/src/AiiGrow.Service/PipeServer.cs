@@ -11,6 +11,8 @@ namespace AiiGrow.Service;
 public sealed class PipeServer : BackgroundService
 {
     private readonly ILogger<PipeServer> _log;
+    /// <summary>#741: ghi nhật ký «trang bị chặn đang mở» mỗi trang một lần / <see cref="TrangChanWeb.NghiGiay"/> giây.</summary>
+    private readonly TrangChanWeb _baoTrangChan = new();
     private readonly AgentRuntime _rt;
 
     /// <summary>Khách của pipe có phải đúng exe khay đã cài không (review PR #59, P2-3a) — tiêm được cho dev/test.</summary>
@@ -138,12 +140,24 @@ public sealed class PipeServer : BackgroundService
         switch (req.Cmd)
         {
             case PipeCmd.State:
-                return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
+            {
+                var st = TrangThaiChoPhien(now, clientSession);
+                if (!fromChild) st.TrangChan = null;
+                return new PipeResponse { Ok = true, State = st };
+            }
 
             case PipeCmd.Foreground:
+            {
                 // Chỉ khay thật: app khác trong phiên Con giả lời báo («không có cửa sổ») sẽ ngừng được đồng hồ phiên chơi.
                 if (fromChild && khayThat) _rt.SetForeground(req.AppId, req.AppName, req.TieuDe);
-                return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
+                var stFg = TrangThaiChoPhien(now, clientSession);
+                if (!(fromChild && khayThat)) stFg.TrangChan = null;   // tab của phiên Con — chỉ khay thật của phiên Con nhận
+                bool baoTc;
+                lock (_baoTrangChan) baoTc = stFg.TrangChan is { } tc0 && _baoTrangChan.NenHien(tc0, now);
+                if (baoTc && stFg.TrangChan is { } tc)
+                    _log.LogInformation("#741 Trang bị chặn đang mở trên {exe}: {mien} — khay bật hộp «Xin Ba Mẹ mở» (Theo danh sách: {ds})", req.AppId, tc, _rt.WebChiChoPhepDangAp);
+                return new PipeResponse { Ok = true, State = stFg };
+            }
 
             case PipeCmd.PlayInfo:
             {
