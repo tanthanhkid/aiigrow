@@ -42,17 +42,15 @@ internal static class MatKhauQuanTri
     [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
     private static extern int NetUserChangePassword(string? domain, string user, string oldPass, string newPass);
 
-    private const int ErrorAccessDenied = 5, ErrorAccountRestriction = 1327;
-
     /// <summary>Đặt mật khẩu mới cho tài khoản cục bộ đang trống mật khẩu ⇒ 0 = xong, khác = mã lỗi (DatMatKhauQuanTri.CauLoiDat).
     /// Thử ĐỔI (mật khẩu cũ trống) trước: đổi giữ được khoá DPAPI của tài khoản (mật khẩu đã lưu trong trình duyệt, Wi-Fi…).
-    /// Chỉ khi Windows chặn đổi từ mật khẩu trống (chính sách «mật khẩu trống chỉ đăng nhập tại máy» ⇒ 1327 / 5) VÀ tài khoản vẫn còn trống
-    /// (<paramref name="kiemLai"/>) thì bộ cài — đang chạy quyền quản trị — mới đặt hộ bằng NetUserSetInfo level 1003. Mật khẩu cũ không trống
-    /// (86: Ba Mẹ vừa tự đặt) ⇒ KHÔNG ghi đè. Mật khẩu chỉ nằm trong bộ nhớ, không ghi log.</summary>
+    /// Đổi không được (chính sách chặn mật khẩu trống 1327/5, tuổi tối thiểu 2245, 86…) ⇒ kiểm lại (<paramref name="kiemLai"/>):
+    /// đã có mật khẩu (Ba Mẹ vừa tự đặt) ⇒ KHÔNG ghi đè, trả 86; chưa rõ ⇒ MaChuaRo; vẫn trống ⇒ bộ cài (quyền quản trị) đặt hộ bằng
+    /// NetUserSetInfo level 1003. Mật khẩu chỉ nằm trong bộ nhớ, không ghi log.</summary>
     public static int Dat(string taiKhoan, string matKhau, Func<KiemMatKhau> kiemLai)
     {
         var rc = NetUserChangePassword(Environment.MachineName, taiKhoan, "", matKhau);   // máy này (null = miền đăng nhập của người đang chạy)
-        if (rc is not (ErrorAccountRestriction or ErrorAccessDenied)) return rc;
+        if (rc is 0 or 2221) return rc;
         switch (kiemLai())
         {
             case KiemMatKhau.CoMatKhau: return DatMatKhauQuanTri.MaDaCoMatKhau;

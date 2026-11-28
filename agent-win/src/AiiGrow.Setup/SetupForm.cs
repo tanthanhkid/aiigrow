@@ -1044,7 +1044,8 @@ internal sealed class SetupForm : Form
         if (ds.Count == 0) { sau(); return; }
         Program.WriteLog($"Tài khoản quản trị chưa có mật khẩu: {ds.Count}");
         MoKhaySauCai();   // #777 B11: khay mở ngay cả khi Ba Mẹ đóng bộ cài ở màn mật khẩu (BuocXong gọi lại thì đã chạy ⇒ thôi)
-        ManMatKhauQuanTri(ds, sau, true, new List<string>(), null);
+        try { ManMatKhauQuanTri(ds, sau, true, new List<string>(), null); }
+        catch (Exception e) { Program.WriteLog("Màn mật khẩu quản trị lỗi: " + CauLoiCai.Log(e)); sau(); }   // cài đã xong — không rơi vào màn «Cài lỗi»
     }
 
     /// <summary>«Đặt mật khẩu cho tài khoản quản trị»: hai ô gõ (hiện/ẩn, độ mạnh), đặt chung một mật khẩu hoặc từng tài khoản, hoặc «Tự đặt sau».
@@ -1069,7 +1070,7 @@ internal sealed class SetupForm : Form
             var cb = new OTichDongY { Text = $"Dùng chung một mật khẩu cho cả {ds.Count} tài khoản", Checked = dungChung, Location = ToaDo(_body, 36, 252) };
             _body.Controls.Add(cb);
             // vẽ lại màn sau khi sự kiện của ô tích chạy xong (không huỷ control đang xử lý chính sự kiện của nó)
-            cb.CheckedChanged += (_, _) => BeginInvoke(() => { if (!IsDisposed) ManMatKhauQuanTri(ds, sau, cb.Checked, daDat, bao); });
+            cb.CheckedChanged += (_, _) => BeginInvoke(() => { if (!IsDisposed) ManMatKhauQuanTri(ds, sau, cb.Checked, daDat, null); });
             dangDatThayDoi += d => cb.Enabled = !d;
             y0 = 296;
         }
@@ -1125,19 +1126,28 @@ internal sealed class SetupForm : Form
             try
             {
                 // 1327/5 khi đổi từ trống ⇒ chỉ đặt hộ (1003) nếu tài khoản VẪN trống (không đè mật khẩu Ba Mẹ vừa tự đặt trong Cài đặt)
-                var kq = await Task.Run(() => dat.Select(t => (t, rc: MatKhauQuanTri.Dat(t.Ten, pw, () => QuanTriTrongMay.KiemTrong(t)))).ToList());
+                int DatMot(TaiKhoanQuanTri t)
+                {
+                    try { return MatKhauQuanTri.Dat(t.Ten, pw, () => QuanTriTrongMay.KiemTrong(t)); }
+                    catch (Exception e) { Program.WriteLog("Đặt mật khẩu tài khoản quản trị lỗi: " + CauLoiCai.Log(e)); return DatMatKhauQuanTri.MaChuaRo; }
+                }
+                _dangCai = true;   // đang đổi mật khẩu ⇒ không cho đóng cửa sổ giữa chừng
+                List<(TaiKhoanQuanTri t, int rc)> kq;
+                try { kq = await Task.Run(() => dat.Select(t => (t, rc: DatMot(t))).ToList()); }
+                finally { _dangCai = false; }
                 pw = "";
                 // log cục bộ không ghi tên tài khoản (dữ liệu máy Ba Mẹ — như #860): chỉ số thứ tự + mã
                 for (int i = 0; i < kq.Count; i++) Program.WriteLog($"Đặt mật khẩu tài khoản quản trị {i + 1}/{kq.Count}: {(kq[i].rc == 0 ? "xong" : "mã " + kq[i].rc)}");
                 if (IsDisposed) return;
                 static bool Xong(int rc) => rc is 0 or DatMatKhauQuanTri.MaDaCoMatKhau;
-                var moi = daDat.Concat(kq.Where(x => Xong(x.rc)).Select(x => DatMatKhauQuanTri.TenHien(x.t))).ToList();
+                var moi = daDat.Concat(kq.Where(x => x.rc == 0).Select(x => DatMatKhauQuanTri.TenHien(x.t))).ToList();
                 var conLai = ds.Where(t => !kq.Any(x => Xong(x.rc) && ReferenceEquals(x.t, t))).ToList();
                 // đặt từng tài khoản: tài khoản vừa lỗi xuống cuối hàng — không chặn các tài khoản sau
                 if (!dungChung) conLai = conLai.OrderBy(t => kq.Any(x => ReferenceEquals(x.t, t)) ? 1 : 0).ToList();
                 if (conLai.Count == 0) { ManDaDatMatKhau(moi, sau); return; }
-                var hong = kq.Where(x => x.rc != 0).Select(x => DatMatKhauQuanTri.CauLoiDat(DatMatKhauQuanTri.TenHien(x.t), x.rc)).ToList();
-                ManMatKhauQuanTri(conLai, sau, dungChung, moi, hong.Count > 0 ? string.Join("\n", hong) : null);
+                // tài khoản đã có mật khẩu riêng (86) không phải lỗi, không tính «Ba Mẹ vừa đặt»; nhiều lỗi ⇒ câu đầu + số còn lại (vừa khung)
+                var hong = kq.Where(x => !Xong(x.rc)).Select(x => DatMatKhauQuanTri.CauLoiDat(DatMatKhauQuanTri.TenHien(x.t), x.rc)).ToList();
+                ManMatKhauQuanTri(conLai, sau, dungChung, moi, hong.Count == 0 ? null : hong[0] + (hong.Count > 1 ? $" (và {hong.Count - 1} tài khoản khác)" : ""));
             }
             catch (Exception e)
             {
@@ -1159,7 +1169,8 @@ internal sealed class SetupForm : Form
         Man(5, "Bảo vệ máy");
         Rob("xong", 24, 96, 220, 290);
         X(_body, 270, 90, "Đã đặt mật khẩu", Kieu.H);
-        X(_body, 270, 134, "Từ giờ vào " + string.Join(", ", daDat.Select(t => $"«{t}»")) + " phải gõ mật khẩu Ba Mẹ vừa đặt. Bé không tự vào hay gỡ AiiGrow được nữa.", Kieu.P, 417);
+        X(_body, 270, 134, daDat.Count == 0 ? "Các tài khoản quản trị đều đã có mật khẩu. Bé không tự vào hay gỡ AiiGrow được nữa."
+            : "Từ giờ vào " + string.Join(", ", daDat.Select(t => $"«{t}»")) + " phải gõ mật khẩu Ba Mẹ vừa đặt. Bé không tự vào hay gỡ AiiGrow được nữa.", Kieu.P, 417);
         var the = The(270, 236, 417, 96);
         Vien(the, 290, 256, "khoa", mau: "ngoc");
         X(the, 362, 262, "Nhớ mật khẩu này nhé", Kieu.B, 310);
