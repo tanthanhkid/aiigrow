@@ -13,7 +13,12 @@ internal sealed class TrayContext : ApplicationContext
     private NhacSaoForm? _nhac;
     /// <summary>#822: trạng thái lượt trước để so — chỉ báo bé khi trạng thái ĐỔI (khoá / hết giờ chơi / Ba Mẹ thêm web).</summary>
     private TrangThaiBaoBe? _moc822;
+    /// <summary>#822 / #823: cùng việc (khoá / Ba Mẹ mở) tới từ trạng thái dịch vụ và tin máy chủ ⇒ báo một lần.</summary>
+    private ChongLapBao _chongLap = new();
     private HopThongBao? _hopBao;
+    private string? _hopNhom;   // #822 / #823: nhóm của hộp đang mở (ba_me_khoa / ba_me_mo) — máy đổi trạng thái thì đóng hộp đã sai
+    private bool _hopGop;
+    private string? _nguoiHop;       // hộp đang mở gộp nhiều việc ⇒ tin máy chủ không thay (mất việc khác)
     /// <summary>15/11: màn «Sắp hết sao» / «Hết sao rồi» (LockForm.ChiBao — không khoá máy).</summary>
     private LockForm? _hetSao;
     private double? _phutTruoc;     // phút còn chơi ở lượt trạng thái trước (biết lúc VỪA hết sao trong khi đang chơi)
@@ -319,10 +324,27 @@ internal sealed class TrayContext : ApplicationContext
             if (moi.Count > 0)
             {
                 _tinMoi += moi.Count;
-                // cùng lượt có cả tin mới lẫn hoàn tác ⇒ MỘT bóng báo (bóng sau đè bóng trước): «Có N tin mới» gồm cả «Ba Mẹ đã hoàn tác»
-                var (tieu, noi) = HocVienView.ToastText(thuHoi.Count > 0 ? moi.Append(HocVienView.TinThuHoi(thuHoi)).ToList() : moi, (_state.No ?? 0) > 0);
                 if (_app is { Visible: true }) _ = _app.RefreshAsync();       // app đang mở ⇒ cập nhật luôn, bóng báo vẫn hiện nhẹ
-                Toast(8000, tieu, noi, ToolTipIcon.Info, HocVienView.MucChoTin(moi));
+                // #822 / #823: Ba Mẹ khoá máy / mở khẩn cấp ⇒ hộp AiiGrow (không chỉ bóng báo), chỉ khi máy ĐÚNG đang khoá / đang mở (mở khẩn cấp không gỡ
+                // giờ ngủ / khoá ngay; Ba Mẹ đang dùng máy thì khoá chưa áp) — chưa đúng thì để đường trạng thái báo khi máy đổi thật
+                // Tin (có giờ) THAY hộp chung cùng việc còn đang mở; bé đã đóng hộp đó (trong 3 phút) thì thôi — một việc một hộp.
+                // Không hiện được (máy chưa đúng trạng thái / hộp gộp nhiều việc đang mở) ⇒ tin vẫn đi bóng báo, không mất giờ Ba Mẹ đặt.
+                var daHop = false;
+                if (BaoTuTin.MoiNhat(moi) is { } bt)
+                {
+                    var bay = DateTimeOffset.Now;
+                    var hopMo = _hopBao is { IsDisposed: false };
+                    if (!BaoTuTin.KhopTrangThai(bt.Nhom, _state, bay) || (_hopGop && hopMo)) { }
+                    else { daHop = true; if (_chongLap.NenHien(bt, bay, tuTin: hopMo && _hopNhom == bt.Nhom)) HienHopAiiGrow(bt.Icon, bt.Tieu, bt.Phu, bt.Nhom); }
+                }
+                var thuong = daHop ? BaoTuTin.ConLai(moi) : moi;
+                // cùng lượt có cả tin mới lẫn hoàn tác ⇒ MỘT bóng báo (bóng sau đè bóng trước): «Có N tin mới» gồm cả «Ba Mẹ đã hoàn tác»
+                var bong = thuHoi.Count > 0 ? thuong.Append(HocVienView.TinThuHoi(thuHoi)).ToList() : thuong;
+                if (bong.Count > 0)
+                {
+                    var (tieu, noi) = HocVienView.ToastText(bong, (_state.No ?? 0) > 0);
+                    Toast(8000, tieu, noi, ToolTipIcon.Info, HocVienView.MucChoTin(thuong.Count > 0 ? thuong : moi));
+                }
                 // Nhiệm vụ mới ⇒ bật app to ngay mục Nhiệm vụ (đang khoá ⇒ chờ mở khoá; app đang hiện / Con đang toàn màn hình / vừa bật ⇒ chỉ bóng báo)
                 if (_bat.Nhan(HocVienView.CoNhiemVuMoi(moi), _state.Locked, AppDangHien, UI.DangBanToanManHinh(), DateTimeOffset.Now))
                     OpenApp(MucApp.NhiemVu, tuBat: true);
@@ -942,14 +964,15 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     /// <summary>#822: hộp AiiGrow nhỏ báo bé một việc (dùng chung — #823 nối vào đây). Hộp cũ đóng trước (không chồng), không giành phím của game.</summary>
-    internal void HienHopAiiGrow(string icon, string tieu, string phu)
+    /// <param name="nhom">#823: hộp việc Ba Mẹ vừa làm (<see cref="ChongLapBao.BaMeKhoa"/> / <see cref="ChongLapBao.BaMeMo"/>) ở 5 phút; hộp khác 30 giây.</param>
+    internal void HienHopAiiGrow(string icon, string tieu, string phu, string? nhom = null, bool gop = false)
     {
         try
         {
             if (_hopBao is { IsDisposed: false } cu) { _hopBao = null; cu.Close(); cu.Dispose(); }
-            var h = new HopThongBao(icon, tieu, phu, "Đã hiểu", khongCuopPhim: true);
+            var h = new HopThongBao(icon, tieu, phu, "Đã hiểu", khongCuopPhim: true, tuDongDong: nhom != null ? TimeSpan.FromMinutes(5) : null);
             h.FormClosed += (_, _) => { if (_hopBao == h) _hopBao = null; h.Dispose(); };
-            _hopBao = h;
+            _hopBao = h; _hopNhom = nhom; _hopGop = gop;
             h.Show();
         }
         catch (Exception e)
@@ -961,13 +984,22 @@ internal sealed class TrayContext : ApplicationContext
 
     private void BaoBeDoiTrangThaiXet()
     {
+        // hộp «Ba Mẹ đã khoá / mở máy» còn mở mà máy đã đổi, hoặc người trên máy đã đổi (Ba Mẹ vào / bé khác) ⇒ đóng, không để chữ sai trên màn hình;
+        // đổi người ⇒ chống lặp bắt đầu lại (việc của bé trước không chặn hộp của bé sau)
+        var nguoi = _state.NguoiDung + "|" + _beId;
+        var doiNguoi = nguoi != _nguoiHop;
+        if (doiNguoi) { _nguoiHop = nguoi; _chongLap = new(); }
+        if (_hopBao is { IsDisposed: false } hb && _hopNhom != null && (doiNguoi || _state.NguoiDung != LoaiNguoiDung.Con || BaoTuTin.HopDaSai(_hopNhom, _state, DateTimeOffset.Now)))
+        { _hopBao = null; hb.Close(); hb.Dispose(); }
         if (_state.NguoiDung != LoaiNguoiDung.Con || _state.MoCoi) { _moc822 = null; return; }
         var nay = TrangThaiBaoBe.Tu(_state);
         // «hết giờ chơi» đã có màn «Hết sao / Nghỉ một chút» toàn màn hình ⇒ không chồng hộp thứ hai
-        var baos = BaoBeDoiTrangThai.Xet(_moc822, nay).Where(b => !(_hetSao is { IsDisposed: false } && b.Icon == "dong_ho_cat")).ToList();
+        var bay = DateTimeOffset.Now;
+        var baos = BaoBeDoiTrangThai.Xet(_moc822, nay).Where(b => !(_hetSao is { IsDisposed: false } && b.Icon == "dong_ho_cat")).Where(b => _chongLap.NenHien(b, bay)).ToList();
         _moc822 = BaoBeDoiTrangThai.GiuMoc(_moc822, nay);
-        if (baos.Count == 1) HienHopAiiGrow(baos[0].Icon, baos[0].Tieu, baos[0].Phu);
-        else if (baos.Count > 1) HienHopAiiGrow(baos[0].Icon, baos[0].Tieu, baos[0].Phu + " " + string.Join(" ", baos.Skip(1).Select(b => b.Tieu + ": " + b.Phu)));   // nhiều việc cùng lượt: một hộp, không bỏ việc nào
+        var nhom = baos.Select(b => b.Nhom).FirstOrDefault(n => n != null);   // #823: việc Ba Mẹ vừa làm ⇒ hộp ở lâu để bé kịp thấy
+        if (baos.Count == 1) HienHopAiiGrow(baos[0].Icon, baos[0].Tieu, baos[0].Phu, nhom);
+        else if (baos.Count > 1) HienHopAiiGrow(baos[0].Icon, baos[0].Tieu, baos[0].Phu + " " + string.Join(" ", baos.Skip(1).Select(b => b.Tieu + ": " + b.Phu)), nhom, gop: true);   // nhiều việc cùng lượt: một hộp, không bỏ việc nào
     }
 
     private void HandleLock()

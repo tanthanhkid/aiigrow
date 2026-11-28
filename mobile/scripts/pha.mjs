@@ -836,14 +836,14 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
     M("bm-an-toan-may (#861 quản trị trống mật khẩu)", "/may/m1", "Sign-in options", { kb: { "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], quanTriTrong: ["Administrator", "Bố Minh"] } } }),
     // PR #253 nối app (lib/noi-1411): khoá riêng máy (bm-may-con/03), xoá hồ sơ Con (bm-gio-ho-so/07), «Trao luôn» (bm-sao-qua/03), hộp thư (bm-cai-dat/13)
-    M("bm-may (khoá riêng · bảng 03)", "/may/m1", "Máy khác · không đổi gì", { truoc: async () => { await di("/may/m1"); await doi("Khoá Laptop ngay"); await bam("Khoá Laptop ngay"); } }),
+    M("bm-may (khoá riêng · bảng 03)", "/may/m1", "Máy khác · không đổi gì", { truoc: async () => { await di("/may/m1"); await doi("Khoá riêng Laptop"); await bam("Khoá riêng Laptop"); } }),
     M("bm-may (đang khoá riêng)", "/may/m1", "Mở khoá Laptop", { kb: CON_KHOA_M1 }),
     // #267 một máy nhiều Con (thiết kế chốt 15/11: bm2-may-ds, bm2-may-m1, them-okpa735o, them-1016dwpz, them-tmezw761, them-sll7clha, bm1-may-chon-loai)
     M("bm-may (máy chung · Tất cả)", "/may", "đang dùng:", { kb: MAY_CHUNG }),
     M("bm-may-m1 (máy chung)", "/may/m4", "Máy này ai dùng?", { kb: MAY_CHUNG }),
-    M("bm-may (khoá theo máy · tmezw761)", "/may/m4", "Máy khác · không đổi gì", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Khoá Máy cả nhà ngay"); await bam("Khoá Máy cả nhà ngay"); } }),
-    M("bm-may (khoá theo bé · sll7clha)", "/may/m4", "Khoá theo bé", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Chỉ khoá "); // lượt chữ dài đổi tên bé ⇒ bấm theo đầu chữ
-      await nhanChuot(await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => !e.children.length && e.innerText?.trim().startsWith("Chỉ khoá ")).pop()`)); } }),
+    M("bm-may (khoá theo máy · tmezw761)", "/may/m4", "Máy khác · không đổi gì", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Khoá riêng Máy cả nhà"); await bam("Khoá riêng Máy cả nhà"); } }),
+    M("bm-may (khoá theo bé · sll7clha)", "/may/m4", "Khoá theo bé", { kb: MAY_CHUNG, truoc: async () => { await di("/may/m4"); await doi("Khoá mọi máy của "); // lượt chữ dài đổi tên bé ⇒ bấm theo đầu chữ
+      await nhanChuot(await viTriYen(`() => [...document.querySelectorAll("div,span")].filter((e) => !e.children.length && e.innerText?.trim().startsWith("Khoá mọi máy của ")).pop()`)); } }),
     M("bm-may-con (Máy này ai dùng?)", "/may/m4/ai-dung", "2 bé = máy dùng chung", { kb: MAY_CHUNG }),
     M("bm-may-con (iPad một bé)", "/may/m2/ai-dung", "Không thêm được", { kb: MAY_CHUNG }),
     M("bm-may-chi-tiet (Máy cả nhà)", "/may/m4/chi-tiet", "Sao của từng bé", { kb: MAY_CHUNG }),
@@ -2231,7 +2231,7 @@ await kichBan("#267 Ghép thêm máy chọn 2 bé ⇒ «Ghép máy chung · 2 b�
 await kichBan("#267 Khoá theo máy (Máy cả nhà: mọi bé «Sẽ khoá», máy khác «Vẫn dùng») · khoá theo bé ở «chi tiết» ⇒ con/c2/khoa", async () => {
   kb = { ...kb, ...MAY_CHUNG };
   await di("/may/m4");
-  await doi("Khoá Máy cả nhà ngay"); await bam("Khoá Máy cả nhà ngay");
+  await doi("Khoá riêng Máy cả nhà"); await bam("Khoá riêng Máy cả nhà");
   xet(await doi("Máy khác · không đổi gì"), "bảng khoá theo máy");
   xet(await doi("Sẽ khoá"), "bé trên máy «Sẽ khoá»");
   nhatKy.length = 0;
@@ -2241,7 +2241,7 @@ await kichBan("#267 Khoá theo máy (Máy cả nhà: mọi bé «Sẽ khoá», m
   await di("/may/m4/chi-tiet");
   xet(await doi("Sao của từng bé"), "màn «Máy cả nhà · chi tiết»");
   xet(await doi("Đang nợ Ba Mẹ 20 sao"), "bé nợ hiện «Đang nợ Ba Mẹ 20 sao»");
-  await bam("Khoá Bill mọi máy");
+  await bam("Khoá mọi máy của Bill");
   xet(await doi("Khoá theo bé: Bill"), "bảng khoá theo bé");
   nhatKy.length = 0;
   xet(await bamDauCo("Khoá Bill tới "), "nút «Khoá Bill tới HH:MM»");
@@ -2264,9 +2264,9 @@ await kichBan("Khoá máy <Con>? bỏ chọn iPad ⇒ khoá RIÊNG Laptop (may/m
   xet(await choGoi((x) => x.d === "may/m1/khoa" && x.body?.khoa === false), "Hoàn tác ⇒ mở khoá Laptop");
 });
 
-await kichBan("Màn máy: «Khoá Laptop ngay» ⇒ bảng them-tmezw761 (máy khác «Vẫn dùng») ⇒ may/m1/khoa; máy đang khoá riêng ⇒ «Mở khoá Laptop»", async () => {
+await kichBan("Màn máy: «Khoá riêng Laptop» ⇒ bảng them-tmezw761 (máy khác «Vẫn dùng») ⇒ may/m1/khoa; máy đang khoá riêng ⇒ «Mở khoá Laptop»", async () => {
   await di("/may/m1");
-  await doi("Khoá Laptop ngay"); await bam("Khoá Laptop ngay");
+  await doi("Khoá riêng Laptop"); await bam("Khoá riêng Laptop");
   xet(await doi("Máy khác · không đổi gì"), "bảng khoá theo máy: máy khác «Vẫn dùng»");
   nhatKy.length = 0;
   await bam("Khoá Laptop ngay");

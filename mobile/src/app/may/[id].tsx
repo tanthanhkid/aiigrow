@@ -3,7 +3,7 @@
 // them-v4ovqk42 / them-18q14mik «Gỡ <máy>?» (bảng trượt, gỡ xong về «Máy của con») · them-slv33bgc «Sửa trên <máy> của con» (màn /may/<id>/sua).
 // Bảo vệ đủ: thẻ sân «<bé> đang dùng · ✓ Đang bảo vệ · Máy chung · 2 bé» (chạm ⇒ «Máy cả nhà · chi tiết» /may/<id>/chi-tiet), hai ô «<app> N phút ·
 // ● Đang mở» / «<bé> còn N sao = N phút chơi», lời xin đang chờ trên máy, «Máy này ai dùng?» (công tắc gán / bỏ gán từng bé — POST may/:id/con/:con/gan|bo;
-// đầu mục ⇒ /may/<id>/con), «Cài đặt», Đổi tên / Gỡ, «Khoá <máy> ngay» + «Chỉ khoá <bé> · mọi máy».
+// đầu mục ⇒ /may/<id>/con), «Cài đặt», Đổi tên / Gỡ, «Khoá riêng <máy>» + «Khoá mọi máy của <bé>».
 // Chưa bảo vệ: cảnh đào (bong bóng việc thiếu, chip «Hôm nay N phút · vẫn trừ sao»), «Nếu để vậy», «Sửa <máy> trong N bước», Đổi tên / Gỡ, «Để sau».
 // iPhone / iPad: «Máy riêng của <bé> · iPad không đổi người dùng được nên chỉ một bé dùng» (không có «Máy này ai dùng?»).
 // Mục «An toàn & sự cố» giữ các tính năng cũ: mở khẩn cấp, gỡ từ xa (nhập lại mật khẩu), gỡ tại máy, nhật ký. Người trông giúp: xem, khoá máy, mã mất mạng.
@@ -385,17 +385,18 @@ export default function AnToanMay() {
         </Bao>
       ) : d.conDs.length ? (
         <>
-          <Nut chu={`Khoá ${tenNgan} ngay`} ic="khoa" ic3d rong bam={() => setMo("khoa")} />
+          {/* #822: tên nút khoá thống nhất — «Khoá mọi máy (của <bé>)» = khoá theo bé · «Khoá riêng <máy>» = chỉ máy này */}
+          <Nut chu={`Khoá riêng ${tenNgan}`} ic="khoa" ic3d rong bam={() => setMo("khoa")} />
           <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ textAlign: "center", lineHeight: 18, marginHorizontal: 8 }}>
             {`Khoá máy: ${chung ? `cả ${d.conDs.length} bé` : tenAi ?? "con"} không vào được máy này.${khac.length ? ` ${khac.slice(0, 2).map((x) => x.ten.replace(/ của .*$/, "")).join(", ")} vẫn dùng bình thường.` : ""}`}
           </Chu>
         </>
       ) : null}
       {ai && !khoaRieng && !(m.khoaBe ?? []).some((b) => b.id === ai.id) ? (
-        // «Chỉ khoá <bé> · mọi máy» ⇒ bảng khoá theo bé (them-sll7clha)
+        // «Khoá mọi máy của <bé>» ⇒ bảng khoá theo bé (them-sll7clha)
         <Pressable onPress={() => setMo("khoa_be")} accessibilityRole="button" style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, minHeight: 44 }}>
           <AvtCon c={ai} co={24} />
-          <Chu kieu="rat" co={14} mau={M.chinhInk}>{chung ? `Chỉ khoá ${tenAi} trên mọi máy` : `Khoá ${tenAi} trên mọi máy`}</Chu>
+          <Chu kieu="rat" co={14} mau={M.chinhInk}>{`Khoá mọi máy của ${tenAi}`}</Chu>
         </Pressable>
       ) : null}
       {!tot ? caiDat : null}

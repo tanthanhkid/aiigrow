@@ -134,4 +134,79 @@ public class BaoBeDoiTrangThaiTests
         Assert.Equal("Ba Mẹ đang mở máy · chơi thoải mái tới 17:30", MoCoHan.DongDangMo("17:30"));
         Assert.DoesNotContain("khoá", MoCoHan.DongDangMo("17:30"));
     }
+
+    // ---- #822 / #823: tin máy chủ khoá / mở khẩn cấp ⇒ hộp, báo một lần dù tới từ hai đường
+
+    private static HvTin Tin(string loai, string tieu, int phut = 0)
+        => new() { Id = loai + phut, Loai = loai, Tieu = tieu, Noi = "…", Luc = new DateTimeOffset(2026, 11, 28, 2, 25, 0, TimeSpan.Zero).AddMinutes(phut) };
+
+    [Fact]
+    public void TinMoKhanCap_RaHopMoKhoa_TinThuongVanBongBao()
+    {
+        var moi = new List<HvTin> { Tin("duyet_nhiem_vu", "Ba Mẹ đã duyệt"), Tin("mo_khan_cap", "Ba Mẹ mở máy cho con đến 09:40", 1) };
+        var b = BaoTuTin.MoiNhat(moi);
+        Assert.NotNull(b);
+        Assert.Equal(("mo_khoa", "Ba Mẹ mở máy cho con đến 09:40"), (b!.Icon, b.Tieu));
+        Assert.Equal("duyet_nhiem_vu", Assert.Single(BaoTuTin.ConLai(moi)).Loai);
+        Assert.Equal("khoa", BaoTuTin.Tu(Tin("khoa_ngay", "Ba Mẹ đã khoá máy"))!.Icon);
+        Assert.Equal("khoa", BaoTuTin.Tu(Tin("khoa_may", "Ba Mẹ đã khoá máy AIIGROW-CON"))!.Icon);
+        Assert.Null(BaoTuTin.MoiNhat(new[] { Tin("cho_vay", "Mẹ cho vay 5 sao") }));
+    }
+
+    [Fact]
+    public void TinKhoaMoiNhatThang()
+    {
+        var b = BaoTuTin.MoiNhat(new[] { Tin("mo_khan_cap", "Ba Mẹ mở máy cho con đến 09:40", 0), Tin("khoa_ngay", "Ba Mẹ đã khoá máy", 2) });
+        Assert.Equal("khoa", b!.Icon);
+    }
+
+    [Fact]
+    public void ChongLap_TinToiTruoc_DuongTrangThaiThoi()
+    {
+        var now = new DateTimeOffset(2026, 11, 28, 2, 25, 0, TimeSpan.Zero);
+        var cl = new ChongLapBao();
+        var tin = BaoTuTin.Tu(Tin("mo_khan_cap", "Ba Mẹ mở máy cho con đến 09:40"))!;
+        Assert.True(cl.NenHien(tin, now, tuTin: true));
+        Assert.False(cl.NenHien(MoCoHan.BaoMo("09:40"), now.AddSeconds(40)));                            // cùng việc qua trạng thái dịch vụ
+        Assert.True(cl.NenHien(BaoBeDoiTrangThai.KhoaMay(LockReasons.Khoa), now.AddSeconds(50)));         // việc khác (Ba Mẹ khoá) vẫn báo
+        Assert.True(cl.NenHien(MoCoHan.BaoMo("10:30"), now + ChongLapBao.Cua));                           // lần mở sau (hết cửa) báo lại
+        Assert.True(cl.NenHien(MoCoHan.BaoHet(), now.AddSeconds(5)));                                      // hộp không nhóm không bị chặn
+    }
+
+    [Fact]
+    public void ChongLap_TrangThaiToiTruoc_TinCoGioVanThayHop()
+    {
+        var now = new DateTimeOffset(2026, 11, 28, 1, 23, 0, TimeSpan.Zero);
+        var cl = new ChongLapBao();
+        Assert.True(cl.NenHien(BaoBeDoiTrangThai.KhoaMay(LockReasons.Khoa), now));
+        Assert.True(cl.NenHien(BaoTuTin.Tu(Tin("khoa_ngay", "Ba Mẹ đã khoá máy"))!, now.AddSeconds(30), tuTin: true));   // tin có «mở lại lúc» thay hộp chung
+    }
+
+    [Fact]
+    public void TinKhoaMo_ChiHienKhiMayDungTrangThai_HopSaiThiDong()
+    {
+        var khoa = BaoTuTin.Tu(Tin("khoa_ngay", "Ba Mẹ đã khoá máy"))!;
+        var mo = BaoTuTin.Tu(Tin("mo_khan_cap", "Ba Mẹ mở máy cho con đến 09:40"))!;
+        var now = new DateTimeOffset(2026, 11, 28, 2, 25, 0, TimeSpan.Zero);
+        var khoaSt = new TrayState { Locked = true, Mode = Modes.Khoa };
+        var hoc = new TrayState { Locked = false, Mode = Modes.Hoc };
+        var moSt = new TrayState { Locked = false, Mode = Modes.TuDo, GrantEndsAt = now.AddMinutes(15) };
+        Assert.True(BaoTuTin.KhopTrangThai(khoa.Nhom, khoaSt, now));
+        Assert.False(BaoTuTin.KhopTrangThai(khoa.Nhom, hoc, now));     // Ba Mẹ đang dùng máy ⇒ khoá chưa áp, chưa báo
+        Assert.False(BaoTuTin.KhopTrangThai(mo.Nhom, khoaSt, now));    // mở khẩn cấp trong giờ ngủ / khoá ngay ⇒ máy vẫn khoá, không báo «mở»
+        Assert.False(BaoTuTin.KhopTrangThai(mo.Nhom, hoc, now));       // dịch vụ chưa áp mở (mode hoc vẫn chặn) ⇒ chưa báo
+        Assert.True(BaoTuTin.KhopTrangThai(mo.Nhom, moSt, now));
+        Assert.True(BaoTuTin.HopDaSai(ChongLapBao.BaMeKhoa, hoc, now));   // Ba Mẹ «Mở lại» ⇒ đóng hộp «đã khoá»
+        Assert.True(BaoTuTin.HopDaSai(ChongLapBao.BaMeMo, hoc, now));     // Ba Mẹ «Khoá lại ngay» ⇒ đóng hộp «mở máy»
+        Assert.False(BaoTuTin.HopDaSai(null, hoc, now));
+    }
+
+    [Fact]
+    public void ChongLap_GioNguKhongChanBaMeKhoa()
+    {
+        var now = new DateTimeOffset(2026, 11, 28, 14, 0, 0, TimeSpan.Zero);
+        var cl = new ChongLapBao();
+        Assert.True(cl.NenHien(BaoBeDoiTrangThai.KhoaMay(LockReasons.Ngu), now));
+        Assert.True(cl.NenHien(BaoBeDoiTrangThai.KhoaMay(LockReasons.Khoa), now.AddMinutes(2)));
+    }
 }

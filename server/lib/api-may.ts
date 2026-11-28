@@ -139,7 +139,7 @@ async function xuLyMay0(req: Request, p: string[]): Promise<Response> {
       const get = req.method === "GET", post = req.method === "POST", r = p.slice(1).join("/");
       { const kq = await xuLyConSao(con, may.id, req, p.slice(1), b, { khay: true }); if (kq) return kq; }   // 05/11: quy, doi-sao, nhiem-vu?tuCham=1
       if (r === "tong-quan" && get) return json(await hocVien.tongQuan(con));
-      if (r === "tin" && get) { const s = new URL(req.url).searchParams.get("sau"); return json(await hocVien.tinCho(con, s ? new Date(s) : null)); }
+      if (r === "tin" && get) { const s = new URL(req.url).searchParams.get("sau"); return json(await hocVien.tinCho(con, s ? new Date(s) : null, may.id)); }
       if (p[1] === "nhiem-vu" && p[3] === "bat-dau" && post) return json({ luot: await nv.batDau(con, p[2]) });
       if (p[1] === "luot" && p[3] === "nop" && post) return json(await hocVien.nopKhay(con, p[2], { anh: b.anh, ghiChu: b.ghiChu, ghiAm: b.ghiAm }));
       if (r === "cua-hang" && get) return json(await hocVien.cuaHangKhay(con));
