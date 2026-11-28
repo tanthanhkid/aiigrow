@@ -834,6 +834,7 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-may (theo Con)", "/may?con=c1", "Ghép thêm máy"),
     M("bm-may-chi-tiet (bảo vệ chưa đủ)", "/may/m2", "Tài khoản của Con vẫn là quản trị"),
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
+    M("bm-an-toan-may (#861 quản trị trống mật khẩu)", "/may/m1", "Sign-in options", { kb: { "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], quanTriTrong: ["Administrator", "Bố Minh"] } } }),
     // PR #253 nối app (lib/noi-1411): khoá riêng máy (bm-may-con/03), xoá hồ sơ Con (bm-gio-ho-so/07), «Trao luôn» (bm-sao-qua/03), hộp thư (bm-cai-dat/13)
     M("bm-may (khoá riêng · bảng 03)", "/may/m1", "Máy khác · không đổi gì", { truoc: async () => { await di("/may/m1"); await doi("Khoá Laptop ngay"); await bam("Khoá Laptop ngay"); } }),
     M("bm-may (đang khoá riêng)", "/may/m1", "Mở khoá Laptop", { kb: CON_KHOA_M1 }),
@@ -2287,6 +2288,27 @@ await kichBan("#772 Khoá THEO BÉ hiện ở trang máy: «<bé> đang bị kho
   nhatKy.length = 0;
   await bamDauCo("Mở khoá ");
   xet(await choGoi((x) => x.d === "con/c1/khoa" && x.m === "POST" && x.body?.khoa === false), "mở khoá theo bé");
+});
+
+await kichBan("#861 Tài khoản quản trị chưa có mật khẩu: trang máy + «Cần Ba Mẹ để ý» hiện cảnh báo; máy báo đã ổn ⇒ hết", async () => {
+  const CAU = "Laptop của Bảo Anh: tài khoản quản trị chưa có mật khẩu — bé có thể tự vào và gỡ AiiGrow (Administrator)";
+  kb = { ...kb, "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], quanTriTrong: ["Administrator"] },
+    "GET can-de-y": { ds: [{ id: "quan_tri_trong:m1", loai: "canh_bao", tieu: `Cảnh báo: ${CAU}`, phu: "Đặt mật khẩu trên máy Con", luc: luc(5), con: "c1", may: "m1", so: 1, nut: "Xem", den: "/may/m1" }],
+      soChuong: 1, soTab: 1, soTheoCon: { c1: 1 }, soCaNha: 0 },
+    "GET cho-duyet": { ...coBan["GET cho-duyet"], yeuCau: [] } };
+  await di("/may/m1");
+  xet(await doi(CAU), "trang máy hiện cảnh báo kèm tên tài khoản");
+  xet(await doi("Settings › Accounts › Sign-in options"), "trang máy hướng dẫn đặt mật khẩu");
+  await di("/hom-nay");
+  xet(await doi(CAU), "«Cần Ba Mẹ để ý» hiện cảnh báo");
+  // agent báo [] ⇒ máy chủ bỏ dòng ở «Cần Ba Mẹ để ý» + quanTriTrong rỗng
+  kb = { ...kb, "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], quanTriTrong: [] }, "GET can-de-y": { ds: [], soChuong: 0, soTab: 0, soTheoCon: {}, soCaNha: 0 } };
+  await di("/may/m1");
+  await doi("Đổi tên máy");
+  xet(!(await chu()).includes("tài khoản quản trị chưa có mật khẩu"), "trang máy hết cảnh báo");
+  await di("/hom-nay");
+  await doi("Khoá mọi máy");
+  xet(!(await chu()).includes("tài khoản quản trị chưa có mật khẩu"), "«Cần Ba Mẹ để ý» hết cảnh báo");
 });
 
 await kichBan("Xoá hồ sơ Con ⇒ con/c1/xoa {xacNhan:true} ⇒ máy thành dùng chung ⇒ «Máy của Bill» gắn lại (gan-con)", async () => {
