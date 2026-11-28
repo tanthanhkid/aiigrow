@@ -48,7 +48,8 @@ export function laAppAiiGrow(mucTho: unknown) {
   const m = String(mucTho ?? "").trim().toLowerCase();
   return APP_AIIGROW_WIN.test(m) || m === "vn.aiilab.aiigrow" || m === "vn.aiilab.aiigrow.con";
 }
-/** #418: khay CŨ Windows «aiigrow.tray.exe.cu-<hex>.exe» — tên lạ, máy chưa cập nhật còn báo; tên thường của AiiGrow vẫn ghi «đã dùng» dạng hệ thống. */
+/** #418: khay CŨ Windows «aiigrow.tray.exe.cu-<hex>.exe» — tên lạ, máy chưa cập nhật còn báo (script dọn don-app-aiigrow dùng). #780: máy chủ không ghi usage
+ *  của mọi app AiiGrow nữa (may-con.ts › dongBo); «đã dùng» vốn đã ẩn chúng (phut-dung.ts). */
 export const laKhayCuAiiGrow = (mucTho: unknown) => laAppAiiGrow(mucTho) && String(mucTho).toLowerCase().includes(".exe.cu-");
 
 /** #525: công cụ hệ thống / trình điều khiển / thành phần Windows — không phải app con mở để chơi, học: không hiện ở «Thêm app», không thành «app mới»,
