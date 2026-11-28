@@ -37,16 +37,18 @@ test("dong-bo: quanTriTrong khác rỗng ⇒ một cảnh báo chú ý theo máy
   assert.equal(cb.length, 1);
   assert.equal(cb[0]!.noi_dung, "PC-BIN: tài khoản quản trị chưa có mật khẩu — bé có thể tự vào và gỡ AiiGrow (Administrator)");
   let c = await canDeY(fam, NOW);
-  const dong = c.ds.find((x) => x.loai === "canh_bao" && x.tieu.includes("tài khoản quản trị chưa có mật khẩu"));
-  assert.ok(dong, JSON.stringify(c.ds));
-  assert.equal(dong!.den, `/may/${may.deviceId}`);
+  const dongQtt = () => c.ds.filter((x) => x.tieu.includes("tài khoản quản trị chưa có mật khẩu"));
+  assert.equal(dongQtt().length, 1, JSON.stringify(c.ds));   // cảnh báo đã ghi không thành dòng thứ hai
+  assert.equal(dongQtt()[0]!.den, `/may/${may.deviceId}`);
+  assert.equal(dongQtt()[0]!.loai, "canh_bao");
   assert.deepEqual((await chiTietTuanThu(fam, may.deviceId, NOW)).quanTriTrong, ["Administrator"]);
 
   // danh sách đổi ⇒ cùng dòng, nội dung mới
   await dongBo(may.token, { quanTriTrong: ["Administrator", "Bo"] });
   cb = await canhBaoQtt(fam);
   assert.equal(cb.length, 1);
-  assert.match(cb[0]!.noi_dung, /\(Administrator, Bo\)$/);
+  c = await canDeY(fam, NOW);
+  assert.match(dongQtt()[0]!.tieu, /\(Administrator, Bo\)$/, "«Cần Ba Mẹ để ý» theo danh sách mới nhất");
 
   // agent cũ (không gửi trường) ⇒ giữ nguyên
   await dongBo(may.token, { phienBan: "0.2.0" });
@@ -60,10 +62,19 @@ test("dong-bo: quanTriTrong khác rỗng ⇒ một cảnh báo chú ý theo máy
   assert.equal(cb[0]!.da_doc, true);
   assert.equal(cb[0]!.khoa, null);
   c = await canDeY(fam, NOW);
-  assert.ok(!c.ds.some((x) => x.tieu.includes("tài khoản quản trị")));
+  assert.equal(dongQtt().length, 0);
   assert.deepEqual((await chiTietTuanThu(fam, may.deviceId, NOW)).quanTriTrong, []);
 
   // lại trống ⇒ cảnh báo mới
   await dongBo(may.token, { quanTriTrong: ["Administrator"] });
   assert.equal((await canhBaoQtt(fam)).filter((x) => !x.da_doc).length, 1);
+
+  // máy bị xoá khỏi gia đình ⇒ dòng «Cần Ba Mẹ để ý» hết theo (tính từ máy, không từ cảnh báo đã ghi)
+  await q(`delete from devices where id = $1`, [may.deviceId]);
+  c = await canDeY(fam, NOW);
+  assert.equal(dongQtt().length, 0);
+});
+
+test("docQuanTriTrong: agent gửi mảng rất dài ⇒ chỉ giữ 20 tên đầu", () => {
+  assert.equal(docQuanTriTrong(Array.from({ length: 100_000 }, (_, i) => `u${i}`))!.length, 20);
 });

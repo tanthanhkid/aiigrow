@@ -2291,7 +2291,7 @@ await kichBan("#772 Khoá THEO BÉ hiện ở trang máy: «<bé> đang bị kho
 });
 
 await kichBan("#861 Tài khoản quản trị chưa có mật khẩu: trang máy + «Cần Ba Mẹ để ý» hiện cảnh báo; máy báo đã ổn ⇒ hết", async () => {
-  const CAU = "Laptop: tài khoản quản trị chưa có mật khẩu — bé có thể tự vào và gỡ AiiGrow (Administrator)";
+  const CAU = "Laptop của Bảo Anh: tài khoản quản trị chưa có mật khẩu — bé có thể tự vào và gỡ AiiGrow (Administrator)";
   kb = { ...kb, "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], quanTriTrong: ["Administrator"] },
     "GET can-de-y": { ds: [{ id: "a:q1", loai: "canh_bao", tieu: `Cảnh báo: ${CAU}`, phu: "09:00", luc: luc(5), con: "c1", may: "m1", so: 1, nut: "Xem", den: "/may/m1" }],
       soChuong: 1, soTab: 1, soTheoCon: { c1: 1 }, soCaNha: 0 },
@@ -2304,7 +2304,7 @@ await kichBan("#861 Tài khoản quản trị chưa có mật khẩu: trang máy
   // agent báo [] ⇒ máy chủ bỏ dòng ở «Cần Ba Mẹ để ý» + quanTriTrong rỗng
   kb = { ...kb, "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], quanTriTrong: [] }, "GET can-de-y": { ds: [], soChuong: 0, soTab: 0, soTheoCon: {}, soCaNha: 0 } };
   await di("/may/m1");
-  await doi("Laptop");
+  await doi("Đổi tên máy");
   xet(!(await chu()).includes("tài khoản quản trị chưa có mật khẩu"), "trang máy hết cảnh báo");
   await di("/hom-nay");
   await doi("Khoá mọi máy");

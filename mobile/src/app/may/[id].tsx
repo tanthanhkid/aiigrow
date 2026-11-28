@@ -270,7 +270,7 @@ export default function AnToanMay() {
 
       {/* #861: agent Windows báo tài khoản quản trị chưa có mật khẩu (status.quanTriTrong) ⇒ bé tự vào tài khoản đó và gỡ được AiiGrow; hết khi máy báo đã ổn */}
       {win && m.quanTriTrong?.length ? (
-        <Bao loai="canh" ic="canh_bao" tieu={`${tenNgan}: tài khoản quản trị chưa có mật khẩu — bé có thể tự vào và gỡ AiiGrow (${m.quanTriTrong.join(", ")})`}
+        <Bao loai="canh" ic="canh_bao" tieu={`${ten}: tài khoản quản trị chưa có mật khẩu — bé có thể tự vào và gỡ AiiGrow (${m.quanTriTrong.join(", ")})`}
           loi="Cách sửa: trên máy Con, vào Settings › Accounts › Sign-in options đặt mật khẩu cho tài khoản đó, hoặc mở AiiGrow trên máy Con bằng tài khoản Ba Mẹ." />
       ) : null}
 

@@ -158,7 +158,9 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     const luc = x.ngay === nay ? now : new Date(dauNay.getTime() - 1);   // phần hôm qua: ghi ở giây cuối hôm qua (sổ + «đã dùng gì» đúng ngày)
     try { await truPhutChoi(be, phut, luc, { may: may.id, muc: x.muc, tz: f.tz, theoMuc: x.theoMuc, den: x.ngay === nay && x.den && x.den >= dauNay ? x.den : undefined }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
   }
-  const status = { ...(may.status ?? {}), ...(b.status ?? {}), lechGiay: gioMaySai ? lechGiay : null };
+  // #861: lưu danh sách đã chuẩn hoá (agent gửi bao nhiêu cũng chỉ giữ ≤ 20 tên); không có trường ⇒ giữ giá trị cũ
+  const qtt = docQuanTriTrong(b.status?.quanTriTrong);
+  const status = { ...(may.status ?? {}), ...(b.status ?? {}), ...(qtt ? { quanTriTrong: qtt } : {}), lechGiay: gioMaySai ? lechGiay : null };
   await q(`update devices set last_seen = $2, status = $3::text::jsonb where id = $1`, [may.id, now, JSON.stringify(status)]);
   if (gioMaySai) {
     const moi = await canhBao(may.family_id, "lech_gio", "chu_y", `Có dấu hiệu đổi giờ hệ thống trên ${may.name}${c ? ` của ${c.ten}` : ""}`,
@@ -166,7 +168,7 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     if (moi) await ghiSuKien(may.family_id, "lech_gio", { lech_giay: lechGiay }, { con, may: may.id });
   }
   // #861: tài khoản quản trị chưa có mật khẩu (agent Windows báo) ⇒ cảnh báo Ba Mẹ / tự hết khi báo rỗng. Lỗi không làm hỏng lượt đồng bộ.
-  try { await capNhatCanhBaoQuanTri(may, docQuanTriTrong(b.status?.quanTriTrong)); } catch (e) { console.error("dong-bo: cảnh báo quản trị trống lỗi", e); }
+  try { await capNhatCanhBaoQuanTri(may, qtt); } catch (e) { console.error("dong-bo: cảnh báo quản trị trống lỗi", e); }
   return taoPolicy(may, con, { gioMaySai }, now);
 }
 
