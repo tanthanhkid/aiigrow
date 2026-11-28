@@ -557,7 +557,7 @@ struct AppConView: View {
             lichSuSao(3)
           }
           if tq.diemChoDuyet > 0 { Chu(ChuSao.choDuyet(tq.diemChoDuyet, no: soSao(tt)?.no ?? 0), co: 13, mau: phuC, dong: 1) }
-          if let g = app.ch?.saoGiu, g > 0 { Chu("Đang giữ \(ChuSao.so(g)) sao chờ Ba Mẹ trao", co: 13, mau: phuC, dong: 1) }
+          if let g = app.ch?.saoGiu, g > 0 { Chu("Đã trừ \(ChuSao.so(g)) sao chờ Ba Mẹ trao", co: 13, mau: phuC, dong: 1) }
         }
         Spacer(minLength: 8)
         VStack(alignment: .leading, spacing: 8) {

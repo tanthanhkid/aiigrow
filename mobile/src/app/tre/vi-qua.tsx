@@ -50,7 +50,7 @@ export default function ViQuaTre() {
           <ChuD kieu="den" co={15} mau={NO.chu}>{`Đang nợ Ba Mẹ ${soVN(no)} sao`}</ChuD>
           <ChuD kieu="rat" co={13} mau={NO.chu}>Sao nhiệm vụ trả nợ trước · hết nợ mới cộng</ChuD>
         </View> : null}
-        {giu ? <ChuD kieu="rat" co={13.5} mau={mau}>{`Đang giữ ${giu} sao cho quà chờ trao`}</ChuD> : null}
+        {giu ? <ChuD kieu="rat" co={13.5} mau={mau}>{`Đã trừ ${giu} sao cho quà chờ trao`}</ChuD> : null}
         {d.s.lichSu?.length ? (
           <View style={{ gap: 4 }}>
             {d.s.lichSu.slice(0, 5).map((x) => {

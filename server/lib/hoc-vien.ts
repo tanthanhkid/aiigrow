@@ -89,9 +89,14 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
        -- «Ba Mẹ chưa cho vay sao»: chỉ lời xin vay (lời xin cũ them_gio / ngoai_le / ngoai_gio cũng là vay từ 15/11)
        and (e.loai <> 'tu_choi_yeu_cau' or e.chi_tiet->>'loai' in ('vay_sao', 'them_gio', 'ngoai_le', 'ngoai_gio'))
      order by e.created_at desc limit 50`, [con, tu]);
-  const moi = await q<{ id: string; ten: string; diem: number; created_at: Date }>(
+  // #759: chạy song song với tin — hoàn tác SAU khi khay có thể đã nhận tin duyệt ⇒ id tin duyệt bị thu hồi
+  const thuHoiQ = q<{ id: string; ten: string | null; created_at: Date }>(
+    `select chi_tiet->>'thu_hoi_id' as id, chi_tiet->>'ten' as ten, created_at from events
+     where child_id = $1 and loai = 'hoan_tac_duyet' and created_at > $2 and chi_tiet ? 'thu_hoi_id' order by created_at desc limit 20`, [con, tu]);
+  const moiQ = q<{ id: string; ten: string; diem: number; created_at: Date }>(
     `select id, ten, diem, created_at from tasks where family_id = $1 and bat and giao_cho is null and bang_chung <> 'tu_dong' and created_at > $2
      and (han is null or han > now()) order by created_at desc limit 20`, [c.family_id, tu]);
+  const [moi, thuHoiR] = await Promise.all([moiQ, thuHoiQ]);
   const s = (v: unknown) => String(v ?? "").trim();
   const ra: TinHocVien[] = [];
   for (const e of ev) {
@@ -132,10 +137,7 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
   for (const t of moi) ra.push({ id: "nv:" + t.id, loai: "nhiem_vu_moi", tieu: "Nhiệm vụ mới cho cả nhà", noi: `«${t.ten}» · ${t.diem} sao`, luc: new Date(t.created_at).toISOString() });
   ra.sort((a, b) => (a.luc < b.luc ? 1 : -1));
   // #759: hoàn tác SAU khi khay có thể đã nhận tin duyệt ⇒ trả id tin duyệt bị thu hồi (khay chỉ xử lý id nó đã thấy; khay cũ bỏ qua trường này)
-  const thuHoi = (await q<{ id: string; ten: string; created_at: Date }>(
-    `select chi_tiet->>'thu_hoi_id' as id, chi_tiet->>'ten' as ten, created_at from events
-     where child_id = $1 and loai = 'hoan_tac_duyet' and created_at > $2 and chi_tiet ? 'thu_hoi_id' order by created_at desc limit 20`, [con, tu]))
-    .map((x) => ({ id: x.id, ten: x.ten ?? "", luc: new Date(x.created_at).toISOString() }));
+  const thuHoi = thuHoiR.map((x) => ({ id: x.id, ten: x.ten ?? "", luc: new Date(x.created_at).toISOString() }));
   return { ds: ra, thuHoi, bay: new Date().toISOString() };
 }
 

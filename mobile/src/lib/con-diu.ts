@@ -141,9 +141,9 @@ export function quaGanNhat<T extends { diem: number; ten: string }>(qua: T[], sa
   return x ? { ...x, conThieu: Math.max(0, x.diem - sao) } : null;
 }
 
-/** «Còn thiếu 150 sao» / «Đủ sao rồi! Bấm để đổi» / «Đang giữ 100 sao · chờ Ba Mẹ trao». */
+/** «Còn thiếu 150 sao» / «Đủ sao rồi! Bấm để đổi» / «Đã trừ 100 sao · chờ Ba Mẹ trao». */
 export function phuQua(q: { diem: number; du: boolean; conThieu: number; choTraoTu?: string | null }) {
-  if (q.choTraoTu) return `Đang giữ ${q.diem} sao · chờ Ba Mẹ trao`;
+  if (q.choTraoTu) return `Đã trừ ${q.diem} sao · chờ Ba Mẹ trao`;
   return q.du ? "Đủ sao rồi! Bấm để đổi" : `Còn thiếu ${q.conThieu} sao`;
 }
 
