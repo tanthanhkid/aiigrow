@@ -1015,7 +1015,7 @@ public sealed class AgentRuntime
                 PlaySeconds = Math.Round(_playSec, 1),
                 PlaySessionId = _playSecId,
                 Quyen = QuyenBaoVe.Tinh(_cheDo, moCoi, mode, AppLockerApplied, tray, childActive, phienKhac, AppLockerKhaDung),
-                GhiChuBaoVe = string.Join("; ", new[] { TenThietBi.GhiChuTenCam(TaiKhoanMay, ChildSids), AppLockerKhaDung ? null : AiiGrow.Core.AppLockerKhaDung.CauGhiChu, GhiChuWeb }.Where(x => !string.IsNullOrEmpty(x))) is { Length: > 0 } g ? g : null,
+                GhiChuBaoVe = string.Join("; ", new[] { AppLockerKhaDung ? null : AiiGrow.Core.AppLockerKhaDung.CauGhiChu, GhiChuWeb, TenThietBi.GhiChuTenCam(TaiKhoanMay, ChildSids) }.Where(x => !string.IsNullOrEmpty(x))) is { Length: > 0 } g ? g : null,
             };
         }
     }

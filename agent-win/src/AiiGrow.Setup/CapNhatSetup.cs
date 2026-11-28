@@ -200,6 +200,7 @@ internal sealed class CapNhatForm : Form
             if (nhac.Length == 0 || IsDisposed || _dangChay || _daChay) return;
             _nhacTenCam = nhac;
             _man();
+            CenterToScreen();   // hộp tự giãn theo chữ dài ⇒ canh giữa lại, nút không tụt khỏi màn
         };
     }
 
@@ -231,6 +232,8 @@ internal sealed class CapNhatForm : Form
                     "Mất khoảng một phút; nếu có lỗi, AiiGrow tự quay về bản cũ để máy vẫn được bảo vệ." + _nhacTenCam;
         _nut.Controls.Clear();
         _nut.Controls.Add(Nut("Cập nhật", true, CapNhatNgay));
+        // #854: lời nhắc tài khoản tên cấm chỉ cách sửa qua «Sửa cài đặt» ⇒ có nút ngay ở màn này
+        if (_nhacTenCam.Length > 0) _nut.Controls.Add(Nut("Sửa cài đặt", false, () => { MuonSua = true; Close(); }));
         _nut.Controls.Add(Nut("Để sau", false, Close));
     }
 

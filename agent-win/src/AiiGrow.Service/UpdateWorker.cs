@@ -267,22 +267,26 @@ public sealed class UpdateWorker : BackgroundService
     }
 
     /// <summary>Chạy bộ cài bằng tác vụ SYSTEM tách rời: dịch vụ bị bộ cài dừng không kéo bộ cài chết theo.</summary>
-    /// <remarks>#854: lượt trước còn treo (tác vụ «Đang chạy») thì Task Scheduler BỎ QUA lần chạy mới (MultipleInstances mặc định IgnoreNew) —
-    /// Start-ScheduledTask vẫn báo thành công, máy kẹt bản cũ mà không ai biết. Chỉ giao khi lượt trước đã quá thời gian nghỉ (≥ 1 giờ, xa hơn
-    /// ExecutionTimeLimit 30 phút) ⇒ dừng tác vụ cũ + bộ cài cũ còn sót trong thư mục cap-nhat rồi mới đăng ký lại.</remarks>
+    /// <remarks>#854: lượt trước còn chạy (tác vụ «Đang chạy») thì Task Scheduler BỎ QUA lần chạy mới (MultipleInstances mặc định IgnoreNew) mà
+    /// Start-ScheduledTask vẫn báo thành công ⇒ máy kẹt bản cũ, log ghi «đã giao». Nay: kết thúc bộ cài cũ đã treo quá <see cref="HanBoCaiTreo"/>
+    /// (DungBoCaiCu), rồi sau khi Start kiểm LastRunTime có đổi không — không đổi ⇒ ném (lượt này tính là «không giao được», có log + báo).</remarks>
     private void ChayBoCai(string tep)
     {
         DungBoCaiCu();
         var tn = Shell.PsQuote(TenTacVu);
         var r = Shell.PowerShell(
-            // chỉ dừng lượt cũ đã chạy quá ExecutionTimeLimit (treo) — lượt vừa giao (bấm «Cập nhật ngay» liền tay) để yên
-            $"try {{ $c = Get-ScheduledTask -TaskName {tn} -ErrorAction Stop; if ($c.State -eq 'Running' -and ((Get-Date) - ($c | Get-ScheduledTaskInfo).LastRunTime).TotalMinutes -ge {(int)LuatThuCapNhat.ChoBoCai.TotalMinutes}) {{ Stop-ScheduledTask -TaskName {tn} }} }} catch {{}}; " +
             $"$a = New-ScheduledTaskAction -Execute {Shell.PsQuote(tep)} -Argument '--capnhat --im-lang'; " +
             "$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 30); " +
             $"Register-ScheduledTask -TaskName {tn} -Action $a -Settings $s -User 'SYSTEM' -RunLevel Highest -Force | Out-Null; " +
-            $"Start-ScheduledTask -TaskName {tn}", 60000);
+            "$t0 = (Get-Date).AddSeconds(-5); " +
+            $"Start-ScheduledTask -TaskName {tn}; Start-Sleep -Seconds 3; " +
+            $"$i = Get-ScheduledTaskInfo -TaskName {tn}; " +
+            "if ($i.LastRunTime -lt $t0) { throw ('tác vụ không chạy lần mới (lượt trước còn chạy?) · lần chạy cuối ' + $i.LastRunTime.ToString('o') + ' · mã ' + $i.LastTaskResult) }", 60000);
         if (!r.Ok) throw new InvalidOperationException("không giao được bộ cài: " + r.Error);
     }
+
+    /// <summary>Bộ cài tự cập nhật chạy quá ngần này là treo: xa hơn ExecutionTimeLimit 30 phút của tác vụ (Task Scheduler lẽ ra đã dừng nó).</summary>
+    private static readonly TimeSpan HanBoCaiTreo = TimeSpan.FromMinutes(45);
 
     /// <summary>Bộ cài tự cập nhật lượt trước còn chạy (treo) từ thư mục cap-nhat ⇒ kết thúc, ghi log (để biết có treo).</summary>
     private void DungBoCaiCu()
@@ -297,10 +301,12 @@ public sealed class UpdateWorker : BackgroundService
                     if (!p.ProcessName.StartsWith("AiiGrow-Setup-", StringComparison.OrdinalIgnoreCase)) continue;
                     var duong = p.MainModule?.FileName;
                     if (duong == null || !Path.GetFullPath(duong).StartsWith(Path.GetFullPath(ThuMuc) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) continue;
-                    if (DateTime.Now - p.StartTime < LuatThuCapNhat.ChoBoCai) continue;   // còn trong hạn chạy: có thể đang chép dở, không giết
+                    if (DateTime.Now - p.StartTime < HanBoCaiTreo) continue;   // còn trong hạn chạy: có thể đang chép dở, không giết
                     _log.LogError("Tự cập nhật: bộ cài lượt trước còn chạy từ {Luc:o} ({Tep}) — treo ⇒ kết thúc trước khi giao bản mới. install.log: {Log}",
                         p.StartTime, Path.GetFileName(duong), DocInstallLog(p.StartTime));
                     p.Kill(entireProcessTree: true);
+                    // bộ cài bị giết thì «finally» của nó không bật lại «tự chạy lại khi lỗi» cho dịch vụ ⇒ dịch vụ (đang chạy) tự bật
+                    BatLaiTuKhoiDong();
                 }
                 catch (Exception e) { _log.LogWarning("Tự cập nhật: chưa dừng được bộ cài cũ: {Loi}", e.Message); }
             }

@@ -91,7 +91,8 @@ public static class ChanDoanCapNhat
         {
             if (string.IsNullOrWhiteSpace(d)) continue;
             var cach = d.IndexOf(' ');
-            if (cach > 0 && DateTimeOffset.TryParse(d[..cach], CultureInfo.InvariantCulture, DateTimeStyles.None, out var luc))
+            // WriteLog luôn ghi giờ dạng «o» ⇒ chỉ nhận đúng dạng đó (dòng tiếp nối mở đầu «12/11», «10:30» không bị đọc nhầm là dòng mới)
+            if (cach > 0 && DateTimeOffset.TryParseExact(d[..cach], "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var luc))
             {
                 dangGiu = luc >= moc;
                 if (dangGiu) giu.Add(luc.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture) + " " + d[(cach + 1)..].Trim());
@@ -99,7 +100,14 @@ public static class ChanDoanCapNhat
             else if (dangGiu && giu.Count > 0) giu[^1] += " " + d.Trim();
         }
         if (giu.Count == 0) return "install.log không có dòng nào từ lúc giao bộ cài";
-        var kq = string.Join(" | ", giu.Skip(Math.Max(0, giu.Count - toiDa)));
-        return kq.Length > tran ? "…" + kq[^tran..] : kq;
+        // giữ dòng ĐẦU (bộ cài có chạy không, bằng ai) + các dòng cuối (bước hỏng); quá trần thì cắt giữa
+        var dau = giu[0];
+        var cuoi = giu.Skip(Math.Max(1, giu.Count - (toiDa - 1))).ToList();
+        var kq = string.Join(" | ", cuoi.Count == 0 ? new[] { dau } : new[] { dau }.Concat(cuoi));
+        if (kq.Length <= tran) return kq;
+        var duoi = string.Join(" | ", cuoi);
+        if (dau.Length > tran / 3) dau = dau[..(tran / 3)] + "…";
+        var conLai = Math.Max(0, tran - dau.Length - 5);
+        return dau + " | …" + (duoi.Length > conLai ? duoi[^conLai..] : duoi);
     }
 }
