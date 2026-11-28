@@ -15,6 +15,8 @@ public static class DatMatKhauQuanTri
     public const int DaiToiDa = 127;
     /// <summary>ERROR_INVALID_PASSWORD khi đổi từ mật khẩu trống: tài khoản đã có mật khẩu (Ba Mẹ vừa tự đặt) ⇒ coi là đã được bảo vệ.</summary>
     public const int MaDaCoMatKhau = 86;
+    /// <summary>Không đổi được từ trống và kiểm lại cũng chưa rõ (tài khoản đang bị khoá, lỗi thoáng qua).</summary>
+    public const int MaChuaRo = -1;
 
     /// <summary>Tài khoản bộ cài cần đặt mật khẩu: quản trị cục bộ đang bật (luật <see cref="QuanTriTrong.CanKiem"/> — bỏ tài khoản Microsoft,
     /// Administrator dựng sẵn đang tắt) mà mật khẩu trống. KHÔNG bao giờ gồm tài khoản của bé (tên <paramref name="tenCon"/> HOẶC SID
@@ -59,6 +61,8 @@ public static class DatMatKhauQuanTri
         if (matKhau.Trim().Length == 0) return "Mật khẩu không được chỉ có dấu cách.";
         if (matKhau.Length < DaiToiThieu) return $"Mật khẩu cần ít nhất {DaiToiThieu} ký tự.";
         if (matKhau.Length > DaiToiDa) return $"Mật khẩu dài tối đa {DaiToiDa} ký tự.";
+        // chữ có dấu (bộ gõ tiếng Việt) có thể không gõ lại được ở màn đăng nhập Windows ⇒ chỉ nhận ký tự trên bàn phím
+        if (matKhau.Any(c => c < 0x20 || c > 0x7E)) return "Mật khẩu chỉ dùng chữ không dấu, số và ký hiệu trên bàn phím (tắt bộ gõ tiếng Việt khi gõ).";
         if (goLai.Length == 0) return "Gõ lại mật khẩu vào ô thứ hai cho chắc.";
         if (!string.Equals(matKhau, goLai, StringComparison.Ordinal)) return "Hai lần gõ chưa khớp nhau.";
         return null;
@@ -100,6 +104,7 @@ public static class DatMatKhauQuanTri
     {
         2245 => $"Windows chưa nhận mật khẩu này cho «{ten}»: chưa đủ yêu cầu của máy (độ dài, chữ HOA, số, ký hiệu). Thử mật khẩu dài hơn.",
         2221 => $"Không còn thấy tài khoản «{ten}» trên máy.",
+        MaChuaRo => $"Windows chưa cho đổi mật khẩu «{ten}» lúc này (tài khoản có thể đang tạm khoá). Thử lại sau ít phút, hoặc bấm «Tự đặt sau».",
         MaDaCoMatKhau => $"«{ten}» đã có mật khẩu rồi, AiiGrow không đặt đè.",
         5 => $"Bộ cài chưa có quyền đổi mật khẩu «{ten}». Ba Mẹ đặt trong Cài đặt Windows (bấm «Tự đặt sau» để xem cách).",
         _ => $"Chưa đặt được mật khẩu cho «{ten}» (mã {rc}). Thử lại, hoặc bấm «Tự đặt sau».",

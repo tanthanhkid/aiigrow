@@ -16,6 +16,7 @@ public class DatMatKhauQuanTriTests
     [InlineData("Matkhau1", "", "Gõ lại mật khẩu vào ô thứ hai cho chắc.")]
     [InlineData("Matkhau1", "matkhau1", "Hai lần gõ chưa khớp nhau.")]
     [InlineData("Matkhau1", "Matkhau1 ", "Hai lần gõ chưa khớp nhau.")]
+    [InlineData("Hoàxanh1", "Hoàxanh1", "Mật khẩu chỉ dùng chữ không dấu, số và ký hiệu trên bàn phím (tắt bộ gõ tiếng Việt khi gõ).")]
     public void LoiHaiO(string? mk, string? lai, string cau) => Assert.Equal(cau, DatMatKhauQuanTri.Loi(mk, lai));
 
     [Theory]

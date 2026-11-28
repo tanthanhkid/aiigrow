@@ -1,3 +1,4 @@
+using AiiGrow.Core;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 
@@ -46,13 +47,17 @@ internal static class MatKhauQuanTri
     /// <summary>Đặt mật khẩu mới cho tài khoản cục bộ đang trống mật khẩu ⇒ 0 = xong, khác = mã lỗi (DatMatKhauQuanTri.CauLoiDat).
     /// Thử ĐỔI (mật khẩu cũ trống) trước: đổi giữ được khoá DPAPI của tài khoản (mật khẩu đã lưu trong trình duyệt, Wi-Fi…).
     /// Chỉ khi Windows chặn đổi từ mật khẩu trống (chính sách «mật khẩu trống chỉ đăng nhập tại máy» ⇒ 1327 / 5) VÀ tài khoản vẫn còn trống
-    /// (<paramref name="conTrong"/>) thì bộ cài — đang chạy quyền quản trị — mới đặt hộ bằng NetUserSetInfo level 1003. Mật khẩu cũ không trống
+    /// (<paramref name="kiemLai"/>) thì bộ cài — đang chạy quyền quản trị — mới đặt hộ bằng NetUserSetInfo level 1003. Mật khẩu cũ không trống
     /// (86: Ba Mẹ vừa tự đặt) ⇒ KHÔNG ghi đè. Mật khẩu chỉ nằm trong bộ nhớ, không ghi log.</summary>
-    public static int Dat(string taiKhoan, string matKhau, Func<bool> conTrong)
+    public static int Dat(string taiKhoan, string matKhau, Func<KiemMatKhau> kiemLai)
     {
         var rc = NetUserChangePassword(Environment.MachineName, taiKhoan, "", matKhau);   // máy này (null = miền đăng nhập của người đang chạy)
         if (rc is not (ErrorAccountRestriction or ErrorAccessDenied)) return rc;
-        if (!conTrong()) return rc;
+        switch (kiemLai())
+        {
+            case KiemMatKhau.CoMatKhau: return DatMatKhauQuanTri.MaDaCoMatKhau;
+            case KiemMatKhau.KhongRo: return DatMatKhauQuanTri.MaChuaRo;
+        }
         var info = new USER_INFO_1003 { usri1003_password = matKhau };
         return NetUserSetInfo(null, taiKhoan, 1003, ref info, out _);
     }
