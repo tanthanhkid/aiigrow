@@ -66,7 +66,7 @@ test("15/11 giờ chơi = sao: daDung = phút Giải trí mọi máy (usage + we
   // sáng hôm sau: không có quỹ mới — vẫn đúng số sao
   assert.equal((await qg.quyHomNay(con, VN("2026-10-22T08:00:00"))).conPhut, 60);
   const them = await qg.baMeThemGio(fam, con, 20, bm, t);
-  assert.deepEqual([them.soSao, them.quy.conPhut, them.quy.soSao.no, them.quy.soSao.sao], [20, 80, 20, 60], "cho vay 20 sao: chơi được 80 phút, nợ 20");
+  assert.deepEqual([them.soSao, them.quy.conPhut, them.quy.soSao.no, them.quy.soSao.sao], [20, 80, 20, 80], "cho vay 20 sao: chơi được 80 phút, nợ 20 (#810: sao = sao khả dụng)");
   // hoàn tác: 60 giây, đúng người
   await loi(qg.hoanTacThemGio(fam, them.id, "nguoi-khac", t), "het_hoan_tac");
   await loi(qg.hoanTacThemGio(fam, them.id, bm, sau(t, 2)), "het_hoan_tac");
@@ -106,7 +106,7 @@ test("API Ba Mẹ: Giờ chơi (giờ ngủ, giờ học; ô quỹ cũ bỏ qua)
   assert.equal(them.status, 200);
   assert.deepEqual([them.body.quy.conPhut, them.body.no], [60, 30]);
   const quy = (await m(tokBm, `con/${con}/quy`)).body;
-  assert.deepEqual([quy.quy.conPhut, quy.sao, quy.soSao.no, quy.ngoaiLe], [60, 30, 30, []]);
+  assert.deepEqual([quy.quy.conPhut, quy.sao, quy.soSao.no, quy.ngoaiLe], [60, 60, 30, []]);   // #810: sao = sao khả dụng (= phutCon), nợ hiện riêng
   assert.equal((await m(tokBm, `them-gio/${them.body.id}/hoan-tac`, {})).status, 200);
   assert.equal((await m(tokBm, `con/${con}/quy`)).body.quy.conPhut, 30);
   assert.equal((await m(tokBm, `con/${con}/them-gio`, { phut: 0 })).status, 400);

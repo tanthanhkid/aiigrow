@@ -155,7 +155,7 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
     if (phut <= 0) continue;
     // lỗi trừ sao không làm hỏng cả lượt đồng bộ (agent vẫn cần Policy) — phút đã ghi usage, lần sau không tính lại
     const luc = x.ngay === nay ? now : new Date(dauNay.getTime() - 1);   // phần hôm qua: ghi ở giây cuối hôm qua (sổ + «đã dùng gì» đúng ngày)
-    try { await truPhutChoi(be, phut, luc, { muc: x.muc, tz: f.tz, theoMuc: x.theoMuc, den: x.ngay === nay && x.den && x.den >= dauNay ? x.den : undefined }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
+    try { await truPhutChoi(be, phut, luc, { may: may.id, muc: x.muc, tz: f.tz, theoMuc: x.theoMuc, den: x.ngay === nay && x.den && x.den >= dauNay ? x.den : undefined }); } catch (e) { console.error("dong-bo: trừ sao phút chơi lỗi", e); }
   }
   const status = { ...(may.status ?? {}), ...(b.status ?? {}), lechGiay: gioMaySai ? lechGiay : null };
   await q(`update devices set last_seen = $2, status = $3::text::jsonb where id = $1`, [may.id, now, JSON.stringify(status)]);
@@ -194,7 +194,8 @@ export type Policy = {
   ngoaiLe?: NgoaiLeMo[];
   /** 15/11 (#263/#264, lib/so-sao.ts): sổ sao của Con — `sao` số dư Con thấy (âm khi nợ) · `no` nợ Ba Mẹ · `phutCon` sao tiêu được = phút
    *  «Tính phút» còn chơi (1 sao = 1 phút) · `hetSao` ⇒ khoá nhóm «Tính phút», hiện lối «Xin Ba Mẹ cho vay sao». null = máy dùng chung chưa chọn Con. */
-  sao?: (TrangThaiSao & { cau: { soDu: string; phut: string; no: string | null }; saoTieuDuoc?: number; phutChoiHomNay?: number }) | null;
+  sao?: (TrangThaiSao & { cau: { soDu: string; phut: string; no: string | null }; saoTieuDuoc?: number; phutChoiHomNay?: number;
+    /** #810: từng mục đã trừ sao hôm nay (sổ, mọi máy) — tổng = phutChoiHomNay */ appHomNay?: { muc: string; ten: string; sao: number }[] }) | null;
   /** #302 (lib/gioi-han-choi.ts): giới hạn ngày + mỗi lượt. `lyDoKhoa` het_gio_ngay | dang_nghi ⇒ khoá nhóm «Tính phút» (màn khoá dùng `cau`:
    *  «Nghỉ một chút · chơi tiếp lúc HH:MM» / «Hôm nay đã chơi đủ N phút — mai chơi tiếp nhé»); `nghiDen` ISO — agent tự mở lại đúng giờ.
    *  Agent cũ không đọc khối này vẫn khoá đúng: `sao.phutCon` / `sao.hetSao` / `quy.conPhut` đã kẹp theo giới hạn. null = máy chung chưa chọn Con. */
@@ -243,7 +244,9 @@ export async function taoPolicy(may: May, con: string | null, o: { gioMaySai: bo
     quy: qy && { ngayPhut: qy.quyNgayPhut, themPhut: qy.themPhut, daDung: qy.daDung, conPhut: qy.conPhut, dangNgu: qy.dangNgu, dangHoc: qy.dangHoc,
       phutToiNgu: qy.phutToiNgu, phutToiHoc: qy.phutToiHoc, tyLe: qy.tyLe },
     ngoaiLe: [],
-    sao: qy ? saoKepGioiHan(qy) : null,
+    // #810: + appHomNay — từng mục đã trừ sao hôm nay theo sổ (khay Windows hiện đúng danh sách web Ba Mẹ thấy). Chưa trừ gì ⇒ [] (khỏi đọc sổ thêm)
+    sao: qy ? { ...saoKepGioiHan(qy), appHomNay: c && qy.phutTruHomNay > 0
+      ? await (await import("./phut-dung.ts")).appTheoSo(c.id, qy.ngay, dauNgayUtc(qy.ngay, f.tz), luat.filter((l) => l.ten)) : [] } : null,
     gioiHan: qy ? gioiHanMay(qy.gioiHan) : null,
   });
 }
@@ -446,7 +449,7 @@ export async function buPhien(may: May, con: string, b: BuVao, now = new Date())
     if (tru > 0) await ghiDiem(t, con, -tru, "phien", `Chơi ${p.muc} (khi mất mạng)`, { ref: p.id });
     // 15/11: phút chơi khi mất mạng cũng trừ sao 1:1 (cùng đồng hồ với dong-bo — phần đã tính qua usage không trừ lại)
     const phutTinh = them > 0 && b.boiMa !== true ? await phutTheoDanhSach(t, con, them, now) : 0;      // #433 A10: theo từng đoạn chế độ
-    const truSao = phutTinh > 0 ? (await tinhPhutChoi(t, con, phutTinh, now, { muc: p.muc, tz: r.tz })).tru : 0;
+    const truSao = phutTinh > 0 ? (await tinhPhutChoi(t, con, phutTinh, now, { muc: p.muc, tz: r.tz, may: may.id })).tru : 0;
     await t(`update play_sessions set phut_dung = phut_dung + $2, phan_nghin_tru = $3, diem_tru = diem_tru + $4, phut_thuong = phut_thuong + $5,
              nhip_cuoi = $6::timestamptz,
              -- có phút chơi bù ⇒ phiên đang chơi (hết tạm dừng); không có ⇒ giữ mốc tạm dừng cũ (không kéo dài «tạm» thêm 3 phút)

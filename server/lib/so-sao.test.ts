@@ -39,7 +39,7 @@ test("nghiệm thu #263: Con 0 sao, Ba Mẹ cho vay 30, tiêu hết ⇒ −30; n
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Bảo Anh" });
   const vay = await ss.choVay(fam, con, 30, bm, { mucDich: "choi" });
-  assert.deepEqual([vay.soSao, vay.sao, vay.no, vay.phutCon, vay.saoVayChuaTieu, vay.hetSao], [30, 0, 30, 30, 30, false]);
+  assert.deepEqual([vay.soSao, vay.sao, vay.no, vay.phutCon, vay.saoVayChuaTieu, vay.hetSao], [30, 30, 30, 30, 30, false]);   // #810: sao = sao khả dụng (= phutCon), nợ hiện riêng
   await tx(async (t) => { await v.khoaCon(t, con); await v.ghiDiem(t, con, -30, "doi_qua", "Đổi quà"); });
   let st = await ss.trangThaiSao(con);
   assert.deepEqual([st.sao, st.no, st.phutCon, st.hetSao], [0, 30, 0, true]);
@@ -220,7 +220,7 @@ test("API Ba Mẹ: gia-dinh có số sao từng Con (âm được); ví sao; xem
   const xt = (await m(tok, `con/${anh}/cho-vay/xem-truoc?soSao=30`)).body;
   assert.deepEqual([xt.mucVay, xt.macDinh, xt.cau], [[10, 15, 30], 15, "= 30 phút chơi hoặc đổi quà · Bảo Anh sẽ nợ 30 sao"]);
   const cv = await m(tok, `con/${anh}/cho-vay`, { soSao: 30, mucDich: "choi" });
-  assert.deepEqual([cv.status, cv.body.no, cv.body.sao, cv.body.phutCon], [200, 30, 30, 60]);
+  assert.deepEqual([cv.status, cv.body.no, cv.body.sao, cv.body.phutCon], [200, 30, 60, 60]);   // #810: sao = sao khả dụng (= phutCon), nợ hiện riêng
   await tx(async (t) => { await v.khoaCon(t, anh); await v.ghiDiem(t, anh, -60, "choi", "Chơi YouTube 60 phút"); });
   gd = (await m(tok, "gia-dinh")).body.con;
   assert.deepEqual([gd[0].sao, gd[0].no, gd[0].hetSao], [0, 30, true]);
@@ -251,7 +251,7 @@ test("review #269: hoàn tác cho vay chỉ rút phần chưa trả / chưa tiê
   assert.deepEqual([h.soSaoHoan, h.tron, h.no, h.sao, h.phutCon], [20, false, 0, 10, 10], "rút 20, Con giữ 10 sao tự kiếm, nợ không âm");
   await ss.choVay(fam, con, 15, bm);
   const st = await ss.trangThaiSao(con);
-  assert.deepEqual([st.no, st.sao, st.phutCon], [15, 10, 25]);
+  assert.deepEqual([st.no, st.sao, st.phutCon], [15, 25, 25]);   // #810: sao = sao khả dụng (= phutCon), nợ hiện riêng
   // cảnh báo nợ của khoản vay bị rút trọn ⇒ gỡ; lần vay đó không còn đếm
   const con2 = await g.taoCon(fam, { ten: "Bảo Minh" });
   await ss.choVay(fam, con2, 200, bm);

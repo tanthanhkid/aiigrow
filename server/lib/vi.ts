@@ -106,9 +106,9 @@ export async function tomTatVi(con: string) {
   const r = (await one<{ du: number; no: number; vay: number; tra: number; kiem: number; cho: number; giu: number }>(SQL_TOM_TAT_VI, [con]))!;
   const no = Math.max(0, r.no), tieu = saoKhaDung(r.du, con);
   // `soDu` (cũ) = sao TIÊU ĐƯỢC (≥ 0 — app/agent cũ dùng để biết đủ sao đổi quà) · `sao` = số dư Con thấy, kẹp >= 0 (#745).
-  // `sao` (#745) KẸP ≥ 0, KHÔNG âm khi nợ (nợ ở `no`).
+  // `sao` (#745) KẸP ≥ 0, KHÔNG âm khi nợ (nợ ở `no`). #810: `sao` = sao khả dụng (= soDu = phutCon) — một số cho mọi màn.
   // saoGiu (06/11, L14): sao đang GIỮ cho quà chờ Ba Mẹ trao (đã ghi trừ tạm; Ba Mẹ huỷ ⇒ hoàn) — «Đang giữ 50 sao cho quà chờ trao»
-  return { soDu: tieu, sao: Math.max(0, tieu - no), saoRong: tieu - no, no, saoVayChuaTieu: Math.min(tieu, no), phutCon: tieu, hetSao: tieu <= 0, tongVay: r.vay, daTraNo: r.tra,
+  return { soDu: tieu, sao: tieu, saoRong: tieu - no, no, saoVayChuaTieu: Math.min(tieu, no), phutCon: tieu, hetSao: tieu <= 0, tongVay: r.vay, daTraNo: r.tra,
     canhBaoNo: no > NGUONG_NO, diemChoDuyet: r.cho, saoChoDuyet: r.cho, saoGiu: r.giu, tongKiem: Math.max(0, r.kiem), capDo: capDo(Math.max(0, r.kiem)) };
 }
 

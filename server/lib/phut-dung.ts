@@ -8,7 +8,8 @@
 // Sao trừ = phút của nhóm «Tính phút» trong cùng tập dòng này (1 sao = 1 phút; sổ `points` loại `choi` ghi cùng số — lib/so-sao.ts).
 import { q } from "./db.ts";
 import { chuanMuc, laAppAiiGrow, laTienTrinhNenWindows } from "./luat-app.ts";
-import { TRINH_DUYET } from "./man-hinh.ts";
+import { TRINH_DUYET, tenDoc } from "./man-hinh.ts";
+import { LA_APP } from "./so-sao.ts";
 import { mucGop } from "./ten-than-thien.ts";
 
 export type LuatDung = { child_id: string; muc: string; ten: string; loai: string; nhom: string };
@@ -46,4 +47,50 @@ export function phutTheoMay(d: { app: DongApp[]; web: DongWeb[] }): Map<string, 
   for (const a of d.app) t.set(a.device_id, (t.get(a.device_id) ?? 0) + Number(a.phut));
   for (const w of d.web) t.set(w.device_id, (t.get(w.device_id) ?? 0) + Number(w.giay) / 60);
   return new Map([...t].map(([k, v]) => [k, Math.round(v)]));
+}
+
+// ---------------------------------------------------------------- #810 (test 28/11): sao trừ = sổ `points` loại `choi` — MỘT nguồn
+
+/** Khoá mục của dòng sổ `choi` (ref `choi:<ngày>:<mục>`) — cùng cách chuẩn hoá với dòng «Đã dùng gì» (app: mucGop, web: tên miền chuẩn). */
+export const khoaMucSao = (muc: string) => (!muc ? "" : muc.startsWith("ios:") ? muc : mucGop(chuanMuc(muc)));
+
+export type DongSao = { muc: string; may: string | null; sao: number };
+
+/** Sổ `choi` hôm nay của Con theo (mục, máy) — tổng các dòng = «Hôm nay đã chơi N phút · −N sao» (so-sao › phutDaTruHomNay, quy-gio › soHomNay.daChoi).
+ *  Mọi màn đọc «sao trừ» / «phút đã chơi» từ đây: «Đã dùng gì», app Con, trang máy. Ref khác dạng ⇒ mục rỗng. */
+export async function docSaoHomNay(con: string, ngay: string, tu: Date): Promise<DongSao[]> {
+  const goc = `choi:${ngay}:`;
+  const ds = await q<{ muc: string; may: string | null; sao: number }>(
+    `select case when left(coalesce(ref, ''), $4::int) = $3 then substr(ref, $4::int + 1) else '' end as muc, device_id as may,
+        coalesce(-sum(delta), 0)::int as sao from points where child_id = $1 and loai = 'choi' and created_at >= $2 group by 1, 2`,
+    [con, tu, goc, goc.length]);
+  return ds.map((r) => ({ muc: khoaMucSao(r.muc), may: r.may ?? null, sao: Number(r.sao) })).filter((r) => r.sao !== 0);
+}
+
+/** Phút ĐÃ CHƠI (trừ sao) của Con trên từng máy = sổ `choi` theo device_id. Dòng sổ cũ chưa có máy ⇒ máy dùng mục đó nhiều nhất hôm nay
+ *  (usage / web_nhat_ky), mục `ios:<id>` ⇒ chính máy đó; không suy được ⇒ bỏ (không gán bừa). Một máy ⇒ = Hôm nay «Đã dùng N phút». */
+export function saoTheoMay(sao: DongSao[], d: { app: DongApp[]; web: DongWeb[] }): Map<string, number> {
+  const nhieuNhat = new Map<string, { may: string; phut: number }>();
+  const ghi = (muc: string, may: string, phut: number) => { const x = nhieuNhat.get(muc); if (!x || phut > x.phut) nhieuNhat.set(muc, { may, phut }); };
+  for (const a of d.app) ghi(khoaMucSao(a.muc), a.device_id, Number(a.phut));
+  for (const w of d.web) ghi(khoaMucSao(w.ten_mien), w.device_id, Number(w.giay) / 60);
+  const t = new Map<string, number>();
+  for (const r of sao) {
+    const may = r.may ?? (r.muc.startsWith("ios:") ? r.muc.slice(4) : nhieuNhat.get(r.muc)?.may ?? null);
+    if (may) t.set(may, (t.get(may) ?? 0) + r.sao);
+  }
+  return t;
+}
+
+/** Khay Windows «đã dùng hôm nay theo app» (Policy › sao.appHomNay): từng mục ĐÃ TRỪ SAO hôm nay theo sổ (mọi máy, cả web) — cùng tên + số với
+ *  «Đã dùng gì» của Ba Mẹ (cột sao) và app Con; tổng = sao.phutChoiHomNay. `luat` (muc, ten) ⇒ tên Ba Mẹ đặt. Dòng `ios:` / không mục ⇒ «Khác». */
+export async function appTheoSo(con: string, ngay: string, tu: Date, luat: { muc: string; ten: string }[] = []) {
+  const theoMuc = new Map<string, number>();
+  for (const r of await docSaoHomNay(con, ngay, tu)) {
+    const k = !r.muc || r.muc.startsWith("ios:") ? "" : r.muc;
+    theoMuc.set(k, (theoMuc.get(k) ?? 0) + r.sao);
+  }
+  return [...theoMuc].filter(([, sao]) => sao > 0)
+    .map(([muc, sao]) => ({ muc, ten: muc ? tenDoc(muc, LA_APP.test(muc) ? "app" : "web", chonLuat(luat.map((l) => ({ child_id: "", ...l })), muc)?.ten) : "Khác", sao }))
+    .sort((a, b) => (+(a.muc === "") - +(b.muc === "")) || b.sao - a.sao).slice(0, 12);
 }

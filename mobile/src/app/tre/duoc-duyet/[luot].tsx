@@ -43,7 +43,7 @@ export default function DuocDuyet() {
         <Text style={{ fontFamily: FD.den, fontSize: 44, color: D.saoInk }}>{`+${diem} sao`}</Text>
         <TieuD chu={`Giỏi quá! Ba Mẹ duyệt ${d.l?.ten ?? "nhiệm vụ"} rồi!`} nho giua />
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 }}>
-          <ChuD kieu="den" co={20} mau={coNo ? NO.chu : D.chu3} so>{soVN(tn.truoc)}</ChuD>
+          <ChuD kieu="den" co={20} mau={coNo ? NO.chu : D.chu3} so>{soVN(Math.max(0, tn.truoc))}</ChuD>
           <ChuD kieu="den" co={18} mau={D.chu3}>→</ChuD>
           <ChuD kieu="den" co={22} mau={sao < 0 ? NO.chu : D.saoInk} so>{soSao(sao)}</ChuD>
         </View>

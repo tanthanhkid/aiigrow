@@ -123,7 +123,7 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
   return tx(async (t) => {
     const fam = await khoaCon(t, con);
     const p = (await t<{ id: string; trang_thai: string; gia_phan_nghin: number; toi_da_phut: number; nhip_cuoi: Date; phut_dung: number;
-      phan_nghin_tru: number; diem_tru: number; phut_thuong: number; muc: string; ly_do_ket: string | null; nghi_den: Date | null;
+      phan_nghin_tru: number; diem_tru: number; phut_thuong: number; muc: string; ly_do_ket: string | null; nghi_den: Date | null; device_id: string | null;
       tam_tu: Date | null; khoa_may: Record<string, unknown> | null; ba_me_den: Date | null }>(
       `select p.*, d.khoa_may, d.ba_me_den from play_sessions p left join devices d on d.id = p.device_id
         where p.id = $1 and p.child_id = $2 for update of p`, [phienId, con]))[0];
@@ -148,7 +148,7 @@ export async function nhip(con: string, phienId: string, dangDung: boolean, now 
       phutDung = Math.round((phutDung + them) * 100) / 100;
       // 15/11: 1 sao = 1 phút «Tính phút» (Mở hết ⇒ không trừ)
       const phutTinh = await phutTheoDanhSach(t, con, them, now);        // #433 A10: đổi chế độ giữa chừng tính theo từng đoạn
-      if (phutTinh > 0) await tinhPhutChoi(t, con, phutTinh, now, { muc: p.muc, tz: b.tz });
+      if (phutTinh > 0) await tinhPhutChoi(t, con, phutTinh, now, { muc: p.muc, tz: b.tz, may: p.device_id });
       phanNghin += Math.round(tinhTien * p.gia_phan_nghin);
       const nguyen = Math.floor(phanNghin / 1000) - diemTru;
       if (nguyen > 0) {

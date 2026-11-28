@@ -162,6 +162,9 @@ public sealed class SoSaoMay
     /// <summary>#699: phút «Tính phút» đã trừ sao HÔM NAY trên mọi máy của Con (cả web), giờ gia đình — số khay hiện ở «Hôm nay đã chơi N phút · −N sao».
     /// null = máy chủ cũ (khay đếm tại máy như trước).</summary>
     public int? PhutChoiHomNay { get; set; }
+    /// <summary>#810: từng mục ĐÃ TRỪ SAO hôm nay theo sổ máy chủ (mọi máy của Con, cả web) — <see cref="DungApp.Phut"/> = số sao trừ (= phút đã chơi).
+    /// Cùng tên + số với «Đã dùng gì» của Ba Mẹ; tổng = <see cref="PhutChoiHomNay"/>. null = máy chủ cũ (khay đếm tại máy như trước).</summary>
+    public List<DungApp>? AppHomNay { get; set; }
 }
 
 /// <summary>Số giây Con đã chơi app «Tính phút» tại máy kể từ Policy nhận lúc <see cref="PolicyAt"/> (lưu để dịch vụ khởi động lại vẫn trừ đúng sao).

@@ -4,7 +4,8 @@ import type { TenIcon } from "./ui";
 import { soVN } from "./so-sao";
 
 type DongDung = { luc: string | null; ten: string; muc: string; kieu: "app" | "web"; may: string | null; nen: string | null; mayId: string | null;
-  phut: number; tinhGio: boolean; chuaXep?: boolean; dangMo: boolean; matMang: boolean };
+  phut: number; tinhGio: boolean; chuaXep?: boolean; dangMo: boolean; matMang: boolean;
+  /** #810: sao ĐÃ TRỪ thật cho mục này hôm nay (sổ sao máy chủ) — máy chủ cũ không gửi ⇒ ước 1 phút = 1 sao */ sao?: number };
 type DongChan = { luc: string; ten: string; may: string | null; ly: "dang_xin" | "chua_cho" | "grow_chan"; yeuCau: string | null; phut: number | null };
 export type HomNayDung = { ten: string; ngay: string;
   /** daDung (phút đo, số lẻ — cũ) · daChoi / gioiHanNgay / conNgay: số «hôm nay» máy chủ tính (#705, #700 — lib/so-hom-nay) */
@@ -26,6 +27,12 @@ export function icDung(x: { ten: string; kieu: "app" | "web"; tinhGio: boolean }
 
 
 /** Nhãn thời lượng một dòng «đã dùng» — MỘT kiểu cho Trang chủ (bm2-trang-chu .tag) và màn «<Con> đã dùng gì» (them-c95l1cwc):
- * mục Tính phút trừ sao, 1 phút = 1 sao ⇒ «−39 sao»; mục Không tính phút ⇒ «Không tính 10′» (không trừ sao). */
-export const nhanDung = (x: { phut: number; tinhGio: boolean; chuaXep?: boolean }) =>
-  x.chuaXep ? { chu: `Chưa xếp ${x.phut}′`, doc: `${x.phut} phút, chưa xếp nhóm, chưa trừ sao` } : x.tinhGio ? { chu: `${soVN(-x.phut)} sao`, doc: `trừ ${x.phut} sao` } : { chu: `Không tính ${x.phut}′`, doc: `${x.phut} phút, không trừ sao` };
+ * mục Tính phút ⇒ «−39 sao» (sao trừ thật = phút); sao trừ khác phút đo (chơi song song / hết sao không trừ thêm) ⇒ «16′ · −9 sao» — cùng cặp số app Con
+ * «16 phút · −9 sao» (#810); mục Không tính phút ⇒ «Không tính 10′» (không trừ sao). Máy chủ cũ không gửi `sao` ⇒ ước 1 phút = 1 sao. */
+export function nhanDung(x: { phut: number; tinhGio: boolean; chuaXep?: boolean; sao?: number }) {
+  const sao = typeof x.sao === "number" ? x.sao : x.tinhGio && !x.chuaXep ? x.phut : 0;
+  if (sao > 0 || x.tinhGio && !x.chuaXep) {
+    return sao === x.phut ? { chu: `${soVN(-sao)} sao`, doc: `trừ ${sao} sao` } : { chu: `${x.phut}′ · ${soVN(-sao)} sao`, doc: `${x.phut} phút, trừ ${sao} sao` };
+  }
+  return x.chuaXep ? { chu: `Chưa xếp ${x.phut}′`, doc: `${x.phut} phút, chưa xếp nhóm, chưa trừ sao` } : { chu: `Không tính ${x.phut}′`, doc: `${x.phut} phút, không trừ sao` };
+}

@@ -56,6 +56,15 @@ public static class SaoView
         return Math.Max(0, ds.Where(x => tinh.Contains(x.AppId)).Sum(x => Math.Max(0, x.Phut)) - Math.Max(0, phutBoiMa));
     }
 
+    /// <summary>#810: dòng «đã dùng hôm nay theo app» của khay = mục ĐÃ TRỪ SAO theo sổ máy chủ (mọi máy, cả web — cùng «Đã dùng gì» của Ba Mẹ)
+    /// + app «Không tính phút» đếm tại máy. Máy chủ cũ / Policy không phải của hôm nay (<paramref name="mayChu"/> null) ⇒ đếm tại máy như trước.</summary>
+    public static List<DungApp> DungTheoMayChu(IReadOnlyList<DungApp>? mayChu, IEnumerable<DungApp> taiMay, IEnumerable<string>? appKhongTinh)
+    {
+        if (mayChu is null) return taiMay.ToList();
+        var hoc = new HashSet<string>(appKhongTinh ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        return mayChu.Where(x => x.Phut > 0).Concat(taiMay.Where(x => x.Phut > 0 && hoc.Contains(x.AppId))).ToList();
+    }
+
     /// <summary>«Roblox 30 phút · YouTube Kids 12 phút · Từ điển không tính phút» — app «Tính phút» trước, tối đa 3 mục.</summary>
     public static string DungTheoApp(IEnumerable<DungApp> ds, IEnumerable<string>? appKhongTinh)
     {
