@@ -12,6 +12,7 @@ import { giaPhut, phienDang } from "./phien.ts";
 import { soDu } from "./vi.ts";
 import { canhBao, ghiSuKien } from "./nhat-ky.ts";
 import type { May } from "./gia-dinh.ts";
+import { capNhatCanhBaoQuanTri, docQuanTriTrong } from "./quan-tri-trong.ts";
 // M4 agent Windows (phiên web cho khung Kid, sự kiện, bù phút offline, gỡ có mật khẩu Ba Mẹ)
 import { newId, tx, type Q } from "./db.ts";
 import { chuanDinhDanh, dungMatKhau, sha, taoToken, TIEN_TO_FB } from "./auth.ts";
@@ -164,6 +165,8 @@ export async function dongBo(may: May, b: DongBoVao, now = new Date()) {
       { con, may: may.id, khoa: `lech_gio:${nay}:${may.id}`, chiTiet: { lechGiay } });
     if (moi) await ghiSuKien(may.family_id, "lech_gio", { lech_giay: lechGiay }, { con, may: may.id });
   }
+  // #861: tài khoản quản trị chưa có mật khẩu (agent Windows báo) ⇒ cảnh báo Ba Mẹ / tự hết khi báo rỗng. Lỗi không làm hỏng lượt đồng bộ.
+  try { await capNhatCanhBaoQuanTri(may, docQuanTriTrong(b.status?.quanTriTrong)); } catch (e) { console.error("dong-bo: cảnh báo quản trị trống lỗi", e); }
   return taoPolicy(may, con, { gioMaySai }, now);
 }
 

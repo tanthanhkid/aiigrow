@@ -5,6 +5,7 @@
 //   · mất nhịp quá ngưỡng (ngung_chay_phut; điện thoại: mat_nhip_di_dong_phut) ⇒ «ngoài vòng kiểm soát» + cảnh báo Ba Mẹ MỘT lần / lần mất;
 //   · Ba Mẹ mở khẩn cấp qua app (có hạn, ghi nhật ký). Không có «chế độ cục bộ»: mọi nới lỏng chỉ do Ba Mẹ duyệt qua máy chủ.
 // Máy chưa từng gửi nhịp (agent M4 cũ chỉ dong-bo) ⇒ «chua_co_nhip»: không khoá (tương thích), Ba Mẹ thấy rõ trạng thái này.
+import { quanTriTrongCua } from "./quan-tri-trong.ts";
 import { coDemYeuCau, one, q, type Q, sanSang } from "./db.ts";
 import { LoiNghiepVu } from "./loi.ts";
 import { dangKhoa, khoaDen, khoaMayHieuLuc, thamSo, type ThamSo } from "./cau-hinh.ts";
@@ -265,7 +266,9 @@ export async function dsTuanThu(fam: string, now = new Date(), o: { nhe?: boolea
       // #772: bé nào trên máy này đang bị khoá THEO BÉ (mọi máy của bé) — trang máy hiện «<bé> đang khoá tới …» + nút Mở khoá
       khoaBe: (noi.get(m.id)?.conDs ?? []).filter((c) => dangKhoa(cfgCon.get(c.id), now)).map((c) => ({ id: c.id, ten: c.ten, den: khoaDen(cfgCon.get(c.id), now) })),
       conDs: noi.get(m.id)?.conDs ?? [], dangDung: noi.get(m.id)?.dangDung ?? null, soCon: noi.get(m.id)?.soCon ?? 0, motCon: noi.get(m.id)?.motCon ?? false,
-      baMeDungDen: m.ba_me_den && new Date(m.ba_me_den).getTime() > now.getTime() ? new Date(m.ba_me_den).toISOString() : null };
+      baMeDungDen: m.ba_me_den && new Date(m.ba_me_den).getTime() > now.getTime() ? new Date(m.ba_me_den).toISOString() : null,
+      // #861: tài khoản quản trị chưa có mật khẩu agent báo ([] = ổn / agent chưa báo) — trang máy hiện cảnh báo + cách đặt mật khẩu
+      quanTriTrong: quanTriTrongCua(m) };
   }));
 }
 

@@ -167,6 +167,8 @@ export type TuanThuMay = {
    *  số Con · iPhone/iPad chỉ một Con · Ba Mẹ đang dùng máy tới. Máy chủ cũ không gửi ⇒ suy từ con / dungChung (lib/may-nhieu-con). */
   khoaMay?: { khoa: boolean; den: string | null }; /** #772: bé trên máy đang bị khoá THEO BÉ (mọi máy của bé) */ khoaBe?: { id: string; ten: string; den: string | null }[]; conDs?: { id: string; ten: string; avatar: string }[];
   dangDung?: { id: string; ten: string; avatar: string; tu?: string | null } | null; soCon?: number; motCon?: boolean; baMeDungDen?: string | null;
+  /** #861: tài khoản quản trị chưa có mật khẩu agent Windows báo ([] / không có = ổn hoặc agent cũ) */
+  quanTriTrong?: string[];
 };
 export type CheDoMay = "giam-sat" | "chan";
 /** Màu icon máy — MỘT quy tắc cho Trang chủ và danh sách máy: ngoài vòng ⇒ đỏ; lệch chuẩn hoặc bảo vệ chưa đủ ⇒ cam; còn lại xanh. */

@@ -17,6 +17,7 @@ export const LOAI_CHI_BIET = ["go_may", "may_chuyen_nha", "het_han_nhiem_vu", "l
 /** Cảnh báo CHƯA đọc, trong 7 ngày, mức chú ý / nghiêm trọng, không thuộc loại chỉ để biết ⇒ Ba Mẹ cần sửa. MỘT hàm cho chuông, Cả nhà và màn Cảnh báo. */
 export function canSuaCanhBao(a: { loai: string; muc: string; da_doc: boolean; created_at: Date | string }, now = new Date()): boolean {
   if (a.da_doc || LOAI_CHI_BIET.includes(a.loai)) return false;
-  if (now.getTime() - new Date(a.created_at).getTime() > 7 * 86_400_000) return false;
+  // #861: «tài khoản quản trị chưa có mật khẩu» còn đúng tới khi agent báo đã ổn (lúc đó dòng tự đánh dấu đã đọc) ⇒ không hết hạn 7 ngày
+  if (a.loai !== "quan_tri_trong_mat_khau" && now.getTime() - new Date(a.created_at).getTime() > 7 * 86_400_000) return false;
   return a.loai === "quen_pin" || a.loai === "pin_bi_do" || a.muc === "chu_y" || a.muc === "nghiem_trong";
 }
