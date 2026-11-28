@@ -42,10 +42,12 @@ export default function VaoNha() {
   const ai = x.nguoiMoi ?? x.tenGiaDinh;
   const con = x.tenCon ?? [];
   const trongGiup = x.quyen === "trong_giup";
-  const huongThat: Huong = trongGiup ? "bo_nha_cu" : huong;      // «Chỉ trông con» không mang các bé sang nhà người mời được
-  const bamDuoc = !(d.nhaCu.laNguoiLonDuyNhat && huongThat === "bo_nha_cu" && d.nhaCu.soMay > 0);   // bỏ nhà còn máy ⇒ máy chủ từ chối: tắt nút
+  // «Chỉ trông con» không mang các bé sang nhà người mời được ⇒ chỉ còn «Bỏ nhà cũ», phải tự chọn (không chọn sẵn việc xoá)
+  const huongThat: Huong | null = trongGiup ? (huong === "bo_nha_cu" ? "bo_nha_cu" : null) : huong;
+  const canChon = d.nhaCu.laNguoiLonDuyNhat && (d.nhaCu.soBe > 0 || d.nhaCu.soMay > 0);
+  const bamDuoc = !canChon || (huongThat !== null && !(huongThat === "bo_nha_cu" && d.nhaCu.soMay > 0));   // bỏ nhà còn máy ⇒ máy chủ từ chối: tắt nút
   const vao = () => lam(async () => {
-    const chonHuong = d.nhaCu.laNguoiLonDuyNhat && (d.nhaCu.soBe > 0 || d.nhaCu.soMay > 0) ? { huong: huongThat } : {};
+    const chonHuong = canChon && huongThat ? { huong: huongThat } : {};
     await bm.goi("moi/nhan", { ...(x.id ? { id: x.id } : { ma: m }), ...chonHuong });
     router.replace("/hom-nay");
   });
@@ -94,7 +96,7 @@ export default function VaoNha() {
 }
 
 /** Bước xác nhận khi tài khoản đã có nhà riêng (#877). */
-function NhaCuXacNhan({ nc, huong, doi, trongGiup }: { nc: NhaCu; huong: Huong; doi: (h: Huong) => void; trongGiup: boolean }) {
+function NhaCuXacNhan({ nc, huong, doi, trongGiup }: { nc: NhaCu; huong: Huong | null; doi: (h: Huong) => void; trongGiup: boolean }) {
   const coDuLieu = nc.soBe > 0 || nc.soMay > 0;
   if (!nc.laNguoiLonDuyNhat) {
     return <Bao loai="lam" ic="nha" tieu={cauNhaCu(nc)} loi={`Bạn chỉ rời nhà cũ, các bé và máy ở lại với người nhà còn lại${nc.laChu ? "; quyền chủ nhà chuyển cho Ba Mẹ còn lại" : ""}.`} />;

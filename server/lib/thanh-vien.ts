@@ -225,11 +225,13 @@ export async function dangKyTheoLoiMoi(b: { ma?: unknown; dinhDanh?: unknown; ot
 /** Bảng có cột family_id mà «Mang các bé theo» phải chuyển sang nhà mời (#877). Mọi bảng có family_id (grep schema.ts) PHẢI nằm ở đây, hoặc
  *  trong BANG_KHONG_CHUYEN kèm lý do — thanh-vien-nhan-moi-877.test.ts đối chiếu với information_schema nên thêm bảng mới mà quên sẽ đỏ.
  *  Bảng con của Con (usage, points, badges, grants, submissions, kid_sessions…) chỉ khoá theo child_id / device_id ⇒ đi theo Con / máy, không cần đổi. */
-export const BANG_CHUYEN_NHA = ["children", "devices", "device_children", "tasks", "rewards", "vouchers", "quy_gd", "app_rules", "app_theo_ten",
-  "pair_codes", "exceptions", "events", "messages", "ho_tro", "may_log", "lenh_may", "goi_cai", "tuan_thu_may", "dns_thiet_bi", "audit"] as const;
+export const BANG_CHUYEN_NHA = ["children", "devices", "device_children", "tasks", "rewards", "vouchers", "quy_gd", "app_theo_ten",
+  "pair_codes", "exceptions", "events", "messages", "ho_tro", "may_log", "lenh_may", "goi_cai", "tuan_thu_may", "dns_thiet_bi"] as const;
 /** Không chuyển: parents (chỉ người nhận chuyển, người khác không còn — trừ dòng «roi» chỉ để lịch sử), loi_moi (lời mời nhà cũ gửi đi, theo nhà cũ bị xoá),
- *  alerts (chuyển có lọc trùng khoá, bên dưới), dns_gia_dinh (khoá chính = family_id: giữ của nhà mời, nhà mời chưa có thì chuyển, bên dưới). */
-export const BANG_KHONG_CHUYEN = ["parents", "loi_moi", "alerts", "dns_gia_dinh"] as const;
+ *  alerts (chuyển có lọc trùng khoá, bên dưới), dns_gia_dinh (khoá chính = family_id: giữ của nhà mời, nhà mời chưa có thì chuyển, bên dưới),
+ *  app_rules (luật «cả gia đình» child_id = '' đổi thành luật riêng từng bé của nhà cũ — không áp lên bé nhà mời; luật theo bé chuyển, bên dưới),
+ *  audit (nhật ký kiểm toán ở lại id nhà cũ: người nhà mời không thấy, dọn sau 90 ngày kể từ mốc xoa_gia_dinh). */
+export const BANG_KHONG_CHUYEN = ["parents", "loi_moi", "alerts", "dns_gia_dinh", "app_rules", "audit"] as const;
 
 export type NhaCu = { soBe: number; soMay: number; soNguoiLon: number; laNguoiLonDuyNhat: boolean; laChu: boolean; tenBe: string[]; tenNha: string };
 
@@ -247,6 +249,17 @@ export const tomTatNhaCu = (bm: BaMe) => bangMang().then(() => nhaCuTrongTx(q, b
 
 /** Chuyển Con + máy + MỌI dữ liệu của nhà cũ sang nhà mời (cùng giao dịch). Khoá ngoại theo child_id / device_id không đổi ⇒ token máy Con vẫn đúng. */
 async function mangTheoSangNha(t: Q, cu: string, moi: string) {
+  // đóng an toàn: có bảng family_id mới mà chưa khai báo ⇒ dừng, không để cascade xoá mất dữ liệu của bé
+  const biet = new Set<string>([...BANG_CHUYEN_NHA, ...BANG_KHONG_CHUYEN, "families"]);
+  const la = (await t<{ table_name: string }>(`select table_name from information_schema.columns where column_name = 'family_id' and table_schema = current_schema()`))
+    .map((x) => x.table_name).filter((x) => !biet.has(x));
+  if (la.length) throw new LoiNghiepVu("bang_chua_khai_bao", `Bảng ${la.join(", ")} chưa khai báo cách chuyển nhà — báo AiiGrow`, 500);
+  // app_rules: luật cả nhà cũ (child_id '') ⇒ luật riêng từng bé của nhà cũ (chạy TRƯỚC khi chuyển Con); luật theo bé chuyển nguyên
+  await t(`insert into app_rules(family_id, child_id, muc, ten, loai, nhom, het)
+           select $2, c.id, r.muc, r.ten, r.loai, r.nhom, r.het from app_rules r join children c on c.family_id = r.family_id
+            where r.family_id = $1 and r.child_id = '' on conflict do nothing`, [cu, moi]);
+  await t(`delete from app_rules where family_id = $1 and child_id = ''`, [cu]);
+  await t(`update app_rules set family_id = $2 where family_id = $1`, [cu, moi]);
   for (const b of BANG_CHUYEN_NHA) await t(`update ${b} set family_id = $2 where family_id = $1`, [cu, moi]);
   // alerts: khoá duy nhất (family_id, khoa) — dòng trùng khoá với nhà mời ở lại nhà cũ và bị xoá theo
   await t(`update alerts set family_id = $2 where family_id = $1 and (khoa is null or khoa not in (select khoa from alerts where family_id = $2 and khoa is not null))`, [cu, moi]);
@@ -298,13 +311,13 @@ export async function nhanLoiMoi(bm: BaMe, vao: unknown) {
       throw new LoiNghiepVu("con_may", `Nhà cũ còn ${nha.soMay} máy đã ghép — gỡ từng máy trước (mở máy › Gỡ máy này), hoặc chọn «Mang các bé theo»`, 409);
     let chuMoi: string | null = null;
     if (xuLy === "roi" && nha.laChu) {
-      // người tạo nhà rời đi ⇒ chuyển chủ cho Ba Mẹ còn lại (không có Ba Mẹ thì người lớn vào sớm nhất, lên quyền Ba Mẹ)
-      const ke = (await t<{ id: string }>(`select id from parents where family_id = $1 and id <> $2 and vai <> 'roi'
-          order by (vai in ('ba_me', 'chu', 'duyet')) desc, created_at limit 1`, [cu, bm.id]))[0] as { id: string } | undefined;
-      if (!ke) throw new LoiNghiepVu("thay_doi_dong_thoi", "Nhà vừa có thay đổi — thử lại", 409);
+      // người tạo nhà rời đi ⇒ chuyển chủ cho Ba Mẹ còn lại (chỉ còn người trông giúp ⇒ chặn, không tự nâng quyền)
+      const ke = (await t<{ id: string }>(`select id from parents where family_id = $1 and id <> $2 and vai in ('ba_me', 'chu', 'duyet')
+          order by created_at limit 1 for update`, [cu, bm.id]))[0] as { id: string } | undefined;
+      if (!ke) throw new LoiNghiepVu("can_ba_me_giu_nha", "Nhà cũ chỉ còn người trông giúp — nâng một người lên «Như Ba Mẹ» (Cả nhà › Thành viên) trước khi sang nhà khác", 409);
       chuMoi = ke.id;
       await t(`update families set chu_id = $2 where id = $1`, [cu, ke.id]);
-      await t(`update parents set vai = 'ba_me' where id = $1`, [ke.id]);
+      await t(`update parents set vai = 'ba_me' where id = $1 and vai <> 'ba_me'`, [ke.id]);
     }
     await t(`update parents set family_id = $2, vai = $3 where id = $1`, [bm.id, m.family_id, quyen]);
     await t(`update loi_moi set dung_luc = now(), dung_boi = $2 where id = $1`, [m.id, bm.id]);

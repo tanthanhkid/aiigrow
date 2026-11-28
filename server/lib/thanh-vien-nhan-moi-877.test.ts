@@ -107,6 +107,8 @@ test("#877 nhánh 1 «Mang các bé theo»: Con + máy + dữ liệu của MỌI
   for (const t of tv.BANG_CHUYEN_NHA) assert.ok(dem[t] >= 1, `gieo thiếu ${t}`);
   // sao / nhiệm vụ của Con theo child_id (không có family_id) phải còn nguyên
   await q(`insert into points(id, child_id, delta, loai, ly_do) values ('p877', $1, 7, 'nhiem_vu', 'x')`, [conB]);
+  // luật «cả nhà» (child_id '') của hai nhà cùng muc: nhà mời giữ nguyên, của nhà cũ thành luật riêng của bé nhà cũ
+  await q(`insert into app_rules(family_id, child_id, muc, ten, loai) values ($1, '', 'youtube.com', 'YouTube', 'web'), ($2, '', 'youtube.com', 'YouTube', 'web'), ($2, '', 'roblox.exe', 'Roblox', 'app')`, [famA, famB]);
   const tokenHash = (await q<{ token_hash: string }>(`select token_hash from devices where id = $1`, [mayB]))[0].token_hash;
   const truoc = { A: await demBang(famA) };
   const id = await moi(a.tok, b.so);
@@ -124,18 +126,22 @@ test("#877 nhánh 1 «Mang các bé theo»: Con + máy + dữ liệu của MỌI
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body.mangTheo, { soBe: 1, soMay: 1 });
   assert.equal((await famCua(b.tok)).fam, famA);
-  // MỌI bảng: không còn dòng nào ở nhà cũ (trừ audit mốc xoá), nhà mời nhận đủ
+  // MỌI bảng chuyển: không còn dòng nào ở nhà cũ, nhà mời nhận đủ
   const sau = await demBang(famA);
   for (const t of tv.BANG_CHUYEN_NHA) {
-    if (t === "audit") continue;
     const them = sau[t] - (truoc.A[t] ?? 0);
     if (t === "events") assert.ok(them >= dem[t], "events chuyển thiếu");      // thêm sự kiện mời / «vào nhà» của chính lượt nhận
     else assert.equal(them, dem[t], `bảng ${t} chuyển thiếu/thừa`);
     assert.equal(Number((await q<{ n: string }>(`select count(*) as n from ${t} where family_id = $1`, [famB]))[0].n), 0, `${t} còn ở nhà cũ`);
   }
-  assert.ok(sau.audit - truoc.A.audit >= dem.audit, "audit chuyển");
+  const luat = await q<{ family_id: string; child_id: string; muc: string }>(`select family_id, child_id, muc from app_rules where family_id in ($1, $2) order by family_id, child_id, muc`, [famA, famB]);
+  assert.deepEqual(luat.filter((x) => x.child_id === "").map((x) => [x.family_id, x.muc]), [[famA, "youtube.com"]], "luật cả nhà của nhà mời giữ nguyên, của nhà cũ không áp lên bé nhà mời");
+  const riengBe = luat.filter((x) => x.child_id === conB).map((x) => x.muc);
+  assert.ok(riengBe.includes("roblox.exe") && riengBe.includes("youtube.com") && luat.every((x) => x.family_id === famA), "luật cả nhà cũ ⇒ luật riêng bé");
+  assert.ok(luat.some((x) => x.child_id === conB && x.family_id === famA), "luật theo bé đã gieo chuyển sang");
   assert.equal((await q(`select 1 from families where id = $1`, [famB])).length, 0, "nhà cũ phải bị xoá");
-  assert.deepEqual((await q<{ hanh_dong: string }>(`select hanh_dong from audit where family_id = $1`, [famB])).map((x) => x.hanh_dong), ["xoa_gia_dinh"]);
+  // audit ở lại id nhà cũ (không lộ cho nhà mời), có mốc xoá để dọn sau 90 ngày
+  assert.ok((await q<{ hanh_dong: string }>(`select hanh_dong from audit where family_id = $1`, [famB])).map((x) => x.hanh_dong).includes("xoa_gia_dinh"));
   // máy Con: cùng token ⇒ tra ra nhà mời; Con vẫn gắn máy; sao còn
   const may = (await q<{ family_id: string; token_hash: string; child_id: string | null }>(`select family_id, token_hash, child_id from devices where id = $1`, [mayB]))[0];
   assert.deepEqual([may.family_id, may.token_hash, may.child_id], [famA, tokenHash, conB]);
@@ -185,7 +191,13 @@ test("#877 nhánh 3 nhà cũ còn người lớn khác: chỉ mình rời, Con /
   // C vào nhà B (Người trông giúp) — người lớn khác
   const mc = (await m("thanh-vien/moi", { tok: b.tok, body: { quyen: "trong_giup" } })).body;
   const tokC = await vaoBangLoiMoi(mc.ma, "Chú Cường");
+  // chỉ còn Người trông giúp ⇒ không tự nâng quyền: chặn, giữ nguyên
+  const chan = await m("moi/nhan", { tok: b.tok, body: { id: await moi(a.tok, b.so, "ba_me") } });
+  assert.deepEqual([chan.status, chan.body.error], [409, "can_ba_me_giu_nha"]);
+  assert.equal((await famCua(b.tok)).fam, famB);
+  await m(`thanh-vien/${(await famCua(tokC)).id}/vai`, { tok: b.tok, body: { quyen: "ba_me" } });
   const idC = (await famCua(tokC)).id;
+  assert.equal((await q<{ vai: string }>(`select vai from parents where id = $1`, [idC]))[0].vai, "ba_me", "đã nâng C lên Ba Mẹ");
   const truocB = await demBang(famB);
   assert.deepEqual((({ soNguoiLon, laNguoiLonDuyNhat, laChu }) => ({ soNguoiLon, laNguoiLonDuyNhat, laChu }))((await m("moi/nha-cu", { tok: b.tok })).body), { soNguoiLon: 2, laNguoiLonDuyNhat: false, laChu: true });
   const r = await m("moi/nhan", { tok: b.tok, body: { id: await moi(a.tok, b.so, "ba_me") } });   // không cần huong
@@ -195,7 +207,6 @@ test("#877 nhánh 3 nhà cũ còn người lớn khác: chỉ mình rời, Con /
   assert.deepEqual(await demBang(famB), { ...truocB, parents: 1, events: truocB.events + 1 });
   const f = (await q<{ chu_id: string }>(`select chu_id from families where id = $1`, [famB]))[0];
   assert.equal(f.chu_id, idC);
-  assert.equal((await q<{ vai: string }>(`select vai from parents where id = $1`, [idC]))[0].vai, "ba_me");
   assert.equal((await m("toi", { tok: tokC })).body.baMe.laChuNha, true);
   assert.equal((await m("gia-dinh", { tok: tokC })).body.con.length, 1);
   assert.equal((await q(`select 1 from devices where family_id = $1`, [famB])).length, 1);
