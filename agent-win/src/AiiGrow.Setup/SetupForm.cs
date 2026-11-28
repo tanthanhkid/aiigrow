@@ -951,7 +951,10 @@ internal sealed class SetupForm : Form
             await Installer.RunAsync(o, (i, _) => BeginInvoke(() => { if (!IsDisposed) Buoc(i); }));
             _dangCai = false;
             if (IsDisposed) return;
-            BuocXong(child, o.Pair?.ChildName, mayRieng: o.Pair is { DungChung: false } && !string.IsNullOrWhiteSpace(o.Pair.ChildName));
+            var tenHoSo = o.Pair?.ChildName;
+            var mayRieng = o.Pair is { DungChung: false } && !string.IsNullOrWhiteSpace(o.Pair.ChildName);
+            // #862: sau ghép + cài — tài khoản quản trị nào còn trống mật khẩu ⇒ màn đặt mật khẩu trước màn Xong
+            await KiemQuanTriTrong(child, () => BuocXong(child, tenHoSo, mayRieng));
         }
         catch (Exception e)
         {
@@ -1027,6 +1030,178 @@ internal sealed class SetupForm : Form
         X(the, 362, 298, "Vẫn lỗi? Tải lại bộ cài ở aiigrow.aiilab.vn/tai", Kieu.S, 310);
         NutLui(BuocGhep);
         NutChinh("Thử lại", 220, () => BuocCai(o));
+    }
+
+    // ================================================================ 5b. Mật khẩu tài khoản quản trị (#862)
+
+    /// <summary>Dò tài khoản quản trị cục bộ còn trống mật khẩu (trừ tài khoản của bé). Có ⇒ màn đặt mật khẩu; không có / dò lỗi ⇒ đi tiếp <paramref name="sau"/>.</summary>
+    private async Task KiemQuanTriTrong(LocalAccount child, Action sau)
+    {
+        List<TaiKhoanQuanTri> ds;
+        try { ds = await Task.Run(() => DatMatKhauQuanTri.CanDat(QuanTriTrongMay.DocMay(), child.Name, child.Sid, QuanTriTrongMay.KiemTrong)); }
+        catch (Exception e) { Program.WriteLog("Dò tài khoản quản trị trống mật khẩu lỗi: " + CauLoiCai.Log(e)); ds = new(); }
+        if (IsDisposed) return;
+        if (ds.Count == 0) { sau(); return; }
+        Program.WriteLog($"Tài khoản quản trị chưa có mật khẩu: {ds.Count}");
+        MoKhaySauCai();   // #777 B11: khay mở ngay cả khi Ba Mẹ đóng bộ cài ở màn mật khẩu (BuocXong gọi lại thì đã chạy ⇒ thôi)
+        try { ManMatKhauQuanTri(ds, sau, true, new List<string>(), null); }
+        catch (Exception e) { Program.WriteLog("Màn mật khẩu quản trị lỗi: " + CauLoiCai.Log(e)); sau(); }   // cài đã xong — không rơi vào màn «Cài lỗi»
+    }
+
+    /// <summary>«Đặt mật khẩu cho tài khoản quản trị»: hai ô gõ (hiện/ẩn, độ mạnh), đặt chung một mật khẩu hoặc từng tài khoản, hoặc «Tự đặt sau».
+    /// <paramref name="ds"/> = tài khoản còn trống; <paramref name="daDat"/> = tên đã đặt xong ở lượt trước; <paramref name="bao"/> = câu lỗi lượt trước.</summary>
+    private void ManMatKhauQuanTri(List<TaiKhoanQuanTri> ds, Action sau, bool dungChung, List<string> daDat, string? bao)
+    {
+        Man(5, "Bảo vệ máy");
+        var nhieu = ds.Count > 1;
+        Action<bool>? dangDatThayDoi = null;   // đang đặt ⇒ khoá mọi chỗ bấm (không chạy hai lượt đặt chồng nhau)
+        var dat = dungChung || !nhieu ? ds : ds.Take(1).ToList();
+        X(_body, 36, 72, "Đặt mật khẩu cho tài khoản quản trị", Kieu.H);
+        X(_body, 36, 116, "Tài khoản quản trị chưa có mật khẩu thì bé tự vào được tài khoản đó và gỡ được AiiGrow.", Kieu.P, 651);
+        var theTk = The(36, 164, 651, 72);
+        Vien(theTk, 56, 178, "khoa", 44, "cam");
+        X(theTk, 116, 176, !nhieu ? "Tài khoản cần đặt mật khẩu"
+            : dungChung ? $"Đặt chung một mật khẩu cho {ds.Count} tài khoản"
+            : $"Đang đặt cho «{DatMatKhauQuanTri.TenHien(ds[0])}» · còn {ds.Count - 1} tài khoản sau", Kieu.B, 550);
+        X(theTk, 116, 200, string.Join(" · ", ds.Select(DatMatKhauQuanTri.TenHien)), Kieu.S, 550);
+        var y0 = 260;
+        if (nhieu)
+        {
+            var cb = new OTichDongY { Text = $"Dùng chung một mật khẩu cho cả {ds.Count} tài khoản", Checked = dungChung, Location = ToaDo(_body, 36, 252) };
+            _body.Controls.Add(cb);
+            // vẽ lại màn sau khi sự kiện của ô tích chạy xong (không huỷ control đang xử lý chính sự kiện của nó)
+            cb.CheckedChanged += (_, _) => BeginInvoke(() => { if (!IsDisposed) ManMatKhauQuanTri(ds, sau, cb.Checked, daDat, null); });
+            dangDatThayDoi += d => cb.Enabled = !d;
+            y0 = 296;
+        }
+        var the = The(36, y0, 651, 220);
+        X(the, 58, y0 + 18, "Mật khẩu mới", Kieu.S, 0, Chu2, dam: true);
+        X(the, 372, y0 + 18, "Gõ lại lần nữa", Kieu.S, 0, Chu2, dam: true);
+        TextBox O(int x)
+        {
+            var o = new TextBox { Font = PhongChu.Tao(12.75f), UseSystemPasswordChar = true, MaxLength = DatMatKhauQuanTri.DaiToiDa };
+            var vo = ONhapClay.Boc(o, S(296));
+            var p = ToaDo(the, x, y0 + 40);
+            vo.Location = new Point(p.X - VeThe.LeBong.Left, p.Y - VeThe.LeBong.Top);
+            the.Controls.Add(vo);
+            return o;
+        }
+        var mk = O(56);
+        var lai = O(370);
+        Label? hien = null;
+        var dangDat = false;
+        hien = Lien(the, 58, y0 + 106, "Hiện mật khẩu", () =>
+        {
+            if (dangDat) return;
+            var an = !mk.UseSystemPasswordChar;
+            mk.UseSystemPasswordChar = lai.UseSystemPasswordChar = an;
+            hien!.Text = an ? "Hiện mật khẩu" : "Ẩn mật khẩu";
+        }, Clay.NgocInk);
+        var manh = X(the, 372, y0 + 106, "", Kieu.S, 300, dam: true);
+        X(the, 58, y0 + 136, "AiiGrow không lưu và không gửi mật khẩu này lên máy chủ. Ba Mẹ nhớ kỹ nhé. Mật khẩu web đã lưu trong trình duyệt của tài khoản đó có thể phải đăng nhập lại.", Kieu.S, 600);
+        var trangThai = X(the, 58, y0 + 180, "", Kieu.S, 600, dam: true);
+        void Bao(string c, Color mau) { trangThai.Text = c; trangThai.ForeColor = mau; }
+        var daDatCau = daDat.Count > 0 ? "Đã đặt mật khẩu cho " + string.Join(", ", daDat.Select(t => $"«{t}»")) + "." : null;
+        if (bao != null) Bao(daDatCau == null ? bao : daDatCau + "\n" + bao, Loi);
+        else if (daDatCau != null) Bao(daDatCau, Clay.NgocInk);
+        void DoiManh()
+        {
+            var d = DatMatKhauQuanTri.DoManh(mk.Text);
+            manh.Text = d == DoManhMatKhau.Trong ? "" : "Độ mạnh: " + DatMatKhauQuanTri.ChuDoManh(d);
+            manh.ForeColor = d switch { DoManhMatKhau.Yeu => Loi, DoManhMatKhau.Vua => Clay.Canh, _ => Clay.NgocInk };
+        }
+        mk.TextChanged += (_, _) => DoiManh();
+        var tuDat = NutChan("Tự đặt sau", 36, 160, false, () => ManTuDatSau(ds, sau, dungChung, daDat));
+        ClayButton? nut = null;
+        nut = NutChinh(dat.Count > 1 ? "Đặt mật khẩu cho cả " + dat.Count : "Đặt mật khẩu", 260, async () =>
+        {
+            if (DatMatKhauQuanTri.Loi(mk.Text, lai.Text) is { } loi) { Bao(loi, Loi); return; }
+            dangDat = true;
+            nut!.Enabled = tuDat.Enabled = mk.Enabled = lai.Enabled = false;
+            dangDatThayDoi?.Invoke(true);
+            Bao("Đang đặt mật khẩu…", Chu2);
+            var pw = mk.Text;
+            // mật khẩu chỉ ở trong bộ nhớ: không ghi log, xoá khỏi ô ngay khi đã lấy
+            mk.Text = lai.Text = "";
+            try
+            {
+                // 1327/5 khi đổi từ trống ⇒ chỉ đặt hộ (1003) nếu tài khoản VẪN trống (không đè mật khẩu Ba Mẹ vừa tự đặt trong Cài đặt)
+                int DatMot(TaiKhoanQuanTri t)
+                {
+                    try { return MatKhauQuanTri.Dat(t.Ten, pw, () => QuanTriTrongMay.KiemTrong(t)); }
+                    catch (Exception e) { Program.WriteLog("Đặt mật khẩu tài khoản quản trị lỗi: " + CauLoiCai.Log(e)); return DatMatKhauQuanTri.MaChuaRo; }
+                }
+                _dangCai = true;   // đang đổi mật khẩu ⇒ không cho đóng cửa sổ giữa chừng
+                List<(TaiKhoanQuanTri t, int rc)> kq;
+                try { kq = await Task.Run(() => dat.Select(t => (t, rc: DatMot(t))).ToList()); }
+                finally { _dangCai = false; }
+                pw = "";
+                // log cục bộ không ghi tên tài khoản (dữ liệu máy Ba Mẹ — như #860): chỉ số thứ tự + mã
+                for (int i = 0; i < kq.Count; i++) Program.WriteLog($"Đặt mật khẩu tài khoản quản trị {i + 1}/{kq.Count}: {(kq[i].rc == 0 ? "xong" : "mã " + kq[i].rc)}");
+                if (IsDisposed) return;
+                static bool Xong(int rc) => rc is 0 or DatMatKhauQuanTri.MaDaCoMatKhau;
+                var moi = daDat.Concat(kq.Where(x => x.rc == 0).Select(x => DatMatKhauQuanTri.TenHien(x.t))).ToList();
+                var conLai = ds.Where(t => !kq.Any(x => Xong(x.rc) && ReferenceEquals(x.t, t))).ToList();
+                // đặt từng tài khoản: tài khoản vừa lỗi xuống cuối hàng — không chặn các tài khoản sau
+                if (!dungChung) conLai = conLai.OrderBy(t => kq.Any(x => ReferenceEquals(x.t, t)) ? 1 : 0).ToList();
+                if (conLai.Count == 0) { ManDaDatMatKhau(moi, sau); return; }
+                // tài khoản đã có mật khẩu riêng (86) không phải lỗi, không tính «Ba Mẹ vừa đặt»; nhiều lỗi ⇒ câu đầu + số còn lại (vừa khung)
+                var hong = kq.Where(x => !Xong(x.rc)).Select(x => DatMatKhauQuanTri.CauLoiDat(DatMatKhauQuanTri.TenHien(x.t), x.rc)).ToList();
+                ManMatKhauQuanTri(conLai, sau, dungChung, moi, hong.Count == 0 ? null : hong[0] + (hong.Count > 1 ? $" (và {hong.Count - 1} tài khoản khác)" : ""));
+            }
+            catch (Exception e)
+            {
+                pw = "";
+                Program.WriteLog("Đặt mật khẩu tài khoản quản trị lỗi: " + CauLoiCai.Log(e));
+                if (IsDisposed) return;
+                Bao("Chưa đặt được mật khẩu. Thử lại, hoặc bấm «Tự đặt sau».", Loi);
+                dangDat = false;
+                nut.Enabled = tuDat.Enabled = mk.Enabled = lai.Enabled = true;
+                dangDatThayDoi?.Invoke(false);
+            }
+        });
+        mk.Focus();
+    }
+
+    /// <summary>Đã đặt xong mật khẩu cho mọi tài khoản quản trị trống.</summary>
+    private void ManDaDatMatKhau(List<string> daDat, Action sau)
+    {
+        Man(5, "Bảo vệ máy");
+        Rob("xong", 24, 96, 220, 290);
+        X(_body, 270, 90, "Đã đặt mật khẩu", Kieu.H);
+        X(_body, 270, 134, daDat.Count == 0 ? "Các tài khoản quản trị đều đã có mật khẩu. Bé không tự vào hay gỡ AiiGrow được nữa."
+            : "Từ giờ vào " + string.Join(", ", daDat.Select(t => $"«{t}»")) + " phải gõ mật khẩu Ba Mẹ vừa đặt. Bé không tự vào hay gỡ AiiGrow được nữa.", Kieu.P, 417);
+        var the = The(270, 236, 417, 96);
+        Vien(the, 290, 256, "khoa", mau: "ngoc");
+        X(the, 362, 262, "Nhớ mật khẩu này nhé", Kieu.B, 310);
+        X(the, 362, 286, "AiiGrow không lưu, không lấy lại được", Kieu.S, 310);
+        NutChinh("Tiếp tục", 200, sau);
+    }
+
+    /// <summary>«Tự đặt sau»: hướng dẫn từng bước trong Cài đặt Windows rồi đi tiếp cài đặt.</summary>
+    private void ManTuDatSau(List<TaiKhoanQuanTri> ds, Action sau, bool dungChung, List<string> daDat)
+    {
+        Man(5, "Bảo vệ máy");
+        X(_body, 36, 72, "Ba Mẹ tự đặt mật khẩu sau", Kieu.H);
+        X(_body, 36, 116, "Đăng nhập lần lượt từng tài khoản dưới đây rồi làm theo 4 bước:", Kieu.P, 651);
+        X(_body, 36, 144, string.Join(" · ", ds.Select(DatMatKhauQuanTri.TenHien)), Kieu.B, 651);
+        var the = The(36, 190, 651, 260);
+        foreach (var (i, chu) in new[]
+                 {
+                     (0, "Bấm Start › Cài đặt (Settings)"),
+                     (1, "Tài khoản (Accounts) › Tùy chọn đăng nhập (Sign-in options)"),
+                     (2, "Mật khẩu (Password) › Thêm (Add)"),
+                     (3, "Gõ mật khẩu mới 2 lần › Tiếp (Next) › Xong (Finish)"),
+                 })
+        {
+            var y = 208 + i * 58;
+            var so = XGiua(the, 58, y, 40, (i + 1).ToString(), Kieu.B, 30);
+            so.ForeColor = Clay.NgocInk;
+            XGiua(the, 96, y, 40, chu, Kieu.B, 570);
+        }
+        X(_body, 38, 470, "Chưa đặt thì bé vẫn có thể vào các tài khoản này và gỡ AiiGrow.", Kieu.S, 650, Loi, dam: true);
+        NutLui(() => ManMatKhauQuanTri(ds, sau, dungChung, daDat, null));
+        NutChinh("Tiếp tục cài", 220, sau);
     }
 
     private void BuocXong(LocalAccount child, string? tenHoSo = null, bool mayRieng = false)

@@ -1,3 +1,4 @@
+using AiiGrow.Core;
 using System.Runtime.InteropServices;
 using System.Security.Principal;
 
@@ -30,5 +31,32 @@ internal static class MatKhauQuanTri
             return id.Groups?.Any(g => g.Equals(quanTri)) == true;
         }
         finally { CloseHandle(tk); }
+    }
+
+    // ---- #862: đặt mật khẩu cho tài khoản quản trị cục bộ đang trống ----
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct USER_INFO_1003 { public string usri1003_password; }
+    [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+    private static extern int NetUserSetInfo(string? server, string user, int level, ref USER_INFO_1003 buf, out int parmErr);
+    [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
+    private static extern int NetUserChangePassword(string? domain, string user, string oldPass, string newPass);
+
+    /// <summary>Đặt mật khẩu mới cho tài khoản cục bộ đang trống mật khẩu ⇒ 0 = xong, khác = mã lỗi (DatMatKhauQuanTri.CauLoiDat).
+    /// Thử ĐỔI (mật khẩu cũ trống) trước: đổi giữ được khoá DPAPI của tài khoản (mật khẩu đã lưu trong trình duyệt, Wi-Fi…).
+    /// Đổi không được (chính sách chặn mật khẩu trống 1327/5, tuổi tối thiểu 2245, 86…) ⇒ kiểm lại (<paramref name="kiemLai"/>):
+    /// đã có mật khẩu (Ba Mẹ vừa tự đặt) ⇒ KHÔNG ghi đè, trả 86; chưa rõ ⇒ MaChuaRo; vẫn trống ⇒ bộ cài (quyền quản trị) đặt hộ bằng
+    /// NetUserSetInfo level 1003. Mật khẩu chỉ nằm trong bộ nhớ, không ghi log.</summary>
+    public static int Dat(string taiKhoan, string matKhau, Func<KiemMatKhau> kiemLai)
+    {
+        var rc = NetUserChangePassword(Environment.MachineName, taiKhoan, "", matKhau);   // máy này (null = miền đăng nhập của người đang chạy)
+        if (rc is 0 or 2221) return rc;
+        switch (kiemLai())
+        {
+            case KiemMatKhau.CoMatKhau: return DatMatKhauQuanTri.MaDaCoMatKhau;
+            case KiemMatKhau.KhongRo: return DatMatKhauQuanTri.MaChuaRo;
+        }
+        var info = new USER_INFO_1003 { usri1003_password = matKhau };
+        return NetUserSetInfo(null, taiKhoan, 1003, ref info, out _);
     }
 }
