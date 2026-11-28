@@ -850,4 +850,19 @@ export const SCHEMA_APP_WEB = [
   `create index if not exists tasks_gd on tasks(family_id)`,
   `create index if not exists rewards_gd on rewards(family_id)`,
   `create index if not exists requests_con_luc on requests(child_id, created_at)`,
+  // #811: `$n::jsonb` + JSON.stringify qua postgres.js ghi CHUỖI JSON ⇒ `cau_hinh || <chuỗi>` biến cau_hinh thành MẢNG (giờ chơi lưu rồi đọc ra 0,
+  // «Mở lại» không gỡ được khoá). Gộp mảng về một đối tượng theo thứ tự ghi (phần tử sau thắng), phần tử chuỗi «{…}» JSON hợp lệ giải ra đối tượng.
+  // Khoá ngay (khoa_ngay / khoa_den / khoa_mo_tam_den) BỎ: lúc cau_hinh là mảng khoá không có hiệu lực (máy đang mở) và «Mở lại» sau đó bị nuốt —
+  // gộp lại sẽ dựng lại khoá cũ không ai yêu cầu. Chạy lại vô hại.
+  `update children c set cau_hinh = coalesce((
+     select jsonb_object_agg(kv.key, kv.value order by e.n)
+       from jsonb_array_elements(c.cau_hinh) with ordinality e(x, n)
+       cross join lateral jsonb_each(case when jsonb_typeof(e.x) = 'object' then e.x
+         when jsonb_typeof(e.x) = 'string' and left(e.x #>> '{}', 1) = '{' and pg_input_is_valid(e.x #>> '{}', 'jsonb') then (e.x #>> '{}')::jsonb
+         else '{}'::jsonb end) kv), '{}'::jsonb) - 'khoa_ngay' - 'khoa_den' - 'khoa_mo_tam_den'
+   where jsonb_typeof(c.cau_hinh) = 'array'`,
+  // cùng lỗi: web_lan_dau ghi thành chuỗi «["a","b"]» ⇒ đổi về mảng
+  `update children set cau_hinh = jsonb_set(cau_hinh, '{web_lan_dau}', (cau_hinh->>'web_lan_dau')::jsonb)
+   where jsonb_typeof(cau_hinh) = 'object' and jsonb_typeof(cau_hinh->'web_lan_dau') = 'string' and left(cau_hinh->>'web_lan_dau', 1) = '['
+     and pg_input_is_valid(cau_hinh->>'web_lan_dau', 'jsonb')`,
 ];

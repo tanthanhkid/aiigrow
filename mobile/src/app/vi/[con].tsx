@@ -13,7 +13,7 @@ import { BangTruot, BaoLoi, ChoTai, ChonMot, Chu, Icon3D, M, Man, Nhan, Nut, ONh
 import { OLomIcon } from "@/lib/ui-viec";
 import { HangViec, quyenToi, TieuMuc, type ChoDuyetMoi } from "@/lib/hang-ngay";
 import { icQua, tenVoucher } from "@/lib/s3";
-import { soNguyenGo } from "@/lib/so-nguyen";
+import { docSoNguyen, loiSoNguyen, soNguyenGo } from "@/lib/so-nguyen";
 import { BangChoVay, cauNo, kieuSao, MAU_NO, saoTu, soChinh, soVN, thamSoXongVay, type SaoCon } from "@/lib/so-sao";
 import type { TenIcon } from "@/lib/ui";
 
@@ -93,7 +93,7 @@ export default function ViSao() {
   const mauThe = k === "thuong" ? M.diemInk : MAU_NO.chu;
   const hang = hangVi(d.lich).slice(0, 40);
   const luu = () => lam(async () => {
-    await bm.goi(`con/${con}/diem`, { delta: dau * Number(so), lyDo });
+    await bm.goi(`con/${con}/diem`, { delta: dau * (docSoNguyen(so) ?? 0), lyDo });
     setMo(false);
     bao(`Đã ${dau > 0 ? "cộng" : "trừ"} ${so} sao cho ${d.ten}`);
     setLyDo("");
@@ -161,12 +161,12 @@ export default function ViSao() {
       <BangTruot mo={mo} dong={() => setMo(false)} tieu={`Điều chỉnh sao của ${d.ten}`}>
         <ChonMot ds={[{ gia: 1 as const, chu: "Cộng sao" }, { gia: -1 as const, chu: "Trừ sao" }]} gia={dau} doi={setDau} />
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ width: 120 }}><ONhap nhan="Số sao" value={so} onChangeText={(t) => setSo(soNguyenGo(t).slice(0, 4))} keyboardType="number-pad" /></View>
+          <View style={{ width: 120 }}><ONhap nhan="Số sao" value={so} onChangeText={(t) => setSo(soNguyenGo(t).slice(0, 5))} keyboardType="number-pad" loi={loiSoNguyen(so) ?? ((docSoNguyen(so) ?? 0) > 9999 ? "Tối đa 9.999 sao" : null)} /></View>
           <View style={{ flex: 1 }}><ONhap nhan="Lý do" value={lyDo} onChangeText={setLyDo} placeholder={dau > 0 ? "Thưởng sinh nhật" : "Nói dối"} maxLength={120} /></View>
         </View>
         <Chu co={13} mau={M.chu3}>Mọi điều chỉnh tay được ghi lại trong ví và báo cáo.</Chu>
         <BaoLoi loi={loiLam} />
-        <Nut chu={`${dau > 0 ? "Cộng" : "Trừ"} ${so || 0} sao`} rong dangChay={dangChay} tat={!lyDo.trim() || !(Number(so) >= 1)} bam={luu} />
+        <Nut chu={`${dau > 0 ? "Cộng" : "Trừ"} ${so || 0} sao`} rong dangChay={dangChay} tat={!lyDo.trim() || !((docSoNguyen(so) ?? 0) >= 1 && (docSoNguyen(so) ?? 0) <= 9999)} bam={luu} />
       </BangTruot>
     </Man>
   );

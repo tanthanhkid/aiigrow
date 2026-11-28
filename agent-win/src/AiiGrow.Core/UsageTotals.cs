@@ -56,15 +56,20 @@ public sealed class UsageTotals
                 var d = JsonSerializer.Deserialize<TepTong>(File.ReadAllText(tep), Json.Options);
                 if (d == null) return;
                 _may ??= d.May;
+                var boAiiGrow = false;
                 foreach (var x in d.Dong ?? new())
                 {
                     if (x == null || string.IsNullOrEmpty(x.Day) || string.IsNullOrEmpty(x.App)) continue;
+                    // #780: bản cũ từng đếm chính khay («aiigrow.tray.exe 23 phút») — bỏ dòng app của AiiGrow khi nạp, ghi lại tệp sạch.
+                    // (Phút mới không lọc ở đây: AgentWorker đã bỏ khay thật theo thư mục cài; máy chủ cũng không ghi dòng AiiGrow.)
+                    if (AppAiiGrow.La(x.App)) { boAiiGrow = true; continue; }
                     var k = (x.Day, x.App.ToLowerInvariant(), x.Con ?? "");
                     var cu = _tong.TryGetValue(k, out var v) ? v : null;
                     // bộ nhớ đã đếm thêm trước khi nạp (hiếm) ⇒ cộng phần trong bộ nhớ lên số đã lưu
                     _tong[k] = new Dong { Name = x.Name, Minutes = Math.Max(0, x.Minutes) + (cu?.Minutes ?? 0), DaGui = Math.Max(0, Math.Max(x.DaGui, cu?.DaGui ?? 0)), CuoiLuc = Muon(x.CuoiLuc, cu?.CuoiLuc) };
                 }
                 Tia();
+                if (boAiiGrow) Luu();
             }
             catch (Exception) { }   // tệp hỏng kiểu nào cũng không được làm dịch vụ chết lúc khởi động
         }

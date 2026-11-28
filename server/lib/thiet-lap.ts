@@ -94,7 +94,7 @@ export async function thietLapLanDau(fam: string, b: ThietLapVao, nguoi: string)
         and ten = muc and het is null`, [fam, conId, bo]) : [];
       for (const r of con) await xoaLuat(fam, { con: conId, muc: r.muc }, t);
       for (const w of ghi) await datLuat(fam, { con: conId, muc: w.muc, ten: w.muc, loai: w.tinhGio ? "giai_tri" : "hoc" }, t);
-      await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('web_lan_dau', $2::jsonb) where id = $1`, [conId, JSON.stringify([...moi])]);
+      await t(`update children set cau_hinh = cau_hinh || jsonb_build_object('web_lan_dau', $2::text::jsonb) where id = $1`, [conId, JSON.stringify([...moi])]);
     });
   }
   await ghiSuKien(fam, "thiet_lap_lan_dau", { sao_khoi_dau: vaoCon.id ? daTang : saoKhoiDau, che_do: cheDo, so_app: app.daDat.length + app.choKhop.length, so_web: soWebGhi }, { con: conId, nguoi });

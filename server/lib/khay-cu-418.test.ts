@@ -40,7 +40,7 @@ test("laAppAiiGrow: đúng tên khay / app Con của AiiGrow (kể cả khay cũ
   assert.equal(la.phanLoaiTu([], "c", "roblox.exe"), "chua_phan_loai");
 });
 
-test("đồng bộ agent: khay cũ «aiigrow.tray.exe.cu-…» (máy chưa cập nhật) không ghi đã dùng, không «app mới», không trừ sao; khay thường vẫn ghi hệ thống; app thật vẫn trừ", async () => {
+test("đồng bộ agent: khay cũ «aiigrow.tray.exe.cu-…» (máy chưa cập nhật) không ghi đã dùng, không «app mới», không trừ sao; #780: khay thường cũng không ghi; app thật vẫn trừ", async () => {
   const { fam, bm } = await taoNha();
   const con = await g.taoCon(fam, { ten: "Tú Linh" });
   await luonChoiDuoc(con);
@@ -49,8 +49,8 @@ test("đồng bộ agent: khay cũ «aiigrow.tray.exe.cu-…» (máy chưa cập
   const may = await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "TULINH");
   await dv(may.token, "dong-bo", { usage: [{ muc: KHAY_CU, phut: 3 }, { muc: "aiigrow.tray.exe", phut: 2 }, { muc: "roblox.exe", phut: 4 }] });
   assert.equal(await v.soDu(con), 16, "chỉ 4 phút Roblox trừ sao");
-  assert.deepEqual((await q<{ muc: string }>(`select muc from usage where child_id = $1 order by muc`, [con])).map((r) => r.muc), ["aiigrow.tray.exe", "roblox.exe"]);
-  assert.equal((await one<{ loai: string }>(`select loai from usage where child_id = $1 and muc = 'aiigrow.tray.exe'`, [con]))?.loai, "he_thong");
+  // #780: dòng khay thường (phut-da-dem.json bản cũ còn giữ) cũng bỏ — không còn «AiiGrow.Tray N phút» trong «đã dùng»
+  assert.deepEqual((await q<{ muc: string }>(`select muc from usage where child_id = $1 order by muc`, [con])).map((r) => r.muc), ["roblox.exe"]);
   const tok = await taoPhien(bm);
   const l = (await m(tok, "luat")).body;
   assert.equal(l.chuaXep.some((x: any) => /aiigrow/.test(x.muc)), false, "không «app mới chờ Ba Mẹ xếp»");

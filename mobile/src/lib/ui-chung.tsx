@@ -8,7 +8,7 @@ import { Pressable, View } from "react-native";
 import { BONG, KHOI } from "./clay";
 import { saoTu, VienSao } from "./so-sao";
 import { DaiCon } from "./ui-viec";
-import { soNguyenGo } from "./so-nguyen";
+import { docSoNguyen, loiSoNguyen, soNguyenGo } from "./so-nguyen";
 import { BangTruot, BaoLoi, Chu, Icon, Icon3D, M, Nut, ONhap, Rob, type LinhVat, type TenIcon } from "./ui";
 
 /** Chip sao dưới tên bé: «⭐ 35 sao» vàng; nợ ⇒ «−20 sao» chữ đỏ #A2412C trên chip lõm kem (vẽ ở so-sao › VienSao). `n` = số sao (âm = nợ) hoặc `s` = trạng thái đầy đủ. */
@@ -74,7 +74,7 @@ export function ChipMuc({ muc, gia, doi, donVi = "sao", toiDa = 999, nhanTuChon 
   const [nhap, setNhap] = useState(false);
   const [chu, setChu] = useState("");
   const ngoai = gia !== null && !muc.includes(gia);
-  const xong = () => { const n = parseInt(chu, 10); if (n > 0) doi(Math.min(n, toiDa)); setNhap(false); setChu(""); };
+  const xong = () => { const n = docSoNguyen(chu) ?? 0; if (Number.isNaN(n)) return; if (n > 0) doi(Math.min(n, toiDa)); setNhap(false); setChu(""); };
   return (
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">
@@ -98,9 +98,9 @@ export function ChipMuc({ muc, gia, doi, donVi = "sao", toiDa = 999, nhanTuChon 
       {nhap ? (
         <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
           <View style={{ flex: 1 }}>
-            <ONhap nhan={`Số ${donVi}`} value={chu} onChangeText={(t) => setChu(soNguyenGo(t).slice(0, 4))} keyboardType="number-pad" placeholder={`Số ${donVi}`} onSubmitEditing={xong} autoFocus />
+            <ONhap nhan={`Số ${donVi}`} value={chu} onChangeText={(t) => setChu(soNguyenGo(t).slice(0, 5))} keyboardType="number-pad" placeholder={`Số ${donVi}`} onSubmitEditing={xong} autoFocus loi={loiSoNguyen(chu)} />
           </View>
-          <Nut chu="Chọn" nho bam={xong} tat={!(parseInt(chu, 10) > 0)} />
+          <Nut chu="Chọn" nho bam={xong} tat={!((docSoNguyen(chu) ?? 0) > 0)} />
         </View>
       ) : null}
     </View>

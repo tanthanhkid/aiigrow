@@ -199,11 +199,12 @@ export async function datGioChoi(fam: string, con: string, b: Record<string, unk
   return gioChoiCua(fam, con);
 }
 
-/** Ghi giới hạn #302 vào children.cau_hinh (chỉ khoá có gửi) + nhật ký. → có ghi gì không. */
+/** Ghi giới hạn #302 vào children.cau_hinh (chỉ khoá có gửi) + nhật ký. → có ghi gì không.
+ *  #811: tham số jsonb phải ép qua text (xem db.ts) — postgres.js bọc chuỗi JSON thêm một lần ⇒ ghi chuỗi, `||` biến cau_hinh thành mảng. */
 export async function luuGioiHan(fam: string, con: string, b: Record<string, unknown>, nguoi: string | null, t: Q = q) {
   const ghi = phanGhi(b ?? {});
   if (!Object.keys(ghi).length) return false;
-  await t(`update children set cau_hinh = coalesce(cau_hinh, '{}'::jsonb) || $3::jsonb where id = $1 and family_id = $2`, [con, fam, JSON.stringify(ghi)]);
+  await t(`update children set cau_hinh = coalesce(cau_hinh, '{}'::jsonb) || $3::text::jsonb where id = $1 and family_id = $2`, [con, fam, JSON.stringify(ghi)]);
   await ghiSuKien(fam, "dat_gioi_han_choi", ghi, { con, ...(nguoi ? { nguoi } : {}) }, t);
   return true;
 }

@@ -10,7 +10,7 @@ test("chuPhut: dưới 60 giữ phút, từ 60 đổi giờ", () => {
     ["0 phút", "1 phút", "45 phút", "59 phút", "1 giờ", "1 giờ 30 phút", "3 giờ 5 phút", "4 giờ", "0 phút", "45 phút"]);
 });
 test("tóm tắt giới hạn: hai số đều có đơn vị (không còn «60 · T7, CN 90 phút»)", () => {
-  assert.deepEqual(tomTatGioiHan({ ngayThuong: 60, cuoiTuan: 90, moiLuot: 0 }), { tren: "Ngày thường 1 giờ · T7, CN 1 giờ 30 phút" });
+  assert.deepEqual(tomTatGioiHan({ ngayThuong: 60, cuoiTuan: 90, moiLuot: 0 }), { tren: "T2–T6 1 giờ · T7–CN 1 giờ 30 phút" });
   assert.deepEqual(tomTatGioiHan({ ngayThuong: 180, cuoiTuan: 180, moiLuot: 30 }), { tren: "3 giờ/ngày", duoi: "mỗi lượt 30 phút" });
 });
 test("màn Con và thẻ Hôm nay cùng một cách viết", () => {
