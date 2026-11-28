@@ -374,7 +374,16 @@ public static class HocVienView
     /// Tên quà = phần đầu của nội dung tin («Bộ Lego» / «Bộ Lego · +30 phút», bỏ ngoặc «»), so KHỚP ĐỦ (không đóng nhầm hộp của quà tên gần giống).</summary>
     public static bool XongQuaCho(IReadOnlyList<HvTin> moi, string tenQua)
         => moi.Any(t => t.Loai is "huy_qua" or "xac_nhan_qua"
-                        && string.Equals((t.Noi ?? "").Split(" · ")[0].Trim().Trim('«', '»').Trim(), tenQua.Trim(), StringComparison.OrdinalIgnoreCase));
+                        && string.Equals(TenQuaTrongTin(t.Noi), tenQua.Trim(), StringComparison.OrdinalIgnoreCase));
+
+    /// <summary>huy_qua: «Kem · socola» (cả chuỗi trong ngoặc) · xac_nhan_qua: «Kem · socola» / «Thêm 30 phút · +30 phút» (bỏ đuôi « · +N phút»).</summary>
+    private static string TenQuaTrongTin(string? noi)
+    {
+        var n = (noi ?? "").Trim();
+        if (n.StartsWith('«') && n.IndexOf('»') is var j and > 0) return n[1..j].Trim();
+        var i = n.LastIndexOf(" · +", StringComparison.Ordinal);
+        return (i >= 0 ? n[..i] : n).Trim();
+    }
 
     private static string Cat(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
 }

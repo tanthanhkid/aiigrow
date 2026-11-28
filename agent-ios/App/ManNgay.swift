@@ -439,7 +439,7 @@ struct ManCuaHang: View {
     VStack(spacing: 14) {
       Text("Đã gửi Ba Mẹ").font(Diu.tieuDe).foregroundColor(Diu.chu)
       Anh(ten: "rob_xong", co: 120)
-      HangDs(icon: Self.icon(q.hinh, ten: q.ten), t1: q.ten, t2: "Đã trừ \(q.gia) sao · còn \(Diu.soSao((m.cuaHang?.soSao ?? m.soSao) - q.gia))").theDiu(dem: 12)
+      HangDs(icon: Self.icon(q.hinh, ten: q.ten), t1: q.ten, t2: "Đã trừ \(q.gia) sao · còn \(Diu.soSao(m.demo != nil ? (m.cuaHang?.soSao ?? m.soSao) - q.gia : (m.cuaHang?.soSao ?? m.soSao)))").theDiu(dem: 12)
       NhanNho(chu: "⏳ Chờ Ba Mẹ trao")
       Text("Ba Mẹ từ chối thì \(q.gia) sao về lại cho con.").font(Diu.t2).foregroundColor(Diu.chu2).multilineTextAlignment(.center)
       Button { m.tab = .saoQua; dong() } label: { Label { Text("Về Sao & quà") } icon: { Anh(ten: "ic_sao", co: 26) } }.buttonStyle(NutDiu())

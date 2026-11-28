@@ -310,15 +310,11 @@ internal sealed class TrayContext : ApplicationContext
             if (thuHoi.Count > 0 && _ketQua is { IsDisposed: false } kh && _ketQuaTinId != null && thuHoi.Any(x => x.Id == _ketQuaTinId)) kh.DongLang();
             // #757: Ba Mẹ trao / từ chối quà vừa đổi ⇒ hộp «Đã gửi Ba Mẹ · Chờ Ba Mẹ trao quà…» tự đóng (bóng báo ghi kết quả)
             if (moi.Count > 0 && DoiQuaHop.DangCho is { IsDisposed: false } dq && HocVienView.XongQuaCho(moi, dq.TenQua)) dq.Close();
-            if (thuHoi.Count > 0)
+            if (thuHoi.Count > 0 && moi.Count == 0)
             {
-                _tinMoi = Math.Max(0, _tinMoi - thuHoi.Count);   // tin duyệt đã đếm «mới» nay máy chủ lọc khỏi hộp thư
-                if (moi.Count == 0)
-                {
-                    var (tt, nt) = HocVienView.ThuHoiText(thuHoi);
-                    Toast(8000, tt, nt, ToolTipIcon.Info, MucApp.NhiemVu);
-                    if (_app is { Visible: true }) _ = _app.RefreshAsync();
-                }
+                var (tt, nt) = HocVienView.ThuHoiText(thuHoi);
+                Toast(8000, tt, nt, ToolTipIcon.Info, MucApp.NhiemVu);
+                if (_app is { Visible: true }) _ = _app.RefreshAsync();
             }
             if (moi.Count > 0)
             {

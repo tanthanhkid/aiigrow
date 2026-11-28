@@ -262,10 +262,11 @@ internal sealed class DoiQuaHop : HopKhayCoBan
     {
         if (_busy) return;
         _busy = true; b.Enabled = false; _loi.Text = "";
+        DangCho = this;   // đặt TRƯỚC khi gửi: tin Ba Mẹ trả lời tới ngay (lượt hỏi tin chạy xen) vẫn đóng được hộp
         var (kq, loi) = await HvApi.PostAsync<HvDoiKq>($"hoc-vien/doi/{_qua.Id}");
         _busy = false;
         if (IsDisposed) return;
-        if (kq == null) { _loi.Text = loi ?? "Chưa gửi được. Con thử lại nhé."; b.Enabled = true; return; }
+        if (kq == null) { if (DangCho == this) DangCho = null; _loi.Text = loi ?? "Chưa gửi được. Con thử lại nhé."; b.Enabled = true; return; }
         DaDoi?.Invoke();
         XoaHet();
         Flow.Controls.Add(KhoiCon.Dau("gui", KhoiCon.Mau.Ngoc, "Đã gửi Ba Mẹ", "Chờ Ba Mẹ trao quà…", W));
@@ -275,6 +276,5 @@ internal sealed class DoiQuaHop : HopKhayCoBan
         Flow.Controls.Add(ve);
         Flow.Controls.Add(UI.Text(_qua.Phut is > 0 ? $"Ba Mẹ trao xong là con có thêm {_qua.Phut} phút" : "Ba Mẹ trao hay từ chối, máy báo con ngay", 10f, false, UI.Muted, W));
         Xong();
-        DangCho = this;
     }
 }

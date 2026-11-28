@@ -1,4 +1,4 @@
-// «Sao & quà» (ví) bản «Dịu» (con-dt-ngay 14 cdt-vi-qua, Nghi chốt 06/11 — L14, sổ sao 15/11 #263): thẻ vàng «Con đang có 40 sao · Đang giữ 50
+// «Sao & quà» (ví) bản «Dịu» (con-dt-ngay 14 cdt-vi-qua, Nghi chốt 06/11 — L14, sổ sao 15/11 #263): thẻ vàng «Con đang có 40 sao · Đã trừ 50
 // sao cho quà chờ trao» + thanh tới quà gần nhất; đang nợ ⇒ thẻ cảnh báo «−20 sao · Đang nợ Ba Mẹ 20 sao · Sao nhiệm vụ trả nợ trước · hết nợ mới
 // cộng» + «Làm nhiệm vụ trả nợ» (bỏ «Đổi sao lấy phút» — sao chính là phút); «Quà của con»: quà đang giữ sao chờ Ba Mẹ trao (⏳), voucher AiiCafe đã nhận
 // (mã QR — chạm để hiện cho quầy quét, «Còn 49 ngày»), quà đã trao; «Huy hiệu»; «Xem quà đổi được».

@@ -38,6 +38,8 @@ public class QuaTuChoiHoanTacTests
         Assert.False(HocVienView.XongQuaCho(new[] { tuChoi }, "Gấu bông"));
         Assert.False(HocVienView.XongQuaCho(new[] { tuChoi }, "Lego"), "tên gần giống không đóng nhầm hộp");
         Assert.True(HocVienView.XongQuaCho(new[] { new HvTin { Id = "e4", Loai = "xac_nhan_qua", Noi = "Thêm 30 phút · +30 phút" } }, "Thêm 30 phút"));
+        Assert.True(HocVienView.XongQuaCho(new[] { new HvTin { Id = "e5", Loai = "huy_qua", Noi = "«Kem · socola»" } }, "Kem · socola"));
+        Assert.True(HocVienView.XongQuaCho(new[] { new HvTin { Id = "e6", Loai = "xac_nhan_qua", Noi = "Kem · socola" } }, "Kem · socola"));
     }
 
     [Fact]
