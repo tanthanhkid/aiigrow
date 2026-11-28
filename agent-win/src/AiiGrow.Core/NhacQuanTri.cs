@@ -8,20 +8,16 @@ public static class NhacQuanTriView
 {
     public const string Tieu = "Tài khoản quản trị chưa có mật khẩu";
     public const string Phu = "Bé có thể tự vào và gỡ AiiGrow.";
-    public const string HuongDan = "Vào Settings › Accounts › Sign-in options › Password, đặt mật khẩu cho tài khoản này. AiiGrow không lưu mật khẩu.";
+    public const string HuongDan = "Nút dưới mở Settings › Accounts › Sign-in options của tài khoản đang đăng nhập (Password › Add). Tài khoản khác: đăng nhập vào tài khoản đó rồi đặt. AiiGrow không lưu mật khẩu.";
     public const string NutDat = "Đặt mật khẩu";
     public const string NutDeSau = "Để sau";
     /// <summary>Mở thẳng Settings › Accounts › Sign-in options.</summary>
     public const string CaiDat = "ms-settings:signinoptions";
-    /// <summary>Dịch vụ từ chối vì phiên không phải tài khoản quản trị (<see cref="PipeResponse.Status"/>).</summary>
-    public const string KhongQuanTri = "khong_quan_tri";
-
     /// <summary>Khay hỏi dịch vụ thưa (dịch vụ chỉ thử lại 5 phút/lần).</summary>
     public static readonly TimeSpan NhipHoi = TimeSpan.FromSeconds(60);
-    /// <summary>«Để sau» / đóng thẻ ⇒ nhắc lại sau chừng này (danh sách đổi thì nhắc ngay).</summary>
-    public static readonly TimeSpan HoanDeSau = TimeSpan.FromHours(4);
-    /// <summary>Bấm «Đặt mật khẩu» ⇒ thẻ ẩn chờ Ba Mẹ đặt xong; dịch vụ kiểm lại ≤5 phút, còn trống thì thẻ hiện lại.</summary>
-    public static readonly TimeSpan HoanDaMo = TimeSpan.FromMinutes(10);
+    /// <summary>«Đặt mật khẩu» / «Để sau» / × ⇒ nhắc lại sau chừng này (danh sách đổi thì nhắc ngay; đặt xong thì dịch vụ báo rỗng trong ≤5 phút, thẻ thôi hiện).
+    /// Không hoãn ngắn sau «Đặt mật khẩu»: Settings chỉ đặt được cho tài khoản đang đăng nhập, thẻ nhắc tài khoản khác sẽ nháy lại liên tục.</summary>
+    public static readonly TimeSpan Hoan = TimeSpan.FromHours(4);
 
     public static string DongTen(IReadOnlyList<string> ten) => (ten.Count > 1 ? "Các tài khoản: " : "Tài khoản: ") + string.Join(", ", ten);
 
@@ -29,8 +25,8 @@ public static class NhacQuanTriView
     /// (dịch vụ chưa kiểm xong, không trả lời, bản cũ chưa có lệnh) ⇒ giữ như cũ.</summary>
     public static IReadOnlyList<string>? Doc(PipeResponse r)
     {
-        if (r.Status == KhongQuanTri) return Array.Empty<string>();
-        if (!r.Ok || r.Status != "ok" || string.IsNullOrEmpty(r.Data)) return null;
+        if (r.Status == QuanTriTrongStatus.KhongQuanTri) return Array.Empty<string>();
+        if (!r.Ok || r.Status != QuanTriTrongStatus.Ok || string.IsNullOrEmpty(r.Data)) return null;
         try
         {
             return JsonSerializer.Deserialize<List<string>>(r.Data, Json.Options)?.Where(x => !string.IsNullOrWhiteSpace(x)).Select(x => x.Trim()).ToList();
@@ -48,6 +44,9 @@ public sealed class NhacQuanTri
     /// <summary>Danh sách mới nhất đã biết chắc.</summary>
     public IReadOnlyList<string> Ten { get; private set; } = Array.Empty<string>();
 
+    /// <summary>Cùng tập tài khoản (không phân biệt hoa thường, thứ tự) — khay không dựng lại thẻ đang hiện.</summary>
+    public static bool CungDanhSach(IEnumerable<string> a, IEnumerable<string> b) => Khoa(a) == Khoa(b);
+
     private static string Khoa(IEnumerable<string> ten) => string.Join("\n", ten.Select(x => x.ToUpperInvariant()).OrderBy(x => x, StringComparer.Ordinal));
 
     /// <summary>Lượt hỏi dịch vụ xong (<paramref name="ds"/> null = chưa biết ⇒ giữ danh sách cũ). Trả true = thẻ nên hiện.</summary>
@@ -60,11 +59,27 @@ public sealed class NhacQuanTri
         return false;
     }
 
-    /// <summary>Ba Mẹ đóng thẻ («Để sau», ×) hoặc vừa mở Settings: không nhắc lại danh sách này trong <paramref name="hoan"/>.</summary>
-    public void Hoan(DateTimeOffset now, TimeSpan hoan)
+    /// <summary>Ba Mẹ đóng thẻ («Để sau», ×) hoặc vừa mở Settings: không nhắc lại danh sách này trong <see cref="NhacQuanTriView.Hoan"/>.</summary>
+    public void Hoan(DateTimeOffset now)
     {
         _hoanKhoa = Khoa(Ten);
         _hoanTu = now;
-        _hoanDen = now + hoan;
+        _hoanDen = now + NhacQuanTriView.Hoan;
+    }
+
+    private sealed record LanHoan(string Khoa, DateTimeOffset Tu, DateTimeOffset Den);
+
+    /// <summary>Lần hoãn đang có (JSON, khay lưu tệp của người dùng ⇒ khay chạy lại / đăng nhập lại không nhắc sớm); null = không hoãn.</summary>
+    public string? GhiHoan() => _hoanKhoa == null ? null : JsonSerializer.Serialize(new LanHoan(_hoanKhoa, _hoanTu, _hoanDen), Json.Options);
+
+    /// <summary>Đọc lại lần hoãn đã lưu (hỏng thì bỏ qua).</summary>
+    public void DocHoan(string? json)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(json) || JsonSerializer.Deserialize<LanHoan>(json, Json.Options) is not { Khoa: { Length: > 0 } } h) return;
+            (_hoanKhoa, _hoanTu, _hoanDen) = (h.Khoa, h.Tu, h.Den);
+        }
+        catch (JsonException) { }
     }
 }

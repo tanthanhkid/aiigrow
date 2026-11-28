@@ -21,6 +21,7 @@ public class NhacQuanTriTests
     public void Doc_ChuaBiet_LaNull()
     {
         Assert.Null(NhacQuanTriView.Doc(new PipeResponse { Ok = true, Status = "chua_kiem", Data = "[]" }));   // dịch vụ chưa kiểm xong lượt đầu
+        Assert.Null(NhacQuanTriView.Doc(new PipeResponse { Ok = false, Status = QuanTriTrongStatus.ChuaKiem }));   // chưa đọc được danh sách quản trị
         Assert.Null(NhacQuanTriView.Doc(new PipeResponse { Ok = false, Error = CauLoi.DichVuChuaSan }));       // dịch vụ không trả lời
         Assert.Null(NhacQuanTriView.Doc(new PipeResponse { Ok = false, Error = "Lệnh không rõ" }));             // dịch vụ bản cũ
         Assert.Null(NhacQuanTriView.Doc(new PipeResponse { Ok = true, Status = "ok", Data = "{hỏng" }));
@@ -28,7 +29,7 @@ public class NhacQuanTriTests
 
     [Fact]
     public void Doc_KhongPhaiQuanTri_LaRong()
-        => Assert.Empty(NhacQuanTriView.Doc(new PipeResponse { Ok = false, Status = NhacQuanTriView.KhongQuanTri })!);
+        => Assert.Empty(NhacQuanTriView.Doc(new PipeResponse { Ok = false, Status = QuanTriTrongStatus.KhongQuanTri })!);
 
     [Fact]
     public void CoTrong_Hien_HetTrong_An()
@@ -46,7 +47,7 @@ public class NhacQuanTriTests
     {
         var n = new NhacQuanTri();
         Assert.True(n.Xet(new[] { "Ba Mẹ" }, T0));
-        n.Hoan(T0, NhacQuanTriView.HoanDeSau);
+        n.Hoan(T0);
         Assert.False(n.Xet(new[] { "Ba Mẹ" }, T0.AddHours(1)));
         Assert.False(n.Xet(new[] { "BA MẸ" }, T0.AddHours(2)));   // cùng tài khoản (khác hoa thường)
         Assert.True(n.Xet(new[] { "Ba Mẹ" }, T0.AddHours(4)));
@@ -57,18 +58,31 @@ public class NhacQuanTriTests
     {
         var n = new NhacQuanTri();
         n.Xet(new[] { "Ba Mẹ" }, T0);
-        n.Hoan(T0, NhacQuanTriView.HoanDeSau);
+        n.Hoan(T0);
         Assert.True(n.Xet(new[] { "Ba Mẹ", "Administrator" }, T0.AddMinutes(5)));
     }
 
     [Fact]
-    public void DaMoCaiDat_ConTrong_HienLaiSauMuoiPhut()
+    public void Hoan_LuuDia_KhayChayLaiKhongNhacSom()
     {
         var n = new NhacQuanTri();
+        Assert.Null(n.GhiHoan());
         n.Xet(new[] { "Ba Mẹ" }, T0);
-        n.Hoan(T0, NhacQuanTriView.HoanDaMo);
-        Assert.False(n.Xet(new[] { "Ba Mẹ" }, T0.AddMinutes(9)));
-        Assert.True(n.Xet(new[] { "Ba Mẹ" }, T0.AddMinutes(10)));
+        n.Hoan(T0);
+        var json = n.GhiHoan();
+        var m = new NhacQuanTri();
+        m.DocHoan(json);
+        Assert.False(m.Xet(new[] { "Ba Mẹ" }, T0.AddMinutes(5)));
+        Assert.True(m.Xet(new[] { "Ba Mẹ" }, T0.AddHours(4)));
+        Assert.Null(m.GhiHoan());   // hết hạn ⇒ xoá
+        new NhacQuanTri().DocHoan("{hỏng");   // tệp hỏng không ném
+    }
+
+    [Fact]
+    public void CungDanhSach_KhongPhanBietHoaThuongThuTu()
+    {
+        Assert.True(NhacQuanTri.CungDanhSach(new[] { "Ba Mẹ", "Administrator" }, new[] { "administrator", "BA MẸ" }));
+        Assert.False(NhacQuanTri.CungDanhSach(new[] { "Ba Mẹ" }, new[] { "Ba Mẹ", "Administrator" }));
     }
 
     [Fact]
@@ -76,7 +90,7 @@ public class NhacQuanTriTests
     {
         var n = new NhacQuanTri();
         n.Xet(new[] { "Ba Mẹ" }, T0);
-        n.Hoan(T0, NhacQuanTriView.HoanDeSau);
+        n.Hoan(T0);
         Assert.False(n.Xet(Array.Empty<string>(), T0.AddMinutes(5)));
         Assert.True(n.Xet(new[] { "Ba Mẹ" }, T0.AddMinutes(10)));   // xoá mật khẩu lại ⇒ nhắc ngay, không giữ lần hoãn cũ
     }
@@ -86,7 +100,7 @@ public class NhacQuanTriTests
     {
         var n = new NhacQuanTri();
         n.Xet(new[] { "Ba Mẹ" }, T0);
-        n.Hoan(T0, NhacQuanTriView.HoanDeSau);
+        n.Hoan(T0);
         Assert.True(n.Xet(new[] { "Ba Mẹ" }, T0.AddDays(-1)));
     }
 

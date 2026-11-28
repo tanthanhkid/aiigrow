@@ -98,6 +98,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         _moLai = moLai;
         KhoiPhucVayCho();
+        try { if (File.Exists(TepHoanQt)) _nhacQt.DocHoan(File.ReadAllText(TepHoanQt)); } catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }   // #863
         XinThemForm.BeIdHienTai = () => _beId;
         // Menu khay theo Clay: nền thẻ sáng, mục được trỏ là viên bo ngọc nhạt, icon Fluent 3D nhỏ.
         var menu = new ContextMenuStrip { Renderer = new AiiGrow.ClayUi.ClayMenuRenderer(), Font = UI.F(10.5f), ImageScalingSize = new Size(UI.Px(20), UI.Px(20)) };
@@ -904,21 +905,36 @@ internal sealed class TrayContext : ApplicationContext
         {
             var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.QuanTriTrong });
             if (!_anPhienKhac) return;   // phiên vừa được nhận là của bé ⇒ không hiện
+            var truoc = _nhacQt.GhiHoan();
             var hien = _nhacQt.Xet(NhacQuanTriView.Doc(r), DateTimeOffset.Now);
+            if (_nhacQt.GhiHoan() != truoc) LuuHoanQt();
             if (!hien) { DongNhacQuanTri(); return; }
             if (_nhacQtForm is { IsDisposed: false } cu)
             {
-                if (cu.Ten.SequenceEqual(_nhacQt.Ten)) return;
+                if (NhacQuanTri.CungDanhSach(cu.Ten, _nhacQt.Ten)) return;
                 cu.DongLang();   // danh sách đổi ⇒ dựng lại thẻ với tên mới
             }
             var f = new NhacQuanTriForm(_nhacQt.Ten);
-            f.BaMeDong += daMo => _nhacQt.Hoan(DateTimeOffset.Now, daMo ? NhacQuanTriView.HoanDaMo : NhacQuanTriView.HoanDeSau);
+            f.BaMeDong += _ => { _nhacQt.Hoan(DateTimeOffset.Now); LuuHoanQt(); };
             f.FormClosed += (_, _) => { if (_nhacQtForm == f) _nhacQtForm = null; f.Dispose(); };
             _nhacQtForm = f;
             f.Show();
         }
         catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
         finally { _nhacQtDangHoi = false; }
+    }
+
+    private static string TepHoanQt => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiiGrow", "nhac-quan-tri.json");
+
+    private void LuuHoanQt()
+    {
+        try
+        {
+            var j = _nhacQt.GhiHoan();
+            if (j != null) { Directory.CreateDirectory(Path.GetDirectoryName(TepHoanQt)!); File.WriteAllText(TepHoanQt, j); }
+            else if (File.Exists(TepHoanQt)) File.Delete(TepHoanQt);
+        }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
     }
 
     private void DongNhacQuanTri()
