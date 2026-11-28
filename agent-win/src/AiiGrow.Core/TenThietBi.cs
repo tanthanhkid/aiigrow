@@ -14,6 +14,25 @@ public static class TenThietBi
         var t = (ten ?? "").Trim().TrimEnd('.', ' ');
         return t.Length > 0 && Cam.IsMatch(t);
     }
+
+    /// <summary>#854: tên các tài khoản Windows của bé (thường, không phải tài khoản hệ thống — cùng lọc với <see cref="TaiKhoanCon.ChonSids"/>)
+    /// đang có trên máy mà mang tên cấm: Windows không dựng được C:\Users\&lt;tên&gt; ⇒ hồ sơ tạm mỗi lần đăng nhập; cập nhật không sửa được.
+    /// <paramref name="sidCon"/> có ⇒ chỉ xét các tài khoản AiiGrow đang áp cho bé.</summary>
+    public static List<string> TaiKhoanCam(IEnumerable<LocalAccount> ds, IEnumerable<string>? sidCon = null)
+    {
+        var chon = sidCon == null ? null : new HashSet<string>(sidCon, StringComparer.OrdinalIgnoreCase);
+        return ds.Where(a => !a.IsAdmin && !TaiKhoanCon.LaTaiKhoanHeThong(a) && LaTenCam(a.Name) && (chon == null || chon.Contains(a.Sid)))
+                 .Select(a => a.Name).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+    }
+
+    /// <summary>#854: ghi chú trạng thái máy (dịch vụ gửi lên, Ba Mẹ thấy) khi tài khoản AiiGrow đang áp cho bé mang tên cấm; không ⇒ null.
+    /// Chưa đọc được tài khoản máy / chưa biết tài khoản bé ⇒ null (không báo đoán).</summary>
+    public static string? GhiChuTenCam(IEnumerable<LocalAccount>? ds, IEnumerable<string>? sidCon)
+    {
+        if (ds == null || sidCon == null) return null;
+        var cam = TaiKhoanCam(ds, sidCon);
+        return cam.Count == 0 ? null : CauLoiCai.GhiChuTaiKhoanTenCam(cam.Take(2));   // máy chủ cắt cả ghi chú 240 ký tự
+    }
 }
 
 /// <summary>Dựng hồ sơ người dùng ngay (userenv!CreateProfile) để biết sớm hồ sơ có tạo được không.</summary>

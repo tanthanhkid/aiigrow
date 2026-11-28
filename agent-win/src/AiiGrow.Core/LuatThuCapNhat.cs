@@ -74,3 +74,40 @@ public static class LuatThuCapNhat
         ChiTiet = new() { ["ban"] = ban, ["dangChay"] = hienTai.ToString(3), ["lan"] = soLan.ToString(CultureInfo.InvariantCulture), ["lyDo"] = lyDo },
     };
 }
+
+/// <summary>#854: chẩn đoán lần tự cập nhật hỏng. install.log nằm trên máy Con (ProgramData), máy chủ / Sentry không thấy ⇒ dịch vụ đọc các dòng
+/// bộ cài ghi từ lúc giao bộ cài rồi ghi kèm dòng lỗi (may_log + Sentry) — biết bộ cài có chạy không, kẹt / lỗi ở bước nào.</summary>
+public static class ChanDoanCapNhat
+{
+    /// <summary>Các dòng install.log («&lt;giờ ISO&gt;  &lt;nội dung&gt;») ghi từ <paramref name="tu"/> (lùi 1 phút cho lệch đồng hồ), giữ
+    /// <paramref name="toiDa"/> dòng cuối, nối « | », trần <paramref name="tran"/> ký tự. Dòng không mở đầu bằng giờ (chữ nhiều dòng) đi theo dòng trước.
+    /// Không có dòng nào ⇒ «install.log không có dòng nào từ lúc giao» (bộ cài không chạy tới bước ghi log đầu tiên).</summary>
+    public static string DongSau(IEnumerable<string> dong, DateTimeOffset tu, int toiDa = 12, int tran = 1500)
+    {
+        var moc = tu - TimeSpan.FromMinutes(1);
+        var giu = new List<string>();
+        var dangGiu = false;
+        foreach (var d in dong)
+        {
+            if (string.IsNullOrWhiteSpace(d)) continue;
+            var cach = d.IndexOf(' ');
+            // WriteLog luôn ghi giờ dạng «o» ⇒ chỉ nhận đúng dạng đó (dòng tiếp nối mở đầu «12/11», «10:30» không bị đọc nhầm là dòng mới)
+            if (cach > 0 && DateTimeOffset.TryParseExact(d[..cach], "o", CultureInfo.InvariantCulture, DateTimeStyles.None, out var luc))
+            {
+                dangGiu = luc >= moc;
+                if (dangGiu) giu.Add(luc.ToLocalTime().ToString("HH:mm:ss", CultureInfo.InvariantCulture) + " " + d[(cach + 1)..].Trim());
+            }
+            else if (dangGiu && giu.Count > 0) giu[^1] += " " + d.Trim();
+        }
+        if (giu.Count == 0) return "install.log không có dòng nào từ lúc giao bộ cài";
+        // giữ dòng ĐẦU (bộ cài có chạy không, bằng ai) + các dòng cuối (bước hỏng); quá trần thì cắt giữa
+        var dau = giu[0];
+        var cuoi = giu.Skip(Math.Max(1, giu.Count - (toiDa - 1))).ToList();
+        var kq = string.Join(" | ", cuoi.Count == 0 ? new[] { dau } : new[] { dau }.Concat(cuoi));
+        if (kq.Length <= tran) return kq;
+        var duoi = string.Join(" | ", cuoi);
+        if (dau.Length > tran / 3) dau = dau[..(tran / 3)] + "…";
+        var conLai = Math.Max(0, tran - dau.Length - 5);
+        return dau + " | …" + (duoi.Length > conLai ? duoi[^conLai..] : duoi);
+    }
+}

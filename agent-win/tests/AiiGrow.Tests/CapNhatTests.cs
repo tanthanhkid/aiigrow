@@ -113,6 +113,22 @@ public class CapNhatMayTests : IDisposable
     }
 
     [Fact]
+    public void GhiTungBuoc_NgayLucChay_854()
+    {
+        var buoc = new List<string>();
+        CapNhatMay.Chay(Cai, "0.2.0", new Gia(), buoc: buoc.Add);
+        Assert.Equal(new[] { "bước: tắt tự chạy lại dịch vụ", "bước: dừng dịch vụ", "bước: sao lưu bản đang cài", "bước: chép bản 0.2.0",
+            "bước: chạy dịch vụ bản mới", "bước: chờ dịch vụ bản mới chạy", "bước: bật lại tự chạy lại dịch vụ" }, buoc);
+
+        // lỗi giữa chừng: dòng cuối trước khi bật lại cho biết lỗi gì và đã khôi phục
+        buoc.Clear();
+        CapNhatMay.Chay(Cai, "0.2.0", new Gia { DichVuChay = false }, buoc: buoc.Add);
+        Assert.Contains(buoc, b => b.StartsWith("lỗi: dịch vụ bản mới không chạy"));
+        // ghi log lỗi không làm hỏng cập nhật
+        Assert.True(CapNhatMay.Chay(Cai, "0.2.0", new Gia(), buoc: _ => throw new IOException("đĩa đầy")).Ok);
+    }
+
+    [Fact]
     public void DichVuMoiKhongChay_KhoiPhuc()
     {
         var kq = CapNhatMay.Chay(Cai, "0.2.0", new Gia { DichVuChay = false });
@@ -399,5 +415,46 @@ public class KyBoCaiTests
         var tep = Path.GetTempFileName();
         try { File.WriteAllText(tep, "khong phai PE"); Assert.NotEqual(0, Authenticode.MaWinTrust(tep, coMang: false)); }
         finally { File.Delete(tep); }
+    }
+}
+
+public class ChanDoanCapNhatTests
+{
+    private static readonly DateTimeOffset Giao = new(2026, 11, 28, 8, 13, 12, TimeSpan.FromHours(7));
+
+    [Fact]
+    public void ChiLayDongTuLucGiao_854()
+    {
+        var dong = new[]
+        {
+            "2026-11-27T15:20:00.0000000+07:00  Cài xong (cũ, không lấy)",
+            "2026-11-28T08:13:15.1000000+07:00  Bộ cài 0.2.42 bắt đầu: --capnhat --im-lang (tài khoản SYSTEM, pid 42)",
+            "2026-11-28T08:13:16.0000000+07:00  Cập nhật im lặng 0.2.42: bước: dừng dịch vụ",
+            "2026-11-28T08:14:30.0000000+07:00  Cập nhật im lặng 0.2.42: lỗi: không chạy được dịch vụ:",
+            "dòng tiếp theo của lỗi",
+            "",
+        };
+        var kq = ChanDoanCapNhat.DongSau(dong, Giao);
+        Assert.DoesNotContain("cũ, không lấy", kq);
+        Assert.Contains("bắt đầu: --capnhat", kq);
+        Assert.Contains("không chạy được dịch vụ: dòng tiếp theo của lỗi", kq);   // dòng tiếp nối đi theo dòng có giờ
+        Assert.Equal(3, kq.Split(" | ").Length);
+    }
+
+    [Fact]
+    public void KhongCoDong_NoiRoBoCaiKhongChay_854()
+    {
+        Assert.Contains("không có dòng nào", ChanDoanCapNhat.DongSau(new[] { "2026-11-27T15:20:00.0000000+07:00  cũ" }, Giao));
+        Assert.Contains("không có dòng nào", ChanDoanCapNhat.DongSau(Array.Empty<string>(), Giao));
+    }
+
+    [Fact]
+    public void GiuDongCuoi_VaTranDoDai_854()
+    {
+        var dong = Enumerable.Range(0, 30).Select(i => Giao.AddSeconds(i).ToString("o") + "  bước " + i);
+        var kq = ChanDoanCapNhat.DongSau(dong, Giao, toiDa: 5);
+        Assert.Equal(5, kq.Split(" | ").Length);
+        Assert.EndsWith("bước 29", kq);
+        Assert.True(ChanDoanCapNhat.DongSau(dong, Giao, toiDa: 30, tran: 50).Length <= 51);
     }
 }

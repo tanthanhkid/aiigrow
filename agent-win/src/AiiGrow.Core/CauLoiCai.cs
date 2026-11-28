@@ -25,6 +25,17 @@ public static class CauLoiCai
     /// <summary>#739: tên Windows cấm làm tên thư mục hồ sơ.</summary>
     public static string TenCam(string ten) => $"Windows không cho đặt tên «{ten}» (tên dành riêng của hệ thống: CON, PRN, AUX, NUL, COM1–9, LPT1–9). Đặt tên khác, ví dụ: treem.";
 
+    /// <summary>#854: máy có tài khoản Windows của bé mang tên cấm (hồ sơ tạm mỗi lần đăng nhập) — bộ cài nhắc Ba Mẹ đổi sang tài khoản mới.</summary>
+    public static string TaiKhoanTenCam(IEnumerable<string> ten) =>
+        $"Lưu ý: tài khoản Windows «{string.Join("», «", ten)}» của bé mang tên hệ thống giữ riêng, nên Windows chỉ cho vào hồ sơ tạm " +
+        "(báo «We can't sign in to your account», tệp và trình duyệt mất sau mỗi lần đăng xuất). Cập nhật AiiGrow không sửa được tài khoản này. " +
+        "Cách sửa: bấm «Sửa cài đặt» › «Chưa có, tạo 1 tài khoản chung cho các con» (tên gợi ý: treem) rồi ghép lại bằng mã 6 số trong app Ba Mẹ. " +
+        "Luật Ba Mẹ đặt cho bé lưu theo bé trên AiiGrow nên đi theo sang tài khoản mới; tài khoản cũ không giữ được dữ liệu nên không có gì phải chép sang.";
+
+    /// <summary>#854: ghi chú gửi kèm trạng thái máy (Ba Mẹ thấy trên app, máy chủ cắt 240 ký tự) khi tài khoản bé mang tên cấm.</summary>
+    public static string GhiChuTaiKhoanTenCam(IEnumerable<string> ten) =>
+        $"Tài khoản Windows «{string.Join("», «", ten)}» của bé là tên hệ thống cấm, chỉ vào hồ sơ tạm: chạy AiiGrow-Setup › Sửa cài đặt, tạo tài khoản mới";
+
     /// <summary>#739: tạo xong tài khoản nhưng Windows không dựng được hồ sơ (thư mục người dùng).</summary>
     public static string HoSoLoi(string ten) => $"Tài khoản «{ten}» chưa dùng được vì Windows không tạo được hồ sơ cho nó. Bộ cài đã xoá tài khoản đó; thử tên khác, vẫn lỗi thì khởi động lại máy rồi chạy lại bộ cài.";
 

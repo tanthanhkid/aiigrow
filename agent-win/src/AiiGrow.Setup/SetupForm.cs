@@ -598,8 +598,9 @@ internal sealed class SetupForm : Form
         Vien(the, 56, 170, "nguoi", mau: "ngoc");
         X(the, 128, 176, "Các con đã có tài khoản chung", Kieu.B);
         X(the, 128, 200, "Không cần mỗi bé một tài khoản Windows", Kieu.S);
-        if (_child != null && (_child.Sid == toi || ds.All(a => a.Sid != _child.Sid))) _child = null;
-        if (_child == null) _child = ds.FirstOrDefault(a => !a.IsAdmin && a.Sid != toi);   // #777 B5: chọn sẵn tài khoản có sẵn của con
+        // #854: tài khoản mang tên cấm («con») chỉ vào được hồ sơ tạm ⇒ không chọn được, không chọn sẵn
+        if (_child != null && (_child.Sid == toi || ds.All(a => a.Sid != _child.Sid) || TenThietBi.LaTenCam(_child.Name))) _child = null;
+        if (_child == null) _child = ds.FirstOrDefault(a => !a.IsAdmin && a.Sid != toi && !TenThietBi.LaTenCam(a.Name));   // #777 B5: chọn sẵn tài khoản có sẵn của con
         ClayButton? tiep = null;
         var hang = new List<(ClayCard The, LocalAccount Tk, Label Ten, Label Phu)>();
         void VeChon()
@@ -650,11 +651,13 @@ internal sealed class SetupForm : Form
                 else Clay.KhoiLom(e.Graphics, r, r.Width / 2f, Clay.Lom);
             };
             h.Controls.Add(cham);
-            var ten = X(h, 102, y + 10, a.Name, Kieu.B, 0, la ? Clay.Chu3 : Chu);
+            var cam = !la && TenThietBi.LaTenCam(a.Name);
+            var ten = X(h, 102, y + 10, a.Name, Kieu.B, 0, la || cam ? Clay.Chu3 : Chu);
             var phu = la ? "bạn đang dùng · toàn quyền, không chọn cho con"
+                : cam ? "tên hệ thống giữ riêng · chỉ vào hồ sơ tạm, hãy tạo tài khoản mới"
                 : a.IsAdmin ? "tài khoản Ba Mẹ · sẽ chuyển thành tài khoản cho con" : "sẽ là tài khoản chung của các con";
             var lbPhu = X(h, 102 + (int)Math.Ceiling(ten.PreferredWidth / Clay.Scale) + 14, y + 11, phu, Kieu.S, 0, Clay.Chu3);
-            if (!la)
+            if (!la && !cam)
             {
                 BamDuoc(h, () => { _child = a; VeChon(); foreach (var (hh, _, _, _) in hang) hh.Invalidate(true); });
                 hang.Add((h, a, ten, lbPhu));
