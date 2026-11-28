@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { ghiDaXem, kid, taiSao, type LuotTre, type NhaTreSao, type ToiTre } from "@/lib/api-tre";
-import { soSao, soVN, traNoKhiDuyet } from "@/lib/con-diu";
+import { soSao, soVN, traNoKhiDuyet, traNoTuSo } from "@/lib/con-diu";
 import { NO } from "@/lib/man-con";
 import { BONG_D, D, FD } from "@/lib/diu";
 import { Rob } from "@/lib/ui";
@@ -27,7 +27,8 @@ export default function DuocDuyet() {
   if (!d) return <ManD><ChoD loi={loi} matMang={matMang} tai={tai} /></ManD>;
   const diem = d.l?.diem ?? 0;
   const sao = d.s?.sao ?? d.nha.sao ?? d.nha.soDu;
-  const tn = traNoKhiDuyet(sao, diem);
+  // #810: `sao` = sao khả dụng (không âm) ⇒ phần trả nợ lấy từ sổ (dòng «tra_no» mới nhất ngay sau lượt duyệt), nợ còn lại từ máy chủ (`no`)
+  const tn = d.s ? traNoTuSo(sao, diem, d.s.no, d.s.lichSu) : traNoKhiDuyet(sao, diem);
   const coNo = tn.traNo > 0 || tn.conNo > 0;
   const ve = async (den: string) => {
     if (chon && d.khen) await kid.goi(`loi-khen/${d.khen.id}/phan-hoi`, { phanHoi: chon }).catch(() => {});
@@ -43,7 +44,7 @@ export default function DuocDuyet() {
         <Text style={{ fontFamily: FD.den, fontSize: 44, color: D.saoInk }}>{`+${diem} sao`}</Text>
         <TieuD chu={`Giỏi quá! Ba Mẹ duyệt ${d.l?.ten ?? "nhiệm vụ"} rồi!`} nho giua />
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, marginTop: 4 }}>
-          <ChuD kieu="den" co={20} mau={coNo ? NO.chu : D.chu3} so>{soVN(Math.max(0, tn.truoc))}</ChuD>
+          <ChuD kieu="den" co={20} mau={coNo ? NO.chu : D.chu3} so>{soVN(tn.truoc)}</ChuD>
           <ChuD kieu="den" co={18} mau={D.chu3}>→</ChuD>
           <ChuD kieu="den" co={22} mau={sao < 0 ? NO.chu : D.saoInk} so>{soSao(sao)}</ChuD>
         </View>

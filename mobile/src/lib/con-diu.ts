@@ -131,6 +131,14 @@ export function traNoKhiDuyet(saoSau: number, diem: number) {
   return { truoc, traNo, conNo: Math.max(0, -saoSau) };
 }
 
+/** #810: «Được duyệt» khi máy chủ gửi sao KHẢ DỤNG (không âm) + nợ + sổ gần đây: phần trả nợ = dòng «tra_no» mới nhất của sổ (nhiệm vụ đang nợ ⇒
+ *  máy chủ ghi trừ nợ ngay sau dòng nhiệm vụ), số trước = sau − (điểm − trả nợ), kẹp 0; nợ còn = `no` máy chủ. Không có sổ ⇒ không đoán trả nợ. */
+export function traNoTuSo(saoSau: number, diem: number, no: number, lichSu: { kieu: string; sao: number }[] | null) {
+  const dau = lichSu?.[0];
+  const traNo = dau && dau.kieu === "tra_no" ? Math.min(diem, Math.max(0, -dau.sao)) : 0;
+  return { truoc: Math.max(0, saoSau - (diem - traNo)), traNo, conNo: Math.max(0, no) };
+}
+
 /** «= 15 phút chơi hoặc đổi quà · con sẽ nợ 15 sao» (bảng xin vay). Nợ sau vay = nợ đang có + số vay (như máy chủ `cho-vay/xem-truoc`). */
 export const cauVay = (soSaoVay: number, noDangCo = 0) => `= ${soVN(soSaoVay)} phút chơi hoặc đổi quà · con sẽ nợ ${soVN(Math.max(0, noDangCo) + soSaoVay)} sao`;
 

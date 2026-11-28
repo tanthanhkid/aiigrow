@@ -968,7 +968,8 @@ public sealed class AgentRuntime
             s.AppDangChoi = s.DangChoiTinhPhut ? TrayView.FriendlyAppName(_fgId, _fgName, TenAppMay) : null;
             // #810: app đã trừ sao theo sổ máy chủ (cùng danh sách web Ba Mẹ) + app «Không tính phút» đếm tại máy; máy chủ cũ ⇒ đếm tại máy
             s.DungTheoApp = SaoView.DungTheoMayChu(soHomNay ? pBe.SoSao?.AppHomNay : null,
-                Usage.DungHomNay(now, con: s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng ? s.BeId : null), pBe.LearningApps);
+                Usage.DungHomNay(now, con: s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng ? s.BeId : null), pBe.LearningApps,
+                (s.PhutChoiHomNay ?? 0) - (pBe.SoSao?.PhutChoiHomNay ?? 0), s.DangChoiTinhPhut ? _fgId : null, s.AppDangChoi);
             // #307: dịch vụ giải tên hiển thị (danh sách app máy) — khay hiện đúng tên này, không tra bảng
             var tenMay = TenAppMay;
             s.TenAppDuocPhep = s.AppDuocPhep.Select(m => TrayView.FriendlyAppName(m, null, tenMay)).ToList();

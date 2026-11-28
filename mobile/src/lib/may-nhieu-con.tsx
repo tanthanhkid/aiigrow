@@ -14,7 +14,8 @@ import { tenGoi } from "@/lib/hang-ngay";
 export type ConNganMay = { id: string; ten: string; avatar: string };
 /** Một Con trong `GET may/:id/con › ds` (mọi Con trong nhà, kèm đã gán vào máy chưa). */
 export type ConCuaMay = ConNganMay & {
-  coPin: boolean; gan: boolean; dangDung: boolean; /** sao tiêu được (≥ 0, #745) */ sao: number; /** nợ Ba Mẹ (máy chủ cũ không gửi ⇒ suy từ sao âm) */ no?: number; phutHomNay: number; lanCuoi: string | null;
+  coPin: boolean; gan: boolean; dangDung: boolean; /** sao tiêu được (≥ 0, #745) */ sao: number; /** nợ Ba Mẹ (máy chủ cũ không gửi ⇒ suy từ sao âm) */ no?: number;
+  /** #810: phút đã chơi trừ sao trên máy này hôm nay (cùng số Hôm nay) */ phutHomNay: number; /** #810: mọi phút đo được trên máy (cả không trừ sao) */ phutDungHomNay?: number; lanCuoi: string | null;
   khoaCon: { khoa: boolean; den: string | null }; mayKhac: { id: string; ten: string; nen: string; rieng: boolean }[]; ganDuoc: boolean; lyDo?: string;
 };
 /** `GET may/:id/con` — «Máy này ai dùng?» + «Máy cả nhà · chi tiết». */

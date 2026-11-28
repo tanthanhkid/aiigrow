@@ -24,16 +24,17 @@ test("#810: trình duyệt + tiến trình hệ thống không làm lệch số;
   const { fam } = await taoNha("Mẹ Lan");
   const con = await g.taoCon(fam, { ten: "Bảo Anh" });
   const may = (await g.ghepMay(await g.taoMaGhep(fam, con, "windows"), "windows", "Laptop")).deviceId;
-  const now = new Date();
+  const now = new Date("2026-11-20T12:00:00+07:00");   // mốc cố định — không đồng hồ thật
   const n = gioDiaPhuong(now, "Asia/Ho_Chi_Minh").ngay;
+  const truoc1h = new Date(now.getTime() - 3600_000);
   await datLuat(fam, { con, muc: "youtube.com", ten: "youtube.com", loai: "giai_tri" });
   await datLuat(fam, { con, muc: "robloxplayerbeta.exe", ten: "Roblox", loai: "giai_tri" });
   const dung = (muc: string, loai: string, phut: number) =>
-    q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,$4,$5,$6, now() - interval '1 hour')`, [may, con, n, muc, loai, phut]);
+    q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,$4,$5,$6,$7)`, [may, con, n, muc, loai, phut, truoc1h]);
   await dung("robloxplayerbeta.exe", "giai_tri", 15);
   await dung("msedge.exe", "chua_phan_loai", 33);      // trình duyệt: phút đã nằm ở dòng web ⇒ không cộng lần hai
   await dung("system", "he_thong", 20);
-  await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, dau_luc) values ($1,$2,$3,'youtube.com',3,3180, now() - interval '1 hour')`, [may, con, n]);   // 53 phút
+  await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, dau_luc) values ($1,$2,$3,'youtube.com',3,3180,$4)`, [may, con, n, truoc1h]);   // 53 phút
 
   const hn = await homNayDung(fam, con, now);
   const yt = hn.dung.find((x) => x.muc === "youtube.com")!, rb = hn.dung.find((x) => x.muc === "robloxplayerbeta.exe")!;
@@ -67,12 +68,12 @@ test("#810 test 28/11: app Con, «Đã dùng gì», trang máy, Hôm nay cùng s
   await ss.tangSaoKhoiDau(con, 9, bm);
   await datLuat(fam, { con, muc: "youtube.com", ten: "youtube.com", loai: "giai_tri" });
   await datLuat(fam, { con, muc: "powershell.exe", ten: "PowerShell", loai: "giai_tri" });
-  const now = new Date(Date.now() - 60_000);
+  const now = new Date("2026-11-20T12:00:00+07:00");   // mốc cố định — không đồng hồ thật
   const n = gioDiaPhuong(now, "Asia/Ho_Chi_Minh").ngay;
   // đo: PowerShell 8′ + Explorer 3′ (tiến trình nền, không luật) trên Laptop; youtube 16′ trên Laptop (một phần chơi song song PowerShell)
-  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,'powershell.exe','giai_tri',8, now() - interval '30 minutes'),
-     ($1,$2,$3,'explorer.exe','chua_phan_loai',3, now() - interval '30 minutes')`, [may, con, n]);
-  await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, dau_luc) values ($1,$2,$3,'youtube.com',2,960, now() - interval '20 minutes')`, [may, con, n]);
+  await q(`insert into usage(device_id, child_id, ngay, muc, loai, phut, dau_luc) values ($1,$2,$3,'powershell.exe','giai_tri',8,$4),
+     ($1,$2,$3,'explorer.exe','chua_phan_loai',3,$4)`, [may, con, n, new Date(now.getTime() - 30 * 60_000)]);
+  await q(`insert into web_nhat_ky(device_id, child_id, ngay, ten_mien, so_lan, giay, dau_luc) values ($1,$2,$3,'youtube.com',2,960,$4)`, [may, con, n, new Date(now.getTime() - 20 * 60_000)]);
   // sổ: trừ 6 sao PowerShell + 3 sao youtube trên Laptop (hết 9 sao ⇒ phần youtube còn lại không trừ)
   for (let i = 0; i < 6; i++) await ss.truPhutChoi(con, 1, new Date(now.getTime() - (20 - i) * 60_000), { muc: "powershell.exe", may });
   for (let i = 0; i < 5; i++) await ss.truPhutChoi(con, 1, new Date(now.getTime() - (10 - i) * 60_000), { muc: "youtube.com", may });
@@ -103,7 +104,7 @@ test("#810 test 28/11: app Con, «Đã dùng gì», trang máy, Hôm nay cùng s
 
   // #812: hết sao, Ba Mẹ cho vay 10 ⇒ trang máy, Hôm nay, khay cùng «10 sao = 10 phút»
   await ss.choVay(fam, con, 10, bm, { mucDich: "choi" });
-  const st = (await quyHomNay(con)).soSao;
+  const st = (await quyHomNay(con, now)).soSao;
   assert.deepEqual([st.sao, st.phutCon, st.no], [10, 10, 10]);
-  assert.equal((await conMay(fam, may)).ds.find((x) => x.id === con)!.sao, 10, "trang máy dùng sao khả dụng, không «0 sao»");
+  assert.equal((await conMay(fam, may, now)).ds.find((x) => x.id === con)!.sao, 10, "trang máy dùng sao khả dụng, không «0 sao»");
 });

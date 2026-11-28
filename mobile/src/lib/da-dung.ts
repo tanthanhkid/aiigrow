@@ -32,7 +32,9 @@ export function icDung(x: { ten: string; kieu: "app" | "web"; tinhGio: boolean }
 export function nhanDung(x: { phut: number; tinhGio: boolean; chuaXep?: boolean; sao?: number }) {
   const sao = typeof x.sao === "number" ? x.sao : x.tinhGio && !x.chuaXep ? x.phut : 0;
   if (sao > 0 || x.tinhGio && !x.chuaXep) {
-    return sao === x.phut ? { chu: `${soVN(-sao)} sao`, doc: `trừ ${sao} sao` } : { chu: `${x.phut}′ · ${soVN(-sao)} sao`, doc: `${x.phut} phút, trừ ${sao} sao` };
+    // lệch ≤ 1 là phần lẻ phút (sổ trừ đủ phút nguyên) ⇒ vẫn một số «−N sao»; không trừ gì (Mở hết / mở bằng mã) ⇒ «N′ · không trừ sao»
+    if (sao <= 0) return { chu: `${x.phut}′ · không trừ sao`, doc: `${x.phut} phút, không trừ sao` };
+    return Math.abs(sao - x.phut) <= 1 ? { chu: `${soVN(-sao)} sao`, doc: `trừ ${sao} sao` } : { chu: `${x.phut}′ · ${soVN(-sao)} sao`, doc: `${x.phut} phút, trừ ${sao} sao` };
   }
   return x.chuaXep ? { chu: `Chưa xếp ${x.phut}′`, doc: `${x.phut} phút, chưa xếp nhóm, chưa trừ sao` } : { chu: `Không tính ${x.phut}′`, doc: `${x.phut} phút, không trừ sao` };
 }

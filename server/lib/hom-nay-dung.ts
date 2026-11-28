@@ -43,8 +43,8 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
   const [{ app, web, luat }, phien, may, mm, yc, qy, so] = await Promise.all([
     docDongDung(fam, con, ngay, now),
     q<{ muc: string; device_id: string | null }>(`select muc, device_id from play_sessions where child_id = $1 and trang_thai = 'chay'`, [con]),
-    q<{ id: string; name: string; platform: string; child_id: string | null; status: Record<string, unknown> | null }>(
-      `select id, name, platform, child_id, status from devices where family_id = $1`, [fam]),
+    q<{ id: string; name: string; platform: string; child_id: string | null; ios: Record<string, unknown> | null }>(
+      `select id, name, platform, child_id, case when platform = 'ios' and child_id = $2 then status->'ios' end as ios from devices where family_id = $1`, [fam, con]),
     mayMatMang(fam, now),
     q<{ id: string; loai: string; gia_tri: string | null; ten_app: string | null; phut: number | null; trang_thai: string; device_id: string | null; created_at: Date }>(
       `select id, loai, gia_tri, ten_app, phut, trang_thai, device_id, created_at from requests where child_id = $1 and created_at >= $2
@@ -89,7 +89,7 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     mayId: null, tinhGio: true, chuaXep: false, dangMo: false, matMang: false, _phutMay: 0, ...x });
   // iPhone/iPad của bé (một bé — #267; Apple không cho biết tên app) ⇒ một dòng «Tính phút trên <máy>»
   for (const m of may.filter((x) => x.platform === "ios" && x.child_id === con)) {
-    const st = (m.status?.ios ?? null) as { phutDaDung?: number; luc?: string } | null;
+    const st = (m.ios ?? null) as { phutDaDung?: number; luc?: string } | null;
     const phut = st?.luc && gioDiaPhuong(new Date(st.luc), tz).ngay === ngay ? Math.max(0, Math.round(Number(st.phutDaDung) || 0)) : 0;
     const k = `ios:${m.id}`, sao = saoMuc.get(k) ?? 0;
     saoMuc.delete(k);
@@ -100,13 +100,12 @@ export async function homNayDung(fam: string, con: string, now = new Date(), o: 
     if (!(sao > 0)) continue;
     if (!muc || muc.startsWith("ios:")) { khac += sao; continue; }
     const kieu = LA_APP.test(muc) ? "app" : "web";
-    if (gop.has(`${kieu}:${muc}`)) { gop.get(`${kieu}:${muc}`)!.sao += sao; continue; }
     dongSo(`${kieu}:${muc}`, { ten: tenDoc(muc, kieu, luatCua(muc, kieu)?.ten), muc, kieu, phut: sao, sao });
   }
   if (khac > 0) dongSo("app:", { ten: "Khác", phut: khac, sao: khac });
   // #704: tổng «Không tính phút» tính trên CẢ ngày (trước khi cắt danh sách), cộng số lẻ — kể cả tên miền dưới 1 phút — rồi làm tròn một lần
   const phutHoc = Math.round([...gop.values()].filter((x) => !x.tinhGio && !x.chuaXep).reduce((s, x) => s + x.phut, 0));
-  const tatCa = [...gop.values()].map(({ _phutMay, ...x }) => ({ ...x, phut: x.kieu === "web" ? Math.round(x.phut) : x.phut })).filter((x) => x.phut > 0);
+  const tatCa = [...gop.values()].map(({ _phutMay, ...x }) => ({ ...x, phut: x.kieu === "web" ? Math.round(x.phut) : x.phut })).filter((x) => x.phut > 0 || x.sao > 0);
   const dung = tatCa
     // mới trước (dòng chưa biết giờ xuống cuối), cùng giờ thì dùng nhiều trước
     .sort((a, b) => (b.luc ? new Date(b.luc).getTime() : 0) - (a.luc ? new Date(a.luc).getTime() : 0) || b.phut - a.phut).slice(0, o.gioiHan ?? 50);

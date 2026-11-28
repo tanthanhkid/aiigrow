@@ -83,7 +83,8 @@ export function saoTheoMay(sao: DongSao[], d: { app: DongApp[]; web: DongWeb[] }
 }
 
 /** Khay Windows «đã dùng hôm nay theo app» (Policy › sao.appHomNay): từng mục ĐÃ TRỪ SAO hôm nay theo sổ (mọi máy, cả web) — cùng tên + số với
- *  «Đã dùng gì» của Ba Mẹ (cột sao) và app Con; tổng = sao.phutChoiHomNay. `luat` (muc, ten) ⇒ tên Ba Mẹ đặt. Dòng `ios:` / không mục ⇒ «Khác». */
+ *  «Đã dùng gì» của Ba Mẹ (cột sao) và app Con; tổng = sao.phutChoiHomNay. `luat` (muc, ten) ⇒ tên Ba Mẹ đặt. Dòng `ios:` / không mục ⇒ «Khác»
+ *  (khay chỉ ghi tên, «Khác» gom phần iPhone/iPad). Không cắt danh sách ⇒ tổng luôn khớp. */
 export async function appTheoSo(con: string, ngay: string, tu: Date, luat: { muc: string; ten: string }[] = []) {
   const theoMuc = new Map<string, number>();
   for (const r of await docSaoHomNay(con, ngay, tu)) {
@@ -91,6 +92,6 @@ export async function appTheoSo(con: string, ngay: string, tu: Date, luat: { muc
     theoMuc.set(k, (theoMuc.get(k) ?? 0) + r.sao);
   }
   return [...theoMuc].filter(([, sao]) => sao > 0)
-    .map(([muc, sao]) => ({ muc, ten: muc ? tenDoc(muc, LA_APP.test(muc) ? "app" : "web", chonLuat(luat.map((l) => ({ child_id: "", ...l })), muc)?.ten) : "Khác", sao }))
-    .sort((a, b) => (+(a.muc === "") - +(b.muc === "")) || b.sao - a.sao).slice(0, 12);
+    .map(([muc, sao]) => ({ muc, ten: muc ? tenDoc(muc, LA_APP.test(muc) ? "app" : "web", chonLuat(luat.map((l) => ({ child_id: "", ...l })), muc, LA_APP.test(muc) ? "app" : "web")?.ten) : "Khác", sao }))
+    .sort((a, b) => (+(a.muc === "") - +(b.muc === "")) || b.sao - a.sao);
 }
