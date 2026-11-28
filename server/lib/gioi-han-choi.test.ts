@@ -253,13 +253,14 @@ test("#811: cau_hinh bị ghi thành mảng (chuỗi JSON lồng) ⇒ lược đ
   // y như dữ liệu thật trên prod: {} || "<chuỗi JSON>" || {web_lan_dau: "<chuỗi mảng>"} || khoá… || chuỗi giờ chơi mới nhất
   const hong = [{}, JSON.stringify({ gh_ngay_thuong: 60, gh_cuoi_tuan: 90, gh_moi_luot: 30 }), { web_lan_dau: JSON.stringify(["tiktok.com"]) },
     { khoa_ngay: true, khoa_den: "2026-11-27T05:14:13.818Z" }, JSON.stringify({ gh_ngay_thuong: 45, gh_cuoi_tuan: 90, gh_moi_luot: 0 }),
-    { khoa_ngay: true, khoa_den: "2026-11-28T02:38:03.735Z" }];
+    { khoa_ngay: true, khoa_den: "2026-11-28T02:38:03.735Z" }, "{hỏng"];
   await q(`update children set cau_hinh = $2::text::jsonb where id = $1`, [con, JSON.stringify(hong)]);
   const gop = SCHEMA_APP_WEB.filter((s) => s.includes("jsonb_array_elements(c.cau_hinh)") || s.includes("'{web_lan_dau}'"));
   assert.equal(gop.length, 2);
   for (const s of [...gop, ...gop]) await q(s);   // chạy lại vô hại
   const c = (await one<{ c: any }>(`select cau_hinh as c from children where id = $1`, [con]))!.c;
-  assert.deepEqual(c, { gh_ngay_thuong: 45, gh_cuoi_tuan: 90, gh_moi_luot: 0, web_lan_dau: ["tiktok.com"], khoa_ngay: true, khoa_den: "2026-11-28T02:38:03.735Z" });
+  // khoá cũ trong mảng (không có hiệu lực, «Mở lại» bị nuốt) không dựng lại
+  assert.deepEqual(c, { gh_ngay_thuong: 45, gh_cuoi_tuan: 90, gh_moi_luot: 0, web_lan_dau: ["tiktok.com"] });
   const r = await m(tokBm, `con/${con}/gio-choi`);
   assert.deepEqual([r.body.gioiHanNgayThuong, r.body.gioiHanCuoiTuan, r.body.phutMoiLuot], [45, 90, 0]);
 });

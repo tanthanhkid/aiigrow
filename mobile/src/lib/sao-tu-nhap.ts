@@ -9,7 +9,7 @@ export function useSaoTu(toiDa: number) {
   const thieu = mo && so === null;       // mở ô tự chọn mà chưa nhập số ⇒ chặn Lưu, không lặng lẽ giữ giá trị cũ
   const loi = thieu || (so !== null && (!Number.isInteger(so) || so < 1 || so > toiDa));
   return {
-    chu, so, loi, toiDa, mo, setMo, thieu, maxLength: String(toiDa).length,
+    chu, so, loi, toiDa, mo, setMo, thieu, maxLength: String(toiDa).length + 1,   // +1 chỗ cho dấu . , để báo «Chỉ nhập số nguyên»
     nhap: (t: string) => setChu(soNguyenGo(t).slice(0, String(toiDa).length + 1)),
     xoa: () => setChu(""),
     /** số sao dùng: ô tự nhập hợp lệ thắng chip */

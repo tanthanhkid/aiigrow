@@ -144,7 +144,7 @@ function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f
   const [nhap, setNhap] = useState(false);
   const [chuSao, setChuSao] = useState("");
   const ngoai = !SAO.includes(sao);
-  const xongSao = () => { const n = docSoNguyen(chuSao) ?? 0; if (loiSoNguyen(chuSao)) return; if (n > 0) setSao(Math.min(n, 999)); setNhap(false); setChuSao(""); };
+  const xongSao = () => { const n = docSoNguyen(chuSao) ?? 0; if (Number.isNaN(n)) return; if (n > 0) setSao(Math.min(n, 999)); setNhap(false); setChuSao(""); };
   const them = () => lam(async () => {
     const t = ten.trim();
     if ([...t].length < 2) throw new Error("Điền tên quà con muốn.");

@@ -4,6 +4,7 @@
 // («Theo danh sách» / «Mở hết» · Được mở N app), Máy của X (N máy · «iPad cần sửa»), Nhiệm vụ & sao (N việc mỗi ngày); «Về X»: Sửa tên, năm sinh, ảnh ·
 // PIN vào máy (Đặt lại) · «Xoá hồ sơ X» chữ đỏ canh giữa (⇒ /ho-so/<id>/xoa, them-canktzlq). #325: theo bm2-ho-so@v22 (thẻ đầu ngọc nhạt). Người trông giúp: xem được mọi dòng, không có «Sửa» / «Xoá».
 import { canSuaMay } from "@/lib/trang-thai-may";
+import { laMayChung } from "@/lib/may-nhieu-con";
 import { tomTatGioiHan, type GioiHan } from "@/lib/gioi-han";
 import { router, useLocalSearchParams } from "expo-router";
 import { Pressable, View } from "react-native";
@@ -49,7 +50,7 @@ export default function HoSoCon() {
   const phutHomNay = cg?.phutChoi ?? null;
   const canSua = c.may.filter(canSuaMay);
   // #774: PIN chỉ hỏi ở máy DÙNG CHUNG (≥ 2 bé chọn tên + PIN); chỉ có máy riêng ⇒ bé vào thẳng, ẩn dòng PIN (đặt PIN vẫn ở «Sửa tên, năm sinh, ảnh»)
-  const coMayChung = c.may.some((x) => (x.soCon ?? x.conDs?.length ?? (x.dungChung ? 2 : 1)) >= 2);
+  const coMayChung = c.may.some((x) => laMayChung({ ...x, con: null }));
   return (
     <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
       {d.g.con.length > 1 ? <HangChonBe ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={id} doi={(x) => x && router.replace(`/ho-so/${x.id}` as never)} /> : null}

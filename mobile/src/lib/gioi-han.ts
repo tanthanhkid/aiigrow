@@ -20,7 +20,7 @@ export const LUOT_MD = 30;
 export function docPhut(chu: string, k: { min: number; max: number }, batBuoc = false): { phut: number; loi: string | null } {
   const loiKhoang = `Từ ${k.min} đến ${k.max} phút`;
   const n = docSoNguyen(chu);
-  if (n !== null && Number.isNaN(n)) return { phut: 0, loi: LOI_SO_NGUYEN };   // #743: «45.5» báo rõ, không thành 455 / 45 ngầm
+  if (Number.isNaN(n)) return { phut: 0, loi: LOI_SO_NGUYEN };   // #743: «45.5» báo rõ, không thành 455 / 45 ngầm
   if (!n) return { phut: 0, loi: batBuoc ? loiKhoang : null };
   if (n < k.min || n > k.max) return { phut: n, loi: loiKhoang };
   return { phut: n, loi: null };

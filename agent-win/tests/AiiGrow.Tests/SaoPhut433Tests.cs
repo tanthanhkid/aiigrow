@@ -207,7 +207,7 @@ public class SaoPhut433Tests
         finally { try { File.Delete(tep); } catch (IOException) { } }
     }
     /// <summary>#780: tệp phut-da-dem.json của bản cũ còn dòng khay «aiigrow.tray.exe 23 phút» ⇒ nạp thì bỏ dòng của chính AiiGrow, ghi lại tệp sạch;
-    /// phút AiiGrow đưa vào sau cũng không đếm.</summary>
+    /// app khác giữ nguyên.</summary>
     [Fact]
     public void B780_BoDongAiiGrowTrongTepCu()
     {
@@ -220,7 +220,6 @@ public class SaoPhut433Tests
                 "{\"day\":\"2026-11-27\",\"app\":\"roblox.exe\",\"name\":\"Roblox\",\"minutes\":5,\"daGui\":0}]}");
             var t = new UsageTotals();
             t.DungTep(tep);
-            t.Add(new[] { new UsageEntry("2026-11-27", "aiigrow.tray.exe", "AiiGrow.Tray", 3) });
             Assert.Equal(new[] { "roblox.exe" }, t.CanGui("may-1").Select(x => x.AppId).ToArray());
             var noiDung = File.ReadAllText(tep);
             Assert.DoesNotContain("aiigrow", noiDung, StringComparison.OrdinalIgnoreCase);

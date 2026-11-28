@@ -74,7 +74,7 @@ export function ChipMuc({ muc, gia, doi, donVi = "sao", toiDa = 999, nhanTuChon 
   const [nhap, setNhap] = useState(false);
   const [chu, setChu] = useState("");
   const ngoai = gia !== null && !muc.includes(gia);
-  const xong = () => { const n = docSoNguyen(chu) ?? 0; if (loiSoNguyen(chu)) return; if (n > 0) doi(Math.min(n, toiDa)); setNhap(false); setChu(""); };
+  const xong = () => { const n = docSoNguyen(chu) ?? 0; if (Number.isNaN(n)) return; if (n > 0) doi(Math.min(n, toiDa)); setNhap(false); setChu(""); };
   return (
     <View style={{ gap: 8 }}>
       <View style={{ flexDirection: "row", gap: 8 }} accessibilityRole="radiogroup">

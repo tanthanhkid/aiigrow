@@ -166,7 +166,7 @@ export default function ViSao() {
         </View>
         <Chu co={13} mau={M.chu3}>Mọi điều chỉnh tay được ghi lại trong ví và báo cáo.</Chu>
         <BaoLoi loi={loiLam} />
-        <Nut chu={`${dau > 0 ? "Cộng" : "Trừ"} ${so || 0} sao`} rong dangChay={dangChay} tat={!lyDo.trim() || !((docSoNguyen(so) ?? 0) >= 1)} bam={luu} />
+        <Nut chu={`${dau > 0 ? "Cộng" : "Trừ"} ${so || 0} sao`} rong dangChay={dangChay} tat={!lyDo.trim() || !((docSoNguyen(so) ?? 0) >= 1 && (docSoNguyen(so) ?? 0) <= 9999)} bam={luu} />
       </BangTruot>
     </Man>
   );

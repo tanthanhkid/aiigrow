@@ -74,7 +74,7 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
   /** tính lại giới hạn từ các ô + ô tick, báo lên màn */
   const bao = (c: typeof chu, kn: boolean) => {
     const nt = docPhut(c.nt, KHOANG_NGAY, true), ct = docPhut(c.ct, KHOANG_NGAY, true), l = docPhut(c.l, KHOANG_LUOT);
-    const loiLuot = kn ? null : !l.phut ? `Từ ${KHOANG_LUOT.min} đến ${KHOANG_LUOT.max} phút` : l.loi;
+    const loiLuot = kn ? null : l.loi ?? (!l.phut ? `Từ ${KHOANG_LUOT.min} đến ${KHOANG_LUOT.max} phút` : null);
     const e = nt.loi ?? ct.loi ?? loiLuot;
     setLoi(e);
     doi({ ngayThuong: nt.phut, cuoiTuan: ct.phut, moiLuot: kn ? 0 : l.phut }, e);

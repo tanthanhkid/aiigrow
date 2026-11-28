@@ -21,7 +21,7 @@ test("số nguyên, trống, hàng nghìn", () => {
   assert.equal(docSoNguyen("120"), 120);
   assert.equal(docSoNguyen(""), null);
   assert.equal(docSoNguyen("1.000"), 1000);
-  assert.equal(docSoNguyen("1,000"), 1000);
+  assert.ok(Number.isNaN(docSoNguyen("2,500")), "dấu phẩy là thập phân kiểu Việt");
   assert.equal(loiSoNguyen("25"), null);
   assert.equal(loiSoNguyen(""), null);
 });

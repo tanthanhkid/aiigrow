@@ -60,7 +60,8 @@ public sealed class UsageTotals
                 foreach (var x in d.Dong ?? new())
                 {
                     if (x == null || string.IsNullOrEmpty(x.Day) || string.IsNullOrEmpty(x.App)) continue;
-                    // #780: bản cũ từng đếm chính khay («aiigrow.tray.exe 23 phút») — bỏ dòng app của AiiGrow khi nạp, ghi lại tệp sạch
+                    // #780: bản cũ từng đếm chính khay («aiigrow.tray.exe 23 phút») — bỏ dòng app của AiiGrow khi nạp, ghi lại tệp sạch.
+                    // (Phút mới không lọc ở đây: AgentWorker đã bỏ khay thật theo thư mục cài; máy chủ cũng không ghi dòng AiiGrow.)
                     if (AppAiiGrow.La(x.App)) { boAiiGrow = true; continue; }
                     var k = (x.Day, x.App.ToLowerInvariant(), x.Con ?? "");
                     var cu = _tong.TryGetValue(k, out var v) ? v : null;
@@ -81,7 +82,7 @@ public sealed class UsageTotals
         {
             foreach (var u in tang)
             {
-                if (u.Minutes <= 0 || AppAiiGrow.La(u.AppId)) continue;   // #780: không đếm phút của chính AiiGrow
+                if (u.Minutes <= 0) continue;
                 var k = (u.Day, u.AppId.ToLowerInvariant(), u.Con ?? "");
                 if (!_tong.TryGetValue(k, out var v)) _tong[k] = v = new Dong();
                 v.Name = u.AppName;
