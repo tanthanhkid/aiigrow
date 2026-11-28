@@ -173,3 +173,57 @@ internal sealed class BaMeVienForm : Form
 
     private static IntPtr TaoBo(int w, int h, int bo) => CreateRoundRectRgn(0, 0, w + 1, h + 1, bo, bo);
 }
+
+/// <summary>#863: thẻ nhắc góc phải dưới trong phiên tài khoản quản trị — «Tài khoản quản trị chưa có mật khẩu», tên tài khoản,
+/// «Đặt mật khẩu» (mở Settings › Accounts › Sign-in options) · «Để sau». Không cướp phím.</summary>
+internal sealed class NhacQuanTriForm : HopKhayCoBan
+{
+    /// <summary>true = Ba Mẹ bấm «Đặt mật khẩu»; false = «Để sau» / ×. Khay đóng bằng mã thì không gọi.</summary>
+    public event Action<bool>? BaMeDong;
+    private bool _daBao;
+
+    public IReadOnlyList<string> Ten { get; }
+
+    public NhacQuanTriForm(IReadOnlyList<string> ten) : base("AiiGrow · nhắc Ba Mẹ", UI.Px(360))
+    {
+        Ten = ten;
+        StartPosition = FormStartPosition.Manual;
+        Flow.Controls.Add(KhoiCon.Dau("canh_bao", KhoiCon.Mau.Cam, NhacQuanTriView.Tieu, NhacQuanTriView.Phu, W));
+        Flow.Controls.Add(KhoiCon.DongIcon("nguoi", NhacQuanTriView.DongTen(ten), W, true, Clay.Canh));
+        var hd = UI.Text(NhacQuanTriView.HuongDan, 10f, false, UI.Muted, W);
+        hd.Margin = new Padding(0, 0, 0, UI.Px(10));
+        Flow.Controls.Add(hd);
+        var dat = KhoiCon.Nut(NhacQuanTriView.NutDat, true, W, "khoa");
+        dat.Click += (_, _) =>
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(NhacQuanTriView.CaiDat) { UseShellExecute = true })?.Dispose(); }
+            catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+            Bao(true);
+            Close();
+        };
+        Flow.Controls.Add(dat);
+        var sau = KhoiCon.Nut(NhacQuanTriView.NutDeSau, false, W, null);
+        sau.Click += (_, _) => { Bao(false); Close(); };
+        Flow.Controls.Add(sau);
+        // × của hộp = «Để sau»; Close() bằng mã cũng báo UserClosing ⇒ khay đóng bằng DongLang()
+        FormClosing += (_, _) => Bao(false);
+        Xong();
+        Load += (_, _) => KhoiCon.GocPhaiDuoi(this);
+    }
+
+    private void Bao(bool daMo)
+    {
+        if (_daBao) return;
+        _daBao = true;
+        BaMeDong?.Invoke(daMo);
+    }
+
+    /// <summary>Khay đóng thẻ (hết mật khẩu trống / phiên đổi) — không tính là Ba Mẹ bấm «Để sau».</summary>
+    public void DongLang()
+    {
+        _daBao = true;
+        Close();
+    }
+
+    protected override bool ShowWithoutActivation => true;
+}

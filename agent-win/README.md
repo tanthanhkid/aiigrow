@@ -105,7 +105,7 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
   giá (nhãn «Mã QR» / «Chỉ cuối tuần» / «Còn 1 bộ»), bấm quà chưa đủ sao ⇒ «Con có 30 sao · còn thiếu 20 sao». «Quà của con»: voucher AiiCafe Ba Mẹ đã
   trao hiện mã (= nội dung QR quầy quét) + hạn + «Còn N ngày».
 - Chưa thử trên Windows thật: `New-LocalUser -NoPassword` + đăng nhập không mật khẩu, màn chọn tên toàn màn hình, phím số. Ảnh: `chup-man` (CI `chup-man-win`)
-  thêm `chon-ten*`, `khoa-het-gio-doi-be`, `ba-me-dung-may`, `ba-me-nhap-ma-app`, `doi-be`, `doi-qua-chua-du`.
+  thêm `chon-ten*`, `khoa-het-gio-doi-be`, `ba-me-dung-may`, `nhac-quan-tri-trong` (#863), `ba-me-nhap-ma-app`, `doi-be`, `doi-qua-chua-du`.
 
 ## Build
 

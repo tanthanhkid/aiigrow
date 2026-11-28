@@ -831,7 +831,8 @@ internal sealed class TrayContext : ApplicationContext
     {
         try
         {
-            if (!st.PhienCon) { _choMo = false; AnVoiPhienKhac(); return; }
+            if (!st.PhienCon) { _choMo = false; AnVoiPhienKhac(); _ = KiemQuanTriTrongAsync(); return; }
+            DongNhacQuanTri();
             HienLaiNeuDaAn();
             Chao(true);
             _state = st;
@@ -885,6 +886,44 @@ internal sealed class TrayContext : ApplicationContext
         _phutTruoc = null; _daBaoHetSao = false;
         _warned5 = false;
         if (id != null) _ = HocVienTickAsync();
+    }
+
+    // #863: thẻ nhắc tài khoản quản trị chưa có mật khẩu — chỉ trong phiên KHÔNG phải của bé, dịch vụ chỉ trả cho phiên tài khoản quản trị
+    private readonly NhacQuanTri _nhacQt = new();
+    private NhacQuanTriForm? _nhacQtForm;
+    private DateTimeOffset _nhacQtHoiLuc = DateTimeOffset.MinValue;
+    private bool _nhacQtDangHoi;
+
+    private async Task KiemQuanTriTrongAsync()
+    {
+        var now = DateTimeOffset.Now;
+        if (_nhacQtDangHoi || (now - _nhacQtHoiLuc).Duration() < NhacQuanTriView.NhipHoi) return;
+        _nhacQtDangHoi = true;
+        _nhacQtHoiLuc = now;
+        try
+        {
+            var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.QuanTriTrong });
+            if (!_anPhienKhac) return;   // phiên vừa được nhận là của bé ⇒ không hiện
+            var hien = _nhacQt.Xet(NhacQuanTriView.Doc(r), DateTimeOffset.Now);
+            if (!hien) { DongNhacQuanTri(); return; }
+            if (_nhacQtForm is { IsDisposed: false } cu)
+            {
+                if (cu.Ten.SequenceEqual(_nhacQt.Ten)) return;
+                cu.DongLang();   // danh sách đổi ⇒ dựng lại thẻ với tên mới
+            }
+            var f = new NhacQuanTriForm(_nhacQt.Ten);
+            f.BaMeDong += daMo => _nhacQt.Hoan(DateTimeOffset.Now, daMo ? NhacQuanTriView.HoanDaMo : NhacQuanTriView.HoanDeSau);
+            f.FormClosed += (_, _) => { if (_nhacQtForm == f) _nhacQtForm = null; f.Dispose(); };
+            _nhacQtForm = f;
+            f.Show();
+        }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+        finally { _nhacQtDangHoi = false; }
+    }
+
+    private void DongNhacQuanTri()
+    {
+        if (_nhacQtForm is { IsDisposed: false } f) { _nhacQtForm = null; f.DongLang(); }
     }
 
     private BaMeDungForm? _baMeForm;
@@ -1206,7 +1245,7 @@ internal sealed class TrayContext : ApplicationContext
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { _timer.Dispose(); _hvTimer.Dispose(); _app?.Dispose(); _baMeForm?.Dispose(); _baMeVien?.Dispose(); _ni.Visible = false; _ni.Dispose(); }
+        if (disposing) { _timer.Dispose(); _hvTimer.Dispose(); _app?.Dispose(); _baMeForm?.Dispose(); _baMeVien?.Dispose(); _nhacQtForm?.Dispose(); _ni.Visible = false; _ni.Dispose(); }
         base.Dispose(disposing);
     }
 }

@@ -236,6 +236,8 @@ internal static class ChupMain
         await Mot("chon-ten-quen-pin", () => ManChonTen("chon-ten-quen-pin", st => { ManChonTenView.ChonBe(st, HoSoMau().Con[0], DateTimeOffset.Now); ManChonTenView.MoQuen(st); }));
         await Mot("chon-ten-ba-me-ma", () => ManChonTen("chon-ten-ba-me-ma", st => { ManChonTenView.MoBaMe(st, false); st.So = "48"; }));
         await Mot("ba-me-dung-may", () => ManHop("ba-me-dung-may", () => { var f = new BaMeDungForm(); f.Den(DateTimeOffset.Now.AddMinutes(28)); return f; }));
+        await Mot("nhac-quan-tri-trong", () => ManHop("nhac-quan-tri-trong", () => new NhacQuanTriForm(new[] { "Ba Mẹ" })));   // #863
+        await Mot("nhac-quan-tri-trong-2", () => ManHop("nhac-quan-tri-trong-2", () => new NhacQuanTriForm(new[] { "Ba Mẹ", "Administrator" })));
         await Mot("ba-me-nhap-ma-app", () => ManHop("ba-me-nhap-ma-app", () => new BaMeMaHop()));
         await Mot("doi-be", () => ManHop("doi-be", () => new DoiBeHop("Bảo Anh", false, 18)));
         // 14/11 (docs/thiet-ke-chot/DOI-1411.md): con-ngay-thuong 24 «Cần mã của Ba Mẹ» (menu khay «Thoát AiiGrow…») + 25 «Giỏi lắm! 5 ngày liền»

@@ -275,7 +275,7 @@ public sealed class PipeServer : BackgroundService
                 // #860: chỉ phiên của tài khoản quản trị (cùng lượt đọc với bộ kiểm — tính cả nhóm lồng); phiên bé ⇒ từ chối
                 var user = SessionHelper.SessionUser(clientSession);
                 if (string.IsNullOrWhiteSpace(user) || _rt.TenQuanTri?.Contains(user, StringComparer.OrdinalIgnoreCase) != true)
-                    return new PipeResponse { Ok = false, Error = "Chỉ tài khoản quản trị xem được" };
+                    return new PipeResponse { Ok = false, Error = "Chỉ tài khoản quản trị xem được", Status = NhacQuanTriView.KhongQuanTri };   // #863: khay ẩn thẻ
                 var qt = _rt.QuanTriTrong;
                 return new PipeResponse { Ok = true, Data = JsonSerializer.Serialize(qt ?? Array.Empty<string>(), Json.Options), Status = qt == null ? "chua_kiem" : "ok" };
             }
