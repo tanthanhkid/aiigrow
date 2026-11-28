@@ -8,6 +8,9 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // #854: dịch vụ tự cập nhật giao bộ cài mà máy vẫn bản cũ — dòng đầu tiên này cho biết bộ cài có chạy tới đây không (và bằng ai)
+        if (CoCo(args, "capnhat"))
+            WriteLog($"Bộ cài {CapNhatSetup.BanBoCai} bắt đầu: {string.Join(" ", args)} (tài khoản {Environment.UserName}, pid {Environment.ProcessId})");
         ApplicationConfiguration.Initialize();
         var huong = QuyenBoCai.Quyet(Installer.IsAdmin(), LoaiNangQuyen());
         bool chayNgam = args.Any(x => x.Equals("/silent", StringComparison.OrdinalIgnoreCase) || x.Equals("--silent", StringComparison.OrdinalIgnoreCase)

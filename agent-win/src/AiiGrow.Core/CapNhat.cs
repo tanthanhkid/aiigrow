@@ -71,36 +71,47 @@ public static class CapNhatMay
     public static string ThuMucSaoLuu(string thuMucCai) => thuMucCai.TrimEnd('\\', '/') + ".sao-luu";
 
     /// <param name="chep">Chép một tệp (thử nghiệm thay được để giả tệp bị khoá); mặc định File.Copy đè.</param>
-    public static KetQuaCapNhat Chay(string thuMucCai, string ban, ICapNhatOps ops, Action<string, string>? chep = null)
+    /// <param name="buoc">#854: ghi NGAY từng bước vào install.log (trước đây chỉ ghi một dòng lúc xong — bộ cài tự cập nhật treo giữa chừng
+    /// thì install.log trống, không biết kẹt ở bước nào).</param>
+    public static KetQuaCapNhat Chay(string thuMucCai, string ban, ICapNhatOps ops, Action<string, string>? chep = null, Action<string>? buoc = null)
     {
         chep ??= (a, b) => File.Copy(a, b, true);
+        var ghi = buoc ?? (_ => { });
+        void B(string m) { try { ghi(m); } catch { } }
+        B("bước: tắt tự chạy lại dịch vụ");
         try { ops.TatTuKhoiDong(); } catch { }
-        try { return ChayTrong(thuMucCai, ban, ops, chep); }
-        finally { try { ops.BatTuKhoiDong(); } catch { } }
+        try { return ChayTrong(thuMucCai, ban, ops, chep, B); }
+        finally { B("bước: bật lại tự chạy lại dịch vụ"); try { ops.BatTuKhoiDong(); } catch { } }
     }
 
-    private static KetQuaCapNhat ChayTrong(string thuMucCai, string ban, ICapNhatOps ops, Action<string, string> chep)
+    private static KetQuaCapNhat ChayTrong(string thuMucCai, string ban, ICapNhatOps ops, Action<string, string> chep, Action<string> B)
     {
         var log = new List<string>();
         var saoLuu = ThuMucSaoLuu(thuMucCai);
         try
         {
             if (Directory.Exists(saoLuu)) Directory.Delete(saoLuu, true);
+            B("bước: dừng dịch vụ");
             ops.DungDichVuVaKhay();
+            B("bước: sao lưu bản đang cài");
             ChepThuMuc(thuMucCai, saoLuu, chep);
             log.Add("Đã sao lưu bản đang cài.");
         }
         catch (Exception e)
         {
             // Chưa đụng tệp nào ⇒ chỉ cần chạy lại bản cũ.
+            B("lỗi trước khi chép (" + e.Message + ") ⇒ chạy lại bản cũ");
             try { ops.ChayDichVuVaKhay(); } catch { }
             return new(false, false, "Chưa cập nhật được (không sao lưu được bản cũ): " + e.Message);
         }
 
         try
         {
+            B("bước: chép bản " + ban);
             ops.ChepTepMoi(thuMucCai);
+            B("bước: chạy dịch vụ bản mới");
             ops.ChayDichVuVaKhay();
+            B("bước: chờ dịch vụ bản mới chạy");
             if (!ops.DichVuDangChay()) throw new InvalidOperationException("dịch vụ bản mới không chạy");
             ops.GhiPhienBan(thuMucCai, ban);
             try { Directory.Delete(saoLuu, true); } catch { }
@@ -110,6 +121,7 @@ public static class CapNhatMay
         catch (Exception e)
         {
             log.Add("Cập nhật lỗi: " + e.Message + ".");
+            B("lỗi: " + e.Message + " ⇒ khôi phục bản cũ");
             try
             {
                 try { ops.DungDichVuVaKhay(); } catch { }

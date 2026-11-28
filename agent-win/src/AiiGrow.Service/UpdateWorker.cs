@@ -136,8 +136,9 @@ public sealed class UpdateWorker : BackgroundService
         {
             _daBaoHong = daThu.Ghi();          // mỗi lần thử hỏng báo một lần (vòng kiểm 15 phút không dội Sentry)
             // #683: bộ cài lượt trước đã chạy xong mà máy vẫn bản cũ (lỗi chép tệp / khôi phục bản cũ) ⇒ Sentry; hỏng lặp lại ⇒ báo Ba Mẹ (mỗi bản một lần)
-            _log.LogError("Tự cập nhật: lần thử thứ {Lan} lên bản {Ban} không thành (máy vẫn {Cu}) — xem install.log; thử lại sau {Nghi}",
-                daThu.SoLan, m.Version, hienTai.ToString(3), LuatThuCapNhat.Nghi(daThu.SoLan));
+            // #854: kèm chẩn đoán (tác vụ + install.log từ lúc giao) — install.log chỉ nằm trên máy Con, trước đây không ai đọc được từ xa
+            _log.LogError("Tự cập nhật: lần thử thứ {Lan} lên bản {Ban} không thành (máy vẫn {Cu}); thử lại sau {Nghi}. Tác vụ: {TacVu}. install.log: {Log}",
+                daThu.SoLan, m.Version, hienTai.ToString(3), LuatThuCapNhat.Nghi(daThu.SoLan), DocTacVu(), DocInstallLog(daThu.Luc));
             if (LuatThuCapNhat.NenBaoBaMe(daThu.SoLan)) BaoLoi(m.Version, hienTai, daThu.SoLan, "bo_cai_loi");
         }
         if (LuatThuCapNhat.DangNghi(daThu, m.Version, bayGio, epHoi, boCaiDaXong: hong))
@@ -266,15 +267,74 @@ public sealed class UpdateWorker : BackgroundService
     }
 
     /// <summary>Chạy bộ cài bằng tác vụ SYSTEM tách rời: dịch vụ bị bộ cài dừng không kéo bộ cài chết theo.</summary>
-    private static void ChayBoCai(string tep)
+    /// <remarks>#854: lượt trước còn treo (tác vụ «Đang chạy») thì Task Scheduler BỎ QUA lần chạy mới (MultipleInstances mặc định IgnoreNew) —
+    /// Start-ScheduledTask vẫn báo thành công, máy kẹt bản cũ mà không ai biết. Chỉ giao khi lượt trước đã quá thời gian nghỉ (≥ 1 giờ, xa hơn
+    /// ExecutionTimeLimit 30 phút) ⇒ dừng tác vụ cũ + bộ cài cũ còn sót trong thư mục cap-nhat rồi mới đăng ký lại.</remarks>
+    private void ChayBoCai(string tep)
     {
+        DungBoCaiCu();
         var tn = Shell.PsQuote(TenTacVu);
         var r = Shell.PowerShell(
+            // chỉ dừng lượt cũ đã chạy quá ExecutionTimeLimit (treo) — lượt vừa giao (bấm «Cập nhật ngay» liền tay) để yên
+            $"try {{ $c = Get-ScheduledTask -TaskName {tn} -ErrorAction Stop; if ($c.State -eq 'Running' -and ((Get-Date) - ($c | Get-ScheduledTaskInfo).LastRunTime).TotalMinutes -ge {(int)LuatThuCapNhat.ChoBoCai.TotalMinutes}) {{ Stop-ScheduledTask -TaskName {tn} }} }} catch {{}}; " +
             $"$a = New-ScheduledTaskAction -Execute {Shell.PsQuote(tep)} -Argument '--capnhat --im-lang'; " +
             "$s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 30); " +
             $"Register-ScheduledTask -TaskName {tn} -Action $a -Settings $s -User 'SYSTEM' -RunLevel Highest -Force | Out-Null; " +
             $"Start-ScheduledTask -TaskName {tn}", 60000);
         if (!r.Ok) throw new InvalidOperationException("không giao được bộ cài: " + r.Error);
+    }
+
+    /// <summary>Bộ cài tự cập nhật lượt trước còn chạy (treo) từ thư mục cap-nhat ⇒ kết thúc, ghi log (để biết có treo).</summary>
+    private void DungBoCaiCu()
+    {
+        foreach (var p in System.Diagnostics.Process.GetProcesses())
+        {
+            using (p)
+            {
+                try
+                {
+                    // tệp bộ cài tự cập nhật luôn tên «AiiGrow-Setup-<bản>.exe» trong ProgramData\AiiGrow\cap-nhat (bộ cài Ba Mẹ tự mở không đụng tới)
+                    if (!p.ProcessName.StartsWith("AiiGrow-Setup-", StringComparison.OrdinalIgnoreCase)) continue;
+                    var duong = p.MainModule?.FileName;
+                    if (duong == null || !Path.GetFullPath(duong).StartsWith(Path.GetFullPath(ThuMuc) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (DateTime.Now - p.StartTime < LuatThuCapNhat.ChoBoCai) continue;   // còn trong hạn chạy: có thể đang chép dở, không giết
+                    _log.LogError("Tự cập nhật: bộ cài lượt trước còn chạy từ {Luc:o} ({Tep}) — treo ⇒ kết thúc trước khi giao bản mới. install.log: {Log}",
+                        p.StartTime, Path.GetFileName(duong), DocInstallLog(p.StartTime));
+                    p.Kill(entireProcessTree: true);
+                }
+                catch (Exception e) { _log.LogWarning("Tự cập nhật: chưa dừng được bộ cài cũ: {Loi}", e.Message); }
+            }
+        }
+    }
+
+    /// <summary>Trạng thái tác vụ AiiGrowCapNhat (State, LastRunTime, LastTaskResult) — một dòng cho log chẩn đoán.</summary>
+    private static string DocTacVu()
+    {
+        try
+        {
+            var tn = Shell.PsQuote(TenTacVu);
+            var r = Shell.PowerShell(
+                $"$t = Get-ScheduledTask -TaskName {tn} -ErrorAction Stop; $i = $t | Get-ScheduledTaskInfo; " +
+                "'{0} · chạy lúc {1:o} · mã {2}' -f $t.State, $i.LastRunTime, $i.LastTaskResult", 30000);
+            return r.Ok ? r.Output.Trim() : "không đọc được (" + r.Error.Trim() + ")";
+        }
+        catch (Exception e) { return "không đọc được (" + e.Message + ")"; }
+    }
+
+    /// <summary>Các dòng install.log bộ cài ghi từ lúc giao (ChanDoanCapNhat.DongSau).</summary>
+    private static string DocInstallLog(DateTimeOffset tu)
+    {
+        try
+        {
+            var tep = Path.Combine(Paths.DataDir, "install.log");
+            if (!File.Exists(tep)) return "không có install.log";
+            using var f = new FileStream(tep, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            if (f.Length > 256 * 1024) f.Seek(-256 * 1024, SeekOrigin.End);   // chỉ phần cuối — install.log cộng dồn mãi
+            using var r = new StreamReader(f, Encoding.UTF8);
+            var dong = r.ReadToEnd().Split('\n');
+            return ChanDoanCapNhat.DongSau(dong.Select(d => d.TrimEnd('\r')), tu);
+        }
+        catch (Exception e) { return "không đọc được install.log (" + e.Message + ")"; }
     }
 
     /// <summary>Xoá bộ cài các bản khác (~182 MB mỗi tệp) và tệp tải dở — chỉ giữ bản sắp chạy.</summary>

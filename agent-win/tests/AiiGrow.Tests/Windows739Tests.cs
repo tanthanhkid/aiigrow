@@ -24,6 +24,44 @@ public class Windows739Tests
     }
 
     [Fact]
+    public void TaiKhoanCam_BoQuaQuanTriVaTaiKhoanHeThong_854()
+    {
+        var ds = new[]
+        {
+            new LocalAccount("con", "S-1-5-21-1-1-1-1001", false),
+            new LocalAccount("aux", "S-1-5-21-1-1-1-1004", true),     // tài khoản Ba Mẹ (quản trị) — không phải tài khoản của bé
+            new LocalAccount("nul", "S-1-5-21-1-1-1-501", false),     // RID 500–504: tài khoản hệ thống
+        };
+        Assert.Equal(new[] { "con" }, TenThietBi.TaiKhoanCam(ds));
+        // chỉ xét tài khoản AiiGrow đang áp cho bé
+        Assert.Empty(TenThietBi.TaiKhoanCam(ds, new[] { "S-1-5-21-1-1-1-1002" }));
+        Assert.Equal(new[] { "con" }, TenThietBi.TaiKhoanCam(ds, new[] { "s-1-5-21-1-1-1-1001" }));
+    }
+
+    [Fact]
+    public void GhiChuTenCam_ChoBaMe_854()
+    {
+        var ds = new[] { new LocalAccount("con", "S-1-5-21-1-1-1-1001", false), new LocalAccount("treem", "S-1-5-21-1-1-1-1002", false) };
+        var g = TenThietBi.GhiChuTenCam(ds, new[] { "S-1-5-21-1-1-1-1001" });
+        Assert.NotNull(g);
+        Assert.Contains("«con»", g);
+        Assert.Contains("Sửa cài đặt", g);
+        Assert.True(g!.Length <= 240);   // máy chủ cắt ghi chú ở 240 ký tự
+        Assert.Null(TenThietBi.GhiChuTenCam(ds, new[] { "S-1-5-21-1-1-1-1002" }));
+        Assert.Null(TenThietBi.GhiChuTenCam(null, new[] { "S-1-5-21-1-1-1-1001" }));
+        Assert.Null(TenThietBi.GhiChuTenCam(ds, null));
+    }
+
+    [Fact]
+    public void LoiNhacTenCam_NoiRoCapNhatKhongSuaVaLuatDiTheo_854()
+    {
+        var c = CauLoiCai.TaiKhoanTenCam(new[] { "con" });
+        Assert.Contains("không sửa được", c);
+        Assert.Contains("Sửa cài đặt", c);
+        Assert.Contains("đi theo sang tài khoản mới", c);
+    }
+
+    [Fact]
     public void CauLoi_TenCam_NoiRoVaGoiYTen()
     {
         var c = CauLoiCai.TenCam("con");

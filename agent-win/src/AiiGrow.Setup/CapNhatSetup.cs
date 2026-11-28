@@ -40,7 +40,8 @@ internal static class CapNhatSetup
 
     /// <summary>Không đóng/mở khay của ai (cả khi có giao diện): tệp khay đang chạy được đổi tên rồi chép bản mới, lần đăng nhập sau khay bản mới tự chạy.</summary>
     /// <param name="imLang">Chạy từ dịch vụ (SYSTEM, không có màn hình) — chỉ để ghi log; hai đường chạy như nhau.</param>
-    public static KetQuaCapNhat Chay(bool imLang) => CapNhatMay.Chay(Paths.InstallDir, BanBoCai, new WindowsCapNhatOps());
+    public static KetQuaCapNhat Chay(bool imLang) =>
+        CapNhatMay.Chay(Paths.InstallDir, BanBoCai, new WindowsCapNhatOps(), buoc: m => Program.WriteLog((imLang ? "Cập nhật im lặng " : "Cập nhật ") + BanBoCai + ": " + m));
 
     private sealed class WindowsCapNhatOps : ICapNhatOps
     {
@@ -187,10 +188,39 @@ internal sealed class CapNhatForm : Form
         cot.Controls.AddRange(new Control[] { _tieuDe, _loi, _thanh, _nut });
         Controls.Add(cot);
         FormClosing += (_, e) => { if (_dangChay) e.Cancel = true; };
-        // #854: hộp mở từ bộ cài chạy ngầm nằm khuất sau cửa sổ khác (trông như bộ cài treo) ⇒ nổi lên trước, lấy tiêu điểm
-        TopMost = true;
-        Shown += (_, _) => { try { Activate(); BringToFront(); } catch { } };
-        if (ph.CheDo == CheDoBoCai.CapNhat) ManCapNhat(); else ManMoiNhat();
+        // #854: hộp mở sau hộp UAC / từ trình duyệt hay nằm khuất sau cửa sổ khác (trông như bộ cài treo) ⇒ lúc hiện thì nổi lên trước + lấy
+        // tiêu điểm; TopMost chỉ bật thoáng qua (không đè hộp UAC / cửa sổ khác suốt lúc hộp mở)
+        Shown += (_, _) => NoiLenTruoc();
+        _man = ph.CheDo == CheDoBoCai.CapNhat ? ManCapNhat : ManMoiNhat;
+        _man();
+        // #854: đọc tài khoản (PowerShell + ADSI, vài giây) ngoài luồng giao diện — hộp mở ngay, lời nhắc tên cấm nối vào khi đọc xong
+        Load += async (_, _) =>
+        {
+            var nhac = await Task.Run(() => LoiNhacTenCam());
+            if (nhac.Length == 0 || IsDisposed || _dangChay || _daChay) return;
+            _nhacTenCam = nhac;
+            _man();
+        };
+    }
+
+    /// <summary>Màn đang hiện (cập nhật / đã mới nhất) — vẽ lại khi lời nhắc tên cấm tới.</summary>
+    private readonly Action _man;
+    private string _nhacTenCam = "";
+    /// <summary>Đã bấm «Cập nhật» (màn kết quả thay màn đầu) ⇒ không vẽ lại màn đầu.</summary>
+    private bool _daChay;
+
+    private void NoiLenTruoc()
+    {
+        try
+        {
+            TopMost = true;
+            Activate();
+            BringToFront();
+            var t = new System.Windows.Forms.Timer { Interval = 1500 };
+            t.Tick += (_, _) => { t.Stop(); t.Dispose(); try { if (!IsDisposed) TopMost = false; } catch { } };
+            t.Start();
+        }
+        catch { }
     }
 
     private void ManCapNhat()
@@ -198,7 +228,7 @@ internal sealed class CapNhatForm : Form
         _tieuDe.Text = "Cập nhật AiiGrow lên bản " + CapNhat.Hien(_ph.BanMoi);
         _loi.Text = $"Máy này đang chạy AiiGrow bản {CapNhat.Hien(_ph.BanDangCai)} → bản mới {CapNhat.Hien(_ph.BanMoi)}.\n\n" +
                     "Cập nhật giữ nguyên ghép máy, tài khoản của Con và các luật Ba Mẹ đã đặt — không phải ghép lại. " +
-                    "Mất khoảng một phút; nếu có lỗi, AiiGrow tự quay về bản cũ để máy vẫn được bảo vệ." + LoiNhacTenCam();
+                    "Mất khoảng một phút; nếu có lỗi, AiiGrow tự quay về bản cũ để máy vẫn được bảo vệ." + _nhacTenCam;
         _nut.Controls.Clear();
         _nut.Controls.Add(Nut("Cập nhật", true, CapNhatNgay));
         _nut.Controls.Add(Nut("Để sau", false, Close));
@@ -208,14 +238,14 @@ internal sealed class CapNhatForm : Form
     {
         _tieuDe.Text = "AiiGrow đã là bản mới nhất";
         _loi.Text = $"Máy này đang chạy AiiGrow bản {CapNhat.Hien(_ph.BanDangCai)} (bộ cài này: {CapNhat.Hien(_ph.BanMoi)}). Không cần cập nhật.\n\n" +
-                    "«Mở lại AiiGrow» chạy lại dịch vụ và biểu tượng ở khay. «Sửa cài đặt» mở trình cài đầy đủ (ghép lại, đổi tài khoản của Con).";
+                    "«Mở lại AiiGrow» chạy lại dịch vụ và biểu tượng ở khay. «Sửa cài đặt» mở trình cài đầy đủ (ghép lại, đổi tài khoản của Con)." + _nhacTenCam;
         _nut.Controls.Clear();
         _nut.Controls.Add(Nut("Mở lại AiiGrow", true, MoLai));
         _nut.Controls.Add(Nut("Sửa cài đặt", false, () => { MuonSua = true; Close(); }));
         _nut.Controls.Add(Nut("Đóng", false, Close));
     }
 
-    /// <summary>#854: tài khoản mang tên cấm (vd «con») ⇒ lời nhắc cho Ba Mẹ; không đọc được danh sách thì im.</summary>
+    /// <summary>#854: tài khoản của bé mang tên cấm (vd «con») ⇒ lời nhắc cho Ba Mẹ; không đọc được danh sách thì im. Chạy ngoài luồng giao diện.</summary>
     private static string LoiNhacTenCam()
     {
         try
@@ -231,6 +261,7 @@ internal sealed class CapNhatForm : Form
     private async void CapNhatNgay()
     {
         _dangChay = true;
+        _daChay = true;
         _nut.Enabled = false;
         _thanh.Visible = true;
         _loi.Text = "Đang cập nhật… (dừng AiiGrow, sao lưu bản cũ, chép bản mới, chạy lại)";
@@ -248,6 +279,7 @@ internal sealed class CapNhatForm : Form
 
     private async void MoLai()
     {
+        _daChay = true;   // kết quả «Đã chạy lại» không bị lời nhắc tới muộn vẽ đè
         _nut.Enabled = false;
         var r = await Task.Run(() => Shell.PowerShell($"Start-Service -Name {Paths.ServiceName}", 60000));
         var tray = Path.Combine(Paths.InstallDir, Paths.TrayExeName);
