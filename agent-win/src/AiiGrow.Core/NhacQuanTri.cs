@@ -15,6 +15,8 @@ public static class NhacQuanTriView
     public const string CaiDat = "ms-settings:signinoptions";
     /// <summary>Khay hỏi dịch vụ thưa (dịch vụ chỉ thử lại 5 phút/lần).</summary>
     public static readonly TimeSpan NhipHoi = TimeSpan.FromSeconds(60);
+    /// <summary>Phiên phải «không phải của bé» liên tục chừng này mới hỏi (danh sách tài khoản dịch vụ đọc 2 phút/lần, danh sách quản trị 5 phút/lần — có thể cũ).</summary>
+    public static readonly TimeSpan ChoPhienOn = TimeSpan.FromMinutes(5);
     /// <summary>«Đặt mật khẩu» / «Để sau» / × ⇒ nhắc lại sau chừng này (danh sách đổi thì nhắc ngay; đặt xong thì dịch vụ báo rỗng trong ≤5 phút, thẻ thôi hiện).
     /// Không hoãn ngắn sau «Đặt mật khẩu»: Settings chỉ đặt được cho tài khoản đang đăng nhập, thẻ nhắc tài khoản khác sẽ nháy lại liên tục.</summary>
     public static readonly TimeSpan Hoan = TimeSpan.FromHours(4);
@@ -61,7 +63,9 @@ public sealed class NhacQuanTri
             return false;
         }
         if (_hoanKhoa == null) return true;
-        if (_hoanKhoa != Khoa(Ten) || now >= _hoanDen || now < _hoanTu - LechDongHo) { _hoanKhoa = null; return true; }   // đổi danh sách / hết hạn / đồng hồ lùi hẳn
+        // thêm tài khoản mới / hết hạn / đồng hồ lùi hẳn ⇒ nhắc; danh sách chỉ co lại (vừa đặt mật khẩu cho một tài khoản) ⇒ giữ hoãn
+        var daHoan = _hoanKhoa.Split('\n');
+        if (Ten.Any(t => !daHoan.Contains(t.ToUpperInvariant())) || now >= _hoanDen || now < _hoanTu - LechDongHo) { _hoanKhoa = null; return true; }
         return false;
     }
 

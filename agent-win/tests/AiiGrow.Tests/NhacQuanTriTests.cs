@@ -88,6 +88,16 @@ public class NhacQuanTriTests
     }
 
     [Fact]
+    public void DanhSachCoLai_GiuHoan()
+    {
+        var n = new NhacQuanTri();
+        n.Xet(new[] { "Ba Mẹ", "Administrator" }, T0);
+        n.Hoan(T0);
+        Assert.False(n.Xet(new[] { "Administrator" }, T0.AddMinutes(5)));   // vừa đặt mật khẩu cho Ba Mẹ ⇒ không bật lại ngay
+        Assert.True(n.Xet(new[] { "Administrator", "Bé Na" }, T0.AddMinutes(10)));   // thêm tài khoản mới ⇒ nhắc
+    }
+
+    [Fact]
     public void HetTrongRoiTrongLai_NhacNgay()
     {
         var n = new NhacQuanTri();

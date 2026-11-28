@@ -164,6 +164,7 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     private bool _anPhienKhac;
+    private DateTimeOffset _anPhienKhacTu;
     private bool _daBietPhien;   // dịch vụ đã trả lời ít nhất một lần (biết phiên này có phải của Con)
 
     /// <summary>Phiên KHÔNG phải của Con (Ba Mẹ / tài khoản quản trị): khay ẩn, đóng màn khoá / màn chặn, ngừng hỏi máy chủ, chỉ hỏi dịch vụ thưa (6 giây) — KHÔNG thoát hẳn:
@@ -172,6 +173,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_anPhienKhac) { _ni.Visible = false; return; }
         _anPhienKhac = true;
+        _anPhienKhacTu = DateTimeOffset.Now;
         _hvTimer.Stop();
         // hỏi dịch vụ (pipe cục bộ, rẻ) mỗi 6 giây: phân loại nhầm (danh sách tài khoản cũ) thì Con có lại màn khoá / màn chặn sớm
         _timer.Interval = 6000;
@@ -898,13 +900,15 @@ internal sealed class TrayContext : ApplicationContext
     private async Task KiemQuanTriTrongAsync()
     {
         var now = DateTimeOffset.Now;
-        if (_nhacQtDangHoi || (now - _nhacQtHoiLuc).Duration() < NhacQuanTriView.NhipHoi) return;
+        if (_nhacQtDangHoi || _dangChayLai || (now - _nhacQtHoiLuc).Duration() < NhacQuanTriView.NhipHoi) return;
+        // phân loại phiên dựa trên danh sách tài khoản có thể cũ vài phút (cài một chạm: bé vừa bị gỡ quyền quản trị) ⇒ chỉ hỏi khi phiên đã «không phải của bé» đủ lâu
+        if ((now - _anPhienKhacTu).Duration() < NhacQuanTriView.ChoPhienOn) return;
         _nhacQtDangHoi = true;
         _nhacQtHoiLuc = now;
         try
         {
             var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.QuanTriTrong });
-            if (!_anPhienKhac) return;   // phiên vừa được nhận là của bé ⇒ không hiện
+            if (!_anPhienKhac || _dangChayLai) return;   // phiên vừa được nhận là của bé / khay đang chạy lại bản mới ⇒ không hiện
             var truoc = _nhacQt.GhiHoan();
             var hien = _nhacQt.Xet(NhacQuanTriView.Doc(r), DateTimeOffset.Now);
             if (_nhacQt.GhiHoan() != truoc) LuuHoanQt();

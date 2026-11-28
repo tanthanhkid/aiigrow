@@ -197,7 +197,7 @@ internal sealed class NhacQuanTriForm : HopKhayCoBan
         dat.Click += (_, _) =>
         {
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(NhacQuanTriView.CaiDat) { UseShellExecute = true })?.Dispose(); }
-            catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+            catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); return; }   // không mở được Settings ⇒ giữ thẻ (hướng dẫn trên thẻ), không hoãn
             Bao();
             Close();
         };
