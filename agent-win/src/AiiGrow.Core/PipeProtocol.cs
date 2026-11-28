@@ -56,8 +56,19 @@ public static class PipeCmd
     /// Trả Status = da_bao | cho_mang. Tắt / gỡ chỉ được khi Ba Mẹ gõ mã 6 số (<see cref="BaMeMo"/>).</summary>
     public const string BaoThoat = "bao-thoat";
     /// <summary>#860: tài khoản quản trị chưa có mật khẩu (thẻ nhắc Ba Mẹ ở khay). CHỈ trả cho khay ở phiên một tài khoản quản trị — phiên bé đọc được là lộ
-    /// đường vượt chặn. <see cref="PipeResponse.Data"/> = JSON mảng tên (rỗng = ổn); <see cref="PipeResponse.Status"/> = ok | chua_kiem.</summary>
+    /// đường vượt chặn. <see cref="PipeResponse.Data"/> = JSON mảng tên (rỗng = ổn); <see cref="PipeResponse.Status"/> = <see cref="QuanTriTrongStatus"/>.</summary>
     public const string QuanTriTrong = "quan-tri-trong";
+}
+
+/// <summary>#863: <see cref="PipeResponse.Status"/> của lệnh <see cref="PipeCmd.QuanTriTrong"/>.</summary>
+public static class QuanTriTrongStatus
+{
+    /// <summary>Data là danh sách chắc chắn (rỗng = đã ổn).</summary>
+    public const string Ok = "ok";
+    /// <summary>Dịch vụ chưa kiểm xong / chưa đọc được danh sách quản trị / chưa biết người của phiên — khay giữ như cũ.</summary>
+    public const string ChuaKiem = "chua_kiem";
+    /// <summary>Phiên đã biết KHÔNG phải tài khoản quản trị (Ok = false) — khay ẩn thẻ.</summary>
+    public const string KhongQuanTri = "khong_quan_tri";
 }
 
 /// <summary>Trạng thái dịch vụ gửi cho tray (15/11: có số sao — sao = phút chơi, Con thấy số dư của mình).</summary>

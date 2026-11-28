@@ -273,11 +273,15 @@ public sealed class PipeServer : BackgroundService
             case PipeCmd.QuanTriTrong:
             {
                 // #860: chỉ phiên của tài khoản quản trị (cùng lượt đọc với bộ kiểm — tính cả nhóm lồng); phiên bé ⇒ từ chối
+                // #863: chưa đọc được danh sách quản trị / người của phiên ⇒ chua_kiem (khay giữ như cũ, không xoá lần «Để sau»); đã biết không phải quản trị ⇒ khong_quan_tri
                 var user = SessionHelper.SessionUser(clientSession);
-                if (string.IsNullOrWhiteSpace(user) || _rt.TenQuanTri?.Contains(user, StringComparer.OrdinalIgnoreCase) != true)
-                    return new PipeResponse { Ok = false, Error = "Chỉ tài khoản quản trị xem được" };
+                var tenQt = _rt.TenQuanTri;
+                if (string.IsNullOrWhiteSpace(user) || tenQt == null)
+                    return new PipeResponse { Ok = false, Error = "Chưa kiểm xong", Status = QuanTriTrongStatus.ChuaKiem };
+                if (!tenQt.Contains(user, StringComparer.OrdinalIgnoreCase))
+                    return new PipeResponse { Ok = false, Error = "Chỉ tài khoản quản trị xem được", Status = QuanTriTrongStatus.KhongQuanTri };
                 var qt = _rt.QuanTriTrong;
-                return new PipeResponse { Ok = true, Data = JsonSerializer.Serialize(qt ?? Array.Empty<string>(), Json.Options), Status = qt == null ? "chua_kiem" : "ok" };
+                return new PipeResponse { Ok = true, Data = JsonSerializer.Serialize(qt ?? Array.Empty<string>(), Json.Options), Status = qt == null ? QuanTriTrongStatus.ChuaKiem : QuanTriTrongStatus.Ok };
             }
 
             case PipeCmd.AppMay:

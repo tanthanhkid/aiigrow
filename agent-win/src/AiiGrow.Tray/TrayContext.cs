@@ -98,6 +98,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         _moLai = moLai;
         KhoiPhucVayCho();
+        try { if (File.Exists(TepHoanQt)) _nhacQt.DocHoan(File.ReadAllText(TepHoanQt)); } catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }   // #863
         XinThemForm.BeIdHienTai = () => _beId;
         // Menu khay theo Clay: nền thẻ sáng, mục được trỏ là viên bo ngọc nhạt, icon Fluent 3D nhỏ.
         var menu = new ContextMenuStrip { Renderer = new AiiGrow.ClayUi.ClayMenuRenderer(), Font = UI.F(10.5f), ImageScalingSize = new Size(UI.Px(20), UI.Px(20)) };
@@ -163,6 +164,7 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     private bool _anPhienKhac;
+    private DateTimeOffset _anPhienKhacTu;
     private bool _daBietPhien;   // dịch vụ đã trả lời ít nhất một lần (biết phiên này có phải của Con)
 
     /// <summary>Phiên KHÔNG phải của Con (Ba Mẹ / tài khoản quản trị): khay ẩn, đóng màn khoá / màn chặn, ngừng hỏi máy chủ, chỉ hỏi dịch vụ thưa (6 giây) — KHÔNG thoát hẳn:
@@ -171,6 +173,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_anPhienKhac) { _ni.Visible = false; return; }
         _anPhienKhac = true;
+        _anPhienKhacTu = DateTimeOffset.Now;
         _hvTimer.Stop();
         // hỏi dịch vụ (pipe cục bộ, rẻ) mỗi 6 giây: phân loại nhầm (danh sách tài khoản cũ) thì Con có lại màn khoá / màn chặn sớm
         _timer.Interval = 6000;
@@ -764,7 +767,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_exe == null || _dangChayLai || !_exe.DaCoBanMoi()) return;
         foreach (Form f in Application.OpenForms)
-            if (f.Visible && !ReferenceEquals(f, _app)) return;
+            if (f.Visible && !ReferenceEquals(f, _app) && f is not NhacQuanTriForm) return;   // #863: thẻ nhắc Ba Mẹ không giữ bản khay cũ (lượt hỏi sau hiện lại)
         ChayLai(AppDangHien ? _app!.Muc : null);
     }
 
@@ -831,7 +834,8 @@ internal sealed class TrayContext : ApplicationContext
     {
         try
         {
-            if (!st.PhienCon) { _choMo = false; AnVoiPhienKhac(); return; }
+            if (!st.PhienCon) { _choMo = false; AnVoiPhienKhac(); _ = KiemQuanTriTrongAsync(); return; }
+            DongNhacQuanTri();
             HienLaiNeuDaAn();
             Chao(true);
             _state = st;
@@ -885,6 +889,61 @@ internal sealed class TrayContext : ApplicationContext
         _phutTruoc = null; _daBaoHetSao = false;
         _warned5 = false;
         if (id != null) _ = HocVienTickAsync();
+    }
+
+    // #863: thẻ nhắc tài khoản quản trị chưa có mật khẩu — chỉ trong phiên KHÔNG phải của bé, dịch vụ chỉ trả cho phiên tài khoản quản trị
+    private readonly NhacQuanTri _nhacQt = new();
+    private NhacQuanTriForm? _nhacQtForm;
+    private DateTimeOffset _nhacQtHoiLuc = DateTimeOffset.MinValue;
+    private bool _nhacQtDangHoi;
+
+    private async Task KiemQuanTriTrongAsync()
+    {
+        var now = DateTimeOffset.Now;
+        if (_nhacQtDangHoi || _dangChayLai || (now - _nhacQtHoiLuc).Duration() < NhacQuanTriView.NhipHoi) return;
+        // phân loại phiên dựa trên danh sách tài khoản có thể cũ vài phút (cài một chạm: bé vừa bị gỡ quyền quản trị) ⇒ chỉ hỏi khi phiên đã «không phải của bé» đủ lâu
+        if ((now - _anPhienKhacTu).Duration() < NhacQuanTriView.ChoPhienOn) return;
+        _nhacQtDangHoi = true;
+        _nhacQtHoiLuc = now;
+        try
+        {
+            var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.QuanTriTrong });
+            if (!_anPhienKhac || _dangChayLai) return;   // phiên vừa được nhận là của bé / khay đang chạy lại bản mới ⇒ không hiện
+            var truoc = _nhacQt.GhiHoan();
+            var hien = _nhacQt.Xet(NhacQuanTriView.Doc(r), DateTimeOffset.Now);
+            if (_nhacQt.GhiHoan() != truoc) LuuHoanQt();
+            if (!hien) { DongNhacQuanTri(); return; }
+            if (_nhacQtForm is { IsDisposed: false } cu)
+            {
+                if (NhacQuanTri.CungDanhSach(cu.Ten, _nhacQt.Ten)) return;
+                cu.DongLang();   // danh sách đổi ⇒ dựng lại thẻ với tên mới
+            }
+            var f = new NhacQuanTriForm(_nhacQt.Ten);
+            f.BaMeDong += () => { _nhacQt.Hoan(DateTimeOffset.Now); LuuHoanQt(); };
+            f.FormClosed += (_, _) => { if (_nhacQtForm == f) _nhacQtForm = null; f.Dispose(); };
+            _nhacQtForm = f;
+            f.Show();
+        }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+        finally { _nhacQtDangHoi = false; }
+    }
+
+    private static string TepHoanQt => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiiGrow", "nhac-quan-tri.json");
+
+    private void LuuHoanQt()
+    {
+        try
+        {
+            var j = _nhacQt.GhiHoan();
+            if (j != null) { Directory.CreateDirectory(Path.GetDirectoryName(TepHoanQt)!); File.WriteAllText(TepHoanQt, j); }
+            else if (File.Exists(TepHoanQt)) File.Delete(TepHoanQt);
+        }
+        catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
+    }
+
+    private void DongNhacQuanTri()
+    {
+        if (_nhacQtForm is { IsDisposed: false } f) { _nhacQtForm = null; f.DongLang(); }
     }
 
     private BaMeDungForm? _baMeForm;
@@ -1206,7 +1265,7 @@ internal sealed class TrayContext : ApplicationContext
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { _timer.Dispose(); _hvTimer.Dispose(); _app?.Dispose(); _baMeForm?.Dispose(); _baMeVien?.Dispose(); _ni.Visible = false; _ni.Dispose(); }
+        if (disposing) { _timer.Dispose(); _hvTimer.Dispose(); _app?.Dispose(); _baMeForm?.Dispose(); _baMeVien?.Dispose(); _nhacQtForm?.Dispose(); _ni.Visible = false; _ni.Dispose(); }
         base.Dispose(disposing);
     }
 }
