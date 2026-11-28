@@ -255,3 +255,19 @@ test("#877 lời mời «Chỉ trông con» không cho mang Con theo; thiết b�
   assert.equal((await q(`select 1 from families where id = $1`, [famB])).length, 1);
   assert.equal(famA === famB, false);
 });
+
+test("#877 DB còn bảng cũ pair_qr (prod chạy từ trước 0.2.1) vẫn nhận lời mời «Mang các bé theo» được", async () => {
+  await q(`create table if not exists pair_qr (ma_hash text primary key, bi_hash text not null, platform text not null, ten_may text not null,
+            expires_at timestamptz not null, family_id text, child_id text, device_id text, device_token text, claimed_at timestamptz, created_at timestamptz not null default now())`);
+  try {
+    const a = await dangKy("Mẹ Cũ"), b = await dangKy("Ba Cũ");
+    const { fam: famB } = await famCua(b.tok);
+    await m("con", { tok: b.tok, body: { ten: "Bé Cũ" } });
+    await q(`insert into pair_qr(ma_hash, bi_hash, platform, ten_may, expires_at, family_id) values ('qr877', 'x', 'win', 'May', now(), $1)`, [famB]);
+    const id = await moi(a.tok, b.so);
+    const r = await m("moi/nhan", { tok: b.tok, body: { id, huong: "mang_theo" } });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+  } finally {
+    await q(`drop table if exists pair_qr`);
+  }
+});

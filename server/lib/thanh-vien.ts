@@ -254,6 +254,9 @@ export const BANG_CHUYEN_NHA = ["children", "devices", "device_children", "tasks
  *  app_rules (luật «cả gia đình» child_id = '' đổi thành luật riêng từng bé của nhà cũ — không áp lên bé nhà mời; luật theo bé chuyển, bên dưới),
  *  audit (nhật ký kiểm toán ở lại id nhà cũ: người nhà mời không thấy, dọn sau 90 ngày kể từ mốc xoa_gia_dinh). */
 export const BANG_KHONG_CHUYEN = ["parents", "loi_moi", "alerts", "dns_gia_dinh", "app_rules", "audit"] as const;
+/** Bảng cũ đã bỏ khỏi schema.ts nhưng còn trên DB chạy bản cũ (prod): không code nào đọc/ghi ⇒ bỏ qua, ở lại nhà cũ.
+ *  pair_qr: ghép QR, bỏ từ 0.2.1 (#41). */
+export const BANG_CU_DA_BO = ["pair_qr"] as const;
 
 export type NhaCu = { soBe: number; soMay: number; soNguoiLon: number; laNguoiLonDuyNhat: boolean; laChu: boolean; tenBe: string[]; tenNha: string };
 
@@ -272,7 +275,7 @@ export const tomTatNhaCu = (bm: BaMe) => bangMang().then(() => nhaCuTrongTx(q, b
 /** Chuyển Con + máy + MỌI dữ liệu của nhà cũ sang nhà mời (cùng giao dịch). Khoá ngoại theo child_id / device_id không đổi ⇒ token máy Con vẫn đúng. */
 async function mangTheoSangNha(t: Q, cu: string, moi: string) {
   // đóng an toàn: có bảng family_id mới mà chưa khai báo ⇒ dừng, không để cascade xoá mất dữ liệu của bé
-  const biet = new Set<string>([...BANG_CHUYEN_NHA, ...BANG_KHONG_CHUYEN, "families"]);
+  const biet = new Set<string>([...BANG_CHUYEN_NHA, ...BANG_KHONG_CHUYEN, ...BANG_CU_DA_BO, "families"]);
   const la = (await t<{ table_name: string }>(`select table_name from information_schema.columns where column_name = 'family_id' and table_schema = current_schema()`))
     .map((x) => x.table_name).filter((x) => !biet.has(x));
   if (la.length) throw new LoiNghiepVu("bang_chua_khai_bao", `Bảng ${la.join(", ")} chưa khai báo cách chuyển nhà — báo AiiGrow`, 500);
