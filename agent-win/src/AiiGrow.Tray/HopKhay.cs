@@ -45,7 +45,8 @@ internal sealed class HopThongBao : HopKhayCoBan
 
     /// <param name="chuNut">null = «Về màn khoá» (hộp trên màn khoá); #822: hộp báo bé đổi trạng thái dùng «Đã hiểu».</param>
     /// <param name="khongCuopPhim">true = hiện không giành phím của game / bài đang làm.</param>
-    public HopThongBao(string icon, string tieu, string phu, string? chuNut = null, bool khongCuopPhim = false) : base("AiiGrow", UI.Px(340))
+    /// <param name="tuDongDong">Hộp không giành phím tự đóng sau chừng này (mặc định 30 giây).</param>
+    public HopThongBao(string icon, string tieu, string phu, string? chuNut = null, bool khongCuopPhim = false, TimeSpan? tuDongDong = null) : base("AiiGrow", UI.Px(340))
     {
         _khongCuopPhim = khongCuopPhim;
         Flow.Controls.Add(KhoiCon.Dau(icon, icon == "tick" ? KhoiCon.Mau.Ngoc : KhoiCon.Mau.Cam, tieu, phu, W));
@@ -55,8 +56,9 @@ internal sealed class HopThongBao : HopKhayCoBan
         CancelButton = ok;
         if (khongCuopPhim)
         {
-            // không giành phím nên Esc không tới được: tự đóng sau 30 giây, không để hộp cũ chồng lên game / bài đang làm
-            var tat = new System.Windows.Forms.Timer { Interval = 30_000 };
+            // không giành phím nên Esc không tới được: tự đóng (mặc định 30 giây), không để hộp cũ chồng lên game / bài đang làm.
+            // #823: hộp «Ba Mẹ khoá / mở máy» ở lâu hơn (bé không nhìn đúng lúc là mất); hộp mới vẫn thay hộp cũ, không chồng
+            var tat = new System.Windows.Forms.Timer { Interval = (int)(tuDongDong ?? TimeSpan.FromSeconds(30)).TotalMilliseconds };
             tat.Tick += (_, _) => { tat.Stop(); if (!IsDisposed) Close(); };
             Shown += (_, _) => tat.Start();
             FormClosed += (_, _) => tat.Dispose();

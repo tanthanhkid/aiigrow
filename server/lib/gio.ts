@@ -2,6 +2,12 @@
 // phutCua, trongKhung) + đầu tuần (thứ Hai) cho trần tuần / báo cáo tuần / ngưỡng ngoại lệ.
 export type Khung = { tu: string; den: string };
 
+/** «HH:MM» giờ địa phương `tz` (24 giờ). */
+export function hhmmDiaPhuong(d: Date, tz: string) {
+  const p = gioDiaPhuong(d, tz).phut;
+  return `${String(Math.floor(p / 60)).padStart(2, "0")}:${String(p % 60).padStart(2, "0")}`;
+}
+
 export function gioDiaPhuong(now: Date, tz: string) {
   const p = Object.fromEntries(
     new Intl.DateTimeFormat("en-GB", {

@@ -31,7 +31,7 @@ export default function MayChiTiet() {
   const [beKhoa, setBeKhoa] = useState<string | null>(null);
   const { bao, noi } = useHoanTac();
   const { width: wMan } = useWindowDimensions();
-  const heo = wMan < 360;   // 320px: hai thẻ khoá xếp dọc để nhãn «Khoá <bé> mọi máy» vẫn tối đa 2 dòng
+  const heo = wMan < 360;   // 320px: hai thẻ khoá xếp dọc để nhãn «Khoá mọi máy của <bé>» vẫn tối đa 2 dòng
   const { lam, loi: loiLam, dangChay } = useLam();
   const lui = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/may/[id]", params: { id } }));
   if (!d) return <Man dau={<DauHaiDong tieu="Máy" lui={lui} />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -125,7 +125,7 @@ export default function MayChiTiet() {
         {theKhoa("may_tinh", "Theo máy", `${gan.length >= 2 ? `Cả ${gan.length} bé` : gan[0] ? tenGoi(gan[0].ten) : "Bé"} không vào được ${tenNgan}. Máy riêng vẫn dùng.`,
           <Nut chu="Khoá máy này" nho rong tat={khoaMay || !gan.length} bam={() => setMo("may")} />)}
         {theKhoa("nguoi", "Theo bé", be ? `${tenBe} không vào được mọi máy.${gan.length >= 2 ? ` ${gan.filter((c) => c.id !== be.id).map((c) => tenGoi(c.ten)).join(", ")} vẫn dùng.` : ""}` : "Chưa có bé dùng máy này.",
-          <Nut chu={be ? `Khoá ${tenBe} mọi máy` : "Khoá bé mọi máy"} nho rong loai="vien" tat={!be} bam={() => setMo("be")} />)}
+          <Nut chu={be ? `Khoá mọi máy của ${tenBe}` : "Khoá mọi máy của bé"} nho rong loai="vien" tat={!be} bam={() => setMo("be")} />)}
       </View>
       {gan.length >= 2 ? (
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginHorizontal: 4 }}>

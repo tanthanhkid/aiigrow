@@ -11,6 +11,7 @@ import { tomTatVi } from "./vi.ts";
 import { tuanChuoi } from "./thanh-tich.ts";
 import { gioiHanMay, quyHomNay, saoKepGioiHan } from "./quy-gio.ts";
 import { cheDoCua, TEN_NHOM_DS } from "./chan-co-ban.ts";
+import { hhmmDiaPhuong } from "./gio.ts";
 
 type TinHocVien = { id: string; loai: string; tieu: string; noi: string; luc: string };
 /** #759: tin duyệt đã gửi Con rồi bị Ba Mẹ «Hoàn tác» — `id` = id tin duyệt cũ (khay đã hiện thì đóng popup, báo «Ba Mẹ đã hoàn tác»). */
@@ -70,15 +71,27 @@ const LUI_PHUT = 5;
 
 /** Thông báo cho khay: nhiệm vụ mới (giao riêng hoặc mở cho cả nhà), Ba Mẹ duyệt / từ chối / yêu cầu bổ sung, lời khen, quà đã trao / bị huỷ.
  *  `sau` = `bay` của lần hỏi trước (máy chủ tự lùi 5 phút, khay lọc trùng theo `id`); không có `sau` ⇒ 7 ngày gần nhất (để khay hiện trong hộp thư, không bật toast). */
-export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinHocVien[]; thuHoi: TinThuHoi[]; bay: string }> {
-  const c = await one<{ family_id: string }>(`select family_id from children where id = $1`, [con]);
+/** `may`: máy đang hỏi (khay) — tin khoá riêng máy / mở khẩn cấp (gắn với MỘT máy) chỉ tới đúng máy đó, kể cả máy dùng chung (sự kiện không có child_id). */
+export async function tinCho(con: string, sau?: Date | null, may?: string | null): Promise<{ ds: TinHocVien[]; thuHoi: TinThuHoi[]; bay: string }> {
+  const c = await one<{ family_id: string; tz: string | null }>(`select c.family_id, f.tz from children c join families f on f.id = c.family_id where c.id = $1`, [con]);
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   const tu = sau && Number.isFinite(sau.getTime()) ? new Date(sau.getTime() - LUI_PHUT * 60_000) : new Date(Date.now() - SO_NGAY_TIN * 86_400_000);
   const evQ = q<{ id: string; loai: string; chi_tiet: Record<string, unknown>; created_at: Date; ten_nguoi: string | null }>(
     `select e.id, e.loai, e.chi_tiet, e.created_at, p.ten as ten_nguoi from events e left join parents p on p.id = e.nguoi
-     where e.child_id = $1 and e.created_at > $2
+     where e.family_id = $4 and (e.child_id = $1 or (e.device_id = $3 and e.loai in ('khoa_may', 'mo_khan_cap'))) and e.created_at > $2
      and e.loai in ('giao_nhiem_vu', 'duyet_nhiem_vu', 'tu_duyet_nhiem_vu', 'tu_choi_nhiem_vu', 'can_bo_sung', 'loi_khen', 'xac_nhan_qua', 'huy_qua', 'huy_hieu',
-                  'lam_lai_nhiem_vu', 'them_gio', 'dong_y_yeu_cau', 'bo_qua_yeu_cau', 'cho_vay', 'tu_choi_yeu_cau', 'tang_sao')
+                  'lam_lai_nhiem_vu', 'them_gio', 'dong_y_yeu_cau', 'bo_qua_yeu_cau', 'cho_vay', 'tu_choi_yeu_cau', 'tang_sao',
+                  'khoa_ngay', 'khoa_may', 'mo_khan_cap')
+       -- #822 / #823: khoá / mở khẩn cấp — chỉ máy được khoá / mở (máy khác của bé không đổi gì); chỉ báo LƯỢT CÒN HIỆU LỰC: hạn đã qua, đã mở lại / huỷ,
+       -- hoặc có lượt mới cùng loại (đổi hạn, «Hoàn tác Mở lại» bật lại khoá) ⇒ lượt cũ không báo (giờ cũ sai). Lọc theo family_id + created_at để dùng events_gd.
+       and (e.loai not in ('khoa_may', 'mo_khan_cap') or e.device_id is not distinct from $3)
+       and not (e.loai in ('khoa_ngay', 'khoa_may', 'mo_khan_cap') and e.chi_tiet ? 'den' and (e.chi_tiet->>'den')::timestamptz <= now())
+       and not (e.loai = 'khoa_ngay' and exists (select 1 from events h where h.family_id = e.family_id and h.created_at >= e.created_at and h.seq > e.seq
+              and h.child_id = e.child_id and h.loai in ('mo_lai', 'khoa_ngay')))
+       and not (e.loai = 'khoa_may' and exists (select 1 from events h where h.family_id = e.family_id and h.created_at >= e.created_at and h.seq > e.seq
+              and h.device_id = e.device_id and h.loai in ('mo_khoa_may', 'khoa_may')))
+       and not (e.loai = 'mo_khan_cap' and exists (select 1 from events h where h.family_id = e.family_id and h.created_at >= e.created_at and h.seq > e.seq
+              and h.device_id = e.device_id and h.loai in ('huy_mo_khan_cap', 'mo_khan_cap')))
        -- #258: «Bỏ qua» chỉ báo Con sau 60 giây (Ba Mẹ còn Hoàn tác được — hoàn tác thì sự kiện bị thu hồi)
        and (e.loai <> 'bo_qua_yeu_cau' or e.created_at <= now() - interval '60 seconds')
        -- #759: lượt duyệt đã bị Ba Mẹ «Hoàn tác» được đánh dấu thu_hoi ngay lúc hoàn tác ⇒ không báo Con (duyệt lại tạo sự kiện mới, số sao đúng)
@@ -88,7 +101,7 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
               and h.loai = 'hoan_tac_vay' and h.created_at >= e.created_at and h.created_at <= e.created_at + interval '61 seconds' and not (h.chi_tiet ? 'mot_phan'))))
        -- «Ba Mẹ chưa cho vay sao»: chỉ lời xin vay (lời xin cũ them_gio / ngoai_le / ngoai_gio cũng là vay từ 15/11)
        and (e.loai <> 'tu_choi_yeu_cau' or e.chi_tiet->>'loai' in ('vay_sao', 'them_gio', 'ngoai_le', 'ngoai_gio'))
-     order by e.created_at desc limit 50`, [con, tu]);
+     order by e.created_at desc limit 50`, [con, tu, may ?? null, c.family_id]);
   // #759 (ba câu chạy song song): hoàn tác SAU khi khay có thể đã nhận tin duyệt ⇒ id tin duyệt bị thu hồi
   const thuHoiQ = q<{ id: string; ten: string | null; created_at: Date }>(
     `select chi_tiet->>'thu_hoi_id' as id, chi_tiet->>'ten' as ten, created_at from events
@@ -98,6 +111,7 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
      and (han is null or han > now()) order by created_at desc limit 20`, [c.family_id, tu]);
   const [ev, moi, thuHoiR] = await Promise.all([evQ, moiQ, thuHoiQ]);
   const s = (v: unknown) => String(v ?? "").trim();
+  const tz = c.tz || "Asia/Ho_Chi_Minh";
   const ra: TinHocVien[] = [];
   for (const e of ev) {
     const d = e.chi_tiet ?? {};
@@ -132,6 +146,8 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
       case "cho_vay": them(`${s(e.ten_nguoi) || "Ba Mẹ"} cho vay ${s(d.so_sao)} sao`, `+${s(d.so_sao)} sao · con đang nợ ${s(d.no_sau)} sao · sao nhiệm vụ trả nợ trước`); break;
       case "tang_sao": them(`${s(e.ten_nguoi) || "Ba Mẹ"} tặng con ${s(d.so_sao)} sao`, `+${s(d.so_sao)} sao · ${s(d.ly_do)}`); break;
       case "tu_choi_yeu_cau": them(`${s(e.ten_nguoi) || "Ba Mẹ"} chưa cho vay sao`, d.ly_do ? `«${s(d.ly_do)}»` : "Con làm nhiệm vụ để có sao nhé"); break;
+      // #822 / #823: Ba Mẹ khoá máy / mở khẩn cấp ⇒ dòng trong thông báo của bé (khay báo cùng đường với các tin khác, cả khi bé không nhìn lúc máy đổi)
+      case "khoa_ngay": case "khoa_may": case "mo_khan_cap": { const t = tinKhoaMo(e.loai, d, tz); if (t) them(t.tieu, t.noi); break; }
     }
   }
   for (const t of moi) ra.push({ id: "nv:" + t.id, loai: "nhiem_vu_moi", tieu: "Nhiệm vụ mới cho cả nhà", noi: `«${t.ten}» · ${t.diem} sao`, luc: new Date(t.created_at).toISOString() });
@@ -139,6 +155,18 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
   // #759: hoàn tác SAU khi khay có thể đã nhận tin duyệt ⇒ trả id tin duyệt bị thu hồi (khay chỉ xử lý id nó đã thấy; khay cũ bỏ qua trường này)
   const thuHoi = thuHoiR.map((x) => ({ id: x.id, ten: x.ten ?? "", luc: new Date(x.created_at).toISOString() }));
   return { ds: ra, thuHoi, bay: new Date().toISOString() };
+}
+
+/** #822 / #823: chữ tin cho bé khi Ba Mẹ khoá máy (theo bé `khoa_ngay` / riêng máy `khoa_may`) hoặc mở khẩn cấp (`mo_khan_cap`). `den` ISO ⇒ «hh:mm» giờ gia đình. */
+export function tinKhoaMo(loai: string, d: Record<string, unknown>, tz: string): { tieu: string; noi: string } | null {
+  const den = typeof d.den === "string" && Number.isFinite(Date.parse(d.den)) ? new Date(d.den) : null;
+  const hhmm = den ? hhmmDiaPhuong(den, tz) : null;
+  if (loai === "khoa_ngay" || loai === "khoa_may") {
+    const may = loai === "khoa_may" && typeof d.ten === "string" && d.ten.trim() ? ` ${d.ten.trim()}` : "";
+    return { tieu: `Ba Mẹ đã khoá máy${may}`, noi: hhmm ? `Máy mở lại lúc ${hhmm}. Con vẫn xem được nhiệm vụ và xin Ba Mẹ mở.` : "Khi Ba Mẹ mở máy, con học và chơi tiếp nhé." };
+  }
+  if (loai === "mo_khan_cap") return hhmm ? { tieu: `Ba Mẹ mở máy cho con đến ${hhmm}`, noi: "Con chơi và học thoải mái tới lúc đó nhé." } : null;
+  return null;
 }
 
 /** Con trả lời một lời nhắn / lời khen của Ba Mẹ (một câu ngắn hoặc một biểu tượng) — Ba Mẹ thấy ở dòng thời gian của Con. */

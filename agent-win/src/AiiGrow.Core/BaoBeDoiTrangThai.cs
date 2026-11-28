@@ -26,15 +26,16 @@ public static class MoCoHan
     /// <summary>Trạng thái khay: đang mở có hạn thật sự (mode tu_do — mode hoc có hạn vẫn chặn app «Tính phút»).</summary>
     public static bool Dang(TrayState s, DateTimeOffset now) => s.Mode == Modes.TuDo && Dang(s.GrantEndsAt, now);
 
-    public static BaoBe BaoMo(string gio) => new("mo_khoa", "Ba Mẹ vừa mở máy cho con", $"Con chơi và học thoải mái tới {gio} nhé.");
+    public static BaoBe BaoMo(string gio) => new("mo_khoa", "Ba Mẹ vừa mở máy cho con", $"Con chơi và học thoải mái tới {gio} nhé.", ChongLapBao.BaMeMo);
     public static BaoBe BaoHet() => new("dong_ho_cat", "Hết giờ Ba Mẹ mở rồi", "Máy trở lại như mọi hôm. Con xem lại giờ chơi trong AiiGrow nhé.");
 
     /// <summary>Dòng trong thẻ Sao khi đang mở: thay «Hết sao để chơi · … đang khoá» (app «Tính phút» đang chơi được).</summary>
     public static string DongDangMo(string gio) => $"Ba Mẹ đang mở máy · chơi thoải mái tới {gio}";
 }
 
-/// <summary>Một hộp báo: icon 3D, tiêu đề, câu phụ.</summary>
-public sealed record BaoBe(string Icon, string Tieu, string Phu);
+/// <summary>Một hộp báo: icon 3D, tiêu đề, câu phụ. <paramref name="Nhom"/>: việc Ba Mẹ vừa làm (khoá / mở) — cùng việc tới từ hai đường chỉ báo một lần
+/// (<see cref="ChongLapBao"/>), hộp ở lâu hơn để bé kịp thấy; null = hộp khác (giờ ngủ, hết giờ, web).</summary>
+public sealed record BaoBe(string Icon, string Tieu, string Phu, string? Nhom = null);
 
 /// <summary>#822: bé chỉ được báo khi trạng thái ĐỔI theo hướng ảnh hưởng bé — máy chuyển sang khoá, vừa hết giờ chơi, Ba Mẹ thêm web.
 /// Không báo lặp mỗi lần đồng bộ; lượt đầu (chưa có trạng thái trước) chỉ lấy mốc, không báo.</summary>
@@ -72,7 +73,7 @@ public static class BaoBeDoiTrangThai
     {
         LockReasons.Ngu => new BaoBe("khoa", "Đến giờ ngủ rồi", "Máy nghỉ tới sáng. Con ngủ ngon nhé."),
         LockReasons.HetGio => new BaoBe("khoa", "Hết giờ dùng máy rồi", "Khi tới lượt tiếp theo máy sẽ mở lại."),
-        _ => new BaoBe("khoa", "Ba Mẹ vừa khoá máy", "Khi Ba Mẹ mở máy, con học và chơi tiếp nhé."),
+        _ => new BaoBe("khoa", "Ba Mẹ vừa khoá máy", "Khi Ba Mẹ mở máy, con học và chơi tiếp nhé.", ChongLapBao.BaMeKhoa),
     };
 
     public static BaoBe HetGioChoi(string? lyDo, string? gioNghiDen) => lyDo == GioiHanMay.DangNghi
@@ -95,4 +96,54 @@ public static class BaoBeDoiTrangThai
 
     private static string Liet(List<string> ds)
         => ds.Count <= WebToiDa ? string.Join(", ", ds) : string.Join(", ", ds.Take(WebToiDa)) + $" và {ds.Count - WebToiDa} trang khác";
+}
+
+/// <summary>#822 / #823: tin máy chủ «Ba Mẹ đã khoá máy» / «Ba Mẹ mở máy cho con đến hh:mm» (hoc-vien/tin — cùng đường với tin duyệt, cho vay…) ⇒ hộp AiiGrow.
+/// Đường này không phụ thuộc khay có thấy trạng thái đổi hay không (khay vừa bật lại, bé đang mở app to…). Cùng việc từ hai đường chỉ báo một lần (<see cref="ChongLapBao"/>).</summary>
+public static class BaoTuTin
+{
+    /// <summary>Tin khoá chỉ hiện hộp khi máy đang khoá thật; tin mở khi máy đang mở có hạn thật (<see cref="MoCoHan.Dang(TrayState, DateTimeOffset)"/> —
+    /// mở khẩn cấp không gỡ giờ ngủ / khoá ngay, mode «hoc» vẫn chặn app «Tính phút»).</summary>
+    public static bool KhopTrangThai(string? nhom, TrayState s, DateTimeOffset now) => nhom switch
+    {
+        ChongLapBao.BaMeKhoa => s.Locked,
+        ChongLapBao.BaMeMo => !s.Locked && MoCoHan.Dang(s, now),
+        _ => true,
+    };
+
+    /// <summary>Hộp nhóm <paramref name="nhom"/> đang mở nhưng máy đã đổi (khoá → mở / hết mở, Ba Mẹ «Khoá lại ngay») ⇒ chữ trên hộp đã sai.</summary>
+    public static bool HopDaSai(string? nhom, TrayState s, DateTimeOffset now) => nhom != null && !KhopTrangThai(nhom, s, now);
+
+    public static BaoBe? Tu(HvTin t) => t.Loai switch
+    {
+        "khoa_ngay" or "khoa_may" => new BaoBe("khoa", t.Tieu, t.Noi, ChongLapBao.BaMeKhoa),
+        "mo_khan_cap" => new BaoBe("mo_khoa", t.Tieu, t.Noi, ChongLapBao.BaMeMo),
+        _ => null,
+    };
+
+    /// <summary>Tin mới nhất cần hộp (danh sách máy chủ xếp mới trước) hoặc null.</summary>
+    public static BaoBe? MoiNhat(IEnumerable<HvTin> moi) => moi.OrderByDescending(t => t.Luc ?? DateTimeOffset.MinValue).Select(Tu).FirstOrDefault(b => b != null);
+
+    /// <summary>Tin chỉ để bóng báo (không có hộp riêng).</summary>
+    public static List<HvTin> ConLai(IEnumerable<HvTin> moi) => moi.Where(t => Tu(t) == null).ToList();
+}
+
+/// <summary>#822 / #823: cùng một việc Ba Mẹ làm (khoá máy / mở máy) tới từ trạng thái dịch vụ VÀ từ tin máy chủ — chỉ một hộp trong <see cref="Cua"/>.
+/// Tin máy chủ mang giờ («Máy mở lại lúc 08:53», «đến 09:40») ⇒ luôn được hiện, THAY hộp chung của đường trạng thái (hộp mới đóng hộp cũ — không chồng);
+/// đường trạng thái tới sau tin thì thôi. Hộp không có nhóm (giờ ngủ, hết giờ, web) không bị chặn. Giá trị thuần, mốc giờ truyền vào.</summary>
+public sealed class ChongLapBao
+{
+    public const string BaMeKhoa = "ba_me_khoa";
+    public const string BaMeMo = "ba_me_mo";
+    public static readonly TimeSpan Cua = TimeSpan.FromMinutes(3);
+    private readonly Dictionary<string, DateTimeOffset> _da = new();
+
+    /// <summary>true = nên hiện (và ghi nhận). <paramref name="tuTin"/> = hộp từ tin máy chủ (đủ giờ) ⇒ luôn hiện.</summary>
+    public bool NenHien(BaoBe b, DateTimeOffset now, bool tuTin = false)
+    {
+        if (b.Nhom == null) return true;
+        if (!tuTin && _da.TryGetValue(b.Nhom, out var luc) && now - luc < Cua && now >= luc) return false;
+        _da[b.Nhom] = now;
+        return true;
+    }
 }
