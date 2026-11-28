@@ -1,4 +1,4 @@
-// Bảng trượt «Trao quà cho con» (bàn 17/11 them-5otw85h4@v6; chốt 06/11 — L14): quà chờ trao đang GIỮ sao (chưa trừ). «Đã trao, trừ N sao» = POST phieu/:id/trao
+// Bảng trượt «Trao quà cho con» (bàn 17/11 them-5otw85h4@v6; chốt 06/11 — L14): quà chờ trao: sao ĐÃ TRỪ lúc con đổi (#757). «Đã trao quà» = POST phieu/:id/trao
 // (trừ hẳn; voucher AiiCafe ⇒ máy chủ phát mã: hiện QR + hạn dùng để Ba Mẹ đưa con / chụp lại), «Chưa, để tối mai» = đóng, «Từ chối & hoàn sao» =
 // POST phieu/:id/huy (hoàn sao cho con). Dùng ở tab Nhiệm vụ và Chờ duyệt.
 // 15/11 (#263, them-5otw85h4): sao giữ cho quà có thể là sao Ba Mẹ cho vay ⇒ «trong đó N sao Ba Mẹ cho vay», «<Con> sẽ còn −20 sao, trả dần bằng nhiệm vụ».
@@ -68,7 +68,7 @@ export function BangTraoQua({ p, dong, xong }: {
       dauBang={p ? <OHinhQuaTo ic={icQua({ hinh: p.hinh ?? null, loai: p.loai, ten: p.ten })} /> : null}>
       {p ? <>
         <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center", flexWrap: "wrap", gap: 6 }}>
-          <Chu co={15} mau={M.chu2}>{`Con chọn ${khiNao(p.created_at)} · đang giữ`}</Chu>
+          <Chu co={15} mau={M.chu2}>{`Con chọn ${khiNao(p.created_at)} · đã trừ`}</Chu>
           <GiaSao n={p.diem} />
         </View>
         {vay > 0 ? <Chu kieu="rat" co={14} mau={M.canh} style={{ textAlign: "center", marginTop: -4 }}>{`trong đó ${soVN(vay)} sao Ba Mẹ cho vay`}</Chu> : null}
@@ -76,11 +76,11 @@ export function BangTraoQua({ p, dong, xong }: {
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: 18, backgroundColor: M.chinhSoft }}>
           <Rob ten="xong" co={44} />
           <Chu kieu="dam" co={13.5} mau={M.chinhInk} style={{ flex: 1 }}>{sao && sao.no > 0
-            ? `Bấm «Đã trao» thì mới trừ ${p.diem} sao. ${p.ten_con} sẽ còn ${soVN(sao.sao)} sao, trả dần bằng nhiệm vụ.`
-            : `Bấm «Đã trao» thì mới trừ ${p.diem} sao. Grow báo con và chúc mừng con.`}</Chu>
+            ? `${p.diem} sao đã trừ lúc con đổi, từ chối thì hoàn lại. ${p.ten_con} còn ${soVN(sao.sao)} sao, trả dần bằng nhiệm vụ.`
+            : `${p.diem} sao đã trừ lúc con đổi, từ chối thì hoàn lại. Trao xong Grow báo con và chúc mừng con.`}</Chu>
         </View>
         <BaoLoi loi={loi} />
-        <Nut chu={`Đã trao, trừ ${p.diem} sao`} rong dangChay={dangChay} bam={() => trao(p)} />
+        <Nut chu="Đã trao quà" rong dangChay={dangChay} bam={() => trao(p)} />
         <View style={{ flexDirection: "row", gap: 8 }}>
           <Nut chu="Chưa, để tối mai" loai="vien" bam={dongHet} />
           <Nut chu="Từ chối & hoàn sao" loai="huy" dangChay={dangChay} bam={() => huy(p)} nhanDoc={`Từ chối quà, hoàn ${p.diem} sao cho ${p.ten_con}`} />

@@ -363,6 +363,13 @@ public static class HocVienView
             ? Cat($"«{ds[0].Ten}» · chưa cộng sao, việc về lại Chờ Ba Mẹ duyệt", 180)
             : Cat($"{ds.Count} việc chưa cộng sao, về lại Chờ Ba Mẹ duyệt", 180));
 
+    /// <summary>#759: tin «Ba Mẹ đã hoàn tác» (chỉ để gộp chung bóng báo với tin mới cùng lượt — không phải tin máy chủ).</summary>
+    public static HvTin TinThuHoi(IReadOnlyList<HvThuHoi> ds)
+    {
+        var (tieu, noi) = ThuHoiText(ds);
+        return new HvTin { Id = "thu_hoi", Loai = "hoan_tac_duyet", Tieu = tieu, Noi = noi };
+    }
+
     /// <summary>#757: tin Ba Mẹ trao / từ chối đúng quà <paramref name="tenQua"/> ⇒ hộp «Đã gửi Ba Mẹ · Chờ Ba Mẹ trao quà…» tự đóng.
     /// Tên quà = phần đầu của nội dung tin («Bộ Lego» / «Bộ Lego · +30 phút», bỏ ngoặc «»), so KHỚP ĐỦ (không đóng nhầm hộp của quà tên gần giống).</summary>
     public static bool XongQuaCho(IReadOnlyList<HvTin> moi, string tenQua)
@@ -422,7 +429,7 @@ public sealed class TinTracker
     /// <summary>06/11 (L13): đổi bé trên máy dùng chung ⇒ quên tin đã thấy của bé trước; lần hỏi kế là «lần đầu» của bé mới (không bật bóng báo tin cũ).</summary>
     public void DatLai()
     {
-        _seen.Clear(); _order.Clear(); _daBao.Clear(); _daBaoOrder.Clear(); _thuHoi.Clear(); Moc = null; DaCoLanDau = false;
+        _seen.Clear(); _order.Clear(); _daBao.Clear(); _daBaoOrder.Clear(); _thuHoi.Clear(); _thuHoiOrder.Clear(); Moc = null; DaCoLanDau = false;
     }
 
     /// <summary>#759: id tin khay ĐÃ BÁO Con (trả trong <see cref="Nhan"/>, không tính lần hỏi đầu nạp im) — giới hạn như <see cref="_seen"/>.</summary>
@@ -430,6 +437,7 @@ public sealed class TinTracker
     private readonly Queue<string> _daBaoOrder = new();
     /// <summary>#759: id tin đã bị Ba Mẹ thu hồi (hoàn tác) — popup đang chờ tải không được mở nữa.</summary>
     private readonly HashSet<string> _thuHoi = new();
+    private readonly Queue<string> _thuHoiOrder = new();
 
     /// <summary>#759: tin khay ĐÃ BÁO Con rồi bị Ba Mẹ hoàn tác ⇒ cần đóng popup + báo. Mỗi id một lần;
     /// tin chưa báo (hoàn tác trước khi khay hỏi tới, hoặc lần hỏi đầu chỉ nạp im) ⇒ bỏ qua — Con chưa từng thấy thì không cần báo.</summary>
@@ -439,8 +447,7 @@ public sealed class TinTracker
         foreach (var x in r.ThuHoi)
         {
             if (string.IsNullOrEmpty(x.Id)) continue;
-            if (_thuHoi.Count >= Max) _thuHoi.Clear();
-            _thuHoi.Add(x.Id);
+            if (_thuHoi.Add(x.Id)) { _thuHoiOrder.Enqueue(x.Id); if (_thuHoiOrder.Count > Max) _thuHoi.Remove(_thuHoiOrder.Dequeue()); }
             if (_daBao.Remove(x.Id)) ra.Add(x);
         }
         return ra;

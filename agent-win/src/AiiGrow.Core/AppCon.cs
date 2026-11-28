@@ -198,8 +198,8 @@ public static class AppConView
         return thieu <= 0 ? ("Đủ sao rồi!", true) : ($"Còn thiếu {thieu} sao", false);
     }
 
-    /// <summary>Dòng phụ quà đang chờ trao: «Đã trừ 50 sao · chờ Ba Mẹ trao».</summary>
-    /// <summary>#757: máy chủ trừ sao NGAY khi Con đổi (web cũng hiện đã trừ) ⇒ không ghi «trao mới trừ»; Ba Mẹ từ chối thì hoàn.</summary>
+    /// <summary>Dòng phụ quà đang chờ trao: «Đã trừ 50 sao · chờ Ba Mẹ trao». #757: máy chủ trừ sao NGAY khi Con đổi (web cũng hiện đã trừ)
+    /// ⇒ không ghi «trao mới trừ»; Ba Mẹ từ chối thì hoàn. (Tên giữ <c>DangGiu</c> = phiếu trạng thái «giu» của máy chủ.)</summary>
     public static string DangGiu(int sao, bool ngan = false) => ngan ? $"Đã trừ {sao} sao · Ba Mẹ từ chối thì hoàn" : $"Đã trừ {sao} sao · chờ Ba Mẹ trao";
 
     /// <summary>#757: luật đổi quà một câu (mục «Đổi quà», hộp xác nhận).</summary>

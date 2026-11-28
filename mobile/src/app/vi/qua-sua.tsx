@@ -134,7 +134,7 @@ export default function SuaQua() {
                 <Nut chu="+" nho loai="vien" bam={() => setTonKho(Math.min(999, (tk ?? 0) + 1))} nhanDoc="Thêm 1" />
               </View>
             } />
-          <DongDk tieu="Ba Mẹ xác nhận khi trao" phu="Trao xong mới trừ sao" bat={xn} doi={setXacNhan} />
+          <DongDk tieu="Ba Mẹ xác nhận khi trao" phu="Sao trừ lúc con đổi · từ chối thì hoàn" bat={xn} doi={setXacNhan} />
         </The>
       </View>
 

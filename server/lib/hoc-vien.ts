@@ -74,7 +74,7 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
   const c = await one<{ family_id: string }>(`select family_id from children where id = $1`, [con]);
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   const tu = sau && Number.isFinite(sau.getTime()) ? new Date(sau.getTime() - LUI_PHUT * 60_000) : new Date(Date.now() - SO_NGAY_TIN * 86_400_000);
-  const ev = await q<{ id: string; loai: string; chi_tiet: Record<string, unknown>; created_at: Date; ten_nguoi: string | null }>(
+  const evQ = q<{ id: string; loai: string; chi_tiet: Record<string, unknown>; created_at: Date; ten_nguoi: string | null }>(
     `select e.id, e.loai, e.chi_tiet, e.created_at, p.ten as ten_nguoi from events e left join parents p on p.id = e.nguoi
      where e.child_id = $1 and e.created_at > $2
      and e.loai in ('giao_nhiem_vu', 'duyet_nhiem_vu', 'tu_duyet_nhiem_vu', 'tu_choi_nhiem_vu', 'can_bo_sung', 'loi_khen', 'xac_nhan_qua', 'huy_qua', 'huy_hieu',
@@ -89,14 +89,14 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
        -- «Ba Mẹ chưa cho vay sao»: chỉ lời xin vay (lời xin cũ them_gio / ngoai_le / ngoai_gio cũng là vay từ 15/11)
        and (e.loai <> 'tu_choi_yeu_cau' or e.chi_tiet->>'loai' in ('vay_sao', 'them_gio', 'ngoai_le', 'ngoai_gio'))
      order by e.created_at desc limit 50`, [con, tu]);
-  // #759: chạy song song với tin — hoàn tác SAU khi khay có thể đã nhận tin duyệt ⇒ id tin duyệt bị thu hồi
+  // #759 (ba câu chạy song song): hoàn tác SAU khi khay có thể đã nhận tin duyệt ⇒ id tin duyệt bị thu hồi
   const thuHoiQ = q<{ id: string; ten: string | null; created_at: Date }>(
     `select chi_tiet->>'thu_hoi_id' as id, chi_tiet->>'ten' as ten, created_at from events
      where child_id = $1 and loai = 'hoan_tac_duyet' and created_at > $2 and chi_tiet ? 'thu_hoi_id' order by created_at desc limit 20`, [con, tu]);
   const moiQ = q<{ id: string; ten: string; diem: number; created_at: Date }>(
     `select id, ten, diem, created_at from tasks where family_id = $1 and bat and giao_cho is null and bang_chung <> 'tu_dong' and created_at > $2
      and (han is null or han > now()) order by created_at desc limit 20`, [c.family_id, tu]);
-  const [moi, thuHoiR] = await Promise.all([moiQ, thuHoiQ]);
+  const [ev, moi, thuHoiR] = await Promise.all([evQ, moiQ, thuHoiQ]);
   const s = (v: unknown) => String(v ?? "").trim();
   const ra: TinHocVien[] = [];
   for (const e of ev) {
