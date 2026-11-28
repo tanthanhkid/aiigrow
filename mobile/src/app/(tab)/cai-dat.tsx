@@ -124,7 +124,7 @@ export default function CaiDat() {
       <Nhom>
         <Dong dau tieu="Thông báo" phu={d.tatTb === null ? "Báo ngay việc cần Ba Mẹ" : tatTb ? `Đã tắt ${tatTb} loại` : "Đang nhận hết"} trai={<OIcon ic="chuong" />} bam={() => router.push("/thong-bao/cai-dat")} />
         <Dong tieu="Quà con đổi bằng sao" phu={d.soQua === null ? "Con đủ sao thì tự đổi" : `${d.soQua} món quà`} trai={<OIcon ic="qua" />} bam={() => router.push("/vi/qua")} />
-        <Dong tieu="Hỏi AiiGrow" phu="Nhắn tin, gọi, hướng dẫn" trai={<OIcon ic="tin" />} bam={() => router.push("/hoi-aiigrow")} />
+        <Dong tieu="Hỏi AiiGrow" phu="Nhắn tin, câu hỏi hay gặp" trai={<OIcon ic="tin" />} bam={() => router.push("/hoi-aiigrow")} />
         {d.toi.laAdmin ? <Dong tieu="Hộp thư hỗ trợ" phu="Tin các gia đình gửi AiiGrow — quản trị" trai={<OIcon ic="tin" nen={M.timSoft} />} bam={() => router.push("/admin-ho-tro")} /> : null}
       </Nhom>
 

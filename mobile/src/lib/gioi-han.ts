@@ -2,7 +2,7 @@
 // Hàm thuần (node --test) dùng chung cho màn Lần đầu (thiet-lap/gio) và «Giờ chơi» trong hồ sơ Con (ho-so/[id]/gio-choi).
 // Cùng luật với máy chủ (server/lib/gioi-han-choi.ts): 0 = không giới hạn; ngày 10–720 phút; lượt 5–240 phút; nghỉ = đúng số phút một lượt.
 import { chuPhut } from "./chu-phut.ts";
-import { soNguyenGo } from "./so-nguyen.ts";
+import { docSoNguyen, LOI_SO_NGUYEN } from "./so-nguyen.ts";
 
 /** Giá trị gửi / nhận máy chủ (phút; 0 = không giới hạn). */
 export type GioiHan = { ngayThuong: number; cuoiTuan: number; moiLuot: number };
@@ -19,9 +19,9 @@ export const LUOT_MD = 30;
 /** Ô số phút: chuỗi Ba Mẹ gõ ⇒ số phút hoặc lỗi. `batBuoc` (ô ngày — bàn v21 không có «không giới hạn»): trống / 0 là lỗi; không thì trống / 0 = không giới hạn (ô lượt). */
 export function docPhut(chu: string, k: { min: number; max: number }, batBuoc = false): { phut: number; loi: string | null } {
   const loiKhoang = `Từ ${k.min} đến ${k.max} phút`;
-  const s = soNguyenGo(chu);
-  if (!s || Number(s) === 0) return { phut: 0, loi: batBuoc ? loiKhoang : null };
-  const n = Number(s);
+  const n = docSoNguyen(chu);
+  if (n !== null && Number.isNaN(n)) return { phut: 0, loi: LOI_SO_NGUYEN };   // #743: «45.5» báo rõ, không thành 455 / 45 ngầm
+  if (!n) return { phut: 0, loi: batBuoc ? loiKhoang : null };
   if (n < k.min || n > k.max) return { phut: n, loi: loiKhoang };
   return { phut: n, loi: null };
 }
@@ -43,9 +43,9 @@ export function quyRaTieng(n: number): string {
 /** Hàng «Giờ chơi» trong hồ sơ Con: «60 phút/ngày» + «mỗi lượt 30 phút». */
 export function tomTatGioiHan(c: GioiHan): { tren: string; duoi?: string } {
   const tren = !c.ngayThuong && !c.cuoiTuan ? "Không giới hạn" : c.ngayThuong === c.cuoiTuan ? `${chuPhut(c.ngayThuong)}/ngày`
-    : !c.cuoiTuan ? `${chuPhut(c.ngayThuong)} ngày thường · cuối tuần không giới hạn`
-    : !c.ngayThuong ? `Ngày thường không giới hạn · cuối tuần ${chuPhut(c.cuoiTuan)}`
-    : `Ngày thường ${chuPhut(c.ngayThuong)} · T7, CN ${chuPhut(c.cuoiTuan)}`;
+    : !c.cuoiTuan ? `T2–T6 ${chuPhut(c.ngayThuong)} · T7–CN không giới hạn`
+    : !c.ngayThuong ? `T2–T6 không giới hạn · T7–CN ${chuPhut(c.cuoiTuan)}`
+    : `T2–T6 ${chuPhut(c.ngayThuong)} · T7–CN ${chuPhut(c.cuoiTuan)}`;
   return { tren, ...(c.moiLuot ? { duoi: `mỗi lượt ${chuPhut(c.moiLuot)}` } : {}) };
 }
 

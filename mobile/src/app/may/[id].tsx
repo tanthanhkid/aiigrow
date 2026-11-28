@@ -354,7 +354,8 @@ export default function AnToanMay() {
           </TheDs>
           <BaoLoi loi={loiGan} />
           <Chu kieu="dam" co={12.5} mau={M.chu3} style={{ marginHorizontal: 8, lineHeight: 18 }}>
-            Mỗi bé chọn tên + PIN để vào máy. Chơi trên máy này chỉ trừ sao của bé đang dùng; «Đổi người» dừng tính phút của bé trước.
+            {chung ? "Mỗi bé chọn tên + PIN để vào máy. Chơi trên máy này chỉ trừ sao của bé đang dùng; «Đổi người» dừng tính phút của bé trước."
+              : "Một bé dùng máy này nên bé vào thẳng, không hỏi PIN. Bật thêm bé thì máy thành dùng chung: mỗi bé chọn tên + PIN để vào."}
           </Chu>
         </>
       ) : null}

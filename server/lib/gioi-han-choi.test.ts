@@ -246,3 +246,37 @@ test("review: còn < 1 phút = hết (lý do + nghiDen); phút «Mở hết» kh
   n = await tre.nhaTre({ id: a.con, family_id: a.fam, device_id: null }, sau(t0, 16));
   assert.deepEqual([n.nghiDen, n.gioiHan.dangNghi], [null, false]);
 });
+
+test("#811: cau_hinh bị ghi thành mảng (chuỗi JSON lồng) ⇒ lược đồ gộp lại một đối tượng, GET gio-choi đọc đúng giá trị lưu sau cùng", async () => {
+  const { SCHEMA_APP_WEB } = await import("./schema.ts");
+  const { con, tokBm } = await nha(0);
+  // y như dữ liệu thật trên prod: {} || "<chuỗi JSON>" || {web_lan_dau: "<chuỗi mảng>"} || khoá… || chuỗi giờ chơi mới nhất
+  const hong = [{}, JSON.stringify({ gh_ngay_thuong: 60, gh_cuoi_tuan: 90, gh_moi_luot: 30 }), { web_lan_dau: JSON.stringify(["tiktok.com"]) },
+    { khoa_ngay: true, khoa_den: "2026-11-27T05:14:13.818Z" }, JSON.stringify({ gh_ngay_thuong: 45, gh_cuoi_tuan: 90, gh_moi_luot: 0 }),
+    { khoa_ngay: true, khoa_den: "2026-11-28T02:38:03.735Z" }];
+  await q(`update children set cau_hinh = $2::text::jsonb where id = $1`, [con, JSON.stringify(hong)]);
+  const gop = SCHEMA_APP_WEB.filter((s) => s.includes("jsonb_array_elements(c.cau_hinh)") || s.includes("'{web_lan_dau}'"));
+  assert.equal(gop.length, 2);
+  for (const s of [...gop, ...gop]) await q(s);   // chạy lại vô hại
+  const c = (await one<{ c: any }>(`select cau_hinh as c from children where id = $1`, [con]))!.c;
+  assert.deepEqual(c, { gh_ngay_thuong: 45, gh_cuoi_tuan: 90, gh_moi_luot: 0, web_lan_dau: ["tiktok.com"], khoa_ngay: true, khoa_den: "2026-11-28T02:38:03.735Z" });
+  const r = await m(tokBm, `con/${con}/gio-choi`);
+  assert.deepEqual([r.body.gioiHanNgayThuong, r.body.gioiHanCuoiTuan, r.body.phutMoiLuot], [45, 90, 0]);
+});
+
+test("#811: mã máy chủ không ghi jsonb bằng `$n::jsonb` (postgres.js bọc chuỗi lần nữa) — phải `$n::text::jsonb`", async () => {
+  const { readdirSync, readFileSync, statSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const sai: string[] = [];
+  const duyet = (d: string) => {
+    for (const f of readdirSync(d)) {
+      const p = join(d, f);
+      if (f === "node_modules" || f === "test-fixtures" || f.startsWith(".")) continue;
+      if (statSync(p).isDirectory()) duyet(p);
+      else if (/\.tsx?$/.test(f) && !f.endsWith(".test.ts") && /\$\d+::jsonb?\b/.test(readFileSync(p, "utf8"))) sai.push(p);
+    }
+  };
+  duyet(new URL(".", import.meta.url).pathname);
+  duyet(new URL("../app", import.meta.url).pathname);
+  assert.deepEqual(sai, []);
+});

@@ -48,6 +48,8 @@ export default function HoSoCon() {
   // 1 sao = 1 phút: phút «Tính phút» đã dùng hôm nay (gia-dinh › phutChoi)
   const phutHomNay = cg?.phutChoi ?? null;
   const canSua = c.may.filter(canSuaMay);
+  // #774: PIN chỉ hỏi ở máy DÙNG CHUNG (≥ 2 bé chọn tên + PIN); chỉ có máy riêng ⇒ bé vào thẳng, ẩn dòng PIN (đặt PIN vẫn ở «Sửa tên, năm sinh, ảnh»)
+  const coMayChung = c.may.some((x) => (x.soCon ?? x.conDs?.length ?? (x.dungChung ? 2 : 1)) >= 2);
   return (
     <Man lui={{ chu: "Cả nhà", ve: "/cai-dat" }} tieu="Hồ sơ con" tai={() => { tai(); lk.tai(); }} noi={noi}>
       {d.g.con.length > 1 ? <HangChonBe ds={d.g.con.map((x) => ({ ...x, ten: tenGoi(x.ten) }))} chon={id} doi={(x) => x && router.replace(`/ho-so/${x.id}` as never)} /> : null}
@@ -98,8 +100,8 @@ export default function HoSoCon() {
       {d.trongGiup ? <Chu co={13.5} mau={M.chu3} style={{ marginHorizontal: 4 }}>{CAU_TRONG_GIUP}</Chu> : (
         <The dem style={{ paddingVertical: 4 }}>
           <HangViec dau ic="but" mau="lam" tieu="Sửa tên, năm sinh, ảnh" bam={() => router.push(`/ho-so/sua?id=${id}` as never)} />
-          <HangViec ic="mo_khoa" mau="xanh" tieu="PIN vào máy" phu={c.coPin ? undefined : "Chưa đặt · chạm tên là vào thẳng"}
-            phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>{c.coPin ? "Đặt lại" : "Đặt PIN"}</Chu>} bam={() => router.push(`/ho-so/${id}/pin` as never)} />
+          {coMayChung ? <HangViec ic="mo_khoa" mau="xanh" tieu="PIN vào máy" phu={c.coPin ? undefined : "Chưa đặt · chạm tên là vào thẳng"}
+            phai={<Chu kieu="rat" co={14} mau={M.chinhInk}>{c.coPin ? "Đặt lại" : "Đặt PIN"}</Chu>} bam={() => router.push(`/ho-so/${id}/pin` as never)} /> : null}
         </The>
       )}
       {/* .xoa: chữ đỏ canh giữa dưới thẻ «Về X» */}

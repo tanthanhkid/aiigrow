@@ -14,7 +14,7 @@ import { DauMan, LienKet } from "@/lib/lan-dau";
 import { TheDs } from "@/lib/lan-dau-ds";
 import { tenVoucher, type NhomThuVien, type MauQua } from "@/lib/s3";
 import { layTl } from "@/lib/thiet-lap";
-import { soNguyenGo } from "@/lib/so-nguyen";
+import { docSoNguyen, loiSoNguyen, soNguyenGo } from "@/lib/so-nguyen";
 import { BangTruot, BaoLoi, ChoTai, Chu, F, IconNet, LopMen, M, Man, Nut, ONhap, useHoanTac, useLam, useTai } from "@/lib/ui";
 import { ThanhBuoc5 } from "@/lib/ui-s3";
 import { dong, soCham } from "@/lib/voucher-lan-dau";
@@ -144,7 +144,7 @@ function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f
   const [nhap, setNhap] = useState(false);
   const [chuSao, setChuSao] = useState("");
   const ngoai = !SAO.includes(sao);
-  const xongSao = () => { const n = parseInt(chuSao, 10); if (n > 0) setSao(Math.min(n, 999)); setNhap(false); setChuSao(""); };
+  const xongSao = () => { const n = docSoNguyen(chuSao) ?? 0; if (loiSoNguyen(chuSao)) return; if (n > 0) setSao(Math.min(n, 999)); setNhap(false); setChuSao(""); };
   const them = () => lam(async () => {
     const t = ten.trim();
     if ([...t].length < 2) throw new Error("Điền tên quà con muốn.");
@@ -188,9 +188,9 @@ function ThemQuaNha({ con, lam, setLoi, dangChay, tai }: { con?: string; lam: (f
         {nhap ? (
           <View style={{ flexDirection: "row", gap: 8, alignItems: "flex-end" }}>
             <View style={{ flex: 1 }}>
-              <ONhap nhan="Số sao" value={chuSao} onChangeText={(t) => setChuSao(soNguyenGo(t).slice(0, 4))} keyboardType="number-pad" placeholder="Số sao" onSubmitEditing={xongSao} autoFocus />
+              <ONhap nhan="Số sao" value={chuSao} onChangeText={(t) => setChuSao(soNguyenGo(t).slice(0, 5))} keyboardType="number-pad" placeholder="Số sao" onSubmitEditing={xongSao} autoFocus loi={loiSoNguyen(chuSao)} />
             </View>
-            <Nut chu="Chọn" nho bam={xongSao} tat={!(parseInt(chuSao, 10) > 0)} />
+            <Nut chu="Chọn" nho bam={xongSao} tat={!((docSoNguyen(chuSao) ?? 0) > 0)} />
           </View>
         ) : null}
       </View>
