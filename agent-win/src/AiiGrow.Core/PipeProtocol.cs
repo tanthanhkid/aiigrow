@@ -95,6 +95,9 @@ public sealed class TrayState
     /// <summary>#822: trang web Ba Mẹ chặn / cho phép lúc này (null = dịch vụ chưa biết hoặc không áp luật web) — khay so với lượt trước để báo bé khi Ba Mẹ thêm web.</summary>
     public List<string>? WebChan { get; set; }
     public List<string>? WebCho { get; set; }
+    /// <summary>#741: tab tiền cảnh của trình duyệt đang là trang Ba Mẹ chặn (trình duyệt hiện trang lỗi tiếng Anh «This page is blocked») ⇒ tên miền; không ⇒ null.
+    /// Dịch vụ tính (biết cả chế độ «Theo danh sách» — chặn mọi trang ngoài danh sách cho phép) và ghi nhật ký; khay bật hộp tiếng Việt «Xin Ba Mẹ mở».</summary>
+    public string? TrangChan { get; set; }
     /// <summary>0.2.6: các app / trang Giải trí Ba Mẹ đã xếp (chữ thường) — Grow liệt kê cho nút «Chơi bằng sao» (máy chủ: windows.playChoices).</summary>
     public List<string> PlayChoices { get; set; } = new();
     /// <summary>0.2.6 (BUG-007): khay đang chạy trong phiên của tài khoản Con? false ⇒ khay (phiên Ba Mẹ / tài khoản quản trị) tự thoát, không hiện biểu tượng / màn chặn.

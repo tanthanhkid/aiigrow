@@ -30,6 +30,9 @@ internal sealed class BlockedForm : Form
         return ten != null && ten.Count == muc.Count && i >= 0 ? ten[i] : TrayView.FriendlyAppName(m, null);
     }
 
+    /// <summary>#741: hộp này là hộp chặn của <paramref name="muc"/>.</summary>
+    public bool LaHopCua(string muc) => string.Equals(_appId, muc.Trim(), StringComparison.OrdinalIgnoreCase);
+
     private static int IndexOf(IReadOnlyList<string> ds, string m) { for (int i = 0; i < ds.Count; i++) if (ds[i] == m) return i; return -1; }
     private readonly (string Tieu, string Phu, string Dong)? _gioiHan;   // #302: khoá vì giới hạn (còn sao) thay «Hết sao rồi»
     private RequestStatus? _kq;
@@ -167,6 +170,14 @@ internal sealed class BlockedForm : Form
                         Ve(Buoc.DaGui); await GuiAsync();
                     };
                     _flow.Controls.Add(xin);
+                }
+                else if (ManChanView.CoNutNhanXin(_appId))
+                {
+                    // #741: công cụ Windows (PowerShell…) — máy chủ không nhận lời xin thêm app ⇒ bé nhắn Ba Mẹ trong mục Tin nhắn
+                    var nhan = KhoiCon.Nut(ManChanView.NutNhanXin(_ten), true, _w, "tin");
+                    nhan.Click += (_, _) => { NhanBaMe?.Invoke(); DongHan(); };
+                    _flow.Controls.Add(nhan);
+                    _flow.Controls.Add(UI.Text(ManChanView.NhanXinPhu, 9.75f, false, UI.Muted, _w));
                 }
                 ThemNutVeHomNay(chinh: false);
                 break;
@@ -312,7 +323,7 @@ internal sealed class BlockedForm : Form
         if (_busy || string.IsNullOrEmpty(_appId)) return;
         _busy = true;
         _guiLuc = DateTimeOffset.Now;
-        var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.XinDuyet, AppId = _appId, AppName = _ten });
+        var r = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.XinDuyet, AppId = _appId, AppName = _ten, Kieu = _web ? XinThemChonView.KieuWeb : null }   /* #741: trang chặn ⇒ lời xin «mo_web» */);
         _busy = false;
         if (_dong || IsDisposed) return;
         var (daGui, loi) = ManChanView.KetQuaGui(r.Ok, r.Error);

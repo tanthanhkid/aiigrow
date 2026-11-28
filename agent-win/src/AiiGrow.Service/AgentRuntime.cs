@@ -72,6 +72,9 @@ public sealed class AgentRuntime
     public void WebDaDoi() => Interlocked.Increment(ref _webRev);
     /// <summary>#822: danh sách web chặn / cho phép luật đang áp (WebGuardWorker đặt mỗi vòng; null = không áp luật web) — khay báo bé khi Ba Mẹ thêm web.</summary>
     public volatile IReadOnlyList<string>? WebChanDangAp, WebChoDangAp;
+    /// <summary>#741: luật web đang áp là «Theo danh sách» (chi_cho_phep: trình duyệt chặn «*» trừ WebCho + máy chủ) và tên máy chủ AiiGrow được cho.</summary>
+    public volatile bool WebChiChoPhepDangAp;
+    public volatile string? WebMayChuDangAp;
     public int ChildSessionId { get; set; } = -1;
     /// <summary>16/11 (#307): mục → tên hiển thị theo lần quét danh sách app gần nhất (DanhSachAppWorker) — khay hiện «Từ điển», không «Tudien».</summary>
     public volatile IReadOnlyDictionary<string, string>? TenAppMay;
@@ -805,6 +808,13 @@ public sealed class AgentRuntime
     private string? _fgTieuDe;
     /// <summary>#771: tab trình duyệt đang xem — hàng đợi giây theo tiêu đề.</summary>
     public readonly TabDangXem TabXem = new();
+
+    /// <summary>#741: tab tiền cảnh của trình duyệt đang là trang Ba Mẹ chặn ⇒ tên miền (chỉ lệnh Foreground của khay thật phiên Con gọi; tính ngoài khoá chung).</summary>
+    public string? TrangChanDangXem()
+    {
+        var (exe, tieuDe) = GetTabTienCanh();
+        return TabDangXem.LaTrinhDuyet(exe) ? TrangChanWeb.TimMien(tieuDe, WebChanDangAp, WebChoDangAp, WebChiChoPhepDangAp, WebMayChuDangAp) : null;
+    }
 
     /// <summary>#771: (exe gốc, tiêu đề cửa sổ) tiền cảnh khay báo gần nhất.</summary>
     public (string? Exe, string? TieuDe) GetTabTienCanh()

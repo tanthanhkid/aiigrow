@@ -761,7 +761,6 @@ internal sealed class TrayContext : ApplicationContext
         {
             var fg = await Task.Run(UI.Foreground);   // mở tệp exe lấy tên ⇒ không trên luồng UI
             var tieuDe = UI.TieuDeTrinhDuyet(fg.Id);   // #771: tab đang xem (chỉ trình duyệt)
-            _tieuDeTab = tieuDe;
             var res = await PipeClient.CallAsync(new PipeRequest { Cmd = PipeCmd.Foreground, AppId = fg.Id, AppName = fg.Name, TieuDe = tieuDe });
             if (!res.Ok || res.State == null)
             {
@@ -986,14 +985,15 @@ internal sealed class TrayContext : ApplicationContext
         }
     }
 
-    private string _tieuDeTab = "";
     private readonly TrangChanWeb _trangChan = new();
+    private readonly HopChanLap _hopLap = new();
 
-    /// <summary>#741: tab tiền cảnh là trang Ba Mẹ chặn (trình duyệt hiện trang lỗi tiếng Anh) ⇒ hộp web tiếng Việt + tên miền + «Xin Ba Mẹ mở».</summary>
+    /// <summary>#741: tab tiền cảnh là trang Ba Mẹ chặn (trình duyệt hiện trang lỗi tiếng Anh) ⇒ hộp web tiếng Việt + tên miền + «Xin Ba Mẹ mở».
+    /// Dịch vụ tính trang chặn (<see cref="TrayState.TrangChan"/>: cả chế độ «Theo danh sách» chặn mọi trang ngoài danh sách cho phép — test 28/11).</summary>
     private void HandleTrangChan()
     {
         if (_state.Locked || _state.MoCoi) return;
-        var mien = TrangChanWeb.TimMien(_tieuDeTab, _state.WebChan, _state.WebCho);
+        var mien = _state.TrangChan;
         if (mien == null || _blocked is { IsDisposed: false } || _daXin.Contains(mien)) return;   // hộp khác đang mở / đã xin Ba Mẹ trong phiên khay ⇒ không lặp
         if (!_trangChan.NenHien(mien, DateTimeOffset.Now)) return;
         var daXin = false;
@@ -1010,8 +1010,6 @@ internal sealed class TrayContext : ApplicationContext
         if (_state.BlockedSeq == _seenBlocked || _state.Locked) return;
         _seenBlocked = _state.BlockedSeq;
         if (!ManChanView.CoHienBang(_state.BlockedAppId)) return;   // #642: tiến trình nền Windows / Xbox Game Bar — không bật bảng, không đóng bảng đang mở
-        // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
-        if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         var id = _state.BlockedAppId;
         var homNay = DateOnly.FromDateTime(DateTime.Now);
         if (homNay != _ngayTuGui) { _ngayTuGui = homNay; _soTuGui = 0; }
@@ -1019,13 +1017,17 @@ internal sealed class TrayContext : ApplicationContext
         // 15/11: app «Tính phút» bị đóng vì HẾT SAO ⇒ popup «Hết sao rồi · Roblox sắp đóng» (them-zxuekzer), không phải «chưa có trong danh sách»;
         // màn «Hết sao rồi» toàn màn hình đang hiện (vừa hết sao lúc chơi) ⇒ không chồng thêm popup
         if (id != null && _state.QuyConPhut is <= 0 && _hetSao is { IsDisposed: false } && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase)) return;
+        // #307: Con đang ở hộp «Xin thêm …» cho đúng app này ⇒ đưa hộp lên trước, không chồng màn chặn mới
+        if (id != null && _xinThem is { IsDisposed: false } dangXin && string.Equals(dangXin.Muc, id.Trim(), StringComparison.OrdinalIgnoreCase)) { dangXin.Activate(); return; }
+        // #741 (test 28/11): cùng app bị đóng lại mỗi nhịp ⇒ không dựng lại hộp / popup «Hết sao» đang mở hoặc vừa bị bé đóng (trước đây ✖ / Esc / Alt+F4 như không có tác dụng).
+        if (id != null && !_hopLap.NenHien(id, _blocked is { IsDisposed: false } dang && dang.LaHopCua(id), DateTimeOffset.Now)) return;
         if (id != null && _state.QuyConPhut is <= 0 && !_state.MoHet && !MoCoHan.Dang(_state, DateTimeOffset.Now) && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase))
         {
             HienPopupHetSao(id, _state.BlockedAppName);
             return;
         }
-        // #307: Con đang ở hộp «Xin thêm …» cho đúng app này ⇒ đưa hộp lên trước, không chồng màn chặn mới
-        if (id != null && _xinThem is { IsDisposed: false } dangXin && string.Equals(dangXin.Muc, id.Trim(), StringComparison.OrdinalIgnoreCase)) { dangXin.Activate(); return; }
+        // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
+        if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         if (ManChanView.TuGui(id, _state.BlockedBoiBaMe, _state.Offline, daXin)) _soTuGui++;
         _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep, daXin: daXin, appTinhPhut: _state.AppTinhPhut, phutCon: _state.QuyConPhut,
             tenDuocPhep: TrayView.TenKhongTinh(_state), tenTinhPhut: TrayView.TenTinh(_state));
