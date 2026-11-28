@@ -13,15 +13,35 @@ public static class DatMatKhauQuanTri
     public const int DaiToiThieu = 4;
     /// <summary>NetUserSetInfo / NetUserChangePassword nhận tối đa 127 ký tự (PWLEN).</summary>
     public const int DaiToiDa = 127;
+    /// <summary>ERROR_INVALID_PASSWORD khi đổi từ mật khẩu trống: tài khoản đã có mật khẩu (Ba Mẹ vừa tự đặt) ⇒ coi là đã được bảo vệ.</summary>
+    public const int MaDaCoMatKhau = 86;
 
     /// <summary>Tài khoản bộ cài cần đặt mật khẩu: quản trị cục bộ đang bật (luật <see cref="QuanTriTrong.CanKiem"/> — bỏ tài khoản Microsoft,
-    /// Administrator dựng sẵn đang tắt) mà mật khẩu trống. KHÔNG bao giờ gồm tài khoản của bé (<paramref name="tenCon"/>), kể cả khi nó còn là quản trị.
+    /// Administrator dựng sẵn đang tắt) mà mật khẩu trống. KHÔNG bao giờ gồm tài khoản của bé (tên <paramref name="tenCon"/> HOẶC SID
+    /// <paramref name="sidCon"/> — so RID cuối SID, khớp một trong hai là bỏ), kể cả khi nó còn là quản trị.
     /// <paramref name="kiem"/> chỉ được gọi cho tài khoản cần kiểm (mỗi lần gọi có thể tính một lần nhập sai).</summary>
-    public static List<TaiKhoanQuanTri> CanDat(IEnumerable<TaiKhoanQuanTri> ds, string? tenCon, Func<TaiKhoanQuanTri, KiemMatKhau> kiem)
-        => ds.Where(t => QuanTriTrong.CanKiem(t) && !string.Equals(t.Ten, tenCon, StringComparison.OrdinalIgnoreCase))
+    public static List<TaiKhoanQuanTri> CanDat(IEnumerable<TaiKhoanQuanTri> ds, string? tenCon, string? sidCon, Func<TaiKhoanQuanTri, KiemMatKhau> kiem)
+        => ds.Where(t => QuanTriTrong.CanKiem(t) && !LaCuaBe(t, tenCon, sidCon))
              .Where(t => kiem(t) == KiemMatKhau.Trong)
              .OrderBy(t => t.Ten, StringComparer.OrdinalIgnoreCase)
              .ToList();
+
+    public static bool LaCuaBe(TaiKhoanQuanTri t, string? tenCon, string? sidCon)
+    {
+        if (!string.IsNullOrWhiteSpace(tenCon))
+        {
+            var ten = tenCon.Trim();
+            var i = ten.LastIndexOf('\\');
+            if (i >= 0) ten = ten[(i + 1)..];   // «MAY\ten»
+            if (string.Equals(t.Ten, ten, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        if (!string.IsNullOrWhiteSpace(sidCon))
+        {
+            var j = sidCon.LastIndexOf('-');
+            if (j > 0 && int.TryParse(sidCon[(j + 1)..], out var rid) && rid == t.Rid) return true;
+        }
+        return false;
+    }
 
     /// <summary>Tên hiện cho Ba Mẹ: tên đầy đủ nếu có (khác tên đăng nhập thì kèm tên đăng nhập), không thì tên đăng nhập.</summary>
     public static string TenHien(TaiKhoanQuanTri t)
@@ -80,6 +100,7 @@ public static class DatMatKhauQuanTri
     {
         2245 => $"Windows chưa nhận mật khẩu này cho «{ten}»: chưa đủ yêu cầu của máy (độ dài, chữ HOA, số, ký hiệu). Thử mật khẩu dài hơn.",
         2221 => $"Không còn thấy tài khoản «{ten}» trên máy.",
+        MaDaCoMatKhau => $"«{ten}» đã có mật khẩu rồi, AiiGrow không đặt đè.",
         5 => $"Bộ cài chưa có quyền đổi mật khẩu «{ten}». Ba Mẹ đặt trong Cài đặt Windows (bấm «Tự đặt sau» để xem cách).",
         _ => $"Chưa đặt được mật khẩu cho «{ten}» (mã {rc}). Thử lại, hoặc bấm «Tự đặt sau».",
     };

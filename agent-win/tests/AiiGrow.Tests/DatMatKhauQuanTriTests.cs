@@ -70,7 +70,7 @@ public class DatMatKhauQuanTriTests
             Tk("admin2", rid: 1007),                            // trống
         };
         var daThu = new List<string>();
-        var kq = DatMatKhauQuanTri.CanDat(ds, "MinhKhoi", t => { daThu.Add(t.Ten); return t.Ten is "BaMe" or "admin2" or "minhkhoi" ? KiemMatKhau.Trong : KiemMatKhau.CoMatKhau; });
+        var kq = DatMatKhauQuanTri.CanDat(ds, "MinhKhoi", null, t => { daThu.Add(t.Ten); return t.Ten is "BaMe" or "admin2" or "minhkhoi" ? KiemMatKhau.Trong : KiemMatKhau.CoMatKhau; });
         Assert.Equal(new[] { "admin2", "BaMe" }, kq.Select(t => t.Ten));
         Assert.Equal(new[] { "BaMe", "Me", "admin2" }, daThu);   // chỉ thử đăng nhập tài khoản cần kiểm, không thử tài khoản của bé
     }
@@ -78,15 +78,25 @@ public class DatMatKhauQuanTriTests
     [Fact]
     public void CanDat_AdministratorDungSanDangBat()
     {
-        var kq = DatMatKhauQuanTri.CanDat(new[] { Tk("Administrator", rid: 500) }, null, _ => KiemMatKhau.Trong);
+        var kq = DatMatKhauQuanTri.CanDat(new[] { Tk("Administrator", rid: 500) }, null, null, _ => KiemMatKhau.Trong);
         Assert.Single(kq);
     }
 
     [Fact]
     public void CanDat_ChuaRoKhongTinh()
     {
-        var kq = DatMatKhauQuanTri.CanDat(new[] { Tk("BaMe") }, null, _ => KiemMatKhau.KhongRo);
+        var kq = DatMatKhauQuanTri.CanDat(new[] { Tk("BaMe") }, null, null, _ => KiemMatKhau.KhongRo);
         Assert.Empty(kq);
+    }
+
+    [Fact]
+    public void CanDat_BoTaiKhoanCuaBeTheoSid()
+    {
+        var ds = new[] { Tk("BaMe"), Tk("treem", rid: 1004) };
+        var kq = DatMatKhauQuanTri.CanDat(ds, "ten-khac", "S-1-5-21-1-2-3-1004", _ => KiemMatKhau.Trong);
+        Assert.Equal(new[] { "BaMe" }, kq.Select(t => t.Ten));
+        Assert.True(DatMatKhauQuanTri.LaCuaBe(Tk("treem"), @"MAY\Treem", null));
+        Assert.False(DatMatKhauQuanTri.LaCuaBe(Tk("treem", rid: 1004), null, "S-1-5-21-1-2-3-10040"));
     }
 
     [Fact]

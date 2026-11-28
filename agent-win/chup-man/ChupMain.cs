@@ -323,7 +323,7 @@ internal static class ChupMain
         await Mot("cai-5b-mat-khau-qt-nhieu", () => ManCai("cai-5b-mat-khau-qt-nhieu", f => Goi(f, "ManMatKhauQuanTri", QuanTriMau(2), (Action)(() => { }), true, new List<string>(), null)));
         await Mot("cai-5b-mat-khau-qt-tung-cai", () => ManCai("cai-5b-mat-khau-qt-tung-cai", f =>
         {
-            Goi(f, "ManMatKhauQuanTri", QuanTriMau(2).Skip(1).ToList(), (Action)(() => { }), false, new List<string> { "Ba Mẹ (BaMe)" }, null);
+            Goi(f, "ManMatKhauQuanTri", QuanTriMau(2), (Action)(() => { }), false, new List<string>(), null);
             var o = TatCa(f).OfType<TextBox>().ToList();
             o[0].Text = "HoaXanh2026"; o[1].Text = "HoaXanh2026";
         }));
@@ -334,7 +334,7 @@ internal static class ChupMain
             o[0].Text = "abc1"; o[1].Text = "abc2";
             TatCa(f).OfType<Button>().First(b => b.Text.StartsWith("Đặt mật khẩu")).PerformClick();
         }));
-        await Mot("cai-5b-tu-dat-sau", () => ManCai("cai-5b-tu-dat-sau", f => Goi(f, "ManTuDatSau", QuanTriMau(2), (Action)(() => { }), new List<string>())));
+        await Mot("cai-5b-tu-dat-sau", () => ManCai("cai-5b-tu-dat-sau", f => Goi(f, "ManTuDatSau", QuanTriMau(2), (Action)(() => { }), true, new List<string>())));
         await Mot("cai-5b-da-dat", () => ManCai("cai-5b-da-dat", f => Goi(f, "ManDaDatMatKhau", new List<string> { "Ba Mẹ (BaMe)", "admin" }, (Action)(() => { }))));
         await Mot("cai-6-xong", () => ManCai("cai-6-xong", f => Goi(f, "BuocXong", ConMau(), "Minh Khôi", false)));
         await Mot("cai-6-xong-may-rieng", () => ManCai("cai-6-xong-may-rieng", f => Goi(f, "BuocXong", ConMau(), "Minh Khôi", true)));

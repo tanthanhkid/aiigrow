@@ -1038,7 +1038,7 @@ internal sealed class SetupForm : Form
     private async Task KiemQuanTriTrong(LocalAccount child, Action sau)
     {
         List<TaiKhoanQuanTri> ds;
-        try { ds = await Task.Run(() => DatMatKhauQuanTri.CanDat(QuanTriTrongMay.DocMay(), child.Name, QuanTriTrongMay.KiemTrong)); }
+        try { ds = await Task.Run(() => DatMatKhauQuanTri.CanDat(QuanTriTrongMay.DocMay(), child.Name, child.Sid, QuanTriTrongMay.KiemTrong)); }
         catch (Exception e) { Program.WriteLog("Dò tài khoản quản trị trống mật khẩu lỗi: " + CauLoiCai.Log(e)); ds = new(); }
         if (IsDisposed) return;
         if (ds.Count == 0) { sau(); return; }
@@ -1092,11 +1092,12 @@ internal sealed class SetupForm : Form
             hien!.Text = an ? "Hiện mật khẩu" : "Ẩn mật khẩu";
         }, Clay.NgocInk);
         var manh = X(the, 372, y0 + 106, "", Kieu.S, 300, dam: true);
-        X(the, 58, y0 + 136, "AiiGrow không lưu và không gửi mật khẩu này lên máy chủ. Ba Mẹ nhớ kỹ hoặc ghi lại ở chỗ an toàn nhé.", Kieu.S, 600);
+        X(the, 58, y0 + 136, "AiiGrow không lưu và không gửi mật khẩu này lên máy chủ. Ba Mẹ nhớ kỹ nhé. Mật khẩu web đã lưu trong trình duyệt của tài khoản đó có thể phải đăng nhập lại.", Kieu.S, 600);
         var trangThai = X(the, 58, y0 + 180, "", Kieu.S, 600, dam: true);
         void Bao(string c, Color mau) { trangThai.Text = c; trangThai.ForeColor = mau; }
-        if (bao != null) Bao(bao, Loi);
-        else if (daDat.Count > 0) Bao("Đã đặt mật khẩu cho " + string.Join(", ", daDat.Select(t => $"«{t}»")) + ".", Clay.NgocInk);
+        var daDatCau = daDat.Count > 0 ? "Đã đặt mật khẩu cho " + string.Join(", ", daDat.Select(t => $"«{t}»")) + "." : null;
+        if (bao != null) Bao(daDatCau == null ? bao : daDatCau + "\n" + bao, Loi);
+        else if (daDatCau != null) Bao(daDatCau, Clay.NgocInk);
         void DoiManh()
         {
             var d = DatMatKhauQuanTri.DoManh(mk.Text);
@@ -1104,7 +1105,7 @@ internal sealed class SetupForm : Form
             manh.ForeColor = d switch { DoManhMatKhau.Yeu => Loi, DoManhMatKhau.Vua => Clay.Canh, _ => Clay.NgocInk };
         }
         mk.TextChanged += (_, _) => DoiManh();
-        var tuDat = NutChan("Tự đặt sau", 36, 160, false, () => ManTuDatSau(ds, sau, daDat));
+        var tuDat = NutChan("Tự đặt sau", 36, 160, false, () => ManTuDatSau(ds, sau, dungChung, daDat));
         ClayButton? nut = null;
         nut = NutChinh(dat.Count > 1 ? "Đặt mật khẩu cho cả " + dat.Count : "Đặt mật khẩu", 260, async () =>
         {
@@ -1114,15 +1115,30 @@ internal sealed class SetupForm : Form
             var pw = mk.Text;
             // mật khẩu chỉ ở trong bộ nhớ: không ghi log, xoá khỏi ô ngay khi đã lấy
             mk.Text = lai.Text = "";
-            var kq = await Task.Run(() => dat.Select(t => (t, rc: MatKhauQuanTri.Dat(t.Ten, pw))).ToList());
-            pw = "";
-            foreach (var (t, rc) in kq) Program.WriteLog($"Đặt mật khẩu tài khoản quản trị «{t.Ten}»: {(rc == 0 ? "xong" : "lỗi " + rc)}");
-            if (IsDisposed) return;
-            var moi = daDat.Concat(kq.Where(x => x.rc == 0).Select(x => DatMatKhauQuanTri.TenHien(x.t))).ToList();
-            var conLai = ds.Where(t => !kq.Any(x => x.rc == 0 && ReferenceEquals(x.t, t))).ToList();
-            if (conLai.Count == 0) { ManDaDatMatKhau(moi, sau); return; }
-            var hong = kq.Where(x => x.rc != 0).Select(x => DatMatKhauQuanTri.CauLoiDat(DatMatKhauQuanTri.TenHien(x.t), x.rc)).ToList();
-            ManMatKhauQuanTri(conLai, sau, dungChung, moi, hong.Count > 0 ? string.Join("\n", hong) : null);
+            try
+            {
+                // 1327/5 khi đổi từ trống ⇒ chỉ đặt hộ (1003) nếu tài khoản VẪN trống (không đè mật khẩu Ba Mẹ vừa tự đặt trong Cài đặt)
+                var kq = await Task.Run(() => dat.Select(t => (t, rc: MatKhauQuanTri.Dat(t.Ten, pw, () => QuanTriTrongMay.KiemTrong(t) == KiemMatKhau.Trong))).ToList());
+                pw = "";
+                foreach (var (t, rc) in kq) Program.WriteLog($"Đặt mật khẩu tài khoản quản trị «{t.Ten}»: {(rc == 0 ? "xong" : "lỗi " + rc)}");
+                if (IsDisposed) return;
+                static bool Xong(int rc) => rc is 0 or DatMatKhauQuanTri.MaDaCoMatKhau;
+                var moi = daDat.Concat(kq.Where(x => x.rc == 0).Select(x => DatMatKhauQuanTri.TenHien(x.t))).ToList();
+                var conLai = ds.Where(t => !kq.Any(x => Xong(x.rc) && ReferenceEquals(x.t, t))).ToList();
+                // đặt từng tài khoản: tài khoản vừa lỗi xuống cuối hàng — không chặn các tài khoản sau
+                if (!dungChung) conLai = conLai.OrderBy(t => kq.Any(x => ReferenceEquals(x.t, t)) ? 1 : 0).ToList();
+                if (conLai.Count == 0) { ManDaDatMatKhau(moi, sau); return; }
+                var hong = kq.Where(x => x.rc != 0).Select(x => DatMatKhauQuanTri.CauLoiDat(DatMatKhauQuanTri.TenHien(x.t), x.rc)).ToList();
+                ManMatKhauQuanTri(conLai, sau, dungChung, moi, hong.Count > 0 ? string.Join("\n", hong) : null);
+            }
+            catch (Exception e)
+            {
+                pw = "";
+                Program.WriteLog("Đặt mật khẩu tài khoản quản trị lỗi: " + CauLoiCai.Log(e));
+                if (IsDisposed) return;
+                Bao("Chưa đặt được mật khẩu. Thử lại, hoặc bấm «Tự đặt sau».", Loi);
+                nut.Enabled = tuDat.Enabled = true;
+            }
         });
         mk.Focus();
     }
@@ -1142,7 +1158,7 @@ internal sealed class SetupForm : Form
     }
 
     /// <summary>«Tự đặt sau»: hướng dẫn từng bước trong Cài đặt Windows rồi đi tiếp cài đặt.</summary>
-    private void ManTuDatSau(List<TaiKhoanQuanTri> ds, Action sau, List<string> daDat)
+    private void ManTuDatSau(List<TaiKhoanQuanTri> ds, Action sau, bool dungChung, List<string> daDat)
     {
         Man(5, "Bảo vệ máy");
         X(_body, 36, 72, "Ba Mẹ tự đặt mật khẩu sau", Kieu.H);
@@ -1163,7 +1179,7 @@ internal sealed class SetupForm : Form
             XGiua(the, 96, y, 40, chu, Kieu.B, 570);
         }
         X(_body, 38, 470, "Chưa đặt thì bé vẫn có thể vào các tài khoản này và gỡ AiiGrow.", Kieu.S, 650, Loi, dam: true);
-        NutLui(() => ManMatKhauQuanTri(ds, sau, true, daDat, null));
+        NutLui(() => ManMatKhauQuanTri(ds, sau, dungChung, daDat, null));
         NutChinh("Tiếp tục cài", 220, sau);
     }
 

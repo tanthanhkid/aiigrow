@@ -41,16 +41,18 @@ internal static class MatKhauQuanTri
     [DllImport("netapi32.dll", CharSet = CharSet.Unicode)]
     private static extern int NetUserChangePassword(string? domain, string user, string oldPass, string newPass);
 
-    private const int NerrPasswordTooShort = 2245, NerrUserNotFound = 2221;
+    private const int ErrorAccessDenied = 5, ErrorAccountRestriction = 1327;
 
     /// <summary>Đặt mật khẩu mới cho tài khoản cục bộ đang trống mật khẩu ⇒ 0 = xong, khác = mã lỗi (DatMatKhauQuanTri.CauLoiDat).
-    /// Thử ĐỔI (mật khẩu cũ trống) trước: đổi giữ được khoá DPAPI của tài khoản (mật khẩu đã lưu trong trình duyệt, Wi-Fi…);
-    /// không đổi được (chính sách chặn mật khẩu trống…) thì bộ cài — đang chạy quyền quản trị — đặt hộ bằng NetUserSetInfo level 1003.
-    /// Mật khẩu chỉ nằm trong bộ nhớ, không ghi log.</summary>
-    public static int Dat(string taiKhoan, string matKhau)
+    /// Thử ĐỔI (mật khẩu cũ trống) trước: đổi giữ được khoá DPAPI của tài khoản (mật khẩu đã lưu trong trình duyệt, Wi-Fi…).
+    /// Chỉ khi Windows chặn đổi từ mật khẩu trống (chính sách «mật khẩu trống chỉ đăng nhập tại máy» ⇒ 1327 / 5) VÀ tài khoản vẫn còn trống
+    /// (<paramref name="conTrong"/>) thì bộ cài — đang chạy quyền quản trị — mới đặt hộ bằng NetUserSetInfo level 1003. Mật khẩu cũ không trống
+    /// (86: Ba Mẹ vừa tự đặt) ⇒ KHÔNG ghi đè. Mật khẩu chỉ nằm trong bộ nhớ, không ghi log.</summary>
+    public static int Dat(string taiKhoan, string matKhau, Func<bool> conTrong)
     {
         var rc = NetUserChangePassword(Environment.MachineName, taiKhoan, "", matKhau);   // máy này (null = miền đăng nhập của người đang chạy)
-        if (rc is 0 or NerrPasswordTooShort or NerrUserNotFound) return rc;
+        if (rc is not (ErrorAccountRestriction or ErrorAccessDenied)) return rc;
+        if (!conTrong()) return rc;
         var info = new USER_INFO_1003 { usri1003_password = matKhau };
         return NetUserSetInfo(null, taiKhoan, 1003, ref info, out _);
     }
