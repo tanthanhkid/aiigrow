@@ -68,7 +68,7 @@ test("xin vay sao (vay_sao: chơi / đổi quà) và lời xin cũ (them_gio / n
   assert.deepEqual([xt.mucCanhBao, (xt as any).noSau, (xt as any).cau], ["khong", 15, "= 15 phút chơi hoặc đổi quà · Ken sẽ nợ 15 sao"]);
   const r = await yc.dongY(fam, a.id, bm, { truDiem: true }, T);     // truDiem (app cũ) bỏ qua
   assert.equal(r.ngoaiLe, false);
-  assert.deepEqual([r.vay!.soSao, r.vay!.sao, r.vay!.no, r.vay!.phutCon], [15, 0, 15, 15]);
+  assert.deepEqual([r.vay!.soSao, r.vay!.sao, r.vay!.no, r.vay!.phutCon], [15, 15, 15, 15]);   // #810: sao = sao khả dụng
   const yr = (await one<{ trang_thai: string; tru_diem: boolean | null; ngoai_le: boolean }>(`select trang_thai, tru_diem, ngoai_le from requests where id = $1`, [a.id]))!;
   assert.deepEqual([yr.trang_thai, yr.tru_diem, yr.ngoai_le], ["dong_y", null, false]);
   // lời xin cũ: them_gio / ngoai_le (kèm phạm vi app) / ngoai_gio ⇒ cùng là xin vay `phut` sao, giữ loai cũ
@@ -86,11 +86,11 @@ test("xin vay sao (vay_sao: chơi / đổi quà) và lời xin cũ (them_gio / n
   await loi(yc.guiYeuCau(con, null, { loai: "vay_sao", soSao: 50, quaId: "khong-co" }, tk()), "khong_thay");
   const b = await yc.guiYeuCau(con, null, { loai: "vay_sao", soSao: 50, mucDich: "qua", quaId: qua }, tk());
   const ct = await yc.chiTietYc(fam, b.id);
-  assert.deepEqual([ct.laVay, ct.mucDich, ct.qua?.ten, ct.soSao, ct.sao, ct.no], [true, "qua", "Voucher 20k", 50, 0, 45]);
+  assert.deepEqual([ct.laVay, ct.mucDich, ct.qua?.ten, ct.soSao, ct.sao, ct.no], [true, "qua", "Voucher 20k", 50, 45, 45]);   // #810: sao = sao khả dụng
   await yc.dongY(fam, b.id, bm, {}, T);
   await doiQua(con, qua, T);
   const vi = await v.tomTatVi(con);
-  assert.deepEqual([vi.soDu, vi.no, vi.sao], [45, 95, 0]);
+  assert.deepEqual([vi.soDu, vi.no, vi.sao], [45, 95, 45]);   // #810: sao = sao khả dụng
   // quy tắc tự động cũ (tu_dong_15) không còn tự cho
   await q(`update children set cau_hinh = cau_hinh || '{"tu_dong_15": true}'::jsonb where id = $1`, [con]);
   const c = await yc.guiYeuCau(con, null, { loai: "them_gio", phut: 15 }, tk());

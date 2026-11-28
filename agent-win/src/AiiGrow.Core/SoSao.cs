@@ -56,6 +56,26 @@ public static class SaoView
         return Math.Max(0, ds.Where(x => tinh.Contains(x.AppId)).Sum(x => Math.Max(0, x.Phut)) - Math.Max(0, phutBoiMa));
     }
 
+    /// <summary>#810: dòng «đã dùng hôm nay theo app» của khay = mục ĐÃ TRỪ SAO theo sổ máy chủ (mọi máy, cả web — cùng «Đã dùng gì» của Ba Mẹ)
+    /// + app «Không tính phút» đếm tại máy. Máy chủ cũ / Policy không phải của hôm nay (<paramref name="mayChu"/> null) ⇒ đếm tại máy như trước.
+    /// <paramref name="themTaiMay"/> = phút đếm tại máy sau Policy (chưa đồng bộ — cùng phần <see cref="DaChoiTaiMay"/> cộng vào «Hôm nay đã chơi»)
+    /// cộng vào app đang chơi <paramref name="appDangChoi"/> ⇒ tổng danh sách theo kịp số đầu thẻ giữa hai lần đồng bộ / lúc mất mạng.</summary>
+    public static List<DungApp> DungTheoMayChu(IReadOnlyList<DungApp>? mayChu, IEnumerable<DungApp> taiMay, IEnumerable<string>? appKhongTinh,
+        int themTaiMay = 0, string? appDangChoi = null, string? tenDangChoi = null)
+    {
+        if (mayChu is null) return taiMay.ToList();
+        var hoc = new HashSet<string>(appKhongTinh ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+        var ds = mayChu.Where(x => x.Phut > 0).Select(x => new DungApp { AppId = x.AppId, Ten = x.Ten, Phut = x.Phut }).ToList();
+        if (themTaiMay > 0 && !string.IsNullOrEmpty(appDangChoi))
+        {
+            var x = ds.FirstOrDefault(d => string.Equals(d.AppId, appDangChoi, StringComparison.OrdinalIgnoreCase));
+            if (x != null) x.Phut += themTaiMay;
+            else ds.Add(new DungApp { AppId = appDangChoi, Ten = string.IsNullOrEmpty(tenDangChoi) ? appDangChoi : tenDangChoi, Phut = themTaiMay });
+            ds = ds.OrderByDescending(d => d.Phut).ToList();
+        }
+        return ds.Concat(taiMay.Where(x => x.Phut > 0 && hoc.Contains(x.AppId))).ToList();
+    }
+
     /// <summary>«Roblox 30 phút · YouTube Kids 12 phút · Từ điển không tính phút» — app «Tính phút» trước, tối đa 3 mục.</summary>
     public static string DungTheoApp(IEnumerable<DungApp> ds, IEnumerable<string>? appKhongTinh)
     {

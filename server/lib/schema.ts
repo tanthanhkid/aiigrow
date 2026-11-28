@@ -865,4 +865,6 @@ export const SCHEMA_APP_WEB = [
   `update children set cau_hinh = jsonb_set(cau_hinh, '{web_lan_dau}', (cau_hinh->>'web_lan_dau')::jsonb)
    where jsonb_typeof(cau_hinh) = 'object' and jsonb_typeof(cau_hinh->'web_lan_dau') = 'string' and left(cau_hinh->>'web_lan_dau', 1) = '['
      and pg_input_is_valid(cau_hinh->>'web_lan_dau', 'jsonb')`,
+  // #810: máy phát sinh dòng sổ `choi` (phút trừ sao theo máy — trang máy cùng số với Hôm nay). Dòng cũ null ⇒ suy theo usage.
+  `alter table points add column if not exists device_id text`,
 ];

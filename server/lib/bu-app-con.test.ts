@@ -116,7 +116,7 @@ test("kid/sao + hoc-vien/sao: lichSu[] (vay / trả nợ / chơi / nhiệm vụ 
   const kq = await dv(a.token, "hoc-vien/sao");
   assert.equal(kq.status, 200);
   const s = kq.body;
-  assert.deepEqual([s.sao, s.no, s.phutCon, s.phutChoiHomNay], [5, 10, 15, 20]);
+  assert.deepEqual([s.sao, s.no, s.phutCon, s.phutChoiHomNay], [15, 10, 15, 20]);   // #810: sao = sao khả dụng (= phutCon), nợ riêng
   assert.deepEqual(s.lichSu.slice(0, 4).map((x: any) => [x.kieu, x.sao]), [["tra_no", -5], ["ba_me", 5], ["vay", 15], ["choi", -20]]);
   assert.equal(s.lichSu[2].tenNguoi, "Lan");
   assert.match(s.lichSu[2].chuThich, /^Ba Mẹ cho vay 15 sao/);

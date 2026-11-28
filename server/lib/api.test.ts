@@ -67,7 +67,7 @@ test("đầu-cuối: đăng ký → Con → ghép máy → đồng bộ → nhi�
   // 15/11: lời xin thêm giờ (agent cũ) = xin vay 15 sao ⇒ Ba Mẹ đồng ý = cho vay 15: tiêu được 65, số dư Con thấy 50, nợ 15
   assert.equal((await m(`yeu-cau/${y.id}/dong-y`, { tok: bm, body: { truDiem: true } })).status, 200);
   const sauVay = (await k("toi", { tok: may })).body;
-  assert.deepEqual([sauVay.soDu, sauVay.sao, sauVay.no], [65, 50, 15]);
+  assert.deepEqual([sauVay.soDu, sauVay.sao, sauVay.no], [65, 65, 15]);   // #810: sao = sao khả dụng (= phutCon), nợ hiện riêng
   const gd = (await m("gia-dinh", { tok: bm })).body;
   assert.equal(gd.con[0].ten, "Ken");
   assert.equal((await m(`con/${con}`, { tok: bm })).body.may[0].baoVe, "day_du");

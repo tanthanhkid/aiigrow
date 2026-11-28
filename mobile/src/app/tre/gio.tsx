@@ -24,7 +24,7 @@ export default function DangChoi() {
   const app = dsTenApp(tc.d?.ds ?? []);
   // máy chủ mới: phút từng app hôm nay + sao đã trừ; cũ: danh sách app Tính phút (chưa có số)
   const dong: (readonly [string, string, boolean])[] = d.appHomNay
-    ? [...d.appHomNay.map((x) => [x.ten, x.nhom === "tinh_phut" && !moHet ? `${chuPhut(x.phut)} · \u2212${soVN(x.sao)} sao` : `${chuPhut(x.phut)} · không tính phút`, x.nhom !== "tinh_phut"] as const),
+    ? [...d.appHomNay.map((x) => [x.ten, (x.nhom === "tinh_phut" && !moHet) || x.sao > 0 ? `${chuPhut(x.phut)} · \u2212${soVN(x.sao)} sao` : `${chuPhut(x.phut)} · không tính phút`, x.nhom !== "tinh_phut"] as const),
       ...(d.appHomNay.some((x) => x.ten === "AiiRob") ? [] : [["AiiRob", "không tính phút", true] as const])]
     : [...app.map((a) => [a, moHet ? "không tính phút" : "tính phút · trừ sao", moHet] as const), ["App học · AiiRob", "không tính phút", true] as const];
   return (

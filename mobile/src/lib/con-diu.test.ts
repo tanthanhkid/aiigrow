@@ -1,7 +1,7 @@
 // node --test src/lib/con-diu.test.ts — luật thuần phía Con bản «Dịu» (QR ghép máy, lỗi ghép, PIN theo bé, sổ sao 15/11, quà).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cauNo, cauPhut, cauVay, chuAvt, choTuHoSo, ketQuaPin, loaiLoiGhep, maTuQr, nhanQua, phuQua, quaGanNhat, saoTuMayChu, soSao, soVN, thuGio, tiVong, traNoKhiDuyet, dongLichSu } from "./con-diu.ts";
+import { cauNo, cauPhut, cauVay, chuAvt, choTuHoSo, ketQuaPin, loaiLoiGhep, maTuQr, nhanQua, phuQua, quaGanNhat, saoTuMayChu, soSao, soVN, thuGio, tiVong, traNoKhiDuyet, dongLichSu, traNoTuSo } from "./con-diu.ts";
 
 test("QR ghép máy: link cài có mã 6 số / chỉ token gói / 6 số trần / QR lạ", () => {
   assert.deepEqual(maTuQr("https://aiigrow.aiilab.vn/tai?g=abc_123&ma=482913"), { ma: "482913", goi: "abc_123" });
@@ -112,4 +112,15 @@ test("chữ avatar: chữ đầu tên; trùng chữ đầu với bé khác ⇒ c
   assert.equal(chuAvt("Bảo Anh", ["Bảo Anh", "Bảo Minh"]), "A");
   assert.equal(chuAvt("Bảo Minh", ["Bảo Anh", "Bảo Minh"]), "M");
   assert.equal(chuAvt("  "), "?");
+});
+
+test("#810: «Được duyệt» với sao khả dụng — trả nợ lấy từ sổ, số trước không âm", () => {
+  // nợ 10, còn 10 sao vay chưa tiêu; nhiệm vụ +10 ⇒ trả nợ 10 ⇒ vẫn 10 sao, hết nợ
+  assert.deepEqual(traNoTuSo(10, 10, 0, [{ kieu: "tra_no", sao: -10 }, { kieu: "nhiem_vu", sao: 10 }]), { truoc: 10, traNo: 10, conNo: 0 });
+  // trả nợ 9 rồi còn 51 (web «0 → 51»): trước 0, không «−9»
+  assert.deepEqual(traNoTuSo(51, 60, 0, [{ kieu: "tra_no", sao: -9 }]), { truoc: 0, traNo: 9, conNo: 0 });
+  // không nợ: dòng mới nhất là nhiệm vụ
+  assert.deepEqual(traNoTuSo(30, 10, 0, [{ kieu: "nhiem_vu", sao: 10 }]), { truoc: 20, traNo: 0, conNo: 0 });
+  // còn nợ sau duyệt
+  assert.deepEqual(traNoTuSo(0, 10, 20, [{ kieu: "tra_no", sao: -10 }]), { truoc: 0, traNo: 10, conNo: 20 });
 });

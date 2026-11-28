@@ -85,7 +85,7 @@ export async function nhanLichSuWeb(may: May, con: string | null, ds: unknown, n
         ds2.map((x) => x.lanCuoi?.toISOString() ?? null), ds2.map((x) => x.dauLuc?.toISOString() ?? null)]);
   }
   if (con && giayChoi > 0) {
-    try { await truPhutChoi(con, giayChoi / 60, now, { muc: mucChoi }); } catch (e) { console.error("web: trừ sao phút chơi lỗi", e); }
+    try { await truPhutChoi(con, giayChoi / 60, now, { muc: mucChoi, may: may.id }); } catch (e) { console.error("web: trừ sao phút chơi lỗi", e); }
   }
   return { nhan: n };
 }

@@ -153,6 +153,23 @@ public class AppConTests
     }
 
     [Fact]
+    public void DungTheoApp_TheoSoMayChu_810()
+    {
+        // máy chủ: từng mục đã trừ sao hôm nay (mọi máy, cả web) — khay hiện đúng danh sách web Ba Mẹ thấy, không phải phút đếm riêng máy này
+        var p = PolicyParser.TuDongBo("""{"windows":{"mode":"tu_do"},"sao":{"sao":51,"no":0,"phutCon":51,"phutChoiHomNay":9,"appHomNay":[{"muc":"powershell.exe","ten":"PowerShell","sao":6},{"muc":"youtube.com","ten":"youtube.com","sao":3},{"muc":"x","ten":"","sao":2},{"muc":"y","ten":"Y","sao":0}]}}""");
+        var ds = p.SoSao!.AppHomNay!;
+        Assert.Equal(new[] { "PowerShell", "youtube.com" }, ds.Select(x => x.Ten).ToArray());
+        Assert.Equal(9, ds.Sum(x => x.Phut));
+        var taiMay = new[] { new DungApp { AppId = "powershell.exe", Ten = "PowerShell", Phut = 8 }, new DungApp { AppId = "explorer.exe", Ten = "Windows Explorer", Phut = 3 },
+            new DungApp { AppId = "tudien.exe", Ten = "Từ điển", Phut = 5 } };
+        var gop = SaoView.DungTheoMayChu(ds, taiMay, new[] { "tudien.exe" });
+        Assert.Equal("PowerShell 6 phút · youtube.com 3 phút · Từ điển không tính phút", SaoView.DungTheoApp(gop, new[] { "tudien.exe" }));
+        // máy chủ cũ (không có appHomNay) ⇒ đếm tại máy như trước
+        Assert.Null(PolicyParser.TuDongBo("""{"windows":{"mode":"tu_do"},"sao":{"sao":58,"no":0,"phutCon":58}}""").SoSao!.AppHomNay);
+        Assert.Equal(3, SaoView.DungTheoMayChu(null, taiMay, null).Count);
+    }
+
+    [Fact]
     public void XinVay_ChuVaKep()
     {
         Assert.Equal(new[] { 10, 15, 30 }, XinVayView.Muc);

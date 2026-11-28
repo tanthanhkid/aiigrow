@@ -19,8 +19,8 @@ import { LoiNghiepVu } from "./loi.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { trangThaiSao } from "./so-sao.ts";
 import { dangKhoa, khoaDen } from "./cau-hinh.ts";
-import { gioDiaPhuong } from "./gio.ts";
-import { docDongDung, phutTheoMay } from "./phut-dung.ts";
+import { dauNgayUtc, gioDiaPhuong } from "./gio.ts";
+import { docDongDung, docSaoHomNay, phutTheoMay, saoTheoMay } from "./phut-dung.ts";
 
 /** Nền tảng chỉ một Con mỗi máy. NEN_TANG chỉ có "ios"; "ipados" nhận phòng agent sau này báo riêng. */
 const NEN_MOT_CON = ["ios", "ipados"] as const;
@@ -191,8 +191,14 @@ export async function conMay(fam: string, mayId: string, now = new Date()) {
   const gan = await idConMay(m.id);
   const tom = (await tomTatNoi(fam, [m], now)).get(m.id)!;
   const ngay = gioDiaPhuong(now, m.tz).ngay;
-  // #810: phút của Con trên máy này = cùng nguồn với «Đã dùng gì» (lib/phut-dung): không cộng trình duyệt / tiến trình hệ thống, có cả phút web
-  const phut = new Map(await Promise.all(con.map(async (c) => [c.id, phutTheoMay(await docDongDung(fam, c.id, ngay, now)).get(m.id) ?? 0] as const)));
+  // #810 (test 28/11): «N phút trên máy này» = phút ĐÃ CHƠI trừ sao trên máy này (sổ `choi` theo máy — lib/phut-dung › saoTheoMay), cùng nguồn
+  // với Hôm nay «Đã dùng N phút» và app Con «đã chơi N phút · −N sao». `phutDungHomNay` = mọi phút đo được (cả «Không tính phút») — chỉ tham khảo.
+  const tu = dauNgayUtc(ngay, m.tz);
+  const soPhut = new Map(await Promise.all(con.map(async (c) => {
+    const [d, sao] = await Promise.all([docDongDung(fam, c.id, ngay, now), docSaoHomNay(c.id, ngay, tu)]);
+    return [c.id, { choi: saoTheoMay(sao, d).get(m.id) ?? 0, dung: phutTheoMay(d).get(m.id) ?? 0 }] as const;
+  })));
+  const phut = new Map([...soPhut].map(([k, v]) => [k, v.choi]));
   const lanCuoi = new Map((await q<{ child_id: string; luc: Date }>(
     `select child_id, max(created_at) as luc from events where family_id = $1 and device_id = $2 and loai = 'doi_nguoi_may' and child_id is not null
       group by child_id`, [fam, m.id])).map((r) => [r.child_id, r.luc]));
@@ -206,8 +212,9 @@ export async function conMay(fam: string, mayId: string, now = new Date()) {
     return {
       id: c.id, ten: c.ten, avatar: c.avatar, coPin: !!c.pin_ma, gan: daGan, dangDung: tom.dangDung?.id === c.id,
       // 15/11 sổ sao: số dư Con thấy (ÂM khi nợ) + nợ
+      // #810: `sao` = sao khả dụng (so-sao › TrangThaiSao.sao = phutCon) — cùng số «còn N sao = N phút chơi» ở Hôm nay
       ...(await (async () => { const st = await trangThaiSao(c.id); return { sao: st.sao, no: st.no }; })()),
-      phutHomNay: phut.get(c.id) ?? 0,
+      phutHomNay: phut.get(c.id) ?? 0, phutDungHomNay: soPhut.get(c.id)?.dung ?? 0,
       lanCuoi: lanCuoi.get(c.id) ? new Date(lanCuoi.get(c.id)!).toISOString() : null,
       khoaCon: { khoa: dangKhoa(c.cau_hinh, now), den: khoaDen(c.cau_hinh, now) },
       mayKhac: mayKhac.filter((x) => x.child_id === c.id).map((x) => ({ id: x.id, ten: x.name, nen: x.platform, rieng: x.n === 1 })),

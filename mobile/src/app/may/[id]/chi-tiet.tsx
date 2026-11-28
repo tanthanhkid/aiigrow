@@ -49,7 +49,8 @@ export default function MayChiTiet() {
   const xong = (chu: string, hoan: () => Promise<unknown>) => { bao(chu, () => { hoan().then(tai, tai); }); tai(); };
   const dongBe = (c: ConCuaMay, k: number) => {
     const no = noCua(c);
-    const phu = c.phutHomNay ? `${chuPhut(c.phutHomNay)} trên máy này hôm nay` : c.lanCuoi ? `dùng máy này lúc ${gioPhut(c.lanCuoi)}` : "chưa dùng máy này";
+    // #810: phutHomNay = phút đã chơi trừ sao trên máy (cùng số Hôm nay); dùng máy mà không trừ sao (Mở hết, Không tính phút) ⇒ phutDungHomNay
+    const phu = c.phutHomNay ? `${chuPhut(c.phutHomNay)} trên máy này hôm nay` : c.phutDungHomNay ? "dùng máy này hôm nay · không trừ sao" : c.lanCuoi ? `dùng máy này lúc ${gioPhut(c.lanCuoi)}` : "chưa dùng máy này";
     return (
       <View key={c.id} style={[{ flexDirection: "row", alignItems: "flex-start", gap: 10, paddingVertical: 10, paddingRight: 4 }, keDau(k)]}>
         <View style={{ marginTop: 2 }}><AvtCon c={c} co={36} /></View>

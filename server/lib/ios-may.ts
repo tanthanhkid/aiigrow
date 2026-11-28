@@ -107,7 +107,7 @@ async function truSaoIos(t: Q, may: Pick<May, "id" | "name"> & { ba_me_den?: Dat
   await khoaCon(t, con);
   const phutTinh = await phutTheoDanhSach(t, con, them, now);          // #433 A10: đổi chế độ giữa chừng tính theo từng đoạn
   if (!(phutTinh > 0)) return khong;
-  return tinhPhutChoi(t, con, phutTinh, now, { muc: `ios:${may.id}`, ten: may.name, tz });
+  return tinhPhutChoi(t, con, phutTinh, now, { muc: `ios:${may.id}`, ten: may.name, tz, may: may.id });
 }
 
 // ---------------------------------------------------------------- tác tử Android (agent-android/CAN-SERVER.md mục 3)

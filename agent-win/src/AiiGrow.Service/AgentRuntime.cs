@@ -960,13 +960,16 @@ public sealed class AgentRuntime
             s.PhutBoiMaHomNay = PhutBoiMaHomNay(now, s.NguoiDung == LoaiNguoiDung.Con ? s.BeId : null);
             // #699: «Hôm nay đã chơi» theo sổ sao máy chủ (mọi máy, cả web, không mất khi dịch vụ khởi động lại) + phần vừa đếm tại máy.
             // Chỉ khi Policy là của chính bé này (máy chung đổi bé ⇒ gói có thể cũ) và lấy trong hôm nay; không thì null ⇒ khay đếm tại máy như cũ.
-            s.PhutChoiHomNay = ReferenceEquals(pBe, _policy) && NgayGiaDinh.Ngay(_policyAt.ToLocalTime(), Usage.Tz) == NgayGiaDinh.Ngay(now.ToLocalTime(), Usage.Tz)
-                ? SaoView.DaChoiTaiMay(pBe.SoSao?.PhutChoiHomNay, s.MoHet ? null : pBe.QuyConPhut, s.QuyConPhut) : null;
+            var soHomNay = ReferenceEquals(pBe, _policy) && NgayGiaDinh.Ngay(_policyAt.ToLocalTime(), Usage.Tz) == NgayGiaDinh.Ngay(now.ToLocalTime(), Usage.Tz);
+            s.PhutChoiHomNay = soHomNay ? SaoView.DaChoiTaiMay(pBe.SoSao?.PhutChoiHomNay, s.MoHet ? null : pBe.QuyConPhut, s.QuyConPhut) : null;
             s.AppTinhPhut = QuyTaiCho.MucTinhPhut(pBe).ToList();
             var fgTuoi = (DateTimeOffset.UtcNow - _fgAt).TotalSeconds < 20;
             s.DangChoiTinhPhut = !s.MoHet && !moTam && fgTuoi && !string.IsNullOrEmpty(_fgId) && LaTinhPhut(_fgId!, pBe) && _fgId != UsageTracker.KhongRo;
             s.AppDangChoi = s.DangChoiTinhPhut ? TrayView.FriendlyAppName(_fgId, _fgName, TenAppMay) : null;
-            s.DungTheoApp = Usage.DungHomNay(now, con: s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng ? s.BeId : null);
+            // #810: app đã trừ sao theo sổ máy chủ (cùng danh sách web Ba Mẹ) + app «Không tính phút» đếm tại máy; máy chủ cũ ⇒ đếm tại máy
+            s.DungTheoApp = SaoView.DungTheoMayChu(soHomNay ? pBe.SoSao?.AppHomNay : null,
+                Usage.DungHomNay(now, con: s.NguoiDung == LoaiNguoiDung.Con && !s.MayRieng ? s.BeId : null), pBe.LearningApps,
+                (s.PhutChoiHomNay ?? 0) - (pBe.SoSao?.PhutChoiHomNay ?? 0), s.DangChoiTinhPhut ? _fgId : null, s.AppDangChoi);
             // #307: dịch vụ giải tên hiển thị (danh sách app máy) — khay hiện đúng tên này, không tra bảng
             var tenMay = TenAppMay;
             s.TenAppDuocPhep = s.AppDuocPhep.Select(m => TrayView.FriendlyAppName(m, null, tenMay)).ToList();

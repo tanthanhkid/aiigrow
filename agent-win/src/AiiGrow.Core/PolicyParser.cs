@@ -56,7 +56,8 @@ public static class PolicyParser
                 bool Co(string k) => s.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.True;
                 p.SoSao = new SoSaoMay { Sao = So("sao"), No = Math.Max(0, So("no")), PhutCon = Math.Max(0, Thuc("phutCon")), HetSao = Co("hetSao"), CanhBaoNo = Co("canhBaoNo"),
                     SaoTieuDuoc = s.TryGetProperty("saoTieuDuoc", out var st) && st.ValueKind == JsonValueKind.Number ? Math.Max(0, Thuc("saoTieuDuoc")) : null,
-                    PhutChoiHomNay = s.TryGetProperty("phutChoiHomNay", out var pc) && pc.ValueKind == JsonValueKind.Number ? Math.Max(0, So("phutChoiHomNay")) : null };
+                    PhutChoiHomNay = s.TryGetProperty("phutChoiHomNay", out var pc) && pc.ValueKind == JsonValueKind.Number ? Math.Max(0, So("phutChoiHomNay")) : null,
+                    AppHomNay = s.TryGetProperty("appHomNay", out var ah) && ah.ValueKind == JsonValueKind.Array ? DocAppHomNay(ah) : null };
             }
             if (g.TryGetProperty("cheDo", out var c) && c.ValueKind == JsonValueKind.String)
             {
@@ -114,6 +115,21 @@ public static class PolicyParser
             if (seen.Add(t)) res.Add(t);
         }
         return res;
+    }
+
+    /// <summary>#810: `sao.appHomNay` [{muc, ten, sao}] ⇒ dòng «đã dùng hôm nay» theo sổ sao (bỏ mục lỗi / sao ≤ 0).</summary>
+    internal static List<DungApp> DocAppHomNay(JsonElement ds)
+    {
+        var kq = new List<DungApp>();
+        foreach (var x in ds.EnumerateArray())
+        {
+            if (x.ValueKind != JsonValueKind.Object) continue;
+            var sao = x.TryGetProperty("sao", out var v) && v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d) && double.IsFinite(d) ? (int)Math.Round(d) : 0;
+            var ten = x.TryGetProperty("ten", out var t) && t.ValueKind == JsonValueKind.String ? t.GetString() ?? "" : "";
+            var muc = x.TryGetProperty("muc", out var m) && m.ValueKind == JsonValueKind.String ? m.GetString() ?? "" : "";
+            if (sao > 0 && ten.Length > 0) kq.Add(new DungApp { AppId = muc, Ten = ten, Phut = sao });
+        }
+        return kq;
     }
 }
 
