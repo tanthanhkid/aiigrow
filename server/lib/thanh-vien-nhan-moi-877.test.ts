@@ -226,3 +226,21 @@ test("#877 không nhận lời mời của chính nhà mình; giao dịch đổi
   assert.equal((await m("moi/nhan", { tok: a.tok, body: { ma } })).body.error, "da_trong_gia_dinh");
   assert.equal((await famCua(a.tok)).fam, fam);
 });
+
+test("#877 lời mời «Chỉ trông con» không cho mang Con theo; thiết bị DNS không agent tính là máy", async () => {
+  const a = await dangKy("Mẹ Quân"), b = await dangKy("Bà Sáu");
+  const { fam: famA } = await famCua(a.tok), { id: idB, fam: famB } = await famCua(b.tok);
+  const conB = (await m("con", { tok: b.tok, body: { ten: "Bé Sáu" } })).body.id;
+  await gieo(famB, conB, `may-${idB}`, idB);
+  await q(`delete from devices where family_id = $1`, [famB]);
+  await q(`update dns_thiet_bi set device_id = null where family_id = $1`, [famB]);
+  assert.equal((await m("moi/nha-cu", { tok: b.tok })).body.soMay, 1, "thiết bị DNS không agent là máy");
+  const id = await moi(a.tok, b.so, "trong_giup");
+  const r = await m("moi/nhan", { tok: b.tok, body: { id, huong: "mang_theo" } });
+  assert.deepEqual([r.status, r.body.error], [409, "mang_theo_can_ba_me"]);
+  assert.equal((await famCua(b.tok)).fam, famB);
+  const r2 = await m("moi/nhan", { tok: b.tok, body: { id, huong: "bo_nha_cu" } });
+  assert.deepEqual([r2.status, r2.body.error], [409, "con_may"]);      // còn thiết bị DNS ⇒ gỡ trước
+  assert.equal((await q(`select 1 from families where id = $1`, [famB])).length, 1);
+  assert.equal(famA === famB, false);
+});

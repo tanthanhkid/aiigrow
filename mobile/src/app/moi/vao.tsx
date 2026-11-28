@@ -20,10 +20,10 @@ export default function VaoNha() {
   const m = ma0(ma);
   const { d, loi, matMang, tai } = useTai(async () => {
     const [cho, toi, nc] = await Promise.all([bm.goi<{ ds: LoiMoiToi[]; chiQuaLink?: boolean }>("moi/cho-toi"), bm.goi<{ baMe: { dinhDanh?: string; dinh_danh?: string } }>("toi"),
-      bm.goi<NhaCu>("moi/nha-cu").catch(() => null)]);
+      bm.goi<NhaCu>("moi/nha-cu")]);
     // mở từ link mời ⇒ đúng lời mời của link đó, không lấy lời mời khác gửi tới số này
     let x: (LoiMoiToi & { quaLink?: boolean }) | null = m ? { ...(await bm.goi<XemMoi>(`moi/${encodeURIComponent(m)}`)), id: "", quaLink: true } : cho.ds[0] ?? null;
-    return { x, dinhDanh: toi.baMe.dinhDanh ?? toi.baMe.dinh_danh ?? "", nhaCu: nc, coNha: !!nc && (nc.soBe > 0 || nc.soMay > 0 || nc.soNguoiLon > 1), chiQuaLink: !!cho.chiQuaLink };
+    return { x, dinhDanh: toi.baMe.dinhDanh ?? toi.baMe.dinh_danh ?? "", nhaCu: nc, coNha: (nc.soBe > 0 || nc.soMay > 0 || nc.soNguoiLon > 1), chiQuaLink: !!cho.chiQuaLink };
   });
   const { lam, loi: loiLam, dangChay } = useLam();
   const [huong, setHuong] = useState<Huong>("mang_theo");
@@ -41,8 +41,11 @@ export default function VaoNha() {
   }
   const ai = x.nguoiMoi ?? x.tenGiaDinh;
   const con = x.tenCon ?? [];
+  const trongGiup = x.quyen === "trong_giup";
+  const huongThat: Huong = trongGiup ? "bo_nha_cu" : huong;      // «Chỉ trông con» không mang các bé sang nhà người mời được
+  const bamDuoc = !(d.nhaCu.laNguoiLonDuyNhat && huongThat === "bo_nha_cu" && d.nhaCu.soMay > 0);   // bỏ nhà còn máy ⇒ máy chủ từ chối: tắt nút
   const vao = () => lam(async () => {
-    const chonHuong = d.nhaCu?.laNguoiLonDuyNhat && (d.nhaCu.soBe > 0 || d.nhaCu.soMay > 0) ? { huong } : {};
+    const chonHuong = d.nhaCu.laNguoiLonDuyNhat && (d.nhaCu.soBe > 0 || d.nhaCu.soMay > 0) ? { huong: huongThat } : {};
     await bm.goi("moi/nhan", { ...(x.id ? { id: x.id } : { ma: m }), ...chonHuong });
     router.replace("/hom-nay");
   });
@@ -53,7 +56,7 @@ export default function VaoNha() {
   const nho = chuCai.length > 4;   // 5 viên cho vừa màn 320
   return (
     <Man dau={<View style={{ height: 4 }} />} dayStyle={{ paddingTop: 0, paddingBottom: 22, gap: 6 }}
-      day={<><BaoLoi loi={loiLam} /><Nut chu={`Vào nhà cùng ${ai}`} rong lon dangChay={dangChay} bam={vao} />
+      day={<><BaoLoi loi={loiLam} /><Nut chu={`Vào nhà cùng ${ai}`} rong lon dangChay={dangChay} tat={!bamDuoc} bam={vao} />
         <LienKet chu={d.coNha ? "Ở lại nhà mình" : "Không phải tôi"} mau={VANG_NAU} kieu="rat" co={15} bam={() => router.replace(d.coNha ? "/" : "/thiet-lap/ten-con")} /></>}>
       {/* bàn bm1-moi (v18): sân navy 320 bo 36 viền vàng mờ; hàng chữ cái (người mời + tối đa 4 bé, viên kem 54 viền navy 4, chồng -5) + «T» (bạn, vàng kim, viền vàng mật);
           Grow chỉ tay 190 đứng đáy; tiêu đề 28/34; 3 thẻ việc cao 112 bo 24 với icon nét trong ô lõm 48 */}
@@ -77,7 +80,7 @@ export default function VaoNha() {
         <Text accessibilityRole="header" style={{ fontFamily: F.tieu, fontSize: 28, lineHeight: 34, letterSpacing: -0.6, color: M.chu, textAlign: "center" }}>{`${ai} mời bạn vào nhà`}</Text>
         <Text style={{ marginTop: 6, fontFamily: F.thuong, fontSize: 15, lineHeight: 21, color: INK2, textAlign: "center" }}>{con.length ? cauTrong(con, true) : x.tenQuyen ? `Quyền ${x.tenQuyen}` : x.tenGiaDinh}</Text>
       </View>
-      {d.nhaCu && d.coNha ? <NhaCuXacNhan nc={d.nhaCu} huong={huong} doi={setHuong} /> : null}
+      {d.nhaCu && d.coNha ? <NhaCuXacNhan nc={d.nhaCu} huong={huongThat} doi={setHuong} trongGiup={trongGiup} /> : null}
       <View style={{ flexDirection: "row", gap: 8, marginTop: 6 }}>
         {viec.map(([ic, chu]) => (
           <View key={chu} style={{ flex: 1, height: 112, borderRadius: 24, backgroundColor: M.nen, boxShadow: BONG.the, alignItems: "center", justifyContent: "center", gap: 8 }}>
@@ -91,7 +94,7 @@ export default function VaoNha() {
 }
 
 /** Bước xác nhận khi tài khoản đã có nhà riêng (#877). */
-function NhaCuXacNhan({ nc, huong, doi }: { nc: NhaCu; huong: Huong; doi: (h: Huong) => void }) {
+function NhaCuXacNhan({ nc, huong, doi, trongGiup }: { nc: NhaCu; huong: Huong; doi: (h: Huong) => void; trongGiup: boolean }) {
   const coDuLieu = nc.soBe > 0 || nc.soMay > 0;
   if (!nc.laNguoiLonDuyNhat) {
     return <Bao loai="lam" ic="nha" tieu={cauNhaCu(nc)} loi={`Bạn chỉ rời nhà cũ, các bé và máy ở lại với người nhà còn lại${nc.laChu ? "; quyền chủ nhà chuyển cho Ba Mẹ còn lại" : ""}.`} />;
@@ -101,7 +104,7 @@ function NhaCuXacNhan({ nc, huong, doi }: { nc: NhaCu; huong: Huong; doi: (h: Hu
     <View style={{ gap: 8, marginTop: 6 }}>
       <Bao loai="lam" ic="nha" tieu={cauNhaCu(nc)} loi={nc.tenBe.length ? `Các bé: ${noiTen(nc.tenBe, true)}` : undefined} />
       <View accessibilityRole="radiogroup" style={{ gap: 8 }}>
-        <OChon chon={huong === "mang_theo"} bam={() => doi("mang_theo")} tieu="Mang các bé theo vào nhà mới" phu="Bé, máy, nhiệm vụ, sao, quà, lịch, luật, nhật ký đều sang nhà mới" />
+        {trongGiup ? <Bao tieu="Chưa mang các bé theo được" loi="Lời mời chỉ có quyền «Chỉ trông con». Nhờ người mời gửi lại quyền «Như Ba Mẹ», hoặc bỏ nhà cũ." /> : <OChon chon={huong === "mang_theo"} bam={() => doi("mang_theo")} tieu="Mang các bé theo vào nhà mới" phu="Bé, máy, nhiệm vụ, sao, quà, lịch, luật, nhật ký đều sang nhà mới" />}
         <OChon chon={huong === "bo_nha_cu"} bam={() => doi("bo_nha_cu")} tieu="Bỏ nhà cũ" phu="Xoá nhà cũ kèm toàn bộ dữ liệu" />
       </View>
       {huong === "bo_nha_cu" ? <Bao loai="loi" tieu="Không hoàn tác được" loi={nc.soMay > 0 ? `Nhà cũ còn ${nc.soMay} máy đã ghép — gỡ máy trước khi bỏ nhà, hoặc chọn mang các bé theo.` : "Các bé và mọi dữ liệu của nhà cũ sẽ bị xoá hẳn."} /> : null}
