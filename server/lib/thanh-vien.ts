@@ -3,7 +3,7 @@
 // Mời bằng SĐT hoặc email ⇒ lời mời có link (token một lần, hạn 72 giờ, chỉ lưu băm). Người được mời:
 //   • mở link ⇒ xem trước (không cần đăng nhập) ⇒ đăng ký bằng link (OTP như đăng ký thường) hoặc đăng nhập rồi «Vào nhà»;
 //   • hoặc đăng ký / đăng nhập bằng đúng SĐT / email được mời ⇒ tự thấy lời mời (GET moi/cho-toi) ⇒ một lệnh «Vào nhà» (POST moi/nhan {id}).
-// Tài khoản nhận lời mời phải còn TRỐNG (chưa Con, máy, người lớn khác) — chuyển sang nhà mời, nhà trống cũ bị xoá.
+// Tài khoản đã có nhà vẫn nhận được lời mời (#877): mang Con + máy + dữ liệu theo / bỏ nhà cũ / chỉ rời nếu nhà cũ còn người lớn khác (nhanLoiMoi).
 // Người tạo nhà (families.chu_id) không bị đổi quyền / mời ra. Mời ra = vai «roi» (giữ tên cho lịch sử «ai duyệt»), xoá mọi phiên.
 import { randomInt } from "node:crypto";
 import { newId, one, q, tx, type Q } from "./db.ts";
@@ -13,6 +13,11 @@ import { goKhoaTaiKhoan } from "./gioi-han-dang-nhap.ts";
 import { ghiSuKien } from "./nhat-ky.ts";
 import { damBaoBang, ghiKiemToan } from "./admin.ts";
 import { SCHEMA_TV_TB } from "./schema.ts";
+import { baoThayDoi } from "./cho-thay-doi.ts";
+import { xoaGiaDinhTrongTx } from "./xoa-gia-dinh.ts";
+import { bangLog } from "./log-may.ts";
+import { bangMang } from "./dns-gia-dinh.ts";
+import { bangM4b } from "./tuan-thu.ts";
 import { chiBaMe, laChuNha, quyenTuVai, quyenVao, TEN_QUYEN, vaiCu, type Quyen } from "./quyen.ts";
 
 export const LOI_MOI_GIO = 72;
@@ -217,13 +222,50 @@ export async function dangKyTheoLoiMoi(b: { ma?: unknown; dinhDanh?: unknown; ot
   return kq;
 }
 
+/** Bảng có cột family_id mà «Mang các bé theo» phải chuyển sang nhà mời (#877). Mọi bảng có family_id (grep schema.ts) PHẢI nằm ở đây, hoặc
+ *  trong BANG_KHONG_CHUYEN kèm lý do — thanh-vien-nhan-moi-877.test.ts đối chiếu với information_schema nên thêm bảng mới mà quên sẽ đỏ.
+ *  Bảng con của Con (usage, points, badges, grants, submissions, kid_sessions…) chỉ khoá theo child_id / device_id ⇒ đi theo Con / máy, không cần đổi. */
+export const BANG_CHUYEN_NHA = ["children", "devices", "device_children", "tasks", "rewards", "vouchers", "quy_gd", "app_rules", "app_theo_ten",
+  "pair_codes", "exceptions", "events", "messages", "ho_tro", "may_log", "lenh_may", "goi_cai", "tuan_thu_may", "dns_thiet_bi", "audit"] as const;
+/** Không chuyển: parents (chỉ người nhận chuyển, người khác không còn — trừ dòng «roi» chỉ để lịch sử), loi_moi (lời mời nhà cũ gửi đi, theo nhà cũ bị xoá),
+ *  alerts (chuyển có lọc trùng khoá, bên dưới), dns_gia_dinh (khoá chính = family_id: giữ của nhà mời, nhà mời chưa có thì chuyển, bên dưới). */
+export const BANG_KHONG_CHUYEN = ["parents", "loi_moi", "alerts", "dns_gia_dinh"] as const;
+
+export type NhaCu = { soBe: number; soMay: number; soNguoiLon: number; laNguoiLonDuyNhat: boolean; laChu: boolean; tenBe: string[]; tenNha: string };
+
+async function nhaCuTrongTx(t: Q, bm: BaMe): Promise<NhaCu> {
+  const be = await t<{ ten: string }>(`select ten from children where family_id = $1 order by created_at`, [bm.family_id]);
+  const may = await t<{ n: number }>(`select count(*)::int as n from devices where family_id = $1`, [bm.family_id]);
+  const nl = await t<{ n: number }>(`select count(*)::int as n from parents where family_id = $1 and vai <> 'roi'`, [bm.family_id]);
+  const f = await t<{ ten: string; la_chu: boolean }>(`select f.ten, coalesce(f.chu_id = $2, $3) as la_chu from families f where f.id = $1`, [bm.family_id, bm.id, bm.vai === "chu"]);
+  return { soBe: be.length, soMay: may[0].n, soNguoiLon: nl[0].n, laNguoiLonDuyNhat: nl[0].n <= 1, laChu: !!f[0]?.la_chu, tenBe: be.map((x) => x.ten), tenNha: f[0]?.ten ?? "" };
+}
+
+/** GET moi/nha-cu — «Nhà của bạn đang có N bé, M máy, K người lớn» cho bước xác nhận ở /moi/vao. */
+export const tomTatNhaCu = (bm: BaMe) => nhaCuTrongTx(q, bm);
+
+/** Chuyển Con + máy + MỌI dữ liệu của nhà cũ sang nhà mời (cùng giao dịch). Khoá ngoại theo child_id / device_id không đổi ⇒ token máy Con vẫn đúng. */
+async function mangTheoSangNha(t: Q, cu: string, moi: string) {
+  for (const b of BANG_CHUYEN_NHA) await t(`update ${b} set family_id = $2 where family_id = $1`, [cu, moi]);
+  // alerts: khoá duy nhất (family_id, khoa) — dòng trùng khoá với nhà mời ở lại nhà cũ và bị xoá theo
+  await t(`update alerts set family_id = $2 where family_id = $1 and (khoa is null or khoa not in (select khoa from alerts where family_id = $2 and khoa is not null))`, [cu, moi]);
+  // dns_gia_dinh: khoá chính family_id — nhà mời chưa đặt gì thì lấy của nhà cũ
+  await t(`update dns_gia_dinh set family_id = $2 where family_id = $1 and not exists (select 1 from dns_gia_dinh where family_id = $2)`, [cu, moi]);
+}
+
 /** «Vào nhà»: người đang đăng nhập nhận lời mời — bằng `id` (lời mời gửi tới đúng SĐT / email của mình) hoặc `ma` (token trong link).
- *  Chỉ khi nhà hiện tại còn TRỐNG (chưa Con, máy, người lớn khác) — chuyển sang nhà mời, nhà trống bị xoá. */
+ *  #877: không còn chặn tài khoản đã có nhà. Nhà hiện tại:
+ *   • còn người lớn khác ⇒ chỉ mình rời (Con / máy ở lại; mình là người tạo nhà ⇒ chuyển chủ cho Ba Mẹ còn lại);
+ *   • mình là người lớn duy nhất, có Con / máy ⇒ `huong`: «mang_theo» (Con + máy + dữ liệu sang nhà mời) | «bo_nha_cu» (xoá nhà cũ, như xoá gia đình;
+ *     còn máy đã ghép thì phải gỡ máy trước); thiếu `huong` ⇒ 409 `can_chon_nha_cu`;
+ *   • nhà trống ⇒ xoá nhà trống như trước. */
 export async function nhanLoiMoi(bm: BaMe, vao: unknown) {
-  await bangTvTb(); await damBaoBang();     // bảng audit có trước giao dịch (PGlite: không DDL trong tx)
-  const b = (vao && typeof vao === "object" ? vao : { ma: vao }) as { ma?: unknown; id?: unknown };
+  await bangTvTb(); await damBaoBang(); await bangLog(); await bangMang(); await bangM4b();     // bảng tạo lười có trước giao dịch (PGlite: không DDL trong tx)
+  const b = (vao && typeof vao === "object" ? vao : { ma: vao }) as { ma?: unknown; id?: unknown; huong?: unknown };
   const theoId = b.id !== undefined && b.id !== null && String(b.id) !== "";
-  return tx(async (t) => {
+  const huong = b.huong === undefined || b.huong === null || b.huong === "" ? null : String(b.huong);
+  if (huong !== null && huong !== "mang_theo" && huong !== "bo_nha_cu") throw new LoiNghiepVu("huong_sai", "Chọn «Mang các bé theo» hoặc «Bỏ nhà cũ»", 400);
+  const kq = await tx(async (t) => {
     if (theoId && await emailChuaXacMinh(t, bm.id))
       throw new LoiNghiepVu("can_link_moi", "Tài khoản Facebook nhận lời mời bằng link mời — nhờ người mời gửi link nhé", 403);
     const m = theoId
@@ -231,23 +273,50 @@ export async function nhanLoiMoi(bm: BaMe, vao: unknown) {
       : (await t<LoiMoi>(`select * from loi_moi where ma_hash = $1 for update`, [sha(chuanMa(b.ma))]))[0];
     kiemLoiMoi(m);
     if (m.family_id === bm.family_id) throw new LoiNghiepVu("da_trong_gia_dinh", "Bạn đã ở trong nhà này rồi", 409);
-    // PGlite một kết nối: trong giao dịch chạy lần lượt, không Promise.all
-    const con = await t(`select 1 from children where family_id = $1 limit 1`, [bm.family_id]);
-    const may = await t(`select 1 from devices where family_id = $1 limit 1`, [bm.family_id]);
-    const nguoi = await t(`select 1 from parents where family_id = $1 and id <> $2 and vai <> 'roi' limit 1`, [bm.family_id, bm.id]);
-    if (con.length || may.length || nguoi.length)
-      throw new LoiNghiepVu("gia_dinh_co_du_lieu", "Tài khoản này đã có Con, máy hoặc người nhà — dùng số/email khác để nhận lời mời", 409);
+    const cu = bm.family_id, quyen = quyenTuVai(m.vai) ?? "trong_giup";
+    // khoá cả hai dòng gia đình theo thứ tự id ⇒ hai bên nhận lời mời của nhau cùng lúc không kẹt khoá
+    await t(`select id from families where id = any($1::text[]) order by id for update`, [[cu, m.family_id]]);
+    const nha = await nhaCuTrongTx(t, bm);
+    // trần thành viên nhà mời: tính cả người mang theo (người lớn duy nhất của nhà cũ = chính mình; nhà cũ còn người khác thì chỉ mình sang)
     if ((await t(`select 1 from parents where family_id = $1 and vai <> 'roi'`, [m.family_id])).length >= THANH_VIEN_TOI_DA)
       throw new LoiNghiepVu("du_thanh_vien", `Gia đình đã đủ ${THANH_VIEN_TOI_DA} người lớn`, 409);
-    const cu = bm.family_id, quyen = quyenTuVai(m.vai) ?? "trong_giup";
+    const coDuLieu = nha.soBe > 0 || nha.soMay > 0;
+    let xuLy: "roi" | "mang_theo" | "bo" | "trong";
+    if (!nha.laNguoiLonDuyNhat) xuLy = "roi";
+    else if (!coDuLieu) xuLy = "trong";
+    else if (huong === null) throw new LoiNghiepVu("can_chon_nha_cu", `Nhà của bạn đang có ${nha.soBe} bé, ${nha.soMay} máy — chọn mang các bé theo hay bỏ nhà cũ`, 409);
+    else xuLy = huong === "mang_theo" ? "mang_theo" : "bo";
+    if (xuLy === "bo" && nha.soMay > 0)
+      throw new LoiNghiepVu("con_may", `Nhà cũ còn ${nha.soMay} máy đã ghép — gỡ từng máy trước (mở máy › Gỡ máy này), hoặc chọn «Mang các bé theo»`, 409);
+    let chuMoi: string | null = null;
+    if (xuLy === "roi" && nha.laChu) {
+      // người tạo nhà rời đi ⇒ chuyển chủ cho Ba Mẹ còn lại (không có Ba Mẹ thì người lớn vào sớm nhất, lên quyền Ba Mẹ)
+      const ke = (await t<{ id: string }>(`select id from parents where family_id = $1 and id <> $2 and vai <> 'roi'
+          order by (vai in ('ba_me', 'chu', 'duyet')) desc, created_at limit 1`, [cu, bm.id]))[0];
+      chuMoi = ke.id;
+      await t(`update families set chu_id = $2 where id = $1`, [cu, ke.id]);
+      await t(`update parents set vai = 'ba_me' where id = $1`, [ke.id]);
+    }
     await t(`update parents set family_id = $2, vai = $3 where id = $1`, [bm.id, m.family_id, quyen]);
     await t(`update loi_moi set dung_luc = now(), dung_boi = $2 where id = $1`, [m.id, bm.id]);
-    const bo = await t(`delete from families where id = $1 and not exists (select 1 from parents where family_id = $1) returning id`, [cu]);
-    // mốc tính 90 ngày dọn audit của gia đình cũ (lib/xoa-tai-khoan.ts › donKiemToanGiaDinhDaXoa)
-    if (bo.length) await ghiKiemToan(null, "xoa_gia_dinh", { soCon: 0, qua: "nhan_loi_moi" }, cu, t);
-    await ghiSuKien(m.family_id, "thanh_vien_vao", { ten: bm.ten, vai: quyen }, { nguoi: bm.id }, t);
-    return { quyen, vai: quyen === "trong_giup" ? "xem" : "duyet" };
+    if (xuLy === "mang_theo") {
+      await mangTheoSangNha(t, cu, m.family_id);
+      // nhà cũ chỉ còn dòng «roi» / lời mời đã gửi / báo trùng khoá ⇒ xoá, audit giữ mốc 90 ngày
+      await t(`delete from families where id = $1`, [cu]);
+      await ghiKiemToan(null, "xoa_gia_dinh", { soCon: nha.soBe, qua: "nhan_loi_moi", mangTheo: true }, cu, t);
+    } else if (xuLy === "bo") {
+      await xoaGiaDinhTrongTx(t, cu, { qua: "nhan_loi_moi", boNhaCu: true });
+    } else if (xuLy === "trong") {
+      await xoaGiaDinhTrongTx(t, cu, { qua: "nhan_loi_moi" });
+    }
+    if (xuLy === "roi") await ghiSuKien(cu, "roi_nha", { ten: bm.ten, qua: "nhan_loi_moi", chuMoi }, { nguoi: bm.id }, t);
+    await ghiSuKien(m.family_id, "thanh_vien_vao", { ten: bm.ten, vai: quyen, ...(xuLy === "mang_theo" ? { mangTheo: { soBe: nha.soBe, soMay: nha.soMay } } : {}) }, { nguoi: bm.id }, t);
+    return { quyen, vai: quyen === "trong_giup" ? "xem" : "duyet", xuLy, moi: m.family_id, cu: xuLy === "roi" ? cu : null, soBe: xuLy === "mang_theo" ? nha.soBe : 0, soMay: xuLy === "mang_theo" ? nha.soMay : 0 };
   });
+  // máy Con vừa đổi nhà ⇒ gõ cửa ngay (agent vẫn kịp theo vòng 60 giây nếu bỏ lỡ)
+  await baoThayDoi(kq.moi);
+  if (kq.cu) await baoThayDoi(kq.cu);
+  return { quyen: kq.quyen, vai: kq.vai, ...(kq.xuLy === "mang_theo" ? { mangTheo: { soBe: kq.soBe, soMay: kq.soMay } } : {}) };
 }
 
 /** Người khác trong nhà mà `bm` được đổi quyền / mời ra: Ba Mẹ mới làm; không tự đổi mình; không đụng người tạo nhà. */

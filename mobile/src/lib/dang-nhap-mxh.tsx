@@ -57,11 +57,12 @@ export function useVaoSau(nc: NgaCanh) {
     const denMoi = nc.moi && nc.moi !== "1" ? `/moi/vao?ma=${encodeURIComponent(nc.moi)}` : "/moi/vao";
     // tài khoản mới: như đăng ký (otp.tsx) — có lời mời / có link mời / nhánh được mời ⇒ màn Lời mời, không thì Lần đầu (tên Con)
     if (r.moi) { await vao(r.token, true, r.loiMoi?.length || nc.moi || nc.duocMoi ? denMoi : "/thiet-lap/ten-con"); return; }
-    // tài khoản cũ: rẽ sang Lời mời chỉ khi nhà còn trống (moi/nhan đòi tài khoản trống) — không thì vào Trang chủ như cũ
+    // tài khoản cũ: mở từ link mời / bấm «Tôi được mời» ⇒ luôn sang Lời mời (#877: nhà đã có Con / máy vẫn nhận được, xác nhận ở /moi/vao);
+    // chỉ có lời mời chờ (không chủ ý) mà nhà đã có Con ⇒ vào Trang chủ, lời mời hiện ở đó
     if (!r.loiMoi?.length && !nc.moi && !nc.duocMoi) { await vao(r.token); return; }
     await bm.dat(r.token);
     const g = await bm.goi<{ con: unknown[] }>("gia-dinh").catch(() => ({ con: [1] }));
-    await vao(r.token, false, g.con.length ? "/" : denMoi);
+    await vao(r.token, false, g.con.length && !nc.moi && !nc.duocMoi ? "/" : denMoi);
   };
 }
 

@@ -6,6 +6,9 @@ import { INK2 } from "./lan-dau";
 import { F, LV, M } from "./ui";
 
 export type XemMoi = { tenGiaDinh: string; nguoiMoi: string | null; quyen?: "ba_me" | "trong_giup"; tenQuyen?: string; tenGoi: string; tenCon?: string[]; het: string };
+export type NhaCu = { soBe: number; soMay: number; soNguoiLon: number; laNguoiLonDuyNhat: boolean; laChu: boolean; tenBe: string[]; tenNha: string };
+/** «Nhà của bạn đang có 1 bé, 1 máy, 1 người lớn» (#877). */
+export const cauNhaCu = (n: Pick<NhaCu, "soBe" | "soMay" | "soNguoiLon">) => `Nhà của bạn đang có ${n.soBe} bé, ${n.soMay} máy, ${n.soNguoiLon} người lớn`;
 export const ma0 = (m?: string) => String(m ?? "").replace(/[^A-Za-z0-9_-]/g, "");
 
 /** «Bảo Anh, Bảo Minh» / «Bảo Anh và Bảo Minh». */
