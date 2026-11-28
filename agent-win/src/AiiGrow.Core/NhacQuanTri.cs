@@ -38,6 +38,8 @@ public static class NhacQuanTriView
 /// <summary>#863: quyết định hiện / ẩn thẻ nhắc (thuần — truyền mốc giờ, không dùng đồng hồ thật).</summary>
 public sealed class NhacQuanTri
 {
+    /// <summary>Đồng hồ lùi ít (đồng bộ giờ) không tính là lùi.</summary>
+    private static readonly TimeSpan LechDongHo = TimeSpan.FromMinutes(5);
     private string? _hoanKhoa;
     private DateTimeOffset _hoanTu, _hoanDen;
 
@@ -53,9 +55,13 @@ public sealed class NhacQuanTri
     public bool Xet(IReadOnlyList<string>? ds, DateTimeOffset now)
     {
         if (ds != null) Ten = ds;
-        if (Ten.Count == 0) { _hoanKhoa = null; return false; }
+        if (Ten.Count == 0)
+        {
+            if (ds != null) _hoanKhoa = null;   // dịch vụ báo chắc đã ổn ⇒ bỏ hoãn; chưa biết (khay vừa chạy lại, dịch vụ chưa kiểm) ⇒ giữ hoãn đã lưu
+            return false;
+        }
         if (_hoanKhoa == null) return true;
-        if (_hoanKhoa != Khoa(Ten) || now >= _hoanDen || now < _hoanTu) { _hoanKhoa = null; return true; }   // đổi danh sách / hết hạn / đồng hồ lùi
+        if (_hoanKhoa != Khoa(Ten) || now >= _hoanDen || now < _hoanTu - LechDongHo) { _hoanKhoa = null; return true; }   // đổi danh sách / hết hạn / đồng hồ lùi hẳn
         return false;
     }
 

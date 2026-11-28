@@ -178,8 +178,8 @@ internal sealed class BaMeVienForm : Form
 /// «Đặt mật khẩu» (mở Settings › Accounts › Sign-in options) · «Để sau». Không cướp phím.</summary>
 internal sealed class NhacQuanTriForm : HopKhayCoBan
 {
-    /// <summary>true = Ba Mẹ bấm «Đặt mật khẩu»; false = «Để sau» / ×. Khay đóng bằng mã thì không gọi.</summary>
-    public event Action<bool>? BaMeDong;
+    /// <summary>Ba Mẹ bấm «Đặt mật khẩu» / «Để sau» / × (đều hoãn như nhau). Khay đóng bằng mã, đăng xuất / tắt máy thì không gọi.</summary>
+    public event Action? BaMeDong;
     private bool _daBao;
 
     public IReadOnlyList<string> Ten { get; }
@@ -198,24 +198,24 @@ internal sealed class NhacQuanTriForm : HopKhayCoBan
         {
             try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(NhacQuanTriView.CaiDat) { UseShellExecute = true })?.Dispose(); }
             catch (Exception e) { System.Diagnostics.Debug.WriteLine(e); }
-            Bao(true);
+            Bao();
             Close();
         };
         Flow.Controls.Add(dat);
         var sau = KhoiCon.Nut(NhacQuanTriView.NutDeSau, false, W, null);
-        sau.Click += (_, _) => { Bao(false); Close(); };
+        sau.Click += (_, _) => { Bao(); Close(); };
         Flow.Controls.Add(sau);
-        // × của hộp = «Để sau»; Close() bằng mã cũng báo UserClosing ⇒ khay đóng bằng DongLang()
-        FormClosing += (_, _) => Bao(false);
+        // × của hộp = «Để sau» (Close() bằng mã cũng báo UserClosing ⇒ khay đóng bằng DongLang()); đăng xuất / tắt máy không tính là hoãn
+        FormClosing += (_, e) => { if (e.CloseReason == CloseReason.UserClosing) Bao(); };
         Xong();
         Load += (_, _) => KhoiCon.GocPhaiDuoi(this);
     }
 
-    private void Bao(bool daMo)
+    private void Bao()
     {
         if (_daBao) return;
         _daBao = true;
-        BaMeDong?.Invoke(daMo);
+        BaMeDong?.Invoke();
     }
 
     /// <summary>Khay đóng thẻ (hết mật khẩu trống / phiên đổi) — không tính là Ba Mẹ bấm «Để sau».</summary>

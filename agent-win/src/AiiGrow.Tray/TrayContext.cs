@@ -765,7 +765,7 @@ internal sealed class TrayContext : ApplicationContext
     {
         if (_exe == null || _dangChayLai || !_exe.DaCoBanMoi()) return;
         foreach (Form f in Application.OpenForms)
-            if (f.Visible && !ReferenceEquals(f, _app)) return;
+            if (f.Visible && !ReferenceEquals(f, _app) && f is not NhacQuanTriForm) return;   // #863: thẻ nhắc Ba Mẹ không giữ bản khay cũ (lượt hỏi sau hiện lại)
         ChayLai(AppDangHien ? _app!.Muc : null);
     }
 
@@ -915,7 +915,7 @@ internal sealed class TrayContext : ApplicationContext
                 cu.DongLang();   // danh sách đổi ⇒ dựng lại thẻ với tên mới
             }
             var f = new NhacQuanTriForm(_nhacQt.Ten);
-            f.BaMeDong += _ => { _nhacQt.Hoan(DateTimeOffset.Now); LuuHoanQt(); };
+            f.BaMeDong += () => { _nhacQt.Hoan(DateTimeOffset.Now); LuuHoanQt(); };
             f.FormClosed += (_, _) => { if (_nhacQtForm == f) _nhacQtForm = null; f.Dispose(); };
             _nhacQtForm = f;
             f.Show();

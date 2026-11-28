@@ -72,6 +72,8 @@ public class NhacQuanTriTests
         var json = n.GhiHoan();
         var m = new NhacQuanTri();
         m.DocHoan(json);
+        Assert.False(m.Xet(null, T0.AddMinutes(1)));   // khay vừa chạy lại, dịch vụ chưa kiểm ⇒ không xoá hoãn
+        Assert.Equal(json, m.GhiHoan());
         Assert.False(m.Xet(new[] { "Ba Mẹ" }, T0.AddMinutes(5)));
         Assert.True(m.Xet(new[] { "Ba Mẹ" }, T0.AddHours(4)));
         Assert.Null(m.GhiHoan());   // hết hạn ⇒ xoá
@@ -101,6 +103,7 @@ public class NhacQuanTriTests
         var n = new NhacQuanTri();
         n.Xet(new[] { "Ba Mẹ" }, T0);
         n.Hoan(T0);
+        Assert.False(n.Xet(new[] { "Ba Mẹ" }, T0.AddMinutes(-2)));   // đồng bộ giờ lùi ít ⇒ vẫn hoãn
         Assert.True(n.Xet(new[] { "Ba Mẹ" }, T0.AddDays(-1)));
     }
 
