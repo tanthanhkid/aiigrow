@@ -10,7 +10,8 @@
       "supportsTablet": false,
       "bundleIdentifier": "vn.aiilab.aiigrow",
       "buildNumber": "78",
-      "config": { "usesNonExemptEncryption": false }
+      "config": { "usesNonExemptEncryption": false },
+      "entitlements": { "aps-environment": "production" }
     },
     "android": {
       "package": "vn.aiilab.aiigrow",
@@ -18,12 +19,14 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundImage": "./assets/adaptive-icon-nen.png"
       },
+      "googleServicesFile": "./google-services.json",
       "predictiveBackGestureEnabled": false
     },
     "plugins": [
       "expo-router",
       "expo-secure-store",
       "expo-web-browser",
+      "expo-notifications",
       "expo-image",
       ["expo-font", { "fonts": [
         "./assets/fonts/BeVietnamPro_400Regular.ttf",

@@ -5,6 +5,7 @@ import * as WebBrowser from "expo-web-browser";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { M } from "@/lib/mau";
 import { PhienProvider } from "@/lib/phien";
+import { BannerLoiMoi } from "@/lib/banner-loi-moi";
 import { useNapPhongChu } from "@/lib/phong-chu";
 
 // Bản web: popup đăng nhập Google / Facebook quay về /oauthredirect (lib/dang-nhap-mxh.tsx) ⇒ báo kết quả cho cửa sổ app rồi tự đóng.
@@ -23,6 +24,7 @@ export default function Goc() {
     <SafeAreaProvider>
       <PhienProvider>
         <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: M.nen } }} />
+        <BannerLoiMoi />
       </PhienProvider>
     </SafeAreaProvider>
   );

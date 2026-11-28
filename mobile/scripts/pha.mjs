@@ -1037,6 +1037,8 @@ if (process.argv.includes("--giao-dien")) {
     M("moi-vao (nhà cũ còn người lớn · #877)", "/moi/vao?ma=ABCD2345", "Bạn chỉ rời nhà cũ", { kb: { "GET moi/nha-cu": { soBe: 2, soMay: 1, soNguoiLon: 2, laNguoiLonDuyNhat: false, laChu: true, tenBe: ["Ken", "Bill"], tenNha: "Nhà Mẹ Hoa" } } }),
     M("moi (mã hết hạn)", "/moi?ma=ABCD2345", "quá 72 giờ", { token: null, kb: { "GET moi/ABCD2345": { status: 410, body: { error: "ma_moi_het_han", message: "Mã mời đã quá 72 giờ — xin người mời mã mới" } } } }),
     M("moi-vao", "/moi/vao?ma=ABCD2345", "Mẹ Lan"),
+    // #876: banner nổi «<Người mời> mời bạn vào nhà …» trên màn chính khi có lời mời chờ gửi tới SĐT / email của mình
+    M("hom-nay (banner lời mời · #876)", "/hom-nay", "mời bạn vào nhà Nhà Mẹ Lan trên AiiGrow", { kb: { "GET moi/cho-toi": { ds: [{ id: "m1", tenGiaDinh: "Nhà Mẹ Lan", nguoiMoi: "Mẹ Lan", quyen: "ba_me", tenQuyen: "Ba Mẹ", tenGoi: "", tenCon: ["An"], het: "2026-12-01T00:00:00.000Z", moiLuc: "2026-11-28T00:00:00.000Z" }] } } }),
     // bm-duoc-moi đúng ca bàn: them-ux0c23p4 (có Google / Facebook), them-0zrwe8yz đã điền, them-pacl0mle đã gõ 4 số
     // bm1-moi v14: người được mời CHƯA có nhà riêng, quyền Trông giúp (ô thứ 3 «Khoá máy khi cần»)
     M("moi-vao (chưa có nhà · bm1-moi)", "/moi/vao?ma=ABCD2345", "Không phải tôi", { kb: { "GET gia-dinh": { ten: "Nhà", quyVoucher: 0, choDuyet: 0, canhBao: 0, con: [] },
