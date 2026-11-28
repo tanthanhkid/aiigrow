@@ -18,8 +18,13 @@ const CACH_TOI_THIEU_MS = 15_000;
 /** Câu trên banner / dòng thông báo — một chỗ cho cả hai. */
 export const cauMoi = (m: Pick<LoiMoi, "tenGiaDinh" | "nguoiMoi">) => `${m.nguoiMoi ?? "Người nhà"} mời bạn vào nhà ${m.tenGiaDinh} trên AiiGrow`;
 
+/** Gắn `key` theo phiên: đăng xuất / đổi tài khoản ⇒ dựng lại, danh sách + «Để sau» của người trước không lọt sang người sau. */
 export function BannerLoiMoi() {
   const { co } = usePhien();
+  return <BannerTrong key={co ? "co" : "khong"} co={co} />;
+}
+
+function BannerTrong({ co }: { co: boolean }) {
   const duong = usePathname();
   const { top } = useSafeAreaInsets();
   const [ds, setDs] = useState<LoiMoi[]>([]);
@@ -32,7 +37,12 @@ export function BannerLoiMoi() {
     bm.goi<{ ds: LoiMoi[] }>("moi/cho-toi").then((r) => setDs(r.ds ?? [])).catch(() => {});
   }, [co]);
   useEffect(() => { if (!co) return; hoi(true); void dangKyPush(); }, [co, hoi]);   // hết phiên: banner ẩn theo `co`, danh sách cũ bị thay ở lần hỏi sau
-  useEffect(() => { hoi(); }, [duong, hoi]);                    // đổi màn ⇒ hỏi lại (có chặn 15 giây)
+  const duongTruoc = useRef(duong);
+  useEffect(() => {                                              // đổi màn ⇒ hỏi lại (chặn 15 giây); rời màn /moi (vừa nhận / bỏ lời mời) ⇒ hỏi ngay
+    const tuMoi = /^\/moi(\/|$)/.test(duongTruoc.current);
+    duongTruoc.current = duong;
+    hoi(tuMoi);
+  }, [duong, hoi]);
   useEffect(() => {
     if (!co) return;
     if (Platform.OS === "web") {

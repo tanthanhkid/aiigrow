@@ -19,6 +19,7 @@ const m = async (duong: string, o: { tok?: string; body?: unknown } = {}) => {
   const r = await xuLyM(req, duong.split("/"));
   return { status: r.status, body: await r.json() as any };
 };
+const doiPush = () => new Promise((r) => setTimeout(r, 300));   // push gửi nền, không chặn lời mời
 const sdt = () => `0944${String(++soDt).padStart(6, "0")}`;
 async function dangKy(ten: string, so = sdt()) {
   const otp = await m("otp", { body: { dinhDanh: so } });
@@ -76,22 +77,33 @@ test("mời / gửi lại cho người đã có tài khoản + token ⇒ gửi p
   try {
     const lan = await dangKy("Mẹ Lan"), soB = sdt(), b = await dangKy("Ba Tuấn", soB);
     assert.equal((await m("thanh-vien/moi", { tok: lan, body: { dinhDanh: soB, quyen: "ba_me" } })).status, 200);
+    await doiPush();
     assert.equal(gui.length, 0);                                                              // chưa đăng ký token
     await m("thong-bao/push-token", { tok: b, body: { token: APNS, loai: "apns", moiTruong: "production" } });
     await m("thong-bao/push-token", { tok: b, body: { token: FCM, loai: "fcm" } });
     const moi2 = await m("thanh-vien/moi", { tok: lan, body: { dinhDanh: soB, quyen: "ba_me" } });
     assert.equal(moi2.status, 200);
+    await doiPush();
     assert.deepEqual(gui.map((x) => x.k).sort(), ["apns", "fcm"]);
     const ap = gui.find((x) => x.k === "apns")!;
     assert.equal(ap.moi, "production");
     assert.equal(ap.tin.body, "Mẹ Lan mời bạn vào Nhà Mẹ Lan trên AiiGrow");
     assert.equal(ap.tin.data.den, "/moi/vao");
     assert.equal((await m(`thanh-vien/moi/${moi2.body.id}/gui-lai`, { tok: lan, body: {} })).status, 200);
+    await doiPush();
     assert.equal(gui.length, 4);
     assert.equal((await m("thanh-vien/moi", { tok: lan, body: { dinhDanh: sdt(), quyen: "ba_me" } })).status, 200);   // số chưa có tài khoản
+    await doiPush();
     assert.equal(gui.length, 4);
+    // người nhận tắt nhóm «Thành viên gia đình» ⇒ không đẩy
+    await m("thong-bao/cai-dat", { tok: b, body: { tat: ["gia_dinh"] } });
+    await m(`thanh-vien/moi/${moi2.body.id}/gui-lai`, { tok: lan, body: {} });
+    await doiPush();
+    assert.equal(gui.length, 4);
+    await m("thong-bao/cai-dat", { tok: b, body: { tat: [] } });
     chet = true;                                                                              // APNs báo token chết ⇒ xoá, FCM giữ
     await m(`thanh-vien/moi/${moi2.body.id}/gui-lai`, { tok: lan, body: {} });
+    await doiPush();
     const idB = (await m("toi", { tok: b })).body.baMe.id;
     assert.deepEqual((await q(`select loai from push_token where parent_id = $1`, [idB])).map((x: any) => x.loai), ["fcm"]);
   } finally { push.datBoGuiPush(); }
@@ -130,7 +142,8 @@ test("FCM v1: JWT RS256 đổi lấy access token, gửi messages:send đúng d�
   const [h, p, sg] = jwt.split(".");
   assert.ok(createVerify("RSA-SHA256").update(`${h}.${p}`).verify(publicKey, Buffer.from(sg, "base64url")));
   assert.equal(JSON.parse(Buffer.from(p, "base64url").toString()).scope, "https://www.googleapis.com/auth/firebase.messaging");
-  assert.equal(push.phanLoaiFcm(404, ""), "chet");
+  assert.equal(push.phanLoaiFcm(404, ""), "loi");                                              // sai project ≠ token chết
+  assert.equal(push.phanLoaiApns(400, '{"reason":"DeviceTokenNotForTopic"}'), "loi");
   assert.equal(push.phanLoaiFcm(400, '{"error":{"details":[{"errorCode":"UNREGISTERED"}]}}'), "chet");
   assert.equal(push.phanLoaiFcm(500, ""), "loi");
   const goi: { url: string; init: any }[] = [];

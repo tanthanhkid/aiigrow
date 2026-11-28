@@ -86,8 +86,12 @@ async function baoLoiMoiQuaPush(fam: string, nguoi: string, dinhDanh: string | n
   const ai = (await one<{ ten: string }>(`select ten from parents where id = $1`, [nguoi]))?.ten ?? "Người nhà";
   const nha = (await one<{ ten: string }>(`select ten from families where id = $1`, [fam]))?.ten ?? "";
   let n = 0;
+  const { caiDatTb, quyetDinhDay } = await import("./thong-bao.ts");     // nạp lười: thong-bao.ts nạp thanh-vien.ts
   for (const x of nhan) {
     if (await emailChuaXacMinh(q, x.id)) continue;
+    // theo thiết lập của người nhận: tắt nhóm «Thành viên gia đình» hoặc đang giờ yên lặng ⇒ không đẩy (banner + dòng thông báo vẫn có)
+    const nhaNhan = (await one<{ tz: string }>(`select f.tz from parents p join families f on f.id = p.family_id where p.id = $1`, [x.id]))?.tz ?? "Asia/Ho_Chi_Minh";
+    if (!quyetDinhDay("chu_y", "gia_dinh", new Date(), await caiDatTb(x.id), nhaNhan).day) continue;
     n += await guiPushChoBaMe(x.id, { title: "Lời mời vào nhà", body: `${ai} mời bạn vào ${nha || "nhà"} trên AiiGrow`, data: { den: "/moi/vao", loai: "loi_moi" }, channelId: "gia_dinh" });
   }
   return n;
@@ -120,7 +124,7 @@ export async function taoLoiMoi(bm: BaMe, b: { vai?: unknown; quyen?: unknown; t
                        on conflict (ma_hash) do nothing returning het`, [id, bm.family_id, sha(ma), quyen, tenGoi, bm.id, LOI_MOI_GIO, dinhDanh]);
     if (r.length) {
       await ghiSuKien(bm.family_id, "moi_thanh_vien", { vai: quyen, ten_goi: tenGoi, co_dinh_danh: !!dinhDanh }, { nguoi: bm.id });
-      await baoLoiMoiQuaPush(bm.family_id, bm.id, dinhDanh).catch(() => 0);
+      void baoLoiMoiQuaPush(bm.family_id, bm.id, dinhDanh).catch(() => 0);   // không chặn lời mời khi APNs / FCM chậm
       return ketQuaMoi(bm.family_id, bm.id, id, ma, quyen, tenGoi, dinhDanh, r[0].het, goc);
     }
   }
@@ -144,7 +148,7 @@ export async function guiLaiLoiMoi(bm: BaMe, id: string, goc: string) {
         [id, bm.family_id, sha(ma), LOI_MOI_GIO]);
       if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy lời mời này (có thể đã được nhận hoặc đã huỷ)", 404);
       await ghiSuKien(bm.family_id, "gui_lai_loi_moi", { ten_goi: r[0].ten_goi }, { nguoi: bm.id });
-      await baoLoiMoiQuaPush(bm.family_id, bm.id, r[0].dinh_danh).catch(() => 0);
+      void baoLoiMoiQuaPush(bm.family_id, bm.id, r[0].dinh_danh).catch(() => 0);
       return ketQuaMoi(bm.family_id, bm.id, id, ma, quyenTuVai(r[0].vai) ?? "trong_giup", r[0].ten_goi, r[0].dinh_danh, r[0].het, goc);
     } catch (e) {
       if (e instanceof LoiNghiepVu) throw e;

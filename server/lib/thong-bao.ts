@@ -2,7 +2,7 @@
 // thêm chỗ ghi nào ở các mô-đun khác. Gộp thông minh: Con nộp nhiều nhiệm vụ liền nhau ⇒ một dòng «Ken vừa nộp 3 nhiệm vụ».
 // Việc chính Ba/Mẹ đang xem tự làm thì không báo lại; việc Ba Mẹ KHÁC làm (duyệt, từ chối, mở khẩn cấp…) thì báo.
 // Mỗi Ba Mẹ có thiết lập riêng: giờ yên lặng (không đẩy trừ nghiêm trọng) và tắt từng nhóm (cảnh báo nghiêm trọng không tắt được).
-// Push thật qua Expo (lib/push.ts › guiPushChoBaMe, #876 nối cho lời mời người nhà): `day` trên mỗi dòng là quyết định «có đẩy không» mà bộ gửi dùng chung sẽ dùng.
+// Push thật thẳng APNs / FCM (lib/push.ts › guiPushChoBaMe, #876 nối cho lời mời người nhà): `day` trên mỗi dòng là quyết định «có đẩy không» mà bộ gửi dùng chung sẽ dùng.
 import { one, q } from "./db.ts";
 import type { BaMe } from "./auth.ts";
 import { gioDiaPhuong, trongKhung } from "./gio.ts";

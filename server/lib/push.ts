@@ -52,11 +52,11 @@ export const taoJwtEs256 = (pem: string, keyId: string, teamId: string, iat: num
   return `${dau}.${b64u(kyThang("sha256", Buffer.from(dau), { key: createPrivateKey(pem), dsaEncoding: "ieee-p1363" }))}`;
 };
 export const dongApns = (tin: TinPush) => ({ aps: { alert: { title: tin.title, body: tin.body }, sound: "default" }, ...(tin.data ?? {}) });
-/** APNs: 200 ok; 410 hoặc 400 BadDeviceToken / Unregistered / DeviceTokenNotForTopic ⇒ token chết. */
+/** APNs: 200 ok; 410 hoặc 400 BadDeviceToken / Unregistered ⇒ token chết. (DeviceTokenNotForTopic = sai cấu hình topic, KHÔNG xoá token.) */
 export const phanLoaiApns = (status: number, body: string): KetQuaGui => {
   if (status === 200) return "ok";
   const ly = (() => { try { return String(JSON.parse(body).reason ?? ""); } catch { return ""; } })();
-  return status === 410 || (status === 400 && /BadDeviceToken|Unregistered|DeviceTokenNotForTopic/.test(ly)) ? "chet" : "loi";
+  return status === 410 || (status === 400 && /BadDeviceToken|Unregistered/.test(ly)) ? "chet" : "loi";
 };
 let jwtApns: { jwt: string; luc: number } | null = null;
 type MoApns = typeof http2Connect;
@@ -64,7 +64,9 @@ type MoApns = typeof http2Connect;
 export function guiApns(token: string, moiTruong: string, tin: TinPush, ket: MoApns = http2Connect, nay = Date.now()): Promise<KetQuaGui> {
   const keyId = process.env.APNS_KEY_ID, teamId = process.env.APNS_TEAM_ID, pem = process.env.APNS_KEY_P8?.replace(/\\n/g, "\n");
   if (!keyId || !teamId || !pem) { baoMotLan("apns", "thiếu APNS_KEY_ID / APNS_TEAM_ID / APNS_KEY_P8 — bỏ qua push iOS"); return Promise.resolve("loi"); }
-  if (!jwtApns || nay - jwtApns.luc > 40 * 60_000) jwtApns = { jwt: taoJwtEs256(pem, keyId, teamId, Math.floor(nay / 1000)), luc: nay };   // APNs: JWT sống 20–60 phút
+  try {
+    if (!jwtApns || nay - jwtApns.luc > 40 * 60_000) jwtApns = { jwt: taoJwtEs256(pem, keyId, teamId, Math.floor(nay / 1000)), luc: nay };   // APNs: JWT sống 20–60 phút
+  } catch { baoMotLan("apns-khoa", "APNS_KEY_P8 không đọc được — bỏ qua push iOS"); return Promise.resolve("loi"); }
   const jwt = jwtApns.jwt;
   return new Promise((xong) => {
     const kn = ket(moiTruong === "sandbox" ? "https://api.sandbox.push.apple.com" : "https://api.push.apple.com");
@@ -90,10 +92,10 @@ export const taoJwtRs256 = (pem: string, email: string, aud: string, iat: number
 };
 export const dongFcm = (token: string, tin: TinPush) => ({ message: { token, notification: { title: tin.title, body: tin.body }, data: tin.data ?? {},
   android: { priority: "HIGH", notification: { channel_id: tin.channelId ?? "gia_dinh" } } } });
-/** FCM: 200 ok; UNREGISTERED / 404 ⇒ token chết. */
+/** FCM: 200 ok; UNREGISTERED ⇒ token chết (404 trơn là sai project, không xoá token). */
 export const phanLoaiFcm = (status: number, body: string): KetQuaGui => {
   if (status === 200) return "ok";
-  return status === 404 || /UNREGISTERED/.test(body) ? "chet" : "loi";
+  return /UNREGISTERED/.test(body) ? "chet" : "loi";
 };
 type Fetch = typeof fetch;
 let dauFcm: { tok: string; het: number } | null = null;
@@ -126,7 +128,7 @@ export async function guiPushChoBaMe(parentId: string, tin: TinPush): Promise<nu
   try {
     await bangPush();
     const ds = await q<{ token: string; loai: Loai; moi_truong: string }>(`select token, loai, moi_truong from push_token where parent_id = $1`, [parentId]);
-    const kq = await Promise.all(ds.map((x) => (x.loai === "apns" ? (bo.apns ?? guiApns)(x.token, x.moi_truong, tin) : (bo.fcm ?? ((t, n) => guiFcm(t, n)))(x.token, tin)).catch((): KetQuaGui => "loi")));
+    const kq = await Promise.all(ds.map((x) => Promise.resolve().then(() => (x.loai === "apns" ? (bo.apns ?? guiApns)(x.token, x.moi_truong, tin) : (bo.fcm ?? ((t, n) => guiFcm(t, n)))(x.token, tin))).catch((): KetQuaGui => "loi")));
     const chet = ds.filter((_, i) => kq[i] === "chet").map((x) => x.token);
     if (chet.length) await q(`delete from push_token where token = any($1::text[])`, [chet]);
     return kq.filter((k) => k === "ok").length;

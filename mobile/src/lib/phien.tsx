@@ -22,7 +22,7 @@ export function PhienProvider({ children }: { children: ReactNode }) {
     router.replace((den ?? (moi ? "/thiet-lap/ten-con" : "/")) as never);
   }, []);
   const ra = useCallback(async (o?: { daXoa?: boolean }) => {
-    if (!o?.daXoa) await huyDangKyPush();
+    await huyDangKyPush(!!o?.daXoa);
     if (!o?.daXoa) try { await bm.goi("dang-xuat", {}); } catch { /* vẫn xoá phiên trên máy */ }
     await bm.dat(null);
     setCo(false);
