@@ -1010,10 +1010,6 @@ internal sealed class TrayContext : ApplicationContext
         if (_state.BlockedSeq == _seenBlocked || _state.Locked) return;
         _seenBlocked = _state.BlockedSeq;
         if (!ManChanView.CoHienBang(_state.BlockedAppId)) return;   // #642: tiến trình nền Windows / Xbox Game Bar — không bật bảng, không đóng bảng đang mở
-        // #741 (test 28/11): cùng app bị đóng lại mỗi nhịp ⇒ không dựng lại hộp đang mở / vừa bị bé đóng (trước đây ✖ / Esc / Alt+F4 như không có tác dụng)
-        if (_state.BlockedAppId is { } idLap && !_hopLap.NenHien(idLap, _blocked is { IsDisposed: false } dang && dang.LaHopCua(idLap), DateTimeOffset.Now)) return;
-        // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
-        if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         var id = _state.BlockedAppId;
         var homNay = DateOnly.FromDateTime(DateTime.Now);
         if (homNay != _ngayTuGui) { _ngayTuGui = homNay; _soTuGui = 0; }
@@ -1028,6 +1024,11 @@ internal sealed class TrayContext : ApplicationContext
         }
         // #307: Con đang ở hộp «Xin thêm …» cho đúng app này ⇒ đưa hộp lên trước, không chồng màn chặn mới
         if (id != null && _xinThem is { IsDisposed: false } dangXin && string.Equals(dangXin.Muc, id.Trim(), StringComparison.OrdinalIgnoreCase)) { dangXin.Activate(); return; }
+        // #741 (test 28/11): cùng app bị đóng lại mỗi nhịp ⇒ không dựng lại hộp đang mở / vừa bị bé đóng (trước đây ✖ / Esc / Alt+F4 như không có tác dụng).
+        // Đặt SAU nhánh «Hết sao» / «Xin thêm» — các nhánh đó giữ như cũ.
+        if (id != null && !_hopLap.NenHien(id, _blocked is { IsDisposed: false } dang && dang.LaHopCua(id), DateTimeOffset.Now)) return;
+        // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
+        if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         if (ManChanView.TuGui(id, _state.BlockedBoiBaMe, _state.Offline, daXin)) _soTuGui++;
         _blocked = new BlockedForm(id, _state.BlockedAppName, _state.BlockedBoiBaMe, _state.Offline, _state.AppDuocPhep, daXin: daXin, appTinhPhut: _state.AppTinhPhut, phutCon: _state.QuyConPhut,
             tenDuocPhep: TrayView.TenKhongTinh(_state), tenTinhPhut: TrayView.TenTinh(_state));

@@ -66,8 +66,17 @@ public class TrangChanWebTheoDanhSachTests
     [InlineData("TikTok - Make Your Day - Microsoft Edge", null)]                // trang thật (không bị chặn) không có dạng địa chỉ
     [InlineData("New tab - Microsoft Edge", null)]
     [InlineData("This page is blocked - Microsoft Edge", null)]
+    [InlineData("tiktok.com - Google Search - Microsoft Edge", null)]            // trang tìm kiếm được cho, tiêu đề bắt đầu bằng tên miền
+    [InlineData("tiktok.com - Tìm trên Google - Profile 1 - Microsoft Edge", null)]
+    [InlineData("Three.js - Microsoft Edge", null)]                              // tên thư viện, không phải tên miền
+    [InlineData("baitap.pdf - Microsoft Edge", null)]
+    [InlineData("1.2.3 - Microsoft Edge", null)]
+    [InlineData("www.tiktok.com - Hồ sơ 1 - Microsoft Edge", "tiktok.com")]
     public void ChiChoPhep_TieuDeDiaChiNgoaiDanhSach_LaTrangChan(string tieuDe, string? mong)
         => Assert.Equal(mong, TrangChanWeb.TimMien(tieuDe, Array.Empty<string>(), Cho, chiChoPhep: true, mayChu: "aiigrow.vn"));
+
+    [Fact]
+    public void MucChoCoWww_ChoCaTenMienTran() => Assert.Null(TrangChanWeb.TimMien("youtube.com/watch?v=1 - Microsoft Edge", Array.Empty<string>(), new[] { "www.youtube.com" }, chiChoPhep: true));
 
     [Fact]
     public void KhongChiChoPhep_GiuNhuCu() => Assert.Null(TrangChanWeb.TimMien("www.tiktok.com - Profile 1 - Microsoft Edge", Array.Empty<string>(), Cho));

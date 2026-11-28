@@ -142,7 +142,7 @@ public sealed class PipeServer : BackgroundService
             case PipeCmd.State:
             {
                 var st = TrangThaiChoPhien(now, clientSession);
-                if (!fromChild) st.TrangChan = null;
+                st.TrangChan = null;   // #741: tab đang xem chỉ trả cho khay thật của phiên Con (lệnh Foreground)
                 return new PipeResponse { Ok = true, State = st };
             }
 
