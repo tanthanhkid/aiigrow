@@ -85,14 +85,15 @@ export function ChonGioiHan({ gt, doi }: { gt: GioiHan; doi: (g: GioiHan, loi: s
   const go = (k: "nt" | "ct" | "l", s: string) => dat({ ...cur.current.chu, [k]: soNguyenGo(s) }, cur.current.kn);
   const buoc = (k: "nt" | "ct" | "l", h: 1 | -1) => {
     const kh = k === "l" ? KHOANG_LUOT : KHOANG_NGAY;
-    const n = buocPhut(docPhut(cur.current.chu[k], kh).phut, h, kh);
+    // ô đang dở «45.» (báo «Chỉ nhập số nguyên») vẫn bước từ phần nguyên 45, không nhảy về đầu khoảng
+    const n = buocPhut(Number.parseInt(cur.current.chu[k], 10) || 0, h, kh);
     go(k, String(n));
   };
   const tick = () => {
     const kn = !cur.current.kn;
     const c = cur.current.chu;
     // bỏ tick mà ô đang trống / 0 ⇒ quay về 30 phút
-    dat(!kn && !docPhut(c.l, KHOANG_LUOT).phut ? { ...c, l: String(LUOT_MD) } : c, kn);
+    dat(!kn && !(Number.parseInt(c.l, 10) > 0) ? { ...c, l: String(LUOT_MD) } : c, kn);
   };
   const phutL = docPhut(chu.l, KHOANG_LUOT).phut;
   const choi = khongNghi ? "…" : `${phutL || "…"} phút`;

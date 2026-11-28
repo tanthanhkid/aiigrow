@@ -161,7 +161,7 @@ export default function ViSao() {
       <BangTruot mo={mo} dong={() => setMo(false)} tieu={`Điều chỉnh sao của ${d.ten}`}>
         <ChonMot ds={[{ gia: 1 as const, chu: "Cộng sao" }, { gia: -1 as const, chu: "Trừ sao" }]} gia={dau} doi={setDau} />
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ width: 120 }}><ONhap nhan="Số sao" value={so} onChangeText={(t) => setSo(soNguyenGo(t).slice(0, 5))} keyboardType="number-pad" loi={loiSoNguyen(so)} /></View>
+          <View style={{ width: 120 }}><ONhap nhan="Số sao" value={so} onChangeText={(t) => setSo(soNguyenGo(t).slice(0, 5))} keyboardType="number-pad" loi={loiSoNguyen(so) ?? ((docSoNguyen(so) ?? 0) > 9999 ? "Tối đa 9.999 sao" : null)} /></View>
           <View style={{ flex: 1 }}><ONhap nhan="Lý do" value={lyDo} onChangeText={setLyDo} placeholder={dau > 0 ? "Thưởng sinh nhật" : "Nói dối"} maxLength={120} /></View>
         </View>
         <Chu co={13} mau={M.chu3}>Mọi điều chỉnh tay được ghi lại trong ví và báo cáo.</Chu>
