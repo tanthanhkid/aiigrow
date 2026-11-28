@@ -26,7 +26,7 @@ import { dsCanhBao, dsSuKien, ghiSuKien } from "./nhat-ky.ts";
 import { newId } from "./db.ts";
 // M4b độ bền máy con (chỉ thêm): tuân thủ, mở khẩn cấp, gói cài một chạm, gỡ từ xa, cấu hình nền tảng, luật tầng mạng (TV)
 import * as tt from "./tuan-thu.ts";
-import { datCheDo, goMayAnToan, taoGoiCai } from "./lenh-may.ts";
+import { datCheDo, goMayAnToan, huyGoMay, taoGoiCai } from "./lenh-may.ts";
 import { cauHinhNenTangMay, luatMangCon } from "./nhip-may.ts";
 // M4b kiểm soát mạng (chỉ thêm): hồ sơ DNS gia đình, máy con loại mạng (TV, console), nhật ký tóm tắt, hướng dẫn router / TV
 import * as dns from "./dns-gia-dinh.ts";
@@ -253,6 +253,8 @@ async function xuLyMTrong(req: Request, p: string[], ngu: { fam?: string }): Pro
     if (d === "luon-chan" && get) return json({ nhom: [], cheDo: Object.entries(TEN_CHE_DO).map(([ma, ten]) => ({ ma, ten })) });
     // «Gỡ máy này» an toàn: chủ gia đình + mật khẩu; máy đã đồng bộ ⇒ lệnh gỡ (xoá khi agent báo xong) — lib/lenh-may.ts › goMayAnToan
     if (p[0] === "may" && p[2] === "go" && !p[3] && post) return json(await goMayAnToan(bm, p[1], b));
+    // #858 «Huỷ gỡ»: lệnh gỡ đang chờ huỷ, máy về chặn thật ở lần đồng bộ tới (không cần mật khẩu — huỷ là giữ bảo vệ)
+    if (p[0] === "may" && p[2] === "go" && p[3] === "huy" && !p[4] && post) return json(await huyGoMay(bm, p[1]));
     // M4b
     if (d === "tuan-thu" && get) return json({ ds: await tt.dsTuanThu(fam, new Date(), { nhe: new URL(req.url).searchParams.get("nhe") === "1" }) });
     if (d === "goi-cai" && post) return json(await taoGoiCai(fam, b, process.env.AIIGROW_APP_URL || new URL(req.url).origin, bm.id));

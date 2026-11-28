@@ -161,8 +161,12 @@ export type TuanThuMay = {
   daDongBo: boolean;
   /** Lệnh gỡ đang chờ máy nhận (máy chỉ rời danh sách khi agent báo đã gỡ). */
   dangGo: { lenhId: string; tu: string } | null;
-  /** Được xoá hẳn khỏi danh sách (chưa đồng bộ lần nào, hoặc đang gỡ > 7 ngày không liên lạc). */
+  /** Được xoá hẳn khỏi danh sách (chưa đồng bộ lần nào, hoặc đang gỡ mà > 7 ngày không liên lạc / máy đã cài lại thành dòng mới). */
   coTheXoaHan: boolean;
+  /** #858: lần cuối máy liên lạc (nhịp / đồng bộ) · máy chưa liên lạc từ lúc gửi lệnh gỡ («Chờ máy bật để gỡ»). Máy chủ cũ không gửi. */
+  lienLacCuoi?: string | null; choMayBat?: boolean;
+  /** #858: máy đã được cài lại thành dòng mới cùng tên ⇒ lệnh gỡ dòng cũ không tới được; gỡ máy thật thì gỡ dòng mới. */
+  banMoi?: { id: string; ten: string } | null;
   /** #267 (docs/API.md): khoá theo máy · Con nối với máy (≥ 2 = máy chung, 0 = chờ Ba Mẹ gán) · bé đang dùng (máy riêng = Con của máy) ·
    *  số Con · iPhone/iPad chỉ một Con · Ba Mẹ đang dùng máy tới. Máy chủ cũ không gửi ⇒ suy từ con / dungChung (lib/may-nhieu-con). */
   khoaMay?: { khoa: boolean; den: string | null }; /** #772: bé trên máy đang bị khoá THEO BÉ (mọi máy của bé) */ khoaBe?: { id: string; ten: string; den: string | null }[]; conDs?: { id: string; ten: string; avatar: string }[];

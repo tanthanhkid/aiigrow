@@ -279,7 +279,7 @@ export async function chiTietTuanThu(fam: string, mayId: string, now = new Date(
   const conIds = may.conDs.map((c) => c.id);
   const suKien = await q(`select loai, chi_tiet, nguoi, created_at from events where family_id = $1 and (
       (loai in ('khoa_ngay','mo_lai') and child_id = any($3::text[]) and device_id is null and coalesce(chi_tiet->>'hoanTac','') = '') or (device_id = $2 and
-      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline','doi_che_do','doi_ten_may','may_chuyen_nha','doi_con_may','khoa_may','mo_khoa_may','quan_tri_trong_mat_khau','quan_tri_co_mat_khau'))
+      loai in ('tuan_thu_lech','tuan_thu_on','may_ngoai_vong','may_tro_lai','mo_khan_cap','huy_mo_khan_cap','het_mo_khan_cap','tin_cay_admin','lenh_go','huy_lenh_go','go_may','xem_ma_offline','may_mo_ma_offline','may_sai_ma_offline','may_het_ma_offline','doi_che_do','doi_ten_may','may_chuyen_nha','doi_con_may','khoa_may','mo_khoa_may','quan_tri_trong_mat_khau','quan_tri_co_mat_khau'))
     ) order by created_at desc, seq desc limit 50`, [fam, mayId, conIds]);
   // #267 «Máy cả nhà · chi tiết»: từng Con đã gán (sao, phút hôm nay trên máy này, lần cuối, khoá theo Con) — đủ danh sách nhà ở GET may/:id/con
   const tungCon = (await conMay(fam, mayId, now)).ds.filter((c) => c.gan);

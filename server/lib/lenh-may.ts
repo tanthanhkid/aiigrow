@@ -98,20 +98,47 @@ async function xacThucChu(bm: BaMe, mayId: string, matKhau: unknown, viec: strin
   return m;
 }
 
-async function ghiLenhGo(bm: BaMe, m: MayDb) {
+async function ghiLenhGo(bm: BaMe, m: MayDb, now = new Date()) {
   const da = await one<{ id: string }>(`select id from lenh_may where device_id = $1 and loai = 'go' and trang_thai = 'cho'`, [m.id]);
   if (da) return { id: da.id, lapLai: true, cach: CACH_GO_TU_XA[m.platform] };
   const id = newId();
-  await q(`insert into lenh_may(id, family_id, device_id, token_hash, loai, nguoi) values ($1,$2,$3,$4,'go',$5)`, [id, bm.family_id, m.id, m.token_hash, bm.id]);
+  // created_at theo cùng đồng hồ với devices.last_seen / nhip_cuoi (đồng hồ máy chủ ứng dụng) ⇒ so «máy liên lạc sau lúc gửi lệnh» không lệch giờ DB
+  await q(`insert into lenh_may(id, family_id, device_id, token_hash, loai, nguoi, created_at) values ($1,$2,$3,$4,'go',$5,$6)`, [id, bm.family_id, m.id, m.token_hash, bm.id, now]);
   await ghiSuKien(bm.family_id, "lenh_go", { ten: m.name }, { con: m.child_id, may: m.id, nguoi: bm.id });
   return { id, lapLai: false, cach: CACH_GO_TU_XA[m.platform] };
 }
 
-/** Sau bao lâu «đang gỡ» mà máy không liên lạc thì Ba Mẹ được xoá hẳn khỏi danh sách. */
+/** Đang gỡ: lệnh chờ > NGAY_XOA_HAN ngày VÀ máy im > NGAY_XOA_HAN ngày ⇒ xoá hẳn được (cho lệnh cơ hội tới máy chỉ đang cất / tắt ít hôm). */
 const NGAY_XOA_HAN = 7;
+/** #858: máy đã im quá ngần này ngày (tính cả trước lúc gửi lệnh) ⇒ xoá hẳn ngay, không bắt chờ thêm 7 ngày sau lệnh. */
+const NGAY_IM_HAN = 30;
+/** #858: bản ghép lại chỉ tính khi dòng cũ đã im ít nhất ngần này (máy đang ngủ một lúc không bị coi là «đã cài lại»). */
+const GIO_IM_GHEP_LAI = 24;
 
-/** Trạng thái gỡ của một máy — dùng cho «Gỡ máy này» và màn An toàn (tuan-thu). */
-export async function trangThaiGo(m: Pick<May, "id" | "status" | "last_seen">, now = new Date()) {
+type MayGo = Pick<May, "id" | "status" | "last_seen"> & Partial<Pick<May, "family_id" | "platform" | "name">> & { ma_may?: string | null };
+
+/** #858: máy đã CÀI LẠI / ghép lại thành dòng mới (agent cũ chưa gửi ma_may nên ghepMay không tự bỏ dòng cũ — gia-dinh.ts › thuHoiMayCu):
+ *  dòng khác cùng nhà, cùng loại máy, cùng tên (không phân biệt hoa thường), ghép SAU lần liên lạc cuối của dòng này. Token cũ không còn trên máy
+ *  ⇒ lệnh gỡ gửi dòng cũ không bao giờ tới; Ba Mẹ xoá hẳn dòng cũ ngay, muốn gỡ máy thật thì gỡ dòng mới. */
+//  Chỉ máy tính (Windows / Mac — tên máy là hostname, ít trùng; điện thoại hay cùng tên «iPhone»). Hai dòng cùng có ma_may mà khác nhau = hai máy
+//  khác nhau (cùng ma_may thì thuHoiMayCu đã bỏ dòng cũ) ⇒ không tính. Dòng cũ phải im ≥ GIO_IM_GHEP_LAI giờ; dòng mới phải đã đồng bộ (cài hỏng
+//  trước lần đồng bộ đầu thì không phải «đang bảo vệ»).
+async function banGhepLai(m: MayGo, lienLacCuoi: number, now: Date) {
+  if (!m.family_id || !m.name || (m.platform !== "windows" && m.platform !== "mac")) return null;
+  if (now.getTime() - lienLacCuoi < GIO_IM_GHEP_LAI * 3600_000) return null;
+  return await one<{ id: string; name: string }>(
+    `select id, name from devices where family_id = $1 and platform = $2 and id <> $3 and lower(btrim(name)) = lower(btrim($4)) and created_at > $5
+       and ($6::text is null or ma_may is null)
+       and (status <> '{}'::jsonb or exists (select 1 from tuan_thu_may t where t.device_id = devices.id and t.nhip_cuoi is not null))
+     order by created_at desc limit 1`,
+    [m.family_id, m.platform, m.id, m.name, new Date(lienLacCuoi), m.ma_may ?? null]) ?? null;
+}
+
+/** Trạng thái gỡ của một máy — dùng cho «Gỡ máy này» và màn An toàn (tuan-thu).
+ *  coTheXoaHan: chưa đồng bộ lần nào · hoặc đang gỡ và (lệnh chờ > 7 ngày mà máy im > 7 ngày · máy im > NGAY_IM_HAN ngày tính cả trước lúc gửi
+ *  lệnh · máy đã được cài lại thành dòng mới — banMoi).
+ *  lienLacCuoi: lần cuối máy gọi máy chủ · choMayBat: máy chưa liên lạc từ lúc gửi lệnh (web ghi «Chờ máy bật để gỡ»). */
+export async function trangThaiGo(m: MayGo, now = new Date()) {
   await bangM4b();
   const tt = await one<{ nhip_cuoi: Date | null }>(`select nhip_cuoi from tuan_thu_may where device_id = $1`, [m.id]);
   // Ghép xong (ghepMay) đã đặt last_seen = lúc ghép ⇒ «đã đồng bộ» = agent đã gọi dong-bo (status có dữ liệu) hoặc đã gửi nhịp.
@@ -120,15 +147,32 @@ export async function trangThaiGo(m: Pick<May, "id" | "status" | "last_seen">, n
     `select id, created_at from lenh_may where device_id = $1 and loai = 'go' and trang_thai = 'cho' order by created_at limit 1`, [m.id]);
   const moc = now.getTime() - NGAY_XOA_HAN * 86400_000;
   const lienLacCuoi = Math.max(m.last_seen ? new Date(m.last_seen).getTime() : 0, tt?.nhip_cuoi ? new Date(tt.nhip_cuoi).getTime() : 0);
-  const coTheXoaHan = !daDongBo || (!!l && new Date(l.created_at).getTime() < moc && lienLacCuoi < moc);
-  return { daDongBo, dangGo: l ? { lenhId: l.id, tu: new Date(l.created_at).toISOString() } : null, coTheXoaHan };
+  const moi = l && daDongBo ? await banGhepLai(m, lienLacCuoi, now) : null;
+  const coTheXoaHan = !daDongBo || (!!l && ((new Date(l.created_at).getTime() < moc && lienLacCuoi < moc)
+    || lienLacCuoi < now.getTime() - NGAY_IM_HAN * 86400_000 || !!moi));
+  return { daDongBo, dangGo: l ? { lenhId: l.id, tu: new Date(l.created_at).toISOString() } : null, coTheXoaHan,
+    lienLacCuoi: lienLacCuoi ? new Date(lienLacCuoi).toISOString() : null, choMayBat: !!l && lienLacCuoi < new Date(l.created_at).getTime(),
+    banMoi: moi ? { id: moi.id, ten: moi.name } : null };
+}
+
+/** #858 «Huỷ gỡ» (POST may/:id/go/huy): Ba Mẹ đổi ý / gửi nhầm máy ⇒ lệnh gỡ đang chờ huỷ, máy về chặn thật ở lần đồng bộ tới.
+ *  Không cần mật khẩu (huỷ = giữ bảo vệ); Người trông giúp không làm được (như gỡ). Không có lệnh chờ ⇒ ok, huy: false. */
+export async function huyGoMay(bm: BaMe, mayId: string) {
+  await bangM4b();
+  chiBaMe(bm, "huỷ gỡ máy");
+  const m = await one<May>(`select * from devices where id = $1 and family_id = $2`, [mayId, bm.family_id]);
+  if (!m) throw new LoiNghiepVu("khong_thay", "Không thấy thiết bị", 404);
+  const huy = await q(`update lenh_may set trang_thai = 'huy' where device_id = $1 and loai = 'go' and trang_thai = 'cho' returning id`, [m.id]);
+  if (huy.length) await ghiSuKien(bm.family_id, "huy_lenh_go", { ten: m.name }, { con: m.child_id, may: m.id, nguoi: bm.id });
+  return { ok: true, huy: huy.length > 0 };
 }
 
 /**
  * «Gỡ máy này» an toàn (POST may/:id/go {matKhau, xoaHan?}) — KHÔNG bao giờ bỏ agent mồ côi trên máy Con:
  *  • máy đã từng đồng bộ ⇒ ghi lệnh «go», máy ở trạng thái «đang gỡ»; dòng máy chỉ xoá khi agent báo xong (xongLenh).
- *  • xoaHan: true ⇒ xoá ngay khỏi danh sách, CHỈ khi máy chưa từng đồng bộ, hoặc đã «đang gỡ» > 7 ngày mà không liên lạc.
- *    Agent (nếu còn) mất token ⇒ Ba Mẹ phải gỡ tại máy (UI hướng dẫn).
+ *  • xoaHan: true ⇒ xoá ngay khỏi danh sách, CHỈ khi trangThaiGo cho (coTheXoaHan: chưa từng đồng bộ · đang gỡ > 7 ngày mà không liên lạc ·
+ *    máy im > 30 ngày · máy đã cài lại thành dòng mới). Agent (nếu còn) mất token ⇒ Ba Mẹ phải gỡ tại máy (UI hướng dẫn) — trừ ca cài lại:
+ *    AiiGrow trên máy là dòng mới, KHÔNG nhắc gỡ tại máy.
  *  • máy chưa đồng bộ mà không gửi xoaHan ⇒ 409 can_xoa_han (app hỏi lại Ba Mẹ).
  */
 export async function goMayAnToan(bm: BaMe, mayId: string, b: { matKhau?: unknown; xoaHan?: unknown }, now = new Date()) {
@@ -136,17 +180,20 @@ export async function goMayAnToan(bm: BaMe, mayId: string, b: { matKhau?: unknow
   const t = await trangThaiGo(m, now);
   if (b.xoaHan === true) {
     if (!t.coTheXoaHan) throw new LoiNghiepVu("chua_duoc_xoa_han",
-      `Máy vẫn còn liên lạc gần đây — hãy chờ máy nhận lệnh gỡ. Sau ${NGAY_XOA_HAN} ngày không liên lạc mới xoá hẳn được.`, 409);
+      `Máy vẫn còn liên lạc gần đây — hãy chờ máy nhận lệnh gỡ. Lệnh chờ quá ${NGAY_XOA_HAN} ngày mà máy vẫn không liên lạc thì xoá hẳn được.`, 409);
     await q(`update lenh_may set trang_thai = 'huy' where device_id = $1 and trang_thai = 'cho'`, [m.id]);
     await q(`delete from devices where id = $1`, [m.id]);
-    await ghiSuKien(bm.family_id, "go_may", { ten: m.name, cach: "xoa_han", daDongBo: t.daDongBo }, { con: m.child_id, may: m.id, nguoi: bm.id });
-    await canhBao(bm.family_id, "go_may", "chu_y", `Đã xoá hẳn ${m.name} khỏi danh sách. Nếu AiiGrow còn trên máy, hãy gỡ tại máy.`,
-      { con: m.child_id, may: m.id, khoa: `xoa_han:${m.id}` });
-    return { trangThai: "da_xoa" as const, canGoTaiMay: t.daDongBo };
+    await ghiSuKien(bm.family_id, "go_may", { ten: m.name, cach: "xoa_han", daDongBo: t.daDongBo, ...(t.banMoi ? { banMoi: t.banMoi.id } : {}) },
+      { con: m.child_id, may: m.id, nguoi: bm.id });
+    // #858 máy đã cài lại: AiiGrow trên máy là dòng mới (vẫn bảo vệ) ⇒ không nhắc «gỡ tại máy» (làm theo là mất bảo vệ của dòng mới)
+    await canhBao(bm.family_id, "go_may", t.banMoi ? "thong_tin" : "chu_y", t.banMoi
+      ? `Đã xoá bản cũ của ${m.name} khỏi danh sách — máy đang được bảo vệ dưới tên «${t.banMoi.ten}». Nếu đây là một máy khác cùng tên, hãy gỡ AiiGrow tại máy cũ.`
+      : `Đã xoá hẳn ${m.name} khỏi danh sách. Nếu AiiGrow còn trên máy, hãy gỡ tại máy.`, { con: m.child_id, may: m.id, khoa: `xoa_han:${m.id}` });
+    return { trangThai: "da_xoa" as const, canGoTaiMay: t.daDongBo && !t.banMoi };
   }
   if (!t.daDongBo) throw new LoiNghiepVu("can_xoa_han",
     "Máy này chưa đồng bộ lần nào nên không nhận được lệnh gỡ. Xác nhận «Xoá hẳn» để bỏ máy khỏi danh sách.", 409);
-  const l = await ghiLenhGo(bm, m);
+  const l = await ghiLenhGo(bm, m, now);
   return { trangThai: "dang_go" as const, ...l };
 }
 
@@ -223,10 +270,16 @@ export async function xongLenh(token: string | null, lenhId: string) {
     `select * from lenh_may where id = $1`, [lenhId]);
   if (!l || !token || l.token_hash !== sha(token)) throw new LoiNghiepVu("khong_thay", "Không thấy lệnh", 404);
   if (l.trang_thai === "xong") return { ok: true, lapLai: true };
-  const ok = await q(`update lenh_may set trang_thai = 'xong', xong_luc = now() where id = $1 and trang_thai = 'cho' returning id`, [l.id]);
+  // #858: Ba Mẹ «Huỷ gỡ» khi agent ĐÃ nhận lệnh và đang gỡ ⇒ agent vẫn báo xong; máy đã gỡ thật ⇒ nhận (lệnh «huy» do xoá hẳn / gỡ tại máy thì
+  // dòng máy đã xoá, phần dưới không làm gì thêm ngoài ghi xong).
+  // Lệnh «huy» chỉ nhận khi máy không còn lệnh gỡ mới đang chờ (Ba Mẹ gửi lại thì lệnh mới là lệnh có hiệu lực). Token máy vốn đã gỡ được máy khỏi
+  // nhà qua POST device/da-go ⇒ nhận «xong» của lệnh đã huỷ không mở thêm quyền nào.
+  const ok = await q(`update lenh_may set trang_thai = 'xong', xong_luc = now() where id = $1 and (trang_thai = 'cho' or (trang_thai = 'huy'
+    and not exists (select 1 from lenh_may k where k.device_id = $2 and k.trang_thai = 'cho'))) returning id`, [l.id, l.device_id]);
   if (!ok.length) return { ok: true, lapLai: true };
   if (l.loai === "go") {
     const m = await one<{ id: string; child_id: string | null; name: string }>(`select id, child_id, name from devices where id = $1`, [l.device_id]);
+    if (!m && l.trang_thai === "huy") return { ok: true, lapLai: true };   // lệnh huỷ vì máy đã rời danh sách ⇒ không báo lại
     await q(`delete from devices where id = $1`, [l.device_id]);           // tuan_thu_may xoá theo (cascade) ⇒ hết cảnh báo mất nhịp
     await q(`update lenh_may set trang_thai = 'huy' where device_id = $1 and trang_thai = 'cho'`, [l.device_id]);
     await ghiSuKien(l.family_id, "go_may", { ten: m?.name ?? null, cach: "tu_xa" }, { con: m?.child_id ?? null, may: l.device_id });
