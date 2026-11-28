@@ -3,7 +3,7 @@
 //   cần đăng nhập:       GET thanh-vien · POST thanh-vien/moi · POST thanh-vien/moi/:id/gui-lai · POST thanh-vien/moi/:id/huy
 //                        POST thanh-vien/:id/quyen (bí danh /vai) · POST thanh-vien/:id/moi-ra · POST thanh-vien/roi-nha
 //                        GET moi/cho-toi · GET moi/nha-cu · POST moi/nhan {id | ma, huong?} · GET con/:id/bao-cao/csv
-//                        GET thong-bao · POST thong-bao/doc · GET/POST thong-bao/cai-dat
+//                        GET thong-bao · POST thong-bao/doc · GET/POST thong-bao/cai-dat · POST thong-bao/push-token[/huy]
 // Thông báo là của RIÊNG từng người ⇒ Người trông giúp vẫn đánh dấu đã đọc / đặt giờ yên lặng được (đi trước chặn quyền của api-m).
 import { docJson, json } from "./api.ts";
 import { q } from "./db.ts";
@@ -11,6 +11,7 @@ import { taoPhien, type BaMe } from "./auth.ts";
 import { laChuNha, quyenCua, vaiCu } from "./quyen.ts";
 import * as tv from "./thanh-vien.ts";
 import * as tb from "./thong-bao.ts";
+import { dangKyPushToken, huyPushToken } from "./push.ts";
 import { conCua } from "./gia-dinh.ts";
 import { canDeY } from "./can-de-y.ts";
 import { xuatCsvBaoCao } from "./xuat-csv.ts";
@@ -40,6 +41,8 @@ export async function xuLyThongBao(req: Request, bm: BaMe, p: string[]): Promise
   }
   if (d === "thong-bao/cai-dat" && get) { const c = await tb.caiDatTb(bm.id); return json({ yenLang: c.yenLang, tat: c.tat }); }
   if (d === "thong-bao/cai-dat" && post) return json(await tb.luuCaiDatTb(bm.id, await docJson(req)));
+  if (d === "thong-bao/push-token" && post) return json(await dangKyPushToken(bm.id, await docJson(req)));
+  if (d === "thong-bao/push-token/huy" && post) return json(await huyPushToken(bm.id, await docJson(req)));
   return null;
 }
 

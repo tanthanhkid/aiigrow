@@ -585,6 +585,17 @@ export const SCHEMA_TV_TB = [
     tat jsonb not null default '[]',
     updated_at timestamptz not null default now()
   )`,
+  // #876: token push GỐC của từng máy Ba Mẹ (lib/push.ts): loai = apns (iOS, device token) | fcm (Android); moi_truong chỉ cho apns (sandbox | production).
+  // Một token = một máy: đăng nhập tài khoản khác trên máy đó ⇒ token chuyển chủ.
+  `create table if not exists push_token (
+    token text primary key,
+    parent_id text not null references parents(id) on delete cascade,
+    loai text not null,
+    moi_truong text not null default 'production',
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+  )`,
+  `create index if not exists push_token_parent on push_token(parent_id)`,
   // dong_bang_chuoi: ngày Ba Mẹ «đóng băng» chuỗi ngày của Con (FR-03.06, tối đa 1 lần/tuần) — ngày đó không làm đứt chuỗi.
   `create table if not exists dong_bang_chuoi (
     child_id text not null references children(id) on delete cascade,

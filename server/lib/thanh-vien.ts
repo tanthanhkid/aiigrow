@@ -18,6 +18,7 @@ import { xoaGiaDinhTrongTx } from "./xoa-gia-dinh.ts";
 import { bangLog } from "./log-may.ts";
 import { bangMang } from "./dns-gia-dinh.ts";
 import { bangM4b } from "./tuan-thu.ts";
+import { guiPushChoBaMe } from "./push.ts";
 import { chiBaMe, laChuNha, quyenTuVai, quyenVao, TEN_QUYEN, vaiCu, type Quyen } from "./quyen.ts";
 
 export const LOI_MOI_GIO = 72;
@@ -77,6 +78,25 @@ async function ketQuaMoi(fam: string, nguoi: string, id: string, ma: string, quy
     chiaSe: { tieuDe: `${ai} mời bạn vào ${nha || "nhà"} trên AiiGrow`, noiDung: `${ai} mời bạn cùng trông con trên AiiGrow. Bấm để vào nhà: ${lienKet}`, lienKet } };
 }
 
+/** #876: lời mời gửi tới SĐT / email đã có tài khoản (nhà khác) ⇒ đẩy push «<Người mời> mời bạn vào nhà <tên nhà>»; bấm push ⇒ /moi/vao.
+ *  Tài khoản Facebook-only không khớp định danh (chỉ qua link). Không có token / lỗi push ⇒ im lặng (người được mời vẫn thấy banner khi mở app). */
+async function baoLoiMoiQuaPush(fam: string, nguoi: string, dinhDanh: string | null) {
+  if (!dinhDanh) return 0;
+  const nhan = await q<{ id: string }>(`select id from parents where dinh_danh = $1 and vai <> 'roi' and family_id <> $2`, [dinhDanh, fam]);
+  const ai = (await one<{ ten: string }>(`select ten from parents where id = $1`, [nguoi]))?.ten ?? "Người nhà";
+  const nha = (await one<{ ten: string }>(`select ten from families where id = $1`, [fam]))?.ten ?? "";
+  let n = 0;
+  const { caiDatTb, quyetDinhDay } = await import("./thong-bao.ts");     // nạp lười: thong-bao.ts nạp thanh-vien.ts
+  for (const x of nhan) {
+    if (await emailChuaXacMinh(q, x.id)) continue;
+    // theo thiết lập của người nhận: tắt nhóm «Thành viên gia đình» hoặc đang giờ yên lặng ⇒ không đẩy (banner + dòng thông báo vẫn có)
+    const nhaNhan = (await one<{ tz: string }>(`select f.tz from parents p join families f on f.id = p.family_id where p.id = $1`, [x.id]))?.tz ?? "Asia/Ho_Chi_Minh";
+    if (!quyetDinhDay("chu_y", "gia_dinh", new Date(), await caiDatTb(x.id), nhaNhan).day) continue;
+    n += await guiPushChoBaMe(x.id, { title: "Lời mời vào nhà", body: `${ai} mời bạn vào ${nha || "nhà"} trên AiiGrow`, data: { den: "/moi/vao", loai: "loi_moi" }, channelId: "gia_dinh" });
+  }
+  return n;
+}
+
 /** Ba Mẹ mời người nhà bằng SĐT / email ({dinhDanh, quyen, tenGoi}). Không có dinhDanh (app bản cũ) ⇒ lời mời chỉ qua link.
  *  Đã có lời mời chờ cho đúng SĐT / email đó ⇒ huỷ cái cũ, tạo cái mới (link cũ hết hiệu lực). → token (chỉ trả MỘT lần) + link. */
 export async function taoLoiMoi(bm: BaMe, b: { vai?: unknown; quyen?: unknown; tenGoi?: unknown; dinhDanh?: unknown }, goc: string) {
@@ -104,6 +124,7 @@ export async function taoLoiMoi(bm: BaMe, b: { vai?: unknown; quyen?: unknown; t
                        on conflict (ma_hash) do nothing returning het`, [id, bm.family_id, sha(ma), quyen, tenGoi, bm.id, LOI_MOI_GIO, dinhDanh]);
     if (r.length) {
       await ghiSuKien(bm.family_id, "moi_thanh_vien", { vai: quyen, ten_goi: tenGoi, co_dinh_danh: !!dinhDanh }, { nguoi: bm.id });
+      void baoLoiMoiQuaPush(bm.family_id, bm.id, dinhDanh).catch(() => 0);   // không chặn lời mời khi APNs / FCM chậm
       return ketQuaMoi(bm.family_id, bm.id, id, ma, quyen, tenGoi, dinhDanh, r[0].het, goc);
     }
   }
@@ -127,6 +148,7 @@ export async function guiLaiLoiMoi(bm: BaMe, id: string, goc: string) {
         [id, bm.family_id, sha(ma), LOI_MOI_GIO]);
       if (!r.length) throw new LoiNghiepVu("khong_thay", "Không thấy lời mời này (có thể đã được nhận hoặc đã huỷ)", 404);
       await ghiSuKien(bm.family_id, "gui_lai_loi_moi", { ten_goi: r[0].ten_goi }, { nguoi: bm.id });
+      void baoLoiMoiQuaPush(bm.family_id, bm.id, r[0].dinh_danh).catch(() => 0);
       return ketQuaMoi(bm.family_id, bm.id, id, ma, quyenTuVai(r[0].vai) ?? "trong_giup", r[0].ten_goi, r[0].dinh_danh, r[0].het, goc);
     } catch (e) {
       if (e instanceof LoiNghiepVu) throw e;
@@ -181,7 +203,7 @@ export async function emailChuaXacMinh(t: Q, parentId: string) {
 export async function loiMoiChoToi(bm: BaMe) {
   await bangTvTb();
   if (await emailChuaXacMinh(q, bm.id)) return [];
-  const ds = await q<LoiMoi & { ten_gia_dinh: string; ten_nguoi_moi: string | null }>(
+  const ds = await q<LoiMoi & { ten_gia_dinh: string; ten_nguoi_moi: string | null; gui_luc: Date | null; created_at: Date }>(
     `select l.*, f.ten as ten_gia_dinh, p.ten as ten_nguoi_moi from loi_moi l join families f on f.id = l.family_id
        left join parents p on p.id = l.nguoi
       where l.dinh_danh = $1 and l.family_id <> $2 and l.dung_luc is null and l.huy_luc is null and l.het > now() order by l.created_at desc`,
@@ -189,7 +211,7 @@ export async function loiMoiChoToi(bm: BaMe) {
   return Promise.all(ds.map(async (m) => {
     const quyen = quyenTuVai(m.vai) ?? "trong_giup";
     return { id: m.id, tenGiaDinh: m.ten_gia_dinh, nguoiMoi: m.ten_nguoi_moi, quyen, tenQuyen: TEN_QUYEN[quyen], tenGoi: m.ten_goi,
-      tenCon: await tenCacCon(m.family_id), het: new Date(m.het).toISOString() };
+      tenCon: await tenCacCon(m.family_id), het: new Date(m.het).toISOString(), moiLuc: new Date(m.gui_luc ?? m.created_at).toISOString() };
   }));
 }
 

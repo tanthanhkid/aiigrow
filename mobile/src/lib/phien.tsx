@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { router } from "expo-router";
 import { bm } from "./api";
+import { huyDangKyPush } from "./push-tb";
 
 /** ra({ daXoa: true }): tài khoản vừa bị xoá trên máy chủ (phiên đã mất) ⇒ không gọi dang-xuat, chỉ xoá token trên máy. */
 /** vao(token, moi?, den?): `den` = đường vào sau khi có phiên (thiết kế 05/11: nhánh được mời ⇒ /moi/vao); không có ⇒ như cũ. */
@@ -21,6 +22,7 @@ export function PhienProvider({ children }: { children: ReactNode }) {
     router.replace((den ?? (moi ? "/thiet-lap/ten-con" : "/")) as never);
   }, []);
   const ra = useCallback(async (o?: { daXoa?: boolean }) => {
+    await Promise.race([huyDangKyPush(!!o?.daXoa), new Promise((r) => setTimeout(r, 2000))]);   // mất mạng / máy chủ chậm không được giữ nút Đăng xuất
     if (!o?.daXoa) try { await bm.goi("dang-xuat", {}); } catch { /* vẫn xoá phiên trên máy */ }
     await bm.dat(null);
     setCo(false);

@@ -2,12 +2,12 @@
 // thêm chỗ ghi nào ở các mô-đun khác. Gộp thông minh: Con nộp nhiều nhiệm vụ liền nhau ⇒ một dòng «Ken vừa nộp 3 nhiệm vụ».
 // Việc chính Ba/Mẹ đang xem tự làm thì không báo lại; việc Ba Mẹ KHÁC làm (duyệt, từ chối, mở khẩn cấp…) thì báo.
 // Mỗi Ba Mẹ có thiết lập riêng: giờ yên lặng (không đẩy trừ nghiêm trọng) và tắt từng nhóm (cảnh báo nghiêm trọng không tắt được).
-// Push thật (APNs / FCM qua Expo) CHỜ THIẾT BỊ: `day` trên mỗi dòng là quyết định «có đẩy không» mà bộ gửi push sẽ dùng.
+// Push thật thẳng APNs / FCM (lib/push.ts › guiPushChoBaMe, #876 nối cho lời mời người nhà): `day` trên mỗi dòng là quyết định «có đẩy không» mà bộ gửi dùng chung sẽ dùng.
 import { one, q } from "./db.ts";
 import type { BaMe } from "./auth.ts";
 import { gioDiaPhuong, trongKhung } from "./gio.ts";
 import { LoiNghiepVu } from "./loi.ts";
-import { bangTvTb, TEN_VAI } from "./thanh-vien.ts";
+import { bangTvTb, loiMoiChoToi, TEN_VAI } from "./thanh-vien.ts";
 import { soVN } from "./so-sao.ts";
 import { tenAppDep } from "./ten-app.ts";
 import { laTienTrinhNenWindows } from "./luat-app.ts";
@@ -162,6 +162,12 @@ export async function dsThongBao(bm: BaMe, now = new Date()) {
     daCo.add(k);
     tho.push({ id: `a:${a.id}`, nhom: a.loai === "no_qua_1000" ? "canh_bao_no" : "canh_bao", muc: a.muc, tieu: a.noi_dung, phu: a.ten_con ? `Cảnh báo · ${a.ten_con}` : "Cảnh báo",   // phụ luôn khác tiêu (tiêu = nội dung cảnh báo)
       luc: new Date(a.created_at).toISOString(), t: new Date(a.created_at).getTime(), con: a.child_id, den: `/canh-bao/${a.id}`, so: 1, loai: "canh_bao" });
+  }
+  // #876: lời mời vào nhà khác đang chờ gửi tới đúng SĐT / email của mình ⇒ một dòng «gia_dinh» (bấm ⇒ màn nhận lời mời)
+  for (const m of await loiMoiChoToi(bm)) {
+    const luc = new Date(m.moiLuc);
+    tho.push({ id: `m:${m.id}`, nhom: "gia_dinh", muc: "chu_y", tieu: `${m.nguoiMoi ?? "Người nhà"} mời bạn vào nhà ${m.tenGiaDinh}`,
+      phu: `Quyền ${m.tenQuyen} · bấm để xem lời mời`, luc: luc.toISOString(), t: luc.getTime(), con: null, den: "/moi/vao", so: 1, loai: "loi_moi" });
   }
   tho.sort((a, b) => b.t - a.t);
   // gộp: nộp nhiệm vụ cùng Con, liền nhau (không xen dòng khác của Con đó) và cách nhau ≤ GOP_PHUT

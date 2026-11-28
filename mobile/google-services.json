@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "958795446515",
+    "project_id": "aiirob",
+    "storage_bucket": "aiirob.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:958795446515:android:f8643112e9c50bae3d9f86",
+        "android_client_info": {
+          "package_name": "vn.aiilab.aiigrow"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "958795446515-cjoq7sd1l84o8nk083fo6ijomlqpeso9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDzaEs6sTJy1z46IF2Qt-_E6VytSBRvdtY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "958795446515-cjoq7sd1l84o8nk083fo6ijomlqpeso9.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "958795446515-s2ecuoc2e0cpn1t1bapb2cm34j1okip9.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "vn.aiilab.aiigrow"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
