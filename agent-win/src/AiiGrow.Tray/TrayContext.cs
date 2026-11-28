@@ -1017,16 +1017,15 @@ internal sealed class TrayContext : ApplicationContext
         // 15/11: app «Tính phút» bị đóng vì HẾT SAO ⇒ popup «Hết sao rồi · Roblox sắp đóng» (them-zxuekzer), không phải «chưa có trong danh sách»;
         // màn «Hết sao rồi» toàn màn hình đang hiện (vừa hết sao lúc chơi) ⇒ không chồng thêm popup
         if (id != null && _state.QuyConPhut is <= 0 && _hetSao is { IsDisposed: false } && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase)) return;
+        // #307: Con đang ở hộp «Xin thêm …» cho đúng app này ⇒ đưa hộp lên trước, không chồng màn chặn mới
+        if (id != null && _xinThem is { IsDisposed: false } dangXin && string.Equals(dangXin.Muc, id.Trim(), StringComparison.OrdinalIgnoreCase)) { dangXin.Activate(); return; }
+        // #741 (test 28/11): cùng app bị đóng lại mỗi nhịp ⇒ không dựng lại hộp / popup «Hết sao» đang mở hoặc vừa bị bé đóng (trước đây ✖ / Esc / Alt+F4 như không có tác dụng).
+        if (id != null && !_hopLap.NenHien(id, _blocked is { IsDisposed: false } dang && dang.LaHopCua(id), DateTimeOffset.Now)) return;
         if (id != null && _state.QuyConPhut is <= 0 && !_state.MoHet && !MoCoHan.Dang(_state, DateTimeOffset.Now) && _state.AppTinhPhut.Contains(id, StringComparer.OrdinalIgnoreCase))
         {
             HienPopupHetSao(id, _state.BlockedAppName);
             return;
         }
-        // #307: Con đang ở hộp «Xin thêm …» cho đúng app này ⇒ đưa hộp lên trước, không chồng màn chặn mới
-        if (id != null && _xinThem is { IsDisposed: false } dangXin && string.Equals(dangXin.Muc, id.Trim(), StringComparison.OrdinalIgnoreCase)) { dangXin.Activate(); return; }
-        // #741 (test 28/11): cùng app bị đóng lại mỗi nhịp ⇒ không dựng lại hộp đang mở / vừa bị bé đóng (trước đây ✖ / Esc / Alt+F4 như không có tác dụng).
-        // Đặt SAU nhánh «Hết sao» / «Xin thêm» — các nhánh đó giữ như cũ.
-        if (id != null && !_hopLap.NenHien(id, _blocked is { IsDisposed: false } dang && dang.LaHopCua(id), DateTimeOffset.Now)) return;
         // một màn chặn tại một thời điểm: app bị đóng lặp lại (Con mở lại liên tục) không chồng nhiều cửa sổ
         if (_blocked is { IsDisposed: false }) { try { _blocked.Close(); _blocked.Dispose(); } catch { } }
         if (ManChanView.TuGui(id, _state.BlockedBoiBaMe, _state.Offline, daXin)) _soTuGui++;

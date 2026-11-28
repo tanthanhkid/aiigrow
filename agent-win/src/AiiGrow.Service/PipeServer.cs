@@ -140,18 +140,14 @@ public sealed class PipeServer : BackgroundService
         switch (req.Cmd)
         {
             case PipeCmd.State:
-            {
-                var st = TrangThaiChoPhien(now, clientSession);
-                st.TrangChan = null;   // #741: tab đang xem chỉ trả cho khay thật của phiên Con (lệnh Foreground)
-                return new PipeResponse { Ok = true, State = st };
-            }
+                return new PipeResponse { Ok = true, State = TrangThaiChoPhien(now, clientSession) };
 
             case PipeCmd.Foreground:
             {
                 // Chỉ khay thật: app khác trong phiên Con giả lời báo («không có cửa sổ») sẽ ngừng được đồng hồ phiên chơi.
                 if (fromChild && khayThat) _rt.SetForeground(req.AppId, req.AppName, req.TieuDe);
                 var stFg = TrangThaiChoPhien(now, clientSession);
-                if (!(fromChild && khayThat)) stFg.TrangChan = null;   // tab của phiên Con — chỉ khay thật của phiên Con nhận
+                if (fromChild && khayThat) stFg.TrangChan = _rt.TrangChanDangXem();   // #741: tab của phiên Con — chỉ khay thật của phiên Con nhận
                 bool baoTc;
                 lock (_baoTrangChan) baoTc = stFg.TrangChan is { } tc0 && _baoTrangChan.NenHien(tc0, now);
                 if (baoTc && stFg.TrangChan is { } tc)

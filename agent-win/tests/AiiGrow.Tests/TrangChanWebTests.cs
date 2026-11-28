@@ -79,6 +79,22 @@ public class TrangChanWebTheoDanhSachTests
     public void MucChoCoWww_ChoCaTenMienTran() => Assert.Null(TrangChanWeb.TimMien("youtube.com/watch?v=1 - Microsoft Edge", Array.Empty<string>(), new[] { "www.youtube.com" }, chiChoPhep: true));
 
     [Fact]
+    public void ChiChoPhep_MucChanCuThe_DuoiTenMienDuocCho()
+    {
+        Assert.Equal("music.youtube.com", TrangChanWeb.TimMien("music.youtube.com - Microsoft Edge", new[] { "music.youtube.com" }, Cho, chiChoPhep: true));
+        Assert.Equal("m.youtube.com", TrangChanWeb.TimMien("m.youtube.com - Microsoft Edge", Array.Empty<string>(), new[] { "www.youtube.com" }, chiChoPhep: true));   // «www.» không nới sang tên miền con khác
+    }
+
+    [Fact]
+    public void HopChanApp_AppKhacChenVao_AppCuHienLai()
+    {
+        var h = new HopChanLap();
+        Assert.True(h.NenHien("a.exe", false, T));
+        Assert.True(h.NenHien("b.exe", false, T.AddSeconds(3)));
+        Assert.True(h.NenHien("a.exe", false, T.AddSeconds(6)));
+    }
+
+    [Fact]
     public void KhongChiChoPhep_GiuNhuCu() => Assert.Null(TrangChanWeb.TimMien("www.tiktok.com - Profile 1 - Microsoft Edge", Array.Empty<string>(), Cho));
 
     [Fact]

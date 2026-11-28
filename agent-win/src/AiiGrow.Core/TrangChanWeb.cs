@@ -27,9 +27,15 @@ public sealed class TrangChanWeb
         var cat = s.IndexOfAny(new[] { '/', '?', '#' });
         if (cat >= 0) s = s[..cat];
         s = Regex.Replace(s, @":\d+$", "");
-        if (s.Length == 0 || s.Contains(' ') || !s.Contains('.') || !Regex.IsMatch(s, @"^[a-z0-9.-]+$")) return null;
+        if (s.Length == 0 || s.Contains(' ') || !s.Contains('.')) return null;
         if (chiChoPhep)
         {
+            // mục chặn cụ thể nằm dưới tên miền được cho (music.youtube.com dưới youtube.com) — trình duyệt theo mục cụ thể hơn ⇒ vẫn là trang chặn
+            foreach (var raw in webChan)
+            {
+                var m = (raw ?? "").Trim().ToLowerInvariant().TrimStart('*', '.');
+                if (m.Contains('.') && Khop(s, new[] { m })) return m;
+            }
             // Ở đây MỌI tiêu đề dạng địa chỉ ngoài danh sách cho là ứng viên ⇒ siết: trang lỗi chặn đặt tiêu đề = ĐÚNG địa chỉ (sau nó chỉ còn tên hồ sơ trình duyệt).
             // Trang được cho có tiêu đề «tiktok.com - Google Search» / «Three.js» / «baitap.pdf» không bị báo nhầm.
             if (duoi.Length > 0 && (duoi.Contains(" - ") || duoi.Length > 40 || TrangThat.IsMatch(duoi))) return null;
@@ -58,8 +64,8 @@ public sealed class TrangChanWeb
     private static bool Khop(string mien, IEnumerable<string> ds) => ds.Any(c =>
     {
         var k = (c ?? "").Trim().ToLowerInvariant().TrimStart('*', '.');
-        if (k.StartsWith("www.", StringComparison.Ordinal)) k = k[4..];   // mục «www.youtube.com» cho cả youtube.com
-        return k.Length > 0 && (mien == k || mien.EndsWith("." + k, StringComparison.Ordinal));
+        // mục «www.youtube.com»: trang lỗi có thể đặt tiêu đề «youtube.com» cho chính trang đó — chỉ khớp đúng tên trần, không nới sang m.youtube.com
+        return k.Length > 0 && (mien == k || mien.EndsWith("." + k, StringComparison.Ordinal) || (k.StartsWith("www.", StringComparison.Ordinal) && mien == k[4..]));
     });
 
     /// <summary>Nên bật hộp cho <paramref name="mien"/> lúc <paramref name="bay"/> không? Có ⇒ ghi mốc (nghỉ <see cref="NghiGiay"/> giây cho cùng trang).</summary>
@@ -78,14 +84,15 @@ public sealed class TrangChanWeb
 public sealed class HopChanLap
 {
     public const int NghiGiay = 30;
-    private readonly Dictionary<string, DateTimeOffset> _luc = new(StringComparer.OrdinalIgnoreCase);
+    private string? _muc;            // app bị chặn GẦN NHẤT (một mục: app khác chen vào ⇒ app cũ lần sau hiện lại bình thường; không phình theo số app)
+    private DateTimeOffset _luc;
 
     /// <param name="hopDangMo">Hộp chặn của đúng <paramref name="muc"/> đang mở.</param>
     public bool NenHien(string muc, bool hopDangMo, DateTimeOffset bay)
     {
         var k = (muc ?? "").Trim();
-        var vuaChan = _luc.TryGetValue(k, out var truoc) && (bay - truoc).TotalSeconds < NghiGiay;
-        _luc[k] = bay;
+        var vuaChan = string.Equals(_muc, k, StringComparison.OrdinalIgnoreCase) && (bay - _luc).TotalSeconds < NghiGiay;
+        _muc = k; _luc = bay;
         return !hopDangMo && !vuaChan;
     }
 }
