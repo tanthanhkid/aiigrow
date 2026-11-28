@@ -743,8 +743,8 @@ struct DoiQuaView: View {
           }
         }
         dongQua
-        Chu("\(q.diem) sao đang được giữ", co: 15, dam: .bold, mau: ClayMau.diemInk, dong: 1)
-        Chu("Ba Mẹ trao quà mới trừ sao.", co: 13, mau: ClayMau.chu3, dong: 1)
+        Chu("Đã trừ \(q.diem) sao", co: 15, dam: .bold, mau: ClayMau.diemInk, dong: 1)
+        Chu("Ba Mẹ từ chối thì sao về lại cho con.", co: 13, mau: ClayMau.chu3, dong: 1)
         Button("Về Sao & quà", action: dong).buttonStyle(NutClayStyle(kieu: .ngoc))
         Button("Xem quà của con ›", action: xemQua).buttonStyle(.plain).font(.clay(size: 13, weight: .bold)).foregroundColor(ClayMau.ngocInk)
       } else {
@@ -754,7 +754,7 @@ struct DoiQuaView: View {
         Chu(du ? "Con dùng được \(ChuSao.vien(max(0, sao))) · đủ rồi!" : "Con dùng được \(ChuSao.vien(max(0, sao))) · còn thiếu \(ChuSao.so(thieu)) sao", co: 15, dam: .bold, mau: du ? ClayMau.ngocInk : ClayMau.canh, dong: 1)
         if no > 0 { Chu("Đang nợ Ba Mẹ \(ChuSao.so(no)) sao", co: 13, dam: .bold, mau: ClayMau.canh, dong: 1) }
         if du {
-          Chu("Gửi Ba Mẹ · Ba Mẹ trao quà mới trừ sao", co: 13, mau: ClayMau.chu3, dong: 2)
+          Chu("Đổi là trừ sao ngay · Ba Mẹ từ chối thì hoàn", co: 13, mau: ClayMau.chu3, dong: 2)
           Button(dangGui ? "Đang gửi…" : "Gửi Ba Mẹ: đổi \(q.diem) sao") {
             dangGui = true
             Task { daGui = await app.doiQua(q, dsChoi: dsChoi); dangGui = false }

@@ -206,3 +206,22 @@ test("#759: hoàn tác một lượt không thu hồi thông báo của lượt 
   const ds = (await hv.tinCho(con)).ds.filter((x) => x.loai === "duyet_nhiem_vu").map((x) => x.noi);
   assert.deepEqual(ds, ["«Quét nhà» · +10 sao"]);
 });
+
+test("#759: popup đã hiện rồi Ba Mẹ mới hoàn tác ⇒ tin trả thuHoi = id tin duyệt cũ (khay đóng popup, báo «Ba Mẹ đã hoàn tác»)", async () => {
+  const hv = await import("./hoc-vien.ts");
+  const { fam, bm } = await taoNha();
+  const con = await g.taoCon(fam, { ten: "Na" });
+  const t = await nv.taoNv(fam, { ten: "Tưới cây", diem: 60 });
+  const s = await nv.batDau(con, t);
+  await nv.nop(con, s, { anh: [anhGia("c759")] });
+  await nv.duyet(fam, s, bm);
+  const lan1 = await hv.tinCho(con);
+  const daHien = lan1.ds.find((x) => x.loai === "duyet_nhiem_vu")!;
+  assert.ok(daHien, "khay đã nhận tin duyệt");
+  assert.deepEqual(lan1.thuHoi, [], "chưa hoàn tác ⇒ không thu hồi gì");
+  await nv.hoanTacDuyet(fam, s, bm);
+  const lan2 = await hv.tinCho(con, new Date(lan1.bay));
+  assert.deepEqual(lan2.thuHoi.map((x) => [x.id, x.ten]), [[daHien.id, "Tưới cây"]]);
+  assert.ok(!lan2.ds.some((x) => x.loai === "duyet_nhiem_vu"), "tin duyệt cũ không về lại");
+  assert.ok(!lan2.ds.some((x) => x.loai === "hoan_tac_duyet"), "khay cũ không thấy loại tin lạ");
+});

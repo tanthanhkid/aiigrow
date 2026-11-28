@@ -1,6 +1,6 @@
-// «Đổi quà» xác nhận + «Đã gửi Ba Mẹ» bản «Dịu» (con-dt-ngay 17–18, Nghi chốt 06/11 — L14): quà + giá, «50 → 0 sao», «Sao được giữ lại ·
-// Ba Mẹ trao xong mới trừ», mô tả quà; «Gửi Ba Mẹ đổi quà» / «Để dành sao». Gửi xong: «Đang giữ 50 sao · còn 0 sao · ⏳ Chờ Ba Mẹ trao»,
-// «Ba Mẹ trao quà thì mới trừ sao. Ba Mẹ huỷ thì 50 sao về lại cho con.» Mất mạng ⇒ chưa đổi, không giữ sao.
+// «Đổi quà» xác nhận + «Đã gửi Ba Mẹ» bản «Dịu» (con-dt-ngay 17–18, Nghi chốt 06/11 — L14): quà + giá, «50 → 0 sao», «Đổi là trừ sao ngay ·
+// Ba Mẹ từ chối thì hoàn» (#757: máy chủ trừ ngay, web cũng vậy), mô tả quà; «Gửi Ba Mẹ đổi quà» / «Để dành sao». Gửi xong: «Đã trừ 50 sao · còn 0 sao · ⏳ Chờ Ba Mẹ trao»,
+// «Đã trừ 50 sao, chờ Ba Mẹ trao quà. Ba Mẹ từ chối thì 50 sao về lại cho con.» Mất mạng ⇒ chưa đổi, không giữ sao.
 // 15/11 (#263, cdt-doi-qua): chưa đủ sao ⇒ «50 → −50 sao · Còn thiếu 50 sao · Ba Mẹ cho vay thì con nợ 50 sao», «Xin Ba Mẹ cho vay 50 sao»
 // (POST kid/xin-vay {soSao, mucDich: qua, quaId}) / «Thôi, con làm nhiệm vụ để dành».
 import { useState } from "react";
@@ -38,12 +38,12 @@ export default function DoiQua() {
           <IcO ic="gui" co={96} />
           <TieuD chu="Đã gửi Ba Mẹ" giua />
           <ChuD kieu="den" co={18} giua>{q.ten}</ChuD>
-          <ChuD kieu="rat" co={14.5} mau={D.saoInk} giua>{`Đang giữ ${q.diem} sao · còn ${daGui.con} sao`}</ChuD>
+          <ChuD kieu="rat" co={14.5} mau={D.saoInk} giua>{`Đã trừ ${q.diem} sao · còn ${daGui.con} sao`}</ChuD>
           <PillD chu="⏳ Chờ Ba Mẹ trao" loai="cho" />
         </View>
         <TheD>
-          <ChuD kieu="rat" co={15}>Ba Mẹ trao quà thì mới trừ sao.</ChuD>
-          <ChuD co={14.5} mau={D.chu2}>{`Ba Mẹ huỷ thì ${q.diem} sao về lại cho con.`}</ChuD>
+          <ChuD kieu="rat" co={15}>{`Đã trừ ${q.diem} sao, chờ Ba Mẹ trao quà.`}</ChuD>
+          <ChuD co={14.5} mau={D.chu2}>{`Ba Mẹ từ chối thì ${q.diem} sao về lại cho con.`}</ChuD>
         </TheD>
       </ManD>
     );
@@ -105,7 +105,7 @@ export default function DoiQua() {
           <ChuD kieu="den" co={22} mau={D.saoInk}>→</ChuD>
           <ChuD kieu="den" co={28} mau={D.saoInk} so>{`${Math.max(0, d.sao - q.diem)} sao`}</ChuD>
         </View>
-        <ChuD kieu="rat" co={13.5} mau={D.saoInk} giua>Sao được giữ lại · Ba Mẹ trao xong mới trừ</ChuD>
+        <ChuD kieu="rat" co={13.5} mau={D.saoInk} giua>Đổi là trừ sao ngay · Ba Mẹ từ chối thì hoàn</ChuD>
       </TheD>
       {q.moTa ? <ChuD co={15} mau={D.chu2} giua>{q.moTa}</ChuD> : null}
     </ManD>

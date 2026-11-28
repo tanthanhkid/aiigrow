@@ -101,7 +101,7 @@ AiiGrow.Core        (thư viện)                API client, DPAPI, Policy, AppL
   trên đầu màn hình, «Khoá lại» (hộp / menu khay) ⇒ màn chọn tên; hết hạn ⇒ tự khoá (không chờ mạng).
 - App Con: thanh bên viên chữ + tên bé, «Đổi người / Đăng xuất» (hộp con-ngay-thuong 08), «Ba Mẹ dùng máy» (→ nhập mã). Màn hết giờ máy dùng chung thêm
   «Đổi người · Ba Mẹ mở máy». Đổi người ⇒ khay xoá tin / app của bé trước.
-- **Sao & quà = bảng giá** (L14): «Con chọn quà → Ba Mẹ trao → mới trừ sao», mục «Đang chờ Ba Mẹ trao» (đang giữ N sao), «Quà con đổi được» xếp theo
+- **Sao & quà = bảng giá** (L14): «Đổi là trừ sao ngay · Ba Mẹ từ chối thì hoàn sao cho con» (#757), mục «Đang chờ Ba Mẹ trao» (đã trừ N sao), «Quà con đổi được» xếp theo
   giá (nhãn «Mã QR» / «Chỉ cuối tuần» / «Còn 1 bộ»), bấm quà chưa đủ sao ⇒ «Con có 30 sao · còn thiếu 20 sao». «Quà của con»: voucher AiiCafe Ba Mẹ đã
   trao hiện mã (= nội dung QR quầy quét) + hạn + «Còn N ngày».
 - Chưa thử trên Windows thật: `New-LocalUser -NoPassword` + đăng nhập không mật khẩu, màn chọn tên toàn màn hình, phím số. Ảnh: `chup-man` (CI `chup-man-win`)

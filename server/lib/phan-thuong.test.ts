@@ -134,6 +134,9 @@ test("#757: Ba Mẹ từ chối quà chờ trao ⇒ hoàn đúng sao + tồn kho
   assert.equal(vq.phieu.length, 0);
   assert.deepEqual(vq.daTuChoi.map((x) => [x.id, x.diem]), [[r.phieu, 200]]);
   assert.ok((await pt.cuaHang(con)).qua.some((x) => x.id === lego), "trả tồn kho");
+  // máy Con (khay): «Ba Mẹ đã từ chối · đã hoàn 200 sao» — không còn «Phiếu quà đã huỷ»
+  const { tinCho } = await import("./hoc-vien.ts");
+  assert.deepEqual((await tinCho(con)).ds.filter((x) => x.loai === "huy_qua").map((x) => [x.tieu, x.noi]), [["Ba Mẹ đã từ chối · đã hoàn 200 sao", "«Bộ Lego»"]]);
   await loi(pt.huyPhieu(fam, r.phieu, bm), "da_xu_ly");
   assert.equal(await v.soDu(con), 300, "từ chối lần hai không hoàn thêm");
   // quà bị xoá khỏi bảng giá (huỷ tự động) không hiện là «Ba Mẹ từ chối»
@@ -141,4 +144,5 @@ test("#757: Ba Mẹ từ chối quà chờ trao ⇒ hoàn đúng sao + tồn kho
   await pt.doiQua(con, q2, THU4);
   await (await import("./qua-bang-gia.ts")).xoaQua(fam, q2, bm);
   assert.deepEqual((await pt.viQua(con)).daTuChoi.map((x) => x.ten), ["Bộ Lego"]);
+  assert.deepEqual((await tinCho(con)).ds.filter((x) => x.loai === "huy_qua").map((x) => x.tieu), ["Quà không còn trong danh sách · đã hoàn 50 sao", "Ba Mẹ đã từ chối · đã hoàn 200 sao"]);
 });

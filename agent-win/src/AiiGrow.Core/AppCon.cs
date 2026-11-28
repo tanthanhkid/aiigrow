@@ -199,7 +199,14 @@ public static class AppConView
     }
 
     /// <summary>Dòng phụ quà đang chờ trao: «Đang giữ 50 sao · chờ Ba Mẹ trao».</summary>
-    public static string DangGiu(int sao, bool ngan = false) => ngan ? $"Đang giữ {sao} sao · Ba Mẹ trao mới trừ" : $"Đang giữ {sao} sao · chờ Ba Mẹ trao";
+    /// <summary>#757: máy chủ trừ sao NGAY khi Con đổi (web cũng hiện đã trừ) ⇒ không ghi «trao mới trừ»; Ba Mẹ từ chối thì hoàn.</summary>
+    public static string DangGiu(int sao, bool ngan = false) => ngan ? $"Đã trừ {sao} sao · Ba Mẹ từ chối thì hoàn" : $"Đã trừ {sao} sao · chờ Ba Mẹ trao";
+
+    /// <summary>#757: luật đổi quà một câu (mục «Đổi quà», hộp xác nhận).</summary>
+    public const string LuatDoiQua = "Đổi là trừ sao ngay · Ba Mẹ từ chối thì hoàn sao cho con";
+
+    /// <summary>#759: «Ba Mẹ duyệt rồi!» — «0 → 51 sao»: số dư Con thấy kẹp ≥ 0 (như web); trước = sau − sao cộng, không âm (sao âm do chơi lố phút / nợ không hiện).</summary>
+    public static string TruocSau(int sau, int them) => $"{Math.Max(0, sau - them)} → {sau} sao";
 
     /// <summary>Hộp đổi quà: <paramref name="dungDuoc"/> = sao TIÊU ĐƯỢC (gồm sao Ba Mẹ cho vay chưa tiêu — không phải số dư «sao», âm khi nợ).
     /// «Con dùng được 30 sao · còn thiếu 20 sao» (chưa đủ) hoặc null (đủ — hiện «30 sao → còn 0 sao»).</summary>

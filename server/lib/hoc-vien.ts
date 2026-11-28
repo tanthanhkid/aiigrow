@@ -13,6 +13,8 @@ import { gioiHanMay, quyHomNay, saoKepGioiHan } from "./quy-gio.ts";
 import { cheDoCua, TEN_NHOM_DS } from "./chan-co-ban.ts";
 
 type TinHocVien = { id: string; loai: string; tieu: string; noi: string; luc: string };
+/** #759: tin duyệt đã gửi Con rồi bị Ba Mẹ «Hoàn tác» — `id` = id tin duyệt cũ (khay đã hiện thì đóng popup, báo «Ba Mẹ đã hoàn tác»). */
+type TinThuHoi = { id: string; ten: string; luc: string };
 
 const iso = (d: Date) => new Date(d).toISOString();
 const KHONG_LAM_DUOC = new Set(["da_xong"]);
@@ -68,7 +70,7 @@ const LUI_PHUT = 5;
 
 /** Thông báo cho khay: nhiệm vụ mới (giao riêng hoặc mở cho cả nhà), Ba Mẹ duyệt / từ chối / yêu cầu bổ sung, lời khen, quà đã trao / bị huỷ.
  *  `sau` = `bay` của lần hỏi trước (máy chủ tự lùi 5 phút, khay lọc trùng theo `id`); không có `sau` ⇒ 7 ngày gần nhất (để khay hiện trong hộp thư, không bật toast). */
-export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinHocVien[]; bay: string }> {
+export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinHocVien[]; thuHoi: TinThuHoi[]; bay: string }> {
   const c = await one<{ family_id: string }>(`select family_id from children where id = $1`, [con]);
   if (!c) throw new LoiNghiepVu("khong_thay", "Không thấy hồ sơ Con", 404);
   const tu = sau && Number.isFinite(sau.getTime()) ? new Date(sau.getTime() - LUI_PHUT * 60_000) : new Date(Date.now() - SO_NGAY_TIN * 86_400_000);
@@ -106,7 +108,12 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
       case "can_bo_sung": them("Ba Mẹ nhờ bổ sung", `«${s(d.ten)}» · ${s(d.ly_do)}`); break;
       case "loi_khen": them("Lời nhắn từ Ba Mẹ", s(d.noi_dung)); break;
       case "xac_nhan_qua": them("Ba Mẹ đã trao quà!", d.phut ? `${s(d.ten)} · +${s(d.phut)} phút` : s(d.ten)); break;
-      case "huy_qua": them("Phiếu quà đã huỷ", `«${s(d.ten)}» · hoàn ${s(d.hoan)} sao`); break;
+      // #757: Ba Mẹ từ chối phiếu đang chờ trao ⇒ «Ba Mẹ đã từ chối · đã hoàn 50 sao»; quà bị xoá khỏi bảng giá (ly_do xoa_qua) ⇒ câu riêng
+      case "huy_qua": {
+        const hoan = Number(d.hoan) > 0 ? ` · đã hoàn ${s(d.hoan)} sao` : "";
+        them(d.ly_do === "xoa_qua" ? `Quà không còn trong danh sách${hoan}` : `Ba Mẹ đã từ chối${hoan}`, `«${s(d.ten)}»`);
+        break;
+      }
       case "huy_hieu": them("Huy hiệu mới", s(d.ten ?? d.ma)); break;
       // #258: kết quả lời xin app / web — «Mẹ Lan đã thêm Roblox · Tính phút» / «Ba Mẹ chưa thêm Roblox lúc này. Con xin lại sau được nhé»
       case "dong_y_yeu_cau":
@@ -124,7 +131,12 @@ export async function tinCho(con: string, sau?: Date | null): Promise<{ ds: TinH
   }
   for (const t of moi) ra.push({ id: "nv:" + t.id, loai: "nhiem_vu_moi", tieu: "Nhiệm vụ mới cho cả nhà", noi: `«${t.ten}» · ${t.diem} sao`, luc: new Date(t.created_at).toISOString() });
   ra.sort((a, b) => (a.luc < b.luc ? 1 : -1));
-  return { ds: ra, bay: new Date().toISOString() };
+  // #759: hoàn tác SAU khi khay có thể đã nhận tin duyệt ⇒ trả id tin duyệt bị thu hồi (khay chỉ xử lý id nó đã thấy; khay cũ bỏ qua trường này)
+  const thuHoi = (await q<{ id: string; ten: string; created_at: Date }>(
+    `select chi_tiet->>'thu_hoi_id' as id, chi_tiet->>'ten' as ten, created_at from events
+     where child_id = $1 and loai = 'hoan_tac_duyet' and created_at > $2 and chi_tiet ? 'thu_hoi_id' order by created_at desc limit 20`, [con, tu]))
+    .map((x) => ({ id: x.id, ten: x.ten ?? "", luc: new Date(x.created_at).toISOString() }));
+  return { ds: ra, thuHoi, bay: new Date().toISOString() };
 }
 
 /** Con trả lời một lời nhắn / lời khen của Ba Mẹ (một câu ngắn hoặc một biểu tượng) — Ba Mẹ thấy ở dòng thời gian của Con. */

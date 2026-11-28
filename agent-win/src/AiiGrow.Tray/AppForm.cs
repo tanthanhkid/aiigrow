@@ -969,8 +969,8 @@ internal sealed class AppForm : Form
         dau.Controls.Add(lb);
         dau.Controls.Add(KhoiCon.LienKet("Quà của con ›", "qua", () => { _xemQuaCuaCon = true; Render(); }));
         _content.Controls.Add(dau);
-        // 06/11 (L14 — con-ngay-thuong 23): quà = bảng giá sao; con chọn ⇒ sao bị GIỮ, Ba Mẹ trao mới trừ hẳn
-        var luat = T("Con chọn quà → Ba Mẹ trao → mới trừ sao", 10.5f, false, UI.Muted);
+        // 06/11 (L14 — con-ngay-thuong 23): quà = bảng giá sao; #757: con đổi ⇒ máy chủ trừ sao ngay (web cũng vậy), Ba Mẹ từ chối thì hoàn
+        var luat = T(AppConView.LuatDoiQua, 10.5f, false, UI.Muted);
         luat.Margin = new Padding(Px(4), 0, 0, Px(6));
         _content.Controls.Add(luat);
 

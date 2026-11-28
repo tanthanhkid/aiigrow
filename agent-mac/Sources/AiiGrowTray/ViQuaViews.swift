@@ -54,7 +54,7 @@ struct ViQuaView: View {
             VienClay(ten: "wrapped_gift", duPhong: "gift.fill", nen: ClayMau.the, co: 44)
             VStack(alignment: .leading, spacing: 2) {
               Chu(p.ten, co: 16, dam: .bold, dong: 1)
-              Chu("Đang giữ \(p.sao) sao · Ba Mẹ trao mới trừ", co: 13, mau: ClayMau.chu3, dong: 1)
+              Chu("Đã trừ \(p.sao) sao · Ba Mẹ từ chối thì hoàn", co: 13, mau: ClayMau.chu3, dong: 1)
             }
             nhan("Chờ trao", chu: ClayMau.canh, nen: ClayMau.canhSoft)
           }

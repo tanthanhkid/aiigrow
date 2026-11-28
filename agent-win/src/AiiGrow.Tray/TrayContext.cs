@@ -305,6 +305,17 @@ internal sealed class TrayContext : ApplicationContext
             var (r, _) = await HvApi.GetAsync<HvTinDs>(path);
             if (r == null) return;
             var moi = _tin.Nhan(r);
+            // #759: Ba Mẹ hoàn tác lượt duyệt mà khay đã nhận ⇒ đóng «Ba Mẹ duyệt rồi!» của lượt đó (nếu đang mở) + báo «Ba Mẹ đã hoàn tác»
+            var thuHoi = _tin.ThuHoi(r);
+            if (thuHoi.Count > 0)
+            {
+                if (_ketQua is { IsDisposed: false } kh && _ketQuaKq is { Loai: "duyet" } kd && thuHoi.Any(x => x.Ten == kd.Ten)) kh.DongLang();
+                var (tt, nt) = HocVienView.ThuHoiText(thuHoi);
+                Toast(8000, tt, nt, ToolTipIcon.Info, MucApp.NhiemVu);
+                if (_app is { Visible: true }) _ = _app.RefreshAsync();
+            }
+            // #757: Ba Mẹ trao / từ chối quà vừa đổi ⇒ hộp «Đã gửi Ba Mẹ · Chờ Ba Mẹ trao quà…» tự đóng (bóng báo ghi kết quả)
+            if (moi.Count > 0 && DoiQuaHop.DangCho is { IsDisposed: false } dq && HocVienView.XongQuaCho(moi, dq.TenQua)) dq.Close();
             if (moi.Count > 0)
             {
                 _tinMoi += moi.Count;
@@ -444,6 +455,8 @@ internal sealed class TrayContext : ApplicationContext
     }
 
     private KetQuaHop? _ketQua;
+    /// <summary>Kết quả đang hiện ở <see cref="_ketQua"/> (null = hộp «Giỏi lắm!» / không có) — #759: hoàn tác đúng lượt ⇒ đóng hộp duyệt.</summary>
+    private KetQuaTin? _ketQuaKq;
     private bool _dangMoKetQua;
 
     /// <summary>Màn kết quả Ba Mẹ trả lời (một hộp một lúc). Số sao trước / sau và lời khen đọc từ tổng quan mới nhất.</summary>
@@ -473,13 +486,13 @@ internal sealed class TrayContext : ApplicationContext
             "da_them" => HopDaThem(kq, tq),
             _ => HopChuaThem(kq),
         };
-        _ketQua = h;
+        _ketQua = h; _ketQuaKq = kq;
         h.FormClosed += (_, e) =>
         {
             // chỉ coi là «bấm ×» khi người dùng đóng (không phải tắt máy / thoát app / khay tự đóng lúc đổi bé — DongLang) và máy không khoá
             var dongX = !h.DaBam && e.CloseReason == CloseReason.UserClosing && !_state.Locked;
             h.Dispose();
-            if (_ketQua == h) _ketQua = null;
+            if (_ketQua == h) { _ketQua = null; _ketQuaKq = null; }
             // 14/11 (con-ngay-thuong 14 → 25): đóng «Ba Mẹ duyệt rồi!» bằng × ⇒ «Giỏi lắm! N ngày liền» (mỗi ngày một lần)
             if (dongX && kq.Loai == "duyet" && tq != null && ChuoiView.NenHien(tq.Chuoi, _mung.DaMung(_beId)) && !_state.Locked) HienChuoi(tq, kq.Sao ?? 0);
         };
@@ -522,7 +535,7 @@ internal sealed class TrayContext : ApplicationContext
             .Tuan(c.Tuan)
             .Cap(tq.CapDo.Cap, ChuoiView.MoiLenCap(tq.CapDo, tq.TongKiem, vuaCong), vuaCong);
         h.Nut(vuaCong > 0 ? $"Tuyệt! Nhận {vuaCong} sao" : "Tuyệt!", true, "sao", () => OpenApp(MucApp.NhiemVu));
-        _ketQua = h;
+        _ketQua = h; _ketQuaKq = null;
         h.FormClosed += (_, e) =>
         {
             // chỉ coi là «bấm ×» khi người dùng đóng (không phải tắt máy / thoát app / khay tự đóng lúc đổi bé — DongLang) và máy không khoá
@@ -541,7 +554,7 @@ internal sealed class TrayContext : ApplicationContext
         var khen = tq?.Gan.FirstOrDefault(g => g.TrangThai == "duoc_duyet" && g.Ten == kq.Ten)?.LoiKhen;
         return new KetQuaHop("Nhiệm vụ")
             .Dau("phao_hoa", KhoiCon.Mau.Vang, "Ba Mẹ duyệt rồi!", kq.Ten)
-            .Chip($"+{them} sao", true, sao is int s ? $"{s - them} → {s} sao" : null)
+            .Chip($"+{them} sao", true, sao is int s ? AppConView.TruocSau(s, them) : null)
             .Loi("Ba Mẹ", khen)
             .Nut("Xem sao & đổi quà", true, "sao", () => OpenApp(MucApp.PhanQua))
             .Nut("Làm việc tiếp theo", false, "tick", () => OpenApp(MucApp.NhiemVu));
