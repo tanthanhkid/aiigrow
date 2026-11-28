@@ -4,7 +4,7 @@
 // Dữ liệu: GET may/:id/con + GET tuan-thu (máy khác) + GET phien-dang (app đang mở). Mở từ thẻ sân của màn máy (bm2-may-m1).
 import { useState } from "react";
 import { router, useLocalSearchParams } from "expo-router";
-import { Pressable, View } from "react-native";
+import { Pressable, View, useWindowDimensions } from "react-native";
 import { bm, type PhienDang, type TuanThuMay } from "@/lib/api";
 import { KHOI, HERO, KHOI_HERO } from "@/lib/clay";
 import { BangKhoaMay, quyenToi, tenGoi } from "@/lib/hang-ngay";
@@ -30,6 +30,8 @@ export default function MayChiTiet() {
   const [mo, setMo] = useState<"may" | "be" | "doi" | null>(null);
   const [beKhoa, setBeKhoa] = useState<string | null>(null);
   const { bao, noi } = useHoanTac();
+  const { width: wMan } = useWindowDimensions();
+  const heo = wMan < 360;   // 320px: hai thẻ khoá xếp dọc để nhãn «Khoá <bé> mọi máy» vẫn tối đa 2 dòng
   const { lam, loi: loiLam, dangChay } = useLam();
   const lui = () => (router.canGoBack() ? router.back() : router.replace({ pathname: "/may/[id]", params: { id } }));
   if (!d) return <Man dau={<DauHaiDong tieu="Máy" lui={lui} />}><ChoTai loi={loi} matMang={matMang} tai={tai} /></Man>;
@@ -63,9 +65,9 @@ export default function MayChiTiet() {
     );
   };
   const theKhoa = (ic: "may_tinh" | "nguoi", tieu: string, phu: string, nut: React.ReactNode) => (
-    <View style={[{ flex: 1, padding: 12, borderRadius: 24, backgroundColor: M.the, gap: 4 }, KHOI.the]}>
+    <View style={[{ flex: heo ? undefined : 1, padding: heo ? 16 : 12, borderRadius: 24, backgroundColor: M.the, gap: 4 }, KHOI.the]}>
       <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}><Icon3D ten={ic} co={20} /><Chu kieu="rat" co={14}>{tieu}</Chu></View>
-      <Chu kieu="dam" co={12} mau={M.chu3} style={{ lineHeight: 16, flex: 1 }}>{phu}</Chu>
+      <Chu kieu="dam" co={12} mau={M.chu3} style={{ lineHeight: 16, flex: heo ? undefined : 1 }}>{phu}</Chu>
       <View style={{ marginTop: 6 }}>{nut}</View>
     </View>
   );
@@ -118,7 +120,7 @@ export default function MayChiTiet() {
         </View>
       ) : null}
       <BaoLoi loi={loiLam} />
-      <View style={{ flexDirection: "row", gap: 10 }}>
+      <View style={{ flexDirection: heo ? "column" : "row", gap: 10 }}>
         {theKhoa("may_tinh", "Theo máy", `${gan.length >= 2 ? `Cả ${gan.length} bé` : gan[0] ? tenGoi(gan[0].ten) : "Bé"} không vào được ${tenNgan}. Máy riêng vẫn dùng.`,
           <Nut chu="Khoá máy này" nho rong tat={khoaMay || !gan.length} bam={() => setMo("may")} />)}
         {theKhoa("nguoi", "Theo bé", be ? `${tenBe} không vào được mọi máy.${gan.length >= 2 ? ` ${gan.filter((c) => c.id !== be.id).map((c) => tenGoi(c.ten)).join(", ")} vẫn dùng.` : ""}` : "Chưa có bé dùng máy này.",

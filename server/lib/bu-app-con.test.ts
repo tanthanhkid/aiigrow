@@ -89,15 +89,16 @@ test("iOS: không trừ đôi với kênh khác (đồng hồ cửa sổ); Mở 
   assert.equal(st.ios.phutDaDung, 30, "vẫn lưu mốc ⇒ bỏ Mở hết không bị trừ bù");
 });
 
-test("iOS qua /api/device/nhip: phút tăng ⇒ chinhSach.sao trả về đã trừ ngay trong lượt đó", async () => {
+test("iOS qua nhịp (nhipMay): phút tăng ⇒ chinhSach.sao trả về đã trừ ngay trong lượt đó", async () => {
+  // truyền mốc giờ (không dùng đồng hồ thật): tuyến /api/device/nhip gọi đúng nhipMay(may, con, b, now); đồng hồ thật làm ca sai quanh nửa đêm
+  const { nhipMay } = await import("./nhip-may.ts");
   const { con, r } = await nhaIos("Su");
-  const nhip = async (n: number) => (await dv(r.token, "nhip", { phienBan: "ios-0.2.0", clientTime: new Date().toISOString(), appQuanLyBat: true, ios: ios(n) }));
-  const a = await nhip(10);
-  assert.equal(a.status, 200);
+  const nhip = async (n: number, now: Date) => nhipMay((await g.mayTuToken(r.token))!, con, { phienBan: "ios-0.2.0", clientTime: now.toISOString(), appQuanLyBat: true, ios: ios(n) } as any, now) as any;
+  await nhip(10, T);
   assert.equal(await v.soDu(con), 50);
-  const b = await nhip(11);   // +1 phút (kẹp tối thiểu 1 phút thật) ⇒ −1 sao
+  const b = await nhip(11, new Date(T.getTime() + phut(1)));   // +1 phút ⇒ −1 sao
   assert.equal(await v.soDu(con), 49);
-  assert.equal(b.body.chinhSach.sao.phutCon, 49);
+  assert.equal(b.chinhSach.sao.phutCon, 49);
 });
 
 test("kid/sao + hoc-vien/sao: lichSu[] (vay / trả nợ / chơi / nhiệm vụ / quà) và appHomNay[] (phút từng app hôm nay, nhóm, sao đã trừ), iPhone một dòng", async () => {

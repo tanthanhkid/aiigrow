@@ -34,7 +34,7 @@ const choiTheoRef = async (con: string) => new Map((await q<{ ref: string; s: nu
 
 test("A4: một lượt đồng bộ có nhiều app «Tính phút» ⇒ sổ sao + «đã dùng gì» ghi đúng từng app", async () => {
   const { con, may } = await nha(30);
-  const now = new Date();
+  const now = new Date("2026-11-20T05:00:00Z");   // mốc giờ truyền vào (12:00 giờ VN) — không dùng đồng hồ thật, lượt +3 phút không vắt qua nửa đêm
   const ngay = gioDiaPhuong(now, "Asia/Ho_Chi_Minh").ngay;
   await dongBo(await may(), { usage: [{ muc: "roblox.exe", phut: 5, day: ngay }, { muc: "youtube.com", phut: 3, day: ngay }] }, now);
   assert.equal(await v.soDu(con), 22, "trừ đủ 8 sao");
