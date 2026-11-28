@@ -161,11 +161,17 @@ Xử lý: `server/lib/lenh-may.ts` (`datCheDo`, `goMayAnToan`, `trangThaiGo`). T
   - máy đã từng đồng bộ (đã gọi `dong-bo` hoặc gửi `nhip`) ⇒ ghi lệnh `go` (bấm lại không tạo lệnh mới) ⇒
     `{trangThai: "dang_go", id, lapLai, cach}`. Máy **không** bị xoá ngay: chỉ rời gia đình khi agent `POST lenh/:id/xong`.
   - máy chưa đồng bộ lần nào ⇒ 409 `can_xoa_han` (app hỏi lại) · gửi `xoaHan: true` ⇒ xoá ngay ⇒ `{trangThai: "da_xoa", canGoTaiMay: false}`.
-  - `xoaHan: true` khi đang gỡ: chỉ được nếu lệnh gỡ đã chờ > 7 ngày **và** máy không liên lạc (dong-bo / nhịp) > 7 ngày ⇒ lệnh chờ chuyển `huy`,
+  - `xoaHan: true` khi đang gỡ: chỉ được nếu lệnh đã chờ > 7 ngày **và** máy không liên lạc (dong-bo / nhịp) > 7 ngày, **hoặc** máy im > 30 ngày
+    (tính cả trước lúc gửi lệnh), **hoặc** máy tính (Windows / Mac) đã được cài lại thành dòng mới (#858: cùng nhà, cùng loại, cùng tên, ghép sau
+    lần liên lạc cuối, dòng cũ im ≥ 24 giờ, không cùng có `ma_may` khác nhau — `banMoi`; khi đó `canGoTaiMay: false`) ⇒ lệnh chờ chuyển `huy`,
     máy xoá, `{trangThai: "da_xoa", canGoTaiMay: true}` (app nhắc gỡ tại máy). Chưa đủ điều kiện ⇒ 409 `chua_duoc_xoa_han`.
   - Lỗi khác: `sai_mat_khau` 401 · `chi_chu` 403 · `khong_thay` 404. Sự kiện: `lenh_go` · `go_may {cach: tu_xa | xoa_han}`.
+- **`POST may/:id/go/huy`** (#858 «Huỷ gỡ») — Ba Mẹ, không cần mật khẩu (huỷ = giữ bảo vệ): lệnh `go` đang chờ ⇒ `huy`, máy về chặn thật ở lần
+  đồng bộ tới ⇒ `{ok: true, huy}` (`huy: false` = không có lệnh chờ). Sự kiện `huy_lenh_go`. Agent đã nhận lệnh trước khi huỷ mà vẫn gỡ xong ⇒
+  `lenh/:id/xong` vẫn nhận (lệnh `huy` ⇒ `xong`), máy rời danh sách.
 - `GET tuan-thu` / `GET may/:id/tuan-thu` thêm: `cheDo` (hiển thị; `null` = chưa biết), `cheDoMay` (agent báo; `null` = chưa báo), `cheDoBaMeChon`
-  (`null` = chưa chọn), `daDongBo`, `dangGo: {lenhId, tu} | null`, `coTheXoaHan`.
+  (`null` = chưa chọn), `daDongBo`, `dangGo: {lenhId, tu} | null`, `coTheXoaHan`, `lienLacCuoi` (ISO | null), `choMayBat` (máy chưa liên lạc từ lúc gửi
+  lệnh ⇒ app ghi «Chờ máy bật để gỡ (gửi lúc …)»), `banMoi: {id, ten} | null` (#858 máy đã cài lại thành dòng mới).
 - **Gỡ tại máy** (Windows): Cài đặt → Ứng dụng → AiiGrow → Gỡ cài đặt — mục `HKLM\…\Uninstall\AiiGrow` trỏ `"C:\Program Files\AiiGrow\AiiGrow.Setup.exe" --uninstall`
   (Setup xin quyền quản trị ⇒ Windows hỏi mật khẩu của Ba Mẹ). Bộ gỡ gọi `POST /api/device/da-go` trước khi xoá token, rồi gỡ sạch (dịch vụ, khay,
   AppLocker, thông báo đăng nhập, mục Ứng dụng, ProgramData). Máy cài bản cũ (chưa có mục này / chưa chép Setup.exe): tải bộ cài ở `/tai`, chạy

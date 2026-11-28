@@ -12,7 +12,7 @@ import { BONG, KHOI, MEN } from "@/lib/clay";
 import { BangKhoaMay, tenGoi, type ConCt } from "@/lib/hang-ngay";
 import { LienKet } from "@/lib/lan-dau";
 import { HangChonBe } from "@/lib/ui-chung";
-import { maMay, type HienThiMay } from "@/lib/trang-thai-may";
+import { cauGo, maMay, type HienThiMay } from "@/lib/trang-thai-may";
 import { appTrenMay, AvtCon, CapAvt, cauSao, conCuaMay, nganTen as ngan, DauHaiDong, hinhMay, laMayChung, laMotCon, mayCuaCon, type ConNganMay } from "@/lib/may-nhieu-con";
 import { ChoTai, Chu, gioPhut, Icon3D, LopMen, M, Man, Nut, truoc, useHoanTac, useTai } from "@/lib/ui";
 
@@ -21,7 +21,7 @@ const trungTinh = (m: TuanThuMay) => (m.trangThai === "tat_may" || m.trangThai =
 /** #657: nhóm theo MỘT trạng thái hiển thị (lib/trang-thai-may.ts) — máy mất mạng không còn lọt «Cần sửa» / «Đang bảo vệ». */
 const ma = (m: TuanThuMay): HienThiMay => maMay(m);
 function cauTrangThai(m: TuanThuMay) {
-  if (m.dangGo) return "Đang gỡ AiiGrow khỏi máy này";
+  if (m.dangGo) return cauGo(m) ?? "Đang gỡ AiiGrow khỏi máy này";
   if (m.moKhanCapDen && Date.parse(m.moKhanCapDen) > Date.now()) return `Đang mở khẩn cấp tới ${gioPhut(m.moKhanCapDen)}`;
   if (m.moDen && Date.parse(m.moDen) > Date.now()) return `Đang mở tới ${gioPhut(m.moDen)}`;
   if (ma(m) === "mat_mang") return m.lanCuoi ? `Mất mạng · báo về lần cuối ${truoc(m.lanCuoi)}` : "Chưa nhận được tin từ máy";

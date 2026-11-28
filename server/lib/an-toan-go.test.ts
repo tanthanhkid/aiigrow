@@ -147,6 +147,100 @@ test("xoá hẳn: máy chưa đồng bộ lần nào ⇒ cần xoaHan; đang g�
   assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'go_may' and chi_tiet->>'cach' = 'xoa_han'`, [fam])).length, 2);
 });
 
+test("#858: máy đã im > 30 ngày từ trước khi gửi lệnh gỡ ⇒ xoá hẳn được ngay (10 ngày thì chưa); máy cài lại thành dòng mới cùng tên ⇒ banMoi + xoá hẳn bản cũ; Huỷ gỡ", async () => {
+  const { fam, con, bmTok } = await nha();
+  // (a) máy im 10 ngày rồi Ba Mẹ mới gửi lệnh gỡ ⇒ vẫn cho lệnh 7 ngày để tới máy (laptop cất tủ); im > 30 ngày ⇒ xoá hẳn ngay
+  const tat = await ghep(fam, con, "PC tắt");
+  await dv("nhip", { tok: tat.token, body: { phienBan: "1.4.0", appQuanLyBat: true } });
+  await q(`update devices set last_seen = now() - interval '10 days' where id = $1`, [tat.deviceId]);
+  await q(`update tuan_thu_may set nhip_cuoi = now() - interval '10 days' where device_id = $1`, [tat.deviceId]);
+  const l = (await m(`may/${tat.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body;
+  assert.equal(l.trangThai, "dang_go");
+  const t0 = (await m(`may/${tat.deviceId}/tuan-thu`, { tok: bmTok })).body;
+  assert.deepEqual([t0.coTheXoaHan, t0.choMayBat, t0.banMoi], [false, true, null], "web ghi «Chờ máy bật để gỡ»");
+  await q(`update devices set last_seen = now() - interval '31 days' where id = $1`, [tat.deviceId]);
+  await q(`update tuan_thu_may set nhip_cuoi = now() - interval '31 days' where device_id = $1`, [tat.deviceId]);
+  const t1 = (await m(`may/${tat.deviceId}/tuan-thu`, { tok: bmTok })).body;
+  assert.equal(t1.coTheXoaHan, true);
+  // máy liên lạc sau lúc gửi lệnh ⇒ không còn «chờ máy bật»
+  await dv("nhip", { tok: tat.token, body: { phienBan: "1.4.0", appQuanLyBat: true } });
+  assert.equal((await m(`may/${tat.deviceId}/tuan-thu`, { tok: bmTok })).body.choMayBat, false);
+
+  // (b) máy cài lại (agent cũ không gửi ma_may) ⇒ dòng mới cùng tên; lệnh gỡ gửi nhầm dòng cũ ⇒ banMoi, xoá hẳn ngay
+  const cu = await ghep(fam, con, "MAYTINH4");
+  await dv("dong-bo", { tok: cu.token, body: {} });
+  await q(`update devices set last_seen = now() - interval '2 days', created_at = now() - interval '20 days' where id = $1`, [cu.deviceId]);
+  const moi = await ghep(fam, con, "maytinh4");
+  await dv("dong-bo", { tok: moi.token, body: {} });
+  const lc = (await m(`may/${cu.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body;
+  const t2 = (await m(`may/${cu.deviceId}/tuan-thu`, { tok: bmTok })).body;
+  assert.deepEqual([t2.coTheXoaHan, t2.banMoi], [true, { id: moi.deviceId, ten: "maytinh4" }]);
+  // dòng mới không bị coi là bản cũ của chính nó; máy cùng tên nhưng chưa có lệnh gỡ thì không gợi ý gì
+  const t3 = (await m(`may/${moi.deviceId}/tuan-thu`, { tok: bmTok })).body;
+  assert.deepEqual([t3.banMoi, t3.dangGo], [null, null]);
+  const x = (await m(`may/${cu.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123", xoaHan: true } })).body;
+  assert.deepEqual(x, { trangThai: "da_xoa", canGoTaiMay: false }, "AiiGrow trên máy là dòng mới ⇒ không nhắc gỡ tại máy");
+  assert.equal((await q<{ trang_thai: string }>(`select trang_thai from lenh_may where id = $1`, [lc.id]))[0].trang_thai, "huy");
+  assert.equal((await dv("dong-bo", { tok: moi.token, body: {} })).body.windows.cheDo, "chan", "dòng mới không dính lệnh gỡ");
+
+  // (c) Huỷ gỡ: lệnh chờ huỷ, máy về chặn thật; Người trông giúp không huỷ được; nhà khác 404
+  const may = await ghep(fam, con, "PC huỷ");
+  await dv("dong-bo", { tok: may.token, body: {} });
+  const lh = (await m(`may/${may.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body;
+  assert.equal((await dv("dong-bo", { tok: may.token, body: {} })).body.windows.cheDo, "giam-sat");
+  const tg = await taoPhien(await taoBaMe(fam, "Bà", "trong_giup"));
+  assert.equal((await m(`may/${may.deviceId}/go/huy`, { tok: tg, body: {} })).status, 403);
+  assert.equal((await m(`may/${may.deviceId}/go/huy`, { tok: (await nha("Mai")).bmTok, body: {} })).status, 404);
+  assert.deepEqual((await m(`may/${may.deviceId}/go/huy`, { tok: bmTok, body: {} })).body, { ok: true, huy: true });
+  assert.deepEqual((await m(`may/${may.deviceId}/go/huy`, { tok: bmTok, body: {} })).body, { ok: true, huy: false });
+  const p = (await dv("dong-bo", { tok: may.token, body: {} })).body;
+  assert.deepEqual([p.lenh, p.windows.cheDo], [[], "chan"]);
+  assert.equal((await q<{ trang_thai: string }>(`select trang_thai from lenh_may where id = $1`, [lh.id]))[0].trang_thai, "huy");
+  assert.equal((await q(`select 1 from events where family_id = $1 and loai = 'huy_lenh_go' and device_id = $2`, [fam, may.deviceId])).length, 1);
+  assert.equal((await m(`may/${may.deviceId}/tuan-thu`, { tok: bmTok })).body.dangGo, null);
+
+  // (d) agent ĐÃ nhận lệnh và đang gỡ thì Ba Mẹ bấm Huỷ ⇒ agent báo xong vẫn được nhận, máy rời danh sách (không kẹt «mất mạng» mãi)
+  const ld = (await m(`may/${may.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body;
+  assert.deepEqual((await dv("dong-bo", { tok: may.token, body: {} })).body.lenh, [{ id: ld.id, loai: "go" }]);
+  await m(`may/${may.deviceId}/go/huy`, { tok: bmTok, body: {} });
+  assert.deepEqual((await dv(`lenh/${ld.id}/xong`, { tok: may.token, body: {} })).body, { ok: true, lapLai: false });
+  assert.equal((await q(`select 1 from devices where id = $1`, [may.deviceId])).length, 0);
+
+  // (d2) lệnh đã huỷ rồi Ba Mẹ gửi lệnh mới ⇒ «xong» muộn của lệnh cũ không được nhận; lệnh mới vẫn chạy
+  const may2 = await ghep(fam, con, "PC gửi lại");
+  await dv("dong-bo", { tok: may2.token, body: {} });
+  const c1 = (await m(`may/${may2.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body;
+  await m(`may/${may2.deviceId}/go/huy`, { tok: bmTok, body: {} });
+  const c2 = (await m(`may/${may2.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } })).body;
+  assert.notEqual(c1.id, c2.id);
+  assert.deepEqual((await dv(`lenh/${c1.id}/xong`, { tok: may2.token, body: {} })).body, { ok: true, lapLai: true });
+  assert.equal((await q(`select 1 from devices where id = $1`, [may2.deviceId])).length, 1);
+  assert.deepEqual((await dv(`lenh/${c2.id}/xong`, { tok: may2.token, body: {} })).body, { ok: true, lapLai: false });
+
+  // (d3) dòng mới cùng tên nhưng chưa đồng bộ lần nào (cài hỏng) ⇒ không coi là cài lại
+  const cu2 = await ghep(fam, con, "PC cài hỏng");
+  await dv("dong-bo", { tok: cu2.token, body: {} });
+  await q(`update devices set last_seen = now() - interval '2 days', created_at = now() - interval '20 days' where id = $1`, [cu2.deviceId]);
+  await ghep(fam, con, "PC cài hỏng");
+  await m(`may/${cu2.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } });
+  assert.equal((await m(`may/${cu2.deviceId}/tuan-thu`, { tok: bmTok })).body.banMoi, null);
+
+  // (e) máy cùng tên nhưng là điện thoại / dòng cũ mới im < 24 giờ ⇒ không coi là cài lại
+  const dt1 = await g.ghepMay(await g.taoMaGhep(fam, con, "ios"), "ios", "iPhone");
+  await dv("nhip", { tok: dt1.token, body: { phienBan: "1.4.0" } });
+  await q(`update devices set last_seen = now() - interval '2 days', created_at = now() - interval '20 days' where id = $1`, [dt1.deviceId]);
+  await q(`update tuan_thu_may set nhip_cuoi = now() - interval '2 days' where device_id = $1`, [dt1.deviceId]);
+  await g.ghepMay(await g.taoMaGhep(fam, con, "ios"), "ios", "iPhone");
+  await m(`may/${dt1.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } });
+  assert.deepEqual(((b) => [b.banMoi, b.coTheXoaHan])((await m(`may/${dt1.deviceId}/tuan-thu`, { tok: bmTok })).body), [null, false]);
+  const ngu = await ghep(fam, con, "PC ngủ");
+  await dv("dong-bo", { tok: ngu.token, body: {} });
+  await q(`update devices set last_seen = now() - interval '2 hours', created_at = now() - interval '20 days' where id = $1`, [ngu.deviceId]);
+  await ghep(fam, con, "pc ngủ");
+  await m(`may/${ngu.deviceId}/go`, { tok: bmTok, body: { matKhau: "matkhau123" } });
+  assert.equal((await m(`may/${ngu.deviceId}/tuan-thu`, { tok: bmTok })).body.banMoi, null);
+});
+
 test("máy MỚI ghép vào thẳng Chặn thật (Thanh 25/10); máy dùng chung chỉ khi đã chọn Con: đồng bộ đầu đã gửi cheDo chan; điện thoại không có chế độ", async () => {
   const { fam, con, bmTok } = await nha();
   const may = await ghep(fam, con);

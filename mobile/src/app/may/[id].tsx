@@ -8,7 +8,7 @@
 // iPhone / iPad: «Máy riêng của <bé> · iPad không đổi người dùng được nên chỉ một bé dùng» (không có «Máy này ai dùng?»).
 // Mục «An toàn & sự cố» giữ các tính năng cũ: mở khẩn cấp, gỡ từ xa (nhập lại mật khẩu), gỡ tại máy, nhật ký. Người trông giúp: xem, khoá máy, mã mất mạng.
 // Dữ liệu: GET may/:id/tuan-thu (conDs, dangDung, khoaMay, tungCon) + GET may/:id/con (mọi bé, gán chưa, sao) + GET tuan-thu (máy khác) + gia-dinh.
-import { maMay, TEN_HIEN_THI } from "@/lib/trang-thai-may";
+import { cauGo, maMay, TEN_HIEN_THI } from "@/lib/trang-thai-may";
 import { cheDoTu } from "@/lib/app-web";
 import { chuPhut } from "@/lib/chu-phut";
 import { useCallback, useState } from "react";
@@ -31,7 +31,7 @@ const PHUT = [15, 30, 60, 120];
 const SU_KIEN: Record<string, string> = {
   tuan_thu_lech: "Lệch chuẩn tuân thủ", tuan_thu_on: "Tuân thủ trở lại", may_ngoai_vong: "Máy ngoài vòng kiểm soát", may_tro_lai: "Máy đồng bộ trở lại",
   mo_khan_cap: "Ba Mẹ mở khẩn cấp", huy_mo_khan_cap: "Huỷ mở khẩn cấp", het_mo_khan_cap: "Hết giờ mở khẩn cấp", tin_cay_admin: "Xác nhận tài khoản quản trị",
-  lenh_go: "Ra lệnh gỡ từ xa", go_may: "Máy đã gỡ AiiGrow", xem_ma_offline: "Xem mã mở offline", may_mo_ma_offline: "Máy mở bằng mã offline", may_sai_ma_offline: "Gõ sai mã offline nhiều lần", may_het_ma_offline: "Có mạng lại, hết mở bằng mã", doi_che_do: "Đổi chế độ", doi_ten_may: "Đổi tên máy",
+  lenh_go: "Ra lệnh gỡ từ xa", huy_lenh_go: "Huỷ lệnh gỡ", go_may: "Máy đã gỡ AiiGrow", xem_ma_offline: "Xem mã mở offline", may_mo_ma_offline: "Máy mở bằng mã offline", may_sai_ma_offline: "Gõ sai mã offline nhiều lần", may_het_ma_offline: "Có mạng lại, hết mở bằng mã", doi_che_do: "Đổi chế độ", doi_ten_may: "Đổi tên máy",
   doi_con_may: "Đổi bé dùng máy", quan_tri_trong_mat_khau: "Có tài khoản quản trị chưa có mật khẩu", quan_tri_co_mat_khau: "Tài khoản quản trị đã có mật khẩu", khoa_may: "Ba Mẹ khoá máy", mo_khoa_may: "Ba Mẹ mở khoá máy", khoa_ngay: "Ba Mẹ khoá bé trên mọi máy", mo_lai: "Ba Mẹ mở khoá bé",
 };
 const NGAY_XOA_HAN = 7;
@@ -415,9 +415,17 @@ export default function AnToanMay() {
       ) : null}
 
       {m.dangGo ? (
-        <Bao loai="lam" ic="dong_ho_cat" tieu="Đang chờ máy nhận lệnh gỡ…"
-          loi={`Gửi ${truoc(m.dangGo.tu)}. Trong lúc chờ, máy chạy Giám sát (không theo danh sách App & web). Khi có mạng, máy tự gỡ AiiGrow rồi tự rời danh sách; gỡ tại máy cũng tự báo về. Máy không bật lại nữa? Sau ${NGAY_XOA_HAN} ngày không liên lạc, bạn xoá hẳn được.`}>
-          {d.chu && m.coTheXoaHan ? <Nut chu="Xoá hẳn khỏi danh sách" loai="vien" nho bam={() => setMo("xoa")} /> : null}
+        <Bao loai="lam" ic="dong_ho_cat" tieu={cauGo(m) ?? "Đang chờ máy nhận lệnh gỡ…"}
+          loi={m.banMoi
+            ? `Bản «${m.ten}» này không còn trên máy nên không nhận được lệnh gỡ. Xoá hẳn bản cũ khỏi danh sách; muốn gỡ AiiGrow khỏi máy thì gỡ «${m.banMoi.ten}».`
+            : `Gửi ${truoc(m.dangGo.tu)}.${m.choMayBat ? ` Máy chưa liên lạc từ lúc gửi${m.lienLacCuoi ? ` (lần cuối ${truoc(m.lienLacCuoi)})` : ""}.` : ""} Trong lúc chờ, máy chạy Giám sát (không theo danh sách App & web). Khi có mạng, máy tự gỡ AiiGrow rồi tự rời danh sách; gỡ tại máy cũng tự báo về. Máy không bật lại nữa? Lệnh chờ quá ${NGAY_XOA_HAN} ngày mà máy vẫn không liên lạc thì bạn xoá hẳn được.`}>
+          {d.chu ? (
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+              {m.coTheXoaHan ? <Nut chu="Xoá hẳn khỏi danh sách" loai="vien" nho bam={() => setMo("xoa")} /> : null}
+              {m.banMoi ? <Nut chu={`Mở «${m.banMoi.ten}»`} loai="vien" nho bam={() => router.push({ pathname: "/may/[id]", params: { id: m.banMoi!.id } })} /> : null}
+              {m.banMoi ? null : <Nut chu="Huỷ gỡ" loai="vien" nho dangChay={dangChay} bam={() => lam(async () => { const r = await bm.goi<{ huy: boolean }>(`may/${id}/go/huy`, {}); bao(r.huy ? `Đã huỷ lệnh gỡ — ${m.ten} tiếp tục được bảo vệ` : "Không còn lệnh gỡ nào đang chờ"); await tai(); })} />}
+            </View>
+          ) : null}
         </Bao>
       ) : null}
 
@@ -477,7 +485,9 @@ export default function AnToanMay() {
 
       <BangTruot mo={mo === "xoa"} dong={dong} tieu={`Xoá hẳn ${m.ten} khỏi danh sách?`}>
         <Chu mau={M.chu2}>
-          {m.daDongBo
+          {m.banMoi
+            ? `Máy đã được cài lại thành «${m.banMoi.ten}» nên bản cũ này không nhận được lệnh gỡ. Xoá hẳn chỉ bỏ bản cũ khỏi danh sách — «${m.banMoi.ten}» vẫn được bảo vệ như cũ.`
+            : m.daDongBo
             ? `Máy đã ${NGAY_XOA_HAN} ngày không liên lạc nên chưa nhận được lệnh gỡ. Xoá hẳn thì máy rời danh sách ngay, nhưng nếu AiiGrow vẫn còn trên máy, bạn phải gỡ tại máy (xem «Gỡ tại máy»).`
             : "Máy này chưa đồng bộ lần nào nên không nhận được lệnh gỡ. Xoá hẳn thì máy rời danh sách ngay. Nếu đã lỡ cài AiiGrow trên máy đó, hãy gỡ tại máy (xem «Gỡ tại máy»)."}
         </Chu>

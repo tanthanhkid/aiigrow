@@ -835,6 +835,10 @@ if (process.argv.includes("--giao-dien")) {
     M("bm-may-chi-tiet (bảo vệ chưa đủ)", "/may/m2", "Tài khoản của Con vẫn là quản trị"),
     M("bm-an-toan-may", "/may/m1", "Đổi tên máy"),
     M("bm-an-toan-may (#861 quản trị trống mật khẩu)", "/may/m1", "Sign-in options", { kb: { "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], quanTriTrong: ["Administrator", "Bố Minh"] } } }),
+    // #858: lệnh gỡ chờ máy đang tắt ⇒ «Chờ máy bật để gỡ (gửi lúc hh:mm)» + Huỷ gỡ + Xoá hẳn; máy đã cài lại thành dòng mới ⇒ chỉ đường sang dòng mới
+    M("bm-may-dang-go (chờ máy bật · #858)", "/may/m1", "Huỷ gỡ", { kb: { "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], dangGo: { lenhId: "l1", tu: luc(90) }, lienLacCuoi: luc(60 * 24 * 9), choMayBat: true, coTheXoaHan: false } } }),
+    M("bm-may-dang-go (đã cài lại · #858)", "/may/m1", "đã được cài lại thành", { kb: { "GET may/m1/tuan-thu": { ...coBan["GET may/m1/tuan-thu"], dangGo: { lenhId: "l1", tu: luc(90) }, lienLacCuoi: luc(60 * 24 * 2), coTheXoaHan: true, banMoi: { id: "m3", ten: "Laptop của Bill" } } } }),
+    M("bm-may (chờ máy bật để gỡ · #858)", "/may", "Chờ máy bật để gỡ", { kb: { "GET tuan-thu": { ...coBan["GET tuan-thu"], ds: [{ ...coBan["GET tuan-thu"].ds[0], dangGo: { lenhId: "l1", tu: luc(90) }, lienLacCuoi: luc(60 * 24 * 9), choMayBat: true, coTheXoaHan: false }, ...coBan["GET tuan-thu"].ds.slice(1)] } } }),
     // PR #253 nối app (lib/noi-1411): khoá riêng máy (bm-may-con/03), xoá hồ sơ Con (bm-gio-ho-so/07), «Trao luôn» (bm-sao-qua/03), hộp thư (bm-cai-dat/13)
     M("bm-may (khoá riêng · bảng 03)", "/may/m1", "Máy khác · không đổi gì", { truoc: async () => { await di("/may/m1"); await doi("Khoá riêng Laptop"); await bam("Khoá riêng Laptop"); } }),
     M("bm-may (đang khoá riêng)", "/may/m1", "Mở khoá Laptop", { kb: CON_KHOA_M1 }),
